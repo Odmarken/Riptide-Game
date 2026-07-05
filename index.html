@@ -179,6 +179,19 @@
   @keyframes chestp{from{transform:translate(-50%,-50%) rotate(0);opacity:1}to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) rotate(320deg);opacity:0}}
   @keyframes epicFlash{0%{background:rgba(200,150,255,.35)}100%{background:rgba(5,10,8,.84)}}
   #chestFx.flash{animation:epicFlash .6s ease-out}
+  .reelwrap{position:relative;width:min(92%,430px);height:94px;border:1px solid var(--brass-deep);border-radius:12px;background:rgba(10,18,14,.94);overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.5);display:none}
+  .reelwrap::before,.reelwrap::after{content:'';position:absolute;top:0;bottom:0;width:56px;z-index:1;pointer-events:none}
+  .reelwrap::before{left:0;background:linear-gradient(90deg,rgba(10,18,14,.95),transparent)}
+  .reelwrap::after{right:0;background:linear-gradient(-90deg,rgba(10,18,14,.95),transparent)}
+  .reel{position:absolute;top:10px;left:0;display:flex;gap:6px;will-change:transform}
+  .rcell{width:68px;height:74px;flex:0 0 auto;border-radius:9px;border:1px solid;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:25px;background:rgba(28,43,36,.92);overflow:hidden;transition:box-shadow .25s,transform .25s}
+  .rcell small{font-size:7.5px;letter-spacing:1px;text-transform:uppercase;margin-top:3px;opacity:.85;white-space:nowrap;max-width:62px;overflow:hidden;text-overflow:ellipsis}
+  .rcell.win.lit{box-shadow:0 0 20px currentColor;transform:scale(1.06)}
+  .reelmark{position:absolute;top:0;bottom:0;left:50%;width:2px;margin-left:-1px;background:var(--brass);z-index:2;box-shadow:0 0 10px var(--brass)}
+  .reelmark::before,.reelmark::after{content:'';position:absolute;left:50%;transform:translateX(-50%);border:6px solid transparent}
+  .reelmark::before{top:-1px;border-top:7px solid var(--brass)}
+  .reelmark::after{bottom:-1px;border-bottom:7px solid var(--brass)}
+  #chestFx .chestreveal{margin-top:16px}
 </style>
 </head>
 <body>
@@ -197,7 +210,7 @@
     <h1>Eastvale Legion</h1>
     <div class="tag">Book I · The Eastern Realm · Level cap 60</div>
     <label>Hero name</label>
-    <input id="cname" maxlength="14" placeholder="e.g. Aldric" autocomplete="off">
+    <input id="cname" maxlength="14" placeholder="e.g. BYYYL" autocomplete="off">
     <label>Bloodline</label><div class="pickgrid" id="racePick"></div>
     <label>Calling — each has 3 spells</label><div class="pickgrid" id="classPick"></div>
     <button id="startBtn">March East ⚔</button>
@@ -279,6 +292,7 @@
   <div id="chestFx">
     <div class="chestrays" id="chestRays"></div>
     <div class="chestbox" id="chestBox">🎁</div>
+    <div class="reelwrap" id="reelWrap"><div class="reel" id="reel"></div><div class="reelmark"></div></div>
     <div class="chestreveal" id="chestReveal"></div>
     <div class="chesthint">tap to continue</div>
   </div>
@@ -418,9 +432,16 @@ const zoneOf=()=>ZONES[S.zone];
 const questsOf=()=>zoneQuests(zoneOf());
 const questOf=()=>questsOf()[Math.min(S.quest,questsOf().length-1)];
 const swiftMul=()=>hasEnch('swiftness')?1.12:1;
+/* Shop boosts: first buy +2.5%, bonus doubles each purchase; cost starts 2,500 and doubles */
+const boostBonus=n=>n>0?0.025*Math.pow(2,n-1):0;
+const boostCost=n=>2500*Math.pow(2,n);
+const boostPct=n=>(Math.round(boostBonus(n)*1000)/10).toLocaleString();
+const speedBoostMul=()=>1+boostBonus(S.boosts?S.boosts.speed:0);
+const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0);
 function freshState(name,race,cls){
  return {id:null,name,race,cls,lvl:1,xp:0,gold:0,scraps:0,prestige:0,zone:0,quest:0,qProg:0,
   gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:2,mp:2},activeScroll:null,
+  boosts:{speed:0,haste:0},
   cleared:{},bossDead:{},
   auto:true,autoEquip:true,sound:true,sfx:true,finished:false};
 }
@@ -431,6 +452,7 @@ function migrate(s){ /* fills fields missing from older saves */
  if(!s.cleared)s.cleared={};
  if(!s.bossDead)s.bossDead={};
  if(s.activeScroll===undefined)s.activeScroll=null;
+ if(!s.boosts)s.boosts={speed:0,haste:0};
  for(const sl in s.gear){
   const g=s.gear[sl];if(!g)continue;
   if(g.up===undefined)g.up=0;
@@ -828,7 +850,7 @@ function collide(e,nx,ny){
  return nx<e.r+16||ny<e.r+16||nx>world.w-e.r-16||ny>world.h-e.r-16;
 }
 function speedOf(e){
- if(e===hero)return 175*swiftMul();
+ if(e===hero)return 175*swiftMul()*speedBoostMul();
  let s=e.speed;if(e.slowT>0)s*=0.45;return s;
 }
 /* Smoother obstacle avoidance: try a diagonal slide first, then commit to one
@@ -884,7 +906,7 @@ function hazardAt(x,y,rad,warn,dmg,c){hazards.push({x,y,rad,warn,t:0,dmg,c:c||'#
 
 /* ==================== COMBAT ==================== */
 function atkMul(){return hero.buff.atk&&hero.buff.atk.t>0?hero.buff.atk.mul:1;}
-function hasteMul(){return (hero.buff.haste&&hero.buff.haste.t>0?hero.buff.haste.mul:1)*swiftMul();}
+function hasteMul(){return (hero.buff.haste&&hero.buff.haste.t>0?hero.buff.haste.mul:1)*swiftMul()*hasteBoostMul();}
 function healHero(amt,silent){
  if(hero.dead)return;
  amt=Math.round(amt);if(amt<=0)return;
@@ -1893,14 +1915,14 @@ function renderHero(){
   $('prestigeSec').innerHTML=`<div class="card">
    <div class="sn" style="font-family:var(--display);color:var(--brass);font-size:14px">✦ Prestige ${S.prestige+1} awaits</div>
    <div class="ss" style="color:var(--dim);font-size:11px;margin:5px 0 9px">Return to level 1 and march the realm again. You keep every piece of gear, scroll, upgrade, gold and Scrap — but all foes grow far stronger.</div>
-   <button class="sbtn gold" id="prestigeBtn" style="width:100%">Ascend — Prestige ${S.prestige+1}</button>
+   <button class="sbtn gold" id="prestigeBtn" style="width:100%">AWOOOGAA</button>
   </div>`;
   $('prestigeBtn').onclick=()=>{
    const b=$('prestigeBtn');
    if(!b.dataset.armed){
     b.dataset.armed='1';
     b.textContent='Tap again to confirm — foes grow much stronger';
-    setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent='Ascend — Prestige '+(S.prestige+1);}},3500);
+    setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent='AWOOOGAA';}},3500);
     return;
    }
    doPrestige();
@@ -1999,39 +2021,88 @@ function spawnChestParts(color,n){
   setTimeout(()=>p.remove(),1100);
  }
 }
+/* case-opening reel: a strip of items scrolls past the marker, slows down, and lands on your prize */
+let reelAnim=null,reelSkip=null;
+function reelFiller(){
+ const r=Math.random();
+ if(r<0.05)return{icon:'📜',color:'#e8c9ef',tier:'scroll'};
+ const rar=r<0.60?'common':r<0.86?'fine':r<0.965?'rare':'epic';
+ const col={common:'#d8e4d6',fine:'#6dbb6d',rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
+ return{icon:['⚔️','🛡️','💍'][Math.floor(Math.random()*3)],color:col,tier:rar};
+}
+const reelCell=(f,win)=>`<div class="rcell${win?' win':''}" style="border-color:${f.color};color:${f.color}">${f.icon}<small>${f.tier}</small></div>`;
 function showChestFx(r){
- const fx=$('chestFx'),box=$('chestBox'),rays=$('chestRays'),rev=$('chestReveal');
+ const fx=$('chestFx'),rays=$('chestRays'),rev=$('chestReveal'),wrap=$('reelWrap'),reel=$('reel');
  fx.classList.add('open');fx.classList.remove('flash');
  rev.classList.remove('show');rev.innerHTML='';
  rays.style.opacity=0;rays.classList.toggle('epic',!!r.epic);
- box.style.display='block';
- box.style.animation='none';void box.offsetWidth;box.style.animation='';
- /* suspense: creak + rising ticks while it shakes */
- blip(110,70,0.5,.07,'sawtooth');
- [0,240,480,720].forEach((t,i)=>setTimeout(()=>blip(300+i*90,300+i*90,0.07,.05,'square'),t));
- clearTimeout(fx._t1);clearTimeout(fx._t2);
- fx._t1=setTimeout(()=>{
-  box.style.display='none';
-  rays.style.setProperty('--rayc',r.color+'55');
-  rays.style.opacity=1;
-  spawnChestParts(r.color,r.epic?28:14);
-  rev.innerHTML=`<div class="cricon" style="color:${r.color}">${r.icon}</div>
-   <div class="crtier" style="color:${r.color}">${r.tier}</div>
-   <div class="crname" style="color:${r.color}">${r.name}</div>
-   <div class="crsub">${r.sub}</div>`;
-  rev.classList.add('show');
-  if(r.epic){fx.classList.add('flash');sfx.level();noiseSweep(0.5,.08,400,3000);}
-  else if(r.big)sfx.quest();
-  else sfx.loot();
- },980);
- fx._t2=setTimeout(hideChestFx,5200);
+ $('chestBox').style.display='none';
+ wrap.style.display='block';
+ clearTimeout(fx._t2);
+ if(reelAnim){cancelAnimationFrame(reelAnim);reelAnim=null;}
+ /* build the strip — the winning cell sits near the end */
+ const N=44,WIN=38,cellW=68,gap=6,step=cellW+gap;
+ let html='';
+ for(let i=0;i<N;i++)html+=i===WIN?reelCell(r,true):reelCell(reelFiller());
+ reel.innerHTML=html;
+ reel.style.transform='translateX(0px)';
+ const wrapW=wrap.clientWidth||Math.min(innerWidth*0.92,430);
+ const jitter=(Math.random()*2-1)*cellW*0.3;
+ const target=WIN*step+cellW/2-wrapW/2+jitter;
+ const start=Math.random()*step*1.5;
+ const dur=4200+Math.random()*600;
+ const t0=performance.now();
+ const ease=t=>1-Math.pow(1-t,4); /* fast start, long smooth deceleration */
+ let lastIdx=-1,landed=false;
+ const land=()=>{
+  if(landed)return;landed=true;
+  reelSkip=null;
+  if(reelAnim){cancelAnimationFrame(reelAnim);reelAnim=null;}
+  reel.style.transform='translateX('+(-target)+'px)';
+  const winEl=reel.querySelector('.rcell.win');
+  if(winEl)winEl.classList.add('lit');
+  blip(500,900,0.18,.09,'triangle');
+  setTimeout(()=>{
+   rays.style.setProperty('--rayc',r.color+'55');
+   rays.style.opacity=1;
+   spawnChestParts(r.color,r.epic?28:14);
+   rev.innerHTML=`<div class="cricon" style="color:${r.color}">${r.icon}</div>
+    <div class="crtier" style="color:${r.color}">${r.tier}</div>
+    <div class="crname" style="color:${r.color}">${r.name}</div>
+    <div class="crsub">${r.sub}</div>`;
+   rev.classList.add('show');
+   if(r.epic){fx.classList.add('flash');sfx.level();noiseSweep(0.5,.08,400,3000);}
+   else if(r.big)sfx.quest();
+   else sfx.loot();
+   fx._t2=setTimeout(hideChestFx,5200);
+  },420);
+ };
+ reelSkip=land;
+ const stepFn=now=>{
+  if(landed)return;
+  const p=Math.min(1,(now-t0)/dur);
+  const x=start+(target-start)*ease(p);
+  reel.style.transform='translateX('+(-x)+'px)';
+  const idx=Math.floor((x+wrapW/2)/step); /* tick every time a cell crosses the marker */
+  if(idx!==lastIdx){lastIdx=idx;blip(1500,1050,0.035,.05,'square');}
+  if(p<1)reelAnim=requestAnimationFrame(stepFn);
+  else land();
+ };
+ blip(110,70,0.4,.06,'sawtooth');
+ reelAnim=requestAnimationFrame(stepFn);
 }
 function hideChestFx(){
  const fx=$('chestFx');
  fx.classList.remove('open');
- clearTimeout(fx._t1);clearTimeout(fx._t2);
+ clearTimeout(fx._t2);
+ if(reelAnim){cancelAnimationFrame(reelAnim);reelAnim=null;}
+ reelSkip=null;
 }
-$('chestFx').onclick=hideChestFx;
+/* tap while spinning = skip to the result; tap after = close */
+$('chestFx').onclick=()=>{
+ if(reelSkip){const f=reelSkip;reelSkip=null;f();}
+ else hideChestFx();
+};
 function openChest(){
  if(S.gold<5000){stageMsg('Not enough gold — the chest costs 5,000 ◉',1500);return;}
  S.gold-=5000;
@@ -2042,14 +2113,14 @@ function openChest(){
   const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
   S.scrolls.push(e.id);
   fxInfo={icon:'📜',tier:'Scroll of Power',name:e.n,color:e.glow,sub:e.d,big:true};
-  log(`Gamble Chest: <span class="lscroll">${e.n}</span>!`,'loot');
+  log(`GAMBAAA: <span class="lscroll">${e.n}</span>!`,'loot');
  }else{ /* mostly weak gear, tiny chance of greatness */
   const rar=r<0.66?'common':r<0.90?'fine':r<0.98?'rare':'epic';
   const it=rollItem(rar);
   const icon={weapon:'⚔️',armor:'🛡️',trinket:'💍'}[it.slot];
   const col={common:'#d8e4d6',fine:'#6dbb6d',rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
   fxInfo={icon,tier:rar,name:it.name,color:col,sub:it.slot+' · '+itemStr(it),epic:rar==='epic',big:rar==='rare'};
-  log(`Gamble Chest: <span class="l${it.rar}">${it.name}</span> ${itemStr(it)}.`,'loot');
+  log(`GAMBAAA: <span class="l${it.rar}">${it.name}</span> ${itemStr(it)}.`,'loot');
   if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
  }
  showChestFx(fxInfo);
@@ -2058,7 +2129,7 @@ function openChest(){
 function renderShop(){
  $('shopWallet').innerHTML=walletStr();
  let h='<div class="ptitle" style="font-size:14px;margin-bottom:8px">Gamble</div>';
- h+=`<div class="card item" style="border-color:var(--brass-deep)"><div><div class="sn" style="font-size:13px;font-weight:600;color:var(--brass)">🎁 Gamble Chest</div>
+ h+=`<div class="card item" style="border-color:var(--brass-deep)"><div><div class="sn" style="font-size:13px;font-weight:600;color:var(--brass)">🎁 GAMBAAA</div>
   <div class="ss" style="color:var(--dim);font-size:11px">A sealed chest of unknown origin. Holds a random weapon, armor piece or scroll — most are humble, but legends whisper of epic prizes within.</div></div>
   <div class="btns"><button class="sbtn gold" id="chestBtn" ${S.gold<5000?'disabled':''}>5,000◉</button></div></div>`;
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Supplies</div>';
@@ -2069,8 +2140,25 @@ function renderShop(){
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">🔮 Mana Potion</div>
   <div class="ss" style="color:var(--dim);font-size:11px">Restores 60% mana. You own ${S.pots.mp}.</div></div>
   <div class="btns"><button class="sbtn gold" data-pot="mp" ${S.gold<mpC?'disabled':''}>Buy ${mpC.toLocaleString()}◉</button></div></div>`;
+ h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Upgrades</div>';
+ const spN=S.boosts.speed,haN=S.boosts.haste,spC=boostCost(spN),haC=boostCost(haN);
+ h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">👟 Speed Boost${spN?` <span style="color:var(--brass);font-size:11px">+${boostPct(spN)}%</span>`:''}</div>
+  <div class="ss" style="color:var(--dim);font-size:11px">Move faster. Next purchase: <b style="color:var(--parch)">+${boostPct(spN+1)}%</b> movement speed — the bonus and price double every time.</div></div>
+  <div class="btns"><button class="sbtn gold" data-boost="speed" ${S.gold<spC?'disabled':''}>Buy ${spC.toLocaleString()}◉</button></div></div>`;
+ h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">⚡ Haste Boost${haN?` <span style="color:var(--brass);font-size:11px">+${boostPct(haN)}%</span>`:''}</div>
+  <div class="ss" style="color:var(--dim);font-size:11px">Strike faster. Next purchase: <b style="color:var(--parch)">+${boostPct(haN+1)}%</b> attack speed — the bonus and price double every time.</div></div>
+  <div class="btns"><button class="sbtn gold" data-boost="haste" ${S.gold<haC?'disabled':''}>Buy ${haC.toLocaleString()}◉</button></div></div>`;
  h+='<div class="ss" style="color:var(--dim);font-size:10.5px;margin-top:2px">Potion prices rise with your level. Scrolls of Power are no longer sold — hunt them as rare drops, or gamble for one.</div>';
  $('shopList').innerHTML=h;
+ document.querySelectorAll('[data-boost]').forEach(b=>b.onclick=()=>{
+  const k=b.dataset.boost,cost=boostCost(S.boosts[k]);
+  if(S.gold<cost){stageMsg('Not enough gold',1200);return;}
+  S.gold-=cost;S.boosts[k]++;
+  sfx.buy();
+  stageMsg((k==='speed'?'👟 Speed':'⚡ Haste')+' Boost — now +'+boostPct(S.boosts[k])+'%',1600);
+  log(`Bought <span class="imp">${k==='speed'?'Speed':'Haste'} Boost</span> — total +${boostPct(S.boosts[k])}% ${k==='speed'?'movement':'attack'} speed.`);
+  renderShop();renderHUD();save();
+ });
  $('chestBtn').onclick=openChest;
  document.querySelectorAll('[data-pot]').forEach(b=>b.onclick=()=>{
   const k=b.dataset.pot,cost=potCost(k);
