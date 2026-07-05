@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Eastvale Legion — Book I</title>
+<title>Riptide — Book I</title>
 <style>
   :root{
     --night:#131f1a; --panel:#1c2b24; --panel2:#243830; --line:#33503f;
@@ -17,8 +17,8 @@
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
   html,body{height:100%;overscroll-behavior:none}
   body{background:var(--night);color:var(--ink);font-family:var(--body);display:flex;justify-content:center;overflow:hidden}
-  #app{width:100%;max-width:none;height:100dvh;display:flex;flex-direction:column;position:relative;background:var(--night)}
-
+  #app{width:100%;max-width:480px;height:100dvh;display:flex;flex-direction:column;position:relative;background:var(--night)}
+ 
   header{padding:7px 14px 6px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#1a2921,#131f1a);flex:0 0 auto;z-index:5}
   .hrow{display:flex;align-items:center;justify-content:space-between;gap:8px}
   .zone-name{font-family:var(--display);font-size:15.5px;color:var(--parch)}
@@ -36,7 +36,7 @@
   .bar.hp>i{background:linear-gradient(90deg,#3a8a55,var(--hp))}
   .bar.mp>i{background:linear-gradient(90deg,#4b6bb0,var(--mp))}
   .vlab{font-size:9px;color:var(--dim);width:20px;text-align:right}
-
+ 
   #stageWrap{flex:1 1 auto;position:relative;min-height:0}
   canvas#game{position:absolute;inset:0;width:100%;height:100%;display:block}
   #ticker{position:absolute;left:8px;right:60px;bottom:4px;pointer-events:none;font-size:10.5px;line-height:1.45;color:#eef4ea;text-shadow:0 1px 3px rgba(0,0,0,.85)}
@@ -48,7 +48,7 @@
   .stgbtn{position:absolute;right:8px;width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(10,18,14,.55);color:#fff;font-size:15px;cursor:pointer;z-index:6}
   #sndBtn{top:6px} #sfxBtn{top:44px;font-size:13px}
   .stgbtn.off{opacity:.45}
-
+ 
   #skillbar{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:7px;align-items:flex-end;z-index:6}
   .skill{position:relative;width:46px;height:46px;border-radius:11px;border:1px solid var(--brass-deep);background:linear-gradient(180deg,#2a3d33,#17241d);color:var(--parch);font-size:19px;cursor:pointer;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.5)}
   .skill .cdm{position:absolute;left:0;right:0;bottom:0;background:rgba(5,10,8,.78);height:0%;pointer-events:none}
@@ -57,7 +57,7 @@
   .skill.pot{border-color:#4a6a55;font-size:17px}
   .skill .cnt{position:absolute;top:1px;right:3px;font-size:9px;color:#fff;font-weight:700;text-shadow:0 1px 2px #000}
   .sep{width:1px;height:36px;background:rgba(255,255,255,.18);margin:0 2px 5px}
-
+ 
   #questcard{margin:7px 10px;padding:8px 11px;background:var(--panel);border:1px solid var(--line);border-radius:10px;flex:0 0 auto}
   .qtop{display:flex;justify-content:space-between;align-items:center;gap:10px}
   .qname{font-family:var(--display);font-size:13px;color:var(--parch)}
@@ -70,7 +70,7 @@
   #autoBtn.on{background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;border-color:var(--brass);box-shadow:0 0 14px rgba(217,164,65,.35)}
   #nextBtn{display:none;border-color:#6dbb6d;color:#9adf9a;animation:pulseNext 2s infinite}
   @keyframes pulseNext{0%,100%{box-shadow:0 0 4px rgba(109,187,109,.2)}50%{box-shadow:0 0 12px rgba(109,187,109,.5)}}
-
+ 
   .panel{position:absolute;inset:0;bottom:56px;z-index:20;display:none;background:var(--night);overflow-y:auto;padding:14px}
   .panel.open{display:block}
   .ptitle{font-family:var(--display);font-size:19px;color:var(--parch);margin-bottom:12px}
@@ -111,12 +111,12 @@
   .glowdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
   .wallet{font-size:12px;color:var(--dim);margin:-6px 0 12px}
   .wallet b{color:var(--brass)} .wallet i{color:#a8bcb0;font-style:normal}
-
+ 
   nav{flex:0 0 56px;display:flex;border-top:1px solid var(--line);background:#16231d;z-index:30}
   nav button{flex:1;background:none;border:none;color:var(--dim);cursor:pointer;font-size:10px;letter-spacing:.5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-family:var(--body)}
   nav button svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
   nav button.cur{color:var(--brass)}
-
+ 
   #create{position:absolute;inset:0;z-index:50;display:none;flex-direction:column;padding:26px 22px;overflow-y:auto;
     background:
       radial-gradient(ellipse 120% 55% at 50% -8%, #f4c86a22, transparent 60%),
@@ -135,17 +135,18 @@
   .pick span{font-size:10.5px;color:var(--dim);line-height:1.4;display:block;margin-top:3px}
   #startBtn{margin-top:20px;padding:14px;border-radius:11px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;font-family:var(--display);font-size:16px;letter-spacing:1px;cursor:pointer}
   .fineprint{font-size:10px;color:#5c7263;margin-top:12px;line-height:1.5}
-
-  #select{position:absolute;inset:0;z-index:60;display:none;flex-direction:column;padding:26px 22px 18px;overflow-y:auto;
+ 
+  #select,#login{position:absolute;inset:0;z-index:60;display:none;flex-direction:column;padding:26px 22px 18px;overflow-y:auto;
     background:
       radial-gradient(ellipse 120% 55% at 50% -8%, #f4c86a22, transparent 60%),
       radial-gradient(ellipse 90% 40% at 80% 8%, #d9a44126, transparent 55%),
       radial-gradient(ellipse 140% 60% at 50% 108%, #0b1410, #131f1a 70%),
       linear-gradient(180deg,#233a2c,#131f1a 55%);
   }
-  #select.open{display:flex}
-  #select h1{font-family:var(--display);font-size:27px;color:var(--parch);text-shadow:0 2px 12px rgba(217,164,65,.25)}
-  #select .tag{color:var(--dim);font-size:12px;margin:4px 0 16px;letter-spacing:1.5px;text-transform:uppercase}
+  #login{z-index:62;justify-content:center}
+  #select.open,#login.open{display:flex}
+  #select h1,#login h1{font-family:var(--display);font-size:27px;color:var(--parch);text-shadow:0 2px 12px rgba(217,164,65,.25)}
+  #select .tag,#login .tag{color:var(--dim);font-size:12px;margin:4px 0 16px;letter-spacing:1.5px;text-transform:uppercase}
   .charcard{display:flex;align-items:center;gap:12px;background:rgba(28,43,36,.88)}
   .charcard .portrait{width:64px;height:76px;border-radius:9px;flex:0 0 auto}
   .cinfo{flex:1;min-width:0}
@@ -157,7 +158,7 @@
   .delbtn{font-size:10px;padding:4px;border-radius:7px;border:1px solid #5a3a3a;background:none;color:#c07a7a;cursor:pointer}
   #newCharBtn{margin-top:6px;padding:13px;border-radius:11px;border:1px dashed var(--brass-deep);background:rgba(28,43,36,.6);color:var(--brass);font-family:var(--display);font-size:14px;cursor:pointer}
   #createBack{align-self:flex-start;margin-bottom:6px;padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:rgba(28,43,36,.7);color:var(--dim);font-size:11px;cursor:pointer;display:none}
-
+ 
   #chestFx{position:absolute;inset:0;z-index:70;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(5,10,8,.84);cursor:pointer}
   #chestFx.open{display:flex}
   .chestbox{font-size:64px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.6));animation:chestShake .95s ease-in-out}
@@ -179,31 +180,57 @@
   @keyframes chestp{from{transform:translate(-50%,-50%) rotate(0);opacity:1}to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) rotate(320deg);opacity:0}}
   @keyframes epicFlash{0%{background:rgba(200,150,255,.35)}100%{background:rgba(5,10,8,.84)}}
   #chestFx.flash{animation:epicFlash .6s ease-out}
-  .reelwrap{position:relative;width:min(92%,430px);height:94px;border:1px solid var(--brass-deep);border-radius:12px;background:rgba(10,18,14,.94);overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.5);display:none}
-  .reelwrap::before,.reelwrap::after{content:'';position:absolute;top:0;bottom:0;width:56px;z-index:1;pointer-events:none}
-  .reelwrap::before{left:0;background:linear-gradient(90deg,rgba(10,18,14,.95),transparent)}
-  .reelwrap::after{right:0;background:linear-gradient(-90deg,rgba(10,18,14,.95),transparent)}
-  .reel{position:absolute;top:10px;left:0;display:flex;gap:6px;will-change:transform}
-  .rcell{width:68px;height:74px;flex:0 0 auto;border-radius:9px;border:1px solid;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:25px;background:rgba(28,43,36,.92);overflow:hidden;transition:box-shadow .25s,transform .25s}
-  .rcell small{font-size:7.5px;letter-spacing:1px;text-transform:uppercase;margin-top:3px;opacity:.85;white-space:nowrap;max-width:62px;overflow:hidden;text-overflow:ellipsis}
-  .rcell.win.lit{box-shadow:0 0 20px currentColor;transform:scale(1.06)}
-  .reelmark{position:absolute;top:0;bottom:0;left:50%;width:2px;margin-left:-1px;background:var(--brass);z-index:2;box-shadow:0 0 10px var(--brass)}
-  .reelmark::before,.reelmark::after{content:'';position:absolute;left:50%;transform:translateX(-50%);border:6px solid transparent}
-  .reelmark::before{top:-1px;border-top:7px solid var(--brass)}
-  .reelmark::after{bottom:-1px;border-bottom:7px solid var(--brass)}
-  #chestFx .chestreveal{margin-top:16px}
+ 
+  .acctin{width:100%;padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:rgba(19,31,26,.9);color:var(--parch);font-size:13px;margin-top:6px}
+  #lbFx{position:absolute;inset:0;z-index:75;display:none;flex-direction:column;background:rgba(5,10,8,.94);padding:20px}
+  #lbFx.open{display:flex}
+  .lbrow{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--line);font-size:12.5px}
+  .lbrow.me{background:rgba(217,164,65,.08);border-radius:8px}
+  .lbrank{width:26px;color:var(--brass);font-family:var(--display);font-size:13px}
+  .lbname{flex:1;color:var(--parch);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lbmeta{color:var(--dim);font-size:11px;white-space:nowrap}
 
-  /* Desktop support: use the full browser window instead of iPhone-width layout. */
-  @media (min-width: 700px){
-    body{justify-content:stretch}
-    #app{max-width:none;width:100vw;height:100vh}
-    header{padding-left:24px;padding-right:24px}
-    #questcard{margin-left:24px;margin-right:24px}
-    .panel{padding:22px 32px 78px}
-    #select,#create{padding-left:32px;padding-right:32px}
-    .skill{width:52px;height:52px;font-size:21px}
-    #skillbar{bottom:30px}
-    nav button{font-size:11px}
+
+  /* ---- Riptide sign-in gate ---- */
+  .loginbox{width:min(100%,390px);margin:0 auto;padding:22px;background:rgba(28,43,36,.88);border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.35)}
+  .loginrow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .loginbtn{padding:12px 10px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--display);font-size:13px;cursor:pointer}
+  .loginbtn.primary{border-color:var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a}
+  #guestBtn{width:100%;margin-top:9px;border-style:dashed;color:var(--brass)}
+  .selectacct{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:-4px 0 12px;padding:8px 10px;background:rgba(28,43,36,.62);border:1px solid var(--line);border-radius:9px}
+  .statusval{font-size:9px;color:var(--dim);white-space:nowrap;min-width:54px;text-align:right}
+  .statusgrid{display:grid;grid-template-columns:1fr;gap:5px;margin-top:7px}
+  .statusline{display:grid;grid-template-columns:56px 24px 1fr 58px;gap:7px;align-items:center}
+
+  /* ---- desktop RuneScape-style split layout; mobile rules above stay untouched ---- */
+  @media (min-width:900px){
+    body{display:block;overflow:hidden}
+    #app{max-width:none;width:100vw;height:100dvh;display:grid;grid-template-columns:minmax(0,7fr) minmax(320px,3fr);grid-template-rows:auto minmax(0,1fr) auto;background:var(--night)}
+    header{grid-column:1;grid-row:1;padding:10px 16px 9px;border-right:1px solid var(--line);background:linear-gradient(180deg,#1d3027,#111d17)}
+    header .hrow{max-width:none}
+    header .zone-name{font-size:17px}
+    header .vrow{margin-top:7px;padding:6px 8px;border:1px solid rgba(51,80,63,.7);border-radius:8px;background:rgba(9,17,13,.28)}
+    header .bar{height:9px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.025)}
+    #stageWrap{grid-column:1;grid-row:2;min-width:0;min-height:0;border-right:1px solid var(--line)}
+    #questcard{grid-column:1;grid-row:3;margin:0;padding:10px 16px 11px;border-radius:0;border-left:0;border-right:1px solid var(--line);border-bottom:0;background:linear-gradient(180deg,#1b2a23,#142019)}
+    #questcard .qtop{max-width:100%}
+    #questcard .qname{font-size:14px}
+    #questcard .qdesc{font-size:11px}
+    nav{grid-column:2;grid-row:1;display:flex;min-width:0;height:auto;flex:0 0 auto;border-top:0;border-bottom:1px solid var(--line);background:#14231c}
+    nav button{min-width:0;padding:9px 4px;font-size:9px}
+    nav button[data-tab="battle"]{display:none}
+    .panel{position:relative;inset:auto;bottom:auto;grid-column:2;grid-row:2 / 4;z-index:20;width:100%;height:100%;min-height:0;padding:16px;background:linear-gradient(180deg,#14231c,#101a16);border-left:0;overflow-y:auto}
+    .panel.open{display:block}
+    .panel .ptitle{font-size:18px}
+    .slotrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .slot{min-width:0}
+    .statgrid{grid-template-columns:1fr 1fr}
+    #skillbar{bottom:28px;gap:9px}
+    .skill{width:54px;height:54px;font-size:22px}
+    #ticker{left:12px;right:76px;bottom:8px;font-size:11px}
+    #hint{font-size:11px}
+    #select,#create,#login{position:fixed;inset:0;padding-left:max(24px,calc(50vw - 380px));padding-right:max(24px,calc(50vw - 380px))}
+    #lbFx,#chestFx{position:fixed;inset:0}
   }
 
 </style>
@@ -211,31 +238,60 @@
 <body>
 <div id="app">
 
+  <div id="login" class="open">
+    <div class="loginbox">
+      <h1>Riptide</h1>
+      <div class="tag">Cloud account or guest play</div>
+      <input class="acctin" id="fbEmail" type="email" placeholder="Email" autocomplete="username">
+      <input class="acctin" id="fbPass" type="password" placeholder="Password" autocomplete="current-password">
+      <div class="loginrow">
+        <button class="loginbtn primary" id="fbLogin">Sign in</button>
+        <button class="loginbtn" id="fbSignup">Create account</button>
+      </div>
+      <button class="loginbtn" id="guestBtn">Play as Guest</button>
+      <div class="cl" id="fbErr" style="color:#ff8a7a;margin-top:10px;min-height:1.2em"></div>
+      <div class="fineprint">Accounts sync characters through Firebase. Guest mode keeps saves on this device only.</div>
+    </div>
+  </div>
+ 
   <div id="select">
-    <h1>Eastvale Legion</h1>
+    <h1>Riptide</h1>
     <div class="tag">Choose your champion</div>
+    <div class="selectacct">
+      <div class="cl" id="acctInfo" style="margin:0">Guest mode — saves stay on this device.</div>
+      <button class="sbtn" id="fbOut" style="display:none">Sign out</button>
+    </div>
     <div id="charList"></div>
     <button id="newCharBtn">＋ Create New Character</button>
-    <div class="fineprint">Every hero keeps their own save — progression, bags and gear are fully separate. Reach level 60 to unlock Prestige and march the realm again against harder foes.</div>
+    <div class="fineprint">Every hero keeps their own save — progression, bags and gear are fully separate. Sign in to sync heroes to the cloud. Reach level 60 to unlock Prestige and march the realm again against harder foes.</div>
   </div>
-
+ 
+  <div id="lbFx">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div class="ptitle" style="margin:0">🏆 Champions of Riptide</div>
+      <button class="sbtn" id="lbClose">Close</button>
+    </div>
+    <div class="cl" style="margin-bottom:10px">Publishing to the board shares your hero's name, level, prestige and gear score publicly.</div>
+    <div id="lbList" style="overflow-y:auto;flex:1"></div>
+  </div>
+ 
   <div id="create">
     <button id="createBack">← Back to characters</button>
-    <h1>Eastvale Legion</h1>
+    <h1>Riptide</h1>
     <div class="tag">Book I · The Eastern Realm · Level cap 60</div>
     <label>Hero name</label>
-    <input id="cname" maxlength="14" placeholder="e.g. BYYYL" autocomplete="off">
+    <input id="cname" maxlength="14" placeholder="e.g. BYYYYL" autocomplete="off">
     <label>Bloodline</label><div class="pickgrid" id="racePick"></div>
     <label>Calling — each has 3 spells</label><div class="pickgrid" id="classPick"></div>
     <button id="startBtn">March East ⚔</button>
-    <div class="fineprint">Move with WASD / tap the ground · tap a foe to attack · spells 1/2/3, potions 4/5 · scrap unwanted gear for ⚙ Scraps and upgrade your equipment · visit the Trader to buy powerful scrolls. Sound starts after your first tap. Progress saves on this device.</div>
+    <div class="fineprint">Move with WASD / tap the ground · tap a foe to attack · spells 1/2/3, potions 4/5 · scrap unwanted gear for ⚙ Scraps and upgrade your equipment · hunt rare scrolls and combine duplicates to forge stronger tiers. Sound starts after your first tap. Progress saves on this device.</div>
   </div>
-
+ 
   <header>
     <div class="hrow">
       <div>
         <div class="zone-name" id="hZone">—</div>
-        <div class="zone-sub">Eastvale · The Eastern Realm</div>
+        <div class="zone-sub">Riptide · The Eastern Realm</div>
       </div>
       <div class="curr">
         <div class="gold" id="hGold">0</div>
@@ -245,7 +301,7 @@
     <div class="vrow"><div class="lvl" id="hLvl">Lv 1</div><div class="vlab">XP</div><div class="bar xp"><i id="hXP" style="width:0%"></i></div></div>
     <div class="vrow"><div class="lvl" style="visibility:hidden">Lv 1</div><div class="vlab">HP</div><div class="bar hp"><i id="hHP" style="width:100%"></i></div><div class="vlab">MP</div><div class="bar mp"><i id="hMP" style="width:100%"></i></div></div>
   </header>
-
+ 
   <div id="stageWrap">
     <canvas id="game"></canvas>
     <button id="sndBtn" class="stgbtn">🔊</button>
@@ -255,7 +311,7 @@
     <div id="skillbar"></div>
     <div id="ticker"></div>
   </div>
-
+ 
   <div id="questcard">
     <div class="qtop">
       <div style="flex:1">
@@ -269,7 +325,7 @@
     </div>
     <div class="qprog"><div class="bar q"><i id="qBar" style="width:0%"></i></div><div class="qcount" id="qCount">0 / 0</div></div>
   </div>
-
+ 
   <div class="panel" id="p-hero">
     <div class="ptitle" id="heroTitle">Hero</div>
     <div class="wallet" id="heroWallet"></div>
@@ -279,38 +335,38 @@
     <div id="prestigeSec"></div>
     <div class="card toggle-row"><span>Auto-equip stronger gear</span><button class="sbtn gold" id="autoEquipBtn">On</button></div>
     <div class="card toggle-row"><span>Play a different hero</span><button class="sbtn gold" id="charSelBtn">⇄ Change Character</button></div>
+    <div class="card toggle-row"><span>Global rankings</span><button class="sbtn gold" id="lbBtn2">🏆 Leaderboard</button></div>
   </div>
-
+ 
   <div class="panel" id="p-map">
     <div class="ptitle">World Map</div>
     <div>
-      <span class="continent-tab cur">Eastvale — Eastern Realm</span>
+      <span class="continent-tab cur">Riptide — Eastern Realm</span>
       <span class="continent-tab">🔒 Western Continent · Book II</span>
     </div>
     <div id="zoneList"></div>
   </div>
-
+ 
   <div class="panel" id="p-bag">
     <div class="ptitle">Warband Bag</div>
     <div class="wallet" id="bagWallet"></div>
     <div id="scrollSec"></div>
     <div id="bagList"></div>
   </div>
-
+ 
   <div class="panel" id="p-shop">
     <div class="ptitle">Wandering Trader</div>
     <div class="wallet" id="shopWallet"></div>
     <div id="shopList"></div>
   </div>
-
+ 
   <div id="chestFx">
     <div class="chestrays" id="chestRays"></div>
     <div class="chestbox" id="chestBox">🎁</div>
-    <div class="reelwrap" id="reelWrap"><div class="reel" id="reel"></div><div class="reelmark"></div></div>
     <div class="chestreveal" id="chestReveal"></div>
     <div class="chesthint">tap to continue</div>
   </div>
-
+ 
   <nav>
     <button data-tab="battle" class="cur"><svg viewBox="0 0 24 24"><path d="M14.5 4 20 9.5 9.5 20 4 14.5z"/><path d="m4 20 3-3M17 7l3-3"/></svg>World</button>
     <button data-tab="hero"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.5 7.5-8 9-4.5-1.5-8-4.5-8-9V6z"/></svg>Hero</button>
@@ -319,7 +375,7 @@
     <button data-tab="shop"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10c0-1 1-1.7 2.5-1.7s2.5.7 2.5 1.7-1 1.4-2.5 1.7-2.5.7-2.5 1.7 1 1.7 2.5 1.7 2.5-.7 2.5-1.7"/></svg>Shop</button>
   </nav>
 </div>
-
+ 
 <script>
 /* ==================== DATA ==================== */
 const MAXLVL=60;
@@ -355,19 +411,25 @@ const CLASSES=[
    {n:'Renew',g:'💚',cost:20,cd:12,t:'hot',hot:.05,dur:6,d:'Heal 5% of max health per second for 6s.',vfx:'renew'},
   ]},
 ];
-/* 10 scrolls — each with a unique aura glow and a shop price */
+/* 10 scrolls — tiered. Base effects are weak; combine two identical scrolls to
+   forge the next tier (I → IV), doubling the effect each time. */
+const TIERN=['I','II','III','IV'];
+const MAXTIER=4;
 const ENCHS=[
- {id:'mending',slot:'armor',n:'Scroll of Mending',d:'Regenerate 1% max health every second.',glow:'#7ae08a',price:900},
- {id:'warding',slot:'armor',n:'Scroll of Warding',d:'Take 12% less damage.',glow:'#8fb0d0',price:1200},
- {id:'thorns',slot:'armor',n:'Scroll of Thorns',d:'Reflect 25% of damage taken back at foes.',glow:'#9adf9a',price:1000},
- {id:'reaper',slot:'weapon',n:'Scroll of the Reaper',d:'Heal 5% of max health on every kill.',glow:'#c86a6a',price:1400},
- {id:'flames',slot:'weapon',n:'Scroll of Flames',d:'Attacks burn for 15% bonus fire damage.',glow:'#ff9a4a',price:1300},
- {id:'frostbite',slot:'weapon',n:'Scroll of Biting Frost',d:'Attacks chill foes, slowing them briefly.',glow:'#a0e0ff',price:850},
- {id:'titan',slot:'weapon',n:'Scroll of the Colossus',d:'+10% attack damage.',glow:'#e8b070',price:2000},
- {id:'clarity',slot:'trinket',n:'Scroll of Clarity',d:'+60% mana regeneration.',glow:'#8fa8ef',price:900},
- {id:'swiftness',slot:'trinket',n:'Scroll of Swiftness',d:'+12% movement and attack speed.',glow:'#d8f2ff',price:1500},
- {id:'fortune',slot:'trinket',n:'Scroll of Fortune',d:'+25% gold from kills.',glow:'#ffd76a',price:1600},
+ {id:'mending',n:'Scroll of Mending',base:0.5,glow:'#7ae08a',d:v=>`Regenerate ${v}% max health every second.`},
+ {id:'warding',n:'Scroll of Warding',base:3,glow:'#8fb0d0',d:v=>`Take ${v}% less damage.`},
+ {id:'thorns',n:'Scroll of Thorns',base:8,glow:'#9adf9a',d:v=>`Reflect ${v}% of damage taken back at foes.`},
+ {id:'reaper',n:'Scroll of the Reaper',base:2,glow:'#c86a6a',d:v=>`Heal ${v}% of max health on every kill.`},
+ {id:'flames',n:'Scroll of Flames',base:5,glow:'#ff9a4a',d:v=>`Attacks burn for ${v}% bonus fire damage.`},
+ {id:'frostbite',n:'Scroll of Biting Frost',base:0.5,glow:'#a0e0ff',d:v=>`Attacks chill foes, slowing them for ${v}s.`},
+ {id:'titan',n:'Scroll of the Colossus',base:3,glow:'#e8b070',d:v=>`+${v}% attack damage.`},
+ {id:'clarity',n:'Scroll of Clarity',base:20,glow:'#8fa8ef',d:v=>`+${v}% mana regeneration.`},
+ {id:'swiftness',n:'Scroll of Swiftness',base:4,glow:'#d8f2ff',d:v=>`+${v}% movement and attack speed.`},
+ {id:'fortune',n:'Scroll of Fortune',base:8,glow:'#ffd76a',d:v=>`+${v}% gold from kills.`},
 ];
+const enchOf=id=>ENCHS.find(e=>e.id===id);
+const tierVal=(id,t)=>enchOf(id).base*Math.pow(2,(t||1)-1);
+const tierDesc=(id,t)=>enchOf(id).d(parseFloat(tierVal(id,t).toFixed(2)));
 /* 15 maps: pattern zone, zone, BOSS arena — up to level 60. */
 const ZONES=[
  {name:'Willowmere Fields',lvl:1,amb:'meadow',ground:'#7aa356',ground2:'#6e9750',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a',
@@ -412,25 +474,29 @@ const eATK=L=>Math.round(3+L*1.1);
 function zoneTemplates(z){
  const pm=pMul(),pr=pRew();
  if(z.boss){
-  return [{name:z.boss[0],kind:'boss',boss:true,bossId:z.boss[2],c:z.boss[1],hp:Math.round(eHP(z.lvl)*22*pm),atk:Math.round(eATK(z.lvl)*1.6*pm),xp:Math.round(eHP(z.lvl)*3*pr),gold:Math.round(eHP(z.lvl)*2*pr)}];
+  /* bosses are progression walls: ~2.3x more health and much harder hits than before */
+  return [{name:z.boss[0],kind:'boss',boss:true,bossId:z.boss[2],c:z.boss[1],hp:Math.round(eHP(z.lvl)*50*pm),atk:Math.round(eATK(z.lvl)*2.2*pm),xp:Math.round(eHP(z.lvl)*5*pr),gold:Math.round(eHP(z.lvl)*3.5*pr)}];
  }
- return z.en.map(([n,k,c],i)=>({name:n,kind:k,c,hp:Math.round(eHP(z.lvl)*(0.9+i*0.12)*pm),atk:Math.round(eATK(z.lvl)*(0.9+i*0.1)*pm),
+ /* regular foes: modestly tougher than before (+25% hp, +15% atk) */
+ return z.en.map(([n,k,c],i)=>({name:n,kind:k,c,hp:Math.round(eHP(z.lvl)*(0.9+i*0.12)*1.25*pm),atk:Math.round(eATK(z.lvl)*(0.9+i*0.1)*1.15*pm),
   xp:Math.round(eHP(z.lvl)/2.6*pr),gold:Math.round((eHP(z.lvl)/6+2)*pr)}));
 }
 function zoneQuests(z){
  if(z.boss)return [{name:z.boss[0],desc:'Defeat '+z.boss[0]+'. Victory opens the gate beyond, forever.',need:1,boss:true}];
  return z.q.map(([n,d,need])=>({name:n,desc:d,need}));
 }
-
+ 
 /* ==================== STATE ==================== */
 let S=null;
 const $=id=>document.getElementById(id);
 const raceOf=()=>RACES.find(r=>r.id===S.race);
 const classOf=()=>CLASSES.find(c=>c.id===S.cls);
 const gearSum=k=>{let t=0;for(const sl in S.gear){const g=S.gear[sl];if(g&&g[k])t+=g[k]}return t};
-/* one Active Scroll at a time — equipped in its own slot next to the trinket */
-const hasEnch=id=>S.activeScroll===id;
-const activeEnchs=()=>S.activeScroll?[ENCHS.find(e=>e.id===S.activeScroll)]:[];
+/* one Active Scroll at a time — {id,tier}, equipped in its own slot next to the trinket */
+const hasEnch=id=>!!(S.activeScroll&&S.activeScroll.id===id);
+const scrollPct=id=>hasEnch(id)?tierVal(id,S.activeScroll.tier)/100:0; /* fraction */
+const scrollRaw=id=>hasEnch(id)?tierVal(id,S.activeScroll.tier):0;     /* raw value (e.g. seconds) */
+const activeEnchs=()=>S.activeScroll?[enchOf(S.activeScroll.id)]:[];
 const gearScore=()=>Math.round(Object.values(S.gear).reduce((t,g)=>t+(g?g.power:0),0));
 const MAXPRESTIGE=10;
 const pMul=()=>1+(S.prestige||0)*0.4;   /* enemy hp/atk per prestige */
@@ -439,14 +505,14 @@ const pRew=()=>1+(S.prestige||0)*0.3;   /* xp/gold per prestige */
 const potCost=k=>Math.round((k==='hp'?20+S.lvl*7:15+S.lvl*6)*pRew());
 const heroMax=()=>Math.round((classOf().hp+S.lvl*14+gearSum('hp'))*(raceOf().hp||1));
 const manaMax=()=>Math.round(classOf().mana+S.lvl*5);
-const heroAtk=()=>Math.round((classOf().atk+S.lvl*2.6+gearSum('atk'))*(hasEnch('titan')?1.10:1));
+const heroAtk=()=>Math.round((classOf().atk+S.lvl*2.6+gearSum('atk'))*(1+scrollPct('titan')));
 const heroCrit=()=>classOf().crit+(raceOf().crit||0)+gearSum('crit');
-const xpNeed=l=>Math.round(38*Math.pow(l,1.5));
+const xpNeed=l=>Math.round(38*Math.pow(l,1.5)*0.8); /* 20% less XP needed */
 const zoneOf=()=>ZONES[S.zone];
 const questsOf=()=>zoneQuests(zoneOf());
 const questOf=()=>questsOf()[Math.min(S.quest,questsOf().length-1)];
-const swiftMul=()=>hasEnch('swiftness')?1.12:1;
-/* Shop boosts: first buy +2.5%, bonus doubles each purchase; cost starts 2,500 and doubles */
+const swiftMul=()=>1+scrollPct('swiftness');
+const spellManaCost=sp=>Math.ceil(sp.cost*1.2); /* spells cost ~20% more mana */
 const boostBonus=n=>n>0?0.025*Math.pow(2,n-1):0;
 const boostCost=n=>2500*Math.pow(2,n);
 const boostPct=n=>(Math.round(boostBonus(n)*1000)/10).toLocaleString();
@@ -454,7 +520,7 @@ const speedBoostMul=()=>1+boostBonus(S.boosts?S.boosts.speed:0);
 const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0);
 function freshState(name,race,cls){
  return {id:null,name,race,cls,lvl:1,xp:0,gold:0,scraps:0,prestige:0,zone:0,quest:0,qProg:0,
-  gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:2,mp:2},activeScroll:null,
+  gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScroll:null,
   boosts:{speed:0,haste:0},
   cleared:{},bossDead:{},
   auto:true,autoEquip:true,sound:true,sfx:true,finished:false};
@@ -474,6 +540,9 @@ function migrate(s){ /* fills fields missing from older saves */
   if(g.ench){if(!s.activeScroll)s.activeScroll=g.ench;else s.scrolls.push(g.ench);g.ench=null;}
  }
  (s.bag||[]).forEach(it=>{if(it.up===undefined)it.up=0;if(it.ench){s.scrolls.push(it.ench);it.ench=null;}});
+ /* legacy scrolls were plain id strings — convert to tier objects (grandfathered at Tier II) */
+ s.scrolls=(s.scrolls||[]).map(x=>typeof x==='string'?{id:x,tier:2}:x);
+ if(typeof s.activeScroll==='string')s.activeScroll={id:s.activeScroll,tier:2};
  return s;
 }
 /* the road east is open when this zone's quest chain (or boss) is done AND you meet the next zone's level */
@@ -481,7 +550,7 @@ function portalIsOpen(){
  const nz=ZONES[S.zone+1];
  return !!S.cleared[S.zone]&&!!nz&&S.lvl>=nz.lvl;
 }
-
+ 
 /* ==================== LOOT & UPGRADES ==================== */
 const SLOTS=['weapon','armor','trinket'];
 const PREFIX={common:['Plain','Worn','Sturdy'],fine:['Keen','Hardened','Trusty'],rare:['Gleaming','Runed','Valiant'],epic:['Kingsforged','Stormbound','Emberwrought']};
@@ -532,7 +601,7 @@ function tryAutoEquip(it){
  }return false;
 }
 function itemStr(it){return `${it.up?'+'+it.up+' · ':''}${it.atk?'+'+it.atk+' ATK ':''}${it.hp?'+'+it.hp+' HP ':''}${it.crit?'+'+it.crit+'% CRIT':''}`;}
-
+ 
 /* ==================== AUDIO ====================
    Two mix buses: ambG = ambience + music (🔊 button), sfxG = combat/one-shot sounds (⚔️ button). */
 const AC={ctx:null,ambG:null,sfxG:null,amb:[],timers:[],prof:null,mIdx:0};
@@ -692,7 +761,7 @@ const sfx={
  quest:()=>{[659,784,988].forEach((f,i)=>setTimeout(()=>blip(f,f,0.15,.07),i*100));},
  warn:()=>{blip(340,280,0.18,.06,'square');},
 };
-
+ 
 /* ==================== WORLD ==================== */
 const cv=$('game'),ctx=cv.getContext('2d');
 let VW=0,VH=0,DPR=1,vigCv=null;
@@ -719,10 +788,10 @@ function shade(hex,amt){const n=parseInt(hex.slice(1),16);
  let r=(n>>16)+amt,g=((n>>8)&255)+amt,b=(n&255)+amt;
  r=Math.max(0,Math.min(255,r));g=Math.max(0,Math.min(255,g));b=Math.max(0,Math.min(255,b));
  return '#'+((r<<16)|(g<<8)|b).toString(16).padStart(6,'0');}
-
+ 
 let world=null,hero=null,enemies=[],bolts=[],ebolts=[],hazards=[],floats=[],parts=[],rings=[],groundCv=null;
 let camX=0,camY=0,gameOn=false,marker=null,portalMsgT=0;
-
+ 
 function buildZone(){
  const z=zoneOf(),R=mulberry32(S.zone*7919+13);
  const isBoss=!!z.boss;
@@ -777,7 +846,7 @@ function buildZone(){
  if(isBoss){
   if(!S.bossDead[S.zone])spawnEnemyAt(tmpls[0],R,{x:world.w-320,y:world.pathY});
  }
- else{for(let i=0;i<10;i++)spawnEnemyAt(tmpls[i%tmpls.length],R);}
+ else{for(let i=0;i<16;i++)spawnEnemyAt(tmpls[i%tmpls.length],R);} /* denser maps */
  marker=null;portalMsgT=0;
  camX=hero.x-VW/2;camY=hero.y-VH/2;
  startAmbience(z.amb);
@@ -855,7 +924,7 @@ function prerenderGround(z,R){
  }
  g.strokeStyle='rgba(0,0,0,0.35)';g.lineWidth=26;g.strokeRect(0,0,world.w,world.h);
 }
-
+ 
 /* ==================== MOVEMENT & PATHFINDING ==================== */
 function collide(e,nx,ny){
  for(const s of world.solids){
@@ -903,7 +972,7 @@ function moveToward(e,tx,ty,dt){
  if(!collide(e,nx,ny)){e.x=nx;e.y=ny;}
  return false;
 }
-
+ 
 /* ==================== FX ==================== */
 function floatAt(x,y,txt,color,big){floats.push({x,y,txt,color,t:0,big:!!big});}
 function burst(x,y,c,n,sp,grav){
@@ -917,7 +986,7 @@ function sparkles(x,y,c,n){
  for(let i=0;i<n;i++)parts.push({x:x+(Math.random()-0.5)*24,y:y+(Math.random()-0.5)*10,vx:(Math.random()-0.5)*20,vy:-40-Math.random()*40,t:0,life:0.6,c,r:1.5+Math.random()*1.5,g:0});
 }
 function hazardAt(x,y,rad,warn,dmg,c){hazards.push({x,y,rad,warn,t:0,dmg,c:c||'#e88a5a'});}
-
+ 
 /* ==================== COMBAT ==================== */
 function atkMul(){return hero.buff.atk&&hero.buff.atk.t>0?hero.buff.atk.mul:1;}
 function hasteMul(){return (hero.buff.haste&&hero.buff.haste.t>0?hero.buff.haste.mul:1)*swiftMul()*hasteBoostMul();}
@@ -929,7 +998,7 @@ function healHero(amt,silent){
 }
 function hurtHero(dmg,label){
  if(hero.dead)return;
- dmg=Math.round(dmg*(hasEnch('warding')?0.88:1));
+ dmg=Math.round(dmg*(1-scrollPct('warding')));
  hero.hp-=dmg;hero.hurt=0.2;
  floatAt(hero.x,hero.y-26,'-'+dmg+(label?' '+label:''),'#ff8a7a');
  burst(hero.x,hero.y-10,'#ff8a7a',4,60);
@@ -951,8 +1020,8 @@ function heroBasicAttack(en,dt){
 function landHit(en,dmg,crit,label,basic){
  if(en.dead||en.hidden)return;
  if(basic){
-  if(hasEnch('flames')){const b=Math.max(1,Math.round(dmg*0.15));en.hp-=b;floatAt(en.x+10,en.y-en.r-24,'+'+b+'🔥','#ff9a4a');}
-  if(hasEnch('frostbite'))en.slowT=Math.max(en.slowT,1.5);
+  if(hasEnch('flames')){const b=Math.max(1,Math.round(dmg*scrollPct('flames')));en.hp-=b;floatAt(en.x+10,en.y-en.r-24,'+'+b+'🔥','#ff9a4a');}
+  if(hasEnch('frostbite'))en.slowT=Math.max(en.slowT,scrollRaw('frostbite'));
  }
  applyDmg(en,dmg,label,crit);
  sfx.hit();
@@ -984,13 +1053,13 @@ function cast(i,manual){
  const c=classOf(),sp=c.spells[i];
  if(hero.dead)return false;
  if(hero.spellCd[i]>0){if(manual)stageMsg('Not ready',700);return false;}
- if(hero.mana<sp.cost){if(manual)stageMsg('Not enough mana',700);return false;}
+ if(hero.mana<spellManaCost(sp)){if(manual)stageMsg('Not enough mana',700);return false;}
  const rng=c.range+55;
  if(sp.t==='st'||sp.t==='multi'){
   let tgt=hero.target&&!hero.target.dead&&!hero.target.hidden?hero.target:nearestEnemyWithin(260);
   if(!tgt){if(manual)stageMsg('No target nearby',800);return false;}
   if(dist(hero,tgt)>rng){if(manual){hero.target=tgt;stageMsg('Closing in…',700);}return false;}
-  hero.target=tgt;hero.mana-=sp.cost;hero.spellCd[i]=sp.cd;hero.swing=0.24;
+  hero.target=tgt;hero.mana-=spellManaCost(sp);hero.spellCd[i]=sp.cd;hero.swing=0.24;
   if(sp.t==='st'){
    if(c.ranged){bolts.push({x:hero.x,y:hero.y-10,tgt,sp:470,dmg:0,spell:sp,c:sp.vfx==='fire'?'#ff7a2a':sp.vfx==='holy'?'#ffe9a0':'#c9a0ff'});}
    else dealSpell(tgt,sp);
@@ -1005,17 +1074,17 @@ function cast(i,manual){
  }else if(sp.t==='aoe'){
   const list=enemies.filter(e=>!e.dead&&!e.hidden&&dist(hero,e)<=sp.rad);
   if(!list.length){if(manual)stageMsg('No foes in range',800);return false;}
-  hero.mana-=sp.cost;hero.spellCd[i]=sp.cd;hero.swing=0.28;
+  hero.mana-=spellManaCost(sp);hero.spellCd[i]=sp.cd;hero.swing=0.28;
   ring(hero.x,hero.y-6,sp.rad,sp.vfx==='frost'?'#a0e0ff':sp.vfx==='holy'?'#ffe9a0':'#ffd76a',0.5);
   list.forEach(t=>{dealSpell(t,sp);if(sp.slow)t.slowT=Math.max(t.slowT,sp.slow);});
   if(sp.heal)healHero(heroMax()*sp.heal);
  }else if(sp.t==='buff'){
-  hero.mana-=sp.cost;hero.spellCd[i]=sp.cd;
+  hero.mana-=spellManaCost(sp);hero.spellCd[i]=sp.cd;
   hero.buff[sp.buff]={mul:sp.val,t:sp.dur};
   ring(hero.x,hero.y-6,60,'#ffd76a',0.6);
   floatAt(hero.x,hero.y-32,sp.n+'!','#ffd76a',true);
  }else if(sp.t==='hot'){
-  hero.mana-=sp.cost;hero.spellCd[i]=sp.cd;
+  hero.mana-=spellManaCost(sp);hero.spellCd[i]=sp.cd;
   hero.hotT=sp.dur;hero.hotAmt=sp.hot;
   sparkles(hero.x,hero.y-14,'#8ae08a',10);
   floatAt(hero.x,hero.y-32,'Renew','#8ae08a',true);
@@ -1038,11 +1107,11 @@ function killEnemy(en){
  sfx.die();
  burst(en.x,en.y-10,en.c,12,90,true);
  const r=raceOf();
- let gold=Math.round(en.gold*(r.gold||1)*(hasEnch('fortune')?1.25:1));
+ let gold=Math.round(en.gold*(r.gold||1)*(1+scrollPct('fortune')));
  S.gold+=gold;
  if(S.lvl<MAXLVL)S.xp+=en.xp;
  if(r.leech)healHero(heroMax()*r.leech,true);
- if(hasEnch('reaper'))healHero(heroMax()*0.05,true);
+ if(hasEnch('reaper'))healHero(heroMax()*scrollPct('reaper'),true);
  floatAt(en.x,en.y-en.r-14,'+'+gold+' ◉','#ffd76a');
  log(`Slew <span class="imp">${en.name}</span> — +${en.xp} xp, +${gold} gold.`);
  // drops
@@ -1052,19 +1121,18 @@ function killEnemy(en){
   log(`Loot: <span class="l${it.rar}">${it.name}</span> ${itemStr(it)}.`,'loot');
   if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
  }
- if(Math.random()<(en.boss?1:0.10)){S.pots.hp++;floatAt(en.x,en.y-en.r-30,'+HP Potion','#ff8a8a');}
- else if(Math.random()<0.09){S.pots.mp++;floatAt(en.x,en.y-en.r-30,'+Mana Potion','#8fa8ef');}
- if(Math.random()<(en.boss?0.25:0.01)){ /* scrolls are now a rare prize */
+ /* Potions never drop from enemies; buy them from the Trader. */
+ if(Math.random()<(en.boss?0.25:0.01)){ /* scrolls are now a rare prize — always Tier I */
   const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
-  S.scrolls.push(e.id);
-  log(`Rare find: <span class="lscroll">${e.n}</span> — open the Bag to equip it.`,'loot');
+  S.scrolls.push({id:e.id,tier:1});
+  log(`Rare find: <span class="lscroll">${e.n} I</span> — combine duplicates in the Bag to forge higher tiers.`,'loot');
  }
  if(en.boss){
   /* the boss stays dead — forever */
   S.bossDead[S.zone]=true;
-  S.scraps+=25;
-  floatAt(en.x,en.y-en.r-44,'+25 ⚙','#a8bcb0');
-  log(`<span class="imp">${en.name} will never rise again.</span> +25 Scraps.`);
+  S.scraps+=40;
+  floatAt(en.x,en.y-en.r-44,'+40 ⚙','#a8bcb0');
+  log(`<span class="imp">${en.name} will never rise again.</span> +40 Scraps.`);
   /* despawn any remaining adds */
   enemies.forEach(a=>{if(a.add&&!a.dead){a.dead=true;a.deadT=0;burst(a.x,a.y,a.c,6,70);}});
  }
@@ -1110,7 +1178,7 @@ function completeQuest(){
     }else log(`Reach level ${nz.lvl} to enter <span class="imp">${nz.name}</span>. Quests here now repeat — grind at will.`);
    }else if(!S.finished){
     S.finished=true;
-    stageMsg('Warlord Krev has fallen — Eastvale is free! Book II awaits…',4500);
+    stageMsg('Warlord Krev has fallen — Riptide is free! Book II awaits…',4500);
     log('<span class="imp">Victory! The Eastern Realm is liberated.</span> The western continent opens in Book II.');
    }
   }
@@ -1132,10 +1200,11 @@ function doPrestige(){
  applyZoneUI();buildZone();renderHUD();renderHero();save();
  sfx.level();
  stageMsg('✦ Prestige '+S.prestige+' — the realm hardens against you.',3200);
- log(`<span class="imp">Prestige ${S.prestige}!</span> Every foe in Eastvale grows stronger. The march begins anew.`);
- openTab('battle');
+ log(`<span class="imp">Prestige ${S.prestige}!</span> Every foe in Riptide grows stronger. The march begins anew.`);
+ publishLB(S,true);
+ openTab(isDesktopLayout()?'hero':'battle');
 }
-
+ 
 /* ==================== BOSS AI ====================
    Every boss has its own kit. Telegraphed danger zones (hazards) can be dodged. */
 function bossAI(en,dt){
@@ -1243,7 +1312,7 @@ function bossAI(en,dt){
   }
  }
 }
-
+ 
 /* ==================== INPUT ==================== */
 const keys={};
 window.addEventListener('keydown',e=>{initAudio();keys[e.key.toLowerCase()]=true;
@@ -1266,7 +1335,7 @@ cv.addEventListener('pointerdown',e=>{
  if(best){hero.target=best;hero.moveTo=null;}
  else{hero.moveTo={x:Math.max(30,Math.min(world.w-30,wx)),y:Math.max(30,Math.min(world.h-30,wy))};hero.target=null;marker={x:hero.moveTo.x,y:hero.moveTo.y,t:0};}
 });
-
+ 
 /* ==================== UPDATE ==================== */
 function nearestQuestEnemy(){
  const q=questOf();
@@ -1285,7 +1354,7 @@ function autoBrain(dt){
  const c=classOf();
  // potions
  if(hero.hp<heroMax()*0.32&&S.pots.hp>0&&hero.potCd.hp<=0)usePot('hp');
- const cheapest=Math.min(...c.spells.map(s=>s.cost));
+ const cheapest=Math.min(...c.spells.map(spellManaCost));
  if(hero.mana<cheapest&&hero.target&&S.pots.mp>0&&hero.potCd.mp<=0)usePot('mp');
  // heals
  c.spells.forEach((sp,i)=>{
@@ -1315,11 +1384,11 @@ function update(dt){
  for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
  // mana regen (faster out of combat)
  const inCombat=hero.target||enemies.some(e=>!e.dead&&e.state==='chase');
- hero.mana=Math.min(manaMax(),hero.mana+(2+S.lvl*0.15)*(hasEnch('clarity')?1.6:1)*(inCombat?1:2.4)*dt);
+ hero.mana=Math.min(manaMax(),hero.mana+(2+S.lvl*0.15)*(1+scrollPct('clarity'))*(inCombat?1:2.4)*dt);
  // regen passives
  hero.regenTick+=dt;
  if(hero.regenTick>=1){hero.regenTick=0;
-  if(hasEnch('mending')&&!hero.dead)healHero(heroMax()*0.01,true);
+  if(hasEnch('mending')&&!hero.dead)healHero(heroMax()*scrollPct('mending'),true);
  }
  if(hero.hotT>0){hero.hotT-=dt;hero.hotTick+=dt;
   if(hero.hotTick>=1){hero.hotTick=0;healHero(heroMax()*hero.hotAmt);sparkles(hero.x,hero.y-14,'#8ae08a',4);}
@@ -1409,7 +1478,7 @@ function update(dt){
     if(en.cd<=0){en.cd=en.boss?1.5:1.15;en.swing=0.2;
      const dmg=hurtHero(en.atk*(0.85+Math.random()*0.3));
      sfx.hit();
-     if(hasEnch('thorns')&&!en.dead){const t=Math.max(1,Math.round(dmg*0.25));en.hp-=t;floatAt(en.x,en.y-en.r-14,t+' 🌵','#9adf9a');if(en.hp<=0)killEnemy(en);}
+     if(hasEnch('thorns')&&!en.dead){const t=Math.max(1,Math.round(dmg*scrollPct('thorns')));en.hp-=t;floatAt(en.x,en.y-en.r-14,t+' 🌵','#9adf9a');if(en.hp<=0)killEnemy(en);}
     }
    }
   }else if(en.state==='return'){
@@ -1468,7 +1537,7 @@ function update(dt){
  camX=Math.max(0,Math.min(world.w-VW,camX));
  camY=Math.max(0,Math.min(world.h-VH,camY));
 }
-
+ 
 /* ==================== DRAW ==================== */
 function draw(){
  if(!gameOn)return;
@@ -1824,7 +1893,7 @@ function drawMiniBar(x,y,w,pct,c){
  ctx.fillStyle='rgba(0,0,0,0.55)';ctx.fillRect(x,y,w,4);
  ctx.fillStyle=c;ctx.fillRect(x+0.5,y+0.5,Math.max(0,(w-1)*Math.max(0,pct)),3);
 }
-
+ 
 /* ==================== HUD ==================== */
 function stageMsg(t,ms=1600){
  const m=$('stagemsg');m.textContent=t;m.classList.add('show');
@@ -1862,7 +1931,7 @@ function buildSkillbar(){
  const c=classOf();
  let h='';
  c.spells.forEach((sp,i)=>{
-  h+=`<button class="skill" id="sk${i}" title="${sp.n}">${sp.g}<div class="cdm" id="skcd${i}"></div><span class="cost">${sp.cost}</span></button>`;
+  h+=`<button class="skill" id="sk${i}" title="${sp.n}">${sp.g}<div class="cdm" id="skcd${i}"></div><span class="cost">${spellManaCost(sp)}</span></button>`;
  });
  h+=`<div class="sep"></div>`;
  h+=`<button class="skill pot" id="potHp">🧪<div class="cdm" id="potHpCd"></div><span class="cnt" id="potHpN">0</span></button>`;
@@ -1880,7 +1949,7 @@ function renderVitals(dt){
  const c=classOf();
  c.spells.forEach((sp,i)=>{
   $('skcd'+i).style.height=(100*hero.spellCd[i]/sp.cd)+'%';
-  $('sk'+i).classList.toggle('nomana',hero.mana<sp.cost);
+  $('sk'+i).classList.toggle('nomana',hero.mana<spellManaCost(sp));
  });
  $('potHpCd').style.height=(100*hero.potCd.hp/8)+'%';
  $('potMpCd').style.height=(100*hero.potCd.mp/8)+'%';
@@ -1907,12 +1976,12 @@ function renderHero(){
      :`<div class="ss">— empty —</div>`)+`</div>`;
  }).join('');
  /* Active Scroll slot — sits right next to the trinket */
- const asc=S.activeScroll?ENCHS.find(e=>e.id===S.activeScroll):null;
+ const asc=S.activeScroll?enchOf(S.activeScroll.id):null;
  slotsHtml+=`<div class="slot" style="border-color:${asc?asc.glow+'66':'var(--line)'}"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">Scroll</div>`+
-  (asc?`<div class="en"><span class="glowdot" style="background:${asc.glow};box-shadow:0 0 6px ${asc.glow}"></span>${asc.n.replace('Scroll of ','')}</div>
-   <div class="ss">${asc.d}</div>
+  (asc?`<div class="en"><span class="glowdot" style="background:${asc.glow};box-shadow:0 0 6px ${asc.glow}"></span>${asc.n.replace('Scroll of ','')} ${TIERN[(S.activeScroll.tier||1)-1]}</div>
+   <div class="ss">${tierDesc(S.activeScroll.id,S.activeScroll.tier)}</div>
    <button class="upbtn" id="unScroll">Unequip</button>`
-   :`<div class="ss">— no scroll —</div><div class="ss" style="margin-top:4px">Rare loot — or gamble for one at the Trader.</div>`)+`</div>`;
+   :`<div class="ss">— no scroll —</div><div class="ss" style="margin-top:4px">Rare loot — combine duplicates in the Bag to forge higher tiers.</div>`)+`</div>`;
  $('slotRow').innerHTML=slotsHtml;
  document.querySelectorAll('[data-up]').forEach(b=>b.onclick=()=>{
   const g=S.gear[b.dataset.up];
@@ -1929,14 +1998,14 @@ function renderHero(){
   $('prestigeSec').innerHTML=`<div class="card">
    <div class="sn" style="font-family:var(--display);color:var(--brass);font-size:14px">✦ Prestige ${S.prestige+1} awaits</div>
    <div class="ss" style="color:var(--dim);font-size:11px;margin:5px 0 9px">Return to level 1 and march the realm again. You keep every piece of gear, scroll, upgrade, gold and Scrap — but all foes grow far stronger.</div>
-   <button class="sbtn gold" id="prestigeBtn" style="width:100%">AWOOOGAA</button>
+   <button class="sbtn gold" id="prestigeBtn" style="width:100%">AWOOOOGAAAAA</button>
   </div>`;
   $('prestigeBtn').onclick=()=>{
    const b=$('prestigeBtn');
    if(!b.dataset.armed){
     b.dataset.armed='1';
     b.textContent='Tap again to confirm — foes grow much stronger';
-    setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent='AWOOOGAA';}},3500);
+    setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent='AWOOOOGAAAAA';}},3500);
     return;
    }
    doPrestige();
@@ -1946,7 +2015,7 @@ function renderHero(){
  }else $('prestigeSec').innerHTML='';
  $('spellList').innerHTML=c.spells.map(sp=>`
   <div class="card spellcard"><div class="spellg">${sp.g}</div>
-  <div><div class="sn" style="color:var(--parch);font-size:13px">${sp.n} <span style="color:var(--mp);font-size:10px">${sp.cost} mana · ${sp.cd}s</span></div>
+  <div><div class="sn" style="color:var(--parch);font-size:13px">${sp.n} <span style="color:var(--mp);font-size:10px">${spellManaCost(sp)} mana · ${sp.cd}s</span></div>
   <div class="ss" style="color:var(--dim);font-size:11px">${sp.d}</div></div></div>`).join('');
  $('autoEquipBtn').textContent=S.autoEquip?'On':'Off';
 }
@@ -1976,25 +2045,49 @@ function renderMap(){
 }
 function renderBag(){
  $('bagWallet').innerHTML=walletStr();
- // scrolls
+ // scrolls — grouped by type + tier, with combining
  if(S.scrolls.length){
-  $('scrollSec').innerHTML='<div class="ptitle" style="font-size:14px;margin-bottom:8px">Scrolls</div>'+S.scrolls.map((id,i)=>{
-   const e=ENCHS.find(x=>x.id===id);
-   return `<div class="card item"><div><div class="sn" style="color:#d9a0ef;font-size:13px;font-weight:600"><span class="glowdot" style="background:${e.glow};box-shadow:0 0 6px ${e.glow}"></span>${e.n}</div>
-    <div class="ss" style="color:var(--dim);font-size:11px">${e.d}</div></div>
-    <div class="btns"><button class="sbtn gold" data-sc="${i}">${S.activeScroll?'Swap in':'Equip'}</button></div></div>`;
+  const groups={};
+  S.scrolls.forEach(sc=>{const k=sc.id+':'+sc.tier;(groups[k]=groups[k]||{id:sc.id,tier:sc.tier,n:0}).n++;});
+  const list=Object.values(groups).sort((a,b)=>a.id.localeCompare(b.id)||a.tier-b.tier);
+  $('scrollSec').innerHTML='<div class="ptitle" style="font-size:14px;margin-bottom:8px">Scrolls</div>'+
+   '<div class="ss" style="color:var(--dim);font-size:10.5px;margin-bottom:8px">Combine two identical scrolls to forge the next tier — the effect doubles (up to Tier IV).</div>'+
+   list.map(g=>{
+   const e=enchOf(g.id);
+   return `<div class="card item"><div><div class="sn" style="color:#d9a0ef;font-size:13px;font-weight:600"><span class="glowdot" style="background:${e.glow};box-shadow:0 0 6px ${e.glow}"></span>${e.n} ${TIERN[g.tier-1]}${g.n>1?` <span style="color:var(--dim)">×${g.n}</span>`:''}</div>
+    <div class="ss" style="color:var(--dim);font-size:11px">${tierDesc(g.id,g.tier)}</div></div>
+    <div class="btns">
+     ${g.n>=2&&g.tier<MAXTIER?`<button class="sbtn scrapb" data-comb="${g.id}:${g.tier}">⚗ Combine → ${TIERN[g.tier]}</button>`:''}
+     <button class="sbtn gold" data-sceq="${g.id}:${g.tier}">${S.activeScroll?'Swap in':'Equip'}</button>
+    </div></div>`;
   }).join('');
-  document.querySelectorAll('[data-sc]').forEach(b=>b.onclick=()=>{
-   const i=+b.dataset.sc,e=ENCHS.find(x=>x.id===S.scrolls[i]);
-   S.scrolls.splice(i,1);
+  const takeScroll=(id,tier)=>{const i=S.scrolls.findIndex(x=>x.id===id&&x.tier===tier);return i>=0?S.scrolls.splice(i,1)[0]:null;};
+  document.querySelectorAll('[data-sceq]').forEach(b=>b.onclick=()=>{
+   const [id,t]=b.dataset.sceq.split(':'),tier=+t;
+   const sc=takeScroll(id,tier);if(!sc)return;
    if(S.activeScroll)S.scrolls.push(S.activeScroll);
-   S.activeScroll=e.id;
-   log(`<span class="lscroll">${e.n}</span> now burns in your Active Scroll slot.`);
+   S.activeScroll=sc;
+   log(`<span class="lscroll">${enchOf(id).n} ${TIERN[tier-1]}</span> now burns in your Active Scroll slot.`);
    sfx.loot();renderBag();save();
+  });
+  document.querySelectorAll('[data-comb]').forEach(b=>b.onclick=()=>{
+   const [id,t]=b.dataset.comb.split(':'),tier=+t;
+   if(takeScroll(id,tier)&&takeScroll(id,tier)){
+    S.scrolls.push({id,tier:tier+1});
+    sfx.forge();
+    sparkles(hero.x,hero.y-14,enchOf(id).glow,10);
+    log(`Forged <span class="lscroll">${enchOf(id).n} ${TIERN[tier]}</span> from two lesser scrolls.`,'loot');
+    stageMsg('⚗ '+enchOf(id).n+' '+TIERN[tier]+' forged!',1800);
+    renderBag();save();
+   }
   });
  }else $('scrollSec').innerHTML='';
  if(!S.bag.length){$('bagList').innerHTML='<div class="card" style="color:var(--dim);font-size:12px">The bag is empty. Gear, potions and scrolls drop from foes — bosses always drop. Sell spares for gold, or scrap them for ⚙ Scraps to upgrade your gear.</div>';return;}
- $('bagList').innerHTML='<div class="ptitle" style="font-size:14px;margin-bottom:8px">Gear</div>'+S.bag.map((it,i)=>`
+ const totalScrap=S.bag.reduce((t,it)=>t+scrapVal(it),0);
+ $('bagList').innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+   <div class="ptitle" style="font-size:14px;margin:0">Gear</div>
+   <button class="sbtn scrapb" id="scrapAll">⚙ Scrap All +${totalScrap}⚙</button>
+  </div>`+S.bag.map((it,i)=>`
   <div class="card item">
    <div><div class="sn r-${it.rar}" style="font-size:13px;font-weight:600">${it.name}</div>
    <div class="ss" style="color:var(--dim);font-size:11px">${it.slot} · ${itemStr(it)}</div></div>
@@ -2019,6 +2112,22 @@ function renderBag(){
   log(`Scrapped <span class="l${it.rar}">${it.name}</span> — +${scrapVal(it)} ⚙.`);
   renderBag();renderHUD();save();
  });
+ const sa=$('scrapAll');
+ if(sa)sa.onclick=()=>{
+  if(!sa.dataset.armed){
+   sa.dataset.armed='1';
+   sa.textContent='Confirm — scrap everything?';
+   sa.style.color='#ff8a7a';sa.style.borderColor='#a05a5a';
+   setTimeout(()=>{if(sa.isConnected){delete sa.dataset.armed;sa.textContent=`⚙ Scrap All +${S.bag.reduce((t,it)=>t+scrapVal(it),0)}⚙`;sa.style.color='';sa.style.borderColor='';}},3000);
+   return;
+  }
+  const total=S.bag.reduce((t,it)=>t+scrapVal(it),0),n=S.bag.length;
+  S.scraps+=total;S.bag=[];
+  sfx.forge();
+  log(`Scrapped ${n} items — +${total} ⚙.`,'loot');
+  stageMsg('⚙ Scrapped '+n+' items for '+total+' Scraps',1800);
+  renderBag();renderHUD();save();
+ };
 }
 /* --- Gamble Chest opening ceremony --- */
 function spawnChestParts(color,n){
@@ -2035,106 +2144,57 @@ function spawnChestParts(color,n){
   setTimeout(()=>p.remove(),1100);
  }
 }
-/* case-opening reel: a strip of items scrolls past the marker, slows down, and lands on your prize */
-let reelAnim=null,reelSkip=null;
-function reelFiller(){
- const r=Math.random();
- if(r<0.05)return{icon:'📜',color:'#e8c9ef',tier:'scroll'};
- const rar=r<0.60?'common':r<0.86?'fine':r<0.965?'rare':'epic';
- const col={common:'#d8e4d6',fine:'#6dbb6d',rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
- return{icon:['⚔️','🛡️','💍'][Math.floor(Math.random()*3)],color:col,tier:rar};
-}
-const reelCell=(f,win)=>`<div class="rcell${win?' win':''}" style="border-color:${f.color};color:${f.color}">${f.icon}<small>${f.tier}</small></div>`;
 function showChestFx(r){
- const fx=$('chestFx'),rays=$('chestRays'),rev=$('chestReveal'),wrap=$('reelWrap'),reel=$('reel');
+ const fx=$('chestFx'),box=$('chestBox'),rays=$('chestRays'),rev=$('chestReveal');
  fx.classList.add('open');fx.classList.remove('flash');
  rev.classList.remove('show');rev.innerHTML='';
  rays.style.opacity=0;rays.classList.toggle('epic',!!r.epic);
- $('chestBox').style.display='none';
- wrap.style.display='block';
- clearTimeout(fx._t2);
- if(reelAnim){cancelAnimationFrame(reelAnim);reelAnim=null;}
- /* build the strip — the winning cell sits near the end */
- const N=44,WIN=38,cellW=68,gap=6,step=cellW+gap;
- let html='';
- for(let i=0;i<N;i++)html+=i===WIN?reelCell(r,true):reelCell(reelFiller());
- reel.innerHTML=html;
- reel.style.transform='translateX(0px)';
- const wrapW=wrap.clientWidth||Math.min(innerWidth*0.92,430);
- const jitter=(Math.random()*2-1)*cellW*0.3;
- const target=WIN*step+cellW/2-wrapW/2+jitter;
- const start=Math.random()*step*1.5;
- const dur=4200+Math.random()*600;
- const t0=performance.now();
- const ease=t=>1-Math.pow(1-t,4); /* fast start, long smooth deceleration */
- let lastIdx=-1,landed=false;
- const land=()=>{
-  if(landed)return;landed=true;
-  reelSkip=null;
-  if(reelAnim){cancelAnimationFrame(reelAnim);reelAnim=null;}
-  reel.style.transform='translateX('+(-target)+'px)';
-  const winEl=reel.querySelector('.rcell.win');
-  if(winEl)winEl.classList.add('lit');
-  blip(500,900,0.18,.09,'triangle');
-  setTimeout(()=>{
-   rays.style.setProperty('--rayc',r.color+'55');
-   rays.style.opacity=1;
-   spawnChestParts(r.color,r.epic?28:14);
-   rev.innerHTML=`<div class="cricon" style="color:${r.color}">${r.icon}</div>
-    <div class="crtier" style="color:${r.color}">${r.tier}</div>
-    <div class="crname" style="color:${r.color}">${r.name}</div>
-    <div class="crsub">${r.sub}</div>`;
-   rev.classList.add('show');
-   if(r.epic){fx.classList.add('flash');sfx.level();noiseSweep(0.5,.08,400,3000);}
-   else if(r.big)sfx.quest();
-   else sfx.loot();
-   fx._t2=setTimeout(hideChestFx,5200);
-  },420);
- };
- reelSkip=land;
- const stepFn=now=>{
-  if(landed)return;
-  const p=Math.min(1,(now-t0)/dur);
-  const x=start+(target-start)*ease(p);
-  reel.style.transform='translateX('+(-x)+'px)';
-  const idx=Math.floor((x+wrapW/2)/step); /* tick every time a cell crosses the marker */
-  if(idx!==lastIdx){lastIdx=idx;blip(1500,1050,0.035,.05,'square');}
-  if(p<1)reelAnim=requestAnimationFrame(stepFn);
-  else land();
- };
- blip(110,70,0.4,.06,'sawtooth');
- reelAnim=requestAnimationFrame(stepFn);
+ box.style.display='block';
+ box.style.animation='none';void box.offsetWidth;box.style.animation='';
+ /* suspense: creak + rising ticks while it shakes */
+ blip(110,70,0.5,.07,'sawtooth');
+ [0,240,480,720].forEach((t,i)=>setTimeout(()=>blip(300+i*90,300+i*90,0.07,.05,'square'),t));
+ clearTimeout(fx._t1);clearTimeout(fx._t2);
+ fx._t1=setTimeout(()=>{
+  box.style.display='none';
+  rays.style.setProperty('--rayc',r.color+'55');
+  rays.style.opacity=1;
+  spawnChestParts(r.color,r.epic?28:14);
+  rev.innerHTML=`<div class="cricon" style="color:${r.color}">${r.icon}</div>
+   <div class="crtier" style="color:${r.color}">${r.tier}</div>
+   <div class="crname" style="color:${r.color}">${r.name}</div>
+   <div class="crsub">${r.sub}</div>`;
+  rev.classList.add('show');
+  if(r.epic){fx.classList.add('flash');sfx.level();noiseSweep(0.5,.08,400,3000);}
+  else if(r.big)sfx.quest();
+  else sfx.loot();
+ },980);
+ fx._t2=setTimeout(hideChestFx,5200);
 }
 function hideChestFx(){
  const fx=$('chestFx');
  fx.classList.remove('open');
- clearTimeout(fx._t2);
- if(reelAnim){cancelAnimationFrame(reelAnim);reelAnim=null;}
- reelSkip=null;
+ clearTimeout(fx._t1);clearTimeout(fx._t2);
 }
-/* tap while spinning = skip to the result; tap after = close */
-$('chestFx').onclick=()=>{
- if(reelSkip){const f=reelSkip;reelSkip=null;f();}
- else hideChestFx();
-};
+$('chestFx').onclick=hideChestFx;
 function openChest(){
  if(S.gold<5000){stageMsg('Not enough gold — the chest costs 5,000 ◉',1500);return;}
  S.gold-=5000;
  sfx.buy();
  const r=Math.random();
  let fxInfo;
- if(r<0.06){ /* rare: a scroll */
+ if(r<0.06){ /* rare: a scroll — always Tier I */
   const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
-  S.scrolls.push(e.id);
-  fxInfo={icon:'📜',tier:'Scroll of Power',name:e.n,color:e.glow,sub:e.d,big:true};
-  log(`GAMBAAA: <span class="lscroll">${e.n}</span>!`,'loot');
+  S.scrolls.push({id:e.id,tier:1});
+  fxInfo={icon:'📜',tier:'Scroll · Tier I',name:e.n,color:e.glow,sub:tierDesc(e.id,1)+' Combine duplicates to forge higher tiers.',big:true};
+  log(`GAMBAAA!: <span class="lscroll">${e.n} I</span>!`,'loot');
  }else{ /* mostly weak gear, tiny chance of greatness */
   const rar=r<0.66?'common':r<0.90?'fine':r<0.98?'rare':'epic';
   const it=rollItem(rar);
   const icon={weapon:'⚔️',armor:'🛡️',trinket:'💍'}[it.slot];
   const col={common:'#d8e4d6',fine:'#6dbb6d',rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
   fxInfo={icon,tier:rar,name:it.name,color:col,sub:it.slot+' · '+itemStr(it),epic:rar==='epic',big:rar==='rare'};
-  log(`GAMBAAA: <span class="l${it.rar}">${it.name}</span> ${itemStr(it)}.`,'loot');
+  log(`GAMBAAA!: <span class="l${it.rar}">${it.name}</span> ${itemStr(it)}.`,'loot');
   if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
  }
  showChestFx(fxInfo);
@@ -2143,7 +2203,7 @@ function openChest(){
 function renderShop(){
  $('shopWallet').innerHTML=walletStr();
  let h='<div class="ptitle" style="font-size:14px;margin-bottom:8px">Gamble</div>';
- h+=`<div class="card item" style="border-color:var(--brass-deep)"><div><div class="sn" style="font-size:13px;font-weight:600;color:var(--brass)">🎁 GAMBAAA</div>
+ h+=`<div class="card item" style="border-color:var(--brass-deep)"><div><div class="sn" style="font-size:13px;font-weight:600;color:var(--brass)">🎁 GAMBAAA!</div>
   <div class="ss" style="color:var(--dim);font-size:11px">A sealed chest of unknown origin. Holds a random weapon, armor piece or scroll — most are humble, but legends whisper of epic prizes within.</div></div>
   <div class="btns"><button class="sbtn gold" id="chestBtn" ${S.gold<5000?'disabled':''}>5,000◉</button></div></div>`;
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Supplies</div>';
@@ -2157,22 +2217,13 @@ function renderShop(){
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Upgrades</div>';
  const spN=S.boosts.speed,haN=S.boosts.haste,spC=boostCost(spN),haC=boostCost(haN);
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">👟 Speed Boost${spN?` <span style="color:var(--brass);font-size:11px">+${boostPct(spN)}%</span>`:''}</div>
-  <div class="ss" style="color:var(--dim);font-size:11px">Move faster. Next purchase: <b style="color:var(--parch)">+${boostPct(spN+1)}%</b> movement speed — the bonus and price double every time.</div></div>
+  <div class="ss" style="color:var(--dim);font-size:11px">Move faster. Next purchase: <b style="color:var(--parch)">+${boostPct(spN+1)}%</b> movement speed. Bonus and price double each time.</div></div>
   <div class="btns"><button class="sbtn gold" data-boost="speed" ${S.gold<spC?'disabled':''}>Buy ${spC.toLocaleString()}◉</button></div></div>`;
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">⚡ Haste Boost${haN?` <span style="color:var(--brass);font-size:11px">+${boostPct(haN)}%</span>`:''}</div>
-  <div class="ss" style="color:var(--dim);font-size:11px">Strike faster. Next purchase: <b style="color:var(--parch)">+${boostPct(haN+1)}%</b> attack speed — the bonus and price double every time.</div></div>
+  <div class="ss" style="color:var(--dim);font-size:11px">Attack faster. Next purchase: <b style="color:var(--parch)">+${boostPct(haN+1)}%</b> attack speed. Bonus and price double each time.</div></div>
   <div class="btns"><button class="sbtn gold" data-boost="haste" ${S.gold<haC?'disabled':''}>Buy ${haC.toLocaleString()}◉</button></div></div>`;
- h+='<div class="ss" style="color:var(--dim);font-size:10.5px;margin-top:2px">Potion prices rise with your level. Scrolls of Power are no longer sold — hunt them as rare drops, or gamble for one.</div>';
+ h+='<div class="ss" style="color:var(--dim);font-size:10.5px;margin-top:2px">Potions never drop from enemies. Potion prices rise with your level. Scrolls of Power are rare drops or gamble prizes.</div>';
  $('shopList').innerHTML=h;
- document.querySelectorAll('[data-boost]').forEach(b=>b.onclick=()=>{
-  const k=b.dataset.boost,cost=boostCost(S.boosts[k]);
-  if(S.gold<cost){stageMsg('Not enough gold',1200);return;}
-  S.gold-=cost;S.boosts[k]++;
-  sfx.buy();
-  stageMsg((k==='speed'?'👟 Speed':'⚡ Haste')+' Boost — now +'+boostPct(S.boosts[k])+'%',1600);
-  log(`Bought <span class="imp">${k==='speed'?'Speed':'Haste'} Boost</span> — total +${boostPct(S.boosts[k])}% ${k==='speed'?'movement':'attack'} speed.`);
-  renderShop();renderHUD();save();
- });
  $('chestBtn').onclick=openChest;
  document.querySelectorAll('[data-pot]').forEach(b=>b.onclick=()=>{
   const k=b.dataset.pot,cost=potCost(k);
@@ -2180,8 +2231,20 @@ function renderShop(){
   S.gold-=cost;S.pots[k]++;
   sfx.buy();renderShop();renderHUD();save();
  });
+ document.querySelectorAll('[data-boost]').forEach(b=>b.onclick=()=>{
+  const k=b.dataset.boost,n=S.boosts[k]||0,cost=boostCost(n);
+  if(S.gold<cost){stageMsg('Not enough gold',1200);return;}
+  S.gold-=cost;S.boosts[k]=n+1;
+  sfx.buy();
+  stageMsg(`${k==='speed'?'Speed':'Haste'} Boost is now +${boostPct(S.boosts[k])}%`,1800);
+  renderShop();renderHero();renderHUD();save();
+ });
 }
+const isDesktopLayout=()=>window.matchMedia('(min-width:900px)').matches;
+let desktopSideTab='hero';
 function openTab(t){
+ if(isDesktopLayout()&&t==='battle')t=desktopSideTab;
+ if(t!=='battle')desktopSideTab=t;
  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));
  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('cur',b.dataset.tab===t));
  if(t==='hero'){renderHero();$('p-hero').classList.add('open');}
@@ -2190,31 +2253,219 @@ function openTab(t){
  if(t==='shop'){renderShop();$('p-shop').classList.add('open');}
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));
-
+ 
 /* ==================== SAVE — one file per character ==================== */
 let saveT=0,memRoster=null;const memChars={};
+const LS={
+ get(k){try{return localStorage.getItem(k);}catch(e){return null;}},
+ set(k,v){try{localStorage.setItem(k,v);}catch(e){}},
+ del(k){try{localStorage.removeItem(k);}catch(e){}}
+};
+async function deviceGet(k){
+ try{if(window.storage){const r=await window.storage.get(k);if(r&&r.value!=null)return r.value;}}catch(e){}
+ return LS.get(k);
+}
+async function deviceSet(k,v){
+ try{if(window.storage)await window.storage.set(k,v);}catch(e){}
+ LS.set(k,v);
+}
+async function deviceDelete(k){
+ try{if(window.storage)await window.storage.delete(k);}catch(e){}
+ LS.del(k);
+}
 async function save(){
  if(!S||!S.id)return;
  memChars[S.id]=JSON.stringify(S);
- try{if(window.storage)await window.storage.set('eastvale-char-'+S.id,memChars[S.id]);}catch(e){}
+ await deviceSet('riptide-char-'+S.id,memChars[S.id]);
+ if(FB.ready&&FB.user){cloudPushChar(S);publishLB(S);}
+ else publishLB(S);
 }
 async function loadRoster(){
- try{if(window.storage){const r=await window.storage.get('eastvale-roster');if(r&&r.value)return JSON.parse(r.value);}}catch(e){}
+ let raw=await deviceGet('riptide-roster');
+ if(!raw)raw=await deviceGet('eastvale-roster'); /* one-time legacy fallback */
+ if(raw){try{return JSON.parse(raw);}catch(e){}}
  return memRoster||[];
 }
 async function saveRoster(ids){
  memRoster=ids;
- try{if(window.storage)await window.storage.set('eastvale-roster',JSON.stringify(ids));}catch(e){}
+ await deviceSet('riptide-roster',JSON.stringify(ids));
 }
 async function loadChar(id){
- try{if(window.storage){const r=await window.storage.get('eastvale-char-'+id);if(r&&r.value)return migrate(JSON.parse(r.value));}}catch(e){}
+ let raw=await deviceGet('riptide-char-'+id);
+ if(!raw)raw=await deviceGet('eastvale-char-'+id); /* legacy fallback */
+ if(raw){try{return migrate(JSON.parse(raw));}catch(e){}}
  return memChars[id]?migrate(JSON.parse(memChars[id])):null;
 }
-async function legacyLoad(){ /* import the old single-save format as the first roster entry */
- try{if(window.storage){const r=await window.storage.get('eastvale-save3');if(r&&r.value)return migrate(JSON.parse(r.value));}}catch(e){}
+async function legacyLoad(){
+ let raw=await deviceGet('riptide-save3');
+ if(!raw)raw=await deviceGet('eastvale-save3');
+ if(raw){try{return migrate(JSON.parse(raw));}catch(e){}}
  return null;
 }
 
+/* ==================== CLOUD — Firebase accounts, sync & leaderboard ====================
+   TO ENABLE ACCOUNTS + CLOUD SAVES:
+   1. Create a project at console.firebase.google.com
+   2. Enable Authentication → Email/Password, and Cloud Firestore
+   3. Add a Web App and paste its config object into FIREBASE_CONFIG below
+   4. Firestore rules used by this build: allow players/{uid} read/write only for that uid;
+      allow leaderboard/{doc} read to all, write if signed in.
+   With an empty config the game runs fully offline with local saves, and the
+   leaderboard falls back to the artifact's shared storage (visible to everyone
+   using this artifact). */
+const FIREBASE_CONFIG={
+ apiKey:"AIzaSyCSKRMWkmffIttRoP6kvYUQ04qk8mVFCSs",
+ authDomain:"riptide-14d98.firebaseapp.com",
+ projectId:"riptide-14d98",
+ storageBucket:"riptide-14d98.firebasestorage.app",
+ messagingSenderId:"892097723800",
+ appId:"1:892097723800:web:38b35a2c005acfa63a3fed",
+ measurementId:"G-1F59M1QS5Z"
+};
+const FB={ready:false,user:null,auth:null,db:null,tried:false,lastPub:0};
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('load failed '+src));document.head.appendChild(s);});}
+async function initFirebase(){
+ if(FB.tried)return FB.ready;
+ FB.tried=true;
+ if(!FIREBASE_CONFIG.apiKey)return false;
+ try{
+  const v='10.12.2';
+  await loadScript(`https://cdnjs.cloudflare.com/ajax/libs/firebase/${v}/firebase-app-compat.min.js`);
+  await loadScript(`https://cdnjs.cloudflare.com/ajax/libs/firebase/${v}/firebase-auth-compat.min.js`);
+  await loadScript(`https://cdnjs.cloudflare.com/ajax/libs/firebase/${v}/firebase-firestore-compat.min.js`);
+  if(!firebase.apps.length)firebase.initializeApp(FIREBASE_CONFIG);
+  FB.auth=firebase.auth();FB.db=firebase.firestore();FB.ready=true;
+  await new Promise(resolve=>{
+   let first=true;
+   FB.auth.onAuthStateChanged(async u=>{
+    FB.user=u;updateAcctUI();
+    if(u)await cloudPullRoster();
+    if(first){first=false;resolve();}
+   },()=>{if(first){first=false;resolve();}});
+  });
+ }catch(e){console.warn('Firebase unavailable:',e);FB.ready=false;}
+ updateAcctUI();
+ return FB.ready;
+}
+async function fbSignIn(create){
+ const em=$('fbEmail').value.trim(),pw=$('fbPass').value;
+ $('fbErr').textContent='';
+ if(!em||!pw){$('fbErr').textContent='Enter an email and password.';return;}
+ const ok=await initFirebase();
+ if(!ok){$('fbErr').textContent='Firebase could not be reached. Check your hosting and Firebase configuration.';return;}
+ try{
+  if(create)await FB.auth.createUserWithEmailAndPassword(em,pw);
+  else await FB.auth.signInWithEmailAndPassword(em,pw);
+  guestMode=false;
+  $('login').classList.remove('open');
+  await cloudPullRoster();
+  showSelect();
+ }catch(e){$('fbErr').textContent=((e&&e.message)||'Sign-in failed.').replace('Firebase: ','');}
+}
+async function cloudPushChar(ch){
+ if(!(FB.ready&&FB.user))return;
+ try{
+  const uid=FB.user.uid,ids=await loadRoster();
+  const ref=FB.db.collection('players').doc(uid);
+  await ref.set({roster:ids,updatedAt:Date.now()},{merge:true});
+  await ref.update({['chars.'+ch.id]:JSON.parse(JSON.stringify(ch))});
+ }catch(e){console.warn('cloud push failed',e);}
+}
+async function cloudDeleteChar(id){
+ if(!(FB.ready&&FB.user))return;
+ try{
+  const ids=await loadRoster();
+  const ref=FB.db.collection('players').doc(FB.user.uid);
+  await ref.update({roster:ids,['chars.'+id]:firebase.firestore.FieldValue.delete(),updatedAt:Date.now()});
+ }catch(e){console.warn('cloud delete failed',e);}
+}
+async function cloudPullRoster(){
+ if(!(FB.ready&&FB.user))return;
+ try{
+  const doc=await FB.db.collection('players').doc(FB.user.uid).get();
+  if(!doc.exists)return;
+  const data=doc.data()||{},remoteChars=data.chars||{},ids=await loadRoster();
+  let changed=false;
+  for(const [id,raw] of Object.entries(remoteChars)){
+   const ch=migrate(raw);if(!ch||!ch.id)continue;
+   const local=await loadChar(ch.id);
+   if(!local||lbScore(ch)>=lbScore(local)){
+    memChars[ch.id]=JSON.stringify(ch);
+    await deviceSet('riptide-char-'+ch.id,memChars[ch.id]);
+   }
+   if(!ids.includes(ch.id)){ids.push(ch.id);changed=true;}
+  }
+  if(changed)await saveRoster(ids);
+  if($('select').classList.contains('open'))renderSelect();
+ }catch(e){console.warn('cloud pull failed',e);}
+}
+/* --- global leaderboard: name, level, prestige, gear score --- */
+const lbScore=ch=>(ch.prestige||0)*1e6+(ch.lvl||1)*1e3+charGearScore(ch);
+async function publishLB(ch,force){
+ if(!ch||!ch.id)return;
+ const now=Date.now();
+ if(!force&&now-FB.lastPub<45000)return;
+ FB.lastPub=now;
+ const entry={name:(ch.name||'?').slice(0,14),lvl:ch.lvl,prestige:ch.prestige||0,gs:charGearScore(ch),score:lbScore(ch),cid:ch.id,t:now};
+ if(FB.ready&&FB.user){
+  try{await FB.db.collection('leaderboard').doc(FB.user.uid+'_'+ch.id).set(entry);}catch(e){}
+ }else{
+  try{if(window.storage)await window.storage.set('lb:'+ch.id,JSON.stringify(entry),true);}catch(e){}
+ }
+}
+async function fetchLB(){
+ if(FB.ready){
+  try{
+   const q=await FB.db.collection('leaderboard').orderBy('score','desc').limit(50).get();
+   return q.docs.map(d=>d.data());
+  }catch(e){}
+ }
+ try{
+  if(window.storage){
+   const r=await window.storage.list('lb:',true);
+   const keys=((r&&r.keys)||[]).slice(0,60);
+   const out=[];
+   for(const k of keys){
+    try{const g=await window.storage.get(k,true);if(g&&g.value)out.push(JSON.parse(g.value));}catch(e){}
+   }
+   return out.sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,50);
+  }
+ }catch(e){}
+ return [];
+}
+const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+async function showLeaderboard(){
+ $('lbFx').classList.add('open');
+ $('lbList').innerHTML='<div class="cl">Consulting the heralds…</div>';
+ if(S&&S.id)await publishLB(S,true);
+ const rows=await fetchLB();
+ $('lbList').innerHTML=rows.length?rows.map((e,i)=>`
+  <div class="lbrow ${S&&e.cid===S.id?'me':''}">
+   <div class="lbrank">${i+1}</div>
+   <div class="lbname">${esc(e.name||'?')}${e.prestige?` <span class="pstar">✦${e.prestige}</span>`:''}</div>
+   <div class="lbmeta">Lv ${e.lvl||1} · ⚔ ${e.gs||0}</div>
+  </div>`).join('')
+  :'<div class="cl">No champions recorded yet — be the first to claim a place.</div>';
+}
+let guestMode=false;
+function updateAcctUI(){
+ const info=$('acctInfo');if(!info)return;
+ if(FB.user){
+  info.textContent='☁ '+(FB.user.email||'Signed in')+' — cloud sync active.';
+  $('fbOut').style.display='inline-block';
+ }else{
+  info.textContent=guestMode?'Guest mode — saves stay on this device.':'Not signed in.';
+  $('fbOut').style.display='none';
+ }
+}
+function showLogin(msg=''){
+ gameOn=false;
+ $('create').style.display='none';
+ $('select').classList.remove('open');
+ $('login').classList.add('open');
+ $('fbErr').textContent=msg;
+}
+ 
 /* ==================== CHARACTER SELECT ==================== */
 function drawPortrait(cnv,ch){
  const g=cnv.getContext('2d'),W=cnv.width,H=cnv.height;
@@ -2224,7 +2475,7 @@ function drawPortrait(cnv,ch){
  g.fillStyle=bg;g.fillRect(0,0,W,H);
  g.fillStyle='rgba(217,164,65,0.06)';
  g.beginPath();g.ellipse(W/2,H*0.3,W*0.5,H*0.32,0,0,7);g.fill();
- const sc=ch.activeScroll?ENCHS.find(e=>e.id===ch.activeScroll):null;
+ const sc=ch.activeScroll?enchOf(ch.activeScroll.id||ch.activeScroll):null;
  g.save();g.translate(W/2,H*0.72);g.scale(2.1,2.1);
  g.fillStyle='rgba(0,0,0,0.3)';g.beginPath();g.ellipse(0,7,11,4.5,0,0,7);g.fill();
  if(sc){g.strokeStyle=sc.glow;g.globalAlpha=0.55;g.lineWidth=1;g.beginPath();g.ellipse(0,6,13,5.5,0,0,7);g.stroke();g.globalAlpha=1;}
@@ -2276,17 +2527,21 @@ async function renderSelect(){
   const ids=(await loadRoster()).filter(x=>x!==b.dataset.del);
   await saveRoster(ids);
   delete memChars[b.dataset.del];
-  try{if(window.storage)await window.storage.delete('eastvale-char-'+b.dataset.del);}catch(e){}
+  await deviceDelete('riptide-char-'+b.dataset.del);
+  await deviceDelete('eastvale-char-'+b.dataset.del);
+  await cloudDeleteChar(b.dataset.del);
   renderSelect();
  });
  $('newCharBtn').style.display=chars.length>=8?'none':'block';
 }
 function showSelect(){
  gameOn=false;
+ $('login').classList.remove('open');
  if(AC.ctx){stopAmbience();AC.prof=null;}
  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));
  $('create').style.display='none';
  $('select').classList.add('open');
+ updateAcctUI();
  renderSelect();
 }
 function showCreate(firstEver){
@@ -2295,7 +2550,7 @@ function showCreate(firstEver){
  $('createBack').style.display=firstEver?'none':'block';
  $('cname').value='';
 }
-
+ 
 /* ==================== BOOT ==================== */
 let pickRace='human',pickClass='warrior';
 function renderPicks(){
@@ -2307,7 +2562,7 @@ function renderPicks(){
 renderPicks();
 $('startBtn').onclick=async()=>{
  initAudio();
- const name=($('cname').value||'Aldric').trim()||'Aldric';
+ const name=($('cname').value||'BYYYYL').trim()||'BYYYYL';
  S=freshState(name,pickRace,pickClass);
  S.id='c'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);
  const ids=await loadRoster();ids.push(S.id);
@@ -2317,6 +2572,12 @@ $('startBtn').onclick=async()=>{
 $('createBack').onclick=()=>{$('create').style.display='none';showSelect();};
 $('newCharBtn').onclick=()=>showCreate(false);
 $('charSelBtn').onclick=async()=>{await save();showSelect();};
+$('fbLogin').onclick=()=>fbSignIn(false);
+$('fbSignup').onclick=()=>fbSignIn(true);
+$('guestBtn').onclick=()=>{guestMode=true;$('login').classList.remove('open');showSelect();};
+$('fbOut').onclick=async()=>{if(FB.auth)await FB.auth.signOut();guestMode=false;showLogin();};
+$('lbBtn2').onclick=showLeaderboard;
+$('lbClose').onclick=()=>$('lbFx').classList.remove('open');
 $('autoBtn').onclick=()=>{S.auto=!S.auto;renderHUD();save();};
 $('nextBtn').onclick=()=>{
  if(!portalIsOpen())return;
@@ -2354,7 +2615,7 @@ function beginGame(isNew){
  setTimeout(()=>{$('hint').style.opacity=0;},8000);
  if(isNew){
   log(`<span class="imp">${S.name} the ${classOf().name}</span> arrives in ${zoneOf().name}.`);
-  stageMsg('Welcome to Eastvale — spells are 1/2/3, potions 4/5.',3000);
+  stageMsg('Welcome to Riptide — spells are 1/2/3, potions 4/5.',3000);
   save();
  }else log(`<span class="imp">Welcome back, ${S.name}.</span> The march resumes.`);
 }
@@ -2371,20 +2632,20 @@ function frame(t){
 resize();
 requestAnimationFrame(frame);
 (async()=>{
+ await initFirebase();
  let roster=await loadRoster();
  if(!roster.length){
-  /* one-time import of the old single-hero save into the new roster */
   const legacy=await legacyLoad();
   if(legacy&&legacy.pots){
    legacy.id='c'+Date.now().toString(36);
    S=legacy;await save();S=null;
    roster=[legacy.id];
    await saveRoster(roster);
-   try{if(window.storage)await window.storage.delete('eastvale-save3');}catch(e){}
+   await deviceDelete('eastvale-save3');
   }
  }
- if(roster.length)showSelect();
- else showCreate(true);
+ if(FB.user){guestMode=false;await cloudPullRoster();showSelect();}
+ else showLogin();
 })();
 </script>
 </body>
