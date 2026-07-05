@@ -485,7 +485,8 @@ function zoneQuests(z){
  if(z.boss)return [{name:z.boss[0],desc:'Defeat '+z.boss[0]+'. Victory opens the gate beyond, forever.',need:1,boss:true}];
  return z.q.map(([n,d,need])=>({name:n,desc:d,need}));
 }
- 
+
+  
 /* ==================== STATE ==================== */
 let S=null;
 const $=id=>document.getElementById(id);
