@@ -540,6 +540,8 @@ const ZONES=[
  {name:'Gates of the Viking',lvl:60,amb:'frost',west:true,special:true,
   boss:['HAALAND the Three-Headed','#c94a3a','cerberus'],
   ground:'#8a94a0',ground2:'#7d8794',water:'#5a7a9a',tree:'#4a5a66',tree2:'#39464f',path:'#a8b0ba',rocky:true},
+ {name:'Cow Level',lvl:60,amb:'meadow',west:true,special:true,cow:true,
+  ground:'#6a9a4e',ground2:'#5f8c46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
 ];
 /* stat curves */
 const eHP=L=>Math.round(20*Math.pow(L,1.25)+10);
@@ -549,6 +551,7 @@ const effZoneLvl=z=>Math.max(z.lvl,ZONES[Math.min(S.maxZone||0,ZONES.length-1)].
 /* XP should NOT use deepest-zone scaling, or prestige resets level too fast. */
 const xpZoneLvl=z=>z.lvl;
 function zoneTemplates(z){
+ if(z.cow)return [];
  const pm=pMul(),pr=pRew();
  const L=effZoneLvl(z);   /* HP/damage/gold scale to deepest zone */
  const XL=xpZoneLvl(z);  /* XP stays tied to the real zone level */
@@ -564,6 +567,7 @@ function zoneTemplates(z){
   xp:Math.round(eHP(XL)/2.6*pr),gold:Math.round((eHP(L)/6+2)*pr)}));
 }
 function zoneQuests(z){
+ if(z.cow)return [{name:'MOO',desc:'Survive. You cannot.',need:999999}];
  if(z.boss)return [{name:z.boss[0],desc:'Defeat '+z.boss[0]+'. Victory opens the gate beyond, forever.',need:1,boss:true}];
  return z.q.map(([n,d,need])=>({name:n,desc:d,need}));
 }
@@ -611,7 +615,7 @@ const speedBoostMul=()=>1+boostBonus(S.boosts?S.boosts.speed:0);
 const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0);
 function freshState(name,race,cls){
  return {id:null,name,race,cls,lvl:1,xp:0,gold:0,scraps:0,prestige:0,zone:0,maxZone:0,quest:0,qProg:0,
-  rating:0,cerberusKills:0,freeGoldCases:0,
+  rating:0,cerberusKills:0,freeGoldCases:0,cowBest:0,cowLast:0,
   gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],
   boosts:{speed:0,haste:0},
   cleared:{},bossDead:{},zoneLvlGain:{},
@@ -642,6 +646,8 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.rating===undefined)s.rating=0;
  if(s.cerberusKills===undefined)s.cerberusKills=0;
  if(s.freeGoldCases===undefined)s.freeGoldCases=0;
+ if(s.cowBest===undefined)s.cowBest=0;
+ if(s.cowLast===undefined)s.cowLast=0;
  if(!s.cleared)s.cleared={};
  if(!s.bossDead)s.bossDead={};
  if(!s.zoneLvlGain)s.zoneLvlGain={};
@@ -949,6 +955,7 @@ function shade(hex,amt){const n=parseInt(hex.slice(1),16);
  return '#'+((r<<16)|(g<<8)|b).toString(16).padStart(6,'0');}
  
 let world=null,hero=null,enemies=[],bolts=[],ebolts=[],hazards=[],floats=[],parts=[],rings=[],groundCv=null;
+let cowT=0,cowSpawnT=0,cowRunning=false;
 /* true while a living boss is engaged — the forge and Trader refuse service mid-fight */
 const inBossFight=()=>gameOn&&enemies.some(e=>e.boss&&!e.dead&&(e.hidden||e.state==='chase'||(hero&&hero.target===e)));
 let camX=0,camY=0,gameOn=false,marker=null,portalMsgT=0;
@@ -1005,7 +1012,14 @@ function buildZone(){
   buff:{},hotT:0,hotTick:0,potCd:{hp:0,mp:0},regenTick:0,glowT:0,avoid:null};
  enemies=[];bolts=[];ebolts=[];hazards=[];floats=[];parts=[];rings=[];
  const tmpls=zoneTemplates(z);
- if(isBoss){
+ cowRunning=false;cowT=0;cowSpawnT=0;
+ if(z.cow){
+  cowRunning=true;
+  for(let i=0;i<8;i++)spawnCow(); /* opening wave */
+  stageMsg('MOO. Survive as long as you can — you will not.',3000);
+  const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
+  log(`<span class="imp">The Cow Level.</span> Best: ${S.cowBest?fmt(S.cowBest):'—'} · Last run: ${S.cowLast?fmt(S.cowLast):'—'}`);
+ }else if(isBoss){
   if(!S.bossDead[S.zone])spawnEnemyAt(tmpls[0],R,{x:world.w-320,y:world.pathY});
  }
  else{for(let i=0;i<24;i++)spawnEnemyAt(tmpls[i%tmpls.length],R);} /* denser maps */
@@ -1046,6 +1060,22 @@ function spawnAdd(name,kind,c){
  burst(bx+Math.cos(a)*60,by+Math.sin(a)*60,c,10,80);
 }
 const addsAlive=()=>enemies.filter(e=>e.add&&!e.dead).length;
+function cowTemplate(){
+ const L=60,pm=Math.pow(1.35,(S.prestige||0));
+ return {name:'Hell Bovine',kind:'humanoid',c:'#8a7a5a',cow:true,
+  hp:Math.round(eHP(L)*3.2*pm),atk:Math.round(eATK(L)*1.9*pm),
+  xp:Math.round(eHP(60)*0.8*pRew()),gold:Math.round(eHP(L)*0.4*pRew())};
+}
+function spawnCow(){
+ const a=Math.random()*6.28,d=Math.max(VW,VH)*0.65+Math.random()*120;
+ const x=Math.max(40,Math.min(world.w-40,hero.x+Math.cos(a)*d));
+ const y=Math.max(40,Math.min(world.h-40,hero.y+Math.sin(a)*d));
+ const t=cowTemplate();
+ enemies.push({name:t.name,kind:t.kind,boss:false,bossId:null,c:t.c,cow:true,
+  x,y,home:{x,y},r:13,max:t.hp,hp:t.hp,atk:t.atk,xp:t.xp,gold:t.gold,add:false,
+  speed:125,state:'chase',dir:0,wT:0,cd:0,dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,
+  cds:{},lockT:0,hidden:false,trailT:0,avoid:null});
+}
 function prerenderGround(z,R){
  groundCv=document.createElement('canvas');
  groundCv.width=world.w;groundCv.height=world.h;
@@ -1285,6 +1315,13 @@ function killEnemy(en){
  // drops — nothing drops while both gold and scrap are effectively capped
  if(lootBlocked()){
   if(Math.random()<0.08)floatAt(en.x,en.y-en.r-28,'LOOT CAPPED','#ff8a7a');
+ }else if(en.cow){
+  for(let k=0;k<2;k++){
+   const it=rollItem('epic');
+   sfx.loot();
+   log(`Cow loot: <span class="lepic">${it.name}</span> ${itemStr(it)}.`,'loot');
+   if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
+  }
  }else{
   if(Math.random()<(en.boss?1:0.20)){
    const it=rollItem(en.boss);
@@ -1320,7 +1357,7 @@ function killEnemy(en){
  }
  gainXP(en.xp);
  const q=questOf();
- if((!q.boss&&!en.add)||(q.boss&&en.boss))S.qProg++;
+ if(((!q.boss&&!en.add)||(q.boss&&en.boss))&&!en.cow)S.qProg++;
  if(hero.target===en)hero.target=null;
  if(S.qProg>=q.need)completeQuest();
  renderHUD();save();
@@ -1349,6 +1386,19 @@ function gainXP(amt){
  if(S.lvl<MAXLVL&&zoneLvlGained()>=ZONE_LVL_CAP)S.xp=Math.min(S.xp,xpNeed(S.lvl)-1);
 }
 function heroDies(){
+ if(cowRunning){
+  cowRunning=false;
+  S.cowLast=cowT;
+  const newBest=cowT>(S.cowBest||0);
+  if(newBest)S.cowBest=cowT;
+  const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
+  hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;
+  sfx.die();
+  stageMsg('The herd takes you. Survived '+fmt(cowT)+(newBest?' — NEW RECORD!':''),3500);
+  log(`<span class="imp">Trampled after ${fmt(cowT)}.</span>${newBest?' <span class="loot">New record!</span>':''} All loot kept.`);
+  save();
+  return;
+ }
  hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;
  sfx.die();
  if(S.zone>0)stageMsg('Defeated… the warband drags you back west.',2600);
@@ -1591,6 +1641,15 @@ function autoBrain(dt){
 }
 function update(dt){
  if(!gameOn)return;
+ if(cowRunning&&!hero.dead){
+  cowT+=dt;
+  cowSpawnT-=dt;
+  if(cowSpawnT<=0){
+   cowSpawnT=Math.max(0.55,2.2-cowT*0.009);
+   spawnCow();
+   if(cowT>60&&Math.random()<0.5)spawnCow();
+  }
+ }
  const c=classOf();
  if(portalMsgT>0)portalMsgT-=dt;
  // timers
@@ -1675,7 +1734,7 @@ function update(dt){
   if(en.dead){
    en.deadT+=dt;
    /* regular foes respawn for grinding; bosses and their adds never do */
-   if(en.deadT>6&&!en.boss&&!en.add){en.hp=en.max;en.dead=false;en.x=en.home.x;en.y=en.home.y;en.state='wander';}
+   if(en.deadT>6&&!en.boss&&!en.add&&!en.cow){en.hp=en.max;en.dead=false;en.x=en.home.x;en.y=en.home.y;en.state='wander';}
    continue;
   }
   if(en.boss){
@@ -1686,9 +1745,9 @@ function update(dt){
   if(en.hurt)en.hurt=Math.max(0,en.hurt-dt);
   if(en.swing)en.swing=Math.max(0,en.swing-dt);
   const dHero=dist(en,hero),dHome=dist(en,en.home);
-  if(en.state!=='return'&&!hero.dead&&(dHero<(en.boss?260:160)||en.state==='chase')){
+  if(en.state!=='return'&&!hero.dead&&(dHero<(en.cow?99999:en.boss?260:160)||en.state==='chase')){
    en.state='chase';
-   if(dHome>(en.boss?900:520)&&!en.add)en.state='return';
+   if(dHome>(en.boss?900:520)&&!en.add&&!en.cow)en.state='return';
    else if(dHero>30+en.r)moveToward(en,hero.x,hero.y,dt);
    else{
     en.cd-=dt;
@@ -1711,6 +1770,7 @@ function update(dt){
    }
   }
  }
+ if(cowRunning)enemies=enemies.filter(e=>!(e.cow&&e.dead&&e.deadT>2));
  // ----- hero bolts -----
  for(let i=bolts.length-1;i>=0;i--){
   const b=bolts[i];
@@ -1826,6 +1886,16 @@ function draw(){
   ctx.globalAlpha=1;
  }
  ctx.restore();
+ if(cowRunning||(zoneOf().cow&&hero.dead)){
+  const t=cowT,fmt=x=>Math.floor(x/60)+':'+String(Math.floor(x%60)).padStart(2,'0');
+  ctx.font='700 30px '+getComputedStyle(document.body).fontFamily;
+  ctx.textAlign='center';
+  ctx.fillStyle='rgba(0,0,0,0.65)';ctx.fillText(fmt(t),VW/2+2,54);
+  ctx.fillStyle=cowRunning?'#ffe9a0':'#ff8a7a';ctx.fillText(fmt(t),VW/2,52);
+  ctx.font='600 11px '+getComputedStyle(document.body).fontFamily;
+  ctx.fillStyle='rgba(255,255,255,0.75)';
+  ctx.fillText('BEST '+(S.cowBest?fmt(S.cowBest):'—')+' · LAST '+(S.cowLast?fmt(S.cowLast):'—'),VW/2,70);
+ }
  if(vigCv)ctx.drawImage(vigCv,0,0,VW,VH);
 }
 function drawPortal(){
@@ -2061,9 +2131,22 @@ function drawEnemy(en){
   ctx.fillStyle=shade(en.c,-40);ctx.beginPath();ctx.arc(0,-4+by,en.r*0.95,0,7);ctx.fill();
   ctx.fillStyle=en.c;ctx.beginPath();ctx.arc(0,-6+by,en.r*0.78,0,7);ctx.fill();
   ctx.fillStyle='#e8c9a0';ctx.beginPath();ctx.arc(0,-en.r-2+by,en.r*0.42,0,7);ctx.fill();
-  ctx.strokeStyle='#ddd';ctx.lineWidth=en.boss?4:2.5;ctx.lineCap='round';
+  if(en.cow){
+   ctx.fillStyle='#e8e0d0';
+   ctx.beginPath();ctx.moveTo(-en.r*0.4,-en.r-4+by);ctx.quadraticCurveTo(-en.r*0.8,-en.r-10+by,-en.r*0.5,-en.r-11+by);ctx.lineTo(-en.r*0.3,-en.r-5+by);ctx.fill();
+   ctx.beginPath();ctx.moveTo(en.r*0.4,-en.r-4+by);ctx.quadraticCurveTo(en.r*0.8,-en.r-10+by,en.r*0.5,-en.r-11+by);ctx.lineTo(en.r*0.3,-en.r-5+by);ctx.fill();
+   ctx.fillStyle='#3a3a3a';ctx.beginPath();ctx.arc(-2,-en.r-2+by,1.2,0,7);ctx.arc(3,-en.r-2+by,1.2,0,7);ctx.fill();
+  }
   ctx.save();ctx.translate(en.r*0.8,-4+by);ctx.rotate(-0.6+(en.swing?(0.2-en.swing)*7:0));
-  ctx.beginPath();ctx.moveTo(0,4);ctx.lineTo(0,-en.r*0.9-6);ctx.stroke();ctx.restore();
+  ctx.strokeStyle=en.cow?'#8a6a4a':'#ddd';ctx.lineWidth=en.boss?4:2.5;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(0,4);ctx.lineTo(0,-en.r*0.9-6);ctx.stroke();
+  if(en.cow){
+   ctx.fillStyle='#d8dde2';
+   const ay=-en.r*0.9-4;
+   ctx.beginPath();ctx.moveTo(0,ay-4);ctx.quadraticCurveTo(8,ay,0,ay+5);ctx.closePath();ctx.fill();
+   ctx.beginPath();ctx.moveTo(0,ay-4);ctx.quadraticCurveTo(-8,ay,0,ay+5);ctx.closePath();ctx.fill();
+  }
+  ctx.restore();
  }
  /* --- unique boss flair --- */
  if(en.boss){
@@ -2173,6 +2256,18 @@ function renderHUD(){
  $('hLvl').textContent='Lv '+S.lvl+(S.prestige?' ✦'+S.prestige:'');
  $('hXP').style.width=(S.lvl>=MAXLVL?100:Math.min(100,100*S.xp/xpNeed(S.lvl)))+'%';
  const z=zoneOf(),q=questOf(),nz=ZONES[S.zone+1];
+ if(zoneOf().cow){
+  const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
+  $('qName').textContent='🐄 MOO';
+  $('qDesc').textContent='Survive the herd. Record: '+(S.cowBest?fmt(S.cowBest):'—')+' · Last: '+(S.cowLast?fmt(S.cowLast):'—');
+  $('qBar').style.width='100%';
+  $('qCount').textContent='∞';
+  $('nextBtn').style.display='none';
+  $('autoBtn').classList.toggle('on',S.auto);
+  $('autoBtn').textContent=S.auto?'AUTO ✓':'AUTO';
+  refreshOpenPanel();
+  return;
+ }
  if(z.boss&&S.bossDead[S.zone]){
   $('qName').textContent=z.boss[0]+' — defeated';
   $('qDesc').textContent=nz?(S.lvl>=nz.lvl?'The gate stands open. Press Continue to march east.':'The gate is unlocked — reach level '+nz.lvl+' to pass.'):'The realm is free.';
@@ -2313,6 +2408,15 @@ function renderMap(){
   if(mapContinent==='east'&&z.west)return '';
   if(mapContinent==='west'&&!z.west)return '';
   if(z.special){
+   if(z.cow){
+    const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
+    return `<div class="card zonecard ${p5?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p5?'#ffd76a':''}">
+     <div class="zdot" style="background:linear-gradient(160deg,${z.ground},${z.tree})">🐄</div>
+     <div class="zinfo"><div class="zn">${z.name}</div>
+     <div class="zl">Endless herd · 2 epics per cow · survive as long as you can · Best ${S.cowBest?fmt(S.cowBest):'—'} · Last ${S.cowLast?fmt(S.cowLast):'—'}</div></div>
+     ${i===S.zone?'<span class="ztag">Here</span>':p5?'<span class="ztag boss">🐄 MOO</span>':'<span class="ztag boss">🔒 Prestige 5</span>'}
+    </div>`;
+   }
    const kills=S.cerberusKills||0;
    return `<div class="card zonecard ${p5?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p5?'#c94a3a':''}">
     <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#5a1a1a)">🐕</div>
@@ -2336,7 +2440,9 @@ function renderMap(){
   el.onclick=()=>{
    const i=+el.dataset.z,z=ZONES[i];
    if(i===S.zone)return;
-   if(z.special){if((S.prestige||0)<5)return;}
+   if(z.special){
+    if((S.prestige||0)<5){if(z.cow){stageMsg('Reach Prestige 5 to hear the mooing',1600);sfx.warn();}return;}
+   }
    else if(i>S.zone&&(S.lvl<z.lvl||!bossesClearedBefore(i)))return;
    S.zone=i;S.quest=0;S.qProg=0;
    applyZoneUI();buildZone();renderHUD();save();
