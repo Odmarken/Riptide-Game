@@ -559,6 +559,7 @@ function zoneTemplates(z){
   const km=z.special?Math.pow(1.5,S.cerberusKills||0):1;   /* +50% per kill, compounding */
   const bm=z.special?2:1;                                   /* HAALAND's base is beefier */
   return [{name:z.boss[0],kind:'boss',boss:true,bossId:z.boss[2],c:z.boss[1],
+   speed:z.special?185:80,   /* HAALAND sprints — faster than the hero's base 175 */
    hp:Math.round(eHP(L)*50*pm*bm*km),atk:Math.round(eATK(L)*1.76*(z.special?1.25:1)*pm*km),
    xp:Math.round(eHP(XL)*5*pr),gold:Math.round(eHP(L)*3.5*pr)}];
  }
@@ -959,6 +960,7 @@ let cowT=0,cowSpawnT=0,cowRunning=false;
 /* true while a living boss is engaged — the forge and Trader refuse service mid-fight */
 const inBossFight=()=>gameOn&&enemies.some(e=>e.boss&&!e.dead&&(e.hidden||e.state==='chase'||(hero&&hero.target===e)));
 let camX=0,camY=0,gameOn=false,marker=null,portalMsgT=0;
+let shakeT=0;
  
 function buildZone(){
  if(!zoneOf().special&&(S.maxZone||0)<S.zone)S.maxZone=S.zone;
@@ -1041,7 +1043,7 @@ function spawnEnemyAt(t,R,fixed){
   x:p.x,y:p.y,home:{x:p.x,y:p.y},r:t.boss?26:12,
   max:Math.round(t.hp*scale),hp:Math.round(t.hp*scale),
   atk:t.atk,xp:t.xp,gold:t.gold,add:!!t.add,
-  speed:t.boss?80:105,state:'wander',dir:Math.random()*6.28,wT:0,cd:0,dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,
+  speed:t.speed||(t.boss?80:105),state:'wander',dir:Math.random()*6.28,wT:0,cd:0,dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,
   cds:{a:2,b:5,c:8},lockT:0,hidden:false,trailT:0,avoid:null});
 }
 function spawnAdd(name,kind,c){
@@ -1393,17 +1395,20 @@ function heroDies(){
   if(newBest)S.cowBest=cowT;
   const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
   hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;
+  hero.sentHome=true;   /* west deaths go to Willowmere */
   sfx.die();
   stageMsg('The herd takes you. Survived '+fmt(cowT)+(newBest?' — NEW RECORD!':''),3500);
   log(`<span class="imp">Trampled after ${fmt(cowT)}.</span>${newBest?' <span class="loot">New record!</span>':''} All loot kept.`);
   save();
   return;
  }
+ if(zoneOf().west)hero.sentHome=true;
  hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;
  sfx.die();
- if(S.zone>0)stageMsg('Defeated… the warband drags you back west.',2600);
+ if(zoneOf().west)stageMsg('Defeated… you are hurled back across the sea.',2600);
+ else if(S.zone>0)stageMsg('Defeated… the warband drags you back west.',2600);
  else stageMsg('Defeated… you wake at the roadside.',2600);
- log('<span class="imp">Defeated.</span>'+(S.zone>0?' You fall back to the previous region — gear intact.':' You regroup at the western road.'));
+ log('<span class="imp">Defeated.</span>'+(zoneOf().west?' The west casts you all the way home to Willowmere Fields.':S.zone>0?' You fall back to the previous region — gear intact.':' You regroup at the western road.'));
 }
 function completeQuest(){
  const q=questOf(),qs=questsOf();
@@ -1562,7 +1567,7 @@ function bossAI(en,dt){
    if(addsAlive()<2){spawnAdd('Legionnaire','humanoid','#a04a3a');
     floatAt(en.x,en.y-en.r-30,'To me!','#e8a08a',true);}
   }
- }else if(B==='cerberus'){ /* three heads: hellfire rain, triple firebolt volley, hellhounds */
+ }else if(B==='cerberus'){ /* HAALAND: hellfire, volleys, hounds, strikes & ground shake */
   if(en.cds.a<=0){en.cds.a=7;sfx.warn();
    for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*120,hero.y+(Math.random()-0.5)*120,48,1.2,en.atk*1.4,'#ff5a3a');
    floatAt(en.x,en.y-en.r-30,'Hellfire!','#ff5a3a',true);
@@ -1576,7 +1581,24 @@ function bossAI(en,dt){
    if(addsAlive()<3){spawnAdd('Hellhound','beast','#a03a2a');spawnAdd('Hellhound','beast','#a03a2a');
     floatAt(en.x,en.y-en.r-30,'AWOOO!','#ff8a6a',true);}
   }
- }
+  /* STRIKE — one ball at your position, 5% max HP, every 20s (first at 8s) */
+  if(en.cds.d===undefined)en.cds.d=8;
+  if(en.cds.d<=0){en.cds.d=20;
+   const d=dist(en,hero)||1;
+   ebolts.push({x:en.x,y:en.y-18,vx:(hero.x-en.x)/d*340,vy:(hero.y-en.y)/d*340,t:0,pct:0.05,dmg:0,c:'#ffffff',ball:true});
+   floatAt(en.x,en.y-en.r-30,'⚽ STRIKE!','#ffffff',true);
+   sfx.shout();
+  }
+  /* GROUND SHAKE — one unavoidable 5% max HP hit, every 20s (first at 14s) */
+  if(en.cds.e===undefined)en.cds.e=14;
+  if(en.cds.e<=0){en.cds.e=20;
+   ring(en.x,en.y,220,'#f2d98a',0.7);
+   burst(en.x,en.y+4,'#b09a6a',18,140,true);
+   noiseHit(0.35,.12,300);
+   if(!hero.dead)hurtHero(heroMax()*0.05,'💢');
+   floatAt(en.x,en.y-en.r-30,'GROUND SHAKE!','#f2d98a',true);
+   shakeT=0.45;
+  } }
 }
  
 /* ==================== INPUT ==================== */
@@ -1652,6 +1674,7 @@ function update(dt){
  }
  const c=classOf();
  if(portalMsgT>0)portalMsgT-=dt;
+ if(shakeT>0)shakeT-=dt;
  // timers
  hero.spellCd=hero.spellCd.map(v=>Math.max(0,v-dt));
  hero.potCd.hp=Math.max(0,hero.potCd.hp-dt);
@@ -1681,8 +1704,12 @@ function update(dt){
  if(hero.dead){
   hero.deadT+=dt;
   if(hero.deadT>3){
-   /* death sends you back one region — everything you looted comes with you */
-   if(S.zone>0){
+   if(hero.sentHome){
+    S.zone=0;S.quest=0;S.qProg=0;
+    applyZoneUI();buildZone();renderHUD();save();
+    stageMsg('You wake in Willowmere Fields — a long way from the west. Gear and loot intact.',3000);
+    log(`<span class="imp">Cast back to Willowmere Fields.</span> The western continent does not forgive.`);
+   }else if(S.zone>0){
     S.zone--;S.quest=0;S.qProg=0;
     applyZoneUI();buildZone();renderHUD();save();
     stageMsg('You wake in '+zoneOf().name+' — gear and loot intact.',2600);
@@ -1789,7 +1816,10 @@ function update(dt){
   const b=ebolts[i];
   b.t+=dt;b.x+=b.vx*dt;b.y+=b.vy*dt;
   if(Math.random()<0.4)parts.push({x:b.x,y:b.y,vx:0,vy:0,t:0,life:0.2,c:b.c,r:1.6,g:0});
-  if(!hero.dead&&Math.hypot(hero.x-b.x,(hero.y-10)-b.y)<15){hurtHero(b.dmg);ebolts.splice(i,1);continue;}
+  if(!hero.dead&&Math.hypot(hero.x-b.x,(hero.y-10)-b.y)<(b.ball?18:15)){
+   hurtHero(b.pct?heroMax()*b.pct:b.dmg,b.ball?'⚽':undefined);
+   ebolts.splice(i,1);continue;
+  }
   if(b.t>3.2||b.x<0||b.y<0||b.x>world.w||b.y>world.h)ebolts.splice(i,1);
  }
  // ----- telegraphed hazards -----
@@ -1820,7 +1850,8 @@ function draw(){
  if(!gameOn)return;
  const now=performance.now()/1000;
  ctx.clearRect(0,0,VW,VH);
- ctx.save();ctx.translate(-camX,-camY);
+ const shX=shakeT>0?(Math.random()-0.5)*shakeT*26:0,shY=shakeT>0?(Math.random()-0.5)*shakeT*26:0;
+ ctx.save();ctx.translate(-camX+shX,-camY+shY);
  ctx.drawImage(groundCv,0,0);
  const z=zoneOf();
  /* animated water shimmer */
@@ -1870,8 +1901,16 @@ function draw(){
   ctx.fillStyle='rgba(255,255,255,0.5)';ctx.beginPath();ctx.arc(b.x,b.y,1.6,0,7);ctx.fill();
  }
  for(const b of ebolts){
-  ctx.fillStyle=b.c;ctx.beginPath();ctx.arc(b.x,b.y,4.5,0,7);ctx.fill();
-  ctx.fillStyle='rgba(255,255,255,0.55)';ctx.beginPath();ctx.arc(b.x,b.y,1.8,0,7);ctx.fill();
+  if(b.ball){
+   ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(b.x,b.y,6,0,7);ctx.fill();
+   ctx.strokeStyle='#222';ctx.lineWidth=1;
+   ctx.beginPath();ctx.arc(b.x,b.y,6,0,7);ctx.stroke();
+   ctx.fillStyle='#222';
+   ctx.beginPath();ctx.arc(b.x-1.5,b.y-1,2,0,7);ctx.fill();
+  }else{
+   ctx.fillStyle=b.c;ctx.beginPath();ctx.arc(b.x,b.y,4.5,0,7);ctx.fill();
+   ctx.fillStyle='rgba(255,255,255,0.55)';ctx.beginPath();ctx.arc(b.x,b.y,1.8,0,7);ctx.fill();
+  }
  }
  for(const p of parts){
   ctx.globalAlpha=Math.max(0,1-p.t/p.life);
@@ -2181,13 +2220,24 @@ function drawEnemy(en){
   }else if(B==='ashmaw'){ /* rising embers, hotter when enraged */
    if(Math.random()<(en.enraged?0.5:0.22))parts.push({x:en.x+(Math.random()-0.5)*30,y:en.y-8,vx:(Math.random()-0.5)*12,vy:-30-Math.random()*24,t:0,life:0.8,c:en.enraged?'#ff5a1a':'#ff9a3a',r:1.7,g:0});
    ctx.strokeStyle='rgba(255,'+(en.enraged?'70':'130')+',40,'+(0.35+0.2*Math.sin(now/110))+')';
-  }else if(B==='cerberus'){ /* two extra snarling heads + ember glow */
+  }else if(B==='cerberus'){ /* HAALAND: blond top, two extra heads, ember glow */
+   ctx.fillStyle='#f2d98a';
+   ctx.beginPath();
+   ctx.moveTo(-en.r*0.42,-en.r-2+by);
+   ctx.quadraticCurveTo(0,-en.r-13+by,en.r*0.42,-en.r-2+by);
+   ctx.quadraticCurveTo(en.r*0.2,-en.r-6+by,0,-en.r-5+by);
+   ctx.quadraticCurveTo(-en.r*0.2,-en.r-6+by,-en.r*0.42,-en.r-2+by);
+   ctx.closePath();ctx.fill();
+   ctx.fillStyle='rgba(255,255,255,0.25)';
+   ctx.beginPath();ctx.ellipse(-en.r*0.15,-en.r-7+by,en.r*0.2,2.2,-0.3,0,7);ctx.fill();
    for(const hx of[-0.15,0.9]){
     ctx.fillStyle=dark;ctx.beginPath();ctx.arc(en.r*hx,-10+by,en.r*0.38,0,7);ctx.fill();
+    ctx.fillStyle='#f2d98a';
+    ctx.beginPath();ctx.ellipse(en.r*hx,-10-en.r*0.32+by,en.r*0.3,en.r*0.16,0,0,7);ctx.fill();
     ctx.fillStyle='#ff5a3a';ctx.beginPath();ctx.arc(en.r*hx+3,-11+by,1.6,0,7);ctx.fill();
    }
    if(Math.random()<0.3)parts.push({x:en.x+(Math.random()-0.5)*36,y:en.y-14,vx:(Math.random()-0.5)*10,vy:-26,t:0,life:0.7,c:'#ff5a3a',r:1.6,g:0});
-   ctx.strokeStyle='rgba(255,90,58,'+(0.35+0.2*Math.sin(now/130))+')';
+   ctx.strokeStyle='rgba(242,217,138,'+(0.35+0.2*Math.sin(now/130))+')';
   }else if(B==='krev'){ /* gold crown + war cape */
    ctx.fillStyle='#7a1e14';
    ctx.beginPath();
