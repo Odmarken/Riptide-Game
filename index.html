@@ -231,6 +231,9 @@
   .lbcard.me{border-color:var(--brass);box-shadow:0 0 14px rgba(217,164,65,.22)}
   .lbrank.big{width:34px;flex:0 0 auto;text-align:center;font-size:17px}
 
+  .lbinsp .slotrow{display:flex;gap:8px}
+  .lbinsp .slot{flex:1}
+
 
   /* ---- Riptide sign-in gate ---- */
   .loginbox{width:min(100%,390px);margin:0 auto;padding:22px;background:rgba(28,43,36,.88);border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.35)}
@@ -314,7 +317,7 @@
       <div class="ptitle" style="margin:0">🏆 Champions of Riptide</div>
       <button class="sbtn" id="lbClose">Close</button>
     </div>
-    <div class="cl" style="margin-bottom:10px">Publishing to the board shares your hero's name, level, prestige and gear score publicly.</div>
+    <div class="cl" style="margin-bottom:10px">Publishing to the board shares your hero's name, level, prestige, rating, stats, gear and scrolls publicly.</div>
     <div id="lbList" style="overflow-y:auto;flex:1"></div>
   </div>
  
@@ -2908,17 +2911,33 @@ async function cloudPullRoster(){
   if($('select').classList.contains('open'))renderSelect();
  }catch(e){console.warn('cloud pull failed',e);}
 }
-/* --- global leaderboard: name, level, prestige, gear score --- */
+/* --- global leaderboard: name, level, prestige, rating, gear, stats and scrolls --- */
+function charStats(ch){
+ const c=CLASSES.find(x=>x.id===ch.cls)||CLASSES[0],r=RACES.find(x=>x.id===ch.race)||RACES[0];
+ const sum=k=>Object.values(ch.gear||{}).reduce((t,g)=>t+((g&&g[k])||0),0);
+ const titan=(ch.activeScrolls||[]).filter(Boolean).find(s=>s.id==='titan');
+ return {
+  hp:Math.round((c.hp+(ch.lvl||1)*14+sum('hp'))*(r.hp||1)),
+  mana:Math.round(c.mana+(ch.lvl||1)*5),
+  atk:Math.round((c.atk+(ch.lvl||1)*2.6+sum('atk'))*(1+(titan?tierVal('titan',titan.tier||1)/100:0))),
+  crit:c.crit+(r.crit||0)+sum('crit')
+ };
+}
 const lbScore=ch=>(ch.prestige||0)*1e6+(ch.lvl||1)*1e3+charGearScore(ch);
 async function publishLB(ch,force){
  if(!ch||!ch.id)return;
  const now=Date.now();
  if(!force&&now-FB.lastPub<45000)return;
  FB.lastPub=now;
+ const slim=g=>g?{name:g.name,rar:g.rar,slot:g.slot,up:g.up||0,atk:g.atk||0,hp:g.hp||0,crit:g.crit||0,lifesteal:g.lifesteal||0,legend:g.legend||null,power:Math.round(g.power||0)}:null;
  const entry={name:(ch.name||'?').slice(0,14),lvl:ch.lvl,prestige:ch.prestige||0,gs:charGearScore(ch),score:lbScore(ch),cid:ch.id,t:now,
-  race:ch.race||'human',cls:ch.cls||'warrior',zone:ch.zone||0,
   rating:ch.rating||0,
-  scroll:(ch.activeScrolls||[]).filter(Boolean)[0]||null};
+  race:ch.race||'human',cls:ch.cls||'warrior',zone:ch.zone||0,
+  scroll:(ch.activeScrolls||[]).filter(Boolean)[0]||null,
+  scrolls:(ch.activeScrolls||[]).filter(Boolean).map(sc=>({id:sc.id,tier:sc.tier||1})),
+  gear:{weapon:slim(ch.gear&&ch.gear.weapon),armor:slim(ch.gear&&ch.gear.armor),trinket:slim(ch.gear&&ch.gear.trinket)},
+  stats:charStats(ch),
+  boosts:ch.boosts||{speed:0,haste:0}};
  if(FB.ready&&FB.user){
   try{await FB.db.collection('leaderboard').doc(FB.user.uid+'_'+ch.id).set(entry);}catch(e){}
  }else{
@@ -2946,6 +2965,36 @@ async function fetchLB(){
  return [];
 }
 const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const RARCOL={common:'#d8e4d6',fine:'#6dbb6d',rare:'#5b9bd5',epic:'#c9a0ff',legendary:'#ffd100'};
+function renderInspect(e){
+ const st=e.stats||{};
+ const gearRow=sl=>{
+  const g=e.gear&&e.gear[sl];
+  if(!g)return `<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div><div class="ss">— empty —</div></div>`;
+  let s=`${g.up?'+'+g.up+' · ':''}${g.atk?'+'+g.atk+' ATK ':''}${g.hp?'+'+g.hp+' HP ':''}${g.crit?'+'+g.crit+'% CRIT ':''}${g.lifesteal?'+'+(g.lifesteal*100)+'% LIFESTEAL':''}`.trim();
+  return `<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div>
+   <div class="sn" style="color:${RARCOL[g.rar]||'#fff'}">${esc(g.name)}</div>
+   <div class="ss">${esc(s)}</div></div>`;
+ };
+ const scrolls=(e.scrolls&&e.scrolls.length?e.scrolls:e.scroll?[e.scroll]:[]);
+ const scHtml=scrolls.length?scrolls.map(sc=>{
+  const en=enchOf(sc.id);if(!en)return '';
+  return `<div class="slot" style="border-color:${en.glow}66">
+   <div class="ss" style="text-transform:uppercase;letter-spacing:1px">Scroll</div>
+   <div class="en"><span class="glowdot" style="background:${en.glow};box-shadow:0 0 6px ${en.glow}"></span>${esc(en.n.replace('Scroll of ',''))} ${TIERN[(sc.tier||1)-1]}</div>
+   <div class="ss">${esc(tierDesc(sc.id,sc.tier||1))}</div></div>`;
+ }).join(''):`<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">Scrolls</div><div class="ss">— none active —</div></div>`;
+ return `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
+  <div class="statgrid" style="margin-bottom:8px">
+   <div class="stat"><b>${st.hp||'?'}</b><span>Max health</span></div>
+   <div class="stat"><b>${st.mana||'?'}</b><span>Max mana</span></div>
+   <div class="stat"><b>${st.atk||'?'}</b><span>Attack</span></div>
+   <div class="stat"><b>${st.crit!=null?st.crit+'%':'?'}</b><span>Crit chance</span></div>
+  </div>
+  <div class="slotrow">${gearRow('weapon')}${gearRow('armor')}${gearRow('trinket')}</div>
+  <div class="slotrow" style="margin-top:8px">${scHtml}</div>
+ </div>`;
+}
 async function showLeaderboard(){
  $('lbFx').classList.add('open');
  $('lbList').innerHTML='<div class="cl">Consulting the heralds…</div>';
@@ -2954,7 +3003,7 @@ async function showLeaderboard(){
  $('lbList').innerHTML=rows.length?rows.map((e,i)=>{
   const r=RACES.find(x=>x.id===e.race),c=CLASSES.find(x=>x.id===e.cls);
   const zn=ZONES[Math.max(0,Math.min(ZONES.length-1,e.zone||0))].name;
-  return `<div class="card charcard lbcard ${S&&e.cid===S.id?'me':''}">
+  return `<div class="card charcard lbcard ${S&&e.cid===S.id?'me':''}" style="flex-wrap:wrap">
    <div class="lbrank big">${i+1}</div>
    <canvas class="portrait" width="64" height="76" data-lbp="${i}"></canvas>
    <div class="cinfo">
@@ -2962,14 +3011,25 @@ async function showLeaderboard(){
     <div class="cl">${r&&c?esc(r.name+' '+c.name)+' · ':''}Level ${e.lvl||1}</div>
     <div class="cl">⚔ ${e.gs||0} gear score · ${esc(zn)}</div>
    </div>
+   <button class="sbtn gold" data-insp="${i}">🔍 Inspect</button>
+   <div class="lbinsp" id="insp${i}" style="display:none;flex-basis:100%"></div>
   </div>`;
  }).join('')
   :'<div class="cl">No champions recorded yet — be the first to claim a place.</div>';
  rows.forEach((e,i)=>{
   const cnv=document.querySelector(`[data-lbp="${i}"]`);
-  if(cnv)drawPortrait(cnv,{race:e.race||'human',cls:e.cls||'warrior',prestige:e.prestige||0,activeScroll:e.scroll||null,gear:{}});
+  if(cnv)drawPortrait(cnv,{race:e.race||'human',cls:e.cls||'warrior',prestige:e.prestige||0,activeScroll:e.scroll||null,gear:e.gear||{}});
+ });
+ document.querySelectorAll('[data-insp]').forEach(b=>b.onclick=()=>{
+  const i=+b.dataset.insp,box=$('insp'+i),e=rows[i];
+  if(box.style.display!=='none'){box.style.display='none';b.textContent='🔍 Inspect';return;}
+  document.querySelectorAll('.lbinsp').forEach(x=>x.style.display='none');
+  document.querySelectorAll('[data-insp]').forEach(x=>x.textContent='🔍 Inspect');
+  box.innerHTML=renderInspect(e);
+  box.style.display='block';b.textContent='▴ Close';
  });
 }
+
 let guestMode=false;
 function updateAcctUI(){
  const info=$('acctInfo');if(!info)return;
