@@ -2454,12 +2454,11 @@ const CASE_RARS=[
  {r:.965,cc:'#5b9bd5',t:'rare'},{r:.995,cc:'#c9a0ff',t:'epic'},{r:1,cc:'#e8c9ef',t:'scroll'}
 ];
 const CASE_RARS_GOLD=[
- {r:.06,cc:'#e8c9ef',t:'scroll'},{r:.53,cc:'#6dbb6d',t:'fine'},
- {r:.86,cc:'#5b9bd5',t:'rare'},{r:1,cc:'#c9a0ff',t:'epic'}
+ {r:.06,cc:'#e8c9ef',t:'scroll'},
+ {r:.66,cc:'#5b9bd5',t:'rare'},{r:1,cc:'#c9a0ff',t:'epic'}
 ];
 function fillerCard(){
- /* the gilded chest sprinkles glowing gold bars through the reel */
- if(curCase==='gold'&&Math.random()<0.3)return {icon:'🪙',cc:'#ffd76a',t:'gold',gbar:true};
+ /* GOLD GOLD GOLD uses Frostmourne as the rare tease instead of coin clutter. */
  if(curCase==='gold'&&Math.random()<0.02)return {icon:'🗡️',cc:'#ffd100',t:'legendary'};
  const pool=curCase==='gold'?CASE_RARS_GOLD:CASE_RARS;
  const r=Math.random();
@@ -2476,14 +2475,14 @@ function prizeValue(type){
    if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
    return {icon:'🗡️',tier:'LEGENDARY',name:'Frostmourne',color:'#ffd100',sub:'weapon · '+itemStr(it),epic:true,big:true};
   }
-  if(r<0.06){
+  if(r<0.064){
    const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
    S.scrolls.push({id:e.id,tier:2});
    log(`GOLD GOLD GOLD: <span class="lscroll">${e.n} II</span>!`,'loot');
    return {icon:'📜',tier:'Scroll · Tier II',name:e.n,color:e.glow,sub:tierDesc(e.id,2)+' Combine duplicates to forge higher tiers.',big:true};
   }
-  const rar=r<0.53?'fine':r<0.86?'rare':'epic';
-  const it=rollItem(rar),icon={weapon:'⚔️',armor:'🛡️',trinket:'💍'}[it.slot],col={fine:'#6dbb6d',rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
+  const rar=r<0.664?'rare':'epic';
+  const it=rollItem(rar),icon={weapon:'⚔️',armor:'🛡️',trinket:'💍'}[it.slot],col={rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
   log(`GOLD GOLD GOLD: <span class="l${it.rar}">${it.name}</span> ${itemStr(it)}.`,'loot');
   it._lid=lootUID++;
   if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
@@ -2625,7 +2624,7 @@ function renderShop(){
   <div class="btns"><button class="sbtn gold" id="chestBtn" ${S.gold<gTot?'disabled':''}>${gTot.toLocaleString()}◉</button>
   <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gamba" data-d="-1" ${gQty<=1?'disabled':''}>−</button><span class="qtynum">${gQty}x</span><button class="qtybtn" data-case="gamba" data-d="1" ${gQty>=5?'disabled':''}>+</button></div><div class="qtytotal">Total: ${gTot.toLocaleString()}◉</div></div></div></div>`;
  h+=`<div class="card item" style="border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.15)"><div><div class="sn" style="font-size:13px;font-weight:600;color:#ffd76a">💰 GOLD GOLD GOLD</div>
-  <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common junk — fine, rare and epic gear, a slim chance at a Tier II scroll, and a tiny chance at Frostmourne.</div></div>
+  <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common or fine junk — only rare and epic gear, a slim chance at a Tier II scroll, and a tiny chance at Frostmourne.</div></div>
   <div class="btns"><button class="sbtn gold" id="goldChestBtn" ${S.gold<goTot?'disabled':''}>${goTot.toLocaleString()}◉</button>
   <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gold" data-d="-1" ${goQty<=1?'disabled':''}>−</button><span class="qtynum">${goQty}x</span><button class="qtybtn" data-case="gold" data-d="1" ${goQty>=5?'disabled':''}>+</button></div><div class="qtytotal">Total: ${goTot.toLocaleString()}◉</div></div></div></div>`;
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Supplies</div>';
