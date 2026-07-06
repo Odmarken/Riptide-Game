@@ -410,6 +410,7 @@
     <div class="chestreveal" id="chestReveal"></div>
     <div class="casebtns" id="caseBtns">
       <button id="respinBtn">🎁 Respin · 5,000◉</button>
+      <button id="caseScrapBtn" class="sbtn scrapb" style="display:none;padding:12px 18px;border-radius:12px">⚙ Scrap Chest Gear</button>
       <button id="caseClose">Close</button>
     </div>
   </div>
@@ -2182,6 +2183,19 @@ function renderMap(){
 }
 let scrollTierOpen={}; /* which tier categories are expanded in the Bag */
 let gearRarityOpen={}; /* which gear rarity categories are expanded in the Bag */
+function scrapBagItems(match,label){
+ const keep=[],take=[];
+ S.bag.forEach(it=>(match(it)?take:keep).push(it));
+ if(!take.length){stageMsg('Nothing to scrap',1200);return false;}
+ const total=take.reduce((t,it)=>t+scrapVal(it),0),n=take.length;
+ S.bag=keep;
+ S.scraps=Math.min(SCRAP_CAP,S.scraps+total);
+ sfx.forge();
+ log(`Scrapped ${n} ${label||'items'} — +${total} ⚙.`,'loot');
+ stageMsg('⚙ Scrapped '+n+' '+(label||'items')+' for '+total+' Scraps',1800);
+ renderBag();renderHUD();save();
+ return true;
+}
 function renderBag(){
  $('bagWallet').innerHTML=walletStr();
  // scrolls — categorised by tier; tap a tier header to expand/collapse it
@@ -2260,7 +2274,7 @@ function renderBag(){
   const sell=list.reduce((t,x)=>t+x.it.sell,0),scr=list.reduce((t,x)=>t+scrapVal(x.it),0);
   gearHtml+=`<div class="tierhead" data-grar="${rar}" style="border-color:${rarColor[rar]}66">
     <span style="color:${rarColor[rar]}">${open?'▾':'▸'} ${rarName[rar]} Gear</span>
-    <span class="tcount">${list.length} item${list.length>1?'s':''} · ${sell.toLocaleString()}◉ · ${scr}⚙</span></div>`;
+    <span class="tcount" style="display:flex;align-items:center;gap:6px;justify-content:flex-end">${list.length} item${list.length>1?'s':''} · ${sell.toLocaleString()}◉ · ${scr}⚙ <button class="sbtn scrapb" data-scrrar="${rar}" style="padding:4px 7px;font-size:10px">Scrap All +${scr}⚙</button></span></div>`;
   if(open)gearHtml+='<div class="tierbody">'+list.map(({it,i})=>`
   <div class="card item">
    <div><div class="sn r-${it.rar}" style="font-size:13px;font-weight:600">${it.name}</div>
@@ -2274,6 +2288,16 @@ function renderBag(){
  $('bagList').innerHTML=gearHtml;
  document.querySelectorAll('[data-grar]').forEach(h=>h.onclick=()=>{
   const r=h.dataset.grar;gearRarityOpen[r]=!gearRarityOpen[r];renderBag();
+ });
+ document.querySelectorAll('[data-scrrar]').forEach(b=>b.onclick=e=>{
+  e.stopPropagation();
+  const rar=b.dataset.scrrar;
+  if(!b.dataset.armed){
+   b.dataset.armed='1';b.textContent='Confirm?';b.style.color='#ff8a7a';b.style.borderColor='#a05a5a';
+   setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent='Scrap All +'+S.bag.filter(it=>it.rar===rar).reduce((t,it)=>t+scrapVal(it),0)+'⚙';b.style.color='';b.style.borderColor='';}},3000);
+   return;
+  }
+  scrapBagItems(it=>it.rar===rar,rar+' gear');
  });
  document.querySelectorAll('[data-eq]').forEach(b=>b.onclick=()=>{
   const i=+b.dataset.eq,it=S.bag.splice(i,1)[0];
@@ -2344,6 +2368,7 @@ function spawnChestParts(color,n){
 const CASE_COST=5000,GOLD_COST=20000;
 let caseSpinning=false,caseRAF=0,curCase='gamba'; /* which chest is spinning */
 const chestQty={gamba:1,gold:1};
+let lootUID=1,lastCaseLootIds=[];
 const caseCost=()=>curCase==='gold'?GOLD_COST:CASE_COST;
 const CASE_RARS=[
  {r:.55,cc:'#d8e4d6',t:'common'},{r:.85,cc:'#6dbb6d',t:'fine'},
@@ -2373,7 +2398,8 @@ function prizeValue(type){
   const rar=r<0.53?'fine':r<0.86?'rare':'epic';
   const it=rollItem(rar),icon={weapon:'⚔️',armor:'🛡️',trinket:'💍'}[it.slot],col={fine:'#6dbb6d',rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
   log(`GOLD GOLD GOLD: <span class="l${it.rar}">${it.name}</span> ${itemStr(it)}.`,'loot');
-  if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
+  it._lid=lootUID++;
+  if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
   return {icon,tier:rar,name:it.name,color:col,sub:it.slot+' · '+itemStr(it),epic:rar==='epic',big:rar==='rare'};
  }
  if(r<0.06){
@@ -2385,13 +2411,15 @@ function prizeValue(type){
  const rar=r<0.66?'common':r<0.90?'fine':r<0.98?'rare':'epic';
  const it=rollItem(rar),icon={weapon:'⚔️',armor:'🛡️',trinket:'💍'}[it.slot],col={common:'#d8e4d6',fine:'#6dbb6d',rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
  log(`GAMBAAA!: <span class="l${it.rar}">${it.name}</span> ${itemStr(it)}.`,'loot');
- if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
+ it._lid=lootUID++;
+ if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
  return {icon,tier:rar,name:it.name,color:col,sub:it.slot+' · '+itemStr(it),epic:rar==='epic',big:rar==='rare'};
 }
 function rollChestBatch(type,count){
  const cost=type==='gold'?GOLD_COST:CASE_COST,total=cost*count,label=type==='gold'?'GOLD GOLD GOLD':'GAMBAAA';
  if(S.gold<total){stageMsg('Not enough gold — '+count+'x '+label+' costs '+total.toLocaleString()+' ◉',1500);return null;}
  S.gold-=total;sfx.buy();
+ lastCaseLootIds=[];
  const wins=[];
  for(let i=0;i<count;i++)wins.push(prizeValue(type));
  renderShop();renderHUD();save();
@@ -2459,15 +2487,33 @@ function finishCase(wins){
  const rb=$('respinBtn'),cost=caseCost()*chestQty[curCase];
  rb.disabled=S.gold<cost;
  rb.textContent=(rb.disabled?'🎁 Respin '+chestQty[curCase]+'x · '+cost.toLocaleString()+'◉ — broke!':'🎁 Respin '+chestQty[curCase]+'x · '+cost.toLocaleString()+'◉');
+ const cs=$('caseScrapBtn'),chestGear=S.bag.filter(it=>lastCaseLootIds.includes(it._lid));
+ if(chestGear.length){
+  const total=chestGear.reduce((t,it)=>t+scrapVal(it),0);
+  cs.style.display='inline-block';cs.textContent='⚙ Scrap Chest Gear +'+total+'⚙';delete cs.dataset.armed;
+ }else cs.style.display='none';
  $('caseBtns').classList.add('show');
 }
 function hideChestFx(){
  if(caseSpinning)return;
  cancelAnimationFrame(caseRAF);
  $('chestFx').classList.remove('open','multi');
+ $('caseScrapBtn').style.display='none';
  document.querySelectorAll('.caseextra').forEach(x=>x.remove());
 }
 $('caseClose').onclick=hideChestFx;
+$('caseScrapBtn').onclick=()=>{
+ if(caseSpinning)return;
+ const b=$('caseScrapBtn'),items=S.bag.filter(it=>lastCaseLootIds.includes(it._lid));
+ if(!items.length){b.style.display='none';return;}
+ if(!b.dataset.armed){
+  b.dataset.armed='1';b.textContent='Confirm — scrap chest gear?';b.style.color='#ff8a7a';b.style.borderColor='#a05a5a';
+  setTimeout(()=>{if(b.isConnected&&b.dataset.armed){delete b.dataset.armed;const total=S.bag.filter(it=>lastCaseLootIds.includes(it._lid)).reduce((t,it)=>t+scrapVal(it),0);b.textContent='⚙ Scrap Chest Gear +'+total+'⚙';b.style.color='';b.style.borderColor='';}},3000);
+  return;
+ }
+ scrapBagItems(it=>lastCaseLootIds.includes(it._lid),'chest items');
+ lastCaseLootIds=[];b.style.display='none';
+};
 $('respinBtn').onclick=()=>{
  if(caseSpinning)return;
  const wins=rollChestBatch(curCase,chestQty[curCase]);
