@@ -616,7 +616,7 @@ const speedBoostMul=()=>1+boostBonus(S.boosts?S.boosts.speed:0);
 const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0);
 function freshState(name,race,cls){
  return {id:null,name,race,cls,lvl:1,xp:0,gold:0,scraps:0,prestige:0,zone:0,maxZone:0,quest:0,qProg:0,
-  rating:0,cerberusKills:0,freeGoldCases:0,cowBest:0,cowLast:0,
+  rating:0,cerberusKills:0,freeGoldCases:0,cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
   gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],
   boosts:{speed:0,haste:0},
   cleared:{},bossDead:{},zoneLvlGain:{},
@@ -649,6 +649,8 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.freeGoldCases===undefined)s.freeGoldCases=0;
  if(s.cowBest===undefined)s.cowBest=0;
  if(s.cowLast===undefined)s.cowLast=0;
+ if(s.cowBestItems===undefined)s.cowBestItems=0;
+ if(s.cowLastItems===undefined)s.cowLastItems=0;
  if(!s.cleared)s.cleared={};
  if(!s.bossDead)s.bossDead={};
  if(!s.zoneLvlGain)s.zoneLvlGain={};
@@ -956,7 +958,7 @@ function shade(hex,amt){const n=parseInt(hex.slice(1),16);
  return '#'+((r<<16)|(g<<8)|b).toString(16).padStart(6,'0');}
  
 let world=null,hero=null,enemies=[],bolts=[],ebolts=[],hazards=[],floats=[],parts=[],rings=[],groundCv=null;
-let cowT=0,cowSpawnT=0,cowRunning=false;
+let cowT=0,cowSpawnT=0,cowRunning=false,cowItems=0;
 /* true while a living boss is engaged — the forge and Trader refuse service mid-fight */
 const inBossFight=()=>gameOn&&enemies.some(e=>e.boss&&!e.dead&&(e.hidden||e.state==='chase'||(hero&&hero.target===e)));
 let camX=0,camY=0,gameOn=false,marker=null,portalMsgT=0;
@@ -1014,13 +1016,13 @@ function buildZone(){
   buff:{},hotT:0,hotTick:0,potCd:{hp:0,mp:0},regenTick:0,glowT:0,avoid:null};
  enemies=[];bolts=[];ebolts=[];hazards=[];floats=[];parts=[];rings=[];
  const tmpls=zoneTemplates(z);
- cowRunning=false;cowT=0;cowSpawnT=0;
+ cowRunning=false;cowT=0;cowSpawnT=0;cowItems=0;
  if(z.cow){
   cowRunning=true;
   for(let i=0;i<8;i++)spawnCow(); /* opening wave */
   stageMsg('MOO. Survive as long as you can — you will not.',3000);
   const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
-  log(`<span class="imp">The Cow Level.</span> Best: ${S.cowBest?fmt(S.cowBest):'—'} · Last run: ${S.cowLast?fmt(S.cowLast):'—'}`);
+  log(`<span class="imp">The Cow Level.</span> Best: ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} items) · Last: ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} items)`);
  }else if(isBoss){
   if(!S.bossDead[S.zone])spawnEnemyAt(tmpls[0],R,{x:world.w-320,y:world.pathY});
  }
@@ -1320,6 +1322,7 @@ function killEnemy(en){
  }else if(en.cow){
   for(let k=0;k<2;k++){
    const it=rollItem('epic');
+   cowItems++;
    sfx.loot();
    log(`Cow loot: <span class="lepic">${it.name}</span> ${itemStr(it)}.`,'loot');
    if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
@@ -1391,14 +1394,15 @@ function heroDies(){
  if(cowRunning){
   cowRunning=false;
   S.cowLast=cowT;
+  S.cowLastItems=cowItems;
   const newBest=cowT>(S.cowBest||0);
-  if(newBest)S.cowBest=cowT;
+  if(newBest){S.cowBest=cowT;S.cowBestItems=cowItems;}
   const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
   hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;
   hero.sentHome=true;   /* west deaths go to Willowmere */
   sfx.die();
-  stageMsg('The herd takes you. Survived '+fmt(cowT)+(newBest?' — NEW RECORD!':''),3500);
-  log(`<span class="imp">Trampled after ${fmt(cowT)}.</span>${newBest?' <span class="loot">New record!</span>':''} All loot kept.`);
+  stageMsg('The herd takes you. Survived '+fmt(cowT)+' · '+cowItems+' items'+(newBest?' — NEW RECORD!':''),3500);
+  log(`<span class="imp">Trampled after ${fmt(cowT)} — ${cowItems} items looted.</span>${newBest?' <span class="loot">New record!</span>':''} All loot kept.`);
   save();
   return;
  }
@@ -1931,9 +1935,12 @@ function draw(){
   ctx.textAlign='center';
   ctx.fillStyle='rgba(0,0,0,0.65)';ctx.fillText(fmt(t),VW/2+2,54);
   ctx.fillStyle=cowRunning?'#ffe9a0':'#ff8a7a';ctx.fillText(fmt(t),VW/2,52);
+  ctx.font='700 13px '+getComputedStyle(document.body).fontFamily;
+  ctx.fillStyle='#c9a0ff';
+  ctx.fillText(cowItems+' items',VW/2,70);
   ctx.font='600 11px '+getComputedStyle(document.body).fontFamily;
   ctx.fillStyle='rgba(255,255,255,0.75)';
-  ctx.fillText('BEST '+(S.cowBest?fmt(S.cowBest):'—')+' · LAST '+(S.cowLast?fmt(S.cowLast):'—'),VW/2,70);
+  ctx.fillText('BEST '+(S.cowBest?fmt(S.cowBest):'—')+' ('+(S.cowBestItems||0)+') · LAST '+(S.cowLast?fmt(S.cowLast):'—')+' ('+(S.cowLastItems||0)+')',VW/2,86);
  }
  if(vigCv)ctx.drawImage(vigCv,0,0,VW,VH);
 }
@@ -2309,7 +2316,7 @@ function renderHUD(){
  if(zoneOf().cow){
   const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
   $('qName').textContent='🐄 MOO';
-  $('qDesc').textContent='Survive the herd. Record: '+(S.cowBest?fmt(S.cowBest):'—')+' · Last: '+(S.cowLast?fmt(S.cowLast):'—');
+  $('qDesc').textContent='Survive the herd. Best: '+(S.cowBest?fmt(S.cowBest):'—')+' ('+(S.cowBestItems||0)+' items) · Last: '+(S.cowLast?fmt(S.cowLast):'—')+' ('+(S.cowLastItems||0)+' items)';
   $('qBar').style.width='100%';
   $('qCount').textContent='∞';
   $('nextBtn').style.display='none';
@@ -2463,7 +2470,7 @@ function renderMap(){
     return `<div class="card zonecard ${p5?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p5?'#ffd76a':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},${z.tree})">🐄</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">Endless herd · 2 epics per cow · survive as long as you can · Best ${S.cowBest?fmt(S.cowBest):'—'} · Last ${S.cowLast?fmt(S.cowLast):'—'}</div></div>
+     <div class="zl">Endless herd · 2 epics per cow · Best ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} items) · Last ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} items)</div></div>
      ${i===S.zone?'<span class="ztag">Here</span>':p5?'<span class="ztag boss">🐄 MOO</span>':'<span class="ztag boss">🔒 Prestige 5</span>'}
     </div>`;
    }
