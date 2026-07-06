@@ -565,7 +565,7 @@ const heroMax=()=>Math.round((classOf().hp+S.lvl*14+gearSum('hp'))*(raceOf().hp|
 const manaMax=()=>Math.round(classOf().mana+S.lvl*5);
 const heroAtk=()=>Math.round((classOf().atk+S.lvl*2.6+gearSum('atk'))*(1+scrollPct('titan')));
 const heroCrit=()=>classOf().crit+(raceOf().crit||0)+gearSum('crit');
-const xpNeed=l=>Math.round(38*Math.pow(l,1.5)*0.96); /* leveling is 20% harder */
+const xpNeed=l=>Math.round(38*Math.pow(l,1.5)*1.152); /* leveling is 20% harder than before */
 const zoneOf=()=>ZONES[S.zone];
 const questsOf=()=>zoneQuests(zoneOf());
 const questOf=()=>questsOf()[Math.min(S.quest,questsOf().length-1)];
