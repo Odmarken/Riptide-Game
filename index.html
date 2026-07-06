@@ -1564,7 +1564,6 @@ function update(dt){
    }
   }
  }
-  
  // ----- hero bolts -----
  for(let i=bolts.length-1;i>=0;i--){
   const b=bolts[i];
@@ -1977,6 +1976,21 @@ function log(html,cls){
  $('ticker').innerHTML=tickerMsgs.slice().reverse().join('');
 }
 function applyZoneUI(){$('hZone').textContent=zoneOf().name+(zoneOf().boss?' ☠':'');}
+/* keep the open side panel live — desktop shows it permanently */
+let panelT=0;
+function refreshOpenPanel(){
+ const p=document.querySelector('.panel.open');
+ if(!p)return;
+ const now=performance.now();
+ if(now-panelT<1000)return; /* at most once per second */
+ panelT=now;
+ /* don't rebuild while a two-tap confirm is armed — it would disarm it */
+ if(p.querySelector('[data-armed]'))return;
+ if(p.id==='p-hero')renderHero();
+ else if(p.id==='p-bag')renderBag();
+ else if(p.id==='p-shop')renderShop();
+ else if(p.id==='p-map')renderMap();
+}
 function renderHUD(){
  $('hGold').textContent=S.gold.toLocaleString();
  $('hScrap').textContent=S.scraps.toLocaleString();
@@ -1997,6 +2011,7 @@ function renderHUD(){
  $('autoBtn').classList.toggle('on',S.auto);
  $('autoBtn').textContent=S.auto?'AUTO ✓':'AUTO';
  $('nextBtn').style.display=portalIsOpen()?'block':'none';
+ refreshOpenPanel();
 }
 function buildSkillbar(){
  const c=classOf();
