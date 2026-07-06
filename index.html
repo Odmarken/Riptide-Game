@@ -876,54 +876,6 @@ let world=null,hero=null,enemies=[],bolts=[],ebolts=[],hazards=[],floats=[],part
 /* true while a living boss is engaged — the forge and Trader refuse service mid-fight */
 const inBossFight=()=>gameOn&&enemies.some(e=>e.boss&&!e.dead&&(e.hidden||e.state==='chase'||(hero&&hero.target===e)));
 let camX=0,camY=0,gameOn=false,marker=null,portalMsgT=0;
-
-/* Background tabs throttle requestAnimationFrame, so simulate safe idle progress
-   when the player returns. Bosses are never killed while idle. */
-const IDLE_MAX_SEC=2*60*60;       /* max 2 hours of stored idle grind */
-const IDLE_KILL_SEC=6;            /* about 1 regular kill every 6 seconds */
-let idleMark=Date.now();
-function idleQuestComplete(){
- const q=questOf(),qs=questsOf();
- let gold=Math.round(20+S.zone*30+q.need*3);const xp=Math.round(25+S.zone*45);
- gold=addGold(gold);gainXP(xp);
- S.qProg=0;
- if(!q.boss&&S.quest<qs.length-1)S.quest++;
- else{S.quest=0;S.cleared[S.zone]=true;if(!ZONES[S.zone+1])S.finished=true;}
- return {gold,xp};
-}
-function applyIdleProgress(ms){
- if(!S||!gameOn||!S.auto)return;
- const sec=Math.min(IDLE_MAX_SEC,Math.floor(ms/1000));
- if(sec<10)return;
- const z=zoneOf();
- if(z.boss&&!S.bossDead[S.zone]){stageMsg('Idle paused in boss arena — bosses require active play.',2600);return;}
- const tmpls=zoneTemplates(z).filter(t=>!t.boss);
- if(!tmpls.length)return;
- const kills=Math.min(500,Math.floor(sec/IDLE_KILL_SEC));
- if(kills<=0)return;
- const r=raceOf();
- let gold=0,xp=0,items=0,scrolls=0,quests=0;
- for(let i=0;i<kills;i++){
-  const t=tmpls[i%tmpls.length];
-  gold+=addGold(Math.round(t.gold*(r.gold||1)*(1+scrollPct('fortune'))));
-  xp+=t.xp;gainXP(t.xp);
-  if(!lootBlocked()){
-   if(Math.random()<0.20){const it=rollItem(false);if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);items++;}
-   if(Math.random()<0.01){const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];S.scrolls.push({id:e.id,tier:1});scrolls++;}
-  }
-  const q=questOf();
-  if(!q.boss){S.qProg++;if(S.qProg>=q.need){const qr=idleQuestComplete();gold+=qr.gold;xp+=qr.xp;quests++;}}
-  if(S.lvl>=MAXLVL)S.xp=0;
- }
- stageMsg(`Idle progress: ${kills} kills · +${gold} ◉ · ${items} items${scrolls?' · '+scrolls+' scrolls':''}`,4200);
- log(`<span class="imp">Idle progress</span>: ${kills} kills, +${xp} xp, +${gold} gold${quests?', '+quests+' quests':''}${items?', '+items+' items':''}${scrolls?', '+scrolls+' scrolls':''}.`);
- renderHUD();renderBag();renderHero();save();
-}
-function markIdle(){idleMark=Date.now();}
-function resumeIdle(){const now=Date.now();applyIdleProgress(now-idleMark);idleMark=now;}
-document.addEventListener('visibilitychange',()=>{if(document.hidden)markIdle();else resumeIdle();});
-window.addEventListener('blur',markIdle);
-window.addEventListener('focus',resumeIdle);
  
 function buildZone(){
  if((S.maxZone||0)<S.zone)S.maxZone=S.zone;
