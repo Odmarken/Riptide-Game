@@ -602,6 +602,20 @@ function freshState(name,race,cls){
   cleared:{},bossDead:{},zoneLvlGain:{},
   auto:true,autoEquip:true,sound:true,sfx:true,finished:false};
 }
+function estimateBaseStat(v,up,kind){
+ v=Number(v)||0;up=Number(up)||0;
+ for(let i=0;i<up;i++)v=kind==='hp'?Math.max(0,Math.round((v-2)/1.12)):Math.max(0,Math.round((v-1)/1.12));
+ return Math.round(v);
+}
+function ensureItemBase(it){
+ if(!it)return it;
+ const u=it.up||0;
+ if(it.baseAtk===undefined)it.baseAtk=it.atk?estimateBaseStat(it.atk,u,'atk'):0;
+ if(it.baseHp===undefined)it.baseHp=it.hp?estimateBaseStat(it.hp,u,'hp'):0;
+ if(it.baseCrit===undefined)it.baseCrit=it.crit||0;
+ if(it.basePower===undefined)it.basePower=Math.round((it.baseAtk||0)*3+(it.baseHp||0)*0.6+(it.baseCrit||0)*4);
+ return it;
+}
 function migrate(s){ /* fills fields missing from older saves */
  if(s.scraps===undefined)s.scraps=0;
  if(s.maxZone===undefined)s.maxZone=s.zone||0;
@@ -617,10 +631,11 @@ function migrate(s){ /* fills fields missing from older saves */
  for(const sl in s.gear){
   const g=s.gear[sl];if(!g)continue;
   if(g.up===undefined)g.up=0;
+  ensureItemBase(g);
   /* old system enchanted gear directly — carry the first enchant into the new slot */
   if(g.ench){if(!s.activeScroll)s.activeScroll=g.ench;else s.scrolls.push(g.ench);g.ench=null;}
  }
- (s.bag||[]).forEach(it=>{if(it.up===undefined)it.up=0;if(it.ench){s.scrolls.push(it.ench);it.ench=null;}});
+ (s.bag||[]).forEach(it=>{if(it.up===undefined)it.up=0;ensureItemBase(it);if(it.ench){s.scrolls.push(it.ench);it.ench=null;}});
  /* legacy scrolls were plain id strings — convert to tier objects (grandfathered at Tier II) */
  s.scrolls=(s.scrolls||[]).map(x=>typeof x==='string'?{id:x,tier:2}:x);
  if(typeof s.activeScroll==='string')s.activeScroll={id:s.activeScroll,tier:2};
@@ -651,6 +666,7 @@ function rollItem(forceRar){
  else if(slot==='armor')it.hp=Math.round((14+Math.random()*10)*mul*z);
  else{it.crit=Math.round(2*mul);it.atk=Math.round(1.5*mul*z);}
  calcPower(it);
+ it.baseAtk=it.atk||0;it.baseHp=it.hp||0;it.baseCrit=it.crit||0;it.basePower=it.power||0;
  return it;
 }
 function calcPower(it){it.power=it.atk*3+it.hp*0.6+it.crit*4;}
@@ -666,6 +682,7 @@ function upgradeItem(it){
  if(inBossFight()){stageMsg('You cannot forge upgrades mid-boss-fight!',1500);sfx.warn();return false;}
  const cost=upCost(it);
  if(S.scraps<cost){stageMsg('Not enough Scraps ('+cost+'⚙ needed)',1400);return false;}
+ ensureItemBase(it);
  S.scraps-=cost;it.up++;
  if(it.atk)it.atk=Math.round(it.atk*1.12)+1;
  if(it.hp)it.hp=Math.round(it.hp*1.12)+2;
@@ -684,7 +701,17 @@ function tryAutoEquip(it){
   return true;
  }return false;
 }
-function itemStr(it){return `${it.up?'+'+it.up+' · ':''}${it.atk?'+'+it.atk+' ATK ':''}${it.hp?'+'+it.hp+' HP ':''}${it.crit?'+'+it.crit+'% CRIT':''}`;}
+function statBaseStr(it,k,label,suffix=''){
+ const v=it[k]||0;if(!v)return '';
+ const bk='base'+k[0].toUpperCase()+k.slice(1);
+ const b=it[bk]!==undefined?it[bk]:v;
+ const baseTxt=(it.up||0)>0||b!==v?` (${b}${suffix})`:'';
+ return `+${v}${suffix} ${label}${baseTxt}`;
+}
+function itemStr(it){
+ ensureItemBase(it);
+ return `${it.up?'+'+it.up+' · ':''}${statBaseStr(it,'atk','ATK')} ${statBaseStr(it,'hp','HP')} ${statBaseStr(it,'crit','CRIT','%')}`.replace(/\s+/g,' ').trim();
+}
  
 /* ==================== AUDIO ====================
    Two mix buses: ambG = ambience + music (🔊 button), sfxG = combat/one-shot sounds (⚔️ button). */
