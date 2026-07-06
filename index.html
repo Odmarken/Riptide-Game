@@ -544,7 +544,7 @@ function zoneTemplates(z){
  const XL=xpZoneLvl(z);  /* XP stays tied to the real zone level */
  if(z.boss){
   /* bosses are progression walls: ~2.3x more health and much harder hits than before */
-  return [{name:z.boss[0],kind:'boss',boss:true,bossId:z.boss[2],c:z.boss[1],hp:Math.round(eHP(L)*50*pm),atk:Math.round(eATK(L)*2.2*pm),xp:Math.round(eHP(XL)*5*pr),gold:Math.round(eHP(L)*3.5*pr)}];
+  return [{name:z.boss[0],kind:'boss',boss:true,bossId:z.boss[2],c:z.boss[1],hp:Math.round(eHP(L)*50*pm),atk:Math.round(eATK(L)*1.76*pm),xp:Math.round(eHP(XL)*5*pr),gold:Math.round(eHP(L)*3.5*pr)}];
  }
  /* regular foes: modestly tougher than before (+25% hp, +15% atk) */
  return z.en.map(([n,k,c],i)=>({name:n,kind:k,c,hp:Math.round(eHP(L)*(0.9+i*0.12)*1.25*pm),atk:Math.round(eATK(L)*(0.9+i*0.1)*1.15*pm),
