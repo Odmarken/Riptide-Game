@@ -541,8 +541,8 @@ const gearScore=()=>Math.round(Object.values(S.gear).reduce((t,g)=>t+(g?g.power:
 const allBossesDead=()=>ZONES.every((z,i)=>!z.boss||!!S.bossDead[i]);
 /* true when every boss zone before index i has had its boss slain */
 const bossesClearedBefore=i=>ZONES.every((z,k)=>k>=i||!z.boss||!!S.bossDead[k]);
-const pMul=()=>1+(S.prestige||0)*0.4;   /* enemy hp/atk per prestige */
-const pRew=()=>1+(S.prestige||0)*0.3;   /* xp/gold per prestige */
+const pMul=()=>Math.pow(1.5,(S.prestige||0));   /* enemies +50% stronger each prestige, compounding */
+const pRew=()=>Math.pow(1.3,(S.prestige||0));   /* xp/gold compounds too, but slower */
 /* potion prices grow with level (and prestige, matching richer gold income) */
 const potCost=k=>Math.round((k==='hp'?20+S.lvl*7:15+S.lvl*6)*1.5*pRew()); /* potions cost 50% more */
 const heroMax=()=>Math.round((classOf().hp+S.lvl*14+gearSum('hp'))*(raceOf().hp||1));
@@ -608,7 +608,7 @@ function rollItem(forceRar){
  const rar=(forceRar===true?'epic':forceRar)||(r<.55?'common':r<.85?'fine':r<.97?'rare':'epic');
  const mul=RARMUL[rar];
  const slot=SLOTS[Math.floor(Math.random()*3)];
- const z=1+S.zone*0.9+S.lvl*0.18;
+ const z=(1+S.zone*0.9+S.lvl*0.18)*(1+(S.prestige||0)*0.25);
  const it={slot,rar,name:PREFIX[rar][Math.floor(Math.random()*3)]+' '+BASE[slot][Math.floor(Math.random()*4)],
   atk:0,hp:0,crit:0,ench:null,up:0,sell:Math.round(6*mul*z)};
  if(slot==='weapon')it.atk=Math.round((3+Math.random()*3)*mul*z);
