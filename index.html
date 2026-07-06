@@ -485,6 +485,7 @@ function zoneQuests(z){
  if(z.boss)return [{name:z.boss[0],desc:'Defeat '+z.boss[0]+'. Victory opens the gate beyond, forever.',need:1,boss:true}];
  return z.q.map(([n,d,need])=>({name:n,desc:d,need}));
 }
+
   
 /* ==================== STATE ==================== */
 let S=null;
@@ -550,7 +551,8 @@ function portalIsOpen(){
  const nz=ZONES[S.zone+1];
  return !!S.cleared[S.zone]&&!!nz&&S.lvl>=nz.lvl;
 }
- 
+
+  
 /* ==================== LOOT & UPGRADES ==================== */
 const SLOTS=['weapon','armor','trinket'];
 const PREFIX={common:['Plain','Worn','Sturdy'],fine:['Keen','Hardened','Trusty'],rare:['Gleaming','Runed','Valiant'],epic:['Kingsforged','Stormbound','Emberwrought']};
