@@ -98,8 +98,9 @@
   .ztag{font-size:10px;color:var(--brass);border:1px solid var(--brass-deep);border-radius:5px;padding:2px 7px;white-space:nowrap}
   .ztag.boss{color:#e88a8a;border-color:#8a4a4a}
   .ztag.done{color:#9adf9a;border-color:#4a6a4a}
-  .continent-tab{display:inline-block;font-family:var(--display);font-size:13px;padding:6px 14px;border-radius:8px;border:1px solid var(--line);color:var(--dim);margin:0 8px 12px 0}
+  .continent-tab{display:inline-block;font-family:var(--display);font-size:13px;padding:6px 14px;border-radius:8px;border:1px solid var(--line);color:var(--dim);margin:0 8px 12px 0;cursor:pointer;user-select:none}
   .continent-tab.cur{color:var(--parch);border-color:var(--brass-deep);background:var(--panel)}
+  .continent-tab:not(.cur):hover{color:var(--parch)}
   .item{display:flex;justify-content:space-between;align-items:center;gap:10px}
   .item .btns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
   .sbtn{font-size:11px;padding:6px 11px;border-radius:7px;cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--ink)}
@@ -387,8 +388,8 @@
   <div class="panel" id="p-map">
     <div class="ptitle">World Map</div>
     <div>
-      <span class="continent-tab cur">Riptide — Eastern Realm</span>
-      <span class="continent-tab" id="westTab">🔒 Western Continent · Book II</span>
+      <span class="continent-tab cur" id="eastTab">Riptide — Eastern Realm</span>
+      <span class="continent-tab" id="westTab">🔒 Western Continent · Prestige 5</span>
     </div>
     <div id="zoneList"></div>
   </div>
@@ -2290,12 +2291,23 @@ function renderHero(){
 }
 function renderMap(){
  const p5=(S.prestige||0)>=5;
- const wt=$('westTab');
- if(wt){
-  wt.textContent=p5?'Western Continent — Underworld':'🔒 Western Continent · Prestige 5';
-  wt.classList.toggle('cur',p5&&zoneOf().special);
- }
+ /* if you're standing in the Underworld, snap the map to that tab */
+ if(zoneOf().special&&mapContinent!=='west')mapContinent='west';
+ if(mapContinent==='west'&&!p5)mapContinent='east';
+ $('eastTab').classList.toggle('cur',mapContinent==='east');
+ $('westTab').classList.toggle('cur',mapContinent==='west');
+ $('westTab').textContent=p5?'Western Continent — Underworld':'🔒 Western Continent · Prestige 5';
+ $('westTab').style.cursor=p5?'pointer':'default';
+ $('eastTab').style.cursor='pointer';
+ $('eastTab').onclick=()=>{mapContinent='east';renderMap();};
+ $('westTab').onclick=()=>{
+  if(!p5){stageMsg('Reach Prestige 5 to cross the western sea',1600);sfx.warn();return;}
+  mapContinent='west';renderMap();
+ };
  $('zoneList').innerHTML=ZONES.map((z,i)=>{
+  /* continent filter */
+  if(mapContinent==='east'&&z.west)return '';
+  if(mapContinent==='west'&&!z.west)return '';
   if(z.special){
    const kills=S.cerberusKills||0;
    return `<div class="card zonecard ${p5?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p5?'#c94a3a':''}">
@@ -2329,6 +2341,7 @@ function renderMap(){
   };
  });
 }
+let mapContinent='east';
 let scrollTierOpen={}; /* which tier categories are expanded in the Bag */
 let gearRarityOpen={}; /* which gear rarity categories are expanded in the Bag */
 function scrapBagItems(match,label){
