@@ -537,9 +537,9 @@ const ZONES=[
   en:[['Keep Legionnaire','humanoid','#a04a3a'],['Ash Hound','beast','#c96a3a'],['Ember Warlock','humanoid','#8a3a5a']],
   q:[['Storm the Outworks','Cut down 12 legionnaires at the walls.',12],['The Kennels','Slay 12 ash hounds loosed on the yard.',12],['Break the Warlocks','Silence 14 warlocks fueling the pyres.',14]]},
  {name:'Emberdeep Keep',lvl:60,amb:'war',boss:['Warlord Krev','#d94a2a','krev'],ground:'#3a2a26',ground2:'#31231f',water:'#8a4a2a',tree:'#31231f',tree2:'#241a16',path:'#5a4030',rocky:true,final:true},
- {name:'Gates of the Underworld',lvl:60,amb:'crypt',west:true,special:true,
+ {name:'Gates of the Viking',lvl:60,amb:'frost',west:true,special:true,
   boss:['HAALAND the Three-Headed','#c94a3a','cerberus'],
-  ground:'#2e2230',ground2:'#271d2a',water:'#5a2a2a',tree:'#271d2a',tree2:'#1c141e',path:'#4a3040',rocky:true},
+  ground:'#8a94a0',ground2:'#7d8794',water:'#5a7a9a',tree:'#4a5a66',tree2:'#39464f',path:'#a8b0ba',rocky:true},
 ];
 /* stat curves */
 const eHP=L=>Math.round(20*Math.pow(L,1.25)+10);
@@ -2299,7 +2299,7 @@ function renderMap(){
  if(mapContinent==='west'&&!p5)mapContinent='east';
  $('eastTab').classList.toggle('cur',mapContinent==='east');
  $('westTab').classList.toggle('cur',mapContinent==='west');
- $('westTab').textContent=p5?'Western Continent — Underworld':'🔒 Western Continent · Prestige 5';
+ $('westTab').textContent=p5?'Western Continent — Land of the Vikings':'🔒 Western Continent · Prestige 5';
  $('westTab').style.cursor=p5?'pointer':'default';
  $('eastTab').style.cursor='pointer';
  $('eastTab').onclick=()=>{mapContinent='east';renderMap();};
