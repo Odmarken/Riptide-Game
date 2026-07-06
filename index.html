@@ -167,6 +167,10 @@
   .casecard{flex:0 0 84px;height:92px;border-radius:9px;border:1px solid var(--cc,#33503f);background:linear-gradient(180deg,#1c2b24,#131f1a);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
   .casecard .ci{font-size:26px;filter:drop-shadow(0 0 6px var(--cc))}
   .casecard .cr{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--cc)}
+
+  .casecard.gbar{background:linear-gradient(180deg,#3a2a10,#171006);border-color:#ffd76a;box-shadow:0 0 14px rgba(255,215,106,.22),inset 0 0 18px rgba(255,215,106,.12)}
+  .casecard.gbar .ci{filter:drop-shadow(0 0 9px #ffd76a)}
+  .casecard.gbar .cr{color:#ffd76a}
   .casecard.win{box-shadow:0 0 18px var(--cc);border-width:2px;animation:winPulse 1.2s infinite}
   @keyframes winPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.35)}}
   .casemark{position:absolute;top:-1px;bottom:-1px;left:50%;width:2px;margin-left:-1px;background:var(--brass);box-shadow:0 0 8px var(--brass);pointer-events:none}
@@ -2256,15 +2260,23 @@ function spawnChestParts(color,n){
 }
 /* --- GAMBAAA! case opening — CS:GO-style reel. The spin cannot be skipped;
    Respin and Close only appear once the prize has landed. --- */
-const CASE_COST=5000;
-let caseSpinning=false,caseRAF=0;
+const CASE_COST=5000,GOLD_COST=20000;
+let caseSpinning=false,caseRAF=0,curCase='gamba'; /* which chest is spinning */
+const caseCost=()=>curCase==='gold'?GOLD_COST:CASE_COST;
 const CASE_RARS=[
  {r:.55,cc:'#d8e4d6',t:'common'},{r:.85,cc:'#6dbb6d',t:'fine'},
  {r:.965,cc:'#5b9bd5',t:'rare'},{r:.995,cc:'#c9a0ff',t:'epic'},{r:1,cc:'#e8c9ef',t:'scroll'}
 ];
+const CASE_RARS_GOLD=[
+ {r:.06,cc:'#e8c9ef',t:'scroll'},{r:.53,cc:'#6dbb6d',t:'fine'},
+ {r:.86,cc:'#5b9bd5',t:'rare'},{r:1,cc:'#c9a0ff',t:'epic'}
+];
 function fillerCard(){
+ /* the gilded chest sprinkles glowing gold bars through the reel */
+ if(curCase==='gold'&&Math.random()<0.3)return {icon:'🪙',cc:'#ffd76a',t:'gold',gbar:true};
+ const pool=curCase==='gold'?CASE_RARS_GOLD:CASE_RARS;
  const r=Math.random();
- const k=CASE_RARS.find(x=>r<=x.r)||CASE_RARS[0];
+ const k=pool.find(x=>r<=x.r)||pool[0];
  return {icon:k.t==='scroll'?'📜':['⚔️','🛡️','💍'][Math.floor(Math.random()*3)],cc:k.cc,t:k.t};
 }
 function startCaseSpin(win){
@@ -2278,7 +2290,7 @@ function startCaseSpin(win){
  const N=56,WIN=48,CW=84,GAP=8,STEP=CW+GAP;
  const cards=[];
  for(let i=0;i<N;i++)cards.push(i===WIN?{icon:win.icon,cc:win.color,t:win.tier}:fillerCard());
- reel.innerHTML=cards.map((c,i)=>`<div class="casecard${i===WIN?' winc':''}" style="--cc:${c.cc}"><div class="ci">${c.icon}</div><div class="cr">${c.t}</div></div>`).join('');
+ reel.innerHTML=cards.map((c,i)=>`<div class="casecard${i===WIN?' winc':''}${c.gbar?' gbar':''}" style="--cc:${c.cc}"><div class="ci">${c.icon}</div><div class="cr">${c.t}</div></div>`).join('');
  const wrapW=reel.parentElement.getBoundingClientRect().width||360;
  const center=wrapW/2;
  const jitter=(Math.random()-0.5)*CW*0.55; /* lands off-center like a real case */
@@ -2317,8 +2329,9 @@ function finishCase(win){
  else if(win.big)sfx.quest();
  else sfx.loot();
  const rb=$('respinBtn');
- rb.disabled=S.gold<CASE_COST;
- rb.textContent=rb.disabled?'🎁 Respin · '+CASE_COST.toLocaleString()+'◉ — broke!':'🎁 Respin · '+CASE_COST.toLocaleString()+'◉';
+ const cost=caseCost();
+ rb.disabled=S.gold<cost;
+ rb.textContent=rb.disabled?'🎁 Respin · '+cost.toLocaleString()+'◉ — broke!':'🎁 Respin · '+cost.toLocaleString()+'◉';
  $('caseBtns').classList.add('show');
 }
 function hideChestFx(){
@@ -2329,7 +2342,7 @@ function hideChestFx(){
 $('caseClose').onclick=hideChestFx;
 $('respinBtn').onclick=()=>{
  if(caseSpinning)return;
- const fxi=rollChest();
+ const fxi=curCase==='gold'?rollGoldChest():rollChest();
  if(fxi)startCaseSpin(fxi);
 };
 /* rolls the prize, pays the gold and grants the reward immediately; returns the
@@ -2358,7 +2371,37 @@ function rollChest(){
  return fxInfo;
 }
 function openChest(){
+ curCase='gamba';
  const fxi=rollChest();
+ if(fxi)startCaseSpin(fxi);
+}
+/* GOLD GOLD GOLD — no commons: fine/rare/epic gear, 6% chance of a Tier II scroll */
+function rollGoldChest(){
+ if(S.gold<GOLD_COST){stageMsg('Not enough gold — GOLD GOLD GOLD costs 20,000 ◉',1500);return null;}
+ S.gold-=GOLD_COST;
+ sfx.buy();
+ const r=Math.random();
+ let fxInfo;
+ if(r<0.06){ /* Tier II scroll — a gilded exclusive */
+  const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
+  S.scrolls.push({id:e.id,tier:2});
+  fxInfo={icon:'📜',tier:'Scroll · Tier II',name:e.n,color:e.glow,sub:tierDesc(e.id,2)+' Combine duplicates to forge higher tiers.',big:true};
+  log(`GOLD GOLD GOLD: <span class="lscroll">${e.n} II</span>!`,'loot');
+ }else{
+  const rar=r<0.53?'fine':r<0.86?'rare':'epic';
+  const it=rollItem(rar);
+  const icon={weapon:'⚔️',armor:'🛡️',trinket:'💍'}[it.slot];
+  const col={fine:'#6dbb6d',rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
+  fxInfo={icon,tier:rar,name:it.name,color:col,sub:it.slot+' · '+itemStr(it),epic:rar==='epic',big:rar==='rare'};
+  log(`GOLD GOLD GOLD: <span class="l${it.rar}">${it.name}</span> ${itemStr(it)}.`,'loot');
+  if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
+ }
+ renderShop();renderHUD();save();
+ return fxInfo;
+}
+function openGoldChest(){
+ curCase='gold';
+ const fxi=rollGoldChest();
  if(fxi)startCaseSpin(fxi);
 }
 function renderShop(){
@@ -2367,6 +2410,9 @@ function renderShop(){
  h+=`<div class="card item" style="border-color:var(--brass-deep)"><div><div class="sn" style="font-size:13px;font-weight:600;color:var(--brass)">🎁 GAMBAAA!</div>
   <div class="ss" style="color:var(--dim);font-size:11px">A sealed chest of unknown origin. Holds a random weapon, armor piece or scroll — most are humble, but legends whisper of epic prizes within.</div></div>
   <div class="btns"><button class="sbtn gold" id="chestBtn" ${S.gold<5000?'disabled':''}>5,000◉</button></div></div>`;
+ h+=`<div class="card item" style="border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.15)"><div><div class="sn" style="font-size:13px;font-weight:600;color:#ffd76a">💰 GOLD GOLD GOLD</div>
+  <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common junk — only fine, rare and epic gear, plus a slim chance at a Tier II scroll.</div></div>
+  <div class="btns"><button class="sbtn gold" id="goldChestBtn" ${S.gold<20000?'disabled':''}>20,000◉</button></div></div>`;
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Supplies</div>';
  const hpC=potCost('hp'),mpC=potCost('mp');
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">🧪 Health Potion</div>
@@ -2392,6 +2438,7 @@ function renderShop(){
  h+='<div class="ss" style="color:var(--dim);font-size:10.5px;margin-top:2px">Potions never drop from enemies. Potion prices rise with your level. Scrolls of Power are rare drops or gamble prizes.</div>';
  $('shopList').innerHTML=h;
  $('chestBtn').onclick=openChest;
+ $('goldChestBtn').onclick=openGoldChest;
  document.querySelectorAll('[data-pot]').forEach(b=>b.onclick=()=>{
   if(inBossFight()){stageMsg('The Trader cowers — no potion sales during a boss fight!',1600);sfx.warn();return;}
   const k=b.dataset.pot,cost=potCost(k);
