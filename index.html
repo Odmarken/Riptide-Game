@@ -2192,7 +2192,7 @@ function renderBag(){
   for(let t=MAXTIER;t>=1;t--){
    const list=(byTier[t]||[]).sort((a,b)=>a.id.localeCompare(b.id));
    if(!list.length)continue;
-   if(scrollTierOpen[t]===undefined)scrollTierOpen[t]=true;
+   if(scrollTierOpen[t]===undefined)scrollTierOpen[t]=false;
    const open=scrollTierOpen[t];
    const total=list.reduce((s,g)=>s+g.n,0);
    sh+=`<div class="tierhead" data-tt="${t}" style="border-color:${TIERC[t-1]}66">
