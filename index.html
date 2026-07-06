@@ -41,7 +41,7 @@
   canvas#game{position:absolute;inset:0;width:100%;height:100%;display:block}
   #ticker{position:absolute;left:8px;right:60px;bottom:4px;pointer-events:none;font-size:10.5px;line-height:1.45;color:#eef4ea;text-shadow:0 1px 3px rgba(0,0,0,.85)}
   #ticker .imp{color:var(--parch)} #ticker .loot{color:var(--brass)}
-  #ticker .lrare{color:#8fc3ef} #ticker .lepic{color:#c9a0ea} #ticker .lfine{color:#9adf9a} #ticker .lscroll{color:#e8c9ef}
+  #ticker .lrare{color:#8fc3ef} #ticker .lepic{color:#c9a0ea} #ticker .lfine{color:#9adf9a} #ticker .lscroll{color:#e8c9ef} #ticker .llegendary{color:#ffd100}
   #hint{position:absolute;top:6px;left:0;right:0;text-align:center;pointer-events:none;font-size:10px;color:#fff;opacity:.85;text-shadow:0 1px 3px rgba(0,0,0,.8);transition:opacity 1s}
   #stagemsg{position:absolute;top:24px;left:0;right:0;text-align:center;pointer-events:none;font-family:var(--display);font-size:14px;color:var(--parch);text-shadow:0 1px 4px rgba(0,0,0,.9);opacity:0;transition:opacity .4s;padding:0 20px}
   #stagemsg.show{opacity:1}
@@ -86,7 +86,7 @@
   .slot .en{color:#d9a0ef;font-size:10px;margin-top:2px}
   .upbtn{margin-top:auto;padding:4px 6px;font-size:9.5px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:#a8bcb0;cursor:pointer}
   .upbtn.can{border-color:var(--brass-deep);color:var(--brass)}
-  .r-common{color:var(--ink)} .r-fine{color:var(--fine)} .r-rare{color:var(--rare)} .r-epic{color:var(--epic)}
+  .r-common{color:var(--ink)} .r-fine{color:var(--fine)} .r-rare{color:var(--rare)} .r-epic{color:var(--epic)} .r-legendary{color:#ffd100;text-shadow:0 0 8px rgba(255,209,0,.55)}
   .zonecard{display:flex;align-items:center;gap:12px;cursor:pointer}
   .zonecard.locked{opacity:.45;cursor:default}
   .zonecard.active{border-color:var(--brass)}
@@ -562,13 +562,13 @@ let S=null;
 const $=id=>document.getElementById(id);
 const raceOf=()=>RACES.find(r=>r.id===S.race);
 const classOf=()=>CLASSES.find(c=>c.id===S.cls);
-const gearSum=k=>{let t=0;for(const sl in S.gear){const g=S.gear[sl];if(g&&g[k])t+=g[k]}return t};
+const gearSum=k=>{if(isFM(S.gear.weapon))syncFrostmourne(S.gear.weapon);let t=0;for(const sl in S.gear){const g=S.gear[sl];if(g&&g[k])t+=g[k]}return t};
 /* one Active Scroll at a time — {id,tier}, equipped in its own slot next to the trinket */
 const hasEnch=id=>!!(S.activeScroll&&S.activeScroll.id===id);
 const scrollPct=id=>hasEnch(id)?tierVal(id,S.activeScroll.tier)/100:0; /* fraction */
 const scrollRaw=id=>hasEnch(id)?tierVal(id,S.activeScroll.tier):0;     /* raw value (e.g. seconds) */
 const activeEnchs=()=>S.activeScroll?[enchOf(S.activeScroll.id)]:[];
-const gearScore=()=>Math.round(Object.values(S.gear).reduce((t,g)=>t+(g?g.power:0),0));
+const gearScore=()=>{if(isFM(S.gear.weapon))syncFrostmourne(S.gear.weapon);return Math.round(Object.values(S.gear).reduce((t,g)=>t+(g?g.power:0),0));};
 /* Prestige has no cap — but it only unlocks at max level once every boss is dead. */
 const allBossesDead=()=>ZONES.every((z,i)=>!z.boss||!!S.bossDead[i]);
 /* true when every boss zone before index i has had its boss slain */
@@ -609,6 +609,7 @@ function estimateBaseStat(v,up,kind){
 }
 function ensureItemBase(it){
  if(!it)return it;
+ if(isFM(it))return it;
  const u=it.up||0;
  if(it.baseAtk===undefined)it.baseAtk=it.atk?estimateBaseStat(it.atk,u,'atk'):0;
  if(it.baseHp===undefined)it.baseHp=it.hp?estimateBaseStat(it.hp,u,'hp'):0;
@@ -670,12 +671,33 @@ function rollItem(forceRar){
  return it;
 }
 function calcPower(it){it.power=it.atk*3+it.hp*0.6+it.crit*4;}
+/* --- Frostmourne: legendary, atk always re-scales to your level/zone/prestige --- */
+const FM_MUL=5.5;
+const isFM=it=>it&&it.legend==='frostmourne';
+function fmBaseAtk(){
+ const zi=Math.max(S.zone,S.maxZone||0);
+ return Math.round(4.5*FM_MUL*(1+zi*0.9+S.lvl*0.18)*(1+(S.prestige||0)*0.25));
+}
+function syncFrostmourne(it){
+ if(!isFM(it)||!S)return it;
+ it.baseAtk=fmBaseAtk();
+ it.atk=Math.round(it.baseAtk*Math.pow(1.12,it.up||0));
+ it.crit=it.baseCrit=5;it.hp=it.baseHp=0;
+ calcPower(it);it.basePower=Math.round(it.baseAtk*3+20);
+ it.sell=Math.round(it.baseAtk*4);
+ return it;
+}
+function rollFrostmourne(){
+ const it={slot:'weapon',rar:'legendary',legend:'frostmourne',name:'Frostmourne',
+  atk:0,hp:0,crit:5,lifesteal:0.02,ench:null,up:0,sell:0};
+ return syncFrostmourne(it);
+}
 /* Scraps: salvage value by rarity */
-const scrapVal=it=>({common:1,fine:2,rare:4,epic:8})[it.rar];
+const scrapVal=it=>({common:1,fine:2,rare:4,epic:8,legendary:20})[it.rar];
 /* Upgrade cost: weapons 10, armor 5, trinkets 7 base — scaled by rarity and current upgrade level */
 function upCost(it){
  const base={weapon:10,armor:5,trinket:7}[it.slot];
- const rm={common:1,fine:1.5,rare:2,epic:3}[it.rar];
+ const rm={common:1,fine:1.5,rare:2,epic:3,legendary:4}[it.rar];
  return Math.min(Math.round(base*rm*(1+it.up)),GEAR_UPGRADE_COST_CAP);
 }
 function upgradeItem(it){
@@ -684,9 +706,12 @@ function upgradeItem(it){
  if(S.scraps<cost){stageMsg('Not enough Scraps ('+cost+'⚙ needed)',1400);return false;}
  ensureItemBase(it);
  S.scraps-=cost;it.up++;
- if(it.atk)it.atk=Math.round(it.atk*1.12)+1;
- if(it.hp)it.hp=Math.round(it.hp*1.12)+2;
- calcPower(it);
+ if(isFM(it))syncFrostmourne(it);
+ else{
+  if(it.atk)it.atk=Math.round(it.atk*1.12)+1;
+  if(it.hp)it.hp=Math.round(it.hp*1.12)+2;
+  calcPower(it);
+ }
  sfx.forge();
  log(`Upgraded <span class="l${it.rar}">${it.name}</span> to +${it.up}.`,'loot');
  save();
@@ -709,8 +734,11 @@ function statBaseStr(it,k,label,suffix=''){
  return `+${v}${suffix} ${label}${baseTxt}`;
 }
 function itemStr(it){
- ensureItemBase(it);
- return `${it.up?'+'+it.up+' · ':''}${statBaseStr(it,'atk','ATK')} ${statBaseStr(it,'hp','HP')} ${statBaseStr(it,'crit','CRIT','%')}`.replace(/\s+/g,' ').trim();
+ if(isFM(it))syncFrostmourne(it);
+ else ensureItemBase(it);
+ let s=`${it.up?'+'+it.up+' · ':''}${statBaseStr(it,'atk','ATK')} ${statBaseStr(it,'hp','HP')} ${statBaseStr(it,'crit','CRIT','%')}`;
+ if(it.lifesteal)s+=` +${it.lifesteal*100}% LIFESTEAL`;
+ return s.replace(/\s+/g,' ').trim();
 }
  
 /* ==================== AUDIO ====================
@@ -1144,6 +1172,8 @@ function landHit(en,dmg,crit,label,basic){
   if(hasEnch('frostbite'))en.slowT=Math.max(en.slowT,scrollRaw('frostbite'));
  }
  applyDmg(en,dmg,label,crit);
+ const w=S.gear.weapon;
+ if(w&&w.lifesteal)healHero(Math.max(1,dmg*w.lifesteal),true);
  sfx.hit();
  burst(en.x,en.y-en.r*0.6,crit?'#ffd0a0':'#ffffff',crit?8:4,60);
 }
@@ -1833,7 +1863,7 @@ function feet(e,scale){
 }
 /* One sprite renderer for both the world hero and select-screen portraits.
    Each race gets its own silhouette, WoW-flavored but kept low-poly. */
-function drawChampionSprite(g,raceId,clsId,fx,by,swing){
+function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm){
  const r=RACES.find(x=>x.id===raceId);
  const sgn=fx<0?-1:1;
  if(raceId==='stoneborn'){ /* Dwarf — short, stout, great grey beard */
@@ -1877,7 +1907,29 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing){
  const sw=swing?(0.24-swing)*9:0;
  g.rotate((sgn<0?-0.5:0.5)+sw*sgn);
  g.lineCap='round';
- if(clsId==='mage'||clsId==='cleric'){
+ if(fm){
+  const tt=performance.now()/1000;
+  g.shadowColor='#6fd0ff';g.shadowBlur=10+Math.sin(tt*3)*3;
+  /* icy runeblade */
+  g.fillStyle='#bfe9ff';
+  g.beginPath();
+  g.moveTo(0,-21);g.lineTo(2.6,-14);g.lineTo(1.5,-9);g.lineTo(3,-5);g.lineTo(1.4,1);
+  g.lineTo(-1.4,1);g.lineTo(-3,-5);g.lineTo(-1.5,-9);g.lineTo(-2.6,-14);
+  g.closePath();g.fill();
+  g.shadowBlur=0;
+  /* glowing fuller + runes */
+  g.strokeStyle='#3ec8ff';g.lineWidth=1;
+  g.beginPath();g.moveTo(0,-18);g.lineTo(0,0);g.stroke();
+  g.fillStyle='#35d4ff';
+  for(let i=0;i<3;i++){g.beginPath();g.arc(0,-6-i*4.5,0.9,0,7);g.fill();}
+  /* horned crossguard */
+  g.fillStyle='#8ea6b8';
+  g.beginPath();g.moveTo(-6.5,1);g.quadraticCurveTo(-8,-4.5,-4,-3);g.lineTo(0,1.2);g.lineTo(4,-3);g.quadraticCurveTo(8,-4.5,6.5,1);g.closePath();g.fill();
+  g.fillStyle='#dff4ff';g.beginPath();g.arc(0,0.6,1.5,0,7);g.fill();
+  /* grip */
+  g.strokeStyle='#7a5a3a';g.lineWidth=2.5;
+  g.beginPath();g.moveTo(0,1.5);g.lineTo(0,6);g.stroke();
+ }else if(clsId==='mage'||clsId==='cleric'){
   g.strokeStyle='#c9a45a';g.lineWidth=3;g.beginPath();g.moveTo(0,4);g.lineTo(0,-12);g.stroke();
   g.fillStyle=clsId==='mage'?'#7fd0ff':'#ffd76a';g.beginPath();g.arc(0,-14,3+Math.sin(performance.now()/200)*0.6,0,7);g.fill();
  }else if(clsId==='hunter'){
@@ -1909,7 +1961,7 @@ function drawHero(){
  if(h.buff.atk&&h.buff.atk.t>0){ctx.strokeStyle='rgba(255,200,90,'+(0.4+0.2*Math.sin(performance.now()/120))+')';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(0,6,15,7,0,0,7);ctx.stroke();}
  if(h.buff.haste&&h.buff.haste.t>0){ctx.strokeStyle='rgba(200,240,255,0.5)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,6,18,8,0,0,7);ctx.stroke();}
  feet(h,1);
- drawChampionSprite(ctx,S.race,c.id,h.fx,by,h.swing);
+ drawChampionSprite(ctx,S.race,c.id,h.fx,by,h.swing,isFM(S.gear.weapon));
  if(h.hurt>0){ctx.fillStyle='rgba(255,255,255,'+h.hurt*2.5+')';ctx.beginPath();ctx.arc(0,-8+by,11,0,7);ctx.fill();}
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;
  ctx.textAlign='center';
@@ -2281,9 +2333,9 @@ function renderBag(){
  if(!S.bag.length){$('bagList').innerHTML='<div class="card" style="color:var(--dim);font-size:12px">The bag is empty. Gear, potions and scrolls drop from foes — bosses always drop. Sell spares for gold, or scrap them for ⚙ Scraps to upgrade your gear.</div>';return;}
  const totalScrap=S.bag.reduce((t,it)=>t+scrapVal(it),0);
  const totalSell=S.bag.reduce((t,it)=>t+it.sell,0);
- const rarOrder=['epic','rare','fine','common'];
- const rarName={epic:'Epic',rare:'Rare',fine:'Fine',common:'Common'};
- const rarColor={epic:'#c9a0ff',rare:'#5b9bd5',fine:'#6dbb6d',common:'#d8e4d6'};
+ const rarOrder=['legendary','epic','rare','fine','common'];
+ const rarName={legendary:'Legendary',epic:'Epic',rare:'Rare',fine:'Fine',common:'Common'};
+ const rarColor={legendary:'#ffd100',epic:'#c9a0ff',rare:'#5b9bd5',fine:'#6dbb6d',common:'#d8e4d6'};
  const byRar={};
  S.bag.forEach((it,i)=>(byRar[it.rar]=byRar[it.rar]||[]).push({it,i}));
  let gearHtml=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -2408,6 +2460,7 @@ const CASE_RARS_GOLD=[
 function fillerCard(){
  /* the gilded chest sprinkles glowing gold bars through the reel */
  if(curCase==='gold'&&Math.random()<0.3)return {icon:'🪙',cc:'#ffd76a',t:'gold',gbar:true};
+ if(curCase==='gold'&&Math.random()<0.02)return {icon:'🗡️',cc:'#ffd100',t:'legendary'};
  const pool=curCase==='gold'?CASE_RARS_GOLD:CASE_RARS;
  const r=Math.random();
  const k=pool.find(x=>r<=x.r)||pool[0];
@@ -2416,6 +2469,13 @@ function fillerCard(){
 function prizeValue(type){
  const r=Math.random();
  if(type==='gold'){
+  if(r<0.004){
+   const it=rollFrostmourne();
+   log(`LEGENDARY: <span class="llegendary">Frostmourne</span> hungers…`,'loot');
+   it._lid=lootUID++;
+   if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
+   return {icon:'🗡️',tier:'LEGENDARY',name:'Frostmourne',color:'#ffd100',sub:'weapon · '+itemStr(it),epic:true,big:true};
+  }
   if(r<0.06){
    const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
    S.scrolls.push({id:e.id,tier:2});
@@ -2565,7 +2625,7 @@ function renderShop(){
   <div class="btns"><button class="sbtn gold" id="chestBtn" ${S.gold<gTot?'disabled':''}>${gTot.toLocaleString()}◉</button>
   <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gamba" data-d="-1" ${gQty<=1?'disabled':''}>−</button><span class="qtynum">${gQty}x</span><button class="qtybtn" data-case="gamba" data-d="1" ${gQty>=5?'disabled':''}>+</button></div><div class="qtytotal">Total: ${gTot.toLocaleString()}◉</div></div></div></div>`;
  h+=`<div class="card item" style="border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.15)"><div><div class="sn" style="font-size:13px;font-weight:600;color:#ffd76a">💰 GOLD GOLD GOLD</div>
-  <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common junk — only fine, rare and epic gear, plus a slim chance at a Tier II scroll.</div></div>
+  <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common junk — fine, rare and epic gear, a slim chance at a Tier II scroll, and a tiny chance at Frostmourne.</div></div>
   <div class="btns"><button class="sbtn gold" id="goldChestBtn" ${S.gold<goTot?'disabled':''}>${goTot.toLocaleString()}◉</button>
   <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gold" data-d="-1" ${goQty<=1?'disabled':''}>−</button><span class="qtynum">${goQty}x</span><button class="qtybtn" data-case="gold" data-d="1" ${goQty>=5?'disabled':''}>+</button></div><div class="qtytotal">Total: ${goTot.toLocaleString()}◉</div></div></div></div>`;
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Supplies</div>';
@@ -2868,7 +2928,7 @@ function drawPortrait(cnv,ch){
  g.save();g.translate(W/2,H*0.72);g.scale(2.1,2.1);
  g.fillStyle='rgba(0,0,0,0.3)';g.beginPath();g.ellipse(0,7,11,4.5,0,0,7);g.fill();
  if(sc){g.strokeStyle=sc.glow;g.globalAlpha=0.55;g.lineWidth=1;g.beginPath();g.ellipse(0,6,13,5.5,0,0,7);g.stroke();g.globalAlpha=1;}
- drawChampionSprite(g,ch.race,c.id,1,0,0);
+ drawChampionSprite(g,ch.race,c.id,1,0,0,!!(ch.gear&&ch.gear.weapon&&ch.gear.weapon.legend==='frostmourne'));
  g.restore();
  if(ch.prestige){
   g.font='700 11px sans-serif';g.textAlign='right';
