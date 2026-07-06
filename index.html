@@ -159,23 +159,41 @@
   #newCharBtn{margin-top:6px;padding:13px;border-radius:11px;border:1px dashed var(--brass-deep);background:rgba(28,43,36,.6);color:var(--brass);font-family:var(--display);font-size:14px;cursor:pointer}
   #createBack{align-self:flex-start;margin-bottom:6px;padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:rgba(28,43,36,.7);color:var(--dim);font-size:11px;cursor:pointer;display:none}
  
-  #chestFx{position:absolute;inset:0;z-index:70;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(5,10,8,.84);cursor:pointer}
+  #chestFx{position:absolute;inset:0;z-index:70;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(5,10,8,.84);cursor:default}
   #chestFx.open{display:flex}
-  .chestbox{font-size:64px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.6));animation:chestShake .95s ease-in-out}
-  @keyframes chestShake{0%,100%{transform:rotate(0) scale(1)}15%{transform:rotate(-8deg) scale(1.02)}30%{transform:rotate(7deg)}45%{transform:rotate(-7deg) scale(1.05)}60%{transform:rotate(6deg) scale(1.08)}75%{transform:rotate(-5deg) scale(1.1)}90%{transform:rotate(4deg) scale(1.12)}}
+  /* --- CS:GO-style case reel --- */
+  .casewrap{position:relative;width:min(92vw,560px);height:116px;border:1px solid var(--brass-deep);border-radius:12px;background:linear-gradient(180deg,#101a15,#0a120e);overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.6),inset 0 0 30px rgba(0,0,0,.5)}
+  .casereel{position:absolute;top:12px;left:0;height:92px;display:flex;gap:8px;will-change:transform}
+  .casecard{flex:0 0 84px;height:92px;border-radius:9px;border:1px solid var(--cc,#33503f);background:linear-gradient(180deg,#1c2b24,#131f1a);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+  .casecard .ci{font-size:26px;filter:drop-shadow(0 0 6px var(--cc))}
+  .casecard .cr{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--cc)}
+  .casecard.win{box-shadow:0 0 18px var(--cc);border-width:2px;animation:winPulse 1.2s infinite}
+  @keyframes winPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.35)}}
+  .casemark{position:absolute;top:-1px;bottom:-1px;left:50%;width:2px;margin-left:-1px;background:var(--brass);box-shadow:0 0 8px var(--brass);pointer-events:none}
+  .casemark::before,.casemark::after{content:'';position:absolute;left:50%;transform:translateX(-50%);border:6px solid transparent}
+  .casemark::before{top:0;border-top-color:var(--brass)}
+  .casemark::after{bottom:0;border-bottom-color:var(--brass)}
   .chestrays{position:absolute;width:300px;height:300px;border-radius:50%;pointer-events:none;
    background:repeating-conic-gradient(var(--rayc,rgba(255,215,106,.33)) 0 8deg,transparent 8deg 26deg);
    -webkit-mask:radial-gradient(circle,#000 0%,transparent 68%);mask:radial-gradient(circle,#000 0%,transparent 68%);
    animation:raySpin 8s linear infinite;transition:opacity .35s;opacity:0}
   .chestrays.epic{width:380px;height:380px;animation-duration:4s}
   @keyframes raySpin{to{transform:rotate(360deg)}}
-  .chestreveal{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:0 30px;opacity:0;transform:translateY(18px) scale(.82);transition:all .45s cubic-bezier(.2,1.4,.4,1);pointer-events:none}
+  .chestreveal{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:0 30px;min-height:126px;margin-top:12px;opacity:0;transform:translateY(18px) scale(.82);transition:all .45s cubic-bezier(.2,1.4,.4,1);pointer-events:none}
   .chestreveal.show{opacity:1;transform:none}
   .cricon{font-size:46px;filter:drop-shadow(0 0 16px currentColor)}
   .crname{font-family:var(--display);font-size:19px;text-shadow:0 0 16px currentColor}
   .crsub{font-size:11px;color:var(--dim);line-height:1.45}
   .crtier{font-size:10px;letter-spacing:2px;text-transform:uppercase;opacity:.85}
-  .chesthint{position:absolute;bottom:56px;font-size:10px;color:var(--dim);opacity:.8}
+  .casebtns{display:flex;gap:10px;margin-top:16px;align-items:center;opacity:0;pointer-events:none;transition:opacity .3s}
+  .casebtns.show{opacity:1;pointer-events:auto}
+  #respinBtn{font-family:var(--display);font-size:16px;letter-spacing:.5px;padding:14px 30px;border-radius:12px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;cursor:pointer;box-shadow:0 0 18px rgba(217,164,65,.35)}
+  #respinBtn:disabled{opacity:.45;cursor:default;box-shadow:none}
+  #caseClose{font-family:var(--display);font-size:13px;padding:12px 20px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);cursor:pointer}
+  /* --- Bag: scroll tier categories --- */
+  .tierhead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;margin-bottom:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;cursor:pointer;font-family:var(--display);font-size:13px;color:var(--parch);user-select:none}
+  .tierhead .tcount{font-size:10.5px;color:var(--dim);font-family:var(--body)}
+  .tierbody{margin:0 0 6px}
   .chestp{position:absolute;left:50%;top:50%;width:7px;height:7px;border-radius:2px;pointer-events:none;animation:chestp 1.05s ease-out forwards}
   @keyframes chestp{from{transform:translate(-50%,-50%) rotate(0);opacity:1}to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) rotate(320deg);opacity:0}}
   @keyframes epicFlash{0%{background:rgba(200,150,255,.35)}100%{background:rgba(5,10,8,.84)}}
@@ -231,6 +249,7 @@
     #hint{font-size:11px}
     #select,#create,#login{position:fixed;inset:0;padding-left:max(24px,calc(50vw - 380px));padding-right:max(24px,calc(50vw - 380px))}
     #lbFx,#chestFx{position:fixed;inset:0}
+    .casewrap{width:min(78vw,760px)}
   }
 
 </style>
@@ -361,10 +380,16 @@
   </div>
  
   <div id="chestFx">
+    <div class="casewrap">
+      <div class="casereel" id="caseReel"></div>
+      <div class="casemark"></div>
+    </div>
     <div class="chestrays" id="chestRays"></div>
-    <div class="chestbox" id="chestBox">🎁</div>
     <div class="chestreveal" id="chestReveal"></div>
-    <div class="chesthint">tap to continue</div>
+    <div class="casebtns" id="caseBtns">
+      <button id="respinBtn">🎁 Respin · 5,000◉</button>
+      <button id="caseClose">Close</button>
+    </div>
   </div>
  
   <nav>
@@ -801,12 +826,12 @@ let camX=0,camY=0,gameOn=false,marker=null,portalMsgT=0;
 function buildZone(){
  const z=zoneOf(),R=mulberry32(S.zone*7919+13);
  const isBoss=!!z.boss;
- world={w:isBoss?1150:1700,h:isBoss?880:1250,solids:[],deco:[],waters:[]};
+ world={w:isBoss?1700:2400,h:isBoss?1250:1700,solids:[],deco:[],waters:[]}; /* larger maps — boss arenas too */
  world.spawn={x:120,y:world.h/2};
  world.portal={x:world.w-80,y:world.h/2};
  world.pathY=world.h/2;world.pathH=110;
  if(!isBoss){
-  const nW=z.rocky?1:2+Math.floor(R()*2);
+  const nW=z.rocky?2:3+Math.floor(R()*2);
   for(let i=0;i<nW;i++){
    const wx=250+R()*(world.w-600);
    const wy=R()<.5?120+R()*(world.pathY-260):world.pathY+150+R()*(world.h-world.pathY-280);
@@ -818,7 +843,7 @@ function buildZone(){
  /* fewer props with an enforced minimum gap so nothing clumps and traps the hero */
  const MINGAP=58;
  const clearOf=(x,y)=>!world.solids.some(s=>dist({x,y},s)<(s.type==='water'?s.r+46:MINGAP));
- const nT=isBoss?22:44;
+ const nT=isBoss?34:70;
  for(let i=0;i<nT;i++){
   let x,y,ok=false;
   if(isBoss){
@@ -841,7 +866,7 @@ function buildZone(){
   const rock=z.rocky?R()<.6:R()<.2;
   world.solids.push({x,y,r:rock?14+R()*8:12+R()*6,type:rock?'rock':'tree',s:0.8+R()*0.7,seed:R()*100});
  }
- for(let i=0;i<90;i++)world.deco.push({x:R()*world.w,y:R()*world.h,k:R()});
+ for(let i=0;i<160;i++)world.deco.push({x:R()*world.w,y:R()*world.h,k:R()});
  prerenderGround(z,R);
  const cd0=classOf().spells.map(()=>0);
  hero={x:world.spawn.x,y:world.spawn.y,r:13,hp:heroMax(),mana:manaMax(),cd:0,spellCd:cd0,
@@ -852,7 +877,7 @@ function buildZone(){
  if(isBoss){
   if(!S.bossDead[S.zone])spawnEnemyAt(tmpls[0],R,{x:world.w-320,y:world.pathY});
  }
- else{for(let i=0;i<16;i++)spawnEnemyAt(tmpls[i%tmpls.length],R);} /* denser maps */
+ else{for(let i=0;i<24;i++)spawnEnemyAt(tmpls[i%tmpls.length],R);} /* denser maps */
  marker=null;portalMsgT=0;
  camX=hero.x-VW/2;camY=hero.y-VH/2;
  startAmbience(z.amb);
@@ -894,14 +919,14 @@ function prerenderGround(z,R){
  const g=groundCv.getContext('2d');
  g.fillStyle=z.ground;g.fillRect(0,0,world.w,world.h);
  /* low-poly ground facets: large soft triangles instead of only blobs */
- for(let i=0;i<70;i++){
+ for(let i=0;i<130;i++){
   const x=R()*world.w,y=R()*world.h,r=30+R()*70;
   g.fillStyle=i%2?'rgba(0,0,0,0.045)':'rgba(255,255,255,0.035)';
   g.beginPath();
   g.moveTo(x,y-r);g.lineTo(x+r*(0.7+R()*0.5),y+r*0.6);g.lineTo(x-r*(0.7+R()*0.5),y+r*0.6);
   g.closePath();g.fill();
  }
- for(let i=0;i<300;i++){
+ for(let i=0;i<560;i++){
   g.fillStyle=i%2?z.ground2:'rgba(255,255,255,0.03)';
   const x=R()*world.w,y=R()*world.h,r=8+R()*26;
   g.beginPath();g.ellipse(x,y,r,r*.6,0,0,7);g.fill();
@@ -2075,24 +2100,41 @@ function renderMap(){
   };
  });
 }
+let scrollTierOpen={}; /* which tier categories are expanded in the Bag */
 function renderBag(){
  $('bagWallet').innerHTML=walletStr();
- // scrolls — grouped by type + tier, with combining
+ // scrolls — categorised by tier; tap a tier header to expand/collapse it
  if(S.scrolls.length){
   const groups={};
   S.scrolls.forEach(sc=>{const k=sc.id+':'+sc.tier;(groups[k]=groups[k]||{id:sc.id,tier:sc.tier,n:0}).n++;});
-  const list=Object.values(groups).sort((a,b)=>a.id.localeCompare(b.id)||a.tier-b.tier);
-  $('scrollSec').innerHTML='<div class="ptitle" style="font-size:14px;margin-bottom:8px">Scrolls</div>'+
-   '<div class="ss" style="color:var(--dim);font-size:10.5px;margin-bottom:8px">Combine two identical scrolls to forge the next tier — the effect doubles (up to Tier IV).</div>'+
-   list.map(g=>{
-   const e=enchOf(g.id);
-   return `<div class="card item"><div><div class="sn" style="color:#d9a0ef;font-size:13px;font-weight:600"><span class="glowdot" style="background:${e.glow};box-shadow:0 0 6px ${e.glow}"></span>${e.n} ${TIERN[g.tier-1]}${g.n>1?` <span style="color:var(--dim)">×${g.n}</span>`:''}</div>
-    <div class="ss" style="color:var(--dim);font-size:11px">${tierDesc(g.id,g.tier)}</div></div>
-    <div class="btns">
-     ${g.n>=2&&g.tier<MAXTIER?`<button class="sbtn scrapb" data-comb="${g.id}:${g.tier}">⚗ Combine → ${TIERN[g.tier]}</button>`:''}
-     <button class="sbtn gold" data-sceq="${g.id}:${g.tier}">${S.activeScroll?'Swap in':'Equip'}</button>
-    </div></div>`;
-  }).join('');
+  const byTier={};
+  Object.values(groups).forEach(g=>(byTier[g.tier]=byTier[g.tier]||[]).push(g));
+  const TIERC=['#d8e4d6','#6dbb6d','#5b9bd5','#c9a0ff'];
+  let sh='<div class="ptitle" style="font-size:14px;margin-bottom:8px">Scrolls</div>'+
+   '<div class="ss" style="color:var(--dim);font-size:10.5px;margin-bottom:8px">Combine two identical scrolls to forge the next tier — the effect doubles (up to Tier IV). Tap a tier to expand or collapse it.</div>';
+  for(let t=MAXTIER;t>=1;t--){
+   const list=(byTier[t]||[]).sort((a,b)=>a.id.localeCompare(b.id));
+   if(!list.length)continue;
+   if(scrollTierOpen[t]===undefined)scrollTierOpen[t]=true;
+   const open=scrollTierOpen[t];
+   const total=list.reduce((s,g)=>s+g.n,0);
+   sh+=`<div class="tierhead" data-tt="${t}" style="border-color:${TIERC[t-1]}66">
+     <span style="color:${TIERC[t-1]}">${open?'▾':'▸'} Tier ${TIERN[t-1]}</span>
+     <span class="tcount">${total} scroll${total>1?'s':''} · ${list.length} type${list.length>1?'s':''}</span></div>`;
+   if(open)sh+='<div class="tierbody">'+list.map(g=>{
+    const e=enchOf(g.id);
+    return `<div class="card item"><div><div class="sn" style="color:#d9a0ef;font-size:13px;font-weight:600"><span class="glowdot" style="background:${e.glow};box-shadow:0 0 6px ${e.glow}"></span>${e.n} ${TIERN[g.tier-1]}${g.n>1?` <span style="color:var(--dim)">×${g.n}</span>`:''}</div>
+     <div class="ss" style="color:var(--dim);font-size:11px">${tierDesc(g.id,g.tier)}</div></div>
+     <div class="btns">
+      ${g.n>=2&&g.tier<MAXTIER?`<button class="sbtn scrapb" data-comb="${g.id}:${g.tier}">⚗ Combine → ${TIERN[g.tier]}</button>`:''}
+      <button class="sbtn gold" data-sceq="${g.id}:${g.tier}">${S.activeScroll?'Swap in':'Equip'}</button>
+     </div></div>`;
+   }).join('')+'</div>';
+  }
+  $('scrollSec').innerHTML=sh;
+  document.querySelectorAll('[data-tt]').forEach(h=>h.onclick=()=>{
+   const t=+h.dataset.tt;scrollTierOpen[t]=!scrollTierOpen[t];renderBag();
+  });
   const takeScroll=(id,tier)=>{const i=S.scrolls.findIndex(x=>x.id===id&&x.tier===tier);return i>=0?S.scrolls.splice(i,1)[0]:null;};
   document.querySelectorAll('[data-sceq]').forEach(b=>b.onclick=()=>{
    const [id,t]=b.dataset.sceq.split(':'),tier=+t;
@@ -2196,42 +2238,89 @@ function spawnChestParts(color,n){
   setTimeout(()=>p.remove(),1100);
  }
 }
-function showChestFx(r){
- const fx=$('chestFx'),box=$('chestBox'),rays=$('chestRays'),rev=$('chestReveal');
+/* --- GAMBAAA! case opening — CS:GO-style reel. The spin cannot be skipped;
+   Respin and Close only appear once the prize has landed. --- */
+const CASE_COST=5000;
+let caseSpinning=false,caseRAF=0;
+const CASE_RARS=[
+ {r:.55,cc:'#d8e4d6',t:'common'},{r:.85,cc:'#6dbb6d',t:'fine'},
+ {r:.965,cc:'#5b9bd5',t:'rare'},{r:.995,cc:'#c9a0ff',t:'epic'},{r:1,cc:'#e8c9ef',t:'scroll'}
+];
+function fillerCard(){
+ const r=Math.random();
+ const k=CASE_RARS.find(x=>r<=x.r)||CASE_RARS[0];
+ return {icon:k.t==='scroll'?'📜':['⚔️','🛡️','💍'][Math.floor(Math.random()*3)],cc:k.cc,t:k.t};
+}
+function startCaseSpin(win){
+ const fx=$('chestFx'),reel=$('caseReel'),rev=$('chestReveal'),rays=$('chestRays');
  fx.classList.add('open');fx.classList.remove('flash');
+ $('caseBtns').classList.remove('show');
  rev.classList.remove('show');rev.innerHTML='';
- rays.style.opacity=0;rays.classList.toggle('epic',!!r.epic);
- box.style.display='block';
- box.style.animation='none';void box.offsetWidth;box.style.animation='';
- /* suspense: creak + rising ticks while it shakes */
- blip(110,70,0.5,.07,'sawtooth');
- [0,240,480,720].forEach((t,i)=>setTimeout(()=>blip(300+i*90,300+i*90,0.07,.05,'square'),t));
- clearTimeout(fx._t1);clearTimeout(fx._t2);
- fx._t1=setTimeout(()=>{
-  box.style.display='none';
-  rays.style.setProperty('--rayc',r.color+'55');
-  rays.style.opacity=1;
-  spawnChestParts(r.color,r.epic?28:14);
-  rev.innerHTML=`<div class="cricon" style="color:${r.color}">${r.icon}</div>
-   <div class="crtier" style="color:${r.color}">${r.tier}</div>
-   <div class="crname" style="color:${r.color}">${r.name}</div>
-   <div class="crsub">${r.sub}</div>`;
-  rev.classList.add('show');
-  if(r.epic){fx.classList.add('flash');sfx.level();noiseSweep(0.5,.08,400,3000);}
-  else if(r.big)sfx.quest();
-  else sfx.loot();
- },980);
- fx._t2=setTimeout(hideChestFx,5200);
+ rays.style.opacity=0;rays.classList.toggle('epic',!!win.epic);
+ caseSpinning=true;
+ cancelAnimationFrame(caseRAF);
+ const N=56,WIN=48,CW=84,GAP=8,STEP=CW+GAP;
+ const cards=[];
+ for(let i=0;i<N;i++)cards.push(i===WIN?{icon:win.icon,cc:win.color,t:win.tier}:fillerCard());
+ reel.innerHTML=cards.map((c,i)=>`<div class="casecard${i===WIN?' winc':''}" style="--cc:${c.cc}"><div class="ci">${c.icon}</div><div class="cr">${c.t}</div></div>`).join('');
+ const wrapW=reel.parentElement.getBoundingClientRect().width||360;
+ const center=wrapW/2;
+ const jitter=(Math.random()-0.5)*CW*0.55; /* lands off-center like a real case */
+ const endX=center-(WIN*STEP+CW/2)-jitter;
+ const startX=center-CW/2+STEP*1.5;
+ reel.style.transform=`translateX(${startX}px)`;
+ const dur=5200,t0=performance.now();
+ let lastIdx=-1;
+ blip(140,90,0.4,.07,'sawtooth'); /* the case unlatches */
+ const tick=now=>{
+  const p=Math.min(1,(now-t0)/dur);
+  const e=1-Math.pow(1-p,4); /* quartic ease-out: fast spin, long deceleration */
+  const x=startX+(endX-startX)*e;
+  reel.style.transform=`translateX(${x}px)`;
+  const idx=Math.floor((center-x)/STEP);
+  if(idx!==lastIdx){lastIdx=idx;blip(1400+Math.random()*400,850,0.045,.05,'square');}
+  if(p<1)caseRAF=requestAnimationFrame(tick);
+  else finishCase(win);
+ };
+ caseRAF=requestAnimationFrame(tick);
+}
+function finishCase(win){
+ caseSpinning=false;
+ const fx=$('chestFx'),rev=$('chestReveal'),rays=$('chestRays');
+ const wc=document.querySelector('.casecard.winc');
+ if(wc)wc.classList.add('win');
+ rays.style.setProperty('--rayc',win.color+'55');
+ rays.style.opacity=1;
+ spawnChestParts(win.color,win.epic?28:14);
+ rev.innerHTML=`<div class="cricon" style="color:${win.color}">${win.icon}</div>
+  <div class="crtier" style="color:${win.color}">${win.tier}</div>
+  <div class="crname" style="color:${win.color}">${win.name}</div>
+  <div class="crsub">${win.sub}</div>`;
+ rev.classList.add('show');
+ if(win.epic){fx.classList.add('flash');sfx.level();noiseSweep(0.5,.08,400,3000);}
+ else if(win.big)sfx.quest();
+ else sfx.loot();
+ const rb=$('respinBtn');
+ rb.disabled=S.gold<CASE_COST;
+ rb.textContent=rb.disabled?'🎁 Respin · '+CASE_COST.toLocaleString()+'◉ — broke!':'🎁 Respin · '+CASE_COST.toLocaleString()+'◉';
+ $('caseBtns').classList.add('show');
 }
 function hideChestFx(){
- const fx=$('chestFx');
- fx.classList.remove('open');
- clearTimeout(fx._t1);clearTimeout(fx._t2);
+ if(caseSpinning)return; /* the spin must be watched to the end */
+ cancelAnimationFrame(caseRAF);
+ $('chestFx').classList.remove('open');
 }
-$('chestFx').onclick=hideChestFx;
-function openChest(){
- if(S.gold<5000){stageMsg('Not enough gold — the chest costs 5,000 ◉',1500);return;}
- S.gold-=5000;
+$('caseClose').onclick=hideChestFx;
+$('respinBtn').onclick=()=>{
+ if(caseSpinning)return;
+ const fxi=rollChest();
+ if(fxi)startCaseSpin(fxi);
+};
+/* rolls the prize, pays the gold and grants the reward immediately; returns the
+   reveal info for the reel (or null if too poor) */
+function rollChest(){
+ if(S.gold<CASE_COST){stageMsg('Not enough gold — the chest costs 5,000 ◉',1500);return null;}
+ S.gold-=CASE_COST;
  sfx.buy();
  const r=Math.random();
  let fxInfo;
@@ -2249,8 +2338,12 @@ function openChest(){
   log(`GAMBAAA!: <span class="l${it.rar}">${it.name}</span> ${itemStr(it)}.`,'loot');
   if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
  }
- showChestFx(fxInfo);
  renderShop();renderHUD();save();
+ return fxInfo;
+}
+function openChest(){
+ const fxi=rollChest();
+ if(fxi)startCaseSpin(fxi);
 }
 function renderShop(){
  $('shopWallet').innerHTML=walletStr();
