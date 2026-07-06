@@ -1,1 +1,1 @@
-https://odmarken.github.io/Riptide-Game/
+https://riptiderpg.com
