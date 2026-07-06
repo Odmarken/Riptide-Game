@@ -411,6 +411,16 @@
 <script>
 /* ==================== DATA ==================== */
 const MAXLVL=60;
+const GOLD_CAP=500000,SCRAP_CAP=800,BOOST_COST_CAP=500000;
+/* effective wealth = what you carry + what your bag would sell/scrap for */
+const bagGoldVal=()=>((S&&S.bag)||[]).reduce((t,it)=>t+(it.sell||0),0);
+const bagScrapVal=()=>((S&&S.bag)||[]).reduce((t,it)=>t+scrapVal(it),0);
+const goldRoom=()=>Math.max(0,GOLD_CAP-S.gold-bagGoldVal());
+const scrapRoom=()=>Math.max(0,SCRAP_CAP-S.scraps-bagScrapVal());
+function addGold(n){const a=Math.max(0,Math.min(n,goldRoom()));S.gold+=a;return a;}
+function addScraps(n){const a=Math.max(0,Math.min(n,scrapRoom()));S.scraps+=a;return a;}
+/* zero loot when BOTH caps are effectively full (carried + bag value) */
+const lootBlocked=()=>goldRoom()<=0&&scrapRoom()<=0;
 const RACES=[
  {id:'human',name:'Human',desc:'Balanced. +5% gold from all foes.',c1:'#e0b070',c2:'#7a5a34',gold:1.05},
  {id:'stoneborn',name:'Dwarf',desc:'Stout mountain folk. +12% max health.',c1:'#aeb9c2',c2:'#4d5a63',hp:1.12},
@@ -559,7 +569,7 @@ const BOOST_BASE_MAX=6; /* 6 purchases = +80% cap */
 const boostMax=()=>BOOST_BASE_MAX+Math.floor((S.prestige||0)/5);
 const nextBoostPrestige=()=>(Math.floor((S.prestige||0)/5)+1)*5;
 const boostBonus=n=>n>0?0.025*Math.pow(2,n-1):0;
-const boostCost=n=>2500*Math.pow(2,n);
+const boostCost=n=>Math.min(2500*Math.pow(2,n),BOOST_COST_CAP);
 const boostPct=n=>(Math.round(boostBonus(n)*1000)/10).toLocaleString();
 const speedBoostMul=()=>1+boostBonus(S.boosts?S.boosts.speed:0);
 const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0);
@@ -572,6 +582,8 @@ function freshState(name,race,cls){
 }
 function migrate(s){ /* fills fields missing from older saves */
  if(s.scraps===undefined)s.scraps=0;
+ if(s.gold>GOLD_CAP)s.gold=GOLD_CAP;
+ if(s.scraps>SCRAP_CAP)s.scraps=SCRAP_CAP;
  if(s.sfx===undefined)s.sfx=true;
  if(s.prestige===undefined)s.prestige=0;
  if(!s.cleared)s.cleared={};
@@ -1158,31 +1170,34 @@ function killEnemy(en){
  sfx.die();
  burst(en.x,en.y-10,en.c,12,90,true);
  const r=raceOf();
- let gold=Math.round(en.gold*(r.gold||1)*(1+scrollPct('fortune')));
- S.gold+=gold;
+ let gold=addGold(Math.round(en.gold*(r.gold||1)*(1+scrollPct('fortune'))));
  if(r.leech)healHero(heroMax()*r.leech,true);
  if(hasEnch('reaper'))healHero(heroMax()*scrollPct('reaper'),true);
- floatAt(en.x,en.y-en.r-14,'+'+gold+' ◉','#ffd76a');
+ floatAt(en.x,en.y-en.r-14,gold>0?'+'+gold+' ◉':'◉ CAP','#ffd76a');
  log(`Slew <span class="imp">${en.name}</span> — +${en.xp} xp, +${gold} gold.`);
- // drops
- if(Math.random()<(en.boss?1:0.20)){
-  const it=rollItem(en.boss);
-  sfx.loot();
-  log(`Loot: <span class="l${it.rar}">${it.name}</span> ${itemStr(it)}.`,'loot');
-  if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
- }
- /* Potions never drop from enemies; buy them from the Trader. */
- if(Math.random()<(en.boss?0.25:0.01)){ /* scrolls are now a rare prize — always Tier I */
-  const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
-  S.scrolls.push({id:e.id,tier:1});
-  log(`Rare find: <span class="lscroll">${e.n} I</span> — combine duplicates in the Bag to forge higher tiers.`,'loot');
+ // drops — nothing drops while both gold and scrap are effectively capped
+ if(lootBlocked()){
+  if(Math.random()<0.08)floatAt(en.x,en.y-en.r-28,'LOOT CAPPED','#ff8a7a');
+ }else{
+  if(Math.random()<(en.boss?1:0.20)){
+   const it=rollItem(en.boss);
+   sfx.loot();
+   log(`Loot: <span class="l${it.rar}">${it.name}</span> ${itemStr(it)}.`,'loot');
+   if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
+  }
+  /* Potions never drop from enemies; buy them from the Trader. */
+  if(Math.random()<(en.boss?0.25:0.01)){ /* scrolls are now a rare prize — always Tier I */
+   const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
+   S.scrolls.push({id:e.id,tier:1});
+   log(`Rare find: <span class="lscroll">${e.n} I</span> — combine duplicates in the Bag to forge higher tiers.`,'loot');
+  }
  }
  if(en.boss){
   /* the boss stays dead — forever */
   S.bossDead[S.zone]=true;
-  S.scraps+=40;
-  floatAt(en.x,en.y-en.r-44,'+40 ⚙','#a8bcb0');
-  log(`<span class="imp">${en.name} will never rise again.</span> +40 Scraps.`);
+  const sc=addScraps(40);
+  floatAt(en.x,en.y-en.r-44,sc>0?'+'+sc+' ⚙':'⚙ CAP','#a8bcb0');
+  log(`<span class="imp">${en.name} will never rise again.</span> +${sc} Scraps.`);
   /* despawn any remaining adds */
   enemies.forEach(a=>{if(a.add&&!a.dead){a.dead=true;a.deadT=0;burst(a.x,a.y,a.c,6,70);}});
  }
@@ -1225,8 +1240,8 @@ function heroDies(){
 }
 function completeQuest(){
  const q=questOf(),qs=questsOf();
- const gold=Math.round(20+S.zone*30+q.need*3),xp=Math.round(25+S.zone*45);
- S.gold+=gold;gainXP(xp);
+ let gold=Math.round(20+S.zone*30+q.need*3);const xp=Math.round(25+S.zone*45);
+ gold=addGold(gold);gainXP(xp);
  S.qProg=0;
  sfx.quest();
  stageMsg(`Quest complete: ${q.name}  +${gold} ◉`);
@@ -2042,7 +2057,7 @@ function renderVitals(dt){
  $('potHpN').textContent=S.pots.hp;
  $('potMpN').textContent=S.pots.mp;
 }
-const walletStr=()=>`<b>◉ ${S.gold.toLocaleString()}</b> gold · <i>⚙ ${S.scraps.toLocaleString()}</i> scraps`;
+const walletStr=()=>`<b>◉ ${S.gold.toLocaleString()}</b> / ${GOLD_CAP.toLocaleString()} gold · <i>⚙ ${S.scraps.toLocaleString()}</i> / ${SCRAP_CAP} scraps`;
 function renderHero(){
  const c=classOf(),r=raceOf();
  $('heroTitle').textContent=`${S.name} — ${r.name} ${c.name}`+(S.prestige?` · Prestige ${S.prestige}`:'');
@@ -2218,11 +2233,11 @@ function renderBag(){
  });
  document.querySelectorAll('[data-sell]').forEach(b=>b.onclick=()=>{
   const i=+b.dataset.sell,it=S.bag.splice(i,1)[0];
-  S.gold+=it.sell;sfx.loot();renderBag();renderHUD();save();
+  S.gold=Math.min(GOLD_CAP,S.gold+it.sell);sfx.loot();renderBag();renderHUD();save();
  });
  document.querySelectorAll('[data-scr]').forEach(b=>b.onclick=()=>{
   const i=+b.dataset.scr,it=S.bag.splice(i,1)[0];
-  S.scraps+=scrapVal(it);sfx.forge();
+  S.scraps=Math.min(SCRAP_CAP,S.scraps+scrapVal(it));sfx.forge();
   log(`Scrapped <span class="l${it.rar}">${it.name}</span> — +${scrapVal(it)} ⚙.`);
   renderBag();renderHUD();save();
  });
@@ -2236,7 +2251,7 @@ function renderBag(){
    return;
   }
   const total=S.bag.reduce((t,it)=>t+scrapVal(it),0),n=S.bag.length;
-  S.scraps+=total;S.bag=[];
+  S.scraps=Math.min(SCRAP_CAP,S.scraps+total);S.bag=[];
   sfx.forge();
   log(`Scrapped ${n} items — +${total} ⚙.`,'loot');
   stageMsg('⚙ Scrapped '+n+' items for '+total+' Scraps',1800);
@@ -2252,7 +2267,7 @@ function renderBag(){
    return;
   }
   const total=S.bag.reduce((t,it)=>t+it.sell,0),n=S.bag.length;
-  S.gold+=total;S.bag=[];
+  S.gold=Math.min(GOLD_CAP,S.gold+total);S.bag=[];
   sfx.loot();
   log(`Sold ${n} items — +${total.toLocaleString()} ◉.`,'loot');
   stageMsg('◉ Sold '+n+' items for '+total.toLocaleString()+' gold',1800);
