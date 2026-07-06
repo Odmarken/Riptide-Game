@@ -207,6 +207,9 @@
   .lbrank{width:26px;color:var(--brass);font-family:var(--display);font-size:13px}
   .lbname{flex:1;color:var(--parch);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .lbmeta{color:var(--dim);font-size:11px;white-space:nowrap}
+  .lbcard{background:rgba(28,43,36,.88)}
+  .lbcard.me{border-color:var(--brass);box-shadow:0 0 14px rgba(217,164,65,.22)}
+  .lbrank.big{width:34px;flex:0 0 auto;text-align:center;font-size:17px}
 
 
   /* ---- Riptide sign-in gate ---- */
@@ -2555,7 +2558,9 @@ async function publishLB(ch,force){
  const now=Date.now();
  if(!force&&now-FB.lastPub<45000)return;
  FB.lastPub=now;
- const entry={name:(ch.name||'?').slice(0,14),lvl:ch.lvl,prestige:ch.prestige||0,gs:charGearScore(ch),score:lbScore(ch),cid:ch.id,t:now};
+ const entry={name:(ch.name||'?').slice(0,14),lvl:ch.lvl,prestige:ch.prestige||0,gs:charGearScore(ch),score:lbScore(ch),cid:ch.id,t:now,
+  race:ch.race||'human',cls:ch.cls||'warrior',zone:ch.zone||0,
+  scroll:ch.activeScroll?{id:ch.activeScroll.id,tier:ch.activeScroll.tier||1}:null};
  if(FB.ready&&FB.user){
   try{await FB.db.collection('leaderboard').doc(FB.user.uid+'_'+ch.id).set(entry);}catch(e){}
  }else{
@@ -2588,13 +2593,24 @@ async function showLeaderboard(){
  $('lbList').innerHTML='<div class="cl">Consulting the heralds…</div>';
  if(S&&S.id)await publishLB(S,true);
  const rows=await fetchLB();
- $('lbList').innerHTML=rows.length?rows.map((e,i)=>`
-  <div class="lbrow ${S&&e.cid===S.id?'me':''}">
-   <div class="lbrank">${i+1}</div>
-   <div class="lbname">${esc(e.name||'?')}${e.prestige?` <span class="pstar">✦${e.prestige}</span>`:''}</div>
-   <div class="lbmeta">Lv ${e.lvl||1} · ⚔ ${e.gs||0}</div>
-  </div>`).join('')
+ $('lbList').innerHTML=rows.length?rows.map((e,i)=>{
+  const r=RACES.find(x=>x.id===e.race),c=CLASSES.find(x=>x.id===e.cls);
+  const zn=ZONES[Math.max(0,Math.min(ZONES.length-1,e.zone||0))].name;
+  return `<div class="card charcard lbcard ${S&&e.cid===S.id?'me':''}">
+   <div class="lbrank big">${i+1}</div>
+   <canvas class="portrait" width="64" height="76" data-lbp="${i}"></canvas>
+   <div class="cinfo">
+    <div class="cn">${esc(e.name||'?')}${e.prestige?` <span class="pstar">✦ Prestige ${e.prestige}</span>`:''}</div>
+    <div class="cl">${r&&c?esc(r.name+' '+c.name)+' · ':''}Level ${e.lvl||1}</div>
+    <div class="cl">⚔ ${e.gs||0} gear score · ${esc(zn)}</div>
+   </div>
+  </div>`;
+ }).join('')
   :'<div class="cl">No champions recorded yet — be the first to claim a place.</div>';
+ rows.forEach((e,i)=>{
+  const cnv=document.querySelector(`[data-lbp="${i}"]`);
+  if(cnv)drawPortrait(cnv,{race:e.race||'human',cls:e.cls||'warrior',prestige:e.prestige||0,activeScroll:e.scroll||null,gear:{}});
+ });
 }
 let guestMode=false;
 function updateAcctUI(){
@@ -2699,8 +2715,7 @@ function showCreate(firstEver){
  $('createBack').style.display=firstEver?'none':'block';
  $('cname').value='';
 }
-
-  
+ 
 /* ==================== BOOT ==================== */
 let pickRace='human',pickClass='warrior';
 function renderPicks(){
