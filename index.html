@@ -538,7 +538,7 @@ const ZONES=[
   q:[['Storm the Outworks','Cut down 12 legionnaires at the walls.',12],['The Kennels','Slay 12 ash hounds loosed on the yard.',12],['Break the Warlocks','Silence 14 warlocks fueling the pyres.',14]]},
  {name:'Emberdeep Keep',lvl:60,amb:'war',boss:['Warlord Krev','#d94a2a','krev'],ground:'#3a2a26',ground2:'#31231f',water:'#8a4a2a',tree:'#31231f',tree2:'#241a16',path:'#5a4030',rocky:true,final:true},
  {name:'Gates of the Underworld',lvl:60,amb:'crypt',west:true,special:true,
-  boss:['Cerberus the Three-Headed','#c94a3a','cerberus'],
+  boss:['HAALAND the Three-Headed','#c94a3a','cerberus'],
   ground:'#2e2230',ground2:'#271d2a',water:'#5a2a2a',tree:'#271d2a',tree2:'#1c141e',path:'#4a3040',rocky:true},
 ];
 /* stat curves */
@@ -554,7 +554,7 @@ function zoneTemplates(z){
  const XL=xpZoneLvl(z);  /* XP stays tied to the real zone level */
  if(z.boss){
   const km=z.special?Math.pow(1.5,S.cerberusKills||0):1;   /* +50% per kill, compounding */
-  const bm=z.special?2:1;                                   /* Cerberus base is beefier */
+  const bm=z.special?2:1;                                   /* HAALAND's base is beefier */
   return [{name:z.boss[0],kind:'boss',boss:true,bossId:z.boss[2],c:z.boss[1],
    hp:Math.round(eHP(L)*50*pm*bm*km),atk:Math.round(eATK(L)*1.76*(z.special?1.25:1)*pm*km),
    xp:Math.round(eHP(XL)*5*pr),gold:Math.round(eHP(L)*3.5*pr)}];
@@ -611,7 +611,7 @@ const speedBoostMul=()=>1+boostBonus(S.boosts?S.boosts.speed:0);
 const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0);
 function freshState(name,race,cls){
  return {id:null,name,race,cls,lvl:1,xp:0,gold:0,scraps:0,prestige:0,zone:0,maxZone:0,quest:0,qProg:0,
-  rating:0,cerberusKills:0,
+  rating:0,cerberusKills:0,freeGoldCases:0,
   gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],
   boosts:{speed:0,haste:0},
   cleared:{},bossDead:{},zoneLvlGain:{},
@@ -641,6 +641,7 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.prestige===undefined)s.prestige=0;
  if(s.rating===undefined)s.rating=0;
  if(s.cerberusKills===undefined)s.cerberusKills=0;
+ if(s.freeGoldCases===undefined)s.freeGoldCases=0;
  if(!s.cleared)s.cleared={};
  if(!s.bossDead)s.bossDead={};
  if(!s.zoneLvlGain)s.zoneLvlGain={};
@@ -1301,10 +1302,12 @@ function killEnemy(en){
   if(en.bossId==='cerberus'){
    S.cerberusKills=(S.cerberusKills||0)+1;
    S.rating=(S.rating||0)+125;
+   S.freeGoldCases=(S.freeGoldCases||0)+10;
    const sc=addScraps(60);
    floatAt(en.x,en.y-en.r-44,'+125 RATING','#ffd76a');
-   stageMsg('Cerberus falls! +125 Rating — leave and return, it comes back stronger.',3200);
-   log(`<span class="imp">Cerberus slain ×${S.cerberusKills}.</span> +125 Rating, +${sc} Scraps.`);
+   stageMsg('HAALAND falls! +125 Rating · 10 free GOLD GOLD GOLD cases!',3200);
+   log(`<span class="imp">HAALAND slain ×${S.cerberusKills}.</span> +125 Rating, +${sc} Scraps.`);
+   log(`The beast's hoard spills open — <span class="loot">10 free GOLD GOLD GOLD cases</span>!`);
    publishLB(S,true);
   }else{
    S.bossDead[S.zone]=true;
@@ -2313,7 +2316,7 @@ function renderMap(){
    return `<div class="card zonecard ${p5?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p5?'#c94a3a':''}">
     <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#5a1a1a)">🐕</div>
     <div class="zinfo"><div class="zn">${z.name}</div>
-    <div class="zl">Cerberus — repeatable boss · slain ×${kills} · +125 Rating per kill · grows stronger each time</div></div>
+    <div class="zl">HAALAND — repeatable boss · slain ×${kills} · +125 Rating per kill · grows stronger each time</div></div>
     ${i===S.zone?'<span class="ztag">Here</span>':p5?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">🔒 Prestige 5</span>'}
    </div>`;
   }
@@ -2592,9 +2595,19 @@ function prizeValue(type){
  return {icon,tier:rar,name:it.name,color:col,sub:it.slot+' · '+itemStr(it),epic:rar==='epic',big:rar==='rare'};
 }
 function rollChestBatch(type,count){
- const cost=type==='gold'?GOLD_COST:CASE_COST,total=cost*count,label=type==='gold'?'GOLD GOLD GOLD':'GAMBAAA';
- if(S.gold<total){stageMsg('Not enough gold — '+count+'x '+label+' costs '+total.toLocaleString()+' ◉',1500);return null;}
- S.gold-=total;sfx.buy();
+ const cost=type==='gold'?GOLD_COST:CASE_COST;
+ let freeUsed=0,total=cost*count;
+ if(type==='gold'&&(S.freeGoldCases||0)>0){
+  freeUsed=Math.min(S.freeGoldCases,count);
+  total=cost*(count-freeUsed);
+ }
+ if(S.gold<total){stageMsg('Not enough gold — costs '+total.toLocaleString()+' ◉',1500);return null;}
+ S.gold-=total;
+ if(freeUsed){
+  S.freeGoldCases-=freeUsed;
+  log(`Redeemed ${freeUsed} free case${freeUsed>1?'s':''} — ${S.freeGoldCases} left.`,'loot');
+ }
+ sfx.buy();
  lastCaseLootIds=[];
  const wins=[];
  for(let i=0;i<count;i++)wins.push(prizeValue(type));
@@ -2660,9 +2673,11 @@ function finishCase(wins){
  if(wins.some(w=>w.epic)){fx.classList.add('flash');sfx.level();noiseSweep(0.5,.08,400,3000);}
  else if(wins.some(w=>w.big))sfx.quest();
  else sfx.loot();
- const rb=$('respinBtn'),cost=caseCost()*chestQty[curCase];
+ const rb=$('respinBtn'),qty=chestQty[curCase];
+ let cost=caseCost()*qty;
+ if(curCase==='gold'){const f=Math.min(S.freeGoldCases||0,qty);cost=caseCost()*(qty-f);}
  rb.disabled=S.gold<cost;
- rb.textContent=(rb.disabled?'🎁 Respin '+chestQty[curCase]+'x · '+cost.toLocaleString()+'◉ — broke!':'🎁 Respin '+chestQty[curCase]+'x · '+cost.toLocaleString()+'◉');
+ rb.textContent=cost<=0?'🎁 Respin '+qty+'x · FREE':(rb.disabled?'🎁 Respin '+qty+'x · '+cost.toLocaleString()+'◉ — broke!':'🎁 Respin '+qty+'x · '+cost.toLocaleString()+'◉');
  const cs=$('caseScrapBtn'),chestGear=S.bag.filter(it=>lastCaseLootIds.includes(it._lid));
  if(chestGear.length){
   const total=chestGear.reduce((t,it)=>t+scrapVal(it),0);
@@ -2708,15 +2723,18 @@ function openGoldChest(){
 function renderShop(){
  $('shopWallet').innerHTML=walletStr();
  let h='<div class="ptitle" style="font-size:14px;margin-bottom:8px">Gamble</div>';
- const gQty=chestQty.gamba,gTot=CASE_COST*gQty,goQty=chestQty.gold,goTot=GOLD_COST*goQty;
+ const gQty=chestQty.gamba,gTot=CASE_COST*gQty;
+ const goQty=chestQty.gold;
+ const free=S.freeGoldCases||0;
+ const goFree=Math.min(free,goQty),goPaid=goQty-goFree,goTot=GOLD_COST*goPaid;
  h+=`<div class="card item" style="border-color:var(--brass-deep)"><div><div class="sn" style="font-size:13px;font-weight:600;color:var(--brass)">🎁 GAMBAAA!</div>
   <div class="ss" style="color:var(--dim);font-size:11px">A sealed chest of unknown origin. Holds a random weapon, armor piece or scroll — most are humble, but legends whisper of epic prizes within.</div></div>
   <div class="btns"><button class="sbtn gold" id="chestBtn" ${S.gold<gTot?'disabled':''}>${gTot.toLocaleString()}◉</button>
   <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gamba" data-d="-1" ${gQty<=1?'disabled':''}>−</button><span class="qtynum">${gQty}x</span><button class="qtybtn" data-case="gamba" data-d="1" ${gQty>=5?'disabled':''}>+</button></div><div class="qtytotal">Total: ${gTot.toLocaleString()}◉</div></div></div></div>`;
- h+=`<div class="card item" style="border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.15)"><div><div class="sn" style="font-size:13px;font-weight:600;color:#ffd76a">💰 GOLD GOLD GOLD</div>
-  <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common or fine junk — only rare and epic gear, a slim chance at a Tier II scroll, and a tiny chance at Frostmourne.</div></div>
-  <div class="btns"><button class="sbtn gold" id="goldChestBtn" ${S.gold<goTot?'disabled':''}>${goTot.toLocaleString()}◉</button>
-  <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gold" data-d="-1" ${goQty<=1?'disabled':''}>−</button><span class="qtynum">${goQty}x</span><button class="qtybtn" data-case="gold" data-d="1" ${goQty>=5?'disabled':''}>+</button></div><div class="qtytotal">Total: ${goTot.toLocaleString()}◉</div></div></div></div>`;
+ h+=`<div class="card item" style="border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.15)"><div><div class="sn" style="font-size:13px;font-weight:600;color:#ffd76a">💰 GOLD GOLD GOLD${free?` <span style="color:#9adf9a;font-size:11px">· ${free} FREE</span>`:''}</div>
+ <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common or fine junk — only rare and epic gear, a slim chance at a Tier II scroll, and a tiny chance at Frostmourne.${free?' <b style="color:#9adf9a">HAALAND\u2019s hoard covers your next '+free+' case'+(free>1?'s':'')+'.</b>':''}</div></div>
+ <div class="btns"><button class="sbtn gold" id="goldChestBtn" ${S.gold<goTot?'disabled':''}>${goTot>0?goTot.toLocaleString()+'◉':'FREE'}</button>
+ <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gold" data-d="-1" ${goQty<=1?'disabled':''}>−</button><span class="qtynum">${goQty}x</span><button class="qtybtn" data-case="gold" data-d="1" ${goQty>=5?'disabled':''}>+</button></div><div class="qtytotal">${goFree?goFree+' free · ':''}Total: ${goTot.toLocaleString()}◉</div></div></div></div>`;
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Supplies</div>';
  const hpC=potCost('hp'),mpC=potCost('mp');
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">🧪 Health Potion</div>
