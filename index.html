@@ -1023,7 +1023,8 @@ function sparkles(x,y,c,n){
  for(let i=0;i<n;i++)parts.push({x:x+(Math.random()-0.5)*24,y:y+(Math.random()-0.5)*10,vx:(Math.random()-0.5)*20,vy:-40-Math.random()*40,t:0,life:0.6,c,r:1.5+Math.random()*1.5,g:0});
 }
 function hazardAt(x,y,rad,warn,dmg,c){hazards.push({x,y,rad,warn,t:0,dmg,c:c||'#e88a5a'});}
- 
+
+  
 /* ==================== COMBAT ==================== */
 function atkMul(){return hero.buff.atk&&hero.buff.atk.t>0?hero.buff.atk.mul:1;}
 function hasteMul(){return (hero.buff.haste&&hero.buff.haste.t>0?hero.buff.haste.mul:1)*swiftMul()*hasteBoostMul();}
