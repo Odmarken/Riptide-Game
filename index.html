@@ -521,16 +521,19 @@ const eHP=L=>Math.round(20*Math.pow(L,1.25)+10);
 const eATK=L=>Math.round(3+L*1.1);
 /* the world levels with you: every zone fights at least as hard as your deepest zone */
 const effZoneLvl=z=>Math.max(z.lvl,ZONES[Math.min(S.maxZone||0,ZONES.length-1)].lvl);
+/* XP should NOT use deepest-zone scaling, or prestige resets level too fast. */
+const xpZoneLvl=z=>z.lvl;
 function zoneTemplates(z){
  const pm=pMul(),pr=pRew();
- const L=effZoneLvl(z);
+ const L=effZoneLvl(z);   /* HP/damage/gold scale to deepest zone */
+ const XL=xpZoneLvl(z);  /* XP stays tied to the real zone level */
  if(z.boss){
   /* bosses are progression walls: ~2.3x more health and much harder hits than before */
-  return [{name:z.boss[0],kind:'boss',boss:true,bossId:z.boss[2],c:z.boss[1],hp:Math.round(eHP(L)*50*pm),atk:Math.round(eATK(L)*2.2*pm),xp:Math.round(eHP(L)*5*pr),gold:Math.round(eHP(L)*3.5*pr)}];
+  return [{name:z.boss[0],kind:'boss',boss:true,bossId:z.boss[2],c:z.boss[1],hp:Math.round(eHP(L)*50*pm),atk:Math.round(eATK(L)*2.2*pm),xp:Math.round(eHP(XL)*5*pr),gold:Math.round(eHP(L)*3.5*pr)}];
  }
  /* regular foes: modestly tougher than before (+25% hp, +15% atk) */
  return z.en.map(([n,k,c],i)=>({name:n,kind:k,c,hp:Math.round(eHP(L)*(0.9+i*0.12)*1.25*pm),atk:Math.round(eATK(L)*(0.9+i*0.1)*1.15*pm),
-  xp:Math.round(eHP(L)/2.6*pr),gold:Math.round((eHP(L)/6+2)*pr)}));
+  xp:Math.round(eHP(XL)/2.6*pr),gold:Math.round((eHP(L)/6+2)*pr)}));
 }
 function zoneQuests(z){
  if(z.boss)return [{name:z.boss[0],desc:'Defeat '+z.boss[0]+'. Victory opens the gate beyond, forever.',need:1,boss:true}];
@@ -938,14 +941,15 @@ function spawnEnemyAt(t,R,fixed){
 }
 function spawnAdd(name,kind,c){
  const z=zoneOf();
- const L=effZoneLvl(z);
+ const L=effZoneLvl(z);   /* HP/damage/gold scale to deepest zone */
+ const XL=xpZoneLvl(z);  /* XP stays tied to the real zone level */
  const boss=enemies.find(e=>e.boss&&!e.dead);
  const bx=boss?boss.x:world.w/2,by=boss?boss.y:world.h/2;
  const a=Math.random()*6.28;
  enemies.push({name,kind,boss:false,bossId:null,c,add:true,
   x:bx+Math.cos(a)*60,y:by+Math.sin(a)*60,home:{x:bx,y:by},r:11,
   max:Math.round(eHP(L)*0.55*pMul()),hp:Math.round(eHP(L)*0.55*pMul()),
-  atk:Math.round(eATK(L)*0.8*pMul()),xp:Math.round(eHP(L)/5*pRew()),gold:Math.round((eHP(L)/10+1)*pRew()),
+  atk:Math.round(eATK(L)*0.8*pMul()),xp:Math.round(eHP(XL)/5*pRew()),gold:Math.round((eHP(L)/10+1)*pRew()),
   speed:120,state:'chase',dir:0,wT:0,cd:0,dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,
   cds:{},lockT:0,hidden:false,trailT:0,avoid:null});
  burst(bx+Math.cos(a)*60,by+Math.sin(a)*60,c,10,80);
