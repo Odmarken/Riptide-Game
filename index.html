@@ -171,6 +171,21 @@
   .casecard.gbar{background:linear-gradient(180deg,#3a2a10,#171006);border-color:#ffd76a;box-shadow:0 0 14px rgba(255,215,106,.22),inset 0 0 18px rgba(255,215,106,.12)}
   .casecard.gbar .ci{filter:drop-shadow(0 0 9px #ffd76a)}
   .casecard.gbar .cr{color:#ffd76a}
+
+  .caseqty{display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:5px;font-size:10px;color:var(--dim)}
+  .qtyrow{display:flex;align-items:center;justify-content:center;gap:6px}
+  .qtybtn{width:23px;height:23px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--parch);cursor:pointer;font-weight:700}
+  .qtybtn:disabled{opacity:.35;cursor:default}
+  .qtynum{min-width:18px;text-align:center;color:var(--parch);font-weight:700}
+  .qtytotal{white-space:nowrap;color:var(--brass)}
+  #chestFx.multi{justify-content:flex-start;padding-top:18px;overflow-y:auto}
+  #chestFx.multi .casewrap{margin-bottom:7px;flex:0 0 auto}
+  .caseextra{position:relative;width:min(92vw,560px);height:116px;border:1px solid var(--brass-deep);border-radius:12px;background:linear-gradient(180deg,#101a15,#0a120e);overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.6),inset 0 0 30px rgba(0,0,0,.5)}
+  .crgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;width:min(92vw,620px);margin-top:8px}
+  .crmini{border:1px solid var(--cc);border-radius:10px;background:rgba(19,31,26,.86);padding:9px;text-align:center;box-shadow:0 0 10px color-mix(in srgb,var(--cc),transparent 72%)}
+  .crmini .mi{font-size:28px;filter:drop-shadow(0 0 10px var(--cc))}
+  .crmini .mt{font-size:9px;letter-spacing:1.3px;text-transform:uppercase;color:var(--cc);margin-top:2px}
+  .crmini .mn{font-family:var(--display);font-size:12px;color:var(--cc);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .casecard.win{box-shadow:0 0 18px var(--cc);border-width:2px;animation:winPulse 1.2s infinite}
   @keyframes winPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.35)}}
   .casemark{position:absolute;top:-1px;bottom:-1px;left:50%;width:2px;margin-left:-1px;background:var(--brass);box-shadow:0 0 8px var(--brass);pointer-events:none}
@@ -2304,6 +2319,7 @@ function spawnChestParts(color,n){
    Respin and Close only appear once the prize has landed. --- */
 const CASE_COST=5000,GOLD_COST=20000;
 let caseSpinning=false,caseRAF=0,curCase='gamba'; /* which chest is spinning */
+const chestQty={gamba:1,gold:1};
 const caseCost=()=>curCase==='gold'?GOLD_COST:CASE_COST;
 const CASE_RARS=[
  {r:.55,cc:'#d8e4d6',t:'common'},{r:.85,cc:'#6dbb6d',t:'fine'},
@@ -2321,140 +2337,140 @@ function fillerCard(){
  const k=pool.find(x=>r<=x.r)||pool[0];
  return {icon:k.t==='scroll'?'📜':['⚔️','🛡️','💍'][Math.floor(Math.random()*3)],cc:k.cc,t:k.t};
 }
-function startCaseSpin(win){
- const fx=$('chestFx'),reel=$('caseReel'),rev=$('chestReveal'),rays=$('chestRays');
- fx.classList.add('open');fx.classList.remove('flash');
- $('caseBtns').classList.remove('show');
- rev.classList.remove('show');rev.innerHTML='';
- rays.style.opacity=0;rays.classList.toggle('epic',!!win.epic);
- caseSpinning=true;
- cancelAnimationFrame(caseRAF);
- const N=56,WIN=48,CW=84,GAP=8,STEP=CW+GAP;
- const cards=[];
+function prizeValue(type){
+ const r=Math.random();
+ if(type==='gold'){
+  if(r<0.06){
+   const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
+   S.scrolls.push({id:e.id,tier:2});
+   log(`GOLD GOLD GOLD: <span class="lscroll">${e.n} II</span>!`,'loot');
+   return {icon:'📜',tier:'Scroll · Tier II',name:e.n,color:e.glow,sub:tierDesc(e.id,2)+' Combine duplicates to forge higher tiers.',big:true};
+  }
+  const rar=r<0.53?'fine':r<0.86?'rare':'epic';
+  const it=rollItem(rar),icon={weapon:'⚔️',armor:'🛡️',trinket:'💍'}[it.slot],col={fine:'#6dbb6d',rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
+  log(`GOLD GOLD GOLD: <span class="l${it.rar}">${it.name}</span> ${itemStr(it)}.`,'loot');
+  if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
+  return {icon,tier:rar,name:it.name,color:col,sub:it.slot+' · '+itemStr(it),epic:rar==='epic',big:rar==='rare'};
+ }
+ if(r<0.06){
+  const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
+  S.scrolls.push({id:e.id,tier:1});
+  log(`GAMBAAA!: <span class="lscroll">${e.n} I</span>!`,'loot');
+  return {icon:'📜',tier:'Scroll · Tier I',name:e.n,color:e.glow,sub:tierDesc(e.id,1)+' Combine duplicates to forge higher tiers.',big:true};
+ }
+ const rar=r<0.66?'common':r<0.90?'fine':r<0.98?'rare':'epic';
+ const it=rollItem(rar),icon={weapon:'⚔️',armor:'🛡️',trinket:'💍'}[it.slot],col={common:'#d8e4d6',fine:'#6dbb6d',rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
+ log(`GAMBAAA!: <span class="l${it.rar}">${it.name}</span> ${itemStr(it)}.`,'loot');
+ if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
+ return {icon,tier:rar,name:it.name,color:col,sub:it.slot+' · '+itemStr(it),epic:rar==='epic',big:rar==='rare'};
+}
+function rollChestBatch(type,count){
+ const cost=type==='gold'?GOLD_COST:CASE_COST,total=cost*count,label=type==='gold'?'GOLD GOLD GOLD':'GAMBAAA';
+ if(S.gold<total){stageMsg('Not enough gold — '+count+'x '+label+' costs '+total.toLocaleString()+' ◉',1500);return null;}
+ S.gold-=total;sfx.buy();
+ const wins=[];
+ for(let i=0;i<count;i++)wins.push(prizeValue(type));
+ renderShop();renderHUD();save();
+ return wins;
+}
+function makeReel(reel,win){
+ const N=56,WIN=48,CW=84,GAP=8,STEP=CW+GAP,cards=[];
  for(let i=0;i<N;i++)cards.push(i===WIN?{icon:win.icon,cc:win.color,t:win.tier}:fillerCard());
  reel.innerHTML=cards.map((c,i)=>`<div class="casecard${i===WIN?' winc':''}${c.gbar?' gbar':''}" style="--cc:${c.cc}"><div class="ci">${c.icon}</div><div class="cr">${c.t}</div></div>`).join('');
- const wrapW=reel.parentElement.getBoundingClientRect().width||360;
- const center=wrapW/2;
- const jitter=(Math.random()-0.5)*CW*0.55; /* lands off-center like a real case */
- const endX=center-(WIN*STEP+CW/2)-jitter;
- const startX=center-CW/2+STEP*1.5;
- reel.style.transform=`translateX(${startX}px)`;
+ const wrapW=reel.parentElement.getBoundingClientRect().width||360,center=wrapW/2,jitter=(Math.random()-0.5)*CW*0.55;
+ return {reel,win,CW,GAP,STEP,center,startX:center-CW/2+STEP*1.5,endX:center-(WIN*STEP+CW/2)-jitter,lastIdx:-1};
+}
+function startCaseSpin(wins){
+ wins=Array.isArray(wins)?wins:[wins];
+ const fx=$('chestFx'),reel=$('caseReel'),rev=$('chestReveal'),rays=$('chestRays');
+ fx.classList.add('open');fx.classList.toggle('multi',wins.length>1);fx.classList.remove('flash');
+ document.querySelectorAll('.caseextra').forEach(x=>x.remove());
+ $('caseBtns').classList.remove('show');
+ rev.classList.remove('show');rev.innerHTML='';
+ rays.style.opacity=0;rays.classList.toggle('epic',wins.some(w=>w.epic));
+ caseSpinning=true;cancelAnimationFrame(caseRAF);
+ const baseWrap=reel.parentElement,wraps=[baseWrap];
+ for(let i=1;i<wins.length;i++){
+  const w=document.createElement('div');w.className='casewrap caseextra';
+  w.innerHTML='<div class="casereel"></div><div class="casemark"></div>';
+  wraps[wraps.length-1].after(w);wraps.push(w);
+ }
+ const reels=wins.map((w,i)=>makeReel(wraps[i].querySelector('.casereel'),w));
  const dur=5200,t0=performance.now();
- let lastIdx=-1;
- blip(140,90,0.4,.07,'sawtooth'); /* the case unlatches */
+ blip(140,90,0.4,.07,'sawtooth');
  const tick=now=>{
-  const p=Math.min(1,(now-t0)/dur);
-  const e=1-Math.pow(1-p,4); /* quartic ease-out: fast spin, long deceleration */
-  const x=startX+(endX-startX)*e;
-  reel.style.transform=`translateX(${x}px)`;
-  const idx=Math.floor((center-x)/STEP);
-  if(idx!==lastIdx){lastIdx=idx;blip(1400+Math.random()*400,850,0.045,.05,'square');}
+  const p=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-p,4);
+  reels.forEach(info=>{
+   const x=info.startX+(info.endX-info.startX)*e;
+   info.reel.style.transform=`translateX(${x}px)`;
+   const idx=Math.floor((info.center-x)/info.STEP);
+   if(idx!==info.lastIdx){info.lastIdx=idx;blip(1400+Math.random()*400,850,0.035,.04,'square');}
+  });
   if(p<1)caseRAF=requestAnimationFrame(tick);
-  else finishCase(win);
+  else finishCase(wins);
  };
  caseRAF=requestAnimationFrame(tick);
 }
-function finishCase(win){
+function finishCase(wins){
+ wins=Array.isArray(wins)?wins:[wins];
  caseSpinning=false;
  const fx=$('chestFx'),rev=$('chestReveal'),rays=$('chestRays');
- const wc=document.querySelector('.casecard.winc');
- if(wc)wc.classList.add('win');
- rays.style.setProperty('--rayc',win.color+'55');
- rays.style.opacity=1;
- spawnChestParts(win.color,win.epic?28:14);
- rev.innerHTML=`<div class="cricon" style="color:${win.color}">${win.icon}</div>
-  <div class="crtier" style="color:${win.color}">${win.tier}</div>
-  <div class="crname" style="color:${win.color}">${win.name}</div>
-  <div class="crsub">${win.sub}</div>`;
+ document.querySelectorAll('.casecard.winc').forEach(wc=>wc.classList.add('win'));
+ const best=wins.find(w=>w.epic)||wins.find(w=>w.big)||wins[0];
+ rays.style.setProperty('--rayc',best.color+'55');rays.style.opacity=1;
+ wins.forEach(w=>spawnChestParts(w.color,w.epic?16:8));
+ if(wins.length===1){
+  const win=wins[0];
+  rev.innerHTML=`<div class="cricon" style="color:${win.color}">${win.icon}</div>
+   <div class="crtier" style="color:${win.color}">${win.tier}</div>
+   <div class="crname" style="color:${win.color}">${win.name}</div>
+   <div class="crsub">${win.sub}</div>`;
+ }else{
+  rev.innerHTML='<div class="crname" style="color:var(--parch)">Opened '+wins.length+' chests</div><div class="crgrid">'+wins.map(w=>`<div class="crmini" style="--cc:${w.color}"><div class="mi">${w.icon}</div><div class="mt">${w.tier}</div><div class="mn">${w.name}</div></div>`).join('')+'</div>';
+ }
  rev.classList.add('show');
- if(win.epic){fx.classList.add('flash');sfx.level();noiseSweep(0.5,.08,400,3000);}
- else if(win.big)sfx.quest();
+ if(wins.some(w=>w.epic)){fx.classList.add('flash');sfx.level();noiseSweep(0.5,.08,400,3000);}
+ else if(wins.some(w=>w.big))sfx.quest();
  else sfx.loot();
- const rb=$('respinBtn');
- const cost=caseCost();
+ const rb=$('respinBtn'),cost=caseCost()*chestQty[curCase];
  rb.disabled=S.gold<cost;
- rb.textContent=rb.disabled?'🎁 Respin · '+cost.toLocaleString()+'◉ — broke!':'🎁 Respin · '+cost.toLocaleString()+'◉';
+ rb.textContent=(rb.disabled?'🎁 Respin '+chestQty[curCase]+'x · '+cost.toLocaleString()+'◉ — broke!':'🎁 Respin '+chestQty[curCase]+'x · '+cost.toLocaleString()+'◉');
  $('caseBtns').classList.add('show');
 }
 function hideChestFx(){
- if(caseSpinning)return; /* the spin must be watched to the end */
+ if(caseSpinning)return;
  cancelAnimationFrame(caseRAF);
- $('chestFx').classList.remove('open');
+ $('chestFx').classList.remove('open','multi');
+ document.querySelectorAll('.caseextra').forEach(x=>x.remove());
 }
 $('caseClose').onclick=hideChestFx;
 $('respinBtn').onclick=()=>{
  if(caseSpinning)return;
- const fxi=curCase==='gold'?rollGoldChest():rollChest();
- if(fxi)startCaseSpin(fxi);
+ const wins=rollChestBatch(curCase,chestQty[curCase]);
+ if(wins)startCaseSpin(wins);
 };
-/* rolls the prize, pays the gold and grants the reward immediately; returns the
-   reveal info for the reel (or null if too poor) */
-function rollChest(){
- if(S.gold<CASE_COST){stageMsg('Not enough gold — the chest costs 5,000 ◉',1500);return null;}
- S.gold-=CASE_COST;
- sfx.buy();
- const r=Math.random();
- let fxInfo;
- if(r<0.06){ /* rare: a scroll — always Tier I */
-  const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
-  S.scrolls.push({id:e.id,tier:1});
-  fxInfo={icon:'📜',tier:'Scroll · Tier I',name:e.n,color:e.glow,sub:tierDesc(e.id,1)+' Combine duplicates to forge higher tiers.',big:true};
-  log(`GAMBAAA!: <span class="lscroll">${e.n} I</span>!`,'loot');
- }else{ /* mostly weak gear, tiny chance of greatness */
-  const rar=r<0.66?'common':r<0.90?'fine':r<0.98?'rare':'epic';
-  const it=rollItem(rar);
-  const icon={weapon:'⚔️',armor:'🛡️',trinket:'💍'}[it.slot];
-  const col={common:'#d8e4d6',fine:'#6dbb6d',rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
-  fxInfo={icon,tier:rar,name:it.name,color:col,sub:it.slot+' · '+itemStr(it),epic:rar==='epic',big:rar==='rare'};
-  log(`GAMBAAA!: <span class="l${it.rar}">${it.name}</span> ${itemStr(it)}.`,'loot');
-  if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
- }
- renderShop();renderHUD();save();
- return fxInfo;
-}
 function openChest(){
  curCase='gamba';
- const fxi=rollChest();
- if(fxi)startCaseSpin(fxi);
-}
-/* GOLD GOLD GOLD — no commons: fine/rare/epic gear, 6% chance of a Tier II scroll */
-function rollGoldChest(){
- if(S.gold<GOLD_COST){stageMsg('Not enough gold — GOLD GOLD GOLD costs 20,000 ◉',1500);return null;}
- S.gold-=GOLD_COST;
- sfx.buy();
- const r=Math.random();
- let fxInfo;
- if(r<0.06){ /* Tier II scroll — a gilded exclusive */
-  const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
-  S.scrolls.push({id:e.id,tier:2});
-  fxInfo={icon:'📜',tier:'Scroll · Tier II',name:e.n,color:e.glow,sub:tierDesc(e.id,2)+' Combine duplicates to forge higher tiers.',big:true};
-  log(`GOLD GOLD GOLD: <span class="lscroll">${e.n} II</span>!`,'loot');
- }else{
-  const rar=r<0.53?'fine':r<0.86?'rare':'epic';
-  const it=rollItem(rar);
-  const icon={weapon:'⚔️',armor:'🛡️',trinket:'💍'}[it.slot];
-  const col={fine:'#6dbb6d',rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
-  fxInfo={icon,tier:rar,name:it.name,color:col,sub:it.slot+' · '+itemStr(it),epic:rar==='epic',big:rar==='rare'};
-  log(`GOLD GOLD GOLD: <span class="l${it.rar}">${it.name}</span> ${itemStr(it)}.`,'loot');
-  if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
- }
- renderShop();renderHUD();save();
- return fxInfo;
+ const wins=rollChestBatch('gamba',chestQty.gamba);
+ if(wins)startCaseSpin(wins);
 }
 function openGoldChest(){
  curCase='gold';
- const fxi=rollGoldChest();
- if(fxi)startCaseSpin(fxi);
+ const wins=rollChestBatch('gold',chestQty.gold);
+ if(wins)startCaseSpin(wins);
 }
 function renderShop(){
  $('shopWallet').innerHTML=walletStr();
  let h='<div class="ptitle" style="font-size:14px;margin-bottom:8px">Gamble</div>';
+ const gQty=chestQty.gamba,gTot=CASE_COST*gQty,goQty=chestQty.gold,goTot=GOLD_COST*goQty;
  h+=`<div class="card item" style="border-color:var(--brass-deep)"><div><div class="sn" style="font-size:13px;font-weight:600;color:var(--brass)">🎁 GAMBAAA!</div>
   <div class="ss" style="color:var(--dim);font-size:11px">A sealed chest of unknown origin. Holds a random weapon, armor piece or scroll — most are humble, but legends whisper of epic prizes within.</div></div>
-  <div class="btns"><button class="sbtn gold" id="chestBtn" ${S.gold<5000?'disabled':''}>5,000◉</button></div></div>`;
+  <div class="btns"><button class="sbtn gold" id="chestBtn" ${S.gold<gTot?'disabled':''}>${gTot.toLocaleString()}◉</button>
+  <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gamba" data-d="-1" ${gQty<=1?'disabled':''}>−</button><span class="qtynum">${gQty}x</span><button class="qtybtn" data-case="gamba" data-d="1" ${gQty>=5?'disabled':''}>+</button></div><div class="qtytotal">Total: ${gTot.toLocaleString()}◉</div></div></div></div>`;
  h+=`<div class="card item" style="border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.15)"><div><div class="sn" style="font-size:13px;font-weight:600;color:#ffd76a">💰 GOLD GOLD GOLD</div>
   <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common junk — only fine, rare and epic gear, plus a slim chance at a Tier II scroll.</div></div>
-  <div class="btns"><button class="sbtn gold" id="goldChestBtn" ${S.gold<20000?'disabled':''}>20,000◉</button></div></div>`;
+  <div class="btns"><button class="sbtn gold" id="goldChestBtn" ${S.gold<goTot?'disabled':''}>${goTot.toLocaleString()}◉</button>
+  <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gold" data-d="-1" ${goQty<=1?'disabled':''}>−</button><span class="qtynum">${goQty}x</span><button class="qtybtn" data-case="gold" data-d="1" ${goQty>=5?'disabled':''}>+</button></div><div class="qtytotal">Total: ${goTot.toLocaleString()}◉</div></div></div></div>`;
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Supplies</div>';
  const hpC=potCost('hp'),mpC=potCost('mp');
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">🧪 Health Potion</div>
@@ -2481,6 +2497,11 @@ function renderShop(){
  $('shopList').innerHTML=h;
  $('chestBtn').onclick=openChest;
  $('goldChestBtn').onclick=openGoldChest;
+ document.querySelectorAll('[data-case][data-d]').forEach(b=>b.onclick=()=>{
+  const k=b.dataset.case,d=parseInt(b.dataset.d,10);
+  chestQty[k]=Math.max(1,Math.min(5,(chestQty[k]||1)+d));
+  renderShop();
+ });
  document.querySelectorAll('[data-pot]').forEach(b=>b.onclick=()=>{
   if(inBossFight()){stageMsg('The Trader cowers — no potion sales during a boss fight!',1600);sfx.warn();return;}
   const k=b.dataset.pot,cost=potCost(k);
