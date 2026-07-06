@@ -551,6 +551,9 @@ const questsOf=()=>zoneQuests(zoneOf());
 const questOf=()=>questsOf()[Math.min(S.quest,questsOf().length-1)];
 const swiftMul=()=>1+scrollPct('swiftness');
 const spellManaCost=sp=>Math.ceil(sp.cost*2); /* spells cost double their base mana */
+const BOOST_BASE_MAX=6; /* 6 purchases = +80% cap */
+const boostMax=()=>BOOST_BASE_MAX+Math.floor((S.prestige||0)/5);
+const nextBoostPrestige=()=>(Math.floor((S.prestige||0)/5)+1)*5;
 const boostBonus=n=>n>0?0.025*Math.pow(2,n-1):0;
 const boostCost=n=>2500*Math.pow(2,n);
 const boostPct=n=>(Math.round(boostBonus(n)*1000)/10).toLocaleString();
@@ -2373,13 +2376,19 @@ function renderShop(){
   <div class="ss" style="color:var(--dim);font-size:11px">Restores 60% mana. You own ${S.pots.mp}.</div></div>
   <div class="btns"><button class="sbtn gold" data-pot="mp" ${S.gold<mpC||inBossFight()?'disabled':''}>Buy ${mpC.toLocaleString()}◉</button></div></div>`;
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Upgrades</div>';
+ const cap=boostMax();
  const spN=S.boosts.speed,haN=S.boosts.haste,spC=boostCost(spN),haC=boostCost(haN);
+ const spMax=spN>=cap,haMax=haN>=cap;
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">👟 Speed Boost${spN?` <span style="color:var(--brass);font-size:11px">+${boostPct(spN)}%</span>`:''}</div>
-  <div class="ss" style="color:var(--dim);font-size:11px">Move faster. Next purchase: <b style="color:var(--parch)">+${boostPct(spN+1)}%</b> movement speed. Bonus and price double each time.</div></div>
-  <div class="btns"><button class="sbtn gold" data-boost="speed" ${S.gold<spC?'disabled':''}>Buy ${spC.toLocaleString()}◉</button></div></div>`;
+  <div class="ss" style="color:var(--dim);font-size:11px">${spMax
+   ?`Maxed at <b style="color:var(--parch)">+${boostPct(spN)}%</b>. Reach <b style="color:var(--brass)">Prestige ${nextBoostPrestige()}</b> to unlock the next upgrade.`
+   :`Move faster. Next purchase: <b style="color:var(--parch)">+${boostPct(spN+1)}%</b> movement speed. Bonus and price double each time.`}</div></div>
+  <div class="btns"><button class="sbtn gold" data-boost="speed" ${spMax||S.gold<spC?'disabled':''}>${spMax?'MAX ✦':'Buy '+spC.toLocaleString()+'◉'}</button></div></div>`;
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">⚡ Haste Boost${haN?` <span style="color:var(--brass);font-size:11px">+${boostPct(haN)}%</span>`:''}</div>
-  <div class="ss" style="color:var(--dim);font-size:11px">Attack faster. Next purchase: <b style="color:var(--parch)">+${boostPct(haN+1)}%</b> attack speed. Bonus and price double each time.</div></div>
-  <div class="btns"><button class="sbtn gold" data-boost="haste" ${S.gold<haC?'disabled':''}>Buy ${haC.toLocaleString()}◉</button></div></div>`;
+  <div class="ss" style="color:var(--dim);font-size:11px">${haMax
+   ?`Maxed at <b style="color:var(--parch)">+${boostPct(haN)}%</b>. Reach <b style="color:var(--brass)">Prestige ${nextBoostPrestige()}</b> to unlock the next upgrade.`
+   :`Attack faster. Next purchase: <b style="color:var(--parch)">+${boostPct(haN+1)}%</b> attack speed. Bonus and price double each time.`}</div></div>
+  <div class="btns"><button class="sbtn gold" data-boost="haste" ${haMax||S.gold<haC?'disabled':''}>${haMax?'MAX ✦':'Buy '+haC.toLocaleString()+'◉'}</button></div></div>`;
  h+='<div class="ss" style="color:var(--dim);font-size:10.5px;margin-top:2px">Potions never drop from enemies. Potion prices rise with your level. Scrolls of Power are rare drops or gamble prizes.</div>';
  $('shopList').innerHTML=h;
  $('chestBtn').onclick=openChest;
@@ -2392,6 +2401,7 @@ function renderShop(){
  });
  document.querySelectorAll('[data-boost]').forEach(b=>b.onclick=()=>{
   const k=b.dataset.boost,n=S.boosts[k]||0,cost=boostCost(n);
+  if(n>=boostMax()){stageMsg('Boost maxed — reach Prestige '+nextBoostPrestige()+' to unlock more',1800);sfx.warn();return;}
   if(S.gold<cost){stageMsg('Not enough gold',1200);return;}
   S.gold-=cost;S.boosts[k]=n+1;
   sfx.buy();
