@@ -557,7 +557,7 @@ const gearScore=()=>Math.round(Object.values(S.gear).reduce((t,g)=>t+(g?g.power:
 const allBossesDead=()=>ZONES.every((z,i)=>!z.boss||!!S.bossDead[i]);
 /* true when every boss zone before index i has had its boss slain */
 const bossesClearedBefore=i=>ZONES.every((z,k)=>k>=i||!z.boss||!!S.bossDead[k]);
-const pMul=()=>Math.pow(1.5,(S.prestige||0));   /* enemies +50% stronger each prestige, compounding */
+const pMul=()=>Math.pow(1.35,(S.prestige||0));  /* enemies +35% stronger each prestige, compounding */
 const pRew=()=>Math.pow(1.3,(S.prestige||0));   /* xp/gold compounds too, but slower */
 /* potion prices grow with level (and prestige, matching richer gold income) */
 const potCost=k=>Math.round((k==='hp'?20+S.lvl*7:15+S.lvl*6)*1.5*pRew()); /* potions cost 50% more */
