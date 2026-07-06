@@ -673,7 +673,8 @@ function migrate(s){ /* fills fields missing from older saves */
 /* the road east is open when this zone's quest chain (or boss) is done AND you meet the next zone's level */
 function portalIsOpen(){
  const nz=ZONES[S.zone+1];
- return !!S.cleared[S.zone]&&!!nz&&S.lvl>=nz.lvl&&bossesClearedBefore(S.zone+1);
+ if(!nz||nz.special)return false; /* no walking portal into the western continent */
+ return !!S.cleared[S.zone]&&S.lvl>=nz.lvl&&bossesClearedBefore(S.zone+1);
 }
 
   
@@ -1751,7 +1752,7 @@ function update(dt){
    if(portalIsOpen())travelNext();
    else if(portalMsgT<=0){
     portalMsgT=2;
-    if(!nz)stageMsg('The western sea… Book II lies beyond.',1800);
+    if(!nz||nz.special)stageMsg('The western sea… what lies beyond opens only from the World Map.',1800);
     else if(!S.cleared[S.zone])stageMsg('Finish this region\u2019s quests (or its boss) to open the way.',1800);
     else if(!bossesClearedBefore(S.zone+1))stageMsg('A boss still bars the road — every boss behind you must fall first.',1800);
     else stageMsg('The portal resists you — reach level '+nz.lvl+'.',1800);
@@ -1966,7 +1967,8 @@ function drawPortal(){
  }
  ctx.font='700 9px '+getComputedStyle(document.body).fontFamily;
  ctx.textAlign='center';ctx.fillStyle='rgba(255,255,255,0.85)';
- ctx.fillText(nz?('→ '+nz.name+(nz.boss?' ☠':'')):'→ Western Sea',0,-44);
+ const label=!nz||nz.special?'→ Western Sea':('→ '+nz.name+(nz.boss?' ☠':''));
+ ctx.fillText(label,0,-44);
  ctx.restore();
 }
 function drawProp(s,z){
