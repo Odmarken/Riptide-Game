@@ -426,7 +426,7 @@
 <script>
 /* ==================== DATA ==================== */
 const MAXLVL=60;
-const GOLD_CAP=500000,SCRAP_CAP=800,BOOST_COST_CAP=500000,GEAR_UPGRADE_STAT_CAP=400;
+const GOLD_CAP=500000,SCRAP_CAP=800,BOOST_COST_CAP=500000,GEAR_UPGRADE_COST_CAP=400;
 /* effective wealth = what you carry + what your bag would sell/scrap for */
 const bagGoldVal=()=>((S&&S.bag)||[]).reduce((t,it)=>t+(it.sell||0),0);
 const bagScrapVal=()=>((S&&S.bag)||[]).reduce((t,it)=>t+scrapVal(it),0);
@@ -659,18 +659,15 @@ const scrapVal=it=>({common:1,fine:2,rare:4,epic:8})[it.rar];
 function upCost(it){
  const base={weapon:10,armor:5,trinket:7}[it.slot];
  const rm={common:1,fine:1.5,rare:2,epic:3}[it.rar];
- return Math.round(base*rm*(1+it.up));
+ return Math.min(Math.round(base*rm*(1+it.up)),GEAR_UPGRADE_COST_CAP);
 }
 function upgradeItem(it){
  if(inBossFight()){stageMsg('You cannot forge upgrades mid-boss-fight!',1500);sfx.warn();return false;}
- const canAtk=!!it.atk&&it.atk<GEAR_UPGRADE_STAT_CAP;
- const canHp=!!it.hp&&it.hp<GEAR_UPGRADE_STAT_CAP;
- if(!canAtk&&!canHp){stageMsg('This item is already at the upgrade stat cap ('+GEAR_UPGRADE_STAT_CAP+')',1500);sfx.warn();return false;}
  const cost=upCost(it);
  if(S.scraps<cost){stageMsg('Not enough Scraps ('+cost+'⚙ needed)',1400);return false;}
  S.scraps-=cost;it.up++;
- if(canAtk)it.atk=Math.min(GEAR_UPGRADE_STAT_CAP,Math.round(it.atk*1.12)+1);
- if(canHp)it.hp=Math.min(GEAR_UPGRADE_STAT_CAP,Math.round(it.hp*1.12)+2);
+ if(it.atk)it.atk=Math.round(it.atk*1.12)+1;
+ if(it.hp)it.hp=Math.round(it.hp*1.12)+2;
  calcPower(it);
  sfx.forge();
  log(`Upgraded <span class="l${it.rar}">${it.name}</span> to +${it.up}.`,'loot');
