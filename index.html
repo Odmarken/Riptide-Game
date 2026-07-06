@@ -80,6 +80,7 @@
   .stat b{display:block;font-size:15px;color:var(--parch)}
   .stat span{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
   .slotrow{display:flex;gap:8px;margin-top:10px}
+  #scrollRow{margin-top:8px}
   .slot{flex:1;background:var(--panel2);border:1px dashed var(--line);border-radius:8px;padding:8px;min-height:64px;font-size:11px;display:flex;flex-direction:column}
   .slot .sn{font-weight:600}
   .slot .ss{color:var(--dim);font-size:10px;margin-top:2px}
@@ -263,6 +264,7 @@
     .panel.open{display:block}
     .panel .ptitle{font-size:18px}
     .slotrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    #scrollRow{grid-template-columns:1fr 1fr}
     .slot{min-width:0}
     .statgrid{grid-template-columns:1fr 1fr}
     #skillbar{bottom:28px;gap:9px}
@@ -370,7 +372,7 @@
   <div class="panel" id="p-hero">
     <div class="ptitle" id="heroTitle">Hero</div>
     <div class="wallet" id="heroWallet"></div>
-    <div class="card"><div class="statgrid" id="statGrid"></div><div class="slotrow" id="slotRow"></div></div>
+    <div class="card"><div class="statgrid" id="statGrid"></div><div class="slotrow" id="slotRow"></div><div class="slotrow" id="scrollRow"></div></div>
     <div class="ptitle" style="font-size:15px">Spellbook</div>
     <div id="spellList"></div>
     <div id="prestigeSec"></div>
@@ -570,11 +572,12 @@ const dispName=ch=>(ch.name||'?')+((ch.rating||0)>0?' ('+(ch.rating||0)+')':'');
 const raceOf=()=>RACES.find(r=>r.id===S.race);
 const classOf=()=>CLASSES.find(c=>c.id===S.cls);
 const gearSum=k=>{if(isFM(S.gear.weapon))syncFrostmourne(S.gear.weapon);let t=0;for(const sl in S.gear){const g=S.gear[sl];if(g&&g[k])t+=g[k]}return t};
-/* one Active Scroll at a time — {id,tier}, equipped in its own slot next to the trinket */
-const hasEnch=id=>!!(S.activeScroll&&S.activeScroll.id===id);
-const scrollPct=id=>hasEnch(id)?tierVal(id,S.activeScroll.tier)/100:0; /* fraction */
-const scrollRaw=id=>hasEnch(id)?tierVal(id,S.activeScroll.tier):0;     /* raw value (e.g. seconds) */
-const activeEnchs=()=>S.activeScroll?[enchOf(S.activeScroll.id)]:[];
+/* two Active Scroll slots — same scroll type cannot stack */
+const hasEnch=id=>(S.activeScrolls||[]).some(sc=>sc&&sc.id===id);
+const scrollGet=id=>(S.activeScrolls||[]).find(sc=>sc&&sc.id===id);
+const scrollPct=id=>{const sc=scrollGet(id);return sc?tierVal(id,sc.tier)/100:0;}; /* fraction */
+const scrollRaw=id=>{const sc=scrollGet(id);return sc?tierVal(id,sc.tier):0;};     /* raw value (e.g. seconds) */
+const activeEnchs=()=>(S.activeScrolls||[]).filter(Boolean).map(sc=>enchOf(sc.id));
 const gearScore=()=>{if(isFM(S.gear.weapon))syncFrostmourne(S.gear.weapon);return Math.round(Object.values(S.gear).reduce((t,g)=>t+(g?g.power:0),0));};
 /* Prestige has no cap — but it only unlocks at max level once every boss is dead. */
 const allBossesDead=()=>ZONES.every((z,i)=>z.special||!z.boss||!!S.bossDead[i]);
@@ -605,7 +608,7 @@ const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0);
 function freshState(name,race,cls){
  return {id:null,name,race,cls,lvl:1,xp:0,gold:0,scraps:0,prestige:0,zone:0,maxZone:0,quest:0,qProg:0,
   rating:0,cerberusKills:0,
-  gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScroll:null,
+  gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],
   boosts:{speed:0,haste:0},
   cleared:{},bossDead:{},zoneLvlGain:{},
   auto:true,autoEquip:true,sound:true,sfx:true,finished:false};
@@ -637,19 +640,20 @@ function migrate(s){ /* fills fields missing from older saves */
  if(!s.cleared)s.cleared={};
  if(!s.bossDead)s.bossDead={};
  if(!s.zoneLvlGain)s.zoneLvlGain={};
- if(s.activeScroll===undefined)s.activeScroll=null;
+ if(!s.activeScrolls)s.activeScrolls=[s.activeScroll||null,null];
+ delete s.activeScroll;
  if(!s.boosts)s.boosts={speed:0,haste:0};
  for(const sl in s.gear){
   const g=s.gear[sl];if(!g)continue;
   if(g.up===undefined)g.up=0;
   ensureItemBase(g);
   /* old system enchanted gear directly — carry the first enchant into the new slot */
-  if(g.ench){if(!s.activeScroll)s.activeScroll=g.ench;else s.scrolls.push(g.ench);g.ench=null;}
+  if(g.ench){const i=s.activeScrolls[0]?1:0;if(!s.activeScrolls[i])s.activeScrolls[i]=g.ench;else s.scrolls.push(g.ench);g.ench=null;}
  }
  (s.bag||[]).forEach(it=>{if(it.up===undefined)it.up=0;ensureItemBase(it);if(it.ench){s.scrolls.push(it.ench);it.ench=null;}});
  /* legacy scrolls were plain id strings — convert to tier objects (grandfathered at Tier II) */
  s.scrolls=(s.scrolls||[]).map(x=>typeof x==='string'?{id:x,tier:2}:x);
- if(typeof s.activeScroll==='string')s.activeScroll={id:s.activeScroll,tier:2};
+ s.activeScrolls=(s.activeScrolls||[null,null]).map(x=>typeof x==='string'?{id:x,tier:2}:x);
  return s;
 }
 /* the road east is open when this zone's quest chain (or boss) is done AND you meet the next zone's level */
@@ -2225,24 +2229,30 @@ function renderHero(){
     <button class="upbtn ${S.scraps>=upCost(g)?'can':''}" data-up="${sl}">Upgrade · ${upCost(g)} ⚙</button>`
      :`<div class="ss">— empty —</div>`)+`</div>`;
  }).join('');
- /* Active Scroll slot — sits right next to the trinket */
- const asc=S.activeScroll?enchOf(S.activeScroll.id):null;
- slotsHtml+=`<div class="slot" style="border-color:${asc?asc.glow+'66':'var(--line)'}"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">Scroll</div>`+
-  (asc?`<div class="en"><span class="glowdot" style="background:${asc.glow};box-shadow:0 0 6px ${asc.glow}"></span>${asc.n.replace('Scroll of ','')} ${TIERN[(S.activeScroll.tier||1)-1]}</div>
-   <div class="ss">${tierDesc(S.activeScroll.id,S.activeScroll.tier)}</div>
-   <button class="upbtn" id="unScroll">Unequip</button>`
-   :`<div class="ss">— no scroll —</div><div class="ss" style="margin-top:4px">Rare loot — combine duplicates in the Bag to forge higher tiers.</div>`)+`</div>`;
  $('slotRow').innerHTML=slotsHtml;
+ /* two scroll slots in their own row, side by side */
+ let scHtml='';
+ S.activeScrolls=S.activeScrolls||[null,null];
+ for(let i=0;i<2;i++){
+  const sc=S.activeScrolls[i],e=sc?enchOf(sc.id):null;
+  scHtml+=`<div class="slot" style="border-color:${e?e.glow+'66':'var(--line)'}"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">Scroll ${i+1}</div>`+
+   (e?`<div class="en"><span class="glowdot" style="background:${e.glow};box-shadow:0 0 6px ${e.glow}"></span>${e.n.replace('Scroll of ','')} ${TIERN[(sc.tier||1)-1]}</div>
+    <div class="ss">${tierDesc(sc.id,sc.tier)}</div>
+    <button class="upbtn" data-unsc="${i}">Unequip</button>`
+    :`<div class="ss">— no scroll —</div>`)+`</div>`;
+ }
+ $('scrollRow').innerHTML=scHtml;
  document.querySelectorAll('[data-up]').forEach(b=>b.onclick=()=>{
   const g=S.gear[b.dataset.up];
   if(g&&upgradeItem(g)){hero.hp=Math.min(hero.hp,heroMax());renderHero();renderHUD();}
  });
- const un=$('unScroll');
- if(un)un.onclick=()=>{
-  S.scrolls.push(S.activeScroll);S.activeScroll=null;
+ document.querySelectorAll('[data-unsc]').forEach(b=>b.onclick=()=>{
+  const i=+b.dataset.unsc;
+  if(!S.activeScrolls[i])return;
+  S.scrolls.push(S.activeScrolls[i]);S.activeScrolls[i]=null;
   log('Scroll returned to the Bag.');
   renderHero();save();
- };
+ });
  /* Prestige — unlocks at max level only once every boss in the realm is dead */
  if(S.lvl>=MAXLVL){
   if(allBossesDead()){
@@ -2353,11 +2363,12 @@ function renderBag(){
      <span class="tcount">${total} scroll${total>1?'s':''} · ${list.length} type${list.length>1?'s':''}</span></div>`;
    if(open)sh+='<div class="tierbody">'+list.map(g=>{
     const e=enchOf(g.id);
+    const active=(S.activeScrolls||[]).some(x=>x&&x.id===g.id);
     return `<div class="card item"><div><div class="sn" style="color:#d9a0ef;font-size:13px;font-weight:600"><span class="glowdot" style="background:${e.glow};box-shadow:0 0 6px ${e.glow}"></span>${e.n} ${TIERN[g.tier-1]}${g.n>1?` <span style="color:var(--dim)">×${g.n}</span>`:''}</div>
      <div class="ss" style="color:var(--dim);font-size:11px">${tierDesc(g.id,g.tier)}</div></div>
      <div class="btns">
       ${g.n>=2&&g.tier<MAXTIER?`<button class="sbtn scrapb" data-comb="${g.id}:${g.tier}">⚗ Combine → ${TIERN[g.tier]}</button>`:''}
-      <button class="sbtn gold" data-sceq="${g.id}:${g.tier}">${S.activeScroll?'Swap in':'Equip'}</button>
+      <button class="sbtn gold" data-sceq="${g.id}:${g.tier}" ${active?'disabled':''}>${active?'Active':'Equip'}</button>
      </div></div>`;
    }).join('')+'</div>';
   }
@@ -2368,10 +2379,17 @@ function renderBag(){
   const takeScroll=(id,tier)=>{const i=S.scrolls.findIndex(x=>x.id===id&&x.tier===tier);return i>=0?S.scrolls.splice(i,1)[0]:null;};
   document.querySelectorAll('[data-sceq]').forEach(b=>b.onclick=()=>{
    const [id,t]=b.dataset.sceq.split(':'),tier=+t;
+   S.activeScrolls=S.activeScrolls||[null,null];
+   /* same scroll type can never be active twice — regardless of tier */
+   if(S.activeScrolls.some(x=>x&&x.id===id)){
+    stageMsg(enchOf(id).n.replace('Scroll of ','')+' is already active — effects of the same scroll never stack',1800);
+    sfx.warn();return;
+   }
    const sc=takeScroll(id,tier);if(!sc)return;
-   if(S.activeScroll)S.scrolls.push(S.activeScroll);
-   S.activeScroll=sc;
-   log(`<span class="lscroll">${enchOf(id).n} ${TIERN[tier-1]}</span> now burns in your Active Scroll slot.`);
+   let slot=S.activeScrolls.findIndex(x=>!x);
+   if(slot<0){slot=0;S.scrolls.push(S.activeScrolls[0]);} /* both full → swap out slot 1 */
+   S.activeScrolls[slot]=sc;
+   log(`<span class="lscroll">${enchOf(id).n} ${TIERN[tier-1]}</span> now burns in Scroll slot ${slot+1}.`);
    sfx.loot();renderBag();save();
   });
   document.querySelectorAll('[data-comb]').forEach(b=>b.onclick=()=>{
@@ -2900,7 +2918,7 @@ async function publishLB(ch,force){
  const entry={name:(ch.name||'?').slice(0,14),lvl:ch.lvl,prestige:ch.prestige||0,gs:charGearScore(ch),score:lbScore(ch),cid:ch.id,t:now,
   race:ch.race||'human',cls:ch.cls||'warrior',zone:ch.zone||0,
   rating:ch.rating||0,
-  scroll:ch.activeScroll?{id:ch.activeScroll.id,tier:ch.activeScroll.tier||1}:null};
+  scroll:(ch.activeScrolls||[]).filter(Boolean)[0]||null};
  if(FB.ready&&FB.user){
   try{await FB.db.collection('leaderboard').doc(FB.user.uid+'_'+ch.id).set(entry);}catch(e){}
  }else{
@@ -2980,7 +2998,8 @@ function drawPortrait(cnv,ch){
  g.fillStyle=bg;g.fillRect(0,0,W,H);
  g.fillStyle='rgba(217,164,65,0.06)';
  g.beginPath();g.ellipse(W/2,H*0.3,W*0.5,H*0.32,0,0,7);g.fill();
- const sc=ch.activeScroll?enchOf(ch.activeScroll.id||ch.activeScroll):null;
+ const scA=(ch.activeScrolls||[ch.activeScroll]).filter(Boolean)[0];
+ const sc=scA?enchOf(scA.id||scA):null;
  g.save();g.translate(W/2,H*0.72);g.scale(2.1,2.1);
  g.fillStyle='rgba(0,0,0,0.3)';g.beginPath();g.ellipse(0,7,11,4.5,0,0,7);g.fill();
  if(sc){g.strokeStyle=sc.glow;g.globalAlpha=0.55;g.lineWidth=1;g.beginPath();g.ellipse(0,6,13,5.5,0,0,7);g.stroke();g.globalAlpha=1;}
