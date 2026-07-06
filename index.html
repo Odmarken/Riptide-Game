@@ -1015,8 +1015,11 @@ function prerenderGround(z,R){
  
 /* ==================== MOVEMENT & PATHFINDING ==================== */
 function collide(e,nx,ny){
- for(const s of world.solids){
-  if(Math.hypot(nx-s.x,ny-s.y)<e.r+s.r*0.8)return true;
+ /* Bosses ignore trees/rocks so players can't cheese them behind objects. */
+ if(!e.boss){
+  for(const s of world.solids){
+   if(Math.hypot(nx-s.x,ny-s.y)<e.r+s.r*0.8)return true;
+  }
  }
  return nx<e.r+16||ny<e.r+16||nx>world.w-e.r-16||ny>world.h-e.r-16;
 }
