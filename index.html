@@ -1217,7 +1217,7 @@ function spawnCow(){
  const t=cowTemplate();
  enemies.push({name:t.name,kind:t.kind,boss:false,bossId:null,c:t.c,cow:true,
   x,y,home:{x,y},r:13,max:t.hp,hp:t.hp,atk:t.atk,xp:t.xp,gold:t.gold,add:false,
-  speed:Math.min(290,170+cowT*1.3),state:'chase',dir:0,wT:0,cd:0,dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,
+  speed:135,age:0,state:'chase',dir:0,wT:0,cd:0,dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,
   cds:{},lockT:0,hidden:false,trailT:0,avoid:null});
 }
 function prerenderGround(z,R){
@@ -1265,8 +1265,8 @@ function prerenderGround(z,R){
  
 /* ==================== MOVEMENT & PATHFINDING ==================== */
 function collide(e,nx,ny){
- /* Bosses ignore trees/rocks so players can't cheese them behind objects. */
- if(!e.boss){
+ /* Bosses and cows ignore trees/rocks — the herd tramples straight through. */
+ if(!e.boss&&!e.cow){
   for(const s of world.solids){
    if(Math.hypot(nx-s.x,ny-s.y)<e.r+s.r*0.8)return true;
   }
@@ -1275,7 +1275,10 @@ function collide(e,nx,ny){
 }
 function speedOf(e){
  if(e===hero)return 175*swiftMul()*speedBoostMul();
- let s=e.speed;if(e.slowT>0)s*=0.45;return s;
+ let s=e.speed;
+ if(e.cow)s=Math.min(330,s+e.age*4);
+ if(e.slowT>0)s*=0.45;
+ return s;
 }
 /* Smoother obstacle avoidance: try a diagonal slide first, then commit to one
    side for ~0.6s instead of flip-flopping every frame (which caused jitter/stuck heroes). */
@@ -1943,6 +1946,7 @@ function update(dt){
  // ----- enemies -----
  for(const en of enemies){
   if(en.slowT>0)en.slowT-=dt;
+  if(en.cow&&!en.dead)en.age+=dt;
   if(en.dead){
    en.deadT+=dt;
    /* regular foes respawn for grinding; bosses and their adds never do */
@@ -2341,6 +2345,10 @@ function drawEnemy(en){
  ctx.save();ctx.translate(en.x,en.y);
  ctx.globalAlpha=en.dead?Math.max(0,1-en.deadT*1.4):1;
  if(en.dead)ctx.rotate(Math.min(1.5,en.deadT*3));
+ if(en.cow&&en.age>10){
+  ctx.strokeStyle='rgba(255,90,50,'+Math.min(0.6,(en.age-10)*0.03)+')';
+  ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(0,en.r*0.5,en.r+4,en.r*0.45,0,0,7);ctx.stroke();
+ }
  const moving=en.state==='chase'||(!en.pause&&en.state==='wander');
  const by=moving?Math.sin(en.walk*2)*1.6:Math.sin(now/700+en.home.x)*0.7;
  ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,en.r*0.55,en.r,en.r*0.42,0,0,7);ctx.fill();
@@ -2658,11 +2666,13 @@ function renderMap(){
   if(z.special){
    if(z.cow){
     const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
-    return `<div class="card zonecard ${p5?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p5?'#ffd76a':''}">
+    const bagBlocked=p5&&i!==S.zone&&S.bag.length>0;
+    return `<div class="card zonecard ${p5?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${bagBlocked?'#c75146':p5?'#ffd76a':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},${z.tree})">🐄</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">Endless herd · max 40 bag loot · 2 epics per cow · Best ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} items) · Last ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} items)</div></div>
-     ${i===S.zone?'<span class="ztag">Here</span>':p5?'<span class="ztag boss">🐄 MOO</span>':'<span class="ztag boss">🔒 Prestige 5</span>'}
+     <div class="zl">Endless herd · 2 epics per cow · Best ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} items) · Last ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} items)</div>
+     ${bagBlocked?`<div style="color:#ff8a7a;font-family:var(--display);font-size:13.5px;margin-top:4px;text-shadow:0 0 8px rgba(255,90,70,.35)">⚠ EMPTY YOUR BAG FIRST — the herd only respects those who arrive with nothing (${S.bag.length} item${S.bag.length>1?'s':''} carried)</div>`:''}</div>
+     ${i===S.zone?'<span class="ztag">Here</span>':bagBlocked?'<span class="ztag boss">🎒 Bag full</span>':p5?'<span class="ztag boss">🐄 MOO</span>':'<span class="ztag boss">🔒 Prestige 5</span>'}
     </div>`;
    }
    const kills=S.cerberusKills||0;
