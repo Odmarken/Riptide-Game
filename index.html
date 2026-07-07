@@ -695,6 +695,14 @@ const ENCHS=[
  {id:'chain',n:'Scroll of Chain Lightning',base:3.75,glow:'#7fd0ff',d:v=>`Attacks arc to up to 3 nearby foes for ${v}% splash damage.`},
 ];
 const enchOf=id=>ENCHS.find(e=>e.id===id);
+/* ==================== PETS ==================== */
+const PETS=[
+ {id:'cat',n:'Saltwhisker the Cat',g:'🐈',cc:'#e8b070',d:'+15% attack damage.',atkMul:0.15},
+ {id:'dog',n:'Borek the Hound',g:'🐕',cc:'#a8bcb0',d:'Take 15% less damage.',armor:0.15},
+];
+const petOf=id=>PETS.find(p=>p.id===id);
+const activePet=()=>S&&S.pet?petOf(S.pet):null;
+const PET_SELL=25000;
 const tierVal=(id,t)=>enchOf(id).base*Math.pow(2,(t||1)-1);
 const tierDesc=(id,t)=>enchOf(id).d(parseFloat(tierVal(id,t).toFixed(2)));
 /* 17 zones — boss-gated progression up to level 60. */
@@ -813,7 +821,7 @@ const pRew=()=>Math.pow(1.3,(S.prestige||0));   /* xp/gold compounds too, but sl
 const potCost=k=>Math.round((k==='hp'?20+S.lvl*7:15+S.lvl*6)*1.5*pRew()); /* potions cost 50% more */
 const heroMax=()=>Math.round((classOf().hp+S.lvl*14+gearSum('hp'))*(raceOf().hp||1));
 const manaMax=()=>Math.round(classOf().mana+S.lvl*5);
-const heroAtk=()=>Math.round((classOf().atk+S.lvl*2.6+gearSum('atk'))*(1+scrollPct('titan')));
+const heroAtk=()=>Math.round((classOf().atk+S.lvl*2.6+gearSum('atk'))*(1+scrollPct('titan'))*(1+((activePet()||{}).atkMul||0)));
 const heroCrit=()=>classOf().crit+(raceOf().crit||0)+gearSum('crit');
 const xpNeed=l=>Math.round(38*Math.pow(l,1.5)*1.656); /* leveling is ~66% harder than base */
 const zoneOf=()=>ZONES[S.zone];
@@ -834,7 +842,7 @@ const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0);
 function freshState(name,race,cls){
  return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,lastZone:0,maxZone:0,quest:0,qProg:0,
   rating:0,cerberusKills:0,freeGoldCases:0,cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
-  gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],
+  gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],pet:null,pets:[],
   boosts:{speed:0,haste:0},
   cleared:{},bossDead:{},zoneLvlGain:{},
   auto:true,autoEquip:true,sound:true,sfx:true,volAmb:0.5,volSfx:0.55,finished:false};
@@ -857,6 +865,8 @@ function ensureItemBase(it){
 function migrate(s){ /* fills fields missing from older saves */
  if(s.scraps===undefined)s.scraps=0;
  if(s.overflow===undefined)s.overflow=0;
+ if(s.pet===undefined)s.pet=null;
+ if(!s.pets)s.pets=[];
  if(s.maxZone===undefined)s.maxZone=s.zone||0;
  /* Repair saves that prestiged before maxZone was reset, including saves where old cleared/boss flags survived.
     If the stored deepest zone requires a higher level than the hero currently has, clamp it back down. */
@@ -1264,7 +1274,7 @@ function shade(hex,amt){const n=parseInt(hex.slice(1),16);
  r=Math.max(0,Math.min(255,r));g=Math.max(0,Math.min(255,g));b=Math.max(0,Math.min(255,b));
  return '#'+((r<<16)|(g<<8)|b).toString(16).padStart(6,'0');}
  
-let world=null,hero=null,enemies=[],bolts=[],ebolts=[],hazards=[],floats=[],parts=[],rings=[],zaps=[],groundCv=null;
+let world=null,hero=null,pet=null,enemies=[],bolts=[],ebolts=[],hazards=[],floats=[],parts=[],rings=[],zaps=[],groundCv=null;
 let cowT=0,cowSpawnT=0,cowRunning=false,cowItems=0,cowBagFull=false;
 const COW_BAG_CAP=40;
 const cowLocked=()=>gameOn&&cowRunning;
@@ -1354,6 +1364,7 @@ function buildZone(){
  hero={x:world.spawn.x,y:world.spawn.y,r:13,hp:heroMax(),mana:manaMax(),cd:0,spellCd:cd0,
   target:null,moveTo:null,goPortal:false,fx:1,fy:0,walk:0,moving:false,swing:0,hurt:0,dead:false,deadT:0,
   buff:{},hotT:0,hotTick:0,potCd:{hp:0,mp:0},regenTick:0,glowT:0,avoid:null,dance:0,danceFx:0};
+ pet={x:hero.x-30,y:hero.y+14,fx:1,fy:0,walk:0,moving:false,r:8,avoid:null,speed:0};
  enemies=[];bolts=[];ebolts=[];hazards=[];floats=[];parts=[];rings=[];zaps=[];
  const tmpls=zoneTemplates(z);
  cowRunning=false;cowT=0;cowSpawnT=0;cowItems=0;cowBagFull=false;
@@ -1496,6 +1507,7 @@ function collide(e,nx,ny){
  return nx<e.r+16||ny<e.r+16||nx>world.w-e.r-16||ny>world.h-e.r-16;
 }
 function speedOf(e){
+ if(e===pet)return 175*swiftMul()*speedBoostMul()*1.15;
  if(e===hero)return 175*swiftMul()*speedBoostMul();
  let s=e.speed;
  if(e.cow)s=s+e.age*4+e.age*e.age*0.06;
@@ -1574,7 +1586,7 @@ function healHero(amt,silent){
 }
 function hurtHero(dmg,label){
  if(hero.dead)return;
- dmg=Math.round(dmg*(1-scrollPct('warding'))*(1-(raceOf().armor||0)));
+ dmg=Math.round(dmg*(1-scrollPct('warding'))*(1-(raceOf().armor||0))*(1-((activePet()||{}).armor||0)));
  hero.hp-=dmg;hero.hurt=0.2;
  floatAt(hero.x,hero.y-26,'-'+dmg+(label?' '+label:''),'#ff8a7a');
  burst(hero.x,hero.y-10,'#ff8a7a',4,60);
@@ -2204,6 +2216,14 @@ function update(dt){
    }
   }
  }
+ // ----- pet follows, immortal and untargetable -----
+ if(pet&&activePet()&&!hero.dead){
+  const d=dist(pet,hero);
+  pet.moving=false;
+  if(d>200){pet.x=hero.x-hero.fx*24;pet.y=hero.y+12;}
+  else if(d>42)moveToward(pet,hero.x-hero.fx*26,hero.y+12,dt);
+  else pet.walk+=dt*3;
+ }
  // ----- enemies -----
  for(const en of enemies){
   if(en.slowT>0)en.slowT-=dt;
@@ -2345,6 +2365,7 @@ function draw(){
  for(const s of world.solids)if(s.type!=='water')drawables.push({y:s.y,f:()=>drawProp(s,z)});
  for(const en of enemies)drawables.push({y:en.y,f:()=>drawEnemy(en)});
  if(hero)drawables.push({y:hero.y,f:drawHero});
+ if(pet&&activePet())drawables.push({y:pet.y,f:drawPet});
  drawables.sort((a,b)=>a.y-b.y);
  for(const d of drawables)d.f();
  for(const b of bolts){
@@ -2599,6 +2620,19 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm){
   g.strokeStyle='#a4761f';g.beginPath();g.moveTo(-3,0);g.lineTo(3,0);g.stroke();
  }
  g.restore();
+}
+function drawPet(){
+ if(!pet||!activePet()||hero.dead)return;
+ const p=petOf(S.pet),now=performance.now();
+ ctx.save();ctx.translate(pet.x,pet.y);
+ const by=pet.moving?Math.sin(pet.walk*2)*1.6:Math.sin(now/500)*0.7;
+ ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,5,8,3.5,0,0,7);ctx.fill();
+ ctx.font='16px sans-serif';ctx.textAlign='center';
+ ctx.save();if(pet.fx<0)ctx.scale(-1,1);
+ ctx.fillText(p.g,0,by-2);
+ ctx.restore();
+ if(Math.random()<0.008)floatAt(pet.x,pet.y-16,p.id==='cat'?'mjau':'voff','#ffd76a');
+ ctx.restore();
 }
 function drawHero(){
  const h=hero;if(h.dead&&h.deadT>0.7)return;
@@ -2910,7 +2944,18 @@ function renderHero(){
     <button class="upbtn ${S.scraps>=upCost(g)?'can':''}" data-up="${sl}">Upgrade · ${upCost(g)} ⚙</button>`
      :`<div class="ss">— empty —</div>`)+`</div>`;
  }).join('');
+ const petP=activePet();
+ slotsHtml+=`<div class="slot" style="border-color:${petP?petP.cc+'88':'var(--line)'}"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">Pet</div>`+
+  (petP?`<div class="sn" style="color:${petP.cc}">${petP.g} ${petP.n}</div><div class="ss">${petP.d}</div>
+   <button class="upbtn" data-unpet="1">Unequip</button>`
+   :`<div class="ss">— no pet equipped —</div>`)+`</div>`;
  $('slotRow').innerHTML=slotsHtml;
+ document.querySelectorAll('[data-unpet]').forEach(b=>b.onclick=()=>{
+  if(!S.pet)return;
+  S.pets.push(S.pet);S.pet=null;
+  log('Your pet returns to the Bag.');
+  renderHero();save();
+ });
  /* two scroll slots in their own row, side by side */
  let scHtml='';
  S.activeScrolls=S.activeScrolls||[null,null];
@@ -3113,6 +3158,42 @@ function renderBag(){
    }
   });
  }else $('scrollSec').innerHTML='';
+ // ---- pets: items with their own equip slot ----
+ if(S.pets.length){
+  const counts={};
+  S.pets.forEach(id=>counts[id]=(counts[id]||0)+1);
+  $('scrollSec').innerHTML+='<div class="ptitle" style="font-size:14px;margin-bottom:8px">Pets</div>'+
+   Object.entries(counts).map(([id,n])=>{
+    const p=petOf(id),act=S.pet===id;
+    return `<div class="card item" style="border-color:${p.cc}55"><div>
+     <div class="sn" style="color:${p.cc};font-size:13px;font-weight:600">${p.g} ${p.n}${n>1?` <span style="color:var(--dim)">×${n}</span>`:''}</div>
+     <div class="ss" style="color:var(--dim);font-size:11px">${p.d}</div></div>
+     <div class="btns">
+      <button class="sbtn gold" data-peteq="${id}" ${act?'disabled':''}>${act?'Equipped':'Equip'}</button>
+      ${(n>1||act)?`<button class="sbtn" data-petsell="${id}">Sell ${PET_SELL.toLocaleString()}◉</button>`:''}
+     </div></div>`;
+   }).join('');
+  document.querySelectorAll('[data-peteq]').forEach(b=>b.onclick=()=>{
+   const id=b.dataset.peteq,i=S.pets.indexOf(id);
+   if(i<0)return;
+   S.pets.splice(i,1);
+   if(S.pet)S.pets.push(S.pet);
+   S.pet=id;
+   const p=petOf(id);
+   log(`${p.g} <span class="imp">${p.n}</span> joins your side.`);sfx.quest();
+   if(pet&&hero){pet.x=hero.x-24;pet.y=hero.y+12;}
+   renderBag();renderHero();renderHUD();save();
+  });
+  document.querySelectorAll('[data-petsell]').forEach(b=>b.onclick=()=>{
+   const id=b.dataset.petsell,i=S.pets.indexOf(id);
+   if(i<0)return;
+   S.pets.splice(i,1);
+   S.gold=Math.min(goldCap(),S.gold+PET_SELL);
+   sfx.loot();
+   log(`Sold a ${petOf(id).g} companion — +${PET_SELL.toLocaleString()} ◉. Heartless.`,'loot');
+   renderBag();renderHUD();save();
+  });
+ }
  if(!S.bag.length){$('bagList').innerHTML='<div class="card" style="color:var(--dim);font-size:12px">The bag is empty. Gear, potions and scrolls drop from foes — bosses always drop. Sell spares for gold, or scrap them for ⚙ Scraps to upgrade your gear.</div>';return;}
  const sellable=S.bag.filter(it=>!isLegendary(it));
  const totalScrap=sellable.reduce((t,it)=>t+scrapVal(it),0);
@@ -3248,8 +3329,12 @@ const CASE_RARS_GOLD=[
  {r:.66,cc:'#5b9bd5',t:'rare'},{r:1,cc:'#c9a0ff',t:'epic'}
 ];
 function fillerCard(){
- /* GOLD GOLD GOLD uses Frostmourne as the rare tease instead of coin clutter. */
- if(curCase==='gold'&&Math.random()<0.02)return {icon:'🗡️',cc:'#ffd100',t:'legendary'};
+ /* GOLD GOLD GOLD uses Frostmourne and pets as rare teases instead of coin clutter. */
+ if(curCase==='gold'){
+  const rr=Math.random();
+  if(rr<0.02)return {icon:'🗡️',cc:'#ffd100',t:'legendary'};
+  if(rr<0.045)return {icon:'🐾',cc:'#e8b070',t:'pet'};
+ }
  const pool=curCase==='gold'?CASE_RARS_GOLD:CASE_RARS;
  const r=Math.random();
  const k=pool.find(x=>r<=x.r)||pool[0];
@@ -3264,6 +3349,12 @@ function prizeValue(type){
    it._lid=lootUID++;
    if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
    return {icon:'🗡️',tier:'LEGENDARY',name:'Frostmourne',color:'#ffd100',sub:'weapon · '+itemStr(it),epic:true,big:true};
+  }
+  if(r<0.005){ /* 0.002–0.005 = 0.3% pet, 50-50 cat or dog */
+   const p=PETS[Math.floor(Math.random()*2)];
+   S.pets.push(p.id);
+   log(`GOLD GOLD GOLD: ${p.g} <span class="llegendary">${p.n}</span>!`,'loot');
+   return {icon:p.g,tier:'PET',name:p.n,color:p.cc,sub:p.d+' Equip it from the Bag.',epic:true,big:true};
   }
   if(r<0.064){
    const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
@@ -3858,7 +3949,7 @@ function renderShop(){
   <div class="btns"><button class="sbtn gold" id="chestBtn" ${totalGold()<gTot?'disabled':''}>${gTot.toLocaleString()}◉</button>
   <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gamba" data-d="-1" ${gQty<=1?'disabled':''}>−</button><span class="qtynum">${gQty}x</span><button class="qtybtn" data-case="gamba" data-d="1" ${gQty>=5?'disabled':''}>+</button></div><div class="qtytotal">Total: ${gTot.toLocaleString()}◉</div></div></div></div>`;
  h+=`<div class="card item gcard-chest" style="border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.15)"><div><div class="sn" style="font-size:13px;font-weight:600;color:#ffd76a">💰 GOLD GOLD GOLD${free?` <span style="color:#9adf9a;font-size:11px">· ${free} FREE</span>`:''}</div>
- <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common or fine junk — only rare and epic gear, a slim chance at a Tier II scroll, and a tiny chance at Frostmourne.${free?' <b style="color:#9adf9a">HAALAND\u2019s hoard covers your next '+free+' case'+(free>1?'s':'')+'.</b>':''}</div></div>
+ <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common or fine junk — only rare and epic gear, a slim chance at a Tier II scroll, a tiny chance at Frostmourne, and whispers of a 🐾 loyal companion within.${free?' <b style="color:#9adf9a">HAALAND\u2019s hoard covers your next '+free+' case'+(free>1?'s':'')+'.</b>':''}</div></div>
  <div class="btns"><button class="sbtn gold" id="goldChestBtn" ${totalGold()<goTot?'disabled':''}>${goTot>0?goTot.toLocaleString()+'◉':'FREE'}</button>
  <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gold" data-d="-1" ${goQty<=1?'disabled':''}>−</button><span class="qtynum">${goQty}x</span><button class="qtybtn" data-case="gold" data-d="1" ${goQty>=5?'disabled':''}>+</button></div><div class="qtytotal">${goFree?goFree+' free · ':''}Total: ${goTot.toLocaleString()}◉</div></div></div></div>`;
 
