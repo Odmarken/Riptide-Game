@@ -567,7 +567,7 @@ function spendGold(n){
 /* zero loot when BOTH caps are effectively full (carried + bag value) */
 const lootBlocked=()=>goldRoom()<=0&&scrapRoom()<=0;
 const RACES=[
- {id:'human',name:'Human',desc:'Balanced. +5% gold from all foes.',c1:'#e0b070',c2:'#7a5a34',gold:1.05},
+ {id:'human',name:'Human',desc:'Balanced. Take 8% less damage.',c1:'#e0b070',c2:'#7a5a34',armor:0.08},
  {id:'stoneborn',name:'Dwarf',desc:'Stout mountain folk. +12% max health.',c1:'#aeb9c2',c2:'#4d5a63',hp:1.12},
  {id:'sylvan',name:'Orc',desc:'Warborn raiders. +6% critical chance.',c1:'#8fd09a',c2:'#2f6b45',crit:6},
  {id:'gravekin',name:'Undead',desc:'The Forsaken. Heal 3% on every kill.',c1:'#c0a0e0',c2:'#503a6b',leech:.03},
@@ -1468,7 +1468,7 @@ function healHero(amt,silent){
 }
 function hurtHero(dmg,label){
  if(hero.dead)return;
- dmg=Math.round(dmg*(1-scrollPct('warding')));
+ dmg=Math.round(dmg*(1-scrollPct('warding'))*(1-(raceOf().armor||0)));
  hero.hp-=dmg;hero.hurt=0.2;
  floatAt(hero.x,hero.y-26,'-'+dmg+(label?' '+label:''),'#ff8a7a');
  burst(hero.x,hero.y-10,'#ff8a7a',4,60);
@@ -1594,7 +1594,7 @@ function killEnemy(en){
  sfx.die();
  burst(en.x,en.y-10,en.c,12,90,true);
  const r=raceOf();
- let gold=addGold(Math.round(en.gold*(r.gold||1)*(1+scrollPct('fortune'))));
+ let gold=addGold(Math.round(en.gold*(1+scrollPct('fortune'))));
  if(r.leech)healHero(heroMax()*r.leech,true);
  if(hasEnch('reaper'))healHero(heroMax()*scrollPct('reaper'),true);
  floatAt(en.x,en.y-en.r-14,gold>0?'+'+gold+' ◉':'◉ CAP','#ffd76a');
