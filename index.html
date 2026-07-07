@@ -786,10 +786,10 @@ function zoneTemplates(z){
  const L=effZoneLvl(z);   /* HP/damage/gold scale to deepest zone */
  const XL=xpZoneLvl(z);  /* XP stays tied to the real zone level */
  if(z.thor){
-  const L=Math.max(S.lvl,10),pm=pMul(),pr=pRew();
+  const L=Math.max(S.lvl,10),pm=pMul();
   return [{name:z.boss[0],kind:'boss',boss:true,bossId:'thor',c:z.boss[1],speed:95,
    hp:Math.round(eHP(L)*60*pm),atk:Math.round(eATK(L)*2.0*pm),
-   xp:Math.round(eHP(L)*6*pr),gold:Math.round(eHP(L)*4*pr)}];
+   xp:0,gold:0}];
  }
  if(z.boss){
   const km=z.special?Math.pow(1.5,S.cerberusKills||0):1;   /* +50% per kill, compounding */
@@ -863,7 +863,7 @@ const speedBoostMul=()=>1+boostBonus(S.boosts?S.boosts.speed:0);
 const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0);
 function freshState(name,race,cls){
  return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,lastZone:0,maxZone:0,quest:0,qProg:0,
-  rating:0,cerberusKills:0,thorKills:0,thorLock:-1,freeGoldCases:0,cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
+  rating:0,cerberusKills:0,thorKills:0,thorLock:-1,luckPots:0,luckT:0,freeGoldCases:0,cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
   gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],pet:null,pets:[],
   boosts:{speed:0,haste:0},
   cleared:{},bossDead:{},zoneLvlGain:{},
@@ -907,6 +907,8 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.cerberusKills===undefined)s.cerberusKills=0;
  if(s.thorLock===undefined)s.thorLock=-1;
  if(s.thorKills===undefined)s.thorKills=0;
+ if(s.luckPots===undefined)s.luckPots=0;
+ if(s.luckT===undefined)s.luckT=0;
  if(s.freeGoldCases===undefined)s.freeGoldCases=0;
  if(s.cowBest===undefined)s.cowBest=0;
  if(s.cowLast===undefined)s.cowLast=0;
@@ -945,9 +947,12 @@ const SLOTS=['weapon','armor','trinket'];
 const PREFIX={common:['Plain','Worn','Sturdy'],fine:['Keen','Hardened','Trusty'],rare:['Gleaming','Runed','Valiant'],epic:['Kingsforged','Stormbound','Emberwrought']};
 const BASE={weapon:['Blade','Spear','Warbow','Scepter'],armor:['Hauberk','Cuirass','Warcloak','Aegis'],trinket:['Signet','Talisman','Warhorn','Idol']};
 const RARMUL={common:1,fine:1.5,rare:2.3,epic:3.6};
-function rollItem(forceRar){
+function rollItem(forceRar,lucky){
  const r=Math.random();
- const rar=(forceRar===true?'epic':forceRar)||(r<.55?'common':r<.85?'fine':r<.97?'rare':'epic');
+ let rar=(forceRar===true?'epic':forceRar)||(r<.55?'common':r<.85?'fine':r<.97?'rare':'epic');
+ if(lucky&&!forceRar&&Math.random()<0.15){
+  rar={common:'fine',fine:'rare',rare:'epic',epic:'epic'}[rar];
+ }
  const mul=RARMUL[rar];
  const slot=SLOTS[Math.floor(Math.random()*3)];
  const zi=Math.max(S.zone,S.maxZone||0);
@@ -1773,14 +1778,15 @@ function killEnemy(en){
    if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
   }
  }else{
-  if(Math.random()<(en.boss?1:0.20)){
-   const it=rollItem(en.boss);
+  const lucky=S.luckT>0;
+  if(Math.random()<(en.boss?1:0.20*(lucky?1.15:1))){
+   const it=rollItem(en.boss,lucky&&!en.boss);
    sfx.loot();
-   log(`Loot: <span class="l${it.rar}">${it.name}</span> ${itemStr(it)}.`,'loot');
+   log(`Loot: <span class="l${it.rar}">${it.name}</span> ${itemStr(it)}.${lucky&&!en.boss?' 🍀':''}`,'loot');
    if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
   }
   /* Potions never drop from enemies; buy them from the Trader. */
-  if(Math.random()<(en.boss?0.25:0.01)){ /* scrolls are now a rare prize — always Tier I */
+  if(Math.random()<(en.boss?0.25:0.01*(lucky?1.15:1))){ /* scrolls are now a rare prize — always Tier I */
    const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
    S.scrolls.push({id:e.id,tier:1});
    log(`Rare find: <span class="lscroll">${e.n} I</span> — combine duplicates in the Bag to forge higher tiers.`,'loot');
@@ -1799,16 +1805,10 @@ function killEnemy(en){
    publishLB(S,true);
   }else if(en.bossId==='thor'){
    S.thorKills=(S.thorKills||0)+1;
-   S.rating=(S.rating||0)+100;
-   const sc=addScraps(50);
-   for(let k=0;k<2;k++){
-    const it=rollItem('epic');
-    log(`Valhalla's tribute: <span class="lepic">${it.name}</span> ${itemStr(it)}.`,'loot');
-    if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
-   }
-   floatAt(en.x,en.y-en.r-44,'+100 RATING','#7fd0ff');
-   stageMsg('⚡ Thor falls! +100 Rating — Valhalla honors you.',3200);
-   log(`<span class="imp">Thor slain ×${S.thorKills}.</span> +100 Rating, +${sc} Scraps.`);
+   S.luckPots=(S.luckPots||0)+1;
+   floatAt(en.x,en.y-en.r-44,'🍀 POTION OF LUCK','#9adf9a');
+   stageMsg('⚡ Thor falls! He yields a 🍀 Potion of Luck — find it in your Bag.',3200);
+   log(`<span class="imp">Thor slain ×${S.thorKills}.</span> Loot: <span class="lfine">🍀 Potion of Luck</span> — +15% better drops from slain foes for 30 minutes.`);
    publishLB(S,true);
   }else{
    S.bossDead[S.zone]=true;
@@ -2218,7 +2218,12 @@ function update(dt){
  hero.spellCd=hero.spellCd.map(v=>Math.max(0,v-dt));
  hero.potCd.hp=Math.max(0,hero.potCd.hp-dt);
  hero.potCd.mp=Math.max(0,hero.potCd.mp-dt);
- for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
+  if(S.luckT>0){
+  S.luckT-=dt;
+  if(S.luckT<=0){S.luckT=0;stageMsg('🍀 Your luck fades…',1800);}
+  else if(Math.random()<0.01)parts.push({x:hero.x+(Math.random()-0.5)*22,y:hero.y-6,vx:(Math.random()-0.5)*8,vy:-18,t:0,life:1,c:'#9adf9a',r:1.4,g:0});
+ }
+for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
  // mana regen (faster out of combat)
  const inCombat=hero.target||enemies.some(e=>!e.dead&&e.state==='chase');
  hero.mana=Math.min(manaMax(),hero.mana+(2+S.lvl*0.15)*(1+scrollPct('clarity'))*(inCombat?1:2.4)*dt);
@@ -3152,7 +3157,7 @@ function renderMap(){
     return `<div class="card zonecard ${canEnter?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${st.open&&!locked?'#7fd0ff':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#2a3a6a)">⚡</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">Thor — appears every 3 hours for 15 minutes · slain ×${S.thorKills||0} · scales to your level · +100 Rating</div>
+     <div class="zl">Thor — appears every 3 hours for 15 minutes · slain ×${S.thorKills||0} · scales to your level · yields a 🍀 Potion of Luck</div>
      <div class="zl" id="thorTimer" style="color:${st.open&&!locked?'#7fd0ff':'#8fa898'}">${stateTxt}</div></div>
      ${i===S.zone?'<span class="ztag">Here</span>':canEnter?'<span class="ztag boss">⚡ Enter</span>':p1?'<span class="ztag boss">⏳ Sealed</span>':'<span class="ztag boss">🔒 Prestige 1</span>'}
     </div>`;
@@ -3252,6 +3257,18 @@ function scrapBagItems(match,label){
 }
 function renderBag(){
  $('bagWallet').innerHTML=walletStr();
+ // 🍀 luck potions — always at the top
+ let luckHtml='';
+ if((S.luckPots||0)>0||S.luckT>0){
+  const active=S.luckT>0;
+  const mins=Math.ceil(S.luckT/60);
+  luckHtml=`<div class="card item" style="border-color:#6dbb6d${active?';box-shadow:0 0 10px rgba(109,187,109,.25)':''}"><div>
+   <div class="sn" style="color:#9adf9a;font-size:13px;font-weight:600">🍀 Potion of Luck${(S.luckPots||0)>1?` <span style="color:var(--dim)">×${S.luckPots}</span>`:(S.luckPots||0)===1?'':' <span style="color:var(--dim)">×0</span>'}</div>
+   <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#9adf9a">ACTIVE — '+mins+' min remaining.</b> ':''}+15% better drops from slain foes for 30 minutes. Chests and slots are unaffected. Thor yields one per kill.</div></div>
+   <div class="btns"><button class="sbtn gold" id="luckUse" ${(S.luckPots||0)<1?'disabled':''}>${active?'Extend +30m':'Drink'}</button></div></div>`;
+ }
+ $('scrollSec').innerHTML=luckHtml;
+
  // scrolls — categorised by tier; tap a tier header to expand/collapse it
  if(S.scrolls.length){
   const groups={};
@@ -3281,7 +3298,7 @@ function renderBag(){
      </div></div>`;
    }).join('')+'</div>';
   }
-  $('scrollSec').innerHTML=sh;
+  $('scrollSec').innerHTML+=sh;
   document.querySelectorAll('[data-tt]').forEach(h=>h.onclick=()=>{
    const t=+h.dataset.tt;scrollTierOpen[t]=!scrollTierOpen[t];renderBag();
   });
@@ -3312,7 +3329,7 @@ function renderBag(){
     renderBag();save();
    }
   });
- }else $('scrollSec').innerHTML='';
+ }
  // ---- pets: items with their own equip slot ----
  if(S.pets.length){
   const counts={};
@@ -3349,6 +3366,18 @@ function renderBag(){
    renderBag();renderHUD();save();
   });
  }
+ const lu=$('luckUse');
+ if(lu)lu.onclick=()=>{
+  if((S.luckPots||0)<1)return;
+  S.luckPots--;
+  S.luckT=(S.luckT||0)+1800;
+  sfx.potion();
+  sparkles(hero.x,hero.y-12,'#9adf9a',12);
+  stageMsg('🍀 Luck flows through you — 15% better drops for '+Math.ceil(S.luckT/60)+' minutes!',2500);
+  log('<span class="lfine">🍀 Potion of Luck</span> consumed.');
+  renderBag();save();
+ };
+
  if(!S.bag.length){$('bagList').innerHTML='<div class="card" style="color:var(--dim);font-size:12px">The bag is empty. Gear, potions and scrolls drop from foes — bosses always drop. Sell spares for gold, or scrap them for ⚙ Scraps to upgrade your gear.</div>';return;}
  const sellable=S.bag.filter(it=>!isLegendary(it));
  const totalScrap=sellable.reduce((t,it)=>t+scrapVal(it),0);
