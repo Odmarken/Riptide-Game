@@ -988,8 +988,11 @@ function calcPower(it){it.power=it.atk*3+it.hp*0.6+it.crit*4;}
 const FM_MUL=5.5;
 const isFM=it=>it&&it.legend==='frostmourne';
 function fmBaseAtk(){
- const zi=Math.max(S.zone,S.maxZone||0);
- return Math.round(4.5*FM_MUL*(1+zi*0.9+S.lvl*0.18)*(1+(S.prestige||0)*0.25));
+ /* Frostmourne must not reset to low damage after prestige.
+    UI level can be Lv 1, but internally P3 Lv1 = effective Lv181.
+    Do not use maxZone here — old/prestige-clamped saves can make it look like Home gear. */
+ const L=Math.max(1,effectiveHeroLvl());
+ return Math.round(4.5*FM_MUL*(1+L*0.18)*Math.pow(1.15,S.prestige||0));
 }
 function syncFrostmourne(it){
  if(!isFM(it)||!S)return it;
