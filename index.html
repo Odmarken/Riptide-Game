@@ -544,6 +544,23 @@ const goldRoom=()=>Math.max(0,goldCap()-S.gold-bagGoldVal());
 const scrapRoom=()=>Math.max(0,SCRAP_CAP-S.scraps-bagScrapVal());
 function addGold(n){const a=Math.max(0,Math.min(n,goldRoom()));S.gold+=a;return a;}
 function addScraps(n){const a=Math.max(0,Math.min(n,scrapRoom()));S.scraps+=a;return a;}
+/* total spendable = carried vault + overflow pocket */
+const totalGold=()=>S.gold+(S.overflow||0);
+/* Slot wins fill the vault first; anything above the cap is parked in overflow. */
+function addGoldOverflow(n){
+ const a=addGold(n);
+ const rest=Math.max(0,n-a);
+ if(rest>0)S.overflow=(S.overflow||0)+rest;
+ return {got:a,over:rest};
+}
+/* Spend overflow first, then normal gold. */
+function spendGold(n){
+ if(totalGold()<n)return false;
+ const fromOver=Math.min(S.overflow||0,n);
+ S.overflow=(S.overflow||0)-fromOver;
+ S.gold-=n-fromOver;
+ return true;
+}
 /* zero loot when BOTH caps are effectively full (carried + bag value) */
 const lootBlocked=()=>goldRoom()<=0&&scrapRoom()<=0;
 const RACES=[
@@ -720,7 +737,7 @@ const boostAtHardCap=n=>boostBonus(n)>=BOOST_PCT_CAP;
 const speedBoostMul=()=>1+boostBonus(S.boosts?S.boosts.speed:0);
 const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0);
 function freshState(name,race,cls){
- return {id:null,name,race,cls,lvl:1,xp:0,gold:0,scraps:0,prestige:0,zone:0,maxZone:0,quest:0,qProg:0,
+ return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,maxZone:0,quest:0,qProg:0,
   rating:0,cerberusKills:0,freeGoldCases:0,cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
   gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],
   boosts:{speed:0,haste:0},
@@ -744,6 +761,7 @@ function ensureItemBase(it){
 }
 function migrate(s){ /* fills fields missing from older saves */
  if(s.scraps===undefined)s.scraps=0;
+ if(s.overflow===undefined)s.overflow=0;
  if(s.maxZone===undefined)s.maxZone=s.zone||0;
  if(s.gold>goldCap(s))s.gold=goldCap(s);
  if(s.scraps>SCRAP_CAP)s.scraps=SCRAP_CAP;
@@ -2430,7 +2448,7 @@ function refreshOpenPanel(){
  else if(p.id==='p-map')renderMap();
 }
 function renderHUD(){
- $('hGold').textContent=S.gold.toLocaleString();
+ $('hGold').innerHTML=(S.overflow?'<span style="color:#9adf9a;font-size:11px">(+'+S.overflow.toLocaleString()+')</span> ':'')+S.gold.toLocaleString();
  $('hScrap').textContent=S.scraps.toLocaleString();
  $('hLvl').textContent='Lv '+S.lvl+(S.prestige?' ✦'+S.prestige:'');
  $('hXP').style.width=(S.lvl>=MAXLVL?100:Math.min(100,100*S.xp/xpNeed(S.lvl)))+'%';
@@ -2492,7 +2510,7 @@ function renderVitals(dt){
  $('potHpN').textContent=S.pots.hp;
  $('potMpN').textContent=S.pots.mp;
 }
-const walletStr=()=>`<b>◉ ${S.gold.toLocaleString()}</b> / ${goldCap().toLocaleString()} gold · <i>⚙ ${S.scraps.toLocaleString()}</i> / ${SCRAP_CAP} scraps`;
+const walletStr=()=>`<b>◉ ${S.gold.toLocaleString()}</b> / ${goldCap().toLocaleString()} gold${S.overflow?` <span style="color:#9adf9a">(+${S.overflow.toLocaleString()} overflow)</span>`:''} · <i>⚙ ${S.scraps.toLocaleString()}</i> / ${SCRAP_CAP} scraps`;
 function renderHero(){
  const c=classOf(),r=raceOf();
  $('heroTitle').textContent=`${dispName(S)} — ${r.name} ${c.name}`+(S.prestige?` · Prestige ${S.prestige}`:'');
@@ -2891,8 +2909,7 @@ function rollChestBatch(type,count){
   freeUsed=Math.min(S.freeGoldCases,count);
   total=cost*(count-freeUsed);
  }
- if(S.gold<total){stageMsg('Not enough gold — costs '+total.toLocaleString()+' ◉',1500);return null;}
- S.gold-=total;
+ if(!spendGold(total)){stageMsg('Not enough gold — costs '+total.toLocaleString()+' ◉',1500);return null;}
  if(freeUsed){
   S.freeGoldCases-=freeUsed;
   log(`Redeemed ${freeUsed} free case${freeUsed>1?'s':''} — ${S.freeGoldCases} left.`,'loot');
@@ -2967,7 +2984,7 @@ function finishCase(wins){
  const rb=$('respinBtn'),qty=chestQty[curCase];
  let cost=caseCost()*qty;
  if(curCase==='gold'){const f=Math.min(S.freeGoldCases||0,qty);cost=caseCost()*(qty-f);}
- rb.disabled=S.gold<cost;
+ rb.disabled=totalGold()<cost;
  rb.textContent=cost<=0?'🎁 Respin '+qty+'x · FREE':(rb.disabled?'🎁 Respin '+qty+'x · '+cost.toLocaleString()+'◉ — broke!':'🎁 Respin '+qty+'x · '+cost.toLocaleString()+'◉');
  const cs=$('caseScrapBtn'),chestGear=S.bag.filter(it=>lastCaseLootIds.includes(it._lid)&&!isLegendary(it));
  if(chestGear.length){
@@ -3051,8 +3068,8 @@ function clearSlotCelebration(){
 }
 function spinSlots(){
  if(slotSpinning||slotCelebrating)return;
- if(S.gold<slotCost()){stopSlotAuto();stageMsg('Not enough gold — a spin costs '+slotCost().toLocaleString()+'◉',1400);sfx.warn();return;}
- S.gold-=slotCost();renderHUD();
+ if(!spendGold(slotCost())){stopSlotAuto();stageMsg('Not enough gold — a spin costs '+slotCost().toLocaleString()+'◉',1400);sfx.warn();return;}
+ renderHUD();
  slotSpinning=true;
  $('slotRes').innerHTML='&nbsp;';
  $('slotRes').classList.remove('bigres');
@@ -3095,28 +3112,29 @@ function slotSettle(out){
  slotSession.gold-=slotCost();
  if(out.kind==='gold'){
   const won=slotCost()*out.mul;
-  const got=addGold(won);
-  slotSession.gold+=got;
+  const {got,over}=addGoldOverflow(won);
+  const paid=got+over;
+  slotSession.gold+=paid;
   if(out.mul>=10){
    slotCelebrating=true;
    const jackpot=out.mul>=100;
    res.classList.add('bigres');
-   res.textContent=(jackpot?'🎉 JACKPOT! ':'💎 BIG WIN! ')+out.mul+'x — +'+got.toLocaleString()+'◉';
+   res.textContent=(jackpot?'🎉 JACKPOT! ':'💎 BIG WIN! ')+out.mul+'x — +'+paid.toLocaleString()+'◉'+(over?' ('+over.toLocaleString()+' to overflow)':'');
    $('slotFx').querySelector('.slotmach').classList.add('bigwin');
    if(jackpot)$('slotFx').classList.add('flash');
    dingDingDing(jackpot);
    spawnSlotParts(jackpot?'#ffd100':out.color,jackpot?30:16);
    if(jackpot)setTimeout(()=>spawnSlotParts('#ffd100',20),600);
-   log(`Borek Casino: <span class="llegendary">${out.mul}x — +${got.toLocaleString()} ◉</span>${got<won?' (vault full!)':''}!`,'loot');
+   log(`Borek Casino: <span class="llegendary">${out.mul}x — +${paid.toLocaleString()} ◉</span>${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}!`,'loot');
    slotCelebrateTimer=setTimeout(()=>{
     clearSlotCelebration();
     updateSlotUI();
     resumeAutoIfOn();
    },jackpot?6000:4000);
   }else{
-   res.textContent='Winner! '+out.mul+'x — +'+got.toLocaleString()+'◉';
+   res.textContent='Winner! '+out.mul+'x — +'+paid.toLocaleString()+'◉'+(over?' ('+over.toLocaleString()+' to overflow)':'');
    sfx.loot();spawnSlotParts(out.color,8);
-   log(`Borek Casino: <span class="loot">${out.mul}x</span> — +${got.toLocaleString()} ◉${got<won?' (vault full!)':''}.`,'loot');
+   log(`Borek Casino: <span class="loot">${out.mul}x</span> — +${paid.toLocaleString()} ◉${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}.`,'loot');
   }
  }else if(out.kind==='scrap'){
   const got=addScraps(out.n);
@@ -3135,8 +3153,8 @@ function slotSettle(out){
 function updateSlotUI(){
  const b=$('slotSpinBtn'),cost=slotCost();
  if(b){
-  b.disabled=slotSpinning||slotCelebrating||S.gold<cost;
-  b.textContent=S.gold<cost?'🎰 Spin · '+cost.toLocaleString()+'◉ — broke!':'🎰 Spin · '+cost.toLocaleString()+'◉';
+  b.disabled=slotSpinning||slotCelebrating||totalGold()<cost;
+  b.textContent=totalGold()<cost?'🎰 Spin · '+cost.toLocaleString()+'◉ — broke!':'🎰 Spin · '+cost.toLocaleString()+'◉';
  }
  const a=$('slotAutoBtn');
  if(a){
@@ -3153,7 +3171,7 @@ function updateSlotUI(){
 }
 function resumeAutoIfOn(){
  if(!slotAuto)return;
- if(S.gold<slotCost()){stopSlotAuto('Out of gold — auto stopped.');return;}
+ if(totalGold()<slotCost()){stopSlotAuto('Out of gold — auto stopped.');return;}
  if(lootBlocked()){stopSlotAuto('Gold and scrap both full — auto stopped.');return;}
  slotAutoTimer=setTimeout(()=>{if(slotAuto&&!slotCelebrating&&$('slotFx').classList.contains('open'))spinSlots();},700);
 }
@@ -3187,7 +3205,7 @@ function openSlots(){
 $('slotSpinBtn').onclick=()=>{if(!slotAuto)spinSlots();};
 $('slotAutoBtn').onclick=()=>{
  if(slotAuto){stopSlotAuto();return;}
- if(S.gold<slotCost()){stageMsg('Not enough gold to start auto-spin',1400);sfx.warn();return;}
+ if(totalGold()<slotCost()){stageMsg('Not enough gold to start auto-spin',1400);sfx.warn();return;}
  slotAuto=true;
  slotSession={spins:0,gold:0,scrap:0};
  updateSlotUI();
@@ -3210,11 +3228,11 @@ function renderShop(){
  const goFree=Math.min(free,goQty),goPaid=goQty-goFree,goTot=GOLD_COST*goPaid;
  h+=`<div class="card item" style="border-color:var(--brass-deep)"><div><div class="sn" style="font-size:13px;font-weight:600;color:var(--brass)">🎁 GAMBAAA!</div>
   <div class="ss" style="color:var(--dim);font-size:11px">A sealed chest of unknown origin. Holds a random weapon, armor piece or scroll — most are humble, but legends whisper of epic prizes within.</div></div>
-  <div class="btns"><button class="sbtn gold" id="chestBtn" ${S.gold<gTot?'disabled':''}>${gTot.toLocaleString()}◉</button>
+  <div class="btns"><button class="sbtn gold" id="chestBtn" ${totalGold()<gTot?'disabled':''}>${gTot.toLocaleString()}◉</button>
   <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gamba" data-d="-1" ${gQty<=1?'disabled':''}>−</button><span class="qtynum">${gQty}x</span><button class="qtybtn" data-case="gamba" data-d="1" ${gQty>=5?'disabled':''}>+</button></div><div class="qtytotal">Total: ${gTot.toLocaleString()}◉</div></div></div></div>`;
  h+=`<div class="card item" style="border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.15)"><div><div class="sn" style="font-size:13px;font-weight:600;color:#ffd76a">💰 GOLD GOLD GOLD${free?` <span style="color:#9adf9a;font-size:11px">· ${free} FREE</span>`:''}</div>
  <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common or fine junk — only rare and epic gear, a slim chance at a Tier II scroll, and a tiny chance at Frostmourne.${free?' <b style="color:#9adf9a">HAALAND\u2019s hoard covers your next '+free+' case'+(free>1?'s':'')+'.</b>':''}</div></div>
- <div class="btns"><button class="sbtn gold" id="goldChestBtn" ${S.gold<goTot?'disabled':''}>${goTot>0?goTot.toLocaleString()+'◉':'FREE'}</button>
+ <div class="btns"><button class="sbtn gold" id="goldChestBtn" ${totalGold()<goTot?'disabled':''}>${goTot>0?goTot.toLocaleString()+'◉':'FREE'}</button>
  <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gold" data-d="-1" ${goQty<=1?'disabled':''}>−</button><span class="qtynum">${goQty}x</span><button class="qtybtn" data-case="gold" data-d="1" ${goQty>=5?'disabled':''}>+</button></div><div class="qtytotal">${goFree?goFree+' free · ':''}Total: ${goTot.toLocaleString()}◉</div></div></div></div>`;
 
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600;color:#e8b070">🎰 Borek Casino</div>
@@ -3224,10 +3242,10 @@ function renderShop(){
  const hpC=potCost('hp'),mpC=potCost('mp');
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">🧪 Health Potion</div>
   <div class="ss" style="color:var(--dim);font-size:11px">Restores 45% health. You own ${S.pots.hp}.</div></div>
-  <div class="btns"><button class="sbtn gold" data-pot="hp" ${S.gold<hpC||inBossFight()?'disabled':''}>Buy ${hpC.toLocaleString()}◉</button></div></div>`;
+  <div class="btns"><button class="sbtn gold" data-pot="hp" ${totalGold()<hpC||inBossFight()?'disabled':''}>Buy ${hpC.toLocaleString()}◉</button></div></div>`;
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">🔮 Mana Potion</div>
   <div class="ss" style="color:var(--dim);font-size:11px">Restores 60% mana. You own ${S.pots.mp}.</div></div>
-  <div class="btns"><button class="sbtn gold" data-pot="mp" ${S.gold<mpC||inBossFight()?'disabled':''}>Buy ${mpC.toLocaleString()}◉</button></div></div>`;
+  <div class="btns"><button class="sbtn gold" data-pot="mp" ${totalGold()<mpC||inBossFight()?'disabled':''}>Buy ${mpC.toLocaleString()}◉</button></div></div>`;
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Upgrades</div>';
  const cap=boostMax();
  const spN=S.boosts.speed,haN=S.boosts.haste,spC=boostCost(spN),haC=boostCost(haN);
@@ -3238,14 +3256,14 @@ function renderShop(){
     ?`Fully maxed at <b style="color:var(--parch)">+${boostPct(spN)}%</b> — the absolute limit.`
     :`Maxed at <b style="color:var(--parch)">+${boostPct(spN)}%</b>. Reach <b style="color:var(--brass)">Prestige ${nextBoostPrestige()}</b> to unlock the next upgrade.`)
    :`Move faster. Next purchase: <b style="color:var(--parch)">+${boostPct(spN+1)}%</b> movement speed. Bonus and price double each time.`}</div></div>
-  <div class="btns"><button class="sbtn gold" data-boost="speed" ${spMax||S.gold<spC?'disabled':''}>${spMax?'MAX ✦':'Buy '+spC.toLocaleString()+'◉'}</button></div></div>`;
+  <div class="btns"><button class="sbtn gold" data-boost="speed" ${spMax||totalGold()<spC?'disabled':''}>${spMax?'MAX ✦':'Buy '+spC.toLocaleString()+'◉'}</button></div></div>`;
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">⚡ Haste Boost${haN?` <span style="color:var(--brass);font-size:11px">+${boostPct(haN)}%</span>`:''}</div>
   <div class="ss" style="color:var(--dim);font-size:11px">${haMax
    ?(boostAtHardCap(haN)
     ?`Fully maxed at <b style="color:var(--parch)">+${boostPct(haN)}%</b> — the absolute limit.`
     :`Maxed at <b style="color:var(--parch)">+${boostPct(haN)}%</b>. Reach <b style="color:var(--brass)">Prestige ${nextBoostPrestige()}</b> to unlock the next upgrade.`)
    :`Attack faster. Next purchase: <b style="color:var(--parch)">+${boostPct(haN+1)}%</b> attack speed. Bonus and price double each time.`}</div></div>
-  <div class="btns"><button class="sbtn gold" data-boost="haste" ${haMax||S.gold<haC?'disabled':''}>${haMax?'MAX ✦':'Buy '+haC.toLocaleString()+'◉'}</button></div></div>`;
+  <div class="btns"><button class="sbtn gold" data-boost="haste" ${haMax||totalGold()<haC?'disabled':''}>${haMax?'MAX ✦':'Buy '+haC.toLocaleString()+'◉'}</button></div></div>`;
  h+='<div class="ss" style="color:var(--dim);font-size:10.5px;margin-top:2px">Potions never drop from enemies. Potion prices rise with your level. Scrolls of Power are rare drops or gamble prizes.</div>';
  $('shopList').innerHTML=h;
  $('chestBtn').onclick=openChest;
@@ -3259,16 +3277,16 @@ function renderShop(){
  document.querySelectorAll('[data-pot]').forEach(b=>b.onclick=()=>{
   if(inBossFight()){stageMsg('The Trader cowers — no potion sales during a boss fight!',1600);sfx.warn();return;}
   const k=b.dataset.pot,cost=potCost(k);
-  if(S.gold<cost){stageMsg('Not enough gold',1200);return;}
-  S.gold-=cost;S.pots[k]++;
+  if(!spendGold(cost)){stageMsg('Not enough gold',1200);return;}
+  S.pots[k]++;
   sfx.buy();renderShop();renderHUD();save();
  });
  document.querySelectorAll('[data-boost]').forEach(b=>b.onclick=()=>{
   const k=b.dataset.boost,n=S.boosts[k]||0,cost=boostCost(n);
   if(boostAtHardCap(n)){stageMsg('Boost is fully maxed at +500% — the absolute limit',1800);sfx.warn();return;}
   if(n>=boostMax()){stageMsg('Boost maxed — reach Prestige '+nextBoostPrestige()+' to unlock more',1800);sfx.warn();return;}
-  if(S.gold<cost){stageMsg('Not enough gold',1200);return;}
-  S.gold-=cost;S.boosts[k]=n+1;
+  if(!spendGold(cost)){stageMsg('Not enough gold',1200);return;}
+  S.boosts[k]=n+1;
   sfx.buy();
   stageMsg(`${k==='speed'?'Speed':'Haste'} Boost is now +${boostPct(S.boosts[k])}%`,1800);
   renderShop();renderHero();renderHUD();save();
