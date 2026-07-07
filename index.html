@@ -727,6 +727,14 @@ const gearScore=()=>{if(isFM(S.gear.weapon))syncFrostmourne(S.gear.weapon);retur
 const allBossesDead=()=>ZONES.every((z,i)=>z.special||!z.boss||!!S.bossDead[i]);
 /* true when every boss zone before index i has had its boss slain */
 const bossesClearedBefore=i=>ZONES.every((z,k)=>k>=i||z.special||!z.boss||!!S.bossDead[k]);
+/* Safe progression gate. This prevents stale maxZone from old/pre-fix prestige saves
+   from unlocking the whole map when the hero is back at low level in Goldshire/Home. */
+function progZone(ch=S){
+ let mz=Math.min((ch&&ch.maxZone)||0,ZONES.length-1);
+ const lvl=(ch&&ch.lvl)||1;
+ while(mz>0&&lvl<(ZONES[mz]?.lvl||1))mz--;
+ return Math.max(0,mz);
+}
 const pMul=()=>Math.pow(1.35,(S.prestige||0));   /* enemies +35% stronger each prestige, compounding */
 const pRew=()=>Math.pow(1.3,(S.prestige||0));   /* xp/gold compounds too, but slower */
 /* potion prices grow with level (and prestige, matching richer gold income) */
@@ -778,6 +786,13 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.scraps===undefined)s.scraps=0;
  if(s.overflow===undefined)s.overflow=0;
  if(s.maxZone===undefined)s.maxZone=s.zone||0;
+ /* Repair saves that prestiged before maxZone was reset, including saves where old cleared/boss flags survived.
+    If the stored deepest zone requires a higher level than the hero currently has, clamp it back down. */
+ if((s.prestige||0)>0&&!s.finished){
+  s.maxZone=Math.min(s.maxZone||0,ZONES.length-1);
+  while((s.maxZone||0)>0&&(s.lvl||1)<(ZONES[s.maxZone]?.lvl||1))s.maxZone--;
+  if(!ZONES[s.zone||0]?.special&&(s.maxZone||0)<(s.zone||0))s.maxZone=s.zone||0;
+ }
  if(s.gold>goldCap(s))s.gold=goldCap(s);
  if(s.scraps>SCRAP_CAP)s.scraps=SCRAP_CAP;
  if(s.sfx===undefined)s.sfx=true;
@@ -1773,7 +1788,7 @@ function doPrestige(){
  const oldCap=goldCap();
  S.prestige++;
  if(goldCap()>oldCap)log(`<span class="imp">Vault expanded!</span> Gold cap is now ${goldCap().toLocaleString()} ◉.`);
- S.lvl=1;S.xp=0;S.zone=0;S.quest=0;S.qProg=0;
+ S.lvl=1;S.xp=0;S.zone=0;S.quest=0;S.qProg=0;S.maxZone=0;
  S.cleared={};S.bossDead={};S.zoneLvlGain={};S.finished=false;
  applyZoneUI();buildZone();renderHUD();renderHero();save();
  sfx.level();
@@ -2871,8 +2886,9 @@ function renderMap(){
     ${i===S.zone?'<span class="ztag">Here</span>':p5?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">🔒 Prestige 5</span>'}
    </div>`;
   }
-  const bossGated=i>(S.maxZone||0)&&!bossesClearedBefore(i);
-  const locked=(S.lvl<z.lvl||bossGated)&&i>(S.maxZone||0);
+  const pz=progZone();
+  const bossGated=i>pz&&!bossesClearedBefore(i);
+  const locked=i>pz&&(S.lvl<z.lvl||bossGated);
   const cur=i===S.zone;
   const done=z.boss?S.bossDead[i]:S.cleared[i];
   return `<div class="card zonecard ${locked?'locked':''} ${cur?'active':''}" data-z="${i}">
@@ -2890,7 +2906,7 @@ function renderMap(){
     if((S.prestige||0)<5){if(z.cow){stageMsg('Reach Prestige 5 to hear the mooing',1600);sfx.warn();}return;}
     if(z.cow&&S.bag.filter(it=>!isLegendary(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
    }
-   else if(i>(S.maxZone||0)&&(S.lvl<z.lvl||!bossesClearedBefore(i)))return;
+   else if(i>progZone()&&(S.lvl<z.lvl||!bossesClearedBefore(i)))return;
    S.zone=i;S.quest=0;S.qProg=0;
    mapContinent=z.west?'west':'east';
    applyZoneUI();buildZone();renderHUD();save();
