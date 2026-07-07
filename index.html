@@ -2521,7 +2521,7 @@ function renderHero(){
   <div class="stat"><b>${manaMax()}</b><span>Max mana</span></div>
   <div class="stat"><b>${heroAtk()}</b><span>Attack</span></div>
   <div class="stat"><b>${heroCrit()}%</b><span>Crit chance</span></div>
-  <div class="stat"><b>${gearScore()}</b><span>Gear score</span></div>
+  <div class="stat"><b>${fmtGS(gearScore())}</b><span>Gear score</span></div>
   <div class="stat"><b>${S.prestige||0}</b><span>Prestige</span></div>`;
  let slotsHtml=SLOTS.map(sl=>{
   const g=S.gear[sl];
@@ -3549,7 +3549,7 @@ async function showLeaderboard(){
    <div class="cinfo">
     <div class="cn">${esc(e.name||'?')}${e.rating?` <span style="color:var(--brass)">(${e.rating})</span>`:''}${e.prestige?` <span class="pstar">✦ Prestige ${e.prestige}</span>`:''}</div>
     <div class="cl">${r&&c?esc(r.name+' '+c.name)+' · ':''}Level ${e.lvl||1}</div>
-    <div class="cl">⚔ ${e.gs||0} gear score · ${esc(zn)}</div>
+    <div class="cl">⚔ ${fmtGS(e.gs)} gear score · ${esc(zn)}</div>
    </div>
    <button class="sbtn gold" data-insp="${i}">🔍 Inspect</button>
    <div class="lbinsp" id="insp${i}" style="display:none;flex-basis:100%"></div>
@@ -3612,6 +3612,10 @@ function drawPortrait(cnv,ch){
  g.strokeStyle='rgba(217,164,65,.4)';g.strokeRect(0.5,0.5,W-1,H-1);
 }
 const charGearScore=ch=>Math.round(Object.values(ch.gear||{}).reduce((t,g)=>t+(g?g.power:0),0));
+const fmtGS=n=>{n=Math.round(n||0);
+ return n>=1e6?(n>=1e7?Math.round(n/1e6):(n/1e6).toFixed(1).replace(/\.0$/,''))+'M'
+  :n>=1e5?Math.round(n/1e3)+'K'
+  :n.toLocaleString();};
 async function renderSelect(){
  const roster=await loadRoster();
  const chars=[];
@@ -3623,7 +3627,7 @@ async function renderSelect(){
    <div class="cinfo">
     <div class="cn">${esc(dispName(ch))}${ch.prestige?`<span class="pstar">✦ Prestige ${ch.prestige}</span>`:''}</div>
     <div class="cl">${r.name} ${c.name} · Level ${ch.lvl}</div>
-    <div class="cl">⚔ ${charGearScore(ch)} gear score · ${ZONES[ch.zone].name}</div>
+    <div class="cl">⚔ ${fmtGS(charGearScore(ch))} gear score · ${ZONES[ch.zone].name}</div>
    </div>
    <div class="cbtns">
     <button class="playbtn" data-play="${ch.id}">Enter World</button>
