@@ -49,7 +49,11 @@
   #sndBtn{top:6px} #sfxBtn{top:44px;font-size:13px}
   #musBtn{top:82px;font-size:13px}
   .stgbtn.off{opacity:.45}
+  .volbox{position:absolute;right:44px;display:none;align-items:center;height:32px;padding:0 10px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(10,18,14,.8);z-index:7}
+  .volbox.open{display:flex}
+  .volbox input{width:110px;accent-color:var(--brass)}
  
+
   #skillbar{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:7px;align-items:flex-end;z-index:6}
   .skill{position:relative;width:46px;height:46px;border-radius:11px;border:1px solid var(--brass-deep);background:linear-gradient(180deg,#2a3d33,#17241d);color:var(--parch);font-size:19px;cursor:pointer;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.5)}
   .skill .cdm{position:absolute;left:0;right:0;bottom:0;background:rgba(5,10,8,.78);height:0%;pointer-events:none}
@@ -432,6 +436,8 @@
     <button id="sndBtn" class="stgbtn">🔊</button>
     <button id="sfxBtn" class="stgbtn" title="Combat sounds">⚔️</button>
     <button id="musBtn" class="stgbtn" title="Pause game and audio">⏸</button>
+    <div id="volAmbBox" class="volbox" style="top:6px"><input type="range" id="volAmbSl" min="0" max="100"></div>
+    <div id="volSfxBox" class="volbox" style="top:44px"><input type="range" id="volSfxSl" min="0" max="100"></div>
     <div id="hint">WASD / tap ground to move · tap a foe · tap spells to cast</div>
     <div id="stagemsg"></div>
     <div id="skillbar"></div>
@@ -666,7 +672,7 @@ const ZONES=[
   ground:'#8a94a0',ground2:'#7d8794',water:'#5a7a9a',tree:'#4a5a66',tree2:'#39464f',path:'#a8b0ba',rocky:true},
  {name:'Cow Level',lvl:60,amb:'cow',west:true,special:true,cow:true,
   ground:'#6a9a4e',ground2:'#5f8c46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
- {name:'The Driftwood Tavern',lvl:1,amb:'tavern',special:true,tavern:true,
+ {name:'Goldshire',lvl:1,amb:'tavern',special:true,tavern:true,
   ground:'#7a6a4e',ground2:'#6e5f46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
 ];
 const TAVERN_ZONE=ZONES.length-1;
@@ -695,7 +701,7 @@ function zoneTemplates(z){
   xp:Math.round(eHP(XL)/2.6*pr),gold:Math.round((eHP(L)/6+2)*pr)}));
 }
 function zoneQuests(z){
- if(z.tavern)return [{name:'🍺 The Hearth',desc:'A safe haven. Rest, forge, trade — no foe dares enter.',need:999999}];
+ if(z.tavern)return [{name:'🍺 Goldshire',desc:'A safe haven. Rest, forge, trade — no foe dares enter.',need:999999}];
  if(z.cow)return [{name:'MOO',desc:'Survive. You cannot.',need:999999}];
  if(z.boss)return [{name:z.boss[0],desc:'Defeat '+z.boss[0]+'. Victory opens the gate beyond, forever.',need:1,boss:true}];
  return z.q.map(([n,d,need])=>({name:n,desc:d,need}));
@@ -750,7 +756,7 @@ function freshState(name,race,cls){
   gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],
   boosts:{speed:0,haste:0},
   cleared:{},bossDead:{},zoneLvlGain:{},
-  auto:true,autoEquip:true,sound:true,sfx:true,finished:false};
+  auto:true,autoEquip:true,sound:true,sfx:true,volAmb:0.5,volSfx:0.55,finished:false};
 }
 function estimateBaseStat(v,up,kind){
  v=Number(v)||0;up=Number(up)||0;
@@ -774,6 +780,8 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.gold>goldCap(s))s.gold=goldCap(s);
  if(s.scraps>SCRAP_CAP)s.scraps=SCRAP_CAP;
  if(s.sfx===undefined)s.sfx=true;
+ if(s.volAmb===undefined)s.volAmb=0.5;
+ if(s.volSfx===undefined)s.volSfx=0.55;
  if(s.prestige===undefined)s.prestige=0;
  if(s.rating===undefined)s.rating=0;
  if(s.cerberusKills===undefined)s.cerberusKills=0;
@@ -906,6 +914,15 @@ function itemStr(it){
 /* ==================== AUDIO ====================
    Two mix buses: ambG = ambience + music (🔊 button), sfxG = combat/one-shot sounds (⚔️ button). */
 const AC={ctx:null,ambG:null,sfxG:null,amb:[],timers:[],prof:null,mIdx:0};
+const ambVol=()=>(!S||S.sound)?(S?S.volAmb:0.5):0;
+const sfxVol=()=>(!S||S.sfx)?(S?S.volSfx:0.55):0;
+function applyVolumes(){
+ if(AC.ambG)AC.ambG.gain.value=ambVol();
+ if(AC.sfxG)AC.sfxG.gain.value=sfxVol();
+ if(ambAudio)ambAudio.volume=ambVol();
+ if(cowAudio)cowAudio.volume=ambVol();
+ if(haalandAudio)haalandAudio.volume=ambVol();
+}
 function noiseBuf(){
  if(AC.nb)return AC.nb;
  const b=AC.ctx.createBuffer(1,AC.ctx.sampleRate*2,AC.ctx.sampleRate);
@@ -916,8 +933,8 @@ function initAudio(){
  if(AC.ctx)return;
  try{
   AC.ctx=new (window.AudioContext||window.webkitAudioContext)();
-  AC.ambG=AC.ctx.createGain();AC.ambG.gain.value=(!S||S.sound)?0.5:0;
-  AC.sfxG=AC.ctx.createGain();AC.sfxG.gain.value=(!S||S.sfx)?0.55:0;
+  AC.ambG=AC.ctx.createGain();AC.ambG.gain.value=ambVol();
+  AC.sfxG=AC.ctx.createGain();AC.sfxG.gain.value=sfxVol();
   AC.ambG.connect(AC.ctx.destination);AC.sfxG.connect(AC.ctx.destination);
   if(gameOn)startAmbience(zoneOf().amb);
  }catch(e){}
@@ -928,6 +945,7 @@ function stopAmbience(){
  AC.amb=[];AC.timers=[];
  stopCowTrack();
  stopHaalandTrack();
+ stopAmbTrack();
 }
 function windLayer(vol,freq,q){
  const src=AC.ctx.createBufferSource();src.buffer=noiseBuf();src.loop=true;
@@ -978,6 +996,20 @@ function noiseSweep(dur,vol,f0,f1,dest){
  g.gain.exponentialRampToValueAtTime(vol,t+dur*0.35);g.gain.exponentialRampToValueAtTime(0.001,t+dur);
  src.connect(f);f.connect(g);g.connect(dest||AC.sfxG);src.start(t);src.stop(t+dur+0.02);
 }
+/* ---- Medieval ambient music for normal zones: one shared looping track ---- */
+const AMBIENT_MUSIC_URL='medieval_ambient.mp3';
+let ambAudio=null;
+function startAmbTrack(){
+ if(!ambAudio){
+  ambAudio=new Audio(AMBIENT_MUSIC_URL);
+  ambAudio.loop=true;
+  ambAudio.onerror=()=>{ambAudio=null;};
+ }
+ ambAudio.volume=ambVol();
+ ambAudio.play().catch(()=>{});
+ return true;
+}
+function stopAmbTrack(){if(ambAudio)ambAudio.pause();}
 /* ---- Cow Level music: plays cow_music.mp3 if present, else the synth track ---- */
 const COW_MUSIC_URL='cow_music.mp3';
 let cowAudio=null;
@@ -988,7 +1020,7 @@ function startCowTrack(){
   cowAudio.loop=true;
   cowAudio.onerror=()=>{cowAudio=null;startCowMusic();}; /* file missing → synth */
  }
- cowAudio.volume=(S&&S.sound)?0.5:0;
+ cowAudio.volume=ambVol();
  cowAudio.currentTime=0;
  cowAudio.play().catch(()=>{});
  return true;
@@ -1021,7 +1053,7 @@ function startHaalandTrack(){
   haalandAudio.loop=true;
   haalandAudio.onerror=()=>{haalandAudio=null;startMusic(true);}; /* file missing → dark synth */
  }
- haalandAudio.volume=(S&&S.sound)?0.5:0;
+ haalandAudio.volume=ambVol();
  haalandAudio.currentTime=0;
  haalandAudio.play().catch(()=>{});
  return true;
@@ -1073,26 +1105,12 @@ function startMusic(dark){
 }
 function startAmbience(prof){
  if(!AC.ctx)return;
+ if(prof!=='cow'&&prof!=='haaland')prof='world'; /* one shared track for all normal zones */
  if(AC.prof===prof)return;
  stopAmbience();AC.prof=prof;
- const A=AC.ambG;
- const T=(fn,lo,hi)=>AC.timers.push(setInterval(()=>{if(Math.random()<0.8)fn();},lo+Math.random()*hi));
- if(prof==='meadow'){windLayer(.05,420,.8);T(()=>{for(let i=0;i<3;i++)setTimeout(()=>blip(2200+Math.random()*600,2800,0.09,.05,'sine',A),i*130);},2500,4000);}
- if(prof==='forest'){windLayer(.08,300,.8);T(()=>blip(1800+Math.random()*500,2300,0.12,.04,'sine',A),4000,5000);T(()=>blip(500,420,0.3,.025,'sine',A),9000,8000);}
- if(prof==='mountain'){windLayer(.12,500,.7);windLayer(.05,1600,6);}
- if(prof==='marsh'){windLayer(.04,350,.8);T(()=>blip(190,150,0.18,.05,'square',A),2200,3500);T(()=>{for(let i=0;i<4;i++)setTimeout(()=>blip(4200,4200,0.03,.02,'sine',A),i*70);},1500,2500);}
- if(prof==='moor'){windLayer(.08,380,.8);droneLayer([55,58],.035);}
- if(prof==='dry'){windLayer(.13,600,.6);}
- if(prof==='cave'){droneLayer([48,51],.045);T(()=>blip(900,600,0.15,.04,'sine',A),3000,5000);}
- if(prof==='crypt'){droneLayer([41,44,82],.04);T(()=>blip(700,400,0.25,.03,'sine',A),5000,6000);}
- if(prof==='frost'){windLayer(.14,700,.7);windLayer(.06,2100,8);}
- if(prof==='ember'){windLayer(.05,300,.7);droneLayer([65],.03);T(()=>noiseHit(0.05+Math.random()*0.05,.05,1400,A),200,400);}
- if(prof==='coast'){const wl=()=>{noiseHit(1.6,.08,420,A);};T(wl,2600,1800);windLayer(.07,450,.8);T(()=>blip(1200,700,0.35,.03,'sawtooth',A),7000,8000);}
- if(prof==='war'){droneLayer([49,52],.04);T(()=>blip(75,50,0.25,.09,'sine',A),1400,900);T(()=>noiseHit(0.08,.04,1200,A),600,900);}
- if(prof==='tavern'){droneLayer([65],.02);T(()=>noiseHit(0.04+Math.random()*0.05,.045,1300,A),150,350);}
  if(prof==='cow'){if(!startCowTrack())startCowMusic();return;}
  if(prof==='haaland'){windLayer(.14,700,.7);if(!startHaalandTrack())startMusic(true);return;}
- startMusic(['crypt','war','ember'].includes(prof));
+ startAmbTrack();
 }
 /* Combat / one-shot sounds — all routed through the sfx bus (⚔️ button mutes just these). */
 const sfx={
@@ -1706,9 +1724,9 @@ function heroDies(){
  if(zoneOf().west||zoneOf().boss)hero.sentHome=true;
  hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;
  sfx.die();
- if(hero.sentHome)stageMsg('Defeated… you wake by the tavern hearth.',2600);
+ if(hero.sentHome)stageMsg('Defeated… you wake by the hearth in Goldshire.',2600);
  else stageMsg('Defeated… you regroup at the roadside.',2600);
- log('<span class="imp">Defeated.</span>'+(hero.sentHome?' You are carried back to the Driftwood Tavern — gear intact.':' You regroup at this region’s entrance — gear intact.'));
+ log('<span class="imp">Defeated.</span>'+(hero.sentHome?' You are carried back to Goldshire — gear intact.':' You regroup at this region’s entrance — gear intact.'));
 }
 function completeQuest(){
  const q=questOf(),qs=questsOf();
@@ -2015,8 +2033,8 @@ function update(dt){
     S.lastZone=Math.min(S.zone,ZONES.length-1);
     S.zone=TAVERN_ZONE;S.quest=0;S.qProg=0;
     applyZoneUI();buildZone();renderHUD();save();
-    stageMsg('You wake by the tavern hearth — gear and loot intact.',3000);
-    log('<span class="imp">Carried back to the Driftwood Tavern.</span> Rest, then march again.');
+    stageMsg('You wake by the hearth in Goldshire — gear and loot intact.',3000);
+    log('<span class="imp">Carried back to Goldshire.</span> Rest, then march again.');
    }else{
     hero.dead=false;hero.hp=heroMax();hero.mana=manaMax();
     hero.x=world.spawn.x;hero.y=world.spawn.y;
@@ -2342,7 +2360,7 @@ function drawProp(s,z){
    if(Math.random()<0.12)parts.push({x:s.x+w*0.55+4,y:s.y-hh*1.25,vx:(Math.random()-0.5)*6,vy:-18,t:0,life:1.6,c:'rgba(200,200,200,0.5)',r:2.5,g:0});
    ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;
    ctx.textAlign='center';ctx.fillStyle='#ffe9a0';
-   ctx.fillText('🍺 THE DRIFTWOOD',0,-hh*1.45);
+   ctx.fillText('🍺 GOLDSHIRE INN',0,-hh*1.45);
   }
  }else if(s.type==='well'){
   ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,6,22,9,0,0,7);ctx.fill();
@@ -2675,7 +2693,7 @@ function renderHUD(){
  $('hXP').style.width=(S.lvl>=MAXLVL?100:Math.min(100,100*S.xp/xpNeed(S.lvl)))+'%';
  const z=zoneOf(),q=questOf(),nz=ZONES[S.zone+1];
  if(zoneOf().tavern){
-  $('qName').textContent='🍺 The Driftwood Tavern';
+  $('qName').textContent='🍺 Goldshire';
   $('qDesc').textContent='Safe haven — health and mana return swiftly here.';
   $('qBar').style.width='100%';$('qCount').textContent='☕';
   $('nextBtn').style.display='none';
@@ -2831,14 +2849,7 @@ function renderMap(){
   /* continent filter */
   if(mapContinent==='east'&&z.west)return '';
   if(mapContinent==='west'&&!z.west)return '';
-  if(z.tavern){
-   if(mapContinent!=='east')return '';
-   return `<div class="card zonecard ${i===S.zone?'active':''}" data-z="${i}" style="border-color:var(--brass-deep)">
-    <div class="zdot" style="background:linear-gradient(160deg,${z.ground},${z.tree})">🍺</div>
-    <div class="zinfo"><div class="zn">${z.name}</div>
-    <div class="zl">Safe haven · rapid rest · no foes</div></div>
-    ${i===S.zone?'<span class="ztag">Here</span>':'<span class="ztag done">🍺 Home</span>'}</div>`;
-  }
+  if(z.tavern)return '';
   if(z.special){
    if(z.cow){
     const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
@@ -2874,7 +2885,6 @@ function renderMap(){
   el.onclick=()=>{
    const i=+el.dataset.z,z=ZONES[i];
    if(i===S.zone)return;
-   if(z.tavern){S.lastZone=S.zone;S.zone=i;S.quest=0;S.qProg=0;applyZoneUI();buildZone();renderHUD();save();openTab('battle');stageMsg('🍺 Welcome home.');return;}
    if(z.special){
     if((S.prestige||0)<5){if(z.cow){stageMsg('Reach Prestige 5 to hear the mooing',1600);sfx.warn();}return;}
     if(z.cow&&S.bag.filter(it=>!isLegendary(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
@@ -3113,7 +3123,7 @@ function fillerCard(){
 function prizeValue(type){
  const r=Math.random();
  if(type==='gold'){
-  if(r<0.0036){
+  if(r<0.002){
    const it=rollFrostmourne();
    log(`LEGENDARY: <span class="llegendary">Frostmourne</span> hungers…`,'loot');
    it._lid=lootUID++;
@@ -3564,7 +3574,7 @@ function goHome(){
   S.zone=TAVERN_ZONE;S.quest=0;S.qProg=0;
   applyZoneUI();buildZone();renderHUD();save();
   openTab('battle');
-  stageMsg('🍺 Welcome to the Driftwood Tavern — rest easy.',2200);
+  stageMsg('🍺 Welcome to Goldshire — rest easy.',2200);
  }
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
@@ -3982,22 +3992,25 @@ $('nextBtn').onclick=()=>{
 $('autoEquipBtn').onclick=()=>{S.autoEquip=!S.autoEquip;renderHero();save();};
 $('sndBtn').onclick=()=>{
  initAudio();
- S.sound=!S.sound;
- if(AC.ambG)AC.ambG.gain.value=S.sound?0.5:0;
- if(cowAudio)cowAudio.volume=S.sound?0.5:0;
- if(haalandAudio)haalandAudio.volume=S.sound?0.5:0;
- $('sndBtn').textContent=S.sound?'🔊':'🔇';
- $('sndBtn').classList.toggle('off',!S.sound);
- save();
+ $('volSfxBox').classList.remove('open');
+ $('volAmbBox').classList.toggle('open');
+ $('volAmbSl').value=Math.round((S.volAmb??0.5)*100);
 };
 $('sfxBtn').onclick=()=>{
  initAudio();
- S.sfx=!S.sfx;
- if(AC.sfxG)AC.sfxG.gain.value=S.sfx?0.55:0;
- $('sfxBtn').textContent=S.sfx?'⚔️':'🔕';
- $('sfxBtn').classList.toggle('off',!S.sfx);
- stageMsg(S.sfx?'Combat sounds on':'Combat sounds muted — ambience stays on',1400);
- save();
+ $('volAmbBox').classList.remove('open');
+ $('volSfxBox').classList.toggle('open');
+ $('volSfxSl').value=Math.round((S.volSfx??0.55)*100);
+};
+$('volAmbSl').oninput=e=>{
+ S.volAmb=e.target.value/100;S.sound=S.volAmb>0;
+ $('sndBtn').textContent=S.sound?'🔊':'🔇';$('sndBtn').classList.toggle('off',!S.sound);
+ applyVolumes();save();
+};
+$('volSfxSl').oninput=e=>{
+ S.volSfx=e.target.value/100;S.sfx=S.volSfx>0;
+ $('sfxBtn').textContent=S.sfx?'⚔️':'🔕';$('sfxBtn').classList.toggle('off',!S.sfx);
+ applyVolumes();save();
 };
 let audioPaused=false,gamePaused=false;
 $('musBtn').onclick=()=>{
@@ -4019,8 +4032,9 @@ function beginGame(isNew){
  resize();applyZoneUI();buildZone();buildSkillbar();renderHUD();
  $('sndBtn').textContent=S.sound?'🔊':'🔇';$('sndBtn').classList.toggle('off',!S.sound);
  $('sfxBtn').textContent=S.sfx?'⚔️':'🔕';$('sfxBtn').classList.toggle('off',!S.sfx);
- if(AC.ambG)AC.ambG.gain.value=S.sound?0.5:0;
- if(AC.sfxG)AC.sfxG.gain.value=S.sfx?0.55:0;
+ $('volAmbSl').value=Math.round((S.volAmb??0.5)*100);
+ $('volSfxSl').value=Math.round((S.volSfx??0.55)*100);
+ applyVolumes();
  gameOn=true;
  setTimeout(()=>{$('hint').style.opacity=0;},8000);
  if(isNew){
