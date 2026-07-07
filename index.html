@@ -1171,45 +1171,76 @@ function buildZone(){
  if(!zoneOf().special&&(S.maxZone||0)<S.zone)S.maxZone=S.zone;
  const z=zoneOf(),R=mulberry32(S.zone*7919+13);
  const isBoss=!!z.boss;
- world={w:z.tavern?1000:isBoss?1700:2400,h:z.tavern?800:isBoss?1250:1700,solids:[],deco:[],waters:[]}; /* larger maps — boss arenas too */
+ world={w:z.tavern?2000:isBoss?1700:2400,h:z.tavern?1400:isBoss?1250:1700,solids:[],deco:[],waters:[]}; /* larger maps — boss arenas too */
  world.spawn={x:120,y:world.h/2};
  world.portal={x:world.w-80,y:world.h/2};
  world.pathY=world.h/2;world.pathH=110;
- if(!isBoss){
-  const nW=z.rocky?2:3+Math.floor(R()*2);
-  for(let i=0;i<nW;i++){
-   const wx=250+R()*(world.w-600);
-   const wy=R()<.5?120+R()*(world.pathY-260):world.pathY+150+R()*(world.h-world.pathY-280);
-   const wr=60+R()*70;
-   world.waters.push({x:wx,y:wy,r:wr});
-   world.solids.push({x:wx,y:wy,r:wr*0.92,type:'water'});
+ if(z.tavern){
+  const cx=world.w/2,cy=world.h/2;
+  world.spawn={x:cx,y:cy+180};           /* you arrive at the square */
+  world.square={x:cx,y:cy,r:230};        /* plaza radius, used by prerender */
+  /* the well in the middle of the square */
+  world.solids.push({x:cx,y:cy,r:20,type:'well'});
+  /* the big tavern at the top of the square */
+  world.solids.push({x:cx,y:cy-330,r:52,type:'house',big:true,seed:1});
+  /* small houses ringing the square */
+  const HOUSES=[
+   {x:cx-380,y:cy-160},{x:cx+380,y:cy-160},
+   {x:cx-430,y:cy+120},{x:cx+430,y:cy+120},
+   {x:cx-220,y:cy+330},{x:cx+220,y:cy+330},
+   {x:cx-620,y:cy-40},{x:cx+620,y:cy-40},
+  ];
+  HOUSES.forEach((h,i)=>world.solids.push({x:h.x,y:h.y,r:34,type:'house',seed:i*13+2}));
+  /* lanterns at the square's edge */
+  for(let i=0;i<6;i++){
+   const a=i/6*6.283;
+   world.solids.push({x:cx+Math.cos(a)*world.square.r,y:cy+Math.sin(a)*world.square.r*0.8,r:5,type:'lantern'});
   }
- }
- /* fewer props with an enforced minimum gap so nothing clumps and traps the hero */
- const MINGAP=58;
- const clearOf=(x,y)=>!world.solids.some(s=>dist({x,y},s)<(s.type==='water'?s.r+46:MINGAP));
- const nT=isBoss?34:70;
- for(let i=0;i<nT;i++){
-  let x,y,ok=false;
-  if(isBoss){
-   for(let k=0;k<14&&!ok;k++){
-    const a=R()*6.28,rr=Math.min(world.w,world.h)*0.44+R()*30;
-    x=world.w/2+Math.cos(a)*rr;y=world.h/2+Math.sin(a)*rr*0.85;
-    x=Math.max(40,Math.min(world.w-40,x));y=Math.max(40,Math.min(world.h-40,y));
-    if(Math.abs(y-world.pathY)<70&&(x<200||x>world.w-160))continue;
-    if(clearOf(x,y))ok=true;
-   }
-  }else{
-   for(let k=0;k<30&&!ok;k++){
-    x=60+R()*(world.w-120);y=60+R()*(world.h-120);
-    if(Math.abs(y-world.pathY)<world.pathH*0.8)continue;
-    if(dist({x,y},world.spawn)<170||dist({x,y},world.portal)<170)continue;
-    if(clearOf(x,y))ok=true;
+  /* a few trees around the outskirts */
+  const TR=mulberry32(99);
+  for(let i=0;i<26;i++){
+   const x=60+TR()*(world.w-120),y=60+TR()*(world.h-120);
+   if(Math.hypot(x-cx,y-cy)<world.square.r+140)continue;
+   if(world.solids.some(s=>dist({x,y},s)<70))continue;
+   world.solids.push({x,y,r:12+TR()*6,type:'tree',s:0.8+TR()*0.7,seed:TR()*100});
+  }
+ }else{
+  if(!isBoss){
+   const nW=z.rocky?2:3+Math.floor(R()*2);
+   for(let i=0;i<nW;i++){
+    const wx=250+R()*(world.w-600);
+    const wy=R()<.5?120+R()*(world.pathY-260):world.pathY+150+R()*(world.h-world.pathY-280);
+    const wr=60+R()*70;
+    world.waters.push({x:wx,y:wy,r:wr});
+    world.solids.push({x:wx,y:wy,r:wr*0.92,type:'water'});
    }
   }
-  if(!ok)continue;
-  const rock=z.rocky?R()<.6:R()<.2;
-  world.solids.push({x,y,r:rock?14+R()*8:12+R()*6,type:rock?'rock':'tree',s:0.8+R()*0.7,seed:R()*100});
+  /* fewer props with an enforced minimum gap so nothing clumps and traps the hero */
+  const MINGAP=58;
+  const clearOf=(x,y)=>!world.solids.some(s=>dist({x,y},s)<(s.type==='water'?s.r+46:MINGAP));
+  const nT=isBoss?34:70;
+  for(let i=0;i<nT;i++){
+   let x,y,ok=false;
+   if(isBoss){
+    for(let k=0;k<14&&!ok;k++){
+     const a=R()*6.28,rr=Math.min(world.w,world.h)*0.44+R()*30;
+     x=world.w/2+Math.cos(a)*rr;y=world.h/2+Math.sin(a)*rr*0.85;
+     x=Math.max(40,Math.min(world.w-40,x));y=Math.max(40,Math.min(world.h-40,y));
+     if(Math.abs(y-world.pathY)<70&&(x<200||x>world.w-160))continue;
+     if(clearOf(x,y))ok=true;
+    }
+   }else{
+    for(let k=0;k<30&&!ok;k++){
+     x=60+R()*(world.w-120);y=60+R()*(world.h-120);
+     if(Math.abs(y-world.pathY)<world.pathH*0.8)continue;
+     if(dist({x,y},world.spawn)<170||dist({x,y},world.portal)<170)continue;
+     if(clearOf(x,y))ok=true;
+    }
+   }
+   if(!ok)continue;
+   const rock=z.rocky?R()<.6:R()<.2;
+   world.solids.push({x,y,r:rock?14+R()*8:12+R()*6,type:rock?'rock':'tree',s:0.8+R()*0.7,seed:R()*100});
+  }
  }
  for(let i=0;i<160;i++)world.deco.push({x:R()*world.w,y:R()*world.h,k:R()});
  prerenderGround(z,R);
@@ -1322,6 +1353,28 @@ function prerenderGround(z,R){
  if(zoneOf().boss){
   g.strokeStyle='rgba(0,0,0,0.18)';g.lineWidth=10;
   g.beginPath();g.ellipse(world.w/2,world.h/2,Math.min(world.w,world.h)*0.38,Math.min(world.w,world.h)*0.32,0,0,7);g.stroke();
+ }
+ if(z.tavern&&world.square){
+  const q=world.square;
+  /* cobbled plaza */
+  g.fillStyle='rgba(0,0,0,0.10)';
+  g.beginPath();g.ellipse(q.x,q.y+6,q.r*1.05,q.r*0.85,0,0,7);g.fill();
+  g.fillStyle=z.path;
+  g.beginPath();g.ellipse(q.x,q.y,q.r,q.r*0.8,0,0,7);g.fill();
+  /* cobblestone specks */
+  const CR=mulberry32(7);
+  for(let i=0;i<220;i++){
+   const a=CR()*6.283,rr=CR()*q.r*0.96;
+   g.fillStyle=i%2?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.06)';
+   g.beginPath();g.ellipse(q.x+Math.cos(a)*rr,q.y+Math.sin(a)*rr*0.8,4+CR()*5,3+CR()*3,0,0,7);g.fill();
+  }
+  g.strokeStyle='rgba(0,0,0,0.15)';g.lineWidth=6;
+  g.beginPath();g.ellipse(q.x,q.y,q.r,q.r*0.8,0,0,7);g.stroke();
+  /* lanes from the plaza to the houses */
+  g.strokeStyle=z.path;g.lineWidth=34;g.lineCap='round';
+  world.solids.filter(s=>s.type==='house').forEach(h=>{
+   g.beginPath();g.moveTo(q.x,q.y);g.lineTo(h.x,h.y+30);g.stroke();
+  });
  }
  g.strokeStyle='rgba(0,0,0,0.35)';g.lineWidth=26;g.strokeRect(0,0,world.w,world.h);
 }
@@ -2266,6 +2319,46 @@ function drawProp(s,z){
    ctx.fillStyle='rgba(255,255,255,0.13)';
    ctx.beginPath();ctx.moveTo(pts[5][0],pts[5][1]);ctx.lineTo(pts[0][0],pts[0][1]);ctx.lineTo(sway*0.4,-14*s.s);ctx.closePath();ctx.fill();
   }
+ }else if(s.type==='house'){
+  const w=s.big?s.r*1.7:s.r*1.5,hh=s.big?s.r*1.3:s.r*1.1;
+  ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,hh*0.45,w*1.1,hh*0.4,0,0,7);ctx.fill();
+  /* walls */
+  ctx.fillStyle='#8a7458';ctx.fillRect(-w,-hh*0.55,w*2,hh);
+  ctx.fillStyle='rgba(0,0,0,0.12)';ctx.fillRect(0,-hh*0.55,w,hh); /* shaded side */
+  /* roof */
+  ctx.fillStyle=s.big?'#7a3a2e':'#5f4a34';
+  ctx.beginPath();ctx.moveTo(-w*1.15,-hh*0.55);ctx.lineTo(0,-hh*1.35);ctx.lineTo(w*1.15,-hh*0.55);ctx.closePath();ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.10)';
+  ctx.beginPath();ctx.moveTo(-w*1.15,-hh*0.55);ctx.lineTo(0,-hh*1.35);ctx.lineTo(0,-hh*0.55);ctx.closePath();ctx.fill();
+  /* door */
+  ctx.fillStyle='#4a3826';ctx.fillRect(-w*0.18,hh*0.45-hh*0.5,w*0.36,hh*0.5);
+  /* warm glowing windows */
+  const flick=0.75+0.25*Math.sin(performance.now()/300+s.seed*7);
+  ctx.fillStyle='rgba(255,214,120,'+(0.85*flick)+')';
+  ctx.fillRect(-w*0.7,-hh*0.3,w*0.28,hh*0.3);
+  ctx.fillRect(w*0.42,-hh*0.3,w*0.28,hh*0.3);
+  if(s.big){ /* tavern sign + chimney smoke */
+   ctx.fillStyle='#3f3226';ctx.fillRect(w*0.55,-hh*1.25,8,hh*0.35);
+   if(Math.random()<0.12)parts.push({x:s.x+w*0.55+4,y:s.y-hh*1.25,vx:(Math.random()-0.5)*6,vy:-18,t:0,life:1.6,c:'rgba(200,200,200,0.5)',r:2.5,g:0});
+   ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;
+   ctx.textAlign='center';ctx.fillStyle='#ffe9a0';
+   ctx.fillText('🍺 THE DRIFTWOOD',0,-hh*1.45);
+  }
+ }else if(s.type==='well'){
+  ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,6,22,9,0,0,7);ctx.fill();
+  ctx.fillStyle='#8b8a80';ctx.beginPath();ctx.ellipse(0,0,18,10,0,0,7);ctx.fill();
+  ctx.fillStyle='#2f4a5a';ctx.beginPath();ctx.ellipse(0,-2,13,7,0,0,7);ctx.fill();
+  ctx.strokeStyle='#5a4630';ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(-14,-2);ctx.lineTo(-14,-24);ctx.moveTo(14,-2);ctx.lineTo(14,-24);ctx.stroke();
+  ctx.fillStyle='#5f4a34';
+  ctx.beginPath();ctx.moveTo(-18,-24);ctx.lineTo(0,-34);ctx.lineTo(18,-24);ctx.closePath();ctx.fill();
+ }else if(s.type==='lantern'){
+  const gl=0.5+0.3*Math.sin(performance.now()/260+s.x);
+  ctx.strokeStyle='#4a3826';ctx.lineWidth=3;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(0,4);ctx.lineTo(0,-26);ctx.stroke();
+  ctx.fillStyle='rgba(255,214,120,'+(0.25*gl)+')';
+  ctx.beginPath();ctx.arc(0,-28,10,0,7);ctx.fill();
+  ctx.fillStyle='#ffd76a';ctx.beginPath();ctx.arc(0,-28,3.5,0,7);ctx.fill();
  }else{
   ctx.fillStyle='rgba(0,0,0,0.2)';ctx.beginPath();ctx.ellipse(0,4,s.r*1.1,s.r*0.5,0,0,7);ctx.fill();
   ctx.fillStyle='#8b8a80';ctx.beginPath();
