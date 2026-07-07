@@ -993,18 +993,23 @@ function rollItem(forceRar,lucky){
  return it;
 }
 function calcPower(it){it.power=it.atk*3+it.hp*0.6+it.crit*4;}
-/* --- Frostmourne: legendary, atk always re-scales to your level/zone/prestige --- */
-const FM_MUL=5.5;
+/* --- Frostmourne: legendary, live-scales, but only slightly above normal gear --- */
+const FM_BONUS=1.05;     /* Frostmourne baseline = ~5% above the best normal weapon for your effective level */
+const FM_MAX_UP=10;      /* legendary cap: max +10 upgrades */
 const isFM=it=>it&&it.legend==='frostmourne';
-function fmBaseAtk(){
- /* Frostmourne must not reset to low damage after prestige.
-    UI level can be Lv 1, but internally P3 Lv1 = effective Lv181.
-    Do not use maxZone here — old/prestige-clamped saves can make it look like Home gear. */
+function bestNormalWeaponAtk(){
+ /* Normal epic weapons roll up to (3+3) * epic rarity * gear scale.
+    Frostmourne mirrors that same top-end curve, but uses effectiveHeroLvl() so prestige
+    does not make it reset to Lv 1 damage. */
  const L=Math.max(1,effectiveHeroLvl());
- return Math.round(4.5*FM_MUL*(1+L*0.18)*Math.pow(1.15,S.prestige||0));
+ const zi=Math.max(S.zone||0,progZone(S)||0);
+ const z=(1+zi*0.9+L*0.18)*(1+(S.prestige||0)*0.25);
+ return Math.round(6*RARMUL.epic*z);
 }
+function fmBaseAtk(){return Math.max(1,Math.round(bestNormalWeaponAtk()*FM_BONUS));}
 function syncFrostmourne(it){
  if(!isFM(it)||!S)return it;
+ it.up=Math.min(it.up||0,FM_MAX_UP);
  it.baseAtk=fmBaseAtk();
  it.atk=Math.round(it.baseAtk*Math.pow(1.12,it.up||0));
  it.crit=it.baseCrit=5;it.hp=it.baseHp=0;
@@ -1028,6 +1033,7 @@ function upCost(it){
 }
 function upgradeItem(it){
  if(inBossFight()){stageMsg('You cannot forge upgrades mid-boss-fight!',1500);sfx.warn();return false;}
+ if(isFM(it)&&((it.up||0)>=FM_MAX_UP)){stageMsg('Frostmourne is already maxed at +'+FM_MAX_UP+'.',1500);return false;}
  const cost=upCost(it);
  if(S.scraps<cost){stageMsg('Not enough Scraps ('+cost+'⚙ needed)',1400);return false;}
  ensureItemBase(it);
