@@ -517,6 +517,7 @@
     <div>
       <span class="continent-tab cur" id="eastTab">Riptide — Eastern Realm</span>
       <span class="continent-tab" id="westTab">🔒 Western Continent · Prestige 5</span>
+      <span class="continent-tab" id="valhallaTab">🔒 Valhalla · Prestige 1</span>
     </div>
     <div id="zoneList"></div>
   </div>
@@ -619,6 +620,18 @@ const MAXLVL=60;
 const SEASON=1; /* bump this to wipe everyone */
 const GOLD_CAP_BASE=500000,GOLD_CAP_ROOF=2000000,SCRAP_CAP=800,BOOST_COST_CAP=500000,GEAR_UPGRADE_COST_CAP=400;
 const goldCap=(ch)=>{const p=((ch||S||{}).prestige)||0;return Math.min(GOLD_CAP_ROOF,GOLD_CAP_BASE+Math.floor(p/5)*500000);};
+/* ==================== THOR WINDOWS ==================== */
+const THOR_PERIOD=3*3600*1000,THOR_OPEN=15*60*1000;
+const thorWindow=()=>Math.floor(Date.now()/THOR_PERIOD);
+function thorStatus(){
+ const t=Date.now()%THOR_PERIOD;
+ return t<THOR_OPEN?{open:true,left:THOR_OPEN-t}:{open:false,next:THOR_PERIOD-t};
+}
+const thorLocked=()=>S&&S.thorLock===thorWindow();
+const fmtMS=ms=>{
+ const s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;
+ return h>0?h+'h '+m+'m':m+'m '+String(ss).padStart(2,'0')+'s';
+};
 /* effective wealth = what you carry + what your bag would sell/scrap for */
 const bagGoldVal=()=>((S&&S.bag)||[]).reduce((t,it)=>t+(it.sell||0),0);
 const bagScrapVal=()=>((S&&S.bag)||[]).reduce((t,it)=>t+scrapVal(it),0);
@@ -751,6 +764,9 @@ const ZONES=[
  {name:'Gates of the Viking',lvl:60,amb:'haaland',west:true,special:true,
   boss:['HAALAND the Three-Headed','#c94a3a','cerberus'],
   ground:'#8a94a0',ground2:'#7d8794',water:'#5a7a9a',tree:'#4a5a66',tree2:'#39464f',path:'#a8b0ba',rocky:true},
+ {name:'Halls of Valhalla',lvl:60,amb:'frost',valhalla:true,special:true,thor:true,
+  boss:['Thor, God of Thunder','#7fd0ff','thor'],
+  ground:'#8a94b8',ground2:'#7d87aa',water:'#9ac8e8',tree:'#5a6a8a',tree2:'#46536e',path:'#d8cfa0',rocky:true},
  {name:'Cow Level',lvl:60,amb:'cow',west:true,special:true,cow:true,
   ground:'#6a9a4e',ground2:'#5f8c46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
  {name:'Goldshire',lvl:1,amb:'tavern',special:true,tavern:true,
@@ -769,6 +785,12 @@ function zoneTemplates(z){
  const pm=pMul(),pr=pRew();
  const L=effZoneLvl(z);   /* HP/damage/gold scale to deepest zone */
  const XL=xpZoneLvl(z);  /* XP stays tied to the real zone level */
+ if(z.thor){
+  const L=Math.max(S.lvl,10),pm=pMul(),pr=pRew();
+  return [{name:z.boss[0],kind:'boss',boss:true,bossId:'thor',c:z.boss[1],speed:95,
+   hp:Math.round(eHP(L)*60*pm),atk:Math.round(eATK(L)*2.0*pm),
+   xp:Math.round(eHP(L)*6*pr),gold:Math.round(eHP(L)*4*pr)}];
+ }
  if(z.boss){
   const km=z.special?Math.pow(1.5,S.cerberusKills||0):1;   /* +50% per kill, compounding */
   const bm=z.special?2:1;                                   /* HAALAND's base is beefier */
@@ -841,7 +863,7 @@ const speedBoostMul=()=>1+boostBonus(S.boosts?S.boosts.speed:0);
 const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0);
 function freshState(name,race,cls){
  return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,lastZone:0,maxZone:0,quest:0,qProg:0,
-  rating:0,cerberusKills:0,freeGoldCases:0,cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
+  rating:0,cerberusKills:0,thorKills:0,thorLock:-1,freeGoldCases:0,cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
   gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],pet:null,pets:[],
   boosts:{speed:0,haste:0},
   cleared:{},bossDead:{},zoneLvlGain:{},
@@ -883,6 +905,8 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.prestige===undefined)s.prestige=0;
  if(s.rating===undefined)s.rating=0;
  if(s.cerberusKills===undefined)s.cerberusKills=0;
+ if(s.thorLock===undefined)s.thorLock=-1;
+ if(s.thorKills===undefined)s.thorKills=0;
  if(s.freeGoldCases===undefined)s.freeGoldCases=0;
  if(s.cowBest===undefined)s.cowBest=0;
  if(s.cowLast===undefined)s.cowLast=0;
@@ -1403,6 +1427,12 @@ function spawnAdd(name,kind,c){
  const z=zoneOf();
  const L=effZoneLvl(z);   /* HP/damage/gold scale to deepest zone */
  const XL=xpZoneLvl(z);  /* XP stays tied to the real zone level */
+ if(z.thor){
+  const L=Math.max(S.lvl,10),pm=pMul(),pr=pRew();
+  return [{name:z.boss[0],kind:'boss',boss:true,bossId:'thor',c:z.boss[1],speed:95,
+   hp:Math.round(eHP(L)*60*pm),atk:Math.round(eATK(L)*2.0*pm),
+   xp:Math.round(eHP(L)*6*pr),gold:Math.round(eHP(L)*4*pr)}];
+ }
  const boss=enemies.find(e=>e.boss&&!e.dead);
  const bx=boss?boss.x:world.w/2,by=boss?boss.y:world.h/2;
  const a=Math.random()*6.28;
@@ -1767,6 +1797,19 @@ function killEnemy(en){
    log(`<span class="imp">HAALAND slain ×${S.cerberusKills}.</span> +125 Rating, +${sc} Scraps.`);
    log(`The beast's hoard spills open — <span class="loot">10 free GOLD GOLD GOLD cases</span>!`);
    publishLB(S,true);
+  }else if(en.bossId==='thor'){
+   S.thorKills=(S.thorKills||0)+1;
+   S.rating=(S.rating||0)+100;
+   const sc=addScraps(50);
+   for(let k=0;k<2;k++){
+    const it=rollItem('epic');
+    log(`Valhalla's tribute: <span class="lepic">${it.name}</span> ${itemStr(it)}.`,'loot');
+    if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
+   }
+   floatAt(en.x,en.y-en.r-44,'+100 RATING','#7fd0ff');
+   stageMsg('⚡ Thor falls! +100 Rating — Valhalla honors you.',3200);
+   log(`<span class="imp">Thor slain ×${S.thorKills}.</span> +100 Rating, +${sc} Scraps.`);
+   publishLB(S,true);
   }else{
    S.bossDead[S.zone]=true;
    const sc=addScraps(40);
@@ -1820,6 +1863,11 @@ function heroDies(){
   log(`<span class="imp">Trampled after ${fmt(cowT)} — ${cowItems} items looted.</span>${newBest?' <span class="loot">New record!</span>':''} All loot kept.`);
   save();
   return;
+ }
+ if(zoneOf().thor){
+  S.thorLock=thorWindow();
+  stageMsg('⚡ Thor casts you from Valhalla — return when the storm gathers again.',3200);
+  log('<span class="imp">Slain in Valhalla.</span> The gates are sealed until Thor next appears.');
  }
  if(zoneOf().west||zoneOf().boss)hero.sentHome=true;
  hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;
@@ -1986,6 +2034,39 @@ function bossAI(en,dt){
   if(en.cds.c<=0){en.cds.c=16*cdm;
    if(addsAlive()<2){spawnAdd('Legionnaire','humanoid','#a04a3a');
     floatAt(en.x,en.y-en.r-30,'To me!','#e8a08a',true);}
+  }
+ }else if(B==='thor'){ /* lightning bolts, thunderstrikes, and a rotating chain-lightning storm */
+  if(en.stormA===undefined){en.stormA=Math.random()*6.28;en.stormTick=0;}
+  en.stormA+=dt*0.55;
+  en.stormTick-=dt;
+  const cx=world.w/2,cy=world.h/2,RR=Math.min(world.w,world.h)*0.30;
+  let prev=null;
+  for(let i=0;i<3;i++){
+   const a=en.stormA+i*2.094;
+   const px=cx+Math.cos(a)*RR,py=cy+Math.sin(a)*RR*0.8;
+   if(Math.random()<0.22)zapLine(px+(Math.random()-0.5)*30,py-80,px,py-6);
+   if(prev&&Math.random()<0.10)zapLine(prev[0],prev[1]-8,px,py-8);
+   if(Math.random()<0.08)ring(px,py,44,'#7fd0ff',0.4);
+   if(Math.random()<0.15)burst(px,py-4,'#7fd0ff',2,50);
+   if(!hero.dead&&en.stormTick<=0&&Math.hypot(hero.x-px,hero.y-py)<48){
+    hurtHero(en.atk*0.5,'⚡');en.stormTick=0.5;sfx.arcane();
+   }
+   prev=[px,py];
+  }
+  if(en.cds.a<=0){en.cds.a=7;sfx.warn();
+   for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*110,hero.y+(Math.random()-0.5)*110,44,1.1,en.atk*1.5,'#7fd0ff');
+   floatAt(en.x,en.y-en.r-30,'THUNDERSTRIKE!','#7fd0ff',true);
+  }
+  if(en.cds.b<=0&&dist(en,hero)>55){en.cds.b=4;
+   const d=dist(en,hero)||1;
+   for(let i=0;i<2;i++)ebolts.push({x:en.x+(i-0.5)*14,y:en.y-16,vx:(hero.x-en.x)/d*(240+i*40),vy:(hero.y-en.y)/d*(240+i*40),t:0,dmg:en.atk*0.85,c:'#7fd0ff'});
+   sfx.bolt();
+  }
+  if(en.cds.c<=0){en.cds.c=15;
+   zapLine(en.x,en.y-20,hero.x,hero.y-10);
+   if(!hero.dead)hurtHero(en.atk*0.9,'⚡');
+   floatAt(en.x,en.y-en.r-30,'Mjölnir calls!','#dff4ff',true);
+   sfx.arcane();shakeT=0.25;
   }
  }else if(B==='cerberus'){ /* HAALAND: hellfire, volleys, hounds, strikes & ground shake */
   if(en.cds.a<=0){en.cds.a=7;sfx.warn();
@@ -2774,6 +2855,12 @@ function drawEnemy(en){
   }else if(B==='ashmaw'){ /* rising embers, hotter when enraged */
    if(Math.random()<(en.enraged?0.5:0.22))parts.push({x:en.x+(Math.random()-0.5)*30,y:en.y-8,vx:(Math.random()-0.5)*12,vy:-30-Math.random()*24,t:0,life:0.8,c:en.enraged?'#ff5a1a':'#ff9a3a',r:1.7,g:0});
    ctx.strokeStyle='rgba(255,'+(en.enraged?'70':'130')+',40,'+(0.35+0.2*Math.sin(now/110))+')';
+  }else if(B==='thor'){ /* storm god: crackling aura, winged helm glint */
+   if(Math.random()<0.3)parts.push({x:en.x+(Math.random()-0.5)*36,y:en.y-16,vx:(Math.random()-0.5)*14,vy:-20,t:0,life:0.5,c:'#7fd0ff',r:1.5,g:0});
+   if(Math.random()<0.05)zapLine(en.x+(Math.random()-0.5)*40,en.y-en.r-30,en.x,en.y-10);
+   ctx.fillStyle='#e8ecf4';
+   ctx.beginPath();ctx.ellipse(0,-en.r-4+by,en.r*0.34,en.r*0.18,0,0,7);ctx.fill();
+   ctx.strokeStyle='rgba(127,208,255,'+(0.35+0.25*Math.sin(now/110))+')';
   }else if(B==='cerberus'){ /* HAALAND: blond top, two extra heads, ember glow */
    ctx.fillStyle='#f2d98a';
    ctx.beginPath();
@@ -3012,24 +3099,47 @@ function renderHero(){
  $('autoEquipBtn').textContent=S.autoEquip?'On':'Off';
 }
 function renderMap(){
- const p5=(S.prestige||0)>=5;
+ const p5=(S.prestige||0)>=5,p1=(S.prestige||0)>=1;
  if(mapContinent==='west'&&!p5)mapContinent='east';
+ if(mapContinent==='valhalla'&&!p1)mapContinent='east';
  $('eastTab').classList.toggle('cur',mapContinent==='east');
  $('westTab').classList.toggle('cur',mapContinent==='west');
+ $('valhallaTab').classList.toggle('cur',mapContinent==='valhalla');
  $('westTab').textContent=p5?'Western Continent — Land of the Vikings':'🔒 Western Continent · Prestige 5';
+ $('valhallaTab').textContent=p1?'⚡ Valhalla':'🔒 Valhalla · Prestige 1';
  $('westTab').style.cursor=p5?'pointer':'default';
+ $('valhallaTab').style.cursor=p1?'pointer':'default';
  $('eastTab').style.cursor='pointer';
  $('eastTab').onclick=()=>{mapContinent='east';renderMap();};
  $('westTab').onclick=()=>{
   if(!p5){stageMsg('Reach Prestige 5 to cross the western sea',1600);sfx.warn();return;}
   mapContinent='west';renderMap();
  };
+ $('valhallaTab').onclick=()=>{
+  if(!p1){stageMsg('Reach Prestige 1 — only reborn champions may see Valhalla',1600);sfx.warn();return;}
+  mapContinent='valhalla';renderMap();
+ };
  $('zoneList').innerHTML=ZONES.map((z,i)=>{
   /* continent filter */
-  if(mapContinent==='east'&&z.west)return '';
+  if(mapContinent==='east'&&(z.west||z.valhalla))return '';
   if(mapContinent==='west'&&!z.west)return '';
+  if(mapContinent==='valhalla'&&!z.valhalla)return '';
   if(z.tavern)return '';
   if(z.special){
+   if(z.thor){
+    const st=thorStatus(),locked=thorLocked();
+    const stateTxt=locked?'☠ You fell — sealed until the next storm ('+fmtMS(st.open?st.left+0:st.next)+')'
+     :st.open?'⚡ THOR HAS APPEARED — gate closes in '+fmtMS(st.left)
+     :'Next appearance in '+fmtMS(st.next);
+    const canEnter=p1&&st.open&&!locked;
+    return `<div class="card zonecard ${canEnter?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${st.open&&!locked?'#7fd0ff':''}">
+     <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#2a3a6a)">⚡</div>
+     <div class="zinfo"><div class="zn">${z.name}</div>
+     <div class="zl">Thor — appears every 3 hours for 15 minutes · slain ×${S.thorKills||0} · scales to your level · +100 Rating</div>
+     <div class="zl" style="color:${st.open&&!locked?'#7fd0ff':'#8fa898'}">${stateTxt}</div></div>
+     ${i===S.zone?'<span class="ztag">Here</span>':canEnter?'<span class="ztag boss">⚡ Enter</span>':p1?'<span class="ztag boss">⏳ Sealed</span>':'<span class="ztag boss">🔒 Prestige 1</span>'}
+    </div>`;
+   }
    if(z.cow){
     const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
     const bagBlocked=p5&&i!==S.zone&&S.bag.length>0;
@@ -3066,12 +3176,19 @@ function renderMap(){
    const i=+el.dataset.z,z=ZONES[i];
    if(i===S.zone)return;
    if(z.special){
-    if((S.prestige||0)<5){if(z.cow){stageMsg('Reach Prestige 5 to hear the mooing',1600);sfx.warn();}return;}
-    if(z.cow&&S.bag.filter(it=>!isLegendary(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
+    if(z.thor){
+     if((S.prestige||0)<1){stageMsg('Reach Prestige 1 first',1600);sfx.warn();return;}
+     const st=thorStatus();
+     if(thorLocked()){stageMsg('Thor cast you out — wait for his next appearance ('+fmtMS(st.open?st.left:st.next)+')',2200);sfx.warn();return;}
+     if(!st.open){stageMsg('The gates are shut — Thor appears in '+fmtMS(st.next),2200);sfx.warn();return;}
+    }else{
+     if((S.prestige||0)<5){if(z.cow){stageMsg('Reach Prestige 5 to hear the mooing',1600);sfx.warn();}return;}
+     if(z.cow&&S.bag.filter(it=>!isLegendary(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
+    }
    }
    else if(i>progZone()&&(S.lvl<z.lvl||!bossesClearedBefore(i)))return;
    S.zone=i;S.quest=0;S.qProg=0;
-   mapContinent=z.west?'west':'east';
+   mapContinent=z.valhalla?'valhalla':z.west?'west':'east';
    applyZoneUI();buildZone();renderHUD();save();
    openTab('battle');
    stageMsg('Traveling to '+z.name+'…');
@@ -4022,7 +4139,7 @@ function openTab(t){
  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));
  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('cur',b.dataset.tab===t));
  if(t==='hero'){renderHero();$('p-hero').classList.add('open');}
- if(t==='map'){if(S&&zoneOf().west)mapContinent='west';renderMap();$('p-map').classList.add('open');}
+ if(t==='map'){if(S&&zoneOf().west)mapContinent='west';if(S&&zoneOf().valhalla)mapContinent='valhalla';renderMap();$('p-map').classList.add('open');}
  if(t==='bag'){renderBag();$('p-bag').classList.add('open');}
  if(t==='shop'){renderShop();$('p-shop').classList.add('open');}
 }
