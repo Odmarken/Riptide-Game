@@ -433,11 +433,12 @@
 <script>
 /* ==================== DATA ==================== */
 const MAXLVL=60;
-const GOLD_CAP=500000,SCRAP_CAP=800,BOOST_COST_CAP=500000,GEAR_UPGRADE_COST_CAP=400;
+const GOLD_CAP_BASE=500000,GOLD_CAP_ROOF=2000000,SCRAP_CAP=800,BOOST_COST_CAP=500000,GEAR_UPGRADE_COST_CAP=400;
+const goldCap=(ch)=>{const p=((ch||S||{}).prestige)||0;return Math.min(GOLD_CAP_ROOF,GOLD_CAP_BASE+Math.floor(p/5)*500000);};
 /* effective wealth = what you carry + what your bag would sell/scrap for */
 const bagGoldVal=()=>((S&&S.bag)||[]).reduce((t,it)=>t+(it.sell||0),0);
 const bagScrapVal=()=>((S&&S.bag)||[]).reduce((t,it)=>t+scrapVal(it),0);
-const goldRoom=()=>Math.max(0,GOLD_CAP-S.gold-bagGoldVal());
+const goldRoom=()=>Math.max(0,goldCap()-S.gold-bagGoldVal());
 const scrapRoom=()=>Math.max(0,SCRAP_CAP-S.scraps-bagScrapVal());
 function addGold(n){const a=Math.max(0,Math.min(n,goldRoom()));S.gold+=a;return a;}
 function addScraps(n){const a=Math.max(0,Math.min(n,scrapRoom()));S.scraps+=a;return a;}
@@ -606,12 +607,14 @@ const questsOf=()=>zoneQuests(zoneOf());
 const questOf=()=>questsOf()[Math.min(S.quest,questsOf().length-1)];
 const swiftMul=()=>1+scrollPct('swiftness');
 const spellManaCost=sp=>Math.ceil(sp.cost*2); /* spells cost double their base mana */
-const BOOST_BASE_MAX=6; /* 6 purchases = +80% cap */
+const BOOST_BASE_MAX=6;
+const BOOST_PCT_CAP=5.0; /* +500% absolute ceiling */
 const boostMax=()=>BOOST_BASE_MAX+Math.floor((S.prestige||0)/5);
 const nextBoostPrestige=()=>(Math.floor((S.prestige||0)/5)+1)*5;
-const boostBonus=n=>n>0?0.025*Math.pow(2,n-1):0;
+const boostBonus=n=>n>0?Math.min(BOOST_PCT_CAP,0.025*Math.pow(2,n-1)):0;
 const boostCost=n=>Math.min(2500*Math.pow(2,n),BOOST_COST_CAP);
 const boostPct=n=>(Math.round(boostBonus(n)*1000)/10).toLocaleString();
+const boostAtHardCap=n=>boostBonus(n)>=BOOST_PCT_CAP;
 const speedBoostMul=()=>1+boostBonus(S.boosts?S.boosts.speed:0);
 const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0);
 function freshState(name,race,cls){
@@ -640,7 +643,7 @@ function ensureItemBase(it){
 function migrate(s){ /* fills fields missing from older saves */
  if(s.scraps===undefined)s.scraps=0;
  if(s.maxZone===undefined)s.maxZone=s.zone||0;
- if(s.gold>GOLD_CAP)s.gold=GOLD_CAP;
+ if(s.gold>goldCap(s))s.gold=goldCap(s);
  if(s.scraps>SCRAP_CAP)s.scraps=SCRAP_CAP;
  if(s.sfx===undefined)s.sfx=true;
  if(s.prestige===undefined)s.prestige=0;
@@ -1456,7 +1459,9 @@ function travelNext(){
 }
 function doPrestige(){
  if(S.lvl<MAXLVL||!allBossesDead())return;
+ const oldCap=goldCap();
  S.prestige++;
+ if(goldCap()>oldCap)log(`<span class="imp">Vault expanded!</span> Gold cap is now ${goldCap().toLocaleString()} ◉.`);
  S.lvl=1;S.xp=0;S.zone=0;S.quest=0;S.qProg=0;
  S.cleared={};S.bossDead={};S.zoneLvlGain={};S.finished=false;
  applyZoneUI();buildZone();renderHUD();renderHero();save();
@@ -2372,7 +2377,7 @@ function renderVitals(dt){
  $('potHpN').textContent=S.pots.hp;
  $('potMpN').textContent=S.pots.mp;
 }
-const walletStr=()=>`<b>◉ ${S.gold.toLocaleString()}</b> / ${GOLD_CAP.toLocaleString()} gold · <i>⚙ ${S.scraps.toLocaleString()}</i> / ${SCRAP_CAP} scraps`;
+const walletStr=()=>`<b>◉ ${S.gold.toLocaleString()}</b> / ${goldCap().toLocaleString()} gold · <i>⚙ ${S.scraps.toLocaleString()}</i> / ${SCRAP_CAP} scraps`;
 function renderHero(){
  const c=classOf(),r=raceOf();
  $('heroTitle').textContent=`${dispName(S)} — ${r.name} ${c.name}`+(S.prestige?` · Prestige ${S.prestige}`:'');
@@ -2651,7 +2656,7 @@ function renderBag(){
  document.querySelectorAll('[data-sell]').forEach(b=>b.onclick=()=>{
   const i=+b.dataset.sell;if(isLegendary(S.bag[i]))return;
   const it=S.bag.splice(i,1)[0];
-  S.gold=Math.min(GOLD_CAP,S.gold+it.sell);sfx.loot();renderBag();renderHUD();save();
+  S.gold=Math.min(goldCap(),S.gold+it.sell);sfx.loot();renderBag();renderHUD();save();
  });
  document.querySelectorAll('[data-scr]').forEach(b=>b.onclick=()=>{
   const i=+b.dataset.scr;if(isLegendary(S.bag[i]))return;
@@ -2683,7 +2688,7 @@ function renderBag(){
   const keep=S.bag.filter(isLegendary),sold=S.bag.filter(it=>!isLegendary(it));
   const total=sold.reduce((t,it)=>t+it.sell,0),n=sold.length;
   S.bag=keep;
-  S.gold=Math.min(GOLD_CAP,S.gold+total);
+  S.gold=Math.min(goldCap(),S.gold+total);
   sfx.loot();
   log(`Sold ${n} items — +${total.toLocaleString()} ◉. Legendaries stay in the bag.`,'loot');
   stageMsg('◉ Sold '+n+' items for '+total.toLocaleString()+' gold',1800);
@@ -2916,15 +2921,19 @@ function renderShop(){
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Upgrades</div>';
  const cap=boostMax();
  const spN=S.boosts.speed,haN=S.boosts.haste,spC=boostCost(spN),haC=boostCost(haN);
- const spMax=spN>=cap,haMax=haN>=cap;
+ const spMax=spN>=cap||boostAtHardCap(spN),haMax=haN>=cap||boostAtHardCap(haN);
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">👟 Speed Boost${spN?` <span style="color:var(--brass);font-size:11px">+${boostPct(spN)}%</span>`:''}</div>
   <div class="ss" style="color:var(--dim);font-size:11px">${spMax
-   ?`Maxed at <b style="color:var(--parch)">+${boostPct(spN)}%</b>. Reach <b style="color:var(--brass)">Prestige ${nextBoostPrestige()}</b> to unlock the next upgrade.`
+   ?(boostAtHardCap(spN)
+    ?`Fully maxed at <b style="color:var(--parch)">+${boostPct(spN)}%</b> — the absolute limit.`
+    :`Maxed at <b style="color:var(--parch)">+${boostPct(spN)}%</b>. Reach <b style="color:var(--brass)">Prestige ${nextBoostPrestige()}</b> to unlock the next upgrade.`)
    :`Move faster. Next purchase: <b style="color:var(--parch)">+${boostPct(spN+1)}%</b> movement speed. Bonus and price double each time.`}</div></div>
   <div class="btns"><button class="sbtn gold" data-boost="speed" ${spMax||S.gold<spC?'disabled':''}>${spMax?'MAX ✦':'Buy '+spC.toLocaleString()+'◉'}</button></div></div>`;
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">⚡ Haste Boost${haN?` <span style="color:var(--brass);font-size:11px">+${boostPct(haN)}%</span>`:''}</div>
   <div class="ss" style="color:var(--dim);font-size:11px">${haMax
-   ?`Maxed at <b style="color:var(--parch)">+${boostPct(haN)}%</b>. Reach <b style="color:var(--brass)">Prestige ${nextBoostPrestige()}</b> to unlock the next upgrade.`
+   ?(boostAtHardCap(haN)
+    ?`Fully maxed at <b style="color:var(--parch)">+${boostPct(haN)}%</b> — the absolute limit.`
+    :`Maxed at <b style="color:var(--parch)">+${boostPct(haN)}%</b>. Reach <b style="color:var(--brass)">Prestige ${nextBoostPrestige()}</b> to unlock the next upgrade.`)
    :`Attack faster. Next purchase: <b style="color:var(--parch)">+${boostPct(haN+1)}%</b> attack speed. Bonus and price double each time.`}</div></div>
   <div class="btns"><button class="sbtn gold" data-boost="haste" ${haMax||S.gold<haC?'disabled':''}>${haMax?'MAX ✦':'Buy '+haC.toLocaleString()+'◉'}</button></div></div>`;
  h+='<div class="ss" style="color:var(--dim);font-size:10.5px;margin-top:2px">Potions never drop from enemies. Potion prices rise with your level. Scrolls of Power are rare drops or gamble prizes.</div>';
@@ -2945,6 +2954,7 @@ function renderShop(){
  });
  document.querySelectorAll('[data-boost]').forEach(b=>b.onclick=()=>{
   const k=b.dataset.boost,n=S.boosts[k]||0,cost=boostCost(n);
+  if(boostAtHardCap(n)){stageMsg('Boost is fully maxed at +500% — the absolute limit',1800);sfx.warn();return;}
   if(n>=boostMax()){stageMsg('Boost maxed — reach Prestige '+nextBoostPrestige()+' to unlock more',1800);sfx.warn();return;}
   if(S.gold<cost){stageMsg('Not enough gold',1200);return;}
   S.gold-=cost;S.boosts[k]=n+1;
