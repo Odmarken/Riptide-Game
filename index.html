@@ -211,6 +211,33 @@
   #respinBtn{font-family:var(--display);font-size:16px;letter-spacing:.5px;padding:14px 30px;border-radius:12px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;cursor:pointer;box-shadow:0 0 18px rgba(217,164,65,.35)}
   #respinBtn:disabled{opacity:.45;cursor:default;box-shadow:none}
   #caseClose{font-family:var(--display);font-size:13px;padding:12px 20px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);cursor:pointer}
+
+
+  @media (max-width:600px){
+    /* reels: compact */
+    .casewrap,.caseextra{height:78px}
+    .casereel{top:8px;height:62px;gap:6px}
+    .casecard{flex:0 0 56px;height:62px;border-radius:7px;gap:2px}
+    .casecard .ci{font-size:17px}
+    .casecard .cr{font-size:6.5px;letter-spacing:.8px}
+    /* result mini-cards: much smaller */
+    .crgrid{grid-template-columns:repeat(auto-fit,minmax(80px,1fr));gap:6px;width:94vw;margin-top:6px}
+    .crmini{padding:6px;border-radius:8px}
+    .crmini .mi{font-size:16px}
+    .crmini .mt{font-size:6.5px;letter-spacing:.8px}
+    .crmini .mn{font-size:9.5px}
+    /* single-win reveal: tighter */
+    .chestreveal{min-height:86px;margin-top:6px}
+    .cricon{font-size:30px}
+    .crname{font-size:15px}
+    .crsub{font-size:10px}
+    /* buttons: don't eat vertical space */
+    .casebtns{margin-top:10px;gap:7px}
+    #respinBtn{font-size:13px;padding:10px 18px}
+    #caseClose{font-size:11px;padding:9px 14px}
+    #chestFx.multi{padding-top:10px}
+    #chestFx.multi .casewrap,#chestFx.multi .caseextra{margin-bottom:5px}
+  }
   /* --- Bag: scroll tier categories --- */
   .tierhead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;margin-bottom:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;cursor:pointer;font-family:var(--display);font-size:13px;color:var(--parch);user-select:none}
   .tierhead .tcount{font-size:10.5px;color:var(--dim);font-family:var(--body)}
@@ -2790,7 +2817,8 @@ function rollChestBatch(type,count){
  return wins;
 }
 function makeReel(reel,win){
- const N=56,WIN=48,CW=84,GAP=8,STEP=CW+GAP,cards=[];
+ const mob=window.innerWidth<600;
+ const N=56,WIN=48,CW=mob?56:84,GAP=mob?6:8,STEP=CW+GAP,cards=[];
  for(let i=0;i<N;i++)cards.push(i===WIN?{icon:win.icon,cc:win.color,t:win.tier}:fillerCard());
  reel.innerHTML=cards.map((c,i)=>`<div class="casecard${i===WIN?' winc':''}${c.gbar?' gbar':''}" style="--cc:${c.cc}"><div class="ci">${c.icon}</div><div class="cr">${c.t}</div></div>`).join('');
  const wrapW=reel.parentElement.getBoundingClientRect().width||360,center=wrapW/2,jitter=(Math.random()-0.5)*CW*0.55;
