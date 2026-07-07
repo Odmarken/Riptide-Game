@@ -1096,7 +1096,9 @@ function shade(hex,amt){const n=parseInt(hex.slice(1),16);
  return '#'+((r<<16)|(g<<8)|b).toString(16).padStart(6,'0');}
  
 let world=null,hero=null,enemies=[],bolts=[],ebolts=[],hazards=[],floats=[],parts=[],rings=[],groundCv=null;
-let cowT=0,cowSpawnT=0,cowRunning=false,cowItems=0;
+let cowT=0,cowSpawnT=0,cowRunning=false,cowItems=0,cowBagFull=false;
+const COW_BAG_CAP=40;
+const cowLocked=()=>zoneOf&&zoneOf().cow&&cowRunning&&hero&&!hero.dead;
 /* true while a living boss is engaged — the forge and Trader refuse service mid-fight */
 const inBossFight=()=>gameOn&&enemies.some(e=>e.boss&&!e.dead&&(e.hidden||e.state==='chase'||(hero&&hero.target===e)));
 let camX=0,camY=0,gameOn=false,marker=null,portalMsgT=0;
@@ -1154,7 +1156,7 @@ function buildZone(){
   buff:{},hotT:0,hotTick:0,potCd:{hp:0,mp:0},regenTick:0,glowT:0,avoid:null};
  enemies=[];bolts=[];ebolts=[];hazards=[];floats=[];parts=[];rings=[];
  const tmpls=zoneTemplates(z);
- cowRunning=false;cowT=0;cowSpawnT=0;cowItems=0;
+ cowRunning=false;cowT=0;cowSpawnT=0;cowItems=0;cowBagFull=false;
  if(z.cow){
   cowRunning=true;
   for(let i=0;i<14;i++)spawnCow(); /* opening wave */
@@ -1476,7 +1478,21 @@ function killEnemy(en){
  if(lootBlocked()){
   if(Math.random()<0.08)floatAt(en.x,en.y-en.r-28,'LOOT CAPPED','#ff8a7a');
  }else if(en.cow){
-  for(let k=0;k<2;k++){
+  if(S.bag.length>=COW_BAG_CAP){
+   if(!cowBagFull){cowBagFull=true;
+    stageMsg('BAG FULL — '+COW_BAG_CAP+' items! Nothing left to gain. Die gloriously or flee to cash in.',3500);
+    log(`<span class="loot">Bag stuffed full (${COW_BAG_CAP})</span> — the herd has nothing more to give.`,'loot');
+    sfx.quest();
+   }
+  }else for(let k=0;k<2;k++){
+   if(S.bag.length>=COW_BAG_CAP){
+    if(!cowBagFull){cowBagFull=true;
+     stageMsg('BAG FULL — '+COW_BAG_CAP+' items! Nothing left to gain. Die gloriously or flee to cash in.',3500);
+     log(`<span class="loot">Bag stuffed full (${COW_BAG_CAP})</span> — the herd has nothing more to give.`,'loot');
+     sfx.quest();
+    }
+    break;
+   }
    const it=rollItem('epic');
    cowItems++;
    sfx.loot();
@@ -2628,7 +2644,7 @@ function renderMap(){
     return `<div class="card zonecard ${p5?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p5?'#ffd76a':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},${z.tree})">🐄</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">Endless herd · 2 epics per cow · Best ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} items) · Last ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} items)</div></div>
+     <div class="zl">Endless herd · max 40 bag loot · 2 epics per cow · Best ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} items) · Last ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} items)</div></div>
      ${i===S.zone?'<span class="ztag">Here</span>':p5?'<span class="ztag boss">🐄 MOO</span>':'<span class="ztag boss">🔒 Prestige 5</span>'}
     </div>`;
    }
@@ -2657,6 +2673,7 @@ function renderMap(){
    if(i===S.zone)return;
    if(z.special){
     if((S.prestige||0)<5){if(z.cow){stageMsg('Reach Prestige 5 to hear the mooing',1600);sfx.warn();}return;}
+    if(z.cow&&S.bag.filter(it=>!isLegendary(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
    }
    else if(i>S.zone&&(S.lvl<z.lvl||!bossesClearedBefore(i)))return;
    S.zone=i;S.quest=0;S.qProg=0;
@@ -2671,6 +2688,7 @@ let mapContinent='east';
 let scrollTierOpen={}; /* which tier categories are expanded in the Bag */
 let gearRarityOpen={}; /* which gear rarity categories are expanded in the Bag */
 function scrapBagItems(match,label){
+ if(cowLocked()){stageMsg('No scrapping mid-herd — fill the bag or die first!',1600);sfx.warn();return false;}
  const keep=[],take=[];
  S.bag.forEach(it=>((match(it)&&!isLegendary(it))?take:keep).push(it));
  if(!take.length){stageMsg('Nothing to scrap',1200);return false;}
@@ -2806,11 +2824,13 @@ function renderBag(){
   renderBag();renderHUD();save();
  });
  document.querySelectorAll('[data-sell]').forEach(b=>b.onclick=()=>{
+  if(cowLocked()){stageMsg('No selling mid-herd — fill the bag or die first!',1600);sfx.warn();return;}
   const i=+b.dataset.sell;if(isLegendary(S.bag[i]))return;
   const it=S.bag.splice(i,1)[0];
   S.gold=Math.min(goldCap(),S.gold+it.sell);sfx.loot();renderBag();renderHUD();save();
  });
  document.querySelectorAll('[data-scr]').forEach(b=>b.onclick=()=>{
+  if(cowLocked()){stageMsg('No scrapping mid-herd — fill the bag or die first!',1600);sfx.warn();return;}
   const i=+b.dataset.scr;if(isLegendary(S.bag[i]))return;
   const it=S.bag.splice(i,1)[0];
   S.scraps=Math.min(SCRAP_CAP,S.scraps+scrapVal(it));sfx.forge();
@@ -2819,6 +2839,7 @@ function renderBag(){
  });
  const sa=$('scrapAll');
  if(sa)sa.onclick=()=>{
+  if(cowLocked()){stageMsg('No scrapping mid-herd — fill the bag or die first!',1600);sfx.warn();return;}
   if(!sa.dataset.armed){
    sa.dataset.armed='1';
    sa.textContent='Confirm — scrap everything?';
@@ -2830,6 +2851,7 @@ function renderBag(){
  };
  const se=$('sellAll');
  if(se)se.onclick=()=>{
+  if(cowLocked()){stageMsg('No selling mid-herd — fill the bag or die first!',1600);sfx.warn();return;}
   if(!se.dataset.armed){
    se.dataset.armed='1';
    se.textContent='Confirm — sell everything?';
