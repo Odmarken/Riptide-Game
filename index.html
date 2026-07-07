@@ -613,7 +613,7 @@ const ENCHS=[
  {id:'clarity',n:'Scroll of Clarity',base:12.5,glow:'#8fa8ef',d:v=>`+${v}% mana regeneration.`},
  {id:'swiftness',n:'Scroll of Swiftness',base:4,glow:'#d8f2ff',d:v=>`+${v}% movement and attack speed.`},
  {id:'fortune',n:'Scroll of Fortune',base:8,glow:'#ffd76a',d:v=>`+${v}% gold from kills.`},
- {id:'chain',n:'Scroll of Chain Lightning',base:10,glow:'#7fd0ff',d:v=>`Attacks arc to up to 3 nearby foes for ${v}% splash damage.`},
+ {id:'chain',n:'Scroll of Chain Lightning',base:3.75,glow:'#7fd0ff',d:v=>`Attacks arc to up to 3 nearby foes for ${v}% splash damage.`},
 ];
 const enchOf=id=>ENCHS.find(e=>e.id===id);
 const tierVal=(id,t)=>enchOf(id).base*Math.pow(2,(t||1)-1);
