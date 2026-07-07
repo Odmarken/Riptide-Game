@@ -240,25 +240,46 @@
   }
 
 
-  /* --- Lucky Sevens slot machine --- */
+  /* --- Borek Casino slot machine --- */
   #slotFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(5,10,8,.86)}
   #slotFx.open{display:flex}
-  .slotmach{display:flex;flex-direction:column;align-items:center;padding:18px 20px 16px;border-radius:16px;border:2px solid var(--brass);background:linear-gradient(180deg,#2a3d33,#131f1a);box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 24px rgba(217,164,65,.18)}
-  .slottop{font-family:var(--display);font-size:17px;color:var(--brass);letter-spacing:2px;margin-bottom:12px;text-shadow:0 0 12px rgba(217,164,65,.4)}
-  .slotreels{display:flex;gap:8px}
-  .slotwin{width:74px;height:74px;border-radius:10px;border:1px solid var(--brass-deep);background:#0d1512;overflow:hidden;position:relative}
-  .slotwin::before,.slotwin::after{content:'';position:absolute;left:0;right:0;height:16px;z-index:2;pointer-events:none}
+  .slotmach{display:flex;flex-direction:column;align-items:center;padding:22px 26px 20px;border-radius:18px;border:2px solid var(--brass);background:linear-gradient(180deg,#2a3d33,#131f1a);box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 24px rgba(217,164,65,.18)}
+  .slottop{font-family:var(--display);font-size:21px;color:var(--brass);letter-spacing:2.5px;margin-bottom:14px;text-shadow:0 0 14px rgba(217,164,65,.45)}
+  .slotreels{display:flex;gap:10px}
+  .slotwin{width:92px;height:92px;border-radius:12px;border:1px solid var(--brass-deep);background:#0d1512;overflow:hidden;position:relative}
+  .slotwin::before,.slotwin::after{content:'';position:absolute;left:0;right:0;height:18px;z-index:2;pointer-events:none}
   .slotwin::before{top:0;background:linear-gradient(180deg,rgba(0,0,0,.7),transparent)}
   .slotwin::after{bottom:0;background:linear-gradient(0deg,rgba(0,0,0,.7),transparent)}
   .slotreel{display:flex;flex-direction:column;will-change:transform}
-  .slotcell{flex:0 0 74px;display:flex;align-items:center;justify-content:center;font-size:34px}
-  .slotres{margin-top:12px;font-family:var(--display);font-size:16px;min-height:1.4em;text-align:center}
-  #slotSpinBtn{font-family:var(--display);font-size:15px;letter-spacing:.5px;padding:13px 26px;border-radius:12px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;cursor:pointer;box-shadow:0 0 16px rgba(217,164,65,.3)}
+  .slotcell{flex:0 0 92px;display:flex;align-items:center;justify-content:center;font-size:44px}
+  .slotres{margin-top:14px;font-family:var(--display);font-size:18px;min-height:1.4em;text-align:center}
+  .slotstats{margin-top:5px;font-size:11px;color:var(--dim);min-height:1.2em;text-align:center}
+  #slotSpinBtn{font-family:var(--display);font-size:16px;letter-spacing:.5px;padding:14px 28px;border-radius:12px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;cursor:pointer;box-shadow:0 0 16px rgba(217,164,65,.3)}
   #slotSpinBtn:disabled{opacity:.45;cursor:default;box-shadow:none}
+  #slotAutoBtn{font-family:var(--display);font-size:14px;padding:14px 20px;border-radius:12px;border:1px solid #6dbb6d;background:var(--panel2);color:#9adf9a;cursor:pointer}
+  #slotAutoBtn.on{background:linear-gradient(180deg,#c75146,#8a3a32);border-color:#e88a7a;color:#fff;box-shadow:0 0 14px rgba(199,81,70,.4)}
+  .slotmach.bigwin{animation:slotGlow .8s ease-in-out infinite;border-color:#ffd100}
+  .slotmach.bigwin .slotwin{border-color:#ffd100;box-shadow:0 0 18px rgba(255,209,0,.5),inset 0 0 14px rgba(255,209,0,.15)}
+  @keyframes slotGlow{0%,100%{box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 24px rgba(255,209,0,.35)}50%{box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 60px rgba(255,209,0,.75)}}
+  .slotres.bigres{font-size:26px;animation:resPop .5s cubic-bezier(.2,1.8,.4,1)}
+  @keyframes resPop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+  #slotFx.flash{animation:epicFlash .6s ease-out}
+  @media (min-width:900px){
+    .slotmach{padding:34px 46px 30px;border-radius:22px}
+    .slottop{font-size:30px;margin-bottom:22px}
+    .slotreels{gap:16px}
+    .slotwin{width:150px;height:150px;border-radius:16px}
+    .slotcell{flex-basis:150px;font-size:76px}
+    .slotres{font-size:24px;margin-top:20px}
+    .slotres.bigres{font-size:36px}
+    .slotstats{font-size:13px}
+    #slotSpinBtn{font-size:19px;padding:17px 38px}
+    #slotAutoBtn{font-size:16px;padding:17px 26px}
+  }
   @media (max-width:600px){
-    .slotwin{width:60px;height:60px}
-    .slotcell{flex-basis:60px;font-size:27px}
-    .slotmach{padding:15px 16px 14px}
+    .slotwin{width:66px;height:66px}
+    .slotcell{flex-basis:66px;font-size:30px}
+    .slottop{font-size:17px}
   }
 
   /* --- Bag: scroll tier categories --- */
@@ -473,15 +494,17 @@
 
   <div id="slotFx">
     <div class="slotmach">
-      <div class="slottop">🎰 LUCKY SEVENS</div>
+      <div class="slottop">🎰 BOREK CASINO</div>
       <div class="slotreels">
         <div class="slotwin"><div class="slotreel" id="sr0"></div></div>
         <div class="slotwin"><div class="slotreel" id="sr1"></div></div>
         <div class="slotwin"><div class="slotreel" id="sr2"></div></div>
       </div>
       <div class="slotres" id="slotRes">&nbsp;</div>
+      <div class="slotstats" id="slotStats"></div>
       <div class="casebtns show" style="margin-top:12px">
         <button id="slotSpinBtn">🎰 Spin · 1,000◉</button>
+        <button id="slotAutoBtn">▶ Auto</button>
         <button id="slotClose" class="sbtn" style="padding:12px 18px;border-radius:12px">Close</button>
       </div>
     </div>
@@ -1002,6 +1025,19 @@ const sfx={
 };
  
 /* ==================== WORLD ==================== */
+
+function dingDingDing(big){
+ const hits=big?12:6,base=big?1046:880;
+ for(let i=0;i<hits;i++){
+  setTimeout(()=>{
+   const f=base+(i%3)*220;
+   blip(f,f,0.22,.09);
+   blip(f*1.5,f*1.5,0.18,.05);
+  },i*(big?160:200));
+ }
+ if(big)setTimeout(()=>{[523,659,784,1046,1318].forEach((f,k)=>setTimeout(()=>blip(f,f,0.3,.1),k*90));},hits*160);
+}
+
 const cv=$('game'),ctx=cv.getContext('2d');
 let VW=0,VH=0,DPR=1,vigCv=null;
 function resize(){
@@ -2967,7 +3003,8 @@ function openGoldChest(){
 /* ==================== SLOT MACHINE ==================== */
 const SLOT_COST=1000;
 const SLOT_SYMS=['🍒','🍋','🍇','🔔','⚙','💎','7️⃣'];
-let slotSpinning=false;
+let slotSpinning=false,slotAuto=false,slotAutoTimer=0,slotCelebrating=false,slotCelebrateTimer=0;
+let slotSession={spins:0,gold:0,scrap:0};
 function slotOutcome(){
  const r=Math.random();
  if(r<0.002)return {kind:'gold',mul:100,sym:'7️⃣',msg:'JACKPOT! 100x — +100,000◉',color:'#ffd100'};
@@ -2991,17 +3028,25 @@ function buildSlotReel(el,finalSym,cells){
  el.innerHTML=arr.map(s=>`<div class="slotcell">${s}</div>`).join('');
  return arr.length;
 }
+function clearSlotCelebration(){
+ slotCelebrating=false;clearTimeout(slotCelebrateTimer);
+ const fx=$('slotFx'),mach=fx&&fx.querySelector('.slotmach'),res=$('slotRes');
+ if(mach)mach.classList.remove('bigwin');
+ if(fx)fx.classList.remove('flash');
+ if(res)res.classList.remove('bigres');
+}
 function spinSlots(){
- if(slotSpinning)return;
- if(S.gold<SLOT_COST){stageMsg('Not enough gold — a spin costs '+SLOT_COST.toLocaleString()+'◉',1400);sfx.warn();return;}
+ if(slotSpinning||slotCelebrating)return;
+ if(S.gold<SLOT_COST){stopSlotAuto();stageMsg('Not enough gold — a spin costs '+SLOT_COST.toLocaleString()+'◉',1400);sfx.warn();return;}
  S.gold-=SLOT_COST;renderHUD();
  slotSpinning=true;
  $('slotRes').innerHTML='&nbsp;';
- $('slotSpinBtn').disabled=true;
+ $('slotRes').classList.remove('bigres');
+ updateSlotUI();
  sfx.buy();
  const out=slotOutcome();
  const row=slotFinalRow(out);
- const CH=window.innerWidth<600?60:74;
+ const CH=window.innerWidth>=900?150:window.innerWidth<600?66:92;
  const reels=[0,1,2].map(i=>{
   const el=$('sr'+i);
   const cells=18+i*6;
@@ -3031,25 +3076,72 @@ function slotSettle(out){
  slotSpinning=false;
  const res=$('slotRes');
  res.style.color=out.color;
- res.textContent=out.msg;
+ res.classList.remove('bigres');
+ slotSession.spins++;
+ slotSession.gold-=SLOT_COST;
  if(out.kind==='gold'){
   const won=SLOT_COST*out.mul;
   const got=addGold(won);
-  if(out.mul>=100){sfx.level();noiseSweep(0.5,.09,400,3000);spawnSlotParts('#ffd100',26);}
-  else if(out.mul>=10){sfx.quest();spawnSlotParts(out.color,14);}
-  else{sfx.loot();spawnSlotParts(out.color,8);}
-  log(`Slots: <span class="llegendary">${out.mul}x</span> — +${got.toLocaleString()} ◉${got<won?' (vault full!)':''}.`,'loot');
+  slotSession.gold+=got;
+  if(out.mul>=10){
+   slotCelebrating=true;
+   const jackpot=out.mul>=100;
+   res.classList.add('bigres');
+   res.textContent=(jackpot?'🎉 JACKPOT! ':'💎 BIG WIN! ')+out.mul+'x — +'+got.toLocaleString()+'◉';
+   $('slotFx').querySelector('.slotmach').classList.add('bigwin');
+   if(jackpot)$('slotFx').classList.add('flash');
+   dingDingDing(jackpot);
+   spawnSlotParts(jackpot?'#ffd100':out.color,jackpot?30:16);
+   if(jackpot)setTimeout(()=>spawnSlotParts('#ffd100',20),600);
+   log(`Borek Casino: <span class="llegendary">${out.mul}x — +${got.toLocaleString()} ◉</span>${got<won?' (vault full!)':''}!`,'loot');
+   slotCelebrateTimer=setTimeout(()=>{
+    clearSlotCelebration();
+    updateSlotUI();
+    resumeAutoIfOn();
+   },jackpot?6000:4000);
+  }else{
+   res.textContent=out.msg;
+   sfx.loot();spawnSlotParts(out.color,8);
+   log(`Borek Casino: <span class="loot">${out.mul}x</span> — +${got.toLocaleString()} ◉${got<won?' (vault full!)':''}.`,'loot');
+  }
  }else if(out.kind==='scrap'){
   const got=addScraps(out.n);
+  slotSession.scrap+=got;
+  res.textContent=out.msg;
   sfx.forge();
-  log(`Slots: +${got} ⚙ Scraps${got<out.n?' (scrap cap!)':''}.`,'loot');
+  log(`Borek Casino: +${got} ⚙ Scraps${got<out.n?' (scrap cap!)':''}.`,'loot');
  }else{
+  res.textContent=out.msg;
   blip(300,180,0.25,.05,'sawtooth');
  }
  renderHUD();save();
+ updateSlotUI();
+ if(!slotCelebrating)resumeAutoIfOn();
+}
+function updateSlotUI(){
  const b=$('slotSpinBtn');
- b.disabled=S.gold<SLOT_COST;
- b.textContent=b.disabled?'🎰 Spin · 1,000◉ — broke!':'🎰 Spin · 1,000◉';
+ if(b){
+  b.disabled=slotSpinning||slotCelebrating||S.gold<SLOT_COST;
+  b.textContent=S.gold<SLOT_COST?'🎰 Spin · 1,000◉ — broke!':'🎰 Spin · 1,000◉';
+ }
+ const a=$('slotAutoBtn');
+ if(a){
+  a.classList.toggle('on',slotAuto);
+  a.textContent=slotAuto?'■ Stop':'▶ Auto';
+ }
+ const st=$('slotStats'),s=slotSession;
+ if(st)st.textContent=s.spins?`Session: ${s.spins} spins · ${s.gold>=0?'+':''}${s.gold.toLocaleString()}◉ · +${s.scrap}⚙`:'';
+}
+function resumeAutoIfOn(){
+ if(!slotAuto)return;
+ if(S.gold<SLOT_COST){stopSlotAuto('Out of gold — auto stopped.');return;}
+ if(lootBlocked()){stopSlotAuto('Gold and scrap both full — auto stopped.');return;}
+ slotAutoTimer=setTimeout(()=>{if(slotAuto&&!slotCelebrating&&$('slotFx').classList.contains('open'))spinSlots();},700);
+}
+function stopSlotAuto(msg){
+ slotAuto=false;clearTimeout(slotAutoTimer);
+ if(msg){$('slotRes').style.color='#ff8a7a';$('slotRes').textContent=msg;$('slotRes').classList.remove('bigres');sfx.warn();}
+ updateSlotUI();
 }
 function spawnSlotParts(color,n){
  const fx=$('slotFx');
@@ -3067,14 +3159,26 @@ function spawnSlotParts(color,n){
 }
 function openSlots(){
  $('slotFx').classList.add('open');
+ clearSlotCelebration();
+ slotSession={spins:0,gold:0,scrap:0};
  [0,1,2].forEach(i=>{buildSlotReel($('sr'+i),SLOT_SYMS[Math.floor(Math.random()*SLOT_SYMS.length)],1);$('sr'+i).style.transform='translateY(0)';});
- const b=$('slotSpinBtn');
- b.disabled=S.gold<SLOT_COST;
- b.textContent=b.disabled?'🎰 Spin · 1,000◉ — broke!':'🎰 Spin · 1,000◉';
  $('slotRes').innerHTML='&nbsp;';
+ updateSlotUI();
 }
-$('slotSpinBtn').onclick=spinSlots;
-$('slotClose').onclick=()=>{if(!slotSpinning)$('slotFx').classList.remove('open');};
+$('slotSpinBtn').onclick=()=>{if(!slotAuto)spinSlots();};
+$('slotAutoBtn').onclick=()=>{
+ if(slotAuto){stopSlotAuto();return;}
+ if(S.gold<SLOT_COST){stageMsg('Not enough gold to start auto-spin',1400);sfx.warn();return;}
+ slotAuto=true;
+ slotSession={spins:0,gold:0,scrap:0};
+ updateSlotUI();
+ if(!slotSpinning&&!slotCelebrating)spinSlots();
+};
+$('slotClose').onclick=()=>{
+ if(slotSpinning&&!slotAuto)return;
+ stopSlotAuto();clearSlotCelebration();
+ $('slotFx').classList.remove('open');
+};
 
 function renderShop(){
  $('shopWallet').innerHTML=walletStr();
@@ -3092,8 +3196,8 @@ function renderShop(){
  <div class="btns"><button class="sbtn gold" id="goldChestBtn" ${S.gold<goTot?'disabled':''}>${goTot>0?goTot.toLocaleString()+'◉':'FREE'}</button>
  <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gold" data-d="-1" ${goQty<=1?'disabled':''}>−</button><span class="qtynum">${goQty}x</span><button class="qtybtn" data-case="gold" data-d="1" ${goQty>=5?'disabled':''}>+</button></div><div class="qtytotal">${goFree?goFree+' free · ':''}Total: ${goTot.toLocaleString()}◉</div></div></div></div>`;
 
- h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600;color:#e8b070">🎰 Lucky Sevens</div>
-  <div class="ss" style="color:var(--dim);font-size:11px">A rattling machine of dubious legality. 1,000◉ a pull — win up to 100x your coin, or a fistful of ⚙ Scraps. Mostly, win nothing.</div></div>
+ h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600;color:#e8b070">🎰 Borek Casino</div>
+  <div class="ss" style="color:var(--dim);font-size:11px">A rattling machine of dubious legality. 1,000◉ a pull — win up to 100x your coin, or a fistful of ⚙ Scraps. Auto-spin available for the truly committed.</div></div>
   <div class="btns"><button class="sbtn gold" id="slotOpenBtn">Play</button></div></div>`;
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Supplies</div>';
  const hpC=potCost('hp'),mpC=potCost('mp');
