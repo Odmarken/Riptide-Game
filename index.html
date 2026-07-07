@@ -1095,10 +1095,10 @@ function shade(hex,amt){const n=parseInt(hex.slice(1),16);
  r=Math.max(0,Math.min(255,r));g=Math.max(0,Math.min(255,g));b=Math.max(0,Math.min(255,b));
  return '#'+((r<<16)|(g<<8)|b).toString(16).padStart(6,'0');}
  
-let world=null,hero=null,enemies=[],bolts=[],ebolts=[],hazards=[],floats=[],parts=[],rings=[],groundCv=null;
+let world=null,hero=null,enemies=[],bolts=[],ebolts=[],hazards=[],floats=[],parts=[],rings=[],zaps=[],groundCv=null;
 let cowT=0,cowSpawnT=0,cowRunning=false,cowItems=0,cowBagFull=false;
 const COW_BAG_CAP=40;
-const cowLocked=()=>zoneOf&&zoneOf().cow&&cowRunning&&hero&&!hero.dead;
+const cowLocked=()=>gameOn&&cowRunning;
 /* true while a living boss is engaged — the forge and Trader refuse service mid-fight */
 const inBossFight=()=>gameOn&&enemies.some(e=>e.boss&&!e.dead&&(e.hidden||e.state==='chase'||(hero&&hero.target===e)));
 let camX=0,camY=0,gameOn=false,marker=null,portalMsgT=0;
@@ -1154,7 +1154,7 @@ function buildZone(){
  hero={x:world.spawn.x,y:world.spawn.y,r:13,hp:heroMax(),mana:manaMax(),cd:0,spellCd:cd0,
   target:null,moveTo:null,goPortal:false,fx:1,fy:0,walk:0,moving:false,swing:0,hurt:0,dead:false,deadT:0,
   buff:{},hotT:0,hotTick:0,potCd:{hp:0,mp:0},regenTick:0,glowT:0,avoid:null};
- enemies=[];bolts=[];ebolts=[];hazards=[];floats=[];parts=[];rings=[];
+ enemies=[];bolts=[];ebolts=[];hazards=[];floats=[];parts=[];rings=[];zaps=[];
  const tmpls=zoneTemplates(z);
  cowRunning=false;cowT=0;cowSpawnT=0;cowItems=0;cowBagFull=false;
  if(z.cow){
@@ -1323,6 +1323,15 @@ function burst(x,y,c,n,sp,grav){
  }
 }
 function ring(x,y,rad,c,dur){rings.push({x,y,rad,c,t:0,dur:dur||0.5});}
+function zapLine(x1,y1,x2,y2){
+ const pts=[[x1,y1]],segs=6,dx=x2-x1,dy=y2-y1;
+ for(let i=1;i<segs;i++){
+  const t=i/segs;
+  pts.push([x1+dx*t+(Math.random()-0.5)*16,y1+dy*t+(Math.random()-0.5)*16]);
+ }
+ pts.push([x2,y2]);
+ zaps.push({pts,t:0,life:0.22});
+}
 function sparkles(x,y,c,n){
  for(let i=0;i<n;i++)parts.push({x:x+(Math.random()-0.5)*24,y:y+(Math.random()-0.5)*10,vx:(Math.random()-0.5)*20,vy:-40-Math.random()*40,t:0,life:0.6,c,r:1.5+Math.random()*1.5,g:0});
 }
@@ -1369,14 +1378,11 @@ function landHit(en,dmg,crit,label,basic){
     .sort((a,b)=>dist(en,a)-dist(en,b)).slice(0,3);
    if(splash.length){
     const cd=Math.max(1,Math.round(dmg*scrollPct('chain')));
+    let px=en.x,py=en.y-10;
     splash.forEach(t=>{
-     /* zap line from primary target to each arc target */
-     const steps=5;
-     for(let s=1;s<steps;s++){
-      const jx=(Math.random()-0.5)*10,jy=(Math.random()-0.5)*10;
-      parts.push({x:en.x+(t.x-en.x)*s/steps+jx,y:en.y-10+(t.y-en.y)*s/steps+jy,
-       vx:0,vy:0,t:0,life:0.18,c:'#7fd0ff',r:1.6,g:0});
-     }
+     zapLine(px,py,t.x,t.y-10);
+     px=t.x;py=t.y-10;
+     burst(t.x,t.y-10,'#7fd0ff',4,70);
      applyDmg(t,cd,'⚡');
     });
     sfx.arcane();
@@ -1532,7 +1538,7 @@ function killEnemy(en){
   }
   enemies.forEach(a=>{if(a.add&&!a.dead){a.dead=true;a.deadT=0;burst(a.x,a.y,a.c,6,70);}});
  }
- gainXP(en.xp);
+ if(!en.cow)gainXP(en.xp);
  const q=questOf();
  if(((!q.boss&&!en.add)||(q.boss&&en.boss))&&!en.cow)S.qProg++;
  if(hero.target===en)hero.target=null;
@@ -2017,6 +2023,7 @@ function update(dt){
  for(let i=floats.length-1;i>=0;i--){floats[i].t+=dt;if(floats[i].t>1)floats.splice(i,1);}
  for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.t+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=p.g*dt;if(p.t>p.life)parts.splice(i,1);}
  for(let i=rings.length-1;i>=0;i--){rings[i].t+=dt;if(rings[i].t>rings[i].dur)rings.splice(i,1);}
+ for(let i=zaps.length-1;i>=0;i--){zaps[i].t+=dt;if(zaps[i].t>zaps[i].life)zaps.splice(i,1);}
  if(marker){marker.t+=dt;if(marker.t>0.8)marker=null;}
  camX+=(hero.x-VW/2-camX)*Math.min(1,dt*6);
  camY+=(hero.y-VH/2-camY)*Math.min(1,dt*6);
@@ -2078,6 +2085,16 @@ function draw(){
  for(const b of bolts){
   ctx.fillStyle=b.c;ctx.beginPath();ctx.arc(b.x,b.y,b.spell?5:3.5,0,7);ctx.fill();
   ctx.fillStyle='rgba(255,255,255,0.5)';ctx.beginPath();ctx.arc(b.x,b.y,1.6,0,7);ctx.fill();
+ }
+ for(const z of zaps){
+  ctx.globalAlpha=Math.max(0,1-z.t/z.life);
+  ctx.lineJoin='round';ctx.lineCap='round';
+  ctx.strokeStyle='rgba(127,208,255,0.5)';ctx.lineWidth=5;
+  ctx.beginPath();ctx.moveTo(z.pts[0][0],z.pts[0][1]);
+  for(let i=1;i<z.pts.length;i++)ctx.lineTo(z.pts[i][0],z.pts[i][1]);
+  ctx.stroke();
+  ctx.strokeStyle='#dff4ff';ctx.lineWidth=1.6;ctx.stroke();
+  ctx.globalAlpha=1;
  }
  for(const b of ebolts){
   if(b.ball){
@@ -2688,7 +2705,7 @@ let mapContinent='east';
 let scrollTierOpen={}; /* which tier categories are expanded in the Bag */
 let gearRarityOpen={}; /* which gear rarity categories are expanded in the Bag */
 function scrapBagItems(match,label){
- if(cowLocked()){stageMsg('No scrapping mid-herd — fill the bag or die first!',1600);sfx.warn();return false;}
+ if(cowLocked()){stageMsg('The herd allows no forging — survive or die first!',1800);sfx.warn();return false;}
  const keep=[],take=[];
  S.bag.forEach(it=>((match(it)&&!isLegendary(it))?take:keep).push(it));
  if(!take.length){stageMsg('Nothing to scrap',1200);return false;}
@@ -2824,13 +2841,12 @@ function renderBag(){
   renderBag();renderHUD();save();
  });
  document.querySelectorAll('[data-sell]').forEach(b=>b.onclick=()=>{
-  if(cowLocked()){stageMsg('No selling mid-herd — fill the bag or die first!',1600);sfx.warn();return;}
   const i=+b.dataset.sell;if(isLegendary(S.bag[i]))return;
   const it=S.bag.splice(i,1)[0];
   S.gold=Math.min(goldCap(),S.gold+it.sell);sfx.loot();renderBag();renderHUD();save();
  });
  document.querySelectorAll('[data-scr]').forEach(b=>b.onclick=()=>{
-  if(cowLocked()){stageMsg('No scrapping mid-herd — fill the bag or die first!',1600);sfx.warn();return;}
+  if(cowLocked()){stageMsg('No scrapping mid-herd — die or leave first!',1600);sfx.warn();return;}
   const i=+b.dataset.scr;if(isLegendary(S.bag[i]))return;
   const it=S.bag.splice(i,1)[0];
   S.scraps=Math.min(SCRAP_CAP,S.scraps+scrapVal(it));sfx.forge();
@@ -2839,7 +2855,7 @@ function renderBag(){
  });
  const sa=$('scrapAll');
  if(sa)sa.onclick=()=>{
-  if(cowLocked()){stageMsg('No scrapping mid-herd — fill the bag or die first!',1600);sfx.warn();return;}
+  if(cowLocked()){stageMsg('No scrapping mid-herd — die or leave first!',1600);sfx.warn();return;}
   if(!sa.dataset.armed){
    sa.dataset.armed='1';
    sa.textContent='Confirm — scrap everything?';
