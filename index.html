@@ -600,7 +600,7 @@ const CLASSES=[
 const TIERN=['I','II','III','IV'];
 const MAXTIER=4;
 const ENCHS=[
- {id:'mending',n:'Scroll of Mending',base:0.5,glow:'#7ae08a',d:v=>`Regenerate ${v}% max health every second.`},
+ {id:'mending',n:'Scroll of Mending',base:4,glow:'#7ae08a',d:v=>`Regenerate ${v}% max health every 3 seconds.`},
  {id:'warding',n:'Scroll of Warding',base:3,glow:'#8fb0d0',d:v=>`Take ${v}% less damage.`},
  {id:'thorns',n:'Scroll of Thorns',base:5.625,glow:'#9adf9a',d:v=>`Reflect ${v}% of damage taken back at foes.`},
  {id:'reaper',n:'Scroll of the Reaper',base:2,glow:'#c86a6a',d:v=>`Heal ${v}% of max health on every kill.`},
@@ -610,6 +610,7 @@ const ENCHS=[
  {id:'clarity',n:'Scroll of Clarity',base:12.5,glow:'#8fa8ef',d:v=>`+${v}% mana regeneration.`},
  {id:'swiftness',n:'Scroll of Swiftness',base:4,glow:'#d8f2ff',d:v=>`+${v}% movement and attack speed.`},
  {id:'fortune',n:'Scroll of Fortune',base:8,glow:'#ffd76a',d:v=>`+${v}% gold from kills.`},
+ {id:'chain',n:'Scroll of Chain Lightning',base:10,glow:'#7fd0ff',d:v=>`Attacks arc to up to 3 nearby foes for ${v}% splash damage.`},
 ];
 const enchOf=id=>ENCHS.find(e=>e.id===id);
 const tierVal=(id,t)=>enchOf(id).base*Math.pow(2,(t||1)-1);
@@ -1361,6 +1362,24 @@ function landHit(en,dmg,crit,label,basic){
  if(basic){
   if(hasEnch('flames')){const b=Math.max(1,Math.round(dmg*scrollPct('flames')));en.hp-=b;floatAt(en.x+10,en.y-en.r-24,'+'+b+'🔥','#ff9a4a');}
   if(hasEnch('frostbite'))en.slowT=Math.max(en.slowT,scrollRaw('frostbite'));
+  if(hasEnch('chain')){
+   const splash=enemies.filter(e2=>e2!==en&&!e2.dead&&!e2.hidden&&dist(en,e2)<=90)
+    .sort((a,b)=>dist(en,a)-dist(en,b)).slice(0,3);
+   if(splash.length){
+    const cd=Math.max(1,Math.round(dmg*scrollPct('chain')));
+    splash.forEach(t=>{
+     /* zap line from primary target to each arc target */
+     const steps=5;
+     for(let s=1;s<steps;s++){
+      const jx=(Math.random()-0.5)*10,jy=(Math.random()-0.5)*10;
+      parts.push({x:en.x+(t.x-en.x)*s/steps+jx,y:en.y-10+(t.y-en.y)*s/steps+jy,
+       vx:0,vy:0,t:0,life:0.18,c:'#7fd0ff',r:1.6,g:0});
+     }
+     applyDmg(t,cd,'⚡');
+    });
+    sfx.arcane();
+   }
+  }
  }
  applyDmg(en,dmg,label,crit);
  const w=S.gear.weapon;
@@ -1829,7 +1848,7 @@ function update(dt){
  hero.mana=Math.min(manaMax(),hero.mana+(2+S.lvl*0.15)*(1+scrollPct('clarity'))*(inCombat?1:2.4)*dt);
  // regen passives
  hero.regenTick+=dt;
- if(hero.regenTick>=1){hero.regenTick=0;
+ if(hero.regenTick>=3){hero.regenTick=0;
   if(hasEnch('mending')&&!hero.dead)healHero(heroMax()*scrollPct('mending'),true);
  }
  if(hero.hotT>0){hero.hotT-=dt;hero.hotTick+=dt;
@@ -3613,7 +3632,8 @@ function drawPortrait(cnv,ch){
 }
 const charGearScore=ch=>Math.round(Object.values(ch.gear||{}).reduce((t,g)=>t+(g?g.power:0),0));
 const fmtGS=n=>{n=Math.round(n||0);
- return n>=1e6?(n>=1e7?Math.round(n/1e6):(n/1e6).toFixed(1).replace(/\.0$/,''))+'M'
+ return n>=1e9?(n>=1e10?Math.round(n/1e9):(n/1e9).toFixed(1).replace(/\.0$/,''))+'B'
+  :n>=1e6?(n>=1e7?Math.round(n/1e6):(n/1e6).toFixed(1).replace(/\.0$/,''))+'M'
   :n>=1e5?Math.round(n/1e3)+'K'
   :n.toLocaleString();};
 async function renderSelect(){
