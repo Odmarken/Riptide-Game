@@ -431,7 +431,7 @@
     <canvas id="game"></canvas>
     <button id="sndBtn" class="stgbtn">🔊</button>
     <button id="sfxBtn" class="stgbtn" title="Combat sounds">⚔️</button>
-    <button id="musBtn" class="stgbtn" title="Pause all audio">⏸</button>
+    <button id="musBtn" class="stgbtn" title="Pause game and audio">⏸</button>
     <div id="hint">WASD / tap ground to move · tap a foe · tap spells to cast</div>
     <div id="stagemsg"></div>
     <div id="skillbar"></div>
@@ -1830,14 +1830,14 @@ function bossAI(en,dt){
 const keys={};
 window.addEventListener('keydown',e=>{initAudio();keys[e.key.toLowerCase()]=true;
  const k=e.key;
- if(gameOn&&['1','2','3'].includes(k))cast(+k-1,true);
- if(gameOn&&k==='4')usePot('hp',true);
- if(gameOn&&k==='5')usePot('mp',true);
+ if(gameOn&&!gamePaused&&['1','2','3'].includes(k))cast(+k-1,true);
+ if(gameOn&&!gamePaused&&k==='4')usePot('hp',true);
+ if(gameOn&&!gamePaused&&k==='5')usePot('mp',true);
  if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k.toLowerCase()))e.preventDefault();});
 window.addEventListener('keyup',e=>{keys[e.key.toLowerCase()]=false;});
 window.addEventListener('pointerdown',initAudio,{once:false});
 cv.addEventListener('pointerdown',e=>{
- if(!gameOn||hero.dead)return;
+ if(!gameOn||gamePaused||hero.dead)return;
  const r=cv.getBoundingClientRect();
  const wx=e.clientX-r.left+camX,wy=e.clientY-r.top+camY;
  let best=null,bd=32;
@@ -3839,15 +3839,16 @@ $('sfxBtn').onclick=()=>{
  stageMsg(S.sfx?'Combat sounds on':'Combat sounds muted — ambience stays on',1400);
  save();
 };
-let audioPaused=false;
+let audioPaused=false,gamePaused=false;
 $('musBtn').onclick=()=>{
  initAudio();
  audioPaused=!audioPaused;
+ gamePaused=audioPaused;
  if(AC.ctx){if(audioPaused)AC.ctx.suspend();else AC.ctx.resume();}
  if(cowAudio){if(audioPaused)cowAudio.pause();else if(gameOn&&zoneOf().cow&&!hero.dead)cowAudio.play().catch(()=>{});}
  $('musBtn').textContent=audioPaused?'▶':'⏸';
  $('musBtn').classList.toggle('off',audioPaused);
- stageMsg(audioPaused?'All audio paused':'Audio resumed',1200);
+ stageMsg(audioPaused?'Game paused':'Game resumed',1200);
 };
 
 function beginGame(isNew){
@@ -3870,10 +3871,16 @@ function beginGame(isNew){
 let lastT=0;
 function frame(t){
  const dt=Math.min(0.05,(t-lastT)/1000||0.016);lastT=t;
- if(gameOn){
+ if(gameOn&&!gamePaused){
   update(dt);renderVitals(dt);
   saveT+=dt;if(saveT>12){saveT=0;save();}
   draw();
+ }else if(gameOn&&gamePaused){
+  draw();
+  ctx.fillStyle='rgba(5,10,8,0.55)';ctx.fillRect(0,0,VW,VH);
+  ctx.font='700 30px '+getComputedStyle(document.body).fontFamily;
+  ctx.textAlign='center';
+  ctx.fillStyle='#efe3c2';ctx.fillText('⏸ PAUSED',VW/2,VH/2);
  }
  requestAnimationFrame(frame);
 }
