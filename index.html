@@ -797,6 +797,11 @@ const effZoneLvl=z=>Math.max(z.lvl,effectiveHeroLvl());
 /* XP/gold should NOT use effective combat level, or prestige creates insane rewards. */
 const xpZoneLvl=z=>z.lvl;
 const goldZoneLvl=z=>z.lvl;
+/* Normal leveling-zone bosses only: much faster, full-map aggro, no leash.
+   Baseline = +120% speed; below 30% HP = +250% speed. */
+const isLevelBossId=id=>!!id&&!['cerberus','thor'].includes(id);
+const BOSS_SPEED_MUL=2.2;
+const BOSS_ENRAGE_SPEED_MUL=3.5;
 function zoneTemplates(z){
  if(z.cow||z.tavern)return [];
  const pm=pMul(),pr=pRew();
@@ -813,7 +818,7 @@ function zoneTemplates(z){
   const km=z.special?Math.pow(1.5,S.cerberusKills||0):1;   /* +50% per kill, compounding */
   const bm=z.special?2:1;                                   /* HAALAND's base is beefier */
   return [{name:z.boss[0],kind:'boss',boss:true,bossId:z.boss[2],c:z.boss[1],
-   speed:z.special?185:80,   /* HAALAND sprints — faster than the hero's base 175 */
+   speed:z.special?185:80,   /* base speed; normal bosses are multiplied in speedOf() */
    hp:Math.round(eHP(L)*50*pm*bm*km),atk:Math.round(eATK(L)*1.76*(z.special?1.25:1)*pm*km),
    xp:Math.round(eHP(XL)*5*pr),gold:mobGold(z,8)}];
  }
@@ -1460,7 +1465,7 @@ function spawnEnemyAt(t,R,fixed){
   x:p.x,y:p.y,home:{x:p.x,y:p.y},r:t.boss?26:12,
   max:Math.round(t.hp*scale),hp:Math.round(t.hp*scale),
   atk:t.atk,xp:t.xp,gold:t.gold,add:!!t.add,
-  speed:t.speed||(t.boss?80:105),state:'wander',dir:Math.random()*6.28,wT:0,cd:0,dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,
+  speed:t.speed||(t.boss?80:105),baseSpeed:t.speed||(t.boss?80:105),state:'wander',dir:Math.random()*6.28,wT:0,cd:0,dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,
   cds:{a:2,b:5,c:8},lockT:0,hidden:false,trailT:0,avoid:null});
 }
 function spawnAdd(name,kind,c){
@@ -1581,6 +1586,12 @@ function speedOf(e){
  if(e===pet)return 175*swiftMul()*speedBoostMul()*1.15;
  if(e===hero)return 175*swiftMul()*speedBoostMul();
  let s=e.speed;
+ /* Leveling-zone bosses are aggressive raid targets: fast from pull,
+    then enraged movement below 30% HP. Special bosses keep their custom tuning. */
+ if(e.boss&&isLevelBossId(e.bossId)){
+  const base=e.baseSpeed||e.speed||80;
+  s=base*(e.hp<=e.max*0.3?BOSS_ENRAGE_SPEED_MUL:BOSS_SPEED_MUL);
+ }
  if(e.cow)s=s+e.age*4+e.age*e.age*0.06;
  if(e.slowT>0)s*=0.45;
  return s;
@@ -2384,9 +2395,11 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   if(en.hurt)en.hurt=Math.max(0,en.hurt-dt);
   if(en.swing)en.swing=Math.max(0,en.swing-dt);
   const dHero=dist(en,hero),dHome=dist(en,en.home);
-  if(en.state!=='return'&&!hero.dead&&(dHero<(en.cow?99999:en.boss?260:160)||en.state==='chase')){
+  const aggroRange=en.cow?99999:en.boss?99999:160;
+  if(en.state!=='return'&&!hero.dead&&(dHero<aggroRange||en.state==='chase')){
    en.state='chase';
-   if(dHome>(en.boss?900:520)&&!en.add&&!en.cow)en.state='return';
+   /* Bosses have no leash: once alive, they follow the player across the whole arena/map. */
+   if(dHome>520&&!en.boss&&!en.add&&!en.cow)en.state='return';
    else if(dHero>30+en.r)moveToward(en,hero.x,hero.y,dt);
    else{
     en.cd-=dt;
