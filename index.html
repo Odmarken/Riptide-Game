@@ -2106,6 +2106,15 @@ function bossAI(en,dt){
 const keys={};
 window.addEventListener('keydown',e=>{initAudio();keys[e.key.toLowerCase()]=true;
  const k=e.key;
+ if(gameOn&&!gamePaused&&k.toLowerCase()==='e'&&hero&&!hero.dead){
+  const t=nearestEnemyWithin(400);
+  if(t){
+   hero.target=t;
+   ring(t.x,t.y-4,t.r+12,'#ffd76a',0.4);
+   sfx.bolt();
+  }else stageMsg('No foe nearby',700);
+ }
+
  if(gameOn&&!gamePaused&&['1','2','3'].includes(k))cast(+k-1,true);
  if(gameOn&&!gamePaused&&k==='4')usePot('hp',true);
  if(gameOn&&!gamePaused&&k==='5')usePot('mp',true);
@@ -2258,6 +2267,14 @@ function update(dt){
    const l=Math.hypot(kx,ky);
    moveToward(hero,hero.x+kx/l*50,hero.y+ky/l*50,dt);
    hero.moveTo=null;hero.goPortal=false;
+   if(S.auto){ /* while running with AUTO on, always swing at whatever is closest */
+    const near=nearestEnemyWithin(260);
+    if(near&&near!==hero.target){
+     const q=questOf();
+     if(!q.boss||near.boss||near.add)hero.target=near; /* don't drop a boss target for trash */
+    }
+    if(hero.target&&(hero.target.dead||hero.target.hidden))hero.target=null;
+   }
   }else if(hero.moveTo){
    if(moveToward(hero,hero.moveTo.x,hero.moveTo.y,dt)||dist(hero,hero.moveTo)<6)hero.moveTo=null;
   }else if(hero.goPortal){
