@@ -778,8 +778,6 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.scraps===undefined)s.scraps=0;
  if(s.overflow===undefined)s.overflow=0;
  if(s.maxZone===undefined)s.maxZone=s.zone||0;
- /* Repair saves that prestiged before maxZone was reset: level/quest/bosses reset, but maxZone stayed deep. */
- if((s.prestige||0)>0&&!Object.keys(s.cleared||{}).length&&(s.maxZone||0)>(s.zone||0)&&!s.finished)s.maxZone=s.zone||0;
  if(s.gold>goldCap(s))s.gold=goldCap(s);
  if(s.scraps>SCRAP_CAP)s.scraps=SCRAP_CAP;
  if(s.sfx===undefined)s.sfx=true;
@@ -1775,7 +1773,7 @@ function doPrestige(){
  const oldCap=goldCap();
  S.prestige++;
  if(goldCap()>oldCap)log(`<span class="imp">Vault expanded!</span> Gold cap is now ${goldCap().toLocaleString()} ◉.`);
- S.lvl=1;S.xp=0;S.zone=0;S.quest=0;S.qProg=0;S.maxZone=0;
+ S.lvl=1;S.xp=0;S.zone=0;S.quest=0;S.qProg=0;
  S.cleared={};S.bossDead={};S.zoneLvlGain={};S.finished=false;
  applyZoneUI();buildZone();renderHUD();renderHero();save();
  sfx.level();
