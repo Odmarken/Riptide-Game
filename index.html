@@ -869,8 +869,8 @@ const goldPrestigeMul=()=>1+(S.prestige||0)*0.08;
 const goldZoneMul=z=>1+((z&&z.lvl)||1)/60*1.25;
 const goldLvlMul=()=>1+(((S&&S.lvl)||1)-1)*0.012;
 const mobGold=(z,mul=1)=>Math.max(1,Math.round((8+((z&&z.lvl)||1)*3.2)*goldZoneMul(z)*goldLvlMul()*goldPrestigeMul()*mul));
-/* potion prices grow with level (and prestige, matching richer gold income) */
-const potCost=k=>Math.round((k==='hp'?20+S.lvl*7:15+S.lvl*6)*1.5*pRew()); /* potions cost 50% more */
+/* potion prices are fixed for now — no level/prestige scaling */
+const potCost=k=>20;
 const heroMax=()=>Math.round((classOf().hp+S.lvl*14+gearSum('hp'))*(raceOf().hp||1));
 const manaMax=()=>Math.round(classOf().mana+S.lvl*5);
 const heroAtk=()=>Math.round((classOf().atk+S.lvl*2.6+gearSum('atk'))*(1+scrollPct('titan'))*(1+((activePet()||{}).atkMul||0)));
@@ -4247,7 +4247,7 @@ function renderShop(){
     :`Maxed at <b style="color:var(--parch)">+${boostPct(haN)}%</b>. Reach <b style="color:var(--brass)">Prestige ${nextBoostPrestige()}</b> to unlock the next upgrade.`)
    :`Attack faster. Next purchase: <b style="color:var(--parch)">+${boostPct(haN+1)}%</b> attack speed. Bonus and price double each time.`}</div></div>
   <div class="btns"><button class="sbtn gold" data-boost="haste" ${haMax||totalGold()<haC?'disabled':''}>${haMax?'MAX ✦':'Buy '+haC.toLocaleString()+'◉'}</button></div></div>`;
- h+='<div class="ss" style="color:var(--dim);font-size:10.5px;margin-top:2px">Potions never drop from enemies. Potion prices rise with your level. Scrolls of Power are rare drops or gamble prizes.</div>';
+ h+='<div class="ss" style="color:var(--dim);font-size:10.5px;margin-top:2px">Potions never drop from enemies. Potion price is fixed at 20◉ for now. Scrolls of Power are rare drops or gamble prizes.</div>';
  $('shopList').innerHTML=h;
  $('chestBtn').onclick=openChest;
  $('goldChestBtn').onclick=openGoldChest;
