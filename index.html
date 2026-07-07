@@ -2871,8 +2871,8 @@ function renderMap(){
     ${i===S.zone?'<span class="ztag">Here</span>':p5?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">🔒 Prestige 5</span>'}
    </div>`;
   }
-  const bossGated=i>S.zone&&!bossesClearedBefore(i);
-  const locked=(S.lvl<z.lvl||bossGated)&&i>S.zone;
+  const bossGated=i>(S.maxZone||0)&&!bossesClearedBefore(i);
+  const locked=(S.lvl<z.lvl||bossGated)&&i>(S.maxZone||0);
   const cur=i===S.zone;
   const done=z.boss?S.bossDead[i]:S.cleared[i];
   return `<div class="card zonecard ${locked?'locked':''} ${cur?'active':''}" data-z="${i}">
@@ -2890,7 +2890,7 @@ function renderMap(){
     if((S.prestige||0)<5){if(z.cow){stageMsg('Reach Prestige 5 to hear the mooing',1600);sfx.warn();}return;}
     if(z.cow&&S.bag.filter(it=>!isLegendary(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
    }
-   else if(i>S.zone&&(S.lvl<z.lvl||!bossesClearedBefore(i)))return;
+   else if(i>(S.maxZone||0)&&(S.lvl<z.lvl||!bossesClearedBefore(i)))return;
    S.zone=i;S.quest=0;S.qProg=0;
    mapContinent=z.west?'west':'east';
    applyZoneUI();buildZone();renderHUD();save();
