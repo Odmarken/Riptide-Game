@@ -47,6 +47,7 @@
   #stagemsg.show{opacity:1}
   .stgbtn{position:absolute;right:8px;width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(10,18,14,.55);color:#fff;font-size:15px;cursor:pointer;z-index:6}
   #sndBtn{top:6px} #sfxBtn{top:44px;font-size:13px}
+  #musBtn{top:82px;font-size:13px}
   .stgbtn.off{opacity:.45}
  
   #skillbar{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:7px;align-items:flex-end;z-index:6}
@@ -430,6 +431,7 @@
     <canvas id="game"></canvas>
     <button id="sndBtn" class="stgbtn">🔊</button>
     <button id="sfxBtn" class="stgbtn" title="Combat sounds">⚔️</button>
+    <button id="musBtn" class="stgbtn" title="Pause all audio">⏸</button>
     <div id="hint">WASD / tap ground to move · tap a foe · tap spells to cast</div>
     <div id="stagemsg"></div>
     <div id="skillbar"></div>
@@ -661,7 +663,7 @@ const ZONES=[
  {name:'Gates of the Viking',lvl:60,amb:'frost',west:true,special:true,
   boss:['HAALAND the Three-Headed','#c94a3a','cerberus'],
   ground:'#8a94a0',ground2:'#7d8794',water:'#5a7a9a',tree:'#4a5a66',tree2:'#39464f',path:'#a8b0ba',rocky:true},
- {name:'Cow Level',lvl:60,amb:'meadow',west:true,special:true,cow:true,
+ {name:'Cow Level',lvl:60,amb:'cow',west:true,special:true,cow:true,
   ground:'#6a9a4e',ground2:'#5f8c46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
 ];
 /* stat curves */
@@ -918,6 +920,7 @@ function stopAmbience(){
  AC.amb.forEach(n=>{try{n.stop?n.stop():n.disconnect();}catch(e){}});
  AC.timers.forEach(t=>clearInterval(t));
  AC.amb=[];AC.timers=[];
+ stopCowTrack();
 }
 function windLayer(vol,freq,q){
  const src=AC.ctx.createBufferSource();src.buffer=noiseBuf();src.loop=true;
@@ -968,6 +971,40 @@ function noiseSweep(dur,vol,f0,f1,dest){
  g.gain.exponentialRampToValueAtTime(vol,t+dur*0.35);g.gain.exponentialRampToValueAtTime(0.001,t+dur);
  src.connect(f);f.connect(g);g.connect(dest||AC.sfxG);src.start(t);src.stop(t+dur+0.02);
 }
+/* ---- Cow Level music: plays cow_music.mp3 if present, else the synth track ---- */
+const COW_MUSIC_URL='cow_music.mp3';
+let cowAudio=null;
+function startCowTrack(){
+ if(!COW_MUSIC_URL)return false;
+ if(!cowAudio){
+  cowAudio=new Audio(COW_MUSIC_URL);
+  cowAudio.loop=true;
+  cowAudio.onerror=()=>{cowAudio=null;startCowMusic();}; /* file missing → synth */
+ }
+ cowAudio.volume=(S&&S.sound)?0.5:0;
+ cowAudio.currentTime=0;
+ cowAudio.play().catch(()=>{});
+ return true;
+}
+function stopCowTrack(){if(cowAudio)cowAudio.pause();}
+function startCowMusic(){
+ /* 160bpm driving loop: kick, snare, 16th hats, low sawtooth riff */
+ const bpm=160,step16=60/bpm/4*1000;
+ const RIFF=[82.41,82.41,98,82.41,110,98,82.41,73.42];
+ let s=0;
+ AC.timers.push(setInterval(()=>{
+  const t=s%16;
+  if(t%4===0||t===14){blip(150,42,0.12,.15,'sine',AC.ambG);noiseHit(0.03,.06,3000,AC.ambG);}
+  if(t===4||t===12)noiseHit(0.10,.10,1900,AC.ambG);
+  noiseHit(0.025,t%2?0.018:0.034,6500,AC.ambG);
+  if(t%2===0){
+   const f=RIFF[Math.floor(s/2)%8]*(s%64>=48?2:1);
+   blip(f,f,0.16,.07,'sawtooth',AC.ambG);
+  }
+  s++;
+ },step16));
+}
+
 /* ---- relaxing fantasy score: slow warm pads + harp-like plucks ---- */
 function playChord(freqs){
  if(!AC.ctx)return;
@@ -1029,6 +1066,7 @@ function startAmbience(prof){
  if(prof==='ember'){windLayer(.05,300,.7);droneLayer([65],.03);T(()=>noiseHit(0.05+Math.random()*0.05,.05,1400,A),200,400);}
  if(prof==='coast'){const wl=()=>{noiseHit(1.6,.08,420,A);};T(wl,2600,1800);windLayer(.07,450,.8);T(()=>blip(1200,700,0.35,.03,'sawtooth',A),7000,8000);}
  if(prof==='war'){droneLayer([49,52],.04);T(()=>blip(75,50,0.25,.09,'sine',A),1400,900);T(()=>noiseHit(0.08,.04,1200,A),600,900);}
+ if(prof==='cow'){if(!startCowTrack())startCowMusic();return;}
  startMusic(['crypt','war','ember'].includes(prof));
 }
 /* Combat / one-shot sounds — all routed through the sfx bus (⚔️ button mutes just these). */
@@ -1276,7 +1314,7 @@ function collide(e,nx,ny){
 function speedOf(e){
  if(e===hero)return 175*swiftMul()*speedBoostMul();
  let s=e.speed;
- if(e.cow)s=Math.min(330,s+e.age*4);
+ if(e.cow)s=s+e.age*4+e.age*e.age*0.06;
  if(e.slowT>0)s*=0.45;
  return s;
 }
@@ -2346,8 +2384,10 @@ function drawEnemy(en){
  ctx.globalAlpha=en.dead?Math.max(0,1-en.deadT*1.4):1;
  if(en.dead)ctx.rotate(Math.min(1.5,en.deadT*3));
  if(en.cow&&en.age>10){
-  ctx.strokeStyle='rgba(255,90,50,'+Math.min(0.6,(en.age-10)*0.03)+')';
-  ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(0,en.r*0.5,en.r+4,en.r*0.45,0,0,7);ctx.stroke();
+  const heat=Math.min(0.85,(en.age-10)*0.03);
+  ctx.strokeStyle='rgba(255,90,50,'+heat+')';
+  ctx.lineWidth=2+Math.min(2,(en.age-30)*0.05>0?(en.age-30)*0.05:0);
+  ctx.beginPath();ctx.ellipse(0,en.r*0.5,en.r+4,en.r*0.45,0,0,7);ctx.stroke();
  }
  const moving=en.state==='chase'||(!en.pause&&en.state==='wander');
  const by=moving?Math.sin(en.walk*2)*1.6:Math.sin(now/700+en.home.x)*0.7;
@@ -3785,6 +3825,7 @@ $('sndBtn').onclick=()=>{
  initAudio();
  S.sound=!S.sound;
  if(AC.ambG)AC.ambG.gain.value=S.sound?0.5:0;
+ if(cowAudio)cowAudio.volume=S.sound?0.5:0;
  $('sndBtn').textContent=S.sound?'🔊':'🔇';
  $('sndBtn').classList.toggle('off',!S.sound);
  save();
@@ -3798,6 +3839,17 @@ $('sfxBtn').onclick=()=>{
  stageMsg(S.sfx?'Combat sounds on':'Combat sounds muted — ambience stays on',1400);
  save();
 };
+let audioPaused=false;
+$('musBtn').onclick=()=>{
+ initAudio();
+ audioPaused=!audioPaused;
+ if(AC.ctx){if(audioPaused)AC.ctx.suspend();else AC.ctx.resume();}
+ if(cowAudio){if(audioPaused)cowAudio.pause();else if(gameOn&&zoneOf().cow&&!hero.dead)cowAudio.play().catch(()=>{});}
+ $('musBtn').textContent=audioPaused?'▶':'⏸';
+ $('musBtn').classList.toggle('off',audioPaused);
+ stageMsg(audioPaused?'All audio paused':'Audio resumed',1200);
+};
+
 function beginGame(isNew){
  $('create').style.display='none';
  $('select').classList.remove('open');
