@@ -3136,7 +3136,7 @@ function renderMap(){
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#2a3a6a)">⚡</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
      <div class="zl">Thor — appears every 3 hours for 15 minutes · slain ×${S.thorKills||0} · scales to your level · +100 Rating</div>
-     <div class="zl" style="color:${st.open&&!locked?'#7fd0ff':'#8fa898'}">${stateTxt}</div></div>
+     <div class="zl" id="thorTimer" style="color:${st.open&&!locked?'#7fd0ff':'#8fa898'}">${stateTxt}</div></div>
      ${i===S.zone?'<span class="ztag">Here</span>':canEnter?'<span class="ztag boss">⚡ Enter</span>':p1?'<span class="ztag boss">⏳ Sealed</span>':'<span class="ztag boss">🔒 Prestige 1</span>'}
     </div>`;
    }
@@ -3196,6 +3196,27 @@ function renderMap(){
  });
 }
 let mapContinent='east';
+
+/* live Thor countdown — only touches the text, never rebuilds the panel */
+setInterval(()=>{
+ const el=$('thorTimer');
+ if(!el||!S)return;
+ const st=thorStatus(),locked=thorLocked();
+ const wasOpen=el.dataset.open==='1';
+ const isOpen=st.open&&!locked;
+ el.textContent=locked?'☠ You fell — sealed until the next storm ('+fmtMS(st.open?st.left:st.next)+')'
+  :st.open?'⚡ THOR HAS APPEARED — gate closes in '+fmtMS(st.left)
+  :'Next appearance in '+fmtMS(st.next);
+ el.style.color=isOpen?'#7fd0ff':'#8fa898';
+ el.dataset.open=isOpen?'1':'0';
+ if(wasOpen!==isOpen&&$('p-map').classList.contains('open'))renderMap();
+ if(!wasOpen&&isOpen&&typeof gameOn!=='undefined'&&gameOn&&!thorLocked()&&(S.prestige||0)>=1){
+   stageMsg('⚡ THOR HAS APPEARED IN VALHALLA — 15 minutes!',4000);
+   if(typeof sfx!=='undefined'&&sfx.quest)sfx.quest();
+ }
+},1000);
+
+
 let scrollTierOpen={}; /* which tier categories are expanded in the Bag */
 let gearRarityOpen={}; /* which gear rarity categories are expanded in the Bag */
 function scrapBagItems(match,label){
