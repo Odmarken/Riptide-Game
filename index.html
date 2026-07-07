@@ -238,6 +238,29 @@
     #chestFx.multi{padding-top:10px}
     #chestFx.multi .casewrap,#chestFx.multi .caseextra{margin-bottom:5px}
   }
+
+
+  /* --- Lucky Sevens slot machine --- */
+  #slotFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(5,10,8,.86)}
+  #slotFx.open{display:flex}
+  .slotmach{display:flex;flex-direction:column;align-items:center;padding:18px 20px 16px;border-radius:16px;border:2px solid var(--brass);background:linear-gradient(180deg,#2a3d33,#131f1a);box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 24px rgba(217,164,65,.18)}
+  .slottop{font-family:var(--display);font-size:17px;color:var(--brass);letter-spacing:2px;margin-bottom:12px;text-shadow:0 0 12px rgba(217,164,65,.4)}
+  .slotreels{display:flex;gap:8px}
+  .slotwin{width:74px;height:74px;border-radius:10px;border:1px solid var(--brass-deep);background:#0d1512;overflow:hidden;position:relative}
+  .slotwin::before,.slotwin::after{content:'';position:absolute;left:0;right:0;height:16px;z-index:2;pointer-events:none}
+  .slotwin::before{top:0;background:linear-gradient(180deg,rgba(0,0,0,.7),transparent)}
+  .slotwin::after{bottom:0;background:linear-gradient(0deg,rgba(0,0,0,.7),transparent)}
+  .slotreel{display:flex;flex-direction:column;will-change:transform}
+  .slotcell{flex:0 0 74px;display:flex;align-items:center;justify-content:center;font-size:34px}
+  .slotres{margin-top:12px;font-family:var(--display);font-size:16px;min-height:1.4em;text-align:center}
+  #slotSpinBtn{font-family:var(--display);font-size:15px;letter-spacing:.5px;padding:13px 26px;border-radius:12px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;cursor:pointer;box-shadow:0 0 16px rgba(217,164,65,.3)}
+  #slotSpinBtn:disabled{opacity:.45;cursor:default;box-shadow:none}
+  @media (max-width:600px){
+    .slotwin{width:60px;height:60px}
+    .slotcell{flex-basis:60px;font-size:27px}
+    .slotmach{padding:15px 16px 14px}
+  }
+
   /* --- Bag: scroll tier categories --- */
   .tierhead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;margin-bottom:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;cursor:pointer;font-family:var(--display);font-size:13px;color:var(--parch);user-select:none}
   .tierhead .tcount{font-size:10.5px;color:var(--dim);font-family:var(--body)}
@@ -447,6 +470,23 @@
       <button id="caseClose">Close</button>
     </div>
   </div>
+
+  <div id="slotFx">
+    <div class="slotmach">
+      <div class="slottop">🎰 LUCKY SEVENS</div>
+      <div class="slotreels">
+        <div class="slotwin"><div class="slotreel" id="sr0"></div></div>
+        <div class="slotwin"><div class="slotreel" id="sr1"></div></div>
+        <div class="slotwin"><div class="slotreel" id="sr2"></div></div>
+      </div>
+      <div class="slotres" id="slotRes">&nbsp;</div>
+      <div class="casebtns show" style="margin-top:12px">
+        <button id="slotSpinBtn">🎰 Spin · 1,000◉</button>
+        <button id="slotClose" class="sbtn" style="padding:12px 18px;border-radius:12px">Close</button>
+      </div>
+    </div>
+  </div>
+
  
   <nav>
     <button data-tab="battle" class="cur"><svg viewBox="0 0 24 24"><path d="M14.5 4 20 9.5 9.5 20 4 14.5z"/><path d="m4 20 3-3M17 7l3-3"/></svg>World</button>
@@ -2923,6 +2963,119 @@ function openGoldChest(){
  const wins=rollChestBatch('gold',chestQty.gold);
  if(wins)startCaseSpin(wins);
 }
+
+/* ==================== SLOT MACHINE ==================== */
+const SLOT_COST=1000;
+const SLOT_SYMS=['🍒','🍋','🍇','🔔','⚙','💎','7️⃣'];
+let slotSpinning=false;
+function slotOutcome(){
+ const r=Math.random();
+ if(r<0.002)return {kind:'gold',mul:100,sym:'7️⃣',msg:'JACKPOT! 100x — +100,000◉',color:'#ffd100'};
+ if(r<0.032)return {kind:'gold',mul:10,sym:'💎',msg:'BIG WIN! 10x — +10,000◉',color:'#c9a0ff'};
+ if(r<0.082)return {kind:'gold',mul:5,sym:'🔔',msg:'Winner! 5x — +5,000◉',color:'#6dbb6d'};
+ if(r<0.202){const n=1+Math.floor(Math.random()*20);return {kind:'scrap',n,sym:'⚙',msg:'+'+n+' ⚙ Scraps',color:'#a8bcb0'};}
+ return {kind:'none',sym:null,msg:'Nothing… spin again?',color:'#8fa898'};
+}
+function slotFinalRow(out){
+ if(out.sym)return [out.sym,out.sym,out.sym];
+ const a=SLOT_SYMS[Math.floor(Math.random()*SLOT_SYMS.length)];
+ let b=SLOT_SYMS[Math.floor(Math.random()*SLOT_SYMS.length)];
+ while(b===a)b=SLOT_SYMS[Math.floor(Math.random()*SLOT_SYMS.length)];
+ const c=SLOT_SYMS[Math.floor(Math.random()*SLOT_SYMS.length)];
+ return [a,b,c];
+}
+function buildSlotReel(el,finalSym,cells){
+ const arr=[];
+ for(let i=0;i<cells-1;i++)arr.push(SLOT_SYMS[Math.floor(Math.random()*SLOT_SYMS.length)]);
+ arr.push(finalSym);
+ el.innerHTML=arr.map(s=>`<div class="slotcell">${s}</div>`).join('');
+ return arr.length;
+}
+function spinSlots(){
+ if(slotSpinning)return;
+ if(S.gold<SLOT_COST){stageMsg('Not enough gold — a spin costs '+SLOT_COST.toLocaleString()+'◉',1400);sfx.warn();return;}
+ S.gold-=SLOT_COST;renderHUD();
+ slotSpinning=true;
+ $('slotRes').innerHTML='&nbsp;';
+ $('slotSpinBtn').disabled=true;
+ sfx.buy();
+ const out=slotOutcome();
+ const row=slotFinalRow(out);
+ const CH=window.innerWidth<600?60:74;
+ const reels=[0,1,2].map(i=>{
+  const el=$('sr'+i);
+  const cells=18+i*6;
+  const n=buildSlotReel(el,row[i],cells);
+  return {el,dist:(n-1)*CH,dur:1400+i*550,done:false};
+ });
+ const t0=performance.now();
+ let lastTickCell=[-1,-1,-1];
+ const tick=now=>{
+  let allDone=true;
+  reels.forEach((r,i)=>{
+   const p=Math.min(1,(now-t0)/r.dur);
+   const e=1-Math.pow(1-p,3);
+   const y=-r.dist*e;
+   r.el.style.transform=`translateY(${y}px)`;
+   const cell=Math.floor(-y/CH);
+   if(cell!==lastTickCell[i]){lastTickCell[i]=cell;blip(900+Math.random()*300,600,0.03,.035,'square');}
+   if(p<1)allDone=false;
+   else if(!r.done){r.done=true;noiseHit(0.06,.08,800);}
+  });
+  if(!allDone)requestAnimationFrame(tick);
+  else slotSettle(out);
+ };
+ requestAnimationFrame(tick);
+}
+function slotSettle(out){
+ slotSpinning=false;
+ const res=$('slotRes');
+ res.style.color=out.color;
+ res.textContent=out.msg;
+ if(out.kind==='gold'){
+  const won=SLOT_COST*out.mul;
+  const got=addGold(won);
+  if(out.mul>=100){sfx.level();noiseSweep(0.5,.09,400,3000);spawnSlotParts('#ffd100',26);}
+  else if(out.mul>=10){sfx.quest();spawnSlotParts(out.color,14);}
+  else{sfx.loot();spawnSlotParts(out.color,8);}
+  log(`Slots: <span class="llegendary">${out.mul}x</span> — +${got.toLocaleString()} ◉${got<won?' (vault full!)':''}.`,'loot');
+ }else if(out.kind==='scrap'){
+  const got=addScraps(out.n);
+  sfx.forge();
+  log(`Slots: +${got} ⚙ Scraps${got<out.n?' (scrap cap!)':''}.`,'loot');
+ }else{
+  blip(300,180,0.25,.05,'sawtooth');
+ }
+ renderHUD();save();
+ const b=$('slotSpinBtn');
+ b.disabled=S.gold<SLOT_COST;
+ b.textContent=b.disabled?'🎰 Spin · 1,000◉ — broke!':'🎰 Spin · 1,000◉';
+}
+function spawnSlotParts(color,n){
+ const fx=$('slotFx');
+ for(let i=0;i<n;i++){
+  const p=document.createElement('span');
+  p.className='chestp';
+  const a=Math.random()*6.283,d=70+Math.random()*130;
+  p.style.setProperty('--dx',(Math.cos(a)*d).toFixed(0)+'px');
+  p.style.setProperty('--dy',(Math.sin(a)*d*0.8-30).toFixed(0)+'px');
+  p.style.background=Math.random()<0.7?color:'#ffe9a0';
+  p.style.width=p.style.height=(4+Math.random()*6).toFixed(0)+'px';
+  fx.appendChild(p);
+  setTimeout(()=>p.remove(),1100);
+ }
+}
+function openSlots(){
+ $('slotFx').classList.add('open');
+ [0,1,2].forEach(i=>{buildSlotReel($('sr'+i),SLOT_SYMS[Math.floor(Math.random()*SLOT_SYMS.length)],1);$('sr'+i).style.transform='translateY(0)';});
+ const b=$('slotSpinBtn');
+ b.disabled=S.gold<SLOT_COST;
+ b.textContent=b.disabled?'🎰 Spin · 1,000◉ — broke!':'🎰 Spin · 1,000◉';
+ $('slotRes').innerHTML='&nbsp;';
+}
+$('slotSpinBtn').onclick=spinSlots;
+$('slotClose').onclick=()=>{if(!slotSpinning)$('slotFx').classList.remove('open');};
+
 function renderShop(){
  $('shopWallet').innerHTML=walletStr();
  let h='<div class="ptitle" style="font-size:14px;margin-bottom:8px">Gamble</div>';
@@ -2938,6 +3091,10 @@ function renderShop(){
  <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common or fine junk — only rare and epic gear, a slim chance at a Tier II scroll, and a tiny chance at Frostmourne.${free?' <b style="color:#9adf9a">HAALAND\u2019s hoard covers your next '+free+' case'+(free>1?'s':'')+'.</b>':''}</div></div>
  <div class="btns"><button class="sbtn gold" id="goldChestBtn" ${S.gold<goTot?'disabled':''}>${goTot>0?goTot.toLocaleString()+'◉':'FREE'}</button>
  <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gold" data-d="-1" ${goQty<=1?'disabled':''}>−</button><span class="qtynum">${goQty}x</span><button class="qtybtn" data-case="gold" data-d="1" ${goQty>=5?'disabled':''}>+</button></div><div class="qtytotal">${goFree?goFree+' free · ':''}Total: ${goTot.toLocaleString()}◉</div></div></div></div>`;
+
+ h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600;color:#e8b070">🎰 Lucky Sevens</div>
+  <div class="ss" style="color:var(--dim);font-size:11px">A rattling machine of dubious legality. 1,000◉ a pull — win up to 100x your coin, or a fistful of ⚙ Scraps. Mostly, win nothing.</div></div>
+  <div class="btns"><button class="sbtn gold" id="slotOpenBtn">Play</button></div></div>`;
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Supplies</div>';
  const hpC=potCost('hp'),mpC=potCost('mp');
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">🧪 Health Potion</div>
@@ -2968,6 +3125,7 @@ function renderShop(){
  $('shopList').innerHTML=h;
  $('chestBtn').onclick=openChest;
  $('goldChestBtn').onclick=openGoldChest;
+ $('slotOpenBtn').onclick=openSlots;
  document.querySelectorAll('[data-case][data-d]').forEach(b=>b.onclick=()=>{
   const k=b.dataset.case,d=parseInt(b.dataset.d,10);
   chestQty[k]=Math.max(1,Math.min(5,(chestQty[k]||1)+d));
