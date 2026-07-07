@@ -660,7 +660,7 @@ const ZONES=[
   en:[['Keep Legionnaire','humanoid','#a04a3a'],['Ash Hound','beast','#c96a3a'],['Ember Warlock','humanoid','#8a3a5a']],
   q:[['Storm the Outworks','Cut down 12 legionnaires at the walls.',12],['The Kennels','Slay 12 ash hounds loosed on the yard.',12],['Break the Warlocks','Silence 14 warlocks fueling the pyres.',14]]},
  {name:'Emberdeep Keep',lvl:60,amb:'war',boss:['Warlord Krev','#d94a2a','krev'],ground:'#3a2a26',ground2:'#31231f',water:'#8a4a2a',tree:'#31231f',tree2:'#241a16',path:'#5a4030',rocky:true,final:true},
- {name:'Gates of the Viking',lvl:60,amb:'frost',west:true,special:true,
+ {name:'Gates of the Viking',lvl:60,amb:'haaland',west:true,special:true,
   boss:['HAALAND the Three-Headed','#c94a3a','cerberus'],
   ground:'#8a94a0',ground2:'#7d8794',water:'#5a7a9a',tree:'#4a5a66',tree2:'#39464f',path:'#a8b0ba',rocky:true},
  {name:'Cow Level',lvl:60,amb:'cow',west:true,special:true,cow:true,
@@ -921,6 +921,7 @@ function stopAmbience(){
  AC.timers.forEach(t=>clearInterval(t));
  AC.amb=[];AC.timers=[];
  stopCowTrack();
+ stopHaalandTrack();
 }
 function windLayer(vol,freq,q){
  const src=AC.ctx.createBufferSource();src.buffer=noiseBuf();src.loop=true;
@@ -1004,6 +1005,22 @@ function startCowMusic(){
   s++;
  },step16));
 }
+/* ---- HAALAND boss music: plays haaland_boss.mp3 if present, else dark synth ---- */
+const HAALAND_MUSIC_URL='haaland_boss.mp3';
+let haalandAudio=null;
+function startHaalandTrack(){
+ if(!HAALAND_MUSIC_URL)return false;
+ if(!haalandAudio){
+  haalandAudio=new Audio(HAALAND_MUSIC_URL);
+  haalandAudio.loop=true;
+  haalandAudio.onerror=()=>{haalandAudio=null;startMusic(true);}; /* file missing → dark synth */
+ }
+ haalandAudio.volume=(S&&S.sound)?0.5:0;
+ haalandAudio.currentTime=0;
+ haalandAudio.play().catch(()=>{});
+ return true;
+}
+function stopHaalandTrack(){if(haalandAudio)haalandAudio.pause();}
 
 /* ---- relaxing fantasy score: slow warm pads + harp-like plucks ---- */
 function playChord(freqs){
@@ -1067,6 +1084,7 @@ function startAmbience(prof){
  if(prof==='coast'){const wl=()=>{noiseHit(1.6,.08,420,A);};T(wl,2600,1800);windLayer(.07,450,.8);T(()=>blip(1200,700,0.35,.03,'sawtooth',A),7000,8000);}
  if(prof==='war'){droneLayer([49,52],.04);T(()=>blip(75,50,0.25,.09,'sine',A),1400,900);T(()=>noiseHit(0.08,.04,1200,A),600,900);}
  if(prof==='cow'){if(!startCowTrack())startCowMusic();return;}
+ if(prof==='haaland'){windLayer(.14,700,.7);if(!startHaalandTrack())startMusic(true);return;}
  startMusic(['crypt','war','ember'].includes(prof));
 }
 /* Combat / one-shot sounds — all routed through the sfx bus (⚔️ button mutes just these). */
@@ -3826,6 +3844,7 @@ $('sndBtn').onclick=()=>{
  S.sound=!S.sound;
  if(AC.ambG)AC.ambG.gain.value=S.sound?0.5:0;
  if(cowAudio)cowAudio.volume=S.sound?0.5:0;
+ if(haalandAudio)haalandAudio.volume=S.sound?0.5:0;
  $('sndBtn').textContent=S.sound?'🔊':'🔇';
  $('sndBtn').classList.toggle('off',!S.sound);
  save();
@@ -3846,6 +3865,7 @@ $('musBtn').onclick=()=>{
  gamePaused=audioPaused;
  if(AC.ctx){if(audioPaused)AC.ctx.suspend();else AC.ctx.resume();}
  if(cowAudio){if(audioPaused)cowAudio.pause();else if(gameOn&&zoneOf().cow&&!hero.dead)cowAudio.play().catch(()=>{});}
+ if(haalandAudio){if(audioPaused)haalandAudio.pause();else if(gameOn&&zoneOf().amb==='haaland')haalandAudio.play().catch(()=>{});}
  $('musBtn').textContent=audioPaused?'▶':'⏸';
  $('musBtn').classList.toggle('off',audioPaused);
  stageMsg(audioPaused?'Game paused':'Game resumed',1200);
