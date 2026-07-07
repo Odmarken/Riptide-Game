@@ -107,6 +107,11 @@
   .continent-tab.cur{color:var(--parch);border-color:var(--brass-deep);background:var(--panel)}
   .continent-tab:not(.cur):hover{color:var(--parch)}
   .item{display:flex;justify-content:space-between;align-items:center;gap:10px}
+
+  /* even-sized gamble cards */
+  .gcard-chest{min-height:126px}
+  .gcard-slot{min-height:96px}
+  .gcard-chest>div:first-child,.gcard-slot>div:first-child{flex:1}
   .item .btns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
   .sbtn{font-size:11px;padding:6px 11px;border-radius:7px;cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--ink)}
   .sbtn.gold{border-color:var(--brass-deep);color:var(--brass)}
@@ -3848,20 +3853,20 @@ function renderShop(){
  const goQty=chestQty.gold;
  const free=S.freeGoldCases||0;
  const goFree=Math.min(free,goQty),goPaid=goQty-goFree,goTot=GOLD_COST*goPaid;
- h+=`<div class="card item" style="border-color:var(--brass-deep)"><div><div class="sn" style="font-size:13px;font-weight:600;color:var(--brass)">🎁 GAMBAAA!</div>
+ h+=`<div class="card item gcard-chest" style="border-color:var(--brass-deep)"><div><div class="sn" style="font-size:13px;font-weight:600;color:var(--brass)">🎁 GAMBAAA!</div>
   <div class="ss" style="color:var(--dim);font-size:11px">A sealed chest of unknown origin. Holds a random weapon, armor piece or scroll — most are humble, but legends whisper of epic prizes within.</div></div>
   <div class="btns"><button class="sbtn gold" id="chestBtn" ${totalGold()<gTot?'disabled':''}>${gTot.toLocaleString()}◉</button>
   <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gamba" data-d="-1" ${gQty<=1?'disabled':''}>−</button><span class="qtynum">${gQty}x</span><button class="qtybtn" data-case="gamba" data-d="1" ${gQty>=5?'disabled':''}>+</button></div><div class="qtytotal">Total: ${gTot.toLocaleString()}◉</div></div></div></div>`;
- h+=`<div class="card item" style="border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.15)"><div><div class="sn" style="font-size:13px;font-weight:600;color:#ffd76a">💰 GOLD GOLD GOLD${free?` <span style="color:#9adf9a;font-size:11px">· ${free} FREE</span>`:''}</div>
+ h+=`<div class="card item gcard-chest" style="border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.15)"><div><div class="sn" style="font-size:13px;font-weight:600;color:#ffd76a">💰 GOLD GOLD GOLD${free?` <span style="color:#9adf9a;font-size:11px">· ${free} FREE</span>`:''}</div>
  <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common or fine junk — only rare and epic gear, a slim chance at a Tier II scroll, and a tiny chance at Frostmourne.${free?' <b style="color:#9adf9a">HAALAND\u2019s hoard covers your next '+free+' case'+(free>1?'s':'')+'.</b>':''}</div></div>
  <div class="btns"><button class="sbtn gold" id="goldChestBtn" ${totalGold()<goTot?'disabled':''}>${goTot>0?goTot.toLocaleString()+'◉':'FREE'}</button>
  <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gold" data-d="-1" ${goQty<=1?'disabled':''}>−</button><span class="qtynum">${goQty}x</span><button class="qtybtn" data-case="gold" data-d="1" ${goQty>=5?'disabled':''}>+</button></div><div class="qtytotal">${goFree?goFree+' free · ':''}Total: ${goTot.toLocaleString()}◉</div></div></div></div>`;
 
- h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600;color:#e8b070">🎰 Borek Casino</div>
+ h+=`<div class="card item gcard-slot"><div><div class="sn" style="font-size:13px;font-weight:600;color:#e8b070">🎰 Borek Casino</div>
   <div class="ss" style="color:var(--dim);font-size:11px">A rattling machine of dubious legality. 1,000◉ a pull — win up to 100x your coin, or a fistful of ⚙ Scraps. Auto-spin available for the truly committed.</div></div>
   <div class="btns"><button class="sbtn gold" id="slotOpenBtn">Play</button></div></div>`;
- h+=`<div class="card item" style="border-color:#3a6a8a"><div><div class="sn" style="font-size:13px;font-weight:600;color:#8fc3ef">🦈 Borek Seamen</div>
-  <div class="ss" style="color:var(--dim);font-size:11px">A 12-window ways machine from a shipwreck. Land the same symbol on reels 1→2→3 (any rows) to win — more copies means more ways, all four reels doubles it, and flaming x2/x3/x5 cells multiply the whole catch. ⚓ fine · 🚢 rare · 🦈 epic · 🧜‍♀️ scroll · 💀 gold jackpot.</div></div>
+ h+=`<div class="card item gcard-slot" style="border-color:#3a6a8a"><div><div class="sn" style="font-size:13px;font-weight:600;color:#8fc3ef">🦈 Borek Seamen</div>
+  <div class="ss" style="color:var(--dim);font-size:11px">A 16-window ways machine from a shipwreck. Match symbols on reels 1→2→3 to win gear, scrolls or a 💀 gold jackpot — flaming x2/x3/x5 cells multiply the whole catch.</div></div>
   <div class="btns"><button class="sbtn gold" id="seaOpenBtn">Play</button></div></div>`;
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Supplies</div>';
  const hpC=potCost('hp'),mpC=potCost('mp');
