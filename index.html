@@ -876,7 +876,7 @@ const speedBoostMul=()=>1+boostBonus(S.boosts?S.boosts.speed:0);
 const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0);
 function freshState(name,race,cls){
  return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,lastZone:0,maxZone:0,quest:0,qProg:0,
-  rating:0,cerberusKills:0,thorKills:0,thorLock:-1,luckPots:0,luckT:0,freeGoldCases:0,cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
+  rating:0,cerberusKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',luckPots:0,luckT:0,freeGoldCases:0,cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
   gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],pet:null,pets:[],
   boosts:{speed:0,haste:0},
   cleared:{},bossDead:{},zoneLvlGain:{},
@@ -920,6 +920,7 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.cerberusKills===undefined)s.cerberusKills=0;
  if(s.thorLock===undefined)s.thorLock=-1;
  if(s.thorKills===undefined)s.thorKills=0;
+ if(s.thorLockWhy===undefined)s.thorLockWhy='';
  if(s.luckPots===undefined)s.luckPots=0;
  if(s.luckT===undefined)s.luckT=0;
  if(s.freeGoldCases===undefined)s.freeGoldCases=0;
@@ -1417,7 +1418,7 @@ function buildZone(){
   const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
   log(`<span class="imp">The Cow Level.</span> Best: ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} items) · Last: ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} items)`);
  }else if(isBoss){
-  if(!S.bossDead[S.zone])spawnEnemyAt(tmpls[0],R,{x:world.w-320,y:world.pathY});
+  if(!S.bossDead[S.zone]&&!(zoneOf().thor&&thorLocked()))spawnEnemyAt(tmpls[0],R,{x:world.w-320,y:world.pathY});
  }
  else if(tmpls.length){for(let i=0;i<24;i++)spawnEnemyAt(tmpls[i%tmpls.length],R);} /* denser maps */
  marker=null;portalMsgT=0;
@@ -1818,9 +1819,11 @@ function killEnemy(en){
    publishLB(S,true);
   }else if(en.bossId==='thor'){
    S.thorKills=(S.thorKills||0)+1;
+   S.thorLock=thorWindow();
+   S.thorLockWhy='won';
    S.luckPots=(S.luckPots||0)+1;
    floatAt(en.x,en.y-en.r-44,'🍀 POTION OF LUCK','#9adf9a');
-   stageMsg('⚡ Thor falls! He yields a 🍀 Potion of Luck — find it in your Bag.',3200);
+   stageMsg('⚡ Thor falls! A 🍀 Potion of Luck is yours. Valhalla grows silent until the next storm.',3500);
    log(`<span class="imp">Thor slain ×${S.thorKills}.</span> Loot: <span class="lfine">🍀 Potion of Luck</span> — +15% better drops from slain foes for 30 minutes.`);
    publishLB(S,true);
   }else{
@@ -1879,6 +1882,7 @@ function heroDies(){
  }
  if(zoneOf().thor){
   S.thorLock=thorWindow();
+  S.thorLockWhy='died';
   stageMsg('⚡ Thor casts you from Valhalla — return when the storm gathers again.',3200);
   log('<span class="imp">Slain in Valhalla.</span> The gates are sealed until Thor next appears.');
  }
@@ -3163,7 +3167,7 @@ function renderMap(){
   if(z.special){
    if(z.thor){
     const st=thorStatus(),locked=thorLocked();
-    const stateTxt=locked?'☠ You fell — sealed until the next storm ('+fmtMS(st.open?st.left+0:st.next)+')'
+    const stateTxt=locked?(S.thorLockWhy==='won'?'✓ Thor slain this window — next storm in '+fmtMS(st.open?st.left:st.next):'☠ You fell — sealed until the next storm ('+fmtMS(st.open?st.left:st.next)+')')
      :st.open?'⚡ THOR HAS APPEARED — gate closes in '+fmtMS(st.left)
      :'Next appearance in '+fmtMS(st.next);
     const canEnter=p1&&st.open&&!locked;
@@ -3239,7 +3243,7 @@ setInterval(()=>{
  const st=thorStatus(),locked=thorLocked();
  const wasOpen=el.dataset.open==='1';
  const isOpen=st.open&&!locked;
- el.textContent=locked?'☠ You fell — sealed until the next storm ('+fmtMS(st.open?st.left:st.next)+')'
+ el.textContent=locked?(S.thorLockWhy==='won'?'✓ Thor slain this window — next storm in '+fmtMS(st.open?st.left:st.next):'☠ You fell — sealed until the next storm ('+fmtMS(st.open?st.left:st.next)+')')
   :st.open?'⚡ THOR HAS APPEARED — gate closes in '+fmtMS(st.left)
   :'Next appearance in '+fmtMS(st.next);
  el.style.color=isOpen?'#7fd0ff':'#8fa898';
