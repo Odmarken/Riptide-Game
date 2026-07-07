@@ -1739,6 +1739,7 @@ function nearestEnemyWithin(rng){
 function cast(i,manual){
  const c=classOf(),sp=c.spells[i];
  if(hero.dead)return false;
+ if(hero.moving){if(manual)stageMsg('Stand still to cast',700);return false;}
  if(hero.spellCd[i]>0){if(manual)stageMsg('Not ready',700);return false;}
  if(hero.mana<spellManaCost(sp)){if(manual)stageMsg('Not enough mana',700);return false;}
  const rng=c.range+55;
@@ -2349,7 +2350,11 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   if(hero.target&&!hero.target.dead&&!hero.target.hidden){
    const d=dist(hero,hero.target);
    if(d>c.range){if(!(kx||ky)&&!hero.moveTo&&!hero.goPortal)moveToward(hero,hero.target.x,hero.target.y,dt);}
-   else{hero.fx=(hero.target.x-hero.x)/d||1;hero.fy=(hero.target.y-hero.y)/d||0;heroBasicAttack(hero.target,dt);}
+   else{
+    hero.fx=(hero.target.x-hero.x)/d||1;hero.fy=(hero.target.y-hero.y)/d||0;
+    if(hero.moving)hero.cd=Math.max(0,hero.cd-dt*hasteMul()); /* strafing: cooldown ticks, no shots */
+    else heroBasicAttack(hero.target,dt);
+   }
   }else hero.cd=Math.max(0,hero.cd-dt);
   /* 🕺 hold SPACE to bust a move */
   if(keys[' ']&&!hero.moving){
@@ -3371,7 +3376,7 @@ function renderBag(){
      </div></div>`;
    }).join('')+'</div>';
   }
-  $('scrollSec').innerHTML+=sh;
+  $('scrollSec').insertAdjacentHTML('beforeend',sh);
   document.querySelectorAll('[data-tt]').forEach(h=>h.onclick=()=>{
    const t=+h.dataset.tt;scrollTierOpen[t]=!scrollTierOpen[t];renderBag();
   });
@@ -3407,7 +3412,7 @@ function renderBag(){
  if(S.pets.length){
   const counts={};
   S.pets.forEach(id=>counts[id]=(counts[id]||0)+1);
-  $('scrollSec').innerHTML+='<div class="ptitle" style="font-size:14px;margin-bottom:8px">Pets</div>'+
+  $('scrollSec').insertAdjacentHTML('beforeend','<div class="ptitle" style="font-size:14px;margin-bottom:8px">Pets</div>'+
    Object.entries(counts).map(([id,n])=>{
     const p=petOf(id),act=S.pet===id;
     return `<div class="card item" style="border-color:${p.cc}55"><div>
@@ -3417,7 +3422,7 @@ function renderBag(){
       <button class="sbtn gold" data-peteq="${id}" ${act?'disabled':''}>${act?'Equipped':'Equip'}</button>
       ${(n>1||act)?`<button class="sbtn" data-petsell="${id}">Sell ${PET_SELL.toLocaleString()}◉</button>`:''}
      </div></div>`;
-   }).join('');
+   }).join(''));
   document.querySelectorAll('[data-peteq]').forEach(b=>b.onclick=()=>{
    const id=b.dataset.peteq,i=S.pets.indexOf(id);
    if(i<0)return;
