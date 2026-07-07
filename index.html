@@ -815,11 +815,11 @@ function zoneTemplates(z){
   return [{name:z.boss[0],kind:'boss',boss:true,bossId:z.boss[2],c:z.boss[1],
    speed:z.special?185:80,   /* HAALAND sprints — faster than the hero's base 175 */
    hp:Math.round(eHP(L)*50*pm*bm*km),atk:Math.round(eATK(L)*1.76*(z.special?1.25:1)*pm*km),
-   xp:Math.round(eHP(XL)*5*pr),gold:Math.round(eHP(GL)*3.5*pr)}];
+   xp:Math.round(eHP(XL)*5*pr),gold:mobGold(z,8)}];
  }
  /* regular foes: modestly tougher than before (+25% hp, +15% atk) */
  return z.en.map(([n,k,c],i)=>({name:n,kind:k,c,hp:Math.round(eHP(L)*(0.9+i*0.12)*1.25*pm),atk:Math.round(eATK(L)*(0.9+i*0.1)*1.15*pm),
-  xp:Math.round(eHP(XL)/2.6*pr),gold:Math.round((eHP(GL)/6+2)*pr)}));
+  xp:Math.round(eHP(XL)/2.6*pr),gold:mobGold(z,1+i*0.10)}));
 }
 function zoneQuests(z){
  if(z.tavern)return [{name:'🍺 Goldshire',desc:'A safe haven. Rest, forge, trade — no foe dares enter.',need:999999}];
@@ -856,7 +856,14 @@ function progZone(ch=S){
  return Math.max(0,mz);
 }
 const pMul=()=>Math.pow(1.15,(S.prestige||0));   /* enemies +15% stronger each prestige, compounding */
-const pRew=()=>Math.pow(1.15,(S.prestige||0));   /* rewards +15% per prestige; combat scaling no longer explodes gold */
+const pRew=()=>Math.pow(1.15,(S.prestige||0));   /* XP/potion reward curve; combat scaling never touches gold */
+/* Gold economy: DO NOT use effectiveHeroLvl here.
+   Mob gold is based on the real zone level + visible level + a soft +8% per prestige.
+   This prevents high-prestige players from earning thousands per normal mob while keeping early players fair. */
+const goldPrestigeMul=()=>1+(S.prestige||0)*0.08;
+const goldZoneMul=z=>1+((z&&z.lvl)||1)/60*1.25;
+const goldLvlMul=()=>1+(((S&&S.lvl)||1)-1)*0.012;
+const mobGold=(z,mul=1)=>Math.max(1,Math.round((8+((z&&z.lvl)||1)*3.2)*goldZoneMul(z)*goldLvlMul()*goldPrestigeMul()*mul));
 /* potion prices grow with level (and prestige, matching richer gold income) */
 const potCost=k=>Math.round((k==='hp'?20+S.lvl*7:15+S.lvl*6)*1.5*pRew()); /* potions cost 50% more */
 const heroMax=()=>Math.round((classOf().hp+S.lvl*14+gearSum('hp'))*(raceOf().hp||1));
@@ -1459,7 +1466,7 @@ function spawnAdd(name,kind,c){
   const L=Math.max(effectiveHeroLvl(),10),pm=pMul(),pr=pRew();
   return [{name:z.boss[0],kind:'boss',boss:true,bossId:'thor',c:z.boss[1],speed:95,
    hp:Math.round(eHP(L)*60*pm),atk:Math.round(eATK(L)*2.0*pm),
-   xp:Math.round(eHP(XL)*6*pr),gold:Math.round(eHP(GL)*4*pr)}];
+   xp:Math.round(eHP(XL)*6*pr),gold:mobGold(z,10)}];
  }
  const boss=enemies.find(e=>e.boss&&!e.dead);
  const bx=boss?boss.x:world.w/2,by=boss?boss.y:world.h/2;
@@ -1467,7 +1474,7 @@ function spawnAdd(name,kind,c){
  enemies.push({name,kind,boss:false,bossId:null,c,add:true,
   x:bx+Math.cos(a)*60,y:by+Math.sin(a)*60,home:{x:bx,y:by},r:11,
   max:Math.round(eHP(L)*0.55*pMul()),hp:Math.round(eHP(L)*0.55*pMul()),
-  atk:Math.round(eATK(L)*0.8*pMul()),xp:Math.round(eHP(XL)/5*pRew()),gold:Math.round((eHP(GL)/10+1)*pRew()),
+  atk:Math.round(eATK(L)*0.8*pMul()),xp:Math.round(eHP(XL)/5*pRew()),gold:mobGold(z,0.45),
   speed:120,state:'chase',dir:0,wT:0,cd:0,dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,
   cds:{},lockT:0,hidden:false,trailT:0,avoid:null});
  burst(bx+Math.cos(a)*60,by+Math.sin(a)*60,c,10,80);
@@ -1477,7 +1484,7 @@ function cowTemplate(){
  const L=Math.max(60,effectiveHeroLvl()),pm=pMul();
  return {name:'Hell Bovine',kind:'humanoid',c:'#8a7a5a',cow:true,
   hp:Math.round(eHP(L)*3.2*pm),atk:Math.round(eATK(L)*1.9*pm),
-  xp:Math.round(eHP(60)*0.8*pRew()),gold:Math.round(eHP(60)*0.4*pRew())};
+  xp:Math.round(eHP(60)*0.8*pRew()),gold:mobGold(ZONES.find(zz=>zz.cow)||zoneOf(),1.2)};
 }
 function spawnCow(){
  const a=Math.random()*6.28,d=Math.max(VW,VH)*0.65+Math.random()*120;
