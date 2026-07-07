@@ -530,6 +530,7 @@
     <button data-tab="hero"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.5 7.5-8 9-4.5-1.5-8-4.5-8-9V6z"/></svg>Hero</button>
     <button data-tab="map"><svg viewBox="0 0 24 24"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14"/></svg>Map</button>
     <button data-tab="bag"><svg viewBox="0 0 24 24"><path d="M5 8h14l-1 12H6zM9 8V6a3 3 0 0 1 6 0v2"/></svg>Bag</button>
+    <button data-tab="home"><svg viewBox="0 0 24 24"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></svg>Home</button>
     <button data-tab="shop"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M9.5 10c0-1 1-1.7 2.5-1.7s2.5.7 2.5 1.7-1 1.4-2.5 1.7-2.5.7-2.5 1.7 1 1.7 2.5 1.7 2.5-.7 2.5-1.7"/></svg>Shop</button>
   </nav>
 </div>
@@ -665,7 +666,10 @@ const ZONES=[
   ground:'#8a94a0',ground2:'#7d8794',water:'#5a7a9a',tree:'#4a5a66',tree2:'#39464f',path:'#a8b0ba',rocky:true},
  {name:'Cow Level',lvl:60,amb:'cow',west:true,special:true,cow:true,
   ground:'#6a9a4e',ground2:'#5f8c46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
+ {name:'The Driftwood Tavern',lvl:1,amb:'tavern',special:true,tavern:true,
+  ground:'#7a6a4e',ground2:'#6e5f46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
 ];
+const TAVERN_ZONE=ZONES.length-1;
 /* stat curves */
 const eHP=L=>Math.round(20*Math.pow(L,1.25)+10);
 const eATK=L=>Math.round(3+L*1.1);
@@ -674,7 +678,7 @@ const effZoneLvl=z=>Math.max(z.lvl,ZONES[Math.min(S.maxZone||0,ZONES.length-1)].
 /* XP should NOT use deepest-zone scaling, or prestige resets level too fast. */
 const xpZoneLvl=z=>z.lvl;
 function zoneTemplates(z){
- if(z.cow)return [];
+ if(z.cow||z.tavern)return [];
  const pm=pMul(),pr=pRew();
  const L=effZoneLvl(z);   /* HP/damage/gold scale to deepest zone */
  const XL=xpZoneLvl(z);  /* XP stays tied to the real zone level */
@@ -691,6 +695,7 @@ function zoneTemplates(z){
   xp:Math.round(eHP(XL)/2.6*pr),gold:Math.round((eHP(L)/6+2)*pr)}));
 }
 function zoneQuests(z){
+ if(z.tavern)return [{name:'🍺 The Hearth',desc:'A safe haven. Rest, forge, trade — no foe dares enter.',need:999999}];
  if(z.cow)return [{name:'MOO',desc:'Survive. You cannot.',need:999999}];
  if(z.boss)return [{name:z.boss[0],desc:'Defeat '+z.boss[0]+'. Victory opens the gate beyond, forever.',need:1,boss:true}];
  return z.q.map(([n,d,need])=>({name:n,desc:d,need}));
@@ -740,7 +745,7 @@ const boostAtHardCap=n=>boostBonus(n)>=BOOST_PCT_CAP;
 const speedBoostMul=()=>1+boostBonus(S.boosts?S.boosts.speed:0);
 const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0);
 function freshState(name,race,cls){
- return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,maxZone:0,quest:0,qProg:0,
+ return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,lastZone:0,maxZone:0,quest:0,qProg:0,
   rating:0,cerberusKills:0,freeGoldCases:0,cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
   gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],
   boosts:{speed:0,haste:0},
@@ -777,6 +782,7 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.cowLast===undefined)s.cowLast=0;
  if(s.cowBestItems===undefined)s.cowBestItems=0;
  if(s.cowLastItems===undefined)s.cowLastItems=0;
+ if(s.lastZone===undefined)s.lastZone=0;
  if(!s.cleared)s.cleared={};
  if(!s.bossDead)s.bossDead={};
  if(!s.zoneLvlGain)s.zoneLvlGain={};
@@ -1083,6 +1089,7 @@ function startAmbience(prof){
  if(prof==='ember'){windLayer(.05,300,.7);droneLayer([65],.03);T(()=>noiseHit(0.05+Math.random()*0.05,.05,1400,A),200,400);}
  if(prof==='coast'){const wl=()=>{noiseHit(1.6,.08,420,A);};T(wl,2600,1800);windLayer(.07,450,.8);T(()=>blip(1200,700,0.35,.03,'sawtooth',A),7000,8000);}
  if(prof==='war'){droneLayer([49,52],.04);T(()=>blip(75,50,0.25,.09,'sine',A),1400,900);T(()=>noiseHit(0.08,.04,1200,A),600,900);}
+ if(prof==='tavern'){droneLayer([65],.02);T(()=>noiseHit(0.04+Math.random()*0.05,.045,1300,A),150,350);}
  if(prof==='cow'){if(!startCowTrack())startCowMusic();return;}
  if(prof==='haaland'){windLayer(.14,700,.7);if(!startHaalandTrack())startMusic(true);return;}
  startMusic(['crypt','war','ember'].includes(prof));
@@ -1164,7 +1171,7 @@ function buildZone(){
  if(!zoneOf().special&&(S.maxZone||0)<S.zone)S.maxZone=S.zone;
  const z=zoneOf(),R=mulberry32(S.zone*7919+13);
  const isBoss=!!z.boss;
- world={w:isBoss?1700:2400,h:isBoss?1250:1700,solids:[],deco:[],waters:[]}; /* larger maps — boss arenas too */
+ world={w:z.tavern?1000:isBoss?1700:2400,h:z.tavern?800:isBoss?1250:1700,solids:[],deco:[],waters:[]}; /* larger maps — boss arenas too */
  world.spawn={x:120,y:world.h/2};
  world.portal={x:world.w-80,y:world.h/2};
  world.pathY=world.h/2;world.pathH=110;
@@ -1222,7 +1229,7 @@ function buildZone(){
  }else if(isBoss){
   if(!S.bossDead[S.zone])spawnEnemyAt(tmpls[0],R,{x:world.w-320,y:world.pathY});
  }
- else{for(let i=0;i<24;i++)spawnEnemyAt(tmpls[i%tmpls.length],R);} /* denser maps */
+ else if(tmpls.length){for(let i=0;i<24;i++)spawnEnemyAt(tmpls[i%tmpls.length],R);} /* denser maps */
  marker=null;portalMsgT=0;
  camX=hero.x-VW/2;camY=hero.y-VH/2;
  startAmbience(z.amb);
@@ -1636,20 +1643,19 @@ function heroDies(){
   if(newBest){S.cowBest=cowT;S.cowBestItems=cowItems;}
   const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
   hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;
-  hero.sentHome=true;   /* west deaths go to Willowmere */
+  hero.sentHome=true;   /* cow deaths go to the tavern */
   sfx.die();
   stageMsg('The herd takes you. Survived '+fmt(cowT)+' · '+cowItems+' items'+(newBest?' — NEW RECORD!':''),3500);
   log(`<span class="imp">Trampled after ${fmt(cowT)} — ${cowItems} items looted.</span>${newBest?' <span class="loot">New record!</span>':''} All loot kept.`);
   save();
   return;
  }
- if(zoneOf().west)hero.sentHome=true;
+ if(zoneOf().west||zoneOf().boss)hero.sentHome=true;
  hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;
  sfx.die();
- if(zoneOf().west)stageMsg('Defeated… you are hurled back across the sea.',2600);
- else if(S.zone>0)stageMsg('Defeated… the warband drags you back west.',2600);
- else stageMsg('Defeated… you wake at the roadside.',2600);
- log('<span class="imp">Defeated.</span>'+(zoneOf().west?' The west casts you all the way home to Willowmere Fields.':S.zone>0?' You fall back to the previous region — gear intact.':' You regroup at the western road.'));
+ if(hero.sentHome)stageMsg('Defeated… you wake by the tavern hearth.',2600);
+ else stageMsg('Defeated… you regroup at the roadside.',2600);
+ log('<span class="imp">Defeated.</span>'+(hero.sentHome?' You are carried back to the Driftwood Tavern — gear intact.':' You regroup at this region’s entrance — gear intact.'));
 }
 function completeQuest(){
  const q=questOf(),qs=questsOf();
@@ -1927,6 +1933,10 @@ function update(dt){
  // mana regen (faster out of combat)
  const inCombat=hero.target||enemies.some(e=>!e.dead&&e.state==='chase');
  hero.mana=Math.min(manaMax(),hero.mana+(2+S.lvl*0.15)*(1+scrollPct('clarity'))*(inCombat?1:2.4)*dt);
+ if(zoneOf().tavern&&!hero.dead){
+  hero.hp=Math.min(heroMax(),hero.hp+heroMax()*0.08*dt);
+  hero.mana=Math.min(manaMax(),hero.mana+manaMax()*0.12*dt);
+ }
  // regen passives
  hero.regenTick+=dt;
  if(hero.regenTick>=3){hero.regenTick=0;
@@ -1949,17 +1959,15 @@ function update(dt){
   hero.deadT+=dt;
   if(hero.deadT>3){
    if(hero.sentHome){
-    S.zone=0;S.quest=0;S.qProg=0;
+    S.lastZone=Math.min(S.zone,ZONES.length-1);
+    S.zone=TAVERN_ZONE;S.quest=0;S.qProg=0;
     applyZoneUI();buildZone();renderHUD();save();
-    stageMsg('You wake in Willowmere Fields — a long way from the west. Gear and loot intact.',3000);
-    log(`<span class="imp">Cast back to Willowmere Fields.</span> The western continent does not forgive.`);
-   }else if(S.zone>0){
-    S.zone--;S.quest=0;S.qProg=0;
-    applyZoneUI();buildZone();renderHUD();save();
-    stageMsg('You wake in '+zoneOf().name+' — gear and loot intact.',2600);
-    log(`<span class="imp">Fell back to ${zoneOf().name}.</span> Grind up and march east again.`);
+    stageMsg('You wake by the tavern hearth — gear and loot intact.',3000);
+    log('<span class="imp">Carried back to the Driftwood Tavern.</span> Rest, then march again.');
    }else{
-    hero.dead=false;hero.hp=heroMax();hero.mana=manaMax();hero.x=world.spawn.x;hero.y=world.spawn.y;
+    hero.dead=false;hero.hp=heroMax();hero.mana=manaMax();
+    hero.x=world.spawn.x;hero.y=world.spawn.y;
+    stageMsg('You regroup at the roadside.',2000);
    }
    return;
   }
@@ -1986,7 +1994,7 @@ function update(dt){
   if(S.auto&&!hero.goPortal)autoBrain(dt);
   if(hero.swing)hero.swing=Math.max(0,hero.swing-dt);
   if(hero.hurt)hero.hurt=Math.max(0,hero.hurt-dt);
-  if(dist(hero,world.portal)<34){
+  if(!zoneOf().tavern&&dist(hero,world.portal)<34){
    const nz=ZONES[S.zone+1];
    if(portalIsOpen())travelNext();
    else if(portalMsgT<=0){
@@ -2197,6 +2205,7 @@ function draw(){
  if(vigCv)ctx.drawImage(vigCv,0,0,VW,VH);
 }
 function drawPortal(){
+ if(zoneOf().tavern)return;
  const p=world.portal,t=performance.now()/1000;
  const nz=ZONES[S.zone+1];
  const open=portalIsOpen();
@@ -2572,6 +2581,14 @@ function renderHUD(){
  $('hLvl').textContent='Lv '+S.lvl+(S.prestige?' ✦'+S.prestige:'');
  $('hXP').style.width=(S.lvl>=MAXLVL?100:Math.min(100,100*S.xp/xpNeed(S.lvl)))+'%';
  const z=zoneOf(),q=questOf(),nz=ZONES[S.zone+1];
+ if(zoneOf().tavern){
+  $('qName').textContent='🍺 The Driftwood Tavern';
+  $('qDesc').textContent='Safe haven — health and mana return swiftly here.';
+  $('qBar').style.width='100%';$('qCount').textContent='☕';
+  $('nextBtn').style.display='none';
+  $('autoBtn').classList.toggle('on',S.auto);$('autoBtn').textContent=S.auto?'AUTO ✓':'AUTO';
+  refreshOpenPanel();return;
+ }
  if(zoneOf().cow){
   const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
   $('qName').textContent='🐄 MOO';
@@ -2721,6 +2738,14 @@ function renderMap(){
   /* continent filter */
   if(mapContinent==='east'&&z.west)return '';
   if(mapContinent==='west'&&!z.west)return '';
+  if(z.tavern){
+   if(mapContinent!=='east')return '';
+   return `<div class="card zonecard ${i===S.zone?'active':''}" data-z="${i}" style="border-color:var(--brass-deep)">
+    <div class="zdot" style="background:linear-gradient(160deg,${z.ground},${z.tree})">🍺</div>
+    <div class="zinfo"><div class="zn">${z.name}</div>
+    <div class="zl">Safe haven · rapid rest · no foes</div></div>
+    ${i===S.zone?'<span class="ztag">Here</span>':'<span class="ztag done">🍺 Home</span>'}</div>`;
+  }
   if(z.special){
    if(z.cow){
     const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
@@ -2756,6 +2781,7 @@ function renderMap(){
   el.onclick=()=>{
    const i=+el.dataset.z,z=ZONES[i];
    if(i===S.zone)return;
+   if(z.tavern){S.lastZone=S.zone;S.zone=i;S.quest=0;S.qProg=0;applyZoneUI();buildZone();renderHUD();save();openTab('battle');stageMsg('🍺 Welcome home.');return;}
    if(z.special){
     if((S.prestige||0)<5){if(z.cow){stageMsg('Reach Prestige 5 to hear the mooing',1600);sfx.warn();}return;}
     if(z.cow&&S.bag.filter(it=>!isLegendary(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
@@ -3425,11 +3451,33 @@ function openTab(t){
  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));
  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('cur',b.dataset.tab===t));
  if(t==='hero'){renderHero();$('p-hero').classList.add('open');}
- if(t==='map'){if(S&&zoneOf().special)mapContinent='west';renderMap();$('p-map').classList.add('open');}
+ if(t==='map'){if(S&&zoneOf().west)mapContinent='west';renderMap();$('p-map').classList.add('open');}
  if(t==='bag'){renderBag();$('p-bag').classList.add('open');}
  if(t==='shop'){renderShop();$('p-shop').classList.add('open');}
 }
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>openTab(b.dataset.tab));
+function goHome(){
+ if(!gameOn||!S||hero.dead)return;
+ if(S.zone===TAVERN_ZONE){
+  const target=S.lastZone!=null?S.lastZone:0;
+  const z=ZONES[target]||ZONES[0];
+  if(z.cow&&S.bag.filter(it=>!isLegendary(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
+  S.zone=target;
+  S.quest=0;S.qProg=0;
+  applyZoneUI();buildZone();renderHUD();save();
+  openTab('battle');
+  stageMsg('Back to the road — '+zoneOf().name,2000);
+ }else{
+  S.lastZone=S.zone;
+  S.zone=TAVERN_ZONE;S.quest=0;S.qProg=0;
+  applyZoneUI();buildZone();renderHUD();save();
+  openTab('battle');
+  stageMsg('🍺 Welcome to the Driftwood Tavern — rest easy.',2200);
+ }
+}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+ if(b.dataset.tab==='home'){goHome();return;}
+ openTab(b.dataset.tab);
+});
  
 /* ==================== SAVE — one file per character ==================== */
 let saveT=0,memRoster=null;const memChars={};
