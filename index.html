@@ -789,8 +789,11 @@ const TAVERN_ZONE=ZONES.length-1;
 /* stat curves */
 const eHP=L=>Math.round(20*Math.pow(L,1.25)+10);
 const eATK=L=>Math.round(3+L*1.1);
-/* the world levels with you: every zone fights at least as hard as your deepest zone */
-const effZoneLvl=z=>Math.max(z.lvl,ZONES[Math.min(S.maxZone||0,ZONES.length-1)].lvl);
+/* Display level resets on prestige, but combat scaling never resets.
+   P0 Lv60 -> P1 Lv1 counts as effective Lv61 for enemy scaling.
+   Zone unlocks still use maxZone/cleared separately — do NOT use maxZone for combat scaling. */
+const effectiveHeroLvl=()=>((S.prestige||0)*MAXLVL)+(S.lvl||1);
+const effZoneLvl=z=>Math.max(z.lvl,effectiveHeroLvl());
 /* XP should NOT use deepest-zone scaling, or prestige resets level too fast. */
 const xpZoneLvl=z=>z.lvl;
 function zoneTemplates(z){
@@ -799,7 +802,7 @@ function zoneTemplates(z){
  const L=effZoneLvl(z);   /* HP/damage/gold scale to deepest zone */
  const XL=xpZoneLvl(z);  /* XP stays tied to the real zone level */
  if(z.thor){
-  const L=Math.max(S.lvl,10),pm=pMul();
+  const L=Math.max(effectiveHeroLvl(),10),pm=pMul();
   return [{name:z.boss[0],kind:'boss',boss:true,bossId:'thor',c:z.boss[1],speed:95,
    hp:Math.round(eHP(L)*75*pm),atk:Math.round(eATK(L)*2.0*pm),
    xp:0,gold:0}];
@@ -1434,7 +1437,7 @@ function openSpot(R){
 }
 function spawnEnemyAt(t,R,fixed){
  const p=fixed||openSpot(R||Math.random.bind(Math));
- const scale=t.boss?1:1+Math.max(0,S.lvl-effZoneLvl(zoneOf()))*0.04;
+ const scale=t.boss?1:1+Math.max(0,effectiveHeroLvl()-effZoneLvl(zoneOf()))*0.04;
  enemies.push({name:t.name,kind:t.kind,boss:!!t.boss,bossId:t.bossId||null,c:t.c,
   x:p.x,y:p.y,home:{x:p.x,y:p.y},r:t.boss?26:12,
   max:Math.round(t.hp*scale),hp:Math.round(t.hp*scale),
@@ -1447,7 +1450,7 @@ function spawnAdd(name,kind,c){
  const L=effZoneLvl(z);   /* HP/damage/gold scale to deepest zone */
  const XL=xpZoneLvl(z);  /* XP stays tied to the real zone level */
  if(z.thor){
-  const L=Math.max(S.lvl,10),pm=pMul(),pr=pRew();
+  const L=Math.max(effectiveHeroLvl(),10),pm=pMul(),pr=pRew();
   return [{name:z.boss[0],kind:'boss',boss:true,bossId:'thor',c:z.boss[1],speed:95,
    hp:Math.round(eHP(L)*60*pm),atk:Math.round(eATK(L)*2.0*pm),
    xp:Math.round(eHP(L)*6*pr),gold:Math.round(eHP(L)*4*pr)}];
@@ -1465,7 +1468,7 @@ function spawnAdd(name,kind,c){
 }
 const addsAlive=()=>enemies.filter(e=>e.add&&!e.dead).length;
 function cowTemplate(){
- const L=60,pm=Math.pow(1.35,(S.prestige||0));
+ const L=Math.max(60,effectiveHeroLvl()),pm=pMul();
  return {name:'Hell Bovine',kind:'humanoid',c:'#8a7a5a',cow:true,
   hp:Math.round(eHP(L)*3.2*pm),atk:Math.round(eATK(L)*1.9*pm),
   xp:Math.round(eHP(60)*0.8*pRew()),gold:Math.round(eHP(L)*0.4*pRew())};
