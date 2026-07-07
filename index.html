@@ -2588,8 +2588,6 @@ function renderHero(){
 }
 function renderMap(){
  const p5=(S.prestige||0)>=5;
- /* if you're standing in the Underworld, snap the map to that tab */
- if(zoneOf().special&&mapContinent!=='west')mapContinent='west';
  if(mapContinent==='west'&&!p5)mapContinent='east';
  $('eastTab').classList.toggle('cur',mapContinent==='east');
  $('westTab').classList.toggle('cur',mapContinent==='west');
@@ -2643,6 +2641,7 @@ function renderMap(){
    }
    else if(i>S.zone&&(S.lvl<z.lvl||!bossesClearedBefore(i)))return;
    S.zone=i;S.quest=0;S.qProg=0;
+   mapContinent=z.west?'west':'east';
    applyZoneUI();buildZone();renderHUD();save();
    openTab('battle');
    stageMsg('Traveling to '+z.name+'…');
@@ -3301,7 +3300,7 @@ function openTab(t){
  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));
  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('cur',b.dataset.tab===t));
  if(t==='hero'){renderHero();$('p-hero').classList.add('open');}
- if(t==='map'){renderMap();$('p-map').classList.add('open');}
+ if(t==='map'){if(S&&zoneOf().special)mapContinent='west';renderMap();$('p-map').classList.add('open');}
  if(t==='bag'){renderBag();$('p-bag').classList.add('open');}
  if(t==='shop'){renderShop();$('p-shop').classList.add('open');}
 }
