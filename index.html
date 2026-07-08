@@ -787,12 +787,13 @@ const ENCHS=[
 const enchOf=id=>ENCHS.find(e=>e.id===id);
 /* ==================== PETS ==================== */
 const PETS=[
- {id:'cat',n:'Saltwhisker the Cat',g:'🐈',cc:'#e8b070',d:'+8% attack damage.',atkMul:0.08},
- {id:'dog',n:'Borek the Hound',g:'🐕',cc:'#a8bcb0',d:'Take 8% less damage.',armor:0.08},
+ {id:'cat',n:'Saltwhisker the Cat',g:'🐈',cc:'#e8b070',d:'+10% attack damage.',atkMul: 0.10},
+ {id:'dog',n:'Borek the Hound',g:'🐕',cc:'#a8bcb0',d:'Take 10% less damage.',armor: 0.10},
 ];
 const petOf=id=>PETS.find(p=>p.id===id);
 const activePet=()=>S&&S.pet?petOf(S.pet):null;
 const PET_SELL=25000;
+const TIER4_SCROLL_SELL=20000;
 const tierVal=(id,t)=>enchOf(id).base*Math.pow(2,(t||1)-1);
 const tierDesc=(id,t)=>enchOf(id).d(parseFloat(tierVal(id,t).toFixed(2)));
 /* 17 zones — boss-gated progression up to level 60. */
@@ -3538,6 +3539,7 @@ function renderBag(){
      <div class="ss" style="color:var(--dim);font-size:11px">${tierDesc(g.id,g.tier)}</div></div>
      <div class="btns">
       ${g.n>=2&&g.tier<MAXTIER?`<button class="sbtn scrapb" data-comb="${g.id}:${g.tier}">⚗ Combine → ${TIERN[g.tier]}</button>`:''}
+      ${g.tier===MAXTIER&&g.n>=2?`<button class="sbtn" data-scsell="${g.id}:${g.tier}">Sell ${TIER4_SCROLL_SELL.toLocaleString()}◉</button>`:''}
       <button class="sbtn gold" data-sceq="${g.id}:${g.tier}" ${active?'disabled':''}>${active?'Active':'Equip'}</button>
      </div></div>`;
    }).join('')+'</div>';
@@ -3576,6 +3578,19 @@ function renderBag(){
     stageMsg('⚗ '+enchOf(id).n+' '+TIERN[tier]+' forged!',1800);
     renderBag();save();
    }
+  });
+  document.querySelectorAll('[data-scsell]').forEach(b=>b.onclick=()=>{
+   const [id,t]=b.dataset.scsell.split(':'),tier=+t;
+   const cnt=S.scrolls.filter(x=>x.id===id&&x.tier===tier).length;
+   if(cnt<2){stageMsg('You must keep at least one of this scroll',1600);sfx.warn();return;}
+   const i=S.scrolls.findIndex(x=>x.id===id&&x.tier===tier);
+   if(i<0)return;
+   S.scrolls.splice(i,1);
+   S.gold=Math.min(goldCap(),S.gold+TIER4_SCROLL_SELL);
+   sfx.loot();
+   log(`Sold <span class="lscroll">${enchOf(id).n} ${TIERN[tier-1]}</span> — +${TIER4_SCROLL_SELL.toLocaleString()} ◉.`,'loot');
+   stageMsg('Sold '+enchOf(id).n+' '+TIERN[tier-1]+' — +'+TIER4_SCROLL_SELL.toLocaleString()+'◉',1800);
+   renderBag();renderHUD();save();
   });
  }
  // ---- pets: items with their own equip slot ----
