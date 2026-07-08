@@ -660,6 +660,7 @@
 /* ==================== DATA ==================== */
 const MAXLVL=60;
 const SEASON=1; /* bump this to wipe everyone */
+const AC_VERSION=2; /* leaderboard only shows brorFusk for flags created by this anti-cheat version or newer */
 const GOLD_CAP_BASE=500000,GOLD_CAP_ROOF=2000000,SCRAP_CAP=800,BOOST_COST_CAP=500000,GEAR_UPGRADE_COST_CAP=400;
 const goldCap=(ch)=>{const p=((ch||S||{}).prestige)||0;return p>=20?2000000:p>=5?1000000:GOLD_CAP_BASE;};
 /* ==================== THOR WINDOWS — svensk tid 00/03/06/09/12/15/18/21 ==================== */
@@ -4560,23 +4561,29 @@ async function deviceDelete(k){
    saving the shame mark outside the character save and re-checking it on load/publish.
    For the server-side layer, add the Firestore rules from the cheater-system note. */
 const shameKey=id=>'riptide-shame-'+id;
+function shameVal(v){
+ if(v===true)return 1;                 /* old sticky flags before versioning */
+ const n=parseInt(v||0,10);
+ return Number.isFinite(n)?n:0;
+}
 async function markShame(id){
  if(!id)return;
- await deviceSet(shameKey(id),'1');
- try{if(window.storage)await window.storage.set('shame:'+id,'1',true);}catch(e){}
+ await deviceSet(shameKey(id),String(AC_VERSION));
+ try{if(window.storage)await window.storage.set('shame:'+id,String(AC_VERSION),true);}catch(e){}
  if(FB.ready&&FB.user){
-  try{await FB.db.collection('players').doc(FB.user.uid).set({shame:{[id]:true}},{merge:true});}catch(e){}
+  try{await FB.db.collection('players').doc(FB.user.uid).set({shame:{[id]:AC_VERSION}},{merge:true});}catch(e){}
  }
 }
-async function isShamed(id){
- if(!id)return false;
- if(await deviceGet(shameKey(id)))return true;
- try{if(window.storage){const r=await window.storage.get('shame:'+id,true);if(r&&r.value)return true;}}catch(e){}
+async function shameVersion(id){
+ if(!id)return 0;
+ let v=shameVal(await deviceGet(shameKey(id)));
+ try{if(window.storage){const r=await window.storage.get('shame:'+id,true);v=Math.max(v,shameVal(r&&r.value));}}catch(e){}
  if(FB.ready&&FB.user){
-  try{const d=await FB.db.collection('players').doc(FB.user.uid).get();const data=d.data()||{};if(data.shame&&data.shame[id])return true;}catch(e){}
+  try{const d=await FB.db.collection('players').doc(FB.user.uid).get();const data=d.data()||{};if(data.shame&&data.shame[id]!==undefined)v=Math.max(v,shameVal(data.shame[id]));}catch(e){}
  }
- return false;
+ return v;
 }
+async function isShamed(id){return (await shameVersion(id))>=AC_VERSION;}
 
 function replayStat(base,up,kind){
  let v=Math.round(base)||0;
@@ -4652,9 +4659,9 @@ function sanityCheck(ch=S){
  if(why.length){
   console.warn('SANITY FLAG:',why);
   ch.tainted=true;
-  /* DEBUG/OBSERVE MODE: do not write permanent shame while finding false positives. Re-enable after fixing the reported reason. */
-  /* markShame(ch.id); */
-  if(typeof log==='function')log('<span class="imp">This hero triggered sanityCheck — brorFusk. Check console for reasons. Permanent shame is temporarily disabled.</span>');
+  ch.taintV=AC_VERSION;
+  markShame(ch.id);
+  if(typeof log==='function')log('<span class="imp">This hero triggered sanityCheck — brorFusk. Check console for reasons.</span>');
  }
  return why.length>0;
 }
@@ -4680,9 +4687,9 @@ async function loadChar(id){
  const shamed=await isShamed(id);
  let raw=await deviceGet('riptide-char-'+id);
  if(!raw)raw=await deviceGet('eastvale-char-'+id); /* legacy fallback */
- if(raw){try{const ch=migrate(JSON.parse(raw));if(shamed)ch.tainted=true;return ch;}catch(e){}}
+ if(raw){try{const ch=migrate(JSON.parse(raw));if(shamed){ch.tainted=true;ch.taintV=AC_VERSION;}return ch;}catch(e){}}
  if(!memChars[id])return null;
- const ch=migrate(JSON.parse(memChars[id]));if(shamed)ch.tainted=true;return ch;
+ const ch=migrate(JSON.parse(memChars[id]));if(shamed){ch.tainted=true;ch.taintV=AC_VERSION;}return ch;
 }
 async function legacyLoad(){
  let raw=await deviceGet('riptide-save3');
@@ -4856,9 +4863,10 @@ async function publishLB(ch,force){
  if(!force&&now-FB.lastPub<45000)return;
  FB.lastPub=now;
  sanityCheck(ch);
- if(!ch.tainted&&await isShamed(ch.id))ch.tainted=true;
+ if(!ch.tainted&&await isShamed(ch.id)){ch.tainted=true;ch.taintV=AC_VERSION;}
+ const showTainted=!!ch.tainted&&((ch.taintV||0)>=AC_VERSION);
  const slim=g=>g?{name:g.name,rar:g.rar,slot:g.slot,up:g.up||0,atk:g.atk||0,hp:g.hp||0,crit:g.crit||0,lifesteal:g.lifesteal||0,legend:g.legend||null,power:Math.round(g.power||0)}:null;
- const entry={season:SEASON,name:(ch.name||'?').slice(0,14),lvl:ch.lvl,prestige:ch.prestige||0,gs:charGearScore(ch),score:lbScore(ch),cid:ch.id,t:now,tainted:!!ch.tainted,
+ const entry={season:SEASON,name:(ch.name||'?').slice(0,14),lvl:ch.lvl,prestige:ch.prestige||0,gs:charGearScore(ch),score:lbScore(ch),cid:ch.id,t:now,tainted:showTainted,taintV:showTainted?AC_VERSION:(ch.taintV||0),
   rating:ch.rating||0,
   race:ch.race||'human',cls:ch.cls||'warrior',zone:ch.zone||0,
   scroll:(ch.activeScrolls||[]).filter(Boolean)[0]||null,
@@ -4935,9 +4943,9 @@ async function showLeaderboard(){
    <div class="lbrank big">${i+1}</div>
    <canvas class="portrait" width="64" height="76" data-lbp="${i}"></canvas>
    <div class="cinfo">
-    <div class="cn">${e.tainted?'<span style="color:#ff8a7a">⚠ </span>':''}${esc(e.name||'?')}${e.rating?` <span style="color:var(--brass)">(${e.rating})</span>`:''}${e.prestige?` <span class="pstar">✦ Prestige ${e.prestige}</span>`:''}</div>
+    <div class="cn">${(e.tainted&&((e.taintV||0)>=AC_VERSION))?'<span style="color:#ff8a7a">⚠ </span>':''}${esc(e.name||'?')}${e.rating?` <span style="color:var(--brass)">(${e.rating})</span>`:''}${e.prestige?` <span class="pstar">✦ Prestige ${e.prestige}</span>`:''}</div>
     <div class="cl">${r&&c?esc(r.name+' '+c.name)+' · ':''}Level ${e.lvl||1}</div>
-    <div class="cl">${e.tainted?'⚠ brorFusk · ':''}⚔ ${fmtGS(e.gs)} gear score · ${esc(zn)}</div>
+    <div class="cl">${(e.tainted&&((e.taintV||0)>=AC_VERSION))?'⚠ brorFusk · ':''}⚔ ${fmtGS(e.gs)} gear score · ${esc(zn)}</div>
    </div>
    <button class="sbtn gold" data-insp="${i}">🔍 Inspect</button>
    <div class="lbinsp" id="insp${i}" style="display:none;flex-basis:100%"></div>
