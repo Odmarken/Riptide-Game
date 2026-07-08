@@ -1582,9 +1582,9 @@ function buildZone(){
   chamber(doorB,1220,330,260,'top');    /* Ragnaros the Firelord */
   chamber(3150,cy,330,300,'left');      /* Arthas the Frozen King */
   world.raidRooms=[
-   {idx:0,x:doorA,y:380,r:260,sealed:false,boss:'betrayer'},
-   {idx:1,x:doorB,y:1220,r:260,sealed:false,boss:'firelord'},
-   {idx:2,x:3150,y:cy,r:300,sealed:false,boss:'frostking'}
+   {idx:0,x:doorA,y:380,r:260,sealed:false,boss:'betrayer',doorA:Math.PI/2},
+   {idx:1,x:doorB,y:1220,r:260,sealed:false,boss:'firelord',doorA:-Math.PI/2},
+   {idx:2,x:3150,y:cy,r:300,sealed:false,boss:'frostking',doorA:Math.PI}
   ];
   const gateLine=(room,x1,y1,x2,y2)=>{
    const d=Math.hypot(x2-x1,y2-y1),n=Math.max(1,Math.round(d/42));
@@ -1598,9 +1598,9 @@ function buildZone(){
    world.solids.push({x,y:hallT+42,r:5,type:'lantern'});
    world.solids.push({x,y:hallB-42,r:5,type:'lantern'});
   }
-  spawnEnemyAt(tmpls[0],R,{x:doorA,y:380,roomIdx:0});
-  spawnEnemyAt(tmpls[1],R,{x:doorB,y:1220,roomIdx:1});
-  spawnEnemyAt(tmpls[2],R,{x:3150,y:cy,roomIdx:2});
+  spawnEnemyAt(tmpls[0],R,{x:doorA,y:230,roomIdx:0});
+  spawnEnemyAt(tmpls[1],R,{x:doorB,y:1370,roomIdx:1});
+  spawnEnemyAt(tmpls[2],R,{x:3340,y:cy,roomIdx:2});
   stageMsg('Three lords slumber in their chambers. They will not stir until struck — and then, never stop.',3600);
  }else if(isBoss){
   if(!S.bossDead[S.zone]&&!(zoneOf().thor&&thorLocked()))spawnEnemyAt(tmpls[0],R,{x:world.w-320,y:world.pathY});
@@ -2054,7 +2054,7 @@ const ZONE_LVL_CAP=5;
 const zoneLvlGained=()=>((S.zoneLvlGain||{})[S.zone])||0;
 function gainXP(amt){
  if(S.lvl>=MAXLVL)return;
- if(S.gamblerT>0)amt=Math.round(amt*1.05);
+ if(S.gamblerT>0)amt=Math.round(amt*1.20);
  S.xp+=amt;
  while(S.lvl<MAXLVL&&zoneLvlGained()<ZONE_LVL_CAP&&S.xp>=xpNeed(S.lvl)){
   S.xp-=xpNeed(S.lvl);S.lvl++;
@@ -2700,6 +2700,18 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    }
   }else if(en.state==='return'){
    if(moveToward(en,en.home.x,en.home.y,dt)||dHome<8){en.state='wander';en.hp=en.max;}
+  }else if(en.raid&&!en.awake&&world.raidRooms&&world.raidRooms[en.roomIdx]!=null){
+   /* sleeping raid lord: pace along the wall FURTHEST from the door, far out of doorway poke range */
+   const rm=world.raidRooms[en.roomIdx];
+   const back=rm.doorA+Math.PI;        /* opposite the door */
+   const rr=rm.r-110;
+   if(en.patT===undefined){en.patT=0;en.patDir=1;}
+   en.patT+=dt*0.35*en.patDir;
+   if(Math.abs(en.patT)>0.7)en.patDir=-en.patDir; /* sweep ±0.7 rad along the back wall */
+   const tx=rm.x+Math.cos(back+en.patT)*rr,ty=rm.y+Math.sin(back+en.patT)*rr;
+   const sv=en.speed;en.speed=55;
+   moveToward(en,tx,ty,dt);
+   en.speed=sv;
   }else{
    en.wT-=dt;
    if(en.wT<=0){en.wT=1.5+Math.random()*2.5;en.dir=Math.random()*6.28;en.pause=Math.random()<.4;}
@@ -3697,7 +3709,7 @@ function renderBag(){
   const mins=Math.ceil(S.gamblerT/60);
   gamblerHtml=`<div class="card item" style="border-color:#ffd76a${active?';box-shadow:0 0 10px rgba(255,215,106,.25)':''}"><div>
    <div class="sn" style="color:#ffd76a;font-size:13px;font-weight:600">🎲 Potion of Gambler <span style="color:var(--dim)">×${S.gamblerPots||0}</span></div>
-   <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#ffd76a">ACTIVE — '+mins+' min remaining.</b> ':''}+5% XP gain and +2% crit chance for 30 minutes. Won only on a 100x max win at Borek 67.</div></div>
+   <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#ffd76a">ACTIVE — '+mins+' min remaining.</b> ':''}+20% XP gain and +2% crit chance for 30 minutes. Won only on a 100x max win at Borek 67.</div></div>
    <div class="btns"><button class="sbtn gold" id="gamblerUse" ${(S.gamblerPots||0)<1?'disabled':''}>${active?'Extend +30m':'Drink'}</button></div></div>`;
  }
  $('scrollSec').innerHTML=luckHtml+gamblerHtml;
@@ -3835,7 +3847,7 @@ function renderBag(){
   S.gamblerT=(S.gamblerT||0)+1800;
   sfx.potion();
   sparkles(hero.x,hero.y-12,'#ffd76a',12);
-  stageMsg('🎲 Gambler\'s edge! +5% XP & +2% crit for '+Math.ceil(S.gamblerT/60)+' minutes!',2500);
+  stageMsg('🎲 Gambler\'s edge! +20% XP & +2% crit for '+Math.ceil(S.gamblerT/60)+' minutes!',2500);
   log('<span class="lfine">🎲 Potion of Gambler</span> consumed.');
   renderBag();renderHero();renderHUD();save();
  };
@@ -4259,7 +4271,7 @@ function slotSettle(out){
    log(`Borek 67: <span class="llegendary">${out.mul}x — +${paid.toLocaleString()} ◉</span>${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}!`,'loot');
    if(jackpot){
     S.gamblerPots=(S.gamblerPots||0)+1;
-    log(`Max win! <span class="llegendary">🎲 Potion of Gambler</span> — +5% XP & +2% crit for 30 min, now in your Bag.`,'loot');
+    log(`Max win! <span class="llegendary">🎲 Potion of Gambler</span> — +20% XP & +2% crit for 30 min, now in your Bag.`,'loot');
    }
    slotCelebrateTimer=setTimeout(()=>{
     clearSlotCelebration();
@@ -4753,10 +4765,12 @@ function renderShop(){
  const hpC=potCost('hp'),mpC=potCost('mp');
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">🧪 Health Potion</div>
   <div class="ss" style="color:var(--dim);font-size:11px">Restores 45% health. You own ${S.pots.hp}.</div></div>
-  <div class="btns"><button class="sbtn gold" data-pot="hp" ${totalGold()<hpC||inBossFight()?'disabled':''}>Buy ${hpC.toLocaleString()}◉</button></div></div>`;
+  <div class="btns"><button class="sbtn gold" data-pot="hp" ${totalGold()<hpC||inBossFight()?'disabled':''}>Buy ${hpC.toLocaleString()}◉</button>
+  <button class="sbtn gold" data-pot="hp" data-n="10" ${totalGold()<hpC*10||inBossFight()?'disabled':''}>10x · ${(hpC*10).toLocaleString()}◉</button></div></div>`;
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">🔮 Mana Potion</div>
   <div class="ss" style="color:var(--dim);font-size:11px">Restores 60% mana. You own ${S.pots.mp}.</div></div>
-  <div class="btns"><button class="sbtn gold" data-pot="mp" ${totalGold()<mpC||inBossFight()?'disabled':''}>Buy ${mpC.toLocaleString()}◉</button></div></div>`;
+  <div class="btns"><button class="sbtn gold" data-pot="mp" ${totalGold()<mpC||inBossFight()?'disabled':''}>Buy ${mpC.toLocaleString()}◉</button>
+  <button class="sbtn gold" data-pot="mp" data-n="10" ${totalGold()<mpC*10||inBossFight()?'disabled':''}>10x · ${(mpC*10).toLocaleString()}◉</button></div></div>`;
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Upgrades</div>';
  const cap=boostMax();
  const spN=S.boosts.speed,haN=S.boosts.haste,spC=boostCost(spN),haC=boostCost(haN);
@@ -4789,9 +4803,9 @@ function renderShop(){
  });
  document.querySelectorAll('[data-pot]').forEach(b=>b.onclick=()=>{
   if(inBossFight()){stageMsg('The Trader cowers — no potion sales during a boss fight!',1600);sfx.warn();return;}
-  const k=b.dataset.pot,cost=potCost(k);
+  const k=b.dataset.pot,n=parseInt(b.dataset.n||'1',10),cost=potCost(k)*n;
   if(!spendGold(cost)){stageMsg('Not enough gold',1200);return;}
-  S.pots[k]++;
+  S.pots[k]+=n;
   sfx.buy();renderShop();renderHUD();save();
  });
  document.querySelectorAll('[data-boost]').forEach(b=>b.onclick=()=>{
