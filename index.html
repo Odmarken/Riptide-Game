@@ -708,16 +708,16 @@ const CLASSES=[
 const TIERN=['I','II','III','IV'];
 const MAXTIER=4;
 const ENCHS=[
- {id:'mending',n:'Scroll of Mending',base:4,glow:'#7ae08a',d:v=>`Regenerate ${v}% max health every 3 seconds.`},
- {id:'warding',n:'Scroll of Warding',base:3,glow:'#8fb0d0',d:v=>`Take ${v}% less damage.`},
+ {id:'mending',n:'Scroll of Mending',base:1.5,glow:'#7ae08a',d:v=>`Regenerate ${v}% max health every 5 seconds.`},
+ {id:'warding',n:'Scroll of Warding',base:2.25,glow:'#8fb0d0',d:v=>`Take ${v}% less damage.`},
  {id:'thorns',n:'Scroll of Thorns',base:5.625,glow:'#9adf9a',d:v=>`Reflect ${v}% of damage taken back at foes.`},
  {id:'reaper',n:'Scroll of the Reaper',base:2,glow:'#c86a6a',d:v=>`Heal ${v}% of max health on every kill.`},
  {id:'flames',n:'Scroll of Flames',base:5,glow:'#ff9a4a',d:v=>`Attacks burn for ${v}% bonus fire damage.`},
- {id:'frostbite',n:'Scroll of Biting Frost',base:0.5,glow:'#a0e0ff',d:v=>`Attacks chill foes, slowing them for ${v}s.`},
- {id:'titan',n:'Scroll of the Colossus',base:3,glow:'#e8b070',d:v=>`+${v}% attack damage.`},
- {id:'clarity',n:'Scroll of Clarity',base:12.5,glow:'#8fa8ef',d:v=>`+${v}% mana regeneration.`},
- {id:'swiftness',n:'Scroll of Swiftness',base:4,glow:'#d8f2ff',d:v=>`+${v}% movement and attack speed.`},
- {id:'fortune',n:'Scroll of Fortune',base:8,glow:'#ffd76a',d:v=>`+${v}% gold from kills.`},
+ {id:'frostbite',n:'Scroll of Biting Frost',base:0.5,glow:'#a0e0ff',d:v=>`Every 5s your next attack chills the foe, slowing it for ${v}s.`},
+ {id:'titan',n:'Scroll of the Colossus',base:2.25,glow:'#e8b070',d:v=>`+${v}% attack damage.`},
+ {id:'clarity',n:'Scroll of Clarity',base:10,glow:'#8fa8ef',d:v=>`+${v}% mana regeneration.`},
+ {id:'swiftness',n:'Scroll of Swiftness',base:2.5,glow:'#d8f2ff',d:v=>`+${v}% movement and attack speed.`},
+ {id:'fortune',n:'Scroll of Fortune',base:3.75,glow:'#ffd76a',d:v=>`+${v}% gold from kills.`},
  {id:'chain',n:'Scroll of Chain Lightning',base:3.75,glow:'#7fd0ff',d:v=>`Attacks arc to up to 3 nearby foes for ${v}% splash damage.`},
 ];
 const enchOf=id=>ENCHS.find(e=>e.id===id);
@@ -1692,7 +1692,11 @@ function landHit(en,dmg,crit,label,basic){
  if(en.dead||en.hidden)return;
  if(basic){
   if(hasEnch('flames')){const b=Math.max(1,Math.round(dmg*scrollPct('flames')));en.hp-=b;floatAt(en.x+10,en.y-en.r-24,'+'+b+'🔥','#ff9a4a');}
-  if(hasEnch('frostbite'))en.slowT=Math.max(en.slowT,scrollRaw('frostbite'));
+  if(hasEnch('frostbite')&&(hero.frostT||0)<=0){
+   en.slowT=Math.max(en.slowT,scrollRaw('frostbite'));
+   hero.frostT=5;
+   floatAt(en.x,en.y-en.r-24,'❄','#a0e0ff');
+  }
   if(hasEnch('chain')){
    const splash=enemies.filter(e2=>e2!==en&&!e2.dead&&!e2.hidden&&dist(en,e2)<=90)
     .sort((a,b)=>dist(en,a)-dist(en,b)).slice(0,3);
@@ -2295,6 +2299,7 @@ function update(dt){
  hero.spellCd=hero.spellCd.map(v=>Math.max(0,v-dt));
  hero.potCd.hp=Math.max(0,hero.potCd.hp-dt);
  hero.potCd.mp=Math.max(0,hero.potCd.mp-dt);
+ hero.frostT=Math.max(0,(hero.frostT||0)-dt);
   if(S.luckT>0){
   S.luckT-=dt;
   if(S.luckT<=0){S.luckT=0;stageMsg('🍀 Your luck fades…',1800);}
@@ -2310,7 +2315,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
  }
  // regen passives
  hero.regenTick+=dt;
- if(hero.regenTick>=3){hero.regenTick=0;
+ if(hero.regenTick>=5){hero.regenTick=0;
   if(hasEnch('mending')&&!hero.dead)healHero(heroMax()*scrollPct('mending'),true);
  }
  if(hero.hotT>0){hero.hotT-=dt;hero.hotTick+=dt;
