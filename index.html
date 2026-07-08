@@ -1543,7 +1543,7 @@ const addsAlive=()=>enemies.filter(e=>e.add&&!e.dead).length;
 function cowTemplate(){
  const L=60; /* Cow Level is always a level-60 zone, even after prestige resets display level. */
  return {name:'Hell Bovine',kind:'humanoid',c:'#8a7a5a',cow:true,
-  hp:Math.round(eHP(L)*21),atk:Math.round(eATK(L)*11),
+  hp:Math.round(eHP(L)*16),atk:Math.round(eATK(L)*11),
   xp:Math.round(eHP(60)*0.8*pRew()),gold:0}; /* Cow Level mobs give no gold — item farm only */
 }
 function spawnCow(){
@@ -1863,7 +1863,7 @@ function killEnemy(en){
     log(`<span class="loot">Bag stuffed full (${COW_BAG_CAP})</span> — the herd has nothing more to give.`,'loot');
     sfx.quest();
    }
-  }else if(Math.random()<0.05){ /* 5% chance for a Cow Level item drop */
+  }else if(Math.random()<0.20){ /* 20% chance for a Cow Level item drop */
    if(S.bag.length>=COW_BAG_CAP){
     if(!cowBagFull){cowBagFull=true;
      stageMsg('BAG FULL — '+COW_BAG_CAP+' items! Nothing left to gain. Die gloriously or flee to cash in.',3500);
