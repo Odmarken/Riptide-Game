@@ -615,9 +615,10 @@
       <div class="slotres" id="seaRes">&nbsp;</div>
       <div class="slotstats" id="seaStats"></div>
       <div class="seapay">
-        <span>Match on reels <b>1→2→3</b> (any rows) to win</span><span>Reel 4 too = <b>bigger prize</b></span>
-        <span><b style="color:#e8ece8">White gear</b> = fine · <b style="color:#5b9bd5">Blue</b> = rare</span><span><b style="color:#c9a0ff">Purple</b> = epic · 📜 <b>Scroll</b></span>
-        <span>💀 <b>Gold jackpot</b></span><span>x2/x3/x5 cells <b>multiply the win</b></span>
+        <span>Match reels <b>1→2</b> = 🔒 <b>LOCK + RESPIN</b></span><span>Each extension <b>raises the multiplier</b></span>
+        <span>Reach reels <b>1→2→3</b> to win · <b>4 = double</b></span><span>x2/x3/x5 cells multiply further</span>
+        <span>📜 Scroll wins pay <b>Tier I–III</b> by multiplier</span><span>💀 Gold jackpot · max <b>150⚙</b> scrap</span>
+        <span>3+ 🎁 anywhere = <b>10 FREE SPINS</b></span><span>Free spins roll <b>richer reels</b></span>
       </div>
       <div class="slotbet">
         <button class="qtybtn" id="seaBetDn">−</button>
@@ -4366,12 +4367,11 @@ $('slotClose').onclick=()=>{
  $('slotFx').classList.remove('open');
 };
 
-/* ==================== BOREK SEAMEN — 3/5/5/3 ways slot ==================== */
+/* ==================== BOREK SEAMEN — hold & respin slot ==================== */
 const SEA_BASE=2500,SEA_BET_MAX=5,SEA_COLS=4;
-const SEA_ROWSBY=[3,5,5,3]; /* outer reels 3 high, middle reels 5 high */
+const SEA_ROWSBY=[3,5,5,3];
 let seaBet=1;
 const seaCost=()=>SEA_BASE*seaBet;
-/* symbols: k = match key, icons = display variants, cc = rarity frame color */
 const SEA_SYMDEF={
  joker:{icons:['🃏'],cc:null},
  hook:{icons:['🪝'],cc:null},
@@ -4380,28 +4380,30 @@ const SEA_SYMDEF={
  rare:{icons:['⚔️','🛡️'],cc:'#5b9bd5'},
  epic:{icons:['⚔️','🛡️'],cc:'#c9a0ff'},
  scroll:{icons:['📜'],cc:'#e8c9ef'},
- skull:{icons:['💀'],cc:'#ffd76a'}
+ skull:{icons:['💀'],cc:'#ffd76a'},
+ bonus:{icons:['🎁'],cc:'#ffd100'}
 };
-const SEA_WEIGHTS=[
- ['joker',22],['hook',22],['wave',18],
- ['fine',14],['rare',9],['epic',6],['scroll',5],['skull',4]
-];
-const SEA_TOTALW=SEA_WEIGHTS.reduce((t,w)=>t+w[1],0);
+const SEA_W_BASE=[['joker',21],['hook',21],['wave',17],['fine',13],['rare',9],['epic',5],['scroll',5],['skull',4],['bonus',5]];
+const SEA_W_BONUS=[['joker',12],['hook',12],['wave',10],['fine',16],['rare',13],['epic',9],['scroll',9],['skull',7],['bonus',4]];
+let seaSpinning=false,seaAuto=false,seaAutoTimer=0,seaCelebrating=false,seaCelebrateTimer=0;
+let seaFree=0,seaSession={spins:0,gold:0,scrap:0};
+const seaBonusMode=()=>seaFree>0;
 function seaSymKey(){
- let r=Math.random()*SEA_TOTALW;
- for(const [k,w] of SEA_WEIGHTS){if((r-=w)<0)return k;}
+ const W=seaBonusMode()?SEA_W_BONUS:SEA_W_BASE;
+ const tot=W.reduce((t,w)=>t+w[1],0);
+ let r=Math.random()*tot;
+ for(const [k,w] of W){if((r-=w)<0)return k;}
  return 'joker';
 }
 function seaMult(){
- const r=Math.random();
- return r<0.01?5:r<0.04?3:r<0.14?2:1;
+ const r=Math.random(),b=seaBonusMode();
+ return r<(b?0.03:0.01)?5:r<(b?0.09:0.04)?3:r<(b?0.22:0.13)?2:1;
 }
 function seaCell(){
  const k=seaSymKey(),d=SEA_SYMDEF[k];
- return {k,icon:d.icons[Math.floor(Math.random()*d.icons.length)],cc:d.cc,m:seaMult()};
+ const low=k==='joker'||k==='hook'||k==='wave'||k==='bonus';
+ return {k,icon:d.icons[Math.floor(Math.random()*d.icons.length)],cc:d.cc,m:low?1:seaMult()};
 }
-let seaSpinning=false,seaAuto=false,seaAutoTimer=0,seaCelebrating=false,seaCelebrateTimer=0;
-let seaSession={spins:0,gold:0,items:0};
 function spawnPartsIn(fx,color,n){
  for(let i=0;i<n;i++){
   const p=document.createElement('span');
@@ -4416,133 +4418,170 @@ function spawnPartsIn(fx,color,n){
  }
 }
 const seaCellHtml=c=>`<div class="seacell${c.cc?' prize':''}"${c.cc?` style="--cc:${c.cc}"`:''}><span class="ic">${c.icon}</span>${c.m>1?`<span class="m">x${c.m}</span>`:''}</div>`;
-/* find all wins: same key on reels 1..3+ from the left, ways = counts multiplied */
-function seaEval(grid){
- const wins=[];
- for(const key of ['skull','epic','rare','fine','scroll']){
-  const counts=grid.map(col=>col.filter(x=>x.k===key).length);
-  let run=0;while(run<SEA_COLS&&counts[run]>0)run++;
-  if(run<3)continue;
-  let ways=1;for(let c=0;c<run;c++)ways*=counts[c];
-  let mult=1;const cells=[];
-  for(let c=0;c<run;c++)grid[c].forEach((x,r)=>{
-   if(x.k===key){cells.push([c,r]);if(x.m>1)mult*=x.m;}
-  });
-  mult=Math.min(mult,20);
-  wins.push({key,run,ways,mult,cells});
+function seaRunOf(grid,key){let r=0;while(r<SEA_COLS&&grid[r].some(x=>x.k===key))r++;return r;}
+function seaBest(grid){
+ let bk=null,br=0;
+ for(const k of ['skull','epic','rare','fine','scroll']){
+  const r=seaRunOf(grid,k);
+  if(r>br){br=r;bk=k;}
  }
- return wins;
+ return {bk,br};
 }
-function spinSea(){
- if(seaSpinning||seaCelebrating)return;
- if(!spendGold(seaCost())){stopSeaAuto();stageMsg('Not enough gold — a spin costs '+seaCost().toLocaleString()+'◉',1400);sfx.warn();return;}
- renderHUD();
- seaSpinning=true;
- $('seaRes').innerHTML='&nbsp;';$('seaRes').classList.remove('bigres');
- updateSeaUI();
- sfx.buy();
- /* roll the final 3/5/5/3 grid up front */
- const grid=[];
- for(let c=0;c<SEA_COLS;c++){const col=[];for(let r=0;r<SEA_ROWSBY[c];r++)col.push(seaCell());grid.push(col);}
- const CH=window.innerWidth>=900?86:62;
- const reels=[];
- for(let c=0;c<SEA_COLS;c++){
-  const el=$('sc'+c),filler=12+c*5,cells=[];
-  for(let i=0;i<filler;i++)cells.push(seaCell());
-  cells.push(...grid[c]); /* last visible cells = the result column */
-  el.innerHTML=cells.map(seaCellHtml).join('');
-  reels.push({el,dist:filler*CH,dur:1400+c*450,done:false});
+function seaMark(grid,key,run){
+ for(let c=0;c<run;c++){
+  const strip=$('sc'+c),off=strip.children.length-SEA_ROWSBY[c];
+  grid[c].forEach((x,r)=>{if(x.k===key&&strip.children[off+r])strip.children[off+r].classList.add('hit');});
  }
- const t0=performance.now();
- let lastTick=[-1,-1,-1,-1];
+}
+function seaAnimateCols(cols,grid,done){
+ const CH=window.innerWidth>=900?86:62;
+ const reels=cols.map((c,j)=>{
+  const filler=10+j*4,cells=[];
+  for(let i=0;i<filler;i++)cells.push(seaCell());
+  cells.push(...grid[c]);
+  const el=$('sc'+c);
+  el.innerHTML=cells.map(seaCellHtml).join('');
+  el.style.transform='translateY(0)';
+  return {el,dist:filler*CH,dur:1200+j*420,fin:false};
+ });
+ const t0=performance.now(),last=cols.map(()=>-1);
  const tick=now=>{
-  let allDone=true;
+  let all=true;
   reels.forEach((r,i)=>{
    const p=Math.min(1,(now-t0)/r.dur),e=1-Math.pow(1-p,3),y=-r.dist*e;
    r.el.style.transform=`translateY(${y}px)`;
    const cell=Math.floor(-y/CH);
-   if(cell!==lastTick[i]){lastTick[i]=cell;blip(700+Math.random()*300,450,0.025,.03,'square');}
-   if(p<1)allDone=false;
-   else if(!r.done){r.done=true;noiseHit(0.06,.08,800);}
+   if(cell!==last[i]){last[i]=cell;blip(700+Math.random()*300,450,0.025,.03,'square');}
+   if(p<1)all=false;
+   else if(!r.fin){r.fin=true;noiseHit(0.06,.08,800);}
   });
-  if(!allDone)requestAnimationFrame(tick);
-  else seaSettle(grid);
+  if(!all)requestAnimationFrame(tick);else done();
  };
  requestAnimationFrame(tick);
 }
-function seaSettle(grid){
- seaSpinning=false;
+function spinSea(){
+ if(seaSpinning||seaCelebrating)return;
+ const free=seaFree>0;
+ if(free)seaFree--;
+ else if(!spendGold(seaCost())){stopSeaAuto();stageMsg('Not enough gold — a spin costs '+seaCost().toLocaleString()+'◉',1400);sfx.warn();return;}
+ renderHUD();
+ seaSpinning=true;
+ seaSession.spins++;
+ if(!free)seaSession.gold-=seaCost();
  const res=$('seaRes');
  res.classList.remove('bigres');
- seaSession.spins++;
- seaSession.gold-=seaCost();
- const wins=seaEval(grid);
- /* highlight winning cells (last cells of each strip are the visible column) */
- wins.forEach(w=>w.cells.forEach(([c,r])=>{
-  const strip=$('sc'+c),idx=strip.children.length-SEA_ROWSBY[c]+r;
-  if(strip.children[idx])strip.children[idx].classList.add('hit');
- }));
- if(!wins.length){
-  res.style.color='#8fa898';
-  res.textContent='The sea gives nothing back…';
-  blip(300,180,0.25,.05,'sawtooth');
-  renderHUD();save();updateSeaUI();resumeSeaAuto();
+ res.style.color=free?'#ffd76a':'#8fa898';
+ res.textContent=free?'🎁 FREE SPIN — '+seaFree+' left after this':'\u00a0';
+ updateSeaUI();
+ sfx.buy();
+ const grid=[];
+ for(let c=0;c<SEA_COLS;c++){const col=[];for(let r=0;r<SEA_ROWSBY[c];r++)col.push(seaCell());grid.push(col);}
+ seaAnimateCols([0,1,2,3],grid,()=>seaHold(grid,2,0));
+}
+function seaHold(grid,respins,ext){
+ const {bk,br}=seaBest(grid);
+ if(bk&&br>=2&&br<SEA_COLS&&respins>0){
+  seaMark(grid,bk,br);
+  const res=$('seaRes');
+  res.style.color='#8fc3ef';
+  res.textContent='🔒 '+br+' reel'+(br>1?'s':'')+' locked — respinning!'+(ext?' 🔥 x'+(1+ext)+' streak':'');
+  blip(880,1240,0.16,.06);
+  const cols=[];for(let c=br;c<SEA_COLS;c++)cols.push(c);
+  setTimeout(()=>{
+   cols.forEach(c=>{grid[c]=[];for(let r=0;r<SEA_ROWSBY[c];r++)grid[c].push(seaCell());});
+   seaAnimateCols(cols,grid,()=>{
+    const nr=seaRunOf(grid,bk),nb=seaBest(grid);
+    seaHold(grid,respins-1,(nr>br||nb.br>br)?ext+1:ext);
+   });
+  },600);
   return;
  }
- /* pay out every win */
- let goldWon=0,itemNames=[],scrollWon=null,gotEpic=false,maxMult=1;
- const GOLDPER={skull:4000,epic:1500,rare:600,fine:300,scroll:500};
- const RARBY={epic:'epic',rare:'rare',fine:'fine'};
- wins.forEach(w=>{
-  maxMult=Math.max(maxMult,w.mult);
-  const runBonus=w.run>=4?2:1; /* full 4-reel line doubles */
-  goldWon+=GOLDPER[w.key]*seaBet*w.ways*w.mult*runBonus;
-  if(RARBY[w.key]){
-   const n=Math.min(w.key==='epic'?2:3,w.ways)*(w.run>=4?2:1);
-   for(let i=0;i<Math.min(n,4);i++){
-    const it=rollItem(RARBY[w.key]);
-    itemNames.push(it.name);
-    seaSession.items++;
-    log(`Borek Seamen: <span class="l${it.rar}">${it.name}</span> ${itemStr(it)}.`,'loot');
-    if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
-   }
-   if(w.key==='epic')gotEpic=true;
+ seaFinal(grid,ext);
+}
+function seaFinal(grid,ext){
+ seaSpinning=false;
+ const {bk,br}=seaBest(grid);
+ const gifts=grid.flat().filter(x=>x.k==='bonus').length;
+ let bonusTxt='';
+ if(gifts>=3){
+  const add=seaBonusMode()?5:10;
+  seaFree+=add;
+  bonusTxt=' · 🎁 '+add+' FREE SPINS!';
+  log(`Borek Seamen: <span class="llegendary">🎁 ${add} FREE SPINS</span> triggered!`,'loot');
+ }
+ const res=$('seaRes');
+ res.classList.remove('bigres');
+ if(!bk||br<3){
+  if(gifts>=3){
+   seaCelebrating=true;
+   res.style.color='#ffd100';res.classList.add('bigres');
+   res.textContent='🎁 BONUS ROUND — '+seaFree+' free spins of richer reels!';
+   $('seaFx').querySelector('.slotmach').classList.add('bigwin');
+   dingDingDing(false);spawnPartsIn($('seaFx'),'#ffd100',20);
+   seaCelebrateTimer=setTimeout(()=>{clearSeaCelebration();updateSeaUI();seaNext();},3200);
+  }else{
+   res.style.color=seaFree>0?'#ffd76a':'#8fa898';
+   res.textContent=(seaFree>0?'No luck — ':'The sea gives nothing back…')+(seaFree>0?seaFree+' free spins left':'');
+   blip(300,180,0.25,.05,'sawtooth');
+   seaNext();
   }
-  if(w.key==='scroll'){
-   const e=ENCHS[Math.floor(Math.random()*ENCHS.length)],tier=w.run>=4?2:1;
-   S.scrolls.push({id:e.id,tier});
-   scrollWon=e.n+' '+TIERN[tier-1];
-   log(`Borek Seamen: <span class="lscroll">${e.n} ${TIERN[tier-1]}</span>.`,'loot');
-  }
- });
+  renderHUD();save();updateSeaUI();return;
+ }
+ seaMark(grid,bk,br);
+ let ways=1,cellMult=1;
+ for(let c=0;c<br;c++){
+  const m=grid[c].filter(x=>x.k===bk);
+  ways*=m.length;
+  m.forEach(x=>{if(x.m>1)cellMult*=x.m;});
+ }
+ cellMult=Math.min(cellMult,10);
+ const mult=cellMult*(1+ext);
+ const full=br>=4?2:1;
+ const GOLDPER={skull:5000,epic:2000,rare:800,fine:350,scroll:600};
+ const SCRAPPER={skull:30,epic:15,rare:8,fine:4,scroll:6};
+ const goldWon=GOLDPER[bk]*seaBet*ways*mult*full;
+ const scrapWon=Math.min(150,SCRAPPER[bk]*seaBet*ways*full);
  const {got,over}=addGoldOverflow(goldWon);
  const paid=got+over;
- seaSession.gold+=paid;
- const bits=[];
- if(paid>0)bits.push('+'+paid.toLocaleString()+'◉');
- if(itemNames.length)bits.push(itemNames.length+' item'+(itemNames.length>1?'s':''));
- if(scrollWon)bits.push('📜 '+scrollWon);
- const multTxt=maxMult>1?' · x'+maxMult+'!':'';
- const big=gotEpic||maxMult>=4||paid>=seaCost()*10;
+ const gotScrap=addScraps(scrapWon);
+ seaSession.gold+=paid;seaSession.scrap+=gotScrap;
+ const bits=['+'+paid.toLocaleString()+'◉'];
+ if(gotScrap>0)bits.push('+'+gotScrap+'⚙');
+ if(bk==='scroll'){
+  const tier=mult>=5?3:mult>=3?2:1;
+  const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
+  S.scrolls.push({id:e.id,tier});
+  bits.push('📜 '+e.n+' '+TIERN[tier-1]);
+  log(`Borek Seamen: <span class="lscroll">${e.n} ${TIERN[tier-1]}</span>.`,'loot');
+ }
+ const multTxt=mult>1?' · x'+mult+'!':'';
+ const big=bk==='skull'||mult>=6||paid>=seaCost()*10||gifts>=3;
  res.style.color=big?'#ffd100':'#8fc3ef';
  if(big){
   seaCelebrating=true;
   res.classList.add('bigres');
-  res.textContent='🌊 BIG CATCH — '+bits.join(' · ')+multTxt;
+  res.textContent='🌊 BIG CATCH — '+bits.join(' · ')+multTxt+bonusTxt;
   $('seaFx').querySelector('.slotmach').classList.add('bigwin');
   dingDingDing(paid>=seaCost()*30);
   spawnPartsIn($('seaFx'),'#ffd100',22);
-  if(paid>0)log(`Borek Seamen: <span class="llegendary">+${paid.toLocaleString()} ◉</span>${multTxt}!`,'loot');
-  seaCelebrateTimer=setTimeout(()=>{clearSeaCelebration();updateSeaUI();resumeSeaAuto();},4500);
+  log(`Borek Seamen: <span class="llegendary">+${paid.toLocaleString()} ◉</span>${multTxt}!`,'loot');
+  seaCelebrateTimer=setTimeout(()=>{clearSeaCelebration();updateSeaUI();seaNext();},4200);
  }else{
-  res.textContent='Winner! '+bits.join(' · ')+multTxt;
+  res.textContent='Winner! '+bits.join(' · ')+multTxt+bonusTxt;
   sfx.loot();
   spawnPartsIn($('seaFx'),'#8fc3ef',10);
-  if(paid>0)log(`Borek Seamen: <span class="loot">+${paid.toLocaleString()} ◉</span>${multTxt}.`,'loot');
+  log(`Borek Seamen: <span class="loot">+${paid.toLocaleString()} ◉</span>${multTxt}.`,'loot');
+  seaNext();
  }
- renderHUD();save();
- updateSeaUI();
- if(!seaCelebrating)resumeSeaAuto();
+ renderHUD();save();updateSeaUI();
+}
+function seaNext(){
+ if(seaCelebrating)return;
+ if(seaFree>0){
+  seaAutoTimer=setTimeout(()=>{if($('seaFx').classList.contains('open')&&!seaSpinning&&!seaCelebrating)spinSea();},900);
+  return;
+ }
+ resumeSeaAuto();
 }
 function clearSeaCelebration(){
  seaCelebrating=false;clearTimeout(seaCelebrateTimer);
@@ -4553,23 +4592,23 @@ function clearSeaCelebration(){
 function updateSeaUI(){
  const b=$('seaSpinBtn'),cost=seaCost();
  if(b){
-  b.disabled=seaSpinning||seaCelebrating||totalGold()<cost;
-  b.textContent=totalGold()<cost?'🦈 Spin · '+cost.toLocaleString()+'◉ — broke!':'🦈 Spin · '+cost.toLocaleString()+'◉';
+  b.disabled=seaSpinning||seaCelebrating||(seaFree<=0&&totalGold()<cost);
+  b.textContent=seaFree>0?'🎁 FREE SPIN ('+seaFree+' left)':totalGold()<cost?'🦈 Spin · '+cost.toLocaleString()+'◉ — broke!':'🦈 Spin · '+cost.toLocaleString()+'◉';
  }
  const a=$('seaAutoBtn');
  if(a){a.classList.toggle('on',seaAuto);a.textContent=seaAuto?'■ Stop':'▶ Auto';}
  const bn=$('seaBetN'),bc=$('seaBetCost'),bd=$('seaBetDn'),bu=$('seaBetUp');
  if(bn)bn.textContent=seaBet+'x';
- if(bc)bc.textContent=cost.toLocaleString()+'◉ / spin';
- if(bd)bd.disabled=seaBet<=1||seaSpinning||seaAuto;
- if(bu)bu.disabled=seaBet>=SEA_BET_MAX||seaSpinning||seaAuto;
+ if(bc)bc.textContent=seaFree>0?'FREE SPINS':cost.toLocaleString()+'◉ / spin';
+ if(bd)bd.disabled=seaBet<=1||seaSpinning||seaAuto||seaFree>0;
+ if(bu)bu.disabled=seaBet>=SEA_BET_MAX||seaSpinning||seaAuto||seaFree>0;
  const st=$('seaStats'),s=seaSession;
- if(st)st.textContent=s.spins?`Session: ${s.spins} spins · ${s.gold>=0?'+':''}${s.gold.toLocaleString()}◉ · ${s.items} items`:'';
+ if(st)st.textContent=s.spins?`Session: ${s.spins} spins · ${s.gold>=0?'+':''}${s.gold.toLocaleString()}◉ · +${s.scrap}⚙${seaFree>0?' · 🎁 '+seaFree+' free':''}`:'';
 }
 function resumeSeaAuto(){
  if(!seaAuto)return;
  if(totalGold()<seaCost()){stopSeaAuto('Out of gold — auto stopped.');return;}
- seaAutoTimer=setTimeout(()=>{if(seaAuto&&!seaCelebrating&&$('seaFx').classList.contains('open'))spinSea();},800);
+ seaAutoTimer=setTimeout(()=>{if(seaAuto&&!seaCelebrating&&!seaSpinning&&$('seaFx').classList.contains('open'))spinSea();},800);
 }
 function stopSeaAuto(msg){
  seaAuto=false;clearTimeout(seaAutoTimer);
@@ -4579,7 +4618,7 @@ function stopSeaAuto(msg){
 function openSea(){
  $('seaFx').classList.add('open');
  clearSeaCelebration();
- seaSession={spins:0,gold:0,items:0};
+ seaSession={spins:0,gold:0,scrap:0};
  for(let c=0;c<SEA_COLS;c++){
   const cells=[];for(let r=0;r<SEA_ROWSBY[c];r++)cells.push(seaCell());
   $('sc'+c).innerHTML=cells.map(seaCellHtml).join('');
@@ -4587,23 +4626,23 @@ function openSea(){
  }
  $('seaRes').innerHTML='&nbsp;';
  updateSeaUI();
+ if(seaFree>0)seaNext(); /* unfinished bonus round resumes */
 }
 $('seaSpinBtn').onclick=()=>{if(!seaAuto)spinSea();};
 $('seaAutoBtn').onclick=()=>{
  if(seaAuto){stopSeaAuto();return;}
- if(totalGold()<seaCost()){stageMsg('Not enough gold to start auto-spin',1400);sfx.warn();return;}
- seaAuto=true;seaSession={spins:0,gold:0,items:0};
+ if(totalGold()<seaCost()&&seaFree<=0){stageMsg('Not enough gold to start auto-spin',1400);sfx.warn();return;}
+ seaAuto=true;seaSession={spins:0,gold:0,scrap:0};
  updateSeaUI();
  if(!seaSpinning&&!seaCelebrating)spinSea();
 };
-$('seaBetDn').onclick=()=>{if(seaBet>1&&!seaSpinning&&!seaAuto){seaBet--;updateSeaUI();}};
-$('seaBetUp').onclick=()=>{if(seaBet<SEA_BET_MAX&&!seaSpinning&&!seaAuto){seaBet++;updateSeaUI();}};
+$('seaBetDn').onclick=()=>{if(seaBet>1&&!seaSpinning&&!seaAuto&&seaFree<=0){seaBet--;updateSeaUI();}};
+$('seaBetUp').onclick=()=>{if(seaBet<SEA_BET_MAX&&!seaSpinning&&!seaAuto&&seaFree<=0){seaBet++;updateSeaUI();}};
 $('seaClose').onclick=()=>{
  if(seaSpinning&&!seaAuto)return;
- stopSeaAuto();clearSeaCelebration();
+ stopSeaAuto();clearSeaCelebration();clearTimeout(seaAutoTimer);
  $('seaFx').classList.remove('open');
 };
-
 
 /* ==================== BOREK BLACKJACK ==================== */
 const BJ_MIN=1000,BJ_MAX=15000,BJ_STEP=1000;
