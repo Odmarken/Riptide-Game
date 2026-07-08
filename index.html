@@ -4609,30 +4609,56 @@ function itemConsistent(it,ch){
 
 function sanityCheck(ch=S){
  if(!ch||!ch.id)return false;
- let bad=false;
+ const why=[];
  const n=v=>Number.isFinite(Number(v));
- if(!n(ch.lvl)||ch.lvl<1||ch.lvl>MAXLVL)bad=true;
- if(!n(ch.gold)||ch.gold<0||ch.gold>goldCap(ch))bad=true;
- if(!n(ch.overflow)||ch.overflow<0||ch.overflow>500000000)bad=true;
- if(!n(ch.scraps)||ch.scraps<0||ch.scraps>SCRAP_CAP)bad=true;
- if(!n(ch.prestige)||ch.prestige<0||ch.prestige>200)bad=true;
- if(!n(ch.zone)||ch.zone<0||ch.zone>=ZONES.length)bad=true;
- if(!Array.isArray(ch.bag)||ch.bag.length>500)bad=true;
+ const boostCap=BOOST_BASE_MAX+Math.floor(((ch||{}).prestige||0)/5);
+
+ if(!n(ch.lvl)||ch.lvl<1||ch.lvl>MAXLVL)why.push('lvl='+ch.lvl);
+ if(!n(ch.gold)||ch.gold<0||ch.gold>goldCap(ch))why.push('gold='+ch.gold+'/'+goldCap(ch));
+ if(!n(ch.overflow)||ch.overflow<0||ch.overflow>500000000)why.push('overflow='+ch.overflow);
+ if(!n(ch.scraps)||ch.scraps<0||ch.scraps>SCRAP_CAP)why.push('scraps='+ch.scraps+'/'+SCRAP_CAP);
+ if(!n(ch.prestige)||ch.prestige<0||ch.prestige>200)why.push('prestige='+ch.prestige);
+ if(!n(ch.zone)||ch.zone<0||ch.zone>=ZONES.length)why.push('zone='+ch.zone+'/'+ZONES.length);
+ if(!Array.isArray(ch.bag)||ch.bag.length>500)why.push('bag length='+(ch.bag&&ch.bag.length));
+
  const boosts=ch.boosts||{};
- if(!n(boosts.speed)||!n(boosts.haste)||boosts.speed<0||boosts.haste<0||boosts.speed>boostMax()+5||boosts.haste>boostMax()+5)bad=true;
- const gear=[ch.gear&&ch.gear.weapon,ch.gear&&ch.gear.armor,ch.gear&&ch.gear.trinket,...(ch.bag||[])].filter(Boolean);
+ if(!n(boosts.speed)||boosts.speed<0||boosts.speed>boostCap+5)why.push('boost speed='+boosts.speed+'/'+boostCap);
+ if(!n(boosts.haste)||boosts.haste<0||boosts.haste>boostCap+5)why.push('boost haste='+boosts.haste+'/'+boostCap);
+
+ const gear=[ch.gear&&ch.gear.weapon,ch.gear&&ch.gear.armor,ch.gear&&ch.gear.trinket,...(Array.isArray(ch.bag)?ch.bag:[])].filter(Boolean);
  for(const it of gear){
-  if(!n(it.up)||it.up<0||it.up>(isFM(it)?FM_MAX_UP:GEAR_MAX_UP))bad=true;
-  if((it.atk||0)<0||(it.hp||0)<0||(it.crit||0)<0)bad=true;
-  if((it.atk||0)>2000000||(it.hp||0)>10000000||(it.crit||0)>1000)bad=true;
-  if(!itemConsistent(it,ch))bad=true;
+  const nm=(it.name||it.n||it.id||'unknown item');
+  if(!n(it.up)||it.up<0||it.up>(isFM(it)?FM_MAX_UP:GEAR_MAX_UP))why.push(nm+' up='+it.up+'/'+(isFM(it)?FM_MAX_UP:GEAR_MAX_UP));
+  if((it.atk||0)<0)why.push(nm+' atk negative='+it.atk);
+  if((it.hp||0)<0)why.push(nm+' hp negative='+it.hp);
+  if((it.crit||0)<0)why.push(nm+' crit negative='+it.crit);
+  if((it.atk||0)>2000000)why.push(nm+' atk hardcap='+it.atk);
+  if((it.hp||0)>10000000)why.push(nm+' hp hardcap='+it.hp);
+  if((it.crit||0)>1000)why.push(nm+' crit hardcap='+it.crit);
+  if(isFM(it))continue;
+
+  ensureItemBase(it);
+  const up=it.up||0;
+  const tol=up>0?up+2:0; /* legacy slack */
+  const expAtk=(it.baseAtk||0)?replayStat(it.baseAtk,up,'atk'):0;
+  const expHp=(it.baseHp||0)?replayStat(it.baseHp,up,'hp'):0;
+
+  if((it.baseAtk||0)>maxItemBaseStat(ch,'atk'))why.push(nm+' baseAtk='+it.baseAtk+'>'+maxItemBaseStat(ch,'atk'));
+  if((it.baseHp||0)>maxItemBaseStat(ch,'hp'))why.push(nm+' baseHp='+it.baseHp+'>'+maxItemBaseStat(ch,'hp'));
+  if((it.baseCrit||0)>maxItemBaseStat(ch,'crit'))why.push(nm+' baseCrit='+it.baseCrit+'>'+maxItemBaseStat(ch,'crit'));
+  if((it.crit||0)!==(it.baseCrit||0))why.push(nm+' crit changed='+it.crit+' base='+it.baseCrit);
+  if(Math.abs((it.atk||0)-expAtk)>tol)why.push(nm+' replay atk mismatch current='+it.atk+' expected='+expAtk+' base='+it.baseAtk+' up='+up+' tol='+tol);
+  if(Math.abs((it.hp||0)-expHp)>tol)why.push(nm+' replay hp mismatch current='+it.hp+' expected='+expHp+' base='+it.baseHp+' up='+up+' tol='+tol);
  }
- if(bad){
+
+ if(why.length){
+  console.warn('SANITY FLAG:',why);
   ch.tainted=true;
-  markShame(ch.id);
-  if(typeof log==='function')log('<span class="imp">This hero has been altered — it is now flagged on the leaderboard.</span>');
+  /* DEBUG/OBSERVE MODE: do not write permanent shame while finding false positives. Re-enable after fixing the reported reason. */
+  /* markShame(ch.id); */
+  if(typeof log==='function')log('<span class="imp">This hero triggered sanityCheck — check console for SANITY FLAG reasons. Permanent shame is temporarily disabled.</span>');
  }
- return bad;
+ return why.length>0;
 }
 async function save(){
  if(!S||!S.id||FB.kicked)return;
