@@ -1151,21 +1151,19 @@ function itemStr(it){
 /* compact stat line for the currently equipped item, for bag comparison */
 function shortStats(it){
  if(isFM(it))syncFrostmourne(it);else ensureItemBase(it);
- let s='';
- if(it.atk)s+='+'+it.atk+' ATK ';
- if(it.hp)s+='+'+it.hp+' HP ';
- if(it.crit)s+='+'+it.crit+'% CRIT ';
- if(it.lifesteal)s+='+'+(it.lifesteal*100)+'% LIFESTEAL ';
- return s.trim()||'—';
+ const baseAtk=Math.round(it.baseAtk||it.atk||0);
+ return baseAtk?('+'+baseAtk+' ATK'):'—';
 }
 /* shows, in parentheses, what you currently wear in this slot + ▲/▼ vs the bag item */
 function equipCompare(it){
  const cur=S.gear[it.slot];
  if(!cur)return ' <span style="color:#6dbb6d">(equipped: none)</span>';
- const dp=(it.power||0)-(cur.power||0);
+ const itAtk=Math.round(it.baseAtk||it.atk||0);
+ const curAtk=Math.round(cur.baseAtk||cur.atk||0);
+ const dp=itAtk-curAtk;
  const col=dp>0?'#9adf9a':dp<0?'#e89a9a':'#8fa898';
  const arrow=dp>0?' ▲':dp<0?' ▼':'';
- return ` <span style="color:${col}">(equipped +${cur.up||0}: ${shortStats(cur)})${arrow}</span>`;
+ return ` <span style="color:${col}">(equipped: ${shortStats(cur)})${arrow}</span>`;
 }
  
 /* ==================== AUDIO ====================
