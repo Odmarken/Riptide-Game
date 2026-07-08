@@ -421,6 +421,16 @@
 .bjact:disabled{opacity:.4;cursor:default}
 .bjact.alt{background:var(--panel2);color:#9adf9a}
 @media (max-width:600px){.bjcard{width:32px;height:46px;font-size:12px}}
+/* --- Casino building menu --- */
+#casinoMenu{position:absolute;inset:0;z-index:71;display:none;align-items:center;justify-content:center;background:rgba(5,10,8,.86)}
+#casinoMenu.open{display:flex}
+.casinobox{width:min(92%,360px);padding:22px;border-radius:18px;border:2px solid var(--brass);background:linear-gradient(180deg,#2a3d33,#131f1a);box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 24px rgba(217,164,65,.18);text-align:center}
+.casinopick{display:flex;align-items:center;gap:12px;width:100%;margin:8px 0;padding:12px 14px;border-radius:12px;border:1px solid var(--brass-deep);background:linear-gradient(180deg,#2a3d33,#1c2b24);color:var(--parch);cursor:pointer;text-align:left;transition:border-color .15s,transform .1s}
+.casinopick:hover{border-color:var(--brass);transform:translateY(-1px)}
+.casinopick .cg{font-size:26px;flex:0 0 auto}
+.casinopick .ct{display:flex;flex-direction:column}
+.casinopick .ct b{font-family:var(--display);font-size:15px;color:var(--parch)}
+.casinopick .ct i{font-style:normal;font-size:11px;color:var(--dim);margin-top:2px}
 
 </style>
 </head>
@@ -646,6 +656,16 @@
    </div>
   </div>
 
+  <div id="casinoMenu">
+   <div class="casinobox">
+    <div class="slottop" style="color:var(--brass);margin-bottom:6px">🎰 BOREK CASINO</div>
+    <div class="cl" style="margin-bottom:14px">The house always wins. Pick your game.</div>
+    <button class="casinopick" data-game="slots"><span class="cg">🎰</span><span class="ct"><b>Borek Casino</b><i>Classic slots — win up to 100x</i></span></button>
+    <button class="casinopick" data-game="sea"><span class="cg">🦈</span><span class="ct"><b>Borek Seamen</b><i>16-way ways slot — gear &amp; jackpots</i></span></button>
+    <button class="casinopick" data-game="bj"><span class="cg">🃏</span><span class="ct"><b>Borek Blackjack</b><i>Beat the dealer to 21 — pays 3:2</i></span></button>
+    <button id="casinoMenuClose" class="sbtn" style="margin-top:6px;padding:11px">Leave the Casino</button>
+   </div>
+  </div>
   <nav>
     <button data-tab="battle" class="cur"><svg viewBox="0 0 24 24"><path d="M14.5 4 20 9.5 9.5 20 4 14.5z"/><path d="m4 20 3-3M17 7l3-3"/></svg>World</button>
     <button data-tab="hero"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.5 7.5-8 9-4.5-1.5-8-4.5-8-9V6z"/></svg>Hero</button>
@@ -918,7 +938,7 @@ const potCost=k=>20;
 const heroMax=()=>Math.round((classOf().hp+S.lvl*14+gearSum('hp'))*(raceOf().hp||1));
 const manaMax=()=>Math.round(classOf().mana+S.lvl*5);
 const heroAtk=()=>Math.round((classOf().atk+S.lvl*2.6+gearSum('atk'))*(1+scrollPct('titan'))*(1+((activePet()||{}).atkMul||0)));
-const heroCrit=()=>classOf().crit+(raceOf().crit||0)+gearSum('crit');
+const heroCrit=()=>classOf().crit+(raceOf().crit||0)+gearSum('crit')+((S&&S.gamblerT>0)?2:0);
 const xpNeed=l=>Math.round(38*Math.pow(l,1.5)*1.656); /* leveling is ~66% harder than base */
 const zoneOf=()=>ZONES[S.zone];
 const questsOf=()=>zoneQuests(zoneOf());
@@ -937,7 +957,7 @@ const speedBoostMul=()=>1+boostBonus(S.boosts?S.boosts.speed:0);
 const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0);
 function freshState(name,race,cls){
  return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,lastZone:0,maxZone:0,quest:0,qProg:0,
-  rating:0,cerberusKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',luckPots:0,luckT:0,freeGoldCases:0,cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
+  rating:0,cerberusKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',luckPots:0,luckT:0,gamblerPots:0,gamblerT:0,freeGoldCases:0,cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
   gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],pet:null,pets:[],
   boosts:{speed:0,haste:0},tainted:false,
   cleared:{},bossDead:{},zoneLvlGain:{},
@@ -985,6 +1005,8 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.thorLockWhy===undefined)s.thorLockWhy='';
  if(s.luckPots===undefined)s.luckPots=0;
  if(s.luckT===undefined)s.luckT=0;
+ if(s.gamblerPots===undefined)s.gamblerPots=0;
+ if(s.gamblerT===undefined)s.gamblerT=0;
  if(s.freeGoldCases===undefined)s.freeGoldCases=0;
  if(s.cowBest===undefined)s.cowBest=0;
  if(s.cowLast===undefined)s.cowLast=0;
@@ -1419,12 +1441,14 @@ function buildZone(){
   world.solids.push({x:cx,y:cy-330,r:52,type:'house',big:true,seed:1});
   /* small houses ringing the square */
   const HOUSES=[
-   {x:cx-380,y:cy-160},{x:cx+380,y:cy-160},
+   {x:cx-380,y:cy-160},
    {x:cx-430,y:cy+120},{x:cx+430,y:cy+120},
    {x:cx-220,y:cy+330},{x:cx+220,y:cy+330},
-   {x:cx-620,y:cy-40},{x:cx+620,y:cy-40},
+   {x:cx-620,y:cy-40},
   ];
   HOUSES.forEach((h,i)=>world.solids.push({x:h.x,y:h.y,r:34,type:'house',seed:i*13+2}));
+  /* the Casino — a grand red-roofed hall on the right of the square */
+  world.solids.push({x:cx+540,y:cy-40,r:52,type:'casino',big:true,seed:5});
   /* lanterns at the square's edge */
   for(let i=0;i<6;i++){
    const a=i/6*6.283;
@@ -1935,6 +1959,7 @@ const ZONE_LVL_CAP=5;
 const zoneLvlGained=()=>((S.zoneLvlGain||{})[S.zone])||0;
 function gainXP(amt){
  if(S.lvl>=MAXLVL)return;
+ if(S.gamblerT>0)amt=Math.round(amt*1.05);
  S.xp+=amt;
  while(S.lvl<MAXLVL&&zoneLvlGained()<ZONE_LVL_CAP&&S.xp>=xpNeed(S.lvl)){
   S.xp-=xpNeed(S.lvl);S.lvl++;
@@ -2255,6 +2280,10 @@ cv.addEventListener('pointerdown',e=>{
  if(!gameOn||gamePaused||hero.dead||pinching)return;
  const r=cv.getBoundingClientRect();
  const wx=(e.clientX-r.left)/zoom+camX,wy=(e.clientY-r.top)/zoom+camY;
+ if(zoneOf().tavern){
+  const cas=world.solids.find(s=>s.type==='casino');
+  if(cas&&Math.hypot(wx-cas.x,wy-cas.y)<cas.r+28){openCasinoMenu();return;}
+ }
  let best=null,bd=32;
  for(const en of enemies){if(en.dead||en.hidden)continue;
   const d=Math.hypot(wx-en.x,wy-en.y);
@@ -2352,6 +2381,11 @@ function update(dt){
   S.luckT-=dt;
   if(S.luckT<=0){S.luckT=0;stageMsg('🍀 Your luck fades…',1800);}
   else if(Math.random()<0.01)parts.push({x:hero.x+(Math.random()-0.5)*22,y:hero.y-6,vx:(Math.random()-0.5)*8,vy:-18,t:0,life:1,c:'#9adf9a',r:1.4,g:0});
+ }
+ if(S.gamblerT>0){
+  S.gamblerT-=dt;
+  if(S.gamblerT<=0){S.gamblerT=0;stageMsg('🎲 The gambler\'s edge fades…',1800);}
+  else if(Math.random()<0.01)parts.push({x:hero.x+(Math.random()-0.5)*22,y:hero.y-6,vx:(Math.random()-0.5)*8,vy:-18,t:0,life:1,c:'#ffd76a',r:1.4,g:0});
  }
 for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
  // mana regen (faster out of combat)
@@ -2748,6 +2782,24 @@ function drawProp(s,z){
    ctx.textAlign='center';ctx.fillStyle='#ffe9a0';
    ctx.fillText('🍺 GOLDSHIRE INN',0,-hh*1.45);
   }
+ }else if(s.type==='casino'){
+  const w=s.r*1.8,hh=s.r*1.35;
+  ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0,hh*0.45,w*1.12,hh*0.42,0,0,7);ctx.fill();
+  ctx.fillStyle='#9a8468';ctx.fillRect(-w,-hh*0.55,w*2,hh);
+  ctx.fillStyle='rgba(0,0,0,0.12)';ctx.fillRect(0,-hh*0.55,w,hh);
+  ctx.fillStyle='#8a2e26';
+  ctx.beginPath();ctx.moveTo(-w*1.18,-hh*0.55);ctx.lineTo(0,-hh*1.45);ctx.lineTo(w*1.18,-hh*0.55);ctx.closePath();ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.10)';
+  ctx.beginPath();ctx.moveTo(-w*1.18,-hh*0.55);ctx.lineTo(0,-hh*1.45);ctx.lineTo(0,-hh*0.55);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#3a2a1c';ctx.fillRect(-w*0.22,hh*0.45-hh*0.55,w*0.44,hh*0.55);
+  const flick=0.72+0.28*Math.sin(performance.now()/280+s.seed*5);
+  ctx.fillStyle='rgba(255,210,110,'+(0.9*flick)+')';
+  ctx.fillRect(-w*0.78,-hh*0.28,w*0.3,hh*0.32);
+  ctx.fillRect(w*0.48,-hh*0.28,w*0.3,hh*0.32);
+  ctx.font='700 12px '+getComputedStyle(document.body).fontFamily;
+  ctx.textAlign='center';
+  ctx.fillStyle='#20140a';ctx.fillText('🎰 CASINO',1,-hh*1.5+1);
+  ctx.fillStyle='#ffd76a';ctx.fillText('🎰 CASINO',0,-hh*1.5);
  }else if(s.type==='well'){
   ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,6,22,9,0,0,7);ctx.fill();
   ctx.fillStyle='#8b8a80';ctx.beginPath();ctx.ellipse(0,0,18,10,0,0,7);ctx.fill();
@@ -3432,7 +3484,17 @@ function renderBag(){
    <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#9adf9a">ACTIVE — '+mins+' min remaining.</b> ':''}+15% better drops from slain foes for 30 minutes. Chests and slots are unaffected. Thor yields one per kill.</div></div>
    <div class="btns"><button class="sbtn gold" id="luckUse" ${(S.luckPots||0)<1?'disabled':''}>${active?'Extend +30m':'Drink'}</button></div></div>`;
  }
- $('scrollSec').innerHTML=luckHtml;
+ // 🎲 gambler potions — max-win prize
+ let gamblerHtml='';
+ if((S.gamblerPots||0)>0||S.gamblerT>0){
+  const active=S.gamblerT>0;
+  const mins=Math.ceil(S.gamblerT/60);
+  gamblerHtml=`<div class="card item" style="border-color:#ffd76a${active?';box-shadow:0 0 10px rgba(255,215,106,.25)':''}"><div>
+   <div class="sn" style="color:#ffd76a;font-size:13px;font-weight:600">🎲 Potion of Gambler <span style="color:var(--dim)">×${S.gamblerPots||0}</span></div>
+   <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#ffd76a">ACTIVE — '+mins+' min remaining.</b> ':''}+5% XP gain and +2% crit chance for 30 minutes. Won only on a 100x max win at Borek Casino.</div></div>
+   <div class="btns"><button class="sbtn gold" id="gamblerUse" ${(S.gamblerPots||0)<1?'disabled':''}>${active?'Extend +30m':'Drink'}</button></div></div>`;
+ }
+ $('scrollSec').innerHTML=luckHtml+gamblerHtml;
 
  // scrolls — categorised by tier; tap a tier header to expand/collapse it
  if(S.scrolls.length){
@@ -3545,6 +3607,17 @@ function renderBag(){
   stageMsg('🍀 Luck flows through you — 15% better drops for '+Math.ceil(S.luckT/60)+' minutes!',2500);
   log('<span class="lfine">🍀 Potion of Luck</span> consumed.');
   renderBag();save();
+ };
+ const gu=$('gamblerUse');
+ if(gu)gu.onclick=()=>{
+  if((S.gamblerPots||0)<1)return;
+  S.gamblerPots--;
+  S.gamblerT=(S.gamblerT||0)+1800;
+  sfx.potion();
+  sparkles(hero.x,hero.y-12,'#ffd76a',12);
+  stageMsg('🎲 Gambler\'s edge! +5% XP & +2% crit for '+Math.ceil(S.gamblerT/60)+' minutes!',2500);
+  log('<span class="lfine">🎲 Potion of Gambler</span> consumed.');
+  renderBag();renderHero();renderHUD();save();
  };
 
  S.bag=(S.bag||[]).map(cleanBagItem).filter(Boolean);
@@ -3964,6 +4037,10 @@ function slotSettle(out){
    spawnSlotParts(jackpot?'#ffd100':out.color,jackpot?30:16);
    if(jackpot)setTimeout(()=>spawnSlotParts('#ffd100',20),600);
    log(`Borek Casino: <span class="llegendary">${out.mul}x — +${paid.toLocaleString()} ◉</span>${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}!`,'loot');
+   if(jackpot){
+    S.gamblerPots=(S.gamblerPots||0)+1;
+    log(`Max win! <span class="llegendary">🎲 Potion of Gambler</span> — +5% XP & +2% crit for 30 min, now in your Bag.`,'loot');
+   }
    slotCelebrateTimer=setTimeout(()=>{
     clearSlotCelebration();
     updateSlotUI();
@@ -4424,6 +4501,16 @@ $('bjClose').onclick=()=>{
  if(bjLive)return; /* no rage-quitting mid-hand — the wager is already spent */
  $('bjFx').classList.remove('open');
 };
+/* ==================== CASINO BUILDING MENU ==================== */
+function openCasinoMenu(){$('casinoMenu').classList.add('open');}
+$('casinoMenuClose').onclick=()=>$('casinoMenu').classList.remove('open');
+document.querySelectorAll('.casinopick').forEach(b=>b.onclick=()=>{
+ $('casinoMenu').classList.remove('open');
+ const g=b.dataset.game;
+ if(g==='slots')openSlots();
+ else if(g==='sea')openSea();
+ else if(g==='bj')openBJ();
+});
 
 function renderShop(){
  $('shopWallet').innerHTML=walletStr();
@@ -4441,15 +4528,7 @@ function renderShop(){
  <div class="btns"><button class="sbtn gold" id="goldChestBtn" ${totalGold()<goTot?'disabled':''}>${goTot>0?goTot.toLocaleString()+'◉':'FREE'}</button>
  <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gold" data-d="-1" ${goQty<=1?'disabled':''}>−</button><span class="qtynum">${goQty}x</span><button class="qtybtn" data-case="gold" data-d="1" ${goQty>=5?'disabled':''}>+</button></div><div class="qtytotal">${goFree?goFree+' free · ':''}Total: ${goTot.toLocaleString()}◉</div></div></div></div>`;
 
- h+=`<div class="card item gcard-slot"><div><div class="sn" style="font-size:13px;font-weight:600;color:#e8b070">🎰 Borek Casino</div>
-  <div class="ss" style="color:var(--dim);font-size:11px">A rattling machine of dubious legality. 1,000◉ a pull — win up to 100x your coin, or a fistful of ⚙ Scraps. Auto-spin available for the truly committed.</div></div>
-  <div class="btns"><button class="sbtn gold" id="slotOpenBtn">Play</button></div></div>`;
- h+=`<div class="card item gcard-slot" style="border-color:#3a6a8a"><div><div class="sn" style="font-size:13px;font-weight:600;color:#8fc3ef">🦈 Borek Seamen</div>
-  <div class="ss" style="color:var(--dim);font-size:11px">A 16-window ways machine from a shipwreck. Match symbols on reels 1→2→3 to win gear, scrolls or a 💀 gold jackpot — flaming x2/x3/x5 cells multiply the whole catch.</div></div>
-  <div class="btns"><button class="sbtn gold" id="seaOpenBtn">Play</button></div></div>`;
- h+=`<div class="card item gcard-slot" style="border-color:#3a6a4a"><div><div class="sn" style="font-size:13px;font-weight:600;color:#9adf9a">🃏 Borek Blackjack</div>
-  <div class="ss" style="color:var(--dim);font-size:11px">Beat the dealer to 21. Bet 1,000–15,000◉ a hand — blackjack pays 3:2, dealer stands on 17. Hit, Stand or Double.</div></div>
-  <div class="btns"><button class="sbtn gold" id="bjOpenBtn">Play</button></div></div>`;
+ h+=`<div class="card" style="color:var(--dim);font-size:11px;border-style:dashed">🎰 The slot machines, Borek Seamen and Blackjack have moved to the <b style="color:var(--brass)">Casino</b> in Goldshire — go there and click the building to play.</div>`;
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Supplies</div>';
  const hpC=potCost('hp'),mpC=potCost('mp');
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">🧪 Health Potion</div>
@@ -4480,7 +4559,7 @@ function renderShop(){
  $('shopList').innerHTML=h;
  $('chestBtn').onclick=openChest;
  $('goldChestBtn').onclick=openGoldChest;
- $('slotOpenBtn').onclick=openSlots;
+ if($('slotOpenBtn'))$('slotOpenBtn').onclick=openSlots;
  if($('seaOpenBtn'))$('seaOpenBtn').onclick=openSea;
  if($('bjOpenBtn'))$('bjOpenBtn').onclick=openBJ;
  document.querySelectorAll('[data-case][data-d]').forEach(b=>b.onclick=()=>{
