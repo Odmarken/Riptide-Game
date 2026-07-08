@@ -1592,7 +1592,8 @@ function speedOf(e){
   const base=e.baseSpeed||e.speed||80;
   s=base*(e.hp<=e.max*0.3?BOSS_ENRAGE_SPEED_MUL:BOSS_SPEED_MUL);
  }
- if(e.cow)s=s+e.age*4+e.age*e.age*0.06;
+ if(e.bossId==='cerberus'||e.bossId==='thor')s=(e.baseSpeed||e.speed)*2;
+ if(e.cow)s=s+e.age*7+e.age*e.age*0.15;
  if(e.slowT>0)s*=0.45;
  return s;
 }
@@ -1810,7 +1811,7 @@ function killEnemy(en){
     log(`<span class="loot">Bag stuffed full (${COW_BAG_CAP})</span> — the herd has nothing more to give.`,'loot');
     sfx.quest();
    }
-  }else for(let k=0;k<2;k++){
+  }else for(let k=0;k<1;k++){
    if(S.bag.length>=COW_BAG_CAP){
     if(!cowBagFull){cowBagFull=true;
      stageMsg('BAG FULL — '+COW_BAG_CAP+' items! Nothing left to gain. Die gloriously or flee to cash in.',3500);
@@ -2086,23 +2087,41 @@ function bossAI(en,dt){
    if(addsAlive()<2){spawnAdd('Legionnaire','humanoid','#a04a3a');
     floatAt(en.x,en.y-en.r-30,'To me!','#e8a08a',true);}
   }
- }else if(B==='thor'){ /* lightning bolts, thunderstrikes, and a rotating chain-lightning storm */
-  if(en.stormA===undefined){en.stormA=Math.random()*6.28;en.stormTick=0;}
-  en.stormA+=dt*0.55;
+ }else if(B==='thor'){ /* rotating full-room lightning beams — keep moving or fry */
+  if(en.stormA===undefined){en.stormA=Math.random()*6.28;en.stormTick=0;en.stormDir=1;en.stormFlip=8;}
+  en.stormFlip-=dt;
+  if(en.stormFlip<=0){
+   en.stormFlip=6+Math.random()*6;
+   en.stormDir=-en.stormDir;
+   floatAt(en.x,en.y-en.r-30,'The storm turns!','#7fd0ff',true);
+   sfx.warn();
+  }
+  en.stormA+=dt*0.45*en.stormDir;
   en.stormTick-=dt;
-  const cx=world.w/2,cy=world.h/2,RR=Math.min(world.w,world.h)*0.30;
-  let prev=null;
+  const cx=world.w/2,cy=world.h/2;
+  const LEN=Math.hypot(world.w,world.h)/2; /* beams reach every wall */
   for(let i=0;i<3;i++){
    const a=en.stormA+i*2.094;
-   const px=cx+Math.cos(a)*RR,py=cy+Math.sin(a)*RR*0.8;
-   if(Math.random()<0.22)zapLine(px+(Math.random()-0.5)*30,py-80,px,py-6);
-   if(prev&&Math.random()<0.10)zapLine(prev[0],prev[1]-8,px,py-8);
-   if(Math.random()<0.08)ring(px,py,44,'#7fd0ff',0.4);
-   if(Math.random()<0.15)burst(px,py-4,'#7fd0ff',2,50);
-   if(!hero.dead&&en.stormTick<=0&&Math.hypot(hero.x-px,hero.y-py)<48){
-    hurtHero(en.atk*0.5,'⚡');en.stormTick=0.5;sfx.arcane();
+   const ux=Math.cos(a),uy=Math.sin(a);
+   /* crackle along the full beam */
+   if(Math.random()<0.35)zapLine(cx,cy-10,cx+ux*LEN,cy+uy*LEN);
+   if(Math.random()<0.5){
+    const d=60+Math.random()*(LEN-60);
+    zapLine(cx+ux*d+(Math.random()-0.5)*24,cy+uy*d-70,cx+ux*d,cy+uy*d-4);
    }
-   prev=[px,py];
+   if(Math.random()<0.2){
+    const d=80+Math.random()*(LEN-80);
+    burst(cx+ux*d,cy+uy*d-4,'#7fd0ff',2,50);
+   }
+   /* hit if the hero stands in the beam (small dead zone at the very center) */
+   if(!hero.dead&&en.stormTick<=0){
+    const hx=hero.x-cx,hy=hero.y-cy;
+    const along=hx*ux+hy*uy;
+    if(along>30){
+     const perp=Math.abs(hx*-uy+hy*ux);
+     if(perp<40){hurtHero(en.atk*0.5,'⚡');en.stormTick=0.5;sfx.arcane();}
+    }
+   }
   }
   if(en.cds.a<=0){en.cds.a=7;sfx.warn();
    for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*110,hero.y+(Math.random()-0.5)*110,44,1.1,en.atk*1.5,'#7fd0ff');
@@ -2265,9 +2284,8 @@ function update(dt){
   cowSpawnT-=dt;
   if(cowSpawnT<=0){
    cowSpawnT=Math.max(0.12,1.8-cowT*0.025);
-   const alive=enemies.filter(e=>e.cow&&!e.dead).length;
    const wave=1+Math.floor(cowT/20);
-   for(let i=0;i<wave&&alive+i<160;i++)spawnCow();
+   for(let i=0;i<wave;i++)spawnCow();
   }
  }
  const c=classOf();
@@ -3233,7 +3251,7 @@ function renderMap(){
     return `<div class="card zonecard ${p5?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${bagBlocked?'#c75146':p5?'#ffd76a':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},${z.tree})">🐄</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">Endless herd · 2 epics per cow · Best ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} items) · Last ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} items)</div>
+     <div class="zl">Endless herd · 1 epic per cow · Best ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} items) · Last ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} items)</div>
      ${bagBlocked?`<div style="color:#ff8a7a;font-family:var(--display);font-size:13.5px;margin-top:4px;text-shadow:0 0 8px rgba(255,90,70,.35)">⚠ EMPTY YOUR BAG FIRST — the herd only respects those who arrive with nothing (${S.bag.length} item${S.bag.length>1?'s':''} carried)</div>`:''}</div>
      ${i===S.zone?'<span class="ztag">Here</span>':bagBlocked?'<span class="ztag boss">🎒 Bag full</span>':p5?'<span class="ztag boss">🐄 MOO</span>':'<span class="ztag boss">🔒 Prestige 5</span>'}
     </div>`;
