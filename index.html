@@ -680,7 +680,7 @@
 /* ==================== DATA ==================== */
 const MAXLVL=60;
 const SEASON=1; /* bump this to wipe everyone */
-const AC_VERSION=2; /* leaderboard only shows brorFusk for flags created by this anti-cheat version or newer */
+const AC_VERSION=2; /* legacy value kept only so old saves/leaderboard rows don't break */
 const GOLD_CAP_BASE=500000,GOLD_CAP_ROOF=2000000,SCRAP_CAP=800,BOOST_COST_CAP=500000,GEAR_UPGRADE_COST_CAP=400;
 const goldCap=(ch)=>{const p=((ch||S||{}).prestige)||0;return p>=20?2000000:p>=5?1000000:GOLD_CAP_BASE;};
 /* ==================== THOR WINDOWS — svensk tid 00/03/06/09/12/15/18/21 ==================== */
@@ -980,7 +980,8 @@ function ensureItemBase(it){
  return it;
 }
 function migrate(s){ /* fills fields missing from older saves */
- if(s.tainted===undefined)s.tainted=false;
+ s.tainted=false;
+ s.taintV=0;
  if(s.scraps===undefined)s.scraps=0;
  if(s.overflow===undefined)s.overflow=0;
  if(s.pet===undefined)s.pet=null;
@@ -4676,34 +4677,14 @@ async function deviceDelete(k){
  LS.del(k);
 }
 
-/* ==================== CHEATER SHAME MARKERS ====================
-   Client-side saves can always be edited, so this makes cheat flags sticky by
-   saving the shame mark outside the character save and re-checking it on load/publish.
-   For the server-side layer, add the Firestore rules from the cheater-system note. */
+/* ==================== SANITY / SHAME DISABLED ====================
+   Flag/shame system removed. These stubs keep old calls safe without marking players. */
 const shameKey=id=>'riptide-shame-'+id;
-function shameVal(v){
- if(v===true)return 1;                 /* old sticky flags before versioning */
- const n=parseInt(v||0,10);
- return Number.isFinite(n)?n:0;
-}
-async function markShame(id){
- if(!id)return;
- await deviceSet(shameKey(id),String(AC_VERSION));
- try{if(window.storage)await window.storage.set('shame:'+id,String(AC_VERSION),true);}catch(e){}
- if(FB.ready&&FB.user){
-  try{await FB.db.collection('players').doc(FB.user.uid).set({shame:{[id]:AC_VERSION}},{merge:true});}catch(e){}
- }
-}
-async function shameVersion(id){
- if(!id)return 0;
- let v=shameVal(await deviceGet(shameKey(id)));
- try{if(window.storage){const r=await window.storage.get('shame:'+id,true);v=Math.max(v,shameVal(r&&r.value));}}catch(e){}
- if(FB.ready&&FB.user){
-  try{const d=await FB.db.collection('players').doc(FB.user.uid).get();const data=d.data()||{};if(data.shame&&data.shame[id]!==undefined)v=Math.max(v,shameVal(data.shame[id]));}catch(e){}
- }
- return v;
-}
-async function isShamed(id){return (await shameVersion(id))>=AC_VERSION;}
+function shameVal(v){return 0;}
+async function markShame(id){return;}
+async function shameVersion(id){return 0;}
+async function isShamed(id){return false;}
+function sanityCheck(ch=S){return false;}
 
 function replayStat(base,up,kind){
  let v=Math.round(base)||0;
@@ -4733,61 +4714,8 @@ function itemConsistent(it,ch){
  return true;
 }
 
-function sanityCheck(ch=S){
- if(!ch||!ch.id)return false;
- const why=[];
- const n=v=>Number.isFinite(Number(v));
- const boostCap=BOOST_BASE_MAX+Math.floor(((ch||{}).prestige||0)/5);
-
- if(!n(ch.lvl)||ch.lvl<1||ch.lvl>MAXLVL)why.push('lvl='+ch.lvl);
- if(!n(ch.gold)||ch.gold<0||ch.gold>goldCap(ch))why.push('gold='+ch.gold+'/'+goldCap(ch));
- if(!n(ch.overflow)||ch.overflow<0||ch.overflow>500000000)why.push('overflow='+ch.overflow);
- if(!n(ch.scraps)||ch.scraps<0||ch.scraps>SCRAP_CAP)why.push('scraps='+ch.scraps+'/'+SCRAP_CAP);
- if(!n(ch.prestige)||ch.prestige<0||ch.prestige>200)why.push('prestige='+ch.prestige);
- if(!n(ch.zone)||ch.zone<0||ch.zone>=ZONES.length)why.push('zone='+ch.zone+'/'+ZONES.length);
- if(!Array.isArray(ch.bag)||ch.bag.length>500)why.push('bag length='+(ch.bag&&ch.bag.length));
-
- const boosts=ch.boosts||{};
- if(!n(boosts.speed)||boosts.speed<0||boosts.speed>boostCap+5)why.push('boost speed='+boosts.speed+'/'+boostCap);
- if(!n(boosts.haste)||boosts.haste<0||boosts.haste>boostCap+5)why.push('boost haste='+boosts.haste+'/'+boostCap);
-
- const gear=[ch.gear&&ch.gear.weapon,ch.gear&&ch.gear.armor,ch.gear&&ch.gear.trinket,...(Array.isArray(ch.bag)?ch.bag:[])].filter(Boolean);
- for(const it of gear){
-  const nm=(it.name||it.n||it.id||'unknown item');
-  if(!n(it.up)||it.up<0||it.up>(isFM(it)?FM_MAX_UP:GEAR_MAX_UP))why.push(nm+' up='+it.up+'/'+(isFM(it)?FM_MAX_UP:GEAR_MAX_UP));
-  if((it.atk||0)<0)why.push(nm+' atk negative='+it.atk);
-  if((it.hp||0)<0)why.push(nm+' hp negative='+it.hp);
-  if((it.crit||0)<0)why.push(nm+' crit negative='+it.crit);
-  if((it.atk||0)>2000000)why.push(nm+' atk hardcap='+it.atk);
-  if((it.hp||0)>10000000)why.push(nm+' hp hardcap='+it.hp);
-  if((it.crit||0)>1000)why.push(nm+' crit hardcap='+it.crit);
-  if(isFM(it))continue;
-
-  ensureItemBase(it);
-  const up=it.up||0;
-  const tol=up>0?up+2:0; /* legacy slack */
-  const expAtk=(it.baseAtk||0)?replayStat(it.baseAtk,up,'atk'):0;
-  const expHp=(it.baseHp||0)?replayStat(it.baseHp,up,'hp'):0;
-
-  /* Do not flag high baseAtk/baseHp/baseCrit. This caused false positives on legit gear
-     generated by the game. The replay checks below still catch tampered atk/hp/crit/up. */
-  if((it.crit||0)!==(it.baseCrit||0))why.push(nm+' crit changed='+it.crit+' base='+it.baseCrit);
-  if(Math.abs((it.atk||0)-expAtk)>tol)why.push(nm+' replay atk mismatch current='+it.atk+' expected='+expAtk+' base='+it.baseAtk+' up='+up+' tol='+tol);
-  if(Math.abs((it.hp||0)-expHp)>tol)why.push(nm+' replay hp mismatch current='+it.hp+' expected='+expHp+' base='+it.baseHp+' up='+up+' tol='+tol);
- }
-
- if(why.length){
-  console.warn('SANITY FLAG:',why);
-  ch.tainted=true;
-  ch.taintV=AC_VERSION;
-  markShame(ch.id);
-  if(typeof log==='function')log('<span class="imp">This hero triggered sanityCheck — brorFusk. Check console for reasons.</span>');
- }
- return why.length>0;
-}
 async function save(){
  if(!S||!S.id||FB.kicked)return;
- sanityCheck(S);
  memChars[S.id]=JSON.stringify(S);
  await deviceSet('riptide-char-'+S.id,memChars[S.id]);
  if(FB.ready&&FB.user){cloudPushChar(S);publishLB(S);}
@@ -4804,12 +4732,11 @@ async function saveRoster(ids){
  await deviceSet('riptide-roster',JSON.stringify(ids));
 }
 async function loadChar(id){
- const shamed=await isShamed(id);
  let raw=await deviceGet('riptide-char-'+id);
  if(!raw)raw=await deviceGet('eastvale-char-'+id); /* legacy fallback */
- if(raw){try{const ch=migrate(JSON.parse(raw));if(shamed){ch.tainted=true;ch.taintV=AC_VERSION;}return ch;}catch(e){}}
+ if(raw){try{return migrate(JSON.parse(raw));}catch(e){}}
  if(!memChars[id])return null;
- const ch=migrate(JSON.parse(memChars[id]));if(shamed){ch.tainted=true;ch.taintV=AC_VERSION;}return ch;
+ return migrate(JSON.parse(memChars[id]));
 }
 async function legacyLoad(){
  let raw=await deviceGet('riptide-save3');
@@ -4982,11 +4909,9 @@ async function publishLB(ch,force){
  const now=Date.now();
  if(!force&&now-FB.lastPub<45000)return;
  FB.lastPub=now;
- sanityCheck(ch);
- if(!ch.tainted&&await isShamed(ch.id)){ch.tainted=true;ch.taintV=AC_VERSION;}
- const showTainted=!!ch.tainted&&((ch.taintV||0)>=AC_VERSION);
+ ch.tainted=false;ch.taintV=0;
  const slim=g=>g?{name:g.name,rar:g.rar,slot:g.slot,up:g.up||0,atk:g.atk||0,hp:g.hp||0,crit:g.crit||0,lifesteal:g.lifesteal||0,legend:g.legend||null,power:Math.round(g.power||0)}:null;
- const entry={season:SEASON,name:(ch.name||'?').slice(0,14),lvl:ch.lvl,prestige:ch.prestige||0,gs:charGearScore(ch),score:lbScore(ch),cid:ch.id,t:now,tainted:showTainted,taintV:showTainted?AC_VERSION:(ch.taintV||0),
+ const entry={season:SEASON,name:(ch.name||'?').slice(0,14),lvl:ch.lvl,prestige:ch.prestige||0,gs:charGearScore(ch),score:lbScore(ch),cid:ch.id,t:now,tainted:false,taintV:0,
   rating:ch.rating||0,
   race:ch.race||'human',cls:ch.cls||'warrior',zone:ch.zone||0,
   scroll:(ch.activeScrolls||[]).filter(Boolean)[0]||null,
@@ -5063,9 +4988,9 @@ async function showLeaderboard(){
    <div class="lbrank big">${i+1}</div>
    <canvas class="portrait" width="64" height="76" data-lbp="${i}"></canvas>
    <div class="cinfo">
-    <div class="cn">${(e.tainted&&((e.taintV||0)>=AC_VERSION))?'<span style="color:#ff8a7a">⚠ </span>':''}${esc(e.name||'?')}${e.rating?` <span style="color:var(--brass)">(${e.rating})</span>`:''}${e.prestige?` <span class="pstar">✦ Prestige ${e.prestige}</span>`:''}</div>
+    <div class="cn">${esc(e.name||'?')}${e.rating?` <span style="color:var(--brass)">(${e.rating})</span>`:''}${e.prestige?` <span class="pstar">✦ Prestige ${e.prestige}</span>`:''}</div>
     <div class="cl">${r&&c?esc(r.name+' '+c.name)+' · ':''}Level ${e.lvl||1}</div>
-    <div class="cl">${(e.tainted&&((e.taintV||0)>=AC_VERSION))?'⚠ brorFusk · ':''}⚔ ${fmtGS(e.gs)} gear score · ${esc(zn)}</div>
+    <div class="cl">⚔ ${fmtGS(e.gs)} gear score · ${esc(zn)}</div>
    </div>
    <button class="sbtn gold" data-insp="${i}">🔍 Inspect</button>
    <div class="lbinsp" id="insp${i}" style="display:none;flex-basis:100%"></div>
