@@ -1152,17 +1152,30 @@ function itemStr(it){
 }
 /* compact stat line for the currently equipped item, for bag comparison */
 function shortStats(it){
+ if(!it)return '—';
  if(isFM(it))syncFrostmourne(it);else ensureItemBase(it);
+ const parts=[];
  const baseAtk=Math.round(it.baseAtk||it.atk||0);
- return baseAtk?('+'+baseAtk+' ATK'):'—';
+ const baseHp=Math.round(it.baseHp||it.hp||0);
+ const baseCrit=Math.round((it.baseCrit!==undefined?it.baseCrit:(it.crit||0))*10)/10;
+ if(baseAtk)parts.push('+'+baseAtk+' ATK');
+ if(baseHp)parts.push('+'+baseHp+' HP');
+ if(baseCrit)parts.push('+'+baseCrit+'% CRIT');
+ if(it.lifesteal)parts.push('+'+Math.round(it.lifesteal*1000)/10+'% LIFESTEAL');
+ return parts.join(' · ')||'—';
+}
+function compareVal(it){
+ if(!it)return 0;
+ if(isFM(it))syncFrostmourne(it);else ensureItemBase(it);
+ if(it.slot==='weapon')return Math.round(it.baseAtk||it.atk||0);
+ if(it.slot==='armor')return Math.round(it.baseHp||it.hp||0);
+ return Math.round(it.basePower||it.power||0);
 }
 /* shows, in parentheses, what you currently wear in this slot + ▲/▼ vs the bag item */
 function equipCompare(it){
  const cur=S.gear[it.slot];
  if(!cur)return ' <span style="color:#6dbb6d">(equipped: none)</span>';
- const itAtk=Math.round(it.baseAtk||it.atk||0);
- const curAtk=Math.round(cur.baseAtk||cur.atk||0);
- const dp=itAtk-curAtk;
+ const dp=compareVal(it)-compareVal(cur);
  const col=dp>0?'#9adf9a':dp<0?'#e89a9a':'#8fa898';
  const arrow=dp>0?' ▲':dp<0?' ▼':'';
  return ` <span style="color:${col}">(equipped: ${shortStats(cur)})${arrow}</span>`;
