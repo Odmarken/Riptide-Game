@@ -1539,9 +1539,9 @@ function spawnAdd(name,kind,c){
 }
 const addsAlive=()=>enemies.filter(e=>e.add&&!e.dead).length;
 function cowTemplate(){
- const L=S.lvl||1; /* Cow Level now scales from the hero's displayed level only — no prestige/extra cow multipliers. */
+ const L=S.lvl||1; /* Cow Level scales from displayed hero level only; cows are beefy loot mobs. */
  return {name:'Hell Bovine',kind:'humanoid',c:'#8a7a5a',cow:true,
-  hp:Math.round(eHP(L)),atk:Math.round(eATK(L)),
+  hp:Math.round(eHP(L)*3.5),atk:Math.round(eATK(L)*1.5),
   xp:Math.round(eHP(60)*0.8*pRew()),gold:mobGold(ZONES.find(zz=>zz.cow)||zoneOf(),1.2)};
 }
 function spawnCow(){
