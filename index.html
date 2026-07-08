@@ -1092,7 +1092,7 @@ function syncFrostmourne(it){
 }
 function rollFrostmourne(){
  const it={slot:'weapon',rar:'legendary',legend:'frostmourne',name:'Frostmourne',
-  atk:0,hp:0,crit:2,lifesteal:0.02,ench:null,up:0,sell:0};
+  atk:0,hp:0,crit:4,lifesteal:0.02,ench:null,up:0,sell:0};
  return syncFrostmourne(it);
 }
 /* Scraps: salvage value by rarity */
@@ -1147,6 +1147,25 @@ function itemStr(it){
  let s=`${it.up?'+'+it.up+(maxed?' MAX ✦':'')+' · ':''}${statBaseStr(it,'atk','ATK')} ${statBaseStr(it,'hp','HP')} ${statBaseStr(it,'crit','CRIT','%')}`;
  if(it.lifesteal)s+=` +${it.lifesteal*100}% LIFESTEAL`;
  return s.replace(/\s+/g,' ').trim();
+}
+/* compact stat line for the currently equipped item, for bag comparison */
+function shortStats(it){
+ if(isFM(it))syncFrostmourne(it);else ensureItemBase(it);
+ let s='';
+ if(it.atk)s+='+'+it.atk+' ATK ';
+ if(it.hp)s+='+'+it.hp+' HP ';
+ if(it.crit)s+='+'+it.crit+'% CRIT ';
+ if(it.lifesteal)s+='+'+(it.lifesteal*100)+'% LIFESTEAL ';
+ return s.trim()||'—';
+}
+/* shows, in parentheses, what you currently wear in this slot + ▲/▼ vs the bag item */
+function equipCompare(it){
+ const cur=S.gear[it.slot];
+ if(!cur)return ' <span style="color:#6dbb6d">(equipped: none)</span>';
+ const dp=(it.power||0)-(cur.power||0);
+ const col=dp>0?'#9adf9a':dp<0?'#e89a9a':'#8fa898';
+ const arrow=dp>0?' ▲':dp<0?' ▼':'';
+ return ` <span style="color:${col}">(equipped +${cur.up||0}: ${shortStats(cur)})${arrow}</span>`;
 }
  
 /* ==================== AUDIO ====================
@@ -3655,7 +3674,7 @@ function renderBag(){
   if(open)gearHtml+='<div class="tierbody">'+list.map(({it,i})=>`
   <div class="card item">
    <div><div class="sn r-${it.rar}" style="font-size:13px;font-weight:600">${it.name}</div>
-   <div class="ss" style="color:var(--dim);font-size:11px">${it.slot} · ${itemStr(it)}</div></div>
+   <div class="ss" style="color:var(--dim);font-size:11px">${it.slot} · ${itemStr(it)}${equipCompare(it)}</div></div>
    <div class="btns">
     <button class="sbtn gold" data-eq="${i}">Equip</button>
     ${isLegendary(it)
