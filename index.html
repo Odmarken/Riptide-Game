@@ -849,8 +849,10 @@ const ZONES=[
   ground:'#6a9a4e',ground2:'#5f8c46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
  {name:'Goldshire',lvl:1,amb:'tavern',special:true,tavern:true,
   ground:'#7a6a4e',ground2:'#6e5f46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
+ {name:'Sanctum of the Three',lvl:60,amb:'war',valhalla:true,special:true,raid:true,
+  ground:'#4a4456',ground2:'#403a4c',water:'#2f4a5a',tree:'#3a3448',tree2:'#2c2838',path:'#6a5f7a',rocky:true},
 ];
-const TAVERN_ZONE=ZONES.length-1;
+const TAVERN_ZONE=ZONES.findIndex(z=>z.tavern);
 /* stat curves */
 const eHP=L=>Math.round(20*Math.pow(L,1.25)+10);
 const eATK=L=>Math.round(3+L*1.1);
@@ -879,6 +881,14 @@ function zoneTemplates(z){
    hp:Math.round(eHP(L)*65*pm),atk:Math.round(eATK(L)*1.76*pm),
    xp:0,gold:0}];
  }
+ if(z.raid){
+  const RL=Math.max(effectiveHeroLvl(),10),rm=pMul();
+  const mk=(name,id,c)=>({name,kind:'boss',boss:true,raid:true,bossId:id,c,speed:80,
+   hp:Math.round(eHP(RL)*65*rm),atk:Math.round(eATK(RL)*1.76*rm),xp:0,gold:0});
+  return [mk('Ildreth the Betrayer','betrayer','#7adf9a'),
+          mk('Pyrion the Firelord','firelord','#ff7a2a'),
+          mk('The Frozen King','frostking','#a0e0ff')];
+ }
  if(z.boss){
   const km=z.special?Math.pow(1.125,S.cerberusKills||0):1; /* HAALAND: +12.5% per kill, compounding */
   const hpMul=z.special?65:50;                              /* HAALAND matches Thor: normal boss scaling +30% HP */
@@ -893,6 +903,7 @@ function zoneTemplates(z){
 }
 function zoneQuests(z){
  if(z.tavern)return [{name:'🍺 Goldshire',desc:'A safe haven. Rest, forge, trade — no foe dares enter.',need:999999}];
+ if(z.raid)return [{name:'⚔ Sanctum of the Three',desc:'Slay all three raid lords. Pull them one at a time — they never retreat.',need:3,boss:true}];
  if(z.cow)return [{name:'MOO',desc:'Survive. You cannot.',need:999999}];
  if(z.boss)return [{name:z.boss[0],desc:'Defeat '+z.boss[0]+'. Victory opens the gate beyond, forever.',need:1,boss:true}];
  return z.q.map(([n,d,need])=>({name:n,desc:d,need}));
@@ -1459,7 +1470,7 @@ function buildZone(){
  if(!zoneOf().special&&(S.maxZone||0)<S.zone)S.maxZone=S.zone;
  const z=zoneOf(),R=mulberry32(S.zone*7919+13);
  const isBoss=!!z.boss;
- world={w:z.tavern?2000:isBoss?1700:2400,h:z.tavern?1400:isBoss?1250:1700,solids:[],deco:[],waters:[]}; /* larger maps — boss arenas too */
+ world={w:z.raid?3400:z.tavern?2000:isBoss?1700:2400,h:z.raid?1250:z.tavern?1400:isBoss?1250:1700,solids:[],deco:[],waters:[]}; /* larger maps — boss arenas too */
  world.spawn={x:120,y:world.h/2};
  world.portal={x:world.w-80,y:world.h/2};
  world.pathY=world.h/2;world.pathH=110;
@@ -1548,6 +1559,11 @@ function buildZone(){
   stageMsg('MOO. Survive as long as you can — you will not.',3000);
   const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
   log(`<span class="imp">The Cow Level.</span> Best: ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} items) · Last: ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} items)`);
+ }else if(z.raid){
+  spawnEnemyAt(tmpls[0],R,{x:world.w*0.38,y:world.pathY});
+  spawnEnemyAt(tmpls[1],R,{x:world.w*0.68,y:300});
+  spawnEnemyAt(tmpls[2],R,{x:world.w-320,y:world.h-300});
+  stageMsg('Three raid lords hold the Sanctum — pull one at a time. They never retreat.',3400);
  }else if(isBoss){
   if(!S.bossDead[S.zone]&&!(zoneOf().thor&&thorLocked()))spawnEnemyAt(tmpls[0],R,{x:world.w-320,y:world.pathY});
  }
@@ -1566,14 +1582,14 @@ function openSpot(R){
 function spawnEnemyAt(t,R,fixed){
  const p=fixed||openSpot(R||Math.random.bind(Math));
  const scale=t.boss?1:1+Math.max(0,effectiveHeroLvl()-effZoneLvl(zoneOf()))*0.04;
- enemies.push({name:t.name,kind:t.kind,boss:!!t.boss,bossId:t.bossId||null,c:t.c,
+ enemies.push({name:t.name,kind:t.kind,boss:!!t.boss,raid:!!t.raid,bossId:t.bossId||null,c:t.c,
   x:p.x,y:p.y,home:{x:p.x,y:p.y},r:t.boss?26:12,
   max:Math.round(t.hp*scale),hp:Math.round(t.hp*scale),
   atk:t.atk,xp:t.xp,gold:t.gold,add:!!t.add,
   speed:t.speed||(t.boss?80:105),baseSpeed:t.speed||(t.boss?80:105),state:'wander',dir:Math.random()*6.28,wT:0,cd:0,dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,
   cds:{a:2,b:5,c:8},lockT:0,hidden:false,trailT:0,avoid:null});
 }
-function spawnAdd(name,kind,c){
+function spawnAdd(name,kind,c,src){
  const z=zoneOf();
  const L=effZoneLvl(z);   /* HP/damage scale with effective prestige level */
  const XL=xpZoneLvl(z);  /* XP stays tied to the real zone level */
@@ -1584,7 +1600,7 @@ function spawnAdd(name,kind,c){
    hp:Math.round(eHP(L)*65*pm),atk:Math.round(eATK(L)*1.76*pm),
    xp:Math.round(eHP(XL)*6*pr),gold:mobGold(z,10)}];
  }
- const boss=enemies.find(e=>e.boss&&!e.dead);
+ const boss=src||enemies.find(e=>e.boss&&!e.dead);
  const bx=boss?boss.x:world.w/2,by=boss?boss.y:world.h/2;
  const a=Math.random()*6.28;
  enemies.push({name,kind,boss:false,bossId:null,c,add:true,
@@ -1909,8 +1925,8 @@ function killEnemy(en){
  let gold=en.cow?0:addGold(Math.round(en.gold*(1+scrollPct('fortune'))));
  if(r.leech)healHero(heroMax()*r.leech,true);
  if(hasEnch('reaper'))healHero(heroMax()*scrollPct('reaper'),true);
- if(!en.cow)floatAt(en.x,en.y-en.r-14,gold>0?'+'+gold+' ◉':'◉ CAP','#ffd76a');
- log(`Slew <span class="imp">${en.name}</span> — +${en.xp} xp${en.cow?'':', +'+gold+' gold'}.`);
+ if(!en.cow&&!en.raid)floatAt(en.x,en.y-en.r-14,gold>0?'+'+gold+' ◉':'◉ CAP','#ffd76a');
+ log(`Slew <span class="imp">${en.name}</span> — +${en.xp} xp${(en.cow||en.raid)?'':', +'+gold+' gold'}.`);
  // Cow Level ignores gold cap because cows give no gold; the bag cap controls cow loot.
  if(en.cow){
   if(S.bag.length>=COW_BAG_CAP){
@@ -1934,7 +1950,7 @@ function killEnemy(en){
     if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
    }
   }
- }else{
+ }else if(!en.raid){
   const lucky=S.luckT>0;
   if(Math.random()<(en.boss?1:0.20*(lucky?1.15:1))){
    const it=rollItem(en.boss,lucky&&!en.boss);
@@ -1969,6 +1985,11 @@ function killEnemy(en){
    stageMsg('⚡ Thor falls! A 🍀 Potion of Luck is yours. Valhalla grows silent until the next storm.',3500);
    log(`<span class="imp">Thor slain ×${S.thorKills}.</span> Loot: <span class="lfine">🍀 Potion of Luck</span> — +15% better drops from slain foes for 30 minutes.`);
    publishLB(S,true);
+  }else if(en.raid){
+   const left=enemies.filter(e=>e.boss&&!e.dead&&e!==en).length;
+   stageMsg(en.name+' falls!'+(left?' '+left+' raid lord'+(left>1?'s':'')+' remain.':' THE SANCTUM IS CLEARED!'),3200);
+   log(`<span class="imp">${en.name} defeated.</span>${left?'':' <span class="loot">Raid cleared!</span>'}`);
+   if(!left)sfx.level();
   }else{
    S.bossDead[S.zone]=true;
    const sc=addScraps(40);
@@ -2030,7 +2051,7 @@ function heroDies(){
   stageMsg('⚡ Thor casts you from Valhalla — return when the storm gathers again.',3200);
   log('<span class="imp">Slain in Valhalla.</span> The gates are sealed until Thor next appears.');
  }
- if(zoneOf().west||zoneOf().boss)hero.sentHome=true;
+ if(zoneOf().west||zoneOf().boss||zoneOf().raid)hero.sentHome=true;
  hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;
  sfx.die();
  if(hero.sentHome)stageMsg('Defeated… you wake by the hearth in Goldshire.',2600);
@@ -2196,6 +2217,64 @@ function bossAI(en,dt){
    if(addsAlive()<2){spawnAdd('Legionnaire','humanoid','#a04a3a');
     floatAt(en.x,en.y-en.r-30,'To me!','#e8a08a',true);}
   }
+ }else if(B==='betrayer'){ /* warglaive throws, fel adds, eye beam, metamorphosis */
+  if(en.cds.a<=0){en.cds.a=5;
+   const base=Math.atan2(hero.y-en.y,hero.x-en.x);
+   for(const off of[-0.14,0.14])ebolts.push({x:en.x,y:en.y-14,vx:Math.cos(base+off)*265,vy:Math.sin(base+off)*265,t:0,dmg:en.atk*0.9,c:'#7adf9a'});
+   floatAt(en.x,en.y-en.r-30,'Warglaives!','#7adf9a',true);
+   sfx.arrow();
+  }
+  if(en.cds.b<=0){en.cds.b=16;
+   if(addsAlive()<2){spawnAdd('Fel-Spawn','humanoid','#5a9a4a',en);spawnAdd('Fel-Spawn','humanoid','#5a9a4a',en);
+    floatAt(en.x,en.y-en.r-30,'You are not prepared!','#9adf9a',true);}
+  }
+  if(en.cds.c<=0){en.cds.c=9;sfx.warn();
+   hazardAt(hero.x,hero.y,64,1.05,en.atk*1.5,'#b6ff7a');
+   floatAt(en.x,en.y-en.r-30,'Eye Beam!','#b6ff7a',true);
+  }
+  if(!en.enraged&&en.hp<en.max*0.3){
+   en.enraged=true;en.atk=Math.round(en.atk*1.25);en.baseSpeed=(en.baseSpeed||en.speed)*1.2;
+   floatAt(en.x,en.y-en.r-30,'METAMORPHOSIS!','#c9a0ff',true);
+   ring(en.x,en.y,90,'#c9a0ff',0.8);sfx.shout();
+  }
+ }else if(B==='firelord'){ /* burning trail, eruptions, sons of flame */
+  en.trailT-=dt;
+  if(en.trailT<=0&&en.state==='chase'){en.trailT=0.4;hazardAt(en.x,en.y,26,0.5,en.atk*0.5,'#ff7a2a');}
+  if(en.cds.a<=0){en.cds.a=8;sfx.warn();
+   for(let i=0;i<4;i++)hazardAt(hero.x+(Math.random()-0.5)*150,hero.y+(Math.random()-0.5)*150,48,1.3,en.atk*1.5,'#ff9a3a');
+   floatAt(en.x,en.y-en.r-30,'ERUPTION!','#ff9a3a',true);
+  }
+  if(en.cds.b<=0&&dist(en,hero)>55){en.cds.b=4;
+   const d=dist(en,hero)||1;
+   for(let i=0;i<2;i++)ebolts.push({x:en.x+(i-0.5)*14,y:en.y-16,vx:(hero.x-en.x)/d*(220+i*40),vy:(hero.y-en.y)/d*(220+i*40),t:0,dmg:en.atk*0.85,c:'#ff7a3a'});
+   sfx.fire();
+  }
+  if(en.cds.c<=0){en.cds.c=18;
+   if(addsAlive()<2){spawnAdd('Son of Flame','humanoid','#c05a2a',en);spawnAdd('Son of Flame','humanoid','#c05a2a',en);
+    floatAt(en.x,en.y-en.r-30,'BY FIRE BE PURGED!','#ff8a5a',true);}
+  }
+  if(!en.enraged&&en.hp<en.max*0.3){
+   en.enraged=true;en.atk=Math.round(en.atk*1.3);en.baseSpeed=(en.baseSpeed||en.speed)*1.25;
+   floatAt(en.x,en.y-en.r-30,'TOO SOON!','#ff5a1a',true);
+   ring(en.x,en.y,90,'#ff5a1a',0.8);sfx.fire();
+  }
+ }else if(B==='frostking'){ /* ice rings, frost volleys, risen ghouls */
+  if(en.cds.a<=0){en.cds.a=10;sfx.warn();
+   const n=10,rad=135; /* ring of frost around him — dodge to the inside or far outside */
+   for(let i=0;i<n;i++){const a=i/n*6.283;hazardAt(en.x+Math.cos(a)*rad,en.y+Math.sin(a)*rad*0.85,40,1.4,en.atk*1.4,'#a0e0ff');}
+   floatAt(en.x,en.y-en.r-30,'Ring of Frost!','#a0e0ff',true);
+   en.lockT=1.0;
+  }
+  if(en.cds.b<=0&&dist(en,hero)>50){en.cds.b=3.6;
+   const d=dist(en,hero)||1;
+   for(let i=0;i<2;i++)ebolts.push({x:en.x+(i-0.5)*12,y:en.y-16,vx:(hero.x-en.x)/d*(235+i*35),vy:(hero.y-en.y)/d*(235+i*35),t:0,dmg:en.atk*0.8,c:'#a0e0ff'});
+   sfx.frost();
+  }
+  if(en.cds.c<=0){en.cds.c=15;
+   if(addsAlive()<3){spawnAdd('Risen Ghoul','undead','#a8c8d8',en);spawnAdd('Risen Ghoul','undead','#a8c8d8',en);
+    floatAt(en.x,en.y-en.r-30,'Rise!','#cfe8ff',true);}
+  }
+  if(Math.random()<0.06)parts.push({x:en.x+(Math.random()-0.5)*36,y:en.y-14,vx:(Math.random()-0.5)*10,vy:-20,t:0,life:0.7,c:'#a0e0ff',r:1.5,g:0});
  }else if(B==='thor'){ /* rotating full-room lightning beams — keep moving or fry */
   if(en.stormA===undefined){en.stormA=Math.random()*6.28;en.stormTick=0;en.stormDir=1;en.stormFlip=8;}
   en.stormFlip-=dt;
@@ -2506,7 +2585,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   if(S.auto&&!hero.goPortal)autoBrain(dt);
   if(hero.swing)hero.swing=Math.max(0,hero.swing-dt);
   if(hero.hurt)hero.hurt=Math.max(0,hero.hurt-dt);
-  if(!zoneOf().tavern&&dist(hero,world.portal)<34){
+  if(!zoneOf().tavern&&!zoneOf().raid&&dist(hero,world.portal)<34){
    const nz=ZONES[S.zone+1];
    if(portalIsOpen())travelNext();
    else if(portalMsgT<=0){
@@ -2545,7 +2624,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   if(en.hurt)en.hurt=Math.max(0,en.hurt-dt);
   if(en.swing)en.swing=Math.max(0,en.swing-dt);
   const dHero=dist(en,hero),dHome=dist(en,en.home);
-  const aggroRange=en.cow?99999:en.boss?99999:160;
+  const aggroRange=en.cow?99999:en.raid?320:en.boss?99999:160;
   if(en.state!=='return'&&!hero.dead&&(dHero<aggroRange||en.state==='chase')){
    en.state='chase';
    /* Bosses have no leash: once alive, they follow the player across the whole arena/map. */
@@ -2728,7 +2807,7 @@ function draw(){
  if(vigCv)ctx.drawImage(vigCv,0,0,VW,VH);
 }
 function drawPortal(){
- if(zoneOf().tavern)return;
+ if(zoneOf().tavern||zoneOf().raid)return;
  const p=world.portal,t=performance.now()/1000;
  const nz=ZONES[S.zone+1];
  const open=portalIsOpen();
@@ -3167,7 +3246,7 @@ function log(html,cls){
  if(tickerMsgs.length>3)tickerMsgs.pop();
  $('ticker').innerHTML=tickerMsgs.slice().reverse().join('');
 }
-function applyZoneUI(){$('hZone').textContent=zoneOf().name+(zoneOf().boss?' ☠':'');}
+function applyZoneUI(){$('hZone').textContent=zoneOf().name+(zoneOf().boss||zoneOf().raid?' ☠':'');}
 /* keep the open side panel live — desktop shows it permanently */
 let panelT=0;
 function refreshOpenPanel(){
@@ -3406,6 +3485,14 @@ function renderMap(){
      ${i===S.zone?'<span class="ztag">Here</span>':bagBlocked?'<span class="ztag boss">🎒 Bag full</span>':`<span class="ztag boss">${lockTxt}</span>`}
     </div>`;
    }
+   if(z.raid){
+    return `<div class="card zonecard ${p1?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p1?'#a66bd0':''}">
+     <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#2a2040)">⚔</div>
+     <div class="zinfo"><div class="zn">${z.name}</div>
+     <div class="zl">RAID — the Betrayer, the Firelord and the Frozen King · Thor-tier power · pull one at a time · no loot (trial run)</div></div>
+     ${i===S.zone?'<span class="ztag">Here</span>':p1?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">🔒 Prestige 1</span>'}
+    </div>`;
+   }
    const kills=S.cerberusKills||0;
    return `<div class="card zonecard ${p5?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p5?'#c94a3a':''}">
     <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#5a1a1a)">🐕</div>
@@ -3440,6 +3527,8 @@ function renderMap(){
      if((S.prestige||0)<1){stageMsg('Reach Prestige 1 to hear the mooing',1600);sfx.warn();return;}
      if((S.lvl||1)<60){stageMsg('Cow Level is level 60 only — reach Lv 60 first',1800);sfx.warn();return;}
      if(S.bag.filter(it=>!isLegendary(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
+    }else if(z.raid){
+     if((S.prestige||0)<1){stageMsg('Reach Prestige 1 — the Sanctum opens only to reborn champions',1800);sfx.warn();return;}
     }else{
      if((S.prestige||0)<5){return;}
     }
