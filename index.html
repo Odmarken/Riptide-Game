@@ -546,6 +546,7 @@
       <span class="continent-tab cur" id="eastTab">Riptide — Eastern Realm</span>
       <span class="continent-tab" id="westTab">🔒 Western Continent · Prestige 5</span>
       <span class="continent-tab" id="valhallaTab">🔒 Valhalla · Prestige 1</span>
+      <span class="continent-tab" id="raidTab">🔒 Raid · Prestige 1</span>
     </div>
     <div id="zoneList"></div>
   </div>
@@ -849,7 +850,7 @@ const ZONES=[
   ground:'#6a9a4e',ground2:'#5f8c46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
  {name:'Goldshire',lvl:1,amb:'tavern',special:true,tavern:true,
   ground:'#7a6a4e',ground2:'#6e5f46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
- {name:'Sanctum of the Three',lvl:60,amb:'war',valhalla:true,special:true,raid:true,
+ {name:'Black Temple',lvl:60,amb:'war',raidc:true,special:true,raid:true,
   ground:'#4a4456',ground2:'#403a4c',water:'#2f4a5a',tree:'#3a3448',tree2:'#2c2838',path:'#6a5f7a',rocky:true},
 ];
 const TAVERN_ZONE=ZONES.findIndex(z=>z.tavern);
@@ -3468,9 +3469,17 @@ function renderMap(){
  const cowReady=p1&&(S.lvl||1)>=60;
  if(mapContinent==='west'&&!p1)mapContinent='east';
  if(mapContinent==='valhalla'&&!p1)mapContinent='east';
+ if(mapContinent==='raid'&&!p1)mapContinent='east';
  $('eastTab').classList.toggle('cur',mapContinent==='east');
  $('westTab').classList.toggle('cur',mapContinent==='west');
  $('valhallaTab').classList.toggle('cur',mapContinent==='valhalla');
+ $('raidTab').classList.toggle('cur',mapContinent==='raid');
+ $('raidTab').textContent=p1?'⚔ Raid':'🔒 Raid · Prestige 1';
+ $('raidTab').style.cursor=p1?'pointer':'default';
+ $('raidTab').onclick=()=>{
+  if(!p1){stageMsg('Reach Prestige 1 to enter the great raids',1600);sfx.warn();return;}
+  mapContinent='raid';renderMap();
+ };
  $('westTab').textContent=p1?'Western Continent — Land of the Vikings':'🔒 Western Continent · Prestige 1';
  $('valhallaTab').textContent=p1?'⚡ Valhalla':'🔒 Valhalla · Prestige 1';
  $('westTab').style.cursor=p1?'pointer':'default';
@@ -3487,9 +3496,10 @@ function renderMap(){
  };
  $('zoneList').innerHTML=ZONES.map((z,i)=>{
   /* continent filter */
-  if(mapContinent==='east'&&(z.west||z.valhalla))return '';
+  if(mapContinent==='east'&&(z.west||z.valhalla||z.raidc))return '';
   if(mapContinent==='west'&&!z.west)return '';
   if(mapContinent==='valhalla'&&!z.valhalla)return '';
+  if(mapContinent==='raid'&&!z.raidc)return '';
   if(z.tavern)return '';
   if(z.special){
    if(z.thor){
@@ -3523,7 +3533,7 @@ function renderMap(){
     return `<div class="card zonecard ${p1?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p1?'#a66bd0':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#2a2040)">⚔</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">RAID — the Betrayer, the Firelord and the Frozen King · Thor-tier power · pull one at a time · no loot (trial run)</div></div>
+     <div class="zl">RAID — three lords slumber in their chambers. Strike one and it hunts you to the death. No loot yet.</div></div>
      ${i===S.zone?'<span class="ztag">Here</span>':p1?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">🔒 Prestige 1</span>'}
     </div>`;
    }
@@ -3569,7 +3579,7 @@ function renderMap(){
    }
    else if(i>progZone()&&(S.lvl<z.lvl||!bossesClearedBefore(i)))return;
    S.zone=i;S.quest=0;S.qProg=0;
-   mapContinent=z.valhalla?'valhalla':z.west?'west':'east';
+   mapContinent=z.raidc?'raid':z.valhalla?'valhalla':z.west?'west':'east';
    applyZoneUI();buildZone();renderHUD();save();
    openTab('battle');
    stageMsg('Traveling to '+z.name+'…');
@@ -4762,7 +4772,7 @@ function openTab(t){
  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));
  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('cur',b.dataset.tab===t));
  if(t==='hero'){renderHero();$('p-hero').classList.add('open');}
- if(t==='map'){if(S&&zoneOf().west)mapContinent='west';if(S&&zoneOf().valhalla)mapContinent='valhalla';renderMap();$('p-map').classList.add('open');}
+ if(t==='map'){if(S&&zoneOf().west)mapContinent='west';if(S&&zoneOf().valhalla)mapContinent='valhalla';if(S&&zoneOf().raidc)mapContinent='raid';renderMap();$('p-map').classList.add('open');}
  if(t==='bag'){renderBag();$('p-bag').classList.add('open');}
  if(t==='shop'){renderShop();$('p-shop').classList.add('open');}
 }
