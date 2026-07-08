@@ -404,6 +404,24 @@
  .seapay{font-size:12px}
 }
 
+/* --- Borek Blackjack --- */
+#bjFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(5,10,8,.86)}
+#bjFx.open{display:flex}
+.slotmach.bj{border-color:#6dbb6d;background:linear-gradient(180deg,#1d3a2a,#0d1a12);box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 24px rgba(109,187,109,.2)}
+.slotmach.bj .slottop{color:#9adf9a;text-shadow:0 0 14px rgba(109,187,109,.5)}
+.bjrow{display:flex;flex-direction:column;gap:4px;align-items:center;min-height:70px}
+.bjlab{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:1.4px}
+.bjcards{display:flex;gap:6px;min-height:54px}
+.bjcard{width:38px;height:54px;border-radius:6px;background:#efe9da;color:#1a1a1a;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;font-size:14px;line-height:1.1;box-shadow:0 2px 6px rgba(0,0,0,.45)}
+.bjcard.red{color:#b03030}
+.bjcard.back{background:linear-gradient(135deg,#2f5f8a,#1d3345);color:transparent}
+.bjtot{font-size:12px;color:var(--parch);font-weight:700}
+.bjbtns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;justify-content:center}
+.bjact{font-family:var(--display);font-size:14px;padding:12px 20px;border-radius:12px;border:1px solid #6dbb6d;background:linear-gradient(180deg,#6dbb6d,#3a7a4a);color:#0a1a10;cursor:pointer}
+.bjact:disabled{opacity:.4;cursor:default}
+.bjact.alt{background:var(--panel2);color:#9adf9a}
+@media (max-width:600px){.bjcard{width:32px;height:46px;font-size:12px}}
+
 </style>
 </head>
 <body>
@@ -604,6 +622,30 @@
     </div>
   </div>
  
+
+  <div id="bjFx">
+   <div class="slotmach bj">
+    <div class="slottop">🃏 BOREK BLACKJACK</div>
+    <div class="bjrow"><div class="bjlab">Dealer <span id="bjDTot" class="bjtot"></span></div><div class="bjcards" id="bjDealerC"></div></div>
+    <div class="bjrow"><div class="bjlab">You <span id="bjPTot" class="bjtot"></span></div><div class="bjcards" id="bjHandC"></div></div>
+    <div class="slotres" id="bjRes">&nbsp;</div>
+    <div class="slotstats" id="bjStats"></div>
+    <div class="slotbet">
+     <button class="qtybtn" id="bjBetDn">−</button>
+     <span class="qtynum" id="bjBetN">1,000</span>
+     <button class="qtybtn" id="bjBetUp">+</button>
+     <span class="slotbetcost">◉ / hand</span>
+    </div>
+    <div class="bjbtns">
+     <button class="bjact" id="bjDeal">Deal</button>
+     <button class="bjact" id="bjHit" disabled>Hit</button>
+     <button class="bjact" id="bjStand" disabled>Stand</button>
+     <button class="bjact alt" id="bjDbl" disabled>Double</button>
+     <button id="bjClose" class="sbtn" style="padding:12px 18px;border-radius:12px">Close</button>
+    </div>
+   </div>
+  </div>
+
   <nav>
     <button data-tab="battle" class="cur"><svg viewBox="0 0 24 24"><path d="M14.5 4 20 9.5 9.5 20 4 14.5z"/><path d="m4 20 3-3M17 7l3-3"/></svg>World</button>
     <button data-tab="hero"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.5 7.5-8 9-4.5-1.5-8-4.5-8-9V6z"/></svg>Hero</button>
@@ -3830,7 +3872,7 @@ function slotOutcome(){
  if(r<0.002)return {kind:'gold',mul:100,sym:'7️⃣',msg:'JACKPOT! 100x',color:'#ffd100'};
  if(r<0.032)return {kind:'gold',mul:10,sym:'💎',msg:'BIG WIN! 10x',color:'#c9a0ff'};
  if(r<0.082)return {kind:'gold',mul:5,sym:'🔔',msg:'Winner! 5x',color:'#6dbb6d'};
- if(r<0.202){const n=Math.min(10,(1+Math.floor(Math.random()*20))*slotBet);return {kind:'scrap',n,sym:'⚙',msg:'+'+n+' ⚙ Scraps',color:'#a8bcb0'};}
+ if(r<0.202){const cap=slotBet*2,n=1+Math.floor(Math.random()*cap);return {kind:'scrap',n,sym:'⚙',msg:'+'+n+' ⚙ Scraps',color:'#a8bcb0'};}
  return {kind:'none',sym:null,msg:'Nothing… spin again?',color:'#8fa898'};
 }
 function slotFinalRow(out){
@@ -4246,6 +4288,136 @@ $('seaClose').onclick=()=>{
  $('seaFx').classList.remove('open');
 };
 
+
+/* ==================== BOREK BLACKJACK ==================== */
+const BJ_MIN=1000,BJ_MAX=15000,BJ_STEP=1000;
+let bjBet=1000,bjP=[],bjD=[],bjLive=false,bjWager=0;
+let bjSession={hands:0,gold:0};
+const BJ_RANKS=[['A',11],['2',2],['3',3],['4',4],['5',5],['6',6],['7',7],['8',8],['9',9],['10',10],['J',10],['Q',10],['K',10]];
+const BJ_SUITS=['♠','♥','♦','♣'];
+const bjDraw=()=>{const r=BJ_RANKS[Math.floor(Math.random()*13)],s=BJ_SUITS[Math.floor(Math.random()*4)];return{r:r[0],v:r[1],s};};
+function bjVal(h){let t=0,a=0;h.forEach(c=>{t+=c.v;if(c.r==='A')a++;});while(t>21&&a>0){t-=10;a--;}return t;}
+const bjCardHtml=(c,hide)=>hide?'<div class="bjcard back">?</div>':`<div class="bjcard${(c.s==='♥'||c.s==='♦')?' red':''}"><span>${c.r}</span><span>${c.s}</span></div>`;
+function bjRender(hideHole){
+ $('bjHandC').innerHTML=bjP.map(c=>bjCardHtml(c)).join('');
+ $('bjDealerC').innerHTML=bjD.map((c,i)=>bjCardHtml(c,hideHole&&i===1)).join('');
+ $('bjPTot').textContent=bjP.length?bjVal(bjP):'';
+ $('bjDTot').textContent=bjD.length?(hideHole?bjVal([bjD[0]])+' + ?':bjVal(bjD)):'';
+}
+function bjUI(){
+ const d=$('bjDeal');
+ d.disabled=bjLive||totalGold()<bjBet;
+ d.textContent=totalGold()<bjBet&&!bjLive?'Deal · '+bjBet.toLocaleString()+'◉ — broke!':'Deal · '+bjBet.toLocaleString()+'◉';
+ $('bjHit').disabled=!bjLive;
+ $('bjStand').disabled=!bjLive;
+ $('bjDbl').disabled=!bjLive||bjP.length!==2||totalGold()<bjWager;
+ $('bjBetDn').disabled=bjLive||bjBet<=BJ_MIN;
+ $('bjBetUp').disabled=bjLive||bjBet>=BJ_MAX;
+ $('bjBetN').textContent=bjBet.toLocaleString();
+ const ss=bjSession;
+ $('bjStats').textContent=ss.hands?`Session: ${ss.hands} hands · ${ss.gold>=0?'+':''}${ss.gold.toLocaleString()}◉`:'';
+}
+function bjSettle(kind){
+ bjLive=false;
+ bjRender(false);
+ const res=$('bjRes');
+ res.classList.remove('bigres');
+ bjSession.hands++;
+ let paid=0;
+ if(kind==='bj')paid=Math.round(bjWager*2.5);
+ else if(kind==='win')paid=bjWager*2;
+ else if(kind==='push')paid=bjWager;
+ if(paid>0){
+  const r=addGoldOverflow(paid);
+  paid=r.got+r.over;
+  bjSession.gold+=paid-bjWager;
+ }else bjSession.gold-=bjWager;
+ if(kind==='bj'){
+  res.style.color='#ffd100';res.classList.add('bigres');
+  res.textContent='🃏 BLACKJACK! +'+paid.toLocaleString()+'◉';
+  dingDingDing(false);spawnPartsIn($('bjFx'),'#ffd100',18);
+  log(`Borek Blackjack: <span class="llegendary">BLACKJACK — +${paid.toLocaleString()} ◉</span>!`,'loot');
+ }else if(kind==='win'){
+  res.style.color='#9adf9a';
+  res.textContent='Winner! +'+paid.toLocaleString()+'◉';
+  sfx.loot();spawnPartsIn($('bjFx'),'#9adf9a',10);
+  log(`Borek Blackjack: <span class="loot">+${paid.toLocaleString()} ◉</span>.`,'loot');
+ }else if(kind==='push'){
+  res.style.color='#8fa898';
+  res.textContent='Push — bet returned.';
+  blip(600,600,0.12,.05);
+ }else{
+  res.style.color='#ff8a7a';
+  res.textContent=kind==='bust'?'Bust! The house takes your coin.':'Dealer wins.';
+  blip(300,180,0.25,.05,'sawtooth');
+ }
+ renderHUD();save();bjUI();
+}
+function bjDealerPlay(){
+ bjRender(false);
+ while(bjVal(bjD)<17)bjD.push(bjDraw());
+ bjRender(false);
+ const p=bjVal(bjP),d=bjVal(bjD);
+ if(d>21)bjSettle('win');
+ else if(d>p)bjSettle('lose');
+ else if(d<p)bjSettle('win');
+ else bjSettle('push');
+}
+function bjDeal(){
+ if(bjLive)return;
+ if(!spendGold(bjBet)){stageMsg('Not enough gold — a hand costs '+bjBet.toLocaleString()+'◉',1400);sfx.warn();return;}
+ renderHUD();sfx.buy();
+ bjWager=bjBet;bjLive=true;
+ bjP=[bjDraw(),bjDraw()];bjD=[bjDraw(),bjDraw()];
+ $('bjRes').innerHTML='&nbsp;';$('bjRes').classList.remove('bigres');
+ bjRender(true);bjUI();
+ const p21=bjVal(bjP)===21,d21=bjVal(bjD)===21;
+ if(p21||d21){
+  if(p21&&d21)bjSettle('push');
+  else if(p21)bjSettle('bj');
+  else bjSettle('lose');
+ }
+}
+function bjHit(){
+ if(!bjLive)return;
+ bjP.push(bjDraw());
+ blip(900,600,0.05,.05,'square');
+ bjRender(true);bjUI();
+ const v=bjVal(bjP);
+ if(v>21)bjSettle('bust');
+ else if(v===21)bjDealerPlay();
+}
+function bjStand(){if(bjLive)bjDealerPlay();}
+function bjDouble(){
+ if(!bjLive||bjP.length!==2)return;
+ if(!spendGold(bjWager)){stageMsg('Not enough gold to double',1400);sfx.warn();return;}
+ renderHUD();sfx.buy();
+ bjWager*=2;
+ bjP.push(bjDraw());
+ bjRender(true);
+ if(bjVal(bjP)>21)bjSettle('bust');
+ else bjDealerPlay();
+}
+function openBJ(){
+ $('bjFx').classList.add('open');
+ bjSession={hands:0,gold:0};
+ bjP=[];bjD=[];bjLive=false;
+ $('bjHandC').innerHTML='';$('bjDealerC').innerHTML='';
+ $('bjPTot').textContent='';$('bjDTot').textContent='';
+ $('bjRes').innerHTML='&nbsp;';
+ bjUI();
+}
+$('bjDeal').onclick=bjDeal;
+$('bjHit').onclick=bjHit;
+$('bjStand').onclick=bjStand;
+$('bjDbl').onclick=bjDouble;
+$('bjBetDn').onclick=()=>{if(!bjLive&&bjBet>BJ_MIN){bjBet-=BJ_STEP;bjUI();}};
+$('bjBetUp').onclick=()=>{if(!bjLive&&bjBet<BJ_MAX){bjBet+=BJ_STEP;bjUI();}};
+$('bjClose').onclick=()=>{
+ if(bjLive)return; /* no rage-quitting mid-hand — the wager is already spent */
+ $('bjFx').classList.remove('open');
+};
+
 function renderShop(){
  $('shopWallet').innerHTML=walletStr();
  let h='<div class="ptitle" style="font-size:14px;margin-bottom:8px">Gamble</div>';
@@ -4268,6 +4440,9 @@ function renderShop(){
  h+=`<div class="card item gcard-slot" style="border-color:#3a6a8a"><div><div class="sn" style="font-size:13px;font-weight:600;color:#8fc3ef">🦈 Borek Seamen</div>
   <div class="ss" style="color:var(--dim);font-size:11px">A 16-window ways machine from a shipwreck. Match symbols on reels 1→2→3 to win gear, scrolls or a 💀 gold jackpot — flaming x2/x3/x5 cells multiply the whole catch.</div></div>
   <div class="btns"><button class="sbtn gold" id="seaOpenBtn">Play</button></div></div>`;
+ h+=`<div class="card item gcard-slot" style="border-color:#3a6a4a"><div><div class="sn" style="font-size:13px;font-weight:600;color:#9adf9a">🃏 Borek Blackjack</div>
+  <div class="ss" style="color:var(--dim);font-size:11px">Beat the dealer to 21. Bet 1,000–15,000◉ a hand — blackjack pays 3:2, dealer stands on 17. Hit, Stand or Double.</div></div>
+  <div class="btns"><button class="sbtn gold" id="bjOpenBtn">Play</button></div></div>`;
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Supplies</div>';
  const hpC=potCost('hp'),mpC=potCost('mp');
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">🧪 Health Potion</div>
@@ -4300,6 +4475,7 @@ function renderShop(){
  $('goldChestBtn').onclick=openGoldChest;
  $('slotOpenBtn').onclick=openSlots;
  if($('seaOpenBtn'))$('seaOpenBtn').onclick=openSea;
+ if($('bjOpenBtn'))$('bjOpenBtn').onclick=openBJ;
  document.querySelectorAll('[data-case][data-d]').forEach(b=>b.onclick=()=>{
   const k=b.dataset.case,d=parseInt(b.dataset.d,10);
   chestQty[k]=Math.max(1,Math.min(5,(chestQty[k]||1)+d));
