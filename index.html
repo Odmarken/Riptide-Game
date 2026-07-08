@@ -842,7 +842,7 @@ const xpZoneLvl=z=>z.lvl;
 const goldZoneLvl=z=>z.lvl;
 /* Normal leveling-zone bosses only: much faster, full-map aggro, no leash.
    Baseline = +120% speed; below 30% HP = +250% speed. */
-const isLevelBossId=id=>!!id&&!['cerberus','thor'].includes(id);
+const isLevelBossId=id=>!!id; /* Thor + HAALAND now use normal boss speed rules too */
 const BOSS_SPEED_MUL=2.2;
 const BOSS_ENRAGE_SPEED_MUL=3.5;
 function zoneTemplates(z){
@@ -853,16 +853,16 @@ function zoneTemplates(z){
  const GL=goldZoneLvl(z); /* Gold stays tied to zone level + prestige reward multiplier */
  if(z.thor){
   const L=Math.max(effectiveHeroLvl(),10),pm=pMul();
-  return [{name:z.boss[0],kind:'boss',boss:true,bossId:'thor',c:z.boss[1],speed:95,
-   hp:Math.round(eHP(L)*75*pm),atk:Math.round(eATK(L)*2.0*pm),
+  return [{name:z.boss[0],kind:'boss',boss:true,bossId:'thor',c:z.boss[1],speed:80,
+   hp:Math.round(eHP(L)*65*pm),atk:Math.round(eATK(L)*1.76*pm),
    xp:0,gold:0}];
  }
  if(z.boss){
-  const km=z.special?Math.pow(1.5,S.cerberusKills||0):1;   /* +50% per kill, compounding */
-  const bm=z.special?2:1;                                   /* HAALAND's base is beefier */
+  const km=z.special?Math.pow(1.125,S.cerberusKills||0):1; /* HAALAND: +12.5% per kill, compounding */
+  const hpMul=z.special?65:50;                              /* HAALAND matches Thor: normal boss scaling +30% HP */
   return [{name:z.boss[0],kind:'boss',boss:true,bossId:z.boss[2],c:z.boss[1],
-   speed:z.special?185:80,   /* base speed; normal bosses are multiplied in speedOf() */
-   hp:Math.round(eHP(L)*50*pm*bm*km),atk:Math.round(eATK(L)*1.76*(z.special?1.25:1)*pm*km),
+   speed:80,   /* base speed; all bosses use normal boss speed rules in speedOf() */
+   hp:Math.round(eHP(L)*hpMul*pm*km),atk:Math.round(eATK(L)*1.76*pm*km),
    xp:Math.round(eHP(XL)*5*pr),gold:mobGold(z,8)}];
  }
  /* regular foes: modestly tougher than before (+25% hp, +15% atk) */
@@ -1522,8 +1522,8 @@ function spawnAdd(name,kind,c){
  const GL=goldZoneLvl(z); /* Gold stays tied to zone level + prestige reward multiplier */
  if(z.thor){
   const L=Math.max(effectiveHeroLvl(),10),pm=pMul(),pr=pRew();
-  return [{name:z.boss[0],kind:'boss',boss:true,bossId:'thor',c:z.boss[1],speed:95,
-   hp:Math.round(eHP(L)*60*pm),atk:Math.round(eATK(L)*2.0*pm),
+  return [{name:z.boss[0],kind:'boss',boss:true,bossId:'thor',c:z.boss[1],speed:80,
+   hp:Math.round(eHP(L)*65*pm),atk:Math.round(eATK(L)*1.76*pm),
    xp:Math.round(eHP(XL)*6*pr),gold:mobGold(z,10)}];
  }
  const boss=enemies.find(e=>e.boss&&!e.dead);
@@ -1539,9 +1539,9 @@ function spawnAdd(name,kind,c){
 }
 const addsAlive=()=>enemies.filter(e=>e.add&&!e.dead).length;
 function cowTemplate(){
- const L=Math.max(60,effectiveHeroLvl()),pm=pMul();
+ const L=S.lvl||1; /* Cow Level now scales from the hero's displayed level only — no prestige/extra cow multipliers. */
  return {name:'Hell Bovine',kind:'humanoid',c:'#8a7a5a',cow:true,
-  hp:Math.round(eHP(L)*3.2*pm),atk:Math.round(eATK(L)*1.9*pm),
+  hp:Math.round(eHP(L)),atk:Math.round(eATK(L)),
   xp:Math.round(eHP(60)*0.8*pRew()),gold:mobGold(ZONES.find(zz=>zz.cow)||zoneOf(),1.2)};
 }
 function spawnCow(){
@@ -1639,8 +1639,7 @@ function speedOf(e){
   const base=e.baseSpeed||e.speed||80;
   s=base*(e.hp<=e.max*0.3?BOSS_ENRAGE_SPEED_MUL:BOSS_SPEED_MUL);
  }
- if(e.bossId==='cerberus'||e.bossId==='thor')s=(e.baseSpeed||e.speed)*2;
- if(e.cow)s=s+e.age*7+e.age*e.age*0.15;
+ /* Thor, HAALAND and cows no longer get extra movement difficulty beyond their base rules. */
  if(e.slowT>0)s*=0.45;
  return s;
 }
@@ -1862,20 +1861,20 @@ function killEnemy(en){
     log(`<span class="loot">Bag stuffed full (${COW_BAG_CAP})</span> — the herd has nothing more to give.`,'loot');
     sfx.quest();
    }
-  }else for(let k=0;k<1;k++){
+  }else if(Math.random()<0.5){ /* 50/50 chance for a Cow Level item drop */
    if(S.bag.length>=COW_BAG_CAP){
     if(!cowBagFull){cowBagFull=true;
      stageMsg('BAG FULL — '+COW_BAG_CAP+' items! Nothing left to gain. Die gloriously or flee to cash in.',3500);
      log(`<span class="loot">Bag stuffed full (${COW_BAG_CAP})</span> — the herd has nothing more to give.`,'loot');
      sfx.quest();
     }
-    break;
+   }else{
+    const it=rollItem('epic');
+    cowItems++;
+    sfx.loot();
+    log(`Cow loot: <span class="lepic">${it.name}</span> ${itemStr(it)}.`,'loot');
+    if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
    }
-   const it=rollItem('epic');
-   cowItems++;
-   sfx.loot();
-   log(`Cow loot: <span class="lepic">${it.name}</span> ${itemStr(it)}.`,'loot');
-   if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
   }
  }else{
   const lucky=S.luckT>0;
@@ -2170,7 +2169,7 @@ function bossAI(en,dt){
     const along=hx*ux+hy*uy;
     if(along>30){
      const perp=Math.abs(hx*-uy+hy*ux);
-     if(perp<40){hurtHero(en.atk*2.25,'⚡');en.stormTick=0.5;sfx.arcane();}
+     if(perp<40){hurtHero(en.atk*3.5,'⚡');en.stormTick=0.5;sfx.arcane();}
     }
    }
   }
