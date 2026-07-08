@@ -649,7 +649,7 @@ const fmtMS=ms=>{
 const bagGoldVal=()=>((S&&S.bag)||[]).reduce((t,it)=>t+(it.sell||0),0);
 const bagScrapVal=()=>((S&&S.bag)||[]).reduce((t,it)=>t+scrapVal(it),0);
 const goldRoom=()=>Math.max(0,goldCap()-S.gold-bagGoldVal());
-const scrapRoom=()=>Math.max(0,SCRAP_CAP-S.scraps-bagScrapVal());
+const scrapRoom=()=>Math.max(0,SCRAP_CAP-S.scraps);
 function addGold(n){const a=Math.max(0,Math.min(n,goldRoom()));S.gold+=a;return a;}
 function addScraps(n){const a=Math.max(0,Math.min(n,scrapRoom()));S.scraps+=a;return a;}
 /* total spendable = carried vault + overflow pocket */
@@ -670,7 +670,8 @@ function spendGold(n){
  return true;
 }
 /* zero loot when BOTH caps are effectively full (carried + bag value) */
-const lootBlocked=()=>goldRoom()<=0&&scrapRoom()<=0;
+/* items can always be sold for gold, so only a full gold vault blocks drops */
+const lootBlocked=()=>goldRoom()<=0;
 const RACES=[
  {id:'human',name:'Human',desc:'Balanced. Take 8% less damage.',c1:'#e0b070',c2:'#7a5a34',armor:0.08},
  {id:'stoneborn',name:'Dwarf',desc:'Stout mountain folk. +12% max health.',c1:'#aeb9c2',c2:'#4d5a63',hp:1.12},
