@@ -1541,10 +1541,10 @@ function spawnAdd(name,kind,c){
 }
 const addsAlive=()=>enemies.filter(e=>e.add&&!e.dead).length;
 function cowTemplate(){
- const L=S.lvl||1; /* Cow Level scales from displayed hero level only; cows are beefy loot mobs. */
+ const L=60; /* Cow Level is always a level-60 zone, even after prestige resets display level. */
  return {name:'Hell Bovine',kind:'humanoid',c:'#8a7a5a',cow:true,
-  hp:Math.round(eHP(L)*3.5),atk:Math.round(eATK(L)*1.5),
-  xp:Math.round(eHP(60)*0.8*pRew()),gold:mobGold(ZONES.find(zz=>zz.cow)||zoneOf(),1.2)};
+  hp:Math.round(eHP(L)*21),atk:Math.round(eATK(L)*11),
+  xp:Math.round(eHP(60)*0.8*pRew()),gold:0}; /* Cow Level mobs give no gold — item farm only */
 }
 function spawnCow(){
  const a=Math.random()*6.28,d=Math.max(VW,VH)*0.65+Math.random()*120;
@@ -1553,7 +1553,7 @@ function spawnCow(){
  const t=cowTemplate();
  enemies.push({name:t.name,kind:t.kind,boss:false,bossId:null,c:t.c,cow:true,
   x,y,home:{x,y},r:13,max:t.hp,hp:t.hp,atk:t.atk,xp:t.xp,gold:t.gold,add:false,
-  speed:135,age:0,state:'chase',dir:0,wT:0,cd:0,dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,
+  speed:145,age:0,state:'chase',dir:0,wT:0,cd:0,dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,
   cds:{},lockT:0,hidden:false,trailT:0,avoid:null});
 }
 function prerenderGround(z,R){
@@ -1641,7 +1641,9 @@ function speedOf(e){
   const base=e.baseSpeed||e.speed||80;
   s=base*(e.hp<=e.max*0.3?BOSS_ENRAGE_SPEED_MUL:BOSS_SPEED_MUL);
  }
- /* Thor, HAALAND and cows no longer get extra movement difficulty beyond their base rules. */
+ /* Cow Level hardmode: herd movement ramps up fast the longer you survive. */
+ if(e.cow&&cowRunning)s*=Math.min(5,1+cowT*0.055);
+ /* Thor and HAALAND keep their custom tuning. */
  if(e.slowT>0)s*=0.45;
  return s;
 }
@@ -1848,15 +1850,13 @@ function killEnemy(en){
  sfx.die();
  burst(en.x,en.y-10,en.c,12,90,true);
  const r=raceOf();
- let gold=addGold(Math.round(en.gold*(1+scrollPct('fortune'))));
+ let gold=en.cow?0:addGold(Math.round(en.gold*(1+scrollPct('fortune'))));
  if(r.leech)healHero(heroMax()*r.leech,true);
  if(hasEnch('reaper'))healHero(heroMax()*scrollPct('reaper'),true);
- floatAt(en.x,en.y-en.r-14,gold>0?'+'+gold+' ◉':'◉ CAP','#ffd76a');
- log(`Slew <span class="imp">${en.name}</span> — +${en.xp} xp, +${gold} gold.`);
- // drops — nothing drops while both gold and scrap are effectively capped
- if(lootBlocked()){
-  if(Math.random()<0.08)floatAt(en.x,en.y-en.r-28,'LOOT CAPPED','#ff8a7a');
- }else if(en.cow){
+ if(!en.cow)floatAt(en.x,en.y-en.r-14,gold>0?'+'+gold+' ◉':'◉ CAP','#ffd76a');
+ log(`Slew <span class="imp">${en.name}</span> — +${en.xp} xp${en.cow?'':', +'+gold+' gold'}.`);
+ // Cow Level ignores gold cap because cows give no gold; the bag cap controls cow loot.
+ if(en.cow){
   if(S.bag.length>=COW_BAG_CAP){
    if(!cowBagFull){cowBagFull=true;
     stageMsg('BAG FULL — '+COW_BAG_CAP+' items! Nothing left to gain. Die gloriously or flee to cash in.',3500);
@@ -2335,8 +2335,8 @@ function update(dt){
   cowT+=dt;
   cowSpawnT-=dt;
   if(cowSpawnT<=0){
-   cowSpawnT=Math.max(0.12,1.8-cowT*0.025);
-   const wave=1+Math.floor(cowT/20);
+   cowSpawnT=Math.max(0.08,1.35-cowT*0.04);
+   const wave=1+Math.floor(cowT/12);
    for(let i=0;i<wave;i++)spawnCow();
   }
  }
@@ -3268,19 +3268,20 @@ function renderHero(){
 }
 function renderMap(){
  const p5=(S.prestige||0)>=5,p1=(S.prestige||0)>=1;
- if(mapContinent==='west'&&!p5)mapContinent='east';
+ const cowReady=p1&&(S.lvl||1)>=60;
+ if(mapContinent==='west'&&!p1)mapContinent='east';
  if(mapContinent==='valhalla'&&!p1)mapContinent='east';
  $('eastTab').classList.toggle('cur',mapContinent==='east');
  $('westTab').classList.toggle('cur',mapContinent==='west');
  $('valhallaTab').classList.toggle('cur',mapContinent==='valhalla');
- $('westTab').textContent=p5?'Western Continent — Land of the Vikings':'🔒 Western Continent · Prestige 5';
+ $('westTab').textContent=p1?'Western Continent — Land of the Vikings':'🔒 Western Continent · Prestige 1';
  $('valhallaTab').textContent=p1?'⚡ Valhalla':'🔒 Valhalla · Prestige 1';
- $('westTab').style.cursor=p5?'pointer':'default';
+ $('westTab').style.cursor=p1?'pointer':'default';
  $('valhallaTab').style.cursor=p1?'pointer':'default';
  $('eastTab').style.cursor='pointer';
  $('eastTab').onclick=()=>{mapContinent='east';renderMap();};
  $('westTab').onclick=()=>{
-  if(!p5){stageMsg('Reach Prestige 5 to cross the western sea',1600);sfx.warn();return;}
+  if(!p1){stageMsg('Reach Prestige 1 to cross the western sea',1600);sfx.warn();return;}
   mapContinent='west';renderMap();
  };
  $('valhallaTab').onclick=()=>{
@@ -3310,13 +3311,15 @@ function renderMap(){
    }
    if(z.cow){
     const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
-    const bagBlocked=p5&&i!==S.zone&&S.bag.length>0;
-    return `<div class="card zonecard ${p5?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${bagBlocked?'#c75146':p5?'#ffd76a':''}">
+    const canCow=p1&&(S.lvl||1)>=60;
+    const bagBlocked=canCow&&i!==S.zone&&S.bag.length>0;
+    const lockTxt=!p1?'🔒 Prestige 1':(S.lvl||1)<60?'🔒 Lv 60':'🐄 MOO';
+    return `<div class="card zonecard ${canCow?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${bagBlocked?'#c75146':canCow?'#ffd76a':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},${z.tree})">🐄</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">Endless herd · 1 epic per cow · Best ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} items) · Last ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} items)</div>
+     <div class="zl">Level 60 herd · Prestige 1+ · 1 epic per cow · Best ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} items) · Last ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} items)</div>
      ${bagBlocked?`<div style="color:#ff8a7a;font-family:var(--display);font-size:13.5px;margin-top:4px;text-shadow:0 0 8px rgba(255,90,70,.35)">⚠ EMPTY YOUR BAG FIRST — the herd only respects those who arrive with nothing (${S.bag.length} item${S.bag.length>1?'s':''} carried)</div>`:''}</div>
-     ${i===S.zone?'<span class="ztag">Here</span>':bagBlocked?'<span class="ztag boss">🎒 Bag full</span>':p5?'<span class="ztag boss">🐄 MOO</span>':'<span class="ztag boss">🔒 Prestige 5</span>'}
+     ${i===S.zone?'<span class="ztag">Here</span>':bagBlocked?'<span class="ztag boss">🎒 Bag full</span>':`<span class="ztag boss">${lockTxt}</span>`}
     </div>`;
    }
    const kills=S.cerberusKills||0;
@@ -3349,9 +3352,12 @@ function renderMap(){
      const st=thorStatus();
      if(thorLocked()){stageMsg('Thor cast you out — wait for his next appearance ('+fmtMS(st.open?st.left:st.next)+')',2200);sfx.warn();return;}
      if(!st.open){stageMsg('The gates are shut — Thor appears in '+fmtMS(st.next),2200);sfx.warn();return;}
+    }else if(z.cow){
+     if((S.prestige||0)<1){stageMsg('Reach Prestige 1 to hear the mooing',1600);sfx.warn();return;}
+     if((S.lvl||1)<60){stageMsg('Cow Level is level 60 only — reach Lv 60 first',1800);sfx.warn();return;}
+     if(S.bag.filter(it=>!isLegendary(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
     }else{
-     if((S.prestige||0)<5){if(z.cow){stageMsg('Reach Prestige 5 to hear the mooing',1600);sfx.warn();}return;}
-     if(z.cow&&S.bag.filter(it=>!isLegendary(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
+     if((S.prestige||0)<5){return;}
     }
    }
    else if(i>progZone()&&(S.lvl<z.lvl||!bossesClearedBefore(i)))return;
@@ -4517,7 +4523,10 @@ function goHome(){
  if(S.zone===TAVERN_ZONE){
   const target=S.lastZone!=null?S.lastZone:0;
   const z=ZONES[target]||ZONES[0];
-  if(z.cow&&S.bag.filter(it=>!isLegendary(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
+  if(z.cow){
+   if((S.prestige||0)<1||(S.lvl||1)<60){stageMsg('Cow Level is level 60 only — reach Lv 60 first',1800);sfx.warn();return;}
+   if(S.bag.filter(it=>!isLegendary(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
+  }
   S.zone=target;
   S.quest=0;S.qProg=0;
   applyZoneUI();buildZone();renderHUD();save();
