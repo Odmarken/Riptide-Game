@@ -4654,7 +4654,7 @@ function sanityCheck(ch=S){
   ch.tainted=true;
   /* DEBUG/OBSERVE MODE: do not write permanent shame while finding false positives. Re-enable after fixing the reported reason. */
   /* markShame(ch.id); */
-  if(typeof log==='function')log('<span class="imp">This hero triggered sanityCheck — check console for SANITY FLAG reasons. Permanent shame is temporarily disabled.</span>');
+  if(typeof log==='function')log('<span class="imp">This hero triggered sanityCheck — brorFusk. Check console for reasons. Permanent shame is temporarily disabled.</span>');
  }
  return why.length>0;
 }
@@ -4937,7 +4937,7 @@ async function showLeaderboard(){
    <div class="cinfo">
     <div class="cn">${e.tainted?'<span style="color:#ff8a7a">⚠ </span>':''}${esc(e.name||'?')}${e.rating?` <span style="color:var(--brass)">(${e.rating})</span>`:''}${e.prestige?` <span class="pstar">✦ Prestige ${e.prestige}</span>`:''}</div>
     <div class="cl">${r&&c?esc(r.name+' '+c.name)+' · ':''}Level ${e.lvl||1}</div>
-    <div class="cl">${e.tainted?'⚠ Flagged · ':''}⚔ ${fmtGS(e.gs)} gear score · ${esc(zn)}</div>
+    <div class="cl">${e.tainted?'⚠ brorFusk · ':''}⚔ ${fmtGS(e.gs)} gear score · ${esc(zn)}</div>
    </div>
    <button class="sbtn gold" data-insp="${i}">🔍 Inspect</button>
    <div class="lbinsp" id="insp${i}" style="display:none;flex-basis:100%"></div>
