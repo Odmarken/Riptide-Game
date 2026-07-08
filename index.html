@@ -886,9 +886,9 @@ function zoneTemplates(z){
   const RL=Math.max(effectiveHeroLvl(),10),rm=pMul();
   const mk=(name,id,c)=>({name,kind:'boss',boss:true,raid:true,bossId:id,c,speed:115,
    hp:Math.round(eHP(RL)*65*rm),atk:Math.round(eATK(RL)*1.76*rm),xp:0,gold:0});
-  return [mk('Ildreth the Betrayer','betrayer','#7adf9a'),
-          mk('Pyrion the Firelord','firelord','#ff7a2a'),
-          mk('The Frozen King','frostking','#a0e0ff')];
+  return [mk('Ilidia the Betrayer','betrayer','#7adf9a'),
+          mk('Ragnaros the Firelord','firelord','#ff7a2a'),
+          mk('Arthas the Frozen King','frostking','#a0e0ff')];
  }
  if(z.boss){
   const km=z.special?Math.pow(1.125,S.cerberusKills||0):1; /* HAALAND: +12.5% per kill, compounding */
@@ -1578,17 +1578,29 @@ function buildZone(){
   wall(60,hallT,doorA-95,hallT);wall(doorA+95,hallT,hallEnd,hallT);
   wall(60,hallB,doorB-95,hallB);wall(doorB+95,hallB,hallEnd,hallB);
   /* three chambers: north, south, and the far-east sanctum */
-  chamber(doorA,380,330,260,'bottom');  /* Ildreth the Betrayer */
-  chamber(doorB,1220,330,260,'top');    /* Pyrion the Firelord */
-  chamber(3150,cy,330,300,'left');      /* The Frozen King */
+  chamber(doorA,380,330,260,'bottom');  /* Ilidia the Betrayer */
+  chamber(doorB,1220,330,260,'top');    /* Ragnaros the Firelord */
+  chamber(3150,cy,330,300,'left');      /* Arthas the Frozen King */
+  world.raidRooms=[
+   {idx:0,x:doorA,y:380,r:260,sealed:false,boss:'betrayer'},
+   {idx:1,x:doorB,y:1220,r:260,sealed:false,boss:'firelord'},
+   {idx:2,x:3150,y:cy,r:300,sealed:false,boss:'frostking'}
+  ];
+  const gateLine=(room,x1,y1,x2,y2)=>{
+   const d=Math.hypot(x2-x1,y2-y1),n=Math.max(1,Math.round(d/42));
+   for(let i=0;i<=n;i++)world.solids.push({x:x1+(x2-x1)*i/n,y:y1+(y2-y1)*i/n,r:24,type:'gate',room});
+  };
+  gateLine(0,doorA-76,640,doorA+76,640);
+  gateLine(1,doorB-76,960,doorB+76,960);
+  gateLine(2,2820,cy-76,2820,cy+76);
   /* torches lining the hall */
   for(let x=300;x<hallEnd;x+=420){
    world.solids.push({x,y:hallT+42,r:5,type:'lantern'});
    world.solids.push({x,y:hallB-42,r:5,type:'lantern'});
   }
-  spawnEnemyAt(tmpls[0],R,{x:doorA,y:380});
-  spawnEnemyAt(tmpls[1],R,{x:doorB,y:1220});
-  spawnEnemyAt(tmpls[2],R,{x:3150,y:cy});
+  spawnEnemyAt(tmpls[0],R,{x:doorA,y:380,roomIdx:0});
+  spawnEnemyAt(tmpls[1],R,{x:doorB,y:1220,roomIdx:1});
+  spawnEnemyAt(tmpls[2],R,{x:3150,y:cy,roomIdx:2});
   stageMsg('Three lords slumber in their chambers. They will not stir until struck — and then, never stop.',3600);
  }else if(isBoss){
   if(!S.bossDead[S.zone]&&!(zoneOf().thor&&thorLocked()))spawnEnemyAt(tmpls[0],R,{x:world.w-320,y:world.pathY});
@@ -1608,12 +1620,14 @@ function openSpot(R){
 function spawnEnemyAt(t,R,fixed){
  const p=fixed||openSpot(R||Math.random.bind(Math));
  const scale=t.boss?1:1+Math.max(0,effectiveHeroLvl()-effZoneLvl(zoneOf()))*0.04;
- enemies.push({name:t.name,kind:t.kind,boss:!!t.boss,raid:!!t.raid,bossId:t.bossId||null,c:t.c,
+ const en={name:t.name,kind:t.kind,boss:!!t.boss,raid:!!t.raid,bossId:t.bossId||null,c:t.c,
   x:p.x,y:p.y,home:{x:p.x,y:p.y},r:t.boss?26:12,
   max:Math.round(t.hp*scale),hp:Math.round(t.hp*scale),
-  atk:t.atk,xp:t.xp,gold:t.gold,add:!!t.add,
+  atk:t.atk,xp:t.xp,gold:t.gold,add:!!t.add,roomIdx:t.roomIdx??fixed?.roomIdx??null,awake:!t.raid,
   speed:t.speed||(t.boss?80:105),baseSpeed:t.speed||(t.boss?80:105),state:'wander',dir:Math.random()*6.28,wT:0,cd:0,dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,
-  cds:{a:2,b:5,c:8},lockT:0,hidden:false,trailT:0,avoid:null});
+  cds:{a:2,b:5,c:8},lockT:0,hidden:false,trailT:0,avoid:null};
+ enemies.push(en);
+ return en;
 }
 function spawnAdd(name,kind,c,src){
  const z=zoneOf();
@@ -1724,6 +1738,7 @@ function collide(e,nx,ny){
  /* Bosses and cows ignore trees/rocks — the herd tramples straight through. */
  if((!e.boss||e.raid)&&!e.cow){
   for(const s of world.solids){
+   if(s.type==='gate'&&!(world.raidRooms&&world.raidRooms[s.room]&&world.raidRooms[s.room].sealed))continue;
    if(Math.hypot(nx-s.x,ny-s.y)<e.r+s.r*0.8)return true;
   }
  }
@@ -1870,6 +1885,7 @@ function landHit(en,dmg,crit,label,basic){
 function applyDmg(en,dmg,label,crit){
  if(en.dead||en.hidden)return;
  en.hp-=dmg;en.state='chase';en.hurt=0.22;
+ if(en.raid&&!en.awake){en.awake=true;floatAt(en.x,en.y-en.r-30,'AWAKENED!','#ff8a6a',true);sfx.shout();}
  floatAt(en.x,en.y-en.r-14,(label?label+' ':'')+(crit?'✦':'')+dmg,label?'#ffd76a':crit?'#ffb0a0':'#fff',!!label||crit);
  if(en.hp<=0)killEnemy(en);
 }
@@ -2142,6 +2158,7 @@ function doPrestige(){
    Every boss has its own kit. Telegraphed danger zones (hazards) can be dodged. */
 function bossAI(en,dt){
  for(const k in en.cds)en.cds[k]-=dt;
+ if(en.raid&&!en.awake)return;
  const B=en.bossId;
  if(B==='gorehusk'){ /* Rootfiend: root spikes under your feet + summons rootlings */
   if(en.cds.a<=0){en.cds.a=6;
@@ -2510,6 +2527,22 @@ function update(dt){
  const c=classOf();
  if(portalMsgT>0)portalMsgT-=dt;
  if(shakeT>0)shakeT-=dt;
+ if(world.raidRooms)for(const rm of world.raidRooms){
+  const b=enemies.find(e=>e.raid&&e.roomIdx===rm.idx);
+  if(!b||b.dead){
+   if(rm.sealed){rm.sealed=false;stageMsg('The seal shatters — '+((b&&b.name)||'the lord')+'’s chamber stands open.',2400);sfx.quest();}
+   continue;
+  }
+  if(!rm.sealed&&!hero.dead&&Math.hypot(hero.x-rm.x,hero.y-rm.y)<rm.r-70){
+   rm.sealed=true;
+   /* nudge the hero clear of the doorway so they can't be pinched by the closing gate */
+   const d=Math.hypot(hero.x-rm.x,hero.y-rm.y)||1;
+   hero.x=rm.x+(hero.x-rm.x)/d*Math.min(d,rm.r-90);
+   hero.y=rm.y+(hero.y-rm.y)/d*Math.min(d,rm.r-90);
+   stageMsg('⚠ The chamber seals behind you — only the lord’s death opens it!',2600);
+   sfx.warn();shakeT=0.3;
+  }
+ }
  // timers
  hero.spellCd=hero.spellCd.map(v=>Math.max(0,v-dt));
  hero.potCd.hp=Math.max(0,hero.potCd.hp-dt);
@@ -2651,7 +2684,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   if(en.hurt)en.hurt=Math.max(0,en.hurt-dt);
   if(en.swing)en.swing=Math.max(0,en.swing-dt);
   const dHero=dist(en,hero),dHome=dist(en,en.home);
-  const aggroRange=en.cow?99999:en.raid?-1:en.boss?99999:160;
+  const aggroRange=en.cow?99999:en.raid?(en.awake?99999:-1):en.boss?99999:160;
   if(en.state!=='return'&&!hero.dead&&(dHero<aggroRange||en.state==='chase')){
    en.state='chase';
    /* Bosses have no leash: once alive, they follow the player across the whole arena/map. */
@@ -2953,6 +2986,14 @@ function drawProp(s,z){
   ctx.fillStyle='rgba(255,214,120,'+(0.25*gl)+')';
   ctx.beginPath();ctx.arc(0,-28,10,0,7);ctx.fill();
   ctx.fillStyle='#ffd76a';ctx.beginPath();ctx.arc(0,-28,3.5,0,7);ctx.fill();
+ }else if(s.type==='gate'){
+  if(world.raidRooms&&world.raidRooms[s.room]&&world.raidRooms[s.room].sealed){
+   const gl=0.5+0.3*Math.sin(performance.now()/180+s.x*0.05);
+   ctx.fillStyle='rgba(166,107,208,'+(0.35*gl)+')';
+   ctx.beginPath();ctx.arc(0,-10,s.r,0,7);ctx.fill();
+   ctx.strokeStyle='rgba(201,160,255,'+(0.8*gl)+')';ctx.lineWidth=2;
+   ctx.beginPath();ctx.arc(0,-10,s.r*0.8,0,7);ctx.stroke();
+  }
  }else if(s.type==='wall'){
   ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0,8,s.r*1.15,s.r*0.5,0,0,7);ctx.fill();
   ctx.fillStyle='#5a5468';ctx.fillRect(-s.r,-s.r*1.6,s.r*2,s.r*2.1);
