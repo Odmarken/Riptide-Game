@@ -4355,7 +4355,7 @@ async function deviceDelete(k){
  LS.del(k);
 }
 async function save(){
- if(!S||!S.id)return;
+ if(!S||!S.id||FB.kicked)return;
  memChars[S.id]=JSON.stringify(S);
  await deviceSet('riptide-char-'+S.id,memChars[S.id]);
  if(FB.ready&&FB.user){cloudPushChar(S);publishLB(S);}
@@ -4422,6 +4422,34 @@ const FIREBASE_CONFIG={
  measurementId:"G-1F59M1QS5Z"
 };
 const FB={ready:false,user:null,auth:null,db:null,tried:false,lastPub:0};
+/* --- single-session enforcement: one live client per account --- */
+const SESSION_ID='sess_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+let sessUnsub=null;
+async function claimSession(){
+ if(!(FB.ready&&FB.user))return;
+ FB.kicked=false;
+ try{
+  await FB.db.collection('players').doc(FB.user.uid)
+   .set({activeSession:SESSION_ID,sessionAt:Date.now()},{merge:true});
+  watchSession();
+ }catch(e){console.warn('session claim failed',e);}
+}
+function watchSession(){
+ if(sessUnsub)sessUnsub();
+ sessUnsub=FB.db.collection('players').doc(FB.user.uid).onSnapshot(doc=>{
+  const d=doc.data()||{};
+  if(d.activeSession&&d.activeSession!==SESSION_ID)kickSession();
+ },e=>console.warn('session watch failed',e));
+}
+function kickSession(){
+ if(FB.kicked)return;
+ FB.kicked=true;
+ if(sessUnsub){sessUnsub();sessUnsub=null;}
+ gameOn=false;
+ if(AC.ctx)stopAmbience();
+ showLogin('⚠ This account was opened on another device. Only one session can play at a time — sign in again here to take over.');
+}
+
 let seasonReady=false;
 function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('load failed '+src));document.head.appendChild(s);});}
 async function initFirebase(){
@@ -4459,11 +4487,12 @@ async function fbSignIn(create){
   guestMode=false;
   $('login').classList.remove('open');
   await cloudPullRoster();
+  await claimSession();
   showSelect();
  }catch(e){$('fbErr').textContent=((e&&e.message)||'Sign-in failed.').replace('Firebase: ','');}
 }
 async function cloudPushChar(ch){
- if(!(FB.ready&&FB.user))return;
+ if(!(FB.ready&&FB.user)||FB.kicked)return;
  try{
   const uid=FB.user.uid,ids=await loadRoster();
   const ref=FB.db.collection('players').doc(uid);
@@ -4754,7 +4783,7 @@ $('charSelBtn').onclick=async()=>{await save();showSelect();};
 $('fbLogin').onclick=()=>fbSignIn(false);
 $('fbSignup').onclick=()=>fbSignIn(true);
 $('guestBtn').onclick=()=>{guestMode=true;$('login').classList.remove('open');showSelect();};
-$('fbOut').onclick=async()=>{if(FB.auth)await FB.auth.signOut();guestMode=false;showLogin();};
+$('fbOut').onclick=async()=>{if(sessUnsub){sessUnsub();sessUnsub=null;}if(FB.auth)await FB.auth.signOut();guestMode=false;showLogin();};
 $('lbBtn2').onclick=showLeaderboard;
 $('lbClose').onclick=()=>$('lbFx').classList.remove('open');
 $('autoBtn').onclick=()=>{S.auto=!S.auto;renderHUD();save();};
@@ -4850,7 +4879,7 @@ requestAnimationFrame(frame);
    await deviceDelete('eastvale-save3');
   }
  }
- if(FB.user){guestMode=false;await cloudPullRoster();showSelect();}
+ if(FB.user){guestMode=false;await cloudPullRoster();await claimSession();showSelect();}
  else showLogin();
 })();
 </script>
