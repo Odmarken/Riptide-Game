@@ -250,7 +250,7 @@
   }
 
 
-  /* --- Borek Casino slot machine --- */
+  /* --- Borek 67 slot machine --- */
   #slotFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(5,10,8,.86)}
   #slotFx.open{display:flex}
   .slotmach{display:flex;flex-direction:column;align-items:center;padding:22px 26px 20px;border-radius:18px;border:2px solid var(--brass);background:linear-gradient(180deg,#2a3d33,#131f1a);box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 24px rgba(217,164,65,.18)}
@@ -660,7 +660,7 @@
    <div class="casinobox">
     <div class="slottop" style="color:var(--brass);margin-bottom:6px">🎰 BOREK CASINO</div>
     <div class="cl" style="margin-bottom:14px">The house always wins. Pick your game.</div>
-    <button class="casinopick" data-game="slots"><span class="cg">🎰</span><span class="ct"><b>Borek Casino</b><i>Classic slots — win up to 100x</i></span></button>
+    <button class="casinopick" data-game="slots"><span class="cg">🎰</span><span class="ct"><b>Borek 67</b><i>Classic slots — win up to 100x</i></span></button>
     <button class="casinopick" data-game="sea"><span class="cg">🦈</span><span class="ct"><b>Borek Seamen</b><i>16-way ways slot — gear &amp; jackpots</i></span></button>
     <button class="casinopick" data-game="bj"><span class="cg">🃏</span><span class="ct"><b>Borek Blackjack</b><i>Beat the dealer to 21 — pays 3:2</i></span></button>
     <button id="casinoMenuClose" class="sbtn" style="margin-top:6px;padding:11px">Leave the Casino</button>
@@ -3491,7 +3491,7 @@ function renderBag(){
   const mins=Math.ceil(S.gamblerT/60);
   gamblerHtml=`<div class="card item" style="border-color:#ffd76a${active?';box-shadow:0 0 10px rgba(255,215,106,.25)':''}"><div>
    <div class="sn" style="color:#ffd76a;font-size:13px;font-weight:600">🎲 Potion of Gambler <span style="color:var(--dim)">×${S.gamblerPots||0}</span></div>
-   <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#ffd76a">ACTIVE — '+mins+' min remaining.</b> ':''}+5% XP gain and +2% crit chance for 30 minutes. Won only on a 100x max win at Borek Casino.</div></div>
+   <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#ffd76a">ACTIVE — '+mins+' min remaining.</b> ':''}+5% XP gain and +2% crit chance for 30 minutes. Won only on a 100x max win at Borek 67.</div></div>
    <div class="btns"><button class="sbtn gold" id="gamblerUse" ${(S.gamblerPots||0)<1?'disabled':''}>${active?'Extend +30m':'Drink'}</button></div></div>`;
  }
  $('scrollSec').innerHTML=luckHtml+gamblerHtml;
@@ -4036,7 +4036,7 @@ function slotSettle(out){
    dingDingDing(jackpot);
    spawnSlotParts(jackpot?'#ffd100':out.color,jackpot?30:16);
    if(jackpot)setTimeout(()=>spawnSlotParts('#ffd100',20),600);
-   log(`Borek Casino: <span class="llegendary">${out.mul}x — +${paid.toLocaleString()} ◉</span>${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}!`,'loot');
+   log(`Borek 67: <span class="llegendary">${out.mul}x — +${paid.toLocaleString()} ◉</span>${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}!`,'loot');
    if(jackpot){
     S.gamblerPots=(S.gamblerPots||0)+1;
     log(`Max win! <span class="llegendary">🎲 Potion of Gambler</span> — +5% XP & +2% crit for 30 min, now in your Bag.`,'loot');
@@ -4049,14 +4049,14 @@ function slotSettle(out){
   }else{
    res.textContent='Winner! '+out.mul+'x — +'+paid.toLocaleString()+'◉'+(over?' ('+over.toLocaleString()+' to overflow)':'');
    sfx.loot();spawnSlotParts(out.color,8);
-   log(`Borek Casino: <span class="loot">${out.mul}x</span> — +${paid.toLocaleString()} ◉${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}.`,'loot');
+   log(`Borek 67: <span class="loot">${out.mul}x</span> — +${paid.toLocaleString()} ◉${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}.`,'loot');
   }
  }else if(out.kind==='scrap'){
   const got=addScraps(out.n);
   slotSession.scrap+=got;
   res.textContent=out.msg;
   sfx.forge();
-  log(`Borek Casino: +${got} ⚙ Scraps${got<out.n?' (scrap cap!)':''}.`,'loot');
+  log(`Borek 67: +${got} ⚙ Scraps${got<out.n?' (scrap cap!)':''}.`,'loot');
  }else{
   res.textContent=out.msg;
   blip(300,180,0.25,.05,'sawtooth');
@@ -4528,7 +4528,7 @@ function renderShop(){
  <div class="btns"><button class="sbtn gold" id="goldChestBtn" ${totalGold()<goTot?'disabled':''}>${goTot>0?goTot.toLocaleString()+'◉':'FREE'}</button>
  <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gold" data-d="-1" ${goQty<=1?'disabled':''}>−</button><span class="qtynum">${goQty}x</span><button class="qtybtn" data-case="gold" data-d="1" ${goQty>=5?'disabled':''}>+</button></div><div class="qtytotal">${goFree?goFree+' free · ':''}Total: ${goTot.toLocaleString()}◉</div></div></div></div>`;
 
- h+=`<div class="card" style="color:var(--dim);font-size:11px;border-style:dashed">🎰 The slot machines, Borek Seamen and Blackjack have moved to the <b style="color:var(--brass)">Casino</b> in Goldshire — go there and click the building to play.</div>`;
+ 
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Supplies</div>';
  const hpC=potCost('hp'),mpC=potCost('mp');
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">🧪 Health Potion</div>
