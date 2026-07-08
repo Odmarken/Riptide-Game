@@ -619,7 +619,7 @@
 const MAXLVL=60;
 const SEASON=1; /* bump this to wipe everyone */
 const GOLD_CAP_BASE=500000,GOLD_CAP_ROOF=2000000,SCRAP_CAP=800,BOOST_COST_CAP=500000,GEAR_UPGRADE_COST_CAP=400;
-const goldCap=(ch)=>{const p=((ch||S||{}).prestige)||0;return Math.min(GOLD_CAP_ROOF,GOLD_CAP_BASE+Math.floor(p/5)*500000);};
+const goldCap=(ch)=>{const p=((ch||S||{}).prestige)||0;return p>=20?2000000:p>=5?1000000:GOLD_CAP_BASE;};
 /* ==================== THOR WINDOWS — svensk tid 00/03/06/09/12/15/18/21 ==================== */
 const THOR_PERIOD=3*3600*1000,THOR_OPEN=15*60*1000;
 /* hårdlåst till svensk tid (Europe/Stockholm) oavsett spelarens enhet */
@@ -3175,6 +3175,8 @@ function renderHero(){
   if(g&&upgradeItem(g)){hero.hp=Math.min(hero.hp,heroMax());renderHero();renderHUD();}
  });
  document.querySelectorAll('[data-unsc]').forEach(b=>b.onclick=()=>{
+  if(inBossFight()){stageMsg('No swapping scrolls mid-boss-fight!',1600);sfx.warn();return;}
+  if(cowLocked()){stageMsg('The herd allows no scroll rituals — survive or die first!',1600);sfx.warn();return;}
   const i=+b.dataset.unsc;
   if(!S.activeScrolls[i])return;
   S.scrolls.push(S.activeScrolls[i]);S.activeScrolls[i]=null;
@@ -3410,6 +3412,8 @@ function renderBag(){
   });
   const takeScroll=(id,tier)=>{const i=S.scrolls.findIndex(x=>x.id===id&&x.tier===tier);return i>=0?S.scrolls.splice(i,1)[0]:null;};
   document.querySelectorAll('[data-sceq]').forEach(b=>b.onclick=()=>{
+   if(inBossFight()){stageMsg('No swapping scrolls mid-boss-fight!',1600);sfx.warn();return;}
+   if(cowLocked()){stageMsg('The herd allows no scroll rituals — survive or die first!',1600);sfx.warn();return;}
    const [id,t]=b.dataset.sceq.split(':'),tier=+t;
    S.activeScrolls=S.activeScrolls||[null,null];
    /* same scroll type can never be active twice — regardless of tier */
@@ -3425,6 +3429,8 @@ function renderBag(){
    sfx.loot();renderBag();save();
   });
   document.querySelectorAll('[data-comb]').forEach(b=>b.onclick=()=>{
+   if(inBossFight()){stageMsg('No swapping scrolls mid-boss-fight!',1600);sfx.warn();return;}
+   if(cowLocked()){stageMsg('The herd allows no scroll rituals — survive or die first!',1600);sfx.warn();return;}
    const [id,t]=b.dataset.comb.split(':'),tier=+t;
    if(takeScroll(id,tier)&&takeScroll(id,tier)){
     S.scrolls.push({id,tier:tier+1});
