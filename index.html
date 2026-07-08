@@ -3811,7 +3811,7 @@ function slotOutcome(){
  if(r<0.002)return {kind:'gold',mul:100,sym:'7️⃣',msg:'JACKPOT! 100x',color:'#ffd100'};
  if(r<0.032)return {kind:'gold',mul:10,sym:'💎',msg:'BIG WIN! 10x',color:'#c9a0ff'};
  if(r<0.082)return {kind:'gold',mul:5,sym:'🔔',msg:'Winner! 5x',color:'#6dbb6d'};
- if(r<0.202){const n=(1+Math.floor(Math.random()*20))*slotBet;return {kind:'scrap',n,sym:'⚙',msg:'+'+n+' ⚙ Scraps',color:'#a8bcb0'};}
+ if(r<0.202){const n=Math.min(25,(1+Math.floor(Math.random()*20))*slotBet);return {kind:'scrap',n,sym:'⚙',msg:'+'+n+' ⚙ Scraps',color:'#a8bcb0'};}
  return {kind:'none',sym:null,msg:'Nothing… spin again?',color:'#8fa898'};
 }
 function slotFinalRow(out){
