@@ -882,7 +882,7 @@ const questOf=()=>questsOf()[Math.min(S.quest,questsOf().length-1)];
 const swiftMul=()=>1+scrollPct('swiftness');
 const spellManaCost=sp=>Math.ceil(sp.cost*2); /* spells cost double their base mana */
 const BOOST_BASE_MAX=6;
-const BOOST_PCT_CAP=5.0; /* +500% absolute ceiling */
+const BOOST_PCT_CAP=1.6; /* +160% absolute ceiling */
 const boostMax=()=>BOOST_BASE_MAX+Math.floor((S.prestige||0)/5);
 const nextBoostPrestige=()=>(Math.floor((S.prestige||0)/5)+1)*5;
 const boostBonus=n=>n>0?Math.min(BOOST_PCT_CAP,0.025*Math.pow(2,n-1)):0;
@@ -1000,7 +1000,7 @@ function rollItem(forceRar,lucky){
 function calcPower(it){it.power=it.atk*3+it.hp*0.6+it.crit*4;}
 /* --- Frostmourne: legendary, live-scales, but only slightly above normal gear --- */
 const FM_BONUS=1.05;     /* Frostmourne baseline = ~5% above the best normal weapon for your effective level */
-const FM_MAX_UP=10;      /* legendary cap: max +10 upgrades */
+const FM_MAX_UP=6;       /* legendary cap: max +6 upgrades */
 const isFM=it=>it&&it.legend==='frostmourne';
 function bestNormalWeaponAtk(){
  /* Normal epic weapons roll up to (3+3) * epic rarity * gear scale.
