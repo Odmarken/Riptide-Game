@@ -722,25 +722,25 @@ const RACES=[
  {id:'gravekin',name:'Undead',desc:'The Forsaken. Heal 3% on every kill.',c1:'#c0a0e0',c2:'#503a6b',leech:.03},
 ];
 const CLASSES=[
- {id:'warrior',name:'Christian',desc:'Heavy blade up close. Cleaving strikes and war-shouts.',hp:125,atk:12,crit:8,range:40,cd:.95,mana:55,
+ {id:'warrior',name:'Christian',desc:'Heavy blade up close. Cleaving strikes and war-shouts.',hp:125,atk:12,crit:5,armor:0.05,range:40,cd:.95,mana:55,
   spells:[
    {n:'Heroic Strike',g:'⚔️',cost:12,cd:4,t:'st',mul:2.1,d:'A crushing blow for 210% damage.',vfx:'slash'},
    {n:'Whirlwind',g:'🌀',cost:22,cd:8,t:'aoe',mul:1.5,rad:100,d:'Spin, hitting all nearby foes for 150%.',vfx:'whirl'},
    {n:'Battle Shout',g:'📯',cost:18,cd:28,t:'buff',buff:'atk',val:1.35,dur:10,d:'+35% attack for 10s.',vfx:'shout'},
   ]},
- {id:'mage',name:'Hindu',desc:'Ranged bolts of flame and frost. Fragile but ferocious.',hp:85,atk:15,crit:10,range:175,cd:1.0,ranged:true,boltC:'#ff9a4a',mana:90,
+ {id:'mage',name:'Hindu',desc:'Ranged bolts of flame and frost. Fragile but ferocious.',hp:85,atk:15,crit:6,armor:0.04,range:175,cd:1.0,ranged:true,boltC:'#ff9a4a',mana:90,
   spells:[
    {n:'Fireball',g:'🔥',cost:14,cd:4,t:'st',mul:2.6,d:'Hurl fire for 260% damage.',vfx:'fire'},
    {n:'Frost Nova',g:'❄️',cost:24,cd:9,t:'aoe',mul:1.3,rad:115,slow:3,d:'130% frost damage and slows foes 3s.',vfx:'frost'},
    {n:'Arcane Barrage',g:'✨',cost:30,cd:24,t:'multi',mul:1.3,hits:3,d:'3 arcane bolts at nearby foes, 130% each.',vfx:'arcane'},
   ]},
- {id:'hunter',name:'Muslim',desc:'Swift ranged shots and deadly precision.',hp:100,atk:11,crit:18,range:185,cd:.72,ranged:true,boltC:'#cfe8a0',mana:70,
+ {id:'hunter',name:'Muslim',desc:'Swift ranged shots and deadly precision.',hp:100,atk:11,crit:10,range:185,cd:.72,ranged:true,boltC:'#cfe8a0',mana:70,
   spells:[
    {n:'Aimed Shot',g:'🎯',cost:12,cd:4,t:'st',mul:2.4,d:'A perfect shot for 240% damage.',vfx:'arrow'},
    {n:'Multi-Shot',g:'🏹',cost:22,cd:8,t:'multi',mul:1.4,hits:3,d:'Arrows at up to 3 foes, 140% each.',vfx:'arrow'},
    {n:'Rapid Fire',g:'💨',cost:20,cd:28,t:'buff',buff:'haste',val:1.6,dur:6,d:'+60% attack speed for 6s.',vfx:'shout'},
   ]},
- {id:'cleric',name:'Jew',desc:'Holy smiting and healing light.',hp:112,atk:11,crit:8,range:40,cd:.95,mana:85,
+ {id:'cleric',name:'Jew',desc:'Holy smiting and healing light.',hp:112,atk:11,crit:8,armor:0.02,range:40,cd:.95,mana:85,
   spells:[
    {n:'Smite',g:'☀️',cost:12,cd:4,t:'st',mul:2.0,heal:.06,d:'200% holy damage, heals you 6%.',vfx:'holy'},
    {n:'Holy Nova',g:'✴️',cost:24,cd:9,t:'aoe',mul:1.3,rad:115,heal:.15,d:'130% to nearby foes, heals you 15%.',vfx:'holy'},
@@ -767,8 +767,8 @@ const ENCHS=[
 const enchOf=id=>ENCHS.find(e=>e.id===id);
 /* ==================== PETS ==================== */
 const PETS=[
- {id:'cat',n:'Saltwhisker the Cat',g:'🐈',cc:'#e8b070',d:'+15% attack damage.',atkMul:0.15},
- {id:'dog',n:'Borek the Hound',g:'🐕',cc:'#a8bcb0',d:'Take 15% less damage.',armor:0.15},
+ {id:'cat',n:'Saltwhisker the Cat',g:'🐈',cc:'#e8b070',d:'+8% attack damage.',atkMul:0.08},
+ {id:'dog',n:'Borek the Hound',g:'🐕',cc:'#a8bcb0',d:'Take 8% less damage.',armor:0.08},
 ];
 const petOf=id=>PETS.find(p=>p.id===id);
 const activePet=()=>S&&S.pet?petOf(S.pet):null;
@@ -1063,14 +1063,14 @@ function syncFrostmourne(it){
  it.up=Math.min(it.up||0,FM_MAX_UP);
  it.baseAtk=fmBaseAtk();
  it.atk=Math.round(it.baseAtk*Math.pow(1.12,it.up||0));
- it.crit=it.baseCrit=5;it.hp=it.baseHp=0;
+ it.crit=it.baseCrit=2;it.hp=it.baseHp=0;
  calcPower(it);it.basePower=Math.round(it.baseAtk*3+20);
  it.sell=Math.round(it.baseAtk*4);
  return it;
 }
 function rollFrostmourne(){
  const it={slot:'weapon',rar:'legendary',legend:'frostmourne',name:'Frostmourne',
-  atk:0,hp:0,crit:5,lifesteal:0.02,ench:null,up:0,sell:0};
+  atk:0,hp:0,crit:2,lifesteal:0.02,ench:null,up:0,sell:0};
  return syncFrostmourne(it);
 }
 /* Scraps: salvage value by rarity */
@@ -1719,7 +1719,7 @@ function healHero(amt,silent){
 }
 function hurtHero(dmg,label){
  if(hero.dead)return;
- dmg=Math.round(dmg*(1-scrollPct('warding'))*(1-(raceOf().armor||0))*(1-((activePet()||{}).armor||0)));
+ dmg=Math.round(dmg*(1-scrollPct('warding'))*(1-(classOf().armor||0))*(1-(raceOf().armor||0))*(1-((activePet()||{}).armor||0)));
  hero.hp-=dmg;hero.hurt=0.2;
  floatAt(hero.x,hero.y-26,'-'+dmg+(label?' '+label:''),'#ff8a7a');
  burst(hero.x,hero.y-10,'#ff8a7a',4,60);
