@@ -1076,7 +1076,9 @@ function statBaseStr(it,k,label,suffix=''){
 function itemStr(it){
  if(isFM(it))syncFrostmourne(it);
  else ensureItemBase(it);
- let s=`${it.up?'+'+it.up+' · ':''}${statBaseStr(it,'atk','ATK')} ${statBaseStr(it,'hp','HP')} ${statBaseStr(it,'crit','CRIT','%')}`;
+ const cap=isFM(it)?FM_MAX_UP:GEAR_MAX_UP;
+ const maxed=(it.up||0)>=cap;
+ let s=`${it.up?'+'+it.up+(maxed?' MAX ✦':'')+' · ':''}${statBaseStr(it,'atk','ATK')} ${statBaseStr(it,'hp','HP')} ${statBaseStr(it,'crit','CRIT','%')}`;
  if(it.lifesteal)s+=` +${it.lifesteal*100}% LIFESTEAL`;
  return s.replace(/\s+/g,' ').trim();
 }
@@ -2103,7 +2105,7 @@ function bossAI(en,dt){
    floatAt(en.x,en.y-en.r-30,'The storm turns!','#7fd0ff',true);
    sfx.warn();
   }
-  en.stormA+=dt*0.45*en.stormDir;
+  en.stormA+=dt*0.55*en.stormDir;
   en.stormTick-=dt;
   const cx=world.w/2,cy=world.h/2;
   const LEN=Math.hypot(world.w,world.h)/2; /* beams reach every wall */
@@ -2126,7 +2128,7 @@ function bossAI(en,dt){
     const along=hx*ux+hy*uy;
     if(along>30){
      const perp=Math.abs(hx*-uy+hy*ux);
-     if(perp<40){hurtHero(en.atk*0.5,'⚡');en.stormTick=0.5;sfx.arcane();}
+     if(perp<40){hurtHero(en.atk*2.25,'⚡');en.stormTick=0.5;sfx.arcane();}
     }
    }
   }
@@ -3192,14 +3194,20 @@ function renderHero(){
     <button class="sbtn gold" id="prestigeBtn" style="width:100%">AWOOOOGAAAAA</button>
    </div>`;
    $('prestigeBtn').onclick=()=>{
-    const b=$('prestigeBtn');
-    if(!b.dataset.armed){
-     b.dataset.armed='1';
-     b.textContent='Tap again to confirm — foes grow much stronger';
-     setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent='AWOOOOGAAAAA';}},3500);
-     return;
-    }
-    doPrestige();
+    const old=$('prestigeConfirm');if(old)old.remove();
+    const ov=document.createElement('div');
+    ov.id='prestigeConfirm';
+    ov.style.cssText='position:absolute;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;background:rgba(5,10,8,.85)';
+    ov.innerHTML=`<div style="width:min(90%,340px);padding:20px;border-radius:14px;border:1px solid var(--brass);background:linear-gradient(180deg,#2a3d33,#131f1a);text-align:center">
+     <div style="font-family:var(--display);font-size:17px;color:var(--brass)">✦ Prestige ${S.prestige+1}</div>
+     <div style="font-size:12px;color:var(--dim);margin:10px 0 16px;line-height:1.5">Are you sure? Every foe grows far stronger — is your gear enough for the next prestige?</div>
+     <div style="display:flex;gap:8px;justify-content:center">
+      <button id="prYes" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;font-family:var(--display);font-size:14px;cursor:pointer">Yes</button>
+      <button id="prNo" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--display);font-size:14px;cursor:pointer">No</button>
+     </div></div>`;
+    $('app').appendChild(ov);
+    $('prYes').onclick=()=>{ov.remove();doPrestige();};
+    $('prNo').onclick=()=>ov.remove();
    };
   }else{
    const left=ZONES.map((z,i)=>z.boss&&!S.bossDead[i]?z.boss[0]:null).filter(Boolean);
@@ -3822,7 +3830,7 @@ function slotOutcome(){
  if(r<0.002)return {kind:'gold',mul:100,sym:'7️⃣',msg:'JACKPOT! 100x',color:'#ffd100'};
  if(r<0.032)return {kind:'gold',mul:10,sym:'💎',msg:'BIG WIN! 10x',color:'#c9a0ff'};
  if(r<0.082)return {kind:'gold',mul:5,sym:'🔔',msg:'Winner! 5x',color:'#6dbb6d'};
- if(r<0.202){const n=Math.min(25,(1+Math.floor(Math.random()*20))*slotBet);return {kind:'scrap',n,sym:'⚙',msg:'+'+n+' ⚙ Scraps',color:'#a8bcb0'};}
+ if(r<0.202){const n=Math.min(10,(1+Math.floor(Math.random()*20))*slotBet);return {kind:'scrap',n,sym:'⚙',msg:'+'+n+' ⚙ Scraps',color:'#a8bcb0'};}
  return {kind:'none',sym:null,msg:'Nothing… spin again?',color:'#8fa898'};
 }
 function slotFinalRow(out){
