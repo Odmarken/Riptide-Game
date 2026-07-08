@@ -1001,6 +1001,7 @@ function calcPower(it){it.power=it.atk*3+it.hp*0.6+it.crit*4;}
 /* --- Frostmourne: legendary, live-scales, but only slightly above normal gear --- */
 const FM_BONUS=1.05;     /* Frostmourne baseline = ~5% above the best normal weapon for your effective level */
 const FM_MAX_UP=6;       /* legendary cap: max +6 upgrades */
+const GEAR_MAX_UP=12;      /* normal gear cap; Frostmourne uses FM_MAX_UP */
 const isFM=it=>it&&it.legend==='frostmourne';
 function bestNormalWeaponAtk(){
  /* Normal epic weapons roll up to (3+3) * epic rarity * gear scale.
@@ -1039,6 +1040,7 @@ function upCost(it){
 function upgradeItem(it){
  if(inBossFight()){stageMsg('You cannot forge upgrades mid-boss-fight!',1500);sfx.warn();return false;}
  if(isFM(it)&&((it.up||0)>=FM_MAX_UP)){stageMsg('Frostmourne is already maxed at +'+FM_MAX_UP+'.',1500);return false;}
+ if(!isFM(it)&&(it.up||0)>=GEAR_MAX_UP){stageMsg(it.name+' is already maxed at +'+GEAR_MAX_UP+'.',1500);return false;}
  const cost=upCost(it);
  if(S.scraps<cost){stageMsg('Not enough Scraps ('+cost+'⚙ needed)',1400);return false;}
  ensureItemBase(it);
@@ -3138,7 +3140,9 @@ function renderHero(){
   const g=S.gear[sl];
   return `<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div>`+
    (g?`<div class="sn r-${g.rar}">${g.name}</div><div class="ss">${itemStr(g)}</div>
-    <button class="upbtn ${S.scraps>=upCost(g)?'can':''}" data-up="${sl}">Upgrade · ${upCost(g)} ⚙</button>`
+    ${(isFM(g)?(g.up||0)>=FM_MAX_UP:(g.up||0)>=GEAR_MAX_UP)
+     ?`<button class="upbtn" disabled>MAX +${isFM(g)?FM_MAX_UP:GEAR_MAX_UP} ✦</button>`
+     :`<button class="upbtn ${S.scraps>=upCost(g)?'can':''}" data-up="${sl}">Upgrade · ${upCost(g)} ⚙</button>`}`
      :`<div class="ss">— empty —</div>`)+`</div>`;
  }).join('');
  const petP=activePet();
@@ -3332,7 +3336,7 @@ let gearRarityOpen={}; /* which gear rarity categories are expanded in the Bag *
 function cleanBagItem(it){
  if(!it||typeof it!=='object')return null;
  if(!it.slot||!it.name)return null;
- const allowed=['weapon','armor','ring'];
+ const allowed=['weapon','armor','trinket'];
  if(!allowed.includes(it.slot))return null;
  const rarOrder=['legendary','epic','rare','fine','common'];
  it.rar=String(it.rar||'common').toLowerCase();
