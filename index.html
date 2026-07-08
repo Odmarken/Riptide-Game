@@ -938,7 +938,7 @@ function freshState(name,race,cls){
  return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,lastZone:0,maxZone:0,quest:0,qProg:0,
   rating:0,cerberusKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',luckPots:0,luckT:0,freeGoldCases:0,cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
   gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],pet:null,pets:[],
-  boosts:{speed:0,haste:0},
+  boosts:{speed:0,haste:0},tainted:false,
   cleared:{},bossDead:{},zoneLvlGain:{},
   auto:true,autoEquip:true,sound:true,sfx:true,volAmb:0.5,volSfx:0.55,finished:false};
 }
@@ -958,6 +958,7 @@ function ensureItemBase(it){
  return it;
 }
 function migrate(s){ /* fills fields missing from older saves */
+ if(s.tainted===undefined)s.tainted=false;
  if(s.scraps===undefined)s.scraps=0;
  if(s.overflow===undefined)s.overflow=0;
  if(s.pet===undefined)s.pet=null;
@@ -4553,8 +4554,89 @@ async function deviceDelete(k){
  try{if(window.storage)await window.storage.delete(k);}catch(e){}
  LS.del(k);
 }
+
+/* ==================== CHEATER SHAME MARKERS ====================
+   Client-side saves can always be edited, so this makes cheat flags sticky by
+   saving the shame mark outside the character save and re-checking it on load/publish.
+   For the server-side layer, add the Firestore rules from the cheater-system note. */
+const shameKey=id=>'riptide-shame-'+id;
+async function markShame(id){
+ if(!id)return;
+ await deviceSet(shameKey(id),'1');
+ try{if(window.storage)await window.storage.set('shame:'+id,'1',true);}catch(e){}
+ if(FB.ready&&FB.user){
+  try{await FB.db.collection('players').doc(FB.user.uid).set({shame:{[id]:true}},{merge:true});}catch(e){}
+ }
+}
+async function isShamed(id){
+ if(!id)return false;
+ if(await deviceGet(shameKey(id)))return true;
+ try{if(window.storage){const r=await window.storage.get('shame:'+id,true);if(r&&r.value)return true;}}catch(e){}
+ if(FB.ready&&FB.user){
+  try{const d=await FB.db.collection('players').doc(FB.user.uid).get();const data=d.data()||{};if(data.shame&&data.shame[id])return true;}catch(e){}
+ }
+ return false;
+}
+
+function replayStat(base,up,kind){
+ let v=Math.round(base)||0;
+ for(let i=0;i<(up||0);i++)v=kind==='hp'?Math.round(v*1.12)+2:Math.round(v*1.12)+1;
+ return v;
+}
+function maxItemBaseStat(ch,kind){
+ ch=ch||S||{};
+ const zi=Math.max(ch.zone||0,ch.maxZone||0);
+ const z=(1+zi*0.9+(ch.lvl||1)*0.18)*(1+(ch.prestige||0)*0.25);
+ if(kind==='hp')return Math.round(24*RARMUL.epic*z)+25;
+ if(kind==='crit')return 12;
+ return Math.round(6*RARMUL.epic*z)+25;
+}
+function itemConsistent(it,ch){
+ if(!it)return true;
+ if(isFM(it))return true; /* Frostmourne is recomputed by syncFrostmourne every read — self-healing */
+ ensureItemBase(it);
+ const up=it.up||0;
+ const tol=up>0?up+2:0; /* rounding slack for legacy saves whose base was reverse-estimated */
+ const atkOk=(it.baseAtk||0)?Math.abs((it.atk||0)-replayStat(it.baseAtk,up,'atk'))<=tol:(it.atk||0)===0;
+ const hpOk=(it.baseHp||0)?Math.abs((it.hp||0)-replayStat(it.baseHp,up,'hp'))<=tol:(it.hp||0)===0;
+ if(!atkOk||!hpOk)return false;
+ if((it.crit||0)!==(it.baseCrit||0))return false; /* upgrades never touch crit */
+ if((it.baseAtk||0)>maxItemBaseStat(ch,'atk'))return false;
+ if((it.baseHp||0)>maxItemBaseStat(ch,'hp'))return false;
+ if((it.baseCrit||0)>maxItemBaseStat(ch,'crit'))return false;
+ return true;
+}
+
+function sanityCheck(ch=S){
+ if(!ch||!ch.id)return false;
+ let bad=false;
+ const n=v=>Number.isFinite(Number(v));
+ if(!n(ch.lvl)||ch.lvl<1||ch.lvl>MAXLVL)bad=true;
+ if(!n(ch.gold)||ch.gold<0||ch.gold>goldCap(ch))bad=true;
+ if(!n(ch.overflow)||ch.overflow<0||ch.overflow>500000000)bad=true;
+ if(!n(ch.scraps)||ch.scraps<0||ch.scraps>SCRAP_CAP)bad=true;
+ if(!n(ch.prestige)||ch.prestige<0||ch.prestige>200)bad=true;
+ if(!n(ch.zone)||ch.zone<0||ch.zone>=ZONES.length)bad=true;
+ if(!Array.isArray(ch.bag)||ch.bag.length>500)bad=true;
+ const boosts=ch.boosts||{};
+ if(!n(boosts.speed)||!n(boosts.haste)||boosts.speed<0||boosts.haste<0||boosts.speed>boostMax()+5||boosts.haste>boostMax()+5)bad=true;
+ const gear=[ch.gear&&ch.gear.weapon,ch.gear&&ch.gear.armor,ch.gear&&ch.gear.trinket,...(ch.bag||[])].filter(Boolean);
+ for(const it of gear){
+  if(!n(it.up)||it.up<0||it.up>(isFM(it)?FM_MAX_UP:GEAR_MAX_UP))bad=true;
+  if((it.atk||0)<0||(it.hp||0)<0||(it.crit||0)<0)bad=true;
+  if((it.atk||0)>2000000||(it.hp||0)>10000000||(it.crit||0)>1000)bad=true;
+  if(!itemConsistent(it,ch))bad=true;
+ }
+ if(bad){
+  ch.tainted=true;
+  markShame(ch.id);
+  if(typeof log==='function')log('<span class="imp">This hero has been altered — it is now flagged on the leaderboard.</span>');
+ }
+ return bad;
+}
 async function save(){
  if(!S||!S.id||FB.kicked)return;
+ sanityCheck(S);
  memChars[S.id]=JSON.stringify(S);
  await deviceSet('riptide-char-'+S.id,memChars[S.id]);
  if(FB.ready&&FB.user){cloudPushChar(S);publishLB(S);}
@@ -4571,10 +4653,12 @@ async function saveRoster(ids){
  await deviceSet('riptide-roster',JSON.stringify(ids));
 }
 async function loadChar(id){
+ const shamed=await isShamed(id);
  let raw=await deviceGet('riptide-char-'+id);
  if(!raw)raw=await deviceGet('eastvale-char-'+id); /* legacy fallback */
- if(raw){try{return migrate(JSON.parse(raw));}catch(e){}}
- return memChars[id]?migrate(JSON.parse(memChars[id])):null;
+ if(raw){try{const ch=migrate(JSON.parse(raw));if(shamed)ch.tainted=true;return ch;}catch(e){}}
+ if(!memChars[id])return null;
+ const ch=migrate(JSON.parse(memChars[id]));if(shamed)ch.tainted=true;return ch;
 }
 async function legacyLoad(){
  let raw=await deviceGet('riptide-save3');
@@ -4747,8 +4831,10 @@ async function publishLB(ch,force){
  const now=Date.now();
  if(!force&&now-FB.lastPub<45000)return;
  FB.lastPub=now;
+ sanityCheck(ch);
+ if(!ch.tainted&&await isShamed(ch.id))ch.tainted=true;
  const slim=g=>g?{name:g.name,rar:g.rar,slot:g.slot,up:g.up||0,atk:g.atk||0,hp:g.hp||0,crit:g.crit||0,lifesteal:g.lifesteal||0,legend:g.legend||null,power:Math.round(g.power||0)}:null;
- const entry={season:SEASON,name:(ch.name||'?').slice(0,14),lvl:ch.lvl,prestige:ch.prestige||0,gs:charGearScore(ch),score:lbScore(ch),cid:ch.id,t:now,
+ const entry={season:SEASON,name:(ch.name||'?').slice(0,14),lvl:ch.lvl,prestige:ch.prestige||0,gs:charGearScore(ch),score:lbScore(ch),cid:ch.id,t:now,tainted:!!ch.tainted,
   rating:ch.rating||0,
   race:ch.race||'human',cls:ch.cls||'warrior',zone:ch.zone||0,
   scroll:(ch.activeScrolls||[]).filter(Boolean)[0]||null,
@@ -4825,9 +4911,9 @@ async function showLeaderboard(){
    <div class="lbrank big">${i+1}</div>
    <canvas class="portrait" width="64" height="76" data-lbp="${i}"></canvas>
    <div class="cinfo">
-    <div class="cn">${esc(e.name||'?')}${e.rating?` <span style="color:var(--brass)">(${e.rating})</span>`:''}${e.prestige?` <span class="pstar">✦ Prestige ${e.prestige}</span>`:''}</div>
+    <div class="cn">${e.tainted?'<span style="color:#ff8a7a">⚠ </span>':''}${esc(e.name||'?')}${e.rating?` <span style="color:var(--brass)">(${e.rating})</span>`:''}${e.prestige?` <span class="pstar">✦ Prestige ${e.prestige}</span>`:''}</div>
     <div class="cl">${r&&c?esc(r.name+' '+c.name)+' · ':''}Level ${e.lvl||1}</div>
-    <div class="cl">⚔ ${fmtGS(e.gs)} gear score · ${esc(zn)}</div>
+    <div class="cl">${e.tainted?'⚠ Flagged · ':''}⚔ ${fmtGS(e.gs)} gear score · ${esc(zn)}</div>
    </div>
    <button class="sbtn gold" data-insp="${i}">🔍 Inspect</button>
    <div class="lbinsp" id="insp${i}" style="display:none;flex-basis:100%"></div>
