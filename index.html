@@ -3697,26 +3697,47 @@ function feet(e,scale){
 }
 /* One sprite renderer for both the world hero and select-screen portraits.
    Each race gets its own silhouette, WoW-flavored but kept low-poly. */
-function drawGlaive(g,flip){
+function drawGlaive(g,flip){ /* smal böjd fel-klinga, mörk kärna + turkosgrön egg */
  g.save();
  if(flip)g.scale(-1,1);
- g.shadowColor='#39ff6a';g.shadowBlur=10;
- g.fillStyle='#0e1a10';
- g.beginPath();g.moveTo(0,-4);g.quadraticCurveTo(16,-18,30,-8);g.quadraticCurveTo(20,-2,14,4);g.quadraticCurveTo(8,10,2,6);g.closePath();g.fill();
- g.fillStyle='#2bd35a';
- g.beginPath();g.moveTo(4,-6);g.quadraticCurveTo(16,-15,28,-8);g.quadraticCurveTo(18,-4,10,0);g.closePath();g.fill();
- g.fillStyle='#0e1a10';
- g.beginPath();g.moveTo(-2,0);g.lineTo(-14,-6);g.lineTo(-6,4);g.closePath();g.fill();
- g.beginPath();g.moveTo(-2,4);g.lineTo(-12,10);g.lineTo(-4,8);g.closePath();g.fill();
- g.fillStyle='#1fa346';
- g.beginPath();g.moveTo(-3,-1);g.lineTo(-11,-5);g.lineTo(-5,3);g.closePath();g.fill();
+ g.shadowColor='#4dff9a';g.shadowBlur=8;
+ /* huvudklingan — lång, smal, böjd framåt */
+ g.fillStyle='#0c1810';
+ g.beginPath();
+ g.moveTo(-2,2);
+ g.quadraticCurveTo(10,-6,26,-14);
+ g.quadraticCurveTo(28,-15,29,-13);
+ g.quadraticCurveTo(16,-4,4,5);
+ g.closePath();g.fill();
+ /* lysande egg längs överkanten */
+ g.fillStyle='#3ee88a';
+ g.beginPath();
+ g.moveTo(1,0);
+ g.quadraticCurveTo(11,-7,26,-14);
+ g.quadraticCurveTo(27,-13,25,-11);
+ g.quadraticCurveTo(12,-4,3,2);
+ g.closePath();g.fill();
+ /* liten bakåtspets vid greppet */
+ g.fillStyle='#0c1810';
+ g.beginPath();g.moveTo(-3,1);g.lineTo(-11,-3);g.lineTo(-5,4);g.closePath();g.fill();
+ g.fillStyle='#2bb56a';
+ g.beginPath();g.moveTo(-3,0);g.lineTo(-9,-2);g.lineTo(-5,3);g.closePath();g.fill();
  g.shadowBlur=0;
- g.fillStyle='#3a3a30';g.fillRect(-2,-2,6,4);
+ /* grepp */
+ g.fillStyle='#2a2a24';g.fillRect(-2,-1,5,4);
  g.restore();
 }
 function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId){
  const r=RACES.find(x=>x.id===raceId);
  const sgn=fx<0?-1:1;
+ if(weaponId==='warglaives'){ /* back glaive: behind the body, same facing as front */
+  g.save();
+  g.translate(fx*10,-6+by);
+  g.scale(0.85*sgn,0.85);
+  g.globalAlpha*=0.9;
+  drawGlaive(g,false);
+  g.restore();
+ }
  if(raceId==='stoneborn'){ /* Dwarf — short, stout, great grey beard */
   g.fillStyle=r.c2;g.beginPath();g.ellipse(0,-3+by,12,9.5,0,0,7);g.fill();
   g.fillStyle=r.c1;g.beginPath();g.ellipse(0,-4.5+by,10,8,0,0,7);g.fill();
@@ -3759,9 +3780,12 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId){
  g.rotate((sgn<0?-0.5:0.5)+sw*sgn);
  g.lineCap='round';
  if(weaponId==='warglaives'){
-  const tt=performance.now()/1000;
-  g.save();g.translate(-8*sgn,1);g.rotate((-0.55+(swing?Math.sin(tt*8)*0.12:0))*sgn);drawGlaive(g,true);g.restore();
-  g.save();g.translate(8*sgn,1);g.rotate((0.55-(swing?Math.sin(tt*8)*0.12:0))*sgn);drawGlaive(g,false);g.restore();
+  /* front glaive: replaces the old stick/weapon and draws above the body */
+  g.save();
+  g.translate(-6*sgn,4);
+  g.scale(0.95*sgn,0.95);
+  drawGlaive(g,false);
+  g.restore();
  }else if(fm){
   const tt=performance.now()/1000;
   g.shadowColor='#6fd0ff';g.shadowBlur=10+Math.sin(tt*3)*3;
