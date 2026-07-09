@@ -658,16 +658,15 @@
       <div class="seapay">
         <span>Match reels <b>1→2</b> = 🔒 <b>LOCK + RESPIN</b></span><span>Each extension <b>raises the multiplier</b></span>
         <span>Reach reels <b>1→2→3</b> to win · <b>4 = double</b></span><span>x2/x3/x5 cells multiply further</span>
-        <span>🪙 Gold line = <b>50x</b> per way</span><span>💥 <b>MAX WIN 2000x</b> on 4 reels</span>
+        <span>🪙 Gold line = <b>50x</b> per way</span><span>💥 <b>MAX WIN 40x</b> your bet</span>
         <span>🛡️ Rare line pays scrap · <b>10–25⚙</b></span><span>x2/x3/x5 cells multiply further</span>
         <span>3+ 🎁 anywhere = <b>10 FREE SPINS</b></span><span>Free spins roll <b>richer reels</b></span>
       </div>
-      <div class="slotbet">
-        <button class="qtybtn" id="seaBet10">10</button>
-        <button class="qtybtn" id="seaBet50">50</button>
-        <button class="qtybtn" id="seaBet250">250</button>
-        <button class="qtybtn" id="seaBet750">750</button>
-        <span class="slotbetcost" id="seaBetCost">10◉ / spin</span>
+      <div class="slotbet" style="display:flex;align-items:center;gap:8px;justify-content:center">
+        <button class="sbtn" id="seaBetDn" style="width:34px">−</button>
+        <span id="seaBetN" style="min-width:70px;text-align:center;font-weight:600">100◉</span>
+        <button class="sbtn" id="seaBetUp" style="width:34px">+</button>
+        <span id="seaBetCost" style="color:#ffd76a">100◉ / spin</span>
       </div>
       <div class="casebtns show" style="margin-top:12px">
         <button id="seaSpinBtn">🦈 Spin · 2,500◉</button>
@@ -1559,8 +1558,8 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.gamblerPots===undefined)s.gamblerPots=0;
  if(s.gamblerT===undefined)s.gamblerT=0;
  if(s.freeGoldCases===undefined)s.freeGoldCases=0;
- if(!s.chests)s.chests={};
- if(s.chests.blacktemple===undefined)s.chests.blacktemple=0;
+ if(s.chests===undefined)s.chests={};
+ s.chests=Object.assign({blacktemple:0},s.chests);
  if(s.cowBest===undefined)s.cowBest=0;
  if(s.cowLast===undefined)s.cowLast=0;
  if(s.cowBestItems===undefined)s.cowBestItems=0;
@@ -2569,6 +2568,7 @@ function usePot(kind,manual){
  save();
 }
 function killEnemy(en){
+ if(en.dead)return;
  if(mp.on&&mp.started&&!mp.host&&en.raid&&!en.netDead)return;
  en.dead=true;en.deadT=0;en.hidden=false;
  sfx.die();
@@ -2643,7 +2643,7 @@ function killEnemy(en){
    log(`<span class="imp">${en.name} defeated.</span>${left?'':' <span class="loot">Raid cleared!</span>'}`);
    if(!left){
     sfx.level();
-    S.chests=S.chests||{};S.chests.blacktemple=(S.chests.blacktemple||0)+1;
+    S.chests=Object.assign({blacktemple:0},S.chests||{});S.chests.blacktemple=(S.chests.blacktemple||0)+1;
     log(`<span class="llegendary">🟩 Black Temple Chest</span> acquired!`,'loot');
     stageMsg('🟩 BLACK TEMPLE CHEST — open it in the Bag!',3200);
    }
@@ -2707,6 +2707,23 @@ function heroDies(){
   S.thorLockWhy='died';
   stageMsg('⚡ Thor casts you from Valhalla — return when the storm gathers again.',3200);
   log('<span class="imp">Slain in Valhalla.</span> The gates are sealed until Thor next appears.');
+ }
+ if(zoneOf().raid&&mp.on&&mp.started){
+  hero.deadWait=true;
+  hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;
+  sfx.die();
+  stageMsg('💀 You fell — wait outside while your team finishes the lord.',3000);
+  log('<span class="imp">Fallen in the raid.</span> You revive at the entrance and wait outside the sealed chamber.');
+  setTimeout(()=>{
+   if(!gameOn||!zoneOf().raid)return;
+   hero.hp=hero.maxHp;hero.dead=false;
+   hero.x=(world.spawn&&world.spawn.x)||200;hero.y=(world.spawn&&world.spawn.y)||world.h/2;
+   hero.target=null;hero.moveTo=null;hero.goPortal=false;
+   stageMsg('💀 You fell — wait outside while your team finishes the lord.',3000);
+   renderHUD();
+  },1500);
+  save();
+  return;
  }
  if(zoneOf().west||zoneOf().boss||zoneOf().raid)hero.sentHome=true;
  if(mp.on)mpLeave(false);
@@ -3158,10 +3175,10 @@ function update(dt){
  if(world.raidRooms)for(const rm of world.raidRooms){
   const b=enemies.find(e=>e.raid&&e.roomIdx===rm.idx);
   if(!b||b.dead){
-   if(rm.sealed){rm.sealed=false;stageMsg('The seal shatters — '+((b&&b.name)||'the lord')+'’s chamber stands open.',2400);sfx.quest();}
+   if(rm.sealed){rm.sealed=false;hero.deadWait=false;stageMsg('The seal shatters — '+((b&&b.name)||'the lord')+'’s chamber stands open.',2400);sfx.quest();}
    continue;
   }
-  if(!rm.sealed&&!hero.dead&&Math.hypot(hero.x-rm.x,hero.y-rm.y)<rm.r-70){
+  if(!rm.sealed&&!hero.dead&&!hero.deadWait&&Math.hypot(hero.x-rm.x,hero.y-rm.y)<rm.r-70){
    rm.sealed=true;
    /* nudge the hero clear of the doorway so they can't be pinched by the closing gate */
    const d=Math.hypot(hero.x-rm.x,hero.y-rm.y)||1;
@@ -5170,9 +5187,9 @@ $('slotClose').onclick=()=>{
 };
 
 /* ==================== BOREK SEAMEN — hold & respin slot ==================== */
-const SEA_BETS=[10,50,250,750],SEA_COLS=4;
+const SEA_BETS=[100,500,1000,2000],SEA_COLS=4;
 const SEA_ROWSBY=[3,5,5,3];
-let seaBet=10,seaFast=false;
+let seaBetIx=0,seaBet=SEA_BETS[seaBetIx],seaFast=false;
 const seaCost=()=>seaBet;
 const SEA_SYMDEF={
  joker:{icons:['🃏'],cc:null},
@@ -5340,7 +5357,7 @@ function seaFinal(grid,ext){
  const full=br>=4?2:1;
  ways=Math.min(ways,12);
  const PAYX={skull:50,epic:10,rare:4,fine:1.5};   /* 🪙 3-linje = 50x per way */
- const goldWon=Math.min(Math.round(PAYX[bk]*seaBet*ways*mult*full),seaBet*2000); /* MAX WIN 2000x */
+ const goldWon=Math.min(Math.round(PAYX[bk]*seaBet*ways*mult*full),seaBet*40); /* MAX WIN 40x */
  const scrapWon=bk==='rare'?(br>=4?25:10):0;      /* scrap flyttad till rare-linjen, max 25⚙ */
  const {got,over}=addGoldOverflow(goldWon);
  const paid=got+over;
@@ -5393,14 +5410,11 @@ function updateSeaUI(){
  if(a){a.classList.toggle('on',seaAuto);a.textContent=seaAuto?'■ Stop':'▶ Auto';}
  const bc=$('seaBetCost');
  if(bc)bc.textContent=seaFree>0?'FREE SPINS':cost.toLocaleString()+'◉ / spin';
- SEA_BETS.forEach(v=>{
-  const el=$('seaBet'+v);
-  if(el){
-   el.disabled=seaSpinning||seaAuto||seaFree>0;
-   el.classList.toggle('on',seaBet===v);
-   el.textContent=v+'◉';
-  }
- });
+ const bn=$('seaBetN');
+ if(bn)bn.textContent=cost.toLocaleString()+'◉';
+ const bd=$('seaBetDn'),bu=$('seaBetUp');
+ if(bd)bd.disabled=seaSpinning||seaAuto||seaFree>0||seaBetIx<=0;
+ if(bu)bu.disabled=seaSpinning||seaAuto||seaFree>0||seaBetIx>=SEA_BETS.length-1;
  const st=$('seaStats'),s=seaSession;
  if(st)st.textContent=s.spins?`Session: ${s.spins} spins · ${s.gold>=0?'+':''}${s.gold.toLocaleString()}◉ · +${s.scrap}⚙${seaFree>0?' · 🎁 '+seaFree+' free':''}`:'';
 }
@@ -5436,12 +5450,8 @@ $('seaAutoBtn').onclick=()=>{
  updateSeaUI();
  if(!seaSpinning&&!seaCelebrating)spinSea();
 };
-SEA_BETS.forEach(v=>{
- const el=$('seaBet'+v);
- if(el)el.onclick=()=>{
-  if(!seaSpinning&&!seaAuto&&seaFree<=0){seaBet=v;updateSeaUI();}
- };
-});
+$('seaBetDn').onclick=()=>{if(seaBetIx>0&&!seaSpinning&&!seaAuto&&seaFree<=0){seaBetIx--;seaBet=SEA_BETS[seaBetIx];updateSeaUI();}};
+$('seaBetUp').onclick=()=>{if(seaBetIx<SEA_BETS.length-1&&!seaSpinning&&!seaAuto&&seaFree<=0){seaBetIx++;seaBet=SEA_BETS[seaBetIx];updateSeaUI();}};
 $('seaClose').onclick=()=>{
  if(seaSpinning&&!seaAuto)return;
  stopSeaAuto();clearSeaCelebration();clearTimeout(seaAutoTimer);
@@ -5451,7 +5461,7 @@ $('seaClose').onclick=()=>{
 /* ==================== BOREK BLACKJACK ==================== */
 const BJ_MIN=1000,BJ_MAX=15000,BJ_STEP=1000;
 let bjBet=1000,bjP=[],bjD=[],bjLive=false,bjWager=0;
-let bjSeen=0,bjHoleHidden=false;
+let bjSeen=0,bjHoleHidden=false,bjSettled=false;
 let bjSession={hands:0,gold:0};
 const BJ_RANKS=[['A',11],['2',2],['3',3],['4',4],['5',5],['6',6],['7',7],['8',8],['9',9],['10',10],['J',10],['Q',10],['K',10]];
 const BJ_SUITS=['♠','♥','♦','♣'];
@@ -5497,6 +5507,8 @@ function bjUI(){
  $('bjStats').textContent=ss.hands?`Session: ${ss.hands} hands · ${ss.gold>=0?'+':''}${ss.gold.toLocaleString()}◉`:'';
 }
 function bjSettle(kind){
+ if(bjSettled)return;
+ bjSettled=true;
  bjLive=false;
  bjRender(false);
  const res=$('bjRes');
@@ -5533,6 +5545,7 @@ function bjSettle(kind){
  renderHUD();save();bjUI();
 }
 function bjDealerPlay(){
+ if(bjSettled)return;
  bjLive=false;bjUI();
  bjRender(false); /* flips the hole card */
  const step=()=>{
@@ -5556,7 +5569,7 @@ function bjDeal(){
  if(bjLive)return;
  if(!spendGold(bjBet)){stageMsg('Not enough gold — a hand costs '+bjBet.toLocaleString()+'◉',1400);sfx.warn();return;}
  renderHUD();sfx.buy();
- bjWager=bjBet;bjLive=true;
+ bjWager=bjBet;bjLive=true;bjSettled=false;
  bjSeen=0;bjHoleHidden=false;
  bjP=[bjDraw(),bjDraw()];bjD=[bjDraw(),bjDraw()];
  $('bjRes').innerHTML='&nbsp;';$('bjRes').classList.remove('bigres');
@@ -5591,7 +5604,7 @@ function bjDouble(){
 function openBJ(){
  $('bjFx').classList.add('open');
  bjSession={hands:0,gold:0};
- bjP=[];bjD=[];bjLive=false;bjSeen=0;bjHoleHidden=false;
+ bjP=[];bjD=[];bjLive=false;bjSeen=0;bjHoleHidden=false;bjSettled=false;
  $('bjHandC').innerHTML='';$('bjDealerC').innerHTML='';
  $('bjPTot').textContent='';$('bjDTot').textContent='';
  $('bjRes').innerHTML='&nbsp;';
