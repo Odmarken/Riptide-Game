@@ -568,7 +568,7 @@
       <span class="continent-tab cur" id="eastTab">Riptide — Eastern Realm</span>
       <span class="continent-tab" id="westTab">🔒 Western Continent · Prestige 5</span>
       <span class="continent-tab" id="valhallaTab">🔒 Valhalla · Prestige 1</span>
-      <span class="continent-tab" id="raidTab">🔒 Raid · Prestige 1</span>
+      <span class="continent-tab" id="raidTab">🔒 Raid (experimental) · Prestige 1</span>
     </div>
     <div id="zoneList"></div>
   </div>
@@ -639,7 +639,7 @@
       <div class="seapay">
         <span>Match reels <b>1→2</b> = 🔒 <b>LOCK + RESPIN</b></span><span>Each extension <b>raises the multiplier</b></span>
         <span>Reach reels <b>1→2→3</b> to win · <b>4 = double</b></span><span>x2/x3/x5 cells multiply further</span>
-        <span>📜 Scroll wins pay <b>Tier I–III</b> by multiplier</span><span>💀 Gold jackpot · max <b>80⚙</b> scrap</span>
+        <span>📜 Scroll wins pay <b>Tier I–III</b> by multiplier</span><span>💀 Gold jackpot · max <b>15⚙</b> scrap</span>
         <span>3+ 🎁 anywhere = <b>10 FREE SPINS</b></span><span>Free spins roll <b>richer reels</b></span>
       </div>
       <div class="slotbet">
@@ -909,7 +909,7 @@ function zoneTemplates(z){
   const RL=Math.max(effectiveHeroLvl(),10),rm=pMul();
   const mk=(name,id,c)=>({name,kind:'boss',boss:true,raid:true,bossId:id,c,speed:115,
    hp:Math.round(eHP(RL)*65*rm),atk:Math.round(eATK(RL)*1.76*rm),xp:0,gold:0});
-  return [mk('Ilidia the Betrayer','betrayer','#7adf9a'),
+  return [mk('Illidan the Betrayer','betrayer','#7adf9a'),
           mk('Ragnaros the Firelord','firelord','#ff7a2a'),
           mk('Arthas the Frozen King','frostking','#a0e0ff')];
  }
@@ -3550,7 +3550,7 @@ function renderMap(){
  $('westTab').classList.toggle('cur',mapContinent==='west');
  $('valhallaTab').classList.toggle('cur',mapContinent==='valhalla');
  $('raidTab').classList.toggle('cur',mapContinent==='raid');
- $('raidTab').textContent=p1?'⚔ Raid':'🔒 Raid · Prestige 1';
+ $('raidTab').textContent=p1?'⚔ Raid (experimental)':'🔒 Raid (experimental) · Prestige 1';
  $('raidTab').style.cursor=p1?'pointer':'default';
  $('raidTab').onclick=()=>{
   if(!p1){stageMsg('Reach Prestige 1 to enter the great raids',1600);sfx.warn();return;}
@@ -4562,7 +4562,7 @@ function seaFinal(grid,ext){
  const GOLDPER={skull:5000,epic:2000,rare:800,fine:350,scroll:600};
  const SCRAPPER={skull:30,epic:15,rare:8,fine:4,scroll:6};
  const goldWon=GOLDPER[bk]*seaBet*ways*mult*full;
- const scrapWon=Math.min(80,SCRAPPER[bk]*seaBet*ways*full);
+ const scrapWon=Math.min(15,SCRAPPER[bk]*seaBet*ways*full);
  const {got,over}=addGoldOverflow(goldWon);
  const paid=got+over;
  const gotScrap=addScraps(scrapWon);
