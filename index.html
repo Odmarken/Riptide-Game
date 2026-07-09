@@ -546,7 +546,7 @@
     <button id="sndBtn" class="stgbtn">🔊</button>
     <button id="sfxBtn" class="stgbtn" title="Combat sounds">⚔️</button>
     <button id="musBtn" class="stgbtn" title="Pause game and audio">⏸</button>
-    <button id="sideToggle" class="stgbtn" title="Hide panel (B)">❯</button>
+    <button id="sideToggle" class="stgbtn" title="Hide panel (B)" style="height:44px;width:16px;padding:0;font-size:9px">❯</button>
     <div id="volAmbBox" class="volbox" style="top:6px"><input type="range" id="volAmbSl" min="0" max="100"></div>
     <div id="volSfxBox" class="volbox" style="top:44px"><input type="range" id="volSfxSl" min="0" max="100"></div>
     <div id="hint">WASD / tap ground to move · tap a foe · tap spells to cast</div>
@@ -1047,7 +1047,9 @@ async function mpEnter(){
   qs.forEach(d=>{
    if(d.id!==mp.pid){seen[d.id]=d.data();if(!mp.rtc[d.id])rtcConnect(d.id).catch(e=>console.warn('[rtc] connect failed',d.id,e));}
   });
-  mp.peers=seen;mpLobbyRender();if(mp.host)mpHostApplyDamage();
+  mp.peers=seen;
+  for(const id in seen)if(!mp.rtc[id])rtcConnect(id).catch(e=>console.warn('[rtc] connect failed',id,e));
+  mpLobbyRender();if(mp.host)mpHostApplyDamage();
  });
  rtcListen();
  mpTravelTo(pendingRaidZone);raidAutoOff();gamePaused=true;
@@ -1179,16 +1181,24 @@ async function rtcConnect(pid){
   P.makingOffer=false;
  }
 }
+async function rtcFlushIce(P){
+ if(!P.iceQ||!P.pc.remoteDescription)return;
+ const q=P.iceQ;P.iceQ=null;
+ for(const c of q)try{await P.pc.addIceCandidate(c);}catch(e){}
+}
 async function rtcHandle(from,type,payload){
  const P=rtcPeer(from);
  if(type==='offer'){
   await P.pc.setRemoteDescription(payload);
+  await rtcFlushIce(P);
   const ans=await P.pc.createAnswer();
   await P.pc.setLocalDescription(ans);
   await rtcSignal(from,'answer',ans);
  }else if(type==='answer'){
   await P.pc.setRemoteDescription(payload);
+  await rtcFlushIce(P);
  }else if(type==='ice'){
+  if(!P.pc.remoteDescription){(P.iceQ=P.iceQ||[]).push(payload);return;}
   try{await P.pc.addIceCandidate(payload);}catch(e){}
  }
 }
@@ -1202,6 +1212,8 @@ function rtcBroadcast(obj,reliable){
 function rtcOnMsg(pid,m){
  if(m.k==='pos'){
   const p=mp.peers[pid];if(!p)return;
+  const now=performance.now(),dtp=(now-(p._rt||now))/1000;p._rt=now;
+  if(dtp>0&&dtp<0.5){p._vx=(m.x-(p.x||m.x))/dtp;p._vy=(m.y-(p.y||m.y))/dtp;}
   p.x=m.x;p.y=m.y;p.hp=m.hp;p.f=m.f||p.f||1;p.atk=!!m.atk;p.t=Date.now();p._rtc=true;
  }else if(m.k==='act'){
   const p=mp.peers[pid];if(!p)return;
@@ -1259,10 +1271,14 @@ function drawMpGhosts(){
  if(!(mp.on&&mp.started))return;
  for(const k in mp.peers){
   const p=mp.peers[k];if(!p||Date.now()-(p.t||0)>6000)continue;
-  if(p._x===undefined){p._x=p.x||hero.x;p._y=p.y||hero.y;p._px=p._x;p._py=p._y;p._tx=p.x||p._x;p._ty=p.y||p._y;}
-  if(p.x!==p._tx||p.y!==p._ty){p._vx=(p.x||p._tx)-(p._tx||p.x);p._vy=(p.y||p._ty)-(p._ty||p.y);p._tx=p.x;p._ty=p.y;}
-  const kf=p._rtc?0.35:0.12;
-  p._x+=((p.x||p._x)-p._x)*kf;p._y+=((p.y||p._y)-p._y)*kf;
+  if(p._x===undefined){p._x=p.x||hero.x;p._y=p.y||hero.y;}
+  if(p._rtc){
+   const age=Math.min((performance.now()-(p._rt||0))/1000,0.25);
+   const gx=(p.x||p._x)+(p._vx||0)*age,gy=(p.y||p._y)+(p._vy||0)*age;
+   p._x+=(gx-p._x)*0.4;p._y+=(gy-p._y)*0.4;
+  }else{
+   p._x+=((p.x||p._x)-p._x)*0.12;p._y+=((p.y||p._y)-p._y)*0.12;
+  }
   if(p._atkT&&performance.now()>p._atkT)p.atk=false;
   drawHeroLike(p._x,p._y,Object.assign({},p.look||{},{f:p.f||1,atk:!!p.atk}),0.85,p.name||'Hero',p.hp);
  }
