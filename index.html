@@ -1013,10 +1013,10 @@ async function mpEnsureFirebase(){
  return !!(FB&&FB.ready&&FB.db);
 }
 function mpLook(){
- const g=(S&&S.gear)||{};
+ const g=(S&&S.gear)||{},w=g.weapon||null;
  return {race:S&&S.race?S.race:'human',cls:S&&S.cls?S.cls:'warrior',
-  w:g.weapon?(g.weapon.id||g.weapon.legend||null):null,ws:g.weapon?(g.weapon.star||g.weapon.up||1):1,
-  a:g.armor?(g.armor.id||null):null,pet:S&&S.pet?S.pet:null,fm:!!(g.weapon&&isFM(g.weapon))};
+  w:w?(isWG(w)?'warglaives':(isFM(w)?'frostmourne':(w.id||w.legend||null))):null,ws:w?(w.star||w.up||1):1,
+  a:g.armor?(g.armor.id||null):null,pet:S&&S.pet?S.pet:null,fm:!!(w&&isFM(w)),wg:!!(w&&isWG(w))};
 }
 async function mpCreate(){
  const ok=await mpEnsureFirebase();if(!ok){stageMsg('Firebase is not ready — sign in or check config.',2200);sfx.warn();return;}
@@ -1623,7 +1623,7 @@ const FM_BONUS=1.05;     /* Frostmourne baseline = ~5% above the best normal wea
 const FM_MAX_UP=6;       /* legendary cap: max +6 upgrades */
 const GEAR_MAX_UP=12;      /* normal gear cap; Frostmourne uses FM_MAX_UP */
 const isFM=it=>it&&it.legend==='frostmourne';
-const isWG=it=>it&&(it.legend==='warglaives'||it.id==='warglaives');
+const isWG=it=>it&&(it.legend==='warglaives'||it.id==='warglaives'||it.warglaives===true); /* supports old/equipped objects marked warglaives:true */
 const isLegendaryW=it=>isFM(it)||isWG(it);
 function bestNormalWeaponAtk(){
  /* Normal epic weapons roll up to (3+3) * epic rarity * gear scale.
@@ -1652,7 +1652,7 @@ function rollFrostmourne(){
 }
 function syncWarglaives(it){
  if(!isWG(it)||!S)return it;
- it.id='warglaives';it.legend='warglaives';it.slot='weapon';it.rar='legendary';it.name='Warglaives of Azzinoth';
+ it.id='warglaives';it.legend='warglaives';it.warglaives=true;it.slot='weapon';it.rar='legendary';it.name='Warglaives of Azzinoth';
  it.up=Math.min(it.up||0,FM_MAX_UP);
  it.maxUp=FM_MAX_UP;it.bossDmg=10;
  it.baseAtk=fmBaseAtk();
