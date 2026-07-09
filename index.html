@@ -450,6 +450,8 @@
 .casinobox{width:min(92%,360px);padding:22px;border-radius:18px;border:2px solid var(--brass);background:linear-gradient(180deg,#2a3d33,#131f1a);box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 24px rgba(217,164,65,.18);text-align:center}
 .casinopick{display:flex;align-items:center;gap:12px;width:100%;margin:8px 0;padding:12px 14px;border-radius:12px;border:1px solid var(--brass-deep);background:linear-gradient(180deg,#2a3d33,#1c2b24);color:var(--parch);cursor:pointer;text-align:left;transition:border-color .15s,transform .1s}
 .casinopick:hover{border-color:var(--brass);transform:translateY(-1px)}
+.casinopick.disabled{opacity:.48;cursor:not-allowed;filter:grayscale(.45)}
+.casinopick.disabled:hover{border-color:var(--brass-deep);transform:none}
 .casinopick .cg{font-size:26px;flex:0 0 auto}
 .casinopick .ct{display:flex;flex-direction:column}
 .casinopick .ct b{font-family:var(--display);font-size:15px;color:var(--parch)}
@@ -628,7 +630,7 @@
 
   <div id="seaFx">
     <div class="slotmach sea">
-      <div class="slottop">🦈 BOREK SEAMEN (EXPERIMENTAL)</div>
+      <div class="slottop">🦈 BOREK SEAMEN (COMING BACK SOON)</div>
       <div class="seagrid">
         <div class="seacolwin" data-rows="3"><div class="seastrip" id="sc0"></div></div>
         <div class="seacolwin" data-rows="5"><div class="seastrip" id="sc1"></div></div>
@@ -686,7 +688,7 @@
     <div class="slottop" style="color:var(--brass);margin-bottom:6px">🎰 BOREK CASINO</div>
     <div class="cl" style="margin-bottom:14px">The house always wins. Pick your game.</div>
     <button class="casinopick" data-game="slots"><span class="cg">🎰</span><span class="ct"><b>Borek 67</b><i>Classic slots — win up to 100x</i></span></button>
-    <button class="casinopick" data-game="sea"><span class="cg">🦈</span><span class="ct"><b>Borek Seamen (experimental)</b><i>16-way ways slot — gear &amp; jackpots</i></span></button>
+    <button class="casinopick disabled" data-game="sea" aria-disabled="true" title="Coming Back Soon"><span class="cg">🦈</span><span class="ct"><b>Borek Seamen (Coming Back Soon)</b><i>Temporarily unavailable</i></span></button>
     <button class="casinopick" data-game="bj"><span class="cg">🃏</span><span class="ct"><b>Borek Blackjack</b><i>Beat the dealer to 21 — pays 3:2</i></span></button>
     <button id="casinoMenuClose" class="sbtn" style="margin-top:6px;padding:11px">Leave the Casino</button>
    </div>
@@ -4839,10 +4841,14 @@ $('bjClose').onclick=()=>{
 function openCasinoMenu(){$('casinoMenu').classList.add('open');}
 $('casinoMenuClose').onclick=()=>$('casinoMenu').classList.remove('open');
 document.querySelectorAll('.casinopick').forEach(b=>b.onclick=()=>{
- $('casinoMenu').classList.remove('open');
  const g=b.dataset.game;
+ if(g==='sea'){
+  stageMsg('🦈 Borek Seamen (Coming Back Soon)',2200);
+  sfx.warn();
+  return;
+ }
+ $('casinoMenu').classList.remove('open');
  if(g==='slots')openSlots();
- else if(g==='sea')openSea();
  else if(g==='bj')openBJ();
 });
 
