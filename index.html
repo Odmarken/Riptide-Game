@@ -188,6 +188,7 @@
   .qtyrow{display:flex;align-items:center;justify-content:center;gap:6px}
   .qtybtn{width:23px;height:23px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--parch);cursor:pointer;font-weight:700}
   .qtybtn:disabled{opacity:.35;cursor:default}
+  .qtybtn.on{border-color:var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a}
   .qtynum{min-width:18px;text-align:center;color:var(--parch);font-weight:700}
   .qtytotal{white-space:nowrap;color:var(--brass)}
   #chestFx.multi{justify-content:flex-start;padding-top:18px;overflow-y:auto}
@@ -643,10 +644,10 @@
         <span>3+ 🎁 anywhere = <b>10 FREE SPINS</b></span><span>Free spins roll <b>richer reels</b></span>
       </div>
       <div class="slotbet">
-        <button class="qtybtn" id="seaBetDn">−</button>
-        <span class="qtynum" id="seaBetN">1x</span>
-        <button class="qtybtn" id="seaBetUp">+</button>
-        <span class="slotbetcost" id="seaBetCost">2,500◉ / spin</span>
+        <button class="qtybtn" id="seaBet10">10</button>
+        <button class="qtybtn" id="seaBet50">50</button>
+        <button class="qtybtn" id="seaBet100">100</button>
+        <span class="slotbetcost" id="seaBetCost">10◉ / spin</span>
       </div>
       <div class="casebtns show" style="margin-top:12px">
         <button id="seaSpinBtn">🦈 Spin · 2,500◉</button>
@@ -4390,10 +4391,10 @@ $('slotClose').onclick=()=>{
 };
 
 /* ==================== BOREK SEAMEN — hold & respin slot ==================== */
-const SEA_BASE=1,SEA_BET_MAX=100,SEA_COLS=4;
+const SEA_BETS=[10,50,100],SEA_COLS=4;
 const SEA_ROWSBY=[3,5,5,3];
-let seaBet=1;
-const seaCost=()=>SEA_BASE*seaBet;
+let seaBet=10;
+const seaCost=()=>seaBet;
 const SEA_SYMDEF={
  joker:{icons:['🃏'],cc:null},
  hook:{icons:['🪝'],cc:null},
@@ -4619,11 +4620,16 @@ function updateSeaUI(){
  }
  const a=$('seaAutoBtn');
  if(a){a.classList.toggle('on',seaAuto);a.textContent=seaAuto?'■ Stop':'▶ Auto';}
- const bn=$('seaBetN'),bc=$('seaBetCost'),bd=$('seaBetDn'),bu=$('seaBetUp');
- if(bn)bn.textContent=seaBet+'x';
+ const bc=$('seaBetCost');
  if(bc)bc.textContent=seaFree>0?'FREE SPINS':cost.toLocaleString()+'◉ / spin';
- if(bd)bd.disabled=seaBet<=1||seaSpinning||seaAuto||seaFree>0;
- if(bu)bu.disabled=seaBet>=SEA_BET_MAX||seaSpinning||seaAuto||seaFree>0;
+ SEA_BETS.forEach(v=>{
+  const el=$('seaBet'+v);
+  if(el){
+   el.disabled=seaSpinning||seaAuto||seaFree>0;
+   el.classList.toggle('on',seaBet===v);
+   el.textContent=v+'◉';
+  }
+ });
  const st=$('seaStats'),s=seaSession;
  if(st)st.textContent=s.spins?`Session: ${s.spins} spins · ${s.gold>=0?'+':''}${s.gold.toLocaleString()}◉ · +${s.scrap}⚙${seaFree>0?' · 🎁 '+seaFree+' free':''}`:'';
 }
@@ -4658,8 +4664,12 @@ $('seaAutoBtn').onclick=()=>{
  updateSeaUI();
  if(!seaSpinning&&!seaCelebrating)spinSea();
 };
-$('seaBetDn').onclick=()=>{if(seaBet>1&&!seaSpinning&&!seaAuto&&seaFree<=0){seaBet--;updateSeaUI();}};
-$('seaBetUp').onclick=()=>{if(seaBet<SEA_BET_MAX&&!seaSpinning&&!seaAuto&&seaFree<=0){seaBet++;updateSeaUI();}};
+SEA_BETS.forEach(v=>{
+ const el=$('seaBet'+v);
+ if(el)el.onclick=()=>{
+  if(!seaSpinning&&!seaAuto&&seaFree<=0){seaBet=v;updateSeaUI();}
+ };
+});
 $('seaClose').onclick=()=>{
  if(seaSpinning&&!seaAuto)return;
  stopSeaAuto();clearSeaCelebration();clearTimeout(seaAutoTimer);
