@@ -5289,6 +5289,30 @@ function seaAnimateCols(cols,grid,done){
  };
  requestAnimationFrame(tick);
 }
+function seaAnimateCells(grid,cols,done){
+ /* respin-animation som bara rullar OLÅSTA celler på plats; låsta står stilla */
+ let pending=0;
+ cols.forEach(c=>{
+  const strip=$('sc'+c),off=strip.children.length-SEA_ROWSBY[c];
+  grid[c].forEach((x,r)=>{
+   if(x.lock)return;
+   const el=strip.children[off+r];if(!el)return;
+   pending++;
+   const flips=8+Math.floor(Math.random()*5);let i=0;
+   const iv=setInterval(()=>{
+    i++;
+    const tmp=i<flips?seaCell():x; /* sista flippen visar riktiga cellen */
+    el.className='seacell'+(tmp.cc?' prize':'');
+    if(tmp.cc)el.style.setProperty('--cc',tmp.cc);
+    else el.style.removeProperty('--cc');
+    el.innerHTML='<span class="ic">'+tmp.icon+'</span>'+(tmp.m>1?'<span class="m">x'+tmp.m+'</span>':'');
+    blip(700+Math.random()*300,450,0.02,.03,'square');
+    if(i>=flips){clearInterval(iv);pending--;if(pending===0)done();}
+   },(seaFast?45:75)+r*8);
+  });
+ });
+ if(pending===0)done();
+}
 function spinSea(){
  if(seaSpinning||seaCelebrating)return;
  const free=seaFree>0;
@@ -5339,7 +5363,7 @@ function seaRespinUnlocked(grid,ext){
   if(ch)cols.push(c);
  }
  if(!cols.length){seaConnect(grid,ext,0);return;}
- seaAnimateCols(cols,grid,()=>seaConnect(grid,ext,0));
+ seaAnimateCells(grid,cols,()=>seaConnect(grid,ext,0));
 }
 function seaMarkLocked(grid){
  for(let c=0;c<SEA_COLS;c++){
