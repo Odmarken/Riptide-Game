@@ -693,6 +693,32 @@
     <button id="casinoMenuClose" class="sbtn" style="margin-top:6px;padding:11px">Leave the Casino</button>
    </div>
   </div>
+  <div id="bankFx" style="position:absolute;inset:0;z-index:71;display:none;align-items:center;justify-content:center;background:rgba(5,10,8,.86)">
+   <div class="casinobox" style="border-color:#d9c28a">
+    <div class="slottop" style="color:#ffd76a;margin-bottom:2px">🏦 BANK OF GOLDSHIRE</div>
+    <div class="cl" style="margin-bottom:10px">0.5% interest on gold, every hour on the hour. Scraps sleep safely, interest-free.</div>
+    <div class="card" style="text-align:left">
+     <div class="sn" style="font-size:14px;color:var(--brass)">◉ <span id="bankGoldN">0</span> gold deposited</div>
+     <div class="ss" style="color:#9adf9a;font-size:12px;margin-top:2px">▲ +<span id="bankEarnedN">0</span> earned since opening</div>
+     <div class="ss" style="color:var(--dim);font-size:11px;margin-top:2px">⚙ <span id="bankScrapN">0</span> scraps stored · next payout in <span id="bankNextT">—</span></div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:4px">
+     <button class="sbtn gold" data-bank="dg" data-n="10000">Deposit 10K◉</button>
+     <button class="sbtn gold" data-bank="dg" data-n="all">Deposit All ◉</button>
+     <button class="sbtn gold" data-bank="wg" data-n="10000">Withdraw 10K◉</button>
+     <button class="sbtn gold" data-bank="wg" data-n="all">Withdraw All ◉</button>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:6px">
+     <button class="sbtn scrapb" data-bank="ds" data-n="50">Deposit 50⚙</button>
+     <button class="sbtn scrapb" data-bank="ds" data-n="all">Deposit All ⚙</button>
+     <button class="sbtn scrapb" data-bank="ws" data-n="50">Withdraw 50⚙</button>
+     <button class="sbtn scrapb" data-bank="ws" data-n="all">Withdraw All ⚙</button>
+    </div>
+    <div class="cl" id="bankMsg" style="margin-top:8px;min-height:1.2em"></div>
+    <button id="bankClose" class="sbtn" style="margin-top:6px;padding:11px">Leave the Bank</button>
+   </div>
+  </div>
+
   <nav>
     <button data-tab="battle" class="cur"><svg viewBox="0 0 24 24"><path d="M14.5 4 20 9.5 9.5 20 4 14.5z"/><path d="m4 20 3-3M17 7l3-3"/></svg>World</button>
     <button data-tab="hero"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.5 7.5-8 9-4.5-1.5-8-4.5-8-9V6z"/></svg>Hero</button>
@@ -751,6 +777,23 @@ function addGoldOverflow(n){
  if(rest>0)S.overflow=(S.overflow||0)+rest;
  return {got:a,over:rest};
 }
+/* ==================== BANK ==================== */
+const BANK_RATE=0.005,BANK_HOUR=3600000;
+function bankTick(){
+ if(!S)return;
+ const now=Date.now();
+ if(!S.bankLastT){S.bankLastT=now;return;}
+ const hours=Math.floor((now-S.bankLastT)/BANK_HOUR);
+ if(hours<=0)return;
+ let earned=0,g=S.bankGold||0;
+ for(let i=0;i<hours;i++){const e=Math.floor(g*BANK_RATE);g+=e;earned+=e;}
+ S.bankGold=g;
+ S.bankEarned=(S.bankEarned||0)+earned;
+ S.bankLastT+=hours*BANK_HOUR;
+ if(earned>0)log(`🏦 The bank pays <span class="loot">+${earned.toLocaleString()} ◉</span> in interest.`,'loot');
+ save();
+}
+setInterval(()=>{if(gameOn)bankTick();},30000);
 /* Spend overflow first, then normal gold. */
 function spendGold(n){
  if(totalGold()<n)return false;
@@ -996,7 +1039,7 @@ const speedBoostMul=()=>1+boostBonus(S.boosts?S.boosts.speed:0);
 const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0);
 function freshState(name,race,cls){
  return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,lastZone:0,maxZone:0,quest:0,qProg:0,
-  rating:0,cerberusKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',luckPots:0,luckT:0,gamblerPots:0,gamblerT:0,freeGoldCases:0,cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
+  rating:0,cerberusKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',bankGold:0,bankScrap:0,bankEarned:0,bankLastT:0,luckPots:0,luckT:0,gamblerPots:0,gamblerT:0,freeGoldCases:0,cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
   gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],pet:null,pets:[],
   boosts:{speed:0,haste:0},tainted:false,
   cleared:{},bossDead:{},zoneLvlGain:{},
@@ -1022,6 +1065,10 @@ function migrate(s){ /* fills fields missing from older saves */
  s.taintV=0;
  if(s.scraps===undefined)s.scraps=0;
  if(s.overflow===undefined)s.overflow=0;
+ if(s.bankGold===undefined)s.bankGold=0;
+ if(s.bankScrap===undefined)s.bankScrap=0;
+ if(s.bankEarned===undefined)s.bankEarned=0;
+ if(s.bankLastT===undefined)s.bankLastT=0;
  if(s.pet===undefined)s.pet=null;
  if(!s.pets)s.pets=[];
  if(s.maxZone===undefined)s.maxZone=s.zone||0;
@@ -1519,6 +1566,7 @@ function buildZone(){
   HOUSES.forEach((h,i)=>world.solids.push({x:h.x,y:h.y,r:34,type:'house',seed:i*13+2}));
   /* the Casino — a grand red-roofed hall on the right of the square */
   world.solids.push({x:cx+540,y:cy-40,r:52,type:'casino',big:true,seed:5});
+  world.solids.push({x:cx-560,y:cy-40,r:52,type:'bank',big:true,seed:8});
   /* lanterns at the square's edge */
   for(let i=0;i<6;i++){
    const a=i/6*6.283;
@@ -1752,7 +1800,7 @@ function prerenderGround(z,R){
   g.beginPath();g.ellipse(q.x,q.y,q.r,q.r*0.8,0,0,7);g.stroke();
   /* lanes from the plaza to the houses */
   g.strokeStyle=z.path;g.lineWidth=34;g.lineCap='round';
-  world.solids.filter(s=>s.type==='house').forEach(h=>{
+  world.solids.filter(s=>s.type==='house'||s.type==='bank').forEach(h=>{
    g.beginPath();g.moveTo(q.x,q.y);g.lineTo(h.x,h.y+30);g.stroke();
   });
  }
@@ -2464,6 +2512,8 @@ cv.addEventListener('pointerdown',e=>{
  if(zoneOf().tavern){
   const cas=world.solids.find(s=>s.type==='casino');
   if(cas&&Math.hypot(wx-cas.x,wy-cas.y)<cas.r+28){openCasinoMenu();return;}
+  const bnk=world.solids.find(s=>s.type==='bank');
+  if(bnk&&Math.hypot(wx-bnk.x,wy-bnk.y)<bnk.r+28){openBank();return;}
  }
  let best=null,bd=32;
  for(const en of enemies){if(en.dead||en.hidden)continue;
@@ -2991,6 +3041,22 @@ function drawProp(s,z){
    ctx.textAlign='center';ctx.fillStyle='#ffe9a0';
    ctx.fillText('🍺 GOLDSHIRE INN',0,-hh*1.45);
   }
+ }else if(s.type==='bank'){
+  const w=s.r*1.8,hh=s.r*1.3;
+  ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0,hh*0.45,w*1.12,hh*0.42,0,0,7);ctx.fill();
+  ctx.fillStyle='#a89878';ctx.fillRect(-w,-hh*0.55,w*2,hh);
+  ctx.fillStyle='rgba(0,0,0,0.12)';ctx.fillRect(0,-hh*0.55,w,hh);
+  ctx.fillStyle='#c8b898';
+  for(const px of[-0.72,-0.28,0.28,0.72])ctx.fillRect(w*px-4,-hh*0.55,8,hh);
+  ctx.fillStyle='#8a7a5e';
+  ctx.beginPath();ctx.moveTo(-w*1.15,-hh*0.55);ctx.lineTo(0,-hh*1.3);ctx.lineTo(w*1.15,-hh*0.55);ctx.closePath();ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.10)';
+  ctx.beginPath();ctx.moveTo(-w*1.15,-hh*0.55);ctx.lineTo(0,-hh*1.3);ctx.lineTo(0,-hh*0.55);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#3a2a1c';ctx.fillRect(-w*0.18,hh*0.45-hh*0.5,w*0.36,hh*0.5);
+  ctx.font='700 12px '+getComputedStyle(document.body).fontFamily;
+  ctx.textAlign='center';
+  ctx.fillStyle='#20140a';ctx.fillText('🏦 BANK',1,-hh*1.42+1);
+  ctx.fillStyle='#ffd76a';ctx.fillText('🏦 BANK',0,-hh*1.42);
  }else if(s.type==='casino'){
   const w=s.r*1.8,hh=s.r*1.35;
   ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0,hh*0.45,w*1.12,hh*0.42,0,0,7);ctx.fill();
@@ -4838,6 +4904,54 @@ $('bjClose').onclick=()=>{
  $('bjFx').classList.remove('open');
 };
 /* ==================== CASINO BUILDING MENU ==================== */
+function bankRefresh(){
+ $('bankGoldN').textContent=(S.bankGold||0).toLocaleString();
+ $('bankScrapN').textContent=(S.bankScrap||0).toLocaleString();
+ $('bankEarnedN').textContent=(S.bankEarned||0).toLocaleString();
+ const left=S.bankLastT?Math.max(0,BANK_HOUR-(Date.now()-S.bankLastT)):BANK_HOUR;
+ $('bankNextT').textContent=fmtMS(left);
+}
+function openBank(){bankTick();$('bankMsg').textContent='';bankRefresh();$('bankFx').style.display='flex';}
+$('bankClose').onclick=()=>$('bankFx').style.display='none';
+setInterval(()=>{if($('bankFx').style.display==='flex')bankRefresh();},1000);
+document.querySelectorAll('[data-bank]').forEach(b=>b.onclick=()=>{
+ bankTick();
+ const op=b.dataset.bank,msg=$('bankMsg');
+ const amt=n=>b.dataset.n==='all'?n:Math.min(n,parseInt(b.dataset.n,10));
+ msg.style.color='#9adf9a';
+ if(op==='dg'){
+  const n=amt(totalGold());
+  if(n<=0){msg.style.color='#ff8a7a';msg.textContent='No gold to deposit.';sfx.warn();return;}
+  const fromOver=Math.min(S.overflow||0,n);
+  S.overflow=(S.overflow||0)-fromOver;
+  S.gold-=(n-fromOver);
+  S.bankGold=(S.bankGold||0)+n;
+  if(!S.bankLastT)S.bankLastT=Date.now();
+  msg.textContent='Deposited '+n.toLocaleString()+' ◉'+(fromOver?' ('+fromOver.toLocaleString()+' from overflow)':'')+'.';
+ }else if(op==='wg'){
+  const room=goldRoom();
+  if(room<=0){msg.style.color='#ff8a7a';msg.textContent='Your vault is full — spend some gold before withdrawing.';sfx.warn();return;}
+  const want=amt(S.bankGold||0);
+  const n=Math.min(want,room);
+  if(n<=0){msg.style.color='#ff8a7a';msg.textContent='Nothing to withdraw.';sfx.warn();return;}
+  S.bankGold-=n;S.gold+=n;
+  msg.textContent='Withdrew '+n.toLocaleString()+' ◉'+(n<want?' (vault cap reached)':'')+'.';
+ }else if(op==='ds'){
+  const n=amt(S.scraps||0);
+  if(n<=0){msg.style.color='#ff8a7a';msg.textContent='No scraps to deposit.';sfx.warn();return;}
+  S.scraps-=n;S.bankScrap=(S.bankScrap||0)+n;
+  msg.textContent='Deposited '+n.toLocaleString()+' ⚙.';
+ }else if(op==='ws'){
+  const room=scrapRoom();
+  if(room<=0){msg.style.color='#ff8a7a';msg.textContent='Your scrap pouch is full ('+SCRAP_CAP+'⚙) — spend some first.';sfx.warn();return;}
+  const want=amt(S.bankScrap||0);
+  const n=Math.min(want,room);
+  if(n<=0){msg.style.color='#ff8a7a';msg.textContent='Nothing to withdraw.';sfx.warn();return;}
+  S.bankScrap-=n;S.scraps+=n;
+  msg.textContent='Withdrew '+n.toLocaleString()+' ⚙.';
+ }
+ sfx.buy();bankRefresh();renderHUD();save();
+});
 function openCasinoMenu(){$('casinoMenu').classList.add('open');}
 $('casinoMenuClose').onclick=()=>$('casinoMenu').classList.remove('open');
 document.querySelectorAll('.casinopick').forEach(b=>b.onclick=()=>{
@@ -5510,6 +5624,7 @@ function beginGame(isNew){
  $('volSfxSl').value=Math.round((S.volSfx??0.55)*100);
  applyVolumes();
  gameOn=true;
+ bankTick();
  setTimeout(()=>{$('hint').style.opacity=0;},8000);
  if(isNew){
   log(`<span class="imp">${S.name} the ${classOf().name}</span> arrives in ${zoneOf().name}.`);
