@@ -396,6 +396,7 @@
 #seaSpinBtn:disabled{opacity:.45;cursor:default;box-shadow:none}
 #seaAutoBtn{font-family:var(--display);font-size:14px;padding:14px 20px;border-radius:12px;border:1px solid #6dbb6d;background:var(--panel2);color:#9adf9a;cursor:pointer}
 #seaAutoBtn.on{background:linear-gradient(180deg,#c75146,#8a3a32);border-color:#e88a7a;color:#fff;box-shadow:0 0 14px rgba(199,81,70,.4)}
+#seaFastBtn.on{border-color:#ffd76a;color:#ffd76a;box-shadow:0 0 12px rgba(255,215,106,.25)}
 @media (min-width:900px){
  .seacolwin{width:86px;border-radius:12px}
  .seacolwin[data-rows="3"]{height:258px}
@@ -456,6 +457,11 @@
 .casinopick .ct{display:flex;flex-direction:column}
 .casinopick .ct b{font-family:var(--display);font-size:15px;color:var(--parch)}
 .casinopick .ct i{font-style:normal;font-size:11px;color:var(--dim);margin-top:2px}
+
+.fmslot{width:64px;height:64px;border-radius:10px;border:2px dashed #c88a5a;display:flex;align-items:center;justify-content:center;font-size:26px;background:rgba(0,0,0,.25);color:#7a6a58}
+.fmslot.filled{border-style:solid;color:#8fd0ff;box-shadow:0 0 12px rgba(120,190,255,.25)}
+.fmslot.out{border-color:#ffd76a}
+.fmslot.out.filled{color:#ffd76a;box-shadow:0 0 14px rgba(255,215,106,.3)}
 
 </style>
 </head>
@@ -650,11 +656,13 @@
         <button class="qtybtn" id="seaBet10">10</button>
         <button class="qtybtn" id="seaBet50">50</button>
         <button class="qtybtn" id="seaBet250">250</button>
+        <button class="qtybtn" id="seaBet750">750</button>
         <span class="slotbetcost" id="seaBetCost">10◉ / spin</span>
       </div>
       <div class="casebtns show" style="margin-top:12px">
         <button id="seaSpinBtn">🦈 Spin · 2,500◉</button>
         <button id="seaAutoBtn">▶ Auto</button>
+        <button id="seaFastBtn" class="sbtn" style="padding:12px 18px;border-radius:12px">⏩ 2x</button>
         <button id="seaClose" class="sbtn" style="padding:12px 18px;border-radius:12px">Close</button>
       </div>
     </div>
@@ -717,6 +725,26 @@
     </div>
     <div class="cl" id="bankMsg" style="margin-top:8px;min-height:1.2em"></div>
     <button id="bankClose" class="sbtn" style="margin-top:6px;padding:11px">Leave the Bank</button>
+   </div>
+  </div>
+
+  <div id="smithFx" style="position:absolute;inset:0;z-index:71;display:none;align-items:center;justify-content:center;background:rgba(5,10,8,.86)">
+   <div class="casinobox" style="border-color:#c88a5a">
+    <div class="slottop" style="color:#ffb46a;margin-bottom:2px">⚒️ BLACKSMITH</div>
+    <div class="cl" id="smithLvlTxt" style="margin-bottom:8px"></div>
+    <div id="smithJobTxt" class="cl" style="color:#ffd76a;min-height:1.2em;margin-bottom:6px"></div>
+    <div id="smithLvlUp"></div>
+    <div id="smithForge" style="display:none">
+     <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0">
+      <div class="fmslot" id="fmSlotA">?</div>
+      <div class="fmslot" id="fmSlotB">?</div>
+      <div style="font-size:22px;color:#ffb46a">➜</div>
+      <div class="fmslot out" id="fmSlotOut">?</div>
+     </div>
+     <div class="cl" id="fmPreview" style="margin-bottom:8px"></div>
+     <button class="sbtn gold" id="fmForgeBtn" style="padding:11px 18px">⚒️ Forge (1 hour)</button>
+    </div>
+    <button id="smithClose" class="sbtn" style="margin-top:10px;padding:11px">Leave the Forge</button>
    </div>
   </div>
 
@@ -1041,7 +1069,8 @@ const potCost=k=>20;
 const heroMax=()=>Math.round((classOf().hp+S.lvl*14+gearSum('hp'))*(raceOf().hp||1));
 const manaMax=()=>Math.round(classOf().mana+S.lvl*5);
 const heroAtk=()=>Math.round((classOf().atk+S.lvl*2.6+gearSum('atk'))*(1+scrollPct('titan'))*(1+((activePet()||{}).atkMul||0)));
-const heroCrit=()=>classOf().crit+(raceOf().crit||0)+gearSum('crit')+((S&&S.gamblerT>0)?2:0);
+const fmBonus=()=>{const w=S&&S.gear?S.gear.weapon:null;return (isFM(w)&&fmStar(w)>1)?fmStar(w)*2:0;};
+const heroCrit=()=>classOf().crit+(raceOf().crit||0)+gearSum('crit')+fmBonus()+((S&&S.gamblerT>0)?2:0);
 const xpNeed=l=>Math.round(38*Math.pow(l,1.5)*1.656); /* leveling is ~66% harder than base */
 const zoneOf=()=>ZONES[S.zone];
 const questsOf=()=>zoneQuests(zoneOf());
@@ -1060,7 +1089,7 @@ const speedBoostMul=()=>1+boostBonus(S.boosts?S.boosts.speed:0);
 const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0);
 function freshState(name,race,cls){
  return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,lastZone:0,maxZone:0,quest:0,qProg:0,
-  rating:0,cerberusKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',bankGold:0,bankScrap:0,bankEarned:0,bankLastT:0,luckPots:0,luckT:0,gamblerPots:0,gamblerT:0,freeGoldCases:0,cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
+  rating:0,cerberusKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',bankGold:0,bankScrap:0,bankEarned:0,bankLastT:0,smithLvl:0,smithJob:null,luckPots:0,luckT:0,gamblerPots:0,gamblerT:0,freeGoldCases:0,cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
   gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],pet:null,pets:[],
   boosts:{speed:0,haste:0},tainted:false,
   cleared:{},bossDead:{},zoneLvlGain:{},
@@ -1090,6 +1119,8 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.bankScrap===undefined)s.bankScrap=0;
  if(s.bankEarned===undefined)s.bankEarned=0;
  if(s.bankLastT===undefined)s.bankLastT=0;
+ if(s.smithLvl===undefined)s.smithLvl=0;
+ if(s.smithJob===undefined)s.smithJob=null;
  if(s.pet===undefined)s.pet=null;
  if(!s.pets)s.pets=[];
  if(s.maxZone===undefined)s.maxZone=s.zone||0;
@@ -1203,6 +1234,27 @@ function rollFrostmourne(){
   atk:0,hp:0,crit:4,lifesteal:0.02,ench:null,up:0,sell:0};
  return syncFrostmourne(it);
 }
+function itemName(it){return (isFM(it)&&fmStar(it)>1?'★'+fmStar(it)+' ':'')+(it&&it.name?it.name:'?');}
+const SMITH_HOUR=3600000;
+const fmStar=it=>it&&it.star?it.star:1;
+const fmBagOfStar=st=>(S.bag||[]).filter(it=>isFM(it)&&fmStar(it)===st);
+function smithTick(){
+ if(!S||!S.smithJob)return;
+ if(Date.now()<S.smithJob.endT)return;
+ const j=S.smithJob;S.smithJob=null;
+ if(j.kind==='lvl'){
+  S.smithLvl=j.to;
+  log(`⚒️ Blacksmith reaches <span class="loot">level ${S.smithLvl}</span>!`,'loot');
+  stageMsg('⚒️ Blacksmith level '+S.smithLvl+'!',2200);sfx.level();
+ }else{
+  const it=syncFrostmourne({slot:'weapon',rar:'legendary',legend:'frostmourne',name:'Frostmourne',star:j.to,atk:0,hp:0,crit:4,lifesteal:0.02,ench:null,up:0,sell:0});
+  S.bag.push(it);
+  log(`⚒️ The forge cools — <span class="llegendary">Frostmourne ★${j.to}</span> is reborn!`,'loot');
+  stageMsg('⚒️ Frostmourne ★'+j.to+' complete!',2600);sfx.level();
+ }
+ save();if($('smithFx')&&$('smithFx').style.display==='flex')smithRefresh();
+}
+setInterval(()=>{if(gameOn)smithTick();},5000);
 /* Scraps: salvage value by rarity */
 const scrapVal=it=>({common:1,fine:2,rare:4,epic:8,legendary:20})[it.rar];
 const isLegendary=it=>it&&it.rar==='legendary';
@@ -1227,7 +1279,7 @@ function upgradeItem(it){
   calcPower(it);
  }
  sfx.forge();
- log(`Upgraded <span class="l${it.rar}">${it.name}</span> to +${it.up}.`,'loot');
+ log(`Upgraded <span class="l${it.rar}">${itemName(it)}</span> to +${it.up}.`,'loot');
  save();
  return true;
 }
@@ -1236,7 +1288,7 @@ function tryAutoEquip(it){
  if(!cur||it.power>cur.power){
   if(cur)S.bag.push(cur);
   S.gear[it.slot]=it;
-  log(`Equipped <span class="l${it.rar}">${it.name}</span>.`);
+  log(`Equipped <span class="l${it.rar}">${itemName(it)}</span>.`);
   return true;
  }return false;
 }
@@ -1253,7 +1305,8 @@ function itemStr(it){
  const cap=isFM(it)?FM_MAX_UP:GEAR_MAX_UP;
  const maxed=(it.up||0)>=cap;
  let s=`${it.up?'+'+it.up+(maxed?' MAX ✦':'')+' · ':''}${statBaseStr(it,'atk','ATK')} ${statBaseStr(it,'hp','HP')} ${statBaseStr(it,'crit','CRIT','%')}`;
- if(it.lifesteal)s+=` +${it.lifesteal*100}% LIFESTEAL`;
+ if(it.lifesteal)s+=` +${Math.round(it.lifesteal*1000)/10}% LIFESTEAL`;
+ if(isFM(it)&&fmStar(it)>1)s+=` · ★${fmStar(it)} bonus: +${fmStar(it)*2}% CRIT / +${fmStar(it)*2}% LIFESTEAL`;
  return s.replace(/\s+/g,' ').trim();
 }
 /* compact stat line for the currently equipped item, for bag comparison */
@@ -1588,6 +1641,7 @@ function buildZone(){
   /* the Casino — a grand red-roofed hall on the right of the square */
   world.solids.push({x:cx+540,y:cy-40,r:52,type:'casino',big:true,seed:5});
   world.solids.push({x:cx-560,y:cy-40,r:52,type:'bank',big:true,seed:8});
+  world.solids.push({x:cx,y:cy+520,r:52,type:'smith',big:true,seed:11});
   /* lanterns at the square's edge */
   for(let i=0;i<6;i++){
    const a=i/6*6.283;
@@ -1821,7 +1875,7 @@ function prerenderGround(z,R){
   g.beginPath();g.ellipse(q.x,q.y,q.r,q.r*0.8,0,0,7);g.stroke();
   /* lanes from the plaza to the houses */
   g.strokeStyle=z.path;g.lineWidth=34;g.lineCap='round';
-  world.solids.filter(s=>s.type==='house'||s.type==='bank').forEach(h=>{
+  world.solids.filter(s=>s.type==='house'||s.type==='bank'||s.type==='smith').forEach(h=>{
    g.beginPath();g.moveTo(q.x,q.y);g.lineTo(h.x,h.y+30);g.stroke();
   });
  }
@@ -1973,7 +2027,7 @@ function landHit(en,dmg,crit,label,basic){
  }
  applyDmg(en,dmg,label,crit);
  const w=S.gear.weapon;
- if(w&&w.lifesteal)healHero(Math.max(1,dmg*w.lifesteal),true);
+ if(w&&(w.lifesteal||fmBonus()))healHero(Math.max(1,dmg*((w.lifesteal||0)+fmBonus()/100)),true);
  sfx.hit();
  burst(en.x,en.y-en.r*0.6,crit?'#ffd0a0':'#ffffff',crit?8:4,60);
 }
@@ -2535,6 +2589,8 @@ cv.addEventListener('pointerdown',e=>{
   if(cas&&Math.hypot(wx-cas.x,wy-cas.y)<cas.r+28){openCasinoMenu();return;}
   const bnk=world.solids.find(s=>s.type==='bank');
   if(bnk&&Math.hypot(wx-bnk.x,wy-bnk.y)<bnk.r+28){openBank();return;}
+  const sm=world.solids.find(s=>s.type==='smith');
+  if(sm&&Math.hypot(wx-sm.x,wy-sm.y)<sm.r+28){openSmith();return;}
  }
  let best=null,bd=32;
  for(const en of enemies){if(en.dead||en.hidden)continue;
@@ -3062,6 +3118,19 @@ function drawProp(s,z){
    ctx.textAlign='center';ctx.fillStyle='#ffe9a0';
    ctx.fillText('🍺 GOLDSHIRE INN',0,-hh*1.45);
   }
+ }else if(s.type==='smith'){
+  const w=s.r*1.7,hh=s.r*1.2;
+  ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0,hh*0.45,w*1.1,hh*0.4,0,0,7);ctx.fill();
+  ctx.fillStyle='#6a5648';ctx.fillRect(-w,-hh*0.5,w*2,hh);
+  ctx.fillStyle='rgba(0,0,0,0.15)';ctx.fillRect(0,-hh*0.5,w,hh);
+  ctx.fillStyle='#4a4a52';
+  ctx.beginPath();ctx.moveTo(-w*1.12,-hh*0.5);ctx.lineTo(0,-hh*1.15);ctx.lineTo(w*1.12,-hh*0.5);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#2a2a30';ctx.fillRect(w*0.45,-hh*1.05,10,hh*0.55);
+  const gl=0.5+0.4*Math.sin(performance.now()/300);
+  ctx.fillStyle='rgba(255,140,50,'+(0.5*gl)+')';ctx.fillRect(-w*0.2,hh*0.45-hh*0.45,w*0.4,hh*0.45);
+  ctx.font='700 12px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
+  ctx.fillStyle='#20140a';ctx.fillText('⚒️ BLACKSMITH',1,-hh*1.25+1);
+  ctx.fillStyle='#ffb46a';ctx.fillText('⚒️ BLACKSMITH',0,-hh*1.25);
  }else if(s.type==='bank'){
   const w=s.r*1.8,hh=s.r*1.3;
   ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0,hh*0.45,w*1.12,hh*0.42,0,0,7);ctx.fill();
@@ -3549,7 +3618,7 @@ function renderHero(){
  let slotsHtml=SLOTS.map(sl=>{
   const g=S.gear[sl];
   return `<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div>`+
-   (g?`<div class="sn r-${g.rar}">${g.name}</div><div class="ss">${itemStr(g)}</div>
+   (g?`<div class="sn r-${g.rar}">${itemName(g)}</div><div class="ss">${itemStr(g)}</div>
     ${(isFM(g)?(g.up||0)>=FM_MAX_UP:(g.up||0)>=GEAR_MAX_UP)
      ?`<button class="upbtn" disabled>MAX +${isFM(g)?FM_MAX_UP:GEAR_MAX_UP} ✦</button>`
      :`<button class="upbtn ${S.scraps>=upCost(g)?'can':''}" data-up="${sl}">Upgrade · ${upCost(g)} ⚙</button>`}`
@@ -4012,7 +4081,7 @@ function renderBag(){
      :`${list.length} item${list.length>1?'s':''} · ${sell.toLocaleString()}◉ · ${scr}⚙ <button class="sbtn scrapb" data-scrrar="${rar}" style="padding:4px 7px;font-size:10px">Scrap All +${scr}⚙</button>`}</span></div>`;
   if(open)gearHtml+='<div class="tierbody">'+list.map(({it,i})=>`
   <div class="card item">
-   <div><div class="sn r-${it.rar}" style="font-size:13px;font-weight:600">${it.name}</div>
+   <div><div class="sn r-${it.rar}" style="font-size:13px;font-weight:600">${itemName(it)}</div>
    <div class="ss" style="color:var(--dim);font-size:11px">${it.slot} · ${itemStr(it)}${equipCompare(it)}</div></div>
    <div class="btns">
     <button class="sbtn gold" data-eq="${i}">Equip</button>
@@ -4137,7 +4206,7 @@ function prizeValue(type){
    log(`LEGENDARY: <span class="llegendary">Frostmourne</span> hungers…`,'loot');
    it._lid=lootUID++;
    if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
-   return {icon:'🗡️',tier:'LEGENDARY',name:'Frostmourne',color:'#ffd100',sub:'weapon · '+itemStr(it),epic:true,big:true};
+   return {icon:'🗡️',tier:'LEGENDARY',name:itemName(it),color:'#ffd100',sub:'weapon · '+itemStr(it),epic:true,big:true};
   }
   if(r<0.005){ /* 0.002–0.005 = 0.3% pet, 50-50 cat or dog */
    const p=PETS[Math.floor(Math.random()*2)];
@@ -4153,10 +4222,10 @@ function prizeValue(type){
   }
   const rar=r<0.664?'rare':'epic';
   const it=rollItem(rar),icon={weapon:'⚔️',armor:'🛡️',trinket:'💍'}[it.slot],col={rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
-  log(`GOLD GOLD GOLD: <span class="l${it.rar}">${it.name}</span> ${itemStr(it)}.`,'loot');
+  log(`GOLD GOLD GOLD: <span class="l${it.rar}">${itemName(it)}</span> ${itemStr(it)}.`,'loot');
   it._lid=lootUID++;
   if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
-  return {icon,tier:rar,name:it.name,color:col,sub:it.slot+' · '+itemStr(it),epic:rar==='epic',big:rar==='rare'};
+  return {icon,tier:rar,name:itemName(it),color:col,sub:it.slot+' · '+itemStr(it),epic:rar==='epic',big:rar==='rare'};
  }
  if(r<0.06){
   const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
@@ -4166,10 +4235,10 @@ function prizeValue(type){
  }
  const rar=r<0.66?'common':r<0.90?'fine':r<0.98?'rare':'epic';
  const it=rollItem(rar),icon={weapon:'⚔️',armor:'🛡️',trinket:'💍'}[it.slot],col={common:'#d8e4d6',fine:'#6dbb6d',rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
- log(`GAMBAAA!: <span class="l${it.rar}">${it.name}</span> ${itemStr(it)}.`,'loot');
+ log(`GAMBAAA!: <span class="l${it.rar}">${itemName(it)}</span> ${itemStr(it)}.`,'loot');
  it._lid=lootUID++;
  if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
- return {icon,tier:rar,name:it.name,color:col,sub:it.slot+' · '+itemStr(it),epic:rar==='epic',big:rar==='rare'};
+ return {icon,tier:rar,name:itemName(it),color:col,sub:it.slot+' · '+itemStr(it),epic:rar==='epic',big:rar==='rare'};
 }
 function rollChestBatch(type,count){
  const cost=type==='gold'?GOLD_COST:CASE_COST;
@@ -4493,9 +4562,9 @@ $('slotClose').onclick=()=>{
 };
 
 /* ==================== BOREK SEAMEN — hold & respin slot ==================== */
-const SEA_BETS=[10,50,250],SEA_COLS=4;
+const SEA_BETS=[10,50,250,750],SEA_COLS=4;
 const SEA_ROWSBY=[3,5,5,3];
-let seaBet=10;
+let seaBet=10,seaFast=false;
 const seaCost=()=>seaBet;
 const SEA_SYMDEF={
  joker:{icons:['🃏'],cc:null},
@@ -4566,7 +4635,7 @@ function seaAnimateCols(cols,grid,done){
   const el=$('sc'+c);
   el.innerHTML=cells.map(seaCellHtml).join('');
   el.style.transform='translateY(0)';
-  return {el,dist:filler*CH,dur:1200+j*420,fin:false};
+  return {el,dist:filler*CH,dur:(1200+j*420)/(seaFast?2:1),fin:false};
  });
  const t0=performance.now(),last=cols.map(()=>-1);
  const tick=now=>{
@@ -4617,7 +4686,7 @@ function seaHold(grid,respins,ext){
     const nr=seaRunOf(grid,bk),nb=seaBest(grid);
     seaHold(grid,respins-1,(nr>br||nb.br>br)?ext+1:ext);
    });
-  },600);
+  },seaFast?300:600);
   return;
  }
  seaFinal(grid,ext);
@@ -4695,7 +4764,7 @@ function seaFinal(grid,ext){
 function seaNext(){
  if(seaCelebrating)return;
  if(seaFree>0){
-  seaAutoTimer=setTimeout(()=>{if($('seaFx').classList.contains('open')&&!seaSpinning&&!seaCelebrating)spinSea();},900);
+  seaAutoTimer=setTimeout(()=>{if($('seaFx').classList.contains('open')&&!seaSpinning&&!seaCelebrating)spinSea();},seaFast?450:900);
   return;
  }
  resumeSeaAuto();
@@ -4730,7 +4799,7 @@ function updateSeaUI(){
 function resumeSeaAuto(){
  if(!seaAuto)return;
  if(totalGold()<seaCost()){stopSeaAuto('Out of gold — auto stopped.');return;}
- seaAutoTimer=setTimeout(()=>{if(seaAuto&&!seaCelebrating&&!seaSpinning&&$('seaFx').classList.contains('open'))spinSea();},800);
+ seaAutoTimer=setTimeout(()=>{if(seaAuto&&!seaCelebrating&&!seaSpinning&&$('seaFx').classList.contains('open'))spinSea();},seaFast?400:800);
 }
 function stopSeaAuto(msg){
  seaAuto=false;clearTimeout(seaAutoTimer);
@@ -4751,6 +4820,7 @@ function openSea(){
  if(seaFree>0)seaNext(); /* unfinished bonus round resumes */
 }
 $('seaSpinBtn').onclick=()=>{if(!seaAuto)spinSea();};
+$('seaFastBtn').onclick=()=>{seaFast=!seaFast;$('seaFastBtn').classList.toggle('on',seaFast);};
 $('seaAutoBtn').onclick=()=>{
  if(seaAuto){stopSeaAuto();return;}
  if(totalGold()<seaCost()&&seaFree<=0){stageMsg('Not enough gold to start auto-spin',1400);sfx.warn();return;}
@@ -4977,6 +5047,49 @@ document.querySelectorAll('[data-bank]').forEach(b=>b.onclick=()=>{
  }
  sfx.buy();bankRefresh();renderHUD();save();
 });
+function smithRefresh(){
+ const lv=S.smithLvl||0;
+ $('smithLvlTxt').textContent='Blacksmith level '+lv+(lv>=10?' (max)':'');
+ const j=S.smithJob;
+ $('smithJobTxt').textContent=j?(j.kind==='lvl'?'⏳ Training to level '+j.to:'⏳ Forging Frostmourne ★'+j.to)+' — '+fmtMS(Math.max(0,j.endT-Date.now()))+' left':'';
+ const lu=$('smithLvlUp');
+ if(lv<10&&!j){
+  lu.innerHTML=`<button class="sbtn scrapb" id="smithLvlBtn" ${S.scraps<800?'disabled':''}>Train to level ${lv+1} · 800⚙ · 1 hour</button>`;
+  $('smithLvlBtn').onclick=()=>{
+   if(S.scraps<800){sfx.warn();return;}
+   S.scraps-=800;
+   S.smithJob={kind:'lvl',to:(S.smithLvl||0)+1,endT:Date.now()+SMITH_HOUR};
+   sfx.buy();renderHUD();save();smithRefresh();
+  };
+ }else lu.innerHTML='';
+ const tier=lv>=10?3:lv>=5?2:0;
+ const fg=$('smithForge');
+ if(!tier||j){fg.style.display='none';if(!j&&lv<5)$('smithJobTxt').textContent='Reach blacksmith level 5 to reforge Frostmourne.';return;}
+ fg.style.display='block';
+ let src=0,out=0;
+ if(lv>=10&&fmBagOfStar(2).length>=2){src=2;out=3;}
+ else if(fmBagOfStar(1).length>=2){src=1;out=2;}
+ else{src=lv>=10?2:1;out=src+1;}
+ const have=fmBagOfStar(src).length,ok=have>=2;
+ const slotTxt=st=>'❄'+(st>1?'★'+st:'');
+ $('fmSlotA').textContent=have>=1?slotTxt(src):'?';$('fmSlotA').classList.toggle('filled',have>=1);
+ $('fmSlotB').textContent=have>=2?slotTxt(src):'?';$('fmSlotB').classList.toggle('filled',have>=2);
+ $('fmSlotOut').textContent='★'+out;$('fmSlotOut').classList.toggle('filled',ok);
+ $('fmPreview').innerHTML=ok
+  ?`Frostmourne <b style="color:#ffd76a">★${out}</b> — <b>+${out*2}% crit</b>, <b>+${out*2}% lifesteal</b>. Upgrades &amp; attack reset (cap +6 unchanged). Consumes both ★${src}.`
+  :`Need <b>2× Frostmourne${src>1?' ★'+src:''}</b> in your bag (${have}/2).`;
+ const btn=$('fmForgeBtn');btn.disabled=!ok;
+ btn.onclick=()=>{
+  const list=fmBagOfStar(src);if(list.length<2)return;
+  for(let n=0;n<2;n++){const it=fmBagOfStar(src)[0];S.bag.splice(S.bag.indexOf(it),1);}
+  S.smithJob={kind:'fm',to:out,endT:Date.now()+SMITH_HOUR};
+  stageMsg('⚒️ The forge roars — Frostmourne ★'+out+' in 1 hour.',2400);
+  sfx.buy();save();smithRefresh();renderBag();
+ };
+}
+function openSmith(){smithTick();$('smithFx').style.display='flex';smithRefresh();}
+$('smithClose').onclick=()=>$('smithFx').style.display='none';
+setInterval(()=>{if($('smithFx').style.display==='flex')smithRefresh();},1000);
 function openCasinoMenu(){$('casinoMenu').classList.add('open');}
 $('casinoMenuClose').onclick=()=>$('casinoMenu').classList.remove('open');
 document.querySelectorAll('.casinopick').forEach(b=>b.onclick=()=>{
@@ -5646,6 +5759,7 @@ function beginGame(isNew){
  applyVolumes();
  gameOn=true;
  bankTick();
+ smithTick();
  setTimeout(()=>{$('hint').style.opacity=0;},8000);
  if(isNew){
   log(`<span class="imp">${S.name} the ${classOf().name}</span> arrives in ${zoneOf().name}.`);
