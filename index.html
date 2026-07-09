@@ -642,7 +642,7 @@
       <div class="seapay">
         <span>Match reels <b>1→2</b> = 🔒 <b>LOCK + RESPIN</b></span><span>Each extension <b>raises the multiplier</b></span>
         <span>Reach reels <b>1→2→3</b> to win · <b>4 = double</b></span><span>x2/x3/x5 cells multiply further</span>
-        <span>📜 Scroll wins pay <b>Tier I–III</b> by multiplier</span><span>💀 Gold jackpot · max <b>15⚙</b> scrap</span>
+        <span>💀 Skull jackpot = <b>only scrap win</b> · 5–15⚙</span><span>Max win <b>300x</b> your bet</span>
         <span>3+ 🎁 anywhere = <b>10 FREE SPINS</b></span><span>Free spins roll <b>richer reels</b></span>
       </div>
       <div class="slotbet">
@@ -4503,14 +4503,11 @@ const SEA_SYMDEF={
  fine:{icons:['⚔️','🛡️'],cc:'#e8ece8'},
  rare:{icons:['⚔️','🛡️'],cc:'#5b9bd5'},
  epic:{icons:['⚔️','🛡️'],cc:'#c9a0ff'},
- scroll:{icons:['📜'],cc:'#e8c9ef'},
  skull:{icons:['💀'],cc:'#ffd76a'},
  bonus:{icons:['🎁'],cc:'#ffd100'}
 };
-const SEA_W_BASE=[['joker',28],['hook',28],['wave',22],['fine',9],['rare',5],['epic',2],['scroll',3],['skull',1],['bonus',2]];
-const SEA_W_BONUS=[['joker',18],['hook',18],['wave',14],['fine',18],['rare',11],['epic',5],['scroll',6],['skull',3],['bonus',2]];
-const SEA_PAYX={skull:12,epic:8,rare:5,fine:3,scroll:4};
-const SEA_MAX_WIN_X=150; /* hard cap: max 150x bet, prevents million-printing */
+const SEA_W_BASE=[['joker',28],['hook',28],['wave',22],['fine',9],['rare',6],['epic',4],['skull',3],['bonus',3]];
+const SEA_W_BONUS=[['joker',20],['hook',20],['wave',16],['fine',12],['rare',9],['epic',6],['skull',5],['bonus',2]];
 let seaSpinning=false,seaAuto=false,seaAutoTimer=0,seaCelebrating=false,seaCelebrateTimer=0;
 let seaFree=0,seaSession={spins:0,gold:0,scrap:0};
 const seaBonusMode=()=>seaFree>0;
@@ -4547,7 +4544,7 @@ const seaCellHtml=c=>`<div class="seacell${c.cc?' prize':''}"${c.cc?` style="--c
 function seaRunOf(grid,key){let r=0;while(r<SEA_COLS&&grid[r].some(x=>x.k===key))r++;return r;}
 function seaBest(grid){
  let bk=null,br=0;
- for(const k of ['skull','epic','rare','fine','scroll']){
+ for(const k of ['skull','epic','rare','fine']){
   const r=seaRunOf(grid,k);
   if(r>br){br=r;bk=k;}
  }
@@ -4602,7 +4599,7 @@ function spinSea(){
  sfx.buy();
  const grid=[];
  for(let c=0;c<SEA_COLS;c++){const col=[];for(let r=0;r<SEA_ROWSBY[c];r++)col.push(seaCell());grid.push(col);}
- seaAnimateCols([0,1,2,3],grid,()=>seaHold(grid,2,0));
+ seaAnimateCols([0,1,2,3],grid,()=>seaHold(grid,1,0));
 }
 function seaHold(grid,respins,ext){
  const {bk,br}=seaBest(grid);
@@ -4661,25 +4658,18 @@ function seaFinal(grid,ext){
   m.forEach(x=>{if(x.m>1)cellMult*=x.m;});
  }
  cellMult=Math.min(cellMult,10);
- const mult=cellMult*(1+ext);
+ const mult=Math.min(cellMult*(1+ext),8);   /* totalt tak x8 */
  const full=br>=4?2:1;
- const SCRAPPER={skull:30,epic:15,rare:8,fine:4,scroll:6};
- const rawGold=(SEA_PAYX[bk]||1)*seaBet*ways*mult*full;
- const goldWon=Math.min(rawGold,seaBet*SEA_MAX_WIN_X);
- const scrapWon=Math.min(15,SCRAPPER[bk]*ways*full);
+ ways=Math.min(ways,12);
+ const PAYX={skull:30,epic:10,rare:4,fine:1.5};
+ const goldWon=Math.min(Math.round(PAYX[bk]*seaBet*ways*mult*full),seaBet*300); /* max 300x insats */
+ const scrapWon=bk==='skull'?(br>=4?15:5):0;   /* scrap ENDAST på jackpotten */
  const {got,over}=addGoldOverflow(goldWon);
  const paid=got+over;
  const gotScrap=addScraps(scrapWon);
  seaSession.gold+=paid;seaSession.scrap+=gotScrap;
  const bits=['+'+paid.toLocaleString()+'◉'];
  if(gotScrap>0)bits.push('+'+gotScrap+'⚙');
- if(bk==='scroll'){
-  const tier=mult>=5?3:mult>=3?2:1;
-  const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
-  S.scrolls.push({id:e.id,tier});
-  bits.push('📜 '+e.n+' '+TIERN[tier-1]);
-  log(`Borek Seamen: <span class="lscroll">${e.n} ${TIERN[tier-1]}</span>.`,'loot');
- }
  const multTxt=mult>1?' · x'+mult+'!':'';
  const big=bk==='skull'||mult>=6||paid>=seaCost()*10||gifts>=3;
  res.style.color=big?'#ffd100':'#8fc3ef';
