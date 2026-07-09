@@ -712,6 +712,35 @@
     <button id="casinoMenuClose" class="sbtn" style="margin-top:6px;padding:11px">Leave the Casino</button>
    </div>
   </div>
+
+
+  <div id="raidModal" style="position:absolute;inset:0;z-index:75;display:none;align-items:center;justify-content:center;background:rgba(5,10,8,.86)">
+   <div class="casinobox" style="border-color:#a66bd0">
+    <div class="slottop" style="color:#c9a0ff">⚔ BLACK TEMPLE</div>
+    <div class="cl" style="margin-bottom:10px">Choose solo or online co-op. Online is prototype Firestore sync.</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
+     <button class="sbtn gold" id="raidSolo" style="padding:12px">🗡 Play Solo</button>
+     <button class="sbtn gold" id="raidHost" style="padding:12px">🌐 Play Online — Create Room</button>
+     <div style="display:flex;gap:6px">
+      <input id="raidCode" maxlength="5" placeholder="CODE" style="flex:1;text-transform:uppercase;background:rgba(0,0,0,.3);border:1px solid #a66bd0;border-radius:8px;color:#fff;padding:10px;text-align:center;letter-spacing:3px">
+      <button class="sbtn gold" id="raidJoin">Join Room</button>
+     </div>
+    </div>
+    <button class="sbtn" id="raidCancel" style="margin-top:10px;padding:10px">Cancel</button>
+   </div>
+  </div>
+
+  <div id="mpLobby" style="position:absolute;inset:0;z-index:74;display:none;align-items:center;justify-content:center;background:rgba(5,10,8,.7)">
+   <div class="casinobox" style="border-color:#a66bd0">
+    <div class="slottop" style="color:#c9a0ff;font-size:20px">READY CHECK</div>
+    <div class="cl" id="mpCodeTxt" style="font-size:16px;letter-spacing:2px;margin:4px 0"></div>
+    <div id="mpPlayers" style="text-align:left;margin:8px 0"></div>
+    <button class="sbtn gold" id="mpReadyBtn" style="padding:11px 20px">✔ Ready</button>
+    <button class="sbtn gold" id="mpStartBtn" style="padding:11px 20px;display:none">▶ START RAID</button>
+    <button class="sbtn" id="mpLeaveBtn" style="margin-top:8px;padding:10px">Leave</button>
+   </div>
+  </div>
+
   <div id="bankFx" style="position:absolute;inset:0;z-index:71;display:none;align-items:center;justify-content:center;background:rgba(5,10,8,.86)">
    <div class="casinobox" style="border-color:#d9c28a">
     <div class="slottop" style="color:#ffd76a;margin-bottom:2px">🏦 BANK OF GOLDSHIRE</div>
@@ -962,6 +991,151 @@ const ZONES=[
   ground:'#4a4456',ground2:'#403a4c',water:'#2f4a5a',tree:'#3a3448',tree2:'#2c2838',path:'#6a5f7a',rocky:true},
 ];
 const TAVERN_ZONE=ZONES.findIndex(z=>z.tavern);
+
+/* ============ RAID CO-OP / FIRESTORE PROTOTYPE ============ */
+let pendingRaidZone=-1;
+let mp={on:false,host:false,code:null,pid:null,ready:false,started:false,
+ unsubRoom:null,unsubPlayers:null,unsubBoss:null,peers:{},lastSend:0,dmgOut:0,applied:{},lastBossW:0};
+const mpDB=()=> (FB&&FB.db) ? FB.db : (window.firebase&&firebase.firestore?firebase.firestore():null);
+const mpRoom=()=>mpDB().collection('rooms').doc(mp.code);
+const MPCODE=()=>Array.from({length:5},()=> 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*31)]).join('');
+function raidAutoOff(){
+ if(S){S.auto=false;try{const b=$('autoBtn');if(b)b.classList.remove('on');}catch(e){}}
+}
+function mpTravelTo(i){
+ S.zone=i;S.quest=0;S.qProg=0;
+ mapContinent=(ZONES[i]&&ZONES[i].raidc)?'raid':(ZONES[i]&&ZONES[i].valhalla)?'valhalla':(ZONES[i]&&ZONES[i].west)?'west':'east';
+ applyZoneUI();buildZone();renderHUD();save();openTab('battle');
+}
+async function mpEnsureFirebase(){
+ if(FB&&FB.ready&&FB.db)return true;
+ if(typeof initFirebase==='function')await initFirebase();
+ return !!(FB&&FB.ready&&FB.db);
+}
+async function mpCreate(){
+ const ok=await mpEnsureFirebase();if(!ok){stageMsg('Firebase is not ready — sign in or check config.',2200);sfx.warn();return;}
+ mp.code=MPCODE();mp.pid='p'+Math.random().toString(36).slice(2,9);mp.host=true;
+ await mpRoom().set({host:mp.pid,state:'lobby',created:Date.now()});
+ await mpEnter();
+}
+async function mpJoin(code){
+ const ok=await mpEnsureFirebase();if(!ok){stageMsg('Firebase is not ready — sign in or check config.',2200);sfx.warn();return;}
+ code=(code||'').toUpperCase().trim();
+ if(code.length<5){stageMsg('Enter a 5-letter code',1400);sfx.warn();return;}
+ const snap=await mpDB().collection('rooms').doc(code).get();
+ if(!snap.exists||snap.data().state==='closed'){stageMsg('Room not found',1600);sfx.warn();return;}
+ const ps=await mpDB().collection('rooms').doc(code).collection('players').get();
+ if(ps.size>=5){stageMsg('Room is full (5 players)',1600);sfx.warn();return;}
+ mp.code=code;mp.pid='p'+Math.random().toString(36).slice(2,9);mp.host=false;
+ await mpEnter();
+}
+async function mpEnter(){
+ mp.on=true;mp.ready=false;mp.started=false;mp.peers={};mp.dmgOut=0;mp.applied={};
+ await mpRoom().collection('players').doc(mp.pid).set({name:dispName?dispName(S):(S.name||'Hero'),x:0,y:0,hp:1,ready:false,dmg:0,t:Date.now()});
+ mp.unsubRoom=mpRoom().onSnapshot(s=>{
+  if(!s.exists||s.data().state==='closed'){mpKicked();return;}
+  if(s.data().state==='live'&&!mp.started)mpBegin();
+ });
+ mp.unsubPlayers=mpRoom().collection('players').onSnapshot(qs=>{
+  const seen={};
+  qs.forEach(d=>{if(d.id!==mp.pid)seen[d.id]=d.data();});
+  mp.peers=seen;mpLobbyRender();if(mp.host)mpHostApplyDamage();
+ });
+ mpTravelTo(pendingRaidZone);raidAutoOff();gamePaused=true;
+ const rm=$('raidModal');if(rm)rm.style.display='none';
+ $('mpCodeTxt').textContent='Room code: '+mp.code;
+ $('mpLobby').style.display='flex';
+}
+function mpLobbyRender(){
+ if(!mp.on||mp.started||!$('mpPlayers'))return;
+ const rows=[['You'+(mp.host?' (host)':''),mp.ready]];
+ for(const k in mp.peers)rows.push([mp.peers[k].name||'Hero',!!mp.peers[k].ready]);
+ $('mpPlayers').innerHTML=rows.map(r=>`<div class="cl">${r[1]?'✅':'⏳'} ${r[0]}</div>`).join('');
+ const all=rows.every(r=>r[1]),n=rows.length;
+ $('mpStartBtn').style.display=(mp.host&&all&&n>=2)?'inline-block':'none';
+}
+function mpBegin(){
+ mp.started=true;gamePaused=false;$('mpLobby').style.display='none';
+ if(!mp.host){
+  if(mp.unsubBoss)mp.unsubBoss();
+  mp.unsubBoss=mpRoom().collection('sync').doc('boss').onSnapshot(s=>{
+   if(!s.exists)return;
+   (s.data().bs||[]).forEach(nb=>{
+    const e=enemies.find(x=>x.raid&&x.bossId===nb.id);if(!e)return;
+    e.netX=nb.x;e.netY=nb.y;e.hp=nb.hp;e.max=nb.max;
+    if(nb.awake&&!e.awake){e.awake=true;e.state='chase';}
+    if(nb.dead&&!e.dead){e.dead=true;e.deadT=0;e.hp=0;}
+   });
+  });
+ }
+ stageMsg('⚔ THE RAID BEGINS — auto-attack is OFF',2600);sfx.shout();
+}
+async function mpLeave(goHome){
+ if(!mp.on)return;
+ const code=mp.code,pid=mp.pid,wasHost=mp.host;
+ mp.on=false;mp.started=false;gamePaused=false;
+ if(mp.unsubRoom)mp.unsubRoom();if(mp.unsubPlayers)mp.unsubPlayers();if(mp.unsubBoss)mp.unsubBoss();
+ try{const db=mpDB();if(db&&code){await db.collection('rooms').doc(code).collection('players').doc(pid).delete();if(wasHost)await db.collection('rooms').doc(code).update({state:'closed'});}}catch(e){}
+ mp.peers={};mp.code=null;mp.unsubBoss=null;const l=$('mpLobby');if(l)l.style.display='none';
+ if(goHome&&S){S.lastZone=Math.min(S.zone,ZONES.length-1);mpTravelTo(TAVERN_ZONE);}
+}
+function mpKicked(){
+ if(!mp.on)return;
+ mp.on=false;mp.started=false;gamePaused=false;
+ if(mp.unsubRoom)mp.unsubRoom();if(mp.unsubPlayers)mp.unsubPlayers();if(mp.unsubBoss)mp.unsubBoss();
+ mp.peers={};mp.code=null;const l=$('mpLobby');if(l)l.style.display='none';
+ stageMsg('The host has left — returning home.',2400);sfx.warn();
+ if(S)mpTravelTo(TAVERN_ZONE);
+}
+function mpSyncTick(){
+ if(!(mp.on&&mp.started&&hero))return;
+ const now=performance.now();
+ if(now-mp.lastSend>250){
+  mp.lastSend=now;
+  mpRoom().collection('players').doc(mp.pid).update({x:Math.round(hero.x),y:Math.round(hero.y),hp:hero.hp/heroMax(),dmg:Math.round(mp.dmgOut),t:Date.now()}).catch(()=>{});
+ }
+ if(mp.host&&now-mp.lastBossW>1000){
+  mp.lastBossW=now;
+  const bs=enemies.filter(e=>e.raid).map(e=>({x:Math.round(e.x),y:Math.round(e.y),hp:e.hp,max:e.max,awake:!!e.awake,dead:!!e.dead,id:e.bossId}));
+  mpRoom().collection('sync').doc('boss').set({bs,t:Date.now()}).catch(()=>{});
+ }
+}
+function mpHostApplyDamage(){
+ if(!mp.host)return;
+ for(const k in mp.peers){
+  const tot=mp.peers[k].dmg||0,prev=mp.applied[k]||0;
+  if(tot>prev){
+   const d=tot-prev;mp.applied[k]=tot;
+   const b=enemies.find(e=>e.raid&&e.awake&&!e.dead)||enemies.find(e=>e.raid&&!e.dead);
+   if(b){b.hp-=d;if(!b.awake){b.awake=true;b.state='chase';floatAt(b.x,b.y-b.r-30,'AWAKENED!','#ff8a6a',true);}if(b.hp<=0)killEnemy(b);}
+  }
+ }
+}
+function drawMpGhosts(){
+ if(!(mp.on&&mp.started))return;
+ for(const k in mp.peers){
+  const p=mp.peers[k];if(!p||Date.now()-(p.t||0)>6000)continue;
+  if(p._x===undefined){p._x=p.x||hero.x;p._y=p.y||hero.y;}
+  p._x+=((p.x||p._x)-p._x)*0.12;p._y+=((p.y||p._y)-p._y)*0.12;
+  ctx.save();ctx.globalAlpha=0.75;
+  ctx.fillStyle='rgba(143,208,255,.22)';ctx.beginPath();ctx.ellipse(p._x,p._y+8,14,6,0,0,7);ctx.fill();
+  ctx.fillStyle='#8fd0ff';ctx.beginPath();ctx.arc(p._x,p._y-8,10,0,7);ctx.fill();
+  ctx.fillStyle='#dff4ff';ctx.fillRect(p._x-6,p._y+2,12,20);
+  ctx.globalAlpha=1;ctx.font='600 11px sans-serif';ctx.textAlign='center';ctx.fillStyle='#8fd0ff';ctx.fillText(p.name||'Hero',p._x,p._y-34);
+  ctx.restore();
+ }
+}
+setTimeout(()=>{
+ const bind=(id,fn)=>{const e=$(id);if(e)e.onclick=fn;};
+ bind('raidSolo',()=>{if($('raidModal'))$('raidModal').style.display='none';mpTravelTo(pendingRaidZone);raidAutoOff();});
+ bind('raidHost',()=>mpCreate());
+ bind('raidJoin',()=>mpJoin(($('raidCode')||{}).value));
+ bind('raidCancel',()=>{if($('raidModal'))$('raidModal').style.display='none';});
+ bind('mpReadyBtn',async()=>{mp.ready=!mp.ready;$('mpReadyBtn').textContent=mp.ready?'✔ Ready!':'✔ Ready';await mpRoom().collection('players').doc(mp.pid).update({ready:mp.ready});mpLobbyRender();});
+ bind('mpStartBtn',async()=>{await mpRoom().update({state:'live'});});
+ bind('mpLeaveBtn',()=>mpLeave(true));
+},0);
+
 /* stat curves */
 const eHP=L=>Math.round(20*Math.pow(L,1.25)+10);
 const eATK=L=>Math.round(3+L*1.1);
@@ -2064,6 +2238,12 @@ function landHit(en,dmg,crit,label,basic){
 }
 function applyDmg(en,dmg,label,crit){
  if(en.dead||en.hidden)return;
+ if(mp.on&&mp.started&&!mp.host&&en.raid){
+  mp.dmgOut+=Math.max(0,Math.round(dmg));
+  en.state='chase';en.hurt=0.22;
+  floatAt(en.x,en.y-en.r-14,(label?label+' ':'')+(crit?'✦':'')+Math.round(dmg),label?'#ffd76a':crit?'#ffb0a0':'#fff',!!label||crit);
+  return;
+ }
  en.hp-=dmg;en.state='chase';en.hurt=0.22;
  if(en.raid&&!en.awake){en.awake=true;floatAt(en.x,en.y-en.r-30,'AWAKENED!','#ff8a6a',true);sfx.shout();}
  floatAt(en.x,en.y-en.r-14,(label?label+' ':'')+(crit?'✦':'')+dmg,label?'#ffd76a':crit?'#ffb0a0':'#fff',!!label||crit);
@@ -2274,6 +2454,7 @@ function heroDies(){
   log('<span class="imp">Slain in Valhalla.</span> The gates are sealed until Thor next appears.');
  }
  if(zoneOf().west||zoneOf().boss||zoneOf().raid)hero.sentHome=true;
+ if(mp.on)mpLeave(false);
  hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;
  sfx.die();
  if(hero.sentHome)stageMsg('Defeated… you wake by the hearth in Goldshire.',2600);
@@ -2705,6 +2886,7 @@ function autoBrain(dt){
 }
 function update(dt){
  if(!gameOn)return;
+ mpSyncTick();
  if(cowRunning&&!hero.dead){
   cowT+=dt;
   cowSpawnT-=dt;
@@ -2858,6 +3040,12 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
  }
  // ----- enemies -----
  for(const en of enemies){
+  if(mp.on&&mp.started&&!mp.host&&en.raid){
+   if(en.netX!==undefined){en.x+=(en.netX-en.x)*0.15;en.y+=(en.netY-en.y)*0.15;}
+   if(en.hurt)en.hurt=Math.max(0,en.hurt-dt);
+   if(en.dead){en.deadT+=dt;}
+   continue;
+  }
   if(en.slowT>0)en.slowT-=dt;
   if(en.cow&&!en.dead)en.age+=dt;
   if(en.dead){
@@ -3011,6 +3199,7 @@ function draw(){
  for(const s of world.solids)if(s.type!=='water')drawables.push({y:s.y,f:()=>drawProp(s,z)});
  for(const en of enemies)drawables.push({y:en.y,f:()=>drawEnemy(en)});
  if(hero)drawables.push({y:hero.y,f:drawHero});
+ if(mp.on&&mp.started)drawables.push({y:hero.y+0.5,f:drawMpGhosts});
  if(pet&&activePet())drawables.push({y:pet.y,f:drawPet});
  drawables.sort((a,b)=>a.y-b.y);
  for(const d of drawables)d.f();
@@ -3846,6 +4035,10 @@ function renderMap(){
      if(S.bag.filter(it=>!isLegendary(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
     }else if(z.raid){
      if((S.prestige||0)<1){stageMsg('Reach Prestige 1 — the Sanctum opens only to reborn champions',1800);sfx.warn();return;}
+     pendingRaidZone=i;
+     const rm=$('raidModal');
+     if(rm){rm.style.display='flex';openTab('battle');}
+     return;
     }else if(z.boss&&z.boss[2]==='cerberus'){
      if((S.prestige||0)<10){stageMsg('⚽ Haaland only faces Prestige 10 champions',1800);sfx.warn();return;}
     }else{
@@ -5238,6 +5431,7 @@ function openTab(t){
 }
 function goHome(){
  if(!gameOn||!S||hero.dead)return;
+ if(mp.on)mpLeave(false);
  if(S.zone===TAVERN_ZONE){
   const target=S.lastZone!=null?S.lastZone:0;
   const z=ZONES[target]||ZONES[0];
