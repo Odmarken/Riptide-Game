@@ -568,8 +568,8 @@
   <div class="panel" id="p-map">
     <div class="ptitle">World Map</div>
     <div>
-      <span class="continent-tab cur" id="eastTab">Riptide — Eastern Realm</span>
-      <span class="continent-tab" id="westTab">🔒 Western Continent · Prestige 5</span>
+      <span class="continent-tab cur" id="eastTab">Eastern Realm</span>
+      <span class="continent-tab" id="westTab">🔒 Western Realm · Prestige 1</span>
       <span class="continent-tab" id="valhallaTab">🔒 Valhalla · Prestige 1</span>
       <span class="continent-tab" id="raidTab">🔒 Raid (experimental) · Prestige 1</span>
     </div>
@@ -700,7 +700,7 @@
     <div class="card" style="text-align:left">
      <div class="sn" style="font-size:14px;color:var(--brass)">◉ <span id="bankGoldN">0</span> gold deposited</div>
      <div class="ss" style="color:#9adf9a;font-size:12px;margin-top:2px">▲ +<span id="bankEarnedN">0</span> earned since opening</div>
-     <div class="ss" style="color:var(--dim);font-size:11px;margin-top:2px">⚙ <span id="bankScrapN">0</span> scraps stored · next payout in <span id="bankNextT">—</span></div>
+     <div class="ss" style="color:var(--dim);font-size:11px;margin-top:2px">⚙ <span id="bankScrapN">0</span> scraps stored</div>
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:4px">
      <button class="sbtn gold" data-bank="dg" data-n="10000">Deposit 10K◉</button>
@@ -3625,7 +3625,7 @@ function renderMap(){
   if(!p1){stageMsg('Reach Prestige 1 to enter the great raids',1600);sfx.warn();return;}
   mapContinent='raid';renderMap();
  };
- $('westTab').textContent=p1?'Western Continent — Land of the Vikings':'🔒 Western Continent · Prestige 1';
+ $('westTab').textContent=p1?'Western Realm':'🔒 Western Realm · Prestige 1';
  $('valhallaTab').textContent=p1?'⚡ Valhalla':'🔒 Valhalla · Prestige 1';
  $('westTab').style.cursor=p1?'pointer':'default';
  $('valhallaTab').style.cursor=p1?'pointer':'default';
@@ -4908,8 +4908,7 @@ function bankRefresh(){
  $('bankGoldN').textContent=(S.bankGold||0).toLocaleString();
  $('bankScrapN').textContent=(S.bankScrap||0).toLocaleString();
  $('bankEarnedN').textContent=(S.bankEarned||0).toLocaleString();
- const left=S.bankLastT?Math.max(0,BANK_HOUR-(Date.now()-S.bankLastT)):BANK_HOUR;
- $('bankNextT').textContent=fmtMS(left);
+
 }
 function openBank(){bankTick();$('bankMsg').textContent='';bankRefresh();$('bankFx').style.display='flex';}
 $('bankClose').onclick=()=>$('bankFx').style.display='none';
