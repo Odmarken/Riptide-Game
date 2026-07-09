@@ -13,6 +13,7 @@
     --rare:#5b9bd5; --epic:#a66bd0; --fine:#6dbb6d;
     --display:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
     --body:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    --sidew:420px;
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
   html,body{height:100%;overscroll-behavior:none}
@@ -48,6 +49,7 @@
   .stgbtn{position:absolute;right:8px;width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(10,18,14,.55);color:#fff;font-size:15px;cursor:pointer;z-index:6}
   #sndBtn{top:6px} #sfxBtn{top:44px;font-size:13px}
   #musBtn{top:82px;font-size:13px}
+  #sideToggle{top:120px;height:64px;width:22px;padding:0;font-size:11px;display:none;align-items:center;justify-content:center}
   .stgbtn.off{opacity:.45}
   .volbox{position:absolute;right:44px;display:none;align-items:center;height:32px;padding:0 10px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(10,18,14,.8);z-index:7}
   .volbox.open{display:flex}
@@ -335,10 +337,17 @@
   .statusgrid{display:grid;grid-template-columns:1fr;gap:5px;margin-top:7px}
   .statusline{display:grid;grid-template-columns:56px 24px 1fr 58px;gap:7px;align-items:center}
 
+
+  @media (max-width:899px){#sideToggle{display:none!important}}
   /* ---- desktop RuneScape-style split layout; mobile rules above stay untouched ---- */
   @media (min-width:900px){
     body{display:block;overflow:hidden}
-    #app{max-width:none;width:100vw;height:100dvh;display:grid;grid-template-columns:minmax(0,7fr) minmax(320px,3fr);grid-template-rows:auto minmax(0,1fr) auto;background:var(--night)}
+    #app{max-width:none;width:100vw;height:100dvh;display:grid;grid-template-columns:minmax(0,7fr) minmax(320px,3fr);grid-template-rows:auto minmax(0,1fr) auto;background:var(--night);transition:grid-template-columns .25s ease}
+    body.sidehidden #app{grid-template-columns:minmax(0,1fr) 0px}
+    body.sidehidden nav,body.sidehidden .panel{opacity:0;pointer-events:none;overflow:hidden}
+    body.sidehidden #stageWrap,body.sidehidden header,body.sidehidden #questcard{border-right:0}
+    #sideToggle{display:flex}
+    body.sidehidden #sideToggle{transform:none}
     header{grid-column:1;grid-row:1;padding:10px 16px 9px;border-right:1px solid var(--line);background:linear-gradient(180deg,#1d3027,#111d17)}
     header .hrow{max-width:none}
     header .zone-name{font-size:17px}
@@ -537,6 +546,7 @@
     <button id="sndBtn" class="stgbtn">🔊</button>
     <button id="sfxBtn" class="stgbtn" title="Combat sounds">⚔️</button>
     <button id="musBtn" class="stgbtn" title="Pause game and audio">⏸</button>
+    <button id="sideToggle" class="stgbtn" title="Hide panel (B)">❯</button>
     <div id="volAmbBox" class="volbox" style="top:6px"><input type="range" id="volAmbSl" min="0" max="100"></div>
     <div id="volSfxBox" class="volbox" style="top:44px"><input type="range" id="volSfxSl" min="0" max="100"></div>
     <div id="hint">WASD / tap ground to move · tap a foe · tap spells to cast</div>
@@ -1600,6 +1610,25 @@ function resize(){
  g.fillStyle=lin;g.fillRect(0,0,VW,VH);
 }
 window.addEventListener('resize',resize);
+let sideHidden=false;
+function toggleSide(force){
+ if(window.innerWidth<900)return; /* desktop only */
+ sideHidden=force!==undefined?force:!sideHidden;
+ document.body.classList.toggle('sidehidden',sideHidden);
+ const b=$('sideToggle');
+ if(b){
+  b.textContent=sideHidden?'❮':'❯';
+  b.title=(sideHidden?'Show':'Hide')+' panel (B)';
+ }
+ setTimeout(resize,260);
+}
+window.addEventListener('resize',()=>{
+ if(window.innerWidth<900&&sideHidden){
+  sideHidden=false;document.body.classList.remove('sidehidden');
+  const b=$('sideToggle');if(b){b.textContent='❯';b.title='Hide panel (B)';}
+ }
+});
+$('sideToggle').onclick=()=>toggleSide();
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 function shade(hex,amt){const n=parseInt(hex.slice(1),16);
@@ -1620,7 +1649,7 @@ function buildZone(){
  if(!zoneOf().special&&(S.maxZone||0)<S.zone)S.maxZone=S.zone;
  const z=zoneOf(),R=mulberry32(S.zone*7919+13);
  const isBoss=!!z.boss;
- world={w:z.raid?3600:z.tavern?2000:isBoss?1700:2400,h:z.raid?1600:z.tavern?1400:isBoss?1250:1700,solids:[],deco:[],waters:[]}; /* larger maps — boss arenas too */
+ world={w:z.raid?3800:z.tavern?2600:isBoss?2400:3000,h:z.raid?1900:z.tavern?1700:isBoss?1600:2000,solids:[],deco:[],waters:[]}; /* larger maps — full desktop view + hidden side panel */
  world.spawn={x:120,y:world.h/2};
  world.portal={x:world.w-80,y:world.h/2};
  world.pathY=world.h/2;world.pathH=110;
@@ -2562,6 +2591,12 @@ window.addEventListener('keydown',e=>{
  const k=e.key||'';
  const kl=k.toLowerCase();
  if(!kl)return;
+ if(kl==='b'){
+  if(document.activeElement&&/INPUT|TEXTAREA/.test(document.activeElement.tagName))return;
+  toggleSide();
+  e.preventDefault();
+  return;
+ }
  keys[kl]=true;
  if(gameOn&&!gamePaused&&kl==='e'&&hero&&!hero.dead){
   const t=nearestEnemyWithin(400);
