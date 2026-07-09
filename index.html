@@ -1102,7 +1102,7 @@ function mpKicked(){
 function mpSyncTick(){
  if(!(mp.on&&mp.started&&hero))return;
  const now=performance.now();
- if(now-(mp.lastRtc||0)>22){ /* ~45Hz over RTC */
+ if(now-(mp.lastRtc||0)>33){ /* 30Hz */
   mp.lastRtc=now;
   const dx=hero.x-(mp._lhx==null?hero.x:mp._lhx),dy=hero.y-(mp._lhy==null?hero.y:mp._lhy);
   mp._lhx=hero.x;mp._lhy=hero.y;
@@ -1115,7 +1115,7 @@ function mpSyncTick(){
  }
  if(mp.host&&now-(mp.lastBossRtc||0)>250){
   mp.lastBossRtc=now;
-  const bs=enemies.filter(e=>e.raid).map(e=>({x:Math.round(e.x),y:Math.round(e.y),hp:e.hp,max:e.max,awake:!!e.awake,dead:!!e.dead,id:e.bossId,cds:Object.assign({},e.cds||{}),tgt:e.target||'host'}));
+  const bs=enemies.filter(e=>e.raid).map(e=>({x:Math.round(e.x),y:Math.round(e.y),hp:e.hp,max:e.max,awake:!!e.awake,dead:!!e.dead,id:e.bossId,tgt:e.target||'host',cds:e.cds}));
   rtcBroadcast({k:'boss',bs},true);
   if(now-mp.lastBossW>2000){mp.lastBossW=now;mpRoom().collection('sync').doc('boss').set({bs,t:Date.now()}).catch(()=>{});}
  }
@@ -1227,11 +1227,14 @@ function rtcOnMsg(pid,m){
   mp.applied[pid]=(mp.applied[pid]||0)+d;
   mpPeerDamage(d,pid);
  }else if(m.k==='boss'&&!mp.host){
-  (m.bs||[]).forEach(nb=>{
-   const e=enemies.find(x=>x.raid&&x.bossId===nb.id);if(!e)return;
-   e.netX=nb.x;e.netY=nb.y;e.hp=nb.hp;e.max=nb.max;e.target=nb.tgt||e.target||'host';if(nb.cds)e.cds=Object.assign(e.cds||{},nb.cds);
+  m.bs.forEach(nb=>{
+   const e=enemies.find(x=>x.raid&&x.bossId===nb.id);
+   if(!e)return;
+   e.netX=nb.x;e.netY=nb.y;e.hp=nb.hp;e.max=nb.max;
+   if(nb.cds)e.cds=Object.assign({},nb.cds);
+   e.target=nb.tgt;
    if(nb.awake&&!e.awake){e.awake=true;e.state='chase';}
-   if(nb.dead&&!e.dead){e.dead=true;e.deadT=0;e.hp=0;}
+   if(nb.dead&&!e.dead){e.netDead=true;killEnemy(e);}
   });
  }
 }
@@ -1315,7 +1318,7 @@ function drawMpGhost(k,p){
  if(!p||Date.now()-(p.t||0)>6000)return;
  if(p._x===undefined){p._x=p.x||hero.x;p._y=p.y||hero.y;}
  if(p._rtc){
-  const age=Math.min((performance.now()-(p._rt||0))/1000,0.12);
+  const age=Math.min((performance.now()-(p._rt||0))/1000,0.3);
   const gx=(p.x||p._x)+(p.mv?(p._vx||0)*age:0),gy=(p.y||p._y)+(p.mv?(p._vy||0)*age:0);
   const dx=gx-p._x,dy=gy-p._y,d=Math.hypot(dx,dy);
   if(d>140){p._x=gx;p._y=gy;}else{p._x+=dx*0.5;p._y+=dy*0.5;}
@@ -2140,46 +2143,39 @@ function buildZone(){
   log(`<span class="imp">The Cow Level.</span> Best: ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} items) · Last: ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} items)`);
  }else if(z.raid){
   const cy=world.h/2;
+  world.raidRooms=[];
   const wall=(x1,y1,x2,y2)=>{
    const d=Math.hypot(x2-x1,y2-y1),n=Math.max(1,Math.round(d/34));
    for(let i=0;i<=n;i++)world.solids.push({x:x1+(x2-x1)*i/n,y:y1+(y2-y1)*i/n,r:20,type:'wall'});
   };
-  const chamber=(cx,cyy,hw,hh,door)=>{ /* door: 'top' | 'bottom' | 'left' — 190px gap */
-   const g=95;
-   if(door==='top'){wall(cx-hw,cyy-hh,cx-g,cyy-hh);wall(cx+g,cyy-hh,cx+hw,cyy-hh);}else wall(cx-hw,cyy-hh,cx+hw,cyy-hh);
-   if(door==='bottom'){wall(cx-hw,cyy+hh,cx-g,cyy+hh);wall(cx+g,cyy+hh,cx+hw,cyy+hh);}else wall(cx-hw,cyy+hh,cx+hw,cyy+hh);
-   if(door==='left'){wall(cx-hw,cyy-hh,cx-hw,cyy-g);wall(cx-hw,cyy+g,cx-hw,cyy+hh);}else wall(cx-hw,cyy-hh,cx-hw,cyy+hh);
-   wall(cx+hw,cyy-hh,cx+hw,cyy+hh);
+  const room=(cx,cyy,rr,doorA)=>{
+   const idx=world.raidRooms.length;
+   world.raidRooms.push({x:cx,y:cyy,r:rr,idx,sealed:false,doorA});
+   const n=Math.round(rr*6.283/34);
+   for(let i=0;i<n;i++){
+    const a=i/n*6.283;
+    const da=Math.atan2(Math.sin(a-doorA),Math.cos(a-doorA));
+    const px=cx+Math.cos(a)*rr,py=cyy+Math.sin(a)*rr;
+    if(Math.abs(da)<0.30)world.solids.push({x:px,y:py,r:18,type:'gate',room:idx});
+    else world.solids.push({x:px,y:py,r:20,type:'wall'});
+   }
+   return idx;
   };
-  /* main hall: entrance on the left, two long walls with door gaps for the side chambers */
-  const doorA=1150,doorB=2100,hallT=cy-160,hallB=cy+160,hallEnd=2820;
-  wall(60,hallT,doorA-95,hallT);wall(doorA+95,hallT,hallEnd,hallT);
-  wall(60,hallB,doorB-95,hallB);wall(doorB+95,hallB,hallEnd,hallB);
-  /* three chambers: north, south, and the far-east sanctum */
-  chamber(doorA,380,330,260,'bottom');  /* Ilidia the Betrayer */
-  chamber(doorB,1220,330,260,'top');    /* Ragnaros the Firelord */
-  chamber(3150,cy,330,300,'left');      /* Arthas the Frozen King */
-  world.raidRooms=[
-   {idx:0,x:doorA,y:380,r:260,sealed:false,boss:'betrayer',doorA:Math.PI/2},
-   {idx:1,x:doorB,y:1220,r:260,sealed:false,boss:'firelord',doorA:-Math.PI/2},
-   {idx:2,x:3150,y:cy,r:300,sealed:false,boss:'frostking',doorA:Math.PI}
-  ];
-  const gateLine=(room,x1,y1,x2,y2)=>{
-   const d=Math.hypot(x2-x1,y2-y1),n=Math.max(1,Math.round(d/42));
-   for(let i=0;i<=n;i++)world.solids.push({x:x1+(x2-x1)*i/n,y:y1+(y2-y1)*i/n,r:24,type:'gate',room});
-  };
-  gateLine(0,doorA-76,640,doorA+76,640);
-  gateLine(1,doorB-76,960,doorB+76,960);
-  gateLine(2,2820,cy-76,2820,cy+76);
-  /* torches lining the hall */
+  const doorA=1150,doorB=2100,hallT=cy-160,hallB=cy+160,hallEnd=world.w-1050;
+  wall(60,hallT,doorA-130,hallT);wall(doorA+130,hallT,hallEnd,hallT);
+  wall(60,hallB,doorB-130,hallB);wall(doorB+130,hallB,hallEnd,hallB);
+  wall(hallEnd,hallT,hallEnd,cy-130);wall(hallEnd,cy+130,hallEnd,hallB);
   for(let x=300;x<hallEnd;x+=420){
    world.solids.push({x,y:hallT+42,r:5,type:'lantern'});
    world.solids.push({x,y:hallB-42,r:5,type:'lantern'});
   }
-  spawnEnemyAt(tmpls[0],R,{x:doorA,y:230,roomIdx:0});
-  spawnEnemyAt(tmpls[1],R,{x:doorB,y:1370,roomIdx:1});
-  spawnEnemyAt(tmpls[2],R,{x:3340,y:cy,roomIdx:2});
-  stageMsg('Three lords slumber in their chambers. They will not stir until struck — and then, never stop.',3600);
+  const r0=room(doorA,hallT-370,370,Math.PI/2);
+  const r1=room(doorB,hallB+370,370,-Math.PI/2);
+  const r2=room(hallEnd+400,cy,400,Math.PI);
+  spawnEnemyAt(tmpls[0],R,{x:doorA,y:hallT-370-260});enemies[enemies.length-1].roomIdx=r0;
+  spawnEnemyAt(tmpls[1],R,{x:doorB,y:hallB+370+260});enemies[enemies.length-1].roomIdx=r1;
+  spawnEnemyAt(tmpls[2],R,{x:hallEnd+400+290,y:cy});enemies[enemies.length-1].roomIdx=r2;
+  stageMsg('Three lords slumber in round chambers. Enter one, and its doors seal until the lord is dead.',3600);
  }else if(isBoss){
   if(!S.bossDead[S.zone]&&!(zoneOf().thor&&thorLocked()))spawnEnemyAt(tmpls[0],R,{x:world.w-320,y:world.pathY});
  }
@@ -2548,7 +2544,7 @@ function usePot(kind,manual){
  save();
 }
 function killEnemy(en){
- if(mp.on&&mp.started&&!mp.host&&en&&en.raid)return;
+ if(mp.on&&mp.started&&!mp.host&&en.raid&&!en.netDead)return;
  en.dead=true;en.deadT=0;en.hidden=false;
  sfx.die();
  burst(en.x,en.y-10,en.c,12,90,true);
@@ -2863,8 +2859,8 @@ function bossAI(en,dt){
     floatAt(en.x,en.y-en.r-30,'You are not prepared!','#9adf9a',true);}
   }
   if(en.cds.c<=0){en.cds.c=9;sfx.warn();
-   hazardAt(T.x,T.y,95,1.15,en.atk*1.5,'#b6ff7a');
-   hazardAt(T.x+(Math.random()-0.5)*180,T.y+(Math.random()-0.5)*180,95,1.15,en.atk*1.5,'#b6ff7a');
+   hazardAt(T.x,T.y,190,1.15,en.atk*1.5,'#b6ff7a');
+   hazardAt(T.x+(Math.random()-0.5)*180,T.y+(Math.random()-0.5)*180,190,1.15,en.atk*1.5,'#b6ff7a');
    floatAt(en.x,en.y-en.r-30,'Eye Beam!','#b6ff7a',true);
   }
   if(!en.enraged&&en.hp<en.max*0.3){
@@ -2874,9 +2870,9 @@ function bossAI(en,dt){
   }
  }else if(B==='firelord'){ /* wide burning trail, huge eruptions, sons of flame */
   en.trailT-=dt;
-  if(en.trailT<=0&&en.state==='chase'){en.trailT=0.4;hazardAt(en.x,en.y,36,0.5,en.atk*0.5,'#ff7a2a');}
+  if(en.trailT<=0&&en.state==='chase'){en.trailT=0.4;hazardAt(en.x,en.y,72,0.5,en.atk*0.5,'#ff7a2a');}
   if(en.cds.a<=0){en.cds.a=8;sfx.warn();
-   for(let i=0;i<5;i++)hazardAt(T.x+(Math.random()-0.5)*240,T.y+(Math.random()-0.5)*240,70,1.35,en.atk*1.5,'#ff9a3a');
+   for(let i=0;i<5;i++)hazardAt(T.x+(Math.random()-0.5)*240,T.y+(Math.random()-0.5)*240,140,1.35,en.atk*1.5,'#ff9a3a');
    floatAt(en.x,en.y-en.r-30,'ERUPTION!','#ff9a3a',true);
   }
   if(en.cds.b<=0&&dist(en,T)>55){en.cds.b=4;
@@ -2895,8 +2891,8 @@ function bossAI(en,dt){
   }
  }else if(B==='frostking'){ /* massive ice rings, frost volleys, risen ghouls */
   if(en.cds.a<=0){en.cds.a=10;sfx.warn();
-   const n=12,rad=190;
-   for(let i=0;i<n;i++){const a=i/n*6.283;hazardAt(en.x+Math.cos(a)*rad,en.y+Math.sin(a)*rad*0.85,58,1.5,en.atk*1.4,'#a0e0ff');}
+   const n=12,rad=240;
+   for(let i=0;i<n;i++){const a=i/n*6.283;hazardAt(en.x+Math.cos(a)*rad,en.y+Math.sin(a)*rad*0.85,116,1.5,en.atk*1.4,'#a0e0ff');}
    floatAt(en.x,en.y-en.r-30,'Ring of Frost!','#a0e0ff',true);
    en.lockT=1.1;
   }
