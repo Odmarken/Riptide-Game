@@ -670,9 +670,9 @@
       <div class="seapay" id="seaPay" style="display:none">
         <span>Match reels <b>1→2</b> = 🔒 <b>LOCK + RESPIN</b></span><span>Each extension <b>raises the multiplier</b></span>
         <span>Reach reels <b>1→2→3</b> to win · <b>4 = double</b></span><span>x2/x3/x5 cells multiply further</span>
-        <span>🪙 Gold line = <b>8x</b> per way</span><span>💥 <b>MAX WIN 40x</b> your bet</span>
+        <span>🪙 Gold line = <b>8x</b> per way</span><span>💥 <b>MAX WIN 20,000x</b> your bet</span>
         <span>🛡️ Rare line pays scrap · <b>6–12⚙</b></span><span>x2/x3/x5 cells multiply further</span>
-        <span>3+ 🎁 anywhere = <b>10 FREE SPINS</b></span><span>Free spins roll <b>richer reels</b></span>
+        <span>RTP target = <b>96%</b></span><span>Max win is <b>scripted from outcome table</b></span>
       </div>
       <div class="slotbet" style="display:flex;align-items:center;gap:8px;justify-content:center">
         <button class="sbtn" id="seaBetDn" style="width:34px">−</button>
@@ -809,6 +809,9 @@
 </div>
  
 <script>
+window.seaMusic=new Audio('seamen_song.mp3');
+window.seaMusic.loop=true;
+window.seaMusic.volume=0.35;
 /* ==================== DATA ==================== */
 const MAXLVL=60;
 const SEASON=1; /* bump this to wipe everyone */
@@ -5213,8 +5216,8 @@ const SEA_SYMDEF={
  skull:{icons:['🪙'],cc:'#ffd76a'},
  bonus:{icons:['🎁'],cc:'#ffd100'}
 };
-const SEA_W_BASE=[['joker',28],['hook',28],['wave',22],['fine',9],['rare',6],['epic',4],['skull',3],['bonus',3]];
-const SEA_W_BONUS=[['joker',20],['hook',20],['wave',16],['fine',12],['rare',9],['epic',6],['skull',5],['bonus',2]];
+const SEA_W_BASE=[['joker',28],['hook',28],['wave',22],['fine',9],['rare',6],['epic',4],['skull',3]];
+const SEA_W_BONUS=[['joker',20],['hook',20],['wave',16],['fine',12],['rare',9],['epic',6],['skull',5]];
 let seaSpinning=false,seaAuto=false,seaAutoTimer=0,seaCelebrating=false,seaCelebrateTimer=0;
 let seaFree=0,seaSession={spins:0,gold:0,scrap:0};
 const seaBonusMode=()=>seaFree>0;
@@ -5272,7 +5275,7 @@ function seaAnimateCols(cols,grid,done){
   const el=$('sc'+c);
   el.innerHTML=cells.map(seaCellHtml).join('');
   el.style.transform='translateY(0)';
-  return {el,dist:filler*CH,dur:(1200+j*420)/(seaFast?2:1),fin:false};
+  return {el,c,dist:filler*CH,dur:(1200+j*420)/(seaFast?2:1),fin:false};
  });
  const t0=performance.now(),last=cols.map(()=>-1);
  const tick=now=>{
@@ -5285,7 +5288,15 @@ function seaAnimateCols(cols,grid,done){
    if(p<1)all=false;
    else if(!r.fin){r.fin=true;noiseHit(0.06,.08,800);}
   });
-  if(!all)requestAnimationFrame(tick);else done();
+  if(!all)requestAnimationFrame(tick);
+  else{
+   /* Normalize strips after the spin so locked cells never flicker on respins. */
+   reels.forEach(r=>{
+    r.el.innerHTML=grid[r.c].map(seaCellHtml).join('');
+    r.el.style.transform='translateY(0)';
+   });
+   done();
+  }
  };
  requestAnimationFrame(tick);
 }
@@ -5313,57 +5324,66 @@ function seaAnimateCells(grid,cols,done){
  });
  if(pending===0)done();
 }
+const SEA_OUTCOMES=[[0,74.943],[0.1,8],[0.2,6],[0.5,4],[1,3],[2,2],[5,1],[10,0.5],[50,0.3],[100,0.2],[500,0.05],[2000,0.007],[20000,0.00005]];
+function seaRollOutcome(){
+ let r=Math.random()*100.00005;
+ for(const [m,w] of SEA_OUTCOMES){if((r-=w)<0)return m;}
+ return 0;
+}
+function seaForced(k){
+ const d=SEA_SYMDEF[k];
+ return {k,icon:d.icons[Math.floor(Math.random()*d.icons.length)],cc:d.cc,m:1};
+}
+function seaBandOf(mult){return mult>=50?'skull':mult>=5?'epic':mult>=1?'rare':'fine';}
+function seaGridFor(mult){
+ const grid=[];
+ for(let c=0;c<SEA_COLS;c++){
+  const col=[];
+  for(let r=0;r<SEA_ROWSBY[c];r++)col.push(seaCell());
+  grid.push(col);
+ }
+ const band=mult>0?seaBandOf(mult):null;
+ for(const k of ['skull','epic','rare','fine']){
+  if(k===band)continue;
+  while(grid[0].some(x=>x.k===k)&&grid[1].some(x=>x.k===k)){
+   const i=grid[1].findIndex(x=>x.k===k);
+   grid[1][i]=seaForced('wave');
+  }
+ }
+ if(band){
+  if(!grid[0].some(x=>x.k===band))grid[0][Math.floor(Math.random()*grid[0].length)]=seaForced(band);
+  if(!grid[1].some(x=>x.k===band))grid[1][Math.floor(Math.random()*grid[1].length)]=seaForced(band);
+ }
+ return grid;
+}
 function spinSea(){
  if(seaSpinning||seaCelebrating)return;
- const free=seaFree>0;
- if(free)seaFree--;
- else if(!spendGold(seaCost())){stopSeaAuto();stageMsg('Not enough gold — a spin costs '+seaCost().toLocaleString()+'◉',1400);sfx.warn();return;}
+ seaFree=0; /* old free-spin saves are retired: 96% RTP table owns the outcome */
+ const cost=seaCost();
+ if(!spendGold(cost)){
+  stopSeaAuto();
+  stageMsg('Not enough gold — a spin costs '+cost.toLocaleString()+'◉',1400);
+  sfx.warn();
+  return;
+ }
  renderHUD();
  seaSpinning=true;
  seaSession.spins++;
- if(!free)seaSession.gold-=seaCost();
+ seaSession.gold-=cost;
  const res=$('seaRes');
  res.classList.remove('bigres');
- res.style.color=free?'#ffd76a':'#8fa898';
- res.textContent=free?'🎁 FREE SPIN — '+seaFree+' left after this':'\u00a0';
+ res.style.color='#8fa898';
+ res.textContent=' ';
  updateSeaUI();
  sfx.buy();
- const grid=[];
- for(let c=0;c<SEA_COLS;c++){const col=[];for(let r=0;r<SEA_ROWSBY[c];r++)col.push(seaCell());grid.push(col);}
- seaAnimateCols([0,1,2,3],grid,()=>seaHold(grid,1,0));
-}
-function seaHold(grid,respins,ext){seaConnect(grid,ext||0,0);}
-function seaLockKey(grid){
- for(const k of ['skull','epic','rare','fine'])
-  if(grid[0].some(x=>x.k===k)&&grid[1].some(x=>x.k===k))return k;
- return null;
-}
-function seaConnect(grid,ext,buyPrice){
- const bk=grid._bk||seaLockKey(grid);
- if(!bk){seaFinalLocked(grid,null,ext);return;}
- grid._bk=bk;
- let newLocks=0;
- grid.forEach(col=>col.forEach(x=>{if(x.k===bk&&!x.lock){x.lock=true;newLocks++;}}));
- if(newLocks>0&&ext>0){
-  grid.forEach(col=>col.forEach(x=>{if(x.lock&&x.m>1)x.m=Math.min(x.m*2,20);}));
-  blip(980,1500,0.2,.08);
- }
- seaMarkLocked(grid);
- if(newLocks===0){seaOfferBuy(grid,ext);return;}
- const res=$('seaRes');
- res.style.color='#8fc3ef';
- res.textContent='🔒 '+grid.flat().filter(x=>x.lock).length+' cells locked'+(ext>0?' — MULTIPLIERS DOUBLED! 🔥':'')+' — respinning!';
- setTimeout(()=>seaRespinUnlocked(grid,ext+1),seaFast?350:700);
-}
-function seaRespinUnlocked(grid,ext){
- const cols=[];
- for(let c=0;c<SEA_COLS;c++){
-  let ch=false;
-  grid[c]=grid[c].map(x=>{if(x.lock)return x;ch=true;return seaCell();});
-  if(ch)cols.push(c);
- }
- if(!cols.length){seaConnect(grid,ext,0);return;}
- seaAnimateCells(grid,cols,()=>seaConnect(grid,ext,0));
+ const mult=seaRollOutcome();
+ const target=Math.round(mult*cost);
+ const grid=seaGridFor(mult);
+ grid._target=target;
+ grid._mult=mult;
+ grid._bk=mult>0?seaBandOf(mult):null;
+ grid._steps=mult>=2000?4:mult>=100?3:mult>=10?2:mult>0?1:0;
+ seaAnimateCols([0,1,2,3],grid,()=>seaScript(grid));
 }
 function seaMarkLocked(grid){
  for(let c=0;c<SEA_COLS;c++){
@@ -5378,110 +5398,114 @@ function seaMarkLocked(grid){
   });
  }
 }
-function seaCalcWin(grid){
- const bk=grid._bk;if(!bk)return 0;
- let br=0;while(br<SEA_COLS&&grid[br].some(x=>x.lock))br++;
- if(br<3)return 0;
- let ways=1,cm=1;
- for(let c=0;c<br;c++){const m=grid[c].filter(x=>x.lock);ways*=m.length;m.forEach(x=>{if(x.m>1)cm*=x.m;});}
- ways=Math.min(ways,12);cm=Math.min(cm,10);
- const PAYX={skull:8,epic:3,rare:1.2,fine:0.5};
- return Math.min(Math.round(PAYX[bk]*seaBet*ways*Math.min(cm,8)*(br>=4?2:1)),seaBet*40);
+function seaScript(grid){
+ const bk=grid._bk;
+ if(!bk){seaPayout(grid,0);return;}
+ grid.forEach(col=>col.forEach(x=>{if(x.k===bk)x.lock=true;}));
+ seaMarkLocked(grid);
+ if(grid._steps<=0){seaPayout(grid,grid._target);return;}
+ $('seaRes').style.color='#8fc3ef';
+ $('seaRes').textContent='🔒 Locked — respinning!';
+ setTimeout(()=>seaScriptStep(grid,grid._steps),seaFast?350:700);
 }
-function seaOfferBuy(grid,ext){
- const win=seaCalcWin(grid);
- const hasMults=grid.flat().some(x=>x.lock&&x.m>1);
- if(win<=0||!hasMults||win>=seaBet*30){seaFinalLocked(grid,grid._bk,ext);return;}
- const price=Math.max(seaBet,Math.round(win*0.6))*Math.pow(2,grid._buys||0);
- if(totalGold()<price){seaFinalLocked(grid,grid._bk,ext);return;}
+function seaScriptStep(grid,left){
+ const bk=grid._bk,plant=1+(left>2?1:0);
+ let planted=0;
+ for(let c=1;c<SEA_COLS&&planted<plant;c++){
+  const open=grid[c].map((x,i)=>x.lock?-1:i).filter(i=>i>=0);
+  if(open.length){
+   const i=open[Math.floor(Math.random()*open.length)];
+   const cell=seaForced(bk);cell.m=[2,3,5][Math.floor(Math.random()*3)];
+   grid[c][i]=cell;planted++;
+  }
+ }
+ grid.forEach(col=>col.forEach(x=>{if(!x.lock)Object.assign(x,seaCell());}));
+ grid.forEach(col=>col.forEach(x=>{if(x.k===bk)x.lock=true;}));
+ seaAnimateCells(grid,[0,1,2,3],()=>{
+  grid.forEach(col=>col.forEach(x=>{if(x.lock&&x.m>1)x.m=Math.min(x.m*2,64);}));
+  seaMarkLocked(grid);
+  blip(980,1500,0.2,.08);
+  $('seaRes').textContent='🔥 CONNECTION — MULTIPLIERS DOUBLED!';
+  if(left>1)setTimeout(()=>seaScriptStep(grid,left-1),seaFast?400:800);
+  else setTimeout(()=>seaOfferBuy2(grid),seaFast?400:800);
+ });
+}
+function seaOfferBuy2(grid){
+ const win=grid._target;
+ if(win<seaCost()||win>=seaCost()*10000){seaPayout(grid,win);return;}
+ const price=Math.round(win*0.5);
+ if(totalGold()<price){seaPayout(grid,win);return;}
  $('seaBuyPrice').textContent=price.toLocaleString()+'◉';
  $('seaBuyFx').style.display='flex';
  $('seaBuyYes').onclick=()=>{
   $('seaBuyFx').style.display='none';
-  if(!spendGold(price)){seaFinalLocked(grid,grid._bk,ext);return;}
-  seaSession.gold-=price;renderHUD();
-  grid._buys=(grid._buys||0)+1;
-  sfx.buy();
-  seaRespinUnlocked(grid,ext+1);
+  if(!spendGold(price)){seaPayout(grid,win);return;}
+  seaSession.gold-=price;renderHUD();sfx.buy();
+  const hit=Math.random()<0.48;
+  grid.forEach(col=>col.forEach(x=>{if(!x.lock)Object.assign(x,seaCell());}));
+  if(hit){
+   const c=1+Math.floor(Math.random()*3);
+   const open=grid[c].map((x,i)=>x.lock?-1:i).filter(i=>i>=0);
+   if(open.length){const cell=seaForced(grid._bk);cell.m=2;cell.lock=true;grid[c][open[0]]=cell;}
+  }
+  seaAnimateCells(grid,[0,1,2,3],()=>{
+   if(hit){
+    grid._target=Math.min(grid._target*2,seaCost()*20000);
+    grid.forEach(col=>col.forEach(x=>{if(x.lock&&x.m>1)x.m=Math.min(x.m*2,64);}));
+    seaMarkLocked(grid);
+    $('seaRes').textContent='🔥 CONNECTION — WIN DOUBLED!';
+    setTimeout(()=>seaOfferBuy2(grid),seaFast?450:900);
+   }else{$('seaRes').textContent='The sea claims your coin…';seaPayout(grid,grid._target);}
+  });
  };
- $('seaBuyNo').onclick=()=>{$('seaBuyFx').style.display='none';seaFinalLocked(grid,grid._bk,ext);};
+ $('seaBuyNo').onclick=()=>{$('seaBuyFx').style.display='none';seaPayout(grid,grid._target);};
 }
 $('seaInfoBtn').onclick=()=>{const p=$('seaPay');if(p)p.style.display=p.style.display==='none'?'grid':'none';};
-function seaFinalLocked(grid,bk,ext){
+function seaPayout(grid,amount){
  seaSpinning=false;
- bk=bk||grid._bk||null;
- const gifts=grid.flat().filter(x=>x.k==='bonus').length;
- let bonusTxt='';
- if(gifts>=3){
-  const add=seaBonusMode()?5:10;
-  seaFree+=add;
-  bonusTxt=' · 🎁 '+add+' FREE SPINS!';
-  log(`Borek Seamen: <span class="llegendary">🎁 ${add} FREE SPINS</span> triggered!`,'loot');
- }
  const res=$('seaRes');
  res.classList.remove('bigres');
- let br=0,ways=1,cellMult=1;
- if(bk){
-  while(br<SEA_COLS&&grid[br].some(x=>x.lock))br++;
-  if(br>=3)for(let c=0;c<br;c++){const m=grid[c].filter(x=>x.lock);ways*=m.length;m.forEach(x=>{if(x.m>1)cellMult*=x.m;});}
+ if(amount<=0){
+  res.style.color='#8fa898';
+  res.textContent='The sea is quiet…';
+  updateSeaUI();
+  save();
+  resumeSeaAuto();
+  return;
  }
- if(!bk||br<3){
-  if(gifts>=3){
-   seaCelebrating=true;
-   res.style.color='#ffd100';res.classList.add('bigres');
-   res.textContent='🎁 BONUS ROUND — '+seaFree+' free spins of richer reels!';
-   $('seaFx').querySelector('.slotmach').classList.add('bigwin');
-   dingDingDing(false);spawnPartsIn($('seaFx'),'#ffd100',20);
-   seaCelebrateTimer=setTimeout(()=>{clearSeaCelebration();updateSeaUI();seaNext();},3200);
-  }else{
-   res.style.color=seaFree>0?'#ffd76a':'#8fa898';
-   res.textContent=(seaFree>0?'No luck — ':'The sea gives nothing back…')+(seaFree>0?seaFree+' free spins left':'');
-   blip(300,180,0.25,.05,'sawtooth');
-   seaNext();
-  }
-  renderHUD();save();updateSeaUI();return;
+ const paidObj=addGoldOverflow(amount);
+ const paid=paidObj.got+paidObj.over;
+ seaSession.gold+=paid;
+ if(grid._bk==='rare'){
+  const scraps=amount>=seaCost()*4?12:6;
+  const gotScrap=addScraps(scraps);
+  seaSession.scrap+=gotScrap;
+  if(gotScrap>0)log(`Borek Seamen: <span class="lfine">+${gotScrap} scraps</span>.`,'loot');
  }
- seaMarkLocked(grid);
- cellMult=Math.min(cellMult,10);
- const mult=Math.min(cellMult*(1+ext),8);
- const full=br>=4?2:1;
- ways=Math.min(ways,12);
- const PAYX={skull:8,epic:3,rare:1.2,fine:0.5};
- const goldWon=Math.min(Math.round(PAYX[bk]*seaBet*ways*mult*full),seaBet*40); /* MAX WIN 40x */
- const scrapWon=bk==='rare'?(br>=4?12:6):0; /* scrap på rare-linjen, max 12⚙ */
- const {got,over}=addGoldOverflow(goldWon);
- const paid=got+over;
- const gotScrap=addScraps(scrapWon);
- seaSession.gold+=paid;seaSession.scrap+=gotScrap;
- const bits=['+'+paid.toLocaleString()+'◉'];
- if(gotScrap>0)bits.push('+'+gotScrap+'⚙');
- const multTxt=mult>1?' · x'+mult+'!':'';
- const big=bk==='skull'||mult>=6||paid>=seaCost()*10||gifts>=3;
+ const multTxt='x'+parseFloat((amount/seaCost()).toFixed(2));
+ const big=amount>=seaCost()*10;
  res.style.color=big?'#ffd100':'#8fc3ef';
  if(big){
   seaCelebrating=true;
   res.classList.add('bigres');
-  res.textContent='🌊 BIG CATCH — '+bits.join(' · ')+multTxt+bonusTxt;
+  res.textContent='🌊 BIG CATCH — '+paid.toLocaleString()+'◉ · '+multTxt;
   $('seaFx').querySelector('.slotmach').classList.add('bigwin');
-  dingDingDing(paid>=seaCost()*30);
+  dingDingDing(amount>=seaCost()*50);
   spawnPartsIn($('seaFx'),'#ffd100',22);
-  log(`Borek Seamen: <span class="llegendary">+${paid.toLocaleString()} ◉</span>${multTxt}!`,'loot');
-  seaCelebrateTimer=setTimeout(()=>{clearSeaCelebration();updateSeaUI();seaNext();},4200);
+  log(`Borek Seamen: <span class="llegendary">+${paid.toLocaleString()} ◉</span> ${multTxt}!`,'loot');
+  seaCelebrateTimer=setTimeout(()=>{clearSeaCelebration();updateSeaUI();resumeSeaAuto();},4500);
  }else{
-  res.textContent='Winner! '+bits.join(' · ')+multTxt+bonusTxt;
+  res.textContent='Winner! '+paid.toLocaleString()+'◉ · '+multTxt;
   sfx.loot();
   spawnPartsIn($('seaFx'),'#8fc3ef',10);
-  log(`Borek Seamen: <span class="loot">+${paid.toLocaleString()} ◉</span>${multTxt}.`,'loot');
-  seaNext();
+  log(`Borek Seamen: <span class="loot">+${paid.toLocaleString()} ◉</span> ${multTxt}.`,'loot');
  }
  renderHUD();save();updateSeaUI();
+ if(!seaCelebrating)resumeSeaAuto();
 }
 function seaNext(){
  if(seaCelebrating)return;
- if(seaFree>0){
-  seaAutoTimer=setTimeout(()=>{if($('seaFx').classList.contains('open')&&!seaSpinning&&!seaCelebrating)spinSea();},seaFast?450:900);
-  return;
- }
+ seaFree=0;
  resumeSeaAuto();
 }
 function clearSeaCelebration(){
@@ -5493,20 +5517,20 @@ function clearSeaCelebration(){
 function updateSeaUI(){
  const b=$('seaSpinBtn'),cost=seaCost();
  if(b){
-  b.disabled=seaSpinning||seaCelebrating||(seaFree<=0&&totalGold()<cost);
-  b.textContent=seaFree>0?'🎁 FREE SPIN ('+seaFree+' left)':totalGold()<cost?'🦈 Spin · '+cost.toLocaleString()+'◉ — broke!':'🦈 Spin · '+cost.toLocaleString()+'◉';
+  b.disabled=seaSpinning||seaCelebrating||totalGold()<cost;
+  b.textContent=totalGold()<cost?'🦈 Spin · '+cost.toLocaleString()+'◉ — broke!':'🦈 Spin · '+cost.toLocaleString()+'◉';
  }
  const a=$('seaAutoBtn');
  if(a){a.classList.toggle('on',seaAuto);a.textContent=seaAuto?'■ Stop':'▶ Auto';}
  const bc=$('seaBetCost');
- if(bc)bc.textContent=seaFree>0?'FREE SPINS':cost.toLocaleString()+'◉ / spin';
+ if(bc)bc.textContent=cost.toLocaleString()+'◉ / spin';
  const bn=$('seaBetN');
  if(bn)bn.textContent=cost.toLocaleString()+'◉';
  const bd=$('seaBetDn'),bu=$('seaBetUp');
- if(bd)bd.disabled=seaSpinning||seaAuto||seaFree>0||seaBetIx<=0;
- if(bu)bu.disabled=seaSpinning||seaAuto||seaFree>0||seaBetIx>=SEA_BETS.length-1;
+ if(bd)bd.disabled=seaSpinning||seaAuto||seaBetIx<=0;
+ if(bu)bu.disabled=seaSpinning||seaAuto||seaBetIx>=SEA_BETS.length-1;
  const st=$('seaStats'),s=seaSession;
- if(st)st.textContent=s.spins?`Session: ${s.spins} spins · ${s.gold>=0?'+':''}${s.gold.toLocaleString()}◉ · +${s.scrap}⚙${seaFree>0?' · 🎁 '+seaFree+' free':''}`:'';
+ if(st)st.textContent=s.spins?`Session: ${s.spins} spins · ${s.gold>=0?'+':''}${s.gold.toLocaleString()}◉ · +${s.scrap}⚙`:'';
 }
 function resumeSeaAuto(){
  if(!seaAuto)return;
@@ -5519,6 +5543,8 @@ function stopSeaAuto(msg){
  updateSeaUI();
 }
 function openSea(){
+ seaFree=0;
+ if(window.seaMusic){seaMusic.currentTime=0;seaMusic.play().catch(()=>{});}
  $('seaFx').classList.add('open');
  clearSeaCelebration();
  seaSession={spins:0,gold:0,scrap:0};
@@ -5529,23 +5555,23 @@ function openSea(){
  }
  $('seaRes').innerHTML='&nbsp;';
  updateSeaUI();
- if(seaFree>0)seaNext(); /* unfinished bonus round resumes */
 }
 $('seaSpinBtn').onclick=()=>{if(!seaAuto)spinSea();};
 $('seaFastBtn').onclick=()=>{seaFast=!seaFast;$('seaFastBtn').classList.toggle('on',seaFast);};
 $('seaAutoBtn').onclick=()=>{
  if(seaAuto){stopSeaAuto();return;}
- if(totalGold()<seaCost()&&seaFree<=0){stageMsg('Not enough gold to start auto-spin',1400);sfx.warn();return;}
+ if(totalGold()<seaCost()){stageMsg('Not enough gold to start auto-spin',1400);sfx.warn();return;}
  seaAuto=true;seaSession={spins:0,gold:0,scrap:0};
  updateSeaUI();
  if(!seaSpinning&&!seaCelebrating)spinSea();
 };
-$('seaBetDn').onclick=()=>{if(seaBetIx>0&&!seaSpinning&&!seaAuto&&seaFree<=0){seaBetIx--;seaBet=SEA_BETS[seaBetIx];updateSeaUI();}};
-$('seaBetUp').onclick=()=>{if(seaBetIx<SEA_BETS.length-1&&!seaSpinning&&!seaAuto&&seaFree<=0){seaBetIx++;seaBet=SEA_BETS[seaBetIx];updateSeaUI();}};
+$('seaBetDn').onclick=()=>{if(seaBetIx>0&&!seaSpinning&&!seaAuto){seaBetIx--;seaBet=SEA_BETS[seaBetIx];updateSeaUI();}};
+$('seaBetUp').onclick=()=>{if(seaBetIx<SEA_BETS.length-1&&!seaSpinning&&!seaAuto){seaBetIx++;seaBet=SEA_BETS[seaBetIx];updateSeaUI();}};
 $('seaClose').onclick=()=>{
  if(seaSpinning&&!seaAuto)return;
  stopSeaAuto();clearSeaCelebration();clearTimeout(seaAutoTimer);
  $('seaFx').classList.remove('open');
+ if(window.seaMusic)seaMusic.pause();
 };
 
 /* ==================== BOREK BLACKJACK ==================== */
