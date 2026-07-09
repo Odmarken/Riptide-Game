@@ -1101,9 +1101,12 @@ function mpKicked(){
 function mpSyncTick(){
  if(!(mp.on&&mp.started&&hero))return;
  const now=performance.now();
- if(now-(mp.lastRtc||0)>66){
+ if(now-(mp.lastRtc||0)>50){ /* 20Hz over RTC */
   mp.lastRtc=now;
-  rtcBroadcast({k:'pos',x:Math.round(hero.x),y:Math.round(hero.y),hp:hero.hp/heroMax(),f:hero.fx||1,atk:(hero.swing||0)>0},false);
+  const dx=hero.x-(mp._lhx==null?hero.x:mp._lhx),dy=hero.y-(mp._lhy==null?hero.y:mp._lhy);
+  mp._lhx=hero.x;mp._lhy=hero.y;
+  const mv=(Math.abs(hero.vx||0)+Math.abs(hero.vy||0))>5||Math.hypot(dx,dy)>1?1:0;
+  rtcBroadcast({k:'pos',x:Math.round(hero.x),y:Math.round(hero.y),hp:hero.hp/heroMax(),f:hero.fx||hero.facing||1,mv,atk:(hero.swing||0)>0},false);
  }
  if(now-mp.lastSend>1500){
   mp.lastSend=now;
@@ -1213,8 +1216,8 @@ function rtcOnMsg(pid,m){
  if(m.k==='pos'){
   const p=mp.peers[pid];if(!p)return;
   const now=performance.now(),dtp=(now-(p._rt||now))/1000;p._rt=now;
-  if(dtp>0&&dtp<0.5){p._vx=(m.x-(p.x||m.x))/dtp;p._vy=(m.y-(p.y||m.y))/dtp;}
-  p.x=m.x;p.y=m.y;p.hp=m.hp;p.f=m.f||p.f||1;p.atk=!!m.atk;p.t=Date.now();p._rtc=true;
+  if(dtp>0.01&&dtp<0.5){p._vx=(m.x-(p.x||m.x))/dtp;p._vy=(m.y-(p.y||m.y))/dtp;}
+  p.x=m.x;p.y=m.y;p.hp=m.hp;p.f=m.f||p.f||1;p.mv=m.mv?1:0;p.atk=!!m.atk;p.t=Date.now();p._rtc=true;
  }else if(m.k==='act'){
   const p=mp.peers[pid];if(!p)return;
   mpPlayFx(m,p);
@@ -1252,15 +1255,19 @@ function mpHostApplyDamage(){
   }
  }
 }
-function drawHeroLike(x,y,look,alpha,name,hp){
+function drawHeroLike(x,y,look,alpha,anim,name,hp){
  look=look||{};
+ anim=anim||{};
  const race=look.race||'human',cls=look.cls||'warrior';
  const now=performance.now();
+ const moving=anim.moving!=null?!!anim.moving:true;
+ const phase=anim.animT!=null?anim.animT:now/500;
+ const by=moving?Math.sin(phase*7)*1.2:Math.sin(now/600)*0.8;
+ const fx=anim.facing||look.f||1;
  ctx.save();ctx.translate(x,y);ctx.globalAlpha=alpha==null?0.85:alpha;
- const by=Math.sin(now/600)*0.8,fx=look.f||1;
  ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,8,12,5,0,0,7);ctx.fill();
- feet({walk:now/500},1);
- drawChampionSprite(ctx,race,cls,fx,by,look.atk?0.18:0,!!look.fm||look.w==='frostmourne');
+ feet({walk:phase*1.8},moving?1:0.15);
+ drawChampionSprite(ctx,race,cls,fx,by,(look.atk||anim.attacking)?0.18:0,!!look.fm||look.w==='frostmourne');
  if(look.pet){ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText(look.pet==='dog'?'🐕':look.pet==='cat'?'🐈':'🐾',-18,10);}
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(name||'Hero',1,-25+by+1);ctx.fillStyle='#dff4ff';ctx.fillText(name||'Hero',0,-25+by);
@@ -1273,14 +1280,16 @@ function drawMpGhosts(){
   const p=mp.peers[k];if(!p||Date.now()-(p.t||0)>6000)continue;
   if(p._x===undefined){p._x=p.x||hero.x;p._y=p.y||hero.y;}
   if(p._rtc){
-   const age=Math.min((performance.now()-(p._rt||0))/1000,0.25);
-   const gx=(p.x||p._x)+(p._vx||0)*age,gy=(p.y||p._y)+(p._vy||0)*age;
-   p._x+=(gx-p._x)*0.4;p._y+=(gy-p._y)*0.4;
+   const age=Math.min((performance.now()-(p._rt||0))/1000,0.12);
+   const gx=(p.x||p._x)+(p.mv?(p._vx||0)*age:0),gy=(p.y||p._y)+(p.mv?(p._vy||0)*age:0);
+   const dx=gx-p._x,dy=gy-p._y,d=Math.hypot(dx,dy);
+   if(d>140){p._x=gx;p._y=gy;}else{p._x+=dx*0.5;p._y+=dy*0.5;}
   }else{
    p._x+=((p.x||p._x)-p._x)*0.12;p._y+=((p.y||p._y)-p._y)*0.12;
   }
   if(p._atkT&&performance.now()>p._atkT)p.atk=false;
-  drawHeroLike(p._x,p._y,Object.assign({},p.look||{},{f:p.f||1,atk:!!p.atk}),0.85,p.name||'Hero',p.hp);
+  p._animT=(p._animT||0)+(p.mv?0.016:0);
+  drawHeroLike(p._x,p._y,Object.assign({},p.look||{},{f:p.f||1,atk:!!p.atk}),0.85,{facing:p.f||1,moving:!!p.mv,animT:p._animT,attacking:!!p.atk},p.name||'Hero',p.hp);
  }
 }
 setTimeout(()=>{
