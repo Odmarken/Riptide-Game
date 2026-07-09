@@ -630,7 +630,7 @@
 
   <div id="seaFx">
     <div class="slotmach sea">
-      <div class="slottop">🦈 BOREK SEAMEN (COMING BACK SOON)</div>
+      <div class="slottop">🦈 BOREK SEAMEN (EXPERIMENTAL)</div>
       <div class="seagrid">
         <div class="seacolwin" data-rows="3"><div class="seastrip" id="sc0"></div></div>
         <div class="seacolwin" data-rows="5"><div class="seastrip" id="sc1"></div></div>
@@ -688,7 +688,7 @@
     <div class="slottop" style="color:var(--brass);margin-bottom:6px">🎰 BOREK CASINO</div>
     <div class="cl" style="margin-bottom:14px">The house always wins. Pick your game.</div>
     <button class="casinopick" data-game="slots"><span class="cg">🎰</span><span class="ct"><b>Borek 67</b><i>Classic slots — win up to 100x</i></span></button>
-    <button class="casinopick disabled" data-game="sea" aria-disabled="true" title="Coming Back Soon"><span class="cg">🦈</span><span class="ct"><b>Borek Seamen (Coming Back Soon)</b><i>Temporarily unavailable</i></span></button>
+    <button class="casinopick" data-game="sea"><span class="cg">🦈</span><span class="ct"><b>Borek Seamen (experimental)</b><i>Hold &amp; respin — lock reels, chase free spins</i></span></button>
     <button class="casinopick" data-game="bj"><span class="cg">🃏</span><span class="ct"><b>Borek Blackjack</b><i>Beat the dealer to 21 — pays 3:2</i></span></button>
     <button id="casinoMenuClose" class="sbtn" style="margin-top:6px;padding:11px">Leave the Casino</button>
    </div>
@@ -993,6 +993,26 @@ const scrollGet=id=>(S.activeScrolls||[]).find(sc=>sc&&sc.id===id);
 const scrollPct=id=>{const sc=scrollGet(id);return sc?tierVal(id,sc.tier)/100:0;}; /* fraction */
 const scrollRaw=id=>{const sc=scrollGet(id);return sc?tierVal(id,sc.tier):0;};     /* raw value (e.g. seconds) */
 const activeEnchs=()=>(S.activeScrolls||[]).filter(Boolean).map(sc=>enchOf(sc.id));
+const EQS=()=>{S.activeScrolls=S.activeScrolls||[null,null];return S.activeScrolls;};
+const enchName=sc=>enchOf(sc.id).n+' '+TIERN[(sc.tier||1)-1];
+function scrollPoolCount(id,tier){
+ let n=(S.scrolls||[]).filter(s=>s&&s.id===id&&s.tier===tier).length;
+ EQS().forEach(e=>{if(e&&e.id===id&&e.tier===tier)n++;});
+ return n;
+}
+function consumeScrolls(id,tier,n){
+ let fromSlot=-1;
+ for(let i=(S.scrolls||[]).length-1;i>=0&&n>0;i--){
+  const sc=S.scrolls[i];
+  if(sc&&sc.id===id&&sc.tier===tier){S.scrolls.splice(i,1);n--;}
+ }
+ for(let i=0;i<EQS().length&&n>0;i++){
+  const e=EQS()[i];
+  if(e&&e.id===id&&e.tier===tier){EQS()[i]=null;fromSlot=i;n--;}
+ }
+ return fromSlot;
+}
+
 const gearScore=()=>{if(isFM(S.gear.weapon))syncFrostmourne(S.gear.weapon);return Math.round(Object.values(S.gear).reduce((t,g)=>t+(g?g.power:0),0));};
 /* Prestige has no cap — but it only unlocks at max level once every boss is dead. */
 const allBossesDead=()=>ZONES.every((z,i)=>z.special||!z.boss||!!S.bossDead[i]);
@@ -3569,7 +3589,7 @@ function renderHero(){
   if(!S.activeScrolls[i])return;
   S.scrolls.push(S.activeScrolls[i]);S.activeScrolls[i]=null;
   log('Scroll returned to the Bag.');
-  renderHero();save();
+  renderHero();renderHUD();save();
  });
  /* Prestige — unlocks at max level only once every boss in the realm is dead */
  if(S.lvl>=MAXLVL){
@@ -3807,14 +3827,16 @@ function renderBag(){
  $('scrollSec').innerHTML=luckHtml+gamblerHtml;
 
  // scrolls — categorised by tier; tap a tier header to expand/collapse it
- if(S.scrolls.length){
+ const pool=(S.scrolls||[]).concat(EQS().filter(Boolean));
+ if(pool.length){
   const groups={};
-  S.scrolls.forEach(sc=>{const k=sc.id+':'+sc.tier;(groups[k]=groups[k]||{id:sc.id,tier:sc.tier,n:0}).n++;});
+  pool.forEach(sc=>{const k=sc.id+':'+sc.tier;(groups[k]=groups[k]||{id:sc.id,tier:sc.tier,n:0,bag:0}).n++;});
+  (S.scrolls||[]).forEach(sc=>{const k=sc.id+':'+sc.tier;if(groups[k])groups[k].bag++;});
   const byTier={};
   Object.values(groups).forEach(g=>(byTier[g.tier]=byTier[g.tier]||[]).push(g));
   const TIERC=['#d8e4d6','#6dbb6d','#5b9bd5','#c9a0ff'];
-  let sh='<div class="ptitle" style="font-size:14px;margin-bottom:8px">Scrolls</div>'+
-   '<div class="ss" style="color:var(--dim);font-size:10.5px;margin-bottom:8px">Combine two identical scrolls to forge the next tier — the effect doubles (up to Tier IV). Tap a tier to expand or collapse it.</div>';
+  let sh='<div class="ptitle" style="font-size:14px;margin-bottom:8px">Scrolls</div>'+ 
+   '<div class="ss" style="color:var(--dim);font-size:10.5px;margin-bottom:8px">Choose Scroll 1 or Scroll 2 when equipping. Combine counts both Bag scrolls and equipped scrolls (up to Tier IV). Tap a tier to expand or collapse it.</div>';
   for(let t=MAXTIER;t>=1;t--){
    const list=(byTier[t]||[]).sort((a,b)=>a.id.localeCompare(b.id));
    if(!list.length)continue;
@@ -3826,13 +3848,17 @@ function renderBag(){
      <span class="tcount">${total} scroll${total>1?'s':''} · ${list.length} type${list.length>1?'s':''}</span></div>`;
    if(open)sh+='<div class="tierbody">'+list.map(g=>{
     const e=enchOf(g.id);
-    const active=(S.activeScrolls||[]).some(x=>x&&x.id===g.id);
-    return `<div class="card item"><div><div class="sn" style="color:#d9a0ef;font-size:13px;font-weight:600"><span class="glowdot" style="background:${e.glow};box-shadow:0 0 6px ${e.glow}"></span>${e.n} ${TIERN[g.tier-1]}${g.n>1?` <span style="color:var(--dim)">×${g.n}</span>`:''}</div>
+    const activeSlot=EQS().findIndex(x=>x&&x.id===g.id&&x.tier===g.tier);
+    const activeSameType=EQS().findIndex(x=>x&&x.id===g.id);
+    const hasBag=g.bag>0;
+    const totalCount=scrollPoolCount(g.id,g.tier);
+    return `<div class="card item"><div><div class="sn" style="color:#d9a0ef;font-size:13px;font-weight:600"><span class="glowdot" style="background:${e.glow};box-shadow:0 0 6px ${e.glow}"></span>${e.n} ${TIERN[g.tier-1]}${g.n>1?` <span style="color:var(--dim)">×${g.n}</span>`:''}${g.bag!==g.n?` <span style="color:var(--dim)">(${g.bag} bag · ${g.n-g.bag} equipped)</span>`:''}</div>
      <div class="ss" style="color:var(--dim);font-size:11px">${tierDesc(g.id,g.tier)}</div></div>
      <div class="btns">
-      ${g.n>=2&&g.tier<MAXTIER?`<button class="sbtn scrapb" data-comb="${g.id}:${g.tier}">⚗ Combine → ${TIERN[g.tier]}</button>`:''}
-      ${g.tier===MAXTIER&&g.n>=2?`<button class="sbtn" data-scsell="${g.id}:${g.tier}">Sell ${TIER4_SCROLL_SELL.toLocaleString()}◉</button>`:''}
-      <button class="sbtn gold" data-sceq="${g.id}:${g.tier}" ${active?'disabled':''}>${active?'Active':'Equip'}</button>
+      ${totalCount>=2&&g.tier<MAXTIER?`<button class="sbtn scrapb" data-comb="${g.id}:${g.tier}">⚗ Combine → ${TIERN[g.tier]}</button>`:''}
+      ${g.tier===MAXTIER&&g.bag>=2?`<button class="sbtn" data-scsell="${g.id}:${g.tier}">Sell ${TIER4_SCROLL_SELL.toLocaleString()}◉</button>`:''}
+      <button class="sbtn gold" data-eqslot="0" data-sceq="${g.id}:${g.tier}" ${!hasBag||(activeSameType>=0&&activeSameType!==0)?'disabled':''}>${EQS()[0]?'↔ ':''}Slot 1</button>
+      <button class="sbtn gold" data-eqslot="1" data-sceq="${g.id}:${g.tier}" ${!hasBag||(activeSameType>=0&&activeSameType!==1)?'disabled':''}>${EQS()[1]?'↔ ':''}Slot 2</button>
      </div></div>`;
    }).join('')+'</div>';
   }
@@ -3841,40 +3867,47 @@ function renderBag(){
    const t=+h.dataset.tt;scrollTierOpen[t]=!scrollTierOpen[t];renderBag();
   });
   const takeScroll=(id,tier)=>{const i=S.scrolls.findIndex(x=>x.id===id&&x.tier===tier);return i>=0?S.scrolls.splice(i,1)[0]:null;};
-  document.querySelectorAll('[data-sceq]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('[data-eqslot]').forEach(b=>b.onclick=()=>{
    if(inBossFight()){stageMsg('No swapping scrolls mid-boss-fight!',1600);sfx.warn();return;}
    if(cowLocked()){stageMsg('The herd allows no scroll rituals — survive or die first!',1600);sfx.warn();return;}
+   const slot=parseInt(b.dataset.eqslot,10);
    const [id,t]=b.dataset.sceq.split(':'),tier=+t;
-   S.activeScrolls=S.activeScrolls||[null,null];
-   /* same scroll type can never be active twice — regardless of tier */
-   if(S.activeScrolls.some(x=>x&&x.id===id)){
+   const other=EQS().findIndex((x,i)=>i!==slot&&x&&x.id===id);
+   if(other>=0){
     stageMsg(enchOf(id).n.replace('Scroll of ','')+' is already active — effects of the same scroll never stack',1800);
     sfx.warn();return;
    }
    const sc=takeScroll(id,tier);if(!sc)return;
-   let slot=S.activeScrolls.findIndex(x=>!x);
-   if(slot<0){slot=0;S.scrolls.push(S.activeScrolls[0]);} /* both full → swap out slot 1 */
-   S.activeScrolls[slot]=sc;
-   log(`<span class="lscroll">${enchOf(id).n} ${TIERN[tier-1]}</span> now burns in Scroll slot ${slot+1}.`);
-   sfx.loot();renderBag();save();
+   const old=EQS()[slot];
+   if(old)S.scrolls.push(old);
+   EQS()[slot]=sc;
+   stageMsg('📜 '+enchName(sc)+' → Scroll '+(slot+1),1400);
+   log(`<span class="lscroll">${enchName(sc)}</span> now burns in Scroll slot ${slot+1}.`);
+   sfx.loot();renderBag();renderHUD();save();
   });
   document.querySelectorAll('[data-comb]').forEach(b=>b.onclick=()=>{
    if(inBossFight()){stageMsg('No swapping scrolls mid-boss-fight!',1600);sfx.warn();return;}
    if(cowLocked()){stageMsg('The herd allows no scroll rituals — survive or die first!',1600);sfx.warn();return;}
    const [id,t]=b.dataset.comb.split(':'),tier=+t;
-   if(takeScroll(id,tier)&&takeScroll(id,tier)){
-    S.scrolls.push({id,tier:tier+1});
-    sfx.forge();
-    sparkles(hero.x,hero.y-14,enchOf(id).glow,10);
-    log(`Forged <span class="lscroll">${enchOf(id).n} ${TIERN[tier]}</span> from two lesser scrolls.`,'loot');
-    stageMsg('⚗ '+enchOf(id).n+' '+TIERN[tier]+' forged!',1800);
-    renderBag();save();
+   if(scrollPoolCount(id,tier)<2){stageMsg('Need two identical scrolls to combine',1400);sfx.warn();return;}
+   const fromSlot=consumeScrolls(id,tier,2);
+   const upgraded={id,tier:tier+1};
+   if(fromSlot>=0){
+    EQS()[fromSlot]=upgraded;
+    stageMsg('📜 '+enchName(upgraded)+' — upgraded directly in Scroll '+(fromSlot+1)+'!',1800);
+   }else{
+    S.scrolls.push(upgraded);
+    stageMsg('⚗ '+enchName(upgraded)+' forged!',1800);
    }
+   sfx.forge();
+   sparkles(hero.x,hero.y-14,enchOf(id).glow,10);
+   log(`Forged <span class="lscroll">${enchName(upgraded)}</span> from two lesser scrolls.`,'loot');
+   renderBag();renderHUD();save();
   });
   document.querySelectorAll('[data-scsell]').forEach(b=>b.onclick=()=>{
    const [id,t]=b.dataset.scsell.split(':'),tier=+t;
    const cnt=S.scrolls.filter(x=>x.id===id&&x.tier===tier).length;
-   if(cnt<2){stageMsg('You must keep at least one of this scroll',1600);sfx.warn();return;}
+   if(cnt<2){stageMsg('You must keep at least one of this scroll in the Bag',1600);sfx.warn();return;}
    const i=S.scrolls.findIndex(x=>x.id===id&&x.tier===tier);
    if(i<0)return;
    S.scrolls.splice(i,1);
@@ -4474,8 +4507,10 @@ const SEA_SYMDEF={
  skull:{icons:['💀'],cc:'#ffd76a'},
  bonus:{icons:['🎁'],cc:'#ffd100'}
 };
-const SEA_W_BASE=[['joker',21],['hook',21],['wave',17],['fine',13],['rare',9],['epic',5],['scroll',5],['skull',4],['bonus',5]];
-const SEA_W_BONUS=[['joker',12],['hook',12],['wave',10],['fine',16],['rare',13],['epic',9],['scroll',9],['skull',7],['bonus',4]];
+const SEA_W_BASE=[['joker',28],['hook',28],['wave',22],['fine',9],['rare',5],['epic',2],['scroll',3],['skull',1],['bonus',2]];
+const SEA_W_BONUS=[['joker',18],['hook',18],['wave',14],['fine',18],['rare',11],['epic',5],['scroll',6],['skull',3],['bonus',2]];
+const SEA_PAYX={skull:12,epic:8,rare:5,fine:3,scroll:4};
+const SEA_MAX_WIN_X=150; /* hard cap: max 150x bet, prevents million-printing */
 let seaSpinning=false,seaAuto=false,seaAutoTimer=0,seaCelebrating=false,seaCelebrateTimer=0;
 let seaFree=0,seaSession={spins:0,gold:0,scrap:0};
 const seaBonusMode=()=>seaFree>0;
@@ -4628,10 +4663,10 @@ function seaFinal(grid,ext){
  cellMult=Math.min(cellMult,10);
  const mult=cellMult*(1+ext);
  const full=br>=4?2:1;
- const GOLDPER={skull:5000,epic:2000,rare:800,fine:350,scroll:600};
  const SCRAPPER={skull:30,epic:15,rare:8,fine:4,scroll:6};
- const goldWon=GOLDPER[bk]*seaBet*ways*mult*full;
- const scrapWon=Math.min(15,SCRAPPER[bk]*seaBet*ways*full);
+ const rawGold=(SEA_PAYX[bk]||1)*seaBet*ways*mult*full;
+ const goldWon=Math.min(rawGold,seaBet*SEA_MAX_WIN_X);
+ const scrapWon=Math.min(15,SCRAPPER[bk]*ways*full);
  const {got,over}=addGoldOverflow(goldWon);
  const paid=got+over;
  const gotScrap=addScraps(scrapWon);
@@ -4955,13 +4990,9 @@ function openCasinoMenu(){$('casinoMenu').classList.add('open');}
 $('casinoMenuClose').onclick=()=>$('casinoMenu').classList.remove('open');
 document.querySelectorAll('.casinopick').forEach(b=>b.onclick=()=>{
  const g=b.dataset.game;
- if(g==='sea'){
-  stageMsg('🦈 Borek Seamen (Coming Back Soon)',2200);
-  sfx.warn();
-  return;
- }
  $('casinoMenu').classList.remove('open');
  if(g==='slots')openSlots();
+ else if(g==='sea')openSea();
  else if(g==='bj')openBJ();
 });
 
