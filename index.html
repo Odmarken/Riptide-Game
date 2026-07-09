@@ -658,8 +658,8 @@
       <div class="seapay">
         <span>Match reels <b>1→2</b> = 🔒 <b>LOCK + RESPIN</b></span><span>Each extension <b>raises the multiplier</b></span>
         <span>Reach reels <b>1→2→3</b> to win · <b>4 = double</b></span><span>x2/x3/x5 cells multiply further</span>
-        <span>🪙 Gold line = <b>50x</b> per way</span><span>💥 <b>MAX WIN 40x</b> your bet</span>
-        <span>🛡️ Rare line pays scrap · <b>10–25⚙</b></span><span>x2/x3/x5 cells multiply further</span>
+        <span>🪙 Gold line = <b>8x</b> per way</span><span>💥 <b>MAX WIN 40x</b> your bet</span>
+        <span>🛡️ Rare line pays scrap · <b>6–12⚙</b></span><span>x2/x3/x5 cells multiply further</span>
         <span>3+ 🎁 anywhere = <b>10 FREE SPINS</b></span><span>Free spins roll <b>richer reels</b></span>
       </div>
       <div class="slotbet" style="display:flex;align-items:center;gap:8px;justify-content:center">
@@ -5356,9 +5356,9 @@ function seaFinal(grid,ext){
  const mult=Math.min(cellMult*(1+ext),8);
  const full=br>=4?2:1;
  ways=Math.min(ways,12);
- const PAYX={skull:50,epic:10,rare:4,fine:1.5};   /* 🪙 3-linje = 50x per way */
+ const PAYX={skull:8,epic:3,rare:1.2,fine:0.5};
  const goldWon=Math.min(Math.round(PAYX[bk]*seaBet*ways*mult*full),seaBet*40); /* MAX WIN 40x */
- const scrapWon=bk==='rare'?(br>=4?25:10):0;      /* scrap flyttad till rare-linjen, max 25⚙ */
+ const scrapWon=bk==='rare'?(br>=4?12:6):0; /* scrap på rare-linjen, max 12⚙ */
  const {got,over}=addGoldOverflow(goldWon);
  const paid=got+over;
  const gotScrap=addScraps(scrapWon);
