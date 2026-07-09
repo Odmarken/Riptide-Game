@@ -1128,8 +1128,23 @@ function drawMpGhosts(){
 setTimeout(()=>{
  const bind=(id,fn)=>{const e=$(id);if(e)e.onclick=fn;};
  bind('raidSolo',()=>{if($('raidModal'))$('raidModal').style.display='none';mpTravelTo(pendingRaidZone);raidAutoOff();});
- bind('raidHost',()=>mpCreate());
- bind('raidJoin',()=>mpJoin(($('raidCode')||{}).value));
+ bind('raidHost',async()=>{
+  try{
+   const b=$('raidHost');
+   if(b){b.disabled=true;b.textContent='Creating room…';}
+   await mpCreate();
+  }catch(e){
+   console.error('mpCreate failed:',e);
+   stageMsg('Room creation failed: '+(e.code||e.message||e),3000);sfx.warn();
+  }finally{
+   const b=$('raidHost');
+   if(b){b.disabled=false;b.textContent='🌐 Play Online — Create Room';}
+  }
+ });
+ bind('raidJoin',async()=>{
+  try{await mpJoin(($('raidCode')||{}).value);}
+  catch(e){console.error('mpJoin failed:',e);stageMsg('Join failed: '+(e.code||e.message||e),3000);sfx.warn();}
+ });
  bind('raidCancel',()=>{if($('raidModal'))$('raidModal').style.display='none';});
  bind('mpReadyBtn',async()=>{mp.ready=!mp.ready;$('mpReadyBtn').textContent=mp.ready?'✔ Ready!':'✔ Ready';await mpRoom().collection('players').doc(mp.pid).update({ready:mp.ready});mpLobbyRender();});
  bind('mpStartBtn',async()=>{await mpRoom().update({state:'live'});});
