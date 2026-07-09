@@ -587,7 +587,7 @@
       <span class="continent-tab cur" id="eastTab">Eastern Realm</span>
       <span class="continent-tab" id="westTab">🔒 Western Realm · Prestige 1</span>
       <span class="continent-tab" id="valhallaTab">🔒 Valhalla · Prestige 1</span>
-      <span class="continent-tab" id="raidTab">🔒 Raid (experimental) · Prestige 1</span>
+      <span class="continent-tab" id="raidTab">🔒 Raid (experimental) · Prestige 15</span>
     </div>
     <div id="zoneList"></div>
   </div>
@@ -1394,7 +1394,7 @@ function zoneTemplates(z){
  if(z.raid){
   const RL=Math.max(effectiveHeroLvl(),10),rm=pMul();
   const mk=(name,id,c)=>({name,kind:'boss',boss:true,raid:true,bossId:id,c,speed:115,
-   hp:Math.round(eHP(RL)*85*rm),atk:Math.round(eATK(RL)*1.76*rm),xp:0,gold:0});
+   hp:Math.round(eHP(RL)*212*rm),atk:Math.round(eATK(RL)*1.76*rm),xp:0,gold:0});
   return [mk('Illidan the Betrayer','betrayer','#7adf9a'),
           mk('Ragnaros the Firelord','firelord','#ff7a2a'),
           mk('Arthas the Frozen King','frostking','#a0e0ff')];
@@ -2889,8 +2889,8 @@ function bossAI(en,dt){
     floatAt(en.x,en.y-en.r-30,'You are not prepared!','#9adf9a',true);}
   }
   if(en.cds.c<=0){en.cds.c=9;sfx.warn();
-   hazardAt(T.x,T.y,190,1.15,en.atk*1.5,'#b6ff7a');
-   hazardAt(T.x+(Math.random()-0.5)*180,T.y+(Math.random()-0.5)*180,190,1.15,en.atk*1.5,'#b6ff7a');
+   hazardAt(T.x,T.y,190,1.15,en.atk*2.1,'#b6ff7a');
+   hazardAt(T.x+(Math.random()-0.5)*180,T.y+(Math.random()-0.5)*180,190,1.15,en.atk*2.1,'#b6ff7a');
    floatAt(en.x,en.y-en.r-30,'Eye Beam!','#b6ff7a',true);
   }
   if(!en.enraged&&en.hp<en.max*0.3){
@@ -2900,9 +2900,9 @@ function bossAI(en,dt){
   }
  }else if(B==='firelord'){ /* wide burning trail, huge eruptions, sons of flame */
   en.trailT-=dt;
-  if(en.trailT<=0&&en.state==='chase'){en.trailT=0.4;hazardAt(en.x,en.y,72,0.5,en.atk*0.5,'#ff7a2a');}
+  if(en.trailT<=0&&en.state==='chase'){en.trailT=0.4;hazardAt(en.x,en.y,72,0.5,en.atk*0.7,'#ff7a2a');}
   if(en.cds.a<=0){en.cds.a=8;sfx.warn();
-   for(let i=0;i<5;i++)hazardAt(T.x+(Math.random()-0.5)*240,T.y+(Math.random()-0.5)*240,140,1.35,en.atk*1.5,'#ff9a3a');
+   for(let i=0;i<5;i++)hazardAt(T.x+(Math.random()-0.5)*240,T.y+(Math.random()-0.5)*240,140,1.35,en.atk*2.1,'#ff9a3a');
    floatAt(en.x,en.y-en.r-30,'ERUPTION!','#ff9a3a',true);
   }
   if(en.cds.b<=0&&dist(en,T)>55){en.cds.b=4;
@@ -2922,7 +2922,7 @@ function bossAI(en,dt){
  }else if(B==='frostking'){ /* massive ice rings, frost volleys, risen ghouls */
   if(en.cds.a<=0){en.cds.a=10;sfx.warn();
    const n=12,rad=240;
-   for(let i=0;i<n;i++){const a=i/n*6.283;hazardAt(en.x+Math.cos(a)*rad,en.y+Math.sin(a)*rad*0.85,116,1.5,en.atk*1.4,'#a0e0ff');}
+   for(let i=0;i<n;i++){const a=i/n*6.283;hazardAt(en.x+Math.cos(a)*rad,en.y+Math.sin(a)*rad*0.85,116,1.5,en.atk*1.96,'#a0e0ff');}
    floatAt(en.x,en.y-en.r-30,'Ring of Frost!','#a0e0ff',true);
    en.lockT=1.1;
   }
@@ -4254,19 +4254,20 @@ function renderHero(){
 }
 function renderMap(){
  const p5=(S.prestige||0)>=5,p1=(S.prestige||0)>=1;
+ const p15=(S.prestige||0)>=15;
  const cowOk=(S.prestige||0)>=5&&(S.lvl||1)>=60;
  const haalOk=(S.prestige||0)>=10;
  if(mapContinent==='west'&&!p1)mapContinent='east';
  if(mapContinent==='valhalla'&&!p1)mapContinent='east';
- if(mapContinent==='raid'&&!p1)mapContinent='east';
+ if(mapContinent==='raid'&&!p15)mapContinent='east';
  $('eastTab').classList.toggle('cur',mapContinent==='east');
  $('westTab').classList.toggle('cur',mapContinent==='west');
  $('valhallaTab').classList.toggle('cur',mapContinent==='valhalla');
  $('raidTab').classList.toggle('cur',mapContinent==='raid');
- $('raidTab').textContent=p1?'⚔ Raid (experimental)':'🔒 Raid (experimental) · Prestige 1';
- $('raidTab').style.cursor=p1?'pointer':'default';
+ $('raidTab').textContent=p15?'⚔ Raid (experimental)':'🔒 Raid (experimental) · Prestige 15';
+ $('raidTab').style.cursor=p15?'pointer':'default';
  $('raidTab').onclick=()=>{
-  if(!p1){stageMsg('Reach Prestige 1 to enter the great raids',1600);sfx.warn();return;}
+  if(!p15){stageMsg('Reach Prestige 15 to enter the great raids',1600);sfx.warn();return;}
   mapContinent='raid';renderMap();
  };
  $('westTab').textContent=p1?'Western Realm':'🔒 Western Realm · Prestige 1';
@@ -4319,11 +4320,11 @@ function renderMap(){
     </div>`;
    }
    if(z.raid){
-    return `<div class="card zonecard ${p1?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p1?'#a66bd0':''}">
+    return `<div class="card zonecard ${p15?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p15?'#a66bd0':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#2a2040)">⚔</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
      <div class="zl">RAID — three lords slumber in their chambers. Strike one and it hunts you to the death. No loot yet.</div></div>
-     ${i===S.zone?'<span class="ztag">Here</span>':p1?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">🔒 Prestige 1</span>'}
+     ${i===S.zone?'<span class="ztag">Here</span>':p15?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">🔒 Prestige 15</span>'}
     </div>`;
    }
    const kills=S.cerberusKills||0;
@@ -4361,7 +4362,7 @@ function renderMap(){
      if(S.lvl<60){stageMsg('🐄 The cows demand level 60',1800);sfx.warn();return;}
      if(S.bag.filter(it=>!isLegendary(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
     }else if(z.raid){
-     if((S.prestige||0)<1){stageMsg('Reach Prestige 1 — the Sanctum opens only to reborn champions',1800);sfx.warn();return;}
+     if((S.prestige||0)<15){stageMsg('Reach Prestige 15 — the Black Temple opens only to legends',1800);sfx.warn();return;}
      pendingRaidZone=i;
      const rm=$('raidModal');
      if(rm){rm.style.display='flex';openTab('battle');}
