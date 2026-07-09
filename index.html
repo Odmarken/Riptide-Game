@@ -627,7 +627,7 @@
 
   <div id="seaFx">
     <div class="slotmach sea">
-      <div class="slottop">🦈 BOREK SEAMEN</div>
+      <div class="slottop">🦈 BOREK SEAMEN (EXPERIMENTAL)</div>
       <div class="seagrid">
         <div class="seacolwin" data-rows="3"><div class="seastrip" id="sc0"></div></div>
         <div class="seacolwin" data-rows="5"><div class="seastrip" id="sc1"></div></div>
@@ -685,7 +685,7 @@
     <div class="slottop" style="color:var(--brass);margin-bottom:6px">🎰 BOREK CASINO</div>
     <div class="cl" style="margin-bottom:14px">The house always wins. Pick your game.</div>
     <button class="casinopick" data-game="slots"><span class="cg">🎰</span><span class="ct"><b>Borek 67</b><i>Classic slots — win up to 100x</i></span></button>
-    <button class="casinopick" data-game="sea"><span class="cg">🦈</span><span class="ct"><b>Borek Seamen</b><i>16-way ways slot — gear &amp; jackpots</i></span></button>
+    <button class="casinopick" data-game="sea"><span class="cg">🦈</span><span class="ct"><b>Borek Seamen (experimental)</b><i>16-way ways slot — gear &amp; jackpots</i></span></button>
     <button class="casinopick" data-game="bj"><span class="cg">🃏</span><span class="ct"><b>Borek Blackjack</b><i>Beat the dealer to 21 — pays 3:2</i></span></button>
     <button id="casinoMenuClose" class="sbtn" style="margin-top:6px;padding:11px">Leave the Casino</button>
    </div>
@@ -4390,7 +4390,7 @@ $('slotClose').onclick=()=>{
 };
 
 /* ==================== BOREK SEAMEN — hold & respin slot ==================== */
-const SEA_BASE=2500,SEA_BET_MAX=5,SEA_COLS=4;
+const SEA_BASE=1,SEA_BET_MAX=100,SEA_COLS=4;
 const SEA_ROWSBY=[3,5,5,3];
 let seaBet=1;
 const seaCost=()=>SEA_BASE*seaBet;
