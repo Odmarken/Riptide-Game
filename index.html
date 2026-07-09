@@ -3701,7 +3701,8 @@ function renderHero(){
 }
 function renderMap(){
  const p5=(S.prestige||0)>=5,p1=(S.prestige||0)>=1;
- const cowReady=p1&&(S.lvl||1)>=60;
+ const cowOk=(S.prestige||0)>=5&&(S.lvl||1)>=60;
+ const haalOk=(S.prestige||0)>=10;
  if(mapContinent==='west'&&!p1)mapContinent='east';
  if(mapContinent==='valhalla'&&!p1)mapContinent='east';
  if(mapContinent==='raid'&&!p1)mapContinent='east';
@@ -3753,13 +3754,13 @@ function renderMap(){
    }
    if(z.cow){
     const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
-    const canCow=p1&&(S.lvl||1)>=60;
+    const canCow=cowOk;
     const bagBlocked=canCow&&i!==S.zone&&S.bag.length>0;
-    const lockTxt=!p1?'🔒 Prestige 1':(S.lvl||1)<60?'🔒 Lv 60':'🐄 MOO';
+    const lockTxt=cowOk?'☠ Enter':'🔒 P5 · Lvl 60';
     return `<div class="card zonecard ${canCow?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${bagBlocked?'#c75146':canCow?'#ffd76a':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},${z.tree})">🐄</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">Level 60 herd · Prestige 1+ · 1 epic per cow · Best ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} items) · Last ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} items)</div>
+     <div class="zl">Level 60 herd · Prestige 5+ · 1 epic per cow · Best ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} items) · Last ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} items)</div>
      ${bagBlocked?`<div style="color:#ff8a7a;font-family:var(--display);font-size:13.5px;margin-top:4px;text-shadow:0 0 8px rgba(255,90,70,.35)">⚠ EMPTY YOUR BAG FIRST — the herd only respects those who arrive with nothing (${S.bag.length} item${S.bag.length>1?'s':''} carried)</div>`:''}</div>
      ${i===S.zone?'<span class="ztag">Here</span>':bagBlocked?'<span class="ztag boss">🎒 Bag full</span>':`<span class="ztag boss">${lockTxt}</span>`}
     </div>`;
@@ -3773,11 +3774,11 @@ function renderMap(){
     </div>`;
    }
    const kills=S.cerberusKills||0;
-   return `<div class="card zonecard ${p5?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p5?'#c94a3a':''}">
+   return `<div class="card zonecard ${haalOk?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${haalOk?'#c94a3a':''}">
     <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#5a1a1a)">🐕</div>
     <div class="zinfo"><div class="zn">${z.name}</div>
-    <div class="zl">HAALAND — repeatable boss · slain ×${kills} · +125 Rating per kill · grows stronger each time</div></div>
-    ${i===S.zone?'<span class="ztag">Here</span>':p5?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">🔒 Prestige 5</span>'}
+    <div class="zl">HAALAND — Prestige 10 boss · slain ×${kills} · +125 Rating per kill · grows stronger each time</div></div>
+    ${i===S.zone?'<span class="ztag">Here</span>':haalOk?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">🔒 Prestige 10</span>'}
    </div>`;
   }
   const pz=progZone();
@@ -3803,13 +3804,15 @@ function renderMap(){
      if(thorLocked()){stageMsg('Thor cast you out — wait for his next appearance ('+fmtMS(st.open?st.left:st.next)+')',2200);sfx.warn();return;}
      if(!st.open){stageMsg('The gates are shut — Thor appears in '+fmtMS(st.next),2200);sfx.warn();return;}
     }else if(z.cow){
-     if((S.prestige||0)<1){stageMsg('Reach Prestige 1 to hear the mooing',1600);sfx.warn();return;}
-     if((S.lvl||1)<60){stageMsg('Cow Level is level 60 only — reach Lv 60 first',1800);sfx.warn();return;}
+     if((S.prestige||0)<5){stageMsg('🐄 The cows demand Prestige 5',1800);sfx.warn();return;}
+     if(S.lvl<60){stageMsg('🐄 The cows demand level 60',1800);sfx.warn();return;}
      if(S.bag.filter(it=>!isLegendary(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
     }else if(z.raid){
      if((S.prestige||0)<1){stageMsg('Reach Prestige 1 — the Sanctum opens only to reborn champions',1800);sfx.warn();return;}
+    }else if(z.boss&&z.boss[2]==='cerberus'){
+     if((S.prestige||0)<10){stageMsg('⚽ Haaland only faces Prestige 10 champions',1800);sfx.warn();return;}
     }else{
-     if((S.prestige||0)<5){return;}
+     if((S.prestige||0)<10){return;}
     }
    }
    else if(i>progZone()&&(S.lvl<z.lvl||!bossesClearedBefore(i)))return;
@@ -5062,14 +5065,23 @@ function smithRefresh(){
    sfx.buy();renderHUD();save();smithRefresh();
   };
  }else lu.innerHTML='';
- const tier=lv>=10?3:lv>=5?2:0;
+ const p=S.prestige||0;
+ const tier=(lv>=10&&p>=20)?3:(lv>=5&&p>=10)?2:0;
  const fg=$('smithForge');
- if(!tier||j){fg.style.display='none';if(!j&&lv<5)$('smithJobTxt').textContent='Reach blacksmith level 5 to reforge Frostmourne.';return;}
+ if(!tier||j){
+  fg.style.display='none';
+  if(!j){
+   if(lv<5)$('smithJobTxt').textContent='Reach blacksmith level 5 to reforge Frostmourne.';
+   else if(p<10)$('smithJobTxt').textContent='Reforging Frostmourne ★2 demands Prestige 10.';
+   else if(lv>=10&&p<20)$('smithJobTxt').textContent='Frostmourne ★3 demands Prestige 20.';
+  }
+  return;
+ }
  fg.style.display='block';
  let src=0,out=0;
- if(lv>=10&&fmBagOfStar(2).length>=2){src=2;out=3;}
+ if(lv>=10&&p>=20&&fmBagOfStar(2).length>=2){src=2;out=3;}
  else if(fmBagOfStar(1).length>=2){src=1;out=2;}
- else{src=lv>=10?2:1;out=src+1;}
+ else{src=tier>=3?2:1;out=src+1;}
  const have=fmBagOfStar(src).length,ok=have>=2;
  const slotTxt=st=>'❄'+(st>1?'★'+st:'');
  $('fmSlotA').textContent=have>=1?slotTxt(src):'?';$('fmSlotA').classList.toggle('filled',have>=1);
