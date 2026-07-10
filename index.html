@@ -3066,6 +3066,15 @@ window.addEventListener('keydown',e=>{
  const k=e.key||'';
  const kl=k.toLowerCase();
  if(!kl)return;
+ if(kl==='enter'){
+  /* login screen: Enter = sign in · character select: Enter = play the top character */
+  if($('login').classList.contains('open')){e.preventDefault();fbSignIn(false);return;}
+  if($('select').classList.contains('open')){
+   const b=document.querySelector('#charList [data-play]');
+   if(b){e.preventDefault();b.click();}
+   return;
+  }
+ }
  if(kl==='b'){
   if(document.activeElement&&/INPUT|TEXTAREA/.test(document.activeElement.tagName))return;
   toggleSide();
@@ -5586,29 +5595,48 @@ function stopSeaAuto(msg){
  if(msg){$('seaRes').style.color='#ff8a7a';$('seaRes').textContent=msg;$('seaRes').classList.remove('bigres');sfx.warn();}
  updateSeaUI();
 }
-/* iOS Safari ignores writes to audio.volume (hardware buttons only). Routing the
-   element through a Web Audio gain node makes the slider work on phones too. */
-let seaGain=null;
-function seaHookGain(){
- if(seaGain||!AC.ctx)return;
- try{
-  const src=AC.ctx.createMediaElementSource(seaMusic);
-  seaGain=AC.ctx.createGain();
-  src.connect(seaGain);seaGain.connect(AC.ctx.destination);
-  seaMusic.volume=1; /* level is controlled by the gain node from here on */
- }catch(e){}
+/* iOS ignores audio.volume writes, and even MediaElementSource routing is unreliable
+   there. Bulletproof path: decode the song to an AudioBuffer and play it as PURE Web
+   Audio through a gain node — gain always works on phones. The <audio> element remains
+   as a fallback (and first-open bridge while the song decodes). */
+let seaGain=null,seaBuf=null,seaBufSrc=null,seaBufLoading=false;
+function seaStopBuf(){if(seaBufSrc){try{seaBufSrc.stop();}catch(e){}try{seaBufSrc.disconnect();}catch(e){}seaBufSrc=null;}}
+function seaBufPlay(){
+ seaStopBuf();
+ seaBufSrc=AC.ctx.createBufferSource();
+ seaBufSrc.buffer=seaBuf;seaBufSrc.loop=true;
+ seaBufSrc.connect(seaGain);seaBufSrc.start();
 }
+function seaMusicStart(){
+ if(AC.ctx){
+  if(AC.ctx.state==='suspended')AC.ctx.resume().catch(()=>{});
+  if(!seaGain){seaGain=AC.ctx.createGain();seaGain.connect(AC.ctx.destination);}
+  seaGain.gain.value=window.seaVolVal;
+  if(seaBuf){seaBufPlay();return;}
+  if(!seaBufLoading){
+   seaBufLoading=true;
+   fetch('ambientsong/seamen_song.mp3')
+    .then(r=>r.arrayBuffer())
+    .then(ab=>new Promise((res,rej)=>AC.ctx.decodeAudioData(ab,res,rej))) /* callback form: works on old Safari too */
+    .then(b=>{
+     seaBuf=b;
+     if($('seaFx').classList.contains('open')){try{seaMusic.pause();}catch(e){}seaBufPlay();}
+    })
+    .catch(()=>{seaBufLoading=false;}); /* fetch/decode failed — the element fallback keeps playing */
+  }
+ }
+ /* fallback + bridge while decoding */
+ try{seaMusic.volume=window.seaVolVal;}catch(e){}
+ seaMusic.currentTime=0;seaMusic.play().catch(()=>{});
+}
+function seaMusicStop(){seaStopBuf();try{seaMusic.pause();}catch(e){}}
 function seaApplyVol(){
  if(seaGain)seaGain.gain.value=window.seaVolVal;
- else seaMusic.volume=window.seaVolVal;
+ try{seaMusic.volume=window.seaVolVal;}catch(e){}
 }
 function openSea(){
  seaFree=0;
- if(window.seaMusic){
-  seaHookGain();seaApplyVol();
-  if(AC.ctx&&AC.ctx.state==='suspended')AC.ctx.resume().catch(()=>{});
-  seaMusic.currentTime=0;seaMusic.play().catch(()=>{});
- }
+ seaMusicStart();
  /* mute ambient while casino music plays */
  if(AC.ambG)AC.ambG.gain.value=0;
  if(ambAudio)ambAudio.pause();
@@ -5642,7 +5670,7 @@ $('seaClose').onclick=()=>{
  if(seaSpinning&&!seaAuto)return;
  stopSeaAuto();clearSeaCelebration();clearTimeout(seaAutoTimer);
  $('seaFx').classList.remove('open');
- if(window.seaMusic)seaMusic.pause();
+ seaMusicStop();
  /* restore ambient */
  applyVolumes();
  if(gameOn){
