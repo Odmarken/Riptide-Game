@@ -385,16 +385,21 @@
 #seaVolWrap{position:absolute;top:10px;right:12px;display:flex;align-items:center;gap:6px;font-size:14px;color:#8fc3ef;z-index:4}
 #seaVolWrap input{width:78px;accent-color:#5b9bd5;cursor:pointer}
 .slotmach.sea.bigwin{border-color:#ffd100;animation:slotGlow .8s ease-in-out infinite}
+/* Cell size scales with BOTH viewport width and height so the machine fits 4:3
+   tablets (iPad) as well as phones and 4k screens — never below 62px, capped at 110px. */
+#seaFx{--seavh:100vh}
+@supports (height:100dvh){#seaFx{--seavh:100dvh}}
+#seaFx{--seacell:clamp(62px,min(calc((100vw - 120px)/4),calc((var(--seavh) - 340px)/5)),110px)}
 .seagrid{display:flex;gap:6px;align-items:center}
-.seacolwin{width:62px;border-radius:10px;border:1px solid #3a6a8a;background:#0a141d;overflow:hidden;position:relative}
-.seacolwin[data-rows="3"]{height:186px}
-.seacolwin[data-rows="5"]{height:310px}
+.seacolwin{width:var(--seacell);border-radius:10px;border:1px solid #3a6a8a;background:#0a141d;overflow:hidden;position:relative}
+.seacolwin[data-rows="3"]{height:calc(var(--seacell)*3)}
+.seacolwin[data-rows="5"]{height:calc(var(--seacell)*5)}
 .seacolwin::before,.seacolwin::after{content:'';position:absolute;left:0;right:0;height:14px;z-index:2;pointer-events:none}
 .seacolwin::before{top:0;background:linear-gradient(180deg,rgba(0,0,0,.7),transparent)}
 .seacolwin::after{bottom:0;background:linear-gradient(0deg,rgba(0,0,0,.7),transparent)}
 .seastrip{display:flex;flex-direction:column;will-change:transform}
-.seacell{flex:0 0 62px;width:62px;height:62px;display:flex;align-items:center;justify-content:center;font-size:26px;position:relative}
-.seacell .m{position:absolute;bottom:2px;right:5px;font-size:12px;font-weight:800;color:#ffd76a;text-shadow:0 1px 3px #000,0 0 8px rgba(255,150,50,.8);z-index:3}
+.seacell{flex:0 0 var(--seacell);width:var(--seacell);height:var(--seacell);display:flex;align-items:center;justify-content:center;font-size:calc(var(--seacell)*.42);position:relative}
+.seacell .m{position:absolute;bottom:2px;right:5px;font-size:max(12px,calc(var(--seacell)*.145));font-weight:800;color:#ffd76a;text-shadow:0 1px 3px #000,0 0 8px rgba(255,150,50,.8);z-index:3}
 .seacell .ic{line-height:1}
 .seacell:not(.prize) .ic{opacity:.55;filter:grayscale(.4)}
 .seacell.prize{border-radius:8px}
@@ -411,11 +416,7 @@
 #seaAutoBtn.on{background:linear-gradient(180deg,#c75146,#8a3a32);border-color:#e88a7a;color:#fff;box-shadow:0 0 14px rgba(199,81,70,.4)}
 #seaFastBtn.on{border-color:#ffd76a;color:#ffd76a;box-shadow:0 0 12px rgba(255,215,106,.25)}
 @media (min-width:900px){
- .seacolwin{width:110px;border-radius:12px}
- .seacolwin[data-rows="3"]{height:330px}
- .seacolwin[data-rows="5"]{height:550px}
- .seacell{flex-basis:110px;width:110px;height:110px;font-size:44px}
- .seacell .m{font-size:16px}
+ .seacolwin{border-radius:12px}
  .seapay{font-size:12px}
 }
 
@@ -5271,7 +5272,9 @@ function seaMark(grid,key,run){
  }
 }
 function seaAnimateCols(cols,grid,done){
- const CH=window.innerWidth>=900?110:62;
+ /* measure the real rendered cell size — CSS scales it to fit the viewport */
+ const first=$('sc0').firstElementChild;
+ const CH=(first&&first.getBoundingClientRect().height)||62;
  const reels=cols.map((c,j)=>{
   const filler=10+j*4,cells=[];
   for(let i=0;i<filler;i++)cells.push(seaCell());
