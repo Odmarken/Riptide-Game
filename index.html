@@ -167,7 +167,8 @@
   .rangetag.rng{color:#8fc3ef;border:1px solid rgba(143,195,239,.45);background:rgba(91,155,213,.12)}
   .rangetag.mle{color:#e8b06a;border:1px solid rgba(232,176,106,.45);background:rgba(217,164,65,.12)}
   .pick span{font-size:10.5px;color:var(--dim);line-height:1.4;display:block;margin-top:3px}
-  #startBtn{margin-top:20px;padding:14px;border-radius:11px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;font-family:var(--display);font-size:16px;letter-spacing:1px;cursor:pointer}
+  #startBtn,#startHcBtn{margin-top:20px;padding:14px;border-radius:11px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;font-family:var(--display);font-size:16px;letter-spacing:1px;cursor:pointer}
+  #startHcBtn{border-color:#c75146;background:linear-gradient(180deg,#c75146,#7a2a22);color:#ffe0da;text-shadow:0 1px 2px rgba(0,0,0,.4)}
   .fineprint{font-size:10px;color:#5c7263;margin-top:12px;line-height:1.5}
  
   #select,#login{position:absolute;inset:0;z-index:60;display:none;flex-direction:column;padding:26px 22px 18px;overflow-y:auto;
@@ -559,7 +560,10 @@
     <div id="cnameErr" style="display:none;color:#ff8a7a;font-size:12px;margin-top:6px">⚠ Write a hero name first — the realm must know who you are!</div>
     <label>Bloodline</label><div class="pickgrid" id="racePick"></div>
     <label>Calling — each has 3 spells</label><div class="pickgrid" id="classPick"></div>
-    <button id="startBtn">March East ⚔</button>
+    <div style="display:flex;gap:10px">
+      <button id="startBtn" style="flex:1">March East ⚔</button>
+      <button id="startHcBtn" style="flex:1">💀 HARDCORE</button>
+    </div>
     <div class="fineprint">Move with WASD / tap the ground · tap a foe to attack · spells 1/2/3, potions 4/5 · scrap unwanted gear for ⚙ Scraps and upgrade your equipment · hunt rare scrolls and combine duplicates to forge stronger tiers. Sound starts after your first tap. Progress saves on this device.</div>
   </div>
  
@@ -1606,7 +1610,7 @@ const boostAtHardCap=(n,kind)=>boostBonus(n,kind)>=boostCap(kind);
 const speedBoostMul=()=>1+boostBonus(S.boosts?S.boosts.speed:0,'speed');
 const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0,'haste');
 function freshState(name,race,cls){
- return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,lastZone:0,maxZone:0,quest:0,qProg:0,
+ return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,lastZone:0,maxZone:0,quest:0,qProg:0,hardcore:false,hcDead:false,
   rating:0,cerberusKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',bankGold:0,bankScrap:0,bankEarned:0,bankLastT:0,smithLvl:0,smithJob:null,luckPots:0,luckT:0,gamblerPots:0,gamblerT:0,restedT:0,restedPct:0,restedSpinAt:0,freeGoldCases:0,chests:{blacktemple:0},cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
   gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],pet:null,pets:[],
   boosts:{speed:0,haste:0},autoUse:{},tainted:false,
@@ -1682,6 +1686,8 @@ function migrate(s){ /* fills fields missing from older saves */
  delete s.activeScroll;
  if(!s.boosts)s.boosts={speed:0,haste:0};
  if(!s.autoUse)s.autoUse={};
+ if(s.hardcore===undefined)s.hardcore=false;
+ if(s.hcDead===undefined)s.hcDead=false;
  if(s.pots){s.pots.hp=Math.min(s.pots.hp||0,POT_CAP);s.pots.mp=Math.min(s.pots.mp||0,POT_CAP);}
  for(const sl in s.gear){
   const g=s.gear[sl];if(!g)continue;
@@ -2581,7 +2587,7 @@ function heroBasicAttack(en,dt){
  dmg=Math.round(dmg);
  hero.swing=0.22;
  mpAct('swing',{tx:Math.round(en.x),ty:Math.round(en.y)});
- if(c.ranged){sfx.bolt();bolts.push({x:hero.x,y:hero.y-10,tgt:en,sp:430,dmg,crit,c:c.boltC,basic:true});}
+ if(c.ranged){sfx.bolt();bolts.push({x:hero.x,y:hero.y-10,tgt:en,sp:430,dmg,crit,c:c.boltC,basic:true,arrow:c.id==='hunter'});}
  else{sfx.swing();landHit(en,dmg,crit,null,true);}
 }
 function landHit(en,dmg,crit,label,basic){
@@ -2662,13 +2668,13 @@ function cast(i,manual){
   if(dist(hero,tgt)>rng){if(manual){hero.target=tgt;stageMsg('Closing in…',700);}return false;}
   hero.target=tgt;hero.mana-=spellManaCost(sp);hero.spellCd[i]=sp.cd;hero.swing=0.24;
   if(sp.t==='st'){
-   if(c.ranged){bolts.push({x:hero.x,y:hero.y-10,tgt,sp:470,dmg:0,spell:sp,c:sp.vfx==='fire'?'#ff7a2a':sp.vfx==='holy'?'#ffe9a0':'#c9a0ff'});}
+   if(c.ranged){bolts.push({x:hero.x,y:hero.y-10,tgt,sp:470,dmg:0,spell:sp,arrow:c.id==='hunter',c:sp.vfx==='fire'?'#ff7a2a':sp.vfx==='holy'?'#ffe9a0':'#c9a0ff'});}
    else dealSpell(tgt,sp);
    if(sp.heal)healHero(heroMax()*sp.heal);
   }else{
    const list=enemies.filter(e=>!e.dead&&!e.hidden&&dist(hero,e)<=rng).sort((a,b)=>dist(hero,a)-dist(hero,b)).slice(0,sp.hits);
    list.forEach((t,k)=>{
-    if(c.ranged)setTimeout(()=>{if(!t.dead&&!t.hidden)bolts.push({x:hero.x,y:hero.y-10,tgt:t,sp:470,dmg:0,spell:sp,c:sp.vfx==='arrow'?'#cfe8a0':'#c9a0ff'});},k*90);
+    if(c.ranged)setTimeout(()=>{if(!t.dead&&!t.hidden)bolts.push({x:hero.x,y:hero.y-10,tgt:t,sp:470,dmg:0,spell:sp,arrow:c.id==='hunter',c:sp.vfx==='arrow'?'#cfe8a0':'#c9a0ff'});},k*90);
     else dealSpell(t,sp);
    });
   }
@@ -2864,11 +2870,33 @@ function heroDies(){
  }
  if(zoneOf().west||zoneOf().boss||zoneOf().raid)hero.sentHome=true;
  if(mp.on)mpLeave(false);
+ if(S.hardcore){hcDeath();return;} /* hardcore: one life — the cow level and team-raid revives above don't count */
  hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;
  sfx.die();
  if(hero.sentHome)stageMsg('Defeated… you wake by the hearth in Goldshire.',2600);
  else stageMsg('Defeated… you regroup at the roadside.',2600);
  log('<span class="imp">Defeated.</span>'+(hero.sentHome?' You are carried back to Goldshire — gear intact.':' You regroup at this region’s entrance — gear intact.'));
+}
+/* hardcore permadeath: lock the character forever and show the memorial screen */
+function hcDeath(){
+ S.hcDead=true;
+ hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;
+ sfx.die();
+ gameOn=false;
+ save();publishLB(S,true);
+ log('<span class="imp">💀 HARDCORE DEATH.</span> '+esc(S.name||'The hero')+' will not rise again.');
+ const old=$('hcDeathOv');if(old)old.remove();
+ const ov=document.createElement('div');
+ ov.id='hcDeathOv';
+ ov.style.cssText='position:absolute;inset:0;z-index:85;display:flex;align-items:center;justify-content:center;background:rgba(10,4,4,.93)';
+ ov.innerHTML=`<div style="width:min(90%,360px);padding:26px;border-radius:14px;border:2px solid #c75146;background:linear-gradient(180deg,#2a1512,#170b09);text-align:center;box-shadow:0 0 40px rgba(199,81,70,.35)">
+  <div style="font-size:42px">💀</div>
+  <div style="font-family:var(--display);font-size:19px;color:#ff8a7a;margin:8px 0 6px">HARDCORE DEATH</div>
+  <div style="font-size:12.5px;color:var(--dim);line-height:1.6;margin-bottom:18px">You were not fit for this, but you can always improve.</div>
+  <button id="hcBackBtn" style="width:100%;padding:12px;border-radius:10px;border:1px solid #c75146;background:linear-gradient(180deg,#c75146,#7a2a22);color:#ffe0da;font-family:var(--display);font-size:14px;cursor:pointer">⚰ Back to your champions</button>
+ </div>`;
+ $('app').appendChild(ov);
+ $('hcBackBtn').onclick=()=>{ov.remove();showSelect();};
 }
 function completeQuest(){
  const q=questOf(),qs=questsOf();
@@ -3635,8 +3663,24 @@ function draw(){
  drawables.sort((a,b)=>a.y-b.y);
  for(const d of drawables)d.f();
  for(const b of bolts){
-  ctx.fillStyle=b.c;ctx.beginPath();ctx.arc(b.x,b.y,b.spell?5:3.5,0,7);ctx.fill();
-  ctx.fillStyle='rgba(255,255,255,0.5)';ctx.beginPath();ctx.arc(b.x,b.y,1.6,0,7);ctx.fill();
+  if(b.arrow){
+   /* hunter shots are arrows: shaft, steel head and fletching, rotated along the flight path */
+   const a=Math.atan2((b.tgt.y-10)-b.y,b.tgt.x-b.x);
+   ctx.save();ctx.translate(b.x,b.y);ctx.rotate(a);
+   ctx.strokeStyle='#b8935a';ctx.lineWidth=2;
+   ctx.beginPath();ctx.moveTo(-9,0);ctx.lineTo(6,0);ctx.stroke();
+   ctx.fillStyle='#e8ece8';
+   ctx.beginPath();ctx.moveTo(11,0);ctx.lineTo(4.5,-3.2);ctx.lineTo(4.5,3.2);ctx.closePath();ctx.fill();
+   ctx.strokeStyle=b.c||'#cfe8a0';ctx.lineWidth=1.5;
+   ctx.beginPath();
+   ctx.moveTo(-9,0);ctx.lineTo(-12,-3.4);ctx.moveTo(-9,0);ctx.lineTo(-12,3.4);
+   ctx.moveTo(-5.5,0);ctx.lineTo(-8.5,-3.4);ctx.moveTo(-5.5,0);ctx.lineTo(-8.5,3.4);
+   ctx.stroke();
+   ctx.restore();
+  }else{
+   ctx.fillStyle=b.c;ctx.beginPath();ctx.arc(b.x,b.y,b.spell?5:3.5,0,7);ctx.fill();
+   ctx.fillStyle='rgba(255,255,255,0.5)';ctx.beginPath();ctx.arc(b.x,b.y,1.6,0,7);ctx.fill();
+  }
  }
  for(const z of zaps){
   ctx.globalAlpha=Math.max(0,1-z.t/z.life);
@@ -6663,6 +6707,7 @@ async function publishLB(ch,force){
  ch.tainted=false;ch.taintV=0;
  const slim=g=>g?{name:g.name,rar:g.rar,slot:g.slot,up:g.up||0,atk:g.atk||0,hp:g.hp||0,crit:g.crit||0,haste:g.haste||0,lifesteal:g.lifesteal||0,legend:g.legend||null,power:Math.round(g.power||0)}:null;
  const entry={season:SEASON,name:(ch.name||'?').slice(0,14),lvl:ch.lvl,prestige:ch.prestige||0,gs:charGearScore(ch),score:lbScore(ch),cid:ch.id,t:now,tainted:false,taintV:0,
+  hardcore:!!ch.hardcore,hcDead:!!ch.hcDead,
   rating:ch.rating||0,
   race:ch.race||'human',cls:ch.cls||'warrior',zone:ch.zone||0,
   scroll:(ch.activeScrolls||[]).filter(Boolean)[0]||null,
@@ -6739,7 +6784,7 @@ async function showLeaderboard(){
    <div class="lbrank big">${i+1}</div>
    <canvas class="portrait" width="64" height="76" data-lbp="${i}"></canvas>
    <div class="cinfo">
-    <div class="cn">${esc(e.name||'?')}${e.rating?` <span style="color:var(--brass)">(${e.rating})</span>`:''}${e.prestige?` <span class="pstar">✦ Prestige ${e.prestige}</span>`:''}</div>
+    <div class="cn">${esc(e.name||'?')}${e.hardcore?` <span style="color:#ff5a5a;font-weight:700">💀 (HARDCORE${e.hcDead?' · FALLEN':''})</span>`:''}${e.rating?` <span style="color:var(--brass)">(${e.rating})</span>`:''}${e.prestige?` <span class="pstar">✦ Prestige ${e.prestige}</span>`:''}</div>
     <div class="cl">${r&&c?esc(r.name+' '+c.name)+' · ':''}Level ${e.lvl||1}</div>
     <div class="cl">⚔ ${fmtGS(e.gs)} gear score · ${esc(zn)}</div>
    </div>
@@ -6816,15 +6861,16 @@ async function renderSelect(){
  for(const id of roster){const ch=await loadChar(id);if(ch)chars.push(ch);}
  $('charList').innerHTML=chars.length?chars.map(ch=>{
   const r=RACES.find(x=>x.id===ch.race),c=CLASSES.find(x=>x.id===ch.cls);
-  return `<div class="card charcard">
+  const hcDead=ch.hardcore&&ch.hcDead;
+  return `<div class="card charcard"${hcDead?' style="opacity:.5;filter:grayscale(.8)"':''}>
    <canvas class="portrait" width="64" height="76" data-pc="${ch.id}"></canvas>
    <div class="cinfo">
-    <div class="cn">${esc(dispName(ch))}${ch.prestige?`<span class="pstar">✦ Prestige ${ch.prestige}</span>`:''}</div>
+    <div class="cn">${esc(dispName(ch))}${ch.hardcore?` <span style="color:#ff5a5a;font-size:11px;font-weight:700">💀 ${hcDead?'FALLEN':'HARDCORE'}</span>`:''}${ch.prestige?`<span class="pstar">✦ Prestige ${ch.prestige}</span>`:''}</div>
     <div class="cl">${r.name} ${c.name} · Level ${ch.lvl}</div>
     <div class="cl">⚔ ${fmtGS(charGearScore(ch))} gear score · ${ZONES[ch.zone].name}</div>
    </div>
    <div class="cbtns">
-    <button class="playbtn" data-play="${ch.id}">Enter World</button>
+    ${hcDead?'<button class="playbtn" disabled style="opacity:.55;cursor:default">💀 Fallen</button>':`<button class="playbtn" data-play="${ch.id}">Enter World</button>`}
     <button class="delbtn" data-del="${ch.id}">✕ Delete</button>
    </div>
   </div>`;
@@ -6833,6 +6879,7 @@ async function renderSelect(){
  document.querySelectorAll('[data-play]').forEach(b=>b.onclick=async()=>{
   const ch=await loadChar(b.dataset.play);
   if(!ch)return;
+  if(ch.hardcore&&ch.hcDead)return; /* fallen hardcore heroes never rise */
   S=ch;
   $('select').classList.remove('open');
   beginGame(false);
@@ -6883,7 +6930,7 @@ function renderPicks(){
 }
 renderPicks();
 $('cname').oninput=()=>{$('cname').classList.remove('nameerr');$('cnameErr').style.display='none';};
-$('startBtn').onclick=async()=>{
+async function createHero(hardcore){
  initAudio();
  const name=$('cname').value.trim();
  if(!name){
@@ -6896,10 +6943,31 @@ $('startBtn').onclick=async()=>{
   return;
  }
  S=freshState(name,pickRace,pickClass);
+ S.hardcore=!!hardcore;
  S.id='c'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);
  const ids=await loadRoster();ids.push(S.id);
  await saveRoster(ids);
  beginGame(true);
+ if(hardcore)stageMsg('💀 HARDCORE — one life. Make it count.',3000);
+}
+$('startBtn').onclick=()=>createHero(false);
+$('startHcBtn').onclick=()=>{
+ if(!$('cname').value.trim()){createHero(true);return;} /* reuse the name-required shake */
+ const old=$('hcConfirm');if(old)old.remove();
+ const ov=document.createElement('div');
+ ov.id='hcConfirm';
+ ov.style.cssText='position:absolute;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;background:rgba(10,4,4,.88)';
+ ov.innerHTML=`<div style="width:min(90%,340px);padding:22px;border-radius:14px;border:2px solid #c75146;background:linear-gradient(180deg,#2a1512,#170b09);text-align:center;box-shadow:0 0 30px rgba(199,81,70,.3)">
+  <div style="font-size:36px">💀</div>
+  <div style="font-family:var(--display);font-size:18px;color:#ff8a7a;margin:6px 0">HARDCORE</div>
+  <div style="font-size:12.5px;color:var(--parch);margin:0 0 16px;line-height:1.5;font-weight:600">Are you sure? You only have 1 life.</div>
+  <div style="display:flex;gap:8px;justify-content:center">
+   <button id="hcNo" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--display);font-size:14px;cursor:pointer">NO</button>
+   <button id="hcYes" style="flex:1;padding:11px;border-radius:10px;border:1px solid #c75146;background:linear-gradient(180deg,#c75146,#7a2a22);color:#ffe0da;font-family:var(--display);font-size:14px;cursor:pointer">YES</button>
+  </div></div>`;
+ $('app').appendChild(ov);
+ $('hcYes').onclick=()=>{ov.remove();createHero(true);};
+ $('hcNo').onclick=()=>ov.remove();
 };
 $('createBack').onclick=()=>{$('create').style.display='none';showSelect();};
 $('newCharBtn').onclick=()=>showCreate(false);
