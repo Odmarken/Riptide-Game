@@ -382,6 +382,8 @@
 #seaFx.open{display:flex}
 .slotmach.sea{position:relative;border-color:#5b9bd5;background:linear-gradient(180deg,#1d3345,#0d1620);box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 24px rgba(91,155,213,.2)}
 .slotmach.sea .slottop{color:#8fc3ef;text-shadow:0 0 14px rgba(91,155,213,.55)}
+#seaVolWrap{position:absolute;top:10px;right:12px;display:flex;align-items:center;gap:6px;font-size:14px;color:#8fc3ef;z-index:4}
+#seaVolWrap input{width:78px;accent-color:#5b9bd5;cursor:pointer}
 .slotmach.sea.bigwin{border-color:#ffd100;animation:slotGlow .8s ease-in-out infinite}
 .seagrid{display:flex;gap:6px;align-items:center}
 .seacolwin{width:62px;border-radius:10px;border:1px solid #3a6a8a;background:#0a141d;overflow:hidden;position:relative}
@@ -648,7 +650,8 @@
 
   <div id="seaFx">
     <div class="slotmach sea">
-      <div class="slottop">🦈 BOREK SEAMEN (EXPERIMENTAL) <button class="sbtn" id="seaInfoBtn" style="width:26px;height:26px;padding:0;font-size:13px">ℹ</button></div>
+      <div class="slottop">🦈 BOREK SEAMEN <button class="sbtn" id="seaInfoBtn" style="width:26px;height:26px;padding:0;font-size:13px">ℹ</button></div>
+      <div id="seaVolWrap" title="Music volume">🔊<input type="range" id="seaVol" min="0" max="100" value="35"></div>
       <div class="seagrid">
         <div class="seacolwin" data-rows="3"><div class="seastrip" id="sc0"></div></div>
         <div class="seacolwin" data-rows="5"><div class="seastrip" id="sc1"></div></div>
@@ -718,7 +721,7 @@
     <div class="slottop" style="color:var(--brass);margin-bottom:6px">🎰 BOREK CASINO</div>
     <div class="cl" style="margin-bottom:14px">The house always wins. Pick your game.</div>
     <button class="casinopick" data-game="slots"><span class="cg">🎰</span><span class="ct"><b>Borek 67</b><i>Classic slots — win up to 100x</i></span></button>
-    <button class="casinopick" data-game="sea"><span class="cg">🦈</span><span class="ct"><b>Borek Seamen (experimental)</b><i>Hold &amp; respin — lock reels, chase free spins</i></span></button>
+    <button class="casinopick" data-game="sea"><span class="cg">🦈</span><span class="ct"><b>Borek Seamen</b><i>Hold &amp; respin — lock reels, chase free spins</i></span></button>
     <button class="casinopick" data-game="bj"><span class="cg">🃏</span><span class="ct"><b>Borek Blackjack</b><i>Beat the dealer to 21 — pays 3:2</i></span></button>
     <button id="casinoMenuClose" class="sbtn" style="margin-top:6px;padding:11px">Leave the Casino</button>
    </div>
@@ -809,9 +812,10 @@
 </div>
  
 <script>
-window.seaMusic=new Audio('seamen_song.mp3');
+window.seaMusic=new Audio('ambientsong/seamen_song.mp3');
 window.seaMusic.loop=true;
 window.seaMusic.volume=0.35;
+try{const v=parseFloat(localStorage.getItem('seaVol'));if(!isNaN(v))window.seaMusic.volume=Math.min(1,Math.max(0,v));}catch(e){}
 /* ==================== DATA ==================== */
 const MAXLVL=60;
 const SEASON=1; /* bump this to wipe everyone */
@@ -1877,7 +1881,7 @@ function noiseSweep(dur,vol,f0,f1,dest){
  src.connect(f);f.connect(g);g.connect(dest||AC.sfxG);src.start(t);src.stop(t+dur+0.02);
 }
 /* ---- Medieval ambient music for normal zones: one shared looping track ---- */
-const AMBIENT_MUSIC_URL='medieval_ambient.mp3';
+const AMBIENT_MUSIC_URL='ambientsong/medieval_ambient.mp3';
 let ambAudio=null;
 function startAmbTrack(){
  if(!ambAudio){
@@ -1891,7 +1895,7 @@ function startAmbTrack(){
 }
 function stopAmbTrack(){if(ambAudio)ambAudio.pause();}
 /* ---- Cow Level music: plays cow_music.mp3 if present, else the synth track ---- */
-const COW_MUSIC_URL='cow_music.mp3';
+const COW_MUSIC_URL='ambientsong/cow_music.mp3';
 let cowAudio=null;
 function startCowTrack(){
  if(!COW_MUSIC_URL)return false;
@@ -1924,7 +1928,7 @@ function startCowMusic(){
  },step16));
 }
 /* ---- HAALAND boss music: plays haaland_boss.mp3 if present, else dark synth ---- */
-const HAALAND_MUSIC_URL='haaland_boss.mp3';
+const HAALAND_MUSIC_URL='ambientsong/haaland_boss.mp3';
 let haalandAudio=null;
 function startHaalandTrack(){
  if(!HAALAND_MUSIC_URL)return false;
@@ -5599,6 +5603,8 @@ function openSea(){
  $('seaRes').innerHTML='&nbsp;';
  updateSeaUI();
 }
+$('seaVol').value=Math.round(seaMusic.volume*100);
+$('seaVol').oninput=e=>{const v=(+e.target.value)/100;seaMusic.volume=v;try{localStorage.setItem('seaVol',v);}catch(err){}};
 $('seaSpinBtn').onclick=()=>{if(!seaAuto)spinSea();};
 $('seaFastBtn').onclick=()=>{seaFast=!seaFast;$('seaFastBtn').classList.toggle('on',seaFast);};
 $('seaAutoBtn').onclick=()=>{
