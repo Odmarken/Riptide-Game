@@ -1532,7 +1532,10 @@ function progZone(ch=S){
  while(mz>0&&lvl<(ZONES[mz]?.lvl||1))mz--;
  return Math.max(0,mz);
 }
-const pMul=()=>Math.pow(1.15,(S.prestige||0));   /* enemies +15% stronger each prestige, compounding */
+/* LINEAR prestige scaling — tracks the gear curve so each prestige feels equally hard forever.
+   (The old 1.15^P exponential eventually outran gear and made high prestige impossible.)
+   The real "gear up before you prestige" punishment lives in effective-level scaling. */
+const pMul=()=>1+(S.prestige||0)*0.10;
 const pRew=()=>Math.pow(1.15,(S.prestige||0));   /* XP/potion reward curve; combat scaling never touches gold */
 /* Gold economy: DO NOT use effectiveHeroLvl here.
    Mob gold is based on the real zone level + visible level + a soft +8% per prestige.
@@ -1682,9 +1685,14 @@ function rollItem(forceRar,lucky){
  const slot=SLOTS[Math.floor(Math.random()*3)];
  const zi=Math.max(S.zone,S.maxZone||0);
  const z=(1+zi*0.9+S.lvl*0.18)*(1+(S.prestige||0)*0.25);
+ /* WEAPONS keep pace with prestige (armor/trinkets stay on the visible-level curve).
+    0.452 is calibrated so a top-roll epic at +12 lands ~15% under Frostmourne/Warglaives
+    at +6 — legendaries stay best, but you can survive without one. */
+ const zEff=(1+zi*0.9+Math.max(1,effectiveHeroLvl())*0.18)*(1+(S.prestige||0)*0.25);
+ const zw=Math.max(z,0.452*zEff);
  const it={slot,rar,name:PREFIX[rar][Math.floor(Math.random()*3)]+' '+BASE[slot][Math.floor(Math.random()*4)],
   atk:0,hp:0,crit:0,ench:null,up:0,sell:Math.round(6*mul*z)};
- if(slot==='weapon')it.atk=Math.round((3+Math.random()*3)*mul*z);
+ if(slot==='weapon')it.atk=Math.round((3+Math.random()*3)*mul*zw);
  else if(slot==='armor')it.hp=Math.round((14+Math.random()*10)*mul*z);
  else{it.crit=Math.round(2*mul);it.atk=Math.round(1.5*mul*z);}
  calcPower(it);
@@ -2335,7 +2343,7 @@ function spawnAdd(name,kind,c,src){
  enemies.push({name,kind,boss:false,bossId:null,c,add:true,
   x:bx+Math.cos(a)*60,y:by+Math.sin(a)*60,home:{x:bx,y:by},r:11,
   max:Math.round(eHP(L)*0.55*pMul()),hp:Math.round(eHP(L)*0.55*pMul()),
-  atk:Math.round(eATK(L)*0.8*pMul()),xp:Math.round(eHP(XL)/5*pRew()),gold:mobGold(z,0.45),
+  atk:Math.round(eATK(L)*0.8*pMul()),xp:0,gold:mobGold(z,0.45), /* boss adds give NO xp — no leveling off add farming */
   speed:120,state:'chase',dir:0,wT:0,cd:0,dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,
   cds:{},lockT:0,hidden:false,trailT:0,avoid:null});
  burst(bx+Math.cos(a)*60,by+Math.sin(a)*60,c,10,80);
@@ -2670,7 +2678,7 @@ function killEnemy(en){
  if(r.leech)healHero(heroMax()*r.leech,true);
  if(hasEnch('reaper'))healHero(heroMax()*scrollPct('reaper'),true);
  if(!en.cow&&!en.raid)floatAt(en.x,en.y-en.r-14,gold>0?'+'+gold+' ◉':'◉ CAP','#ffd76a');
- log(`Slew <span class="imp">${en.name}</span> — +${en.xp} xp${(en.cow||en.raid)?'':', +'+gold+' gold'}.`);
+ log(`Slew <span class="imp">${en.name}</span> — ${en.xp>0?'+'+en.xp+' xp':'no xp'}${(en.cow||en.raid)?'':', +'+gold+' gold'}.`);
  // Cow Level ignores gold cap because cows give no gold; the bag cap controls cow loot.
  if(en.cow){
   if(S.bag.length>=COW_BAG_CAP){
