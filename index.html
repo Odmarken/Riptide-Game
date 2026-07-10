@@ -2197,6 +2197,15 @@ const COW_BAG_CAP=40;
 const cowLocked=()=>gameOn&&cowRunning;
 /* true while a living boss is engaged — the forge and Trader refuse service mid-fight */
 const inBossFight=()=>gameOn&&enemies.some(e=>e.boss&&!e.dead&&(e.hidden||e.state==='chase'||(hero&&hero.target===e)));
+/* hardcore: entering a boss fight unprepared is a commitment — no fleeing */
+const hcNoFlee=()=>{
+ if(S&&S.hardcore&&inBossFight()){
+  stageMsg('💀 HARDCORE — there is no fleeing a boss fight. Win or die.',2000);
+  sfx.warn();
+  return true;
+ }
+ return false;
+};
 let camX=0,camY=0,gameOn=false,marker=null,portalMsgT=0;
 let shakeT=0;
  
@@ -4627,6 +4636,7 @@ function renderMap(){
   el.onclick=()=>{
    const i=+el.dataset.z,z=ZONES[i];
    if(i===S.zone)return;
+   if(hcNoFlee())return;
    if(z.special){
     if(z.thor){
      if((S.prestige||0)<1){stageMsg('Reach Prestige 1 first',1600);sfx.warn();return;}
@@ -6406,6 +6416,7 @@ $('restSpinBtn').onclick=()=>{
 
 function goHome(){
  if(!gameOn||!S||hero.dead)return;
+ if(hcNoFlee())return;
  if(mp.on)mpLeave(false);
  /* Home ALWAYS means Goldshire — a second tap never bounces you back out.
     Head back to the road via the Travel map instead. */
@@ -6971,7 +6982,7 @@ $('startHcBtn').onclick=()=>{
 };
 $('createBack').onclick=()=>{$('create').style.display='none';showSelect();};
 $('newCharBtn').onclick=()=>showCreate(false);
-$('charSelBtn').onclick=async()=>{await save();showSelect();};
+$('charSelBtn').onclick=async()=>{if(hcNoFlee())return;await save();showSelect();};
 $('fbLogin').onclick=()=>fbSignIn(false);
 $('fbSignup').onclick=()=>fbSignIn(true);
 $('fbForgot').onclick=fbForgotPass;
