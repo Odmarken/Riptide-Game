@@ -409,6 +409,10 @@
 .seacell{flex:0 0 var(--seacell);width:var(--seacell);height:var(--seacell);display:flex;align-items:center;justify-content:center;font-size:calc(var(--seacell)*.42);position:relative}
 .seacell .m{position:absolute;bottom:2px;right:5px;font-size:max(12px,calc(var(--seacell)*.145));font-weight:800;color:#ffd76a;text-shadow:0 1px 3px #000,0 0 8px rgba(255,150,50,.8);z-index:3}
 .seacell .ic{line-height:1}
+/* respin mini-roll: a per-cell strip scrolling the same direction as the reels */
+.seacell.rolling{overflow:hidden}
+.seaminiroll{position:absolute;left:0;right:0;top:0;display:flex;flex-direction:column;will-change:transform}
+.seaminicell{flex:0 0 var(--seacell);width:100%;height:var(--seacell);display:flex;align-items:center;justify-content:center;position:relative}
 .seacell:not(.prize) .ic{opacity:.55;filter:grayscale(.4)}
 .seacell.prize{border-radius:8px}
 .seacell.prize::before{content:'';position:absolute;inset:4px;border:1.5px solid var(--cc);border-radius:8px;opacity:.75;box-shadow:0 0 8px color-mix(in srgb,var(--cc),transparent 55%),inset 0 0 10px color-mix(in srgb,var(--cc),transparent 82%);pointer-events:none}
@@ -5416,7 +5420,10 @@ function seaAnimateCols(cols,grid,done){
  requestAnimationFrame(tick);
 }
 function seaAnimateCells(grid,cols,done){
- /* respin-animation som bara rullar OLÅSTA celler på plats; låsta står stilla */
+ /* respin: unlocked cells ROLL in the same direction as the main reels
+    (a mini-strip scrolls up inside the cell); locked cells stand still */
+ const firstEl=$('sc0').firstElementChild;
+ const CH=(firstEl&&firstEl.getBoundingClientRect().height)||62;
  let pending=0;
  cols.forEach(c=>{
   const strip=$('sc'+c),off=strip.children.length-SEA_ROWSBY[c];
@@ -5424,17 +5431,29 @@ function seaAnimateCells(grid,cols,done){
    if(x.lock)return;
    const el=strip.children[off+r];if(!el)return;
    pending++;
-   const flips=8+Math.floor(Math.random()*5);let i=0;
-   const iv=setInterval(()=>{
-    i++;
-    const tmp=i<flips?seaCell():x; /* sista flippen visar riktiga cellen */
-    el.className='seacell'+(tmp.cc?' prize':'');
-    if(tmp.cc)el.style.setProperty('--cc',tmp.cc);
-    else el.style.removeProperty('--cc');
-    el.innerHTML='<span class="ic">'+tmp.icon+'</span>'+(tmp.m>1?'<span class="m">x'+tmp.m+'</span>':'');
-    blip(700+Math.random()*300,450,0.02,.03,'square');
-    if(i>=flips){clearInterval(iv);pending--;if(pending===0)done();}
-   },(seaFast?45:75)+r*8);
+   const flips=6+Math.floor(Math.random()*4);
+   const roll=[];
+   for(let i=0;i<flips;i++)roll.push(seaCell());
+   roll.push(x); /* the real cell arrives last, rolling in from below */
+   el.className='seacell rolling';el.style.removeProperty('--cc');
+   el.innerHTML='<div class="seaminiroll">'+roll.map(t=>'<div class="seaminicell"><span class="ic">'+t.icon+'</span>'+(t.m>1?'<span class="m">x'+t.m+'</span>':'')+'</div>').join('')+'</div>';
+   const rollEl=el.firstElementChild;
+   const dist=flips*CH,dur=(seaFast?45:75)*(flips+2)+r*55,t0=performance.now();
+   let lastIdx=-1;
+   const tick=now=>{
+    const p=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-p,3),y=-dist*e;
+    rollEl.style.transform='translateY('+y+'px)';
+    const idx=Math.floor(-y/CH);
+    if(idx!==lastIdx){lastIdx=idx;blip(700+Math.random()*300,450,0.02,.03,'square');}
+    if(p<1)requestAnimationFrame(tick);
+    else{
+     el.className='seacell'+(x.cc?' prize':'');
+     if(x.cc)el.style.setProperty('--cc',x.cc);
+     el.innerHTML='<span class="ic">'+x.icon+'</span>'+(x.m>1?'<span class="m">x'+x.m+'</span>':'');
+     pending--;if(pending===0)done();
+    }
+   };
+   requestAnimationFrame(tick);
   });
  });
  if(pending===0)done();
@@ -5509,6 +5528,15 @@ function spinSea(){
  if(!isFree&&Math.random()<SEA_BONUS_CHANCE){
   grid._bonus=true;
   [0,1,2].forEach(c=>{
+   const open=grid[c].map((x,i)=>(!['skull','epic','rare','fine'].includes(x.k))?i:-1).filter(i=>i>=0);
+   const i=open.length?open[Math.floor(Math.random()*open.length)]:Math.floor(Math.random()*grid[c].length);
+   grid[c][i]={k:'bonus',icon:'🎁',cc:'#ffd100',m:1};
+  });
+ }else if(!isFree&&Math.random()<0.10){
+  /* 🎁 tease — 1 or 2 boxes land but never the third; pure drama, no payout */
+  const nT=Math.random()<0.3?2:1;
+  const teaseCols=[0,1,2].sort(()=>Math.random()-0.5).slice(0,nT);
+  teaseCols.forEach(c=>{
    const open=grid[c].map((x,i)=>(!['skull','epic','rare','fine'].includes(x.k))?i:-1).filter(i=>i>=0);
    const i=open.length?open[Math.floor(Math.random()*open.length)]:Math.floor(Math.random()*grid[c].length);
    grid[c][i]={k:'bonus',icon:'🎁',cc:'#ffd100',m:1};
