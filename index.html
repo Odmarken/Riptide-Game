@@ -4296,17 +4296,14 @@ function renderMap(){
  const haalOk=(S.prestige||0)>=10;
  if(mapContinent==='west'&&!p1)mapContinent='east';
  if(mapContinent==='valhalla'&&!p1)mapContinent='east';
- if(mapContinent==='raid'&&!p15)mapContinent='east';
+ /* raid continent is always viewable — the Prestige 15 gate sits on the Black Temple card instead */
  $('eastTab').classList.toggle('cur',mapContinent==='east');
  $('westTab').classList.toggle('cur',mapContinent==='west');
  $('valhallaTab').classList.toggle('cur',mapContinent==='valhalla');
  $('raidTab').classList.toggle('cur',mapContinent==='raid');
- $('raidTab').textContent=p15?'⚔ Raid (experimental)':'🔒 Raid (experimental) · Prestige 15';
- $('raidTab').style.cursor=p15?'pointer':'default';
- $('raidTab').onclick=()=>{
-  if(!p15){stageMsg('Reach Prestige 15 to enter the great raids',1600);sfx.warn();return;}
-  mapContinent='raid';renderMap();
- };
+ $('raidTab').textContent=p15?'⚔ Raid (experimental)':'🔒 Raid (experimental)';
+ $('raidTab').style.cursor='pointer';
+ $('raidTab').onclick=()=>{mapContinent='raid';renderMap();};
  $('westTab').textContent=p1?'Western Realm':'🔒 Western Realm · Prestige 1';
  $('valhallaTab').textContent=p1?'⚡ Valhalla':'🔒 Valhalla · Prestige 1';
  $('westTab').style.cursor=p1?'pointer':'default';
@@ -4347,11 +4344,12 @@ function renderMap(){
     const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
     const canCow=cowOk;
     const bagBlocked=canCow&&i!==S.zone&&S.bag.length>0;
-    const lockTxt=cowOk?'☠ Enter':'🔒 P5 · Lvl 60';
+    /* show only the missing requirement: below P5 → both, P5+ but under lvl 60 → just the level */
+    const lockTxt=cowOk?'☠ Enter':(S.prestige||0)<5?'🔒 P5 · Lvl 60':'🔒 Lvl 60';
     return `<div class="card zonecard ${canCow?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${bagBlocked?'#c75146':canCow?'#ffd76a':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},${z.tree})">🐄</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">Level 60 herd · Prestige 5+ · 1 epic per cow · Best ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} items) · Last ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} items)</div>
+     <div class="zl">${cowOk?'':'Level 60 herd · Prestige 5+ · '}1 epic per cow · Best ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} items) · Last ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} items)</div>
      ${bagBlocked?`<div style="color:#ff8a7a;font-family:var(--display);font-size:13.5px;margin-top:4px;text-shadow:0 0 8px rgba(255,90,70,.35)">⚠ EMPTY YOUR BAG FIRST — the herd only respects those who arrive with nothing (${S.bag.length} item${S.bag.length>1?'s':''} carried)</div>`:''}</div>
      ${i===S.zone?'<span class="ztag">Here</span>':bagBlocked?'<span class="ztag boss">🎒 Bag full</span>':`<span class="ztag boss">${lockTxt}</span>`}
     </div>`;
@@ -4360,7 +4358,7 @@ function renderMap(){
     return `<div class="card zonecard ${p15?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p15?'#a66bd0':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#2a2040)">⚔</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">RAID — three lords slumber in their chambers. Strike one and it hunts you to the death. No loot yet.</div></div>
+     <div class="zl">RAID — three lords slumber in their chambers. Strike one and it hunts you to the death. No loot yet.${p15?'':' · Minimum Prestige 15'}</div></div>
      ${i===S.zone?'<span class="ztag">Here</span>':p15?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">🔒 Prestige 15</span>'}
     </div>`;
    }
@@ -4368,7 +4366,7 @@ function renderMap(){
    return `<div class="card zonecard ${haalOk?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${haalOk?'#c94a3a':''}">
     <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#5a1a1a)">🐕</div>
     <div class="zinfo"><div class="zn">${z.name}</div>
-    <div class="zl">HAALAND — Prestige 10 boss · slain ×${kills} · +125 Rating per kill · grows stronger each time</div></div>
+    <div class="zl">HAALAND — ${haalOk?'':'Prestige 10 boss · '}slain ×${kills} · +125 Rating per kill · grows stronger each time</div></div>
     ${i===S.zone?'<span class="ztag">Here</span>':haalOk?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">🔒 Prestige 10</span>'}
    </div>`;
   }
