@@ -1112,7 +1112,17 @@ async function mpEnter(){
  mp.unsubPlayers=mpRoom().collection('players').onSnapshot(qs=>{
   const seen={};
   qs.forEach(d=>{
-   if(d.id!==mp.pid){seen[d.id]=d.data();if(!mp.rtc[d.id])rtcConnect(d.id).catch(e=>console.warn('[rtc] connect failed',d.id,e));}
+   if(d.id===mp.pid)return;
+   const data=d.data(),prev=mp.peers[d.id];
+   if(prev){
+    /* MERGE into the existing object — replacing it wiped interpolation state and
+       stomped fresh RTC coords with stale Firestore ones (periodic rubber-banding) */
+    const live=prev._rtc&&(performance.now()-(prev._rt||0)<3000);
+    Object.assign(prev,data,live?{x:prev.x,y:prev.y,hp:prev.hp,f:prev.f,mv:prev.mv,dn:prev.dn,atk:prev.atk,t:prev.t}:{});
+    if(!live)prev._rtc=false; /* RTC went quiet — let Firestore drive again */
+    seen[d.id]=prev;
+   }else seen[d.id]=data;
+   if(!mp.rtc[d.id])rtcConnect(d.id).catch(e=>console.warn('[rtc] connect failed',d.id,e));
   });
   mp.peers=seen;
   for(const id in seen)if(!mp.rtc[id])rtcConnect(id).catch(e=>console.warn('[rtc] connect failed',id,e));
@@ -1175,7 +1185,10 @@ function mpSyncTick(){
   const mv=(Math.abs(hero.vx||0)+Math.abs(hero.vy||0))>5||Math.hypot(dx,dy)>1?1:0;
   rtcBroadcast({k:'pos',x:Math.round(hero.x),y:Math.round(hero.y),hp:hero.hp/heroMax(),f:hero.fx||hero.facing||1,mv,atk:(hero.swing||0)>0,dn:(hero.dance||hero.danceT||0)>0?1:0},false);
  }
- if(now-mp.lastSend>1500){
+ /* when a peer has no live RTC link (phone on mobile data behind CGNAT), Firestore IS their
+    transport — speed the writes up so the fallback is playable instead of 0.7Hz */
+ const slowPeer=Object.keys(mp.peers).some(id=>!(mp.rtc[id]&&mp.rtc[id].ok));
+ if(now-mp.lastSend>(slowPeer?450:1500)){
   mp.lastSend=now;
   mpRoom().collection('players').doc(mp.pid).update({x:Math.round(hero.x),y:Math.round(hero.y),hp:hero.hp/heroMax(),dmg:Math.round(mp.dmgOut),t:Date.now(),look:mpLook()}).catch(()=>{});
  }
@@ -1183,7 +1196,7 @@ function mpSyncTick(){
   mp.lastBossRtc=now;
   const bs=enemies.filter(e=>e.raid).map(e=>({x:Math.round(e.x),y:Math.round(e.y),hp:e.hp,max:e.max,awake:!!e.awake,dead:!!e.dead,id:e.bossId,tgt:e.target||'host',cds:e.cds}));
   rtcBroadcast({k:'boss',bs},true);
-  if(now-mp.lastBossW>2000){mp.lastBossW=now;mpRoom().collection('sync').doc('boss').set({bs,t:Date.now()}).catch(()=>{});}
+  if(now-mp.lastBossW>(slowPeer?400:2000)){mp.lastBossW=now;mpRoom().collection('sync').doc('boss').set({bs,t:Date.now()}).catch(()=>{});}
  }
 }
 function mpAct(type,data){
@@ -1205,7 +1218,15 @@ function mpPlayFx(m,p){
  }
 }
 /* ============ WEBRTC LAYER ============ */
-const RTC_CFG={iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]};
+/* STUN alone cannot get phones on mobile data (carrier CGNAT) through — they need a TURN
+   relay as fallback. Open Relay is a free public TURN service; for production traffic,
+   create a free key at metered.ca (or any TURN provider) and swap the credentials. */
+const RTC_CFG={iceServers:[
+ {urls:'stun:stun.l.google.com:19302'},
+ {urls:'stun:stun1.l.google.com:19302'},
+ {urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turn:openrelay.metered.ca:443?transport=tcp'],
+  username:'openrelayproject',credential:'openrelayproject'}
+]};
 function rtcSignal(to,type,payload){
  return mpRoom().collection('signals').add({from:mp.pid,to,type,payload:JSON.stringify(payload),t:Date.now()});
 }
@@ -1227,7 +1248,11 @@ function rtcPeer(pid){
  const P=mp.rtc[pid]={pc,pos:null,rel:null,ok:false};
  pc.onicecandidate=e=>{if(e.candidate)rtcSignal(pid,'ice',e.candidate).catch(()=>{});};
  pc.ondatachannel=e=>{const c=e.channel;if(c.label==='pos')P.pos=c;else P.rel=c;wireChannel(pid,c,P);};
- pc.onconnectionstatechange=()=>{if(pc.connectionState==='failed'||pc.connectionState==='closed'||pc.connectionState==='disconnected')P.ok=false;};
+ pc.onconnectionstatechange=()=>{
+  const st=pc.connectionState;
+  if(st==='failed'){P.ok=false;try{pc.close();}catch(e){}delete mp.rtc[pid];} /* drop it — the roster listener retries with a fresh connection (and TURN) */
+  else if(st==='closed'||st==='disconnected')P.ok=false;
+ };
  return P;
 }
 function wireChannel(pid,c,P){
