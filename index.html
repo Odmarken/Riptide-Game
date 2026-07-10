@@ -1168,7 +1168,7 @@ function mpKicked(){
 function mpSyncTick(){
  if(!(mp.on&&mp.started&&hero))return;
  const now=performance.now();
- if(now-(mp.lastRtc||0)>33){ /* 30Hz */
+ if(now-(mp.lastRtc||0)>20){ /* 50Hz — tiny packets, WebRTC handles it easily */
   mp.lastRtc=now;
   const dx=hero.x-(mp._lhx==null?hero.x:mp._lhx),dy=hero.y-(mp._lhy==null?hero.y:mp._lhy);
   mp._lhx=hero.x;mp._lhy=hero.y;
@@ -1179,7 +1179,7 @@ function mpSyncTick(){
   mp.lastSend=now;
   mpRoom().collection('players').doc(mp.pid).update({x:Math.round(hero.x),y:Math.round(hero.y),hp:hero.hp/heroMax(),dmg:Math.round(mp.dmgOut),t:Date.now(),look:mpLook()}).catch(()=>{});
  }
- if(mp.host&&now-(mp.lastBossRtc||0)>250){
+ if(mp.host&&now-(mp.lastBossRtc||0)>100){ /* 10Hz boss snapshots — was 4Hz, main cause of rubber-banding */
   mp.lastBossRtc=now;
   const bs=enemies.filter(e=>e.raid).map(e=>({x:Math.round(e.x),y:Math.round(e.y),hp:e.hp,max:e.max,awake:!!e.awake,dead:!!e.dead,id:e.bossId,tgt:e.target||'host',cds:e.cds}));
   rtcBroadcast({k:'boss',bs},true);
@@ -1383,20 +1383,26 @@ function drawHeroLike(x,y,look,alpha,anim,name,hp){
 function drawMpGhost(k,p){
  if(!p||Date.now()-(p.t||0)>6000)return;
  if(p._x===undefined){p._x=p.x||hero.x;p._y=p.y||hero.y;}
+ /* real elapsed time — all smoothing/animation below is framerate-independent
+    (per-frame constants made peers jitter and dance 2× too fast on 120/144Hz screens) */
+ const nowT=performance.now();
+ const pdt=Math.min(Math.max((nowT-(p._ld||nowT))/1000,0),0.1);p._ld=nowT;
  if(p._rtc){
-  const age=Math.min((performance.now()-(p._rt||0))/1000,0.3);
+  const age=Math.min((nowT-(p._rt||0))/1000,0.3);
   const gx=(p.x||p._x)+(p.mv?(p._vx||0)*age:0),gy=(p.y||p._y)+(p.mv?(p._vy||0)*age:0);
   const dx=gx-p._x,dy=gy-p._y,d=Math.hypot(dx,dy);
-  if(d>140){p._x=gx;p._y=gy;}else{p._x+=dx*0.5;p._y+=dy*0.5;}
+  const kk=1-Math.exp(-16*pdt);
+  if(d>140){p._x=gx;p._y=gy;}else{p._x+=dx*kk;p._y+=dy*kk;}
  }else{
-  p._x+=((p.x||p._x)-p._x)*0.12;p._y+=((p.y||p._y)-p._y)*0.12;
+  const kk=1-Math.exp(-7*pdt);
+  p._x+=((p.x||p._x)-p._x)*kk;p._y+=((p.y||p._y)-p._y)*kk;
  }
- if(p._atkT&&performance.now()>p._atkT)p.atk=false;
+ if(p._atkT&&nowT>p._atkT)p.atk=false;
  /* drive walk cycle from measured network speed, not a constant timer */
  const spd=Math.hypot(p._vx||0,p._vy||0);
  let base=175;
  try{base=(typeof speedOf==='function'&&hero)?speedOf(hero):175;}catch(e){}
- p._animT=(p._animT||0)+(p.dn?0.016:p.mv?0.016*Math.min(spd/base,1.6):0);
+ p._animT=(p._animT||0)+(p.dn?pdt:p.mv?pdt*Math.min(spd/base,1.6):0);
  drawHeroLike(p._x,p._y,Object.assign({},p.look||{},{f:p.f||1,atk:!!p.atk}),1,{facing:p.f||1,moving:!!p.mv,dancing:!!p.dn,animT:p._animT,attacking:!!p.atk},p.name||'Hero',p.hp);
 }
 function drawMpGhosts(){
@@ -1460,7 +1466,7 @@ function zoneTemplates(z){
  if(z.raid){
   const RL=Math.max(effectiveHeroLvl(),10),rm=pMul();
   const mk=(name,id,c)=>({name,kind:'boss',boss:true,raid:true,bossId:id,c,speed:115,
-   hp:Math.round(eHP(RL)*92*rm),atk:Math.round(eATK(RL)*0.64*rm),xp:0,gold:0}); /* raid lords: ~64% softer hits and ~57% less HP than the original tuning */
+   hp:Math.round(eHP(RL)*110*rm),atk:Math.round(eATK(RL)*0.67*rm),xp:0,gold:0}); /* raid lords: tuned via live playtesting */
   return [mk('Illidan the Betrayer','betrayer','#7adf9a'),
           mk('Ragnaros the Firelord','firelord','#ff7a2a'),
           mk('Arthas the Frozen King','frostking','#a0e0ff')];
@@ -2249,8 +2255,8 @@ function buildZone(){
   target:null,moveTo:null,goPortal:false,fx:1,fy:0,walk:0,moving:false,swing:0,hurt:0,dead:false,deadT:0,
   buff:{},hotT:0,hotTick:0,potCd:{hp:0,mp:0},regenTick:0,glowT:0,avoid:null,dance:0,danceFx:0};
  if(prev){
-  hero.hp=Math.max(1,Math.min(heroMax(),prev.hp));
-  hero.mana=Math.max(0,Math.min(manaMax(),prev.mana));
+  hero.hp=Math.max(1,Math.min(heroMax(),Number.isFinite(prev.hp)?prev.hp:heroMax()));
+  hero.mana=Math.max(0,Math.min(manaMax(),Number.isFinite(prev.mana)?prev.mana:manaMax()));
   hero.spellCd=classOf().spells.map((sp,i)=>Math.min(sp.cd,(prev.spellCd&&prev.spellCd[i])||0));
   hero.potCd={hp:(prev.potCd&&prev.potCd.hp)||0,mp:(prev.potCd&&prev.potCd.mp)||0};
  }
@@ -2537,6 +2543,7 @@ function hurtHero(dmg,label){
  return dmg;
 }
 function heroBasicAttack(en,dt){
+ if(hero.deadWait)return; /* fallen raiders can't poke the lord through the sealed wall */
  const c=classOf();
  hero.cd-=dt*hasteMul();
  if(hero.cd>0)return;
@@ -2616,6 +2623,7 @@ function nearestEnemyWithin(rng){
 function cast(i,manual){
  const c=classOf(),sp=c.spells[i];
  if(hero.dead)return false;
+ if(hero.deadWait){if(manual)stageMsg('💀 You are fallen — the seal blocks your magic until the lord dies',1400);return false;}
  if(hero.moving){if(manual)stageMsg('Stand still to cast',700);return false;}
  if(hero.spellCd[i]>0){if(manual)stageMsg('Not ready',700);return false;}
  if(hero.mana<spellManaCost(sp)){if(manual)stageMsg('Not enough mana',700);return false;}
@@ -2817,7 +2825,7 @@ function heroDies(){
   log('<span class="imp">Fallen in the raid.</span> You revive at the entrance and wait outside the sealed chamber.');
   setTimeout(()=>{
    if(!gameOn||!zoneOf().raid)return;
-   hero.hp=hero.maxHp;hero.dead=false;
+   hero.hp=heroMax();hero.mana=manaMax();hero.dead=false; /* heroMax(), NOT hero.maxHp (doesn't exist → NaN hp → immortal 1-hp bug) */
    hero.x=(world.spawn&&world.spawn.x)||200;hero.y=(world.spawn&&world.spawn.y)||world.h/2;
    hero.target=null;hero.moveTo=null;hero.goPortal=false;
    stageMsg('💀 You fell — wait outside while your team finishes the lord.',3000);
@@ -3289,6 +3297,7 @@ function update(dt){
  const c=classOf();
  if(portalMsgT>0)portalMsgT-=dt;
  if(shakeT>0)shakeT-=dt;
+ if(hero.deadWait)hero.target=null; /* no targeting/chasing from outside the seal while dead-waiting */
  if(world.raidRooms)for(const rm of world.raidRooms){
   const b=enemies.find(e=>e.raid&&e.roomIdx===rm.idx);
   if(!b||b.dead){
@@ -3435,8 +3444,11 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
  mpHostRaidThreatTick(dt);
  // ----- enemies -----
  for(const en of enemies){
-  if(mp.on&&mp.started&&!mp.host&&en.raid&&en.netX!==undefined){
-   en.x+=(en.netX-en.x)*0.08;en.y+=(en.netY-en.y)*0.08;
+  en._nd=!!(mp.on&&mp.started&&!mp.host&&en.raid&&en.netX!==undefined); /* net-driven: host owns this boss's position */
+  if(en._nd){
+   const kk=1-Math.exp(-10*dt); /* time-based smoothing toward the 10Hz snapshots */
+   if(Math.hypot(en.netX-en.x,en.netY-en.y)>220){en.x=en.netX;en.y=en.netY;} /* teleport snap */
+   else{en.x+=(en.netX-en.x)*kk;en.y+=(en.netY-en.y)*kk;}
   }
   if(en.slowT>0)en.slowT-=dt;
   if(en.cow&&!en.dead)en.age+=dt;
@@ -3460,7 +3472,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    en.state='chase';
    /* Bosses have no leash: once alive, they follow the player across the whole arena/map. */
    if(dHome>520&&!en.boss&&!en.add&&!en.cow)en.state='return';
-   else if(dHero>30+en.r)moveToward(en,TMove.x,TMove.y,dt);
+   else if(dHero>30+en.r){if(!en._nd)moveToward(en,TMove.x,TMove.y,dt);} /* net-driven bosses never self-move — kills the rubber-band tug */
    else{
     en.cd-=dt;
     if(en.cd<=0){en.cd=en.boss?1.5:1.15;en.swing=0.2;
@@ -3480,13 +3492,11 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    en.patT+=dt*0.35*en.patDir;
    if(Math.abs(en.patT)>0.7)en.patDir=-en.patDir; /* sweep ±0.7 rad along the back wall */
    const tx=rm.x+Math.cos(back+en.patT)*rr,ty=rm.y+Math.sin(back+en.patT)*rr;
-   const sv=en.speed;en.speed=55;
-   moveToward(en,tx,ty,dt);
-   en.speed=sv;
+   if(!en._nd){const sv=en.speed;en.speed=55;moveToward(en,tx,ty,dt);en.speed=sv;}
   }else{
    en.wT-=dt;
    if(en.wT<=0){en.wT=1.5+Math.random()*2.5;en.dir=Math.random()*6.28;en.pause=Math.random()<.4;}
-   if(!en.pause){
+   if(!en.pause&&!en._nd){
     const sv=en.speed;en.speed=42;
     moveToward(en,en.x+Math.cos(en.dir)*40,en.y+Math.sin(en.dir)*40,dt);
     en.speed=sv;
