@@ -2764,7 +2764,8 @@ function heroDies(){
 }
 function completeQuest(){
  const q=questOf(),qs=questsOf();
- let gold=Math.round(20+S.zone*30+q.need*3);const xp=Math.round(25+S.zone*45);
+ /* quest reward = 3× a normal mob in this zone — scales with zone level, hero level and prestige */
+ let gold=mobGold(zoneOf(),3);const xp=Math.round(25+S.zone*45);
  gold=addGold(gold);gainXP(xp);
  S.qProg=0;
  sfx.quest();
