@@ -6103,7 +6103,7 @@ function openTab(t){
 /* ==================== GOLDSHIRE INN — daily Rested XP wheel ====================
    Click the big inn at the top of the square. Spin once per 24h; the wheel lands on
    10/15/20% bonus XP and the Rested buff activates automatically for 1 hour. */
-const REST_SEGS=[10,15,10,20,10,15]; /* 10% ×3 · 15% ×2 · 20% ×1 */
+const REST_SEGS=[10,15,20,10,15,20]; /* equal odds — 10/15/20% ×2 each */
 const REST_COLS={10:'#6dbb6d',15:'#5b9bd5',20:'#ffd76a'};
 const REST_CD=86400; /* seconds between spins */
 let restSpinning=false,restRot=-Math.PI/2;
@@ -6132,13 +6132,19 @@ function drawRestWheel(rot){
 function updateRestUI(){
  if(restSpinning)return;
  const left=restCdLeft(),btn=$('restSpinBtn');
- if(S.restedT>0)$('restRes').innerHTML='<span style="color:#9adf9a">😴 Rested — +'+Math.round((S.restedPct||0)*100)+'% XP · '+Math.ceil(S.restedT/60)+' min left</span>';
- else $('restRes').textContent='Land 10, 15 or 20% bonus XP for 1 hour';
+ btn.textContent='😴 Spin';
  if(left>0){
-  const mins=Math.ceil(left/60);
-  btn.disabled=true;btn.textContent='⏳ '+Math.floor(mins/60)+'h '+(mins%60)+'m';
- }else{btn.disabled=false;btn.textContent='😴 Spin';}
+  /* active-buff time lives in the bag — here we only count down to the next spin */
+  const mins=Math.ceil(left/60),h=Math.floor(mins/60),m=mins%60;
+  $('restRes').innerHTML='<span style="color:#8fc3ef">⏳ Next Rested in '+h+'h '+m+'m</span>';
+  btn.disabled=true;
+ }else{
+  $('restRes').textContent='Land 10, 15 or 20% bonus XP for 1 hour';
+  btn.disabled=false;
+ }
 }
+/* live countdown while the wheel is open */
+setInterval(()=>{if(S&&$('restFx').classList.contains('open'))updateRestUI();},1000);
 function openRestedWheel(){
  $('restFx').classList.add('open');
  drawRestWheel(restRot);
