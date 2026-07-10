@@ -2313,7 +2313,7 @@ function buildZone(){
  enemies=[];bolts=[];ebolts=[];hazards=[];floats=[];parts=[];rings=[];zaps=[];
  const tmpls=zoneTemplates(z);
  cowRunning=false;cowT=0;cowSpawnT=0;cowItems=0;cowBagFull=false;
- cowChest=null;cowChestT=10;cowChestMsgT=0;cowBigT=15; /* first chest lands 10s after entering */
+ cowChest=null;cowChestT=10;cowChestMsgT=0;cowBigT=12; /* first chest lands 10s after entering */
  if(z.cow){
   cowRunning=true;
   /* start in the middle of the field — chests can spawn anywhere, so start central */
@@ -2451,7 +2451,7 @@ function collectCowChest(){
  const c=cowChest;
  cowChest=null;cowChestT=10; /* the 10s timer for the NEXT chest starts on pickup */
  cowItems++;                 /* counts chests found */
- const r=Math.random(),n=r<1/3?2:r<2/3?1:0; /* 33% two epics · 33% one · 33% empty */
+ const n=2; /* the chest ALWAYS holds 2 epics */
  let got=0;
  for(let i=0;i<n;i++){
   if(S.bag.length>=COW_BAG_CAP)break;
@@ -2635,8 +2635,8 @@ function healHero(amt,silent){
 }
 function hurtHero(dmg,label){
  if(hero.dead)return;
- /* hidden passive: melee callings (Christian/Jew) shrug off 18% in the Cow Level — never shown in any UI */
- const cowMelee=zoneOf().cow&&(S.cls==='warrior'||S.cls==='cleric')?0.82:1;
+ /* hidden passive: melee callings (Christian/Jew) shrug off 60% in the Cow Level — never shown in any UI */
+ const cowMelee=zoneOf().cow&&(S.cls==='warrior'||S.cls==='cleric')?0.40:1;
  dmg=Math.round(dmg*(1-scrollPct('warding'))*(1-(classOf().armor||0))*(1-(raceOf().armor||0))*(1-((activePet()||{}).armor||0))*cowMelee);
  hero.hp-=dmg;hero.hurt=0.2;
  floatAt(hero.x,hero.y-26,'-'+dmg+(label?' '+label:''),'#ff8a7a');
@@ -2790,7 +2790,18 @@ function killEnemy(en){
  if(!en.cow&&!en.raid)floatAt(en.x,en.y-en.r-14,gold>0?'+'+gold+' ◉':'◉ CAP','#ffd76a');
  log(`Slew <span class="imp">${en.name}</span> — ${en.xp>0?'+'+en.xp+' xp':'no xp'}${(en.cow||en.raid)?'':', +'+gold+' gold'}.`);
  if(en.cow){
-  /* cows drop NOTHING — all Cow Level loot comes from the blue chests */
+  /* chests are the main loot — but each cow has a 3% chance to shake loose one epic */
+  if(Math.random()<0.03&&S.bag.length<COW_BAG_CAP){
+   const it=rollItem('epic');
+   sfx.loot();
+   log(`Cow loot: <span class="lepic">${it.name}</span> ${itemStr(it)}.`,'loot');
+   if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
+   if(S.bag.length>=COW_BAG_CAP&&!cowBagFull){
+    cowBagFull=true;
+    stageMsg('BAG FULL — '+COW_BAG_CAP+' items! Die gloriously or flee to cash in.',3500);
+    log(`<span class="loot">Bag stuffed full (${COW_BAG_CAP})</span> — nothing more to gain.`,'loot');
+   }
+  }
  }else if(!en.raid){
   const lucky=S.luckT>0;
   if(Math.random()<(en.boss?1:0.20*(lucky?1.20:1))){
@@ -3396,7 +3407,7 @@ function update(dt){
    if(enemies.filter(e=>e.cow&&!e.dead).length<80)spawnCow(); /* hard cap: 80 cows on the map */
   }
   cowBigT-=dt;
-  if(cowBigT<=0){cowBigT=15;spawnCow(true);} /* the Alpha Bovine, every 15s — ignores the cap */
+  if(cowBigT<=0){cowBigT=12;spawnCow(true);} /* the Alpha Bovine, every 12s — ignores the cap */
   if(cowChestMsgT>0)cowChestMsgT-=dt;
   /* blue chest: ticks down only while no chest is waiting; pickup = walk into melee range */
   if(!cowChest){
@@ -4777,7 +4788,7 @@ function renderMap(){
     return `<div class="card zonecard ${canCow?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${bagBlocked?'#c75146':canCow?'#ffd76a':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},${z.tree})">🐄</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">${cowOk?'':'Level 60 herd · Prestige 5+ · '}💠 A glowing chest spawns every 10s — walk over it for 0–2 top-tier epics · cows drop nothing · Best ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} chests) · Last ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} chests)</div>
+     <div class="zl">${cowOk?'':'Level 60 herd · Prestige 5+ · '}💠 A glowing chest spawns every 10s — walk over it for 2 top-tier epics · cows can drop epics too · Best ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} chests) · Last ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} chests)</div>
      ${bagBlocked?`<div style="color:#ff8a7a;font-family:var(--display);font-size:13.5px;margin-top:4px;text-shadow:0 0 8px rgba(255,90,70,.35)">⚠ EMPTY YOUR BAG FIRST — the herd only respects those who arrive with nothing (${S.bag.length} item${S.bag.length>1?'s':''} carried)</div>`:''}</div>
      ${i===S.zone?'<span class="ztag">Here</span>':bagBlocked?'<span class="ztag boss">🎒 Bag full</span>':`<span class="ztag boss">${lockTxt}</span>`}
     </div>`;
