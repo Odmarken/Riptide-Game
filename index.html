@@ -901,6 +901,12 @@ function thorStatus(){
  return t<THOR_OPEN?{open:true,left:THOR_OPEN-t}:{open:false,next:THOR_PERIOD-t};
 }
 const thorLocked=()=>S&&S.thorLock===thorWindow();
+/* Black Temple opens every 4 hours (00/04/08/12/16/20 Swedish time), 30 minutes per window */
+const RAID_PERIOD=4*3600*1000,RAID_OPEN=30*60*1000;
+function raidStatus(){
+ const t=localDayMs()%RAID_PERIOD;
+ return t<RAID_OPEN?{open:true,left:RAID_OPEN-t}:{open:false,next:RAID_PERIOD-t};
+}
 const fmtMS=ms=>{
  const s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;
  return h>0?h+'h '+m+'m':m+'m '+String(ss).padStart(2,'0')+'s';
@@ -4794,11 +4800,14 @@ function renderMap(){
     </div>`;
    }
    if(z.raid){
-    return `<div class="card zonecard ${p15?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p15?'#a66bd0':''}">
+    const rst=raidStatus();
+    const stateTxt=rst.open?'⚔ GATES OPEN — they close in '+fmtMS(rst.left):'Gates open every 4 hours — next opening in '+fmtMS(rst.next);
+    return `<div class="card zonecard ${p15&&rst.open?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p15&&rst.open?'#a66bd0':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#2a2040)">⚔</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">RAID — three lords slumber in their chambers. Strike one and it hunts you to the death.${p15?'':' · Minimum Prestige 15'}</div></div>
-     ${i===S.zone?'<span class="ztag">Here</span>':p15?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">🔒 Prestige 15</span>'}
+     <div class="zl">RAID — three lords slumber in their chambers. Strike one and it hunts you to the death.${p15?'':' · Minimum Prestige 15'}</div>
+     <div class="zl" id="raidTimer" style="color:${rst.open?'#c9a0ff':'#8fa898'}">${stateTxt}</div></div>
+     ${i===S.zone?'<span class="ztag">Here</span>':!p15?'<span class="ztag boss">🔒 Prestige 15</span>':rst.open?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">⏳ Sealed</span>'}
     </div>`;
    }
    const kills=S.cerberusKills||0;
@@ -4838,6 +4847,8 @@ function renderMap(){
      if(S.bag.filter(it=>!isLegendary(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
     }else if(z.raid){
      if((S.prestige||0)<15){stageMsg('Reach Prestige 15 — the Black Temple opens only to legends',1800);sfx.warn();return;}
+     const rst=raidStatus();
+     if(!rst.open){stageMsg('⚔ The Black Temple gates are sealed — next opening in '+fmtMS(rst.next),2200);sfx.warn();return;}
      pendingRaidZone=i;
      const rm=$('raidModal');
      if(rm){rm.style.display='flex';openTab('battle');}
@@ -4860,6 +4871,7 @@ function renderMap(){
 let mapContinent='east';
 
 /* live Thor countdown — only touches the text, never rebuilds the panel */
+let raidWasOpen=false;
 setInterval(()=>{
  const el=$('thorTimer');
  if(!el||!S)return;
@@ -4876,6 +4888,19 @@ setInterval(()=>{
    stageMsg('⚡ THOR HAS APPEARED IN VALHALLA — 15 minutes!',4000);
    if(typeof sfx!=='undefined'&&sfx.quest)sfx.quest();
  }
+ /* Black Temple window — same treatment as Thor */
+ const rEl=$('raidTimer');
+ const rst=raidStatus();
+ if(rEl){
+  rEl.textContent=rst.open?'⚔ GATES OPEN — they close in '+fmtMS(rst.left):'Gates open every 4 hours — next opening in '+fmtMS(rst.next);
+  rEl.style.color=rst.open?'#c9a0ff':'#8fa898';
+ }
+ if(raidWasOpen!==rst.open&&$('p-map').classList.contains('open'))renderMap();
+ if(!raidWasOpen&&rst.open&&typeof gameOn!=='undefined'&&gameOn&&(S.prestige||0)>=15){
+  stageMsg('⚔ THE BLACK TEMPLE GATES ARE OPEN — 30 minutes!',4000);
+  if(typeof sfx!=='undefined'&&sfx.quest)sfx.quest();
+ }
+ raidWasOpen=rst.open;
 },1000);
 
 
