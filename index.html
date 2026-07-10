@@ -2635,8 +2635,8 @@ function healHero(amt,silent){
 }
 function hurtHero(dmg,label){
  if(hero.dead)return;
- /* hidden passive: melee callings (Christian/Jew) shrug off 8% in the Cow Level — never shown in any UI */
- const cowMelee=zoneOf().cow&&(S.cls==='warrior'||S.cls==='cleric')?0.92:1;
+ /* hidden passive: melee callings (Christian/Jew) shrug off 18% in the Cow Level — never shown in any UI */
+ const cowMelee=zoneOf().cow&&(S.cls==='warrior'||S.cls==='cleric')?0.82:1;
  dmg=Math.round(dmg*(1-scrollPct('warding'))*(1-(classOf().armor||0))*(1-(raceOf().armor||0))*(1-((activePet()||{}).armor||0))*cowMelee);
  hero.hp-=dmg;hero.hurt=0.2;
  floatAt(hero.x,hero.y-26,'-'+dmg+(label?' '+label:''),'#ff8a7a');
