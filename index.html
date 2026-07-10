@@ -5545,6 +5545,11 @@ function stopSeaAuto(msg){
 function openSea(){
  seaFree=0;
  if(window.seaMusic){seaMusic.currentTime=0;seaMusic.play().catch(()=>{});}
+ /* mute ambient while casino music plays */
+ if(AC.ambG)AC.ambG.gain.value=0;
+ if(ambAudio)ambAudio.pause();
+ if(cowAudio)cowAudio.pause();
+ if(haalandAudio)haalandAudio.pause();
  $('seaFx').classList.add('open');
  clearSeaCelebration();
  seaSession={spins:0,gold:0,scrap:0};
@@ -5572,6 +5577,13 @@ $('seaClose').onclick=()=>{
  stopSeaAuto();clearSeaCelebration();clearTimeout(seaAutoTimer);
  $('seaFx').classList.remove('open');
  if(window.seaMusic)seaMusic.pause();
+ /* restore ambient */
+ applyVolumes();
+ if(gameOn){
+  if(zoneOf().cow&&cowAudio)cowAudio.play().catch(()=>{});
+  else if(zoneOf().amb==='haaland'&&haalandAudio)haalandAudio.play().catch(()=>{});
+  else if(ambAudio)ambAudio.play().catch(()=>{});
+ }
 };
 
 /* ==================== BOREK BLACKJACK ==================== */
