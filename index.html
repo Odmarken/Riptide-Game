@@ -420,6 +420,12 @@
  .seapay{font-size:12px}
 }
 
+/* --- Goldshire Inn: daily Rested XP wheel --- */
+#restFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(5,10,8,.86)}
+#restFx.open{display:flex}
+#restSpinBtn{font-family:var(--display);font-size:16px;letter-spacing:.5px;padding:14px 28px;border-radius:12px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;cursor:pointer;box-shadow:0 0 16px rgba(217,164,65,.3)}
+#restSpinBtn:disabled{opacity:.45;cursor:default;box-shadow:none}
+
 /* --- Borek Blackjack --- */
 #bjFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(5,10,8,.86)}
 #bjFx.open{display:flex}
@@ -694,6 +700,19 @@
     </div>
   </div>
  
+
+  <div id="restFx">
+    <div class="slotmach">
+      <div class="slottop">🍺 GOLDSHIRE INN</div>
+      <div style="color:var(--dim);font-size:12px;margin:-8px 0 12px;letter-spacing:.5px">Rest by the hearth — spin once a day for Rested XP</div>
+      <canvas id="restWheel" width="250" height="250"></canvas>
+      <div class="slotres" id="restRes">&nbsp;</div>
+      <div class="casebtns show" style="margin-top:12px">
+        <button id="restSpinBtn">😴 Spin</button>
+        <button id="restClose" class="sbtn" style="padding:12px 18px;border-radius:12px">Close</button>
+      </div>
+    </div>
+  </div>
 
   <div id="bjFx">
    <div class="slotmach bj">
@@ -1515,18 +1534,20 @@ const questOf=()=>questsOf()[Math.min(S.quest,questsOf().length-1)];
 const swiftMul=()=>1+scrollPct('swiftness');
 const spellManaCost=sp=>Math.ceil(sp.cost*2); /* spells cost double their base mana */
 const BOOST_BASE_MAX=6;
-const BOOST_PCT_CAP=1.6; /* +160% absolute ceiling */
+const BOOST_PCT_CAP=1.6; /* +160% ceiling for speed */
+const HASTE_PCT_CAP=2.0; /* haste gets one extra level at Prestige 10 → +200% */
+const boostCap=kind=>kind==='haste'?HASTE_PCT_CAP:BOOST_PCT_CAP;
 const boostMax=()=>BOOST_BASE_MAX+Math.floor((S.prestige||0)/5);
 const nextBoostPrestige=()=>(Math.floor((S.prestige||0)/5)+1)*5;
-const boostBonus=n=>n>0?Math.min(BOOST_PCT_CAP,0.025*Math.pow(2,n-1)):0;
+const boostBonus=(n,kind)=>n>0?Math.min(boostCap(kind),0.025*Math.pow(2,n-1)):0;
 const boostCost=n=>Math.min(2500*Math.pow(2,n),BOOST_COST_CAP);
-const boostPct=n=>(Math.round(boostBonus(n)*1000)/10).toLocaleString();
-const boostAtHardCap=n=>boostBonus(n)>=BOOST_PCT_CAP;
-const speedBoostMul=()=>1+boostBonus(S.boosts?S.boosts.speed:0);
-const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0);
+const boostPct=(n,kind)=>(Math.round(boostBonus(n,kind)*1000)/10).toLocaleString();
+const boostAtHardCap=(n,kind)=>boostBonus(n,kind)>=boostCap(kind);
+const speedBoostMul=()=>1+boostBonus(S.boosts?S.boosts.speed:0,'speed');
+const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0,'haste');
 function freshState(name,race,cls){
  return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,lastZone:0,maxZone:0,quest:0,qProg:0,
-  rating:0,cerberusKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',bankGold:0,bankScrap:0,bankEarned:0,bankLastT:0,smithLvl:0,smithJob:null,luckPots:0,luckT:0,gamblerPots:0,gamblerT:0,freeGoldCases:0,chests:{blacktemple:0},cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
+  rating:0,cerberusKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',bankGold:0,bankScrap:0,bankEarned:0,bankLastT:0,smithLvl:0,smithJob:null,luckPots:0,luckT:0,gamblerPots:0,gamblerT:0,restedT:0,restedPct:0,restedSpinAt:0,freeGoldCases:0,chests:{blacktemple:0},cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
   gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],pet:null,pets:[],
   boosts:{speed:0,haste:0},tainted:false,
   cleared:{},bossDead:{},zoneLvlGain:{},
@@ -1583,6 +1604,9 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.luckT===undefined)s.luckT=0;
  if(s.gamblerPots===undefined)s.gamblerPots=0;
  if(s.gamblerT===undefined)s.gamblerT=0;
+ if(s.restedT===undefined)s.restedT=0;
+ if(s.restedPct===undefined)s.restedPct=0;
+ if(s.restedSpinAt===undefined)s.restedSpinAt=0;
  if(s.freeGoldCases===undefined)s.freeGoldCases=0;
  if(s.chests===undefined)s.chests={};
  s.chests=Object.assign({blacktemple:0},s.chests);
@@ -1682,13 +1706,14 @@ function syncWarglaives(it){
  it.maxUp=FM_MAX_UP;it.bossDmg=10;
  it.baseAtk=fmBaseAtk();
  it.atk=Math.round(it.baseAtk*Math.pow(1.12,it.up||0));
- it.crit=it.baseCrit=3;it.hp=it.baseHp=0;
+ it.crit=it.baseCrit=0;it.hp=it.baseHp=0;
+ it.haste=0.10; /* twin glaives strike 10% faster instead of granting crit */
  calcPower(it);it.basePower=Math.round(it.baseAtk*3+12);
  it.sell=Math.round(it.baseAtk*4);
  return it;
 }
 function rollWarglaives(){
- return syncWarglaives({id:'warglaives',slot:'weapon',rar:'legendary',legend:'warglaives',name:'Warglaives of Azzinoth',atk:0,hp:0,crit:3,bossDmg:10,ench:null,up:0,sell:0,maxUp:FM_MAX_UP});
+ return syncWarglaives({id:'warglaives',slot:'weapon',rar:'legendary',legend:'warglaives',name:'Warglaives of Azzinoth',atk:0,hp:0,crit:0,haste:0.10,bossDmg:10,ench:null,up:0,sell:0,maxUp:FM_MAX_UP});
 }
 function itemName(it){return (isFM(it)&&fmStar(it)>1?'★'+fmStar(it)+' ':'')+(it&&it.name?it.name:'?');}
 const SMITH_HOUR=7200000;
@@ -1766,6 +1791,7 @@ function itemStr(it){
  const cap=isLegendaryW(it)?FM_MAX_UP:GEAR_MAX_UP;
  const maxed=(it.up||0)>=cap;
  let s=`${it.up?'+'+it.up+(maxed?' MAX ✦':'')+' · ':''}${statBaseStr(it,'atk','ATK')} ${statBaseStr(it,'hp','HP')} ${statBaseStr(it,'crit','CRIT','%')}`;
+ if(it.haste)s+=` +${Math.round(it.haste*100)}% ATK SPEED`;
  if(it.lifesteal)s+=` +${Math.round(it.lifesteal*1000)/10}% LIFESTEAL`;
  if(isFM(it)&&fmStar(it)>1)s+=` · ★${fmStar(it)} bonus: +${fmStar(it)*2}% CRIT / +${fmStar(it)*2}% LIFESTEAL`;
  if(isWG(it))s+=` · +10% BOSS DMG`;
@@ -1782,6 +1808,7 @@ function shortStats(it){
  if(baseAtk)parts.push('+'+baseAtk+' ATK');
  if(baseHp)parts.push('+'+baseHp+' HP');
  if(baseCrit)parts.push('+'+baseCrit+'% CRIT');
+ if(it.haste)parts.push('+'+Math.round(it.haste*100)+'% ATK SPEED');
  if(it.lifesteal)parts.push('+'+Math.round(it.lifesteal*1000)/10+'% LIFESTEAL');
  return parts.join(' · ')||'—';
 }
@@ -2449,7 +2476,7 @@ function hazardAt(x,y,rad,warn,dmg,c){hazards.push({x,y,rad,warn,t:0,dmg,c:c||'#
   
 /* ==================== COMBAT ==================== */
 function atkMul(){return hero.buff.atk&&hero.buff.atk.t>0?hero.buff.atk.mul:1;}
-function hasteMul(){return (hero.buff.haste&&hero.buff.haste.t>0?hero.buff.haste.mul:1)*swiftMul()*hasteBoostMul();}
+function hasteMul(){return (hero.buff.haste&&hero.buff.haste.t>0?hero.buff.haste.mul:1)*swiftMul()*hasteBoostMul()*(1+gearSum('haste'));}
 function healHero(amt,silent){
  if(hero.dead)return;
  amt=Math.round(amt);if(amt<=0)return;
@@ -2699,6 +2726,7 @@ const zoneLvlGained=()=>((S.zoneLvlGain||{})[S.zone])||0;
 function gainXP(amt){
  if(S.lvl>=MAXLVL)return;
  if(S.gamblerT>0)amt=Math.round(amt*1.20);
+ if(S.restedT>0)amt=Math.round(amt*(1+(S.restedPct||0))); /* 😴 Rested — inn wheel buff */
  S.xp+=amt;
  while(S.lvl<MAXLVL&&zoneLvlGained()<ZONE_LVL_CAP&&S.xp>=xpNeed(S.lvl)){
   S.xp-=xpNeed(S.lvl);S.lvl++;
@@ -3115,6 +3143,8 @@ cv.addEventListener('pointerdown',e=>{
  const r=cv.getBoundingClientRect();
  const wx=(e.clientX-r.left)/zoom+camX,wy=(e.clientY-r.top)/zoom+camY;
  if(zoneOf().tavern){
+  const inn=world.solids.find(s=>s.type==='house'&&s.big);
+  if(inn&&Math.hypot(wx-inn.x,wy-inn.y)<inn.r+28){openRestedWheel();return;}
   const cas=world.solids.find(s=>s.type==='casino');
   if(cas&&Math.hypot(wx-cas.x,wy-cas.y)<cas.r+28){openCasinoMenu();return;}
   const bnk=world.solids.find(s=>s.type==='bank');
@@ -3241,6 +3271,10 @@ function update(dt){
   S.gamblerT-=dt;
   if(S.gamblerT<=0){S.gamblerT=0;stageMsg('🎲 The gambler\'s edge fades…',1800);}
   else if(Math.random()<0.01)parts.push({x:hero.x+(Math.random()-0.5)*22,y:hero.y-6,vx:(Math.random()-0.5)*8,vy:-18,t:0,life:1,c:'#ffd76a',r:1.4,g:0});
+ }
+ if(S.restedT>0){
+  S.restedT-=dt;
+  if(S.restedT<=0){S.restedT=0;S.restedPct=0;stageMsg('😴 You no longer feel rested…',1800);}
  }
 for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
  // mana regen (faster out of combat)
@@ -4509,9 +4543,18 @@ function renderBag(){
    <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#ffd76a">ACTIVE — '+mins+' min remaining.</b> ':''}+20% XP gain and +2% crit chance for 30 minutes. Won only on a 100x max win at Borek 67.</div></div>
    <div class="btns"><button class="sbtn gold" id="gamblerUse" ${(S.gamblerPots||0)<1?'disabled':''}>${active?'Extend +30m':'Drink'}</button></div></div>`;
  }
+ // 😴 rested buff — granted by the Goldshire inn wheel, activates automatically
+ let restedHtml='';
+ if(S.restedT>0){
+  const mins=Math.ceil(S.restedT/60);
+  restedHtml=`<div class="card item" style="border-color:#8fc3ef;box-shadow:0 0 10px rgba(143,195,239,.25)"><div>
+   <div class="sn" style="color:#8fc3ef;font-size:13px;font-weight:600">😴 Rested</div>
+   <div class="ss" style="color:var(--dim);font-size:11px"><b style="color:#8fc3ef">ACTIVE — ${mins} min remaining.</b> +${Math.round((S.restedPct||0)*100)}% XP from all sources. Spin the inn wheel in Goldshire once a day.</div></div>
+   </div>`;
+ }
  let btHtml='';
  if(S.chests&&S.chests.blacktemple>0)btHtml=`<div class="card item" style="border-color:#39ff6a66;box-shadow:0 0 10px rgba(57,255,106,.15)"><div><div class="sn" style="color:#39ff6a;font-size:13px;font-weight:600">🟩 Black Temple Chest <span style="color:var(--dim)">×${S.chests.blacktemple}</span></div><div class="ss" style="color:var(--dim);font-size:11px">The spoils of the three lords. Chance for Warglaives of Azzinoth, gold, or free GOLD GOLD GOLD cases.</div></div><div class="btns"><button class="sbtn gold" data-btchest>Open</button></div></div>`;
- $('scrollSec').innerHTML=luckHtml+gamblerHtml+btHtml;
+ $('scrollSec').innerHTML=luckHtml+gamblerHtml+restedHtml+btHtml;
 
  document.querySelectorAll('[data-btchest]').forEach(b=>b.onclick=openBlackTempleChest);
  // scrolls — categorised by tier; tap a tier header to expand/collapse it
@@ -6000,20 +6043,20 @@ function renderShop(){
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Upgrades</div>';
  const cap=boostMax();
  const spN=S.boosts.speed,haN=S.boosts.haste,spC=boostCost(spN),haC=boostCost(haN);
- const spMax=spN>=cap||boostAtHardCap(spN),haMax=haN>=cap||boostAtHardCap(haN);
- h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">👟 Speed Boost${spN?` <span style="color:var(--brass);font-size:11px">+${boostPct(spN)}%</span>`:''}</div>
+ const spMax=spN>=cap||boostAtHardCap(spN,'speed'),haMax=haN>=cap||boostAtHardCap(haN,'haste');
+ h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">👟 Speed Boost${spN?` <span style="color:var(--brass);font-size:11px">+${boostPct(spN,'speed')}%</span>`:''}</div>
   <div class="ss" style="color:var(--dim);font-size:11px">${spMax
-   ?(boostAtHardCap(spN)
-    ?`Fully maxed at <b style="color:var(--parch)">+${boostPct(spN)}%</b> — the absolute limit.`
-    :`Maxed at <b style="color:var(--parch)">+${boostPct(spN)}%</b>. Reach <b style="color:var(--brass)">Prestige ${nextBoostPrestige()}</b> to unlock the next upgrade.`)
-   :`Move faster. Next purchase: <b style="color:var(--parch)">+${boostPct(spN+1)}%</b> movement speed. Bonus and price double each time.`}</div></div>
+   ?(boostAtHardCap(spN,'speed')
+    ?`Fully maxed at <b style="color:var(--parch)">+${boostPct(spN,'speed')}%</b> — the absolute limit.`
+    :`Maxed at <b style="color:var(--parch)">+${boostPct(spN,'speed')}%</b>. Reach <b style="color:var(--brass)">Prestige ${nextBoostPrestige()}</b> to unlock the next upgrade.`)
+   :`Move faster. Next purchase: <b style="color:var(--parch)">+${boostPct(spN+1,'speed')}%</b> movement speed. Bonus and price double each time.`}</div></div>
   <div class="btns"><button class="sbtn gold" data-boost="speed" ${spMax||totalGold()<spC?'disabled':''}>${spMax?'MAX ✦':'Buy '+spC.toLocaleString()+'◉'}</button></div></div>`;
- h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">⚡ Haste Boost${haN?` <span style="color:var(--brass);font-size:11px">+${boostPct(haN)}%</span>`:''}</div>
+ h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">⚡ Haste Boost${haN?` <span style="color:var(--brass);font-size:11px">+${boostPct(haN,'haste')}%</span>`:''}</div>
   <div class="ss" style="color:var(--dim);font-size:11px">${haMax
-   ?(boostAtHardCap(haN)
-    ?`Fully maxed at <b style="color:var(--parch)">+${boostPct(haN)}%</b> — the absolute limit.`
-    :`Maxed at <b style="color:var(--parch)">+${boostPct(haN)}%</b>. Reach <b style="color:var(--brass)">Prestige ${nextBoostPrestige()}</b> to unlock the next upgrade.`)
-   :`Attack faster. Next purchase: <b style="color:var(--parch)">+${boostPct(haN+1)}%</b> attack speed. Bonus and price double each time.`}</div></div>
+   ?(boostAtHardCap(haN,'haste')
+    ?`Fully maxed at <b style="color:var(--parch)">+${boostPct(haN,'haste')}%</b> — the absolute limit.`
+    :`Maxed at <b style="color:var(--parch)">+${boostPct(haN,'haste')}%</b>. Reach <b style="color:var(--brass)">Prestige ${nextBoostPrestige()}</b> to unlock the next upgrade.`)
+   :`Attack faster. Next purchase: <b style="color:var(--parch)">+${boostPct(haN+1,'haste')}%</b> attack speed. Bonus and price double each time.`}</div></div>
   <div class="btns"><button class="sbtn gold" data-boost="haste" ${haMax||totalGold()<haC?'disabled':''}>${haMax?'MAX ✦':'Buy '+haC.toLocaleString()+'◉'}</button></div></div>`;
  h+='<div class="ss" style="color:var(--dim);font-size:10.5px;margin-top:2px">Potions never drop from enemies. Potion price is fixed at 20◉ for now. Scrolls of Power are rare drops or gamble prizes.</div>';
  $('shopList').innerHTML=h;
@@ -6036,12 +6079,12 @@ function renderShop(){
  });
  document.querySelectorAll('[data-boost]').forEach(b=>b.onclick=()=>{
   const k=b.dataset.boost,n=S.boosts[k]||0,cost=boostCost(n);
-  if(boostAtHardCap(n)){stageMsg('Boost is fully maxed at +500% — the absolute limit',1800);sfx.warn();return;}
+  if(boostAtHardCap(n,k)){stageMsg('Boost is fully maxed at +'+boostPct(n,k)+'% — the absolute limit',1800);sfx.warn();return;}
   if(n>=boostMax()){stageMsg('Boost maxed — reach Prestige '+nextBoostPrestige()+' to unlock more',1800);sfx.warn();return;}
   if(!spendGold(cost)){stageMsg('Not enough gold',1200);return;}
   S.boosts[k]=n+1;
   sfx.buy();
-  stageMsg(`${k==='speed'?'Speed':'Haste'} Boost is now +${boostPct(S.boosts[k])}%`,1800);
+  stageMsg(`${k==='speed'?'Speed':'Haste'} Boost is now +${boostPct(S.boosts[k],k)}%`,1800);
   renderShop();renderHero();renderHUD();save();
  });
 }
@@ -6057,6 +6100,82 @@ function openTab(t){
  if(t==='bag'){renderBag();$('p-bag').classList.add('open');}
  if(t==='shop'){renderShop();$('p-shop').classList.add('open');}
 }
+/* ==================== GOLDSHIRE INN — daily Rested XP wheel ====================
+   Click the big inn at the top of the square. Spin once per 24h; the wheel lands on
+   10/15/20% bonus XP and the Rested buff activates automatically for 1 hour. */
+const REST_SEGS=[10,15,10,20,10,15]; /* 10% ×3 · 15% ×2 · 20% ×1 */
+const REST_COLS={10:'#6dbb6d',15:'#5b9bd5',20:'#ffd76a'};
+const REST_CD=86400; /* seconds between spins */
+let restSpinning=false,restRot=-Math.PI/2;
+const restCdLeft=()=>Math.max(0,REST_CD-((Date.now()-(S.restedSpinAt||0))/1000));
+function drawRestWheel(rot){
+ const c=$('restWheel'),g=c.getContext('2d'),W=c.width,cx=W/2,cy=W/2,R=cx-14;
+ g.clearRect(0,0,W,W);
+ const n=REST_SEGS.length,seg=Math.PI*2/n;
+ for(let i=0;i<n;i++){
+  const a0=rot+i*seg,a1=a0+seg;
+  g.beginPath();g.moveTo(cx,cy);g.arc(cx,cy,R,a0,a1);g.closePath();
+  g.fillStyle=REST_COLS[REST_SEGS[i]];g.globalAlpha=.88;g.fill();g.globalAlpha=1;
+  g.strokeStyle='#131f1a';g.lineWidth=3;g.stroke();
+  const am=a0+seg/2;
+  g.save();g.translate(cx+Math.cos(am)*R*0.64,cy+Math.sin(am)*R*0.64);g.rotate(am+Math.PI/2);
+  g.fillStyle='#10201a';g.font='800 19px sans-serif';g.textAlign='center';g.textBaseline='middle';
+  g.fillText(REST_SEGS[i]+'%',0,0);
+  g.restore();
+ }
+ g.beginPath();g.arc(cx,cy,25,0,7);g.fillStyle='#1b2a23';g.fill();g.strokeStyle='#d9a441';g.lineWidth=2;g.stroke();
+ g.font='17px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText('😴',cx,cy+1);
+ /* pointer at the top */
+ g.beginPath();g.moveTo(cx-12,3);g.lineTo(cx+12,3);g.lineTo(cx,25);g.closePath();
+ g.fillStyle='#efe3c2';g.fill();g.strokeStyle='#131f1a';g.lineWidth=2;g.stroke();
+}
+function updateRestUI(){
+ if(restSpinning)return;
+ const left=restCdLeft(),btn=$('restSpinBtn');
+ if(S.restedT>0)$('restRes').innerHTML='<span style="color:#9adf9a">😴 Rested — +'+Math.round((S.restedPct||0)*100)+'% XP · '+Math.ceil(S.restedT/60)+' min left</span>';
+ else $('restRes').textContent='Land 10, 15 or 20% bonus XP for 1 hour';
+ if(left>0){
+  const mins=Math.ceil(left/60);
+  btn.disabled=true;btn.textContent='⏳ '+Math.floor(mins/60)+'h '+(mins%60)+'m';
+ }else{btn.disabled=false;btn.textContent='😴 Spin';}
+}
+function openRestedWheel(){
+ $('restFx').classList.add('open');
+ drawRestWheel(restRot);
+ updateRestUI();
+}
+$('restClose').onclick=()=>{if(!restSpinning)$('restFx').classList.remove('open');};
+$('restSpinBtn').onclick=()=>{
+ if(restSpinning||restCdLeft()>0)return;
+ restSpinning=true;$('restSpinBtn').disabled=true;
+ const n=REST_SEGS.length,seg=Math.PI*2/n;
+ const t=Math.floor(Math.random()*n);
+ const jitter=(Math.random()*0.7-0.35)*seg;
+ let rotFinal=-Math.PI/2-(t*seg+seg/2)+jitter;
+ while(rotFinal<restRot+Math.PI*2*4.5)rotFinal+=Math.PI*2; /* at least ~4.5 full spins */
+ const r0=restRot,t0=performance.now(),dur=3400;
+ let lastSeg=-1;
+ const tick=now=>{
+  const p=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-p,3);
+  restRot=r0+(rotFinal-r0)*e;
+  drawRestWheel(restRot);
+  const cur=Math.floor(restRot/seg);
+  if(cur!==lastSeg){lastSeg=cur;blip(560+Math.random()*160,420,0.02,.025,'square');}
+  if(p<1)requestAnimationFrame(tick);
+  else{
+   restSpinning=false;
+   const val=REST_SEGS[t];
+   S.restedPct=val/100;S.restedT=3600;S.restedSpinAt=Date.now();
+   sfx.quest();
+   stageMsg('😴 Rested — +'+val+'% XP for 1 hour!',3000);
+   log('<span class="lfine">😴 Rested</span> — the Goldshire inn grants +'+val+'% XP for 1 hour.');
+   renderHUD();save();
+   updateRestUI();
+  }
+ };
+ requestAnimationFrame(tick);
+};
+
 function goHome(){
  if(!gameOn||!S||hero.dead)return;
  if(mp.on)mpLeave(false);
@@ -6365,7 +6484,7 @@ async function publishLB(ch,force){
  if(!force&&now-FB.lastPub<45000)return;
  FB.lastPub=now;
  ch.tainted=false;ch.taintV=0;
- const slim=g=>g?{name:g.name,rar:g.rar,slot:g.slot,up:g.up||0,atk:g.atk||0,hp:g.hp||0,crit:g.crit||0,lifesteal:g.lifesteal||0,legend:g.legend||null,power:Math.round(g.power||0)}:null;
+ const slim=g=>g?{name:g.name,rar:g.rar,slot:g.slot,up:g.up||0,atk:g.atk||0,hp:g.hp||0,crit:g.crit||0,haste:g.haste||0,lifesteal:g.lifesteal||0,legend:g.legend||null,power:Math.round(g.power||0)}:null;
  const entry={season:SEASON,name:(ch.name||'?').slice(0,14),lvl:ch.lvl,prestige:ch.prestige||0,gs:charGearScore(ch),score:lbScore(ch),cid:ch.id,t:now,tainted:false,taintV:0,
   rating:ch.rating||0,
   race:ch.race||'human',cls:ch.cls||'warrior',zone:ch.zone||0,
@@ -6407,7 +6526,7 @@ function renderInspect(e){
  const gearRow=sl=>{
   const g=e.gear&&e.gear[sl];
   if(!g)return `<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div><div class="ss">— empty —</div></div>`;
-  let s=`${g.up?'+'+g.up+' · ':''}${g.atk?'+'+g.atk+' ATK ':''}${g.hp?'+'+g.hp+' HP ':''}${g.crit?'+'+g.crit+'% CRIT ':''}${g.lifesteal?'+'+(g.lifesteal*100)+'% LIFESTEAL':''}`.trim();
+  let s=`${g.up?'+'+g.up+' · ':''}${g.atk?'+'+g.atk+' ATK ':''}${g.hp?'+'+g.hp+' HP ':''}${g.crit?'+'+g.crit+'% CRIT ':''}${g.haste?'+'+Math.round(g.haste*100)+'% ATK SPEED ':''}${g.lifesteal?'+'+(g.lifesteal*100)+'% LIFESTEAL':''}`.trim();
   return `<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div>
    <div class="sn" style="color:${RARCOL[g.rar]||'#fff'}">${esc(g.name)}</div>
    <div class="ss">${esc(s)}</div></div>`;
