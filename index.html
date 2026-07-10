@@ -653,7 +653,7 @@
   <div id="seaFx">
     <div class="slotmach sea">
       <div class="slottop">🦈 BOREK SEAMEN <button class="sbtn" id="seaInfoBtn" style="width:26px;height:26px;padding:0;font-size:13px">ℹ</button></div>
-      <div id="seaVolWrap" title="Music volume">🔊<input type="range" id="seaVol" min="0" max="100" value="35"></div>
+      <div id="seaVolWrap" title="Music volume"><button id="seaMuteBtn" style="background:none;border:none;padding:0;font-size:16px;cursor:pointer;line-height:1">🔊</button><input type="range" id="seaVol" min="0" max="100" value="35"></div>
       <div class="seagrid">
         <div class="seacolwin" data-rows="3"><div class="seastrip" id="sc0"></div></div>
         <div class="seacolwin" data-rows="5"><div class="seastrip" id="sc1"></div></div>
@@ -817,7 +817,11 @@
 window.seaMusic=new Audio('ambientsong/seamen_song.mp3');
 window.seaMusic.loop=true;
 window.seaVolVal=0.35; /* desired music level — applied via a Web Audio gain node (iOS ignores audio.volume) */
-try{const v=parseFloat(localStorage.getItem('seaVol'));if(!isNaN(v))window.seaVolVal=Math.min(1,Math.max(0,v));}catch(e){}
+window.seaMuted=false;
+try{
+ const v=parseFloat(localStorage.getItem('seaVol'));if(!isNaN(v))window.seaVolVal=Math.min(1,Math.max(0,v));
+ window.seaMuted=localStorage.getItem('seaMuted')==='1';
+}catch(e){}
 window.seaMusic.volume=window.seaVolVal; /* fallback level until the gain node takes over */
 /* ==================== DATA ==================== */
 const MAXLVL=60;
@@ -1801,14 +1805,17 @@ function equipCompare(it){
 /* ==================== AUDIO ====================
    Two mix buses: ambG = ambience + music (🔊 button), sfxG = combat/one-shot sounds (⚔️ button). */
 const AC={ctx:null,ambG:null,sfxG:null,amb:[],timers:[],prof:null,mIdx:0};
+/* phones/tablets: volume sliders can't control media level (iOS blocks audio.volume),
+   so touch devices get plain mute toggles instead — .muted works everywhere */
+const IS_TOUCH=!!(window.matchMedia&&(matchMedia('(hover: none)').matches||matchMedia('(pointer: coarse)').matches));
 const ambVol=()=>(!S||S.sound)?(S?S.volAmb:0.5):0;
 const sfxVol=()=>(!S||S.sfx)?(S?S.volSfx:0.55):0;
 function applyVolumes(){
  if(AC.ambG)AC.ambG.gain.value=ambVol();
  if(AC.sfxG)AC.sfxG.gain.value=sfxVol();
- if(ambAudio)ambAudio.volume=ambVol();
- if(cowAudio)cowAudio.volume=ambVol();
- if(haalandAudio)haalandAudio.volume=ambVol();
+ /* .muted works on iOS where .volume writes are ignored — mute must win on phones */
+ const av=ambVol(),m=av<=0;
+ [ambAudio,cowAudio,haalandAudio].forEach(a=>{if(a){try{a.volume=av;a.muted=m;}catch(e){}}});
 }
 function noiseBuf(){
  if(AC.nb)return AC.nb;
@@ -5612,7 +5619,7 @@ function seaMusicStart(){
  if(AC.ctx){
   if(AC.ctx.state==='suspended')AC.ctx.resume().catch(()=>{});
   if(!seaGain){seaGain=AC.ctx.createGain();seaGain.connect(AC.ctx.destination);}
-  seaGain.gain.value=window.seaVolVal;
+  seaApplyVol();
   if(seaBuf){seaBufPlay();return;}
   if(!seaBufLoading){
    seaBufLoading=true;
@@ -5627,13 +5634,14 @@ function seaMusicStart(){
   }
  }
  /* fallback + bridge while decoding */
- try{seaMusic.volume=window.seaVolVal;}catch(e){}
+ seaApplyVol();
  seaMusic.currentTime=0;seaMusic.play().catch(()=>{});
 }
 function seaMusicStop(){seaStopBuf();try{seaMusic.pause();}catch(e){}}
 function seaApplyVol(){
- if(seaGain)seaGain.gain.value=window.seaVolVal;
- try{seaMusic.volume=window.seaVolVal;}catch(e){}
+ const v=window.seaMuted?0:window.seaVolVal;
+ if(seaGain)seaGain.gain.value=v;
+ try{seaMusic.volume=v;seaMusic.muted=v<=0;}catch(e){}
 }
 function openSea(){
  seaFree=0;
@@ -5656,6 +5664,14 @@ function openSea(){
 }
 $('seaVol').value=Math.round(window.seaVolVal*100);
 $('seaVol').oninput=e=>{window.seaVolVal=(+e.target.value)/100;seaApplyVol();try{localStorage.setItem('seaVol',window.seaVolVal);}catch(err){}};
+if(IS_TOUCH)$('seaVol').style.display='none'; /* phones: slider can't control level — mute button only */
+$('seaMuteBtn').textContent=window.seaMuted?'🔇':'🔊';
+$('seaMuteBtn').onclick=()=>{
+ window.seaMuted=!window.seaMuted;
+ $('seaMuteBtn').textContent=window.seaMuted?'🔇':'🔊';
+ seaApplyVol();
+ try{localStorage.setItem('seaMuted',window.seaMuted?'1':'0');}catch(err){}
+};
 $('seaSpinBtn').onclick=()=>{if(!seaAuto)spinSea();};
 $('seaFastBtn').onclick=()=>{seaFast=!seaFast;$('seaFastBtn').classList.toggle('on',seaFast);};
 $('seaAutoBtn').onclick=()=>{
@@ -6597,12 +6613,26 @@ $('nextBtn').onclick=()=>{
 $('autoEquipBtn').onclick=()=>{S.autoEquip=!S.autoEquip;renderHero();save();};
 $('sndBtn').onclick=()=>{
  initAudio();
+ if(IS_TOUCH){ /* phones: straight mute toggle — sliders can't control media volume on iOS */
+  S.sound=!S.sound;
+  if(S.sound&&!(S.volAmb>0))S.volAmb=0.5; /* unmute must actually make sound */
+  $('sndBtn').textContent=S.sound?'🔊':'🔇';$('sndBtn').classList.toggle('off',!S.sound);
+  applyVolumes();save();
+  return;
+ }
  $('volSfxBox').classList.remove('open');
  $('volAmbBox').classList.toggle('open');
  $('volAmbSl').value=Math.round((S.volAmb??0.5)*100);
 };
 $('sfxBtn').onclick=()=>{
  initAudio();
+ if(IS_TOUCH){ /* phones: straight mute toggle for combat sounds */
+  S.sfx=!S.sfx;
+  if(S.sfx&&!(S.volSfx>0))S.volSfx=0.55; /* unmute must actually make sound */
+  $('sfxBtn').textContent=S.sfx?'⚔️':'🔕';$('sfxBtn').classList.toggle('off',!S.sfx);
+  applyVolumes();save();
+  return;
+ }
  $('volAmbBox').classList.remove('open');
  $('volSfxBox').classList.toggle('open');
  $('volSfxSl').value=Math.round((S.volSfx??0.55)*100);
