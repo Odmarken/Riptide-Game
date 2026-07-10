@@ -493,7 +493,7 @@
       </div>
       <button class="loginbtn" id="guestBtn">Play as Guest</button>
       <div class="cl" id="fbErr" style="color:#ff8a7a;margin-top:10px;min-height:1.2em"></div>
-      <div class="fineprint">Accounts sync characters through Firebase. Guest mode keeps saves on this device only.</div>
+      <div class="fineprint">Accounts sync characters through Firebase. Guest heroes stay on this device and are kept separate from accounts.</div>
     </div>
   </div>
  
@@ -6018,7 +6018,12 @@ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
 });
  
 /* ==================== SAVE — one file per character ==================== */
-let saveT=0,memRoster=null;const memChars={};
+/* Each profile (guest, or each signed-in account) has its OWN roster namespace so
+   characters never leak between accounts. Guest keeps the legacy 'riptide-roster'
+   key so old local saves stay visible in guest mode. */
+let saveT=0;const memRosters={},memChars={};
+function profileKey(){return (FB&&FB.user)?'u_'+FB.user.uid:'guest';}
+function rosterKey(){const p=profileKey();return p==='guest'?'riptide-roster':'riptide-roster::'+p;}
 const LS={
  get(k){try{return localStorage.getItem(k);}catch(e){return null;}},
  set(k,v){try{localStorage.setItem(k,v);}catch(e){}},
@@ -6082,14 +6087,16 @@ async function save(){
  else publishLB(S);
 }
 async function loadRoster(){
- let raw=await deviceGet('riptide-roster');
- if(!raw)raw=await deviceGet('eastvale-roster'); /* one-time legacy fallback */
+ const key=rosterKey();
+ let raw=await deviceGet(key);
+ if(!raw&&key==='riptide-roster')raw=await deviceGet('eastvale-roster'); /* one-time legacy fallback (guest only) */
  if(raw){try{return JSON.parse(raw);}catch(e){}}
- return memRoster||[];
+ return memRosters[key]||[];
 }
 async function saveRoster(ids){
- memRoster=ids;
- await deviceSet('riptide-roster',JSON.stringify(ids));
+ const key=rosterKey();
+ memRosters[key]=ids;
+ await deviceSet(key,JSON.stringify(ids));
 }
 async function loadChar(id){
  let raw=await deviceGet('riptide-char-'+id);
@@ -6108,14 +6115,22 @@ async function legacyLoad(){
 async function seasonWipeIfNeeded(){
  const seen=await deviceGet('riptide-season');
  if(String(SEASON)===seen)return false;
- const old=await loadRoster();
- for(const id of old){
-  await deviceDelete('riptide-char-'+id);
-  await deviceDelete('eastvale-char-'+id);
-  delete memChars[id];
+ /* wipe every local profile: guest + every account roster saved on this device */
+ const rosterKeys=['riptide-roster'];
+ try{for(const k of Object.keys(localStorage))if(k.startsWith('riptide-roster::')&&!rosterKeys.includes(k))rosterKeys.push(k);}catch(e){}
+ try{if(window.storage){const r=await window.storage.list('riptide-roster::');for(const k of ((r&&r.keys)||[]))if(!rosterKeys.includes(k))rosterKeys.push(k);}}catch(e){}
+ for(const rk of rosterKeys){
+  let ids=[];
+  const raw=await deviceGet(rk);
+  if(raw){try{ids=JSON.parse(raw)||[];}catch(e){}}
+  for(const id of ids){
+   await deviceDelete('riptide-char-'+id);
+   await deviceDelete('eastvale-char-'+id);
+   delete memChars[id];
+  }
+  memRosters[rk]=[];
+  await deviceSet(rk,JSON.stringify([]));
  }
- memRoster=[];
- await saveRoster([]);
  await deviceDelete('eastvale-roster');
  await deviceDelete('eastvale-save3');
  await deviceDelete('riptide-save3');
@@ -6203,8 +6218,8 @@ async function fbSignIn(create){
  const ok=await initFirebase();
  if(!ok){$('fbErr').textContent='Firebase could not be reached. Check your hosting and Firebase configuration.';return;}
  try{
-  if(create)await FB.auth.createUserWithEmailAndPassword(em,pw);
-  else await FB.auth.signInWithEmailAndPassword(em,pw);
+  const cred=create?await FB.auth.createUserWithEmailAndPassword(em,pw):await FB.auth.signInWithEmailAndPassword(em,pw);
+  FB.user=(cred&&cred.user)||FB.auth.currentUser; /* set immediately so the roster namespace is right before the auth callback fires */
   guestMode=false;
   $('login').classList.remove('open');
   await cloudPullRoster();
@@ -6384,6 +6399,7 @@ function updateAcctUI(){
 }
 function showLogin(msg=''){
  gameOn=false;
+ S=null; /* drop any lingering character so it can never be pushed into the next profile */
  $('create').style.display='none';
  $('select').classList.remove('open');
  $('login').classList.add('open');
@@ -6505,7 +6521,7 @@ $('charSelBtn').onclick=async()=>{await save();showSelect();};
 $('fbLogin').onclick=()=>fbSignIn(false);
 $('fbSignup').onclick=()=>fbSignIn(true);
 $('guestBtn').onclick=()=>{guestMode=true;$('login').classList.remove('open');showSelect();};
-$('fbOut').onclick=async()=>{if(sessUnsub){sessUnsub();sessUnsub=null;}if(FB.auth)await FB.auth.signOut();guestMode=false;showLogin();};
+$('fbOut').onclick=async()=>{if(sessUnsub){sessUnsub();sessUnsub=null;}if(FB.auth)await FB.auth.signOut();FB.user=null;guestMode=false;showLogin();};
 $('lbBtn2').onclick=showLeaderboard;
 $('lbClose').onclick=()=>$('lbFx').classList.remove('open');
 $('autoBtn').onclick=()=>{S.auto=!S.auto;renderHUD();save();};
@@ -6593,7 +6609,7 @@ requestAnimationFrame(frame);
  await seasonWipeIfNeeded();
  seasonReady=true;
  let roster=await loadRoster();
- if(!roster.length){
+ if(!roster.length&&!FB.user){ /* legacy single-save import applies to the guest profile only */
   const legacy=await legacyLoad();
   if(legacy&&legacy.pots){
    legacy.id='c'+Date.now().toString(36);
