@@ -150,6 +150,12 @@
   #create .tag{color:var(--dim);font-size:12px;margin:4px 0 16px;letter-spacing:1.5px;text-transform:uppercase}
   #create label{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:1.2px;display:block;margin:13px 0 7px}
   #cname{width:100%;padding:11px 12px;border-radius:9px;border:1px solid var(--line);background:rgba(28,43,36,.85);color:var(--parch);font-size:15px;font-family:var(--display)}
+  #cname.nameerr{border-color:#ff5a5a;box-shadow:0 0 10px rgba(255,90,90,.35);animation:nameshake .3s}
+  #cname.nameerr::placeholder{color:#ff8a7a}
+  @keyframes nameshake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+  /* the translucent rename pencil next to the hero title */
+  #renameBtn{background:none;border:none;cursor:pointer;opacity:.4;font-size:13px;padding:0 2px;vertical-align:middle;transition:opacity .15s}
+  #renameBtn:hover{opacity:1}
   .pickgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .pick{background:rgba(28,43,36,.85);border:1px solid var(--line);border-radius:10px;padding:10px;cursor:pointer;transition:border-color .15s}
   .pick.sel{border-color:var(--brass);background:rgba(36,56,48,.9)}
@@ -544,6 +550,7 @@
     <div class="tag">Book I · The Eastern Realm · Level cap 60</div>
     <label>Hero name</label>
     <input id="cname" maxlength="14" placeholder="e.g. BYYYYL" autocomplete="off">
+    <div id="cnameErr" style="display:none;color:#ff8a7a;font-size:12px;margin-top:6px">⚠ Write a hero name first — the realm must know who you are!</div>
     <label>Bloodline</label><div class="pickgrid" id="racePick"></div>
     <label>Calling — each has 3 spells</label><div class="pickgrid" id="classPick"></div>
     <button id="startBtn">March East ⚔</button>
@@ -1846,8 +1853,10 @@ function equipCompare(it){
    Two mix buses: ambG = ambience + music (🔊 button), sfxG = combat/one-shot sounds (⚔️ button). */
 const AC={ctx:null,ambG:null,sfxG:null,amb:[],timers:[],prof:null,mIdx:0};
 /* phones/tablets: volume sliders can't control media level (iOS blocks audio.volume),
-   so touch devices get plain mute toggles instead — .muted works everywhere */
-const IS_TOUCH=!!(window.matchMedia&&(matchMedia('(hover: none)').matches||matchMedia('(pointer: coarse)').matches));
+   so MOBILE OS devices get plain mute toggles instead — .muted works everywhere.
+   Detect by OS, not by pointer media queries: touchscreen Windows laptops must keep their sliders. */
+const IS_TOUCH=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+ ||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1); /* iPadOS pretends to be a Mac */
 const ambVol=()=>(!S||S.sound)?(S?S.volAmb:0.5):0;
 const sfxVol=()=>(!S||S.sfx)?(S?S.volSfx:0.55):0;
 function applyVolumes(){
@@ -4299,9 +4308,39 @@ function renderVitals(dt){
  $('potMpN').textContent=S.pots.mp;
 }
 const walletStr=()=>`<b>◉ ${S.gold.toLocaleString()}</b> / ${goldCap().toLocaleString()} gold${S.overflow?` <span style="color:#9adf9a">(+${S.overflow.toLocaleString()} overflow)</span>`:''} · <i>⚙ ${S.scraps.toLocaleString()}</i> / ${SCRAP_CAP} scraps`;
+function openRename(){
+ const old=$('renameOv');if(old)old.remove();
+ const ov=document.createElement('div');
+ ov.id='renameOv';
+ ov.style.cssText='position:absolute;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;background:rgba(5,10,8,.85)';
+ ov.innerHTML=`<div style="width:min(90%,320px);padding:20px;border-radius:14px;border:1px solid var(--brass);background:linear-gradient(180deg,#2a3d33,#131f1a)">
+  <div style="font-family:var(--display);font-size:16px;color:var(--brass);margin-bottom:10px">✏️ Rename hero</div>
+  <input id="renameIn" maxlength="14" autocomplete="off" style="width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:rgba(28,43,36,.85);color:var(--parch);font-size:15px;font-family:var(--display)">
+  <div style="display:flex;gap:8px;margin-top:12px">
+   <button id="renameOk" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;font-family:var(--display);font-size:14px;cursor:pointer">Save</button>
+   <button id="renameNo" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--display);font-size:14px;cursor:pointer">Cancel</button>
+  </div></div>`;
+ $('app').appendChild(ov);
+ const inp=$('renameIn');
+ inp.value=S.name||'';
+ inp.focus();inp.select();
+ const doSave=()=>{
+  const n=inp.value.trim();
+  if(!n){inp.style.borderColor='#ff5a5a';inp.focus();return;}
+  S.name=n.slice(0,14);
+  ov.remove();
+  renderHero();renderHUD();save();publishLB(S,true);
+  stageMsg('✏️ Name changed to '+S.name,1800);
+ };
+ $('renameOk').onclick=doSave;
+ inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();doSave();}};
+ $('renameNo').onclick=()=>ov.remove();
+}
 function renderHero(){
  const c=classOf(),r=raceOf();
- $('heroTitle').textContent=`${dispName(S)} — ${r.name} ${c.name}`+(S.prestige?` · Prestige ${S.prestige}`:'');
+ $('heroTitle').innerHTML=`${esc(dispName(S))} — ${r.name} ${c.name}`+(S.prestige?` · Prestige ${S.prestige}`:'')+
+  ` <button id="renameBtn" title="Rename hero">✏️</button>`;
+ $('renameBtn').onclick=openRename;
  $('heroWallet').innerHTML=walletStr();
  $('statGrid').innerHTML=`
   <div class="stat"><b>${heroMax()}</b><span>Max health</span></div>
@@ -4381,7 +4420,8 @@ function renderHero(){
     $('prNo').onclick=()=>ov.remove();
    };
   }else{
-   const left=ZONES.map((z,i)=>z.boss&&!S.bossDead[i]?z.boss[0]:null).filter(Boolean);
+   /* match allBossesDead(): special bosses (HAALAND, Thor) are never required for prestige */
+   const left=ZONES.map((z,i)=>!z.special&&z.boss&&!S.bossDead[i]?z.boss[0]:null).filter(Boolean);
    $('prestigeSec').innerHTML=`<div class="card">
     <div class="sn" style="font-family:var(--display);color:var(--brass);font-size:14px">✦ Prestige locked</div>
     <div class="ss" style="color:var(--dim);font-size:11px;margin-top:5px">Defeat every boss in Riptide to unlock Prestige. Still standing: ${left.join(', ')}.</div>
@@ -6786,9 +6826,19 @@ function renderPicks(){
  document.querySelectorAll('[data-c]').forEach(e=>e.onclick=()=>{pickClass=e.dataset.c;renderPicks();});
 }
 renderPicks();
+$('cname').oninput=()=>{$('cname').classList.remove('nameerr');$('cnameErr').style.display='none';};
 $('startBtn').onclick=async()=>{
  initAudio();
- const name=($('cname').value||'BYYYYL').trim()||'BYYYYL';
+ const name=$('cname').value.trim();
+ if(!name){
+  /* no silent BYYYYL default — the player must actually pick a name */
+  $('cname').classList.remove('nameerr');void $('cname').offsetWidth; /* restart the shake */
+  $('cname').classList.add('nameerr');
+  $('cnameErr').style.display='block';
+  $('cname').focus();
+  sfx.warn();
+  return;
+ }
  S=freshState(name,pickRace,pickClass);
  S.id='c'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);
  const ids=await loadRoster();ids.push(S.id);
