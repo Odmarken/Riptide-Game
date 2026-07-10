@@ -815,8 +815,9 @@
 <script>
 window.seaMusic=new Audio('ambientsong/seamen_song.mp3');
 window.seaMusic.loop=true;
-window.seaMusic.volume=0.35;
-try{const v=parseFloat(localStorage.getItem('seaVol'));if(!isNaN(v))window.seaMusic.volume=Math.min(1,Math.max(0,v));}catch(e){}
+window.seaVolVal=0.35; /* desired music level — applied via a Web Audio gain node (iOS ignores audio.volume) */
+try{const v=parseFloat(localStorage.getItem('seaVol'));if(!isNaN(v))window.seaVolVal=Math.min(1,Math.max(0,v));}catch(e){}
+window.seaMusic.volume=window.seaVolVal; /* fallback level until the gain node takes over */
 /* ==================== DATA ==================== */
 const MAXLVL=60;
 const SEASON=1; /* bump this to wipe everyone */
@@ -4211,7 +4212,7 @@ function renderHero(){
    (g?`<div class="sn r-${g.rar}">${itemName(g)}</div><div class="ss">${itemStr(g)}</div>
     ${(isLegendaryW(g)?(g.up||0)>=FM_MAX_UP:(g.up||0)>=GEAR_MAX_UP)
      ?`<button class="upbtn" disabled>MAX +${isLegendaryW(g)?FM_MAX_UP:GEAR_MAX_UP} ✦</button>`
-     :`<button class="upbtn ${S.scraps>=upCost(g)?'can':''}" data-up="${sl}">Upgrade · ${upCost(g)} ⚙${(S.prestige||0)>=5&&!isLegendaryW(g)?'<span style="color:var(--dim);font-size:10px"> (P5 ×3)</span>':''}</button>`}`
+     :`<button class="upbtn ${S.scraps>=upCost(g)?'can':''}" data-up="${sl}">Upgrade · ${upCost(g)} ⚙</button>`}`
      :`<div class="ss">— empty —</div>`)+`</div>`;
  }).join('');
  const petP=activePet();
@@ -5585,9 +5586,29 @@ function stopSeaAuto(msg){
  if(msg){$('seaRes').style.color='#ff8a7a';$('seaRes').textContent=msg;$('seaRes').classList.remove('bigres');sfx.warn();}
  updateSeaUI();
 }
+/* iOS Safari ignores writes to audio.volume (hardware buttons only). Routing the
+   element through a Web Audio gain node makes the slider work on phones too. */
+let seaGain=null;
+function seaHookGain(){
+ if(seaGain||!AC.ctx)return;
+ try{
+  const src=AC.ctx.createMediaElementSource(seaMusic);
+  seaGain=AC.ctx.createGain();
+  src.connect(seaGain);seaGain.connect(AC.ctx.destination);
+  seaMusic.volume=1; /* level is controlled by the gain node from here on */
+ }catch(e){}
+}
+function seaApplyVol(){
+ if(seaGain)seaGain.gain.value=window.seaVolVal;
+ else seaMusic.volume=window.seaVolVal;
+}
 function openSea(){
  seaFree=0;
- if(window.seaMusic){seaMusic.currentTime=0;seaMusic.play().catch(()=>{});}
+ if(window.seaMusic){
+  seaHookGain();seaApplyVol();
+  if(AC.ctx&&AC.ctx.state==='suspended')AC.ctx.resume().catch(()=>{});
+  seaMusic.currentTime=0;seaMusic.play().catch(()=>{});
+ }
  /* mute ambient while casino music plays */
  if(AC.ambG)AC.ambG.gain.value=0;
  if(ambAudio)ambAudio.pause();
@@ -5604,8 +5625,8 @@ function openSea(){
  $('seaRes').innerHTML='&nbsp;';
  updateSeaUI();
 }
-$('seaVol').value=Math.round(seaMusic.volume*100);
-$('seaVol').oninput=e=>{const v=(+e.target.value)/100;seaMusic.volume=v;try{localStorage.setItem('seaVol',v);}catch(err){}};
+$('seaVol').value=Math.round(window.seaVolVal*100);
+$('seaVol').oninput=e=>{window.seaVolVal=(+e.target.value)/100;seaApplyVol();try{localStorage.setItem('seaVol',window.seaVolVal);}catch(err){}};
 $('seaSpinBtn').onclick=()=>{if(!seaAuto)spinSea();};
 $('seaFastBtn').onclick=()=>{seaFast=!seaFast;$('seaFastBtn').classList.toggle('on',seaFast);};
 $('seaAutoBtn').onclick=()=>{
