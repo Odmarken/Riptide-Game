@@ -559,6 +559,7 @@
     <input id="cname" maxlength="14" placeholder="e.g. BYYYYL" autocomplete="off">
     <div id="cnameErr" style="display:none;color:#ff8a7a;font-size:12px;margin-top:6px">⚠ Write a hero name first — the realm must know who you are!</div>
     <label>Bloodline</label><div class="pickgrid" id="racePick"></div>
+    <label>Gender</label><div class="pickgrid" id="genderPick"></div>
     <label>Calling — each has 3 spells</label><div class="pickgrid" id="classPick"></div>
     <div style="display:flex;gap:10px">
       <button id="startBtn" style="flex:1">⚔ NORMAL</button>
@@ -1089,7 +1090,7 @@ function mpLook(){
  const g=(S&&S.gear)||{},w=g.weapon||null;
  return {race:S&&S.race?S.race:'human',cls:S&&S.cls?S.cls:'warrior',
   w:w?(isWG(w)?'warglaives':(isFM(w)?'frostmourne':(w.id||w.legend||null))):null,ws:w?(w.star||w.up||1):1,
-  a:g.armor?(g.armor.id||null):null,pet:S&&S.pet?S.pet:null,fm:!!(w&&isFM(w)),wg:!!(w&&isWG(w))};
+  a:g.armor?(g.armor.id||null):null,pet:S&&S.pet?S.pet:null,fm:!!(w&&isFM(w)),wg:!!(w&&isWG(w)),fem:!!(S&&S.gender==='f')};
 }
 async function mpCreate(){
  const ok=await mpEnsureFirebase();if(!ok){stageMsg('Firebase is not ready — sign in or check config.',2200);sfx.warn();return;}
@@ -1404,7 +1405,7 @@ function drawHeroLike(x,y,look,alpha,anim,name,hp){
  ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0,8,14,6,0,0,7);ctx.fill();
  if(dancing)ctx.rotate(Math.sin(phase*6)*0.25);
  feet({walk:phase*1.8},(moving||dancing)?1:0.15);
- drawChampionSprite(ctx,race,cls,fx,by,swing,!!look.fm||look.w==='frostmourne',look.w);
+ drawChampionSprite(ctx,race,cls,fx,by,swing,!!look.fm||look.w==='frostmourne',look.w,!!look.fem);
  if(look.pet){ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText(look.pet==='dog'?'🐕':look.pet==='cat'?'🐈':'🐾',-18,10);}
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
  /* peer nametag higher so weapons/Frostmourne do not collide */
@@ -1610,7 +1611,7 @@ const boostAtHardCap=(n,kind)=>boostBonus(n,kind)>=boostCap(kind);
 const speedBoostMul=()=>1+boostBonus(S.boosts?S.boosts.speed:0,'speed');
 const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0,'haste');
 function freshState(name,race,cls){
- return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,lastZone:0,maxZone:0,quest:0,qProg:0,hardcore:false,hcDead:false,
+ return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,lastZone:0,maxZone:0,quest:0,qProg:0,hardcore:false,hcDead:false,gender:'m',
   rating:0,cerberusKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',bankGold:0,bankScrap:0,bankEarned:0,bankLastT:0,smithLvl:0,smithJob:null,luckPots:0,luckT:0,gamblerPots:0,gamblerT:0,restedT:0,restedPct:0,restedSpinAt:0,freeGoldCases:0,chests:{blacktemple:0},cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
   gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],pet:null,pets:[],
   boosts:{speed:0,haste:0},autoUse:{},tainted:false,
@@ -1688,6 +1689,7 @@ function migrate(s){ /* fills fields missing from older saves */
  if(!s.autoUse)s.autoUse={};
  if(s.hardcore===undefined)s.hardcore=false;
  if(s.hcDead===undefined)s.hcDead=false;
+ if(s.gender===undefined)s.gender='m';
  if(s.pots){s.pots.hp=Math.min(s.pots.hp||0,POT_CAP);s.pots.mp=Math.min(s.pots.mp||0,POT_CAP);}
  for(const sl in s.gear){
   const g=s.gear[sl];if(!g)continue;
@@ -3983,7 +3985,7 @@ function drawGlaive(ctx,flip){ /* dubbelmåne-glaive: stor framklinga + svept ba
  ctx.beginPath();ctx.arc(0,1,1.2,0,7);ctx.fill();
  ctx.restore();
 }
-function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId){
+function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female){
  const r=RACES.find(x=>x.id===raceId);
  const sgn=fx<0?-1:1;
  if(weaponId==='warglaives'){ /* back glaive: behind the body, same facing as front */
@@ -4029,6 +4031,27 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId){
   g.fillStyle=r.c1;g.beginPath();g.arc(0,-6+by,9,0,7);g.fill();
   g.fillStyle='rgba(255,255,255,0.14)';g.beginPath();g.arc(-3,-9+by,5,0,7);g.fill();
   g.fillStyle='#f0cfa0';g.beginPath();g.arc(fx*2,-15+by,5.5,0,7);g.fill();
+ }
+ if(female){
+  /* hourglass silhouette: shade the waist edges inward (clipped to the body)… */
+  g.save();
+  g.beginPath();g.ellipse(0,-4+by,raceId==='stoneborn'?12:11,raceId==='stoneborn'?9.5:11,0,0,7);g.clip();
+  g.fillStyle='rgba(0,0,0,0.22)';
+  g.beginPath();g.ellipse(-10.5,-3.5+by,4.2,6.5,0,0,7);g.fill();
+  g.beginPath();g.ellipse(10.5,-3.5+by,4.2,6.5,0,0,7);g.fill();
+  /* …with lit hips below the pinch */
+  g.fillStyle='rgba(255,255,255,0.10)';
+  g.beginPath();g.ellipse(0,2+by,8.5,3.2,0,0,7);g.fill();
+  g.restore();
+  /* the bust — two circles up front, facing the same way as the head */
+  const bcx=raceId==='gravekin'?sgn*2:fx*2;
+  const bcy=(raceId==='stoneborn'?-6.5:raceId==='gravekin'?-7.5:-8.5)+by;
+  g.fillStyle='rgba(255,255,255,0.30)';
+  g.beginPath();g.arc(bcx-2.7,bcy,2.5,0,7);g.fill();
+  g.beginPath();g.arc(bcx+2.7,bcy,2.5,0,7);g.fill();
+  g.strokeStyle='rgba(0,0,0,0.20)';g.lineWidth=1;
+  g.beginPath();g.arc(bcx-2.7,bcy,2.5,0.3,2.85);g.stroke();
+  g.beginPath();g.arc(bcx+2.7,bcy,2.5,0.3,2.85);g.stroke();
  }
  /* weapon */
  g.save();g.translate(fx*9,-6+by);
@@ -4117,7 +4140,7 @@ function drawHero(){
  if(h.buff.haste&&h.buff.haste.t>0){ctx.strokeStyle='rgba(200,240,255,0.5)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,6,18,8,0,0,7);ctx.stroke();}
  if(dancing)ctx.rotate(Math.sin(h.dance*6)*0.25);
  feet(h,1);
- drawChampionSprite(ctx,S.race,c.id,fx,by,danceSwing,isFM(S.gear.weapon),isWG(S.gear.weapon)?'warglaives':(isFM(S.gear.weapon)?'frostmourne':null));
+ drawChampionSprite(ctx,S.race,c.id,fx,by,danceSwing,isFM(S.gear.weapon),isWG(S.gear.weapon)?'warglaives':(isFM(S.gear.weapon)?'frostmourne':null),S.gender==='f');
  if(h.hurt>0){ctx.fillStyle='rgba(255,255,255,'+h.hurt*2.5+')';ctx.beginPath();ctx.arc(0,-8+by,11,0,7);ctx.fill();}
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;
  ctx.textAlign='center';
@@ -6718,7 +6741,7 @@ async function publishLB(ch,force){
  ch.tainted=false;ch.taintV=0;
  const slim=g=>g?{name:g.name,rar:g.rar,slot:g.slot,up:g.up||0,atk:g.atk||0,hp:g.hp||0,crit:g.crit||0,haste:g.haste||0,lifesteal:g.lifesteal||0,legend:g.legend||null,power:Math.round(g.power||0)}:null;
  const entry={season:SEASON,name:(ch.name||'?').slice(0,14),lvl:ch.lvl,prestige:ch.prestige||0,gs:charGearScore(ch),score:lbScore(ch),cid:ch.id,t:now,tainted:false,taintV:0,
-  hardcore:!!ch.hardcore,hcDead:!!ch.hcDead,
+  hardcore:!!ch.hardcore,hcDead:!!ch.hcDead,gender:ch.gender||'m',
   rating:ch.rating||0,
   race:ch.race||'human',cls:ch.cls||'warrior',zone:ch.zone||0,
   scroll:(ch.activeScrolls||[]).filter(Boolean)[0]||null,
@@ -6806,7 +6829,7 @@ async function showLeaderboard(){
   :'<div class="cl">No champions recorded yet — be the first to claim a place.</div>';
  rows.forEach((e,i)=>{
   const cnv=document.querySelector(`[data-lbp="${i}"]`);
-  if(cnv)drawPortrait(cnv,{race:e.race||'human',cls:e.cls||'warrior',prestige:e.prestige||0,activeScroll:e.scroll||null,gear:e.gear||{}});
+  if(cnv)drawPortrait(cnv,{race:e.race||'human',cls:e.cls||'warrior',gender:e.gender||'m',prestige:e.prestige||0,activeScroll:e.scroll||null,gear:e.gear||{}});
  });
  document.querySelectorAll('[data-insp]').forEach(b=>b.onclick=()=>{
   const i=+b.dataset.insp,box=$('insp'+i),e=rows[i];
@@ -6852,7 +6875,7 @@ function drawPortrait(cnv,ch){
  g.save();g.translate(W/2,H*0.72);g.scale(2.1,2.1);
  g.fillStyle='rgba(0,0,0,0.3)';g.beginPath();g.ellipse(0,7,11,4.5,0,0,7);g.fill();
  if(sc){g.strokeStyle=sc.glow;g.globalAlpha=0.55;g.lineWidth=1;g.beginPath();g.ellipse(0,6,13,5.5,0,0,7);g.stroke();g.globalAlpha=1;}
- drawChampionSprite(g,ch.race,c.id,1,0,0,!!(ch.gear&&ch.gear.weapon&&ch.gear.weapon.legend==='frostmourne'),ch.gear&&ch.gear.weapon&&(ch.gear.weapon.id||ch.gear.weapon.legend));
+ drawChampionSprite(g,ch.race,c.id,1,0,0,!!(ch.gear&&ch.gear.weapon&&ch.gear.weapon.legend==='frostmourne'),ch.gear&&ch.gear.weapon&&(ch.gear.weapon.id||ch.gear.weapon.legend),ch.gender==='f');
  g.restore();
  if(ch.prestige){
   g.font='700 11px sans-serif';g.textAlign='right';
@@ -6932,9 +6955,12 @@ function showCreate(firstEver){
 }
  
 /* ==================== BOOT ==================== */
-let pickRace='human',pickClass='warrior';
+let pickRace='human',pickClass='warrior',pickGender='m';
 function renderPicks(){
  $('racePick').innerHTML=RACES.map(r=>`<div class="pick ${pickRace===r.id?'sel':''}" data-r="${r.id}"><b>${r.name}</b><span>${r.desc}</span></div>`).join('');
+ $('genderPick').innerHTML=[['m','Male ♂','Broad frame. Fights identically.'],['f','Female ♀','Hourglass frame. Fights identically.']]
+  .map(([id,n,d])=>`<div class="pick ${pickGender===id?'sel':''}" data-g="${id}"><b>${n}</b><span>${d}</span></div>`).join('');
+ document.querySelectorAll('[data-g]').forEach(e=>e.onclick=()=>{pickGender=e.dataset.g;renderPicks();});
  $('classPick').innerHTML=CLASSES.map(c=>`<div class="pick ${pickClass===c.id?'sel':''}" data-c="${c.id}"><b>${c.name} ${c.spells.map(s=>s.g).join('')} <span class="rangetag ${c.ranged?'rng':'mle'}">${c.ranged?'🏹 RANGED':'⚔ MELEE'}</span></b><span>${c.desc}</span></div>`).join('');
  document.querySelectorAll('[data-r]').forEach(e=>e.onclick=()=>{pickRace=e.dataset.r;renderPicks();});
  document.querySelectorAll('[data-c]').forEach(e=>e.onclick=()=>{pickClass=e.dataset.c;renderPicks();});
@@ -6954,6 +6980,7 @@ async function createHero(hardcore){
   return;
  }
  S=freshState(name,pickRace,pickClass);
+ S.gender=pickGender;
  S.hardcore=!!hardcore;
  S.id='c'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);
  const ids=await loadRoster();ids.push(S.id);
