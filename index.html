@@ -45,6 +45,8 @@
   #ticker .lrare{color:#8fc3ef} #ticker .lepic{color:#c9a0ea} #ticker .lfine{color:#9adf9a} #ticker .lscroll{color:#e8c9ef} #ticker .llegendary{color:#7fd7ff}
   #hint{position:absolute;top:6px;left:0;right:0;text-align:center;pointer-events:none;font-size:10px;color:#fff;opacity:.85;text-shadow:0 1px 3px rgba(0,0,0,.8);transition:opacity 1s}
   #stagemsg{position:absolute;top:24px;left:0;right:0;text-align:center;pointer-events:none;font-family:var(--display);font-size:14px;color:var(--parch);text-shadow:0 1px 4px rgba(0,0,0,.9);opacity:0;transition:opacity .4s;padding:0 20px}
+  #stagemsg.bigblink{font-size:26px;letter-spacing:1.5px;animation:msgblink .55s ease-in-out infinite}
+  @keyframes msgblink{50%{opacity:.5}}
   #stagemsg.show{opacity:1}
   .stgbtn{position:absolute;right:8px;width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(10,18,14,.55);color:#fff;font-size:15px;cursor:pointer;z-index:6}
   #sndBtn{top:6px} #sfxBtn{top:44px;font-size:13px}
@@ -629,7 +631,7 @@
       <span class="continent-tab cur" id="eastTab">Eastern Realm</span>
       <span class="continent-tab" id="westTab">🔒 Western Realm · Prestige 1</span>
       <span class="continent-tab" id="valhallaTab">🔒 Valhalla · Prestige 1</span>
-      <span class="continent-tab" id="raidTab">🔒 Raid (experimental)</span>
+      <span class="continent-tab" id="raidTab">🔒 Raid</span>
     </div>
     <div id="zoneList"></div>
   </div>
@@ -2195,6 +2197,8 @@ function shade(hex,amt){const n=parseInt(hex.slice(1),16);
  
 let world=null,hero=null,pet=null,enemies=[],bolts=[],ebolts=[],hazards=[],floats=[],parts=[],rings=[],zaps=[],groundCv=null;
 let cowT=0,cowSpawnT=0,cowRunning=false,cowItems=0,cowBagFull=false;
+let cowChest=null,cowChestT=10,cowChestMsgT=0; /* the blue loot chest — cowItems counts CHESTS opened */
+let cowBigT=15; /* the Alpha Bovine — a giant cow every 15 seconds */
 const COW_BAG_CAP=40;
 const cowLocked=()=>gameOn&&cowRunning;
 /* true while a living boss is engaged — the forge and Trader refuse service mid-fight */
@@ -2215,7 +2219,7 @@ function buildZone(){
  if(!zoneOf().special&&(S.maxZone||0)<S.zone)S.maxZone=S.zone;
  const z=zoneOf(),R=mulberry32(S.zone*7919+13);
  const isBoss=!!z.boss;
- world={w:z.raid?3800:z.tavern?2600:isBoss?2400:3000,h:z.raid?1900:z.tavern?1700:isBoss?1600:2000,solids:[],deco:[],waters:[]}; /* larger maps — full desktop view + hidden side panel */
+ world={w:z.raid?3800:z.cow?4200:z.tavern?2600:isBoss?2400:3000,h:z.raid?1900:z.cow?2600:z.tavern?1700:isBoss?1600:2000,solids:[],deco:[],waters:[]}; /* larger maps — full desktop view + hidden side panel; cow field is the biggest */
  world.spawn={x:120,y:world.h/2};
  world.portal={x:world.w-80,y:world.h/2};
  world.pathY=world.h/2;world.pathH=110;
@@ -2309,12 +2313,13 @@ function buildZone(){
  enemies=[];bolts=[];ebolts=[];hazards=[];floats=[];parts=[];rings=[];zaps=[];
  const tmpls=zoneTemplates(z);
  cowRunning=false;cowT=0;cowSpawnT=0;cowItems=0;cowBagFull=false;
+ cowChest=null;cowChestT=10;cowChestMsgT=0;cowBigT=15; /* first chest lands 10s after entering */
  if(z.cow){
   cowRunning=true;
-  for(let i=0;i<14;i++)spawnCow(); /* opening wave */
+  for(let i=0;i<25;i++)spawnCow(); /* opening wave */
   stageMsg('MOO. Survive as long as you can — you will not.',3000);
   const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
-  log(`<span class="imp">The Cow Level.</span> Best: ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} items) · Last: ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} items)`);
+  log(`<span class="imp">The Cow Level.</span> Best: ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} chests) · Last: ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} chests)`);
  }else if(z.raid){
   const cy=world.h/2;
   world.raidRooms=[];
@@ -2403,18 +2408,64 @@ const addsAlive=()=>enemies.filter(e=>e.add&&!e.dead).length;
 function cowTemplate(){
  const L=60; /* Cow Level is always a level-60 zone, even after prestige resets display level. */
  return {name:'Hell Bovine',kind:'humanoid',c:'#8a7a5a',cow:true,
-  hp:Math.round(eHP(L)*16),atk:Math.round(eATK(L)*11),
+  hp:Math.round(eHP(L)*16.3),atk:Math.round(eATK(L)*9.3), /* tuned via playtesting */
   xp:Math.round(eHP(60)*0.8*pRew()),gold:0}; /* Cow Level mobs give no gold — item farm only */
 }
-function spawnCow(){
- const a=Math.random()*6.28,d=Math.max(VW,VH)*0.65+Math.random()*120;
- const x=Math.max(40,Math.min(world.w-40,hero.x+Math.cos(a)*d));
- const y=Math.max(40,Math.min(world.h-40,hero.y+Math.sin(a)*d));
+function spawnCow(big){
+ const rr=big?39:13;
+ let x=world.w/2,y=world.h/2;
+ for(let k=0;k<24;k++){ /* retry until the spot is clear of trees/rocks so nothing spawns stuck */
+  const a=Math.random()*6.28,d=Math.max(VW,VH)*0.65+Math.random()*120;
+  const tx=Math.max(60,Math.min(world.w-60,hero.x+Math.cos(a)*d));
+  const ty=Math.max(60,Math.min(world.h-60,hero.y+Math.sin(a)*d));
+  x=tx;y=ty;
+  if(!world.solids.some(s=>dist({x:tx,y:ty},s)<s.r+rr+14))break;
+ }
  const t=cowTemplate();
- enemies.push({name:t.name,kind:t.kind,boss:false,bossId:null,c:t.c,cow:true,
-  x,y,home:{x,y},r:13,max:t.hp,hp:t.hp,atk:t.atk,xp:t.xp,gold:t.gold,add:false,
-  speed:145,age:0,state:'chase',dir:0,wT:0,cd:0,dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,
+ const hp=big?t.hp*7.5:t.hp; /* the Alpha: 3× size, 7.5× hp, ramps up 30% slower */
+ enemies.push({name:big?'Alpha Bovine':t.name,kind:t.kind,boss:false,bossId:null,c:t.c,cow:true,bigCow:!!big,
+  x,y,home:{x,y},r:rr,max:hp,hp,atk:t.atk,xp:t.xp,gold:t.gold,add:false,
+  speed:big?118+Math.random()*20:128+Math.random()*38,age:0,state:'chase',dir:0,wT:0,cd:0,dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,
+  /* individual flanking: each cow aims at its own point around the hero so the herd surrounds instead of stacking */
+  flankA:Math.random()*6.283,flankD:26+Math.random()*85,flankT:2+Math.random()*3,
   cds:{},lockT:0,hidden:false,trailT:0,avoid:null});
+ if(big){stageMsg('🐄 THE ALPHA BOVINE THUNDERS IN!',2000);sfx.shout();}
+}
+/* --- Cow Level blue chest: spawns anywhere on the map, walk over it to loot --- */
+function spawnCowChest(){
+ let x=world.w/2,y=world.h/2;
+ for(let k=0;k<50;k++){
+  const tx=80+Math.random()*(world.w-160),ty=80+Math.random()*(world.h-160);
+  if(!world.solids.some(s=>dist({x:tx,y:ty},s)<s.r+30)){x=tx;y=ty;break;}
+ }
+ cowChest={x,y};
+ cowChestMsgT=5; /* glowing banner under the timer, fades out at the end */
+ log('<span style="color:#5bc8ff">💠 A chest has spawned somewhere on the field!</span>','loot');
+ blip(880,1240,0.18,.07);
+}
+function collectCowChest(){
+ const c=cowChest;
+ cowChest=null;cowChestT=10; /* the 10s timer for the NEXT chest starts on pickup */
+ cowItems++;                 /* counts chests found */
+ const r=Math.random(),n=r<1/3?2:r<2/3?1:0; /* 33% two epics · 33% one · 33% empty */
+ let got=0;
+ for(let i=0;i<n;i++){
+  if(S.bag.length>=COW_BAG_CAP)break;
+  const it=rollItem('epic'); /* same lvl-60 scaling as before — best gear in the game */
+  log(`Chest loot: <span class="lepic">${it.name}</span> ${itemStr(it)}.`,'loot');
+  if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
+  got++;
+ }
+ burst(c.x,c.y-6,'#5bc8ff',14,90,true);
+ sparkles(c.x,c.y-10,'#9fd0ff',10);
+ if(got===0){stageMsg(n===0?'💠 The chest was empty…':'💠 BAG FULL — the chest crumbles',1800,'#5bc8ff');blip(300,200,0.2,.05,'sawtooth');}
+ else{stageMsg('💠 +'+got+' EPIC'+(got>1?'S':'')+'!',2200,'#5bc8ff');sfx.loot();}
+ if(S.bag.length>=COW_BAG_CAP&&!cowBagFull){
+  cowBagFull=true;
+  stageMsg('BAG FULL — '+COW_BAG_CAP+' items! Die gloriously or flee to cash in.',3500);
+  log(`<span class="loot">Bag stuffed full (${COW_BAG_CAP})</span> — the chests have nothing more to give.`,'loot');
+ }
+ renderHUD();save();
 }
 function prerenderGround(z,R){
  groundCv=document.createElement('canvas');
@@ -2503,7 +2554,7 @@ function speedOf(e){
   s=base*(e.hp<=e.max*0.3?BOSS_ENRAGE_SPEED_MUL:BOSS_SPEED_MUL);
  }
  /* Cow Level hardmode: herd movement ramps up fast the longer you survive. */
- if(e.cow&&cowRunning)s*=Math.min(5,1+cowT*0.055);
+ if(e.cow&&cowRunning)s*=Math.min(3.5,1+cowT*(e.bigCow?0.0245:0.035)); /* gentler ramp-up; the Alpha ramps 30% slower */
  /* Thor and HAALAND keep their custom tuning. */
  if(e.slowT>0)s*=0.45;
  return s;
@@ -2732,29 +2783,8 @@ function killEnemy(en){
  if(hasEnch('reaper'))healHero(heroMax()*scrollPct('reaper'),true);
  if(!en.cow&&!en.raid)floatAt(en.x,en.y-en.r-14,gold>0?'+'+gold+' ◉':'◉ CAP','#ffd76a');
  log(`Slew <span class="imp">${en.name}</span> — ${en.xp>0?'+'+en.xp+' xp':'no xp'}${(en.cow||en.raid)?'':', +'+gold+' gold'}.`);
- // Cow Level ignores gold cap because cows give no gold; the bag cap controls cow loot.
  if(en.cow){
-  if(S.bag.length>=COW_BAG_CAP){
-   if(!cowBagFull){cowBagFull=true;
-    stageMsg('BAG FULL — '+COW_BAG_CAP+' items! Nothing left to gain. Die gloriously or flee to cash in.',3500);
-    log(`<span class="loot">Bag stuffed full (${COW_BAG_CAP})</span> — the herd has nothing more to give.`,'loot');
-    sfx.quest();
-   }
-  }else if(Math.random()<0.20){ /* 20% chance for a Cow Level item drop */
-   if(S.bag.length>=COW_BAG_CAP){
-    if(!cowBagFull){cowBagFull=true;
-     stageMsg('BAG FULL — '+COW_BAG_CAP+' items! Nothing left to gain. Die gloriously or flee to cash in.',3500);
-     log(`<span class="loot">Bag stuffed full (${COW_BAG_CAP})</span> — the herd has nothing more to give.`,'loot');
-     sfx.quest();
-    }
-   }else{
-    const it=rollItem('epic');
-    cowItems++;
-    sfx.loot();
-    log(`Cow loot: <span class="lepic">${it.name}</span> ${itemStr(it)}.`,'loot');
-    if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
-   }
-  }
+  /* cows drop NOTHING — all Cow Level loot comes from the blue chests */
  }else if(!en.raid){
   const lucky=S.luckT>0;
   if(Math.random()<(en.boss?1:0.20*(lucky?1.20:1))){
@@ -2851,8 +2881,8 @@ function heroDies(){
   hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;
   hero.sentHome=true;   /* cow deaths go to the tavern */
   sfx.die();
-  stageMsg('The herd takes you. Survived '+fmt(cowT)+' · '+cowItems+' items'+(newBest?' — NEW RECORD!':''),3500);
-  log(`<span class="imp">Trampled after ${fmt(cowT)} — ${cowItems} items looted.</span>${newBest?' <span class="loot">New record!</span>':''} All loot kept.`);
+  stageMsg('The herd takes you. Survived '+fmt(cowT)+' · '+cowItems+' chests'+(newBest?' — NEW RECORD!':''),3500);
+  log(`<span class="imp">Trampled after ${fmt(cowT)} — ${cowItems} chests found.</span>${newBest?' <span class="loot">New record!</span>':''} All loot kept.`);
   save();
   return;
  }
@@ -3356,10 +3386,17 @@ function update(dt){
   cowT+=dt;
   cowSpawnT-=dt;
   if(cowSpawnT<=0){
-   cowSpawnT=Math.max(0.08,1.35-cowT*0.04);
-   const wave=1+Math.floor(cowT/12);
-   for(let i=0;i<wave;i++)spawnCow();
+   cowSpawnT=1; /* one cow every second */
+   if(enemies.filter(e=>e.cow&&!e.dead).length<80)spawnCow(); /* hard cap: 80 cows on the map */
   }
+  cowBigT-=dt;
+  if(cowBigT<=0){cowBigT=15;spawnCow(true);} /* the Alpha Bovine, every 15s — ignores the cap */
+  if(cowChestMsgT>0)cowChestMsgT-=dt;
+  /* blue chest: ticks down only while no chest is waiting; pickup = walk into melee range */
+  if(!cowChest){
+   cowChestT-=dt;
+   if(cowChestT<=0)spawnCowChest();
+  }else if(Math.hypot(hero.x-cowChest.x,hero.y-cowChest.y)<62)collectCowChest(); /* bigger chest, bigger pickup radius */
  }
  const c=classOf();
  if(portalMsgT>0)portalMsgT-=dt;
@@ -3518,7 +3555,11 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    else{en.x+=(en.netX-en.x)*kk;en.y+=(en.netY-en.y)*kk;}
   }
   if(en.slowT>0)en.slowT-=dt;
-  if(en.cow&&!en.dead)en.age+=dt;
+  if(en.cow&&!en.dead){
+   en.age+=dt;
+   en.flankT-=dt; /* re-roll the flank point now and then so the herd weaves */
+   if(en.flankT<=0){en.flankT=2+Math.random()*3;en.flankA=Math.random()*6.283;en.flankD=26+Math.random()*85;}
+  }
   if(en.dead){
    en.deadT+=dt;
    /* regular foes respawn for grinding; bosses and their adds never do */
@@ -3539,7 +3580,13 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    en.state='chase';
    /* Bosses have no leash: once alive, they follow the player across the whole arena/map. */
    if(dHome>520&&!en.boss&&!en.add&&!en.cow)en.state='return';
-   else if(dHero>30+en.r){if(!en._nd)moveToward(en,TMove.x,TMove.y,dt);} /* net-driven bosses never self-move — kills the rubber-band tug */
+   else if(dHero>30+en.r){
+    if(!en._nd){
+     let tx=TMove.x,ty=TMove.y;
+     if(en.cow&&dHero>85){tx+=Math.cos(en.flankA)*en.flankD;ty+=Math.sin(en.flankA)*en.flankD;} /* cows approach from their own angle */
+     moveToward(en,tx,ty,dt);
+    }
+   }
    else{
     en.cd-=dt;
     if(en.cd<=0){en.cd=en.boss?1.5:1.15;en.swing=0.2;
@@ -3646,6 +3693,38 @@ function draw(){
   ctx.strokeStyle='rgba(255,255,255,'+(0.9-marker.t)+')';ctx.lineWidth=2;
   ctx.beginPath();ctx.arc(marker.x,marker.y,6+marker.t*18,0,7);ctx.stroke();
  }
+ if(cowRunning&&cowChest){ /* the big blue loot chest with a pulsing glow */
+  const tt=performance.now()/1000,pu=0.5+0.5*Math.sin(tt*4);
+  ctx.save();ctx.translate(cowChest.x,cowChest.y);
+  ctx.scale(1.4,1.4); /* bigger chest */
+  /* glow ring + ground shadow */
+  ctx.strokeStyle='rgba(91,200,255,'+(0.25+0.4*pu)+')';ctx.lineWidth=3;
+  ctx.beginPath();ctx.arc(0,-10,30+pu*7,0,7);ctx.stroke();
+  ctx.fillStyle='rgba(0,0,0,0.30)';ctx.beginPath();ctx.ellipse(0,5,20,7,0,0,7);ctx.fill();
+  ctx.shadowColor='#4da3ff';ctx.shadowBlur=18+14*pu;
+  /* body */
+  ctx.fillStyle='#2f6fb8';ctx.fillRect(-18,-12,36,16);
+  /* arched lid */
+  ctx.fillStyle='#4da3ff';
+  ctx.beginPath();ctx.moveTo(-18,-12);ctx.quadraticCurveTo(0,-27,18,-12);ctx.closePath();ctx.fill();
+  ctx.shadowBlur=0;
+  /* wood planks */
+  ctx.strokeStyle='rgba(10,25,45,0.4)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(-18,-7);ctx.lineTo(18,-7);ctx.moveTo(-18,-1.5);ctx.lineTo(18,-1.5);ctx.stroke();
+  /* metal bands */
+  ctx.fillStyle='#9fd0ff';
+  ctx.fillRect(-18,-13.2,36,2.6);       /* lid rim */
+  ctx.fillRect(-13,-12,3,16);ctx.fillRect(10,-12,3,16); /* vertical straps */
+  /* outline */
+  ctx.strokeStyle='#bfe4ff';ctx.lineWidth=2;
+  ctx.strokeRect(-18,-12,36,16);
+  ctx.beginPath();ctx.moveTo(-18,-12);ctx.quadraticCurveTo(0,-27,18,-12);ctx.stroke();
+  /* gold lock with keyhole */
+  ctx.fillStyle='#ffd76a';ctx.fillRect(-4.5,-13.5,9,8);
+  ctx.strokeStyle='#8a6a20';ctx.lineWidth=1;ctx.strokeRect(-4.5,-13.5,9,8);
+  ctx.fillStyle='#8a6a20';ctx.beginPath();ctx.arc(0,-10.5,1.6,0,7);ctx.fill();ctx.fillRect(-0.8,-10,1.6,3);
+  ctx.restore();
+ }
  /* telegraphed boss hazards */
  for(const h of hazards){
   const p=Math.min(1,h.t/h.warn);
@@ -3736,10 +3815,25 @@ function draw(){
   ctx.fillStyle=cowRunning?'#ffe9a0':'#ff8a7a';ctx.fillText(fmt(t),VW/2,52);
   ctx.font='700 13px '+getComputedStyle(document.body).fontFamily;
   ctx.fillStyle='#c9a0ff';
-  ctx.fillText(cowItems+' items',VW/2,70);
+  ctx.fillText(cowItems+' chests',VW/2,70);
   ctx.font='600 11px '+getComputedStyle(document.body).fontFamily;
   ctx.fillStyle='rgba(255,255,255,0.75)';
   ctx.fillText('BEST '+(S.cowBest?fmt(S.cowBest):'—')+' ('+(S.cowBestItems||0)+') · LAST '+(S.cowLast?fmt(S.cowLast):'—')+' ('+(S.cowLastItems||0)+')',VW/2,86);
+  if(cowChestMsgT>0){ /* glowing blue banner right under the timer, fades out over the last second */
+   const pu=0.5+0.5*Math.sin(performance.now()/140);
+   const msg='💠 CHEST HAS SPAWNED — FIND IT!';
+   ctx.globalAlpha=Math.min(1,cowChestMsgT);
+   ctx.font='800 19px '+getComputedStyle(document.body).fontFamily;
+   /* dark pill behind the text so it reads against any ground */
+   const tw=ctx.measureText(msg).width;
+   ctx.fillStyle='rgba(5,10,18,0.72)';
+   ctx.beginPath();ctx.roundRect?ctx.roundRect(VW/2-tw/2-14,96,tw+28,24,12):ctx.rect(VW/2-tw/2-14,96,tw+28,24);ctx.fill();
+   ctx.strokeStyle='rgba(91,200,255,0.45)';ctx.lineWidth=1.5;ctx.stroke();
+   ctx.shadowColor='#4da3ff';ctx.shadowBlur=10+12*pu;
+   ctx.fillStyle='#5bc8ff';
+   ctx.fillText(msg,VW/2,113);
+   ctx.shadowBlur=0;ctx.globalAlpha=1;
+  }
  }
  if(vigCv)ctx.drawImage(vigCv,0,0,VW,VH);
 }
@@ -3985,6 +4079,26 @@ function drawGlaive(ctx,flip){ /* dubbelmåne-glaive: stor framklinga + svept ba
  ctx.beginPath();ctx.arc(0,1,1.2,0,7);ctx.fill();
  ctx.restore();
 }
+/* female torso: ONE continuous hourglass outline — no seams between chest/waist/hips */
+function drawHourglassBody(g,cx,cy,by,c2,c1,w){
+ const shape=inset=>{
+  const cw=w*0.72-inset,ww=Math.max(2,w*0.42-inset*0.6),hw=w*0.88-inset;
+  const topY=cy-7+by+inset*0.5,midY=cy+2+by,botY=cy+9+by-inset*0.5;
+  g.beginPath();
+  g.moveTo(cx,topY-2);
+  g.quadraticCurveTo(cx+cw,topY-2,cx+cw,topY+3);      /* right shoulder */
+  g.quadraticCurveTo(cx+cw*0.9,midY-1,cx+ww,midY);    /* curve in to the waist */
+  g.quadraticCurveTo(cx+hw*0.9,midY+2,cx+hw,botY-2);  /* flare out to the hip */
+  g.quadraticCurveTo(cx+hw,botY+2.5,cx,botY+2.5);     /* rounded bottom */
+  g.quadraticCurveTo(cx-hw,botY+2.5,cx-hw,botY-2);
+  g.quadraticCurveTo(cx-hw*0.9,midY+2,cx-ww,midY);
+  g.quadraticCurveTo(cx-cw*0.9,midY-1,cx-cw,topY+3);
+  g.quadraticCurveTo(cx-cw,topY-2,cx,topY-2);
+  g.closePath();g.fill();
+ };
+ g.fillStyle=c2;shape(0);
+ g.fillStyle=c1;shape(1.8);
+}
 function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female){
  const r=RACES.find(x=>x.id===raceId);
  const sgn=fx<0?-1:1;
@@ -3997,17 +4111,25 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female){
   g.restore();
  }
  if(raceId==='stoneborn'){ /* Dwarf — short, stout, great grey beard */
-  g.fillStyle=r.c2;g.beginPath();g.ellipse(0,-3+by,12,9.5,0,0,7);g.fill();
-  g.fillStyle=r.c1;g.beginPath();g.ellipse(0,-4.5+by,10,8,0,0,7);g.fill();
+  if(female)drawHourglassBody(g,0,-3,by,r.c2,r.c1,12);
+  else{
+   g.fillStyle=r.c2;g.beginPath();g.ellipse(0,-3+by,12,9.5,0,0,7);g.fill();
+   g.fillStyle=r.c1;g.beginPath();g.ellipse(0,-4.5+by,10,8,0,0,7);g.fill();
+  }
   g.fillStyle='rgba(255,255,255,0.14)';g.beginPath();g.ellipse(-3,-7+by,5,3.5,0,0,7);g.fill();
   g.fillStyle='#eac9a0';g.beginPath();g.arc(fx*2,-12+by,5.5,0,7);g.fill();
-  g.fillStyle='#d8d2c2'; /* the beard */
-  g.beginPath();g.moveTo(fx*2-5.5,-10+by);g.lineTo(fx*2+5.5,-10+by);g.lineTo(fx*2,-1+by);g.closePath();g.fill();
-  g.fillStyle='rgba(0,0,0,0.10)';
-  g.beginPath();g.moveTo(fx*2,-10+by);g.lineTo(fx*2+5.5,-10+by);g.lineTo(fx*2,-1+by);g.closePath();g.fill();
+  if(!female){ /* the beard — dwarven ladies are clean-shaven */
+   g.fillStyle='#d8d2c2';
+   g.beginPath();g.moveTo(fx*2-5.5,-10+by);g.lineTo(fx*2+5.5,-10+by);g.lineTo(fx*2,-1+by);g.closePath();g.fill();
+   g.fillStyle='rgba(0,0,0,0.10)';
+   g.beginPath();g.moveTo(fx*2,-10+by);g.lineTo(fx*2+5.5,-10+by);g.lineTo(fx*2,-1+by);g.closePath();g.fill();
+  }
  }else if(raceId==='sylvan'){ /* Orc — green hide, heavy brow, tusks */
-  g.fillStyle=r.c2;g.beginPath();g.arc(0,-4+by,11.5,0,7);g.fill();
-  g.fillStyle=r.c1;g.beginPath();g.arc(0,-6+by,9.5,0,7);g.fill();
+  if(female)drawHourglassBody(g,0,-4,by,r.c2,r.c1,11.5);
+  else{
+   g.fillStyle=r.c2;g.beginPath();g.arc(0,-4+by,11.5,0,7);g.fill();
+   g.fillStyle=r.c1;g.beginPath();g.arc(0,-6+by,9.5,0,7);g.fill();
+  }
   g.fillStyle='rgba(255,255,255,0.14)';g.beginPath();g.arc(-3,-9+by,5,0,7);g.fill();
   g.fillStyle='#7ab35a';g.beginPath();g.arc(fx*2,-15+by,5.8,0,7);g.fill();
   g.strokeStyle='#4a7a34';g.lineWidth=1.5;g.lineCap='round'; /* brow */
@@ -4016,8 +4138,11 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female){
   g.beginPath();g.moveTo(fx*2-3.5,-12+by);g.lineTo(fx*2-2,-12+by);g.lineTo(fx*2-2.8,-15.5+by);g.closePath();g.fill();
   g.beginPath();g.moveTo(fx*2+2,-12+by);g.lineTo(fx*2+3.5,-12+by);g.lineTo(fx*2+2.8,-15.5+by);g.closePath();g.fill();
  }else if(raceId==='gravekin'){ /* Undead — hunched Forsaken, bared ribs, glowing eyes */
-  g.fillStyle=r.c2;g.beginPath();g.arc(sgn*1.5,-3.5+by,10.5,0,7);g.fill();
-  g.fillStyle=r.c1;g.beginPath();g.arc(sgn*2,-5+by,8.5,0,7);g.fill();
+  if(female)drawHourglassBody(g,sgn*1.8,-3.5,by,r.c2,r.c1,10.5);
+  else{
+   g.fillStyle=r.c2;g.beginPath();g.arc(sgn*1.5,-3.5+by,10.5,0,7);g.fill();
+   g.fillStyle=r.c1;g.beginPath();g.arc(sgn*2,-5+by,8.5,0,7);g.fill();
+  }
   g.strokeStyle='#e8e4d8';g.lineWidth=1.2;g.lineCap='round'; /* exposed ribs */
   g.beginPath();g.moveTo(sgn*2-4,-6+by);g.lineTo(sgn*2+3,-5.5+by);
   g.moveTo(sgn*2-4,-3+by);g.lineTo(sgn*2+3,-2.5+by);g.stroke();
@@ -4027,31 +4152,28 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female){
   g.fillStyle='#ffe97a';
   g.beginPath();g.arc(sgn*3.2,-13+by,1,0,7);g.arc(sgn*6,-13+by,1,0,7);g.fill();
  }else{ /* Human */
-  g.fillStyle=r.c2;g.beginPath();g.arc(0,-4+by,11,0,7);g.fill();
-  g.fillStyle=r.c1;g.beginPath();g.arc(0,-6+by,9,0,7);g.fill();
+  if(female)drawHourglassBody(g,0,-4,by,r.c2,r.c1,11);
+  else{
+   g.fillStyle=r.c2;g.beginPath();g.arc(0,-4+by,11,0,7);g.fill();
+   g.fillStyle=r.c1;g.beginPath();g.arc(0,-6+by,9,0,7);g.fill();
+  }
   g.fillStyle='rgba(255,255,255,0.14)';g.beginPath();g.arc(-3,-9+by,5,0,7);g.fill();
   g.fillStyle='#f0cfa0';g.beginPath();g.arc(fx*2,-15+by,5.5,0,7);g.fill();
  }
  if(female){
-  /* hourglass silhouette: shade the waist edges inward (clipped to the body)… */
-  g.save();
-  g.beginPath();g.ellipse(0,-4+by,raceId==='stoneborn'?12:11,raceId==='stoneborn'?9.5:11,0,0,7);g.clip();
-  g.fillStyle='rgba(0,0,0,0.22)';
-  g.beginPath();g.ellipse(-10.5,-3.5+by,4.2,6.5,0,0,7);g.fill();
-  g.beginPath();g.ellipse(10.5,-3.5+by,4.2,6.5,0,0,7);g.fill();
-  /* …with lit hips below the pinch */
-  g.fillStyle='rgba(255,255,255,0.10)';
-  g.beginPath();g.ellipse(0,2+by,8.5,3.2,0,0,7);g.fill();
-  g.restore();
-  /* the bust — two circles up front, facing the same way as the head */
-  const bcx=raceId==='gravekin'?sgn*2:fx*2;
-  const bcy=(raceId==='stoneborn'?-6.5:raceId==='gravekin'?-7.5:-8.5)+by;
-  g.fillStyle='rgba(255,255,255,0.30)';
-  g.beginPath();g.arc(bcx-2.7,bcy,2.5,0,7);g.fill();
-  g.beginPath();g.arc(bcx+2.7,bcy,2.5,0,7);g.fill();
-  g.strokeStyle='rgba(0,0,0,0.20)';g.lineWidth=1;
-  g.beginPath();g.arc(bcx-2.7,bcy,2.5,0.3,2.85);g.stroke();
-  g.beginPath();g.arc(bcx+2.7,bcy,2.5,0.3,2.85);g.stroke();
+  /* the bust — two clearly visible skin-toned circles on the chest */
+  const skin=raceId==='sylvan'?'#8fc06a':raceId==='gravekin'?'#b8c8b2':raceId==='stoneborn'?'#eac9a0':'#f0cfa0';
+  const bcx=raceId==='gravekin'?sgn*1.8:fx*1.5;
+  const bcy=(raceId==='stoneborn'?-5.5:-6.5)+by; /* lowered so they sit clear under the head */
+  g.fillStyle=skin;
+  g.beginPath();g.arc(bcx-3.8,bcy,3,0,7);g.fill(); /* a visible gap between the two */
+  g.beginPath();g.arc(bcx+3.8,bcy,3,0,7);g.fill();
+  g.strokeStyle='rgba(0,0,0,0.35)';g.lineWidth=1.2;
+  g.beginPath();g.arc(bcx-3.8,bcy,3,0.25,2.9);g.stroke();
+  g.beginPath();g.arc(bcx+3.8,bcy,3,0.25,2.9);g.stroke();
+  g.fillStyle='rgba(255,255,255,0.4)';
+  g.beginPath();g.arc(bcx-4.7,bcy-1.1,1,0,7);g.fill();
+  g.beginPath();g.arc(bcx+2.9,bcy-1.1,1,0,7);g.fill();
  }
  /* weapon */
  g.save();g.translate(fx*9,-6+by);
@@ -4205,7 +4327,21 @@ function drawEnemy(en){
    ctx.fillStyle='#e8e0d0';
    ctx.beginPath();ctx.moveTo(-en.r*0.4,-en.r-4+by);ctx.quadraticCurveTo(-en.r*0.8,-en.r-10+by,-en.r*0.5,-en.r-11+by);ctx.lineTo(-en.r*0.3,-en.r-5+by);ctx.fill();
    ctx.beginPath();ctx.moveTo(en.r*0.4,-en.r-4+by);ctx.quadraticCurveTo(en.r*0.8,-en.r-10+by,en.r*0.5,-en.r-11+by);ctx.lineTo(en.r*0.3,-en.r-5+by);ctx.fill();
-   ctx.fillStyle='#3a3a3a';ctx.beginPath();ctx.arc(-2,-en.r-2+by,1.2,0,7);ctx.arc(3,-en.r-2+by,1.2,0,7);ctx.fill();
+   const ck=en.r/13; /* face details scale with body size (the Alpha!) */
+   ctx.fillStyle='#3a3a3a';ctx.beginPath();ctx.arc(-2*ck,-en.r-2+by,1.2*ck,0,7);ctx.arc(3*ck,-en.r-2+by,1.2*ck,0,7);ctx.fill();
+   if(en.bigCow&&!en.dead){
+    /* ALPHA FLAIR: dark hide, burning eyes, gold nose ring, snorting steam, red ground aura */
+    ctx.fillStyle='rgba(40,10,5,0.28)';ctx.beginPath();ctx.arc(0,-4+by,en.r*0.95,0,7);ctx.fill();
+    ctx.strokeStyle='rgba(255,70,40,'+(0.3+0.2*Math.sin(now/170))+')';ctx.lineWidth=3;
+    ctx.beginPath();ctx.ellipse(0,en.r*0.55,en.r+9,en.r*0.5,0,0,7);ctx.stroke();
+    ctx.shadowColor='#ff4a2a';ctx.shadowBlur=10;
+    ctx.fillStyle='#ff5a2a';
+    ctx.beginPath();ctx.arc(-2*ck,-en.r-2+by,2*ck,0,7);ctx.arc(3*ck,-en.r-2+by,2*ck,0,7);ctx.fill();
+    ctx.shadowBlur=0;
+    ctx.strokeStyle='#ffd76a';ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.arc(0.5*ck,-en.r+3*ck+by,2.4*ck,0.3,2.85);ctx.stroke();
+    if(Math.random()<0.12)parts.push({x:en.x+(Math.random()-0.5)*14,y:en.y-en.r-8,vx:(Math.random()-0.5)*12,vy:-24,t:0,life:0.9,c:'#d8d8d8',r:2.2,g:0});
+   }
   }
   ctx.save();ctx.translate(en.r*0.8,-4+by);ctx.rotate(-0.6+(en.swing?(0.2-en.swing)*7:0));
   ctx.strokeStyle=en.cow?'#8a6a4a':'#ddd';ctx.lineWidth=en.boss?4:2.5;ctx.lineCap='round';
@@ -4311,9 +4447,12 @@ function drawMiniBar(x,y,w,pct,c){
 }
  
 /* ==================== HUD ==================== */
-function stageMsg(t,ms=1600){
- const m=$('stagemsg');m.textContent=t;m.classList.add('show');
- clearTimeout(m._t);m._t=setTimeout(()=>m.classList.remove('show'),ms);
+function stageMsg(t,ms=1600,color,big){
+ const m=$('stagemsg');m.textContent=t;
+ m.style.color=color||'';m.style.textShadow=color?'0 0 14px '+color:''; /* e.g. blue glow for chest spawns */
+ m.classList.toggle('bigblink',!!big);
+ m.classList.add('show');
+ clearTimeout(m._t);m._t=setTimeout(()=>{m.classList.remove('show');m.classList.remove('bigblink');},ms);
 }
 const tickerMsgs=[];
 function log(html,cls){
@@ -4564,7 +4703,7 @@ function renderHero(){
 }
 function renderMap(){
  const p5=(S.prestige||0)>=5,p1=(S.prestige||0)>=1;
- const p15=(S.prestige||0)>=7; /* raid gate — lowered from 15 for now */
+ const p15=(S.prestige||0)>=15; /* raid gate */
  const cowOk=(S.prestige||0)>=5&&(S.lvl||1)>=60;
  const haalOk=(S.prestige||0)>=10;
  if(mapContinent==='west'&&!p1)mapContinent='east';
@@ -4574,7 +4713,7 @@ function renderMap(){
  $('westTab').classList.toggle('cur',mapContinent==='west');
  $('valhallaTab').classList.toggle('cur',mapContinent==='valhalla');
  $('raidTab').classList.toggle('cur',mapContinent==='raid');
- $('raidTab').textContent=p15?'⚔ Raid (experimental)':'🔒 Raid (experimental)';
+ $('raidTab').textContent=p15?'⚔ Raid':'🔒 Raid';
  $('raidTab').style.cursor='pointer';
  $('raidTab').onclick=()=>{mapContinent='raid';renderMap();};
  $('westTab').textContent=p1?'Western Realm':'🔒 Western Realm · Prestige 1';
@@ -4622,7 +4761,7 @@ function renderMap(){
     return `<div class="card zonecard ${canCow?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${bagBlocked?'#c75146':canCow?'#ffd76a':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},${z.tree})">🐄</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">${cowOk?'':'Level 60 herd · Prestige 5+ · '}1 epic per cow · Best ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} items) · Last ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} items)</div>
+     <div class="zl">${cowOk?'':'Level 60 herd · Prestige 5+ · '}💠 A glowing chest spawns every 10s — walk over it for 0–2 top-tier epics · cows drop nothing · Best ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} chests) · Last ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} chests)</div>
      ${bagBlocked?`<div style="color:#ff8a7a;font-family:var(--display);font-size:13.5px;margin-top:4px;text-shadow:0 0 8px rgba(255,90,70,.35)">⚠ EMPTY YOUR BAG FIRST — the herd only respects those who arrive with nothing (${S.bag.length} item${S.bag.length>1?'s':''} carried)</div>`:''}</div>
      ${i===S.zone?'<span class="ztag">Here</span>':bagBlocked?'<span class="ztag boss">🎒 Bag full</span>':`<span class="ztag boss">${lockTxt}</span>`}
     </div>`;
@@ -4631,8 +4770,8 @@ function renderMap(){
     return `<div class="card zonecard ${p15?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p15?'#a66bd0':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#2a2040)">⚔</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">RAID — three lords slumber in their chambers. Strike one and it hunts you to the death. No loot yet.${p15?'':' · Minimum Prestige 7'}</div></div>
-     ${i===S.zone?'<span class="ztag">Here</span>':p15?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">🔒 Prestige 7</span>'}
+     <div class="zl">RAID — three lords slumber in their chambers. Strike one and it hunts you to the death.${p15?'':' · Minimum Prestige 15'}</div></div>
+     ${i===S.zone?'<span class="ztag">Here</span>':p15?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">🔒 Prestige 15</span>'}
     </div>`;
    }
    const kills=S.cerberusKills||0;
@@ -4671,7 +4810,7 @@ function renderMap(){
      if(S.lvl<60){stageMsg('🐄 The cows demand level 60',1800);sfx.warn();return;}
      if(S.bag.filter(it=>!isLegendary(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
     }else if(z.raid){
-     if((S.prestige||0)<7){stageMsg('Reach Prestige 7 — the Black Temple opens only to legends',1800);sfx.warn();return;}
+     if((S.prestige||0)<15){stageMsg('Reach Prestige 15 — the Black Temple opens only to legends',1800);sfx.warn();return;}
      pendingRaidZone=i;
      const rm=$('raidModal');
      if(rm){rm.style.display='flex';openTab('battle');}
