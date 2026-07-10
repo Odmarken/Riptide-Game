@@ -153,6 +153,9 @@
   #cname.nameerr{border-color:#ff5a5a;box-shadow:0 0 10px rgba(255,90,90,.35);animation:nameshake .3s}
   #cname.nameerr::placeholder{color:#ff8a7a}
   @keyframes nameshake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+  /* AWOOOOGAAAAA: unmissable pulsing gold frame when prestige is ready */
+  #prestigeBtn{border:2px solid #ffd76a;animation:awoogaGlow 1.4s ease-in-out infinite}
+  @keyframes awoogaGlow{0%,100%{box-shadow:0 0 8px rgba(255,215,106,.4)}50%{box-shadow:0 0 24px rgba(255,215,106,.9),0 0 40px rgba(255,180,60,.35)}}
   /* the translucent rename pencil next to the hero title */
   #renameBtn{background:none;border:none;cursor:pointer;opacity:.4;font-size:13px;padding:0 2px;vertical-align:middle;transition:opacity .15s}
   #renameBtn:hover{opacity:1}
@@ -4448,7 +4451,7 @@ function renderHero(){
   if(allBossesDead()){
    $('prestigeSec').innerHTML=`<div class="card">
     <div class="sn" style="font-family:var(--display);color:var(--brass);font-size:14px">✦ Prestige ${S.prestige+1} awaits</div>
-    <div class="ss" style="color:var(--dim);font-size:11px;margin:5px 0 9px">Return to level 1 and march the realm again. You keep every piece of gear, scroll, upgrade, gold and Scrap — but all foes grow far stronger. Every boss must fall once more before you can Prestige again.</div>
+    <div class="ss" style="color:var(--dim);font-size:11px;margin:5px 0 9px">Return to level 1 and march the realm again. You keep every piece of gear, scroll, upgrade, gold and Scrap. All foes grow far stronger, and every boss must fall once more before you can Prestige again.</div>
     <button class="sbtn gold" id="prestigeBtn" style="width:100%">AWOOOOGAAAAA</button>
    </div>`;
    $('prestigeBtn').onclick=()=>{
@@ -4458,10 +4461,11 @@ function renderHero(){
     ov.style.cssText='position:absolute;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;background:rgba(5,10,8,.85)';
     ov.innerHTML=`<div style="width:min(90%,340px);padding:20px;border-radius:14px;border:1px solid var(--brass);background:linear-gradient(180deg,#2a3d33,#131f1a);text-align:center">
      <div style="font-family:var(--display);font-size:17px;color:var(--brass)">✦ Prestige ${S.prestige+1}</div>
-     <div style="font-size:12px;color:var(--dim);margin:10px 0 16px;line-height:1.5">Are you sure? Every foe grows far stronger — is your gear enough for the next prestige?</div>
+     <div style="font-size:12.5px;color:var(--parch);margin:10px 0 6px;line-height:1.5;font-weight:600">Are you sure your gear is ready?</div>
+     <div style="font-size:12px;color:#ff8a7a;margin:0 0 16px;line-height:1.5">Recommended: have your epic items upgraded to at least <b style="color:#ff5a5a">+8 to +12</b> to make the next prestige easier.</div>
      <div style="display:flex;gap:8px;justify-content:center">
-      <button id="prYes" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;font-family:var(--display);font-size:14px;cursor:pointer">Yes</button>
-      <button id="prNo" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--display);font-size:14px;cursor:pointer">No</button>
+      <button id="prNo" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--display);font-size:14px;cursor:pointer">NO</button>
+      <button id="prYes" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;font-family:var(--display);font-size:14px;cursor:pointer">YES</button>
      </div></div>`;
     $('app').appendChild(ov);
     $('prYes').onclick=()=>{ov.remove();doPrestige();};
