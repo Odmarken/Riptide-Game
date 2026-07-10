@@ -134,9 +134,9 @@
   .wallet{font-size:12px;color:var(--dim);margin:-6px 0 12px}
   .wallet b{color:var(--brass)} .wallet i{color:#a8bcb0;font-style:normal}
  
-  nav{flex:0 0 56px;display:flex;border-top:1px solid var(--line);background:#16231d;z-index:30}
-  nav button{flex:1;background:none;border:none;color:var(--dim);cursor:pointer;font-size:10px;letter-spacing:.5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-family:var(--body)}
-  nav button svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  nav{flex:0 0 68px;display:flex;border-top:1px solid var(--line);background:#16231d;z-index:30}
+  nav button{flex:1;background:none;border:none;color:var(--dim);cursor:pointer;font-size:11px;letter-spacing:.5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-family:var(--body)}
+  nav button svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
   nav button.cur{color:var(--brass)}
  
   #create{position:absolute;inset:0;z-index:50;display:none;flex-direction:column;padding:26px 22px;overflow-y:auto;
@@ -6267,25 +6267,18 @@ $('restSpinBtn').onclick=()=>{
 function goHome(){
  if(!gameOn||!S||hero.dead)return;
  if(mp.on)mpLeave(false);
+ /* Home ALWAYS means Goldshire — a second tap never bounces you back out.
+    Head back to the road via the Travel map instead. */
  if(S.zone===TAVERN_ZONE){
-  const target=S.lastZone!=null?S.lastZone:0;
-  const z=ZONES[target]||ZONES[0];
-  if(z.cow){
-   if((S.prestige||0)<1||(S.lvl||1)<60){stageMsg('Cow Level is level 60 only — reach Lv 60 first',1800);sfx.warn();return;}
-   if(S.bag.filter(it=>!isLegendary(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
-  }
-  S.zone=target;
-  S.quest=0;S.qProg=0;
-  applyZoneUI();buildZone();renderHUD();save();
   openTab('battle');
-  stageMsg('Back to the road — '+zoneOf().name,2000);
- }else{
-  S.lastZone=S.zone;
-  S.zone=TAVERN_ZONE;S.quest=0;S.qProg=0;
-  applyZoneUI();buildZone();renderHUD();save();
-  openTab('battle');
-  stageMsg('🍺 Welcome to Goldshire — rest easy.',2200);
+  stageMsg('🍺 You are already home in Goldshire.',1400);
+  return;
  }
+ S.lastZone=S.zone;
+ S.zone=TAVERN_ZONE;S.quest=0;S.qProg=0;
+ applyZoneUI();buildZone();renderHUD();save();
+ openTab('battle');
+ stageMsg('🍺 Welcome to Goldshire — rest easy.',2200);
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
  if(b.dataset.tab==='home'){goHome();return;}
