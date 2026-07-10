@@ -1460,7 +1460,7 @@ function zoneTemplates(z){
  if(z.raid){
   const RL=Math.max(effectiveHeroLvl(),10),rm=pMul();
   const mk=(name,id,c)=>({name,kind:'boss',boss:true,raid:true,bossId:id,c,speed:115,
-   hp:Math.round(eHP(RL)*212*rm),atk:Math.round(eATK(RL)*1.76*rm),xp:0,gold:0});
+   hp:Math.round(eHP(RL)*92*rm),atk:Math.round(eATK(RL)*0.64*rm),xp:0,gold:0}); /* raid lords: ~64% softer hits and ~57% less HP than the original tuning */
   return [mk('Illidan the Betrayer','betrayer','#7adf9a'),
           mk('Ragnaros the Firelord','firelord','#ff7a2a'),
           mk('Arthas the Frozen King','frostking','#a0e0ff')];
