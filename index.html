@@ -621,7 +621,7 @@
       <span class="continent-tab cur" id="eastTab">Eastern Realm</span>
       <span class="continent-tab" id="westTab">🔒 Western Realm · Prestige 1</span>
       <span class="continent-tab" id="valhallaTab">🔒 Valhalla · Prestige 1</span>
-      <span class="continent-tab" id="raidTab">🔒 Raid (experimental) · Prestige 15</span>
+      <span class="continent-tab" id="raidTab">🔒 Raid (experimental)</span>
     </div>
     <div id="zoneList"></div>
   </div>
@@ -4459,7 +4459,7 @@ function renderHero(){
 }
 function renderMap(){
  const p5=(S.prestige||0)>=5,p1=(S.prestige||0)>=1;
- const p15=(S.prestige||0)>=15;
+ const p15=(S.prestige||0)>=7; /* raid gate — lowered from 15 for now */
  const cowOk=(S.prestige||0)>=5&&(S.lvl||1)>=60;
  const haalOk=(S.prestige||0)>=10;
  if(mapContinent==='west'&&!p1)mapContinent='east';
@@ -4526,8 +4526,8 @@ function renderMap(){
     return `<div class="card zonecard ${p15?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p15?'#a66bd0':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#2a2040)">⚔</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">RAID — three lords slumber in their chambers. Strike one and it hunts you to the death. No loot yet.${p15?'':' · Minimum Prestige 15'}</div></div>
-     ${i===S.zone?'<span class="ztag">Here</span>':p15?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">🔒 Prestige 15</span>'}
+     <div class="zl">RAID — three lords slumber in their chambers. Strike one and it hunts you to the death. No loot yet.${p15?'':' · Minimum Prestige 7'}</div></div>
+     ${i===S.zone?'<span class="ztag">Here</span>':p15?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">🔒 Prestige 7</span>'}
     </div>`;
    }
    const kills=S.cerberusKills||0;
@@ -4565,7 +4565,7 @@ function renderMap(){
      if(S.lvl<60){stageMsg('🐄 The cows demand level 60',1800);sfx.warn();return;}
      if(S.bag.filter(it=>!isLegendary(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
     }else if(z.raid){
-     if((S.prestige||0)<15){stageMsg('Reach Prestige 15 — the Black Temple opens only to legends',1800);sfx.warn();return;}
+     if((S.prestige||0)<7){stageMsg('Reach Prestige 7 — the Black Temple opens only to legends',1800);sfx.warn();return;}
      pendingRaidZone=i;
      const rm=$('raidModal');
      if(rm){rm.style.display='flex';openTab('battle');}
