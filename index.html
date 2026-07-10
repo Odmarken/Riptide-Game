@@ -2316,6 +2316,10 @@ function buildZone(){
  cowChest=null;cowChestT=10;cowChestMsgT=0;cowBigT=15; /* first chest lands 10s after entering */
  if(z.cow){
   cowRunning=true;
+  /* start in the middle of the field — chests can spawn anywhere, so start central */
+  world.spawn={x:world.w/2,y:world.h/2};
+  hero.x=world.spawn.x;hero.y=world.spawn.y;
+  pet.x=hero.x-30;pet.y=hero.y+14;
   for(let i=0;i<25;i++)spawnCow(); /* opening wave */
   stageMsg('MOO. Survive as long as you can — you will not.',3000);
   const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
@@ -2554,7 +2558,7 @@ function speedOf(e){
   s=base*(e.hp<=e.max*0.3?BOSS_ENRAGE_SPEED_MUL:BOSS_SPEED_MUL);
  }
  /* Cow Level hardmode: herd movement ramps up fast the longer you survive. */
- if(e.cow&&cowRunning)s*=Math.min(3.5,1+cowT*(e.bigCow?0.0245:0.035)); /* gentler ramp-up; the Alpha ramps 30% slower */
+ if(e.cow&&cowRunning)s*=Math.min(3.5,1+cowT*(e.bigCow?0.027:0.035)); /* gentler ramp-up; the Alpha ramps a bit slower */
  /* Thor and HAALAND keep their custom tuning. */
  if(e.slowT>0)s*=0.45;
  return s;
@@ -2631,7 +2635,9 @@ function healHero(amt,silent){
 }
 function hurtHero(dmg,label){
  if(hero.dead)return;
- dmg=Math.round(dmg*(1-scrollPct('warding'))*(1-(classOf().armor||0))*(1-(raceOf().armor||0))*(1-((activePet()||{}).armor||0)));
+ /* hidden passive: melee callings (Christian/Jew) shrug off 8% in the Cow Level — never shown in any UI */
+ const cowMelee=zoneOf().cow&&(S.cls==='warrior'||S.cls==='cleric')?0.92:1;
+ dmg=Math.round(dmg*(1-scrollPct('warding'))*(1-(classOf().armor||0))*(1-(raceOf().armor||0))*(1-((activePet()||{}).armor||0))*cowMelee);
  hero.hp-=dmg;hero.hurt=0.2;
  floatAt(hero.x,hero.y-26,'-'+dmg+(label?' '+label:''),'#ff8a7a');
  burst(hero.x,hero.y-10,'#ff8a7a',4,60);
@@ -3386,7 +3392,7 @@ function update(dt){
   cowT+=dt;
   cowSpawnT-=dt;
   if(cowSpawnT<=0){
-   cowSpawnT=1; /* one cow every second */
+   cowSpawnT=0.75; /* one cow every 0.75s */
    if(enemies.filter(e=>e.cow&&!e.dead).length<80)spawnCow(); /* hard cap: 80 cows on the map */
   }
   cowBigT-=dt;
@@ -3585,6 +3591,16 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
      let tx=TMove.x,ty=TMove.y;
      if(en.cow&&dHero>85){tx+=Math.cos(en.flankA)*en.flankD;ty+=Math.sin(en.flankA)*en.flankD;} /* cows approach from their own angle */
      moveToward(en,tx,ty,dt);
+    }
+    /* cows bite ON THE RUN: a fleeing hero just outside stop-range still gets tagged */
+    if(en.cow&&dHero<54+en.r){
+     en.cd-=dt;
+     if(en.cd<=0){
+      en.cd=1.15;en.swing=0.2;
+      const dmg=hurtHero(en.atk*(0.85+Math.random()*0.3));
+      sfx.hit();
+      if(hasEnch('thorns')&&!en.dead){const t=Math.max(1,Math.round(dmg*scrollPct('thorns')));en.hp-=t;floatAt(en.x,en.y-en.r-14,t+' 🌵','#9adf9a');if(en.hp<=0)killEnemy(en);}
+     }
     }
    }
    else{
@@ -3819,18 +3835,18 @@ function draw(){
   ctx.font='600 11px '+getComputedStyle(document.body).fontFamily;
   ctx.fillStyle='rgba(255,255,255,0.75)';
   ctx.fillText('BEST '+(S.cowBest?fmt(S.cowBest):'—')+' ('+(S.cowBestItems||0)+') · LAST '+(S.cowLast?fmt(S.cowLast):'—')+' ('+(S.cowLastItems||0)+')',VW/2,86);
-  if(cowChestMsgT>0){ /* glowing blue banner right under the timer, fades out over the last second */
+  if(cowChestMsgT>0){ /* glowing red banner right under the timer, fades out over the last second */
    const pu=0.5+0.5*Math.sin(performance.now()/140);
-   const msg='💠 CHEST HAS SPAWNED — FIND IT!';
+   const msg='💠 CHEST HAS SPAWNED FIND IT!';
    ctx.globalAlpha=Math.min(1,cowChestMsgT);
    ctx.font='800 19px '+getComputedStyle(document.body).fontFamily;
    /* dark pill behind the text so it reads against any ground */
    const tw=ctx.measureText(msg).width;
-   ctx.fillStyle='rgba(5,10,18,0.72)';
+   ctx.fillStyle='rgba(18,5,5,0.72)';
    ctx.beginPath();ctx.roundRect?ctx.roundRect(VW/2-tw/2-14,96,tw+28,24,12):ctx.rect(VW/2-tw/2-14,96,tw+28,24);ctx.fill();
-   ctx.strokeStyle='rgba(91,200,255,0.45)';ctx.lineWidth=1.5;ctx.stroke();
-   ctx.shadowColor='#4da3ff';ctx.shadowBlur=10+12*pu;
-   ctx.fillStyle='#5bc8ff';
+   ctx.strokeStyle='rgba(255,90,70,0.45)';ctx.lineWidth=1.5;ctx.stroke();
+   ctx.shadowColor='#ff3a2a';ctx.shadowBlur=10+12*pu;
+   ctx.fillStyle='#ff5a4a';
    ctx.fillText(msg,VW/2,113);
    ctx.shadowBlur=0;ctx.globalAlpha=1;
   }
