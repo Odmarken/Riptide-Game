@@ -1540,6 +1540,7 @@ const goldLvlMul=()=>1+(((S&&S.lvl)||1)-1)*0.012;
 const mobGold=(z,mul=1)=>Math.max(1,Math.round((8+((z&&z.lvl)||1)*3.2)*goldZoneMul(z)*goldLvlMul()*goldPrestigeMul()*mul));
 /* potion prices are fixed for now — no level/prestige scaling */
 const potCost=k=>20;
+const POT_CAP=250; /* max potions of each kind you can carry */
 const heroMax=()=>Math.round((classOf().hp+S.lvl*14+gearSum('hp'))*(raceOf().hp||1));
 const manaMax=()=>Math.round(classOf().mana+S.lvl*5);
 const heroAtk=()=>Math.round((classOf().atk+S.lvl*2.6+gearSum('atk'))*(1+scrollPct('titan'))*(1+((activePet()||{}).atkMul||0)));
@@ -1641,6 +1642,7 @@ function migrate(s){ /* fills fields missing from older saves */
  delete s.activeScroll;
  if(!s.boosts)s.boosts={speed:0,haste:0};
  if(!s.autoUse)s.autoUse={};
+ if(s.pots){s.pots.hp=Math.min(s.pots.hp||0,POT_CAP);s.pots.mp=Math.min(s.pots.mp||0,POT_CAP);}
  for(const sl in s.gear){
   const g=s.gear[sl];if(!g)continue;
   if(g.up===undefined)g.up=0;
@@ -6154,14 +6156,15 @@ function renderShop(){
  
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Supplies</div>';
  const hpC=potCost('hp'),mpC=potCost('mp');
+ const hpFull=S.pots.hp>=POT_CAP,mpFull=S.pots.mp>=POT_CAP;
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">🧪 Health Potion</div>
-  <div class="ss" style="color:var(--dim);font-size:11px">Restores 45% health. You own ${S.pots.hp}.</div></div>
-  <div class="btns"><button class="sbtn gold" data-pot="hp" ${totalGold()<hpC||inBossFight()?'disabled':''}>Buy ${hpC.toLocaleString()}◉</button>
-  <button class="sbtn gold" data-pot="hp" data-n="10" ${totalGold()<hpC*10||inBossFight()?'disabled':''}>10x · ${(hpC*10).toLocaleString()}◉</button></div></div>`;
+  <div class="ss" style="color:var(--dim);font-size:11px">Restores 45% health. You own ${S.pots.hp} / ${POT_CAP}.</div></div>
+  <div class="btns"><button class="sbtn gold" data-pot="hp" ${hpFull||totalGold()<hpC||inBossFight()?'disabled':''}>${hpFull?'MAX ✦':'Buy '+hpC.toLocaleString()+'◉'}</button>
+  <button class="sbtn gold" data-pot="hp" data-n="10" ${hpFull||totalGold()<hpC*10||inBossFight()?'disabled':''}>10x · ${(hpC*10).toLocaleString()}◉</button></div></div>`;
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">🔮 Mana Potion</div>
-  <div class="ss" style="color:var(--dim);font-size:11px">Restores 60% mana. You own ${S.pots.mp}.</div></div>
-  <div class="btns"><button class="sbtn gold" data-pot="mp" ${totalGold()<mpC||inBossFight()?'disabled':''}>Buy ${mpC.toLocaleString()}◉</button>
-  <button class="sbtn gold" data-pot="mp" data-n="10" ${totalGold()<mpC*10||inBossFight()?'disabled':''}>10x · ${(mpC*10).toLocaleString()}◉</button></div></div>`;
+  <div class="ss" style="color:var(--dim);font-size:11px">Restores 60% mana. You own ${S.pots.mp} / ${POT_CAP}.</div></div>
+  <div class="btns"><button class="sbtn gold" data-pot="mp" ${mpFull||totalGold()<mpC||inBossFight()?'disabled':''}>${mpFull?'MAX ✦':'Buy '+mpC.toLocaleString()+'◉'}</button>
+  <button class="sbtn gold" data-pot="mp" data-n="10" ${mpFull||totalGold()<mpC*10||inBossFight()?'disabled':''}>10x · ${(mpC*10).toLocaleString()}◉</button></div></div>`;
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Upgrades</div>';
  const cap=boostMax();
  const spN=S.boosts.speed,haN=S.boosts.haste,spC=boostCost(spN),haC=boostCost(haN);
@@ -6194,7 +6197,10 @@ function renderShop(){
  });
  document.querySelectorAll('[data-pot]').forEach(b=>b.onclick=()=>{
   if(inBossFight()){stageMsg('The Trader cowers — no potion sales during a boss fight!',1600);sfx.warn();return;}
-  const k=b.dataset.pot,n=parseInt(b.dataset.n||'1',10),cost=potCost(k)*n;
+  const k=b.dataset.pot,have=S.pots[k]||0;
+  if(have>=POT_CAP){stageMsg('Potion bag full — max '+POT_CAP+' of each kind',1400);sfx.warn();return;}
+  const n=Math.min(parseInt(b.dataset.n||'1',10),POT_CAP-have); /* 10x near the cap tops you up instead */
+  const cost=potCost(k)*n;
   if(!spendGold(cost)){stageMsg('Not enough gold',1200);return;}
   S.pots[k]+=n;
   sfx.buy();renderShop();renderHUD();save();
