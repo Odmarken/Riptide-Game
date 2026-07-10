@@ -5821,6 +5821,7 @@ $('seaClose').onclick=()=>{
 const BJ_MIN=1000,BJ_MAX=15000,BJ_STEP=1000;
 let bjBet=1000,bjP=[],bjD=[],bjLive=false,bjWager=0;
 let bjSeen=0,bjHoleHidden=false,bjSettled=false;
+let bjGen=0,bjResolving=false; /* generation guard: kills stale dealer timers so a new hand can never inherit them */
 let bjSession={hands:0,gold:0};
 const BJ_RANKS=[['A',11],['2',2],['3',3],['4',4],['5',5],['6',6],['7',7],['8',8],['9',9],['10',10],['J',10],['Q',10],['K',10]];
 const BJ_SUITS=['♠','♥','♦','♣'];
@@ -5854,7 +5855,7 @@ function bjRender(hideHole){
 }
 function bjUI(){
  const d=$('bjDeal');
- d.disabled=bjLive||totalGold()<bjBet;
+ d.disabled=bjLive||bjResolving||totalGold()<bjBet;
  d.textContent=totalGold()<bjBet&&!bjLive?'Deal · '+bjBet.toLocaleString()+'◉ — broke!':'Deal · '+bjBet.toLocaleString()+'◉';
  $('bjHit').disabled=!bjLive;
  $('bjStand').disabled=!bjLive;
@@ -5868,7 +5869,7 @@ function bjUI(){
 function bjSettle(kind){
  if(bjSettled)return;
  bjSettled=true;
- bjLive=false;
+ bjLive=false;bjResolving=false;
  bjRender(false);
  const res=$('bjRes');
  res.classList.remove('bigres');
@@ -5884,7 +5885,7 @@ function bjSettle(kind){
  }else bjSession.gold-=bjWager;
  if(kind==='bj'){
   res.style.color='#ffd100';res.classList.add('bigres');
-  res.textContent='🃏 BLACKJACK! +'+paid.toLocaleString()+'◉';
+  res.textContent='🃏 BLACKJACK! +'+paid.toLocaleString()+'◉ · pays 3:2';
   dingDingDing(false);spawnPartsIn($('bjFx'),'#ffd100',18);
   log(`Borek Blackjack: <span class="llegendary">BLACKJACK — +${paid.toLocaleString()} ◉</span>!`,'loot');
  }else if(kind==='win'){
@@ -5905,17 +5906,20 @@ function bjSettle(kind){
 }
 function bjDealerPlay(){
  if(bjSettled)return;
- bjLive=false;bjUI();
+ const gen=bjGen; /* if a new hand starts, this chain dies silently */
+ bjLive=false;bjResolving=true;bjUI();
  bjRender(false); /* flips the hole card */
  const step=()=>{
+  if(gen!==bjGen||bjSettled)return;
   if(bjVal(bjD)<17){
    bjD.push(bjDraw());
    bjRender(false);
    setTimeout(step,520);
    return;
   }
-  const p=bjVal(bjP),d=bjVal(bjD);
   setTimeout(()=>{
+   if(gen!==bjGen||bjSettled)return;
+   const p=bjVal(bjP),d=bjVal(bjD);
    if(d>21)bjSettle('win');
    else if(d>p)bjSettle('lose');
    else if(d<p)bjSettle('win');
@@ -5925,9 +5929,10 @@ function bjDealerPlay(){
  setTimeout(step,560); /* pause after the flip so the reveal lands */
 }
 function bjDeal(){
- if(bjLive)return;
+ if(bjLive||bjResolving)return;
  if(!spendGold(bjBet)){stageMsg('Not enough gold — a hand costs '+bjBet.toLocaleString()+'◉',1400);sfx.warn();return;}
  renderHUD();sfx.buy();
+ bjGen++; /* invalidate any stale dealer timers from the previous hand */
  bjWager=bjBet;bjLive=true;bjSettled=false;
  bjSeen=0;bjHoleHidden=false;
  bjP=[bjDraw(),bjDraw()];bjD=[bjDraw(),bjDraw()];
@@ -5963,6 +5968,7 @@ function bjDouble(){
 function openBJ(){
  $('bjFx').classList.add('open');
  bjSession={hands:0,gold:0};
+ bjGen++;bjResolving=false; /* kill any dealer timers left over from a previous table */
  bjP=[];bjD=[];bjLive=false;bjSeen=0;bjHoleHidden=false;bjSettled=false;
  $('bjHandC').innerHTML='';$('bjDealerC').innerHTML='';
  $('bjPTot').textContent='';$('bjDTot').textContent='';
@@ -5976,7 +5982,7 @@ $('bjDbl').onclick=bjDouble;
 $('bjBetDn').onclick=()=>{if(!bjLive&&bjBet>BJ_MIN){bjBet-=BJ_STEP;bjUI();}};
 $('bjBetUp').onclick=()=>{if(!bjLive&&bjBet<BJ_MAX){bjBet+=BJ_STEP;bjUI();}};
 $('bjClose').onclick=()=>{
- if(bjLive)return; /* no rage-quitting mid-hand — the wager is already spent */
+ if(bjLive||bjResolving)return; /* no rage-quitting mid-hand — the wager is already spent */
  $('bjFx').classList.remove('open');
 };
 /* ==================== CASINO BUILDING MENU ==================== */
