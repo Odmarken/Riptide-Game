@@ -868,6 +868,9 @@
 /* painted building models */
 const casinoImg=new Image();casinoImg.src='assets/models/casino.png';
 const treeImg=new Image();treeImg.src='assets/models/träd.png';
+treeImg._pad=1.2;treeImg._anchor=0.89; /* per-art calibration: padding compensation + trunk-bottom fraction */
+const treeSnowImg=new Image();treeSnowImg.src='assets/models/trädsnow.png';
+treeSnowImg._pad=1.26;treeSnowImg._anchor=0.90;
 const fmImg=new Image();fmImg.src='assets/models/frostmourne.png';
 const wgImg=new Image();wgImg.src='assets/models/warglaive.png';
 const gsMapImg=new Image();gsMapImg.src='assets/models/maps/goldshire_map.png';
@@ -1034,21 +1037,21 @@ const ZONES=[
   en:[['Thorn Wolf','beast','#6b6f76'],['Web Matron','beast','#5a4a6b'],['Poacher Chief','humanoid','#7a5a3a']],
   q:[['Howls in the Glade','Hunt 8 wolves stalking the woodcutters.',8],['Silk and Venom','Burn out 9 broodmothers.',9],['The Poachers\u2019 Camp','Break the poacher ring — 12 foes.',12]]},
  {name:'Hollowroot Den',lvl:8,amb:'cave',boss:['Gorehusk the Rootfiend','#7a9a3a','gorehusk'],ground:'#4a3f33',ground2:'#40362b',water:'#3a4a3a',tree:'#3a3128',tree2:'#2c251e',path:'#6a5a44',rocky:true},
- {name:'Ironcrag Pass',lvl:10,amb:'mountain',ground:'#8b8a78',ground2:'#7e7d6c',water:'#6f9ab0',tree:'#5a6b52',tree2:'#46543f',path:'#a89a80',rocky:true,
+ {name:'Ironcrag Pass',lvl:10,amb:'mountain',snowTrees:true,noBerg:true,ground:'#8b8a78',ground2:'#7e7d6c',water:'#6f9ab0',tree:'#5a6b52',tree2:'#46543f',path:'#a89a80',rocky:true,
   en:[['Crag Raider','humanoid','#8a5a4a'],['Rock Wyrmling','beast','#9a8a5a'],['Frost Harpy','beast','#7fa8c0']],
   q:[['Hold the Pass','Repel 10 raiders from the mountain road.',10],['Nests in the Cliffs','Clear 10 harpy nests.',10],['Wyrm Tithe','Slay 14 creatures hoarding the ore carts.',14]]},
  {name:'Mistfen Marsh',lvl:15,amb:'marsh',ground:'#5a7a58',ground2:'#507050',water:'#3f6a5a',tree:'#3f5a3a',tree2:'#2f4630',path:'#8a8a62',
   en:[['Fen Lurker','beast','#5a7a6a'],['Mire Stalker','beast','#4a5a44'],['Swampwitch Adept','humanoid','#7a5a8a']],
   q:[['Lights in the Fog','Slay 9 lurkers dragging travelers under.',9],['The Witch\u2019s Brew','Scatter 10 adepts of the swampwitch coven.',10],['Drain the Mire','Clear 13 horrors from the drowned road.',13]]},
  {name:'Grimwater Cavern',lvl:18,amb:'cave',boss:['Maw of the Deep','#4a90a8','maw'],ground:'#3a4450',ground2:'#333d48',water:'#2f4a5a',tree:'#333d48',tree2:'#262e38',path:'#5a6470',rocky:true},
- {name:'Ashen Moor',lvl:20,amb:'moor',ground:'#5f5a66',ground2:'#555060',water:'#46506b',tree:'#4a4456',tree2:'#383244',path:'#7a7268',
+ {name:'Ashen Moor',lvl:20,amb:'moor',dot:'#ffffff',snowTrees:true,noBerg:true,ground:'#5f5a66',ground2:'#555060',water:'#46506b',tree:'#4a4456',tree2:'#383244',path:'#7a7268',
   en:[['Moor Wraith','undead','#8fb0c9'],['Bog Revenant','undead','#6b8a7a'],['Cult Torchbearer','humanoid','#a05a4a']],
   q:[['Lights on the Moor','Put 10 restless spirits to rest.',10],['The Torchbearers','Scatter 12 cultists raising the dead.',12],['Silence the Bog','Destroy 14 horrors before the rite completes.',14]]},
  {name:'Duskhollow Barrens',lvl:25,amb:'dry',ground:'#8a7a5a',ground2:'#7e6f50',water:'#6a8a7a',tree:'#6a5a3a',tree2:'#544628',path:'#a08a5a',rocky:true,
   en:[['Dust Prowler','beast','#a08a5a'],['Barrens Marauder','humanoid','#8a5a3a'],['Carrion Screecher','beast','#7a6a7a']],
   q:[['Bones in the Dust','Hunt 10 prowlers circling the caravans.',10],['Marauder Toll','Break 12 marauders holding the dry road.',12],['Sky of Carrion','Bring down 14 screechers.',14]]},
  {name:'The Sunken Crypt',lvl:28,amb:'crypt',boss:['Ossric, King Below','#b0c0d0','ossric'],ground:'#3a3a46',ground2:'#33333e',water:'#2f3a4a',tree:'#33333e',tree2:'#262630',path:'#55556a',rocky:true},
- {name:'Frostspire Heights',lvl:30,amb:'frost',ground:'#b8c4cc',ground2:'#a8b6c0',water:'#7fb0d0',tree:'#5a7a6a',tree2:'#44604f',path:'#cad4da',rocky:true,
+ {name:'Frostspire Heights',lvl:30,amb:'frost',snowTrees:true,noBerg:true,ground:'#b8c4cc',ground2:'#a8b6c0',water:'#7fb0d0',tree:'#5a7a6a',tree2:'#44604f',path:'#cad4da',rocky:true,
   en:[['Frost Wolf','beast','#8fa8b8'],['Rime Shade','undead','#a0d0e0'],['Spire Raider','humanoid','#6a7a9a']],
   q:[['Wolves of the Spire','Hunt 10 frost wolves above the treeline.',10],['Shades of Rime','Banish 12 shades haunting the pass.',12],['The High Camp','Rout 14 raiders from the summit camp.',14]]},
  {name:'Shatterstone Vale',lvl:35,amb:'mountain',ground:'#7a7468',ground2:'#6e685c',water:'#5f8aa0',tree:'#4f6048',tree2:'#3c4a36',path:'#948668',rocky:true,
@@ -2293,7 +2296,7 @@ function buildZone(){
    rocks++;
   }
  }else{
-  if(!isBoss&&!z.raid){
+  if(!isBoss&&!z.raid&&!z.noBerg){
    const nW=z.rocky?2:3+Math.floor(R()*2);
    for(let i=0;i<nW;i++){
     const wx=250+R()*(world.w-600);
@@ -2326,7 +2329,7 @@ function buildZone(){
    }
    if(!ok)continue;
    const rock=z.rocky?R()<.6:R()<.2;
-   world.solids.push({x,y,r:rock?14+R()*8:12+R()*6,type:rock?'rock':'tree',s:0.8+R()*0.7,seed:R()*100});
+   world.solids.push({x,y,r:rock?14+R()*8:12+R()*6,type:rock?'rock':'tree',s:0.5+R()*1.6,seed:R()*100}); /* same wide size spread as Goldshire */
   }
  }
  for(let i=0;i<160;i++)world.deco.push({x:R()*world.w,y:R()*world.h,k:R()});
@@ -3960,13 +3963,14 @@ function drawProp(s,z){
  ctx.save();ctx.translate(s.x,s.y);
  if(s.type==='tree'){
   const sway=Math.sin(performance.now()/900+s.x)*1.5;
-  if(z.tavern&&treeImg.complete&&treeImg.naturalWidth){
-   /* painted pine (assets/models/träd.png) in Goldshire — size varies per tree via r & s */
-   const H=s.r*(2.6+s.s*2.2)*1.14; /* ×1.14 compensates the art's transparent padding */
-   const W=H*treeImg.naturalWidth/treeImg.naturalHeight;
+  const tImg=z.snowTrees?treeSnowImg:treeImg; /* snowy variant in frost/moor zones */
+  if(tImg.complete&&tImg.naturalWidth){
+   /* painted tree — size varies per tree via r & s; per-art calibration on the Image */
+   const H=s.r*(2.6+s.s*2.2)*tImg._pad;
+   const W=H*tImg.naturalWidth/tImg.naturalHeight;
    ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,4,W*0.34,W*0.13,0,0,7);ctx.fill();
    ctx.rotate(sway*0.012);
-   ctx.drawImage(treeImg,-W/2,4-H*0.911,W,H); /* trunk bottom lands on the shadow */
+   ctx.drawImage(tImg,-W/2,4-H*tImg._anchor,W,H); /* trunk bottom lands on the shadow */
    ctx.restore();return;
   }
   ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,4,s.r*1.15,s.r*0.5,0,0,7);ctx.fill();
@@ -4954,7 +4958,7 @@ function renderMap(){
   const cur=i===S.zone;
   const done=z.boss?S.bossDead[i]:S.cleared[i];
   return `<div class="card zonecard ${locked?'locked':''} ${cur?'active':''}" data-z="${i}">
-    <div class="zdot" style="background:linear-gradient(160deg,${z.ground},${z.tree})">${z.boss?(S.bossDead[i]?'✓':'💀'):''}</div>
+    <div class="zdot" style="background:${z.dot||`linear-gradient(160deg,${z.ground},${z.tree})`}">${z.boss?(S.bossDead[i]?'✓':'💀'):''}</div>
     <div class="zinfo"><div class="zn">${z.name}</div>
     <div class="zl">${z.boss?(S.bossDead[i]?'Boss slain — arena silent':'Boss arena — '+z.boss[0]):zoneQuests(z).length+' quests'} · level ${z.lvl}+</div></div>
     ${cur?'<span class="ztag">Here</span>':locked?(bossGated?'<span class="ztag boss">🔒 Boss</span>':'<span class="ztag">🔒 Lv '+z.lvl+'</span>'):done?'<span class="ztag done">✓ Travel</span>':z.boss?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag">Travel</span>'}
