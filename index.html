@@ -59,6 +59,8 @@
  
 
   #skillbar{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:7px;align-items:flex-end;z-index:6}
+  #fishBtn{position:absolute;bottom:84px;left:50%;transform:translateX(-50%);width:44px;height:44px;border-radius:11px;border:1px solid var(--brass-deep);background:linear-gradient(180deg,#2a3d33,#17241d);font-size:20px;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:6;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+  #fishBtn.on{border-color:var(--brass);box-shadow:0 0 12px rgba(217,164,65,.5);animation:pulseNext 1.6s infinite}
   .skill{position:relative;width:46px;height:46px;border-radius:11px;border:1px solid var(--brass-deep);background:linear-gradient(180deg,#2a3d33,#17241d);color:var(--parch);font-size:19px;cursor:pointer;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.5)}
   .skill .cdm{position:absolute;left:0;right:0;bottom:0;background:rgba(5,10,8,.78);height:0%;pointer-events:none}
   .skill .cost{position:absolute;bottom:1px;right:3px;font-size:8.5px;color:#9fb4e8;font-weight:700;text-shadow:0 1px 2px #000}
@@ -595,6 +597,7 @@
     <div id="volSfxBox" class="volbox" style="top:44px"><input type="range" id="volSfxSl" min="0" max="100"></div>
     <div id="hint">WASD / tap ground to move · tap a foe · tap spells to cast</div>
     <div id="stagemsg"></div>
+    <button id="fishBtn" title="Fiska">🪝</button>
     <div id="skillbar"></div>
     <div id="ticker"></div>
   </div>
@@ -879,6 +882,21 @@ const zoneMapImgs={};
 const zoneMapImg=n=>{if(!zoneMapImgs[n]){zoneMapImgs[n]=new Image();zoneMapImgs[n].src='assets/models/maps/'+n+'.png';}return zoneMapImgs[n];};
 const bergImg=new Image();bergImg.src='assets/models/berg.png';
 const brunnImg=new Image();brunnImg.src='assets/models/brunn.png';
+/* pixel-perfect hit test against the casino art (u,v in 0..1 across the drawn sprite);
+   falls back to treating everything as solid if pixels are unreadable (file://) */
+let casHitCtx=null;
+function casinoPixelSolid(u,v){
+ try{
+  if(!casHitCtx){
+   const c=document.createElement('canvas');
+   c.width=128;c.height=Math.max(1,Math.round(128*casinoImg.naturalHeight/casinoImg.naturalWidth));
+   const g2=c.getContext('2d',{willReadFrequently:true});
+   g2.drawImage(casinoImg,0,0,c.width,c.height);casHitCtx=g2;
+  }
+  const c=casHitCtx.canvas;
+  return casHitCtx.getImageData(Math.min(c.width-1,Math.floor(u*c.width)),Math.min(c.height-1,Math.floor(v*c.height)),1,1).data[3]>60;
+ }catch(e){return true;}
+}
 const stenImg=new Image();stenImg.src='assets/models/sten.png';
 
 window.seaMusic=new Audio('ambientsong/seamen_song.mp3');
@@ -2220,6 +2238,24 @@ function shade(hex,amt){const n=parseInt(hex.slice(1),16);
 let world=null,hero=null,pet=null,enemies=[],bolts=[],ebolts=[],hazards=[],floats=[],parts=[],rings=[],zaps=[],groundCv=null;
 let cowT=0,cowSpawnT=0,cowRunning=false,cowItems=0,cowBagFull=false;
 let cowChest=null,cowChestT=10,cowChestMsgT=0; /* the blue loot chest — cowItems counts CHESTS opened */
+/* --- Fishing at the Goldshire lake (top-right pond) --- */
+let fish={on:false,castT:0,bx:0,by:0,bob:0};
+const nearLake=()=>gameOn&&world&&zoneOf().tavern&&hero&&!hero.dead&&hero.x>world.w-900&&hero.y<660;
+function fishSpot(){ /* cast toward the middle of the pond, 60–100px out, small random spread */
+ const a=Math.atan2(250-hero.y,(world.w-330)-hero.x)+(Math.random()-0.5)*0.5;
+ const d=60+Math.random()*40;
+ fish.bx=hero.x+Math.cos(a)*d;fish.by=hero.y+Math.sin(a)*d;
+}
+function startFishing(){
+ if(fish.on||!nearLake())return;
+ fish.on=true;fish.castT=4+Math.random()*6;fish.bob=0;fishSpot();
+ fish.fly=0;hero.swing=0.24; /* rod whip + the float sails out in an arc */
+ hero.moveTo=null;hero.target=null;hero.pendingDoor=null;
+ hero.fx=fish.bx>=hero.x?1:-1;
+ stageMsg('🎣 You cast your line…',1400);
+}
+function stopFishing(){fish.on=false;}
+$('fishBtn').onclick=()=>{if(fish.on)stopFishing();else startFishing();};
 let cowBigT=15; /* the Alpha Bovine — a giant cow every 15 seconds */
 const COW_BAG_CAP=40;
 const cowLocked=()=>gameOn&&cowRunning;
@@ -2255,7 +2291,7 @@ function buildZone(){
   world.solids.push({x:cx,y:cy-330,r:52,type:'house',big:true,seed:1});
   /* the Casino — doubled-up landmark beside the north road; highest spot where the
      full sprite still fits under the map's top edge without covering the inn */
-  world.solids.push({x:cx+360,y:cy-120,r:52,type:'casino',big:true,seed:5,crx:180,cry:45,cyo:-120});
+  world.solids.push({x:cx+360,y:cy-120,r:52,type:'casino',big:true,seed:5,crx:180,cry:45,cyo:-220});
   world.solids.push({x:cx-560,y:cy-40,r:52,type:'bank',big:true,seed:8});
   world.solids.push({x:cx,y:cy+520,r:52,type:'smith',big:true,seed:11});
   /* friendly townsfolk roaming their own little routes between the buildings */
@@ -2859,11 +2895,12 @@ function killEnemy(en){
  if(!en.cow&&!en.raid)floatAt(en.x,en.y-en.r-14,gold>0?'+'+gold+' ◉':'◉ CAP','#ffd76a');
  log(`Slew <span class="imp">${en.name}</span> — ${en.xp>0?'+'+en.xp+' xp':'no xp'}${(en.cow||en.raid)?'':', +'+gold+' gold'}.`);
  if(en.cow){
-  /* chests are the main loot — but each cow has a 3% chance to shake loose one epic */
-  if(Math.random()<0.03&&S.bag.length<COW_BAG_CAP){
+  /* chests are the main loot — but each cow has a 3% chance to shake loose one epic (3.6% with 🍀) */
+  const cowLucky=S.luckT>0;
+  if(Math.random()<0.03*(cowLucky?1.20:1)&&S.bag.length<COW_BAG_CAP){
    const it=rollItem('epic');
    sfx.loot();
-   log(`Cow loot: <span class="lepic">${it.name}</span> ${itemStr(it)}.`,'loot');
+   log(`Cow loot: <span class="lepic">${it.name}</span> ${itemStr(it)}.${cowLucky?' 🍀':''}`,'loot');
    if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
    if(S.bag.length>=COW_BAG_CAP&&!cowBagFull){
     cowBagFull=true;
@@ -3377,18 +3414,29 @@ cv.addEventListener('pointerdown',e=>{
  if(!gameOn||gamePaused||hero.dead||pinching)return;
  const r=cv.getBoundingClientRect();
  const wx=(e.clientX-r.left)/zoom+camX,wy=(e.clientY-r.top)/zoom+camY;
+ hero.pendingDoor=null; /* any new click cancels a pending walk-to-building */
  if(zoneOf().tavern){
+  /* buildings need melee range — near: menu opens; far: run to the door, menu opens on arrival */
+  const walkOrOpen=(s,open)=>{
+   const rng=s.type==='casino'?150:115;
+   if(Math.hypot(hero.x-s.x,hero.y-s.y)<rng){open();return;}
+   hero.target=null;hero.goPortal=false;
+   const ty=s.y+(s.type==='casino'?85:70); /* aim just below the anchor: the door */
+   hero.moveTo={x:s.x,y:ty};marker={x:s.x,y:ty,t:0};
+   hero.pendingDoor={s,open,rng};
+  };
   const inn=world.solids.find(s=>s.type==='house'&&s.big);
-  if(inn&&Math.hypot(wx-inn.x,wy-inn.y)<inn.r+28){openRestedWheel();return;}
+  if(inn&&Math.hypot(wx-inn.x,wy-inn.y)<inn.r+28){walkOrOpen(inn,openRestedWheel);return;}
   const cas=world.solids.find(s=>s.type==='casino');
-  if(cas){ /* click anywhere on the painted building — it towers above its ground anchor */
+  if(cas){ /* pixel-perfect: only clicks on the building's visible pixels count */
    const W=cas.r*7.68,H=casinoImg.naturalWidth?W*casinoImg.naturalHeight/casinoImg.naturalWidth:W,bot=cas.r*1.35*0.55+W*0.04;
-   if(Math.abs(wx-cas.x)<W/2&&wy>cas.y+bot-H&&wy<cas.y+bot){openCasinoMenu();return;}
+   const u=(wx-(cas.x-W/2))/W,v=(wy-(cas.y+bot-H))/H;
+   if(u>=0&&u<1&&v>=0&&v<1&&casinoPixelSolid(u,v)){walkOrOpen(cas,openCasinoMenu);return;}
   }
   const bnk=world.solids.find(s=>s.type==='bank');
-  if(bnk&&Math.hypot(wx-bnk.x,wy-bnk.y)<bnk.r+28){openBank();return;}
+  if(bnk&&Math.hypot(wx-bnk.x,wy-bnk.y)<bnk.r+28){walkOrOpen(bnk,openBank);return;}
   const sm=world.solids.find(s=>s.type==='smith');
-  if(sm&&Math.hypot(wx-sm.x,wy-sm.y)<sm.r+28){openSmith();return;}
+  if(sm&&Math.hypot(wx-sm.x,wy-sm.y)<sm.r+28){walkOrOpen(sm,openSmith);return;}
  }
  let best=null,bd=32;
  for(const en of enemies){if(en.dead||en.hidden)continue;
@@ -3590,6 +3638,35 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   }else if(S.auto){
    /* AUTO only farms — it never walks you into the portal */
    if(!hero.target||hero.target.dead||hero.target.hidden)hero.target=nearestQuestEnemy();
+  }
+  if(hero.pendingDoor){ /* running toward a clicked building — open its menu on arrival */
+   const p=hero.pendingDoor;
+   if(Math.hypot(hero.x-p.s.x,hero.y-p.s.y)<p.rng){hero.pendingDoor=null;hero.moveTo=null;p.open();}
+   else if(!hero.moveTo)hero.pendingDoor=null; /* walk ended without arriving — give up */
+  }
+  /* --- fishing: button near the lake, casts 4–10s, stops the moment you move away --- */
+  {
+   const nl=nearLake(),fb=$('fishBtn');
+   fb.style.display=nl?'flex':'none';
+   fb.classList.toggle('on',fish.on);
+   if(fish.on){
+    if(!nl||hero.moving||hero.moveTo||hero.target)stopFishing();
+    else{
+     fish.bob+=dt;fish.castT-=dt;
+     hero.fx=fish.bx>=hero.x?1:-1;
+     if(fish.fly<1){ /* the float is mid-air — land it with a small plop */
+      fish.fly=Math.min(1,fish.fly+dt*2.4);
+      if(fish.fly>=1){ring(fish.bx,fish.by,10,'#bfe9ff',0.45);blip(480,120,0.1,0.03,'sine');}
+     }
+     if(fish.castT<=0){ /* reel in, plop, whip the rod and cast anew */
+      burst(fish.bx,fish.by,'#8ad0f0',8,60);
+      ring(fish.bx,fish.by,12,'#bfe9ff',0.5);
+      blip(520,140,0.12,0.035,'sine');
+      fishSpot();fish.castT=4+Math.random()*6;
+      fish.fly=0;hero.swing=0.24;
+     }
+    }
+   }
   }
   if(hero.target&&!hero.target.dead&&!hero.target.hidden){
    const d=dist(hero,hero.target);
@@ -3853,6 +3930,23 @@ function draw(){
  if(pet&&activePet())drawables.push({y:pet.y,f:drawPet});
  drawables.sort((a,b)=>a.y-b.y);
  for(const d of drawables)d.f();
+ if(fish.on&&hero&&!hero.dead){ /* fishing line + float (arcs through the air while a cast is in flight) */
+  const tipX=hero.x+hero.fx*16,tipY=hero.y-26;
+  const fl=fish.fly===undefined?1:fish.fly;
+  const bx=fl<1?tipX+(fish.bx-tipX)*fl:fish.bx;
+  const bobY=fl<1?tipY+(fish.by-tipY)*fl-Math.sin(Math.PI*fl)*22:fish.by+Math.sin(fish.bob*2.2)*1.6;
+  ctx.strokeStyle='rgba(230,240,245,0.55)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(tipX,tipY);
+  ctx.quadraticCurveTo((tipX+bx)/2,(tipY+bobY)/2+(fl<1?-6:14),bx,bobY-3);
+  ctx.stroke();
+  if(fl>=1){ /* ripples only once the float is in the water */
+   const rp=(fish.bob%1.6)/1.6;
+   ctx.strokeStyle='rgba(220,240,250,'+(0.35*(1-rp)).toFixed(3)+')';ctx.lineWidth=1;
+   ctx.beginPath();ctx.ellipse(fish.bx,fish.by+3,4+rp*10,(4+rp*10)*0.4,0,0,7);ctx.stroke();
+  }
+  ctx.fillStyle='#e8e4d8';ctx.beginPath();ctx.arc(bx,bobY,3.2,0,7);ctx.fill();
+  ctx.fillStyle='#c75146';ctx.beginPath();ctx.arc(bx,bobY,3.2,3.14,6.28);ctx.fill();
+ }
  for(const b of bolts){
   if(b.arrow){
    /* hunter shots are arrows: shaft, steel head and fletching, rotated along the flight path */
@@ -4316,7 +4410,12 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female){
  const sw=swing?(0.24-swing)*9:0;
  g.rotate((sgn<0?-0.5:0.5)+sw*sgn);
  g.lineCap='round';
- if(weaponId==='warglaives'){
+ if(weaponId==='fishingrod'){
+  /* fishing rod: cork grip + tapered rod aimed forward over the water */
+  g.strokeStyle='#7a5a3a';g.lineWidth=2.5;g.beginPath();g.moveTo(-1,5);g.lineTo(2,-3);g.stroke();
+  g.strokeStyle='#a9885a';g.lineWidth=1.8;g.beginPath();g.moveTo(2,-3);g.lineTo(8,-15);g.stroke();
+  g.strokeStyle='#c9b391';g.lineWidth=1.1;g.beginPath();g.moveTo(8,-15);g.lineTo(12,-22);g.stroke();
+ }else if(weaponId==='warglaives'){
   if(wgImg.complete&&wgImg.naturalWidth){
    /* painted Warglaives pair (assets/models/warglaive.png) — emblem sits in the hand, fel-green glow */
    const W=48,H=W*wgImg.naturalHeight/wgImg.naturalWidth;
@@ -4411,7 +4510,7 @@ function drawHero(){
  if(h.buff.haste&&h.buff.haste.t>0){ctx.strokeStyle='rgba(200,240,255,0.5)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,6,18,8,0,0,7);ctx.stroke();}
  if(dancing)ctx.rotate(Math.sin(h.dance*6)*0.25);
  feet(h,1);
- drawChampionSprite(ctx,S.race,c.id,fx,by,danceSwing,isFM(S.gear.weapon),isWG(S.gear.weapon)?'warglaives':(isFM(S.gear.weapon)?'frostmourne':null),S.gender==='f');
+ drawChampionSprite(ctx,S.race,c.id,fx,by,danceSwing,fish.on?false:isFM(S.gear.weapon),fish.on?'fishingrod':(isWG(S.gear.weapon)?'warglaives':(isFM(S.gear.weapon)?'frostmourne':null)),S.gender==='f');
  if(h.hurt>0){ctx.fillStyle='rgba(255,255,255,'+h.hurt*2.5+')';ctx.beginPath();ctx.arc(0,-8+by,11,0,7);ctx.fill();}
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;
  ctx.textAlign='center';
