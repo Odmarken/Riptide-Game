@@ -288,7 +288,7 @@
   .slotwin::after{bottom:0;background:linear-gradient(0deg,rgba(0,0,0,.7),transparent)}
   .slotreel{display:flex;flex-direction:column;will-change:transform}
   .slotcell{flex:0 0 92px;display:flex;align-items:center;justify-content:center;font-size:44px}
-  .slotres{margin-top:14px;font-family:var(--display);font-size:18px;min-height:1.4em;text-align:center}
+  .slotres{margin-top:14px;font-family:var(--display);font-size:18px;min-height:1.4em;text-align:center;width:0;min-width:100%} /* width:0+min-width:100%: long win texts wrap instead of widening the machine */
   .slotstats{margin-top:5px;font-size:11px;color:var(--dim);min-height:1.2em;text-align:center}
   .slotbet{display:flex;align-items:center;gap:8px;margin-top:12px}
   .slotbetcost{font-size:12px;color:var(--brass);margin-left:4px;white-space:nowrap}
@@ -865,6 +865,15 @@
 </div>
  
 <script>
+/* painted building models */
+const casinoImg=new Image();casinoImg.src='assets/models/casino.png';
+const treeImg=new Image();treeImg.src='assets/models/träd.png';
+const fmImg=new Image();fmImg.src='assets/models/frostmourne.png';
+const wgImg=new Image();wgImg.src='assets/models/warglaive.png';
+const gsMapImg=new Image();gsMapImg.src='assets/models/maps/goldshire_map.png';
+const bergImg=new Image();bergImg.src='assets/models/berg.png';
+const stenImg=new Image();stenImg.src='assets/models/sten.png';
+
 window.seaMusic=new Audio('ambientsong/seamen_song.mp3');
 window.seaMusic.loop=true;
 window.seaVolVal=0.35; /* desired music level — applied via a Web Audio gain node (iOS ignores audio.volume) */
@@ -2237,23 +2246,11 @@ function buildZone(){
   world.solids.push({x:cx,y:cy,r:20,type:'well'});
   /* the big tavern at the top of the square */
   world.solids.push({x:cx,y:cy-330,r:52,type:'house',big:true,seed:1});
-  /* small houses ringing the square */
-  const HOUSES=[
-   {x:cx-380,y:cy-160},
-   {x:cx-430,y:cy+120},{x:cx+430,y:cy+120},
-   {x:cx-220,y:cy+330},{x:cx+220,y:cy+330},
-   {x:cx-620,y:cy-40},
-  ];
-  HOUSES.forEach((h,i)=>world.solids.push({x:h.x,y:h.y,r:34,type:'house',seed:i*13+2}));
-  /* the Casino — a grand red-roofed hall on the right of the square */
-  world.solids.push({x:cx+540,y:cy-40,r:52,type:'casino',big:true,seed:5});
+  /* the Casino — doubled-up landmark beside the north road; highest spot where the
+     full sprite still fits under the map's top edge without covering the inn */
+  world.solids.push({x:cx+360,y:cy-120,r:52,type:'casino',big:true,seed:5,crx:180,cry:45,cyo:-120});
   world.solids.push({x:cx-560,y:cy-40,r:52,type:'bank',big:true,seed:8});
   world.solids.push({x:cx,y:cy+520,r:52,type:'smith',big:true,seed:11});
-  /* lanterns at the square's edge */
-  for(let i=0;i<6;i++){
-   const a=i/6*6.283;
-   world.solids.push({x:cx+Math.cos(a)*world.square.r,y:cy+Math.sin(a)*world.square.r*0.8,r:5,type:'lantern'});
-  }
   /* friendly townsfolk roaming their own little routes between the buildings */
   const NPC_DEFS=[
    ['Sven-Ove','human','warrior',0,[[cx-330,cy-110],[cx-480,cy-20]],34],
@@ -2270,13 +2267,30 @@ function buildZone(){
    pts:pts.map(p=>({x:p[0]+(Math.random()-0.5)*26,y:p[1]+(Math.random()-0.5)*26})),
    i:0,dir:1,x:pts[0][0],y:pts[0][1],speed,walk:Math.random()*5,fx:1,pauseT:Math.random()*2,moving:false
   }));
-  /* a few trees around the outskirts */
+  /* trees + rocks in the grass patches — hand-tuned keep-outs for the painted map:
+     off the 8 radial roads, out of the pond (top right) and clear of the central plaza */
   const TR=mulberry32(99);
-  for(let i=0;i<26;i++){
-   const x=60+TR()*(world.w-120),y=60+TR()*(world.h-120);
-   if(Math.hypot(x-cx,y-cy)<world.square.r+140)continue;
-   if(world.solids.some(s=>dist({x,y},s)<70))continue;
-   world.solids.push({x,y,r:12+TR()*6,type:'tree',s:0.8+TR()*0.7,seed:TR()*100});
+  const ROADS=[[cx,cy,cx,0],[cx,cy,cx,world.h],[cx,cy,0,cy],[cx,cy,world.w,cy],
+   [cx,cy,0,0],[cx,cy,world.w,0],[cx,cy,0,world.h],[cx,cy,world.w,world.h]];
+  const nearRoad=(x,y,m)=>ROADS.some(([x1,y1,x2,y2])=>{
+   const dx=x2-x1,dy=y2-y1,t=Math.max(0,Math.min(1,((x-x1)*dx+(y-y1)*dy)/(dx*dx+dy*dy)));
+   return Math.hypot(x-(x1+dx*t),y-(y1+dy*t))<m;
+  });
+  const inPond=(x,y)=>x>world.w-880&&y<640; /* painted pond fills the top-right corner */
+  const okSpot=(x,y,m)=>Math.hypot(x-cx,y-cy)>=world.square.r+140&&!inPond(x,y)&&!nearRoad(x,y,m||95)&&!world.solids.some(s=>dist({x,y},s)<70);
+  let placed=0;
+  for(let i=0;i<600&&placed<26;i++){
+   const x=170+TR()*(world.w-340),y=170+TR()*(world.h-340); /* stay off the border roads too */
+   if(!okSpot(x,y))continue;
+   world.solids.push({x,y,r:12+TR()*6,type:'tree',s:0.5+TR()*1.6,seed:TR()*100}); /* wide s-range: small shrubs → tall pines */
+   placed++;
+  }
+  let rocks=0;
+  for(let i=0;i<400&&rocks<9;i++){
+   const x=170+TR()*(world.w-340),y=170+TR()*(world.h-340);
+   if(!okSpot(x,y,190))continue; /* wider road margin — the curvy bits stray far from the straight-line approximation */
+   world.solids.push({x,y,r:14+TR()*8,type:'rock',s:0.8+TR()*0.7,seed:TR()*100});
+   rocks++;
   }
  }else{
   if(!isBoss&&!z.raid){
@@ -2285,13 +2299,12 @@ function buildZone(){
     const wx=250+R()*(world.w-600);
     const wy=R()<.5?120+R()*(world.pathY-260):world.pathY+150+R()*(world.h-world.pathY-280);
     const wr=60+R()*70;
-    world.waters.push({x:wx,y:wy,r:wr});
-    world.solids.push({x:wx,y:wy,r:wr*0.92,type:'water'});
+    world.solids.push({x:wx,y:wy,r:wr*0.92,type:'berg',dr:wr}); /* mountains where the ponds used to be */
    }
   }
   /* fewer props with an enforced minimum gap so nothing clumps and traps the hero */
   const MINGAP=58;
-  const clearOf=(x,y)=>!world.solids.some(s=>dist({x,y},s)<(s.type==='water'?s.r+46:MINGAP));
+  const clearOf=(x,y)=>!world.solids.some(s=>dist({x,y},s)<(s.type==='water'||s.type==='berg'?s.r+46:MINGAP));
   const nT=z.raid?0:isBoss?34:70;
   for(let i=0;i<nT;i++){
    let x,y,ok=false;
@@ -2509,6 +2522,14 @@ function prerenderGround(z,R){
  groundCv=document.createElement('canvas');
  groundCv.width=world.w;groundCv.height=world.h;
  const g=groundCv.getContext('2d');
+ if(z.tavern&&gsMapImg.complete&&gsMapImg.naturalWidth){
+  /* painted Goldshire ground (assets/models/maps/goldshire_map.png) — same aspect as the world,
+     so a plain stretch fits; buildings/trees/NPCs draw on top each frame as usual */
+  g.drawImage(gsMapImg,0,0,world.w,world.h);
+  g.strokeStyle='rgba(0,0,0,0.35)';g.lineWidth=26;g.strokeRect(0,0,world.w,world.h);
+  return;
+ }
+ if(z.tavern&&!gsMapImg.complete)gsMapImg.addEventListener('load',()=>{if(world&&zoneOf().tavern)prerenderGround(zoneOf(),mulberry32(1));},{once:true});
  g.fillStyle=z.ground;g.fillRect(0,0,world.w,world.h);
  /* low-poly ground facets: large soft triangles instead of only blobs */
  for(let i=0;i<130;i++){
@@ -2576,6 +2597,11 @@ function collide(e,nx,ny){
  if((!e.boss||e.raid)&&!e.cow){
   for(const s of world.solids){
    if(s.type==='gate'&&!(world.raidRooms&&world.raidRooms[s.room]&&world.raidRooms[s.room].sealed))continue;
+   if(s.crx){ /* wide painted buildings block with an ellipse matching their footprint (cyo shifts it up onto the walls) */
+    const kx=(nx-s.x)/(s.crx+e.r),ky=(ny-s.y-(s.cyo||0))/(s.cry+e.r);
+    if(kx*kx+ky*ky<1)return true;
+    continue;
+   }
    if(Math.hypot(nx-s.x,ny-s.y)<e.r+s.r*0.8)return true;
   }
  }
@@ -3346,7 +3372,10 @@ cv.addEventListener('pointerdown',e=>{
   const inn=world.solids.find(s=>s.type==='house'&&s.big);
   if(inn&&Math.hypot(wx-inn.x,wy-inn.y)<inn.r+28){openRestedWheel();return;}
   const cas=world.solids.find(s=>s.type==='casino');
-  if(cas&&Math.hypot(wx-cas.x,wy-cas.y)<cas.r+28){openCasinoMenu();return;}
+  if(cas){ /* click anywhere on the painted building — it towers above its ground anchor */
+   const W=cas.r*7.68,H=casinoImg.naturalWidth?W*casinoImg.naturalHeight/casinoImg.naturalWidth:W,bot=cas.r*1.35*0.55+W*0.04;
+   if(Math.abs(wx-cas.x)<W/2&&wy>cas.y+bot-H&&wy<cas.y+bot){openCasinoMenu();return;}
+  }
   const bnk=world.solids.find(s=>s.type==='bank');
   if(bnk&&Math.hypot(wx-bnk.x,wy-bnk.y)<bnk.r+28){openBank();return;}
   const sm=world.solids.find(s=>s.type==='smith');
@@ -3931,6 +3960,15 @@ function drawProp(s,z){
  ctx.save();ctx.translate(s.x,s.y);
  if(s.type==='tree'){
   const sway=Math.sin(performance.now()/900+s.x)*1.5;
+  if(z.tavern&&treeImg.complete&&treeImg.naturalWidth){
+   /* painted pine (assets/models/träd.png) in Goldshire — size varies per tree via r & s */
+   const H=s.r*(2.6+s.s*2.2)*1.14; /* ×1.14 compensates the art's transparent padding */
+   const W=H*treeImg.naturalWidth/treeImg.naturalHeight;
+   ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,4,W*0.34,W*0.13,0,0,7);ctx.fill();
+   ctx.rotate(sway*0.012);
+   ctx.drawImage(treeImg,-W/2,4-H*0.911,W,H); /* trunk bottom lands on the shadow */
+   ctx.restore();return;
+  }
   ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,4,s.r*1.15,s.r*0.5,0,0,7);ctx.fill();
   ctx.fillStyle='#5a4630';ctx.fillRect(-2.5,-4,5,10);
   if(z.rocky){ /* low-poly pine: stacked triangles */
@@ -4017,23 +4055,17 @@ function drawProp(s,z){
   ctx.fillStyle='#20140a';ctx.fillText('🏦 BANK',1,-hh*1.42+1);
   ctx.fillStyle='#ffd76a';ctx.fillText('🏦 BANK',0,-hh*1.42);
  }else if(s.type==='casino'){
+  /* painted casino model (assets/models/casino.png) — sign is baked into the art, no text label */
   const w=s.r*1.8,hh=s.r*1.35;
-  ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0,hh*0.45,w*1.12,hh*0.42,0,0,7);ctx.fill();
-  ctx.fillStyle='#9a8468';ctx.fillRect(-w,-hh*0.55,w*2,hh);
-  ctx.fillStyle='rgba(0,0,0,0.12)';ctx.fillRect(0,-hh*0.55,w,hh);
-  ctx.fillStyle='#8a2e26';
-  ctx.beginPath();ctx.moveTo(-w*1.18,-hh*0.55);ctx.lineTo(0,-hh*1.45);ctx.lineTo(w*1.18,-hh*0.55);ctx.closePath();ctx.fill();
-  ctx.fillStyle='rgba(255,255,255,0.10)';
-  ctx.beginPath();ctx.moveTo(-w*1.18,-hh*0.55);ctx.lineTo(0,-hh*1.45);ctx.lineTo(0,-hh*0.55);ctx.closePath();ctx.fill();
-  ctx.fillStyle='#3a2a1c';ctx.fillRect(-w*0.22,hh*0.45-hh*0.55,w*0.44,hh*0.55);
-  const flick=0.72+0.28*Math.sin(performance.now()/280+s.seed*5);
-  ctx.fillStyle='rgba(255,210,110,'+(0.9*flick)+')';
-  ctx.fillRect(-w*0.78,-hh*0.28,w*0.3,hh*0.32);
-  ctx.fillRect(w*0.48,-hh*0.28,w*0.3,hh*0.32);
-  ctx.font='700 12px '+getComputedStyle(document.body).fontFamily;
-  ctx.textAlign='center';
-  ctx.fillStyle='#20140a';ctx.fillText('🎰 CASINO',1,-hh*1.5+1);
-  ctx.fillStyle='#ffd76a';ctx.fillText('🎰 CASINO',0,-hh*1.5);
+  if(casinoImg.complete&&casinoImg.naturalWidth){
+   /* keep the art's own aspect ratio — drawing it square squashed the tall model */
+   const W=s.r*7.68,H=W*casinoImg.naturalHeight/casinoImg.naturalWidth;
+   ctx.drawImage(casinoImg,-W/2,hh*0.55+W*0.04-H,W,H);
+  }else{ /* fallback while the image loads */
+   ctx.fillStyle='#9a8468';ctx.fillRect(-w,-hh*0.55,w*2,hh);
+   ctx.fillStyle='#8a2e26';
+   ctx.beginPath();ctx.moveTo(-w*1.18,-hh*0.55);ctx.lineTo(0,-hh*1.45);ctx.lineTo(w*1.18,-hh*0.55);ctx.closePath();ctx.fill();
+  }
  }else if(s.type==='well'){
   ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,6,22,9,0,0,7);ctx.fill();
   ctx.fillStyle='#8b8a80';ctx.beginPath();ctx.ellipse(0,0,18,10,0,0,7);ctx.fill();
@@ -4065,7 +4097,23 @@ function drawProp(s,z){
   ctx.strokeStyle='rgba(0,0,0,0.25)';ctx.lineWidth=1.5;
   ctx.strokeRect(-s.r,-s.r*1.6,s.r*2,s.r*2.1);
   ctx.beginPath();ctx.moveTo(-s.r,-s.r*0.5);ctx.lineTo(s.r,-s.r*0.5);ctx.moveTo(0,-s.r*1.6);ctx.lineTo(0,-s.r*0.5);ctx.stroke();
- }else{
+ }else if(s.type==='berg'){
+  /* painted mountain (assets/models/berg.png) — stands where the blue ponds used to be */
+  if(bergImg.complete&&bergImg.naturalWidth){
+   const W=s.dr*2.1,H=W*bergImg.naturalHeight/bergImg.naturalWidth;
+   /* soft rim shadow tucked under the base — mostly hidden by the pile itself */
+   ctx.fillStyle='rgba(0,0,0,0.16)';ctx.beginPath();ctx.ellipse(0,s.dr*0.5-H*0.05,W*0.38,W*0.09,0,0,7);ctx.fill();
+   ctx.drawImage(bergImg,-W/2,s.dr*0.5-H,W,H); /* base sits on the shadow */
+  }else{ /* fallback while the image loads: plain gray peak */
+   ctx.fillStyle='#8b8a80';ctx.beginPath();
+   ctx.moveTo(-s.r,s.r*0.4);ctx.lineTo(0,-s.r);ctx.lineTo(s.r,s.r*0.4);ctx.closePath();ctx.fill();
+  }
+ }else if(stenImg.complete&&stenImg.naturalWidth){
+  /* painted boulder (assets/models/sten.png) — all zones, sized per rock via r & s */
+  const W=s.r*(1.6+(s.s||1)*0.9),H=W*stenImg.naturalHeight/stenImg.naturalWidth;
+  ctx.fillStyle='rgba(0,0,0,0.2)';ctx.beginPath();ctx.ellipse(0,4,W*0.46,W*0.16,0,0,7);ctx.fill();
+  ctx.drawImage(stenImg,-W/2,6-H,W,H); /* boulder base sits on the shadow */
+ }else{ /* fallback while the image loads: low-poly boulder */
   ctx.fillStyle='rgba(0,0,0,0.2)';ctx.beginPath();ctx.ellipse(0,4,s.r*1.1,s.r*0.5,0,0,7);ctx.fill();
   ctx.fillStyle='#8b8a80';ctx.beginPath();
   ctx.moveTo(-s.r,3);ctx.lineTo(-s.r*0.5,-s.r*0.9);ctx.lineTo(s.r*0.4,-s.r);ctx.lineTo(s.r,2);ctx.closePath();ctx.fill();
@@ -4165,12 +4213,20 @@ function drawHourglassBody(g,cx,cy,by,c2,c1,w){
 function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female){
  const r=RACES.find(x=>x.id===raceId);
  const sgn=fx<0?-1:1;
- if(weaponId==='warglaives'){ /* back glaive: behind the body, same facing as front */
+ if(weaponId==='warglaives'){ /* back glaive: behind the body, tilted opposite the front one — WoW dual-wield look */
   g.save();
   g.translate(fx*10,-6+by);
-  g.scale(0.85*sgn,0.85);
   g.globalAlpha*=0.9;
-  drawGlaive(g,false);
+  if(wgImg.complete&&wgImg.naturalWidth){
+   g.rotate(-0.4*sgn);
+   const W=42,H=W*wgImg.naturalHeight/wgImg.naturalWidth;
+   g.shadowColor='#4dff9a';g.shadowBlur=7;
+   g.drawImage(wgImg,-W/2,-H/2,W,H);
+   g.shadowBlur=0;
+  }else{ /* fallback while the image loads */
+   g.scale(0.85*sgn,0.85);
+   drawGlaive(g,false);
+  }
   g.restore();
  }
  if(raceId==='stoneborn'){ /* Dwarf — short, stout, great grey beard */
@@ -4244,16 +4300,28 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female){
  g.rotate((sgn<0?-0.5:0.5)+sw*sgn);
  g.lineCap='round';
  if(weaponId==='warglaives'){
-  /* front glaive: replaces the old stick/weapon and draws above the body */
-  g.save();
-  g.translate(-6*sgn,4);
-  g.scale(0.95*sgn,0.95);
-  drawGlaive(g,false);
-  g.restore();
+  if(wgImg.complete&&wgImg.naturalWidth){
+   /* painted Warglaives pair (assets/models/warglaive.png) — emblem sits in the hand, fel-green glow */
+   const W=48,H=W*wgImg.naturalHeight/wgImg.naturalWidth;
+   g.shadowColor='#4dff9a';g.shadowBlur=9;
+   g.drawImage(wgImg,-W/2,-H/2,W,H);
+   g.shadowBlur=0;
+  }else{ /* fallback while the image loads */
+   g.save();
+   g.translate(-6*sgn,4);
+   g.scale(0.95*sgn,0.95);
+   drawGlaive(g,false);
+   g.restore();
+  }
  }else if(fm){
   const tt=performance.now()/1000;
   g.shadowColor='#6fd0ff';g.shadowBlur=10+Math.sin(tt*3)*3;
-  /* icy runeblade */
+  if(fmImg.complete&&fmImg.naturalWidth){
+   /* painted Frostmourne (assets/models/frostmourne.png) — the pulsing canvas glow hugs the cutout */
+   const H=40,W=H*fmImg.naturalWidth/fmImg.naturalHeight;
+   g.drawImage(fmImg,-W/2,6-H,W,H); /* grip bottom at y=6, same as the old blade */
+   g.shadowBlur=0;
+  }else{ /* fallback while the image loads: icy runeblade */
   g.fillStyle='#bfe9ff';
   g.beginPath();
   g.moveTo(0,-21);g.lineTo(2.6,-14);g.lineTo(1.5,-9);g.lineTo(3,-5);g.lineTo(1.4,1);
@@ -4272,6 +4340,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female){
   /* grip */
   g.strokeStyle='#7a5a3a';g.lineWidth=2.5;
   g.beginPath();g.moveTo(0,1.5);g.lineTo(0,6);g.stroke();
+  }
  }else if(clsId==='mage'||clsId==='cleric'){
   g.strokeStyle='#c9a45a';g.lineWidth=3;g.beginPath();g.moveTo(0,4);g.lineTo(0,-12);g.stroke();
   g.fillStyle=clsId==='mage'?'#7fd0ff':'#ffd76a';g.beginPath();g.arc(0,-14,3+Math.sin(performance.now()/200)*0.6,0,7);g.fill();
@@ -4329,9 +4398,9 @@ function drawHero(){
  if(h.hurt>0){ctx.fillStyle='rgba(255,255,255,'+h.hurt*2.5+')';ctx.beginPath();ctx.arc(0,-8+by,11,0,7);ctx.fill();}
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;
  ctx.textAlign='center';
- ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(dispName(S),1,-25+by+1);
- ctx.fillStyle='#fff';ctx.fillText(dispName(S),0,-25+by);
- drawMiniBar(-14,-22+by,28,h.hp/heroMax(),'#4caf6d');
+ /* name only (no rating), lifted clear of the sprite; hp lives in the header bar instead */
+ ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(S.name||'Hero',1,-33+by+1);
+ ctx.fillStyle='#fff';ctx.fillText(S.name||'Hero',0,-33+by);
  ctx.restore();
 }
 function drawNpc(n){
