@@ -878,6 +878,7 @@ const gsMapImg=new Image();gsMapImg.src='assets/models/maps/goldshire_map.png';
 const zoneMapImgs={};
 const zoneMapImg=n=>{if(!zoneMapImgs[n]){zoneMapImgs[n]=new Image();zoneMapImgs[n].src='assets/models/maps/'+n+'.png';}return zoneMapImgs[n];};
 const bergImg=new Image();bergImg.src='assets/models/berg.png';
+const brunnImg=new Image();brunnImg.src='assets/models/brunn.png';
 const stenImg=new Image();stenImg.src='assets/models/sten.png';
 
 window.seaMusic=new Audio('ambientsong/seamen_song.mp3');
@@ -2248,8 +2249,8 @@ function buildZone(){
   const cx=world.w/2,cy=world.h/2;
   world.spawn={x:cx,y:cy+180};           /* you arrive at the square */
   world.square={x:cx,y:cy,r:230};        /* plaza radius, used by prerender */
-  /* the well in the middle of the square */
-  world.solids.push({x:cx,y:cy,r:20,type:'well'});
+  /* the well, centered in the painted plaza ring (measured from goldshire_map.png) */
+  world.solids.push({x:cx-13,y:cy+31,r:20,type:'well'});
   /* the big tavern at the top of the square */
   world.solids.push({x:cx,y:cy-330,r:52,type:'house',big:true,seed:1});
   /* the Casino — doubled-up landmark beside the north road; highest spot where the
@@ -4076,6 +4077,12 @@ function drawProp(s,z){
    ctx.beginPath();ctx.moveTo(-w*1.18,-hh*0.55);ctx.lineTo(0,-hh*1.45);ctx.lineTo(w*1.18,-hh*0.55);ctx.closePath();ctx.fill();
   }
  }else if(s.type==='well'){
+  if(brunnImg.complete&&brunnImg.naturalWidth){
+   /* painted well (assets/models/brunn.png) */
+   const W=58,H=W*brunnImg.naturalHeight/brunnImg.naturalWidth;
+   ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,6,W*0.44,W*0.15,0,0,7);ctx.fill();
+   ctx.drawImage(brunnImg,-W/2,8-H,W,H); /* stone base sits on the shadow */
+  }else{ /* fallback while the image loads */
   ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,6,22,9,0,0,7);ctx.fill();
   ctx.fillStyle='#8b8a80';ctx.beginPath();ctx.ellipse(0,0,18,10,0,0,7);ctx.fill();
   ctx.fillStyle='#2f4a5a';ctx.beginPath();ctx.ellipse(0,-2,13,7,0,0,7);ctx.fill();
@@ -4083,6 +4090,7 @@ function drawProp(s,z){
   ctx.beginPath();ctx.moveTo(-14,-2);ctx.lineTo(-14,-24);ctx.moveTo(14,-2);ctx.lineTo(14,-24);ctx.stroke();
   ctx.fillStyle='#5f4a34';
   ctx.beginPath();ctx.moveTo(-18,-24);ctx.lineTo(0,-34);ctx.lineTo(18,-24);ctx.closePath();ctx.fill();
+  }
  }else if(s.type==='lantern'){
   const gl=0.5+0.3*Math.sin(performance.now()/260+s.x);
   ctx.strokeStyle='#4a3826';ctx.lineWidth=3;ctx.lineCap='round';
