@@ -2254,6 +2254,22 @@ function buildZone(){
    const a=i/6*6.283;
    world.solids.push({x:cx+Math.cos(a)*world.square.r,y:cy+Math.sin(a)*world.square.r*0.8,r:5,type:'lantern'});
   }
+  /* friendly townsfolk roaming their own little routes between the buildings */
+  const NPC_DEFS=[
+   ['Sven-Ove','human','warrior',0,[[cx-330,cy-110],[cx-480,cy-20]],34],
+   ['Gunnar Guldtand','stoneborn','warrior',0,[[cx-480,cy-20],[cx-540,cy-10],[cx-360,cy+100]],28],
+   ['Barbro Bråttom','human','mage',1,[[cx-190,cy+270],[cx+190,cy+270],[cx,cy+440]],62],
+   ['Lilla Kjell','human','hunter',0,[[cx,cy-250],[cx-330,cy-110]],42],
+   ['Ragnar Lagom','sylvan','warrior',0,[[cx+360,cy+100],[cx+460,cy-20]],24],
+   ['Fiskar-Frasse','human','hunter',0,[[cx-360,cy+100],[cx-190,cy+270]],32],
+   ['Tant Ulla','gravekin','cleric',1,[[cx+190,cy+270],[cx+360,cy+100]],27],
+   ['Börje Borek Jr.','human','warrior',0,[[cx,cy-250],[cx+460,cy-20],[cx+40,cy+40]],38],
+  ];
+  world.npcs=NPC_DEFS.map(([name,race,cls,fem,pts,speed])=>({
+   name,race,cls,female:!!fem,
+   pts:pts.map(p=>({x:p[0]+(Math.random()-0.5)*26,y:p[1]+(Math.random()-0.5)*26})),
+   i:0,dir:1,x:pts[0][0],y:pts[0][1],speed,walk:Math.random()*5,fx:1,pauseT:Math.random()*2,moving:false
+  }));
   /* a few trees around the outskirts */
   const TR=mulberry32(99);
   for(let i=0;i<26;i++){
@@ -2326,7 +2342,8 @@ function buildZone(){
   world.spawn={x:world.w/2,y:world.h/2};
   hero.x=world.spawn.x;hero.y=world.spawn.y;
   pet.x=hero.x-30;pet.y=hero.y+14;
-  for(let i=0;i<25;i++)spawnCow(); /* opening wave */
+  for(let i=0;i<23;i++)spawnCow(false,true); /* opening wave — scattered across the whole field */
+  for(let i=0;i<2;i++)spawnCow(false,'near'); /* …plus two right by the spawn so it starts hot */
   stageMsg('MOO. Survive as long as you can — you will not.',3000);
   const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
   log(`<span class="imp">The Cow Level.</span> Best: ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} chests) · Last: ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} chests)`);
@@ -2421,13 +2438,24 @@ function cowTemplate(){
   hp:Math.round(eHP(L)*16.3),atk:Math.round(eATK(L)*9.3), /* tuned via playtesting */
   xp:Math.round(eHP(60)*0.8*pRew()),gold:0}; /* Cow Level mobs give no gold — item farm only */
 }
-function spawnCow(big){
+function spawnCow(big,scatter){
  const rr=big?39:13;
  let x=world.w/2,y=world.h/2;
  for(let k=0;k<24;k++){ /* retry until the spot is clear of trees/rocks so nothing spawns stuck */
-  const a=Math.random()*6.28,d=Math.max(VW,VH)*0.65+Math.random()*120;
-  const tx=Math.max(60,Math.min(world.w-60,hero.x+Math.cos(a)*d));
-  const ty=Math.max(60,Math.min(world.h-60,hero.y+Math.sin(a)*d));
+  let tx,ty;
+  if(scatter==='near'){ /* a couple spawn close to the hero for immediate action */
+   const a=Math.random()*6.28,d=200+Math.random()*160;
+   tx=Math.max(60,Math.min(world.w-60,hero.x+Math.cos(a)*d));
+   ty=Math.max(60,Math.min(world.h-60,hero.y+Math.sin(a)*d));
+  }else if(scatter){ /* opening wave: anywhere on the map, but never right on top of the hero */
+   tx=80+Math.random()*(world.w-160);
+   ty=80+Math.random()*(world.h-160);
+   if(Math.hypot(tx-hero.x,ty-hero.y)<380)continue;
+  }else{
+   const a=Math.random()*6.28,d=Math.max(VW,VH)*0.65+Math.random()*220;
+   tx=Math.max(60,Math.min(world.w-60,hero.x+Math.cos(a)*d));
+   ty=Math.max(60,Math.min(world.h-60,hero.y+Math.sin(a)*d));
+  }
   x=tx;y=ty;
   if(!world.solids.some(s=>dist({x:tx,y:ty},s)<s.r+rr+14))break;
  }
@@ -3569,6 +3597,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   else pet.walk+=dt*3;
  }
  mpHostRaidThreatTick(dt);
+ if(zoneOf().tavern)updateNpcs(dt);
  // ----- enemies -----
  for(const en of enemies){
   en._nd=!!(mp.on&&mp.started&&!mp.host&&en.raid&&en.netX!==undefined); /* net-driven: host owns this boss's position */
@@ -3779,6 +3808,7 @@ function draw(){
  }
  const drawables=[];
  for(const s of world.solids)if(s.type!=='water')drawables.push({y:s.y,f:()=>drawProp(s,z)});
+ if(world.npcs)for(const n of world.npcs)drawables.push({y:n.y,f:()=>drawNpc(n)});
  for(const en of enemies)drawables.push({y:en.y,f:()=>drawEnemy(en)});
  if(hero)drawables.push({y:hero.y,f:drawHero});
  if(mp.on&&mp.started)for(const k in mp.peers){const p=mp.peers[k];if(p&&Date.now()-(p.t||0)<=6000)drawables.push({y:(p._y!==undefined?p._y:(p.y||hero.y)),f:()=>drawMpGhost(k,p)});}
@@ -4303,6 +4333,37 @@ function drawHero(){
  ctx.fillStyle='#fff';ctx.fillText(dispName(S),0,-25+by);
  drawMiniBar(-14,-22+by,28,h.hp/heroMax(),'#4caf6d');
  ctx.restore();
+}
+function drawNpc(n){
+ const now=performance.now();
+ const by=n.moving?Math.sin(n.walk*7)*1.8:Math.sin(now/600+n.x)*0.8;
+ ctx.save();ctx.translate(n.x,n.y);
+ ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,8,13,5.5,0,0,7);ctx.fill();
+ feet({walk:n.walk*1.8},n.moving?1:0.15);
+ drawChampionSprite(ctx,n.race,n.cls,n.fx,by,0,false,null,n.female);
+ ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
+ ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(n.name,1,-33+by+1);
+ ctx.fillStyle='#cfe6c2';ctx.fillText(n.name,0,-33+by);
+ ctx.restore();
+}
+function updateNpcs(dt){
+ if(!world.npcs)return;
+ for(const n of world.npcs){
+  if(n.pauseT>0){n.pauseT-=dt;n.moving=false;continue;}
+  const t=n.pts[n.i];
+  const dx=t.x-n.x,dy=t.y-n.y,d=Math.hypot(dx,dy);
+  if(d<6){ /* reached the waypoint: idle a moment, then head for the next (ping-pong) */
+   n.i+=n.dir;
+   if(n.i>=n.pts.length||n.i<0){n.dir*=-1;n.i+=n.dir*2;}
+   n.pauseT=0.6+Math.random()*2.6;
+   n.moving=false;
+   continue;
+  }
+  n.moving=true;
+  n.x+=dx/d*n.speed*dt;n.y+=dy/d*n.speed*dt;
+  if(Math.abs(dx)>2)n.fx=dx>0?1:-1;
+  n.walk+=dt*n.speed/45;
+ }
 }
 function drawEnemy(en){
  if(en.dead&&en.deadT>0.8)return;
