@@ -874,6 +874,9 @@ treeSnowImg._pad=1.26;treeSnowImg._anchor=0.90;
 const fmImg=new Image();fmImg.src='assets/models/frostmourne.png';
 const wgImg=new Image();wgImg.src='assets/models/warglaive.png';
 const gsMapImg=new Image();gsMapImg.src='assets/models/maps/goldshire_map.png';
+/* painted ground maps for leveling zones — lazily loaded per zone via z.map */
+const zoneMapImgs={};
+const zoneMapImg=n=>{if(!zoneMapImgs[n]){zoneMapImgs[n]=new Image();zoneMapImgs[n].src='assets/models/maps/'+n+'.png';}return zoneMapImgs[n];};
 const bergImg=new Image();bergImg.src='assets/models/berg.png';
 const stenImg=new Image();stenImg.src='assets/models/sten.png';
 
@@ -1030,44 +1033,44 @@ const tierVal=(id,t)=>enchOf(id).base*Math.pow(2,(t||1)-1);
 const tierDesc=(id,t)=>enchOf(id).d(parseFloat(tierVal(id,t).toFixed(2)));
 /* 17 zones — boss-gated progression up to level 60. */
 const ZONES=[
- {name:'Willowmere Fields',lvl:1,amb:'meadow',ground:'#7aa356',ground2:'#6e9750',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a',
+ {name:'Willowmere Fields',lvl:1,amb:'meadow',map:'levlingzone_green',ground:'#7aa356',ground2:'#6e9750',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a',
   en:[['River Boar','beast','#a8744f'],['Ditch Bandit','humanoid','#8a6a4a'],['Marsh Croaker','beast','#6fa05a']],
   q:[['Trouble at the Mill','Drive off 6 raiders around Willowmere.',6],['Boar Season','Cull 8 beasts trampling the barley.',8],['The Old Ferry Road','Clear 10 foes from the trade road.',10]]},
- {name:'Thornwood Glade',lvl:5,amb:'forest',ground:'#557d47',ground2:'#4b7040',water:'#3f7086',tree:'#37592c',tree2:'#274420',path:'#9a8a62',
+ {name:'Thornwood Glade',lvl:5,amb:'forest',map:'levlingzone_green',ground:'#557d47',ground2:'#4b7040',water:'#3f7086',tree:'#37592c',tree2:'#274420',path:'#9a8a62',
   en:[['Thorn Wolf','beast','#6b6f76'],['Web Matron','beast','#5a4a6b'],['Poacher Chief','humanoid','#7a5a3a']],
   q:[['Howls in the Glade','Hunt 8 wolves stalking the woodcutters.',8],['Silk and Venom','Burn out 9 broodmothers.',9],['The Poachers\u2019 Camp','Break the poacher ring — 12 foes.',12]]},
  {name:'Hollowroot Den',lvl:8,amb:'cave',boss:['Gorehusk the Rootfiend','#7a9a3a','gorehusk'],ground:'#4a3f33',ground2:'#40362b',water:'#3a4a3a',tree:'#3a3128',tree2:'#2c251e',path:'#6a5a44',rocky:true},
- {name:'Ironcrag Pass',lvl:10,amb:'mountain',snowTrees:true,noBerg:true,ground:'#8b8a78',ground2:'#7e7d6c',water:'#6f9ab0',tree:'#5a6b52',tree2:'#46543f',path:'#a89a80',rocky:true,
+ {name:'Ironcrag Pass',lvl:10,amb:'mountain',snowTrees:true,noBerg:true,map:'levlingzone_snow',ground:'#8b8a78',ground2:'#7e7d6c',water:'#6f9ab0',tree:'#5a6b52',tree2:'#46543f',path:'#a89a80',rocky:true,
   en:[['Crag Raider','humanoid','#8a5a4a'],['Rock Wyrmling','beast','#9a8a5a'],['Frost Harpy','beast','#7fa8c0']],
   q:[['Hold the Pass','Repel 10 raiders from the mountain road.',10],['Nests in the Cliffs','Clear 10 harpy nests.',10],['Wyrm Tithe','Slay 14 creatures hoarding the ore carts.',14]]},
- {name:'Mistfen Marsh',lvl:15,amb:'marsh',ground:'#5a7a58',ground2:'#507050',water:'#3f6a5a',tree:'#3f5a3a',tree2:'#2f4630',path:'#8a8a62',
+ {name:'Mistfen Marsh',lvl:15,amb:'marsh',map:'levlingzone_green',ground:'#5a7a58',ground2:'#507050',water:'#3f6a5a',tree:'#3f5a3a',tree2:'#2f4630',path:'#8a8a62',
   en:[['Fen Lurker','beast','#5a7a6a'],['Mire Stalker','beast','#4a5a44'],['Swampwitch Adept','humanoid','#7a5a8a']],
   q:[['Lights in the Fog','Slay 9 lurkers dragging travelers under.',9],['The Witch\u2019s Brew','Scatter 10 adepts of the swampwitch coven.',10],['Drain the Mire','Clear 13 horrors from the drowned road.',13]]},
  {name:'Grimwater Cavern',lvl:18,amb:'cave',boss:['Maw of the Deep','#4a90a8','maw'],ground:'#3a4450',ground2:'#333d48',water:'#2f4a5a',tree:'#333d48',tree2:'#262e38',path:'#5a6470',rocky:true},
- {name:'Ashen Moor',lvl:20,amb:'moor',dot:'#ffffff',snowTrees:true,noBerg:true,ground:'#5f5a66',ground2:'#555060',water:'#46506b',tree:'#4a4456',tree2:'#383244',path:'#7a7268',
+ {name:'Ashen Moor',lvl:20,amb:'moor',dot:'#ffffff',snowTrees:true,noBerg:true,map:'levlingzone_snow',ground:'#5f5a66',ground2:'#555060',water:'#46506b',tree:'#4a4456',tree2:'#383244',path:'#7a7268',
   en:[['Moor Wraith','undead','#8fb0c9'],['Bog Revenant','undead','#6b8a7a'],['Cult Torchbearer','humanoid','#a05a4a']],
   q:[['Lights on the Moor','Put 10 restless spirits to rest.',10],['The Torchbearers','Scatter 12 cultists raising the dead.',12],['Silence the Bog','Destroy 14 horrors before the rite completes.',14]]},
- {name:'Duskhollow Barrens',lvl:25,amb:'dry',ground:'#8a7a5a',ground2:'#7e6f50',water:'#6a8a7a',tree:'#6a5a3a',tree2:'#544628',path:'#a08a5a',rocky:true,
+ {name:'Duskhollow Barrens',lvl:25,amb:'dry',map:'levlingzone_desert',noTrees:true,ground:'#8a7a5a',ground2:'#7e6f50',water:'#6a8a7a',tree:'#6a5a3a',tree2:'#544628',path:'#a08a5a',rocky:true,
   en:[['Dust Prowler','beast','#a08a5a'],['Barrens Marauder','humanoid','#8a5a3a'],['Carrion Screecher','beast','#7a6a7a']],
   q:[['Bones in the Dust','Hunt 10 prowlers circling the caravans.',10],['Marauder Toll','Break 12 marauders holding the dry road.',12],['Sky of Carrion','Bring down 14 screechers.',14]]},
  {name:'The Sunken Crypt',lvl:28,amb:'crypt',boss:['Ossric, King Below','#b0c0d0','ossric'],ground:'#3a3a46',ground2:'#33333e',water:'#2f3a4a',tree:'#33333e',tree2:'#262630',path:'#55556a',rocky:true},
- {name:'Frostspire Heights',lvl:30,amb:'frost',snowTrees:true,noBerg:true,ground:'#b8c4cc',ground2:'#a8b6c0',water:'#7fb0d0',tree:'#5a7a6a',tree2:'#44604f',path:'#cad4da',rocky:true,
+ {name:'Frostspire Heights',lvl:30,amb:'frost',snowTrees:true,noBerg:true,map:'levlingzone_snow',ground:'#b8c4cc',ground2:'#a8b6c0',water:'#7fb0d0',tree:'#5a7a6a',tree2:'#44604f',path:'#cad4da',rocky:true,
   en:[['Frost Wolf','beast','#8fa8b8'],['Rime Shade','undead','#a0d0e0'],['Spire Raider','humanoid','#6a7a9a']],
   q:[['Wolves of the Spire','Hunt 10 frost wolves above the treeline.',10],['Shades of Rime','Banish 12 shades haunting the pass.',12],['The High Camp','Rout 14 raiders from the summit camp.',14]]},
- {name:'Shatterstone Vale',lvl:35,amb:'mountain',ground:'#7a7468',ground2:'#6e685c',water:'#5f8aa0',tree:'#4f6048',tree2:'#3c4a36',path:'#948668',rocky:true,
+ {name:'Shatterstone Vale',lvl:35,amb:'mountain',map:'levlingzone_desert',noTrees:true,ground:'#7a7468',ground2:'#6e685c',water:'#5f8aa0',tree:'#4f6048',tree2:'#3c4a36',path:'#948668',rocky:true,
   en:[['Stonehide Basilisk','beast','#8a9a6a'],['Vale Reaver','humanoid','#7a5a6a'],['Cliff Shade','undead','#9ab0c0']],
   q:[['Eyes of Stone','Slay 11 basilisks turning the herds to statues.',11],['Reaver Banners','Tear down 12 reavers holding the vale.',12],['Whispers on the Cliffs','Banish 14 shades from the high ledges.',14]]},
- {name:'Cinderwaste',lvl:40,amb:'ember',ground:'#6a4436',ground2:'#5f3d30',water:'#a04a20',tree:'#503426',tree2:'#3c2419',path:'#8a5a3a',rocky:true,
+ {name:'Cinderwaste',lvl:40,amb:'ember',map:'levlingzone_desert',noTrees:true,ground:'#6a4436',ground2:'#5f3d30',water:'#a04a20',tree:'#503426',tree2:'#3c2419',path:'#8a5a3a',rocky:true,
   en:[['Cinder Imp','humanoid','#c05a2a'],['Magma Crawler','beast','#b04a1a'],['Ash Revenant','undead','#906a5a']],
   q:[['Sparks in the Ash','Stamp out 10 cinder imps.',10],['Things Below the Crust','Slay 12 crawlers breaking the surface.',12],['The Grey March','Destroy 14 horrors of the waste.',14]]},
  {name:'Pyre of the Old Gate',lvl:43,amb:'ember',boss:['Ashmaw the Rekindled','#e05a1a','ashmaw'],ground:'#4a2e26',ground2:'#3f271f',water:'#a04a20',tree:'#3c2419',tree2:'#2c1a12',path:'#6a4430',rocky:true},
- {name:'Stormreach Coast',lvl:45,amb:'coast',ground:'#6a8a5a',ground2:'#5f7d50',water:'#3a6a8a',tree:'#4a7a4a',tree2:'#386038',path:'#c0aa7a',
+ {name:'Stormreach Coast',lvl:45,amb:'coast',map:'levlingzone_green',ground:'#6a8a5a',ground2:'#5f7d50',water:'#3a6a8a',tree:'#4a7a4a',tree2:'#386038',path:'#c0aa7a',
   en:[['Tide Serpent','beast','#4a8a9a'],['Wreck Raider','humanoid','#7a5a4a'],['Storm-Drowned','undead','#5a7a8a']],
   q:[['Teeth of the Tide','Slay 10 serpents in the shallows.',10],['Wreckers\u2019 Cove','Break 12 raiders looting the wrecks.',12],['The Drowned Return','Put 14 drowned souls to rest.',14]]},
- {name:'Blackwind Steppe',lvl:50,amb:'moor',ground:'#6a6456',ground2:'#5f594c',water:'#4a5a66',tree:'#524a3c',tree2:'#3e372c',path:'#8a7c5e',
+ {name:'Blackwind Steppe',lvl:50,amb:'moor',map:'levlingzone_desert',noTrees:true,ground:'#6a6456',ground2:'#5f594c',water:'#4a5a66',tree:'#524a3c',tree2:'#3e372c',path:'#8a7c5e',
   en:[['Steppe Manticore','beast','#a07a4a'],['Blackwind Rider','humanoid','#5a5a7a'],['Plague Husk','undead','#7a8a5a']],
   q:[['Wings over the Grass','Bring down 11 manticores hunting the caravans.',11],['Riders in the Dust','Break 13 blackwind riders raiding the road east.',13],['The Rotting Wind','Burn 14 husks before the plague spreads.',14]]},
- {name:'Emberdeep Approach',lvl:55,amb:'war',ground:'#5a3a32',ground2:'#4f342c',water:'#8a4a2a',tree:'#463026',tree2:'#34231a',path:'#7a5540',rocky:true,
+ {name:'Emberdeep Approach',lvl:55,amb:'war',map:'levlingzone_green',dot:'#9adf9a',ground:'#5a3a32',ground2:'#4f342c',water:'#8a4a2a',tree:'#463026',tree2:'#34231a',path:'#7a5540',rocky:true,
   en:[['Keep Legionnaire','humanoid','#a04a3a'],['Ash Hound','beast','#c96a3a'],['Ember Warlock','humanoid','#8a3a5a']],
   q:[['Storm the Outworks','Cut down 12 legionnaires at the walls.',12],['The Kennels','Slay 12 ash hounds loosed on the yard.',12],['Break the Warlocks','Silence 14 warlocks fueling the pyres.',14]]},
  {name:'Emberdeep Keep',lvl:60,amb:'war',boss:['Warlord Krev','#d94a2a','krev'],ground:'#3a2a26',ground2:'#31231f',water:'#8a4a2a',tree:'#31231f',tree2:'#241a16',path:'#5a4030',rocky:true,final:true},
@@ -2329,6 +2332,7 @@ function buildZone(){
    }
    if(!ok)continue;
    const rock=z.rocky?R()<.6:R()<.2;
+   if(!rock&&z.noTrees)continue; /* desert-style zones: rocks only */
    world.solids.push({x,y,r:rock?14+R()*8:12+R()*6,type:rock?'rock':'tree',s:0.5+R()*1.6,seed:R()*100}); /* same wide size spread as Goldshire */
   }
  }
@@ -2525,14 +2529,15 @@ function prerenderGround(z,R){
  groundCv=document.createElement('canvas');
  groundCv.width=world.w;groundCv.height=world.h;
  const g=groundCv.getContext('2d');
- if(z.tavern&&gsMapImg.complete&&gsMapImg.naturalWidth){
-  /* painted Goldshire ground (assets/models/maps/goldshire_map.png) — same aspect as the world,
-     so a plain stretch fits; buildings/trees/NPCs draw on top each frame as usual */
-  g.drawImage(gsMapImg,0,0,world.w,world.h);
+ const mImg=z.tavern?gsMapImg:(z.map?zoneMapImg(z.map):null);
+ if(mImg&&mImg.complete&&mImg.naturalWidth){
+  /* painted ground map — same aspect as the world, so a plain stretch fits;
+     buildings/trees/NPCs draw on top each frame as usual */
+  g.drawImage(mImg,0,0,world.w,world.h);
   g.strokeStyle='rgba(0,0,0,0.35)';g.lineWidth=26;g.strokeRect(0,0,world.w,world.h);
   return;
  }
- if(z.tavern&&!gsMapImg.complete)gsMapImg.addEventListener('load',()=>{if(world&&zoneOf().tavern)prerenderGround(zoneOf(),mulberry32(1));},{once:true});
+ if(mImg&&!mImg.complete){const wld=world;mImg.addEventListener('load',()=>{if(world===wld)prerenderGround(z,mulberry32(1));},{once:true});}
  g.fillStyle=z.ground;g.fillRect(0,0,world.w,world.h);
  /* low-poly ground facets: large soft triangles instead of only blobs */
  for(let i=0;i<130;i++){
