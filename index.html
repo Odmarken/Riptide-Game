@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Riptide — Book I</title>
+<title>Riptide</title>
 <style>
   :root{
     --night:#131f1a; --panel:#1c2b24; --panel2:#243830; --line:#33503f;
@@ -145,15 +145,14 @@
  
   #create{position:absolute;inset:0;z-index:50;display:none;flex-direction:column;padding:26px 22px;overflow-y:auto;
     background:
-      radial-gradient(ellipse 120% 55% at 50% -8%, #f4c86a22, transparent 60%),
-      radial-gradient(ellipse 90% 40% at 80% 8%, #d9a44126, transparent 55%),
-      radial-gradient(ellipse 140% 60% at 50% 108%, #0b1410, #131f1a 70%),
-      linear-gradient(180deg,#233a2c,#131f1a 55%);
+      linear-gradient(rgba(8,14,11,.35),rgba(8,14,11,.5)),
+      url('assets/ui/bakground_signin.png') center/cover no-repeat;
   }
   #create h1{font-family:var(--display);font-size:27px;color:var(--parch);text-shadow:0 2px 12px rgba(217,164,65,.25)}
   #create .tag{color:var(--dim);font-size:12px;margin:4px 0 16px;letter-spacing:1.5px;text-transform:uppercase}
   #create label{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:1.2px;display:block;margin:13px 0 7px}
-  #cname{width:100%;padding:11px 12px;border-radius:9px;border:1px solid var(--line);background:rgba(28,43,36,.85);color:var(--parch);font-size:15px;font-family:var(--display)}
+  #cname{width:100%;padding:14px 38px 14px 58px;border-radius:9px;border:none;background:url('assets/ui/ui_buttonrak.png') center/100% 100% no-repeat;color:var(--parch);font-size:15px;font-family:var(--display);text-shadow:0 1px 2px rgba(0,0,0,.7)}
+  #cname:focus{outline:none;filter:brightness(1.15)}
   #cname.nameerr{border-color:#ff5a5a;box-shadow:0 0 10px rgba(255,90,90,.35);animation:nameshake .3s}
   #cname.nameerr::placeholder{color:#ff8a7a}
   @keyframes nameshake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
@@ -164,39 +163,44 @@
   #renameBtn{background:none;border:none;cursor:pointer;opacity:.4;font-size:13px;padding:0 2px;vertical-align:middle;transition:opacity .15s}
   #renameBtn:hover{opacity:1}
   .pickgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .pick{background:rgba(28,43,36,.85);border:1px solid var(--line);border-radius:10px;padding:10px;cursor:pointer;transition:border-color .15s}
-  .pick.sel{border-color:var(--brass);background:rgba(36,56,48,.9)}
+  .pick{background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;border:none;border-radius:10px;padding:17px 38px;cursor:pointer;transition:filter .15s}
+  .pick:hover{filter:brightness(1.12)}
+  .pick.sel{filter:brightness(1.3);box-shadow:0 0 14px rgba(217,164,65,.5)}
+  #classPick .pick{background-image:url('assets/ui/ui_buttonsstone.png?v=2')} /* stone plate for the callings */
   .pick b{font-family:var(--display);font-size:14px;color:var(--parch);display:block}
   .rangetag{float:right;font-family:var(--body);font-size:9px;font-weight:700;letter-spacing:1px;padding:2px 7px;border-radius:20px;vertical-align:middle}
   .rangetag.rng{color:#8fc3ef;border:1px solid rgba(143,195,239,.45);background:rgba(91,155,213,.12)}
   .rangetag.mle{color:#e8b06a;border:1px solid rgba(232,176,106,.45);background:rgba(217,164,65,.12)}
   .pick span{font-size:10.5px;color:var(--dim);line-height:1.4;display:block;margin-top:3px}
-  #startBtn,#startHcBtn{margin-top:20px;padding:14px;border-radius:11px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;font-family:var(--display);font-size:16px;letter-spacing:1px;cursor:pointer}
-  #startHcBtn{border-color:#c75146;background:linear-gradient(180deg,#c75146,#7a2a22);color:#ffe0da;text-shadow:0 1px 2px rgba(0,0,0,.4)}
+  #startBtn,#startHcBtn{margin-top:20px;padding:16px;border-radius:11px;border:none;background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;color:#ffd76a;font-family:var(--display);font-size:16px;letter-spacing:1px;cursor:pointer;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+  #startBtn:hover,#startHcBtn:hover{filter:brightness(1.18)}
+  #startHcBtn{background-image:url('assets/ui/ui_buttonshardcore.png?v=2');color:#ffe0da}
   .fineprint{font-size:10px;color:#5c7263;margin-top:12px;line-height:1.5}
  
   #select,#login{position:absolute;inset:0;z-index:60;display:none;flex-direction:column;padding:26px 22px 18px;overflow-y:auto;
     background:
-      radial-gradient(ellipse 120% 55% at 50% -8%, #f4c86a22, transparent 60%),
-      radial-gradient(ellipse 90% 40% at 80% 8%, #d9a44126, transparent 55%),
-      radial-gradient(ellipse 140% 60% at 50% 108%, #0b1410, #131f1a 70%),
-      linear-gradient(180deg,#233a2c,#131f1a 55%);
+      linear-gradient(rgba(8,14,11,.35),rgba(8,14,11,.5)),
+      url('assets/ui/bakground_signin.png') center/cover no-repeat;
   }
   #login{z-index:62;justify-content:center}
   #select.open,#login.open{display:flex}
   #select h1,#login h1{font-family:var(--display);font-size:27px;color:var(--parch);text-shadow:0 2px 12px rgba(217,164,65,.25)}
   #select .tag,#login .tag{color:var(--dim);font-size:12px;margin:4px 0 16px;letter-spacing:1.5px;text-transform:uppercase}
-  .charcard{display:flex;align-items:center;gap:12px;background:rgba(28,43,36,.88)}
+  .charcard{display:flex;align-items:center;gap:12px;background:url('assets/ui/ui_buttonrak.png') center/100% 100% no-repeat;border:none;padding:18px 30px}
   .charcard .portrait{width:64px;height:76px;border-radius:9px;flex:0 0 auto}
   .cinfo{flex:1;min-width:0}
   .cn{font-family:var(--display);font-size:15px;color:var(--parch);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .pstar{color:var(--brass);font-size:11px;margin-left:4px}
   .cl{font-size:10.5px;color:var(--dim);margin-top:2px}
   .cbtns{display:flex;flex-direction:column;gap:6px;align-items:stretch}
-  .playbtn{font-family:var(--display);font-size:12px;padding:8px 12px;border-radius:9px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;cursor:pointer;white-space:nowrap}
-  .delbtn{font-size:10px;padding:4px;border-radius:7px;border:1px solid #5a3a3a;background:none;color:#c07a7a;cursor:pointer}
-  #newCharBtn{margin-top:6px;padding:13px;border-radius:11px;border:1px dashed var(--brass-deep);background:rgba(28,43,36,.6);color:var(--brass);font-family:var(--display);font-size:14px;cursor:pointer}
-  #createBack{align-self:flex-start;margin-bottom:6px;padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:rgba(28,43,36,.7);color:var(--dim);font-size:11px;cursor:pointer;display:none}
+  .playbtn{font-family:var(--display);font-size:12px;padding:10px 14px;border-radius:9px;border:none;background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;color:#ffd76a;cursor:pointer;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+  .playbtn:hover{filter:brightness(1.2)}
+  .delbtn{font-size:10px;padding:6px 8px;border-radius:7px;border:none;background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;color:#e09a8a;cursor:pointer;text-shadow:0 1px 2px rgba(0,0,0,.8)}
+  .delbtn:hover{filter:brightness(1.2)}
+  #newCharBtn{margin-top:6px;padding:15px;border-radius:11px;border:none;background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;color:var(--brass);font-family:var(--display);font-size:14px;cursor:pointer;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+  #newCharBtn:hover{filter:brightness(1.15)}
+  #createBack{align-self:flex-start;margin-bottom:6px;padding:9px 16px;border-radius:8px;border:none;background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;color:var(--parch);font-size:11px;cursor:pointer;display:none;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+  #createBack:hover{filter:brightness(1.2)}
  
   #chestFx{position:absolute;inset:0;z-index:70;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(5,10,8,.84);cursor:default}
   #chestFx.open{display:flex}
@@ -335,7 +339,17 @@
   @keyframes epicFlash{0%{background:rgba(200,150,255,.35)}100%{background:rgba(5,10,8,.84)}}
   #chestFx.flash{animation:epicFlash .6s ease-out}
  
-  .acctin{width:100%;padding:9px 11px;border-radius:8px;border:1px solid var(--line);background:rgba(19,31,26,.9);color:var(--parch);font-size:13px;margin-top:6px}
+  /* the plate lives on the wrapper — Chrome's autofill can hide an input's own background image */
+  .acctwrap{background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;border-radius:8px;margin-top:6px}
+  .acctwrap:focus-within{filter:brightness(1.18)}
+  .acctin{width:100%;padding:12px 30px 12px 38px;border-radius:8px;border:none;background:transparent;color:var(--parch);font-size:13px;text-shadow:0 1px 2px rgba(0,0,0,.7)}
+  .acctin::placeholder{color:#b8a888;opacity:.75}
+  /* Chrome autofill forces a light background — freeze it out and keep the parchment text */
+  .acctin:-webkit-autofill,.acctin:-webkit-autofill:hover,.acctin:-webkit-autofill:focus{
+   -webkit-text-fill-color:var(--parch);caret-color:var(--parch);
+   transition:background-color 999999s ease-in-out 0s;
+  }
+  .acctin:focus{outline:none;filter:brightness(1.18)}
   #lbFx{position:absolute;inset:0;z-index:75;display:none;flex-direction:column;background:rgba(5,10,8,.94);padding:20px}
   #lbFx.open{display:flex}
   .lbrow{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--line);font-size:12.5px}
@@ -352,12 +366,20 @@
 
 
   /* ---- Riptide sign-in gate ---- */
-  .loginbox{width:min(100%,390px);margin:0 auto;padding:22px;background:rgba(28,43,36,.88);border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.35)}
+  .loginbox{width:min(100%,390px);margin:0 auto;padding:34px 30px;background:url('assets/ui/ui_background.png') center/100% 100% no-repeat;border:none;border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+  .loginbox h1{margin:14px 0 0 10px} /* keep the title inside the panel's black inlay */
+  .loginbox .tag{margin-left:10px}
+  .loginbox #fbForgot{margin-left:10px}
+  .loginbox .fineprint{margin:12px 10px 14px}
   .loginrow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
-  .loginbtn{padding:12px 10px;border-radius:9px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--display);font-size:13px;cursor:pointer}
-  .loginbtn.primary{border-color:var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a}
-  #guestBtn{width:100%;margin-top:9px;border-style:dashed;color:var(--brass)}
-  .selectacct{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:-4px 0 12px;padding:8px 10px;background:rgba(28,43,36,.62);border:1px solid var(--line);border-radius:9px}
+  .loginbtn{padding:13px 10px;border-radius:9px;border:none;background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;color:var(--parch);font-family:var(--display);font-size:13px;cursor:pointer;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+  .loginbtn:hover{filter:brightness(1.15)}
+  .loginbtn.primary{color:#ffd76a;filter:brightness(1.2) drop-shadow(0 0 6px rgba(217,164,65,.35))}
+  .loginbtn.primary:hover{filter:brightness(1.35) drop-shadow(0 0 8px rgba(217,164,65,.5))}
+  #guestBtn{width:100%;margin-top:9px;color:var(--brass)}
+  .selectacct{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:-4px 0 12px;padding:12px 30px;background:url('assets/ui/ui_buttonrak.png') center/100% 100% no-repeat;border:none;border-radius:9px}
+  .selectacct .sbtn{border:none;background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;color:var(--parch);padding:9px 18px;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+  .selectacct .sbtn:hover{filter:brightness(1.2)}
   .statusval{font-size:9px;color:var(--dim);white-space:nowrap;min-width:54px;text-align:right}
   .statusgrid{display:grid;grid-template-columns:1fr;gap:5px;margin-top:7px}
   .statusline{display:grid;grid-template-columns:56px 24px 1fr 58px;gap:7px;align-items:center}
@@ -521,8 +543,8 @@
     <div class="loginbox">
       <h1>Riptide</h1>
       <div class="tag">Cloud account or guest play</div>
-      <input class="acctin" id="fbEmail" type="email" placeholder="Email" autocomplete="username">
-      <input class="acctin" id="fbPass" type="password" placeholder="Password" autocomplete="current-password">
+      <div class="acctwrap"><input class="acctin" id="fbEmail" type="email" placeholder="Email" autocomplete="username"></div>
+      <div class="acctwrap"><input class="acctin" id="fbPass" type="password" placeholder="Password" autocomplete="current-password"></div>
       <div class="loginrow">
         <button class="loginbtn primary" id="fbLogin">Sign in</button>
         <button class="loginbtn" id="fbSignup">Create account</button>
@@ -558,7 +580,7 @@
   <div id="create">
     <button id="createBack">← Back to characters</button>
     <h1>Riptide</h1>
-    <div class="tag">Book I · The Eastern Realm · Level cap 60</div>
+    <div class="tag">The Eastern Realm · Level cap 60</div>
     <label>Hero name</label>
     <input id="cname" maxlength="14" placeholder="e.g. BYYYYL" autocomplete="off">
     <div id="cnameErr" style="display:none;color:#ff8a7a;font-size:12px;margin-top:6px">⚠ Write a hero name first — the realm must know who you are!</div>
@@ -3113,8 +3135,8 @@ function completeQuest(){
     else log(`Reach level ${nz.lvl} to enter <span class="imp">${nz.name}</span>. Quests here now repeat — grind at will.`);
    }else if(!S.finished){
     S.finished=true;
-    stageMsg('Warlord Krev has fallen — Riptide is free! Book II awaits…',4500);
-    log('<span class="imp">Victory! The Eastern Realm is liberated.</span> The western continent opens in Book II.');
+    stageMsg('Warlord Krev has fallen — Riptide is free!',4500);
+    log('<span class="imp">Victory! The Eastern Realm is liberated.</span>');
    }
   }
  }
@@ -4099,14 +4121,14 @@ function drawPortal(){
 function drawProp(s,z){
  ctx.save();ctx.translate(s.x,s.y);
  if(s.type==='tree'){
-  const sway=Math.sin(performance.now()/900+s.x)*1.5;
+  const sway=Math.sin(performance.now()/700+s.x)*2.2; /* a touch quicker + wider */
   const tImg=z.snowTrees?treeSnowImg:treeImg; /* snowy variant in frost/moor zones */
   if(tImg.complete&&tImg.naturalWidth){
    /* painted tree — size varies per tree via r & s; per-art calibration on the Image */
    const H=s.r*(2.6+s.s*2.2)*tImg._pad;
    const W=H*tImg.naturalWidth/tImg.naturalHeight;
    ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,4,W*0.34,W*0.13,0,0,7);ctx.fill();
-   ctx.rotate(sway*0.012);
+   ctx.rotate(sway*0.022);
    ctx.drawImage(tImg,-W/2,4-H*tImg._anchor,W,H); /* trunk bottom lands on the shadow */
    ctx.restore();return;
   }
