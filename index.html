@@ -873,7 +873,7 @@ const casinoImg=new Image();casinoImg.src='assets/models/casino.png';
 const treeImg=new Image();treeImg.src='assets/models/träd.png';
 treeImg._pad=1.2;treeImg._anchor=0.89; /* per-art calibration: padding compensation + trunk-bottom fraction */
 const treeSnowImg=new Image();treeSnowImg.src='assets/models/trädsnow.png';
-treeSnowImg._pad=1.26;treeSnowImg._anchor=0.90;
+treeSnowImg._pad=1.33;treeSnowImg._anchor=0.86;
 const fmImg=new Image();fmImg.src='assets/models/frostmourne.png';
 const wgImg=new Image();wgImg.src='assets/models/warglaive.png';
 const gsMapImg=new Image();gsMapImg.src='assets/models/maps/goldshire_map.png';
@@ -882,19 +882,23 @@ const zoneMapImgs={};
 const zoneMapImg=n=>{if(!zoneMapImgs[n]){zoneMapImgs[n]=new Image();zoneMapImgs[n].src='assets/models/maps/'+n+'.png';}return zoneMapImgs[n];};
 const bergImg=new Image();bergImg.src='assets/models/berg.png';
 const brunnImg=new Image();brunnImg.src='assets/models/brunn.png';
-/* pixel-perfect hit test against the casino art (u,v in 0..1 across the drawn sprite);
+const bankImg=new Image();bankImg.src='assets/models/bank.png';
+const tavernImg=new Image();tavernImg.src='assets/models/tavern.png';
+const smithImg=new Image();smithImg.src='assets/models/blacksmith.png';
+/* pixel-perfect hit test against a painted model (u,v in 0..1 across the drawn sprite);
    falls back to treating everything as solid if pixels are unreadable (file://) */
-let casHitCtx=null;
-function casinoPixelSolid(u,v){
+const hitCtxCache=new Map();
+function pixelSolid(img,u,v){
  try{
-  if(!casHitCtx){
+  let g2=hitCtxCache.get(img);
+  if(!g2){
    const c=document.createElement('canvas');
-   c.width=128;c.height=Math.max(1,Math.round(128*casinoImg.naturalHeight/casinoImg.naturalWidth));
-   const g2=c.getContext('2d',{willReadFrequently:true});
-   g2.drawImage(casinoImg,0,0,c.width,c.height);casHitCtx=g2;
+   c.width=128;c.height=Math.max(1,Math.round(128*img.naturalHeight/img.naturalWidth));
+   g2=c.getContext('2d',{willReadFrequently:true});
+   g2.drawImage(img,0,0,c.width,c.height);hitCtxCache.set(img,g2);
   }
-  const c=casHitCtx.canvas;
-  return casHitCtx.getImageData(Math.min(c.width-1,Math.floor(u*c.width)),Math.min(c.height-1,Math.floor(v*c.height)),1,1).data[3]>60;
+  const c=g2.canvas;
+  return g2.getImageData(Math.min(c.width-1,Math.floor(u*c.width)),Math.min(c.height-1,Math.floor(v*c.height)),1,1).data[3]>60;
  }catch(e){return true;}
 }
 const stenImg=new Image();stenImg.src='assets/models/sten.png';
@@ -2230,6 +2234,20 @@ window.addEventListener('resize',()=>{
 $('sideToggle').onclick=()=>toggleSide();
 function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+/* Painted-road keep-out bands for the leveling-zone ground maps, measured offline from the art.
+   64 columns across the map; each entry is the road's [yTop,yBottom] in a 1700-tall reference
+   frame (scaled to the zone's world height at lookup). Keeps trees/rocks/bergs off the roads. */
+const ZONE_ROAD_BANDS={
+ levlingzone_green:[[740,911],[740,911],[740,910],[739,908],[734,905],[729,901],[724,896],[717,892],[706,880],[696,873],[686,860],[671,848],[657,835],[646,822],[634,805],[623,794],[616,784],[609,775],[606,772],[604,772],[606,779],[609,789],[618,804],[628,823],[641,845],[657,872],[676,900],[697,926],[724,953],[749,975],[774,994],[799,1013],[822,1026],[842,1039],[857,1051],[872,1058],[880,1064],[885,1067],[888,1069],[888,1069],[883,1066],[878,1059],[868,1053],[855,1043],[842,1031],[827,1016],[810,1003],[794,983],[779,966],[765,950],[754,936],[744,923],[735,913],[730,903],[725,898],[722,895],[721,895],[722,893],[724,898],[727,905],[732,910],[739,918],[747,926],[755,936]],
+ levlingzone_snow:[[732,938],[730,936],[734,940],[734,933],[729,926],[724,921],[719,915],[714,905],[704,901],[704,910],[676,878],[666,860],[651,847],[636,827],[616,812],[603,799],[589,782],[574,780],[578,767],[574,762],[574,765],[579,777],[588,800],[599,828],[616,858],[636,892],[656,928],[692,961],[722,989],[767,1018],[794,1041],[818,1054],[852,1067],[868,1086],[880,1086],[900,1094],[900,1097],[903,1097],[901,1099],[900,1232],[885,1091],[875,1084],[860,1069],[845,1059],[822,1039],[799,1021],[780,998],[759,981],[747,960],[730,941],[721,926],[714,916],[704,908],[701,900],[697,895],[697,895],[699,892],[704,901],[709,910],[714,916],[724,923],[732,938],[740,946],[759,965]],
+ levlingzone_desert:[[739,925],[740,925],[740,925],[737,923],[735,920],[730,916],[732,910],[727,905],[714,895],[699,883],[679,868],[667,838],[652,840],[641,823],[623,800],[609,787],[606,777],[589,767],[583,759],[579,759],[579,764],[593,774],[601,787],[606,807],[629,843],[649,878],[666,905],[699,946],[730,965],[772,1009],[805,1026],[835,1038],[862,1058],[883,1081],[888,1087],[908,1092],[906,1096],[910,1097],[918,1096],[910,1091],[888,1082],[888,1079],[865,1069],[850,1051],[830,1034],[812,1014],[792,996],[772,975],[757,953],[749,928],[725,920],[719,906],[712,900],[706,892],[702,890],[714,888],[716,890],[719,895],[722,901],[727,910],[727,920],[739,928],[750,938],[757,951]]
+};
+function onPaintedRoad(map,x,y,m){
+ const b=ZONE_ROAD_BANDS[map];if(!b)return false;
+ const i=Math.max(0,Math.min(b.length-1,Math.floor(x/world.w*b.length)));
+ const sy=world.h/1700;
+ return y>b[i][0]*sy-m&&y<b[i][1]*sy+m;
+}
 function shade(hex,amt){const n=parseInt(hex.slice(1),16);
  let r=(n>>16)+amt,g=((n>>8)&255)+amt,b=(n&255)+amt;
  r=Math.max(0,Math.min(255,r));g=Math.max(0,Math.min(255,g));b=Math.max(0,Math.min(255,b));
@@ -2286,14 +2304,16 @@ function buildZone(){
   world.spawn={x:cx,y:cy+180};           /* you arrive at the square */
   world.square={x:cx,y:cy,r:230};        /* plaza radius, used by prerender */
   /* the well, centered in the painted plaza ring (measured from goldshire_map.png) */
-  world.solids.push({x:cx-13,y:cy+31,r:20,type:'well'});
-  /* the big tavern at the top of the square */
-  world.solids.push({x:cx,y:cy-330,r:52,type:'house',big:true,seed:1});
+  world.solids.push({x:cx-19,y:cy+31,r:20,type:'well'});
+  /* the Tavern — painted model at the south-east road stub */
+  world.solids.push({x:cx+710,y:cy+560,r:52,type:'house',big:true,seed:1,crx:240,cry:64,cyo:-208});
   /* the Casino — doubled-up landmark beside the north road; highest spot where the
      full sprite still fits under the map's top edge without covering the inn */
   world.solids.push({x:cx+360,y:cy-120,r:52,type:'casino',big:true,seed:5,crx:180,cry:45,cyo:-220});
-  world.solids.push({x:cx-560,y:cy-40,r:52,type:'bank',big:true,seed:8});
-  world.solids.push({x:cx,y:cy+520,r:52,type:'smith',big:true,seed:11});
+  /* the Bank — painted model on the north-west grass, by the road stub */
+  world.solids.push({x:cx-720,y:cy-440,r:52,type:'bank',big:true,seed:8,crx:110,cry:40,cyo:-63});
+  /* the Blacksmith — painted model at the south-west road stub */
+  world.solids.push({x:cx-805,y:cy+550,r:52,type:'smith',big:true,seed:11,crx:125,cry:45,cyo:-100});
   /* friendly townsfolk roaming their own little routes between the buildings */
   const NPC_DEFS=[
    ['Sven-Ove','human','warrior',0,[[cx-330,cy-110],[cx-480,cy-20]],34],
@@ -2339,9 +2359,13 @@ function buildZone(){
   if(!isBoss&&!z.raid&&!z.noBerg){
    const nW=z.rocky?2:3+Math.floor(R()*2);
    for(let i=0;i<nW;i++){
-    const wx=250+R()*(world.w-600);
-    const wy=R()<.5?120+R()*(world.pathY-260):world.pathY+150+R()*(world.h-world.pathY-280);
-    const wr=60+R()*70;
+    let wx,wy,wr;
+    for(let k=0;k<12;k++){ /* retry until the mountain misses the painted road */
+     wx=250+R()*(world.w-600);
+     wy=R()<.5?120+R()*(world.pathY-260):world.pathY+150+R()*(world.h-world.pathY-280);
+     wr=60+R()*70;
+     if(!z.map||!onPaintedRoad(z.map,wx,wy,40+wr))break;
+    }
     world.solids.push({x:wx,y:wy,r:wr*0.92,type:'berg',dr:wr}); /* mountains where the ponds used to be */
    }
   }
@@ -2370,6 +2394,7 @@ function buildZone(){
    if(!ok)continue;
    const rock=z.rocky?R()<.6:R()<.2;
    if(!rock&&z.noTrees)continue; /* desert-style zones: rocks only */
+   if(z.map&&onPaintedRoad(z.map,x,y,50))continue; /* keep props off the painted road */
    world.solids.push({x,y,r:rock?14+R()*8:12+R()*6,type:rock?'rock':'tree',s:0.5+R()*1.6,seed:R()*100}); /* same wide size spread as Goldshire */
   }
  }
@@ -3418,7 +3443,7 @@ cv.addEventListener('pointerdown',e=>{
  if(zoneOf().tavern){
   /* buildings need melee range — near: menu opens; far: run to the door, menu opens on arrival */
   const walkOrOpen=(s,open)=>{
-   const rng=s.type==='casino'?150:115;
+   const rng=s.type==='casino'||s.type==='house'?150:115;
    if(Math.hypot(hero.x-s.x,hero.y-s.y)<rng){open();return;}
    hero.target=null;hero.goPortal=false;
    const ty=s.y+(s.type==='casino'?85:70); /* aim just below the anchor: the door */
@@ -3426,17 +3451,29 @@ cv.addEventListener('pointerdown',e=>{
    hero.pendingDoor={s,open,rng};
   };
   const inn=world.solids.find(s=>s.type==='house'&&s.big);
-  if(inn&&Math.hypot(wx-inn.x,wy-inn.y)<inn.r+28){walkOrOpen(inn,openRestedWheel);return;}
+  if(inn){ /* pixel-perfect, same as the casino/bank */
+   const W=inn.r*11.4,H=tavernImg.naturalWidth?W*tavernImg.naturalHeight/tavernImg.naturalWidth:W,bot=inn.r*1.3*0.55+W*0.04;
+   const u=(wx-(inn.x-W/2))/W,v=(wy-(inn.y+bot-H*0.852))/H;
+   if(u>=0&&u<1&&v>=0&&v<1&&pixelSolid(tavernImg,u,v)){walkOrOpen(inn,openRestedWheel);return;}
+  }
   const cas=world.solids.find(s=>s.type==='casino');
   if(cas){ /* pixel-perfect: only clicks on the building's visible pixels count */
    const W=cas.r*7.68,H=casinoImg.naturalWidth?W*casinoImg.naturalHeight/casinoImg.naturalWidth:W,bot=cas.r*1.35*0.55+W*0.04;
    const u=(wx-(cas.x-W/2))/W,v=(wy-(cas.y+bot-H))/H;
-   if(u>=0&&u<1&&v>=0&&v<1&&casinoPixelSolid(u,v)){walkOrOpen(cas,openCasinoMenu);return;}
+   if(u>=0&&u<1&&v>=0&&v<1&&pixelSolid(casinoImg,u,v)){walkOrOpen(cas,openCasinoMenu);return;}
   }
   const bnk=world.solids.find(s=>s.type==='bank');
-  if(bnk&&Math.hypot(wx-bnk.x,wy-bnk.y)<bnk.r+28){walkOrOpen(bnk,openBank);return;}
+  if(bnk){ /* pixel-perfect, same as the casino */
+   const W=bnk.r*5.2,H=bankImg.naturalWidth?W*bankImg.naturalHeight/bankImg.naturalWidth:W,bot=bnk.r*1.3*0.55+W*0.04;
+   const u=(wx-(bnk.x-W/2))/W,v=(wy-(bnk.y+bot-H*0.745))/H;
+   if(u>=0&&u<1&&v>=0&&v<1&&pixelSolid(bankImg,u,v)){walkOrOpen(bnk,openBank);return;}
+  }
   const sm=world.solids.find(s=>s.type==='smith');
-  if(sm&&Math.hypot(wx-sm.x,wy-sm.y)<sm.r+28){walkOrOpen(sm,openSmith);return;}
+  if(sm){ /* pixel-perfect, same as the other buildings */
+   const W=sm.r*5.8,H=smithImg.naturalWidth?W*smithImg.naturalHeight/smithImg.naturalWidth:W,bot=sm.r*1.2*0.55+W*0.04;
+   const u=(wx-(sm.x-W/2))/W,v=(wy-(sm.y+bot-H*0.87))/H;
+   if(u>=0&&u<1&&v>=0&&v<1&&pixelSolid(smithImg,u,v)){walkOrOpen(sm,openSmith);return;}
+  }
  }
  let best=null,bd=32;
  for(const en of enemies){if(en.dead||en.hidden)continue;
@@ -4106,6 +4143,12 @@ function drawProp(s,z){
   }
  }else if(s.type==='house'){
   const w=s.big?s.r*1.7:s.r*1.5,hh=s.big?s.r*1.3:s.r*1.1;
+  if(s.big&&tavernImg.complete&&tavernImg.naturalWidth){
+   /* painted tavern (assets/models/tavern.png) — sign is baked in; content bottom at 85.2% of the art */
+   const W=s.r*11.4,H=W*tavernImg.naturalHeight/tavernImg.naturalWidth,bot=hh*0.55+W*0.04;
+   ctx.drawImage(tavernImg,-W/2,bot-H*0.852,W,H);
+   ctx.restore();return;
+  }
   ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,hh*0.45,w*1.1,hh*0.4,0,0,7);ctx.fill();
   /* walls */
   ctx.fillStyle='#8a7458';ctx.fillRect(-w,-hh*0.55,w*2,hh);
@@ -4131,6 +4174,12 @@ function drawProp(s,z){
   }
  }else if(s.type==='smith'){
   const w=s.r*1.7,hh=s.r*1.2;
+  if(smithImg.complete&&smithImg.naturalWidth){
+   /* painted blacksmith (assets/models/blacksmith.png) — content bottom at 87% of the art */
+   const W=s.r*5.8,H=W*smithImg.naturalHeight/smithImg.naturalWidth,bot=hh*0.55+W*0.04;
+   ctx.drawImage(smithImg,-W/2,bot-H*0.87,W,H);
+   ctx.restore();return;
+  }
   ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0,hh*0.45,w*1.1,hh*0.4,0,0,7);ctx.fill();
   ctx.fillStyle='#6a5648';ctx.fillRect(-w,-hh*0.5,w*2,hh);
   ctx.fillStyle='rgba(0,0,0,0.15)';ctx.fillRect(0,-hh*0.5,w,hh);
@@ -4144,6 +4193,12 @@ function drawProp(s,z){
   ctx.fillStyle='#ffb46a';ctx.fillText('⚒️ BLACKSMITH',0,-hh*1.25);
  }else if(s.type==='bank'){
   const w=s.r*1.8,hh=s.r*1.3;
+  if(bankImg.complete&&bankImg.naturalWidth){
+   /* painted bank (assets/models/bank.png) — content bottom sits at 74.5% of the art */
+   const W=s.r*5.2,H=W*bankImg.naturalHeight/bankImg.naturalWidth,bot=hh*0.55+W*0.04;
+   ctx.drawImage(bankImg,-W/2,bot-H*0.745,W,H);
+   ctx.restore();return;
+  }
   ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0,hh*0.45,w*1.12,hh*0.42,0,0,7);ctx.fill();
   ctx.fillStyle='#a89878';ctx.fillRect(-w,-hh*0.55,w*2,hh);
   ctx.fillStyle='rgba(0,0,0,0.12)';ctx.fillRect(0,-hh*0.55,w,hh);
@@ -4173,7 +4228,7 @@ function drawProp(s,z){
  }else if(s.type==='well'){
   if(brunnImg.complete&&brunnImg.naturalWidth){
    /* painted well (assets/models/brunn.png) */
-   const W=58,H=W*brunnImg.naturalHeight/brunnImg.naturalWidth;
+   const W=75,H=W*brunnImg.naturalHeight/brunnImg.naturalWidth;
    ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,6,W*0.44,W*0.15,0,0,7);ctx.fill();
    ctx.drawImage(brunnImg,-W/2,8-H,W,H); /* stone base sits on the shadow */
   }else{ /* fallback while the image loads */
