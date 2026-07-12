@@ -108,7 +108,8 @@
   .stat span{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
   .slotrow{display:flex;gap:8px;margin-top:10px}
   #scrollRow{margin-top:8px}
-  .slot{flex:1;background:#31221a;border:1px dashed rgba(150,112,74,.45);border-radius:8px;padding:10px 14px;min-height:64px;font-size:11px;display:flex;flex-direction:column}
+  .slot{flex:1;background:#31221a;border:1px dashed rgba(150,112,74,.45);border-radius:8px;padding:10px 14px;min-height:64px;font-size:11px;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+  .slot .sn,.slot .ss,.slot .en{overflow-wrap:anywhere} /* long names/stat lines wrap instead of spilling out */
   .slot .sn{font-weight:600}
   .slot .ss{color:var(--dim);font-size:10px;margin-top:2px}
   .slot .en{color:#d9a0ef;font-size:10px;margin-top:2px}
@@ -5716,7 +5717,7 @@ function fillerCard(){
  /* GOLD GOLD GOLD uses Frostmourne and pets as rare teases instead of coin clutter. */
  if(curCase==='blacktemple'){
   const rr=Math.random();
-  if(rr<0.14)return {icon:'🟩',cc:'#39ff6a',t:'legendary'};
+  if(rr<0.14)return {icon:'🗡️',cc:'#39ff6a',t:'legendary'};
   if(rr<0.38)return {icon:'🎁',cc:'#8fc3ef',t:'freebox'};
   return {icon:'◉',cc:'#ffd76a',t:'gold'};
  }
@@ -5789,7 +5790,7 @@ function btPrizeValue(){
   const it=rollWarglaives();it._lid=lootUID++;
   if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
   log(`BLACK TEMPLE: <span class="llegendary">Warglaives of Azzinoth</span>!`,'loot');
-  return {icon:'🟩',tier:'LEGENDARY',name:itemName(it),color:'#39ff6a',sub:'weapon · '+itemStr(it),epic:true,big:true};
+  return {icon:'🗡️',tier:'LEGENDARY',name:itemName(it),color:'#39ff6a',sub:'weapon · '+itemStr(it),epic:true,big:true};
  }
  if(p.kind==='gold'){
   const amt=Math.round(p.min+Math.random()*(p.max-p.min));
