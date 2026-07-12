@@ -938,27 +938,37 @@ const zoneMapImgs={};
 const zoneMapImg=n=>{if(!zoneMapImgs[n]){zoneMapImgs[n]=new Image();zoneMapImgs[n].src='assets/models/maps/'+n+'.png';}return zoneMapImgs[n];};
 const bergImg=new Image();bergImg.src='assets/models/berg.png';
 /* painted character sprites — keyed race+gender+class (e.g. humanmale_warrior.png) */
-const CHAR_SPRITES={humanmale_warrior:1}; /* the combos that have art in assets/characters */
+const CHAR_SPRITES={humanmale_warrior:1,undeadmale_hunter:1}; /* the combos that have art in assets/characters */
 const charSpriteCache={};
 function charSprite(raceId,clsId,female){
  const key=raceId+(female?'female':'male')+'_'+clsId;
  if(!CHAR_SPRITES[key])return null;
  let im=charSpriteCache[key];
- if(!im){im=new Image();im.src='assets/characters/'+key+'.png';charSpriteCache[key]=im;}
+ if(!im){
+  im=new Image();im.src='assets/characters/'+key+'.png';charSpriteCache[key]=im;
+  im.onload=()=>{ /* portraits render before sprites finish loading — repaint the open screens */
+   try{
+    if($('select').classList.contains('open'))renderSelect();
+    if($('lbFx').classList.contains('open'))showLeaderboard();
+   }catch(e){}
+  };
+ }
  return im;
 }
 /* run sheets keyed the same way, e.g. humanmale_warrior:{img,n,fps} — none wired up right now */
 const CHAR_RUN={};
 /* the hero's boots — one right-foot asset, mirrored for the left */
 const bootImg=new Image();bootImg.src='assets/characters/fot.png';
-function bootFeet(e){
- if(!(bootImg.complete&&bootImg.naturalWidth)){feet(e,1);return;}
+const bowImg=new Image();bowImg.src='assets/weapons/bow.png';
+function bootFeet(e,g2){
+ const g=g2||ctx;
+ if(!(bootImg.complete&&bootImg.naturalWidth)){if(!g2)feet(e,1);return;}
  const o=e.moving?Math.sin(e.walk*2)*4:0;
  const W=12,H=W*bootImg.naturalHeight/bootImg.naturalWidth;
- ctx.drawImage(bootImg,-5-W/2,12-H/2+o,W,H); /* left — full counter-swing */
- ctx.save();ctx.scale(-1,1);
- ctx.drawImage(bootImg,-5-W/2,12-H/2-o,W,H); /* right = mirrored */
- ctx.restore();
+ g.drawImage(bootImg,-5-W/2,12-H/2+o,W,H); /* left — full counter-swing */
+ g.save();g.scale(-1,1);
+ g.drawImage(bootImg,-5-W/2,12-H/2-o,W,H); /* right = mirrored */
+ g.restore();
 }
 const brunnImg=new Image();brunnImg.src='assets/models/brunn.png';
 const bankImg=new Image();bankImg.src='assets/models/bank.png';
@@ -1075,10 +1085,12 @@ function spendGold(n){
 const lootBlocked=()=>goldRoom()<=0;
 const RACES=[
  {id:'human',name:'Human',desc:'Balanced. Take 8% less damage.',c1:'#e0b070',c2:'#7a5a34',armor:0.08},
- {id:'stoneborn',name:'Dwarf',desc:'Stout mountain folk. +12% max health.',c1:'#aeb9c2',c2:'#4d5a63',hp:1.12},
- {id:'sylvan',name:'Orc',desc:'Warborn raiders. +6% critical chance.',c1:'#8fd09a',c2:'#2f6b45',crit:6},
- {id:'gravekin',name:'Undead',desc:'The Forsaken. Heal 3% on every kill.',c1:'#c0a0e0',c2:'#503a6b',leech:.03},
+ {id:'dwarf',name:'Dwarf',desc:'Stout mountain folk. +12% max health.',c1:'#aeb9c2',c2:'#4d5a63',hp:1.12},
+ {id:'orc',name:'Orc',desc:'Warborn raiders. +6% critical chance.',c1:'#8fd09a',c2:'#2f6b45',crit:6},
+ {id:'undead',name:'Undead',desc:'The Forsaken. Heal 3% on every kill.',c1:'#c0a0e0',c2:'#503a6b',leech:.03},
 ];
+/* legacy race ids from old saves and multiplayer peers → the new plain names */
+const RACE_ALIAS={stoneborn:'dwarf',sylvan:'orc',gravekin:'undead'};
 const CLASSES=[
  {id:'warrior',name:'Christian',desc:'Heavy blade up close. Cleaving strikes and war-shouts.',hp:125,atk:12,crit:5,armor:0.05,range:40,cd:.95,mana:55,
   spells:[
@@ -1178,7 +1190,7 @@ const ZONES=[
   en:[['Keep Legionnaire','humanoid','#a04a3a'],['Ash Hound','beast','#c96a3a'],['Ember Warlock','humanoid','#8a3a5a']],
   q:[['Storm the Outworks','Cut down 12 legionnaires at the walls.',12],['The Kennels','Slay 12 ash hounds loosed on the yard.',12],['Break the Warlocks','Silence 14 warlocks fueling the pyres.',14]]},
  {name:'Emberdeep Keep',lvl:60,amb:'war',map:'levlingzone_boss',boss:['Warlord Krev','#d94a2a','krev'],ground:'#3a2a26',ground2:'#31231f',water:'#8a4a2a',tree:'#31231f',tree2:'#241a16',path:'#5a4030',rocky:true,final:true},
- {name:'Gates of the Viking',lvl:60,amb:'haaland',west:true,special:true,
+ {name:'Gates of the Viking',lvl:60,amb:'haaland',valhalla:true,special:true,
   boss:['HAALAND the Three-Headed','#c94a3a','cerberus'],
   ground:'#8a94a0',ground2:'#7d8794',water:'#5a7a9a',tree:'#4a5a66',tree2:'#39464f',path:'#a8b0ba',rocky:true},
  {name:'Halls of Valhalla',lvl:60,amb:'frost',valhalla:true,special:true,thor:true,
@@ -1790,6 +1802,9 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.rating===undefined)s.rating=0;
  if(s.cerberusKills===undefined)s.cerberusKills=0;
  if(s.worms===undefined)s.worms=0;
+ if(s.raidPots===undefined)s.raidPots=0;
+ if(s.raidT===undefined)s.raidT=0;
+ if(RACE_ALIAS[s.race])s.race=RACE_ALIAS[s.race]; /* old saves used stoneborn/sylvan/gravekin */
  if(s.thorLock===undefined)s.thorLock=-1;
  if(s.thorKills===undefined)s.thorKills=0;
  if(s.thorLockWhy===undefined)s.thorLockWhy='';
@@ -2429,12 +2444,12 @@ function buildZone(){
   /* friendly townsfolk roaming their own little routes between the buildings */
   const NPC_DEFS=[
    ['Sven-Ove','human','warrior',0,[[cx-330,cy-110],[cx-480,cy-20]],34],
-   ['Gunnar Guldtand','stoneborn','warrior',0,[[cx-480,cy-20],[cx-540,cy-10],[cx-360,cy+100]],28],
+   ['Gunnar Guldtand','dwarf','warrior',0,[[cx-480,cy-20],[cx-540,cy-10],[cx-360,cy+100]],28],
    ['Barbro Bråttom','human','mage',1,[[cx-190,cy+270],[cx+190,cy+270],[cx,cy+440]],62],
    ['Lilla Kjell','human','hunter',0,[[cx,cy-250],[cx-330,cy-110]],42],
-   ['Ragnar Lagom','sylvan','warrior',0,[[cx+360,cy+100],[cx+460,cy-20]],24],
+   ['Ragnar Lagom','orc','warrior',0,[[cx+360,cy+100],[cx+460,cy-20]],24],
    ['Fiskar-Frasse','human','hunter',0,[[cx-360,cy+100],[cx-190,cy+270]],32],
-   ['Tant Ulla','gravekin','cleric',1,[[cx+190,cy+270],[cx+360,cy+100]],27],
+   ['Tant Ulla','undead','cleric',1,[[cx+190,cy+270],[cx+360,cy+100]],27],
    ['Börje Borek Jr.','human','warrior',0,[[cx,cy-250],[cx+460,cy-20],[cx+40,cy+40]],38],
   ];
   world.npcs=NPC_DEFS.map(([name,race,cls,fem,pts,speed])=>({
@@ -2935,6 +2950,7 @@ function applyDmg(en,dmg,label,crit){
  if(en.dead||en.hidden)return;
  if(S.gear&&isWG(S.gear.weapon)&&en.boss)dmg=Math.round(dmg*1.10);
  if(en.boss&&(activePet()||{}).bossDmg)dmg=Math.round(dmg*(1+activePet().bossDmg));
+ if(en.boss&&(S.raidT||0)>0)dmg=Math.round(dmg*1.15); /* ⚗️ Potion of Raid */
  if(mp.on&&mp.started&&!mp.host&&en.raid){
   const rd=Math.max(0,Math.round(dmg));
   mp.dmgOut+=rd;rtcBroadcast({k:'dmg',d:rd},true);
@@ -3090,6 +3106,11 @@ function killEnemy(en){
     S.chests=Object.assign({blacktemple:0},S.chests||{});S.chests.blacktemple=(S.chests.blacktemple||0)+1;
     log(`<span class="llegendary">🟩 Black Temple Chest</span> acquired!`,'loot');
     stageMsg('🟩 BLACK TEMPLE CHEST — open it in the Bag!',3200);
+    if(mp.on&&mp.started){ /* online raids only — the reward for running it together */
+     S.raidPots=(S.raidPots||0)+1;
+     log(`Raid reward: <span class="llegendary">⚗️ Potion of Raid</span> — +15% boss damage for 60 minutes. Drink it from the Bag.`,'loot');
+     stageMsg('⚗️ POTION OF RAID earned — check your Bag!',3000);
+    }
    }
   }else{
    S.bossDead[S.zone]=true;
@@ -3716,6 +3737,10 @@ function update(dt){
  hero.potCd.hp=Math.max(0,hero.potCd.hp-dt);
  hero.potCd.mp=Math.max(0,hero.potCd.mp-dt);
  hero.frostT=Math.max(0,(hero.frostT||0)-dt);
+  if(S.raidT>0){
+  S.raidT-=dt;
+  if(S.raidT<=0){S.raidT=0;stageMsg('⚗️ The raid fervor fades…',1800);}
+ }
   if(S.luckT>0){
   S.luckT-=dt;
   if(S.luckT<=0){S.luckT=0;stageMsg('🍀 Your luck fades…',1800);}
@@ -4527,6 +4552,7 @@ function drawHourglassBody(g,cx,cy,by,c2,c1,w){
  g.fillStyle=c1;shape(1.8);
 }
 function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painted){
+ raceId=RACE_ALIAS[raceId]||raceId; /* peers/leaderboard entries may still send legacy ids */
  const r=RACES.find(x=>x.id===raceId);
  const sgn=fx<0?-1:1;
  if(weaponId==='warglaives'){ /* back glaive: behind the body, tilted opposite the front one — WoW dual-wield look */
@@ -4564,7 +4590,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   }
   g.restore();
  }else{
- if(raceId==='stoneborn'){ /* Dwarf — short, stout, great grey beard */
+ if(raceId==='dwarf'){ /* Dwarf — short, stout, great grey beard */
   if(female)drawHourglassBody(g,0,-3,by,r.c2,r.c1,12);
   else{
    g.fillStyle=r.c2;g.beginPath();g.ellipse(0,-3+by,12,9.5,0,0,7);g.fill();
@@ -4578,7 +4604,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
    g.fillStyle='rgba(0,0,0,0.10)';
    g.beginPath();g.moveTo(fx*2,-10+by);g.lineTo(fx*2+5.5,-10+by);g.lineTo(fx*2,-1+by);g.closePath();g.fill();
   }
- }else if(raceId==='sylvan'){ /* Orc — green hide, heavy brow, tusks */
+ }else if(raceId==='orc'){ /* Orc — green hide, heavy brow, tusks */
   if(female)drawHourglassBody(g,0,-4,by,r.c2,r.c1,11.5);
   else{
    g.fillStyle=r.c2;g.beginPath();g.arc(0,-4+by,11.5,0,7);g.fill();
@@ -4591,7 +4617,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g.fillStyle='#f0ead8'; /* tusks */
   g.beginPath();g.moveTo(fx*2-3.5,-12+by);g.lineTo(fx*2-2,-12+by);g.lineTo(fx*2-2.8,-15.5+by);g.closePath();g.fill();
   g.beginPath();g.moveTo(fx*2+2,-12+by);g.lineTo(fx*2+3.5,-12+by);g.lineTo(fx*2+2.8,-15.5+by);g.closePath();g.fill();
- }else if(raceId==='gravekin'){ /* Undead — hunched Forsaken, bared ribs, glowing eyes */
+ }else if(raceId==='undead'){ /* Undead — hunched Forsaken, bared ribs, glowing eyes */
   if(female)drawHourglassBody(g,sgn*1.8,-3.5,by,r.c2,r.c1,10.5);
   else{
    g.fillStyle=r.c2;g.beginPath();g.arc(sgn*1.5,-3.5+by,10.5,0,7);g.fill();
@@ -4616,9 +4642,9 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
  }
  if(female){
   /* the bust — two clearly visible skin-toned circles on the chest */
-  const skin=raceId==='sylvan'?'#8fc06a':raceId==='gravekin'?'#b8c8b2':raceId==='stoneborn'?'#eac9a0':'#f0cfa0';
-  const bcx=raceId==='gravekin'?sgn*1.8:fx*1.5;
-  const bcy=(raceId==='stoneborn'?-5.5:-6.5)+by; /* lowered so they sit clear under the head */
+  const skin=raceId==='orc'?'#8fc06a':raceId==='undead'?'#b8c8b2':raceId==='dwarf'?'#eac9a0':'#f0cfa0';
+  const bcx=raceId==='undead'?sgn*1.8:fx*1.5;
+  const bcy=(raceId==='dwarf'?-5.5:-6.5)+by; /* lowered so they sit clear under the head */
   g.fillStyle=skin;
   g.beginPath();g.arc(bcx-3.8,bcy,3,0,7);g.fill(); /* a visible gap between the two */
   g.beginPath();g.arc(bcx+3.8,bcy,3,0,7);g.fill();
@@ -4687,7 +4713,16 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g.strokeStyle='#c9a45a';g.lineWidth=3;g.beginPath();g.moveTo(0,4);g.lineTo(0,-12);g.stroke();
   g.fillStyle=clsId==='mage'?'#7fd0ff':'#ffd76a';g.beginPath();g.arc(0,-14,3+Math.sin(performance.now()/200)*0.6,0,7);g.fill();
  }else if(clsId==='hunter'){
-  g.strokeStyle='#a07a4a';g.lineWidth=3;g.beginPath();g.arc(0,-4,8,-1.2,1.2);g.stroke();
+  if(bowImg.complete&&bowImg.naturalWidth){
+   /* painted bow (assets/weapons/bow.png) — tall narrow recurve, held upright in the hand */
+   const H=pw?44:31,W=H*bowImg.naturalWidth/bowImg.naturalHeight;
+   g.save();
+   if(sgn<0)g.scale(-1,1); /* mirror so the string always faces the archer */
+   g.drawImage(bowImg,-W/2,-4-H/2,W,H);
+   g.restore();
+  }else{ /* fallback while the image loads */
+   g.strokeStyle='#a07a4a';g.lineWidth=3;g.beginPath();g.arc(0,-4,8,-1.2,1.2);g.stroke();
+  }
  }else{
   g.strokeStyle='#e8e4d8';g.lineWidth=3;g.beginPath();g.moveTo(0,4);g.lineTo(0,-13);g.stroke();
   g.strokeStyle='#a4761f';g.beginPath();g.moveTo(-3,0);g.lineTo(3,0);g.stroke();
@@ -5420,6 +5455,16 @@ function renderBag(){
    <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#9adf9a">ACTIVE — '+mins+' min remaining.</b> ':''}+20% better drops from slain foes for 30 minutes. Chests and slots are unaffected. Thor yields one per kill.</div></div>
    <div class="btns"><button class="sbtn gold" id="luckUse" ${(S.luckPots||0)<1?'disabled':''}>${active?'Extend +30m':'Drink'}</button></div></div>`;
  }
+ // ⚗️ raid potions — online Black Temple clears only
+ let raidHtml='';
+ if((S.raidPots||0)>0||S.raidT>0){
+  const active=S.raidT>0;
+  const mins=Math.ceil(S.raidT/60);
+  raidHtml=`<div class="card item" style="border-color:#39ff6a${active?';box-shadow:0 0 10px rgba(57,255,106,.25)':''}"><div>
+   <div class="sn" style="color:#39ff6a;font-size:13px;font-weight:600">⚗️ Potion of Raid <span style="color:var(--dim)">×${S.raidPots||0}</span></div>
+   <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#39ff6a">ACTIVE — '+mins+' min remaining.</b> ':''}+15% boss damage for 60 minutes. Earned by clearing the Black Temple raid online.</div></div>
+   <div class="btns"><button class="sbtn gold" id="raidUse" ${(S.raidPots||0)<1?'disabled':''}>${active?'Extend +60m':'Drink'}</button></div></div>`;
+ }
  // 🎲 gambler potions — max-win prize
  let gamblerHtml='';
  if((S.gamblerPots||0)>0||S.gamblerT>0){
@@ -5441,7 +5486,7 @@ function renderBag(){
  }
  let btHtml='';
  if(S.chests&&S.chests.blacktemple>0)btHtml=`<div class="card item" style="border-color:#39ff6a66;box-shadow:0 0 10px rgba(57,255,106,.15)"><div><div class="sn" style="color:#39ff6a;font-size:13px;font-weight:600">🟩 Black Temple Chest <span style="color:var(--dim)">×${S.chests.blacktemple}</span></div><div class="ss" style="color:var(--dim);font-size:11px">The spoils of the three lords. Chance for Warglaives of Azzinoth, gold, or free GOLD GOLD GOLD cases.</div></div><div class="btns"><button class="sbtn gold" data-btchest>Open</button></div></div>`;
- $('scrollSec').innerHTML=luckHtml+gamblerHtml+restedHtml+btHtml;
+ $('scrollSec').innerHTML=luckHtml+raidHtml+gamblerHtml+restedHtml+btHtml;
 
  document.querySelectorAll('[data-btchest]').forEach(b=>b.onclick=openBlackTempleChest);
  // scrolls — categorised by tier; tap a tier header to expand/collapse it
@@ -5581,6 +5626,17 @@ function renderBag(){
   sparkles(hero.x,hero.y-12,'#9adf9a',12);
   stageMsg('🍀 Luck flows through you — 20% better drops for '+Math.ceil(S.luckT/60)+' minutes!',2500);
   log('<span class="lfine">🍀 Potion of Luck</span> consumed.');
+  renderBag();save();
+ };
+ const ru=$('raidUse');
+ if(ru)ru.onclick=()=>{
+  if((S.raidPots||0)<1)return;
+  S.raidPots--;
+  S.raidT=(S.raidT||0)+3600;
+  sfx.potion();
+  sparkles(hero.x,hero.y-12,'#39ff6a',12);
+  stageMsg('⚗️ Raid fervor surges — +15% boss damage for '+Math.ceil(S.raidT/60)+' minutes!',2500);
+  log('<span class="llegendary">⚗️ Potion of Raid</span> consumed.');
   renderBag();save();
  };
  const gu=$('gamblerUse');
@@ -7388,7 +7444,7 @@ async function cloudPullRoster(){
 }
 /* --- global leaderboard: name, level, prestige, rating, gear, stats and scrolls --- */
 function charStats(ch){
- const c=CLASSES.find(x=>x.id===ch.cls)||CLASSES[0],r=RACES.find(x=>x.id===ch.race)||RACES[0];
+ const c=CLASSES.find(x=>x.id===ch.cls)||CLASSES[0],r=RACES.find(x=>x.id===(RACE_ALIAS[ch.race]||ch.race))||RACES[0];
  const sum=k=>Object.values(ch.gear||{}).reduce((t,g)=>t+((g&&g[k])||0),0);
  const titan=(ch.activeScrolls||[]).filter(Boolean).find(s=>s.id==='titan');
  return {
@@ -7478,7 +7534,7 @@ async function showLeaderboard(){
  if(S&&S.id)await publishLB(S,true);
  const rows=await fetchLB();
  $('lbList').innerHTML=rows.length?rows.map((e,i)=>{
-  const r=RACES.find(x=>x.id===e.race),c=CLASSES.find(x=>x.id===e.cls);
+  const r=RACES.find(x=>x.id===(RACE_ALIAS[e.race]||e.race)),c=CLASSES.find(x=>x.id===e.cls);
   const zn=ZONES[Math.max(0,Math.min(ZONES.length-1,e.zone||0))].name;
   return `<div class="card charcard lbcard ${S&&e.cid===S.id?'me':''}" style="flex-wrap:wrap">
    <div class="lbrank big">${i+1}</div>
@@ -7530,7 +7586,7 @@ function showLogin(msg=''){
 /* ==================== CHARACTER SELECT ==================== */
 function drawPortrait(cnv,ch){
  const g=cnv.getContext('2d'),W=cnv.width,H=cnv.height;
- const r=RACES.find(x=>x.id===ch.race),c=CLASSES.find(x=>x.id===ch.cls);
+ const r=RACES.find(x=>x.id===(RACE_ALIAS[ch.race]||ch.race)),c=CLASSES.find(x=>x.id===ch.cls);
  const bg=g.createLinearGradient(0,0,0,H);
  bg.addColorStop(0,'#41301f');bg.addColorStop(1,'#1a120c');
  g.fillStyle=bg;g.fillRect(0,0,W,H);
@@ -7538,11 +7594,22 @@ function drawPortrait(cnv,ch){
  g.beginPath();g.ellipse(W/2,H*0.3,W*0.5,H*0.32,0,0,7);g.fill();
  const scA=(ch.activeScrolls||[ch.activeScroll]).filter(Boolean)[0];
  const sc=scA?enchOf(scA.id||scA):null;
+ const ps=charSprite(ch.race,c.id,ch.gender==='f');
+ if(ps&&ps.complete&&ps.naturalWidth){
+  /* painted model portrait — smaller scale so the taller sprite + boots fit the frame */
+  g.save();g.translate(W/2,H*0.684);g.scale(1.16,1.16);
+  g.fillStyle='rgba(0,0,0,0.3)';g.beginPath();g.ellipse(0,19,13,5,0,0,7);g.fill();
+  if(sc){g.strokeStyle=sc.glow;g.globalAlpha=0.55;g.lineWidth=1;g.beginPath();g.ellipse(0,18,15,6,0,0,7);g.stroke();g.globalAlpha=1;}
+  bootFeet({moving:false,walk:0},g);
+  drawChampionSprite(g,ch.race,c.id,1,0,0,!!(ch.gear&&ch.gear.weapon&&ch.gear.weapon.legend==='frostmourne'),ch.gear&&ch.gear.weapon&&(ch.gear.weapon.id||ch.gear.weapon.legend),ch.gender==='f',1);
+  g.restore();
+ }else{
  g.save();g.translate(W/2,H*0.72);g.scale(2.1,2.1);
  g.fillStyle='rgba(0,0,0,0.3)';g.beginPath();g.ellipse(0,7,11,4.5,0,0,7);g.fill();
  if(sc){g.strokeStyle=sc.glow;g.globalAlpha=0.55;g.lineWidth=1;g.beginPath();g.ellipse(0,6,13,5.5,0,0,7);g.stroke();g.globalAlpha=1;}
  drawChampionSprite(g,ch.race,c.id,1,0,0,!!(ch.gear&&ch.gear.weapon&&ch.gear.weapon.legend==='frostmourne'),ch.gear&&ch.gear.weapon&&(ch.gear.weapon.id||ch.gear.weapon.legend),ch.gender==='f');
  g.restore();
+ }
  if(ch.prestige){
   g.font='700 11px sans-serif';g.textAlign='right';
   g.fillStyle='#ffd76a';g.fillText('✦'+ch.prestige,W-4,13);
@@ -7560,7 +7627,7 @@ async function renderSelect(){
  const chars=[];
  for(const id of roster){const ch=await loadChar(id);if(ch)chars.push(ch);}
  $('charList').innerHTML=chars.length?chars.map(ch=>{
-  const r=RACES.find(x=>x.id===ch.race),c=CLASSES.find(x=>x.id===ch.cls);
+  const r=RACES.find(x=>x.id===(RACE_ALIAS[ch.race]||ch.race)),c=CLASSES.find(x=>x.id===ch.cls);
   const hcDead=ch.hardcore&&ch.hcDead;
   return `<div class="card charcard"${hcDead?' style="opacity:.5;filter:grayscale(.8)"':''}>
    <canvas class="portrait" width="64" height="76" data-pc="${ch.id}"></canvas>
