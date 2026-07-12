@@ -63,13 +63,13 @@
  
 
   #skillbar{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:7px;align-items:flex-end;z-index:6}
-  #fishBtn{position:absolute;bottom:84px;left:50%;transform:translateX(-50%);width:44px;height:44px;border-radius:11px;border:1px solid var(--brass-deep);background:linear-gradient(180deg,#2a3d33,#17241d);font-size:20px;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:6;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+  #fishBtn{position:absolute;bottom:84px;left:50%;transform:translateX(-50%);width:44px;height:44px;border-radius:11px;border:1px solid var(--brass-deep);background:linear-gradient(180deg,#3a2a1c,#221610);font-size:20px;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:6;box-shadow:0 2px 8px rgba(0,0,0,.5)}
   #fishBtn.on{border-color:var(--brass);box-shadow:0 0 12px rgba(217,164,65,.5);animation:pulseNext 1.6s infinite}
   .skill{position:relative;width:46px;height:46px;border-radius:11px;border:1px solid var(--brass-deep);background:linear-gradient(180deg,#3a2a1c,#221610);color:var(--parch);font-size:19px;cursor:pointer;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.5)}
   .skill .cdm{position:absolute;left:0;right:0;bottom:0;background:rgba(5,10,8,.78);height:0%;pointer-events:none}
   .skill .cost{position:absolute;bottom:1px;right:3px;font-size:8.5px;color:#9fb4e8;font-weight:700;text-shadow:0 1px 2px #000}
   .skill.nomana{filter:saturate(.3) brightness(.7)}
-  .skill.pot{border-color:#4a6a55;font-size:17px}
+  .skill.pot{border-color:var(--brass-deep);font-size:17px}
   .skill .cnt{position:absolute;top:1px;right:3px;font-size:9px;color:#fff;font-weight:700;text-shadow:0 1px 2px #000}
   .sep{width:1px;height:36px;background:rgba(255,255,255,.18);margin:0 2px 5px}
   /* auto-cast config: the small Ⓐ between spells and potions */
@@ -120,11 +120,13 @@
   .zinfo{flex:1}
   .zn{font-family:var(--display);font-size:14px;color:var(--parch)}
   .zl{font-size:10.5px;color:var(--dim);margin-top:2px}
-  .ztag{font-size:10px;color:var(--brass);border:1px solid var(--brass-deep);border-radius:5px;padding:2px 7px;white-space:nowrap}
+  .ztag{font-size:10px;color:var(--brass);border:1px solid var(--brass-deep);border-radius:5px;padding:2px 7px;white-space:nowrap;background:#221610}
+  #p-map .card,#p-shop .card,#p-bag .card{background:rgba(80,58,38,.55);border-color:rgba(165,128,90,.4)} /* brown zone/shop/bag cards */
+  #p-map .sbtn,#p-shop .sbtn,#p-bag .sbtn{background:#221610;border-color:rgba(140,105,70,.5)} /* dark-brown action buttons */
   .ztag.boss{color:#e88a8a;border-color:#8a4a4a}
   .ztag.done{color:#9adf9a;border-color:#4a6a4a}
-  .continent-tab{display:inline-block;font-family:var(--display);font-size:13px;padding:6px 14px;border-radius:8px;border:1px solid var(--line);color:var(--dim);margin:0 8px 12px 0;cursor:pointer;user-select:none}
-  .continent-tab.cur{color:var(--parch);border-color:var(--brass-deep);background:var(--panel)}
+  .continent-tab{display:inline-block;font-family:var(--display);font-size:13px;padding:6px 14px;border-radius:8px;border:1px solid rgba(210,175,130,.55);background:#221610;color:#cfc0a8;margin:0 8px 12px 0;cursor:pointer;user-select:none}
+  .continent-tab.cur{color:var(--parch);border-color:#e8c987;background:#31221a;box-shadow:0 0 8px rgba(217,164,65,.25)}
   .continent-tab:not(.cur):hover{color:var(--parch)}
   .item{display:flex;justify-content:space-between;align-items:center;gap:10px}
 
@@ -337,7 +339,7 @@
   }
 
   /* --- Bag: scroll tier categories --- */
-  .tierhead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;margin-bottom:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;cursor:pointer;font-family:var(--display);font-size:13px;color:var(--parch);user-select:none}
+  .tierhead{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 12px;margin-bottom:8px;background:rgba(80,58,38,.55);border:1px solid rgba(165,128,90,.4);border-radius:10px;cursor:pointer;font-family:var(--display);font-size:13px;color:var(--parch);user-select:none}
   .tierhead .tcount{font-size:10.5px;color:var(--dim);font-family:var(--body)}
   .tierbody{margin:0 0 6px}
   .chestp{position:absolute;left:50%;top:50%;width:7px;height:7px;border-radius:2px;pointer-events:none;animation:chestp 1.05s ease-out forwards}
@@ -357,14 +359,15 @@
    -webkit-text-fill-color:var(--parch);caret-color:var(--parch);
   }
   .acctin:focus{outline:none;filter:brightness(1.18)}
-  #lbFx{position:absolute;inset:0;z-index:75;display:none;flex-direction:column;background:rgba(5,10,8,.94);padding:20px}
+  #lbFx{position:absolute;inset:0;z-index:75;display:none;flex-direction:column;background:rgba(18,11,7,.94);padding:20px}
+  #lbFx .sbtn{background:#221610;border-color:rgba(140,105,70,.5)} /* dark-brown Inspect/Close buttons */
   #lbFx.open{display:flex}
   .lbrow{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--line);font-size:12.5px}
   .lbrow.me{background:rgba(217,164,65,.08);border-radius:8px}
   .lbrank{width:26px;color:var(--brass);font-family:var(--display);font-size:13px}
   .lbname{flex:1;color:var(--parch);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .lbmeta{color:var(--dim);font-size:11px;white-space:nowrap}
-  .lbcard{background:rgba(28,43,36,.88)}
+  .lbcard{background:rgba(80,58,38,.55);border-color:rgba(165,128,90,.4)}
   .lbcard.me{border-color:var(--brass);box-shadow:0 0 14px rgba(217,164,65,.22)}
   .lbrank.big{width:34px;flex:0 0 auto;text-align:center;font-size:17px}
 
@@ -1091,21 +1094,21 @@ const ZONES=[
  {name:'Thornwood Glade',lvl:5,amb:'forest',map:'levlingzone_green',ground:'#557d47',ground2:'#4b7040',water:'#3f7086',tree:'#37592c',tree2:'#274420',path:'#9a8a62',
   en:[['Thorn Wolf','beast','#6b6f76'],['Web Matron','beast','#5a4a6b'],['Poacher Chief','humanoid','#7a5a3a']],
   q:[['Howls in the Glade','Hunt 8 wolves stalking the woodcutters.',8],['Silk and Venom','Burn out 9 broodmothers.',9],['The Poachers\u2019 Camp','Break the poacher ring — 12 foes.',12]]},
- {name:'Hollowroot Den',lvl:8,amb:'cave',boss:['Gorehusk the Rootfiend','#7a9a3a','gorehusk'],ground:'#4a3f33',ground2:'#40362b',water:'#3a4a3a',tree:'#3a3128',tree2:'#2c251e',path:'#6a5a44',rocky:true},
+ {name:'Hollowroot Den',lvl:8,amb:'cave',map:'levlingzone_boss',boss:['Gorehusk the Rootfiend','#7a9a3a','gorehusk'],ground:'#4a3f33',ground2:'#40362b',water:'#3a4a3a',tree:'#3a3128',tree2:'#2c251e',path:'#6a5a44',rocky:true},
  {name:'Ironcrag Pass',lvl:10,amb:'mountain',snowTrees:true,noBerg:true,map:'levlingzone_snow',ground:'#8b8a78',ground2:'#7e7d6c',water:'#6f9ab0',tree:'#5a6b52',tree2:'#46543f',path:'#a89a80',rocky:true,
   en:[['Crag Raider','humanoid','#8a5a4a'],['Rock Wyrmling','beast','#9a8a5a'],['Frost Harpy','beast','#7fa8c0']],
   q:[['Hold the Pass','Repel 10 raiders from the mountain road.',10],['Nests in the Cliffs','Clear 10 harpy nests.',10],['Wyrm Tithe','Slay 14 creatures hoarding the ore carts.',14]]},
  {name:'Mistfen Marsh',lvl:15,amb:'marsh',map:'levlingzone_green',ground:'#5a7a58',ground2:'#507050',water:'#3f6a5a',tree:'#3f5a3a',tree2:'#2f4630',path:'#8a8a62',
   en:[['Fen Lurker','beast','#5a7a6a'],['Mire Stalker','beast','#4a5a44'],['Swampwitch Adept','humanoid','#7a5a8a']],
   q:[['Lights in the Fog','Slay 9 lurkers dragging travelers under.',9],['The Witch\u2019s Brew','Scatter 10 adepts of the swampwitch coven.',10],['Drain the Mire','Clear 13 horrors from the drowned road.',13]]},
- {name:'Grimwater Cavern',lvl:18,amb:'cave',boss:['Maw of the Deep','#4a90a8','maw'],ground:'#3a4450',ground2:'#333d48',water:'#2f4a5a',tree:'#333d48',tree2:'#262e38',path:'#5a6470',rocky:true},
+ {name:'Grimwater Cavern',lvl:18,amb:'cave',map:'levlingzone_boss',boss:['Maw of the Deep','#4a90a8','maw'],ground:'#3a4450',ground2:'#333d48',water:'#2f4a5a',tree:'#333d48',tree2:'#262e38',path:'#5a6470',rocky:true},
  {name:'Ashen Moor',lvl:20,amb:'moor',dot:'#ffffff',snowTrees:true,noBerg:true,map:'levlingzone_snow',ground:'#5f5a66',ground2:'#555060',water:'#46506b',tree:'#4a4456',tree2:'#383244',path:'#7a7268',
   en:[['Moor Wraith','undead','#8fb0c9'],['Bog Revenant','undead','#6b8a7a'],['Cult Torchbearer','humanoid','#a05a4a']],
   q:[['Lights on the Moor','Put 10 restless spirits to rest.',10],['The Torchbearers','Scatter 12 cultists raising the dead.',12],['Silence the Bog','Destroy 14 horrors before the rite completes.',14]]},
  {name:'Duskhollow Barrens',lvl:25,amb:'dry',map:'levlingzone_desert',noTrees:true,ground:'#8a7a5a',ground2:'#7e6f50',water:'#6a8a7a',tree:'#6a5a3a',tree2:'#544628',path:'#a08a5a',rocky:true,
   en:[['Dust Prowler','beast','#a08a5a'],['Barrens Marauder','humanoid','#8a5a3a'],['Carrion Screecher','beast','#7a6a7a']],
   q:[['Bones in the Dust','Hunt 10 prowlers circling the caravans.',10],['Marauder Toll','Break 12 marauders holding the dry road.',12],['Sky of Carrion','Bring down 14 screechers.',14]]},
- {name:'The Sunken Crypt',lvl:28,amb:'crypt',boss:['Ossric, King Below','#b0c0d0','ossric'],ground:'#3a3a46',ground2:'#33333e',water:'#2f3a4a',tree:'#33333e',tree2:'#262630',path:'#55556a',rocky:true},
+ {name:'The Sunken Crypt',lvl:28,amb:'crypt',map:'levlingzone_boss',boss:['Ossric, King Below','#b0c0d0','ossric'],ground:'#3a3a46',ground2:'#33333e',water:'#2f3a4a',tree:'#33333e',tree2:'#262630',path:'#55556a',rocky:true},
  {name:'Frostspire Heights',lvl:30,amb:'frost',snowTrees:true,noBerg:true,map:'levlingzone_snow',ground:'#b8c4cc',ground2:'#a8b6c0',water:'#7fb0d0',tree:'#5a7a6a',tree2:'#44604f',path:'#cad4da',rocky:true,
   en:[['Frost Wolf','beast','#8fa8b8'],['Rime Shade','undead','#a0d0e0'],['Spire Raider','humanoid','#6a7a9a']],
   q:[['Wolves of the Spire','Hunt 10 frost wolves above the treeline.',10],['Shades of Rime','Banish 12 shades haunting the pass.',12],['The High Camp','Rout 14 raiders from the summit camp.',14]]},
@@ -1115,7 +1118,7 @@ const ZONES=[
  {name:'Cinderwaste',lvl:40,amb:'ember',map:'levlingzone_desert',noTrees:true,ground:'#6a4436',ground2:'#5f3d30',water:'#a04a20',tree:'#503426',tree2:'#3c2419',path:'#8a5a3a',rocky:true,
   en:[['Cinder Imp','humanoid','#c05a2a'],['Magma Crawler','beast','#b04a1a'],['Ash Revenant','undead','#906a5a']],
   q:[['Sparks in the Ash','Stamp out 10 cinder imps.',10],['Things Below the Crust','Slay 12 crawlers breaking the surface.',12],['The Grey March','Destroy 14 horrors of the waste.',14]]},
- {name:'Pyre of the Old Gate',lvl:43,amb:'ember',boss:['Ashmaw the Rekindled','#e05a1a','ashmaw'],ground:'#4a2e26',ground2:'#3f271f',water:'#a04a20',tree:'#3c2419',tree2:'#2c1a12',path:'#6a4430',rocky:true},
+ {name:'Pyre of the Old Gate',lvl:43,amb:'ember',map:'levlingzone_boss',boss:['Ashmaw the Rekindled','#e05a1a','ashmaw'],ground:'#4a2e26',ground2:'#3f271f',water:'#a04a20',tree:'#3c2419',tree2:'#2c1a12',path:'#6a4430',rocky:true},
  {name:'Stormreach Coast',lvl:45,amb:'coast',map:'levlingzone_green',ground:'#6a8a5a',ground2:'#5f7d50',water:'#3a6a8a',tree:'#4a7a4a',tree2:'#386038',path:'#c0aa7a',
   en:[['Tide Serpent','beast','#4a8a9a'],['Wreck Raider','humanoid','#7a5a4a'],['Storm-Drowned','undead','#5a7a8a']],
   q:[['Teeth of the Tide','Slay 10 serpents in the shallows.',10],['Wreckers\u2019 Cove','Break 12 raiders looting the wrecks.',12],['The Drowned Return','Put 14 drowned souls to rest.',14]]},
@@ -1125,7 +1128,7 @@ const ZONES=[
  {name:'Emberdeep Approach',lvl:55,amb:'war',map:'levlingzone_green',dot:'#9adf9a',ground:'#5a3a32',ground2:'#4f342c',water:'#8a4a2a',tree:'#463026',tree2:'#34231a',path:'#7a5540',rocky:true,
   en:[['Keep Legionnaire','humanoid','#a04a3a'],['Ash Hound','beast','#c96a3a'],['Ember Warlock','humanoid','#8a3a5a']],
   q:[['Storm the Outworks','Cut down 12 legionnaires at the walls.',12],['The Kennels','Slay 12 ash hounds loosed on the yard.',12],['Break the Warlocks','Silence 14 warlocks fueling the pyres.',14]]},
- {name:'Emberdeep Keep',lvl:60,amb:'war',boss:['Warlord Krev','#d94a2a','krev'],ground:'#3a2a26',ground2:'#31231f',water:'#8a4a2a',tree:'#31231f',tree2:'#241a16',path:'#5a4030',rocky:true,final:true},
+ {name:'Emberdeep Keep',lvl:60,amb:'war',map:'levlingzone_boss',boss:['Warlord Krev','#d94a2a','krev'],ground:'#3a2a26',ground2:'#31231f',water:'#8a4a2a',tree:'#31231f',tree2:'#241a16',path:'#5a4030',rocky:true,final:true},
  {name:'Gates of the Viking',lvl:60,amb:'haaland',west:true,special:true,
   boss:['HAALAND the Three-Headed','#c94a3a','cerberus'],
   ground:'#8a94a0',ground2:'#7d8794',water:'#5a7a9a',tree:'#4a5a66',tree2:'#39464f',path:'#a8b0ba',rocky:true},
@@ -2401,7 +2404,7 @@ function buildZone(){
   /* fewer props with an enforced minimum gap so nothing clumps and traps the hero */
   const MINGAP=58;
   const clearOf=(x,y)=>!world.solids.some(s=>dist({x,y},s)<(s.type==='water'||s.type==='berg'?s.r+46:MINGAP));
-  const nT=z.raid?0:isBoss?34:70;
+  const nT=(z.raid||isBoss)?0:70; /* boss arenas: clean ground, no trees/rocks */
   for(let i=0;i<nT;i++){
    let x,y,ok=false;
    if(isBoss){
@@ -7260,7 +7263,7 @@ async function publishLB(ch,force){
  if(!force&&now-FB.lastPub<45000)return;
  FB.lastPub=now;
  ch.tainted=false;ch.taintV=0;
- const slim=g=>g?{name:g.name,rar:g.rar,slot:g.slot,up:g.up||0,atk:g.atk||0,hp:g.hp||0,crit:g.crit||0,haste:g.haste||0,lifesteal:g.lifesteal||0,legend:g.legend||null,power:Math.round(g.power||0)}:null;
+ const slim=g=>g?{name:g.name,rar:g.rar,slot:g.slot,up:g.up||0,star:g.star||0,atk:g.atk||0,hp:g.hp||0,crit:g.crit||0,haste:g.haste||0,lifesteal:g.lifesteal||0,legend:g.legend||null,power:Math.round(g.power||0)}:null;
  const entry={season:SEASON,name:(ch.name||'?').slice(0,14),lvl:ch.lvl,prestige:ch.prestige||0,gs:charGearScore(ch),score:lbScore(ch),cid:ch.id,t:now,tainted:false,taintV:0,
   hardcore:!!ch.hardcore,hcDead:!!ch.hcDead,gender:ch.gender||'m',
   rating:ch.rating||0,
@@ -7305,7 +7308,7 @@ function renderInspect(e){
   if(!g)return `<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div><div class="ss">— empty —</div></div>`;
   let s=`${g.up?'+'+g.up+' · ':''}${g.atk?'+'+g.atk+' ATK ':''}${g.hp?'+'+g.hp+' HP ':''}${g.crit?'+'+g.crit+'% CRIT ':''}${g.haste?'+'+Math.round(g.haste*100)+'% ATK SPEED ':''}${g.lifesteal?'+'+(g.lifesteal*100)+'% LIFESTEAL':''}`.trim();
   return `<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div>
-   <div class="sn" style="color:${RARCOL[g.rar]||'#fff'}">${esc(g.name)}</div>
+   <div class="sn" style="color:${RARCOL[g.rar]||'#fff'}">${esc(g.name)}${g.legend&&g.star?` <span style="color:#ffd76a">★${g.star}</span>`:''}</div>
    <div class="ss">${esc(s)}</div></div>`;
  };
  const scrolls=(e.scrolls&&e.scrolls.length?e.scrolls:e.scroll?[e.scroll]:[]);
@@ -7387,7 +7390,7 @@ function drawPortrait(cnv,ch){
  const g=cnv.getContext('2d'),W=cnv.width,H=cnv.height;
  const r=RACES.find(x=>x.id===ch.race),c=CLASSES.find(x=>x.id===ch.cls);
  const bg=g.createLinearGradient(0,0,0,H);
- bg.addColorStop(0,'#2e453a');bg.addColorStop(1,'#0f1a15');
+ bg.addColorStop(0,'#41301f');bg.addColorStop(1,'#1a120c');
  g.fillStyle=bg;g.fillRect(0,0,W,H);
  g.fillStyle='rgba(217,164,65,0.06)';
  g.beginPath();g.ellipse(W/2,H*0.3,W*0.5,H*0.32,0,0,7);g.fill();
