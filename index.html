@@ -6,7 +6,7 @@
 <title>Riptide</title>
 <style>
   :root{
-    --night:#131f1a; --panel:#1c2b24; --panel2:#243830; --line:#33503f;
+    --night:#1a120c; --panel:#1c2b24; --panel2:#243830; --line:#33503f;
     --parch:#efe3c2; --ink:#d8e4d6; --dim:#8fa898;
     --brass:#d9a441; --brass-deep:#a4761f;
     --hp:#4caf6d; --mp:#6d8fd0;
@@ -24,7 +24,7 @@
     background:url('assets/ui/bakground_signin.png') center/cover no-repeat #131f1a}
   #app{width:100%;max-width:480px;height:100dvh;display:flex;flex-direction:column;position:relative;background:var(--night)}
  
-  header{padding:7px 14px 6px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#1a2921,#131f1a);flex:0 0 auto;z-index:5}
+  header{padding:7px 14px 6px;border-bottom:none;background:url('assets/ui/ui_allt.png') center/100% 100% no-repeat;flex:0 0 auto;z-index:5}
   .hrow{display:flex;align-items:center;justify-content:space-between;gap:8px}
   .zone-name{font-family:var(--display);font-size:15.5px;color:var(--parch)}
   .zone-sub{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1.4px;margin-top:1px}
@@ -65,7 +65,7 @@
   #skillbar{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:7px;align-items:flex-end;z-index:6}
   #fishBtn{position:absolute;bottom:84px;left:50%;transform:translateX(-50%);width:44px;height:44px;border-radius:11px;border:1px solid var(--brass-deep);background:linear-gradient(180deg,#2a3d33,#17241d);font-size:20px;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:6;box-shadow:0 2px 8px rgba(0,0,0,.5)}
   #fishBtn.on{border-color:var(--brass);box-shadow:0 0 12px rgba(217,164,65,.5);animation:pulseNext 1.6s infinite}
-  .skill{position:relative;width:46px;height:46px;border-radius:11px;border:1px solid var(--brass-deep);background:linear-gradient(180deg,#2a3d33,#17241d);color:var(--parch);font-size:19px;cursor:pointer;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+  .skill{position:relative;width:46px;height:46px;border-radius:11px;border:1px solid var(--brass-deep);background:linear-gradient(180deg,#3a2a1c,#221610);color:var(--parch);font-size:19px;cursor:pointer;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.5)}
   .skill .cdm{position:absolute;left:0;right:0;bottom:0;background:rgba(5,10,8,.78);height:0%;pointer-events:none}
   .skill .cost{position:absolute;bottom:1px;right:3px;font-size:8.5px;color:#9fb4e8;font-weight:700;text-shadow:0 1px 2px #000}
   .skill.nomana{filter:saturate(.3) brightness(.7)}
@@ -73,7 +73,7 @@
   .skill .cnt{position:absolute;top:1px;right:3px;font-size:9px;color:#fff;font-weight:700;text-shadow:0 1px 2px #000}
   .sep{width:1px;height:36px;background:rgba(255,255,255,.18);margin:0 2px 5px}
   /* auto-cast config: the small Ⓐ between spells and potions */
-  .autocfg-btn{position:relative;width:30px;height:30px;border-radius:8px;border:1px solid var(--brass-deep);background:linear-gradient(180deg,#2a3d33,#17241d);color:var(--brass);font-size:14px;font-weight:800;cursor:pointer;align-self:center;margin:0 2px;box-shadow:0 2px 6px rgba(0,0,0,.5)}
+  .autocfg-btn{position:relative;width:30px;height:30px;border-radius:8px;border:1px solid var(--brass-deep);background:linear-gradient(180deg,#3a2a1c,#221610);color:var(--brass);font-size:14px;font-weight:800;cursor:pointer;align-self:center;margin:0 2px;box-shadow:0 2px 6px rgba(0,0,0,.5)}
   #skillbar.autocfg .autocfg-btn{border-color:var(--brass);color:#ffd76a;box-shadow:0 0 10px rgba(217,164,65,.5)}
   #skillbar.autocfg .skill:not(.autocfg-btn){filter:brightness(.5) saturate(.55)}
   .skill .au{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:22px;font-weight:900;pointer-events:none;text-shadow:0 1px 4px #000;z-index:3}
@@ -81,7 +81,7 @@
   .skill .au.on{color:#39ff6a}
   .skill .au.offx{color:#ff5a5a}
  
-  #questcard{margin:7px 10px;padding:8px 11px;background:var(--panel);border:1px solid var(--line);border-radius:10px;flex:0 0 auto}
+  #questcard{margin:7px 10px;padding:8px 14px;background:url('assets/ui/ui_allt.png') center/100% 100% no-repeat;border:none;border-radius:10px;flex:0 0 auto}
   .qtop{display:flex;justify-content:space-between;align-items:center;gap:10px}
   .qname{font-family:var(--display);font-size:13px;color:var(--parch)}
   .qdesc{font-size:10.5px;color:var(--dim);margin-top:1px}
@@ -94,21 +94,23 @@
   #nextBtn{display:none;border-color:#6dbb6d;color:#9adf9a;animation:pulseNext 2s infinite}
   @keyframes pulseNext{0%,100%{box-shadow:0 0 4px rgba(109,187,109,.2)}50%{box-shadow:0 0 12px rgba(109,187,109,.5)}}
  
-  .panel{position:absolute;inset:0;bottom:56px;z-index:20;display:none;background:var(--night);overflow-y:auto;padding:14px}
+  .panel{position:absolute;inset:0;bottom:56px;z-index:20;display:none;background:url('assets/ui/ui_allt.png') center/100% 100% no-repeat;overflow-y:auto;padding:14px}
   .panel.open{display:block}
   .ptitle{font-family:var(--display);font-size:19px;color:var(--parch);margin-bottom:12px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}
+  #p-hero .card{background:rgba(128,95,62,.38);border:1px solid rgba(165,128,90,.45)} /* light-brown cards on the panel art */
+  #p-hero .sbtn{background:#221610;border-color:rgba(140,105,70,.5)} /* dark-brown action buttons */
   .statgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px}
-  .stat{background:var(--panel2);border-radius:8px;padding:8px 10px}
+  .stat{background:#31221a;border:1px solid rgba(150,112,74,.35);border-radius:8px;padding:10px 14px}
   .stat b{display:block;font-size:15px;color:var(--parch)}
   .stat span{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:1px}
   .slotrow{display:flex;gap:8px;margin-top:10px}
   #scrollRow{margin-top:8px}
-  .slot{flex:1;background:var(--panel2);border:1px dashed var(--line);border-radius:8px;padding:8px;min-height:64px;font-size:11px;display:flex;flex-direction:column}
+  .slot{flex:1;background:#31221a;border:1px dashed rgba(150,112,74,.45);border-radius:8px;padding:10px 14px;min-height:64px;font-size:11px;display:flex;flex-direction:column}
   .slot .sn{font-weight:600}
   .slot .ss{color:var(--dim);font-size:10px;margin-top:2px}
   .slot .en{color:#d9a0ef;font-size:10px;margin-top:2px}
-  .upbtn{margin-top:auto;padding:4px 6px;font-size:9.5px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:#a8bcb0;cursor:pointer}
+  .upbtn{margin-top:auto;padding:4px 6px;font-size:9.5px;border-radius:6px;border:1px solid rgba(140,105,70,.4);background:#221610;color:#cfc0a8;cursor:pointer}
   .upbtn.can{border-color:var(--brass-deep);color:var(--brass)}
   .r-common{color:var(--ink)} .r-fine{color:var(--fine)} .r-rare{color:var(--rare)} .r-epic{color:var(--epic)} .r-legendary{color:#7fd7ff;text-shadow:0 0 8px rgba(111,208,255,.55)}
   .zonecard{display:flex;align-items:center;gap:12px;cursor:pointer}
@@ -137,12 +139,12 @@
   .sbtn:disabled{opacity:.4;cursor:default}
   .toggle-row{display:flex;justify-content:space-between;align-items:center;font-size:12.5px}
   .spellcard{display:flex;gap:10px;align-items:center}
-  .spellg{width:36px;height:36px;border-radius:9px;background:var(--panel2);border:1px solid var(--brass-deep);display:flex;align-items:center;justify-content:center;font-size:17px;flex:0 0 auto}
+  .spellg{width:36px;height:36px;border-radius:9px;background:#2a1d13;border:1px solid var(--brass-deep);display:flex;align-items:center;justify-content:center;font-size:17px;flex:0 0 auto}
   .glowdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
   .wallet{font-size:12px;color:var(--dim);margin:-6px 0 12px}
   .wallet b{color:var(--brass)} .wallet i{color:#a8bcb0;font-style:normal}
  
-  nav{flex:0 0 68px;display:flex;border-top:1px solid var(--line);background:#16231d;z-index:30}
+  nav{flex:0 0 68px;display:flex;border-top:none;background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat,url('assets/ui/ui_allt.png') center/cover no-repeat;z-index:30}
   nav button{flex:1;background:none;border:none;color:var(--dim);cursor:pointer;font-size:11px;letter-spacing:.5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-family:var(--body)}
   nav button svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
   nav button.cur{color:var(--brass)}
@@ -344,14 +346,15 @@
   #chestFx.flash{animation:epicFlash .6s ease-out}
  
   /* the plate lives on the wrapper — Chrome's autofill can hide an input's own background image */
-  .acctwrap{background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;border-radius:8px;margin-top:6px}
+  .acctwrap{background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;border-radius:8px;margin-top:6px;padding:6px 30px 6px 38px}
   .acctwrap:focus-within{filter:brightness(1.18)}
-  .acctin{width:100%;padding:12px 30px 12px 38px;border-radius:8px;border:none;background:transparent;color:var(--parch);font-size:13px;text-shadow:0 1px 2px rgba(0,0,0,.7)}
+  .acctin{width:100%;padding:6px 0;border-radius:6px;border:none;background:transparent;color:var(--parch);font-size:13px;text-shadow:0 1px 2px rgba(0,0,0,.7)}
   .acctin::placeholder{color:#b8a888;opacity:.75}
-  /* Chrome autofill forces a light background — freeze it out and keep the parchment text */
+  /* Chrome autofill forces a light background — clip it to the text glyphs so it never
+     paints over the plate behind; the wrapper's artwork shows through untouched */
   .acctin:-webkit-autofill,.acctin:-webkit-autofill:hover,.acctin:-webkit-autofill:focus{
+   -webkit-background-clip:text;
    -webkit-text-fill-color:var(--parch);caret-color:var(--parch);
-   transition:background-color 999999s ease-in-out 0s;
   }
   .acctin:focus{outline:none;filter:brightness(1.18)}
   #lbFx{position:absolute;inset:0;z-index:75;display:none;flex-direction:column;background:rgba(5,10,8,.94);padding:20px}
@@ -399,20 +402,20 @@
     body.sidehidden #stageWrap,body.sidehidden header,body.sidehidden #questcard{border-right:0}
     #sideToggle{display:flex}
     body.sidehidden #sideToggle{transform:none}
-    header{grid-column:1;grid-row:1;padding:10px 16px 9px;border-right:1px solid var(--line);background:linear-gradient(180deg,#1d3027,#111d17)}
+    header{grid-column:1;grid-row:1;padding:10px 16px 9px;border-right:none;background:url('assets/ui/ui_allt.png') center/100% 100% no-repeat}
     header .hrow{max-width:none}
     header .zone-name{font-size:17px}
-    header .vrow{margin-top:7px;padding:6px 8px;border:1px solid rgba(51,80,63,.7);border-radius:8px;background:rgba(9,17,13,.28)}
+    header .vrow{margin-top:7px;padding:6px 8px;border:none;border-radius:8px;background:none}
     header .bar{height:9px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.025)}
-    #stageWrap{grid-column:1;grid-row:2;min-width:0;min-height:0;border-right:1px solid var(--line)}
-    #questcard{grid-column:1;grid-row:3;margin:0;padding:10px 16px 11px;border-radius:0;border-left:0;border-right:1px solid var(--line);border-bottom:0;background:linear-gradient(180deg,#1b2a23,#142019)}
+    #stageWrap{grid-column:1;grid-row:2;min-width:0;min-height:0;border-right:none}
+    #questcard{grid-column:1;grid-row:3;margin:0;padding:10px 18px 11px;border-radius:0;border-left:0;border-right:none;border-bottom:0;background:url('assets/ui/ui_allt.png') center/100% 100% no-repeat}
     #questcard .qtop{max-width:100%}
     #questcard .qname{font-size:14px}
     #questcard .qdesc{font-size:11px}
-    nav{grid-column:2;grid-row:1;display:flex;min-width:0;height:auto;flex:0 0 auto;border-top:0;border-bottom:1px solid var(--line);background:#14231c}
+    nav{grid-column:2;grid-row:1;display:flex;min-width:0;height:auto;flex:0 0 auto;border-top:0;border-bottom:none;background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat,url('assets/ui/ui_allt.png') center/cover no-repeat}
     nav button{min-width:0;padding:9px 4px;font-size:9px}
     nav button[data-tab="battle"]{display:none}
-    .panel{position:relative;inset:auto;bottom:auto;grid-column:2;grid-row:2 / 4;z-index:20;width:100%;height:100%;min-height:0;padding:16px;background:linear-gradient(180deg,#14231c,#101a16);border-left:0;overflow-y:auto}
+    .panel{position:relative;inset:auto;bottom:auto;grid-column:2;grid-row:2 / 4;z-index:20;width:100%;height:100%;min-height:0;padding:16px;background:url('assets/ui/ui_allt.png') center/100% 100% no-repeat;border-left:0;overflow-y:auto}
     .panel.open{display:block}
     .panel .ptitle{font-size:18px}
     .slotrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
