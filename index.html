@@ -937,12 +937,29 @@ const gsMapImg=new Image();gsMapImg.src='assets/models/maps/goldshire_map.png';
 const zoneMapImgs={};
 const zoneMapImg=n=>{if(!zoneMapImgs[n]){zoneMapImgs[n]=new Image();zoneMapImgs[n].src='assets/models/maps/'+n+'.png';}return zoneMapImgs[n];};
 const bergImg=new Image();bergImg.src='assets/models/berg.png';
-/* painted character sprites — per-race cutouts from assets/characters */
-const CHAR_IMGS={human:new Image()};
-CHAR_IMGS.human.src='assets/characters/human.png';
-/* run cycles: horizontal sheets built from the animation clips (n = frame count) */
-const CHAR_RUN={human:{img:new Image(),n:8,fps:14}};
-CHAR_RUN.human.img.src='assets/characters/human_running.png';
+/* painted character sprites — keyed race+gender+class (e.g. humanmale_warrior.png) */
+const CHAR_SPRITES={humanmale_warrior:1}; /* the combos that have art in assets/characters */
+const charSpriteCache={};
+function charSprite(raceId,clsId,female){
+ const key=raceId+(female?'female':'male')+'_'+clsId;
+ if(!CHAR_SPRITES[key])return null;
+ let im=charSpriteCache[key];
+ if(!im){im=new Image();im.src='assets/characters/'+key+'.png';charSpriteCache[key]=im;}
+ return im;
+}
+/* run sheets keyed the same way, e.g. humanmale_warrior:{img,n,fps} — none wired up right now */
+const CHAR_RUN={};
+/* the hero's boots — one right-foot asset, mirrored for the left */
+const bootImg=new Image();bootImg.src='assets/characters/fot.png';
+function bootFeet(e){
+ if(!(bootImg.complete&&bootImg.naturalWidth)){feet(e,1);return;}
+ const o=e.moving?Math.sin(e.walk*2)*4:0;
+ const W=12,H=W*bootImg.naturalHeight/bootImg.naturalWidth;
+ ctx.drawImage(bootImg,-5-W/2,12-H/2+o,W,H); /* left — full counter-swing */
+ ctx.save();ctx.scale(-1,1);
+ ctx.drawImage(bootImg,-5-W/2,12-H/2-o,W,H); /* right = mirrored */
+ ctx.restore();
+}
 const brunnImg=new Image();brunnImg.src='assets/models/brunn.png';
 const bankImg=new Image();bankImg.src='assets/models/bank.png';
 const tavernImg=new Image();tavernImg.src='assets/models/tavern.png';
@@ -2404,7 +2421,7 @@ function buildZone(){
      full sprite still fits under the map's top edge without covering the inn */
   world.solids.push({x:cx+360,y:cy-120,r:52,type:'casino',big:true,seed:5,crx:180,cry:45,cyo:-220});
   /* the Bank — painted model on the north-west grass, by the road stub */
-  world.solids.push({x:cx-720,y:cy-440,r:52,type:'bank',big:true,seed:8,crx:110,cry:40,cyo:-63});
+  world.solids.push({x:cx-720,y:cy-440,r:52,type:'bank',big:true,seed:8,crx:138,cry:50,cyo:-79});
   /* the Blacksmith — painted model at the south-west road stub */
   world.solids.push({x:cx-805,y:cy+550,r:52,type:'smith',big:true,seed:11,crx:125,cry:45,cyo:-100});
   /* the Fishing Hut — worm vendor on the lake's south shore */
@@ -3560,7 +3577,7 @@ cv.addEventListener('pointerdown',e=>{
   }
   const bnk=world.solids.find(s=>s.type==='bank');
   if(bnk){ /* pixel-perfect, same as the casino */
-   const W=bnk.r*5.2,H=bankImg.naturalWidth?W*bankImg.naturalHeight/bankImg.naturalWidth:W,bot=bnk.r*1.3*0.55+W*0.04;
+   const W=bnk.r*6.5,H=bankImg.naturalWidth?W*bankImg.naturalHeight/bankImg.naturalWidth:W,bot=bnk.r*1.3*0.55+W*0.04;
    const u=(wx-(bnk.x-W/2))/W,v=(wy-(bnk.y+bot-H*0.745))/H;
    if(u>=0&&u<1&&v>=0&&v<1&&pixelSolid(bankImg,u,v)){walkOrOpen(bnk,openBank);return;}
   }
@@ -4318,7 +4335,7 @@ function drawProp(s,z){
   const w=s.r*1.8,hh=s.r*1.3;
   if(bankImg.complete&&bankImg.naturalWidth){
    /* painted bank (assets/models/bank.png) — content bottom sits at 74.5% of the art */
-   const W=s.r*5.2,H=W*bankImg.naturalHeight/bankImg.naturalWidth,bot=hh*0.55+W*0.04;
+   const W=s.r*6.5,H=W*bankImg.naturalHeight/bankImg.naturalWidth,bot=hh*0.55+W*0.04;
    ctx.drawImage(bankImg,-W/2,bot-H*0.745,W,H);
    ctx.restore();return;
   }
@@ -4528,13 +4545,13 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   }
   g.restore();
  }
- const rImg=painted?CHAR_IMGS[raceId]:null; /* painted sprites are for the local hero only */
+ const rImg=painted?charSprite(raceId,clsId,female):null; /* painted sprites are for the local hero only */
  if(rImg&&rImg.complete&&rImg.naturalWidth){
   /* painted character — mirrored when facing left, bobbing + rocking while running */
   g.save();
   if(sgn>0)g.scale(-1,1); /* art faces left natively — mirror when running right */
   g.rotate(by*0.025);
-  const run=painted===2?CHAR_RUN[raceId]:null;
+  const run=painted===2?CHAR_RUN[raceId+(female?'female':'male')+'_'+clsId]:null;
   if(run&&run.img.complete&&run.img.naturalWidth){
    /* animated run cycle from the sprite sheet */
    const fr=Math.floor(performance.now()/1000*run.fps)%run.n;
@@ -4543,7 +4560,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
    g.drawImage(run.img,fr*fw,0,fw,fh,-W/2,9-H+by,W,H);
   }else{
    const H=48,W=H*rImg.naturalWidth/rImg.naturalHeight;
-   g.drawImage(rImg,-W/2,9-H+by,W,H);
+   g.drawImage(rImg,-W/2,5-H+by,W,H);
   }
   g.restore();
  }else{
@@ -4613,10 +4630,11 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g.beginPath();g.arc(bcx+2.9,bcy-1.1,1,0,7);g.fill();
  }
  } /* end procedural body (skipped when a painted race sprite exists) */
- /* weapon */
- g.save();g.translate(fx*9,-6+by);
+ /* weapon — painted sprites are wider, so the hand sits further out and lower */
+ const pw=painted&&charSprite(raceId,clsId,female)&&charSprite(raceId,clsId,female).naturalWidth;
+ g.save();g.translate(fx*(pw?11:9),(pw?-1:-6)+by);
  const sw=swing?(0.24-swing)*9:0;
- g.rotate((sgn<0?-0.5:0.5)+sw*sgn);
+ g.rotate((sgn<0?-1:1)*(pw?0.85:0.5)+sw*sgn);
  g.lineCap='round';
  if(weaponId==='fishingrod'){
   /* fishing rod: cork grip + tapered rod aimed forward over the water */
@@ -4642,8 +4660,8 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g.shadowColor='#6fd0ff';g.shadowBlur=10+Math.sin(tt*3)*3;
   if(fmImg.complete&&fmImg.naturalWidth){
    /* painted Frostmourne (assets/models/frostmourne.png) — the pulsing canvas glow hugs the cutout */
-   const H=40,W=H*fmImg.naturalWidth/fmImg.naturalHeight;
-   g.drawImage(fmImg,-W/2,6-H,W,H); /* grip bottom at y=6, same as the old blade */
+   const H=pw?50:40,W=H*fmImg.naturalWidth/fmImg.naturalHeight;
+   g.drawImage(fmImg,-W/2,(pw?-2:6)-H,W,H); /* grip in the painted hero's hand */
    g.shadowBlur=0;
   }else{ /* fallback while the image loads: icy runeblade */
   g.fillStyle='#bfe9ff';
@@ -4703,28 +4721,31 @@ function drawHero(){
   fx=Math.sin(h.dance*3)>=0?1:-1;
   danceSwing=0.24-Math.abs(Math.sin(h.dance*10))*0.18;
  }
- ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,8,12,5,0,0,7);ctx.fill();
+ /* painted heroes stand taller with hovering boots — ground fx sits at their boots' level */
+ const gY=((charSprite(S.race,c.id,S.gender==='f')||{}).naturalWidth)?9:0;
+ ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,8+gY,12+gY*0.3,5,0,0,7);ctx.fill();
  /* scroll auras — one soft colored ring per active enchant */
  activeEnchs().forEach((e,i)=>{
   const a=0.20+0.09*Math.sin(now*1.8+i*2.1);
   ctx.strokeStyle=e.glow;
   ctx.globalAlpha=(h.dead?0:1)*a;
   ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.ellipse(0,7,14+i*3.5,6+i*1.6,0,0,7);ctx.stroke();
+  ctx.beginPath();ctx.ellipse(0,7+gY,14+i*3.5,6+i*1.6,0,0,7);ctx.stroke();
   ctx.globalAlpha=h.dead?Math.max(0,1-h.deadT*1.6):1;
  });
  // spell buff aura
- if(h.buff.atk&&h.buff.atk.t>0){ctx.strokeStyle='rgba(255,200,90,'+(0.4+0.2*Math.sin(performance.now()/120))+')';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(0,6,15,7,0,0,7);ctx.stroke();}
- if(h.buff.haste&&h.buff.haste.t>0){ctx.strokeStyle='rgba(200,240,255,0.5)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,6,18,8,0,0,7);ctx.stroke();}
+ if(h.buff.atk&&h.buff.atk.t>0){ctx.strokeStyle='rgba(255,200,90,'+(0.4+0.2*Math.sin(performance.now()/120))+')';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(0,6+gY,15,7,0,0,7);ctx.stroke();}
+ if(h.buff.haste&&h.buff.haste.t>0){ctx.strokeStyle='rgba(200,240,255,0.5)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,6+gY,18,8,0,0,7);ctx.stroke();}
  if(dancing)ctx.rotate(Math.sin(h.dance*6)*0.25);
- feet(h,1);
- drawChampionSprite(ctx,S.race,c.id,fx,by,danceSwing,fish.on?false:isFM(S.gear.weapon),fish.on?'fishingrod':(isWG(S.gear.weapon)?'warglaives':(isFM(S.gear.weapon)?'frostmourne':null)),S.gender==='f',false);
+ if((charSprite(S.race,c.id,S.gender==='f')||{}).naturalWidth)bootFeet(h);else feet(h,1);
+ drawChampionSprite(ctx,S.race,c.id,fx,by,danceSwing,fish.on?false:isFM(S.gear.weapon),fish.on?'fishingrod':(isWG(S.gear.weapon)?'warglaives':(isFM(S.gear.weapon)?'frostmourne':null)),S.gender==='f',h.moving&&!h.dead?2:1);
  if(h.hurt>0){ctx.fillStyle='rgba(255,255,255,'+h.hurt*2.5+')';ctx.beginPath();ctx.arc(0,-8+by,11,0,7);ctx.fill();}
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;
  ctx.textAlign='center';
  /* name only (no rating), lifted clear of the sprite; hp lives in the header bar instead */
- ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(S.name||'Hero',1,-33+by+1);
- ctx.fillStyle='#fff';ctx.fillText(S.name||'Hero',0,-33+by);
+ const nmY=((charSprite(S.race,c.id,S.gender==='f')||{}).naturalWidth)?-46:-33; /* painted sprites stand taller */
+ ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(S.name||'Hero',1,nmY+by+1);
+ ctx.fillStyle='#fff';ctx.fillText(S.name||'Hero',0,nmY+by);
  ctx.restore();
 }
 function drawNpc(n){
