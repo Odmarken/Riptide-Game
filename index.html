@@ -4557,13 +4557,17 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
  const sgn=fx<0?-1:1;
  if(weaponId==='warglaives'){ /* back glaive: behind the body, tilted opposite the front one — WoW dual-wield look */
   g.save();
-  g.translate(fx*10,-6+by);
+  g.translate(0,-14+by); /* centered on the back at shoulder height */
   g.globalAlpha*=0.9;
   if(wgImg.complete&&wgImg.naturalWidth){
-   g.rotate(-0.4*sgn);
-   const W=42,H=W*wgImg.naturalHeight/wgImg.naturalWidth;
+   /* WoW back-mount: each glaive stands upright, tip curling in toward the head.
+      One blade = the left half of the pair art, rotated 90°; the other is its mirror. */
+   const hw=wgImg.naturalWidth/2,hh2=wgImg.naturalHeight;
+   const GH=42,GW=GH*hh2/hw; /* blade length upright; source height becomes on-screen width */
    g.shadowColor='#4dff9a';g.shadowBlur=7;
-   g.drawImage(wgImg,-W/2,-H/2,W,H);
+   g.save();g.translate(-7,-20);g.rotate(1.22); /* a single glaive on the left shoulder, leaning ~70° */
+   g.drawImage(wgImg,0,0,hw,hh2,-GH/2,-GW/2,GH,GW);
+   g.restore();
    g.shadowBlur=0;
   }else{ /* fallback while the image loads */
    g.scale(0.85*sgn,0.85);
@@ -4669,10 +4673,13 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g.strokeStyle='#c9b391';g.lineWidth=1.1;g.beginPath();g.moveTo(8,-15);g.lineTo(12,-22);g.stroke();
  }else if(weaponId==='warglaives'){
   if(wgImg.complete&&wgImg.naturalWidth){
-   /* painted Warglaives pair (assets/models/warglaive.png) — emblem sits in the hand, fel-green glow */
-   const W=48,H=W*wgImg.naturalHeight/wgImg.naturalWidth;
+   /* painted Warglaives pair (assets/models/warglaive.png) — held level, pointing straight ahead */
+   const W=62,H=W*wgImg.naturalHeight/wgImg.naturalWidth;
+   g.rotate(-(sgn<0?-1:1)*(pw?0.85:0.5)); /* cancel the base tilt; the attack swing still animates */
    g.shadowColor='#4dff9a';g.shadowBlur=9;
+   g.save();g.scale(-1,1); /* mirrored the other way from the back pair */
    g.drawImage(wgImg,-W/2,-H/2,W,H);
+   g.restore();
    g.shadowBlur=0;
   }else{ /* fallback while the image loads */
    g.save();
