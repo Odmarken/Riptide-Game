@@ -2832,6 +2832,7 @@ cv.addEventListener('touchmove',e=>{
 cv.addEventListener('touchend',e=>{
  if(e.touches.length<2){pinchD=0;setTimeout(()=>pinching=false,150);}
 });
+cv.addEventListener('contextmenu',e=>e.preventDefault()); /* long-press/right-click menu would break hold-to-move */
  
 /* ==================== UPDATE ==================== */
 function nearestQuestEnemy(){

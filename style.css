@@ -10,6 +10,9 @@
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
   html,body{height:100%;overscroll-behavior:none}
+  /* iOS Safari: a long-press otherwise pops the blue selection/copy callout over the game */
+  body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
   body{background:var(--night);color:var(--ink);font-family:var(--body);display:flex;justify-content:center;overflow:hidden}
   /* menu screens live inside the capped app column — paint the artwork across the whole
      window behind them so narrow windows don't show the green body on the sides */
