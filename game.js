@@ -2784,8 +2784,20 @@ cv.addEventListener('pointerdown',e=>{
   if(d<en.r+20&&d<bd+en.r){best=en;bd=d;}}
  hero.goPortal=false;
  if(best){hero.target=best;hero.moveTo=null;}
- else{hero.moveTo={x:Math.max(30,Math.min(world.w-30,wx)),y:Math.max(30,Math.min(world.h-30,wy))};hero.target=null;marker={x:hero.moveTo.x,y:hero.moveTo.y,t:0};}
+ else{
+  hero.moveTo={x:Math.max(30,Math.min(world.w-30,wx)),y:Math.max(30,Math.min(world.h-30,wy))};hero.target=null;marker={x:hero.moveTo.x,y:hero.moveTo.y,t:0};
+  holdMove={id:e.pointerId,cx:e.clientX,cy:e.clientY}; /* keep the finger/mouse button down and the hero follows it */
+ }
 });
+
+/* ---- hold-to-move: while a finger stays pressed on open ground, the hero keeps walking toward it ---- */
+let holdMove=null;
+window.addEventListener('pointermove',e=>{ /* window, not canvas — keeps steering even if the cursor drifts off the map */
+ if(holdMove&&e.pointerId===holdMove.id){holdMove.cx=e.clientX;holdMove.cy=e.clientY;}
+});
+const endHoldMove=e=>{if(holdMove&&e.pointerId===holdMove.id)holdMove=null;};
+window.addEventListener('pointerup',endHoldMove);
+window.addEventListener('pointercancel',endHoldMove);
 
 /* ---- camera zoom: mouse wheel on the map, 2-finger pinch on phones ---- */
 let zoom=1,pinchD=0,pinching=false;
@@ -2800,6 +2812,7 @@ cv.addEventListener('wheel',e=>{
 cv.addEventListener('touchstart',e=>{
  if(e.touches.length===2){
   pinching=true;
+  holdMove=null; /* second finger means pinch-zoom, not walking */
   if(hero)hero.moveTo=null;
   pinchD=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
  }
@@ -2962,6 +2975,11 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    return;
   }
  }else{
+  if(holdMove){ /* finger still pressed — refresh the walk target to wherever it is now */
+   const hr=cv.getBoundingClientRect();
+   const hx=(holdMove.cx-hr.left)/zoom+camX,hy=(holdMove.cy-hr.top)/zoom+camY;
+   hero.moveTo={x:Math.max(30,Math.min(world.w-30,hx)),y:Math.max(30,Math.min(world.h-30,hy))};
+  }
   let kx=(keys['d']||keys['arrowright']?1:0)-(keys['a']||keys['arrowleft']?1:0);
   let ky=(keys['s']||keys['arrowdown']?1:0)-(keys['w']||keys['arrowup']?1:0);
   if(kx||ky){

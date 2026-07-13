@@ -36,7 +36,7 @@
   .vlab{font-size:9px;color:var(--dim);width:20px;text-align:right}
  
   #stageWrap{flex:1 1 auto;position:relative;min-height:0}
-  canvas#game{position:absolute;inset:0;width:100%;height:100%;display:block}
+  canvas#game{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
   #ticker{position:absolute;left:8px;right:60px;bottom:4px;pointer-events:none;font-size:10.5px;line-height:1.45;color:#eef4ea;text-shadow:0 1px 3px rgba(0,0,0,.85)}
   #ticker .imp{color:var(--parch)} #ticker .loot{color:var(--brass)}
   #ticker .lrare{color:#8fc3ef} #ticker .lepic{color:#c9a0ea} #ticker .lfine{color:#9adf9a} #ticker .lscroll{color:#e8c9ef} #ticker .llegendary{color:#7fd7ff}
