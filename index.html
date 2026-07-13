@@ -938,7 +938,7 @@ const zoneMapImgs={};
 const zoneMapImg=n=>{if(!zoneMapImgs[n]){zoneMapImgs[n]=new Image();zoneMapImgs[n].src='assets/models/maps/'+n+'.png';}return zoneMapImgs[n];};
 const bergImg=new Image();bergImg.src='assets/models/berg.png';
 /* painted character sprites — keyed race+gender+class (e.g. humanmale_warrior.png) */
-const CHAR_SPRITES={humanmale_warrior:1,undeadmale_hunter:1}; /* the combos that have art in assets/characters */
+const CHAR_SPRITES={humanmale_warrior:1,undeadmale_hunter:1,dwarfmale_mage:1,orcmale_priest:1}; /* the combos that have art in assets/characters */
 const charSpriteCache={};
 function charSprite(raceId,clsId,female){
  const key=raceId+(female?'female':'male')+'_'+clsId;
@@ -960,6 +960,8 @@ const CHAR_RUN={};
 /* the hero's boots — one right-foot asset, mirrored for the left */
 const bootImg=new Image();bootImg.src='assets/characters/fot.png';
 const bowImg=new Image();bowImg.src='assets/weapons/bow.png';
+const maceImg=new Image();maceImg.src='assets/weapons/mace.png';
+const staffImg=new Image();staffImg.src='assets/weapons/staff.png';
 function bootFeet(e,g2){
  const g=g2||ctx;
  if(!(bootImg.complete&&bootImg.naturalWidth)){if(!g2)feet(e,1);return;}
@@ -1089,8 +1091,9 @@ const RACES=[
  {id:'orc',name:'Orc',desc:'Warborn raiders. +6% critical chance.',c1:'#8fd09a',c2:'#2f6b45',crit:6},
  {id:'undead',name:'Undead',desc:'The Forsaken. Heal 3% on every kill.',c1:'#c0a0e0',c2:'#503a6b',leech:.03},
 ];
-/* legacy race ids from old saves and multiplayer peers → the new plain names */
+/* legacy race/class ids from old saves and multiplayer peers → the new plain names */
 const RACE_ALIAS={stoneborn:'dwarf',sylvan:'orc',gravekin:'undead'};
+const CLASS_ALIAS={cleric:'priest'};
 const CLASSES=[
  {id:'warrior',name:'Christian',desc:'Heavy blade up close. Cleaving strikes and war-shouts.',hp:125,atk:12,crit:5,armor:0.05,range:40,cd:.95,mana:55,
   spells:[
@@ -1110,7 +1113,7 @@ const CLASSES=[
    {n:'Multi-Shot',g:'🏹',cost:22,cd:8,t:'multi',mul:1.4,hits:3,d:'Arrows at up to 3 foes, 140% each.',vfx:'arrow'},
    {n:'Rapid Fire',g:'💨',cost:20,cd:28,t:'buff',buff:'haste',val:1.6,dur:6,d:'+60% attack speed for 6s.',vfx:'shout'},
   ]},
- {id:'cleric',name:'Jew',desc:'Holy smiting and healing light.',hp:112,atk:11,crit:8,armor:0.02,range:40,cd:.95,mana:85,
+ {id:'priest',name:'Jew',desc:'Holy smiting and healing light.',hp:112,atk:11,crit:8,armor:0.02,range:40,cd:.95,mana:85,
   spells:[
    {n:'Smite',g:'☀️',cost:12,cd:4,t:'st',mul:2.0,heal:.06,d:'200% holy damage, heals you 6%.',vfx:'holy'},
    {n:'Holy Nova',g:'✴️',cost:24,cd:9,t:'aoe',mul:1.3,rad:115,heal:.15,d:'130% to nearby foes, heals you 15%.',vfx:'holy'},
@@ -1805,6 +1808,7 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.raidPots===undefined)s.raidPots=0;
  if(s.raidT===undefined)s.raidT=0;
  if(RACE_ALIAS[s.race])s.race=RACE_ALIAS[s.race]; /* old saves used stoneborn/sylvan/gravekin */
+ if(CLASS_ALIAS[s.cls])s.cls=CLASS_ALIAS[s.cls]; /* old saves used cleric for Jew */
  if(s.thorLock===undefined)s.thorLock=-1;
  if(s.thorKills===undefined)s.thorKills=0;
  if(s.thorLockWhy===undefined)s.thorLockWhy='';
@@ -2449,7 +2453,7 @@ function buildZone(){
    ['Lilla Kjell','human','hunter',0,[[cx,cy-250],[cx-330,cy-110]],42],
    ['Ragnar Lagom','orc','warrior',0,[[cx+360,cy+100],[cx+460,cy-20]],24],
    ['Fiskar-Frasse','human','hunter',0,[[cx-360,cy+100],[cx-190,cy+270]],32],
-   ['Tant Ulla','undead','cleric',1,[[cx+190,cy+270],[cx+360,cy+100]],27],
+   ['Tant Ulla','undead','priest',1,[[cx+190,cy+270],[cx+360,cy+100]],27],
    ['Börje Borek Jr.','human','warrior',0,[[cx,cy-250],[cx+460,cy-20],[cx+40,cy+40]],38],
   ];
   world.npcs=NPC_DEFS.map(([name,race,cls,fem,pts,speed])=>({
@@ -2893,7 +2897,7 @@ function healHero(amt,silent){
 function hurtHero(dmg,label){
  if(hero.dead)return;
  /* hidden passive: melee callings (Christian/Jew) shrug off 60% in the Cow Level — never shown in any UI */
- const cowMelee=zoneOf().cow&&(S.cls==='warrior'||S.cls==='cleric')?0.40:1;
+ const cowMelee=zoneOf().cow&&(S.cls==='warrior'||S.cls==='priest')?0.40:1;
  dmg=Math.round(dmg*(1-scrollPct('warding'))*(1-(classOf().armor||0))*(1-(raceOf().armor||0))*(1-((activePet()||{}).armor||0))*cowMelee);
  hero.hp-=dmg;hero.hurt=0.2;
  floatAt(hero.x,hero.y-26,'-'+dmg+(label?' '+label:''),'#ff8a7a');
@@ -4553,6 +4557,7 @@ function drawHourglassBody(g,cx,cy,by,c2,c1,w){
 }
 function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painted){
  raceId=RACE_ALIAS[raceId]||raceId; /* peers/leaderboard entries may still send legacy ids */
+ clsId=CLASS_ALIAS[clsId]||clsId;
  const r=RACES.find(x=>x.id===raceId);
  const sgn=fx<0?-1:1;
  if(weaponId==='warglaives'){ /* back glaive: behind the body, tilted opposite the front one — WoW dual-wield look */
@@ -4716,7 +4721,15 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g.strokeStyle='#7a5a3a';g.lineWidth=2.5;
   g.beginPath();g.moveTo(0,1.5);g.lineTo(0,6);g.stroke();
   }
- }else if(clsId==='mage'||clsId==='cleric'){
+ }else if(clsId==='mage'&&staffImg.complete&&staffImg.naturalWidth){
+  /* painted staff (assets/weapons/staff.png) — the Hindu standard weapon */
+  const H=pw?42:30,W=H*staffImg.naturalWidth/staffImg.naturalHeight;
+  g.drawImage(staffImg,-W/2,5-H,W,H);
+ }else if(clsId==='priest'&&maceImg.complete&&maceImg.naturalWidth){
+  /* painted mace (assets/weapons/mace.png) — the Jew standard weapon, grip in the hand */
+  const H=pw?38:27,W=H*maceImg.naturalWidth/maceImg.naturalHeight;
+  g.drawImage(maceImg,-W/2,4-H,W,H);
+ }else if(clsId==='mage'||clsId==='priest'){
   g.strokeStyle='#c9a45a';g.lineWidth=3;g.beginPath();g.moveTo(0,4);g.lineTo(0,-12);g.stroke();
   g.fillStyle=clsId==='mage'?'#7fd0ff':'#ffd76a';g.beginPath();g.arc(0,-14,3+Math.sin(performance.now()/200)*0.6,0,7);g.fill();
  }else if(clsId==='hunter'){
@@ -7451,7 +7464,7 @@ async function cloudPullRoster(){
 }
 /* --- global leaderboard: name, level, prestige, rating, gear, stats and scrolls --- */
 function charStats(ch){
- const c=CLASSES.find(x=>x.id===ch.cls)||CLASSES[0],r=RACES.find(x=>x.id===(RACE_ALIAS[ch.race]||ch.race))||RACES[0];
+ const c=CLASSES.find(x=>x.id===(CLASS_ALIAS[ch.cls]||ch.cls))||CLASSES[0],r=RACES.find(x=>x.id===(RACE_ALIAS[ch.race]||ch.race))||RACES[0];
  const sum=k=>Object.values(ch.gear||{}).reduce((t,g)=>t+((g&&g[k])||0),0);
  const titan=(ch.activeScrolls||[]).filter(Boolean).find(s=>s.id==='titan');
  return {
@@ -7465,7 +7478,7 @@ const lbScore=ch=>(ch.prestige||0)*1e6+(ch.lvl||1)*1e3+charGearScore(ch);
 async function publishLB(ch,force){
  if(!ch||!ch.id)return;
  const now=Date.now();
- if(!force&&now-FB.lastPub<45000)return;
+ if(!force&&now-FB.lastPub<1800000)return; /* passive publishes at most every 30 min */
  FB.lastPub=now;
  ch.tainted=false;ch.taintV=0;
  const slim=g=>g?{name:g.name,rar:g.rar,slot:g.slot,up:g.up||0,star:g.star||0,atk:g.atk||0,hp:g.hp||0,crit:g.crit||0,haste:g.haste||0,lifesteal:g.lifesteal||0,legend:g.legend||null,power:Math.round(g.power||0)}:null;
@@ -7487,8 +7500,8 @@ async function publishLB(ch,force){
 async function fetchLB(){
  if(FB.ready){
   try{
-   const q=await FB.db.collection('leaderboard').orderBy('score','desc').limit(100).get();
-   return q.docs.map(d=>d.data()).filter(e=>String(e.season||'')===String(SEASON)).slice(0,50);
+   const q=await FB.db.collection('leaderboard').orderBy('score','desc').limit(200).get();
+   return q.docs.map(d=>d.data()).filter(e=>String(e.season||'')===String(SEASON)).slice(0,100);
   }catch(e){}
  }
  try{
@@ -7499,7 +7512,7 @@ async function fetchLB(){
    for(const k of keys){
     try{const g=await window.storage.get(k,true);if(g&&g.value)out.push(JSON.parse(g.value));}catch(e){}
    }
-   return out.sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,50);
+   return out.sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,100);
   }
  }catch(e){}
  return [];
@@ -7541,7 +7554,7 @@ async function showLeaderboard(){
  if(S&&S.id)await publishLB(S,true);
  const rows=await fetchLB();
  $('lbList').innerHTML=rows.length?rows.map((e,i)=>{
-  const r=RACES.find(x=>x.id===(RACE_ALIAS[e.race]||e.race)),c=CLASSES.find(x=>x.id===e.cls);
+  const r=RACES.find(x=>x.id===(RACE_ALIAS[e.race]||e.race)),c=CLASSES.find(x=>x.id===(CLASS_ALIAS[e.cls]||e.cls));
   const zn=ZONES[Math.max(0,Math.min(ZONES.length-1,e.zone||0))].name;
   return `<div class="card charcard lbcard ${S&&e.cid===S.id?'me':''}" style="flex-wrap:wrap">
    <div class="lbrank big">${i+1}</div>
@@ -7593,7 +7606,7 @@ function showLogin(msg=''){
 /* ==================== CHARACTER SELECT ==================== */
 function drawPortrait(cnv,ch){
  const g=cnv.getContext('2d'),W=cnv.width,H=cnv.height;
- const r=RACES.find(x=>x.id===(RACE_ALIAS[ch.race]||ch.race)),c=CLASSES.find(x=>x.id===ch.cls);
+ const r=RACES.find(x=>x.id===(RACE_ALIAS[ch.race]||ch.race)),c=CLASSES.find(x=>x.id===(CLASS_ALIAS[ch.cls]||ch.cls));
  const bg=g.createLinearGradient(0,0,0,H);
  bg.addColorStop(0,'#41301f');bg.addColorStop(1,'#1a120c');
  g.fillStyle=bg;g.fillRect(0,0,W,H);
@@ -7634,7 +7647,7 @@ async function renderSelect(){
  const chars=[];
  for(const id of roster){const ch=await loadChar(id);if(ch)chars.push(ch);}
  $('charList').innerHTML=chars.length?chars.map(ch=>{
-  const r=RACES.find(x=>x.id===(RACE_ALIAS[ch.race]||ch.race)),c=CLASSES.find(x=>x.id===ch.cls);
+  const r=RACES.find(x=>x.id===(RACE_ALIAS[ch.race]||ch.race)),c=CLASSES.find(x=>x.id===(CLASS_ALIAS[ch.cls]||ch.cls));
   const hcDead=ch.hardcore&&ch.hcDead;
   return `<div class="card charcard"${hcDead?' style="opacity:.5;filter:grayscale(.8)"':''}>
    <canvas class="portrait" width="64" height="76" data-pc="${ch.id}"></canvas>
