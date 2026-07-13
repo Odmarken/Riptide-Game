@@ -7121,7 +7121,7 @@ function beginGame(isNew){
  $('select').classList.remove('open');
  openTab('battle');
  hero=null; /* fresh character entering the world — never inherit the previous character's vitals */
- resize();applyZoneUI();buildZone();buildSkillbar();renderHUD();
+ resize();setZoom(zmin());applyZoneUI();buildZone();buildSkillbar();renderHUD();
  $('sndBtn').textContent=S.sound?'🔊':'🔇';$('sndBtn').classList.toggle('off',!S.sound);
  $('sfxBtn').textContent=S.sfx?'⚔️':'🔕';$('sfxBtn').classList.toggle('off',!S.sfx);
  $('volAmbSl').value=Math.round((S.volAmb??0.5)*100);
