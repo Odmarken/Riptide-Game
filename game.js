@@ -42,6 +42,7 @@ const maceImg=new Image();maceImg.src='assets/weapons/mace.png';
 const haalandImg=new Image();haalandImg.src='assets/boss/haaland_boss.png';
 const haalandAxeImg=new Image();haalandAxeImg.src='assets/boss/axe_boss.png';
 const oneringImg=new Image();oneringImg.src='assets/models/onering.png';
+const altarFenceImg=new Image();altarFenceImg.src='assets/models/maps/altarasset.png';
 const staffImg=new Image();staffImg.src='assets/weapons/staff.png';
 const swordImg=new Image();swordImg.src='assets/weapons/sword.png';
 function bootFeet(e,g2){
@@ -290,8 +291,19 @@ const ZONES=[
  {name:'The Crypts',lvl:60,amb:'crypt',west:true,special:true,crypts:true, /* ever-shifting labyrinth — under construction.
     NOTE: appended LAST so existing saves' zone indices stay valid — never insert zones mid-array */
   ground:'#3a3a46',ground2:'#33333e',water:'#2f3a4a',tree:'#33333e',tree2:'#262630',path:'#55556a',rocky:true,en:[]},
+ {name:'The Altar',lvl:1,amb:'frost',special:true,altar:true,noBerg:true,map:'thealtar',en:[], /* sky sanctum — portal-only, no level gate */
+  ground:'#8a94b8',ground2:'#7d87aa',water:'#9ac8e8',tree:'#5a6a8a',tree2:'#46536e',path:'#d8cfa0'},
 ];
 const TAVERN_ZONE=ZONES.findIndex(z=>z.tavern);
+const ALTAR_ZONE=ZONES.findIndex(z=>z.altar);
+function goToZone(i){
+ const z=ZONES[i];if(!z)return;
+ S.zone=i;S.quest=0;S.qProg=0;
+ mapContinent=z.raidc?'raid':z.valhalla?'valhalla':z.west?'west':'east';
+ applyZoneUI();buildZone();renderHUD();save();
+ openTab('battle');
+ stageMsg('Traveling to '+z.name+'…');
+}
 
 /* ============ RAID CO-OP / FIRESTORE PROTOTYPE ============ */
 let pendingRaidZone=-1;
@@ -745,6 +757,7 @@ function zoneTemplates(z){
 }
 function zoneQuests(z){
  if(z.tavern)return [{name:'🍺 Goldshire',desc:'A safe haven. Rest, forge, trade — no foe dares enter.',need:999999}];
+ if(z.altar)return [{name:'⛧ The Altar',desc:'A silent ring above the clouds. Something waits to be awakened.',need:999999}];
  if(z.raid)return [{name:'⚔ Sanctum of the Three',desc:'Slay all three raid lords. Pull them one at a time — they never retreat.',need:3,boss:true}];
  if(z.cow)return [{name:'MOO',desc:'Survive. You cannot.',need:999999}];
  if(z.boss)return [{name:z.boss[0],desc:'Defeat '+z.boss[0]+'. Victory opens the gate beyond, forever.',need:1,boss:true}];
@@ -1499,6 +1512,8 @@ $('wormBuyBtn').onclick=()=>{
  sfx.loot();stageMsg('🪱 +'+need+' worms!',1500);
 };
 $('fishhutClose').onclick=()=>$('fishhutMenu').style.display='none';
+let altarMsgSeen=false;
+$('altarMsgOk').onclick=()=>{$('altarMsg').style.display='none';};
 $('sharkOk').onclick=()=>{$('sharkFx').style.display='none';gamePaused=false;};
 function startFishing(){
  if(fish.on||!nearLake())return;
@@ -1559,6 +1574,8 @@ function buildZone(){
   world.solids.push({x:cx-720,y:cy-440,r:52,type:'bank',big:true,seed:8,crx:138,cry:50,cyo:-79});
   /* the Blacksmith — painted model at the south-west road stub */
   world.solids.push({x:cx-805,y:cy+550,r:52,type:'smith',big:true,seed:11,crx:125,cry:45,cyo:-100});
+  /* portal to The Altar — open to every level, on the north road */
+  world.solids.push({x:cx-40,y:cy-700,r:38,type:'altarportal'});
   /* the Fishing Hut — worm vendor on the lake's south shore */
   world.solids.push({x:cx+760,y:cy-350,r:30,type:'fishhut',crx:80,cry:32,cyo:-38});
   /* friendly townsfolk roaming their own little routes between the buildings */
@@ -1603,6 +1620,18 @@ function buildZone(){
    rocks++;
   }
  }else{
+  if(z.altar){
+   /* the way home — standing on the walkway just ahead of the spawn */
+   world.solids.push({x:110,y:995,r:38,type:'altarportal'}); /* far left on the walkway */
+   world.spawn={x:430,y:990}; /* arrive a few steps onto the bridge */
+   world.portal={x:-500,y:-500}; /* hide the default zone-exit swirl — the portal is the exit */
+   /* railing on the bridge edges (walkway spans y 920–1145 in the art), then around the ring
+      (ring centre (1996,1000), radius 850) */
+   for(let fx2=120;fx2<=1070;fx2+=190){
+    world.solids.push({x:fx2,y:928,r:16,type:'altarfence'});
+    world.solids.push({x:fx2,y:1124,r:16,type:'altarfence'});
+   }
+  }
   if(!isBoss&&!z.raid&&!z.noBerg){
    const nW=z.rocky?2:3+Math.floor(R()*2);
    for(let i=0;i<nW;i++){
@@ -1619,7 +1648,7 @@ function buildZone(){
   /* fewer props with an enforced minimum gap so nothing clumps and traps the hero */
   const MINGAP=58;
   const clearOf=(x,y)=>!world.solids.some(s=>dist({x,y},s)<(s.type==='water'||s.type==='berg'?s.r+46:MINGAP));
-  const nT=(z.raid||isBoss)?0:70; /* boss arenas: clean ground, no trees/rocks */
+  const nT=(z.raid||isBoss||z.altar)?0:70; /* boss arenas & the sky sanctum: clean ground */
   for(let i=0;i<nT;i++){
    let x,y,ok=false;
    if(isBoss){
@@ -1914,6 +1943,7 @@ function collide(e,nx,ny){
  if((!e.boss||e.raid)&&!e.cow){
   for(const s of world.solids){
    if(s.type==='gate'&&!(world.raidRooms&&world.raidRooms[s.room]&&world.raidRooms[s.room].sealed))continue;
+   if(s.type==='altarportal')continue; /* walk straight through the portal */
    if(s.crx){ /* wide painted buildings block with an ellipse matching their footprint (cyo shifts it up onto the walls) */
     const kx=(nx-s.x)/(s.crx+e.r),ky=(ny-s.y-(s.cyo||0))/(s.cry+e.r);
     if(kx*kx+ky*ky<1)return true;
@@ -2699,6 +2729,14 @@ cv.addEventListener('pointerdown',e=>{
  const r=cv.getBoundingClientRect();
  const wx=(e.clientX-r.left)/zoom+camX,wy=(e.clientY-r.top)/zoom+camY;
  hero.pendingDoor=null; /* any new click cancels a pending walk-to-building */
+ const apx=world.solids.find(s=>s.type==='altarportal');
+ if(apx&&Math.hypot(wx-apx.x,wy-apx.y)<apx.r+28){
+  const dest=zoneOf().altar?TAVERN_ZONE:ALTAR_ZONE;
+  const go=()=>goToZone(dest);
+  if(Math.hypot(hero.x-apx.x,hero.y-apx.y)<75)go();
+  else{hero.target=null;hero.goPortal=false;hero.moveTo={x:apx.x,y:apx.y+34};marker={x:apx.x,y:apx.y+34,t:0};hero.pendingDoor={s:apx,open:go,rng:75};}
+  return;
+ }
  if(zoneOf().tavern){
   /* buildings need melee range — near: menu opens; far: run to the door, menu opens on arrival */
   const walkOrOpen=(s,open)=>{
@@ -2951,6 +2989,17 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    if(Math.hypot(hero.x-p.s.x,hero.y-p.s.y)<p.rng){hero.pendingDoor=null;hero.moveTo=null;p.open();}
    else if(!hero.moveTo)hero.pendingDoor=null; /* walk ended without arriving — give up */
   }
+  /* --- The Altar portal: step inside and it takes you --- */
+  {
+   const apt=world.solids.find(s2=>s2.type==='altarportal');
+   if(apt&&!hero.dead&&Math.hypot(hero.x-apt.x,hero.y-(apt.y-30))<34)goToZone(zoneOf().altar?TAVERN_ZONE:ALTAR_ZONE);
+  }
+  /* --- inside the great ring: the Altar sizes you up --- */
+  if(zoneOf().altar){
+   const dRing=Math.hypot(hero.x-1996,hero.y-1000);
+   if(dRing<700&&!altarMsgSeen&&!((S.prestige||0)>=40&&(S.rating||0)>=3000)){$('altarMsg').style.display='block';altarMsgSeen=true;}
+   if(dRing>760&&altarMsgSeen){$('altarMsg').style.display='none';altarMsgSeen=false;}
+  }else if(altarMsgSeen){$('altarMsg').style.display='none';altarMsgSeen=false;}
   /* --- fishing: button near the lake, casts 4–10s, stops the moment you move away --- */
   {
    const nl=nearLake(),fb=$('fishBtn');
@@ -3522,6 +3571,27 @@ function drawProp(s,z){
    ctx.fillStyle='#9a8468';ctx.fillRect(-w,-hh*0.55,w*2,hh);
    ctx.fillStyle='#8a2e26';
    ctx.beginPath();ctx.moveTo(-w*1.18,-hh*0.55);ctx.lineTo(0,-hh*1.45);ctx.lineTo(w*1.18,-hh*0.55);ctx.closePath();ctx.fill();
+  }
+ }else if(s.type==='altarportal'){
+  const t=performance.now()/700+s.x;
+  ctx.save();
+  ctx.shadowColor='#9ac8ff';ctx.shadowBlur=14;
+  ctx.strokeStyle='rgba(154,200,255,'+(0.6+0.25*Math.sin(t*2)).toFixed(3)+')';ctx.lineWidth=5;
+  ctx.beginPath();ctx.ellipse(0,-36,30,48,0,0,7);ctx.stroke();
+  ctx.fillStyle='rgba(120,170,255,0.30)';
+  ctx.beginPath();ctx.ellipse(0,-36,24,40,0,0,7);ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.fillStyle='rgba(225,238,255,0.85)';
+  for(let i=0;i<4;i++){const a=t+i*1.57;ctx.beginPath();ctx.arc(Math.cos(a)*19,-36+Math.sin(a)*32,2.4,0,7);ctx.fill();}
+  ctx.restore();
+  const lbl=zoneOf().altar?'Goldshire':'The Altar';
+  ctx.font='700 12px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
+  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(lbl,1,-95);
+  ctx.fillStyle='#bcd8ff';ctx.fillText(lbl,0,-96);
+ }else if(s.type==='altarfence'){
+  if(altarFenceImg.complete&&altarFenceImg.naturalWidth){
+   const W=200,H=W*altarFenceImg.naturalHeight/altarFenceImg.naturalWidth;
+   ctx.drawImage(altarFenceImg,-W/2,10-H,W,H);
   }
  }else if(s.type==='fishhut'){
   if(fishhutImg.complete&&fishhutImg.naturalWidth){
@@ -4466,6 +4536,7 @@ function renderMap(){
   if(mapContinent==='raid'&&!z.raidc)return '';
   if(z.tavern)return '';
   if(z.special){
+   if(z.altar)return ''; /* portal-only zone */
    if(z.crypts){
     const p20=(S.prestige||0)>=20;
     return `<div class="card zonecard locked" style="border-color:${p20?'#a66bd0':''}">
