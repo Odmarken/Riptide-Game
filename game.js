@@ -6692,7 +6692,7 @@ function drawPortrait(cnv,ch){
  g.beginPath();g.ellipse(W/2,H*0.3,W*0.5,H*0.32,0,0,7);g.fill();
  const scA=(ch.activeScrolls||[ch.activeScroll]).filter(Boolean)[0];
  const sc=scA?enchOf(scA.id||scA):null;
- const ps=charSprite(ch.race,c.id,ch.gender==='f');
+ const ps=charSprite(RACE_ALIAS[ch.race]||ch.race,c.id,ch.gender==='f'); /* legacy entries still carry old race ids */
  if(ps&&ps.complete&&ps.naturalWidth){
   /* painted model portrait — smaller scale so the taller sprite + boots fit the frame */
   g.save();g.translate(W/2,H*0.684);g.scale(1.16,1.16);
