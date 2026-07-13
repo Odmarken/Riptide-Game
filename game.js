@@ -42,6 +42,7 @@ const maceImg=new Image();maceImg.src='assets/weapons/mace.png';
 const haalandImg=new Image();haalandImg.src='assets/boss/haaland_boss.png';
 const haalandAxeImg=new Image();haalandAxeImg.src='assets/boss/axe_boss.png';
 const staffImg=new Image();staffImg.src='assets/weapons/staff.png';
+const swordImg=new Image();swordImg.src='assets/weapons/sword.png';
 function bootFeet(e,g2){
  const g=g2||ctx;
  if(!(bootImg.complete&&bootImg.naturalWidth)){if(!g2)feet(e,1);return;}
@@ -220,9 +221,9 @@ const ENCHS=[
 const enchOf=id=>ENCHS.find(e=>e.id===id);
 /* ==================== PETS ==================== */
 const PETS=[
- {id:'cat',n:'Saltwhisker the Cat',g:'🐈',cc:'#e8b070',d:'+10% attack damage.',atkMul: 0.10},
- {id:'dog',n:'Borek the Hound',g:'🐕',cc:'#a8bcb0',d:'Take 10% less damage.',armor: 0.10},
- {id:'shark',n:'Blåhaj the Boss-Eater',g:'🦈',cc:'#7ab8e0',d:'+22% damage to bosses.',bossDmg: 0.22}, /* HAALAND recipe reward — never rolls from cases */
+ {id:'cat',n:'Puffen',g:'🐈',cc:'#e8b070',d:'+10% attack damage.',atkMul: 0.10},
+ {id:'dog',n:'Ayla',g:'🐕',cc:'#a8bcb0',d:'Take 10% less damage.',armor: 0.10},
+ {id:'shark',n:'MEG',g:'🦈',cc:'#7ab8e0',d:'+22% damage to bosses.',bossDmg: 0.22}, /* HAALAND recipe reward — never rolls from cases */
 ];
 const petOf=id=>PETS.find(p=>p.id===id);
 const activePet=()=>S&&S.pet?petOf(S.pet):null;
@@ -753,7 +754,7 @@ const $=id=>document.getElementById(id);
 const dispName=ch=>(ch.name||'?')+((ch.rating||0)>0?' ('+(ch.rating||0)+')':'');
 const raceOf=()=>RACES.find(r=>r.id===S.race);
 const classOf=()=>CLASSES.find(c=>c.id===S.cls);
-const gearSum=k=>{if(isFM(S.gear.weapon))syncFrostmourne(S.gear.weapon);if(isWG(S.gear.weapon))syncWarglaives(S.gear.weapon);let t=0;for(const sl in S.gear){const g=S.gear[sl];if(g&&g[k])t+=g[k]}return t};
+const gearSum=k=>{if(isFM(S.gear.weapon))syncFrostmourne(S.gear.weapon);if(isWG(S.gear.weapon))syncWarglaives(S.gear.weapon);if(isRing(S.gear.trinket))syncOneRing(S.gear.trinket);let t=0;for(const sl in S.gear){const g=S.gear[sl];if(g&&g[k])t+=g[k]}return t};
 /* two Active Scroll slots — same scroll type cannot stack */
 const hasEnch=id=>(S.activeScrolls||[]).some(sc=>sc&&sc.id===id);
 const scrollGet=id=>(S.activeScrolls||[]).find(sc=>sc&&sc.id===id);
@@ -780,7 +781,7 @@ function consumeScrolls(id,tier,n){
  return fromSlot;
 }
 
-const gearScore=()=>{if(isFM(S.gear.weapon))syncFrostmourne(S.gear.weapon);if(isWG(S.gear.weapon))syncWarglaives(S.gear.weapon);return Math.round(Object.values(S.gear).reduce((t,g)=>t+(g?g.power:0),0));};
+const gearScore=()=>{if(isFM(S.gear.weapon))syncFrostmourne(S.gear.weapon);if(isWG(S.gear.weapon))syncWarglaives(S.gear.weapon);if(isRing(S.gear.trinket))syncOneRing(S.gear.trinket);return Math.round(Object.values(S.gear).reduce((t,g)=>t+(g?g.power:0),0));};
 /* Prestige has no cap — but it only unlocks at max level once every boss is dead. */
 const allBossesDead=()=>ZONES.every((z,i)=>z.special||!z.boss||!!S.bossDead[i]);
 /* true when every boss zone before index i has had its boss slain */
@@ -886,6 +887,9 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.cerberusKills===undefined)s.cerberusKills=0;
  if(s.worms===undefined)s.worms=0;
  if(s.raidPots===undefined)s.raidPots=0;
+ if(s.ringRecipe===undefined)s.ringRecipe=false;
+ if(s.brokenRing===undefined)s.brokenRing=false;
+ if(s.ringForged===undefined)s.ringForged=false;
  if(s.raidT===undefined)s.raidT=0;
  if(RACE_ALIAS[s.race])s.race=RACE_ALIAS[s.race]; /* old saves used stoneborn/sylvan/gravekin */
  if(CLASS_ALIAS[s.cls])s.cls=CLASS_ALIAS[s.cls]; /* old saves used cleric for Jew */
@@ -975,7 +979,25 @@ const FM_MAX_UP=6;       /* legendary cap: max +6 upgrades */
 const GEAR_MAX_UP=12;      /* normal gear cap; Frostmourne uses FM_MAX_UP */
 const isFM=it=>it&&it.legend==='frostmourne';
 const isWG=it=>it&&(it.legend==='warglaives'||it.id==='warglaives'||it.warglaives===true); /* supports old/equipped objects marked warglaives:true */
-const isLegendaryW=it=>isFM(it)||isWG(it);
+const isRing=it=>it&&it.legend==='onering';
+const isLegendaryW=it=>isFM(it)||isWG(it)||isRing(it);
+/* --- The One Ring: legendary trinket forged from Recipe + Broken Ring at smith lvl 10 --- */
+function syncOneRing(it){
+ if(!isRing(it)||!S)return it;
+ it.id='onering';it.legend='onering';it.slot='trinket';it.rar='legendary';it.name='The One Ring';
+ it.up=Math.min(it.up||0,FM_MAX_UP);
+ it.maxUp=FM_MAX_UP;it.bossDmg=10;
+ it.baseAtk=Math.max(1,Math.round(bestNormalWeaponAtk()*0.10)); /* legendary trinket: ~10% of a top weapon, live-scaled */
+ it.atk=Math.round(it.baseAtk*Math.pow(1.12,it.up||0));
+ it.crit=it.baseCrit=0;it.hp=it.baseHp=0;
+ it.lifesteal=0;it.manadrain=0.02; /* the Ring feeds on its bearer */
+ calcPower(it);it.basePower=Math.round(it.baseAtk*3+12);
+ it.sell=0;
+ return it;
+}
+function rollOneRing(){
+ return syncOneRing({id:'onering',slot:'trinket',rar:'legendary',legend:'onering',name:'The One Ring',atk:0,hp:0,crit:0,lifesteal:0,manadrain:0.02,bossDmg:10,ench:null,up:0,sell:0,maxUp:FM_MAX_UP});
+}
 function bestNormalWeaponAtk(){
  /* Normal epic weapons roll up to (3+3) * epic rarity * gear scale.
     Frostmourne mirrors that same top-end curve, but uses effectiveHeroLvl() so prestige
@@ -1029,6 +1051,13 @@ function smithTick(){
   S.smithLvl=j.to;
   log(`⚒️ Blacksmith reaches <span class="loot">level ${S.smithLvl}</span>!`,'loot');
   stageMsg('⚒️ Blacksmith level '+S.smithLvl+'!',2200);sfx.level();
+ }else if(j.kind==='ring'){
+  const ring=rollOneRing();
+  if(S.gear.trinket)S.bag.push(S.gear.trinket); /* the old trinket steps aside */
+  S.gear.trinket=ring;S.ringForged=true;
+  log(`⚒️ The forge cools — <span class="llegendary">💍 The One Ring</span> binds to your trinket slot! +10% boss damage, but it drinks 2% of your mana with every strike.`,'loot');
+  stageMsg('💍 THE ONE RING IS FORGED!',3800);sfx.level();
+  if(typeof publishLB==='function')publishLB(S,true);
  }else{
   const it=syncFrostmourne({slot:'weapon',rar:'legendary',legend:'frostmourne',name:'Frostmourne',star:j.to,atk:0,hp:0,crit:4,lifesteal:0.02,ench:null,up:0,sell:0});
   S.bag.push(it);
@@ -1088,6 +1117,7 @@ function statBaseStr(it,k,label,suffix=''){
 function itemStr(it){
  if(isFM(it))syncFrostmourne(it);
  else if(isWG(it))syncWarglaives(it);
+ else if(isRing(it))syncOneRing(it);
  else ensureItemBase(it);
  if(isWG(it))syncWarglaives(it);
  const cap=isLegendaryW(it)?FM_MAX_UP:GEAR_MAX_UP;
@@ -1096,13 +1126,14 @@ function itemStr(it){
  if(it.haste)s+=` +${Math.round(it.haste*100)}% ATK SPEED`;
  if(it.lifesteal)s+=` +${Math.round(it.lifesteal*1000)/10}% LIFESTEAL`;
  if(isFM(it)&&fmStar(it)>1)s+=` · ★${fmStar(it)} bonus: +${fmStar(it)*2}% CRIT / +${fmStar(it)*2}% LIFESTEAL`;
- if(isWG(it))s+=` · +10% BOSS DMG`;
+ if(it.bossDmg)s+=` · +${it.bossDmg}% BOSS DMG`;
+ if(it.manadrain)s+=` · ${Math.round(it.manadrain*100)}% MANA DRAIN`;
  return s.replace(/\s+/g,' ').trim();
 }
 /* compact stat line for the currently equipped item, for bag comparison */
 function shortStats(it){
  if(!it)return '—';
- if(isFM(it))syncFrostmourne(it);else if(isWG(it))syncWarglaives(it);else ensureItemBase(it);
+ if(isFM(it))syncFrostmourne(it);else if(isWG(it))syncWarglaives(it);else if(isRing(it))syncOneRing(it);else ensureItemBase(it);
  const parts=[];
  const baseAtk=Math.round(it.baseAtk||it.atk||0);
  const baseHp=Math.round(it.baseHp||it.hp||0);
@@ -1116,7 +1147,7 @@ function shortStats(it){
 }
 function compareVal(it){
  if(!it)return 0;
- if(isFM(it))syncFrostmourne(it);else if(isWG(it))syncWarglaives(it);else ensureItemBase(it);
+ if(isFM(it))syncFrostmourne(it);else if(isWG(it))syncWarglaives(it);else if(isRing(it))syncOneRing(it);else ensureItemBase(it);
  if(it.slot==='weapon')return Math.round(it.baseAtk||it.atk||0);
  if(it.slot==='armor')return Math.round(it.baseHp||it.hp||0);
  return Math.round(it.basePower||it.power||0);
@@ -2026,7 +2057,10 @@ function landHit(en,dmg,crit,label,basic){
  }
  applyDmg(en,dmg,label,crit);
  const w=S.gear.weapon;
- if(w&&(w.lifesteal||fmBonus()))healHero(Math.max(1,dmg*((w.lifesteal||0)+fmBonus()/100)),true);
+ const tkR=S.gear&&S.gear.trinket;
+ const lsAll=((w&&w.lifesteal)||0)+((tkR&&tkR.lifesteal)||0)+fmBonus()/100;
+ if(lsAll>0)healHero(Math.max(1,dmg*lsAll),true);
+ if(tkR&&tkR.manadrain)hero.mana=Math.max(0,hero.mana-manaMax()*tkR.manadrain); /* the Ring exacts its price on every strike */
  sfx.hit();
  burst(en.x,en.y-en.r*0.6,crit?'#ffd0a0':'#ffffff',crit?8:4,60);
 }
@@ -2035,6 +2069,7 @@ function applyDmg(en,dmg,label,crit){
  if(S.gear&&isWG(S.gear.weapon)&&en.boss)dmg=Math.round(dmg*1.10);
  if(en.boss&&(activePet()||{}).bossDmg)dmg=Math.round(dmg*(1+activePet().bossDmg));
  if(en.boss&&(S.raidT||0)>0)dmg=Math.round(dmg*1.15); /* ⚗️ Potion of Raid */
+ if(en.boss&&S.gear&&S.gear.trinket&&S.gear.trinket.bossDmg)dmg=Math.round(dmg*(1+S.gear.trinket.bossDmg/100)); /* 💍 */
  if(mp.on&&mp.started&&!mp.host&&en.raid){
   const rd=Math.max(0,Math.round(dmg));
   mp.dmgOut+=rd;rtcBroadcast({k:'dmg',d:rd},true);
@@ -2938,8 +2973,15 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
        stopFishing();
        $('sharkFx').style.display='flex';
        gamePaused=true;
+      }else if(r2<0.0025&&!S.brokenRing&&!S.ringForged){ /* 💍 0.10% — the Broken Ring surfaces */
+       S.brokenRing=true;save();
+       fishToast('💍 <b>The Broken Ring</b> — dredged up!','#ffd76a');
+       stageMsg('💍 THE BROKEN RING — half of something terrible. Check your Bag.',3500);
+       log(`Fishing: <span class="llegendary">💍 The Broken Ring</span> — combine it with the Recipe at a level 10 Blacksmith.`,'loot');
+       burst(fish.bx,fish.by,'#ffd76a',22,140,true);
+       sfx.level();
       }else{ /* 0–4 scraps — small hauls common, a full net rare */
-       const r3=(r2-0.0015)/(1-0.0015);
+       const r3=(r2-0.0025)/(1-0.0025);
        const n=r3<0.35?0:r3<0.60?1:r3<0.80?2:r3<0.93?3:4;
        if(n>0){
         const got=addScraps(n);
@@ -3823,6 +3865,10 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   }else{ /* fallback while the image loads */
    g.strokeStyle='#a07a4a';g.lineWidth=3;g.beginPath();g.arc(0,-4,8,-1.2,1.2);g.stroke();
   }
+ }else if(swordImg.complete&&swordImg.naturalWidth){
+  /* painted sword (assets/weapons/sword.png) — the warrior standard, grip in the hand */
+  const H=pw?38:27,W=H*swordImg.naturalWidth/swordImg.naturalHeight;
+  g.drawImage(swordImg,-W/2,4-H,W,H);
  }else{
   g.strokeStyle='#e8e4d8';g.lineWidth=3;g.beginPath();g.moveTo(0,4);g.lineTo(0,-13);g.stroke();
   g.strokeStyle='#a4761f';g.beginPath();g.moveTo(-3,0);g.lineTo(3,0);g.stroke();
@@ -4602,7 +4648,19 @@ function renderBag(){
  }
  let btHtml='';
  if(S.chests&&S.chests.blacktemple>0)btHtml=`<div class="card item" style="border-color:#39ff6a66;box-shadow:0 0 10px rgba(57,255,106,.15)"><div><div class="sn" style="color:#39ff6a;font-size:13px;font-weight:600">🟩 Black Temple Chest <span style="color:var(--dim)">×${S.chests.blacktemple}</span></div><div class="ss" style="color:var(--dim);font-size:11px">The spoils of the three lords. Chance for Warglaives of Azzinoth, gold, or free GOLD GOLD GOLD cases.</div></div><div class="btns"><button class="sbtn gold" data-btchest>Open</button></div></div>`;
- $('scrollSec').innerHTML=luckHtml+raidHtml+gamblerHtml+restedHtml+btHtml;
+ let ringHtml='';
+ if(S.ringRecipe||S.brokenRing){
+  const both=S.ringRecipe&&S.brokenRing,smithOk=(S.smithLvl||0)>=10;
+  if(S.ringRecipe)ringHtml+=`<div class="card item" style="border-color:#ffd76a"><div>
+   <div class="sn" style="color:#ffd76a;font-size:13px;font-weight:600">💍 Recipe of the Ring</div>
+   <div class="ss" style="color:var(--dim);font-size:11px">${both?'':'The other half sleeps at the bottom of the Goldshire lake. '}Cannot be sold or discarded.</div></div>
+   ${both?`<div class="btns"><span class="ss" style="color:#ffd76a;font-size:11px">${smithOk?'⚒ Ready — visit the Blacksmith!':'⚒ Requires Blacksmith level 10'}</span></div>`:''}</div>`;
+  if(S.brokenRing)ringHtml+=`<div class="card item" style="border-color:#c9a45a"><div>
+   <div class="sn" style="color:#c9a45a;font-size:13px;font-weight:600">💍 The Broken Ring</div>
+   <div class="ss" style="color:var(--dim);font-size:11px">Cold, heavy, and humming. ${both?'Ready to be reforged.':'Needs the Recipe of the Ring from the Trader.'} Cannot be sold or discarded.</div></div></div>`;
+ }
+ $('scrollSec').innerHTML=luckHtml+raidHtml+ringHtml+gamblerHtml+restedHtml+btHtml;
+
 
  document.querySelectorAll('[data-btchest]').forEach(b=>b.onclick=openBlackTempleChest);
  // scrolls — categorised by tier; tap a tier header to expand/collapse it
@@ -6044,7 +6102,7 @@ function smithRefresh(){
  const lv=S.smithLvl||0;
  $('smithLvlTxt').textContent='Blacksmith level '+lv+(lv>=10?' (max)':'');
  const j=S.smithJob;
- $('smithJobTxt').textContent=j?(j.kind==='lvl'?'⏳ Training to level '+j.to:'⏳ Forging Frostmourne ★'+j.to)+' — '+fmtMS(Math.max(0,j.endT-Date.now()))+' left':'';
+ $('smithJobTxt').textContent=j?(j.kind==='lvl'?'⏳ Training to level '+j.to:j.kind==='ring'?'⏳ Forging The One Ring':'⏳ Forging Frostmourne ★'+j.to)+' — '+fmtMS(Math.max(0,j.endT-Date.now()))+' left':'';
  const lu=$('smithLvlUp');
  if(lv<10&&!j){
   lu.innerHTML=`<button class="sbtn scrapb" id="smithLvlBtn" ${S.scraps<800?'disabled':''}>Train to level ${lv+1} · 800⚙ · 2 hours</button>`;
@@ -6055,6 +6113,21 @@ function smithRefresh(){
    sfx.buy();renderHUD();save();smithRefresh();
   };
  }else lu.innerHTML='';
+ const ru=$('smithRingRow');
+ if(ru){
+  if(S.ringRecipe&&S.brokenRing&&!j&&lv>=10){
+   ru.innerHTML=`<button class="sbtn gold" id="ringForgeBtn" style="width:100%;margin:6px 0">💍 Forge The One Ring · 2 hours</button>`;
+   $('ringForgeBtn').onclick=()=>{
+    if(!(S.ringRecipe&&S.brokenRing)||(S.smithLvl||0)<10||S.smithJob)return;
+    S.ringRecipe=false;S.brokenRing=false; /* both halves feed the forge */
+    S.smithJob={kind:'ring',endT:Date.now()+SMITH_HOUR};
+    stageMsg('⚒️ The forge burns black — The One Ring in 2 hours.',2600);
+    sfx.buy();save();smithRefresh();renderBag();
+   };
+  }else if(S.ringRecipe&&S.brokenRing&&!j&&lv<10){
+   ru.innerHTML='<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">💍 The One Ring awaits a level 10 blacksmith.</div>';
+  }else ru.innerHTML='';
+ }
  const p=S.prestige||0;
  const tier=(lv>=10&&p>=20)?3:(lv>=5&&p>=10)?2:0;
  const fg=$('smithForge');
@@ -6130,6 +6203,14 @@ function renderShop(){
   <div class="ss" style="color:var(--dim);font-size:11px">Restores 60% mana. You own ${S.pots.mp} / ${POT_CAP}.</div></div>
   <div class="btns"><button class="sbtn gold" data-pot="mp" ${mpFull||totalGold()<mpC||inBossFight()?'disabled':''}>${mpFull?'MAX ✦':'Buy '+mpC.toLocaleString()+'◉'}</button>
   <button class="sbtn gold" data-pot="mp" data-n="10" ${mpFull||totalGold()<mpC*10||inBossFight()?'disabled':''}>10x · ${(mpC*10).toLocaleString()}◉</button></div></div>`;
+ {
+  const ringOwned=!!S.ringRecipe,ringDone=!!S.ringForged;
+  const ringOk=!ringOwned&&!ringDone&&(S.prestige||0)>=20&&(S.rating||0)>=2500&&totalGold()>=500000;
+  const ringLbl=ringDone?'💍 Forged ✦':ringOwned?'Purchased ✦':(S.rating||0)<2500?'🔒 2500 rating':(S.prestige||0)<20?'🔒 Prestige 20':'500,000◉';
+  h+=`<div class="card item" style="border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.15)"><div><div class="sn" style="font-size:13px;font-weight:600;color:#ffd76a">💍 Recipe of the Ring</div>
+   <div class="ss" style="color:var(--dim);font-size:11px">Ancient instructions for a ring of terrible power. Costs <b style="color:var(--brass)">500,000◉</b> · requires <b style="color:var(--brass)">2500 rating</b> and <b style="color:var(--brass)">Prestige 20</b>. The other half sleeps at the bottom of a lake…</div></div>
+   <div class="btns"><button class="sbtn gold" id="ringRecipeBtn" ${ringOk?'':'disabled'}>${ringLbl}</button></div></div>`;
+ }
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Upgrades</div>';
  const cap=boostMax();
  const spN=S.boosts.speed,haN=S.boosts.haste,spC=boostCost(spN),haC=boostCost(haN);
@@ -6150,6 +6231,15 @@ function renderShop(){
   <div class="btns"><button class="sbtn gold" data-boost="haste" ${haMax||totalGold()<haC?'disabled':''}>${haMax?'MAX ✦':'Buy '+haC.toLocaleString()+'◉'}</button></div></div>`;
  h+='<div class="ss" style="color:var(--dim);font-size:10.5px;margin-top:2px">Potions never drop from enemies. Potion price is fixed at 20◉ for now. Scrolls of Power are rare drops or gamble prizes.</div>';
  $('shopList').innerHTML=h;
+ if($('ringRecipeBtn'))$('ringRecipeBtn').onclick=()=>{
+  if(S.ringRecipe||S.ringForged)return;
+  if((S.prestige||0)<20||(S.rating||0)<2500)return;
+  if(!spendGold(500000)){stageMsg('Not enough gold — 500,000 ◉ needed',1800);sfx.warn();return;}
+  S.ringRecipe=true;save();renderShop();renderHUD();
+  sfx.level();
+  stageMsg('💍 Recipe of the Ring acquired — find the Broken Ring in the lake!',3200);
+  log(`<span class="llegendary">💍 Recipe of the Ring</span> purchased. It rests in your Bag until the Broken Ring is found.`,'loot');
+ };
  $('chestBtn').onclick=openChest;
  $('goldChestBtn').onclick=openGoldChest;
  if($('slotOpenBtn'))$('slotOpenBtn').onclick=openSlots;
