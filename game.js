@@ -722,7 +722,7 @@ function zoneTemplates(z){
  if(z.raid){
   const RL=Math.max(effectiveHeroLvl(),10),rm=pMul();
   const mk=(name,id,c)=>({name,kind:'boss',boss:true,raid:true,bossId:id,c,speed:115,
-   hp:Math.round(eHP(RL)*110*rm),atk:Math.round(eATK(RL)*0.67*rm),xp:0,gold:0}); /* raid lords: tuned via live playtesting */
+   hp:Math.round(eHP(RL)*132*rm),atk:Math.round(eATK(RL)*0.67*rm),xp:0,gold:0}); /* raid lords: +20% hp over the playtested base */
   return [mk('Illidan the Betrayer','betrayer','#7adf9a'),
           mk('Ragnaros the Firelord','firelord','#ff7a2a'),
           mk('Arthas the Frozen King','frostking','#a0e0ff')];
@@ -815,7 +815,7 @@ const heroAtk=()=>Math.round((classOf().atk+S.lvl*2.6+gearSum('atk'))*(1+scrollP
 const fmBonus=()=>{const w=S&&S.gear?S.gear.weapon:null;return (isFM(w)&&fmStar(w)>1)?fmStar(w)*2:0;};
 const wgCrit=()=>{const w=S&&S.gear?S.gear.weapon:null;return isWG(w)&&!(w.crit)?3:0;}; /* fallback only; synced glaives already carry +3% crit in gearSum */
 const heroCrit=()=>classOf().crit+(raceOf().crit||0)+gearSum('crit')+fmBonus()+wgCrit()+((S&&S.gamblerT>0)?2:0);
-const xpNeed=l=>Math.round(38*Math.pow(l,1.5)*1.656); /* leveling is ~66% harder than base */
+const xpNeed=l=>Math.round(38*Math.pow(l,1.5)*1.904); /* leveling: ~66% harder than base, then +15% on top */
 const zoneOf=()=>ZONES[S.zone];
 const questsOf=()=>zoneQuests(zoneOf());
 const questOf=()=>questsOf()[Math.min(S.quest,questsOf().length-1)];
