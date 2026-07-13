@@ -816,6 +816,7 @@ const fmBonus=()=>{const w=S&&S.gear?S.gear.weapon:null;return (isFM(w)&&fmStar(
 const wgCrit=()=>{const w=S&&S.gear?S.gear.weapon:null;return isWG(w)&&!(w.crit)?3:0;}; /* fallback only; synced glaives already carry +3% crit in gearSum */
 const heroCrit=()=>classOf().crit+(raceOf().crit||0)+gearSum('crit')+fmBonus()+wgCrit()+((S&&S.gamblerT>0)?2:0);
 const xpNeed=l=>Math.round(38*Math.pow(l,1.5)*1.904); /* leveling: ~66% harder than base, then +15% on top */
+const PRESTIGE_CAP=50; /* progression ceiling for now: Prestige 50, level 60 */
 const zoneOf=()=>ZONES[S.zone];
 const questsOf=()=>zoneQuests(zoneOf());
 const questOf=()=>questsOf()[Math.min(S.quest,questsOf().length-1)];
@@ -2381,6 +2382,7 @@ function travelNext(){
  log(`<span class="imp">Arrived: ${z.name}.</span>`);
 }
 function doPrestige(){
+ if((S.prestige||0)>=PRESTIGE_CAP){stageMsg('✦ Prestige '+PRESTIGE_CAP+' is the summit — for now.',2200);return;}
  if(S.lvl<MAXLVL||!allBossesDead())return;
  const oldCap=goldCap();
  S.prestige++;
@@ -4367,7 +4369,12 @@ function renderHero(){
   renderHero();renderHUD();save();
  });
  /* Prestige — unlocks at max level only once every boss in the realm is dead */
- if(S.lvl>=MAXLVL){
+ if(S.lvl>=MAXLVL&&(S.prestige||0)>=PRESTIGE_CAP){
+  $('prestigeSec').innerHTML=`<div class="card">
+   <div class="sn" style="font-family:var(--display);color:var(--brass);font-size:14px">✦ Prestige ${S.prestige} — the summit</div>
+   <div class="ss" style="color:var(--dim);font-size:11px;margin-top:5px">You stand at the top of the realm: Prestige ${PRESTIGE_CAP}, level ${MAXLVL}. Higher peaks may rise one day…</div>
+  </div>`;
+ }else if(S.lvl>=MAXLVL){
   if(allBossesDead()){
    $('prestigeSec').innerHTML=`<div class="card">
     <div class="sn" style="font-family:var(--display);color:var(--brass);font-size:14px">✦ Prestige ${S.prestige+1} awaits</div>
@@ -4847,7 +4854,7 @@ function renderBag(){
    </div>
   </div>`;
  rarOrder.forEach(rar=>{
-  const list=(byRar[rar]||[]).sort((a,b)=>b.it.power-a.it.power);
+  const list=(byRar[rar]||[]).sort((a,b)=>(b.it.basePower||b.it.power||0)-(a.it.basePower||a.it.power||0)); /* best baseline on top */
   if(!list.length)return;
   if(gearRarityOpen[rar]===undefined)gearRarityOpen[rar]=false;
   const open=gearRarityOpen[rar];
@@ -6203,6 +6210,7 @@ function renderShop(){
   <div class="ss" style="color:var(--dim);font-size:11px">Restores 60% mana. You own ${S.pots.mp} / ${POT_CAP}.</div></div>
   <div class="btns"><button class="sbtn gold" data-pot="mp" ${mpFull||totalGold()<mpC||inBossFight()?'disabled':''}>${mpFull?'MAX ✦':'Buy '+mpC.toLocaleString()+'◉'}</button>
   <button class="sbtn gold" data-pot="mp" data-n="10" ${mpFull||totalGold()<mpC*10||inBossFight()?'disabled':''}>10x · ${(mpC*10).toLocaleString()}◉</button></div></div>`;
+ h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Recipes</div>';
  {
   const ringOwned=!!S.ringRecipe,ringDone=!!S.ringForged;
   const ringOk=!ringOwned&&!ringDone&&(S.prestige||0)>=20&&(S.rating||0)>=2500&&totalGold()>=500000;
