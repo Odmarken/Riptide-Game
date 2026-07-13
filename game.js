@@ -41,6 +41,7 @@ const bowImg=new Image();bowImg.src='assets/weapons/bow.png';
 const maceImg=new Image();maceImg.src='assets/weapons/mace.png';
 const haalandImg=new Image();haalandImg.src='assets/boss/haaland_boss.png';
 const haalandAxeImg=new Image();haalandAxeImg.src='assets/boss/axe_boss.png';
+const oneringImg=new Image();oneringImg.src='assets/models/onering.png';
 const staffImg=new Image();staffImg.src='assets/weapons/staff.png';
 const swordImg=new Image();swordImg.src='assets/weapons/sword.png';
 function bootFeet(e,g2){
@@ -286,6 +287,9 @@ const ZONES=[
   ground:'#7a6a4e',ground2:'#6e5f46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
  {name:'Black Temple',lvl:60,amb:'war',raidc:true,special:true,raid:true,
   ground:'#4a4456',ground2:'#403a4c',water:'#2f4a5a',tree:'#3a3448',tree2:'#2c2838',path:'#6a5f7a',rocky:true},
+ {name:'The Crypts',lvl:60,amb:'crypt',west:true,special:true,crypts:true, /* ever-shifting labyrinth — under construction.
+    NOTE: appended LAST so existing saves' zone indices stay valid — never insert zones mid-array */
+  ground:'#3a3a46',ground2:'#33333e',water:'#2f3a4a',tree:'#33333e',tree2:'#262630',path:'#55556a',rocky:true,en:[]},
 ];
 const TAVERN_ZONE=ZONES.findIndex(z=>z.tavern);
 
@@ -2747,8 +2751,9 @@ cv.addEventListener('pointerdown',e=>{
 
 /* ---- camera zoom: mouse wheel on the map, 2-finger pinch on phones ---- */
 let zoom=1,pinchD=0,pinching=false;
-const ZMIN=1,ZMAX=3;
-function setZoom(z){zoom=Math.max(ZMIN,Math.min(ZMAX,z));}
+const ZMAX=3;
+const zmin=()=>(IS_TOUCH&&Math.min(VW,VH)<820)?0.7:1; /* extra zoom-out strictly on phone/tablet screens */
+function setZoom(z){zoom=Math.max(zmin(),Math.min(ZMAX,z));}
 cv.addEventListener('wheel',e=>{
  if(!gameOn)return;
  e.preventDefault();
@@ -3926,7 +3931,18 @@ function drawHero(){
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;
  ctx.textAlign='center';
  /* name only (no rating), lifted clear of the sprite; hp lives in the header bar instead */
- const nmY=((charSprite(S.race,c.id,S.gender==='f')||{}).naturalWidth)?-46:-33; /* painted sprites stand taller */
+ let nmY=((charSprite(S.race,c.id,S.gender==='f')||{}).naturalWidth)?-46:-33; /* painted sprites stand taller */
+ if(isRing(S.gear.trinket))nmY-=9; /* make room for the hovering ring under the name */
+ if(isRing(S.gear.trinket)&&oneringImg.complete&&oneringImg.naturalWidth&&!h.dead){
+  /* 💍 The One Ring hovers above its bearer, slowly turning */
+  const t=performance.now()/1000;
+  const rw=24,rh=rw*oneringImg.naturalHeight/oneringImg.naturalWidth;
+  const ry=nmY+10+Math.sin(t*1.8)*3; /* nmY is lifted 9px when the ring is on — net: ring stays put */
+  ctx.save();ctx.translate(0,ry);
+  ctx.shadowColor='#ffd76a';ctx.shadowBlur=9;
+  ctx.drawImage(oneringImg,-rw/2,-rh/2,rw,rh);
+  ctx.restore();
+ }
  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(S.name||'Hero',1,nmY+by+1);
  ctx.fillStyle='#fff';ctx.fillText(S.name||'Hero',0,nmY+by);
  ctx.restore();
@@ -4450,6 +4466,15 @@ function renderMap(){
   if(mapContinent==='raid'&&!z.raidc)return '';
   if(z.tavern)return '';
   if(z.special){
+   if(z.crypts){
+    const p20=(S.prestige||0)>=20;
+    return `<div class="card zonecard locked" style="border-color:${p20?'#a66bd0':''}">
+     <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#1a1a26)">⚰️</div>
+     <div class="zinfo"><div class="zn">${z.name}</div>
+     <div class="zl">An ever-shifting labyrinth — its halls rearrange with every descent. No two runs alike.</div></div>
+     ${p20?'<span class="ztag boss">⚒ Opens soon</span>':'<span class="ztag boss">🔒 Prestige 20</span>'}
+    </div>`;
+   }
    if(z.thor){
     const st=thorStatus(),locked=thorLocked();
     const stateTxt=locked?(S.thorLockWhy==='won'?'✓ Thor slain this window — next storm in '+fmtMS(st.open?st.left:st.next):'☠ You fell — sealed until the next storm ('+fmtMS(st.open?st.left:st.next)+')')
