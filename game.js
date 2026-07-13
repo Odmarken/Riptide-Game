@@ -39,6 +39,8 @@ const CHAR_RUN={};
 const bootImg=new Image();bootImg.src='assets/characters/fot.png';
 const bowImg=new Image();bowImg.src='assets/weapons/bow.png';
 const maceImg=new Image();maceImg.src='assets/weapons/mace.png';
+const haalandImg=new Image();haalandImg.src='assets/boss/haaland_boss.png';
+const haalandAxeImg=new Image();haalandAxeImg.src='assets/boss/axe_boss.png';
 const staffImg=new Image();staffImg.src='assets/weapons/staff.png';
 function bootFeet(e,g2){
  const g=g2||ctx;
@@ -272,7 +274,7 @@ const ZONES=[
   q:[['Storm the Outworks','Cut down 12 legionnaires at the walls.',12],['The Kennels','Slay 12 ash hounds loosed on the yard.',12],['Break the Warlocks','Silence 14 warlocks fueling the pyres.',14]]},
  {name:'Emberdeep Keep',lvl:60,amb:'war',map:'levlingzone_boss',boss:['Warlord Krev','#d94a2a','krev'],ground:'#3a2a26',ground2:'#31231f',water:'#8a4a2a',tree:'#31231f',tree2:'#241a16',path:'#5a4030',rocky:true,final:true},
  {name:'Gates of the Viking',lvl:60,amb:'haaland',valhalla:true,special:true,
-  boss:['HAALAND the Three-Headed','#c94a3a','cerberus'],
+  boss:['HAALAND','#c94a3a','cerberus'],
   ground:'#8a94a0',ground2:'#7d8794',water:'#5a7a9a',tree:'#4a5a66',tree2:'#39464f',path:'#a8b0ba',rocky:true},
  {name:'Halls of Valhalla',lvl:60,amb:'frost',valhalla:true,special:true,thor:true,
   boss:['Thor, God of Thunder','#7fd0ff','thor'],
@@ -2586,7 +2588,7 @@ function bossAI(en,dt){
    sfx.fire();
   }
   if(en.cds.c<=0){en.cds.c=14;
-   if(addsAlive()<3){spawnAdd('Hellhound','beast','#a03a2a');spawnAdd('Hellhound','beast','#a03a2a');
+   if(addsAlive()<3){spawnAdd('Messi','beast','#a03a2a');spawnAdd('Messi','beast','#a03a2a');
     floatAt(en.x,en.y-en.r-30,'AWOOO!','#ff8a6a',true);}
   }
   /* STRIKE — one ball at your position, 5% max HP, every 20s (first at 8s) */
@@ -3939,9 +3941,22 @@ function drawEnemy(en){
  const by=moving?Math.sin(en.walk*2)*1.6:Math.sin(now/700+en.home.x)*0.7;
  ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,en.r*0.55,en.r,en.r*0.42,0,0,7);ctx.fill();
  if(en.slowT>0){ctx.strokeStyle='rgba(160,224,255,0.6)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,en.r*0.5,en.r+3,en.r*0.5,0,0,7);ctx.stroke();}
- if(en.kind!=='undead')feet(en,en.r/13);
+ const haalandPainted=en.bossId==='cerberus'&&haalandImg.complete&&haalandImg.naturalWidth;
+ if(en.kind!=='undead'&&!haalandPainted)feet(en,en.r/13);
  const dark='rgba(0,0,0,0.28)';
- if(en.kind==='beast'){
+ if(haalandPainted){ /* painted HAALAND (assets/boss/haaland_boss.png) + scaled boot feet */
+  const bs=en.r/13;
+  ctx.save();ctx.scale(bs,bs);bootFeet({moving:en.state==='chase',walk:en.walk||0});ctx.restore();
+  const H=en.r*4.4,W=H*haalandImg.naturalWidth/haalandImg.naturalHeight;
+  ctx.drawImage(haalandImg,-W/2,en.r*0.55-H+by,W,H);
+  if(haalandAxeImg.complete&&haalandAxeImg.naturalWidth){ /* his axe — held on the side he strikes, like the hero's weapon */
+   const AH=H*1.0,AW=AH*haalandAxeImg.naturalWidth/haalandAxeImg.naturalHeight;
+   const bfx=(hero&&hero.x<en.x)?-1:1; /* face the target */
+   ctx.save();ctx.translate(bfx*W*0.42,-H*0.28+by);ctx.scale(bfx,1);ctx.rotate(0.5+(en.swing?(0.2-en.swing)*7:0));
+   ctx.drawImage(haalandAxeImg,-AW/2,-AH*0.8,AW,AH);
+   ctx.restore();
+  }
+ }else if(en.kind==='beast'){
   ctx.fillStyle=en.c;ctx.beginPath();ctx.ellipse(0,-4+by,en.r,en.r*0.75,0,0,7);ctx.fill();
   ctx.fillStyle=dark;ctx.beginPath();ctx.arc(en.r*0.55,-8+by,en.r*0.45,0,7);ctx.fill();
   ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(en.r*0.62,-9+by,1.7,0,7);ctx.fill();
@@ -4035,6 +4050,7 @@ function drawEnemy(en){
    ctx.beginPath();ctx.ellipse(0,-en.r-4+by,en.r*0.34,en.r*0.18,0,0,7);ctx.fill();
    ctx.strokeStyle='rgba(127,208,255,'+(0.35+0.25*Math.sin(now/110))+')';
   }else if(B==='cerberus'){ /* HAALAND: blond top, two extra heads, ember glow */
+   if(!haalandPainted){
    ctx.fillStyle='#f2d98a';
    ctx.beginPath();
    ctx.moveTo(-en.r*0.42,-en.r-2+by);
@@ -4049,6 +4065,7 @@ function drawEnemy(en){
     ctx.fillStyle='#f2d98a';
     ctx.beginPath();ctx.ellipse(en.r*hx,-10-en.r*0.32+by,en.r*0.3,en.r*0.16,0,0,7);ctx.fill();
     ctx.fillStyle='#ff5a3a';ctx.beginPath();ctx.arc(en.r*hx+3,-11+by,1.6,0,7);ctx.fill();
+   }
    }
    if(Math.random()<0.3)parts.push({x:en.x+(Math.random()-0.5)*36,y:en.y-14,vx:(Math.random()-0.5)*10,vy:-26,t:0,life:0.7,c:'#ff5a3a',r:1.6,g:0});
    ctx.strokeStyle='rgba(242,217,138,'+(0.35+0.2*Math.sin(now/130))+')';
@@ -4073,9 +4090,10 @@ function drawEnemy(en){
  if(en.hurt>0){ctx.fillStyle='rgba(255,255,255,'+en.hurt*2.5+')';ctx.beginPath();ctx.arc(0,-6+by,en.r*0.9,0,7);ctx.fill();}
  ctx.font=(en.boss?'700 11px ':'600 9px ')+getComputedStyle(document.body).fontFamily;
  ctx.textAlign='center';
- ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(en.name,1,-en.r-16+by+1);
- ctx.fillStyle=en.boss?'#ffd76a':'#ffe9e0';ctx.fillText(en.name,0,-en.r-16+by);
- if((en.hp<en.max||en.boss)&&!en.dead)drawMiniBar(-en.r,-en.r-13+by,en.r*2,en.hp/en.max,'#c75146');
+ const lblY=(typeof haalandPainted!=='undefined'&&haalandPainted)?-en.r*4.4:-en.r-16; /* the painted boss stands much taller */
+ ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(en.name,1,lblY+by+1);
+ ctx.fillStyle=en.boss?'#ffd76a':'#ffe9e0';ctx.fillText(en.name,0,lblY+by);
+ if((en.hp<en.max||en.boss)&&!en.dead)drawMiniBar(-en.r,lblY+3+by,en.r*2,en.hp/en.max,'#c75146');
  if(hero&&hero.target===en&&!en.dead){
   ctx.strokeStyle='rgba(255,215,106,0.9)';ctx.lineWidth=1.5;
   ctx.beginPath();ctx.arc(0,-2,en.r+7,0,7);ctx.stroke();
