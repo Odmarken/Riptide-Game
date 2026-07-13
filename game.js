@@ -12,7 +12,11 @@ const zoneMapImgs={};
 const zoneMapImg=n=>{if(!zoneMapImgs[n]){zoneMapImgs[n]=new Image();zoneMapImgs[n].src='assets/models/maps/'+n+'.png';}return zoneMapImgs[n];};
 const bergImg=new Image();bergImg.src='assets/models/berg.png';
 /* painted character sprites — keyed race+gender+class (e.g. humanmale_warrior.png) */
-const CHAR_SPRITES={humanmale_warrior:1,undeadmale_hunter:1,dwarfmale_mage:1,orcmale_priest:1}; /* the combos that have art in assets/characters */
+const CHAR_SPRITES={ /* all 16 male race+class combos have art in assets/characters */
+ humanmale_warrior:1,humanmale_mage:1,humanmale_hunter:1,humanmale_priest:1,
+ dwarfmale_warrior:1,dwarfmale_mage:1,dwarfmale_hunter:1,dwarfmale_priest:1,
+ orcmale_warrior:1,orcmale_mage:1,orcmale_hunter:1,orcmale_priest:1,
+ undeadmale_warrior:1,undeadmale_mage:1,undeadmale_hunter:1,undeadmale_priest:1}; /* the combos that have art in assets/characters */
 const charSpriteCache={};
 function charSprite(raceId,clsId,female){
  const key=raceId+(female?'female':'male')+'_'+clsId;
