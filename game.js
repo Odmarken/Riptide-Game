@@ -50,9 +50,9 @@ function bootFeet(e,g2){
  if(!(bootImg.complete&&bootImg.naturalWidth)){if(!g2)feet(e,1);return;}
  const o=e.moving?Math.sin(e.walk*2)*4:0;
  const W=12,H=W*bootImg.naturalHeight/bootImg.naturalWidth;
- g.drawImage(bootImg,-5-W/2,12-H/2+o,W,H); /* left — full counter-swing */
+ g.drawImage(mip(bootImg,64),-5-W/2,12-H/2+o,W,H); /* left — full counter-swing */
  g.save();g.scale(-1,1);
- g.drawImage(bootImg,-5-W/2,12-H/2-o,W,H); /* right = mirrored */
+ g.drawImage(mip(bootImg,64),-5-W/2,12-H/2-o,W,H); /* right = mirrored */
  g.restore();
 }
 const brunnImg=new Image();brunnImg.src='assets/models/brunn.png';
@@ -1625,12 +1625,6 @@ function buildZone(){
    world.solids.push({x:110,y:995,r:38,type:'altarportal'}); /* far left on the walkway */
    world.spawn={x:430,y:990}; /* arrive a few steps onto the bridge */
    world.portal={x:-500,y:-500}; /* hide the default zone-exit swirl — the portal is the exit */
-   /* railing on the bridge edges (walkway spans y 920–1145 in the art), then around the ring
-      (ring centre (1996,1000), radius 850) */
-   for(let fx2=120;fx2<=1070;fx2+=190){
-    world.solids.push({x:fx2,y:928,r:16,type:'altarfence'});
-    world.solids.push({x:fx2,y:1124,r:16,type:'altarfence'});
-   }
   }
   if(!isBoss&&!z.raid&&!z.noBerg){
    const nW=z.rocky?2:3+Math.floor(R()*2);
@@ -3479,6 +3473,28 @@ function drawPortal(){
  ctx.fillText(label,0,-44);
  ctx.restore();
 }
+/* ---- mip cache: canvas drawImage has no mipmaps, so a 4K PNG drawn at ~100px samples
+   sparse pixels and the texture "crawls" as the camera moves. mip() returns a cached,
+   progressively half-stepped copy (~1-2x the draw size): stable, sharp and cheaper. ---- */
+function mip(img,W){
+ if(!img.naturalWidth)return img;
+ /* account for camera zoom + retina DPR: W world-px can be several times more device-px,
+    and picking a mip below that is what made buildings/characters go soft */
+ const eff=W*(zoom||1)*(DPR||1);
+ const tw=Math.min(img.naturalWidth,Math.max(64,Math.ceil(eff/64)*64));
+ if(img.naturalWidth<=tw*2)return img;
+ const m=img._mips||(img._mips={});
+ if(m[tw])return m[tw];
+ let src=img,sw=img.naturalWidth,sh=img.naturalHeight;
+ while(sw>tw*2){
+  const nw=Math.max(tw,Math.round(sw/2)),nh=Math.max(1,Math.round(sh*nw/sw));
+  const c=document.createElement('canvas');c.width=nw;c.height=nh;
+  const cg=c.getContext('2d');cg.imageSmoothingEnabled=true;cg.imageSmoothingQuality='high';
+  cg.drawImage(src,0,0,nw,nh);
+  src=c;sw=nw;sh=nh;
+ }
+ return m[tw]=src;
+}
 function drawProp(s,z){
  ctx.save();ctx.translate(s.x,s.y);
  if(s.type==='tree'){
@@ -3490,7 +3506,7 @@ function drawProp(s,z){
    const W=H*tImg.naturalWidth/tImg.naturalHeight;
    ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,4,W*0.34,W*0.13,0,0,7);ctx.fill();
    ctx.rotate(sway*0.022);
-   ctx.drawImage(tImg,-W/2,4-H*tImg._anchor,W,H); /* trunk bottom lands on the shadow */
+   ctx.drawImage(mip(tImg,W),-W/2,4-H*tImg._anchor,W,H); /* trunk bottom lands on the shadow */
    ctx.restore();return;
   }
   ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,4,s.r*1.15,s.r*0.5,0,0,7);ctx.fill();
@@ -3529,7 +3545,7 @@ function drawProp(s,z){
   if(s.big&&tavernImg.complete&&tavernImg.naturalWidth){
    /* painted tavern (assets/models/tavern.png) — sign is baked in; content bottom at 85.2% of the art */
    const W=s.r*11.4,H=W*tavernImg.naturalHeight/tavernImg.naturalWidth,bot=hh*0.55+W*0.04;
-   ctx.drawImage(tavernImg,-W/2,bot-H*0.852,W,H);
+   ctx.drawImage(mip(tavernImg,W),-W/2,bot-H*0.852,W,H);
    ctx.restore();return;
   }
   ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,hh*0.45,w*1.1,hh*0.4,0,0,7);ctx.fill();
@@ -3560,7 +3576,7 @@ function drawProp(s,z){
   if(smithImg.complete&&smithImg.naturalWidth){
    /* painted blacksmith (assets/models/blacksmith.png) — content bottom at 87% of the art */
    const W=s.r*5.8,H=W*smithImg.naturalHeight/smithImg.naturalWidth,bot=hh*0.55+W*0.04;
-   ctx.drawImage(smithImg,-W/2,bot-H*0.87,W,H);
+   ctx.drawImage(mip(smithImg,W),-W/2,bot-H*0.87,W,H);
    ctx.restore();return;
   }
   ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0,hh*0.45,w*1.1,hh*0.4,0,0,7);ctx.fill();
@@ -3579,7 +3595,7 @@ function drawProp(s,z){
   if(bankImg.complete&&bankImg.naturalWidth){
    /* painted bank (assets/models/bank.png) — content bottom sits at 74.5% of the art */
    const W=s.r*6.5,H=W*bankImg.naturalHeight/bankImg.naturalWidth,bot=hh*0.55+W*0.04;
-   ctx.drawImage(bankImg,-W/2,bot-H*0.745,W,H);
+   ctx.drawImage(mip(bankImg,W),-W/2,bot-H*0.745,W,H);
    ctx.restore();return;
   }
   ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0,hh*0.45,w*1.12,hh*0.42,0,0,7);ctx.fill();
@@ -3602,7 +3618,7 @@ function drawProp(s,z){
   if(casinoImg.complete&&casinoImg.naturalWidth){
    /* keep the art's own aspect ratio — drawing it square squashed the tall model */
    const W=s.r*7.68,H=W*casinoImg.naturalHeight/casinoImg.naturalWidth;
-   ctx.drawImage(casinoImg,-W/2,hh*0.55+W*0.04-H,W,H);
+   ctx.drawImage(mip(casinoImg,W),-W/2,hh*0.55+W*0.04-H,W,H);
   }else{ /* fallback while the image loads */
    ctx.fillStyle='#9a8468';ctx.fillRect(-w,-hh*0.55,w*2,hh);
    ctx.fillStyle='#8a2e26';
@@ -3627,13 +3643,13 @@ function drawProp(s,z){
  }else if(s.type==='altarfence'){
   if(altarFenceImg.complete&&altarFenceImg.naturalWidth){
    const W=200,H=W*altarFenceImg.naturalHeight/altarFenceImg.naturalWidth;
-   ctx.drawImage(altarFenceImg,-W/2,10-H,W,H);
+   ctx.drawImage(mip(altarFenceImg,W),-W/2,10-H,W,H);
   }
  }else if(s.type==='fishhut'){
   if(fishhutImg.complete&&fishhutImg.naturalWidth){
    /* painted fishing hut (assets/models/fishinghut.png) — content bottom at 78.3% of the art */
    const W=s.r*5.75,H=W*fishhutImg.naturalHeight/fishhutImg.naturalWidth,bot=24;
-   ctx.drawImage(fishhutImg,-W/2,bot-H*0.783,W,H);
+   ctx.drawImage(mip(fishhutImg,W),-W/2,bot-H*0.783,W,H);
    ctx.restore();return;
   }
   /* fallback while the image loads: a simple shack */
@@ -3644,7 +3660,7 @@ function drawProp(s,z){
    /* painted well (assets/models/brunn.png) */
    const W=75,H=W*brunnImg.naturalHeight/brunnImg.naturalWidth;
    ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,6,W*0.44,W*0.15,0,0,7);ctx.fill();
-   ctx.drawImage(brunnImg,-W/2,8-H,W,H); /* stone base sits on the shadow */
+   ctx.drawImage(mip(brunnImg,W),-W/2,8-H,W,H); /* stone base sits on the shadow */
   }else{ /* fallback while the image loads */
   ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,6,22,9,0,0,7);ctx.fill();
   ctx.fillStyle='#8b8a80';ctx.beginPath();ctx.ellipse(0,0,18,10,0,0,7);ctx.fill();
@@ -3683,7 +3699,7 @@ function drawProp(s,z){
    const W=s.dr*2.1,H=W*bergImg.naturalHeight/bergImg.naturalWidth;
    /* soft rim shadow tucked under the base — mostly hidden by the pile itself */
    ctx.fillStyle='rgba(0,0,0,0.16)';ctx.beginPath();ctx.ellipse(0,s.dr*0.5-H*0.05,W*0.38,W*0.09,0,0,7);ctx.fill();
-   ctx.drawImage(bergImg,-W/2,s.dr*0.5-H,W,H); /* base sits on the shadow */
+   ctx.drawImage(mip(bergImg,W),-W/2,s.dr*0.5-H,W,H); /* base sits on the shadow */
   }else{ /* fallback while the image loads: plain gray peak */
    ctx.fillStyle='#8b8a80';ctx.beginPath();
    ctx.moveTo(-s.r,s.r*0.4);ctx.lineTo(0,-s.r);ctx.lineTo(s.r,s.r*0.4);ctx.closePath();ctx.fill();
@@ -3692,7 +3708,7 @@ function drawProp(s,z){
   /* painted boulder (assets/models/sten.png) — all zones, sized per rock via r & s */
   const W=s.r*(1.6+(s.s||1)*0.9),H=W*stenImg.naturalHeight/stenImg.naturalWidth;
   ctx.fillStyle='rgba(0,0,0,0.2)';ctx.beginPath();ctx.ellipse(0,4,W*0.46,W*0.16,0,0,7);ctx.fill();
-  ctx.drawImage(stenImg,-W/2,6-H,W,H); /* boulder base sits on the shadow */
+  ctx.drawImage(mip(stenImg,W),-W/2,6-H,W,H); /* boulder base sits on the shadow */
  }else{ /* fallback while the image loads: low-poly boulder */
   ctx.fillStyle='rgba(0,0,0,0.2)';ctx.beginPath();ctx.ellipse(0,4,s.r*1.1,s.r*0.5,0,0,7);ctx.fill();
   ctx.fillStyle='#8b8a80';ctx.beginPath();
@@ -3802,11 +3818,11 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   if(wgImg.complete&&wgImg.naturalWidth){
    /* WoW back-mount: each glaive stands upright, tip curling in toward the head.
       One blade = the left half of the pair art, rotated 90°; the other is its mirror. */
-   const hw=wgImg.naturalWidth/2,hh2=wgImg.naturalHeight;
+   const wgm=mip(wgImg,96),hw=(wgm.naturalWidth||wgm.width)/2,hh2=wgm.naturalHeight||wgm.height;
    const GH=42,GW=GH*hh2/hw; /* blade length upright; source height becomes on-screen width */
    g.shadowColor='#4dff9a';g.shadowBlur=7;
    g.save();g.translate(-7,-20);g.rotate(1.22); /* a single glaive on the left shoulder, leaning ~70° */
-   g.drawImage(wgImg,0,0,hw,hh2,-GH/2,-GW/2,GH,GW);
+   g.drawImage(wgm,0,0,hw,hh2,-GH/2,-GW/2,GH,GW);
    g.restore();
    g.shadowBlur=0;
   }else{ /* fallback while the image loads */
@@ -3830,7 +3846,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
    g.drawImage(run.img,fr*fw,0,fw,fh,-W/2,9-H+by,W,H);
   }else{
    const H=48,W=H*rImg.naturalWidth/rImg.naturalHeight;
-   g.drawImage(rImg,-W/2,5-H+by,W,H);
+   g.drawImage(mip(rImg,W),-W/2,5-H+by,W,H);
   }
   g.restore();
  }else{
@@ -3918,7 +3934,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
    g.rotate(-(sgn<0?-1:1)*(pw?0.85:0.5)); /* cancel the base tilt; the attack swing still animates */
    g.shadowColor='#4dff9a';g.shadowBlur=9;
    g.save();g.scale(-1,1); /* mirrored the other way from the back pair */
-   g.drawImage(wgImg,-W/2,-H/2,W,H);
+   g.drawImage(mip(wgImg,W),-W/2,-H/2,W,H);
    g.restore();
    g.shadowBlur=0;
   }else{ /* fallback while the image loads */
@@ -3934,7 +3950,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   if(fmImg.complete&&fmImg.naturalWidth){
    /* painted Frostmourne (assets/models/frostmourne.png) — the pulsing canvas glow hugs the cutout */
    const H=pw?50:40,W=H*fmImg.naturalWidth/fmImg.naturalHeight;
-   g.drawImage(fmImg,-W/2,(pw?-2:6)-H,W,H); /* grip in the painted hero's hand */
+   g.drawImage(mip(fmImg,W),-W/2,(pw?-2:6)-H,W,H); /* grip in the painted hero's hand */
    g.shadowBlur=0;
   }else{ /* fallback while the image loads: icy runeblade */
   g.fillStyle='#bfe9ff';
@@ -3959,11 +3975,11 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
  }else if(clsId==='mage'&&staffImg.complete&&staffImg.naturalWidth){
   /* painted staff (assets/weapons/staff.png) — the Hindu standard weapon */
   const H=pw?42:30,W=H*staffImg.naturalWidth/staffImg.naturalHeight;
-  g.drawImage(staffImg,-W/2,5-H,W,H);
+  g.drawImage(mip(staffImg,W),-W/2,5-H,W,H);
  }else if(clsId==='priest'&&maceImg.complete&&maceImg.naturalWidth){
   /* painted mace (assets/weapons/mace.png) — the Jew standard weapon, grip in the hand */
   const H=pw?38:27,W=H*maceImg.naturalWidth/maceImg.naturalHeight;
-  g.drawImage(maceImg,-W/2,4-H,W,H);
+  g.drawImage(mip(maceImg,W),-W/2,4-H,W,H);
  }else if(clsId==='mage'||clsId==='priest'){
   g.strokeStyle='#c9a45a';g.lineWidth=3;g.beginPath();g.moveTo(0,4);g.lineTo(0,-12);g.stroke();
   g.fillStyle=clsId==='mage'?'#7fd0ff':'#ffd76a';g.beginPath();g.arc(0,-14,3+Math.sin(performance.now()/200)*0.6,0,7);g.fill();
@@ -3973,7 +3989,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
    const H=pw?44:31,W=H*bowImg.naturalWidth/bowImg.naturalHeight;
    g.save();
    if(sgn<0)g.scale(-1,1); /* mirror so the string always faces the archer */
-   g.drawImage(bowImg,-W/2,-4-H/2,W,H);
+   g.drawImage(mip(bowImg,W),-W/2,-4-H/2,W,H);
    g.restore();
   }else{ /* fallback while the image loads */
    g.strokeStyle='#a07a4a';g.lineWidth=3;g.beginPath();g.arc(0,-4,8,-1.2,1.2);g.stroke();
@@ -3981,7 +3997,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
  }else if(swordImg.complete&&swordImg.naturalWidth){
   /* painted sword (assets/weapons/sword.png) — the warrior standard, grip in the hand */
   const H=pw?38:27,W=H*swordImg.naturalWidth/swordImg.naturalHeight;
-  g.drawImage(swordImg,-W/2,4-H,W,H);
+  g.drawImage(mip(swordImg,W),-W/2,4-H,W,H);
  }else{
   g.strokeStyle='#e8e4d8';g.lineWidth=3;g.beginPath();g.moveTo(0,4);g.lineTo(0,-13);g.stroke();
   g.strokeStyle='#a4761f';g.beginPath();g.moveTo(-3,0);g.lineTo(3,0);g.stroke();
@@ -4046,7 +4062,7 @@ function drawHero(){
   const ry=nmY+10+Math.sin(t*1.8)*3; /* nmY is lifted 9px when the ring is on — net: ring stays put */
   ctx.save();ctx.translate(0,ry);
   ctx.shadowColor='#ffd76a';ctx.shadowBlur=9;
-  ctx.drawImage(oneringImg,-rw/2,-rh/2,rw,rh);
+  ctx.drawImage(mip(oneringImg,rw),-rw/2,-rh/2,rw,rh);
   ctx.restore();
  }
  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(S.name||'Hero',1,nmY+by+1);
@@ -4118,12 +4134,12 @@ function drawEnemy(en){
   const bs=en.r/13;
   ctx.save();ctx.scale(bs,bs);bootFeet({moving:en.state==='chase',walk:en.walk||0});ctx.restore();
   const H=en.r*4.4,W=H*haalandImg.naturalWidth/haalandImg.naturalHeight;
-  ctx.drawImage(haalandImg,-W/2,en.r*0.55-H+by,W,H);
+  ctx.drawImage(mip(haalandImg,W),-W/2,en.r*0.55-H+by,W,H);
   if(haalandAxeImg.complete&&haalandAxeImg.naturalWidth){ /* his axe — held on the side he strikes, like the hero's weapon */
    const AH=H*1.0,AW=AH*haalandAxeImg.naturalWidth/haalandAxeImg.naturalHeight;
    const bfx=(hero&&hero.x<en.x)?-1:1; /* face the target */
    ctx.save();ctx.translate(bfx*W*0.42,-H*0.28+by);ctx.scale(bfx,1);ctx.rotate(0.5+(en.swing?(0.2-en.swing)*7:0));
-   ctx.drawImage(haalandAxeImg,-AW/2,-AH*0.8,AW,AH);
+   ctx.drawImage(mip(haalandAxeImg,AW),-AW/2,-AH*0.8,AW,AH);
    ctx.restore();
   }
  }else if(en.kind==='beast'){
