@@ -7661,6 +7661,13 @@ $('musBtn').onclick=()=>{
  stageMsg(audioPaused?'Game paused':'Game resumed',1200);
 };
 
+let mapsPreloaded=false;
+function preloadMaps(){ /* warm every zone map in the background — kills the procedural-ground flash on first travel.
+   No double memory: the procedural ground is paint on groundCv, overwritten in place when the PNG lands. */
+ if(mapsPreloaded)return;mapsPreloaded=true;
+ ZONES.forEach(z=>{if(z.map)zoneMapImg(z.map);});
+ zoneMapImg('cryptmap');zoneMapImg('cryptwall');
+}
 function beginGame(isNew){
  $('create').style.display='none';
  $('select').classList.remove('open');
@@ -7673,6 +7680,7 @@ function beginGame(isNew){
  $('volSfxSl').value=Math.round((S.volSfx??0.55)*100);
  applyVolumes();
  gameOn=true;
+ setTimeout(preloadMaps,1500); /* let the current zone's assets win the bandwidth race first */
  bankTick();
  smithTick();
  setTimeout(()=>{$('hint').style.opacity=0;},8000);
