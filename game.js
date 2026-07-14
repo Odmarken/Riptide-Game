@@ -41,6 +41,7 @@ const bowImg=new Image();bowImg.src='assets/weapons/bow.png';
 const maceImg=new Image();maceImg.src='assets/weapons/mace.png';
 const haalandImg=new Image();haalandImg.src='assets/boss/haaland_boss.png';
 const haalandAxeImg=new Image();haalandAxeImg.src='assets/boss/axe_boss.png';
+const ratbossImg=new Image();ratbossImg.src='assets/boss/ratcrypt.png'; /* the crypt rat — art faces left */
 const oneringImg=new Image();oneringImg.src='assets/models/onering.png';
 const altarFenceImg=new Image();altarFenceImg.src='assets/models/maps/altarasset.png';
 const staffImg=new Image();staffImg.src='assets/weapons/staff.png';
@@ -288,7 +289,7 @@ const ZONES=[
   ground:'#7a6a4e',ground2:'#6e5f46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
  {name:'Black Temple',lvl:60,amb:'war',raidc:true,special:true,raid:true,
   ground:'#4a4456',ground2:'#403a4c',water:'#2f4a5a',tree:'#3a3448',tree2:'#2c2838',path:'#6a5f7a',rocky:true},
- {name:'The Crypts',lvl:60,amb:'crypt',west:true,special:true,crypts:true, /* ever-shifting labyrinth — under construction.
+ {name:'The Crypts',lvl:60,amb:'crypt',west:true,special:true,crypts:true,noBerg:true, /* ever-shifting labyrinth — a fresh maze every descent.
     NOTE: appended LAST so existing saves' zone indices stay valid — never insert zones mid-array */
   ground:'#3a3a46',ground2:'#33333e',water:'#2f3a4a',tree:'#33333e',tree2:'#262630',path:'#55556a',rocky:true,en:[]},
  {name:'The Altar',lvl:1,amb:'frost',special:true,altar:true,noBerg:true,map:'thealtar',en:[], /* sky sanctum — portal-only, no level gate */
@@ -758,6 +759,7 @@ function zoneTemplates(z){
 function zoneQuests(z){
  if(z.tavern)return [{name:'🍺 Goldshire',desc:'A safe haven. Rest, forge, trade — no foe dares enter.',need:999999}];
  if(z.altar)return [{name:'⛧ The Altar',desc:'A silent ring above the clouds. Something waits to be awakened.',need:999999}];
+ if(z.crypts)return [{name:'⚰️ The Crypts',desc:'An ever-shifting labyrinth. Three chests wait somewhere in the dark. On foot only — AUTO fails here.',need:3}];
  if(z.raid)return [{name:'⚔ Sanctum of the Three',desc:'Slay all three raid lords. Pull them one at a time — they never retreat.',need:3,boss:true}];
  if(z.cow)return [{name:'MOO',desc:'Survive. You cannot.',need:999999}];
  if(z.boss)return [{name:z.boss[0],desc:'Defeat '+z.boss[0]+'. Victory opens the gate beyond, forever.',need:1,boss:true}];
@@ -773,27 +775,32 @@ const raceOf=()=>RACES.find(r=>r.id===S.race);
 const classOf=()=>CLASSES.find(c=>c.id===S.cls);
 const gearSum=k=>{if(isFM(S.gear.weapon))syncFrostmourne(S.gear.weapon);if(isWG(S.gear.weapon))syncWarglaives(S.gear.weapon);if(isRing(S.gear.trinket))syncOneRing(S.gear.trinket);let t=0;for(const sl in S.gear){const g=S.gear[sl];if(g&&g[k])t+=g[k]}return t};
 /* two Active Scroll slots — same scroll type cannot stack */
-const hasEnch=id=>(S.activeScrolls||[]).some(sc=>sc&&sc.id===id);
-const scrollGet=id=>(S.activeScrolls||[]).find(sc=>sc&&sc.id===id);
-const scrollPct=id=>{const sc=scrollGet(id);return sc?tierVal(id,sc.tier)/100:0;}; /* fraction */
-const scrollRaw=id=>{const sc=scrollGet(id);return sc?tierVal(id,sc.tier):0;};     /* raw value (e.g. seconds) */
-const activeEnchs=()=>(S.activeScrolls||[]).filter(Boolean).map(sc=>enchOf(sc.id));
+/* fused scrolls (forged with 🔗 connectors) carry a second enchant in id2/tier2 —
+   every effect lookup below honours both halves; same-id effects never stack (first hit wins) */
+const hasEnch=id=>(S.activeScrolls||[]).some(sc=>sc&&(sc.id===id||sc.id2===id));
+const scrollGet=id=>(S.activeScrolls||[]).find(sc=>sc&&(sc.id===id||sc.id2===id));
+const scrollTierOf=id=>{for(const sc of (S.activeScrolls||[])){if(!sc)continue;if(sc.id===id)return sc.tier||1;if(sc.id2===id)return sc.tier2||1;}return 0;};
+const scrollPct=id=>{const t=scrollTierOf(id);return t?tierVal(id,t)/100:0;}; /* fraction */
+const scrollRaw=id=>{const t=scrollTierOf(id);return t?tierVal(id,t):0;};     /* raw value (e.g. seconds) */
+const activeEnchs=()=>(S.activeScrolls||[]).filter(Boolean).flatMap(sc=>sc.id2?[enchOf(sc.id),enchOf(sc.id2)]:[enchOf(sc.id)]);
 const EQS=()=>{S.activeScrolls=S.activeScrolls||[null,null];return S.activeScrolls;};
-const enchName=sc=>enchOf(sc.id).n+' '+TIERN[(sc.tier||1)-1];
+const enchName=sc=>sc.id2
+ ?enchOf(sc.id).n.replace('Scroll of ','')+' IV ⚯ '+enchOf(sc.id2).n.replace('Scroll of ','')+' IV'
+ :enchOf(sc.id).n+' '+TIERN[(sc.tier||1)-1];
 function scrollPoolCount(id,tier){
- let n=(S.scrolls||[]).filter(s=>s&&s.id===id&&s.tier===tier).length;
- EQS().forEach(e=>{if(e&&e.id===id&&e.tier===tier)n++;});
+ let n=(S.scrolls||[]).filter(s=>s&&s.id===id&&s.tier===tier&&!s.id2).length;
+ EQS().forEach(e=>{if(e&&e.id===id&&e.tier===tier&&!e.id2)n++;});
  return n;
 }
 function consumeScrolls(id,tier,n){
  let fromSlot=-1;
  for(let i=(S.scrolls||[]).length-1;i>=0&&n>0;i--){
   const sc=S.scrolls[i];
-  if(sc&&sc.id===id&&sc.tier===tier){S.scrolls.splice(i,1);n--;}
+  if(sc&&sc.id===id&&sc.tier===tier&&!sc.id2){S.scrolls.splice(i,1);n--;}
  }
  for(let i=0;i<EQS().length&&n>0;i++){
   const e=EQS()[i];
-  if(e&&e.id===id&&e.tier===tier){EQS()[i]=null;fromSlot=i;n--;}
+  if(e&&e.id===id&&e.tier===tier&&!e.id2){EQS()[i]=null;fromSlot=i;n--;}
  }
  return fromSlot;
 }
@@ -905,6 +912,7 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.cerberusKills===undefined)s.cerberusKills=0;
  if(s.worms===undefined)s.worms=0;
  if(s.raidPots===undefined)s.raidPots=0;
+ if(s.connectors===undefined)s.connectors=0; /* 🔗 crypt connectors — fuse two T-IV scrolls at the smith */
  if(s.ringRecipe===undefined)s.ringRecipe=false;
  if(s.brokenRing===undefined)s.brokenRing=false;
  if(s.ringForged===undefined)s.ringForged=false;
@@ -1195,7 +1203,7 @@ function applyVolumes(){
  if(AC.sfxG)AC.sfxG.gain.value=sfxVol();
  /* .muted works on iOS where .volume writes are ignored — mute must win on phones */
  const av=ambVol(),m=av<=0;
- [ambAudio,cowAudio,haalandAudio].forEach(a=>{if(a){try{a.volume=av;a.muted=m;}catch(e){}}});
+ [ambAudio,cowAudio,haalandAudio,cryptAudio].forEach(a=>{if(a){try{a.volume=av;a.muted=m;}catch(e){}}});
 }
 function noiseBuf(){
  if(AC.nb)return AC.nb;
@@ -1219,6 +1227,7 @@ function stopAmbience(){
  AC.amb=[];AC.timers=[];
  stopCowTrack();
  stopHaalandTrack();
+ stopCryptTrack();
  stopAmbTrack();
 }
 function windLayer(vol,freq,q){
@@ -1333,6 +1342,61 @@ function startHaalandTrack(){
  return true;
 }
 function stopHaalandTrack(){if(haalandAudio)haalandAudio.pause();}
+/* ---- The Crypts ambience ----
+   Decoded into a Web Audio buffer and looped sample-exactly (an <audio loop> mp3
+   always clicks: the codec pads ~50ms of silence). On top of that the last two
+   seconds are crossfaded into the first two inside the buffer (equal-power), so
+   the loop point is mathematically seamless. Falls back to a plain looping
+   <audio> element if decoding fails. */
+const CRYPT_MUSIC_URL='ambientsong/cryptambience.mp3';
+let cryptAudio=null,cryptBuf=null,cryptSrc=null,cryptLoading=false;
+function makeSeamlessLoop(buf,fadeS){
+ const sr=buf.sampleRate,F=Math.min(Math.floor(fadeS*sr),Math.floor(buf.length/3)),L=buf.length-F;
+ const out=AC.ctx.createBuffer(buf.numberOfChannels,L,sr);
+ for(let c=0;c<buf.numberOfChannels;c++){
+  const a=buf.getChannelData(c),o=out.getChannelData(c);
+  for(let i=0;i<F;i++){const t=i/F;o[i]=a[i]*Math.sqrt(t)+a[L+i]*Math.sqrt(1-t);}
+  for(let i=F;i<L;i++)o[i]=a[i];
+ }
+ return out;
+}
+function cryptStopBuf(){if(cryptSrc){try{cryptSrc.stop();}catch(e){}try{cryptSrc.disconnect();}catch(e){}cryptSrc=null;}}
+function cryptPlayBuf(){
+ cryptStopBuf();
+ cryptSrc=AC.ctx.createBufferSource();
+ cryptSrc.buffer=cryptBuf;cryptSrc.loop=true;
+ cryptSrc.connect(AC.ambG); /* ambient bus: volume slider, mute and the casino duck all apply */
+ cryptSrc.start();
+}
+function startCryptTrack(){
+ if(cryptBuf){cryptPlayBuf();return true;}
+ if(!cryptLoading){
+  cryptLoading=true;
+  fetch(CRYPT_MUSIC_URL).then(r=>r.arrayBuffer()).then(b=>AC.ctx.decodeAudioData(b)).then(buf=>{
+   cryptBuf=makeSeamlessLoop(buf,2.0);
+   if(AC.prof==='crypt')cryptPlayBuf(); /* still down there — fade the halls in now */
+  }).catch(()=>{ /* decode failed: plain looping element beats silence */
+   cryptAudio=new Audio(CRYPT_MUSIC_URL);
+   cryptAudio.loop=true;cryptAudio.volume=ambVol();
+   if(AC.prof==='crypt')cryptAudio.play().catch(()=>{});
+  });
+ }
+ if(cryptAudio){cryptAudio.volume=ambVol();cryptAudio.currentTime=0;cryptAudio.play().catch(()=>{});}
+ return true; /* a beat of silence while decoding — the growls cover it */
+}
+function stopCryptTrack(){cryptStopBuf();if(cryptAudio)cryptAudio.pause();}
+/* one-shot growl from somewhere in the maze — rescheduled 30–60s by the crypt ambience timer */
+let cryptGrowlAudio=null,cryptGrowlT=0;
+function playCryptGrowl(){
+ if(!cryptGrowlAudio){
+  cryptGrowlAudio=new Audio('ambientsong/cryptgrowl.mp3');
+  cryptGrowlAudio.onerror=()=>{cryptGrowlAudio=null;};
+ }
+ const av=ambVol();
+ cryptGrowlAudio.volume=Math.min(1,av*1.25);cryptGrowlAudio.muted=av<=0;
+ cryptGrowlAudio.currentTime=0;
+ cryptGrowlAudio.play().catch(()=>{});
+}
 
 /* ---- relaxing fantasy score: slow warm pads + harp-like plucks ---- */
 function playChord(freqs){
@@ -1379,11 +1443,21 @@ function startMusic(dark){
 }
 function startAmbience(prof){
  if(!AC.ctx)return;
- if(prof!=='cow'&&prof!=='haaland')prof='world'; /* one shared track for all normal zones */
+ if(prof!=='cow'&&prof!=='haaland'&&prof!=='crypt')prof='world'; /* one shared track for all normal zones */
  if(AC.prof===prof)return;
  stopAmbience();AC.prof=prof;
  if(prof==='cow'){if(!startCowTrack())startCowMusic();return;}
  if(prof==='haaland'){windLayer(.14,700,.7);if(!startHaalandTrack())startMusic(true);return;}
+ if(prof==='crypt'){
+  if(!startCryptTrack())startMusic(true);
+  cryptGrowlT=30+Math.random()*30; /* something breathes in the dark every 30–60s */
+  AC.timers.push(setInterval(()=>{
+   if(gamePaused||audioPaused)return;
+   cryptGrowlT-=1;
+   if(cryptGrowlT<=0){cryptGrowlT=30+Math.random()*30;playCryptGrowl();}
+  },1000));
+  return;
+ }
  startAmbTrack();
 }
 /* Combat / one-shot sounds — all routed through the sfx bus (⚔️ button mutes just these). */
@@ -1551,11 +1625,182 @@ const hcNoFlee=()=>{
 let camX=0,camY=0,gameOn=false,marker=null,portalMsgT=0;
 let shakeT=0;
  
+/* ==================== THE CRYPTS ==================== */
+/* A fresh labyrinth every descent — plain Math.random, never the zone seed.
+   Walls live in world.mwalls (axis-aligned rects): collide() blocks on them and
+   drawCryptGround() culls and draws only the visible ones each frame. */
+const CRYPT={C:380,T:48,cols:35,rows:20,ox:70,oy:70};
+function buildCryptMaze(){
+ const C=CRYPT.C,T=CRYPT.T,cols=CRYPT.cols,rows=CRYPT.rows,ox=CRYPT.ox,oy=CRYPT.oy;
+ const seen=new Array(cols*rows).fill(false);
+ const vW=new Array((cols-1)*rows).fill(true); /* wall right of cell (i,j) */
+ const hW=new Array(cols*(rows-1)).fill(true); /* wall below cell (i,j) */
+ const stack=[[0,0]];seen[0]=true;
+ while(stack.length){ /* iterative DFS backtracker — a perfect maze */
+  const top=stack[stack.length-1],i=top[0],j=top[1],nb=[];
+  if(i>0&&!seen[(i-1)+j*cols])nb.push([i-1,j]);
+  if(i<cols-1&&!seen[(i+1)+j*cols])nb.push([i+1,j]);
+  if(j>0&&!seen[i+(j-1)*cols])nb.push([i,j-1]);
+  if(j<rows-1&&!seen[i+(j+1)*cols])nb.push([i,j+1]);
+  if(!nb.length){stack.pop();continue;}
+  const pick=nb[Math.floor(Math.random()*nb.length)],ni=pick[0],nj=pick[1];
+  if(ni!==i)vW[Math.min(i,ni)+j*(cols-1)]=false;
+  else hW[i+Math.min(j,nj)*cols]=false;
+  seen[ni+nj*cols]=true;stack.push([ni,nj]);
+ }
+ for(let k=0;k<30;k++){ /* knock a few extra holes: loops keep it a hunt, not one brutal single path */
+  if(Math.random()<0.5)vW[Math.floor(Math.random()*vW.length)]=false;
+  else hW[Math.floor(Math.random()*hW.length)]=false;
+ }
+ world.mwalls=[];
+ for(let j=0;j<rows;j++)for(let i=0;i<cols-1;i++)if(vW[i+j*(cols-1)])world.mwalls.push({x:ox+(i+1)*C-T/2,y:oy+j*C-T/2,w:T,h:C+T});
+ for(let j=0;j<rows-1;j++)for(let i=0;i<cols;i++)if(hW[i+j*cols])world.mwalls.push({x:ox+i*C-T/2,y:oy+(j+1)*C-T/2,w:C+T,h:T});
+ world.mazeV=vW;world.mazeH=hW; /* corridor graph — the rat navigates cell-to-cell with this */
+ world.ratboss={x:ox+(cols-1)*C+C/2,y:oy+(rows-1)*C+C/2,ci:cols-1,cj:rows-1,ti:cols-1,tj:rows-1,pi:-1,pj:-1,fx:-1,walk:0,moving:false,speed:108};
+ const MW=cols*C,MH=rows*C; /* sealed outer ring — no sneaking around the maze */
+ world.mwalls.push({x:ox-T,y:oy-T,w:MW+2*T,h:T},{x:ox-T,y:oy+MH,w:MW+2*T,h:T},{x:ox-T,y:oy,w:T,h:MH+T},{x:ox+MW,y:oy,w:T,h:MH+T});
+ /* arrive in the north-west cell; the way home hums right beside you */
+ world.spawn={x:ox+C*0.72,y:oy+C/2};
+ world.solids.push({x:ox+85,y:oy+C/2,r:38,type:'altarportal'});
+ world.portal={x:-500,y:-500}; /* no default zone-exit swirl */
+ for(let k=0;k<26;k++){ /* scattered dying candles for the mood */
+  const ci=Math.floor(Math.random()*cols),cj=Math.floor(Math.random()*rows);
+  world.solids.push({x:ox+ci*C+C/2+(Math.random()-0.5)*90,y:oy+cj*C+C/2+(Math.random()-0.5)*90,r:5,type:'lantern'});
+ }
+ world.cryptChests=[];S.qProg=0; /* three cow-level chests, scattered deep in the maze — fresh hunt every descent */
+ for(let tries=0;tries<800&&world.cryptChests.length<3;tries++){
+  const ci=Math.floor(Math.random()*cols),cj=Math.floor(Math.random()*rows);
+  if(ci+cj<Math.floor((cols+rows)/3))continue; /* never near the entrance */
+  const x=ox+ci*C+C/2,y=oy+cj*C+C/2;
+  if(world.cryptChests.some(c2=>Math.hypot(c2.x-x,c2.y-y)<C*(tries<400?6:3)))continue; /* spread far apart (relax if unlucky) */
+  world.cryptChests.push({x,y,taken:false});
+ }
+ zoneMapImg('cryptmap');zoneMapImg('cryptwall'); /* kick off floor + wall art loads for the per-frame tiler */
+ S.auto=false; /* AUTO does not work down here — ever */
+}
+/* wall texture as a repeating pattern — fixed 836px world repeat, anchored in world
+   space so the masonry stays put while the camera moves; built once and cached */
+let cryptWallPat=null;
+function cryptWallPattern(){
+ if(cryptWallPat)return cryptWallPat;
+ const img=zoneMapImg('cryptwall');
+ if(!(img.complete&&img.naturalWidth))return null;
+ const c=document.createElement('canvas');
+ c.width=836;c.height=Math.round(836*img.naturalHeight/img.naturalWidth);
+ const g=c.getContext('2d');g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
+ g.drawImage(img,0,0,c.width,c.height);
+ cryptWallPat=ctx.createPattern(c,'repeat');
+ return cryptWallPat;
+}
+/* which neighbouring cells have an open corridor from (i,j)? */
+function mazeNeighbors(i,j){
+ const cols=CRYPT.cols,rows=CRYPT.rows,vW=world.mazeV,hW=world.mazeH,out=[];
+ if(i>0&&!vW[(i-1)+j*(cols-1)])out.push([i-1,j]);
+ if(i<cols-1&&!vW[i+j*(cols-1)])out.push([i+1,j]);
+ if(j>0&&!hW[i+(j-1)*cols])out.push([i,j-1]);
+ if(j<rows-1&&!hW[i+j*cols])out.push([i,j+1]);
+ return out;
+}
+/* BFS through the corridor graph: the first cell to step into on the shortest
+   path from (si,sj) to (gi,gj) — ~700 cells, runs in well under a millisecond */
+function mazeFirstStep(si,sj,gi,gj){
+ const cols=CRYPT.cols;
+ const sIdx=si+sj*cols,gIdx=gi+gj*cols;
+ if(sIdx===gIdx)return null;
+ const prev=new Int32Array(cols*CRYPT.rows).fill(-1);
+ prev[sIdx]=sIdx;
+ const q=[sIdx];
+ for(let qi=0;qi<q.length;qi++){
+  const cur=q[qi],ci=cur%cols,cj=(cur-ci)/cols;
+  for(const nb of mazeNeighbors(ci,cj)){
+   const n=nb[0]+nb[1]*cols;
+   if(prev[n]!==-1)continue;
+   prev[n]=cur;
+   if(n===gIdx){let c=n;while(prev[c]!==sIdx)c=prev[c];return [c%cols,(c-c%cols)/cols];}
+   q.push(n);
+  }
+ }
+ return null; /* unreachable — cannot happen in a connected maze */
+}
+/* the rat hunts the hero — cell to cell along the shortest corridor path, so it
+   tracks you anywhere in the maze yet can never clip a wall; in your cell it
+   creeps straight at you across the open floor */
+function updateRatBoss(dt){
+ const rb=world.ratboss,C=CRYPT.C,ox=CRYPT.ox,oy=CRYPT.oy,cols=CRYPT.cols,rows=CRYPT.rows;
+ if(hero.dead)return; /* it got its meal — sit still during the death cam */
+ if(Math.hypot(hero.x-rb.x,hero.y-rb.y)<48){
+  /* caught! the rat ALWAYS one-shots — you wake up back home in Goldshire.
+     Like the cow level, this never counts as a hardcore death: you are carried out, gear intact. */
+  hero.hp=0;
+  hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;hero.pendingDoor=null;
+  hero.sentHome=true;
+  bloodAt(hero.x,hero.y-12,14);
+  sfx.die();
+  shakeT=0.35;
+  stageMsg('🐀 The rat got you — you wake by the hearth in Goldshire.',3200);
+  log('<span class="imp">Devoured in The Crypts.</span> Carried back to Goldshire — gear and loot intact.');
+  save();
+  return;
+ }
+ const hi=Math.max(0,Math.min(cols-1,Math.floor((hero.x-ox)/C)));
+ const hj=Math.max(0,Math.min(rows-1,Math.floor((hero.y-oy)/C)));
+ let tx,ty;
+ if(rb.ci===hi&&rb.cj===hj){ /* same cell as the hero */
+  rb.ti=rb.ci;rb.tj=rb.cj;
+  tx=hero.x;ty=hero.y;
+ }else{
+  if(rb.ti===rb.ci&&rb.tj===rb.cj){ /* standing on a centre — ask the maze for the next step */
+   const st=mazeFirstStep(rb.ci,rb.cj,hi,hj);
+   if(st){rb.ti=st[0];rb.tj=st[1];}
+  }
+  tx=ox+rb.ti*C+C/2;ty=oy+rb.tj*C+C/2;
+ }
+ const d=Math.hypot(tx-rb.x,ty-rb.y);
+ if(d<6){rb.ci=rb.ti;rb.cj=rb.tj;rb.moving=false;return;}
+ const step=Math.min(rb.speed*dt,d);
+ rb.x+=(tx-rb.x)/d*step;rb.y+=(ty-rb.y)/d*step;
+ if(tx>rb.x+1)rb.fx=1;else if(tx<rb.x-1)rb.fx=-1;
+ rb.walk+=dt*3.4;rb.moving=true;
+}
+function drawCryptGround(){
+ const img=zoneMapImg('cryptmap');
+ const vx0=camX,vy0=camY,vx1=camX+VW/zoom,vy1=camY+VH/zoom;
+ const far=zoom<0.45; /* zoomed way out: hundreds of walls/tiles in view — draw the cheap flat version */
+ if(img.complete&&img.naturalWidth){
+  /* tiled at near-native scale — stretching one 1672px image over 13440px would be mush */
+  const TW=1200,TH=TW*img.naturalHeight/img.naturalWidth;
+  const src=mip(img,TW);
+  const x0=Math.max(0,Math.floor(vx0/TW)),x1=Math.min(Math.ceil(world.w/TW),Math.ceil(vx1/TW));
+  const y0=Math.max(0,Math.floor(vy0/TH)),y1=Math.min(Math.ceil(world.h/TH),Math.ceil(vy1/TH));
+  for(let ty=y0;ty<y1;ty++)for(let tx=x0;tx<x1;tx++){
+   if(far){ctx.drawImage(src,tx*TW,ty*TH,TW,TH);continue;} /* no mirror transforms — seams are invisible this far out */
+   ctx.save();ctx.translate(tx*TW+TW/2,ty*TH+TH/2);ctx.scale(tx%2?-1:1,ty%2?-1:1); /* mirror every other tile to hide the seams */
+   ctx.drawImage(src,-TW/2,-TH/2,TW,TH);ctx.restore();
+  }
+ }else{ctx.fillStyle='#161420';ctx.fillRect(vx0,vy0,vx1-vx0,vy1-vy0);}
+ if(far){ /* one batched fill for every wall in view — 4 canvas ops total instead of 4 per wall */
+  ctx.fillStyle='#443f52';ctx.beginPath();
+  for(const w of world.mwalls){
+   if(w.x>vx1||w.y>vy1||w.x+w.w<vx0||w.y+w.h<vy0)continue;
+   ctx.rect(w.x,w.y,w.w,w.h);
+  }
+  ctx.fill();
+  return;
+ }
+ const pat=cryptWallPattern();
+ for(const w of world.mwalls){ /* stone walls skinned with cryptwall.png, camera-culled */
+  if(w.x>vx1+40||w.y>vy1+40||w.x+w.w<vx0-40||w.y+w.h<vy0-40)continue;
+  ctx.fillStyle='rgba(0,0,0,0.45)';ctx.fillRect(w.x+5,w.y+7,w.w,w.h);
+  ctx.fillStyle=pat||'#474254';ctx.fillRect(w.x,w.y,w.w,w.h);
+  ctx.fillStyle='rgba(255,255,255,0.08)';ctx.fillRect(w.x,w.y,w.w,4); /* faint top light so the walls read as raised */
+  ctx.strokeStyle='rgba(0,0,0,0.55)';ctx.lineWidth=2;ctx.strokeRect(w.x,w.y,w.w,w.h);
+ }
+}
 function buildZone(){
  if(!zoneOf().special&&(S.maxZone||0)<S.zone)S.maxZone=S.zone;
  const z=zoneOf(),R=mulberry32(S.zone*7919+13);
  const isBoss=!!z.boss;
- world={w:z.raid?3800:z.cow?4200:z.tavern?2600:isBoss?2400:3000,h:z.raid?1900:z.cow?2600:z.tavern?1700:isBoss?1600:2000,solids:[],deco:[],waters:[]}; /* larger maps — full desktop view + hidden side panel; cow field is the biggest */
+ world={w:z.crypts?13440:z.raid?3800:z.cow?4200:z.tavern?2600:isBoss?2400:3000,h:z.crypts?7740:z.raid?1900:z.cow?2600:z.tavern?1700:isBoss?1600:2000,solids:[],deco:[],waters:[]}; /* larger maps — full desktop view + hidden side panel; cow field is the biggest */
  world.spawn={x:120,y:world.h/2};
  world.portal={x:world.w-80,y:world.h/2};
  world.pathY=world.h/2;world.pathH=110;
@@ -1620,6 +1865,7 @@ function buildZone(){
    rocks++;
   }
  }else{
+  if(z.crypts)buildCryptMaze();
   if(z.altar){
    /* the way home — standing on the walkway just ahead of the spawn */
    world.solids.push({x:110,y:995,r:38,type:'altarportal'}); /* far left on the walkway */
@@ -1642,7 +1888,7 @@ function buildZone(){
   /* fewer props with an enforced minimum gap so nothing clumps and traps the hero */
   const MINGAP=58;
   const clearOf=(x,y)=>!world.solids.some(s=>dist({x,y},s)<(s.type==='water'||s.type==='berg'?s.r+46:MINGAP));
-  const nT=(z.raid||isBoss||z.altar)?0:70; /* boss arenas & the sky sanctum: clean ground */
+  const nT=(z.raid||isBoss||z.altar||z.crypts)?0:70; /* boss arenas, sky sanctum & the crypts: clean ground */
   for(let i=0;i<nT;i++){
    let x,y,ok=false;
    if(isBoss){
@@ -1859,6 +2105,7 @@ function collectCowChest(){
 }
 function prerenderGround(z,R){
  groundCv=document.createElement('canvas');
+ if(z.crypts){groundCv.width=groundCv.height=16;return;} /* floor tiles draw per frame — a 13440px canvas would sink phones */
  groundCv.width=world.w;groundCv.height=world.h;
  const g=groundCv.getContext('2d');
  const mImg=z.tavern?gsMapImg:(z.map?zoneMapImg(z.map):null);
@@ -1945,6 +2192,9 @@ function collide(e,nx,ny){
    }
    if(Math.hypot(nx-s.x,ny-s.y)<e.r+s.r*0.8)return true;
   }
+ }
+ if(world.mwalls)for(const w of world.mwalls){
+  if(nx>w.x-e.r&&nx<w.x+w.w+e.r&&ny>w.y-e.r&&ny<w.y+w.h+e.r)return true;
  }
  return nx<e.r+16||ny<e.r+16||nx>world.w-e.r-16||ny>world.h-e.r-16;
 }
@@ -2735,7 +2985,7 @@ cv.addEventListener('pointerdown',e=>{
  hero.pendingDoor=null; /* any new click cancels a pending walk-to-building */
  const apx=world.solids.find(s=>s.type==='altarportal');
  if(apx&&Math.hypot(wx-apx.x,wy-apx.y)<apx.r+28){
-  const dest=zoneOf().altar?TAVERN_ZONE:ALTAR_ZONE;
+  const dest=zoneOf().tavern?ALTAR_ZONE:TAVERN_ZONE;
   const go=()=>goToZone(dest);
   if(Math.hypot(hero.x-apx.x,hero.y-apx.y)<75)go();
   else{hero.target=null;hero.goPortal=false;hero.moveTo={x:apx.x,y:apx.y+34};marker={x:apx.x,y:apx.y+34,t:0};hero.pendingDoor={s:apx,open:go,rng:75};}
@@ -3015,7 +3265,37 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   /* --- The Altar portal: step inside and it takes you --- */
   {
    const apt=world.solids.find(s2=>s2.type==='altarportal');
-   if(apt&&!hero.dead&&Math.hypot(hero.x-apt.x,hero.y-(apt.y-30))<34)goToZone(zoneOf().altar?TAVERN_ZONE:ALTAR_ZONE);
+   if(apt&&!hero.dead&&Math.hypot(hero.x-apt.x,hero.y-(apt.y-30))<34)goToZone(zoneOf().tavern?ALTAR_ZONE:TAVERN_ZONE);
+  }
+  /* --- the crypt rat: a slow scurry through the corridors --- */
+  if(zoneOf().crypts&&world.ratboss)updateRatBoss(dt);
+  /* --- crypt chests: walk over one to loot it --- */
+  if(zoneOf().crypts&&world.cryptChests&&!hero.dead){
+   for(const cc of world.cryptChests){
+    if(cc.taken||Math.hypot(hero.x-cc.x,hero.y-cc.y)>=62)continue;
+    cc.taken=true;
+    S.qProg=Math.min(3,(S.qProg||0)+1);
+    const goldGot=addGold(8000+Math.floor(Math.random()*4000)); /* ~10k gold per chest */
+    log(`Chest loot: <span class="loot">+${goldGot.toLocaleString()}◉</span>.`,'loot');
+    burst(cc.x,cc.y-6,'#5bc8ff',14,90,true);
+    sparkles(cc.x,cc.y-10,'#9fd0ff',10);
+    if(Math.random()<0.125){ /* 1 in 8: a 🔗 Crypt Connector rides along */
+     S.connectors=(S.connectors||0)+1;
+     sparkles(cc.x,cc.y-16,'#8fe3c9',12);
+     stageMsg('🔗 A CRYPT CONNECTOR! ('+S.connectors+' owned)',2800,'#8fe3c9');
+     log('<span class="lscroll">🔗 Crypt Connector</span> — two of these let a level 10 Blacksmith fuse a pair of Tier IV scrolls into one.','loot');
+    }
+    if(S.qProg>=3){ /* the maze cleared — a Potion of Raid on top */
+     S.raidPots=(S.raidPots||0)+1;
+     stageMsg('⚰️ ALL 3 CHESTS FOUND — ⚗️ Potion of Raid awarded!',3200,'#c9a0ff');
+     log('<span class="imp">The Crypts yield their prize:</span> <span class="lepic">⚗️ Potion of Raid</span> — +15% boss damage for 60 min.','loot');
+     sfx.shout();
+    }else{
+     stageMsg('💠 Chest '+S.qProg+' / 3 — +'+goldGot.toLocaleString()+'◉!',2200,'#5bc8ff');
+     sfx.loot();
+    }
+    renderHUD();save();
+   }
   }
   /* --- inside the great ring: the Altar sizes you up --- */
   if(zoneOf().altar){
@@ -3253,6 +3533,119 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
 }
  
 /* ==================== DRAW ==================== */
+/* ---- crypt fog of war: true line of sight ----
+   240 rays march out from the hero and stop at the first wall (slab ray-vs-rect
+   against only the walls near the torch). Everything outside the sight polygon
+   goes dark, and light falls off with distance inside it — so you can never see
+   down a corridor you have no sight-line into, and never past a wall. */
+function drawCryptFog(){
+ const R=430*(1+0.018*Math.sin(performance.now()/140)); /* torch flicker */
+ const px=hero.x,py=hero.y-8;
+ const near=[]; /* only walls within torch range can block light */
+ for(const w of world.mwalls){
+  if(w.x>px+R||w.y>py+R||w.x+w.w<px-R||w.y+w.h<py-R)continue;
+  near.push(w);
+ }
+ const N=240,pts=[];
+ for(let i=0;i<N;i++){
+  const a=i/N*6.28318,dx=Math.cos(a),dy=Math.sin(a);
+  let t=R;
+  for(const w of near){ /* slab method: distance to this rect along the ray */
+   let t0=0,t1=t,ok=true;
+   if(dx!==0){
+    const ta=(w.x-px)/dx,tb=(w.x+w.w-px)/dx;
+    t0=Math.max(t0,Math.min(ta,tb));t1=Math.min(t1,Math.max(ta,tb));
+   }else if(px<w.x||px>w.x+w.w)ok=false;
+   if(dy!==0){
+    const ta=(w.y-py)/dy,tb=(w.y+w.h-py)/dy;
+    t0=Math.max(t0,Math.min(ta,tb));t1=Math.min(t1,Math.max(ta,tb));
+   }else if(py<w.y||py>w.y+w.h)ok=false;
+   if(ok&&t0<=t1&&t0>=0&&t0<t)t=t0;
+  }
+  pts.push([px+dx*t,py+dy*t]);
+ }
+ const vx0=camX-40,vy0=camY-40,vx1=camX+VW/zoom+40,vy1=camY+VH/zoom+40;
+ const DARK='#000';
+ /* 1) everything outside the sight polygon goes dark (even-odd fill) */
+ ctx.beginPath();
+ ctx.rect(vx0,vy0,vx1-vx0,vy1-vy0);
+ ctx.moveTo(pts[0][0],pts[0][1]);
+ for(let i=1;i<N;i++)ctx.lineTo(pts[i][0],pts[i][1]);
+ ctx.closePath();
+ ctx.fillStyle=DARK;
+ ctx.fill('evenodd');
+ /* 2) torchlight falloff with distance inside the polygon */
+ const g=ctx.createRadialGradient(px,py,0,px,py,R);
+ g.addColorStop(0,'rgba(0,0,0,0)');
+ g.addColorStop(0.55,'rgba(0,0,0,0.18)');
+ g.addColorStop(0.85,'rgba(0,0,0,0.72)');
+ g.addColorStop(1,DARK);
+ ctx.beginPath();
+ ctx.moveTo(pts[0][0],pts[0][1]);
+ for(let i=1;i<N;i++)ctx.lineTo(pts[i][0],pts[i][1]);
+ ctx.closePath();
+ ctx.fillStyle=g;
+ ctx.fill();
+}
+/* the crypt rat — painted body over four scurrying feet (diagonal pairs, like a real rat) */
+function drawRatBoss(){
+ const rb=world.ratboss;
+ if(rb.x<camX-220||rb.x>camX+VW/zoom+220||rb.y<camY-180||rb.y>camY+VH/zoom+180)return;
+ ctx.save();ctx.translate(rb.x,rb.y);
+ ctx.fillStyle='rgba(0,0,0,0.35)';ctx.beginPath();ctx.ellipse(0,28,86,19,0,0,7);ctx.fill();
+ if(rb.fx>0)ctx.scale(-1,1); /* art faces left natively — mirror when heading right */
+ const bob=rb.moving?Math.sin(rb.walk*4)*2:0; /* skittering bob */
+ const H=195,W=ratbossImg.naturalWidth?H*ratbossImg.naturalWidth/ratbossImg.naturalHeight:H*1.42;
+ const feet=bootImg.complete&&bootImg.naturalWidth;
+ const FW=22,FH=feet?FW*bootImg.naturalHeight/bootImg.naturalWidth:0;
+ const sw=i=>rb.moving?Math.sin(rb.walk*2+(i%2?Math.PI:0))*7:0; /* diagonal gait: 0&3 vs 1&2 */
+ if(feet){ /* far-side pair first, tucked behind the body */
+  ctx.globalAlpha=0.75;
+  ctx.drawImage(mip(bootImg,64),-W*0.17-FW/2+sw(1),20-FH/2,FW,FH);
+  ctx.drawImage(mip(bootImg,64),W*0.15-FW/2+sw(2),20-FH/2,FW,FH);
+  ctx.globalAlpha=1;
+ }
+ if(ratbossImg.complete&&ratbossImg.naturalWidth)ctx.drawImage(mip(ratbossImg,W),-W/2,30-H+bob,W,H);
+ else{ctx.fillStyle='#4a3a34';ctx.beginPath();ctx.ellipse(0,-20,60,34,0,0,7);ctx.fill();} /* fallback while loading */
+ if(feet){ /* near-side pair on top */
+  ctx.drawImage(mip(bootImg,64),-W*0.31-FW/2+sw(0),27-FH/2,FW,FH);
+  ctx.drawImage(mip(bootImg,64),W*0.33-FW/2+sw(3),27-FH/2,FW,FH);
+ }
+ ctx.restore();
+}
+/* the blue loot chest with a pulsing glow — shared by the Cow Level and The Crypts */
+function drawLootChest(x,y,sc){
+ const tt=performance.now()/1000,pu=0.5+0.5*Math.sin(tt*4);
+ ctx.save();ctx.translate(x,y);
+ ctx.scale(sc,sc);
+ /* glow ring + ground shadow */
+ ctx.strokeStyle='rgba(91,200,255,'+(0.25+0.4*pu)+')';ctx.lineWidth=3;
+ ctx.beginPath();ctx.arc(0,-10,30+pu*7,0,7);ctx.stroke();
+ ctx.fillStyle='rgba(0,0,0,0.30)';ctx.beginPath();ctx.ellipse(0,5,20,7,0,0,7);ctx.fill();
+ ctx.shadowColor='#4da3ff';ctx.shadowBlur=18+14*pu;
+ /* body */
+ ctx.fillStyle='#2f6fb8';ctx.fillRect(-18,-12,36,16);
+ /* arched lid */
+ ctx.fillStyle='#4da3ff';
+ ctx.beginPath();ctx.moveTo(-18,-12);ctx.quadraticCurveTo(0,-27,18,-12);ctx.closePath();ctx.fill();
+ ctx.shadowBlur=0;
+ /* wood planks */
+ ctx.strokeStyle='rgba(10,25,45,0.4)';ctx.lineWidth=1;
+ ctx.beginPath();ctx.moveTo(-18,-7);ctx.lineTo(18,-7);ctx.moveTo(-18,-1.5);ctx.lineTo(18,-1.5);ctx.stroke();
+ /* metal bands */
+ ctx.fillStyle='#9fd0ff';
+ ctx.fillRect(-18,-13.2,36,2.6);       /* lid rim */
+ ctx.fillRect(-13,-12,3,16);ctx.fillRect(10,-12,3,16); /* vertical straps */
+ /* outline */
+ ctx.strokeStyle='#bfe4ff';ctx.lineWidth=2;
+ ctx.strokeRect(-18,-12,36,16);
+ ctx.beginPath();ctx.moveTo(-18,-12);ctx.quadraticCurveTo(0,-27,18,-12);ctx.stroke();
+ /* gold lock with keyhole */
+ ctx.fillStyle='#ffd76a';ctx.fillRect(-4.5,-13.5,9,8);
+ ctx.strokeStyle='#8a6a20';ctx.lineWidth=1;ctx.strokeRect(-4.5,-13.5,9,8);
+ ctx.fillStyle='#8a6a20';ctx.beginPath();ctx.arc(0,-10.5,1.6,0,7);ctx.fill();ctx.fillRect(-0.8,-10,1.6,3);
+ ctx.restore();
+}
 function draw(){
  if(!gameOn)return;
  const now=performance.now()/1000;
@@ -3261,6 +3654,7 @@ function draw(){
  ctx.save();ctx.scale(zoom,zoom);ctx.translate(-camX+shX,-camY+shY);
  ctx.drawImage(groundCv,0,0);
  const z=zoneOf();
+ if(z.crypts)drawCryptGround();
  /* animated water shimmer */
  for(const w of world.waters){
   if(w.x<camX-w.r||w.x>camX+VW/zoom+w.r||w.y<camY-w.r||w.y>camY+VH/zoom+w.r)continue;
@@ -3285,38 +3679,13 @@ function draw(){
   ctx.strokeStyle='rgba(255,255,255,'+(0.9-marker.t)+')';ctx.lineWidth=2;
   ctx.beginPath();ctx.arc(marker.x,marker.y,6+marker.t*18,0,7);ctx.stroke();
  }
- if(cowRunning&&cowChest){ /* the big blue loot chest with a pulsing glow */
-  const tt=performance.now()/1000,pu=0.5+0.5*Math.sin(tt*4);
-  ctx.save();ctx.translate(cowChest.x,cowChest.y);
-  ctx.scale(1.4,1.4); /* bigger chest */
-  /* glow ring + ground shadow */
-  ctx.strokeStyle='rgba(91,200,255,'+(0.25+0.4*pu)+')';ctx.lineWidth=3;
-  ctx.beginPath();ctx.arc(0,-10,30+pu*7,0,7);ctx.stroke();
-  ctx.fillStyle='rgba(0,0,0,0.30)';ctx.beginPath();ctx.ellipse(0,5,20,7,0,0,7);ctx.fill();
-  ctx.shadowColor='#4da3ff';ctx.shadowBlur=18+14*pu;
-  /* body */
-  ctx.fillStyle='#2f6fb8';ctx.fillRect(-18,-12,36,16);
-  /* arched lid */
-  ctx.fillStyle='#4da3ff';
-  ctx.beginPath();ctx.moveTo(-18,-12);ctx.quadraticCurveTo(0,-27,18,-12);ctx.closePath();ctx.fill();
-  ctx.shadowBlur=0;
-  /* wood planks */
-  ctx.strokeStyle='rgba(10,25,45,0.4)';ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(-18,-7);ctx.lineTo(18,-7);ctx.moveTo(-18,-1.5);ctx.lineTo(18,-1.5);ctx.stroke();
-  /* metal bands */
-  ctx.fillStyle='#9fd0ff';
-  ctx.fillRect(-18,-13.2,36,2.6);       /* lid rim */
-  ctx.fillRect(-13,-12,3,16);ctx.fillRect(10,-12,3,16); /* vertical straps */
-  /* outline */
-  ctx.strokeStyle='#bfe4ff';ctx.lineWidth=2;
-  ctx.strokeRect(-18,-12,36,16);
-  ctx.beginPath();ctx.moveTo(-18,-12);ctx.quadraticCurveTo(0,-27,18,-12);ctx.stroke();
-  /* gold lock with keyhole */
-  ctx.fillStyle='#ffd76a';ctx.fillRect(-4.5,-13.5,9,8);
-  ctx.strokeStyle='#8a6a20';ctx.lineWidth=1;ctx.strokeRect(-4.5,-13.5,9,8);
-  ctx.fillStyle='#8a6a20';ctx.beginPath();ctx.arc(0,-10.5,1.6,0,7);ctx.fill();ctx.fillRect(-0.8,-10,1.6,3);
-  ctx.restore();
+ if(cowRunning&&cowChest)drawLootChest(cowChest.x,cowChest.y,1.4); /* the big blue loot chest */
+ if(z.crypts&&world.cryptChests)for(const cc of world.cryptChests){ /* the three maze chests — same chest, same glow */
+  if(cc.taken)continue;
+  if(cc.x<camX-80||cc.x>camX+VW/zoom+80||cc.y<camY-80||cc.y>camY+VH/zoom+80)continue;
+  drawLootChest(cc.x,cc.y,1.4);
  }
+ if(z.crypts&&world.ratboss)drawRatBoss();
  /* telegraphed boss hazards */
  for(const h of hazards){
   const p=Math.min(1,h.t/h.warn);
@@ -3416,6 +3785,7 @@ function draw(){
   ctx.fillStyle=f.color;ctx.fillText(f.txt,f.x,f.y-f.t*44);
   ctx.globalAlpha=1;
  }
+ if(z.crypts&&world.mwalls)drawCryptFog(); /* the dark closes in — last world-space layer */
  ctx.restore();
  if(cowRunning||(zoneOf().cow&&hero.dead)){
   const t=cowT,fmt=x=>Math.floor(x/60)+':'+String(Math.floor(x%60)).padStart(2,'0');
@@ -3443,6 +3813,17 @@ function draw(){
    ctx.fillStyle='#ff5a4a';
    ctx.fillText(msg,VW/2,113);
    ctx.shadowBlur=0;ctx.globalAlpha=1;
+  }
+ }
+ if(z.crypts){ /* chest tally, always on screen down there */
+  const n=Math.min(3,S.qProg||0);
+  ctx.font='700 26px '+getComputedStyle(document.body).fontFamily;
+  ctx.textAlign='center';
+  ctx.fillStyle='rgba(0,0,0,0.65)';ctx.fillText('💠 '+n+' / 3',VW/2+2,50);
+  ctx.fillStyle=n>=3?'#8fe3c9':'#5bc8ff';ctx.fillText('💠 '+n+' / 3',VW/2,48);
+  if(n>=3){
+   ctx.font='600 12px '+getComputedStyle(document.body).fontFamily;
+   ctx.fillStyle='rgba(143,227,201,0.85)';ctx.fillText('ALL CHESTS FOUND',VW/2,68);
   }
  }
  if(vigCv)ctx.drawImage(vigCv,0,0,VW,VH);
@@ -3637,7 +4018,7 @@ function drawProp(s,z){
   ctx.fillStyle='rgba(225,238,255,0.85)';
   for(let i=0;i<4;i++){const a=t+i*1.57;ctx.beginPath();ctx.arc(Math.cos(a)*19,-36+Math.sin(a)*32,2.4,0,7);ctx.fill();}
   ctx.restore();
-  const lbl=zoneOf().altar?'Goldshire':'The Altar';
+  const lbl=zoneOf().tavern?'The Altar':'Goldshire';
   ctx.font='700 12px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(lbl,1,-95);
   ctx.fillStyle='#bcd8ff';ctx.fillText(lbl,0,-96);
@@ -4306,7 +4687,13 @@ function log(html,cls){
  if(tickerMsgs.length>3)tickerMsgs.pop();
  $('ticker').innerHTML=tickerMsgs.slice().reverse().join('');
 }
-function applyZoneUI(){$('hZone').textContent=zoneOf().name+(zoneOf().boss||zoneOf().raid?' ☠':'');}
+function applyZoneUI(){
+ $('hZone').textContent=zoneOf().name+(zoneOf().boss||zoneOf().raid?' ☠':'');
+ /* the crypts hide the quest text and Continue — the bar stays, the progress row doubles as the 0/3 chest counter, AUTO stays clickable for its refusal */
+ const cr=!!zoneOf().crypts;
+ $('qName').parentElement.style.display=cr?'none':'';
+ $('nextBtn').style.display=cr?'none':'';
+}
 /* keep the open side panel live — desktop shows it permanently */
 let panelT=0;
 function refreshOpenPanel(){
@@ -4486,10 +4873,11 @@ function renderHero(){
  let scHtml='';
  S.activeScrolls=S.activeScrolls||[null,null];
  for(let i=0;i<2;i++){
-  const sc=S.activeScrolls[i],e=sc?enchOf(sc.id):null;
-  scHtml+=`<div class="slot" style="border-color:${e?e.glow+'66':'var(--line)'}"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">Scroll ${i+1}</div>`+
-   (e?`<div class="en"><span class="glowdot" style="background:${e.glow};box-shadow:0 0 6px ${e.glow}"></span>${e.n.replace('Scroll of ','')} ${TIERN[(sc.tier||1)-1]}</div>
-    <div class="ss">${tierDesc(sc.id,sc.tier)}</div>
+  const sc=S.activeScrolls[i],e=sc?enchOf(sc.id):null,e2=sc&&sc.id2?enchOf(sc.id2):null;
+  scHtml+=`<div class="slot" style="border-color:${e2?'#8fe3c966':e?e.glow+'66':'var(--line)'}"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">Scroll ${i+1}${e2?' · 🔗 FUSED':''}</div>`+
+   (e?`<div class="en"><span class="glowdot" style="background:${e.glow};box-shadow:0 0 6px ${e.glow}"></span>${e.n.replace('Scroll of ','')} ${TIERN[(sc.tier||1)-1]}</div>`+
+    (e2?`<div class="en"><span class="glowdot" style="background:${e2.glow};box-shadow:0 0 6px ${e2.glow}"></span>${e2.n.replace('Scroll of ','')} ${TIERN[(sc.tier2||1)-1]}</div>`:'')+
+    `<div class="ss">${tierDesc(sc.id,sc.tier)}${e2?'<br>'+tierDesc(sc.id2,sc.tier2):''}</div>
     <button class="upbtn" data-unsc="${i}">Unequip</button>`
     :`<div class="ss">— no scroll —</div>`)+`</div>`;
  }
@@ -4554,12 +4942,12 @@ function renderHero(){
 }
 function renderMap(){
  const p5=(S.prestige||0)>=5,p1=(S.prestige||0)>=1;
- const p15=(S.prestige||0)>=15; /* raid gate */
+ const p15=(S.prestige||0)>=10; /* raid gate */
  const cowOk=(S.prestige||0)>=5&&(S.lvl||1)>=60;
  const haalOk=(S.prestige||0)>=10;
  if(mapContinent==='west'&&!p1)mapContinent='east';
  if(mapContinent==='valhalla'&&!p1)mapContinent='east';
- /* raid continent is always viewable — the Prestige 15 gate sits on the Black Temple card instead */
+ /* raid continent is always viewable — the Prestige 10 gate sits on the Black Temple card instead */
  $('eastTab').classList.toggle('cur',mapContinent==='east');
  $('westTab').classList.toggle('cur',mapContinent==='west');
  $('valhallaTab').classList.toggle('cur',mapContinent==='valhalla');
@@ -4592,11 +4980,11 @@ function renderMap(){
    if(z.altar)return ''; /* portal-only zone */
    if(z.crypts){
     const p20=(S.prestige||0)>=20;
-    return `<div class="card zonecard locked" style="border-color:${p20?'#a66bd0':''}">
+    return `<div class="card zonecard ${p20?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p20?'#a66bd0':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#1a1a26)">⚰️</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">An ever-shifting labyrinth — its halls rearrange with every descent. No two runs alike.</div></div>
-     ${p20?'<span class="ztag boss">⚒ Opens soon</span>':'<span class="ztag boss">🔒 Prestige 20</span>'}
+     <div class="zl">An ever-shifting labyrinth — its halls rearrange with every descent. Three chests hide in the dark · on foot only, AUTO fails here.</div></div>
+     ${i===S.zone?'<span class="ztag">Here</span>':p20?'<span class="ztag boss">⚰️ Enter</span>':'<span class="ztag boss">🔒 Prestige 20</span>'}
     </div>`;
    }
    if(z.thor){
@@ -4633,9 +5021,9 @@ function renderMap(){
     return `<div class="card zonecard ${p15&&rst.open?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p15&&rst.open?'#a66bd0':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#2a2040)">⚔</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">RAID — three lords slumber in their chambers. Strike one and it hunts you to the death.${p15?'':' · Minimum Prestige 15'}</div>
+     <div class="zl">RAID — three lords slumber in their chambers. Strike one and it hunts you to the death.${p15?'':' · Minimum Prestige 10'}</div>
      <div class="zl" id="raidTimer" style="color:${rst.open?'#c9a0ff':'#8fa898'}">${stateTxt}</div></div>
-     ${i===S.zone?'<span class="ztag">Here</span>':!p15?'<span class="ztag boss">🔒 Prestige 15</span>':rst.open?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">⏳ Sealed</span>'}
+     ${i===S.zone?'<span class="ztag">Here</span>':!p15?'<span class="ztag boss">🔒 Prestige 10</span>':rst.open?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">⏳ Sealed</span>'}
     </div>`;
    }
    const kills=S.cerberusKills||0;
@@ -4674,13 +5062,15 @@ function renderMap(){
      if(S.lvl<60){stageMsg('🐄 The cows demand level 60',1800);sfx.warn();return;}
      if(S.bag.filter(it=>!isLegendary(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
     }else if(z.raid){
-     if((S.prestige||0)<15){stageMsg('Reach Prestige 15 — the Black Temple opens only to legends',1800);sfx.warn();return;}
+     if((S.prestige||0)<10){stageMsg('Reach Prestige 10 — the Black Temple opens only to legends',1800);sfx.warn();return;}
      const rst=raidStatus();
      if(!rst.open){stageMsg('⚔ The Black Temple gates are sealed — next opening in '+fmtMS(rst.next),2200);sfx.warn();return;}
      pendingRaidZone=i;
      const rm=$('raidModal');
      if(rm){rm.style.display='flex';openTab('battle');}
      return;
+    }else if(z.crypts){
+     if((S.prestige||0)<20){stageMsg('⚰️ The Crypts open only to Prestige 20',1800);sfx.warn();return;}
     }else if(z.boss&&z.boss[2]==='cerberus'){
      if((S.prestige||0)<10){stageMsg('⚽ Haaland only faces Prestige 10 champions',1800);sfx.warn();return;}
     }else{
@@ -4724,7 +5114,7 @@ setInterval(()=>{
   rEl.style.color=rst.open?'#c9a0ff':'#8fa898';
  }
  if(raidWasOpen!==rst.open&&$('p-map').classList.contains('open'))renderMap();
- if(!raidWasOpen&&rst.open&&typeof gameOn!=='undefined'&&gameOn&&(S.prestige||0)>=15){
+ if(!raidWasOpen&&rst.open&&typeof gameOn!=='undefined'&&gameOn&&(S.prestige||0)>=10){
   stageMsg('⚔ THE BLACK TEMPLE GATES ARE OPEN — 30 minutes!',4000);
   if(typeof sfx!=='undefined'&&sfx.quest)sfx.quest();
  }
@@ -4783,6 +5173,13 @@ function renderBag(){
    <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#39ff6a">ACTIVE — '+mins+' min remaining.</b> ':''}+15% boss damage for 60 minutes. Earned by clearing the Black Temple raid online.</div></div>
    <div class="btns"><button class="sbtn gold" id="raidUse" ${(S.raidPots||0)<1?'disabled':''}>${active?'Extend +60m':'Drink'}</button></div></div>`;
  }
+ // 🔗 crypt connectors — chest trophies from The Crypts
+ let connHtml='';
+ if((S.connectors||0)>0){
+  connHtml=`<div class="card item" style="border-color:#8fe3c9"><div>
+   <div class="sn" style="color:#8fe3c9;font-size:13px;font-weight:600">🔗 Crypt Connector <span style="color:var(--dim)">×${S.connectors||0}</span></div>
+   <div class="ss" style="color:var(--dim);font-size:11px">Cannot be sold or discarded. Bring <b style="color:#8fe3c9">two</b> to a level 10 Blacksmith to fuse any two different <b>Tier IV</b> scrolls into a single scroll. Found in Crypt chests (12.5%).</div></div></div>`;
+ }
  // 🎲 gambler potions — max-win prize
  let gamblerHtml='';
  if((S.gamblerPots||0)>0||S.gamblerT>0){
@@ -4815,7 +5212,7 @@ function renderBag(){
    <div class="sn" style="color:#c9a45a;font-size:13px;font-weight:600">💍 The Broken Ring</div>
    <div class="ss" style="color:var(--dim);font-size:11px">Cold, heavy, and humming. ${both?'Ready to be reforged.':'Needs the Recipe of the Ring from the Trader.'} Cannot be sold or discarded.</div></div></div>`;
  }
- $('scrollSec').innerHTML=luckHtml+raidHtml+ringHtml+gamblerHtml+restedHtml+btHtml;
+ $('scrollSec').innerHTML=luckHtml+raidHtml+connHtml+ringHtml+gamblerHtml+restedHtml+btHtml;
 
 
  document.querySelectorAll('[data-btchest]').forEach(b=>b.onclick=openBlackTempleChest);
@@ -4823,13 +5220,24 @@ function renderBag(){
  const pool=(S.scrolls||[]).concat(EQS().filter(Boolean));
  if(pool.length){
   const groups={};
-  pool.forEach(sc=>{const k=sc.id+':'+sc.tier;(groups[k]=groups[k]||{id:sc.id,tier:sc.tier,n:0,bag:0}).n++;});
-  (S.scrolls||[]).forEach(sc=>{const k=sc.id+':'+sc.tier;if(groups[k])groups[k].bag++;});
+  pool.forEach(sc=>{if(sc.id2)return;const k=sc.id+':'+sc.tier;(groups[k]=groups[k]||{id:sc.id,tier:sc.tier,n:0,bag:0}).n++;});
+  (S.scrolls||[]).forEach(sc=>{if(sc.id2)return;const k=sc.id+':'+sc.tier;if(groups[k])groups[k].bag++;});
   const byTier={};
   Object.values(groups).forEach(g=>(byTier[g.tier]=byTier[g.tier]||[]).push(g));
   const TIERC=['#d8e4d6','#6dbb6d','#5b9bd5','#c9a0ff'];
   let sh='<div class="ptitle" style="font-size:14px;margin-bottom:8px">Scrolls</div>'+ 
    '<div class="ss" style="color:var(--dim);font-size:10.5px;margin-bottom:8px">Choose Scroll 1 or Scroll 2 when equipping. Combine counts both Bag scrolls and equipped scrolls (up to Tier IV). Tap a tier to expand or collapse it.</div>';
+  (S.scrolls||[]).forEach((sc,idx)=>{ /* 🔗 fused scrolls first — one card each, both enchants shown */
+   if(!sc.id2)return;
+   const eA=enchOf(sc.id),eB=enchOf(sc.id2);
+   sh+=`<div class="card item" style="border-color:#8fe3c9aa"><div>
+    <div class="sn" style="color:#8fe3c9;font-size:13px;font-weight:600"><span class="glowdot" style="background:${eA.glow};box-shadow:0 0 6px ${eA.glow}"></span><span class="glowdot" style="background:${eB.glow};box-shadow:0 0 6px ${eB.glow}"></span>🔗 ${enchName(sc)}</div>
+    <div class="ss" style="color:var(--dim);font-size:11px">${tierDesc(sc.id,sc.tier)}<br>${tierDesc(sc.id2,sc.tier2)}<br><span style="color:#8fe3c9">Fused scroll — two enchants in one slot. Cannot be sold.</span></div></div>
+    <div class="btns">
+     <button class="sbtn gold" data-fuseslot="0" data-fuseq="${idx}">${EQS()[0]?'↔ ':''}Slot 1</button>
+     <button class="sbtn gold" data-fuseslot="1" data-fuseq="${idx}">${EQS()[1]?'↔ ':''}Slot 2</button>
+    </div></div>`;
+  });
   for(let t=MAXTIER;t>=1;t--){
    const list=(byTier[t]||[]).sort((a,b)=>a.id.localeCompare(b.id));
    if(!list.length)continue;
@@ -4842,7 +5250,7 @@ function renderBag(){
    if(open)sh+='<div class="tierbody">'+list.map(g=>{
     const e=enchOf(g.id);
     const activeSlot=EQS().findIndex(x=>x&&x.id===g.id&&x.tier===g.tier);
-    const activeSameType=EQS().findIndex(x=>x&&x.id===g.id);
+    const activeSameType=EQS().findIndex(x=>x&&(x.id===g.id||x.id2===g.id));
     const hasBag=g.bag>0;
     const totalCount=scrollPoolCount(g.id,g.tier);
     return `<div class="card item"><div><div class="sn" style="color:#d9a0ef;font-size:13px;font-weight:600"><span class="glowdot" style="background:${e.glow};box-shadow:0 0 6px ${e.glow}"></span>${e.n} ${TIERN[g.tier-1]}${g.n>1?` <span style="color:var(--dim)">×${g.n}</span>`:''}${g.bag!==g.n?` <span style="color:var(--dim)">(${g.bag} bag · ${g.n-g.bag} equipped)</span>`:''}</div>
@@ -4859,13 +5267,13 @@ function renderBag(){
   document.querySelectorAll('[data-tt]').forEach(h=>h.onclick=()=>{
    const t=+h.dataset.tt;scrollTierOpen[t]=!scrollTierOpen[t];renderBag();
   });
-  const takeScroll=(id,tier)=>{const i=S.scrolls.findIndex(x=>x.id===id&&x.tier===tier);return i>=0?S.scrolls.splice(i,1)[0]:null;};
+  const takeScroll=(id,tier)=>{const i=S.scrolls.findIndex(x=>x.id===id&&x.tier===tier&&!x.id2);return i>=0?S.scrolls.splice(i,1)[0]:null;};
   document.querySelectorAll('[data-eqslot]').forEach(b=>b.onclick=()=>{
    if(inBossFight()){stageMsg('No swapping scrolls mid-boss-fight!',1600);sfx.warn();return;}
    if(cowLocked()){stageMsg('The herd allows no scroll rituals — survive or die first!',1600);sfx.warn();return;}
    const slot=parseInt(b.dataset.eqslot,10);
    const [id,t]=b.dataset.sceq.split(':'),tier=+t;
-   const other=EQS().findIndex((x,i)=>i!==slot&&x&&x.id===id);
+   const other=EQS().findIndex((x,i)=>i!==slot&&x&&(x.id===id||x.id2===id));
    if(other>=0){
     stageMsg(enchOf(id).n.replace('Scroll of ','')+' is already active — effects of the same scroll never stack',1800);
     sfx.warn();return;
@@ -4875,6 +5283,21 @@ function renderBag(){
    if(old)S.scrolls.push(old);
    EQS()[slot]=sc;
    stageMsg('📜 '+enchName(sc)+' → Scroll '+(slot+1),1400);
+   log(`<span class="lscroll">${enchName(sc)}</span> now burns in Scroll slot ${slot+1}.`);
+   sfx.loot();renderBag();renderHUD();save();
+  });
+  document.querySelectorAll('[data-fuseq]').forEach(b=>b.onclick=()=>{
+   if(inBossFight()){stageMsg('No swapping scrolls mid-boss-fight!',1600);sfx.warn();return;}
+   if(cowLocked()){stageMsg('The herd allows no scroll rituals — survive or die first!',1600);sfx.warn();return;}
+   const slot=parseInt(b.dataset.fuseslot,10),idx=+b.dataset.fuseq;
+   const sc=S.scrolls[idx];if(!sc||!sc.id2)return;
+   const clash=EQS().findIndex((x,i)=>i!==slot&&x&&(x.id===sc.id||x.id===sc.id2||x.id2===sc.id||x.id2===sc.id2));
+   if(clash>=0){stageMsg('One of those effects is already active — the same effect never stacks',1900);sfx.warn();return;}
+   S.scrolls.splice(idx,1);
+   const old=EQS()[slot];
+   if(old)S.scrolls.push(old);
+   EQS()[slot]=sc;
+   stageMsg('🔗 '+enchName(sc)+' → Scroll '+(slot+1),1600);
    log(`<span class="lscroll">${enchName(sc)}</span> now burns in Scroll slot ${slot+1}.`);
    sfx.loot();renderBag();renderHUD();save();
   });
@@ -4899,9 +5322,9 @@ function renderBag(){
   });
   document.querySelectorAll('[data-scsell]').forEach(b=>b.onclick=()=>{
    const [id,t]=b.dataset.scsell.split(':'),tier=+t;
-   const cnt=S.scrolls.filter(x=>x.id===id&&x.tier===tier).length;
+   const cnt=S.scrolls.filter(x=>x.id===id&&x.tier===tier&&!x.id2).length;
    if(cnt<2){stageMsg('You must keep at least one of this scroll in the Bag',1600);sfx.warn();return;}
-   const i=S.scrolls.findIndex(x=>x.id===id&&x.tier===tier);
+   const i=S.scrolls.findIndex(x=>x.id===id&&x.tier===tier&&!x.id2);
    if(i<0)return;
    S.scrolls.splice(i,1);
    S.gold=Math.min(goldCap(),S.gold+TIER4_SCROLL_SELL);
@@ -5992,6 +6415,7 @@ function openSea(){
  if(ambAudio)ambAudio.pause();
  if(cowAudio)cowAudio.pause();
  if(haalandAudio)haalandAudio.pause();
+ if(cryptAudio)cryptAudio.pause();
  $('seaFx').classList.add('open');
  clearSeaCelebration();
  seaSession={spins:0,gold:0,scrap:0};
@@ -6034,6 +6458,7 @@ $('seaClose').onclick=()=>{
  if(gameOn){
   if(zoneOf().cow&&cowAudio)cowAudio.play().catch(()=>{});
   else if(zoneOf().amb==='haaland'&&haalandAudio)haalandAudio.play().catch(()=>{});
+  else if(zoneOf().crypts&&cryptAudio)cryptAudio.play().catch(()=>{});
   else if(ambAudio)ambAudio.play().catch(()=>{});
  }
 };
@@ -6254,11 +6679,28 @@ document.querySelectorAll('[data-bank]').forEach(b=>b.onclick=()=>{
  }
  sfx.buy();bankRefresh();renderHUD();save();
 });
+let smithSel=null; /* which forge station is open */
+let smithFmSel=0;   /* chosen Frostmourne target: 2 or 3 */
 function smithRefresh(){
  const lv=S.smithLvl||0;
  $('smithLvlTxt').textContent='Blacksmith level '+lv+(lv>=10?' (max)':'');
  const j=S.smithJob;
  $('smithJobTxt').textContent=j?(j.kind==='lvl'?'⏳ Training to level '+j.to:j.kind==='ring'?'⏳ Forging The One Ring':'⏳ Forging Frostmourne ★'+j.to)+' — '+fmtMS(Math.max(0,j.endT-Date.now()))+' left':'';
+ /* ---- station picker: once several reforges are unlocked, choose from a list ---- */
+ const p=S.prestige||0;
+ const fmTier=(lv>=10&&p>=20)?3:(lv>=5&&p>=10)?2:0;
+ const stations=[
+  ['fm','❄ Frostmourne',!!fmTier],
+  ['ring','💍 One Ring',!!(S.ringRecipe&&S.brokenRing)],
+  ['fuse','🔗 Fuse Scrolls',(S.connectors||0)>0]
+ ];
+ if(!smithSel)smithSel='fm';
+ const mn=$('smithMenu');
+ if(mn){ /* the station list always shows — locked stations sit dimmed with a padlock */
+  mn.innerHTML='<div style="display:flex;gap:6px;margin:4px 0 8px">'+stations.map(st=>`<button class="sbtn ${smithSel===st[0]?'gold':''}" data-smsel="${st[0]}" style="flex:1;${st[2]?'':'opacity:.55'}">${st[2]?'':'🔒 '}${st[1]}</button>`).join('')+'</div>';
+  mn.querySelectorAll('[data-smsel]').forEach(b=>b.onclick=()=>{smithSel=b.dataset.smsel;smithRefresh();});
+ }
+ const show=id=>smithSel===id;
  const lu=$('smithLvlUp');
  if(lv<10&&!j){
   lu.innerHTML=`<button class="sbtn scrapb" id="smithLvlBtn" ${S.scraps<800?'disabled':''}>Train to level ${lv+1} · 800⚙ · 2 hours</button>`;
@@ -6270,7 +6712,8 @@ function smithRefresh(){
   };
  }else lu.innerHTML='';
  const ru=$('smithRingRow');
- if(ru){
+ if(ru&&!show('ring'))ru.innerHTML='';
+ else if(ru){
   if(S.ringRecipe&&S.brokenRing&&!j&&lv>=10){
    ru.innerHTML=`<button class="sbtn gold" id="ringForgeBtn" style="width:100%;margin:6px 0">💍 Forge The One Ring · 2 hours</button>`;
    $('ringForgeBtn').onclick=()=>{
@@ -6282,14 +6725,53 @@ function smithRefresh(){
    };
   }else if(S.ringRecipe&&S.brokenRing&&!j&&lv<10){
    ru.innerHTML='<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">💍 The One Ring awaits a level 10 blacksmith.</div>';
-  }else ru.innerHTML='';
+  }else if(!j)ru.innerHTML=S.ringForged
+   ?'<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">💍 The One Ring has already been forged — there is only ever one.</div>'
+   :'<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">💍 Needs the <b>Recipe of the Ring</b> (Wandering Trader) and the <b>Broken Ring</b> (fished from the lake).</div>';
+  else ru.innerHTML='';
  }
- const p=S.prestige||0;
- const tier=(lv>=10&&p>=20)?3:(lv>=5&&p>=10)?2:0;
+ const fu=$('smithFuseRow');
+ if(fu&&!show('fuse')){fu.innerHTML='';fu.dataset.sig='';}
+ else if(fu){
+  const ivBag=(S.scrolls||[]).map((sc,i)=>({sc,i})).filter(o=>!o.sc.id2&&o.sc.tier===MAXTIER);
+  const can=lv>=10&&(S.connectors||0)>=2&&ivBag.length>=2;
+  const sig=(can?'y':'n')+(S.connectors||0)+':'+lv+':'+ivBag.map(o=>o.i+o.sc.id).join(',');
+  if(fu.dataset.sig!==sig){ /* the row holds <select>s — rebuild only on real change (refresh ticks every second) */
+   fu.dataset.sig=sig;
+   if(can){
+    const opts=sel=>ivBag.map(o=>`<option value="${o.i}" ${o.i===sel?'selected':''}>${enchOf(o.sc.id).n.replace('Scroll of ','')} IV</option>`).join('');
+    fu.innerHTML=`<div class="ss" style="margin:8px 0 4px;color:#8fe3c9">🔗 Fuse two different Tier IV scrolls into one · <b>${S.connectors}</b> connectors</div>
+     <div style="display:flex;gap:6px;margin-bottom:6px">
+      <select id="fuseA" class="sbtn" style="flex:1">${opts(ivBag[0].i)}</select>
+      <select id="fuseB" class="sbtn" style="flex:1">${opts(ivBag[1].i)}</select>
+     </div>
+     <button class="sbtn gold" id="fuseBtn" style="width:100%;margin-bottom:6px">🔗 Fuse · consumes 2 connectors</button>`;
+    $('fuseBtn').onclick=()=>{
+     const ia=+$('fuseA').value,ib=+$('fuseB').value;
+     const a=S.scrolls[ia],b2=S.scrolls[ib];
+     if(ia===ib||!a||!b2||a.id2||b2.id2||a.tier!==MAXTIER||b2.tier!==MAXTIER){stageMsg('Pick two different Tier IV scrolls',1600);sfx.warn();return;}
+     if(a.id===b2.id){stageMsg('Two of the same effect never stack — pick two different scrolls',1900);sfx.warn();return;}
+     if((S.connectors||0)<2){sfx.warn();return;}
+     S.connectors-=2;
+     S.scrolls.splice(Math.max(ia,ib),1);S.scrolls.splice(Math.min(ia,ib),1);
+     const fused={id:a.id,tier:MAXTIER,id2:b2.id,tier2:MAXTIER};
+     S.scrolls.push(fused);
+     stageMsg('🔗 '+enchName(fused)+' — fused into one scroll!',3000,'#8fe3c9');
+     log(`The Blacksmith links <span class="lscroll">${enchName(fused)}</span> into a single scroll — two enchants, one slot.`,'loot');
+     sfx.forge();
+     fu.dataset.sig='';
+     save();smithRefresh();renderHUD();
+    };
+   }else if((S.connectors||0)>0){
+    fu.innerHTML=`<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">🔗 Connectors ${Math.min(2,S.connectors||0)}/2${lv<10?' · needs a level 10 blacksmith':''}${(S.connectors||0)<2?' · find more in Crypt chests':''}${ivBag.length<2?' · needs two different Tier IV scrolls in the Bag':''}</div>`;
+   }else fu.innerHTML='<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">🔗 <b>Crypt Connectors</b> drop from chests in The Crypts (12.5%). Two of them fuse a pair of Tier IV scrolls into one.</div>';
+  }
+ }
+ const tier=fmTier;
  const fg=$('smithForge');
- if(!tier||j){
+ if(!tier||j||!show('fm')){
   fg.style.display='none';
-  if(!j){
+  if(!j&&show('fm')){
    if(lv<5)$('smithJobTxt').textContent='Reach blacksmith level 5 to reforge Frostmourne.';
    else if(p<10)$('smithJobTxt').textContent='Reforging Frostmourne ★2 demands Prestige 10.';
    else if(lv>=10&&p<20)$('smithJobTxt').textContent='Frostmourne ★3 demands Prestige 20.';
@@ -6297,10 +6779,16 @@ function smithRefresh(){
   return;
  }
  fg.style.display='block';
- let src=0,out=0;
- if(lv>=10&&p>=20&&fmBagOfStar(2).length>=2){src=2;out=3;}
- else if(fmBagOfStar(1).length>=2){src=1;out=2;}
- else{src=tier>=3?2:1;out=src+1;}
+ /* choose the target: ★2 (two plain blades) or ★3 (two ★2) — ★3 needs smith 10 + Prestige 20 */
+ const canT3=lv>=10&&p>=20;
+ if(!canT3)smithFmSel=2;
+ else if(!smithFmSel)smithFmSel=fmBagOfStar(2).length>=2?3:2;
+ const fp=$('fmPick');
+ if(fp){
+  fp.innerHTML=canT3?'<div style="display:flex;gap:6px;margin:2px 0 6px">'+[2,3].map(t=>`<button class="sbtn ${smithFmSel===t?'gold':''}" data-fmsel="${t}" style="flex:1">${t===2?'❄ + ❄ → ★2':'★2 + ★2 → ★3'}</button>`).join('')+'</div>':'';
+  fp.querySelectorAll('[data-fmsel]').forEach(b=>b.onclick=()=>{smithFmSel=+b.dataset.fmsel;smithRefresh();});
+ }
+ const src=smithFmSel-1,out=smithFmSel;
  const have=fmBagOfStar(src).length,ok=have>=2;
  const slotTxt=st=>'❄'+(st>1?'★'+st:'');
  $('fmSlotA').textContent=have>=1?slotTxt(src):'?';$('fmSlotA').classList.toggle('filled',have>=1);
@@ -6830,7 +7318,7 @@ async function publishLB(ch,force){
   rating:ch.rating||0,
   race:ch.race||'human',cls:ch.cls||'warrior',zone:ch.zone||0,
   scroll:(ch.activeScrolls||[]).filter(Boolean)[0]||null,
-  scrolls:(ch.activeScrolls||[]).filter(Boolean).map(sc=>({id:sc.id,tier:sc.tier||1})),
+  scrolls:(ch.activeScrolls||[]).filter(Boolean).map(sc=>sc.id2?{id:sc.id,tier:sc.tier||1,id2:sc.id2,tier2:sc.tier2||1}:{id:sc.id,tier:sc.tier||1}),
   gear:{weapon:slim(ch.gear&&ch.gear.weapon),armor:slim(ch.gear&&ch.gear.armor),trinket:slim(ch.gear&&ch.gear.trinket)},
   stats:charStats(ch),
   boosts:ch.boosts||{speed:0,haste:0}};
@@ -7113,7 +7601,10 @@ $('guestBtn').onclick=()=>{guestMode=true;$('login').classList.remove('open');sh
 $('fbOut').onclick=async()=>{if(sessUnsub){sessUnsub();sessUnsub=null;}if(FB.auth)await FB.auth.signOut();FB.user=null;guestMode=false;showLogin();};
 $('lbBtn2').onclick=showLeaderboard;
 $('lbClose').onclick=()=>$('lbFx').classList.remove('open');
-$('autoBtn').onclick=()=>{S.auto=!S.auto;renderHUD();save();};
+$('autoBtn').onclick=()=>{
+ if(zoneOf().crypts){S.auto=false;stageMsg('Auto is unavailable in the Crypts',1600);sfx.warn();return;}
+ S.auto=!S.auto;renderHUD();save();
+};
 $('nextBtn').onclick=()=>{
  if(!portalIsOpen())return;
  hero.target=null;hero.moveTo=null;hero.goPortal=true;
@@ -7164,6 +7655,7 @@ $('musBtn').onclick=()=>{
  if(AC.ctx){if(audioPaused)AC.ctx.suspend();else AC.ctx.resume();}
  if(cowAudio){if(audioPaused)cowAudio.pause();else if(gameOn&&zoneOf().cow&&!hero.dead)cowAudio.play().catch(()=>{});}
  if(haalandAudio){if(audioPaused)haalandAudio.pause();else if(gameOn&&zoneOf().amb==='haaland')haalandAudio.play().catch(()=>{});}
+ if(cryptAudio){if(audioPaused)cryptAudio.pause();else if(gameOn&&zoneOf().crypts)cryptAudio.play().catch(()=>{});}
  $('musBtn').textContent=audioPaused?'▶':'⏸';
  $('musBtn').classList.toggle('off',audioPaused);
  stageMsg(audioPaused?'Game paused':'Game resumed',1200);
