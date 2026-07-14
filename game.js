@@ -913,6 +913,15 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.worms===undefined)s.worms=0;
  if(s.raidPots===undefined)s.raidPots=0;
  if(s.connectors===undefined)s.connectors=0; /* 🔗 crypt connectors — fuse two T-IV scrolls at the smith */
+ if(s.gearSets===undefined){s.gearSets=[null,null];s.gearSetSel=-1;} /* two swappable loadouts */
+ (s.gearSets||[]).forEach((gs,gi)=>{ /* v1 sets held raw items or a worn flag — convert to v2 (gsid refs) */
+  if(!gs)return;
+  if(gs.worn){s.gearSets[gi]=null;s.gearSetSel=-1;return;}
+  if(['weapon','armor','trinket'].some(k=>gs[k]&&typeof gs[k]==='object')){
+   ['weapon','armor','trinket'].forEach(k=>{if(gs[k]&&typeof gs[k]==='object')s.bag.push(gs[k]);});
+   s.gearSets[gi]=null;s.gearSetSel=-1;
+  }
+ });
  if(s.ringRecipe===undefined)s.ringRecipe=false;
  if(s.brokenRing===undefined)s.brokenRing=false;
  if(s.ringForged===undefined)s.ringForged=false;
@@ -4835,12 +4844,70 @@ function openRename(){
  inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();doSave();}};
  $('renameNo').onclick=()=>ov.remove();
 }
+/* ==================== GEAR SETS ====================
+   Two loadouts (e.g. leveling / bosses), saved as snapshots. Items live in the bag
+   or on the body as always — pieces referenced by a set carry a ⭐ and are locked
+   out of every sell/scrap path, so a saved loadout can never be destroyed by mistake.
+   A piece may belong to both sets (it just stays equipped across the swap). */
+const gsidOf=it=>{if(!it.gsid)it.gsid='g'+Date.now().toString(36)+Math.floor(Math.random()*1e6).toString(36);return it.gsid;};
+const inGearSet=it=>!!(it&&it.gsid&&(S.gearSets||[]).some(gs=>gs&&(gs.weapon===it.gsid||gs.armor===it.gsid||gs.trinket===it.gsid)));
+function cleanGsids(){ /* drop the star from items no set references anymore */
+ const ref=new Set();
+ (S.gearSets||[]).forEach(gs=>{if(gs)SLOTS.forEach(k=>{if(gs[k])ref.add(gs[k]);});});
+ (S.bag||[]).forEach(it=>{if(it&&it.gsid&&!ref.has(it.gsid))delete it.gsid;});
+ SLOTS.forEach(k=>{const it=S.gear[k];if(it&&it.gsid&&!ref.has(it.gsid))delete it.gsid;});
+}
+function gearSaveSet(i){
+ if(inBossFight()||cowLocked()){sfx.warn();return;}
+ S.gearSets=S.gearSets||[null,null];
+ if(i===undefined)i=S.gearSetSel>=0?S.gearSetSel:(S.gearSets[0]?(S.gearSets[1]?0:1):0);
+ const ns={weapon:null,armor:null,trinket:null};
+ SLOTS.forEach(k=>{if(S.gear[k])ns[k]=gsidOf(S.gear[k]);});
+ S.gearSets[i]=ns;
+ S.gearSetSel=i;
+ cleanGsids();
+ stageMsg('💾 Current gear saved as Set '+(i+1),1900);
+ sfx.buy();renderHero();renderBag();save();
+}
+function gearSwapTo(i){
+ if(inBossFight()){stageMsg('No swapping gear mid-boss-fight!',1600);sfx.warn();return;}
+ if(cowLocked()){stageMsg('The herd allows no wardrobe changes — survive or die first!',1600);sfx.warn();return;}
+ S.gearSets=S.gearSets||[null,null];
+ const tgt=S.gearSets[i];
+ if(!tgt){gearSaveSet(i);return;} /* empty set: your gear follows you and is saved into it */
+ if(S.gearSetSel===i){stageMsg('Set '+(i+1)+' is already active — 💾 re-saves it',1500);return;}
+ SLOTS.forEach(k=>{
+  const want=tgt[k],cur=S.gear[k];
+  if(cur&&want&&cur.gsid===want)return; /* shared piece — stays on */
+  let it=null;
+  if(want){
+   const bi=S.bag.findIndex(x=>x&&x.gsid===want);
+   if(bi>=0)it=S.bag.splice(bi,1)[0];
+   else tgt[k]=null; /* referenced item is gone — clear the stale ref */
+  }
+  if(cur)S.bag.push(cur); /* worn piece back to the bag — starred if a set owns it */
+  S.gear[k]=it;
+ });
+ S.gearSetSel=i;
+ if(hero)hero.hp=Math.min(hero.hp,heroMax());
+ stageMsg('⚔ Set '+(i+1)+' equipped!',1600);
+ sfx.loot();renderHero();renderBag();renderHUD();save();
+}
 function renderHero(){
  const c=classOf(),r=raceOf();
  $('heroTitle').innerHTML=`${esc(dispName(S))} — ${r.name} ${c.name}`+(S.prestige?` · Prestige ${S.prestige}`:'')+
   ` <button id="renameBtn" title="Rename hero">✏️</button>`;
  $('renameBtn').onclick=openRename;
  $('heroWallet').innerHTML=walletStr();
+ /* the two loadout buttons + save */
+ S.gearSets=S.gearSets||[null,null];
+ $('gearSetRow').innerHTML='<div style="display:flex;gap:6px;margin:2px 0 8px">'+[0,1].map(i=>{
+  const gs=S.gearSets[i],act=S.gearSetSel===i;
+  const st=act?'active':gs?SLOTS.filter(k=>gs[k]).length+' pcs':'empty';
+  return `<button class="sbtn ${act?'gold':''}" data-gset="${i}" style="flex:1;${gs?'':'opacity:.6'}">${i?'💀':'⚔️'} Set ${i+1} <span style="color:var(--dim);font-size:10px">· ${st}</span></button>`;
+ }).join('')+`<button class="sbtn gold" id="gearSaveBtn" title="Save what you are wearing into the active set">💾</button></div>`;
+ document.querySelectorAll('[data-gset]').forEach(b=>b.onclick=()=>gearSwapTo(+b.dataset.gset));
+ $('gearSaveBtn').onclick=()=>gearSaveSet();
  $('statGrid').innerHTML=`
   <div class="stat"><b>${heroMax()}</b><span>Max health</span></div>
   <div class="stat"><b>${manaMax()}</b><span>Max mana</span></div>
@@ -5140,7 +5207,7 @@ function cleanBagItem(it){
 function scrapBagItems(match,label){
  if(cowLocked()){stageMsg('The herd allows no forging — survive or die first!',1800);sfx.warn();return false;}
  const keep=[],take=[];
- S.bag.forEach(it=>((match(it)&&!isLegendary(it))?take:keep).push(it));
+ S.bag.forEach(it=>((match(it)&&!isLegendary(it)&&!inGearSet(it))?take:keep).push(it));
  if(!take.length){stageMsg('Nothing to scrap',1200);return false;}
  const total=take.reduce((t,it)=>t+scrapVal(it),0),n=take.length;
  S.bag=keep;
@@ -5406,7 +5473,7 @@ function renderBag(){
 
  S.bag=(S.bag||[]).map(cleanBagItem).filter(Boolean);
  if(!S.bag.length){$('bagList').innerHTML='<div class="card" style="color:var(--dim);font-size:12px">The bag is empty. Gear, potions and scrolls drop from foes — bosses always drop. Sell spares for gold, or scrap them for ⚙ Scraps to upgrade your gear.</div>';return;}
- const sellable=S.bag.filter(it=>!isLegendary(it));
+ const sellable=S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it));
  const totalScrap=sellable.reduce((t,it)=>t+scrapVal(it),0);
  const totalSell=sellable.reduce((t,it)=>t+(it.sell||0),0);
  const rarOrder=['legendary','epic','rare','fine','common'];
@@ -5430,7 +5497,7 @@ function renderBag(){
   if(!list.length)return;
   if(gearRarityOpen[rar]===undefined)gearRarityOpen[rar]=false;
   const open=gearRarityOpen[rar];
-  const sell=list.filter(x=>!isLegendary(x.it)).reduce((t,x)=>t+(x.it.sell||0),0),scr=list.filter(x=>!isLegendary(x.it)).reduce((t,x)=>t+scrapVal(x.it),0);
+  const sell=list.filter(x=>!isLegendary(x.it)&&!inGearSet(x.it)).reduce((t,x)=>t+(x.it.sell||0),0),scr=list.filter(x=>!isLegendary(x.it)&&!inGearSet(x.it)).reduce((t,x)=>t+scrapVal(x.it),0);
   gearHtml+=`<div class="tierhead" data-grar="${rar}" style="border-color:${rarColor[rar]}66">
     <span style="color:${rarColor[rar]}">${open?'▾':'▸'} ${rarName[rar]} Gear</span>
     <span class="tcount" style="display:flex;align-items:center;gap:6px;justify-content:flex-end">${rar==='legendary'
@@ -5438,12 +5505,14 @@ function renderBag(){
      :`${list.length} item${list.length>1?'s':''} · ${sell.toLocaleString()}◉ · ${scr}⚙ <button class="sbtn scrapb" data-scrrar="${rar}" style="padding:4px 7px;font-size:10px">Scrap All +${scr}⚙</button>`}</span></div>`;
   if(open)gearHtml+='<div class="tierbody">'+list.map(({it,i})=>`
   <div class="card item">
-   <div><div class="sn r-${it.rar}" style="font-size:13px;font-weight:600">${itemName(it)}</div>
+   <div><div class="sn r-${it.rar}" style="font-size:13px;font-weight:600">${inGearSet(it)?'⭐ ':''}${itemName(it)}</div>
    <div class="ss" style="color:var(--dim);font-size:11px">${it.slot} · ${itemStr(it)}${equipCompare(it)}</div></div>
    <div class="btns">
     <button class="sbtn gold" data-eq="${i}">Equip</button>
     ${isLegendary(it)
      ?'<span class="ss" style="color:#ffd100;align-self:center">🔒 Cannot be sold or scrapped</span>'
+     :inGearSet(it)
+     ?'<span class="ss" style="color:#c9a05a;align-self:center">⭐ Saved in a gear set</span>'
      :`<button class="sbtn" data-sell="${i}">Sell ${(it.sell||0).toLocaleString()}◉</button>
        <button class="sbtn scrapb" data-scr="${i}">Scrap +${scrapVal(it)}⚙</button>`}
    </div></div>`).join('')+'</div>';
@@ -5457,7 +5526,7 @@ function renderBag(){
   const rar=b.dataset.scrrar;
   if(!b.dataset.armed){
    b.dataset.armed='1';b.textContent='Confirm?';b.style.color='#ff8a7a';b.style.borderColor='#a05a5a';
-   setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent='Scrap All +'+S.bag.filter(it=>it.rar===rar&&!isLegendary(it)).reduce((t,it)=>t+scrapVal(it),0)+'⚙';b.style.color='';b.style.borderColor='';}},3000);
+   setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent='Scrap All +'+S.bag.filter(it=>it.rar===rar&&!isLegendary(it)&&!inGearSet(it)).reduce((t,it)=>t+scrapVal(it),0)+'⚙';b.style.color='';b.style.borderColor='';}},3000);
    return;
   }
   scrapBagItems(it=>it.rar===rar,rar+' gear');
@@ -5469,13 +5538,13 @@ function renderBag(){
   renderBag();renderHUD();save();
  });
  document.querySelectorAll('[data-sell]').forEach(b=>b.onclick=()=>{
-  const i=+b.dataset.sell;if(isLegendary(S.bag[i]))return;
+  const i=+b.dataset.sell;if(isLegendary(S.bag[i])||inGearSet(S.bag[i]))return;
   const it=S.bag.splice(i,1)[0];
   S.gold=Math.min(goldCap(),S.gold+(it.sell||0));sfx.loot();renderBag();renderHUD();save();
  });
  document.querySelectorAll('[data-scr]').forEach(b=>b.onclick=()=>{
   if(cowLocked()){stageMsg('No scrapping mid-herd — die or leave first!',1600);sfx.warn();return;}
-  const i=+b.dataset.scr;if(isLegendary(S.bag[i]))return;
+  const i=+b.dataset.scr;if(isLegendary(S.bag[i])||inGearSet(S.bag[i]))return;
   const it=S.bag.splice(i,1)[0];
   S.scraps=Math.min(SCRAP_CAP,S.scraps+scrapVal(it));sfx.forge();
   log(`Scrapped <span class="l${it.rar}">${it.name}</span> — +${scrapVal(it)} ⚙.`);
@@ -5488,7 +5557,7 @@ function renderBag(){
    sa.dataset.armed='1';
    sa.textContent='Confirm — scrap everything?';
    sa.style.color='#ff8a7a';sa.style.borderColor='#a05a5a';
-   setTimeout(()=>{if(sa.isConnected){delete sa.dataset.armed;sa.textContent=`⚙ Scrap All +${S.bag.filter(it=>!isLegendary(it)).reduce((t,it)=>t+scrapVal(it),0)}⚙`;sa.style.color='';sa.style.borderColor='';}},3000);
+   setTimeout(()=>{if(sa.isConnected){delete sa.dataset.armed;sa.textContent=`⚙ Scrap All +${S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it)).reduce((t,it)=>t+scrapVal(it),0)}⚙`;sa.style.color='';sa.style.borderColor='';}},3000);
    return;
   }
   scrapBagItems(()=>true,'items'); /* legendaries auto-excluded by the guard */
@@ -5500,10 +5569,10 @@ function renderBag(){
    se.dataset.armed='1';
    se.textContent='Confirm — sell everything?';
    se.style.color='#ff8a7a';se.style.borderColor='#a05a5a';
-   setTimeout(()=>{if(se.isConnected){delete se.dataset.armed;se.textContent=`◉ Sell All +${S.bag.filter(it=>!isLegendary(it)).reduce((t,it)=>t+(it.sell||0),0).toLocaleString()}◉`;se.style.color='';se.style.borderColor='';}},3000);
+   setTimeout(()=>{if(se.isConnected){delete se.dataset.armed;se.textContent=`◉ Sell All +${S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it)).reduce((t,it)=>t+(it.sell||0),0).toLocaleString()}◉`;se.style.color='';se.style.borderColor='';}},3000);
    return;
   }
-  const keep=S.bag.filter(isLegendary),sold=S.bag.filter(it=>!isLegendary(it));
+  const keep=S.bag.filter(it=>isLegendary(it)||inGearSet(it)),sold=S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it));
   const total=sold.reduce((t,it)=>t+(it.sell||0),0),n=sold.length;
   S.bag=keep;
   S.gold=Math.min(goldCap(),S.gold+total);
