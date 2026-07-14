@@ -4983,7 +4983,7 @@ function renderMap(){
     return `<div class="card zonecard ${p20?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p20?'#a66bd0':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#1a1a26)">⚰️</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">An ever-shifting labyrinth — its halls rearrange with every descent. Three chests hide in the dark · on foot only, AUTO fails here.</div></div>
+     <div class="zl">An ever-shifting labyrinth — its halls rearrange with every descent. Three chests hide in the dark · on foot only, AUTO fails here · something hunts you.</div></div>
      ${i===S.zone?'<span class="ztag">Here</span>':p20?'<span class="ztag boss">⚰️ Enter</span>':'<span class="ztag boss">🔒 Prestige 20</span>'}
     </div>`;
    }
