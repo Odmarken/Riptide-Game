@@ -1062,7 +1062,9 @@ function syncWarglaives(it){
  if(!isWG(it)||!S)return it;
  it.id='warglaives';it.legend='warglaives';it.warglaives=true;it.slot='weapon';it.rar='legendary';it.name='Warglaives of Azzinoth';
  it.up=Math.min(it.up||0,FM_MAX_UP);
- it.maxUp=FM_MAX_UP;it.bossDmg=10;
+ const st=fmStar(it); /* ★1/★2/★3 → 10/15/20% boss dmg and 2/4/6% lifesteal */
+ it.maxUp=FM_MAX_UP;it.bossDmg=st===3?20:st===2?15:10;
+ it.lifesteal=st*0.02;
  it.baseAtk=fmBaseAtk();
  it.atk=Math.round(it.baseAtk*Math.pow(1.12,it.up||0));
  it.crit=it.baseCrit=0;it.hp=it.baseHp=0;
@@ -1072,12 +1074,13 @@ function syncWarglaives(it){
  return it;
 }
 function rollWarglaives(){
- return syncWarglaives({id:'warglaives',slot:'weapon',rar:'legendary',legend:'warglaives',name:'Warglaives of Azzinoth',atk:0,hp:0,crit:0,haste:0.10,bossDmg:10,ench:null,up:0,sell:0,maxUp:FM_MAX_UP});
+ return syncWarglaives({id:'warglaives',slot:'weapon',rar:'legendary',legend:'warglaives',name:'Warglaives of Azzinoth',atk:0,hp:0,crit:0,haste:0.10,bossDmg:10,lifesteal:0.02,ench:null,up:0,sell:0,maxUp:FM_MAX_UP});
 }
-function itemName(it){return (isFM(it)&&fmStar(it)>1?'★'+fmStar(it)+' ':'')+(it&&it.name?it.name:'?');}
+function itemName(it){return ((isFM(it)||isWG(it))&&fmStar(it)>1?'★'+fmStar(it)+' ':'')+(it&&it.name?it.name:'?');}
 const SMITH_HOUR=7200000;
 const fmStar=it=>it&&it.star?it.star:1;
-const fmBagOfStar=st=>(S.bag||[]).filter(it=>isFM(it)&&fmStar(it)===st);
+const fmBagOfStar=st=>(S.bag||[]).filter(it=>isFM(it)&&fmStar(it)===st&&!inGearSet(it));
+const wgBagOfStar=st=>(S.bag||[]).filter(it=>isWG(it)&&fmStar(it)===st&&!inGearSet(it));
 function smithTick(){
  if(!S||!S.smithJob)return;
  if(Date.now()<S.smithJob.endT)return;
@@ -1093,6 +1096,11 @@ function smithTick(){
   log(`⚒️ The forge cools — <span class="llegendary">💍 The One Ring</span> binds to your trinket slot! +10% boss damage, but it drinks 2% of your mana with every strike.`,'loot');
   stageMsg('💍 THE ONE RING IS FORGED!',3800);sfx.level();
   if(typeof publishLB==='function')publishLB(S,true);
+ }else if(j.kind==='wg'){
+  const it=syncWarglaives({id:'warglaives',slot:'weapon',rar:'legendary',legend:'warglaives',name:'Warglaives of Azzinoth',star:j.to,atk:0,hp:0,crit:0,haste:0.10,ench:null,up:0,sell:0,maxUp:FM_MAX_UP});
+  S.bag.push(it);
+  log(`⚒️ The forge cools — <span class="llegendary">Warglaives of Azzinoth ★${j.to}</span> scream anew!`,'loot');
+  stageMsg('⚒️ Warglaives ★'+j.to+' complete!',2600);sfx.level();
  }else{
   const it=syncFrostmourne({slot:'weapon',rar:'legendary',legend:'frostmourne',name:'Frostmourne',star:j.to,atk:0,hp:0,crit:4,lifesteal:0.02,ench:null,up:0,sell:0});
   S.bag.push(it);
@@ -1665,7 +1673,7 @@ function buildCryptMaze(){
  for(let j=0;j<rows;j++)for(let i=0;i<cols-1;i++)if(vW[i+j*(cols-1)])world.mwalls.push({x:ox+(i+1)*C-T/2,y:oy+j*C-T/2,w:T,h:C+T});
  for(let j=0;j<rows-1;j++)for(let i=0;i<cols;i++)if(hW[i+j*cols])world.mwalls.push({x:ox+i*C-T/2,y:oy+(j+1)*C-T/2,w:C+T,h:T});
  world.mazeV=vW;world.mazeH=hW; /* corridor graph — the rat navigates cell-to-cell with this */
- world.ratboss={x:ox+(cols-1)*C+C/2,y:oy+(rows-1)*C+C/2,ci:cols-1,cj:rows-1,ti:cols-1,tj:rows-1,pi:-1,pj:-1,fx:-1,walk:0,moving:false,speed:108};
+ world.ratboss={x:ox+(cols-1)*C+C/2,y:oy+(rows-1)*C+C/2,ci:cols-1,cj:rows-1,ti:cols-1,tj:rows-1,pi:-1,pj:-1,fx:-1,walk:0,moving:false,speed:140};
  const MW=cols*C,MH=rows*C; /* sealed outer ring — no sneaking around the maze */
  world.mwalls.push({x:ox-T,y:oy-T,w:MW+2*T,h:T},{x:ox-T,y:oy+MH,w:MW+2*T,h:T},{x:ox-T,y:oy,w:T,h:MH+T},{x:ox+MW,y:oy,w:T,h:MH+T});
  /* arrive in the north-west cell; the way home hums right beside you */
@@ -2094,8 +2102,7 @@ function collectCowChest(){
  cowItems++;                 /* counts chests found */
  const n=2; /* the chest ALWAYS holds 2 epics */
  let got=0;
- for(let i=0;i<n;i++){
-  if(S.bag.length>=COW_BAG_CAP)break;
+ for(let i=0;i<n;i++){ /* no cap — the bag holds as much here as anywhere else */
   const it=rollItem('epic'); /* same lvl-60 scaling as before — best gear in the game */
   log(`Chest loot: <span class="lepic">${it.name}</span> ${itemStr(it)}.`,'loot');
   if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
@@ -2103,13 +2110,7 @@ function collectCowChest(){
  }
  burst(c.x,c.y-6,'#5bc8ff',14,90,true);
  sparkles(c.x,c.y-10,'#9fd0ff',10);
- if(got===0){stageMsg(n===0?'💠 The chest was empty…':'💠 BAG FULL — the chest crumbles',1800,'#5bc8ff');blip(300,200,0.2,.05,'sawtooth');}
- else{stageMsg('💠 +'+got+' EPIC'+(got>1?'S':'')+'!',2200,'#5bc8ff');sfx.loot();}
- if(S.bag.length>=COW_BAG_CAP&&!cowBagFull){
-  cowBagFull=true;
-  stageMsg('BAG FULL — '+COW_BAG_CAP+' items! Die gloriously or flee to cash in.',3500);
-  log(`<span class="loot">Bag stuffed full (${COW_BAG_CAP})</span> — the chests have nothing more to give.`,'loot');
- }
+ stageMsg('💠 +'+got+' EPIC'+(got>1?'S':'')+'!',2200,'#5bc8ff');sfx.loot();
  renderHUD();save();
 }
 function prerenderGround(z,R){
@@ -2362,7 +2363,7 @@ function landHit(en,dmg,crit,label,basic){
 }
 function applyDmg(en,dmg,label,crit){
  if(en.dead||en.hidden)return;
- if(S.gear&&isWG(S.gear.weapon)&&en.boss)dmg=Math.round(dmg*1.10);
+ if(S.gear&&isWG(S.gear.weapon)&&en.boss)dmg=Math.round(dmg*(1+(syncWarglaives(S.gear.weapon).bossDmg||10)/100));
  if(en.boss&&(activePet()||{}).bossDmg)dmg=Math.round(dmg*(1+activePet().bossDmg));
  if(en.boss&&(S.raidT||0)>0)dmg=Math.round(dmg*1.15); /* ⚗️ Potion of Raid */
  if(en.boss&&S.gear&&S.gear.trinket&&S.gear.trinket.bossDmg)dmg=Math.round(dmg*(1+S.gear.trinket.bossDmg/100)); /* 💍 */
@@ -2468,16 +2469,11 @@ function killEnemy(en){
  if(en.cow){
   /* chests are the main loot — but each cow has a 3% chance to shake loose one epic (3.6% with 🍀) */
   const cowLucky=S.luckT>0;
-  if(Math.random()<0.03*(cowLucky?1.20:1)&&S.bag.length<COW_BAG_CAP){
+  if(Math.random()<0.03*(cowLucky?1.20:1)){
    const it=rollItem('epic');
    sfx.loot();
    log(`Cow loot: <span class="lepic">${it.name}</span> ${itemStr(it)}.${cowLucky?' 🍀':''}`,'loot');
    if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
-   if(S.bag.length>=COW_BAG_CAP&&!cowBagFull){
-    cowBagFull=true;
-    stageMsg('BAG FULL — '+COW_BAG_CAP+' items! Die gloriously or flee to cash in.',3500);
-    log(`<span class="loot">Bag stuffed full (${COW_BAG_CAP})</span> — nothing more to gain.`,'loot');
-   }
   }
  }else if(!en.raid){
   const lucky=S.luckT>0;
@@ -4863,11 +4859,23 @@ function gearSaveSet(i){
  if(i===undefined)i=S.gearSetSel>=0?S.gearSetSel:(S.gearSets[0]?(S.gearSets[1]?0:1):0);
  const ns={weapon:null,armor:null,trinket:null};
  SLOTS.forEach(k=>{if(S.gear[k])ns[k]=gsidOf(S.gear[k]);});
+ /* scrolls are fungible (id+tier), so the set stores descriptors, not identities */
+ ns.scrolls=EQS().map(sc=>sc?{id:sc.id,tier:sc.tier||1,id2:sc.id2||null,tier2:sc.tier2||null}:null);
+ ns.pet=S.pet||null;
  S.gearSets[i]=ns;
  S.gearSetSel=i;
  cleanGsids();
  stageMsg('💾 Current gear saved as Set '+(i+1),1900);
  sfx.buy();renderHero();renderBag();save();
+ const gb=$('gearSaveBtn'); /* quick "Saved ✓" flash beside the button */
+ if(gb){
+  const fl=document.createElement('span');
+  fl.textContent='Saved ✓';
+  fl.style.cssText='color:#7ae08a;font-size:11px;align-self:center;margin-left:2px;transition:opacity .5s';
+  gb.after(fl);
+  setTimeout(()=>{fl.style.opacity='0';},900);
+  setTimeout(()=>{fl.remove();},1500);
+ }
 }
 function gearSwapTo(i){
  if(inBossFight()){stageMsg('No swapping gear mid-boss-fight!',1600);sfx.warn();return;}
@@ -4888,6 +4896,20 @@ function gearSwapTo(i){
   if(cur)S.bag.push(cur); /* worn piece back to the bag — starred if a set owns it */
   S.gear[k]=it;
  });
+ /* scrolls: worn pair back to the bag, then pull the set's pair out (fungible match by id+tier) */
+ if(tgt.scrolls){
+  const cur=EQS();
+  for(let k=0;k<2;k++){if(cur[k])S.scrolls.push(cur[k]);cur[k]=null;}
+  for(let k=0;k<2;k++){
+   const w=tgt.scrolls[k];if(!w)continue;
+   const bi=S.scrolls.findIndex(x=>x&&x.id===w.id&&(x.tier||1)===(w.tier||1)&&(x.id2||null)===(w.id2||null)&&(x.tier2||null)===(w.tier2||null));
+   if(bi>=0)cur[k]=S.scrolls.splice(bi,1)[0];
+  }
+ }
+ if(tgt.pet!==undefined){ /* pet follows the set (only if still owned) */
+  if(tgt.pet===null)S.pet=null;
+  else if((S.pets||[]).includes(tgt.pet))S.pet=tgt.pet;
+ }
  S.gearSetSel=i;
  if(hero)hero.hp=Math.min(hero.hp,heroMax());
  stageMsg('⚔ Set '+(i+1)+' equipped!',1600);
@@ -4903,7 +4925,7 @@ function renderHero(){
  S.gearSets=S.gearSets||[null,null];
  $('gearSetRow').innerHTML='<div style="display:flex;gap:6px;margin:2px 0 8px">'+[0,1].map(i=>{
   const gs=S.gearSets[i],act=S.gearSetSel===i;
-  const st=act?'active':gs?SLOTS.filter(k=>gs[k]).length+' pcs':'empty';
+  const st=act?'active':gs?(SLOTS.filter(k=>gs[k]).length+((gs.scrolls||[]).filter(Boolean).length)+(gs.pet?1:0))+' pcs':'empty';
   return `<button class="sbtn ${act?'gold':''}" data-gset="${i}" style="flex:1;${gs?'':'opacity:.6'}">${i?'💀':'⚔️'} Set ${i+1} <span style="color:var(--dim);font-size:10px">· ${st}</span></button>`;
  }).join('')+`<button class="sbtn gold" id="gearSaveBtn" title="Save what you are wearing into the active set">💾</button></div>`;
  document.querySelectorAll('[data-gset]').forEach(b=>b.onclick=()=>gearSwapTo(+b.dataset.gset));
@@ -5071,14 +5093,14 @@ function renderMap(){
    if(z.cow){
     const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
     const canCow=cowOk;
-    const bagBlocked=canCow&&i!==S.zone&&S.bag.length>0;
+    const bagBlocked=canCow&&i!==S.zone&&S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it)).length>0;
     /* show only the missing requirement: below P5 → both, P5+ but under lvl 60 → just the level */
     const lockTxt=cowOk?'☠ Enter':(S.prestige||0)<5?'🔒 P5 · Lvl 60':'🔒 Lvl 60';
     return `<div class="card zonecard ${canCow?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${bagBlocked?'#c75146':canCow?'#ffd76a':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},${z.tree})">🐄</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
      <div class="zl">${cowOk?'':'Level 60 herd · Prestige 5+ · '}💠 A glowing chest spawns every 10s — walk over it for 2 top-tier epics · cows can drop epics too · Best ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} chests) · Last ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} chests)</div>
-     ${bagBlocked?`<div style="color:#ff8a7a;font-family:var(--display);font-size:13.5px;margin-top:4px;text-shadow:0 0 8px rgba(255,90,70,.35)">⚠ EMPTY YOUR BAG FIRST — the herd only respects those who arrive with nothing (${S.bag.length} item${S.bag.length>1?'s':''} carried)</div>`:''}</div>
+     ${bagBlocked?`<div style="color:#ff8a7a;font-family:var(--display);font-size:13.5px;margin-top:4px;text-shadow:0 0 8px rgba(255,90,70,.35)">⚠ EMPTY YOUR BAG FIRST — the herd only respects those who arrive with nothing (${S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it)).length} sellable item${S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it)).length>1?'s':''} carried)</div>`:''}</div>
      ${i===S.zone?'<span class="ztag">Here</span>':bagBlocked?'<span class="ztag boss">🎒 Bag full</span>':`<span class="ztag boss">${lockTxt}</span>`}
     </div>`;
    }
@@ -5127,7 +5149,7 @@ function renderMap(){
     }else if(z.cow){
      if((S.prestige||0)<5){stageMsg('🐄 The cows demand Prestige 5',1800);sfx.warn();return;}
      if(S.lvl<60){stageMsg('🐄 The cows demand level 60',1800);sfx.warn();return;}
-     if(S.bag.filter(it=>!isLegendary(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
+     if(S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
     }else if(z.raid){
      if((S.prestige||0)<10){stageMsg('Reach Prestige 10 — the Black Temple opens only to legends',1800);sfx.warn();return;}
      const rst=raidStatus();
@@ -5623,7 +5645,7 @@ function fillerCard(){
  if(curCase==='gold'){
   const rr=Math.random();
   if(rr<0.02)return {icon:'🗡️',cc:'#ffd100',t:'legendary'};
-  if(rr<0.045)return {icon:'🐾',cc:'#e8b070',t:'pet'};
+  if(rr<0.045)return {icon:Math.random()<0.5?'🐕':'🐈',cc:'#e8b070',t:'pet'};
  }
  const pool=curCase==='gold'?CASE_RARS_GOLD:CASE_RARS;
  const r=Math.random();
@@ -6046,10 +6068,12 @@ const SEA_SYMDEF={
  skull:{icons:['🪙'],cc:'#ffd76a'},
  bonus:{icons:['🎁'],cc:'#ffd100'}
 };
-const SEA_W_BASE=[['joker',28],['hook',28],['wave',22],['fine',9],['rare',6],['epic',4],['skull',3]];
+const SEA_W_BASE=[['joker',28],['hook',28],['wave',22],['fine',9],['rare',6],['epic',4],['skull',3],['bonus',3]]; /* 🎁 rolls by as a natural tease */
 const SEA_W_BONUS=[['joker',20],['hook',20],['wave',16],['fine',12],['rare',9],['epic',6],['skull',5]];
 let seaSpinning=false,seaAuto=false,seaAutoTimer=0,seaCelebrating=false,seaCelebrateTimer=0;
 let seaFree=0,seaSession={spins:0,gold:0,scrap:0};
+const SEA_BONUSBUY_X=25; /* 10 free spins EV ≈ 24x bet — 25x keeps the game's 96% RTP */
+let seaForcedBonus=false;
 const seaBonusMode=()=>seaFree>0;
 function seaSymKey(){
  const W=seaBonusMode()?SEA_W_BONUS:SEA_W_BASE;
@@ -6171,10 +6195,10 @@ function seaAnimateCells(grid,cols,done){
  });
  if(pending===0)done();
 }
-/* 96% total-RTP: 78% bas + 18% bonus (1.5% trigger × 5 free spins × 2.40x EV) */
+/* 96% total-RTP: 78% bas + 18% bonus (0.75% trigger × 10 free spins × 2.40x EV) */
 const SEA_OUTCOMES=[[0,75.049],[0.1,8],[0.2,6],[0.5,4],[1,3],[2,2],[5,1],[10,0.5],[50,0.25],[100,0.165],[500,0.03],[2000,0.006],[20000,0.00005]];
 const SEA_OUTCOMES_BONUS=[[0,30],[0.2,20],[0.5,18],[1,14],[2,9],[5,5],[10,2.5],[50,0.98],[100,0.36],[500,0.088],[2000,0.008]];
-const SEA_BONUS_CHANCE=0.015,SEA_BONUS_SPINS=5;
+const SEA_BONUS_CHANCE=0.0075,SEA_BONUS_SPINS=10;
 function seaRollOutcome(free){
  const T=free?SEA_OUTCOMES_BONUS:SEA_OUTCOMES;
  const tot=T.reduce((a,b)=>a+b[1],0);
@@ -6212,7 +6236,7 @@ function spinSea(){
  if(seaSpinning||seaCelebrating)return;
  const isFree=seaFree>0;
  const bet=seaCost();          /* vinster räknas alltid på insatsen */
- const cost=isFree?0:bet;      /* men free spins kostar inget */
+ const cost=(isFree||seaForcedBonus)?0:bet; /* free spins och köpt bonus kostar inget extra */
  if(isFree)seaFree--;
  else if(!spendGold(cost)){
   stopSeaAuto();
@@ -6238,12 +6262,13 @@ function spinSea(){
  grid._bk=mult>0?seaBandOf(mult):null;
  grid._free=isFree;
  /* 🎁 bonus-trigger — aldrig under pågående free spins, ingen retrigger */
- if(!isFree&&Math.random()<SEA_BONUS_CHANCE){
+ if(!isFree&&(seaForcedBonus||Math.random()<SEA_BONUS_CHANCE)){
+  seaForcedBonus=false;
   grid._bonus=true;
   [0,1,2].forEach(c=>{
    const open=grid[c].map((x,i)=>(!['skull','epic','rare','fine'].includes(x.k))?i:-1).filter(i=>i>=0);
    const i=open.length?open[Math.floor(Math.random()*open.length)]:Math.floor(Math.random()*grid[c].length);
-   grid[c][i]={k:'bonus',icon:'🎁',cc:'#ffd100',m:1};
+   grid[c][i]={k:'bonus',icon:'🎁',cc:'#ffd100',m:1,_plant:true};
   });
  }else if(!isFree&&Math.random()<0.10){
   /* 🎁 tease — 1 or 2 boxes land but never the third; pure drama, no payout */
@@ -6252,11 +6277,25 @@ function spinSea(){
   teaseCols.forEach(c=>{
    const open=grid[c].map((x,i)=>(!['skull','epic','rare','fine'].includes(x.k))?i:-1).filter(i=>i>=0);
    const i=open.length?open[Math.floor(Math.random()*open.length)]:Math.floor(Math.random()*grid[c].length);
-   grid[c][i]={k:'bonus',icon:'🎁',cc:'#ffd100',m:1};
+   grid[c][i]={k:'bonus',icon:'🎁',cc:'#ffd100',m:1,_plant:true};
   });
  }
+ seaCapBonusTease(grid,(isFree||grid._bonus)?0:2); /* naturals never fake a bonus */
  grid._steps=mult>=2000?4:mult>=100?3:mult>=10?2:mult>0?1:0;
  seaAnimateCols([0,1,2,3],grid,()=>seaScript(grid));
+}
+function seaCapBonusTease(grid,allow){ /* keep at most `allow` columns showing unplanted 🎁 */
+ const cols=[];
+ for(let c=0;c<SEA_COLS;c++)if(grid[c].some(x=>x.k==='bonus'&&!x._plant&&!x.lock))cols.push(c);
+ while(cols.length>allow){
+  const c=cols.splice(Math.floor(Math.random()*cols.length),1)[0];
+  grid[c].forEach((x,i)=>{
+   if(x.k==='bonus'&&!x._plant&&!x.lock){
+    let n;do{n=seaCell();}while(n.k==='bonus');
+    grid[c][i]=n;
+   }
+  });
+ }
 }
 function seaMarkLocked(grid){
  for(let c=0;c<SEA_COLS;c++){
@@ -6293,6 +6332,7 @@ function seaScriptStep(grid,left){
   }
  }
  grid.forEach(col=>col.forEach(x=>{if(!x.lock)Object.assign(x,seaCell());}));
+ seaCapBonusTease(grid,2);
  grid.forEach(col=>col.forEach(x=>{if(x.k===bk)x.lock=true;}));
  seaAnimateCells(grid,[0,1,2,3],()=>{
   grid.forEach(col=>col.forEach(x=>{if(x.lock&&x.m>1)x.m=Math.min(x.m*2,64);}));
@@ -6423,6 +6463,11 @@ function updateSeaUI(){
  const bd=$('seaBetDn'),bu=$('seaBetUp');
  if(bd)bd.disabled=seaSpinning||seaAuto||seaBetIx<=0||seaFree>0; /* lås insatsen under free spins */
  if(bu)bu.disabled=seaSpinning||seaAuto||seaBetIx>=SEA_BETS.length-1||seaFree>0;
+ const bb=$('seaBonusBuyBtn');
+ if(bb){
+  bb.textContent='🎁 Bonus · '+(seaBet*SEA_BONUSBUY_X).toLocaleString()+'◉';
+  bb.disabled=seaSpinning||seaCelebrating||seaAuto||seaFree>0||totalGold()<seaBet*SEA_BONUSBUY_X;
+ }
  const st=$('seaStats'),s=seaSession;
  if(st)st.textContent=s.spins?`Session: ${s.spins} spins · ${s.gold>=0?'+':''}${s.gold.toLocaleString()}◉ · +${s.scrap}⚙`:'';
 }
@@ -6517,6 +6562,14 @@ $('seaAutoBtn').onclick=()=>{
 };
 $('seaBetDn').onclick=()=>{if(seaBetIx>0&&!seaSpinning&&!seaAuto&&seaFree<=0){seaBetIx--;seaBet=SEA_BETS[seaBetIx];updateSeaUI();}};
 $('seaBetUp').onclick=()=>{if(seaBetIx<SEA_BETS.length-1&&!seaSpinning&&!seaAuto&&seaFree<=0){seaBetIx++;seaBet=SEA_BETS[seaBetIx];updateSeaUI();}};
+$('seaBonusBuyBtn').onclick=()=>{
+ if(seaSpinning||seaCelebrating||seaAuto||seaFree>0)return;
+ const price=seaBet*SEA_BONUSBUY_X;
+ if(!spendGold(price)){stageMsg('Not enough gold — the bonus costs '+price.toLocaleString()+'◉',1600);sfx.warn();return;}
+ seaSession.gold-=price;renderHUD();
+ seaForcedBonus=true; /* this spin plants the three boxes — 10 free spins incoming */
+ spinSea();
+};
 $('seaClose').onclick=()=>{
  if(seaSpinning&&!seaAuto)return;
  stopSeaAuto();clearSeaCelebration();clearTimeout(seaAutoTimer);
@@ -6754,12 +6807,13 @@ function smithRefresh(){
  const lv=S.smithLvl||0;
  $('smithLvlTxt').textContent='Blacksmith level '+lv+(lv>=10?' (max)':'');
  const j=S.smithJob;
- $('smithJobTxt').textContent=j?(j.kind==='lvl'?'⏳ Training to level '+j.to:j.kind==='ring'?'⏳ Forging The One Ring':'⏳ Forging Frostmourne ★'+j.to)+' — '+fmtMS(Math.max(0,j.endT-Date.now()))+' left':'';
+ $('smithJobTxt').textContent=j?(j.kind==='lvl'?'⏳ Training to level '+j.to:j.kind==='ring'?'⏳ Forging The One Ring':j.kind==='wg'?'⏳ Forging Warglaives ★'+j.to:'⏳ Forging Frostmourne ★'+j.to)+' — '+fmtMS(Math.max(0,j.endT-Date.now()))+' left':'';
  /* ---- station picker: once several reforges are unlocked, choose from a list ---- */
  const p=S.prestige||0;
  const fmTier=(lv>=10&&p>=20)?3:(lv>=5&&p>=10)?2:0;
  const stations=[
   ['fm','❄ Frostmourne',!!fmTier],
+  ['wg','⚔ Warglaives',!!fmTier],
   ['ring','💍 One Ring',!!(S.ringRecipe&&S.brokenRing)],
   ['fuse','🔗 Fuse Scrolls',(S.connectors||0)>0]
  ];
@@ -6838,40 +6892,48 @@ function smithRefresh(){
  }
  const tier=fmTier;
  const fg=$('smithForge');
- if(!tier||j||!show('fm')){
+ const legSel=show('fm')?'fm':show('wg')?'wg':null; /* one forge serves both legendaries */
+ if(!tier||j||!legSel){
   fg.style.display='none';
-  if(!j&&show('fm')){
-   if(lv<5)$('smithJobTxt').textContent='Reach blacksmith level 5 to reforge Frostmourne.';
-   else if(p<10)$('smithJobTxt').textContent='Reforging Frostmourne ★2 demands Prestige 10.';
-   else if(lv>=10&&p<20)$('smithJobTxt').textContent='Frostmourne ★3 demands Prestige 20.';
+  if(!j&&legSel){
+   const nm=legSel==='wg'?'the Warglaives':'Frostmourne';
+   if(lv<5)$('smithJobTxt').textContent='Reach blacksmith level 5 to reforge '+nm+'.';
+   else if(p<10)$('smithJobTxt').textContent='Reforging '+nm+' ★2 demands Prestige 10.';
+   else if(lv>=10&&p<20)$('smithJobTxt').textContent=nm+' ★3 demands Prestige 20.';
   }
   return;
  }
  fg.style.display='block';
+ const wgSt=legSel==='wg';
+ const bagOf=wgSt?wgBagOfStar:fmBagOfStar;
+ const NM=wgSt?'Warglaives':'Frostmourne';
+ const IC=wgSt?'⚔':'❄';
  /* choose the target: ★2 (two plain blades) or ★3 (two ★2) — ★3 needs smith 10 + Prestige 20 */
  const canT3=lv>=10&&p>=20;
  if(!canT3)smithFmSel=2;
- else if(!smithFmSel)smithFmSel=fmBagOfStar(2).length>=2?3:2;
+ else if(!smithFmSel)smithFmSel=bagOf(2).length>=2?3:2;
  const fp=$('fmPick');
  if(fp){
-  fp.innerHTML=canT3?'<div style="display:flex;gap:6px;margin:2px 0 6px">'+[2,3].map(t=>`<button class="sbtn ${smithFmSel===t?'gold':''}" data-fmsel="${t}" style="flex:1">${t===2?'❄ + ❄ → ★2':'★2 + ★2 → ★3'}</button>`).join('')+'</div>':'';
+  fp.innerHTML=canT3?'<div style="display:flex;gap:6px;margin:2px 0 6px">'+[2,3].map(t=>`<button class="sbtn ${smithFmSel===t?'gold':''}" data-fmsel="${t}" style="flex:1">${t===2?IC+' + '+IC+' → ★2':'★2 + ★2 → ★3'}</button>`).join('')+'</div>':'';
   fp.querySelectorAll('[data-fmsel]').forEach(b=>b.onclick=()=>{smithFmSel=+b.dataset.fmsel;smithRefresh();});
  }
  const src=smithFmSel-1,out=smithFmSel;
- const have=fmBagOfStar(src).length,ok=have>=2;
- const slotTxt=st=>'❄'+(st>1?'★'+st:'');
+ const have=bagOf(src).length,ok=have>=2;
+ const slotTxt=st=>IC+(st>1?'★'+st:'');
  $('fmSlotA').textContent=have>=1?slotTxt(src):'?';$('fmSlotA').classList.toggle('filled',have>=1);
  $('fmSlotB').textContent=have>=2?slotTxt(src):'?';$('fmSlotB').classList.toggle('filled',have>=2);
  $('fmSlotOut').textContent='★'+out;$('fmSlotOut').classList.toggle('filled',ok);
  $('fmPreview').innerHTML=ok
-  ?`Frostmourne <b style="color:#ffd76a">★${out}</b> — <b>+${out*2}% crit</b>, <b>+${out*2}% lifesteal</b>. Upgrades &amp; attack reset (cap +6 unchanged). Consumes both ★${src}.`
-  :`Need <b>2× Frostmourne${src>1?' ★'+src:''}</b> in your bag (${have}/2).`;
+  ?(wgSt
+   ?`Warglaives <b style="color:#4dff9a">★${out}</b> — <b>+${out===3?20:15}% boss damage</b>, <b>+${out*2}% lifesteal</b>. Upgrades &amp; attack reset (cap +6 unchanged). Consumes both ★${src}.`
+   :`Frostmourne <b style="color:#ffd76a">★${out}</b> — <b>+${out*2}% crit</b>, <b>+${out*2}% lifesteal</b>. Upgrades &amp; attack reset (cap +6 unchanged). Consumes both ★${src}.`)
+  :`Need <b>2× ${NM}${src>1?' ★'+src:''}</b> in your bag (${have}/2).`;
  const btn=$('fmForgeBtn');btn.disabled=!ok;
  btn.onclick=()=>{
-  const list=fmBagOfStar(src);if(list.length<2)return;
-  for(let n=0;n<2;n++){const it=fmBagOfStar(src)[0];S.bag.splice(S.bag.indexOf(it),1);}
-  S.smithJob={kind:'fm',to:out,endT:Date.now()+SMITH_HOUR};
-  stageMsg('⚒️ The forge roars — Frostmourne ★'+out+' in 2 hours.',2400);
+  const list=bagOf(src);if(list.length<2)return;
+  for(let n=0;n<2;n++){const it=bagOf(src)[0];S.bag.splice(S.bag.indexOf(it),1);}
+  S.smithJob={kind:wgSt?'wg':'fm',to:out,endT:Date.now()+SMITH_HOUR};
+  stageMsg('⚒️ The forge roars — '+NM+' ★'+out+' in 2 hours.',2400);
   sfx.buy();save();smithRefresh();renderBag();
  };
 }
