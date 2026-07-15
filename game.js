@@ -3990,6 +3990,28 @@ function mip(img,W){
  }
  return m[tw]=src;
 }
+/* crisp(): the player's own sprite deserves better than power-of-2 mips. Downscale in
+   high-quality halving steps, then ONE exact resize to the true device-pixel size
+   (zoom × DPR), cached per 4px bucket — the canvas then maps it 1:1, razor sharp. */
+function crisp(img,W){
+ if(!img.naturalWidth)return img;
+ const dev=Math.max(8,Math.round(W*(zoom||1)*(DPR||1)/4)*4);
+ const store=img._crisp||(img._crisp={});
+ if(store[dev])return store[dev];
+ let src=img,sw=img.naturalWidth,sh=img.naturalHeight;
+ while(sw>dev*2){
+  const nw=Math.round(sw/2),nh=Math.max(1,Math.round(sh*nw/sw));
+  const cc=document.createElement('canvas');cc.width=nw;cc.height=nh;
+  const g=cc.getContext('2d');g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
+  g.drawImage(src,0,0,nw,nh);
+  src=cc;sw=nw;sh=nh;
+ }
+ const out=document.createElement('canvas');
+ out.width=dev;out.height=Math.max(1,Math.round(sh*dev/sw));
+ const g=out.getContext('2d');g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
+ g.drawImage(src,0,0,out.width,out.height);
+ return store[dev]=out;
+}
 function drawProp(s,z){
  ctx.save();ctx.translate(s.x,s.y);
  if(s.type==='tree'){
@@ -4355,7 +4377,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
    g.drawImage(run.img,fr*fw,0,fw,fh,-W/2,9-H+by,W,H);
   }else{
    const H=48,W=H*rImg.naturalWidth/rImg.naturalHeight;
-   g.drawImage(mip(rImg,W),-W/2,5-H+by,W,H);
+   g.drawImage(g===ctx?crisp(rImg,W):mip(rImg,W),-W/2,5-H+by,W,H); /* in-world hero: exact device pixels */
   }
   g.restore();
  }else{
@@ -5053,7 +5075,7 @@ function renderHero(){
  $('gearSetRow').innerHTML='<div style="display:flex;gap:6px;margin:2px 0 8px">'+[0,1].map(i=>{
   const gs=S.gearSets[i],act=S.gearSetSel===i;
   const st=act?'active':gs?(SLOTS.filter(k=>gs[k]).length+((gs.scrolls||[]).filter(Boolean).length)+(gs.pet?1:0))+' pcs':'empty';
-  return `<button class="sbtn ${act?'gold':''}" data-gset="${i}" style="flex:1;${gs?'':'opacity:.6'}">${i?'💀':'⚔️'} Set ${i+1} <span style="color:var(--dim);font-size:10px">· ${st}</span></button>`;
+  return `<button class="sbtn ${act?'gold':''}" data-gset="${i}" style="flex:1;${gs?'':'opacity:.6'}">Set ${i+1} <span style="color:var(--dim);font-size:10px">· ${st}</span></button>`;
  }).join('')+`<button class="sbtn gold" id="gearSaveBtn" title="Save what you are wearing into the active set">💾</button></div>`;
  document.querySelectorAll('[data-gset]').forEach(b=>b.onclick=()=>gearSwapTo(+b.dataset.gset));
  $('gearSaveBtn').onclick=()=>gearSaveSet();
