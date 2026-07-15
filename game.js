@@ -41,7 +41,8 @@ const bowImg=new Image();bowImg.src='assets/weapons/bow.png';
 const maceImg=new Image();maceImg.src='assets/weapons/mace.png';
 const haalandImg=new Image();haalandImg.src='assets/boss/haaland_boss.png';
 const haalandAxeImg=new Image();haalandAxeImg.src='assets/boss/axe_boss.png';
-const ratbossImg=new Image();ratbossImg.src='assets/boss/ratcrypt.png'; /* the crypt rat — art faces left */
+const ratbossImg=new Image();ratbossImg.src='assets/boss/rat_boss.png'; /* the crypt rat — art faces left */
+const ratFeetImg=new Image();ratFeetImg.src='assets/boss/rat_feet.png'; /* its clawed foot — points left */
 const oneringImg=new Image();oneringImg.src='assets/models/onering.png';
 const altarFenceImg=new Image();altarFenceImg.src='assets/models/maps/altarasset.png';
 const staffImg=new Image();staffImg.src='assets/weapons/staff.png';
@@ -1607,6 +1608,7 @@ $('wormBuyBtn').onclick=()=>{
 $('fishhutClose').onclick=()=>$('fishhutMenu').style.display='none';
 let altarMsgSeen=false;
 $('altarMsgOk').onclick=()=>{$('altarMsg').style.display='none';};
+$('cryptIntroOk').onclick=()=>{$('cryptIntro').style.display='none';S.cryptIntroSeen=true;save();};
 $('sharkOk').onclick=()=>{$('sharkFx').style.display='none';gamePaused=false;};
 function startFishing(){
  if(fish.on||!nearLake())return;
@@ -1695,6 +1697,7 @@ function buildCryptMaze(){
   world.cryptChests.push({x,y,taken:false});
  }
  zoneMapImg('cryptmap');zoneMapImg('cryptwall'); /* kick off floor + wall art loads for the per-frame tiler */
+ if(!S.cryptIntroSeen){const ci=$('cryptIntro');if(ci)ci.style.display='block';} /* first descent: the warning */
  S.auto=false; /* AUTO does not work down here — ever */
 }
 /* wall texture as a repeating pattern — fixed 836px world repeat, anchored in world
@@ -3600,24 +3603,22 @@ function drawRatBoss(){
  const rb=world.ratboss;
  if(rb.x<camX-220||rb.x>camX+VW/zoom+220||rb.y<camY-180||rb.y>camY+VH/zoom+180)return;
  ctx.save();ctx.translate(rb.x,rb.y);
- ctx.fillStyle='rgba(0,0,0,0.35)';ctx.beginPath();ctx.ellipse(0,28,86,19,0,0,7);ctx.fill();
+ ctx.fillStyle='rgba(0,0,0,0.35)';ctx.beginPath();ctx.ellipse(0,32,80,18,0,0,7);ctx.fill();
  if(rb.fx>0)ctx.scale(-1,1); /* art faces left natively — mirror when heading right */
  const bob=rb.moving?Math.sin(rb.walk*4)*2:0; /* skittering bob */
- const H=195,W=ratbossImg.naturalWidth?H*ratbossImg.naturalWidth/ratbossImg.naturalHeight:H*1.42;
- const feet=bootImg.complete&&bootImg.naturalWidth;
- const FW=22,FH=feet?FW*bootImg.naturalHeight/bootImg.naturalWidth:0;
- const sw=i=>rb.moving?Math.sin(rb.walk*2+(i%2?Math.PI:0))*7:0; /* diagonal gait: 0&3 vs 1&2 */
- if(feet){ /* far-side pair first, tucked behind the body */
-  ctx.globalAlpha=0.75;
-  ctx.drawImage(mip(bootImg,64),-W*0.17-FW/2+sw(1),20-FH/2,FW,FH);
-  ctx.drawImage(mip(bootImg,64),W*0.15-FW/2+sw(2),20-FH/2,FW,FH);
+ const H=195,W=ratbossImg.naturalWidth?H*ratbossImg.naturalWidth/ratbossImg.naturalHeight:H*1.44;
+ const feet=ratFeetImg.complete&&ratFeetImg.naturalWidth;
+ const FW=62,FH=feet?FW*ratFeetImg.naturalHeight/ratFeetImg.naturalWidth:0;
+ const o=rb.moving?Math.sin(rb.walk*2)*9:0; /* two clawed feet counter-swing while it stalks */
+ if(feet){ /* rear foot, tucked slightly behind the body */
+  ctx.globalAlpha=0.85;
+  ctx.drawImage(mip(ratFeetImg,FW),W*0.10-FW/2-o,38-FH,FW,FH);
   ctx.globalAlpha=1;
  }
- if(ratbossImg.complete&&ratbossImg.naturalWidth)ctx.drawImage(mip(ratbossImg,W),-W/2,30-H+bob,W,H);
+ if(ratbossImg.complete&&ratbossImg.naturalWidth)ctx.drawImage(mip(ratbossImg,W),-W/2,18-H+bob,W,H);
  else{ctx.fillStyle='#4a3a34';ctx.beginPath();ctx.ellipse(0,-20,60,34,0,0,7);ctx.fill();} /* fallback while loading */
- if(feet){ /* near-side pair on top */
-  ctx.drawImage(mip(bootImg,64),-W*0.31-FW/2+sw(0),27-FH/2,FW,FH);
-  ctx.drawImage(mip(bootImg,64),W*0.33-FW/2+sw(3),27-FH/2,FW,FH);
+ if(feet){ /* front foot on top */
+  ctx.drawImage(mip(ratFeetImg,FW),-W*0.27-FW/2+o,42-FH,FW,FH);
  }
  ctx.restore();
 }
@@ -4699,6 +4700,7 @@ function applyZoneUI(){
  $('hZone').textContent=zoneOf().name+(zoneOf().boss||zoneOf().raid?' ☠':'');
  /* the crypts hide the quest text and Continue — the bar stays, the progress row doubles as the 0/3 chest counter, AUTO stays clickable for its refusal */
  const cr=!!zoneOf().crypts;
+ if(!cr){const ci=$('cryptIntro');if(ci)ci.style.display='none';}
  $('qName').parentElement.style.display=cr?'none':'';
  $('nextBtn').style.display=cr?'none':'';
 }
