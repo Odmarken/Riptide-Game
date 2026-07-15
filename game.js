@@ -1831,7 +1831,7 @@ function buildZone(){
   world.solids.push({x:cx+710,y:cy+560,r:52,type:'house',big:true,seed:1,crx:240,cry:64,cyo:-208});
   /* the Casino — doubled-up landmark beside the north road; highest spot where the
      full sprite still fits under the map's top edge without covering the inn */
-  world.solids.push({x:cx+360,y:cy-120,r:52,type:'casino',big:true,seed:5,crx:180,cry:45,cyo:-220});
+  world.solids.push({x:cx+360,y:cy-120,r:52,type:'casino',big:true,seed:5,crx:172,cry:80,cyo:-140});
   /* the Bank — painted model on the north-west grass, by the road stub */
   world.solids.push({x:cx-720,y:cy-440,r:52,type:'bank',big:true,seed:8,crx:138,cry:50,cyo:-79});
   /* the Blacksmith — painted model at the south-west road stub */
@@ -3015,7 +3015,7 @@ cv.addEventListener('pointerdown',e=>{
   const cas=world.solids.find(s=>s.type==='casino');
   if(cas){ /* pixel-perfect: only clicks on the building's visible pixels count */
    const W=cas.r*7.68,H=casinoImg.naturalWidth?W*casinoImg.naturalHeight/casinoImg.naturalWidth:W,bot=cas.r*1.35*0.55+W*0.04;
-   const u=(wx-(cas.x-W/2))/W,v=(wy-(cas.y+bot-H))/H;
+   const u=(wx-(cas.x-W/2))/W,v=(wy-(cas.y+bot-H*0.75))/H;
    if(u>=0&&u<1&&v>=0&&v<1&&pixelSolid(casinoImg,u,v)){walkOrOpen(cas,openCasinoMenu);return;}
   }
   const bnk=world.solids.find(s=>s.type==='bank');
@@ -4005,7 +4005,7 @@ function drawProp(s,z){
   if(casinoImg.complete&&casinoImg.naturalWidth){
    /* keep the art's own aspect ratio — drawing it square squashed the tall model */
    const W=s.r*7.68,H=W*casinoImg.naturalHeight/casinoImg.naturalWidth;
-   ctx.drawImage(mip(casinoImg,W),-W/2,hh*0.55+W*0.04-H,W,H);
+   ctx.drawImage(mip(casinoImg,W),-W/2,hh*0.55+W*0.04-H*0.75,W,H); /* content bottom at 75% of the art */
   }else{ /* fallback while the image loads */
    ctx.fillStyle='#9a8468';ctx.fillRect(-w,-hh*0.55,w*2,hh);
    ctx.fillStyle='#8a2e26';
@@ -4906,9 +4906,13 @@ function gearSwapTo(i){
    if(bi>=0)cur[k]=S.scrolls.splice(bi,1)[0];
   }
  }
- if(tgt.pet!==undefined){ /* pet follows the set (only if still owned) */
-  if(tgt.pet===null)S.pet=null;
-  else if((S.pets||[]).includes(tgt.pet))S.pet=tgt.pet;
+ if(tgt.pet!==undefined&&tgt.pet!==S.pet){ /* pet follows the set — the old companion goes back to the reserve, it NEVER vanishes */
+  S.pets=S.pets||[];
+  if(S.pet){S.pets.push(S.pet);S.pet=null;}
+  if(tgt.pet){
+   const pi=S.pets.indexOf(tgt.pet);
+   if(pi>=0){S.pets.splice(pi,1);S.pet=tgt.pet;} /* only if still owned */
+  }
  }
  S.gearSetSel=i;
  if(hero)hero.hp=Math.min(hero.hp,heroMax());
