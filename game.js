@@ -121,6 +121,8 @@ function raidStatus(){
  const t=localDayMs()%RAID_PERIOD;
  return t<RAID_OPEN?{open:true,left:RAID_OPEN-t}:{open:false,next:RAID_PERIOD-t};
 }
+const raidWindow=()=>Math.floor(Date.now()/86400000)*6+Math.floor(localDayMs()/RAID_PERIOD);
+const raidCleared=()=>!!S&&S.raidLock===raidWindow(); /* one clear per lockout — dying and retrying is fine */
 const fmtMS=ms=>{
  const s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;
  return h>0?h+'h '+m+'m':m+'m '+String(ss).padStart(2,'0')+'s';
@@ -1060,7 +1062,7 @@ function rollFrostmourne(){
 }
 function syncWarglaives(it){
  if(!isWG(it)||!S)return it;
- it.id='warglaives';it.legend='warglaives';it.warglaives=true;it.slot='weapon';it.rar='legendary';it.name='Warglaives of Azzinoth';
+ it.id='warglaives';it.legend='warglaives';it.warglaives=true;it.slot='weapon';it.rar='legendary';it.name='Warglaives';
  it.up=Math.min(it.up||0,FM_MAX_UP);
  const st=fmStar(it); /* ★1/★2/★3 → 10/15/20% boss dmg and 2/4/6% lifesteal */
  it.maxUp=FM_MAX_UP;it.bossDmg=st===3?20:st===2?15:10;
@@ -1074,7 +1076,7 @@ function syncWarglaives(it){
  return it;
 }
 function rollWarglaives(){
- return syncWarglaives({id:'warglaives',slot:'weapon',rar:'legendary',legend:'warglaives',name:'Warglaives of Azzinoth',atk:0,hp:0,crit:0,haste:0.10,bossDmg:10,lifesteal:0.02,ench:null,up:0,sell:0,maxUp:FM_MAX_UP});
+ return syncWarglaives({id:'warglaives',slot:'weapon',rar:'legendary',legend:'warglaives',name:'Warglaives',atk:0,hp:0,crit:0,haste:0.10,bossDmg:10,lifesteal:0.02,ench:null,up:0,sell:0,maxUp:FM_MAX_UP});
 }
 function itemName(it){return ((isFM(it)||isWG(it))&&fmStar(it)>1?'★'+fmStar(it)+' ':'')+(it&&it.name?it.name:'?');}
 const SMITH_HOUR=7200000;
@@ -1097,9 +1099,9 @@ function smithTick(){
   stageMsg('💍 THE ONE RING IS FORGED!',3800);sfx.level();
   if(typeof publishLB==='function')publishLB(S,true);
  }else if(j.kind==='wg'){
-  const it=syncWarglaives({id:'warglaives',slot:'weapon',rar:'legendary',legend:'warglaives',name:'Warglaives of Azzinoth',star:j.to,atk:0,hp:0,crit:0,haste:0.10,ench:null,up:0,sell:0,maxUp:FM_MAX_UP});
+  const it=syncWarglaives({id:'warglaives',slot:'weapon',rar:'legendary',legend:'warglaives',name:'Warglaives',star:j.to,atk:0,hp:0,crit:0,haste:0.10,ench:null,up:0,sell:0,maxUp:FM_MAX_UP});
   S.bag.push(it);
-  log(`⚒️ The forge cools — <span class="llegendary">Warglaives of Azzinoth ★${j.to}</span> scream anew!`,'loot');
+  log(`⚒️ The forge cools — <span class="llegendary">Warglaives ★${j.to}</span> scream anew!`,'loot');
   stageMsg('⚒️ Warglaives ★'+j.to+' complete!',2600);sfx.level();
  }else{
   const it=syncFrostmourne({slot:'weapon',rar:'legendary',legend:'frostmourne',name:'Frostmourne',star:j.to,atk:0,hp:0,crit:4,lifesteal:0.02,ench:null,up:0,sell:0});
@@ -2516,6 +2518,7 @@ function killEnemy(en){
    log(`<span class="imp">${en.name} defeated.</span>${left?'':' <span class="loot">Raid cleared!</span>'}`);
    if(!left){
     sfx.level();
+    S.raidLock=raidWindow(); /* one clear per lockout — the gates know you now */
     S.chests=Object.assign({blacktemple:0},S.chests||{});S.chests.blacktemple=(S.chests.blacktemple||0)+1;
     log(`<span class="llegendary">🟩 Black Temple Chest</span> acquired!`,'loot');
     stageMsg('🟩 BLACK TEMPLE CHEST — open it in the Bag!',3200);
@@ -5110,13 +5113,14 @@ function renderMap(){
    }
    if(z.raid){
     const rst=raidStatus();
-    const stateTxt=rst.open?'⚔ GATES OPEN — they close in '+fmtMS(rst.left):'Gates open every 4 hours — next opening in '+fmtMS(rst.next);
-    return `<div class="card zonecard ${p15&&rst.open?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p15&&rst.open?'#a66bd0':''}">
+    const rCl=rst.open&&raidCleared();
+    const stateTxt=rCl?'✓ Cleared this lockout — next raid in '+fmtMS(rst.left+(RAID_PERIOD-RAID_OPEN)):rst.open?'⚔ GATES OPEN — they close in '+fmtMS(rst.left):'Gates open every 4 hours — next opening in '+fmtMS(rst.next);
+    return `<div class="card zonecard ${p15&&rst.open&&!rCl?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p15&&rst.open&&!rCl?'#a66bd0':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#2a2040)">⚔</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
      <div class="zl">RAID — three lords slumber in their chambers. Strike one and it hunts you to the death.${p15?'':' · Minimum Prestige 10'}</div>
      <div class="zl" id="raidTimer" style="color:${rst.open?'#c9a0ff':'#8fa898'}">${stateTxt}</div></div>
-     ${i===S.zone?'<span class="ztag">Here</span>':!p15?'<span class="ztag boss">🔒 Prestige 10</span>':rst.open?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">⏳ Sealed</span>'}
+     ${i===S.zone?'<span class="ztag">Here</span>':!p15?'<span class="ztag boss">🔒 Prestige 10</span>':rCl?'<span class="ztag done">✓ Cleared</span>':rst.open?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">⏳ Sealed</span>'}
     </div>`;
    }
    const kills=S.cerberusKills||0;
@@ -5158,6 +5162,7 @@ function renderMap(){
      if((S.prestige||0)<10){stageMsg('Reach Prestige 10 — the Black Temple opens only to legends',1800);sfx.warn();return;}
      const rst=raidStatus();
      if(!rst.open){stageMsg('⚔ The Black Temple gates are sealed — next opening in '+fmtMS(rst.next),2200);sfx.warn();return;}
+     if(raidCleared()){stageMsg('✓ The Black Temple already fell this lockout — next raid in '+fmtMS(rst.left+(RAID_PERIOD-RAID_OPEN)),2400);sfx.warn();return;}
      pendingRaidZone=i;
      const rm=$('raidModal');
      if(rm){rm.style.display='flex';openTab('battle');}
@@ -5203,8 +5208,9 @@ setInterval(()=>{
  const rEl=$('raidTimer');
  const rst=raidStatus();
  if(rEl){
-  rEl.textContent=rst.open?'⚔ GATES OPEN — they close in '+fmtMS(rst.left):'Gates open every 4 hours — next opening in '+fmtMS(rst.next);
-  rEl.style.color=rst.open?'#c9a0ff':'#8fa898';
+  const rCl=rst.open&&raidCleared();
+  rEl.textContent=rCl?'✓ Cleared this lockout — next raid in '+fmtMS(rst.left+(RAID_PERIOD-RAID_OPEN)):rst.open?'⚔ GATES OPEN — they close in '+fmtMS(rst.left):'Gates open every 4 hours — next opening in '+fmtMS(rst.next);
+  rEl.style.color=rCl?'#8fa898':rst.open?'#c9a0ff':'#8fa898';
  }
  if(raidWasOpen!==rst.open&&$('p-map').classList.contains('open'))renderMap();
  if(!raidWasOpen&&rst.open&&typeof gameOn!=='undefined'&&gameOn&&(S.prestige||0)>=10){
@@ -5293,7 +5299,7 @@ function renderBag(){
    </div>`;
  }
  let btHtml='';
- if(S.chests&&S.chests.blacktemple>0)btHtml=`<div class="card item" style="border-color:#39ff6a66;box-shadow:0 0 10px rgba(57,255,106,.15)"><div><div class="sn" style="color:#39ff6a;font-size:13px;font-weight:600">🟩 Black Temple Chest <span style="color:var(--dim)">×${S.chests.blacktemple}</span></div><div class="ss" style="color:var(--dim);font-size:11px">The spoils of the three lords. Chance for Warglaives of Azzinoth, gold, or free GOLD GOLD GOLD cases.</div></div><div class="btns"><button class="sbtn gold" data-btchest>Open</button></div></div>`;
+ if(S.chests&&S.chests.blacktemple>0)btHtml=`<div class="card item" style="border-color:#39ff6a66;box-shadow:0 0 10px rgba(57,255,106,.15)"><div><div class="sn" style="color:#39ff6a;font-size:13px;font-weight:600">🟩 Black Temple Chest <span style="color:var(--dim)">×${S.chests.blacktemple}</span></div><div class="ss" style="color:var(--dim);font-size:11px">The spoils of the three lords. Chance for Warglaives, gold, or free GOLD GOLD GOLD cases.</div></div><div class="btns"><button class="sbtn gold" data-btchest>Open</button></div></div>`;
  let ringHtml='';
  if(S.ringRecipe||S.brokenRing){
   const both=S.ringRecipe&&S.brokenRing,smithOk=(S.smithLvl||0)>=10;
@@ -5714,7 +5720,7 @@ function btPrizeValue(){
  if(p.kind==='warglaives'){
   const it=rollWarglaives();it._lid=lootUID++;
   if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
-  log(`BLACK TEMPLE: <span class="llegendary">Warglaives of Azzinoth</span>!`,'loot');
+  log(`BLACK TEMPLE: <span class="llegendary">Warglaives</span>!`,'loot');
   return {icon:'🗡️',tier:'LEGENDARY',name:itemName(it),color:'#39ff6a',sub:'weapon · '+itemStr(it),epic:true,big:true};
  }
  if(p.kind==='gold'){
@@ -6824,7 +6830,7 @@ function smithRefresh(){
  if(!smithSel)smithSel='fm';
  const mn=$('smithMenu');
  if(mn){ /* the station list always shows — locked stations sit dimmed with a padlock */
-  mn.innerHTML='<div style="display:flex;gap:6px;margin:4px 0 8px">'+stations.map(st=>`<button class="sbtn ${smithSel===st[0]?'gold':''}" data-smsel="${st[0]}" style="flex:1;${st[2]?'':'opacity:.55'}">${st[2]?'':'🔒 '}${st[1]}</button>`).join('')+'</div>';
+  mn.innerHTML='<div style="display:flex;gap:5px;margin:4px 0 8px">'+stations.map(st=>`<button class="sbtn ${smithSel===st[0]?'gold':''}" data-smsel="${st[0]}" style="flex:1;min-width:0;padding:8px 3px;font-size:11px;line-height:1.3;white-space:normal;overflow:hidden;${st[2]?'':'opacity:.55'}">${st[2]?'':'🔒 '}${st[1]}</button>`).join('')+'</div>';
   mn.querySelectorAll('[data-smsel]').forEach(b=>b.onclick=()=>{smithSel=b.dataset.smsel;smithRefresh();});
  }
  const show=id=>smithSel===id;
@@ -7452,6 +7458,7 @@ async function publishLB(ch,force){
   hardcore:!!ch.hardcore,hcDead:!!ch.hcDead,gender:ch.gender||'m',
   rating:ch.rating||0,
   race:ch.race||'human',cls:ch.cls||'warrior',zone:ch.zone||0,
+  pet:ch.pet||null,
   scroll:(ch.activeScrolls||[]).filter(Boolean)[0]||null,
   scrolls:(ch.activeScrolls||[]).filter(Boolean).map(sc=>sc.id2?{id:sc.id,tier:sc.tier||1,id2:sc.id2,tier2:sc.tier2||1}:{id:sc.id,tier:sc.tier||1}),
   gear:{weapon:slim(ch.gear&&ch.gear.weapon),armor:slim(ch.gear&&ch.gear.armor),trinket:slim(ch.gear&&ch.gear.trinket)},
@@ -7498,11 +7505,18 @@ function renderInspect(e){
  const scrolls=(e.scrolls&&e.scrolls.length?e.scrolls:e.scroll?[e.scroll]:[]);
  const scHtml=scrolls.length?scrolls.map(sc=>{
   const en=enchOf(sc.id);if(!en)return '';
-  return `<div class="slot" style="border-color:${en.glow}66">
-   <div class="ss" style="text-transform:uppercase;letter-spacing:1px">Scroll</div>
+  const en2=sc.id2?enchOf(sc.id2):null; /* 🔗 fused scroll — show both halves */
+  return `<div class="slot" style="border-color:${en2?'#8fe3c966':en.glow+'66'}">
+   <div class="ss" style="text-transform:uppercase;letter-spacing:1px">Scroll${en2?' · 🔗 FUSED':''}</div>
    <div class="en"><span class="glowdot" style="background:${en.glow};box-shadow:0 0 6px ${en.glow}"></span>${esc(en.n.replace('Scroll of ',''))} ${TIERN[(sc.tier||1)-1]}</div>
-   <div class="ss">${esc(tierDesc(sc.id,sc.tier||1))}</div></div>`;
+   ${en2?`<div class="en"><span class="glowdot" style="background:${en2.glow};box-shadow:0 0 6px ${en2.glow}"></span>${esc(en2.n.replace('Scroll of ',''))} ${TIERN[(sc.tier2||1)-1]}</div>`:''}
+   <div class="ss">${esc(tierDesc(sc.id,sc.tier||1))}${en2?'<br>'+esc(tierDesc(sc.id2,sc.tier2||1)):''}</div></div>`;
  }).join(''):`<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">Scrolls</div><div class="ss">— none active —</div></div>`;
+ const pt=e.pet?petOf(e.pet):null;
+ const petHtml=`<div class="slot" style="border-color:${pt?pt.cc+'66':'var(--line)'}">
+  <div class="ss" style="text-transform:uppercase;letter-spacing:1px">Pet</div>
+  ${pt?`<div class="sn" style="color:${pt.cc}">${pt.g} ${esc(pt.n)}</div><div class="ss">${esc(pt.d)}</div>`:'<div class="ss">— no companion —</div>'}
+ </div>`;
  return `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
   <div class="statgrid" style="margin-bottom:8px">
    <div class="stat"><b>${st.hp||'?'}</b><span>Max health</span></div>
@@ -7511,7 +7525,7 @@ function renderInspect(e){
    <div class="stat"><b>${st.crit!=null?st.crit+'%':'?'}</b><span>Crit chance</span></div>
   </div>
   <div class="slotrow">${gearRow('weapon')}${gearRow('armor')}${gearRow('trinket')}</div>
-  <div class="slotrow" style="margin-top:8px">${scHtml}</div>
+  <div class="slotrow" style="margin-top:8px">${scHtml}${petHtml}</div>
  </div>`;
 }
 async function showLeaderboard(){
