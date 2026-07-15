@@ -17,7 +17,8 @@ const CHAR_SPRITES={ /* all 16 male race+class combos have art in assets/charact
  dwarfmale_warrior:1,dwarfmale_mage:1,dwarfmale_hunter:1,dwarfmale_priest:1,
  orcmale_warrior:1,orcmale_mage:1,orcmale_hunter:1,orcmale_priest:1,
  undeadmale_warrior:1,undeadmale_mage:1,undeadmale_hunter:1,undeadmale_priest:1,
- humanmale_armor:1,dwarfmale_armor:1,orcmale_armor:1,undeadmale_armor:1}; /* the combos that have art in assets/characters — _armor = 🧊 Ice Armor skins */
+ humanmale_armor:1,dwarfmale_armor:1,orcmale_armor:1,undeadmale_armor:1, /* _armor = 🧊 Ice Armor skins */
+ humanfemale_hunter:1,dwarffemale_hunter:1,orcfemale_hunter:1,undeadfemale_hunter:1}; /* female art so far — more combos light up as files land */
 const charSpriteCache={};
 function charSprite(raceId,clsId,female){
  const key=raceId+(female?'female':'male')+'_'+clsId;
