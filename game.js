@@ -7639,7 +7639,7 @@ async function publishLB(ch,force){
  if(!force&&now-FB.lastPub<1800000)return; /* passive publishes at most every 30 min */
  FB.lastPub=now;
  ch.tainted=false;ch.taintV=0;
- const slim=g=>g?{name:g.name,rar:g.rar,slot:g.slot,up:g.up||0,star:g.star||0,atk:g.atk||0,hp:g.hp||0,crit:g.crit||0,haste:g.haste||0,lifesteal:g.lifesteal||0,legend:g.legend||null,power:Math.round(g.power||0)}:null;
+ const slim=g=>g?{name:g.name,rar:g.rar,slot:g.slot,up:g.up||0,star:g.star||0,atk:g.atk||0,hp:g.hp||0,crit:g.crit||0,haste:g.haste||0,lifesteal:g.lifesteal||0,bossDmg:g.bossDmg||0,manadrain:g.manadrain||0,dmgMul:g.dmgMul||0,legend:g.legend||null,power:Math.round(g.power||0)}:null;
  const entry={season:SEASON,name:(ch.name||'?').slice(0,14),lvl:ch.lvl,prestige:ch.prestige||0,gs:charGearScore(ch),score:lbScore(ch),cid:ch.id,t:now,tainted:false,taintV:0,
   hardcore:!!ch.hardcore,hcDead:!!ch.hcDead,gender:ch.gender||'m',
   rating:ch.rating||0,
@@ -7683,7 +7683,7 @@ function renderInspect(e){
  const gearRow=sl=>{
   const g=e.gear&&e.gear[sl];
   if(!g)return `<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div><div class="ss">— empty —</div></div>`;
-  let s=`${g.up?'+'+g.up+' · ':''}${g.atk?'+'+g.atk+' ATK ':''}${g.hp?'+'+g.hp+' HP ':''}${g.crit?'+'+g.crit+'% CRIT ':''}${g.haste?'+'+Math.round(g.haste*100)+'% ATK SPEED ':''}${g.lifesteal?'+'+(g.lifesteal*100)+'% LIFESTEAL':''}`.trim();
+  let s=`${g.up?'+'+g.up+' · ':''}${g.atk?'+'+g.atk+' ATK ':''}${g.hp?'+'+g.hp+' HP ':''}${g.crit?'+'+g.crit+'% CRIT ':''}${g.haste?'+'+Math.round(g.haste*100)+'% ATK SPEED ':''}${g.lifesteal?'+'+Math.round(g.lifesteal*1000)/10+'% LIFESTEAL ':''}${g.dmgMul?'+'+Math.round(g.dmgMul*100)+'% DAMAGE ':''}${g.bossDmg?'+'+g.bossDmg+'% BOSS DMG ':''}${g.manadrain?Math.round(g.manadrain*100)+'% MANA DRAIN ':''}${g.legend==='frostmourne'&&(g.star||0)>1?'· ★'+g.star+' bonus: +'+(g.star*2)+'% CRIT / +'+(g.star*2)+'% LIFESTEAL':''}`.trim();
   return `<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div>
    <div class="sn" style="color:${RARCOL[g.rar]||'#fff'}">${esc(g.name)}${g.legend&&g.star?` <span style="color:#ffd76a">★${g.star}</span>`:''}</div>
    <div class="ss">${esc(s)}</div></div>`;
