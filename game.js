@@ -916,6 +916,9 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.worms===undefined)s.worms=0;
  if(s.raidPots===undefined)s.raidPots=0;
  if(s.connectors===undefined)s.connectors=0; /* 🔗 crypt connectors — fuse two T-IV scrolls at the smith */
+ if(s.knifeAwarded===undefined)s.knifeAwarded=false;
+ if(s.theKnife===undefined)s.theKnife=false;
+ if(!s.knifeAwarded&&(s.rating||0)>=3000){s.knifeAwarded=true;s.theKnife=true;} /* already past 3000 — the knife finds them */
  if(s.gearSets===undefined){s.gearSets=[null,null];s.gearSetSel=-1;} /* two swappable loadouts */
  (s.gearSets||[]).forEach((gs,gi)=>{ /* v1 sets held raw items or a worn flag — convert to v2 (gsid refs) */
   if(!gs)return;
@@ -929,6 +932,8 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.brokenRing===undefined)s.brokenRing=false;
  if(s.ringForged===undefined)s.ringForged=false;
  if(s.raidT===undefined)s.raidT=0;
+ if(s.armorPots===undefined)s.armorPots=0; /* 🛡 fished from the lake */
+ if(s.armorT===undefined)s.armorT=0;
  if(RACE_ALIAS[s.race])s.race=RACE_ALIAS[s.race]; /* old saves used stoneborn/sylvan/gravekin */
  if(CLASS_ALIAS[s.cls])s.cls=CLASS_ALIAS[s.cls]; /* old saves used cleric for Jew */
  if(s.thorLock===undefined)s.thorLock=-1;
@@ -2311,7 +2316,7 @@ function hurtHero(dmg,label){
  if(hero.dead)return;
  /* hidden passive: melee callings (Christian/Jew) shrug off 60% in the Cow Level — never shown in any UI */
  const cowMelee=zoneOf().cow&&(S.cls==='warrior'||S.cls==='priest')?0.40:1;
- dmg=Math.round(dmg*(1-scrollPct('warding'))*(1-(classOf().armor||0))*(1-(raceOf().armor||0))*(1-((activePet()||{}).armor||0))*cowMelee);
+ dmg=Math.round(dmg*(1-scrollPct('warding'))*(1-(classOf().armor||0))*(1-(raceOf().armor||0))*(1-((activePet()||{}).armor||0))*(((S.armorT||0)>0&&zoneOf().amb==='haaland')?0.5:1)*cowMelee); /* 🛡 potion: -50% only in the HAALAND fight */
  hero.hp-=dmg;hero.hurt=0.2;
  floatAt(hero.x,hero.y-26,'-'+dmg+(label?' '+label:''),'#ff8a7a');
  bloodAt(hero.x,hero.y-12,6);
@@ -2499,6 +2504,12 @@ function killEnemy(en){
   if(en.bossId==='cerberus'){
    S.cerberusKills=(S.cerberusKills||0)+1;
    S.rating=(S.rating||0)+125;
+   if(!S.knifeAwarded&&S.rating>=3000){ /* 3000 rating: the Altar sends its invitation */
+    S.knifeAwarded=true;S.theKnife=true;
+    stageMsg('🗡 THE KNIFE appears in your bag… "Can be used at the Altar."',4200,'#bcd8ff');
+    log('<span class="llegendary">🗡 The Knife</span> — it hums with a cold purpose. <i>"Can be used at the Altar."</i>','loot');
+    sfx.shout();
+   }
    S.freeGoldCases=(S.freeGoldCases||0)+10;
    const sc=addScraps(60);
    floatAt(en.x,en.y-en.r-44,'+125 RATING','#ffd76a');
@@ -2706,7 +2717,7 @@ function bossAI(en,dt){
  if(B==='gorehusk'){ /* Rootfiend: root spikes under your feet + summons rootlings */
   if(en.cds.a<=0){en.cds.a=6;
    sfx.warn();
-   for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*90,hero.y+(Math.random()-0.5)*90,42,1.15,en.atk*1.2,'#9adf3a');
+   for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*90,hero.y+(Math.random()-0.5)*90,131,1.15,en.atk*1.2,'#9adf3a');
    floatAt(en.x,en.y-en.r-30,'Roots!','#9adf3a',true);
   }
   if(en.cds.b<=0){en.cds.b=13;
@@ -2747,7 +2758,7 @@ function bossAI(en,dt){
   }
   if(en.cds.b<=0){en.cds.b=7.5;
    sfx.warn();
-   hazardAt(en.x,en.y,130,1.4,en.atk*1.4,'#d0d8e8');
+   hazardAt(en.x,en.y,290,1.4,en.atk*1.4,'#d0d8e8');
    floatAt(en.x,en.y-en.r-30,'Bone Nova!','#d0d8e8',true);
    en.lockT=1.4;
   }
@@ -2758,7 +2769,7 @@ function bossAI(en,dt){
   }
   if(en.cds.a<=0){en.cds.a=9;
    sfx.warn();
-   for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*110,hero.y+(Math.random()-0.5)*110,46,1.5,en.atk*1.5,'#ff9a3a');
+   for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*110,hero.y+(Math.random()-0.5)*110,144,1.5,en.atk*1.5,'#ff9a3a');
    floatAt(en.x,en.y-en.r-30,'Meteors!','#ff9a3a',true);
   }
   if(!en.enraged&&en.hp<en.max*0.3){
@@ -2795,7 +2806,7 @@ function bossAI(en,dt){
   }
   if(en.cds.b<=0){en.cds.b=12*cdm;
    sfx.warn();
-   hazardAt(en.x,en.y,95,0.95,en.atk*1.3,'#e86a4a');
+   hazardAt(en.x,en.y,227,0.95,en.atk*1.3,'#e86a4a');
    floatAt(en.x,en.y-en.r-30,'Whirlwind!','#e86a4a',true);
    en.lockT=0.95;
   }
@@ -2899,7 +2910,7 @@ function bossAI(en,dt){
    }
   }
   if(en.cds.a<=0){en.cds.a=7;sfx.warn();
-   for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*110,hero.y+(Math.random()-0.5)*110,44,1.1,en.atk*1.5,'#7fd0ff');
+   for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*110,hero.y+(Math.random()-0.5)*110,137,1.1,en.atk*1.5,'#7fd0ff');
    floatAt(en.x,en.y-en.r-30,'THUNDERSTRIKE!','#7fd0ff',true);
   }
   if(en.cds.b<=0&&dist(en,T)>55){en.cds.b=4;
@@ -2915,13 +2926,8 @@ function bossAI(en,dt){
   }
  }else if(B==='cerberus'){ /* HAALAND: hellfire, volleys, hounds, strikes & ground shake */
   if(en.cds.a<=0){en.cds.a=7;sfx.warn();
-   for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*120,hero.y+(Math.random()-0.5)*120,48,1.2,en.atk*1.4,'#ff5a3a');
+   for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*120,hero.y+(Math.random()-0.5)*120,290,1.2,en.atk*1.4,'#ff5a3a');
    floatAt(en.x,en.y-en.r-30,'Hellfire!','#ff5a3a',true);
-  }
-  if(en.cds.b<=0&&dist(en,T)>55){en.cds.b=4.5;
-   const d=dist(en,hero)||1;
-   for(let i=0;i<3;i++)ebolts.push({x:en.x+(i-1)*16,y:en.y-16,vx:(hero.x-en.x)/d*(200+i*35),vy:(hero.y-en.y)/d*(200+i*35),t:0,dmg:en.atk*0.8,c:'#ff7a3a'});
-   sfx.fire();
   }
   if(en.cds.c<=0){en.cds.c=14;
    if(addsAlive()<3){spawnAdd('Messi','beast','#a03a2a');spawnAdd('Messi','beast','#a03a2a');
@@ -3184,6 +3190,10 @@ function update(dt){
   S.raidT-=dt;
   if(S.raidT<=0){S.raidT=0;stageMsg('⚗️ The raid fervor fades…',1800);}
  }
+ if(S.armorT>0){
+  S.armorT-=dt;
+  if(S.armorT<=0){S.armorT=0;stageMsg('🛡 Your iron skin softens…',1800);}
+ }
   if(S.luckT>0){
   S.luckT-=dt;
   if(S.luckT<=0){S.luckT=0;stageMsg('🍀 Your luck fades…',1800);}
@@ -3350,8 +3360,15 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
        log(`Fishing: <span class="llegendary">💍 The Broken Ring</span> — combine it with the Recipe at a level 10 Blacksmith.`,'loot');
        burst(fish.bx,fish.by,'#ffd76a',22,140,true);
        sfx.level();
+      }else if(r2<0.0045){ /* 🛡 0.20% — a sealed potion in the weeds (1 in 500 casts) */
+       S.armorPots=(S.armorPots||0)+1;save();
+       fishToast('🛡 <b>Potion of Armor</b> — reeled in!','#8fb0d0');
+       stageMsg('🛡 POTION OF ARMOR — a rare catch! Check your Bag.',3000);
+       log(`Fishing: <span class="llegendary">🛡 Potion of Armor</span> — take 50% less damage from HAALAND for 20 minutes. Drink it from the Bag.`,'loot');
+       burst(fish.bx,fish.by,'#8fb0d0',18,120,true);
+       sfx.level();
       }else{ /* 0–4 scraps — small hauls common, a full net rare */
-       const r3=(r2-0.0025)/(1-0.0025);
+       const r3=(r2-0.0045)/(1-0.0045);
        const n=r3<0.35?0:r3<0.60?1:r3<0.80?2:r3<0.93?3:4;
        if(n>0){
         const got=addScraps(n);
@@ -5274,6 +5291,16 @@ function renderBag(){
    <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#39ff6a">ACTIVE — '+mins+' min remaining.</b> ':''}+15% boss damage for 60 minutes. Earned by clearing the Black Temple raid online.</div></div>
    <div class="btns"><button class="sbtn gold" id="raidUse" ${(S.raidPots||0)<1?'disabled':''}>${active?'Extend +60m':'Drink'}</button></div></div>`;
  }
+ // 🛡 armor potions — fished from the Goldshire lake
+ let armorHtml='';
+ if((S.armorPots||0)>0||S.armorT>0){
+  const aAct=S.armorT>0;
+  const aMin=Math.ceil(S.armorT/60);
+  armorHtml=`<div class="card item" style="border-color:#8fb0d0${aAct?';box-shadow:0 0 10px rgba(143,176,208,.25)':''}"><div>
+   <div class="sn" style="color:#8fb0d0;font-size:13px;font-weight:600">🛡 Potion of Armor <span style="color:var(--dim)">×${S.armorPots||0}</span></div>
+   <div class="ss" style="color:var(--dim);font-size:11px">${aAct?'<b style="color:#8fb0d0">ACTIVE — '+aMin+' min remaining.</b> ':''}Take <b>50% less damage from HAALAND</b> for 20 minutes. A rare catch from the Goldshire lake (0.2%).</div></div>
+   <div class="btns"><button class="sbtn gold" id="armorUse" ${(S.armorPots||0)<1?'disabled':''}>${aAct?'Extend +20m':'Drink'}</button></div></div>`;
+ }
  // 🔗 crypt connectors — chest trophies from The Crypts
  let connHtml='';
  if((S.connectors||0)>0){
@@ -5303,6 +5330,11 @@ function renderBag(){
  let btHtml='';
  if(S.chests&&S.chests.blacktemple>0)btHtml=`<div class="card item" style="border-color:#39ff6a66;box-shadow:0 0 10px rgba(57,255,106,.15)"><div><div class="sn" style="color:#39ff6a;font-size:13px;font-weight:600">🟩 Black Temple Chest <span style="color:var(--dim)">×${S.chests.blacktemple}</span></div><div class="ss" style="color:var(--dim);font-size:11px">The spoils of the three lords. Chance for Warglaives, gold, or free GOLD GOLD GOLD cases.</div></div><div class="btns"><button class="sbtn gold" data-btchest>Open</button></div></div>`;
  let ringHtml='';
+ if(S.theKnife){
+  ringHtml+=`<div class="card item" style="border-color:#bcd8ff88;box-shadow:0 0 10px rgba(188,216,255,.12)"><div>
+   <div class="sn" style="color:#bcd8ff;font-size:13px;font-weight:600">🗡 The Knife</div>
+   <div class="ss" style="color:var(--dim);font-size:11px"><i>"Can be used at the Altar."</i> Cannot be sold or discarded.</div></div></div>`;
+ }
  if(S.ringRecipe||S.brokenRing){
   const both=S.ringRecipe&&S.brokenRing,smithOk=(S.smithLvl||0)>=10;
   if(S.ringRecipe)ringHtml+=`<div class="card item" style="border-color:#ffd76a"><div>
@@ -5313,7 +5345,7 @@ function renderBag(){
    <div class="sn" style="color:#c9a45a;font-size:13px;font-weight:600">💍 The Broken Ring</div>
    <div class="ss" style="color:var(--dim);font-size:11px">Cold, heavy, and humming. ${both?'Ready to be reforged.':'Needs the Recipe of the Ring from the Trader.'} Cannot be sold or discarded.</div></div></div>`;
  }
- $('scrollSec').innerHTML=luckHtml+raidHtml+connHtml+ringHtml+gamblerHtml+restedHtml+btHtml;
+ $('scrollSec').innerHTML=luckHtml+raidHtml+armorHtml+connHtml+ringHtml+gamblerHtml+restedHtml+btHtml;
 
 
  document.querySelectorAll('[data-btchest]').forEach(b=>b.onclick=openBlackTempleChest);
@@ -5328,10 +5360,11 @@ function renderBag(){
   const TIERC=['#d8e4d6','#6dbb6d','#5b9bd5','#c9a0ff'];
   let sh='<div class="ptitle" style="font-size:14px;margin-bottom:8px">Scrolls</div>'+ 
    '<div class="ss" style="color:var(--dim);font-size:10.5px;margin-bottom:8px">Choose Scroll 1 or Scroll 2 when equipping. Combine counts both Bag scrolls and equipped scrolls (up to Tier IV). Tap a tier to expand or collapse it.</div>';
-  (S.scrolls||[]).forEach((sc,idx)=>{ /* 🔗 fused scrolls first — one card each, both enchants shown */
+  let fusedCards='';
+  (S.scrolls||[]).forEach((sc,idx)=>{ /* 🔗 fused scrolls — one card each, both enchants shown */
    if(!sc.id2)return;
    const eA=enchOf(sc.id),eB=enchOf(sc.id2);
-   sh+=`<div class="card item" style="border-color:#8fe3c9aa"><div>
+   fusedCards+=`<div class="card item" style="border-color:#8fe3c9aa"><div>
     <div class="sn" style="color:#8fe3c9;font-size:13px;font-weight:600"><span class="glowdot" style="background:${eA.glow};box-shadow:0 0 6px ${eA.glow}"></span><span class="glowdot" style="background:${eB.glow};box-shadow:0 0 6px ${eB.glow}"></span>🔗 ${enchName(sc)}</div>
     <div class="ss" style="color:var(--dim);font-size:11px">${tierDesc(sc.id,sc.tier)}<br>${tierDesc(sc.id2,sc.tier2)}<br><span style="color:#8fe3c9">Fused scroll — two enchants in one slot. Cannot be sold.</span></div></div>
     <div class="btns">
@@ -5339,6 +5372,14 @@ function renderBag(){
      <button class="sbtn gold" data-fuseslot="1" data-fuseq="${idx}">${EQS()[1]?'↔ ':''}Slot 2</button>
     </div></div>`;
   });
+  if(fusedCards){ /* their own category, above the tiers */
+   if(scrollTierOpen.fused===undefined)scrollTierOpen.fused=true;
+   const fo=scrollTierOpen.fused,fn=(S.scrolls||[]).filter(x=>x&&x.id2).length;
+   sh+=`<div class="tierhead" data-tt="fused" style="border-color:#8fe3c966">
+     <span style="color:#8fe3c9">${fo?'▾':'▸'} 🔗 Fused Scrolls</span>
+     <span class="tcount">${fn} scroll${fn>1?'s':''}</span></div>`;
+   if(fo)sh+='<div class="tierbody">'+fusedCards+'</div>';
+  }
   for(let t=MAXTIER;t>=1;t--){
    const list=(byTier[t]||[]).sort((a,b)=>a.id.localeCompare(b.id));
    if(!list.length)continue;
@@ -5366,7 +5407,7 @@ function renderBag(){
   }
   $('scrollSec').insertAdjacentHTML('beforeend',sh);
   document.querySelectorAll('[data-tt]').forEach(h=>h.onclick=()=>{
-   const t=+h.dataset.tt;scrollTierOpen[t]=!scrollTierOpen[t];renderBag();
+   const t=h.dataset.tt;scrollTierOpen[t]=!scrollTierOpen[t];renderBag();
   });
   const takeScroll=(id,tier)=>{const i=S.scrolls.findIndex(x=>x.id===id&&x.tier===tier&&!x.id2);return i>=0?S.scrolls.splice(i,1)[0]:null;};
   document.querySelectorAll('[data-eqslot]').forEach(b=>b.onclick=()=>{
@@ -5482,6 +5523,17 @@ function renderBag(){
   log('<span class="lfine">🍀 Potion of Luck</span> consumed.');
   renderBag();save();
  };
+ const au=$('armorUse');
+ if(au)au.onclick=()=>{
+  if((S.armorPots||0)<1)return;
+  S.armorPots--;
+  S.armorT=(S.armorT||0)+1200;
+  sfx.potion();
+  sparkles(hero.x,hero.y-12,'#8fb0d0',12);
+  stageMsg('🛡 Iron skin! 50% less damage from HAALAND for '+Math.ceil(S.armorT/60)+' minutes!',2500);
+  log('<span class="lfine">🛡 Potion of Armor</span> consumed.');
+  renderBag();renderHUD();save();
+ };
  const ru=$('raidUse');
  if(ru)ru.onclick=()=>{
   if((S.raidPots||0)<1)return;
@@ -5537,7 +5589,13 @@ function renderBag(){
     <span class="tcount" style="display:flex;align-items:center;gap:6px;justify-content:flex-end">${rar==='legendary'
      ?list.length+' item'+(list.length>1?'s':'')+' · 🔒 protected'
      :`${list.length} item${list.length>1?'s':''} · ${sell.toLocaleString()}◉ · ${scr}⚙ <button class="sbtn scrapb" data-scrrar="${rar}" style="padding:4px 7px;font-size:10px">Scrap All +${scr}⚙</button>`}</span></div>`;
-  if(open)gearHtml+='<div class="tierbody">'+list.map(({it,i})=>`
+  if(open){
+   gearHtml+='<div class="tierbody">';
+   [['weapon','⚔ Weapons'],['armor','🛡 Armor'],['trinket','💠 Trinkets']].forEach(g2=>{
+    const sub=list.filter(x=>x.it.slot===g2[0]);
+    if(!sub.length)return;
+    gearHtml+=`<div class="ss" style="margin:7px 2px 4px;color:${rarColor[rar]}cc;text-transform:uppercase;letter-spacing:1px;font-size:10px">${g2[1]} · ${sub.length}</div>`;
+    gearHtml+=sub.map(({it,i})=>`
   <div class="card item">
    <div><div class="sn r-${it.rar}" style="font-size:13px;font-weight:600">${inGearSet(it)?'⭐ ':''}${itemName(it)}</div>
    <div class="ss" style="color:var(--dim);font-size:11px">${it.slot} · ${itemStr(it)}${equipCompare(it)}</div></div>
@@ -5549,7 +5607,10 @@ function renderBag(){
      ?'<span class="ss" style="color:#c9a05a;align-self:center">⭐ Saved in a gear set</span>'
      :`<button class="sbtn" data-sell="${i}">Sell ${(it.sell||0).toLocaleString()}◉</button>
        <button class="sbtn scrapb" data-scr="${i}">Scrap +${scrapVal(it)}⚙</button>`}
-   </div></div>`).join('')+'</div>';
+   </div></div>`).join('');
+   });
+   gearHtml+='</div>';
+  }
  });
  $('bagList').innerHTML=gearHtml;
  document.querySelectorAll('[data-grar]').forEach(h=>h.onclick=()=>{
