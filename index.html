@@ -286,6 +286,29 @@
    <button id="cryptIntroOk" style="width:100%;padding:12px;border-radius:10px;border:1px solid #8a6a34;background:linear-gradient(180deg,#f0c968,#c99a3e);color:#2a1c0c;font-family:var(--display);font-weight:800;font-size:15px;letter-spacing:.06em;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.4)">OK</button>
   </div>
 
+  <div id="gateMsg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:60;display:none;padding:24px 32px;border-radius:14px;border:1px solid rgba(90,255,138,.5);background:#0e1a12;text-align:center;max-width:400px;box-shadow:0 10px 40px rgba(0,0,0,.7)">
+   <div style="font-family:var(--display);font-size:20px;color:#5aff8a;margin-bottom:10px">⛧ THE GATE</div>
+   <div class="ss" style="color:var(--parch);font-size:15px;line-height:1.55;margin-bottom:16px">Come back at <b style="color:#5aff8a">Prestige 50</b>, level <b style="color:#5aff8a">60</b>.</div>
+   <button id="gateMsgOk" style="width:100%;padding:12px;border-radius:10px;border:1px solid #2a7a4a;background:linear-gradient(180deg,#59d98a,#2f9a55);color:#08130c;font-family:var(--display);font-weight:800;font-size:15px;letter-spacing:.06em;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.4)">OK</button>
+  </div>
+
+  <div id="ritualBox" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:60;display:none;padding:24px 32px;border-radius:14px;border:1px solid rgba(154,200,255,.55);background:#10131f;text-align:center;max-width:420px;box-shadow:0 10px 44px rgba(0,0,0,.75)">
+   <div style="font-family:var(--display);font-size:21px;color:#bcd8ff;margin-bottom:10px">⛧ THE ALTAR</div>
+   <div class="ss" style="color:var(--parch);font-size:14.5px;line-height:1.6;margin-bottom:16px">The ring hums beneath your feet. <b style="color:#bcd8ff">The Knife</b> trembles in your hand — it knows why you came.</div>
+   <button id="ritualBegin" style="width:100%;padding:13px;border-radius:10px;border:1px solid #3a5a8a;background:linear-gradient(180deg,#2a3a5f,#141c33);color:#bcd8ff;font-family:var(--display);font-weight:800;font-size:16px;letter-spacing:.08em;cursor:pointer;box-shadow:0 0 18px rgba(154,200,255,.25)">🗡 BEGIN THE RITUAL</button>
+  </div>
+
+  <div id="ritualFx" style="position:absolute;inset:0;z-index:95;display:none;background:#000;opacity:0;pointer-events:all"></div>
+
+  <div id="ritualDoneFx" style="position:absolute;inset:0;z-index:96;display:none;align-items:center;justify-content:center;background:rgba(3,6,12,.9)">
+   <div class="casinobox" style="border-color:#7fd7ff;max-width:440px;text-align:center">
+    <div class="slottop" style="color:#7fd7ff;margin-bottom:8px">⛧ THE RITUAL IS COMPLETE</div>
+    <div class="ss" style="color:var(--parch);font-size:14.5px;line-height:1.65;margin-bottom:12px">You have just sacrificed your life for the cursed armor.</div>
+    <div style="font-family:var(--display);font-size:22px;color:#7fd7ff;text-shadow:0 0 14px rgba(127,215,255,.6);margin-bottom:14px">🧊 ICE ARMOR<br><span style="font-size:12px;color:#ffd100;letter-spacing:2px">LEGENDARY</span></div>
+    <button class="sbtn gold" id="ritualDoneOk" style="width:100%;padding:12px">Take it</button>
+   </div>
+  </div>
+
   <div id="altarMsg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:60;display:none;padding:24px 32px;border-radius:14px;border:1px solid rgba(210,175,130,.6);background:#221610;text-align:center;max-width:400px;box-shadow:0 10px 40px rgba(0,0,0,.6)">
    <div style="font-family:var(--display);font-size:20px;color:#bcd8ff;margin-bottom:10px">⛧ The Altar stirs…</div>
    <div class="ss" style="color:var(--parch);font-size:15px;line-height:1.55;margin-bottom:16px">Come back when you are <b style="color:var(--brass)">Prestige 40</b> with <b style="color:var(--brass)">3000 rating</b>.</div>

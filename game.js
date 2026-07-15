@@ -16,7 +16,8 @@ const CHAR_SPRITES={ /* all 16 male race+class combos have art in assets/charact
  humanmale_warrior:1,humanmale_mage:1,humanmale_hunter:1,humanmale_priest:1,
  dwarfmale_warrior:1,dwarfmale_mage:1,dwarfmale_hunter:1,dwarfmale_priest:1,
  orcmale_warrior:1,orcmale_mage:1,orcmale_hunter:1,orcmale_priest:1,
- undeadmale_warrior:1,undeadmale_mage:1,undeadmale_hunter:1,undeadmale_priest:1}; /* the combos that have art in assets/characters */
+ undeadmale_warrior:1,undeadmale_mage:1,undeadmale_hunter:1,undeadmale_priest:1,
+ humanmale_armor:1,dwarfmale_armor:1,orcmale_armor:1,undeadmale_armor:1}; /* the combos that have art in assets/characters — _armor = 🧊 Ice Armor skins */
 const charSpriteCache={};
 function charSprite(raceId,clsId,female){
  const key=raceId+(female?'female':'male')+'_'+clsId;
@@ -776,7 +777,7 @@ const $=id=>document.getElementById(id);
 const dispName=ch=>(ch.name||'?')+((ch.rating||0)>0?' ('+(ch.rating||0)+')':'');
 const raceOf=()=>RACES.find(r=>r.id===S.race);
 const classOf=()=>CLASSES.find(c=>c.id===S.cls);
-const gearSum=k=>{if(isFM(S.gear.weapon))syncFrostmourne(S.gear.weapon);if(isWG(S.gear.weapon))syncWarglaives(S.gear.weapon);if(isRing(S.gear.trinket))syncOneRing(S.gear.trinket);let t=0;for(const sl in S.gear){const g=S.gear[sl];if(g&&g[k])t+=g[k]}return t};
+const gearSum=k=>{if(isFM(S.gear.weapon))syncFrostmourne(S.gear.weapon);if(isWG(S.gear.weapon))syncWarglaives(S.gear.weapon);if(isRing(S.gear.trinket))syncOneRing(S.gear.trinket);if(isIce(S.gear.armor))syncIceArmor(S.gear.armor);let t=0;for(const sl in S.gear){const g=S.gear[sl];if(g&&g[k])t+=g[k]}return t};
 /* two Active Scroll slots — same scroll type cannot stack */
 /* fused scrolls (forged with 🔗 connectors) carry a second enchant in id2/tier2 —
    every effect lookup below honours both halves; same-id effects never stack (first hit wins) */
@@ -808,7 +809,7 @@ function consumeScrolls(id,tier,n){
  return fromSlot;
 }
 
-const gearScore=()=>{if(isFM(S.gear.weapon))syncFrostmourne(S.gear.weapon);if(isWG(S.gear.weapon))syncWarglaives(S.gear.weapon);if(isRing(S.gear.trinket))syncOneRing(S.gear.trinket);return Math.round(Object.values(S.gear).reduce((t,g)=>t+(g?g.power:0),0));};
+const gearScore=()=>{if(isFM(S.gear.weapon))syncFrostmourne(S.gear.weapon);if(isWG(S.gear.weapon))syncWarglaives(S.gear.weapon);if(isRing(S.gear.trinket))syncOneRing(S.gear.trinket);if(isIce(S.gear.armor))syncIceArmor(S.gear.armor);return Math.round(Object.values(S.gear).reduce((t,g)=>t+(g?g.power:0),0));};
 /* Prestige has no cap — but it only unlocks at max level once every boss is dead. */
 const allBossesDead=()=>ZONES.every((z,i)=>z.special||!z.boss||!!S.bossDead[i]);
 /* true when every boss zone before index i has had its boss slain */
@@ -838,7 +839,7 @@ const potCost=k=>20;
 const POT_CAP=250; /* max potions of each kind you can carry */
 const heroMax=()=>Math.round((classOf().hp+S.lvl*14+gearSum('hp'))*(raceOf().hp||1));
 const manaMax=()=>Math.round(classOf().mana+S.lvl*5);
-const heroAtk=()=>Math.round((classOf().atk+S.lvl*2.6+gearSum('atk'))*(1+scrollPct('titan'))*(1+((activePet()||{}).atkMul||0)));
+const heroAtk=()=>Math.round((classOf().atk+S.lvl*2.6+gearSum('atk'))*(1+scrollPct('titan'))*(1+((activePet()||{}).atkMul||0))*(1+gearSum('dmgMul')));
 const fmBonus=()=>{const w=S&&S.gear?S.gear.weapon:null;return (isFM(w)&&fmStar(w)>1)?fmStar(w)*2:0;};
 const wgCrit=()=>{const w=S&&S.gear?S.gear.weapon:null;return isWG(w)&&!(w.crit)?3:0;}; /* fallback only; synced glaives already carry +3% crit in gearSum */
 const heroCrit=()=>classOf().crit+(raceOf().crit||0)+gearSum('crit')+fmBonus()+wgCrit()+((S&&S.gamblerT>0)?2:0);
@@ -918,6 +919,7 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.connectors===undefined)s.connectors=0; /* 🔗 crypt connectors — fuse two T-IV scrolls at the smith */
  if(s.knifeAwarded===undefined)s.knifeAwarded=false;
  if(s.theKnife===undefined)s.theKnife=false;
+ if(s.ritualDone===undefined)s.ritualDone=false; /* ⛧ the altar accepts one life per hero */
  if(!s.knifeAwarded&&(s.rating||0)>=3000){s.knifeAwarded=true;s.theKnife=true;} /* already past 3000 — the knife finds them */
  if(s.gearSets===undefined){s.gearSets=[null,null];s.gearSetSel=-1;} /* two swappable loadouts */
  (s.gearSets||[]).forEach((gs,gi)=>{ /* v1 sets held raw items or a worn flag — convert to v2 (gsid refs) */
@@ -1023,7 +1025,19 @@ const GEAR_MAX_UP=12;      /* normal gear cap; Frostmourne uses FM_MAX_UP */
 const isFM=it=>it&&it.legend==='frostmourne';
 const isWG=it=>it&&(it.legend==='warglaives'||it.id==='warglaives'||it.warglaives===true); /* supports old/equipped objects marked warglaives:true */
 const isRing=it=>it&&it.legend==='onering';
-const isLegendaryW=it=>isFM(it)||isWG(it)||isRing(it);
+const isIce=it=>it&&it.legend==='icearmor';
+function syncIceArmor(it){
+ if(!isIce(it)||!S)return it;
+ it.slot='armor';it.rar='legendary';it.name='Ice Armor';
+ it.up=Math.min(it.up||0,FM_MAX_UP);it.maxUp=FM_MAX_UP;
+ it.haste=0.10;it.dmgMul=0.10; /* +10% atk speed · +10% damage — always */
+ if(it.baseHp===undefined)it.baseHp=it.hp||0;
+ calcPower(it);
+ if(it.basePower===undefined)it.basePower=Math.round((it.baseHp||0)*0.6);
+ it.sell=0;
+ return it;
+}
+const isLegendaryW=it=>isFM(it)||isWG(it)||isRing(it)||isIce(it);
 /* --- The One Ring: legendary trinket forged from Recipe + Broken Ring at smith lvl 10 --- */
 function syncOneRing(it){
  if(!isRing(it)||!S)return it;
@@ -1169,12 +1183,14 @@ function itemStr(it){
  if(isFM(it))syncFrostmourne(it);
  else if(isWG(it))syncWarglaives(it);
  else if(isRing(it))syncOneRing(it);
+ else if(isIce(it))syncIceArmor(it);
  else ensureItemBase(it);
  if(isWG(it))syncWarglaives(it);
  const cap=isLegendaryW(it)?FM_MAX_UP:GEAR_MAX_UP;
  const maxed=(it.up||0)>=cap;
  let s=`${it.up?'+'+it.up+(maxed?' MAX ✦':'')+' · ':''}${statBaseStr(it,'atk','ATK')} ${statBaseStr(it,'hp','HP')} ${statBaseStr(it,'crit','CRIT','%')}`;
  if(it.haste)s+=` +${Math.round(it.haste*100)}% ATK SPEED`;
+ if(it.dmgMul)s+=` +${Math.round(it.dmgMul*100)}% DAMAGE`;
  if(it.lifesteal)s+=` +${Math.round(it.lifesteal*1000)/10}% LIFESTEAL`;
  if(isFM(it)&&fmStar(it)>1)s+=` · ★${fmStar(it)} bonus: +${fmStar(it)*2}% CRIT / +${fmStar(it)*2}% LIFESTEAL`;
  if(it.bossDmg)s+=` · +${it.bossDmg}% BOSS DMG`;
@@ -1184,7 +1200,7 @@ function itemStr(it){
 /* compact stat line for the currently equipped item, for bag comparison */
 function shortStats(it){
  if(!it)return '—';
- if(isFM(it))syncFrostmourne(it);else if(isWG(it))syncWarglaives(it);else if(isRing(it))syncOneRing(it);else ensureItemBase(it);
+ if(isFM(it))syncFrostmourne(it);else if(isWG(it))syncWarglaives(it);else if(isRing(it))syncOneRing(it);else if(isIce(it))syncIceArmor(it);else ensureItemBase(it);
  const parts=[];
  const baseAtk=Math.round(it.baseAtk||it.atk||0);
  const baseHp=Math.round(it.baseHp||it.hp||0);
@@ -1614,6 +1630,65 @@ $('fishhutClose').onclick=()=>$('fishhutMenu').style.display='none';
 let altarMsgSeen=false;
 $('altarMsgOk').onclick=()=>{$('altarMsg').style.display='none';};
 $('cryptIntroOk').onclick=()=>{$('cryptIntro').style.display='none';S.cryptIntroSeen=true;save();};
+/* ==================== THE RITUAL ====================
+   Blackout ~3s, then the screen blinks three times like a waking eye,
+   then the reveal: a life traded for the cursed Ice Armor. */
+let ritualSeen=false,ritualActive=false,gateMsgSeen=false;
+$('gateMsgOk').onclick=()=>{$('gateMsg').style.display='none';};
+$('ritualBegin').onclick=()=>{
+ if(ritualActive||S.ritualDone)return;
+ if(!(S.theKnife&&(S.prestige||0)>=40&&(S.rating||0)>=3000))return;
+ ritualActive=true;
+ $('ritualBox').style.display='none';
+ gamePaused=true;
+ hero.moveTo=null;hero.target=null;
+ const fx=$('ritualFx');
+ fx.style.display='block';
+ fx.style.transition='none';fx.style.opacity='0';
+ requestAnimationFrame(()=>{fx.style.transition='opacity .8s';fx.style.opacity='1';}); /* the eyes close */
+ blip(70,40,1.2,.12,'sine'); /* a heartbeat in the dark */
+ setTimeout(()=>blip(60,35,1.4,.12,'sine'),1500);
+ setTimeout(()=>blip(52,30,1.6,.10,'sine'),2900);
+ const t=[
+  [3800,()=>{fx.style.transition='opacity .22s';fx.style.opacity='0';}], /* blink 1 */
+  [4120,()=>{fx.style.opacity='1';}],
+  [4440,()=>{fx.style.opacity='0';}],                                    /* blink 2 */
+  [4820,()=>{fx.style.opacity='1';}],
+  [5180,()=>{fx.style.transition='opacity .4s';fx.style.opacity='0';}],  /* blink 3 — awake */
+ ];
+ t.forEach(([ms,fn])=>setTimeout(fn,ms));
+ setTimeout(()=>{
+  fx.style.display='none';
+  /* the deed is done */
+  S.theKnife=false;
+  S.ritualDone=true;
+  const zi=Math.max(S.zone,S.maxZone||0);
+  const z=(1+zi*0.9+S.lvl*0.18)*(1+(S.prestige||0)*0.25);
+  const it={slot:'armor',rar:'legendary',legend:'icearmor',name:'Ice Armor',
+   atk:0,hp:Math.round(24*3.6*z*1.1),crit:0,haste:0.10,dmgMul:0.10,ench:null,up:0,maxUp:FM_MAX_UP,sell:0}; /* +10% dmg · +10% atk speed · +6 upgrades like the other legendaries */
+  it.baseHp=it.hp;it.baseAtk=0;it.baseCrit=0;
+  calcPower(it);it.basePower=Math.round(it.power);
+  ritualArmor=it; /* handed over — and equipped — on "Take it" */
+  save();renderHUD();
+  $('ritualDoneFx').style.display='flex';
+  sfx.level();
+  log('<span class="llegendary">🧊 Ice Armor</span> — bought with a life. <i>The Altar is satisfied.</i>','loot');
+ },5800);
+};
+let ritualArmor=null;
+$('ritualDoneOk').onclick=()=>{
+ $('ritualDoneFx').style.display='none';
+ gamePaused=false;
+ ritualActive=false;
+ if(ritualArmor){ /* straight onto your shoulders — the old armor steps aside */
+  if(S.gear.armor)S.bag.push(S.gear.armor);
+  S.gear.armor=ritualArmor;
+  ritualArmor=null;
+  if(hero)hero.hp=Math.min(hero.hp,heroMax());
+  stageMsg('🧊 The Ice Armor grips your body — it will never let go.',3000);
+  save();renderBag();renderHero();renderHUD();
+ }
+};
 $('sharkOk').onclick=()=>{$('sharkFx').style.display='none';gamePaused=false;};
 function startFishing(){
  if(fish.on||!nearLake())return;
@@ -1841,7 +1916,7 @@ function buildZone(){
   world.solids.push({x:cx+710,y:cy+560,r:52,type:'house',big:true,seed:1,crx:240,cry:64,cyo:-208});
   /* the Casino — doubled-up landmark beside the north road; highest spot where the
      full sprite still fits under the map's top edge without covering the inn */
-  world.solids.push({x:cx+360,y:cy-120,r:52,type:'casino',big:true,seed:5,crx:172,cry:80,cyo:-140});
+  world.solids.push({x:cx+360,y:cy-270,r:52,type:'casino',big:true,seed:5,crx:172,cry:80,cyo:-140});
   /* the Bank — painted model on the north-west grass, by the road stub */
   world.solids.push({x:cx-720,y:cy-440,r:52,type:'bank',big:true,seed:8,crx:138,cry:50,cyo:-79});
   /* the Blacksmith — painted model at the south-west road stub */
@@ -1896,6 +1971,7 @@ function buildZone(){
   if(z.altar){
    /* the way home — standing on the walkway just ahead of the spawn */
    world.solids.push({x:110,y:995,r:38,type:'altarportal'}); /* far left on the walkway */
+   if(S.ritualDone)world.solids.push({x:1996,y:1000,r:52,type:'ritualportal'}); /* ⛧ the reward for a life: a door, not yet open */
    world.spawn={x:430,y:990}; /* arrive a few steps onto the bridge */
    world.portal={x:-500,y:-500}; /* hide the default zone-exit swirl — the portal is the exit */
   }
@@ -2204,7 +2280,7 @@ function collide(e,nx,ny){
  if((!e.boss||e.raid)&&!e.cow){
   for(const s of world.solids){
    if(s.type==='gate'&&!(world.raidRooms&&world.raidRooms[s.room]&&world.raidRooms[s.room].sealed))continue;
-   if(s.type==='altarportal')continue; /* walk straight through the portal */
+   if(s.type==='altarportal'||s.type==='ritualportal')continue; /* walk straight through the portals */
    if(s.crx){ /* wide painted buildings block with an ellipse matching their footprint (cyo shifts it up onto the walls) */
     const kx=(nx-s.x)/(s.crx+e.r),ky=(ny-s.y-(s.cyo||0))/(s.cry+e.r);
     if(kx*kx+ky*ky<1)return true;
@@ -3323,7 +3399,18 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    const dRing=Math.hypot(hero.x-1996,hero.y-1000);
    if(dRing<700&&!altarMsgSeen&&!((S.prestige||0)>=40&&(S.rating||0)>=3000)){$('altarMsg').style.display='block';altarMsgSeen=true;}
    if(dRing>760&&altarMsgSeen){$('altarMsg').style.display='none';altarMsgSeen=false;}
-  }else if(altarMsgSeen){$('altarMsg').style.display='none';altarMsgSeen=false;}
+   /* the green gate: stand inside it and it whispers its demand */
+   const rp=world.solids.find(s2=>s2.type==='ritualportal');
+   if(rp){
+    const dGate=Math.hypot(hero.x-rp.x,hero.y-(rp.y-30));
+    if(dGate<55&&!gateMsgSeen){$('gateMsg').style.display='block';gateMsgSeen=true;}
+    if(dGate>85&&gateMsgSeen){$('gateMsg').style.display='none';gateMsgSeen=false;}
+   }
+   /* the worthy — P40, 3000 rating, knife in hand — are offered the ritual */
+   const ritualReady=S.theKnife&&!S.ritualDone&&(S.prestige||0)>=40&&(S.rating||0)>=3000;
+   if(dRing<700&&ritualReady&&!ritualSeen&&!ritualActive){$('ritualBox').style.display='block';ritualSeen=true;}
+   if(dRing>760&&ritualSeen&&!ritualActive){$('ritualBox').style.display='none';ritualSeen=false;}
+  }else if(altarMsgSeen||ritualSeen||gateMsgSeen){$('altarMsg').style.display='none';altarMsgSeen=false;$('gateMsg').style.display='none';gateMsgSeen=false;if(!ritualActive){$('ritualBox').style.display='none';ritualSeen=false;}}
   /* --- fishing: button near the lake, casts 4–10s, stops the moment you move away --- */
   {
    const nl=nearLake(),fb=$('fishBtn');
@@ -4048,6 +4135,18 @@ function drawProp(s,z){
   ctx.font='700 12px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(lbl,1,-95);
   ctx.fillStyle='#bcd8ff';ctx.fillText(lbl,0,-96);
+ }else if(s.type==='ritualportal'){
+  const t=performance.now()/650+s.x;
+  ctx.save();
+  ctx.shadowColor='#5aff8a';ctx.shadowBlur=22;
+  ctx.strokeStyle='rgba(90,255,138,'+(0.6+0.3*Math.sin(t*2)).toFixed(3)+')';ctx.lineWidth=7;
+  ctx.beginPath();ctx.ellipse(0,-52,46,74,0,0,7);ctx.stroke();
+  ctx.fillStyle='rgba(70,220,120,0.30)';
+  ctx.beginPath();ctx.ellipse(0,-52,37,62,0,0,7);ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.fillStyle='rgba(200,255,215,0.9)';
+  for(let i=0;i<6;i++){const a=t+i*1.047;ctx.beginPath();ctx.arc(Math.cos(a)*29,-52+Math.sin(a)*50,3,0,7);ctx.fill();}
+  ctx.restore();
  }else if(s.type==='altarfence'){
   if(altarFenceImg.complete&&altarFenceImg.naturalWidth){
    const W=200,H=W*altarFenceImg.naturalHeight/altarFenceImg.naturalWidth;
@@ -4214,7 +4313,7 @@ function drawHourglassBody(g,cx,cy,by,c2,c1,w){
  g.fillStyle=c2;shape(0);
  g.fillStyle=c1;shape(1.8);
 }
-function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painted){
+function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painted,iceArm){
  raceId=RACE_ALIAS[raceId]||raceId; /* peers/leaderboard entries may still send legacy ids */
  clsId=CLASS_ALIAS[clsId]||clsId;
  const r=RACES.find(x=>x.id===raceId);
@@ -4239,13 +4338,15 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   }
   g.restore();
  }
- const rImg=painted?charSprite(raceId,clsId,female):null; /* painted sprites are for the local hero only */
+ const armored=painted&&!female&&!!iceArm; /* 🧊 Ice Armor reskin — only when THIS character wears it (male art only for now) */
+ const eCls=armored?'armor':clsId;
+ const rImg=painted?charSprite(raceId,eCls,female):null; /* painted sprites are for the local hero only */
  if(rImg&&rImg.complete&&rImg.naturalWidth){
   /* painted character — mirrored when facing left, bobbing + rocking while running */
   g.save();
   if(sgn>0)g.scale(-1,1); /* art faces left natively — mirror when running right */
   g.rotate(by*0.025);
-  const run=painted===2?CHAR_RUN[raceId+(female?'female':'male')+'_'+clsId]:null;
+  const run=painted===2?CHAR_RUN[raceId+(female?'female':'male')+'_'+eCls]:null;
   if(run&&run.img.complete&&run.img.naturalWidth){
    /* animated run cycle from the sprite sheet */
    const fr=Math.floor(performance.now()/1000*run.fps)%run.n;
@@ -4456,7 +4557,7 @@ function drawHero(){
  if(h.buff.haste&&h.buff.haste.t>0){ctx.strokeStyle='rgba(200,240,255,0.5)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,6+gY,18,8,0,0,7);ctx.stroke();}
  if(dancing)ctx.rotate(Math.sin(h.dance*6)*0.25);
  if((charSprite(S.race,c.id,S.gender==='f')||{}).naturalWidth)bootFeet(h);else feet(h,1);
- drawChampionSprite(ctx,S.race,c.id,fx,by,danceSwing,fish.on?false:isFM(S.gear.weapon),fish.on?'fishingrod':(isWG(S.gear.weapon)?'warglaives':(isFM(S.gear.weapon)?'frostmourne':null)),S.gender==='f',h.moving&&!h.dead?2:1);
+ drawChampionSprite(ctx,S.race,c.id,fx,by,danceSwing,fish.on?false:isFM(S.gear.weapon),fish.on?'fishingrod':(isWG(S.gear.weapon)?'warglaives':(isFM(S.gear.weapon)?'frostmourne':null)),S.gender==='f',h.moving&&!h.dead?2:1,isIce(S.gear.armor));
  if(h.hurt>0){ctx.fillStyle='rgba(255,255,255,'+h.hurt*2.5+')';ctx.beginPath();ctx.arc(0,-8+by,11,0,7);ctx.fill();}
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;
  ctx.textAlign='center';
@@ -5373,7 +5474,7 @@ function renderBag(){
     </div></div>`;
   });
   if(fusedCards){ /* their own category, above the tiers */
-   if(scrollTierOpen.fused===undefined)scrollTierOpen.fused=true;
+   if(scrollTierOpen.fused===undefined)scrollTierOpen.fused=false;
    const fo=scrollTierOpen.fused,fn=(S.scrolls||[]).filter(x=>x&&x.id2).length;
    sh+=`<div class="tierhead" data-tt="fused" style="border-color:#8fe3c966">
      <span style="color:#8fe3c9">${fo?'▾':'▸'} 🔗 Fused Scrolls</span>
@@ -7664,7 +7765,7 @@ function drawPortrait(cnv,ch){
   g.fillStyle='rgba(0,0,0,0.3)';g.beginPath();g.ellipse(0,19,13,5,0,0,7);g.fill();
   if(sc){g.strokeStyle=sc.glow;g.globalAlpha=0.55;g.lineWidth=1;g.beginPath();g.ellipse(0,18,15,6,0,0,7);g.stroke();g.globalAlpha=1;}
   bootFeet({moving:false,walk:0},g);
-  drawChampionSprite(g,ch.race,c.id,1,0,0,!!(ch.gear&&ch.gear.weapon&&ch.gear.weapon.legend==='frostmourne'),ch.gear&&ch.gear.weapon&&(ch.gear.weapon.id||ch.gear.weapon.legend),ch.gender==='f',1);
+  drawChampionSprite(g,ch.race,c.id,1,0,0,!!(ch.gear&&ch.gear.weapon&&ch.gear.weapon.legend==='frostmourne'),ch.gear&&ch.gear.weapon&&(ch.gear.weapon.id||ch.gear.weapon.legend),ch.gender==='f',1,!!(ch.gear&&ch.gear.armor&&ch.gear.armor.legend==='icearmor'));
   g.restore();
  }else{
  g.save();g.translate(W/2,H*0.72);g.scale(2.1,2.1);
