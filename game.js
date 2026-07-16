@@ -264,13 +264,51 @@ const ENCHS=[
 const enchOf=id=>ENCHS.find(e=>e.id===id);
 /* ==================== PETS ==================== */
 const PETS=[
- {id:'cat',n:'Puffen',g:'🐈',cc:'#e8b070',d:'+10% attack damage.',atkMul: 0.10},
+ {id:'cat',n:'Puffen',g:'🐈',cc:'#f2eee6',d:'+10% attack damage.',atkMul: 0.10}, /* a white cat */
  {id:'dog',n:'Ayla',g:'🐕',cc:'#a8bcb0',d:'Take 10% less damage.',armor: 0.10},
- {id:'shark',n:'MEG',g:'🦈',cc:'#7ab8e0',d:'+22% damage to bosses.',bossDmg: 0.22}, /* HAALAND recipe reward — never rolls from cases */
+ {id:'blackdog',n:'Nellie',g:'🦮',cc:'#4a4a52',d:'+10% attack speed.',haste: 0.10}, /* a black dog */
+ {id:'shark',n:'MEG',g:'🦈',cc:'#7ab8e0',d:'+20% damage to bosses.',bossDmg: 0.20}, /* HAALAND recipe reward — never rolls from cases */
 ];
 const petOf=id=>PETS.find(p=>p.id===id);
 const activePet=()=>S&&S.pet?petOf(S.pet):null;
 const PET_SELL=25000;
+/* emoji can't be recoloured — filters can: Puffen renders WHITE, Nellie BLACK */
+const PET_FILTER={cat:'grayscale(1) brightness(1.8) contrast(0.9)',blackdog:'grayscale(1) brightness(0.4)'};
+const petGlyph=p=>PET_FILTER[p.id]?`<span style="filter:${PET_FILTER[p.id]}">${p.g}</span>`:p.g;
+const petSpriteCache={};
+function petSprite(p){ /* every companion gets a solid outlined sprite — Puffen white, Nellie black, the rest keep their colours */
+ const T={cat:['#ffffff','#2a2118'],blackdog:['#16161c','#d8d8e0'],dog:[null,'#2a2118'],shark:[null,'#12222e']}[p.id];
+ if(!T)return null;
+ if(petSpriteCache[p.id])return petSpriteCache[p.id];
+ const c=document.createElement('canvas');c.width=c.height=72;
+ const g=c.getContext('2d');
+ g.font='52px sans-serif';g.textAlign='center';g.textBaseline='middle';
+ /* outline: a tinted silhouette stamped around the rim */
+ for(const [ox,oy] of [[-2,0],[2,0],[0,-2],[0,2],[-1,-1],[1,-1],[-1,1],[1,1]])g.fillText(p.g,36+ox,40+oy);
+ g.globalCompositeOperation='source-atop';
+ g.fillStyle=T[1];g.fillRect(0,0,72,72);
+ g.globalCompositeOperation='source-over';
+ /* the body: tinted separately on its own canvas, then stamped on top */
+ const c2=document.createElement('canvas');c2.width=c2.height=72;
+ const g2=c2.getContext('2d');
+ g2.font='52px sans-serif';g2.textAlign='center';g2.textBaseline='middle';
+ g2.fillText(p.g,36,40);
+ if(T[0]){ /* body tint — only the recoloured companions */
+  g2.globalCompositeOperation='source-atop';
+  g2.fillStyle=T[0];g2.globalAlpha=0.9;g2.fillRect(0,0,72,72);
+ }
+ g.globalCompositeOperation='source-over';
+ g.drawImage(c2,0,0);
+ return petSpriteCache[p.id]=c;
+}
+function petGlyphCanvas(g2,p,x,y){
+ g2.save();
+ g2.globalAlpha*=0.5; /* companions are half-ghosts — visible but never in the way */
+ const sp=petSprite(p);
+ if(sp){const S2=22;g2.drawImage(sp,x-S2/2,y-S2*0.78,S2,S2);}
+ else g2.fillText(p.g,x,y);
+ g2.restore();
+}
 const TIER4_SCROLL_SELL=20000;
 const tierVal=(id,t)=>enchOf(id).base*Math.pow(2,(t||1)-1);
 const tierDesc=(id,t)=>enchOf(id).d(parseFloat(tierVal(id,t).toFixed(2)));
@@ -686,7 +724,7 @@ function drawHeroLike(x,y,look,alpha,anim,name,hp){
  if(dancing)ctx.rotate(Math.sin(phase*6)*0.25);
  feet({walk:phase*1.8},(moving||dancing)?1:0.15);
  drawChampionSprite(ctx,race,cls,fx,by,swing,!!look.fm||look.w==='frostmourne',look.w,!!look.fem);
- if(look.pet){ctx.font='13px sans-serif';ctx.textAlign='center';ctx.fillText(look.pet==='dog'?'🐕':look.pet==='cat'?'🐈':look.pet==='shark'?'🦈':'🐾',-18,10);}
+ if(look.pet){ctx.font='13px sans-serif';ctx.textAlign='center';const pp=petOf(look.pet);if(pp)petGlyphCanvas(ctx,pp,-18,10);else ctx.fillText('🐾',-18,10);}
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
  /* peer nametag higher so weapons/Frostmourne do not collide */
  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(name||'Hero',1,-44+by+1);ctx.fillStyle='#dff4ff';ctx.fillText(name||'Hero',0,-44+by);
@@ -2446,7 +2484,7 @@ function bloodAt(x,y,n){
   
 /* ==================== COMBAT ==================== */
 function atkMul(){return hero.buff.atk&&hero.buff.atk.t>0?hero.buff.atk.mul:1;}
-function hasteMul(){return (hero.buff.haste&&hero.buff.haste.t>0?hero.buff.haste.mul:1)*swiftMul()*hasteBoostMul()*(1+gearSum('haste'));}
+function hasteMul(){return (hero.buff.haste&&hero.buff.haste.t>0?hero.buff.haste.mul:1)*swiftMul()*hasteBoostMul()*(1+gearSum('haste'))*(1+((activePet()||{}).haste||0));}
 function healHero(amt,silent){
  if(hero.dead)return;
  amt=Math.round(amt);if(amt<=0)return;
@@ -4127,7 +4165,7 @@ function mip(img,W){
    (zoom × DPR), cached per 4px bucket — the canvas then maps it 1:1, razor sharp. */
 function crisp(img,W){
  if(!img.naturalWidth)return img;
- const dev=Math.max(8,Math.round(W*(zoom||1)*(DPR||1)/4)*4);
+ const dev=Math.max(8,Math.ceil(W*(zoom||1)*(DPR||1)/2)*2); /* ceil: the source is never smaller than the screen — upscaling is what blurs */
  const store=img._crisp||(img._crisp={});
  if(store[dev])return store[dev];
  let src=img,sw=img.naturalWidth,sh=img.naturalHeight;
@@ -4684,7 +4722,7 @@ function drawPet(){
  ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,5,8,3.5,0,0,7);ctx.fill();
  ctx.font='16px sans-serif';ctx.textAlign='center';
  ctx.save();if(pet.fx<0)ctx.scale(-1,1);
- ctx.fillText(p.g,0,by-2);
+ petGlyphCanvas(ctx,p,0,by-2);
  ctx.restore();
  if(Math.random()<0.008)floatAt(pet.x,pet.y-16,p.id==='cat'?'mjau':p.id==='shark'?'blub':'voff','#ffd76a');
  ctx.restore();
@@ -5784,7 +5822,7 @@ function renderBag(){
    Object.entries(counts).map(([id,n])=>{
     const p=petOf(id),act=S.pet===id;
     return `<div class="card item" style="border-color:${p.cc}55"><div>
-     <div class="sn" style="color:${p.cc};font-size:13px;font-weight:600">${p.g} ${p.n}${n>1?` <span style="color:var(--dim)">×${n}</span>`:''}</div>
+     <div class="sn" style="color:${p.cc};font-size:13px;font-weight:600">${petGlyph(p)} ${p.n}${n>1?` <span style="color:var(--dim)">×${n}</span>`:''}</div>
      <div class="ss" style="color:var(--dim);font-size:11px">${p.d}</div></div>
      <div class="btns">
       <button class="sbtn gold" data-peteq="${id}" ${act?'disabled':''}>${act?'Equipped':'Equip'}</button>
@@ -5798,7 +5836,7 @@ function renderBag(){
    if(S.pet)S.pets.push(S.pet);
    S.pet=id;
    const p=petOf(id);
-   log(`${p.g} <span class="imp">${p.n}</span> joins your side.`);sfx.quest();
+   log(`${petGlyph(p)} <span class="imp">${p.n}</span> joins your side.`);sfx.quest();
    if(pet&&hero){pet.x=hero.x-24;pet.y=hero.y+12;}
    renderBag();renderHero();renderHUD();save();
   });
@@ -5808,7 +5846,7 @@ function renderBag(){
    S.pets.splice(i,1);
    S.gold=Math.min(goldCap(),S.gold+PET_SELL);
    sfx.loot();
-   log(`Sold a ${petOf(id).g} companion — +${PET_SELL.toLocaleString()} ◉. Heartless.`,'loot');
+   log(`Sold a ${petGlyph(petOf(id))} companion — +${PET_SELL.toLocaleString()} ◉. Heartless.`,'loot');
    renderBag();renderHUD();save();
   });
  }
@@ -6026,7 +6064,10 @@ function fillerCard(){
  if(curCase==='gold'){
   const rr=Math.random();
   if(rr<0.02)return {icon:'🗡️',cc:'#ffd100',t:'legendary'};
-  if(rr<0.045)return {icon:Math.random()<0.5?'🐕':'🐈',cc:'#e8b070',t:'pet'};
+  if(rr<0.045){ /* tease all three companions on the reel */
+   const tp=petOf(['cat','dog','blackdog'][Math.floor(Math.random()*3)]);
+   return {icon:petGlyph(tp),cc:tp.cc,t:'pet'};
+  }
  }
  const pool=curCase==='gold'?CASE_RARS_GOLD:CASE_RARS;
  const r=Math.random();
@@ -6043,11 +6084,12 @@ function prizeValue(type){
    if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
    return {icon:'🗡️',tier:'LEGENDARY',name:itemName(it),color:'#ffd100',sub:'weapon · '+itemStr(it),epic:true,big:true};
   }
-  if(r<0.005){ /* 0.002–0.005 = 0.3% pet, 50-50 cat or dog */
-   const p=PETS[Math.floor(Math.random()*2)];
+  if(r<0.005){ /* 0.002–0.005 = 0.3% pet — Puffen, Ayla or Nellie, 33% each */
+   const ids=['cat','dog','blackdog'];
+   const p=petOf(ids[Math.floor(Math.random()*3)]);
    S.pets.push(p.id);
-   log(`GOLD GOLD GOLD: ${p.g} <span class="llegendary">${p.n}</span>!`,'loot');
-   return {icon:p.g,tier:'PET',name:p.n,color:p.cc,sub:p.d+' Equip it from the Bag.',epic:true,big:true};
+   log(`GOLD GOLD GOLD: ${petGlyph(p)} <span class="llegendary">${p.n}</span>!`,'loot');
+   return {icon:petGlyph(p),tier:'PET',name:p.n,color:p.cc,sub:p.d+' Equip it from the Bag.',epic:true,big:true};
   }
   if(r<0.064){
    const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
@@ -7896,7 +7938,7 @@ function renderInspect(e){
  const pt=e.pet?petOf(e.pet):null;
  const petHtml=`<div class="slot" style="border-color:${pt?pt.cc+'66':'var(--line)'}">
   <div class="ss" style="text-transform:uppercase;letter-spacing:1px">Pet</div>
-  ${pt?`<div class="sn" style="color:${pt.cc}">${pt.g} ${esc(pt.n)}</div><div class="ss">${esc(pt.d)}</div>`:'<div class="ss">— no companion —</div>'}
+  ${pt?`<div class="sn" style="color:${pt.cc}">${petGlyph(pt)} ${esc(pt.n)}</div><div class="ss">${esc(pt.d)}</div>`:'<div class="ss">— no companion —</div>'}
  </div>`;
  return `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
   <div class="statgrid" style="margin-bottom:8px">
