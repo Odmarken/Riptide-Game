@@ -59,6 +59,9 @@ const gorehuskImg=new Image();gorehuskImg.src='assets/boss/boss_levling4.png';
 const gorehuskFeetLImg=new Image();gorehuskFeetLImg.src='assets/boss/gorehusk_feet_l.png';
 const gorehuskFeetRImg=new Image();gorehuskFeetRImg.src='assets/boss/gorehusk_feet_r.png';
 const bossLvlWeaponImg=new Image();bossLvlWeaponImg.src='assets/boss/bosslevling_weapon.png';
+const mawImg=new Image();mawImg.src='assets/boss/boss_levling2.png';
+const mawFeetLImg=new Image();mawFeetLImg.src='assets/boss/maw_feet_l.png';
+const mawFeetRImg=new Image();mawFeetRImg.src='assets/boss/maw_feet_r.png';
 const fellordFeetImg=new Image();fellordFeetImg.src='assets/boss/fellord_feet.png';
 const firelordFeetImg=new Image();firelordFeetImg.src='assets/boss/firelord_feet.png';
 const frostlordFeetImg=new Image();frostlordFeetImg.src='assets/boss/frostlord_feet.png';
@@ -66,7 +69,8 @@ const RAID_SKINS={ /* lift = body bottom in radii · wy/wx = weapon grip */
  betrayer:{img:fellordImg,feet:fellordFeetImg,wpn:()=>raidSwordImg,glow:'#4dff6a',lift:-0.15,wy:-0.40,wx:0.26,size:4.5,fs:0.72,fh:0.95},
  firelord:{img:firelordImg,feet:firelordFeetImg,glow:'#ff4a1a',lift:-0.20,wy:-0.22,wx:0.26,ff:true,fs:0.85},
  frostking:{img:frostlordImg,feet:frostlordFeetImg,wpn:()=>raidSwordImg,glow:'#7fd0ff',lift:-0.18,wy:-0.31,wx:0.26,fs:0.72,fh:0.95,ox:-0.16},
- gorehusk:{img:gorehuskImg,feetL:gorehuskFeetLImg,feetR:gorehuskFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#7adf3a',lift:0.10,wy:-0.27,wx:0.44,size:7.5,fs:0.8,fh:1.12}};
+ gorehusk:{img:gorehuskImg,feetL:gorehuskFeetLImg,feetR:gorehuskFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#7adf3a',lift:0.10,wy:-0.27,wx:0.44,size:7.5,fs:0.8,fh:1.12},
+ maw:{img:mawImg,feetL:mawFeetLImg,feetR:mawFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#5bc8ff',lift:0.58,wy:-0.19,wx:0.44,size:7.5,fs:1.05,fh:1.12}};
 const raidBladeCache={};
 function raidBlade(glow,img){ /* the lord's weapon soaked in his colour, cached per art+tint */
  img=img||cowWeaponImg;
