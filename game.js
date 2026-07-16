@@ -17,8 +17,14 @@ const CHAR_SPRITES={ /* all 16 male race+class combos have art in assets/charact
  dwarfmale_warrior:1,dwarfmale_mage:1,dwarfmale_hunter:1,dwarfmale_priest:1,
  orcmale_warrior:1,orcmale_mage:1,orcmale_hunter:1,orcmale_priest:1,
  undeadmale_warrior:1,undeadmale_mage:1,undeadmale_hunter:1,undeadmale_priest:1,
- humanmale_armor:1,dwarfmale_armor:1,orcmale_armor:1,undeadmale_armor:1, /* _armor = 🧊 Ice Armor skins */
- humanfemale_hunter:1,dwarffemale_hunter:1,orcfemale_hunter:1,undeadfemale_hunter:1}; /* female art so far — more combos light up as files land */
+ humanfemale_warrior:1,humanfemale_mage:1,humanfemale_hunter:1,humanfemale_priest:1,
+ dwarffemale_warrior:1,dwarffemale_mage:1,dwarffemale_hunter:1,dwarffemale_priest:1,
+ orcfemale_warrior:1,orcfemale_mage:1,orcfemale_hunter:1,orcfemale_priest:1,
+ undeadfemale_warrior:1,undeadfemale_mage:1,undeadfemale_hunter:1,undeadfemale_priest:1,
+ humanmale_armor:1,dwarfmale_armor:1,orcmale_armor:1,undeadmale_armor:1,
+ humanfemale_armor:1,dwarffemale_armor:1,orcfemale_armor:1,undeadfemale_armor:1}; /* _armor = 🧊 Ice Armor skins */
+const npcMaleImg=new Image();npcMaleImg.src='assets/characters/npc/npc_male.png';
+const npcFemaleImg=new Image();npcFemaleImg.src='assets/characters/npc/npc_female.png';
 const charSpriteCache={};
 function charSprite(raceId,clsId,female){
  const key=raceId+(female?'female':'male')+'_'+clsId;
@@ -43,6 +49,35 @@ const bowImg=new Image();bowImg.src='assets/weapons/bow.png';
 const maceImg=new Image();maceImg.src='assets/weapons/mace.png';
 const haalandImg=new Image();haalandImg.src='assets/boss/haaland_boss.png';
 const haalandAxeImg=new Image();haalandAxeImg.src='assets/boss/axe_boss.png';
+/* the three lords of the Black Temple — painted bodies + one shared blade, tinted per lord */
+const fellordImg=new Image();fellordImg.src='assets/boss/fellord_boss.png';
+const firelordImg=new Image();firelordImg.src='assets/boss/firelord_boss.png';
+const frostlordImg=new Image();frostlordImg.src='assets/boss/frostlord_boss.png';
+const cowWeaponImg=new Image();cowWeaponImg.src='assets/boss/cow_weapon.png';
+const raidSwordImg=new Image();raidSwordImg.src='assets/boss/raidboss_sword.png';
+const fellordFeetImg=new Image();fellordFeetImg.src='assets/boss/fellord_feet.png';
+const firelordFeetImg=new Image();firelordFeetImg.src='assets/boss/firelord_feet.png';
+const frostlordFeetImg=new Image();frostlordFeetImg.src='assets/boss/frostlord_feet.png';
+const RAID_SKINS={ /* lift = body bottom in radii · wy/wx = weapon grip */
+ betrayer:{img:fellordImg,feet:fellordFeetImg,wpn:()=>raidSwordImg,glow:'#4dff6a',lift:-0.15,wy:-0.40,wx:0.26,size:4.5,fs:0.72,fh:0.95},
+ firelord:{img:firelordImg,feet:firelordFeetImg,glow:'#ff4a1a',lift:-0.20,wy:-0.22,wx:0.26,ff:true,fs:0.85},
+ frostking:{img:frostlordImg,feet:frostlordFeetImg,wpn:()=>raidSwordImg,glow:'#7fd0ff',lift:-0.18,wy:-0.31,wx:0.26,fs:0.72,fh:0.95,ox:-0.16}};
+const raidBladeCache={};
+function raidBlade(glow,img){ /* the lord's weapon soaked in his colour, cached per art+tint */
+ img=img||cowWeaponImg;
+ const key=glow+':'+img.src;
+ if(raidBladeCache[key])return raidBladeCache[key];
+ if(!img.complete||!img.naturalWidth)return null;
+ const c=document.createElement('canvas');
+ c.width=512;c.height=Math.round(512*img.naturalHeight/img.naturalWidth);
+ const g=c.getContext('2d');
+ g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
+ g.drawImage(img,0,0,c.width,c.height);
+ g.globalCompositeOperation='source-atop';
+ g.fillStyle=glow;g.globalAlpha=0.42; /* soak the art in the tint */
+ g.fillRect(0,0,c.width,c.height);
+ return raidBladeCache[key]=c;
+}
 const ratbossImg=new Image();ratbossImg.src='assets/boss/rat_boss.png'; /* the crypt rat — art faces left */
 const ratFeetImg=new Image();ratFeetImg.src='assets/boss/rat_feet.png'; /* its clawed foot — points left */
 const oneringImg=new Image();oneringImg.src='assets/models/onering.png';
@@ -53,7 +88,7 @@ function bootFeet(e,g2){
  const g=g2||ctx;
  if(!(bootImg.complete&&bootImg.naturalWidth)){if(!g2)feet(e,1);return;}
  const o=e.moving?Math.sin(e.walk*2)*4:0;
- const W=12,H=W*bootImg.naturalHeight/bootImg.naturalWidth;
+ const W=e.fem?9.5:12,H=W*bootImg.naturalHeight/bootImg.naturalWidth; /* daintier boots on the ladies */
  g.drawImage(mip(bootImg,64),-5-W/2,12-H/2+o,W,H); /* left — full counter-swing */
  g.save();g.scale(-1,1);
  g.drawImage(mip(bootImg,64),-5-W/2,12-H/2-o,W,H); /* right = mirrored */
@@ -261,7 +296,7 @@ const ZONES=[
  {name:'Duskhollow Barrens',lvl:25,amb:'dry',map:'levlingzone_desert',noTrees:true,ground:'#8a7a5a',ground2:'#7e6f50',water:'#6a8a7a',tree:'#6a5a3a',tree2:'#544628',path:'#a08a5a',rocky:true,
   en:[['Dust Prowler','beast','#a08a5a'],['Barrens Marauder','humanoid','#8a5a3a'],['Carrion Screecher','beast','#7a6a7a']],
   q:[['Bones in the Dust','Hunt 10 prowlers circling the caravans.',10],['Marauder Toll','Break 12 marauders holding the dry road.',12],['Sky of Carrion','Bring down 14 screechers.',14]]},
- {name:'The Sunken Crypt',lvl:28,amb:'crypt',map:'levlingzone_boss',boss:['Ossric, King Below','#b0c0d0','ossric'],ground:'#3a3a46',ground2:'#33333e',water:'#2f3a4a',tree:'#33333e',tree2:'#262630',path:'#55556a',rocky:true},
+ {name:'The Sunken Crypt',lvl:28,amb:'cave',map:'levlingzone_boss',boss:['Ossric, King Below','#b0c0d0','ossric'],ground:'#3a3a46',ground2:'#33333e',water:'#2f3a4a',tree:'#33333e',tree2:'#262630',path:'#55556a',rocky:true},
  {name:'Frostspire Heights',lvl:30,amb:'frost',snowTrees:true,noBerg:true,map:'levlingzone_snow',ground:'#b8c4cc',ground2:'#a8b6c0',water:'#7fb0d0',tree:'#5a7a6a',tree2:'#44604f',path:'#cad4da',rocky:true,
   en:[['Frost Wolf','beast','#8fa8b8'],['Rime Shade','undead','#a0d0e0'],['Spire Raider','humanoid','#6a7a9a']],
   q:[['Wolves of the Spire','Hunt 10 frost wolves above the treeline.',10],['Shades of Rime','Banish 12 shades haunting the pass.',12],['The High Camp','Rout 14 raiders from the summit camp.',14]]},
@@ -745,9 +780,9 @@ function zoneTemplates(z){
   const RL=Math.max(effectiveHeroLvl(),10),rm=pMul();
   const mk=(name,id,c)=>({name,kind:'boss',boss:true,raid:true,bossId:id,c,speed:115,
    hp:Math.round(eHP(RL)*132*rm),atk:Math.round(eATK(RL)*0.67*rm),xp:0,gold:0}); /* raid lords: +20% hp over the playtested base */
-  return [mk('Illidan the Betrayer','betrayer','#7adf9a'),
-          mk('Ragnaros the Firelord','firelord','#ff7a2a'),
-          mk('Arthas the Frozen King','frostking','#a0e0ff')];
+  return [mk('Fel Lord','betrayer','#7adf9a'),
+          mk('Fire Lord','firelord','#ff7a2a'),
+          mk('Frost Lord','frostking','#a0e0ff')];
  }
  if(z.boss){
   const km=z.special?Math.pow(1.10,S.cerberusKills||0):1; /* HAALAND: +10% per kill, compounding */
@@ -755,7 +790,7 @@ function zoneTemplates(z){
   return [{name:z.boss[0],kind:'boss',boss:true,bossId:z.boss[2],c:z.boss[1],
    speed:80,   /* base speed; all bosses use normal boss speed rules in speedOf() */
    hp:Math.round(eHP(L)*hpMul*pm*km),atk:Math.round(eATK(L)*1.76*pm*km),
-   xp:Math.round(eHP(XL)*5*pr),gold:mobGold(z,8)}];
+   xp:z.special?Math.round(eHP(XL)*5*pr):0,gold:mobGold(z,8)}]; /* leveling bosses grant no xp — they were worth ~3 levels a kill */
  }
  /* regular foes: modestly tougher than before (+25% hp, +15% atk) */
  return z.en.map(([n,k,c],i)=>({name:n,kind:k,c,hp:Math.round(eHP(L)*(0.9+i*0.12)*1.25*pm),atk:Math.round(eATK(L)*(0.9+i*0.1)*1.15*pm),
@@ -1241,8 +1276,10 @@ const IS_TOUCH=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
 const ambVol=()=>(!S||S.sound)?(S?S.volAmb:0.5):0;
 const sfxVol=()=>(!S||S.sfx)?(S?S.volSfx:0.55):0;
 function applyVolumes(){
- if(AC.ambG)AC.ambG.gain.value=ambVol();
- if(AC.sfxG)AC.sfxG.gain.value=sfxVol();
+ /* iOS/WebKit often ignores direct .gain.value writes — setValueAtTime always lands */
+ const gt=AC.ctx?AC.ctx.currentTime:0;
+ if(AC.ambG){AC.ambG.gain.cancelScheduledValues(gt);AC.ambG.gain.setValueAtTime(ambVol(),gt);}
+ if(AC.sfxG){AC.sfxG.gain.cancelScheduledValues(gt);AC.sfxG.gain.setValueAtTime(sfxVol(),gt);}
  /* .muted works on iOS where .volume writes are ignored — mute must win on phones */
  const av=ambVol(),m=av<=0;
  [ambAudio,cowAudio,haalandAudio,cryptAudio].forEach(a=>{if(a){try{a.volume=av;a.muted=m;}catch(e){}}});
@@ -1783,6 +1820,18 @@ function buildCryptMaze(){
 }
 /* wall texture as a repeating pattern — fixed 836px world repeat, anchored in world
    space so the masonry stays put while the camera moves; built once and cached */
+let raidWallPat=null;
+function raidWallPattern(){ /* Black Temple masonry — world-anchored so segments fuse seamlessly */
+ if(raidWallPat)return raidWallPat;
+ const img=zoneMapImg('raidwall');
+ if(!(img.complete&&img.naturalWidth))return null;
+ const c=document.createElement('canvas');
+ c.width=724;c.height=Math.round(724*img.naturalHeight/img.naturalWidth);
+ const g=c.getContext('2d');g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
+ g.drawImage(img,0,0,c.width,c.height);
+ raidWallPat=ctx.createPattern(c,'repeat');
+ return raidWallPat;
+}
 let cryptWallPat=null;
 function cryptWallPattern(){
  if(cryptWallPat)return cryptWallPat;
@@ -2052,9 +2101,11 @@ function buildZone(){
  }else if(z.raid){
   const cy=world.h/2;
   world.raidRooms=[];
+  world.raidSegs=[]; /* straight wall runs — the fog raycasts these for razor-straight light edges */
   const wall=(x1,y1,x2,y2)=>{
+   world.raidSegs.push({x1,y1,x2,y2});
    const d=Math.hypot(x2-x1,y2-y1),n=Math.max(1,Math.round(d/34));
-   for(let i=0;i<=n;i++)world.solids.push({x:x1+(x2-x1)*i/n,y:y1+(y2-y1)*i/n,r:20,type:'wall'});
+   for(let i=0;i<=n;i++)world.solids.push({x:x1+(x2-x1)*i/n,y:y1+(y2-y1)*i/n,r:20,type:'wall',seg:1});
   };
   const room=(cx,cyy,rr,doorA)=>{
    const idx=world.raidRooms.length;
@@ -2205,6 +2256,19 @@ function prerenderGround(z,R){
  if(z.crypts){groundCv.width=groundCv.height=16;return;} /* floor tiles draw per frame — a 13440px canvas would sink phones */
  groundCv.width=world.w;groundCv.height=world.h;
  const g=groundCv.getContext('2d');
+ if(z.raid){ /* the Black Temple floor — tiled at near-native scale, mirrored to hide seams */
+  const rf=zoneMapImg('raidfloor');
+  if(rf.complete&&rf.naturalWidth){
+   const TW=1200,TH=TW*rf.naturalHeight/rf.naturalWidth;
+   for(let ty=0;ty*TH<world.h;ty++)for(let tx=0;tx*TW<world.w;tx++){
+    g.save();g.translate(tx*TW+TW/2,ty*TH+TH/2);g.scale(tx%2?-1:1,ty%2?-1:1);
+    g.drawImage(rf,-TW/2,-TH/2,TW,TH);g.restore();
+   }
+   g.strokeStyle='rgba(0,0,0,0.35)';g.lineWidth=26;g.strokeRect(0,0,world.w,world.h);
+   return;
+  }
+  const wld=world;rf.addEventListener('load',()=>{if(world===wld)prerenderGround(z,mulberry32(1));},{once:true});
+ }
  const mImg=z.tavern?gsMapImg:(z.map?zoneMapImg(z.map):null);
  if(mImg&&mImg.complete&&mImg.naturalWidth){
   /* painted ground map — same aspect as the world, so a plain stretch fits;
@@ -3703,6 +3767,72 @@ function drawCryptFog(){
  ctx.fillStyle=g;
  ctx.fill();
 }
+/* ---- Black Temple fog of war: sight ends at the walls ----
+   Same recipe as the crypt fog, but the rays collide with the wall POSTS (circles).
+   Door gaps have no posts, so light spills through them naturally; everything
+   beyond the masonry is pitch black — no peeking over the walls. */
+function drawRaidFog(){
+ const R=620;
+ const px=hero.x,py=hero.y-8;
+ const near=[];
+ for(const s2 of world.solids){
+  if(s2.type!=='wall'||s2.seg)continue; /* straight runs are handled as segments below */
+  if(Math.abs(s2.x-px)>R+30||Math.abs(s2.y-py)>R+30)continue;
+  near.push(s2);
+ }
+ const segs=[];
+ for(const sg of (world.raidSegs||[])){
+  if(Math.max(sg.x1,sg.x2)<px-R||Math.min(sg.x1,sg.x2)>px+R||Math.max(sg.y1,sg.y2)<py-R||Math.min(sg.y1,sg.y2)>py+R)continue;
+  segs.push(sg);
+ }
+ const N=320,pts=[];
+ for(let i=0;i<N;i++){
+  const a=i/N*6.28318,dx=Math.cos(a),dy=Math.sin(a);
+  let t=R;
+  for(const sg of segs){ /* ray vs straight wall run — perfectly even light edge */
+   const ex=sg.x2-sg.x1,ey=sg.y2-sg.y1;
+   const den=dx*ey-dy*ex;
+   if(Math.abs(den)<1e-6)continue;
+   const qx=sg.x1-px,qy=sg.y1-py;
+   const tt=(qx*ey-qy*ex)/den;
+   const uu=(qx*dy-qy*dx)/den;
+   if(tt>=0&&uu>=-0.02&&uu<=1.02){
+    const t0=tt+52; /* the light reaches over the masonry itself, not past it */
+    if(t0<t)t=t0;
+   }
+  }
+  for(const w of near){ /* ray vs room-arc post */
+   const lx=w.x-px,ly=w.y-py;
+   const tc=lx*dx+ly*dy;
+   if(tc<0||tc>t+20)continue;
+   const d2=lx*lx+ly*ly-tc*tc,rr=18*18;
+   if(d2<rr){
+    const t0=tc-Math.sqrt(rr-d2)+52;
+    if(t0>=0&&t0<t)t=t0;
+   }
+  }
+  pts.push([px+dx*t,py+dy*t]);
+ }
+ const vx0=camX-40,vy0=camY-40,vx1=camX+VW/zoom+40,vy1=camY+VH/zoom+40;
+ ctx.beginPath();
+ ctx.rect(vx0,vy0,vx1-vx0,vy1-vy0);
+ ctx.moveTo(pts[0][0],pts[0][1]);
+ for(let i=1;i<N;i++)ctx.lineTo(pts[i][0],pts[i][1]);
+ ctx.closePath();
+ ctx.fillStyle='#000';
+ ctx.fill('evenodd');
+ const g=ctx.createRadialGradient(px,py,0,px,py,R);
+ g.addColorStop(0,'rgba(0,0,0,0)');
+ g.addColorStop(0.62,'rgba(0,0,0,0.16)');
+ g.addColorStop(0.88,'rgba(0,0,0,0.7)');
+ g.addColorStop(1,'#000');
+ ctx.beginPath();
+ ctx.moveTo(pts[0][0],pts[0][1]);
+ for(let i=1;i<N;i++)ctx.lineTo(pts[i][0],pts[i][1]);
+ ctx.closePath();
+ ctx.fillStyle=g;
+ ctx.fill();
+}
 /* the crypt rat — painted body over four scurrying feet (diagonal pairs, like a real rat) */
 function drawRatBoss(){
  const rb=world.ratboss;
@@ -3900,6 +4030,7 @@ function draw(){
   ctx.globalAlpha=1;
  }
  if(z.crypts&&world.mwalls)drawCryptFog(); /* the dark closes in — last world-space layer */
+ else if(z.raid&&!hero.dead)drawRaidFog(); /* the temple keeps its secrets behind the walls */
  ctx.restore();
  if(cowRunning||(zoneOf().cow&&hero.dead)){
   const t=cowT,fmt=x=>Math.floor(x/60)+':'+String(Math.floor(x%60)).padStart(2,'0');
@@ -4216,6 +4347,15 @@ function drawProp(s,z){
    ctx.beginPath();ctx.arc(0,-10,s.r*0.8,0,7);ctx.stroke();
   }
  }else if(s.type==='wall'){
+  const pat=zoneOf().raid?raidWallPattern():null;
+  if(pat){ /* stone pattern anchored in WORLD space — every segment lines up into one wall */
+   ctx.fillStyle='rgba(0,0,0,0.30)';ctx.fillRect(-24,2,48,12); /* ground shadow */
+   ctx.save();ctx.translate(-s.x,-s.y); /* undo the per-solid translate so the pattern never shifts */
+   ctx.fillStyle=pat;
+   ctx.fillRect(s.x-22,s.y-38,44,48);
+   ctx.restore();
+   ctx.restore();return;
+  }
   ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0,8,s.r*1.15,s.r*0.5,0,0,7);ctx.fill();
   ctx.fillStyle='#5a5468';ctx.fillRect(-s.r,-s.r*1.6,s.r*2,s.r*2.1);
   ctx.fillStyle='rgba(255,255,255,0.08)';ctx.fillRect(-s.r,-s.r*1.6,s.r*2,6);
@@ -4361,7 +4501,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   }
   g.restore();
  }
- const armored=painted&&!female&&!!iceArm; /* 🧊 Ice Armor reskin — only when THIS character wears it (male art only for now) */
+ const armored=painted&&!!iceArm; /* 🧊 Ice Armor reskin — only when THIS character wears it */
  const eCls=armored?'armor':clsId;
  const rImg=painted?charSprite(raceId,eCls,female):null; /* painted sprites are for the local hero only */
  if(rImg&&rImg.complete&&rImg.naturalWidth){
@@ -4579,7 +4719,7 @@ function drawHero(){
  if(h.buff.atk&&h.buff.atk.t>0){ctx.strokeStyle='rgba(255,200,90,'+(0.4+0.2*Math.sin(performance.now()/120))+')';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(0,6+gY,15,7,0,0,7);ctx.stroke();}
  if(h.buff.haste&&h.buff.haste.t>0){ctx.strokeStyle='rgba(200,240,255,0.5)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,6+gY,18,8,0,0,7);ctx.stroke();}
  if(dancing)ctx.rotate(Math.sin(h.dance*6)*0.25);
- if((charSprite(S.race,c.id,S.gender==='f')||{}).naturalWidth)bootFeet(h);else feet(h,1);
+ if((charSprite(S.race,c.id,S.gender==='f')||{}).naturalWidth)bootFeet(S.gender==='f'?Object.assign({fem:true},{moving:h.moving,walk:h.walk}):h);else feet(h,1);
  drawChampionSprite(ctx,S.race,c.id,fx,by,danceSwing,fish.on?false:isFM(S.gear.weapon),fish.on?'fishingrod':(isWG(S.gear.weapon)?'warglaives':(isFM(S.gear.weapon)?'frostmourne':null)),S.gender==='f',h.moving&&!h.dead?2:1,isIce(S.gear.armor));
  if(h.hurt>0){ctx.fillStyle='rgba(255,255,255,'+h.hurt*2.5+')';ctx.beginPath();ctx.arc(0,-8+by,11,0,7);ctx.fill();}
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;
@@ -4606,11 +4746,22 @@ function drawNpc(n){
  const by=n.moving?Math.sin(n.walk*7)*1.8:Math.sin(now/600+n.x)*0.8;
  ctx.save();ctx.translate(n.x,n.y);
  ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,8,13,5.5,0,0,7);ctx.fill();
- feet({walk:n.walk*1.8},n.moving?1:0.15);
- drawChampionSprite(ctx,n.race,n.cls,n.fx,by,0,false,null,n.female);
+ const pImg=n.female?npcFemaleImg:npcMaleImg; /* painted villagers — one male, one female */
+ if(pImg.complete&&pImg.naturalWidth){
+  bootFeet({moving:n.moving,walk:n.walk*1.8,fem:!!n.female});
+  ctx.save();
+  if(n.fx>0)ctx.scale(-1,1); /* art faces left natively — mirror when walking right */
+  ctx.rotate(by*0.02);
+  const H=44,W=H*pImg.naturalWidth/pImg.naturalHeight;
+  ctx.drawImage(mip(pImg,W),-W/2,7-H+by,W,H);
+  ctx.restore();
+ }else{
+  feet({walk:n.walk*1.8},n.moving?1:0.15);
+  drawChampionSprite(ctx,n.race,n.cls,n.fx,by,0,false,null,n.female);
+ }
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
- ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(n.name,1,-33+by+1);
- ctx.fillStyle='#cfe6c2';ctx.fillText(n.name,0,-33+by);
+ ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(n.name,1,-40+by+1);
+ ctx.fillStyle='#cfe6c2';ctx.fillText(n.name,0,-40+by);
  ctx.restore();
 }
 function updateNpcs(dt){
@@ -4660,9 +4811,34 @@ function drawEnemy(en){
  ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,en.r*0.55,en.r,en.r*0.42,0,0,7);ctx.fill();
  if(en.slowT>0){ctx.strokeStyle='rgba(160,224,255,0.6)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,en.r*0.5,en.r+3,en.r*0.5,0,0,7);ctx.stroke();}
  const haalandPainted=en.bossId==='cerberus'&&haalandImg.complete&&haalandImg.naturalWidth;
- if(en.kind!=='undead'&&!haalandPainted)feet(en,en.r/13);
+ const raidSkin=en.raid&&RAID_SKINS[en.bossId]&&RAID_SKINS[en.bossId].img.naturalWidth?RAID_SKINS[en.bossId]:null;
+ if(en.kind!=='undead'&&!haalandPainted&&!raidSkin)feet(en,en.r/13);
  const dark='rgba(0,0,0,0.28)';
- if(haalandPainted){ /* painted HAALAND (assets/boss/haaland_boss.png) + scaled boot feet */
+ if(raidSkin){ /* a lord of the Black Temple — painted body over swinging cut-off feet */
+  const H=en.r*(raidSkin.size||5.0),W=H*raidSkin.img.naturalWidth/raidSkin.img.naturalHeight;
+  const fimg=raidSkin.feet;
+  if(fimg&&fimg.complete&&fimg.naturalWidth){
+   /* height-normalised feet, planted below the raised body so they always show */
+   const FH=en.r*(raidSkin.fh||0.75),FW=FH*fimg.naturalWidth/fimg.naturalHeight;
+   const o=en.state==='chase'?Math.sin((en.walk||0)*2)*en.r*0.28:0;
+   const fpx=(raidSkin.ff?-1:1)*en.r*(raidSkin.fs||0.5); /* ff flips the art side · fs spreads the stance */
+   ctx.drawImage(mip(fimg,FW),fpx-FW/2+o,en.r*0.72-FH,FW,FH); /* the art foot */
+   ctx.save();ctx.scale(-1,1); /* the other = mirrored, counter-swing */
+   ctx.drawImage(mip(fimg,FW),fpx-FW/2-o,en.r*0.72-FH,FW,FH);
+   ctx.restore();
+  }
+  ctx.drawImage(mip(raidSkin.img,W),-W/2+en.r*(raidSkin.ox||0),en.r*raidSkin.lift-H+by,W,H); /* body floats above the feet */
+  const bl=raidBlade(raidSkin.glow,raidSkin.wpn?raidSkin.wpn():null);
+  if(bl){
+   const AH=H*0.6,AW=AH*bl.width/bl.height;
+   const bfx=(hero&&hero.x<en.x)?-1:1; /* held on the side it strikes */
+   ctx.save();ctx.translate(bfx*W*raidSkin.wx,H*raidSkin.wy+by);ctx.scale(bfx,1);ctx.rotate(0.5+(en.swing?(0.2-en.swing)*7:0));
+   ctx.shadowColor=raidSkin.glow;ctx.shadowBlur=16+6*Math.sin(now/160);
+   ctx.drawImage(bl,-AW/2,-AH*0.8,AW,AH);
+   ctx.shadowBlur=0;
+   ctx.restore();
+  }
+ }else if(haalandPainted){ /* painted HAALAND (assets/boss/haaland_boss.png) + scaled boot feet */
   const bs=en.r/13;
   ctx.save();ctx.scale(bs,bs);bootFeet({moving:en.state==='chase',walk:en.walk||0});ctx.restore();
   const H=en.r*4.4,W=H*haalandImg.naturalWidth/haalandImg.naturalHeight;
@@ -4808,7 +4984,7 @@ function drawEnemy(en){
  if(en.hurt>0){ctx.fillStyle='rgba(255,255,255,'+en.hurt*2.5+')';ctx.beginPath();ctx.arc(0,-6+by,en.r*0.9,0,7);ctx.fill();}
  ctx.font=(en.boss?'700 11px ':'600 9px ')+getComputedStyle(document.body).fontFamily;
  ctx.textAlign='center';
- const lblY=(typeof haalandPainted!=='undefined'&&haalandPainted)?-en.r*4.4:-en.r-16; /* the painted boss stands much taller */
+ const lblY=(typeof haalandPainted!=='undefined'&&haalandPainted)?-en.r*4.4:(en.raid&&RAID_SKINS[en.bossId]&&RAID_SKINS[en.bossId].img.naturalWidth)?-en.r*5.1:-en.r-16; /* painted bosses stand much taller */
  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(en.name,1,lblY+by+1);
  ctx.fillStyle=en.boss?'#ffd76a':'#ffe9e0';ctx.fillText(en.name,0,lblY+by);
  if((en.hp<en.max||en.boss)&&!en.dead)drawMiniBar(-en.r,lblY+3+by,en.r*2,en.hp/en.max,'#c75146');
@@ -5728,7 +5904,7 @@ function renderBag(){
     ${isLegendary(it)
      ?'<span class="ss" style="color:#ffd100;align-self:center">🔒 Cannot be sold or scrapped</span>'
      :inGearSet(it)
-     ?'<span class="ss" style="color:#c9a05a;align-self:center">⭐ Saved in a gear set</span>'
+     ?`<button class="sbtn" data-unstar="${i}" title="Remove from its gear set — it becomes sellable again">⭐ Unsave</button>`
      :`<button class="sbtn" data-sell="${i}">Sell ${(it.sell||0).toLocaleString()}◉</button>
        <button class="sbtn scrapb" data-scr="${i}">Scrap +${scrapVal(it)}⚙</button>`}
    </div></div>`).join('');
@@ -5768,6 +5944,14 @@ function renderBag(){
   S.scraps=Math.min(SCRAP_CAP,S.scraps+scrapVal(it));sfx.forge();
   log(`Scrapped <span class="l${it.rar}">${it.name}</span> — +${scrapVal(it)} ⚙.`);
   renderBag();renderHUD();save();
+ });
+ document.querySelectorAll('[data-unstar]').forEach(b=>b.onclick=()=>{
+  const it=S.bag[+b.dataset.unstar];
+  if(!it||!it.gsid)return;
+  (S.gearSets||[]).forEach(gs=>{if(gs)SLOTS.forEach(k=>{if(gs[k]===it.gsid)gs[k]=null;});});
+  delete it.gsid;
+  stageMsg('⭐ Released from its gear set — it can be sold or scrapped again',1900);
+  renderBag();renderHero();save();
  });
  const sa=$('scrapAll');
  if(sa)sa.onclick=()=>{
@@ -6722,7 +6906,7 @@ function openSea(){
  seaFree=0;
  seaMusicStart();
  /* mute ambient while casino music plays */
- if(AC.ambG)AC.ambG.gain.value=0;
+ if(AC.ambG){const t0=AC.ctx.currentTime;AC.ambG.gain.cancelScheduledValues(t0);AC.ambG.gain.setValueAtTime(0,t0);} /* iOS-safe duck */
  if(ambAudio)ambAudio.pause();
  if(cowAudio)cowAudio.pause();
  if(haalandAudio)haalandAudio.pause();
@@ -7102,7 +7286,13 @@ function smithRefresh(){
  }
  fg.style.display='block';
  const wgSt=legSel==='wg';
- const bagOf=wgSt?wgBagOfStar:fmBagOfStar;
+ /* bag copies first, the equipped blade last — so the forge only eats off your back when it must */
+ const bagOnly=wgSt?wgBagOfStar:fmBagOfStar;
+ const bagOf=st=>{
+  const eqW=S.gear.weapon;
+  const eqOk=(wgSt?isWG(eqW):isFM(eqW))&&fmStar(eqW)===st&&!inGearSet(eqW);
+  return bagOnly(st).concat(eqOk?[eqW]:[]);
+ };
  const NM=wgSt?'Warglaives':'Frostmourne';
  const IC=wgSt?'⚔':'❄';
  /* choose the target: ★2 (two plain blades) or ★3 (two ★2) — ★3 needs smith 10 + Prestige 20 */
@@ -7124,11 +7314,15 @@ function smithRefresh(){
   ?(wgSt
    ?`Warglaives <b style="color:#4dff9a">★${out}</b> — <b>+${out===3?20:15}% boss damage</b>, <b>+${out*2}% lifesteal</b>. Upgrades &amp; attack reset (cap +6 unchanged). Consumes both ★${src}.`
    :`Frostmourne <b style="color:#ffd76a">★${out}</b> — <b>+${out*2}% crit</b>, <b>+${out*2}% lifesteal</b>. Upgrades &amp; attack reset (cap +6 unchanged). Consumes both ★${src}.`)
-  :`Need <b>2× ${NM}${src>1?' ★'+src:''}</b> in your bag (${have}/2).`;
+  :`Need <b>2× ${NM}${src>1?' ★'+src:''}</b> — bag and equipped both count (${have}/2).`;
  const btn=$('fmForgeBtn');btn.disabled=!ok;
  btn.onclick=()=>{
   const list=bagOf(src);if(list.length<2)return;
-  for(let n=0;n<2;n++){const it=bagOf(src)[0];S.bag.splice(S.bag.indexOf(it),1);}
+  for(let n=0;n<2;n++){
+   const it=bagOf(src)[0];
+   if(it===S.gear.weapon){S.gear.weapon=null;if(hero)hero.hp=Math.min(hero.hp,heroMax());} /* fed from your hands */
+   else S.bag.splice(S.bag.indexOf(it),1);
+  }
   S.smithJob={kind:wgSt?'wg':'fm',to:out,endT:Date.now()+SMITH_HOUR};
   stageMsg('⚒️ The forge roars — '+NM+' ★'+out+' in 2 hours.',2400);
   sfx.buy();save();smithRefresh();renderBag();
@@ -7787,7 +7981,7 @@ function drawPortrait(cnv,ch){
   g.save();g.translate(W/2,H*0.684);g.scale(1.16,1.16);
   g.fillStyle='rgba(0,0,0,0.3)';g.beginPath();g.ellipse(0,19,13,5,0,0,7);g.fill();
   if(sc){g.strokeStyle=sc.glow;g.globalAlpha=0.55;g.lineWidth=1;g.beginPath();g.ellipse(0,18,15,6,0,0,7);g.stroke();g.globalAlpha=1;}
-  bootFeet({moving:false,walk:0},g);
+  bootFeet({moving:false,walk:0,fem:ch.gender==='f'},g);
   drawChampionSprite(g,ch.race,c.id,1,0,0,!!(ch.gear&&ch.gear.weapon&&ch.gear.weapon.legend==='frostmourne'),ch.gear&&ch.gear.weapon&&(ch.gear.weapon.id||ch.gear.weapon.legend),ch.gender==='f',1,!!(ch.gear&&ch.gear.armor&&ch.gear.armor.legend==='icearmor'));
   g.restore();
  }else{
@@ -7809,11 +8003,12 @@ const fmtGS=n=>{n=Math.round(n||0);
   :n>=1e6?(n>=1e7?Math.round(n/1e6):(n/1e6).toFixed(1).replace(/\.0$/,''))+'M'
   :n>=1e5?Math.round(n/1e3)+'K'
   :n.toLocaleString();};
+let fallenOpen=false; /* the Fallen Heroes shelf stays folded until opened */
 async function renderSelect(){
  const roster=await loadRoster();
  const chars=[];
  for(const id of roster){const ch=await loadChar(id);if(ch)chars.push(ch);}
- $('charList').innerHTML=chars.length?chars.map(ch=>{
+ const cardOf=ch=>{
   const r=RACES.find(x=>x.id===(RACE_ALIAS[ch.race]||ch.race)),c=CLASSES.find(x=>x.id===(CLASS_ALIAS[ch.cls]||ch.cls));
   const hcDead=ch.hardcore&&ch.hcDead;
   return `<div class="card charcard"${hcDead?' style="opacity:.5;filter:grayscale(.8)"':''}>
@@ -7828,7 +8023,19 @@ async function renderSelect(){
     <button class="delbtn" data-del="${ch.id}">✕ Delete</button>
    </div>
   </div>`;
- }).join(''):'<div class="card" style="color:var(--dim);font-size:12px;background:rgba(28,43,36,.7)">No heroes yet — the Eastern Realm waits for its first champion.</div>';
+ };
+ const living=chars.filter(ch=>!(ch.hardcore&&ch.hcDead));
+ const fallen=chars.filter(ch=>ch.hardcore&&ch.hcDead);
+ let html=living.length?living.map(cardOf).join(''):'<div class="card" style="color:var(--dim);font-size:12px;background:rgba(28,43,36,.7)">No heroes yet — the Eastern Realm waits for its first champion.</div>';
+ if(fallen.length){ /* the graveyard — a fold-out shelf above Create New Character */
+  html+=`<div class="tierhead" id="fallenHead" style="border-color:#a05a5a66;margin-top:10px">
+   <span style="color:#ff8a7a">${fallenOpen?'▾':'▸'} 💀 Fallen Heroes</span>
+   <span class="tcount">${fallen.length} laid to rest</span></div>`;
+  if(fallenOpen)html+='<div class="tierbody">'+fallen.map(cardOf).join('')+'</div>';
+ }
+ $('charList').innerHTML=html;
+ const fh=$('fallenHead');
+ if(fh)fh.onclick=()=>{fallenOpen=!fallenOpen;renderSelect();};
  chars.forEach(ch=>{const cnv=document.querySelector(`[data-pc="${ch.id}"]`);if(cnv)drawPortrait(cnv,ch);});
  document.querySelectorAll('[data-play]').forEach(b=>b.onclick=async()=>{
   const ch=await loadChar(b.dataset.play);
@@ -8003,6 +8210,7 @@ function preloadMaps(){ /* warm every zone map in the background — kills the p
  if(mapsPreloaded)return;mapsPreloaded=true;
  ZONES.forEach(z=>{if(z.map)zoneMapImg(z.map);});
  zoneMapImg('cryptmap');zoneMapImg('cryptwall');
+ zoneMapImg('raidfloor');zoneMapImg('raidwall');
 }
 function beginGame(isNew){
  $('create').style.display='none';
