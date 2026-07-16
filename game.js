@@ -55,13 +55,18 @@ const firelordImg=new Image();firelordImg.src='assets/boss/firelord_boss.png';
 const frostlordImg=new Image();frostlordImg.src='assets/boss/frostlord_boss.png';
 const cowWeaponImg=new Image();cowWeaponImg.src='assets/boss/cow_weapon.png';
 const raidSwordImg=new Image();raidSwordImg.src='assets/boss/raidboss_sword.png';
+const gorehuskImg=new Image();gorehuskImg.src='assets/boss/boss_levling4.png';
+const gorehuskFeetLImg=new Image();gorehuskFeetLImg.src='assets/boss/gorehusk_feet_l.png';
+const gorehuskFeetRImg=new Image();gorehuskFeetRImg.src='assets/boss/gorehusk_feet_r.png';
+const bossLvlWeaponImg=new Image();bossLvlWeaponImg.src='assets/boss/bosslevling_weapon.png';
 const fellordFeetImg=new Image();fellordFeetImg.src='assets/boss/fellord_feet.png';
 const firelordFeetImg=new Image();firelordFeetImg.src='assets/boss/firelord_feet.png';
 const frostlordFeetImg=new Image();frostlordFeetImg.src='assets/boss/frostlord_feet.png';
 const RAID_SKINS={ /* lift = body bottom in radii · wy/wx = weapon grip */
  betrayer:{img:fellordImg,feet:fellordFeetImg,wpn:()=>raidSwordImg,glow:'#4dff6a',lift:-0.15,wy:-0.40,wx:0.26,size:4.5,fs:0.72,fh:0.95},
  firelord:{img:firelordImg,feet:firelordFeetImg,glow:'#ff4a1a',lift:-0.20,wy:-0.22,wx:0.26,ff:true,fs:0.85},
- frostking:{img:frostlordImg,feet:frostlordFeetImg,wpn:()=>raidSwordImg,glow:'#7fd0ff',lift:-0.18,wy:-0.31,wx:0.26,fs:0.72,fh:0.95,ox:-0.16}};
+ frostking:{img:frostlordImg,feet:frostlordFeetImg,wpn:()=>raidSwordImg,glow:'#7fd0ff',lift:-0.18,wy:-0.31,wx:0.26,fs:0.72,fh:0.95,ox:-0.16},
+ gorehusk:{img:gorehuskImg,feetL:gorehuskFeetLImg,feetR:gorehuskFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#7adf3a',lift:0.10,wy:-0.27,wx:0.44,size:7.5,fs:0.8,fh:1.12}};
 const raidBladeCache={};
 function raidBlade(glow,img){ /* the lord's weapon soaked in his colour, cached per art+tint */
  img=img||cowWeaponImg;
@@ -2899,10 +2904,7 @@ function bossAI(en,dt){
    for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*90,hero.y+(Math.random()-0.5)*90,131,1.15,en.atk*1.2,'#9adf3a');
    floatAt(en.x,en.y-en.r-30,'Roots!','#9adf3a',true);
   }
-  if(en.cds.b<=0){en.cds.b=13;
-   if(addsAlive()<3){spawnAdd('Rootling','beast','#7a9a3a');spawnAdd('Rootling','beast','#7a9a3a');
-    floatAt(en.x,en.y-en.r-30,'Rise, my roots!','#c9df8a',true);}
-  }
+  /* (rootling summons removed — the painted fiend fights alone) */
  }else if(B==='maw'){ /* Maw of the Deep: dives under, re-emerges in a splash; spits water bolts */
   if(en.subT){
    en.subT-=dt;en.lockT=0.2;
@@ -4849,19 +4851,25 @@ function drawEnemy(en){
  ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,en.r*0.55,en.r,en.r*0.42,0,0,7);ctx.fill();
  if(en.slowT>0){ctx.strokeStyle='rgba(160,224,255,0.6)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,en.r*0.5,en.r+3,en.r*0.5,0,0,7);ctx.stroke();}
  const haalandPainted=en.bossId==='cerberus'&&haalandImg.complete&&haalandImg.naturalWidth;
- const raidSkin=en.raid&&RAID_SKINS[en.bossId]&&RAID_SKINS[en.bossId].img.naturalWidth?RAID_SKINS[en.bossId]:null;
+ const raidSkin=RAID_SKINS[en.bossId]&&RAID_SKINS[en.bossId].img.naturalWidth?RAID_SKINS[en.bossId]:null; /* raid lords + skinned leveling bosses */
  if(en.kind!=='undead'&&!haalandPainted&&!raidSkin)feet(en,en.r/13);
  const dark='rgba(0,0,0,0.28)';
  if(raidSkin){ /* a lord of the Black Temple — painted body over swinging cut-off feet */
   const H=en.r*(raidSkin.size||5.0),W=H*raidSkin.img.naturalWidth/raidSkin.img.naturalHeight;
-  const fimg=raidSkin.feet;
-  if(fimg&&fimg.complete&&fimg.naturalWidth){
-   /* height-normalised feet, planted below the raised body so they always show */
-   const FH=en.r*(raidSkin.fh||0.75),FW=FH*fimg.naturalWidth/fimg.naturalHeight;
-   const o=en.state==='chase'?Math.sin((en.walk||0)*2)*en.r*0.28:0;
+  const fimg=raidSkin.feet,fL=raidSkin.feetL,fR=raidSkin.feetR;
+  const FH=en.r*(raidSkin.fh||0.75);
+  const o=en.state==='chase'?Math.sin((en.walk||0)*2)*en.r*0.28:0;
+  if(fL&&fR&&fL.naturalWidth&&fR.naturalWidth){ /* true left/right art — no mirroring needed */
+   const WL=FH*fL.naturalWidth/fL.naturalHeight,WR=FH*fR.naturalWidth/fR.naturalHeight;
+   const sp=en.r*(raidSkin.fs||0.5);
+   ctx.drawImage(mip(fL,WL),-sp-WL/2+o,en.r*0.72-FH,WL,FH);
+   ctx.drawImage(mip(fR,WR),sp-WR/2-o,en.r*0.72-FH,WR,FH);
+  }else if(fimg&&fimg.complete&&fimg.naturalWidth){
+   /* single-foot art: right = the art, left = mirrored counter-swing */
+   const FW=FH*fimg.naturalWidth/fimg.naturalHeight;
    const fpx=(raidSkin.ff?-1:1)*en.r*(raidSkin.fs||0.5); /* ff flips the art side · fs spreads the stance */
-   ctx.drawImage(mip(fimg,FW),fpx-FW/2+o,en.r*0.72-FH,FW,FH); /* the art foot */
-   ctx.save();ctx.scale(-1,1); /* the other = mirrored, counter-swing */
+   ctx.drawImage(mip(fimg,FW),fpx-FW/2+o,en.r*0.72-FH,FW,FH);
+   ctx.save();ctx.scale(-1,1);
    ctx.drawImage(mip(fimg,FW),fpx-FW/2-o,en.r*0.72-FH,FW,FH);
    ctx.restore();
   }
@@ -4942,8 +4950,8 @@ function drawEnemy(en){
   }
   ctx.restore();
  }
- /* --- unique boss flair --- */
- if(en.boss){
+ /* --- unique boss flair (procedural bosses only — painted skins carry their own drama) --- */
+ if(en.boss&&!raidSkin){
   const B=en.bossId;
   if(B==='gorehusk'){ /* thorned shoulders + drifting spores */
    ctx.fillStyle='#4a6a1a';
@@ -5022,7 +5030,7 @@ function drawEnemy(en){
  if(en.hurt>0){ctx.fillStyle='rgba(255,255,255,'+en.hurt*2.5+')';ctx.beginPath();ctx.arc(0,-6+by,en.r*0.9,0,7);ctx.fill();}
  ctx.font=(en.boss?'700 11px ':'600 9px ')+getComputedStyle(document.body).fontFamily;
  ctx.textAlign='center';
- const lblY=(typeof haalandPainted!=='undefined'&&haalandPainted)?-en.r*4.4:(en.raid&&RAID_SKINS[en.bossId]&&RAID_SKINS[en.bossId].img.naturalWidth)?-en.r*5.1:-en.r-16; /* painted bosses stand much taller */
+ const lblY=(typeof haalandPainted!=='undefined'&&haalandPainted)?-en.r*4.4:(RAID_SKINS[en.bossId]&&RAID_SKINS[en.bossId].img.naturalWidth)?-en.r*((RAID_SKINS[en.bossId].size||5)+0.1):-en.r-16; /* painted bosses stand much taller */
  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(en.name,1,lblY+by+1);
  ctx.fillStyle=en.boss?'#ffd76a':'#ffe9e0';ctx.fillText(en.name,0,lblY+by);
  if((en.hp<en.max||en.boss)&&!en.dead)drawMiniBar(-en.r,lblY+3+by,en.r*2,en.hp/en.max,'#c75146');
