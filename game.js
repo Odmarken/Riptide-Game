@@ -323,7 +323,7 @@ const ZONES=[
  {name:'Halls of Valhalla',lvl:60,amb:'frost',valhalla:true,special:true,thor:true,
   boss:['Thor, God of Thunder','#7fd0ff','thor'],
   ground:'#8a94b8',ground2:'#7d87aa',water:'#9ac8e8',tree:'#5a6a8a',tree2:'#46536e',path:'#d8cfa0',rocky:true},
- {name:'Cow Level',lvl:60,amb:'cow',west:true,special:true,cow:true,
+ {name:'Cow Level',lvl:60,amb:'cow',west:true,special:true,cow:true,map:'cowlevel_zone',
   ground:'#6a9a4e',ground2:'#5f8c46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
  {name:'Goldshire',lvl:1,amb:'tavern',special:true,tavern:true,
   ground:'#7a6a4e',ground2:'#6e5f46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
@@ -3441,7 +3441,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
     log(`Chest loot: <span class="loot">+${goldGot.toLocaleString()}◉</span>.`,'loot');
     burst(cc.x,cc.y-6,'#5bc8ff',14,90,true);
     sparkles(cc.x,cc.y-10,'#9fd0ff',10);
-    if(Math.random()<0.125){ /* 1 in 8: a 🔗 Crypt Connector rides along */
+    if(Math.random()<0.15){ /* 15%: a 🔗 Crypt Connector rides along */
      S.connectors=(S.connectors||0)+1;
      sparkles(cc.x,cc.y-16,'#8fe3c9',12);
      stageMsg('🔗 A CRYPT CONNECTOR! ('+S.connectors+' owned)',2800,'#8fe3c9');
@@ -3843,17 +3843,17 @@ function drawRatBoss(){
  const bob=rb.moving?Math.sin(rb.walk*4)*2:0; /* skittering bob */
  const H=195,W=ratbossImg.naturalWidth?H*ratbossImg.naturalWidth/ratbossImg.naturalHeight:H*1.44;
  const feet=ratFeetImg.complete&&ratFeetImg.naturalWidth;
- const FW=62,FH=feet?FW*ratFeetImg.naturalHeight/ratFeetImg.naturalWidth:0;
+ const FW=56,FH=feet?FW*ratFeetImg.naturalHeight/ratFeetImg.naturalWidth:0;
  const o=rb.moving?Math.sin(rb.walk*2)*9:0; /* two clawed feet counter-swing while it stalks */
  if(feet){ /* rear foot, tucked slightly behind the body */
   ctx.globalAlpha=0.85;
-  ctx.drawImage(mip(ratFeetImg,FW),W*0.10-FW/2-o,38-FH,FW,FH);
+  ctx.drawImage(mip(ratFeetImg,FW),W*0.06-FW/2-o,38-FH,FW,FH);
   ctx.globalAlpha=1;
  }
  if(ratbossImg.complete&&ratbossImg.naturalWidth)ctx.drawImage(mip(ratbossImg,W),-W/2,18-H+bob,W,H);
  else{ctx.fillStyle='#4a3a34';ctx.beginPath();ctx.ellipse(0,-20,60,34,0,0,7);ctx.fill();} /* fallback while loading */
  if(feet){ /* front foot on top */
-  ctx.drawImage(mip(ratFeetImg,FW),-W*0.27-FW/2+o,42-FH,FW,FH);
+  ctx.drawImage(mip(ratFeetImg,FW),-W*0.31-FW/2+o,42-FH,FW,FH);
  }
  ctx.restore();
 }
@@ -5606,7 +5606,7 @@ function renderBag(){
  if((S.connectors||0)>0){
   connHtml=`<div class="card item" style="border-color:#8fe3c9"><div>
    <div class="sn" style="color:#8fe3c9;font-size:13px;font-weight:600">🔗 Crypt Connector <span style="color:var(--dim)">×${S.connectors||0}</span></div>
-   <div class="ss" style="color:var(--dim);font-size:11px">Cannot be sold or discarded. Bring <b style="color:#8fe3c9">two</b> to a level 10 Blacksmith to fuse any two different <b>Tier IV</b> scrolls into a single scroll. Found in Crypt chests (12.5%).</div></div></div>`;
+   <div class="ss" style="color:var(--dim);font-size:11px">Cannot be sold or discarded. Bring <b style="color:#8fe3c9">two</b> to a level 10 Blacksmith to fuse any two different <b>Tier IV</b> scrolls into a single scroll. Found in Crypt chests (15%).</div></div></div>`;
  }
  // 🎲 gambler potions — max-win prize
  let gamblerHtml='';
@@ -7268,7 +7268,7 @@ function smithRefresh(){
     };
    }else if((S.connectors||0)>0){
     fu.innerHTML=`<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">🔗 Connectors ${Math.min(2,S.connectors||0)}/2${lv<10?' · needs a level 10 blacksmith':''}${(S.connectors||0)<2?' · find more in Crypt chests':''}${ivBag.length<2?' · needs two different Tier IV scrolls in the Bag':''}</div>`;
-   }else fu.innerHTML='<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">🔗 <b>Crypt Connectors</b> drop from chests in The Crypts (12.5%). Two of them fuse a pair of Tier IV scrolls into one.</div>';
+   }else fu.innerHTML='<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">🔗 <b>Crypt Connectors</b> drop from chests in The Crypts (15%). Two of them fuse a pair of Tier IV scrolls into one.</div>';
   }
  }
  const tier=fmTier;
@@ -8210,7 +8210,7 @@ function preloadMaps(){ /* warm every zone map in the background — kills the p
  if(mapsPreloaded)return;mapsPreloaded=true;
  ZONES.forEach(z=>{if(z.map)zoneMapImg(z.map);});
  zoneMapImg('cryptmap');zoneMapImg('cryptwall');
- zoneMapImg('raidfloor');zoneMapImg('raidwall');
+ zoneMapImg('raidfloor');zoneMapImg('raidwall');zoneMapImg('cowlevel_zone');
 }
 function beginGame(isNew){
  $('create').style.display='none';
