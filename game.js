@@ -63,6 +63,29 @@ const mawImg=new Image();mawImg.src='assets/boss/boss_levling2.png';
 const ossricImg=new Image();ossricImg.src='assets/boss/boss_levling3.png';
 const ashmawImg=new Image();ashmawImg.src='assets/boss/boss_levling1.png';
 const krevImg=new Image();krevImg.src='assets/boss/boss_levling5.png';
+const torImg=new Image();torImg.src='assets/boss/tor_boss.png';
+/* ---- 🚜 the Farm: build assets, loaded lazily ---- */
+const farmImgs={};
+const farmImg=n=>{if(!farmImgs[n]){farmImgs[n]=new Image();farmImgs[n].src='assets/farm/'+n+'.png';}return farmImgs[n];};
+const FARM_BUILD=[
+ /* 🏗 Building */
+ {id:'lada',n:'Lada',img:'lada_farm',tab:'b',W:380,gy:30,col:{crx:130,cry:38,cyo:-40}},
+ {id:'staket',n:'Staket',img:'staketvit_sidan',tab:'b',W:130,gy:12,col:{r:14}},
+ {id:'staketv',n:'Staket (vertikalt)',img:'staket_ovan',tab:'b',W:30,gy:14,col:{r:16}},
+ {id:'chickenhouse',n:'Hönshus',img:'chickenhouse_farm',tab:'b',W:230,gy:28,col:{crx:88,cry:34,cyo:-32}},
+ {id:'medium',n:'Farmhouse Medium',img:'Farmhouse_medium',tab:'b',locked:'Later prestige'},
+ {id:'mansion',n:'Mansion',img:'farmhouse_mansion',tab:'b',locked:'Later prestige'},
+ /* 🐄 Animals */
+ {id:'chickenfarm',n:'Kyckling',img:'chickenfarm_liten',tab:'a',W:58,gy:12,col:{r:12}},
+ {id:'chickenfarm_big',n:'Kyckling (stor)',img:'chickenfarm_big',tab:'a',W:95,gy:14,col:{r:18}},
+ {id:'cowfarm',n:'Ko',img:'cowfarm_liten',tab:'a',W:78,gy:12,col:{r:14}},
+ {id:'cowfarm_big',n:'Ko (stor)',img:'cowfarm_big',tab:'a',W:130,gy:14,col:{r:22}},
+ {id:'tjur',n:'Tjur',img:'tjur_farm',tab:'a',W:120,gy:16,col:{r:20}},
+ /* 🌾 Food */
+ {id:'hay',n:'Hö — frön',img:'ho_fro',W:74,gy:10,tab:'m'},
+ {id:'remove',n:'Ta bort',emoji:'🗑',tab:'*'} /* removes anything except the farmhouse */
+];
+const torWeaponImg=new Image();torWeaponImg.src='assets/boss/tor_weapon.png';
 const krevFeetLImg=new Image();krevFeetLImg.src='assets/boss/krev_feet_l.png';
 const krevFeetRImg=new Image();krevFeetRImg.src='assets/boss/krev_feet_r.png';
 const ashmawFeetLImg=new Image();ashmawFeetLImg.src='assets/boss/ashmaw_feet_l.png';
@@ -82,7 +105,8 @@ const RAID_SKINS={ /* lift = body bottom in radii · wy/wx = weapon grip */
  maw:{img:mawImg,feetL:mawFeetLImg,feetR:mawFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#5bc8ff',lift:0.58,wy:-0.19,wx:0.44,size:7.5,fs:1.05,fh:1.12},
  ossric:{img:ossricImg,feetL:ossricFeetLImg,feetR:ossricFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#b0793a',lift:0.58,wy:-0.19,wx:0.44,size:7.5,fs:1.05,fh:1.12},
  ashmaw:{img:ashmawImg,feetL:ashmawFeetLImg,feetR:ashmawFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#ff4a2a',lift:0.58,wy:-0.19,wx:0.44,size:7.5,fs:1.05,fh:1.12},
- krev:{img:krevImg,feetL:krevFeetLImg,feetR:krevFeetRImg,wpn:()=>cowWeaponImg,glow:'#ff9a2a',lift:0.15,wy:-0.25,wx:0.44,size:7.5,fs:1.05,fh:1.12,ws:0.85}};
+ krev:{img:krevImg,feetL:krevFeetLImg,feetR:krevFeetRImg,wpn:()=>cowWeaponImg,glow:'#ff9a2a',lift:0.15,wy:-0.25,wx:0.44,size:7.5,fs:1.05,fh:1.12,ws:0.85},
+ thor:{img:torImg,wpn:()=>torWeaponImg,glow:'#7fd0ff',zap:true,boots:true,bsx:11,lift:0.30,wy:-0.25,wx:0.44,size:5.25}};
 const raidBladeCache={};
 function raidBlade(glow,img){ /* the lord's weapon soaked in his colour, cached per art+tint */
  img=img||cowWeaponImg;
@@ -110,9 +134,10 @@ function bootFeet(e,g2){
  if(!(bootImg.complete&&bootImg.naturalWidth)){if(!g2)feet(e,1);return;}
  const o=e.moving?Math.sin(e.walk*2)*4:0;
  const W=e.fem?9.5:12,H=W*bootImg.naturalHeight/bootImg.naturalWidth; /* daintier boots on the ladies */
- g.drawImage(mip(bootImg,64),-5-W/2,12-H/2+o,W,H); /* left — full counter-swing */
+ const sx=5+(e.sx||0); /* sx: extra stance width (big bosses stand wider) */
+ g.drawImage(mip(bootImg,64),-sx-W/2,12-H/2+o,W,H); /* left — full counter-swing */
  g.save();g.scale(-1,1);
- g.drawImage(mip(bootImg,64),-5-W/2,12-H/2-o,W,H); /* right = mirrored */
+ g.drawImage(mip(bootImg,64),-sx-W/2,12-H/2-o,W,H); /* right = mirrored */
  g.restore();
 }
 const brunnImg=new Image();brunnImg.src='assets/models/brunn.png';
@@ -379,7 +404,7 @@ const ZONES=[
  {name:'Gates of the Viking',lvl:60,amb:'haaland',valhalla:true,special:true,
   boss:['HAALAND','#c94a3a','cerberus'],
   ground:'#8a94a0',ground2:'#7d8794',water:'#5a7a9a',tree:'#4a5a66',tree2:'#39464f',path:'#a8b0ba',rocky:true},
- {name:'Halls of Valhalla',lvl:60,amb:'frost',valhalla:true,special:true,thor:true,
+ {name:'Halls of Valhalla',lvl:60,amb:'frost',valhalla:true,special:true,thor:true,map:'tormap_zone',
   boss:['Thor, God of Thunder','#7fd0ff','thor'],
   ground:'#8a94b8',ground2:'#7d87aa',water:'#9ac8e8',tree:'#5a6a8a',tree2:'#46536e',path:'#d8cfa0',rocky:true},
  {name:'Cow Level',lvl:60,amb:'cow',west:true,special:true,cow:true,map:'cowlevel_zone',
@@ -393,6 +418,9 @@ const ZONES=[
   ground:'#3a3a46',ground2:'#33333e',water:'#2f3a4a',tree:'#33333e',tree2:'#262630',path:'#55556a',rocky:true,en:[]},
  {name:'The Altar',lvl:1,amb:'frost',special:true,altar:true,noBerg:true,map:'thealtar',en:[], /* sky sanctum — portal-only, no level gate */
   ground:'#8a94b8',ground2:'#7d87aa',water:'#9ac8e8',tree:'#5a6a8a',tree2:'#46536e',path:'#d8cfa0'},
+ {name:'Farm',lvl:1,amb:'world',special:true,farm:true,noBerg:true,noTrees:true,en:[], /* 🚜 under construction — reachable by console only, the Goldshire portal is a promise
+    NOTE: appended LAST so existing saves' zone indices stay valid — never insert zones mid-array */
+  ground:'#7a8a4e',ground2:'#6e7d46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
 ];
 const TAVERN_ZONE=ZONES.findIndex(z=>z.tavern);
 const ALTAR_ZONE=ZONES.findIndex(z=>z.altar);
@@ -858,6 +886,7 @@ function zoneTemplates(z){
 function zoneQuests(z){
  if(z.tavern)return [{name:'🍺 Goldshire',desc:'A safe haven. Rest, forge, trade — no foe dares enter.',need:999999}];
  if(z.altar)return [{name:'⛧ The Altar',desc:'A silent ring above the clouds. Something waits to be awakened.',need:999999}];
+ if(z.farm)return [{name:'🚜 The Farm',desc:'Open fields as far as the eye can see. Nothing grows here… yet.',need:999999}];
  if(z.crypts)return [{name:'⚰️ The Crypts',desc:'An ever-shifting labyrinth. Three chests wait somewhere in the dark. On foot only — AUTO fails here.',need:3}];
  if(z.raid)return [{name:'⚔ Sanctum of the Three',desc:'Slay all three raid lords. Pull them one at a time — they never retreat.',need:3,boss:true}];
  if(z.cow)return [{name:'MOO',desc:'Survive. You cannot.',need:999999}];
@@ -1017,6 +1046,7 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.ritualDone===undefined)s.ritualDone=false; /* ⛧ the altar accepts one life per hero */
  if(!s.knifeAwarded&&(s.rating||0)>=3000){s.knifeAwarded=true;s.theKnife=true;} /* already past 3000 — the knife finds them */
  if(s.gearSets===undefined){s.gearSets=[null,null];s.gearSetSel=-1;} /* two swappable loadouts */
+ if(s.farm===undefined)s.farm={owned:false,b:[],c:[]}; /* 🚜 the farm: buildings + crops */
  (s.gearSets||[]).forEach((gs,gi)=>{ /* v1 sets held raw items or a worn flag — convert to v2 (gsid refs) */
   if(!gs)return;
   if(gs.worn){s.gearSets[gi]=null;s.gearSetSel=-1;return;}
@@ -1727,6 +1757,20 @@ $('fishhutClose').onclick=()=>$('fishhutMenu').style.display='none';
 let altarMsgSeen=false;
 $('altarMsgOk').onclick=()=>{$('altarMsg').style.display='none';};
 $('cryptIntroOk').onclick=()=>{$('cryptIntro').style.display='none';S.cryptIntroSeen=true;save();};
+$('farmBuyYes').onclick=()=>{
+ if(S.farm.owned)return;
+ if(totalGold()<500000||S.scraps<800){stageMsg('Need 500,000◉ and 800⚙',1800);sfx.warn();return;}
+ if(!spendGold(500000))return;
+ S.scraps-=800;
+ S.farm.owned=true;
+ $('farmBuyFx').style.display='none';
+ stageMsg('🚜 THE FARM IS YOURS! Click the farmhouse again to build.',3400);
+ log('<span class="loot">🚜 Farm purchased</span> — 500,000◉ + 800⚙ well spent.','loot');
+ sfx.level();save();renderHUD();
+};
+$('farmBuyNo').onclick=()=>$('farmBuyFx').style.display='none';
+$('fsCat').onchange=()=>{buildTab=$('fsCat').value;buildSel=null;renderFarmStore();};
+$('fsClose').onclick=()=>exitBuildMode();
 /* ==================== THE RITUAL ====================
    Blackout ~3s, then the screen blinks three times like a waking eye,
    then the reveal: a life traded for the cursed Ice Armor. */
@@ -1973,6 +2017,153 @@ function updateRatBoss(dt){
  if(tx>rb.x+1)rb.fx=1;else if(tx<rb.x-1)rb.fx=-1;
  rb.walk+=dt*3.4;rb.moving=true;
 }
+function rebuildFarmItems(){ /* placed buildings become solids; crops draw with the ground */
+ if(!world)return;
+ world.solids=world.solids.filter(s2=>!s2.farmItem);
+ for(const it of ((S&&S.farm&&S.farm.b)||[])){
+  if(it._moving)continue;
+  const def=FARM_BUILD.find(x=>x.id===it.t);
+  if(!def)continue;
+  const col=def.col||{r:20};
+  const sol={x:it.x,y:it.y,r:col.r||40,type:'farmitem',ftype:it.t,farmItem:1};
+  if(col.crx){sol.crx=col.crx;sol.cry=col.cry;sol.cyo=col.cyo;}
+  world.solids.push(sol);
+ }
+}
+let buildMode=false,buildSel=null,buildTab='b',mouseWX=0,mouseWY=0,buildPan=null,removeDrag=null,pendingDelRect=null;
+let farmCart=[]; /* pending placements — ghosts until checkout */
+let moveItem=null,movePicked=null; /* click an item with nothing selected → Move popup → carry it */
+function farmHitTest(wx,wy){
+ let best=null,bd=95;
+ farmCart.forEach((g2,i)=>{const d=Math.hypot(g2.x-wx,g2.y-wy);if(d<bd){bd=d;best={kind:'g',i,t:g2.t};}});
+ S.farm.b.forEach((b2,i)=>{const d=Math.hypot(b2.x-wx,b2.y-wy);if(d<bd){bd=d;best={kind:'b',i,t:b2.t};}});
+ let cd=45;
+ S.farm.c.forEach((c2,i)=>{const d=Math.hypot(c2.x-wx,c2.y-wy);if(d<cd){cd=d;best={kind:'c',i,t:c2.t};}});
+ return best;
+}
+function farmListOf(kind){return kind==='b'?S.farm.b:kind==='c'?S.farm.c:farmCart;}
+function showMovePopup(hit,cx,cy){
+ const def=FARM_BUILD.find(x=>x.id===hit.t);
+ $('farmMoveName').textContent=def?def.n:(hit.t==='hay'?'Hö':hit.t);
+ const box=$('farmMoveFx'),wrap=cv.getBoundingClientRect();
+ box.style.display='block';
+ box.style.left=Math.min(wrap.width-150,Math.max(4,cx-wrap.left+10))+'px';
+ box.style.top=Math.min(wrap.height-95,Math.max(4,cy-wrap.top-46))+'px';
+}
+function cancelMove(){
+ if(moveItem){const it=farmListOf(moveItem.kind)[moveItem.i];if(it)delete it._moving;}
+ moveItem=null;movePicked=null;
+ const b=$('farmMoveFx');if(b)b.style.display='none';
+}
+const FARM_PRICES={lada:0,staket:0,staketv:0,chickenhouse:0,chickenfarm:0,chickenfarm_big:0,cowfarm:0,cowfarm_big:0,tjur:0,hay:0}; /* placeholder — real prices coming */
+function updateCartUI(){
+ const b=$('farmCheckBtn');
+ if(!b)return;
+ b.style.display=(buildMode&&farmCart.length)?'flex':'none';
+ const n=$('farmCartN');if(n)n.textContent=farmCart.length;
+}
+function farmhouseClick(){
+ if((S.prestige||0)<5){stageMsg('🔒 Requires Prestige 5',1800);sfx.warn();return;}
+ if(!S.farm.owned){$('farmBuyFx').style.display='flex';return;}
+ enterBuildMode();
+}
+function enterBuildMode(){
+ buildMode=true;buildSel=null;buildTab='b';
+ hero.moveTo=null;hero.target=null;hero.pendingDoor=null;
+ /* bird's-eye: fit the whole buildable field on screen */
+ setZoom(Math.min(VW/4400,VH/2750));
+ camX=2100-VW/(2*zoom);camY=1300-VH/(2*zoom);
+ $('farmStore').style.display='flex';
+ renderFarmStore();
+ updateCartUI();
+ stageMsg('🔨 Build mode — pick an item and click to place it. 🗑 removes. Drag to pan, scroll to zoom.',3400);
+}
+function exitBuildMode(){
+ cancelMove();
+ if(farmCart.length){farmCart=[];stageMsg('Pending items discarded',1400);}
+ buildMode=false;buildSel=null;buildPan=null;removeDrag=null;
+ $('farmStore').style.display='none';
+ updateCartUI();
+ setZoom(Math.max(1,zmin())); /* camera glides back down to the hero */
+}
+function farmCartTotal(){return farmCart.reduce((t,g2)=>t+(FARM_PRICES[g2.t]||0),0);}
+function openFarmCheckout(){
+ if(!farmCart.length)return;
+ const counts={};
+ farmCart.forEach(g2=>counts[g2.t]=(counts[g2.t]||0)+1);
+ $('farmCheckList').innerHTML=Object.entries(counts).map(([t,n])=>{
+  const def=FARM_BUILD.find(x=>x.id===t);
+  return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0"><span>${def?def.n:t} ×${n}</span><span style="color:var(--brass)">${((FARM_PRICES[t]||0)*n).toLocaleString()}◉</span></div>`;
+ }).join('');
+ $('farmCheckTotal').textContent=farmCartTotal().toLocaleString()+'◉';
+ $('farmCheckoutFx').style.display='flex';
+}
+function renderFarmStore(){
+ const list=FARM_BUILD.filter(it=>it.tab===buildTab||it.tab==='*');
+ if(list.length<=1&&!FARM_BUILD.some(it=>it.tab===buildTab)){ /* empty category (only the remove tool) */
+  $('farmStoreList').innerHTML=list.map(it=>`<div class="fsitem${buildSel===it.id?' sel':''}" data-fs="${it.id}"><div style="font-size:34px;text-align:center;padding:8px 0">${it.emoji||'❓'}</div><div class="fsn">${it.n}</div></div>`).join('')+'<div class="ss" style="color:var(--dim);text-align:center;padding:14px 4px;font-size:11.5px">Nothing here yet — coming soon!</div>';
+  document.querySelectorAll('[data-fs]').forEach(el=>el.onclick=()=>{buildSel=buildSel===el.dataset.fs?null:el.dataset.fs;renderFarmStore();});
+  return;
+ }
+ $('farmStoreList').innerHTML=list.map(it=>{
+  const sel=buildSel===it.id;
+  return `<div class="fsitem${sel?' sel':''}${it.locked?' lock':''}" data-fs="${it.id}">
+   ${it.img?`<img src="assets/farm/${it.img}.png" draggable="false">`:`<div style="font-size:34px;text-align:center;padding:8px 0">${it.emoji||'❓'}</div>`}
+   <div class="fsn">${it.n}</div>
+   ${it.locked?`<div class="fsl">🔒 ${it.locked}</div>`:sel?'<div class="fsl" style="color:#ffd76a">✓ Selected — click the field</div>':''}
+  </div>`;
+ }).join('');
+ document.querySelectorAll('[data-fs]').forEach(el=>el.onclick=()=>{
+  const it=FARM_BUILD.find(x=>x.id===el.dataset.fs);
+  if(it.locked){stageMsg('🔒 '+it.n+' — '+it.locked,1500);sfx.warn();return;}
+  buildSel=buildSel===it.id?null:it.id;
+  renderFarmStore();
+ });
+ const sel2=$('fsCat');if(sel2&&sel2.value!==buildTab)sel2.value=buildTab;
+}
+function placeFarmItem(id,x,y){
+ x=Math.round(x);y=Math.round(y);
+ if(id==='remove'){ /* pending ghosts go silently; committed pieces as before */
+  let gi=-1,gd=95;
+  farmCart.forEach((g2,i)=>{const d=Math.hypot(g2.x-x,g2.y-y);if(d<gd){gd=d;gi=i;}});
+  if(gi>=0){farmCart.splice(gi,1);updateCartUI();blip(300,180,0.1,.05);return;}
+  let bi=-1,bd=95;
+  S.farm.b.forEach((b2,i)=>{const d=Math.hypot(b2.x-x,b2.y-y);if(d<bd){bd=d;bi=i;}});
+  if(bi>=0){S.farm.b.splice(bi,1);rebuildFarmItems();sfx.forge();stageMsg('🗑 Removed',900);save();return;}
+  let ci=-1,cd=45;
+  S.farm.c.forEach((c2,i)=>{const d=Math.hypot(c2.x-x,c2.y-y);if(d<cd){cd=d;ci=i;}});
+  if(ci>=0){S.farm.c.splice(ci,1);sfx.forge();stageMsg('🗑 Removed',900);save();}
+  return;
+ }
+ farmCart.push({t:id,x,y}); /* a ghost until you pay for it */
+ blip(600,900,0.08,.05);
+ updateCartUI();
+}
+function drawFarmGround(){ /* farm_zone stretched over one cow-field, laid twice — the second flipped to hide the seam */
+ const img=zoneMapImg('farm_zone');
+ const vx0=camX,vy0=camY,vx1=camX+VW/zoom,vy1=camY+VH/zoom;
+ if(!(img.complete&&img.naturalWidth)){ctx.fillStyle='#6e7d46';ctx.fillRect(vx0,vy0,vx1-vx0,vy1-vy0);return;}
+ const TW=4200,TH=2600;
+ for(let t=0;t<2;t++){
+  const x0=t*TW;
+  if(x0>vx1||x0+TW<vx0)continue;
+  if(t===1){ctx.save();ctx.translate(x0+TW/2,TH/2);ctx.scale(-1,1);ctx.drawImage(mip(img,TW),-TW/2,-TH/2,TW,TH);ctx.restore();}
+  else ctx.drawImage(mip(img,TW),x0,0,TW,TH);
+ }
+ ctx.strokeStyle='rgba(0,0,0,0.35)';ctx.lineWidth=26;ctx.strokeRect(0,0,world.w,world.h);
+ const hayImg=farmImg('ho_fro');
+ for(const c of ((S&&S.farm&&S.farm.c)||[])){ /* 🌱 hay stage 1 — the painted seed patch */
+  if(c._moving)continue;
+  if(c.x<vx0-50||c.x>vx1+50||c.y<vy0-50||c.y>vy1+50)continue;
+  if(hayImg.complete&&hayImg.naturalWidth){
+   const W2=74,H2=W2*hayImg.naturalHeight/hayImg.naturalWidth;
+   ctx.drawImage(mip(hayImg,W2),c.x-W2/2,c.y+10-H2,W2,H2);
+  }else{
+   ctx.strokeStyle='#7db64a';ctx.lineWidth=2;ctx.lineCap='round';
+   for(let i=0;i<4;i++){const k=(i-1.5);ctx.beginPath();ctx.moveTo(c.x+k*5,c.y);ctx.quadraticCurveTo(c.x+k*7,c.y-7,c.x+k*10,c.y-13);ctx.stroke();}
+  }
+ }
+}
 function drawCryptGround(){
  const img=zoneMapImg('cryptmap');
  const vx0=camX,vy0=camY,vx1=camX+VW/zoom,vy1=camY+VH/zoom;
@@ -2011,7 +2202,7 @@ function buildZone(){
  if(!zoneOf().special&&(S.maxZone||0)<S.zone)S.maxZone=S.zone;
  const z=zoneOf(),R=mulberry32(S.zone*7919+13);
  const isBoss=!!z.boss;
- world={w:z.crypts?13440:z.raid?3800:z.cow?4200:z.tavern?2600:isBoss?2400:3000,h:z.crypts?7740:z.raid?1900:z.cow?2600:z.tavern?1700:isBoss?1600:2000,solids:[],deco:[],waters:[]}; /* larger maps — full desktop view + hidden side panel; cow field is the biggest */
+ world={w:z.crypts?13440:z.farm?8400:z.raid?3800:z.cow?4200:z.tavern?2600:isBoss?2400:3000,h:z.crypts?7740:z.farm?2600:z.raid?1900:z.cow?2600:z.tavern?1700:isBoss?1600:2000,solids:[],deco:[],waters:[]}; /* larger maps — full desktop view + hidden side panel; cow field is the biggest */
  world.spawn={x:120,y:world.h/2};
  world.portal={x:world.w-80,y:world.h/2};
  world.pathY=world.h/2;world.pathH=110;
@@ -2032,6 +2223,8 @@ function buildZone(){
   world.solids.push({x:cx-805,y:cy+550,r:52,type:'smith',big:true,seed:11,crx:125,cry:45,cyo:-100});
   /* portal to The Altar — open to every level, on the north road */
   world.solids.push({x:cx-40,y:cy-700,r:38,type:'altarportal'});
+  /* 🚜 the Farm portal — far west road; leads nowhere yet */
+  world.solids.push({x:cx-1140,y:cy,r:38,type:'farmportal'});
   /* the Fishing Hut — worm vendor on the lake's south shore */
   world.solids.push({x:cx+760,y:cy-350,r:30,type:'fishhut',crx:80,cry:32,cyo:-38});
   /* friendly townsfolk roaming their own little routes between the buildings */
@@ -2077,6 +2270,14 @@ function buildZone(){
   }
  }else{
   if(z.crypts)buildCryptMaze();
+  if(z.farm){ /* 🚜 the Farm — the little farmhouse guards the fields */
+   world.spawn={x:260,y:1300};
+   world.portal={x:-500,y:-500}; /* no default exit swirl */
+   world.solids.push({x:120,y:1300,r:38,type:'altarportal'}); /* the way home */
+   world.solids.push({x:1590,y:340,r:46,type:'farmhouse',crx:150,cry:44,cyo:-60});
+   rebuildFarmItems();
+   zoneMapImg('farm_zone');
+  }
   if(z.altar){
    /* the way home — standing on the walkway just ahead of the spawn */
    world.solids.push({x:110,y:995,r:38,type:'altarportal'}); /* far left on the walkway */
@@ -2100,7 +2301,7 @@ function buildZone(){
   /* fewer props with an enforced minimum gap so nothing clumps and traps the hero */
   const MINGAP=58;
   const clearOf=(x,y)=>!world.solids.some(s=>dist({x,y},s)<(s.type==='water'||s.type==='berg'?s.r+46:MINGAP));
-  const nT=(z.raid||isBoss||z.altar||z.crypts)?0:70; /* boss arenas, sky sanctum & the crypts: clean ground */
+  const nT=(z.raid||isBoss||z.altar||z.crypts||z.farm)?0:70; /* boss arenas, sky sanctum, crypts & farm: clean ground */
   for(let i=0;i<nT;i++){
    let x,y,ok=false;
    if(isBoss){
@@ -2312,7 +2513,7 @@ function collectCowChest(){
 }
 function prerenderGround(z,R){
  groundCv=document.createElement('canvas');
- if(z.crypts){groundCv.width=groundCv.height=16;return;} /* floor tiles draw per frame — a 13440px canvas would sink phones */
+ if(z.crypts||z.farm){groundCv.width=groundCv.height=16;return;} /* floor draws per frame — giant canvases sink phones */
  groundCv.width=world.w;groundCv.height=world.h;
  const g=groundCv.getContext('2d');
  if(z.raid){ /* the Black Temple floor — tiled at near-native scale, mirrored to hide seams */
@@ -2404,7 +2605,7 @@ function collide(e,nx,ny){
  if((!e.boss||e.raid)&&!e.cow){
   for(const s of world.solids){
    if(s.type==='gate'&&!(world.raidRooms&&world.raidRooms[s.room]&&world.raidRooms[s.room].sealed))continue;
-   if(s.type==='altarportal'||s.type==='ritualportal')continue; /* walk straight through the portals */
+   if(s.type==='altarportal'||s.type==='ritualportal'||s.type==='farmportal')continue; /* walk straight through the portals */
    if(s.crx){ /* wide painted buildings block with an ellipse matching their footprint (cyo shifts it up onto the walls) */
     const kx=(nx-s.x)/(s.crx+e.r),ky=(ny-s.y-(s.cyo||0))/(s.cry+e.r);
     if(kx*kx+ky*ky<1)return true;
@@ -3199,6 +3400,34 @@ cv.addEventListener('pointerdown',e=>{
   else{hero.target=null;hero.goPortal=false;hero.moveTo={x:apx.x,y:apx.y+34};marker={x:apx.x,y:apx.y+34,t:0};hero.pendingDoor={s:apx,open:go,rng:75};}
   return;
  }
+ if(zoneOf().farm){
+  if(buildMode){
+   if(moveItem){ /* set it down here */
+    if(wx>=40&&wx<4200&&wy>=40&&wy<=world.h-40){
+     const it=farmListOf(moveItem.kind)[moveItem.i];
+     if(it){it.x=Math.round(wx);it.y=Math.round(wy);delete it._moving;}
+     if(moveItem.kind!=='g'){rebuildFarmItems();save();}
+     moveItem=null;sfx.buy();
+    }
+    return;
+   }
+   if(buildSel==='remove'){removeDrag={id:e.pointerId,x0:wx,y0:wy,x1:wx,y1:wy};return;} /* click OR drag-select */
+   if(buildSel&&wx>=40&&wx<4200&&wy>=40&&wy<=world.h-40)placeFarmItem(buildSel,wx,wy);
+   else if(!buildSel){
+    const hit=farmHitTest(wx,wy);
+    if(hit){movePicked=hit;showMovePopup(hit,e.clientX,e.clientY);return;}
+    buildPan={id:e.pointerId,lx:e.clientX,ly:e.clientY}; /* drag = pan */
+   }
+   return;
+  }
+  const fh=world.solids.find(s2=>s2.type==='farmhouse');
+  if(fh&&Math.abs(wx-fh.x)<190&&wy>fh.y-330&&wy<fh.y+60){
+   const open=()=>farmhouseClick();
+   if(Math.hypot(hero.x-fh.x,hero.y-fh.y)<180)open();
+   else{hero.target=null;hero.goPortal=false;hero.moveTo={x:fh.x,y:fh.y+80};marker={x:fh.x,y:fh.y+80,t:0};hero.pendingDoor={s:fh,open,rng:180};}
+   return;
+  }
+ }
  if(zoneOf().tavern){
   /* buildings need melee range — near: menu opens; far: run to the door, menu opens on arrival */
   const walkOrOpen=(s,open)=>{
@@ -3255,8 +3484,70 @@ cv.addEventListener('pointerdown',e=>{
 /* ---- hold-to-move: while a finger stays pressed on open ground, the hero keeps walking toward it ---- */
 let holdMove=null;
 window.addEventListener('pointermove',e=>{ /* window, not canvas — keeps steering even if the cursor drifts off the map */
+ const r=cv.getBoundingClientRect();
+ mouseWX=(e.clientX-r.left)/zoom+camX;mouseWY=(e.clientY-r.top)/zoom+camY;
+ if(removeDrag&&e.pointerId===removeDrag.id){removeDrag.x1=mouseWX;removeDrag.y1=mouseWY;return;}
+ if(buildPan&&e.pointerId===buildPan.id){ /* build mode: drag pans the camera */
+  camX-=(e.clientX-buildPan.lx)/zoom;camY-=(e.clientY-buildPan.ly)/zoom;
+  buildPan.lx=e.clientX;buildPan.ly=e.clientY;
+  return;
+ }
  if(holdMove&&e.pointerId===holdMove.id){holdMove.cx=e.clientX;holdMove.cy=e.clientY;}
 });
+window.addEventListener('pointerup',e=>{
+ if(buildPan&&e.pointerId===buildPan.id)buildPan=null;
+ if(removeDrag&&e.pointerId===removeDrag.id){
+  const rd=removeDrag;removeDrag=null;
+  if(Math.hypot(rd.x1-rd.x0,rd.y1-rd.y0)<14){placeFarmItem('remove',rd.x1,rd.y1);return;} /* a tap: single delete */
+  const R={x0:Math.min(rd.x0,rd.x1),x1:Math.max(rd.x0,rd.x1),y0:Math.min(rd.y0,rd.y1),y1:Math.max(rd.y0,rd.y1)};
+  const preCart=farmCart.length;
+  farmCart=farmCart.filter(g2=>!(g2.x>=R.x0&&g2.x<=R.x1&&g2.y>=R.y0&&g2.y<=R.y1));
+  if(farmCart.length!==preCart)updateCartUI();
+  const nb=S.farm.b.filter(b2=>b2.x>=R.x0&&b2.x<=R.x1&&b2.y>=R.y0&&b2.y<=R.y1).length;
+  const nc=S.farm.c.filter(c2=>c2.x>=R.x0&&c2.x<=R.x1&&c2.y>=R.y0&&c2.y<=R.y1).length;
+  if(nb+nc===0){stageMsg('Nothing selected',900);return;}
+  pendingDelRect=R;
+  $('farmDelTxt').textContent='Delete '+(nb+nc)+' item'+(nb+nc>1?'s':'')+' ('+nb+' building'+(nb!==1?'s':'')+', '+nc+' crop'+(nc!==1?'s':'')+')?';
+  $('farmDelFx').style.display='flex';
+ }
+});
+$('farmDelYes').onclick=()=>{
+ const R=pendingDelRect;pendingDelRect=null;
+ $('farmDelFx').style.display='none';
+ if(!R)return;
+ S.farm.b=S.farm.b.filter(b2=>!(b2.x>=R.x0&&b2.x<=R.x1&&b2.y>=R.y0&&b2.y<=R.y1));
+ S.farm.c=S.farm.c.filter(c2=>!(c2.x>=R.x0&&c2.x<=R.x1&&c2.y>=R.y0&&c2.y<=R.y1));
+ rebuildFarmItems();
+ sfx.forge();stageMsg('🗑 Cleared',1100);save();
+};
+$('farmDelNo').onclick=()=>{pendingDelRect=null;$('farmDelFx').style.display='none';};
+$('farmCheckBtn').onclick=()=>openFarmCheckout();
+$('farmCheckYes').onclick=()=>{
+ const total=farmCartTotal();
+ if(total>0&&!spendGold(total)){stageMsg('Not enough gold — '+total.toLocaleString()+'◉ needed',1800);sfx.warn();return;}
+ for(const g2 of farmCart){
+  if(g2.t==='hay')S.farm.c.push({t:'hay',stage:1,x:g2.x,y:g2.y,at:Date.now()});
+  else S.farm.b.push({t:g2.t,x:g2.x,y:g2.y});
+ }
+ const n=farmCart.length;
+ farmCart=[];
+ rebuildFarmItems();
+ updateCartUI();
+ $('farmCheckoutFx').style.display='none';
+ sfx.buy();
+ stageMsg('🛒 '+n+' item'+(n>1?'s':'')+' built!',1800);
+ save();renderHUD();
+};
+$('farmCheckNo').onclick=()=>$('farmCheckoutFx').style.display='none';
+$('farmMoveGo').onclick=()=>{
+ if(!movePicked)return;
+ moveItem=movePicked;movePicked=null;
+ const it=farmListOf(moveItem.kind)[moveItem.i];
+ if(it)it._moving=true;
+ $('farmMoveFx').style.display='none';
+ stageMsg('↔ Click where it should stand',1700);
+};
+$('farmMoveX').onclick=()=>{movePicked=null;$('farmMoveFx').style.display='none';};
 const endHoldMove=e=>{if(holdMove&&e.pointerId===holdMove.id)holdMove=null;};
 window.addEventListener('pointerup',endHoldMove);
 window.addEventListener('pointercancel',endHoldMove);
@@ -3264,12 +3555,18 @@ window.addEventListener('pointercancel',endHoldMove);
 /* ---- camera zoom: mouse wheel on the map, 2-finger pinch on phones ---- */
 let zoom=1,pinchD=0,pinching=false;
 const ZMAX=3;
-const zmin=()=>(IS_TOUCH&&Math.min(VW,VH)<820)?0.7:1; /* extra zoom-out strictly on phone/tablet screens */
+const zmin=()=>buildMode?0.12:((IS_TOUCH&&Math.min(VW,VH)<820)?0.7:1); /* build mode surveys the whole plot */
 function setZoom(z){zoom=Math.max(zmin(),Math.min(ZMAX,z));}
 cv.addEventListener('wheel',e=>{
  if(!gameOn)return;
  e.preventDefault();
- setZoom(zoom*(e.deltaY<0?1.12:0.89));
+ if(buildMode){ /* build mode: dive toward the cursor */
+  const r=cv.getBoundingClientRect();
+  const px=e.clientX-r.left,py=e.clientY-r.top;
+  const wx=px/zoom+camX,wy=py/zoom+camY;
+  setZoom(zoom*(e.deltaY<0?1.12:0.89));
+  camX=wx-px/zoom;camY=wy-py/zoom;
+ }else setZoom(zoom*(e.deltaY<0?1.12:0.89)); /* normal play: plain centre zoom */
 },{passive:false});
 cv.addEventListener('touchstart',e=>{
  if(e.touches.length===2){
@@ -3283,7 +3580,14 @@ cv.addEventListener('touchmove',e=>{
  if(e.touches.length===2){
   e.preventDefault();
   const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
-  if(pinchD>0)setZoom(zoom*d/pinchD);
+  if(buildMode){ /* build mode: dive into the pinch midpoint */
+   const r=cv.getBoundingClientRect();
+   const mx=(e.touches[0].clientX+e.touches[1].clientX)/2-r.left;
+   const my=(e.touches[0].clientY+e.touches[1].clientY)/2-r.top;
+   const wx=mx/zoom+camX,wy=my/zoom+camY;
+   if(pinchD>0)setZoom(zoom*d/pinchD);
+   camX=wx-mx/zoom;camY=wy-my/zoom;
+  }else if(pinchD>0)setZoom(zoom*d/pinchD);
   pinchD=d;
  }
 },{passive:false});
@@ -3449,6 +3753,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   }
   let kx=(keys['d']||keys['arrowright']?1:0)-(keys['a']||keys['arrowleft']?1:0);
   let ky=(keys['s']||keys['arrowdown']?1:0)-(keys['w']||keys['arrowup']?1:0);
+  if(buildMode){kx=0;ky=0;} /* the architect's hands are full */
   if(kx||ky){
    const l=Math.hypot(kx,ky);
    moveToward(hero,hero.x+kx/l*50,hero.y+ky/l*50,dt);
@@ -3756,8 +4061,10 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
  for(let i=bloods.length-1;i>=0;i--){bloods[i].t+=dt;if(bloods[i].t>bloods[i].life)bloods.splice(i,1);}
  for(let i=zaps.length-1;i>=0;i--){zaps[i].t+=dt;if(zaps[i].t>zaps[i].life)zaps.splice(i,1);}
  if(marker){marker.t+=dt;if(marker.t>0.8)marker=null;}
- camX+=(hero.x-VW/(2*zoom)-camX)*Math.min(1,dt*6);
- camY+=(hero.y-VH/(2*zoom)-camY)*Math.min(1,dt*6);
+ if(!buildMode){ /* build mode frees the camera — pan and zoom where you like */
+  camX+=(hero.x-VW/(2*zoom)-camX)*Math.min(1,dt*6);
+  camY+=(hero.y-VH/(2*zoom)-camY)*Math.min(1,dt*6);
+ }
  camX=Math.max(0,Math.min(world.w-VW/zoom,camX));
  camY=Math.max(0,Math.min(world.h-VH/zoom,camY));
 }
@@ -3949,6 +4256,7 @@ function draw(){
  ctx.drawImage(groundCv,0,0);
  const z=zoneOf();
  if(z.crypts)drawCryptGround();
+ else if(z.farm)drawFarmGround();
  /* animated water shimmer */
  for(const w of world.waters){
   if(w.x<camX-w.r||w.x>camX+VW/zoom+w.r||w.y<camY-w.r||w.y>camY+VH/zoom+w.r)continue;
@@ -4078,6 +4386,55 @@ function draw(){
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(f.txt,f.x+1,f.y-f.t*44+1);
   ctx.fillStyle=f.color;ctx.fillText(f.txt,f.x,f.y-f.t*44);
   ctx.globalAlpha=1;
+ }
+ if(z.farm&&buildMode){ /* buildable boundary + pending ghosts + ghost of the selected item */
+  ctx.globalAlpha=0.55;
+  for(const g2 of farmCart){
+   if(g2._moving)continue;
+   const def2=FARM_BUILD.find(x=>x.id===g2.t);
+   if(def2&&def2.img){
+    const im2=farmImg(def2.img);
+    if(im2.complete&&im2.naturalWidth){
+     const W2=def2.W||200,H2=W2*im2.naturalHeight/im2.naturalWidth;
+     ctx.drawImage(mip(im2,W2),g2.x-W2/2,g2.y+(def2.gy!==undefined?def2.gy:30)-H2,W2,H2);
+    }
+   }
+  }
+  ctx.globalAlpha=1;
+  ctx.strokeStyle='rgba(255,255,255,0.30)';ctx.setLineDash([16,12]);ctx.lineWidth=3;
+  ctx.strokeRect(20,20,4180,world.h-40);ctx.setLineDash([]);
+  if(buildSel||moveItem){
+   const gid=moveItem?moveItem.t:buildSel;
+   const ok=mouseWX>=40&&mouseWX<4200&&mouseWY>=40&&mouseWY<=world.h-40;
+   ctx.globalAlpha=ok?0.55:0.25;
+   const def=FARM_BUILD.find(x=>x.id===gid);
+   if(def&&def.img){
+    const im=farmImg(def.img);
+    if(im.complete&&im.naturalWidth){
+     const W=def.W||200,H=W*im.naturalHeight/im.naturalWidth;
+     ctx.drawImage(mip(im,W),mouseWX-W/2,mouseWY+(def.gy!==undefined?def.gy:30)-H,W,H);
+    }
+   }else if(gid==='hay'){ /* hay ghost via its art */
+    const im3=farmImg('ho_fro');
+    if(im3.complete&&im3.naturalWidth){const W3=74,H3=W3*im3.naturalHeight/im3.naturalWidth;ctx.drawImage(mip(im3,W3),mouseWX-W3/2,mouseWY+10-H3,W3,H3);}
+   }else if(gid==='remove'){ /* demolish cursor */
+    ctx.strokeStyle='rgba(255,90,70,0.9)';ctx.lineWidth=4;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(mouseWX-14,mouseWY-14);ctx.lineTo(mouseWX+14,mouseWY+14);
+    ctx.moveTo(mouseWX+14,mouseWY-14);ctx.lineTo(mouseWX-14,mouseWY+14);ctx.stroke();
+   }else{ /* hay ghost */
+    ctx.strokeStyle='#7db64a';ctx.lineWidth=2;
+    for(let i=0;i<4;i++){const k=(i-1.5);ctx.beginPath();ctx.moveTo(mouseWX+k*5,mouseWY);ctx.quadraticCurveTo(mouseWX+k*7,mouseWY-7,mouseWX+k*10,mouseWY-13);ctx.stroke();}
+   }
+   ctx.globalAlpha=1;
+   if(!ok){ctx.strokeStyle='rgba(255,90,70,0.8)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(mouseWX,mouseWY,22,0,7);ctx.stroke();}
+  }
+  if(removeDrag){ /* the demolition marquee */
+   ctx.fillStyle='rgba(255,90,70,0.12)';
+   ctx.fillRect(Math.min(removeDrag.x0,removeDrag.x1),Math.min(removeDrag.y0,removeDrag.y1),Math.abs(removeDrag.x1-removeDrag.x0),Math.abs(removeDrag.y1-removeDrag.y0));
+   ctx.strokeStyle='rgba(255,90,70,0.85)';ctx.setLineDash([10,7]);ctx.lineWidth=2;
+   ctx.strokeRect(Math.min(removeDrag.x0,removeDrag.x1),Math.min(removeDrag.y0,removeDrag.y1),Math.abs(removeDrag.x1-removeDrag.x0),Math.abs(removeDrag.y1-removeDrag.y0));
+   ctx.setLineDash([]);
+  }
  }
  if(z.crypts&&world.mwalls)drawCryptFog(); /* the dark closes in — last world-space layer */
  else if(z.raid&&!hero.dead)drawRaidFog(); /* the temple keeps its secrets behind the walls */
@@ -4339,6 +4696,43 @@ function drawProp(s,z){
   ctx.font='700 12px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(lbl,1,-95);
   ctx.fillStyle='#bcd8ff';ctx.fillText(lbl,0,-96);
+ }else if(s.type==='farmhouse'){
+  const im=farmImg('farmhouse_litet');
+  if(im.complete&&im.naturalWidth){
+   const W=340,H=W*im.naturalHeight/im.naturalWidth;
+   ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,28,W*0.40,W*0.12,0,0,7);ctx.fill();
+   ctx.drawImage(mip(im,W),-W/2,32-H,W,H);
+   const own=S.farm&&S.farm.owned;
+   const txt=own?'':((S.prestige||0)>=5?'Buy Farm · 500,000◉ + 800⚙':'🔒 Requires Prestige 5');
+   if(txt){
+    ctx.font='700 13px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
+    ctx.fillStyle='rgba(0,0,0,0.65)';ctx.fillText(txt,1,32-H-10+1);
+    ctx.fillStyle=(S.prestige||0)>=5?'#ffd76a':'#ff8a7a';ctx.fillText(txt,0,32-H-10);
+   }
+  }
+ }else if(s.type==='farmitem'){ /* any placed farm piece — the catalogue knows how to draw it */
+  const def=FARM_BUILD.find(x=>x.id===s.ftype);
+  const im=def&&def.img?farmImg(def.img):null;
+  if(def&&im&&im.complete&&im.naturalWidth){
+   const W=def.W||200,H=W*im.naturalHeight/im.naturalWidth,gy=def.gy!==undefined?def.gy:30;
+   if(def.col&&def.col.crx){ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,gy-4,W*0.38,W*0.11,0,0,7);ctx.fill();}
+   ctx.drawImage(mip(im,W),-W/2,gy-H,W,H);
+  }
+ }else if(s.type==='farmportal'){
+  const t=performance.now()/700+s.x;
+  ctx.save();
+  ctx.shadowColor='#c9e06a';ctx.shadowBlur=14;
+  ctx.strokeStyle='rgba(201,224,106,'+(0.6+0.25*Math.sin(t*2)).toFixed(3)+')';ctx.lineWidth=5;
+  ctx.beginPath();ctx.ellipse(0,-36,30,48,0,0,7);ctx.stroke();
+  ctx.fillStyle='rgba(170,200,90,0.28)';
+  ctx.beginPath();ctx.ellipse(0,-36,24,40,0,0,7);ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.fillStyle='rgba(240,250,210,0.85)';
+  for(let i=0;i<4;i++){const a=t+i*1.57;ctx.beginPath();ctx.arc(Math.cos(a)*19,-36+Math.sin(a)*32,2.4,0,7);ctx.fill();}
+  ctx.restore();
+  ctx.font='700 12px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
+  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText('Farm',1,-95);
+  ctx.fillStyle='#d8e8a0';ctx.fillText('Farm',0,-96);
  }else if(s.type==='ritualportal'){
   const t=performance.now()/650+s.x;
   ctx.save();
@@ -4869,7 +5263,10 @@ function drawEnemy(en){
   const fimg=raidSkin.feet,fL=raidSkin.feetL,fR=raidSkin.feetR;
   const FH=en.r*(raidSkin.fh||0.75);
   const o=en.state==='chase'?Math.sin((en.walk||0)*2)*en.r*0.28:0;
-  if(fL&&fR&&fL.naturalWidth&&fR.naturalWidth){ /* true left/right art — no mirroring needed */
+  if(raidSkin.boots){ /* the hero's own boots, scaled up — Thor walks like the rest of us */
+   const bs=en.r/13;
+   ctx.save();ctx.scale(bs,bs);bootFeet({moving:en.state==='chase',walk:en.walk||0,sx:raidSkin.bsx||0});ctx.restore();
+  }else if(fL&&fR&&fL.naturalWidth&&fR.naturalWidth){ /* true left/right art — no mirroring needed */
    const WL=FH*fL.naturalWidth/fL.naturalHeight,WR=FH*fR.naturalWidth/fR.naturalHeight;
    const sp=en.r*(raidSkin.fs||0.5);
    ctx.drawImage(mip(fL,WL),-sp-WL/2+o,en.r*0.72-FH,WL,FH);
@@ -4888,6 +5285,10 @@ function drawEnemy(en){
   if(bl){
    const AH=H*(raidSkin.ws||0.6),AW=AH*bl.width/bl.height;
    const bfx=(hero&&hero.x<en.x)?-1:1; /* held on the side it strikes */
+   if(raidSkin.zap&&!en.dead&&Math.random()<0.07){ /* the hammer crackles */
+    const zx=en.x+bfx*W*raidSkin.wx,zy=en.y+H*raidSkin.wy;
+    zapLine(zx+(Math.random()-0.5)*36,zy-40-Math.random()*40,zx+(Math.random()-0.5)*50,zy+30*Math.random());
+   }
    ctx.save();ctx.translate(bfx*W*raidSkin.wx,H*raidSkin.wy+by);ctx.scale(bfx,1);ctx.rotate(0.5+(en.swing?(0.2-en.swing)*7:0));
    ctx.shadowColor=raidSkin.glow;ctx.shadowBlur=16+6*Math.sin(now/160);
    ctx.drawImage(bl,-AW/2,-AH*0.8,AW,AH);
@@ -5074,6 +5475,7 @@ function applyZoneUI(){
  /* the crypts hide the quest text and Continue — the bar stays, the progress row doubles as the 0/3 chest counter, AUTO stays clickable for its refusal */
  const cr=!!zoneOf().crypts;
  if(!cr){const ci=$('cryptIntro');if(ci)ci.style.display='none';}
+ if(!zoneOf().farm){buildMode=false;buildSel=null;buildPan=null;const fs2=$('farmStore');if(fs2)fs2.style.display='none';}
  $('qName').parentElement.style.display=cr?'none':'';
  $('nextBtn').style.display=cr?'none':'';
 }
@@ -5448,7 +5850,7 @@ function renderMap(){
   if(mapContinent==='raid'&&!z.raidc)return '';
   if(z.tavern)return '';
   if(z.special){
-   if(z.altar)return ''; /* portal-only zone */
+   if(z.altar||z.farm)return ''; /* portal-only zones */
    if(z.crypts){
     const p20=(S.prestige||0)>=20;
     return `<div class="card zonecard ${p20?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p20?'#a66bd0':''}">
@@ -8270,7 +8672,7 @@ function preloadMaps(){ /* warm every zone map in the background — kills the p
  if(mapsPreloaded)return;mapsPreloaded=true;
  ZONES.forEach(z=>{if(z.map)zoneMapImg(z.map);});
  zoneMapImg('cryptmap');zoneMapImg('cryptwall');
- zoneMapImg('raidfloor');zoneMapImg('raidwall');zoneMapImg('cowlevel_zone');
+ zoneMapImg('raidfloor');zoneMapImg('raidwall');zoneMapImg('cowlevel_zone');zoneMapImg('tormap_zone');zoneMapImg('farm_zone');
 }
 function beginGame(isNew){
  $('create').style.display='none';
