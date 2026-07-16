@@ -950,7 +950,7 @@ function progZone(ch=S){
    (The old 1.15^P exponential eventually outran gear and made high prestige impossible.)
    The real "gear up before you prestige" punishment lives in effective-level scaling. */
 const pMul=()=>1+(S.prestige||0)*0.10;
-const pRew=()=>Math.min(Math.pow(1.15,(S.prestige||0)),10);   /* XP/potion reward curve, capped at 10× (reached ~P17); combat scaling never touches gold */
+const pRew=()=>Math.min(Math.pow(1.15,(S.prestige||0)),8);   /* XP/potion reward curve, capped at 8× (reached ~P15); combat scaling never touches gold */
 /* Gold economy: DO NOT use effectiveHeroLvl here.
    Mob gold is based on the real zone level + visible level + a soft +8% per prestige.
    This prevents high-prestige players from earning thousands per normal mob while keeping early players fair. */
