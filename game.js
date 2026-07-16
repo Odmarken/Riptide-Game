@@ -61,6 +61,12 @@ const gorehuskFeetRImg=new Image();gorehuskFeetRImg.src='assets/boss/gorehusk_fe
 const bossLvlWeaponImg=new Image();bossLvlWeaponImg.src='assets/boss/bosslevling_weapon.png';
 const mawImg=new Image();mawImg.src='assets/boss/boss_levling2.png';
 const ossricImg=new Image();ossricImg.src='assets/boss/boss_levling3.png';
+const ashmawImg=new Image();ashmawImg.src='assets/boss/boss_levling1.png';
+const krevImg=new Image();krevImg.src='assets/boss/boss_levling5.png';
+const krevFeetLImg=new Image();krevFeetLImg.src='assets/boss/krev_feet_l.png';
+const krevFeetRImg=new Image();krevFeetRImg.src='assets/boss/krev_feet_r.png';
+const ashmawFeetLImg=new Image();ashmawFeetLImg.src='assets/boss/ashmaw_feet_l.png';
+const ashmawFeetRImg=new Image();ashmawFeetRImg.src='assets/boss/ashmaw_feet_r.png';
 const ossricFeetLImg=new Image();ossricFeetLImg.src='assets/boss/ossric_feet_l.png';
 const ossricFeetRImg=new Image();ossricFeetRImg.src='assets/boss/ossric_feet_r.png';
 const mawFeetLImg=new Image();mawFeetLImg.src='assets/boss/maw_feet_l.png';
@@ -74,7 +80,9 @@ const RAID_SKINS={ /* lift = body bottom in radii · wy/wx = weapon grip */
  frostking:{img:frostlordImg,feet:frostlordFeetImg,wpn:()=>raidSwordImg,glow:'#7fd0ff',lift:-0.18,wy:-0.31,wx:0.26,fs:0.72,fh:0.95,ox:-0.16},
  gorehusk:{img:gorehuskImg,feetL:gorehuskFeetLImg,feetR:gorehuskFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#7adf3a',lift:0.10,wy:-0.27,wx:0.44,size:7.5,fs:0.8,fh:1.12},
  maw:{img:mawImg,feetL:mawFeetLImg,feetR:mawFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#5bc8ff',lift:0.58,wy:-0.19,wx:0.44,size:7.5,fs:1.05,fh:1.12},
- ossric:{img:ossricImg,feetL:ossricFeetLImg,feetR:ossricFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#b0793a',lift:0.58,wy:-0.19,wx:0.44,size:7.5,fs:1.05,fh:1.12}};
+ ossric:{img:ossricImg,feetL:ossricFeetLImg,feetR:ossricFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#b0793a',lift:0.58,wy:-0.19,wx:0.44,size:7.5,fs:1.05,fh:1.12},
+ ashmaw:{img:ashmawImg,feetL:ashmawFeetLImg,feetR:ashmawFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#ff4a2a',lift:0.58,wy:-0.19,wx:0.44,size:7.5,fs:1.05,fh:1.12},
+ krev:{img:krevImg,feetL:krevFeetLImg,feetR:krevFeetRImg,wpn:()=>cowWeaponImg,glow:'#ff9a2a',lift:0.15,wy:-0.25,wx:0.44,size:7.5,fs:1.05,fh:1.12,ws:0.85}};
 const raidBladeCache={};
 function raidBlade(glow,img){ /* the lord's weapon soaked in his colour, cached per art+tint */
  img=img||cowWeaponImg;
@@ -2996,10 +3004,7 @@ function bossAI(en,dt){
    floatAt(en.x,en.y-en.r-30,'Whirlwind!','#e86a4a',true);
    en.lockT=0.95;
   }
-  if(en.cds.c<=0){en.cds.c=16*cdm;
-   if(addsAlive()<2){spawnAdd('Legionnaire','humanoid','#a04a3a');
-    floatAt(en.x,en.y-en.r-30,'To me!','#e8a08a',true);}
-  }
+  /* (legionnaire summons removed — the Warlord duels alone) */
  }else if(B==='betrayer'){ /* wide warglaive fan, fel adds, twin eye beams, metamorphosis */
   if(en.cds.a<=0){en.cds.a=5;
    const base=Math.atan2(T.y-en.y,T.x-en.x);
@@ -4881,7 +4886,7 @@ function drawEnemy(en){
   ctx.drawImage(mip(raidSkin.img,W),-W/2+en.r*(raidSkin.ox||0),en.r*raidSkin.lift-H+by,W,H); /* body floats above the feet */
   const bl=raidBlade(raidSkin.glow,raidSkin.wpn?raidSkin.wpn():null);
   if(bl){
-   const AH=H*0.6,AW=AH*bl.width/bl.height;
+   const AH=H*(raidSkin.ws||0.6),AW=AH*bl.width/bl.height;
    const bfx=(hero&&hero.x<en.x)?-1:1; /* held on the side it strikes */
    ctx.save();ctx.translate(bfx*W*raidSkin.wx,H*raidSkin.wy+by);ctx.scale(bfx,1);ctx.rotate(0.5+(en.swing?(0.2-en.swing)*7:0));
    ctx.shadowColor=raidSkin.glow;ctx.shadowBlur=16+6*Math.sin(now/160);
