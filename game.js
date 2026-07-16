@@ -60,6 +60,9 @@ const gorehuskFeetLImg=new Image();gorehuskFeetLImg.src='assets/boss/gorehusk_fe
 const gorehuskFeetRImg=new Image();gorehuskFeetRImg.src='assets/boss/gorehusk_feet_r.png';
 const bossLvlWeaponImg=new Image();bossLvlWeaponImg.src='assets/boss/bosslevling_weapon.png';
 const mawImg=new Image();mawImg.src='assets/boss/boss_levling2.png';
+const ossricImg=new Image();ossricImg.src='assets/boss/boss_levling3.png';
+const ossricFeetLImg=new Image();ossricFeetLImg.src='assets/boss/ossric_feet_l.png';
+const ossricFeetRImg=new Image();ossricFeetRImg.src='assets/boss/ossric_feet_r.png';
 const mawFeetLImg=new Image();mawFeetLImg.src='assets/boss/maw_feet_l.png';
 const mawFeetRImg=new Image();mawFeetRImg.src='assets/boss/maw_feet_r.png';
 const fellordFeetImg=new Image();fellordFeetImg.src='assets/boss/fellord_feet.png';
@@ -70,7 +73,8 @@ const RAID_SKINS={ /* lift = body bottom in radii · wy/wx = weapon grip */
  firelord:{img:firelordImg,feet:firelordFeetImg,glow:'#ff4a1a',lift:-0.20,wy:-0.22,wx:0.26,ff:true,fs:0.85},
  frostking:{img:frostlordImg,feet:frostlordFeetImg,wpn:()=>raidSwordImg,glow:'#7fd0ff',lift:-0.18,wy:-0.31,wx:0.26,fs:0.72,fh:0.95,ox:-0.16},
  gorehusk:{img:gorehuskImg,feetL:gorehuskFeetLImg,feetR:gorehuskFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#7adf3a',lift:0.10,wy:-0.27,wx:0.44,size:7.5,fs:0.8,fh:1.12},
- maw:{img:mawImg,feetL:mawFeetLImg,feetR:mawFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#5bc8ff',lift:0.58,wy:-0.19,wx:0.44,size:7.5,fs:1.05,fh:1.12}};
+ maw:{img:mawImg,feetL:mawFeetLImg,feetR:mawFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#5bc8ff',lift:0.58,wy:-0.19,wx:0.44,size:7.5,fs:1.05,fh:1.12},
+ ossric:{img:ossricImg,feetL:ossricFeetLImg,feetR:ossricFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#b0793a',lift:0.58,wy:-0.19,wx:0.44,size:7.5,fs:1.05,fh:1.12}};
 const raidBladeCache={};
 function raidBlade(glow,img){ /* the lord's weapon soaked in his colour, cached per art+tint */
  img=img||cowWeaponImg;
@@ -2937,10 +2941,7 @@ function bossAI(en,dt){
    sfx.bolt();
   }
  }else if(B==='ossric'){ /* King Below: raises skeletons, unleashes a bone nova around himself */
-  if(en.cds.a<=0){en.cds.a=11;
-   if(addsAlive()<4){spawnAdd('Risen Soldier','undead','#b0c0d0');spawnAdd('Risen Soldier','undead','#b0c0d0');
-    floatAt(en.x,en.y-en.r-30,'Serve me still!','#d0e0f0',true);}
-  }
+  /* (skeleton summons removed — the King Below stands alone) */
   if(en.cds.b<=0){en.cds.b=7.5;
    sfx.warn();
    hazardAt(en.x,en.y,290,1.4,en.atk*1.4,'#d0d8e8');
