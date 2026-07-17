@@ -6963,9 +6963,9 @@ function fillerCard(){
    const tp=petOf(['cat','dog','blackdog'][Math.floor(Math.random()*3)]);
    return {icon:petGlyph(tp),cc:tp.cc,t:'pet'};
   }
-  if(rr<0.075)return {icon:'🐂',cc:'#c9a0ff',t:'farm'}; /* bull tease */
+  if(rr<0.075)return {icon:'🐂',cc:'#ffd100',t:'farm'}; /* bull tease — gold ring */
  }
- if(curCase==='gamba'&&Math.random()<0.06)return {icon:['🐄','🐔','🌾'][Math.floor(Math.random()*3)],cc:'#9adf9a',t:'farm'};
+ if(curCase==='gamba'&&Math.random()<0.06)return {icon:['🐄','🐔','🌾'][Math.floor(Math.random()*3)],cc:'#ffd100',t:'farm'};
  const pool=curCase==='gold'?CASE_RARS_GOLD:CASE_RARS;
  const r=Math.random();
  const k=pool.find(x=>r<=x.r)||pool[0];
@@ -6991,7 +6991,7 @@ function prizeValue(type){
   if(r<0.0125){ /* 0.005–0.0125 = 0.75% 🐂 Bull — farm stock */
    S.farm.inv=S.farm.inv||{};S.farm.inv.tjur=(S.farm.inv.tjur||0)+1;
    log(`GOLD GOLD GOLD: <span class="llegendary">🐂 A Bull</span> — sent to the farm!`,'loot');
-   return {icon:'🐂',tier:'FARM ANIMAL',name:'Bull',color:'#c9a0ff',sub:'Sent to the farm — place it from the build menu.',epic:true,big:true};
+   return {icon:'🐂',tier:'FARM ANIMAL',name:'Bull',color:'#ffd100',sub:'Sent to the farm — place it from the build menu.',epic:true,big:true};
   }
   if(r<0.0715){
    const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
@@ -7009,17 +7009,17 @@ function prizeValue(type){
  if(r<0.003){ /* 0.3% 🐄 Calf — farm stock */
   S.farm.inv=S.farm.inv||{};S.farm.inv.cowfarm=(S.farm.inv.cowfarm||0)+1;
   log(`GAMBAAA!: <span class="llegendary">🐄 A Calf</span> — sent to the farm!`,'loot');
-  return {icon:'🐄',tier:'FARM ANIMAL',name:'Calf',color:'#ffc9e0',sub:'Sent to the farm — place it from the build menu.',epic:true,big:true};
+  return {icon:'🐄',tier:'FARM ANIMAL',name:'Calf',color:'#ffd100',sub:'Sent to the farm — place it from the build menu.',epic:true,big:true};
  }
  if(r<0.008){ /* 0.3–0.8% = 0.5% 🐔 Chicken — farm stock */
   S.farm.inv=S.farm.inv||{};S.farm.inv.chickenfarm=(S.farm.inv.chickenfarm||0)+1;
   log(`GAMBAAA!: <span class="llegendary">🐔 A Chicken</span> — sent to the farm!`,'loot');
-  return {icon:'🐔',tier:'FARM ANIMAL',name:'Chicken',color:'#ffe9a0',sub:'Sent to the farm — place it from the build menu.',epic:true,big:true};
+  return {icon:'🐔',tier:'FARM ANIMAL',name:'Chicken',color:'#ffd100',sub:'Sent to the farm — place it from the build menu.',epic:true,big:true};
  }
  if(r<0.038){ /* 0.8–3.8% = 3% 🌾 Hay Seeds — farm stock */
   S.farm.inv=S.farm.inv||{};S.farm.inv.hay=(S.farm.inv.hay||0)+1;
   log(`GAMBAAA!: <span class="lscroll">🌾 Hay Seeds</span> — sent to the farm!`,'loot');
-  return {icon:'🌾',tier:'FARM',name:'Hay Seeds',color:'#9adf9a',sub:'Sent to the farm — place it from the build menu.',big:true};
+  return {icon:'🌾',tier:'FARM',name:'Hay Seeds',color:'#ffd100',sub:'Sent to the farm — place it from the build menu.',big:true};
  }
  if(r<0.098){
   const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
