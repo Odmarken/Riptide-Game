@@ -69,24 +69,28 @@ const farmImgs={};
 const farmImg=n=>{if(!farmImgs[n]){farmImgs[n]=new Image();farmImgs[n].src='assets/farm/'+n+'.png';}return farmImgs[n];};
 const FARM_BUILD=[
  /* 🏗 Building */
- {id:'lada',n:'Lada',img:'lada_farm',tab:'b',W:380,gy:30,col:{crx:130,cry:38,cyo:-40}},
  {id:'staket',n:'Staket',img:'staketvit_sidan',tab:'b',W:130,gy:12,col:{r:14,crx:65,cry:9,cyo:4},snap:'h'}, /* thin wall ellipse spanning the full run — no slipping between the posts */
  {id:'staketv',n:'Staket (vertikalt)',img:'staket_ovan',tab:'b',W:13,gy:14,col:{r:14,crx:8,cry:47,cyo:-33},snap:'v'}, /* sized so its post caps render the same width as staket's (~13 world units) */
+ {id:'lada',n:'Lada',img:'lada_farm',tab:'b',W:380,gy:30,col:{crx:130,cry:38,cyo:-40}},
  {id:'chickenhouse',n:'Hönshus',img:'chickenhouse_farm',tab:'b',W:230,gy:28,col:{crx:88,cry:34,cyo:-32}},
- {id:'medium',n:'Farmhouse Medium',img:'Farmhouse_medium',tab:'b',W:300,gy:30,col:{crx:105,cry:36,cyo:-36}},
- {id:'mansion',n:'Mansion',img:'farmhouse_mansion',tab:'b',W:440,gy:32,col:{crx:150,cry:44,cyo:-44}},
+ {id:'medium',n:'Farmhouse Medium',img:'Farmhouse_medium',tab:'b',W:408,gy:41,col:{crx:143,cry:49,cyo:-49}},
+ {id:'mansion',n:'Mansion',img:'farmhouse_mansion',tab:'b',W:850,gy:62,col:{crx:290,cry:85,cyo:-85}},      /* 2.5× the home farmhouse */
  {id:'farmhouse',n:'Farmhouse',img:'farmhouse_litet',tab:'x',W:340,gy:32}, /* the home house — movable in build mode, never sold or removed; tab x hides it from the store */
  /* 🐄 Animals */
- {id:'chickenfarm',n:'Kyckling',img:'chickenfarm_liten',tab:'a',W:58,gy:12,col:{r:12}},
- {id:'chickenfarm_big',n:'Kyckling (stor)',img:'chickenfarm_big',tab:'a',W:95,gy:14,col:{r:18}},
- {id:'cowfarm',n:'Ko',img:'cowfarm_liten',tab:'a',W:78,gy:12,col:{r:14}},
- {id:'cowfarm_big',n:'Ko (stor)',img:'cowfarm_big',tab:'a',W:130,gy:14,col:{r:22}},
- {id:'tjur',n:'Tjur',img:'tjur_farm',tab:'a',W:120,gy:16,col:{r:20}},
+ /* 🐄 animals roam the plot freely (roam:1) — fences pen them in; speed = stroll pace */
+ {id:'chickenfarm',n:'Kyckling',img:'chickenfarm_liten',tab:'a',W:29,gy:6,col:{r:6},roam:1,speed:30},
+ {id:'chickenfarm_big',n:'Kyckling (stor)',img:'chickenfarm_big',tab:'a',W:48,gy:7,col:{r:9},roam:1,speed:26},
+ {id:'cowfarm',n:'Ko',img:'cowfarm_liten',tab:'a',W:49,gy:8,col:{r:9},roam:1,speed:24},
+ {id:'cowfarm_big',n:'Ko (stor)',img:'cowfarm_big',tab:'a',W:120,gy:13,col:{r:20},roam:1,speed:18}, /* matches Tjur */
+ {id:'tjur',n:'Tjur',img:'tjur_farm',tab:'a',W:156,gy:21,col:{r:26},roam:1,speed:16},
  /* 🌾 Food — hay growth stages; crop:1 items live in S.farm.c, not solids */
  /* all three share one canvas + crop, so identical W renders the dirt patch identically */
  {id:'hay',n:'Hö — frön',img:'hö_frö',W:93,gy:10,tab:'m',crop:1},
  {id:'hay_medium',n:'Hö — växer',img:'hö_medium',W:93,gy:10,tab:'m',crop:1},
  {id:'hay_klar',n:'Hö — klart',img:'hö_klar',W:93,gy:10,tab:'m',crop:1},
+ /* 🛣 Roads — Sims-style: click to anchor, click again to lay the stretch; chain keeps going from the last point */
+ {id:'dirt_road',n:'Dirt Road',img:'dirt_road',tab:'o',road:1,rw:44,W:44,gy:22},
+ {id:'gravel_road',n:'Gravel Road',img:'gravel_road',tab:'o',road:1,rw:44,W:44,gy:22},
  {id:'remove',n:'Ta bort',emoji:'🗑',tab:'*'} /* removes anything except the farmhouse */
 ];
 const torWeaponImg=new Image();torWeaponImg.src='assets/boss/tor_weapon.png';
@@ -890,7 +894,7 @@ function zoneTemplates(z){
 function zoneQuests(z){
  if(z.tavern)return [{name:'🍺 Goldshire',desc:'A safe haven. Rest, forge, trade — no foe dares enter.',need:999999}];
  if(z.altar)return [{name:'⛧ The Altar',desc:'A silent ring above the clouds. Something waits to be awakened.',need:999999}];
- if(z.farm)return [{name:'🚜 The Farm',desc:'Open fields as far as the eye can see. Nothing grows here… yet.',need:999999}];
+ if(z.farm)return [{name:'🚜 The Farm · Level '+((S.farm&&S.farm.lvl)||1),desc:'Open fields as far as the eye can see. Nothing grows here… yet.',need:1000}];
  if(z.crypts)return [{name:'⚰️ The Crypts',desc:'An ever-shifting labyrinth. Three chests wait somewhere in the dark. On foot only — AUTO fails here.',need:3}];
  if(z.raid)return [{name:'⚔ Sanctum of the Three',desc:'Slay all three raid lords. Pull them one at a time — they never retreat.',need:3,boss:true}];
  if(z.cow)return [{name:'MOO',desc:'Survive. You cannot.',need:999999}];
@@ -1052,6 +1056,8 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.gearSets===undefined){s.gearSets=[null,null];s.gearSetSel=-1;} /* two swappable loadouts */
  if(s.farm===undefined)s.farm={owned:false,b:[],c:[]}; /* 🚜 the farm: buildings + crops */
  if(s.farm.hx===undefined){s.farm.hx=975;s.farm.hy=1320;} /* farmhouse home spot — movable in build mode */
+ if(s.farm.lvl===undefined)s.farm.lvl=1; /* 🚜 farm level — starts at 1, leveling mechanics to come */
+ if(s.farm.r===undefined)s.farm.r=[]; /* 🛣 laid road segments */
  (s.gearSets||[]).forEach((gs,gi)=>{ /* v1 sets held raw items or a worn flag — convert to v2 (gsid refs) */
   if(!gs)return;
   if(gs.worn){s.gearSets[gi]=null;s.gearSetSel=-1;return;}
@@ -2032,10 +2038,12 @@ function rebuildFarmItems(){ /* placed buildings become solids; crops draw with 
   const col=def.col||{r:20};
   const sol={x:it.x,y:it.y,r:col.r||40,type:'farmitem',ftype:it.t,farmItem:1};
   if(col.crx){sol.crx=col.crx;sol.cry=col.cry;sol.cyo=col.cyo;}
+  if(def.roam){sol.noCol=1;sol.it=it;} /* 🐄 roamers: walk-through, and the solid follows the beast (sol→it only — S stays JSON-safe) */
   world.solids.push(sol);
  }
 }
 let buildMode=false,buildSel=null,buildTab='b',mouseWX=0,mouseWY=0,buildPan=null,removeDrag=null,pendingDelRect=null;
+let roadAnchor=null; /* 🛣 first click of a road stretch */
 let farmCart=[]; /* pending placements — ghosts until checkout */
 let moveItem=null,movePicked=null; /* click an item with nothing selected → Move popup → carry it */
 function farmHitTest(wx,wy){
@@ -2064,11 +2072,68 @@ function cancelMove(){
  moveItem=null;movePicked=null;
  const b=$('farmMoveFx');if(b)b.style.display='none';
 }
-const FARM_PRICES={lada:0,staket:0,staketv:0,chickenhouse:0,chickenfarm:0,chickenfarm_big:0,cowfarm:0,cowfarm_big:0,tjur:0,hay:0,hay_medium:0,hay_klar:0,medium:0,mansion:0}; /* placeholder — real prices coming */
+const FARM_PRICES={lada:0,staket:0,staketv:0,chickenhouse:0,chickenfarm:0,chickenfarm_big:0,cowfarm:0,cowfarm_big:0,tjur:0,hay:0,hay_medium:0,hay_klar:0,medium:0,mansion:0,dirt_road:0,gravel_road:0}; /* placeholder — real prices coming */
 /* 🧲 snap mode — fences click together end to end (and into corners) instead of free placement */
 let snapMode=true;
 const SNAP_R=80; /* how close the cursor must be to a snap point before it grabs */
 function itemSpanOf(def){const im=farmImg(def.img);const W=def.W||200;return {W,H:(im.complete&&im.naturalWidth)?W*im.naturalHeight/im.naturalWidth:W};}
+/* 🛣 roads are ground decals — a rotated strip of tiling texture between two points, no collision */
+function segDist(px,py,r){const dx=r.x1-r.x0,dy=r.y1-r.y0,L2=dx*dx+dy*dy;const t=L2?Math.max(0,Math.min(1,((px-r.x0)*dx+(py-r.y0)*dy)/L2)):0;return Math.hypot(px-(r.x0+t*dx),py-(r.y0+t*dy));}
+const roadPats={}; /* one world-anchored repeat pattern per road type — all segments share texture phase, so joins are seamless */
+function roadPattern(def){
+ const img=farmImg(def.img);
+ if(!(img.complete&&img.naturalWidth))return null;
+ let p=roadPats[def.id];
+ if(!p){
+  p=ctx.createPattern(img,'repeat');
+  const k=(def.rw||44)/img.naturalWidth; /* one texture tile = one road width */
+  if(p&&p.setTransform&&window.DOMMatrix)p.setTransform(new DOMMatrix([k,0,0,k,0,0]));
+  roadPats[def.id]=p;
+ }
+ return p;
+}
+function drawRoadSeg(r){
+ const def=FARM_BUILD.find(o=>o.id===r.t);
+ if(!def)return;
+ const w=def.rw||44;
+ ctx.save();
+ ctx.strokeStyle=roadPattern(def)||(r.t==='gravel_road'?'#8a8378':'#7a5c3a');
+ ctx.lineWidth=w;ctx.lineCap='round';ctx.lineJoin='round'; /* round caps = soft curved corners wherever stretches meet */
+ ctx.beginPath();ctx.moveTo(r.x0,r.y0);ctx.lineTo(r.x1,r.y1);ctx.stroke();
+ ctx.restore();
+}
+/* 🐄 free-roaming farm animals — short strolls with grazing pauses across the gridded plot.
+   Fences and buildings block them (they use the same collide() as everyone else), so a closed
+   fence ring naturally pens them in: a blocked stroll is abandoned and they idle instead. */
+function updateFarmAnimals(dt){
+ if(!world||!zoneOf().farm||!S||!S.farm)return;
+ for(const sol of world.solids){
+  const it=sol.it;
+  if(!it)continue;
+  const def=FARM_BUILD.find(o=>o.id===it.t);
+  if(!def||!def.roam||it._moving)continue;
+  sol.mv=Math.max(0,(sol.mv||0)-dt*5); /* walk-bob fades out whenever we're not stepping */
+  if(sol.pz>0){sol.pz-=dt;continue;}
+  if(sol.tx===undefined||Math.hypot(sol.tx-it.x,sol.ty-it.y)<8){
+   if(sol.tx!==undefined&&Math.random()<0.6){sol.pz=1.2+Math.random()*3;} /* arrived — graze a while */
+   const a=Math.random()*Math.PI*2,d=80+Math.random()*260;
+   sol.tx=Math.max(60,Math.min(4140,it.x+Math.cos(a)*d));
+   sol.ty=Math.max(60,Math.min(world.h-60,it.y+Math.sin(a)*d));
+   continue;
+  }
+  const sp=(def.speed||24)*dt;
+  const dx=sol.tx-it.x,dy=sol.ty-it.y,L=Math.hypot(dx,dy)||1;
+  const nx=it.x+dx/L*sp,ny=it.y+dy/L*sp;
+  const er={r:(def.col&&def.col.r)||10};
+  let moved=false;
+  if(!collide(er,nx,ny)){it.x=nx;it.y=ny;moved=true;}
+  else if(!collide(er,nx,it.y)){it.x=nx;moved=true;}      /* slide along the fence line */
+  else if(!collide(er,it.x,ny)){it.y=ny;moved=true;}
+  else{sol.tx=undefined;sol.pz=0.8+Math.random()*1.6;} /* penned in — give up and chill */
+  if(moved){sol.wt=(sol.wt||0)+sp;sol.mv=Math.min(1,sol.mv+dt*10);} /* wt = distance walked → hop phase */
+  sol.x=it.x;sol.y=it.y;
+ }
+}
 const CROP_GX=72,CROP_GY=48; /* crop grid = the dirt patch footprint, so patches tile like a field */
 function cropCellTaken(id,x,y){
  const def=FARM_BUILD.find(o=>o.id===id);
@@ -2126,7 +2191,7 @@ function enterBuildMode(){
 function exitBuildMode(){
  cancelMove();
  if(farmCart.length){farmCart=[];stageMsg('Pending items discarded',1400);}
- buildMode=false;buildSel=null;buildPan=null;removeDrag=null;
+ buildMode=false;buildSel=null;buildPan=null;removeDrag=null;roadAnchor=null;
  $('farmStore').style.display='none';
  updateCartUI();
  setZoom(Math.max(1,zmin())); /* camera glides back down to the hero */
@@ -2147,7 +2212,7 @@ function renderFarmStore(){
  const list=FARM_BUILD.filter(it=>it.tab===buildTab||it.tab==='*');
  if(list.length<=1&&!FARM_BUILD.some(it=>it.tab===buildTab)){ /* empty category (only the remove tool) */
   $('farmStoreList').innerHTML=list.map(it=>`<div class="fsitem${buildSel===it.id?' sel':''}" data-fs="${it.id}"><div style="font-size:34px;text-align:center;padding:8px 0">${it.emoji||'❓'}</div><div class="fsn">${it.n}</div></div>`).join('')+'<div class="ss" style="color:var(--dim);text-align:center;padding:14px 4px;font-size:11.5px">Nothing here yet — coming soon!</div>';
-  document.querySelectorAll('[data-fs]').forEach(el=>el.onclick=()=>{buildSel=buildSel===el.dataset.fs?null:el.dataset.fs;renderFarmStore();});
+  document.querySelectorAll('[data-fs]').forEach(el=>el.onclick=()=>{buildSel=buildSel===el.dataset.fs?null:el.dataset.fs;roadAnchor=null;renderFarmStore();});
   return;
  }
  $('farmStoreList').innerHTML=list.map(it=>{
@@ -2162,6 +2227,7 @@ function renderFarmStore(){
   const it=FARM_BUILD.find(x=>x.id===el.dataset.fs);
   if(it.locked){stageMsg('🔒 '+it.n+' — '+it.locked,1500);sfx.warn();return;}
   buildSel=buildSel===it.id?null:it.id;
+  roadAnchor=null;
   renderFarmStore();
  });
  const sel2=$('fsCat');if(sel2&&sel2.value!==buildTab)sel2.value=buildTab;
@@ -2177,7 +2243,20 @@ function placeFarmItem(id,x,y){
   if(bi>=0){S.farm.b.splice(bi,1);rebuildFarmItems();sfx.forge();stageMsg('🗑 Removed',900);save();return;}
   let ci=-1,cd=45;
   S.farm.c.forEach((c2,i)=>{const d=Math.hypot(c2.x-x,c2.y-y);if(d<cd){cd=d;ci=i;}});
-  if(ci>=0){S.farm.c.splice(ci,1);sfx.forge();stageMsg('🗑 Removed',900);save();}
+  if(ci>=0){S.farm.c.splice(ci,1);sfx.forge();stageMsg('🗑 Removed',900);save();return;}
+  let ri=-1,rd2=28;
+  ((S.farm&&S.farm.r)||[]).forEach((r2,i)=>{const d=segDist(x,y,r2);if(d<rd2){rd2=d;ri=i;}});
+  if(ri>=0){S.farm.r.splice(ri,1);sfx.forge();stageMsg('🗑 Removed',900);save();}
+  return;
+ }
+ const rdef=FARM_BUILD.find(o=>o.id===id);
+ if(rdef&&rdef.road){ /* 🛣 Sims-style: first click anchors, second click lays the stretch, chain continues */
+  if(x<40||x>=4200||y<40||y>world.h-40){blip(300,180,0.1,.05);return;}
+  if(!roadAnchor){roadAnchor={x,y};blip(700,950,0.07,.04);stageMsg('🛣 Click where this stretch should end — same spot cancels',1700);return;}
+  if(Math.hypot(x-roadAnchor.x,y-roadAnchor.y)<24){roadAnchor=null;blip(300,180,0.1,.05);return;}
+  farmCart.push({t:id,road:1,x0:roadAnchor.x,y0:roadAnchor.y,x1:x,y1:y,x:Math.round((roadAnchor.x+x)/2),y:Math.round((roadAnchor.y+y)/2)});
+  roadAnchor={x,y};
+  blip(600,900,0.08,.05);updateCartUI();
   return;
  }
  const sp=snapPos(id,x,y);x=Math.round(sp.x);y=Math.round(sp.y);
@@ -2199,6 +2278,7 @@ function drawFarmGround(){ /* farm_zone stretched over one cow-field, laid twice
   else ctx.drawImage(mip(img,TW),x0,0,TW,TH);
  }
  ctx.strokeStyle='rgba(0,0,0,0.35)';ctx.lineWidth=26;ctx.strokeRect(0,0,world.w,world.h);
+ for(const r of ((S&&S.farm&&S.farm.r)||[]))drawRoadSeg(r); /* 🛣 roads sit on the ground, under the crops */
  for(const c of ((S&&S.farm&&S.farm.c)||[])){ /* 🌱 crops draw with the ground — each hay stage uses its own art */
   if(c._moving)continue;
   if(c.x<vx0-80||c.x>vx1+80||c.y<vy0-80||c.y>vy1+80)continue;
@@ -2653,6 +2733,7 @@ function collide(e,nx,ny){
  /* Bosses and cows ignore trees/rocks — the herd tramples straight through. */
  if((!e.boss||e.raid)&&!e.cow){
   for(const s of world.solids){
+   if(s.noCol)continue; /* roaming farm animals — walk-through */
    if(s.type==='gate'&&!(world.raidRooms&&world.raidRooms[s.room]&&world.raidRooms[s.room].sealed))continue;
    if(s.type==='altarportal'||s.type==='ritualportal'||s.type==='farmportal')continue; /* walk straight through the portals */
    if(s.crx){ /* wide painted buildings block with an ellipse matching their footprint (cyo shifts it up onto the walls) */
@@ -3456,6 +3537,7 @@ cv.addEventListener('pointerdown',e=>{
      const it=farmListOf(moveItem.kind)[moveItem.i];
      const sp=it?snapPos(it.t,wx,wy):null;
      if(it&&cropCellTaken(it.t,Math.round(sp.x),Math.round(sp.y))){stageMsg('🌾 Occupied — pick a free tile',1300);sfx.warn();return;}
+     if(it&&it.road){const ddx=Math.round(sp.x)-it.x,ddy=Math.round(sp.y)-it.y;it.x0+=ddx;it.x1+=ddx;it.y0+=ddy;it.y1+=ddy;} /* carry the whole stretch */
      if(it){it.x=Math.round(sp.x);it.y=Math.round(sp.y);delete it._moving;}
      if(it&&moveItem.kind==='fh'){S.farm.hx=it.x;S.farm.hy=it.y;} /* persist the farmhouse's new home */
      if(moveItem.kind!=='g'){rebuildFarmItems();save();}
@@ -3555,11 +3637,13 @@ window.addEventListener('pointerup',e=>{
   const preCart=farmCart.length;
   farmCart=farmCart.filter(g2=>!(g2.x>=R.x0&&g2.x<=R.x1&&g2.y>=R.y0&&g2.y<=R.y1));
   if(farmCart.length!==preCart)updateCartUI();
-  const nb=S.farm.b.filter(b2=>b2.x>=R.x0&&b2.x<=R.x1&&b2.y>=R.y0&&b2.y<=R.y1).length;
-  const nc=S.farm.c.filter(c2=>c2.x>=R.x0&&c2.x<=R.x1&&c2.y>=R.y0&&c2.y<=R.y1).length;
-  if(nb+nc===0){stageMsg('Nothing selected',900);return;}
+  const inR=(mx,my)=>mx>=R.x0&&mx<=R.x1&&my>=R.y0&&my<=R.y1;
+  const nb=S.farm.b.filter(b2=>inR(b2.x,b2.y)).length;
+  const nc=S.farm.c.filter(c2=>inR(c2.x,c2.y)).length;
+  const nr=((S.farm&&S.farm.r)||[]).filter(r2=>inR((r2.x0+r2.x1)/2,(r2.y0+r2.y1)/2)).length;
+  if(nb+nc+nr===0){stageMsg('Nothing selected',900);return;}
   pendingDelRect=R;
-  $('farmDelTxt').textContent='Delete '+(nb+nc)+' item'+(nb+nc>1?'s':'')+' ('+nb+' building'+(nb!==1?'s':'')+', '+nc+' crop'+(nc!==1?'s':'')+')?';
+  $('farmDelTxt').textContent='Delete '+(nb+nc+nr)+' item'+(nb+nc+nr>1?'s':'')+' ('+nb+' building'+(nb!==1?'s':'')+', '+nc+' crop'+(nc!==1?'s':'')+', '+nr+' road'+(nr!==1?'s':'')+')?';
   $('farmDelFx').style.display='flex';
  }
 });
@@ -3569,6 +3653,7 @@ $('farmDelYes').onclick=()=>{
  if(!R)return;
  S.farm.b=S.farm.b.filter(b2=>!(b2.x>=R.x0&&b2.x<=R.x1&&b2.y>=R.y0&&b2.y<=R.y1));
  S.farm.c=S.farm.c.filter(c2=>!(c2.x>=R.x0&&c2.x<=R.x1&&c2.y>=R.y0&&c2.y<=R.y1));
+ S.farm.r=((S.farm&&S.farm.r)||[]).filter(r2=>{const mx=(r2.x0+r2.x1)/2,my=(r2.y0+r2.y1)/2;return !(mx>=R.x0&&mx<=R.x1&&my>=R.y0&&my<=R.y1);});
  rebuildFarmItems();
  sfx.forge();stageMsg('🗑 Cleared',1100);save();
 };
@@ -3584,7 +3669,8 @@ $('farmCheckYes').onclick=()=>{
  if(total>0&&!spendGold(total)){stageMsg('Not enough gold — '+total.toLocaleString()+'◉ needed',1800);sfx.warn();return;}
  for(const g2 of farmCart){
   const cd=FARM_BUILD.find(o=>o.id===g2.t);
-  if(cd&&cd.crop)S.farm.c.push({t:g2.t,stage:1,x:g2.x,y:g2.y,at:Date.now()});
+  if(g2.road)S.farm.r.push({t:g2.t,x0:g2.x0,y0:g2.y0,x1:g2.x1,y1:g2.y1});
+  else if(cd&&cd.crop)S.farm.c.push({t:g2.t,stage:1,x:g2.x,y:g2.y,at:Date.now()});
   else S.farm.b.push({t:g2.t,x:g2.x,y:g2.y});
  }
  const n=farmCart.length;
@@ -3698,6 +3784,7 @@ function autoBrain(dt){
 function update(dt){
  if(!gameOn)return;
  mpSyncTick();
+ updateFarmAnimals(dt);
  if(cowRunning&&!hero.dead){
   cowT+=dt;
   cowSpawnT-=dt;
@@ -4460,6 +4547,7 @@ function draw(){
   for(const g2 of farmCart){
    if(g2._moving)continue;
    const def2=FARM_BUILD.find(x=>x.id===g2.t);
+   if(def2&&def2.road){drawRoadSeg(g2);continue;}
    if(def2&&def2.img){
     const im2=farmImg(def2.img);
     if(im2.complete&&im2.naturalWidth){
@@ -4477,7 +4565,12 @@ function draw(){
    const ok=gp.x>=40&&gp.x<4200&&gp.y>=40&&gp.y<=world.h-40&&!cropCellTaken(gid,Math.round(gp.x),Math.round(gp.y));
    ctx.globalAlpha=ok?0.55:0.25;
    const def=FARM_BUILD.find(x=>x.id===gid);
-   if(def&&def.img){
+   if(def&&def.road&&roadAnchor){ /* 🛣 live stretch preview from the anchor to the cursor */
+    drawRoadSeg({t:gid,x0:roadAnchor.x,y0:roadAnchor.y,x1:gp.x,y1:gp.y});
+    ctx.globalAlpha=1;
+    ctx.strokeStyle='rgba(120,230,140,0.9)';ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.arc(roadAnchor.x,roadAnchor.y,9,0,7);ctx.stroke();
+   }else if(def&&def.img){
     const im=farmImg(def.img);
     if(im.complete&&im.naturalWidth){
      const W=def.W||200,H=W*im.naturalHeight/im.naturalWidth;
@@ -4786,7 +4879,13 @@ function drawProp(s,z){
   if(def&&im&&im.complete&&im.naturalWidth){
    const W=def.W||200,H=W*im.naturalHeight/im.naturalWidth,gy=def.gy!==undefined?def.gy:30;
    if(def.col&&def.col.crx&&!def.snap){ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,gy-4,W*0.38,W*0.11,0,0,7);ctx.fill();} /* fences: no building blob shadow */
-   ctx.drawImage(mip(im,W),-W/2,gy-H,W,H);
+   if(def.roam&&s.mv){ /* 🐄 walk cycle: a little hop + body rock, pivoting at the feet, fading out on stop */
+    const ph=(s.wt||0)*0.35,k=s.mv;
+    const bob=Math.abs(Math.sin(ph))*(1.5+W*0.03)*k;
+    ctx.save();ctx.translate(0,gy);ctx.rotate(Math.sin(ph)*0.06*k);
+    ctx.drawImage(mip(im,W),-W/2,-H-bob,W,H);
+    ctx.restore();
+   }else ctx.drawImage(mip(im,W),-W/2,gy-H,W,H);
   }
  }else if(s.type==='farmportal'){
   const t=performance.now()/700+s.x;
