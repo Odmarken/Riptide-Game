@@ -70,19 +70,23 @@ const farmImg=n=>{if(!farmImgs[n]){farmImgs[n]=new Image();farmImgs[n].src='asse
 const FARM_BUILD=[
  /* 🏗 Building */
  {id:'lada',n:'Lada',img:'lada_farm',tab:'b',W:380,gy:30,col:{crx:130,cry:38,cyo:-40}},
- {id:'staket',n:'Staket',img:'staketvit_sidan',tab:'b',W:130,gy:12,col:{r:14}},
- {id:'staketv',n:'Staket (vertikalt)',img:'staket_ovan',tab:'b',W:30,gy:14,col:{r:16}},
+ {id:'staket',n:'Staket',img:'staketvit_sidan',tab:'b',W:130,gy:12,col:{r:14,crx:65,cry:9,cyo:4},snap:'h'}, /* thin wall ellipse spanning the full run — no slipping between the posts */
+ {id:'staketv',n:'Staket (vertikalt)',img:'staket_ovan',tab:'b',W:13,gy:14,col:{r:14,crx:8,cry:47,cyo:-33},snap:'v'}, /* sized so its post caps render the same width as staket's (~13 world units) */
  {id:'chickenhouse',n:'Hönshus',img:'chickenhouse_farm',tab:'b',W:230,gy:28,col:{crx:88,cry:34,cyo:-32}},
- {id:'medium',n:'Farmhouse Medium',img:'Farmhouse_medium',tab:'b',locked:'Later prestige'},
- {id:'mansion',n:'Mansion',img:'farmhouse_mansion',tab:'b',locked:'Later prestige'},
+ {id:'medium',n:'Farmhouse Medium',img:'Farmhouse_medium',tab:'b',W:300,gy:30,col:{crx:105,cry:36,cyo:-36}},
+ {id:'mansion',n:'Mansion',img:'farmhouse_mansion',tab:'b',W:440,gy:32,col:{crx:150,cry:44,cyo:-44}},
+ {id:'farmhouse',n:'Farmhouse',img:'farmhouse_litet',tab:'x',W:340,gy:32}, /* the home house — movable in build mode, never sold or removed; tab x hides it from the store */
  /* 🐄 Animals */
  {id:'chickenfarm',n:'Kyckling',img:'chickenfarm_liten',tab:'a',W:58,gy:12,col:{r:12}},
  {id:'chickenfarm_big',n:'Kyckling (stor)',img:'chickenfarm_big',tab:'a',W:95,gy:14,col:{r:18}},
  {id:'cowfarm',n:'Ko',img:'cowfarm_liten',tab:'a',W:78,gy:12,col:{r:14}},
  {id:'cowfarm_big',n:'Ko (stor)',img:'cowfarm_big',tab:'a',W:130,gy:14,col:{r:22}},
  {id:'tjur',n:'Tjur',img:'tjur_farm',tab:'a',W:120,gy:16,col:{r:20}},
- /* 🌾 Food */
- {id:'hay',n:'Hö — frön',img:'ho_fro',W:74,gy:10,tab:'m'},
+ /* 🌾 Food — hay growth stages; crop:1 items live in S.farm.c, not solids */
+ /* all three share one canvas + crop, so identical W renders the dirt patch identically */
+ {id:'hay',n:'Hö — frön',img:'hö_frö',W:93,gy:10,tab:'m',crop:1},
+ {id:'hay_medium',n:'Hö — växer',img:'hö_medium',W:93,gy:10,tab:'m',crop:1},
+ {id:'hay_klar',n:'Hö — klart',img:'hö_klar',W:93,gy:10,tab:'m',crop:1},
  {id:'remove',n:'Ta bort',emoji:'🗑',tab:'*'} /* removes anything except the farmhouse */
 ];
 const torWeaponImg=new Image();torWeaponImg.src='assets/boss/tor_weapon.png';
@@ -1047,6 +1051,7 @@ function migrate(s){ /* fills fields missing from older saves */
  if(!s.knifeAwarded&&(s.rating||0)>=3000){s.knifeAwarded=true;s.theKnife=true;} /* already past 3000 — the knife finds them */
  if(s.gearSets===undefined){s.gearSets=[null,null];s.gearSetSel=-1;} /* two swappable loadouts */
  if(s.farm===undefined)s.farm={owned:false,b:[],c:[]}; /* 🚜 the farm: buildings + crops */
+ if(s.farm.hx===undefined){s.farm.hx=975;s.farm.hy=1320;} /* farmhouse home spot — movable in build mode */
  (s.gearSets||[]).forEach((gs,gi)=>{ /* v1 sets held raw items or a worn flag — convert to v2 (gsid refs) */
   if(!gs)return;
   if(gs.worn){s.gearSets[gi]=null;s.gearSetSel=-1;return;}
@@ -2039,9 +2044,13 @@ function farmHitTest(wx,wy){
  S.farm.b.forEach((b2,i)=>{const d=Math.hypot(b2.x-wx,b2.y-wy);if(d<bd){bd=d;best={kind:'b',i,t:b2.t};}});
  let cd=45;
  S.farm.c.forEach((c2,i)=>{const d=Math.hypot(c2.x-wx,c2.y-wy);if(d<cd){cd=d;best={kind:'c',i,t:c2.t};}});
+ if(!best){ /* the farmhouse itself — big target, but placed pieces on top of it win */
+  const fh=(world&&world.solids)?world.solids.find(s2=>s2.type==='farmhouse'):null;
+  if(fh&&Math.hypot(fh.x-wx,fh.y-wy)<160)best={kind:'fh',i:0,t:'farmhouse'};
+ }
  return best;
 }
-function farmListOf(kind){return kind==='b'?S.farm.b:kind==='c'?S.farm.c:farmCart;}
+function farmListOf(kind){return kind==='b'?S.farm.b:kind==='c'?S.farm.c:kind==='fh'?world.solids.filter(s2=>s2.type==='farmhouse'):farmCart;}
 function showMovePopup(hit,cx,cy){
  const def=FARM_BUILD.find(x=>x.id===hit.t);
  $('farmMoveName').textContent=def?def.n:(hit.t==='hay'?'Hö':hit.t);
@@ -2055,12 +2064,48 @@ function cancelMove(){
  moveItem=null;movePicked=null;
  const b=$('farmMoveFx');if(b)b.style.display='none';
 }
-const FARM_PRICES={lada:0,staket:0,staketv:0,chickenhouse:0,chickenfarm:0,chickenfarm_big:0,cowfarm:0,cowfarm_big:0,tjur:0,hay:0}; /* placeholder — real prices coming */
+const FARM_PRICES={lada:0,staket:0,staketv:0,chickenhouse:0,chickenfarm:0,chickenfarm_big:0,cowfarm:0,cowfarm_big:0,tjur:0,hay:0,hay_medium:0,hay_klar:0,medium:0,mansion:0}; /* placeholder — real prices coming */
+/* 🧲 snap mode — fences click together end to end (and into corners) instead of free placement */
+let snapMode=true;
+const SNAP_R=80; /* how close the cursor must be to a snap point before it grabs */
+function itemSpanOf(def){const im=farmImg(def.img);const W=def.W||200;return {W,H:(im.complete&&im.naturalWidth)?W*im.naturalHeight/im.naturalWidth:W};}
+const CROP_GX=72,CROP_GY=48; /* crop grid = the dirt patch footprint, so patches tile like a field */
+function cropCellTaken(id,x,y){
+ const def=FARM_BUILD.find(o=>o.id===id);
+ if(!def||!def.crop)return false;
+ const cartCrops=farmCart.filter(g2=>{const d3=FARM_BUILD.find(o=>o.id===g2.t);return d3&&d3.crop;});
+ return [...((S.farm&&S.farm.c)||[]),...cartCrops].some(c2=>!c2._moving&&Math.hypot(c2.x-x,c2.y-y)<30);
+}
+function snapPos(id,x,y){
+ const def=FARM_BUILD.find(o=>o.id===id);
+ if(def&&def.crop) /* crops ALWAYS grid-snap — the 🧲 toggle can't turn it off, so no stacking cheese */
+  return {x:Math.round(x/CROP_GX)*CROP_GX,y:Math.round(y/CROP_GY)*CROP_GY};
+ if(!snapMode)return {x,y};
+ if(!def||!def.snap)return {x,y};
+ const my=itemSpanOf(def);
+ let best=null,bd=SNAP_R;
+ for(const it of [...((S.farm&&S.farm.b)||[]),...farmCart]){
+  if(it._moving)continue;
+  const d2=FARM_BUILD.find(o=>o.id===it.t);
+  if(!d2||!d2.snap)continue;
+  const sp=itemSpanOf(d2),cands=[];
+  if(def.snap==='h'&&d2.snap==='h')cands.push({x:it.x-sp.W,y:it.y},{x:it.x+sp.W,y:it.y});
+  else if(def.snap==='v'&&d2.snap==='v')cands.push({x:it.x,y:it.y-sp.H},{x:it.x,y:it.y+sp.H});
+  else if(def.snap==='v') /* vertical piece onto a horizontal run: corner at either end, going up or down */
+   cands.push({x:it.x-sp.W/2,y:it.y},{x:it.x+sp.W/2,y:it.y},{x:it.x-sp.W/2,y:it.y+my.H},{x:it.x+sp.W/2,y:it.y+my.H});
+  else /* horizontal piece onto a vertical run: attach at its south or north end */
+   cands.push({x:it.x-my.W/2,y:it.y},{x:it.x+my.W/2,y:it.y},{x:it.x-my.W/2,y:it.y-sp.H},{x:it.x+my.W/2,y:it.y-sp.H});
+  for(const c of cands){const d=Math.hypot(c.x-x,c.y-y);if(d<bd){bd=d;best=c;}}
+ }
+ return best||{x,y};
+}
 function updateCartUI(){
  const b=$('farmCheckBtn');
  if(!b)return;
  b.style.display=(buildMode&&farmCart.length)?'flex':'none';
  const n=$('farmCartN');if(n)n.textContent=farmCart.length;
+ const sb=$('farmSnapBtn');
+ if(sb){sb.style.display=buildMode?'flex':'none';sb.classList.toggle('on',snapMode);}
 }
 function farmhouseClick(){
  if((S.prestige||0)<5){stageMsg('🔒 Requires Prestige 5',1800);sfx.warn();return;}
@@ -2135,6 +2180,9 @@ function placeFarmItem(id,x,y){
   if(ci>=0){S.farm.c.splice(ci,1);sfx.forge();stageMsg('🗑 Removed',900);save();}
   return;
  }
+ const sp=snapPos(id,x,y);x=Math.round(sp.x);y=Math.round(sp.y);
+ if(x<40||x>=4200||y<40||y>world.h-40){blip(300,180,0.1,.05);return;}
+ if(cropCellTaken(id,x,y)){stageMsg('🌾 Occupied — pick a free tile',1300);sfx.warn();return;}
  farmCart.push({t:id,x,y}); /* a ghost until you pay for it */
  blip(600,900,0.08,.05);
  updateCartUI();
@@ -2151,13 +2199,14 @@ function drawFarmGround(){ /* farm_zone stretched over one cow-field, laid twice
   else ctx.drawImage(mip(img,TW),x0,0,TW,TH);
  }
  ctx.strokeStyle='rgba(0,0,0,0.35)';ctx.lineWidth=26;ctx.strokeRect(0,0,world.w,world.h);
- const hayImg=farmImg('ho_fro');
- for(const c of ((S&&S.farm&&S.farm.c)||[])){ /* 🌱 hay stage 1 — the painted seed patch */
+ for(const c of ((S&&S.farm&&S.farm.c)||[])){ /* 🌱 crops draw with the ground — each hay stage uses its own art */
   if(c._moving)continue;
-  if(c.x<vx0-50||c.x>vx1+50||c.y<vy0-50||c.y>vy1+50)continue;
-  if(hayImg.complete&&hayImg.naturalWidth){
-   const W2=74,H2=W2*hayImg.naturalHeight/hayImg.naturalWidth;
-   ctx.drawImage(mip(hayImg,W2),c.x-W2/2,c.y+10-H2,W2,H2);
+  if(c.x<vx0-80||c.x>vx1+80||c.y<vy0-80||c.y>vy1+80)continue;
+  const cdef=FARM_BUILD.find(o=>o.id===c.t&&o.crop)||FARM_BUILD.find(o=>o.id==='hay');
+  const cimg=farmImg(cdef.img);
+  if(cimg.complete&&cimg.naturalWidth){
+   const W2=cdef.W||74,H2=W2*cimg.naturalHeight/cimg.naturalWidth;
+   ctx.drawImage(mip(cimg,W2),c.x-W2/2,c.y+(cdef.gy!==undefined?cdef.gy:10)-H2,W2,H2);
   }else{
    ctx.strokeStyle='#7db64a';ctx.lineWidth=2;ctx.lineCap='round';
    for(let i=0;i<4;i++){const k=(i-1.5);ctx.beginPath();ctx.moveTo(c.x+k*5,c.y);ctx.quadraticCurveTo(c.x+k*7,c.y-7,c.x+k*10,c.y-13);ctx.stroke();}
@@ -2274,7 +2323,7 @@ function buildZone(){
    world.spawn={x:260,y:1300};
    world.portal={x:-500,y:-500}; /* no default exit swirl */
    world.solids.push({x:120,y:1300,r:38,type:'altarportal'}); /* the way home */
-   world.solids.push({x:1590,y:340,r:46,type:'farmhouse',crx:150,cry:44,cyo:-60});
+   world.solids.push({x:(S.farm&&S.farm.hx)||975,y:(S.farm&&S.farm.hy)||1320,r:46,type:'farmhouse',crx:150,cry:44,cyo:-60});
    rebuildFarmItems();
    zoneMapImg('farm_zone');
   }
@@ -3405,7 +3454,10 @@ cv.addEventListener('pointerdown',e=>{
    if(moveItem){ /* set it down here */
     if(wx>=40&&wx<4200&&wy>=40&&wy<=world.h-40){
      const it=farmListOf(moveItem.kind)[moveItem.i];
-     if(it){it.x=Math.round(wx);it.y=Math.round(wy);delete it._moving;}
+     const sp=it?snapPos(it.t,wx,wy):null;
+     if(it&&cropCellTaken(it.t,Math.round(sp.x),Math.round(sp.y))){stageMsg('🌾 Occupied — pick a free tile',1300);sfx.warn();return;}
+     if(it){it.x=Math.round(sp.x);it.y=Math.round(sp.y);delete it._moving;}
+     if(it&&moveItem.kind==='fh'){S.farm.hx=it.x;S.farm.hy=it.y;} /* persist the farmhouse's new home */
      if(moveItem.kind!=='g'){rebuildFarmItems();save();}
      moveItem=null;sfx.buy();
     }
@@ -3522,11 +3574,17 @@ $('farmDelYes').onclick=()=>{
 };
 $('farmDelNo').onclick=()=>{pendingDelRect=null;$('farmDelFx').style.display='none';};
 $('farmCheckBtn').onclick=()=>openFarmCheckout();
+$('farmSnapBtn').onclick=()=>{
+ snapMode=!snapMode;
+ $('farmSnapBtn').classList.toggle('on',snapMode);
+ stageMsg(snapMode?'🧲 Snap mode — pieces click together':'🖐 Free mode — place anywhere',1600);
+};
 $('farmCheckYes').onclick=()=>{
  const total=farmCartTotal();
  if(total>0&&!spendGold(total)){stageMsg('Not enough gold — '+total.toLocaleString()+'◉ needed',1800);sfx.warn();return;}
  for(const g2 of farmCart){
-  if(g2.t==='hay')S.farm.c.push({t:'hay',stage:1,x:g2.x,y:g2.y,at:Date.now()});
+  const cd=FARM_BUILD.find(o=>o.id===g2.t);
+  if(cd&&cd.crop)S.farm.c.push({t:g2.t,stage:1,x:g2.x,y:g2.y,at:Date.now()});
   else S.farm.b.push({t:g2.t,x:g2.x,y:g2.y});
  }
  const n=farmCart.length;
@@ -3555,7 +3613,7 @@ window.addEventListener('pointercancel',endHoldMove);
 /* ---- camera zoom: mouse wheel on the map, 2-finger pinch on phones ---- */
 let zoom=1,pinchD=0,pinching=false;
 const ZMAX=3;
-const zmin=()=>buildMode?0.12:((IS_TOUCH&&Math.min(VW,VH)<820)?0.7:1); /* build mode surveys the whole plot */
+const zmin=()=>buildMode?1/3:0.7; /* build mode surveys the whole plot (3× out); normal play allows 0.7 everywhere */
 function setZoom(z){zoom=Math.max(zmin(),Math.min(ZMAX,z));}
 cv.addEventListener('wheel',e=>{
  if(!gameOn)return;
@@ -4388,6 +4446,16 @@ function draw(){
   ctx.globalAlpha=1;
  }
  if(z.farm&&buildMode){ /* buildable boundary + pending ghosts + ghost of the selected item */
+  { /* 📐 build grid — instant visual cue that build mode is on */
+   const GRID=100;
+   const vx0=Math.max(40,camX),vx1=Math.min(4200,camX+VW/zoom);
+   const vy0=Math.max(40,camY),vy1=Math.min(world.h-40,camY+VH/zoom);
+   ctx.strokeStyle='rgba(255,255,255,0.13)';ctx.lineWidth=Math.min(5,2.5/zoom);
+   ctx.beginPath();
+   for(let lx=Math.ceil(vx0/GRID)*GRID;lx<=vx1;lx+=GRID){ctx.moveTo(lx,vy0);ctx.lineTo(lx,vy1);}
+   for(let ly=Math.ceil(vy0/GRID)*GRID;ly<=vy1;ly+=GRID){ctx.moveTo(vx0,ly);ctx.lineTo(vx1,ly);}
+   ctx.stroke();
+  }
   ctx.globalAlpha=0.55;
   for(const g2 of farmCart){
    if(g2._moving)continue;
@@ -4405,18 +4473,19 @@ function draw(){
   ctx.strokeRect(20,20,4180,world.h-40);ctx.setLineDash([]);
   if(buildSel||moveItem){
    const gid=moveItem?moveItem.t:buildSel;
-   const ok=mouseWX>=40&&mouseWX<4200&&mouseWY>=40&&mouseWY<=world.h-40;
+   const gp=gid&&gid!=='remove'?snapPos(gid,mouseWX,mouseWY):{x:mouseWX,y:mouseWY};
+   const ok=gp.x>=40&&gp.x<4200&&gp.y>=40&&gp.y<=world.h-40&&!cropCellTaken(gid,Math.round(gp.x),Math.round(gp.y));
    ctx.globalAlpha=ok?0.55:0.25;
    const def=FARM_BUILD.find(x=>x.id===gid);
    if(def&&def.img){
     const im=farmImg(def.img);
     if(im.complete&&im.naturalWidth){
      const W=def.W||200,H=W*im.naturalHeight/im.naturalWidth;
-     ctx.drawImage(mip(im,W),mouseWX-W/2,mouseWY+(def.gy!==undefined?def.gy:30)-H,W,H);
+     ctx.drawImage(mip(im,W),gp.x-W/2,gp.y+(def.gy!==undefined?def.gy:30)-H,W,H);
     }
    }else if(gid==='hay'){ /* hay ghost via its art */
-    const im3=farmImg('ho_fro');
-    if(im3.complete&&im3.naturalWidth){const W3=74,H3=W3*im3.naturalHeight/im3.naturalWidth;ctx.drawImage(mip(im3,W3),mouseWX-W3/2,mouseWY+10-H3,W3,H3);}
+    const im3=farmImg('hö_frö');
+    if(im3.complete&&im3.naturalWidth){const W3=74,H3=W3*im3.naturalHeight/im3.naturalWidth;ctx.drawImage(mip(im3,W3),gp.x-W3/2,gp.y+10-H3,W3,H3);}
    }else if(gid==='remove'){ /* demolish cursor */
     ctx.strokeStyle='rgba(255,90,70,0.9)';ctx.lineWidth=4;ctx.lineCap='round';
     ctx.beginPath();ctx.moveTo(mouseWX-14,mouseWY-14);ctx.lineTo(mouseWX+14,mouseWY+14);
@@ -4426,7 +4495,8 @@ function draw(){
     for(let i=0;i<4;i++){const k=(i-1.5);ctx.beginPath();ctx.moveTo(mouseWX+k*5,mouseWY);ctx.quadraticCurveTo(mouseWX+k*7,mouseWY-7,mouseWX+k*10,mouseWY-13);ctx.stroke();}
    }
    ctx.globalAlpha=1;
-   if(!ok){ctx.strokeStyle='rgba(255,90,70,0.8)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(mouseWX,mouseWY,22,0,7);ctx.stroke();}
+   if(gp.x!==mouseWX||gp.y!==mouseWY){ctx.strokeStyle='rgba(120,230,140,0.9)';ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(gp.x,gp.y,10,0,7);ctx.stroke();}
+   if(!ok){ctx.strokeStyle='rgba(255,90,70,0.8)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(gp.x,gp.y,22,0,7);ctx.stroke();}
   }
   if(removeDrag){ /* the demolition marquee */
    ctx.fillStyle='rgba(255,90,70,0.12)';
@@ -4698,7 +4768,7 @@ function drawProp(s,z){
   ctx.fillStyle='#bcd8ff';ctx.fillText(lbl,0,-96);
  }else if(s.type==='farmhouse'){
   const im=farmImg('farmhouse_litet');
-  if(im.complete&&im.naturalWidth){
+  if(!s._moving&&im.complete&&im.naturalWidth){ /* hidden while being carried in build mode */
    const W=340,H=W*im.naturalHeight/im.naturalWidth;
    ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,28,W*0.40,W*0.12,0,0,7);ctx.fill();
    ctx.drawImage(mip(im,W),-W/2,32-H,W,H);
@@ -4715,7 +4785,7 @@ function drawProp(s,z){
   const im=def&&def.img?farmImg(def.img):null;
   if(def&&im&&im.complete&&im.naturalWidth){
    const W=def.W||200,H=W*im.naturalHeight/im.naturalWidth,gy=def.gy!==undefined?def.gy:30;
-   if(def.col&&def.col.crx){ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,gy-4,W*0.38,W*0.11,0,0,7);ctx.fill();}
+   if(def.col&&def.col.crx&&!def.snap){ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,gy-4,W*0.38,W*0.11,0,0,7);ctx.fill();} /* fences: no building blob shadow */
    ctx.drawImage(mip(im,W),-W/2,gy-H,W,H);
   }
  }else if(s.type==='farmportal'){
