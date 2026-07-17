@@ -439,6 +439,7 @@ const ZONES=[
 ];
 const TAVERN_ZONE=ZONES.findIndex(z=>z.tavern);
 const ALTAR_ZONE=ZONES.findIndex(z=>z.altar);
+const FARM_ZONE=ZONES.findIndex(z=>z.farm);
 function goToZone(i){
  const z=ZONES[i];if(!z)return;
  S.zone=i;S.quest=0;S.qProg=0;
@@ -1882,6 +1883,13 @@ function fishToast(html,color){
  clearTimeout(fishToastT);fishToastT=setTimeout(()=>{t.style.display='none';},3000);
 }
 $('fishBtn').onclick=()=>{if(fish.on)stopFishing();else startFishing();};
+$('torchBtn').onclick=()=>{ /* 🔥 drop a torch at your feet — a breadcrumb through the maze */
+ if(!zoneOf().crypts||!world||!hero)return;
+ if(cryptTorches<=0){stageMsg('🔥 Out of torches for this run',1400);sfx.warn();return;}
+ cryptTorches--;
+ (world.torches=world.torches||[]).push({x:hero.x,y:hero.y+4});
+ blip(700,500,0.08,.06);
+};
 let cowBigT=15; /* the Alpha Bovine — a giant cow every 15 seconds */
 const COW_BAG_CAP=40;
 const cowLocked=()=>gameOn&&cowRunning;
@@ -1904,7 +1912,9 @@ let shakeT=0;
    Walls live in world.mwalls (axis-aligned rects): collide() blocks on them and
    drawCryptGround() culls and draws only the visible ones each frame. */
 const CRYPT={C:380,T:48,cols:35,rows:20,ox:70,oy:70};
+let cryptTorches=15; /* 🔥 breadcrumb torches — 15 per descent, gone when spent, never picked back up */
 function buildCryptMaze(){
+ cryptTorches=15;world.torches=[]; /* fresh maze, fresh torches */
  const C=CRYPT.C,T=CRYPT.T,cols=CRYPT.cols,rows=CRYPT.rows,ox=CRYPT.ox,oy=CRYPT.oy;
  const seen=new Array(cols*rows).fill(false);
  const vW=new Array((cols-1)*rows).fill(true); /* wall right of cell (i,j) */
@@ -2547,6 +2557,7 @@ function drawCryptGround(){
    ctx.rect(w.x,w.y,w.w,w.h);
   }
   ctx.fill();
+  drawCryptTorches(vx0,vy0,vx1,vy1);
   return;
  }
  const pat=cryptWallPattern();
@@ -2556,6 +2567,19 @@ function drawCryptGround(){
   ctx.fillStyle=pat||'#474254';ctx.fillRect(w.x,w.y,w.w,w.h);
   ctx.fillStyle='rgba(255,255,255,0.08)';ctx.fillRect(w.x,w.y,w.w,4); /* faint top light so the walls read as raised */
   ctx.strokeStyle='rgba(0,0,0,0.55)';ctx.lineWidth=2;ctx.strokeRect(w.x,w.y,w.w,w.h);
+ }
+ drawCryptTorches(vx0,vy0,vx1,vy1);
+}
+function drawCryptTorches(vx0,vy0,vx1,vy1){ /* 🔥 breadcrumb markers — flickering flames on the maze floor */
+ for(const tc of (world.torches||[])){
+  if(tc.x<vx0-60||tc.x>vx1+60||tc.y<vy0-60||tc.y>vy1+60)continue;
+  const fl=0.75+0.25*Math.sin(performance.now()/90+tc.x);
+  ctx.fillStyle='rgba(255,170,60,'+(0.10*fl).toFixed(3)+')';
+  ctx.beginPath();ctx.arc(tc.x,tc.y-10,46,0,7);ctx.fill(); /* warm light pool */
+  ctx.strokeStyle='#6a4a2a';ctx.lineWidth=3;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(tc.x,tc.y);ctx.lineTo(tc.x,tc.y-16);ctx.stroke();
+  ctx.fillStyle='#ff9a3a';ctx.beginPath();ctx.ellipse(tc.x,tc.y-20,3.5,6*fl+2,0,0,7);ctx.fill();
+  ctx.fillStyle='#ffe9a0';ctx.beginPath();ctx.ellipse(tc.x,tc.y-19,1.8,3*fl+1,0,0,7);ctx.fill();
  }
 }
 function buildZone(){
@@ -3761,6 +3785,13 @@ cv.addEventListener('pointerdown',e=>{
   else{hero.target=null;hero.goPortal=false;hero.moveTo={x:apx.x,y:apx.y+34};marker={x:apx.x,y:apx.y+34,t:0};hero.pendingDoor={s:apx,open:go,rng:75};}
   return;
  }
+ const fpx=world.solids.find(s=>s.type==='farmportal');
+ if(fpx&&Math.hypot(wx-fpx.x,wy-fpx.y)<fpx.r+28){ /* 🚜 Goldshire's west-road portal → the Farm */
+  const go=()=>goToZone(FARM_ZONE);
+  if(Math.hypot(hero.x-fpx.x,hero.y-fpx.y)<75)go();
+  else{hero.target=null;hero.goPortal=false;hero.moveTo={x:fpx.x,y:fpx.y+34};marker={x:fpx.x,y:fpx.y+34,t:0};hero.pendingDoor={s:fpx,open:go,rng:75};}
+  return;
+ }
  if(zoneOf().farm){
   if(buildMode){
    if(moveItem){ /* set it down here */
@@ -4222,6 +4253,14 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    if(dRing<700&&ritualReady&&!ritualSeen&&!ritualActive){$('ritualBox').style.display='block';ritualSeen=true;}
    if(dRing>760&&ritualSeen&&!ritualActive){$('ritualBox').style.display='none';ritualSeen=false;}
   }else if(altarMsgSeen||ritualSeen||gateMsgSeen){$('altarMsg').style.display='none';altarMsgSeen=false;$('gateMsg').style.display='none';gateMsgSeen=false;if(!ritualActive){$('ritualBox').style.display='none';ritualSeen=false;}}
+  { /* 🔥 crypt torch button — visible only in the maze, greys out when spent */
+   const tb=$('torchBtn');
+   if(tb){
+    const inC=zoneOf().crypts;
+    tb.style.display=inC?'flex':'none';
+    if(inC){$('torchN').textContent=cryptTorches;tb.disabled=cryptTorches<=0;}
+   }
+  }
   /* --- fishing: button near the lake, casts 4–10s, stops the moment you move away --- */
   {
    const nl=nearLake(),fb=$('fishBtn');
@@ -5152,6 +5191,9 @@ function drawProp(s,z){
   ctx.shadowBlur=0;
   ctx.fillStyle='rgba(240,250,210,0.85)';
   for(let i=0;i<4;i++){const a=t+i*1.57;ctx.beginPath();ctx.arc(Math.cos(a)*19,-36+Math.sin(a)*32,2.4,0,7);ctx.fill();}
+  ctx.font='700 12px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
+  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText('🚜 Farm',1,-95);
+  ctx.fillStyle='#c9e06a';ctx.fillText('🚜 Farm',0,-96);
   ctx.restore();
   ctx.font='700 12px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText('Farm',1,-95);
