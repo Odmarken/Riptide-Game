@@ -903,7 +903,8 @@ function zoneQuests(z){
  if(z.tavern)return [{name:'🍺 Goldshire',desc:'A safe haven. Rest, forge, trade — no foe dares enter.',need:999999}];
  if(z.altar)return [{name:'⛧ The Altar',desc:'A silent ring above the clouds. Something waits to be awakened.',need:999999}];
  if(z.farm){const fl=(S.farm&&S.farm.lvl)||1;
-  return [{name:'🚜 The Farm · Level '+fl+(fl>=FARM_MAXLVL?' (MAX)':''),desc:'Open fields as far as the eye can see. Slaughter grown livestock to earn farm XP.',need:fl>=FARM_MAXLVL?999999:farmXpNeed(fl),farmXp:1}];}
+  const pct=fl>=3?15:fl===2?10:5;
+  return [{name:'🚜 The Farm · Level '+fl+(fl>=FARM_MAXLVL?' (MAX)':''),desc:'Slaughter grown livestock to earn farm XP. Farm blessing: +'+pct+'% XP & gold from every foe in the realm'+((S.farm&&S.farm.owned)?'':' — once the farm is yours'),need:fl>=FARM_MAXLVL?999999:farmXpNeed(fl),farmXp:1}];}
  if(z.crypts)return [{name:'⚰️ The Crypts',desc:'An ever-shifting labyrinth. Three chests wait somewhere in the dark. On foot only — AUTO fails here.',need:3}];
  if(z.raid)return [{name:'⚔ Sanctum of the Three',desc:'Slay all three raid lords. Pull them one at a time — they never retreat.',need:3,boss:true}];
  if(z.cow)return [{name:'MOO',desc:'Survive. You cannot.',need:999999}];
@@ -972,9 +973,11 @@ const pRew=()=>Math.min(Math.pow(1.15,(S.prestige||0)),8);   /* XP/potion reward
    Mob gold is based on the real zone level + visible level + a soft +8% per prestige.
    This prevents high-prestige players from earning thousands per normal mob while keeping early players fair. */
 const goldPrestigeMul=()=>1+(S.prestige||0)*0.08;
+/* 🚜 farm blessing — owning the farm grants passive +XP/+gold everywhere: L1 5% · L2 10% · L3 15% */
+const farmBonus=()=>{if(!(S&&S.farm&&S.farm.owned))return 0;const l=S.farm.lvl||1;return l>=3?0.15:l===2?0.10:0.05;};
 const goldZoneMul=z=>1+((z&&z.lvl)||1)/60*1.25;
 const goldLvlMul=()=>1+(((S&&S.lvl)||1)-1)*0.012;
-const mobGold=(z,mul=1)=>Math.max(1,Math.round((8+((z&&z.lvl)||1)*3.2)*goldZoneMul(z)*goldLvlMul()*goldPrestigeMul()*mul));
+const mobGold=(z,mul=1)=>Math.max(1,Math.round((8+((z&&z.lvl)||1)*3.2)*goldZoneMul(z)*goldLvlMul()*goldPrestigeMul()*(1+farmBonus())*mul));
 /* potion prices are fixed for now — no level/prestige scaling */
 const potCost=k=>20;
 const POT_CAP=250; /* max potions of each kind you can carry */
@@ -3352,6 +3355,7 @@ function gainXP(amt){
  if(S.lvl>=MAXLVL)return;
  if(S.gamblerT>0)amt=Math.round(amt*1.20);
  if(S.restedT>0)amt=Math.round(amt*(1+(S.restedPct||0))); /* 😴 Rested — inn wheel buff */
+ if(farmBonus()>0)amt=Math.round(amt*(1+farmBonus())); /* 🚜 farm blessing */
  S.xp+=amt;
  while(S.lvl<MAXLVL&&zoneLvlGained()<ZONE_LVL_CAP&&S.xp>=xpNeed(S.lvl)){
   S.xp-=xpNeed(S.lvl);S.lvl++;
@@ -4062,6 +4066,10 @@ function update(dt){
  mpSyncTick();
  updateFarmAnimals(dt);
  updateFarmCrops();
+ if(hero&&!hero.dead&&world&&world.solids&&zoneOf().tavern){ /* 🚜 walk straight into the Farm portal — no click needed */
+  const fp=world.solids.find(s2=>s2.type==='farmportal');
+  if(fp&&Math.hypot(hero.x-fp.x,hero.y-fp.y)<55){goToZone(FARM_ZONE);return;}
+ }
  if(cowRunning&&!hero.dead){
   cowT+=dt;
   cowSpawnT-=dt;
