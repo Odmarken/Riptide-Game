@@ -2658,7 +2658,7 @@ function buildZone(){
  }else{
   if(z.crypts)buildCryptMaze();
   if(z.farm){ /* 🚜 the Farm — the little farmhouse guards the fields */
-   world.spawn={x:260,y:1300};
+   world.spawn={x:470,y:1300}; /* a good few steps clear of the way-home portal */
    world.portal={x:-500,y:-500}; /* no default exit swirl */
    world.solids.push({x:120,y:1300,r:38,type:'altarportal'}); /* the way home */
    world.solids.push({x:(S.farm&&S.farm.hx)||975,y:(S.farm&&S.farm.hy)||1320,r:46,type:'farmhouse',crx:150,cry:44,cyo:-60});
