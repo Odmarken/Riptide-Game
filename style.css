@@ -67,6 +67,9 @@
   #farmHarvBtn.on{border-color:var(--brass);opacity:1;box-shadow:0 0 12px rgba(217,164,65,.4)}
   .fsitem{position:relative}
   .fscnt{position:absolute;top:4px;right:6px;font-size:12px;font-weight:800;color:#ffd76a;text-shadow:0 1px 3px #000;pointer-events:none}
+  #farmStore{transition:transform .25s ease}
+  #farmStore.collapsed{transform:translateX(-100%)}
+  #fsCollapse{position:absolute;right:-20px;top:50%;transform:translateY(-50%);width:20px;height:58px;border:1px solid #6a4a2a;border-left:none;border-radius:0 10px 10px 0;background:rgba(22,15,9,.94);color:#e8c9a0;font-size:11px;cursor:pointer;padding:0;z-index:66}
   #fishBtn{position:absolute;bottom:84px;left:50%;transform:translateX(-50%);width:44px;height:44px;border-radius:11px;border:1px solid var(--brass-deep);background:linear-gradient(180deg,#3a2a1c,#221610);font-size:20px;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:6;box-shadow:0 2px 8px rgba(0,0,0,.5)}
   #fishBtn.on{border-color:var(--brass);box-shadow:0 0 12px rgba(217,164,65,.5);animation:pulseNext 1.6s infinite}
   #fishBtn .cnt{position:absolute;top:1px;right:4px;font-size:9px;color:#fff;font-weight:700;text-shadow:0 1px 2px #000}

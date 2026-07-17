@@ -73,26 +73,31 @@ const FARM_BUILD=[
  {id:'staketv',n:'Fence (vertical)',img:'staket_ovan',tab:'b',W:13,gy:14,col:{r:14,crx:8,cry:47,cyo:-33},snap:'v'}, /* sized so its post caps render the same width as the horizontal fence's (~13 world units) */
  {id:'lada',n:'Barn',img:'lada_farm',tab:'b',W:380,gy:30,col:{crx:130,cry:38,cyo:-40}},
  {id:'chickenhouse',n:'Chicken Coop',img:'chickenhouse_farm',tab:'b',W:230,gy:28,col:{crx:88,cry:34,cyo:-32}},
- {id:'medium',n:'Farmhouse Medium',img:'Farmhouse_medium',tab:'b',W:408,gy:41,col:{crx:143,cry:49,cyo:-49}},
+ {id:'medium',n:'Farmhouse',img:'Farmhouse_medium',tab:'b',W:408,gy:41,col:{crx:143,cry:49,cyo:-49}},
  {id:'mansion',n:'Mansion',img:'farmhouse_mansion',tab:'b',W:850,gy:62,col:{crx:290,cry:85,cyo:-85}},      /* 2.5× the home farmhouse */
  {id:'farmhouse',n:'Farmhouse',img:'farmhouse_litet',tab:'x',W:340,gy:32}, /* the home house — movable in build mode, never sold or removed; tab x hides it from the store */
  /* 🐄 Animals */
  /* 🐄 animals roam the plot freely (roam:1) — fences pen them in; speed = stroll pace */
- {id:'chickenfarm',n:'Chick',img:'chickenfarm_liten',tab:'a',W:29,gy:6,col:{r:6},roam:1,speed:30},
- {id:'chickenfarm_big',n:'Hen',img:'chickenfarm_big',tab:'a',W:48,gy:7,col:{r:9},roam:1,speed:26},
- {id:'cowfarm',n:'Calf',img:'cowfarm_liten',tab:'a',W:49,gy:8,col:{r:9},roam:1,speed:24},
- {id:'cowfarm_big',n:'Cow',img:'cowfarm_big',tab:'a',W:120,gy:13,col:{r:20},roam:1,speed:18}, /* matches Bull */
- {id:'tjur',n:'Bull',img:'tjur_farm',tab:'a',W:156,gy:21,col:{r:26},roam:1,speed:16},
+ /* eatT = hunger interval: grown beasts eat every 2h, young ones every hour */
+ {id:'chickenfarm',n:'Chicken',img:'chickenfarm_liten',tab:'a',W:29,gy:6,col:{r:6},roam:1,speed:30,eatT:3600000},
+ {id:'chickenfarm_big',n:'Chicken',img:'chickenfarm_big',tab:'x',W:48,gy:7,col:{r:9},roam:1,speed:26,eatT:7200000}, /* grown — not sold, grows from the young one */
+ {id:'cowfarm',n:'Calf',img:'cowfarm_liten',tab:'a',W:49,gy:8,col:{r:9},roam:1,speed:24,eatT:3600000},
+ {id:'cowfarm_big',n:'Cow',img:'cowfarm_big',tab:'x',W:120,gy:13,col:{r:20},roam:1,speed:18,eatT:7200000}, /* grown — not sold; matches Bull */
+ {id:'tjur',n:'Bull',img:'tjur_farm',tab:'a',W:156,gy:21,col:{r:26},roam:1,speed:16,eatT:7200000},
  /* 🌾 Food — hay growth stages; crop:1 items live in S.farm.c, not solids */
  /* all three share one canvas + crop, so identical W renders the dirt patch identically */
  {id:'hay',n:'Hay Seeds',img:'hö_frö',W:93,gy:10,tab:'m',crop:1},
- {id:'hay_medium',n:'Hay Growing',img:'hö_medium',W:93,gy:10,tab:'m',crop:1},
- {id:'hay_klar',n:'Hay Ready',img:'hö_klar',W:93,gy:10,tab:'m',crop:1},
- {id:'hobal',n:'Hay Bale',img:'höbal',tab:'m',W:80,gy:18,col:{r:25}}, /* solid object — animals & hero walk around it */
+ {id:'hay_medium',n:'Hay Growing',img:'hö_medium',W:93,gy:10,tab:'x',crop:1}, /* stages appear only by growing */
+ {id:'hay_klar',n:'Hay Ready',img:'hö_klar',W:93,gy:10,tab:'x',crop:1},
+ {id:'hobal',n:'Hay',img:'höbal',tab:'m',W:80,gy:18,col:{r:25}}, /* solid object — animals & hero walk around it */
  {id:'chickenseeds',n:'Chicken Seeds',img:'chickenseeds',tab:'m',W:64,gy:8,crop:1}, /* ground decal on the crop grid */
  /* 🛣 Roads — Sims-style: click to anchor, click again to lay the stretch; chain keeps going from the last point */
  {id:'dirt_road',n:'Dirt Road',img:'dirt_road',tab:'o',road:1,rw:44,W:44,gy:22},
  {id:'gravel_road',n:'Gravel Road',img:'gravel_road',tab:'o',road:1,rw:44,W:44,gy:22},
+ /* 🌳 Decoration */
+ {id:'light_farm',n:'Lamp Post',img:'light_farm',tab:'d',W:42,gy:10,col:{r:8}},
+ {id:'bush',n:'Bush',img:'häck_farm',tab:'d',W:130,gy:16,col:{r:14,crx:65,cry:10,cyo:5},snap:'h'},
+ {id:'bushv',n:'Bush (vertical)',img:'häckvertikal_farm',tab:'d',W:53,gy:16,col:{r:14,crx:18,cry:60,cyo:-45},snap:'v'},
  {id:'remove',n:'Remove',emoji:'🗑',tab:'*'} /* removes anything except the farmhouse */
 ];
 const torWeaponImg=new Image();torWeaponImg.src='assets/boss/tor_weapon.png';
@@ -896,7 +901,8 @@ function zoneTemplates(z){
 function zoneQuests(z){
  if(z.tavern)return [{name:'🍺 Goldshire',desc:'A safe haven. Rest, forge, trade — no foe dares enter.',need:999999}];
  if(z.altar)return [{name:'⛧ The Altar',desc:'A silent ring above the clouds. Something waits to be awakened.',need:999999}];
- if(z.farm)return [{name:'🚜 The Farm · Level '+((S.farm&&S.farm.lvl)||1),desc:'Open fields as far as the eye can see. Nothing grows here… yet.',need:1000}];
+ if(z.farm){const fl=(S.farm&&S.farm.lvl)||1;
+  return [{name:'🚜 The Farm · Level '+fl+(fl>=FARM_MAXLVL?' (MAX)':''),desc:'Open fields as far as the eye can see. Slaughter grown livestock to earn farm XP.',need:fl>=FARM_MAXLVL?999999:farmXpNeed(fl),farmXp:1}];}
  if(z.crypts)return [{name:'⚰️ The Crypts',desc:'An ever-shifting labyrinth. Three chests wait somewhere in the dark. On foot only — AUTO fails here.',need:3}];
  if(z.raid)return [{name:'⚔ Sanctum of the Three',desc:'Slay all three raid lords. Pull them one at a time — they never retreat.',need:3,boss:true}];
  if(z.cow)return [{name:'MOO',desc:'Survive. You cannot.',need:999999}];
@@ -1058,10 +1064,12 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.gearSets===undefined){s.gearSets=[null,null];s.gearSetSel=-1;} /* two swappable loadouts */
  if(s.farm===undefined)s.farm={owned:false,b:[],c:[]}; /* 🚜 the farm: buildings + crops */
  if(s.farm.hx===undefined){s.farm.hx=975;s.farm.hy=1320;} /* farmhouse home spot — movable in build mode */
- if(s.farm.lvl===undefined)s.farm.lvl=1; /* 🚜 farm level — starts at 1, leveling mechanics to come */
+ if(s.farm.lvl===undefined)s.farm.lvl=1; /* 🚜 farm level — levels via farm XP (slaughter) */
+ if(s.farm.xp===undefined)s.farm.xp=0;
  if(s.farm.r===undefined)s.farm.r=[]; /* 🛣 laid road segments */
- if(s.farm.baleN===undefined)s.farm.baleN=0;   /* ✂ harvest progress — 5 = one Hay Bale placement */
+ if(s.farm.baleN===undefined)s.farm.baleN=0;   /* ✂ harvest progress — 5 = one Hay placement */
  if(s.farm.cseedN===undefined)s.farm.cseedN=0; /* ✂ harvest progress — 5 = one Chicken Seeds placement */
+ if(s.farm.inv===undefined)s.farm.inv={};      /* 🎰 casino-won farm stock: cowfarm/chickenfarm/tjur/hay */
  (s.gearSets||[]).forEach((gs,gi)=>{ /* v1 sets held raw items or a worn flag — convert to v2 (gsid refs) */
   if(!gs)return;
   if(gs.worn){s.gearSets[gi]=null;s.gearSetSel=-1;return;}
@@ -1785,6 +1793,15 @@ $('farmBuyYes').onclick=()=>{
 };
 $('farmBuyNo').onclick=()=>$('farmBuyFx').style.display='none';
 $('fsCat').onchange=()=>{buildTab=$('fsCat').value;buildSel=null;renderFarmStore();};
+$('fsCollapse').onclick=()=>{ /* 📱 tuck the build list away while placing — the arrow tab stays reachable */
+ const c=$('farmStore').classList.toggle('collapsed');
+ $('fsCollapse').textContent=c?'❯':'❮';
+};
+function expandFarmStore(){ /* slide the list back out when the player is done placing */
+ const st=$('farmStore');if(!st)return;
+ st.classList.remove('collapsed');
+ const fc=$('fsCollapse');if(fc)fc.textContent='❮';
+}
 $('fsClose').onclick=()=>exitBuildMode();
 /* ==================== THE RITUAL ====================
    Blackout ~3s, then the screen blinks three times like a waking eye,
@@ -2076,7 +2093,10 @@ function cancelMove(){
  moveItem=null;movePicked=null;
  const b=$('farmMoveFx');if(b)b.style.display='none';
 }
-const FARM_PRICES={lada:0,staket:0,staketv:0,chickenhouse:0,chickenfarm:0,chickenfarm_big:0,cowfarm:0,cowfarm_big:0,tjur:0,hay:0,hay_medium:0,hay_klar:0,hobal:0,chickenseeds:0,medium:0,mansion:0,dirt_road:0,gravel_road:0}; /* placeholder — real prices coming */
+const FARM_PRICES={lada:250000,staket:5000,staketv:5000,chickenhouse:100000,chickenfarm:0,chickenfarm_big:0,cowfarm:0,cowfarm_big:0,tjur:0,hay:0,hay_medium:0,hay_klar:0,hobal:0,chickenseeds:0,medium:350000,mansion:500000,dirt_road:0,gravel_road:0,light_farm:10000,bush:5000,bushv:5000}; /* gold cost per placement */
+const FARM_SCRAPS={lada:300,chickenhouse:150,medium:600,mansion:800}; /* ⚙ scrap cost on top of gold */
+const FARM_ROAD_RATE={dirt_road:10,gravel_road:15}; /* 🛣 roads are priced by length: ◉ per world-unit drawn */
+const roadCost=g2=>Math.round(Math.hypot(g2.x1-g2.x0,g2.y1-g2.y0)*(FARM_ROAD_RATE[g2.t]||0));
 /* 🧲 snap mode — fences click together end to end (and into corners) instead of free placement */
 let snapMode=true;
 const SNAP_R=80; /* how close the cursor must be to a snap point before it grabs */
@@ -2108,7 +2128,40 @@ function drawRoadSeg(r){
 }
 /* 🐄 free-roaming farm animals — short strolls with grazing pauses across the gridded plot.
    Fences and buildings block them (they use the same collide() as everyone else), so a closed
-   fence ring naturally pens them in: a blocked stroll is abandoned and they idle instead. */
+   fence ring naturally pens them in: a blocked stroll is abandoned and they idle instead.
+   FEEDING: hungry animals seek their food (cows/bull/calves → Hay Bale, hens/chicks → Chicken
+   Seeds); each food item holds 5 bites, then it's gone. A recent meal = happy (❤) = fertile.
+   BREEDING: happy Cow + happy Bull → pregnant (💕) → Calf. Happy Hen → egg → Chick. */
+const BITES=5,HUNGER_T=10000,HAPPY_T=60000,PREG_T=90000,HATCH_T=60000,BREED_CD=120000; /* HUNGER_T short for testing — raise later */
+const BARN_CAP=10,COOP_CAP=20; /* one Barn houses 10 cattle, one Chicken Coop 20 chickens */
+/* building & crop caps grow with farm level: L1 → 1 barn/coop, 60 hay · L2 → 2, 80 · L3 → 4, 120 */
+const houseMax=()=>{const l=(S&&S.farm&&S.farm.lvl)||1;return l>=3?4:l>=2?2:1;};
+const hayMax=()=>{const l=(S&&S.farm&&S.farm.lvl)||1;return l>=3?120:l>=2?80:60;};
+const isHay=t=>t==='hay'||t==='hay_medium'||t==='hay_klar';
+const hayCount=()=>((S&&S.farm&&S.farm.c)||[]).filter(c2=>isHay(c2.t)).length+farmCart.filter(g2=>isHay(g2.t)).length;
+const isHappy=b2=>{const d3=FARM_BUILD.find(o=>o.id===b2.t);return Date.now()-(b2.fed||0)<((d3&&d3.eatT)||HAPPY_T);}; /* sated until the next meal is due */
+const isBovine=t=>t==='cowfarm'||t==='cowfarm_big'||t==='tjur';
+const isChicken=t=>t==='chickenfarm'||t==='chickenfarm_big';
+const countFarm=(pred,incCart)=>((S&&S.farm&&S.farm.b)||[]).reduce((n,b2)=>n+(pred(b2.t)?1:0),0)+(incCart?farmCart.reduce((n,g2)=>n+(pred(g2.t)?1:0),0):0);
+const barnRoom=incCart=>countFarm(t=>t==='lada',incCart)*BARN_CAP-countFarm(isBovine,incCart);
+const coopRoom=incCart=>countFarm(t=>t==='chickenhouse',incCart)*COOP_CAP-countFarm(isChicken,incCart);
+function nearestFood(it){
+ const cowish=it.t==='cowfarm'||it.t==='cowfarm_big'||it.t==='tjur';
+ const list=cowish?S.farm.b:S.farm.c,ft=cowish?'hobal':'chickenseeds';
+ let best=null,bd=1e9;
+ list.forEach((f,i)=>{if(f.t!==ft||f._moving)return;const d=Math.hypot(f.x-it.x,f.y-it.y);if(d<bd){bd=d;best={f,i,d,cowish};}});
+ return best;
+}
+function pathClear(x0,y0,x1,y1,er){ /* walkability raycast — samples every 18u so even thin fence walls register */
+ const L=Math.hypot(x1-x0,y1-y0);
+ if(L<1)return true;
+ const steps=Math.ceil(L/18);
+ for(let i=1;i<=steps;i++){
+  const t=i/steps;
+  if(collide(er,x0+(x1-x0)*t,y0+(y1-y0)*t))return false;
+ }
+ return true;
+}
 function updateFarmAnimals(dt){
  if(!world||!zoneOf().farm||!S||!S.farm)return;
  for(const sol of world.solids){
@@ -2117,12 +2170,76 @@ function updateFarmAnimals(dt){
   const def=FARM_BUILD.find(o=>o.id===it.t);
   if(!def||!def.roam||it._moving)continue;
   sol.mv=Math.max(0,(sol.mv||0)-dt*5); /* walk-bob fades out whenever we're not stepping */
+  const now=Date.now();
+  /* 🐄 breeding — only happy (recently fed) beasts */
+  if(it.t==='cowfarm_big'){
+   if(it.preg&&now-it.preg>PREG_T){
+    delete it.preg;
+    if(barnRoom()>0){ /* barn full → the calf never comes */
+     S.farm.b.push({t:'cowfarm',x:Math.max(60,Math.min(4140,it.x+24)),y:Math.max(60,Math.min(world.h-60,it.y+16)),fed:now});
+     stageMsg('🐄 A calf was born!',2000);sfx.buy();sparkles(it.x,it.y-20,'#ffc9e0',12);
+     rebuildFarmItems();save();return;
+    }
+   }
+  }else if(it.t==='chickenfarm_big'){
+   if(it.egg&&now-it.egg>HATCH_T){
+    delete it.egg;
+    if(coopRoom()>0){ /* coop full → no hatch */
+     S.farm.b.push({t:'chickenfarm',x:Math.max(60,Math.min(4140,it.x+16)),y:Math.max(60,Math.min(world.h-60,it.y+10)),fed:now});
+     stageMsg('🐣 A chick hatched!',2000);sfx.buy();sparkles(it.x,it.y-14,'#ffe9a0',10);
+     rebuildFarmItems();save();return;
+    }
+   }
+  }
   if(sol.pz>0){sol.pz-=dt;continue;}
+  /* 🍽 hungry? head for the nearest matching food and take a bite on arrival.
+     No housing (barn/coop torn down) → they refuse to eat until it's rebuilt. */
+  if(now-(it.fed||0)>(def.eatT||HUNGER_T)&&(isBovine(it.t)?countFarm(t=>t==='lada')>0:countFarm(t=>t==='chickenhouse')>0)){
+   const nf=nearestFood(it);
+   if(nf){
+    if(nf.d>=(nf.cowish?58:34)){ /* only chase food we can actually reach — food beyond the fence is ignored */
+     const feR={r:(def.col&&def.col.r)||10};
+     const stop=Math.max(0,nf.d-(nf.cowish?56:26)),ux=(nf.f.x-it.x)/nf.d,uy=(nf.f.y-it.y)/nf.d;
+     if(pathClear(it.x,it.y,it.x+ux*stop,it.y+uy*stop,feR)){sol.tx=nf.f.x;sol.ty=nf.f.y;}
+     else if(sol.tx===nf.f.x&&sol.ty===nf.f.y)sol.tx=undefined; /* was chasing it — stop pressing the fence */
+    }
+    if(nf.d<(nf.cowish?58:34)){ /* bales are solid — "arrived" starts outside their collision ring */
+     it.fed=now;sol.tx=undefined;sol.pz=1.6+Math.random()*1.4;
+     nf.f.bites=(nf.f.bites===undefined?BITES:nf.f.bites)-1;
+     sparkles(nf.f.x,nf.f.y-10,'#ffe9a0',6);
+     let rb=false;
+     if(nf.f.bites<=0){(nf.cowish?S.farm.b:S.farm.c).splice(nf.i,1);rb=nf.cowish;}
+     if(it.t==='cowfarm'||it.t==='chickenfarm'){ /* 🌱 three meals grow the little ones up */
+      it.meals=(it.meals||0)+1;
+      if(it.meals>=3){
+       it.t=it.t==='cowfarm'?'cowfarm_big':'chickenfarm_big';
+       delete it.meals;
+       stageMsg(it.t==='cowfarm_big'?'🐄 A calf grew into a cow!':'🐔 A chick grew into a chicken!',1900);
+       sparkles(it.x,it.y-16,'#ffe9a0',12);
+       rb=true;
+      }
+     }else if(it.t==='cowfarm_big'&&!it.preg&&barnRoom()>0&&S.farm.b.some(b3=>b3.t==='tjur'&&isHappy(b3))&&Math.random()<0.15){
+      /* 💕 meal-time roll — 15% per meal, needs a sated bull; only fires because food existed */
+      it.preg=now;stageMsg('💕 A cow is expecting…',1700);
+     }else if(it.t==='chickenfarm_big'&&!it.egg&&coopRoom()>0&&Math.random()<0.15){
+      it.egg=now;stageMsg('💕 A chicken is brooding…',1700);
+     }
+     if(rb){rebuildFarmItems();save();return;}
+     continue;
+    }
+   }
+  }
   if(sol.tx===undefined||Math.hypot(sol.tx-it.x,sol.ty-it.y)<8){
    if(sol.tx!==undefined&&Math.random()<0.6){sol.pz=1.2+Math.random()*3;} /* arrived — graze a while */
-   const a=Math.random()*Math.PI*2,d=80+Math.random()*260;
-   sol.tx=Math.max(60,Math.min(4140,it.x+Math.cos(a)*d));
-   sol.ty=Math.max(60,Math.min(world.h-60,it.y+Math.sin(a)*d));
+   sol.tx=undefined;
+   const pr={r:(def.col&&def.col.r)||10};
+   for(let tr=0;tr<6;tr++){ /* stroll targets must be walkable — penned animals roam INSIDE their pen */
+    const a=Math.random()*Math.PI*2,d=(80+Math.random()*260)*(1-tr*0.13); /* shrink per retry so tight pens still work */
+    const tx=Math.max(60,Math.min(4140,it.x+Math.cos(a)*d));
+    const ty=Math.max(60,Math.min(world.h-60,it.y+Math.sin(a)*d));
+    if(pathClear(it.x,it.y,tx,ty,pr)){sol.tx=tx;sol.ty=ty;break;}
+   }
+   if(sol.tx===undefined)sol.pz=0.6+Math.random(); /* boxed in tight — wait a beat and try again */
    continue;
   }
   const sp=(def.speed||24)*dt;
@@ -2138,9 +2255,24 @@ function updateFarmAnimals(dt){
   sol.x=it.x;sol.y=it.y;
  }
 }
+/* 🚜 farm leveling — XP from slaughtering grown livestock; unlocks the bigger farmhouses */
+const FARM_MAXLVL=3;
+const farmXpNeed=l=>l===1?1500:l===2?3000:Infinity; /* 1→2: 1500 · 2→3: 3000 */
+function gainFarmXP(n){
+ if(!S||!S.farm)return;
+ if((S.farm.lvl||1)>=FARM_MAXLVL)return;
+ S.farm.xp=(S.farm.xp||0)+n;
+ while((S.farm.lvl||1)<FARM_MAXLVL&&S.farm.xp>=farmXpNeed(S.farm.lvl||1)){
+  S.farm.xp-=farmXpNeed(S.farm.lvl||1);
+  S.farm.lvl=(S.farm.lvl||1)+1;
+  stageMsg('🚜 Farm Level '+S.farm.lvl+'!'+(S.farm.lvl===2?' Farmhouse Medium unlocked!':S.farm.lvl===3?' Mansion unlocked!':''),2800);
+  sfx.level();
+  if(buildMode)renderFarmStore();
+ }
+}
 /* 🌾 hay growth: seeds → growing → ready, wall-clock timers so time away still counts.
    Promotions carry the overflow (at+=T) so a long absence cascades through both stages. */
-const HAY_T1=10000,HAY_T2=10000;
+const HAY_T1=3600000,HAY_T2=3600000; /* 1h per stage: seeds → growing → ready */
 function updateFarmCrops(){
  if(!world||!zoneOf().farm||!S||!S.farm)return;
  const now=Date.now();
@@ -2201,6 +2333,8 @@ function enterBuildMode(){
  setZoom(Math.min(VW/4400,VH/2750));
  camX=2100-VW/(2*zoom);camY=1300-VH/(2*zoom);
  $('farmStore').style.display='flex';
+ $('farmStore').classList.remove('collapsed');
+ const fc=$('fsCollapse');if(fc)fc.textContent='❮';
  renderFarmStore();
  updateCartUI();
  stageMsg('🔨 Build mode — pick an item and click to place it. 🗑 removes. Drag to pan, scroll to zoom.',3400);
@@ -2213,16 +2347,22 @@ function exitBuildMode(){
  updateCartUI();
  setZoom(Math.max(1,zmin())); /* camera glides back down to the hero */
 }
-function farmCartTotal(){return farmCart.reduce((t,g2)=>t+(FARM_PRICES[g2.t]||0),0);}
+function farmCartTotal(){return farmCart.reduce((t,g2)=>t+(g2.road?roadCost(g2):(FARM_PRICES[g2.t]||0)),0);}
+function farmCartScraps(){return farmCart.reduce((t,g2)=>t+(FARM_SCRAPS[g2.t]||0),0);}
 function openFarmCheckout(){
  if(!farmCart.length)return;
  const counts={};
  farmCart.forEach(g2=>counts[g2.t]=(counts[g2.t]||0)+1);
+ const goldBy={};
+ farmCart.forEach(g2=>{goldBy[g2.t]=(goldBy[g2.t]||0)+(g2.road?roadCost(g2):(FARM_PRICES[g2.t]||0));}); /* roads: summed per drawn length */
  $('farmCheckList').innerHTML=Object.entries(counts).map(([t,n])=>{
   const def=FARM_BUILD.find(x=>x.id===t);
-  return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0"><span>${def?def.n:t} ×${n}</span><span style="color:var(--brass)">${((FARM_PRICES[t]||0)*n).toLocaleString()}◉</span></div>`;
+  const pg=goldBy[t]||0,ps=(FARM_SCRAPS[t]||0)*n;
+  const cost=[pg?pg.toLocaleString()+'◉':null,ps?ps+'⚙':null].filter(Boolean).join(' + ')||'free';
+  return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0"><span>${def?def.n:t} ×${n}</span><span style="color:var(--brass)">${cost}</span></div>`;
  }).join('');
- $('farmCheckTotal').textContent=farmCartTotal().toLocaleString()+'◉';
+ const totScr=farmCartScraps();
+ $('farmCheckTotal').textContent=farmCartTotal().toLocaleString()+'◉'+(totScr?' + '+totScr+'⚙':'');
  $('farmCheckoutFx').style.display='flex';
 }
 function renderFarmStore(){
@@ -2233,14 +2373,32 @@ function renderFarmStore(){
   return;
  }
  const stockKey=id=>id==='hobal'?'baleN':id==='chickenseeds'?'cseedN':null;
+ const houseGate=id=>{ /* 🏠 animals need housing with room left; big farmhouses need farm level */
+  const fl=(S.farm&&S.farm.lvl)||1;
+  if(id==='medium'&&fl<2)return 'Farm Level 2 required';
+  if(id==='mansion'&&fl<3)return 'Farm Level 3 required';
+  if((id==='lada'||id==='chickenhouse')&&countFarm(t=>t===id,true)>=houseMax())return 'Max '+houseMax()+' at Level '+fl;
+  if(isHay(id)&&hayCount()>=hayMax())return 'Max '+hayMax()+' hay at Level '+fl;
+  if(id==='cowfarm'||id==='chickenfarm'||id==='tjur'||id==='hay'){ /* 🎰 needs won stock */
+   const have=(((S.farm&&S.farm.inv)||{})[id]||0)-farmCart.filter(g2=>g2.t===id).length;
+   if(have<1)return 'Win one in the casino';
+  }
+  if(isBovine(id))return countFarm(t=>t==='lada',true)===0?'Barn required':barnRoom(true)<=0?'Barn full ('+BARN_CAP+'/barn)':null;
+  if(isChicken(id))return countFarm(t=>t==='chickenhouse',true)===0?'Chicken Coop required':coopRoom(true)<=0?'Coop full ('+COOP_CAP+'/coop)':null;
+  return null;
+ };
  $('farmStoreList').innerHTML=list.map(it=>{
   const sel=buildSel===it.id;
   const stK=stockKey(it.id),stN=stK?((S.farm&&S.farm[stK])||0):0,stLock=stK&&stN<5;
-  return `<div class="fsitem${sel?' sel':''}${it.locked||stLock?' lock':''}" data-fs="${it.id}">
-   ${stK?`<div class="fscnt">${stN}</div>`:''}
+  const hg=houseGate(it.id);
+  const ivK=(it.id==='cowfarm'||it.id==='chickenfarm'||it.id==='tjur'||it.id==='hay')?it.id:null;
+  const ivN=ivK?(((S.farm&&S.farm.inv)||{})[ivK]||0):null; /* 🎰 casino-won stock waiting to be placed */
+  return `<div class="fsitem${sel?' sel':''}${it.locked||stLock||hg?' lock':''}" data-fs="${it.id}">
+   ${stK?`<div class="fscnt">${stN}</div>`:ivN!==null?`<div class="fscnt">${ivN}</div>`:''}
    ${it.img?`<img src="assets/farm/${it.img}.png" draggable="false">`:`<div style="font-size:34px;text-align:center;padding:8px 0">${it.emoji||'❓'}</div>`}
    <div class="fsn">${it.n}</div>
-   ${it.locked?`<div class="fsl">🔒 ${it.locked}</div>`:stLock?`<div class="fsl">🔒 ${stN}/5 — harvest hay</div>`:sel?'<div class="fsl" style="color:#ffd76a">✓ Selected — click the field</div>':''}
+   ${it.road?`<div class="fsl" style="color:var(--brass)">${FARM_ROAD_RATE[it.id]||0}◉ per unit drawn</div>`:(FARM_PRICES[it.id]||0)||(FARM_SCRAPS[it.id]||0)?`<div class="fsl" style="color:var(--brass)">${[FARM_PRICES[it.id]?FARM_PRICES[it.id].toLocaleString()+'◉':null,FARM_SCRAPS[it.id]?FARM_SCRAPS[it.id]+'⚙':null].filter(Boolean).join(' + ')}</div>`:''}
+   ${it.locked?`<div class="fsl">🔒 ${it.locked}</div>`:stLock?`<div class="fsl">🔒 ${stN}/5 — harvest hay</div>`:hg?`<div class="fsl">🔒 ${hg}</div>`:sel?'<div class="fsl" style="color:#ffd76a">✓ Selected — click the field</div>':''}
   </div>`;
  }).join('');
  document.querySelectorAll('[data-fs]').forEach(el=>el.onclick=()=>{
@@ -2248,6 +2406,8 @@ function renderFarmStore(){
   if(it.locked){stageMsg('🔒 '+it.n+' — '+it.locked,1500);sfx.warn();return;}
   const stK=stockKey(it.id);
   if(stK&&((S.farm&&S.farm[stK])||0)<5){stageMsg('🔒 '+it.n+' — harvest ready hay first ('+(((S.farm||{})[stK])||0)+'/5)',1600);sfx.warn();return;}
+  const hg=houseGate(it.id);
+  if(hg){stageMsg('🔒 '+it.n+' — '+hg,1600);sfx.warn();return;}
   buildSel=buildSel===it.id?null:it.id;
   roadAnchor=null;
   renderFarmStore();
@@ -2263,7 +2423,7 @@ function placeFarmItem(id,x,y){
   if(gi>=0){farmCart.splice(gi,1);updateCartUI();blip(300,180,0.1,.05);return;}
   let bi=-1,bd=95;
   S.farm.b.forEach((b2,i)=>{const d=Math.hypot(b2.x-x,b2.y-y);if(d<bd){bd=d;bi=i;}});
-  if(bi>=0){S.farm.b.splice(bi,1);rebuildFarmItems();sfx.forge();stageMsg('🗑 Removed',900);save();return;}
+  if(bi>=0){S.farm.b.splice(bi,1);rebuildFarmItems();sfx.forge();stageMsg('🗑 Removed',900);renderFarmStore();save();return;}
   let ci=-1,cd=45;
   S.farm.c.forEach((c2,i)=>{const d=Math.hypot(c2.x-x,c2.y-y);if(d<cd){cd=d;ci=i;}});
   if(ci>=0){S.farm.c.splice(ci,1);sfx.forge();stageMsg('🗑 Removed',900);save();return;}
@@ -2272,9 +2432,20 @@ function placeFarmItem(id,x,y){
   if(ri>=0){S.farm.r.splice(ri,1);sfx.forge();stageMsg('🗑 Removed',900);save();}
   return;
  }
- if(id==='harvest'){ /* ✂ snip a ready hay patch — it reseeds itself and feeds both counters */
+ if(id==='harvest'){ /* ✂ snip ready hay — or slaughter a full-grown beast */
   let hi=-1,hd=50;
   S.farm.c.forEach((c2,i)=>{const d=Math.hypot(c2.x-x,c2.y-y);if(d<hd){hd=d;hi=i;}});
+  let ai=-1,ad=55;
+  S.farm.b.forEach((b2,i)=>{if((b2.t!=='cowfarm_big'&&b2.t!=='chickenfarm_big')||b2._moving)return;const d=Math.hypot(b2.x-x,b2.y-y);if(d<ad){ad=d;ai=i;}});
+  if(ai>=0&&(hi<0||ad<hd)){ /* 🔪 only the big ones pay out — calves & chicks are safe */
+   const b2=S.farm.b[ai],pay=b2.t==='cowfarm_big'?20000:10000;
+   S.farm.b.splice(ai,1);
+   S.gold=Math.min(goldCap(),(S.gold||0)+pay);
+   stageMsg('🔪 Slaughtered — +'+pay.toLocaleString()+'◉',1800);sfx.buy();sparkles(b2.x,b2.y-16,'#ff6a5a',12);
+   gainFarmXP(b2.t==='cowfarm_big'?20:10); /* cow 20 farm-XP, chicken 10 — level-up toast wins over the slaughter one */
+   rebuildFarmItems();renderFarmStore();save();renderHUD();
+   return;
+  }
   if(hi<0)return;
   const c2=S.farm.c[hi];
   if(c2.t==='hay'||c2.t==='hay_medium'){stageMsg('🌱 Not ready yet',1100);sfx.warn();return;}
@@ -2291,6 +2462,23 @@ function placeFarmItem(id,x,y){
  if(stKey){ /* stocked items — every placement locks 5 harvests, counting ghosts already in the cart */
   const pend=farmCart.filter(g2=>g2.t===id).length;
   if(((S.farm[stKey]||0)-pend*5)<5){stageMsg('🔒 Harvest ready hay first — 5 needed per placement',1500);sfx.warn();return;}
+ }
+ const fLvl=(S.farm.lvl||1);
+ if(id==='medium'&&fLvl<2){stageMsg('🔒 Farm Level 2 required',1600);sfx.warn();return;}
+ if(id==='mansion'&&fLvl<3){stageMsg('🔒 Farm Level 3 required',1600);sfx.warn();return;}
+ if((id==='lada'||id==='chickenhouse')&&countFarm(t=>t===id,true)>=houseMax()){stageMsg('🔒 Max '+houseMax()+' at Farm Level '+fLvl,1600);sfx.warn();return;}
+ if(isHay(id)&&hayCount()>=hayMax()){stageMsg('🌾 Max '+hayMax()+' hay patches at Farm Level '+fLvl,1600);sfx.warn();return;}
+ if(id==='cowfarm'||id==='chickenfarm'||id==='tjur'||id==='hay'){ /* 🎰 stock-gated: casino wins only */
+  const pend=farmCart.filter(g2=>g2.t===id).length;
+  if((((S.farm.inv||{})[id])||0)-pend<1){stageMsg('🔒 None owned — win one in the casino',1700);sfx.warn();return;}
+ }
+ if(isBovine(id)){ /* cattle need a Barn, 10 head per barn */
+  if(countFarm(t=>t==='lada',true)===0){stageMsg('🔒 Barn required',1600);sfx.warn();return;}
+  if(barnRoom(true)<=0){stageMsg('🏠 Barn full — '+BARN_CAP+' cattle per barn',1600);sfx.warn();return;}
+ }
+ if(isChicken(id)){ /* chickens need a Chicken Coop, 20 birds per coop */
+  if(countFarm(t=>t==='chickenhouse',true)===0){stageMsg('🔒 Chicken Coop required',1600);sfx.warn();return;}
+  if(coopRoom(true)<=0){stageMsg('🏠 Coop full — '+COOP_CAP+' chickens per coop',1600);sfx.warn();return;}
  }
  const rdef=FARM_BUILD.find(o=>o.id===id);
  if(rdef&&rdef.road){ /* 🛣 Sims-style: first click anchors, second click lays the stretch, chain continues */
@@ -3697,7 +3885,7 @@ $('farmDelYes').onclick=()=>{
  S.farm.b=S.farm.b.filter(b2=>!(b2.x>=R.x0&&b2.x<=R.x1&&b2.y>=R.y0&&b2.y<=R.y1));
  S.farm.c=S.farm.c.filter(c2=>!(c2.x>=R.x0&&c2.x<=R.x1&&c2.y>=R.y0&&c2.y<=R.y1));
  S.farm.r=((S.farm&&S.farm.r)||[]).filter(r2=>{const mx=(r2.x0+r2.x1)/2,my=(r2.y0+r2.y1)/2;return !(mx>=R.x0&&mx<=R.x1&&my>=R.y0&&my<=R.y1);});
- rebuildFarmItems();
+ rebuildFarmItems();renderFarmStore();
  sfx.forge();stageMsg('🗑 Cleared',1100);save();
 };
 $('farmDelNo').onclick=()=>{pendingDelRect=null;$('farmDelFx').style.display='none';};
@@ -3715,12 +3903,15 @@ $('farmHarvBtn').onclick=()=>{
  stageMsg(buildSel==='harvest'?'✂ Harvest mode — click hay that is ready':'✂ Harvest mode off',1400);
 };
 $('farmCheckYes').onclick=()=>{
- const total=farmCartTotal();
+ const total=farmCartTotal(),scr=farmCartScraps();
+ if(scr>0&&(S.scraps||0)<scr){stageMsg('Not enough Scraps — '+scr+'⚙ needed',1800);sfx.warn();return;}
  if(total>0&&!spendGold(total)){stageMsg('Not enough gold — '+total.toLocaleString()+'◉ needed',1800);sfx.warn();return;}
+ if(scr>0)S.scraps-=scr;
  for(const g2 of farmCart){
   const cd=FARM_BUILD.find(o=>o.id===g2.t);
   if(g2.t==='hobal')S.farm.baleN=Math.max(0,(S.farm.baleN||0)-5);
   if(g2.t==='chickenseeds')S.farm.cseedN=Math.max(0,(S.farm.cseedN||0)-5);
+  if(g2.t==='cowfarm'||g2.t==='chickenfarm'||g2.t==='tjur'||g2.t==='hay'){S.farm.inv=S.farm.inv||{};S.farm.inv[g2.t]=Math.max(0,(S.farm.inv[g2.t]||0)-1);} /* consume won stock */
   if(g2.road)S.farm.r.push({t:g2.t,x0:g2.x0,y0:g2.y0,x1:g2.x1,y1:g2.y1});
   else if(cd&&cd.crop)S.farm.c.push({t:g2.t,stage:1,x:g2.x,y:g2.y,at:Date.now()});
   else S.farm.b.push({t:g2.t,x:g2.x,y:g2.y});
@@ -3733,6 +3924,7 @@ $('farmCheckYes').onclick=()=>{
  sfx.buy();
  stageMsg('🛒 '+n+' item'+(n>1?'s':'')+' built!',1800);
  renderFarmStore(); /* stock badges may have changed */
+ expandFarmStore(); /* done placing — bring the list back out */
  save();renderHUD();
 };
 $('farmCheckNo').onclick=()=>$('farmCheckoutFx').style.display='none';
@@ -4921,7 +5113,7 @@ function drawProp(s,z){
   const im=farmImg('farmhouse_litet');
   if(!s._moving&&im.complete&&im.naturalWidth){ /* hidden while being carried in build mode */
    const W=340,H=W*im.naturalHeight/im.naturalWidth;
-   ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,28,W*0.40,W*0.12,0,0,7);ctx.fill();
+   ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,10,W*0.36,W*0.085,0,0,7);ctx.fill(); /* tucked under the sprite — only a rim peeks out */
    ctx.drawImage(mip(im,W),-W/2,32-H,W,H);
    const own=S.farm&&S.farm.owned;
    const txt=own?'':((S.prestige||0)>=5?'Buy Farm · 500,000◉ + 800⚙':'🔒 Requires Prestige 5');
@@ -4936,7 +5128,7 @@ function drawProp(s,z){
   const im=def&&def.img?farmImg(def.img):null;
   if(def&&im&&im.complete&&im.naturalWidth){
    const W=def.W||200,H=W*im.naturalHeight/im.naturalWidth,gy=def.gy!==undefined?def.gy:30;
-   if(def.col&&def.col.crx&&!def.snap){ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,gy-4,W*0.38,W*0.11,0,0,7);ctx.fill();} /* fences: no building blob shadow */
+   if(def.col&&def.col.crx&&!def.snap){ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,gy-W*0.06,W*0.36,W*0.085,0,0,7);ctx.fill();} /* tucked under the sprite; fences: no blob shadow */
    if(def.roam&&s.mv){ /* 🐄 walk cycle: a little hop + body rock, pivoting at the feet, fading out on stop */
     const ph=(s.wt||0)*0.35,k=s.mv;
     const bob=Math.abs(Math.sin(ph))*(1.5+W*0.03)*k;
@@ -4944,6 +5136,10 @@ function drawProp(s,z){
     ctx.drawImage(mip(im,W),-W/2,-H-bob,W,H);
     ctx.restore();
    }else ctx.drawImage(mip(im,W),-W/2,gy-H,W,H);
+   if(def.roam&&s.it){ /* mood tag: 💕 expecting/brooding · ❤ sated (next meal not yet due) */
+    const tag=(s.it.preg||s.it.egg)?'💕':(Date.now()-(s.it.fed||0)<(def.eatT||HAPPY_T)?'❤':null);
+    if(tag){ctx.font='700 12px system-ui';ctx.textAlign='center';ctx.fillStyle='#ff8aa0';ctx.fillText(tag,0,gy-H-5);}
+   }
   }
  }else if(s.type==='farmportal'){
   const t=performance.now()/700+s.x;
@@ -5755,8 +5951,10 @@ function renderHUD(){
  }else{
   $('qName').textContent=q.name;
   $('qDesc').textContent=S.cleared[S.zone]?q.desc+' (repeats — grind at will)':q.desc;
-  $('qBar').style.width=Math.min(100,100*S.qProg/q.need)+'%';
-  $('qCount').textContent=S.qProg+' / '+q.need;
+  const qp=q.farmXp?((S.farm&&S.farm.xp)||0):S.qProg;
+  const fMax=q.farmXp&&((S.farm&&S.farm.lvl)||1)>=FARM_MAXLVL;
+  $('qBar').style.width=fMax?'100%':Math.min(100,100*qp/q.need)+'%';
+  $('qCount').textContent=fMax?'MAX':qp+' / '+q.need;
  }
  $('autoBtn').classList.toggle('on',S.auto);
  $('autoBtn').textContent=S.auto?'AUTO ✓':'AUTO';
@@ -6715,7 +6913,9 @@ function fillerCard(){
    const tp=petOf(['cat','dog','blackdog'][Math.floor(Math.random()*3)]);
    return {icon:petGlyph(tp),cc:tp.cc,t:'pet'};
   }
+  if(rr<0.075)return {icon:'🐂',cc:'#c9a0ff',t:'farm'}; /* bull tease */
  }
+ if(curCase==='gamba'&&Math.random()<0.06)return {icon:['🐄','🐔','🌾'][Math.floor(Math.random()*3)],cc:'#9adf9a',t:'farm'};
  const pool=curCase==='gold'?CASE_RARS_GOLD:CASE_RARS;
  const r=Math.random();
  const k=pool.find(x=>r<=x.r)||pool[0];
@@ -6738,20 +6938,40 @@ function prizeValue(type){
    log(`GOLD GOLD GOLD: ${petGlyph(p)} <span class="llegendary">${p.n}</span>!`,'loot');
    return {icon:petGlyph(p),tier:'PET',name:p.n,color:p.cc,sub:p.d+' Equip it from the Bag.',epic:true,big:true};
   }
-  if(r<0.064){
+  if(r<0.0125){ /* 0.005–0.0125 = 0.75% 🐂 Bull — farm stock */
+   S.farm.inv=S.farm.inv||{};S.farm.inv.tjur=(S.farm.inv.tjur||0)+1;
+   log(`GOLD GOLD GOLD: <span class="llegendary">🐂 A Bull</span> — sent to the farm!`,'loot');
+   return {icon:'🐂',tier:'FARM ANIMAL',name:'Bull',color:'#c9a0ff',sub:'Sent to the farm — place it from the build menu.',epic:true,big:true};
+  }
+  if(r<0.0715){
    const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
    S.scrolls.push({id:e.id,tier:2});
    log(`GOLD GOLD GOLD: <span class="lscroll">${e.n} II</span>!`,'loot');
    return {icon:'📜',tier:'Scroll · Tier II',name:e.n,color:e.glow,sub:tierDesc(e.id,2)+' Combine duplicates to forge higher tiers.',big:true};
   }
-  const rar=r<0.664?'rare':'epic';
+  const rar=r<0.6715?'rare':'epic';
   const it=rollItem(rar),icon={weapon:'⚔️',armor:'🛡️',trinket:'💍'}[it.slot],col={rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
   log(`GOLD GOLD GOLD: <span class="l${it.rar}">${itemName(it)}</span> ${itemStr(it)}.`,'loot');
   it._lid=lootUID++;
   if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
   return {icon,tier:rar,name:itemName(it),color:col,sub:it.slot+' · '+itemStr(it),epic:rar==='epic',big:rar==='rare'};
  }
- if(r<0.06){
+ if(r<0.003){ /* 0.3% 🐄 Calf — farm stock */
+  S.farm.inv=S.farm.inv||{};S.farm.inv.cowfarm=(S.farm.inv.cowfarm||0)+1;
+  log(`GAMBAAA!: <span class="llegendary">🐄 A Calf</span> — sent to the farm!`,'loot');
+  return {icon:'🐄',tier:'FARM ANIMAL',name:'Calf',color:'#ffc9e0',sub:'Sent to the farm — place it from the build menu.',epic:true,big:true};
+ }
+ if(r<0.008){ /* 0.3–0.8% = 0.5% 🐔 Chicken — farm stock */
+  S.farm.inv=S.farm.inv||{};S.farm.inv.chickenfarm=(S.farm.inv.chickenfarm||0)+1;
+  log(`GAMBAAA!: <span class="llegendary">🐔 A Chicken</span> — sent to the farm!`,'loot');
+  return {icon:'🐔',tier:'FARM ANIMAL',name:'Chicken',color:'#ffe9a0',sub:'Sent to the farm — place it from the build menu.',epic:true,big:true};
+ }
+ if(r<0.038){ /* 0.8–3.8% = 3% 🌾 Hay Seeds — farm stock */
+  S.farm.inv=S.farm.inv||{};S.farm.inv.hay=(S.farm.inv.hay||0)+1;
+  log(`GAMBAAA!: <span class="lscroll">🌾 Hay Seeds</span> — sent to the farm!`,'loot');
+  return {icon:'🌾',tier:'FARM',name:'Hay Seeds',color:'#9adf9a',sub:'Sent to the farm — place it from the build menu.',big:true};
+ }
+ if(r<0.098){
   const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
   S.scrolls.push({id:e.id,tier:1});
   log(`GAMBAAA!: <span class="lscroll">${e.n} I</span>!`,'loot');
