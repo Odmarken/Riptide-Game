@@ -2277,6 +2277,135 @@ function updateFarmAnimals(dt){
   sol.x=it.x;sol.y=it.y;
  }
 }
+/* 🕰 offline/away farm simulation — replays missed meals so the farm lives while you're
+   elsewhere (or logged out). Marches each animal's meal clock through the gap, consuming
+   real bites from placed food, growing the young and rolling breeding per meal.
+   Coarse on purpose: fences are ignored while away, and newborns start eating next visit. */
+function simFarmAway(){
+ if(!S||!S.farm)return;
+ const now=Date.now();
+ const from=S.farm.simT||now;
+ S.farm.simT=now;
+ if(now-from<60000)return; /* live play covers small gaps */
+ const b=S.farm.b;
+ const hasBarn=b.some(x=>x.t==='lada'),hasCoop=b.some(x=>x.t==='chickenhouse');
+ const bales=b.filter(x=>x.t==='hobal');
+ const seeds=S.farm.c.filter(x=>x.t==='chickenseeds');
+ const eatFrom=list=>{for(const f of list){const bt=f.bites===undefined?BITES:f.bites;if(bt>0){f.bites=bt-1;return true;}}return false;};
+ let born=0,grown=0,meals=0;
+ const newborns=[];
+ for(const it of b.slice()){
+  const def0=FARM_BUILD.find(o=>o.id===it.t);
+  if(!def0||!def0.roam)continue;
+  if(isBovine(it.t)?!hasBarn:!hasCoop)continue; /* no housing → they refuse to eat, same as live */
+  const cowish=isBovine(it.t);
+  let ty=it.t;
+  let t=Math.max(from,(it.fed||0)+(def0.eatT||3600000));
+  let guard=0;
+  while(t<=now&&guard++<500){
+   if(!eatFrom(cowish?bales:seeds))break; /* food ran out mid-gap */
+   it.fed=t;meals++;
+   if(ty==='cowfarm'||ty==='chickenfarm'){
+    it.meals=(it.meals||0)+1;
+    if(it.meals>=3){ty=it.t=(ty==='cowfarm'?'cowfarm_big':'chickenfarm_big');delete it.meals;grown++;}
+   }else if(ty==='cowfarm_big'&&!it.preg){
+    const bulls=b.filter(b3=>b3.t==='tjur').length; /* on the same feeding schedule → sated while food lasts */
+    if(bulls>0&&barnRoom()>0&&Math.random()<Math.min(1,bulls*0.15))
+     newborns.push({t:'cowfarm',x:Math.max(60,Math.min(4140,it.x+24)),y:it.y+16,fed:t});
+   }else if(ty==='chickenfarm_big'&&coopRoom()>0&&Math.random()<0.15){
+    newborns.push({t:'chickenfarm',x:Math.max(60,Math.min(4140,it.x+16)),y:it.y+10,fed:t});
+   }
+   const d2=FARM_BUILD.find(o=>o.id===ty);
+   t+=(d2&&d2.eatT)||3600000;
+  }
+ }
+ S.farm.b=S.farm.b.filter(x=>!(x.t==='hobal'&&x.bites!==undefined&&x.bites<=0));
+ S.farm.c=S.farm.c.filter(x=>!(x.t==='chickenseeds'&&x.bites!==undefined&&x.bites<=0));
+ for(const nb of newborns){if((isBovine(nb.t)?barnRoom():coopRoom())>0){S.farm.b.push(nb);born++;}}
+ if(meals||born||grown){
+  if(zoneOf().farm&&world)rebuildFarmItems();
+  save();
+  if(born||grown){
+   const parts=[];
+   if(grown)parts.push(grown+' grew up');
+   if(born)parts.push(born+' newborn'+(born>1?'s':''));
+   stageMsg('🚜 While you were away: '+parts.join(' · '),3200);
+  }
+ }
+}
+/* 🕰 away-farm catch-up: the live loop owns the farm while you stand in it; this simulates
+   everything between visits on the wall clock — offline included. Animals eat on schedule
+   (while food and housing exist), calves/chicks grow, fed cows/hens keep breeding. */
+function simFarmAway(){
+ if(!S||!S.farm||!S.farm.owned)return;
+ const now=Date.now();
+ if(S.farm.lastSim===undefined){S.farm.lastSim=now;return;}
+ const from=S.farm.lastSim,gap=now-from;
+ const inFarm=!!(zoneOf()&&zoneOf().farm);
+ if(inFarm&&gap<60000){S.farm.lastSim=now;return;} /* fresh — the live loop is running */
+ if(gap<30000)return; /* catch up in ≥30s chunks */
+ S.farm.lastSim=now;
+ const housedB=S.farm.b.some(b2=>b2.t==='lada'),housedC=S.farm.b.some(b2=>b2.t==='chickenhouse');
+ const bite=cowish=>{ /* one bite from the first non-empty matching food item */
+  const list=cowish?S.farm.b:S.farm.c,ft=cowish?'hobal':'chickenseeds';
+  for(const f of list){
+   if(f.t!==ft)continue;
+   const b=f.bites===undefined?BITES:f.bites;
+   if(b<=0)continue;
+   f.bites=b-1;return true;
+  }
+  return false;
+ };
+ const cx=v=>Math.max(60,Math.min(4140,v)),cy=v=>Math.max(60,Math.min(2540,v));
+ let ate=0,grew=0,born=0,hatched=0;
+ for(const it of S.farm.b.slice()){
+  const def=FARM_BUILD.find(o=>o.id===it.t);
+  if(!def||!def.roam)continue;
+  /* pregnancies & broods that finished while away */
+  if(it.t==='cowfarm_big'&&it.preg&&now-it.preg>PREG_T){
+   delete it.preg;
+   if(barnRoom()>0){S.farm.b.push({t:'cowfarm',x:cx(it.x+24),y:cy(it.y+16),fed:now});born++;}
+  }
+  if(it.t==='chickenfarm_big'&&it.egg&&now-it.egg>HATCH_T){
+   delete it.egg;
+   if(coopRoom()>0){S.farm.b.push({t:'chickenfarm',x:cx(it.x+16),y:cy(it.y+10),fed:now});hatched++;}
+  }
+  if(!(isBovine(it.t)?housedB:housedC))continue; /* no housing → they refuse to eat */
+  const eatT=def.eatT||HUNGER_T;
+  let due=Math.min(200,Math.floor((now-(it.fed||from))/eatT)),meals=0;
+  while(due>0&&bite(isBovine(it.t))){due--;meals++;}
+  if(!meals)continue;
+  ate+=meals;
+  it.fed=now-((now-(it.fed||now))%eatT); /* last meal lands on schedule */
+  if(it.t==='cowfarm'||it.t==='chickenfarm'){
+   it.meals=(it.meals||0)+meals;
+   if(it.meals>=3){it.t=it.t==='cowfarm'?'cowfarm_big':'chickenfarm_big';delete it.meals;grew++;}
+  }else if(it.t==='cowfarm_big'&&!it.preg){
+   const bulls=S.farm.b.filter(b3=>b3.t==='tjur').length; /* away: bulls eat the same schedule */
+   for(let m=0;m<meals;m++){
+    if(bulls>0&&Math.random()<Math.min(1,bulls*0.15)&&barnRoom()>0){
+     S.farm.b.push({t:'cowfarm',x:cx(it.x+24),y:cy(it.y+16),fed:now});born++;
+    }
+   }
+  }else if(it.t==='chickenfarm_big'&&!it.egg){
+   for(let m=0;m<meals;m++){
+    if(Math.random()<0.15&&coopRoom()>0){S.farm.b.push({t:'chickenfarm',x:cx(it.x+16),y:cy(it.y+10),fed:now});hatched++;}
+   }
+  }
+ }
+ S.farm.b=S.farm.b.filter(f=>!(f.t==='hobal'&&f.bites!==undefined&&f.bites<=0));
+ S.farm.c=S.farm.c.filter(f=>!(f.t==='chickenseeds'&&f.bites!==undefined&&f.bites<=0));
+ if(ate||grew||born||hatched){
+  if(inFarm&&world)rebuildFarmItems();
+  const bits=[];
+  if(ate)bits.push(ate+' meal'+(ate>1?'s':'')+' eaten');
+  if(grew)bits.push(grew+' grew up');
+  if(born)bits.push(born+' calf'+(born>1?'s':'')+' born');
+  if(hatched)bits.push(hatched+' chick'+(hatched>1?'s':'')+' hatched');
+  log('🚜 <span class="loot">Farm while you were away:</span> '+bits.join(' · ')+'.','loot');
+  save();
+ }
+}
 /* 🚜 farm leveling — XP from slaughtering grown livestock; unlocks the bigger farmhouses */
 const FARM_MAXLVL=3;
 const farmXpNeed=l=>l===1?1500:l===2?3000:Infinity; /* 1→2: 1500 · 2→3: 3000 */
@@ -4153,6 +4282,14 @@ function update(dt){
  mpSyncTick();
  updateFarmAnimals(dt);
  updateFarmCrops();
+ simFarmAway();
+ if(S&&S.farm){ /* 🕰 the farm eats even when you're not there */
+  if(!zoneOf().farm)simFarmAway(); /* away or in another zone: catch up in ≥60s chunks */
+  else{
+   if(Date.now()-(S.farm.simT||Date.now())>60000)simFarmAway(); /* just arrived after a gap — replay it first */
+   S.farm.simT=Date.now(); /* live systems own the clock while standing here */
+  }
+ }
  if(hero&&!hero.dead&&world&&world.solids&&zoneOf().tavern){ /* 🚜 walk straight into the Farm portal — no click needed */
   const fp=world.solids.find(s2=>s2.type==='farmportal');
   if(fp&&Math.hypot(hero.x-fp.x,hero.y-fp.y)<55){goToZone(FARM_ZONE);return;}
