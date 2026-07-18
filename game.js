@@ -8682,27 +8682,32 @@ function openGVB(){
  $('gvbFx').style.display='flex';
  gvbShow('gvbEntry');
 }
+const gvbRef=code=>mpDB().collection('rooms').doc('GVB-'+code); /* lives in the raid-approved collection - 'GVB-' ids can never collide with 5-letter raid codes */
 async function gvbCreate(){
- const ok=await mpEnsureFirebase();if(!ok){stageMsg('Firebase is not ready - sign in first.',2200);sfx.warn();return;}
- gvb.code=MPCODE();gvb.pid='p'+Math.random().toString(36).slice(2,9);
- gvb.ref=mpDB().collection('gamble').doc(gvb.code);
- await gvb.ref.set({state:'lobby',created:Date.now(),host:gvb.pid,order:[gvb.pid],
-  players:{[gvb.pid]:{name:dispName?dispName(S):(S.name||'Hero'),ready:false,bet:0,ok:false}},spins:{},forfeits:{}});
- gvbListen();
+ try{
+  const ok=await mpEnsureFirebase();if(!ok){stageMsg('Firebase is not ready - sign in first.',2200);sfx.warn();return;}
+  gvb.code=MPCODE();gvb.pid='p'+Math.random().toString(36).slice(2,9);
+  gvb.ref=gvbRef(gvb.code);
+  await gvb.ref.set({gvb:true,state:'lobby',created:Date.now(),host:gvb.pid,order:[gvb.pid],
+   players:{[gvb.pid]:{name:dispName?dispName(S):(S.name||'Hero'),ready:false,bet:0,ok:false}},spins:{},forfeits:{}});
+  gvbListen();
+ }catch(e){console.warn('gvbCreate failed',e);stageMsg('Could not create room: '+(e.code||e.message||e),2600);sfx.warn();}
 }
 async function gvbJoin(code){
- const ok=await mpEnsureFirebase();if(!ok){stageMsg('Firebase is not ready - sign in first.',2200);sfx.warn();return;}
- code=(code||'').toUpperCase().trim();
- if(code.length<5){stageMsg('Enter a 5-letter code',1400);sfx.warn();return;}
- const ref=mpDB().collection('gamble').doc(code);
- const snap=await ref.get();
- if(!snap.exists||snap.data().state==='closed'){stageMsg('Room not found',1600);sfx.warn();return;}
- const d=snap.data();
- if(d.state!=='lobby'){stageMsg('That duel has already started',1600);sfx.warn();return;}
- if((d.order||[]).length>=GVB_MAXP){stageMsg('Room is full ('+GVB_MAXP+' players)',1600);sfx.warn();return;}
- gvb.code=code;gvb.pid='p'+Math.random().toString(36).slice(2,9);gvb.ref=ref;
- await ref.update({['players.'+gvb.pid]:{name:dispName?dispName(S):(S.name||'Hero'),ready:false,bet:0,ok:false},order:[...(d.order||[]),gvb.pid]});
- gvbListen();
+ try{
+  const ok=await mpEnsureFirebase();if(!ok){stageMsg('Firebase is not ready - sign in first.',2200);sfx.warn();return;}
+  code=(code||'').toUpperCase().trim();
+  if(code.length<5){stageMsg('Enter a 5-letter code',1400);sfx.warn();return;}
+  const ref=gvbRef(code);
+  const snap=await ref.get();
+  if(!snap.exists||snap.data().state==='closed'){stageMsg('Room not found',1600);sfx.warn();return;}
+  const d=snap.data();
+  if(d.state!=='lobby'){stageMsg('That duel has already started',1600);sfx.warn();return;}
+  if((d.order||[]).length>=GVB_MAXP){stageMsg('Room is full ('+GVB_MAXP+' players)',1600);sfx.warn();return;}
+  gvb.code=code;gvb.pid='p'+Math.random().toString(36).slice(2,9);gvb.ref=ref;
+  await ref.update({['players.'+gvb.pid]:{name:dispName?dispName(S):(S.name||'Hero'),ready:false,bet:0,ok:false},order:[...(d.order||[]),gvb.pid]});
+  gvbListen();
+ }catch(e){console.warn('gvbJoin failed',e);stageMsg('Could not join: '+(e.code||e.message||e),2600);sfx.warn();}
 }
 function gvbListen(){
  gvb.shown=0;gvb.animating=false;gvb.paid=false;gvb.settled=false;gvb.closedByMe=false;gvb.sidesKey='';
