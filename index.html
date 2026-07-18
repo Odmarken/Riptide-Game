@@ -351,6 +351,7 @@
     <button class="casinopick" data-game="bj"><span class="cg">🃏</span><span class="ct"><b>Borek Blackjack</b><i>Beat the dealer to 21 - pays 3:2</i></span></button>
     <button class="casinopick" data-game="rou"><span class="cg">🎡</span><span class="ct"><b>Roulette</b><i>Numbers &amp; colours - straight up pays 35:1</i></span></button>
     <button class="casinopick" data-game="rtb"><span class="cg">🚌</span><span class="ct"><b>Ride the Bus</b><i>Four guesses - ride to 20x or bust</i></span></button>
+    <button class="casinopick" data-game="gvb"><span class="cg">🎲</span><span class="ct"><b>Gamble against friend</b><i>Chest duel - winner takes the loser's stake</i></span></button>
     <button id="casinoMenuClose" class="sbtn" style="margin-top:6px;padding:11px">Leave the Casino</button>
    </div>
   </div>
@@ -444,6 +445,50 @@
    </div>
   </div>
 
+
+  <div id="gvbFx" style="position:absolute;inset:0;z-index:76;display:none;align-items:center;justify-content:center;background:rgba(5,10,8,.88)">
+   <div class="casinobox" style="border-color:#ffd76a;max-width:540px;width:94%">
+    <div class="slottop" style="color:#ffd76a">🎲 GAMBLE AGAINST FRIEND</div>
+    <div id="gvbEntry">
+     <div class="cl" style="margin-bottom:10px">Ten chests each, opened one at a time. Most scraps wins the other player's whole stake - the scraps are only score.</div>
+     <button class="sbtn gold" id="gvbCreate" style="padding:12px;width:100%">🌐 Create Room</button>
+     <div style="display:flex;gap:6px;margin-top:8px">
+      <input id="gvbCode" maxlength="5" placeholder="CODE" style="flex:1;text-transform:uppercase;background:rgba(0,0,0,.3);border:1px solid #ffd76a;border-radius:8px;color:#fff;padding:10px;text-align:center;letter-spacing:3px">
+      <button class="sbtn gold" id="gvbJoin">Join Room</button>
+     </div>
+    </div>
+    <div id="gvbLobby" style="display:none">
+     <div class="cl" id="gvbCodeTxt" style="font-size:16px;letter-spacing:2px;margin:4px 0"></div>
+     <div id="gvbPlayers" style="margin:8px 0"></div>
+     <button class="sbtn gold" id="gvbReady" style="padding:11px 20px">✔ Ready</button>
+    </div>
+    <div id="gvbBet" style="display:none">
+     <div class="cl">Both stake the same amount - and you must carry it.</div>
+     <div style="display:flex;gap:6px;justify-content:center;margin:10px 0;flex-wrap:wrap">
+      <button class="sbtn gold" data-gvbbet="500000">500K</button>
+      <button class="sbtn gold" data-gvbbet="1000000">1M</button>
+      <button class="sbtn gold" data-gvbbet="2000000">2M</button>
+      <input id="gvbBetIn" type="number" min="1000" step="1000" placeholder="Custom ◉" style="width:120px;background:rgba(0,0,0,.3);border:1px solid #ffd76a;border-radius:8px;color:#fff;padding:8px;text-align:center;font-family:inherit">
+     </div>
+     <div class="cl" id="gvbBetStat" style="min-height:1.3em"></div>
+     <button class="sbtn gold" id="gvbBetLock" style="padding:11px 22px">🔒 Lock bet</button>
+    </div>
+    <div id="gvbDuel" style="display:none">
+     <div class="cl" id="gvbRound" style="font-size:15px;color:#ffd76a;font-weight:700"></div>
+     <div style="display:flex;gap:12px;justify-content:center;margin-top:8px">
+      <div class="gvbside"><div class="gvbname" id="gvbHName"></div><div class="gvbreel" id="gvbHReel"><div class="gvbstrip" id="gvbHStrip"></div></div><div class="gvbscore" id="gvbHScore">0 ⚙</div></div>
+      <div class="gvbside"><div class="gvbname" id="gvbGName"></div><div class="gvbreel" id="gvbGReel"><div class="gvbstrip" id="gvbGStrip"></div></div><div class="gvbscore" id="gvbGScore">0 ⚙</div></div>
+     </div>
+     <div class="cl" id="gvbTurnTxt" style="margin-top:8px;min-height:1.3em"></div>
+     <button class="sbtn gold" id="gvbOpen" style="padding:12px 24px;display:none">🎁 Open your chest</button>
+     <button class="sbtn" id="gvbClaim" style="display:none;margin-top:6px">⏱ Opponent is gone - claim the pot</button>
+    </div>
+    <div id="gvbDone" style="display:none">
+     <div class="slotres" id="gvbDoneTxt" style="margin:10px 0"></div>
+    </div>
+    <button class="sbtn" id="gvbLeave" style="margin-top:10px;padding:10px">Leave</button>
+   </div>
+  </div>
 
   <div id="raidModal" style="position:absolute;inset:0;z-index:75;display:none;align-items:center;justify-content:center;background:rgba(5,10,8,.86)">
    <div class="casinobox" style="border-color:#a66bd0">

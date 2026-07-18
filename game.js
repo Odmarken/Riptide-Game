@@ -8628,6 +8628,218 @@ $('rtbClose').onclick=()=>{
  $('rtbFx').classList.remove('open');
  casinoAmbApply();
 };
+/* ==================== 🎲 GAMBLE AGAINST FRIEND ====================
+   Two players, same Firestore room pattern as the raid: create/join → ready check →
+   both lock an identical stake → 10 chests each, opened alternately (host first) at
+   Black Temple pace. Chests score symbolic scraps; most scraps takes the whole pot.
+   Ties go to sudden death, one chest each until someone leads. */
+const GVB_SCORE={fm:20,pet:12,bull:10,scroll:7,epic:5,rare:3};
+const gvb={code:null,ref:null,unsub:null,side:null,doc:null,shown:0,animating:false,paid:false,settled:false,lastChange:0,bet:0,closedByMe:false};
+function gvbOutcome(){
+ const r=Math.random();
+ if(r<0.002)return {ic:'🗡️',cc:'#ffd100',sc:GVB_SCORE.fm,n:'FROSTMOURNE'};
+ if(r<0.005)return {ic:'🐾',cc:'#8fe3c9',sc:GVB_SCORE.pet,n:'COMPANION'};
+ if(r<0.0125)return {ic:'🐂',cc:'#ffd100',sc:GVB_SCORE.bull,n:'BULL'};
+ if(r<0.0715)return {ic:'📜',cc:'#e8c9ef',sc:GVB_SCORE.scroll,n:'SCROLL II'};
+ if(r<0.6715)return {ic:['⚔️','🛡️','💍'][Math.floor(Math.random()*3)],cc:'#5b9bd5',sc:GVB_SCORE.rare,n:'RARE'};
+ return {ic:['⚔️','🛡️','💍'][Math.floor(Math.random()*3)],cc:'#c9a0ff',sc:GVB_SCORE.epic,n:'EPIC'};
+}
+function gvbFiller(){ /* reel dressing only */
+ const r=Math.random();
+ if(r<0.03)return {ic:'🗡️',cc:'#ffd100'};
+ if(r<0.06)return {ic:'🐂',cc:'#ffd100'};
+ if(r<0.09)return {ic:'🐾',cc:'#8fe3c9'};
+ if(r<0.16)return {ic:'📜',cc:'#e8c9ef'};
+ return {ic:['⚔️','🛡️','💍'][Math.floor(Math.random()*3)],cc:r<0.55?'#5b9bd5':'#c9a0ff'};
+}
+const gvbSpins=()=>{const sp=(gvb.doc&&gvb.doc.spins)||{};return Object.keys(sp).map(Number).sort((a,b)=>a-b).map(k=>sp[k]);};
+const gvbScores=list=>{let h=0,g=0;list.forEach((s2,i)=>{if(i%2===0)h+=s2.sc;else g+=s2.sc;});return {h,g};};
+const gvbOver=list=>{const n=list.length;if(n<20||n%2)return false;const s2=gvbScores(list);return s2.h!==s2.g;};
+function gvbShow(panel){
+ ['gvbEntry','gvbLobby','gvbBet','gvbDuel','gvbDone'].forEach(id=>{const e=$(id);if(e)e.style.display=id===panel?'block':'none';});
+}
+function openGVB(){
+ $('gvbFx').style.display='flex';
+ gvbShow('gvbEntry');
+}
+async function gvbCreate(){
+ const ok=await mpEnsureFirebase();if(!ok){stageMsg('Firebase is not ready - sign in first.',2200);sfx.warn();return;}
+ gvb.code=MPCODE();gvb.side='host';
+ gvb.ref=mpDB().collection('gamble').doc(gvb.code);
+ await gvb.ref.set({state:'lobby',created:Date.now(),
+  host:{name:dispName?dispName(S):(S.name||'Hero'),ready:false,bet:0,ok:false},guest:null,spins:{}});
+ gvbListen();
+}
+async function gvbJoin(code){
+ const ok=await mpEnsureFirebase();if(!ok){stageMsg('Firebase is not ready - sign in first.',2200);sfx.warn();return;}
+ code=(code||'').toUpperCase().trim();
+ if(code.length<5){stageMsg('Enter a 5-letter code',1400);sfx.warn();return;}
+ const ref=mpDB().collection('gamble').doc(code);
+ const snap=await ref.get();
+ if(!snap.exists||snap.data().state==='closed'){stageMsg('Room not found',1600);sfx.warn();return;}
+ if(snap.data().guest){stageMsg('Room is full',1600);sfx.warn();return;}
+ gvb.code=code;gvb.side='guest';gvb.ref=ref;
+ await ref.update({guest:{name:dispName?dispName(S):(S.name||'Hero'),ready:false,bet:0,ok:false}});
+ gvbListen();
+}
+function gvbListen(){
+ gvb.shown=0;gvb.animating=false;gvb.paid=false;gvb.settled=false;gvb.closedByMe=false;
+ gvb.unsub=gvb.ref.onSnapshot(s2=>{
+  if(!s2.exists||(s2.data()||{}).state==='closed'){if(!gvb.closedByMe){stageMsg('The room was closed',1600);}gvbCleanup();return;}
+  gvb.doc=s2.data();gvb.lastChange=Date.now();
+  gvbRender();
+ });
+}
+function gvbCleanup(){
+ if(gvb.unsub){gvb.unsub();gvb.unsub=null;}
+ gvb.code=null;gvb.ref=null;gvb.doc=null;gvb.side=null;
+ $('gvbFx').style.display='none';
+ casinoAmbApply();
+}
+function gvbRender(){
+ const d=gvb.doc;if(!d)return;
+ const me=gvb.side,opp=me==='host'?'guest':'host';
+ if(d.state==='lobby'){
+  gvbShow('gvbLobby');
+  $('gvbCodeTxt').textContent='Room code: '+gvb.code;
+  const rows=[[d.host?d.host.name+' (host)':'…',d.host&&d.host.ready],[d.guest?d.guest.name:'Waiting for a challenger…',d.guest&&d.guest.ready]];
+  $('gvbPlayers').innerHTML=rows.map(r=>`<div class="cl">${r[1]?'✅':'⏳'} ${r[0]}</div>`).join('');
+  const mine=d[me];
+  $('gvbReady').textContent=mine&&mine.ready?'✔ Ready!':'✔ Ready';
+  /* host advances the room once both are in and ready */
+  if(me==='host'&&d.host&&d.guest&&d.host.ready&&d.guest.ready)gvb.ref.update({state:'bet'});
+  return;
+ }
+ if(d.state==='bet'){
+  gvbShow('gvbBet');
+  const mine=d[me]||{},their=d[opp]||{};
+  $('gvbBetStat').innerHTML=
+   (mine.ok?`You: <b style="color:#ffd76a">${(mine.bet||0).toLocaleString()}◉</b> locked`:'You: choosing…')+' · '+
+   (their.ok?`${their.name}: <b style="color:#ffd76a">${(their.bet||0).toLocaleString()}◉</b> locked`:(their.name||'Opponent')+': choosing…');
+  $('gvbBetLock').disabled=!!mine.ok;
+  /* host starts the duel once both stakes match */
+  if(me==='host'&&d.host&&d.guest&&d.host.ok&&d.guest.ok&&d.host.bet===d.guest.bet&&d.host.bet>0)gvb.ref.update({state:'roll',bet:d.host.bet});
+  return;
+ }
+ if(d.state==='roll'){
+  gvbShow('gvbDuel');
+  gvb.bet=d.bet||0;
+  if(!gvb.paid){ /* the stake leaves your pocket the moment the duel starts */
+   gvb.paid=true;
+   if(!spendGold(gvb.bet)){gvb.ref.update({forfeit:me});} /* should never happen - validated at lock */
+   save();renderHUD();
+  }
+  $('gvbHName').textContent=(d.host&&d.host.name)||'Host';
+  $('gvbGName').textContent=(d.guest&&d.guest.name)||'Guest';
+  const list=gvbSpins();
+  if(d.forfeit){gvbSettle(list,d.forfeit==='host'?'guest':'host',true);return;}
+  /* animate any spin we have not shown yet, one at a time */
+  if(gvb.shown<list.length&&!gvb.animating){gvbAnimate(list[gvb.shown],gvb.shown);return;}
+  if(!gvb.animating){
+   const sc=gvbScores(list.slice(0,gvb.shown));
+   $('gvbHScore').textContent=sc.h+' ⚙';$('gvbGScore').textContent=sc.g+' ⚙';
+   if(gvbOver(list)){gvbSettle(list,gvbScores(list).h>gvbScores(list).g?'host':'guest',false);return;}
+   const n=list.length,turn=n%2===0?'host':'guest',round=Math.floor(n/2)+1;
+   $('gvbRound').textContent=(round<=10?'Round '+round+' / 10':'⚔ SUDDEN DEATH')+' · pot '+(gvb.bet*2).toLocaleString()+'◉';
+   const myTurn=turn===me;
+   $('gvbTurnTxt').textContent=myTurn?'Your chest awaits…':((d[turn]&&d[turn].name)||'Opponent')+' is opening…';
+   $('gvbOpen').style.display=myTurn?'inline-block':'none';
+   $('gvbClaim').style.display=(!myTurn&&Date.now()-gvb.lastChange>120000)?'inline-block':'none';
+  }
+ }
+}
+function gvbAnimate(spin,idx){
+ gvb.animating=true;
+ const side=idx%2===0?'host':'guest';
+ const strip=$(side==='host'?'gvbHStrip':'gvbGStrip'),reel=$(side==='host'?'gvbHReel':'gvbGReel');
+ reel.classList.add('rolling');
+ const N=30,CARD=104,dur=10400; /* Black Temple pace - agonising on purpose */
+ let h='';
+ for(let i=0;i<N-1;i++){const f=gvbFiller();h+=`<div class="gvbcard" style="color:${f.cc}"><span>${f.ic}</span></div>`;}
+ h+=`<div class="gvbcard" style="color:${spin.cc}"><span>${spin.ic}</span><span class="gl">${spin.n} · ${spin.sc}⚙</span></div>`;
+ strip.innerHTML=h;
+ const t0=performance.now();let lastCard=-1;
+ (function anim(){
+  const p=Math.min(1,(performance.now()-t0)/dur);
+  const e=1-Math.pow(1-p,3);
+  const y=-(N-1)*CARD*e;
+  strip.style.transform='translateY('+y+'px)';
+  const ci=Math.floor(-y/CARD);
+  if(ci!==lastCard){lastCard=ci;blip(1600,1100,0.03,p>0.9?0.05:0.025,'square');}
+  if(p<1){requestAnimationFrame(anim);return;}
+  reel.classList.remove('rolling');
+  if(spin.sc>=10)dingDingDing(spin.sc>=20);
+  gvb.shown++;gvb.animating=false;
+  gvbRender();
+ })();
+}
+function gvbSettle(list,winner,forfeit){
+ if(gvb.settled)return;
+ gvb.settled=true;
+ const sc=gvbScores(list),me=gvb.side;
+ const iWon=winner===me;
+ if(iWon){
+  const {over}=addGoldOverflow(gvb.bet*2);
+  dingDingDing(true);spawnPartsIn($('gvbFx'),'#ffd76a',24);
+  log(`Gamble against friend: <span class="llegendary">VICTORY ${sc.h}-${sc.g} - +${gvb.bet.toLocaleString()} ◉ taken</span>${over?' ('+over.toLocaleString()+' overflow)':''}!`,'loot');
+ }else{
+  log(`Gamble against friend: lost ${sc.h}-${sc.g} - ${gvb.bet.toLocaleString()} ◉ gone.`);
+ }
+ save();renderHUD();
+ gvbShow('gvbDone');
+ const wName=(gvb.doc[winner]&&gvb.doc[winner].name)||winner;
+ $('gvbDoneTxt').innerHTML=(iWon?'🏆 <b style="color:#ffd76a">YOU WIN':'💀 <b style="color:#ff8a7a">'+wName+' WINS')+`</b><br><span style="font-size:14px">${sc.h} ⚙ vs ${sc.g} ⚙${forfeit?' · by forfeit':''} · pot ${(gvb.bet*2).toLocaleString()}◉</span>`;
+}
+$('gvbCreate').onclick=gvbCreate;
+$('gvbJoin').onclick=()=>gvbJoin($('gvbCode').value);
+$('gvbReady').onclick=async()=>{
+ if(!gvb.ref||!gvb.doc)return;
+ const mine=gvb.doc[gvb.side]||{};
+ await gvb.ref.update({[gvb.side+'.ready']:!mine.ready});
+};
+document.querySelectorAll('[data-gvbbet]').forEach(b=>b.onclick=()=>{$('gvbBetIn').value=+b.dataset.gvbbet;});
+$('gvbBetLock').onclick=async()=>{
+ if(!gvb.ref||!gvb.doc)return;
+ const n=Math.floor(+$('gvbBetIn').value||0);
+ const their=gvb.doc[gvb.side==='host'?'guest':'host']||{};
+ if(n<1000){stageMsg('Minimum stake 1,000◉',1400);sfx.warn();return;}
+ if(their.ok&&n!==their.bet){stageMsg('Must match their stake: '+their.bet.toLocaleString()+'◉',1800);sfx.warn();return;}
+ if(totalGold()<n){stageMsg('You must carry the full stake - '+n.toLocaleString()+'◉',1800);sfx.warn();return;}
+ await gvb.ref.update({[gvb.side+'.bet']:n,[gvb.side+'.ok']:true});
+};
+$('gvbOpen').onclick=async()=>{
+ if(!gvb.ref||!gvb.doc||gvb.animating)return;
+ const list=gvbSpins();
+ if((list.length%2===0?'host':'guest')!==gvb.side)return;
+ $('gvbOpen').style.display='none';
+ await gvb.ref.update({['spins.'+list.length]:gvbOutcome()});
+};
+$('gvbClaim').onclick=async()=>{
+ if(!gvb.ref||!gvb.doc)return;
+ const turn=gvbSpins().length%2===0?'host':'guest';
+ if(turn===gvb.side||Date.now()-gvb.lastChange<120000)return;
+ await gvb.ref.update({forfeit:turn}); /* the absent side forfeits */
+};
+$('gvbLeave').onclick=()=>{
+ const d=gvb.doc;
+ if(!d){$('gvbFx').style.display='none';casinoAmbApply();return;}
+ if(d.state==='roll'&&!gvb.settled){
+  confirmBox('Leave mid-duel? You forfeit - your whole stake goes to your opponent.',async()=>{
+   gvb.closedByMe=true;
+   try{await gvb.ref.update({forfeit:gvb.side});}catch(e){}
+   gvbCleanup();
+  });
+  return;
+ }
+ gvb.closedByMe=true;
+ (async()=>{
+  try{
+   if(gvb.settled||gvb.side==='host')await gvb.ref.update({state:'closed'});
+   else await gvb.ref.update({guest:null});
+  }catch(e){}
+  gvbCleanup();
+ })();
+};
 /* ==================== CASINO BUILDING MENU ==================== */
 function bankRefresh(){
  $('bankGoldN').textContent=(S.bankGold||0).toLocaleString();
@@ -8829,7 +9041,7 @@ setInterval(()=>{if($('smithFx').style.display==='flex')smithRefresh();},1000);
    whose own song owns the room. Zone ambience ducks under it, and comes back when you leave. */
 let casinoAudio=null;
 function casinoAmbApply(){
- const anyOpen=['casinoMenu','slotFx','bjFx','rouFx','rtbFx'].some(id=>{const e=$(id);return e&&e.classList.contains('open');});
+ const anyOpen=['casinoMenu','slotFx','bjFx','rouFx','rtbFx'].some(id=>{const e=$(id);return e&&e.classList.contains('open');})||($('gvbFx')&&$('gvbFx').style.display==='flex');
  const seaO=!!($('seaFx')&&$('seaFx').classList.contains('open'));
  if(anyOpen&&!seaO){
   if(!casinoAudio){casinoAudio=new Audio('ambientsong/casino_ambient.mp3');casinoAudio.loop=true;}
@@ -8860,8 +9072,10 @@ document.querySelectorAll('.casinopick').forEach(b=>b.onclick=()=>{
  else if(g==='bj')openBJ();
  else if(g==='rou')openRoulette();
  else if(g==='rtb')openRTB();
+ else if(g==='gvb')openGVB();
  casinoAmbApply();
 });
+setInterval(()=>{if(gvb.doc&&gvb.doc.state==='roll'&&!gvb.animating)gvbRender();},5000); /* keeps the forfeit-claim timer alive when the opponent stops sending snapshots */
 
 function renderShop(){
  $('shopWallet').innerHTML=walletStr();
