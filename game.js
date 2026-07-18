@@ -54,6 +54,8 @@ const fellordImg=new Image();fellordImg.src='assets/boss/fellord_boss.png';
 const firelordImg=new Image();firelordImg.src='assets/boss/firelord_boss.png';
 const frostlordImg=new Image();frostlordImg.src='assets/boss/frostlord_boss.png';
 const cowWeaponImg=new Image();cowWeaponImg.src='assets/boss/cow_weapon.png';
+const cowmobImg=new Image();cowmobImg.src='assets/boss/Cowlevel_boss.png';
+const cowmobFeetImg=new Image();cowmobFeetImg.src='assets/boss/cowlevel_feet.png';
 const raidSwordImg=new Image();raidSwordImg.src='assets/boss/raidboss_sword.png';
 const gorehuskImg=new Image();gorehuskImg.src='assets/boss/boss_levling4.png';
 const gorehuskFeetLImg=new Image();gorehuskFeetLImg.src='assets/boss/gorehusk_feet_l.png';
@@ -121,7 +123,10 @@ const RAID_SKINS={ /* lift = body bottom in radii · wy/wx = weapon grip */
  ossric:{img:ossricImg,feetL:ossricFeetLImg,feetR:ossricFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#b0793a',lift:0.58,wy:-0.19,wx:0.44,size:7.5,fs:1.05,fh:1.12},
  ashmaw:{img:ashmawImg,feetL:ashmawFeetLImg,feetR:ashmawFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#ff4a2a',lift:0.58,wy:-0.19,wx:0.44,size:7.5,fs:1.05,fh:1.12},
  krev:{img:krevImg,feetL:krevFeetLImg,feetR:krevFeetRImg,wpn:()=>cowWeaponImg,glow:'#ff9a2a',lift:0.15,wy:-0.25,wx:0.44,size:7.5,fs:1.05,fh:1.12,ws:0.85},
- thor:{img:torImg,wpn:()=>torWeaponImg,glow:'#7fd0ff',zap:true,boots:true,bsx:11,lift:0.30,wy:-0.25,wx:0.44,size:5.25}};
+ thor:{img:torImg,wpn:()=>torWeaponImg,glow:'#7fd0ff',zap:true,boots:true,bsx:11,lift:0.30,wy:-0.25,wx:0.44,size:5.25},
+ /* 🐄 Cow Level herd — painted hell-minotaur; the Alpha draws 2× the normal cow */
+ cowmob:{img:cowmobImg,feet:cowmobFeetImg,wpn:()=>cowWeaponImg,glow:'#ff5a2a',lift:-0.15,wy:-0.30,wx:0.30,size:4.6,fs:0.6,fh:0.68,ff:true,vf:true},
+ cowmob_big:{img:cowmobImg,feet:cowmobFeetImg,wpn:()=>cowWeaponImg,glow:'#ff5a2a',lift:0.08,wy:-0.30,wx:0.30,size:3.1,fs:0.4,fh:0.45,ff:true,vf:true}}; /* feet scaled down — r is 3× but the body only draws 2×; body sits closer to the hooves */
 const raidBladeCache={};
 function raidBlade(glow,img){ /* the lord's weapon soaked in his colour, cached per art+tint */
  img=img||cowWeaponImg;
@@ -416,7 +421,7 @@ const ZONES=[
   en:[['Keep Legionnaire','humanoid','#a04a3a'],['Ash Hound','beast','#c96a3a'],['Ember Warlock','humanoid','#8a3a5a']],
   q:[['Storm the Outworks','Cut down 12 legionnaires at the walls.',12],['The Kennels','Slay 12 ash hounds loosed on the yard.',12],['Break the Warlocks','Silence 14 warlocks fueling the pyres.',14]]},
  {name:'Emberdeep Keep',lvl:60,amb:'war',map:'levlingzone_boss',boss:['Warlord Krev','#d94a2a','krev'],ground:'#3a2a26',ground2:'#31231f',water:'#8a4a2a',tree:'#31231f',tree2:'#241a16',path:'#5a4030',rocky:true,final:true},
- {name:'Gates of the Viking',lvl:60,amb:'haaland',valhalla:true,special:true,
+ {name:'Gates of the Viking',lvl:60,amb:'haaland',valhalla:true,special:true,map:'haaland_map',
   boss:['HAALAND','#c94a3a','cerberus'],
   ground:'#8a94a0',ground2:'#7d8794',water:'#5a7a9a',tree:'#4a5a66',tree2:'#39464f',path:'#a8b0ba',rocky:true},
  {name:'Halls of Valhalla',lvl:60,amb:'frost',valhalla:true,special:true,thor:true,map:'tormap_zone',
@@ -1089,6 +1094,10 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.farm.baleN===undefined)s.farm.baleN=0;   /* ✂ harvest progress — 5 = one Hay placement */
  if(s.farm.cseedN===undefined)s.farm.cseedN=0; /* ✂ harvest progress — 5 = one Chicken Seeds placement */
  if(s.farm.inv===undefined)s.farm.inv={};      /* 🎰 casino-won farm stock: cowfarm/chickenfarm/tjur/hay */
+ /* a save written mid-Move can freeze _moving:true onto an item — it then never draws ("my cow vanished").
+    Nothing is legitimately mid-move at load time, so strip the flag from everything. */
+ if(s.farm.b)s.farm.b.forEach(it=>{delete it._moving;});
+ if(s.farm.c)s.farm.c.forEach(it=>{delete it._moving;});
  (s.gearSets||[]).forEach((gs,gi)=>{ /* v1 sets held raw items or a worn flag — convert to v2 (gsid refs) */
   if(!gs)return;
   if(gs.worn){s.gearSets[gi]=null;s.gearSetSel=-1;return;}
@@ -3016,7 +3025,7 @@ function spawnAdd(name,kind,c,src){
 const addsAlive=()=>enemies.filter(e=>e.add&&!e.dead).length;
 function cowTemplate(){
  const L=60; /* Cow Level is always a level-60 zone, even after prestige resets display level. */
- return {name:'Hell Bovine',kind:'humanoid',c:'#8a7a5a',cow:true,
+ return {name:'Mutated Cow',kind:'humanoid',c:'#8a7a5a',cow:true,
   hp:Math.round(eHP(L)*16.3),atk:Math.round(eATK(L)*9.3), /* tuned via playtesting */
   xp:Math.round(eHP(60)*0.8*pRew()),gold:0}; /* Cow Level mobs give no gold — item farm only */
 }
@@ -3043,13 +3052,13 @@ function spawnCow(big,scatter){
  }
  const t=cowTemplate();
  const hp=big?t.hp*7.5:t.hp; /* the Alpha: 3× size, 7.5× hp, ramps up 30% slower */
- enemies.push({name:big?'Alpha Bovine':t.name,kind:t.kind,boss:false,bossId:null,c:t.c,cow:true,bigCow:!!big,
+ enemies.push({name:big?'Mutated Alpha':t.name,kind:t.kind,boss:false,bossId:null,skin:big?'cowmob_big':'cowmob',c:t.c,cow:true,bigCow:!!big,
   x,y,home:{x,y},r:rr,max:hp,hp,atk:t.atk,xp:t.xp,gold:t.gold,add:false,
   speed:big?118+Math.random()*20:128+Math.random()*38,age:0,state:'chase',dir:0,wT:0,cd:0,dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,
   /* individual flanking: each cow aims at its own point around the hero so the herd surrounds instead of stacking */
   flankA:Math.random()*6.283,flankD:26+Math.random()*85,flankT:2+Math.random()*3,
   cds:{},lockT:0,hidden:false,trailT:0,avoid:null});
- if(big){stageMsg('🐄 THE ALPHA BOVINE THUNDERS IN!',2000);sfx.shout();}
+ if(big){stageMsg('🐄 THE MUTATED ALPHA THUNDERS IN!',2000);sfx.shout();}
 }
 /* --- Cow Level blue chest: spawns anywhere on the map, walk over it to loot --- */
 function spawnCowChest(){
@@ -5974,7 +5983,8 @@ function drawEnemy(en){
  ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,en.r*0.55,en.r,en.r*0.42,0,0,7);ctx.fill();
  if(en.slowT>0){ctx.strokeStyle='rgba(160,224,255,0.6)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,en.r*0.5,en.r+3,en.r*0.5,0,0,7);ctx.stroke();}
  const haalandPainted=en.bossId==='cerberus'&&haalandImg.complete&&haalandImg.naturalWidth;
- const raidSkin=RAID_SKINS[en.bossId]&&RAID_SKINS[en.bossId].img.naturalWidth?RAID_SKINS[en.bossId]:null; /* raid lords + skinned leveling bosses */
+ const skinKey=en.skin||en.bossId;
+ const raidSkin=RAID_SKINS[skinKey]&&RAID_SKINS[skinKey].img.naturalWidth?RAID_SKINS[skinKey]:null; /* raid lords + skinned leveling bosses + cow herd */
  if(en.kind!=='undead'&&!haalandPainted&&!raidSkin)feet(en,en.r/13);
  const dark='rgba(0,0,0,0.28)';
  if(raidSkin){ /* a lord of the Black Temple — painted body over swinging cut-off feet */
@@ -5994,10 +6004,18 @@ function drawEnemy(en){
    /* single-foot art: right = the art, left = mirrored counter-swing */
    const FW=FH*fimg.naturalWidth/fimg.naturalHeight;
    const fpx=(raidSkin.ff?-1:1)*en.r*(raidSkin.fs||0.5); /* ff flips the art side · fs spreads the stance */
-   ctx.drawImage(mip(fimg,FW),fpx-FW/2+o,en.r*0.72-FH,FW,FH);
-   ctx.save();ctx.scale(-1,1);
-   ctx.drawImage(mip(fimg,FW),fpx-FW/2-o,en.r*0.72-FH,FW,FH);
-   ctx.restore();
+   if(raidSkin.vf){ /* vf: hooves step up/down like the hero's boots — alternate lifts, never sideways */
+    const lift=Math.abs(o)*0.7,l1=o>=0?lift:0,l2=o>=0?0:lift;
+    ctx.drawImage(mip(fimg,FW),fpx-FW/2,en.r*0.72-FH-l1,FW,FH);
+    ctx.save();ctx.scale(-1,1);
+    ctx.drawImage(mip(fimg,FW),fpx-FW/2,en.r*0.72-FH-l2,FW,FH);
+    ctx.restore();
+   }else{
+    ctx.drawImage(mip(fimg,FW),fpx-FW/2+o,en.r*0.72-FH,FW,FH);
+    ctx.save();ctx.scale(-1,1);
+    ctx.drawImage(mip(fimg,FW),fpx-FW/2-o,en.r*0.72-FH,FW,FH);
+    ctx.restore();
+   }
   }
   ctx.drawImage(mip(raidSkin.img,W),-W/2+en.r*(raidSkin.ox||0),en.r*raidSkin.lift-H+by,W,H); /* body floats above the feet */
   const bl=raidBlade(raidSkin.glow,raidSkin.wpn?raidSkin.wpn():null);
@@ -6160,7 +6178,8 @@ function drawEnemy(en){
  if(en.hurt>0){ctx.fillStyle='rgba(255,255,255,'+en.hurt*2.5+')';ctx.beginPath();ctx.arc(0,-6+by,en.r*0.9,0,7);ctx.fill();}
  ctx.font=(en.boss?'700 11px ':'600 9px ')+getComputedStyle(document.body).fontFamily;
  ctx.textAlign='center';
- const lblY=(typeof haalandPainted!=='undefined'&&haalandPainted)?-en.r*4.4:(RAID_SKINS[en.bossId]&&RAID_SKINS[en.bossId].img.naturalWidth)?-en.r*((RAID_SKINS[en.bossId].size||5)+0.1):-en.r-16; /* painted bosses stand much taller */
+ const lblSkin=RAID_SKINS[en.skin||en.bossId];
+ const lblY=(typeof haalandPainted!=='undefined'&&haalandPainted)?-en.r*4.4:(lblSkin&&lblSkin.img.naturalWidth)?-en.r*((lblSkin.size||5)+0.1):-en.r-16; /* painted bosses stand much taller */
  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(en.name,1,lblY+by+1);
  ctx.fillStyle=en.boss?'#ffd76a':'#ffe9e0';ctx.fillText(en.name,0,lblY+by);
  if((en.hp<en.max||en.boss)&&!en.dead)drawMiniBar(-en.r,lblY+3+by,en.r*2,en.hp/en.max,'#c75146');
