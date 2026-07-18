@@ -6041,7 +6041,16 @@ function drawEnemy(en){
     ctx.restore();
    }
   }
-  ctx.drawImage(mip(raidSkin.img,W),-W/2+en.r*(raidSkin.ox||0),en.r*raidSkin.lift-H+by,W,H); /* body floats above the feet */
+  { /* body walk cycle: a small hop + rock pivoting at the base - still while idle */
+   const walking=en.state==='chase'&&!en.dead;
+   const ph=(en.walk||0)*2;
+   const hop=walking?Math.abs(Math.sin(ph))*en.r*0.10:0;
+   ctx.save();
+   ctx.translate(en.r*(raidSkin.ox||0),en.r*raidSkin.lift+by);
+   if(walking)ctx.rotate(Math.sin(ph)*0.045);
+   ctx.drawImage(mip(raidSkin.img,W),-W/2,-H-hop,W,H); /* body floats above the feet */
+   ctx.restore();
+  }
   const bl=raidBlade(raidSkin.glow,raidSkin.wpn?raidSkin.wpn():null);
   if(bl){
    const AH=H*(raidSkin.ws||0.6),AW=AH*bl.width/bl.height;
@@ -6060,7 +6069,16 @@ function drawEnemy(en){
   const bs=en.r/13;
   ctx.save();ctx.scale(bs,bs);bootFeet({moving:en.state==='chase',walk:en.walk||0});ctx.restore();
   const H=en.r*4.4,W=H*haalandImg.naturalWidth/haalandImg.naturalHeight;
-  ctx.drawImage(mip(haalandImg,W),-W/2,en.r*0.55-H+by,W,H);
+  { /* same walk cycle as the skinned lords */
+   const walking=en.state==='chase'&&!en.dead;
+   const ph=(en.walk||0)*2;
+   const hop=walking?Math.abs(Math.sin(ph))*en.r*0.10:0;
+   ctx.save();
+   ctx.translate(0,en.r*0.55+by);
+   if(walking)ctx.rotate(Math.sin(ph)*0.045);
+   ctx.drawImage(mip(haalandImg,W),-W/2,-H-hop,W,H);
+   ctx.restore();
+  }
   if(haalandAxeImg.complete&&haalandAxeImg.naturalWidth){ /* his axe - held on the side he strikes, like the hero's weapon */
    const AH=H*1.0,AW=AH*haalandAxeImg.naturalWidth/haalandAxeImg.naturalHeight;
    const bfx=(hero&&hero.x<en.x)?-1:1; /* face the target */
