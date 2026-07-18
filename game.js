@@ -8670,7 +8670,8 @@ const gvbWinner=(d,list)=>{ /* pid of the winner, or null while the duel is stil
  if((d.order||[]).length>=2&&act.length===1)return act[0]; /* everyone else forfeited */
  if(act.length<2)return null;
  const rolls=act.map(p=>gvbRolls(list,p));
- if(Math.min(...rolls)<10||!rolls.every(r=>r===rolls[0]))return null; /* 10 each, kept level (sudden death keeps it level too) */
+ const need=(d&&d.rounds)||10;
+ if(Math.min(...rolls)<need||!rolls.every(r=>r===rolls[0]))return null; /* full rounds each, kept level (sudden death keeps it level too) */
  const scores=act.map(p=>gvbScore(list,p));
  const mx=Math.max(...scores);
  const lead=act.filter((p,i)=>scores[i]===mx);
@@ -8689,7 +8690,7 @@ async function gvbCreate(){
   const ok=await mpEnsureFirebase();if(!ok){stageMsg('Firebase is not ready - sign in first.',2200);sfx.warn();return;}
   gvb.code=MPCODE();gvb.pid='p'+Math.random().toString(36).slice(2,9);
   gvb.ref=gvbRef(gvb.code);
-  await gvb.ref.set({gvb:true,state:'lobby',created:Date.now(),host:gvb.pid,order:[gvb.pid],
+  await gvb.ref.set({gvb:true,state:'lobby',created:Date.now(),host:gvb.pid,order:[gvb.pid],rounds:10,
    players:{[gvb.pid]:{name:dispName?dispName(S):(S.name||'Hero'),ready:false,bet:0,ok:false}},spins:{},forfeits:{}});
   gvbListen();
  }catch(e){console.warn('gvbCreate failed',e);stageMsg('Could not create room: '+(e.code||e.message||e),2600);sfx.warn();}
@@ -8742,7 +8743,10 @@ function gvbRender(){
  if(d.state==='bet'){
   gvbShow('gvbBet');
   const mine=P[me]||{};
-  $('gvbBetStat').innerHTML=ord.map(p=>{
+  const rds=d.rounds||10;
+  $('gvbR5').classList.toggle('gold',rds===5);$('gvbR10').classList.toggle('gold',rds===10);
+  $('gvbR5').disabled=!isHost;$('gvbR10').disabled=!isHost;
+  $('gvbBetStat').innerHTML=`<div class="cl" style="color:#ffd76a">${rds} rounds each${isHost?' (you choose)':''}</div>`+ord.map(p=>{
    const pl=P[p]||{};
    return `<div class="cl">${pl.ok?'🔒':'⏳'} ${nameOf(p)}${p===me?' (you)':''}: ${pl.ok?'<b style="color:#ffd76a">'+(pl.bet||0).toLocaleString()+'◉</b>':'choosing…'}</div>`;
   }).join('');
@@ -8753,6 +8757,7 @@ function gvbRender(){
   return;
  }
  if(d.state==='roll'){
+  if(gvb.settled){gvbShow('gvbDone');return;} /* the verdict stands - no snapshot may drag us back to the table */
   gvbShow('gvbDuel');
   gvb.bet=d.bet||0;
   if(!gvb.paid){ /* the stake leaves your pocket the moment the duel starts */
@@ -8781,8 +8786,8 @@ function gvbRender(){
    const win=gvbWinner(d,list);
    if(win){gvbSettle(list,win,gvbActive(d).length===1);return;}
    const turn=gvbTurn(d,list);
-   const round=turn?gvbRolls(list,turn)+1:1;
-   $('gvbRound').textContent=(round<=10?'Round '+round+' / 10':'⚔ SUDDEN DEATH')+' · pot '+(gvb.bet*ord.length).toLocaleString()+'◉';
+   const round=turn?gvbRolls(list,turn)+1:1,rds=d.rounds||10;
+   $('gvbRound').textContent=(round<=rds?'Round '+round+' / '+rds:'⚔ SUDDEN DEATH')+' · pot '+(gvb.bet*ord.length).toLocaleString()+'◉';
    const myTurn=turn===me&&!(d.forfeits&&d.forfeits[me]);
    $('gvbTurnTxt').textContent=myTurn?'Your chest awaits…':nameOf(turn)+' is opening…';
    $('gvbOpen').style.display=myTurn?'inline-block':'none';
@@ -8864,6 +8869,10 @@ $('gvbStart').onclick=async()=>{
  await gvb.ref.update({state:'bet'});
 };
 document.querySelectorAll('[data-gvbbet]').forEach(b=>b.onclick=()=>{$('gvbBetIn').value=+b.dataset.gvbbet;});
+document.querySelectorAll('[data-gvbr]').forEach(b=>b.onclick=async()=>{
+ if(!gvb.ref||!gvb.doc||gvb.doc.host!==gvb.pid||gvb.doc.state!=='bet')return;
+ await gvb.ref.update({rounds:+b.dataset.gvbr});
+});
 $('gvbBetLock').onclick=async()=>{
  if(!gvb.ref||!gvb.doc)return;
  const n=Math.floor(+$('gvbBetIn').value||0);
@@ -9143,7 +9152,7 @@ document.querySelectorAll('.casinopick').forEach(b=>b.onclick=()=>{
  else if(g==='gvb')openGVB();
  casinoAmbApply();
 });
-setInterval(()=>{if(gvb.doc&&gvb.doc.state==='roll'&&!gvb.animating)gvbRender();},5000); /* keeps the forfeit-claim timer alive when the opponent stops sending snapshots */
+setInterval(()=>{if(gvb.doc&&gvb.doc.state==='roll'&&!gvb.animating&&!gvb.settled)gvbRender();},5000); /* keeps the forfeit-claim timer alive when the opponent stops sending snapshots */
 
 function renderShop(){
  $('shopWallet').innerHTML=walletStr();
