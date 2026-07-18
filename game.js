@@ -7,11 +7,11 @@ treeSnowImg._pad=1.33;treeSnowImg._anchor=0.86;
 const fmImg=new Image();fmImg.src='assets/models/frostmourne.png';
 const wgImg=new Image();wgImg.src='assets/models/warglaive.png';
 const gsMapImg=new Image();gsMapImg.src='assets/models/maps/goldshire_map.png';
-/* painted ground maps for leveling zones — lazily loaded per zone via z.map */
+/* painted ground maps for leveling zones - lazily loaded per zone via z.map */
 const zoneMapImgs={};
 const zoneMapImg=n=>{if(!zoneMapImgs[n]){zoneMapImgs[n]=new Image();zoneMapImgs[n].src='assets/models/maps/'+n+'.png';}return zoneMapImgs[n];};
 const bergImg=new Image();bergImg.src='assets/models/berg.png';
-/* painted character sprites — keyed race+gender+class (e.g. humanmale_warrior.png) */
+/* painted character sprites - keyed race+gender+class (e.g. humanmale_warrior.png) */
 const CHAR_SPRITES={ /* all 16 male race+class combos have art in assets/characters */
  humanmale_warrior:1,humanmale_mage:1,humanmale_hunter:1,humanmale_priest:1,
  dwarfmale_warrior:1,dwarfmale_mage:1,dwarfmale_hunter:1,dwarfmale_priest:1,
@@ -32,7 +32,7 @@ function charSprite(raceId,clsId,female){
  let im=charSpriteCache[key];
  if(!im){
   im=new Image();im.src='assets/characters/'+key+'.png';charSpriteCache[key]=im;
-  im.onload=()=>{ /* portraits render before sprites finish loading — repaint the open screens */
+  im.onload=()=>{ /* portraits render before sprites finish loading - repaint the open screens */
    try{
     if($('select').classList.contains('open'))renderSelect();
     if($('lbFx').classList.contains('open'))showLeaderboard();
@@ -41,15 +41,15 @@ function charSprite(raceId,clsId,female){
  }
  return im;
 }
-/* run sheets keyed the same way, e.g. humanmale_warrior:{img,n,fps} — none wired up right now */
+/* run sheets keyed the same way, e.g. humanmale_warrior:{img,n,fps} - none wired up right now */
 const CHAR_RUN={};
-/* the hero's boots — one right-foot asset, mirrored for the left */
+/* the hero's boots - one right-foot asset, mirrored for the left */
 const bootImg=new Image();bootImg.src='assets/characters/fot.png';
 const bowImg=new Image();bowImg.src='assets/weapons/bow.png';
 const maceImg=new Image();maceImg.src='assets/weapons/mace.png';
 const haalandImg=new Image();haalandImg.src='assets/boss/haaland_boss.png';
 const haalandAxeImg=new Image();haalandAxeImg.src='assets/boss/axe_boss.png';
-/* the three lords of the Black Temple — painted bodies + one shared blade, tinted per lord */
+/* the three lords of the Black Temple - painted bodies + one shared blade, tinted per lord */
 const fellordImg=new Image();fellordImg.src='assets/boss/fellord_boss.png';
 const firelordImg=new Image();firelordImg.src='assets/boss/firelord_boss.png';
 const frostlordImg=new Image();frostlordImg.src='assets/boss/frostlord_boss.png';
@@ -71,29 +71,29 @@ const farmImgs={};
 const farmImg=n=>{if(!farmImgs[n]){farmImgs[n]=new Image();farmImgs[n].src='assets/farm/'+n+'.png';}return farmImgs[n];};
 const FARM_BUILD=[
  /* 🏗 Building */
- {id:'staket',n:'Fence',img:'staketvit_sidan',tab:'b',W:130,gy:12,col:{r:14,crx:65,cry:9,cyo:4},snap:'h'}, /* thin wall ellipse spanning the full run — no slipping between the posts */
+ {id:'staket',n:'Fence',img:'staketvit_sidan',tab:'b',W:130,gy:12,col:{r:14,crx:65,cry:9,cyo:4},snap:'h'}, /* thin wall ellipse spanning the full run - no slipping between the posts */
  {id:'staketv',n:'Fence (vertical)',img:'staket_ovan',tab:'b',W:13,gy:14,col:{r:14,crx:8,cry:47,cyo:-33},snap:'v'}, /* sized so its post caps render the same width as the horizontal fence's (~13 world units) */
  {id:'lada',n:'Barn',img:'lada_farm',tab:'b',W:380,gy:30,col:{crx:130,cry:38,cyo:-40}},
  {id:'chickenhouse',n:'Chicken Coop',img:'chickenhouse_farm',tab:'b',W:230,gy:28,col:{crx:88,cry:34,cyo:-32}},
  {id:'medium',n:'Farmhouse',img:'Farmhouse_medium',tab:'b',W:408,gy:41,col:{crx:143,cry:49,cyo:-49}},
  {id:'mansion',n:'Mansion',img:'farmhouse_mansion',tab:'b',W:850,gy:62,col:{crx:290,cry:85,cyo:-85}},      /* 2.5× the home farmhouse */
- {id:'farmhouse',n:'Farmhouse',img:'farmhouse_litet',tab:'x',W:340,gy:32}, /* the home house — movable in build mode, never sold or removed; tab x hides it from the store */
+ {id:'farmhouse',n:'Farmhouse',img:'farmhouse_litet',tab:'x',W:340,gy:32}, /* the home house - movable in build mode, never sold or removed; tab x hides it from the store */
  /* 🐄 Animals */
- /* 🐄 animals roam the plot freely (roam:1) — fences pen them in; speed = stroll pace */
+ /* 🐄 animals roam the plot freely (roam:1) - fences pen them in; speed = stroll pace */
  /* eatT = hunger interval: grown beasts eat every 2h, young ones every hour */
  {id:'chickenfarm',n:'Chicken',img:'chickenfarm_liten',tab:'a',W:29,gy:6,col:{r:6},roam:1,speed:30,eatT:3600000},
- {id:'chickenfarm_big',n:'Chicken',img:'chickenfarm_big',tab:'x',W:48,gy:7,col:{r:9},roam:1,speed:26,eatT:7200000}, /* grown — not sold, grows from the young one */
+ {id:'chickenfarm_big',n:'Chicken',img:'chickenfarm_big',tab:'x',W:48,gy:7,col:{r:9},roam:1,speed:26,eatT:7200000}, /* grown - not sold, grows from the young one */
  {id:'cowfarm',n:'Calf',img:'cowfarm_liten',tab:'a',W:49,gy:8,col:{r:9},roam:1,speed:24,eatT:3600000},
- {id:'cowfarm_big',n:'Cow',img:'cowfarm_big',tab:'x',W:120,gy:13,col:{r:20},roam:1,speed:18,eatT:7200000}, /* grown — not sold; matches Bull */
+ {id:'cowfarm_big',n:'Cow',img:'cowfarm_big',tab:'x',W:120,gy:13,col:{r:20},roam:1,speed:18,eatT:7200000}, /* grown - not sold; matches Bull */
  {id:'tjur',n:'Bull',img:'tjur_farm',tab:'a',W:156,gy:21,col:{r:26},roam:1,speed:16,eatT:7200000},
- /* 🌾 Food — hay growth stages; crop:1 items live in S.farm.c, not solids */
+ /* 🌾 Food - hay growth stages; crop:1 items live in S.farm.c, not solids */
  /* all three share one canvas + crop, so identical W renders the dirt patch identically */
  {id:'hay',n:'Hay Seeds',img:'hö_frö',W:93,gy:10,tab:'m',crop:1},
  {id:'hay_medium',n:'Hay Growing',img:'hö_medium',W:93,gy:10,tab:'x',crop:1}, /* stages appear only by growing */
  {id:'hay_klar',n:'Hay Ready',img:'hö_klar',W:93,gy:10,tab:'x',crop:1},
- {id:'hobal',n:'Hay',img:'höbal',tab:'m',W:80,gy:18,col:{r:25}}, /* solid object — animals & hero walk around it */
+ {id:'hobal',n:'Hay',img:'höbal',tab:'m',W:80,gy:18,col:{r:25}}, /* solid object - animals & hero walk around it */
  {id:'chickenseeds',n:'Chicken Seeds',img:'chickenseeds',tab:'m',W:64,gy:8,crop:1}, /* ground decal on the crop grid */
- /* 🛣 Roads — Sims-style: click to anchor, click again to lay the stretch; chain keeps going from the last point */
+ /* 🛣 Roads - Sims-style: click to anchor, click again to lay the stretch; chain keeps going from the last point */
  {id:'dirt_road',n:'Dirt Road',img:'dirt_road',tab:'o',road:1,rw:44,W:44,gy:22},
  {id:'gravel_road',n:'Gravel Road',img:'gravel_road',tab:'o',road:1,rw:44,W:44,gy:22},
  /* 🌳 Decoration */
@@ -124,9 +124,9 @@ const RAID_SKINS={ /* lift = body bottom in radii · wy/wx = weapon grip */
  ashmaw:{img:ashmawImg,feetL:ashmawFeetLImg,feetR:ashmawFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#ff4a2a',lift:0.58,wy:-0.19,wx:0.44,size:7.5,fs:1.05,fh:1.12},
  krev:{img:krevImg,feetL:krevFeetLImg,feetR:krevFeetRImg,wpn:()=>cowWeaponImg,glow:'#ff9a2a',lift:0.15,wy:-0.25,wx:0.44,size:7.5,fs:1.05,fh:1.12,ws:0.85},
  thor:{img:torImg,wpn:()=>torWeaponImg,glow:'#7fd0ff',zap:true,boots:true,bsx:11,lift:0.30,wy:-0.25,wx:0.44,size:5.25},
- /* 🐄 Cow Level herd — painted hell-minotaur; the Alpha draws 2× the normal cow */
+ /* 🐄 Cow Level herd - painted hell-minotaur; the Alpha draws 2× the normal cow */
  cowmob:{img:cowmobImg,feet:cowmobFeetImg,wpn:()=>cowWeaponImg,glow:'#ff5a2a',lift:-0.15,wy:-0.30,wx:0.30,size:4.6,fs:0.6,fh:0.68,ff:true,vf:true},
- cowmob_big:{img:cowmobImg,feet:cowmobFeetImg,wpn:()=>cowWeaponImg,glow:'#ff5a2a',lift:0.08,wy:-0.30,wx:0.30,size:3.1,fs:0.4,fh:0.45,ff:true,vf:true}}; /* feet scaled down — r is 3× but the body only draws 2×; body sits closer to the hooves */
+ cowmob_big:{img:cowmobImg,feet:cowmobFeetImg,wpn:()=>cowWeaponImg,glow:'#ff5a2a',lift:0.08,wy:-0.30,wx:0.30,size:3.1,fs:0.4,fh:0.45,ff:true,vf:true}}; /* feet scaled down - r is 3× but the body only draws 2×; body sits closer to the hooves */
 const raidBladeCache={};
 function raidBlade(glow,img){ /* the lord's weapon soaked in his colour, cached per art+tint */
  img=img||cowWeaponImg;
@@ -143,8 +143,8 @@ function raidBlade(glow,img){ /* the lord's weapon soaked in his colour, cached 
  g.fillRect(0,0,c.width,c.height);
  return raidBladeCache[key]=c;
 }
-const ratbossImg=new Image();ratbossImg.src='assets/boss/rat_boss.png'; /* the crypt rat — art faces left */
-const ratFeetImg=new Image();ratFeetImg.src='assets/boss/rat_feet.png'; /* its clawed foot — points left */
+const ratbossImg=new Image();ratbossImg.src='assets/boss/rat_boss.png'; /* the crypt rat - art faces left */
+const ratFeetImg=new Image();ratFeetImg.src='assets/boss/rat_feet.png'; /* its clawed foot - points left */
 const oneringImg=new Image();oneringImg.src='assets/models/onering.png';
 const altarFenceImg=new Image();altarFenceImg.src='assets/models/maps/altarasset.png';
 const staffImg=new Image();staffImg.src='assets/weapons/staff.png';
@@ -155,7 +155,7 @@ function bootFeet(e,g2){
  const o=e.moving?Math.sin(e.walk*2)*4:0;
  const W=e.fem?9.5:12,H=W*bootImg.naturalHeight/bootImg.naturalWidth; /* daintier boots on the ladies */
  const sx=5+(e.sx||0); /* sx: extra stance width (big bosses stand wider) */
- g.drawImage(mip(bootImg,64),-sx-W/2,12-H/2+o,W,H); /* left — full counter-swing */
+ g.drawImage(mip(bootImg,64),-sx-W/2,12-H/2+o,W,H); /* left - full counter-swing */
  g.save();g.scale(-1,1);
  g.drawImage(mip(bootImg,64),-sx-W/2,12-H/2-o,W,H); /* right = mirrored */
  g.restore();
@@ -185,7 +185,7 @@ const stenImg=new Image();stenImg.src='assets/models/sten.png';
 
 window.seaMusic=new Audio('ambientsong/seamen_song.mp3');
 window.seaMusic.loop=true;
-window.seaVolVal=0.35; /* desired music level — applied via a Web Audio gain node (iOS ignores audio.volume) */
+window.seaVolVal=0.35; /* desired music level - applied via a Web Audio gain node (iOS ignores audio.volume) */
 window.seaMuted=false;
 try{
  const v=parseFloat(localStorage.getItem('seaVol'));if(!isNaN(v))window.seaVolVal=Math.min(1,Math.max(0,v));
@@ -198,7 +198,7 @@ const SEASON=1; /* bump this to wipe everyone */
 const AC_VERSION=2; /* legacy value kept only so old saves/leaderboard rows don't break */
 const GOLD_CAP_BASE=500000,GOLD_CAP_ROOF=2000000,SCRAP_CAP=800,BOOST_COST_CAP=500000,GEAR_UPGRADE_COST_CAP=400;
 const goldCap=(ch)=>{const p=((ch||S||{}).prestige)||0;return p>=20?2000000:p>=5?1000000:GOLD_CAP_BASE;};
-/* ==================== THOR WINDOWS — svensk tid 00/03/06/09/12/15/18/21 ==================== */
+/* ==================== THOR WINDOWS - svensk tid 00/03/06/09/12/15/18/21 ==================== */
 const THOR_PERIOD=3*3600*1000,THOR_OPEN=15*60*1000;
 /* hårdlåst till svensk tid (Europe/Stockholm) oavsett spelarens enhet */
 function seTimeParts(){
@@ -226,7 +226,7 @@ function raidStatus(){
  return t<RAID_OPEN?{open:true,left:RAID_OPEN-t}:{open:false,next:RAID_PERIOD-t};
 }
 const raidWindow=()=>Math.floor(Date.now()/86400000)*6+Math.floor(localDayMs()/RAID_PERIOD);
-const raidCleared=()=>!!S&&S.raidLock===raidWindow(); /* one clear per lockout — dying and retrying is fine */
+const raidCleared=()=>!!S&&S.raidLock===raidWindow(); /* one clear per lockout - dying and retrying is fine */
 const fmtMS=ms=>{
  const s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;
  return h>0?h+'h '+m+'m':m+'m '+String(ss).padStart(2,'0')+'s';
@@ -310,7 +310,7 @@ const CLASSES=[
    {n:'Renew',g:'💚',cost:20,cd:24,t:'hot',hot:.05,dur:6,d:'Heal 5% of max health per second for 6s.',vfx:'renew'},
   ]},
 ];
-/* 10 scrolls — tiered. Base effects are weak; combine two identical scrolls to
+/* 10 scrolls - tiered. Base effects are weak; combine two identical scrolls to
    forge the next tier (I → IV), doubling the effect each time. */
 const TIERN=['I','II','III','IV'];
 const MAXTIER=4;
@@ -333,16 +333,16 @@ const PETS=[
  {id:'cat',n:'Puffen',g:'🐈',cc:'#f2eee6',d:'+10% attack damage.',atkMul: 0.10}, /* a white cat */
  {id:'dog',n:'Ayla',g:'🐕',cc:'#a8bcb0',d:'Take 10% less damage.',armor: 0.10},
  {id:'blackdog',n:'Nellie',g:'🦮',cc:'#4a4a52',d:'+10% attack speed.',haste: 0.10}, /* a black dog */
- {id:'shark',n:'MEG',g:'🦈',cc:'#7ab8e0',d:'+20% damage to bosses.',bossDmg: 0.20}, /* HAALAND recipe reward — never rolls from cases */
+ {id:'shark',n:'MEG',g:'🦈',cc:'#7ab8e0',d:'+20% damage to bosses.',bossDmg: 0.20}, /* HAALAND recipe reward - never rolls from cases */
 ];
 const petOf=id=>PETS.find(p=>p.id===id);
 const activePet=()=>S&&S.pet?petOf(S.pet):null;
 const PET_SELL=25000;
-/* emoji can't be recoloured — filters can: Puffen renders WHITE, Nellie BLACK */
+/* emoji can't be recoloured - filters can: Puffen renders WHITE, Nellie BLACK */
 const PET_FILTER={cat:'grayscale(1) brightness(1.8) contrast(0.9)',blackdog:'grayscale(1) brightness(0.4)'};
 const petGlyph=p=>PET_FILTER[p.id]?`<span style="filter:${PET_FILTER[p.id]}">${p.g}</span>`:p.g;
 const petSpriteCache={};
-function petSprite(p){ /* every companion gets a solid outlined sprite — Puffen white, Nellie black, the rest keep their colours */
+function petSprite(p){ /* every companion gets a solid outlined sprite - Puffen white, Nellie black, the rest keep their colours */
  const T={cat:['#ffffff','#2a2118'],blackdog:['#16161c','#d8d8e0'],dog:[null,'#2a2118'],shark:[null,'#12222e']}[p.id];
  if(!T)return null;
  if(petSpriteCache[p.id])return petSpriteCache[p.id];
@@ -359,7 +359,7 @@ function petSprite(p){ /* every companion gets a solid outlined sprite — Puffe
  const g2=c2.getContext('2d');
  g2.font='52px sans-serif';g2.textAlign='center';g2.textBaseline='middle';
  g2.fillText(p.g,36,40);
- if(T[0]){ /* body tint — only the recoloured companions */
+ if(T[0]){ /* body tint - only the recoloured companions */
   g2.globalCompositeOperation='source-atop';
   g2.fillStyle=T[0];g2.globalAlpha=0.9;g2.fillRect(0,0,72,72);
  }
@@ -369,7 +369,7 @@ function petSprite(p){ /* every companion gets a solid outlined sprite — Puffe
 }
 function petGlyphCanvas(g2,p,x,y){
  g2.save();
- g2.globalAlpha*=0.5; /* companions are half-ghosts — visible but never in the way */
+ g2.globalAlpha*=0.5; /* companions are half-ghosts - visible but never in the way */
  const sp=petSprite(p);
  if(sp){const S2=22;g2.drawImage(sp,x-S2/2,y-S2*0.78,S2,S2);}
  else g2.fillText(p.g,x,y);
@@ -378,14 +378,14 @@ function petGlyphCanvas(g2,p,x,y){
 const TIER4_SCROLL_SELL=20000;
 const tierVal=(id,t)=>enchOf(id).base*Math.pow(2,(t||1)-1);
 const tierDesc=(id,t)=>enchOf(id).d(parseFloat(tierVal(id,t).toFixed(2)));
-/* 17 zones — boss-gated progression up to level 60. */
+/* 17 zones - boss-gated progression up to level 60. */
 const ZONES=[
  {name:'Willowmere Fields',lvl:1,amb:'meadow',map:'levlingzone_green',ground:'#7aa356',ground2:'#6e9750',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a',
   en:[['River Boar','beast','#a8744f'],['Ditch Bandit','humanoid','#8a6a4a'],['Marsh Croaker','beast','#6fa05a']],
   q:[['Trouble at the Mill','Drive off 6 raiders around Willowmere.',6],['Boar Season','Cull 8 beasts trampling the barley.',8],['The Old Ferry Road','Clear 10 foes from the trade road.',10]]},
  {name:'Thornwood Glade',lvl:5,amb:'forest',map:'levlingzone_green',ground:'#557d47',ground2:'#4b7040',water:'#3f7086',tree:'#37592c',tree2:'#274420',path:'#9a8a62',
   en:[['Thorn Wolf','beast','#6b6f76'],['Web Matron','beast','#5a4a6b'],['Poacher Chief','humanoid','#7a5a3a']],
-  q:[['Howls in the Glade','Hunt 8 wolves stalking the woodcutters.',8],['Silk and Venom','Burn out 9 broodmothers.',9],['The Poachers\u2019 Camp','Break the poacher ring — 12 foes.',12]]},
+  q:[['Howls in the Glade','Hunt 8 wolves stalking the woodcutters.',8],['Silk and Venom','Burn out 9 broodmothers.',9],['The Poachers\u2019 Camp','Break the poacher ring - 12 foes.',12]]},
  {name:'Hollowroot Den',lvl:8,amb:'cave',map:'levlingzone_boss',boss:['Gorehusk the Rootfiend','#7a9a3a','gorehusk'],ground:'#4a3f33',ground2:'#40362b',water:'#3a4a3a',tree:'#3a3128',tree2:'#2c251e',path:'#6a5a44',rocky:true},
  {name:'Ironcrag Pass',lvl:10,amb:'mountain',snowTrees:true,noBerg:true,map:'levlingzone_snow',ground:'#8b8a78',ground2:'#7e7d6c',water:'#6f9ab0',tree:'#5a6b52',tree2:'#46543f',path:'#a89a80',rocky:true,
   en:[['Crag Raider','humanoid','#8a5a4a'],['Rock Wyrmling','beast','#9a8a5a'],['Frost Harpy','beast','#7fa8c0']],
@@ -433,13 +433,13 @@ const ZONES=[
   ground:'#7a6a4e',ground2:'#6e5f46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
  {name:'Black Temple',lvl:60,amb:'war',raidc:true,special:true,raid:true,
   ground:'#4a4456',ground2:'#403a4c',water:'#2f4a5a',tree:'#3a3448',tree2:'#2c2838',path:'#6a5f7a',rocky:true},
- {name:'The Crypts',lvl:60,amb:'crypt',west:true,special:true,crypts:true,noBerg:true, /* ever-shifting labyrinth — a fresh maze every descent.
-    NOTE: appended LAST so existing saves' zone indices stay valid — never insert zones mid-array */
+ {name:'The Crypts',lvl:60,amb:'crypt',west:true,special:true,crypts:true,noBerg:true, /* ever-shifting labyrinth - a fresh maze every descent.
+    NOTE: appended LAST so existing saves' zone indices stay valid - never insert zones mid-array */
   ground:'#3a3a46',ground2:'#33333e',water:'#2f3a4a',tree:'#33333e',tree2:'#262630',path:'#55556a',rocky:true,en:[]},
- {name:'The Altar',lvl:1,amb:'frost',special:true,altar:true,noBerg:true,map:'thealtar',en:[], /* sky sanctum — portal-only, no level gate */
+ {name:'The Altar',lvl:1,amb:'frost',special:true,altar:true,noBerg:true,map:'thealtar',en:[], /* sky sanctum - portal-only, no level gate */
   ground:'#8a94b8',ground2:'#7d87aa',water:'#9ac8e8',tree:'#5a6a8a',tree2:'#46536e',path:'#d8cfa0'},
- {name:'Farm',lvl:1,amb:'world',special:true,farm:true,noBerg:true,noTrees:true,en:[], /* 🚜 under construction — reachable by console only, the Goldshire portal is a promise
-    NOTE: appended LAST so existing saves' zone indices stay valid — never insert zones mid-array */
+ {name:'Farm',lvl:1,amb:'world',special:true,farm:true,noBerg:true,noTrees:true,en:[], /* 🚜 under construction - reachable by console only, the Goldshire portal is a promise
+    NOTE: appended LAST so existing saves' zone indices stay valid - never insert zones mid-array */
   ground:'#7a8a4e',ground2:'#6e7d46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
 ];
 const TAVERN_ZONE=ZONES.findIndex(z=>z.tavern);
@@ -482,13 +482,13 @@ function mpLook(){
   a:g.armor?(g.armor.id||null):null,ice:!!(g.armor&&isIce(g.armor)),pet:S&&S.pet?S.pet:null,fm:!!(w&&isFM(w)),wg:!!(w&&isWG(w)),fem:!!(S&&S.gender==='f')};
 }
 async function mpCreate(){
- const ok=await mpEnsureFirebase();if(!ok){stageMsg('Firebase is not ready — sign in or check config.',2200);sfx.warn();return;}
+ const ok=await mpEnsureFirebase();if(!ok){stageMsg('Firebase is not ready - sign in or check config.',2200);sfx.warn();return;}
  mp.code=MPCODE();mp.pid='p'+Math.random().toString(36).slice(2,9);mp.host=true;mp.hostPid=mp.pid;
  await mpRoom().set({host:mp.pid,state:'lobby',created:Date.now()});
  await mpEnter();
 }
 async function mpJoin(code){
- const ok=await mpEnsureFirebase();if(!ok){stageMsg('Firebase is not ready — sign in or check config.',2200);sfx.warn();return;}
+ const ok=await mpEnsureFirebase();if(!ok){stageMsg('Firebase is not ready - sign in or check config.',2200);sfx.warn();return;}
  code=(code||'').toUpperCase().trim();
  if(code.length<5){stageMsg('Enter a 5-letter code',1400);sfx.warn();return;}
  const snap=await mpDB().collection('rooms').doc(code).get();
@@ -512,11 +512,11 @@ async function mpEnter(){
    if(d.id===mp.pid)return;
    const data=d.data(),prev=mp.peers[d.id];
    if(prev){
-    /* MERGE into the existing object — replacing it wiped interpolation state and
+    /* MERGE into the existing object - replacing it wiped interpolation state and
        stomped fresh RTC coords with stale Firestore ones (periodic rubber-banding) */
     const live=prev._rtc&&(performance.now()-(prev._rt||0)<3000);
     Object.assign(prev,data,live?{x:prev.x,y:prev.y,hp:prev.hp,f:prev.f,mv:prev.mv,dn:prev.dn,atk:prev.atk,t:prev.t}:{});
-    if(!live)prev._rtc=false; /* RTC went quiet — let Firestore drive again */
+    if(!live)prev._rtc=false; /* RTC went quiet - let Firestore drive again */
     seen[d.id]=prev;
    }else seen[d.id]=data;
    if(!mp.rtc[d.id])rtcConnect(d.id).catch(e=>console.warn('[rtc] connect failed',d.id,e));
@@ -553,7 +553,7 @@ function mpBegin(){
    });
   });
  }
- stageMsg('⚔ THE RAID BEGINS — auto-attack is OFF',2600);sfx.shout();
+ stageMsg('⚔ THE RAID BEGINS - auto-attack is OFF',2600);sfx.shout();
 }
 async function mpLeave(goHome){
  if(!mp.on)return;
@@ -569,13 +569,13 @@ function mpKicked(){
  mp.on=false;mp.started=false;gamePaused=false;
  if(mp.unsubRoom)mp.unsubRoom();if(mp.unsubPlayers)mp.unsubPlayers();if(mp.unsubBoss)mp.unsubBoss();rtcCloseAll();
  mp.peers={};mp.code=null;const l=$('mpLobby');if(l)l.style.display='none';
- stageMsg('The host has left — returning home.',2400);sfx.warn();
+ stageMsg('The host has left - returning home.',2400);sfx.warn();
  if(S)mpTravelTo(TAVERN_ZONE);
 }
 function mpSyncTick(){
  if(!(mp.on&&mp.started&&hero))return;
  const now=performance.now();
- if(now-(mp.lastRtc||0)>20){ /* 50Hz — tiny packets, WebRTC handles it easily */
+ if(now-(mp.lastRtc||0)>20){ /* 50Hz - tiny packets, WebRTC handles it easily */
   mp.lastRtc=now;
   const dx=hero.x-(mp._lhx==null?hero.x:mp._lhx),dy=hero.y-(mp._lhy==null?hero.y:mp._lhy);
   mp._lhx=hero.x;mp._lhy=hero.y;
@@ -583,13 +583,13 @@ function mpSyncTick(){
   rtcBroadcast({k:'pos',x:Math.round(hero.x),y:Math.round(hero.y),hp:hero.hp/heroMax(),f:hero.fx||hero.facing||1,mv,atk:(hero.swing||0)>0,dn:(hero.dance||hero.danceT||0)>0?1:0},false);
  }
  /* when a peer has no live RTC link (phone on mobile data behind CGNAT), Firestore IS their
-    transport — speed the writes up so the fallback is playable instead of 0.7Hz */
+    transport - speed the writes up so the fallback is playable instead of 0.7Hz */
  const slowPeer=Object.keys(mp.peers).some(id=>!(mp.rtc[id]&&mp.rtc[id].ok));
  if(now-mp.lastSend>(slowPeer?450:1500)){
   mp.lastSend=now;
   mpRoom().collection('players').doc(mp.pid).update({x:Math.round(hero.x),y:Math.round(hero.y),hp:hero.hp/heroMax(),dmg:Math.round(mp.dmgOut),t:Date.now(),look:mpLook()}).catch(()=>{});
  }
- if(mp.host&&now-(mp.lastBossRtc||0)>100){ /* 10Hz boss snapshots — was 4Hz, main cause of rubber-banding */
+ if(mp.host&&now-(mp.lastBossRtc||0)>100){ /* 10Hz boss snapshots - was 4Hz, main cause of rubber-banding */
   mp.lastBossRtc=now;
   const bs=enemies.filter(e=>e.raid).map(e=>({x:Math.round(e.x),y:Math.round(e.y),hp:e.hp,max:e.max,awake:!!e.awake,dead:!!e.dead,id:e.bossId,tgt:e.target||'host',cds:e.cds}));
   rtcBroadcast({k:'boss',bs},true);
@@ -603,11 +603,11 @@ function mpPlayFx(m,p){
  const x=m.px||p.x||0,y=m.py||p.y||0;
  if(m.a==='swing'){
   p.atk=true;p._atkT=performance.now()+240;
-  if(m.rg&&m.tx!=null){ /* ranged classes: a real projectile — hunters loose actual arrows */
+  if(m.rg&&m.tx!=null){ /* ranged classes: a real projectile - hunters loose actual arrows */
    bolts.push({x,y:y-10,tgt:{x:m.tx,y:m.ty},sp:430,vis:1,c:m.c||'#cfe8a0',arrow:!!m.ar});
   }else if(m.tx!=null&&m.ty!=null){zapLine(x,y-8,m.tx,m.ty-10,'rgba(255,255,255,.35)');bloodAt(m.tx,m.ty-10,4);}
   burst(x,y-10,'#ffffff',3,38);
- }else if(m.a==='boltfx'){ /* peer spell projectile — visual only */
+ }else if(m.a==='boltfx'){ /* peer spell projectile - visual only */
   p.atk=true;p._atkT=performance.now()+240;
   if(m.tx!=null)bolts.push({x,y:y-10,tgt:{x:m.tx,y:m.ty},sp:470,vis:1,c:m.c||'#c9a0ff',arrow:!!m.ar});
  }else if(m.a==='bolt'||m.a==='spell'){
@@ -629,7 +629,7 @@ function mpPlayFx(m,p){
  }
 }
 /* ============ WEBRTC LAYER ============ */
-/* STUN alone cannot get phones on mobile data (carrier CGNAT) through — they need a TURN
+/* STUN alone cannot get phones on mobile data (carrier CGNAT) through - they need a TURN
    relay as fallback. Open Relay is a free public TURN service; for production traffic,
    create a free key at metered.ca (or any TURN provider) and swap the credentials. */
 const RTC_CFG={iceServers:[
@@ -661,7 +661,7 @@ function rtcPeer(pid){
  pc.ondatachannel=e=>{const c=e.channel;if(c.label==='pos')P.pos=c;else P.rel=c;wireChannel(pid,c,P);};
  pc.onconnectionstatechange=()=>{
   const st=pc.connectionState;
-  if(st==='failed'){P.ok=false;try{pc.close();}catch(e){}delete mp.rtc[pid];} /* drop it — the roster listener retries with a fresh connection (and TURN) */
+  if(st==='failed'){P.ok=false;try{pc.close();}catch(e){}delete mp.rtc[pid];} /* drop it - the roster listener retries with a fresh connection (and TURN) */
   else if(st==='closed'||st==='disconnected')P.ok=false;
  };
  return P;
@@ -808,7 +808,7 @@ function drawHeroLike(x,y,look,alpha,anim,name,hp){
  ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0,8,14,6,0,0,7);ctx.fill();
  if(dancing)ctx.rotate(Math.sin(phase*6)*0.25);
  feet({walk:phase*1.8},(moving||dancing)?1:0.15);
- drawChampionSprite(ctx,race,cls,fx,by,swing,!!look.fm||look.w==='frostmourne',look.w,!!look.fem,(moving||dancing)?2:1,!!look.ice); /* full gear look — ice armor & walk frame like the local hero */
+ drawChampionSprite(ctx,race,cls,fx,by,swing,!!look.fm||look.w==='frostmourne',look.w,!!look.fem,(moving||dancing)?2:1,!!look.ice); /* full gear look - ice armor & walk frame like the local hero */
  if(look.pet){ctx.font='13px sans-serif';ctx.textAlign='center';const pp=petOf(look.pet);if(pp)petGlyphCanvas(ctx,pp,-18,10);else ctx.fillText('🐾',-18,10);}
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
  /* peer nametag higher so weapons/Frostmourne do not collide */
@@ -819,7 +819,7 @@ function drawHeroLike(x,y,look,alpha,anim,name,hp){
 function drawMpGhost(k,p){
  if(!p||Date.now()-(p.t||0)>6000)return;
  if(p._x===undefined){p._x=p.x||hero.x;p._y=p.y||hero.y;}
- /* real elapsed time — all smoothing/animation below is framerate-independent
+ /* real elapsed time - all smoothing/animation below is framerate-independent
     (per-frame constants made peers jitter and dance 2× too fast on 120/144Hz screens) */
  const nowT=performance.now();
  const pdt=Math.min(Math.max((nowT-(p._ld||nowT))/1000,0),0.1);p._ld=nowT;
@@ -858,7 +858,7 @@ setTimeout(()=>{
    stageMsg('Room creation failed: '+(e.code||e.message||e),3000);sfx.warn();
   }finally{
    const b=$('raidHost');
-   if(b){b.disabled=false;b.textContent='🌐 Play Online — Create Room';}
+   if(b){b.disabled=false;b.textContent='🌐 Play Online - Create Room';}
   }
  });
  bind('raidJoin',async()=>{
@@ -876,7 +876,7 @@ const eHP=L=>Math.round(20*Math.pow(L,1.25)+10);
 const eATK=L=>Math.round(3+L*1.1);
 /* Display level resets on prestige, but combat scaling never resets.
    P0 Lv60 -> P1 Lv1 counts as effective Lv61 for enemy scaling.
-   Zone unlocks still use maxZone/cleared separately — do NOT use maxZone for combat scaling. */
+   Zone unlocks still use maxZone/cleared separately - do NOT use maxZone for combat scaling. */
 const effectiveHeroLvl=()=>((S.prestige||0)*MAXLVL)+(S.lvl||1);
 const effZoneLvl=z=>Math.max(z.lvl,effectiveHeroLvl());
 /* XP/gold should NOT use effective combat level, or prestige creates insane rewards. */
@@ -913,20 +913,20 @@ function zoneTemplates(z){
   return [{name:z.boss[0],kind:'boss',boss:true,bossId:z.boss[2],c:z.boss[1],
    speed:80,   /* base speed; all bosses use normal boss speed rules in speedOf() */
    hp:Math.round(eHP(L)*hpMul*pm*km),atk:Math.round(eATK(L)*1.76*pm*km),
-   xp:z.special?Math.round(eHP(XL)*5*pr):0,gold:mobGold(z,8)}]; /* leveling bosses grant no xp — they were worth ~3 levels a kill */
+   xp:z.special?Math.round(eHP(XL)*5*pr):0,gold:mobGold(z,8)}]; /* leveling bosses grant no xp - they were worth ~3 levels a kill */
  }
  /* regular foes: modestly tougher than before (+25% hp, +15% atk) */
  return z.en.map(([n,k,c],i)=>({name:n,kind:k,c,hp:Math.round(eHP(L)*(0.9+i*0.12)*1.25*pm),atk:Math.round(eATK(L)*(0.9+i*0.1)*1.15*pm),
   xp:Math.round(eHP(XL)/2.6*pr),gold:mobGold(z,1+i*0.10)}));
 }
 function zoneQuests(z){
- if(z.tavern)return [{name:'🍺 Goldshire',desc:'A safe haven. Rest, forge, trade — no foe dares enter.',need:999999}];
+ if(z.tavern)return [{name:'🍺 Goldshire',desc:'A safe haven. Rest, forge, trade - no foe dares enter.',need:999999}];
  if(z.altar)return [{name:'⛧ The Altar',desc:'A silent ring above the clouds. Something waits to be awakened.',need:999999}];
  if(z.farm){const fl=(S.farm&&S.farm.lvl)||1;
   const pct=fl>=3?15:fl===2?10:5;
-  return [{name:'🚜 The Farm · Level '+fl+(fl>=FARM_MAXLVL?' (MAX)':''),desc:'Slaughter grown livestock to earn farm XP. Farm blessing: +'+pct+'% XP & gold from every foe in the realm'+((S.farm&&S.farm.owned)?'':' — once the farm is yours'),need:fl>=FARM_MAXLVL?999999:farmXpNeed(fl),farmXp:1}];}
- if(z.crypts)return [{name:'⚰️ The Crypts',desc:'An ever-shifting labyrinth. Three chests wait somewhere in the dark. On foot only — AUTO fails here.',need:3}];
- if(z.raid)return [{name:'⚔ Sanctum of the Three',desc:'Slay all three raid lords. Pull them one at a time — they never retreat.',need:3,boss:true}];
+  return [{name:'🚜 The Farm · Level '+fl+(fl>=FARM_MAXLVL?' (MAX)':''),desc:'Slaughter grown livestock to earn farm XP. Farm blessing: +'+pct+'% XP & gold from every foe in the realm'+((S.farm&&S.farm.owned)?'':' - once the farm is yours'),need:fl>=FARM_MAXLVL?999999:farmXpNeed(fl),farmXp:1}];}
+ if(z.crypts)return [{name:'⚰️ The Crypts',desc:'An ever-shifting labyrinth. Three chests wait somewhere in the dark. On foot only - AUTO fails here.',need:3}];
+ if(z.raid)return [{name:'⚔ Sanctum of the Three',desc:'Slay all three raid lords. Pull them one at a time - they never retreat.',need:3,boss:true}];
  if(z.cow)return [{name:'MOO',desc:'Survive. You cannot.',need:999999}];
  if(z.boss)return [{name:z.boss[0],desc:'Defeat '+z.boss[0]+'. Victory opens the gate beyond, forever.',need:1,boss:true}];
  return z.q.map(([n,d,need])=>({name:n,desc:d,need}));
@@ -940,8 +940,8 @@ const dispName=ch=>(ch.name||'?')+((ch.rating||0)>0?' ('+(ch.rating||0)+')':'');
 const raceOf=()=>RACES.find(r=>r.id===S.race);
 const classOf=()=>CLASSES.find(c=>c.id===S.cls);
 const gearSum=k=>{if(isFM(S.gear.weapon))syncFrostmourne(S.gear.weapon);if(isWG(S.gear.weapon))syncWarglaives(S.gear.weapon);if(isRing(S.gear.trinket))syncOneRing(S.gear.trinket);if(isIce(S.gear.armor))syncIceArmor(S.gear.armor);let t=0;for(const sl in S.gear){const g=S.gear[sl];if(g&&g[k])t+=g[k]}return t};
-/* two Active Scroll slots — same scroll type cannot stack */
-/* fused scrolls (forged with 🔗 connectors) carry a second enchant in id2/tier2 —
+/* two Active Scroll slots - same scroll type cannot stack */
+/* fused scrolls (forged with 🔗 connectors) carry a second enchant in id2/tier2 -
    every effect lookup below honours both halves; same-id effects never stack (first hit wins) */
 const hasEnch=id=>(S.activeScrolls||[]).some(sc=>sc&&(sc.id===id||sc.id2===id));
 const scrollGet=id=>(S.activeScrolls||[]).find(sc=>sc&&(sc.id===id||sc.id2===id));
@@ -972,7 +972,7 @@ function consumeScrolls(id,tier,n){
 }
 
 const gearScore=()=>{if(isFM(S.gear.weapon))syncFrostmourne(S.gear.weapon);if(isWG(S.gear.weapon))syncWarglaives(S.gear.weapon);if(isRing(S.gear.trinket))syncOneRing(S.gear.trinket);if(isIce(S.gear.armor))syncIceArmor(S.gear.armor);return Math.round(Object.values(S.gear).reduce((t,g)=>t+(g?g.power:0),0));};
-/* Prestige has no cap — but it only unlocks at max level once every boss is dead. */
+/* Prestige has no cap - but it only unlocks at max level once every boss is dead. */
 const allBossesDead=()=>ZONES.every((z,i)=>z.special||!z.boss||!!S.bossDead[i]);
 /* true when every boss zone before index i has had its boss slain */
 const bossesClearedBefore=i=>ZONES.every((z,k)=>k>=i||z.special||!z.boss||!!S.bossDead[k]);
@@ -984,7 +984,7 @@ function progZone(ch=S){
  while(mz>0&&lvl<(ZONES[mz]?.lvl||1))mz--;
  return Math.max(0,mz);
 }
-/* LINEAR prestige scaling — tracks the gear curve so each prestige feels equally hard forever.
+/* LINEAR prestige scaling - tracks the gear curve so each prestige feels equally hard forever.
    (The old 1.15^P exponential eventually outran gear and made high prestige impossible.)
    The real "gear up before you prestige" punishment lives in effective-level scaling. */
 const pMul=()=>1+(S.prestige||0)*0.10;
@@ -993,12 +993,12 @@ const pRew=()=>Math.min(Math.pow(1.15,(S.prestige||0)),8);   /* XP/potion reward
    Mob gold is based on the real zone level + visible level + a soft +8% per prestige.
    This prevents high-prestige players from earning thousands per normal mob while keeping early players fair. */
 const goldPrestigeMul=()=>1+(S.prestige||0)*0.08;
-/* 🚜 farm blessing — owning the farm grants passive +XP/+gold everywhere: L1 5% · L2 10% · L3 15% */
+/* 🚜 farm blessing - owning the farm grants passive +XP/+gold everywhere: L1 5% · L2 10% · L3 15% */
 const farmBonus=()=>{if(!(S&&S.farm&&S.farm.owned))return 0;const l=S.farm.lvl||1;return l>=3?0.15:l===2?0.10:0.05;};
 const goldZoneMul=z=>1+((z&&z.lvl)||1)/60*1.25;
 const goldLvlMul=()=>1+(((S&&S.lvl)||1)-1)*0.012;
 const mobGold=(z,mul=1)=>Math.max(1,Math.round((8+((z&&z.lvl)||1)*3.2)*goldZoneMul(z)*goldLvlMul()*goldPrestigeMul()*(1+farmBonus())*mul));
-/* potion prices are fixed for now — no level/prestige scaling */
+/* potion prices are fixed for now - no level/prestige scaling */
 const potCost=k=>20;
 const POT_CAP=250; /* max potions of each kind you can carry */
 const heroMax=()=>Math.round((classOf().hp+S.lvl*14+gearSum('hp'))*(raceOf().hp||1));
@@ -1080,25 +1080,25 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.cerberusKills===undefined)s.cerberusKills=0;
  if(s.worms===undefined)s.worms=0;
  if(s.raidPots===undefined)s.raidPots=0;
- if(s.connectors===undefined)s.connectors=0; /* 🔗 crypt connectors — fuse two T-IV scrolls at the smith */
+ if(s.connectors===undefined)s.connectors=0; /* 🔗 crypt connectors - fuse two T-IV scrolls at the smith */
  if(s.knifeAwarded===undefined)s.knifeAwarded=false;
  if(s.theKnife===undefined)s.theKnife=false;
  if(s.ritualDone===undefined)s.ritualDone=false; /* ⛧ the altar accepts one life per hero */
- if(!s.knifeAwarded&&(s.rating||0)>=3000){s.knifeAwarded=true;s.theKnife=true;} /* already past 3000 — the knife finds them */
+ if(!s.knifeAwarded&&(s.rating||0)>=3000){s.knifeAwarded=true;s.theKnife=true;} /* already past 3000 - the knife finds them */
  if(s.gearSets===undefined){s.gearSets=[null,null];s.gearSetSel=-1;} /* two swappable loadouts */
  if(s.farm===undefined)s.farm={owned:false,b:[],c:[]}; /* 🚜 the farm: buildings + crops */
- if(s.farm.hx===undefined){s.farm.hx=975;s.farm.hy=1320;} /* farmhouse home spot — movable in build mode */
- if(s.farm.lvl===undefined)s.farm.lvl=1; /* 🚜 farm level — levels via farm XP (slaughter) */
+ if(s.farm.hx===undefined){s.farm.hx=975;s.farm.hy=1320;} /* farmhouse home spot - movable in build mode */
+ if(s.farm.lvl===undefined)s.farm.lvl=1; /* 🚜 farm level - levels via farm XP (slaughter) */
  if(s.farm.xp===undefined)s.farm.xp=0;
  if(s.farm.r===undefined)s.farm.r=[]; /* 🛣 laid road segments */
- if(s.farm.baleN===undefined)s.farm.baleN=0;   /* ✂ harvest progress — 5 = one Hay placement */
- if(s.farm.cseedN===undefined)s.farm.cseedN=0; /* ✂ harvest progress — 5 = one Chicken Seeds placement */
+ if(s.farm.baleN===undefined)s.farm.baleN=0;   /* ✂ harvest progress - 5 = one Hay placement */
+ if(s.farm.cseedN===undefined)s.farm.cseedN=0; /* ✂ harvest progress - 5 = one Chicken Seeds placement */
  if(s.farm.inv===undefined)s.farm.inv={};      /* 🎰 casino-won farm stock: cowfarm/chickenfarm/tjur/hay */
- /* a save written mid-Move can freeze _moving:true onto an item — it then never draws ("my cow vanished").
+ /* a save written mid-Move can freeze _moving:true onto an item - it then never draws ("my cow vanished").
     Nothing is legitimately mid-move at load time, so strip the flag from everything. */
  if(s.farm.b)s.farm.b.forEach(it=>{delete it._moving;});
  if(s.farm.c)s.farm.c.forEach(it=>{delete it._moving;});
- (s.gearSets||[]).forEach((gs,gi)=>{ /* v1 sets held raw items or a worn flag — convert to v2 (gsid refs) */
+ (s.gearSets||[]).forEach((gs,gi)=>{ /* v1 sets held raw items or a worn flag - convert to v2 (gsid refs) */
   if(!gs)return;
   if(gs.worn){s.gearSets[gi]=null;s.gearSetSel=-1;return;}
   if(['weapon','armor','trinket'].some(k=>gs[k]&&typeof gs[k]==='object')){
@@ -1147,11 +1147,11 @@ function migrate(s){ /* fills fields missing from older saves */
   const g=s.gear[sl];if(!g)continue;
   if(g.up===undefined)g.up=0;
   ensureItemBase(g);
-  /* old system enchanted gear directly — carry the first enchant into the new slot */
+  /* old system enchanted gear directly - carry the first enchant into the new slot */
   if(g.ench){const i=s.activeScrolls[0]?1:0;if(!s.activeScrolls[i])s.activeScrolls[i]=g.ench;else s.scrolls.push(g.ench);g.ench=null;}
  }
  (s.bag||[]).forEach(it=>{if(it.up===undefined)it.up=0;ensureItemBase(it);if(it.ench){s.scrolls.push(it.ench);it.ench=null;}});
- /* legacy scrolls were plain id strings — convert to tier objects (grandfathered at Tier II) */
+ /* legacy scrolls were plain id strings - convert to tier objects (grandfathered at Tier II) */
  s.scrolls=(s.scrolls||[]).map(x=>typeof x==='string'?{id:x,tier:2}:x);
  s.activeScrolls=(s.activeScrolls||[null,null]).map(x=>typeof x==='string'?{id:x,tier:2}:x);
  return s;
@@ -1181,7 +1181,7 @@ function rollItem(forceRar,lucky){
  const z=(1+zi*0.9+S.lvl*0.18)*(1+(S.prestige||0)*0.25);
  /* WEAPONS keep pace with prestige (armor/trinkets stay on the visible-level curve).
     0.452 is calibrated so a top-roll epic at +12 lands ~15% under Frostmourne/Warglaives
-    at +6 — legendaries stay best, but you can survive without one. */
+    at +6 - legendaries stay best, but you can survive without one. */
  const zEff=(1+zi*0.9+Math.max(1,effectiveHeroLvl())*0.18)*(1+(S.prestige||0)*0.25);
  const zw=Math.max(z,0.452*zEff);
  const it={slot,rar,name:PREFIX[rar][Math.floor(Math.random()*3)]+' '+BASE[slot][Math.floor(Math.random()*4)],
@@ -1206,7 +1206,7 @@ function syncIceArmor(it){
  if(!isIce(it)||!S)return it;
  it.slot='armor';it.rar='legendary';it.name='Ice Armor';
  it.up=Math.min(it.up||0,FM_MAX_UP);it.maxUp=FM_MAX_UP;
- it.haste=0.10;it.dmgMul=0.10; /* +10% atk speed · +10% damage — always */
+ it.haste=0.10;it.dmgMul=0.10; /* +10% atk speed · +10% damage - always */
  if(it.baseHp===undefined)it.baseHp=it.hp||0;
  calcPower(it);
  if(it.basePower===undefined)it.basePower=Math.round((it.baseHp||0)*0.6);
@@ -1291,18 +1291,18 @@ function smithTick(){
   const ring=rollOneRing();
   if(S.gear.trinket)S.bag.push(S.gear.trinket); /* the old trinket steps aside */
   S.gear.trinket=ring;S.ringForged=true;
-  log(`⚒️ The forge cools — <span class="llegendary">💍 The One Ring</span> binds to your trinket slot! +10% boss damage, but it drinks 2% of your mana with every strike.`,'loot');
+  log(`⚒️ The forge cools - <span class="llegendary">💍 The One Ring</span> binds to your trinket slot! +10% boss damage, but it drinks 2% of your mana with every strike.`,'loot');
   stageMsg('💍 THE ONE RING IS FORGED!',3800);sfx.level();
   if(typeof publishLB==='function')publishLB(S,true);
  }else if(j.kind==='wg'){
   const it=syncWarglaives({id:'warglaives',slot:'weapon',rar:'legendary',legend:'warglaives',name:'Warglaives',star:j.to,atk:0,hp:0,crit:0,haste:0.10,ench:null,up:0,sell:0,maxUp:FM_MAX_UP});
   S.bag.push(it);
-  log(`⚒️ The forge cools — <span class="llegendary">Warglaives ★${j.to}</span> scream anew!`,'loot');
+  log(`⚒️ The forge cools - <span class="llegendary">Warglaives ★${j.to}</span> scream anew!`,'loot');
   stageMsg('⚒️ Warglaives ★'+j.to+' complete!',2600);sfx.level();
  }else{
   const it=syncFrostmourne({slot:'weapon',rar:'legendary',legend:'frostmourne',name:'Frostmourne',star:j.to,atk:0,hp:0,crit:4,lifesteal:0.02,ench:null,up:0,sell:0});
   S.bag.push(it);
-  log(`⚒️ The forge cools — <span class="llegendary">Frostmourne ★${j.to}</span> is reborn!`,'loot');
+  log(`⚒️ The forge cools - <span class="llegendary">Frostmourne ★${j.to}</span> is reborn!`,'loot');
   stageMsg('⚒️ Frostmourne ★'+j.to+' complete!',2600);sfx.level();
  }
  save();if($('smithFx')&&$('smithFx').style.display==='flex')smithRefresh();
@@ -1311,7 +1311,7 @@ setInterval(()=>{if(gameOn)smithTick();},5000);
 /* Scraps: salvage value by rarity */
 const scrapVal=it=>({common:1,fine:2,rare:4,epic:8,legendary:20})[it.rar];
 const isLegendary=it=>it&&it.rar==='legendary';
-/* Upgrade cost: weapons 10, armor 5, trinkets 7 base — scaled by rarity and current upgrade level */
+/* Upgrade cost: weapons 10, armor 5, trinkets 7 base - scaled by rarity and current upgrade level */
 function upCost(it){
  const base={weapon:10,armor:5,trinket:7}[it.slot];
  const rm={common:1,fine:1.5,rare:2,epic:3,legendary:4}[it.rar];
@@ -1375,7 +1375,7 @@ function itemStr(it){
 }
 /* compact stat line for the currently equipped item, for bag comparison */
 function shortStats(it){
- if(!it)return '—';
+ if(!it)return '-';
  if(isFM(it))syncFrostmourne(it);else if(isWG(it))syncWarglaives(it);else if(isRing(it))syncOneRing(it);else if(isIce(it))syncIceArmor(it);else ensureItemBase(it);
  const parts=[];
  const baseAtk=Math.round(it.baseAtk||it.atk||0);
@@ -1386,7 +1386,7 @@ function shortStats(it){
  if(baseCrit)parts.push('+'+baseCrit+'% CRIT');
  if(it.haste)parts.push('+'+Math.round(it.haste*100)+'% ATK SPEED');
  if(it.lifesteal)parts.push('+'+Math.round(it.lifesteal*1000)/10+'% LIFESTEAL');
- return parts.join(' · ')||'—';
+ return parts.join(' · ')||'-';
 }
 function compareVal(it){
  if(!it)return 0;
@@ -1409,22 +1409,22 @@ function equipCompare(it){
    Two mix buses: ambG = ambience + music (🔊 button), sfxG = combat/one-shot sounds (⚔️ button). */
 const AC={ctx:null,ambG:null,sfxG:null,amb:[],timers:[],prof:null,mIdx:0};
 /* phones/tablets: volume sliders can't control media level (iOS blocks audio.volume),
-   so MOBILE OS devices get plain mute toggles instead — .muted works everywhere.
+   so MOBILE OS devices get plain mute toggles instead - .muted works everywhere.
    Detect by OS, not by pointer media queries: touchscreen Windows laptops must keep their sliders. */
 const IS_TOUCH=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
  ||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1); /* iPadOS pretends to be a Mac */
 const ambVol=()=>(!S||S.sound)?(S?S.volAmb:0.5):0;
 const sfxVol=()=>(!S||S.sfx)?(S?S.volSfx:0.55):0;
 function applyVolumes(){
- /* iOS/WebKit often ignores direct .gain.value writes — setValueAtTime always lands.
+ /* iOS/WebKit often ignores direct .gain.value writes - setValueAtTime always lands.
     Each bus is isolated in its own try so one WebKit hiccup can't skip the other. */
  const gt=AC.ctx?AC.ctx.currentTime:0;
  try{if(AC.ambG){AC.ambG.gain.cancelScheduledValues(gt);AC.ambG.gain.setValueAtTime(ambVol(),gt);}}catch(e){}
  try{if(AC.sfxG){AC.sfxG.gain.cancelScheduledValues(gt);AC.sfxG.gain.setValueAtTime(sfxVol(),gt);}}catch(e){}
- if(AC.ctx&&AC.ctx.state==='suspended')AC.ctx.resume().catch(()=>{}); /* iOS parks the session when all media is muted — wake it so sfx stays alive */
- /* .muted works on iOS where .volume writes are ignored — mute must win on phones */
+ if(AC.ctx&&AC.ctx.state==='suspended')AC.ctx.resume().catch(()=>{}); /* iOS parks the session when all media is muted - wake it so sfx stays alive */
+ /* .muted works on iOS where .volume writes are ignored - mute must win on phones */
  const av=ambVol(),m=av<=0;
- [ambAudio,cowAudio,haalandAudio,cryptAudio].forEach(a=>{if(a){try{a.volume=av;a.muted=m;}catch(e){}}});
+ [ambAudio,cowAudio,haalandAudio,cryptAudio,casinoAudio].forEach(a=>{if(a){try{a.volume=av;a.muted=m;}catch(e){}}});
 }
 function noiseBuf(){
  if(AC.nb)return AC.nb;
@@ -1475,7 +1475,7 @@ function droneLayer(freqs,vol){
 }
 function blip(freq0,freq1,dur,vol,type,dest){
  if(!AC.ctx)return;
- if(!dest&&S&&!S.sfx)return; /* ⚔️ muted — hard gate, even if a gain write was swallowed by WebKit */
+ if(!dest&&S&&!S.sfx)return; /* ⚔️ muted - hard gate, even if a gain write was swallowed by WebKit */
  const t=AC.ctx.currentTime;
  const o=AC.ctx.createOscillator();o.type=type||'sine';
  o.frequency.setValueAtTime(freq0,t);o.frequency.exponentialRampToValueAtTime(Math.max(30,freq1),t+dur);
@@ -1491,7 +1491,7 @@ function noiseHit(dur,vol,freq,dest){
  const g=AC.ctx.createGain();g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur);
  src.connect(f);f.connect(g);g.connect(dest||AC.sfxG);src.start(t);src.stop(t+dur+0.02);
 }
-/* airy filtered-noise sweep — used for the new weapon swing */
+/* airy filtered-noise sweep - used for the new weapon swing */
 function noiseSweep(dur,vol,f0,f1,dest){
  if(!AC.ctx)return;
  if(!dest&&S&&!S.sfx)return; /* ⚔️ muted */
@@ -1598,7 +1598,7 @@ function startCryptTrack(){
   cryptLoading=true;
   fetch(CRYPT_MUSIC_URL).then(r=>r.arrayBuffer()).then(b=>AC.ctx.decodeAudioData(b)).then(buf=>{
    cryptBuf=makeSeamlessLoop(buf,2.0);
-   if(AC.prof==='crypt')cryptPlayBuf(); /* still down there — fade the halls in now */
+   if(AC.prof==='crypt')cryptPlayBuf(); /* still down there - fade the halls in now */
   }).catch(()=>{ /* decode failed: plain looping element beats silence */
    cryptAudio=new Audio(CRYPT_MUSIC_URL);
    cryptAudio.loop=true;cryptAudio.volume=ambVol();
@@ -1606,10 +1606,10 @@ function startCryptTrack(){
   });
  }
  if(cryptAudio){cryptAudio.volume=ambVol();cryptAudio.currentTime=0;cryptAudio.play().catch(()=>{});}
- return true; /* a beat of silence while decoding — the growls cover it */
+ return true; /* a beat of silence while decoding - the growls cover it */
 }
 function stopCryptTrack(){cryptStopBuf();if(cryptAudio)cryptAudio.pause();}
-/* one-shot growl from somewhere in the maze — rescheduled 30–60s by the crypt ambience timer */
+/* one-shot growl from somewhere in the maze - rescheduled 30–60s by the crypt ambience timer */
 let cryptGrowlAudio=null,cryptGrowlT=0;
 function playCryptGrowl(){
  if(!cryptGrowlAudio){
@@ -1649,7 +1649,7 @@ function pluck(f){
  o.start(t);o.stop(t+1.6);o2.start(t);o2.stop(t+0.9);
 }
 function startMusic(dark){
- /* Am — F — G — Em, low and slow; darker zones drop the plucks */
+ /* Am - F - G - Em, low and slow; darker zones drop the plucks */
  const CH=[[110,164.81,220,329.63],[87.31,130.81,174.61,261.63],[98,146.83,196,293.66],[82.41,123.47,164.81,246.94]];
  AC.mIdx=0;
  const step=()=>{playChord(CH[AC.mIdx%4]);AC.mIdx++;};
@@ -1684,7 +1684,7 @@ function startAmbience(prof){
  }
  startAmbTrack();
 }
-/* Combat / one-shot sounds — all routed through the sfx bus (⚔️ button mutes just these). */
+/* Combat / one-shot sounds - all routed through the sfx bus (⚔️ button mutes just these). */
 const sfx={
  hit:()=>{noiseHit(0.08,.11,520);blip(170,70,0.09,.07,'triangle');},
  swing:()=>noiseSweep(0.13,.08,500,2400),
@@ -1783,7 +1783,7 @@ function shade(hex,amt){const n=parseInt(hex.slice(1),16);
  
 let world=null,hero=null,pet=null,enemies=[],bolts=[],ebolts=[],hazards=[],floats=[],parts=[],rings=[],zaps=[],bloods=[],groundCv=null;
 let cowT=0,cowSpawnT=0,cowRunning=false,cowItems=0,cowBagFull=false;
-let cowChest=null,cowChestT=10,cowChestMsgT=0; /* the blue loot chest — cowItems counts CHESTS opened */
+let cowChest=null,cowChestT=10,cowChestMsgT=0; /* the blue loot chest - cowItems counts CHESTS opened */
 /* --- Fishing at the Goldshire lake (top-right pond) --- */
 let fish={on:false,castT:0,bx:0,by:0,bob:0};
 const nearLake=()=>gameOn&&world&&zoneOf().tavern&&hero&&!hero.dead&&hero.x>world.w-900&&hero.y<660;
@@ -1799,13 +1799,13 @@ function updateFishHut(){
  const w=S.worms||0,need=WORM_MAX-w;
  $('fishWormInfo').textContent='🪱 Worms: '+w+' / '+WORM_MAX;
  const b=$('wormBuyBtn');
- if(need<=0){b.textContent='Pouch full — '+WORM_MAX+' worms';b.disabled=true;}
+ if(need<=0){b.textContent='Pouch full - '+WORM_MAX+' worms';b.disabled=true;}
  else{b.textContent='Refill '+need+' worms · '+(need*WORM_PRICE).toLocaleString()+' ◉';b.disabled=false;}
 }
 $('wormBuyBtn').onclick=()=>{
  const need=WORM_MAX-(S.worms||0);
  if(need<=0)return;
- if(!spendGold(need*WORM_PRICE)){stageMsg('Not enough gold — '+(need*WORM_PRICE).toLocaleString()+' ◉ needed',1800);sfx.warn();return;}
+ if(!spendGold(need*WORM_PRICE)){stageMsg('Not enough gold - '+(need*WORM_PRICE).toLocaleString()+' ◉ needed',1800);sfx.warn();return;}
  S.worms=WORM_MAX;save();renderHUD();updateFishHut();
  sfx.loot();stageMsg('🪱 +'+need+' worms!',1500);
 };
@@ -1821,12 +1821,12 @@ $('farmBuyYes').onclick=()=>{
  S.farm.owned=true;
  $('farmBuyFx').style.display='none';
  stageMsg('🚜 THE FARM IS YOURS! Click the farmhouse again to build.',3400);
- log('<span class="loot">🚜 Farm purchased</span> — 500,000◉ + 800⚙ well spent.','loot');
+ log('<span class="loot">🚜 Farm purchased</span> - 500,000◉ + 800⚙ well spent.','loot');
  sfx.level();save();renderHUD();
 };
 $('farmBuyNo').onclick=()=>$('farmBuyFx').style.display='none';
 $('fsCat').onchange=()=>{buildTab=$('fsCat').value;buildSel=null;renderFarmStore();};
-$('fsCollapse').onclick=()=>{ /* 📱 tuck the build list away while placing — the arrow tab stays reachable */
+$('fsCollapse').onclick=()=>{ /* 📱 tuck the build list away while placing - the arrow tab stays reachable */
  const c=$('farmStore').classList.toggle('collapsed');
  $('fsCollapse').textContent=c?'❯':'❮';
 };
@@ -1860,7 +1860,7 @@ $('ritualBegin').onclick=()=>{
   [4120,()=>{fx.style.opacity='1';}],
   [4440,()=>{fx.style.opacity='0';}],                                    /* blink 2 */
   [4820,()=>{fx.style.opacity='1';}],
-  [5180,()=>{fx.style.transition='opacity .4s';fx.style.opacity='0';}],  /* blink 3 — awake */
+  [5180,()=>{fx.style.transition='opacity .4s';fx.style.opacity='0';}],  /* blink 3 - awake */
  ];
  t.forEach(([ms,fn])=>setTimeout(fn,ms));
  setTimeout(()=>{
@@ -1874,11 +1874,11 @@ $('ritualBegin').onclick=()=>{
    atk:0,hp:Math.round(24*3.6*z*1.1),crit:0,haste:0.10,dmgMul:0.10,ench:null,up:0,maxUp:FM_MAX_UP,sell:0}; /* +10% dmg · +10% atk speed · +6 upgrades like the other legendaries */
   it.baseHp=it.hp;it.baseAtk=0;it.baseCrit=0;
   calcPower(it);it.basePower=Math.round(it.power);
-  ritualArmor=it; /* handed over — and equipped — on "Take it" */
+  ritualArmor=it; /* handed over - and equipped - on "Take it" */
   save();renderHUD();
   $('ritualDoneFx').style.display='flex';
   sfx.level();
-  log('<span class="llegendary">🧊 Ice Armor</span> — bought with a life. <i>The Altar is satisfied.</i>','loot');
+  log('<span class="llegendary">🧊 Ice Armor</span> - bought with a life. <i>The Altar is satisfied.</i>','loot');
  },5800);
 };
 let ritualArmor=null;
@@ -1886,19 +1886,19 @@ $('ritualDoneOk').onclick=()=>{
  $('ritualDoneFx').style.display='none';
  gamePaused=false;
  ritualActive=false;
- if(ritualArmor){ /* straight onto your shoulders — the old armor steps aside */
+ if(ritualArmor){ /* straight onto your shoulders - the old armor steps aside */
   if(S.gear.armor)S.bag.push(S.gear.armor);
   S.gear.armor=ritualArmor;
   ritualArmor=null;
   if(hero)hero.hp=Math.min(hero.hp,heroMax());
-  stageMsg('🧊 The Ice Armor grips your body — it will never let go.',3000);
+  stageMsg('🧊 The Ice Armor grips your body - it will never let go.',3000);
   save();renderBag();renderHero();renderHUD();
  }
 };
 $('sharkOk').onclick=()=>{$('sharkFx').style.display='none';gamePaused=false;};
 function startFishing(){
  if(fish.on||!nearLake())return;
- if((S.worms||0)<1){stageMsg('🪱 No worms — the fishing hut sells them!',1800);sfx.warn();return;}
+ if((S.worms||0)<1){stageMsg('🪱 No worms - the fishing hut sells them!',1800);sfx.warn();return;}
  S.worms--;save(); /* the first cast takes its worm up front */
  fish.on=true;fish.castT=4+Math.random()*6;fish.bob=0;fishSpot();
  fish.fly=0;hero.swing=0.24; /* rod whip + the float sails out in an arc */
@@ -1907,7 +1907,7 @@ function startFishing(){
  stageMsg('🎣 You cast your line…',1400);
 }
 function stopFishing(){fish.on=false;}
-/* catch toast — shows the last haul for 3s while the next cast is already flying */
+/* catch toast - shows the last haul for 3s while the next cast is already flying */
 let fishToastT=null;
 function fishToast(html,color){
  const t=$('fishToast');
@@ -1915,22 +1915,22 @@ function fishToast(html,color){
  clearTimeout(fishToastT);fishToastT=setTimeout(()=>{t.style.display='none';},3000);
 }
 $('fishBtn').onclick=()=>{if(fish.on)stopFishing();else startFishing();};
-$('torchBtn').onclick=()=>{ /* 🔥 drop a torch at your feet — a breadcrumb through the maze */
+$('torchBtn').onclick=()=>{ /* 🔥 drop a torch at your feet - a breadcrumb through the maze */
  if(!zoneOf().crypts||!world||!hero)return;
  if(cryptTorches<=0){stageMsg('🔥 Out of torches for this run',1400);sfx.warn();return;}
  cryptTorches--;
  (world.torches=world.torches||[]).push({x:hero.x,y:hero.y+4});
  blip(700,500,0.08,.06);
 };
-let cowBigT=15; /* the Alpha Bovine — a giant cow every 15 seconds */
+let cowBigT=15; /* the Alpha Bovine - a giant cow every 15 seconds */
 const COW_BAG_CAP=40;
 const cowLocked=()=>gameOn&&cowRunning;
-/* true while a living boss is engaged — the forge and Trader refuse service mid-fight */
+/* true while a living boss is engaged - the forge and Trader refuse service mid-fight */
 const inBossFight=()=>gameOn&&enemies.some(e=>e.boss&&!e.dead&&(e.hidden||e.state==='chase'||(hero&&hero.target===e)));
-/* hardcore: entering a boss fight unprepared is a commitment — no fleeing */
+/* hardcore: entering a boss fight unprepared is a commitment - no fleeing */
 const hcNoFlee=()=>{
  if(S&&S.hardcore&&inBossFight()){
-  stageMsg('💀 HARDCORE — there is no fleeing a boss fight. Win or die.',2000);
+  stageMsg('💀 HARDCORE - there is no fleeing a boss fight. Win or die.',2000);
   sfx.warn();
   return true;
  }
@@ -1940,11 +1940,11 @@ let camX=0,camY=0,gameOn=false,marker=null,portalMsgT=0;
 let shakeT=0;
  
 /* ==================== THE CRYPTS ==================== */
-/* A fresh labyrinth every descent — plain Math.random, never the zone seed.
+/* A fresh labyrinth every descent - plain Math.random, never the zone seed.
    Walls live in world.mwalls (axis-aligned rects): collide() blocks on them and
    drawCryptGround() culls and draws only the visible ones each frame. */
 const CRYPT={C:380,T:48,cols:35,rows:20,ox:70,oy:70};
-let cryptTorches=15; /* 🔥 breadcrumb torches — 15 per descent, gone when spent, never picked back up */
+let cryptTorches=15; /* 🔥 breadcrumb torches - 15 per descent, gone when spent, never picked back up */
 function buildCryptMaze(){
  cryptTorches=15;world.torches=[]; /* fresh maze, fresh torches */
  const C=CRYPT.C,T=CRYPT.T,cols=CRYPT.cols,rows=CRYPT.rows,ox=CRYPT.ox,oy=CRYPT.oy;
@@ -1952,7 +1952,7 @@ function buildCryptMaze(){
  const vW=new Array((cols-1)*rows).fill(true); /* wall right of cell (i,j) */
  const hW=new Array(cols*(rows-1)).fill(true); /* wall below cell (i,j) */
  const stack=[[0,0]];seen[0]=true;
- while(stack.length){ /* iterative DFS backtracker — a perfect maze */
+ while(stack.length){ /* iterative DFS backtracker - a perfect maze */
   const top=stack[stack.length-1],i=top[0],j=top[1],nb=[];
   if(i>0&&!seen[(i-1)+j*cols])nb.push([i-1,j]);
   if(i<cols-1&&!seen[(i+1)+j*cols])nb.push([i+1,j]);
@@ -1971,9 +1971,9 @@ function buildCryptMaze(){
  world.mwalls=[];
  for(let j=0;j<rows;j++)for(let i=0;i<cols-1;i++)if(vW[i+j*(cols-1)])world.mwalls.push({x:ox+(i+1)*C-T/2,y:oy+j*C-T/2,w:T,h:C+T});
  for(let j=0;j<rows-1;j++)for(let i=0;i<cols;i++)if(hW[i+j*cols])world.mwalls.push({x:ox+i*C-T/2,y:oy+(j+1)*C-T/2,w:C+T,h:T});
- world.mazeV=vW;world.mazeH=hW; /* corridor graph — the rat navigates cell-to-cell with this */
+ world.mazeV=vW;world.mazeH=hW; /* corridor graph - the rat navigates cell-to-cell with this */
  world.ratboss={x:ox+(cols-1)*C+C/2,y:oy+(rows-1)*C+C/2,ci:cols-1,cj:rows-1,ti:cols-1,tj:rows-1,pi:-1,pj:-1,fx:-1,walk:0,moving:false,speed:140};
- const MW=cols*C,MH=rows*C; /* sealed outer ring — no sneaking around the maze */
+ const MW=cols*C,MH=rows*C; /* sealed outer ring - no sneaking around the maze */
  world.mwalls.push({x:ox-T,y:oy-T,w:MW+2*T,h:T},{x:ox-T,y:oy+MH,w:MW+2*T,h:T},{x:ox-T,y:oy,w:T,h:MH+T},{x:ox+MW,y:oy,w:T,h:MH+T});
  /* arrive in the north-west cell; the way home hums right beside you */
  world.spawn={x:ox+C*0.72,y:oy+C/2};
@@ -1983,7 +1983,7 @@ function buildCryptMaze(){
   const ci=Math.floor(Math.random()*cols),cj=Math.floor(Math.random()*rows);
   world.solids.push({x:ox+ci*C+C/2+(Math.random()-0.5)*90,y:oy+cj*C+C/2+(Math.random()-0.5)*90,r:5,type:'lantern'});
  }
- world.cryptChests=[];S.qProg=0; /* three cow-level chests, scattered deep in the maze — fresh hunt every descent */
+ world.cryptChests=[];S.qProg=0; /* three cow-level chests, scattered deep in the maze - fresh hunt every descent */
  for(let tries=0;tries<800&&world.cryptChests.length<3;tries++){
   const ci=Math.floor(Math.random()*cols),cj=Math.floor(Math.random()*rows);
   if(ci+cj<Math.floor((cols+rows)/3))continue; /* never near the entrance */
@@ -1993,12 +1993,12 @@ function buildCryptMaze(){
  }
  zoneMapImg('cryptmap');zoneMapImg('cryptwall'); /* kick off floor + wall art loads for the per-frame tiler */
  if(!S.cryptIntroSeen){const ci=$('cryptIntro');if(ci)ci.style.display='block';} /* first descent: the warning */
- S.auto=false; /* AUTO does not work down here — ever */
+ S.auto=false; /* AUTO does not work down here - ever */
 }
-/* wall texture as a repeating pattern — fixed 836px world repeat, anchored in world
+/* wall texture as a repeating pattern - fixed 836px world repeat, anchored in world
    space so the masonry stays put while the camera moves; built once and cached */
 let raidWallPat=null;
-function raidWallPattern(){ /* Black Temple masonry — world-anchored so segments fuse seamlessly */
+function raidWallPattern(){ /* Black Temple masonry - world-anchored so segments fuse seamlessly */
  if(raidWallPat)return raidWallPat;
  const img=zoneMapImg('raidwall');
  if(!(img.complete&&img.naturalWidth))return null;
@@ -2031,7 +2031,7 @@ function mazeNeighbors(i,j){
  return out;
 }
 /* BFS through the corridor graph: the first cell to step into on the shortest
-   path from (si,sj) to (gi,gj) — ~700 cells, runs in well under a millisecond */
+   path from (si,sj) to (gi,gj) - ~700 cells, runs in well under a millisecond */
 function mazeFirstStep(si,sj,gi,gj){
  const cols=CRYPT.cols;
  const sIdx=si+sj*cols,gIdx=gi+gj*cols;
@@ -2049,16 +2049,16 @@ function mazeFirstStep(si,sj,gi,gj){
    q.push(n);
   }
  }
- return null; /* unreachable — cannot happen in a connected maze */
+ return null; /* unreachable - cannot happen in a connected maze */
 }
-/* the rat hunts the hero — cell to cell along the shortest corridor path, so it
+/* the rat hunts the hero - cell to cell along the shortest corridor path, so it
    tracks you anywhere in the maze yet can never clip a wall; in your cell it
    creeps straight at you across the open floor */
 function updateRatBoss(dt){
  const rb=world.ratboss,C=CRYPT.C,ox=CRYPT.ox,oy=CRYPT.oy,cols=CRYPT.cols,rows=CRYPT.rows;
- if(hero.dead)return; /* it got its meal — sit still during the death cam */
+ if(hero.dead)return; /* it got its meal - sit still during the death cam */
  if(Math.hypot(hero.x-rb.x,hero.y-rb.y)<48){
-  /* caught! the rat ALWAYS one-shots — you wake up back home in Goldshire.
+  /* caught! the rat ALWAYS one-shots - you wake up back home in Goldshire.
      Like the cow level, this never counts as a hardcore death: you are carried out, gear intact. */
   hero.hp=0;
   hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;hero.pendingDoor=null;
@@ -2066,8 +2066,8 @@ function updateRatBoss(dt){
   bloodAt(hero.x,hero.y-12,14);
   sfx.die();
   shakeT=0.35;
-  stageMsg('🐀 The rat got you — you wake by the hearth in Goldshire.',3200);
-  log('<span class="imp">Devoured in The Crypts.</span> Carried back to Goldshire — gear and loot intact.');
+  stageMsg('🐀 The rat got you - you wake by the hearth in Goldshire.',3200);
+  log('<span class="imp">Devoured in The Crypts.</span> Carried back to Goldshire - gear and loot intact.');
   save();
   return;
  }
@@ -2078,7 +2078,7 @@ function updateRatBoss(dt){
   rb.ti=rb.ci;rb.tj=rb.cj;
   tx=hero.x;ty=hero.y;
  }else{
-  if(rb.ti===rb.ci&&rb.tj===rb.cj){ /* standing on a centre — ask the maze for the next step */
+  if(rb.ti===rb.ci&&rb.tj===rb.cj){ /* standing on a centre - ask the maze for the next step */
    const st=mazeFirstStep(rb.ci,rb.cj,hi,hj);
    if(st){rb.ti=st[0];rb.tj=st[1];}
   }
@@ -2101,7 +2101,7 @@ function rebuildFarmItems(){ /* placed buildings become solids; crops draw with 
   const col=def.col||{r:20};
   const sol={x:it.x,y:it.y,r:col.r||40,type:'farmitem',ftype:it.t,farmItem:1};
   if(col.crx){sol.crx=col.crx;sol.cry=col.cry;sol.cyo=col.cyo;}
-  if(def.roam){sol.noCol=1;sol.it=it;} /* 🐄 roamers: walk-through, and the solid follows the beast (sol→it only — S stays JSON-safe) */
+  if(def.roam){sol.noCol=1;sol.it=it;} /* 🐄 roamers: walk-through, and the solid follows the beast (sol→it only - S stays JSON-safe) */
   world.solids.push(sol);
  }
 }
@@ -2109,7 +2109,7 @@ let buildMode=false,buildSel=null,buildTab='b',mouseWX=0,mouseWY=0,buildPan=null
 let harvestDrag=null; /* ✂ drag-select: harvest every ready hay + slaughter every grown beast inside */
 let placeDrag=null; /* 📱 touch placement: piece follows the finger, drops on release, then deselects */
 let roadAnchor=null; /* 🛣 first click of a road stretch */
-let farmCart=[]; /* pending placements — ghosts until checkout */
+let farmCart=[]; /* pending placements - ghosts until checkout */
 let moveItem=null,movePicked=null; /* click an item with nothing selected → Move popup → carry it */
 function farmHitTest(wx,wy){
  let best=null,bd=95;
@@ -2117,7 +2117,7 @@ function farmHitTest(wx,wy){
  S.farm.b.forEach((b2,i)=>{const d=Math.hypot(b2.x-wx,b2.y-wy);if(d<bd){bd=d;best={kind:'b',i,t:b2.t};}});
  let cd=45;
  S.farm.c.forEach((c2,i)=>{const d=Math.hypot(c2.x-wx,c2.y-wy);if(d<cd){cd=d;best={kind:'c',i,t:c2.t};}});
- if(!best){ /* the farmhouse itself — big target, but placed pieces on top of it win */
+ if(!best){ /* the farmhouse itself - big target, but placed pieces on top of it win */
   const fh=(world&&world.solids)?world.solids.find(s2=>s2.type==='farmhouse'):null;
   if(fh&&Math.hypot(fh.x-wx,fh.y-wy)<160)best={kind:'fh',i:0,t:'farmhouse'};
  }
@@ -2141,13 +2141,13 @@ const FARM_PRICES={lada:250000,staket:5000,staketv:5000,chickenhouse:100000,chic
 const FARM_SCRAPS={lada:300,chickenhouse:150,medium:600,mansion:800}; /* ⚙ scrap cost on top of gold */
 const FARM_ROAD_RATE={dirt_road:10,gravel_road:15}; /* 🛣 roads are priced by length: ◉ per world-unit drawn */
 const roadCost=g2=>Math.round(Math.hypot(g2.x1-g2.x0,g2.y1-g2.y0)*(FARM_ROAD_RATE[g2.t]||0));
-/* 🧲 snap mode — fences click together end to end (and into corners) instead of free placement */
+/* 🧲 snap mode - fences click together end to end (and into corners) instead of free placement */
 let snapMode=true;
 const SNAP_R=80; /* how close the cursor must be to a snap point before it grabs */
 function itemSpanOf(def){const im=farmImg(def.img);const W=def.W||200;return {W,H:(im.complete&&im.naturalWidth)?W*im.naturalHeight/im.naturalWidth:W};}
-/* 🛣 roads are ground decals — a rotated strip of tiling texture between two points, no collision */
+/* 🛣 roads are ground decals - a rotated strip of tiling texture between two points, no collision */
 function segDist(px,py,r){const dx=r.x1-r.x0,dy=r.y1-r.y0,L2=dx*dx+dy*dy;const t=L2?Math.max(0,Math.min(1,((px-r.x0)*dx+(py-r.y0)*dy)/L2)):0;return Math.hypot(px-(r.x0+t*dx),py-(r.y0+t*dy));}
-const roadPats={}; /* one world-anchored repeat pattern per road type — all segments share texture phase, so joins are seamless */
+const roadPats={}; /* one world-anchored repeat pattern per road type - all segments share texture phase, so joins are seamless */
 function roadPattern(def){
  const img=farmImg(def.img);
  if(!(img.complete&&img.naturalWidth))return null;
@@ -2170,13 +2170,13 @@ function drawRoadSeg(r){
  ctx.beginPath();ctx.moveTo(r.x0,r.y0);ctx.lineTo(r.x1,r.y1);ctx.stroke();
  ctx.restore();
 }
-/* 🐄 free-roaming farm animals — short strolls with grazing pauses across the gridded plot.
+/* 🐄 free-roaming farm animals - short strolls with grazing pauses across the gridded plot.
    Fences and buildings block them (they use the same collide() as everyone else), so a closed
    fence ring naturally pens them in: a blocked stroll is abandoned and they idle instead.
    FEEDING: hungry animals seek their food (cows/bull/calves → Hay Bale, hens/chicks → Chicken
    Seeds); each food item holds 5 bites, then it's gone. A recent meal = happy (❤) = fertile.
    BREEDING: happy Cow + happy Bull → pregnant (💕) → Calf. Happy Hen → egg → Chick. */
-const BITES=5,HUNGER_T=10000,HAPPY_T=60000,PREG_T=90000,HATCH_T=60000,BREED_CD=120000; /* HUNGER_T short for testing — raise later */
+const BITES=5,HUNGER_T=10000,HAPPY_T=60000,PREG_T=90000,HATCH_T=60000,BREED_CD=120000; /* HUNGER_T short for testing - raise later */
 const BARN_CAP=10,COOP_CAP=20; /* one Barn houses 10 cattle, one Chicken Coop 20 chickens */
 /* building & crop caps grow with farm level: L1 → 1 barn/coop, 60 hay · L2 → 2, 80 · L3 → 4, 120 */
 const houseMax=()=>{const l=(S&&S.farm&&S.farm.lvl)||1;return l>=3?4:l>=2?2:1;};
@@ -2196,7 +2196,7 @@ function nearestFood(it){
  list.forEach((f,i)=>{if(f.t!==ft||f._moving)return;const d=Math.hypot(f.x-it.x,f.y-it.y);if(d<bd){bd=d;best={f,i,d,cowish};}});
  return best;
 }
-function pathClear(x0,y0,x1,y1,er){ /* walkability raycast — samples every 18u so even thin fence walls register */
+function pathClear(x0,y0,x1,y1,er){ /* walkability raycast - samples every 18u so even thin fence walls register */
  const L=Math.hypot(x1-x0,y1-y0);
  if(L<1)return true;
  const steps=Math.ceil(L/18);
@@ -2215,7 +2215,7 @@ function updateFarmAnimals(dt){
   if(!def||!def.roam||it._moving)continue;
   sol.mv=Math.max(0,(sol.mv||0)-dt*5); /* walk-bob fades out whenever we're not stepping */
   const now=Date.now();
-  /* 🐄 breeding — only happy (recently fed) beasts */
+  /* 🐄 breeding - only happy (recently fed) beasts */
   if(it.t==='cowfarm_big'){
    if(it.preg&&now-it.preg>PREG_T){
     delete it.preg;
@@ -2241,13 +2241,13 @@ function updateFarmAnimals(dt){
   if(now-(it.fed||0)>(def.eatT||HUNGER_T)&&(isBovine(it.t)?countFarm(t=>t==='lada')>0:countFarm(t=>t==='chickenhouse')>0)){
    const nf=nearestFood(it);
    if(nf){
-    if(nf.d>=(nf.cowish?58:34)){ /* only chase food we can actually reach — food beyond the fence is ignored */
+    if(nf.d>=(nf.cowish?58:34)){ /* only chase food we can actually reach - food beyond the fence is ignored */
      const feR={r:(def.col&&def.col.r)||10};
      const stop=Math.max(0,nf.d-(nf.cowish?56:26)),ux=(nf.f.x-it.x)/nf.d,uy=(nf.f.y-it.y)/nf.d;
      if(pathClear(it.x,it.y,it.x+ux*stop,it.y+uy*stop,feR)){sol.tx=nf.f.x;sol.ty=nf.f.y;}
-     else if(sol.tx===nf.f.x&&sol.ty===nf.f.y)sol.tx=undefined; /* was chasing it — stop pressing the fence */
+     else if(sol.tx===nf.f.x&&sol.ty===nf.f.y)sol.tx=undefined; /* was chasing it - stop pressing the fence */
     }
-    if(nf.d<(nf.cowish?58:34)){ /* bales are solid — "arrived" starts outside their collision ring */
+    if(nf.d<(nf.cowish?58:34)){ /* bales are solid - "arrived" starts outside their collision ring */
      it.fed=now;sol.tx=undefined;sol.pz=1.6+Math.random()*1.4;
      nf.f.bites=(nf.f.bites===undefined?BITES:nf.f.bites)-1;
      sparkles(nf.f.x,nf.f.y-10,'#ffe9a0',6);
@@ -2263,7 +2263,7 @@ function updateFarmAnimals(dt){
        rb=true;
       }
      }else if(it.t==='cowfarm_big'&&!it.preg&&barnRoom()>0){
-      /* 💕 meal-time roll — 15% per sated bull (2 bulls = 30%, 3 = 45%…), capped at 100% */
+      /* 💕 meal-time roll - 15% per sated bull (2 bulls = 30%, 3 = 45%…), capped at 100% */
       const bulls=S.farm.b.filter(b3=>b3.t==='tjur'&&isHappy(b3)).length;
       if(bulls>0&&Math.random()<Math.min(1,bulls*0.15)){it.preg=now;stageMsg('💕 A cow is expecting…',1700);}
      }else if(it.t==='chickenfarm_big'&&!it.egg&&coopRoom()>0&&Math.random()<0.15){
@@ -2275,16 +2275,16 @@ function updateFarmAnimals(dt){
    }
   }
   if(sol.tx===undefined||Math.hypot(sol.tx-it.x,sol.ty-it.y)<8){
-   if(sol.tx!==undefined&&Math.random()<0.6){sol.pz=1.2+Math.random()*3;} /* arrived — graze a while */
+   if(sol.tx!==undefined&&Math.random()<0.6){sol.pz=1.2+Math.random()*3;} /* arrived - graze a while */
    sol.tx=undefined;
    const pr={r:(def.col&&def.col.r)||10};
-   for(let tr=0;tr<6;tr++){ /* stroll targets must be walkable — penned animals roam INSIDE their pen */
+   for(let tr=0;tr<6;tr++){ /* stroll targets must be walkable - penned animals roam INSIDE their pen */
     const a=Math.random()*Math.PI*2,d=(80+Math.random()*260)*(1-tr*0.13); /* shrink per retry so tight pens still work */
     const tx=Math.max(60,Math.min(4140,it.x+Math.cos(a)*d));
     const ty=Math.max(60,Math.min(world.h-60,it.y+Math.sin(a)*d));
     if(pathClear(it.x,it.y,tx,ty,pr)){sol.tx=tx;sol.ty=ty;break;}
    }
-   if(sol.tx===undefined)sol.pz=0.6+Math.random(); /* boxed in tight — wait a beat and try again */
+   if(sol.tx===undefined)sol.pz=0.6+Math.random(); /* boxed in tight - wait a beat and try again */
    continue;
   }
   const sp=(def.speed||24)*dt;
@@ -2295,12 +2295,12 @@ function updateFarmAnimals(dt){
   if(!collide(er,nx,ny)){it.x=nx;it.y=ny;moved=true;}
   else if(!collide(er,nx,it.y)){it.x=nx;moved=true;}      /* slide along the fence line */
   else if(!collide(er,it.x,ny)){it.y=ny;moved=true;}
-  else{sol.tx=undefined;sol.pz=0.8+Math.random()*1.6;} /* penned in — give up and chill */
+  else{sol.tx=undefined;sol.pz=0.8+Math.random()*1.6;} /* penned in - give up and chill */
   if(moved){sol.wt=(sol.wt||0)+sp;sol.mv=Math.min(1,sol.mv+dt*10);} /* wt = distance walked → hop phase */
   sol.x=it.x;sol.y=it.y;
  }
 }
-/* 🕰 offline/away farm simulation — replays missed meals so the farm lives while you're
+/* 🕰 offline/away farm simulation - replays missed meals so the farm lives while you're
    elsewhere (or logged out). Marches each animal's meal clock through the gap, consuming
    real bites from placed food, growing the young and rolling breeding per meal.
    Coarse on purpose: fences are ignored while away, and newborns start eating next visit. */
@@ -2357,7 +2357,7 @@ function simFarmAway(){
  }
 }
 /* 🕰 away-farm catch-up: the live loop owns the farm while you stand in it; this simulates
-   everything between visits on the wall clock — offline included. Animals eat on schedule
+   everything between visits on the wall clock - offline included. Animals eat on schedule
    (while food and housing exist), calves/chicks grow, fed cows/hens keep breeding. */
 function simFarmAway(){
  if(!S||!S.farm||!S.farm.owned)return;
@@ -2365,7 +2365,7 @@ function simFarmAway(){
  if(S.farm.lastSim===undefined){S.farm.lastSim=now;return;}
  const from=S.farm.lastSim,gap=now-from;
  const inFarm=!!(zoneOf()&&zoneOf().farm);
- if(inFarm&&gap<60000){S.farm.lastSim=now;return;} /* fresh — the live loop is running */
+ if(inFarm&&gap<60000){S.farm.lastSim=now;return;} /* fresh - the live loop is running */
  if(gap<30000)return; /* catch up in ≥30s chunks */
  S.farm.lastSim=now;
  const housedB=S.farm.b.some(b2=>b2.t==='lada'),housedC=S.farm.b.some(b2=>b2.t==='chickenhouse');
@@ -2429,7 +2429,7 @@ function simFarmAway(){
   save();
  }
 }
-/* 🚜 farm leveling — XP from slaughtering grown livestock; unlocks the bigger farmhouses */
+/* 🚜 farm leveling - XP from slaughtering grown livestock; unlocks the bigger farmhouses */
 const FARM_MAXLVL=3;
 const farmXpNeed=l=>l===1?1500:l===2?3000:Infinity; /* 1→2: 1500 · 2→3: 3000 */
 function gainFarmXP(n){
@@ -2493,7 +2493,7 @@ function cropCellTaken(id,x,y){
 }
 function snapPos(id,x,y){
  const def=FARM_BUILD.find(o=>o.id===id);
- if(def&&def.crop) /* crops ALWAYS grid-snap — the 🧲 toggle can't turn it off, so no stacking cheese */
+ if(def&&def.crop) /* crops ALWAYS grid-snap - the 🧲 toggle can't turn it off, so no stacking cheese */
   return {x:Math.round(x/CROP_GX)*CROP_GX,y:Math.round(y/CROP_GY)*CROP_GY};
  if(!snapMode)return {x,y};
  if(!def||!def.snap)return {x,y};
@@ -2540,7 +2540,7 @@ function enterBuildMode(){
  const fc=$('fsCollapse');if(fc)fc.textContent='❮';
  renderFarmStore();
  updateCartUI();
- stageMsg('🔨 Build mode — pick an item and click to place it. 🗑 removes. Drag to pan, scroll to zoom.',3400);
+ stageMsg('🔨 Build mode - pick an item and click to place it. 🗑 removes. Drag to pan, scroll to zoom.',3400);
 }
 function exitBuildMode(){
  cancelMove();
@@ -2571,7 +2571,7 @@ function openFarmCheckout(){
 function renderFarmStore(){
  const list=FARM_BUILD.filter(it=>it.tab===buildTab||it.tab==='*');
  if(list.length<=1&&!FARM_BUILD.some(it=>it.tab===buildTab)){ /* empty category (only the remove tool) */
-  $('farmStoreList').innerHTML=list.map(it=>`<div class="fsitem${buildSel===it.id?' sel':''}" data-fs="${it.id}"><div style="font-size:34px;text-align:center;padding:8px 0">${it.emoji||'❓'}</div><div class="fsn">${it.n}</div></div>`).join('')+'<div class="ss" style="color:var(--dim);text-align:center;padding:14px 4px;font-size:11.5px">Nothing here yet — coming soon!</div>';
+  $('farmStoreList').innerHTML=list.map(it=>`<div class="fsitem${buildSel===it.id?' sel':''}" data-fs="${it.id}"><div style="font-size:34px;text-align:center;padding:8px 0">${it.emoji||'❓'}</div><div class="fsn">${it.n}</div></div>`).join('')+'<div class="ss" style="color:var(--dim);text-align:center;padding:14px 4px;font-size:11.5px">Nothing here yet - coming soon!</div>';
   document.querySelectorAll('[data-fs]').forEach(el=>el.onclick=()=>{buildSel=buildSel===el.dataset.fs?null:el.dataset.fs;roadAnchor=null;renderFarmStore();});
   return;
  }
@@ -2601,16 +2601,16 @@ function renderFarmStore(){
    ${it.img?`<img src="assets/farm/${it.img}.png" draggable="false">`:`<div style="font-size:34px;text-align:center;padding:8px 0">${it.emoji||'❓'}</div>`}
    <div class="fsn">${it.n}</div>
    ${it.road?`<div class="fsl" style="color:var(--brass)">${FARM_ROAD_RATE[it.id]||0}◉ per unit drawn</div>`:(FARM_PRICES[it.id]||0)||(FARM_SCRAPS[it.id]||0)?`<div class="fsl" style="color:var(--brass)">${[FARM_PRICES[it.id]?FARM_PRICES[it.id].toLocaleString()+'◉':null,FARM_SCRAPS[it.id]?FARM_SCRAPS[it.id]+'⚙':null].filter(Boolean).join(' + ')}</div>`:''}
-   ${it.locked?`<div class="fsl">🔒 ${it.locked}</div>`:stLock?`<div class="fsl">🔒 ${stN}/5 — harvest hay</div>`:hg?`<div class="fsl">🔒 ${hg}</div>`:sel?'<div class="fsl" style="color:#ffd76a">✓ Selected — click the field</div>':''}
+   ${it.locked?`<div class="fsl">🔒 ${it.locked}</div>`:stLock?`<div class="fsl">🔒 ${stN}/5 - harvest hay</div>`:hg?`<div class="fsl">🔒 ${hg}</div>`:sel?'<div class="fsl" style="color:#ffd76a">✓ Selected - click the field</div>':''}
   </div>`;
  }).join('');
  document.querySelectorAll('[data-fs]').forEach(el=>el.onclick=()=>{
   const it=FARM_BUILD.find(x=>x.id===el.dataset.fs);
-  if(it.locked){stageMsg('🔒 '+it.n+' — '+it.locked,1500);sfx.warn();return;}
+  if(it.locked){stageMsg('🔒 '+it.n+' - '+it.locked,1500);sfx.warn();return;}
   const stK=stockKey(it.id);
-  if(stK&&((S.farm&&S.farm[stK])||0)<5){stageMsg('🔒 '+it.n+' — harvest ready hay first ('+(((S.farm||{})[stK])||0)+'/5)',1600);sfx.warn();return;}
+  if(stK&&((S.farm&&S.farm[stK])||0)<5){stageMsg('🔒 '+it.n+' - harvest ready hay first ('+(((S.farm||{})[stK])||0)+'/5)',1600);sfx.warn();return;}
   const hg=houseGate(it.id);
-  if(hg){stageMsg('🔒 '+it.n+' — '+hg,1600);sfx.warn();return;}
+  if(hg){stageMsg('🔒 '+it.n+' - '+hg,1600);sfx.warn();return;}
   buildSel=buildSel===it.id?null:it.id;
   roadAnchor=null;
   renderFarmStore();
@@ -2635,24 +2635,24 @@ function placeFarmItem(id,x,y){
   if(ri>=0){const rr2=S.farm.r.splice(ri,1)[0];const rf=farmRefund([rr2]);sfx.forge();stageMsg('🗑 Removed'+rf,1500);save();renderHUD();}
   return;
  }
- if(id==='harvest'){ /* ✂ snip ready hay — or slaughter a full-grown beast */
+ if(id==='harvest'){ /* ✂ snip ready hay - or slaughter a full-grown beast */
   let hi=-1,hd=50;
   S.farm.c.forEach((c2,i)=>{const d=Math.hypot(c2.x-x,c2.y-y);if(d<hd){hd=d;hi=i;}});
   let ai=-1,ad=55;
   S.farm.b.forEach((b2,i)=>{if((b2.t!=='cowfarm_big'&&b2.t!=='chickenfarm_big')||b2._moving)return;const d=Math.hypot(b2.x-x,b2.y-y);if(d<ad){ad=d;ai=i;}});
-  if(ai>=0&&(hi<0||ad<hd)){ /* 🔪 only the big ones pay out — calves & chicks are safe */
+  if(ai>=0&&(hi<0||ad<hd)){ /* 🔪 only the big ones pay out - calves & chicks are safe */
    const b2=S.farm.b[ai],pay=b2.t==='cowfarm_big'?20000:10000;
    S.farm.b.splice(ai,1);
    S.gold=Math.min(goldCap(),(S.gold||0)+pay);
-   stageMsg('🔪 Slaughtered — +'+pay.toLocaleString()+'◉',1800);sfx.buy();sparkles(b2.x,b2.y-16,'#ff6a5a',12);
-   gainFarmXP(b2.t==='cowfarm_big'?20:10); /* cow 20 farm-XP, chicken 10 — level-up toast wins over the slaughter one */
+   stageMsg('🔪 Slaughtered - +'+pay.toLocaleString()+'◉',1800);sfx.buy();sparkles(b2.x,b2.y-16,'#ff6a5a',12);
+   gainFarmXP(b2.t==='cowfarm_big'?20:10); /* cow 20 farm-XP, chicken 10 - level-up toast wins over the slaughter one */
    rebuildFarmItems();renderFarmStore();save();renderHUD();
    return;
   }
   if(hi<0)return;
   const c2=S.farm.c[hi];
   if(c2.t==='hay'||c2.t==='hay_medium'){stageMsg('🌱 Not ready yet',1100);sfx.warn();return;}
-  if(c2.t!=='hay_klar')return; /* chicken seeds etc — nothing to snip */
+  if(c2.t!=='hay_klar')return; /* chicken seeds etc - nothing to snip */
   c2.t='hay';c2.at=Date.now(); /* the seed you get back goes straight in the ground */
   S.farm.baleN=(S.farm.baleN||0)+1;
   S.farm.cseedN=(S.farm.cseedN||0)+1;
@@ -2662,9 +2662,9 @@ function placeFarmItem(id,x,y){
   return;
  }
  const stKey=id==='hobal'?'baleN':id==='chickenseeds'?'cseedN':null;
- if(stKey){ /* stocked items — every placement locks 5 harvests, counting ghosts already in the cart */
+ if(stKey){ /* stocked items - every placement locks 5 harvests, counting ghosts already in the cart */
   const pend=farmCart.filter(g2=>g2.t===id).length;
-  if(((S.farm[stKey]||0)-pend*5)<5){stageMsg('🔒 Harvest ready hay first — 5 needed per placement',1500);sfx.warn();return;}
+  if(((S.farm[stKey]||0)-pend*5)<5){stageMsg('🔒 Harvest ready hay first - 5 needed per placement',1500);sfx.warn();return;}
  }
  const fLvl=(S.farm.lvl||1);
  if(id==='medium'&&fLvl<2){stageMsg('🔒 Farm Level 2 required',1600);sfx.warn();return;}
@@ -2673,20 +2673,20 @@ function placeFarmItem(id,x,y){
  if(isHay(id)&&hayCount()>=hayMax()){stageMsg('🌾 Max '+hayMax()+' hay patches at Farm Level '+fLvl,1600);sfx.warn();return;}
  if(id==='cowfarm'||id==='chickenfarm'||id==='tjur'||id==='hay'){ /* 🎰 stock-gated: casino wins only */
   const pend=farmCart.filter(g2=>g2.t===id).length;
-  if((((S.farm.inv||{})[id])||0)-pend<1){stageMsg('🔒 None owned — win one in the casino',1700);sfx.warn();return;}
+  if((((S.farm.inv||{})[id])||0)-pend<1){stageMsg('🔒 None owned - win one in the casino',1700);sfx.warn();return;}
  }
  if(isBovine(id)){ /* cattle need a Barn, 10 head per barn */
   if(countFarm(t=>t==='lada',true)===0){stageMsg('🔒 Barn required',1600);sfx.warn();return;}
-  if(barnRoom(true)<=0){stageMsg('🏠 Barn full — '+BARN_CAP+' cattle per barn',1600);sfx.warn();return;}
+  if(barnRoom(true)<=0){stageMsg('🏠 Barn full - '+BARN_CAP+' cattle per barn',1600);sfx.warn();return;}
  }
  if(isChicken(id)){ /* chickens need a Chicken Coop, 20 birds per coop */
   if(countFarm(t=>t==='chickenhouse',true)===0){stageMsg('🔒 Chicken Coop required',1600);sfx.warn();return;}
-  if(coopRoom(true)<=0){stageMsg('🏠 Coop full — '+COOP_CAP+' chickens per coop',1600);sfx.warn();return;}
+  if(coopRoom(true)<=0){stageMsg('🏠 Coop full - '+COOP_CAP+' chickens per coop',1600);sfx.warn();return;}
  }
  const rdef=FARM_BUILD.find(o=>o.id===id);
  if(rdef&&rdef.road){ /* 🛣 Sims-style: first click anchors, second click lays the stretch, chain continues */
   if(x<40||x>=4200||y<40||y>world.h-40){blip(300,180,0.1,.05);return;}
-  if(!roadAnchor){roadAnchor={x,y};blip(700,950,0.07,.04);stageMsg('🛣 Click where this stretch should end — same spot cancels',1700);return;}
+  if(!roadAnchor){roadAnchor={x,y};blip(700,950,0.07,.04);stageMsg('🛣 Click where this stretch should end - same spot cancels',1700);return;}
   if(Math.hypot(x-roadAnchor.x,y-roadAnchor.y)<24){roadAnchor=null;blip(300,180,0.1,.05);return;}
   farmCart.push({t:id,road:1,x0:roadAnchor.x,y0:roadAnchor.y,x1:x,y1:y,x:Math.round((roadAnchor.x+x)/2),y:Math.round((roadAnchor.y+y)/2)});
   roadAnchor={x,y};
@@ -2695,12 +2695,12 @@ function placeFarmItem(id,x,y){
  }
  const sp=snapPos(id,x,y);x=Math.round(sp.x);y=Math.round(sp.y);
  if(x<40||x>=4200||y<40||y>world.h-40){blip(300,180,0.1,.05);return;}
- if(cropCellTaken(id,x,y)){stageMsg('🌾 Occupied — pick a free tile',1300);sfx.warn();return;}
+ if(cropCellTaken(id,x,y)){stageMsg('🌾 Occupied - pick a free tile',1300);sfx.warn();return;}
  farmCart.push({t:id,x,y}); /* a ghost until you pay for it */
  blip(600,900,0.08,.05);
  updateCartUI();
 }
-function drawFarmGround(){ /* farm_zone stretched over one cow-field, laid twice — the second flipped to hide the seam */
+function drawFarmGround(){ /* farm_zone stretched over one cow-field, laid twice - the second flipped to hide the seam */
  const img=zoneMapImg('farm_zone');
  const vx0=camX,vy0=camY,vx1=camX+VW/zoom,vy1=camY+VH/zoom;
  if(!(img.complete&&img.naturalWidth)){ctx.fillStyle='#6e7d46';ctx.fillRect(vx0,vy0,vx1-vx0,vy1-vy0);return;}
@@ -2713,8 +2713,8 @@ function drawFarmGround(){ /* farm_zone stretched over one cow-field, laid twice
  }
  ctx.strokeStyle='rgba(0,0,0,0.35)';ctx.lineWidth=26;ctx.strokeRect(0,0,world.w,world.h);
  for(const r of ((S&&S.farm&&S.farm.r)||[]))drawRoadSeg(r); /* 🛣 roads sit on the ground, under the crops */
- const cropsSorted=((S&&S.farm&&S.farm.c)||[]).slice().sort((a,b)=>a.y-b.y); /* back row first — front straws overlap the row behind */
- for(const c of cropsSorted){ /* 🌱 crops draw with the ground — each hay stage uses its own art */
+ const cropsSorted=((S&&S.farm&&S.farm.c)||[]).slice().sort((a,b)=>a.y-b.y); /* back row first - front straws overlap the row behind */
+ for(const c of cropsSorted){ /* 🌱 crops draw with the ground - each hay stage uses its own art */
   if(c._moving)continue;
   if(c.x<vx0-80||c.x>vx1+80||c.y<vy0-80||c.y>vy1+80)continue;
   const cdef=FARM_BUILD.find(o=>o.id===c.t&&o.crop)||FARM_BUILD.find(o=>o.id==='hay');
@@ -2731,20 +2731,20 @@ function drawFarmGround(){ /* farm_zone stretched over one cow-field, laid twice
 function drawCryptGround(){
  const img=zoneMapImg('cryptmap');
  const vx0=camX,vy0=camY,vx1=camX+VW/zoom,vy1=camY+VH/zoom;
- const far=zoom<0.45; /* zoomed way out: hundreds of walls/tiles in view — draw the cheap flat version */
+ const far=zoom<0.45; /* zoomed way out: hundreds of walls/tiles in view - draw the cheap flat version */
  if(img.complete&&img.naturalWidth){
-  /* tiled at near-native scale — stretching one 1672px image over 13440px would be mush */
+  /* tiled at near-native scale - stretching one 1672px image over 13440px would be mush */
   const TW=1200,TH=TW*img.naturalHeight/img.naturalWidth;
   const src=mip(img,TW);
   const x0=Math.max(0,Math.floor(vx0/TW)),x1=Math.min(Math.ceil(world.w/TW),Math.ceil(vx1/TW));
   const y0=Math.max(0,Math.floor(vy0/TH)),y1=Math.min(Math.ceil(world.h/TH),Math.ceil(vy1/TH));
   for(let ty=y0;ty<y1;ty++)for(let tx=x0;tx<x1;tx++){
-   if(far){ctx.drawImage(src,tx*TW,ty*TH,TW,TH);continue;} /* no mirror transforms — seams are invisible this far out */
+   if(far){ctx.drawImage(src,tx*TW,ty*TH,TW,TH);continue;} /* no mirror transforms - seams are invisible this far out */
    ctx.save();ctx.translate(tx*TW+TW/2,ty*TH+TH/2);ctx.scale(tx%2?-1:1,ty%2?-1:1); /* mirror every other tile to hide the seams */
    ctx.drawImage(src,-TW/2,-TH/2,TW,TH);ctx.restore();
   }
  }else{ctx.fillStyle='#161420';ctx.fillRect(vx0,vy0,vx1-vx0,vy1-vy0);}
- if(far){ /* one batched fill for every wall in view — 4 canvas ops total instead of 4 per wall */
+ if(far){ /* one batched fill for every wall in view - 4 canvas ops total instead of 4 per wall */
   ctx.fillStyle='#443f52';ctx.beginPath();
   for(const w of world.mwalls){
    if(w.x>vx1||w.y>vy1||w.x+w.w<vx0||w.y+w.h<vy0)continue;
@@ -2764,7 +2764,7 @@ function drawCryptGround(){
  }
  drawCryptTorches(vx0,vy0,vx1,vy1);
 }
-function drawCryptTorches(vx0,vy0,vx1,vy1){ /* 🔥 breadcrumb markers — flickering flames on the maze floor */
+function drawCryptTorches(vx0,vy0,vx1,vy1){ /* 🔥 breadcrumb markers - flickering flames on the maze floor */
  for(const tc of (world.torches||[])){
   if(tc.x<vx0-60||tc.x>vx1+60||tc.y<vy0-60||tc.y>vy1+60)continue;
   const fl=0.75+0.25*Math.sin(performance.now()/90+tc.x);
@@ -2780,7 +2780,7 @@ function buildZone(){
  if(!zoneOf().special&&(S.maxZone||0)<S.zone)S.maxZone=S.zone;
  const z=zoneOf(),R=mulberry32(S.zone*7919+13);
  const isBoss=!!z.boss;
- world={w:z.crypts?13440:z.farm?8400:z.raid?3800:z.cow?4200:z.tavern?2600:isBoss?2400:3000,h:z.crypts?7740:z.farm?2600:z.raid?1900:z.cow?2600:z.tavern?1700:isBoss?1600:2000,solids:[],deco:[],waters:[]}; /* larger maps — full desktop view + hidden side panel; cow field is the biggest */
+ world={w:z.crypts?13440:z.farm?8400:z.raid?3800:z.cow?4200:z.tavern?2600:isBoss?2400:3000,h:z.crypts?7740:z.farm?2600:z.raid?1900:z.cow?2600:z.tavern?1700:isBoss?1600:2000,solids:[],deco:[],waters:[]}; /* larger maps - full desktop view + hidden side panel; cow field is the biggest */
  world.spawn={x:120,y:world.h/2};
  world.portal={x:world.w-80,y:world.h/2};
  world.pathY=world.h/2;world.pathH=110;
@@ -2790,20 +2790,22 @@ function buildZone(){
   world.square={x:cx,y:cy,r:230};        /* plaza radius, used by prerender */
   /* the well, centered in the painted plaza ring (measured from goldshire_map.png) */
   world.solids.push({x:cx-19,y:cy+31,r:20,type:'well'});
-  /* the Tavern — painted model at the south-east road stub */
+  /* the Tavern - painted model at the south-east road stub */
   world.solids.push({x:cx+710,y:cy+560,r:52,type:'house',big:true,seed:1,crx:240,cry:64,cyo:-208});
-  /* the Casino — doubled-up landmark beside the north road; highest spot where the
+  /* the Casino - doubled-up landmark beside the north road; highest spot where the
      full sprite still fits under the map's top edge without covering the inn */
   world.solids.push({x:cx+360,y:cy-270,r:52,type:'casino',big:true,seed:5,crx:172,cry:80,cyo:-140});
-  /* the Bank — painted model on the north-west grass, by the road stub */
+  /* the Bank - painted model on the north-west grass, by the road stub */
   world.solids.push({x:cx-720,y:cy-440,r:52,type:'bank',big:true,seed:8,crx:138,cry:50,cyo:-79});
-  /* the Blacksmith — painted model at the south-west road stub */
+  /* the Blacksmith - painted model at the south-west road stub */
   world.solids.push({x:cx-805,y:cy+550,r:52,type:'smith',big:true,seed:11,crx:125,cry:45,cyo:-100});
-  /* portal to The Altar — open to every level, on the north road */
+  /* portal to The Altar - open to every level, on the north road */
   world.solids.push({x:cx-40,y:cy-700,r:38,type:'altarportal'});
-  /* 🚜 the Farm portal — far west road; leads nowhere yet */
+  /* 🚜 the Farm portal - far west road */
   world.solids.push({x:cx-1140,y:cy,r:38,type:'farmportal'});
-  /* the Fishing Hut — worm vendor on the lake's south shore */
+  /* 🏙 the City portal - far east road; a promise, nothing more */
+  world.solids.push({x:cx+1140,y:cy,r:38,type:'cityportal'});
+  /* the Fishing Hut - worm vendor on the lake's south shore */
   world.solids.push({x:cx+760,y:cy-350,r:30,type:'fishhut',crx:80,cry:32,cyo:-38});
   /* friendly townsfolk roaming their own little routes between the buildings */
   const NPC_DEFS=[
@@ -2821,7 +2823,7 @@ function buildZone(){
    pts:pts.map(p=>({x:p[0]+(Math.random()-0.5)*26,y:p[1]+(Math.random()-0.5)*26})),
    i:0,dir:1,x:pts[0][0],y:pts[0][1],speed,walk:Math.random()*5,fx:1,pauseT:Math.random()*2,moving:false
   }));
-  /* trees + rocks in the grass patches — hand-tuned keep-outs for the painted map:
+  /* trees + rocks in the grass patches - hand-tuned keep-outs for the painted map:
      off the 8 radial roads, out of the pond (top right) and clear of the central plaza */
   const TR=mulberry32(99);
   const ROADS=[[cx,cy,cx,0],[cx,cy,cx,world.h],[cx,cy,0,cy],[cx,cy,world.w,cy],
@@ -2842,13 +2844,13 @@ function buildZone(){
   let rocks=0;
   for(let i=0;i<400&&rocks<9;i++){
    const x=170+TR()*(world.w-340),y=170+TR()*(world.h-340);
-   if(!okSpot(x,y,190))continue; /* wider road margin — the curvy bits stray far from the straight-line approximation */
+   if(!okSpot(x,y,190))continue; /* wider road margin - the curvy bits stray far from the straight-line approximation */
    world.solids.push({x,y,r:14+TR()*8,type:'rock',s:0.8+TR()*0.7,seed:TR()*100});
    rocks++;
   }
  }else{
   if(z.crypts)buildCryptMaze();
-  if(z.farm){ /* 🚜 the Farm — the little farmhouse guards the fields */
+  if(z.farm){ /* 🚜 the Farm - the little farmhouse guards the fields */
    world.spawn={x:470,y:1300}; /* a good few steps clear of the way-home portal */
    world.portal={x:-500,y:-500}; /* no default exit swirl */
    world.solids.push({x:120,y:1300,r:38,type:'altarportal'}); /* the way home */
@@ -2857,11 +2859,11 @@ function buildZone(){
    zoneMapImg('farm_zone');
   }
   if(z.altar){
-   /* the way home — standing on the walkway just ahead of the spawn */
+   /* the way home - standing on the walkway just ahead of the spawn */
    world.solids.push({x:110,y:995,r:38,type:'altarportal'}); /* far left on the walkway */
    if(S.ritualDone)world.solids.push({x:1996,y:1000,r:52,type:'ritualportal'}); /* ⛧ the reward for a life: a door, not yet open */
    world.spawn={x:430,y:990}; /* arrive a few steps onto the bridge */
-   world.portal={x:-500,y:-500}; /* hide the default zone-exit swirl — the portal is the exit */
+   world.portal={x:-500,y:-500}; /* hide the default zone-exit swirl - the portal is the exit */
   }
   if(!isBoss&&!z.raid&&!z.noBerg){
    const nW=z.rocky?2:3+Math.floor(R()*2);
@@ -2927,19 +2929,19 @@ function buildZone(){
  cowChest=null;cowChestT=10;cowChestMsgT=0;cowBigT=12; /* first chest lands 10s after entering */
  if(z.cow){
   cowRunning=true;
-  /* start in the middle of the field — chests can spawn anywhere, so start central */
+  /* start in the middle of the field - chests can spawn anywhere, so start central */
   world.spawn={x:world.w/2,y:world.h/2};
   hero.x=world.spawn.x;hero.y=world.spawn.y;
   pet.x=hero.x-30;pet.y=hero.y+14;
-  for(let i=0;i<23;i++)spawnCow(false,true); /* opening wave — scattered across the whole field */
+  for(let i=0;i<23;i++)spawnCow(false,true); /* opening wave - scattered across the whole field */
   for(let i=0;i<2;i++)spawnCow(false,'near'); /* …plus two right by the spawn so it starts hot */
-  stageMsg('MOO. Survive as long as you can — you will not.',3000);
+  stageMsg('MOO. Survive as long as you can - you will not.',3000);
   const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
-  log(`<span class="imp">The Cow Level.</span> Best: ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} chests) · Last: ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} chests)`);
+  log(`<span class="imp">The Cow Level.</span> Best: ${S.cowBest?fmt(S.cowBest):'-'} (${S.cowBestItems||0} chests) · Last: ${S.cowLast?fmt(S.cowLast):'-'} (${S.cowLastItems||0} chests)`);
  }else if(z.raid){
   const cy=world.h/2;
   world.raidRooms=[];
-  world.raidSegs=[]; /* straight wall runs — the fog raycasts these for razor-straight light edges */
+  world.raidSegs=[]; /* straight wall runs - the fog raycasts these for razor-straight light edges */
   const wall=(x1,y1,x2,y2)=>{
    world.raidSegs.push({x1,y1,x2,y2});
    const d=Math.hypot(x2-x1,y2-y1),n=Math.max(1,Math.round(d/34));
@@ -3017,7 +3019,7 @@ function spawnAdd(name,kind,c,src){
  enemies.push({name,kind,boss:false,bossId:null,c,add:true,
   x:bx+Math.cos(a)*60,y:by+Math.sin(a)*60,home:{x:bx,y:by},r:11,
   max:Math.round(eHP(L)*0.55*pMul()),hp:Math.round(eHP(L)*0.55*pMul()),
-  atk:Math.round(eATK(L)*0.8*pMul()),xp:0,gold:mobGold(z,0.45), /* boss adds give NO xp — no leveling off add farming */
+  atk:Math.round(eATK(L)*0.8*pMul()),xp:0,gold:mobGold(z,0.45), /* boss adds give NO xp - no leveling off add farming */
   speed:120,state:'chase',dir:0,wT:0,cd:0,dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,
   cds:{},lockT:0,hidden:false,trailT:0,avoid:null});
  burst(bx+Math.cos(a)*60,by+Math.sin(a)*60,c,10,80);
@@ -3027,7 +3029,7 @@ function cowTemplate(){
  const L=60; /* Cow Level is always a level-60 zone, even after prestige resets display level. */
  return {name:'Mutated Cow',kind:'humanoid',c:'#8a7a5a',cow:true,
   hp:Math.round(eHP(L)*16.3),atk:Math.round(eATK(L)*9.3), /* tuned via playtesting */
-  xp:Math.round(eHP(60)*0.8*pRew()),gold:0}; /* Cow Level mobs give no gold — item farm only */
+  xp:Math.round(eHP(60)*0.8*pRew()),gold:0}; /* Cow Level mobs give no gold - item farm only */
 }
 function spawnCow(big,scatter){
  const rr=big?39:13;
@@ -3078,8 +3080,8 @@ function collectCowChest(){
  cowItems++;                 /* counts chests found */
  const n=2; /* the chest ALWAYS holds 2 epics */
  let got=0;
- for(let i=0;i<n;i++){ /* no cap — the bag holds as much here as anywhere else */
-  const it=rollItem('epic'); /* same lvl-60 scaling as before — best gear in the game */
+ for(let i=0;i<n;i++){ /* no cap - the bag holds as much here as anywhere else */
+  const it=rollItem('epic'); /* same lvl-60 scaling as before - best gear in the game */
   log(`Chest loot: <span class="lepic">${it.name}</span> ${itemStr(it)}.`,'loot');
   if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
   got++;
@@ -3091,10 +3093,10 @@ function collectCowChest(){
 }
 function prerenderGround(z,R){
  groundCv=document.createElement('canvas');
- if(z.crypts||z.farm){groundCv.width=groundCv.height=16;return;} /* floor draws per frame — giant canvases sink phones */
+ if(z.crypts||z.farm){groundCv.width=groundCv.height=16;return;} /* floor draws per frame - giant canvases sink phones */
  groundCv.width=world.w;groundCv.height=world.h;
  const g=groundCv.getContext('2d');
- if(z.raid){ /* the Black Temple floor — tiled at near-native scale, mirrored to hide seams */
+ if(z.raid){ /* the Black Temple floor - tiled at near-native scale, mirrored to hide seams */
   const rf=zoneMapImg('raidfloor');
   if(rf.complete&&rf.naturalWidth){
    const TW=1200,TH=TW*rf.naturalHeight/rf.naturalWidth;
@@ -3109,7 +3111,7 @@ function prerenderGround(z,R){
  }
  const mImg=z.tavern?gsMapImg:(z.map?zoneMapImg(z.map):null);
  if(mImg&&mImg.complete&&mImg.naturalWidth){
-  /* painted ground map — same aspect as the world, so a plain stretch fits;
+  /* painted ground map - same aspect as the world, so a plain stretch fits;
      buildings/trees/NPCs draw on top each frame as usual */
   g.drawImage(mImg,0,0,world.w,world.h);
   g.strokeStyle='rgba(0,0,0,0.35)';g.lineWidth=26;g.strokeRect(0,0,world.w,world.h);
@@ -3179,12 +3181,12 @@ function prerenderGround(z,R){
  
 /* ==================== MOVEMENT & PATHFINDING ==================== */
 function collide(e,nx,ny){
- /* Bosses and cows ignore trees/rocks — the herd tramples straight through. */
+ /* Bosses and cows ignore trees/rocks - the herd tramples straight through. */
  if((!e.boss||e.raid)&&!e.cow){
   for(const s of world.solids){
-   if(s.noCol)continue; /* roaming farm animals — walk-through */
+   if(s.noCol)continue; /* roaming farm animals - walk-through */
    if(s.type==='gate'&&!(world.raidRooms&&world.raidRooms[s.room]&&world.raidRooms[s.room].sealed))continue;
-   if(s.type==='altarportal'||s.type==='ritualportal'||s.type==='farmportal')continue; /* walk straight through the portals */
+   if(s.type==='altarportal'||s.type==='ritualportal'||s.type==='farmportal'||s.type==='cityportal')continue; /* walk straight through the portals */
    if(s.crx){ /* wide painted buildings block with an ellipse matching their footprint (cyo shifts it up onto the walls) */
     const kx=(nx-s.x)/(s.crx+e.r),ky=(ny-s.y-(s.cyo||0))/(s.cry+e.r);
     if(kx*kx+ky*ky<1)return true;
@@ -3294,7 +3296,7 @@ function healHero(amt,silent){
 }
 function hurtHero(dmg,label){
  if(hero.dead)return;
- /* hidden passive: melee callings (Christian/Jew) shrug off 60% in the Cow Level — never shown in any UI */
+ /* hidden passive: melee callings (Christian/Jew) shrug off 60% in the Cow Level - never shown in any UI */
  const cowMelee=zoneOf().cow&&(S.cls==='warrior'||S.cls==='priest')?0.40:1;
  dmg=Math.round(dmg*(1-scrollPct('warding'))*(1-(classOf().armor||0))*(1-(raceOf().armor||0))*(1-((activePet()||{}).armor||0))*(((S.armorT||0)>0&&zoneOf().amb==='haaland')?0.5:1)*cowMelee); /* 🛡 potion: -50% only in the HAALAND fight */
  hero.hp-=dmg;hero.hurt=0.2;
@@ -3392,7 +3394,7 @@ function nearestEnemyWithin(rng){
 function cast(i,manual){
  const c=classOf(),sp=c.spells[i];
  if(hero.dead)return false;
- if(hero.deadWait){if(manual)stageMsg('💀 You are fallen — the seal blocks your magic until the lord dies',1400);return false;}
+ if(hero.deadWait){if(manual)stageMsg('💀 You are fallen - the seal blocks your magic until the lord dies',1400);return false;}
  if(hero.moving){if(manual)stageMsg('Stand still to cast',700);return false;}
  if(hero.spellCd[i]>0){if(manual)stageMsg('Not ready',700);return false;}
  if(hero.mana<spellManaCost(sp)){if(manual)stageMsg('Not enough mana',700);return false;}
@@ -3455,9 +3457,9 @@ function killEnemy(en){
  if(r.leech)healHero(heroMax()*r.leech,true);
  if(hasEnch('reaper'))healHero(heroMax()*scrollPct('reaper'),true);
  if(!en.cow&&!en.raid)floatAt(en.x,en.y-en.r-14,gold>0?'+'+gold+' ◉':'◉ CAP','#ffd76a');
- log(`Slew <span class="imp">${en.name}</span> — ${en.xp>0?'+'+en.xp+' xp':'no xp'}${(en.cow||en.raid)?'':', +'+gold+' gold'}.`);
+ log(`Slew <span class="imp">${en.name}</span> - ${en.xp>0?'+'+en.xp+' xp':'no xp'}${(en.cow||en.raid)?'':', +'+gold+' gold'}.`);
  if(en.cow){
-  /* chests are the main loot — but each cow has a 3% chance to shake loose one epic (3.6% with 🍀) */
+  /* chests are the main loot - but each cow has a 3% chance to shake loose one epic (3.6% with 🍀) */
   const cowLucky=S.luckT>0;
   if(Math.random()<0.03*(cowLucky?1.20:1)){
    const it=rollItem('epic');
@@ -3474,10 +3476,10 @@ function killEnemy(en){
    if(!(S.autoEquip&&tryAutoEquip(it)))S.bag.push(it);
   }
   /* Potions never drop from enemies; buy them from the Trader. */
-  if(Math.random()<(en.boss?0.25:0.01*(lucky?1.20:1))){ /* scrolls are now a rare prize — always Tier I */
+  if(Math.random()<(en.boss?0.25:0.01*(lucky?1.20:1))){ /* scrolls are now a rare prize - always Tier I */
    const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
    S.scrolls.push({id:e.id,tier:1});
-   log(`Rare find: <span class="lscroll">${e.n} I</span> — combine duplicates in the Bag to forge higher tiers.`,'loot');
+   log(`Rare find: <span class="lscroll">${e.n} I</span> - combine duplicates in the Bag to forge higher tiers.`,'loot');
   }
  }
  if(en.boss){
@@ -3487,7 +3489,7 @@ function killEnemy(en){
    if(!S.knifeAwarded&&S.rating>=3000){ /* 3000 rating: the Altar sends its invitation */
     S.knifeAwarded=true;S.theKnife=true;
     stageMsg('🗡 THE KNIFE appears in your bag… "Can be used at the Altar."',4200,'#bcd8ff');
-    log('<span class="llegendary">🗡 The Knife</span> — it hums with a cold purpose. <i>"Can be used at the Altar."</i>','loot');
+    log('<span class="llegendary">🗡 The Knife</span> - it hums with a cold purpose. <i>"Can be used at the Altar."</i>','loot');
     sfx.shout();
    }
    S.freeGoldCases=(S.freeGoldCases||0)+10;
@@ -3495,7 +3497,7 @@ function killEnemy(en){
    floatAt(en.x,en.y-en.r-44,'+125 RATING','#ffd76a');
    stageMsg('HAALAND falls! +125 Rating · 10 free GOLD GOLD GOLD cases!',3200);
    log(`<span class="imp">HAALAND slain ×${S.cerberusKills}.</span> +125 Rating, +${sc} Scraps.`);
-   log(`The beast's hoard spills open — <span class="loot">10 free GOLD GOLD GOLD cases</span>!`);
+   log(`The beast's hoard spills open - <span class="loot">10 free GOLD GOLD GOLD cases</span>!`);
    publishLB(S,true);
   }else if(en.bossId==='thor'){
    S.thorKills=(S.thorKills||0)+1;
@@ -3504,7 +3506,7 @@ function killEnemy(en){
    S.luckPots=(S.luckPots||0)+1;
    floatAt(en.x,en.y-en.r-44,'🍀 POTION OF LUCK','#9adf9a');
    stageMsg('⚡ Thor falls! A 🍀 Potion of Luck is yours. Valhalla grows silent until the next storm.',3500);
-   log(`<span class="imp">Thor slain ×${S.thorKills}.</span> Loot: <span class="lfine">🍀 Potion of Luck</span> — +20% better drops from slain foes for 30 minutes.`);
+   log(`<span class="imp">Thor slain ×${S.thorKills}.</span> Loot: <span class="lfine">🍀 Potion of Luck</span> - +20% better drops from slain foes for 30 minutes.`);
    publishLB(S,true);
   }else if(en.raid){
    const left=enemies.filter(e=>e.boss&&!e.dead&&e!==en).length;
@@ -3512,14 +3514,14 @@ function killEnemy(en){
    log(`<span class="imp">${en.name} defeated.</span>${left?'':' <span class="loot">Raid cleared!</span>'}`);
    if(!left){
     sfx.level();
-    S.raidLock=raidWindow(); /* one clear per lockout — the gates know you now */
+    S.raidLock=raidWindow(); /* one clear per lockout - the gates know you now */
     S.chests=Object.assign({blacktemple:0},S.chests||{});S.chests.blacktemple=(S.chests.blacktemple||0)+1;
     log(`<span class="llegendary">🟩 Black Temple Chest</span> acquired!`,'loot');
-    stageMsg('🟩 BLACK TEMPLE CHEST — open it in the Bag!',3200);
-    if(mp.on&&mp.started){ /* online raids only — the reward for running it together */
+    stageMsg('🟩 BLACK TEMPLE CHEST - open it in the Bag!',3200);
+    if(mp.on&&mp.started){ /* online raids only - the reward for running it together */
      S.raidPots=(S.raidPots||0)+1;
-     log(`Raid reward: <span class="llegendary">⚗️ Potion of Raid</span> — +15% boss damage for 60 minutes. Drink it from the Bag.`,'loot');
-     stageMsg('⚗️ POTION OF RAID earned — check your Bag!',3000);
+     log(`Raid reward: <span class="llegendary">⚗️ Potion of Raid</span> - +15% boss damage for 60 minutes. Drink it from the Bag.`,'loot');
+     stageMsg('⚗️ POTION OF RAID earned - check your Bag!',3000);
     }
    }
   }else{
@@ -3545,7 +3547,7 @@ const zoneLvlGained=()=>((S.zoneLvlGain||{})[S.zone])||0;
 function gainXP(amt){
  if(S.lvl>=MAXLVL)return;
  if(S.gamblerT>0)amt=Math.round(amt*1.20);
- if(S.restedT>0)amt=Math.round(amt*(1+(S.restedPct||0))); /* 😴 Rested — inn wheel buff */
+ if(S.restedT>0)amt=Math.round(amt*(1+(S.restedPct||0))); /* 😴 Rested - inn wheel buff */
  if(farmBonus()>0)amt=Math.round(amt*(1+farmBonus())); /* 🚜 farm blessing */
  S.xp+=amt;
  while(S.lvl<MAXLVL&&zoneLvlGained()<ZONE_LVL_CAP&&S.xp>=xpNeed(S.lvl)){
@@ -3554,11 +3556,11 @@ function gainXP(amt){
   if(hero){hero.hp=heroMax();hero.mana=manaMax();}
   sfx.level();
   if(hero){ring(hero.x,hero.y-6,70,'#ffe9a0',0.8);sparkles(hero.x,hero.y-16,'#ffe9a0',16);}
-  stageMsg(S.lvl>=MAXLVL?'Level 60 — max level reached!':'Level up! Now level '+S.lvl);
+  stageMsg(S.lvl>=MAXLVL?'Level 60 - max level reached!':'Level up! Now level '+S.lvl);
   log(`<span class="imp">Level ${S.lvl}!</span>`);
   if(S.lvl<MAXLVL&&zoneLvlGained()>=ZONE_LVL_CAP){
-   stageMsg('Zone level cap reached ('+ZONE_LVL_CAP+') — march on to keep leveling.',2600);
-   log(`<span class="imp">Zone level cap reached.</span> No more levels can be gained here — press east.`);
+   stageMsg('Zone level cap reached ('+ZONE_LVL_CAP+') - march on to keep leveling.',2600);
+   log(`<span class="imp">Zone level cap reached.</span> No more levels can be gained here - press east.`);
   }
  }
  if(S.lvl<MAXLVL&&zoneLvlGained()>=ZONE_LVL_CAP)S.xp=Math.min(S.xp,xpNeed(S.lvl)-1);
@@ -3574,29 +3576,29 @@ function heroDies(){
   hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;
   hero.sentHome=true;   /* cow deaths go to the tavern */
   sfx.die();
-  stageMsg('The herd takes you. Survived '+fmt(cowT)+' · '+cowItems+' chests'+(newBest?' — NEW RECORD!':''),3500);
-  log(`<span class="imp">Trampled after ${fmt(cowT)} — ${cowItems} chests found.</span>${newBest?' <span class="loot">New record!</span>':''} All loot kept.`);
+  stageMsg('The herd takes you. Survived '+fmt(cowT)+' · '+cowItems+' chests'+(newBest?' - NEW RECORD!':''),3500);
+  log(`<span class="imp">Trampled after ${fmt(cowT)} - ${cowItems} chests found.</span>${newBest?' <span class="loot">New record!</span>':''} All loot kept.`);
   save();
   return;
  }
  if(zoneOf().thor){
   S.thorLock=thorWindow();
   S.thorLockWhy='died';
-  stageMsg('⚡ Thor casts you from Valhalla — return when the storm gathers again.',3200);
+  stageMsg('⚡ Thor casts you from Valhalla - return when the storm gathers again.',3200);
   log('<span class="imp">Slain in Valhalla.</span> The gates are sealed until Thor next appears.');
  }
  if(zoneOf().raid&&mp.on&&mp.started){
   hero.deadWait=true;
   hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;
   sfx.die();
-  stageMsg('💀 You fell — wait outside while your team finishes the lord.',3000);
+  stageMsg('💀 You fell - wait outside while your team finishes the lord.',3000);
   log('<span class="imp">Fallen in the raid.</span> You revive at the entrance and wait outside the sealed chamber.');
   setTimeout(()=>{
    if(!gameOn||!zoneOf().raid)return;
    hero.hp=heroMax();hero.mana=manaMax();hero.dead=false; /* heroMax(), NOT hero.maxHp (doesn't exist → NaN hp → immortal 1-hp bug) */
    hero.x=(world.spawn&&world.spawn.x)||200;hero.y=(world.spawn&&world.spawn.y)||world.h/2;
    hero.target=null;hero.moveTo=null;hero.goPortal=false;
-   stageMsg('💀 You fell — wait outside while your team finishes the lord.',3000);
+   stageMsg('💀 You fell - wait outside while your team finishes the lord.',3000);
    renderHUD();
   },1500);
   save();
@@ -3604,12 +3606,12 @@ function heroDies(){
  }
  if(zoneOf().west||zoneOf().boss||zoneOf().raid)hero.sentHome=true;
  if(mp.on)mpLeave(false);
- if(S.hardcore){hcDeath();return;} /* hardcore: one life — the cow level and team-raid revives above don't count */
+ if(S.hardcore){hcDeath();return;} /* hardcore: one life - the cow level and team-raid revives above don't count */
  hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;
  sfx.die();
  if(hero.sentHome)stageMsg('Defeated… you wake by the hearth in Goldshire.',2600);
  else stageMsg('Defeated… you regroup at the roadside.',2600);
- log('<span class="imp">Defeated.</span>'+(hero.sentHome?' You are carried back to Goldshire — gear intact.':' You regroup at this region’s entrance — gear intact.'));
+ log('<span class="imp">Defeated.</span>'+(hero.sentHome?' You are carried back to Goldshire - gear intact.':' You regroup at this region’s entrance - gear intact.'));
 }
 /* hardcore permadeath: lock the character forever and show the memorial screen */
 function hcDeath(){
@@ -3634,17 +3636,17 @@ function hcDeath(){
 }
 function completeQuest(){
  const q=questOf(),qs=questsOf();
- /* quest reward = 3× a normal mob in this zone — scales with zone level, hero level and prestige */
+ /* quest reward = 3× a normal mob in this zone - scales with zone level, hero level and prestige */
  let gold=mobGold(zoneOf(),3);const xp=Math.round(25+S.zone*45);
  gold=addGold(gold);gainXP(xp);
  S.qProg=0;
  sfx.quest();
  if(zoneOf().special){renderHUD();return;}
  stageMsg(`Quest complete: ${q.name}  +${gold} ◉`);
- log(`<span class="imp">Quest complete — ${q.name}.</span> +${gold} gold, +${xp} xp.`);
+ log(`<span class="imp">Quest complete - ${q.name}.</span> +${gold} gold, +${xp} xp.`);
  if(!q.boss&&S.quest<qs.length-1){S.quest++;}
  else{
-  /* chain (or boss) finished — mark the zone cleared; quests loop for grinding */
+  /* chain (or boss) finished - mark the zone cleared; quests loop for grinding */
   S.quest=0;
   const firstClear=!S.cleared[S.zone];
   S.cleared[S.zone]=true;
@@ -3652,13 +3654,13 @@ function completeQuest(){
   if(firstClear){
    if(nz){
     if(portalIsOpen()){
-     stageMsg('The road east is open — press Continue when you\u2019re ready.',3000);
+     stageMsg('The road east is open - press Continue when you\u2019re ready.',3000);
      log(`<span class="imp">The road opens: ${nz.name}.</span> Stay and grind, or press Continue.`);
-    }else if(!bossesClearedBefore(S.zone+1))log(`A boss still bars the road — slay every boss behind you to enter <span class="imp">${nz.name}</span>.`);
-    else log(`Reach level ${nz.lvl} to enter <span class="imp">${nz.name}</span>. Quests here now repeat — grind at will.`);
+    }else if(!bossesClearedBefore(S.zone+1))log(`A boss still bars the road - slay every boss behind you to enter <span class="imp">${nz.name}</span>.`);
+    else log(`Reach level ${nz.lvl} to enter <span class="imp">${nz.name}</span>. Quests here now repeat - grind at will.`);
    }else if(!S.finished){
     S.finished=true;
-    stageMsg('Warlord Krev has fallen — Riptide is free!',4500);
+    stageMsg('Warlord Krev has fallen - Riptide is free!',4500);
     log('<span class="imp">Victory! The Eastern Realm is liberated.</span>');
    }
   }
@@ -3669,11 +3671,11 @@ function travelNext(){
  S.zone++;S.quest=0;S.qProg=0;
  applyZoneUI();buildZone();renderHUD();save();
  const z=zoneOf();
- stageMsg(z.boss?(S.bossDead[S.zone]?'The arena of '+z.name+' lies silent.':'⚔ '+z.name+' — '+z.boss[0]+' awaits!'):'You arrive in '+z.name+'.',2400);
+ stageMsg(z.boss?(S.bossDead[S.zone]?'The arena of '+z.name+' lies silent.':'⚔ '+z.name+' - '+z.boss[0]+' awaits!'):'You arrive in '+z.name+'.',2400);
  log(`<span class="imp">Arrived: ${z.name}.</span>`);
 }
 function doPrestige(){
- if((S.prestige||0)>=PRESTIGE_CAP){stageMsg('✦ Prestige '+PRESTIGE_CAP+' is the summit — for now.',2200);return;}
+ if((S.prestige||0)>=PRESTIGE_CAP){stageMsg('✦ Prestige '+PRESTIGE_CAP+' is the summit - for now.',2200);return;}
  if(S.lvl<MAXLVL||!allBossesDead())return;
  const oldCap=goldCap();
  S.prestige++;
@@ -3682,7 +3684,7 @@ function doPrestige(){
  S.cleared={};S.bossDead={};S.zoneLvlGain={};S.finished=false;
  applyZoneUI();buildZone();renderHUD();renderHero();save();
  sfx.level();
- stageMsg('✦ Prestige '+S.prestige+' — the realm hardens against you.',3200);
+ stageMsg('✦ Prestige '+S.prestige+' - the realm hardens against you.',3200);
  log(`<span class="imp">Prestige ${S.prestige}!</span> Every foe in Riptide grows stronger. The march begins anew.`);
  publishLB(S,true);
  openTab(isDesktopLayout()?'hero':'battle');
@@ -3701,7 +3703,7 @@ function bossAI(en,dt){
    for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*90,hero.y+(Math.random()-0.5)*90,131,1.15,en.atk*1.2,'#9adf3a');
    floatAt(en.x,en.y-en.r-30,'Roots!','#9adf3a',true);
   }
-  /* (rootling summons removed — the painted fiend fights alone) */
+  /* (rootling summons removed - the painted fiend fights alone) */
  }else if(B==='maw'){ /* Maw of the Deep: dives under, re-emerges in a splash; spits water bolts */
   if(en.subT){
    en.subT-=dt;en.lockT=0.2;
@@ -3730,7 +3732,7 @@ function bossAI(en,dt){
    sfx.bolt();
   }
  }else if(B==='ossric'){ /* King Below: raises skeletons, unleashes a bone nova around himself */
-  /* (skeleton summons removed — the King Below stands alone) */
+  /* (skeleton summons removed - the King Below stands alone) */
   if(en.cds.b<=0){en.cds.b=7.5;
    sfx.warn();
    hazardAt(en.x,en.y,290,1.4,en.atk*1.4,'#d0d8e8');
@@ -3785,7 +3787,7 @@ function bossAI(en,dt){
    floatAt(en.x,en.y-en.r-30,'Whirlwind!','#e86a4a',true);
    en.lockT=0.95;
   }
-  /* (legionnaire summons removed — the Warlord duels alone) */
+  /* (legionnaire summons removed - the Warlord duels alone) */
  }else if(B==='betrayer'){ /* wide warglaive fan, fel adds, twin eye beams, metamorphosis */
   if(en.cds.a<=0){en.cds.a=5;
    const base=Math.atan2(T.y-en.y,T.x-en.x);
@@ -3845,7 +3847,7 @@ function bossAI(en,dt){
     floatAt(en.x,en.y-en.r-30,'Rise!','#cfe8ff',true);}
   }
   if(Math.random()<0.06)parts.push({x:en.x+(Math.random()-0.5)*36,y:en.y-14,vx:(Math.random()-0.5)*10,vy:-20,t:0,life:0.7,c:'#a0e0ff',r:1.5,g:0});
- }else if(B==='thor'){ /* rotating full-room lightning beams — keep moving or fry */
+ }else if(B==='thor'){ /* rotating full-room lightning beams - keep moving or fry */
   if(en.stormA===undefined){en.stormA=Math.random()*6.28;en.stormTick=0;en.stormDir=1;en.stormFlip=8;}
   en.stormFlip-=dt;
   if(en.stormFlip<=0){
@@ -3905,7 +3907,7 @@ function bossAI(en,dt){
    if(addsAlive()<3){spawnAdd('Messi','beast','#a03a2a');spawnAdd('Messi','beast','#a03a2a');
     floatAt(en.x,en.y-en.r-30,'AWOOO!','#ff8a6a',true);}
   }
-  /* STRIKE — one ball at your position, 5% max HP, every 20s (first at 8s) */
+  /* STRIKE - one ball at your position, 5% max HP, every 20s (first at 8s) */
   if(en.cds.d===undefined)en.cds.d=8;
   if(en.cds.d<=0){en.cds.d=20;
    const d=dist(en,hero)||1;
@@ -3913,7 +3915,7 @@ function bossAI(en,dt){
    floatAt(en.x,en.y-en.r-30,'⚽ STRIKE!','#ffffff',true);
    sfx.shout();
   }
-  /* GROUND SHAKE — one unavoidable 5% max HP hit, every 20s (first at 14s) */
+  /* GROUND SHAKE - one unavoidable 5% max HP hit, every 20s (first at 14s) */
   if(en.cds.e===undefined)en.cds.e=14;
   if(en.cds.e<=0){en.cds.e=20;
    ring(en.x,en.y,220,'#f2d98a',0.7);
@@ -3980,6 +3982,11 @@ cv.addEventListener('pointerdown',e=>{
   else{hero.target=null;hero.goPortal=false;hero.moveTo={x:apx.x,y:apx.y+34};marker={x:apx.x,y:apx.y+34,t:0};hero.pendingDoor={s:apx,open:go,rng:75};}
   return;
  }
+ const cpx=world.solids.find(s=>s.type==='cityportal');
+ if(cpx&&Math.hypot(wx-cpx.x,wy-cpx.y)<cpx.r+28){
+  stageMsg('🏙 City (coming soon)',1600);
+  return;
+ }
  const fpx=world.solids.find(s=>s.type==='farmportal');
  if(fpx&&Math.hypot(wx-fpx.x,wy-fpx.y)<fpx.r+28){ /* 🚜 Goldshire's west-road portal → the Farm */
   const go=()=>goToZone(FARM_ZONE);
@@ -3993,7 +4000,7 @@ cv.addEventListener('pointerdown',e=>{
     if(wx>=40&&wx<4200&&wy>=40&&wy<=world.h-40){
      const it=farmListOf(moveItem.kind)[moveItem.i];
      const sp=it?snapPos(it.t,wx,wy):null;
-     if(it&&cropCellTaken(it.t,Math.round(sp.x),Math.round(sp.y))){stageMsg('🌾 Occupied — pick a free tile',1300);sfx.warn();return;}
+     if(it&&cropCellTaken(it.t,Math.round(sp.x),Math.round(sp.y))){stageMsg('🌾 Occupied - pick a free tile',1300);sfx.warn();return;}
      if(it&&it.road){const ddx=Math.round(sp.x)-it.x,ddy=Math.round(sp.y)-it.y;it.x0+=ddx;it.x1+=ddx;it.y0+=ddy;it.y1+=ddy;} /* carry the whole stretch */
      if(it){it.x=Math.round(sp.x);it.y=Math.round(sp.y);delete it._moving;}
      if(it&&moveItem.kind==='fh'){S.farm.hx=it.x;S.farm.hy=it.y;} /* persist the farmhouse's new home */
@@ -4004,7 +4011,7 @@ cv.addEventListener('pointerdown',e=>{
    }
    if(buildSel==='remove'){removeDrag={id:e.pointerId,x0:wx,y0:wy,x1:wx,y1:wy};return;} /* click OR drag-select */
    if(buildSel==='harvest'){harvestDrag={id:e.pointerId,x0:wx,y0:wy,x1:wx,y1:wy};return;} /* tap = single snip · drag = reap the whole area */
-   if(buildSel&&IS_TOUCH){ /* 📱 phones: drag the piece into place, drop on release — one per selection */
+   if(buildSel&&IS_TOUCH){ /* 📱 phones: drag the piece into place, drop on release - one per selection */
     const pd=FARM_BUILD.find(o=>o.id===buildSel);
     if(pd&&!pd.road){
      if(wx>=40&&wx<4200&&wy>=40&&wy<=world.h-40)placeDrag={id:e.pointerId,t:buildSel,x:wx,y:wy};
@@ -4028,7 +4035,7 @@ cv.addEventListener('pointerdown',e=>{
   }
  }
  if(zoneOf().tavern){
-  /* buildings need melee range — near: menu opens; far: run to the door, menu opens on arrival */
+  /* buildings need melee range - near: menu opens; far: run to the door, menu opens on arrival */
   const walkOrOpen=(s,open)=>{
    const rng=s.type==='casino'||s.type==='house'?150:115;
    if(Math.hypot(hero.x-s.x,hero.y-s.y)<rng){open();return;}
@@ -4082,7 +4089,7 @@ cv.addEventListener('pointerdown',e=>{
 
 /* ---- hold-to-move: while a finger stays pressed on open ground, the hero keeps walking toward it ---- */
 let holdMove=null;
-window.addEventListener('pointermove',e=>{ /* window, not canvas — keeps steering even if the cursor drifts off the map */
+window.addEventListener('pointermove',e=>{ /* window, not canvas - keeps steering even if the cursor drifts off the map */
  const r=cv.getBoundingClientRect();
  mouseWX=(e.clientX-r.left)/zoom+camX;mouseWY=(e.clientY-r.top)/zoom+camY;
  if(removeDrag&&e.pointerId===removeDrag.id){removeDrag.x1=mouseWX;removeDrag.y1=mouseWY;return;}
@@ -4167,19 +4174,19 @@ $('farmCheckBtn').onclick=()=>openFarmCheckout();
 $('farmSnapBtn').onclick=()=>{
  snapMode=!snapMode;
  $('farmSnapBtn').classList.toggle('on',snapMode);
- stageMsg(snapMode?'🧲 Snap mode — pieces click together':'🖐 Free mode — place anywhere',1600);
+ stageMsg(snapMode?'🧲 Snap mode - pieces click together':'🖐 Free mode - place anywhere',1600);
 };
 $('farmHarvBtn').onclick=()=>{
  cancelMove();
  buildSel=buildSel==='harvest'?null:'harvest';
  roadAnchor=null;
  renderFarmStore();
- stageMsg(buildSel==='harvest'?'✂ Harvest mode — click hay that is ready':'✂ Harvest mode off',1400);
+ stageMsg(buildSel==='harvest'?'✂ Harvest mode - click hay that is ready':'✂ Harvest mode off',1400);
 };
 $('farmCheckYes').onclick=()=>{
  const total=farmCartTotal(),scr=farmCartScraps();
- if(scr>0&&(S.scraps||0)<scr){stageMsg('Not enough Scraps — '+scr+'⚙ needed',1800);sfx.warn();return;}
- if(total>0&&!spendGold(total)){stageMsg('Not enough gold — '+total.toLocaleString()+'◉ needed',1800);sfx.warn();return;}
+ if(scr>0&&(S.scraps||0)<scr){stageMsg('Not enough Scraps - '+scr+'⚙ needed',1800);sfx.warn();return;}
+ if(total>0&&!spendGold(total)){stageMsg('Not enough gold - '+total.toLocaleString()+'◉ needed',1800);sfx.warn();return;}
  if(scr>0)S.scraps-=scr;
  for(const g2 of farmCart){
   const cd=FARM_BUILD.find(o=>o.id===g2.t);
@@ -4198,7 +4205,7 @@ $('farmCheckYes').onclick=()=>{
  sfx.buy();
  stageMsg('🛒 '+n+' item'+(n>1?'s':'')+' built!',1800);
  renderFarmStore(); /* stock badges may have changed */
- expandFarmStore(); /* done placing — bring the list back out */
+ expandFarmStore(); /* done placing - bring the list back out */
  save();renderHUD();
 };
 $('farmCheckNo').onclick=()=>$('farmCheckoutFx').style.display='none';
@@ -4275,7 +4282,7 @@ let autoT=0;
 function autoBrain(dt){
  autoT-=dt;if(autoT>0)return;autoT=0.3;
  const c=classOf();
- // potions — only the ones the player allows AUTO to use
+ // potions - only the ones the player allows AUTO to use
  if(autoOn('hp')&&hero.hp<heroMax()*0.32&&S.pots.hp>0&&hero.potCd.hp<=0)usePot('hp');
  const cheapest=Math.min(...c.spells.map(spellManaCost));
  if(autoOn('mp')&&hero.mana<cheapest&&hero.target&&S.pots.mp>0&&hero.potCd.mp<=0)usePot('mp');
@@ -4309,11 +4316,11 @@ function update(dt){
  if(S&&S.farm){ /* 🕰 the farm eats even when you're not there */
   if(!zoneOf().farm)simFarmAway(); /* away or in another zone: catch up in ≥60s chunks */
   else{
-   if(Date.now()-(S.farm.simT||Date.now())>60000)simFarmAway(); /* just arrived after a gap — replay it first */
+   if(Date.now()-(S.farm.simT||Date.now())>60000)simFarmAway(); /* just arrived after a gap - replay it first */
    S.farm.simT=Date.now(); /* live systems own the clock while standing here */
   }
  }
- if(hero&&!hero.dead&&world&&world.solids&&zoneOf().tavern){ /* 🚜 walk straight into the Farm portal — no click needed */
+ if(hero&&!hero.dead&&world&&world.solids&&zoneOf().tavern){ /* 🚜 walk straight into the Farm portal - no click needed */
   const fp=world.solids.find(s2=>s2.type==='farmportal');
   if(fp&&Math.hypot(hero.x-fp.x,hero.y-fp.y)<55){goToZone(FARM_ZONE);return;}
  }
@@ -4325,7 +4332,7 @@ function update(dt){
    if(enemies.filter(e=>e.cow&&!e.dead).length<80)spawnCow(); /* hard cap: 80 cows on the map */
   }
   cowBigT-=dt;
-  if(cowBigT<=0){cowBigT=12;spawnCow(true);} /* the Alpha Bovine, every 12s — ignores the cap */
+  if(cowBigT<=0){cowBigT=12;spawnCow(true);} /* the Alpha Bovine, every 12s - ignores the cap */
   if(cowChestMsgT>0)cowChestMsgT-=dt;
   /* blue chest: ticks down only while no chest is waiting; pickup = walk into melee range */
   if(!cowChest){
@@ -4340,7 +4347,7 @@ function update(dt){
  if(world.raidRooms)for(const rm of world.raidRooms){
   const b=enemies.find(e=>e.raid&&e.roomIdx===rm.idx);
   if(!b||b.dead){
-   if(rm.sealed){rm.sealed=false;hero.deadWait=false;stageMsg('The seal shatters — '+((b&&b.name)||'the lord')+'’s chamber stands open.',2400);sfx.quest();}
+   if(rm.sealed){rm.sealed=false;hero.deadWait=false;stageMsg('The seal shatters - '+((b&&b.name)||'the lord')+'’s chamber stands open.',2400);sfx.quest();}
    continue;
   }
   if(!rm.sealed&&!hero.dead&&!hero.deadWait&&Math.hypot(hero.x-rm.x,hero.y-rm.y)<rm.r-70){
@@ -4349,7 +4356,7 @@ function update(dt){
    const d=Math.hypot(hero.x-rm.x,hero.y-rm.y)||1;
    hero.x=rm.x+(hero.x-rm.x)/d*Math.min(d,rm.r-90);
    hero.y=rm.y+(hero.y-rm.y)/d*Math.min(d,rm.r-90);
-   stageMsg('⚠ The chamber seals behind you — only the lord’s death opens it!',2600);
+   stageMsg('⚠ The chamber seals behind you - only the lord’s death opens it!',2600);
    sfx.warn();shakeT=0.3;
   }
  }
@@ -4413,7 +4420,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
     S.lastZone=Math.min(S.zone,ZONES.length-1);
     S.zone=TAVERN_ZONE;S.quest=0;S.qProg=0;
     applyZoneUI();buildZone();renderHUD();save();
-    stageMsg('You wake by the hearth in Goldshire — gear and loot intact.',3000);
+    stageMsg('You wake by the hearth in Goldshire - gear and loot intact.',3000);
     log('<span class="imp">Carried back to Goldshire.</span> Rest, then march again.');
    }else{
     hero.dead=false;hero.hp=heroMax();hero.mana=manaMax();
@@ -4423,7 +4430,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    return;
   }
  }else{
-  if(holdMove){ /* finger still pressed — refresh the walk target to wherever it is now */
+  if(holdMove){ /* finger still pressed - refresh the walk target to wherever it is now */
    const hr=cv.getBoundingClientRect();
    const hx=(holdMove.cx-hr.left)/zoom+camX,hy=(holdMove.cy-hr.top)/zoom+camY;
    hero.moveTo={x:Math.max(30,Math.min(world.w-30,hx)),y:Math.max(30,Math.min(world.h-30,hy))};
@@ -4448,13 +4455,13 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   }else if(hero.goPortal){
    moveToward(hero,world.portal.x,world.portal.y,dt);
   }else if(S.auto){
-   /* AUTO only farms — it never walks you into the portal */
+   /* AUTO only farms - it never walks you into the portal */
    if(!hero.target||hero.target.dead||hero.target.hidden)hero.target=nearestQuestEnemy();
   }
-  if(hero.pendingDoor){ /* running toward a clicked building — open its menu on arrival */
+  if(hero.pendingDoor){ /* running toward a clicked building - open its menu on arrival */
    const p=hero.pendingDoor;
    if(Math.hypot(hero.x-p.s.x,hero.y-p.s.y)<p.rng){hero.pendingDoor=null;hero.moveTo=null;p.open();}
-   else if(!hero.moveTo)hero.pendingDoor=null; /* walk ended without arriving — give up */
+   else if(!hero.moveTo)hero.pendingDoor=null; /* walk ended without arriving - give up */
   }
   /* --- The Altar portal: step inside and it takes you --- */
   {
@@ -4477,15 +4484,15 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
      S.connectors=(S.connectors||0)+1;
      sparkles(cc.x,cc.y-16,'#8fe3c9',12);
      stageMsg('🔗 A CRYPT CONNECTOR! ('+S.connectors+' owned)',2800,'#8fe3c9');
-     log('<span class="lscroll">🔗 Crypt Connector</span> — two of these let a level 10 Blacksmith fuse a pair of Tier IV scrolls into one.','loot');
+     log('<span class="lscroll">🔗 Crypt Connector</span> - two of these let a level 10 Blacksmith fuse a pair of Tier IV scrolls into one.','loot');
     }
-    if(S.qProg>=3){ /* the maze cleared — a Potion of Raid on top */
+    if(S.qProg>=3){ /* the maze cleared - a Potion of Raid on top */
      S.raidPots=(S.raidPots||0)+1;
-     stageMsg('⚰️ ALL 3 CHESTS FOUND — ⚗️ Potion of Raid awarded!',3200,'#c9a0ff');
-     log('<span class="imp">The Crypts yield their prize:</span> <span class="lepic">⚗️ Potion of Raid</span> — +15% boss damage for 60 min.','loot');
+     stageMsg('⚰️ ALL 3 CHESTS FOUND - ⚗️ Potion of Raid awarded!',3200,'#c9a0ff');
+     log('<span class="imp">The Crypts yield their prize:</span> <span class="lepic">⚗️ Potion of Raid</span> - +15% boss damage for 60 min.','loot');
      sfx.shout();
     }else{
-     stageMsg('💠 Chest '+S.qProg+' / 3 — +'+goldGot.toLocaleString()+'◉!',2200,'#5bc8ff');
+     stageMsg('💠 Chest '+S.qProg+' / 3 - +'+goldGot.toLocaleString()+'◉!',2200,'#5bc8ff');
      sfx.loot();
     }
     renderHUD();save();
@@ -4503,12 +4510,12 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
     if(dGate<55&&!gateMsgSeen){$('gateMsg').style.display='block';gateMsgSeen=true;}
     if(dGate>85&&gateMsgSeen){$('gateMsg').style.display='none';gateMsgSeen=false;}
    }
-   /* the worthy — P40, 3000 rating, knife in hand — are offered the ritual */
+   /* the worthy - P40, 3000 rating, knife in hand - are offered the ritual */
    const ritualReady=S.theKnife&&!S.ritualDone&&(S.prestige||0)>=40&&(S.rating||0)>=3000;
    if(dRing<700&&ritualReady&&!ritualSeen&&!ritualActive){$('ritualBox').style.display='block';ritualSeen=true;}
    if(dRing>760&&ritualSeen&&!ritualActive){$('ritualBox').style.display='none';ritualSeen=false;}
   }else if(altarMsgSeen||ritualSeen||gateMsgSeen){$('altarMsg').style.display='none';altarMsgSeen=false;$('gateMsg').style.display='none';gateMsgSeen=false;if(!ritualActive){$('ritualBox').style.display='none';ritualSeen=false;}}
-  { /* 🔥 crypt torch button — visible only in the maze, greys out when spent */
+  { /* 🔥 crypt torch button - visible only in the maze, greys out when spent */
    const tb=$('torchBtn');
    if(tb){
     const inC=zoneOf().crypts;
@@ -4527,7 +4534,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
     else{
      fish.bob+=dt;fish.castT-=dt;
      hero.fx=fish.bx>=hero.x?1:-1;
-     if(fish.fly<1){ /* the float is mid-air — land it with a small plop */
+     if(fish.fly<1){ /* the float is mid-air - land it with a small plop */
       fish.fly=Math.min(1,fish.fly+dt*2.4);
       if(fish.fly>=1){ring(fish.bx,fish.by,10,'#bfe9ff',0.45);blip(480,120,0.1,0.03,'sine');}
      }
@@ -4536,30 +4543,30 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
       ring(fish.bx,fish.by,12,'#bfe9ff',0.5);
       blip(520,140,0.12,0.035,'sine');
       const r2=Math.random();
-      if(r2<0.0015){ /* 🦈 0.15% — Blåhaj takes the bait! Fishing halts for the ceremony. */
+      if(r2<0.0015){ /* 🦈 0.15% - Blåhaj takes the bait! Fishing halts for the ceremony. */
        const sp=petOf('shark');
        S.pets.push('shark');save();
-       log(`Fishing: ${sp.g} <span class="llegendary">${sp.n}</span> — ${sp.d}`,'loot');
+       log(`Fishing: ${sp.g} <span class="llegendary">${sp.n}</span> - ${sp.d}`,'loot');
        burst(fish.bx,fish.by,'#7ab8e0',22,140,true);
        sfx.level();
        stopFishing();
        $('sharkFx').style.display='flex';
        gamePaused=true;
-      }else if(r2<0.0025&&!S.brokenRing&&!S.ringForged){ /* 💍 0.10% — the Broken Ring surfaces */
+      }else if(r2<0.0025&&!S.brokenRing&&!S.ringForged){ /* 💍 0.10% - the Broken Ring surfaces */
        S.brokenRing=true;save();
-       fishToast('💍 <b>The Broken Ring</b> — dredged up!','#ffd76a');
-       stageMsg('💍 THE BROKEN RING — half of something terrible. Check your Bag.',3500);
-       log(`Fishing: <span class="llegendary">💍 The Broken Ring</span> — combine it with the Recipe at a level 10 Blacksmith.`,'loot');
+       fishToast('💍 <b>The Broken Ring</b> - dredged up!','#ffd76a');
+       stageMsg('💍 THE BROKEN RING - half of something terrible. Check your Bag.',3500);
+       log(`Fishing: <span class="llegendary">💍 The Broken Ring</span> - combine it with the Recipe at a level 10 Blacksmith.`,'loot');
        burst(fish.bx,fish.by,'#ffd76a',22,140,true);
        sfx.level();
-      }else if(r2<0.0045){ /* 🛡 0.20% — a sealed potion in the weeds (1 in 500 casts) */
+      }else if(r2<0.0045){ /* 🛡 0.20% - a sealed potion in the weeds (1 in 500 casts) */
        S.armorPots=(S.armorPots||0)+1;save();
-       fishToast('🛡 <b>Potion of Armor</b> — reeled in!','#8fb0d0');
-       stageMsg('🛡 POTION OF ARMOR — a rare catch! Check your Bag.',3000);
-       log(`Fishing: <span class="llegendary">🛡 Potion of Armor</span> — take 50% less damage from HAALAND for 20 minutes. Drink it from the Bag.`,'loot');
+       fishToast('🛡 <b>Potion of Armor</b> - reeled in!','#8fb0d0');
+       stageMsg('🛡 POTION OF ARMOR - a rare catch! Check your Bag.',3000);
+       log(`Fishing: <span class="llegendary">🛡 Potion of Armor</span> - take 50% less damage from HAALAND for 20 minutes. Drink it from the Bag.`,'loot');
        burst(fish.bx,fish.by,'#8fb0d0',18,120,true);
        sfx.level();
-      }else{ /* 0–4 scraps — small hauls common, a full net rare */
+      }else{ /* 0–4 scraps - small hauls common, a full net rare */
        const r3=(r2-0.0045)/(1-0.0045);
        const n=r3<0.35?0:r3<0.60?1:r3<0.80?2:r3<0.93?3:4;
        if(n>0){
@@ -4568,7 +4575,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
        }else fishToast('🎣 Nothing took the bait…','#8fa898');
       }
       if(fish.on){ /* skipped when the shark ceremony halted the session */
-       if((S.worms||0)<1){stopFishing();save();stageMsg('🪱 Out of worms — the fishing hut sells more!',1900);}
+       if((S.worms||0)<1){stopFishing();save();stageMsg('🪱 Out of worms - the fishing hut sells more!',1900);}
        else{S.worms--;save();fishSpot();fish.castT=4+Math.random()*6;fish.fly=0;hero.swing=0.24;}
       }
      }
@@ -4604,8 +4611,8 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
     portalMsgT=2;
     if(!nz||nz.special)stageMsg('The western sea… what lies beyond opens only from the World Map.',1800);
     else if(!S.cleared[S.zone])stageMsg('Finish this region\u2019s quests (or its boss) to open the way.',1800);
-    else if(!bossesClearedBefore(S.zone+1))stageMsg('A boss still bars the road — every boss behind you must fall first.',1800);
-    else stageMsg('The portal resists you — reach level '+nz.lvl+'.',1800);
+    else if(!bossesClearedBefore(S.zone+1))stageMsg('A boss still bars the road - every boss behind you must fall first.',1800);
+    else stageMsg('The portal resists you - reach level '+nz.lvl+'.',1800);
     hero.goPortal=false;
    }
   }
@@ -4709,7 +4716,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   if(b.tgt.dead||b.tgt.hidden){bolts.splice(i,1);continue;}
   const dx=b.tgt.x-b.x,dy=b.tgt.y-10-b.y,d=Math.hypot(dx,dy);
   if(d<12){
-   if(b.vis){burst(b.tgt.x,b.tgt.y-10,b.c||'#7fd0ff',5,60);bolts.splice(i,1);continue;} /* peer ghost projectile — pure visuals */
+   if(b.vis){burst(b.tgt.x,b.tgt.y-10,b.c||'#7fd0ff',5,60);bolts.splice(i,1);continue;} /* peer ghost projectile - pure visuals */
    if(b.spell){dealSpell(b.tgt,b.spell);if(b.spell.heal)healHero(heroMax()*b.spell.heal);}
    else landHit(b.tgt,b.dmg,b.crit,null,b.basic);
    bolts.splice(i,1);continue;
@@ -4747,7 +4754,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
  for(let i=bloods.length-1;i>=0;i--){bloods[i].t+=dt;if(bloods[i].t>bloods[i].life)bloods.splice(i,1);}
  for(let i=zaps.length-1;i>=0;i--){zaps[i].t+=dt;if(zaps[i].t>zaps[i].life)zaps.splice(i,1);}
  if(marker){marker.t+=dt;if(marker.t>0.8)marker=null;}
- if(!buildMode){ /* build mode frees the camera — pan and zoom where you like */
+ if(!buildMode){ /* build mode frees the camera - pan and zoom where you like */
   camX+=(hero.x-VW/(2*zoom)-camX)*Math.min(1,dt*6);
   camY+=(hero.y-VH/(2*zoom)-camY)*Math.min(1,dt*6);
  }
@@ -4759,7 +4766,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
 /* ---- crypt fog of war: true line of sight ----
    240 rays march out from the hero and stop at the first wall (slab ray-vs-rect
    against only the walls near the torch). Everything outside the sight polygon
-   goes dark, and light falls off with distance inside it — so you can never see
+   goes dark, and light falls off with distance inside it - so you can never see
    down a corridor you have no sight-line into, and never past a wall. */
 function drawCryptFog(){
  const R=430*(1+0.018*Math.sin(performance.now()/140)); /* torch flicker */
@@ -4813,7 +4820,7 @@ function drawCryptFog(){
 /* ---- Black Temple fog of war: sight ends at the walls ----
    Same recipe as the crypt fog, but the rays collide with the wall POSTS (circles).
    Door gaps have no posts, so light spills through them naturally; everything
-   beyond the masonry is pitch black — no peeking over the walls. */
+   beyond the masonry is pitch black - no peeking over the walls. */
 function drawRaidFog(){
  const R=620;
  const px=hero.x,py=hero.y-8;
@@ -4832,7 +4839,7 @@ function drawRaidFog(){
  for(let i=0;i<N;i++){
   const a=i/N*6.28318,dx=Math.cos(a),dy=Math.sin(a);
   let t=R;
-  for(const sg of segs){ /* ray vs straight wall run — perfectly even light edge */
+  for(const sg of segs){ /* ray vs straight wall run - perfectly even light edge */
    const ex=sg.x2-sg.x1,ey=sg.y2-sg.y1;
    const den=dx*ey-dy*ex;
    if(Math.abs(den)<1e-6)continue;
@@ -4876,13 +4883,13 @@ function drawRaidFog(){
  ctx.fillStyle=g;
  ctx.fill();
 }
-/* the crypt rat — painted body over four scurrying feet (diagonal pairs, like a real rat) */
+/* the crypt rat - painted body over four scurrying feet (diagonal pairs, like a real rat) */
 function drawRatBoss(){
  const rb=world.ratboss;
  if(rb.x<camX-220||rb.x>camX+VW/zoom+220||rb.y<camY-180||rb.y>camY+VH/zoom+180)return;
  ctx.save();ctx.translate(rb.x,rb.y);
  ctx.fillStyle='rgba(0,0,0,0.35)';ctx.beginPath();ctx.ellipse(0,32,80,18,0,0,7);ctx.fill();
- if(rb.fx>0)ctx.scale(-1,1); /* art faces left natively — mirror when heading right */
+ if(rb.fx>0)ctx.scale(-1,1); /* art faces left natively - mirror when heading right */
  const bob=rb.moving?Math.sin(rb.walk*4)*2:0; /* skittering bob */
  const H=195,W=ratbossImg.naturalWidth?H*ratbossImg.naturalWidth/ratbossImg.naturalHeight:H*1.44;
  const feet=ratFeetImg.complete&&ratFeetImg.naturalWidth;
@@ -4900,7 +4907,7 @@ function drawRatBoss(){
  }
  ctx.restore();
 }
-/* the blue loot chest with a pulsing glow — shared by the Cow Level and The Crypts */
+/* the blue loot chest with a pulsing glow - shared by the Cow Level and The Crypts */
 function drawLootChest(x,y,sc){
  const tt=performance.now()/1000,pu=0.5+0.5*Math.sin(tt*4);
  ctx.save();ctx.translate(x,y);
@@ -4968,7 +4975,7 @@ function draw(){
   ctx.beginPath();ctx.arc(marker.x,marker.y,6+marker.t*18,0,7);ctx.stroke();
  }
  if(cowRunning&&cowChest)drawLootChest(cowChest.x,cowChest.y,1.4); /* the big blue loot chest */
- if(z.crypts&&world.cryptChests)for(const cc of world.cryptChests){ /* the three maze chests — same chest, same glow */
+ if(z.crypts&&world.cryptChests)for(const cc of world.cryptChests){ /* the three maze chests - same chest, same glow */
   if(cc.taken)continue;
   if(cc.x<camX-80||cc.x>camX+VW/zoom+80||cc.y<camY-80||cc.y>camY+VH/zoom+80)continue;
   drawLootChest(cc.x,cc.y,1.4);
@@ -5074,7 +5081,7 @@ function draw(){
   ctx.globalAlpha=1;
  }
  if(z.farm&&buildMode){ /* buildable boundary + pending ghosts + ghost of the selected item */
-  { /* 📐 build grid — instant visual cue that build mode is on */
+  { /* 📐 build grid - instant visual cue that build mode is on */
    const GRID=100;
    const vx0=Math.max(40,camX),vx1=Math.min(4200,camX+VW/zoom);
    const vy0=Math.max(40,camY),vy1=Math.min(world.h-40,camY+VH/zoom);
@@ -5143,7 +5150,7 @@ function draw(){
    ctx.strokeRect(Math.min(removeDrag.x0,removeDrag.x1),Math.min(removeDrag.y0,removeDrag.y1),Math.abs(removeDrag.x1-removeDrag.x0),Math.abs(removeDrag.y1-removeDrag.y0));
    ctx.setLineDash([]);
   }
-  if(harvestDrag){ /* the reaping marquee — gold */
+  if(harvestDrag){ /* the reaping marquee - gold */
    ctx.fillStyle='rgba(255,215,106,0.10)';
    ctx.fillRect(Math.min(harvestDrag.x0,harvestDrag.x1),Math.min(harvestDrag.y0,harvestDrag.y1),Math.abs(harvestDrag.x1-harvestDrag.x0),Math.abs(harvestDrag.y1-harvestDrag.y0));
    ctx.strokeStyle='rgba(255,215,106,0.85)';ctx.setLineDash([10,7]);ctx.lineWidth=2;
@@ -5151,7 +5158,7 @@ function draw(){
    ctx.setLineDash([]);
   }
  }
- if(z.crypts&&world.mwalls)drawCryptFog(); /* the dark closes in — last world-space layer */
+ if(z.crypts&&world.mwalls)drawCryptFog(); /* the dark closes in - last world-space layer */
  else if(z.raid&&!hero.dead)drawRaidFog(); /* the temple keeps its secrets behind the walls */
  ctx.restore();
  if(cowRunning||(zoneOf().cow&&hero.dead)){
@@ -5165,7 +5172,7 @@ function draw(){
   ctx.fillText(cowItems+' chests',VW/2,70);
   ctx.font='600 11px '+getComputedStyle(document.body).fontFamily;
   ctx.fillStyle='rgba(255,255,255,0.75)';
-  ctx.fillText('BEST '+(S.cowBest?fmt(S.cowBest):'—')+' ('+(S.cowBestItems||0)+') · LAST '+(S.cowLast?fmt(S.cowLast):'—')+' ('+(S.cowLastItems||0)+')',VW/2,86);
+  ctx.fillText('BEST '+(S.cowBest?fmt(S.cowBest):'-')+' ('+(S.cowBestItems||0)+') · LAST '+(S.cowLast?fmt(S.cowLast):'-')+' ('+(S.cowLastItems||0)+')',VW/2,86);
   if(cowChestMsgT>0){ /* glowing red banner right under the timer, fades out over the last second */
    const pu=0.5+0.5*Math.sin(performance.now()/140);
    const msg='💠 CHEST HAS SPAWNED FIND IT!';
@@ -5246,10 +5253,10 @@ function mip(img,W){
 }
 /* crisp(): the player's own sprite deserves better than power-of-2 mips. Downscale in
    high-quality halving steps, then ONE exact resize to the true device-pixel size
-   (zoom × DPR), cached per 4px bucket — the canvas then maps it 1:1, razor sharp. */
+   (zoom × DPR), cached per 4px bucket - the canvas then maps it 1:1, razor sharp. */
 function crisp(img,W){
  if(!img.naturalWidth)return img;
- const dev=Math.max(8,Math.ceil(W*(zoom||1)*(DPR||1)/2)*2); /* ceil: the source is never smaller than the screen — upscaling is what blurs */
+ const dev=Math.max(8,Math.ceil(W*(zoom||1)*(DPR||1)/2)*2); /* ceil: the source is never smaller than the screen - upscaling is what blurs */
  const store=img._crisp||(img._crisp={});
  if(store[dev])return store[dev];
  let src=img,sw=img.naturalWidth,sh=img.naturalHeight;
@@ -5272,7 +5279,7 @@ function drawProp(s,z){
   const sway=Math.sin(performance.now()/700+s.x)*2.2; /* a touch quicker + wider */
   const tImg=z.snowTrees?treeSnowImg:treeImg; /* snowy variant in frost/moor zones */
   if(tImg.complete&&tImg.naturalWidth){
-   /* painted tree — size varies per tree via r & s; per-art calibration on the Image */
+   /* painted tree - size varies per tree via r & s; per-art calibration on the Image */
    const H=s.r*(2.6+s.s*2.2)*tImg._pad;
    const W=H*tImg.naturalWidth/tImg.naturalHeight;
    ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,4,W*0.34,W*0.13,0,0,7);ctx.fill();
@@ -5314,7 +5321,7 @@ function drawProp(s,z){
  }else if(s.type==='house'){
   const w=s.big?s.r*1.7:s.r*1.5,hh=s.big?s.r*1.3:s.r*1.1;
   if(s.big&&tavernImg.complete&&tavernImg.naturalWidth){
-   /* painted tavern (assets/models/tavern.png) — sign is baked in; content bottom at 85.2% of the art */
+   /* painted tavern (assets/models/tavern.png) - sign is baked in; content bottom at 85.2% of the art */
    const W=s.r*11.4,H=W*tavernImg.naturalHeight/tavernImg.naturalWidth,bot=hh*0.55+W*0.04;
    ctx.drawImage(mip(tavernImg,W),-W/2,bot-H*0.852,W,H);
    ctx.restore();return;
@@ -5345,7 +5352,7 @@ function drawProp(s,z){
  }else if(s.type==='smith'){
   const w=s.r*1.7,hh=s.r*1.2;
   if(smithImg.complete&&smithImg.naturalWidth){
-   /* painted blacksmith (assets/models/blacksmith.png) — content bottom at 87% of the art */
+   /* painted blacksmith (assets/models/blacksmith.png) - content bottom at 87% of the art */
    const W=s.r*5.8,H=W*smithImg.naturalHeight/smithImg.naturalWidth,bot=hh*0.55+W*0.04;
    ctx.drawImage(mip(smithImg,W),-W/2,bot-H*0.87,W,H);
    ctx.restore();return;
@@ -5364,7 +5371,7 @@ function drawProp(s,z){
  }else if(s.type==='bank'){
   const w=s.r*1.8,hh=s.r*1.3;
   if(bankImg.complete&&bankImg.naturalWidth){
-   /* painted bank (assets/models/bank.png) — content bottom sits at 74.5% of the art */
+   /* painted bank (assets/models/bank.png) - content bottom sits at 74.5% of the art */
    const W=s.r*6.5,H=W*bankImg.naturalHeight/bankImg.naturalWidth,bot=hh*0.55+W*0.04;
    ctx.drawImage(mip(bankImg,W),-W/2,bot-H*0.745,W,H);
    ctx.restore();return;
@@ -5384,10 +5391,10 @@ function drawProp(s,z){
   ctx.fillStyle='#20140a';ctx.fillText('🏦 BANK',1,-hh*1.42+1);
   ctx.fillStyle='#ffd76a';ctx.fillText('🏦 BANK',0,-hh*1.42);
  }else if(s.type==='casino'){
-  /* painted casino model (assets/models/casino.png) — sign is baked into the art, no text label */
+  /* painted casino model (assets/models/casino.png) - sign is baked into the art, no text label */
   const w=s.r*1.8,hh=s.r*1.35;
   if(casinoImg.complete&&casinoImg.naturalWidth){
-   /* keep the art's own aspect ratio — drawing it square squashed the tall model */
+   /* keep the art's own aspect ratio - drawing it square squashed the tall model */
    const W=s.r*7.68,H=W*casinoImg.naturalHeight/casinoImg.naturalWidth;
    ctx.drawImage(mip(casinoImg,W),-W/2,hh*0.55+W*0.04-H*0.75,W,H); /* content bottom at 75% of the art */
   }else{ /* fallback while the image loads */
@@ -5415,7 +5422,7 @@ function drawProp(s,z){
   const im=farmImg('farmhouse_litet');
   if(!s._moving&&im.complete&&im.naturalWidth){ /* hidden while being carried in build mode */
    const W=340,H=W*im.naturalHeight/im.naturalWidth;
-   ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,10,W*0.36,W*0.085,0,0,7);ctx.fill(); /* tucked under the sprite — only a rim peeks out */
+   ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,10,W*0.36,W*0.085,0,0,7);ctx.fill(); /* tucked under the sprite - only a rim peeks out */
    ctx.drawImage(crisp(im,W),-W/2,32-H,W,H);
    const own=S.farm&&S.farm.owned;
    const txt=own?'':((S.prestige||0)>=5?'Buy Farm · 500,000◉ + 800⚙':'🔒 Requires Prestige 5');
@@ -5425,7 +5432,7 @@ function drawProp(s,z){
     ctx.fillStyle=(S.prestige||0)>=5?'#ffd76a':'#ff8a7a';ctx.fillText(txt,0,32-H-10);
    }
   }
- }else if(s.type==='farmitem'){ /* any placed farm piece — the catalogue knows how to draw it */
+ }else if(s.type==='farmitem'){ /* any placed farm piece - the catalogue knows how to draw it */
   const def=FARM_BUILD.find(x=>x.id===s.ftype);
   const im=def&&def.img?farmImg(def.img):null;
   if(def&&im&&im.complete&&im.naturalWidth){
@@ -5437,7 +5444,7 @@ function drawProp(s,z){
     ctx.save();ctx.translate(0,gy);ctx.rotate(Math.sin(ph)*0.06*k);
     ctx.drawImage(crisp(im,W),-W/2,-H-bob,W,H);
     ctx.restore();
-   }else ctx.drawImage(crisp(im,W),-W/2,gy-H,W,H); /* crisp(): device-pixel exact — no mip shimmer on fences */
+   }else ctx.drawImage(crisp(im,W),-W/2,gy-H,W,H); /* crisp(): device-pixel exact - no mip shimmer on fences */
    if(def.roam&&s.it){ /* mood tag: 💕 expecting/brooding · ❤ sated (next meal not yet due) */
     const tag=(s.it.preg||s.it.egg)?'💕':(Date.now()-(s.it.fed||0)<(def.eatT||HAPPY_T)?'❤':null);
     if(tag){ctx.font='700 12px system-ui';ctx.textAlign='center';ctx.fillStyle='#ff8aa0';ctx.fillText(tag,0,gy-H-5);}
@@ -5455,12 +5462,27 @@ function drawProp(s,z){
   ctx.fillStyle='rgba(240,250,210,0.85)';
   for(let i=0;i<4;i++){const a=t+i*1.57;ctx.beginPath();ctx.arc(Math.cos(a)*19,-36+Math.sin(a)*32,2.4,0,7);ctx.fill();}
   ctx.font='700 12px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
-  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText('🚜 Farm',1,-95);
-  ctx.fillStyle='#c9e06a';ctx.fillText('🚜 Farm',0,-96);
-  ctx.restore();
-  ctx.font='700 12px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText('Farm',1,-95);
-  ctx.fillStyle='#d8e8a0';ctx.fillText('Farm',0,-96);
+  ctx.fillStyle='#c9e06a';ctx.fillText('Farm',0,-96);
+  ctx.restore();
+ }else if(s.type==='cityportal'){ /* 🏙 dormant - a slow dim swirl that leads nowhere yet */
+  const t=performance.now()/1400+s.x;
+  ctx.save();
+  ctx.shadowColor='#8a9adf';ctx.shadowBlur=8;
+  ctx.strokeStyle='rgba(138,154,223,'+(0.30+0.12*Math.sin(t*2)).toFixed(3)+')';ctx.lineWidth=5;
+  ctx.beginPath();ctx.ellipse(0,-36,30,48,0,0,7);ctx.stroke();
+  ctx.fillStyle='rgba(110,120,190,0.14)';
+  ctx.beginPath();ctx.ellipse(0,-36,24,40,0,0,7);ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.fillStyle='rgba(200,210,250,0.4)';
+  for(let i=0;i<3;i++){const a=t+i*2.09;ctx.beginPath();ctx.arc(Math.cos(a)*17,-36+Math.sin(a)*30,2,0,7);ctx.fill();}
+  ctx.font='700 12px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
+  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText('City',1,-95);
+  ctx.fillStyle='#aab8ef';ctx.fillText('City',0,-96);
+  ctx.font='600 9px '+getComputedStyle(document.body).fontFamily;
+  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText('(coming soon)',1,-83);
+  ctx.fillStyle='#8a94c0';ctx.fillText('(coming soon)',0,-84);
+  ctx.restore();
  }else if(s.type==='ritualportal'){
   const t=performance.now()/650+s.x;
   ctx.save();
@@ -5480,7 +5502,7 @@ function drawProp(s,z){
   }
  }else if(s.type==='fishhut'){
   if(fishhutImg.complete&&fishhutImg.naturalWidth){
-   /* painted fishing hut (assets/models/fishinghut.png) — content bottom at 78.3% of the art */
+   /* painted fishing hut (assets/models/fishinghut.png) - content bottom at 78.3% of the art */
    const W=s.r*5.75,H=W*fishhutImg.naturalHeight/fishhutImg.naturalWidth,bot=24;
    ctx.drawImage(mip(fishhutImg,W),-W/2,bot-H*0.783,W,H);
    ctx.restore();return;
@@ -5520,7 +5542,7 @@ function drawProp(s,z){
   }
  }else if(s.type==='wall'){
   const pat=zoneOf().raid?raidWallPattern():null;
-  if(pat){ /* stone pattern anchored in WORLD space — every segment lines up into one wall */
+  if(pat){ /* stone pattern anchored in WORLD space - every segment lines up into one wall */
    ctx.fillStyle='rgba(0,0,0,0.30)';ctx.fillRect(-24,2,48,12); /* ground shadow */
    ctx.save();ctx.translate(-s.x,-s.y); /* undo the per-solid translate so the pattern never shifts */
    ctx.fillStyle=pat;
@@ -5536,10 +5558,10 @@ function drawProp(s,z){
   ctx.strokeRect(-s.r,-s.r*1.6,s.r*2,s.r*2.1);
   ctx.beginPath();ctx.moveTo(-s.r,-s.r*0.5);ctx.lineTo(s.r,-s.r*0.5);ctx.moveTo(0,-s.r*1.6);ctx.lineTo(0,-s.r*0.5);ctx.stroke();
  }else if(s.type==='berg'){
-  /* painted mountain (assets/models/berg.png) — stands where the blue ponds used to be */
+  /* painted mountain (assets/models/berg.png) - stands where the blue ponds used to be */
   if(bergImg.complete&&bergImg.naturalWidth){
    const W=s.dr*2.1,H=W*bergImg.naturalHeight/bergImg.naturalWidth;
-   /* soft rim shadow tucked under the base — mostly hidden by the pile itself */
+   /* soft rim shadow tucked under the base - mostly hidden by the pile itself */
    ctx.fillStyle='rgba(0,0,0,0.16)';ctx.beginPath();ctx.ellipse(0,s.dr*0.5-H*0.05,W*0.38,W*0.09,0,0,7);ctx.fill();
    ctx.drawImage(mip(bergImg,W),-W/2,s.dr*0.5-H,W,H); /* base sits on the shadow */
   }else{ /* fallback while the image loads: plain gray peak */
@@ -5547,7 +5569,7 @@ function drawProp(s,z){
    ctx.moveTo(-s.r,s.r*0.4);ctx.lineTo(0,-s.r);ctx.lineTo(s.r,s.r*0.4);ctx.closePath();ctx.fill();
   }
  }else if(stenImg.complete&&stenImg.naturalWidth){
-  /* painted boulder (assets/models/sten.png) — all zones, sized per rock via r & s */
+  /* painted boulder (assets/models/sten.png) - all zones, sized per rock via r & s */
   const W=s.r*(1.6+(s.s||1)*0.9),H=W*stenImg.naturalHeight/stenImg.naturalWidth;
   ctx.fillStyle='rgba(0,0,0,0.2)';ctx.beginPath();ctx.ellipse(0,4,W*0.46,W*0.16,0,0,7);ctx.fill();
   ctx.drawImage(mip(stenImg,W),-W/2,6-H,W,H); /* boulder base sits on the shadow */
@@ -5575,7 +5597,7 @@ function drawGlaive(ctx,flip){ /* dubbelmåne-glaive: stor framklinga + svept ba
  ctx.save();
  if(flip)ctx.scale(-1,1);
  ctx.shadowColor='#4dff9a';ctx.shadowBlur=9;
- /* FRAMKLINGAN — böjd framåt-uppåt med vågig överkant (3 tänder) */
+ /* FRAMKLINGAN - böjd framåt-uppåt med vågig överkant (3 tänder) */
  ctx.fillStyle='#0c1810';
  ctx.beginPath();
  ctx.moveTo(-1,2);
@@ -5598,7 +5620,7 @@ function drawGlaive(ctx,flip){ /* dubbelmåne-glaive: stor framklinga + svept ba
  ctx.quadraticCurveTo(21,-8,12,-2);
  ctx.quadraticCurveTo(7,0,4,2);
  ctx.closePath();ctx.fill();
- /* BAKKLINGAN — stor svept månskära bakåt-nedåt, med två tänder */
+ /* BAKKLINGAN - stor svept månskära bakåt-nedåt, med två tänder */
  ctx.fillStyle='#0c1810';
  ctx.beginPath();
  ctx.moveTo(-2,0);
@@ -5619,7 +5641,7 @@ function drawGlaive(ctx,flip){ /* dubbelmåne-glaive: stor framklinga + svept ba
  ctx.quadraticCurveTo(-7,5,-4,4);
  ctx.closePath();ctx.fill();
  ctx.shadowBlur=0;
- /* NAV — mörk rund mitt med guldstjärna (skölden på bilden) */
+ /* NAV - mörk rund mitt med guldstjärna (skölden på bilden) */
  ctx.fillStyle='#1a1a16';
  ctx.beginPath();ctx.arc(0,1,4.5,0,7);ctx.fill();
  ctx.strokeStyle='#c9a24a';ctx.lineWidth=1;
@@ -5628,7 +5650,7 @@ function drawGlaive(ctx,flip){ /* dubbelmåne-glaive: stor framklinga + svept ba
  ctx.beginPath();ctx.arc(0,1,1.2,0,7);ctx.fill();
  ctx.restore();
 }
-/* female torso: ONE continuous hourglass outline — no seams between chest/waist/hips */
+/* female torso: ONE continuous hourglass outline - no seams between chest/waist/hips */
 function drawHourglassBody(g,cx,cy,by,c2,c1,w){
  const shape=inset=>{
   const cw=w*0.72-inset,ww=Math.max(2,w*0.42-inset*0.6),hw=w*0.88-inset;
@@ -5653,7 +5675,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
  clsId=CLASS_ALIAS[clsId]||clsId;
  const r=RACES.find(x=>x.id===raceId);
  const sgn=fx<0?-1:1;
- if(weaponId==='warglaives'){ /* back glaive: behind the body, tilted opposite the front one — WoW dual-wield look */
+ if(weaponId==='warglaives'){ /* back glaive: behind the body, tilted opposite the front one - WoW dual-wield look */
   g.save();
   g.translate(0,-14+by); /* centered on the back at shoulder height */
   g.globalAlpha*=0.9;
@@ -5673,13 +5695,13 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   }
   g.restore();
  }
- const armored=painted&&!!iceArm; /* 🧊 Ice Armor reskin — only when THIS character wears it */
+ const armored=painted&&!!iceArm; /* 🧊 Ice Armor reskin - only when THIS character wears it */
  const eCls=armored?'armor':clsId;
  const rImg=painted?charSprite(raceId,eCls,female):null; /* painted sprites are for the local hero only */
  if(rImg&&rImg.complete&&rImg.naturalWidth){
-  /* painted character — mirrored when facing left, bobbing + rocking while running */
+  /* painted character - mirrored when facing left, bobbing + rocking while running */
   g.save();
-  if(sgn>0)g.scale(-1,1); /* art faces left natively — mirror when running right */
+  if(sgn>0)g.scale(-1,1); /* art faces left natively - mirror when running right */
   g.rotate(by*0.025);
   const run=painted===2?CHAR_RUN[raceId+(female?'female':'male')+'_'+eCls]:null;
   if(run&&run.img.complete&&run.img.naturalWidth){
@@ -5694,7 +5716,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   }
   g.restore();
  }else{
- if(raceId==='dwarf'){ /* Dwarf — short, stout, great grey beard */
+ if(raceId==='dwarf'){ /* Dwarf - short, stout, great grey beard */
   if(female)drawHourglassBody(g,0,-3,by,r.c2,r.c1,12);
   else{
    g.fillStyle=r.c2;g.beginPath();g.ellipse(0,-3+by,12,9.5,0,0,7);g.fill();
@@ -5702,13 +5724,13 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   }
   g.fillStyle='rgba(255,255,255,0.14)';g.beginPath();g.ellipse(-3,-7+by,5,3.5,0,0,7);g.fill();
   g.fillStyle='#eac9a0';g.beginPath();g.arc(fx*2,-12+by,5.5,0,7);g.fill();
-  if(!female){ /* the beard — dwarven ladies are clean-shaven */
+  if(!female){ /* the beard - dwarven ladies are clean-shaven */
    g.fillStyle='#d8d2c2';
    g.beginPath();g.moveTo(fx*2-5.5,-10+by);g.lineTo(fx*2+5.5,-10+by);g.lineTo(fx*2,-1+by);g.closePath();g.fill();
    g.fillStyle='rgba(0,0,0,0.10)';
    g.beginPath();g.moveTo(fx*2,-10+by);g.lineTo(fx*2+5.5,-10+by);g.lineTo(fx*2,-1+by);g.closePath();g.fill();
   }
- }else if(raceId==='orc'){ /* Orc — green hide, heavy brow, tusks */
+ }else if(raceId==='orc'){ /* Orc - green hide, heavy brow, tusks */
   if(female)drawHourglassBody(g,0,-4,by,r.c2,r.c1,11.5);
   else{
    g.fillStyle=r.c2;g.beginPath();g.arc(0,-4+by,11.5,0,7);g.fill();
@@ -5721,7 +5743,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g.fillStyle='#f0ead8'; /* tusks */
   g.beginPath();g.moveTo(fx*2-3.5,-12+by);g.lineTo(fx*2-2,-12+by);g.lineTo(fx*2-2.8,-15.5+by);g.closePath();g.fill();
   g.beginPath();g.moveTo(fx*2+2,-12+by);g.lineTo(fx*2+3.5,-12+by);g.lineTo(fx*2+2.8,-15.5+by);g.closePath();g.fill();
- }else if(raceId==='undead'){ /* Undead — hunched Forsaken, bared ribs, glowing eyes */
+ }else if(raceId==='undead'){ /* Undead - hunched Forsaken, bared ribs, glowing eyes */
   if(female)drawHourglassBody(g,sgn*1.8,-3.5,by,r.c2,r.c1,10.5);
   else{
    g.fillStyle=r.c2;g.beginPath();g.arc(sgn*1.5,-3.5+by,10.5,0,7);g.fill();
@@ -5745,7 +5767,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g.fillStyle='#f0cfa0';g.beginPath();g.arc(fx*2,-15+by,5.5,0,7);g.fill();
  }
  if(female){
-  /* the bust — two clearly visible skin-toned circles on the chest */
+  /* the bust - two clearly visible skin-toned circles on the chest */
   const skin=raceId==='orc'?'#8fc06a':raceId==='undead'?'#b8c8b2':raceId==='dwarf'?'#eac9a0':'#f0cfa0';
   const bcx=raceId==='undead'?sgn*1.8:fx*1.5;
   const bcy=(raceId==='dwarf'?-5.5:-6.5)+by; /* lowered so they sit clear under the head */
@@ -5760,7 +5782,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g.beginPath();g.arc(bcx+2.9,bcy-1.1,1,0,7);g.fill();
  }
  } /* end procedural body (skipped when a painted race sprite exists) */
- /* weapon — painted sprites are wider, so the hand sits further out and lower */
+ /* weapon - painted sprites are wider, so the hand sits further out and lower */
  const pw=painted&&charSprite(raceId,clsId,female)&&charSprite(raceId,clsId,female).naturalWidth;
  g.save();g.translate(fx*(pw?11:9),(pw?-1:-6)+by);
  const sw=swing?(0.24-swing)*9:0;
@@ -5773,7 +5795,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g.strokeStyle='#c9b391';g.lineWidth=1.1;g.beginPath();g.moveTo(8,-15);g.lineTo(12,-22);g.stroke();
  }else if(weaponId==='warglaives'){
   if(wgImg.complete&&wgImg.naturalWidth){
-   /* painted Warglaives pair (assets/models/warglaive.png) — held level, pointing straight ahead */
+   /* painted Warglaives pair (assets/models/warglaive.png) - held level, pointing straight ahead */
    const W=62,H=W*wgImg.naturalHeight/wgImg.naturalWidth;
    g.rotate(-(sgn<0?-1:1)*(pw?0.85:0.5)); /* cancel the base tilt; the attack swing still animates */
    g.shadowColor='#4dff9a';g.shadowBlur=9;
@@ -5792,7 +5814,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   const tt=performance.now()/1000;
   g.shadowColor='#6fd0ff';g.shadowBlur=10+Math.sin(tt*3)*3;
   if(fmImg.complete&&fmImg.naturalWidth){
-   /* painted Frostmourne (assets/models/frostmourne.png) — the pulsing canvas glow hugs the cutout */
+   /* painted Frostmourne (assets/models/frostmourne.png) - the pulsing canvas glow hugs the cutout */
    const H=pw?50:40,W=H*fmImg.naturalWidth/fmImg.naturalHeight;
    g.drawImage(mip(fmImg,W),-W/2,(pw?-2:6)-H,W,H); /* grip in the painted hero's hand */
    g.shadowBlur=0;
@@ -5817,11 +5839,11 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g.beginPath();g.moveTo(0,1.5);g.lineTo(0,6);g.stroke();
   }
  }else if(clsId==='mage'&&staffImg.complete&&staffImg.naturalWidth){
-  /* painted staff (assets/weapons/staff.png) — the Hindu standard weapon */
+  /* painted staff (assets/weapons/staff.png) - the Hindu standard weapon */
   const H=pw?42:30,W=H*staffImg.naturalWidth/staffImg.naturalHeight;
   g.drawImage(mip(staffImg,W),-W/2,5-H,W,H);
  }else if(clsId==='priest'&&maceImg.complete&&maceImg.naturalWidth){
-  /* painted mace (assets/weapons/mace.png) — the Jew standard weapon, grip in the hand */
+  /* painted mace (assets/weapons/mace.png) - the Jew standard weapon, grip in the hand */
   const H=pw?38:27,W=H*maceImg.naturalWidth/maceImg.naturalHeight;
   g.drawImage(mip(maceImg,W),-W/2,4-H,W,H);
  }else if(clsId==='mage'||clsId==='priest'){
@@ -5829,7 +5851,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g.fillStyle=clsId==='mage'?'#7fd0ff':'#ffd76a';g.beginPath();g.arc(0,-14,3+Math.sin(performance.now()/200)*0.6,0,7);g.fill();
  }else if(clsId==='hunter'){
   if(bowImg.complete&&bowImg.naturalWidth){
-   /* painted bow (assets/weapons/bow.png) — tall narrow recurve, held upright in the hand */
+   /* painted bow (assets/weapons/bow.png) - tall narrow recurve, held upright in the hand */
    const H=pw?44:31,W=H*bowImg.naturalWidth/bowImg.naturalHeight;
    g.save();
    if(sgn<0)g.scale(-1,1); /* mirror so the string always faces the archer */
@@ -5839,7 +5861,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
    g.strokeStyle='#a07a4a';g.lineWidth=3;g.beginPath();g.arc(0,-4,8,-1.2,1.2);g.stroke();
   }
  }else if(swordImg.complete&&swordImg.naturalWidth){
-  /* painted sword (assets/weapons/sword.png) — the warrior standard, grip in the hand */
+  /* painted sword (assets/weapons/sword.png) - the warrior standard, grip in the hand */
   const H=pw?38:27,W=H*swordImg.naturalWidth/swordImg.naturalHeight;
   g.drawImage(mip(swordImg,W),-W/2,4-H,W,H);
  }else{
@@ -5875,10 +5897,10 @@ function drawHero(){
   fx=Math.sin(h.dance*3)>=0?1:-1;
   danceSwing=0.24-Math.abs(Math.sin(h.dance*10))*0.18;
  }
- /* painted heroes stand taller with hovering boots — ground fx sits at their boots' level */
+ /* painted heroes stand taller with hovering boots - ground fx sits at their boots' level */
  const gY=((charSprite(S.race,c.id,S.gender==='f')||{}).naturalWidth)?9:0;
  ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,8+gY,12+gY*0.3,5,0,0,7);ctx.fill();
- /* scroll auras — one soft colored ring per active enchant */
+ /* scroll auras - one soft colored ring per active enchant */
  activeEnchs().forEach((e,i)=>{
   const a=0.20+0.09*Math.sin(now*1.8+i*2.1);
   ctx.strokeStyle=e.glow;
@@ -5903,7 +5925,7 @@ function drawHero(){
   /* 💍 The One Ring hovers above its bearer, slowly turning */
   const t=performance.now()/1000;
   const rw=24,rh=rw*oneringImg.naturalHeight/oneringImg.naturalWidth;
-  const ry=nmY+10+Math.sin(t*1.8)*3; /* nmY is lifted 9px when the ring is on — net: ring stays put */
+  const ry=nmY+10+Math.sin(t*1.8)*3; /* nmY is lifted 9px when the ring is on - net: ring stays put */
   ctx.save();ctx.translate(0,ry);
   ctx.shadowColor='#ffd76a';ctx.shadowBlur=9;
   ctx.drawImage(mip(oneringImg,rw),-rw/2,-rh/2,rw,rh);
@@ -5918,11 +5940,11 @@ function drawNpc(n){
  const by=n.moving?Math.sin(n.walk*7)*1.8:Math.sin(now/600+n.x)*0.8;
  ctx.save();ctx.translate(n.x,n.y);
  ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,8,13,5.5,0,0,7);ctx.fill();
- const pImg=n.female?npcFemaleImg:npcMaleImg; /* painted villagers — one male, one female */
+ const pImg=n.female?npcFemaleImg:npcMaleImg; /* painted villagers - one male, one female */
  if(pImg.complete&&pImg.naturalWidth){
   bootFeet({moving:n.moving,walk:n.walk*1.8,fem:!!n.female});
   ctx.save();
-  if(n.fx>0)ctx.scale(-1,1); /* art faces left natively — mirror when walking right */
+  if(n.fx>0)ctx.scale(-1,1); /* art faces left natively - mirror when walking right */
   ctx.rotate(by*0.02);
   const H=44,W=H*pImg.naturalWidth/pImg.naturalHeight;
   ctx.drawImage(mip(pImg,W),-W/2,7-H+by,W,H);
@@ -5987,15 +6009,15 @@ function drawEnemy(en){
  const raidSkin=RAID_SKINS[skinKey]&&RAID_SKINS[skinKey].img.naturalWidth?RAID_SKINS[skinKey]:null; /* raid lords + skinned leveling bosses + cow herd */
  if(en.kind!=='undead'&&!haalandPainted&&!raidSkin)feet(en,en.r/13);
  const dark='rgba(0,0,0,0.28)';
- if(raidSkin){ /* a lord of the Black Temple — painted body over swinging cut-off feet */
+ if(raidSkin){ /* a lord of the Black Temple - painted body over swinging cut-off feet */
   const H=en.r*(raidSkin.size||5.0),W=H*raidSkin.img.naturalWidth/raidSkin.img.naturalHeight;
   const fimg=raidSkin.feet,fL=raidSkin.feetL,fR=raidSkin.feetR;
   const FH=en.r*(raidSkin.fh||0.75);
   const o=en.state==='chase'?Math.sin((en.walk||0)*2)*en.r*0.28:0;
-  if(raidSkin.boots){ /* the hero's own boots, scaled up — Thor walks like the rest of us */
+  if(raidSkin.boots){ /* the hero's own boots, scaled up - Thor walks like the rest of us */
    const bs=en.r/13;
    ctx.save();ctx.scale(bs,bs);bootFeet({moving:en.state==='chase',walk:en.walk||0,sx:raidSkin.bsx||0});ctx.restore();
-  }else if(fL&&fR&&fL.naturalWidth&&fR.naturalWidth){ /* true left/right art — no mirroring needed */
+  }else if(fL&&fR&&fL.naturalWidth&&fR.naturalWidth){ /* true left/right art - no mirroring needed */
    const WL=FH*fL.naturalWidth/fL.naturalHeight,WR=FH*fR.naturalWidth/fR.naturalHeight;
    const sp=en.r*(raidSkin.fs||0.5);
    ctx.drawImage(mip(fL,WL),-sp-WL/2+o,en.r*0.72-FH,WL,FH);
@@ -6004,7 +6026,7 @@ function drawEnemy(en){
    /* single-foot art: right = the art, left = mirrored counter-swing */
    const FW=FH*fimg.naturalWidth/fimg.naturalHeight;
    const fpx=(raidSkin.ff?-1:1)*en.r*(raidSkin.fs||0.5); /* ff flips the art side · fs spreads the stance */
-   if(raidSkin.vf){ /* vf: hooves step up/down like the hero's boots — alternate lifts, never sideways */
+   if(raidSkin.vf){ /* vf: hooves step up/down like the hero's boots - alternate lifts, never sideways */
     const lift=Math.abs(o)*0.7,l1=o>=0?lift:0,l2=o>=0?0:lift;
     ctx.drawImage(mip(fimg,FW),fpx-FW/2,en.r*0.72-FH-l1,FW,FH);
     ctx.save();ctx.scale(-1,1);
@@ -6037,7 +6059,7 @@ function drawEnemy(en){
   ctx.save();ctx.scale(bs,bs);bootFeet({moving:en.state==='chase',walk:en.walk||0});ctx.restore();
   const H=en.r*4.4,W=H*haalandImg.naturalWidth/haalandImg.naturalHeight;
   ctx.drawImage(mip(haalandImg,W),-W/2,en.r*0.55-H+by,W,H);
-  if(haalandAxeImg.complete&&haalandAxeImg.naturalWidth){ /* his axe — held on the side he strikes, like the hero's weapon */
+  if(haalandAxeImg.complete&&haalandAxeImg.naturalWidth){ /* his axe - held on the side he strikes, like the hero's weapon */
    const AH=H*1.0,AW=AH*haalandAxeImg.naturalWidth/haalandAxeImg.naturalHeight;
    const bfx=(hero&&hero.x<en.x)?-1:1; /* face the target */
    ctx.save();ctx.translate(bfx*W*0.42,-H*0.28+by);ctx.scale(bfx,1);ctx.rotate(0.5+(en.swing?(0.2-en.swing)*7:0));
@@ -6098,7 +6120,7 @@ function drawEnemy(en){
   }
   ctx.restore();
  }
- /* --- unique boss flair (procedural bosses only — painted skins carry their own drama) --- */
+ /* --- unique boss flair (procedural bosses only - painted skins carry their own drama) --- */
  if(en.boss&&!raidSkin){
   const B=en.bossId;
   if(B==='gorehusk'){ /* thorned shoulders + drifting spores */
@@ -6210,14 +6232,14 @@ function log(html,cls){
 }
 function applyZoneUI(){
  $('hZone').textContent=zoneOf().name+(zoneOf().boss||zoneOf().raid?' ☠':'');
- /* the crypts hide the quest text and Continue — the bar stays, the progress row doubles as the 0/3 chest counter, AUTO stays clickable for its refusal */
+ /* the crypts hide the quest text and Continue - the bar stays, the progress row doubles as the 0/3 chest counter, AUTO stays clickable for its refusal */
  const cr=!!zoneOf().crypts;
  if(!cr){const ci=$('cryptIntro');if(ci)ci.style.display='none';}
  if(!zoneOf().farm){buildMode=false;buildSel=null;buildPan=null;const fs2=$('farmStore');if(fs2)fs2.style.display='none';}
  $('qName').parentElement.style.display=cr?'none':'';
  $('nextBtn').style.display=cr?'none':'';
 }
-/* keep the open side panel live — desktop shows it permanently */
+/* keep the open side panel live - desktop shows it permanently */
 let panelT=0;
 function refreshOpenPanel(){
  const p=document.querySelector('.panel.open');
@@ -6225,7 +6247,7 @@ function refreshOpenPanel(){
  const now=performance.now();
  if(now-panelT<1000)return; /* at most once per second */
  panelT=now;
- /* don't rebuild while a two-tap confirm is armed — it would disarm it */
+ /* don't rebuild while a two-tap confirm is armed - it would disarm it */
  if(p.querySelector('[data-armed]'))return;
  if(p.id==='p-hero')renderHero();
  else if(p.id==='p-bag')renderBag();
@@ -6240,7 +6262,7 @@ function renderHUD(){
  const z=zoneOf(),q=questOf(),nz=ZONES[S.zone+1];
  if(zoneOf().tavern){
   $('qName').textContent='🍺 Goldshire';
-  $('qDesc').textContent='Safe haven — health and mana return swiftly here.';
+  $('qDesc').textContent='Safe haven - health and mana return swiftly here.';
   $('qBar').style.width='100%';$('qCount').textContent='☕';
   $('nextBtn').style.display='none';
   $('autoBtn').classList.toggle('on',S.auto);$('autoBtn').textContent=S.auto?'AUTO ✓':'AUTO';
@@ -6249,7 +6271,7 @@ function renderHUD(){
  if(zoneOf().cow){
   const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
   $('qName').textContent='🐄 MOO';
-  $('qDesc').textContent='Survive the herd. Best: '+(S.cowBest?fmt(S.cowBest):'—')+' ('+(S.cowBestItems||0)+' items) · Last: '+(S.cowLast?fmt(S.cowLast):'—')+' ('+(S.cowLastItems||0)+' items)';
+  $('qDesc').textContent='Survive the herd. Best: '+(S.cowBest?fmt(S.cowBest):'-')+' ('+(S.cowBestItems||0)+' items) · Last: '+(S.cowLast?fmt(S.cowLast):'-')+' ('+(S.cowLastItems||0)+' items)';
   $('qBar').style.width='100%';
   $('qCount').textContent='∞';
   $('nextBtn').style.display='none';
@@ -6259,13 +6281,13 @@ function renderHUD(){
   return;
  }
  if(z.boss&&S.bossDead[S.zone]){
-  $('qName').textContent=z.boss[0]+' — defeated';
-  $('qDesc').textContent=nz?(S.lvl>=nz.lvl?'The gate stands open. Press Continue to march east.':'The gate is unlocked — reach level '+nz.lvl+' to pass.'):'The realm is free.';
+  $('qName').textContent=z.boss[0]+' - defeated';
+  $('qDesc').textContent=nz?(S.lvl>=nz.lvl?'The gate stands open. Press Continue to march east.':'The gate is unlocked - reach level '+nz.lvl+' to pass.'):'The realm is free.';
   $('qBar').style.width='100%';
   $('qCount').textContent='✓';
  }else{
   $('qName').textContent=q.name;
-  $('qDesc').textContent=S.cleared[S.zone]?q.desc+' (repeats — grind at will)':q.desc;
+  $('qDesc').textContent=S.cleared[S.zone]?q.desc+' (repeats - grind at will)':q.desc;
   const qp=q.farmXp?((S.farm&&S.farm.xp)||0):S.qProg;
   const fMax=q.farmXp&&((S.farm&&S.farm.lvl)||1)>=FARM_MAXLVL;
   $('qBar').style.width=fMax?'100%':Math.min(100,100*qp/q.need)+'%';
@@ -6276,7 +6298,7 @@ function renderHUD(){
  $('nextBtn').style.display=portalIsOpen()?'block':'none';
  refreshOpenPanel();
 }
-/* per-spell/potion auto-cast settings — default ON; stored on the character */
+/* per-spell/potion auto-cast settings - default ON; stored on the character */
 const autoOn=key=>!S||!S.autoUse||S.autoUse[key]!==false;
 let autoCfgMode=false;
 function setAuBadge(el,on){if(el){el.textContent=on?'✔':'✖';el.className='au '+(on?'on':'offx');}}
@@ -6310,7 +6332,7 @@ function buildSkillbar(){
  $('skAutoCfg').onclick=()=>{
   autoCfgMode=!autoCfgMode;
   $('skillbar').classList.toggle('autocfg',autoCfgMode);
-  if(autoCfgMode){updateAutoBadges();stageMsg('Tap spells/potions to allow ✔ or block ✖ them for AUTO — tap Ⓐ again to save',2600);}
+  if(autoCfgMode){updateAutoBadges();stageMsg('Tap spells/potions to allow ✔ or block ✖ them for AUTO - tap Ⓐ again to save',2600);}
   else{save();stageMsg('Auto settings saved',1400);}
  };
  autoCfgMode=false;
@@ -6362,7 +6384,7 @@ function openRename(){
 }
 /* ==================== GEAR SETS ====================
    Two loadouts (e.g. leveling / bosses), saved as snapshots. Items live in the bag
-   or on the body as always — pieces referenced by a set carry a ⭐ and are locked
+   or on the body as always - pieces referenced by a set carry a ⭐ and are locked
    out of every sell/scrap path, so a saved loadout can never be destroyed by mistake.
    A piece may belong to both sets (it just stays equipped across the swap). */
 const gsidOf=it=>{if(!it.gsid)it.gsid='g'+Date.now().toString(36)+Math.floor(Math.random()*1e6).toString(36);return it.gsid;};
@@ -6399,21 +6421,21 @@ function gearSaveSet(i){
 }
 function gearSwapTo(i){
  if(inBossFight()){stageMsg('No swapping gear mid-boss-fight!',1600);sfx.warn();return;}
- if(cowLocked()){stageMsg('The herd allows no wardrobe changes — survive or die first!',1600);sfx.warn();return;}
+ if(cowLocked()){stageMsg('The herd allows no wardrobe changes - survive or die first!',1600);sfx.warn();return;}
  S.gearSets=S.gearSets||[null,null];
  const tgt=S.gearSets[i];
  if(!tgt){gearSaveSet(i);return;} /* empty set: your gear follows you and is saved into it */
- if(S.gearSetSel===i){stageMsg('Set '+(i+1)+' is already active — 💾 re-saves it',1500);return;}
+ if(S.gearSetSel===i){stageMsg('Set '+(i+1)+' is already active - 💾 re-saves it',1500);return;}
  SLOTS.forEach(k=>{
   const want=tgt[k],cur=S.gear[k];
-  if(cur&&want&&cur.gsid===want)return; /* shared piece — stays on */
+  if(cur&&want&&cur.gsid===want)return; /* shared piece - stays on */
   let it=null;
   if(want){
    const bi=S.bag.findIndex(x=>x&&x.gsid===want);
    if(bi>=0)it=S.bag.splice(bi,1)[0];
-   else tgt[k]=null; /* referenced item is gone — clear the stale ref */
+   else tgt[k]=null; /* referenced item is gone - clear the stale ref */
   }
-  if(cur)S.bag.push(cur); /* worn piece back to the bag — starred if a set owns it */
+  if(cur)S.bag.push(cur); /* worn piece back to the bag - starred if a set owns it */
   S.gear[k]=it;
  });
  /* scrolls: worn pair back to the bag, then pull the set's pair out (fungible match by id+tier) */
@@ -6426,7 +6448,7 @@ function gearSwapTo(i){
    if(bi>=0)cur[k]=S.scrolls.splice(bi,1)[0];
   }
  }
- if(tgt.pet!==undefined&&tgt.pet!==S.pet){ /* pet follows the set — the old companion goes back to the reserve, it NEVER vanishes */
+ if(tgt.pet!==undefined&&tgt.pet!==S.pet){ /* pet follows the set - the old companion goes back to the reserve, it NEVER vanishes */
   S.pets=S.pets||[];
   if(S.pet){S.pets.push(S.pet);S.pet=null;}
   if(tgt.pet){
@@ -6441,7 +6463,7 @@ function gearSwapTo(i){
 }
 function renderHero(){
  const c=classOf(),r=raceOf();
- $('heroTitle').innerHTML=`${esc(dispName(S))} — ${r.name} ${c.name}`+(S.prestige?` · Prestige ${S.prestige}`:'')+
+ $('heroTitle').innerHTML=`${esc(dispName(S))} - ${r.name} ${c.name}`+(S.prestige?` · Prestige ${S.prestige}`:'')+
   ` <button id="renameBtn" title="Rename hero">✏️</button>`;
  $('renameBtn').onclick=openRename;
  $('heroWallet').innerHTML=walletStr();
@@ -6468,13 +6490,13 @@ function renderHero(){
     ${(isLegendaryW(g)?(g.up||0)>=FM_MAX_UP:(g.up||0)>=GEAR_MAX_UP)
      ?`<button class="upbtn" disabled>MAX +${isLegendaryW(g)?FM_MAX_UP:GEAR_MAX_UP} ✦</button>`
      :`<button class="upbtn ${S.scraps>=upCost(g)?'can':''}" data-up="${sl}">Upgrade · ${upCost(g)} ⚙</button>`}`
-     :`<div class="ss">— empty —</div>`)+`</div>`;
+     :`<div class="ss">- empty -</div>`)+`</div>`;
  }).join('');
  const petP=activePet();
  slotsHtml+=`<div class="slot" style="border-color:${petP?petP.cc+'88':'var(--line)'}"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">Pet</div>`+
   (petP?`<div class="sn" style="color:${petP.cc}">${petP.g} ${petP.n}</div><div class="ss">${petP.d}</div>
    <button class="upbtn" data-unpet="1">Unequip</button>`
-   :`<div class="ss">— no pet equipped —</div>`)+`</div>`;
+   :`<div class="ss">- no pet equipped -</div>`)+`</div>`;
  $('slotRow').innerHTML=slotsHtml;
  document.querySelectorAll('[data-unpet]').forEach(b=>b.onclick=()=>{
   if(!S.pet)return;
@@ -6492,7 +6514,7 @@ function renderHero(){
     (e2?`<div class="en"><span class="glowdot" style="background:${e2.glow};box-shadow:0 0 6px ${e2.glow}"></span>${e2.n.replace('Scroll of ','')} ${TIERN[(sc.tier2||1)-1]}</div>`:'')+
     `<div class="ss">${tierDesc(sc.id,sc.tier)}${e2?'<br>'+tierDesc(sc.id2,sc.tier2):''}</div>
     <button class="upbtn" data-unsc="${i}">Unequip</button>`
-    :`<div class="ss">— no scroll —</div>`)+`</div>`;
+    :`<div class="ss">- no scroll -</div>`)+`</div>`;
  }
  $('scrollRow').innerHTML=scHtml;
  document.querySelectorAll('[data-up]').forEach(b=>b.onclick=()=>{
@@ -6501,17 +6523,17 @@ function renderHero(){
  });
  document.querySelectorAll('[data-unsc]').forEach(b=>b.onclick=()=>{
   if(inBossFight()){stageMsg('No swapping scrolls mid-boss-fight!',1600);sfx.warn();return;}
-  if(cowLocked()){stageMsg('The herd allows no scroll rituals — survive or die first!',1600);sfx.warn();return;}
+  if(cowLocked()){stageMsg('The herd allows no scroll rituals - survive or die first!',1600);sfx.warn();return;}
   const i=+b.dataset.unsc;
   if(!S.activeScrolls[i])return;
   S.scrolls.push(S.activeScrolls[i]);S.activeScrolls[i]=null;
   log('Scroll returned to the Bag.');
   renderHero();renderHUD();save();
  });
- /* Prestige — unlocks at max level only once every boss in the realm is dead */
+ /* Prestige - unlocks at max level only once every boss in the realm is dead */
  if(S.lvl>=MAXLVL&&(S.prestige||0)>=PRESTIGE_CAP){
   $('prestigeSec').innerHTML=`<div class="card">
-   <div class="sn" style="font-family:var(--display);color:var(--brass);font-size:14px">✦ Prestige ${S.prestige} — the summit</div>
+   <div class="sn" style="font-family:var(--display);color:var(--brass);font-size:14px">✦ Prestige ${S.prestige} - the summit</div>
    <div class="ss" style="color:var(--dim);font-size:11px;margin-top:5px">You stand at the top of the realm: Prestige ${PRESTIGE_CAP}, level ${MAXLVL}. Higher peaks may rise one day…</div>
   </div>`;
  }else if(S.lvl>=MAXLVL){
@@ -6560,7 +6582,7 @@ function renderMap(){
  const haalOk=(S.prestige||0)>=10;
  if(mapContinent==='west'&&!p1)mapContinent='east';
  if(mapContinent==='valhalla'&&!p1)mapContinent='east';
- /* raid continent is always viewable — the Prestige 10 gate sits on the Black Temple card instead */
+ /* raid continent is always viewable - the Prestige 10 gate sits on the Black Temple card instead */
  $('eastTab').classList.toggle('cur',mapContinent==='east');
  $('westTab').classList.toggle('cur',mapContinent==='west');
  $('valhallaTab').classList.toggle('cur',mapContinent==='valhalla');
@@ -6579,7 +6601,7 @@ function renderMap(){
   mapContinent='west';renderMap();
  };
  $('valhallaTab').onclick=()=>{
-  if(!p1){stageMsg('Reach Prestige 1 — only reborn champions may see Valhalla',1600);sfx.warn();return;}
+  if(!p1){stageMsg('Reach Prestige 1 - only reborn champions may see Valhalla',1600);sfx.warn();return;}
   mapContinent='valhalla';renderMap();
  };
  $('zoneList').innerHTML=ZONES.map((z,i)=>{
@@ -6596,20 +6618,20 @@ function renderMap(){
     return `<div class="card zonecard ${p20?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p20?'#a66bd0':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#1a1a26)">⚰️</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">An ever-shifting labyrinth — its halls rearrange with every descent. Three chests hide in the dark · on foot only, AUTO fails here · something hunts you.</div></div>
+     <div class="zl">An ever-shifting labyrinth - its halls rearrange with every descent. Three chests hide in the dark · on foot only, AUTO fails here · something hunts you.</div></div>
      ${i===S.zone?'<span class="ztag">Here</span>':p20?'<span class="ztag boss">⚰️ Enter</span>':'<span class="ztag boss">🔒 Prestige 20</span>'}
     </div>`;
    }
    if(z.thor){
     const st=thorStatus(),locked=thorLocked();
-    const stateTxt=locked?(S.thorLockWhy==='won'?'✓ Thor slain this window — next storm in '+fmtMS(st.open?st.left:st.next):'☠ You fell — sealed until the next storm ('+fmtMS(st.open?st.left:st.next)+')')
-     :st.open?'⚡ THOR HAS APPEARED — gate closes in '+fmtMS(st.left)
+    const stateTxt=locked?(S.thorLockWhy==='won'?'✓ Thor slain this window - next storm in '+fmtMS(st.open?st.left:st.next):'☠ You fell - sealed until the next storm ('+fmtMS(st.open?st.left:st.next)+')')
+     :st.open?'⚡ THOR HAS APPEARED - gate closes in '+fmtMS(st.left)
      :'Next appearance in '+fmtMS(st.next);
     const canEnter=p1&&st.open&&!locked;
     return `<div class="card zonecard ${canEnter?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${st.open&&!locked?'#7fd0ff':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#2a3a6a)">⚡</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">Thor — appears every 3 hours for 15 minutes · slain ×${S.thorKills||0} · scales to your level · yields a 🍀 Potion of Luck</div>
+     <div class="zl">Thor - appears every 3 hours for 15 minutes · slain ×${S.thorKills||0} · scales to your level · yields a 🍀 Potion of Luck</div>
      <div class="zl" id="thorTimer" style="color:${st.open&&!locked?'#7fd0ff':'#8fa898'}">${stateTxt}</div></div>
      ${i===S.zone?'<span class="ztag">Here</span>':canEnter?'<span class="ztag boss">⚡ Enter</span>':p1?'<span class="ztag boss">⏳ Sealed</span>':'<span class="ztag boss">🔒 Prestige 1</span>'}
     </div>`;
@@ -6623,19 +6645,19 @@ function renderMap(){
     return `<div class="card zonecard ${canCow?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${bagBlocked?'#c75146':canCow?'#ffd76a':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},${z.tree})">🐄</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">${cowOk?'':'Level 60 herd · Prestige 5+ · '}💠 A glowing chest spawns every 10s — walk over it for 2 top-tier epics · cows can drop epics too · Best ${S.cowBest?fmt(S.cowBest):'—'} (${S.cowBestItems||0} chests) · Last ${S.cowLast?fmt(S.cowLast):'—'} (${S.cowLastItems||0} chests)</div>
-     ${bagBlocked?`<div style="color:#ff8a7a;font-family:var(--display);font-size:13.5px;margin-top:4px;text-shadow:0 0 8px rgba(255,90,70,.35)">⚠ EMPTY YOUR BAG FIRST — the herd only respects those who arrive with nothing (${S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it)).length} sellable item${S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it)).length>1?'s':''} carried)</div>`:''}</div>
+     <div class="zl">${cowOk?'':'Level 60 herd · Prestige 5+ · '}💠 A glowing chest spawns every 10s - walk over it for 2 top-tier epics · cows can drop epics too · Best ${S.cowBest?fmt(S.cowBest):'-'} (${S.cowBestItems||0} chests) · Last ${S.cowLast?fmt(S.cowLast):'-'} (${S.cowLastItems||0} chests)</div>
+     ${bagBlocked?`<div style="color:#ff8a7a;font-family:var(--display);font-size:13.5px;margin-top:4px;text-shadow:0 0 8px rgba(255,90,70,.35)">⚠ EMPTY YOUR BAG FIRST - the herd only respects those who arrive with nothing (${S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it)).length} sellable item${S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it)).length>1?'s':''} carried)</div>`:''}</div>
      ${i===S.zone?'<span class="ztag">Here</span>':bagBlocked?'<span class="ztag boss">🎒 Bag full</span>':`<span class="ztag boss">${lockTxt}</span>`}
     </div>`;
    }
    if(z.raid){
     const rst=raidStatus();
     const rCl=rst.open&&raidCleared();
-    const stateTxt=rCl?'✓ Cleared this lockout — next raid in '+fmtMS(rst.left+(RAID_PERIOD-RAID_OPEN)):rst.open?'⚔ GATES OPEN — they close in '+fmtMS(rst.left):'Gates open every 4 hours — next opening in '+fmtMS(rst.next);
+    const stateTxt=rCl?'✓ Cleared this lockout - next raid in '+fmtMS(rst.left+(RAID_PERIOD-RAID_OPEN)):rst.open?'⚔ GATES OPEN - they close in '+fmtMS(rst.left):'Gates open every 4 hours - next opening in '+fmtMS(rst.next);
     return `<div class="card zonecard ${p15&&rst.open&&!rCl?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p15&&rst.open&&!rCl?'#a66bd0':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#2a2040)">⚔</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">RAID — three lords slumber in their chambers. Strike one and it hunts you to the death.${p15?'':' · Minimum Prestige 10'}</div>
+     <div class="zl">RAID - three lords slumber in their chambers. Strike one and it hunts you to the death.${p15?'':' · Minimum Prestige 10'}</div>
      <div class="zl" id="raidTimer" style="color:${rst.open?'#c9a0ff':'#8fa898'}">${stateTxt}</div></div>
      ${i===S.zone?'<span class="ztag">Here</span>':!p15?'<span class="ztag boss">🔒 Prestige 10</span>':rCl?'<span class="ztag done">✓ Cleared</span>':rst.open?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">⏳ Sealed</span>'}
     </div>`;
@@ -6644,7 +6666,7 @@ function renderMap(){
    return `<div class="card zonecard ${haalOk?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${haalOk?'#c94a3a':''}">
     <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#5a1a1a)">🐕</div>
     <div class="zinfo"><div class="zn">${z.name}</div>
-    <div class="zl">HAALAND — ${haalOk?'':'Prestige 10 boss · '}slain ×${kills} · +125 Rating per kill · grows stronger each time</div></div>
+    <div class="zl">HAALAND - ${haalOk?'':'Prestige 10 boss · '}slain ×${kills} · +125 Rating per kill · grows stronger each time</div></div>
     ${i===S.zone?'<span class="ztag">Here</span>':haalOk?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">🔒 Prestige 10</span>'}
    </div>`;
   }
@@ -6656,7 +6678,7 @@ function renderMap(){
   return `<div class="card zonecard ${locked?'locked':''} ${cur?'active':''}" data-z="${i}">
     <div class="zdot" style="background:${z.dot||`linear-gradient(160deg,${z.ground},${z.tree})`}">${z.boss?(S.bossDead[i]?'✓':'💀'):''}</div>
     <div class="zinfo"><div class="zn">${z.name}</div>
-    <div class="zl">${z.boss?(S.bossDead[i]?'Boss slain — arena silent':'Boss arena — '+z.boss[0]):zoneQuests(z).length+' quests'} · level ${z.lvl}+</div></div>
+    <div class="zl">${z.boss?(S.bossDead[i]?'Boss slain - arena silent':'Boss arena - '+z.boss[0]):zoneQuests(z).length+' quests'} · level ${z.lvl}+</div></div>
     ${cur?'<span class="ztag">Here</span>':locked?(bossGated?'<span class="ztag boss">🔒 Boss</span>':'<span class="ztag">🔒 Lv '+z.lvl+'</span>'):done?'<span class="ztag done">✓ Travel</span>':z.boss?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag">Travel</span>'}
   </div>`;
  }).join('');
@@ -6669,17 +6691,17 @@ function renderMap(){
     if(z.thor){
      if((S.prestige||0)<1){stageMsg('Reach Prestige 1 first',1600);sfx.warn();return;}
      const st=thorStatus();
-     if(thorLocked()){stageMsg('Thor cast you out — wait for his next appearance ('+fmtMS(st.open?st.left:st.next)+')',2200);sfx.warn();return;}
-     if(!st.open){stageMsg('The gates are shut — Thor appears in '+fmtMS(st.next),2200);sfx.warn();return;}
+     if(thorLocked()){stageMsg('Thor cast you out - wait for his next appearance ('+fmtMS(st.open?st.left:st.next)+')',2200);sfx.warn();return;}
+     if(!st.open){stageMsg('The gates are shut - Thor appears in '+fmtMS(st.next),2200);sfx.warn();return;}
     }else if(z.cow){
      if((S.prestige||0)<5){stageMsg('🐄 The cows demand Prestige 5',1800);sfx.warn();return;}
      if(S.lvl<60){stageMsg('🐄 The cows demand level 60',1800);sfx.warn();return;}
-     if(S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it)).length){stageMsg('Empty your bag first — the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
+     if(S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it)).length){stageMsg('Empty your bag first - the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
     }else if(z.raid){
-     if((S.prestige||0)<10){stageMsg('Reach Prestige 10 — the Black Temple opens only to legends',1800);sfx.warn();return;}
+     if((S.prestige||0)<10){stageMsg('Reach Prestige 10 - the Black Temple opens only to legends',1800);sfx.warn();return;}
      const rst=raidStatus();
-     if(!rst.open){stageMsg('⚔ The Black Temple gates are sealed — next opening in '+fmtMS(rst.next),2200);sfx.warn();return;}
-     if(raidCleared()){stageMsg('✓ The Black Temple already fell this lockout — next raid in '+fmtMS(rst.left+(RAID_PERIOD-RAID_OPEN)),2400);sfx.warn();return;}
+     if(!rst.open){stageMsg('⚔ The Black Temple gates are sealed - next opening in '+fmtMS(rst.next),2200);sfx.warn();return;}
+     if(raidCleared()){stageMsg('✓ The Black Temple already fell this lockout - next raid in '+fmtMS(rst.left+(RAID_PERIOD-RAID_OPEN)),2400);sfx.warn();return;}
      pendingRaidZone=i;
      const rm=$('raidModal');
      if(rm){rm.style.display='flex';openTab('battle');}
@@ -6703,7 +6725,7 @@ function renderMap(){
 }
 let mapContinent='east';
 
-/* live Thor countdown — only touches the text, never rebuilds the panel */
+/* live Thor countdown - only touches the text, never rebuilds the panel */
 let raidWasOpen=false;
 setInterval(()=>{
  const el=$('thorTimer');
@@ -6711,27 +6733,27 @@ setInterval(()=>{
  const st=thorStatus(),locked=thorLocked();
  const wasOpen=el.dataset.open==='1';
  const isOpen=st.open&&!locked;
- el.textContent=locked?(S.thorLockWhy==='won'?'✓ Thor slain this window — next storm in '+fmtMS(st.open?st.left:st.next):'☠ You fell — sealed until the next storm ('+fmtMS(st.open?st.left:st.next)+')')
-  :st.open?'⚡ THOR HAS APPEARED — gate closes in '+fmtMS(st.left)
+ el.textContent=locked?(S.thorLockWhy==='won'?'✓ Thor slain this window - next storm in '+fmtMS(st.open?st.left:st.next):'☠ You fell - sealed until the next storm ('+fmtMS(st.open?st.left:st.next)+')')
+  :st.open?'⚡ THOR HAS APPEARED - gate closes in '+fmtMS(st.left)
   :'Next appearance in '+fmtMS(st.next);
  el.style.color=isOpen?'#7fd0ff':'#8fa898';
  el.dataset.open=isOpen?'1':'0';
  if(wasOpen!==isOpen&&$('p-map').classList.contains('open'))renderMap();
  if(!wasOpen&&isOpen&&typeof gameOn!=='undefined'&&gameOn&&!thorLocked()&&(S.prestige||0)>=1){
-   stageMsg('⚡ THOR HAS APPEARED IN VALHALLA — 15 minutes!',4000);
+   stageMsg('⚡ THOR HAS APPEARED IN VALHALLA - 15 minutes!',4000);
    if(typeof sfx!=='undefined'&&sfx.quest)sfx.quest();
  }
- /* Black Temple window — same treatment as Thor */
+ /* Black Temple window - same treatment as Thor */
  const rEl=$('raidTimer');
  const rst=raidStatus();
  if(rEl){
   const rCl=rst.open&&raidCleared();
-  rEl.textContent=rCl?'✓ Cleared this lockout — next raid in '+fmtMS(rst.left+(RAID_PERIOD-RAID_OPEN)):rst.open?'⚔ GATES OPEN — they close in '+fmtMS(rst.left):'Gates open every 4 hours — next opening in '+fmtMS(rst.next);
+  rEl.textContent=rCl?'✓ Cleared this lockout - next raid in '+fmtMS(rst.left+(RAID_PERIOD-RAID_OPEN)):rst.open?'⚔ GATES OPEN - they close in '+fmtMS(rst.left):'Gates open every 4 hours - next opening in '+fmtMS(rst.next);
   rEl.style.color=rCl?'#8fa898':rst.open?'#c9a0ff':'#8fa898';
  }
  if(raidWasOpen!==rst.open&&$('p-map').classList.contains('open'))renderMap();
  if(!raidWasOpen&&rst.open&&typeof gameOn!=='undefined'&&gameOn&&(S.prestige||0)>=10){
-  stageMsg('⚔ THE BLACK TEMPLE GATES ARE OPEN — 30 minutes!',4000);
+  stageMsg('⚔ THE BLACK TEMPLE GATES ARE OPEN - 30 minutes!',4000);
   if(typeof sfx!=='undefined'&&sfx.quest)sfx.quest();
  }
  raidWasOpen=rst.open;
@@ -6754,7 +6776,7 @@ function cleanBagItem(it){
  return it;
 }
 function scrapBagItems(match,label){
- if(cowLocked()){stageMsg('The herd allows no forging — survive or die first!',1800);sfx.warn();return false;}
+ if(cowLocked()){stageMsg('The herd allows no forging - survive or die first!',1800);sfx.warn();return false;}
  const keep=[],take=[];
  S.bag.forEach(it=>((match(it)&&!isLegendary(it)&&!inGearSet(it))?take:keep).push(it));
  if(!take.length){stageMsg('Nothing to scrap',1200);return false;}
@@ -6762,67 +6784,67 @@ function scrapBagItems(match,label){
  S.bag=keep;
  S.scraps=Math.min(SCRAP_CAP,S.scraps+total);
  sfx.forge();
- log(`Scrapped ${n} ${label||'items'} — +${total} ⚙.`,'loot');
+ log(`Scrapped ${n} ${label||'items'} - +${total} ⚙.`,'loot');
  stageMsg('⚙ Scrapped '+n+' '+(label||'items')+' for '+total+' Scraps',1800);
  renderBag();renderHUD();save();
  return true;
 }
 function renderBag(){
  $('bagWallet').innerHTML=walletStr();
- // 🍀 luck potions — always at the top
+ // 🍀 luck potions - always at the top
  let luckHtml='';
  if((S.luckPots||0)>0||S.luckT>0){
   const active=S.luckT>0;
   const mins=Math.ceil(S.luckT/60);
   luckHtml=`<div class="card item" style="border-color:#6dbb6d${active?';box-shadow:0 0 10px rgba(109,187,109,.25)':''}"><div>
    <div class="sn" style="color:#9adf9a;font-size:13px;font-weight:600">🍀 Potion of Luck${(S.luckPots||0)>1?` <span style="color:var(--dim)">×${S.luckPots}</span>`:(S.luckPots||0)===1?'':' <span style="color:var(--dim)">×0</span>'}</div>
-   <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#9adf9a">ACTIVE — '+mins+' min remaining.</b> ':''}+20% better drops from slain foes for 30 minutes. Chests and slots are unaffected. Thor yields one per kill.</div></div>
+   <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#9adf9a">ACTIVE - '+mins+' min remaining.</b> ':''}+20% better drops from slain foes for 30 minutes. Chests and slots are unaffected. Thor yields one per kill.</div></div>
    <div class="btns"><button class="sbtn gold" id="luckUse" ${(S.luckPots||0)<1?'disabled':''}>${active?'Extend +30m':'Drink'}</button></div></div>`;
  }
- // ⚗️ raid potions — online Black Temple clears only
+ // ⚗️ raid potions - online Black Temple clears only
  let raidHtml='';
  if((S.raidPots||0)>0||S.raidT>0){
   const active=S.raidT>0;
   const mins=Math.ceil(S.raidT/60);
   raidHtml=`<div class="card item" style="border-color:#39ff6a${active?';box-shadow:0 0 10px rgba(57,255,106,.25)':''}"><div>
    <div class="sn" style="color:#39ff6a;font-size:13px;font-weight:600">⚗️ Potion of Raid <span style="color:var(--dim)">×${S.raidPots||0}</span></div>
-   <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#39ff6a">ACTIVE — '+mins+' min remaining.</b> ':''}+15% boss damage for 60 minutes. Earned by clearing the Black Temple raid online.</div></div>
+   <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#39ff6a">ACTIVE - '+mins+' min remaining.</b> ':''}+15% boss damage for 60 minutes. Earned by clearing the Black Temple raid online.</div></div>
    <div class="btns"><button class="sbtn gold" id="raidUse" ${(S.raidPots||0)<1?'disabled':''}>${active?'Extend +60m':'Drink'}</button></div></div>`;
  }
- // 🛡 armor potions — fished from the Goldshire lake
+ // 🛡 armor potions - fished from the Goldshire lake
  let armorHtml='';
  if((S.armorPots||0)>0||S.armorT>0){
   const aAct=S.armorT>0;
   const aMin=Math.ceil(S.armorT/60);
   armorHtml=`<div class="card item" style="border-color:#8fb0d0${aAct?';box-shadow:0 0 10px rgba(143,176,208,.25)':''}"><div>
    <div class="sn" style="color:#8fb0d0;font-size:13px;font-weight:600">🛡 Potion of Armor <span style="color:var(--dim)">×${S.armorPots||0}</span></div>
-   <div class="ss" style="color:var(--dim);font-size:11px">${aAct?'<b style="color:#8fb0d0">ACTIVE — '+aMin+' min remaining.</b> ':''}Take <b>50% less damage from HAALAND</b> for 20 minutes. A rare catch from the Goldshire lake (0.2%).</div></div>
+   <div class="ss" style="color:var(--dim);font-size:11px">${aAct?'<b style="color:#8fb0d0">ACTIVE - '+aMin+' min remaining.</b> ':''}Take <b>50% less damage from HAALAND</b> for 20 minutes. A rare catch from the Goldshire lake (0.2%).</div></div>
    <div class="btns"><button class="sbtn gold" id="armorUse" ${(S.armorPots||0)<1?'disabled':''}>${aAct?'Extend +20m':'Drink'}</button></div></div>`;
  }
- // 🔗 crypt connectors — chest trophies from The Crypts
+ // 🔗 crypt connectors - chest trophies from The Crypts
  let connHtml='';
  if((S.connectors||0)>0){
   connHtml=`<div class="card item" style="border-color:#8fe3c9"><div>
    <div class="sn" style="color:#8fe3c9;font-size:13px;font-weight:600">🔗 Crypt Connector <span style="color:var(--dim)">×${S.connectors||0}</span></div>
    <div class="ss" style="color:var(--dim);font-size:11px">Cannot be sold or discarded. Bring <b style="color:#8fe3c9">two</b> to a level 10 Blacksmith to fuse any two different <b>Tier IV</b> scrolls into a single scroll. Found in Crypt chests (15%).</div></div></div>`;
  }
- // 🎲 gambler potions — max-win prize
+ // 🎲 gambler potions - max-win prize
  let gamblerHtml='';
  if((S.gamblerPots||0)>0||S.gamblerT>0){
   const active=S.gamblerT>0;
   const mins=Math.ceil(S.gamblerT/60);
   gamblerHtml=`<div class="card item" style="border-color:#ffd76a${active?';box-shadow:0 0 10px rgba(255,215,106,.25)':''}"><div>
    <div class="sn" style="color:#ffd76a;font-size:13px;font-weight:600">🎲 Potion of Gambler <span style="color:var(--dim)">×${S.gamblerPots||0}</span></div>
-   <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#ffd76a">ACTIVE — '+mins+' min remaining.</b> ':''}+20% XP gain and +2% crit chance for 30 minutes. Won only on a 100x max win at Borek 67.</div></div>
+   <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#ffd76a">ACTIVE - '+mins+' min remaining.</b> ':''}+20% XP gain and +2% crit chance for 30 minutes. Won only on a 100x max win at Borek 67.</div></div>
    <div class="btns"><button class="sbtn gold" id="gamblerUse" ${(S.gamblerPots||0)<1?'disabled':''}>${active?'Extend +30m':'Drink'}</button></div></div>`;
  }
- // 😴 rested buff — granted by the Goldshire inn wheel, activates automatically
+ // 😴 rested buff - granted by the Goldshire inn wheel, activates automatically
  let restedHtml='';
  if(S.restedT>0){
   const mins=Math.ceil(S.restedT/60);
   restedHtml=`<div class="card item" style="border-color:#8fc3ef;box-shadow:0 0 10px rgba(143,195,239,.25)"><div>
    <div class="sn" style="color:#8fc3ef;font-size:13px;font-weight:600">😴 Rested</div>
-   <div class="ss" style="color:var(--dim);font-size:11px"><b style="color:#8fc3ef">ACTIVE — ${mins} min remaining.</b> +${Math.round((S.restedPct||0)*100)}% XP from all sources. Spin the inn wheel in Goldshire once a day.</div></div>
+   <div class="ss" style="color:var(--dim);font-size:11px"><b style="color:#8fc3ef">ACTIVE - ${mins} min remaining.</b> +${Math.round((S.restedPct||0)*100)}% XP from all sources. Spin the inn wheel in Goldshire once a day.</div></div>
    </div>`;
  }
  let btHtml='';
@@ -6838,7 +6860,7 @@ function renderBag(){
   if(S.ringRecipe)ringHtml+=`<div class="card item" style="border-color:#ffd76a"><div>
    <div class="sn" style="color:#ffd76a;font-size:13px;font-weight:600">💍 Recipe of the Ring</div>
    <div class="ss" style="color:var(--dim);font-size:11px">${both?'':'The other half sleeps at the bottom of the Goldshire lake. '}Cannot be sold or discarded.</div></div>
-   ${both?`<div class="btns"><span class="ss" style="color:#ffd76a;font-size:11px">${smithOk?'⚒ Ready — visit the Blacksmith!':'⚒ Requires Blacksmith level 10'}</span></div>`:''}</div>`;
+   ${both?`<div class="btns"><span class="ss" style="color:#ffd76a;font-size:11px">${smithOk?'⚒ Ready - visit the Blacksmith!':'⚒ Requires Blacksmith level 10'}</span></div>`:''}</div>`;
   if(S.brokenRing)ringHtml+=`<div class="card item" style="border-color:#c9a45a"><div>
    <div class="sn" style="color:#c9a45a;font-size:13px;font-weight:600">💍 The Broken Ring</div>
    <div class="ss" style="color:var(--dim);font-size:11px">Cold, heavy, and humming. ${both?'Ready to be reforged.':'Needs the Recipe of the Ring from the Trader.'} Cannot be sold or discarded.</div></div></div>`;
@@ -6847,7 +6869,7 @@ function renderBag(){
 
 
  document.querySelectorAll('[data-btchest]').forEach(b=>b.onclick=openBlackTempleChest);
- // scrolls — categorised by tier; tap a tier header to expand/collapse it
+ // scrolls - categorised by tier; tap a tier header to expand/collapse it
  const pool=(S.scrolls||[]).concat(EQS().filter(Boolean));
  if(pool.length){
   const groups={};
@@ -6859,12 +6881,12 @@ function renderBag(){
   let sh='<div class="ptitle" style="font-size:14px;margin-bottom:8px">Scrolls</div>'+ 
    '<div class="ss" style="color:var(--dim);font-size:10.5px;margin-bottom:8px">Choose Scroll 1 or Scroll 2 when equipping. Combine counts both Bag scrolls and equipped scrolls (up to Tier IV). Tap a tier to expand or collapse it.</div>';
   let fusedCards='';
-  (S.scrolls||[]).forEach((sc,idx)=>{ /* 🔗 fused scrolls — one card each, both enchants shown */
+  (S.scrolls||[]).forEach((sc,idx)=>{ /* 🔗 fused scrolls - one card each, both enchants shown */
    if(!sc.id2)return;
    const eA=enchOf(sc.id),eB=enchOf(sc.id2);
    fusedCards+=`<div class="card item" style="border-color:#8fe3c9aa"><div>
     <div class="sn" style="color:#8fe3c9;font-size:13px;font-weight:600"><span class="glowdot" style="background:${eA.glow};box-shadow:0 0 6px ${eA.glow}"></span><span class="glowdot" style="background:${eB.glow};box-shadow:0 0 6px ${eB.glow}"></span>🔗 ${enchName(sc)}</div>
-    <div class="ss" style="color:var(--dim);font-size:11px">${tierDesc(sc.id,sc.tier)}<br>${tierDesc(sc.id2,sc.tier2)}<br><span style="color:#8fe3c9">Fused scroll — two enchants in one slot. Cannot be sold.</span></div></div>
+    <div class="ss" style="color:var(--dim);font-size:11px">${tierDesc(sc.id,sc.tier)}<br>${tierDesc(sc.id2,sc.tier2)}<br><span style="color:#8fe3c9">Fused scroll - two enchants in one slot. Cannot be sold.</span></div></div>
     <div class="btns">
      <button class="sbtn gold" data-fuseslot="0" data-fuseq="${idx}">${EQS()[0]?'↔ ':''}Slot 1</button>
      <button class="sbtn gold" data-fuseslot="1" data-fuseq="${idx}">${EQS()[1]?'↔ ':''}Slot 2</button>
@@ -6910,12 +6932,12 @@ function renderBag(){
   const takeScroll=(id,tier)=>{const i=S.scrolls.findIndex(x=>x.id===id&&x.tier===tier&&!x.id2);return i>=0?S.scrolls.splice(i,1)[0]:null;};
   document.querySelectorAll('[data-eqslot]').forEach(b=>b.onclick=()=>{
    if(inBossFight()){stageMsg('No swapping scrolls mid-boss-fight!',1600);sfx.warn();return;}
-   if(cowLocked()){stageMsg('The herd allows no scroll rituals — survive or die first!',1600);sfx.warn();return;}
+   if(cowLocked()){stageMsg('The herd allows no scroll rituals - survive or die first!',1600);sfx.warn();return;}
    const slot=parseInt(b.dataset.eqslot,10);
    const [id,t]=b.dataset.sceq.split(':'),tier=+t;
    const other=EQS().findIndex((x,i)=>i!==slot&&x&&(x.id===id||x.id2===id));
    if(other>=0){
-    stageMsg(enchOf(id).n.replace('Scroll of ','')+' is already active — effects of the same scroll never stack',1800);
+    stageMsg(enchOf(id).n.replace('Scroll of ','')+' is already active - effects of the same scroll never stack',1800);
     sfx.warn();return;
    }
    const sc=takeScroll(id,tier);if(!sc)return;
@@ -6928,11 +6950,11 @@ function renderBag(){
   });
   document.querySelectorAll('[data-fuseq]').forEach(b=>b.onclick=()=>{
    if(inBossFight()){stageMsg('No swapping scrolls mid-boss-fight!',1600);sfx.warn();return;}
-   if(cowLocked()){stageMsg('The herd allows no scroll rituals — survive or die first!',1600);sfx.warn();return;}
+   if(cowLocked()){stageMsg('The herd allows no scroll rituals - survive or die first!',1600);sfx.warn();return;}
    const slot=parseInt(b.dataset.fuseslot,10),idx=+b.dataset.fuseq;
    const sc=S.scrolls[idx];if(!sc||!sc.id2)return;
    const clash=EQS().findIndex((x,i)=>i!==slot&&x&&(x.id===sc.id||x.id===sc.id2||x.id2===sc.id||x.id2===sc.id2));
-   if(clash>=0){stageMsg('One of those effects is already active — the same effect never stacks',1900);sfx.warn();return;}
+   if(clash>=0){stageMsg('One of those effects is already active - the same effect never stacks',1900);sfx.warn();return;}
    S.scrolls.splice(idx,1);
    const old=EQS()[slot];
    if(old)S.scrolls.push(old);
@@ -6943,14 +6965,14 @@ function renderBag(){
   });
   document.querySelectorAll('[data-comb]').forEach(b=>b.onclick=()=>{
    if(inBossFight()){stageMsg('No swapping scrolls mid-boss-fight!',1600);sfx.warn();return;}
-   if(cowLocked()){stageMsg('The herd allows no scroll rituals — survive or die first!',1600);sfx.warn();return;}
+   if(cowLocked()){stageMsg('The herd allows no scroll rituals - survive or die first!',1600);sfx.warn();return;}
    const [id,t]=b.dataset.comb.split(':'),tier=+t;
    if(scrollPoolCount(id,tier)<2){stageMsg('Need two identical scrolls to combine',1400);sfx.warn();return;}
    const fromSlot=consumeScrolls(id,tier,2);
    const upgraded={id,tier:tier+1};
    if(fromSlot>=0){
     EQS()[fromSlot]=upgraded;
-    stageMsg('📜 '+enchName(upgraded)+' — upgraded directly in Scroll '+(fromSlot+1)+'!',1800);
+    stageMsg('📜 '+enchName(upgraded)+' - upgraded directly in Scroll '+(fromSlot+1)+'!',1800);
    }else{
     S.scrolls.push(upgraded);
     stageMsg('⚗ '+enchName(upgraded)+' forged!',1800);
@@ -6969,8 +6991,8 @@ function renderBag(){
    S.scrolls.splice(i,1);
    S.gold=Math.min(goldCap(),S.gold+TIER4_SCROLL_SELL);
    sfx.loot();
-   log(`Sold <span class="lscroll">${enchOf(id).n} ${TIERN[tier-1]}</span> — +${TIER4_SCROLL_SELL.toLocaleString()} ◉.`,'loot');
-   stageMsg('Sold '+enchOf(id).n+' '+TIERN[tier-1]+' — +'+TIER4_SCROLL_SELL.toLocaleString()+'◉',1800);
+   log(`Sold <span class="lscroll">${enchOf(id).n} ${TIERN[tier-1]}</span> - +${TIER4_SCROLL_SELL.toLocaleString()} ◉.`,'loot');
+   stageMsg('Sold '+enchOf(id).n+' '+TIERN[tier-1]+' - +'+TIER4_SCROLL_SELL.toLocaleString()+'◉',1800);
    renderBag();renderHUD();save();
   });
  }
@@ -7006,7 +7028,7 @@ function renderBag(){
    S.pets.splice(i,1);
    S.gold=Math.min(goldCap(),S.gold+PET_SELL);
    sfx.loot();
-   log(`Sold a ${petGlyph(petOf(id))} companion — +${PET_SELL.toLocaleString()} ◉. Heartless.`,'loot');
+   log(`Sold a ${petGlyph(petOf(id))} companion - +${PET_SELL.toLocaleString()} ◉. Heartless.`,'loot');
    renderBag();renderHUD();save();
   });
  }
@@ -7017,7 +7039,7 @@ function renderBag(){
   S.luckT=(S.luckT||0)+1800;
   sfx.potion();
   sparkles(hero.x,hero.y-12,'#9adf9a',12);
-  stageMsg('🍀 Luck flows through you — 20% better drops for '+Math.ceil(S.luckT/60)+' minutes!',2500);
+  stageMsg('🍀 Luck flows through you - 20% better drops for '+Math.ceil(S.luckT/60)+' minutes!',2500);
   log('<span class="lfine">🍀 Potion of Luck</span> consumed.');
   renderBag();save();
  };
@@ -7039,7 +7061,7 @@ function renderBag(){
   S.raidT=(S.raidT||0)+3600;
   sfx.potion();
   sparkles(hero.x,hero.y-12,'#39ff6a',12);
-  stageMsg('⚗️ Raid fervor surges — +15% boss damage for '+Math.ceil(S.raidT/60)+' minutes!',2500);
+  stageMsg('⚗️ Raid fervor surges - +15% boss damage for '+Math.ceil(S.raidT/60)+' minutes!',2500);
   log('<span class="llegendary">⚗️ Potion of Raid</span> consumed.');
   renderBag();save();
  };
@@ -7056,7 +7078,7 @@ function renderBag(){
  };
 
  S.bag=(S.bag||[]).map(cleanBagItem).filter(Boolean);
- if(!S.bag.length){$('bagList').innerHTML='<div class="card" style="color:var(--dim);font-size:12px">The bag is empty. Gear, potions and scrolls drop from foes — bosses always drop. Sell spares for gold, or scrap them for ⚙ Scraps to upgrade your gear.</div>';return;}
+ if(!S.bag.length){$('bagList').innerHTML='<div class="card" style="color:var(--dim);font-size:12px">The bag is empty. Gear, potions and scrolls drop from foes - bosses always drop. Sell spares for gold, or scrap them for ⚙ Scraps to upgrade your gear.</div>';return;}
  const sellable=S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it));
  const totalScrap=sellable.reduce((t,it)=>t+scrapVal(it),0);
  const totalSell=sellable.reduce((t,it)=>t+(it.sell||0),0);
@@ -7102,7 +7124,7 @@ function renderBag(){
     ${isLegendary(it)
      ?'<span class="ss" style="color:#ffd100;align-self:center">🔒 Cannot be sold or scrapped</span>'
      :inGearSet(it)
-     ?`<button class="sbtn" data-unstar="${i}" title="Remove from its gear set — it becomes sellable again">⭐ Unsave</button>`
+     ?`<button class="sbtn" data-unstar="${i}" title="Remove from its gear set - it becomes sellable again">⭐ Unsave</button>`
      :`<button class="sbtn" data-sell="${i}">Sell ${(it.sell||0).toLocaleString()}◉</button>
        <button class="sbtn scrapb" data-scr="${i}">Scrap +${scrapVal(it)}⚙</button>`}
    </div></div>`).join('');
@@ -7140,11 +7162,11 @@ function renderBag(){
   });
  });
  document.querySelectorAll('[data-scr]').forEach(b=>b.onclick=()=>{
-  if(cowLocked()){stageMsg('No scrapping mid-herd — die or leave first!',1600);sfx.warn();return;}
+  if(cowLocked()){stageMsg('No scrapping mid-herd - die or leave first!',1600);sfx.warn();return;}
   const i=+b.dataset.scr;if(isLegendary(S.bag[i])||inGearSet(S.bag[i]))return;
   const it=S.bag.splice(i,1)[0];
   S.scraps=Math.min(SCRAP_CAP,S.scraps+scrapVal(it));sfx.forge();
-  log(`Scrapped <span class="l${it.rar}">${it.name}</span> — +${scrapVal(it)} ⚙.`);
+  log(`Scrapped <span class="l${it.rar}">${it.name}</span> - +${scrapVal(it)} ⚙.`);
   renderBag();renderHUD();save();
  });
  document.querySelectorAll('[data-unstar]').forEach(b=>b.onclick=()=>{
@@ -7152,15 +7174,15 @@ function renderBag(){
   if(!it||!it.gsid)return;
   (S.gearSets||[]).forEach(gs=>{if(gs)SLOTS.forEach(k=>{if(gs[k]===it.gsid)gs[k]=null;});});
   delete it.gsid;
-  stageMsg('⭐ Released from its gear set — it can be sold or scrapped again',1900);
+  stageMsg('⭐ Released from its gear set - it can be sold or scrapped again',1900);
   renderBag();renderHero();save();
  });
  const sa=$('scrapAll');
  if(sa)sa.onclick=()=>{
-  if(cowLocked()){stageMsg('No scrapping mid-herd — die or leave first!',1600);sfx.warn();return;}
+  if(cowLocked()){stageMsg('No scrapping mid-herd - die or leave first!',1600);sfx.warn();return;}
   if(!sa.dataset.armed){
    sa.dataset.armed='1';
-   sa.textContent='Confirm — scrap everything?';
+   sa.textContent='Confirm - scrap everything?';
    sa.style.color='#ff8a7a';sa.style.borderColor='#a05a5a';
    setTimeout(()=>{if(sa.isConnected){delete sa.dataset.armed;sa.textContent=`⚙ Scrap All +${S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it)).reduce((t,it)=>t+scrapVal(it),0)}⚙`;sa.style.color='';sa.style.borderColor='';}},3000);
    return;
@@ -7169,10 +7191,10 @@ function renderBag(){
  };
  const se=$('sellAll');
  if(se)se.onclick=()=>{
-  if(cowLocked()){stageMsg('No selling mid-herd — fill the bag or die first!',1600);sfx.warn();return;}
+  if(cowLocked()){stageMsg('No selling mid-herd - fill the bag or die first!',1600);sfx.warn();return;}
   if(!se.dataset.armed){
    se.dataset.armed='1';
-   se.textContent='Confirm — sell everything?';
+   se.textContent='Confirm - sell everything?';
    se.style.color='#ff8a7a';se.style.borderColor='#a05a5a';
    setTimeout(()=>{if(se.isConnected){delete se.dataset.armed;se.textContent=`◉ Sell All +${S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it)).reduce((t,it)=>t+(it.sell||0),0).toLocaleString()}◉`;se.style.color='';se.style.borderColor='';}},3000);
    return;
@@ -7182,7 +7204,7 @@ function renderBag(){
   S.bag=keep;
   S.gold=Math.min(goldCap(),S.gold+total);
   sfx.loot();
-  log(`Sold ${n} items — +${total.toLocaleString()} ◉. Legendaries stay in the bag.`,'loot');
+  log(`Sold ${n} items - +${total.toLocaleString()} ◉. Legendaries stay in the bag.`,'loot');
   stageMsg('◉ Sold '+n+' items for '+total.toLocaleString()+' gold',1800);
   renderBag();renderHUD();save();
  };
@@ -7202,7 +7224,7 @@ function spawnChestParts(color,n){
   setTimeout(()=>p.remove(),1100);
  }
 }
-/* --- GAMBAAA! case opening — CS:GO-style reel. The spin cannot be skipped;
+/* --- GAMBAAA! case opening - CS:GO-style reel. The spin cannot be skipped;
    Respin and Close only appear once the prize has landed. --- */
 const CASE_COST=5000,GOLD_COST=20000;
 let caseSpinning=false,caseRAF=0,curCase='gamba'; /* which chest is spinning */
@@ -7232,7 +7254,7 @@ function fillerCard(){
    const tp=petOf(['cat','dog','blackdog'][Math.floor(Math.random()*3)]);
    return {icon:petGlyph(tp),cc:tp.cc,t:'pet'};
   }
-  if(rr<0.075)return {icon:'🐂',cc:'#ffd100',t:'farm'}; /* bull tease — gold ring */
+  if(rr<0.075)return {icon:'🐂',cc:'#ffd100',t:'farm'}; /* bull tease - gold ring */
  }
  if(curCase==='gamba'&&Math.random()<0.06)return {icon:['🐄','🐔','🌾'][Math.floor(Math.random()*3)],cc:'#ffd100',t:'farm'};
  const pool=curCase==='gold'?CASE_RARS_GOLD:CASE_RARS;
@@ -7250,17 +7272,17 @@ function prizeValue(type){
    if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
    return {icon:'🗡️',tier:'LEGENDARY',name:itemName(it),color:'#ffd100',sub:'weapon · '+itemStr(it),epic:true,big:true};
   }
-  if(r<0.005){ /* 0.002–0.005 = 0.3% pet — Puffen, Ayla or Nellie, 33% each */
+  if(r<0.005){ /* 0.002–0.005 = 0.3% pet - Puffen, Ayla or Nellie, 33% each */
    const ids=['cat','dog','blackdog'];
    const p=petOf(ids[Math.floor(Math.random()*3)]);
    S.pets.push(p.id);
    log(`GOLD GOLD GOLD: ${petGlyph(p)} <span class="llegendary">${p.n}</span>!`,'loot');
    return {icon:petGlyph(p),tier:'PET',name:p.n,color:p.cc,sub:p.d+' Equip it from the Bag.',epic:true,big:true};
   }
-  if(r<0.0125){ /* 0.005–0.0125 = 0.75% 🐂 Bull — farm stock */
+  if(r<0.0125){ /* 0.005–0.0125 = 0.75% 🐂 Bull - farm stock */
    S.farm.inv=S.farm.inv||{};S.farm.inv.tjur=(S.farm.inv.tjur||0)+1;
-   log(`GOLD GOLD GOLD: <span class="llegendary">🐂 A Bull</span> — sent to the farm!`,'loot');
-   return {icon:'🐂',tier:'FARM ANIMAL',name:'Bull',color:'#ffd100',sub:'Sent to the farm — place it from the build menu.',epic:true,big:true};
+   log(`GOLD GOLD GOLD: <span class="llegendary">🐂 A Bull</span> - sent to the farm!`,'loot');
+   return {icon:'🐂',tier:'FARM ANIMAL',name:'Bull',color:'#ffd100',sub:'Sent to the farm - place it from the build menu.',epic:true,big:true};
   }
   if(r<0.0715){
    const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
@@ -7275,20 +7297,20 @@ function prizeValue(type){
   if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
   return {icon,tier:rar,name:itemName(it),color:col,sub:it.slot+' · '+itemStr(it),epic:rar==='epic',big:rar==='rare'};
  }
- if(r<0.003){ /* 0.3% 🐄 Calf — farm stock */
+ if(r<0.003){ /* 0.3% 🐄 Calf - farm stock */
   S.farm.inv=S.farm.inv||{};S.farm.inv.cowfarm=(S.farm.inv.cowfarm||0)+1;
-  log(`GAMBAAA!: <span class="llegendary">🐄 A Calf</span> — sent to the farm!`,'loot');
-  return {icon:'🐄',tier:'FARM ANIMAL',name:'Calf',color:'#ffd100',sub:'Sent to the farm — place it from the build menu.',epic:true,big:true};
+  log(`GAMBAAA!: <span class="llegendary">🐄 A Calf</span> - sent to the farm!`,'loot');
+  return {icon:'🐄',tier:'FARM ANIMAL',name:'Calf',color:'#ffd100',sub:'Sent to the farm - place it from the build menu.',epic:true,big:true};
  }
- if(r<0.008){ /* 0.3–0.8% = 0.5% 🐔 Chicken — farm stock */
+ if(r<0.008){ /* 0.3–0.8% = 0.5% 🐔 Chicken - farm stock */
   S.farm.inv=S.farm.inv||{};S.farm.inv.chickenfarm=(S.farm.inv.chickenfarm||0)+1;
-  log(`GAMBAAA!: <span class="llegendary">🐔 A Chicken</span> — sent to the farm!`,'loot');
-  return {icon:'🐔',tier:'FARM ANIMAL',name:'Chicken',color:'#ffd100',sub:'Sent to the farm — place it from the build menu.',epic:true,big:true};
+  log(`GAMBAAA!: <span class="llegendary">🐔 A Chicken</span> - sent to the farm!`,'loot');
+  return {icon:'🐔',tier:'FARM ANIMAL',name:'Chicken',color:'#ffd100',sub:'Sent to the farm - place it from the build menu.',epic:true,big:true};
  }
- if(r<0.038){ /* 0.8–3.8% = 3% 🌾 Hay Seeds — farm stock */
+ if(r<0.038){ /* 0.8–3.8% = 3% 🌾 Hay Seeds - farm stock */
   S.farm.inv=S.farm.inv||{};S.farm.inv.hay=(S.farm.inv.hay||0)+1;
-  log(`GAMBAAA!: <span class="lscroll">🌾 Hay Seeds</span> — sent to the farm!`,'loot');
-  return {icon:'🌾',tier:'FARM',name:'Hay Seeds',color:'#ffd100',sub:'Sent to the farm — place it from the build menu.',big:true};
+  log(`GAMBAAA!: <span class="lscroll">🌾 Hay Seeds</span> - sent to the farm!`,'loot');
+  return {icon:'🌾',tier:'FARM',name:'Hay Seeds',color:'#ffd100',sub:'Sent to the farm - place it from the build menu.',big:true};
  }
  if(r<0.098){
   const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
@@ -7344,10 +7366,10 @@ function rollChestBatch(type,count){
   freeUsed=Math.min(S.freeGoldCases,count);
   total=cost*(count-freeUsed);
  }
- if(!spendGold(total)){stageMsg('Not enough gold — costs '+total.toLocaleString()+' ◉',1500);return null;}
+ if(!spendGold(total)){stageMsg('Not enough gold - costs '+total.toLocaleString()+' ◉',1500);return null;}
  if(freeUsed){
   S.freeGoldCases-=freeUsed;
-  log(`Redeemed ${freeUsed} free case${freeUsed>1?'s':''} — ${S.freeGoldCases} left.`,'loot');
+  log(`Redeemed ${freeUsed} free case${freeUsed>1?'s':''} - ${S.freeGoldCases} left.`,'loot');
  }
  sfx.buy();
  lastCaseLootIds=[];
@@ -7422,7 +7444,7 @@ function finishCase(wins){
  if(curCase==='gold'){const f=Math.min(S.freeGoldCases||0,qty);cost=caseCost()*(qty-f);}
  if(curCase!=='blacktemple'){
   rb.disabled=totalGold()<cost;
-  rb.textContent=cost<=0?'🎁 Respin '+qty+'x · FREE':(rb.disabled?'🎁 Respin '+qty+'x · '+cost.toLocaleString()+'◉ — broke!':'🎁 Respin '+qty+'x · '+cost.toLocaleString()+'◉');
+  rb.textContent=cost<=0?'🎁 Respin '+qty+'x · FREE':(rb.disabled?'🎁 Respin '+qty+'x · '+cost.toLocaleString()+'◉ - broke!':'🎁 Respin '+qty+'x · '+cost.toLocaleString()+'◉');
  }
  const cs=$('caseScrapBtn'),chestGear=S.bag.filter(it=>lastCaseLootIds.includes(it._lid)&&!isLegendary(it));
  if(chestGear.length){
@@ -7444,7 +7466,7 @@ $('caseScrapBtn').onclick=()=>{
  const b=$('caseScrapBtn'),items=S.bag.filter(it=>lastCaseLootIds.includes(it._lid)&&!isLegendary(it));
  if(!items.length){b.style.display='none';return;}
  if(!b.dataset.armed){
-  b.dataset.armed='1';b.textContent='Confirm — scrap chest gear?';b.style.color='#ff8a7a';b.style.borderColor='#a05a5a';
+  b.dataset.armed='1';b.textContent='Confirm - scrap chest gear?';b.style.color='#ff8a7a';b.style.borderColor='#a05a5a';
   setTimeout(()=>{if(b.isConnected&&b.dataset.armed){delete b.dataset.armed;const total=S.bag.filter(it=>lastCaseLootIds.includes(it._lid)&&!isLegendary(it)).reduce((t,it)=>t+scrapVal(it),0);b.textContent='⚙ Scrap Chest Gear +'+total+'⚙';b.style.color='';b.style.borderColor='';}},3000);
   return;
  }
@@ -7507,7 +7529,7 @@ function clearSlotCelebration(){
 }
 function spinSlots(){
  if(slotSpinning||slotCelebrating)return;
- if(!spendGold(slotCost())){stopSlotAuto();stageMsg('Not enough gold — a spin costs '+slotCost().toLocaleString()+'◉',1400);sfx.warn();return;}
+ if(!spendGold(slotCost())){stopSlotAuto();stageMsg('Not enough gold - a spin costs '+slotCost().toLocaleString()+'◉',1400);sfx.warn();return;}
  renderHUD();
  slotSpinning=true;
  $('slotRes').innerHTML='&nbsp;';
@@ -7558,16 +7580,16 @@ function slotSettle(out){
    slotCelebrating=true;
    const jackpot=out.mul>=100;
    res.classList.add('bigres');
-   res.textContent=(jackpot?'🎉 JACKPOT! ':'💎 BIG WIN! ')+out.mul+'x — +'+paid.toLocaleString()+'◉'+(over?' ('+over.toLocaleString()+' to overflow)':'');
+   res.textContent=(jackpot?'🎉 JACKPOT! ':'💎 BIG WIN! ')+out.mul+'x - +'+paid.toLocaleString()+'◉'+(over?' ('+over.toLocaleString()+' to overflow)':'');
    $('slotFx').querySelector('.slotmach').classList.add('bigwin');
    if(jackpot)$('slotFx').classList.add('flash');
    dingDingDing(jackpot);
    spawnSlotParts(jackpot?'#ffd100':out.color,jackpot?30:16);
    if(jackpot)setTimeout(()=>spawnSlotParts('#ffd100',20),600);
-   log(`Borek 67: <span class="llegendary">${out.mul}x — +${paid.toLocaleString()} ◉</span>${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}!`,'loot');
+   log(`Borek 67: <span class="llegendary">${out.mul}x - +${paid.toLocaleString()} ◉</span>${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}!`,'loot');
    if(jackpot){
     S.gamblerPots=(S.gamblerPots||0)+1;
-    log(`Max win! <span class="llegendary">🎲 Potion of Gambler</span> — +20% XP & +2% crit for 30 min, now in your Bag.`,'loot');
+    log(`Max win! <span class="llegendary">🎲 Potion of Gambler</span> - +20% XP & +2% crit for 30 min, now in your Bag.`,'loot');
    }
    slotCelebrateTimer=setTimeout(()=>{
     clearSlotCelebration();
@@ -7575,9 +7597,9 @@ function slotSettle(out){
     resumeAutoIfOn();
    },jackpot?6000:4000);
   }else{
-   res.textContent='Winner! '+out.mul+'x — +'+paid.toLocaleString()+'◉'+(over?' ('+over.toLocaleString()+' to overflow)':'');
+   res.textContent='Winner! '+out.mul+'x - +'+paid.toLocaleString()+'◉'+(over?' ('+over.toLocaleString()+' to overflow)':'');
    sfx.loot();spawnSlotParts(out.color,8);
-   log(`Borek 67: <span class="loot">${out.mul}x</span> — +${paid.toLocaleString()} ◉${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}.`,'loot');
+   log(`Borek 67: <span class="loot">${out.mul}x</span> - +${paid.toLocaleString()} ◉${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}.`,'loot');
   }
  }else if(out.kind==='scrap'){
   const got=addScraps(out.n);
@@ -7597,7 +7619,7 @@ function updateSlotUI(){
  const b=$('slotSpinBtn'),cost=slotCost();
  if(b){
   b.disabled=slotSpinning||slotCelebrating||totalGold()<cost;
-  b.textContent=totalGold()<cost?'🎰 Spin · '+cost.toLocaleString()+'◉ — broke!':'🎰 Spin · '+cost.toLocaleString()+'◉';
+  b.textContent=totalGold()<cost?'🎰 Spin · '+cost.toLocaleString()+'◉ - broke!':'🎰 Spin · '+cost.toLocaleString()+'◉';
  }
  const a=$('slotAutoBtn');
  if(a){
@@ -7614,8 +7636,8 @@ function updateSlotUI(){
 }
 function resumeAutoIfOn(){
  if(!slotAuto)return;
- if(totalGold()<slotCost()){stopSlotAuto('Out of gold — auto stopped.');return;}
- if(lootBlocked()){stopSlotAuto('Gold and scrap both full — auto stopped.');return;}
+ if(totalGold()<slotCost()){stopSlotAuto('Out of gold - auto stopped.');return;}
+ if(lootBlocked()){stopSlotAuto('Gold and scrap both full - auto stopped.');return;}
  slotAutoTimer=setTimeout(()=>{if(slotAuto&&!slotCelebrating&&$('slotFx').classList.contains('open'))spinSlots();},700);
 }
 function stopSlotAuto(msg){
@@ -7660,9 +7682,10 @@ $('slotClose').onclick=()=>{
  if(slotSpinning&&!slotAuto)return;
  stopSlotAuto();clearSlotCelebration();
  $('slotFx').classList.remove('open');
+ casinoAmbApply();
 };
 
-/* ==================== BOREK SEAMEN — hold & respin slot ==================== */
+/* ==================== BOREK SEAMEN - hold & respin slot ==================== */
 const SEA_BETS=[100,500,1000,2000],SEA_COLS=4;
 const SEA_ROWSBY=[3,5,5,3];
 let seaBetIx=0,seaBet=SEA_BETS[seaBetIx],seaFast=false;
@@ -7681,7 +7704,7 @@ const SEA_W_BASE=[['joker',28],['hook',28],['wave',22],['fine',9],['rare',6],['e
 const SEA_W_BONUS=[['joker',20],['hook',20],['wave',16],['fine',12],['rare',9],['epic',6],['skull',5]];
 let seaSpinning=false,seaAuto=false,seaAutoTimer=0,seaCelebrating=false,seaCelebrateTimer=0;
 let seaFree=0,seaSession={spins:0,gold:0,scrap:0};
-const SEA_BONUSBUY_X=25; /* 10 free spins EV ≈ 24x bet — 25x keeps the game's 96% RTP */
+const SEA_BONUSBUY_X=25; /* 10 free spins EV ≈ 24x bet - 25x keeps the game's 96% RTP */
 let seaForcedBonus=false;
 const seaBonusMode=()=>seaFree>0;
 function seaSymKey(){
@@ -7730,7 +7753,7 @@ function seaMark(grid,key,run){
  }
 }
 function seaAnimateCols(cols,grid,done){
- /* measure the real rendered cell size — CSS scales it to fit the viewport */
+ /* measure the real rendered cell size - CSS scales it to fit the viewport */
  const first=$('sc0').firstElementChild;
  const CH=(first&&first.getBoundingClientRect().height)||62;
  const reels=cols.map((c,j)=>{
@@ -7849,7 +7872,7 @@ function spinSea(){
  if(isFree)seaFree--;
  else if(!spendGold(cost)){
   stopSeaAuto();
-  stageMsg('Not enough gold — a spin costs '+cost.toLocaleString()+'◉',1400);
+  stageMsg('Not enough gold - a spin costs '+cost.toLocaleString()+'◉',1400);
   sfx.warn();
   return;
  }
@@ -7860,7 +7883,7 @@ function spinSea(){
  const res=$('seaRes');
  res.classList.remove('bigres');
  res.style.color=isFree?'#ffd100':'#8fa898';
- res.textContent=isFree?'🎁 FREE SPIN — '+seaFree+' kvar efter denna':' ';
+ res.textContent=isFree?'🎁 FREE SPIN - '+seaFree+' kvar efter denna':' ';
  updateSeaUI();
  sfx.buy();
  const mult=seaRollOutcome(isFree);
@@ -7870,7 +7893,7 @@ function spinSea(){
  grid._mult=mult;
  grid._bk=mult>0?seaBandOf(mult):null;
  grid._free=isFree;
- /* 🎁 bonus-trigger — aldrig under pågående free spins, ingen retrigger */
+ /* 🎁 bonus-trigger - aldrig under pågående free spins, ingen retrigger */
  if(!isFree&&(seaForcedBonus||Math.random()<SEA_BONUS_CHANCE)){
   seaForcedBonus=false;
   grid._bonus=true;
@@ -7880,7 +7903,7 @@ function spinSea(){
    grid[c][i]={k:'bonus',icon:'🎁',cc:'#ffd100',m:1,_plant:true};
   });
  }else if(!isFree&&Math.random()<0.10){
-  /* 🎁 tease — 1 or 2 boxes land but never the third; pure drama, no payout */
+  /* 🎁 tease - 1 or 2 boxes land but never the third; pure drama, no payout */
   const nT=Math.random()<0.3?2:1;
   const teaseCols=[0,1,2].sort(()=>Math.random()-0.5).slice(0,nT);
   teaseCols.forEach(c=>{
@@ -7926,7 +7949,7 @@ function seaScript(grid){
  seaMarkLocked(grid);
  if(grid._steps<=0){seaPayout(grid,grid._target);return;}
  $('seaRes').style.color='#8fc3ef';
- $('seaRes').textContent='🔒 Locked — respinning!';
+ $('seaRes').textContent='🔒 Locked - respinning!';
  setTimeout(()=>seaScriptStep(grid,grid._steps),seaFast?350:700);
 }
 function seaScriptStep(grid,left){
@@ -7947,7 +7970,7 @@ function seaScriptStep(grid,left){
   grid.forEach(col=>col.forEach(x=>{if(x.lock&&x.m>1)x.m=Math.min(x.m*2,64);}));
   seaMarkLocked(grid);
   blip(980,1500,0.2,.08);
-  $('seaRes').textContent='🔥 CONNECTION — MULTIPLIERS DOUBLED!';
+  $('seaRes').textContent='🔥 CONNECTION - MULTIPLIERS DOUBLED!';
   if(left>1)setTimeout(()=>seaScriptStep(grid,left-1),seaFast?400:800);
   else setTimeout(()=>seaOfferBuy2(grid),seaFast?400:800);
  });
@@ -7976,7 +7999,7 @@ function seaOfferBuy2(grid){
     grid._target=Math.min(grid._target*2,seaCost()*20000);
     grid.forEach(col=>col.forEach(x=>{if(x.lock&&x.m>1)x.m=Math.min(x.m*2,64);}));
     seaMarkLocked(grid);
-    $('seaRes').textContent='🔥 CONNECTION — WIN DOUBLED!';
+    $('seaRes').textContent='🔥 CONNECTION - WIN DOUBLED!';
     setTimeout(()=>seaOfferBuy2(grid),seaFast?450:900);
    }else{$('seaRes').textContent='The sea claims your coin…';seaPayout(grid,grid._target);}
   });
@@ -7995,7 +8018,7 @@ function seaPayout(grid,amount){
   spawnPartsIn($('seaFx'),'#ffd100',20);
   res.style.color='#ffd100';
   res.classList.add('bigres');
-  res.textContent='🎁 BONUS — '+SEA_BONUS_SPINS+' FREE SPINS!';
+  res.textContent='🎁 BONUS - '+SEA_BONUS_SPINS+' FREE SPINS!';
   log(`Borek Seamen: <span class="llegendary">🎁 ${SEA_BONUS_SPINS} FREE SPINS!</span>`,'loot');
   return true;
  };
@@ -8024,7 +8047,7 @@ function seaPayout(grid,amount){
  if(big){
   seaCelebrating=true;
   res.classList.add('bigres');
-  res.textContent='🌊 BIG CATCH — '+paid.toLocaleString()+'◉ · '+multTxt;
+  res.textContent='🌊 BIG CATCH - '+paid.toLocaleString()+'◉ · '+multTxt;
   $('seaFx').querySelector('.slotmach').classList.add('bigwin');
   dingDingDing(amount>=seaCost()*50);
   spawnPartsIn($('seaFx'),'#ffd100',22);
@@ -8060,7 +8083,7 @@ function updateSeaUI(){
  if(b){
   b.disabled=seaSpinning||seaCelebrating||(seaFree<=0&&totalGold()<cost);
   b.textContent=seaFree>0?'🎁 FREE SPIN · '+seaFree+' kvar'
-   :totalGold()<cost?'🦈 Spin · '+cost.toLocaleString()+'◉ — broke!'
+   :totalGold()<cost?'🦈 Spin · '+cost.toLocaleString()+'◉ - broke!'
    :'🦈 Spin · '+cost.toLocaleString()+'◉';
  }
  const a=$('seaAutoBtn');
@@ -8082,7 +8105,7 @@ function updateSeaUI(){
 }
 function resumeSeaAuto(){
  if(!seaAuto)return;
- if(seaFree<=0&&totalGold()<seaCost()){stopSeaAuto('Out of gold — auto stopped.');return;}
+ if(seaFree<=0&&totalGold()<seaCost()){stopSeaAuto('Out of gold - auto stopped.');return;}
  seaAutoTimer=setTimeout(()=>{if(seaAuto&&!seaCelebrating&&!seaSpinning&&$('seaFx').classList.contains('open'))spinSea();},seaFast?400:800);
 }
 function stopSeaAuto(msg){
@@ -8092,7 +8115,7 @@ function stopSeaAuto(msg){
 }
 /* iOS ignores audio.volume writes, and even MediaElementSource routing is unreliable
    there. Bulletproof path: decode the song to an AudioBuffer and play it as PURE Web
-   Audio through a gain node — gain always works on phones. The <audio> element remains
+   Audio through a gain node - gain always works on phones. The <audio> element remains
    as a fallback (and first-open bridge while the song decodes). */
 let seaGain=null,seaBuf=null,seaBufSrc=null,seaBufLoading=false;
 function seaStopBuf(){if(seaBufSrc){try{seaBufSrc.stop();}catch(e){}try{seaBufSrc.disconnect();}catch(e){}seaBufSrc=null;}}
@@ -8117,7 +8140,7 @@ function seaMusicStart(){
      seaBuf=b;
      if($('seaFx').classList.contains('open')){try{seaMusic.pause();}catch(e){}seaBufPlay();}
     })
-    .catch(()=>{seaBufLoading=false;}); /* fetch/decode failed — the element fallback keeps playing */
+    .catch(()=>{seaBufLoading=false;}); /* fetch/decode failed - the element fallback keeps playing */
   }
  }
  /* fallback + bridge while decoding */
@@ -8152,7 +8175,7 @@ function openSea(){
 }
 $('seaVol').value=Math.round(window.seaVolVal*100);
 $('seaVol').oninput=e=>{window.seaVolVal=(+e.target.value)/100;seaApplyVol();try{localStorage.setItem('seaVol',window.seaVolVal);}catch(err){}};
-if(IS_TOUCH)$('seaVol').style.display='none'; /* phones: slider can't control level — mute button only */
+if(IS_TOUCH)$('seaVol').style.display='none'; /* phones: slider can't control level - mute button only */
 $('seaMuteBtn').textContent=window.seaMuted?'🔇':'🔊';
 $('seaMuteBtn').onclick=()=>{
  window.seaMuted=!window.seaMuted;
@@ -8174,9 +8197,9 @@ $('seaBetUp').onclick=()=>{if(seaBetIx<SEA_BETS.length-1&&!seaSpinning&&!seaAuto
 $('seaBonusBuyBtn').onclick=()=>{
  if(seaSpinning||seaCelebrating||seaAuto||seaFree>0)return;
  const price=seaBet*SEA_BONUSBUY_X;
- if(!spendGold(price)){stageMsg('Not enough gold — the bonus costs '+price.toLocaleString()+'◉',1600);sfx.warn();return;}
+ if(!spendGold(price)){stageMsg('Not enough gold - the bonus costs '+price.toLocaleString()+'◉',1600);sfx.warn();return;}
  seaSession.gold-=price;renderHUD();
- seaForcedBonus=true; /* this spin plants the three boxes — 10 free spins incoming */
+ seaForcedBonus=true; /* this spin plants the three boxes - 10 free spins incoming */
  spinSea();
 };
 $('seaClose').onclick=()=>{
@@ -8184,14 +8207,7 @@ $('seaClose').onclick=()=>{
  stopSeaAuto();clearSeaCelebration();clearTimeout(seaAutoTimer);
  $('seaFx').classList.remove('open');
  seaMusicStop();
- /* restore ambient */
- applyVolumes();
- if(gameOn){
-  if(zoneOf().cow&&cowAudio)cowAudio.play().catch(()=>{});
-  else if(zoneOf().amb==='haaland'&&haalandAudio)haalandAudio.play().catch(()=>{});
-  else if(zoneOf().crypts&&cryptAudio)cryptAudio.play().catch(()=>{});
-  else if(ambAudio)ambAudio.play().catch(()=>{});
- }
+ casinoAmbApply(); /* restores zone ambience - or hands the room back to the casino track */
 };
 
 /* ==================== BOREK BLACKJACK ==================== */
@@ -8233,7 +8249,7 @@ function bjRender(hideHole){
 function bjUI(){
  const d=$('bjDeal');
  d.disabled=bjLive||bjResolving||totalGold()<bjBet;
- d.textContent=totalGold()<bjBet&&!bjLive?'Deal · '+bjBet.toLocaleString()+'◉ — broke!':'Deal · '+bjBet.toLocaleString()+'◉';
+ d.textContent=totalGold()<bjBet&&!bjLive?'Deal · '+bjBet.toLocaleString()+'◉ - broke!':'Deal · '+bjBet.toLocaleString()+'◉';
  $('bjHit').disabled=!bjLive;
  $('bjStand').disabled=!bjLive;
  $('bjDbl').disabled=!bjLive||bjP.length!==2||totalGold()<bjWager;
@@ -8264,7 +8280,7 @@ function bjSettle(kind){
   res.style.color='#ffd100';res.classList.add('bigres');
   res.textContent='🃏 BLACKJACK! +'+paid.toLocaleString()+'◉ · pays 3:2';
   dingDingDing(false);spawnPartsIn($('bjFx'),'#ffd100',18);
-  log(`Borek Blackjack: <span class="llegendary">BLACKJACK — +${paid.toLocaleString()} ◉</span>!`,'loot');
+  log(`Borek Blackjack: <span class="llegendary">BLACKJACK - +${paid.toLocaleString()} ◉</span>!`,'loot');
  }else if(kind==='win'){
   res.style.color='#9adf9a';
   res.textContent='Winner! +'+paid.toLocaleString()+'◉';
@@ -8272,7 +8288,7 @@ function bjSettle(kind){
   log(`Borek Blackjack: <span class="loot">+${paid.toLocaleString()} ◉</span>.`,'loot');
  }else if(kind==='push'){
   res.style.color='#8fa898';
-  res.textContent='Push — bet returned.';
+  res.textContent='Push - bet returned.';
   blip(600,600,0.12,.05);
  }else{
   res.style.color='#ff8a7a';
@@ -8307,7 +8323,7 @@ function bjDealerPlay(){
 }
 function bjDeal(){
  if(bjLive||bjResolving)return;
- if(!spendGold(bjBet)){stageMsg('Not enough gold — a hand costs '+bjBet.toLocaleString()+'◉',1400);sfx.warn();return;}
+ if(!spendGold(bjBet)){stageMsg('Not enough gold - a hand costs '+bjBet.toLocaleString()+'◉',1400);sfx.warn();return;}
  renderHUD();sfx.buy();
  bjGen++; /* invalidate any stale dealer timers from the previous hand */
  bjWager=bjBet;bjLive=true;bjSettled=false;
@@ -8359,8 +8375,258 @@ $('bjDbl').onclick=bjDouble;
 $('bjBetDn').onclick=()=>{if(!bjLive&&bjBet>BJ_MIN){bjBet-=BJ_STEP;bjUI();}};
 $('bjBetUp').onclick=()=>{if(!bjLive&&bjBet<BJ_MAX){bjBet+=BJ_STEP;bjUI();}};
 $('bjClose').onclick=()=>{
- if(bjLive||bjResolving)return; /* no rage-quitting mid-hand — the wager is already spent */
+ if(bjLive||bjResolving)return; /* no rage-quitting mid-hand - the wager is already spent */
  $('bjFx').classList.remove('open');
+ casinoAmbApply();
+};
+/* ==================== ROULETTE ==================== */
+const ROU_ORDER=[0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26]; /* European wheel */
+const ROU_RED=new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+const ROU_CHIPS=[1000,5000,10000,25000,50000,100000,300000];
+const ROU_MAX=300000; /* max total stake per spin */
+let rouBets={},rouChipI=1,rouSpinning=false,rouAngle=0;
+const rouTotal=()=>Object.values(rouBets).reduce((a,b)=>a+b,0);
+function rouDrawWheel(){
+ const cvw=$('rouWheel');if(!cvw)return;
+ const g=cvw.getContext('2d'),Wc=cvw.width,R=Wc/2;
+ g.clearRect(0,0,Wc,Wc);
+ g.save();g.translate(R,R);
+ g.beginPath();g.arc(0,0,R-2,0,7);g.fillStyle='#3a2a1a';g.fill();g.strokeStyle='#8a6a44';g.lineWidth=3;g.stroke();
+ const seg=2*Math.PI/37;
+ for(let i=0;i<37;i++){
+  const n=ROU_ORDER[i],a0=rouAngle+i*seg;
+  g.beginPath();g.moveTo(0,0);g.arc(0,0,R-8,a0,a0+seg);g.closePath();
+  g.fillStyle=n===0?'#1c5a30':ROU_RED.has(n)?'#7a2020':'#191919';
+  g.fill();g.strokeStyle='rgba(255,255,255,0.12)';g.lineWidth=1;g.stroke();
+  g.save();g.rotate(a0+seg/2);g.translate(R-Math.max(20,R*0.14),0);g.rotate(Math.PI/2);
+  g.fillStyle='#fff';g.font='700 '+Math.max(9,Math.round(R*0.075))+'px sans-serif';g.textAlign='center';g.fillText(n,0,3);
+  g.restore();
+ }
+ g.beginPath();g.arc(0,0,R*0.34,0,7);g.fillStyle='#241a10';g.fill();g.strokeStyle='#8a6a44';g.lineWidth=2;g.stroke();
+ g.restore();
+ g.beginPath();g.moveTo(R-8,4);g.lineTo(R+8,4);g.lineTo(R,20);g.closePath(); /* fixed pointer at 12 o'clock */
+ g.fillStyle='#ffd76a';g.fill();
+}
+function rouRender(){
+ $('rouChipN').textContent=ROU_CHIPS[rouChipI].toLocaleString();
+ document.querySelectorAll('#rouGrid .roucell, .roucolors [data-rb]').forEach(el=>{
+  const key=el.dataset.rn!==undefined?'n'+el.dataset.rn:el.dataset.rb;
+  const amt=rouBets[key]||0;
+  el.classList.toggle('sel',amt>0);
+  let chip=el.querySelector('.rchip');
+  if(amt>0){
+   if(!chip){chip=document.createElement('span');chip.className='rchip';el.appendChild(chip);}
+   chip.textContent=amt>=1000?Math.round(amt/1000)+'k':amt;
+  }else if(chip)chip.remove();
+ });
+ $('rouStat').textContent='Staked '+rouTotal().toLocaleString()+'◉ / '+ROU_MAX.toLocaleString()+'◉ max';
+ $('rouSpin').disabled=rouSpinning||rouTotal()<=0;
+ $('rouClear').disabled=rouSpinning||rouTotal()<=0;
+}
+function rouAdd(key){
+ if(rouSpinning)return;
+ const chip=ROU_CHIPS[rouChipI];
+ if(rouTotal()+chip>ROU_MAX){stageMsg('Max '+ROU_MAX.toLocaleString()+'◉ total per spin',1400);sfx.warn();return;}
+ if(totalGold()<rouTotal()+chip){stageMsg('Not enough gold',1200);sfx.warn();return;}
+ rouBets[key]=(rouBets[key]||0)+chip;
+ blip(900,1200,0.05,.04);
+ rouRender();
+}
+function rouBuildGrid(){
+ const g=$('rouGrid');if(!g||g.dataset.built)return;g.dataset.built='1';
+ let h='<button class="roucell g" data-rn="0">0</button>';
+ for(let row=0;row<3;row++)for(let col=0;col<12;col++){
+  const n=(col+1)*3-row; /* classic table: top row 3,6..36 · middle 2,5..35 · bottom 1,4..34 */
+  h+=`<button class="roucell ${ROU_RED.has(n)?'r':'b'}" data-rn="${n}">${n}</button>`;
+ }
+ g.innerHTML=h;
+ g.querySelectorAll('.roucell').forEach(el=>el.onclick=()=>rouAdd('n'+el.dataset.rn));
+}
+function rouSettle(res,total){
+ rouSpinning=false;
+ let win=0;
+ for(const k in rouBets){
+  const amt=rouBets[k];
+  if(k[0]==='n'){if(+k.slice(1)===res)win+=amt*36;}
+  else if(k==='red'){if(ROU_RED.has(res))win+=amt*2;}
+  else if(k==='black'){if(res!==0&&!ROU_RED.has(res))win+=amt*2;}
+  else if(k==='even'){if(res!==0&&res%2===0)win+=amt*2;}
+  else if(k==='odd'){if(res%2===1)win+=amt*2;}
+ }
+ const col=res===0?'GREEN':ROU_RED.has(res)?'RED':'BLACK';
+ const cc=res===0?'#4dff6a':ROU_RED.has(res)?'#ff6a5a':'#e8e8e8';
+ if(win>0){
+  const {over}=addGoldOverflow(win);
+  $('rouRes').innerHTML=`<b style="color:${cc}">${res} ${col}</b> - <b style="color:#ffd76a">+${win.toLocaleString()}◉</b>`;
+  sfx.buy();
+  if(win>=total*10){
+   const mach=$('rouFx').querySelector('.slotmach');mach.classList.add('bigwin');
+   dingDingDing(win>=total*30);spawnPartsIn($('rouFx'),'#ffd76a',18);
+   setTimeout(()=>mach.classList.remove('bigwin'),1800);
+  }
+  log(`Roulette: <span class="loot">${res} ${col}</span> - +${win.toLocaleString()} ◉${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}!`,'loot');
+ }else{
+  $('rouRes').innerHTML=`<b style="color:${cc}">${res} ${col}</b> - the house takes ${total.toLocaleString()}◉`;
+  sfx.warn();
+  log(`Roulette: ${res} ${col} - lost ${total.toLocaleString()} ◉.`);
+ }
+ rouBets={};rouRender();save();renderHUD();
+}
+function rouSpinNow(){
+ if(rouSpinning)return;
+ const total=rouTotal();
+ if(!total){stageMsg('Place a bet first',1200);sfx.warn();return;}
+ if(!spendGold(total)){stageMsg('Not enough gold',1400);sfx.warn();return;}
+ save(); /* stake is committed the moment the wheel turns - reloading mid-spin forfeits it */
+ rouSpinning=true;rouRender();renderHUD();
+ const res=Math.floor(Math.random()*37);
+ const seg=2*Math.PI/37,idx=ROU_ORDER.indexOf(res);
+ /* land the winning pocket's centre under the 12 o'clock pointer, several laps out */
+ const from=rouAngle,spins=5+Math.floor(Math.random()*3);
+ const to=-Math.PI/2-(idx+0.5)*seg-spins*2*Math.PI;
+ const t0=performance.now(),dur=4200;
+ $('rouRes').textContent='No more bets…';
+ noiseSweep(1.2,.05,300,900); /* launch whoosh */
+ let lastPocket=-1;
+ (function anim(){
+  const p=Math.min(1,(performance.now()-t0)/dur);
+  rouAngle=from+(to-from)*(1-Math.pow(1-p,3)); /* cubic ease-out - the wheel coasts to a stop */
+  const pk=Math.floor(((((-Math.PI/2-rouAngle)/seg)%37)+37)%37); /* pocket under the pointer */
+  if(pk!==lastPocket){ /* 🔊 the ball clicks over each fret - naturally slows with the wheel */
+   lastPocket=pk;
+   blip(2200,1500,0.03,p>0.85?0.05:0.03,'square');
+  }
+  rouDrawWheel();
+  if(p<1)requestAnimationFrame(anim);
+  else rouSettle(res,total);
+ })();
+}
+function openRoulette(){
+ $('rouFx').classList.add('open');
+ rouBuildGrid();
+ rouBets={};rouSpinning=false;
+ $('rouRes').innerHTML='&nbsp;';
+ rouRender();rouDrawWheel();
+}
+document.querySelectorAll('.roucolors [data-rb]').forEach(b=>b.onclick=()=>rouAdd(b.dataset.rb));
+$('rouChipDn').onclick=()=>{if(rouChipI>0){rouChipI--;rouRender();}};
+$('rouChipUp').onclick=()=>{if(rouChipI<ROU_CHIPS.length-1){rouChipI++;rouRender();}};
+$('rouClear').onclick=()=>{if(!rouSpinning){rouBets={};rouRender();}};
+$('rouSpin').onclick=rouSpinNow;
+$('rouClose').onclick=()=>{
+ if(rouSpinning){stageMsg('The wheel is spinning - no leaving the table now',1500);sfx.warn();return;}
+ $('rouFx').classList.remove('open');
+ casinoAmbApply();
+};
+/* ==================== 🚌 RIDE THE BUS ====================
+   Four guesses in a row: colour → higher/lower (ace low, ties lose) →
+   inside/outside (on the boundary loses) → exact suit. Cash out between
+   rounds or ride on: 2× → 3× → 4× → 20×. */
+const RTB_BETS=[1000,2500,5000,10000,25000,50000];
+const RTB_MULT=[2,3,4,20];
+const RTB_SUITS=['♠','♥','♦','♣'];
+let rtbBetI=2,rtbDeck=[],rtbCards=[],rtbStage=0,rtbLive=false,rtbBet=0;
+const rtbVal=r=>r==='A'?1:r==='J'?11:r==='Q'?12:r==='K'?13:+r; /* ace counts low */
+function rtbShuffle(){
+ rtbDeck=[];
+ for(const s of RTB_SUITS)for(const r of ['A','2','3','4','5','6','7','8','9','10','J','Q','K'])rtbDeck.push({r,s,v:rtbVal(r)});
+ for(let i=rtbDeck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[rtbDeck[i],rtbDeck[j]]=[rtbDeck[j],rtbDeck[i]];}
+}
+function rtbRender(){
+ $('rtbBetN').textContent=RTB_BETS[rtbBetI].toLocaleString();
+ $('rtbBetDn').disabled=rtbLive||rtbBetI<=0;
+ $('rtbBetUp').disabled=rtbLive||rtbBetI>=RTB_BETS.length-1;
+ let ch='';
+ for(let i=0;i<4;i++)ch+=rtbCards[i]?bjCardHtml(rtbCards[i]):'<div class="bjcard back">?</div>';
+ $('rtbCards').innerHTML=ch;
+ $('rtbLadder').innerHTML=RTB_MULT.map((m,i)=>`<span class="rtbstep${rtbLive&&i===rtbStage?' cur':i<rtbStage?' won':''}">${['Colour','Hi/Lo','In/Out','Suit'][i]} ${m}x</span>`).join('');
+ $('rtbCash').disabled=!(rtbLive&&rtbStage>0);
+ const acts=$('rtbActs');
+ if(!rtbLive){
+  acts.innerHTML='<button class="bjact" id="rtbStart">Board the Bus</button>';
+  $('rtbStart').onclick=rtbStart;
+ }else if(rtbStage===0){
+  acts.innerHTML='<button class="bjact rtbred" data-rg="red">Red</button><button class="bjact rtbblack" data-rg="black">Black</button>';
+ }else if(rtbStage===1){
+  acts.innerHTML='<button class="bjact" data-rg="hi">⬆ Higher</button><button class="bjact" data-rg="lo">⬇ Lower</button>';
+ }else if(rtbStage===2){
+  acts.innerHTML='<button class="bjact" data-rg="in">↔ Inside</button><button class="bjact" data-rg="out">↕ Outside</button>';
+ }else{
+  acts.innerHTML=RTB_SUITS.map(s=>`<button class="bjact ${(s==='♥'||s==='♦')?'rtbred':'rtbblack'}" data-rg="s${s}">${s}</button>`).join('');
+ }
+ acts.querySelectorAll('[data-rg]').forEach(b=>b.onclick=()=>rtbGuess(b.dataset.rg));
+}
+function rtbStart(){
+ if(rtbLive)return;
+ rtbBet=RTB_BETS[rtbBetI];
+ if(!spendGold(rtbBet)){stageMsg('Not enough gold - '+rtbBet.toLocaleString()+'◉ needed',1600);sfx.warn();return;}
+ save(); /* fare paid on boarding - reloading mid-ride forfeits it */
+ rtbShuffle();rtbCards=[];rtbStage=0;rtbLive=true;
+ $('rtbRes').textContent='Round 1 - red or black?';
+ renderHUD();rtbRender();
+}
+function rtbEnd(msg){
+ rtbLive=false;
+ $('rtbRes').innerHTML=msg;
+ rtbRender();save();renderHUD();
+}
+function rtbCashOut(){
+ if(!(rtbLive&&rtbStage>0))return;
+ const win=rtbBet*RTB_MULT[rtbStage-1];
+ const {over}=addGoldOverflow(win);
+ sfx.buy();
+ log(`Ride the Bus: cashed out at ${RTB_MULT[rtbStage-1]}x - <span class="loot">+${win.toLocaleString()} ◉</span>${over?' ('+over.toLocaleString()+' overflow)':''}.`,'loot');
+ rtbEnd(`🚌 Cashed out - <b style="color:#ffd76a">+${win.toLocaleString()}◉</b>`);
+}
+function rtbGuess(g){
+ if(!rtbLive)return;
+ const c=rtbDeck.pop();rtbCards.push(c);
+ const v=c.v,red=(c.s==='♥'||c.s==='♦');
+ let ok=false,why='';
+ if(rtbStage===0)ok=(g==='red')===red;
+ else if(rtbStage===1){
+  const v1=rtbCards[0].v;
+  if(v===v1){ok=false;why=' - tie loses';}
+  else ok=(g==='hi')===(v>v1);
+ }else if(rtbStage===2){
+  const lo=Math.min(rtbCards[0].v,rtbCards[1].v),hi=Math.max(rtbCards[0].v,rtbCards[1].v);
+  if(v===lo||v===hi){ok=false;why=' - on the line loses';}
+  else ok=(g==='in')===(v>lo&&v<hi);
+ }else ok=g==='s'+c.s;
+ if(!ok){
+  sfx.warn();
+  log(`Ride the Bus: bust on round ${rtbStage+1} - lost ${rtbBet.toLocaleString()} ◉.`);
+  rtbEnd(`💥 <b style="color:#ff8a7a">${c.r}${c.s}</b> - bust${why}! The bus drives off with ${rtbBet.toLocaleString()}◉`);
+  return;
+ }
+ rtbStage++;
+ blip(900,1400,0.08,.05);
+ if(rtbStage>=4){ /* rode the whole bus */
+  const win=rtbBet*RTB_MULT[3];
+  const {over}=addGoldOverflow(win);
+  const mach=$('rtbFx').querySelector('.slotmach');mach.classList.add('bigwin');
+  dingDingDing(true);spawnPartsIn($('rtbFx'),'#ffd76a',22);
+  setTimeout(()=>mach.classList.remove('bigwin'),1800);
+  log(`Ride the Bus: <span class="llegendary">FULL RIDE - 20x, +${win.toLocaleString()} ◉</span>${over?' ('+over.toLocaleString()+' overflow)':''}!`,'loot');
+  rtbEnd(`🚌🎉 <b style="color:#ffd76a">FULL RIDE - +${win.toLocaleString()}◉</b>`);
+  return;
+ }
+ $('rtbRes').innerHTML=`✅ <b>${c.r}${c.s}</b> - ${RTB_MULT[rtbStage-1]}x locked. ${['','Round 2 - higher or lower than '+rtbCards[0].r+'?','Round 3 - inside or outside '+rtbCards[0].r+' and '+rtbCards[1].r+'?','Round 4 - which suit?'][rtbStage]}`;
+ rtbRender();
+}
+function openRTB(){
+ $('rtbFx').classList.add('open');
+ rtbLive=false;rtbCards=[];rtbStage=0;
+ $('rtbRes').innerHTML='Guess all four to ride to 20x - cash out any time.';
+ rtbRender();
+}
+$('rtbBetDn').onclick=()=>{if(!rtbLive&&rtbBetI>0){rtbBetI--;rtbRender();}};
+$('rtbBetUp').onclick=()=>{if(!rtbLive&&rtbBetI<RTB_BETS.length-1){rtbBetI++;rtbRender();}};
+$('rtbCash').onclick=rtbCashOut;
+$('rtbClose').onclick=()=>{
+ if(rtbLive){stageMsg('Cash out or ride it to the end first',1400);sfx.warn();return;}
+ $('rtbFx').classList.remove('open');
+ casinoAmbApply();
 };
 /* ==================== CASINO BUILDING MENU ==================== */
 function bankRefresh(){
@@ -8388,7 +8654,7 @@ document.querySelectorAll('[data-bank]').forEach(b=>b.onclick=()=>{
   msg.textContent='Deposited '+n.toLocaleString()+' ◉'+(fromOver?' ('+fromOver.toLocaleString()+' from overflow)':'')+'.';
  }else if(op==='wg'){
   const room=goldRoom();
-  if(room<=0){msg.style.color='#ff8a7a';msg.textContent='Your vault is full — spend some gold before withdrawing.';sfx.warn();return;}
+  if(room<=0){msg.style.color='#ff8a7a';msg.textContent='Your vault is full - spend some gold before withdrawing.';sfx.warn();return;}
   const want=amt(S.bankGold||0);
   const n=Math.min(want,room);
   if(n<=0){msg.style.color='#ff8a7a';msg.textContent='Nothing to withdraw.';sfx.warn();return;}
@@ -8401,7 +8667,7 @@ document.querySelectorAll('[data-bank]').forEach(b=>b.onclick=()=>{
   msg.textContent='Deposited '+n.toLocaleString()+' ⚙.';
  }else if(op==='ws'){
   const room=scrapRoom();
-  if(room<=0){msg.style.color='#ff8a7a';msg.textContent='Your scrap pouch is full ('+SCRAP_CAP+'⚙) — spend some first.';sfx.warn();return;}
+  if(room<=0){msg.style.color='#ff8a7a';msg.textContent='Your scrap pouch is full ('+SCRAP_CAP+'⚙) - spend some first.';sfx.warn();return;}
   const want=amt(S.bankScrap||0);
   const n=Math.min(want,room);
   if(n<=0){msg.style.color='#ff8a7a';msg.textContent='Nothing to withdraw.';sfx.warn();return;}
@@ -8416,7 +8682,7 @@ function smithRefresh(){
  const lv=S.smithLvl||0;
  $('smithLvlTxt').textContent='Blacksmith level '+lv+(lv>=10?' (max)':'');
  const j=S.smithJob;
- $('smithJobTxt').textContent=j?(j.kind==='lvl'?'⏳ Training to level '+j.to:j.kind==='ring'?'⏳ Forging The One Ring':j.kind==='wg'?'⏳ Forging Warglaives ★'+j.to:'⏳ Forging Frostmourne ★'+j.to)+' — '+fmtMS(Math.max(0,j.endT-Date.now()))+' left':'';
+ $('smithJobTxt').textContent=j?(j.kind==='lvl'?'⏳ Training to level '+j.to:j.kind==='ring'?'⏳ Forging The One Ring':j.kind==='wg'?'⏳ Forging Warglaives ★'+j.to:'⏳ Forging Frostmourne ★'+j.to)+' - '+fmtMS(Math.max(0,j.endT-Date.now()))+' left':'';
  /* ---- station picker: once several reforges are unlocked, choose from a list ---- */
  const p=S.prestige||0;
  const fmTier=(lv>=10&&p>=20)?3:(lv>=5&&p>=10)?2:0;
@@ -8428,7 +8694,7 @@ function smithRefresh(){
  ];
  if(!smithSel)smithSel='fm';
  const mn=$('smithMenu');
- if(mn){ /* the station list always shows — locked stations sit dimmed with a padlock */
+ if(mn){ /* the station list always shows - locked stations sit dimmed with a padlock */
   mn.innerHTML='<div style="display:flex;gap:5px;margin:4px 0 8px">'+stations.map(st=>`<button class="sbtn ${smithSel===st[0]?'gold':''}" data-smsel="${st[0]}" style="flex:1;min-width:0;padding:8px 3px;font-size:11px;line-height:1.3;white-space:normal;overflow:hidden;${st[2]?'':'opacity:.55'}">${st[2]?'':'🔒 '}${st[1]}</button>`).join('')+'</div>';
   mn.querySelectorAll('[data-smsel]').forEach(b=>b.onclick=()=>{smithSel=b.dataset.smsel;smithRefresh();});
  }
@@ -8452,13 +8718,13 @@ function smithRefresh(){
     if(!(S.ringRecipe&&S.brokenRing)||(S.smithLvl||0)<10||S.smithJob)return;
     S.ringRecipe=false;S.brokenRing=false; /* both halves feed the forge */
     S.smithJob={kind:'ring',endT:Date.now()+SMITH_HOUR};
-    stageMsg('⚒️ The forge burns black — The One Ring in 2 hours.',2600);
+    stageMsg('⚒️ The forge burns black - The One Ring in 2 hours.',2600);
     sfx.buy();save();smithRefresh();renderBag();
    };
   }else if(S.ringRecipe&&S.brokenRing&&!j&&lv<10){
    ru.innerHTML='<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">💍 The One Ring awaits a level 10 blacksmith.</div>';
   }else if(!j)ru.innerHTML=S.ringForged
-   ?'<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">💍 The One Ring has already been forged — there is only ever one.</div>'
+   ?'<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">💍 The One Ring has already been forged - there is only ever one.</div>'
    :'<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">💍 Needs the <b>Recipe of the Ring</b> (Wandering Trader) and the <b>Broken Ring</b> (fished from the lake).</div>';
   else ru.innerHTML='';
  }
@@ -8468,7 +8734,7 @@ function smithRefresh(){
   const ivBag=(S.scrolls||[]).map((sc,i)=>({sc,i})).filter(o=>!o.sc.id2&&o.sc.tier===MAXTIER);
   const can=lv>=10&&(S.connectors||0)>=2&&ivBag.length>=2;
   const sig=(can?'y':'n')+(S.connectors||0)+':'+lv+':'+ivBag.map(o=>o.i+o.sc.id).join(',');
-  if(fu.dataset.sig!==sig){ /* the row holds <select>s — rebuild only on real change (refresh ticks every second) */
+  if(fu.dataset.sig!==sig){ /* the row holds <select>s - rebuild only on real change (refresh ticks every second) */
    fu.dataset.sig=sig;
    if(can){
     const opts=sel=>ivBag.map(o=>`<option value="${o.i}" ${o.i===sel?'selected':''}>${enchOf(o.sc.id).n.replace('Scroll of ','')} IV</option>`).join('');
@@ -8482,14 +8748,14 @@ function smithRefresh(){
      const ia=+$('fuseA').value,ib=+$('fuseB').value;
      const a=S.scrolls[ia],b2=S.scrolls[ib];
      if(ia===ib||!a||!b2||a.id2||b2.id2||a.tier!==MAXTIER||b2.tier!==MAXTIER){stageMsg('Pick two different Tier IV scrolls',1600);sfx.warn();return;}
-     if(a.id===b2.id){stageMsg('Two of the same effect never stack — pick two different scrolls',1900);sfx.warn();return;}
+     if(a.id===b2.id){stageMsg('Two of the same effect never stack - pick two different scrolls',1900);sfx.warn();return;}
      if((S.connectors||0)<2){sfx.warn();return;}
      S.connectors-=2;
      S.scrolls.splice(Math.max(ia,ib),1);S.scrolls.splice(Math.min(ia,ib),1);
      const fused={id:a.id,tier:MAXTIER,id2:b2.id,tier2:MAXTIER};
      S.scrolls.push(fused);
-     stageMsg('🔗 '+enchName(fused)+' — fused into one scroll!',3000,'#8fe3c9');
-     log(`The Blacksmith links <span class="lscroll">${enchName(fused)}</span> into a single scroll — two enchants, one slot.`,'loot');
+     stageMsg('🔗 '+enchName(fused)+' - fused into one scroll!',3000,'#8fe3c9');
+     log(`The Blacksmith links <span class="lscroll">${enchName(fused)}</span> into a single scroll - two enchants, one slot.`,'loot');
      sfx.forge();
      fu.dataset.sig='';
      save();smithRefresh();renderHUD();
@@ -8514,7 +8780,7 @@ function smithRefresh(){
  }
  fg.style.display='block';
  const wgSt=legSel==='wg';
- /* bag copies first, the equipped blade last — so the forge only eats off your back when it must */
+ /* bag copies first, the equipped blade last - so the forge only eats off your back when it must */
  const bagOnly=wgSt?wgBagOfStar:fmBagOfStar;
  const bagOf=st=>{
   const eqW=S.gear.weapon;
@@ -8523,7 +8789,7 @@ function smithRefresh(){
  };
  const NM=wgSt?'Warglaives':'Frostmourne';
  const IC=wgSt?'⚔':'❄';
- /* choose the target: ★2 (two plain blades) or ★3 (two ★2) — ★3 needs smith 10 + Prestige 20 */
+ /* choose the target: ★2 (two plain blades) or ★3 (two ★2) - ★3 needs smith 10 + Prestige 20 */
  const canT3=lv>=10&&p>=20;
  if(!canT3)smithFmSel=2;
  else if(!smithFmSel)smithFmSel=bagOf(2).length>=2?3:2;
@@ -8540,9 +8806,9 @@ function smithRefresh(){
  $('fmSlotOut').textContent='★'+out;$('fmSlotOut').classList.toggle('filled',ok);
  $('fmPreview').innerHTML=ok
   ?(wgSt
-   ?`Warglaives <b style="color:#4dff9a">★${out}</b> — <b>+${out===3?20:15}% boss damage</b>, <b>+${out*2}% lifesteal</b>. Upgrades &amp; attack reset (cap +6 unchanged). Consumes both ★${src}.`
-   :`Frostmourne <b style="color:#ffd76a">★${out}</b> — <b>+${out*2}% crit</b>, <b>+${out*2}% lifesteal</b>. Upgrades &amp; attack reset (cap +6 unchanged). Consumes both ★${src}.`)
-  :`Need <b>2× ${NM}${src>1?' ★'+src:''}</b> — bag and equipped both count (${have}/2).`;
+   ?`Warglaives <b style="color:#4dff9a">★${out}</b> - <b>+${out===3?20:15}% boss damage</b>, <b>+${out*2}% lifesteal</b>. Upgrades &amp; attack reset (cap +6 unchanged). Consumes both ★${src}.`
+   :`Frostmourne <b style="color:#ffd76a">★${out}</b> - <b>+${out*2}% crit</b>, <b>+${out*2}% lifesteal</b>. Upgrades &amp; attack reset (cap +6 unchanged). Consumes both ★${src}.`)
+  :`Need <b>2× ${NM}${src>1?' ★'+src:''}</b> - bag and equipped both count (${have}/2).`;
  const btn=$('fmForgeBtn');btn.disabled=!ok;
  btn.onclick=()=>{
   const list=bagOf(src);if(list.length<2)return;
@@ -8552,21 +8818,49 @@ function smithRefresh(){
    else S.bag.splice(S.bag.indexOf(it),1);
   }
   S.smithJob={kind:wgSt?'wg':'fm',to:out,endT:Date.now()+SMITH_HOUR};
-  stageMsg('⚒️ The forge roars — '+NM+' ★'+out+' in 2 hours.',2400);
+  stageMsg('⚒️ The forge roars - '+NM+' ★'+out+' in 2 hours.',2400);
   sfx.buy();save();smithRefresh();renderBag();
  };
 }
 function openSmith(){smithTick();$('smithFx').style.display='flex';smithRefresh();}
 $('smithClose').onclick=()=>$('smithFx').style.display='none';
 setInterval(()=>{if($('smithFx').style.display==='flex')smithRefresh();},1000);
-function openCasinoMenu(){$('casinoMenu').classList.add('open');}
-$('casinoMenuClose').onclick=()=>$('casinoMenu').classList.remove('open');
+/* 🎵 casino ambience - plays whenever any casino window is up, EXCEPT Borek Seamen,
+   whose own song owns the room. Zone ambience ducks under it, and comes back when you leave. */
+let casinoAudio=null;
+function casinoAmbApply(){
+ const anyOpen=['casinoMenu','slotFx','bjFx','rouFx','rtbFx'].some(id=>{const e=$(id);return e&&e.classList.contains('open');});
+ const seaO=!!($('seaFx')&&$('seaFx').classList.contains('open'));
+ if(anyOpen&&!seaO){
+  if(!casinoAudio){casinoAudio=new Audio('ambientsong/casino_ambient.mp3');casinoAudio.loop=true;}
+  const v=ambVol();casinoAudio.volume=v;casinoAudio.muted=v<=0;
+  if(casinoAudio.paused)casinoAudio.play().catch(()=>{});
+  if(AC.ambG&&AC.ctx){const t0=AC.ctx.currentTime;AC.ambG.gain.cancelScheduledValues(t0);AC.ambG.gain.setValueAtTime(0,t0);} /* duck the zone */
+  [ambAudio,cowAudio,haalandAudio,cryptAudio].forEach(a=>{if(a)a.pause();});
+ }else{
+  if(casinoAudio)casinoAudio.pause();
+  if(!anyOpen&&!seaO){ /* left the casino - the zone breathes again */
+   applyVolumes();
+   if(gameOn){
+    if(zoneOf().cow&&cowAudio)cowAudio.play().catch(()=>{});
+    else if(zoneOf().amb==='haaland'&&haalandAudio)haalandAudio.play().catch(()=>{});
+    else if(zoneOf().crypts&&cryptAudio)cryptAudio.play().catch(()=>{});
+    else if(ambAudio)ambAudio.play().catch(()=>{});
+   }
+  }
+ }
+}
+function openCasinoMenu(){$('casinoMenu').classList.add('open');initAudio();casinoAmbApply();}
+$('casinoMenuClose').onclick=()=>{$('casinoMenu').classList.remove('open');casinoAmbApply();};
 document.querySelectorAll('.casinopick').forEach(b=>b.onclick=()=>{
  const g=b.dataset.game;
  $('casinoMenu').classList.remove('open');
  if(g==='slots')openSlots();
  else if(g==='sea')openSea();
  else if(g==='bj')openBJ();
+ else if(g==='rou')openRoulette();
+ else if(g==='rtb')openRTB();
+ casinoAmbApply();
 });
 
 function renderShop(){
@@ -8577,11 +8871,11 @@ function renderShop(){
  const free=S.freeGoldCases||0;
  const goFree=Math.min(free,goQty),goPaid=goQty-goFree,goTot=GOLD_COST*goPaid;
  h+=`<div class="card item gcard-chest" style="border-color:var(--brass-deep)"><div><div class="sn" style="font-size:13px;font-weight:600;color:var(--brass)">🎁 GAMBAAA!</div>
-  <div class="ss" style="color:var(--dim);font-size:11px">A sealed chest of unknown origin. Holds a random weapon, armor piece or scroll — most are humble, but legends whisper of epic prizes within.</div></div>
+  <div class="ss" style="color:var(--dim);font-size:11px">A sealed chest of unknown origin. Holds a random weapon, armor piece or scroll - most are humble, but legends whisper of epic prizes within.</div></div>
   <div class="btns"><button class="sbtn gold" id="chestBtn" ${totalGold()<gTot?'disabled':''}>${gTot.toLocaleString()}◉</button>
   <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gamba" data-d="-1" ${gQty<=1?'disabled':''}>−</button><span class="qtynum">${gQty}x</span><button class="qtybtn" data-case="gamba" data-d="1" ${gQty>=5?'disabled':''}>+</button></div><div class="qtytotal">Total: ${gTot.toLocaleString()}◉</div></div></div></div>`;
  h+=`<div class="card item gcard-chest" style="border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.15)"><div><div class="sn" style="font-size:13px;font-weight:600;color:#ffd76a">💰 GOLD GOLD GOLD${free?` <span style="color:#9adf9a;font-size:11px">· ${free} FREE</span>`:''}</div>
- <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common or fine junk — only rare and epic gear, a slim chance at a Tier II scroll, a tiny chance at Frostmourne, and whispers of a 🐾 loyal companion within.${free?' <b style="color:#9adf9a">HAALAND\u2019s hoard covers your next '+free+' case'+(free>1?'s':'')+'.</b>':''}</div></div>
+ <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common or fine junk - only rare and epic gear, a slim chance at a Tier II scroll, a tiny chance at Frostmourne, and whispers of a 🐾 loyal companion within.${free?' <b style="color:#9adf9a">HAALAND\u2019s hoard covers your next '+free+' case'+(free>1?'s':'')+'.</b>':''}</div></div>
  <div class="btns"><button class="sbtn gold" id="goldChestBtn" ${totalGold()<goTot?'disabled':''}>${goTot>0?goTot.toLocaleString()+'◉':'FREE'}</button>
  <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gold" data-d="-1" ${goQty<=1?'disabled':''}>−</button><span class="qtynum">${goQty}x</span><button class="qtybtn" data-case="gold" data-d="1" ${goQty>=5?'disabled':''}>+</button></div><div class="qtytotal">${goFree?goFree+' free · ':''}Total: ${goTot.toLocaleString()}◉</div></div></div></div>`;
 
@@ -8613,14 +8907,14 @@ function renderShop(){
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">👟 Speed Boost${spN?` <span style="color:var(--brass);font-size:11px">+${boostPct(spN,'speed')}%</span>`:''}</div>
   <div class="ss" style="color:var(--dim);font-size:11px">${spMax
    ?(boostAtHardCap(spN,'speed')
-    ?`Fully maxed at <b style="color:var(--parch)">+${boostPct(spN,'speed')}%</b> — the absolute limit.`
+    ?`Fully maxed at <b style="color:var(--parch)">+${boostPct(spN,'speed')}%</b> - the absolute limit.`
     :`Maxed at <b style="color:var(--parch)">+${boostPct(spN,'speed')}%</b>. Reach <b style="color:var(--brass)">Prestige ${nextBoostPrestige()}</b> to unlock the next upgrade.`)
    :`Move faster. Next purchase: <b style="color:var(--parch)">+${boostPct(spN+1,'speed')}%</b> movement speed. Bonus and price double each time.`}</div></div>
   <div class="btns"><button class="sbtn gold" data-boost="speed" ${spMax||totalGold()<spC?'disabled':''}>${spMax?'MAX ✦':'Buy '+spC.toLocaleString()+'◉'}</button></div></div>`;
  h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">⚡ Haste Boost${haN?` <span style="color:var(--brass);font-size:11px">+${boostPct(haN,'haste')}%</span>`:''}</div>
   <div class="ss" style="color:var(--dim);font-size:11px">${haMax
    ?(boostAtHardCap(haN,'haste')
-    ?`Fully maxed at <b style="color:var(--parch)">+${boostPct(haN,'haste')}%</b> — the absolute limit.`
+    ?`Fully maxed at <b style="color:var(--parch)">+${boostPct(haN,'haste')}%</b> - the absolute limit.`
     :`Maxed at <b style="color:var(--parch)">+${boostPct(haN,'haste')}%</b>. Reach <b style="color:var(--brass)">Prestige ${nextBoostPrestige()}</b> to unlock the next upgrade.`)
    :`Attack faster. Next purchase: <b style="color:var(--parch)">+${boostPct(haN+1,'haste')}%</b> attack speed. Bonus and price double each time.`}</div></div>
   <div class="btns"><button class="sbtn gold" data-boost="haste" ${haMax||totalGold()<haC?'disabled':''}>${haMax?'MAX ✦':'Buy '+haC.toLocaleString()+'◉'}</button></div></div>`;
@@ -8629,10 +8923,10 @@ function renderShop(){
  if($('ringRecipeBtn'))$('ringRecipeBtn').onclick=()=>{
   if(S.ringRecipe||S.ringForged)return;
   if((S.prestige||0)<20||(S.rating||0)<2500)return;
-  if(!spendGold(500000)){stageMsg('Not enough gold — 500,000 ◉ needed',1800);sfx.warn();return;}
+  if(!spendGold(500000)){stageMsg('Not enough gold - 500,000 ◉ needed',1800);sfx.warn();return;}
   S.ringRecipe=true;save();renderShop();renderHUD();
   sfx.level();
-  stageMsg('💍 Recipe of the Ring acquired — find the Broken Ring in the lake!',3200);
+  stageMsg('💍 Recipe of the Ring acquired - find the Broken Ring in the lake!',3200);
   log(`<span class="llegendary">💍 Recipe of the Ring</span> purchased. It rests in your Bag until the Broken Ring is found.`,'loot');
  };
  $('chestBtn').onclick=openChest;
@@ -8646,9 +8940,9 @@ function renderShop(){
   renderShop();
  });
  document.querySelectorAll('[data-pot]').forEach(b=>b.onclick=()=>{
-  if(inBossFight()){stageMsg('The Trader cowers — no potion sales during a boss fight!',1600);sfx.warn();return;}
+  if(inBossFight()){stageMsg('The Trader cowers - no potion sales during a boss fight!',1600);sfx.warn();return;}
   const k=b.dataset.pot,have=S.pots[k]||0;
-  if(have>=POT_CAP){stageMsg('Potion bag full — max '+POT_CAP+' of each kind',1400);sfx.warn();return;}
+  if(have>=POT_CAP){stageMsg('Potion bag full - max '+POT_CAP+' of each kind',1400);sfx.warn();return;}
   const n=Math.min(parseInt(b.dataset.n||'1',10),POT_CAP-have); /* 10x near the cap tops you up instead */
   const cost=potCost(k)*n;
   if(!spendGold(cost)){stageMsg('Not enough gold',1200);return;}
@@ -8657,8 +8951,8 @@ function renderShop(){
  });
  document.querySelectorAll('[data-boost]').forEach(b=>b.onclick=()=>{
   const k=b.dataset.boost,n=S.boosts[k]||0,cost=boostCost(n);
-  if(boostAtHardCap(n,k)){stageMsg('Boost is fully maxed at +'+boostPct(n,k)+'% — the absolute limit',1800);sfx.warn();return;}
-  if(n>=boostMax()){stageMsg('Boost maxed — reach Prestige '+nextBoostPrestige()+' to unlock more',1800);sfx.warn();return;}
+  if(boostAtHardCap(n,k)){stageMsg('Boost is fully maxed at +'+boostPct(n,k)+'% - the absolute limit',1800);sfx.warn();return;}
+  if(n>=boostMax()){stageMsg('Boost maxed - reach Prestige '+nextBoostPrestige()+' to unlock more',1800);sfx.warn();return;}
   if(!spendGold(cost)){stageMsg('Not enough gold',1200);return;}
   S.boosts[k]=n+1;
   sfx.buy();
@@ -8693,10 +8987,10 @@ function openTab(t){
  if(t==='bag'){renderBag();$('p-bag').classList.add('open');}
  if(t==='shop'){renderShop();$('p-shop').classList.add('open');}
 }
-/* ==================== GOLDSHIRE INN — daily Rested XP wheel ====================
+/* ==================== GOLDSHIRE INN - daily Rested XP wheel ====================
    Click the big inn at the top of the square. Spin once per 24h; the wheel lands on
    10/15/20% bonus XP and the Rested buff activates automatically for 1 hour. */
-const REST_SEGS=[10,15,20,10,15,20]; /* equal odds — 10/15/20% ×2 each */
+const REST_SEGS=[10,15,20,10,15,20]; /* equal odds - 10/15/20% ×2 each */
 const REST_COLS={10:'#6dbb6d',15:'#5b9bd5',20:'#ffd76a'};
 const REST_CD=86400; /* seconds between spins */
 let restSpinning=false,restRot=-Math.PI/2;
@@ -8727,7 +9021,7 @@ function updateRestUI(){
  const left=restCdLeft(),btn=$('restSpinBtn');
  btn.textContent='😴 Spin';
  if(left>0){
-  /* active-buff time lives in the bag — here we only count down to the next spin */
+  /* active-buff time lives in the bag - here we only count down to the next spin */
   const mins=Math.ceil(left/60),h=Math.floor(mins/60),m=mins%60;
   $('restRes').innerHTML='<span style="color:#8fc3ef">⏳ Next Rested in '+h+'h '+m+'m</span>';
   btn.disabled=true;
@@ -8766,8 +9060,8 @@ $('restSpinBtn').onclick=()=>{
    const val=REST_SEGS[t];
    S.restedPct=val/100;S.restedT=3600;S.restedSpinAt=Date.now();
    sfx.quest();
-   stageMsg('😴 Rested — +'+val+'% XP for 1 hour!',3000);
-   log('<span class="lfine">😴 Rested</span> — the Goldshire inn grants +'+val+'% XP for 1 hour.');
+   stageMsg('😴 Rested - +'+val+'% XP for 1 hour!',3000);
+   log('<span class="lfine">😴 Rested</span> - the Goldshire inn grants +'+val+'% XP for 1 hour.');
    renderHUD();save();
    updateRestUI();
   }
@@ -8779,26 +9073,26 @@ function goHome(){
  if(!gameOn||!S||hero.dead)return;
  if(hcNoFlee())return;
  if(mp.on)mpLeave(false);
- /* Home ALWAYS means Goldshire — a second tap never bounces you back out.
+ /* Home ALWAYS means Goldshire - a second tap never bounces you back out.
     Head back to the road via the Travel map instead. */
  if(S.zone===TAVERN_ZONE){
   openTab('battle');
   stageMsg('🍺 You are already home in Goldshire.',1400);
   return;
  }
- if(buildMode)exitBuildMode(); /* Home ends build mode — snap/harvest buttons and the store go away */
+ if(buildMode)exitBuildMode(); /* Home ends build mode - snap/harvest buttons and the store go away */
  S.lastZone=S.zone;
  S.zone=TAVERN_ZONE;S.quest=0;S.qProg=0;
  applyZoneUI();buildZone();renderHUD();save();
  openTab('battle');
- stageMsg('🍺 Welcome to Goldshire — rest easy.',2200);
+ stageMsg('🍺 Welcome to Goldshire - rest easy.',2200);
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
  if(b.dataset.tab==='home'){goHome();return;}
  openTab(b.dataset.tab);
 });
  
-/* ==================== SAVE — one file per character ==================== */
+/* ==================== SAVE - one file per character ==================== */
 /* Each profile (guest, or each signed-in account) has its OWN roster namespace so
    characters never leak between accounts. Guest keeps the legacy 'riptide-roster'
    key so old local saves stay visible in guest mode. */
@@ -8847,7 +9141,7 @@ function maxItemBaseStat(ch,kind){
 }
 function itemConsistent(it,ch){
  if(!it)return true;
- if(isLegendaryW(it))return true; /* Legendary weapons are recomputed by syncFrostmourne/syncWarglaives every read — self-healing */
+ if(isLegendaryW(it))return true; /* Legendary weapons are recomputed by syncFrostmourne/syncWarglaives every read - self-healing */
  ensureItemBase(it);
  const up=it.up||0;
  const tol=up>0?up+2:0; /* rounding slack for legacy saves whose base was reverse-estimated */
@@ -8919,7 +9213,7 @@ async function seasonWipeIfNeeded(){
  return true;
 }
 
-/* ==================== CLOUD — Firebase accounts, sync & leaderboard ====================
+/* ==================== CLOUD - Firebase accounts, sync & leaderboard ====================
    TO ENABLE ACCOUNTS + CLOUD SAVES:
    1. Create a project at console.firebase.google.com
    2. Enable Authentication → Email/Password, and Cloud Firestore
@@ -8964,7 +9258,7 @@ function kickSession(){
  if(sessUnsub){sessUnsub();sessUnsub=null;}
  gameOn=false;
  if(AC.ctx)stopAmbience();
- showLogin('⚠ This account was opened on another device. Only one session can play at a time — sign in again here to take over.');
+ showLogin('⚠ This account was opened on another device. Only one session can play at a time - sign in again here to take over.');
 }
 
 let seasonReady=false;
@@ -9001,7 +9295,7 @@ async function fbForgotPass(){
  try{
   await FB.auth.sendPasswordResetEmail(em);
   err.style.color='#9adf9a';
-  err.textContent='📧 Password reset sent to '+em+' — check your inbox (and spam).';
+  err.textContent='📧 Password reset sent to '+em+' - check your inbox (and spam).';
  }catch(e){err.textContent=((e&&e.message)||'Could not send reset email.').replace('Firebase: ','');}
 }
 async function fbSignIn(create){
@@ -9121,7 +9415,7 @@ function renderInspect(e){
  const st=e.stats||{};
  const gearRow=sl=>{
   const g=e.gear&&e.gear[sl];
-  if(!g)return `<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div><div class="ss">— empty —</div></div>`;
+  if(!g)return `<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div><div class="ss">- empty -</div></div>`;
   let s=`${g.up?'+'+g.up+' · ':''}${g.atk?'+'+g.atk+' ATK ':''}${g.hp?'+'+g.hp+' HP ':''}${g.crit?'+'+g.crit+'% CRIT ':''}${g.haste?'+'+Math.round(g.haste*100)+'% ATK SPEED ':''}${g.lifesteal?'+'+Math.round(g.lifesteal*1000)/10+'% LIFESTEAL ':''}${g.dmgMul?'+'+Math.round(g.dmgMul*100)+'% DAMAGE ':''}${g.bossDmg?'+'+g.bossDmg+'% BOSS DMG ':''}${g.manadrain?Math.round(g.manadrain*100)+'% MANA DRAIN ':''}${g.legend==='frostmourne'&&(g.star||0)>1?'· ★'+g.star+' bonus: +'+(g.star*2)+'% CRIT / +'+(g.star*2)+'% LIFESTEAL':''}`.trim();
   return `<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div>
    <div class="sn" style="color:${RARCOL[g.rar]||'#fff'}">${esc(g.name)}${g.legend&&g.star?` <span style="color:#ffd76a">★${g.star}</span>`:''}</div>
@@ -9130,17 +9424,17 @@ function renderInspect(e){
  const scrolls=(e.scrolls&&e.scrolls.length?e.scrolls:e.scroll?[e.scroll]:[]);
  const scHtml=scrolls.length?scrolls.map(sc=>{
   const en=enchOf(sc.id);if(!en)return '';
-  const en2=sc.id2?enchOf(sc.id2):null; /* 🔗 fused scroll — show both halves */
+  const en2=sc.id2?enchOf(sc.id2):null; /* 🔗 fused scroll - show both halves */
   return `<div class="slot" style="border-color:${en2?'#8fe3c966':en.glow+'66'}">
    <div class="ss" style="text-transform:uppercase;letter-spacing:1px">Scroll${en2?' · 🔗 FUSED':''}</div>
    <div class="en"><span class="glowdot" style="background:${en.glow};box-shadow:0 0 6px ${en.glow}"></span>${esc(en.n.replace('Scroll of ',''))} ${TIERN[(sc.tier||1)-1]}</div>
    ${en2?`<div class="en"><span class="glowdot" style="background:${en2.glow};box-shadow:0 0 6px ${en2.glow}"></span>${esc(en2.n.replace('Scroll of ',''))} ${TIERN[(sc.tier2||1)-1]}</div>`:''}
    <div class="ss">${esc(tierDesc(sc.id,sc.tier||1))}${en2?'<br>'+esc(tierDesc(sc.id2,sc.tier2||1)):''}</div></div>`;
- }).join(''):`<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">Scrolls</div><div class="ss">— none active —</div></div>`;
+ }).join(''):`<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">Scrolls</div><div class="ss">- none active -</div></div>`;
  const pt=e.pet?petOf(e.pet):null;
  const petHtml=`<div class="slot" style="border-color:${pt?pt.cc+'66':'var(--line)'}">
   <div class="ss" style="text-transform:uppercase;letter-spacing:1px">Pet</div>
-  ${pt?`<div class="sn" style="color:${pt.cc}">${petGlyph(pt)} ${esc(pt.n)}</div><div class="ss">${esc(pt.d)}</div>`:'<div class="ss">— no companion —</div>'}
+  ${pt?`<div class="sn" style="color:${pt.cc}">${petGlyph(pt)} ${esc(pt.n)}</div><div class="ss">${esc(pt.d)}</div>`:'<div class="ss">- no companion -</div>'}
  </div>`;
  return `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
   <div class="statgrid" style="margin-bottom:8px">
@@ -9173,7 +9467,7 @@ async function showLeaderboard(){
    <div class="lbinsp" id="insp${i}" style="display:none;flex-basis:100%"></div>
   </div>`;
  }).join('')
-  :'<div class="cl">No champions recorded yet — be the first to claim a place.</div>';
+  :'<div class="cl">No champions recorded yet - be the first to claim a place.</div>';
  rows.forEach((e,i)=>{
   const cnv=document.querySelector(`[data-lbp="${i}"]`);
   if(cnv)drawPortrait(cnv,{race:e.race||'human',cls:e.cls||'warrior',gender:e.gender||'m',prestige:e.prestige||0,activeScroll:e.scroll||null,gear:e.gear||{}});
@@ -9192,10 +9486,10 @@ let guestMode=false;
 function updateAcctUI(){
  const info=$('acctInfo');if(!info)return;
  if(FB.user){
-  info.textContent='☁ '+(FB.user.email||'Signed in')+' — cloud sync active.';
+  info.textContent='☁ '+(FB.user.email||'Signed in')+' - cloud sync active.';
   $('fbOut').style.display='inline-block';
  }else{
-  info.textContent=guestMode?'Guest mode — saves stay on this device.':'Not signed in.';
+  info.textContent=guestMode?'Guest mode - saves stay on this device.':'Not signed in.';
   $('fbOut').style.display='none';
  }
 }
@@ -9221,7 +9515,7 @@ function drawPortrait(cnv,ch){
  const sc=scA?enchOf(scA.id||scA):null;
  const ps=charSprite(RACE_ALIAS[ch.race]||ch.race,c.id,ch.gender==='f'); /* legacy entries still carry old race ids */
  if(ps&&ps.complete&&ps.naturalWidth){
-  /* painted model portrait — smaller scale so the taller sprite + boots fit the frame */
+  /* painted model portrait - smaller scale so the taller sprite + boots fit the frame */
   g.save();g.translate(W/2,H*0.684);g.scale(1.16,1.16);
   g.fillStyle='rgba(0,0,0,0.3)';g.beginPath();g.ellipse(0,19,13,5,0,0,7);g.fill();
   if(sc){g.strokeStyle=sc.glow;g.globalAlpha=0.55;g.lineWidth=1;g.beginPath();g.ellipse(0,18,15,6,0,0,7);g.stroke();g.globalAlpha=1;}
@@ -9270,8 +9564,8 @@ async function renderSelect(){
  };
  const living=chars.filter(ch=>!(ch.hardcore&&ch.hcDead));
  const fallen=chars.filter(ch=>ch.hardcore&&ch.hcDead);
- let html=living.length?living.map(cardOf).join(''):'<div class="card" style="color:var(--dim);font-size:12px;background:rgba(28,43,36,.7)">No heroes yet — the Eastern Realm waits for its first champion.</div>';
- if(fallen.length){ /* the graveyard — a fold-out shelf above Create New Character */
+ let html=living.length?living.map(cardOf).join(''):'<div class="card" style="color:var(--dim);font-size:12px;background:rgba(28,43,36,.7)">No heroes yet - the Eastern Realm waits for its first champion.</div>';
+ if(fallen.length){ /* the graveyard - a fold-out shelf above Create New Character */
   html+=`<div class="tierhead" id="fallenHead" style="border-color:#a05a5a66;margin-top:10px">
    <span style="color:#ff8a7a">${fallenOpen?'▾':'▸'} 💀 Fallen Heroes</span>
    <span class="tcount">${fallen.length} laid to rest</span></div>`;
@@ -9290,7 +9584,7 @@ async function renderSelect(){
   beginGame(false);
  });
  document.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{
-  /* confirm() popups are blocked in sandboxed iframes — use a two-tap confirm instead */
+  /* confirm() popups are blocked in sandboxed iframes - use a two-tap confirm instead */
   if(!b.dataset.armed){
    b.dataset.armed='1';
    b.textContent='Confirm ✕';
@@ -9342,7 +9636,7 @@ async function createHero(hardcore){
  initAudio();
  const name=$('cname').value.trim();
  if(!name){
-  /* no silent BYYYYL default — the player must actually pick a name */
+  /* no silent BYYYYL default - the player must actually pick a name */
   $('cname').classList.remove('nameerr');void $('cname').offsetWidth; /* restart the shake */
   $('cname').classList.add('nameerr');
   $('cnameErr').style.display='block';
@@ -9357,7 +9651,7 @@ async function createHero(hardcore){
  const ids=await loadRoster();ids.push(S.id);
  await saveRoster(ids);
  beginGame(true);
- if(hardcore)stageMsg('💀 HARDCORE — one life. Make it count.',3000);
+ if(hardcore)stageMsg('💀 HARDCORE - one life. Make it count.',3000);
 }
 $('startBtn').onclick=()=>createHero(false);
 $('startHcBtn').onclick=()=>{
@@ -9400,7 +9694,7 @@ $('nextBtn').onclick=()=>{
 $('autoEquipBtn').onclick=()=>{S.autoEquip=!S.autoEquip;renderHero();save();};
 $('sndBtn').onclick=()=>{
  initAudio();
- if(IS_TOUCH){ /* phones: straight mute toggle — sliders can't control media volume on iOS */
+ if(IS_TOUCH){ /* phones: straight mute toggle - sliders can't control media volume on iOS */
   S.sound=!S.sound;
   if(S.sound&&!(S.volAmb>0))S.volAmb=0.5; /* unmute must actually make sound */
   $('sndBtn').textContent=S.sound?'🔊':'🔇';$('sndBtn').classList.toggle('off',!S.sound);
@@ -9449,7 +9743,7 @@ $('musBtn').onclick=()=>{
 };
 
 let mapsPreloaded=false;
-function preloadMaps(){ /* warm every zone map in the background — kills the procedural-ground flash on first travel.
+function preloadMaps(){ /* warm every zone map in the background - kills the procedural-ground flash on first travel.
    No double memory: the procedural ground is paint on groundCv, overwritten in place when the PNG lands. */
  if(mapsPreloaded)return;mapsPreloaded=true;
  ZONES.forEach(z=>{if(z.map)zoneMapImg(z.map);});
@@ -9460,7 +9754,7 @@ function beginGame(isNew){
  $('create').style.display='none';
  $('select').classList.remove('open');
  openTab('battle');
- hero=null; /* fresh character entering the world — never inherit the previous character's vitals */
+ hero=null; /* fresh character entering the world - never inherit the previous character's vitals */
  resize();setZoom(zmin());applyZoneUI();buildZone();buildSkillbar();renderHUD();
  $('sndBtn').textContent=S.sound?'🔊':'🔇';$('sndBtn').classList.toggle('off',!S.sound);
  $('sfxBtn').textContent=S.sfx?'⚔️':'🔕';$('sfxBtn').classList.toggle('off',!S.sfx);
@@ -9474,7 +9768,7 @@ function beginGame(isNew){
  setTimeout(()=>{$('hint').style.opacity=0;},8000);
  if(isNew){
   log(`<span class="imp">${S.name} the ${classOf().name}</span> arrives in ${zoneOf().name}.`);
-  stageMsg('Welcome to Riptide — spells are 1/2/3, potions 4/5.',3000);
+  stageMsg('Welcome to Riptide - spells are 1/2/3, potions 4/5.',3000);
   save();
  }else log(`<span class="imp">Welcome back, ${S.name}.</span> The march resumes.`);
 }

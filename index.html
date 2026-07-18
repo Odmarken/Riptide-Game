@@ -30,12 +30,12 @@
     <h1>Riptide</h1>
     <div class="tag">Choose your champion</div>
     <div class="selectacct">
-      <div class="cl" id="acctInfo" style="margin:0">Guest mode — saves stay on this device.</div>
+      <div class="cl" id="acctInfo" style="margin:0">Guest mode - saves stay on this device.</div>
       <button class="sbtn" id="fbOut" style="display:none">Sign out</button>
     </div>
     <div id="charList"></div>
     <button id="newCharBtn">＋ Create New Character</button>
-    <div class="fineprint">Every hero keeps their own save — progression, bags and gear are fully separate. Sign in to sync heroes to the cloud. Reach level 60 and fell every boss to unlock Prestige and march the realm again against harder foes.</div>
+    <div class="fineprint">Every hero keeps their own save - progression, bags and gear are fully separate. Sign in to sync heroes to the cloud. Reach level 60 and fell every boss to unlock Prestige and march the realm again against harder foes.</div>
   </div>
  
   <div id="lbFx">
@@ -53,10 +53,10 @@
     <div class="tag">The Eastern Realm · Level cap 60</div>
     <label>Hero name</label>
     <input id="cname" maxlength="14" placeholder="e.g. BYYYYL" autocomplete="off">
-    <div id="cnameErr" style="display:none;color:#ff8a7a;font-size:12px;margin-top:6px">⚠ Write a hero name first — the realm must know who you are!</div>
+    <div id="cnameErr" style="display:none;color:#ff8a7a;font-size:12px;margin-top:6px">⚠ Write a hero name first - the realm must know who you are!</div>
     <label>Bloodline</label><div class="pickgrid" id="racePick"></div>
     <label>Gender</label><div class="pickgrid" id="genderPick"></div>
-    <label>Calling — each has 3 spells</label><div class="pickgrid" id="classPick"></div>
+    <label>Calling - each has 3 spells</label><div class="pickgrid" id="classPick"></div>
     <div style="display:flex;gap:10px">
       <button id="startBtn" style="flex:1">⚔ NORMAL</button>
       <button id="startHcBtn" style="flex:1">💀 HARDCORE</button>
@@ -67,7 +67,7 @@
   <header>
     <div class="hrow">
       <div>
-        <div class="zone-name" id="hZone">—</div>
+        <div class="zone-name" id="hZone">-</div>
         <div class="zone-sub">Riptide · The Eastern Realm</div>
       </div>
       <div class="curr">
@@ -93,7 +93,7 @@
     <button id="torchBtn" title="Drop a torch to mark your path">🔥<span class="cnt" id="torchN"></span></button>
     <div id="fishToast"></div>
     <button id="farmCheckBtn" title="Checkout">🛒<span class="cnt" id="farmCartN"></span></button>
-    <button id="farmSnapBtn" title="Snap mode — pieces click together">🧲</button>
+    <button id="farmSnapBtn" title="Snap mode - pieces click together">🧲</button>
     <button id="farmHarvBtn" title="Harvest ready hay">✂️</button>
     <div id="farmMoveFx" style="position:absolute;z-index:70;display:none;background:rgba(22,15,9,.95);border:1.5px solid #8a6a44;border-radius:10px;padding:8px 10px;min-width:132px;box-shadow:0 4px 16px rgba(0,0,0,.5)">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px">
@@ -124,8 +124,8 @@
   <div id="questcard">
     <div class="qtop">
       <div style="flex:1">
-        <div class="qname" id="qName">—</div>
-        <div class="qdesc" id="qDesc">—</div>
+        <div class="qname" id="qName">-</div>
+        <div class="qdesc" id="qDesc">-</div>
       </div>
       <div class="qbtns">
         <button id="nextBtn">Continue ▶</button>
@@ -262,7 +262,7 @@
   <div id="restFx">
     <div class="slotmach">
       <div class="slottop">🍺 GOLDSHIRE INN</div>
-      <div style="color:var(--dim);font-size:12px;margin:-8px 0 12px;letter-spacing:.5px">Rest by the hearth — spin once a day for Rested XP</div>
+      <div style="color:var(--dim);font-size:12px;margin:-8px 0 12px;letter-spacing:.5px">Rest by the hearth - spin once a day for Rested XP</div>
       <canvas id="restWheel" width="250" height="250"></canvas>
       <div class="slotres" id="restRes">&nbsp;</div>
       <div class="casebtns show" style="margin-top:12px">
@@ -295,13 +295,62 @@
    </div>
   </div>
 
+  <div id="rtbFx">
+   <div class="slotmach rtb">
+    <div class="slottop">🚌 RIDE THE BUS</div>
+    <div class="rtbladder" id="rtbLadder"></div>
+    <div class="bjcards" id="rtbCards" style="justify-content:center;min-height:58px"></div>
+    <div class="slotres" id="rtbRes">&nbsp;</div>
+    <div class="slotbet">
+     <button class="qtybtn" id="rtbBetDn">−</button>
+     <span class="qtynum" id="rtbBetN">5,000</span>
+     <button class="qtybtn" id="rtbBetUp">+</button>
+     <span class="slotbetcost">◉ / ride</span>
+    </div>
+    <div class="bjbtns" id="rtbActs"></div>
+    <div class="bjbtns">
+     <button class="bjact alt" id="rtbCash" disabled>Cash Out</button>
+     <button id="rtbClose" class="sbtn" style="padding:12px 18px;border-radius:12px">Close</button>
+    </div>
+   </div>
+  </div>
+
+  <div id="rouFx">
+   <div class="slotmach rou">
+    <div class="slottop">🎡 ROULETTE</div>
+    <canvas id="rouWheel" width="420" height="420"></canvas>
+    <div class="slotres" id="rouRes">&nbsp;</div>
+    <div class="slotbet">
+     <button class="qtybtn" id="rouChipDn">−</button>
+     <span class="qtynum" id="rouChipN">5,000</span>
+     <button class="qtybtn" id="rouChipUp">+</button>
+     <span class="slotbetcost">◉ / chip · max 300,000◉ total</span>
+    </div>
+    <div class="roucolors">
+     <button class="roubet red" data-rb="red">RED 2x</button>
+     <button class="roubet black" data-rb="black">BLACK 2x</button>
+     <button class="roubet" data-rb="even">EVEN 2x</button>
+     <button class="roubet" data-rb="odd">ODD 2x</button>
+    </div>
+    <div class="rougrid" id="rouGrid"></div>
+    <div class="roustat" id="rouStat">Place your bets</div>
+    <div class="bjbtns">
+     <button class="bjact" id="rouSpin">Spin</button>
+     <button class="bjact alt" id="rouClear">Clear</button>
+     <button id="rouClose" class="sbtn" style="padding:12px 18px;border-radius:12px">Close</button>
+    </div>
+   </div>
+  </div>
+
   <div id="casinoMenu">
    <div class="casinobox">
     <div class="slottop" style="color:var(--brass);margin-bottom:6px">🎰 BOREK CASINO</div>
     <div class="cl" style="margin-bottom:14px">The house always wins. Pick your game.</div>
-    <button class="casinopick" data-game="slots"><span class="cg">🎰</span><span class="ct"><b>Borek 67</b><i>Classic slots — win up to 100x</i></span></button>
-    <button class="casinopick" data-game="sea"><span class="cg">🦈</span><span class="ct"><b>Borek Seamen</b><i>Hold &amp; respin — lock reels, chase free spins</i></span></button>
-    <button class="casinopick" data-game="bj"><span class="cg">🃏</span><span class="ct"><b>Borek Blackjack</b><i>Beat the dealer to 21 — pays 3:2</i></span></button>
+    <button class="casinopick" data-game="slots"><span class="cg">🎰</span><span class="ct"><b>Borek 67</b><i>Classic slots - win up to 100x</i></span></button>
+    <button class="casinopick" data-game="sea"><span class="cg">🦈</span><span class="ct"><b>Borek Seamen</b><i>Hold &amp; respin - lock reels, chase free spins</i></span></button>
+    <button class="casinopick" data-game="bj"><span class="cg">🃏</span><span class="ct"><b>Borek Blackjack</b><i>Beat the dealer to 21 - pays 3:2</i></span></button>
+    <button class="casinopick" data-game="rou"><span class="cg">🎡</span><span class="ct"><b>Roulette</b><i>Numbers &amp; colours - straight up pays 35:1</i></span></button>
+    <button class="casinopick" data-game="rtb"><span class="cg">🚌</span><span class="ct"><b>Ride the Bus</b><i>Four guesses - ride to 20x or bust</i></span></button>
     <button id="casinoMenuClose" class="sbtn" style="margin-top:6px;padding:11px">Leave the Casino</button>
    </div>
   </div>
@@ -354,7 +403,7 @@
 
   <div id="ritualBox" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:60;display:none;padding:24px 32px;border-radius:14px;border:1px solid rgba(154,200,255,.55);background:#10131f;text-align:center;max-width:420px;box-shadow:0 10px 44px rgba(0,0,0,.75)">
    <div style="font-family:var(--display);font-size:21px;color:#bcd8ff;margin-bottom:10px">⛧ THE ALTAR</div>
-   <div class="ss" style="color:var(--parch);font-size:14.5px;line-height:1.6;margin-bottom:16px">The ring hums beneath your feet. <b style="color:#bcd8ff">The Knife</b> trembles in your hand — it knows why you came.</div>
+   <div class="ss" style="color:var(--parch);font-size:14.5px;line-height:1.6;margin-bottom:16px">The ring hums beneath your feet. <b style="color:#bcd8ff">The Knife</b> trembles in your hand - it knows why you came.</div>
    <button id="ritualBegin" style="width:100%;padding:13px;border-radius:10px;border:1px solid #3a5a8a;background:linear-gradient(180deg,#2a3a5f,#141c33);color:#bcd8ff;font-family:var(--display);font-weight:800;font-size:16px;letter-spacing:.08em;cursor:pointer;box-shadow:0 0 18px rgba(154,200,255,.25)">🗡 BEGIN THE RITUAL</button>
   </div>
 
@@ -378,7 +427,7 @@
   <div id="fishhutMenu" style="position:absolute;inset:0;z-index:71;display:none;align-items:center;justify-content:center;background:rgba(5,10,8,.86)">
    <div class="casinobox" style="border-color:#5b9bd5">
     <div class="slottop" style="color:#8fc3ef;margin-bottom:6px">🎣 THE FISHING HUT</div>
-    <div class="ss" style="color:var(--dim);font-size:11.5px;line-height:1.5;margin-bottom:12px">Worms bait the lake — 1 per cast. Every catch reels in 0–8 ⚙ scraps; big hauls are rare.</div>
+    <div class="ss" style="color:var(--dim);font-size:11.5px;line-height:1.5;margin-bottom:12px">Worms bait the lake - 1 per cast. Every catch reels in 0–8 ⚙ scraps; big hauls are rare.</div>
     <div id="fishWormInfo" style="font-family:var(--display);font-size:16px;color:var(--parch);margin-bottom:12px"></div>
     <button class="sbtn gold" id="wormBuyBtn" style="width:100%;padding:12px"></button>
     <button class="sbtn" id="fishhutClose" style="width:100%;margin-top:8px;padding:11px">Back to the shore</button>
@@ -402,7 +451,7 @@
     <div class="cl" style="margin-bottom:10px">Choose solo or online co-op. Online is prototype Firestore sync.</div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
      <button class="sbtn gold" id="raidSolo" style="padding:12px">🗡 Play Solo</button>
-     <button class="sbtn gold" id="raidHost" style="padding:12px">🌐 Play Online — Create Room</button>
+     <button class="sbtn gold" id="raidHost" style="padding:12px">🌐 Play Online - Create Room</button>
      <div style="display:flex;gap:6px">
       <input id="raidCode" maxlength="5" placeholder="CODE" style="flex:1;text-transform:uppercase;background:rgba(0,0,0,.3);border:1px solid #a66bd0;border-radius:8px;color:#fff;padding:10px;text-align:center;letter-spacing:3px">
       <button class="sbtn gold" id="raidJoin">Join Room</button>
@@ -434,8 +483,10 @@
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:4px">
      <button class="sbtn gold" data-bank="dg" data-n="10000">Deposit 10K◉</button>
+     <button class="sbtn gold" data-bank="dg" data-n="100000">Deposit 100K◉</button>
      <button class="sbtn gold" data-bank="dg" data-n="all">Deposit All ◉</button>
      <button class="sbtn gold" data-bank="wg" data-n="10000">Withdraw 10K◉</button>
+     <button class="sbtn gold" data-bank="wg" data-n="100000">Withdraw 100K◉</button>
      <button class="sbtn gold" data-bank="wg" data-n="all">Withdraw All ◉</button>
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:6px">

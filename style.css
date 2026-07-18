@@ -14,7 +14,7 @@
   body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
   input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
   body{background:var(--night);color:var(--ink);font-family:var(--body);display:flex;justify-content:center;overflow:hidden}
-  /* menu screens live inside the capped app column — paint the artwork across the whole
+  /* menu screens live inside the capped app column - paint the artwork across the whole
      window behind them so narrow windows don't show the green body on the sides */
   body:has(#login.open),body:has(#select.open),body:has(#create.open){
     background:url('assets/ui/bakground_signin.png') center/cover no-repeat #131f1a}
@@ -360,12 +360,12 @@
   @keyframes epicFlash{0%{background:rgba(200,150,255,.35)}100%{background:rgba(5,10,8,.84)}}
   #chestFx.flash{animation:epicFlash .6s ease-out}
  
-  /* the plate lives on the wrapper — Chrome's autofill can hide an input's own background image */
+  /* the plate lives on the wrapper - Chrome's autofill can hide an input's own background image */
   .acctwrap{background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;border-radius:8px;margin-top:6px;padding:6px 30px 6px 38px}
   .acctwrap:focus-within{filter:brightness(1.18)}
   .acctin{width:100%;padding:6px 0;border-radius:6px;border:none;background:transparent;color:var(--parch);font-size:13px;text-shadow:0 1px 2px rgba(0,0,0,.7)}
   .acctin::placeholder{color:#b8a888;opacity:.75}
-  /* Chrome autofill forces a light background — clip it to the text glyphs so it never
+  /* Chrome autofill forces a light background - clip it to the text glyphs so it never
      paints over the plate behind; the wrapper's artwork shows through untouched */
   .acctin:-webkit-autofill,.acctin:-webkit-autofill:hover,.acctin:-webkit-autofill:focus{
    -webkit-background-clip:text;
@@ -456,7 +456,7 @@
 #seaVolWrap input{width:78px;accent-color:#5b9bd5;cursor:pointer}
 .slotmach.sea.bigwin{border-color:#ffd100;animation:slotGlow .8s ease-in-out infinite}
 /* Cell size scales with BOTH viewport width and height so the machine fits 4:3
-   tablets (iPad) as well as phones and 4k screens — never below 62px, capped at 110px. */
+   tablets (iPad) as well as phones and 4k screens - never below 62px, capped at 110px. */
 #seaFx{--seavh:100vh}
 @supports (height:100dvh){#seaFx{--seavh:100dvh}}
 #seaFx{--seacell:clamp(62px,min(calc((100vw - 120px)/4),calc((var(--seavh) - 340px)/5)),110px)}
@@ -503,6 +503,29 @@
 /* --- Borek Blackjack --- */
 #bjFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(5,10,8,.86)}
 #bjFx.open{display:flex}
+#rouFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(5,10,8,.86)}
+#rouFx.open{display:flex}
+#rtbFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(5,10,8,.86)}
+#rtbFx.open{display:flex}
+.rtbladder{display:flex;gap:6px;justify-content:center;margin:2px 0 8px}
+.rtbstep{padding:5px 10px;border-radius:8px;border:1px solid #4a4436;background:#241c12;color:var(--dim);font-size:11px;font-weight:700}
+.rtbstep.won{border-color:#9adf9a;color:#9adf9a}
+.rtbstep.cur{border-color:var(--brass);color:#ffd76a;box-shadow:0 0 8px rgba(217,164,65,.35)}
+.slotmach.rou{max-height:96%;overflow-y:auto}
+#rouWheel{display:block;margin:4px auto 2px;width:300px;height:300px} /* canvas renders at 420 - crisp on desktop, downscaled on phones */
+.roucolors{display:flex;gap:5px;margin:6px 0 5px}
+.roubet{flex:1;position:relative;padding:9px 2px;border-radius:9px;border:1px solid #4a4436;background:#2a241a;color:#e8dcc8;font-weight:700;font-size:11px;cursor:pointer;font-family:inherit}
+.roubet.red{background:#7a2020;border-color:#a03636}
+.roubet.black{background:#191919;border-color:#3c3c3c}
+.roubet.sel{outline:2px solid #ffd76a}
+.rougrid{display:grid;grid-template-columns:repeat(13,1fr);gap:3px}
+.roucell{position:relative;padding:7px 0;border-radius:6px;border:1px solid rgba(255,255,255,.14);color:#fff;font-weight:700;font-size:10.5px;text-align:center;cursor:pointer;font-family:inherit}
+.roucell.r{background:#7a2020}
+.roucell.b{background:#191919}
+.roucell.g{background:#1c5a30;grid-row:span 3}
+.roucell.sel{outline:2px solid #ffd76a}
+.rchip{position:absolute;top:-6px;right:-4px;background:#ffd76a;color:#1a1206;font-size:8px;font-weight:800;border-radius:8px;padding:1px 4px;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,.6)}
+.roustat{font-size:11px;color:var(--dim);text-align:center;margin:6px 0 2px}
 .slotmach.bj{border-color:#6dbb6d;background:linear-gradient(180deg,#1d3a2a,#0d1a12);box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 24px rgba(109,187,109,.2)}
 .slotmach.bj .slottop{color:#9adf9a;text-shadow:0 0 14px rgba(109,187,109,.5)}
 .bjrow{display:flex;flex-direction:column;gap:4px;align-items:center;min-height:70px}
@@ -516,8 +539,20 @@
 .bjact{font-family:var(--display);font-size:14px;padding:12px 20px;border-radius:12px;border:1px solid #6dbb6d;background:linear-gradient(180deg,#6dbb6d,#3a7a4a);color:#0a1a10;cursor:pointer}
 .bjact:disabled{opacity:.4;cursor:default}
 .bjact.alt{background:var(--panel2);color:#9adf9a}
+.bjact.rtbred{background:linear-gradient(180deg,#a03636,#6a1a1a);border-color:#c05050;color:#ffe0e0}
+.bjact.rtbblack{background:linear-gradient(180deg,#3c3c3c,#141414);border-color:#5a5a5a;color:#e8e8e8}
 @media (max-width:600px){.bjcard{width:32px;height:46px;font-size:12px}}
 @media (min-width:900px){
+ .slotmach.rou,.slotmach.rtb{padding:30px 44px 26px;border-radius:22px}
+ .slotmach.rou .slottop,.slotmach.rtb .slottop{font-size:30px;margin-bottom:14px}
+ #rouWheel{width:420px;height:420px}
+ .roucell{padding:11px 0;font-size:14px}
+ .roubet{padding:13px 2px;font-size:14px}
+ .rchip{font-size:10px;padding:1px 5px}
+ .roustat{font-size:13px}
+ .slotmach.rou .slotres,.slotmach.rtb .slotres{font-size:22px}
+ .rtbladder{gap:9px}
+ .rtbstep{padding:8px 15px;font-size:14px}
  .slotmach.bj{padding:34px 46px 30px;border-radius:22px}
  .slotmach.bj .slottop{font-size:30px;margin-bottom:22px}
  .bjrow{min-height:110px;gap:6px}
