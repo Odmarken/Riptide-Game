@@ -231,8 +231,10 @@ const fmtMS=ms=>{
  const s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;
  return h>0?h+'h '+m+'m':m+'m '+String(ss).padStart(2,'0')+'s';
 };
-/* effective wealth = what you carry + what your bag would sell/scrap for */
-const bagGoldVal=()=>((S&&S.bag)||[]).reduce((t,it)=>t+(it.sell||0),0);
+/* effective wealth = what you carry + what your bag would sell/scrap for.
+   Gear-set (⭐) items are unsellable, so they cannot count - they froze high-prestige
+   players hundreds of thousands below the cap with a "nothing to sell" bag. */
+const bagGoldVal=()=>((S&&S.bag)||[]).reduce((t,it)=>t+((it&&!inGearSet(it))?(it.sell||0):0),0);
 const bagScrapVal=()=>((S&&S.bag)||[]).reduce((t,it)=>t+scrapVal(it),0);
 const goldRoom=()=>Math.max(0,goldCap()-S.gold-bagGoldVal());
 const scrapRoom=()=>Math.max(0,SCRAP_CAP-S.scraps);
