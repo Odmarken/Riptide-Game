@@ -8557,7 +8557,6 @@ function rtbRender(){
  const acts=$('rtbActs');
  if(!rtbLive){
   acts.innerHTML='<button class="bjact" id="rtbStart">Board the Bus</button>';
-  $('rtbStart').onclick=rtbStart;
  }else if(rtbStage===0){
   acts.innerHTML='<button class="bjact rtbred" data-rg="red">Red</button><button class="bjact rtbblack" data-rg="black">Black</button>';
  }else if(rtbStage===1){
@@ -8567,8 +8566,13 @@ function rtbRender(){
  }else{
   acts.innerHTML=RTB_SUITS.map(s=>`<button class="bjact ${(s==='♥'||s==='♦')?'rtbred':'rtbblack'}" data-rg="s${s}">${s}</button>`).join('');
  }
- acts.querySelectorAll('[data-rg]').forEach(b=>b.onclick=()=>rtbGuess(b.dataset.rg));
 }
+/* one delegated listener on the container - immune to the buttons being rebuilt mid-click */
+$('rtbActs').addEventListener('click',e=>{
+ const g=e.target.closest('[data-rg]');
+ if(g){rtbGuess(g.dataset.rg);return;}
+ if(e.target.closest('#rtbStart'))rtbStart();
+});
 function rtbStart(){
  if(rtbLive)return;
  rtbBet=RTB_BETS[rtbBetI];
@@ -8592,10 +8596,12 @@ function rtbCashOut(){
  rtbEnd(`🚌 Cashed out - <b style="color:#ffd76a">+${win.toLocaleString()}◉</b>`);
 }
 function rtbGuess(g){
- if(!rtbLive)return;
- const c=rtbDeck.pop();rtbCards.push(c);
+ if(!rtbLive||rtbCards.length>=4)return;
+ let c=rtbDeck.pop();
+ if(!c){rtbShuffle();c=rtbDeck.pop();} /* belt & braces - the deck can never be empty */
+ rtbCards.push(c);
  const v=c.v,red=(c.s==='♥'||c.s==='♦');
- noiseSweep(0.25,.05,900,2200); /* card whips off the deck */
+ try{noiseSweep(0.25,.05,900,2200);}catch(e){} /* card whips off the deck - audio may never block the reveal */
  let ok=false,why='';
  if(rtbStage===0)ok=(g==='red')===red;
  else if(rtbStage===1){
