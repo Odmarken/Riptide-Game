@@ -8645,13 +8645,14 @@ function gvbOutcome(){
  if(r<0.6715)return {ic:['⚔️','🛡️','💍'][Math.floor(Math.random()*3)],cc:'#5b9bd5',sc:GVB_SCORE.rare,n:'RARE'};
  return {ic:['⚔️','🛡️','💍'][Math.floor(Math.random()*3)],cc:'#c9a0ff',sc:GVB_SCORE.epic,n:'EPIC'};
 }
-function gvbFiller(){ /* reel dressing only */
+function gvbFiller(){ /* reel dressing only - tease-heavy like the real chests, every card shows its scraps */
  const r=Math.random();
- if(r<0.03)return {ic:'🗡️',cc:'#ffd100'};
- if(r<0.06)return {ic:'🐂',cc:'#ffd100'};
- if(r<0.09)return {ic:'🐾',cc:'#8fe3c9'};
- if(r<0.16)return {ic:'📜',cc:'#e8c9ef'};
- return {ic:['⚔️','🛡️','💍'][Math.floor(Math.random()*3)],cc:r<0.55?'#5b9bd5':'#c9a0ff'};
+ if(r<0.06)return {ic:'🗡️',cc:'#ffd100',sc:GVB_SCORE.fm};
+ if(r<0.11)return {ic:'🐂',cc:'#ffd100',sc:GVB_SCORE.bull};
+ if(r<0.16)return {ic:'🐾',cc:'#8fe3c9',sc:GVB_SCORE.pet};
+ if(r<0.26)return {ic:'📜',cc:'#e8c9ef',sc:GVB_SCORE.scroll};
+ const epic=r>=0.6;
+ return {ic:['⚔️','🛡️','💍'][Math.floor(Math.random()*3)],cc:epic?'#c9a0ff':'#5b9bd5',sc:epic?GVB_SCORE.epic:GVB_SCORE.rare};
 }
 const gvbSpins=()=>{const sp=(gvb.doc&&gvb.doc.spins)||{};return Object.keys(sp).map(Number).sort((a,b)=>a-b).map(k=>sp[k]);};
 const gvbActive=d=>((d&&d.order)||[]).filter(p=>!(d.forfeits&&d.forfeits[p]));
@@ -8765,7 +8766,7 @@ function gvbRender(){
    gvb.sidesKey=key;
    $('gvbSides').innerHTML=ord.map(p=>`<div class="gvbside" id="gvbSide-${p}">
     <div class="gvbname">${nameOf(p)}${p===me?' (you)':''}</div>
-    <div class="gvbreel" id="gvbReel-${p}"><div class="gvbstrip" id="gvbStrip-${p}"></div></div>
+    <div class="gvbreel" id="gvbReel-${p}"><div class="gvbstrip" id="gvbStrip-${p}"><div class="gvbcard" style="color:#6a5a44"><span>🎁</span></div></div></div>
     <div class="gvbscore" id="gvbScore-${p}">0 ⚙</div></div>`).join('');
   }
   const list=gvbSpins();
@@ -8791,27 +8792,40 @@ function gvbRender(){
 }
 function gvbAnimate(spin){
  gvb.animating=true;
- const strip=$('gvbStrip-'+spin.p),reel=$('gvbReel-'+spin.p);
- if(!strip||!reel){gvb.shown++;gvb.animating=false;gvbRender();return;} /* roster changed mid-flight - skip visual */
- reel.classList.add('rolling');
- $('gvbTurnTxt').textContent=((gvb.doc.players||{})[spin.p]||{}).name?(((gvb.doc.players||{})[spin.p]||{}).name)+' is opening…':'Opening…';
+ const P=(gvb.doc&&gvb.doc.players)||{};
+ $('gvbTurnTxt').textContent=((P[spin.p]||{}).name||'…')+' is opening…';
  $('gvbOpen').style.display='none';
- const N=30,CARD=104,dur=10400; /* Black Temple pace - agonising on purpose */
+ const wrap=$('gvbBigWrap'),strip=$('gvbBigStrip');
+ wrap.style.display='block';
+ const CARD=78,N=46,TARGET=40,dur=10400; /* the proper case reel - long horizontal tease at Black Temple pace */
  let h='';
- for(let i=0;i<N-1;i++){const f=gvbFiller();h+=`<div class="gvbcard" style="color:${f.cc}"><span>${f.ic}</span></div>`;}
- h+=`<div class="gvbcard" style="color:${spin.cc}"><span>${spin.ic}</span><span class="gl">${spin.n} · ${spin.sc}⚙</span></div>`;
+ for(let i=0;i<N;i++){
+  let c;
+  if(i===TARGET)c=spin;
+  else if((i===TARGET-1||i===TARGET+1)&&Math.random()<0.55){ /* near-miss drama: a jackpot loves to sit next door */
+   c=Math.random()<0.5?{ic:'🗡️',cc:'#ffd100',sc:GVB_SCORE.fm}:{ic:'🐂',cc:'#ffd100',sc:GVB_SCORE.bull};
+  }else c=gvbFiller();
+  h+=`<div class="gvbbigcard" style="color:${c.cc}"><span>${c.ic}</span><span class="gl">${c.sc}⚙</span></div>`;
+ }
  strip.innerHTML=h;
- const t0=performance.now();let lastCard=-1;
+ const winW=wrap.clientWidth||420;
+ const jitter=(Math.random()*0.6-0.3)*CARD; /* lands a touch off-centre, like the real chests */
+ const endX=-(TARGET*CARD+CARD/2-winW/2)+jitter;
+ const t0=performance.now();let lastIdx=-1;
  (function anim(){
   const p=Math.min(1,(performance.now()-t0)/dur);
   const e=1-Math.pow(1-p,3);
-  const y=-(N-1)*CARD*e;
-  strip.style.transform='translateY('+y+'px)';
-  const ci=Math.floor(-y/CARD);
-  if(ci!==lastCard){lastCard=ci;blip(1600,1100,0.03,p>0.9?0.05:0.025,'square');}
+  const x=endX*e;
+  strip.style.transform='translateX('+x+'px)';
+  const idx=Math.floor((-x+winW/2)/CARD);
+  if(idx!==lastIdx){lastIdx=idx;blip(1600,1100,0.03,p>0.9?0.05:0.025,'square');}
   if(p<1){requestAnimationFrame(anim);return;}
-  reel.classList.remove('rolling');
+  const box=$('gvbStrip-'+spin.p); /* stamp the prize into the roller's frame */
+  if(box)box.innerHTML=`<div class="gvbcard" style="color:${spin.cc}"><span>${spin.ic}</span><span class="gl">${spin.n} · ${spin.sc}⚙</span></div>`;
+  const reel=$('gvbReel-'+spin.p);
+  if(reel){reel.classList.add('rolling');setTimeout(()=>reel.classList.remove('rolling'),900);}
   if(spin.sc>=10)dingDingDing(spin.sc>=20);
+  wrap.style.display='none';
   gvb.shown++;gvb.animating=false;
   gvbRender();
  })();
