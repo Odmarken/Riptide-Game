@@ -9497,9 +9497,26 @@ async function save(){
  if(!S||!S.id||FB.kicked)return;
  memChars[S.id]=JSON.stringify(S);
  await deviceSet('riptide-char-'+S.id,memChars[S.id]);
- if(FB.ready&&FB.user){cloudPushChar(S);publishLB(S);}
- else publishLB(S);
+ if(FB.ready&&FB.user){
+  /* 💸 local saves stay instant, but the cloud gets at most one push per 3 min -
+     every push is two writes plus a full-document echo to our own listener, and at
+     12s autosave pace that alone was most of the Firebase bill */
+  const now=Date.now();
+  if(now-(FB.lastPush||0)>180000){FB.lastPush=now;FB.pushDirty=false;cloudPushChar(S);}
+  else FB.pushDirty=true;
+  publishLB(S);
+ }else publishLB(S);
 }
+setInterval(()=>{ /* trailing flush so a dirty save never waits longer than ~3.5 min */
+ if(FB.pushDirty&&FB.ready&&FB.user&&S&&S.id&&Date.now()-(FB.lastPush||0)>180000){
+  FB.lastPush=Date.now();FB.pushDirty=false;cloudPushChar(S);
+ }
+},30000);
+document.addEventListener('visibilitychange',()=>{ /* tab closing/backgrounding - get the last state out */
+ if(document.visibilityState==='hidden'&&FB.pushDirty&&FB.ready&&FB.user&&S&&S.id){
+  FB.lastPush=Date.now();FB.pushDirty=false;cloudPushChar(S);
+ }
+});
 async function loadRoster(){
  const key=rosterKey();
  let raw=await deviceGet(key);
@@ -9658,8 +9675,18 @@ async function cloudPushChar(ch){
  try{
   const uid=FB.user.uid,ids=await loadRoster();
   const ref=FB.db.collection('players').doc(uid);
-  await ref.set({season:SEASON,roster:ids,updatedAt:Date.now()},{merge:true});
-  await ref.update({['chars.'+ch.id]:JSON.parse(JSON.stringify(ch))});
+  const rosterJson=JSON.stringify(ids);
+  try{
+   if(FB.lastRoster!==rosterJson){ /* the roster only changes on create/delete - skip the extra write otherwise */
+    await ref.set({season:SEASON,roster:ids,updatedAt:Date.now()},{merge:true});
+    FB.lastRoster=rosterJson;
+   }
+   await ref.update({['chars.'+ch.id]:JSON.parse(JSON.stringify(ch)),updatedAt:Date.now()});
+  }catch(inner){ /* first push ever - the doc may not exist yet */
+   await ref.set({season:SEASON,roster:ids,updatedAt:Date.now()},{merge:true});
+   FB.lastRoster=rosterJson;
+   await ref.update({['chars.'+ch.id]:JSON.parse(JSON.stringify(ch)),updatedAt:Date.now()});
+  }
  }catch(e){console.warn('cloud push failed',e);}
 }
 async function cloudDeleteChar(id){
