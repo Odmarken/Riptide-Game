@@ -8635,7 +8635,39 @@ $('rtbClose').onclick=()=>{
    Ties go to sudden death, one chest each until someone leads. */
 const GVB_SCORE={fm:20,pet:12,bull:10,scroll:7,epic:5,rare:3};
 const GVB_MAXP=4;
-const gvb={code:null,ref:null,unsub:null,pid:null,doc:null,shown:0,animating:false,paid:false,settled:false,lastChange:0,bet:0,closedByMe:false,sidesKey:''};
+const gvb={code:null,ref:null,unsub:null,pid:null,doc:null,shown:0,animating:false,paid:false,settled:false,lastChange:0,bet:0,closedByMe:false,sidesKey:'',rtc:{},rtcSpins:{},sigUnsub:null};
+/* ⚡ zero-latency layer - the Black Temple trick: spins ride WebRTC data channels the
+   instant they happen; Firestore stays the source of truth and the phone fallback. */
+function gvbSig(to,type,payload){return gvb.ref.collection('signals').add({from:gvb.pid,to,type,payload:JSON.stringify(payload),t:Date.now()});}
+async function gvbRtcConnect(pid){
+ if(gvb.rtc[pid])return;
+ const P={pc:new RTCPeerConnection(RTC_CFG),ch:null,ok:false};
+ gvb.rtc[pid]=P;
+ P.pc.onicecandidate=e=>{if(e.candidate)gvbSig(pid,'ice',e.candidate).catch(()=>{});};
+ const wire=ch=>{P.ch=ch;ch.onopen=()=>{P.ok=true;};ch.onmessage=e=>{try{gvbRtcMsg(JSON.parse(e.data));}catch(err){}};};
+ if(gvb.pid<pid){ /* the lower pid makes the offer - no glare */
+  wire(P.pc.createDataChannel('gvb'));
+  const of=await P.pc.createOffer();await P.pc.setLocalDescription(of);
+  await gvbSig(pid,'offer',of);
+ }else P.pc.ondatachannel=e=>wire(e.channel);
+}
+async function gvbRtcSignalHandle(from,type,payload){
+ if(!gvb.rtc[from]&&type==='offer')await gvbRtcConnect(from);
+ const P=gvb.rtc[from];if(!P)return;
+ if(type==='offer'){
+  await P.pc.setRemoteDescription(payload);
+  const an=await P.pc.createAnswer();await P.pc.setLocalDescription(an);
+  await gvbSig(from,'answer',an);
+ }else if(type==='answer')await P.pc.setRemoteDescription(payload);
+ else if(type==='ice'){try{await P.pc.addIceCandidate(payload);}catch(e){}}
+}
+function gvbRtcMsg(m){
+ if(m.k==='spin'&&gvb.doc&&gvb.rtcSpins[m.i]===undefined){gvb.rtcSpins[m.i]=m.spin;gvbRender();}
+}
+function gvbRtcBroadcast(m){
+ const s2=JSON.stringify(m);
+ for(const k in gvb.rtc){const P=gvb.rtc[k];if(P.ok&&P.ch&&P.ch.readyState==='open'){try{P.ch.send(s2);}catch(e){}}}
+}
 function gvbOutcome(){
  const r=Math.random();
  if(r<0.002)return {ic:'🗡️',cc:'#ffd100',sc:GVB_SCORE.fm,n:'FROSTMOURNE'};
@@ -8654,7 +8686,7 @@ function gvbFiller(){ /* reel dressing only - tease-heavy like the real chests, 
  const epic=r>=0.6;
  return {ic:['⚔️','🛡️','💍'][Math.floor(Math.random()*3)],cc:epic?'#c9a0ff':'#5b9bd5',sc:epic?GVB_SCORE.epic:GVB_SCORE.rare};
 }
-const gvbSpins=()=>{const sp=(gvb.doc&&gvb.doc.spins)||{};return Object.keys(sp).map(Number).sort((a,b)=>a-b).map(k=>sp[k]);};
+const gvbSpins=()=>{const sp=Object.assign({},(gvb.doc&&gvb.doc.spins)||{},gvb.rtcSpins||{});return Object.keys(sp).map(Number).sort((a,b)=>a-b).map(k=>sp[k]);}; /* RTC-early spins merge in ahead of Firestore */
 const gvbActive=d=>((d&&d.order)||[]).filter(p=>!(d.forfeits&&d.forfeits[p]));
 const gvbRolls=(list,p)=>list.filter(s2=>s2.p===p).length;
 const gvbScore=(list,p)=>list.reduce((t,s2)=>t+(s2.p===p?s2.sc:0),0);
@@ -8713,15 +8745,28 @@ async function gvbJoin(code){
 }
 function gvbListen(){
  gvb.shown=0;gvb.animating=false;gvb.paid=false;gvb.settled=false;gvb.closedByMe=false;gvb.sidesKey='';
+ gvb.rtc={};gvb.rtcSpins={};
  gvb.unsub=gvb.ref.onSnapshot(s2=>{
   if(!s2.exists||(s2.data()||{}).state==='closed'){if(!gvb.closedByMe){stageMsg('The room was closed',1600);}gvbCleanup();return;}
   gvb.doc=s2.data();gvb.lastChange=Date.now();
+  (gvb.doc.order||[]).forEach(p=>{if(p!==gvb.pid)gvbRtcConnect(p).catch(()=>{});}); /* mesh up with everyone at the table */
   gvbRender();
+ });
+ gvb.sigUnsub=gvb.ref.collection('signals').onSnapshot(qs=>{
+  qs.docChanges().forEach(ch=>{
+   if(ch.type!=='added')return;
+   const m=ch.doc.data();
+   if(m.to!==gvb.pid)return;
+   gvbRtcSignalHandle(m.from,m.type,JSON.parse(m.payload)).catch(()=>{});
+  });
  });
 }
 function gvbCleanup(){
  if(gvb.unsub){gvb.unsub();gvb.unsub=null;}
- gvb.code=null;gvb.ref=null;gvb.doc=null;gvb.side=null;
+ if(gvb.sigUnsub){gvb.sigUnsub();gvb.sigUnsub=null;}
+ for(const k in gvb.rtc){try{gvb.rtc[k].pc.close();}catch(e){}}
+ gvb.rtc={};gvb.rtcSpins={};
+ gvb.code=null;gvb.ref=null;gvb.doc=null;gvb.pid=null;
  $('gvbFx').style.display='none';
  casinoAmbApply();
 }
@@ -8889,7 +8934,10 @@ $('gvbOpen').onclick=async()=>{
  if(gvbTurn(gvb.doc,list)!==gvb.pid)return;
  $('gvbOpen').style.display='none';
  const o=gvbOutcome();o.p=gvb.pid;
- await gvb.ref.update({['spins.'+list.length]:o});
+ gvb.rtcSpins[list.length]=o;             /* my own reel starts this frame */
+ gvbRtcBroadcast({k:'spin',i:list.length,spin:o}); /* friends' reels start within milliseconds */
+ gvbRender();
+ gvb.ref.update({['spins.'+list.length]:o}).catch(()=>{}); /* Firestore trails behind as the record */
 };
 $('gvbClaim').onclick=async()=>{
  if(!gvb.ref||!gvb.doc)return;
