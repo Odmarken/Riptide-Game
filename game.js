@@ -1393,10 +1393,12 @@ const IS_TOUCH=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
 const ambVol=()=>(!S||S.sound)?(S?S.volAmb:0.5):0;
 const sfxVol=()=>(!S||S.sfx)?(S?S.volSfx:0.55):0;
 function applyVolumes(){
- /* iOS/WebKit often ignores direct .gain.value writes — setValueAtTime always lands */
+ /* iOS/WebKit often ignores direct .gain.value writes — setValueAtTime always lands.
+    Each bus is isolated in its own try so one WebKit hiccup can't skip the other. */
  const gt=AC.ctx?AC.ctx.currentTime:0;
- if(AC.ambG){AC.ambG.gain.cancelScheduledValues(gt);AC.ambG.gain.setValueAtTime(ambVol(),gt);}
- if(AC.sfxG){AC.sfxG.gain.cancelScheduledValues(gt);AC.sfxG.gain.setValueAtTime(sfxVol(),gt);}
+ try{if(AC.ambG){AC.ambG.gain.cancelScheduledValues(gt);AC.ambG.gain.setValueAtTime(ambVol(),gt);}}catch(e){}
+ try{if(AC.sfxG){AC.sfxG.gain.cancelScheduledValues(gt);AC.sfxG.gain.setValueAtTime(sfxVol(),gt);}}catch(e){}
+ if(AC.ctx&&AC.ctx.state==='suspended')AC.ctx.resume().catch(()=>{}); /* iOS parks the session when all media is muted — wake it so sfx stays alive */
  /* .muted works on iOS where .volume writes are ignored — mute must win on phones */
  const av=ambVol(),m=av<=0;
  [ambAudio,cowAudio,haalandAudio,cryptAudio].forEach(a=>{if(a){try{a.volume=av;a.muted=m;}catch(e){}}});
@@ -1408,7 +1410,7 @@ function noiseBuf(){
  return AC.nb=b;
 }
 function initAudio(){
- if(AC.ctx)return;
+ if(AC.ctx){if(AC.ctx.state==='suspended')AC.ctx.resume().catch(()=>{});return;}
  try{
   AC.ctx=new (window.AudioContext||window.webkitAudioContext)();
   AC.ambG=AC.ctx.createGain();AC.ambG.gain.value=ambVol();
@@ -1450,6 +1452,7 @@ function droneLayer(freqs,vol){
 }
 function blip(freq0,freq1,dur,vol,type,dest){
  if(!AC.ctx)return;
+ if(!dest&&S&&!S.sfx)return; /* ⚔️ muted — hard gate, even if a gain write was swallowed by WebKit */
  const t=AC.ctx.currentTime;
  const o=AC.ctx.createOscillator();o.type=type||'sine';
  o.frequency.setValueAtTime(freq0,t);o.frequency.exponentialRampToValueAtTime(Math.max(30,freq1),t+dur);
@@ -1458,6 +1461,7 @@ function blip(freq0,freq1,dur,vol,type,dest){
 }
 function noiseHit(dur,vol,freq,dest){
  if(!AC.ctx)return;
+ if(!dest&&S&&!S.sfx)return; /* ⚔️ muted */
  const t=AC.ctx.currentTime;
  const src=AC.ctx.createBufferSource();src.buffer=noiseBuf();
  const f=AC.ctx.createBiquadFilter();f.type='lowpass';f.frequency.value=freq||900;
@@ -1467,6 +1471,7 @@ function noiseHit(dur,vol,freq,dest){
 /* airy filtered-noise sweep — used for the new weapon swing */
 function noiseSweep(dur,vol,f0,f1,dest){
  if(!AC.ctx)return;
+ if(!dest&&S&&!S.sfx)return; /* ⚔️ muted */
  const t=AC.ctx.currentTime;
  const src=AC.ctx.createBufferSource();src.buffer=noiseBuf();
  const f=AC.ctx.createBiquadFilter();f.type='bandpass';f.Q.value=1.6;
@@ -2556,7 +2561,8 @@ function drawFarmGround(){ /* farm_zone stretched over one cow-field, laid twice
  }
  ctx.strokeStyle='rgba(0,0,0,0.35)';ctx.lineWidth=26;ctx.strokeRect(0,0,world.w,world.h);
  for(const r of ((S&&S.farm&&S.farm.r)||[]))drawRoadSeg(r); /* 🛣 roads sit on the ground, under the crops */
- for(const c of ((S&&S.farm&&S.farm.c)||[])){ /* 🌱 crops draw with the ground — each hay stage uses its own art */
+ const cropsSorted=((S&&S.farm&&S.farm.c)||[]).slice().sort((a,b)=>a.y-b.y); /* back row first — front straws overlap the row behind */
+ for(const c of cropsSorted){ /* 🌱 crops draw with the ground — each hay stage uses its own art */
   if(c._moving)continue;
   if(c.x<vx0-80||c.x>vx1+80||c.y<vy0-80||c.y>vy1+80)continue;
   const cdef=FARM_BUILD.find(o=>o.id===c.t&&o.crop)||FARM_BUILD.find(o=>o.id==='hay');
@@ -5249,7 +5255,7 @@ function drawProp(s,z){
   if(!s._moving&&im.complete&&im.naturalWidth){ /* hidden while being carried in build mode */
    const W=340,H=W*im.naturalHeight/im.naturalWidth;
    ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,10,W*0.36,W*0.085,0,0,7);ctx.fill(); /* tucked under the sprite — only a rim peeks out */
-   ctx.drawImage(mip(im,W),-W/2,32-H,W,H);
+   ctx.drawImage(crisp(im,W),-W/2,32-H,W,H);
    const own=S.farm&&S.farm.owned;
    const txt=own?'':((S.prestige||0)>=5?'Buy Farm · 500,000◉ + 800⚙':'🔒 Requires Prestige 5');
    if(txt){
@@ -5268,9 +5274,9 @@ function drawProp(s,z){
     const ph=(s.wt||0)*0.35,k=s.mv;
     const bob=Math.abs(Math.sin(ph))*(1.5+W*0.03)*k;
     ctx.save();ctx.translate(0,gy);ctx.rotate(Math.sin(ph)*0.06*k);
-    ctx.drawImage(mip(im,W),-W/2,-H-bob,W,H);
+    ctx.drawImage(crisp(im,W),-W/2,-H-bob,W,H);
     ctx.restore();
-   }else ctx.drawImage(mip(im,W),-W/2,gy-H,W,H);
+   }else ctx.drawImage(crisp(im,W),-W/2,gy-H,W,H); /* crisp(): device-pixel exact — no mip shimmer on fences */
    if(def.roam&&s.it){ /* mood tag: 💕 expecting/brooding · ❤ sated (next meal not yet due) */
     const tag=(s.it.preg||s.it.egg)?'💕':(Date.now()-(s.it.fed||0)<(def.eatT||HAPPY_T)?'❤':null);
     if(tag){ctx.font='700 12px system-ui';ctx.textAlign='center';ctx.fillStyle='#ff8aa0';ctx.fillText(tag,0,gy-H-5);}
