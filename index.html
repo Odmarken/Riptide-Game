@@ -450,7 +450,7 @@
    <div class="casinobox" style="border-color:#ffd76a;max-width:540px;width:94%">
     <div class="slottop" style="color:#ffd76a">🎲 GAMBLE AGAINST FRIEND</div>
     <div id="gvbEntry">
-     <div class="cl" style="margin-bottom:10px">Ten chests each, opened one at a time. Most scraps wins the other player's whole stake - the scraps are only score.</div>
+     <div class="cl" style="margin-bottom:10px">2-4 players. Ten chests each, opened one at a time. Most scraps takes the whole pot - the scraps are only score.</div>
      <button class="sbtn gold" id="gvbCreate" style="padding:12px;width:100%">🌐 Create Room</button>
      <div style="display:flex;gap:6px;margin-top:8px">
       <input id="gvbCode" maxlength="5" placeholder="CODE" style="flex:1;text-transform:uppercase;background:rgba(0,0,0,.3);border:1px solid #ffd76a;border-radius:8px;color:#fff;padding:10px;text-align:center;letter-spacing:3px">
@@ -459,8 +459,10 @@
     </div>
     <div id="gvbLobby" style="display:none">
      <div class="cl" id="gvbCodeTxt" style="font-size:16px;letter-spacing:2px;margin:4px 0"></div>
+     <div class="cl" style="font-size:11px;color:var(--dim)">2-4 players · host opens first, then clockwise</div>
      <div id="gvbPlayers" style="margin:8px 0"></div>
      <button class="sbtn gold" id="gvbReady" style="padding:11px 20px">✔ Ready</button>
+     <button class="sbtn gold" id="gvbStart" style="padding:11px 20px;display:none">▶ START DUEL</button>
     </div>
     <div id="gvbBet" style="display:none">
      <div class="cl">Both stake the same amount - and you must carry it.</div>
@@ -475,10 +477,7 @@
     </div>
     <div id="gvbDuel" style="display:none">
      <div class="cl" id="gvbRound" style="font-size:15px;color:#ffd76a;font-weight:700"></div>
-     <div style="display:flex;gap:12px;justify-content:center;margin-top:8px">
-      <div class="gvbside"><div class="gvbname" id="gvbHName"></div><div class="gvbreel" id="gvbHReel"><div class="gvbstrip" id="gvbHStrip"></div></div><div class="gvbscore" id="gvbHScore">0 ⚙</div></div>
-      <div class="gvbside"><div class="gvbname" id="gvbGName"></div><div class="gvbreel" id="gvbGReel"><div class="gvbstrip" id="gvbGStrip"></div></div><div class="gvbscore" id="gvbGScore">0 ⚙</div></div>
-     </div>
+     <div id="gvbSides" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:8px"></div>
      <div class="cl" id="gvbTurnTxt" style="margin-top:8px;min-height:1.3em"></div>
      <button class="sbtn gold" id="gvbOpen" style="padding:12px 24px;display:none">🎁 Open your chest</button>
      <button class="sbtn" id="gvbClaim" style="display:none;margin-top:6px">⏱ Opponent is gone - claim the pot</button>

@@ -8634,7 +8634,8 @@ $('rtbClose').onclick=()=>{
    Black Temple pace. Chests score symbolic scraps; most scraps takes the whole pot.
    Ties go to sudden death, one chest each until someone leads. */
 const GVB_SCORE={fm:20,pet:12,bull:10,scroll:7,epic:5,rare:3};
-const gvb={code:null,ref:null,unsub:null,side:null,doc:null,shown:0,animating:false,paid:false,settled:false,lastChange:0,bet:0,closedByMe:false};
+const GVB_MAXP=4;
+const gvb={code:null,ref:null,unsub:null,pid:null,doc:null,shown:0,animating:false,paid:false,settled:false,lastChange:0,bet:0,closedByMe:false,sidesKey:''};
 function gvbOutcome(){
  const r=Math.random();
  if(r<0.002)return {ic:'🗡️',cc:'#ffd100',sc:GVB_SCORE.fm,n:'FROSTMOURNE'};
@@ -8653,8 +8654,27 @@ function gvbFiller(){ /* reel dressing only */
  return {ic:['⚔️','🛡️','💍'][Math.floor(Math.random()*3)],cc:r<0.55?'#5b9bd5':'#c9a0ff'};
 }
 const gvbSpins=()=>{const sp=(gvb.doc&&gvb.doc.spins)||{};return Object.keys(sp).map(Number).sort((a,b)=>a-b).map(k=>sp[k]);};
-const gvbScores=list=>{let h=0,g=0;list.forEach((s2,i)=>{if(i%2===0)h+=s2.sc;else g+=s2.sc;});return {h,g};};
-const gvbOver=list=>{const n=list.length;if(n<20||n%2)return false;const s2=gvbScores(list);return s2.h!==s2.g;};
+const gvbActive=d=>((d&&d.order)||[]).filter(p=>!(d.forfeits&&d.forfeits[p]));
+const gvbRolls=(list,p)=>list.filter(s2=>s2.p===p).length;
+const gvbScore=(list,p)=>list.reduce((t,s2)=>t+(s2.p===p?s2.sc:0),0);
+const gvbTurn=(d,list)=>{ /* round-robin over the order, skipping forfeits */
+ const act=gvbActive(d);if(!act.length)return null;
+ if(!list.length)return act[0];
+ const ord=d.order,i=ord.indexOf(list[list.length-1].p);
+ for(let k=1;k<=ord.length;k++){const c=ord[(i+k)%ord.length];if(act.includes(c))return c;}
+ return act[0];
+};
+const gvbWinner=(d,list)=>{ /* pid of the winner, or null while the duel is still on */
+ const act=gvbActive(d);
+ if((d.order||[]).length>=2&&act.length===1)return act[0]; /* everyone else forfeited */
+ if(act.length<2)return null;
+ const rolls=act.map(p=>gvbRolls(list,p));
+ if(Math.min(...rolls)<10||!rolls.every(r=>r===rolls[0]))return null; /* 10 each, kept level (sudden death keeps it level too) */
+ const scores=act.map(p=>gvbScore(list,p));
+ const mx=Math.max(...scores);
+ const lead=act.filter((p,i)=>scores[i]===mx);
+ return lead.length===1?lead[0]:null;
+};
 function gvbShow(panel){
  ['gvbEntry','gvbLobby','gvbBet','gvbDuel','gvbDone'].forEach(id=>{const e=$(id);if(e)e.style.display=id===panel?'block':'none';});
 }
@@ -8664,10 +8684,10 @@ function openGVB(){
 }
 async function gvbCreate(){
  const ok=await mpEnsureFirebase();if(!ok){stageMsg('Firebase is not ready - sign in first.',2200);sfx.warn();return;}
- gvb.code=MPCODE();gvb.side='host';
+ gvb.code=MPCODE();gvb.pid='p'+Math.random().toString(36).slice(2,9);
  gvb.ref=mpDB().collection('gamble').doc(gvb.code);
- await gvb.ref.set({state:'lobby',created:Date.now(),
-  host:{name:dispName?dispName(S):(S.name||'Hero'),ready:false,bet:0,ok:false},guest:null,spins:{}});
+ await gvb.ref.set({state:'lobby',created:Date.now(),host:gvb.pid,order:[gvb.pid],
+  players:{[gvb.pid]:{name:dispName?dispName(S):(S.name||'Hero'),ready:false,bet:0,ok:false}},spins:{},forfeits:{}});
  gvbListen();
 }
 async function gvbJoin(code){
@@ -8677,13 +8697,15 @@ async function gvbJoin(code){
  const ref=mpDB().collection('gamble').doc(code);
  const snap=await ref.get();
  if(!snap.exists||snap.data().state==='closed'){stageMsg('Room not found',1600);sfx.warn();return;}
- if(snap.data().guest){stageMsg('Room is full',1600);sfx.warn();return;}
- gvb.code=code;gvb.side='guest';gvb.ref=ref;
- await ref.update({guest:{name:dispName?dispName(S):(S.name||'Hero'),ready:false,bet:0,ok:false}});
+ const d=snap.data();
+ if(d.state!=='lobby'){stageMsg('That duel has already started',1600);sfx.warn();return;}
+ if((d.order||[]).length>=GVB_MAXP){stageMsg('Room is full ('+GVB_MAXP+' players)',1600);sfx.warn();return;}
+ gvb.code=code;gvb.pid='p'+Math.random().toString(36).slice(2,9);gvb.ref=ref;
+ await ref.update({['players.'+gvb.pid]:{name:dispName?dispName(S):(S.name||'Hero'),ready:false,bet:0,ok:false},order:[...(d.order||[]),gvb.pid]});
  gvbListen();
 }
 function gvbListen(){
- gvb.shown=0;gvb.animating=false;gvb.paid=false;gvb.settled=false;gvb.closedByMe=false;
+ gvb.shown=0;gvb.animating=false;gvb.paid=false;gvb.settled=false;gvb.closedByMe=false;gvb.sidesKey='';
  gvb.unsub=gvb.ref.onSnapshot(s2=>{
   if(!s2.exists||(s2.data()||{}).state==='closed'){if(!gvb.closedByMe){stageMsg('The room was closed',1600);}gvbCleanup();return;}
   gvb.doc=s2.data();gvb.lastChange=Date.now();
@@ -8698,27 +8720,30 @@ function gvbCleanup(){
 }
 function gvbRender(){
  const d=gvb.doc;if(!d)return;
- const me=gvb.side,opp=me==='host'?'guest':'host';
+ const me=gvb.pid,isHost=d.host===me,P=d.players||{},ord=d.order||[];
+ const nameOf=p=>(P[p]&&P[p].name)||'Hero';
  if(d.state==='lobby'){
   gvbShow('gvbLobby');
   $('gvbCodeTxt').textContent='Room code: '+gvb.code;
-  const rows=[[d.host?d.host.name+' (host)':'…',d.host&&d.host.ready],[d.guest?d.guest.name:'Waiting for a challenger…',d.guest&&d.guest.ready]];
-  $('gvbPlayers').innerHTML=rows.map(r=>`<div class="cl">${r[1]?'✅':'⏳'} ${r[0]}</div>`).join('');
-  const mine=d[me];
+  $('gvbPlayers').innerHTML=ord.map(p=>`<div class="cl">${P[p]&&P[p].ready?'✅':'⏳'} ${nameOf(p)}${p===d.host?' (host)':''}${p===me?' - you':''}</div>`).join('')
+   +(ord.length<GVB_MAXP?'<div class="cl" style="color:var(--dim)">… room open ('+ord.length+'/'+GVB_MAXP+')</div>':'');
+  const mine=P[me];
   $('gvbReady').textContent=mine&&mine.ready?'✔ Ready!':'✔ Ready';
-  /* host advances the room once both are in and ready */
-  if(me==='host'&&d.host&&d.guest&&d.host.ready&&d.guest.ready)gvb.ref.update({state:'bet'});
+  const allReady=ord.length>=2&&ord.every(p=>P[p]&&P[p].ready);
+  $('gvbStart').style.display=(isHost&&allReady)?'inline-block':'none'; /* host fires the duel, just like the raid */
   return;
  }
  if(d.state==='bet'){
   gvbShow('gvbBet');
-  const mine=d[me]||{},their=d[opp]||{};
-  $('gvbBetStat').innerHTML=
-   (mine.ok?`You: <b style="color:#ffd76a">${(mine.bet||0).toLocaleString()}◉</b> locked`:'You: choosing…')+' · '+
-   (their.ok?`${their.name}: <b style="color:#ffd76a">${(their.bet||0).toLocaleString()}◉</b> locked`:(their.name||'Opponent')+': choosing…');
+  const mine=P[me]||{};
+  $('gvbBetStat').innerHTML=ord.map(p=>{
+   const pl=P[p]||{};
+   return `<div class="cl">${pl.ok?'🔒':'⏳'} ${nameOf(p)}${p===me?' (you)':''}: ${pl.ok?'<b style="color:#ffd76a">'+(pl.bet||0).toLocaleString()+'◉</b>':'choosing…'}</div>`;
+  }).join('');
   $('gvbBetLock').disabled=!!mine.ok;
-  /* host starts the duel once both stakes match */
-  if(me==='host'&&d.host&&d.guest&&d.host.ok&&d.guest.ok&&d.host.bet===d.guest.bet&&d.host.bet>0)gvb.ref.update({state:'roll',bet:d.host.bet});
+  /* host starts once every stake is locked and identical */
+  if(isHost&&ord.length>=2&&ord.every(p=>P[p]&&P[p].ok)&&ord.every(p=>P[p].bet===P[ord[0]].bet)&&P[ord[0]].bet>0)
+   gvb.ref.update({state:'roll',bet:P[ord[0]].bet});
   return;
  }
  if(d.state==='roll'){
@@ -8726,33 +8751,46 @@ function gvbRender(){
   gvb.bet=d.bet||0;
   if(!gvb.paid){ /* the stake leaves your pocket the moment the duel starts */
    gvb.paid=true;
-   if(!spendGold(gvb.bet)){gvb.ref.update({forfeit:me});} /* should never happen - validated at lock */
+   if(!spendGold(gvb.bet)){gvb.ref.update({['forfeits.'+me]:true});}
    save();renderHUD();
   }
-  $('gvbHName').textContent=(d.host&&d.host.name)||'Host';
-  $('gvbGName').textContent=(d.guest&&d.guest.name)||'Guest';
+  /* build one reel column per player (rebuilt only if the roster changes) */
+  const key=ord.join(',');
+  if(gvb.sidesKey!==key){
+   gvb.sidesKey=key;
+   $('gvbSides').innerHTML=ord.map(p=>`<div class="gvbside" id="gvbSide-${p}">
+    <div class="gvbname">${nameOf(p)}${p===me?' (you)':''}</div>
+    <div class="gvbreel" id="gvbReel-${p}"><div class="gvbstrip" id="gvbStrip-${p}"></div></div>
+    <div class="gvbscore" id="gvbScore-${p}">0 ⚙</div></div>`).join('');
+  }
   const list=gvbSpins();
-  if(d.forfeit){gvbSettle(list,d.forfeit==='host'?'guest':'host',true);return;}
   /* animate any spin we have not shown yet, one at a time */
-  if(gvb.shown<list.length&&!gvb.animating){gvbAnimate(list[gvb.shown],gvb.shown);return;}
+  if(gvb.shown<list.length&&!gvb.animating){gvbAnimate(list[gvb.shown]);return;}
   if(!gvb.animating){
-   const sc=gvbScores(list.slice(0,gvb.shown));
-   $('gvbHScore').textContent=sc.h+' ⚙';$('gvbGScore').textContent=sc.g+' ⚙';
-   if(gvbOver(list)){gvbSettle(list,gvbScores(list).h>gvbScores(list).g?'host':'guest',false);return;}
-   const n=list.length,turn=n%2===0?'host':'guest',round=Math.floor(n/2)+1;
-   $('gvbRound').textContent=(round<=10?'Round '+round+' / 10':'⚔ SUDDEN DEATH')+' · pot '+(gvb.bet*2).toLocaleString()+'◉';
-   const myTurn=turn===me;
-   $('gvbTurnTxt').textContent=myTurn?'Your chest awaits…':((d[turn]&&d[turn].name)||'Opponent')+' is opening…';
+   const seen=list.slice(0,gvb.shown);
+   ord.forEach(p=>{
+    const el=$('gvbScore-'+p);if(el)el.textContent=gvbScore(seen,p)+' ⚙';
+    const side=$('gvbSide-'+p);if(side)side.style.opacity=(d.forfeits&&d.forfeits[p])?0.35:1;
+   });
+   const win=gvbWinner(d,list);
+   if(win){gvbSettle(list,win,gvbActive(d).length===1);return;}
+   const turn=gvbTurn(d,list);
+   const round=turn?gvbRolls(list,turn)+1:1;
+   $('gvbRound').textContent=(round<=10?'Round '+round+' / 10':'⚔ SUDDEN DEATH')+' · pot '+(gvb.bet*ord.length).toLocaleString()+'◉';
+   const myTurn=turn===me&&!(d.forfeits&&d.forfeits[me]);
+   $('gvbTurnTxt').textContent=myTurn?'Your chest awaits…':nameOf(turn)+' is opening…';
    $('gvbOpen').style.display=myTurn?'inline-block':'none';
    $('gvbClaim').style.display=(!myTurn&&Date.now()-gvb.lastChange>120000)?'inline-block':'none';
   }
  }
 }
-function gvbAnimate(spin,idx){
+function gvbAnimate(spin){
  gvb.animating=true;
- const side=idx%2===0?'host':'guest';
- const strip=$(side==='host'?'gvbHStrip':'gvbGStrip'),reel=$(side==='host'?'gvbHReel':'gvbGReel');
+ const strip=$('gvbStrip-'+spin.p),reel=$('gvbReel-'+spin.p);
+ if(!strip||!reel){gvb.shown++;gvb.animating=false;gvbRender();return;} /* roster changed mid-flight - skip visual */
  reel.classList.add('rolling');
+ $('gvbTurnTxt').textContent=((gvb.doc.players||{})[spin.p]||{}).name?(((gvb.doc.players||{})[spin.p]||{}).name)+' is opening…':'Opening…';
+ $('gvbOpen').style.display='none';
  const N=30,CARD=104,dur=10400; /* Black Temple pace - agonising on purpose */
  let h='';
  for(let i=0;i<N-1;i++){const f=gvbFiller();h+=`<div class="gvbcard" style="color:${f.cc}"><span>${f.ic}</span></div>`;}
@@ -8776,57 +8814,68 @@ function gvbAnimate(spin,idx){
 function gvbSettle(list,winner,forfeit){
  if(gvb.settled)return;
  gvb.settled=true;
- const sc=gvbScores(list),me=gvb.side;
+ const d=gvb.doc,ord=d.order||[],me=gvb.pid;
+ const pot=gvb.bet*ord.length;
+ const board=ord.map(p=>((d.players[p]&&d.players[p].name)||'Hero')+' '+gvbScore(list,p)+'⚙').join(' · ');
  const iWon=winner===me;
- if(iWon){
-  const {over}=addGoldOverflow(gvb.bet*2);
+ if(iWon){ /* winner takes ALL stakes */
+  const {over}=addGoldOverflow(pot);
   dingDingDing(true);spawnPartsIn($('gvbFx'),'#ffd76a',24);
-  log(`Gamble against friend: <span class="llegendary">VICTORY ${sc.h}-${sc.g} - +${gvb.bet.toLocaleString()} ◉ taken</span>${over?' ('+over.toLocaleString()+' overflow)':''}!`,'loot');
+  log(`Gamble against friend: <span class="llegendary">VICTORY - the whole ${pot.toLocaleString()} ◉ pot is yours</span> (${board})${over?' ('+over.toLocaleString()+' overflow)':''}!`,'loot');
  }else{
-  log(`Gamble against friend: lost ${sc.h}-${sc.g} - ${gvb.bet.toLocaleString()} ◉ gone.`);
+  log(`Gamble against friend: lost the duel (${board}) - ${gvb.bet.toLocaleString()} ◉ gone.`);
  }
  save();renderHUD();
  gvbShow('gvbDone');
- const wName=(gvb.doc[winner]&&gvb.doc[winner].name)||winner;
- $('gvbDoneTxt').innerHTML=(iWon?'🏆 <b style="color:#ffd76a">YOU WIN':'💀 <b style="color:#ff8a7a">'+wName+' WINS')+`</b><br><span style="font-size:14px">${sc.h} ⚙ vs ${sc.g} ⚙${forfeit?' · by forfeit':''} · pot ${(gvb.bet*2).toLocaleString()}◉</span>`;
+ const wName=(d.players[winner]&&d.players[winner].name)||'Winner';
+ $('gvbDoneTxt').innerHTML=(iWon?'🏆 <b style="color:#ffd76a">YOU WIN THE POT':'💀 <b style="color:#ff8a7a">'+wName+' TAKES THE POT')+`</b><br><span style="font-size:14px">${board}${forfeit?' · by forfeit':''} · pot ${pot.toLocaleString()}◉</span>`;
 }
 $('gvbCreate').onclick=gvbCreate;
 $('gvbJoin').onclick=()=>gvbJoin($('gvbCode').value);
 $('gvbReady').onclick=async()=>{
  if(!gvb.ref||!gvb.doc)return;
- const mine=gvb.doc[gvb.side]||{};
- await gvb.ref.update({[gvb.side+'.ready']:!mine.ready});
+ const mine=(gvb.doc.players||{})[gvb.pid]||{};
+ await gvb.ref.update({['players.'+gvb.pid+'.ready']:!mine.ready});
+};
+$('gvbStart').onclick=async()=>{
+ const d=gvb.doc;
+ if(!d||d.host!==gvb.pid)return;
+ const ord=d.order||[],P=d.players||{};
+ if(ord.length<2||!ord.every(p=>P[p]&&P[p].ready))return;
+ await gvb.ref.update({state:'bet'});
 };
 document.querySelectorAll('[data-gvbbet]').forEach(b=>b.onclick=()=>{$('gvbBetIn').value=+b.dataset.gvbbet;});
 $('gvbBetLock').onclick=async()=>{
  if(!gvb.ref||!gvb.doc)return;
  const n=Math.floor(+$('gvbBetIn').value||0);
- const their=gvb.doc[gvb.side==='host'?'guest':'host']||{};
+ const P=gvb.doc.players||{};
+ const locked=(gvb.doc.order||[]).map(p=>P[p]).find(pl=>pl&&pl.ok&&pl.bet>0);
  if(n<1000){stageMsg('Minimum stake 1,000◉',1400);sfx.warn();return;}
- if(their.ok&&n!==their.bet){stageMsg('Must match their stake: '+their.bet.toLocaleString()+'◉',1800);sfx.warn();return;}
+ if(locked&&n!==locked.bet){stageMsg('Must match the table stake: '+locked.bet.toLocaleString()+'◉',1800);sfx.warn();return;}
  if(totalGold()<n){stageMsg('You must carry the full stake - '+n.toLocaleString()+'◉',1800);sfx.warn();return;}
- await gvb.ref.update({[gvb.side+'.bet']:n,[gvb.side+'.ok']:true});
+ await gvb.ref.update({['players.'+gvb.pid+'.bet']:n,['players.'+gvb.pid+'.ok']:true});
 };
 $('gvbOpen').onclick=async()=>{
  if(!gvb.ref||!gvb.doc||gvb.animating)return;
  const list=gvbSpins();
- if((list.length%2===0?'host':'guest')!==gvb.side)return;
+ if(gvbTurn(gvb.doc,list)!==gvb.pid)return;
  $('gvbOpen').style.display='none';
- await gvb.ref.update({['spins.'+list.length]:gvbOutcome()});
+ const o=gvbOutcome();o.p=gvb.pid;
+ await gvb.ref.update({['spins.'+list.length]:o});
 };
 $('gvbClaim').onclick=async()=>{
  if(!gvb.ref||!gvb.doc)return;
- const turn=gvbSpins().length%2===0?'host':'guest';
- if(turn===gvb.side||Date.now()-gvb.lastChange<120000)return;
- await gvb.ref.update({forfeit:turn}); /* the absent side forfeits */
+ const turn=gvbTurn(gvb.doc,gvbSpins());
+ if(!turn||turn===gvb.pid||Date.now()-gvb.lastChange<120000)return;
+ await gvb.ref.update({['forfeits.'+turn]:true}); /* the absent player forfeits their stake to the table */
 };
 $('gvbLeave').onclick=()=>{
  const d=gvb.doc;
  if(!d){$('gvbFx').style.display='none';casinoAmbApply();return;}
  if(d.state==='roll'&&!gvb.settled){
-  confirmBox('Leave mid-duel? You forfeit - your whole stake goes to your opponent.',async()=>{
+  confirmBox('Leave mid-duel? You forfeit - your stake stays in the pot for the winner.',async()=>{
    gvb.closedByMe=true;
-   try{await gvb.ref.update({forfeit:gvb.side});}catch(e){}
+   try{await gvb.ref.update({['forfeits.'+gvb.pid]:true});}catch(e){}
    gvbCleanup();
   });
   return;
@@ -8834,8 +8883,8 @@ $('gvbLeave').onclick=()=>{
  gvb.closedByMe=true;
  (async()=>{
   try{
-   if(gvb.settled||gvb.side==='host')await gvb.ref.update({state:'closed'});
-   else await gvb.ref.update({guest:null});
+   if(gvb.settled||d.host===gvb.pid)await gvb.ref.update({state:'closed'});
+   else await gvb.ref.update({['players.'+gvb.pid]:null,order:(d.order||[]).filter(p=>p!==gvb.pid)});
   }catch(e){}
   gvbCleanup();
  })();
