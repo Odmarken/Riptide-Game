@@ -442,6 +442,7 @@ const ALTAR_ZONE=ZONES.findIndex(z=>z.altar);
 const FARM_ZONE=ZONES.findIndex(z=>z.farm);
 function goToZone(i){
  const z=ZONES[i];if(!z)return;
+ if(buildMode)exitBuildMode(); /* leaving the farm mid-build: tear the build UI down cleanly */
  S.zone=i;S.quest=0;S.qProg=0;
  mapContinent=z.raidc?'raid':z.valhalla?'valhalla':z.west?'west':'east';
  applyZoneUI();buildZone();renderHUD();save();
@@ -2231,9 +2232,10 @@ function updateFarmAnimals(dt){
        sparkles(it.x,it.y-16,'#ffe9a0',12);
        rb=true;
       }
-     }else if(it.t==='cowfarm_big'&&!it.preg&&barnRoom()>0&&S.farm.b.some(b3=>b3.t==='tjur'&&isHappy(b3))&&Math.random()<0.15){
-      /* 💕 meal-time roll — 15% per meal, needs a sated bull; only fires because food existed */
-      it.preg=now;stageMsg('💕 A cow is expecting…',1700);
+     }else if(it.t==='cowfarm_big'&&!it.preg&&barnRoom()>0){
+      /* 💕 meal-time roll — 15% per sated bull (2 bulls = 30%, 3 = 45%…), capped at 100% */
+      const bulls=S.farm.b.filter(b3=>b3.t==='tjur'&&isHappy(b3)).length;
+      if(bulls>0&&Math.random()<Math.min(1,bulls*0.15)){it.preg=now;stageMsg('💕 A cow is expecting…',1700);}
      }else if(it.t==='chickenfarm_big'&&!it.egg&&coopRoom()>0&&Math.random()<0.15){
       it.egg=now;stageMsg('💕 A chicken is brooding…',1700);
      }
@@ -8502,6 +8504,7 @@ function goHome(){
   stageMsg('🍺 You are already home in Goldshire.',1400);
   return;
  }
+ if(buildMode)exitBuildMode(); /* Home ends build mode — snap/harvest buttons and the store go away */
  S.lastZone=S.zone;
  S.zone=TAVERN_ZONE;S.quest=0;S.qProg=0;
  applyZoneUI();buildZone();renderHUD();save();
