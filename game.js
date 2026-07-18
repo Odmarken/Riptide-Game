@@ -474,7 +474,7 @@ function mpLook(){
  const g=(S&&S.gear)||{},w=g.weapon||null;
  return {race:S&&S.race?S.race:'human',cls:S&&S.cls?S.cls:'warrior',
   w:w?(isWG(w)?'warglaives':(isFM(w)?'frostmourne':(w.id||w.legend||null))):null,ws:w?(w.star||w.up||1):1,
-  a:g.armor?(g.armor.id||null):null,pet:S&&S.pet?S.pet:null,fm:!!(w&&isFM(w)),wg:!!(w&&isWG(w)),fem:!!(S&&S.gender==='f')};
+  a:g.armor?(g.armor.id||null):null,ice:!!(g.armor&&isIce(g.armor)),pet:S&&S.pet?S.pet:null,fm:!!(w&&isFM(w)),wg:!!(w&&isWG(w)),fem:!!(S&&S.gender==='f')};
 }
 async function mpCreate(){
  const ok=await mpEnsureFirebase();if(!ok){stageMsg('Firebase is not ready — sign in or check config.',2200);sfx.warn();return;}
@@ -598,10 +598,24 @@ function mpPlayFx(m,p){
  const x=m.px||p.x||0,y=m.py||p.y||0;
  if(m.a==='swing'){
   p.atk=true;p._atkT=performance.now()+240;
-  if(m.tx!=null&&m.ty!=null){zapLine(x,y-8,m.tx,m.ty-10,'rgba(255,255,255,.35)');bloodAt(m.tx,m.ty-10,4);}
+  if(m.rg&&m.tx!=null){ /* ranged classes: a real projectile — hunters loose actual arrows */
+   bolts.push({x,y:y-10,tgt:{x:m.tx,y:m.ty},sp:430,vis:1,c:m.c||'#cfe8a0',arrow:!!m.ar});
+  }else if(m.tx!=null&&m.ty!=null){zapLine(x,y-8,m.tx,m.ty-10,'rgba(255,255,255,.35)');bloodAt(m.tx,m.ty-10,4);}
   burst(x,y-10,'#ffffff',3,38);
+ }else if(m.a==='boltfx'){ /* peer spell projectile — visual only */
+  p.atk=true;p._atkT=performance.now()+240;
+  if(m.tx!=null)bolts.push({x,y:y-10,tgt:{x:m.tx,y:m.ty},sp:470,vis:1,c:m.c||'#c9a0ff',arrow:!!m.ar});
  }else if(m.a==='bolt'||m.a==='spell'){
-  if(m.tx!=null&&m.ty!=null){zapLine(x,y-10,m.tx,m.ty-10,m.c||'#7fd0ff');bloodAt(m.tx,m.ty-10,3);}
+  p.atk=true;p._atkT=performance.now()+240;
+  const v=m.v;
+  if(m.tx!=null&&m.ty!=null){
+   if(!v){zapLine(x,y-10,m.tx,m.ty-10,m.c||'#7fd0ff');bloodAt(m.tx,m.ty-10,3);}
+   if(v==='fire')burst(m.tx,m.ty-10,'#ff7a2a',14,110,true);
+   else if(v==='frost')burst(m.tx,m.ty-10,'#a0e0ff',10,80);
+   else if(v==='holy')sparkles(m.tx,m.ty-14,'#ffe9a0',8);
+   else if(v==='arcane')burst(m.tx,m.ty-10,'#c9a0ff',10,90);
+   else if(v)burst(m.tx,m.ty-10,m.c||'#7fd0ff',6,70);
+  }
   burst(x,y-10,m.c||'#7fd0ff',4,55);
  }else if(m.a==='nova'){
   ring(x,y,70,'#a0e0ff');burst(x,y,'#a0e0ff',10,80);
@@ -789,7 +803,7 @@ function drawHeroLike(x,y,look,alpha,anim,name,hp){
  ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0,8,14,6,0,0,7);ctx.fill();
  if(dancing)ctx.rotate(Math.sin(phase*6)*0.25);
  feet({walk:phase*1.8},(moving||dancing)?1:0.15);
- drawChampionSprite(ctx,race,cls,fx,by,swing,!!look.fm||look.w==='frostmourne',look.w,!!look.fem);
+ drawChampionSprite(ctx,race,cls,fx,by,swing,!!look.fm||look.w==='frostmourne',look.w,!!look.fem,(moving||dancing)?2:1,!!look.ice); /* full gear look — ice armor & walk frame like the local hero */
  if(look.pet){ctx.font='13px sans-serif';ctx.textAlign='center';const pp=petOf(look.pet);if(pp)petGlyphCanvas(ctx,pp,-18,10);else ctx.fillText('🐾',-18,10);}
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
  /* peer nametag higher so weapons/Frostmourne do not collide */
@@ -883,7 +897,7 @@ function zoneTemplates(z){
  if(z.raid){
   const RL=Math.max(effectiveHeroLvl(),10),rm=pMul();
   const mk=(name,id,c)=>({name,kind:'boss',boss:true,raid:true,bossId:id,c,speed:115,
-   hp:Math.round(eHP(RL)*132*rm),atk:Math.round(eATK(RL)*0.67*rm),xp:0,gold:0}); /* raid lords: +20% hp over the playtested base */
+   hp:Math.round(eHP(RL)*132*rm*((mp.on&&mp.started)?1.5:1)),atk:Math.round(eATK(RL)*0.67*rm),xp:0,gold:0}); /* raid lords: +20% hp over base · +50% more in online raids (no adds there) */
   return [mk('Fel Lord','betrayer','#7adf9a'),
           mk('Fire Lord','firelord','#ff7a2a'),
           mk('Frost Lord','frostking','#a0e0ff')];
@@ -3290,7 +3304,7 @@ function heroBasicAttack(en,dt){
  if(Math.random()*100<heroCrit()){dmg*=1.7;crit=true;}
  dmg=Math.round(dmg);
  hero.swing=0.22;
- mpAct('swing',{tx:Math.round(en.x),ty:Math.round(en.y)});
+ mpAct('swing',{tx:Math.round(en.x),ty:Math.round(en.y),rg:c.ranged?1:0,ar:c.id==='hunter'?1:0,c:c.boltC});
  if(c.ranged){sfx.bolt();bolts.push({x:hero.x,y:hero.y-10,tgt:en,sp:430,dmg,crit,c:c.boltC,basic:true,arrow:c.id==='hunter'});}
  else{sfx.swing();landHit(en,dmg,crit,null,true);}
 }
@@ -3350,7 +3364,7 @@ function applyDmg(en,dmg,label,crit){
  if(en.hp<=0)killEnemy(en);
 }
 function dealSpell(en,sp){
- mpAct('spell',{tx:Math.round(en.x),ty:Math.round(en.y),c:sp.c||'#7fd0ff'});
+ mpAct('spell',{tx:Math.round(en.x),ty:Math.round(en.y),c:sp.c||'#7fd0ff',v:sp.vfx||null});
  let dmg=heroAtk()*sp.mul*(0.95+Math.random()*0.1)*atkMul(),crit=false;
  if(Math.random()*100<heroCrit()){dmg*=1.7;crit=true;}
  landHit(en,Math.round(dmg),crit,sp.n);
@@ -3380,13 +3394,13 @@ function cast(i,manual){
   if(dist(hero,tgt)>rng){if(manual){hero.target=tgt;stageMsg('Closing in…',700);}return false;}
   hero.target=tgt;hero.mana-=spellManaCost(sp);hero.spellCd[i]=sp.cd;hero.swing=0.24;
   if(sp.t==='st'){
-   if(c.ranged){bolts.push({x:hero.x,y:hero.y-10,tgt,sp:470,dmg:0,spell:sp,arrow:c.id==='hunter',c:sp.vfx==='fire'?'#ff7a2a':sp.vfx==='holy'?'#ffe9a0':'#c9a0ff'});}
+   if(c.ranged){const bc=sp.vfx==='fire'?'#ff7a2a':sp.vfx==='holy'?'#ffe9a0':'#c9a0ff';bolts.push({x:hero.x,y:hero.y-10,tgt,sp:470,dmg:0,spell:sp,arrow:c.id==='hunter',c:bc});mpAct('boltfx',{tx:Math.round(tgt.x),ty:Math.round(tgt.y),ar:c.id==='hunter'?1:0,c:bc});}
    else dealSpell(tgt,sp);
    if(sp.heal)healHero(heroMax()*sp.heal);
   }else{
    const list=enemies.filter(e=>!e.dead&&!e.hidden&&dist(hero,e)<=rng).sort((a,b)=>dist(hero,a)-dist(hero,b)).slice(0,sp.hits);
    list.forEach((t,k)=>{
-    if(c.ranged)setTimeout(()=>{if(!t.dead&&!t.hidden)bolts.push({x:hero.x,y:hero.y-10,tgt:t,sp:470,dmg:0,spell:sp,arrow:c.id==='hunter',c:sp.vfx==='arrow'?'#cfe8a0':'#c9a0ff'});},k*90);
+    if(c.ranged)setTimeout(()=>{if(!t.dead&&!t.hidden){bolts.push({x:hero.x,y:hero.y-10,tgt:t,sp:470,dmg:0,spell:sp,arrow:c.id==='hunter',c:sp.vfx==='arrow'?'#cfe8a0':'#c9a0ff'});mpAct('boltfx',{tx:Math.round(t.x),ty:Math.round(t.y),ar:c.id==='hunter'?1:0,c:sp.vfx==='arrow'?'#cfe8a0':'#c9a0ff'});}},k*90);
     else dealSpell(t,sp);
    });
   }
@@ -3771,7 +3785,7 @@ function bossAI(en,dt){
    sfx.arrow();
   }
   if(en.cds.b<=0){en.cds.b=16;
-   if(addsAlive()<2){spawnAdd('Fel-Spawn','humanoid','#5a9a4a',en);spawnAdd('Fel-Spawn','humanoid','#5a9a4a',en);
+   if(!(mp.on&&mp.started)&&addsAlive()<2){spawnAdd('Fel-Spawn','humanoid','#5a9a4a',en);spawnAdd('Fel-Spawn','humanoid','#5a9a4a',en); /* no adds in online raids */
     floatAt(en.x,en.y-en.r-30,'You are not prepared!','#9adf9a',true);}
   }
   if(en.cds.c<=0){en.cds.c=9;sfx.warn();
@@ -3797,7 +3811,7 @@ function bossAI(en,dt){
    sfx.fire();
   }
   if(en.cds.c<=0){en.cds.c=18;
-   if(addsAlive()<2){spawnAdd('Son of Flame','humanoid','#c05a2a',en);spawnAdd('Son of Flame','humanoid','#c05a2a',en);
+   if(!(mp.on&&mp.started)&&addsAlive()<2){spawnAdd('Son of Flame','humanoid','#c05a2a',en);spawnAdd('Son of Flame','humanoid','#c05a2a',en); /* no adds in online raids */
     floatAt(en.x,en.y-en.r-30,'BY FIRE BE PURGED!','#ff8a5a',true);}
   }
   if(!en.enraged&&en.hp<en.max*0.3){
@@ -3818,7 +3832,7 @@ function bossAI(en,dt){
    sfx.frost();
   }
   if(en.cds.c<=0){en.cds.c=15;
-   if(addsAlive()<3){spawnAdd('Risen Ghoul','undead','#a8c8d8',en);spawnAdd('Risen Ghoul','undead','#a8c8d8',en);
+   if(!(mp.on&&mp.started)&&addsAlive()<3){spawnAdd('Risen Ghoul','undead','#a8c8d8',en);spawnAdd('Risen Ghoul','undead','#a8c8d8',en); /* no adds in online raids */
     floatAt(en.x,en.y-en.r-30,'Rise!','#cfe8ff',true);}
   }
   if(Math.random()<0.06)parts.push({x:en.x+(Math.random()-0.5)*36,y:en.y-14,vx:(Math.random()-0.5)*10,vy:-20,t:0,life:0.7,c:'#a0e0ff',r:1.5,g:0});
@@ -4686,6 +4700,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   if(b.tgt.dead||b.tgt.hidden){bolts.splice(i,1);continue;}
   const dx=b.tgt.x-b.x,dy=b.tgt.y-10-b.y,d=Math.hypot(dx,dy);
   if(d<12){
+   if(b.vis){burst(b.tgt.x,b.tgt.y-10,b.c||'#7fd0ff',5,60);bolts.splice(i,1);continue;} /* peer ghost projectile — pure visuals */
    if(b.spell){dealSpell(b.tgt,b.spell);if(b.spell.heal)healHero(heroMax()*b.spell.heal);}
    else landHit(b.tgt,b.dmg,b.crit,null,b.basic);
    bolts.splice(i,1);continue;
