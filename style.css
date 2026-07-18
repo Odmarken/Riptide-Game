@@ -524,6 +524,7 @@
 .gvbbigcard{width:78px;flex:0 0 78px;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:30px;border-right:1px solid rgba(255,255,255,.06)}
 .gvbbigcard .gl{font-size:10px;font-weight:800}
 .gvbbigmark{position:absolute;left:50%;top:0;bottom:0;width:2px;background:#ffd76a;box-shadow:0 0 10px #ffd76a}
+#gvbFx .casinobox{max-height:94%;overflow-y:auto} /* 10 reel rows must scroll on small screens */
 .gvbrow{display:flex;align-items:center;gap:8px;width:100%}
 .gvbrowinfo{width:92px;flex:0 0 92px;text-align:left;display:flex;flex-direction:column;gap:2px}
 .gvbbigwin.sm{height:62px;margin-top:0;flex:1;border-width:1.5px}

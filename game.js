@@ -8655,7 +8655,7 @@ $('rtbClose').onclick=()=>{
    Black Temple pace. Chests score symbolic scraps; most scraps takes the whole pot.
    Ties go to sudden death, one chest each until someone leads. */
 const GVB_SCORE={fm:20,pet:12,bull:10,scroll:7,epic:5,rare:3};
-const GVB_MAXP=5;
+const GVB_MAXP=10;
 const gvb={code:null,ref:null,unsub:null,pid:null,doc:null,shown:0,animating:false,paid:false,settled:false,lastChange:0,bet:0,closedByMe:false,sidesKey:'',rtc:{},rtcWaves:{},sigUnsub:null};
 /* ⚡ zero-latency layer - the Black Temple trick: spins ride WebRTC data channels the
    instant they happen; Firestore stays the source of truth and the phone fallback. */
@@ -8709,7 +8709,15 @@ function gvbFiller(){ /* reel dressing only - tease-heavy like the real chests, 
 }
 const gvbWaves=()=>{const w=Object.assign({},(gvb.doc&&gvb.doc.waves)||{},gvb.rtcWaves||{});return Object.keys(w).map(Number).sort((a,b)=>a-b).map(k=>w[k]);}; /* RTC-early waves merge in ahead of Firestore */
 const gvbActive=d=>((d&&d.order)||[]).filter(p=>!(d.forfeits&&d.forfeits[p]));
-const gvbTrigger=(d,waves)=>{const act=gvbActive(d);return act.length?act[(waves?waves.length:0)%act.length]:null;}; /* the open-button rotates - with 5 players over 10 rounds everyone fires it twice */
+const gvbContenders=(d,waves)=>{ /* everyone during regulation - only the tied leaders once sudden death begins */
+ const act=gvbActive(d);
+ const need=(d&&d.rounds)||10;
+ if(!waves||waves.length<need)return act;
+ const scores=act.map(p=>gvbScoreOf(waves,p));
+ const mx=Math.max(...scores);
+ return act.filter((p,i)=>scores[i]===mx);
+};
+const gvbTrigger=(d,waves)=>{const c=gvbContenders(d,waves);return c.length?c[(waves?waves.length:0)%c.length]:null;}; /* the open-button rotates among those still in the fight */
 const gvbScoreOf=(waves,p)=>waves.reduce((t,w)=>t+((w.o&&w.o[p])?w.o[p].sc:0),0);
 const gvbWinner=(d,waves)=>{ /* pid of the winner, or null while the duel is still on */
  const act=gvbActive(d);
@@ -8836,16 +8844,19 @@ function gvbRender(){
   if(gvb.shown<waves.length&&!gvb.animating){gvbAnimateWave(waves[gvb.shown]);return;}
   if(!gvb.animating){
    const seen=waves.slice(0,gvb.shown);
+   const cont=gvbContenders(d,waves);
    ord.forEach(p=>{
     const el=$('gvbScore-'+p);if(el)el.textContent=gvbScoreOf(seen,p)+' ⚙';
-    const side=$('gvbSide-'+p);if(side)side.style.opacity=(d.forfeits&&d.forfeits[p])?0.35:1;
+    const side=$('gvbSide-'+p);
+    if(side)side.style.opacity=((d.forfeits&&d.forfeits[p])||!cont.includes(p))?0.35:1; /* out of the running - watch quietly */
    });
    const win=gvbWinner(d,waves);
    if(win){gvbSettle(waves,win,gvbActive(d).length===1);return;}
    const trig=gvbTrigger(d,waves),round=waves.length+1,rds=d.rounds||10;
-   $('gvbRound').textContent=(round<=rds?'Round '+round+' / '+rds:'⚔ SUDDEN DEATH')+' · pot '+(gvb.bet*ord.length).toLocaleString()+'◉';
+   const sudden=round>rds;
+   $('gvbRound').textContent=(sudden?'⚔ SUDDEN DEATH - '+cont.map(nameOf).join(' vs '):'Round '+round+' / '+rds)+' · pot '+(gvb.bet*ord.length).toLocaleString()+'◉';
    const myTrig=trig===me;
-   $('gvbTurnTxt').textContent=myTrig?'You open the chests for everyone':nameOf(trig)+' opens the chests for everyone…';
+   $('gvbTurnTxt').textContent=myTrig?(sudden?'You open - only the tied leaders roll':'You open the chests for everyone'):nameOf(trig)+(sudden?' opens for the tied leaders…':' opens the chests for everyone…');
    $('gvbOpen').style.display=myTrig?'inline-block':'none';
    $('gvbOpen').textContent='🎁 Open round '+round;
    $('gvbClaim').style.display=(!myTrig&&Date.now()-gvb.lastChange>120000)?'inline-block':'none';
@@ -8957,7 +8968,7 @@ $('gvbOpen').onclick=async()=>{
  const d=gvb.doc;
  const waves=gvbWaves();
  if(gvbTrigger(d,waves)!==gvb.pid)return;
- const o={};gvbActive(d).forEach(p=>{o[p]=gvbOutcome();}); /* one chest per player, all at once */
+ const o={};gvbContenders(d,waves).forEach(p=>{o[p]=gvbOutcome();}); /* one chest per contender, all at once - spectators just watch */
  const w={seed:Math.floor(Math.random()*1e9),o};
  $('gvbOpen').style.display='none';
  gvb.rtcWaves[waves.length]=w;             /* my reels start this frame */
