@@ -2078,6 +2078,8 @@ function rebuildFarmItems(){ /* placed buildings become solids; crops draw with 
  }
 }
 let buildMode=false,buildSel=null,buildTab='b',mouseWX=0,mouseWY=0,buildPan=null,removeDrag=null,pendingDelRect=null;
+let harvestDrag=null; /* ✂ drag-select: harvest every ready hay + slaughter every grown beast inside */
+let placeDrag=null; /* 📱 touch placement: piece follows the finger, drops on release, then deselects */
 let roadAnchor=null; /* 🛣 first click of a road stretch */
 let farmCart=[]; /* pending placements — ghosts until checkout */
 let moveItem=null,movePicked=null; /* click an item with nothing selected → Move popup → carry it */
@@ -2296,6 +2298,35 @@ function updateFarmCrops(){
   else if(c.t==='hay_medium'&&now-(c.at||0)>HAY_T2){c.t='hay_klar';c.at=(c.at||now)+HAY_T2;}
  }
 }
+/* 🗑 demolition refunds: buildings/deco/roads give 50% gold+scraps back; animals and food
+   return to the builder stock in full (a grown cow comes back as a placeable Calf). */
+function farmRefund(list){
+ let gold=0,scr=0,bale=0,cseed=0;const inv={};
+ for(const it of list){
+  const t=it.t;
+  if(t==='cowfarm_big'||t==='cowfarm')inv.cowfarm=(inv.cowfarm||0)+1;
+  else if(t==='chickenfarm_big'||t==='chickenfarm')inv.chickenfarm=(inv.chickenfarm||0)+1;
+  else if(t==='tjur')inv.tjur=(inv.tjur||0)+1;
+  else if(t==='hobal')bale+=5;
+  else if(t==='chickenseeds')cseed+=5;
+  else if(isHay(t))inv.hay=(inv.hay||0)+1;
+  else if(FARM_ROAD_RATE[t])gold+=Math.round(roadCost(it)*0.5);
+  else{gold+=Math.round((FARM_PRICES[t]||0)*0.5);scr+=Math.round((FARM_SCRAPS[t]||0)*0.5);}
+ }
+ S.farm.inv=S.farm.inv||{};
+ for(const k in inv)S.farm.inv[k]=(S.farm.inv[k]||0)+inv[k];
+ if(bale)S.farm.baleN=(S.farm.baleN||0)+bale;
+ if(cseed)S.farm.cseedN=(S.farm.cseedN||0)+cseed;
+ if(gold)S.gold=Math.min(goldCap(),(S.gold||0)+gold);
+ if(scr)S.scraps=Math.min(SCRAP_CAP,(S.scraps||0)+scr);
+ const parts=[];
+ if(gold)parts.push('+'+gold.toLocaleString()+'◉');
+ if(scr)parts.push('+'+scr+'⚙');
+ const invN=Object.values(inv).reduce((a,b)=>a+b,0);
+ if(invN)parts.push(invN+' back to stock');
+ if(bale||cseed)parts.push('harvest points back');
+ return parts.length?' ('+parts.join(' · ')+')':'';
+}
 const CROP_GX=72,CROP_GY=48; /* crop grid = the dirt patch footprint, so patches tile like a field */
 function cropCellTaken(id,x,y){
  const def=FARM_BUILD.find(o=>o.id===id);
@@ -2357,7 +2388,7 @@ function enterBuildMode(){
 function exitBuildMode(){
  cancelMove();
  if(farmCart.length){farmCart=[];stageMsg('Pending items discarded',1400);}
- buildMode=false;buildSel=null;buildPan=null;removeDrag=null;roadAnchor=null;
+ buildMode=false;buildSel=null;buildPan=null;removeDrag=null;harvestDrag=null;placeDrag=null;roadAnchor=null;
  $('farmStore').style.display='none';
  updateCartUI();
  setZoom(Math.max(1,zmin())); /* camera glides back down to the hero */
@@ -2438,13 +2469,13 @@ function placeFarmItem(id,x,y){
   if(gi>=0){farmCart.splice(gi,1);updateCartUI();blip(300,180,0.1,.05);return;}
   let bi=-1,bd=95;
   S.farm.b.forEach((b2,i)=>{const d=Math.hypot(b2.x-x,b2.y-y);if(d<bd){bd=d;bi=i;}});
-  if(bi>=0){S.farm.b.splice(bi,1);rebuildFarmItems();sfx.forge();stageMsg('🗑 Removed',900);renderFarmStore();save();return;}
+  if(bi>=0){const rb2=S.farm.b.splice(bi,1)[0];const rf=farmRefund([rb2]);rebuildFarmItems();sfx.forge();stageMsg('🗑 Removed'+rf,1500);renderFarmStore();save();renderHUD();return;}
   let ci=-1,cd=45;
   S.farm.c.forEach((c2,i)=>{const d=Math.hypot(c2.x-x,c2.y-y);if(d<cd){cd=d;ci=i;}});
-  if(ci>=0){S.farm.c.splice(ci,1);sfx.forge();stageMsg('🗑 Removed',900);save();return;}
+  if(ci>=0){const rc2=S.farm.c.splice(ci,1)[0];const rf=farmRefund([rc2]);sfx.forge();stageMsg('🗑 Removed'+rf,1500);renderFarmStore();save();renderHUD();return;}
   let ri=-1,rd2=28;
   ((S.farm&&S.farm.r)||[]).forEach((r2,i)=>{const d=segDist(x,y,r2);if(d<rd2){rd2=d;ri=i;}});
-  if(ri>=0){S.farm.r.splice(ri,1);sfx.forge();stageMsg('🗑 Removed',900);save();}
+  if(ri>=0){const rr2=S.farm.r.splice(ri,1)[0];const rf=farmRefund([rr2]);sfx.forge();stageMsg('🗑 Removed'+rf,1500);save();renderHUD();}
   return;
  }
  if(id==='harvest'){ /* ✂ snip ready hay — or slaughter a full-grown beast */
@@ -3814,6 +3845,14 @@ cv.addEventListener('pointerdown',e=>{
     return;
    }
    if(buildSel==='remove'){removeDrag={id:e.pointerId,x0:wx,y0:wy,x1:wx,y1:wy};return;} /* click OR drag-select */
+   if(buildSel==='harvest'){harvestDrag={id:e.pointerId,x0:wx,y0:wy,x1:wx,y1:wy};return;} /* tap = single snip · drag = reap the whole area */
+   if(buildSel&&IS_TOUCH){ /* 📱 phones: drag the piece into place, drop on release — one per selection */
+    const pd=FARM_BUILD.find(o=>o.id===buildSel);
+    if(pd&&!pd.road){
+     if(wx>=40&&wx<4200&&wy>=40&&wy<=world.h-40)placeDrag={id:e.pointerId,t:buildSel,x:wx,y:wy};
+     return;
+    }
+   }
    if(buildSel&&wx>=40&&wx<4200&&wy>=40&&wy<=world.h-40)placeFarmItem(buildSel,wx,wy);
    else if(!buildSel){
     const hit=farmHitTest(wx,wy);
@@ -3889,6 +3928,8 @@ window.addEventListener('pointermove',e=>{ /* window, not canvas — keeps steer
  const r=cv.getBoundingClientRect();
  mouseWX=(e.clientX-r.left)/zoom+camX;mouseWY=(e.clientY-r.top)/zoom+camY;
  if(removeDrag&&e.pointerId===removeDrag.id){removeDrag.x1=mouseWX;removeDrag.y1=mouseWY;return;}
+ if(harvestDrag&&e.pointerId===harvestDrag.id){harvestDrag.x1=mouseWX;harvestDrag.y1=mouseWY;return;}
+ if(placeDrag&&e.pointerId===placeDrag.id){placeDrag.x=mouseWX;placeDrag.y=mouseWY;return;}
  if(buildPan&&e.pointerId===buildPan.id){ /* build mode: drag pans the camera */
   camX-=(e.clientX-buildPan.lx)/zoom;camY-=(e.clientY-buildPan.ly)/zoom;
   buildPan.lx=e.clientX;buildPan.ly=e.clientY;
@@ -3898,6 +3939,39 @@ window.addEventListener('pointermove',e=>{ /* window, not canvas — keeps steer
 });
 window.addEventListener('pointerup',e=>{
  if(buildPan&&e.pointerId===buildPan.id)buildPan=null;
+ if(placeDrag&&e.pointerId===placeDrag.id){ /* 📱 drop the carried piece, then hand the tool back */
+  const pd=placeDrag;placeDrag=null;
+  placeFarmItem(pd.t,pd.x,pd.y);
+  buildSel=null;
+  renderFarmStore();
+  return;
+ }
+ if(harvestDrag&&e.pointerId===harvestDrag.id){ /* ✂ reap the marquee: ready hay + grown beasts */
+  const hd=harvestDrag;harvestDrag=null;
+  if(Math.hypot(hd.x1-hd.x0,hd.y1-hd.y0)<14){placeFarmItem('harvest',hd.x1,hd.y1);return;} /* a tap: single snip */
+  const R={x0:Math.min(hd.x0,hd.x1),x1:Math.max(hd.x0,hd.x1),y0:Math.min(hd.y0,hd.y1),y1:Math.max(hd.y0,hd.y1)};
+  const inR=(x,y)=>x>=R.x0&&x<=R.x1&&y>=R.y0&&y<=R.y1;
+  let nHay=0;
+  for(const c2 of S.farm.c){
+   if(c2.t==='hay_klar'&&inR(c2.x,c2.y)){c2.t='hay';c2.at=Date.now();S.farm.baleN=(S.farm.baleN||0)+1;S.farm.cseedN=(S.farm.cseedN||0)+1;nHay++;}
+  }
+  let nSl=0,pay=0,fxp=0;
+  for(let i=S.farm.b.length-1;i>=0;i--){
+   const b2=S.farm.b[i];
+   if((b2.t==='cowfarm_big'||b2.t==='chickenfarm_big')&&!b2._moving&&inR(b2.x,b2.y)){
+    pay+=b2.t==='cowfarm_big'?20000:10000;fxp+=b2.t==='cowfarm_big'?20:10;
+    S.farm.b.splice(i,1);nSl++;
+   }
+  }
+  if(nHay+nSl===0){stageMsg('Nothing ready in there',1100);return;}
+  if(pay>0)S.gold=Math.min(goldCap(),(S.gold||0)+pay);
+  if(nSl>0)rebuildFarmItems();
+  sfx.buy();
+  stageMsg((nHay?'✂ '+nHay+' hay harvested':'')+(nHay&&nSl?' · ':'')+(nSl?'🔪 '+nSl+' slaughtered +'+pay.toLocaleString()+'◉':''),2200);
+  if(fxp>0)gainFarmXP(fxp); /* after the toast so a level-up wins the screen */
+  renderFarmStore();save();renderHUD();
+  return;
+ }
  if(removeDrag&&e.pointerId===removeDrag.id){
   const rd=removeDrag;removeDrag=null;
   if(Math.hypot(rd.x1-rd.x0,rd.y1-rd.y0)<14){placeFarmItem('remove',rd.x1,rd.y1);return;} /* a tap: single delete */
@@ -3919,11 +3993,16 @@ $('farmDelYes').onclick=()=>{
  const R=pendingDelRect;pendingDelRect=null;
  $('farmDelFx').style.display='none';
  if(!R)return;
- S.farm.b=S.farm.b.filter(b2=>!(b2.x>=R.x0&&b2.x<=R.x1&&b2.y>=R.y0&&b2.y<=R.y1));
- S.farm.c=S.farm.c.filter(c2=>!(c2.x>=R.x0&&c2.x<=R.x1&&c2.y>=R.y0&&c2.y<=R.y1));
- S.farm.r=((S.farm&&S.farm.r)||[]).filter(r2=>{const mx=(r2.x0+r2.x1)/2,my=(r2.y0+r2.y1)/2;return !(mx>=R.x0&&mx<=R.x1&&my>=R.y0&&my<=R.y1);});
+ const inRct=(x,y)=>x>=R.x0&&x<=R.x1&&y>=R.y0&&y<=R.y1;
+ const remB=S.farm.b.filter(b2=>inRct(b2.x,b2.y));
+ const remC=S.farm.c.filter(c2=>inRct(c2.x,c2.y));
+ const remR=((S.farm&&S.farm.r)||[]).filter(r2=>inRct((r2.x0+r2.x1)/2,(r2.y0+r2.y1)/2));
+ S.farm.b=S.farm.b.filter(b2=>!inRct(b2.x,b2.y));
+ S.farm.c=S.farm.c.filter(c2=>!inRct(c2.x,c2.y));
+ S.farm.r=((S.farm&&S.farm.r)||[]).filter(r2=>!inRct((r2.x0+r2.x1)/2,(r2.y0+r2.y1)/2));
+ const rf=farmRefund([...remB,...remC,...remR]);
  rebuildFarmItems();renderFarmStore();
- sfx.forge();stageMsg('🗑 Cleared',1100);save();
+ sfx.forge();stageMsg('🗑 Cleared'+rf,1800);save();renderHUD();
 };
 $('farmDelNo').onclick=()=>{pendingDelRect=null;$('farmDelFx').style.display='none';};
 $('farmCheckBtn').onclick=()=>openFarmCheckout();
@@ -3981,7 +4060,7 @@ window.addEventListener('pointercancel',endHoldMove);
 /* ---- camera zoom: mouse wheel on the map, 2-finger pinch on phones ---- */
 let zoom=1,pinchD=0,pinching=false;
 const ZMAX=3;
-const zmin=()=>buildMode?1/3:0.7; /* build mode surveys the whole plot (3× out); normal play allows 0.7 everywhere */
+const zmin=()=>buildMode?1/3:((IS_TOUCH&&Math.min(VW,VH)<820)?0.5:0.7); /* build mode 3× out; phones may zoom out to 0.5, desktop 0.7 */
 function setZoom(z){zoom=Math.max(zmin(),Math.min(ZMAX,z));}
 cv.addEventListener('wheel',e=>{
  if(!gameOn)return;
@@ -4895,6 +4974,13 @@ function draw(){
    ctx.fillRect(Math.min(removeDrag.x0,removeDrag.x1),Math.min(removeDrag.y0,removeDrag.y1),Math.abs(removeDrag.x1-removeDrag.x0),Math.abs(removeDrag.y1-removeDrag.y0));
    ctx.strokeStyle='rgba(255,90,70,0.85)';ctx.setLineDash([10,7]);ctx.lineWidth=2;
    ctx.strokeRect(Math.min(removeDrag.x0,removeDrag.x1),Math.min(removeDrag.y0,removeDrag.y1),Math.abs(removeDrag.x1-removeDrag.x0),Math.abs(removeDrag.y1-removeDrag.y0));
+   ctx.setLineDash([]);
+  }
+  if(harvestDrag){ /* the reaping marquee — gold */
+   ctx.fillStyle='rgba(255,215,106,0.10)';
+   ctx.fillRect(Math.min(harvestDrag.x0,harvestDrag.x1),Math.min(harvestDrag.y0,harvestDrag.y1),Math.abs(harvestDrag.x1-harvestDrag.x0),Math.abs(harvestDrag.y1-harvestDrag.y0));
+   ctx.strokeStyle='rgba(255,215,106,0.85)';ctx.setLineDash([10,7]);ctx.lineWidth=2;
+   ctx.strokeRect(Math.min(harvestDrag.x0,harvestDrag.x1),Math.min(harvestDrag.y0,harvestDrag.y1),Math.abs(harvestDrag.x1-harvestDrag.x0),Math.abs(harvestDrag.y1-harvestDrag.y0));
    ctx.setLineDash([]);
   }
  }
@@ -6869,8 +6955,12 @@ function renderBag(){
  });
  document.querySelectorAll('[data-sell]').forEach(b=>b.onclick=()=>{
   const i=+b.dataset.sell;if(isLegendary(S.bag[i])||inGearSet(S.bag[i]))return;
-  const it=S.bag.splice(i,1)[0];
-  S.gold=Math.min(goldCap(),S.gold+(it.sell||0));sfx.loot();renderBag();renderHUD();save();
+  const it=S.bag[i];if(!it)return;
+  confirmBox(`Are you sure you want to sell <b class="l${it.rar}">${itemName(it)}</b> for <b style="color:var(--brass)">${(it.sell||0).toLocaleString()}◉</b>?`,()=>{
+   const idx=S.bag.indexOf(it);if(idx<0)return; /* bag may have shifted while the box was open */
+   S.bag.splice(idx,1);
+   S.gold=Math.min(goldCap(),S.gold+(it.sell||0));sfx.loot();renderBag();renderHUD();save();
+  });
  });
  document.querySelectorAll('[data-scr]').forEach(b=>b.onclick=()=>{
   if(cowLocked()){stageMsg('No scrapping mid-herd — die or leave first!',1600);sfx.warn();return;}
@@ -8400,6 +8490,21 @@ function renderShop(){
  });
 }
 const isDesktopLayout=()=>window.matchMedia('(min-width:900px)').matches;
+function confirmBox(msg,onYes){ /* small in-style "are you sure" overlay */
+ const old=$('confirmFx');if(old)old.remove();
+ const ov=document.createElement('div');
+ ov.id='confirmFx';
+ ov.style.cssText='position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;background:rgba(8,5,2,.7)';
+ ov.innerHTML=`<div style="background:#241a10;border:1.5px solid #8a6a44;border-radius:14px;padding:18px 20px;max-width:320px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.6)">
+  <div style="font-size:13.5px;color:#e8dcc8;line-height:1.5;margin-bottom:14px">${msg}</div>
+  <div style="display:flex;gap:10px">
+   <button class="sbtn gold" id="cfYes" style="flex:1;padding:10px">Yes</button>
+   <button class="sbtn" id="cfNo" style="flex:1;padding:10px">Cancel</button>
+  </div></div>`;
+ document.body.appendChild(ov);
+ $('cfYes').onclick=()=>{ov.remove();onYes();};
+ $('cfNo').onclick=()=>ov.remove();
+}
 let desktopSideTab='hero';
 function openTab(t){
  if(isDesktopLayout()&&t==='battle')t=desktopSideTab;
