@@ -2133,6 +2133,10 @@ function showMovePopup(hit,cx,cy){
  box.style.display='block';
  box.style.left=Math.min(wrap.width-150,Math.max(4,cx-wrap.left+10))+'px';
  box.style.top=Math.min(wrap.height-95,Math.max(4,cy-wrap.top-46))+'px';
+ /* 📦 animals (bulls especially - their headcount is capped) can be picked straight back
+    into the casino stock instead of only being moved or slaughtered/deleted */
+ const invBtn=$('farmMoveInv');
+ invBtn.style.display=(hit.kind==='b'&&(isBovine(hit.t)||isChicken(hit.t)))?'block':'none';
 }
 function cancelMove(){
  if(moveItem){const it=farmListOf(moveItem.kind)[moveItem.i];if(it)delete it._moving;}
@@ -2186,11 +2190,15 @@ const hayMax=()=>{const l=(S&&S.farm&&S.farm.lvl)||1;return l>=3?120:l>=2?80:60;
 const isHay=t=>t==='hay'||t==='hay_medium'||t==='hay_klar';
 const hayCount=()=>((S&&S.farm&&S.farm.c)||[]).filter(c2=>isHay(c2.t)).length+farmCart.filter(g2=>isHay(g2.t)).length;
 const isHappy=b2=>{const d3=FARM_BUILD.find(o=>o.id===b2.t);return Date.now()-(b2.fed||0)<((d3&&d3.eatT)||HAPPY_T);}; /* sated until the next meal is due */
-const isBovine=t=>t==='cowfarm'||t==='cowfarm_big'||t==='tjur';
+const isBovine=t=>t==='cowfarm'||t==='cowfarm_big'||t==='tjur'; /* housing category: needs a Barn to eat/breed */
+const isCattle=t=>t==='cowfarm'||t==='cowfarm_big';           /* counts against the Barn's 10-head capacity */
+const isBull=t=>t==='tjur';                                    /* capped separately by farm level, not by barn space */
 const isChicken=t=>t==='chickenfarm'||t==='chickenfarm_big';
 const countFarm=(pred,incCart)=>((S&&S.farm&&S.farm.b)||[]).reduce((n,b2)=>n+(pred(b2.t)?1:0),0)+(incCart?farmCart.reduce((n,g2)=>n+(pred(g2.t)?1:0),0):0);
-const barnRoom=incCart=>countFarm(t=>t==='lada',incCart)*BARN_CAP-countFarm(isBovine,incCart);
+const barnRoom=incCart=>countFarm(t=>t==='lada',incCart)*BARN_CAP-countFarm(isCattle,incCart);
 const coopRoom=incCart=>countFarm(t=>t==='chickenhouse',incCart)*COOP_CAP-countFarm(isChicken,incCart);
+const bullCap=()=>{const l=(S&&S.farm&&S.farm.lvl)||1;return l>=3?10:l>=2?6:4;}; /* L1: 4 · L2: 6 · L3: 10 - independent of Barn count */
+const bullRoom=incCart=>bullCap()-countFarm(isBull,incCart);
 function nearestFood(it){
  const cowish=it.t==='cowfarm'||it.t==='cowfarm_big'||it.t==='tjur';
  const list=cowish?S.farm.b:S.farm.c,ft=cowish?'hobal':'chickenseeds';
@@ -2588,7 +2596,8 @@ function renderFarmStore(){
    const have=(((S.farm&&S.farm.inv)||{})[id]||0)-farmCart.filter(g2=>g2.t===id).length;
    if(have<1)return 'Win one in the casino';
   }
-  if(isBovine(id))return countFarm(t=>t==='lada',true)===0?'Barn required':barnRoom(true)<=0?'Barn full ('+BARN_CAP+'/barn)':null;
+  if(isBull(id))return countFarm(t=>t==='lada',true)===0?'Barn required':bullRoom(true)<=0?'Max '+bullCap()+' Bulls at Level '+fl:null;
+  if(isCattle(id))return countFarm(t=>t==='lada',true)===0?'Barn required':barnRoom(true)<=0?'Barn full ('+BARN_CAP+'/barn)':null;
   if(isChicken(id))return countFarm(t=>t==='chickenhouse',true)===0?'Chicken Coop required':coopRoom(true)<=0?'Coop full ('+COOP_CAP+'/coop)':null;
   return null;
  };
@@ -2642,13 +2651,16 @@ function placeFarmItem(id,x,y){
   S.farm.c.forEach((c2,i)=>{const d=Math.hypot(c2.x-x,c2.y-y);if(d<hd){hd=d;hi=i;}});
   let ai=-1,ad=55;
   S.farm.b.forEach((b2,i)=>{if((b2.t!=='cowfarm_big'&&b2.t!=='chickenfarm_big')||b2._moving)return;const d=Math.hypot(b2.x-x,b2.y-y);if(d<ad){ad=d;ai=i;}});
-  if(ai>=0&&(hi<0||ad<hd)){ /* 🔪 only the big ones pay out - calves & chicks are safe */
-   const b2=S.farm.b[ai],pay=b2.t==='cowfarm_big'?20000:10000;
-   S.farm.b.splice(ai,1);
-   S.gold=Math.min(goldCap(),(S.gold||0)+pay);
-   stageMsg('🔪 Slaughtered - +'+pay.toLocaleString()+'◉',1800);sfx.buy();sparkles(b2.x,b2.y-16,'#ff6a5a',12);
-   gainFarmXP(b2.t==='cowfarm_big'?20:10); /* cow 20 farm-XP, chicken 10 - level-up toast wins over the slaughter one */
-   rebuildFarmItems();renderFarmStore();save();renderHUD();
+  if(ai>=0&&(hi<0||ad<hd)){ /* 🔪 only the big ones pay out - calves & chicks are safe. Confirmed first - an accidental tap must never eat a cow. */
+   const b2=S.farm.b[ai],pay=b2.t==='cowfarm_big'?20000:10000,kind=b2.t==='cowfarm_big'?'Cow':'Chicken';
+   confirmBox(`Slaughter this <b>${kind}</b> for <b style="color:var(--brass)">${pay.toLocaleString()}◉</b>?`,()=>{
+    const idx=S.farm.b.indexOf(b2);if(idx<0)return; /* it may have been moved/removed while the box was open */
+    S.farm.b.splice(idx,1);
+    S.gold=Math.min(goldCap(),(S.gold||0)+pay);
+    stageMsg('🔪 Slaughtered - +'+pay.toLocaleString()+'◉',1800);sfx.buy();sparkles(b2.x,b2.y-16,'#ff6a5a',12);
+    gainFarmXP(b2.t==='cowfarm_big'?40:20); /* cow 40 farm-XP, chicken 20 - level-up toast wins over the slaughter one */
+    rebuildFarmItems();renderFarmStore();save();renderHUD();
+   });
    return;
   }
   if(hi<0)return;
@@ -2677,7 +2689,10 @@ function placeFarmItem(id,x,y){
   const pend=farmCart.filter(g2=>g2.t===id).length;
   if((((S.farm.inv||{})[id])||0)-pend<1){stageMsg('🔒 None owned - win one in the casino',1700);sfx.warn();return;}
  }
- if(isBovine(id)){ /* cattle need a Barn, 10 head per barn */
+ if(isBull(id)){ /* bulls need a Barn to live in, but their headcount is capped by farm level, not barn space */
+  if(countFarm(t=>t==='lada',true)===0){stageMsg('🔒 Barn required',1600);sfx.warn();return;}
+  if(bullRoom(true)<=0){stageMsg('🐂 Max '+bullCap()+' Bulls at Farm Level '+(S.farm.lvl||1),1600);sfx.warn();return;}
+ }else if(isCattle(id)){ /* cows/calves need a Barn, 10 head per barn */
   if(countFarm(t=>t==='lada',true)===0){stageMsg('🔒 Barn required',1600);sfx.warn();return;}
   if(barnRoom(true)<=0){stageMsg('🏠 Barn full - '+BARN_CAP+' cattle per barn',1600);sfx.warn();return;}
  }
@@ -4218,6 +4233,16 @@ $('farmMoveGo').onclick=()=>{
  if(it)it._moving=true;
  $('farmMoveFx').style.display='none';
  stageMsg('↔ Click where it should stand',1700);
+};
+$('farmMoveInv').onclick=()=>{ /* 📦 pick the animal straight up - frees its Barn/Coop/Bull-cap slot immediately */
+ if(!movePicked||movePicked.kind!=='b')return;
+ const it=S.farm.b[movePicked.i];movePicked=null;
+ $('farmMoveFx').style.display='none';
+ if(!it)return;
+ S.farm.b.splice(S.farm.b.indexOf(it),1);
+ const rf=farmRefund([it]);
+ sfx.forge();stageMsg('📦 Picked up'+rf,1600);
+ rebuildFarmItems();renderFarmStore();save();renderHUD();
 };
 $('farmMoveX').onclick=()=>{movePicked=null;$('farmMoveFx').style.display='none';};
 const endHoldMove=e=>{if(holdMove&&e.pointerId===holdMove.id)holdMove=null;};
