@@ -531,19 +531,23 @@
      <div class="ss" style="color:#9adf9a;font-size:12px;margin-top:2px">▲ +<span id="bankEarnedN">0</span> earned since opening</div>
      <div class="ss" style="color:var(--dim);font-size:11px;margin-top:2px">⚙ <span id="bankScrapN">0</span> scraps stored</div>
     </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:4px">
-     <button class="sbtn gold" data-bank="dg" data-n="10000">Deposit 10K◉</button>
-     <button class="sbtn gold" data-bank="dg" data-n="100000">Deposit 100K◉</button>
-     <button class="sbtn gold" data-bank="dg" data-n="all">Deposit All ◉</button>
-     <button class="sbtn gold" data-bank="wg" data-n="10000">Withdraw 10K◉</button>
-     <button class="sbtn gold" data-bank="wg" data-n="100000">Withdraw 100K◉</button>
-     <button class="sbtn gold" data-bank="wg" data-n="all">Withdraw All ◉</button>
-    </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:6px">
-     <button class="sbtn scrapb" data-bank="ds" data-n="50">Deposit 50⚙</button>
-     <button class="sbtn scrapb" data-bank="ds" data-n="all">Deposit All ⚙</button>
-     <button class="sbtn scrapb" data-bank="ws" data-n="50">Withdraw 50⚙</button>
-     <button class="sbtn scrapb" data-bank="ws" data-n="all">Withdraw All ⚙</button>
+    <div class="bankcols">
+     <div class="bankcol">
+      <div class="bankcolhd">⬇ Deposit</div>
+      <button class="sbtn gold" data-bank="dg" data-n="10000">10K ◉</button>
+      <button class="sbtn gold" data-bank="dg" data-n="100000">100K ◉</button>
+      <button class="sbtn gold" data-bank="dg" data-n="all">All ◉</button>
+      <button class="sbtn scrapb" data-bank="ds" data-n="50">50 ⚙</button>
+      <button class="sbtn scrapb" data-bank="ds" data-n="all">All ⚙</button>
+     </div>
+     <div class="bankcol">
+      <div class="bankcolhd">⬆ Withdraw</div>
+      <button class="sbtn gold" data-bank="wg" data-n="10000">10K ◉</button>
+      <button class="sbtn gold" data-bank="wg" data-n="100000">100K ◉</button>
+      <button class="sbtn gold" data-bank="wg" data-n="all">All ◉</button>
+      <button class="sbtn scrapb" data-bank="ws" data-n="50">50 ⚙</button>
+      <button class="sbtn scrapb" data-bank="ws" data-n="all">All ⚙</button>
+     </div>
     </div>
     <div class="cl" id="bankMsg" style="margin-top:8px;min-height:1.2em"></div>
     <button id="bankClose" class="sbtn" style="margin-top:6px;padding:11px">Leave the Bank</button>
