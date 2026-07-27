@@ -897,7 +897,7 @@ function zoneTemplates(z){
  const GL=goldZoneLvl(z); /* Gold stays tied to zone level + prestige reward multiplier */
  if(z.thor){
   const L=Math.max(effectiveHeroLvl(),10),pm=pMul();
-  return [{name:z.boss[0],kind:'boss',boss:true,bossId:'thor',c:z.boss[1],speed:80,
+  return [{name:z.boss[0],kind:'boss',boss:true,bossId:'thor',c:z.boss[1],speed:104, /* +30% - the god of thunder closes fast */
    hp:Math.round(eHP(L)*65*pm),atk:Math.round(eATK(L)*1.76*pm),
    xp:0,gold:0}];
  }
@@ -9150,37 +9150,42 @@ function smithRefresh(){
  const fu=$('smithFuseRow');
  if(fu&&!show('fuse')){fu.innerHTML='';fu.dataset.sig='';}
  else if(fu){
-  const ivBag=(S.scrolls||[]).map((sc,i)=>({sc,i})).filter(o=>!o.sc.id2&&o.sc.tier===MAXTIER);
+  /* the forge takes Tier IV scrolls from the bag AND from the two equipped slots */
+  const ivBag=(S.scrolls||[]).map((sc,i)=>({sc,k:'b'+i})).filter(o=>o.sc&&!o.sc.id2&&o.sc.tier===MAXTIER)
+   .concat((S.activeScrolls||[]).map((sc,i)=>({sc,k:'e'+i})).filter(o=>o.sc&&!o.sc.id2&&o.sc.tier===MAXTIER));
   const can=lv>=10&&(S.connectors||0)>=2&&ivBag.length>=2;
-  const sig=(can?'y':'n')+(S.connectors||0)+':'+lv+':'+ivBag.map(o=>o.i+o.sc.id).join(',');
+  const sig=(can?'y':'n')+(S.connectors||0)+':'+lv+':'+ivBag.map(o=>o.k+o.sc.id).join(',');
   if(fu.dataset.sig!==sig){ /* the row holds <select>s - rebuild only on real change (refresh ticks every second) */
    fu.dataset.sig=sig;
    if(can){
-    const opts=sel=>ivBag.map(o=>`<option value="${o.i}" ${o.i===sel?'selected':''}>${enchOf(o.sc.id).n.replace('Scroll of ','')} IV</option>`).join('');
+    const opts=sel=>ivBag.map(o=>`<option value="${o.k}" ${o.k===sel?'selected':''}>${enchOf(o.sc.id).n.replace('Scroll of ','')} IV${o.k[0]==='e'?' (equipped)':''}</option>`).join('');
     fu.innerHTML=`<div class="ss" style="margin:8px 0 4px;color:#8fe3c9">🔗 Fuse two different Tier IV scrolls into one · <b>${S.connectors}</b> connectors</div>
      <div style="display:flex;gap:6px;margin-bottom:6px">
-      <select id="fuseA" class="sbtn" style="flex:1">${opts(ivBag[0].i)}</select>
-      <select id="fuseB" class="sbtn" style="flex:1">${opts(ivBag[1].i)}</select>
+      <select id="fuseA" class="sbtn" style="flex:1">${opts(ivBag[0].k)}</select>
+      <select id="fuseB" class="sbtn" style="flex:1">${opts(ivBag[1].k)}</select>
      </div>
      <button class="sbtn gold" id="fuseBtn" style="width:100%;margin-bottom:6px">🔗 Fuse · consumes 2 connectors</button>`;
     $('fuseBtn').onclick=()=>{
-     const ia=+$('fuseA').value,ib=+$('fuseB').value;
-     const a=S.scrolls[ia],b2=S.scrolls[ib];
-     if(ia===ib||!a||!b2||a.id2||b2.id2||a.tier!==MAXTIER||b2.tier!==MAXTIER){stageMsg('Pick two different Tier IV scrolls',1600);sfx.warn();return;}
+     const ka=$('fuseA').value,kb=$('fuseB').value;
+     const get=k=>k[0]==='b'?(S.scrolls||[])[+k.slice(1)]:(S.activeScrolls||[])[+k.slice(1)];
+     const a=get(ka),b2=get(kb);
+     if(ka===kb||!a||!b2||a.id2||b2.id2||a.tier!==MAXTIER||b2.tier!==MAXTIER){stageMsg('Pick two different Tier IV scrolls',1600);sfx.warn();return;}
      if(a.id===b2.id){stageMsg('Two of the same effect never stack - pick two different scrolls',1900);sfx.warn();return;}
      if((S.connectors||0)<2){sfx.warn();return;}
      S.connectors-=2;
-     S.scrolls.splice(Math.max(ia,ib),1);S.scrolls.splice(Math.min(ia,ib),1);
+     /* equipped halves empty their slot; bag halves splice high index first so the other stays valid */
+     [ka,kb].forEach(k=>{if(k[0]==='e')EQS()[+k.slice(1)]=null;});
+     [ka,kb].filter(k=>k[0]==='b').map(k=>+k.slice(1)).sort((x,y)=>y-x).forEach(i=>S.scrolls.splice(i,1));
      const fused={id:a.id,tier:MAXTIER,id2:b2.id,tier2:MAXTIER};
      S.scrolls.push(fused);
      stageMsg('🔗 '+enchName(fused)+' - fused into one scroll!',3000,'#8fe3c9');
      log(`The Blacksmith links <span class="lscroll">${enchName(fused)}</span> into a single scroll - two enchants, one slot.`,'loot');
      sfx.forge();
      fu.dataset.sig='';
-     save();smithRefresh();renderHUD();
+     save();smithRefresh();renderHUD();renderBag();renderHero();
     };
    }else if((S.connectors||0)>0){
-    fu.innerHTML=`<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">🔗 Connectors ${Math.min(2,S.connectors||0)}/2${lv<10?' · needs a level 10 blacksmith':''}${(S.connectors||0)<2?' · find more in Crypt chests':''}${ivBag.length<2?' · needs two different Tier IV scrolls in the Bag':''}</div>`;
+    fu.innerHTML=`<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">🔗 Connectors ${Math.min(2,S.connectors||0)}/2${lv<10?' · needs a level 10 blacksmith':''}${(S.connectors||0)<2?' · find more in Crypt chests':''}${ivBag.length<2?' · needs two different Tier IV scrolls (bag or equipped)':''}</div>`;
    }else fu.innerHTML='<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">🔗 <b>Crypt Connectors</b> drop from chests in The Crypts (15%). Two of them fuse a pair of Tier IV scrolls into one.</div>';
   }
  }
