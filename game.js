@@ -1023,10 +1023,9 @@ const mobGold=(z,mul=1)=>Math.max(1,Math.round((8+((z&&z.lvl)||1)*3.2)*goldZoneM
 /* potion prices are fixed for now - no level/prestige scaling */
 const potCost=k=>20;
 const POT_CAP=250; /* max potions of each kind you can carry */
-/* ❄ Ice Armor tree - declared here because heroMax leans on it */
+/* ❄ Ice Armor tree - declared here because the gear caps lean on it */
 const talRank=id=>((S&&S.talents)||{})[id]||0;
-const iceHpMul=()=>(talRank('root')&&S&&S.gear&&isIce(S.gear.armor))?1.10:1; /* Frozen Heart: +10% base HP while Ice Armor is worn */
-const heroMax=()=>Math.round((classOf().hp+S.lvl*14+gearSum('hp'))*(raceOf().hp||1)*iceHpMul());
+const heroMax=()=>Math.round((classOf().hp+S.lvl*14+gearSum('hp'))*(raceOf().hp||1));
 const manaMax=()=>Math.round(classOf().mana+S.lvl*5);
 const heroAtk=()=>Math.round((classOf().atk+S.lvl*2.6+gearSum('atk'))*(1+scrollPct('titan'))*(1+((activePet()||{}).atkMul||0))*(1+gearSum('dmgMul')));
 const fmBonus=()=>{const w=S&&S.gear?S.gear.weapon:null;return (isFM(w)&&fmStar(w)>1)?fmStar(w)*2:0;};
@@ -1227,6 +1226,8 @@ function calcPower(it){it.power=it.atk*3+it.hp*0.6+it.crit*4;}
 const FM_BONUS=1.05;     /* Frostmourne baseline = ~5% above the best normal weapon for your effective level */
 const FM_MAX_UP=6;       /* legendary cap: max +6 upgrades */
 const GEAR_MAX_UP=12;      /* normal gear cap; Frostmourne uses FM_MAX_UP */
+/* ❄ Deep Frost (talent): Ice Armor alone may be pushed from +6 to +12 */
+const capUp=it=>isIce(it)?(talRank('root')?12:FM_MAX_UP):(isLegendaryW(it)?FM_MAX_UP:GEAR_MAX_UP);
 const isFM=it=>it&&it.legend==='frostmourne';
 const isWG=it=>it&&(it.legend==='warglaives'||it.id==='warglaives'||it.warglaives===true); /* supports old/equipped objects marked warglaives:true */
 const isRing=it=>it&&it.legend==='onering';
@@ -1234,7 +1235,8 @@ const isIce=it=>it&&it.legend==='icearmor';
 function syncIceArmor(it){
  if(!isIce(it)||!S)return it;
  it.slot='armor';it.rar='legendary';it.name='Ice Armor';
- it.up=Math.min(it.up||0,FM_MAX_UP);it.maxUp=FM_MAX_UP;
+ it.maxUp=talRank('root')?12:FM_MAX_UP; /* ❄ Deep Frost lifts the cap to +12 */
+ it.up=Math.min(it.up||0,it.maxUp);
  it.haste=0.10;it.dmgMul=0.10; /* +10% atk speed · +10% damage - always */
  if(it.baseHp===undefined)it.baseHp=it.hp||0;
  calcPower(it);
@@ -1351,8 +1353,7 @@ function upCost(it){
 }
 function upgradeItem(it){
  if(inBossFight()){stageMsg('You cannot forge upgrades mid-boss-fight!',1500);sfx.warn();return false;}
- if(isLegendaryW(it)&&((it.up||0)>=FM_MAX_UP)){stageMsg(itemName(it)+' is already maxed at +'+FM_MAX_UP+'.',1500);return false;}
- if(!isLegendaryW(it)&&(it.up||0)>=GEAR_MAX_UP){stageMsg(it.name+' is already maxed at +'+GEAR_MAX_UP+'.',1500);return false;}
+ if((it.up||0)>=capUp(it)){stageMsg(itemName(it)+' is already maxed at +'+capUp(it)+'.',1500);return false;}
  const cost=upCost(it);
  if(S.scraps<cost){stageMsg('Not enough Scraps ('+cost+'⚙ needed)',1400);return false;}
  ensureItemBase(it);
@@ -1392,7 +1393,7 @@ function itemStr(it){
  else if(isIce(it))syncIceArmor(it);
  else ensureItemBase(it);
  if(isWG(it))syncWarglaives(it);
- const cap=isLegendaryW(it)?FM_MAX_UP:GEAR_MAX_UP;
+ const cap=capUp(it);
  const maxed=(it.up||0)>=cap;
  let s=`${it.up?'+'+it.up+(maxed?' MAX ✦':'')+' · ':''}${statBaseStr(it,'atk','ATK')} ${statBaseStr(it,'hp','HP')} ${statBaseStr(it,'crit','CRIT','%')}`;
  if(it.haste)s+=` +${Math.round(it.haste*100)}% ATK SPEED`;
@@ -1890,6 +1891,7 @@ $('fsClose').onclick=()=>exitBuildMode();
 let ritualSeen=false,ritualActive=false,gateMsgSeen=false;
 $('gateMsgOk').onclick=()=>{$('gateMsg').style.display='none';};
 $('iceMsgOk').onclick=()=>{$('iceMsg').style.display='none';};
+$('iceReqOk').onclick=()=>{$('iceReqMsg').style.display='none';};
 $('ritualBegin').onclick=()=>{
  if(ritualActive||S.ritualDone)return;
  if(!(S.theKnife&&(S.prestige||0)>=40&&(S.rating||0)>=3000))return;
@@ -1975,7 +1977,8 @@ let cowBigT=15; /* the Alpha Bovine - a giant cow every 15 seconds */
 const COW_BAG_CAP=40;
 const cowLocked=()=>gameOn&&cowRunning;
 /* true while a living boss is engaged - the forge and Trader refuse service mid-fight */
-const inBossFight=()=>gameOn&&enemies.some(e=>e.boss&&!e.dead&&(e.hidden||e.state==='chase'||(hero&&hero.target===e)));
+/* ☠ In the Final Hour the lock covers the whole visit - you bring what you walked in with. */
+const inBossFight=()=>gameOn&&((zoneOf().finalb&&enemies.some(e=>e.boss&&!e.dead))||enemies.some(e=>e.boss&&!e.dead&&(e.hidden||e.state==='chase'||(hero&&hero.target===e))));
 /* hardcore: entering a boss fight unprepared is a commitment - no fleeing */
 const hcNoFlee=()=>{
  if(S&&S.hardcore&&inBossFight()){
@@ -3598,6 +3601,12 @@ function killEnemy(en){
   }else if(en.bossId==='reaper'){ /* ☠ the summit falls - one Ice Armor talent point, once ever */
    S.forsakenDead=true;   /* survives Prestige: the Gate never reopens */
    S.talentPts=(S.talentPts||0)+1;
+   /* tear the way home open right now - the zone is not rebuilt on a kill */
+   if(world&&world.solids&&!world.solids.some(s2=>s2.type==='exitportal')){
+    world.solids.push({x:world.w/2,y:world.h*0.46,r:60,type:'exitportal'});
+    ring(world.w/2,world.h*0.46-60,150,'#8fd0ff',1.2);
+    burst(world.w/2,world.h*0.46-60,'#bfe4ff',30,220,true);
+   }
    floatAt(en.x,en.y-en.r-44,'❄ TALENT POINT','#9fd4ff');
    stageMsg('☠ The Forsaken One falls! ❄ A talent point is yours - spend it at the Armor Altar.',4000,'#9fd4ff');
    log(`<span class="imp">The Forsaken One is slain.</span> <span class="lscroll">❄ +1 Ice Armor talent point</span> - spend it at the Armor Altar in The Altar.`,'loot');
@@ -4277,6 +4286,9 @@ cv.addEventListener('pointerdown',e=>{
      $('gateMsg').style.display='block';gateMsgSeen=true;
      stageMsg('⛧ The Gate refuses you - Prestige 50, level '+MAXLVL,2200);sfx.warn();return;
     }
+    if(!(S.gear&&isIce(S.gear.armor))){ /* ❄ only the ice may pass */
+     $('iceReqMsg').style.display='block';sfx.warn();return;
+    }
     $('gateMsg').style.display='none';gateMsgSeen=false;
     goToZone(ZONES.findIndex(z2=>z2.finalb));
    };
@@ -4596,9 +4608,13 @@ function update(dt){
   const rp=world.solids.find(s2=>s2.type==='ritualportal');
   if(rp&&Math.hypot(hero.x-rp.x,hero.y-(rp.y-52))<70){
    if((S.prestige||0)>=50&&(S.lvl||1)>=MAXLVL){
-    $('gateMsg').style.display='none';gateMsgSeen=false;
-    goToZone(ZONES.findIndex(z2=>z2.finalb));
-    return;
+    if(!(S.gear&&isIce(S.gear.armor))){ /* ❄ turned away at the threshold */
+     if($('iceReqMsg').style.display!=='block'){$('iceReqMsg').style.display='block';sfx.warn();}
+    }else{
+     $('gateMsg').style.display='none';gateMsgSeen=false;
+     goToZone(ZONES.findIndex(z2=>z2.finalb));
+     return;
+    }
    }
   }
  }
@@ -6887,8 +6903,8 @@ function renderHero(){
   const g=S.gear[sl];
   return `<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div>`+
    (g?`<div class="sn r-${g.rar}">${itemName(g)}</div><div class="ss">${itemStr(g)}</div>
-    ${(isLegendaryW(g)?(g.up||0)>=FM_MAX_UP:(g.up||0)>=GEAR_MAX_UP)
-     ?`<button class="upbtn" disabled>MAX +${isLegendaryW(g)?FM_MAX_UP:GEAR_MAX_UP} ✦</button>`
+    ${(g.up||0)>=capUp(g)
+     ?`<button class="upbtn" disabled>MAX +${capUp(g)} ✦</button>`
      :`<button class="upbtn ${S.scraps>=upCost(g)?'can':''}" data-up="${sl}">Upgrade · ${upCost(g)} ⚙</button>`}`
      :`<div class="ss">- empty -</div>`)+`</div>`;
  }).join('');
@@ -9420,7 +9436,7 @@ $('gvbLeave').onclick=()=>{
    Opened from the Armor Altar. Points come from felling the Forsaken One.
    The root is live; the two branches are carved out but sealed for now. */
 const TALENTS={
- root:{n:'Frozen Heart',ic:'❄',max:1,d:'Your Ice Armor thickens: <b>+10% base HP</b> while it is worn.'},
+ root:{n:'Deep Frost',ic:'❄',max:1,d:'The ice takes a deeper hold: your <b>Ice Armor</b> can be upgraded <b>6 more times</b> - from <b>+6</b> all the way to <b>+12</b>.'},
  /* left chain and right chain - placeholders until their powers are written */
  l1:{n:'Sealed',ic:'',max:0,req:'root',side:'l',d:'This path is still sealed. Its power has not yet been written.'},
  l2:{n:'Sealed',ic:'',max:0,req:'l1',side:'l',d:'This path is still sealed. Its power has not yet been written.'},
@@ -9461,6 +9477,8 @@ function renderTalents(){
    if(talRank(id)>=t.max){stageMsg('Already learned',1200);return;}
    if(talPoints()<=0){stageMsg('No talent points - the Forsaken One holds them',1700);sfx.warn();return;}
    S.talents=S.talents||{};S.talents[id]=talRank(id)+1;
+   if(S.gear&&isIce(S.gear.armor))syncIceArmor(S.gear.armor); /* the new cap applies at once */
+   (S.bag||[]).forEach(b2=>{if(isIce(b2))syncIceArmor(b2);});
    if(hero)hero.hp=Math.min(hero.hp,heroMax());
    sfx.level();stageMsg('❄ '+t.n+' learned!',1900,'#9fd4ff');
    log(`❄ <span class="lscroll">${t.n}</span> - Ice Armor talent learned.`,'loot');
