@@ -232,9 +232,12 @@ const fmtMS=ms=>{
  return h>0?h+'h '+m+'m':m+'m '+String(ss).padStart(2,'0')+'s';
 };
 /* effective wealth = what you carry + what your bag would sell/scrap for.
-   Gear-set (⭐) items are unsellable, so they cannot count - they froze high-prestige
+   ONLY items the Bag will actually let you sell may count. Legendaries (the sell button
+   refuses them - and syncFrostmourne/syncWarglaives keep stamping a fat baseAtk*4 price
+   on spare blades) and gear-set (⭐) items are excluded, or they freeze high-prestige
    players hundreds of thousands below the cap with a "nothing to sell" bag. */
-const bagGoldVal=()=>((S&&S.bag)||[]).reduce((t,it)=>t+((it&&!inGearSet(it))?(it.sell||0):0),0);
+const bagSellable=it=>!!it&&!isLegendary(it)&&!inGearSet(it);
+const bagGoldVal=()=>((S&&S.bag)||[]).reduce((t,it)=>t+(bagSellable(it)?(it.sell||0):0),0);
 const bagScrapVal=()=>((S&&S.bag)||[]).reduce((t,it)=>t+scrapVal(it),0);
 const goldRoom=()=>Math.max(0,goldCap()-S.gold-bagGoldVal());
 const scrapRoom=()=>Math.max(0,SCRAP_CAP-S.scraps);
@@ -7124,7 +7127,7 @@ function renderBag(){
 
  S.bag=(S.bag||[]).map(cleanBagItem).filter(Boolean);
  if(!S.bag.length){$('bagList').innerHTML='<div class="card" style="color:var(--dim);font-size:12px">The bag is empty. Gear, potions and scrolls drop from foes - bosses always drop. Sell spares for gold, or scrap them for ⚙ Scraps to upgrade your gear.</div>';return;}
- const sellable=S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it));
+ const sellable=S.bag.filter(bagSellable); /* same rule the gold cap uses - they must never drift apart */
  const totalScrap=sellable.reduce((t,it)=>t+scrapVal(it),0);
  const totalSell=sellable.reduce((t,it)=>t+(it.sell||0),0);
  const rarOrder=['legendary','epic','rare','fine','common'];
