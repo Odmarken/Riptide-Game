@@ -524,6 +524,26 @@
 .gvbbigcard{width:78px;flex:0 0 78px;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:30px;border-right:1px solid rgba(255,255,255,.06)}
 .gvbbigcard .gl{font-size:10px;font-weight:800}
 .gvbbigmark{position:absolute;left:50%;top:0;bottom:0;width:2px;background:#ffd76a;box-shadow:0 0 10px #ffd76a}
+/* ❄ Ice Armor talent tree */
+.talentbox{background:linear-gradient(180deg,#101a2a,#080d16);border:2px solid #5b9bd5;border-radius:18px;padding:20px 24px 18px;max-width:560px;width:94%;max-height:94%;overflow-y:auto;text-align:center;box-shadow:0 14px 50px rgba(0,0,0,.7),0 0 30px rgba(91,155,213,.22)}
+.ttop{font-family:var(--display);font-size:22px;color:#9fd4ff;letter-spacing:1px;text-shadow:0 0 14px rgba(120,200,255,.45)}
+.tsub{font-size:12px;color:var(--dim);margin:4px 0 12px}
+.tsub b{color:#9fd4ff}
+.ttree{display:flex;flex-direction:column;align-items:center;gap:0}
+.trow{display:flex;justify-content:center;align-items:center;gap:18px}
+.tlink{width:2px;height:16px;background:#2f4a66}
+.tlink.on{background:#5b9bd5;box-shadow:0 0 8px rgba(91,155,213,.7)}
+.tbranch{display:flex;justify-content:center;gap:120px;width:100%;margin-top:2px}
+.tcol{display:flex;flex-direction:column;align-items:center;gap:0}
+.tnode{width:52px;height:52px;border-radius:11px;border:2px solid #2f4a66;background:#0c1420;display:flex;align-items:center;justify-content:center;font-size:24px;cursor:default;position:relative;color:#3a4a5e}
+.tnode.avail{border-color:#d9a441;background:linear-gradient(180deg,#1a2436,#0e1622);color:#ffd76a;cursor:pointer;box-shadow:0 0 12px rgba(217,164,65,.45);animation:pulseNext 1.8s infinite}
+.tnode.taken{border-color:#6dbb6d;background:linear-gradient(180deg,#16301f,#0c1a12);color:#bfe4ff;cursor:default;box-shadow:0 0 12px rgba(109,187,109,.4)}
+.tnode.locked{opacity:.75}
+.tnode .trank{position:absolute;bottom:-2px;right:-4px;font-size:9px;font-weight:800;color:#e8dcc8;background:#0c1420;border:1px solid #2f4a66;border-radius:6px;padding:0 3px}
+.tnode.taken .trank{color:#9adf9a;border-color:#6dbb6d}
+.tinfo{margin-top:12px;font-size:12px;color:#cfe0f0;min-height:3.2em;line-height:1.5;border-top:1px solid #23384f;padding-top:10px}
+.tinfo b{color:#9fd4ff}
+@media (min-width:900px){.talentbox{max-width:640px;padding:26px 30px 22px}.tnode{width:60px;height:60px;font-size:28px}.ttop{font-size:26px}}
 /* 🏦 bank: deposits in one column, withdrawals in the other */
 .bankcols{display:flex;gap:10px;margin-top:6px;align-items:flex-start}
 .bankcol{flex:1;display:flex;flex-direction:column;gap:5px;min-width:0}

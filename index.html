@@ -397,10 +397,10 @@
    <button id="cryptIntroOk" style="width:100%;padding:12px;border-radius:10px;border:1px solid #8a6a34;background:linear-gradient(180deg,#f0c968,#c99a3e);color:#2a1c0c;font-family:var(--display);font-weight:800;font-size:15px;letter-spacing:.06em;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.4)">OK</button>
   </div>
 
-  <div id="gateMsg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:60;display:none;padding:24px 32px;border-radius:14px;border:1px solid rgba(90,255,138,.5);background:#0e1a12;text-align:center;max-width:400px;box-shadow:0 10px 40px rgba(0,0,0,.7)">
-   <div style="font-family:var(--display);font-size:20px;color:#5aff8a;margin-bottom:10px">⛧ THE GATE</div>
-   <div class="ss" style="color:var(--parch);font-size:15px;line-height:1.55;margin-bottom:16px">Come back at <b style="color:#5aff8a">Prestige 50</b>, level <b style="color:#5aff8a">60</b>.</div>
-   <button id="gateMsgOk" style="width:100%;padding:12px;border-radius:10px;border:1px solid #2a7a4a;background:linear-gradient(180deg,#59d98a,#2f9a55);color:#08130c;font-family:var(--display);font-weight:800;font-size:15px;letter-spacing:.06em;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.4)">OK</button>
+  <div id="gateMsg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:60;display:none;padding:24px 32px;border-radius:14px;border:1px solid rgba(201,160,255,.5);background:#160e1f;text-align:center;max-width:400px;box-shadow:0 10px 40px rgba(0,0,0,.7)">
+   <div style="font-family:var(--display);font-size:20px;color:#c9a0ff;margin-bottom:10px">⛧ THE GATE</div>
+   <div class="ss" style="color:var(--parch);font-size:15px;line-height:1.55;margin-bottom:16px">Come back at <b style="color:#c9a0ff">Prestige 50</b>, level <b style="color:#c9a0ff">60</b>.</div>
+   <button id="gateMsgOk" style="width:100%;padding:12px;border-radius:10px;border:1px solid #6a4a9a;background:linear-gradient(180deg,#b48ae0,#7a4faa);color:#120a1a;font-family:var(--display);font-weight:800;font-size:15px;letter-spacing:.06em;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.4)">OK</button>
   </div>
 
   <div id="ritualBox" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:60;display:none;padding:24px 32px;border-radius:14px;border:1px solid rgba(154,200,255,.55);background:#10131f;text-align:center;max-width:420px;box-shadow:0 10px 44px rgba(0,0,0,.75)">
@@ -519,6 +519,22 @@
     <button class="sbtn gold" id="mpReadyBtn" style="padding:11px 20px">✔ Ready</button>
     <button class="sbtn gold" id="mpStartBtn" style="padding:11px 20px;display:none">▶ START RAID</button>
     <button class="sbtn" id="mpLeaveBtn" style="margin-top:8px;padding:10px">Leave</button>
+   </div>
+  </div>
+
+  <div id="iceMsg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:74;display:none;padding:26px 34px;border-radius:14px;border:1px solid rgba(120,200,255,.55);background:#0b1622;text-align:center;max-width:420px;box-shadow:0 10px 40px rgba(0,0,0,.75)">
+   <div style="font-family:var(--display);font-size:21px;color:#9fd4ff;margin-bottom:10px">❄ THE ICE REMEMBERS</div>
+   <div class="ss" style="color:var(--parch);font-size:15px;line-height:1.55;margin-bottom:16px">Now you can upgrade your <b style="color:#9fd4ff">Ice Armor</b> by clicking on the altar.</div>
+   <button id="iceMsgOk" style="width:100%;padding:12px;border-radius:10px;border:1px solid #3a6a9a;background:linear-gradient(180deg,#8fd0ff,#4a8ec9);color:#08131c;font-family:var(--display);font-weight:800;font-size:15px;letter-spacing:.06em;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.4)">OK</button>
+  </div>
+
+  <div id="talentFx" style="position:absolute;inset:0;z-index:73;display:none;align-items:center;justify-content:center;background:rgba(4,8,14,.90)">
+   <div class="talentbox">
+    <div class="ttop">❄ ICE ARMOR TALENT TREE</div>
+    <div class="tsub" id="talentPts">Slay the Forsaken One to earn your first point.</div>
+    <div class="ttree" id="talentTree"></div>
+    <div class="tinfo" id="talentInfo">Hover a talent to read it.</div>
+    <button id="talentClose" class="sbtn" style="margin-top:10px;padding:11px 22px">Close</button>
    </div>
   </div>
 

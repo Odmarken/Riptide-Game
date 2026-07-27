@@ -55,6 +55,10 @@ const firelordImg=new Image();firelordImg.src='assets/boss/firelord_boss.png';
 const frostlordImg=new Image();frostlordImg.src='assets/boss/frostlord_boss.png';
 const cowWeaponImg=new Image();cowWeaponImg.src='assets/boss/cow_weapon.png';
 const cowmobImg=new Image();cowmobImg.src='assets/boss/Cowlevel_boss.png';
+const armorAltarImg=new Image();armorAltarImg.src='assets/models/armor_altar.png';
+const finalBossImg=new Image();finalBossImg.src='assets/boss/finalboss.png';
+const finalBossFootImg=new Image();finalBossFootImg.src='assets/boss/finalboss_foot.png';
+const finalBossWeaponImg=new Image();finalBossWeaponImg.src='assets/boss/finasboss_weapon.png';
 const cowmobFeetImg=new Image();cowmobFeetImg.src='assets/boss/cowlevel_feet.png';
 const raidSwordImg=new Image();raidSwordImg.src='assets/boss/raidboss_sword.png';
 const gorehuskImg=new Image();gorehuskImg.src='assets/boss/boss_levling4.png';
@@ -125,6 +129,8 @@ const RAID_SKINS={ /* lift = body bottom in radii · wy/wx = weapon grip */
  krev:{img:krevImg,feetL:krevFeetLImg,feetR:krevFeetRImg,wpn:()=>cowWeaponImg,glow:'#ff9a2a',lift:0.15,wy:-0.25,wx:0.44,size:7.5,fs:1.05,fh:1.12,ws:0.85},
  thor:{img:torImg,wpn:()=>torWeaponImg,glow:'#7fd0ff',zap:true,boots:true,bsx:11,lift:0.30,wy:-0.25,wx:0.44,size:5.25},
  /* 🐄 Cow Level herd - painted hell-minotaur; the Alpha draws 2× the normal cow */
+ /* ☠ the final boss - twin scythes, one on each side, and mirrored feet */
+ reaper:{img:finalBossImg,feet:finalBossFootImg,wpn:()=>finalBossWeaponImg,glow:'#a06bd0',lift:0.05,wy:-0.34,wx:0.38,wxr:0.30,size:7.3,fs:0.55,fh:0.81,vf:true,ff:true,dual:true,ws:0.78}, /* +30% overall; ff mirrors the hooves; wxr pulls the right scythe in */
  cowmob:{img:cowmobImg,feet:cowmobFeetImg,wpn:()=>cowWeaponImg,glow:'#ff5a2a',lift:-0.15,wy:-0.30,wx:0.30,size:4.6,fs:0.6,fh:0.68,ff:true,vf:true},
  cowmob_big:{img:cowmobImg,feet:cowmobFeetImg,wpn:()=>cowWeaponImg,glow:'#ff5a2a',lift:0.08,wy:-0.30,wx:0.30,size:3.1,fs:0.4,fh:0.45,ff:true,vf:true}}; /* feet scaled down - r is 3× but the body only draws 2×; body sits closer to the hooves */
 const raidBladeCache={};
@@ -446,6 +452,10 @@ const ZONES=[
  {name:'Farm',lvl:1,amb:'world',special:true,farm:true,noBerg:true,noTrees:true,en:[], /* 🚜 under construction - reachable by console only, the Goldshire portal is a promise
     NOTE: appended LAST so existing saves' zone indices stay valid - never insert zones mid-array */
   ground:'#7a8a4e',ground2:'#6e7d46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
+ {name:'The Final Hour',lvl:60,amb:'final',west:true,special:true,finalb:true,noBerg:true,noTrees:true,map:'finalboss_zone', /* ☠ the summit: Prestige 50, level 60
+    NOTE: appended LAST so existing saves' zone indices stay valid - never insert zones mid-array */
+  boss:['The Forsaken One','#a06bd0','reaper'],
+  ground:'#2a2436',ground2:'#241f2e',water:'#3a2f4a',tree:'#2c2638',tree2:'#211c2b',path:'#4a3f5e',rocky:true},
 ];
 const TAVERN_ZONE=ZONES.findIndex(z=>z.tavern);
 const ALTAR_ZONE=ZONES.findIndex(z=>z.altar);
@@ -904,6 +914,13 @@ function zoneTemplates(z){
    hp:Math.round(eHP(L)*65*pm),atk:Math.round(eATK(L)*1.76*pm),
    xp:0,gold:0}];
  }
+ if(z.finalb){ /* ☠ tuned for the summit: Prestige 50, level 60 - twin scythes, relentless pace */
+  const L=Math.max(50*MAXLVL+MAXLVL,effectiveHeroLvl()); /* never weaker than a P50/60 champion's world */
+  const pm=1+50*0.10; /* fixed P50 combat multiplier so it is the same wall for everyone */
+  return [{name:z.boss[0],kind:'boss',boss:true,bossId:'reaper',c:z.boss[1],speed:154, /* +40%; boss rules take this to ~339, ~539 enraged */
+   hp:Math.round(eHP(L)*234*pm),atk:Math.round(eATK(L)*0.62*pm),atkCd:0.55,meleeMul:1.1,reach:96, /* a true wall of health; fast twin strikes, +10% on the swings, and those scythes reach you mid-chase */
+   xp:0,gold:mobGold(z,14)}];
+ }
  if(z.raid){
   const RL=Math.max(effectiveHeroLvl(),10),rm=pMul();
   const mk=(name,id,c)=>({name,kind:'boss',boss:true,raid:true,bossId:id,c,speed:115,
@@ -1006,7 +1023,10 @@ const mobGold=(z,mul=1)=>Math.max(1,Math.round((8+((z&&z.lvl)||1)*3.2)*goldZoneM
 /* potion prices are fixed for now - no level/prestige scaling */
 const potCost=k=>20;
 const POT_CAP=250; /* max potions of each kind you can carry */
-const heroMax=()=>Math.round((classOf().hp+S.lvl*14+gearSum('hp'))*(raceOf().hp||1));
+/* ❄ Ice Armor tree - declared here because heroMax leans on it */
+const talRank=id=>((S&&S.talents)||{})[id]||0;
+const iceHpMul=()=>(talRank('root')&&S&&S.gear&&isIce(S.gear.armor))?1.10:1; /* Frozen Heart: +10% base HP while Ice Armor is worn */
+const heroMax=()=>Math.round((classOf().hp+S.lvl*14+gearSum('hp'))*(raceOf().hp||1)*iceHpMul());
 const manaMax=()=>Math.round(classOf().mana+S.lvl*5);
 const heroAtk=()=>Math.round((classOf().atk+S.lvl*2.6+gearSum('atk'))*(1+scrollPct('titan'))*(1+((activePet()||{}).atkMul||0))*(1+gearSum('dmgMul')));
 const fmBonus=()=>{const w=S&&S.gear?S.gear.weapon:null;return (isFM(w)&&fmStar(w)>1)?fmStar(w)*2:0;};
@@ -1113,6 +1133,10 @@ function migrate(s){ /* fills fields missing from older saves */
  });
  if(s.ringRecipe===undefined)s.ringRecipe=false;
  if(s.brokenRing===undefined)s.brokenRing=false;
+ if(s.armorAltar===undefined)s.armorAltar=null; /* 🔷 where the Armor Altar stands */
+ if(s.talents===undefined)s.talents={};         /* ❄ Ice Armor tree */
+ if(s.talentPts===undefined)s.talentPts=0;      /* earned by felling the Forsaken One */
+ if(s.forsakenDead===undefined)s.forsakenDead=false; /* ☠ once ever - not reset by Prestige */
  if(s.ringForged===undefined)s.ringForged=false;
  if(s.raidT===undefined)s.raidT=0;
  if(s.armorPots===undefined)s.armorPots=0; /* 🛡 fished from the lake */
@@ -1224,17 +1248,18 @@ function syncOneRing(it){
  if(!isRing(it)||!S)return it;
  it.id='onering';it.legend='onering';it.slot='trinket';it.rar='legendary';it.name='The One Ring';
  it.up=Math.min(it.up||0,FM_MAX_UP);
- it.maxUp=FM_MAX_UP;it.bossDmg=10;
+ it.maxUp=FM_MAX_UP;it.bossDmg=0;
  it.baseAtk=Math.max(1,Math.round(bestNormalWeaponAtk()*0.10)); /* legendary trinket: ~10% of a top weapon, live-scaled */
  it.atk=Math.round(it.baseAtk*Math.pow(1.12,it.up||0));
- it.crit=it.baseCrit=0;it.hp=it.baseHp=0;
- it.lifesteal=0;it.manadrain=0.02; /* the Ring feeds on its bearer */
- calcPower(it);it.basePower=Math.round(it.baseAtk*3+12);
+ it.crit=it.baseCrit=10;it.hp=it.baseHp=0; /* +10% crit */
+ it.armor=0;                                /* no armour - the Ring gives edge, not protection */
+ it.lifesteal=0;it.manadrain=0.01;          /* it still sips: 1% of your mana per strike */
+ calcPower(it);it.basePower=Math.round(it.baseAtk*3+10*4);
  it.sell=0;
  return it;
 }
 function rollOneRing(){
- return syncOneRing({id:'onering',slot:'trinket',rar:'legendary',legend:'onering',name:'The One Ring',atk:0,hp:0,crit:0,lifesteal:0,manadrain:0.02,bossDmg:10,ench:null,up:0,sell:0,maxUp:FM_MAX_UP});
+ return syncOneRing({id:'onering',slot:'trinket',rar:'legendary',legend:'onering',name:'The One Ring',atk:0,hp:0,crit:10,lifesteal:0,manadrain:0.01,bossDmg:0,ench:null,up:0,sell:0,maxUp:FM_MAX_UP});
 }
 function bestNormalWeaponAtk(){
  /* Normal epic weapons roll up to (3+3) * epic rarity * gear scale.
@@ -1296,7 +1321,7 @@ function smithTick(){
   const ring=rollOneRing();
   if(S.gear.trinket)S.bag.push(S.gear.trinket); /* the old trinket steps aside */
   S.gear.trinket=ring;S.ringForged=true;
-  log(`⚒️ The forge cools - <span class="llegendary">💍 The One Ring</span> binds to your trinket slot! +10% boss damage, but it drinks 2% of your mana with every strike.`,'loot');
+  log(`⚒️ The forge cools - <span class="llegendary">💍 The One Ring</span> binds to your trinket slot! +10% crit, and it drinks 1% of your mana with every strike.`,'loot');
   stageMsg('💍 THE ONE RING IS FORGED!',3800);sfx.level();
   if(typeof publishLB==='function')publishLB(S,true);
  }else if(j.kind==='wg'){
@@ -1375,6 +1400,7 @@ function itemStr(it){
  if(it.lifesteal)s+=` +${Math.round(it.lifesteal*1000)/10}% LIFESTEAL`;
  if(isFM(it)&&fmStar(it)>1)s+=` · ★${fmStar(it)} bonus: +${fmStar(it)*2}% CRIT / +${fmStar(it)*2}% LIFESTEAL`;
  if(it.bossDmg)s+=` · +${it.bossDmg}% BOSS DMG`;
+ if(it.armor)s+=` · +${Math.round(it.armor*100)}% ARMOR`;
  if(it.manadrain)s+=` · ${Math.round(it.manadrain*100)}% MANA DRAIN`;
  return s.replace(/\s+/g,' ').trim();
 }
@@ -1429,7 +1455,7 @@ function applyVolumes(){
  if(AC.ctx&&AC.ctx.state==='suspended')AC.ctx.resume().catch(()=>{}); /* iOS parks the session when all media is muted - wake it so sfx stays alive */
  /* .muted works on iOS where .volume writes are ignored - mute must win on phones */
  const av=ambVol(),m=av<=0;
- [ambAudio,cowAudio,haalandAudio,cryptAudio,casinoAudio].forEach(a=>{if(a){try{a.volume=av;a.muted=m;}catch(e){}}});
+ [ambAudio,cowAudio,haalandAudio,cryptAudio,finalAudio,casinoAudio].forEach(a=>{if(a){try{a.volume=av;a.muted=m;}catch(e){}}});
 }
 function noiseBuf(){
  if(AC.nb)return AC.nb;
@@ -1454,6 +1480,7 @@ function stopAmbience(){
  stopCowTrack();
  stopHaalandTrack();
  stopCryptTrack();
+ stopFinalTrack();
  stopAmbTrack();
 }
 function windLayer(vol,freq,q){
@@ -1571,6 +1598,21 @@ function startHaalandTrack(){
  return true;
 }
 function stopHaalandTrack(){if(haalandAudio)haalandAudio.pause();}
+/* ---- ☠ The Final Hour: the Forsaken One's own theme ---- */
+const FINAL_MUSIC_URL='ambientsong/finalhour.mp3';
+let finalAudio=null;
+function startFinalTrack(){
+ if(!finalAudio){
+  finalAudio=new Audio(FINAL_MUSIC_URL);
+  finalAudio.loop=true;
+  finalAudio.onerror=()=>{finalAudio=null;startMusic(true);}; /* file missing → dark synth */
+ }
+ finalAudio.volume=ambVol();
+ finalAudio.currentTime=0;
+ finalAudio.play().catch(()=>{});
+ return true;
+}
+function stopFinalTrack(){if(finalAudio)finalAudio.pause();}
 /* ---- The Crypts ambience ----
    Decoded into a Web Audio buffer and looped sample-exactly (an <audio loop> mp3
    always clicks: the codec pads ~50ms of silence). On top of that the last two
@@ -1672,9 +1714,10 @@ function startMusic(dark){
 }
 function startAmbience(prof){
  if(!AC.ctx)return;
- if(prof!=='cow'&&prof!=='haaland'&&prof!=='crypt')prof='world'; /* one shared track for all normal zones */
+ if(prof!=='cow'&&prof!=='haaland'&&prof!=='crypt'&&prof!=='final')prof='world'; /* one shared track for all normal zones */
  if(AC.prof===prof)return;
  stopAmbience();AC.prof=prof;
+ if(prof==='final'){if(!startFinalTrack())startMusic(true);return;} /* ☠ the last fight has its own theme */
  if(prof==='cow'){if(!startCowTrack())startCowMusic();return;}
  if(prof==='haaland'){windLayer(.14,700,.7);if(!startHaalandTrack())startMusic(true);return;}
  if(prof==='crypt'){
@@ -1846,6 +1889,7 @@ $('fsClose').onclick=()=>exitBuildMode();
    then the reveal: a life traded for the cursed Ice Armor. */
 let ritualSeen=false,ritualActive=false,gateMsgSeen=false;
 $('gateMsgOk').onclick=()=>{$('gateMsg').style.display='none';};
+$('iceMsgOk').onclick=()=>{$('iceMsg').style.display='none';};
 $('ritualBegin').onclick=()=>{
  if(ritualActive||S.ritualDone)return;
  if(!(S.theKnife&&(S.prestige||0)>=40&&(S.rating||0)>=3000))return;
@@ -2800,7 +2844,7 @@ function buildZone(){
  if(!zoneOf().special&&(S.maxZone||0)<S.zone)S.maxZone=S.zone;
  const z=zoneOf(),R=mulberry32(S.zone*7919+13);
  const isBoss=!!z.boss;
- world={w:z.crypts?13440:z.farm?8400:z.raid?3800:z.cow?4200:z.tavern?2600:isBoss?2400:3000,h:z.crypts?7740:z.farm?2600:z.raid?1900:z.cow?2600:z.tavern?1700:isBoss?1600:2000,solids:[],deco:[],waters:[]}; /* larger maps - full desktop view + hidden side panel; cow field is the biggest */
+ world={w:z.crypts?13440:z.farm?8400:z.finalb?3300:z.raid?3800:z.cow?4200:z.tavern?2600:isBoss?2400:3000,h:z.crypts?7740:z.farm?2600:z.finalb?2200:z.raid?1900:z.cow?2600:z.tavern?1700:isBoss?1600:2000,solids:[],deco:[],waters:[]}; /* larger maps - full desktop view + hidden side panel; cow field is the biggest, the final arena is tall */
  world.spawn={x:120,y:world.h/2};
  world.portal={x:world.w-80,y:world.h/2};
  world.pathY=world.h/2;world.pathH=110;
@@ -2878,10 +2922,21 @@ function buildZone(){
    rebuildFarmItems();
    zoneMapImg('farm_zone');
   }
+  if(z.finalb){ /* ☠ you walk in from the south, dead centre - the arena rises ahead of you */
+   world.spawn={x:world.w/2,y:world.h-160};
+   world.portal={x:-500,y:-500}; /* no exit swirl - win or leave by the map */
+   /* invisible bounds traced from the painted ring: the arena ellipse plus the stair
+      that runs south to the entrance. Everything else is scenery you cannot reach. */
+   world.arena={x:world.w/2,y:world.h*0.455,rx:world.w*0.226,ry:world.h*0.272, /* the stone floor only - the moat outside the rim is off limits */
+    gx0:world.w*0.478,gx1:world.w*0.522,gy0:world.h*0.60,gy1:world.h};
+   zoneMapImg('finalboss_zone');
+  }
   if(z.altar){
    /* the way home - standing on the walkway just ahead of the spawn */
    world.solids.push({x:110,y:995,r:38,type:'altarportal'}); /* far left on the walkway */
-   if(S.ritualDone)world.solids.push({x:1996,y:1000,r:52,type:'ritualportal'}); /* ⛧ the reward for a life: a door, not yet open */
+   /* ⛧ the Gate stands until the Forsaken One falls - then the Armor Altar takes its place */
+   if(S.forsakenDead)world.solids.push({x:(S&&S.armorAltar&&S.armorAltar.x)||1996,y:(S&&S.armorAltar&&S.armorAltar.y)||1000,r:34,type:'armoraltar',crx:86,cry:26,cyo:-18});
+   else if(S.ritualDone)world.solids.push({x:1996,y:1000,r:52,type:'ritualportal'});
    world.spawn={x:430,y:990}; /* arrive a few steps onto the bridge */
    world.portal={x:-500,y:-500}; /* hide the default zone-exit swirl - the portal is the exit */
   }
@@ -2996,7 +3051,12 @@ function buildZone(){
   spawnEnemyAt(tmpls[2],R,{x:hallEnd+400+290,y:cy});enemies[enemies.length-1].roomIdx=r2;
   stageMsg('Three lords slumber in round chambers. Enter one, and its doors seal until the lord is dead.',3600);
  }else if(isBoss){
-  if(!S.bossDead[S.zone]&&!(zoneOf().thor&&thorLocked()))spawnEnemyAt(tmpls[0],R,{x:world.w-320,y:world.pathY});
+  /* ☠ the final arena: you arrive centre-bottom, the Forsaken One waits centre-north */
+  if(z.finalb){
+   if(!S.bossDead[S.zone]&&!S.forsakenDead)spawnEnemyAt(tmpls[0],R,{x:world.w/2,y:world.h*0.30}); /* slain once, slain forever - even across Prestige */
+   else world.solids.push({x:world.w/2,y:world.h*0.46,r:60,type:'exitportal'}); /* the way out, opened by his death */
+  }
+  else if(!S.bossDead[S.zone]&&!(zoneOf().thor&&thorLocked()))spawnEnemyAt(tmpls[0],R,{x:world.w-320,y:world.pathY});
  }
  else if(tmpls.length){for(let i=0;i<24;i++)spawnEnemyAt(tmpls[i%tmpls.length],R);} /* denser maps */
  marker=null;portalMsgT=0;
@@ -3016,7 +3076,7 @@ function spawnEnemyAt(t,R,fixed){
  const en={name:t.name,kind:t.kind,boss:!!t.boss,raid:!!t.raid,bossId:t.bossId||null,c:t.c,
   x:p.x,y:p.y,home:{x:p.x,y:p.y},r:t.boss?26:12,
   max:Math.round(t.hp*scale),hp:Math.round(t.hp*scale),
-  atk:t.atk,xp:t.xp,gold:t.gold,add:!!t.add,roomIdx:t.roomIdx??fixed?.roomIdx??null,awake:!t.raid,
+  atk:t.atk,xp:t.xp,gold:t.gold,add:!!t.add,atkCd:t.atkCd||0,meleeMul:t.meleeMul||1,reach:t.reach||0,roomIdx:t.roomIdx??fixed?.roomIdx??null,awake:!t.raid,
   speed:t.speed||(t.boss?80:105),baseSpeed:t.speed||(t.boss?80:105),state:'wander',dir:Math.random()*6.28,wT:0,cd:0,dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,
   cds:{a:2,b:5,c:8},lockT:0,hidden:false,trailT:0,avoid:null};
  enemies.push(en);
@@ -3206,7 +3266,7 @@ function collide(e,nx,ny){
   for(const s of world.solids){
    if(s.noCol)continue; /* roaming farm animals - walk-through */
    if(s.type==='gate'&&!(world.raidRooms&&world.raidRooms[s.room]&&world.raidRooms[s.room].sealed))continue;
-   if(s.type==='altarportal'||s.type==='ritualportal'||s.type==='farmportal'||s.type==='cityportal')continue; /* walk straight through the portals */
+   if(s.type==='altarportal'||s.type==='ritualportal'||s.type==='farmportal'||s.type==='cityportal'||s.type==='exitportal')continue; /* walk straight through the portals */
    if(s.crx){ /* wide painted buildings block with an ellipse matching their footprint (cyo shifts it up onto the walls) */
     const kx=(nx-s.x)/(s.crx+e.r),ky=(ny-s.y-(s.cyo||0))/(s.cry+e.r);
     if(kx*kx+ky*ky<1)return true;
@@ -3217,6 +3277,13 @@ function collide(e,nx,ny){
  }
  if(world.mwalls)for(const w of world.mwalls){
   if(nx>w.x-e.r&&nx<w.x+w.w+e.r&&ny>w.y-e.r&&ny<w.y+w.h+e.r)return true;
+ }
+ if(world.arena){ /* ☠ final arena: the ring and its stair are the only solid ground */
+  const a=world.arena,rr=(e.r||12)*0.6; /* feet, not shoulders, decide the edge */
+  const kx=(nx-a.x)/Math.max(1,a.rx-rr),ky=(ny-a.y)/Math.max(1,a.ry-rr);
+  const inRing=kx*kx+ky*ky<=1;
+  const inGate=nx>a.gx0+rr&&nx<a.gx1-rr&&ny>a.gy0&&ny<a.gy1;
+  if(!inRing&&!inGate)return true;
  }
  return nx<e.r+16||ny<e.r+16||nx>world.w-e.r-16||ny>world.h-e.r-16;
 }
@@ -3318,7 +3385,7 @@ function hurtHero(dmg,label){
  if(hero.dead)return;
  /* hidden passive: melee callings (Christian/Jew) shrug off 60% in the Cow Level - never shown in any UI */
  const cowMelee=zoneOf().cow&&(S.cls==='warrior'||S.cls==='priest')?0.40:1;
- dmg=Math.round(dmg*(1-scrollPct('warding'))*(1-(classOf().armor||0))*(1-(raceOf().armor||0))*(1-((activePet()||{}).armor||0))*(((S.armorT||0)>0&&zoneOf().amb==='haaland')?0.5:1)*cowMelee); /* 🛡 potion: -50% only in the HAALAND fight */
+ dmg=Math.round(dmg*(1-scrollPct('warding'))*(1-(classOf().armor||0))*(1-(raceOf().armor||0))*(1-((activePet()||{}).armor||0))*(1-Math.min(0.5,gearSum('armor')))*(((S.armorT||0)>0&&zoneOf().amb==='haaland')?0.5:1)*cowMelee); /* 🛡 potion: -50% only in the HAALAND fight · gear armor capped at 50% */
  hero.hp-=dmg;hero.hurt=0.2;
  floatAt(hero.x,hero.y-26,'-'+dmg+(label?' '+label:''),'#ff8a7a');
  bloodAt(hero.x,hero.y-12,6);
@@ -3528,6 +3595,13 @@ function killEnemy(en){
    stageMsg('⚡ Thor falls! A 🍀 Potion of Luck is yours. Valhalla grows silent until the next storm.',3500);
    log(`<span class="imp">Thor slain ×${S.thorKills}.</span> Loot: <span class="lfine">🍀 Potion of Luck</span> - +20% better drops from slain foes for 30 minutes.`);
    publishLB(S,true);
+  }else if(en.bossId==='reaper'){ /* ☠ the summit falls - one Ice Armor talent point, once ever */
+   S.forsakenDead=true;   /* survives Prestige: the Gate never reopens */
+   S.talentPts=(S.talentPts||0)+1;
+   floatAt(en.x,en.y-en.r-44,'❄ TALENT POINT','#9fd4ff');
+   stageMsg('☠ The Forsaken One falls! ❄ A talent point is yours - spend it at the Armor Altar.',4000,'#9fd4ff');
+   log(`<span class="imp">The Forsaken One is slain.</span> <span class="lscroll">❄ +1 Ice Armor talent point</span> - spend it at the Armor Altar in The Altar.`,'loot');
+   sfx.level();publishLB(S,true);
   }else if(en.raid){
    const left=enemies.filter(e=>e.boss&&!e.dead&&e!==en).length;
    stageMsg(en.name+' falls!'+(left?' '+left+' raid lord'+(left>1?'s':'')+' remain.':' THE SANCTUM IS CLEARED!'),3200);
@@ -3712,12 +3786,153 @@ function doPrestige(){
  
 /* ==================== BOSS AI ====================
    Every boss has its own kit. Telegraphed danger zones (hazards) can be dodged. */
+const REAP_RANGE=560,REAP_HALF=0.80,REAP_CAST=1.3; /* ☠ the Reaping cone: reach, half-angle (~92°) and how long you get to leave it */
+const BEAM_HALF=64; /* ☄ Soulbeam half-width - the drawn beam and its hitbox share it */
 function bossAI(en,dt){
  for(const k in en.cds)en.cds[k]-=dt;
  if(en.raid&&!en.awake)return;
  const T=en.raid?raidTarget(en):hero;
  const B=en.bossId;
- if(B==='gorehusk'){ /* Rootfiend: root spikes under your feet + summons rootlings */
+ if(B==='reaper'){ /* ☠ The Forsaken One: rune circles, sweeping beam, and the Reaping cone */
+  const A=world.arena;
+  const inArena=(x,y)=>!A||(((x-A.x)/A.rx)**2+((y-A.y)/A.ry)**2)<=0.92;
+  /* --- 1. RUNE CIRCLES: rings of ground bloom across the floor, then detonate --- */
+  if(en.cds.a<=0){en.cds.a=en.enraged?6:9;
+   sfx.warn();
+   floatAt(en.x,en.y-en.r-34,'RUNES OF RUIN!','#c9a0ff',true);
+   const n=en.enraged?9:6;
+   for(let i=0;i<n;i++){
+    let x,y,tries=0;
+    do{ /* they bloom AROUND you - the first lands on your feet, the rest ring you in */
+     if(i===0){x=hero.x;y=hero.y;}
+     else{
+      const a=Math.random()*6.283,rr=90+Math.random()*230;
+      x=hero.x+Math.cos(a)*rr;y=hero.y+Math.sin(a)*rr;
+     }
+    }while(!inArena(x,y)&&++tries<14);
+    if(!inArena(x,y)){x=hero.x;y=hero.y;} /* cornered against the wall: drop it on the spot */
+    hazardAt(x,y,190,1.25+Math.random()*0.5,en.atk*2.6,'#a06bd0');
+   }
+  }
+  /* --- 2. SOULBEAM: a sweeping laser that carves the arena - stay out of the line --- */
+  if(en.cds.b<=0&&!en.beamT&&!en.tpN){en.cds.b=en.enraged?11:15;
+   en.beamT=3.2;                       /* how long it sweeps */
+   en.beamA=Math.atan2(hero.y-en.y,hero.x-en.x)-0.9; /* starts behind you and sweeps across */
+   en.beamDir=Math.random()<0.5?-1:1;
+   en.beamSpin=1.35;
+   en.beamMul=1;   /* the standing Soulbeam keeps its baseline bite */
+   en.beamTick=0;
+   en.lockT=3.2;                        /* he plants himself while channelling */
+   floatAt(en.x,en.y-en.r-34,'SOULBEAM!','#7fe3ff',true);
+   sfx.arcane();
+  }
+  if(en.beamT>0){
+   en.beamT-=dt;en.beamTick-=dt;
+   en.beamA+=dt*(en.beamSpin===undefined?1.35:en.beamSpin)*en.beamDir; /* sweeps briskly - you have to move, not stroll */
+   const ux=Math.cos(en.beamA),uy=Math.sin(en.beamA),LEN=1400;
+   const bx=en.x,by=en.y-en.r*0.6;
+   en.beamFx={x:bx,y:by,ux,uy,len:LEN}; /* thick beam drawn in the world layer */
+   if(Math.random()<0.5)zapLine(bx,by,bx+ux*LEN,by+uy*LEN);
+   if(Math.random()<0.6)burst(bx+ux*(120+Math.random()*900),by+uy*(120+Math.random()*900),'#7fe3ff',2,50);
+   if(!hero.dead&&en.beamTick<=0){ /* caught in the beam: heavy, but survivable */
+    const hx=hero.x-bx,hy=hero.y-by,along=hx*ux+hy*uy;
+    if(along>40&&Math.abs(hx*-uy+hy*ux)<BEAM_HALF){hurtHero(en.atk*1.05*(en.beamMul||1),'☄');en.beamTick=0.16;sfx.bolt();} /* rapid ticks - standing in it still melts you */
+   }
+   if(en.beamT<=0){en.beamT=0;en.lockT=0;en.beamFx=null;}
+  }
+  /* --- 3. THE REAPING: he stops, telegraphs a cone, then one lethal swing --- */
+  if(en.cds.c<=0&&!en.beamT&&!en.reapT&&!en.tpN){en.cds.c=en.enraged?12:17;
+   en.reapT=REAP_CAST;                   /* telegraph window - get out of the cone */
+   en.reapA=Math.atan2(hero.y-en.y,hero.x-en.x); /* locked in when the cast starts */
+   en.lockT=REAP_CAST+0.3;
+   floatAt(en.x,en.y-en.r-34,'THE REAPING - GET OUT!','#ff5a7a',true);
+   sfx.shout();
+  }
+  if(en.reapT>0){
+   en.reapT-=dt;
+   en.reapFx={a:en.reapA,p:1-Math.max(0,en.reapT)/REAP_CAST}; /* drawn in the world layer */
+   if(en.reapT<=0){
+    en.reapT=0;en.lockT=0;en.swing=0.2;
+    ring(en.x,en.y,REAP_RANGE*0.8,'#a06bd0',0.6);
+    burst(en.x+Math.cos(en.reapA)*200,en.y+Math.sin(en.reapA)*200,'#c9a0ff',22,170,true);
+    sfx.slash();
+    if(!hero.dead){ /* inside the cone = death, no matter the armour */
+     const hx=hero.x-en.x,hy=hero.y-en.y,d=Math.hypot(hx,hy);
+     const da=Math.abs(((Math.atan2(hy,hx)-en.reapA+Math.PI*3)%(Math.PI*2))-Math.PI);
+     if(d<REAP_RANGE&&da<REAP_HALF){
+      floatAt(hero.x,hero.y-34,'REAPED','#ff5a7a',true);
+      hero.hp=0;heroDies();
+     }
+    }
+    setTimeout(()=>{if(en)en.reapFx=null;},60);
+   }
+  }
+  /* --- 4. BETWEEN WORLDS: he blinks to the arena's four corners, firing a beam from each --- */
+  if(en.cds.d===undefined)en.cds.d=20;
+  if(en.cds.d<=0&&!en.beamT&&!en.reapT&&!en.tpN){
+   en.cds.d=en.enraged?18:26;
+   en.tpN=4;en.tpT=0;en.tpUsed=[];
+   floatAt(en.x,en.y-en.r-34,'BETWEEN WORLDS!','#c9a0ff',true);
+   sfx.arcane();
+  }
+  if(en.tpN>0){
+   en.lockT=0.6;             /* refreshed every frame - he never walks during the rotation */
+   en.tpT-=dt;
+   if(en.tpT<=0&&!en.beamT){
+    /* pick a corner he has not used yet this rotation */
+    const corners=[0.785,2.356,3.927,5.498]; /* NE, NW, SW, SE on the ellipse */
+    let pick=Math.floor(Math.random()*4),guard=0;
+    while(en.tpUsed.indexOf(pick)>=0&&guard++<12)pick=Math.floor(Math.random()*4);
+    en.tpUsed.push(pick);
+    const ang=corners[pick];
+    burst(en.x,en.y-en.r,'#a06bd0',16,140,true);ring(en.x,en.y,90,'#c9a0ff',0.5); /* he leaves */
+    en.x=(A?A.x:en.x)+Math.cos(ang)*(A?A.rx:400)*0.80;
+    en.y=(A?A.y:en.y)+Math.sin(ang)*(A?A.ry:340)*0.80;
+    burst(en.x,en.y-en.r,'#c9a0ff',18,150,true);ring(en.x,en.y,110,'#a06bd0',0.5); /* and arrives */
+    sfx.bolt();
+    /* the lance lands BESIDE you and sweeps your way - you get a breath to start running */
+    const toHero=Math.atan2(hero.y-(en.y-en.r*0.6),hero.x-en.x);
+    en.beamDir=Math.random()<0.5?-1:1;
+    en.beamT=1.85;                   /* a full extra second of sweeping from each corner */
+    en.beamA=toHero-en.beamDir*0.42; /* offset to one side, sweeping toward you */
+    en.beamSpin=0.42;
+    en.beamMul=1.15; /* corner lances cut 15% deeper than the standing sweep */
+    en.beamTick=0;
+    en.lockT=2.0;             /* covers the final beam too, once the rotation stops refreshing it */
+    en.tpN--;en.tpT=2.05;     /* he holds each corner until the beam finishes */
+   }
+  }
+  if(!en.enraged&&en.hp<en.max*0.40){ /* the last 40% is the real fight */
+   en.enraged=true;
+   en.atk=Math.round(en.atk*1.3);en.atkCd=0.38;en.reach=118; /* harder, faster, longer arms */
+   en.baseSpeed=Math.round((en.baseSpeed||en.speed)*1.15);en.speed=en.baseSpeed;
+   en.cds.a=2.5;en.cds.b=5;en.cds.c=6;en.cds.d=9; /* the kit comes at you almost at once */
+   floatAt(en.x,en.y-en.r-34,'THE HOUR IS HERE!','#a06bd0',true);
+   stageMsg('☠ THE HOUR IS HERE - he stops holding back',2600,'#c9a0ff');
+   ring(en.x,en.y,140,'#a06bd0',0.9);ring(en.x,en.y,260,'#c9a0ff',1.1);
+   burst(en.x,en.y-en.r,'#c9a0ff',30,220,true);
+   shakeT=0.9;sfx.shout();
+   /* an opening statement: runes bloom around you the instant he turns */
+   for(let i=0;i<6;i++){
+    const a=i/6*6.283,rr=120+Math.random()*170;
+    const rx=hero.x+Math.cos(a)*rr,ry=hero.y+Math.sin(a)*rr;
+    if(inArena(rx,ry))hazardAt(rx,ry,190,1.1,en.atk*2.6,'#a06bd0');
+   }
+  }
+  if(en.enraged){ /* ☠ enraged only: soul embers drift off him and hunt you down */
+   en.emberT=(en.emberT||0)-dt;
+   if(en.emberT<=0&&!en.beamT&&!en.reapT){
+    en.emberT=2.4;
+    const d=Math.max(1,dist(en,hero));
+    for(let i=0;i<2;i++){
+     const sp=250+i*45;
+     ebolts.push({x:en.x+(i-0.5)*20,y:en.y-en.r*0.8,vx:(hero.x-en.x)/d*sp,vy:(hero.y-en.y)/d*sp,t:0,dmg:en.atk*1.1,c:'#c9a0ff'});
+    }
+    sfx.bolt();
+   }
+  }
+ }
+ else if(B==='gorehusk'){ /* Rootfiend: root spikes under your feet + summons rootlings */
   if(en.cds.a<=0){en.cds.a=6;
    sfx.warn();
    for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*90,hero.y+(Math.random()-0.5)*90,131,1.15,en.atk*1.2,'#9adf3a');
@@ -4054,6 +4269,29 @@ cv.addEventListener('pointerdown',e=>{
    return;
   }
  }
+ if(zoneOf().altar){ /* ⛧ the Gate to the Final Hour, and later the Armor Altar in its place */
+  const rp=world.solids.find(s2=>s2.type==='ritualportal');
+  if(rp&&Math.hypot(wx-rp.x,wy-(rp.y-52))<130){
+   const go=()=>{
+    if((S.prestige||0)<50||(S.lvl||1)<MAXLVL){
+     $('gateMsg').style.display='block';gateMsgSeen=true;
+     stageMsg('⛧ The Gate refuses you - Prestige 50, level '+MAXLVL,2200);sfx.warn();return;
+    }
+    $('gateMsg').style.display='none';gateMsgSeen=false;
+    goToZone(ZONES.findIndex(z2=>z2.finalb));
+   };
+   if(Math.hypot(hero.x-rp.x,hero.y-rp.y)<120)go();
+   else{hero.target=null;hero.goPortal=false;hero.moveTo={x:rp.x,y:rp.y+40};marker={x:rp.x,y:rp.y+40,t:0};hero.pendingDoor={s:rp,open:go,rng:120};}
+   return;
+  }
+  const aa=world.solids.find(s2=>s2.type==='armoraltar');
+  if(aa&&Math.abs(wx-aa.x)<130&&wy>aa.y-210&&wy<aa.y+50){
+   const open=()=>openTalents();
+   if(Math.hypot(hero.x-aa.x,hero.y-aa.y)<130)open();
+   else{hero.target=null;hero.goPortal=false;hero.moveTo={x:aa.x,y:aa.y+70};marker={x:aa.x,y:aa.y+70,t:0};hero.pendingDoor={s:aa,open,rng:130};}
+   return;
+  }
+ }
  if(zoneOf().tavern){
   /* buildings need melee range - near: menu opens; far: run to the door, menu opens on arrival */
   const walkOrOpen=(s,open)=>{
@@ -4354,6 +4592,24 @@ function update(dt){
   const fp=world.solids.find(s2=>s2.type==='farmportal');
   if(fp&&Math.hypot(hero.x-fp.x,hero.y-fp.y)<55){goToZone(FARM_ZONE);return;}
  }
+ if(hero&&!hero.dead&&world&&world.solids&&zoneOf().altar){ /* ⛧ walk into the Gate and the Final Hour takes you - no click needed */
+  const rp=world.solids.find(s2=>s2.type==='ritualportal');
+  if(rp&&Math.hypot(hero.x-rp.x,hero.y-(rp.y-52))<70){
+   if((S.prestige||0)>=50&&(S.lvl||1)>=MAXLVL){
+    $('gateMsg').style.display='none';gateMsgSeen=false;
+    goToZone(ZONES.findIndex(z2=>z2.finalb));
+    return;
+   }
+  }
+ }
+ if(hero&&!hero.dead&&world&&world.solids&&zoneOf().finalb){ /* ❄ step into the blue gate and the Altar takes you back */
+  const xp=world.solids.find(s2=>s2.type==='exitportal');
+  if(xp&&Math.hypot(hero.x-xp.x,hero.y-(xp.y-60))<86){
+   goToZone(ALTAR_ZONE);
+   $('iceMsg').style.display='block';
+   return;
+  }
+ }
  if(cowRunning&&!hero.dead){
   cowT+=dt;
   cowSpawnT-=dt;
@@ -4535,11 +4791,12 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    if(dRing>760&&altarMsgSeen){$('altarMsg').style.display='none';altarMsgSeen=false;}
    /* the green gate: stand inside it and it whispers its demand */
    const rp=world.solids.find(s2=>s2.type==='ritualportal');
-   if(rp){
+   const gateReady=(S.prestige||0)>=50&&(S.lvl||1)>=MAXLVL;
+   if(rp&&!gateReady){ /* the warning only shows while you still fall short */
     const dGate=Math.hypot(hero.x-rp.x,hero.y-(rp.y-30));
     if(dGate<55&&!gateMsgSeen){$('gateMsg').style.display='block';gateMsgSeen=true;}
     if(dGate>85&&gateMsgSeen){$('gateMsg').style.display='none';gateMsgSeen=false;}
-   }
+   }else if(gateMsgSeen){$('gateMsg').style.display='none';gateMsgSeen=false;}
    /* the worthy - P40, 3000 rating, knife in hand - are offered the ritual */
    const ritualReady=S.theKnife&&!S.ritualDone&&(S.prestige||0)>=40&&(S.rating||0)>=3000;
    if(dRing<700&&ritualReady&&!ritualSeen&&!ritualActive){$('ritualBox').style.display='block';ritualSeen=true;}
@@ -4707,11 +4964,22 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
       if(hasEnch('thorns')&&!en.dead){const t=Math.max(1,Math.round(dmg*scrollPct('thorns')));en.hp-=t;floatAt(en.x,en.y-en.r-14,t+' 🌵','#9adf9a');if(en.hp<=0)killEnemy(en);}
      }
     }
+    /* long-reach hunters (the Forsaken One) swing MID-STRIDE - strafing just out of
+       stop-range and plinking away no longer works */
+    if(en.reach&&!en.cow&&dHero<en.reach+en.r){
+     en.cd-=dt;
+     if(en.cd<=0){
+      en.cd=en.atkCd||(en.boss?1.5:1.15);en.swing=0.2;
+      const dmg=hurtHero(en.atk*(0.85+Math.random()*0.3)*(en.meleeMul||1));
+      sfx.hit();
+      if(hasEnch('thorns')&&!en.dead){const t=Math.max(1,Math.round(dmg*scrollPct('thorns')));en.hp-=t;floatAt(en.x,en.y-en.r-14,t+' 🌵','#9adf9a');if(en.hp<=0&&!(mp.on&&mp.started&&!mp.host&&en.raid))killEnemy(en);}
+     }
+    }
    }
    else{
     en.cd-=dt;
-    if(en.cd<=0){en.cd=en.boss?1.5:1.15;en.swing=0.2;
-     const dmg=hurtHero(en.atk*(0.85+Math.random()*0.3));
+    if(en.cd<=0){en.cd=en.atkCd||(en.boss?1.5:1.15);en.swing=0.2; /* atkCd: custom cadence (the final boss strikes fast) */
+     const dmg=hurtHero(en.atk*(0.85+Math.random()*0.3)*(en.meleeMul||1)); /* meleeMul: swings only, abilities keep their own scaling */
      sfx.hit();
      if(hasEnch('thorns')&&!en.dead){const t=Math.max(1,Math.round(dmg*scrollPct('thorns')));en.hp-=t;floatAt(en.x,en.y-en.r-14,t+' 🌵','#9adf9a');if(en.hp<=0&&!(mp.on&&mp.started&&!mp.host&&en.raid))killEnemy(en);}
     }
@@ -5014,14 +5282,48 @@ function draw(){
  /* telegraphed boss hazards */
  for(const h of hazards){
   const p=Math.min(1,h.t/h.warn);
-  ctx.globalAlpha=0.16+p*0.14;
+  const solid=h.c==='#a06bd0'; /* the Forsaken One's runes read as solid purple pools */
+  ctx.globalAlpha=solid?0.42+p*0.30:0.16+p*0.14;
   ctx.fillStyle=h.c;
   ctx.beginPath();ctx.ellipse(h.x,h.y,h.rad,h.rad*0.72,0,0,7);ctx.fill();
-  ctx.globalAlpha=0.65;
-  ctx.strokeStyle=h.c;ctx.lineWidth=2;
+  ctx.globalAlpha=solid?0.95:0.65;
+  ctx.strokeStyle=h.c;ctx.lineWidth=solid?4:2;
   ctx.beginPath();ctx.ellipse(h.x,h.y,h.rad,h.rad*0.72,0,0,7);ctx.stroke();
   ctx.beginPath();ctx.ellipse(h.x,h.y,h.rad*p,h.rad*0.72*p,0,0,7);ctx.stroke();
   ctx.globalAlpha=1;
+ }
+ /* ☄ SOULBEAM - a fat sweeping lance of soulfire; its width IS the hitbox */
+ for(const en of enemies){
+  if(!en.beamFx||en.dead)continue;
+  const b=en.beamFx,pw=2.6+0.5*Math.sin(performance.now()/60);
+  ctx.save();
+  ctx.translate(b.x,b.y);ctx.rotate(Math.atan2(b.uy,b.ux));
+  const grd=ctx.createLinearGradient(0,0,b.len,0);
+  grd.addColorStop(0,'rgba(214,150,255,0.88)');
+  grd.addColorStop(0.35,'rgba(160,107,208,0.62)');
+  grd.addColorStop(1,'rgba(160,107,208,0.16)');
+  ctx.fillStyle=grd;
+  ctx.fillRect(0,-BEAM_HALF,b.len,BEAM_HALF*2);          /* the danger zone, drawn true to size */
+  ctx.fillStyle='rgba(240,214,255,0.92)';
+  ctx.fillRect(0,-BEAM_HALF*0.3*pw/2.8,b.len,BEAM_HALF*0.3*pw/1.4); /* violet-hot core */
+  ctx.strokeStyle='rgba(201,160,255,0.85)';ctx.lineWidth=3;
+  ctx.strokeRect(0,-BEAM_HALF,b.len,BEAM_HALF*2);
+  ctx.restore();
+ }
+ /* ☠ THE REAPING - the killing cone fills up as the swing lands. Stand in it and you die. */
+ for(const en of enemies){
+  if(!en.reapFx||en.dead)continue;
+  const f=en.reapFx,a0=f.a-REAP_HALF,a1=f.a+REAP_HALF;
+  ctx.save();
+  ctx.globalAlpha=0.30+f.p*0.40;
+  ctx.fillStyle='#a06bd0';
+  ctx.beginPath();ctx.moveTo(en.x,en.y);ctx.arc(en.x,en.y,REAP_RANGE,a0,a1);ctx.closePath();ctx.fill();
+  ctx.globalAlpha=0.65+0.35*Math.sin(performance.now()/70);
+  ctx.strokeStyle='#c9a0ff';ctx.lineWidth=5;
+  ctx.beginPath();ctx.moveTo(en.x,en.y);ctx.arc(en.x,en.y,REAP_RANGE,a0,a1);ctx.closePath();ctx.stroke();
+  ctx.globalAlpha=0.85; /* the sweep fills toward the strike */
+  ctx.beginPath();ctx.moveTo(en.x,en.y);ctx.arc(en.x,en.y,REAP_RANGE*f.p,a0,a1);ctx.closePath();ctx.stroke();
+  ctx.restore();
  }
  // rings under entities
  for(const r of rings){
@@ -5495,6 +5797,26 @@ function drawProp(s,z){
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText('Farm',1,-95);
   ctx.fillStyle='#c9e06a';ctx.fillText('Farm',0,-96);
   ctx.restore();
+ }else if(s.type==='exitportal'){ /* ❄ the great blue gate home, torn open by his death */
+  const t=performance.now()/600+s.x;
+  ctx.save();
+  ctx.shadowColor='#8fd0ff';ctx.shadowBlur=34;
+  ctx.strokeStyle='rgba(143,208,255,'+(0.65+0.3*Math.sin(t*2)).toFixed(3)+')';ctx.lineWidth=10;
+  ctx.beginPath();ctx.ellipse(0,-92,80,128,0,0,7);ctx.stroke();
+  const gr=ctx.createRadialGradient(0,-92,10,0,-92,120);
+  gr.addColorStop(0,'rgba(220,244,255,0.55)');
+  gr.addColorStop(0.6,'rgba(110,180,255,0.34)');
+  gr.addColorStop(1,'rgba(60,120,210,0.10)');
+  ctx.fillStyle=gr;
+  ctx.beginPath();ctx.ellipse(0,-92,68,110,0,0,7);ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.fillStyle='rgba(226,244,255,0.92)';
+  for(let i=0;i<9;i++){const a=t*0.8+i*0.698;ctx.beginPath();ctx.arc(Math.cos(a)*52,-92+Math.sin(a)*88,3.4,0,7);ctx.fill();}
+  if(Math.random()<0.5)parts.push({x:s.x+(Math.random()-0.5)*120,y:s.y-40-Math.random()*60,vx:(Math.random()-0.5)*16,vy:-34-Math.random()*30,t:0,life:1.1,c:'#bfe4ff',r:1.6+Math.random()*1.6,g:-6});
+  ctx.font='700 15px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
+  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText('❄ The Altar',1,-235);
+  ctx.fillStyle='#bfe4ff';ctx.fillText('❄ The Altar',0,-236);
+  ctx.restore();
  }else if(s.type==='cityportal'){ /* 🏙 dormant - a slow dim swirl that leads nowhere yet */
   const t=performance.now()/1400+s.x;
   ctx.save();
@@ -5516,14 +5838,17 @@ function drawProp(s,z){
  }else if(s.type==='ritualportal'){
   const t=performance.now()/650+s.x;
   ctx.save();
-  ctx.shadowColor='#5aff8a';ctx.shadowBlur=22;
-  ctx.strokeStyle='rgba(90,255,138,'+(0.6+0.3*Math.sin(t*2)).toFixed(3)+')';ctx.lineWidth=7;
+  ctx.shadowColor='#c9a0ff';ctx.shadowBlur=22;
+  ctx.strokeStyle='rgba(201,160,255,'+(0.6+0.3*Math.sin(t*2)).toFixed(3)+')';ctx.lineWidth=7;
   ctx.beginPath();ctx.ellipse(0,-52,46,74,0,0,7);ctx.stroke();
-  ctx.fillStyle='rgba(70,220,120,0.30)';
+  ctx.fillStyle='rgba(160,107,208,0.32)';
   ctx.beginPath();ctx.ellipse(0,-52,37,62,0,0,7);ctx.fill();
   ctx.shadowBlur=0;
-  ctx.fillStyle='rgba(200,255,215,0.9)';
+  ctx.fillStyle='rgba(236,214,255,0.9)';
   for(let i=0;i<6;i++){const a=t+i*1.047;ctx.beginPath();ctx.arc(Math.cos(a)*29,-52+Math.sin(a)*50,3,0,7);ctx.fill();}
+  ctx.font='700 13px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
+  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText('⛧ The Final Hour',1,-135);
+  ctx.fillStyle='#c9a0ff';ctx.fillText('⛧ The Final Hour',0,-136);
   ctx.restore();
  }else if(s.type==='altarfence'){
   if(altarFenceImg.complete&&altarFenceImg.naturalWidth){
@@ -5540,6 +5865,26 @@ function drawProp(s,z){
   /* fallback while the image loads: a simple shack */
   ctx.fillStyle='#6a5648';ctx.fillRect(-24,-18,48,26);
   ctx.fillStyle='#4a4a52';ctx.beginPath();ctx.moveTo(-28,-18);ctx.lineTo(0,-36);ctx.lineTo(28,-18);ctx.closePath();ctx.fill();
+ }else if(s.type==='armoraltar'){
+  const im=armorAltarImg;
+  if(im.complete&&im.naturalWidth){
+   const W=215,H=W*im.naturalHeight/im.naturalWidth;
+   const fy=14-H*0.50; /* the bowl's soulfire sits about halfway up the art */
+   const pl=0.5+0.5*Math.sin(performance.now()/420+s.x);
+   /* one tight contact shadow, hugging the stone base - no pale pool on the floor */
+   ctx.fillStyle='rgba(0,0,0,0.30)';ctx.beginPath();ctx.ellipse(0,-4,W*0.30,W*0.055,0,0,7);ctx.fill();
+   ctx.drawImage(crisp(im,W),-W/2,14-H,W,H);
+   /* ✨ embers drifting up out of the fire, plus the odd bright spark */
+   if(Math.random()<0.75)parts.push({x:s.x+(Math.random()-0.5)*W*0.20,y:s.y+fy+(Math.random()-0.5)*30,
+    vx:(Math.random()-0.5)*14,vy:-30-Math.random()*30,t:0,life:0.9+Math.random()*0.6,
+    c:Math.random()<0.5?'#bfe4ff':'#d9c9ff',r:1.3+Math.random()*1.5,g:-8});
+   if(Math.random()<0.10)sparkles(s.x+(Math.random()-0.5)*W*0.24,s.y+fy-Math.random()*40,'#eaf4ff',2);
+   /* glow halo over the flame */
+   ctx.save();
+   ctx.globalAlpha=0.12+pl*0.10;ctx.fillStyle='#8fd0ff';
+   ctx.beginPath();ctx.ellipse(0,fy-10,W*0.17,H*0.19,0,0,7);ctx.fill();
+   ctx.restore();
+  }
  }else if(s.type==='well'){
   if(brunnImg.complete&&brunnImg.naturalWidth){
    /* painted well (assets/models/brunn.png) */
@@ -6087,11 +6432,18 @@ function drawEnemy(en){
     const zx=en.x+bfx*W*raidSkin.wx,zy=en.y+H*raidSkin.wy;
     zapLine(zx+(Math.random()-0.5)*36,zy-40-Math.random()*40,zx+(Math.random()-0.5)*50,zy+30*Math.random());
    }
-   ctx.save();ctx.translate(bfx*W*raidSkin.wx,H*raidSkin.wy+by);ctx.scale(bfx,1);ctx.rotate(0.5+(en.swing?(0.2-en.swing)*7:0));
-   ctx.shadowColor=raidSkin.glow;ctx.shadowBlur=16+6*Math.sin(now/160);
-   ctx.drawImage(bl,-AW/2,-AH*0.8,AW,AH);
-   ctx.shadowBlur=0;
-   ctx.restore();
+   /* dual wielders swing BOTH arms - the far scythe trails half a beat behind */
+   const arms=raidSkin.dual
+    ?[{s:1,lag:0,wx:raidSkin.wxr!==undefined?raidSkin.wxr:raidSkin.wx},{s:-1,lag:0.06,wx:raidSkin.wx}] /* wxr: the mirrored art needs its own grip offset */
+    :[{s:bfx,lag:0,wx:raidSkin.wx}];
+   for(const arm of arms){
+    const sw=Math.max(0,(en.swing||0)-arm.lag);
+    ctx.save();ctx.translate(arm.s*W*arm.wx,H*raidSkin.wy+by);ctx.scale(arm.s,1);ctx.rotate(0.5+(sw?(0.2-sw)*7:0));
+    ctx.shadowColor=raidSkin.glow;ctx.shadowBlur=16+6*Math.sin(now/160);
+    ctx.drawImage(bl,-AW/2,-AH*0.8,AW,AH);
+    ctx.shadowBlur=0;
+    ctx.restore();
+   }
   }
  }else if(haalandPainted){ /* painted HAALAND (assets/boss/haaland_boss.png) + scaled boot feet */
   const bs=en.r/13;
@@ -6661,6 +7013,16 @@ function renderMap(){
   if(z.tavern)return '';
   if(z.special){
    if(z.altar||z.farm)return ''; /* portal-only zones */
+   if(z.finalb){
+    const ok=(S.prestige||0)>=50&&(S.lvl||1)>=MAXLVL;
+    const dead=!!S.forsakenDead;
+    return `<div class="card zonecard ${ok?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${ok?'#a06bd0':''}">
+     <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#12101a)">☠</div>
+     <div class="zinfo"><div class="zn">${z.name}</div>
+     <div class="zl">${z.boss[0]} - the last thing the realm has left to throw at you. Twin scythes, no mercy, no adds.</div></div>
+     ${i===S.zone?'<span class="ztag">Here</span>':dead?'<span class="ztag done">✓ Slain</span>':ok?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">🔒 Prestige 50 · Lvl '+MAXLVL+'</span>'}
+    </div>`;
+   }
    if(z.crypts){
     const p20=(S.prestige||0)>=20;
     return `<div class="card zonecard ${p20?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p20?'#a66bd0':''}">
@@ -6741,6 +7103,9 @@ function renderMap(){
      const st=thorStatus();
      if(thorLocked()){stageMsg('Thor cast you out - wait for his next appearance ('+fmtMS(st.open?st.left:st.next)+')',2200);sfx.warn();return;}
      if(!st.open){stageMsg('The gates are shut - Thor appears in '+fmtMS(st.next),2200);sfx.warn();return;}
+    }else if(z.finalb){
+     if((S.prestige||0)<50){stageMsg('☠ The Final Hour opens only to Prestige 50',2000);sfx.warn();return;}
+     if((S.lvl||1)<MAXLVL){stageMsg('☠ Reach level '+MAXLVL+' before you face him',1900);sfx.warn();return;}
     }else if(z.cow){
      if((S.prestige||0)<5){stageMsg('🐄 The cows demand Prestige 5',1800);sfx.warn();return;}
      if(S.lvl<60){stageMsg('🐄 The cows demand level 60',1800);sfx.warn();return;}
@@ -8210,6 +8575,7 @@ function openSea(){
  if(cowAudio)cowAudio.pause();
  if(haalandAudio)haalandAudio.pause();
  if(cryptAudio)cryptAudio.pause();
+ if(finalAudio)finalAudio.pause();
  $('seaFx').classList.add('open');
  clearSeaCelebration();
  seaSession={spins:0,gold:0,scrap:0};
@@ -9050,6 +9416,60 @@ $('gvbLeave').onclick=()=>{
   gvbCleanup();
  })();
 };
+/* ==================== ❄ ICE ARMOR TALENT TREE ====================
+   Opened from the Armor Altar. Points come from felling the Forsaken One.
+   The root is live; the two branches are carved out but sealed for now. */
+const TALENTS={
+ root:{n:'Frozen Heart',ic:'❄',max:1,d:'Your Ice Armor thickens: <b>+10% base HP</b> while it is worn.'},
+ /* left chain and right chain - placeholders until their powers are written */
+ l1:{n:'Sealed',ic:'',max:0,req:'root',side:'l',d:'This path is still sealed. Its power has not yet been written.'},
+ l2:{n:'Sealed',ic:'',max:0,req:'l1',side:'l',d:'This path is still sealed. Its power has not yet been written.'},
+ l3:{n:'Sealed',ic:'',max:0,req:'l2',side:'l',d:'This path is still sealed. Its power has not yet been written.'},
+ r1:{n:'Sealed',ic:'',max:0,req:'root',side:'r',d:'This path is still sealed. Its power has not yet been written.'},
+ r2:{n:'Sealed',ic:'',max:0,req:'r1',side:'r',d:'This path is still sealed. Its power has not yet been written.'},
+ r3:{n:'Sealed',ic:'',max:0,req:'r2',side:'r',d:'This path is still sealed. Its power has not yet been written.'}
+};
+const talSpent=()=>Object.keys(TALENTS).reduce((t,k)=>t+talRank(k),0);
+const talPoints=()=>Math.max(0,(S&&S.talentPts||0)-talSpent());
+function talNodeHtml(id){
+ const t=TALENTS[id],r=talRank(id);
+ const open=t.max>0&&(!t.req||talRank(t.req)>0);
+ const cls=r>0?'taken':(open&&talPoints()>0?'avail':'locked');
+ return `<div class="tnode ${cls}" data-tal="${id}">${t.ic||'🔒'}${t.max?`<span class="trank">${r}/${t.max}</span>`:''}</div>`;
+}
+function renderTalents(){
+ const tree=$('talentTree');if(!tree)return;
+ const rootOn=talRank('root')>0;
+ const link=on=>`<div class="tlink${on?' on':''}"></div>`;
+ tree.innerHTML=
+  `<div class="trow">${talNodeHtml('root')}</div>`+
+  link(rootOn)+
+  `<div class="tbranch">
+    <div class="tcol">${talNodeHtml('l1')}${link(false)}${talNodeHtml('l2')}${link(false)}${talNodeHtml('l3')}</div>
+    <div class="tcol">${talNodeHtml('r1')}${link(false)}${talNodeHtml('r2')}${link(false)}${talNodeHtml('r3')}</div>
+   </div>`;
+ const pts=talPoints();
+ $('talentPts').innerHTML=(S.talentPts||0)
+  ? `<b>${pts}</b> point${pts===1?'':'s'} unspent · ${talSpent()} spent`
+  : 'Slay <b>the Forsaken One</b> to earn your first point.';
+ tree.querySelectorAll('[data-tal]').forEach(el=>{
+  const id=el.dataset.tal,t=TALENTS[id];
+  el.onmouseenter=()=>{$('talentInfo').innerHTML=`<b>${t.n}</b><br>${t.d}`;};
+  el.onclick=()=>{
+   if(!t.max){stageMsg('🔒 This path is sealed for now',1500);sfx.warn();return;}
+   if(t.req&&talRank(t.req)<=0){stageMsg('🔒 Take the talent above it first',1500);sfx.warn();return;}
+   if(talRank(id)>=t.max){stageMsg('Already learned',1200);return;}
+   if(talPoints()<=0){stageMsg('No talent points - the Forsaken One holds them',1700);sfx.warn();return;}
+   S.talents=S.talents||{};S.talents[id]=talRank(id)+1;
+   if(hero)hero.hp=Math.min(hero.hp,heroMax());
+   sfx.level();stageMsg('❄ '+t.n+' learned!',1900,'#9fd4ff');
+   log(`❄ <span class="lscroll">${t.n}</span> - Ice Armor talent learned.`,'loot');
+   renderTalents();renderHUD();renderHero();save();
+  };
+ });
+}
+function openTalents(){$('talentFx').style.display='flex';renderTalents();$('talentInfo').innerHTML='Hover a talent to read it.';}
+$('talentClose').onclick=()=>$('talentFx').style.display='none';
 /* ==================== CASINO BUILDING MENU ==================== */
 function bankRefresh(){
  $('bankGoldN').textContent=(S.bankGold||0).toLocaleString();
@@ -9263,7 +9683,7 @@ function casinoAmbApply(){
   const v=ambVol();casinoAudio.volume=v;casinoAudio.muted=v<=0;
   if(casinoAudio.paused)casinoAudio.play().catch(()=>{});
   if(AC.ambG&&AC.ctx){const t0=AC.ctx.currentTime;AC.ambG.gain.cancelScheduledValues(t0);AC.ambG.gain.setValueAtTime(0,t0);} /* duck the zone */
-  [ambAudio,cowAudio,haalandAudio,cryptAudio].forEach(a=>{if(a)a.pause();});
+  [ambAudio,cowAudio,haalandAudio,cryptAudio,finalAudio].forEach(a=>{if(a)a.pause();});
  }else{
   if(casinoAudio)casinoAudio.pause();
   if(!anyOpen&&!seaO){ /* left the casino - the zone breathes again */
@@ -9271,6 +9691,7 @@ function casinoAmbApply(){
    if(gameOn){
     if(zoneOf().cow&&cowAudio)cowAudio.play().catch(()=>{});
     else if(zoneOf().amb==='haaland'&&haalandAudio)haalandAudio.play().catch(()=>{});
+    else if(zoneOf().amb==='final'&&finalAudio)finalAudio.play().catch(()=>{});
     else if(zoneOf().crypts&&cryptAudio)cryptAudio.play().catch(()=>{});
     else if(ambAudio)ambAudio.play().catch(()=>{});
    }
@@ -9872,7 +10293,7 @@ function renderInspect(e){
  const gearRow=sl=>{
   const g=e.gear&&e.gear[sl];
   if(!g)return `<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div><div class="ss">- empty -</div></div>`;
-  let s=`${g.up?'+'+g.up+' · ':''}${g.atk?'+'+g.atk+' ATK ':''}${g.hp?'+'+g.hp+' HP ':''}${g.crit?'+'+g.crit+'% CRIT ':''}${g.haste?'+'+Math.round(g.haste*100)+'% ATK SPEED ':''}${g.lifesteal?'+'+Math.round(g.lifesteal*1000)/10+'% LIFESTEAL ':''}${g.dmgMul?'+'+Math.round(g.dmgMul*100)+'% DAMAGE ':''}${g.bossDmg?'+'+g.bossDmg+'% BOSS DMG ':''}${g.manadrain?Math.round(g.manadrain*100)+'% MANA DRAIN ':''}${g.legend==='frostmourne'&&(g.star||0)>1?'· ★'+g.star+' bonus: +'+(g.star*2)+'% CRIT / +'+(g.star*2)+'% LIFESTEAL':''}`.trim();
+  let s=`${g.up?'+'+g.up+' · ':''}${g.atk?'+'+g.atk+' ATK ':''}${g.hp?'+'+g.hp+' HP ':''}${g.crit?'+'+g.crit+'% CRIT ':''}${g.haste?'+'+Math.round(g.haste*100)+'% ATK SPEED ':''}${g.lifesteal?'+'+Math.round(g.lifesteal*1000)/10+'% LIFESTEAL ':''}${g.dmgMul?'+'+Math.round(g.dmgMul*100)+'% DAMAGE ':''}${g.bossDmg?'+'+g.bossDmg+'% BOSS DMG ':''}${g.armor?'+'+Math.round(g.armor*100)+'% ARMOR ':''}${g.manadrain?Math.round(g.manadrain*100)+'% MANA DRAIN ':''}${g.legend==='frostmourne'&&(g.star||0)>1?'· ★'+g.star+' bonus: +'+(g.star*2)+'% CRIT / +'+(g.star*2)+'% LIFESTEAL':''}`.trim();
   return `<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div>
    <div class="sn" style="color:${RARCOL[g.rar]||'#fff'}">${esc(g.name)}${g.legend&&g.star?` <span style="color:#ffd76a">★${g.star}</span>`:''}</div>
    <div class="ss">${esc(s)}</div></div>`;
@@ -10193,6 +10614,7 @@ $('musBtn').onclick=()=>{
  if(cowAudio){if(audioPaused)cowAudio.pause();else if(gameOn&&zoneOf().cow&&!hero.dead)cowAudio.play().catch(()=>{});}
  if(haalandAudio){if(audioPaused)haalandAudio.pause();else if(gameOn&&zoneOf().amb==='haaland')haalandAudio.play().catch(()=>{});}
  if(cryptAudio){if(audioPaused)cryptAudio.pause();else if(gameOn&&zoneOf().crypts)cryptAudio.play().catch(()=>{});}
+ if(finalAudio){if(audioPaused)finalAudio.pause();else if(gameOn&&zoneOf().amb==='final')finalAudio.play().catch(()=>{});}
  $('musBtn').textContent=audioPaused?'▶':'⏸';
  $('musBtn').classList.toggle('off',audioPaused);
  stageMsg(audioPaused?'Game paused':'Game resumed',1200);
@@ -10204,7 +10626,7 @@ function preloadMaps(){ /* warm every zone map in the background - kills the pro
  if(mapsPreloaded)return;mapsPreloaded=true;
  ZONES.forEach(z=>{if(z.map)zoneMapImg(z.map);});
  zoneMapImg('cryptmap');zoneMapImg('cryptwall');
- zoneMapImg('raidfloor');zoneMapImg('raidwall');zoneMapImg('cowlevel_zone');zoneMapImg('tormap_zone');zoneMapImg('farm_zone');
+ zoneMapImg('raidfloor');zoneMapImg('raidwall');zoneMapImg('cowlevel_zone');zoneMapImg('tormap_zone');zoneMapImg('farm_zone');zoneMapImg('finalboss_zone');
 }
 function beginGame(isNew){
  $('create').style.display='none';
