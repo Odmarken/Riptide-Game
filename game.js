@@ -357,6 +357,11 @@ const SPELL_ICON={'Heroic Strike':'heroicstrike','Whirlwind':'whirlwind','Battle
  'Fireball':'fireball','Frost Nova':'frostnova','Arcane Barrage':'arcanebarrage',
  'Aimed Shot':'aimedshot','Multi-Shot':'multishot','Rapid Fire':'rapidfire',
  'Smite':'smite','Holy Nova':'holynova','Renew':'renew'};
+/* painted UI icon with an emoji fallback baked in, for buttons and item rows */
+const uiIcon=(file,fallback,cls)=>`<img class="spicon ${cls||''}" src="assets/icons/${file}.png" alt="" draggable="false" onerror="this.replaceWith(document.createTextNode('${fallback}'))">`;
+/* loot icons for the case reels and prize cards - sized in em so they inherit each slot's scale */
+const lootIco=(file,fallback)=>`<img class="lootico" src="assets/icons/${file}.png" alt="${fallback}" draggable="false">`;
+const SLOT_ICO={weapon:()=>lootIco('it_weapon','⚔️'),armor:()=>lootIco('it_armor','🛡️'),trinket:()=>lootIco('it_trinket','💍')};
 const spellGlyph=sp=>SPELL_ICON[sp.n]
  ? `<img class="spicon" src="assets/icons/${SPELL_ICON[sp.n]}.png" alt="" draggable="false" onerror="this.replaceWith(document.createTextNode('${sp.g}'))">`
  : sp.g;
@@ -6745,8 +6750,8 @@ function buildSkillbar(){
   h+=`<button class="skill" id="sk${i}" title="${sp.n}">${spellGlyph(sp)}<div class="cdm" id="skcd${i}"></div><span class="cost">${spellManaCost(sp)}</span><span class="au" id="au${i}"></span></button>`;
  });
  h+=`<button class="autocfg-btn" id="skAutoCfg" title="Choose what AUTO may use">Ⓐ</button>`;
- h+=`<button class="skill pot" id="potHp">🧪<div class="cdm" id="potHpCd"></div><span class="cnt" id="potHpN">0</span><span class="au" id="auHp"></span></button>`;
- h+=`<button class="skill pot" id="potMp">🔮<div class="cdm" id="potMpCd"></div><span class="cnt" id="potMpN">0</span><span class="au" id="auMp"></span></button>`;
+ h+=`<button class="skill pot" id="potHp">${uiIcon('pot_hp','🧪')}<div class="cdm" id="potHpCd"></div><span class="cnt" id="potHpN">0</span><span class="au" id="auHp"></span></button>`;
+ h+=`<button class="skill pot" id="potMp">${uiIcon('pot_mp','🔮')}<div class="cdm" id="potMpCd"></div><span class="cnt" id="potMpN">0</span><span class="au" id="auMp"></span></button>`;
  $('skillbar').innerHTML=h;
  c.spells.forEach((sp,i)=>$('sk'+i).onclick=()=>{
   if(autoCfgMode)toggleAutoUse('s'+i,$('au'+i));
@@ -7672,7 +7677,7 @@ function fillerCard(){
  if(curCase==='blacktemple'){
   const rr=Math.random();
   if(rr<0.14)return {icon:'🗡️',cc:'#39ff6a',t:'legendary'};
-  if(rr<0.38)return {icon:'🎁',cc:'#8fc3ef',t:'freebox'};
+  if(rr<0.38)return {icon:lootIco('it_chest','🎁'),cc:'#8fc3ef',t:'freebox'};
   return {icon:'◉',cc:'#ffd76a',t:'gold'};
  }
  if(curCase==='gold'){
@@ -7688,7 +7693,7 @@ function fillerCard(){
  const pool=curCase==='gold'?CASE_RARS_GOLD:CASE_RARS;
  const r=Math.random();
  const k=pool.find(x=>r<=x.r)||pool[0];
- return {icon:k.t==='scroll'?'📜':['⚔️','🛡️','💍'][Math.floor(Math.random()*3)],cc:k.cc,t:k.t};
+ return {icon:k.t==='scroll'?lootIco('it_scroll','📜'):SLOT_ICO[['weapon','armor','trinket'][Math.floor(Math.random()*3)]](),cc:k.cc,t:k.t};
 }
 function prizeValue(type){
  const r=Math.random();
@@ -7716,10 +7721,10 @@ function prizeValue(type){
    const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
    S.scrolls.push({id:e.id,tier:2});
    log(`GOLD GOLD GOLD: <span class="lscroll">${e.n} II</span>!`,'loot');
-   return {icon:'📜',tier:'Scroll · Tier II',name:e.n,color:e.glow,sub:tierDesc(e.id,2)+' Combine duplicates to forge higher tiers.',big:true};
+   return {icon:lootIco('it_scroll','📜'),tier:'Scroll · Tier II',name:e.n,color:e.glow,sub:tierDesc(e.id,2)+' Combine duplicates to forge higher tiers.',big:true};
   }
   const rar=r<0.6715?'rare':'epic';
-  const it=rollItem(rar),icon={weapon:'⚔️',armor:'🛡️',trinket:'💍'}[it.slot],col={rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
+  const it=rollItem(rar),icon=SLOT_ICO[it.slot](),col={rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
   log(`GOLD GOLD GOLD: <span class="l${it.rar}">${itemName(it)}</span> ${itemStr(it)}.`,'loot');
   it._lid=lootUID++;
   if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
@@ -7744,10 +7749,10 @@ function prizeValue(type){
   const e=ENCHS[Math.floor(Math.random()*ENCHS.length)];
   S.scrolls.push({id:e.id,tier:1});
   log(`GAMBAAA!: <span class="lscroll">${e.n} I</span>!`,'loot');
-  return {icon:'📜',tier:'Scroll · Tier I',name:e.n,color:e.glow,sub:tierDesc(e.id,1)+' Combine duplicates to forge higher tiers.',big:true};
+  return {icon:lootIco('it_scroll','📜'),tier:'Scroll · Tier I',name:e.n,color:e.glow,sub:tierDesc(e.id,1)+' Combine duplicates to forge higher tiers.',big:true};
  }
  const rar=r<0.66?'common':r<0.90?'fine':r<0.98?'rare':'epic';
- const it=rollItem(rar),icon={weapon:'⚔️',armor:'🛡️',trinket:'💍'}[it.slot],col={common:'#d8e4d6',fine:'#6dbb6d',rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
+ const it=rollItem(rar),icon=SLOT_ICO[it.slot](),col={common:'#d8e4d6',fine:'#6dbb6d',rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
  log(`GAMBAAA!: <span class="l${it.rar}">${itemName(it)}</span> ${itemStr(it)}.`,'loot');
  it._lid=lootUID++;
  if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
@@ -7780,7 +7785,7 @@ function btPrizeValue(){
  }
  S.freeGoldCases=(S.freeGoldCases||0)+p.n;
  log(`BLACK TEMPLE: <span class="loot">${p.n} free GOLD GOLD GOLD cases</span>!`,'loot');
- return {icon:'🎁',tier:'Free cases',name:p.n+' GOLD GOLD GOLD',color:'#8fc3ef',sub:'Added to your free gold-chest counter.',big:p.n>=6};
+ return {icon:lootIco('it_chest','🎁'),tier:'Free cases',name:p.n+' GOLD GOLD GOLD',color:'#8fc3ef',sub:'Added to your free gold-chest counter.',big:p.n>=6};
 }
 function openBlackTempleChest(){
  if(!(S.chests&&S.chests.blacktemple>0)){stageMsg('No Black Temple Chest to open',1400);sfx.warn();return;}
