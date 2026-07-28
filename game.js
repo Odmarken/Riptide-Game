@@ -5552,8 +5552,9 @@ function draw(){
 }
 function drawPortal(){
  if(zoneOf().tavern||zoneOf().raid)return;
- const p=world.portal,t=performance.now()/1000;
  const nz=ZONES[S.zone+1];
+ if(!nz||nz.special)return; /* the road ends here - no dead "→ Western Sea" portal to walk into */
+ const p=world.portal,t=performance.now()/1000;
  const open=portalIsOpen();
  ctx.save();ctx.translate(p.x,p.y);
  ctx.fillStyle='rgba(0,0,0,0.2)';ctx.beginPath();ctx.ellipse(0,16,26,9,0,0,7);ctx.fill();
