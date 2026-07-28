@@ -4505,7 +4505,7 @@ window.addEventListener('pointercancel',endHoldMove);
 /* ---- camera zoom: mouse wheel on the map, 2-finger pinch on phones ---- */
 let zoom=1,pinchD=0,pinching=false;
 const ZMAX=3;
-const zmin=()=>buildMode?1/3:((IS_TOUCH&&Math.min(VW,VH)<820)?0.5:0.7); /* build mode 3× out; phones may zoom out to 0.5, desktop 0.7 */
+const zmin=()=>buildMode?1/3:((IS_TOUCH&&Math.min(VW,VH)<820)?0.5:0.9); /* build mode 3× out; phones may zoom out to 0.5, desktop stays close at 0.9 */
 function setZoom(z){zoom=Math.max(zmin(),Math.min(ZMAX,z));}
 cv.addEventListener('wheel',e=>{
  if(!gameOn)return;
@@ -7028,17 +7028,7 @@ function renderMap(){
   if(mapContinent==='raid'&&!z.raidc)return '';
   if(z.tavern)return '';
   if(z.special){
-   if(z.altar||z.farm)return ''; /* portal-only zones */
-   if(z.finalb){
-    const ok=(S.prestige||0)>=50&&(S.lvl||1)>=MAXLVL;
-    const dead=!!S.forsakenDead;
-    return `<div class="card zonecard ${ok?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${ok?'#a06bd0':''}">
-     <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#12101a)">☠</div>
-     <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">${z.boss[0]} - the last thing the realm has left to throw at you. Twin scythes, no mercy, no adds.</div></div>
-     ${i===S.zone?'<span class="ztag">Here</span>':dead?'<span class="ztag done">✓ Slain</span>':ok?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">🔒 Prestige 50 · Lvl '+MAXLVL+'</span>'}
-    </div>`;
-   }
+   if(z.altar||z.farm||z.finalb)return ''; /* portal-only zones - the Final Hour is reached through the Gate alone */
    if(z.crypts){
     const p20=(S.prestige||0)>=20;
     return `<div class="card zonecard ${p20?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p20?'#a66bd0':''}">
