@@ -352,6 +352,14 @@ const PET_SELL=25000;
 /* emoji can't be recoloured - filters can: Puffen renders WHITE, Nellie BLACK */
 const PET_FILTER={cat:'grayscale(1) brightness(1.8) contrast(0.9)',blackdog:'grayscale(1) brightness(0.4)'};
 const petGlyph=p=>PET_FILTER[p.id]?`<span style="filter:${PET_FILTER[p.id]}">${p.g}</span>`:p.g;
+/* painted spell icons (assets/icons) - the emoji stays as the fallback if a file is missing */
+const SPELL_ICON={'Heroic Strike':'heroicstrike','Whirlwind':'whirlwind','Battle Shout':'battleshout',
+ 'Fireball':'fireball','Frost Nova':'frostnova','Arcane Barrage':'arcanebarrage',
+ 'Aimed Shot':'aimedshot','Multi-Shot':'multishot','Rapid Fire':'rapidfire',
+ 'Smite':'smite','Holy Nova':'holynova','Renew':'renew'};
+const spellGlyph=sp=>SPELL_ICON[sp.n]
+ ? `<img class="spicon" src="assets/icons/${SPELL_ICON[sp.n]}.png" alt="" draggable="false" onerror="this.replaceWith(document.createTextNode('${sp.g}'))">`
+ : sp.g;
 const petSpriteCache={};
 function petSprite(p){ /* every companion gets a solid outlined sprite - Puffen white, Nellie black, the rest keep their colours */
  const T={cat:['#ffffff','#2a2118'],blackdog:['#16161c','#d8d8e0'],dog:[null,'#2a2118'],shark:[null,'#12222e']}[p.id];
@@ -6734,7 +6742,7 @@ function buildSkillbar(){
  const c=classOf();
  let h='';
  c.spells.forEach((sp,i)=>{
-  h+=`<button class="skill" id="sk${i}" title="${sp.n}">${sp.g}<div class="cdm" id="skcd${i}"></div><span class="cost">${spellManaCost(sp)}</span><span class="au" id="au${i}"></span></button>`;
+  h+=`<button class="skill" id="sk${i}" title="${sp.n}">${spellGlyph(sp)}<div class="cdm" id="skcd${i}"></div><span class="cost">${spellManaCost(sp)}</span><span class="au" id="au${i}"></span></button>`;
  });
  h+=`<button class="autocfg-btn" id="skAutoCfg" title="Choose what AUTO may use">Ⓐ</button>`;
  h+=`<button class="skill pot" id="potHp">🧪<div class="cdm" id="potHpCd"></div><span class="cnt" id="potHpN">0</span><span class="au" id="auHp"></span></button>`;
@@ -6987,7 +6995,7 @@ function renderHero(){
   }
  }else $('prestigeSec').innerHTML='';
  $('spellList').innerHTML=c.spells.map(sp=>`
-  <div class="card spellcard"><div class="spellg">${sp.g}</div>
+  <div class="card spellcard"><div class="spellg">${spellGlyph(sp)}</div>
   <div><div class="sn" style="color:var(--parch);font-size:13px">${sp.n} <span style="color:var(--mp);font-size:10px">${spellManaCost(sp)} mana · ${sp.cd}s</span></div>
   <div class="ss" style="color:var(--dim);font-size:11px">${sp.d}</div></div></div>`).join('');
  $('autoEquipBtn').textContent=S.autoEquip?'On':'Off';
