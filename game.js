@@ -144,7 +144,32 @@ const MOB_SIZE={humanoid:4.6,beast:4.2,undead:4.6}; /* sprite height in enemy ra
 const mobSprite=n=>{if(!mobImg[n]){mobImg[n]=new Image();mobImg[n].src='assets/mobs/'+n+'.png';}return mobImg[n];};
 Object.values(MOB_SET).forEach(a=>a.forEach(mobSprite)); /* preload */
 const mobHash=s=>{let h=0;for(let i=0;i<(s||'').length;i++)h=(h*31+s.charCodeAt(i))>>>0;return h;};
-const mobSkinFor=en=>{const set=MOB_SET[en.kind];if(!set)return null;const im=mobSprite(set[mobHash(en.name)%set.length]);return im.complete&&im.naturalWidth?im:null;};
+/* every foe gets the sprite that actually fits its name - a Boar is a boar, a Web Matron a spider */
+const MOB_BY_NAME={
+ /* beasts */
+ 'Ash Hound':'bst_wolf','Dust Prowler':'bst_wolf','Frost Wolf':'bst_wolf','Thorn Wolf':'bst_wolf',
+ 'River Boar':'bst_boar','Stonehide Basilisk':'bst_boar','Marsh Croaker':'bst_boar','Magma Crawler':'bst_boar',
+ 'Web Matron':'bst_spider','Fen Lurker':'bst_spider','Mire Stalker':'bst_spider','Tide Serpent':'bst_spider',
+ 'Carrion Screecher':'bst_harpy','Frost Harpy':'bst_harpy','Steppe Manticore':'bst_harpy','Rock Wyrmling':'bst_harpy',
+ /* humanoids */
+ 'Ditch Bandit':'hum_bandit','Blackwind Rider':'hum_bandit','Cinder Imp':'hum_bandit',
+ 'Barrens Marauder':'hum_raider','Crag Raider':'hum_raider','Poacher Chief':'hum_raider',
+ 'Spire Raider':'hum_raider','Vale Reaver':'hum_raider','Wreck Raider':'hum_raider',
+ 'Cult Torchbearer':'hum_cultist','Ember Warlock':'hum_cultist','Swampwitch Adept':'hum_cultist',
+ 'Keep Legionnaire':'hum_soldier',
+ /* undead */
+ 'Ash Revenant':'und_revenant','Bog Revenant':'und_revenant',
+ 'Plague Husk':'und_husk','Storm-Drowned':'und_husk',
+ 'Moor Wraith':'und_wraith','Cliff Shade':'und_wraith','Rime Shade':'und_wraith',
+ /* boss adds */
+ 'Fel-Spawn':'hum_cultist','Son of Flame':'hum_raider','Risen Ghoul':'und_skeleton'
+};
+const mobSkinFor=en=>{
+ const set=MOB_SET[en.kind];if(!set)return null;
+ const name=MOB_BY_NAME[en.name]||set[mobHash(en.name)%set.length]; /* unnamed foes still get a stable pick */
+ const im=mobSprite(name);
+ return im.complete&&im.naturalWidth?im:null;
+};
 const mobTintCache={};
 function mobTinted(img,col){ /* soak the grey sprite in the foe's colour, cached per art+tint */
  const key=img.src+':'+col;
@@ -4969,6 +4994,16 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
  if(zoneOf().tavern)updateNpcs(dt);
  // ----- enemies -----
  for(const en of enemies){
+  /* 🚶 walk-cycle state, identical to the farm animals: phase from distance actually
+     travelled, plus a ramp that fades the bob in and out instead of snapping. */
+  {
+   const md=Math.hypot(en.x-(en._ax===undefined?en.x:en._ax),en.y-(en._ay===undefined?en.y:en._ay));
+   en._ax=en.x;en._ay=en.y;
+   /* stride length scales with the creature: a boss covers ground in long strides,
+      a rat in short ones. Without this, fast movers vibrate instead of walking. */
+   en.wt=(en.wt||0)+md*(0.7/Math.max(8,en.r||12));
+   en.mv=Math.max(0,Math.min(1,(en.mv||0)+(md>0.4?dt*10:-dt*6)));
+  }
   en._nd=!!(mp.on&&mp.started&&!mp.host&&en.raid&&en.netX!==undefined); /* net-driven: host owns this boss's position */
   if(en._nd){
    const kk=1-Math.exp(-10*dt); /* time-based smoothing toward the 10Hz snapshots */
@@ -6443,15 +6478,17 @@ function drawEnemy(en){
   const H=en.r*(raidSkin.size||5.0),W=H*raidSkin.img.naturalWidth/raidSkin.img.naturalHeight;
   const fimg=raidSkin.feet,fL=raidSkin.feetL,fR=raidSkin.feetR;
   const FH=en.r*(raidSkin.fh||0.75);
-  const o=en.state==='chase'?Math.sin((en.walk||0)*2)*en.r*0.28:0;
+  /* stride offset from distance actually travelled, faded by mv - the same cycle the
+     hero's boots and the farm animals use. Applied on Y: feet LIFT, they never slide. */
+  const o=Math.sin(en.wt||0)*en.r*0.26*(en.mv||0);
   if(raidSkin.boots){ /* the hero's own boots, scaled up - Thor walks like the rest of us */
    const bs=en.r/13;
    ctx.save();ctx.scale(bs,bs);bootFeet({moving:en.state==='chase',walk:en.walk||0,sx:raidSkin.bsx||0});ctx.restore();
   }else if(fL&&fR&&fL.naturalWidth&&fR.naturalWidth){ /* true left/right art - no mirroring needed */
    const WL=FH*fL.naturalWidth/fL.naturalHeight,WR=FH*fR.naturalWidth/fR.naturalHeight;
    const sp=en.r*(raidSkin.fs||0.5);
-   ctx.drawImage(mip(fL,WL),-sp-WL/2+o,en.r*0.72-FH,WL,FH);
-   ctx.drawImage(mip(fR,WR),sp-WR/2-o,en.r*0.72-FH,WR,FH);
+   ctx.drawImage(mip(fL,WL),-sp-WL/2,en.r*0.72-FH+o,WL,FH);   /* one foot rises… */
+   ctx.drawImage(mip(fR,WR),sp-WR/2,en.r*0.72-FH-o,WR,FH);    /* …as the other falls */
   }else if(fimg&&fimg.complete&&fimg.naturalWidth){
    /* single-foot art: right = the art, left = mirrored counter-swing */
    const FW=FH*fimg.naturalWidth/fimg.naturalHeight;
@@ -6463,19 +6500,19 @@ function drawEnemy(en){
     ctx.drawImage(mip(fimg,FW),fpx-FW/2,en.r*0.72-FH-l2,FW,FH);
     ctx.restore();
    }else{
-    ctx.drawImage(mip(fimg,FW),fpx-FW/2+o,en.r*0.72-FH,FW,FH);
+    ctx.drawImage(mip(fimg,FW),fpx-FW/2,en.r*0.72-FH+o,FW,FH);
     ctx.save();ctx.scale(-1,1);
-    ctx.drawImage(mip(fimg,FW),fpx-FW/2-o,en.r*0.72-FH,FW,FH);
+    ctx.drawImage(mip(fimg,FW),fpx-FW/2,en.r*0.72-FH-o,FW,FH); /* mirrored foot, opposite phase */
     ctx.restore();
    }
   }
   { /* body walk cycle: a small hop + rock pivoting at the base - still while idle */
-   const walking=en.state==='chase'&&!en.dead;
-   const ph=(en.walk||0)*2;
-   const hop=walking?Math.abs(Math.sin(ph))*en.r*0.10:0;
+   const walking=(en.mv||0)>0.01&&!en.dead;
+   const ph=en.wt||0;
+   const hop=Math.abs(Math.sin(ph))*en.r*0.10*(en.mv||0);
    ctx.save();
    ctx.translate(en.r*(raidSkin.ox||0),en.r*raidSkin.lift+by);
-   if(walking)ctx.rotate(Math.sin(ph)*0.045);
+   if(walking)ctx.rotate(Math.sin(ph)*0.045*(en.mv||0)); /* the rock fades with the stride */
    ctx.drawImage(mip(raidSkin.img,W),-W/2,-H-hop,W,H); /* body floats above the feet */
    ctx.restore();
   }
@@ -6524,14 +6561,13 @@ function drawEnemy(en){
  }else if(mobSkin){ /* 🎨 painted foe - grey art soaked in this enemy's own colour */
   const H=en.r*(MOB_SIZE[en.kind]||4.6),W=H*mobSkin.naturalWidth/mobSkin.naturalHeight;
   const art=mobTinted(mobSkin,en.c)||mobSkin;
-  const walking=en.state==='chase'&&!en.dead;
-  const ph=(en.walk||0)*2;
-  const hop=walking?Math.abs(Math.sin(ph))*en.r*0.16:0;   /* the stride carries the whole body */
+  const ph=en.wt||0,k=en.mv||0;                      /* same stride cadence as the farm animals */
+  const hop=Math.abs(Math.sin(ph))*(1.5+W*0.03)*k;
   const fx=(hero&&hero.x<en.x)?-1:1;                        /* face the hero */
   ctx.save();
   ctx.translate(0,en.r*0.62+by);
   ctx.scale(fx,1);
-  if(walking)ctx.rotate(Math.sin(ph)*0.05);
+  ctx.rotate(Math.sin(ph)*0.06*k);
   ctx.drawImage(mip(art,W),-W/2,-H-hop,W,H);
   ctx.restore();
  }else if(en.kind==='beast'){
