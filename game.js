@@ -10735,7 +10735,7 @@ function bootPreload(){
  const urls=[];
  const push=u=>{if(u&&urls.indexOf(u)<0)urls.push(u);};
  /* UI frames and the login art */
- push('assets/ui/loading.jpg');
+ push(innerWidth<innerHeight?'assets/ui/loading_phone.jpg':'assets/ui/loading_desktop.jpg'); /* only the variant this screen shows */
  ['bakground_signin','ui_background','ui_allt','ui_ram','ui_buttons','ui_buttonrak','ui_buttonsstone','ui_buttonshardcore']
   .forEach(n=>push('assets/ui/'+n+'.png'));
  /* painted icons - spells, potions, loot */
