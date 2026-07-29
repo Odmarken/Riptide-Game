@@ -133,6 +133,30 @@ const RAID_SKINS={ /* lift = body bottom in radii · wy/wx = weapon grip */
  reaper:{img:finalBossImg,feet:finalBossFootImg,wpn:()=>finalBossWeaponImg,glow:'#a06bd0',lift:0.05,wy:-0.34,wx:0.38,wxr:0.30,size:7.3,fs:0.55,fh:0.81,vf:true,ff:true,dual:true,ws:0.78}, /* +30% overall; ff mirrors the hooves; wxr pulls the right scythe in */
  cowmob:{img:cowmobImg,feet:cowmobFeetImg,wpn:()=>cowWeaponImg,glow:'#ff5a2a',lift:-0.15,wy:-0.30,wx:0.30,size:4.6,fs:0.6,fh:0.68,ff:true,vf:true},
  cowmob_big:{img:cowmobImg,feet:cowmobFeetImg,wpn:()=>cowWeaponImg,glow:'#ff5a2a',lift:0.08,wy:-0.30,wx:0.30,size:3.1,fs:0.4,fh:0.45,ff:true,vf:true}}; /* feet scaled down - r is 3× but the body only draws 2×; body sits closer to the hooves */
+/* ---- painted mob sprites: neutral grey art, tinted per enemy so all 37 foes stay distinct ---- */
+const mobImg={};
+const MOB_SET={
+ humanoid:['hum_bandit','hum_raider','hum_cultist','hum_soldier'],
+ beast:['bst_wolf','bst_boar','bst_spider','bst_harpy'],
+ undead:['und_skeleton','und_husk','und_wraith','und_revenant']
+};
+const MOB_SIZE={humanoid:4.6,beast:4.2,undead:4.6}; /* sprite height in enemy radii */
+const mobSprite=n=>{if(!mobImg[n]){mobImg[n]=new Image();mobImg[n].src='assets/mobs/'+n+'.png';}return mobImg[n];};
+Object.values(MOB_SET).forEach(a=>a.forEach(mobSprite)); /* preload */
+const mobHash=s=>{let h=0;for(let i=0;i<(s||'').length;i++)h=(h*31+s.charCodeAt(i))>>>0;return h;};
+const mobSkinFor=en=>{const set=MOB_SET[en.kind];if(!set)return null;const im=mobSprite(set[mobHash(en.name)%set.length]);return im.complete&&im.naturalWidth?im:null;};
+const mobTintCache={};
+function mobTinted(img,col){ /* soak the grey sprite in the foe's colour, cached per art+tint */
+ const key=img.src+':'+col;
+ if(mobTintCache[key])return mobTintCache[key];
+ if(!img.complete||!img.naturalWidth)return null;
+ const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;
+ const g=c.getContext('2d');
+ g.drawImage(img,0,0);
+ g.globalCompositeOperation='source-atop';
+ g.globalAlpha=0.42;g.fillStyle=col;g.fillRect(0,0,c.width,c.height);
+ return mobTintCache[key]=c;
+}
 const raidBladeCache={};
 function raidBlade(glow,img){ /* the lord's weapon soaked in his colour, cached per art+tint */
  img=img||cowWeaponImg;
@@ -1336,7 +1360,7 @@ function smithTick(){
   const ring=rollOneRing();
   if(S.gear.trinket)S.bag.push(S.gear.trinket); /* the old trinket steps aside */
   S.gear.trinket=ring;S.ringForged=true;
-  log(`⚒️ The forge cools - <span class="llegendary">💍 The One Ring</span> binds to your trinket slot! +10% crit, and it drinks 1% of your mana with every strike.`,'loot');
+  log(`⚒️ The forge cools - <span class="llegendary">${uiIcon('it_trinket','💍','shopico')} The One Ring</span> binds to your trinket slot! +10% crit, and it drinks 1% of your mana with every strike.`,'loot');
   stageMsg('💍 THE ONE RING IS FORGED!',3800);sfx.level();
   if(typeof publishLB==='function')publishLB(S,true);
  }else if(j.kind==='wg'){
@@ -4872,7 +4896,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
        S.brokenRing=true;save();
        fishToast('💍 <b>The Broken Ring</b> - dredged up!','#ffd76a');
        stageMsg('💍 THE BROKEN RING - half of something terrible. Check your Bag.',3500);
-       log(`Fishing: <span class="llegendary">💍 The Broken Ring</span> - combine it with the Recipe at a level 10 Blacksmith.`,'loot');
+       log(`Fishing: <span class="llegendary">${uiIcon('it_brokenring','💍','shopico')} The Broken Ring</span> - combine it with the Recipe at a level 10 Blacksmith.`,'loot');
        burst(fish.bx,fish.by,'#ffd76a',22,140,true);
        sfx.level();
       }else if(r2<0.0045){ /* 🛡 0.20% - a sealed potion in the weeds (1 in 500 casts) */
@@ -6412,7 +6436,8 @@ function drawEnemy(en){
  const haalandPainted=en.bossId==='cerberus'&&haalandImg.complete&&haalandImg.naturalWidth;
  const skinKey=en.skin||en.bossId;
  const raidSkin=RAID_SKINS[skinKey]&&RAID_SKINS[skinKey].img.naturalWidth?RAID_SKINS[skinKey]:null; /* raid lords + skinned leveling bosses + cow herd */
- if(en.kind!=='undead'&&!haalandPainted&&!raidSkin)feet(en,en.r/13);
+ const mobSkin=(!raidSkin&&!haalandPainted&&!en.boss&&!en.cow&&en.name!=='Messi')?mobSkinFor(en):null; /* painted foes and boss adds - Messi keeps his own look */
+ if(en.kind!=='undead'&&!haalandPainted&&!raidSkin&&!mobSkin)feet(en,en.r/13);
  const dark='rgba(0,0,0,0.28)';
  if(raidSkin){ /* a lord of the Black Temple - painted body over swinging cut-off feet */
   const H=en.r*(raidSkin.size||5.0),W=H*raidSkin.img.naturalWidth/raidSkin.img.naturalHeight;
@@ -6496,6 +6521,19 @@ function drawEnemy(en){
    ctx.drawImage(mip(haalandAxeImg,AW),-AW/2,-AH*0.8,AW,AH);
    ctx.restore();
   }
+ }else if(mobSkin){ /* 🎨 painted foe - grey art soaked in this enemy's own colour */
+  const H=en.r*(MOB_SIZE[en.kind]||4.6),W=H*mobSkin.naturalWidth/mobSkin.naturalHeight;
+  const art=mobTinted(mobSkin,en.c)||mobSkin;
+  const walking=en.state==='chase'&&!en.dead;
+  const ph=(en.walk||0)*2;
+  const hop=walking?Math.abs(Math.sin(ph))*en.r*0.16:0;   /* the stride carries the whole body */
+  const fx=(hero&&hero.x<en.x)?-1:1;                        /* face the hero */
+  ctx.save();
+  ctx.translate(0,en.r*0.62+by);
+  ctx.scale(fx,1);
+  if(walking)ctx.rotate(Math.sin(ph)*0.05);
+  ctx.drawImage(mip(art,W),-W/2,-H-hop,W,H);
+  ctx.restore();
  }else if(en.kind==='beast'){
   ctx.fillStyle=en.c;ctx.beginPath();ctx.ellipse(0,-4+by,en.r,en.r*0.75,0,0,7);ctx.fill();
   ctx.fillStyle=dark;ctx.beginPath();ctx.arc(en.r*0.55,-8+by,en.r*0.45,0,7);ctx.fill();
@@ -6631,7 +6669,7 @@ function drawEnemy(en){
  ctx.font=(en.boss?'700 11px ':'600 9px ')+getComputedStyle(document.body).fontFamily;
  ctx.textAlign='center';
  const lblSkin=RAID_SKINS[en.skin||en.bossId];
- const lblY=(typeof haalandPainted!=='undefined'&&haalandPainted)?-en.r*4.4:(lblSkin&&lblSkin.img.naturalWidth)?-en.r*((lblSkin.size||5)+0.1):-en.r-16; /* painted bosses stand much taller */
+ const lblY=(typeof haalandPainted!=='undefined'&&haalandPainted)?-en.r*4.4:(lblSkin&&lblSkin.img.naturalWidth)?-en.r*((lblSkin.size||5)+0.1):mobSkin?-en.r*((MOB_SIZE[en.kind]||4.6)-0.25):-en.r-16; /* painted foes stand taller than the old blobs */
  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(en.name,1,lblY+by+1);
  ctx.fillStyle=en.boss?'#ffd76a':'#ffe9e0';ctx.fillText(en.name,0,lblY+by);
  if((en.hp<en.max||en.boss)&&!en.dead)drawMiniBar(-en.r,lblY+3+by,en.r*2,en.hp/en.max,'#c75146');
@@ -6749,7 +6787,7 @@ function buildSkillbar(){
  c.spells.forEach((sp,i)=>{
   h+=`<button class="skill" id="sk${i}" title="${sp.n}">${spellGlyph(sp)}<div class="cdm" id="skcd${i}"></div><span class="cost">${spellManaCost(sp)}</span><span class="au" id="au${i}"></span></button>`;
  });
- h+=`<button class="autocfg-btn" id="skAutoCfg" title="Choose what AUTO may use">Ⓐ</button>`;
+ h+=`<button class="autocfg-btn" id="skAutoCfg" title="Choose what AUTO may use">${uiIcon('ui_auto','Ⓐ','btnico')}</button>`;
  h+=`<button class="skill pot" id="potHp">${uiIcon('pot_hp','🧪')}<div class="cdm" id="potHpCd"></div><span class="cnt" id="potHpN">0</span><span class="au" id="auHp"></span></button>`;
  h+=`<button class="skill pot" id="potMp">${uiIcon('pot_mp','🔮')}<div class="cdm" id="potMpCd"></div><span class="cnt" id="potMpN">0</span><span class="au" id="auMp"></span></button>`;
  $('skillbar').innerHTML=h;
@@ -7230,7 +7268,7 @@ function renderBag(){
   const active=S.luckT>0;
   const mins=Math.ceil(S.luckT/60);
   luckHtml=`<div class="card item" style="border-color:#6dbb6d${active?';box-shadow:0 0 10px rgba(109,187,109,.25)':''}"><div>
-   <div class="sn" style="color:#9adf9a;font-size:13px;font-weight:600">🍀 Potion of Luck${(S.luckPots||0)>1?` <span style="color:var(--dim)">×${S.luckPots}</span>`:(S.luckPots||0)===1?'':' <span style="color:var(--dim)">×0</span>'}</div>
+   <div class="sn" style="color:#9adf9a;font-size:13px;font-weight:600">${uiIcon('it_luck','🍀','shopico')} Potion of Luck${(S.luckPots||0)>1?` <span style="color:var(--dim)">×${S.luckPots}</span>`:(S.luckPots||0)===1?'':' <span style="color:var(--dim)">×0</span>'}</div>
    <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#9adf9a">ACTIVE - '+mins+' min remaining.</b> ':''}+20% better drops from slain foes for 30 minutes. Chests and slots are unaffected. Thor yields one per kill.</div></div>
    <div class="btns"><button class="sbtn gold" id="luckUse" ${(S.luckPots||0)<1?'disabled':''}>${active?'Extend +30m':'Drink'}</button></div></div>`;
  }
@@ -7250,7 +7288,7 @@ function renderBag(){
   const aAct=S.armorT>0;
   const aMin=Math.ceil(S.armorT/60);
   armorHtml=`<div class="card item" style="border-color:#8fb0d0${aAct?';box-shadow:0 0 10px rgba(143,176,208,.25)':''}"><div>
-   <div class="sn" style="color:#8fb0d0;font-size:13px;font-weight:600">🛡 Potion of Armor <span style="color:var(--dim)">×${S.armorPots||0}</span></div>
+   <div class="sn" style="color:#8fb0d0;font-size:13px;font-weight:600">${uiIcon('pot_armor','🛡','shopico')} Potion of Armor <span style="color:var(--dim)">×${S.armorPots||0}</span></div>
    <div class="ss" style="color:var(--dim);font-size:11px">${aAct?'<b style="color:#8fb0d0">ACTIVE - '+aMin+' min remaining.</b> ':''}Take <b>50% less damage from HAALAND</b> for 20 minutes. A rare catch from the Goldshire lake (0.2%).</div></div>
    <div class="btns"><button class="sbtn gold" id="armorUse" ${(S.armorPots||0)<1?'disabled':''}>${aAct?'Extend +20m':'Drink'}</button></div></div>`;
  }
@@ -7258,7 +7296,7 @@ function renderBag(){
  let connHtml='';
  if((S.connectors||0)>0){
   connHtml=`<div class="card item" style="border-color:#8fe3c9"><div>
-   <div class="sn" style="color:#8fe3c9;font-size:13px;font-weight:600">🔗 Crypt Connector <span style="color:var(--dim)">×${S.connectors||0}</span></div>
+   <div class="sn" style="color:#8fe3c9;font-size:13px;font-weight:600">${uiIcon('it_scrap','🔗','shopico')} Crypt Connector <span style="color:var(--dim)">×${S.connectors||0}</span></div>
    <div class="ss" style="color:var(--dim);font-size:11px">Cannot be sold or discarded. Bring <b style="color:#8fe3c9">two</b> to a level 10 Blacksmith to fuse any two different <b>Tier IV</b> scrolls into a single scroll. Found in Crypt chests (15%).</div></div></div>`;
  }
  // 🎲 gambler potions - max-win prize
@@ -7267,7 +7305,7 @@ function renderBag(){
   const active=S.gamblerT>0;
   const mins=Math.ceil(S.gamblerT/60);
   gamblerHtml=`<div class="card item" style="border-color:#ffd76a${active?';box-shadow:0 0 10px rgba(255,215,106,.25)':''}"><div>
-   <div class="sn" style="color:#ffd76a;font-size:13px;font-weight:600">🎲 Potion of Gambler <span style="color:var(--dim)">×${S.gamblerPots||0}</span></div>
+   <div class="sn" style="color:#ffd76a;font-size:13px;font-weight:600">${uiIcon('ui_dice','🎲','shopico')} Potion of Gambler <span style="color:var(--dim)">×${S.gamblerPots||0}</span></div>
    <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#ffd76a">ACTIVE - '+mins+' min remaining.</b> ':''}+20% XP gain and +2% crit chance for 30 minutes. Won only on a 100x max win at Borek 67.</div></div>
    <div class="btns"><button class="sbtn gold" id="gamblerUse" ${(S.gamblerPots||0)<1?'disabled':''}>${active?'Extend +30m':'Drink'}</button></div></div>`;
  }
@@ -7281,7 +7319,7 @@ function renderBag(){
    </div>`;
  }
  let btHtml='';
- if(S.chests&&S.chests.blacktemple>0)btHtml=`<div class="card item" style="border-color:#39ff6a66;box-shadow:0 0 10px rgba(57,255,106,.15)"><div><div class="sn" style="color:#39ff6a;font-size:13px;font-weight:600">🟩 Black Temple Chest <span style="color:var(--dim)">×${S.chests.blacktemple}</span></div><div class="ss" style="color:var(--dim);font-size:11px">The spoils of the three lords. Chance for Warglaives, gold, or free GOLD GOLD GOLD cases.</div></div><div class="btns"><button class="sbtn gold" data-btchest>Open</button></div></div>`;
+ if(S.chests&&S.chests.blacktemple>0)btHtml=`<div class="card item" style="border-color:#39ff6a66;box-shadow:0 0 10px rgba(57,255,106,.15)"><div><div class="sn" style="color:#39ff6a;font-size:13px;font-weight:600">${uiIcon('it_chest','🟩','shopico')} Black Temple Chest <span style="color:var(--dim)">×${S.chests.blacktemple}</span></div><div class="ss" style="color:var(--dim);font-size:11px">The spoils of the three lords. Chance for Warglaives, gold, or free GOLD GOLD GOLD cases.</div></div><div class="btns"><button class="sbtn gold" data-btchest>Open</button></div></div>`;
  let ringHtml='';
  if(S.theKnife){
   ringHtml+=`<div class="card item" style="border-color:#bcd8ff88;box-shadow:0 0 10px rgba(188,216,255,.12)"><div>
@@ -7291,11 +7329,11 @@ function renderBag(){
  if(S.ringRecipe||S.brokenRing){
   const both=S.ringRecipe&&S.brokenRing,smithOk=(S.smithLvl||0)>=10;
   if(S.ringRecipe)ringHtml+=`<div class="card item" style="border-color:#ffd76a"><div>
-   <div class="sn" style="color:#ffd76a;font-size:13px;font-weight:600">💍 Recipe of the Ring</div>
+   <div class="sn" style="color:#ffd76a;font-size:13px;font-weight:600">${uiIcon('it_trinket','💍','shopico')} Recipe of the Ring</div>
    <div class="ss" style="color:var(--dim);font-size:11px">${both?'':'The other half sleeps at the bottom of the Goldshire lake. '}Cannot be sold or discarded.</div></div>
    ${both?`<div class="btns"><span class="ss" style="color:#ffd76a;font-size:11px">${smithOk?'⚒ Ready - visit the Blacksmith!':'⚒ Requires Blacksmith level 10'}</span></div>`:''}</div>`;
   if(S.brokenRing)ringHtml+=`<div class="card item" style="border-color:#c9a45a"><div>
-   <div class="sn" style="color:#c9a45a;font-size:13px;font-weight:600">💍 The Broken Ring</div>
+   <div class="sn" style="color:#c9a45a;font-size:13px;font-weight:600">${uiIcon('it_brokenring','💍','shopico')} The Broken Ring</div>
    <div class="ss" style="color:var(--dim);font-size:11px">Cold, heavy, and humming. ${both?'Ready to be reforged.':'Needs the Recipe of the Ring from the Trader.'} Cannot be sold or discarded.</div></div></div>`;
  }
  $('scrollSec').innerHTML=luckHtml+raidHtml+armorHtml+connHtml+ringHtml+gamblerHtml+restedHtml+btHtml;
@@ -9742,11 +9780,11 @@ function renderShop(){
  const goQty=chestQty.gold;
  const free=S.freeGoldCases||0;
  const goFree=Math.min(free,goQty),goPaid=goQty-goFree,goTot=GOLD_COST*goPaid;
- h+=`<div class="card item gcard-chest" style="border-color:var(--brass-deep)"><div><div class="sn" style="font-size:13px;font-weight:600;color:var(--brass)">🎁 GAMBAAA!</div>
+ h+=`<div class="card item gcard-chest" style="border-color:var(--brass-deep)"><div><div class="sn" style="font-size:13px;font-weight:600;color:var(--brass)">${uiIcon('it_chest','🎁','shopico')} GAMBAAA!</div>
   <div class="ss" style="color:var(--dim);font-size:11px">A sealed chest of unknown origin. Holds a random weapon, armor piece or scroll - most are humble, but legends whisper of epic prizes within.</div></div>
   <div class="btns"><button class="sbtn gold" id="chestBtn" ${totalGold()<gTot?'disabled':''}>${gTot.toLocaleString()}◉</button>
   <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gamba" data-d="-1" ${gQty<=1?'disabled':''}>−</button><span class="qtynum">${gQty}x</span><button class="qtybtn" data-case="gamba" data-d="1" ${gQty>=5?'disabled':''}>+</button></div><div class="qtytotal">Total: ${gTot.toLocaleString()}◉</div></div></div></div>`;
- h+=`<div class="card item gcard-chest" style="border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.15)"><div><div class="sn" style="font-size:13px;font-weight:600;color:#ffd76a">💰 GOLD GOLD GOLD${free?` <span style="color:#9adf9a;font-size:11px">· ${free} FREE</span>`:''}</div>
+ h+=`<div class="card item gcard-chest" style="border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.15)"><div><div class="sn" style="font-size:13px;font-weight:600;color:#ffd76a">${uiIcon('it_gold','💰','shopico')} GOLD GOLD GOLD${free?` <span style="color:#9adf9a;font-size:11px">· ${free} FREE</span>`:''}</div>
  <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common or fine junk - only rare and epic gear, a slim chance at a Tier II scroll, a tiny chance at Frostmourne, and whispers of a 🐾 loyal companion within.${free?' <b style="color:#9adf9a">HAALAND\u2019s hoard covers your next '+free+' case'+(free>1?'s':'')+'.</b>':''}</div></div>
  <div class="btns"><button class="sbtn gold" id="goldChestBtn" ${totalGold()<goTot?'disabled':''}>${goTot>0?goTot.toLocaleString()+'◉':'FREE'}</button>
  <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gold" data-d="-1" ${goQty<=1?'disabled':''}>−</button><span class="qtynum">${goQty}x</span><button class="qtybtn" data-case="gold" data-d="1" ${goQty>=5?'disabled':''}>+</button></div><div class="qtytotal">${goFree?goFree+' free · ':''}Total: ${goTot.toLocaleString()}◉</div></div></div></div>`;
@@ -9755,11 +9793,11 @@ function renderShop(){
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Supplies</div>';
  const hpC=potCost('hp'),mpC=potCost('mp');
  const hpFull=S.pots.hp>=POT_CAP,mpFull=S.pots.mp>=POT_CAP;
- h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">🧪 Health Potion</div>
+ h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">${uiIcon('pot_hp','🧪','shopico')} Health Potion</div>
   <div class="ss" style="color:var(--dim);font-size:11px">Restores 45% health. You own ${S.pots.hp} / ${POT_CAP}.</div></div>
   <div class="btns"><button class="sbtn gold" data-pot="hp" ${hpFull||totalGold()<hpC||inBossFight()?'disabled':''}>${hpFull?'MAX ✦':'Buy '+hpC.toLocaleString()+'◉'}</button>
   <button class="sbtn gold" data-pot="hp" data-n="10" ${hpFull||totalGold()<hpC*10||inBossFight()?'disabled':''}>10x · ${(hpC*10).toLocaleString()}◉</button></div></div>`;
- h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">🔮 Mana Potion</div>
+ h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">${uiIcon('pot_mp','🔮','shopico')} Mana Potion</div>
   <div class="ss" style="color:var(--dim);font-size:11px">Restores 60% mana. You own ${S.pots.mp} / ${POT_CAP}.</div></div>
   <div class="btns"><button class="sbtn gold" data-pot="mp" ${mpFull||totalGold()<mpC||inBossFight()?'disabled':''}>${mpFull?'MAX ✦':'Buy '+mpC.toLocaleString()+'◉'}</button>
   <button class="sbtn gold" data-pot="mp" data-n="10" ${mpFull||totalGold()<mpC*10||inBossFight()?'disabled':''}>10x · ${(mpC*10).toLocaleString()}◉</button></div></div>`;
@@ -9768,7 +9806,7 @@ function renderShop(){
   const ringOwned=!!S.ringRecipe,ringDone=!!S.ringForged;
   const ringOk=!ringOwned&&!ringDone&&(S.prestige||0)>=20&&(S.rating||0)>=2500&&totalGold()>=500000;
   const ringLbl=ringDone?'💍 Forged ✦':ringOwned?'Purchased ✦':(S.rating||0)<2500?'🔒 2500 rating':(S.prestige||0)<20?'🔒 Prestige 20':'500,000◉';
-  h+=`<div class="card item" style="border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.15)"><div><div class="sn" style="font-size:13px;font-weight:600;color:#ffd76a">💍 Recipe of the Ring</div>
+  h+=`<div class="card item" style="border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.15)"><div><div class="sn" style="font-size:13px;font-weight:600;color:#ffd76a">${uiIcon('it_trinket','💍','shopico')} Recipe of the Ring</div>
    <div class="ss" style="color:var(--dim);font-size:11px">Ancient instructions for a ring of terrible power. Costs <b style="color:var(--brass)">500,000◉</b> · requires <b style="color:var(--brass)">2500 rating</b> and <b style="color:var(--brass)">Prestige 20</b>. The other half sleeps at the bottom of a lake…</div></div>
    <div class="btns"><button class="sbtn gold" id="ringRecipeBtn" ${ringOk?'':'disabled'}>${ringLbl}</button></div></div>`;
  }
@@ -9776,14 +9814,14 @@ function renderShop(){
  const cap=boostMax();
  const spN=S.boosts.speed,haN=S.boosts.haste,spC=boostCost(spN),haC=boostCost(haN);
  const spMax=spN>=cap||boostAtHardCap(spN,'speed'),haMax=haN>=cap||boostAtHardCap(haN,'haste');
- h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">👟 Speed Boost${spN?` <span style="color:var(--brass);font-size:11px">+${boostPct(spN,'speed')}%</span>`:''}</div>
+ h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">${uiIcon('ui_speed','👟','shopico')} Speed Boost${spN?` <span style="color:var(--brass);font-size:11px">+${boostPct(spN,'speed')}%</span>`:''}</div>
   <div class="ss" style="color:var(--dim);font-size:11px">${spMax
    ?(boostAtHardCap(spN,'speed')
     ?`Fully maxed at <b style="color:var(--parch)">+${boostPct(spN,'speed')}%</b> - the absolute limit.`
     :`Maxed at <b style="color:var(--parch)">+${boostPct(spN,'speed')}%</b>. Reach <b style="color:var(--brass)">Prestige ${nextBoostPrestige()}</b> to unlock the next upgrade.`)
    :`Move faster. Next purchase: <b style="color:var(--parch)">+${boostPct(spN+1,'speed')}%</b> movement speed. Bonus and price double each time.`}</div></div>
   <div class="btns"><button class="sbtn gold" data-boost="speed" ${spMax||totalGold()<spC?'disabled':''}>${spMax?'MAX ✦':'Buy '+spC.toLocaleString()+'◉'}</button></div></div>`;
- h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">⚡ Haste Boost${haN?` <span style="color:var(--brass);font-size:11px">+${boostPct(haN,'haste')}%</span>`:''}</div>
+ h+=`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600">${uiIcon('ui_haste','⚡','shopico')} Haste Boost${haN?` <span style="color:var(--brass);font-size:11px">+${boostPct(haN,'haste')}%</span>`:''}</div>
   <div class="ss" style="color:var(--dim);font-size:11px">${haMax
    ?(boostAtHardCap(haN,'haste')
     ?`Fully maxed at <b style="color:var(--parch)">+${boostPct(haN,'haste')}%</b> - the absolute limit.`
@@ -9799,7 +9837,7 @@ function renderShop(){
   S.ringRecipe=true;save();renderShop();renderHUD();
   sfx.level();
   stageMsg('💍 Recipe of the Ring acquired - find the Broken Ring in the lake!',3200);
-  log(`<span class="llegendary">💍 Recipe of the Ring</span> purchased. It rests in your Bag until the Broken Ring is found.`,'loot');
+  log(`<span class="llegendary">${uiIcon('it_trinket','💍','shopico')} Recipe of the Ring</span> purchased. It rests in your Bag until the Broken Ring is found.`,'loot');
  };
  $('chestBtn').onclick=openChest;
  $('goldChestBtn').onclick=openGoldChest;
