@@ -10764,7 +10764,7 @@ const BOOT_MIN=5000,BOOT_MAX=13000;
    outside the page so no background image can reach them. Keep the tint matched to the
    top edge of whatever artwork is on screen (values sampled from the images) so the
    clock and battery read as sitting on the same backdrop. */
-const THEME_BOOT='#050301',THEME_MENU='#1f0c08',THEME_GAME='#1e1208';
+const THEME_BOOT='#523616',THEME_MENU='#401a11',THEME_GAME='#342011';
 function themeTint(){
  const m=document.querySelector('meta[name="theme-color"]');if(!m)return;
  const boot=$('boot'),up=id=>{const e=$(id);return e&&e.classList.contains('open');};

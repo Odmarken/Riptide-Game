@@ -3,7 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="theme-color" content="#050301">
+<meta name="theme-color" content="#523616">
+<!-- Added to the Home Screen this runs standalone: the page then owns the whole screen and
+     the artwork really does reach under the clock and battery. In a Safari tab the status
+     bar belongs to the browser, so only theme-color above can tint it. -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Riptide">
 <title>Riptide</title>
 <link rel="icon" type="image/png" sizes="32x32" href="favicon_32.png">
 <link rel="icon" type="image/png" sizes="64x64" href="favicon_64.png">

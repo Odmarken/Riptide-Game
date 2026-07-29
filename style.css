@@ -27,7 +27,12 @@
  
   /* viewport-fit=cover means the app now paints under the notch and the home indicator,
      so every edge-touching bar keeps its own content clear of those bands */
-  header{padding:calc(7px + env(safe-area-inset-top,0px)) 14px 6px;border-bottom:none;background:url('assets/ui/ui_allt.png') center/100% 100% no-repeat;flex:0 0 auto;z-index:5}
+  /* the plate art carries ~20% of dead dark border along its top edge. Anchored to the
+     bottom and scaled up by the notch inset, that border is pushed off screen so bare
+     wood - not a dark strip - is what runs all the way to the top. inset 0 = untouched. */
+  header{padding:calc(7px + env(safe-area-inset-top,0px)) 14px 6px;border-bottom:none;
+    background:url('assets/ui/ui_allt.png') center bottom/100% calc(100% + env(safe-area-inset-top,0px) * 1.6) no-repeat #342011;
+    flex:0 0 auto;z-index:5}
   .hrow{display:flex;align-items:center;justify-content:space-between;gap:8px}
   .zone-name{font-family:var(--display);font-size:15.5px;color:var(--parch)}
   .zone-sub{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1.4px;margin-top:1px}
@@ -560,8 +565,15 @@
    screen even while iOS Safari's chrome slides in and out (dvh alone leaves a strip) */
 @media (max-aspect-ratio:1/1){
   #boot{background-image:url('assets/ui/loading_phone.jpg');align-items:center;padding-bottom:0;
-    height:100lvh;min-height:100dvh}
+    height:100lvh;min-height:100dvh;
+    /* bottom-anchored and slightly overscaled: crops the black margin baked into the top
+       of the artwork so the gilded frame starts right under the status bar */
+    background-size:auto 103%;background-position:center bottom}
   .bootinner{margin-top:0;width:min(82%,420px)}
+  /* same trick for the tavern art behind login / select / create */
+  body:has(#login.open),body:has(#select.open),body:has(#create.open),
+  body:has(#login.open) #app,body:has(#select.open) #app,body:has(#create.open) #app,
+  #select,#login,#create{background-size:auto 112%;background-position:center bottom}
 }
 /* ❄ Ice Armor talent tree */
 .talentbox{background:linear-gradient(180deg,#101a2a,#080d16);border:2px solid #5b9bd5;border-radius:18px;padding:20px 24px 18px;max-width:560px;width:94%;max-height:94%;overflow-y:auto;text-align:center;box-shadow:0 14px 50px rgba(0,0,0,.7),0 0 30px rgba(91,155,213,.22)}
