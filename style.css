@@ -17,10 +17,17 @@
   /* menu screens live inside the capped app column - paint the artwork across the whole
      window behind them so narrow windows don't show the green body on the sides */
   body:has(#login.open),body:has(#select.open),body:has(#create.open){
-    background:url('assets/ui/bakground_signin.png') center/cover no-repeat #131f1a}
+    background:url('assets/ui/bakground_signin.png') center/cover no-repeat #0d0a07}
+  /* ...and stretch the app column to the full page while a menu screen is up, so a phone
+     never shows the flat backdrop in the strip 100dvh leaves when Safari's bar hides */
+  body:has(#login.open) #app,body:has(#select.open) #app,body:has(#create.open) #app{
+    height:100%;min-height:100dvh;
+    background:url('assets/ui/bakground_signin.png') center/cover no-repeat #0d0a07}
   #app{width:100%;max-width:480px;height:100dvh;display:flex;flex-direction:column;position:relative;background:var(--night)}
  
-  header{padding:7px 14px 6px;border-bottom:none;background:url('assets/ui/ui_allt.png') center/100% 100% no-repeat;flex:0 0 auto;z-index:5}
+  /* viewport-fit=cover means the app now paints under the notch and the home indicator,
+     so every edge-touching bar keeps its own content clear of those bands */
+  header{padding:calc(7px + env(safe-area-inset-top,0px)) 14px 6px;border-bottom:none;background:url('assets/ui/ui_allt.png') center/100% 100% no-repeat;flex:0 0 auto;z-index:5}
   .hrow{display:flex;align-items:center;justify-content:space-between;gap:8px}
   .zone-name{font-family:var(--display);font-size:15.5px;color:var(--parch)}
   .zone-sub{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1.4px;margin-top:1px}
@@ -165,12 +172,13 @@
   .wallet{font-size:12px;color:var(--dim);margin:-6px 0 12px}
   .wallet b{color:var(--brass)} .wallet i{color:#a8bcb0;font-style:normal}
  
-  nav{flex:0 0 68px;display:flex;border-top:none;padding:0 30px;justify-content:center;background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat,url('assets/ui/ui_allt.png') center/cover no-repeat;z-index:30}
+  nav{flex:0 0 auto;height:calc(68px + env(safe-area-inset-bottom,0px));display:flex;border-top:none;padding:0 30px env(safe-area-inset-bottom,0px);justify-content:center;background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat,url('assets/ui/ui_allt.png') center/cover no-repeat;z-index:30}
   nav button{flex:0 1 auto;padding:0 16px;background:none;border:none;color:var(--dim);cursor:pointer;font-size:11px;letter-spacing:.5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-family:var(--body)}
   nav button svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
   nav button.cur{color:var(--brass)}
  
-  #create{position:absolute;inset:0;z-index:50;display:none;flex-direction:column;padding:26px 22px;overflow-y:auto;
+  #create{position:absolute;inset:0;z-index:50;display:none;flex-direction:column;
+    padding:calc(26px + env(safe-area-inset-top,0px)) 22px calc(26px + env(safe-area-inset-bottom,0px));overflow-y:auto;
     background:
       linear-gradient(rgba(8,14,11,.35),rgba(8,14,11,.5)),
       url('assets/ui/bakground_signin.png') center/cover no-repeat;
@@ -204,7 +212,8 @@
   #startHcBtn{background-image:url('assets/ui/ui_buttonshardcore.png?v=2');color:#ffe0da}
   .fineprint{font-size:10px;color:#5c7263;margin-top:12px;line-height:1.5}
  
-  #select,#login{position:absolute;inset:0;z-index:60;display:none;flex-direction:column;padding:26px 22px 18px;overflow-y:auto;
+  #select,#login{position:absolute;inset:0;z-index:60;display:none;flex-direction:column;
+    padding:calc(26px + env(safe-area-inset-top,0px)) 22px calc(18px + env(safe-area-inset-bottom,0px));overflow-y:auto;
     background:
       linear-gradient(rgba(8,14,11,.35),rgba(8,14,11,.5)),
       url('assets/ui/bakground_signin.png') center/cover no-repeat;
@@ -543,11 +552,13 @@
 .bootbar i{display:block;height:100%;width:0%;border-radius:7px;
   background:linear-gradient(90deg,#8a6a2a,#e0b45a 55%,#ffe9a8);
   box-shadow:0 0 10px rgba(180,130,50,.6);transition:width .25s ease}
-.boottip{margin-top:11px;font-family:var(--display);font-size:14px;color:#000;
-  text-shadow:0 1px 0 rgba(255,246,220,.5);min-height:1.3em;letter-spacing:.4px}
-/* 📱 portrait: the tall artwork, and the bar sits on the cobblestones above the frame */
+.boottip{margin-top:11px;font-family:var(--display);font-size:14px;color:#fff;
+  text-shadow:0 0 8px #000,0 0 3px #000,0 2px 4px rgba(0,0,0,.9);min-height:1.3em;letter-spacing:.4px}
+/* 📱 portrait: the tall artwork, centred bar, and the art has to fill the whole
+   screen even while iOS Safari's chrome slides in and out (dvh alone leaves a strip) */
 @media (max-aspect-ratio:1/1){
-  #boot{background-image:url('assets/ui/loading_phone.jpg');align-items:flex-end;padding-bottom:9vh}
+  #boot{background-image:url('assets/ui/loading_phone.jpg');align-items:center;padding-bottom:0;
+    height:100lvh;min-height:100dvh}
   .bootinner{margin-top:0;width:min(82%,420px)}
 }
 /* ❄ Ice Armor talent tree */

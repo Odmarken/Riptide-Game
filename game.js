@@ -3659,7 +3659,8 @@ function killEnemy(en){
    floatAt(en.x,en.y-en.r-44,'🍀 POTION OF LUCK','#9adf9a');
    stageMsg('⚡ Thor falls! A 🍀 Potion of Luck is yours. Valhalla grows silent until the next storm.',3500);
    log(`<span class="imp">Thor slain ×${S.thorKills}.</span> Loot: <span class="lfine">🍀 Potion of Luck</span> - +20% better drops from slain foes for 30 minutes.`);
-   publishLB(S,true);
+   saveNow();                       /* the lockout and the potion are banked at once */
+   goHomeAfter(3000,'⚡ The storm passes - Goldshire welcomes you back.');
   }else if(en.bossId==='reaper'){ /* ☠ the summit falls - one Ice Armor talent point, once ever */
    S.forsakenDead=true;   /* survives Prestige: the Gate never reopens */
    S.talentPts=(S.talentPts||0)+1;
@@ -3688,6 +3689,8 @@ function killEnemy(en){
      log(`Raid reward: <span class="llegendary">⚗️ Potion of Raid</span> - +15% boss damage for 60 minutes. Drink it from the Bag.`,'loot');
      stageMsg('⚗️ POTION OF RAID earned - check your Bag!',3000);
     }
+    saveNow();                      /* chest, lockout and potion straight to the cloud */
+    goHomeAfter(3000,'⚔ The Sanctum falls silent - back to Goldshire.');
    }
   }else{
    S.bossDead[S.zone]=true;
@@ -10015,7 +10018,22 @@ $('restSpinBtn').onclick=()=>{
  requestAnimationFrame(tick);
 };
 
+/* 🏠 victory lap: let the loot toasts land, then carry the player back to Goldshire.
+   Cancels itself if they die or travel on their own in the meantime. */
+let homeTimer=null;
+function goHomeAfter(ms,msg){
+ clearTimeout(homeTimer);
+ const fromZone=S&&S.zone;
+ homeTimer=setTimeout(()=>{
+  homeTimer=null;
+  if(!gameOn||!S||!hero||hero.dead)return;   /* died on the way out - leave them be */
+  if(S.zone!==fromZone)return;               /* already travelled somewhere themselves */
+  if(msg)stageMsg(msg,2600);
+  goHome();
+ },ms);
+}
 function goHome(){
+ clearTimeout(homeTimer);homeTimer=null;
  if(!gameOn||!S||hero.dead)return;
  if(hcNoFlee())return;
  if(mp.on)mpLeave(false);
@@ -10113,6 +10131,18 @@ async function save(){
   else FB.pushDirty=true;
   publishLB(S);
  }else publishLB(S);
+}
+/* ☁ force the cloud copy up NOW, throttle be damned - for moments too valuable to lose:
+   raid clears, Thor kills, anything that hands out once-per-lockout loot. */
+async function saveNow(){
+ if(!S||!S.id||FB.kicked)return;
+ memChars[S.id]=JSON.stringify(S);
+ await deviceSet('riptide-char-'+S.id,memChars[S.id]);
+ if(FB.ready&&FB.user){
+  FB.lastPush=Date.now();FB.pushDirty=false;
+  await cloudPushChar(S);
+ }
+ publishLB(S,true);
 }
 setInterval(()=>{ /* trailing flush so a dirty save never waits longer than ~3.5 min */
  if(FB.pushDirty&&FB.ready&&FB.user&&S&&S.id&&Date.now()-(FB.lastPush||0)>180000){
@@ -10729,7 +10759,7 @@ function preloadMaps(){ /* warm every zone map in the background - kills the pro
    screen appears, so nothing pops in later. The bar always runs at least BOOT_MIN ms
    so it reads as a loading screen instead of a flash, and it can never hang: a hard
    timeout lets the player in even if a file is slow or missing. */
-const BOOT_MIN=4000,BOOT_MAX=13000;
+const BOOT_MIN=5000,BOOT_MAX=13000;
 function bootPreload(){
  const boot=$('boot');if(!boot)return;
  const urls=[];

@@ -9,7 +9,9 @@
       "mcp__claude_ai_Higgsfield__generate_image",
       "mcp__claude_ai_Higgsfield__job_status",
       "Bash(mkdir -p assets/icons)",
-      "Bash(curl -sL -o assets/icons/_sheet_spells.png \"https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260728_183633_12dee3c4-caf3-480a-a735-740696c6ef27.png\")"
+      "Bash(curl -sL -o assets/icons/_sheet_spells.png \"https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260728_183633_12dee3c4-caf3-480a-a735-740696c6ef27.png\")",
+      "Bash(grep -n \"html,body{\" -A 2 style.css)",
+      "PowerShell(try{\\(Invoke-WebRequest -Uri http://localhost:8000/ -TimeoutSec 3 -UseBasicParsing\\).StatusCode}catch{\"down\"})"
     ]
   }
 }
