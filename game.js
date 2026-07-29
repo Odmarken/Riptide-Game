@@ -10499,7 +10499,7 @@ function updateAcctUI(){
 function showLogin(msg=''){
  gameOn=false;
  S=null; /* drop any lingering character so it can never be pushed into the next profile */
- $('create').style.display='none';
+ $('create').style.display='none';$('create').classList.remove('open');
  $('select').classList.remove('open');
  $('login').classList.add('open');
  $('fbErr').style.color='#ff8a7a';$('fbErr').textContent=msg;
@@ -10610,14 +10610,14 @@ function showSelect(){
  $('login').classList.remove('open');
  if(AC.ctx){stopAmbience();AC.prof=null;}
  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));
- $('create').style.display='none';
+ $('create').style.display='none';$('create').classList.remove('open');
  $('select').classList.add('open');
  updateAcctUI();
  renderSelect();
 }
 function showCreate(firstEver){
  $('select').classList.remove('open');
- $('create').style.display='flex';
+ $('create').style.display='flex';$('create').classList.add('open');
  $('createBack').style.display=firstEver?'none':'block';
  $('cname').value='';
 }
@@ -10675,7 +10675,7 @@ $('startHcBtn').onclick=()=>{
  $('hcYes').onclick=()=>{ov.remove();createHero(true);};
  $('hcNo').onclick=()=>ov.remove();
 };
-$('createBack').onclick=()=>{$('create').style.display='none';showSelect();};
+$('createBack').onclick=()=>{$('create').style.display='none';$('create').classList.remove('open');showSelect();};
 $('newCharBtn').onclick=()=>showCreate(false);
 $('charSelBtn').onclick=async()=>{if(hcNoFlee())return;await save();showSelect();};
 $('fbLogin').onclick=()=>fbSignIn(false);
@@ -10760,6 +10760,23 @@ function preloadMaps(){ /* warm every zone map in the background - kills the pro
    so it reads as a loading screen instead of a flash, and it can never hang: a hard
    timeout lets the player in even if a file is slow or missing. */
 const BOOT_MIN=5000,BOOT_MAX=13000;
+/* iOS Safari tints its own status/toolbar bands from theme-color, and those bands sit
+   outside the page so no background image can reach them. Keep the tint matched to the
+   top edge of whatever artwork is on screen (values sampled from the images) so the
+   clock and battery read as sitting on the same backdrop. */
+const THEME_BOOT='#050301',THEME_MENU='#1f0c08',THEME_GAME='#1e1208';
+function themeTint(){
+ const m=document.querySelector('meta[name="theme-color"]');if(!m)return;
+ const boot=$('boot'),up=id=>{const e=$(id);return e&&e.classList.contains('open');};
+ m.setAttribute('content',
+  boot&&!boot.classList.contains('gone')?THEME_BOOT:
+  (up('login')||up('select')||up('create'))?THEME_MENU:THEME_GAME);
+}
+(()=>{ /* game.js is the last thing in <body>, so every screen already exists here */
+ const obs=new MutationObserver(themeTint);
+ ['boot','login','select','create'].forEach(id=>{const e=$(id);if(e)obs.observe(e,{attributes:true,attributeFilter:['class']});});
+ themeTint();
+})();
 function bootPreload(){
  const boot=$('boot');if(!boot)return;
  const urls=[];
@@ -10816,7 +10833,7 @@ function bootPreload(){
 }
 bootPreload();
 function beginGame(isNew){
- $('create').style.display='none';
+ $('create').style.display='none';$('create').classList.remove('open');
  $('select').classList.remove('open');
  openTab('battle');
  hero=null; /* fresh character entering the world - never inherit the previous character's vitals */
