@@ -7750,13 +7750,13 @@ function fillerCard(){
  /* GOLD GOLD GOLD uses Frostmourne and pets as rare teases instead of coin clutter. */
  if(curCase==='blacktemple'){
   const rr=Math.random();
-  if(rr<0.14)return {icon:'🗡️',cc:'#39ff6a',t:'legendary'};
+  if(rr<0.14)return {icon:lootIco('it_weapon','🗡️'),cc:'#39ff6a',t:'legendary'};
   if(rr<0.38)return {icon:lootIco('it_chest','🎁'),cc:'#8fc3ef',t:'freebox'};
-  return {icon:'◉',cc:'#ffd76a',t:'gold'};
+  return {icon:lootIco('it_gold','◉'),cc:'#ffd76a',t:'gold'};
  }
  if(curCase==='gold'){
   const rr=Math.random();
-  if(rr<0.02)return {icon:'🗡️',cc:'#ffd100',t:'legendary'};
+  if(rr<0.02)return {icon:lootIco('it_weapon','🗡️'),cc:'#ffd100',t:'legendary'};
   if(rr<0.045){ /* tease all three companions on the reel */
    const tp=petOf(['cat','dog','blackdog'][Math.floor(Math.random()*3)]);
    return {icon:petGlyph(tp),cc:tp.cc,t:'pet'};
@@ -7777,7 +7777,7 @@ function prizeValue(type){
    log(`LEGENDARY: <span class="llegendary">Frostmourne</span> hungers…`,'loot');
    it._lid=lootUID++;
    if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
-   return {icon:'🗡️',tier:'LEGENDARY',name:itemName(it),color:'#ffd100',sub:'weapon · '+itemStr(it),epic:true,big:true};
+   return {icon:lootIco('it_weapon','🗡️'),tier:'LEGENDARY',name:itemName(it),color:'#ffd100',sub:'weapon · '+itemStr(it),epic:true,big:true};
   }
   if(r<0.005){ /* 0.002–0.005 = 0.3% pet - Puffen, Ayla or Nellie, 33% each */
    const ids=['cat','dog','blackdog'];
@@ -7849,13 +7849,13 @@ function btPrizeValue(){
   const it=rollWarglaives();it._lid=lootUID++;
   if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
   log(`BLACK TEMPLE: <span class="llegendary">Warglaives</span>!`,'loot');
-  return {icon:'🗡️',tier:'LEGENDARY',name:itemName(it),color:'#39ff6a',sub:'weapon · '+itemStr(it),epic:true,big:true};
+  return {icon:lootIco('it_weapon','🗡️'),tier:'LEGENDARY',name:itemName(it),color:'#39ff6a',sub:'weapon · '+itemStr(it),epic:true,big:true};
  }
  if(p.kind==='gold'){
   const amt=Math.round(p.min+Math.random()*(p.max-p.min));
   const got=addGoldOverflow(amt);
   log(`BLACK TEMPLE: <span class="loot">${amt.toLocaleString()} gold</span>${got.over?' ('+got.over.toLocaleString()+' overflow)':''}.`,'loot');
-  return {icon:'◉',tier:'Gold',name:amt.toLocaleString()+' gold',color:'#ffd76a',sub:got.over?got.over.toLocaleString()+' parked in overflow.':'Added to your wallet.',big:amt>=25000};
+  return {icon:lootIco('it_gold','◉'),tier:'Gold',name:amt.toLocaleString()+' gold',color:'#ffd76a',sub:got.over?got.over.toLocaleString()+' parked in overflow.':'Added to your wallet.',big:amt>=25000};
  }
  S.freeGoldCases=(S.freeGoldCases||0)+p.n;
  log(`BLACK TEMPLE: <span class="loot">${p.n} free GOLD GOLD GOLD cases</span>!`,'loot');
@@ -10724,6 +10724,67 @@ function preloadMaps(){ /* warm every zone map in the background - kills the pro
  zoneMapImg('cryptmap');zoneMapImg('cryptwall');
  zoneMapImg('raidfloor');zoneMapImg('raidwall');zoneMapImg('cowlevel_zone');zoneMapImg('tormap_zone');zoneMapImg('farm_zone');zoneMapImg('finalboss_zone');
 }
+/* ==================== ⏳ BOOT PRELOADER ====================
+   Everything the first minutes of play touch is pulled into memory before the login
+   screen appears, so nothing pops in later. The bar always runs at least BOOT_MIN ms
+   so it reads as a loading screen instead of a flash, and it can never hang: a hard
+   timeout lets the player in even if a file is slow or missing. */
+const BOOT_MIN=4000,BOOT_MAX=13000;
+function bootPreload(){
+ const boot=$('boot');if(!boot)return;
+ const urls=[];
+ const push=u=>{if(u&&urls.indexOf(u)<0)urls.push(u);};
+ /* UI frames and the login art */
+ push('assets/ui/loading.jpg');
+ ['bakground_signin','ui_background','ui_allt','ui_ram','ui_buttons','ui_buttonrak','ui_buttonsstone','ui_buttonshardcore']
+  .forEach(n=>push('assets/ui/'+n+'.png'));
+ /* painted icons - spells, potions, loot */
+ ['heroicstrike','whirlwind','battleshout','fireball','frostnova','arcanebarrage','aimedshot','multishot','rapidfire','smite','holynova','renew',
+  'pot_hp','pot_mp','pot_armor','it_weapon','it_armor','it_trinket','it_scroll','it_chest','it_gold','it_scrap','it_gem','it_luck','it_brokenring',
+  'ui_hook','ui_torch','ui_magnet','ui_shears','ui_cart','ui_speed','ui_haste','ui_auto','ui_dice']
+  .forEach(n=>push('assets/icons/'+n+'.png'));
+ /* mob sprites */
+ Object.values(MOB_SET).forEach(a=>a.forEach(n=>push('assets/mobs/'+n+'.png')));
+ /* world props and the hero's own gear art */
+ ['casino','tavern','bank','blacksmith','fishinghut','brunn','berg','sten','träd','trädsnow','armor_altar','frostmourne','warglaive','onering']
+  .forEach(n=>push('assets/models/'+n+'.png'));
+ /* the first zones you will actually walk through */
+ ['levlingzone_green','levlingzone_boss','farm_zone','cowlevel_zone'].forEach(n=>push('assets/models/maps/'+n+'.png'));
+ let done=0,settled=false;
+ const total=urls.length;
+ const fill=$('bootFill'),tip=$('bootTip');
+ const tips=['Summoning the realm…','Sharpening blades…','Waking the bosses…','Feeding the cows…','Stacking the deck…'];
+ let tipI=0;
+ const tipTimer=setInterval(()=>{if(tip)tip.textContent=tips[++tipI%tips.length];},900);
+ const t0=performance.now();
+ const paint=()=>{
+  const loadPct=total?done/total:1;
+  const timePct=Math.min(1,(performance.now()-t0)/BOOT_MIN); /* the bar never outruns the minimum */
+  if(fill)fill.style.width=Math.round(Math.min(loadPct,timePct)*100)+'%';
+ };
+ const finish=()=>{
+  if(settled)return;settled=true;
+  clearInterval(tipTimer);
+  if(fill)fill.style.width='100%';
+  setTimeout(()=>{boot.classList.add('gone');setTimeout(()=>{boot.style.display='none';},600);},120);
+ };
+ const step=()=>{done++;paint();if(done>=total)setTimeout(check,0);};
+ const check=()=>{
+  const waited=performance.now()-t0;
+  if(done>=total&&waited>=BOOT_MIN)finish();
+  else setTimeout(check,120);
+ };
+ urls.forEach(u=>{
+  const im=new Image();
+  im.onload=step;im.onerror=step;   /* a missing file must never stall the door */
+  im.src=u;
+ });
+ if(!total)setTimeout(finish,BOOT_MIN);
+ setTimeout(check,120);
+ setTimeout(finish,BOOT_MAX);       /* hard ceiling - slow connections still get in */
+ paint();
+}
+bootPreload();
 function beginGame(isNew){
  $('create').style.display='none';
  $('select').classList.remove('open');

@@ -530,6 +530,20 @@
 .gvbbigcard{width:78px;flex:0 0 78px;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:30px;border-right:1px solid rgba(255,255,255,.06)}
 .gvbbigcard .gl{font-size:10px;font-weight:800}
 .gvbbigmark{position:absolute;left:50%;top:0;bottom:0;width:2px;background:#ffd76a;box-shadow:0 0 10px #ffd76a}
+/* ⏳ boot screen - holds the door shut until the art is in memory */
+/* the framed parchment is the whole composition - contain it so the border is never cropped */
+#boot{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+  background:url('assets/ui/loading.jpg') center/contain no-repeat #0b0906;transition:opacity .5s ease}
+#boot.gone{opacity:0;pointer-events:none}
+.bootinner{position:relative;text-align:center;width:min(60%,430px);margin-top:42vh} /* well below the crest, low on the parchment */
+.bootbar{height:13px;border-radius:8px;border:1px solid #6b4a22;background:rgba(60,42,22,.55);overflow:hidden;
+  box-shadow:inset 0 1px 4px rgba(0,0,0,.5),0 1px 0 rgba(255,240,200,.25)}
+.bootbar i{display:block;height:100%;width:0%;border-radius:7px;
+  background:linear-gradient(90deg,#8a6a2a,#e0b45a 55%,#ffe9a8);
+  box-shadow:0 0 10px rgba(180,130,50,.6);transition:width .25s ease}
+.boottip{margin-top:11px;font-family:var(--display);font-size:14px;color:#000;
+  text-shadow:0 1px 0 rgba(255,246,220,.5);min-height:1.3em;letter-spacing:.4px}
+@media (max-aspect-ratio:1/1){.bootinner{margin-top:24vh;width:min(78%,380px)}} /* phones: the art letterboxes, keep the bar lower-centre */
 /* ❄ Ice Armor talent tree */
 .talentbox{background:linear-gradient(180deg,#101a2a,#080d16);border:2px solid #5b9bd5;border-radius:18px;padding:20px 24px 18px;max-width:560px;width:94%;max-height:94%;overflow-y:auto;text-align:center;box-shadow:0 14px 50px rgba(0,0,0,.7),0 0 30px rgba(91,155,213,.22)}
 .ttop{font-family:var(--display);font-size:22px;color:#9fd4ff;letter-spacing:1px;text-shadow:0 0 14px rgba(120,200,255,.45)}
