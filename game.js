@@ -1371,8 +1371,16 @@ function rollWarglaives(){
 function itemName(it){return ((isFM(it)||isWG(it))&&fmStar(it)>1?'★'+fmStar(it)+' ':'')+(it&&it.name?it.name:'?');}
 const SMITH_HOUR=7200000;
 const fmStar=it=>it&&it.star?it.star:1;
-const fmBagOfStar=st=>(S.bag||[]).filter(it=>isFM(it)&&fmStar(it)===st&&!inGearSet(it));
-const wgBagOfStar=st=>(S.bag||[]).filter(it=>isWG(it)&&fmStar(it)===st&&!inGearSet(it));
+/* every copy you own is forge fodder - loose in the bag, starred by a gear set, or worn.
+   Set-locked pieces are still protected from selling and scrapping; only the forge, which
+   hands the blade back stronger, is allowed to take them. */
+const fmBagOfStar=st=>(S.bag||[]).filter(it=>isFM(it)&&fmStar(it)===st);
+const wgBagOfStar=st=>(S.bag||[]).filter(it=>isWG(it)&&fmStar(it)===st);
+/* a blade the forge swallows cannot stay referenced by a saved loadout */
+function releaseFromSets(it){
+ if(!it||!it.gsid)return;
+ (S.gearSets||[]).forEach(gs=>{if(gs)SLOTS.forEach(k=>{if(gs[k]===it.gsid)gs[k]=null;});});
+}
 function smithTick(){
  if(!S||!S.smithJob)return;
  if(Date.now()<S.smithJob.endT)return;
@@ -9726,12 +9734,14 @@ function smithRefresh(){
  }
  fg.style.display='block';
  const wgSt=legSel==='wg';
- /* bag copies first, the equipped blade last - so the forge only eats off your back when it must */
+ /* everything counts, but the forge eats in the least disruptive order: loose bag copies
+    first, then ones a gear set has starred, and the blade in your hands only if it must */
  const bagOnly=wgSt?wgBagOfStar:fmBagOfStar;
  const bagOf=st=>{
   const eqW=S.gear.weapon;
-  const eqOk=(wgSt?isWG(eqW):isFM(eqW))&&fmStar(eqW)===st&&!inGearSet(eqW);
-  return bagOnly(st).concat(eqOk?[eqW]:[]);
+  const eqOk=(wgSt?isWG(eqW):isFM(eqW))&&fmStar(eqW)===st;
+  const bag=bagOnly(st);
+  return bag.filter(it=>!inGearSet(it)).concat(bag.filter(it=>inGearSet(it))).concat(eqOk?[eqW]:[]);
  };
  const NM=wgSt?'Warglaives':'Frostmourne';
  const IC=wgSt?'⚔':'❄';
@@ -9754,15 +9764,17 @@ function smithRefresh(){
   ?(wgSt
    ?`Warglaives <b style="color:#4dff9a">★${out}</b> - <b>+${out===3?20:15}% boss damage</b>, <b>+${out*2}% lifesteal</b>. Upgrades &amp; attack reset (cap +6 unchanged). Consumes both ★${src}.`
    :`Frostmourne <b style="color:#ffd76a">★${out}</b> - <b>+${out*2}% crit</b>, <b>+${out*2}% lifesteal</b>. Upgrades &amp; attack reset (cap +6 unchanged). Consumes both ★${src}.`)
-  :`Need <b>2× ${NM}${src>1?' ★'+src:''}</b> - bag and equipped both count (${have}/2).`;
+  :`Need <b>2× ${NM}${src>1?' ★'+src:''}</b> - bag, equipped and gear-set ⭐ copies all count (${have}/2).`;
  const btn=$('fmForgeBtn');btn.disabled=!ok;
  btn.onclick=()=>{
   const list=bagOf(src);if(list.length<2)return;
   for(let n=0;n<2;n++){
    const it=bagOf(src)[0];
+   releaseFromSets(it); /* the loadout loses its reference before the blade leaves */
    if(it===S.gear.weapon){S.gear.weapon=null;if(hero)hero.hp=Math.min(hero.hp,heroMax());} /* fed from your hands */
    else S.bag.splice(S.bag.indexOf(it),1);
   }
+  cleanGsids();
   S.smithJob={kind:wgSt?'wg':'fm',to:out,endT:Date.now()+SMITH_HOUR};
   stageMsg('⚒️ The forge roars - '+NM+' ★'+out+' in 2 hours.',2400);
   sfx.buy();save();smithRefresh();renderBag();
