@@ -9741,7 +9741,11 @@ function smithRefresh(){
   const eqW=S.gear.weapon;
   const eqOk=(wgSt?isWG(eqW):isFM(eqW))&&fmStar(eqW)===st;
   const bag=bagOnly(st);
-  return bag.filter(it=>!inGearSet(it)).concat(bag.filter(it=>inGearSet(it))).concat(eqOk?[eqW]:[]);
+  const all=bag.filter(it=>!inGearSet(it)).concat(bag.filter(it=>inGearSet(it))).concat(eqOk?[eqW]:[]);
+  /* dedupe by identity: a worn blade that is also still listed in the bag is ONE blade, and
+     counting it twice would let the forge start on a single copy and strand the bag row */
+  const seen=new Set();
+  return all.filter(it=>{if(seen.has(it))return false;seen.add(it);return true;});
  };
  const NM=wgSt?'Warglaives':'Frostmourne';
  const IC=wgSt?'⚔':'❄';
@@ -9768,16 +9772,25 @@ function smithRefresh(){
  const btn=$('fmForgeBtn');btn.disabled=!ok;
  btn.onclick=()=>{
   const list=bagOf(src);if(list.length<2)return;
-  for(let n=0;n<2;n++){
-   const it=bagOf(src)[0];
+  /* pick both victims up front. Recomputing the list mid-loop could hand back undefined,
+     and indexOf(undefined) is -1, which would make splice(-1,1) eat an innocent item. */
+  const victims=[list[0],list[1]];
+  let unequipped=false;
+  victims.forEach(it=>{
+   if(!it)return;
    releaseFromSets(it); /* the loadout loses its reference before the blade leaves */
-   if(it===S.gear.weapon){S.gear.weapon=null;if(hero)hero.hp=Math.min(hero.hp,heroMax());} /* fed from your hands */
-   else S.bag.splice(S.bag.indexOf(it),1);
-  }
+   SLOTS.forEach(sl=>{if(S.gear[sl]===it){S.gear[sl]=null;unequipped=true;}}); /* fed from your hands */
+   const bi=(S.bag||[]).indexOf(it);
+   if(bi>=0)S.bag.splice(bi,1);
+  });
+  if(unequipped&&hero)hero.hp=Math.min(hero.hp,heroMax());
   cleanGsids();
   S.smithJob={kind:wgSt?'wg':'fm',to:out,endT:Date.now()+SMITH_HOUR};
   stageMsg('⚒️ The forge roars - '+NM+' ★'+out+' in 2 hours.',2400);
-  sfx.buy();save();smithRefresh();renderBag();
+  sfx.buy();save();smithRefresh();
+  /* every surface that can still be showing the swallowed blade */
+  renderBag();renderHero();renderHUD();
+  if(typeof publishLB==='function')publishLB(S,true);
  };
 }
 function openSmith(){smithTick();$('smithFx').style.display='flex';smithRefresh();}
