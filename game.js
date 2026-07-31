@@ -1146,6 +1146,11 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.bankLastT===undefined)s.bankLastT=0;
  if(s.smithLvl===undefined)s.smithLvl=0;
  if(s.smithJob===undefined)s.smithJob=null;
+ /* ☁ merge counter. NOT a clock: Date.now() from two devices is not monotonic, so a phone
+    running five minutes fast would win every merge forever. rev only ever counts up, once
+    per local save. savedAt beside it is for support/debugging and is never compared. */
+ if(s.rev===undefined)s.rev=0;
+ if(s.savedAt===undefined)s.savedAt=0;
  if(s.pet===undefined)s.pet=null;
  if(!s.pets)s.pets=[];
  if(s.maxZone===undefined)s.maxZone=s.zone||0;
@@ -10149,39 +10154,48 @@ function itemConsistent(it,ch){
    throttles Firestore. Every push is two writes plus a full-document echo to our own
    listener, so this number is very close to a direct multiplier on the Firebase bill. */
 const FB_PUSH_MS=15000;
+/* ☁ one flush attempt. pushDirty is cleared ONLY once the write actually lands - a tab that
+   gets frozen mid-push must retry on the next run, not forget it ever had work to do. */
+function flushCloud(){
+ if(!(FB.pushDirty&&FB.ready&&FB.user&&S&&S.id)||FB.kicked)return;
+ const at=Date.now();
+ FB.lastPush=at;
+ cloudPushChar(S).then(ok=>{if(ok&&FB.lastPush===at)FB.pushDirty=false;}); /* a newer push owns the flag */
+}
 async function save(){
  if(!S||!S.id||FB.kicked)return;
+ S.rev=(S.rev|0)+1;S.savedAt=Date.now(); /* rev decides merges; savedAt is only for support */
  memChars[S.id]=JSON.stringify(S);
  await deviceSet('riptide-char-'+S.id,memChars[S.id]);
  if(FB.ready&&FB.user){
-  const now=Date.now();
-  if(now-(FB.lastPush||0)>FB_PUSH_MS){FB.lastPush=now;FB.pushDirty=false;cloudPushChar(S);}
-  else FB.pushDirty=true;
-  publishLB(S);
- }else publishLB(S);
+  FB.pushDirty=true;
+  if(Date.now()-(FB.lastPush||0)>FB_PUSH_MS)flushCloud();
+ }
+ publishLB(S);
 }
 /* ☁ force the cloud copy up NOW, throttle be damned - for moments too valuable to lose:
    raid clears, Thor kills, anything that hands out once-per-lockout loot. */
 async function saveNow(){
  if(!S||!S.id||FB.kicked)return;
+ S.rev=(S.rev|0)+1;S.savedAt=Date.now();
  memChars[S.id]=JSON.stringify(S);
  await deviceSet('riptide-char-'+S.id,memChars[S.id]);
  if(FB.ready&&FB.user){
-  FB.lastPush=Date.now();FB.pushDirty=false;
-  await cloudPushChar(S);
+  FB.lastPush=Date.now();
+  if(await cloudPushChar(S))FB.pushDirty=false;
  }
  publishLB(S,true);
 }
 setInterval(()=>{ /* trailing flush - a dirty save never waits much longer than the throttle */
- if(FB.pushDirty&&FB.ready&&FB.user&&S&&S.id&&Date.now()-(FB.lastPush||0)>FB_PUSH_MS){
-  FB.lastPush=Date.now();FB.pushDirty=false;cloudPushChar(S);
- }
+ if(FB.pushDirty&&Date.now()-(FB.lastPush||0)>FB_PUSH_MS)flushCloud();
 },5000);
-document.addEventListener('visibilitychange',()=>{ /* tab closing/backgrounding - get the last state out */
- if(document.visibilityState==='hidden'&&FB.pushDirty&&FB.ready&&FB.user&&S&&S.id){
-  FB.lastPush=Date.now();FB.pushDirty=false;cloudPushChar(S);
- }
-});
+/* Tab going away: pagehide is the one iOS Safari reliably fires (visibilitychange can be
+   skipped entirely when the app is swiped away), so listen for both. The local save is
+   already on disk and now outranks a stale cloud copy, so a missed push costs nothing but
+   a delay - it goes up on the next launch. */
+const cloudBail=()=>{FB.lastPush=0;flushCloud();}; /* ignore the throttle on the way out */
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')cloudBail();});
+addEventListener('pagehide',cloudBail);
 async function loadRoster(){
  const key=rosterKey();
  let raw=await deviceGet(key);
@@ -10257,21 +10271,42 @@ const FB={ready:false,user:null,auth:null,db:null,tried:false,lastPub:0};
 /* --- single-session enforcement: one live client per account --- */
 const SESSION_ID='sess_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 let sessUnsub=null;
+/* The lock used to live as a field on players/{uid} - the same document that holds every
+   character. onSnapshot has no field mask, so every 25 KB save push echoed the WHOLE
+   document back down to our own listener. That echo, not the writes, was most of the
+   egress bill. A tiny dedicated doc changes only when somebody claims a session, so the
+   listener goes quiet between logins.
+   Needs this rule (see the note in the chat) - until it is deployed the code falls back
+   to the legacy field automatically, so the two can be deployed in either order:
+     match /players/{uid}/meta/{doc} { allow read, write: if request.auth.uid == uid; } */
+const sessRef=()=>FB.db.collection('players').doc(FB.user.uid).collection('meta').doc('session');
 async function claimSession(){
  if(!(FB.ready&&FB.user))return;
+ if(FB.claimedUid===FB.user.uid&&sessUnsub)return; /* already holding it - no second write */
+ FB.claimedUid=FB.user.uid;
  FB.kicked=false;
  try{
-  await FB.db.collection('players').doc(FB.user.uid)
-   .set({activeSession:SESSION_ID,sessionAt:Date.now()},{merge:true});
-  watchSession();
- }catch(e){console.warn('session claim failed',e);}
+  await sessRef().set({activeSession:SESSION_ID,sessionAt:Date.now()});
+  watchSession(false);
+ }catch(e){
+  console.warn('session claim failed, falling back to the legacy field',e);
+  try{
+   await FB.db.collection('players').doc(FB.user.uid)
+    .set({activeSession:SESSION_ID,sessionAt:Date.now()},{merge:true});
+   watchSession(true);
+  }catch(e2){console.warn('legacy session claim failed too',e2);}
+ }
 }
-function watchSession(){
+function watchSession(legacy){
  if(sessUnsub)sessUnsub();
- sessUnsub=FB.db.collection('players').doc(FB.user.uid).onSnapshot(doc=>{
+ const ref=legacy?FB.db.collection('players').doc(FB.user.uid):sessRef();
+ sessUnsub=ref.onSnapshot(doc=>{
   const d=doc.data()||{};
   if(d.activeSession&&d.activeSession!==SESSION_ID)kickSession();
- },e=>console.warn('session watch failed',e));
+ },e=>{
+  console.warn('session watch failed',e);
+  if(!legacy){sessUnsub=null;watchSession(true);} /* rules not out yet - watch the old field */
+ });
 }
 function kickSession(){
  if(FB.kicked)return;
@@ -10300,6 +10335,11 @@ async function initFirebase(){
    FB.auth.onAuthStateChanged(async u=>{
     FB.user=u;updateAcctUI();
     if(u&&seasonReady)await cloudPullRoster();
+    /* A reload restores auth without ever passing through fbSignIn, so without this the tab
+       would hold no session lock and run no watcher: unkickable, and free to overwrite
+       whatever another device had just claimed. */
+    if(u)await claimSession();
+    else{FB.claimedUid=null;if(sessUnsub){sessUnsub();sessUnsub=null;}}
     if(first){first=false;resolve();}
    },()=>{if(first){first=false;resolve();}});
   });
@@ -10335,8 +10375,25 @@ async function fbSignIn(create){
   showSelect();
  }catch(e){$('fbErr').textContent=((e&&e.message)||'Sign-in failed.').replace('Firebase: ','');}
 }
+/* A failed push used to vanish into console.warn, so a save that Firestore rejects outright
+   (document over 1 MiB, or past the 40k index-entries-per-document ceiling) looked exactly
+   like a healthy one - no rules deny, no console error, just silence. Say it out loud. */
+function cloudPushProblem(e){
+ if(Date.now()-(FB.lastWarn||0)<300000)return; /* one nag per 5 min, never a spam loop */
+ FB.lastWarn=Date.now();
+ const code=(e&&e.code)||'unknown';
+ const txt=code+' '+((e&&e.message)||'');
+ const fatal=/invalid-argument|resource-exhausted|index entries|too large|maximum/i.test(txt);
+ const msg=fatal
+  ?'☁ Cloud save REJECTED - this character has outgrown the save document. Progress is safe on this device.'
+  :'☁ Cloud save failed - progress is safe on this device and will sync when the connection returns.';
+ try{if(gameOn)stageMsg(msg,4500);}catch(_){}
+ /* the code is what settles the 1 MiB question - keep it in the player-visible log so a
+    screenshot from a stuck account is enough to diagnose it */
+ try{log('<span class="imp">'+msg+'</span> <span class="ss">['+code+']</span>');}catch(_){}
+}
 async function cloudPushChar(ch){
- if(!(FB.ready&&FB.user)||FB.kicked)return;
+ if(!(FB.ready&&FB.user)||FB.kicked)return false;
  try{
   const uid=FB.user.uid,ids=await loadRoster();
   const ref=FB.db.collection('players').doc(uid);
@@ -10352,7 +10409,13 @@ async function cloudPushChar(ch){
    FB.lastRoster=rosterJson;
    await ref.update({['chars.'+ch.id]:JSON.parse(JSON.stringify(ch)),updatedAt:Date.now()});
   }
- }catch(e){console.warn('cloud push failed',e);}
+  return true;
+ }catch(e){
+  console.warn('cloud push failed',e);
+  FB.lastRoster=null; /* the roster write may not have landed either - do not trust the cache */
+  cloudPushProblem(e);
+  return false;
+ }
 }
 async function cloudDeleteChar(id){
  if(!(FB.ready&&FB.user))return;
@@ -10372,11 +10435,21 @@ async function cloudPullRoster(){
   const remoteChars=data.chars||{},ids=await loadRoster();
   let changed=false;
   for(const [id,raw] of Object.entries(remoteChars)){
+   const rr=+((raw&&raw.rev)||0); /* read rev off the raw doc - migrate() would zero it */
    const ch=migrate(raw);if(!ch||!ch.id)continue;
    const local=await loadChar(ch.id);
-   if(!local||lbScore(ch)>=lbScore(local)){
+   const lr=+((local&&local.rev)||0);
+   /* Higher rev wins; on a tie this device keeps what it has and pushes it up instead.
+      The old rule compared lbScore (prestige, level, gear score), which is identical across
+      any session that did not level or upgrade gear - so a stale cloud copy silently rolled
+      back gold, rating, kills and bag. Saves from before rev existed have no counter at all,
+      so for those - and only those - fall back to the old comparison. */
+   if(!local||((rr||lr)?rr>lr:lbScore(ch)>=lbScore(local))){
     memChars[ch.id]=JSON.stringify(ch);
     await deviceSet('riptide-char-'+ch.id,memChars[ch.id]);
+   }else if(lr>rr){
+    /* this device is ahead - the cloud is the one that needs correcting */
+    cloudPushChar(local);
    }
    if(!ids.includes(ch.id)){ids.push(ch.id);changed=true;}
   }
@@ -10611,6 +10684,10 @@ async function renderSelect(){
   if(!ch)return;
   if(ch.hardcore&&ch.hcDead)return; /* fallen hardcore heroes never rise */
   S=ch;
+  /* cloudPullRoster has already reconciled by the time anyone can press Enter World, so
+     claiming the lead here is safe - and it stops a device that was rolled back earlier
+     from sitting level with a stale cloud copy and trading writes with it. */
+  S.rev=(S.rev|0)+1;
   $('select').classList.remove('open');
   beginGame(false);
  });
