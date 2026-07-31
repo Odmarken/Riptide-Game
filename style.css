@@ -33,6 +33,13 @@
      cached image and removes a whole class of "it looks different on my phone". */
   #app{width:100%;max-width:480px;height:100dvh;display:flex;flex-direction:column;position:relative;
     background:url('assets/ui/ui_allt.png') center center/cover no-repeat var(--night)}
+  /* Installed on the home screen there is no browser chrome that can slide in and out, so
+     dvh has nothing dynamic left to track - but iOS still reports 100dvh short of the
+     home-indicator band, which leaves a dead strip under the nav. lvh is the whole screen by
+     definition, and it is only safe to use HERE precisely because nothing can ever cover it. */
+  @media (display-mode:standalone),(display-mode:fullscreen){
+    #app{height:100lvh}
+  }
   /* viewport-fit=cover means the app paints under the notch and the home indicator, so every
      edge-touching bar keeps its own content clear of those bands.
      The plate art carries ~20% of dead dark border along its top edge; anchored to the bottom
