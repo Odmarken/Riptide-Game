@@ -1989,6 +1989,7 @@ $('ritualBegin').onclick=()=>{
   /* the deed is done */
   S.theKnife=false;
   S.ritualDone=true;
+  altarGateSync(); /* the Gate rises the moment the deed is done - no zone reload needed */
   const zi=Math.max(S.zone,S.maxZone||0);
   const z=(1+zi*0.9+S.lvl*0.18)*(1+(S.prestige||0)*0.25);
   const it={slot:'armor',rar:'legendary',legend:'icearmor',name:'Ice Armor',
@@ -2015,6 +2016,7 @@ $('ritualDoneOk').onclick=()=>{
   stageMsg('🧊 The Ice Armor grips your body - it will never let go.',3000);
   save();renderBag();renderHero();renderHUD();
  }
+ altarGateSync(); /* and again once the armor is on, in case the cutscene was cut short */
 };
 $('sharkOk').onclick=()=>{$('sharkFx').style.display='none';gamePaused=false;};
 function startFishing(){
@@ -2048,6 +2050,16 @@ const COW_BAG_CAP=40;
 const cowLocked=()=>gameOn&&cowRunning;
 /* true while a living boss is engaged - the forge and Trader refuse service mid-fight */
 /* ☠ In the Final Hour the lock covers the whole visit - you bring what you walked in with. */
+/* ⛧ What stands at the far end of the Altar walkway depends on your progress: nothing until
+   the ritual, then the Gate to the Final Hour, then the Armor Altar once the Forsaken One
+   falls. buildZone calls this, but so does the ritual itself - otherwise the Gate would not
+   appear until you left the zone and walked back in. Safe to call any number of times. */
+function altarGateSync(){
+ if(!world||!world.solids||!zoneOf().altar)return;
+ world.solids=world.solids.filter(s=>s.type!=='ritualportal'&&s.type!=='armoraltar');
+ if(S.forsakenDead)world.solids.push({x:(S&&S.armorAltar&&S.armorAltar.x)||1996,y:(S&&S.armorAltar&&S.armorAltar.y)||1000,r:34,type:'armoraltar',crx:86,cry:26,cyo:-18});
+ else if(S.ritualDone)world.solids.push({x:1996,y:1000,r:52,type:'ritualportal'});
+}
 const inBossFight=()=>gameOn&&((zoneOf().finalb&&enemies.some(e=>e.boss&&!e.dead))||enemies.some(e=>e.boss&&!e.dead&&(e.hidden||e.state==='chase'||(hero&&hero.target===e))));
 /* hardcore: entering a boss fight unprepared is a commitment - no fleeing */
 const hcNoFlee=()=>{
@@ -3007,9 +3019,7 @@ function buildZone(){
   if(z.altar){
    /* the way home - standing on the walkway just ahead of the spawn */
    world.solids.push({x:110,y:995,r:38,type:'altarportal'}); /* far left on the walkway */
-   /* ⛧ the Gate stands until the Forsaken One falls - then the Armor Altar takes its place */
-   if(S.forsakenDead)world.solids.push({x:(S&&S.armorAltar&&S.armorAltar.x)||1996,y:(S&&S.armorAltar&&S.armorAltar.y)||1000,r:34,type:'armoraltar',crx:86,cry:26,cyo:-18});
-   else if(S.ritualDone)world.solids.push({x:1996,y:1000,r:52,type:'ritualportal'});
+   altarGateSync();
    world.spawn={x:430,y:990}; /* arrive a few steps onto the bridge */
    world.portal={x:-500,y:-500}; /* hide the default zone-exit swirl - the portal is the exit */
   }
