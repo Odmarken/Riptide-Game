@@ -10145,16 +10145,17 @@ function itemConsistent(it,ch){
  return true;
 }
 
+/* ☁ how often the cloud copy may be refreshed. Local saves are always instant; this only
+   throttles Firestore. Every push is two writes plus a full-document echo to our own
+   listener, so this number is very close to a direct multiplier on the Firebase bill. */
+const FB_PUSH_MS=15000;
 async function save(){
  if(!S||!S.id||FB.kicked)return;
  memChars[S.id]=JSON.stringify(S);
  await deviceSet('riptide-char-'+S.id,memChars[S.id]);
  if(FB.ready&&FB.user){
-  /* 💸 local saves stay instant, but the cloud gets at most one push per 3 min -
-     every push is two writes plus a full-document echo to our own listener, and at
-     12s autosave pace that alone was most of the Firebase bill */
   const now=Date.now();
-  if(now-(FB.lastPush||0)>180000){FB.lastPush=now;FB.pushDirty=false;cloudPushChar(S);}
+  if(now-(FB.lastPush||0)>FB_PUSH_MS){FB.lastPush=now;FB.pushDirty=false;cloudPushChar(S);}
   else FB.pushDirty=true;
   publishLB(S);
  }else publishLB(S);
@@ -10171,11 +10172,11 @@ async function saveNow(){
  }
  publishLB(S,true);
 }
-setInterval(()=>{ /* trailing flush so a dirty save never waits longer than ~3.5 min */
- if(FB.pushDirty&&FB.ready&&FB.user&&S&&S.id&&Date.now()-(FB.lastPush||0)>180000){
+setInterval(()=>{ /* trailing flush - a dirty save never waits much longer than the throttle */
+ if(FB.pushDirty&&FB.ready&&FB.user&&S&&S.id&&Date.now()-(FB.lastPush||0)>FB_PUSH_MS){
   FB.lastPush=Date.now();FB.pushDirty=false;cloudPushChar(S);
  }
-},30000);
+},5000);
 document.addEventListener('visibilitychange',()=>{ /* tab closing/backgrounding - get the last state out */
  if(document.visibilityState==='hidden'&&FB.pushDirty&&FB.ready&&FB.user&&S&&S.id){
   FB.lastPush=Date.now();FB.pushDirty=false;cloudPushChar(S);
