@@ -4215,7 +4215,7 @@ function bossAI(en,dt){
    floatAt(en.x,en.y-en.r-30,'Mjölnir calls!','#dff4ff',true);
    sfx.arcane();shakeT=0.25;
   }
- }else if(B==='cerberus'){ /* HAALAND: hellfire, volleys, hounds, strikes & ground shake */
+ }else if(B==='cerberus'){ /* HAALAND: hellfire, hounds & ground shake */
   if(en.cds.a<=0){en.cds.a=7;sfx.warn();
    for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*120,hero.y+(Math.random()-0.5)*120,290,1.2,en.atk*1.4,'#ff5a3a');
    floatAt(en.x,en.y-en.r-30,'Hellfire!','#ff5a3a',true);
@@ -4223,14 +4223,6 @@ function bossAI(en,dt){
   if(en.cds.c<=0){en.cds.c=14;
    if(addsAlive()<3){spawnAdd('Messi','beast','#a03a2a');spawnAdd('Messi','beast','#a03a2a');
     floatAt(en.x,en.y-en.r-30,'AWOOO!','#ff8a6a',true);}
-  }
-  /* STRIKE - one ball at your position, 5% max HP, every 20s (first at 8s) */
-  if(en.cds.d===undefined)en.cds.d=8;
-  if(en.cds.d<=0){en.cds.d=20;
-   const d=dist(en,hero)||1;
-   ebolts.push({x:en.x,y:en.y-18,vx:(hero.x-en.x)/d*340,vy:(hero.y-en.y)/d*340,t:0,pct:0.05,dmg:0,c:'#ffffff',ball:true});
-   floatAt(en.x,en.y-en.r-30,'⚽ STRIKE!','#ffffff',true);
-   sfx.shout();
   }
   /* GROUND SHAKE - one unavoidable 5% max HP hit, every 20s (first at 14s) */
   if(en.cds.e===undefined)en.cds.e=14;
