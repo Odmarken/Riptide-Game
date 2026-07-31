@@ -1091,8 +1091,16 @@ const heroMax=()=>Math.round((classOf().hp+S.lvl*14+gearSum('hp'))*(raceOf().hp|
 const manaMax=()=>Math.round(classOf().mana+S.lvl*5);
 const heroAtk=()=>Math.round((classOf().atk+S.lvl*2.6+gearSum('atk'))*(1+scrollPct('titan'))*(1+((activePet()||{}).atkMul||0))*(1+gearSum('dmgMul')));
 const fmBonus=()=>{const w=S&&S.gear?S.gear.weapon:null;return (isFM(w)&&fmStar(w)>1)?fmStar(w)*2:0;};
-const wgCrit=()=>{const w=S&&S.gear?S.gear.weapon:null;return isWG(w)&&!(w.crit)?3:0;}; /* fallback only; synced glaives already carry +3% crit in gearSum */
+/* Not a fallback: syncWarglaives sets it.crit to 0, so this +3% is the ONLY crit the glaives
+   ever grant - and it lives outside the item, which is why the tooltip never showed it. */
+const wgCrit=()=>{const w=S&&S.gear?S.gear.weapon:null;return isWG(w)&&!(w.crit)?3:0;};
 const heroCrit=()=>classOf().crit+(raceOf().crit||0)+gearSum('crit')+fmBonus()+wgCrit()+((S&&S.gamblerT>0)?2:0);
+/* Every legendary bonus that is applied outside the item's own fields, in one place, so the
+   tooltips and the real stats can never drift apart. Returns what to ADD to the printed
+   number - see itemStr and renderInspect, which both fold these in rather than trailing a
+   second clause. Keyed off the item so it works for bag copies too, not just the worn one. */
+const legendCritAdd=it=>isFM(it)&&fmStar(it)>1?fmStar(it)*2:(isWG(it)&&!it.crit?3:0);
+const legendLsAdd=it=>(isFM(it)&&fmStar(it)>1)?fmStar(it)*2/100:0;
 const xpNeed=l=>Math.round(38*Math.pow(l,1.5)*1.904); /* leveling: ~66% harder than base, then +15% on top */
 const PRESTIGE_CAP=50; /* progression ceiling for now: Prestige 50, level 60 */
 const zoneOf=()=>ZONES[S.zone];
@@ -1470,11 +1478,15 @@ function itemStr(it){
  if(isWG(it))syncWarglaives(it);
  const cap=capUp(it);
  const maxed=(it.up||0)>=cap;
- let s=`${it.up?'+'+it.up+(maxed?' MAX ✦':'')+' · ':''}${statBaseStr(it,'atk','ATK')} ${statBaseStr(it,'hp','HP')} ${statBaseStr(it,'crit','CRIT','%')}`;
+ /* Legendaries carry bonuses applied outside their own fields. Fold them into the printed
+    numbers instead of trailing a second clause: two figures to add up read worse than one
+    total, and the extra clause wrapped the line to three rows on a phone. */
+ const cAdd=legendCritAdd(it),lAdd=legendLsAdd(it);
+ const cr=(it.crit||0)+cAdd,ls=(it.lifesteal||0)+lAdd;
+ let s=`${it.up?'+'+it.up+(maxed?' MAX ✦':'')+' · ':''}${statBaseStr(it,'atk','ATK')} ${statBaseStr(it,'hp','HP')} ${cAdd?'+'+cr+'% CRIT':statBaseStr(it,'crit','CRIT','%')}`;
  if(it.haste)s+=` +${Math.round(it.haste*100)}% ATK SPEED`;
  if(it.dmgMul)s+=` +${Math.round(it.dmgMul*100)}% DAMAGE`;
- if(it.lifesteal)s+=` +${Math.round(it.lifesteal*1000)/10}% LIFESTEAL`;
- if(isFM(it)&&fmStar(it)>1)s+=` · ★${fmStar(it)} bonus: +${fmStar(it)*2}% CRIT / +${fmStar(it)*2}% LIFESTEAL`;
+ if(ls)s+=` +${Math.round(ls*1000)/10}% LIFESTEAL`;
  if(it.bossDmg)s+=` · +${it.bossDmg}% BOSS DMG`;
  if(it.armor)s+=` · +${Math.round(it.armor*100)}% ARMOR`;
  if(it.manadrain)s+=` · ${Math.round(it.manadrain*100)}% MANA DRAIN`;
@@ -10520,7 +10532,11 @@ function renderInspect(e){
  const gearRow=sl=>{
   const g=e.gear&&e.gear[sl];
   if(!g)return `<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div><div class="ss">- empty -</div></div>`;
-  let s=`${g.up?'+'+g.up+' · ':''}${g.atk?'+'+g.atk+' ATK ':''}${g.hp?'+'+g.hp+' HP ':''}${g.crit?'+'+g.crit+'% CRIT ':''}${g.haste?'+'+Math.round(g.haste*100)+'% ATK SPEED ':''}${g.lifesteal?'+'+Math.round(g.lifesteal*1000)/10+'% LIFESTEAL ':''}${g.dmgMul?'+'+Math.round(g.dmgMul*100)+'% DAMAGE ':''}${g.bossDmg?'+'+g.bossDmg+'% BOSS DMG ':''}${g.armor?'+'+Math.round(g.armor*100)+'% ARMOR ':''}${g.manadrain?Math.round(g.manadrain*100)+'% MANA DRAIN ':''}${g.legend==='frostmourne'&&(g.star||0)>1?'· ★'+g.star+' bonus: +'+(g.star*2)+'% CRIT / +'+(g.star*2)+'% LIFESTEAL':''}`.trim();
+  /* same fold-in as itemStr, but on the slimmed leaderboard payload, which carries only
+     `legend` and `star` - so the checks are by name rather than the isFM/isWG helpers */
+  const fmS=g.legend==='frostmourne'&&(g.star||0)>1?g.star*2:0;
+  const cr=(g.crit||0)+fmS+(g.legend==='warglaives'&&!g.crit?3:0),ls=(g.lifesteal||0)+fmS/100;
+  let s=`${g.up?'+'+g.up+' · ':''}${g.atk?'+'+g.atk+' ATK ':''}${g.hp?'+'+g.hp+' HP ':''}${cr?'+'+cr+'% CRIT ':''}${g.haste?'+'+Math.round(g.haste*100)+'% ATK SPEED ':''}${ls?'+'+Math.round(ls*1000)/10+'% LIFESTEAL ':''}${g.dmgMul?'+'+Math.round(g.dmgMul*100)+'% DAMAGE ':''}${g.bossDmg?'+'+g.bossDmg+'% BOSS DMG ':''}${g.armor?'+'+Math.round(g.armor*100)+'% ARMOR ':''}${g.manadrain?Math.round(g.manadrain*100)+'% MANA DRAIN ':''}`.trim();
   return `<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div>
    <div class="sn" style="color:${RARCOL[g.rar]||'#fff'}">${esc(g.name)}${g.legend&&g.star?` <span style="color:#ffd76a">★${g.star}</span>`:''}</div>
    <div class="ss">${esc(s)}</div></div>`;
