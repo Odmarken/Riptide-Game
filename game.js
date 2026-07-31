@@ -10870,8 +10870,13 @@ const BOOT_MIN=5000,BOOT_MAX=13000;
    top edge of whatever artwork is on screen (values sampled from the images) so the
    clock and battery read as sitting on the same backdrop. */
 const THEME_BOOT='#523616',THEME_MENU='#401a11',THEME_GAME='#342011';
+/* Installed on the home screen the page owns the whole screen, status bar included, and the
+   artwork is what should show there. A theme-color - from this meta OR from the manifest -
+   makes iOS paint a solid band over it instead, so drop the meta entirely in that mode. */
+const STANDALONE=(navigator.standalone===true)||(matchMedia&&matchMedia('(display-mode: standalone)').matches);
 function themeTint(){
  const m=document.querySelector('meta[name="theme-color"]');if(!m)return;
+ if(STANDALONE){m.remove();return;}
  const boot=$('boot'),up=id=>{const e=$(id);return e&&e.classList.contains('open');};
  m.setAttribute('content',
   boot&&!boot.classList.contains('gone')?THEME_BOOT:
