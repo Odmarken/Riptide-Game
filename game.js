@@ -1159,6 +1159,16 @@ function migrate(s){ /* fills fields missing from older saves */
     per local save. savedAt beside it is for support/debugging and is never compared. */
  if(s.rev===undefined)s.rev=0;
  if(s.savedAt===undefined)s.savedAt=0;
+ /* Roster order used to be array order, which differs per device: locally it is the order
+    you created heroes in, but a device that pulled its roster from the cloud gets whatever
+    order Firestore hands back the chars map in. Sort on a real timestamp instead. Older
+    heroes have no field, but the id is 'c'+Date.now().toString(36)+random - so the birth
+    time is recoverable from the first 8 base36 chars (valid ~2004-2059). */
+ if(s.createdAt===undefined){
+  const m=/^c([0-9a-z]{8})/.exec(s.id||'');
+  const t=m?parseInt(m[1],36):0;
+  s.createdAt=(t>1e12&&t<4e12)?t:0; /* anything implausible falls back to id ordering */
+ }
  if(s.pet===undefined)s.pet=null;
  if(!s.pets)s.pets=[];
  if(s.maxZone===undefined)s.maxZone=s.zone||0;
@@ -10666,6 +10676,10 @@ async function renderSelect(){
  const roster=await loadRoster();
  const chars=[];
  for(const id of roster){const ch=await loadChar(id);if(ch)chars.push(ch);}
+ /* oldest hero first, everywhere. The id tiebreaker matters more than it looks: it is what
+    guarantees two devices agree even for heroes created in the same millisecond, or whose
+    birth time could not be recovered at all. */
+ chars.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0)||String(a.id).localeCompare(String(b.id)));
  const cardOf=ch=>{
   const r=RACES.find(x=>x.id===(RACE_ALIAS[ch.race]||ch.race)),c=CLASSES.find(x=>x.id===(CLASS_ALIAS[ch.cls]||ch.cls));
   const hcDead=ch.hardcore&&ch.hcDead;
@@ -10772,6 +10786,7 @@ async function createHero(hardcore){
  S.gender=pickGender;
  S.hardcore=!!hardcore;
  S.id='c'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36);
+ S.createdAt=Date.now(); /* what the select screen sorts on - see migrate() */
  const ids=await loadRoster();ids.push(S.id);
  await saveRoster(ids);
  beginGame(true);
