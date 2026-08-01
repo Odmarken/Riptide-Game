@@ -139,7 +139,9 @@
   /* the panel tucks 12px under the nav plate on purpose, but the plate now also spans the
      home-indicator band - so lift the panel by that inset too, and pad the scroll end past
      the tucked-under strip or the last item/leaderboard row can never be reached */
-  .panel{position:absolute;inset:0;bottom:calc(56px + env(safe-area-inset-bottom,0px));z-index:20;display:none;background:url('assets/ui/ui_allt.png') center/100% 100% no-repeat;overflow-y:auto;padding:14px 14px 30px}
+  /* inset:0 puts the panel's top edge at the very top of the app, which now reaches under
+     the clock - so the hero name and every panel heading need the notch inset too */
+  .panel{position:absolute;inset:0;bottom:calc(56px + env(safe-area-inset-bottom,0px));z-index:20;display:none;background:url('assets/ui/ui_allt.png') center/100% 100% no-repeat;overflow-y:auto;padding:calc(14px + env(safe-area-inset-top,0px)) 14px 30px}
   .panel.open{display:block}
   .ptitle{font-family:var(--display);font-size:19px;color:var(--parch);margin-bottom:12px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px}
@@ -409,7 +411,9 @@
    -webkit-text-fill-color:var(--parch);caret-color:var(--parch);
   }
   .acctin:focus{outline:none;filter:brightness(1.18)}
-  #lbFx{position:absolute;inset:0;z-index:75;display:none;flex-direction:column;background:rgba(18,11,7,.94);padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px))}
+  /* the title row carries the Close button - without the top inset it sits under the clock
+     and cannot be tapped at all */
+  #lbFx{position:absolute;inset:0;z-index:75;display:none;flex-direction:column;background:rgba(18,11,7,.94);padding:calc(20px + env(safe-area-inset-top,0px)) 20px calc(20px + env(safe-area-inset-bottom,0px))}
   #lbFx .sbtn{background:#221610;border-color:rgba(140,105,70,.5)} /* dark-brown Inspect/Close buttons */
   #lbFx.open{display:flex}
   .lbrow{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--line);font-size:12.5px}
