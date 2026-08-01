@@ -12,7 +12,24 @@
       "Bash(curl -sL -o assets/icons/_sheet_spells.png \"https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260728_183633_12dee3c4-caf3-480a-a735-740696c6ef27.png\")",
       "Bash(grep -n \"html,body{\" -A 2 style.css)",
       "PowerShell(try{\\(Invoke-WebRequest -Uri http://localhost:8000/ -TimeoutSec 3 -UseBasicParsing\\).StatusCode}catch{\"down\"})",
-      "PowerShell($n=\\(Get-Command node -ErrorAction SilentlyContinue\\); if\\($n\\){ node --check game.js; if\\($?\\){\"syntax OK\"} } else {\"node not found\"})"
+      "PowerShell($n=\\(Get-Command node -ErrorAction SilentlyContinue\\); if\\($n\\){ node --check game.js; if\\($?\\){\"syntax OK\"} } else {\"node not found\"})",
+      "mcp__claude_ai_Higgsfield__balance",
+      "Bash(curl -sL -o tree_test.png \"https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260801_120323_7be2f8b1-383e-468e-a590-e134b48f3c67.png\")",
+      "mcp__claude_ai_Higgsfield__remove_background",
+      "Bash(node --check game.js)",
+      "Bash(\"/c/Program Files \\(x86\\)/Microsoft/Edge/Application/msedge.exe\" --headless --disable-gpu --no-sandbox --virtual-time-budget=6000 --dump-dom \"http://127.0.0.1:8000/__syntax.html\")",
+      "Bash(\"/c/Program Files \\(x86\\)/Microsoft/Edge/Application/msedge.exe\" --headless --disable-gpu --no-sandbox --virtual-time-budget=15000 --dump-dom \"http://127.0.0.1:8000/__test.html\")",
+      "Bash(bash \"C:/Users/App-L/AppData/Local/Temp/claude/c--RiptideRPG-Riptide-Game/bdf92841-893c-4c6c-86e9-9e1358640c72/scratchpad/runtest.sh\")",
+      "Bash(python C:/Users/App-L/AppData/Local/Temp/claude/c--RiptideRPG-Riptide-Game/bdf92841-893c-4c6c-86e9-9e1358640c72/scratchpad/mkshot.py)",
+      "Bash('/c/Program Files \\(x86\\)/Microsoft/Edge/Application/msedge.exe' --headless --disable-gpu --no-sandbox --window-size=1500,1000 --virtual-time-budget=20000 --screenshot=C:/Users/App-L/AppData/Local/Temp/claude/c--RiptideRPG-Riptide-Game/bdf92841-893c-4c6c-86e9-9e1358640c72/scratchpad/farm_shot.png http://127.0.0.1:8000/__shot.html)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:8000/index.html)",
+      "Bash(curl -s -o /dev/null -w \"bench %{http_code} \" http://127.0.0.1:8000/assets/farm/bench_farm.png)",
+      "Bash(curl -s -o /dev/null -w \"trough %{http_code}\\\\n\" http://127.0.0.1:8000/assets/farm/trough_farm.png)",
+      "Bash(mkdir -p flat)",
+      "Bash(curl -sL -o flat/bench_raw.png \"https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260801_134748_b2b5f54c-3930-4062-b38e-68dcfcd68304.png\")",
+      "Bash(curl -sL -o flat/trough_raw.png \"https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260801_134749_c9902d91-4473-48a4-b38f-c863ea2da778.png\")",
+      "Bash(curl -sL -o flat/trough_v2.png \"https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260801_134919_400d3b7b-fb47-4b2a-a071-8ceebaf2e7bc.png\")",
+      "Bash(curl -sL -o flat/trough_v3.png \"https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260801_135321_1bc319fa-83f4-42eb-b9f1-aa45bff4f329.png\")"
     ]
   }
 }

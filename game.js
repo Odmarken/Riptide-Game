@@ -79,9 +79,9 @@ const FARM_BUILD=[
  {id:'staketv',n:'Fence (vertical)',img:'staket_ovan',tab:'b',W:13,gy:14,col:{r:14,crx:8,cry:47,cyo:-33},snap:'v'}, /* sized so its post caps render the same width as the horizontal fence's (~13 world units) */
  {id:'lada',n:'Barn',img:'lada_farm',tab:'b',W:380,gy:30,col:{crx:130,cry:38,cyo:-40}},
  {id:'chickenhouse',n:'Chicken Coop',img:'chickenhouse_farm',tab:'b',W:230,gy:28,col:{crx:88,cry:34,cyo:-32}},
- {id:'medium',n:'Farmhouse',img:'Farmhouse_medium',tab:'b',W:408,gy:41,col:{crx:143,cry:49,cyo:-49}},
- {id:'mansion',n:'Mansion',img:'farmhouse_mansion',tab:'b',W:850,gy:62,col:{crx:290,cry:85,cyo:-85}},      /* 2.5× the home farmhouse */
- {id:'farmhouse',n:'Farmhouse',img:'farmhouse_litet',tab:'x',W:340,gy:32}, /* the home house - movable in build mode, never sold or removed; tab x hides it from the store */
+ {id:'medium',n:'Farmhouse',img:'Farmhouse_medium',tab:'b',W:408,gy:41,col:{crx:143,cry:49,cyo:-49},noScale:1},
+ {id:'mansion',n:'Mansion',img:'farmhouse_mansion',tab:'b',W:850,gy:62,col:{crx:290,cry:85,cyo:-85},noScale:1},      /* 2.5× the home farmhouse */
+ {id:'farmhouse',n:'Farmhouse',img:'farmhouse_litet',tab:'x',W:340,gy:32,noScale:1}, /* the home house - movable in build mode, never sold or removed; tab x hides it from the store */
  /* 🐄 Animals */
  /* 🐄 animals roam the plot freely (roam:1) - fences pen them in; speed = stroll pace */
  /* eatT = hunger interval: grown beasts eat every 2h, young ones every hour */
@@ -95,7 +95,7 @@ const FARM_BUILD=[
  {id:'hay',n:'Hay Seeds',img:'hö_frö',W:93,gy:10,tab:'m',crop:1},
  {id:'hay_medium',n:'Hay Growing',img:'hö_medium',W:93,gy:10,tab:'x',crop:1}, /* stages appear only by growing */
  {id:'hay_klar',n:'Hay Ready',img:'hö_klar',W:93,gy:10,tab:'x',crop:1},
- {id:'hobal',n:'Hay',img:'höbal',tab:'m',W:80,gy:18,col:{r:25}}, /* solid object - animals & hero walk around it */
+ {id:'hobal',n:'Hay',img:'höbal',tab:'m',W:80,gy:18,col:{r:25},noScale:1}, /* solid object - animals & hero walk around it; feed, so it stays one standard size */
  {id:'chickenseeds',n:'Chicken Seeds',img:'chickenseeds',tab:'m',W:64,gy:8,crop:1}, /* ground decal on the crop grid */
  /* 🛣 Roads - Sims-style: click to anchor, click again to lay the stretch; chain keeps going from the last point */
  {id:'dirt_road',n:'Dirt Road',img:'dirt_road',tab:'o',road:1,rw:44,W:44,gy:22},
@@ -104,8 +104,43 @@ const FARM_BUILD=[
  {id:'light_farm',n:'Lamp Post',img:'light_farm',tab:'d',W:42,gy:10,col:{r:8}},
  {id:'bush',n:'Bush',img:'häck_farm',tab:'d',W:130,gy:16,col:{r:14,crx:65,cry:10,cyo:5},snap:'h'},
  {id:'bushv',n:'Bush (vertical)',img:'häckvertikal_farm',tab:'d',W:53,gy:16,col:{r:14,crx:18,cry:60,cyo:-45},snap:'v'},
+ /* the roaming herd paths around anything with col, so the two ground pieces below carry
+    none on purpose - they are mats you can lay anywhere without boxing an animal in */
+ {id:'fountain',n:'Fountain',img:'fountain_farm',tab:'d',W:150,gy:20,col:{r:40}},
+ {id:'tree_farm',n:'Tree',img:'tree_farm',tab:'d',W:200,gy:14,col:{r:16}},   /* trunk only - walk under the canopy */
+ {id:'well',n:'Well',img:'well_farm',tab:'d',W:110,gy:16,col:{r:30}},
+ {id:'scarecrow',n:'Scarecrow',img:'scarecrow_farm',tab:'d',W:70,gy:8,col:{r:10}},
+ {id:'flowerbed',n:'Flower Bed',img:'flowerbed_farm',tab:'d',W:130,gy:10,snap:'h'}, /* snaps into long borders like the hedge */
+ {id:'pond',n:'Pond',img:'pond_farm',tab:'d',W:190,gy:12,col:{r:30,crx:80,cry:34,cyo:2}},
+ {id:'pumpkins',n:'Pumpkin Patch',img:'pumpkins_farm',tab:'d',W:120,gy:8},
+ {id:'bench',n:'Garden Bench',img:'bench_farm',tab:'d',W:90,gy:12,col:{r:12,crx:42,cry:12,cyo:0}},
+ {id:'trough',n:'Water Trough',img:'trough_farm',tab:'d',W:100,gy:12,col:{r:14,crx:46,cry:14,cyo:0}},
+ {id:'haywagon',n:'Hay Wagon',img:'haywagon_farm',tab:'d',W:170,gy:20,col:{r:30,crx:74,cry:28,cyo:-6}},
+ {id:'beehives',n:'Beehives',img:'beehives_farm',tab:'d',W:80,gy:12,col:{r:18}},
+ {id:'farmsign',n:'Farm Sign',img:'farmsign_farm',tab:'d',W:60,gy:10,col:{r:8}},
  {id:'remove',n:'Remove',emoji:'🗑',tab:'*'} /* removes anything except the farmhouse */
 ];
+/* ⇄/⤢ per-piece look. fl:-1 mirrors the art, sc scales it (1 = catalogue size).
+   Both are dropped from the item whenever they sit at their default, so untouched
+   pieces and old saves stay exactly as they were.
+   Fences, hedges and the flower bed tile end to end (snap:) - they mirror, but never
+   resize: a scaled run would no longer meet its neighbours. Roads are stroked
+   segments rather than sprites, and crops sit on a fixed grid. noScale: marks the
+   rest by hand - the three houses stay at their catalogue size (that size is what
+   you paid for), and feed keeps one standard bale so a mouthful is always a mouthful. */
+const FARM_PRESTIGE=3; /* 🚜 prestige needed before the farmhouse will talk to you */
+/* 🔪 payout per grown beast - the same on both routes */
+const slaughterPay=t=>t==='cowfarm_big'?20000:10000;
+/* ⚠ farm-XP does NOT match between the two routes in the current balance: a single snip
+   pays double what the same beast pays inside a drag-selection. Left exactly as it was -
+   the confirm boxes report whichever number the player is actually about to get. */
+const slaughterXp=(t,bulk)=>t==='cowfarm_big'?(bulk?20:40):(bulk?10:20);
+const FARM_SC_MIN=0.5,FARM_SC_MAX=2.5;
+const clampSc=v=>Math.max(FARM_SC_MIN,Math.min(FARM_SC_MAX,v));
+const flipOf=it=>(it&&it.fl===-1)?-1:1;
+const scaleOf=it=>{const v=it&&+it.sc;return (v&&v>0)?clampSc(v):1;};
+const canFlipDef=def=>!!def&&!def.road;
+const canScaleDef=def=>!!def&&!def.road&&!def.snap&&!def.crop&&!def.noScale;
 const torWeaponImg=new Image();torWeaponImg.src='assets/boss/tor_weapon.png';
 const krevFeetLImg=new Image();krevFeetLImg.src='assets/boss/krev_feet_l.png';
 const krevFeetRImg=new Image();krevFeetRImg.src='assets/boss/krev_feet_r.png';
@@ -1205,8 +1240,15 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.farm.inv===undefined)s.farm.inv={};      /* 🎰 casino-won farm stock: cowfarm/chickenfarm/tjur/hay */
  /* a save written mid-Move can freeze _moving:true onto an item - it then never draws ("my cow vanished").
     Nothing is legitimately mid-move at load time, so strip the flag from everything. */
- if(s.farm.b)s.farm.b.forEach(it=>{delete it._moving;});
- if(s.farm.c)s.farm.c.forEach(it=>{delete it._moving;});
+ /* ⇄/⤢ a save from a crashed resize can hold a wild or non-numeric sc - clamp it back
+    into range, and drop both flags whenever they mean "default" so they never accumulate. */
+ const fixLook=it=>{
+  delete it._moving;
+  if(it.fl!==-1)delete it.fl;
+  if(it.sc!==undefined){const v=+it.sc;if(!(v>0)||Math.abs(v-1)<0.02)delete it.sc;else it.sc=clampSc(v);}
+ };
+ if(s.farm.b)s.farm.b.forEach(fixLook);
+ if(s.farm.c)s.farm.c.forEach(fixLook);
  (s.gearSets||[]).forEach((gs,gi)=>{ /* v1 sets held raw items or a worn flag - convert to v2 (gsid refs) */
   if(!gs)return;
   if(gs.worn){s.gearSets[gi]=null;s.gearSetSel=-1;return;}
@@ -2259,10 +2301,11 @@ function rebuildFarmItems(){ /* placed buildings become solids; crops draw with 
   if(it._moving)continue;
   const def=FARM_BUILD.find(x=>x.id===it.t);
   if(!def)continue;
-  const col=def.col||{r:20};
-  const sol={x:it.x,y:it.y,r:col.r||40,type:'farmitem',ftype:it.t,farmItem:1};
-  if(col.crx){sol.crx=col.crx;sol.cry=col.cry;sol.cyo=col.cyo;}
-  if(def.roam){sol.noCol=1;sol.it=it;} /* 🐄 roamers: walk-through, and the solid follows the beast (sol→it only - S stays JSON-safe) */
+  const col=def.col||{r:20},sc=scaleOf(it);
+  /* ⤢ a resized piece blocks the ground it actually covers - the whole hull scales with it */
+  const sol={x:it.x,y:it.y,r:(col.r||40)*sc,type:'farmitem',ftype:it.t,farmItem:1,it};
+  if(col.crx){sol.crx=col.crx*sc;sol.cry=col.cry*sc;sol.cyo=col.cyo*sc;}
+  if(def.roam)sol.noCol=1; /* 🐄 roamers: walk-through, and the solid follows the beast (sol→it only - S stays JSON-safe) */
   world.solids.push(sol);
  }
 }
@@ -2272,10 +2315,14 @@ let placeDrag=null; /* 📱 touch placement: piece follows the finger, drops on 
 let roadAnchor=null; /* 🛣 first click of a road stretch */
 let farmCart=[]; /* pending placements - ghosts until checkout */
 let moveItem=null,movePicked=null; /* click an item with nothing selected → Move popup → carry it */
+let sizeItem=null; /* ⤢ Resize armed: the piece grows/shrinks with the cursor until you click */
 function farmHitTest(wx,wy){
- let best=null,bd=95;
- farmCart.forEach((g2,i)=>{const d=Math.hypot(g2.x-wx,g2.y-wy);if(d<bd){bd=d;best={kind:'g',i,t:g2.t};}});
- S.farm.b.forEach((b2,i)=>{const d=Math.hypot(b2.x-wx,b2.y-wy);if(d<bd){bd=d;best={kind:'b',i,t:b2.t};}});
+ let best=null,bd=Infinity;
+ /* ⤢ reach follows the piece's own size - a scaled-up tree is as easy to grab as it looks,
+    and a shrunken one stops stealing clicks from its neighbours */
+ const take=(d,reach,o)=>{if(d<=reach&&d<bd){bd=d;best=o;}};
+ farmCart.forEach((g2,i)=>take(Math.hypot(g2.x-wx,g2.y-wy),95*scaleOf(g2),{kind:'g',i,t:g2.t}));
+ S.farm.b.forEach((b2,i)=>take(Math.hypot(b2.x-wx,b2.y-wy),95*scaleOf(b2),{kind:'b',i,t:b2.t}));
  let cd=45;
  S.farm.c.forEach((c2,i)=>{const d=Math.hypot(c2.x-wx,c2.y-wy);if(d<cd){cd=d;best={kind:'c',i,t:c2.t};}});
  if(!best){ /* the farmhouse itself - big target, but placed pieces on top of it win */
@@ -2296,13 +2343,21 @@ function showMovePopup(hit,cx,cy){
     into the casino stock instead of only being moved or slaughtered/deleted */
  const invBtn=$('farmMoveInv');
  invBtn.style.display=(hit.kind==='b'&&(isBovine(hit.t)||isChicken(hit.t)))?'block':'none';
+ /* ⇄/⤢ the farmhouse draws through its own branch and lives in world.solids rather than
+    S.farm.b, so neither flag would survive a reload - it keeps Move only. */
+ const own=hit.kind!=='fh';
+ $('farmMoveFlip').style.display=(own&&canFlipDef(def))?'block':'none';
+ $('farmMoveSize').style.display=(own&&canScaleDef(def))?'block':'none';
 }
 function cancelMove(){
  if(moveItem){const it=farmListOf(moveItem.kind)[moveItem.i];if(it)delete it._moving;}
  moveItem=null;movePicked=null;
  const b=$('farmMoveFx');if(b)b.style.display='none';
 }
-const FARM_PRICES={lada:250000,staket:5000,staketv:5000,chickenhouse:100000,chickenfarm:0,chickenfarm_big:0,cowfarm:0,cowfarm_big:0,tjur:0,hay:0,hay_medium:0,hay_klar:0,hobal:0,chickenseeds:0,medium:350000,mansion:500000,dirt_road:0,gravel_road:0,light_farm:10000,bush:5000,bushv:5000}; /* gold cost per placement */
+const FARM_PRICES={lada:250000,staket:5000,staketv:5000,chickenhouse:100000,chickenfarm:0,chickenfarm_big:0,cowfarm:0,cowfarm_big:0,tjur:0,hay:0,hay_medium:0,hay_klar:0,hobal:0,chickenseeds:0,medium:350000,mansion:500000,dirt_road:0,gravel_road:0,light_farm:10000,bush:5000,bushv:5000,
+ fountain:20000,tree_farm:15000,well:15000,scarecrow:10000,
+ flowerbed:10000,pond:20000,pumpkins:10000,bench:10000,
+ trough:12000,haywagon:18000,beehives:12000,farmsign:10000}; /* gold cost per placement */
 const FARM_SCRAPS={lada:300,chickenhouse:150,medium:600,mansion:800}; /* ⚙ scrap cost on top of gold */
 const FARM_ROAD_RATE={dirt_road:10,gravel_road:15}; /* 🛣 roads are priced by length: ◉ per world-unit drawn */
 const roadCost=g2=>Math.round(Math.hypot(g2.x1-g2.x0,g2.y1-g2.y0)*(FARM_ROAD_RATE[g2.t]||0));
@@ -2694,7 +2749,7 @@ function updateCartUI(){
  if(hb){hb.style.display=buildMode?'flex':'none';hb.classList.toggle('on',buildSel==='harvest');}
 }
 function farmhouseClick(){
- if((S.prestige||0)<5){stageMsg('🔒 Requires Prestige 5',1800);sfx.warn();return;}
+ if((S.prestige||0)<FARM_PRESTIGE){stageMsg('🔒 Requires Prestige '+FARM_PRESTIGE,1800);sfx.warn();return;}
  if(!S.farm.owned){$('farmBuyFx').style.display='flex';return;}
  enterBuildMode();
 }
@@ -2714,7 +2769,7 @@ function enterBuildMode(){
 function exitBuildMode(){
  cancelMove();
  if(farmCart.length){farmCart=[];stageMsg('Pending items discarded',1400);}
- buildMode=false;buildSel=null;buildPan=null;removeDrag=null;harvestDrag=null;placeDrag=null;roadAnchor=null;
+ buildMode=false;buildSel=null;buildPan=null;removeDrag=null;harvestDrag=null;placeDrag=null;roadAnchor=null;sizeItem=null;
  $('farmStore').style.display='none';
  updateCartUI();
  setZoom(Math.max(1,zmin())); /* camera glides back down to the hero */
@@ -2811,13 +2866,13 @@ function placeFarmItem(id,x,y){
   let ai=-1,ad=55;
   S.farm.b.forEach((b2,i)=>{if((b2.t!=='cowfarm_big'&&b2.t!=='chickenfarm_big')||b2._moving)return;const d=Math.hypot(b2.x-x,b2.y-y);if(d<ad){ad=d;ai=i;}});
   if(ai>=0&&(hi<0||ad<hd)){ /* 🔪 only the big ones pay out - calves & chicks are safe. Confirmed first - an accidental tap must never eat a cow. */
-   const b2=S.farm.b[ai],pay=b2.t==='cowfarm_big'?20000:10000,kind=b2.t==='cowfarm_big'?'Cow':'Chicken';
-   confirmBox(`Slaughter this <b>${kind}</b> for <b style="color:var(--brass)">${pay.toLocaleString()}◉</b>?`,()=>{
+   const b2=S.farm.b[ai],pay=slaughterPay(b2.t),xp=slaughterXp(b2.t,false),kind=b2.t==='cowfarm_big'?'Cow':'Chicken';
+   confirmBox(`Selling <b>1</b> animal (1 ${kind})<br><b style="color:var(--brass)">+${pay.toLocaleString()}◉</b> · <b style="color:#8fe6a0">+${xp} farm XP</b>`,()=>{
     const idx=S.farm.b.indexOf(b2);if(idx<0)return; /* it may have been moved/removed while the box was open */
     S.farm.b.splice(idx,1);
     S.gold=Math.min(goldCap(),(S.gold||0)+pay);
-    stageMsg('🔪 Slaughtered - +'+pay.toLocaleString()+'◉',1800);sfx.buy();sparkles(b2.x,b2.y-16,'#ff6a5a',12);
-    gainFarmXP(b2.t==='cowfarm_big'?40:20); /* cow 40 farm-XP, chicken 20 - level-up toast wins over the slaughter one */
+    stageMsg('🔪 Sold - +'+pay.toLocaleString()+'◉ · +'+xp+' farm XP',1800);sfx.buy();sparkles(b2.x,b2.y-16,'#ff6a5a',12);
+    gainFarmXP(xp); /* level-up toast wins over the sale one */
     rebuildFarmItems();renderFarmStore();save();renderHUD();
    });
    return;
@@ -2897,7 +2952,9 @@ function drawFarmGround(){ /* farm_zone stretched over one cow-field, laid twice
   const cimg=farmImg(cdef.img);
   if(cimg.complete&&cimg.naturalWidth){
    const W2=cdef.W||74,H2=W2*cimg.naturalHeight/cimg.naturalWidth;
-   ctx.drawImage(mip(cimg,W2),c.x-W2/2,c.y+(cdef.gy!==undefined?cdef.gy:10)-H2,W2,H2);
+   const cy2=c.y+(cdef.gy!==undefined?cdef.gy:10)-H2;
+   if(flipOf(c)<0){ctx.save();ctx.translate(c.x,0);ctx.scale(-1,1);ctx.drawImage(mip(cimg,W2),-W2/2,cy2,W2,H2);ctx.restore();}
+   else ctx.drawImage(mip(cimg,W2),c.x-W2/2,cy2,W2,H2);
   }else{
    ctx.strokeStyle='#7db64a';ctx.lineWidth=2;ctx.lineCap='round';
    for(let i=0;i<4;i++){const k=(i-1.5);ctx.beginPath();ctx.moveTo(c.x+k*5,c.y);ctx.quadraticCurveTo(c.x+k*7,c.y-7,c.x+k*10,c.y-13);ctx.stroke();}
@@ -4342,6 +4399,14 @@ cv.addEventListener('pointerdown',e=>{
  }
  if(zoneOf().farm){
   if(buildMode){
+   if(sizeItem){ /* ⤢ this click sets the size the piece is currently showing */
+    const it=farmListOf(sizeItem.kind)[sizeItem.i];
+    const pct=Math.round(scaleOf(it)*100);
+    sizeItem=null;
+    rebuildFarmItems();save();sfx.buy(); /* collision catches up with the new footprint here */
+    stageMsg('⤢ Size set - '+pct+'%',1300);
+    return;
+   }
    if(moveItem){ /* set it down here */
     if(wx>=40&&wx<4200&&wy>=40&&wy<=world.h-40){
      const it=farmListOf(moveItem.kind)[moveItem.i];
@@ -4464,6 +4529,14 @@ let holdMove=null;
 window.addEventListener('pointermove',e=>{ /* window, not canvas - keeps steering even if the cursor drifts off the map */
  const r=cv.getBoundingClientRect();
  mouseWX=(e.clientX-r.left)/zoom+camX;mouseWY=(e.clientY-r.top)/zoom+camY;
+ if(sizeItem){ /* ⤢ live resize: distance from the piece's own centre drives the scale */
+  const it=farmListOf(sizeItem.kind)[sizeItem.i];
+  if(it){
+   const sc=clampSc(sizeItem.sc0*Math.hypot(mouseWX-it.x,mouseWY-it.y)/sizeItem.d0);
+   if(Math.abs(sc-1)<0.02)delete it.sc;else it.sc=sc; /* the draw reads the item, so this shows at once */
+  }else sizeItem=null; /* it was removed underneath us */
+  return;
+ }
  if(removeDrag&&e.pointerId===removeDrag.id){removeDrag.x1=mouseWX;removeDrag.y1=mouseWY;return;}
  if(harvestDrag&&e.pointerId===harvestDrag.id){harvestDrag.x1=mouseWX;harvestDrag.y1=mouseWY;return;}
  if(placeDrag&&e.pointerId===placeDrag.id){placeDrag.x=mouseWX;placeDrag.y=mouseWY;return;}
@@ -4488,25 +4561,36 @@ window.addEventListener('pointerup',e=>{
   if(Math.hypot(hd.x1-hd.x0,hd.y1-hd.y0)<14){placeFarmItem('harvest',hd.x1,hd.y1);return;} /* a tap: single snip */
   const R={x0:Math.min(hd.x0,hd.x1),x1:Math.max(hd.x0,hd.x1),y0:Math.min(hd.y0,hd.y1),y1:Math.max(hd.y0,hd.y1)};
   const inR=(x,y)=>x>=R.x0&&x<=R.x1&&y>=R.y0&&y<=R.y1;
-  let nHay=0;
-  for(const c2 of S.farm.c){
-   if(c2.t==='hay_klar'&&inR(c2.x,c2.y)){c2.t='hay';c2.at=Date.now();S.farm.baleN=(S.farm.baleN||0)+1;S.farm.cseedN=(S.farm.cseedN||0)+1;nHay++;}
-  }
-  let nSl=0,pay=0,fxp=0;
-  for(let i=S.farm.b.length-1;i>=0;i--){
-   const b2=S.farm.b[i];
-   if((b2.t==='cowfarm_big'||b2.t==='chickenfarm_big')&&!b2._moving&&inR(b2.x,b2.y)){
-    pay+=b2.t==='cowfarm_big'?20000:10000;fxp+=b2.t==='cowfarm_big'?20:10;
-    S.farm.b.splice(i,1);nSl++;
+  /* 🔪 tally the whole selection before anything dies - the box has to state the real total,
+     and a cancel must leave the herd untouched */
+  const hay=S.farm.c.filter(c2=>c2.t==='hay_klar'&&inR(c2.x,c2.y));
+  const sell=S.farm.b.filter(b2=>(b2.t==='cowfarm_big'||b2.t==='chickenfarm_big')&&!b2._moving&&inR(b2.x,b2.y));
+  if(!hay.length&&!sell.length){stageMsg('Nothing ready in there',1100);return;}
+  const nCow=sell.filter(b2=>b2.t==='cowfarm_big').length,nChk=sell.length-nCow;
+  const pay=sell.reduce((t,b2)=>t+slaughterPay(b2.t),0);
+  const fxp=sell.reduce((t,b2)=>t+slaughterXp(b2.t,true),0);
+  const reap=()=>{
+   for(const c2 of hay){c2.t='hay';c2.at=Date.now();S.farm.baleN=(S.farm.baleN||0)+1;S.farm.cseedN=(S.farm.cseedN||0)+1;}
+   let gone=0,got=0,gxp=0;
+   for(const b2 of sell){
+    const i=S.farm.b.indexOf(b2);if(i<0)continue; /* moved or eaten while the box was open */
+    got+=slaughterPay(b2.t);gxp+=slaughterXp(b2.t,true);
+    S.farm.b.splice(i,1);gone++;
    }
-  }
-  if(nHay+nSl===0){stageMsg('Nothing ready in there',1100);return;}
-  if(pay>0)S.gold=Math.min(goldCap(),(S.gold||0)+pay);
-  if(nSl>0)rebuildFarmItems();
-  sfx.buy();
-  stageMsg((nHay?'✂ '+nHay+' hay harvested':'')+(nHay&&nSl?' · ':'')+(nSl?'🔪 '+nSl+' slaughtered +'+pay.toLocaleString()+'◉':''),2200);
-  if(fxp>0)gainFarmXP(fxp); /* after the toast so a level-up wins the screen */
-  renderFarmStore();save();renderHUD();
+   if(got>0)S.gold=Math.min(goldCap(),(S.gold||0)+got);
+   if(gone>0)rebuildFarmItems();
+   sfx.buy();
+   stageMsg((hay.length?'✂ '+hay.length+' hay harvested':'')+(hay.length&&gone?' · ':'')+(gone?'🔪 '+gone+' sold +'+got.toLocaleString()+'◉ · +'+gxp+' farm XP':''),2200);
+   if(gxp>0)gainFarmXP(gxp); /* after the toast so a level-up wins the screen */
+   renderFarmStore();save();renderHUD();
+  };
+  if(!sell.length){reap();return;} /* hay only - nothing to weigh up */
+  const parts=[];
+  if(nCow)parts.push(nCow+' Cow'+(nCow>1?'s':''));
+  if(nChk)parts.push(nChk+' Chicken'+(nChk>1?'s':''));
+  confirmBox(`Selling <b>${sell.length}</b> animal${sell.length>1?'s':''} (${parts.join(', ')})<br>`+
+   `<b style="color:var(--brass)">+${pay.toLocaleString()}◉</b> · <b style="color:#8fe6a0">+${fxp} farm XP</b>`+
+   (hay.length?`<br><span style="opacity:.75">and ${hay.length} hay harvested</span>`:''),reap);
   return;
  }
  if(removeDrag&&e.pointerId===removeDrag.id){
@@ -4566,8 +4650,13 @@ $('farmCheckYes').onclick=()=>{
   if(g2.t==='chickenseeds')S.farm.cseedN=Math.max(0,(S.farm.cseedN||0)-5);
   if(g2.t==='cowfarm'||g2.t==='chickenfarm'||g2.t==='tjur'||g2.t==='hay'){S.farm.inv=S.farm.inv||{};S.farm.inv[g2.t]=Math.max(0,(S.farm.inv[g2.t]||0)-1);} /* consume won stock */
   if(g2.road)S.farm.r.push({t:g2.t,x0:g2.x0,y0:g2.y0,x1:g2.x1,y1:g2.y1});
-  else if(cd&&cd.crop)S.farm.c.push({t:g2.t,stage:1,x:g2.x,y:g2.y,at:Date.now()});
-  else S.farm.b.push({t:g2.t,x:g2.x,y:g2.y});
+  else{ /* ⇄/⤢ whatever look the ghost carried is what gets built */
+   const look={};
+   if(flipOf(g2)<0)look.fl=-1;
+   if(Math.abs(scaleOf(g2)-1)>=0.02)look.sc=scaleOf(g2);
+   if(cd&&cd.crop)S.farm.c.push({t:g2.t,stage:1,x:g2.x,y:g2.y,at:Date.now(),...look});
+   else S.farm.b.push({t:g2.t,x:g2.x,y:g2.y,...look});
+  }
  }
  const n=farmCart.length;
  farmCart=[];
@@ -4598,6 +4687,26 @@ $('farmMoveInv').onclick=()=>{ /* 📦 pick the animal straight up - frees its B
  const rf=farmRefund([it]);
  sfx.forge();stageMsg('📦 Picked up'+rf,1600);
  rebuildFarmItems();renderFarmStore();save();renderHUD();
+};
+$('farmMoveFlip').onclick=()=>{ /* ⇄ mirror in place - no cost, no pick-up, just flips the art */
+ if(!movePicked)return;
+ const pick=movePicked;movePicked=null;
+ $('farmMoveFx').style.display='none';
+ const it=farmListOf(pick.kind)[pick.i];
+ if(!it)return;
+ if(flipOf(it)<0)delete it.fl;else it.fl=-1; /* default orientation is the absence of the flag */
+ if(pick.kind!=='g'){rebuildFarmItems();save();}
+ sfx.buy();stageMsg('⇄ Mirrored',1100);
+};
+$('farmMoveSize').onclick=()=>{ /* ⤢ arm the resize - the piece then tracks the cursor until you click */
+ if(!movePicked)return;
+ const pick=movePicked;movePicked=null;
+ $('farmMoveFx').style.display='none';
+ const it=farmListOf(pick.kind)[pick.i];
+ if(!it)return;
+ /* anchor on the current cursor distance, so the piece does not jump on the first move */
+ sizeItem={kind:pick.kind,i:pick.i,sc0:scaleOf(it),d0:Math.max(30,Math.hypot(mouseWX-it.x,mouseWY-it.y))};
+ stageMsg('⤢ Drag out to grow, in to shrink - click to set',2200);
 };
 $('farmMoveX').onclick=()=>{movePicked=null;$('farmMoveFx').style.display='none';};
 const endHoldMove=e=>{if(holdMove&&e.pointerId===holdMove.id)holdMove=null;};
@@ -5559,14 +5668,30 @@ function draw(){
    if(def2&&def2.img){
     const im2=farmImg(def2.img);
     if(im2.complete&&im2.naturalWidth){
-     const W2=def2.W||200,H2=W2*im2.naturalHeight/im2.naturalWidth;
-     ctx.drawImage(mip(im2,W2),g2.x-W2/2,g2.y+(def2.gy!==undefined?def2.gy:30)-H2,W2,H2);
+     const sc2=scaleOf(g2),W2=(def2.W||200)*sc2,H2=W2*im2.naturalHeight/im2.naturalWidth;
+     const gy2=(def2.gy!==undefined?def2.gy:30)*sc2;
+     ctx.save();ctx.translate(g2.x,g2.y); /* ⇄/⤢ a ghost keeps the look you gave it before checkout */
+     if(flipOf(g2)<0)ctx.scale(-1,1);
+     ctx.drawImage(mip(im2,W2),-W2/2,gy2-H2,W2,H2);
+     ctx.restore();
     }
    }
   }
   ctx.globalAlpha=1;
   ctx.strokeStyle='rgba(255,255,255,0.30)';ctx.setLineDash([16,12]);ctx.lineWidth=3;
   ctx.strokeRect(20,20,4180,world.h-40);ctx.setLineDash([]);
+  if(sizeItem){ /* ⤢ live readout - a ring at the new footprint plus the percentage */
+   const it=farmListOf(sizeItem.kind)[sizeItem.i];
+   if(it){
+    const sd=FARM_BUILD.find(x=>x.id===it.t),sc4=scaleOf(it);
+    const rr=Math.max(24,(sd?(sd.W||200):200)*sc4*0.5),lbl=Math.round(sc4*100)+'%';
+    ctx.strokeStyle='rgba(120,230,140,0.9)';ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.arc(it.x,it.y,rr,0,7);ctx.stroke();
+    ctx.font='700 20px system-ui';ctx.textAlign='center';
+    ctx.fillStyle='rgba(0,0,0,0.65)';ctx.fillText(lbl,it.x+1,it.y-rr-9);
+    ctx.fillStyle='#8fe6a0';ctx.fillText(lbl,it.x,it.y-rr-10);
+   }
+  }
   if(buildSel||moveItem){
    const gid=moveItem?moveItem.t:buildSel;
    const gp=gid&&gid!=='remove'?snapPos(gid,mouseWX,mouseWY):{x:mouseWX,y:mouseWY};
@@ -5581,8 +5706,14 @@ function draw(){
    }else if(def&&def.img){
     const im=farmImg(def.img);
     if(im.complete&&im.naturalWidth){
-     const W=def.W||200,H=W*im.naturalHeight/im.naturalWidth;
-     ctx.drawImage(mip(im,W),gp.x-W/2,gp.y+(def.gy!==undefined?def.gy:30)-H,W,H);
+     /* a carried piece keeps its mirror and size while it hovers - what you see is what lands */
+     const car=moveItem?farmListOf(moveItem.kind)[moveItem.i]:null;
+     const sc=scaleOf(car),W=(def.W||200)*sc,H=W*im.naturalHeight/im.naturalWidth;
+     const gyg=(def.gy!==undefined?def.gy:30)*sc;
+     ctx.save();ctx.translate(gp.x,gp.y);
+     if(flipOf(car)<0)ctx.scale(-1,1);
+     ctx.drawImage(mip(im,W),-W/2,gyg-H,W,H);
+     ctx.restore();
     }
    }else if(gid==='hay'){ /* hay ghost via its art */
     const im3=farmImg('hö_frö');
@@ -5885,27 +6016,32 @@ function drawProp(s,z){
    const W=340,H=W*im.naturalHeight/im.naturalWidth;
    ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,10,W*0.36,W*0.085,0,0,7);ctx.fill(); /* tucked under the sprite - only a rim peeks out */
    ctx.drawImage(crisp(im,W),-W/2,32-H,W,H);
-   const own=S.farm&&S.farm.owned;
-   const txt=own?'':((S.prestige||0)>=5?'Buy Farm · 500,000◉ + 800⚙':'🔒 Requires Prestige 5');
+   const own=S.farm&&S.farm.owned,unlocked=(S.prestige||0)>=FARM_PRESTIGE;
+   const txt=own?'':(unlocked?'Buy Farm · 500,000◉ + 800⚙':'🔒 Requires Prestige '+FARM_PRESTIGE);
    if(txt){
     ctx.font='700 13px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
     ctx.fillStyle='rgba(0,0,0,0.65)';ctx.fillText(txt,1,32-H-10+1);
-    ctx.fillStyle=(S.prestige||0)>=5?'#ffd76a':'#ff8a7a';ctx.fillText(txt,0,32-H-10);
+    ctx.fillStyle=unlocked?'#ffd76a':'#ff8a7a';ctx.fillText(txt,0,32-H-10);
    }
   }
  }else if(s.type==='farmitem'){ /* any placed farm piece - the catalogue knows how to draw it */
   const def=FARM_BUILD.find(x=>x.id===s.ftype);
   const im=def&&def.img?farmImg(def.img):null;
   if(def&&im&&im.complete&&im.naturalWidth){
-   const W=def.W||200,H=W*im.naturalHeight/im.naturalWidth,gy=def.gy!==undefined?def.gy:30;
+   /* look reads off the item itself, not off the solid, so a live resize shows instantly
+      without rebuilding every solid on each pointer move */
+   const sc=scaleOf(s.it),fl=flipOf(s.it);
+   const W=(def.W||200)*sc,H=W*im.naturalHeight/im.naturalWidth,gy=(def.gy!==undefined?def.gy:30)*sc;
    if(def.col&&def.col.crx&&!def.snap){ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,gy-W*0.06,W*0.36,W*0.085,0,0,7);ctx.fill();} /* tucked under the sprite; fences: no blob shadow */
+   ctx.save();
+   if(fl<0)ctx.scale(-1,1); /* ⇄ mirrored - the mood tag below stays outside this, or it would read backwards */
    if(def.roam&&s.mv){ /* 🐄 walk cycle: a little hop + body rock, pivoting at the feet, fading out on stop */
     const ph=(s.wt||0)*0.35,k=s.mv;
     const bob=Math.abs(Math.sin(ph))*(1.5+W*0.03)*k;
-    ctx.save();ctx.translate(0,gy);ctx.rotate(Math.sin(ph)*0.06*k);
+    ctx.translate(0,gy);ctx.rotate(Math.sin(ph)*0.06*k);
     ctx.drawImage(crisp(im,W),-W/2,-H-bob,W,H);
-    ctx.restore();
    }else ctx.drawImage(crisp(im,W),-W/2,gy-H,W,H); /* crisp(): device-pixel exact - no mip shimmer on fences */
+   ctx.restore();
    if(def.roam&&s.it){ /* mood tag: 💕 expecting/brooding · ❤ sated (next meal not yet due) */
     const tag=(s.it.preg||s.it.egg)?'💕':(Date.now()-(s.it.fed||0)<(def.eatT||HAPPY_T)?'❤':null);
     if(tag){ctx.font='700 12px system-ui';ctx.textAlign='center';ctx.fillStyle='#ff8aa0';ctx.fillText(tag,0,gy-H-5);}
