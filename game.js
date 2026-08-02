@@ -11,11 +11,15 @@ const fkImg=new Image();fkImg.src='assets/models/frostkeen.png'; /* the original
 const fkImgMace =new Image();fkImgMace.src ='assets/models/frostkeen_mace.png';
 const fkImgStaff=new Image();fkImgStaff.src='assets/models/frostkeen_staff.png';
 const fkImgBow  =new Image();fkImgBow.src  ='assets/models/frostkeen_bow.png';
+/* std: the plain weapon this legendary stands in for - sizes copied from that weapon's own draw
+   below, plus the grip it hangs from. Where std is set, h scales against the ordinary weapon
+   instead of the Frostkeen base, so the legendary lands in the same spot but reads bigger. */
 const FK_ART={
- warrior:{img:fkImg,      h:1},     /* Christian - heavy blade */
- priest: {img:fkImgMace,  h:0.94},  /* Jew - healing mace, shorter haft */
- mage:   {img:fkImgStaff, h:1.18},  /* Hindu - staff, stands taller than a blade */
- hunter: {img:fkImgBow,   h:1.05},  /* Muslim - bow */
+ warrior:{img:fkImg,      h:1.38,std:{pw:38,pl:27,grip:H=>4-H}},        /* Christian - heavy blade, grip in the hand */
+ priest: {img:fkImgMace,  h:1.38,std:{pw:38,pl:27,grip:H=>4-H}},        /* Jew - healing mace, butt in the hand */
+ mage:   {img:fkImgStaff, h:1.38,std:{pw:42,pl:30,grip:H=>5-H}},       /* Hindu - staff, butt in the hand */
+ hunter: {img:fkImgBow,   h:1.38,std:{pw:44,pl:31,grip:H=>-4-H/2},mirror:true}, /* Muslim - bow, gripped
+   mid-limb; its art faces the same way as assets/weapons/bow.png so it mirrors on the same rule */
 };
 /* Any class art that has not loaded - or does not exist yet - quietly falls back to the
    blade, so a missing file can never leave the hero empty-handed. */
@@ -6562,9 +6566,15 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g.shadowColor='#6fd0ff';g.shadowBlur=10+Math.sin(tt*3)*3;
   const art=fkArtFor(clsId); /* blade · mace · staff · bow, by what this class can wield */
   if(art.img.complete&&art.img.naturalWidth){
-   /* painted Frostkeen (assets/models/frostkeen*.png) - the pulsing canvas glow hugs the cutout */
-   const H=(pw?50:40)*art.h,W=H*art.img.naturalWidth/art.img.naturalHeight;
-   g.drawImage(mip(art.img,W),-W/2,(pw?-2:6)-H,W,H); /* grip in the painted hero's hand */
+   /* painted Frostkeen (assets/models/frostkeen*.png) - the pulsing canvas glow hugs the cutout.
+      Arts with a std borrow that plain weapon's size and grip so they land in the same place;
+      the rest hang from the grip at the bottom of their art. */
+   const st=art.std;
+   const H=(st?(pw?st.pw:st.pl):(pw?50:40))*art.h,W=H*art.img.naturalWidth/art.img.naturalHeight;
+   g.save();
+   if(art.mirror&&sgn<0)g.scale(-1,1); /* mirror so the string always faces the archer */
+   g.drawImage(mip(art.img,W),-W/2,st?st.grip(H):(pw?-2:6)-H,W,H); /* grip in the painted hero's hand */
+   g.restore();
    g.shadowBlur=0;
   }else{ /* fallback while the image loads: icy runeblade */
   g.fillStyle='#bfe9ff';
