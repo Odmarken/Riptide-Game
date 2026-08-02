@@ -29,6 +29,18 @@ function fkArtFor(clsId){
  return FK_ART.warrior;
 }
 const wgImg=new Image();wgImg.src='assets/models/felglaive.png';
+const fgImgMace =new Image();fgImgMace.src ='assets/models/felglaive_mace.png';
+const fgImgStaff=new Image();fgImgStaff.src='assets/models/felglaive_staff.png';
+const fgImgBow  =new Image();fgImgBow.src  ='assets/models/felglaive_bow.png';
+/* 🟢 the Fel Glaives reshape themselves the same way Frostkeen does - see FK_ART for the std/h
+   contract. Only the warrior is left out: he keeps the matched pair, which is the whole point
+   of the weapon, so a missing class here quietly falls back to the glaives. */
+const FG_ART={
+ priest:{img:fgImgMace, h:1.38,std:{pw:38,pl:27,grip:H=>4-H}},
+ mage:  {img:fgImgStaff,h:1.38,std:{pw:42,pl:30,grip:H=>5-H}},
+ hunter:{img:fgImgBow,  h:1.38,std:{pw:44,pl:31,grip:H=>-4-H/2},mirror:true},
+};
+const fgArtFor=clsId=>{const a=FG_ART[clsId];return (a&&a.img.complete&&a.img.naturalWidth)?a:null;};
 const gsMapImg=new Image();gsMapImg.src='assets/models/maps/goldshire_map.png';
 /* painted ground maps for leveling zones - lazily loaded per zone via z.map */
 const zoneMapImgs={};
@@ -6426,7 +6438,9 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
  clsId=CLASS_ALIAS[clsId]||clsId;
  const r=RACES.find(x=>x.id===raceId);
  const sgn=fx<0?-1:1;
- if(isFGLegend(weaponId)){ /* back glaive: behind the body, tilted opposite the front one - WoW dual-wield look */
+ /* back glaive: behind the body, tilted opposite the front one - WoW dual-wield look. Only for the
+    classes that actually wield the pair; a priest holding the fel mace has nothing to strap on. */
+ if(isFGLegend(weaponId)&&!fgArtFor(clsId)){
   g.save();
   g.translate(0,-14+by); /* centered on the back at shoulder height */
   g.globalAlpha*=0.9;
@@ -6545,7 +6559,16 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g.strokeStyle='#a9885a';g.lineWidth=1.8;g.beginPath();g.moveTo(2,-3);g.lineTo(8,-15);g.stroke();
   g.strokeStyle='#c9b391';g.lineWidth=1.1;g.beginPath();g.moveTo(8,-15);g.lineTo(12,-22);g.stroke();
  }else if(isFGLegend(weaponId)){
-  if(wgImg.complete&&wgImg.naturalWidth){
+  const fa=fgArtFor(clsId); /* priest · mage · hunter carry one fel weapon; the warrior keeps the pair */
+  if(fa){
+   const st=fa.std,H=(pw?st.pw:st.pl)*fa.h,W=H*fa.img.naturalWidth/fa.img.naturalHeight;
+   g.shadowColor='#4dff9a';g.shadowBlur=9;
+   g.save();
+   if(fa.mirror&&sgn<0)g.scale(-1,1); /* the bow's string always faces the archer */
+   g.drawImage(mip(fa.img,W),-W/2,st.grip(H),W,H);
+   g.restore();
+   g.shadowBlur=0;
+  }else if(wgImg.complete&&wgImg.naturalWidth){
    /* painted Fel Glaives pair (assets/models/felglaive.png) - held level, pointing straight ahead */
    const W=62,H=W*wgImg.naturalHeight/wgImg.naturalWidth;
    g.rotate(-(sgn<0?-1:1)*(pw?0.85:0.5)); /* cancel the base tilt; the attack swing still animates */
