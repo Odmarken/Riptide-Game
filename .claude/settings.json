@@ -30,7 +30,8 @@
       "Bash(curl -sL -o flat/trough_raw.png \"https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260801_134749_c9902d91-4473-48a4-b38f-c863ea2da778.png\")",
       "Bash(curl -sL -o flat/trough_v2.png \"https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260801_134919_400d3b7b-fb47-4b2a-a071-8ceebaf2e7bc.png\")",
       "Bash(curl -sL -o flat/trough_v3.png \"https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260801_135321_1bc319fa-83f4-42eb-b9f1-aa45bff4f329.png\")",
-      "Bash(git mv *)"
+      "Bash(git mv *)",
+      "Bash(awk 'NR>=6361 && NR<=6620 && /\\\\bfm\\\\b/' game.js)"
     ]
   }
 }

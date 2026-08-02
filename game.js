@@ -4,7 +4,26 @@ const treeImg=new Image();treeImg.src='assets/models/träd.png';
 treeImg._pad=1.2;treeImg._anchor=0.89; /* per-art calibration: padding compensation + trunk-bottom fraction */
 const treeSnowImg=new Image();treeSnowImg.src='assets/models/trädsnow.png';
 treeSnowImg._pad=1.33;treeSnowImg._anchor=0.86;
-const fkImg=new Image();fkImg.src='assets/models/frostkeen.png';
+const fkImg=new Image();fkImg.src='assets/models/frostkeen.png'; /* the original blade - warrior */
+/* ❄ one legendary, four faces: Frostkeen takes the shape its bearer can actually wield.
+   The item is the same in every way that matters - same name, same key, same stats - only
+   the art changes with the class. h nudges the height so a staff reads taller than a mace. */
+const fkImgMace =new Image();fkImgMace.src ='assets/models/frostkeen_mace.png';
+const fkImgStaff=new Image();fkImgStaff.src='assets/models/frostkeen_staff.png';
+const fkImgBow  =new Image();fkImgBow.src  ='assets/models/frostkeen_bow.png';
+const FK_ART={
+ warrior:{img:fkImg,      h:1},     /* Christian - heavy blade */
+ priest: {img:fkImgMace,  h:0.94},  /* Jew - healing mace, shorter haft */
+ mage:   {img:fkImgStaff, h:1.18},  /* Hindu - staff, stands taller than a blade */
+ hunter: {img:fkImgBow,   h:1.05},  /* Muslim - bow */
+};
+/* Any class art that has not loaded - or does not exist yet - quietly falls back to the
+   blade, so a missing file can never leave the hero empty-handed. */
+function fkArtFor(clsId){
+ const a=FK_ART[clsId];
+ if(a&&a.img.complete&&a.img.naturalWidth)return a;
+ return FK_ART.warrior;
+}
 const wgImg=new Image();wgImg.src='assets/models/felglaive.png';
 const gsMapImg=new Image();gsMapImg.src='assets/models/maps/goldshire_map.png';
 /* painted ground maps for leveling zones - lazily loaded per zone via z.map */
@@ -6541,10 +6560,11 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
  }else if(fm){
   const tt=performance.now()/1000;
   g.shadowColor='#6fd0ff';g.shadowBlur=10+Math.sin(tt*3)*3;
-  if(fkImg.complete&&fkImg.naturalWidth){
-   /* painted Frostkeen (assets/models/frostkeen.png) - the pulsing canvas glow hugs the cutout */
-   const H=pw?50:40,W=H*fkImg.naturalWidth/fkImg.naturalHeight;
-   g.drawImage(mip(fkImg,W),-W/2,(pw?-2:6)-H,W,H); /* grip in the painted hero's hand */
+  const art=fkArtFor(clsId); /* blade · mace · staff · bow, by what this class can wield */
+  if(art.img.complete&&art.img.naturalWidth){
+   /* painted Frostkeen (assets/models/frostkeen*.png) - the pulsing canvas glow hugs the cutout */
+   const H=(pw?50:40)*art.h,W=H*art.img.naturalWidth/art.img.naturalHeight;
+   g.drawImage(mip(art.img,W),-W/2,(pw?-2:6)-H,W,H); /* grip in the painted hero's hand */
    g.shadowBlur=0;
   }else{ /* fallback while the image loads: icy runeblade */
   g.fillStyle='#bfe9ff';
@@ -11158,7 +11178,7 @@ function bootPreload(){
  /* mob sprites */
  Object.values(MOB_SET).forEach(a=>a.forEach(n=>push('assets/mobs/'+n+'.png')));
  /* world props and the hero's own gear art */
- ['casino','tavern','bank','blacksmith','fishinghut','brunn','berg','sten','träd','trädsnow','armor_altar','frostkeen','felglaive','thering']
+ ['casino','tavern','bank','blacksmith','fishinghut','brunn','berg','sten','träd','trädsnow','armor_altar','frostkeen','frostkeen_mace','frostkeen_staff','frostkeen_bow','felglaive','thering']
   .forEach(n=>push('assets/models/'+n+'.png'));
  /* the first zones you will actually walk through */
  ['levlingzone_green','levlingzone_boss','farm_zone','cowlevel_zone'].forEach(n=>push('assets/models/maps/'+n+'.png'));
