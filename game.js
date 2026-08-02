@@ -136,7 +136,9 @@ const FARM_BUILD=[
  {id:'dirt_road',n:'Dirt Road',img:'dirt_road',tab:'o',road:1,rw:44,W:44,gy:22},
  {id:'gravel_road',n:'Gravel Road',img:'gravel_road',tab:'o',road:1,rw:44,W:44,gy:22},
  /* 🌳 Decoration */
- {id:'light_farm',n:'Lamp Post',img:'light_farm',tab:'d',W:42,gy:10,col:{r:8}},
+ /* glow: where the flame sits in the art, as fractions of the sprite - measured off the pixels,
+    not eyeballed - plus the pool's radius as a fraction of W. See the farmitem draw for the flicker. */
+ {id:'light_farm',n:'Lamp Post',img:'light_farm',tab:'d',W:42,gy:10,col:{r:8},glow:{fx:0.799,fy:0.408,r:0.78}},
  {id:'bush',n:'Bush',img:'häck_farm',tab:'d',W:130,gy:16,col:{r:14,crx:65,cry:10,cyo:5},snap:'h'},
  {id:'bushv',n:'Bush (vertical)',img:'häckvertikal_farm',tab:'d',W:53,gy:16,col:{r:14,crx:18,cry:60,cyo:-45},snap:'v'},
  /* the roaming herd paths around anything with col, so the two ground pieces below carry
@@ -159,6 +161,13 @@ const FARM_BUILD=[
  {id:'haywagon',n:'Hay Wagon',img:'haywagon_farm',tab:'d',W:170,gy:20,col:{r:30,crx:74,cry:28,cyo:-6}},
  {id:'beehives',n:'Beehives',img:'beehives_farm',tab:'d',W:80,gy:12,col:{r:18}},
  {id:'farmsign',n:'Farm Sign',img:'farmsign_farm',tab:'d',W:60,gy:10,col:{r:8}},
+ /* --- decorations added later. sh values are measured off each sprite's real ground contact,
+        not guessed off its silhouette - see the tree/fountain note above for why that matters. --- */
+ {id:'windmill',n:'Windmill',img:'windmill_farm',tab:'d',W:150,gy:16,col:{r:30},sh:{rx:0.38,ry:0.10,dy:-0.01}},
+ {id:'appletree',n:'Apple Tree',img:'appletree_farm',tab:'d',W:170,gy:14,col:{r:16},
+  sh:{rx:0.22,ry:0.055,dy:-0.005},sway:{amp:0.030,spd:0.78,hold:0.58}}, /* sways like tree_farm - trunk still, canopy bends */
+ {id:'woodpile',n:'Firewood Pile',img:'woodpile_farm',tab:'d',W:125,gy:10,col:{r:16,crx:44,cry:14,cyo:0},sh:{rx:0.34,ry:0.075,dy:-0.01}},
+ {id:'crates',n:'Produce Crates',img:'crates_farm',tab:'d',W:105,gy:10,col:{r:14,crx:38,cry:14,cyo:0},sh:{rx:0.26,ry:0.065,dy:-0.01}},
  {id:'remove',n:'Remove',emoji:'🗑',tab:'*'} /* removes anything except the farmhouse */
 ];
 /* ⇄/⤢ per-piece look. fl:-1 mirrors the art, sc scales it (1 = catalogue size).
@@ -2456,7 +2465,8 @@ function farmDeselect(){
 const FARM_PRICES={lada:250000,staket:5000,staketv:5000,chickenhouse:100000,chickenfarm:0,chickenfarm_big:0,cowfarm:0,cowfarm_big:0,tjur:0,hay:0,hay_medium:0,hay_klar:0,hobal:0,chickenseeds:0,medium:350000,mansion:500000,dirt_road:0,gravel_road:0,light_farm:10000,bush:5000,bushv:5000,
  fountain:20000,tree_farm:15000,well:15000,scarecrow:10000,
  flowerbed:10000,pond:20000,pumpkins:10000,bench:10000,
- trough:12000,haywagon:18000,beehives:12000,farmsign:10000}; /* gold cost per placement */
+ trough:12000,haywagon:18000,beehives:12000,farmsign:10000,
+ windmill:60000,appletree:18000,woodpile:8000,crates:8000}; /* gold cost per placement */
 const FARM_SCRAPS={lada:300,chickenhouse:150,medium:600,mansion:800}; /* ⚙ scrap cost on top of gold */
 const FARM_ROAD_RATE={dirt_road:10,gravel_road:15}; /* 🛣 roads are priced by length: ◉ per world-unit drawn */
 const roadCost=g2=>Math.round(Math.hypot(g2.x1-g2.x0,g2.y1-g2.y0)*(FARM_ROAD_RATE[g2.t]||0));
@@ -2821,7 +2831,10 @@ function snapPos(id,x,y){
  if(!snapMode)return {x,y};
  if(!def||!def.snap)return {x,y};
  const my=itemSpanOf(def);
- let best=null,bd=SNAP_R;
+ /* 🧲 grab radius scales with the piece being placed. One flat SNAP_R meant a 13-wide fence post
+    snapped from 80 units away - it would jump to a neighbour you were not aiming at, which reads
+    as the snap being loose. def.snapR overrides for anything that wants to break the rule. */
+ let best=null,bd=def.snapR||Math.max(22,Math.min(SNAP_R,(my.W+my.H)*0.32));
  for(const it of [...((S.farm&&S.farm.b)||[]),...farmCart]){
   if(it._moving)continue;
   const d2=FARM_BUILD.find(o=>o.id===it.t);
@@ -2829,10 +2842,16 @@ function snapPos(id,x,y){
   const sp=itemSpanOf(d2),cands=[];
   if(def.snap==='h'&&d2.snap==='h')cands.push({x:it.x-sp.W,y:it.y},{x:it.x+sp.W,y:it.y});
   else if(def.snap==='v'&&d2.snap==='v')cands.push({x:it.x,y:it.y-sp.H},{x:it.x,y:it.y+sp.H});
-  else if(def.snap==='v') /* vertical piece onto a horizontal run: corner at either end, going up or down */
-   cands.push({x:it.x-sp.W/2,y:it.y},{x:it.x+sp.W/2,y:it.y},{x:it.x-sp.W/2,y:it.y+my.H},{x:it.x+sp.W/2,y:it.y+my.H});
-  else /* horizontal piece onto a vertical run: attach at its south or north end */
-   cands.push({x:it.x-my.W/2,y:it.y},{x:it.x+my.W/2,y:it.y},{x:it.x-my.W/2,y:it.y-sp.H},{x:it.x+my.W/2,y:it.y-sp.H});
+  /* corners: line the two pieces up by their OUTER faces, not by centre-on-end. Centring the post
+     on the rail's end left it hanging half its own width past the corner - the gap you could see.
+     Offsetting by half the difference tucks the post's outer edge flush with the rail's. */
+  else if(def.snap==='v'){ /* vertical piece onto a horizontal run: corner at either end, up or down */
+   const ex=Math.max(0,(sp.W-my.W)/2);
+   cands.push({x:it.x-ex,y:it.y},{x:it.x+ex,y:it.y},{x:it.x-ex,y:it.y+my.H},{x:it.x+ex,y:it.y+my.H});
+  }else{ /* horizontal piece onto a vertical run: attach at its south or north end */
+   const ex=Math.max(0,(my.W-sp.W)/2);
+   cands.push({x:it.x-ex,y:it.y},{x:it.x+ex,y:it.y},{x:it.x-ex,y:it.y-sp.H},{x:it.x+ex,y:it.y-sp.H});
+  }
   for(const c of cands){const d=Math.hypot(c.x-x,c.y-y);if(d<bd){bd=d;best=c;}}
  }
  return best||{x,y};
@@ -6272,6 +6291,23 @@ function drawProp(s,z){
     }
    }else ctx.drawImage(crisp(im,W),-W/2,gy-H,W,H); /* crisp(): device-pixel exact - no mip shimmer on fences */
    ctx.restore();
+   if(def.glow){
+    /* 🔥 a lit lantern: a warm pool over the flame that breathes. Two sine rates rather than one -
+       a single sine reads as a mechanical pulse, two beat against each other and look like flame.
+       Drawn outside the flip save, so the position mirrors by hand when the piece is flipped.
+       Phase comes from the piece's x, so a row of lamps does not flicker in unison. */
+    const gt=performance.now()/1000+s.x*0.07;
+    const fk=0.84+0.11*Math.sin(gt*2.1)+0.05*Math.sin(gt*3.7);
+    const gx=(fl<0?-1:1)*(def.glow.fx*W-W/2),gyy=(gy-H)+def.glow.fy*H,gr=def.glow.r*W*fk;
+    const grd=ctx.createRadialGradient(gx,gyy,0,gx,gyy,gr);
+    grd.addColorStop(0,'rgba(255,232,158,'+(0.80*fk).toFixed(3)+')');
+    grd.addColorStop(0.35,'rgba(255,200,96,'+(0.40*fk).toFixed(3)+')');
+    grd.addColorStop(0.7,'rgba(255,180,70,'+(0.14*fk).toFixed(3)+')');
+    grd.addColorStop(1,'rgba(255,170,60,0)');
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    ctx.fillStyle=grd;ctx.beginPath();ctx.arc(gx,gyy,gr,0,7);ctx.fill();
+    ctx.restore();
+   }
    if(def.roam&&s.it){ /* mood tag: 💕 expecting/brooding · ❤ sated (next meal not yet due) */
     const tag=(s.it.preg||s.it.egg)?'💕':(Date.now()-(s.it.fed||0)<(def.eatT||HAPPY_T)?'❤':null);
     if(tag){ctx.font='700 12px system-ui';ctx.textAlign='center';ctx.fillStyle='#ff8aa0';ctx.fillText(tag,0,gy-H-5);}
