@@ -40,7 +40,8 @@
       "Bash(curl -s -o C:/Users/App-L/AppData/Local/Temp/claude/c--RiptideRPG-Riptide-Game/da13ad26-d708-4ae7-ac7a-47f1318d977c/scratchpad/blade_C_flame.png https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260802_200553_07cea9b2-545f-435c-a365-3fc635be62d3.png)",
       "Bash(curl -s -o C:/Users/App-L/AppData/Local/Temp/claude/c--RiptideRPG-Riptide-Game/da13ad26-d708-4ae7-ac7a-47f1318d977c/scratchpad/blade_D_fang.png https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260802_200555_bc25a32f-3d2c-43ca-a9a8-0ee9255ec0c6.png)",
       "Bash(curl -s -o C:/Users/App-L/AppData/Local/Temp/claude/c--RiptideRPG-Riptide-Game/da13ad26-d708-4ae7-ac7a-47f1318d977c/scratchpad/cut_fang.png https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260802_200955_8eaf2cdc-b888-4fb9-ac8b-7875df730d6c.png)",
-      "Bash(curl -s -o /dev/null -w \"frostkeen.png -> HTTP %{http_code}  %{size_download} bytes\\\\n\" \"http://127.0.0.1:8000/assets/models/frostkeen.png?v=new\")"
+      "Bash(curl -s -o /dev/null -w \"frostkeen.png -> HTTP %{http_code}  %{size_download} bytes\\\\n\" \"http://127.0.0.1:8000/assets/models/frostkeen.png?v=new\")",
+      "Bash(python -c *)"
     ]
   }
 }

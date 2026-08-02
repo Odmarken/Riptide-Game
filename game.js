@@ -17,7 +17,7 @@ const fkImgBow  =new Image();fkImgBow.src  ='assets/models/frostkeen_bow.png';
 const FK_ART={
  warrior:{img:fkImg,      h:1.38,std:{pw:38,pl:27,grip:H=>4-H}},        /* Christian - heavy blade, grip in the hand */
  priest: {img:fkImgMace,  h:1.38,std:{pw:38,pl:27,grip:H=>4-H}},        /* Jew - healing mace, butt in the hand */
- mage:   {img:fkImgStaff, h:1.38,std:{pw:42,pl:30,grip:H=>5-H}},       /* Hindu - staff, butt in the hand */
+ mage:   {img:fkImgStaff, h:1.59,std:{pw:42,pl:30,grip:H=>5-H}},       /* Hindu - staff, butt in the hand; +15% over the others so it reads as a staff */
  hunter: {img:fkImgBow,   h:1.38,std:{pw:44,pl:31,grip:H=>-4-H/2},mirror:true}, /* Muslim - bow, gripped
    mid-limb; its art faces the same way as assets/weapons/bow.png so it mirrors on the same rule */
 };
@@ -37,7 +37,7 @@ const fgImgBow  =new Image();fgImgBow.src  ='assets/models/felglaive_bow.png';
    of the weapon, so a missing class here quietly falls back to the glaives. */
 const FG_ART={
  priest:{img:fgImgMace, h:1.38,std:{pw:38,pl:27,grip:H=>4-H}},
- mage:  {img:fgImgStaff,h:1.38,std:{pw:42,pl:30,grip:H=>5-H}},
+ mage:  {img:fgImgStaff,h:1.59,std:{pw:42,pl:30,grip:H=>5-H}}, /* +15%, matching Frostkeen's staff */
  hunter:{img:fgImgBow,  h:1.38,std:{pw:44,pl:31,grip:H=>-4-H/2},mirror:true},
 };
 const fgArtFor=clsId=>{const a=FG_ART[clsId];return (a&&a.img.complete&&a.img.naturalWidth)?a:null;};
@@ -141,8 +141,14 @@ const FARM_BUILD=[
  {id:'bushv',n:'Bush (vertical)',img:'häckvertikal_farm',tab:'d',W:53,gy:16,col:{r:14,crx:18,cry:60,cyo:-45},snap:'v'},
  /* the roaming herd paths around anything with col, so the two ground pieces below carry
     none on purpose - they are mats you can lay anywhere without boxing an animal in */
- {id:'fountain',n:'Fountain',img:'fountain_farm',tab:'d',W:150,gy:20,col:{r:40}},
- {id:'tree_farm',n:'Tree',img:'tree_farm',tab:'d',W:200,gy:14,col:{r:16}},   /* trunk only - walk under the canopy */
+ {id:'fountain',n:'Fountain',img:'fountain_farm',tab:'d',W:150,gy:20,col:{r:40},
+  sh:{rx:0.46,ry:0.105,dy:-0.015}}, /* the stone base fills the art's full width - a wide shadow, unlike the tree's */
+ /* trunk only - walk under the canopy. sh: its own blob shadow, tight around the trunk rather than
+    the wide canopy (the default shadow keys off col.crx, which a tree has no business having).
+    sway: hold = the fraction of the art, measured from the top, that bends; below that the trunk
+    is rigid, so the tree rocks at the leaves and stays planted at the roots. */
+ {id:'tree_farm',n:'Tree',img:'tree_farm',tab:'d',W:200,gy:14,col:{r:16},
+  sh:{rx:0.15,ry:0.042,dy:-0.005},sway:{amp:0.030,spd:0.85,hold:0.60}},
  {id:'well',n:'Well',img:'well_farm',tab:'d',W:110,gy:16,col:{r:30}},
  {id:'scarecrow',n:'Scarecrow',img:'scarecrow_farm',tab:'d',W:70,gy:8,col:{r:10}},
  {id:'flowerbed',n:'Flower Bed',img:'flowerbed_farm',tab:'d',W:130,gy:10,snap:'h'}, /* snaps into long borders like the hedge */
@@ -3048,6 +3054,25 @@ function drawFarmGround(){ /* farm_zone stretched over one cow-field, laid twice
    const cy2=c.y+(cdef.gy!==undefined?cdef.gy:10)-H2;
    if(flipOf(c)<0){ctx.save();ctx.translate(c.x,0);ctx.scale(-1,1);ctx.drawImage(mip(cimg,W2),-W2/2,cy2,W2,H2);ctx.restore();}
    else ctx.drawImage(mip(cimg,W2),c.x-W2/2,cy2,W2,H2);
+   /* ✨ ripe hay glitters - motes drift up off the ears so a ready patch reads at a glance without
+      having to compare straw colour. Phase comes from the patch's own x/y, so neighbouring squares
+      twinkle out of step instead of pulsing as one block. Skipped when zoomed far out: at that size
+      the motes are sub-pixel anyway and there can be a hundred patches on screen. */
+   if(c.t==='hay_klar'&&zoom>0.5){
+    const tt=performance.now()/1000,seed=c.x*0.07+c.y*0.13;
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    for(let i=0;i<4;i++){
+     const p=(tt*0.4+seed+i*0.25)%1;              /* 0→1 rise, then respawn at the bottom */
+     const sx=c.x+Math.sin(seed*7+i*2.1+p*2.6)*W2*0.33;
+     const sy=cy2+H2*0.55-p*(H2*0.5+16);
+     const a=Math.sin(p*Math.PI);                 /* fade in on the way up, out at the top */
+     ctx.globalAlpha=a*0.55;
+     ctx.fillStyle='#ffe9a0';ctx.beginPath();ctx.arc(sx,sy,3.2,0,7);ctx.fill();
+     ctx.globalAlpha=a;
+     ctx.fillStyle='#fffbe6';ctx.beginPath();ctx.arc(sx,sy,1.25,0,7);ctx.fill();
+    }
+    ctx.restore();
+   }
   }else{
    ctx.strokeStyle='#7db64a';ctx.lineWidth=2;ctx.lineCap='round';
    for(let i=0;i<4;i++){const k=(i-1.5);ctx.beginPath();ctx.moveTo(c.x+k*5,c.y);ctx.quadraticCurveTo(c.x+k*7,c.y-7,c.x+k*10,c.y-13);ctx.stroke();}
@@ -5598,6 +5623,69 @@ function drawLootChest(x,y,sc){
  ctx.fillStyle='#8a6a20';ctx.beginPath();ctx.arc(0,-10.5,1.6,0,7);ctx.fill();ctx.fillRect(-0.8,-10,1.6,3);
  ctx.restore();
 }
+/* 🐟 Goldshire rises - the lake is painted into goldshire_map.png, so there is no water object
+   to animate. Spots well inside the water are picked out of the map ONCE, then each one pops a
+   set of expanding rings now and then, like a fish taking something off the surface.
+
+   The map is sampled HARD downscaled (~260px wide) on purpose. At full resolution the painted
+   lake's own ripple texture makes the wet/dry test flip all over the open water; downscaling
+   averages that away and leaves one clean silhouette to work from.
+
+   A spot must have water all around it out to the ring's full reach, or a ripple would expand
+   out over the sand. */
+let gsRise=null,gsRiseKey='';
+function buildGoldshireRises(){
+ if(!(gsMapImg.complete&&gsMapImg.naturalWidth))return;
+ const key=world.w+'x'+world.h;
+ if(gsRise&&gsRiseKey===key)return;
+ try{
+  const cv=document.createElement('canvas');
+  const CW=260,CH=Math.max(2,Math.round(CW*gsMapImg.naturalHeight/gsMapImg.naturalWidth));
+  cv.width=CW;cv.height=CH;
+  const c=cv.getContext('2d',{willReadFrequently:true});
+  c.drawImage(gsMapImg,0,0,CW,CH);
+  const d=c.getImageData(0,0,CW,CH).data;
+  const wet=(x,y)=>{if(x<0||y<0||x>=CW||y>=CH)return false;const i=(y*CW+x)*4;return d[i+2]>d[i]+34&&d[i+2]>80;};
+  /* stable pseudo-random from the cell itself - same lake, same rhythm, every load */
+  const rnd=(a)=>{a=(a^61)^(a>>>16);a=a+(a<<3);a=a^(a>>>4);a=Math.imul(a,0x27d4eb2d);a=a^(a>>>15);return (a>>>0)/4294967296;};
+  const sx=world.w/CW,sy=world.h/CH,MARGIN=3,pts=[];
+  for(let y=MARGIN;y<CH-MARGIN;y+=3)for(let x=MARGIN;x<CW-MARGIN;x+=3){
+   let open=true;
+   for(let oy=-MARGIN;oy<=MARGIN&&open;oy++)for(let ox=-MARGIN;ox<=MARGIN;ox++)if(!wet(x+ox,y+oy)){open=false;break;}
+   if(!open)continue;
+   const r1=rnd(x*7919+y*104729),r2=rnd(x*15485863+y*32452843),r3=rnd(x*49979687+y*86028121);
+   if(r1>0.30)continue; /* thin them out - a lake full of rises reads as rain, not fish */
+   pts.push({x:x*sx,y:y*sy,
+             r:20+r2*22,        /* how wide the rings get */
+             per:5.5+r3*7,      /* seconds between nibbles at this spot */
+             t0:r1*40,          /* its own offset, so spots fire at different moments */
+             dur:2.6+r2*1.2});  /* how long one nibble lasts - the rest of per is quiet water */
+  }
+  gsRise=pts;gsRiseKey=key;
+ }catch(e){gsRise=[];gsRiseKey=key;} /* file:// taints the canvas - just skip the effect */
+}
+function drawGoldshireRises(now){
+ if(!gsRise||!gsRise.length)return;
+ const vx1=camX+VW/zoom,vy1=camY+VH/zoom;
+ ctx.save();ctx.strokeStyle='#eaf8ff';
+ for(const p of gsRise){
+  if(p.x<camX-60||p.x>vx1+60||p.y<camY-60||p.y>vy1+60)continue;
+  const t=(now+p.t0)%p.per;
+  if(t>p.dur)continue; /* the quiet gap between nibbles - this is what makes it sporadic */
+  const k=t/p.dur;
+  /* three rings from one nibble: ring 0 is the oldest and widest, the inner ones lag behind it,
+     so they read as a single disturbance spreading out rather than three separate events */
+  for(let r=0;r<3;r++){
+   const kk=k-r*0.17;
+   if(kk<=0||kk>=1)continue;
+   const rad=p.r*kk;
+   ctx.globalAlpha=(1-kk)*(1-kk)*0.55*(1-r*0.24);
+   ctx.lineWidth=1.7*(1-kk*0.45);
+   ctx.beginPath();ctx.ellipse(p.x,p.y,rad,rad*0.62,0,0,7);ctx.stroke();
+  }
+ }
+ ctx.restore();
+}
 function draw(){
  if(!gameOn)return;
  const now=performance.now()/1000;
@@ -5608,6 +5696,7 @@ function draw(){
  const z=zoneOf();
  if(z.crypts)drawCryptGround();
  else if(z.farm)drawFarmGround();
+ else if(z.tavern){buildGoldshireRises();drawGoldshireRises(now);} /* 🐟 fish rises on the painted lake */
  /* animated water shimmer */
  for(const w of world.waters){
   if(w.x<camX-w.r||w.x>camX+VW/zoom+w.r||w.y<camY-w.r||w.y>camY+VH/zoom+w.r)continue;
@@ -6155,7 +6244,11 @@ function drawProp(s,z){
       without rebuilding every solid on each pointer move */
    const sc=scaleOf(s.it),fl=flipOf(s.it);
    const W=(def.W||200)*sc,H=W*im.naturalHeight/im.naturalWidth,gy=(def.gy!==undefined?def.gy:30)*sc;
-   if(def.col&&def.col.crx&&!def.snap){ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,gy-W*0.06,W*0.36,W*0.085,0,0,7);ctx.fill();} /* tucked under the sprite; fences: no blob shadow */
+   /* blob shadow, tucked under the sprite; fences (snap) get none. def.sh overrides the default
+      footprint for pieces whose ground contact is nothing like their silhouette - a tree being
+      the case that forced this: wide canopy, narrow trunk. */
+   const sh=def.sh||((def.col&&def.col.crx&&!def.snap)?{rx:0.36,ry:0.085,dy:-0.06}:null);
+   if(sh){ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,gy+W*sh.dy,W*sh.rx,W*sh.ry,0,0,7);ctx.fill();}
    ctx.save();
    if(fl<0)ctx.scale(-1,1); /* ⇄ mirrored - the mood tag below stays outside this, or it would read backwards */
    if(def.roam&&s.mv){ /* 🐄 walk cycle: a little hop + body rock, pivoting at the feet, fading out on stop */
@@ -6163,6 +6256,20 @@ function drawProp(s,z){
     const bob=Math.abs(Math.sin(ph))*(1.5+W*0.03)*k;
     ctx.translate(0,gy);ctx.rotate(Math.sin(ph)*0.06*k);
     ctx.drawImage(crisp(im,W),-W/2,-H-bob,W,H);
+   }else if(def.sway){
+    /* 🌿 canopy sway: the art is drawn as horizontal bands, each nudged sideways by a shear that
+       ramps in toward the top, so the crown bends while the trunk stands still. k is squared to
+       ease the bend in rather than kink it at the hold line. Phase comes from the piece's own x,
+       so a row of trees ripples instead of swaying as one. Bands overlap by 0.5px - without it
+       the seams show as hairline gaps. */
+    const BANDS=14,srcW=im.naturalWidth,srcH=im.naturalHeight,top=gy-H;
+    const ph=performance.now()/1000*def.sway.spd+s.x*0.013,amp=W*def.sway.amp;
+    for(let b=0;b<BANDS;b++){
+     const t0=b/BANDS,t1=(b+1)/BANDS;
+     const k=Math.max(0,1-t1/def.sway.hold);
+     ctx.drawImage(im,0,srcH*t0,srcW,srcH*(t1-t0),
+                   -W/2+Math.sin(ph)*amp*k*k,top+H*t0,W,H*(t1-t0)+0.5);
+    }
    }else ctx.drawImage(crisp(im,W),-W/2,gy-H,W,H); /* crisp(): device-pixel exact - no mip shimmer on fences */
    ctx.restore();
    if(def.roam&&s.it){ /* mood tag: 💕 expecting/brooding · ❤ sated (next meal not yet due) */
