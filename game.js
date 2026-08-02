@@ -2354,6 +2354,24 @@ function cancelMove(){
  moveItem=null;movePicked=null;
  const b=$('farmMoveFx');if(b)b.style.display='none';
 }
+/* 🖱 put down whatever the cursor is holding - right-click on the field, or Escape.
+   Returns what it let go of, so the caller can stay quiet when there was nothing. */
+function farmDeselect(){
+ let held=null;
+ if(sizeItem){ /* a cancelled resize goes back to the size it had when you armed it */
+  const it=farmListOf(sizeItem.kind)[sizeItem.i];
+  if(it){if(Math.abs(sizeItem.sc0-1)<0.02)delete it.sc;else it.sc=sizeItem.sc0;}
+  sizeItem=null;held='resize';
+ }
+ if(moveItem)held='the piece'; /* cancelMove drops it back on its original spot */
+ else if(movePicked)held=held||'menu';
+ if(moveItem||movePicked)cancelMove();
+ if(roadAnchor){roadAnchor=null;held=held||'the road';}
+ if(buildSel){buildSel=null;held=held||'the tool';}
+ placeDrag=null;removeDrag=null;harvestDrag=null;
+ if(held)renderFarmStore();
+ return held;
+}
 const FARM_PRICES={lada:250000,staket:5000,staketv:5000,chickenhouse:100000,chickenfarm:0,chickenfarm_big:0,cowfarm:0,cowfarm_big:0,tjur:0,hay:0,hay_medium:0,hay_klar:0,hobal:0,chickenseeds:0,medium:350000,mansion:500000,dirt_road:0,gravel_road:0,light_farm:10000,bush:5000,bushv:5000,
  fountain:20000,tree_farm:15000,well:15000,scarecrow:10000,
  flowerbed:10000,pond:20000,pumpkins:10000,bench:10000,
@@ -4337,6 +4355,10 @@ window.addEventListener('keydown',e=>{
  const k=e.key||'';
  const kl=k.toLowerCase();
  if(!kl)return;
+ if(kl==='escape'&&gameOn&&world&&zoneOf().farm&&buildMode){ /* ✋ same as right-click: put the tool down */
+  const held=farmDeselect();
+  if(held){e.preventDefault();sfx.warn();stageMsg('✋ Put down '+held,1100);return;}
+ }
  if(kl==='enter'){
   /* login screen: Enter = sign in · character select: Enter = play the top character */
   if($('login').classList.contains('open')){e.preventDefault();fbSignIn(false);return;}
@@ -4372,8 +4394,17 @@ window.addEventListener('keyup',e=>{
  if(kl)keys[kl]=false;
 });
 window.addEventListener('pointerdown',initAudio,{once:false});
+/* 🖱 right-click on the farm field = put down what you are holding. The browser menu is
+   already suppressed canvas-wide further down (it would break long-press hold-to-move),
+   so there is nothing to preventDefault here - this only does the letting go. */
+cv.addEventListener('contextmenu',()=>{
+ if(!gameOn||!world||!zoneOf().farm||!buildMode)return;
+ const held=farmDeselect();
+ if(held){sfx.warn();stageMsg('✋ Put down '+held,1100);}
+});
 cv.addEventListener('pointerdown',e=>{
  if(!gameOn||gamePaused||hero.dead||pinching)return;
+ if(e.button===2)return; /* the right button is the deselect gesture - contextmenu owns it */
  const r=cv.getBoundingClientRect();
  const wx=(e.clientX-r.left)/zoom+camX,wy=(e.clientY-r.top)/zoom+camY;
  hero.pendingDoor=null; /* any new click cancels a pending walk-to-building */
@@ -4399,12 +4430,14 @@ cv.addEventListener('pointerdown',e=>{
  }
  if(zoneOf().farm){
   if(buildMode){
-   if(sizeItem){ /* ⤢ this click sets the size the piece is currently showing */
+   if(sizeItem){ /* ⤢ press starts the drag - it must NOT commit here, or a phone (which
+                       has no hover, so this is the very first event) would end the resize
+                       before the finger has moved at all. Release commits instead. */
     const it=farmListOf(sizeItem.kind)[sizeItem.i];
-    const pct=Math.round(scaleOf(it)*100);
-    sizeItem=null;
-    rebuildFarmItems();save();sfx.buy(); /* collision catches up with the new footprint here */
-    stageMsg('⤢ Size set - '+pct+'%',1300);
+    if(!it){sizeItem=null;return;}
+    sizeItem.drag=e.pointerId;
+    sizeItem.sc0=scaleOf(it);
+    sizeItem.d0=Math.hypot(wx-it.x,wy-it.y); /* re-anchor here so the piece never jumps */
     return;
    }
    if(moveItem){ /* set it down here */
@@ -4529,12 +4562,18 @@ let holdMove=null;
 window.addEventListener('pointermove',e=>{ /* window, not canvas - keeps steering even if the cursor drifts off the map */
  const r=cv.getBoundingClientRect();
  mouseWX=(e.clientX-r.left)/zoom+camX;mouseWY=(e.clientY-r.top)/zoom+camY;
- if(sizeItem){ /* ⤢ live resize: distance from the piece's own centre drives the scale */
+ if(sizeItem){ /* ⤢ live resize: how far the cursor travels in or out drives the scale */
   const it=farmListOf(sizeItem.kind)[sizeItem.i];
-  if(it){
-   const sc=clampSc(sizeItem.sc0*Math.hypot(mouseWX-it.x,mouseWY-it.y)/sizeItem.d0);
-   if(Math.abs(sc-1)<0.02)delete it.sc;else it.sc=sc; /* the draw reads the item, so this shows at once */
-  }else sizeItem=null; /* it was removed underneath us */
+  if(!it){sizeItem=null;return;} /* it was removed underneath us */
+  const d=Math.hypot(mouseWX-it.x,mouseWY-it.y);
+  if(sizeItem.d0===null){sizeItem.d0=d;return;} /* first movement only anchors, never jumps */
+  if(IS_TOUCH&&sizeItem.drag===null)return; /* a phone reports moves only while touching, but be explicit */
+  /* travel, not ratio: grabbing near the centre used to make one pixel worth a whole size step.
+     One item-width of outward travel doubles the piece, wherever you took hold of it. */
+  const def=FARM_BUILD.find(x=>x.id===it.t);
+  const ref=Math.max(60,(def&&def.W||200)*sizeItem.sc0);
+  const sc=clampSc(sizeItem.sc0*(1+(d-sizeItem.d0)/ref));
+  if(Math.abs(sc-1)<0.02)delete it.sc;else it.sc=sc; /* the draw reads the item, so this shows at once */
   return;
  }
  if(removeDrag&&e.pointerId===removeDrag.id){removeDrag.x1=mouseWX;removeDrag.y1=mouseWY;return;}
@@ -4548,6 +4587,14 @@ window.addEventListener('pointermove',e=>{ /* window, not canvas - keeps steerin
  if(holdMove&&e.pointerId===holdMove.id){holdMove.cx=e.clientX;holdMove.cy=e.clientY;}
 });
 window.addEventListener('pointerup',e=>{
+ if(sizeItem&&sizeItem.drag===e.pointerId){ /* ⤢ lifting off sets the size - the same gesture on mouse and finger */
+  const it=farmListOf(sizeItem.kind)[sizeItem.i];
+  const pct=Math.round(scaleOf(it)*100);
+  sizeItem=null;
+  rebuildFarmItems();save();sfx.buy(); /* collision catches up with the new footprint here */
+  stageMsg('⤢ Size set - '+pct+'%',1300);
+  return;
+ }
  if(buildPan&&e.pointerId===buildPan.id)buildPan=null;
  if(placeDrag&&e.pointerId===placeDrag.id){ /* 📱 drop the carried piece, then hand the tool back */
   const pd=placeDrag;placeDrag=null;
@@ -4704,9 +4751,10 @@ $('farmMoveSize').onclick=()=>{ /* ⤢ arm the resize - the piece then tracks th
  $('farmMoveFx').style.display='none';
  const it=farmListOf(pick.kind)[pick.i];
  if(!it)return;
- /* anchor on the current cursor distance, so the piece does not jump on the first move */
- sizeItem={kind:pick.kind,i:pick.i,sc0:scaleOf(it),d0:Math.max(30,Math.hypot(mouseWX-it.x,mouseWY-it.y))};
- stageMsg('⤢ Drag out to grow, in to shrink - click to set',2200);
+ /* d0 stays null until the first move or touch anchors it - a phone has no hover, so
+    arming must not bake in a stale cursor position */
+ sizeItem={kind:pick.kind,i:pick.i,t:pick.t,sc0:scaleOf(it),d0:null,drag:null};
+ stageMsg(IS_TOUCH?'⤢ Drag on the field to resize, lift to set':'⤢ Drag out to grow, in to shrink - click to set',2400);
 };
 $('farmMoveX').onclick=()=>{movePicked=null;$('farmMoveFx').style.display='none';};
 const endHoldMove=e=>{if(holdMove&&e.pointerId===holdMove.id)holdMove=null;};
