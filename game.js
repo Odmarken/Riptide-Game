@@ -41,7 +41,7 @@ const FG_ART={
  hunter:{img:fgImgBow,  h:1.38,std:{pw:44,pl:31,grip:H=>-4-H/2},mirror:true},
 };
 const fgArtFor=clsId=>{const a=FG_ART[clsId];return (a&&a.img.complete&&a.img.naturalWidth)?a:null;};
-const gsMapImg=new Image();gsMapImg.src='assets/models/maps/goldshire_map.png';
+const gsMapImg=new Image();gsMapImg.src='assets/models/maps/moonshine_map.png';
 /* painted ground maps for leveling zones - lazily loaded per zone via z.map */
 const zoneMapImgs={};
 const zoneMapImg=n=>{if(!zoneMapImgs[n]){zoneMapImgs[n]=new Image();zoneMapImgs[n].src='assets/models/maps/'+n+'.png';}return zoneMapImgs[n];};
@@ -587,7 +587,7 @@ const ZONES=[
   ground:'#8a94b8',ground2:'#7d87aa',water:'#9ac8e8',tree:'#5a6a8a',tree2:'#46536e',path:'#d8cfa0',rocky:true},
  {name:'Cow Level',lvl:60,amb:'cow',west:true,special:true,cow:true,map:'cowlevel_zone',
   ground:'#6a9a4e',ground2:'#5f8c46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
- {name:'Goldshire',lvl:1,amb:'tavern',special:true,tavern:true,
+ {name:'Moonshine',lvl:1,amb:'tavern',special:true,tavern:true,
   ground:'#7a6a4e',ground2:'#6e5f46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
  {name:'Black Temple',lvl:60,amb:'war',raidc:true,special:true,raid:true,
   ground:'#4a4456',ground2:'#403a4c',water:'#2f4a5a',tree:'#3a3448',tree2:'#2c2838',path:'#6a5f7a',rocky:true},
@@ -596,7 +596,7 @@ const ZONES=[
   ground:'#3a3a46',ground2:'#33333e',water:'#2f3a4a',tree:'#33333e',tree2:'#262630',path:'#55556a',rocky:true,en:[]},
  {name:'The Altar',lvl:1,amb:'frost',special:true,altar:true,noBerg:true,map:'thealtar',en:[], /* sky sanctum - portal-only, no level gate */
   ground:'#8a94b8',ground2:'#7d87aa',water:'#9ac8e8',tree:'#5a6a8a',tree2:'#46536e',path:'#d8cfa0'},
- {name:'Farm',lvl:1,amb:'world',special:true,farm:true,noBerg:true,noTrees:true,en:[], /* 🚜 under construction - reachable by console only, the Goldshire portal is a promise
+ {name:'Farm',lvl:1,amb:'world',special:true,farm:true,noBerg:true,noTrees:true,en:[], /* 🚜 under construction - reachable by console only, the Moonshine portal is a promise
     NOTE: appended LAST so existing saves' zone indices stay valid - never insert zones mid-array */
   ground:'#7a8a4e',ground2:'#6e7d46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
  {name:'The Final Hour',lvl:60,amb:'final',west:true,special:true,finalb:true,noBerg:true,noTrees:true,map:'finalboss_zone', /* ☠ the summit: Prestige 50, level 60
@@ -1089,7 +1089,7 @@ function zoneTemplates(z){
   xp:Math.round(eHP(XL)/2.6*pr),gold:mobGold(z,1+i*0.10)}));
 }
 function zoneQuests(z){
- if(z.tavern)return [{name:'🍺 Goldshire',desc:'A safe haven. Rest, forge, trade - no foe dares enter.',need:999999}];
+ if(z.tavern)return [{name:'🍺 Moonshine',desc:'A safe haven. Rest, forge, trade - no foe dares enter.',need:999999}];
  if(z.altar)return [{name:'⛧ The Altar',desc:'A silent ring above the clouds. Something waits to be awakened.',need:999999}];
  if(z.farm){const fl=(S.farm&&S.farm.lvl)||1;
   const pct=fl>=3?15:fl===2?10:5;
@@ -1146,7 +1146,7 @@ const allBossesDead=()=>ZONES.every((z,i)=>z.special||!z.boss||!!S.bossDead[i]);
 /* true when every boss zone before index i has had its boss slain */
 const bossesClearedBefore=i=>ZONES.every((z,k)=>k>=i||z.special||!z.boss||!!S.bossDead[k]);
 /* Safe progression gate. This prevents stale maxZone from old/pre-fix prestige saves
-   from unlocking the whole map when the hero is back at low level in Goldshire/Home. */
+   from unlocking the whole map when the hero is back at low level in Moonshine/Home. */
 function progZone(ch=S){
  let mz=Math.min((ch&&ch.maxZone)||0,ZONES.length-1);
  const lvl=(ch&&ch.lvl)||1;
@@ -2062,7 +2062,7 @@ function shade(hex,amt){const n=parseInt(hex.slice(1),16);
 let world=null,hero=null,pet=null,enemies=[],bolts=[],ebolts=[],hazards=[],floats=[],parts=[],rings=[],zaps=[],bloods=[],groundCv=null;
 let cowT=0,cowSpawnT=0,cowRunning=false,cowItems=0,cowBagFull=false;
 let cowChest=null,cowChestT=10,cowChestMsgT=0; /* the blue loot chest - cowItems counts CHESTS opened */
-/* --- Fishing at the Goldshire lake (top-right pond) --- */
+/* --- Fishing at the Moonshine lake (top-right pond) --- */
 let fish={on:false,castT:0,bx:0,by:0,bob:0};
 const nearLake=()=>gameOn&&world&&zoneOf().tavern&&hero&&!hero.dead&&hero.x>world.w-900&&hero.y<660;
 function fishSpot(){ /* cast toward the middle of the pond, 60–100px out, small random spread */
@@ -2351,7 +2351,7 @@ function updateRatBoss(dt){
  const rb=world.ratboss,C=CRYPT.C,ox=CRYPT.ox,oy=CRYPT.oy,cols=CRYPT.cols,rows=CRYPT.rows;
  if(hero.dead)return; /* it got its meal - sit still during the death cam */
  if(Math.hypot(hero.x-rb.x,hero.y-rb.y)<48){
-  /* caught! the rat ALWAYS one-shots - you wake up back home in Goldshire.
+  /* caught! the rat ALWAYS one-shots - you wake up back home in Moonshine.
      Like the cow level, this never counts as a hardcore death: you are carried out, gear intact. */
   hero.hp=0;
   hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;hero.pendingDoor=null;
@@ -2359,8 +2359,8 @@ function updateRatBoss(dt){
   bloodAt(hero.x,hero.y-12,14);
   sfx.die();
   shakeT=0.35;
-  stageMsg('🐀 The rat got you - you wake by the hearth in Goldshire.',3200);
-  log('<span class="imp">Devoured in The Crypts.</span> Carried back to Goldshire - gear and loot intact.');
+  stageMsg('🐀 The rat got you - you wake by the hearth in Moonshine.',3200);
+  log('<span class="imp">Devoured in The Crypts.</span> Carried back to Moonshine - gear and loot intact.');
   save();
   return;
  }
@@ -3158,7 +3158,7 @@ function buildZone(){
   const cx=world.w/2,cy=world.h/2;
   world.spawn={x:cx,y:cy+180};           /* you arrive at the square */
   world.square={x:cx,y:cy,r:230};        /* plaza radius, used by prerender */
-  /* the well, centered in the painted plaza ring (measured from goldshire_map.png) */
+  /* the well, centered in the painted plaza ring (measured from moonshine_map.png) */
   world.solids.push({x:cx-19,y:cy+31,r:20,type:'well'});
   /* the Tavern - painted model at the south-east road stub */
   world.solids.push({x:cx+710,y:cy+560,r:52,type:'house',big:true,seed:1,crx:240,cry:64,cyo:-208});
@@ -3283,7 +3283,7 @@ function buildZone(){
    const rock=z.rocky?R()<.6:R()<.2;
    if(!rock&&z.noTrees)continue; /* desert-style zones: rocks only */
    if(z.map&&onPaintedRoad(z.map,x,y,50))continue; /* keep props off the painted road */
-   world.solids.push({x,y,r:rock?14+R()*8:12+R()*6,type:rock?'rock':'tree',s:0.5+R()*1.6,seed:R()*100}); /* same wide size spread as Goldshire */
+   world.solids.push({x,y,r:rock?14+R()*8:12+R()*6,type:rock?'rock':'tree',s:0.5+R()*1.6,seed:R()*100}); /* same wide size spread as Moonshine */
   }
  }
  for(let i=0;i<160;i++)world.deco.push({x:R()*world.w,y:R()*world.h,k:R()});
@@ -3899,7 +3899,7 @@ function killEnemy(en){
    stageMsg('⚡ Thor falls! A 🍀 Potion of Luck is yours. Valhalla grows silent until the next storm.',3500);
    log(`<span class="imp">Thor slain ×${S.thorKills}.</span> Loot: <span class="lfine">🍀 Potion of Luck</span> - +20% better drops from slain foes for 30 minutes.`);
    saveNow();                       /* the lockout and the potion are banked at once */
-   goHomeAfter(3000,'⚡ The storm passes - Goldshire welcomes you back.');
+   goHomeAfter(3000,'⚡ The storm passes - Moonshine welcomes you back.');
   }else if(en.bossId==='reaper'){ /* ☠ the summit falls - one Ice Armor talent point, once ever */
    S.forsakenDead=true;   /* survives Prestige: the Gate never reopens */
    S.talentPts=(S.talentPts||0)+1;
@@ -3929,7 +3929,7 @@ function killEnemy(en){
      stageMsg('⚗️ POTION OF RAID earned - check your Bag!',3000);
     }
     saveNow();                      /* chest, lockout and potion straight to the cloud */
-    goHomeAfter(3000,'⚔ The Sanctum falls silent - back to Goldshire.');
+    goHomeAfter(3000,'⚔ The Sanctum falls silent - back to Moonshine.');
    }
   }else{
    S.bossDead[S.zone]=true;
@@ -4016,9 +4016,9 @@ function heroDies(){
  if(S.hardcore){hcDeath();return;} /* hardcore: one life - the cow level and team-raid revives above don't count */
  hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;
  sfx.die();
- if(hero.sentHome)stageMsg('Defeated… you wake by the hearth in Goldshire.',2600);
+ if(hero.sentHome)stageMsg('Defeated… you wake by the hearth in Moonshine.',2600);
  else stageMsg('Defeated… you regroup at the roadside.',2600);
- log('<span class="imp">Defeated.</span>'+(hero.sentHome?' You are carried back to Goldshire - gear intact.':' You regroup at this region’s entrance - gear intact.'));
+ log('<span class="imp">Defeated.</span>'+(hero.sentHome?' You are carried back to Moonshine - gear intact.':' You regroup at this region’s entrance - gear intact.'));
 }
 /* hardcore permadeath: lock the character forever and show the memorial screen */
 function hcDeath(){
@@ -4541,7 +4541,7 @@ cv.addEventListener('pointerdown',e=>{
   return;
  }
  const fpx=world.solids.find(s=>s.type==='farmportal');
- if(fpx&&Math.hypot(wx-fpx.x,wy-fpx.y)<fpx.r+28){ /* 🚜 Goldshire's west-road portal → the Farm */
+ if(fpx&&Math.hypot(wx-fpx.x,wy-fpx.y)<fpx.r+28){ /* 🚜 Moonshine's west-road portal → the Farm */
   const go=()=>goToZone(FARM_ZONE);
   if(Math.hypot(hero.x-fpx.x,hero.y-fpx.y)<75)go();
   else{hero.target=null;hero.goPortal=false;hero.moveTo={x:fpx.x,y:fpx.y+34};marker={x:fpx.x,y:fpx.y+34,t:0};hero.pendingDoor={s:fpx,open:go,rng:75};}
@@ -5100,8 +5100,8 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
     S.lastZone=Math.min(S.zone,ZONES.length-1);
     S.zone=TAVERN_ZONE;S.quest=0;S.qProg=0;
     applyZoneUI();buildZone();renderHUD();save();
-    stageMsg('You wake by the hearth in Goldshire - gear and loot intact.',3000);
-    log('<span class="imp">Carried back to Goldshire.</span> Rest, then march again.');
+    stageMsg('You wake by the hearth in Moonshine - gear and loot intact.',3000);
+    log('<span class="imp">Carried back to Moonshine.</span> Rest, then march again.');
    }else{
     hero.dead=false;hero.hp=heroMax();hero.mana=manaMax();
     hero.x=world.spawn.x;hero.y=world.spawn.y;
@@ -5642,7 +5642,7 @@ function drawLootChest(x,y,sc){
  ctx.fillStyle='#8a6a20';ctx.beginPath();ctx.arc(0,-10.5,1.6,0,7);ctx.fill();ctx.fillRect(-0.8,-10,1.6,3);
  ctx.restore();
 }
-/* 🐟 Goldshire rises - the lake is painted into goldshire_map.png, so there is no water object
+/* 🐟 Moonshine rises - the lake is painted into moonshine_map.png, so there is no water object
    to animate. Spots well inside the water are picked out of the map ONCE, then each one pops a
    set of expanding rings now and then, like a fish taking something off the surface.
 
@@ -5653,7 +5653,7 @@ function drawLootChest(x,y,sc){
    A spot must have water all around it out to the ring's full reach, or a ripple would expand
    out over the sand. */
 let gsRise=null,gsRiseKey='';
-function buildGoldshireRises(){
+function buildMoonshineRises(){
  if(!(gsMapImg.complete&&gsMapImg.naturalWidth))return;
  const key=world.w+'x'+world.h;
  if(gsRise&&gsRiseKey===key)return;
@@ -5683,7 +5683,7 @@ function buildGoldshireRises(){
   gsRise=pts;gsRiseKey=key;
  }catch(e){gsRise=[];gsRiseKey=key;} /* file:// taints the canvas - just skip the effect */
 }
-function drawGoldshireRises(now){
+function drawMoonshineRises(now){
  if(!gsRise||!gsRise.length)return;
  const vx1=camX+VW/zoom,vy1=camY+VH/zoom;
  ctx.save();ctx.strokeStyle='#eaf8ff';
@@ -5715,7 +5715,7 @@ function draw(){
  const z=zoneOf();
  if(z.crypts)drawCryptGround();
  else if(z.farm)drawFarmGround();
- else if(z.tavern){buildGoldshireRises();drawGoldshireRises(now);} /* 🐟 fish rises on the painted lake */
+ else if(z.tavern){buildMoonshineRises();drawMoonshineRises(now);} /* 🐟 fish rises on the painted lake */
  /* animated water shimmer */
  for(const w of world.waters){
   if(w.x<camX-w.r||w.x>camX+VW/zoom+w.r||w.y<camY-w.r||w.y>camY+VH/zoom+w.r)continue;
@@ -6170,7 +6170,7 @@ function drawProp(s,z){
    if(Math.random()<0.12)parts.push({x:s.x+w*0.55+4,y:s.y-hh*1.25,vx:(Math.random()-0.5)*6,vy:-18,t:0,life:1.6,c:'rgba(200,200,200,0.5)',r:2.5,g:0});
    ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;
    ctx.textAlign='center';ctx.fillStyle='#ffe9a0';
-   ctx.fillText('🍺 GOLDSHIRE INN',0,-hh*1.45);
+   ctx.fillText('🍺 MOONSHINE INN',0,-hh*1.45);
   }
  }else if(s.type==='smith'){
   const w=s.r*1.7,hh=s.r*1.2;
@@ -6237,7 +6237,7 @@ function drawProp(s,z){
   ctx.fillStyle='rgba(225,238,255,0.85)';
   for(let i=0;i<4;i++){const a=t+i*1.57;ctx.beginPath();ctx.arc(Math.cos(a)*19,-36+Math.sin(a)*32,2.4,0,7);ctx.fill();}
   ctx.restore();
-  const lbl=zoneOf().tavern?'The Altar':'Goldshire';
+  const lbl=zoneOf().tavern?'The Altar':'Moonshine';
   ctx.font='700 12px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(lbl,1,-95);
   ctx.fillStyle='#bcd8ff';ctx.fillText(lbl,0,-96);
@@ -7225,7 +7225,7 @@ function renderHUD(){
  $('hXP').style.width=(S.lvl>=MAXLVL?100:Math.min(100,100*S.xp/xpNeed(S.lvl)))+'%';
  const z=zoneOf(),q=questOf(),nz=ZONES[S.zone+1];
  if(zoneOf().tavern){
-  $('qName').textContent='🍺 Goldshire';
+  $('qName').textContent='🍺 Moonshine';
   $('qDesc').textContent='Safe haven - health and mana return swiftly here.';
   $('qBar').style.width='100%';$('qCount').textContent='☕';
   $('nextBtn').style.display='none';
@@ -7778,14 +7778,14 @@ function renderBag(){
    <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#39ff6a">ACTIVE - '+mins+' min remaining.</b> ':''}+15% boss damage for 60 minutes. Earned by clearing the Black Temple raid online.</div></div>
    <div class="btns"><button class="sbtn gold" id="raidUse" ${(S.raidPots||0)<1?'disabled':''}>${active?'Extend +60m':'Drink'}</button></div></div>`;
  }
- // 🛡 armor potions - fished from the Goldshire lake
+ // 🛡 armor potions - fished from the Moonshine lake
  let armorHtml='';
  if((S.armorPots||0)>0||S.armorT>0){
   const aAct=S.armorT>0;
   const aMin=Math.ceil(S.armorT/60);
   armorHtml=`<div class="card item" style="border-color:#8fb0d0${aAct?';box-shadow:0 0 10px rgba(143,176,208,.25)':''}"><div>
    <div class="sn" style="color:#8fb0d0;font-size:13px;font-weight:600">${uiIcon('pot_armor','🛡','shopico')} Potion of Armor <span style="color:var(--dim)">×${S.armorPots||0}</span></div>
-   <div class="ss" style="color:var(--dim);font-size:11px">${aAct?'<b style="color:#8fb0d0">ACTIVE - '+aMin+' min remaining.</b> ':''}Take <b>50% less damage from HAALAND</b> for 20 minutes. A rare catch from the Goldshire lake (0.2%).</div></div>
+   <div class="ss" style="color:var(--dim);font-size:11px">${aAct?'<b style="color:#8fb0d0">ACTIVE - '+aMin+' min remaining.</b> ':''}Take <b>50% less damage from HAALAND</b> for 20 minutes. A rare catch from the Moonshine lake (0.2%).</div></div>
    <div class="btns"><button class="sbtn gold" id="armorUse" ${(S.armorPots||0)<1?'disabled':''}>${aAct?'Extend +20m':'Drink'}</button></div></div>`;
  }
  // 🔗 crypt connectors - chest trophies from The Crypts
@@ -7805,13 +7805,13 @@ function renderBag(){
    <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#ffd76a">ACTIVE - '+mins+' min remaining.</b> ':''}+20% XP gain and +2% crit chance for 30 minutes. Won only on a 100x max win at Borek 67.</div></div>
    <div class="btns"><button class="sbtn gold" id="gamblerUse" ${(S.gamblerPots||0)<1?'disabled':''}>${active?'Extend +30m':'Drink'}</button></div></div>`;
  }
- // 😴 rested buff - granted by the Goldshire inn wheel, activates automatically
+ // 😴 rested buff - granted by the Moonshine inn wheel, activates automatically
  let restedHtml='';
  if(S.restedT>0){
   const mins=Math.ceil(S.restedT/60);
   restedHtml=`<div class="card item" style="border-color:#8fc3ef;box-shadow:0 0 10px rgba(143,195,239,.25)"><div>
    <div class="sn" style="color:#8fc3ef;font-size:13px;font-weight:600">😴 Rested</div>
-   <div class="ss" style="color:var(--dim);font-size:11px"><b style="color:#8fc3ef">ACTIVE - ${mins} min remaining.</b> +${Math.round((S.restedPct||0)*100)}% XP from all sources. Spin the inn wheel in Goldshire once a day.</div></div>
+   <div class="ss" style="color:var(--dim);font-size:11px"><b style="color:#8fc3ef">ACTIVE - ${mins} min remaining.</b> +${Math.round((S.restedPct||0)*100)}% XP from all sources. Spin the inn wheel in Moonshine once a day.</div></div>
    </div>`;
  }
  let btHtml='';
@@ -7826,7 +7826,7 @@ function renderBag(){
   const both=S.ringRecipe&&S.brokenRing,smithOk=(S.smithLvl||0)>=10;
   if(S.ringRecipe)ringHtml+=`<div class="card item" style="border-color:#ffd76a"><div>
    <div class="sn" style="color:#ffd76a;font-size:13px;font-weight:600">${uiIcon('it_trinket','💍','shopico')} Recipe of the Ring</div>
-   <div class="ss" style="color:var(--dim);font-size:11px">${both?'':'The other half sleeps at the bottom of the Goldshire lake. '}Cannot be sold or discarded.</div></div>
+   <div class="ss" style="color:var(--dim);font-size:11px">${both?'':'The other half sleeps at the bottom of the Moonshine lake. '}Cannot be sold or discarded.</div></div>
    ${both?`<div class="btns"><span class="ss" style="color:#ffd76a;font-size:11px">${smithOk?'⚒ Ready - visit the Blacksmith!':'⚒ Requires Blacksmith level 10'}</span></div>`:''}</div>`;
   if(S.brokenRing)ringHtml+=`<div class="card item" style="border-color:#c9a45a"><div>
    <div class="sn" style="color:#c9a45a;font-size:13px;font-weight:600">${uiIcon('it_brokenring','💍','shopico')} The Broken Ring</div>
@@ -10410,7 +10410,7 @@ function openTab(t){
  if(t==='bag'){renderBag();$('p-bag').classList.add('open');}
  if(t==='shop'){renderShop();$('p-shop').classList.add('open');}
 }
-/* ==================== GOLDSHIRE INN - daily Rested XP wheel ====================
+/* ==================== MOONSHINE INN - daily Rested XP wheel ====================
    Click the big inn at the top of the square. Spin once per 24h; the wheel lands on
    10/15/20% bonus XP and the Rested buff activates automatically for 1 hour. */
 const REST_SEGS=[10,15,20,10,15,20]; /* equal odds - 10/15/20% ×2 each */
@@ -10484,7 +10484,7 @@ $('restSpinBtn').onclick=()=>{
    S.restedPct=val/100;S.restedT=3600;S.restedSpinAt=Date.now();
    sfx.quest();
    stageMsg('😴 Rested - +'+val+'% XP for 1 hour!',3000);
-   log('<span class="lfine">😴 Rested</span> - the Goldshire inn grants +'+val+'% XP for 1 hour.');
+   log('<span class="lfine">😴 Rested</span> - the Moonshine inn grants +'+val+'% XP for 1 hour.');
    renderHUD();save();
    updateRestUI();
   }
@@ -10492,7 +10492,7 @@ $('restSpinBtn').onclick=()=>{
  requestAnimationFrame(tick);
 };
 
-/* 🏠 victory lap: let the loot toasts land, then carry the player back to Goldshire.
+/* 🏠 victory lap: let the loot toasts land, then carry the player back to Moonshine.
    Cancels itself if they die or travel on their own in the meantime. */
 let homeTimer=null;
 function goHomeAfter(ms,msg){
@@ -10511,11 +10511,11 @@ function goHome(){
  if(!gameOn||!S||hero.dead)return;
  if(hcNoFlee())return;
  if(mp.on)mpLeave(false);
- /* Home ALWAYS means Goldshire - a second tap never bounces you back out.
+ /* Home ALWAYS means Moonshine - a second tap never bounces you back out.
     Head back to the road via the Travel map instead. */
  if(S.zone===TAVERN_ZONE){
   openTab('battle');
-  stageMsg('🍺 You are already home in Goldshire.',1400);
+  stageMsg('🍺 You are already home in Moonshine.',1400);
   return;
  }
  if(buildMode)exitBuildMode(); /* Home ends build mode - snap/harvest buttons and the store go away */
@@ -10523,7 +10523,7 @@ function goHome(){
  S.zone=TAVERN_ZONE;S.quest=0;S.qProg=0;
  applyZoneUI();buildZone();renderHUD();save();
  openTab('battle');
- stageMsg('🍺 Welcome to Goldshire - rest easy.',2200);
+ stageMsg('🍺 Welcome to Moonshine - rest easy.',2200);
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
  if(b.dataset.tab==='home'){goHome();return;}

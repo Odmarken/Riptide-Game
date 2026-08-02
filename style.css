@@ -1,6 +1,6 @@
   :root{
-    --night:#1a120c; --panel:#1c2b24; --panel2:#243830; --line:#33503f;
-    --parch:#efe3c2; --ink:#d8e4d6; --dim:#8fa898;
+    --night:#1a120c; --panel:#241a12; --panel2:#31241a; --line:#54402a;
+    --parch:#efe3c2; --ink:#e6dbc9; --dim:#a8977f;
     --brass:#d9a441; --brass-deep:#a4761f;
     --hp:#4caf6d; --mp:#6d8fd0;
     --rare:#5b9bd5; --epic:#a66bd0; --fine:#6dbb6d;
@@ -108,7 +108,7 @@
   .shopico{width:22px;height:22px;object-fit:contain;vertical-align:-5px;margin-right:3px;pointer-events:none;border-radius:4px}
   .autocfg-btn .btnico{width:80%;height:80%;object-fit:contain;pointer-events:none}
   .spellg .spicon{width:100%;height:100%;object-fit:cover;border-radius:8px}
-  .skill .cdm{position:absolute;left:0;right:0;bottom:0;background:rgba(5,10,8,.78);height:0%;pointer-events:none}
+  .skill .cdm{position:absolute;left:0;right:0;bottom:0;background:rgba(10,7,4,.78);height:0%;pointer-events:none}
   .skill .cost{position:absolute;bottom:1px;right:3px;font-size:8.5px;color:#9fb4e8;font-weight:700;text-shadow:0 1px 2px #000}
   .skill.nomana{filter:saturate(.3) brightness(.7)}
   .skill.pot{border-color:var(--brass-deep);font-size:17px}
@@ -131,7 +131,7 @@
   .bar.q>i{background:linear-gradient(90deg,var(--brass-deep),var(--brass))}
   .qcount{font-size:11px;color:var(--brass);white-space:nowrap;font-weight:600}
   .qbtns{display:flex;flex-direction:column;gap:5px;flex:0 0 auto}
-  #autoBtn,#nextBtn{font-family:var(--display);font-size:12px;letter-spacing:.5px;padding:7px 13px;border-radius:9px;border:1px solid var(--brass-deep);background:linear-gradient(180deg,#2a3d33,#1c2b24);color:var(--brass);cursor:pointer;transition:all .2s;white-space:nowrap}
+  #autoBtn,#nextBtn{font-family:var(--display);font-size:12px;letter-spacing:.5px;padding:7px 13px;border-radius:9px;border:1px solid var(--brass-deep);background:linear-gradient(180deg,#332519,#241a12);color:var(--brass);cursor:pointer;transition:all .2s;white-space:nowrap}
   #autoBtn.on{background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;border-color:var(--brass);box-shadow:0 0 14px rgba(217,164,65,.35)}
   #nextBtn{display:none;border-color:#6dbb6d;color:#9adf9a;animation:pulseNext 2s infinite}
   @keyframes pulseNext{0%,100%{box-shadow:0 0 4px rgba(109,187,109,.2)}50%{box-shadow:0 0 12px rgba(109,187,109,.5)}}
@@ -262,12 +262,12 @@
   #createBack{align-self:flex-start;margin-bottom:6px;padding:9px 16px;border-radius:8px;border:none;background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;color:var(--parch);font-size:11px;cursor:pointer;display:none;text-shadow:0 1px 3px rgba(0,0,0,.8)}
   #createBack:hover{filter:brightness(1.2)}
  
-  #chestFx{position:absolute;inset:0;z-index:70;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(5,10,8,.84);cursor:default}
+  #chestFx{position:absolute;inset:0;z-index:70;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(10,7,4,.84);cursor:default}
   #chestFx.open{display:flex}
   /* --- CS:GO-style case reel --- */
   .casewrap{position:relative;width:min(92vw,560px);height:116px;border:1px solid var(--brass-deep);border-radius:12px;background:linear-gradient(180deg,#101a15,#0a120e);overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.6),inset 0 0 30px rgba(0,0,0,.5)}
   .casereel{position:absolute;top:12px;left:0;height:92px;display:flex;gap:8px;will-change:transform}
-  .casecard{flex:0 0 84px;height:92px;border-radius:9px;border:1px solid var(--cc,#33503f);background:linear-gradient(180deg,#1c2b24,#131f1a);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+  .casecard{flex:0 0 84px;height:92px;border-radius:9px;border:1px solid var(--cc,#54402a);background:linear-gradient(180deg,#241a12,#150e08);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
   .casecard .ci{font-size:26px;filter:drop-shadow(0 0 6px var(--cc))}
   .casecard .cr{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--cc)}
 
@@ -343,9 +343,9 @@
 
 
   /* --- Borek 67 slot machine --- */
-  #slotFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(5,10,8,.86)}
+  #slotFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(10,7,4,.86)}
   #slotFx.open{display:flex}
-  .slotmach{display:flex;flex-direction:column;align-items:center;padding:22px 26px 20px;border-radius:18px;border:2px solid var(--brass);background:linear-gradient(180deg,#2a3d33,#131f1a);box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 24px rgba(217,164,65,.18)}
+  .slotmach{display:flex;flex-direction:column;align-items:center;padding:22px 26px 20px;border-radius:18px;border:2px solid var(--brass);background:linear-gradient(180deg,#332519,#150e08);box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 24px rgba(217,164,65,.18)}
   .slottop{font-family:var(--display);font-size:21px;color:var(--brass);letter-spacing:2.5px;margin-bottom:14px;text-shadow:0 0 14px rgba(217,164,65,.45)}
   .slotreels{display:flex;gap:10px}
   .slotwin{width:92px;height:92px;border-radius:12px;border:1px solid var(--brass-deep);background:#0d1512;overflow:hidden;position:relative}
@@ -396,7 +396,7 @@
   .tierbody{margin:0 0 6px}
   .chestp{position:absolute;left:50%;top:50%;width:7px;height:7px;border-radius:2px;pointer-events:none;animation:chestp 1.05s ease-out forwards}
   @keyframes chestp{from{transform:translate(-50%,-50%) rotate(0);opacity:1}to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) rotate(320deg);opacity:0}}
-  @keyframes epicFlash{0%{background:rgba(200,150,255,.35)}100%{background:rgba(5,10,8,.84)}}
+  @keyframes epicFlash{0%{background:rgba(200,150,255,.35)}100%{background:rgba(10,7,4,.84)}}
   #chestFx.flash{animation:epicFlash .6s ease-out}
  
   /* the plate lives on the wrapper - Chrome's autofill can hide an input's own background image */
@@ -489,7 +489,7 @@
   }
 
 /* --- Borek Seamen: 3/5/5/3 ways slot --- */
-#seaFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(5,10,8,.86)}
+#seaFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(10,7,4,.86)}
 #seaFx.open{display:flex}
 .slotmach.sea{position:relative;border-color:#5b9bd5;background:linear-gradient(180deg,#1d3345,#0d1620);box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 24px rgba(91,155,213,.2)}
 .slotmach.sea .slottop{color:#8fc3ef;text-shadow:0 0 14px rgba(91,155,213,.55)}
@@ -535,18 +535,18 @@
  .seapay{font-size:12px}
 }
 
-/* --- Goldshire Inn: daily Rested XP wheel --- */
-#restFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(5,10,8,.86)}
+/* --- Moonshine Inn: daily Rested XP wheel --- */
+#restFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(10,7,4,.86)}
 #restFx.open{display:flex}
 #restSpinBtn{font-family:var(--display);font-size:16px;letter-spacing:.5px;padding:14px 28px;border-radius:12px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;cursor:pointer;box-shadow:0 0 16px rgba(217,164,65,.3)}
 #restSpinBtn:disabled{opacity:.45;cursor:default;box-shadow:none}
 
 /* --- Borek Blackjack --- */
-#bjFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(5,10,8,.86)}
+#bjFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(10,7,4,.86)}
 #bjFx.open{display:flex}
-#rouFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(5,10,8,.86)}
+#rouFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(10,7,4,.86)}
 #rouFx.open{display:flex}
-#rtbFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(5,10,8,.86)}
+#rtbFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(10,7,4,.86)}
 #rtbFx.open{display:flex}
 .rtbladder{display:flex;gap:6px;justify-content:center;margin:2px 0 8px}
 .rtbstep{padding:5px 10px;border-radius:8px;border:1px solid #4a4436;background:#241c12;color:var(--dim);font-size:11px;font-weight:700}
@@ -693,10 +693,10 @@
 .bjcard.flip{animation:bjFlip .5s ease}
 @keyframes bjFlip{0%{transform:rotateY(90deg) scale(1.06)}100%{transform:rotateY(0)}}
 /* --- Casino building menu --- */
-#casinoMenu{position:absolute;inset:0;z-index:71;display:none;align-items:center;justify-content:center;background:rgba(5,10,8,.86)}
+#casinoMenu{position:absolute;inset:0;z-index:71;display:none;align-items:center;justify-content:center;background:rgba(10,7,4,.86)}
 #casinoMenu.open{display:flex}
-.casinobox{width:min(92%,360px);padding:22px;border-radius:18px;border:2px solid var(--brass);background:linear-gradient(180deg,#2a3d33,#131f1a);box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 24px rgba(217,164,65,.18);text-align:center}
-.casinopick{display:flex;align-items:center;gap:12px;width:100%;margin:8px 0;padding:12px 14px;border-radius:12px;border:1px solid var(--brass-deep);background:linear-gradient(180deg,#2a3d33,#1c2b24);color:var(--parch);cursor:pointer;text-align:left;transition:border-color .15s,transform .1s}
+.casinobox{width:min(92%,360px);padding:22px;border-radius:18px;border:2px solid var(--brass);background:linear-gradient(180deg,#332519,#150e08);box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 24px rgba(217,164,65,.18);text-align:center}
+.casinopick{display:flex;align-items:center;gap:12px;width:100%;margin:8px 0;padding:12px 14px;border-radius:12px;border:1px solid var(--brass-deep);background:linear-gradient(180deg,#332519,#241a12);color:var(--parch);cursor:pointer;text-align:left;transition:border-color .15s,transform .1s}
 .casinopick:hover{border-color:var(--brass);transform:translateY(-1px)}
 .casinopick.disabled{opacity:.48;cursor:not-allowed;filter:grayscale(.45)}
 .casinopick.disabled:hover{border-color:var(--brass-deep);transform:none}
@@ -732,3 +732,17 @@
   #app,#boot{height:100lvh}
   body:has(#login.open) #app,body:has(#select.open) #app,body:has(#create.open) #app{height:100lvh}
 }
+
+/* --- venue backdrops: each modal keeps the .casinobox frame but gets its own painted interior.
+   The gradient stays ON TOP of the art so body text keeps its contrast no matter how busy the
+   picture is; the art is already darkened on disk, this is the second safety net. --- */
+#bankFx .casinobox{background:linear-gradient(180deg,rgba(30,22,14,.78),rgba(14,10,6,.90)),url('assets/ui/modal_bank.png') center/cover no-repeat}
+#casinoMenu .casinobox{background:linear-gradient(180deg,rgba(30,22,14,.78),rgba(14,10,6,.90)),url('assets/ui/modal_casino.png') center/cover no-repeat}
+#restFx .slotmach{background:linear-gradient(180deg,rgba(30,22,14,.78),rgba(14,10,6,.90)),url('assets/ui/modal_inn.png') center/cover no-repeat}
+#smithFx .casinobox{background:linear-gradient(180deg,rgba(30,22,14,.78),rgba(14,10,6,.90)),url('assets/ui/modal_smith.png') center/cover no-repeat}
+#fishhutMenu .casinobox{background:linear-gradient(180deg,rgba(30,22,14,.78),rgba(14,10,6,.90)),url('assets/ui/modal_fish.png') center/cover no-repeat}
+
+/* venue title icons - they replace the emoji that used to sit in these headings. Height is in em so
+   the icon scales with the heading's own font-size, and it is nudged onto the cap-height baseline. */
+.venico{height:1.15em;width:auto;vertical-align:-0.18em;margin-right:.12em;
+        filter:drop-shadow(0 2px 4px rgba(0,0,0,.55))}
