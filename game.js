@@ -4,8 +4,8 @@ const treeImg=new Image();treeImg.src='assets/models/träd.png';
 treeImg._pad=1.2;treeImg._anchor=0.89; /* per-art calibration: padding compensation + trunk-bottom fraction */
 const treeSnowImg=new Image();treeSnowImg.src='assets/models/trädsnow.png';
 treeSnowImg._pad=1.33;treeSnowImg._anchor=0.86;
-const fmImg=new Image();fmImg.src='assets/models/frostmourne.png';
-const wgImg=new Image();wgImg.src='assets/models/warglaive.png';
+const fkImg=new Image();fkImg.src='assets/models/frostkeen.png';
+const wgImg=new Image();wgImg.src='assets/models/felglaive.png';
 const gsMapImg=new Image();gsMapImg.src='assets/models/maps/goldshire_map.png';
 /* painted ground maps for leveling zones - lazily loaded per zone via z.map */
 const zoneMapImgs={};
@@ -235,7 +235,7 @@ function raidBlade(glow,img){ /* the lord's weapon soaked in his colour, cached 
 }
 const ratbossImg=new Image();ratbossImg.src='assets/boss/rat_boss.png'; /* the crypt rat - art faces left */
 const ratFeetImg=new Image();ratFeetImg.src='assets/boss/rat_feet.png'; /* its clawed foot - points left */
-const oneringImg=new Image();oneringImg.src='assets/models/onering.png';
+const theRingImg=new Image();theRingImg.src='assets/models/thering.png';
 const altarFenceImg=new Image();altarFenceImg.src='assets/models/maps/altarasset.png';
 const staffImg=new Image();staffImg.src='assets/weapons/staff.png';
 const swordImg=new Image();swordImg.src='assets/weapons/sword.png';
@@ -323,7 +323,7 @@ const fmtMS=ms=>{
 };
 /* effective wealth = what you carry + what your bag would sell/scrap for.
    ONLY items the Bag will actually let you sell may count. Legendaries (the sell button
-   refuses them - and syncFrostmourne/syncWarglaives keep stamping a fat baseAtk*4 price
+   refuses them - and syncFrostkeen/syncFelGlaives keep stamping a fat baseAtk*4 price
    on spare blades) and gear-set (⭐) items are excluded, or they freeze high-prestige
    players hundreds of thousands below the cap with a "nothing to sell" bag. */
 const bagSellable=it=>!!it&&!isLegendary(it)&&!inGearSet(it);
@@ -590,8 +590,8 @@ async function mpEnsureFirebase(){
 function mpLook(){
  const g=(S&&S.gear)||{},w=g.weapon||null;
  return {race:S&&S.race?S.race:'human',cls:S&&S.cls?S.cls:'warrior',
-  w:w?(isWG(w)?'warglaives':(isFM(w)?'frostmourne':(w.id||w.legend||null))):null,ws:w?(w.star||w.up||1):1,
-  a:g.armor?(g.armor.id||null):null,ice:!!(g.armor&&isIce(g.armor)),pet:S&&S.pet?S.pet:null,fm:!!(w&&isFM(w)),wg:!!(w&&isWG(w)),fem:!!(S&&S.gender==='f')};
+  w:w?(isFG(w)?'felglaives':(isFK(w)?'frostkeen':(w.id||w.legend||null))):null,ws:w?(w.star||w.up||1):1,
+  a:g.armor?(g.armor.id||null):null,ice:!!(g.armor&&isIce(g.armor)),pet:S&&S.pet?S.pet:null,fk:!!(w&&isFK(w)),wg:!!(w&&isFG(w)),fem:!!(S&&S.gender==='f')};
 }
 async function mpCreate(){
  const ok=await mpEnsureFirebase();if(!ok){stageMsg('Firebase is not ready - sign in or check config.',2200);sfx.warn();return;}
@@ -920,10 +920,10 @@ function drawHeroLike(x,y,look,alpha,anim,name,hp){
  ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0,8,14,6,0,0,7);ctx.fill();
  if(dancing)ctx.rotate(Math.sin(phase*6)*0.25);
  feet({walk:phase*1.8},(moving||dancing)?1:0.15);
- drawChampionSprite(ctx,race,cls,fx,by,swing,!!look.fm||look.w==='frostmourne',look.w,!!look.fem,(moving||dancing)?2:1,!!look.ice); /* full gear look - ice armor & walk frame like the local hero */
+ drawChampionSprite(ctx,race,cls,fx,by,swing,!!look.fk||!!look.fm||isFKLegend(look.w),look.w,!!look.fem,(moving||dancing)?2:1,!!look.ice); /* full gear look - ice armor & walk frame like the local hero; look.fm is the pre-rename field a peer on the old build still sends */
  if(look.pet){ctx.font='13px sans-serif';ctx.textAlign='center';const pp=petOf(look.pet);if(pp)petGlyphCanvas(ctx,pp,-18,10);else ctx.fillText('🐾',-18,10);}
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
- /* peer nametag higher so weapons/Frostmourne do not collide */
+ /* peer nametag higher so weapons/Frostkeen do not collide */
  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(name||'Hero',1,-44+by+1);ctx.fillStyle='#dff4ff';ctx.fillText(name||'Hero',0,-44+by);
  if(hp!==undefined)drawMiniBar(-14,-39+by,28,hp,'#4caf6d');
  ctx.restore();
@@ -1058,7 +1058,7 @@ const $=id=>document.getElementById(id);
 const dispName=ch=>(ch.name||'?')+((ch.rating||0)>0?' ('+(ch.rating||0)+')':'');
 const raceOf=()=>RACES.find(r=>r.id===S.race);
 const classOf=()=>CLASSES.find(c=>c.id===S.cls);
-const gearSum=k=>{if(isFM(S.gear.weapon))syncFrostmourne(S.gear.weapon);if(isWG(S.gear.weapon))syncWarglaives(S.gear.weapon);if(isRing(S.gear.trinket))syncOneRing(S.gear.trinket);if(isIce(S.gear.armor))syncIceArmor(S.gear.armor);let t=0;for(const sl in S.gear){const g=S.gear[sl];if(g&&g[k])t+=g[k]}return t};
+const gearSum=k=>{if(isFK(S.gear.weapon))syncFrostkeen(S.gear.weapon);if(isFG(S.gear.weapon))syncFelGlaives(S.gear.weapon);if(isRing(S.gear.trinket))syncTheRing(S.gear.trinket);if(isIce(S.gear.armor))syncIceArmor(S.gear.armor);let t=0;for(const sl in S.gear){const g=S.gear[sl];if(g&&g[k])t+=g[k]}return t};
 /* two Active Scroll slots - same scroll type cannot stack */
 /* fused scrolls (forged with 🔗 connectors) carry a second enchant in id2/tier2 -
    every effect lookup below honours both halves; same-id effects never stack (first hit wins) */
@@ -1090,7 +1090,7 @@ function consumeScrolls(id,tier,n){
  return fromSlot;
 }
 
-const gearScore=()=>{if(isFM(S.gear.weapon))syncFrostmourne(S.gear.weapon);if(isWG(S.gear.weapon))syncWarglaives(S.gear.weapon);if(isRing(S.gear.trinket))syncOneRing(S.gear.trinket);if(isIce(S.gear.armor))syncIceArmor(S.gear.armor);return Math.round(Object.values(S.gear).reduce((t,g)=>t+(g?g.power:0),0));};
+const gearScore=()=>{if(isFK(S.gear.weapon))syncFrostkeen(S.gear.weapon);if(isFG(S.gear.weapon))syncFelGlaives(S.gear.weapon);if(isRing(S.gear.trinket))syncTheRing(S.gear.trinket);if(isIce(S.gear.armor))syncIceArmor(S.gear.armor);return Math.round(Object.values(S.gear).reduce((t,g)=>t+(g?g.power:0),0));};
 /* Prestige has no cap - but it only unlocks at max level once every boss is dead. */
 const allBossesDead=()=>ZONES.every((z,i)=>z.special||!z.boss||!!S.bossDead[i]);
 /* true when every boss zone before index i has had its boss slain */
@@ -1125,17 +1125,17 @@ const talRank=id=>((S&&S.talents)||{})[id]||0;
 const heroMax=()=>Math.round((classOf().hp+S.lvl*14+gearSum('hp'))*(raceOf().hp||1));
 const manaMax=()=>Math.round(classOf().mana+S.lvl*5);
 const heroAtk=()=>Math.round((classOf().atk+S.lvl*2.6+gearSum('atk'))*(1+scrollPct('titan'))*(1+((activePet()||{}).atkMul||0))*(1+gearSum('dmgMul')));
-const fmBonus=()=>{const w=S&&S.gear?S.gear.weapon:null;return (isFM(w)&&fmStar(w)>1)?fmStar(w)*2:0;};
-/* Not a fallback: syncWarglaives sets it.crit to 0, so this +3% is the ONLY crit the glaives
+const fkBonus=()=>{const w=S&&S.gear?S.gear.weapon:null;return (isFK(w)&&legendStar(w)>1)?legendStar(w)*2:0;};
+/* Not a fallback: syncFelGlaives sets it.crit to 0, so this +3% is the ONLY crit the glaives
    ever grant - and it lives outside the item, which is why the tooltip never showed it. */
-const wgCrit=()=>{const w=S&&S.gear?S.gear.weapon:null;return isWG(w)&&!(w.crit)?3:0;};
-const heroCrit=()=>classOf().crit+(raceOf().crit||0)+gearSum('crit')+fmBonus()+wgCrit()+((S&&S.gamblerT>0)?2:0);
+const fgCrit=()=>{const w=S&&S.gear?S.gear.weapon:null;return isFG(w)&&!(w.crit)?3:0;};
+const heroCrit=()=>classOf().crit+(raceOf().crit||0)+gearSum('crit')+fkBonus()+fgCrit()+((S&&S.gamblerT>0)?2:0);
 /* Every legendary bonus that is applied outside the item's own fields, in one place, so the
    tooltips and the real stats can never drift apart. Returns what to ADD to the printed
    number - see itemStr and renderInspect, which both fold these in rather than trailing a
    second clause. Keyed off the item so it works for bag copies too, not just the worn one. */
-const legendCritAdd=it=>isFM(it)&&fmStar(it)>1?fmStar(it)*2:(isWG(it)&&!it.crit?3:0);
-const legendLsAdd=it=>(isFM(it)&&fmStar(it)>1)?fmStar(it)*2/100:0;
+const legendCritAdd=it=>isFK(it)&&legendStar(it)>1?legendStar(it)*2:(isFG(it)&&!it.crit?3:0);
+const legendLsAdd=it=>(isFK(it)&&legendStar(it)>1)?legendStar(it)*2/100:0;
 const xpNeed=l=>Math.round(38*Math.pow(l,1.5)*1.904); /* leveling: ~66% harder than base, then +15% on top */
 const PRESTIGE_CAP=50; /* progression ceiling for now: Prestige 50, level 60 */
 const zoneOf=()=>ZONES[S.zone];
@@ -1249,6 +1249,30 @@ function migrate(s){ /* fills fields missing from older saves */
  };
  if(s.farm.b)s.farm.b.forEach(fixLook);
  if(s.farm.c)s.farm.c.forEach(fixLook);
+ /* 🏷 the three legendaries were renamed off their borrowed names. Rewrite the stored keys,
+    or is*() stops recognising them and a legendary quietly turns into an unscaled nameless
+    item. Runs over the worn slots and the bag; gear sets hold gsid references into the bag,
+    so they follow along. `id` matters too - isFG() also matches on it. */
+ {
+  const RENAMED=[ /* old legend/id, new legend/id, old display name, new display name */
+   ['frostmourne','frostkeen','Frostmourne','Frostkeen'],
+   ['warglaives','felglaives','Warglaives','Fel Glaives'],
+   ['onering','thering','The One Ring','The Ring'],
+  ];
+  const reforge=it=>{
+   if(!it)return;
+   for(const [oldK,newK,oldN,newN] of RENAMED){
+    if(it.legend===oldK)it.legend=newK;
+    if(it.id===oldK)it.id=newK;
+    if(it.name===oldN)it.name=newN;
+   }
+   if(it.warglaives===true){delete it.warglaives;it.felglaives=true;} /* the old marker flag */
+  };
+  for(const sl in (s.gear||{}))reforge(s.gear[sl]);
+  (s.bag||[]).forEach(reforge);
+  const JOB={fm:'fk',wg:'fg'}; /* a forge order placed before the rename */
+  if(s.smithJob&&JOB[s.smithJob.kind])s.smithJob.kind=JOB[s.smithJob.kind];
+ }
  (s.gearSets||[]).forEach((gs,gi)=>{ /* v1 sets held raw items or a worn flag - convert to v2 (gsid refs) */
   if(!gs)return;
   if(gs.worn){s.gearSets[gi]=null;s.gearSetSel=-1;return;}
@@ -1335,7 +1359,7 @@ function rollItem(forceRar,lucky){
  const zi=Math.max(S.zone,S.maxZone||0);
  const z=(1+zi*0.9+S.lvl*0.18)*(1+(S.prestige||0)*0.25);
  /* WEAPONS keep pace with prestige (armor/trinkets stay on the visible-level curve).
-    0.452 is calibrated so a top-roll epic at +12 lands ~15% under Frostmourne/Warglaives
+    0.452 is calibrated so a top-roll epic at +12 lands ~15% under Frostkeen/Fel Glaives
     at +6 - legendaries stay best, but you can survive without one. */
  const zEff=(1+zi*0.9+Math.max(1,effectiveHeroLvl())*0.18)*(1+(S.prestige||0)*0.25);
  const zw=Math.max(z,0.452*zEff);
@@ -1349,20 +1373,36 @@ function rollItem(forceRar,lucky){
  return it;
 }
 function calcPower(it){it.power=it.atk*3+it.hp*0.6+it.crit*4;}
-/* --- Frostmourne: legendary, live-scales, but only slightly above normal gear --- */
-const FM_BONUS=1.05;     /* Frostmourne baseline = ~5% above the best normal weapon for your effective level */
-const FM_MAX_UP=6;       /* legendary cap: max +6 upgrades */
-const GEAR_MAX_UP=12;      /* normal gear cap; Frostmourne uses FM_MAX_UP */
+/* --- Frostkeen: legendary, live-scales, but only slightly above normal gear --- */
+const FK_BONUS=1.05;     /* Frostkeen baseline = ~5% above the best normal weapon for your effective level */
+const LEGEND_MAX_UP=6;       /* legendary cap: max +6 upgrades */
+const GEAR_MAX_UP=12;      /* normal gear cap; Frostkeen uses LEGEND_MAX_UP */
 /* ❄ Deep Frost (talent): Ice Armor alone may be pushed from +6 to +12 */
-const capUp=it=>isIce(it)?(talRank('root')?12:FM_MAX_UP):(isLegendaryW(it)?FM_MAX_UP:GEAR_MAX_UP);
-const isFM=it=>it&&it.legend==='frostmourne';
-const isWG=it=>it&&(it.legend==='warglaives'||it.id==='warglaives'||it.warglaives===true); /* supports old/equipped objects marked warglaives:true */
-const isRing=it=>it&&it.legend==='onering';
+const capUp=it=>isIce(it)?(talRank('root')?12:LEGEND_MAX_UP):(isLegendaryW(it)?LEGEND_MAX_UP:GEAR_MAX_UP);
+const isFK=it=>it&&it.legend==='frostkeen';
+/* ❄ the blade was called Frostmourne until the rename, and migrate() rewrites the key in
+   every local save. Two sources can never be migrated, because they are not ours: peer
+   look packets from a player still on the old build, and leaderboard rows written by
+   other accounts. Anything reading those must accept the old spelling forever. */
+const isFKLegend=v=>v==='frostkeen'||v==='frostmourne';
+const isFG=it=>it&&(it.legend==='felglaives'||it.id==='felglaives'||it.felglaives===true); /* supports old/equipped objects marked felglaives:true */
+const isRing=it=>it&&it.legend==='thering';
+/* ⚔ same story as the blade: local saves are rewritten by migrate(), but peer look packets
+   from an old build and leaderboard rows owned by other accounts keep the pre-rename
+   spelling forever, so every read of those must take either. The Ring needs no such helper -
+   nothing outside our own save ever branches on the trinket's legend. */
+const isFGLegend=v=>v==='felglaives'||v==='warglaives';
+/* 🏷 leaderboard rows carry a frozen copy of the item name from whenever that player last
+   published. We cannot rewrite their document - but we choose what to draw, so a row still
+   saying "Frostmourne" is shown under the new name. Rows fix themselves anyway the next
+   time that player logs in and republishes; this just covers the ones who have not. */
+const RENAMED_ITEMS={'Frostmourne':'Frostkeen','Warglaives':'Fel Glaives','The One Ring':'The Ring'};
+const displayItemName=n=>RENAMED_ITEMS[n]||n;
 const isIce=it=>it&&it.legend==='icearmor';
 function syncIceArmor(it){
  if(!isIce(it)||!S)return it;
  it.slot='armor';it.rar='legendary';it.name='Ice Armor';
- it.maxUp=talRank('root')?12:FM_MAX_UP; /* ❄ Deep Frost lifts the cap to +12 */
+ it.maxUp=talRank('root')?12:LEGEND_MAX_UP; /* ❄ Deep Frost lifts the cap to +12 */
  it.up=Math.min(it.up||0,it.maxUp);
  it.haste=0.10;it.dmgMul=0.10; /* +10% atk speed · +10% damage - always */
  if(it.baseHp===undefined)it.baseHp=it.hp||0;
@@ -1371,13 +1411,13 @@ function syncIceArmor(it){
  it.sell=0;
  return it;
 }
-const isLegendaryW=it=>isFM(it)||isWG(it)||isRing(it)||isIce(it);
-/* --- The One Ring: legendary trinket forged from Recipe + Broken Ring at smith lvl 10 --- */
-function syncOneRing(it){
+const isLegendaryW=it=>isFK(it)||isFG(it)||isRing(it)||isIce(it);
+/* --- The Ring: legendary trinket forged from Recipe + Broken Ring at smith lvl 10 --- */
+function syncTheRing(it){
  if(!isRing(it)||!S)return it;
- it.id='onering';it.legend='onering';it.slot='trinket';it.rar='legendary';it.name='The One Ring';
- it.up=Math.min(it.up||0,FM_MAX_UP);
- it.maxUp=FM_MAX_UP;it.bossDmg=0;
+ it.id='thering';it.legend='thering';it.slot='trinket';it.rar='legendary';it.name='The Ring';
+ it.up=Math.min(it.up||0,LEGEND_MAX_UP);
+ it.maxUp=LEGEND_MAX_UP;it.bossDmg=0;
  it.baseAtk=Math.max(1,Math.round(bestNormalWeaponAtk()*0.10)); /* legendary trinket: ~10% of a top weapon, live-scaled */
  it.atk=Math.round(it.baseAtk*Math.pow(1.12,it.up||0));
  it.crit=it.baseCrit=10;it.hp=it.baseHp=0; /* +10% crit */
@@ -1387,42 +1427,42 @@ function syncOneRing(it){
  it.sell=0;
  return it;
 }
-function rollOneRing(){
- return syncOneRing({id:'onering',slot:'trinket',rar:'legendary',legend:'onering',name:'The One Ring',atk:0,hp:0,crit:10,lifesteal:0,manadrain:0.01,bossDmg:0,ench:null,up:0,sell:0,maxUp:FM_MAX_UP});
+function rollTheRing(){
+ return syncTheRing({id:'thering',slot:'trinket',rar:'legendary',legend:'thering',name:'The Ring',atk:0,hp:0,crit:10,lifesteal:0,manadrain:0.01,bossDmg:0,ench:null,up:0,sell:0,maxUp:LEGEND_MAX_UP});
 }
 function bestNormalWeaponAtk(){
  /* Normal epic weapons roll up to (3+3) * epic rarity * gear scale.
-    Frostmourne mirrors that same top-end curve, but uses effectiveHeroLvl() so prestige
+    Frostkeen mirrors that same top-end curve, but uses effectiveHeroLvl() so prestige
     does not make it reset to Lv 1 damage. */
  const L=Math.max(1,effectiveHeroLvl());
  const zi=Math.max(S.zone||0,progZone(S)||0);
  const z=(1+zi*0.9+L*0.18)*(1+(S.prestige||0)*0.25);
  return Math.round(6*RARMUL.epic*z);
 }
-function fmBaseAtk(){return Math.max(1,Math.round(bestNormalWeaponAtk()*FM_BONUS));}
-function syncFrostmourne(it){
- if(!isFM(it)||!S)return it;
- it.up=Math.min(it.up||0,FM_MAX_UP);
- it.baseAtk=fmBaseAtk();
+function fkBaseAtk(){return Math.max(1,Math.round(bestNormalWeaponAtk()*FK_BONUS));}
+function syncFrostkeen(it){
+ if(!isFK(it)||!S)return it;
+ it.up=Math.min(it.up||0,LEGEND_MAX_UP);
+ it.baseAtk=fkBaseAtk();
  it.atk=Math.round(it.baseAtk*Math.pow(1.12,it.up||0));
  it.crit=it.baseCrit=2;it.hp=it.baseHp=0;
  calcPower(it);it.basePower=Math.round(it.baseAtk*3+20);
  it.sell=Math.round(it.baseAtk*4);
  return it;
 }
-function rollFrostmourne(){
- const it={slot:'weapon',rar:'legendary',legend:'frostmourne',name:'Frostmourne',
+function rollFrostkeen(){
+ const it={slot:'weapon',rar:'legendary',legend:'frostkeen',name:'Frostkeen',
   atk:0,hp:0,crit:4,lifesteal:0.02,ench:null,up:0,sell:0};
- return syncFrostmourne(it);
+ return syncFrostkeen(it);
 }
-function syncWarglaives(it){
- if(!isWG(it)||!S)return it;
- it.id='warglaives';it.legend='warglaives';it.warglaives=true;it.slot='weapon';it.rar='legendary';it.name='Warglaives';
- it.up=Math.min(it.up||0,FM_MAX_UP);
- const st=fmStar(it); /* ★1/★2/★3 → 10/15/20% boss dmg and 2/4/6% lifesteal */
- it.maxUp=FM_MAX_UP;it.bossDmg=st===3?20:st===2?15:10;
+function syncFelGlaives(it){
+ if(!isFG(it)||!S)return it;
+ it.id='felglaives';it.legend='felglaives';it.felglaives=true;it.slot='weapon';it.rar='legendary';it.name='Fel Glaives';
+ it.up=Math.min(it.up||0,LEGEND_MAX_UP);
+ const st=legendStar(it); /* ★1/★2/★3 → 10/15/20% boss dmg and 2/4/6% lifesteal */
+ it.maxUp=LEGEND_MAX_UP;it.bossDmg=st===3?20:st===2?15:10;
  it.lifesteal=st*0.02;
- it.baseAtk=fmBaseAtk();
+ it.baseAtk=fkBaseAtk();
  it.atk=Math.round(it.baseAtk*Math.pow(1.12,it.up||0));
  it.crit=it.baseCrit=0;it.hp=it.baseHp=0;
  it.haste=0.10; /* twin glaives strike 10% faster instead of granting crit */
@@ -1430,17 +1470,17 @@ function syncWarglaives(it){
  it.sell=Math.round(it.baseAtk*4);
  return it;
 }
-function rollWarglaives(){
- return syncWarglaives({id:'warglaives',slot:'weapon',rar:'legendary',legend:'warglaives',name:'Warglaives',atk:0,hp:0,crit:0,haste:0.10,bossDmg:10,lifesteal:0.02,ench:null,up:0,sell:0,maxUp:FM_MAX_UP});
+function rollFelGlaives(){
+ return syncFelGlaives({id:'felglaives',slot:'weapon',rar:'legendary',legend:'felglaives',name:'Fel Glaives',atk:0,hp:0,crit:0,haste:0.10,bossDmg:10,lifesteal:0.02,ench:null,up:0,sell:0,maxUp:LEGEND_MAX_UP});
 }
-function itemName(it){return ((isFM(it)||isWG(it))&&fmStar(it)>1?'★'+fmStar(it)+' ':'')+(it&&it.name?it.name:'?');}
+function itemName(it){return ((isFK(it)||isFG(it))&&legendStar(it)>1?'★'+legendStar(it)+' ':'')+(it&&it.name?it.name:'?');}
 const SMITH_HOUR=7200000;
-const fmStar=it=>it&&it.star?it.star:1;
+const legendStar=it=>it&&it.star?it.star:1;
 /* every copy you own is forge fodder - loose in the bag, starred by a gear set, or worn.
    Set-locked pieces are still protected from selling and scrapping; only the forge, which
    hands the blade back stronger, is allowed to take them. */
-const fmBagOfStar=st=>(S.bag||[]).filter(it=>isFM(it)&&fmStar(it)===st);
-const wgBagOfStar=st=>(S.bag||[]).filter(it=>isWG(it)&&fmStar(it)===st);
+const fkBagOfStar=st=>(S.bag||[]).filter(it=>isFK(it)&&legendStar(it)===st);
+const fgBagOfStar=st=>(S.bag||[]).filter(it=>isFG(it)&&legendStar(it)===st);
 /* a blade the forge swallows cannot stay referenced by a saved loadout */
 function releaseFromSets(it){
  if(!it||!it.gsid)return;
@@ -1455,22 +1495,22 @@ function smithTick(){
   log(`⚒️ Blacksmith reaches <span class="loot">level ${S.smithLvl}</span>!`,'loot');
   stageMsg('⚒️ Blacksmith level '+S.smithLvl+'!',2200);sfx.level();
  }else if(j.kind==='ring'){
-  const ring=rollOneRing();
+  const ring=rollTheRing();
   if(S.gear.trinket)S.bag.push(S.gear.trinket); /* the old trinket steps aside */
   S.gear.trinket=ring;S.ringForged=true;
-  log(`⚒️ The forge cools - <span class="llegendary">${uiIcon('it_trinket','💍','shopico')} The One Ring</span> binds to your trinket slot! +10% crit, and it drinks 1% of your mana with every strike.`,'loot');
+  log(`⚒️ The forge cools - <span class="llegendary">${uiIcon('it_trinket','💍','shopico')} The Ring</span> binds to your trinket slot! +10% crit, and it drinks 1% of your mana with every strike.`,'loot');
   stageMsg('💍 THE ONE RING IS FORGED!',3800);sfx.level();
   if(typeof publishLB==='function')publishLB(S,true);
- }else if(j.kind==='wg'){
-  const it=syncWarglaives({id:'warglaives',slot:'weapon',rar:'legendary',legend:'warglaives',name:'Warglaives',star:j.to,atk:0,hp:0,crit:0,haste:0.10,ench:null,up:0,sell:0,maxUp:FM_MAX_UP});
+ }else if(j.kind==='fg'){
+  const it=syncFelGlaives({id:'felglaives',slot:'weapon',rar:'legendary',legend:'felglaives',name:'Fel Glaives',star:j.to,atk:0,hp:0,crit:0,haste:0.10,ench:null,up:0,sell:0,maxUp:LEGEND_MAX_UP});
   S.bag.push(it);
-  log(`⚒️ The forge cools - <span class="llegendary">Warglaives ★${j.to}</span> scream anew!`,'loot');
-  stageMsg('⚒️ Warglaives ★'+j.to+' complete!',2600);sfx.level();
+  log(`⚒️ The forge cools - <span class="llegendary">Fel Glaives ★${j.to}</span> scream anew!`,'loot');
+  stageMsg('⚒️ Fel Glaives ★'+j.to+' complete!',2600);sfx.level();
  }else{
-  const it=syncFrostmourne({slot:'weapon',rar:'legendary',legend:'frostmourne',name:'Frostmourne',star:j.to,atk:0,hp:0,crit:4,lifesteal:0.02,ench:null,up:0,sell:0});
+  const it=syncFrostkeen({slot:'weapon',rar:'legendary',legend:'frostkeen',name:'Frostkeen',star:j.to,atk:0,hp:0,crit:4,lifesteal:0.02,ench:null,up:0,sell:0});
   S.bag.push(it);
-  log(`⚒️ The forge cools - <span class="llegendary">Frostmourne ★${j.to}</span> is reborn!`,'loot');
-  stageMsg('⚒️ Frostmourne ★'+j.to+' complete!',2600);sfx.level();
+  log(`⚒️ The forge cools - <span class="llegendary">Frostkeen ★${j.to}</span> is reborn!`,'loot');
+  stageMsg('⚒️ Frostkeen ★'+j.to+' complete!',2600);sfx.level();
  }
  save();if($('smithFx')&&$('smithFx').style.display==='flex')smithRefresh();
 }
@@ -1493,8 +1533,8 @@ function upgradeItem(it){
  if(S.scraps<cost){stageMsg('Not enough Scraps ('+cost+'⚙ needed)',1400);return false;}
  ensureItemBase(it);
  S.scraps-=cost;it.up++;
- if(isFM(it))syncFrostmourne(it);
- else if(isWG(it))syncWarglaives(it);
+ if(isFK(it))syncFrostkeen(it);
+ else if(isFG(it))syncFelGlaives(it);
  else{
   if(it.atk)it.atk=Math.round(it.atk*1.12)+1;
   if(it.hp)it.hp=Math.round(it.hp*1.12)+2;
@@ -1522,12 +1562,12 @@ function statBaseStr(it,k,label,suffix=''){
  return `+${v}${suffix} ${label}${baseTxt}`;
 }
 function itemStr(it){
- if(isFM(it))syncFrostmourne(it);
- else if(isWG(it))syncWarglaives(it);
- else if(isRing(it))syncOneRing(it);
+ if(isFK(it))syncFrostkeen(it);
+ else if(isFG(it))syncFelGlaives(it);
+ else if(isRing(it))syncTheRing(it);
  else if(isIce(it))syncIceArmor(it);
  else ensureItemBase(it);
- if(isWG(it))syncWarglaives(it);
+ if(isFG(it))syncFelGlaives(it);
  const cap=capUp(it);
  const maxed=(it.up||0)>=cap;
  /* Legendaries carry bonuses applied outside their own fields. Fold them into the printed
@@ -1547,7 +1587,7 @@ function itemStr(it){
 /* compact stat line for the currently equipped item, for bag comparison */
 function shortStats(it){
  if(!it)return '-';
- if(isFM(it))syncFrostmourne(it);else if(isWG(it))syncWarglaives(it);else if(isRing(it))syncOneRing(it);else if(isIce(it))syncIceArmor(it);else ensureItemBase(it);
+ if(isFK(it))syncFrostkeen(it);else if(isFG(it))syncFelGlaives(it);else if(isRing(it))syncTheRing(it);else if(isIce(it))syncIceArmor(it);else ensureItemBase(it);
  const parts=[];
  const baseAtk=Math.round(it.baseAtk||it.atk||0);
  const baseHp=Math.round(it.baseHp||it.hp||0);
@@ -1561,7 +1601,7 @@ function shortStats(it){
 }
 function compareVal(it){
  if(!it)return 0;
- if(isFM(it))syncFrostmourne(it);else if(isWG(it))syncWarglaives(it);else if(isRing(it))syncOneRing(it);else ensureItemBase(it);
+ if(isFK(it))syncFrostkeen(it);else if(isFG(it))syncFelGlaives(it);else if(isRing(it))syncTheRing(it);else ensureItemBase(it);
  if(it.slot==='weapon')return Math.round(it.baseAtk||it.atk||0);
  if(it.slot==='armor')return Math.round(it.baseHp||it.hp||0);
  return Math.round(it.basePower||it.power||0);
@@ -2062,7 +2102,7 @@ $('ritualBegin').onclick=()=>{
   const zi=Math.max(S.zone,S.maxZone||0);
   const z=(1+zi*0.9+S.lvl*0.18)*(1+(S.prestige||0)*0.25);
   const it={slot:'armor',rar:'legendary',legend:'icearmor',name:'Ice Armor',
-   atk:0,hp:Math.round(24*3.6*z*1.1),crit:0,haste:0.10,dmgMul:0.10,ench:null,up:0,maxUp:FM_MAX_UP,sell:0}; /* +10% dmg · +10% atk speed · +6 upgrades like the other legendaries */
+   atk:0,hp:Math.round(24*3.6*z*1.1),crit:0,haste:0.10,dmgMul:0.10,ench:null,up:0,maxUp:LEGEND_MAX_UP,sell:0}; /* +10% dmg · +10% atk speed · +6 upgrades like the other legendaries */
   it.baseHp=it.hp;it.baseAtk=0;it.baseCrit=0;
   calcPower(it);it.basePower=Math.round(it.power);
   ritualArmor=it; /* handed over - and equipped - on "Take it" */
@@ -3619,7 +3659,7 @@ function landHit(en,dmg,crit,label,basic){
  applyDmg(en,dmg,label,crit);
  const w=S.gear.weapon;
  const tkR=S.gear&&S.gear.trinket;
- const lsAll=((w&&w.lifesteal)||0)+((tkR&&tkR.lifesteal)||0)+fmBonus()/100;
+ const lsAll=((w&&w.lifesteal)||0)+((tkR&&tkR.lifesteal)||0)+fkBonus()/100;
  if(lsAll>0)healHero(Math.max(1,dmg*lsAll),true);
  if(tkR&&tkR.manadrain)hero.mana=Math.max(0,hero.mana-manaMax()*tkR.manadrain); /* the Ring exacts its price on every strike */
  sfx.hit();
@@ -3627,7 +3667,7 @@ function landHit(en,dmg,crit,label,basic){
 }
 function applyDmg(en,dmg,label,crit){
  if(en.dead||en.hidden)return;
- if(S.gear&&isWG(S.gear.weapon)&&en.boss)dmg=Math.round(dmg*(1+(syncWarglaives(S.gear.weapon).bossDmg||10)/100));
+ if(S.gear&&isFG(S.gear.weapon)&&en.boss)dmg=Math.round(dmg*(1+(syncFelGlaives(S.gear.weapon).bossDmg||10)/100));
  if(en.boss&&(activePet()||{}).bossDmg)dmg=Math.round(dmg*(1+activePet().bossDmg));
  if(en.boss&&(S.raidT||0)>0)dmg=Math.round(dmg*1.15); /* ⚗️ Potion of Raid */
  if(en.boss&&S.gear&&S.gear.trinket&&S.gear.trinket.bossDmg)dmg=Math.round(dmg*(1+S.gear.trinket.bossDmg/100)); /* 💍 */
@@ -4217,11 +4257,11 @@ function bossAI(en,dt){
    en.lockT=0.95;
   }
   /* (legionnaire summons removed - the Warlord duels alone) */
- }else if(B==='betrayer'){ /* wide warglaive fan, fel adds, twin eye beams, metamorphosis */
+ }else if(B==='betrayer'){ /* wide glaive fan, fel adds, twin eye beams, metamorphosis */
   if(en.cds.a<=0){en.cds.a=5;
    const base=Math.atan2(T.y-en.y,T.x-en.x);
    for(const off of[-0.26,0,0.26])ebolts.push({x:en.x,y:en.y-14,vx:Math.cos(base+off)*275,vy:Math.sin(base+off)*275,t:0,dmg:en.atk*0.9,c:'#7adf9a'});
-   floatAt(en.x,en.y-en.r-30,'Warglaives!','#7adf9a',true);
+   floatAt(en.x,en.y-en.r-30,'Fel Glaives!','#7adf9a',true);
    sfx.arrow();
   }
   if(en.cds.b<=0){en.cds.b=16;
@@ -6363,7 +6403,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
  clsId=CLASS_ALIAS[clsId]||clsId;
  const r=RACES.find(x=>x.id===raceId);
  const sgn=fx<0?-1:1;
- if(weaponId==='warglaives'){ /* back glaive: behind the body, tilted opposite the front one - WoW dual-wield look */
+ if(isFGLegend(weaponId)){ /* back glaive: behind the body, tilted opposite the front one - WoW dual-wield look */
   g.save();
   g.translate(0,-14+by); /* centered on the back at shoulder height */
   g.globalAlpha*=0.9;
@@ -6481,9 +6521,9 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g.strokeStyle='#7a5a3a';g.lineWidth=2.5;g.beginPath();g.moveTo(-1,5);g.lineTo(2,-3);g.stroke();
   g.strokeStyle='#a9885a';g.lineWidth=1.8;g.beginPath();g.moveTo(2,-3);g.lineTo(8,-15);g.stroke();
   g.strokeStyle='#c9b391';g.lineWidth=1.1;g.beginPath();g.moveTo(8,-15);g.lineTo(12,-22);g.stroke();
- }else if(weaponId==='warglaives'){
+ }else if(isFGLegend(weaponId)){
   if(wgImg.complete&&wgImg.naturalWidth){
-   /* painted Warglaives pair (assets/models/warglaive.png) - held level, pointing straight ahead */
+   /* painted Fel Glaives pair (assets/models/felglaive.png) - held level, pointing straight ahead */
    const W=62,H=W*wgImg.naturalHeight/wgImg.naturalWidth;
    g.rotate(-(sgn<0?-1:1)*(pw?0.85:0.5)); /* cancel the base tilt; the attack swing still animates */
    g.shadowColor='#4dff9a';g.shadowBlur=9;
@@ -6501,10 +6541,10 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
  }else if(fm){
   const tt=performance.now()/1000;
   g.shadowColor='#6fd0ff';g.shadowBlur=10+Math.sin(tt*3)*3;
-  if(fmImg.complete&&fmImg.naturalWidth){
-   /* painted Frostmourne (assets/models/frostmourne.png) - the pulsing canvas glow hugs the cutout */
-   const H=pw?50:40,W=H*fmImg.naturalWidth/fmImg.naturalHeight;
-   g.drawImage(mip(fmImg,W),-W/2,(pw?-2:6)-H,W,H); /* grip in the painted hero's hand */
+  if(fkImg.complete&&fkImg.naturalWidth){
+   /* painted Frostkeen (assets/models/frostkeen.png) - the pulsing canvas glow hugs the cutout */
+   const H=pw?50:40,W=H*fkImg.naturalWidth/fkImg.naturalHeight;
+   g.drawImage(mip(fkImg,W),-W/2,(pw?-2:6)-H,W,H); /* grip in the painted hero's hand */
    g.shadowBlur=0;
   }else{ /* fallback while the image loads: icy runeblade */
   g.fillStyle='#bfe9ff';
@@ -6602,21 +6642,21 @@ function drawHero(){
  if(h.buff.haste&&h.buff.haste.t>0){ctx.strokeStyle='rgba(200,240,255,0.5)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,6+gY,18,8,0,0,7);ctx.stroke();}
  if(dancing)ctx.rotate(Math.sin(h.dance*6)*0.25);
  if((charSprite(S.race,c.id,S.gender==='f')||{}).naturalWidth)bootFeet(S.gender==='f'?Object.assign({fem:true},{moving:h.moving,walk:h.walk}):h);else feet(h,1);
- drawChampionSprite(ctx,S.race,c.id,fx,by,danceSwing,fish.on?false:isFM(S.gear.weapon),fish.on?'fishingrod':(isWG(S.gear.weapon)?'warglaives':(isFM(S.gear.weapon)?'frostmourne':null)),S.gender==='f',h.moving&&!h.dead?2:1,isIce(S.gear.armor));
+ drawChampionSprite(ctx,S.race,c.id,fx,by,danceSwing,fish.on?false:isFK(S.gear.weapon),fish.on?'fishingrod':(isFG(S.gear.weapon)?'felglaives':(isFK(S.gear.weapon)?'frostkeen':null)),S.gender==='f',h.moving&&!h.dead?2:1,isIce(S.gear.armor));
  if(h.hurt>0){ctx.fillStyle='rgba(255,255,255,'+h.hurt*2.5+')';ctx.beginPath();ctx.arc(0,-8+by,11,0,7);ctx.fill();}
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;
  ctx.textAlign='center';
  /* name only (no rating), lifted clear of the sprite; hp lives in the header bar instead */
  let nmY=((charSprite(S.race,c.id,S.gender==='f')||{}).naturalWidth)?-46:-33; /* painted sprites stand taller */
  if(isRing(S.gear.trinket))nmY-=9; /* make room for the hovering ring under the name */
- if(isRing(S.gear.trinket)&&oneringImg.complete&&oneringImg.naturalWidth&&!h.dead){
-  /* 💍 The One Ring hovers above its bearer, slowly turning */
+ if(isRing(S.gear.trinket)&&theRingImg.complete&&theRingImg.naturalWidth&&!h.dead){
+  /* 💍 The Ring hovers above its bearer, slowly turning */
   const t=performance.now()/1000;
-  const rw=24,rh=rw*oneringImg.naturalHeight/oneringImg.naturalWidth;
+  const rw=24,rh=rw*theRingImg.naturalHeight/theRingImg.naturalWidth;
   const ry=nmY+10+Math.sin(t*1.8)*3; /* nmY is lifted 9px when the ring is on - net: ring stays put */
   ctx.save();ctx.translate(0,ry);
   ctx.shadowColor='#ffd76a';ctx.shadowBlur=9;
-  ctx.drawImage(mip(oneringImg,rw),-rw/2,-rh/2,rw,rh);
+  ctx.drawImage(mip(theRingImg,rw),-rw/2,-rh/2,rw,rh);
   ctx.restore();
  }
  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(S.name||'Hero',1,nmY+by+1);
@@ -7579,7 +7619,7 @@ function renderBag(){
    </div>`;
  }
  let btHtml='';
- if(S.chests&&S.chests.blacktemple>0)btHtml=`<div class="card item" style="border-color:#39ff6a66;box-shadow:0 0 10px rgba(57,255,106,.15)"><div><div class="sn" style="color:#39ff6a;font-size:13px;font-weight:600">${uiIcon('it_chest','🟩','shopico')} Black Temple Chest <span style="color:var(--dim)">×${S.chests.blacktemple}</span></div><div class="ss" style="color:var(--dim);font-size:11px">The spoils of the three lords. Chance for Warglaives, gold, or free GOLD GOLD GOLD cases.</div></div><div class="btns"><button class="sbtn gold" data-btchest>Open</button></div></div>`;
+ if(S.chests&&S.chests.blacktemple>0)btHtml=`<div class="card item" style="border-color:#39ff6a66;box-shadow:0 0 10px rgba(57,255,106,.15)"><div><div class="sn" style="color:#39ff6a;font-size:13px;font-weight:600">${uiIcon('it_chest','🟩','shopico')} Black Temple Chest <span style="color:var(--dim)">×${S.chests.blacktemple}</span></div><div class="ss" style="color:var(--dim);font-size:11px">The spoils of the three lords. Chance for Fel Glaives, gold, or free GOLD GOLD GOLD cases.</div></div><div class="btns"><button class="sbtn gold" data-btchest>Open</button></div></div>`;
  let ringHtml='';
  if(S.theKnife){
   ringHtml+=`<div class="card item" style="border-color:#bcd8ff88;box-shadow:0 0 10px rgba(188,216,255,.12)"><div>
@@ -7971,7 +8011,7 @@ const CASE_RARS_GOLD=[
  {r:.66,cc:'#5b9bd5',t:'rare'},{r:1,cc:'#c9a0ff',t:'epic'}
 ];
 function fillerCard(){
- /* GOLD GOLD GOLD uses Frostmourne and pets as rare teases instead of coin clutter. */
+ /* GOLD GOLD GOLD uses Frostkeen and pets as rare teases instead of coin clutter. */
  if(curCase==='blacktemple'){
   const rr=Math.random();
   if(rr<0.14)return {icon:lootIco('it_weapon','🗡️'),cc:'#39ff6a',t:'legendary'};
@@ -7997,8 +8037,8 @@ function prizeValue(type){
  const r=Math.random();
  if(type==='gold'){
   if(r<0.002){
-   const it=rollFrostmourne();
-   log(`LEGENDARY: <span class="llegendary">Frostmourne</span> hungers…`,'loot');
+   const it=rollFrostkeen();
+   log(`LEGENDARY: <span class="llegendary">Frostkeen</span> hungers…`,'loot');
    it._lid=lootUID++;
    if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
    return {icon:lootIco('it_weapon','🗡️'),tier:'LEGENDARY',name:itemName(it),color:'#ffd100',sub:'weapon · '+itemStr(it),epic:true,big:true};
@@ -8058,7 +8098,7 @@ function prizeValue(type){
 }
 
 const BT_LOOT=[
- {w:9.5,kind:'warglaives'},
+ {w:9.5,kind:'felglaives'},
  {w:20,kind:'gold',min:25000,max:50000},
  {w:30,kind:'gold',min:5000,max:25000},
  {w:18,kind:'freebox',n:2},
@@ -8069,10 +8109,10 @@ const BT_LOOT=[
 function btPrizeValue(){
  const total=BT_LOOT.reduce((a,b)=>a+b.w,0);let r=Math.random()*total,p=BT_LOOT[BT_LOOT.length-1];
  for(const x of BT_LOOT){r-=x.w;if(r<=0){p=x;break;}}
- if(p.kind==='warglaives'){
-  const it=rollWarglaives();it._lid=lootUID++;
+ if(p.kind==='felglaives'){
+  const it=rollFelGlaives();it._lid=lootUID++;
   if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
-  log(`BLACK TEMPLE: <span class="llegendary">Warglaives</span>!`,'loot');
+  log(`BLACK TEMPLE: <span class="llegendary">Fel Glaives</span>!`,'loot');
   return {icon:lootIco('it_weapon','🗡️'),tier:'LEGENDARY',name:itemName(it),color:'#39ff6a',sub:'weapon · '+itemStr(it),epic:true,big:true};
  }
  if(p.kind==='gold'){
@@ -9386,7 +9426,7 @@ $('rtbClose').onclick=()=>{
    both lock an identical stake → 10 chests each, opened alternately (host first) at
    Black Temple pace. Chests score symbolic scraps; most scraps takes the whole pot.
    Ties go to sudden death, one chest each until someone leads. */
-const GVB_SCORE={fm:20,pet:12,bull:10,scroll:7,epic:5,rare:3};
+const GVB_SCORE={fk:20,pet:12,bull:10,scroll:7,epic:5,rare:3};
 const GVB_MAXP=10;
 const gvb={code:null,ref:null,unsub:null,pid:null,doc:null,shown:0,animating:false,paid:false,settled:false,lastChange:0,bet:0,closedByMe:false,sidesKey:'',rtc:{},rtcWaves:{},sigUnsub:null};
 /* ⚡ zero-latency layer - the Black Temple trick: spins ride WebRTC data channels the
@@ -9423,7 +9463,7 @@ function gvbRtcBroadcast(m){
 }
 function gvbOutcome(){
  const r=Math.random();
- if(r<0.002)return {ic:'🗡️',cc:'#ffd100',sc:GVB_SCORE.fm,n:'FROSTMOURNE'};
+ if(r<0.002)return {ic:'🗡️',cc:'#ffd100',sc:GVB_SCORE.fk,n:'FROSTKEEN'};
  if(r<0.005)return {ic:'🐾',cc:'#8fe3c9',sc:GVB_SCORE.pet,n:'COMPANION'};
  if(r<0.0125)return {ic:'🐂',cc:'#ffd100',sc:GVB_SCORE.bull,n:'BULL'};
  if(r<0.0715)return {ic:'📜',cc:'#e8c9ef',sc:GVB_SCORE.scroll,n:'SCROLL II'};
@@ -9432,7 +9472,7 @@ function gvbOutcome(){
 }
 function gvbFiller(){ /* reel dressing only - tease-heavy like the real chests, every card shows its scraps */
  const r=Math.random();
- if(r<0.06)return {ic:'🗡️',cc:'#ffd100',sc:GVB_SCORE.fm};
+ if(r<0.06)return {ic:'🗡️',cc:'#ffd100',sc:GVB_SCORE.fk};
  if(r<0.11)return {ic:'🐂',cc:'#ffd100',sc:GVB_SCORE.bull};
  if(r<0.16)return {ic:'🐾',cc:'#8fe3c9',sc:GVB_SCORE.pet};
  if(r<0.26)return {ic:'📜',cc:'#e8c9ef',sc:GVB_SCORE.scroll};
@@ -9605,7 +9645,7 @@ function gvbAnimateWave(w){
  const rand=mulberry32(((w.seed||1)>>>0)); /* seeded: every player sees EXACTLY the same tease cards */
  const mkf=()=>{
   const r=rand();
-  if(r<0.06)return {ic:'🗡️',cc:'#ffd100',sc:GVB_SCORE.fm};
+  if(r<0.06)return {ic:'🗡️',cc:'#ffd100',sc:GVB_SCORE.fk};
   if(r<0.11)return {ic:'🐂',cc:'#ffd100',sc:GVB_SCORE.bull};
   if(r<0.16)return {ic:'🐾',cc:'#8fe3c9',sc:GVB_SCORE.pet};
   if(r<0.26)return {ic:'📜',cc:'#e8c9ef',sc:GVB_SCORE.scroll};
@@ -9621,7 +9661,7 @@ function gvbAnimateWave(w){
   for(let i=0;i<N;i++){
    let c;
    if(i===TARGET)c=spin;
-   else if((i===TARGET-1||i===TARGET+1)&&rand()<0.55)c=rand()<0.5?{ic:'🗡️',cc:'#ffd100',sc:GVB_SCORE.fm}:{ic:'🐂',cc:'#ffd100',sc:GVB_SCORE.bull}; /* near-miss drama */
+   else if((i===TARGET-1||i===TARGET+1)&&rand()<0.55)c=rand()<0.5?{ic:'🗡️',cc:'#ffd100',sc:GVB_SCORE.fk}:{ic:'🐂',cc:'#ffd100',sc:GVB_SCORE.bull}; /* near-miss drama */
    else c=mkf();
    h+=`<div class="gvbbigcard sm" style="color:${c.cc}"><span>${c.ic}</span><span class="gl">${c.sc}⚙</span></div>`;
   }
@@ -9839,19 +9879,19 @@ document.querySelectorAll('[data-bank]').forEach(b=>b.onclick=()=>{
  sfx.buy();bankRefresh();renderHUD();save();
 });
 let smithSel=null; /* which forge station is open */
-let smithFmSel=0;   /* chosen Frostmourne target: 2 or 3 */
+let smithFkSel=0;   /* chosen Frostkeen target: 2 or 3 */
 function smithRefresh(){
  const lv=S.smithLvl||0;
  $('smithLvlTxt').textContent='Blacksmith level '+lv+(lv>=10?' (max)':'');
  const j=S.smithJob;
- $('smithJobTxt').textContent=j?(j.kind==='lvl'?'⏳ Training to level '+j.to:j.kind==='ring'?'⏳ Forging The One Ring':j.kind==='wg'?'⏳ Forging Warglaives ★'+j.to:'⏳ Forging Frostmourne ★'+j.to)+' - '+fmtMS(Math.max(0,j.endT-Date.now()))+' left':'';
+ $('smithJobTxt').textContent=j?(j.kind==='lvl'?'⏳ Training to level '+j.to:j.kind==='ring'?'⏳ Forging The Ring':j.kind==='fg'?'⏳ Forging Fel Glaives ★'+j.to:'⏳ Forging Frostkeen ★'+j.to)+' - '+fmtMS(Math.max(0,j.endT-Date.now()))+' left':'';
  /* ---- station picker: once several reforges are unlocked, choose from a list ---- */
  const p=S.prestige||0;
- const fmTier=(lv>=10&&p>=20)?3:(lv>=5&&p>=10)?2:0;
+ const fkTier=(lv>=10&&p>=20)?3:(lv>=5&&p>=10)?2:0;
  const stations=[
-  ['fm','❄ Frostmourne',!!fmTier],
-  ['wg','⚔ Warglaives',!!fmTier],
-  ['ring','💍 One Ring',!!(S.ringRecipe&&S.brokenRing)],
+  ['fm','❄ Frostkeen',!!fkTier],
+  ['fg','⚔ Fel Glaives',!!fkTier],
+  ['ring','💍 The Ring',!!(S.ringRecipe&&S.brokenRing)],
   ['fuse','🔗 Fuse Scrolls',(S.connectors||0)>0]
  ];
  if(!smithSel)smithSel='fm';
@@ -9875,18 +9915,18 @@ function smithRefresh(){
  if(ru&&!show('ring'))ru.innerHTML='';
  else if(ru){
   if(S.ringRecipe&&S.brokenRing&&!j&&lv>=10){
-   ru.innerHTML=`<button class="sbtn gold" id="ringForgeBtn" style="width:100%;margin:6px 0">💍 Forge The One Ring · 2 hours</button>`;
+   ru.innerHTML=`<button class="sbtn gold" id="ringForgeBtn" style="width:100%;margin:6px 0">💍 Forge The Ring · 2 hours</button>`;
    $('ringForgeBtn').onclick=()=>{
     if(!(S.ringRecipe&&S.brokenRing)||(S.smithLvl||0)<10||S.smithJob)return;
     S.ringRecipe=false;S.brokenRing=false; /* both halves feed the forge */
     S.smithJob={kind:'ring',endT:Date.now()+SMITH_HOUR};
-    stageMsg('⚒️ The forge burns black - The One Ring in 2 hours.',2600);
+    stageMsg('⚒️ The forge burns black - The Ring in 2 hours.',2600);
     sfx.buy();save();smithRefresh();renderBag();
    };
   }else if(S.ringRecipe&&S.brokenRing&&!j&&lv<10){
-   ru.innerHTML='<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">💍 The One Ring awaits a level 10 blacksmith.</div>';
+   ru.innerHTML='<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">💍 The Ring awaits a level 10 blacksmith.</div>';
   }else if(!j)ru.innerHTML=S.ringForged
-   ?'<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">💍 The One Ring has already been forged - there is only ever one.</div>'
+   ?'<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">💍 The Ring has already been forged - there is only ever one.</div>'
    :'<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">💍 Needs the <b>Recipe of the Ring</b> (Wandering Trader) and the <b>Broken Ring</b> (fished from the lake).</div>';
   else ru.innerHTML='';
  }
@@ -9932,13 +9972,13 @@ function smithRefresh(){
    }else fu.innerHTML='<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">🔗 <b>Crypt Connectors</b> drop from chests in The Crypts (15%). Two of them fuse a pair of Tier IV scrolls into one.</div>';
   }
  }
- const tier=fmTier;
+ const tier=fkTier;
  const fg=$('smithForge');
- const legSel=show('fm')?'fm':show('wg')?'wg':null; /* one forge serves both legendaries */
+ const legSel=show('fm')?'fm':show('fg')?'fg':null; /* one forge serves both legendaries */
  if(!tier||j||!legSel){
   fg.style.display='none';
   if(!j&&legSel){
-   const nm=legSel==='wg'?'the Warglaives':'Frostmourne';
+   const nm=legSel==='fg'?'the Fel Glaives':'Frostkeen';
    if(lv<5)$('smithJobTxt').textContent='Reach blacksmith level 5 to reforge '+nm+'.';
    else if(p<10)$('smithJobTxt').textContent='Reforging '+nm+' ★2 demands Prestige 10.';
    else if(lv>=10&&p<20)$('smithJobTxt').textContent=nm+' ★3 demands Prestige 20.';
@@ -9946,13 +9986,13 @@ function smithRefresh(){
   return;
  }
  fg.style.display='block';
- const wgSt=legSel==='wg';
+ const fgSt=legSel==='fg';
  /* everything counts, but the forge eats in the least disruptive order: loose bag copies
     first, then ones a gear set has starred, and the blade in your hands only if it must */
- const bagOnly=wgSt?wgBagOfStar:fmBagOfStar;
+ const bagOnly=fgSt?fgBagOfStar:fkBagOfStar;
  const bagOf=st=>{
   const eqW=S.gear.weapon;
-  const eqOk=(wgSt?isWG(eqW):isFM(eqW))&&fmStar(eqW)===st;
+  const eqOk=(fgSt?isFG(eqW):isFK(eqW))&&legendStar(eqW)===st;
   const bag=bagOnly(st);
   const all=bag.filter(it=>!inGearSet(it)).concat(bag.filter(it=>inGearSet(it))).concat(eqOk?[eqW]:[]);
   /* dedupe by identity: a worn blade that is also still listed in the bag is ONE blade, and
@@ -9960,27 +10000,27 @@ function smithRefresh(){
   const seen=new Set();
   return all.filter(it=>{if(seen.has(it))return false;seen.add(it);return true;});
  };
- const NM=wgSt?'Warglaives':'Frostmourne';
- const IC=wgSt?'⚔':'❄';
+ const NM=fgSt?'Fel Glaives':'Frostkeen';
+ const IC=fgSt?'⚔':'❄';
  /* choose the target: ★2 (two plain blades) or ★3 (two ★2) - ★3 needs smith 10 + Prestige 20 */
  const canT3=lv>=10&&p>=20;
- if(!canT3)smithFmSel=2;
- else if(!smithFmSel)smithFmSel=bagOf(2).length>=2?3:2;
+ if(!canT3)smithFkSel=2;
+ else if(!smithFkSel)smithFkSel=bagOf(2).length>=2?3:2;
  const fp=$('fmPick');
  if(fp){
-  fp.innerHTML=canT3?'<div style="display:flex;gap:6px;margin:2px 0 6px">'+[2,3].map(t=>`<button class="sbtn ${smithFmSel===t?'gold':''}" data-fmsel="${t}" style="flex:1">${t===2?IC+' + '+IC+' → ★2':'★2 + ★2 → ★3'}</button>`).join('')+'</div>':'';
-  fp.querySelectorAll('[data-fmsel]').forEach(b=>b.onclick=()=>{smithFmSel=+b.dataset.fmsel;smithRefresh();});
+  fp.innerHTML=canT3?'<div style="display:flex;gap:6px;margin:2px 0 6px">'+[2,3].map(t=>`<button class="sbtn ${smithFkSel===t?'gold':''}" data-fksel="${t}" style="flex:1">${t===2?IC+' + '+IC+' → ★2':'★2 + ★2 → ★3'}</button>`).join('')+'</div>':'';
+  fp.querySelectorAll('[data-fksel]').forEach(b=>b.onclick=()=>{smithFkSel=+b.dataset.fksel;smithRefresh();});
  }
- const src=smithFmSel-1,out=smithFmSel;
+ const src=smithFkSel-1,out=smithFkSel;
  const have=bagOf(src).length,ok=have>=2;
  const slotTxt=st=>IC+(st>1?'★'+st:'');
  $('fmSlotA').textContent=have>=1?slotTxt(src):'?';$('fmSlotA').classList.toggle('filled',have>=1);
  $('fmSlotB').textContent=have>=2?slotTxt(src):'?';$('fmSlotB').classList.toggle('filled',have>=2);
  $('fmSlotOut').textContent='★'+out;$('fmSlotOut').classList.toggle('filled',ok);
  $('fmPreview').innerHTML=ok
-  ?(wgSt
-   ?`Warglaives <b style="color:#4dff9a">★${out}</b> - <b>+${out===3?20:15}% boss damage</b>, <b>+${out*2}% lifesteal</b>. Upgrades &amp; attack reset (cap +6 unchanged). Consumes both ★${src}.`
-   :`Frostmourne <b style="color:#ffd76a">★${out}</b> - <b>+${out*2}% crit</b>, <b>+${out*2}% lifesteal</b>. Upgrades &amp; attack reset (cap +6 unchanged). Consumes both ★${src}.`)
+  ?(fgSt
+   ?`Fel Glaives <b style="color:#4dff9a">★${out}</b> - <b>+${out===3?20:15}% boss damage</b>, <b>+${out*2}% lifesteal</b>. Upgrades &amp; attack reset (cap +6 unchanged). Consumes both ★${src}.`
+   :`Frostkeen <b style="color:#ffd76a">★${out}</b> - <b>+${out*2}% crit</b>, <b>+${out*2}% lifesteal</b>. Upgrades &amp; attack reset (cap +6 unchanged). Consumes both ★${src}.`)
   :`Need <b>2× ${NM}${src>1?' ★'+src:''}</b> - bag, equipped and gear-set ⭐ copies all count (${have}/2).`;
  const btn=$('fmForgeBtn');btn.disabled=!ok;
  btn.onclick=()=>{
@@ -9998,7 +10038,7 @@ function smithRefresh(){
   });
   if(unequipped&&hero)hero.hp=Math.min(hero.hp,heroMax());
   cleanGsids();
-  S.smithJob={kind:wgSt?'wg':'fm',to:out,endT:Date.now()+SMITH_HOUR};
+  S.smithJob={kind:fgSt?'fg':'fk',to:out,endT:Date.now()+SMITH_HOUR};
   stageMsg('⚒️ The forge roars - '+NM+' ★'+out+' in 2 hours.',2400);
   sfx.buy();save();smithRefresh();
   /* every surface that can still be showing the swallowed blade */
@@ -10062,7 +10102,7 @@ function renderShop(){
   <div class="btns"><button class="sbtn gold" id="chestBtn" ${totalGold()<gTot?'disabled':''}>${gTot.toLocaleString()}◉</button>
   <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gamba" data-d="-1" ${gQty<=1?'disabled':''}>−</button><span class="qtynum">${gQty}x</span><button class="qtybtn" data-case="gamba" data-d="1" ${gQty>=5?'disabled':''}>+</button></div><div class="qtytotal">Total: ${gTot.toLocaleString()}◉</div></div></div></div>`;
  h+=`<div class="card item gcard-chest" style="border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.15)"><div><div class="sn" style="font-size:13px;font-weight:600;color:#ffd76a">${uiIcon('it_gold','💰','shopico')} GOLD GOLD GOLD${free?` <span style="color:#9adf9a;font-size:11px">· ${free} FREE</span>`:''}</div>
- <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common or fine junk - only rare and epic gear, a slim chance at a Tier II scroll, a tiny chance at Frostmourne, and whispers of a 🐾 loyal companion within.${free?' <b style="color:#9adf9a">HAALAND\u2019s hoard covers your next '+free+' case'+(free>1?'s':'')+'.</b>':''}</div></div>
+ <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common or fine junk - only rare and epic gear, a slim chance at a Tier II scroll, a tiny chance at Frostkeen, and whispers of a 🐾 loyal companion within.${free?' <b style="color:#9adf9a">HAALAND\u2019s hoard covers your next '+free+' case'+(free>1?'s':'')+'.</b>':''}</div></div>
  <div class="btns"><button class="sbtn gold" id="goldChestBtn" ${totalGold()<goTot?'disabled':''}>${goTot>0?goTot.toLocaleString()+'◉':'FREE'}</button>
  <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gold" data-d="-1" ${goQty<=1?'disabled':''}>−</button><span class="qtynum">${goQty}x</span><button class="qtybtn" data-case="gold" data-d="1" ${goQty>=5?'disabled':''}>+</button></div><div class="qtytotal">${goFree?goFree+' free · ':''}Total: ${goTot.toLocaleString()}◉</div></div></div></div>`;
 
@@ -10343,7 +10383,7 @@ function maxItemBaseStat(ch,kind){
 }
 function itemConsistent(it,ch){
  if(!it)return true;
- if(isLegendaryW(it))return true; /* Legendary weapons are recomputed by syncFrostmourne/syncWarglaives every read - self-healing */
+ if(isLegendaryW(it))return true; /* Legendary weapons are recomputed by syncFrostkeen/syncFelGlaives every read - self-healing */
  ensureItemBase(it);
  const up=it.up||0;
  const tol=up>0?up+2:0; /* rounding slack for legacy saves whose base was reverse-estimated */
@@ -10727,12 +10767,12 @@ function renderInspect(e){
   const g=e.gear&&e.gear[sl];
   if(!g)return `<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div><div class="ss">- empty -</div></div>`;
   /* same fold-in as itemStr, but on the slimmed leaderboard payload, which carries only
-     `legend` and `star` - so the checks are by name rather than the isFM/isWG helpers */
-  const fmS=g.legend==='frostmourne'&&(g.star||0)>1?g.star*2:0;
-  const cr=(g.crit||0)+fmS+(g.legend==='warglaives'&&!g.crit?3:0),ls=(g.lifesteal||0)+fmS/100;
+     `legend` and `star` - so the checks are by name rather than the isFK/isFG helpers */
+  const fmS=isFKLegend(g.legend)&&(g.star||0)>1?g.star*2:0;
+  const cr=(g.crit||0)+fmS+(isFGLegend(g.legend)&&!g.crit?3:0),ls=(g.lifesteal||0)+fmS/100;
   let s=`${g.up?'+'+g.up+' · ':''}${g.atk?'+'+g.atk+' ATK ':''}${g.hp?'+'+g.hp+' HP ':''}${cr?'+'+cr+'% CRIT ':''}${g.haste?'+'+Math.round(g.haste*100)+'% ATK SPEED ':''}${ls?'+'+Math.round(ls*1000)/10+'% LIFESTEAL ':''}${g.dmgMul?'+'+Math.round(g.dmgMul*100)+'% DAMAGE ':''}${g.bossDmg?'+'+g.bossDmg+'% BOSS DMG ':''}${g.armor?'+'+Math.round(g.armor*100)+'% ARMOR ':''}${g.manadrain?Math.round(g.manadrain*100)+'% MANA DRAIN ':''}`.trim();
   return `<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div>
-   <div class="sn" style="color:${RARCOL[g.rar]||'#fff'}">${esc(g.name)}${g.legend&&g.star?` <span style="color:#ffd76a">★${g.star}</span>`:''}</div>
+   <div class="sn" style="color:${RARCOL[g.rar]||'#fff'}">${esc(displayItemName(g.name))}${g.legend&&g.star?` <span style="color:#ffd76a">★${g.star}</span>`:''}</div>
    <div class="ss">${esc(s)}</div></div>`;
  };
  const scrolls=(e.scrolls&&e.scrolls.length?e.scrolls:e.scroll?[e.scroll]:[]);
@@ -10834,13 +10874,13 @@ function drawPortrait(cnv,ch){
   g.fillStyle='rgba(0,0,0,0.3)';g.beginPath();g.ellipse(0,19,13,5,0,0,7);g.fill();
   if(sc){g.strokeStyle=sc.glow;g.globalAlpha=0.55;g.lineWidth=1;g.beginPath();g.ellipse(0,18,15,6,0,0,7);g.stroke();g.globalAlpha=1;}
   bootFeet({moving:false,walk:0,fem:ch.gender==='f'},g);
-  drawChampionSprite(g,ch.race,c.id,1,0,0,!!(ch.gear&&ch.gear.weapon&&ch.gear.weapon.legend==='frostmourne'),ch.gear&&ch.gear.weapon&&(ch.gear.weapon.id||ch.gear.weapon.legend),ch.gender==='f',1,!!(ch.gear&&ch.gear.armor&&ch.gear.armor.legend==='icearmor'));
+  drawChampionSprite(g,ch.race,c.id,1,0,0,!!(ch.gear&&ch.gear.weapon&&isFKLegend(ch.gear.weapon.legend)),ch.gear&&ch.gear.weapon&&(ch.gear.weapon.id||ch.gear.weapon.legend),ch.gender==='f',1,!!(ch.gear&&ch.gear.armor&&ch.gear.armor.legend==='icearmor'));
   g.restore();
  }else{
  g.save();g.translate(W/2,H*0.72);g.scale(2.1,2.1);
  g.fillStyle='rgba(0,0,0,0.3)';g.beginPath();g.ellipse(0,7,11,4.5,0,0,7);g.fill();
  if(sc){g.strokeStyle=sc.glow;g.globalAlpha=0.55;g.lineWidth=1;g.beginPath();g.ellipse(0,6,13,5.5,0,0,7);g.stroke();g.globalAlpha=1;}
- drawChampionSprite(g,ch.race,c.id,1,0,0,!!(ch.gear&&ch.gear.weapon&&ch.gear.weapon.legend==='frostmourne'),ch.gear&&ch.gear.weapon&&(ch.gear.weapon.id||ch.gear.weapon.legend),ch.gender==='f');
+ drawChampionSprite(g,ch.race,c.id,1,0,0,!!(ch.gear&&ch.gear.weapon&&isFKLegend(ch.gear.weapon.legend)),ch.gear&&ch.gear.weapon&&(ch.gear.weapon.id||ch.gear.weapon.legend),ch.gender==='f');
  g.restore();
  }
  if(ch.prestige){
@@ -11118,7 +11158,7 @@ function bootPreload(){
  /* mob sprites */
  Object.values(MOB_SET).forEach(a=>a.forEach(n=>push('assets/mobs/'+n+'.png')));
  /* world props and the hero's own gear art */
- ['casino','tavern','bank','blacksmith','fishinghut','brunn','berg','sten','träd','trädsnow','armor_altar','frostmourne','warglaive','onering']
+ ['casino','tavern','bank','blacksmith','fishinghut','brunn','berg','sten','träd','trädsnow','armor_altar','frostkeen','felglaive','thering']
   .forEach(n=>push('assets/models/'+n+'.png'));
  /* the first zones you will actually walk through */
  ['levlingzone_green','levlingzone_boss','farm_zone','cowlevel_zone'].forEach(n=>push('assets/models/maps/'+n+'.png'));
