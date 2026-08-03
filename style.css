@@ -262,7 +262,7 @@
   #createBack{align-self:flex-start;margin-bottom:6px;padding:9px 16px;border-radius:8px;border:none;background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;color:var(--parch);font-size:11px;cursor:pointer;display:none;text-shadow:0 1px 3px rgba(0,0,0,.8)}
   #createBack:hover{filter:brightness(1.2)}
  
-  #chestFx{position:absolute;inset:0;z-index:70;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(10,7,4,.84);cursor:default}
+  #chestFx{position:absolute;inset:0;z-index:70;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(10,7,4,.84);cursor:default;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);box-sizing:border-box}
   #chestFx.open{display:flex}
   /* --- CS:GO-style case reel --- */
   .casewrap{position:relative;width:min(92vw,560px);height:116px;border:1px solid var(--brass-deep);border-radius:12px;background:linear-gradient(180deg,#101a15,#0a120e);overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.6),inset 0 0 30px rgba(0,0,0,.5)}
@@ -282,7 +282,14 @@
   .qtybtn.on{border-color:var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a}
   .qtynum{min-width:18px;text-align:center;color:var(--parch);font-weight:700}
   .qtytotal{white-space:nowrap;color:var(--brass)}
-  #chestFx.multi{justify-content:flex-start;padding-top:18px;overflow-y:auto}
+  /* Multi-chest: flex-start + overflow is the only combination that lets you scroll to the top
+     when the reels overflow - centring a scrolling flex column clips the first row unreachably.
+     The auto margins hand the centring back when the content DOES fit, so a small open sits in
+     the middle instead of hugging the notch. env() keeps it clear of the status bar / cutout. */
+  #chestFx.multi{justify-content:flex-start;overflow-y:auto;
+    padding:calc(14px + env(safe-area-inset-top,0px)) 0 calc(14px + env(safe-area-inset-bottom,0px))}
+  #chestFx.multi>:first-child{margin-top:auto}
+  #chestFx.multi>:last-child{margin-bottom:auto}
   #chestFx.multi .casewrap{margin-bottom:7px;flex:0 0 auto}
   .caseextra{position:relative;width:min(92vw,560px);height:116px;border:1px solid var(--brass-deep);border-radius:12px;background:linear-gradient(180deg,#101a15,#0a120e);overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.6),inset 0 0 30px rgba(0,0,0,.5)}
   .crgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;width:min(92vw,620px);margin-top:8px}
@@ -337,7 +344,7 @@
     .casebtns{margin-top:10px;gap:7px}
     #respinBtn{font-size:13px;padding:10px 18px}
     #caseClose{font-size:11px;padding:9px 14px}
-    #chestFx.multi{padding-top:10px}
+    #chestFx.multi{padding-top:calc(10px + env(safe-area-inset-top,0px))}
     #chestFx.multi .casewrap,#chestFx.multi .caseextra{margin-bottom:5px}
   }
 
