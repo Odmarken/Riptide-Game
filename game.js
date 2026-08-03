@@ -2094,13 +2094,13 @@ $('altarMsgOk').onclick=()=>{$('altarMsg').style.display='none';};
 $('cryptIntroOk').onclick=()=>{$('cryptIntro').style.display='none';S.cryptIntroSeen=true;save();};
 $('farmBuyYes').onclick=()=>{
  if(S.farm.owned)return;
- if(totalGold()<500000||S.scraps<800){stageMsg('Need 500,000◉ and 800⚙',1800);sfx.warn();return;}
+ if(totalGold()<500000||S.scraps<500){stageMsg('Need 500,000◉ and 500⚙',1800);sfx.warn();return;}
  if(!spendGold(500000))return;
- S.scraps-=800;
+ S.scraps-=500;
  S.farm.owned=true;
  $('farmBuyFx').style.display='none';
  stageMsg('🚜 THE FARM IS YOURS! Click the farmhouse again to build.',3400);
- log('<span class="loot">🚜 Farm purchased</span> - 500,000◉ + 800⚙ well spent.','loot');
+ log('<span class="loot">🚜 Farm purchased</span> - 500,000◉ + 500⚙ well spent.','loot');
  sfx.level();save();renderHUD();
 };
 $('farmBuyNo').onclick=()=>$('farmBuyFx').style.display='none';
@@ -6275,7 +6275,7 @@ function drawProp(s,z){
    ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,10,W*0.36,W*0.085,0,0,7);ctx.fill(); /* tucked under the sprite - only a rim peeks out */
    ctx.drawImage(crisp(im,W),-W/2,32-H,W,H);
    const own=S.farm&&S.farm.owned,unlocked=(S.prestige||0)>=FARM_PRESTIGE;
-   const txt=own?'':(unlocked?'Buy Farm · 500,000◉ + 800⚙':'🔒 Requires Prestige '+FARM_PRESTIGE);
+   const txt=own?'':(unlocked?'Buy Farm · 500,000◉ + 500⚙':'🔒 Requires Prestige '+FARM_PRESTIGE);
    if(txt){
     ctx.font='700 13px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
     ctx.fillStyle='rgba(0,0,0,0.65)';ctx.fillText(txt,1,32-H-10+1);
