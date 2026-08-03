@@ -3046,7 +3046,7 @@ function placeFarmItem(id,x,y){
  const sp=snapPos(id,x,y);x=Math.round(sp.x);y=Math.round(sp.y);
  if(x<40||x>=4200||y<40||y>world.h-40){blip(300,180,0.1,.05);return;}
  if(cropCellTaken(id,x,y)){stageMsg('🌾 Occupied - pick a free tile',1300);sfx.warn();return;}
- farmCart.push({t:id,x,y}); /* a ghost until you pay for it */
+ farmCart.push({t:id,x,y,_drop:performance.now()}); /* a ghost until you pay for it; _drop plays the landing once */
  blip(600,900,0.08,.05);
  updateCartUI();
 }
@@ -5892,20 +5892,46 @@ function draw(){
    for(let ly=Math.ceil(vy0/GRID)*GRID;ly<=vy1;ly+=GRID){ctx.moveTo(vx0,ly);ctx.lineTo(vx1,ly);}
    ctx.stroke();
   }
-  ctx.globalAlpha=0.55;
+  ctx.globalAlpha=0.70; /* unpaid ghosts: clearly provisional, but solid enough to judge the layout */
   for(const g2 of farmCart){
    if(g2._moving)continue;
    const def2=FARM_BUILD.find(x=>x.id===g2.t);
-   if(def2&&def2.road){drawRoadSeg(g2);continue;}
+   if(def2&&def2.road){drawRoadSeg(g2);continue;} /* roads are drawn as a stretch - nothing to drop */
    if(def2&&def2.img){
     const im2=farmImg(def2.img);
     if(im2.complete&&im2.naturalWidth){
      const sc2=scaleOf(g2),W2=(def2.W||200)*sc2,H2=W2*im2.naturalHeight/im2.naturalWidth;
      const gy2=(def2.gy!==undefined?def2.gy:30)*sc2;
-     ctx.save();ctx.translate(g2.x,g2.y); /* ⇄/⤢ a ghost keeps the look you gave it before checkout */
+     /* 📦 landing: the piece falls in, thumps, wobbles itself still and kicks up dust. State is a
+        single timestamp on the cart entry, so it plays once when placed and is deleted when done -
+        no particle list to keep, and a save/reload never replays it. */
+     let dy=0,sx=1,sy=1,jit=0,dust=-1;
+     if(g2._drop){
+      const t=(performance.now()-g2._drop)/540;
+      if(t>=1)delete g2._drop;
+      else if(t<0.42){const k=t/0.42;dy=-64*(1-k*k);}    /* accelerating fall */
+      else{
+       const k=(t-0.42)/0.58,e=Math.exp(-k*5)*Math.cos(k*20); /* damped bounce */
+       sy=1-0.20*e;sx=1+0.14*e;                          /* squash on impact, springs back */
+       jit=e*2.4;                                        /* the shudder, dying out */
+       dust=k;
+      }
+     }
+     ctx.save();
+     ctx.translate(g2.x+jit,g2.y+dy);
      if(flipOf(g2)<0)ctx.scale(-1,1);
+     ctx.scale(sx,sy);
      ctx.drawImage(mip(im2,W2),-W2/2,gy2-H2,W2,H2);
      ctx.restore();
+     if(dust>=0&&dust<1){ /* two puffs expanding out of the footprint, thinning as they go */
+      const a=(1-dust)*(1-dust)*0.5;
+      ctx.save();ctx.globalAlpha*=a;ctx.fillStyle='#d9c8a8';
+      for(const s2 of[0,1]){
+       const r=W2*(0.16+dust*(0.42+s2*0.22));
+       ctx.beginPath();ctx.ellipse(g2.x+(s2?-1:1)*W2*0.13*dust,g2.y+gy2-r*0.18,r,r*0.34,0,0,7);ctx.fill();
+      }
+      ctx.restore();
+     }
     }
    }
   }
@@ -11362,7 +11388,7 @@ function bootPreload(){
  let done=0,settled=false;
  const total=urls.length;
  const fill=$('bootFill'),tip=$('bootTip');
- const tips=['Summoning the realm…','Sharpening blades…','Waking the bosses…','Feeding the cows…','Stacking the deck…'];
+ const tips=['Summoning the realm…','Sharpening blades…','Waking the bosses…','Feeding the cows…','Gambling it away…'];
  let tipI=0;
  const tipTimer=setInterval(()=>{if(tip)tip.textContent=tips[++tipI%tips.length];},900);
  const t0=performance.now();
