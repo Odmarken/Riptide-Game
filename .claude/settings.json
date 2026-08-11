@@ -48,7 +48,22 @@
       "Bash(curl -s -o __TRACKED_VAR__/bg_bank.png __TRACKED_VAR__/hf_20260802_232831_ae9dd06d-b2a4-485c-b9d9-ffed062e401a.png)",
       "Bash(curl -s -o __TRACKED_VAR__/bg_casino.png __TRACKED_VAR__/hf_20260802_232725_cdd7e7af-c208-47e6-8e94-3a7e5ee32c18.png)",
       "Bash(curl -s -o __TRACKED_VAR__/bg_inn.png __TRACKED_VAR__/hf_20260802_232733_34ffb4ad-09d0-4591-8bfa-7498c574a3bb.png)",
-      "Bash(curl -s -o __TRACKED_VAR__/bg_smith.png __TRACKED_VAR__/hf_20260802_232735_f38fb2b8-b5fc-4db6-8fee-5e8f51359316.png)"
+      "Bash(curl -s -o __TRACKED_VAR__/bg_smith.png __TRACKED_VAR__/hf_20260802_232735_f38fb2b8-b5fc-4db6-8fee-5e8f51359316.png)",
+      "mcp__claude_ai_Higgsfield__media_confirm",
+      "mcp__claude_ai_Higgsfield__generate_image_batch",
+      "mcp__claude_ai_Higgsfield__jobs_wait",
+      "Bash(curl -s -o C:/Users/App-L/AppData/Local/Temp/claude/c--RiptideRPG-Riptide-Game/da13ad26-d708-4ae7-ac7a-47f1318d977c/scratchpad/city/raw_11.png https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260810_090011_7840366f-8009-47af-a19c-673c227ae10c.png)",
+      "Bash(python -c \"import numpy; print\\('numpy', numpy.__version__\\)\")",
+      "Bash(python -m http.server 8000 --bind 127.0.0.1)",
+      "Bash(curl -s -o __TRACKED_VAR__/t_gravel.png __TRACKED_VAR__/hf_20260810_101745_85d31ba6-120e-47c8-b505-0c6f525214ea.png)",
+      "Bash(curl -s -o __TRACKED_VAR__/t_weed.png __TRACKED_VAR__/hf_20260810_101745_d606e317-b6af-4f8e-8861-e4bd71c5e598.png)",
+      "Bash(curl -s -o /dev/null -w \"  game.js -> HTTP %{http_code}  %{size_download} bytes\\\\n\" http://127.0.0.1:8000/game.js)",
+      "Bash(curl -s -o __TRACKED_VAR__/w_h.png __TRACKED_VAR__/hf_20260810_115232_d5e00d0e-35a4-417e-baf0-598625398cbd.png)",
+      "Bash(curl -s -o __TRACKED_VAR__/w_v.png __TRACKED_VAR__/hf_20260810_115232_83967353-5aca-4d0a-8a5f-b8fd6af3fa42.png)",
+      "Bash(curl -s -o __TRACKED_VAR__/w_tower.png __TRACKED_VAR__/hf_20260810_115232_2c2bc205-0c3a-480d-aa41-c31e8b99a3e1.png)",
+      "Bash(curl -s -o __TRACKED_VAR__/w_gate.png __TRACKED_VAR__/hf_20260810_115232_9dfbbad9-1eb6-499b-911c-749693117a74.png)",
+      "Bash(curl -s -o __TRACKED_VAR__/kg_side.png __TRACKED_VAR__/hf_20260810_123314_8ebfa446-ed7e-46c5-8d13-9192086b334e.png)",
+      "Bash(curl -s -o __TRACKED_VAR__/kg_smelt.png __TRACKED_VAR__/hf_20260810_123322_5ee776ca-9778-4576-814d-21e98b272b42.png)"
     ]
   }
 }

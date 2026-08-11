@@ -41,6 +41,30 @@ const FG_ART={
  hunter:{img:fgImgBow,  h:1.38,std:{pw:44,pl:31,grip:H=>-4-H/2},mirror:true},
 };
 const fgArtFor=clsId=>{const a=FG_ART[clsId];return (a&&a.img.complete&&a.img.naturalWidth)?a:null;};
+/* 🏙 city art. CITY_HOUSES is indexed by a house's seed, so a terrace picks its faces
+   deterministically and the same street looks the same every visit. */
+const cityImg=n=>{if(!cityImgs[n]){cityImgs[n]=new Image();cityImgs[n].src='assets/city/'+n+'.png';}return cityImgs[n];};
+const cityImgs={};
+const CITY_HOUSES=['house_timber','house_shop','house_cottage','house_stone',
+                   'house_turret','house_stair','house_tenement','house_manor'];
+/* Where each building actually meets the ground, measured off its own pixels: cx is the footprint's
+   centre as a fraction of the drawn width, w is its width. These vary wildly - the cottage rests on
+   0.26 of its width, the enchanting hall on 0.86, and several sit off-centre - so one shared ellipse
+   left most shadows floating beside the house instead of under it. */
+const CITY_FOOT={
+ house_timber:{cx:+0.003,w:0.384}, house_shop:{cx:-0.095,w:0.369},
+ house_cottage:{cx:-0.040,w:0.263}, house_stone:{cx:+0.005,w:0.591},
+ house_turret:{cx:-0.046,w:0.709}, house_stair:{cx:+0.084,w:0.355},
+ house_tenement:{cx:+0.041,w:0.766}, house_manor:{cx:+0.045,w:0.492},
+ minehall:{cx:-0.073,w:0.450}, enchanthall:{cx:-0.036,w:0.856}, cathedral:{cx:+0.051,w:0.361},
+ smelter:{cx:+0.071,w:0.688}, wall_gate_v:{cx:-0.027,w:0.689},
+};
+function cityShadow(name,W,baseY){ /* sized off that footprint and tucked under the base */
+ const f=CITY_FOOT[name]; if(!f)return;
+ const rx=W*f.w*0.56,ry=rx*0.30;
+ ctx.fillStyle='rgba(0,0,0,0.30)';
+ ctx.beginPath();ctx.ellipse(W*f.cx,baseY-ry*0.45,rx,ry,0,0,7);ctx.fill();
+}
 const gsMapImg=new Image();gsMapImg.src='assets/models/maps/moonshine_map.png';
 /* painted ground maps for leveling zones - lazily loaded per zone via z.map */
 const zoneMapImgs={};
@@ -211,7 +235,10 @@ const RAID_SKINS={ /* lift = body bottom in radii · wy/wx = weapon grip */
  maw:{img:mawImg,feetL:mawFeetLImg,feetR:mawFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#5bc8ff',lift:0.58,wy:-0.19,wx:0.44,size:7.5,fs:1.05,fh:1.12},
  ossric:{img:ossricImg,feetL:ossricFeetLImg,feetR:ossricFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#b0793a',lift:0.58,wy:-0.19,wx:0.44,size:7.5,fs:1.05,fh:1.12},
  ashmaw:{img:ashmawImg,feetL:ashmawFeetLImg,feetR:ashmawFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#ff4a2a',lift:0.58,wy:-0.19,wx:0.44,size:7.5,fs:1.05,fh:1.12},
- krev:{img:krevImg,feetL:krevFeetLImg,feetR:krevFeetRImg,wpn:()=>cowWeaponImg,glow:'#ff9a2a',lift:0.15,wy:-0.25,wx:0.44,size:7.5,fs:1.05,fh:1.12,ws:0.85},
+ /* krev's art keeps more leg than the others, so its thigh cut sits 3px BELOW where the feet start -
+    the only one of the five with a real gap. fh lifts the feet up past the cut; fs matches the stance
+    to where its legs actually are in the art (±0.166 of the sprite width, measured off the pixels). */
+ krev:{img:krevImg,feetL:krevFeetLImg,feetR:krevFeetRImg,wpn:()=>cowWeaponImg,glow:'#ff9a2a',lift:0.15,wy:-0.25,wx:0.44,size:7.5,fs:1.22,fh:1.42,ws:0.85},
  thor:{img:torImg,wpn:()=>torWeaponImg,glow:'#7fd0ff',zap:true,boots:true,bsx:11,lift:0.30,wy:-0.25,wx:0.44,size:5.25},
  /* 🐄 Cow Level herd - painted hell-minotaur; the Alpha draws 2× the normal cow */
  /* ☠ the final boss - twin scythes, one on each side, and mirrored feet */
@@ -603,10 +630,14 @@ const ZONES=[
     NOTE: appended LAST so existing saves' zone indices stay valid - never insert zones mid-array */
   boss:['The Forsaken One','#a06bd0','reaper'],
   ground:'#2a2436',ground2:'#241f2e',water:'#3a2f4a',tree:'#2c2638',tree2:'#211c2b',path:'#4a3f5e',rocky:true},
+ {name:'City',lvl:1,amb:'tavern',special:true,city:true,noBerg:true,noTrees:true,en:[], /* 🏙 the capital - reached by Moonshine's east-road portal
+    NOTE: appended LAST so existing saves' zone indices stay valid - never insert zones mid-array */
+  ground:'#8c8069',ground2:'#7f7460',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#c8b892'},
 ];
 const TAVERN_ZONE=ZONES.findIndex(z=>z.tavern);
 const ALTAR_ZONE=ZONES.findIndex(z=>z.altar);
 const FARM_ZONE=ZONES.findIndex(z=>z.farm);
+const CITY_ZONE=ZONES.findIndex(z=>z.city);
 function goToZone(i){
  const z=ZONES[i];if(!z)return;
  if(buildMode)exitBuildMode(); /* leaving the farm mid-build: tear the build UI down cleanly */
@@ -1094,6 +1125,7 @@ function zoneQuests(z){
  if(z.farm){const fl=(S.farm&&S.farm.lvl)||1;
   const pct=fl>=3?15:fl===2?10:5;
   return [{name:'🚜 The Farm · Level '+fl+(fl>=FARM_MAXLVL?' (MAX)':''),desc:'Slaughter grown livestock to earn farm XP. Farm blessing: +'+pct+'% XP & gold from every foe in the realm'+((S.farm&&S.farm.owned)?'':' - once the farm is yours'),need:fl>=FARM_MAXLVL?999999:farmXpNeed(fl),farmXp:1}];}
+ if(z.city)return [{name:'🏙 The City',desc:'The capital. Two guild halls take apprentices - Mining and Enchanting. Every other door is somebody’s home.',need:999999}];
  if(z.crypts)return [{name:'⚰️ The Crypts',desc:'An ever-shifting labyrinth. Three chests wait somewhere in the dark. On foot only - AUTO fails here.',need:3}];
  if(z.raid)return [{name:'⚔ Sanctum of the Three',desc:'Slay all three raid lords. Pull them one at a time - they never retreat.',need:3,boss:true}];
  if(z.cow)return [{name:'MOO',desc:'Survive. You cannot.',need:999999}];
@@ -3050,6 +3082,246 @@ function placeFarmItem(id,x,y){
  blip(600,900,0.08,.05);
  updateCartUI();
 }
+/* ⛏/✨ the two professions - the halls exist and open, the skills themselves come later. Kept as
+   named functions so the click handler has a stable thing to call, and the panels can be filled in
+   later without touching the city at all. */
+function openMiningHall(){stageMsg('⛏ The Mining Hall - the guild is still hiring. Come back soon.',2600);sfx.buy();}
+function openEnchantHall(){stageMsg('✨ The Enchanting Hall - the runes are not yet cut. Come back soon.',2600);sfx.buy();}
+function openSmelter(){stageMsg('🔥 The Smelter - the furnace is lit, but there is no ore to pour yet.',2600);sfx.buy();}
+/* ==================== 🏙 THE CITY ====================
+   A King's Landing sprawl: one boulevard spine, cross avenues, a ring plaza in the middle and
+   narrow alleys threading the blocks. Everything is generated from the zone's seeded RNG, so the
+   same city rebuilds identically every visit while still looking hand-placed.
+   Streets live in world.streets purely as geometry - drawCityGround() paints them and the house
+   placer uses them to keep doorways off the cobbles. */
+const CITY_NAMES=[
+ 'Alrik Stenhand','Bodil Vass','Cederik Malm','Disa Kvarn','Emrik Sot','Frida Tjära',
+ 'Gorm Hammarson','Halla Nystan','Ivar Bleke','Jorunn Salt','Kettil Grå','Linnea Spik',
+ 'Mose Krita','Nanna Rost','Orvar Lykta','Petronella Skarp','Rurik Tunna','Signe Vide',
+ 'Torkel Nagel','Ulrika Bly','Valter Skorsten','Ylva Fnask','Åke Bredaxe','Ödgar Dunkel',
+];
+function buildCity(R){
+ const W=world.w,H=world.h,cx=W/2,cy=H/2;
+ const st=[];
+ const road=(x0,y0,x1,y1,w)=>st.push({x0,y0,x1,y1,w});
+ const FW=3.3;                    /* a house's drawn half-width, as a multiple of its r */
+ const WI=60,WT=140,WIN=WI+WT;    /* curtain wall: bare ground 0..WI, stone WI..WIN, city beyond */
+ const GH=150;                    /* half-height of the west gateway opening */
+
+ /* --- the grid. Five avenues north-south, three streets east-west, and the middle one is the
+    great boulevard. Everything else in the city hangs off this, which is what keeps it legible
+    when you are standing in it rather than looking at a map. --- */
+ const X0=300,X1=W-300,Y0=560,Y1=H-560;
+ const AVX=[2600,5500,cx,11300,14200], STY=[1180,cy,4020];
+ for(const y of STY)road(X0,y,X1,y,y===cy?280:180);
+ for(const x of AVX)road(x,Y0,x,Y1,200);
+
+ /* --- alleys. Each one spans a whole block, so it genuinely connects the two streets it runs
+    between. The previous pass scattered 46 random stubs at random angles; they went nowhere and
+    read as scratches across the map rather than as lanes you could walk. --- */
+ const bx=[X0,...AVX,X1],by=[Y0,...STY,Y1];
+ for(let i=0;i<bx.length-1;i++)for(let j=0;j<by.length-1;j++){
+  const x0=bx[i],x1=bx[i+1],y0=by[j],y1=by[j+1],bw=x1-x0,bh=y1-y0;
+  if(bw>1500){const n=bw>2600?2:1;
+   for(let k=1;k<=n;k++)road(x0+bw*k/(n+1),y0,x0+bw*k/(n+1),y1,88);}
+  if(bh>1050)road(x0,y0+bh/2,x1,y0+bh/2,88);
+ }
+ world.streets=st;
+
+ /* --- plazas, halls and the cathedral --- */
+ world.plazas=[{x:cx,y:cy,r:520},{x:4050,y:1180,r:340},{x:12750,y:4020,r:340},{x:cx,y:1180,r:440},{x:7150,y:4020,r:330}];
+ world.spawn={x:520,y:cy};
+ world.portal={x:-500,y:-500};
+ world.solids.push({x:300,y:cy,r:38,type:'altarportal'});
+ world.solids.push({x:cx,y:cy,r:26,type:'well'});
+ world.solids.push({x:4050,y:1180,r:58,type:'minehall',big:true,seed:3,crx:150,cry:52,cyo:-70});
+ world.solids.push({x:12750,y:4020,r:58,type:'enchanthall',big:true,seed:9,crx:150,cry:52,cyo:-70});
+ world.solids.push({x:cx,y:1180,r:96,type:'cathedral',big:true,seed:6,crx:250,cry:70,cyo:-120});
+ world.solids.push({x:7150,y:4020,r:58,type:'smelter',big:true,seed:14,crx:150,cry:52,cyo:-70}); /* 🔥 on the lower street, its own plaza */
+
+ const near=(x,y,pad)=>{
+  for(const p of world.plazas)if(Math.hypot(x-p.x,y-p.y)<p.r+pad)return true;
+  for(const s of st){
+   const dx=s.x1-s.x0,dy=s.y1-s.y0,L=dx*dx+dy*dy||1;
+   let t=((x-s.x0)*dx+(y-s.y0)*dy)/L; t=t<0?0:t>1?1:t;
+   if(Math.hypot(x-(s.x0+dx*t),y-(s.y0+dy*t))<s.w/2+pad)return true;
+  }
+  return false;
+ };
+ const houses=[];
+ const fits=(x,y,r)=>{
+  const m=WIN+r*FW+30;                          /* clear the curtain wall by the whole frontage */
+  if(x<m||x>W-m||y<m||y>H-m)return false;
+  if(near(x,y,r*FW+18))return false;
+  for(const h of houses)if(Math.hypot(x-h.x,y-h.y)<(h.r+r)*FW*0.60+16)return false;
+  for(const s of world.solids)if(Math.hypot(x-s.x,y-s.y)<(s.r||40)*1.8+r*FW+40)return false;
+  return true;
+ };
+ /* --- terraces. Walk each street and set houses down shoulder to shoulder along both sides.
+    The setback is s.w/2+24+r*FW, which puts every FRONT WALL the same distance from the kerb no
+    matter how big the house is - heights vary, the frontage line stays straight. That one detail
+    is the difference between a street and a heap. --- */
+ for(const s of st){
+  const dx=s.x1-s.x0,dy=s.y1-s.y0,L=Math.hypot(dx,dy)||1;
+  const ux=dx/L,uy=dy/L,nx=-uy,ny=ux;
+  const alley=s.w<120;
+  for(const side of[-1,1]){
+   let d=150;
+   while(d<L-150){
+    const r=alley?24+R()*14:34+R()*24;         /* cottages down the lanes, townhouses on the streets */
+    const half=r*FW*0.60;
+    const off=s.w/2+24+r*FW;
+    const x=s.x0+ux*d+nx*side*off, y=s.y0+uy*d+ny*side*off;
+    if(R()>=0.15&&fits(x,y,r))                 /* the odd gap: a yard, a gate, a burnt-out plot */
+     houses.push({x,y,r,seed:R()*100});
+    d+=half*2+16;
+   }
+  }
+ }
+ for(const h of houses)world.solids.push({x:h.x,y:h.y,r:h.r,type:'cityhouse',seed:h.seed});
+
+ /* --- 🧱 the curtain wall. Collision is four mwalls rectangles rather than ~90 solid segments:
+    collide() already understands mwalls, and the crypt is the only other user (its drawing is
+    gated on z.crypts, so nothing else picks these up). The art is separate scenery marked noCol,
+    so the wall you see and the wall that stops you are tuned independently.
+    A gap is left at the west gate so the arch is something you can actually stand in. --- */
+ world.mwalls=[
+  {x:0,y:WI,w:W,h:WT},                                   /* north */
+  {x:0,y:H-WIN,w:W,h:WT},                                /* south */
+  {x:WI,y:0,w:WT,h:cy-GH},                               /* west, above the gate */
+  {x:WI,y:cy+GH,w:WT,h:H-(cy+GH)},                       /* west, below the gate */
+  {x:W-WIN,y:0,w:WT,h:H},                                /* east */
+ ];
+ /* Towers and the gatehouse stay as sprites - they are one-offs. The long runs between them are
+    painted as a single pattern-filled band in drawCityGround: laying 620-wide sprites end to end
+    showed every join, and the old perspective side-wall art cascaded diagonally when stacked. */
+ for(const t of [[WIN,WIN],[W-WI,WIN],[WIN,H-WI],[W-WI,H-WI],
+                 [4200,WIN],[8400,WIN],[12600,WIN],
+                 [4200,H-WI],[8400,H-WI],[12600,H-WI]])
+  world.solids.push({x:t[0],y:t[1],r:60,type:'citytower',seg:330,noCol:true});
+ world.solids.push({x:WIN-52,y:cy+GH+40,r:70,type:'citygate',seg:300,noCol:true}); /* straddles the opening, arch facing out */
+
+ /* --- townsfolk, each looping between points on real streets --- */
+ const onStreet=()=>{
+  const s=st[Math.floor(R()*st.length)],t=0.15+R()*0.7;
+  return [s.x0+(s.x1-s.x0)*t,s.y0+(s.y1-s.y0)*t];
+ };
+ const races=['human','dwarf','orc','undead'],clss=['warrior','mage','hunter','priest'];
+ world.npcs=CITY_NAMES.map(name=>{
+  const pts=[onStreet(),onStreet(),onStreet()];
+  return {name,race:races[Math.floor(R()*4)],cls:clss[Math.floor(R()*4)],female:R()<0.45,
+   pts:pts.map(p=>({x:p[0],y:p[1]})),i:0,dir:1,x:pts[0][0],y:pts[0][1],
+   speed:24+R()*44,walk:R()*5,fx:1,pauseT:R()*3,moving:false};
+ });
+}
+/* The three ground tiles, as canvas patterns. Because the world transform is already applied when
+   these fill, one art pixel is one world unit - the tiles are authored at the size they should
+   appear, so no pattern matrix is needed. Built once and cached: creating a pattern per frame is
+   what turns a texture fill into a stutter. */
+const cityPat={};
+function cityPattern(name,rot){
+ const k=rot?name+'@'+rot:name;
+ if(cityPat[k])return cityPat[k];
+ const im=cityImg(name);
+ if(!(im.complete&&im.naturalWidth))return null;   /* still loading - the caller falls back to flat colour */
+ const pat=ctx.createPattern(im,'repeat');
+ /* a turned, slightly larger copy of the same tile. Laid over the straight one it breaks the grid:
+    the two repeats never line up again, so the eye stops seeing 192-unit bands. */
+ if(rot&&pat.setTransform&&typeof DOMMatrix!=='undefined'){
+  try{pat.setTransform(new DOMMatrix().rotateSelf(rot).scaleSelf(1.37,1.37));}catch(e){}
+ }
+ return cityPat[k]=pat;
+}
+/* A soft irregular patch: ten hashed radii around a squashed circle, joined through their midpoints
+   with quadratic curves so the outline comes out organic instead of faceted or perfectly round. */
+function weedBlob(px,py,r,h){
+ const N=10,pts=[];
+ for(let i=0;i<N;i++){
+  const a=i/N*6.2832,k=((h>>>(i*3))&15)/15;
+  const rr=r*(0.55+0.70*k);
+  pts.push([px+Math.cos(a)*rr,py+Math.sin(a)*rr*0.66]);
+ }
+ ctx.beginPath();
+ ctx.moveTo((pts[N-1][0]+pts[0][0])/2,(pts[N-1][1]+pts[0][1])/2);
+ for(let i=0;i<N;i++){
+  const c=pts[i],n=pts[(i+1)%N];
+  ctx.quadraticCurveTo(c[0],c[1],(c[0]+n[0])/2,(c[1]+n[1])/2);
+ }
+ ctx.closePath();ctx.fill();
+}
+function drawCityGround(){
+ const vx0=camX,vy0=camY,vx1=camX+VW/zoom,vy1=camY+VH/zoom;
+ const z=zoneOf();
+ const dirt=cityPattern('ground_dirt'),flag=cityPattern('ground_flag'),cobble=cityPattern('ground_cobble');
+ ctx.fillStyle=dirt||z.ground;
+ ctx.fillRect(vx0,vy0,vx1-vx0,vy1-vy0);
+ /* the same soil again, turned 34 degrees and 37% larger, at half strength. One tile on its own
+    repeated its cart ruts every 192 units and the banding was the first thing you saw. */
+ if(zoom>0.45){
+  const skew=cityPattern('ground_dirt',34);
+  if(skew){ctx.save();ctx.globalAlpha=0.5;ctx.fillStyle=skew;ctx.fillRect(vx0,vy0,vx1-vx0,vy1-vy0);ctx.restore();}
+ }
+ /* drifts of weed over the soil, on a hashed grid so the same ground looks the same every visit.
+    The outline is a wobbly closed curve rather than an ellipse - a field of perfect circles reads
+    as stamped decals, which is exactly what it looked like. */
+ const weed=cityPattern('ground_weed');
+ if(weed&&zoom>0.35){
+  const P=300,sx=Math.floor(vx0/P)*P,sy=Math.floor(vy0/P)*P;
+  ctx.save();ctx.fillStyle=weed;
+  for(let x=sx;x<vx1+P;x+=P)for(let y=sy;y<vy1+P;y+=P){
+   const h=((x*73856093)^(y*19349663)^0x5f3a)>>>0;
+   if(h%100>=72)continue;                       /* plenty of it, with bare soil still showing through */
+   const px=x+(h>>>3)%P,py=y+(h>>>11)%P,r=80+((h>>>17)%120);
+   ctx.globalAlpha=0.26;weedBlob(px,py,r*1.34,h);
+   ctx.globalAlpha=0.62;weedBlob(px,py,r,h>>>5);
+  }
+  ctx.restore();
+ }
+ /* plazas sit under the streets so the two read as one continuous surface */
+ for(const p of world.plazas||[]){
+  if(p.x+p.r<vx0||p.x-p.r>vx1||p.y+p.r<vy0||p.y-p.r>vy1)continue;
+  ctx.fillStyle=flag||z.path;
+  ctx.beginPath();ctx.ellipse(p.x,p.y,p.r,p.r*0.82,0,0,7);ctx.fill();
+  ctx.strokeStyle='rgba(0,0,0,0.20)';ctx.lineWidth=7;ctx.stroke();
+ }
+ ctx.lineCap='round';
+ for(const st of world.streets||[]){
+  const minx=Math.min(st.x0,st.x1)-st.w,maxx=Math.max(st.x0,st.x1)+st.w;
+  const miny=Math.min(st.y0,st.y1)-st.w,maxy=Math.max(st.y0,st.y1)+st.w;
+  if(maxx<vx0||minx>vx1||maxy<vy0||miny>vy1)continue;
+  /* lip first, cobbles over it - the old order needed a third stroke to hide the lip again, and a
+     pattern stroke is expensive. LOD: the lip is a 4px detail, dropped when zoomed out. */
+  if(zoom>0.5){
+   ctx.strokeStyle='rgba(0,0,0,0.16)';ctx.lineWidth=st.w+9;
+   ctx.beginPath();ctx.moveTo(st.x0,st.y0);ctx.lineTo(st.x1,st.y1);ctx.stroke();
+  }
+  ctx.strokeStyle=cobble||z.path;ctx.lineWidth=st.w;
+  ctx.beginPath();ctx.moveTo(st.x0,st.y0);ctx.lineTo(st.x1,st.y1);ctx.stroke();
+ }
+ drawCityWalls();
+ ctx.strokeStyle='rgba(0,0,0,0.35)';ctx.lineWidth=26;ctx.strokeRect(0,0,world.w,world.h);
+}
+/* 🧱 the curtain wall runs, as four pattern-filled bands. A pattern repeats in world space, so the
+   stonework simply continues for 16800 units with no joins to hide. The west run is split around
+   the gateway. Culled per run, and the whole thing is skipped while the art is still loading. */
+function drawCityWalls(){
+ const ph=cityPattern('wall_strip_h'),pv=cityPattern('wall_strip_v');
+ if(!ph||!pv)return;
+ const W=world.w,H=world.h,cy=H/2;
+ const WI=60,WT=140,WIN=WI+WT,GH=150;
+ const hh=cityImg('wall_strip_h').naturalHeight;      /* the art is authored at its world height */
+ const vw=cityImg('wall_strip_v').naturalWidth;
+ const vx0=camX,vy0=camY,vx1=camX+VW/zoom,vy1=camY+VH/zoom;
+ const band=(x,y,w,h,pat)=>{
+  if(x+w<vx0||x>vx1||y+h<vy0||y>vy1)return;
+  ctx.fillStyle=pat;ctx.fillRect(x,y,w,h);
+ };
+ band(0,WIN-hh,W,hh,ph);                              /* north - stands up from the inner face */
+ band(0,H-WI-hh,W,hh,ph);                             /* south */
+ band(WIN-vw,0,vw,cy-GH,pv);                          /* west, above the gateway */
+ band(WIN-vw,cy+GH,vw,H-(cy+GH),pv);                  /* west, below it */
+ band(W-WIN,0,vw,H,pv);                               /* east */
+}
 function drawFarmGround(){ /* farm_zone stretched over one cow-field, laid twice - the second flipped to hide the seam */
  const img=zoneMapImg('farm_zone');
  const vx0=camX,vy0=camY,vx1=camX+VW/zoom,vy1=camY+VH/zoom;
@@ -3151,7 +3423,7 @@ function buildZone(){
  if(!zoneOf().special&&(S.maxZone||0)<S.zone)S.maxZone=S.zone;
  const z=zoneOf(),R=mulberry32(S.zone*7919+13);
  const isBoss=!!z.boss;
- world={w:z.crypts?13440:z.farm?8400:z.finalb?3300:z.raid?3800:z.cow?4200:z.tavern?2600:isBoss?2400:3000,h:z.crypts?7740:z.farm?2600:z.finalb?2200:z.raid?1900:z.cow?2600:z.tavern?1700:isBoss?1600:2000,solids:[],deco:[],waters:[]}; /* larger maps - full desktop view + hidden side panel; cow field is the biggest, the final arena is tall */
+ world={w:z.crypts?13440:z.city?16800:z.farm?8400:z.finalb?3300:z.raid?3800:z.cow?4200:z.tavern?2600:isBoss?2400:3000,h:z.crypts?7740:z.city?5200:z.farm?2600:z.finalb?2200:z.raid?1900:z.cow?2600:z.tavern?1700:isBoss?1600:2000,solids:[],deco:[],waters:[]}; /* larger maps - full desktop view + hidden side panel; cow field is the biggest, the final arena is tall */
  world.spawn={x:120,y:world.h/2};
  world.portal={x:world.w-80,y:world.h/2};
  world.pathY=world.h/2;world.pathH=110;
@@ -3229,6 +3501,7 @@ function buildZone(){
    rebuildFarmItems();
    zoneMapImg('farm_zone');
   }
+  if(z.city)buildCity(R);
   if(z.finalb){ /* ☠ you walk in from the south, dead centre - the arena rises ahead of you */
    world.spawn={x:world.w/2,y:world.h-160};
    world.portal={x:-500,y:-500}; /* no exit swirl - win or leave by the map */
@@ -3478,7 +3751,7 @@ function collectCowChest(){
 }
 function prerenderGround(z,R){
  groundCv=document.createElement('canvas');
- if(z.crypts||z.farm){groundCv.width=groundCv.height=16;return;} /* floor draws per frame - giant canvases sink phones */
+ if(z.crypts||z.farm||z.city){groundCv.width=groundCv.height=16;return;} /* floor draws per frame - giant canvases sink phones */
  groundCv.width=world.w;groundCv.height=world.h;
  const g=groundCv.getContext('2d');
  if(z.raid){ /* the Black Temple floor - tiled at near-native scale, mirrored to hide seams */
@@ -3565,10 +3838,30 @@ function prerenderGround(z,R){
 }
  
 /* ==================== MOVEMENT & PATHFINDING ==================== */
+/* 🗂 Solids live in a coarse grid so collide() only tests what is actually nearby. The city holds
+   ~480 buildings in world.solids and collide runs for the hero, every townsfolk and the pet on every
+   frame - walking the whole array was tens of thousands of distance tests per frame. Each solid is
+   filed into every cell its extent touches, so a lookup only needs its own cell. The cache is keyed
+   on the array length, which is what changes when a zone builds or a farm piece is placed or sold. */
+const SGRID=320;
+function solidCell(x,y){
+ if(!world._sg||world._sgN!==world.solids.length){
+  const g=new Map();
+  for(const s of world.solids){
+   const ex=Math.max(s.r||0,s.crx||0)+60,ey=Math.max(s.r||0,s.cry||0)+60,cy=s.y+(s.cyo||0);
+   for(let gx=Math.floor((s.x-ex)/SGRID);gx<=Math.floor((s.x+ex)/SGRID);gx++)
+    for(let gy=Math.floor((cy-ey)/SGRID);gy<=Math.floor((cy+ey)/SGRID);gy++){
+     const k=gx+','+gy;let a=g.get(k);if(!a)g.set(k,a=[]);a.push(s);
+    }
+  }
+  world._sg=g;world._sgN=world.solids.length;
+ }
+ return world._sg.get(Math.floor(x/SGRID)+','+Math.floor(y/SGRID))||[];
+}
 function collide(e,nx,ny){
  /* Bosses and cows ignore trees/rocks - the herd tramples straight through. */
  if((!e.boss||e.raid)&&!e.cow){
-  for(const s of world.solids){
+  for(const s of solidCell(nx,ny)){
    if(s.noCol)continue; /* roaming farm animals - walk-through */
    if(s.type==='gate'&&!(world.raidRooms&&world.raidRooms[s.room]&&world.raidRooms[s.room].sealed))continue;
    if(s.type==='altarportal'||s.type==='ritualportal'||s.type==='farmportal'||s.type==='cityportal'||s.type==='exitportal')continue; /* walk straight through the portals */
@@ -4537,8 +4830,10 @@ cv.addEventListener('pointerdown',e=>{
   return;
  }
  const cpx=world.solids.find(s=>s.type==='cityportal');
- if(cpx&&Math.hypot(wx-cpx.x,wy-cpx.y)<cpx.r+28){
-  stageMsg('🏙 City (coming soon)',1600);
+ if(cpx&&Math.hypot(wx-cpx.x,wy-cpx.y)<cpx.r+28){ /* 🏙 Moonshine's east-road portal → the City */
+  const go=()=>goToZone(CITY_ZONE);
+  if(Math.hypot(hero.x-cpx.x,hero.y-cpx.y)<75)go();
+  else{hero.target=null;hero.goPortal=false;hero.moveTo={x:cpx.x,y:cpx.y+34};marker={x:cpx.x,y:cpx.y+34,t:0};hero.pendingDoor={s:cpx,open:go,rng:75};}
   return;
  }
  const fpx=world.solids.find(s=>s.type==='farmportal');
@@ -4621,6 +4916,20 @@ cv.addEventListener('pointerdown',e=>{
    const open=()=>openTalents();
    if(Math.hypot(hero.x-aa.x,hero.y-aa.y)<130)open();
    else{hero.target=null;hero.goPortal=false;hero.moveTo={x:aa.x,y:aa.y+70};marker={x:aa.x,y:aa.y+70,t:0};hero.pendingDoor={s:aa,open,rng:130};}
+   return;
+  }
+ }
+ if(zoneOf().city){
+  /* 🏙 only the two working halls answer a click. Everything else is scenery, so a stray tap on a
+     terrace just walks you there rather than opening nothing. Same walk-to-the-door behaviour as
+     Moonshine: near opens at once, far runs over and opens on arrival. */
+  const hall=world.solids.find(s2=>(s2.type==='minehall'||s2.type==='enchanthall'||s2.type==='smelter')&&
+    Math.abs(wx-s2.x)<s2.r*2.1&&wy>s2.y-s2.r*2.5&&wy<s2.y+s2.r*0.9);
+  if(hall){
+   const open=()=>hall.type==='minehall'?openMiningHall():hall.type==='smelter'?openSmelter():openEnchantHall();
+   if(Math.hypot(hero.x-hall.x,hero.y-hall.y)<130)open();
+   else{hero.target=null;hero.goPortal=false;hero.moveTo={x:hall.x,y:hall.y+70};
+    marker={x:hall.x,y:hall.y+70,t:0};hero.pendingDoor={s:hall,open,rng:130};}
    return;
   }
  }
@@ -4884,8 +5193,22 @@ window.addEventListener('pointercancel',endHoldMove);
 /* ---- camera zoom: mouse wheel on the map, 2-finger pinch on phones ---- */
 let zoom=1,pinchD=0,pinching=false;
 const ZMAX=3;
-const zmin=()=>buildMode?1/3:((IS_TOUCH&&Math.min(VW,VH)<820)?0.5:0.9); /* build mode 3× out; phones may zoom out to 0.5, desktop stays close at 0.9 */
+/* 🔍 debug camera. The normal floor is 0.9 on desktop, nowhere near enough to take in a
+   16800-wide city. dbgZoom() unlocks 20x out and snaps to a whole-zone fit; call it again to put
+   the camera back. Console only - nothing in the UI reaches it. */
+let debugZoom=false;
+const zmin=()=>debugZoom?1/20                        /* dbgZoom(): the whole zone, however big */
+ :buildMode?1/3
+ :(world&&zoneOf&&zoneOf()&&zoneOf().city)?0.22       /* the city is 16800 wide - 0.9 shows 2% of it */
+ :((IS_TOUCH&&Math.min(VW,VH)<820)?0.5:0.9); /* build mode 3× out; phones may zoom out to 0.5, desktop stays close at 0.9 */
 function setZoom(z){zoom=Math.max(zmin(),Math.min(ZMAX,z));}
+function dbgZoom(on){
+ debugZoom=on===undefined?!debugZoom:!!on;
+ if(debugZoom&&world)setZoom(Math.min(VW/world.w,VH/world.h)*0.94); /* fit the whole zone, with a margin */
+ else setZoom(Math.max(1,zmin()));
+ return 'debug zoom '+(debugZoom?'ON - scroll freely; dbgZoom(false) restores':'off');
+}
+
 cv.addEventListener('wheel',e=>{
  if(!gameOn)return;
  e.preventDefault();
@@ -4982,6 +5305,8 @@ function update(dt){
  if(hero&&!hero.dead&&world&&world.solids&&zoneOf().tavern){ /* 🚜 walk straight into the Farm portal - no click needed */
   const fp=world.solids.find(s2=>s2.type==='farmportal');
   if(fp&&Math.hypot(hero.x-fp.x,hero.y-fp.y)<55){goToZone(FARM_ZONE);return;}
+  const cp=world.solids.find(s2=>s2.type==='cityportal'); /* 🏙 the east road, same deal */
+  if(cp&&Math.hypot(hero.x-cp.x,hero.y-cp.y)<55){goToZone(CITY_ZONE);return;}
  }
  if(hero&&!hero.dead&&world&&world.solids&&zoneOf().altar){ /* ⛧ walk into the Gate and the Final Hour takes you - no click needed */
   const rp=world.solids.find(s2=>s2.type==='ritualportal');
@@ -5308,7 +5633,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   else pet.walk+=dt*3;
  }
  mpHostRaidThreatTick(dt);
- if(zoneOf().tavern)updateNpcs(dt);
+ if(zoneOf().tavern||zoneOf().city)updateNpcs(dt); /* 🏙 the city has townsfolk too - without this they draw but never walk */
  // ----- enemies -----
  for(const en of enemies){
   /* 🚶 walk-cycle state, identical to the farm animals: phase from distance actually
@@ -5461,8 +5786,11 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   camX+=(hero.x-VW/(2*zoom)-camX)*Math.min(1,dt*6);
   camY+=(hero.y-VH/(2*zoom)-camY)*Math.min(1,dt*6);
  }
- camX=Math.max(0,Math.min(world.w-VW/zoom,camX));
- camY=Math.max(0,Math.min(world.h-VH/zoom,camY));
+ /* Once the view is wider than the world there is nothing left to pan, and clamping to 0 shoved the
+    whole zone into the top-left corner - which read as "zooming out is broken". Centre it instead. */
+ const vw=VW/zoom,vh=VH/zoom;
+ camX=world.w>vw?Math.max(0,Math.min(world.w-vw,camX)):(world.w-vw)/2;
+ camY=world.h>vh?Math.max(0,Math.min(world.h-vh,camY)):(world.h-vh)/2;
 }
  
 /* ==================== DRAW ==================== */
@@ -5716,6 +6044,7 @@ function draw(){
  const z=zoneOf();
  if(z.crypts)drawCryptGround();
  else if(z.farm)drawFarmGround();
+ else if(z.city)drawCityGround();
  else if(z.tavern){buildMoonshineRises();drawMoonshineRises(now);} /* 🐟 fish rises on the painted lake */
  /* animated water shimmer */
  for(const w of world.waters){
@@ -5802,7 +6131,12 @@ function draw(){
   ctx.globalAlpha=1;
  }
  const drawables=[];
- for(const s of world.solids)if(s.type!=='water')drawables.push({y:s.y,f:()=>drawProp(s,z)});
+ const cx0=camX-320,cx1=camX+VW/zoom+320,cy0=camY-820,cy1=camY+VH/zoom+320; /* tall art rises far above its anchor */
+ for(const s of world.solids){
+  if(s.type==='water')continue;
+  if(s.x<cx0||s.x>cx1||s.y<cy0||s.y>cy1)continue; /* off screen - the city has hundreds of these */
+  drawables.push({y:s.y,f:()=>drawProp(s,z)});
+ }
  if(world.npcs)for(const n of world.npcs)drawables.push({y:n.y,f:()=>drawNpc(n)});
  for(const en of enemies)drawables.push({y:en.y,f:()=>drawEnemy(en)});
  if(hero)drawables.push({y:hero.y,f:drawHero});
@@ -6123,6 +6457,19 @@ function crisp(img,W){
  g.drawImage(src,0,0,out.width,out.height);
  return store[dev]=out;
 }
+/* 🏙 a building the hero has walked behind fades out rather than swallowing him. Only buildings
+   whose anchor is BELOW the hero can hide him (they draw later, on top), and the fade eases in
+   over the last stretch so it never pops. Returns 1 when nothing needs to happen. */
+function seeThrough(s,W,H,top){
+ if(!hero||hero.dead)return 1;
+ if(s.y<=hero.y)return 1;                    /* drawn before the hero - it cannot cover him */
+ const dx=hero.x-s.x;
+ if(Math.abs(dx)>W*0.52)return 1;
+ const dy=hero.y-(s.y+top);                  /* top is negative: the art's upper edge */
+ if(dy<-40||dy>H+40)return 1;
+ const ex=1-Math.max(0,(Math.abs(dx)-W*0.34)/(W*0.18));  /* full fade in the middle, easing at the edges */
+ return 1-0.62*Math.max(0,Math.min(1,ex));
+}
 function drawProp(s,z){
  ctx.save();ctx.translate(s.x,s.y);
  if(s.type==='tree'){
@@ -6173,6 +6520,7 @@ function drawProp(s,z){
   if(s.big&&tavernImg.complete&&tavernImg.naturalWidth){
    /* painted tavern (assets/models/tavern.png) - sign is baked in; content bottom at 85.2% of the art */
    const W=s.r*11.4,H=W*tavernImg.naturalHeight/tavernImg.naturalWidth,bot=hh*0.55+W*0.04;
+   const fd=seeThrough(s,W,H,bot-H*0.852);if(fd<1)ctx.globalAlpha*=fd;
    ctx.drawImage(mip(tavernImg,W),-W/2,bot-H*0.852,W,H);
    ctx.restore();return;
   }
@@ -6199,11 +6547,70 @@ function drawProp(s,z){
    ctx.textAlign='center';ctx.fillStyle='#ffe9a0';
    ctx.fillText('🍺 MOONSHINE INN',0,-hh*1.45);
   }
+ }else if(s.type==='citytower'||s.type==='citygate'){
+  /* 🧱 the curtain wall. seg is the run length for a wall piece and the width for a tower or the
+     gatehouse; the other dimension comes from the art's own aspect, so nothing is ever squashed.
+     Marked noCol - the four mwalls rectangles do the blocking. */
+  const im=cityImg(s.type==='citytower'?'wall_tower':'wall_gate_v');
+  if(im.complete&&im.naturalWidth){
+   let W,H;
+   if(s.v){H=s.seg;W=H*im.naturalWidth/im.naturalHeight;}   /* a north-south run reads along its height */
+   else{W=s.seg;H=W*im.naturalHeight/im.naturalWidth;}
+   const fade=seeThrough(s,W,H,-H);
+   if(fade<1)ctx.globalAlpha*=fade;
+   ctx.drawImage(mip(im,W),-W/2,-H,W,H);
+   ctx.globalAlpha=1;
+  }
+ }else if(s.type==='cityhouse'){
+  /* 🏙 scenery only - never enterable. The face is picked off s.seed, so a terrace shows eight
+     different houses without any per-building authoring, and picks the SAME one every visit.
+     Falls back to the old procedural box while the art is still loading. */
+  const key=CITY_HOUSES[Math.floor((s.seed||0)*7)%CITY_HOUSES.length];
+  const im=cityImg(key);
+  if(im.complete&&im.naturalWidth){
+   const H=s.r*9.0,W=H*im.naturalWidth/im.naturalHeight;
+   if(zoom>0.42)cityShadow(key,W,s.r*0.30); /* LOD: zoomed out a shadow is a smudge nobody sees */
+   const fade=seeThrough(s,W,H,s.r*0.30-H);
+   if(fade<1)ctx.globalAlpha*=fade;
+   ctx.drawImage(mip(im,W),-W/2,s.r*0.30-H,W,H); /* footprint on the shadow, art rising off it */
+   ctx.globalAlpha=1;
+  }else{
+   const w=s.r*1.45,hh=s.r*1.25;
+   ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,hh*0.42,w*1.05,hh*0.22,0,0,7);ctx.fill();
+   ctx.fillStyle='#b09a76';ctx.fillRect(-w,-hh*0.55,w*2,hh);
+   ctx.fillStyle='#6b4130';
+   ctx.beginPath();ctx.moveTo(-w*1.15,-hh*0.55);ctx.lineTo(0,-hh*1.3);ctx.lineTo(w*1.15,-hh*0.55);ctx.closePath();ctx.fill();
+  }
+ }else if(s.type==='minehall'||s.type==='enchanthall'||s.type==='smelter'||s.type==='cathedral'){
+  /* the buildings that matter: two guild halls you can walk into and the cathedral that closes the
+     view up the middle of the city. Each gets a lamp glow in its own colour so it reads as a
+     landmark against a street of scenery. */
+  const kind=s.type==='minehall'?'minehall':s.type==='enchanthall'?'enchanthall':s.type==='smelter'?'smelter':'cathedral';
+  const im=cityImg(kind);
+  const tint=s.type==='minehall'?'#c9a441':s.type==='enchanthall'?'#a66bd0':s.type==='smelter'?'#ff7a3a':'#ffe0a0';
+  if(im.complete&&im.naturalWidth){
+   const H=s.r*(s.type==='cathedral'?8.0:9.0),W=H*im.naturalWidth/im.naturalHeight;
+   if(zoom>0.42)cityShadow(kind,W,s.r*0.30);
+   const pulse=0.55+0.45*Math.sin(performance.now()/620+(s.seed||0));
+   ctx.save();ctx.shadowColor=tint;ctx.shadowBlur=(s.type==='cathedral'?26:18)*pulse;
+   const fade=seeThrough(s,W,H,s.r*0.30-H);
+   if(fade<1)ctx.globalAlpha*=fade;
+   ctx.drawImage(mip(im,W),-W/2,s.r*0.30-H,W,H);
+   ctx.restore();
+   if(s.type!=='cathedral'){ /* the halls announce themselves; the cathedral needs no sign */
+    ctx.font='700 13px '+getComputedStyle(document.body).fontFamily;
+    ctx.textAlign='center';
+    const lbl=s.type==='minehall'?'⛏ MINING HALL':s.type==='smelter'?'🔥 SMELTER':'✨ ENCHANTING HALL';
+    ctx.fillStyle='rgba(0,0,0,0.75)';ctx.fillText(lbl,1,s.r*0.30-H-9);
+    ctx.fillStyle=tint;ctx.fillText(lbl,0,s.r*0.30-H-10);
+   }
+  }
  }else if(s.type==='smith'){
   const w=s.r*1.7,hh=s.r*1.2;
   if(smithImg.complete&&smithImg.naturalWidth){
    /* painted blacksmith (assets/models/blacksmith.png) - content bottom at 87% of the art */
    const W=s.r*5.8,H=W*smithImg.naturalHeight/smithImg.naturalWidth,bot=hh*0.55+W*0.04;
+   const fd=seeThrough(s,W,H,bot-H*0.87);if(fd<1)ctx.globalAlpha*=fd;
    ctx.drawImage(mip(smithImg,W),-W/2,bot-H*0.87,W,H);
    ctx.restore();return;
   }
@@ -6223,6 +6630,7 @@ function drawProp(s,z){
   if(bankImg.complete&&bankImg.naturalWidth){
    /* painted bank (assets/models/bank.png) - content bottom sits at 74.5% of the art */
    const W=s.r*6.5,H=W*bankImg.naturalHeight/bankImg.naturalWidth,bot=hh*0.55+W*0.04;
+   const fd=seeThrough(s,W,H,bot-H*0.745);if(fd<1)ctx.globalAlpha*=fd;
    ctx.drawImage(mip(bankImg,W),-W/2,bot-H*0.745,W,H);
    ctx.restore();return;
   }
@@ -6246,6 +6654,7 @@ function drawProp(s,z){
   if(casinoImg.complete&&casinoImg.naturalWidth){
    /* keep the art's own aspect ratio - drawing it square squashed the tall model */
    const W=s.r*7.68,H=W*casinoImg.naturalHeight/casinoImg.naturalWidth;
+   const fd=seeThrough(s,W,H,hh*0.55+W*0.04-H*0.75);if(fd<1)ctx.globalAlpha*=fd;
    ctx.drawImage(mip(casinoImg,W),-W/2,hh*0.55+W*0.04-H*0.75,W,H); /* content bottom at 75% of the art */
   }else{ /* fallback while the image loads */
    ctx.fillStyle='#9a8468';ctx.fillRect(-w,-hh*0.55,w*2,hh);
@@ -6375,23 +6784,20 @@ function drawProp(s,z){
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText('❄ The Altar',1,-235);
   ctx.fillStyle='#bfe4ff';ctx.fillText('❄ The Altar',0,-236);
   ctx.restore();
- }else if(s.type==='cityportal'){ /* 🏙 dormant - a slow dim swirl that leads nowhere yet */
+ }else if(s.type==='cityportal'){ /* 🏙 open - the east road runs to the capital */
   const t=performance.now()/1400+s.x;
   ctx.save();
-  ctx.shadowColor='#8a9adf';ctx.shadowBlur=8;
-  ctx.strokeStyle='rgba(138,154,223,'+(0.30+0.12*Math.sin(t*2)).toFixed(3)+')';ctx.lineWidth=5;
+  ctx.shadowColor='#9ab0ff';ctx.shadowBlur=15;
+  ctx.strokeStyle='rgba(160,182,255,'+(0.62+0.26*Math.sin(t*2)).toFixed(3)+')';ctx.lineWidth=5;
   ctx.beginPath();ctx.ellipse(0,-36,30,48,0,0,7);ctx.stroke();
-  ctx.fillStyle='rgba(110,120,190,0.14)';
+  ctx.fillStyle='rgba(130,150,225,0.30)';
   ctx.beginPath();ctx.ellipse(0,-36,24,40,0,0,7);ctx.fill();
   ctx.shadowBlur=0;
-  ctx.fillStyle='rgba(200,210,250,0.4)';
+  ctx.fillStyle='rgba(215,228,255,0.85)';
   for(let i=0;i<3;i++){const a=t+i*2.09;ctx.beginPath();ctx.arc(Math.cos(a)*17,-36+Math.sin(a)*30,2,0,7);ctx.fill();}
   ctx.font='700 12px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText('City',1,-95);
   ctx.fillStyle='#aab8ef';ctx.fillText('City',0,-96);
-  ctx.font='600 9px '+getComputedStyle(document.body).fontFamily;
-  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText('(coming soon)',1,-83);
-  ctx.fillStyle='#8a94c0';ctx.fillText('(coming soon)',0,-84);
   ctx.restore();
  }else if(s.type==='ritualportal'){
   const t=performance.now()/650+s.x;
@@ -6417,6 +6823,7 @@ function drawProp(s,z){
   if(fishhutImg.complete&&fishhutImg.naturalWidth){
    /* painted fishing hut (assets/models/fishinghut.png) - content bottom at 78.3% of the art */
    const W=s.r*5.75,H=W*fishhutImg.naturalHeight/fishhutImg.naturalWidth,bot=24;
+   const fd=seeThrough(s,W,H,bot-H*0.783);if(fd<1)ctx.globalAlpha*=fd;
    ctx.drawImage(mip(fishhutImg,W),-W/2,bot-H*0.783,W,H);
    ctx.restore();return;
   }
@@ -6993,14 +7400,22 @@ function drawEnemy(en){
     ctx.restore();
    }
   }
-  { /* body walk cycle: a small hop + rock pivoting at the base - still while idle */
+  { /* body walk cycle: a small hop + rock pivoting at the base */
    const walking=(en.mv||0)>0.01&&!en.dead;
    const ph=en.wt||0;
    const hop=Math.abs(Math.sin(ph))*en.r*0.10*(en.mv||0);
+   /* 🫁 idle breath - these bosses used to freeze solid the moment they stopped, which is what
+      made them read as cardboard cut-outs. A slow rise/fall plus a hair of lean on its own clock,
+      faded out by mv so it hands over to the stride instead of double-bobbing. The x term
+      desynchronises two bosses standing together. */
+   const idle=en.dead?0:1-Math.min(1,(en.mv||0)*3);
+   const bt=performance.now()/1000+en.x*0.017;
+   const breath=Math.sin(bt*1.5)*en.r*0.022*idle;
    ctx.save();
    ctx.translate(en.r*(raidSkin.ox||0),en.r*raidSkin.lift+by);
    if(walking)ctx.rotate(Math.sin(ph)*0.045*(en.mv||0)); /* the rock fades with the stride */
-   ctx.drawImage(mip(raidSkin.img,W),-W/2,-H-hop,W,H); /* body floats above the feet */
+   else if(idle>0)ctx.rotate(Math.sin(bt*0.9)*0.012*idle);
+   ctx.drawImage(mip(raidSkin.img,W),-W/2,-H-hop+breath,W,H); /* body floats above the feet */
    ctx.restore();
   }
   const bl=raidBlade(raidSkin.glow,raidSkin.wpn?raidSkin.wpn():null);
