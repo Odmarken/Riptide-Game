@@ -63,7 +63,8 @@
       "Bash(curl -s -o __TRACKED_VAR__/w_tower.png __TRACKED_VAR__/hf_20260810_115232_2c2bc205-0c3a-480d-aa41-c31e8b99a3e1.png)",
       "Bash(curl -s -o __TRACKED_VAR__/w_gate.png __TRACKED_VAR__/hf_20260810_115232_9dfbbad9-1eb6-499b-911c-749693117a74.png)",
       "Bash(curl -s -o __TRACKED_VAR__/kg_side.png __TRACKED_VAR__/hf_20260810_123314_8ebfa446-ed7e-46c5-8d13-9192086b334e.png)",
-      "Bash(curl -s -o __TRACKED_VAR__/kg_smelt.png __TRACKED_VAR__/hf_20260810_123322_5ee776ca-9778-4576-814d-21e98b272b42.png)"
+      "Bash(curl -s -o __TRACKED_VAR__/kg_smelt.png __TRACKED_VAR__/hf_20260810_123322_5ee776ca-9778-4576-814d-21e98b272b42.png)",
+      "Bash(sort -u -t: -k3)"
     ]
   }
 }

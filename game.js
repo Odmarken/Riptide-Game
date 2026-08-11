@@ -1180,9 +1180,16 @@ const bossesClearedBefore=i=>ZONES.every((z,k)=>k>=i||z.special||!z.boss||!!S.bo
 /* Safe progression gate. This prevents stale maxZone from old/pre-fix prestige saves
    from unlocking the whole map when the hero is back at low level in Moonshine/Home. */
 function progZone(ch=S){
- let mz=Math.min((ch&&ch.maxZone)||0,ZONES.length-1);
+ /* Progression is measured in NORMAL zones only - a portal-only special (the Farm, the City, the
+    Altar) is not a rung on the ladder. This used to clamp to ZONES.length-1 and walk down on the
+    level requirement alone. The moment a special zone sat last in the array, every save with a
+    high maxZone resolved to it; the City asks for level 1, so the walk stopped immediately and the
+    entire map came unlocked. Skip specials on the way down as well as at the clamp. */
+ let lastNormal=0;
+ for(let k=ZONES.length-1;k>=0;k--)if(!ZONES[k].special){lastNormal=k;break;}
+ let mz=Math.min((ch&&ch.maxZone)||0,lastNormal);
  const lvl=(ch&&ch.lvl)||1;
- while(mz>0&&lvl<(ZONES[mz]?.lvl||1))mz--;
+ while(mz>0&&(ZONES[mz]?.special||lvl<(ZONES[mz]?.lvl||1)))mz--;
  return Math.max(0,mz);
 }
 /* LINEAR prestige scaling - tracks the gear curve so each prestige feels equally hard forever.
@@ -8018,7 +8025,7 @@ function renderMap(){
   if(mapContinent==='raid'&&!z.raidc)return '';
   if(z.tavern)return '';
   if(z.special){
-   if(z.altar||z.farm||z.finalb)return ''; /* portal-only zones - the Final Hour is reached through the Gate alone */
+   if(z.altar||z.farm||z.city||z.finalb)return ''; /* portal-only zones - the City is reached by Moonshine's east road, the Final Hour through the Gate */
    if(z.crypts){
     const p20=(S.prestige||0)>=20;
     return `<div class="card zonecard ${p20?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p20?'#a66bd0':''}">
@@ -11218,7 +11225,7 @@ async function initFirebase(){
    let first=true;
    FB.auth.onAuthStateChanged(async u=>{
     FB.user=u;updateAcctUI();
-    if(u&&seasonReady)await cloudPullRoster();
+    if(u&&seasonReady){await adoptGuestChars();await cloudPullRoster();}
     /* A reload restores auth without ever passing through fbSignIn, so without this the tab
        would hold no session lock and run no watcher: unkickable, and free to overwrite
        whatever another device had just claimed. */
@@ -11252,8 +11259,8 @@ async function fbSignIn(create){
  try{
   const cred=create?await FB.auth.createUserWithEmailAndPassword(em,pw):await FB.auth.signInWithEmailAndPassword(em,pw);
   FB.user=(cred&&cred.user)||FB.auth.currentUser; /* set immediately so the roster namespace is right before the auth callback fires */
-  guestMode=false;
   $('login').classList.remove('open');
+  await adoptGuestChars();   /* lift anything made before this account existed */
   await cloudPullRoster();
   await claimSession();
   showSelect();
@@ -11308,6 +11315,31 @@ async function cloudDeleteChar(id){
   const ref=FB.db.collection('players').doc(FB.user.uid);
   await ref.update({season:SEASON,roster:ids,['chars.'+id]:firebase.firestore.FieldValue.delete(),updatedAt:Date.now()});
  }catch(e){console.warn('cloud delete failed',e);}
+}
+/* ☁ Characters made before signing in are stranded: FB.user is null while you play as a guest, so
+   save() never pushes them, and the moment you sign in the roster key changes from 'riptide-roster'
+   to 'riptide-roster::u_<uid>' - the guest ones simply stop appearing in the list.
+   Adopt them into the account instead: merge the ids into the account roster and push each one up.
+   The guest roster is cleared only once EVERY push has returned true, so a network failure leaves
+   the originals exactly where they were rather than losing them between two homes. */
+async function adoptGuestChars(){
+ if(!(FB.ready&&FB.user)||FB.kicked)return 0;
+ let guest=[];
+ const raw=await deviceGet('riptide-roster');
+ if(raw){try{guest=JSON.parse(raw)||[];}catch(e){}}
+ if(!guest.length)return 0;
+ const ids=await loadRoster();
+ let moved=0,allOk=true;
+ for(const id of guest){
+  const ch=await loadChar(id);
+  if(!ch||!ch.id)continue;
+  if(!ids.includes(ch.id))ids.push(ch.id);
+  if(await cloudPushChar(ch))moved++; else allOk=false;
+ }
+ if(moved)await saveRoster(ids);
+ if(moved&&allOk)await deviceDelete('riptide-roster'); /* claimed - never adopt the same ones twice */
+ if(moved)stageMsg('☁ '+moved+' character'+(moved>1?'s':'')+' moved into your account',2800);
+ return moved;
 }
 async function cloudPullRoster(){
  if(!(FB.ready&&FB.user))return;
@@ -11474,14 +11506,13 @@ async function showLeaderboard(){
  });
 }
 
-let guestMode=false;
 function updateAcctUI(){
  const info=$('acctInfo');if(!info)return;
  if(FB.user){
   info.textContent='☁ '+(FB.user.email||'Signed in')+' - cloud sync active.';
   $('fbOut').style.display='inline-block';
  }else{
-  info.textContent=guestMode?'Guest mode - saves stay on this device.':'Not signed in.';
+  info.textContent='Not signed in.';
   $('fbOut').style.display='none';
  }
 }
@@ -11679,8 +11710,7 @@ $('charSelBtn').onclick=async()=>{if(hcNoFlee())return;await save();showSelect()
 $('fbLogin').onclick=()=>fbSignIn(false);
 $('fbSignup').onclick=()=>fbSignIn(true);
 $('fbForgot').onclick=fbForgotPass;
-$('guestBtn').onclick=()=>{guestMode=true;$('login').classList.remove('open');showSelect();};
-$('fbOut').onclick=async()=>{if(sessUnsub){sessUnsub();sessUnsub=null;}if(FB.auth)await FB.auth.signOut();FB.user=null;guestMode=false;showLogin();};
+$('fbOut').onclick=async()=>{if(sessUnsub){sessUnsub();sessUnsub=null;}if(FB.auth)await FB.auth.signOut();FB.user=null;showLogin();};
 $('lbBtn2').onclick=showLeaderboard;
 $('lbClose').onclick=()=>$('lbFx').classList.remove('open');
 $('autoBtn').onclick=()=>{
@@ -11890,6 +11920,6 @@ requestAnimationFrame(frame);
    await deviceDelete('eastvale-save3');
   }
  }
- if(FB.user){guestMode=false;await cloudPullRoster();await claimSession();showSelect();}
+ if(FB.user){await adoptGuestChars();await cloudPullRoster();await claimSession();showSelect();}
  else showLogin();
 })();
