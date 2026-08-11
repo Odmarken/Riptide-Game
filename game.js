@@ -6,7 +6,7 @@ const treeSnowImg=new Image();treeSnowImg.src='assets/models/trädsnow.png';
 treeSnowImg._pad=1.33;treeSnowImg._anchor=0.86;
 const fkImg=new Image();fkImg.src='assets/models/rimfrost.png'; /* the original blade - warrior */
 /* ❄ one legendary, four faces: Rimfrost takes the shape its bearer can actually wield.
-   The item is the same in every way that matters - same name, same key, same stats - only
+   The item is the same in very way that matters - same name, same key, same stats - only
    the art changes with the class. h nudges the height so a staff reads taller than a mace. */
 const fkImgMace =new Image();fkImgMace.src ='assets/models/rimfrost_mace.png';
 const fkImgStaff=new Image();fkImgStaff.src='assets/models/rimfrost_staff.png';
