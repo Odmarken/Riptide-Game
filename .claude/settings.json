@@ -67,7 +67,8 @@
       "Bash(sort -u -t: -k3)",
       "Bash(sed 's/^/  före rebase, HEAD: /')",
       "Bash(git pull *)",
-      "Bash(git config *)"
+      "Bash(git config *)",
+      "Bash(node -e \"1\")"
     ]
   }
 }

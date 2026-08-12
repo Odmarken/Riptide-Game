@@ -15,10 +15,10 @@ const fkImgBow  =new Image();fkImgBow.src  ='assets/models/rimfrost_bow.png';
    below, plus the grip it hangs from. Where std is set, h scales against the ordinary weapon
    instead of the Rimfrost base, so the legendary lands in the same spot but reads bigger. */
 const FK_ART={
- warrior:{img:fkImg,      h:1.38,std:{pw:38,pl:27,grip:H=>4-H}},        /* Christian - heavy blade, grip in the hand */
- priest: {img:fkImgMace,  h:1.38,std:{pw:38,pl:27,grip:H=>4-H}},        /* Jew - healing mace, butt in the hand */
- mage:   {img:fkImgStaff, h:1.59,std:{pw:42,pl:30,grip:H=>5-H}},       /* Hindu - staff, butt in the hand; +15% over the others so it reads as a staff */
- hunter: {img:fkImgBow,   h:1.38,std:{pw:44,pl:31,grip:H=>-4-H/2},mirror:true}, /* Muslim - bow, gripped
+ warrior:{img:fkImg,      h:1.38,std:{pw:38,pl:27,grip:H=>4-H}},        /* Warrior - heavy blade, grip in the hand */
+ priest: {img:fkImgMace,  h:1.38,std:{pw:38,pl:27,grip:H=>4-H}},        /* Priest - healing mace, butt in the hand */
+ mage:   {img:fkImgStaff, h:1.59,std:{pw:42,pl:30,grip:H=>5-H}},       /* Mage - staff, butt in the hand; +15% over the others so it reads as a staff */
+ hunter: {img:fkImgBow,   h:1.38,std:{pw:44,pl:31,grip:H=>-4-H/2},mirror:true}, /* Hunter - bow, gripped
    mid-limb; its art faces the same way as assets/weapons/bow.png so it mirrors on the same rule */
 };
 /* Any class art that has not loaded - or does not exist yet - quietly falls back to the
@@ -43,7 +43,9 @@ const FG_ART={
 const fgArtFor=clsId=>{const a=FG_ART[clsId];return (a&&a.img.complete&&a.img.naturalWidth)?a:null;};
 /* 🏙 city art. CITY_HOUSES is indexed by a house's seed, so a terrace picks its faces
    deterministically and the same street looks the same every visit. */
-const cityImg=n=>{if(!cityImgs[n]){cityImgs[n]=new Image();cityImgs[n].src='assets/city/'+n+'.png';}return cityImgs[n];};
+const CITY_ART_V=4; /* bump when a city asset is redrawn - the filenames stay put while the pictures
+                       behind them change, so without this a cached wall_gate_v.png survives a hard refresh */
+const cityImg=n=>{if(!cityImgs[n]){cityImgs[n]=new Image();cityImgs[n].src='assets/city/'+n+'.png?v='+CITY_ART_V;}return cityImgs[n];};
 const cityImgs={};
 const CITY_HOUSES=['house_timber','house_shop','house_cottage','house_stone',
                    'house_turret','house_stair','house_tenement','house_manor'];
@@ -57,7 +59,7 @@ const CITY_FOOT={
  house_turret:{cx:-0.046,w:0.709}, house_stair:{cx:+0.084,w:0.355},
  house_tenement:{cx:+0.041,w:0.766}, house_manor:{cx:+0.045,w:0.492},
  minehall:{cx:-0.073,w:0.450}, enchanthall:{cx:-0.036,w:0.856}, cathedral:{cx:+0.051,w:0.361},
- smelter:{cx:+0.071,w:0.688}, wall_gate_v:{cx:-0.027,w:0.689},
+ smelter:{cx:+0.071,w:0.688},   /* the gate is drawn flat in the wall plane - it casts no standing shadow */
 };
 function cityShadow(name,W,baseY){ /* sized off that footprint and tucked under the base */
  const f=CITY_FOOT[name]; if(!f)return;
@@ -457,25 +459,25 @@ const RACES=[
 const RACE_ALIAS={stoneborn:'dwarf',sylvan:'orc',gravekin:'undead'};
 const CLASS_ALIAS={cleric:'priest'};
 const CLASSES=[
- {id:'warrior',name:'Christian',desc:'Heavy blade up close. Cleaving strikes and war-shouts.',hp:125,atk:12,crit:5,armor:0.05,range:40,cd:.95,mana:55,
+ {id:'warrior',name:'Warrior',desc:'Heavy blade up close. Cleaving strikes and war-shouts.',hp:125,atk:12,crit:5,armor:0.05,range:40,cd:.95,mana:55,
   spells:[
    {n:'Heroic Strike',g:'⚔️',cost:12,cd:4,t:'st',mul:2.1,d:'A crushing blow for 210% damage.',vfx:'slash'},
    {n:'Whirlwind',g:'🌀',cost:22,cd:8,t:'aoe',mul:1.5,rad:100,d:'Spin, hitting all nearby foes for 150%.',vfx:'whirl'},
    {n:'Battle Shout',g:'📯',cost:18,cd:28,t:'buff',buff:'atk',val:1.35,dur:10,d:'+35% attack for 10s.',vfx:'shout'},
   ]},
- {id:'mage',name:'Hindu',desc:'Ranged bolts of flame and frost. Fragile but ferocious.',hp:85,atk:15,crit:6,armor:0.04,range:175,cd:1.0,ranged:true,boltC:'#ff9a4a',mana:90,
+ {id:'mage',name:'Mage',desc:'Ranged bolts of flame and frost. Fragile but ferocious.',hp:85,atk:15,crit:6,armor:0.04,range:175,cd:1.0,ranged:true,boltC:'#ff9a4a',mana:90,
   spells:[
    {n:'Fireball',g:'🔥',cost:14,cd:4,t:'st',mul:2.6,d:'Hurl fire for 260% damage.',vfx:'fire'},
    {n:'Frost Nova',g:'❄️',cost:24,cd:9,t:'aoe',mul:1.3,rad:115,slow:3,d:'130% frost damage and slows foes 3s.',vfx:'frost'},
    {n:'Arcane Barrage',g:'✨',cost:30,cd:24,t:'multi',mul:1.3,hits:3,d:'3 arcane bolts at nearby foes, 130% each.',vfx:'arcane'},
   ]},
- {id:'hunter',name:'Muslim',desc:'Swift ranged shots and deadly precision.',hp:100,atk:11,crit:10,range:185,cd:.72,ranged:true,boltC:'#cfe8a0',mana:70,
+ {id:'hunter',name:'Hunter',desc:'Swift ranged shots and deadly precision.',hp:100,atk:11,crit:10,range:185,cd:.72,ranged:true,boltC:'#cfe8a0',mana:70,
   spells:[
    {n:'Aimed Shot',g:'🎯',cost:12,cd:4,t:'st',mul:2.4,d:'A perfect shot for 240% damage.',vfx:'arrow'},
    {n:'Multi-Shot',g:'🏹',cost:22,cd:8,t:'multi',mul:1.4,hits:3,d:'Arrows at up to 3 foes, 140% each.',vfx:'arrow'},
    {n:'Rapid Fire',g:'💨',cost:20,cd:28,t:'buff',buff:'haste',val:1.6,dur:6,d:'+60% attack speed for 6s.',vfx:'shout'},
   ]},
- {id:'priest',name:'Jew',desc:'Holy smiting and healing light.',hp:112,atk:11,crit:8,armor:0.02,range:40,cd:.95,mana:85,
+ {id:'priest',name:'Priest',desc:'Holy smiting and healing light.',hp:112,atk:11,crit:8,armor:0.02,range:40,cd:.95,mana:85,
   spells:[
    {n:'Smite',g:'☀️',cost:12,cd:4,t:'st',mul:2.0,heal:.06,d:'200% holy damage, heals you 6%.',vfx:'holy'},
    {n:'Holy Nova',g:'✴️',cost:24,cd:9,t:'aoe',mul:1.3,rad:115,heal:.15,d:'130% to nearby foes, heals you 15%.',vfx:'holy'},
@@ -1382,7 +1384,7 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.armorPots===undefined)s.armorPots=0; /* 🛡 fished from the lake */
  if(s.armorT===undefined)s.armorT=0;
  if(RACE_ALIAS[s.race])s.race=RACE_ALIAS[s.race]; /* old saves used stoneborn/sylvan/gravekin */
- if(CLASS_ALIAS[s.cls])s.cls=CLASS_ALIAS[s.cls]; /* old saves used cleric for Jew */
+ if(CLASS_ALIAS[s.cls])s.cls=CLASS_ALIAS[s.cls]; /* old saves used cleric for Priest */
  if(s.thorLock===undefined)s.thorLock=-1;
  if(s.thorKills===undefined)s.thorKills=0;
  if(s.thorLockWhy===undefined)s.thorLockWhy='';
@@ -3113,7 +3115,7 @@ function buildCity(R){
  const road=(x0,y0,x1,y1,w)=>st.push({x0,y0,x1,y1,w});
  const FW=3.3;                    /* a house's drawn half-width, as a multiple of its r */
  const WI=60,WT=140,WIN=WI+WT;    /* curtain wall: bare ground 0..WI, stone WI..WIN, city beyond */
- const GH=150;                    /* half-height of the west gateway opening */
+ const GH=75;                     /* half-height of the west gateway - measured off the gate art's own passage */
 
  /* --- the grid. Five avenues north-south, three streets east-west, and the middle one is the
     great boulevard. Everything else in the city hangs off this, which is what keeps it legible
@@ -3199,14 +3201,9 @@ function buildCity(R){
   {x:WI,y:cy+GH,w:WT,h:H-(cy+GH)},                       /* west, below the gate */
   {x:W-WIN,y:0,w:WT,h:H},                                /* east */
  ];
- /* Towers and the gatehouse stay as sprites - they are one-offs. The long runs between them are
-    painted as a single pattern-filled band in drawCityGround: laying 620-wide sprites end to end
-    showed every join, and the old perspective side-wall art cascaded diagonally when stacked. */
- for(const t of [[WIN,WIN],[W-WI,WIN],[WIN,H-WI],[W-WI,H-WI],
-                 [4200,WIN],[8400,WIN],[12600,WIN],
-                 [4200,H-WI],[8400,H-WI],[12600,H-WI]])
-  world.solids.push({x:t[0],y:t[1],r:60,type:'citytower',seg:330,noCol:true});
- world.solids.push({x:WIN-52,y:cy+GH+40,r:70,type:'citygate',seg:300,noCol:true}); /* straddles the opening, arch facing out */
+ /* The runs are painted as a single pattern-filled band in drawCityGround: laying 620-wide sprites
+    end to end showed every join, and the old perspective side-wall art cascaded diagonally when
+    stacked. The gatehouse is the one remaining sprite, drawn there too. */
 
  /* --- townsfolk, each looping between points on real streets --- */
  const onStreet=()=>{
@@ -3259,13 +3256,13 @@ function weedBlob(px,py,r,h){
 function drawCityGround(){
  const vx0=camX,vy0=camY,vx1=camX+VW/zoom,vy1=camY+VH/zoom;
  const z=zoneOf();
- const dirt=cityPattern('ground_dirt'),flag=cityPattern('ground_flag'),cobble=cityPattern('ground_cobble');
+ const dirt=cityPattern('city_ground'),cobble=cityPattern('ground_cobble');
  ctx.fillStyle=dirt||z.ground;
  ctx.fillRect(vx0,vy0,vx1-vx0,vy1-vy0);
  /* the same soil again, turned 34 degrees and 37% larger, at half strength. One tile on its own
     repeated its cart ruts every 192 units and the banding was the first thing you saw. */
  if(zoom>0.45){
-  const skew=cityPattern('ground_dirt',34);
+  const skew=cityPattern('city_ground',34);
   if(skew){ctx.save();ctx.globalAlpha=0.5;ctx.fillStyle=skew;ctx.fillRect(vx0,vy0,vx1-vx0,vy1-vy0);ctx.restore();}
  }
  /* drifts of weed over the soil, on a hashed grid so the same ground looks the same every visit.
@@ -3287,7 +3284,7 @@ function drawCityGround(){
  /* plazas sit under the streets so the two read as one continuous surface */
  for(const p of world.plazas||[]){
   if(p.x+p.r<vx0||p.x-p.r>vx1||p.y+p.r<vy0||p.y-p.r>vy1)continue;
-  ctx.fillStyle=flag||z.path;
+  ctx.fillStyle=cobble||z.path;
   ctx.beginPath();ctx.ellipse(p.x,p.y,p.r,p.r*0.82,0,0,7);ctx.fill();
   ctx.strokeStyle='rgba(0,0,0,0.20)';ctx.lineWidth=7;ctx.stroke();
  }
@@ -3328,6 +3325,23 @@ function drawCityWalls(){
  band(WIN-vw,0,vw,cy-GH,pv);                          /* west, above the gateway */
  band(WIN-vw,cy+GH,vw,H-(cy+GH),pv);                  /* west, below it */
  band(W-WIN,0,vw,H,pv);                               /* east */
+ /* the gatehouse sits IN the wall, not on top of it: same flat top-down projection, scaled so its
+    own masonry band comes out exactly as wide as the strip's. Both fractions are measured off the
+    art (columns at least half opaque): 0.626 of the gate's width, 0.978 of the strip's tile - the
+    strip is bbox-cropped with a couple of spare pixels. Matching band-to-band instead of art-to-vw
+    is what keeps the gate from jutting proud of the wall. Centred in its art, so no x correction.
+    Straddles the opening, covering the band ends either side. */
+ const gi=cityImg('wall_gate_v');
+ if(gi.complete&&gi.naturalWidth){
+  const gw=vw*0.978/0.626,gh=gw*gi.naturalHeight/gi.naturalWidth;
+  /* The strips are pattern fills, so their tiling phase is anchored at world x=0, not at the band's
+     own edge - the column showing at the edge is (WIN mod vw), not column 0. The gate is a plain
+     sprite with no such phase, so without this nudge onto the tiling its planks run beside the
+     wall's instead of into them. Correlating the two column profiles confirms it: 0.96 with the
+     nudge, -0.02 without. */
+  const gx=WIN-vw/2-gw/2+(vw-WIN%vw)%vw,gy=cy-gh/2;
+  if(!(gx+gw<vx0||gx>vx1||gy+gh<vy0||gy>vy1))ctx.drawImage(mip(gi,gw),gx,gy,gw,gh);
+ }
 }
 function drawFarmGround(){ /* farm_zone stretched over one cow-field, laid twice - the second flipped to hide the seam */
  const img=zoneMapImg('farm_zone');
@@ -3988,7 +4002,7 @@ function healHero(amt,silent){
 }
 function hurtHero(dmg,label){
  if(hero.dead)return;
- /* hidden passive: melee callings (Christian/Jew) shrug off 60% in the Cow Level - never shown in any UI */
+ /* hidden passive: melee classes (Warrior/Priest) shrug off 60% in the Cow Level - never shown in any UI */
  const cowMelee=zoneOf().cow&&(S.cls==='warrior'||S.cls==='priest')?0.40:1;
  dmg=Math.round(dmg*(1-scrollPct('warding'))*(1-(classOf().armor||0))*(1-(raceOf().armor||0))*(1-((activePet()||{}).armor||0))*(1-Math.min(0.5,gearSum('armor')))*(((S.armorT||0)>0&&zoneOf().amb==='haaland')?0.5:1)*cowMelee); /* 🛡 potion: -50% only in the HAALAND fight · gear armor capped at 50% */
  hero.hp-=dmg;hero.hurt=0.2;
@@ -5206,7 +5220,6 @@ const ZMAX=3;
 let debugZoom=false;
 const zmin=()=>debugZoom?1/20                        /* dbgZoom(): the whole zone, however big */
  :buildMode?1/3
- :(world&&zoneOf&&zoneOf()&&zoneOf().city)?0.22       /* the city is 16800 wide - 0.9 shows 2% of it */
  :((IS_TOUCH&&Math.min(VW,VH)<820)?0.5:0.9); /* build mode 3× out; phones may zoom out to 0.5, desktop stays close at 0.9 */
 function setZoom(z){zoom=Math.max(zmin(),Math.min(ZMAX,z));}
 function dbgZoom(on){
@@ -6554,20 +6567,6 @@ function drawProp(s,z){
    ctx.textAlign='center';ctx.fillStyle='#ffe9a0';
    ctx.fillText('🍺 MOONSHINE INN',0,-hh*1.45);
   }
- }else if(s.type==='citytower'||s.type==='citygate'){
-  /* 🧱 the curtain wall. seg is the run length for a wall piece and the width for a tower or the
-     gatehouse; the other dimension comes from the art's own aspect, so nothing is ever squashed.
-     Marked noCol - the four mwalls rectangles do the blocking. */
-  const im=cityImg(s.type==='citytower'?'wall_tower':'wall_gate_v');
-  if(im.complete&&im.naturalWidth){
-   let W,H;
-   if(s.v){H=s.seg;W=H*im.naturalWidth/im.naturalHeight;}   /* a north-south run reads along its height */
-   else{W=s.seg;H=W*im.naturalHeight/im.naturalWidth;}
-   const fade=seeThrough(s,W,H,-H);
-   if(fade<1)ctx.globalAlpha*=fade;
-   ctx.drawImage(mip(im,W),-W/2,-H,W,H);
-   ctx.globalAlpha=1;
-  }
  }else if(s.type==='cityhouse'){
   /* 🏙 scenery only - never enterable. The face is picked off s.seed, so a terrace shows eight
      different houses without any per-building authoring, and picks the SAME one every visit.
@@ -7204,11 +7203,11 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g.beginPath();g.moveTo(0,1.5);g.lineTo(0,6);g.stroke();
   }
  }else if(clsId==='mage'&&staffImg.complete&&staffImg.naturalWidth){
-  /* painted staff (assets/weapons/staff.png) - the Hindu standard weapon */
+  /* painted staff (assets/weapons/staff.png) - the Mage standard weapon */
   const H=pw?42:30,W=H*staffImg.naturalWidth/staffImg.naturalHeight;
   g.drawImage(mip(staffImg,W),-W/2,5-H,W,H);
  }else if(clsId==='priest'&&maceImg.complete&&maceImg.naturalWidth){
-  /* painted mace (assets/weapons/mace.png) - the Jew standard weapon, grip in the hand */
+  /* painted mace (assets/weapons/mace.png) - the Priest standard weapon, grip in the hand */
   const H=pw?38:27,W=H*maceImg.naturalWidth/maceImg.naturalHeight;
   g.drawImage(mip(maceImg,W),-W/2,4-H,W,H);
  }else if(clsId==='mage'||clsId==='priest'){
@@ -7677,6 +7676,14 @@ function renderHUD(){
   $('qName').textContent='🍺 Moonshine';
   $('qDesc').textContent='Safe haven - health and mana return swiftly here.';
   $('qBar').style.width='100%';$('qCount').textContent='☕';
+  $('nextBtn').style.display='none';
+  $('autoBtn').classList.toggle('on',S.auto);$('autoBtn').textContent=S.auto?'AUTO ✓':'AUTO';
+  refreshOpenPanel();return;
+ }
+ if(zoneOf().city){ /* no quest here - the generic branch would show a 0 / 999999 bar */
+  $('qName').textContent='🏙 The City';
+  $('qDesc').textContent='The capital. Two guild halls take apprentices - Mining and Enchanting.';
+  $('qBar').style.width='100%';$('qCount').textContent='⌂';
   $('nextBtn').style.display='none';
   $('autoBtn').classList.toggle('on',S.auto);$('autoBtn').textContent=S.auto?'AUTO ✓':'AUTO';
   refreshOpenPanel();return;
