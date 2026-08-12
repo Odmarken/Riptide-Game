@@ -4790,7 +4790,7 @@ function bossAI(en,dt){
    floatAt(en.x,en.y-en.r-30,'Hellfire!','#ff5a3a',true);
   }
   if(en.cds.c<=0){en.cds.c=14;
-   if(addsAlive()<3){spawnAdd('Messi','beast','#a03a2a');spawnAdd('Messi','beast','#a03a2a');
+   if(addsAlive()<3){spawnAdd('Crow','beast','#a03a2a');spawnAdd('Crow','beast','#a03a2a');
     floatAt(en.x,en.y-en.r-30,'AWOOO!','#ff8a6a',true);}
   }
   /* GROUND SHAKE - one unavoidable 5% max HP hit, every 20s (first at 14s) */
@@ -7396,7 +7396,7 @@ function drawEnemy(en){
  const odinPainted=en.bossId==='odin'&&odinImg.complete&&odinImg.naturalWidth;
  const skinKey=en.skin||en.bossId;
  const raidSkin=RAID_SKINS[skinKey]&&RAID_SKINS[skinKey].img.naturalWidth?RAID_SKINS[skinKey]:null; /* raid lords + skinned leveling bosses + cow herd */
- const mobSkin=(!raidSkin&&!odinPainted&&!en.boss&&!en.cow&&en.name!=='Messi')?mobSkinFor(en):null; /* painted foes and boss adds - Messi keeps his own look */
+ const mobSkin=(!raidSkin&&!odinPainted&&!en.boss&&!en.cow&&en.name!=='Crow')?mobSkinFor(en):null; /* painted foes and boss adds - the Crow adds keep their own look */
  if(en.kind!=='undead'&&!odinPainted&&!raidSkin&&!mobSkin)feet(en,en.r/13);
  const dark='rgba(0,0,0,0.28)';
  if(raidSkin){ /* a lord of the Violet Halls - painted body over swinging cut-off feet */
