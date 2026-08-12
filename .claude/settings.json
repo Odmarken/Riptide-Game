@@ -68,7 +68,14 @@
       "Bash(sed 's/^/  före rebase, HEAD: /')",
       "Bash(git pull *)",
       "Bash(git config *)",
-      "Bash(node -e \"1\")"
+      "Bash(node -e \"1\")",
+      "Bash(awk 'NR>=1300 && NR<=1410 && /^function |^ *function /{print NR\": \"$0}' game.js)",
+      "Bash(awk 'NR<=1400 && /^function [a-zA-Z]/{n=NR\": \"$0} END{}{}' game.js)",
+      "Bash(awk -F: '$1<1400')",
+      "Bash(python cut.py spear.png spear_cut.png 683)",
+      "Bash(python cut.py v2.png v2_cut.png 900)",
+      "Bash(python cut.py v2.png odin_body.png 900)",
+      "Bash(python cut.py spear.png odin_spear.png -1400)"
     ]
   }
 }

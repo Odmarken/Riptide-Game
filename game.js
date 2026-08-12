@@ -108,9 +108,11 @@ const CHAR_RUN={};
 const bootImg=new Image();bootImg.src='assets/characters/fot.png';
 const bowImg=new Image();bowImg.src='assets/weapons/bow.png';
 const maceImg=new Image();maceImg.src='assets/weapons/mace.png';
-const haalandImg=new Image();haalandImg.src='assets/boss/haaland_boss.png';
-const haalandAxeImg=new Image();haalandAxeImg.src='assets/boss/axe_boss.png';
-/* the three lords of the Black Temple - painted bodies + one shared blade, tinted per lord */
+/* ODIN's art was repainted in the Thor style - same filename, new picture, so the ?v= is what
+   stops a browser that already cached the old boss from serving it forever. */
+const odinImg=new Image();odinImg.src='assets/boss/odin_boss.png?v=2';
+const odinSpearImg=new Image();odinSpearImg.src='assets/boss/odin_spear.png';
+/* the three lords of the Violet Halls - painted bodies + one shared blade, tinted per lord */
 const fellordImg=new Image();fellordImg.src='assets/boss/fellord_boss.png';
 const firelordImg=new Image();firelordImg.src='assets/boss/firelord_boss.png';
 const frostlordImg=new Image();frostlordImg.src='assets/boss/frostlord_boss.png';
@@ -388,7 +390,7 @@ function thorStatus(){
  return t<THOR_OPEN?{open:true,left:THOR_OPEN-t}:{open:false,next:THOR_PERIOD-t};
 }
 const thorLocked=()=>S&&S.thorLock===thorWindow();
-/* Black Temple opens every 4 hours (00/04/08/12/16/20 Swedish time), 30 minutes per window */
+/* Violet Halls opens every 4 hours (00/04/08/12/16/20 Swedish time), 30 minutes per window */
 const RAID_PERIOD=4*3600*1000,RAID_OPEN=30*60*1000;
 function raidStatus(){
  const t=localDayMs()%RAID_PERIOD;
@@ -507,7 +509,7 @@ const PETS=[
  {id:'cat',n:'Puffen',g:'🐈',cc:'#f2eee6',d:'+10% attack damage.',atkMul: 0.10}, /* a white cat */
  {id:'dog',n:'Ayla',g:'🐕',cc:'#a8bcb0',d:'Take 10% less damage.',armor: 0.10},
  {id:'blackdog',n:'Nellie',g:'🦮',cc:'#4a4a52',d:'+10% attack speed.',haste: 0.10}, /* a black dog */
- {id:'shark',n:'MEG',g:'🦈',cc:'#7ab8e0',d:'+20% damage to bosses.',bossDmg: 0.20}, /* HAALAND recipe reward - never rolls from cases */
+ {id:'shark',n:'MEG',g:'🦈',cc:'#7ab8e0',d:'+20% damage to bosses.',bossDmg: 0.20}, /* ODIN recipe reward - never rolls from cases */
 ];
 const petOf=id=>PETS.find(p=>p.id===id);
 const activePet=()=>S&&S.pet?petOf(S.pet):null;
@@ -608,8 +610,8 @@ const ZONES=[
   en:[['Keep Legionnaire','humanoid','#a04a3a'],['Ash Hound','beast','#c96a3a'],['Ember Warlock','humanoid','#8a3a5a']],
   q:[['Storm the Outworks','Cut down 12 legionnaires at the walls.',12],['The Kennels','Slay 12 ash hounds loosed on the yard.',12],['Break the Warlocks','Silence 14 warlocks fueling the pyres.',14]]},
  {name:'Emberdeep Keep',lvl:60,amb:'war',map:'levlingzone_boss',boss:['Warlord Krev','#d94a2a','krev'],ground:'#3a2a26',ground2:'#31231f',water:'#8a4a2a',tree:'#31231f',tree2:'#241a16',path:'#5a4030',rocky:true,final:true},
- {name:'Gates of the Viking',lvl:60,amb:'haaland',valhalla:true,special:true,map:'haaland_map',
-  boss:['HAALAND','#c94a3a','cerberus'],
+ {name:'Gates of the Viking',lvl:60,amb:'odin',valhalla:true,special:true,map:'odin_map',
+  boss:['ODIN','#c94a3a','odin'],
   ground:'#8a94a0',ground2:'#7d8794',water:'#5a7a9a',tree:'#4a5a66',tree2:'#39464f',path:'#a8b0ba',rocky:true},
  {name:'Halls of Valhalla',lvl:60,amb:'frost',valhalla:true,special:true,thor:true,map:'tormap_zone',
   boss:['Thor, God of Thunder','#7fd0ff','thor'],
@@ -618,7 +620,7 @@ const ZONES=[
   ground:'#6a9a4e',ground2:'#5f8c46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
  {name:'Moonshine',lvl:1,amb:'tavern',special:true,tavern:true,
   ground:'#7a6a4e',ground2:'#6e5f46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
- {name:'Black Temple',lvl:60,amb:'war',raidc:true,special:true,raid:true,
+ {name:'Violet Halls',lvl:60,amb:'war',raidc:true,special:true,raid:true,
   ground:'#4a4456',ground2:'#403a4c',water:'#2f4a5a',tree:'#3a3448',tree2:'#2c2838',path:'#6a5f7a',rocky:true},
  {name:'The Crypts',lvl:60,amb:'crypt',west:true,special:true,crypts:true,noBerg:true, /* ever-shifting labyrinth - a fresh maze every descent.
     NOTE: appended LAST so existing saves' zone indices stay valid - never insert zones mid-array */
@@ -1079,7 +1081,7 @@ const xpZoneLvl=z=>z.lvl;
 const goldZoneLvl=z=>z.lvl;
 /* Normal leveling-zone bosses only: much faster, full-map aggro, no leash.
    Baseline = +120% speed; below 30% HP = +250% speed. */
-const isLevelBossId=id=>!!id; /* Thor + HAALAND now use normal boss speed rules too */
+const isLevelBossId=id=>!!id; /* Thor + ODIN now use normal boss speed rules too */
 const BOSS_SPEED_MUL=2.2;
 const BOSS_ENRAGE_SPEED_MUL=3.5;
 function zoneTemplates(z){
@@ -1110,8 +1112,8 @@ function zoneTemplates(z){
           mk('Frost Lord','frostking','#a0e0ff')];
  }
  if(z.boss){
-  const km=z.special?Math.pow(1.10,S.cerberusKills||0):1; /* HAALAND: +10% per kill, compounding */
-  const hpMul=z.special?65:50;                              /* HAALAND matches Thor: normal boss scaling +30% HP */
+  const km=z.special?Math.pow(1.10,S.odinKills||0):1; /* ODIN: +10% per kill, compounding */
+  const hpMul=z.special?65:50;                              /* ODIN matches Thor: normal boss scaling +30% HP */
   return [{name:z.boss[0],kind:'boss',boss:true,bossId:z.boss[2],c:z.boss[1],
    speed:80,   /* base speed; all bosses use normal boss speed rules in speedOf() */
    hp:Math.round(eHP(L)*hpMul*pm*km),atk:Math.round(eATK(L)*1.76*pm*km),
@@ -1248,7 +1250,7 @@ const speedBoostMul=()=>1+boostBonus(S.boosts?S.boosts.speed:0,'speed');
 const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0,'haste');
 function freshState(name,race,cls){
  return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,lastZone:0,maxZone:0,quest:0,qProg:0,hardcore:false,hcDead:false,gender:'m',
-  rating:0,cerberusKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',bankGold:0,bankScrap:0,bankEarned:0,bankLastT:0,smithLvl:0,smithJob:null,luckPots:0,luckT:0,gamblerPots:0,gamblerT:0,restedT:0,restedPct:0,restedSpinAt:0,freeGoldCases:0,chests:{blacktemple:0},cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
+  rating:0,odinKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',bankGold:0,bankScrap:0,bankEarned:0,bankLastT:0,smithLvl:0,smithJob:null,luckPots:0,luckT:0,gamblerPots:0,gamblerT:0,restedT:0,restedPct:0,restedSpinAt:0,freeGoldCases:0,chests:{violethalls:0},cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
   gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],pet:null,pets:[],
   boosts:{speed:0,haste:0},autoUse:{},tainted:false,
   cleared:{},bossDead:{},zoneLvlGain:{},
@@ -1312,7 +1314,12 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.volSfx===undefined)s.volSfx=0.55;
  if(s.prestige===undefined)s.prestige=0;
  if(s.rating===undefined)s.rating=0;
- if(s.cerberusKills===undefined)s.cerberusKills=0;
+ if(s.cerberusKills!==undefined){ /* ODIN was cerberus internally - carry the tally over, or every
+                                     veteran's kill count (and his +10%-per-kill scaling) resets to 0 */
+  s.odinKills=(s.odinKills||0)+s.cerberusKills;
+  delete s.cerberusKills;
+ }
+ if(s.odinKills===undefined)s.odinKills=0;
  if(s.worms===undefined)s.worms=0;
  if(s.raidPots===undefined)s.raidPots=0;
  if(s.connectors===undefined)s.connectors=0; /* 🔗 crypt connectors - fuse two T-IV scrolls at the smith */
@@ -1397,7 +1404,12 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.restedSpinAt===undefined)s.restedSpinAt=0;
  if(s.freeGoldCases===undefined)s.freeGoldCases=0;
  if(s.chests===undefined)s.chests={};
- s.chests=Object.assign({blacktemple:0},s.chests);
+ if(s.chests.blacktemple){ /* the Violet Halls were the Black Temple - saves written before the rename
+                              still hold the old key, and dropping it would quietly eat their chests */
+  s.chests.violethalls=(s.chests.violethalls||0)+s.chests.blacktemple;
+ }
+ delete s.chests.blacktemple;
+ s.chests=Object.assign({violethalls:0},s.chests);
  if(s.cowBest===undefined)s.cowBest=0;
  if(s.cowLast===undefined)s.cowLast=0;
  if(s.cowBestItems===undefined)s.cowBestItems=0;
@@ -1727,7 +1739,7 @@ function applyVolumes(){
  if(AC.ctx&&AC.ctx.state==='suspended')AC.ctx.resume().catch(()=>{}); /* iOS parks the session when all media is muted - wake it so sfx stays alive */
  /* .muted works on iOS where .volume writes are ignored - mute must win on phones */
  const av=ambVol(),m=av<=0;
- [ambAudio,cowAudio,haalandAudio,cryptAudio,finalAudio,casinoAudio].forEach(a=>{if(a){try{a.volume=av;a.muted=m;}catch(e){}}});
+ [ambAudio,cowAudio,odinAudio,cryptAudio,finalAudio,casinoAudio].forEach(a=>{if(a){try{a.volume=av;a.muted=m;}catch(e){}}});
 }
 function noiseBuf(){
  if(AC.nb)return AC.nb;
@@ -1750,7 +1762,7 @@ function stopAmbience(){
  AC.timers.forEach(t=>clearInterval(t));
  AC.amb=[];AC.timers=[];
  stopCowTrack();
- stopHaalandTrack();
+ stopOdinTrack();
  stopCryptTrack();
  stopFinalTrack();
  stopAmbTrack();
@@ -1854,22 +1866,22 @@ function startCowMusic(){
   s++;
  },step16));
 }
-/* ---- HAALAND boss music: plays haaland_boss.mp3 if present, else dark synth ---- */
-const HAALAND_MUSIC_URL='ambientsong/haaland_boss.mp3';
-let haalandAudio=null;
-function startHaalandTrack(){
- if(!HAALAND_MUSIC_URL)return false;
- if(!haalandAudio){
-  haalandAudio=new Audio(HAALAND_MUSIC_URL);
-  haalandAudio.loop=true;
-  haalandAudio.onerror=()=>{haalandAudio=null;startMusic(true);}; /* file missing → dark synth */
+/* ---- ODIN boss music: plays odin_boss.mp3 if present, else dark synth ---- */
+const ODIN_MUSIC_URL='ambientsong/odin_boss.mp3';
+let odinAudio=null;
+function startOdinTrack(){
+ if(!ODIN_MUSIC_URL)return false;
+ if(!odinAudio){
+  odinAudio=new Audio(ODIN_MUSIC_URL);
+  odinAudio.loop=true;
+  odinAudio.onerror=()=>{odinAudio=null;startMusic(true);}; /* file missing → dark synth */
  }
- haalandAudio.volume=ambVol();
- haalandAudio.currentTime=0;
- haalandAudio.play().catch(()=>{});
+ odinAudio.volume=ambVol();
+ odinAudio.currentTime=0;
+ odinAudio.play().catch(()=>{});
  return true;
 }
-function stopHaalandTrack(){if(haalandAudio)haalandAudio.pause();}
+function stopOdinTrack(){if(odinAudio)odinAudio.pause();}
 /* ---- ☠ The Final Hour: the Forsaken One's own theme ---- */
 const FINAL_MUSIC_URL='ambientsong/finalhour.mp3';
 let finalAudio=null;
@@ -1986,12 +1998,12 @@ function startMusic(dark){
 }
 function startAmbience(prof){
  if(!AC.ctx)return;
- if(prof!=='cow'&&prof!=='haaland'&&prof!=='crypt'&&prof!=='final')prof='world'; /* one shared track for all normal zones */
+ if(prof!=='cow'&&prof!=='odin'&&prof!=='crypt'&&prof!=='final')prof='world'; /* one shared track for all normal zones */
  if(AC.prof===prof)return;
  stopAmbience();AC.prof=prof;
  if(prof==='final'){if(!startFinalTrack())startMusic(true);return;} /* ☠ the last fight has its own theme */
  if(prof==='cow'){if(!startCowTrack())startCowMusic();return;}
- if(prof==='haaland'){windLayer(.14,700,.7);if(!startHaalandTrack())startMusic(true);return;}
+ if(prof==='odin'){windLayer(.14,700,.7);if(!startOdinTrack())startMusic(true);return;}
  if(prof==='crypt'){
   if(!startCryptTrack())startMusic(true);
   cryptGrowlT=30+Math.random()*30; /* something breathes in the dark every 30–60s */
@@ -2333,7 +2345,7 @@ function buildCryptMaze(){
 /* wall texture as a repeating pattern - fixed 836px world repeat, anchored in world
    space so the masonry stays put while the camera moves; built once and cached */
 let raidWallPat=null;
-function raidWallPattern(){ /* Black Temple masonry - world-anchored so segments fuse seamlessly */
+function raidWallPattern(){ /* Violet Halls masonry - world-anchored so segments fuse seamlessly */
  if(raidWallPat)return raidWallPat;
  const img=zoneMapImg('raidwall');
  if(!(img.complete&&img.naturalWidth))return null;
@@ -3775,7 +3787,7 @@ function prerenderGround(z,R){
  if(z.crypts||z.farm||z.city){groundCv.width=groundCv.height=16;return;} /* floor draws per frame - giant canvases sink phones */
  groundCv.width=world.w;groundCv.height=world.h;
  const g=groundCv.getContext('2d');
- if(z.raid){ /* the Black Temple floor - tiled at near-native scale, mirrored to hide seams */
+ if(z.raid){ /* the Violet Halls floor - tiled at near-native scale, mirrored to hide seams */
   const rf=zoneMapImg('raidfloor');
   if(rf.complete&&rf.naturalWidth){
    const TW=1200,TH=TW*rf.naturalHeight/rf.naturalWidth;
@@ -3918,7 +3930,7 @@ function speedOf(e){
  }
  /* Cow Level hardmode: herd movement ramps up fast the longer you survive. */
  if(e.cow&&cowRunning)s*=Math.min(3.5,1+cowT*(e.bigCow?0.027:0.035)); /* gentler ramp-up; the Alpha ramps a bit slower */
- /* Thor and HAALAND keep their custom tuning. */
+ /* Thor and ODIN keep their custom tuning. */
  if(e.slowT>0)s*=0.45;
  return s;
 }
@@ -4004,7 +4016,7 @@ function hurtHero(dmg,label){
  if(hero.dead)return;
  /* hidden passive: melee classes (Warrior/Priest) shrug off 60% in the Cow Level - never shown in any UI */
  const cowMelee=zoneOf().cow&&(S.cls==='warrior'||S.cls==='priest')?0.40:1;
- dmg=Math.round(dmg*(1-scrollPct('warding'))*(1-(classOf().armor||0))*(1-(raceOf().armor||0))*(1-((activePet()||{}).armor||0))*(1-Math.min(0.5,gearSum('armor')))*(((S.armorT||0)>0&&zoneOf().amb==='haaland')?0.5:1)*cowMelee); /* 🛡 potion: -50% only in the HAALAND fight · gear armor capped at 50% */
+ dmg=Math.round(dmg*(1-scrollPct('warding'))*(1-(classOf().armor||0))*(1-(raceOf().armor||0))*(1-((activePet()||{}).armor||0))*(1-Math.min(0.5,gearSum('armor')))*(((S.armorT||0)>0&&zoneOf().amb==='odin')?0.5:1)*cowMelee); /* 🛡 potion: -50% only in the ODIN fight · gear armor capped at 50% */
  hero.hp-=dmg;hero.hurt=0.2;
  floatAt(hero.x,hero.y-26,'-'+dmg+(label?' '+label:''),'#ff8a7a');
  bloodAt(hero.x,hero.y-12,6);
@@ -4189,8 +4201,8 @@ function killEnemy(en){
   }
  }
  if(en.boss){
-  if(en.bossId==='cerberus'){
-   S.cerberusKills=(S.cerberusKills||0)+1;
+  if(en.bossId==='odin'){
+   S.odinKills=(S.odinKills||0)+1;
    S.rating=(S.rating||0)+125;
    if(!S.knifeAwarded&&S.rating>=3000){ /* 3000 rating: the Altar sends its invitation */
     S.knifeAwarded=true;S.theKnife=true;
@@ -4201,8 +4213,8 @@ function killEnemy(en){
    S.freeGoldCases=(S.freeGoldCases||0)+10;
    const sc=addScraps(60);
    floatAt(en.x,en.y-en.r-44,'+125 RATING','#ffd76a');
-   stageMsg('HAALAND falls! +125 Rating · 10 free GOLD GOLD GOLD cases!',3200);
-   log(`<span class="imp">HAALAND slain ×${S.cerberusKills}.</span> +125 Rating, +${sc} Scraps.`);
+   stageMsg('ODIN falls! +125 Rating · 10 free GOLD GOLD GOLD cases!',3200);
+   log(`<span class="imp">ODIN slain ×${S.odinKills}.</span> +125 Rating, +${sc} Scraps.`);
    log(`The beast's hoard spills open - <span class="loot">10 free GOLD GOLD GOLD cases</span>!`);
    publishLB(S,true);
   }else if(en.bossId==='thor'){
@@ -4235,9 +4247,9 @@ function killEnemy(en){
    if(!left){
     sfx.level();
     S.raidLock=raidWindow(); /* one clear per lockout - the gates know you now */
-    S.chests=Object.assign({blacktemple:0},S.chests||{});S.chests.blacktemple=(S.chests.blacktemple||0)+1;
-    log(`<span class="llegendary">🟩 Black Temple Chest</span> acquired!`,'loot');
-    stageMsg('🟩 BLACK TEMPLE CHEST - open it in the Bag!',3200);
+    S.chests=Object.assign({violethalls:0},S.chests||{});S.chests.violethalls=(S.chests.violethalls||0)+1;
+    log(`<span class="llegendary">🟩 Violet Halls Chest</span> acquired!`,'loot');
+    stageMsg('🟩 VIOLET HALLS CHEST - open it in the Bag!',3200);
     if(mp.on&&mp.started){ /* online raids only - the reward for running it together */
      S.raidPots=(S.raidPots||0)+1;
      log(`Raid reward: <span class="llegendary">⚗️ Potion of Raid</span> - +15% boss damage for 60 minutes. Drink it from the Bag.`,'loot');
@@ -4761,7 +4773,7 @@ function bossAI(en,dt){
    floatAt(en.x,en.y-en.r-30,'Mjölnir calls!','#dff4ff',true);
    sfx.arcane();shakeT=0.25;
   }
- }else if(B==='cerberus'){ /* HAALAND: hellfire, hounds & ground shake */
+ }else if(B==='odin'){ /* ODIN: hellfire, hounds & ground shake */
   if(en.cds.a<=0){en.cds.a=7;sfx.warn();
    for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*120,hero.y+(Math.random()-0.5)*120,290,1.2,en.atk*1.4,'#ff5a3a');
    floatAt(en.x,en.y-en.r-30,'Hellfire!','#ff5a3a',true);
@@ -5590,7 +5602,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
        S.armorPots=(S.armorPots||0)+1;save();
        fishToast('🛡 <b>Potion of Armor</b> - reeled in!','#8fb0d0');
        stageMsg('🛡 POTION OF ARMOR - a rare catch! Check your Bag.',3000);
-       log(`Fishing: <span class="llegendary">🛡 Potion of Armor</span> - take 50% less damage from HAALAND for 20 minutes. Drink it from the Bag.`,'loot');
+       log(`Fishing: <span class="llegendary">🛡 Potion of Armor</span> - take 50% less damage from ODIN for 20 minutes. Drink it from the Bag.`,'loot');
        burst(fish.bx,fish.by,'#8fb0d0',18,120,true);
        sfx.level();
       }else{ /* 0–4 scraps - small hauls common, a full net rare */
@@ -5868,7 +5880,7 @@ function drawCryptFog(){
  ctx.fillStyle=g;
  ctx.fill();
 }
-/* ---- Black Temple fog of war: sight ends at the walls ----
+/* ---- Violet Halls fog of war: sight ends at the walls ----
    Same recipe as the crypt fog, but the rays collide with the wall POSTS (circles).
    Door gaps have no posts, so light spills through them naturally; everything
    beyond the masonry is pitch black - no peeking over the walls. */
@@ -7295,8 +7307,10 @@ function drawHero(){
   ctx.drawImage(mip(theRingImg,rw),-rw/2,-rh/2,rw,rh);
   ctx.restore();
  }
- ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(S.name||'Hero',1,nmY+by+1);
- ctx.fillStyle='#fff';ctx.fillText(S.name||'Hero',0,nmY+by);
+ if(!S.hideName){ /* 👁 toggle in the hero panel. The ring above still hovers - it is gear, not a label */
+  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(S.name||'Hero',1,nmY+by+1);
+  ctx.fillStyle='#fff';ctx.fillText(S.name||'Hero',0,nmY+by);
+ }
  ctx.restore();
 }
 function drawNpc(n){
@@ -7368,13 +7382,13 @@ function drawEnemy(en){
  const by=moving?Math.sin(en.walk*2)*1.6:Math.sin(now/700+en.home.x)*0.7;
  ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,en.r*0.55,en.r,en.r*0.42,0,0,7);ctx.fill();
  if(en.slowT>0){ctx.strokeStyle='rgba(160,224,255,0.6)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,en.r*0.5,en.r+3,en.r*0.5,0,0,7);ctx.stroke();}
- const haalandPainted=en.bossId==='cerberus'&&haalandImg.complete&&haalandImg.naturalWidth;
+ const odinPainted=en.bossId==='odin'&&odinImg.complete&&odinImg.naturalWidth;
  const skinKey=en.skin||en.bossId;
  const raidSkin=RAID_SKINS[skinKey]&&RAID_SKINS[skinKey].img.naturalWidth?RAID_SKINS[skinKey]:null; /* raid lords + skinned leveling bosses + cow herd */
- const mobSkin=(!raidSkin&&!haalandPainted&&!en.boss&&!en.cow&&en.name!=='Messi')?mobSkinFor(en):null; /* painted foes and boss adds - Messi keeps his own look */
- if(en.kind!=='undead'&&!haalandPainted&&!raidSkin&&!mobSkin)feet(en,en.r/13);
+ const mobSkin=(!raidSkin&&!odinPainted&&!en.boss&&!en.cow&&en.name!=='Messi')?mobSkinFor(en):null; /* painted foes and boss adds - Messi keeps his own look */
+ if(en.kind!=='undead'&&!odinPainted&&!raidSkin&&!mobSkin)feet(en,en.r/13);
  const dark='rgba(0,0,0,0.28)';
- if(raidSkin){ /* a lord of the Black Temple - painted body over swinging cut-off feet */
+ if(raidSkin){ /* a lord of the Violet Halls - painted body over swinging cut-off feet */
   const H=en.r*(raidSkin.size||5.0),W=H*raidSkin.img.naturalWidth/raidSkin.img.naturalHeight;
   const fimg=raidSkin.feet,fL=raidSkin.feetL,fR=raidSkin.feetR;
   const FH=en.r*(raidSkin.fh||0.75);
@@ -7445,10 +7459,10 @@ function drawEnemy(en){
     ctx.restore();
    }
   }
- }else if(haalandPainted){ /* painted HAALAND (assets/boss/haaland_boss.png) + scaled boot feet */
+ }else if(odinPainted){ /* painted ODIN (assets/boss/odin_boss.png) + scaled boot feet */
   const bs=en.r/13;
   ctx.save();ctx.scale(bs,bs);bootFeet({moving:en.state==='chase',walk:en.walk||0});ctx.restore();
-  const H=en.r*4.4,W=H*haalandImg.naturalWidth/haalandImg.naturalHeight;
+  const H=en.r*4.4,W=H*odinImg.naturalWidth/odinImg.naturalHeight;
   { /* same walk cycle as the skinned lords */
    const walking=en.state==='chase'&&!en.dead;
    const ph=(en.walk||0)*2;
@@ -7456,14 +7470,14 @@ function drawEnemy(en){
    ctx.save();
    ctx.translate(0,en.r*0.55+by);
    if(walking)ctx.rotate(Math.sin(ph)*0.045);
-   ctx.drawImage(mip(haalandImg,W),-W/2,-H-hop,W,H);
+   ctx.drawImage(mip(odinImg,W),-W/2,-H-hop,W,H);
    ctx.restore();
   }
-  if(haalandAxeImg.complete&&haalandAxeImg.naturalWidth){ /* his axe - held on the side he strikes, like the hero's weapon */
-   const AH=H*1.0,AW=AH*haalandAxeImg.naturalWidth/haalandAxeImg.naturalHeight;
+  if(odinSpearImg.complete&&odinSpearImg.naturalWidth){ /* Gungnir - held on the side he strikes, like the hero's weapon */
+   const AH=H*1.0,AW=AH*odinSpearImg.naturalWidth/odinSpearImg.naturalHeight;
    const bfx=(hero&&hero.x<en.x)?-1:1; /* face the target */
    ctx.save();ctx.translate(bfx*W*0.42,-H*0.28+by);ctx.scale(bfx,1);ctx.rotate(0.5+(en.swing?(0.2-en.swing)*7:0));
-   ctx.drawImage(mip(haalandAxeImg,AW),-AW/2,-AH*0.8,AW,AH);
+   ctx.drawImage(mip(odinSpearImg,AW),-AW/2,-AH*0.8,AW,AH);
    ctx.restore();
   }
  }else if(mobSkin){ /* 🎨 painted foe - grey art soaked in this enemy's own colour */
@@ -7571,8 +7585,8 @@ function drawEnemy(en){
    ctx.fillStyle='#e8ecf4';
    ctx.beginPath();ctx.ellipse(0,-en.r-4+by,en.r*0.34,en.r*0.18,0,0,7);ctx.fill();
    ctx.strokeStyle='rgba(127,208,255,'+(0.35+0.25*Math.sin(now/110))+')';
-  }else if(B==='cerberus'){ /* HAALAND: blond top, two extra heads, ember glow */
-   if(!haalandPainted){
+  }else if(B==='odin'){ /* ODIN: blond top, two extra heads, ember glow */
+   if(!odinPainted){
    ctx.fillStyle='#f2d98a';
    ctx.beginPath();
    ctx.moveTo(-en.r*0.42,-en.r-2+by);
@@ -7613,7 +7627,7 @@ function drawEnemy(en){
  ctx.font=(en.boss?'700 11px ':'600 9px ')+getComputedStyle(document.body).fontFamily;
  ctx.textAlign='center';
  const lblSkin=RAID_SKINS[en.skin||en.bossId];
- const lblY=(typeof haalandPainted!=='undefined'&&haalandPainted)?-en.r*4.4:(lblSkin&&lblSkin.img.naturalWidth)?-en.r*((lblSkin.size||5)+0.1):mobSkin?-en.r*((MOB_SIZE[en.kind]||4.6)-0.25):-en.r-16; /* painted foes stand taller than the old blobs */
+ const lblY=(typeof odinPainted!=='undefined'&&odinPainted)?-en.r*4.4:(lblSkin&&lblSkin.img.naturalWidth)?-en.r*((lblSkin.size||5)+0.1):mobSkin?-en.r*((MOB_SIZE[en.kind]||4.6)-0.25):-en.r-16; /* painted foes stand taller than the old blobs */
  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(en.name,1,lblY+by+1);
  ctx.fillStyle=en.boss?'#ffd76a':'#ffe9e0';ctx.fillText(en.name,0,lblY+by);
  if((en.hp<en.max||en.boss)&&!en.dead)drawMiniBar(-en.r,lblY+3+by,en.r*2,en.hp/en.max,'#c75146');
@@ -7884,8 +7898,13 @@ function gearSwapTo(i){
 function renderHero(){
  const c=classOf(),r=raceOf();
  $('heroTitle').innerHTML=`${esc(dispName(S))} - ${r.name} ${c.name}`+(S.prestige?` · Prestige ${S.prestige}`:'')+
-  ` <button id="renameBtn" title="Rename hero">✏️</button>`;
+  ` <button id="renameBtn" title="Rename hero">✏️</button>`+
+  ` <button id="nameEyeBtn" class="${S.hideName?'off':''}" title="${S.hideName?'Show':'Hide'} the name above your hero">👁</button>`;
  $('renameBtn').onclick=openRename;
+ $('nameEyeBtn').onclick=()=>{ /* 👁 cosmetic only - hides this hero's own label, never anyone else's */
+  S.hideName=!S.hideName;save();renderHero();
+  stageMsg(S.hideName?'👁 Name hidden':'👁 Name shown',1400);
+ };
  $('heroWallet').innerHTML=walletStr();
  /* the two loadout buttons + save */
  S.gearSets=S.gearSets||[null,null];
@@ -7981,7 +8000,7 @@ function renderHero(){
     $('prNo').onclick=()=>ov.remove();
    };
   }else{
-   /* match allBossesDead(): special bosses (HAALAND, Thor) are never required for prestige */
+   /* match allBossesDead(): special bosses (ODIN, Thor) are never required for prestige */
    const left=ZONES.map((z,i)=>!z.special&&z.boss&&!S.bossDead[i]?z.boss[0]:null).filter(Boolean);
    $('prestigeSec').innerHTML=`<div class="card">
     <div class="sn" style="font-family:var(--display);color:var(--brass);font-size:14px">✦ Prestige locked</div>
@@ -7999,10 +8018,10 @@ function renderMap(){
  const p5=(S.prestige||0)>=5,p1=(S.prestige||0)>=1;
  const p15=(S.prestige||0)>=10; /* raid gate */
  const cowOk=(S.prestige||0)>=5&&(S.lvl||1)>=60;
- const haalOk=(S.prestige||0)>=10;
+ const odinOk=(S.prestige||0)>=10;
  if(mapContinent==='west'&&!p1)mapContinent='east';
  if(mapContinent==='valhalla'&&!p1)mapContinent='east';
- /* raid continent is always viewable - the Prestige 10 gate sits on the Black Temple card instead */
+ /* raid continent is always viewable - the Prestige 10 gate sits on the Violet Halls card instead */
  $('eastTab').classList.toggle('cur',mapContinent==='east');
  $('westTab').classList.toggle('cur',mapContinent==='west');
  $('valhallaTab').classList.toggle('cur',mapContinent==='valhalla');
@@ -8082,12 +8101,12 @@ function renderMap(){
      ${i===S.zone?'<span class="ztag">Here</span>':!p15?'<span class="ztag boss">🔒 Prestige 10</span>':rCl?'<span class="ztag done">✓ Cleared</span>':rst.open?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">⏳ Sealed</span>'}
     </div>`;
    }
-   const kills=S.cerberusKills||0;
-   return `<div class="card zonecard ${haalOk?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${haalOk?'#c94a3a':''}">
+   const kills=S.odinKills||0;
+   return `<div class="card zonecard ${odinOk?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${odinOk?'#c94a3a':''}">
     <div class="zdot" style="background:linear-gradient(160deg,${z.ground},#5a1a1a)">🐕</div>
     <div class="zinfo"><div class="zn">${z.name}</div>
-    <div class="zl">HAALAND - ${haalOk?'':'Prestige 10 boss · '}slain ×${kills} · +125 Rating per kill · grows stronger each time</div></div>
-    ${i===S.zone?'<span class="ztag">Here</span>':haalOk?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">🔒 Prestige 10</span>'}
+    <div class="zl">ODIN - ${odinOk?'':'Prestige 10 boss · '}slain ×${kills} · +125 Rating per kill · grows stronger each time</div></div>
+    ${i===S.zone?'<span class="ztag">Here</span>':odinOk?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag boss">🔒 Prestige 10</span>'}
    </div>`;
   }
   const pz=progZone();
@@ -8121,18 +8140,18 @@ function renderMap(){
      if(S.lvl<60){stageMsg('🐄 The cows demand level 60',1800);sfx.warn();return;}
      if(S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it)).length){stageMsg('Empty your bag first - the herd only respects those who arrive with nothing',2400);sfx.warn();return;}
     }else if(z.raid){
-     if((S.prestige||0)<10){stageMsg('Reach Prestige 10 - the Black Temple opens only to legends',1800);sfx.warn();return;}
+     if((S.prestige||0)<10){stageMsg('Reach Prestige 10 - the Violet Halls opens only to legends',1800);sfx.warn();return;}
      const rst=raidStatus();
-     if(!rst.open){stageMsg('⚔ The Black Temple gates are sealed - next opening in '+fmtMS(rst.next),2200);sfx.warn();return;}
-     if(raidCleared()){stageMsg('✓ The Black Temple already fell this lockout - next raid in '+fmtMS(rst.left+(RAID_PERIOD-RAID_OPEN)),2400);sfx.warn();return;}
+     if(!rst.open){stageMsg('⚔ The Violet Halls gates are sealed - next opening in '+fmtMS(rst.next),2200);sfx.warn();return;}
+     if(raidCleared()){stageMsg('✓ The Violet Halls already fell this lockout - next raid in '+fmtMS(rst.left+(RAID_PERIOD-RAID_OPEN)),2400);sfx.warn();return;}
      pendingRaidZone=i;
      const rm=$('raidModal');
      if(rm){rm.style.display='flex';openTab('battle');}
      return;
     }else if(z.crypts){
      if((S.prestige||0)<20){stageMsg('⚰️ The Crypts open only to Prestige 20',1800);sfx.warn();return;}
-    }else if(z.boss&&z.boss[2]==='cerberus'){
-     if((S.prestige||0)<10){stageMsg('⚽ Haaland only faces Prestige 10 champions',1800);sfx.warn();return;}
+    }else if(z.boss&&z.boss[2]==='odin'){
+     if((S.prestige||0)<10){stageMsg('⚽ Odin only faces Prestige 10 champions',1800);sfx.warn();return;}
     }else{
      if((S.prestige||0)<10){return;}
     }
@@ -8166,7 +8185,7 @@ setInterval(()=>{
    stageMsg('⚡ THOR HAS APPEARED IN VALHALLA - 15 minutes!',4000);
    if(typeof sfx!=='undefined'&&sfx.quest)sfx.quest();
  }
- /* Black Temple window - same treatment as Thor */
+ /* Violet Halls window - same treatment as Thor */
  const rEl=$('raidTimer');
  const rst=raidStatus();
  if(rEl){
@@ -8176,7 +8195,7 @@ setInterval(()=>{
  }
  if(raidWasOpen!==rst.open&&$('p-map').classList.contains('open'))renderMap();
  if(!raidWasOpen&&rst.open&&typeof gameOn!=='undefined'&&gameOn&&(S.prestige||0)>=10){
-  stageMsg('⚔ THE BLACK TEMPLE GATES ARE OPEN - 30 minutes!',4000);
+  stageMsg('⚔ THE VIOLET HALLS GATES ARE OPEN - 30 minutes!',4000);
   if(typeof sfx!=='undefined'&&sfx.quest)sfx.quest();
  }
  raidWasOpen=rst.open;
@@ -8224,14 +8243,14 @@ function renderBag(){
    <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#9adf9a">ACTIVE - '+mins+' min remaining.</b> ':''}+20% better drops from slain foes for 30 minutes. Chests and slots are unaffected. Thor yields one per kill.</div></div>
    <div class="btns"><button class="sbtn gold" id="luckUse" ${(S.luckPots||0)<1?'disabled':''}>${active?'Extend +30m':'Drink'}</button></div></div>`;
  }
- // ⚗️ raid potions - online Black Temple clears only
+ // ⚗️ raid potions - online Violet Halls clears only
  let raidHtml='';
  if((S.raidPots||0)>0||S.raidT>0){
   const active=S.raidT>0;
   const mins=Math.ceil(S.raidT/60);
   raidHtml=`<div class="card item" style="border-color:#39ff6a${active?';box-shadow:0 0 10px rgba(57,255,106,.25)':''}"><div>
    <div class="sn" style="color:#39ff6a;font-size:13px;font-weight:600">⚗️ Potion of Raid <span style="color:var(--dim)">×${S.raidPots||0}</span></div>
-   <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#39ff6a">ACTIVE - '+mins+' min remaining.</b> ':''}+15% boss damage for 60 minutes. Earned by clearing the Black Temple raid online.</div></div>
+   <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#39ff6a">ACTIVE - '+mins+' min remaining.</b> ':''}+15% boss damage for 60 minutes. Earned by clearing the Violet Halls raid online.</div></div>
    <div class="btns"><button class="sbtn gold" id="raidUse" ${(S.raidPots||0)<1?'disabled':''}>${active?'Extend +60m':'Drink'}</button></div></div>`;
  }
  // 🛡 armor potions - fished from the Moonshine lake
@@ -8241,7 +8260,7 @@ function renderBag(){
   const aMin=Math.ceil(S.armorT/60);
   armorHtml=`<div class="card item" style="border-color:#8fb0d0${aAct?';box-shadow:0 0 10px rgba(143,176,208,.25)':''}"><div>
    <div class="sn" style="color:#8fb0d0;font-size:13px;font-weight:600">${uiIcon('pot_armor','🛡','shopico')} Potion of Armor <span style="color:var(--dim)">×${S.armorPots||0}</span></div>
-   <div class="ss" style="color:var(--dim);font-size:11px">${aAct?'<b style="color:#8fb0d0">ACTIVE - '+aMin+' min remaining.</b> ':''}Take <b>50% less damage from HAALAND</b> for 20 minutes. A rare catch from the Moonshine lake (0.2%).</div></div>
+   <div class="ss" style="color:var(--dim);font-size:11px">${aAct?'<b style="color:#8fb0d0">ACTIVE - '+aMin+' min remaining.</b> ':''}Take <b>50% less damage from ODIN</b> for 20 minutes. A rare catch from the Moonshine lake (0.2%).</div></div>
    <div class="btns"><button class="sbtn gold" id="armorUse" ${(S.armorPots||0)<1?'disabled':''}>${aAct?'Extend +20m':'Drink'}</button></div></div>`;
  }
  // 🔗 crypt connectors - chest trophies from The Crypts
@@ -8270,8 +8289,8 @@ function renderBag(){
    <div class="ss" style="color:var(--dim);font-size:11px"><b style="color:#8fc3ef">ACTIVE - ${mins} min remaining.</b> +${Math.round((S.restedPct||0)*100)}% XP from all sources. Spin the inn wheel in Moonshine once a day.</div></div>
    </div>`;
  }
- let btHtml='';
- if(S.chests&&S.chests.blacktemple>0)btHtml=`<div class="card item" style="border-color:#39ff6a66;box-shadow:0 0 10px rgba(57,255,106,.15)"><div><div class="sn" style="color:#39ff6a;font-size:13px;font-weight:600">${uiIcon('it_chest','🟩','shopico')} Black Temple Chest <span style="color:var(--dim)">×${S.chests.blacktemple}</span></div><div class="ss" style="color:var(--dim);font-size:11px">The spoils of the three lords. Chance for Fel Glaives, gold, or free GOLD GOLD GOLD cases.</div></div><div class="btns"><button class="sbtn gold" data-btchest>Open</button></div></div>`;
+ let vhHtml='';
+ if(S.chests&&S.chests.violethalls>0)vhHtml=`<div class="card item" style="border-color:#39ff6a66;box-shadow:0 0 10px rgba(57,255,106,.15)"><div><div class="sn" style="color:#39ff6a;font-size:13px;font-weight:600">${uiIcon('it_chest','🟩','shopico')} Violet Halls Chest <span style="color:var(--dim)">×${S.chests.violethalls}</span></div><div class="ss" style="color:var(--dim);font-size:11px">The spoils of the three lords. Chance for Fel Glaives, gold, or free GOLD GOLD GOLD cases.</div></div><div class="btns"><button class="sbtn gold" data-vhchest>Open</button></div></div>`;
  let ringHtml='';
  if(S.theKnife){
   ringHtml+=`<div class="card item" style="border-color:#bcd8ff88;box-shadow:0 0 10px rgba(188,216,255,.12)"><div>
@@ -8288,10 +8307,10 @@ function renderBag(){
    <div class="sn" style="color:#c9a45a;font-size:13px;font-weight:600">${uiIcon('it_brokenring','💍','shopico')} The Broken Ring</div>
    <div class="ss" style="color:var(--dim);font-size:11px">Cold, heavy, and humming. ${both?'Ready to be reforged.':'Needs the Recipe of the Ring from the Trader.'} Cannot be sold or discarded.</div></div></div>`;
  }
- $('scrollSec').innerHTML=luckHtml+raidHtml+armorHtml+connHtml+ringHtml+gamblerHtml+restedHtml+btHtml;
+ $('scrollSec').innerHTML=luckHtml+raidHtml+armorHtml+connHtml+ringHtml+gamblerHtml+restedHtml+vhHtml;
 
 
- document.querySelectorAll('[data-btchest]').forEach(b=>b.onclick=openBlackTempleChest);
+ document.querySelectorAll('[data-vhchest]').forEach(b=>b.onclick=openVioletHallsChest);
  // scrolls - categorised by tier; tap a tier header to expand/collapse it
  const pool=(S.scrolls||[]).concat(EQS().filter(Boolean));
  if(pool.length){
@@ -8473,7 +8492,7 @@ function renderBag(){
   S.armorT=(S.armorT||0)+1200;
   sfx.potion();
   sparkles(hero.x,hero.y-12,'#8fb0d0',12);
-  stageMsg('🛡 Iron skin! 50% less damage from HAALAND for '+Math.ceil(S.armorT/60)+' minutes!',2500);
+  stageMsg('🛡 Iron skin! 50% less damage from ODIN for '+Math.ceil(S.armorT/60)+' minutes!',2500);
   log('<span class="lfine">🛡 Potion of Armor</span> consumed.');
   renderBag();renderHUD();save();
  };
@@ -8653,7 +8672,7 @@ const CASE_COST=5000,GOLD_COST=20000;
 let caseSpinning=false,caseRAF=0,curCase='gamba'; /* which chest is spinning */
 const chestQty={gamba:1,gold:1};
 let lootUID=1,lastCaseLootIds=[];
-const caseCost=()=>curCase==='blacktemple'?0:(curCase==='gold'?GOLD_COST:CASE_COST);
+const caseCost=()=>curCase==='violethalls'?0:(curCase==='gold'?GOLD_COST:CASE_COST);
 const CASE_RARS=[
  {r:.55,cc:'#d8e4d6',t:'common'},{r:.85,cc:'#6dbb6d',t:'fine'},
  {r:.965,cc:'#5b9bd5',t:'rare'},{r:.995,cc:'#c9a0ff',t:'epic'},{r:1,cc:'#e8c9ef',t:'scroll'}
@@ -8664,7 +8683,7 @@ const CASE_RARS_GOLD=[
 ];
 function fillerCard(){
  /* GOLD GOLD GOLD uses Rimfrost and pets as rare teases instead of coin clutter. */
- if(curCase==='blacktemple'){
+ if(curCase==='violethalls'){
   const rr=Math.random();
   if(rr<0.14)return {icon:lootIco('it_weapon','🗡️'),cc:'#39ff6a',t:'legendary'};
   if(rr<0.38)return {icon:lootIco('it_chest','🎁'),cc:'#8fc3ef',t:'freebox'};
@@ -8764,22 +8783,22 @@ function btPrizeValue(){
  if(p.kind==='felglaives'){
   const it=rollFelGlaives();it._lid=lootUID++;
   if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
-  log(`BLACK TEMPLE: <span class="llegendary">Fel Glaives</span>!`,'loot');
+  log(`VIOLET HALLS: <span class="llegendary">Fel Glaives</span>!`,'loot');
   return {icon:lootIco('it_weapon','🗡️'),tier:'LEGENDARY',name:itemName(it),color:'#39ff6a',sub:'weapon · '+itemStr(it),epic:true,big:true};
  }
  if(p.kind==='gold'){
   const amt=Math.round(p.min+Math.random()*(p.max-p.min));
   const got=addGoldOverflow(amt);
-  log(`BLACK TEMPLE: <span class="loot">${amt.toLocaleString()} gold</span>${got.over?' ('+got.over.toLocaleString()+' overflow)':''}.`,'loot');
+  log(`VIOLET HALLS: <span class="loot">${amt.toLocaleString()} gold</span>${got.over?' ('+got.over.toLocaleString()+' overflow)':''}.`,'loot');
   return {icon:lootIco('it_gold','◉'),tier:'Gold',name:amt.toLocaleString()+' gold',color:'#ffd76a',sub:got.over?got.over.toLocaleString()+' parked in overflow.':'Added to your wallet.',big:amt>=25000};
  }
  S.freeGoldCases=(S.freeGoldCases||0)+p.n;
- log(`BLACK TEMPLE: <span class="loot">${p.n} free GOLD GOLD GOLD cases</span>!`,'loot');
+ log(`VIOLET HALLS: <span class="loot">${p.n} free GOLD GOLD GOLD cases</span>!`,'loot');
  return {icon:lootIco('it_chest','🎁'),tier:'Free cases',name:p.n+' GOLD GOLD GOLD',color:'#8fc3ef',sub:'Added to your free gold-chest counter.',big:p.n>=6};
 }
-function openBlackTempleChest(){
- if(!(S.chests&&S.chests.blacktemple>0)){stageMsg('No Black Temple Chest to open',1400);sfx.warn();return;}
- S.chests.blacktemple--;curCase='blacktemple';lastCaseLootIds=[];save();renderBag();renderHUD();
+function openVioletHallsChest(){
+ if(!(S.chests&&S.chests.violethalls>0)){stageMsg('No Violet Halls Chest to open',1400);sfx.warn();return;}
+ S.chests.violethalls--;curCase='violethalls';lastCaseLootIds=[];save();renderBag();renderHUD();
  startCaseSpin(btPrizeValue());
 }
 function rollChestBatch(type,count){
@@ -8825,7 +8844,7 @@ function startCaseSpin(wins){
   wraps[wraps.length-1].after(w);wraps.push(w);
  }
  const reels=wins.map((w,i)=>makeReel(wraps[i].querySelector('.casereel'),w));
- const dur=curCase==='blacktemple'?10400:5200,t0=performance.now();
+ const dur=curCase==='violethalls'?10400:5200,t0=performance.now();
  blip(140,90,0.4,.07,'sawtooth');
  const tick=now=>{
   const p=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-p,4);
@@ -8862,10 +8881,10 @@ function finishCase(wins){
  else if(wins.some(w=>w.big))sfx.quest();
  else sfx.loot();
  const rb=$('respinBtn'),qty=chestQty[curCase]||1;
- if(curCase==='blacktemple'){rb.disabled=!(S.chests&&S.chests.blacktemple>0);rb.textContent=rb.disabled?'🟩 No Black Temple Chests left':'🟩 Open another Black Temple Chest';}
+ if(curCase==='violethalls'){rb.disabled=!(S.chests&&S.chests.violethalls>0);rb.textContent=rb.disabled?'🟩 No Violet Halls Chests left':'🟩 Open another Violet Halls Chest';}
  let cost=caseCost()*qty;
  if(curCase==='gold'){const f=Math.min(S.freeGoldCases||0,qty);cost=caseCost()*(qty-f);}
- if(curCase!=='blacktemple'){
+ if(curCase!=='violethalls'){
   rb.disabled=totalGold()<cost;
   rb.textContent=cost<=0?'🎁 Respin '+qty+'x · FREE':(rb.disabled?'🎁 Respin '+qty+'x · '+cost.toLocaleString()+'◉ - broke!':'🎁 Respin '+qty+'x · '+cost.toLocaleString()+'◉');
  }
@@ -8898,7 +8917,7 @@ $('caseScrapBtn').onclick=()=>{
 };
 $('respinBtn').onclick=()=>{
  if(caseSpinning)return;
- if(curCase==='blacktemple'){openBlackTempleChest();return;}
+ if(curCase==='violethalls'){openVioletHallsChest();return;}
  const wins=rollChestBatch(curCase,chestQty[curCase]);
  if(wins)startCaseSpin(wins);
 };
@@ -9583,7 +9602,7 @@ function openSea(){
  if(AC.ambG){const t0=AC.ctx.currentTime;AC.ambG.gain.cancelScheduledValues(t0);AC.ambG.gain.setValueAtTime(0,t0);} /* iOS-safe duck */
  if(ambAudio)ambAudio.pause();
  if(cowAudio)cowAudio.pause();
- if(haalandAudio)haalandAudio.pause();
+ if(odinAudio)odinAudio.pause();
  if(cryptAudio)cryptAudio.pause();
  if(finalAudio)finalAudio.pause();
  $('seaFx').classList.add('open');
@@ -10076,12 +10095,12 @@ $('rtbClose').onclick=()=>{
 /* ==================== 🎲 GAMBLE AGAINST FRIEND ====================
    Two players, same Firestore room pattern as the raid: create/join → ready check →
    both lock an identical stake → 10 chests each, opened alternately (host first) at
-   Black Temple pace. Chests score symbolic scraps; most scraps takes the whole pot.
+   Violet Halls pace. Chests score symbolic scraps; most scraps takes the whole pot.
    Ties go to sudden death, one chest each until someone leads. */
 const GVB_SCORE={fk:20,pet:12,bull:10,scroll:7,epic:5,rare:3};
 const GVB_MAXP=10;
 const gvb={code:null,ref:null,unsub:null,pid:null,doc:null,shown:0,animating:false,paid:false,settled:false,lastChange:0,bet:0,closedByMe:false,sidesKey:'',rtc:{},rtcWaves:{},sigUnsub:null};
-/* ⚡ zero-latency layer - the Black Temple trick: spins ride WebRTC data channels the
+/* ⚡ zero-latency layer - the Violet Halls trick: spins ride WebRTC data channels the
    instant they happen; Firestore stays the source of truth and the phone fallback. */
 function gvbSig(to,type,payload){return gvb.ref.collection('signals').add({from:gvb.pid,to,type,payload:JSON.stringify(payload),t:Date.now()});}
 async function gvbRtcConnect(pid){
@@ -10293,7 +10312,7 @@ function gvbAnimateWave(w){
  $('gvbOpen').style.display='none';
  const d=gvb.doc,ord=(d&&d.order)||[];
  const pids=ord.filter(p=>w.o&&w.o[p]);
- const CARD=58,N=46,TARGET=40,dur=10400; /* every reel rides the same clock - Black Temple pace */
+ const CARD=58,N=46,TARGET=40,dur=10400; /* every reel rides the same clock - Violet Halls pace */
  const rand=mulberry32(((w.seed||1)>>>0)); /* seeded: every player sees EXACTLY the same tease cards */
  const mkf=()=>{
   const r=rand();
@@ -10712,14 +10731,14 @@ function casinoAmbApply(){
   const v=ambVol();casinoAudio.volume=v;casinoAudio.muted=v<=0;
   if(casinoAudio.paused)casinoAudio.play().catch(()=>{});
   if(AC.ambG&&AC.ctx){const t0=AC.ctx.currentTime;AC.ambG.gain.cancelScheduledValues(t0);AC.ambG.gain.setValueAtTime(0,t0);} /* duck the zone */
-  [ambAudio,cowAudio,haalandAudio,cryptAudio,finalAudio].forEach(a=>{if(a)a.pause();});
+  [ambAudio,cowAudio,odinAudio,cryptAudio,finalAudio].forEach(a=>{if(a)a.pause();});
  }else{
   if(casinoAudio)casinoAudio.pause();
   if(!anyOpen&&!seaO){ /* left the casino - the zone breathes again */
    applyVolumes();
    if(gameOn){
     if(zoneOf().cow&&cowAudio)cowAudio.play().catch(()=>{});
-    else if(zoneOf().amb==='haaland'&&haalandAudio)haalandAudio.play().catch(()=>{});
+    else if(zoneOf().amb==='odin'&&odinAudio)odinAudio.play().catch(()=>{});
     else if(zoneOf().amb==='final'&&finalAudio)finalAudio.play().catch(()=>{});
     else if(zoneOf().crypts&&cryptAudio)cryptAudio.play().catch(()=>{});
     else if(ambAudio)ambAudio.play().catch(()=>{});
@@ -10754,7 +10773,7 @@ function renderShop(){
   <div class="btns"><button class="sbtn gold" id="chestBtn" ${totalGold()<gTot?'disabled':''}>${gTot.toLocaleString()}◉</button>
   <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gamba" data-d="-1" ${gQty<=1?'disabled':''}>−</button><span class="qtynum">${gQty}x</span><button class="qtybtn" data-case="gamba" data-d="1" ${gQty>=5?'disabled':''}>+</button></div><div class="qtytotal">Total: ${gTot.toLocaleString()}◉</div></div></div></div>`;
  h+=`<div class="card item gcard-chest" style="border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.15)"><div><div class="sn" style="font-size:13px;font-weight:600;color:#ffd76a">${uiIcon('it_gold','💰','shopico')} GOLD GOLD GOLD${free?` <span style="color:#9adf9a;font-size:11px">· ${free} FREE</span>`:''}</div>
- <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common or fine junk - only rare and epic gear, a slim chance at a Tier II scroll, a tiny chance at Rimfrost, and whispers of a 🐾 loyal companion within.${free?' <b style="color:#9adf9a">HAALAND\u2019s hoard covers your next '+free+' case'+(free>1?'s':'')+'.</b>':''}</div></div>
+ <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common or fine junk - only rare and epic gear, a slim chance at a Tier II scroll, a tiny chance at Rimfrost, and whispers of a 🐾 loyal companion within.${free?' <b style="color:#9adf9a">ODIN\u2019s hoard covers your next '+free+' case'+(free>1?'s':'')+'.</b>':''}</div></div>
  <div class="btns"><button class="sbtn gold" id="goldChestBtn" ${totalGold()<goTot?'disabled':''}>${goTot>0?goTot.toLocaleString()+'◉':'FREE'}</button>
  <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gold" data-d="-1" ${goQty<=1?'disabled':''}>−</button><span class="qtynum">${goQty}x</span><button class="qtybtn" data-case="gold" data-d="1" ${goQty>=5?'disabled':''}>+</button></div><div class="qtytotal">${goFree?goFree+' free · ':''}Total: ${goTot.toLocaleString()}◉</div></div></div></div>`;
 
@@ -11773,7 +11792,7 @@ $('musBtn').onclick=()=>{
  gamePaused=audioPaused;
  if(AC.ctx){if(audioPaused)AC.ctx.suspend();else AC.ctx.resume();}
  if(cowAudio){if(audioPaused)cowAudio.pause();else if(gameOn&&zoneOf().cow&&!hero.dead)cowAudio.play().catch(()=>{});}
- if(haalandAudio){if(audioPaused)haalandAudio.pause();else if(gameOn&&zoneOf().amb==='haaland')haalandAudio.play().catch(()=>{});}
+ if(odinAudio){if(audioPaused)odinAudio.pause();else if(gameOn&&zoneOf().amb==='odin')odinAudio.play().catch(()=>{});}
  if(cryptAudio){if(audioPaused)cryptAudio.pause();else if(gameOn&&zoneOf().crypts)cryptAudio.play().catch(()=>{});}
  if(finalAudio){if(audioPaused)finalAudio.pause();else if(gameOn&&zoneOf().amb==='final')finalAudio.play().catch(()=>{});}
  $('musBtn').textContent=audioPaused?'▶':'⏸';

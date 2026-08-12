@@ -219,8 +219,11 @@
   #prestigeBtn{border:2px solid #ffd76a;animation:awoogaGlow 1.4s ease-in-out infinite}
   @keyframes awoogaGlow{0%,100%{box-shadow:0 0 8px rgba(255,215,106,.4)}50%{box-shadow:0 0 24px rgba(255,215,106,.9),0 0 40px rgba(255,180,60,.35)}}
   /* the translucent rename pencil next to the hero title */
-  #renameBtn{background:none;border:none;cursor:pointer;opacity:.4;font-size:13px;padding:0 2px;vertical-align:middle;transition:opacity .15s}
-  #renameBtn:hover{opacity:1}
+  #renameBtn,#nameEyeBtn{background:none;border:none;cursor:pointer;opacity:.4;font-size:13px;padding:0 2px;vertical-align:middle;transition:opacity .15s}
+  #renameBtn:hover,#nameEyeBtn:hover{opacity:1}
+  #nameEyeBtn{opacity:.72}     /* sits brighter than the pencil - it is a state you can leave switched on */
+  #nameEyeBtn.off{opacity:.32} /* the eye dims rather than swapping glyph - one icon, so the button never jumps width */
+  #nameEyeBtn.off:hover{opacity:1} /* .off and :hover tie on specificity, so without this the later one wins and a hidden eye never lights up */
   .pickgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .pick{background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;border:none;border-radius:10px;padding:17px 38px;cursor:pointer;transition:filter .15s}
   .pick:hover{filter:brightness(1.12)}
