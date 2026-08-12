@@ -73,13 +73,23 @@
   @keyframes msgblink{50%{opacity:.5}}
   #stagemsg.show{opacity:1}
   .stgbtn{position:absolute;right:8px;width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(10,18,14,.55);color:#fff;font-size:15px;cursor:pointer;z-index:6}
-  #sndBtn{top:6px} #sfxBtn{top:44px;font-size:13px}
+  #sndBtn{top:6px} #cfgBtn{top:44px;font-size:15px}
   #musBtn{top:82px;font-size:13px}
   #sideToggle{top:120px;height:64px;width:22px;padding:0;font-size:11px;display:none;align-items:center;justify-content:center}
   .stgbtn.off{opacity:.45}
-  .volbox{position:absolute;right:44px;display:none;align-items:center;height:32px;padding:0 10px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(10,18,14,.8);z-index:7}
-  .volbox.open{display:flex}
-  .volbox input{width:110px;accent-color:var(--brass)}
+  /* ⚙ one settings popover instead of two single-slider flyouts - music, combat, fullscreen */
+  #cfgBox{position:absolute;right:44px;top:44px;display:none;flex-direction:column;gap:8px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(10,18,14,.92);z-index:7;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+  #cfgBox.open{display:flex}
+  .cfgrow{display:flex;align-items:center;gap:9px;color:#e9e0cf;font-size:12px;cursor:pointer;user-select:none}
+  .cfgrow>span{min-width:52px}      /* the two labels line their sliders up with each other */
+  .cfgrow input[type=range]{width:118px;accent-color:var(--brass)}
+  .cfgrow b{min-width:24px;text-align:right;font-weight:600;color:var(--brass);font-variant-numeric:tabular-nums}
+  .cfgchk input{width:15px;height:15px;accent-color:var(--brass);cursor:pointer}
+  .cfgsep{height:1px;background:rgba(255,255,255,.16);margin:1px 0}
+  .cfgnote{color:var(--dim);font-size:10.5px;margin:-4px 0 0 24px} /* sits under its checkbox, aligned past the box */
+  /* FPS readout - left side, and pointer-events:none so it can never swallow a click on the world */
+  #fps{position:absolute;left:8px;top:6px;z-index:6;color:#fff;font:600 12px/1 ui-monospace,Consolas,monospace;
+       text-shadow:0 1px 3px rgba(0,0,0,.85);pointer-events:none}
  
 
   #skillbar{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:7px;align-items:flex-end;z-index:6}

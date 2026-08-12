@@ -43,7 +43,7 @@ const FG_ART={
 const fgArtFor=clsId=>{const a=FG_ART[clsId];return (a&&a.img.complete&&a.img.naturalWidth)?a:null;};
 /* 🏙 city art. CITY_HOUSES is indexed by a house's seed, so a terrace picks its faces
    deterministically and the same street looks the same every visit. */
-const CITY_ART_V=4; /* bump when a city asset is redrawn - the filenames stay put while the pictures
+const CITY_ART_V=5; /* bump when a city asset is redrawn - the filenames stay put while the pictures
                        behind them change, so without this a cached wall_gate_v.png survives a hard refresh */
 const cityImg=n=>{if(!cityImgs[n]){cityImgs[n]=new Image();cityImgs[n].src='assets/city/'+n+'.png?v='+CITY_ART_V;}return cityImgs[n];};
 const cityImgs={};
@@ -3279,15 +3279,26 @@ function weedBlob(px,py,r,h){
 function drawCityGround(){
  const vx0=camX,vy0=camY,vx1=camX+VW/zoom,vy1=camY+VH/zoom;
  const z=zoneOf();
- const dirt=cityPattern('city_ground'),cobble=cityPattern('ground_cobble');
- ctx.fillStyle=dirt||z.ground;
- ctx.fillRect(vx0,vy0,vx1-vx0,vy1-vy0);
- /* the same soil again, turned 34 degrees and 37% larger, at half strength. One tile on its own
-    repeated its cart ruts every 192 units and the banding was the first thing you saw. */
- if(zoom>0.45){
-  const skew=cityPattern('city_ground',34);
-  if(skew){ctx.save();ctx.globalAlpha=0.5;ctx.fillStyle=skew;ctx.fillRect(vx0,vy0,vx1-vx0,vy1-vy0);ctx.restore();}
+ const cobble=cityPattern('ground_cobble');
+ /* Lay the soil as plain drawImage tiles rather than one pattern-filled rect. A CanvasPattern is
+    anchored in world space, so every frame the camera moves hands the rasteriser a different
+    device-space phase; the cost of that is not the fill itself but what it leaves behind, and it
+    accumulates the longer you stay - which is why the City stayed slow after you left it and why
+    dropping the pattern objects on the way out changed nothing. The tile is authored at one art
+    pixel per world unit, so a straight blit lands identically. Six calls covers a 1234x708 view. */
+ const gi=cityImg('city_ground');
+ if(gi.complete&&gi.naturalWidth){
+  const T=gi.naturalWidth;
+  for(let x=Math.floor(vx0/T)*T;x<vx1;x+=T)for(let y=Math.floor(vy0/T)*T;y<vy1;y+=T)ctx.drawImage(gi,x,y,T,T);
+ }else{
+  ctx.fillStyle=z.ground;ctx.fillRect(vx0,vy0,vx1-vx0,vy1-vy0);
  }
+ /* The break-up of the tiling rhythm now lives IN city_ground.png - the tile is 768 wide and carries
+    a baked low-frequency mottle. It used to be a second full-viewport fill of the same pattern
+    rotated 34 degrees at half alpha, and an interleaved A/B put that one pass at 24.8 ms of an
+    87 ms frame: a rotated pattern forces Chromium to resample every covered pixel, and at DPR 2
+    that is the whole screen twice. Baking it costs nothing per frame and cannot band, because the
+    mottle is built from integer-period sinusoids that wrap exactly where a rotated copy never can. */
  /* drifts of weed over the soil, on a hashed grid so the same ground looks the same every visit.
     The outline is a wobbly closed curve rather than an ellipse - a field of perfect circles reads
     as stamped decals, which is exactly what it looked like. */
@@ -3312,18 +3323,35 @@ function drawCityGround(){
   ctx.strokeStyle='rgba(0,0,0,0.20)';ctx.lineWidth=7;ctx.stroke();
  }
  ctx.lineCap='round';
+ /* Same story as the wall bands: an avenue runs the full width of the map, so stroking it whole to
+    show one screenful means Chromium walks 16800 units of pattern-filled geometry per street per
+    frame. Liang-Barsky against the viewport, padded by the street's own width so the lip beneath it
+    and the round caps land exactly where they did. A cap that gets clipped away was off screen. */
+ const clipSeg=(x0,y0,x1,y1,pad)=>{
+  const ax0=vx0-pad,ay0=vy0-pad,ax1=vx1+pad,ay1=vy1+pad;
+  const dx=x1-x0,dy=y1-y0;
+  let t0=0,t1=1;
+  const edge=(p,q)=>{
+   if(p===0)return q>=0;                 /* parallel to this edge - inside only if already within */
+   const r=q/p;
+   if(p<0){if(r>t1)return false;if(r>t0)t0=r;}
+   else   {if(r<t0)return false;if(r<t1)t1=r;}
+   return true;
+  };
+  if(!edge(-dx,x0-ax0)||!edge(dx,ax1-x0)||!edge(-dy,y0-ay0)||!edge(dy,ay1-y0))return null;
+  return [x0+dx*t0,y0+dy*t0,x0+dx*t1,y0+dy*t1];
+ };
  for(const st of world.streets||[]){
-  const minx=Math.min(st.x0,st.x1)-st.w,maxx=Math.max(st.x0,st.x1)+st.w;
-  const miny=Math.min(st.y0,st.y1)-st.w,maxy=Math.max(st.y0,st.y1)+st.w;
-  if(maxx<vx0||minx>vx1||maxy<vy0||miny>vy1)continue;
+  const seg=clipSeg(st.x0,st.y0,st.x1,st.y1,st.w+12);
+  if(!seg)continue;
   /* lip first, cobbles over it - the old order needed a third stroke to hide the lip again, and a
      pattern stroke is expensive. LOD: the lip is a 4px detail, dropped when zoomed out. */
   if(zoom>0.5){
    ctx.strokeStyle='rgba(0,0,0,0.16)';ctx.lineWidth=st.w+9;
-   ctx.beginPath();ctx.moveTo(st.x0,st.y0);ctx.lineTo(st.x1,st.y1);ctx.stroke();
+   ctx.beginPath();ctx.moveTo(seg[0],seg[1]);ctx.lineTo(seg[2],seg[3]);ctx.stroke();
   }
   ctx.strokeStyle=cobble||z.path;ctx.lineWidth=st.w;
-  ctx.beginPath();ctx.moveTo(st.x0,st.y0);ctx.lineTo(st.x1,st.y1);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(seg[0],seg[1]);ctx.lineTo(seg[2],seg[3]);ctx.stroke();
  }
  drawCityWalls();
  ctx.strokeStyle='rgba(0,0,0,0.35)';ctx.lineWidth=26;ctx.strokeRect(0,0,world.w,world.h);
@@ -3339,9 +3367,15 @@ function drawCityWalls(){
  const hh=cityImg('wall_strip_h').naturalHeight;      /* the art is authored at its world height */
  const vw=cityImg('wall_strip_v').naturalWidth;
  const vx0=camX,vy0=camY,vx1=camX+VW/zoom,vy1=camY+VH/zoom;
+ /* Clip each band to the camera instead of merely testing whether it is visible at all. The north
+    and south runs are world.w = 16800 wide and the side runs world.h = 5200 tall, so the old test
+    passed and then asked Chromium to rasterise a pattern across the entire map to show the ~1600
+    on screen. Profiling a City frame put this one function at 32.7 ms of 76. The pattern is
+    anchored in world space, so painting only the visible slice produces identical pixels. */
  const band=(x,y,w,h,pat)=>{
-  if(x+w<vx0||x>vx1||y+h<vy0||y>vy1)return;
-  ctx.fillStyle=pat;ctx.fillRect(x,y,w,h);
+  const x0=Math.max(x,vx0),y0=Math.max(y,vy0),x1=Math.min(x+w,vx1),y1=Math.min(y+h,vy1);
+  if(x1<=x0||y1<=y0)return;
+  ctx.fillStyle=pat;ctx.fillRect(x0,y0,x1-x0,y1-y0);
  };
  band(0,WIN-hh,W,hh,ph);                              /* north - stands up from the inner face */
  band(0,H-WI-hh,W,hh,ph);                             /* south */
@@ -3950,7 +3984,12 @@ function speedOf(e){
 function moveToward(e,tx,ty,dt){
  const dx=tx-e.x,dy=ty-e.y,d=Math.hypot(dx,dy);
  if(d<2)return true;
- const ux=dx/d,uy=dy/d,sp=speedOf(e)*dt;
+ /* Never step further than the target is away. Without the clamp the step is speed*dt flat, so a
+    frame that runs long carries the walker straight past the point, the direction flips, and the
+    next frame carries it back - an oscillation that also mirrors the sprite every frame. It only
+    shows up once dt grows: at 60 fps the step is under the 2-unit arrival test, at 20 fps in the
+    City it is three times that and sails clean over it. */
+ const ux=dx/d,uy=dy/d,sp=Math.min(speedOf(e)*dt,d);
  e.fx=ux;e.fy=uy;e.walk+=dt*11;e.moving=true;
  let nx=e.x+ux*sp,ny=e.y+uy*sp;
  if(!collide(e,nx,ny)){e.x=nx;e.y=ny;e.avoid=null;return false;}
@@ -4483,8 +4522,8 @@ function bossAI(en,dt){
    const ux=Math.cos(en.beamA),uy=Math.sin(en.beamA),LEN=1400;
    const bx=en.x,by=en.y-en.r*0.6;
    en.beamFx={x:bx,y:by,ux,uy,len:LEN}; /* thick beam drawn in the world layer */
-   if(Math.random()<0.5)zapLine(bx,by,bx+ux*LEN,by+uy*LEN);
-   if(Math.random()<0.6)burst(bx+ux*(120+Math.random()*900),by+uy*(120+Math.random()*900),'#7fe3ff',2,50);
+   if(chance(0.5))zapLine(bx,by,bx+ux*LEN,by+uy*LEN);
+   if(chance(0.6))burst(bx+ux*(120+Math.random()*900),by+uy*(120+Math.random()*900),'#7fe3ff',2,50);
    if(!hero.dead&&en.beamTick<=0){ /* caught in the beam: heavy, but survivable */
     const hx=hero.x-bx,hy=hero.y-by,along=hx*ux+hy*uy;
     if(along>40&&Math.abs(hx*-uy+hy*ux)<BEAM_HALF){hurtHero(en.atk*1.05*(en.beamMul||1),'☄');en.beamTick=0.16;sfx.bolt();} /* rapid ticks - standing in it still melts you */
@@ -4732,7 +4771,7 @@ function bossAI(en,dt){
    if(!(mp.on&&mp.started)&&addsAlive()<3){spawnAdd('Risen Ghoul','undead','#a8c8d8',en);spawnAdd('Risen Ghoul','undead','#a8c8d8',en); /* no adds in online raids */
     floatAt(en.x,en.y-en.r-30,'Rise!','#cfe8ff',true);}
   }
-  if(Math.random()<0.06)parts.push({x:en.x+(Math.random()-0.5)*36,y:en.y-14,vx:(Math.random()-0.5)*10,vy:-20,t:0,life:0.7,c:'#a0e0ff',r:1.5,g:0});
+  if(chance(0.06))parts.push({x:en.x+(Math.random()-0.5)*36,y:en.y-14,vx:(Math.random()-0.5)*10,vy:-20,t:0,life:0.7,c:'#a0e0ff',r:1.5,g:0});
  }else if(B==='thor'){ /* rotating full-room lightning beams - keep moving or fry */
   if(en.stormA===undefined){en.stormA=Math.random()*6.28;en.stormTick=0;en.stormDir=1;en.stormFlip=8;}
   en.stormFlip-=dt;
@@ -4750,12 +4789,12 @@ function bossAI(en,dt){
    const a=en.stormA+i*2.094;
    const ux=Math.cos(a),uy=Math.sin(a);
    /* crackle along the full beam */
-   if(Math.random()<0.35)zapLine(cx,cy-10,cx+ux*LEN,cy+uy*LEN);
-   if(Math.random()<0.5){
+   if(chance(0.35))zapLine(cx,cy-10,cx+ux*LEN,cy+uy*LEN);
+   if(chance(0.5)){
     const d=60+Math.random()*(LEN-60);
     zapLine(cx+ux*d+(Math.random()-0.5)*24,cy+uy*d-70,cx+ux*d,cy+uy*d-4);
    }
-   if(Math.random()<0.2){
+   if(chance(0.2)){
     const d=80+Math.random()*(LEN-80);
     burst(cx+ux*d,cy+uy*d-4,'#7fd0ff',2,50);
    }
@@ -5425,12 +5464,12 @@ function update(dt){
   if(S.luckT>0){
   S.luckT-=dt;
   if(S.luckT<=0){S.luckT=0;stageMsg('🍀 Your luck fades…',1800);}
-  else if(Math.random()<0.01)parts.push({x:hero.x+(Math.random()-0.5)*22,y:hero.y-6,vx:(Math.random()-0.5)*8,vy:-18,t:0,life:1,c:'#9adf9a',r:1.4,g:0});
+  else if(chance(0.01))parts.push({x:hero.x+(Math.random()-0.5)*22,y:hero.y-6,vx:(Math.random()-0.5)*8,vy:-18,t:0,life:1,c:'#9adf9a',r:1.4,g:0});
  }
  if(S.gamblerT>0){
   S.gamblerT-=dt;
   if(S.gamblerT<=0){S.gamblerT=0;stageMsg('🎲 The gambler\'s edge fades…',1800);}
-  else if(Math.random()<0.01)parts.push({x:hero.x+(Math.random()-0.5)*22,y:hero.y-6,vx:(Math.random()-0.5)*8,vy:-18,t:0,life:1,c:'#ffd76a',r:1.4,g:0});
+  else if(chance(0.01))parts.push({x:hero.x+(Math.random()-0.5)*22,y:hero.y-6,vx:(Math.random()-0.5)*8,vy:-18,t:0,life:1,c:'#ffd76a',r:1.4,g:0});
  }
  if(S.restedT>0){
   S.restedT-=dt;
@@ -5648,7 +5687,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    if(hero.danceFx<=0){
     hero.danceFx=0.35;
     sparkles(hero.x,hero.y-12,['#ffd76a','#c9a0ff','#7fd0ff'][Math.floor(Math.random()*3)],4);
-    if(Math.random()<0.3)floatAt(hero.x+(Math.random()-0.5)*20,hero.y-30,'🎵','#ffd76a');
+    if(chance(0.3))floatAt(hero.x+(Math.random()-0.5)*20,hero.y-30,'🎵','#ffd76a');
    }
   }else hero.dance=0;
   if(S.auto&&!hero.goPortal)autoBrain(dt);
@@ -5793,13 +5832,13 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    bolts.splice(i,1);continue;
   }
   b.x+=dx/d*b.sp*dt;b.y+=dy/d*b.sp*dt;
-  if(Math.random()<0.5)parts.push({x:b.x,y:b.y,vx:0,vy:0,t:0,life:0.2,c:b.c,r:1.5,g:0});
+  if(chance(0.5))parts.push({x:b.x,y:b.y,vx:0,vy:0,t:0,life:0.2,c:b.c,r:1.5,g:0});
  }
  // ----- enemy bolts (dodgeable) -----
  for(let i=ebolts.length-1;i>=0;i--){
   const b=ebolts[i];
   b.t+=dt;b.x+=b.vx*dt;b.y+=b.vy*dt;
-  if(Math.random()<0.4)parts.push({x:b.x,y:b.y,vx:0,vy:0,t:0,life:0.2,c:b.c,r:1.6,g:0});
+  if(chance(0.4))parts.push({x:b.x,y:b.y,vx:0,vy:0,t:0,life:0.2,c:b.c,r:1.6,g:0});
   if(!hero.dead&&Math.hypot(hero.x-b.x,(hero.y-10)-b.y)<(b.ball?18:15)){
    hurtHero(b.pct?heroMax()*b.pct:b.dmg,b.ball?'⚽':undefined);
    ebolts.splice(i,1);continue;
@@ -6180,7 +6219,12 @@ function draw(){
   if(s.x<cx0||s.x>cx1||s.y<cy0||s.y>cy1)continue; /* off screen - the city has hundreds of these */
   drawables.push({y:s.y,f:()=>drawProp(s,z)});
  }
- if(world.npcs)for(const n of world.npcs)drawables.push({y:n.y,f:()=>drawNpc(n)});
+ /* townsfolk get the same camera test as the props - the City walks two dozen of them and every one
+    was being queued, sorted and drawn whether or not it was anywhere near the screen */
+ if(world.npcs)for(const n of world.npcs){
+  if(n.x<cx0||n.x>cx1||n.y<cy0||n.y>cy1)continue;
+  drawables.push({y:n.y,f:()=>drawNpc(n)});
+ }
  for(const en of enemies)drawables.push({y:en.y,f:()=>drawEnemy(en)});
  if(hero)drawables.push({y:hero.y,f:drawHero});
  if(mp.on&&mp.started)for(const k in mp.peers){const p=mp.peers[k];if(p&&Date.now()-(p.t||0)<=6000)drawables.push({y:(p._y!==undefined?p._y:(p.y||hero.y)),f:()=>drawMpGhost(k,p)});}
@@ -6585,7 +6629,7 @@ function drawProp(s,z){
   ctx.fillRect(w*0.42,-hh*0.3,w*0.28,hh*0.3);
   if(s.big){ /* tavern sign + chimney smoke */
    ctx.fillStyle='#3f3226';ctx.fillRect(w*0.55,-hh*1.25,8,hh*0.35);
-   if(Math.random()<0.12)parts.push({x:s.x+w*0.55+4,y:s.y-hh*1.25,vx:(Math.random()-0.5)*6,vy:-18,t:0,life:1.6,c:'rgba(200,200,200,0.5)',r:2.5,g:0});
+   if(chance(0.12))parts.push({x:s.x+w*0.55+4,y:s.y-hh*1.25,vx:(Math.random()-0.5)*6,vy:-18,t:0,life:1.6,c:'rgba(200,200,200,0.5)',r:2.5,g:0});
    ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;
    ctx.textAlign='center';ctx.fillStyle='#ffe9a0';
    ctx.fillText('🍺 MOONSHINE INN',0,-hh*1.45);
@@ -6808,7 +6852,7 @@ function drawProp(s,z){
   ctx.shadowBlur=0;
   ctx.fillStyle='rgba(226,244,255,0.92)';
   for(let i=0;i<9;i++){const a=t*0.8+i*0.698;ctx.beginPath();ctx.arc(Math.cos(a)*52,-92+Math.sin(a)*88,3.4,0,7);ctx.fill();}
-  if(Math.random()<0.5)parts.push({x:s.x+(Math.random()-0.5)*120,y:s.y-40-Math.random()*60,vx:(Math.random()-0.5)*16,vy:-34-Math.random()*30,t:0,life:1.1,c:'#bfe4ff',r:1.6+Math.random()*1.6,g:-6});
+  if(chance(0.5))parts.push({x:s.x+(Math.random()-0.5)*120,y:s.y-40-Math.random()*60,vx:(Math.random()-0.5)*16,vy:-34-Math.random()*30,t:0,life:1.1,c:'#bfe4ff',r:1.6+Math.random()*1.6,g:-6});
   ctx.font='700 15px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText('❄ The Altar',1,-235);
   ctx.fillStyle='#bfe4ff';ctx.fillText('❄ The Altar',0,-236);
@@ -6869,10 +6913,10 @@ function drawProp(s,z){
    ctx.fillStyle='rgba(0,0,0,0.30)';ctx.beginPath();ctx.ellipse(0,-4,W*0.30,W*0.055,0,0,7);ctx.fill();
    ctx.drawImage(crisp(im,W),-W/2,14-H,W,H);
    /* ✨ embers drifting up out of the fire, plus the odd bright spark */
-   if(Math.random()<0.75)parts.push({x:s.x+(Math.random()-0.5)*W*0.20,y:s.y+fy+(Math.random()-0.5)*30,
+   if(chance(0.75))parts.push({x:s.x+(Math.random()-0.5)*W*0.20,y:s.y+fy+(Math.random()-0.5)*30,
     vx:(Math.random()-0.5)*14,vy:-30-Math.random()*30,t:0,life:0.9+Math.random()*0.6,
     c:Math.random()<0.5?'#bfe4ff':'#d9c9ff',r:1.3+Math.random()*1.5,g:-8});
-   if(Math.random()<0.10)sparkles(s.x+(Math.random()-0.5)*W*0.24,s.y+fy-Math.random()*40,'#eaf4ff',2);
+   if(chance(0.10))sparkles(s.x+(Math.random()-0.5)*W*0.24,s.y+fy-Math.random()*40,'#eaf4ff',2);
    /* glow halo over the flame */
    ctx.save();
    ctx.globalAlpha=0.12+pl*0.10;ctx.fillStyle='#8fd0ff';
@@ -11760,42 +11804,69 @@ $('nextBtn').onclick=()=>{
  stageMsg('Marching to the portal…',1600);
 };
 $('autoEquipBtn').onclick=()=>{S.autoEquip=!S.autoEquip;renderHero();save();};
+/* 🔊 is now a plain mute for everything. The sliders moved into the ⚙ panel, so leaving this button
+   as a slider flyout would have put the music level in two places that could disagree. */
 $('sndBtn').onclick=()=>{
  initAudio();
- if(IS_TOUCH){ /* phones: straight mute toggle - sliders can't control media volume on iOS */
-  S.sound=!S.sound;
-  if(S.sound&&!(S.volAmb>0))S.volAmb=0.5; /* unmute must actually make sound */
-  $('sndBtn').textContent=S.sound?'🔊':'🔇';$('sndBtn').classList.toggle('off',!S.sound);
-  applyVolumes();save();
-  return;
+ const on=!(S.sound||S.sfx);
+ S.sound=on;S.sfx=on;
+ if(on){ /* unmuting must actually make sound, even if both levels were dragged to zero */
+  if(!(S.volAmb>0))S.volAmb=0.5;
+  if(!(S.volSfx>0))S.volSfx=0.55;
  }
- $('volSfxBox').classList.remove('open');
- $('volAmbBox').classList.toggle('open');
- $('volAmbSl').value=Math.round((S.volAmb??0.5)*100);
+ syncAudioUI();applyVolumes();save();
 };
-$('sfxBtn').onclick=()=>{
- initAudio();
- if(IS_TOUCH){ /* phones: straight mute toggle for combat sounds */
-  S.sfx=!S.sfx;
-  if(S.sfx&&!(S.volSfx>0))S.volSfx=0.55; /* unmute must actually make sound */
-  $('sfxBtn').textContent=S.sfx?'⚔️':'🔕';$('sfxBtn').classList.toggle('off',!S.sfx);
-  applyVolumes();save();
-  return;
- }
- $('volAmbBox').classList.remove('open');
- $('volSfxBox').classList.toggle('open');
- $('volSfxSl').value=Math.round((S.volSfx??0.55)*100);
-};
+function syncAudioUI(){
+ const muted=!(S.sound||S.sfx);
+ $('sndBtn').textContent=muted?'🔇':'🔊';$('sndBtn').classList.toggle('off',muted);
+ const a=Math.round((S.volAmb??0.5)*100),s=Math.round((S.volSfx??0.55)*100);
+ $('volAmbSl').value=a;$('volAmbN').textContent=a;
+ $('volSfxSl').value=s;$('volSfxN').textContent=s;
+ $('fsChk').checked=isFullscreen();
+}
+$('cfgBtn').onclick=()=>{initAudio();syncAudioUI();$('cfgBox').classList.toggle('open');};
+/* click anywhere else closes it - a popover that only shuts via its own button is a nuisance */
+document.addEventListener('pointerdown',e=>{
+ if(!$('cfgBox').classList.contains('open'))return;
+ if($('cfgBox').contains(e.target)||$('cfgBtn').contains(e.target))return;
+ $('cfgBox').classList.remove('open');
+},true);
 $('volAmbSl').oninput=e=>{
  S.volAmb=e.target.value/100;S.sound=S.volAmb>0;
- $('sndBtn').textContent=S.sound?'🔊':'🔇';$('sndBtn').classList.toggle('off',!S.sound);
- applyVolumes();save();
+ $('volAmbN').textContent=e.target.value;
+ syncAudioUI();applyVolumes();save();
 };
 $('volSfxSl').oninput=e=>{
  S.volSfx=e.target.value/100;S.sfx=S.volSfx>0;
- $('sfxBtn').textContent=S.sfx?'⚔️':'🔕';$('sfxBtn').classList.toggle('off',!S.sfx);
- applyVolumes();save();
+ $('volSfxN').textContent=e.target.value;
+ syncAudioUI();applyVolumes();save();
 };
+/* Fullscreen. The browser only grants this from inside a user gesture, so it is driven straight off
+   the checkbox's change event rather than from any state-sync pass. */
+function isFullscreen(){return !!(document.fullscreenElement||document.webkitFullscreenElement);}
+$('fsChk').onchange=e=>{
+ const want=e.target.checked;
+ const p=want?(document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen())
+             :(document.exitFullscreen&&document.exitFullscreen());
+ if(p&&p.catch)p.catch(()=>{e.target.checked=isFullscreen();}); /* denied - put the tick back */
+};
+/* F11 and the Esc key change fullscreen behind the checkbox's back; keep the tick honest */
+document.addEventListener('fullscreenchange',()=>{$('fsChk').checked=isFullscreen();});
+/* ⏱ Unlimited FPS is desktop-only: vsync is switched off by command-line flags that must be set
+   before Electron starts, so the box records the wish and the next launch honours it. In a browser
+   the refresh rate belongs to the browser, so the row stays hidden rather than lying to the player. */
+if(window.desktop&&window.desktop.getFpsUnlimited){
+ $('fpsUnlRow').style.display='flex';
+ $('fpsUnlNote').style.display='block';
+ window.desktop.getFpsUnlimited().then(v=>{$('fpsUnlChk').checked=!!v;}).catch(()=>{});
+ $('fpsUnlChk').onchange=e=>{
+  const want=e.target.checked;
+  window.desktop.setFpsUnlimited(want)
+   .then(ok=>{if(ok)stageMsg(want?'⏱ Unlimited FPS on next restart':'⏱ Frame rate capped on next restart',2200);
+              else e.target.checked=!want;})
+   .catch(()=>{e.target.checked=!want;});
+ };
+}
 let audioPaused=false,gamePaused=false;
 $('musBtn').onclick=()=>{
  initAudio();
@@ -11908,10 +11979,7 @@ function beginGame(isNew){
  openTab('battle');
  hero=null; /* fresh character entering the world - never inherit the previous character's vitals */
  resize();setZoom(zmin());applyZoneUI();buildZone();buildSkillbar();renderHUD();
- $('sndBtn').textContent=S.sound?'🔊':'🔇';$('sndBtn').classList.toggle('off',!S.sound);
- $('sfxBtn').textContent=S.sfx?'⚔️':'🔕';$('sfxBtn').classList.toggle('off',!S.sfx);
- $('volAmbSl').value=Math.round((S.volAmb??0.5)*100);
- $('volSfxSl').value=Math.round((S.volSfx??0.55)*100);
+ syncAudioUI(); /* button glyph, both sliders and their numbers, in one place */
  applyVolumes();
  gameOn=true;
  setTimeout(preloadMaps,1500); /* let the current zone's assets win the bandwidth race first */
@@ -11924,9 +11992,27 @@ function beginGame(isNew){
   save();
  }else log(`<span class="imp">Welcome back, ${S.name}.</span> The march resumes.`);
 }
+/* Effects were written as "X% chance this frame", which quietly ties their density to the frame
+   rate: the same smoke that looks right at 60 fps arrives thirteen times as fast at 800, and
+   thins out to nothing in a zone running at 20. chance() keeps the original number readable as
+   a per-60fps-frame rate but scales it by real elapsed time, so density is identical at any
+   frame rate. Clamped at 1 so a long frame cannot ask for more than one emission. */
+let frameDt=1/60;
+const chance=p=>Math.random()<Math.min(1,p*frameDt*60);
 let lastT=0;
+/* 📈 FPS readout. Counts frames over a rolling half second rather than inverting a single dt - one
+   stuttered frame would otherwise send the number swinging, which is the opposite of a useful
+   diagnostic. Written to the DOM twice a second; touching textContent every frame is its own cost. */
+let fpsN=0,fpsT=0;
 function frame(t){
  const dt=Math.min(0.05,(t-lastT)/1000||0.016);lastT=t;
+ frameDt=dt;
+ fpsN++;fpsT+=dt;
+ if(fpsT>=0.5){
+  const el=$('fps');
+  if(el)el.textContent=Math.round(fpsN/fpsT)+' fps';
+  fpsN=0;fpsT=0;
+ }
  if(gameOn&&!gamePaused){
   update(dt);renderVitals(dt);
   saveT+=dt;if(saveT>12){saveT=0;save();}

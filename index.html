@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="favicon_256.png">
 <!-- ?v= is not decoration: without it iOS Safari serves a cached stylesheet for days, so two
      phones end up running two different builds of the layout. Bump on every visual change. -->
-<link rel="stylesheet" href="style.css?v=11">
+<link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
 <div id="app">
@@ -101,12 +101,19 @@
  
   <div id="stageWrap">
     <canvas id="game"></canvas>
-    <button id="sndBtn" class="stgbtn">🔊</button>
-    <button id="sfxBtn" class="stgbtn" title="Combat sounds">⚔️</button>
+    <div id="fps"></div>
+    <button id="sndBtn" class="stgbtn" title="Mute everything">🔊</button>
+    <button id="cfgBtn" class="stgbtn" title="Settings">⚙️</button>
     <button id="musBtn" class="stgbtn" title="Pause game and audio">⏸</button>
     <button id="sideToggle" class="stgbtn" title="Hide panel (B)" style="height:44px;width:16px;padding:0;font-size:9px">❯</button>
-    <div id="volAmbBox" class="volbox" style="top:6px"><input type="range" id="volAmbSl" min="0" max="100"></div>
-    <div id="volSfxBox" class="volbox" style="top:44px"><input type="range" id="volSfxSl" min="0" max="100"></div>
+    <div id="cfgBox">
+      <label class="cfgrow"><span>Music</span><input type="range" id="volAmbSl" min="0" max="100"><b id="volAmbN">50</b></label>
+      <label class="cfgrow"><span>Combat</span><input type="range" id="volSfxSl" min="0" max="100"><b id="volSfxN">55</b></label>
+      <div class="cfgsep"></div>
+      <label class="cfgrow cfgchk"><input type="checkbox" id="fsChk"><span>Fullscreen</span></label>
+      <label class="cfgrow cfgchk" id="fpsUnlRow" style="display:none"><input type="checkbox" id="fpsUnlChk"><span>Unlimited FPS</span></label>
+      <div class="cfgnote" id="fpsUnlNote" style="display:none">Takes effect on restart</div>
+    </div>
     <div id="hint">WASD / tap ground to move · tap a foe · tap spells to cast</div>
     <div id="stagemsg"></div>
     <button id="fishBtn" title="Fiska"><img class="btnico" src="assets/icons/ui_hook.png" alt="🪝"><span class="cnt" id="fishWormN"></span></button>
@@ -632,6 +639,6 @@
   </nav>
 </div>
  
-<script src="game.js?v=12"></script>
+<script src="game.js?v=13"></script>
 </body>
 </html>

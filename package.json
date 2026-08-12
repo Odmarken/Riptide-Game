@@ -1,0 +1,46 @@
+{
+  "name": "riptide-rpg",
+  "productName": "Riptide RPG",
+  "version": "0.1.0",
+  "description": "Riptide RPG - desktop build",
+  "main": "main.js",
+  "author": "Odmarken",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-packager . \"Riptide RPG\" --platform=win32 --arch=x64 --out=dist --overwrite --no-asar --icon=build/icon.ico --app-version=0.1.0 --ignore=\"^/(dist|build|node_modules|\\.claude|\\.git)\"",
+    "installer": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "@electron/packager": "^20.3.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.odmarken.riptiderpg",
+    "productName": "Riptide RPG",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "asar": false,
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "game.js",
+      "style.css",
+      "manifest.webmanifest",
+      "favicon*.png",
+      "assets/**/*",
+      "ambientsong/**/*"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        "dir"
+      ]
+    }
+  }
+}
