@@ -1307,6 +1307,17 @@ function migrate(s){ /* fills fields missing from older saves */
   while((s.maxZone||0)>0&&(s.lvl||1)<(ZONES[s.maxZone]?.lvl||1))s.maxZone--;
   if(!ZONES[s.zone||0]?.special&&(s.maxZone||0)<(s.zone||0))s.maxZone=s.zone||0;
  }
+ /* 🔒 Repair a maxZone that sits past a boss who is still breathing. The repair above clamps on
+    LEVEL only, so at level 60 it clamps nothing. For a while the world map let you travel anywhere
+    while standing in the City, and arriving somewhere writes maxZone = that zone; every zone at or
+    below maxZone then skips the boss check for good. Closing the map gate stopped new damage but
+    left the number sitting in the save, so those heroes kept walking past bosses they never killed.
+    Reads bossDead defensively - migrate() does not default it until further down. */
+ const bossesDeadBefore=(sv,i)=>ZONES.every((z,k)=>k>=i||z.special||!z.boss||!!(sv.bossDead||{})[k]);
+ while((s.maxZone||0)>0&&!bossesDeadBefore(s,s.maxZone))s.maxZone--;
+ /* and pull the hero back out of any zone the repaired maxZone no longer covers - standing there
+    would have the travel path write maxZone straight back up on the next frame. */
+ if(!ZONES[s.zone||0]?.special&&(s.zone||0)>(s.maxZone||0))s.zone=s.maxZone||0;
  if(s.gold>goldCap(s))s.gold=goldCap(s);
  if(s.scraps>SCRAP_CAP)s.scraps=SCRAP_CAP;
  if(s.sfx===undefined)s.sfx=true;

@@ -75,7 +75,8 @@
       "Bash(python cut.py spear.png spear_cut.png 683)",
       "Bash(python cut.py v2.png v2_cut.png 900)",
       "Bash(python cut.py v2.png odin_body.png 900)",
-      "Bash(python cut.py spear.png odin_spear.png -1400)"
+      "Bash(python cut.py spear.png odin_spear.png -1400)",
+      "Bash(git diff *)"
     ]
   }
 }
