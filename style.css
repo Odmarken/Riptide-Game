@@ -87,6 +87,13 @@
   .cfgchk input{width:15px;height:15px;accent-color:var(--brass);cursor:pointer}
   .cfgsep{height:1px;background:rgba(255,255,255,.16);margin:1px 0}
   .cfgnote{color:var(--dim);font-size:10.5px;margin:-4px 0 0 24px} /* sits under its checkbox, aligned past the box */
+  .cfgexit{width:100%;padding:7px 10px;border-radius:8px;border:1px solid #8e3a30;background:linear-gradient(180deg,#7a2f26,#4d1c17);
+           color:#ffd9d2;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer}
+  .cfgexit:hover{background:linear-gradient(180deg,#93392e,#5d221b)}
+  /* Native scrollbars are a grey Windows slab bolted onto painted wood. Hidden, not disabled -
+     wheel, touch, drag and the keyboard all still scroll; only the chrome goes. */
+  #app *::-webkit-scrollbar{width:0;height:0}
+  #app *{scrollbar-width:none}
   /* FPS readout - left side, and pointer-events:none so it can never swallow a click on the world */
   #fps{position:absolute;left:8px;top:6px;z-index:6;color:#fff;font:600 12px/1 ui-monospace,Consolas,monospace;
        text-shadow:0 1px 3px rgba(0,0,0,.85);pointer-events:none}

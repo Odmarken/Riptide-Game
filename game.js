@@ -4855,6 +4855,14 @@ window.addEventListener('keydown',e=>{
   const held=farmDeselect();
   if(held){e.preventDefault();sfx.warn();stageMsg('✋ Put down '+held,1100);return;}
  }
+ if(kl==='escape'&&gameOn){ /* ⚙ Esc is the settings key. Checked after the build-mode case above, so
+                               putting a held piece down still wins - that is the more urgent undo. */
+  e.preventDefault();
+  const box=$('cfgBox');
+  if(!box.classList.contains('open'))syncAudioUI();
+  box.classList.toggle('open');
+  return;
+ }
  if(kl==='enter'){
   /* login screen: Enter = sign in · character select: Enter = play the top character */
   if($('login').classList.contains('open')){e.preventDefault();fbSignIn(false);return;}
@@ -11822,7 +11830,9 @@ function syncAudioUI(){
  const a=Math.round((S.volAmb??0.5)*100),s=Math.round((S.volSfx??0.55)*100);
  $('volAmbSl').value=a;$('volAmbN').textContent=a;
  $('volSfxSl').value=s;$('volSfxN').textContent=s;
- $('fsChk').checked=isFullscreen();
+ /* only the browser's tick is derived here - on the desktop the shell owns the window and pushes
+    the value in, so recomputing it from the page would fight whatever the shell just did */
+ if(!(window.desktop&&window.desktop.setWindowed))$('windowChk').checked=!isFullscreen();
 }
 $('cfgBtn').onclick=()=>{initAudio();syncAudioUI();$('cfgBox').classList.toggle('open');};
 /* click anywhere else closes it - a popover that only shuts via its own button is a nuisance */
@@ -11841,30 +11851,57 @@ $('volSfxSl').oninput=e=>{
  $('volSfxN').textContent=e.target.value;
  syncAudioUI();applyVolumes();save();
 };
-/* Fullscreen. The browser only grants this from inside a user gesture, so it is driven straight off
-   the checkbox's change event rather than from any state-sync pass. */
+/* 🪟 Windowed mode - the inverse of fullscreen, because fullscreen is what the game starts in.
+   On the desktop the shell owns the window, so the tick is persisted there and applied at once.
+   In a browser there is no window to own; the Fullscreen API is the nearest equivalent, and it is
+   only granted from inside a user gesture - which ticking the box is. */
 function isFullscreen(){return !!(document.fullscreenElement||document.webkitFullscreenElement);}
-$('fsChk').onchange=e=>{
- const want=e.target.checked;
- const p=want?(document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen())
-             :(document.exitFullscreen&&document.exitFullscreen());
- if(p&&p.catch)p.catch(()=>{e.target.checked=isFullscreen();}); /* denied - put the tick back */
+$('windowChk').onchange=e=>{
+ const windowed=e.target.checked;
+ if(window.desktop&&window.desktop.setWindowed){
+  /* The window takes a few hundred ms to change. Clicking again mid-flight used to queue a second
+     request that the platform swallowed, leaving the tick out of step with the window - so hold the
+     box shut until the shell reports back what actually happened. */
+  e.target.disabled=true;
+  setTimeout(()=>{e.target.disabled=false;},800);
+  window.desktop.setWindowed(windowed).catch(()=>{e.target.disabled=false;});
+  return;
+ }
+ const p=windowed?(document.exitFullscreen&&document.exitFullscreen())
+                 :(document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen());
+ if(p&&p.catch)p.catch(()=>{e.target.checked=!isFullscreen();}); /* denied - put the tick back */
 };
-/* F11 and the Esc key change fullscreen behind the checkbox's back; keep the tick honest */
-document.addEventListener('fullscreenchange',()=>{$('fsChk').checked=isFullscreen();});
-/* ⏱ Unlimited FPS is desktop-only: vsync is switched off by command-line flags that must be set
-   before Electron starts, so the box records the wish and the next launch honours it. In a browser
-   the refresh rate belongs to the browser, so the row stays hidden rather than lying to the player. */
-if(window.desktop&&window.desktop.getFpsUnlimited){
- $('fpsUnlRow').style.display='flex';
- $('fpsUnlNote').style.display='block';
- window.desktop.getFpsUnlimited().then(v=>{$('fpsUnlChk').checked=!!v;}).catch(()=>{});
- $('fpsUnlChk').onchange=e=>{
-  const want=e.target.checked;
-  window.desktop.setFpsUnlimited(want)
-   .then(ok=>{if(ok)stageMsg(want?'⏱ Unlimited FPS on next restart':'⏱ Frame rate capped on next restart',2200);
-              else e.target.checked=!want;})
-   .catch(()=>{e.target.checked=!want;});
+/* F11 and Esc change the window behind the panel's back; keep the tick honest either way */
+document.addEventListener('fullscreenchange',()=>{
+ if(!(window.desktop&&window.desktop.setWindowed))$('windowChk').checked=!isFullscreen();
+});
+if(window.desktop&&window.desktop.onWindowedChanged)
+ window.desktop.onWindowedChanged(v=>{$('windowChk').checked=v;$('windowChk').disabled=false;});
+/* 🚪 Exit. Saves first rather than asking "are you sure" - the autosave runs every 12 seconds, so
+   quitting cold could cost the last dozen seconds of play. In a browser tab there is nothing to
+   quit, so it drops back to the character select instead of a dead button. */
+$('exitBtn').onclick=()=>{
+ try{if(gameOn)save();}catch(e){}
+ if(window.desktop&&window.desktop.quit)window.desktop.quit().catch(()=>{});
+ else location.reload();
+};
+/* ⏱ Vsync is desktop-only: it is switched off by command-line flags that must be set before Electron
+   starts, so the box records the wish and the next launch honours it. Left on, frames are paced to
+   whatever the monitor actually runs at. In a browser the refresh rate belongs to the browser, so
+   the row stays hidden rather than lying to the player. */
+if(window.desktop&&window.desktop.getSettings){
+ $('vsyncRow').style.display='flex';
+ $('vsyncNote').style.display='block';
+ window.desktop.getSettings().then(s=>{
+  $('vsyncChk').checked=s.vsync!==false;
+  $('windowChk').checked=!!s.windowed;
+ }).catch(()=>{});
+ $('vsyncChk').onchange=e=>{
+  const on=e.target.checked;
+  window.desktop.setVsync(on)
+   .then(ok=>{if(ok)stageMsg(on?'⏱ Vsync on after restart':'⏱ Vsync off after restart',2200);
+              else e.target.checked=!on;})
+   .catch(()=>{e.target.checked=!on;});
  };
 }
 let audioPaused=false,gamePaused=false;

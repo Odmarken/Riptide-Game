@@ -6,23 +6,50 @@ const {app, BrowserWindow, shell, ipcMain} = require('electron');
 const path = require('path');
 const fs = require('fs');
 
-/* Uncapping the frame rate is a launch-time decision - these switches have to be on the command
-   line before Electron starts, so the setting is read off disk here and the checkbox in-game only
-   records it for next time. Kept in userData rather than beside the exe: a Steam install directory
-   is not writable, and this has to survive an update. */
+/* Player settings that the shell owns rather than the save file, because they decide how the window
+   is created. Kept in userData rather than beside the exe: a Steam install directory is not
+   writable, and these have to survive an update.
+   Defaults are the ones a first-time player should get - vsync on, fullscreen. */
 const CFG = path.join(app.getPath('userData'), 'settings.json');
-const readCfg = () => { try { return JSON.parse(fs.readFileSync(CFG, 'utf8')); } catch (e) { return {}; } };
+const readCfg = () => {
+  let raw = {};
+  try { raw = JSON.parse(fs.readFileSync(CFG, 'utf8')); } catch (e) {}
+  return {vsync: raw.vsync !== false, windowed: !!raw.windowed};
+};
+const writeCfg = patch => {
+  try { fs.writeFileSync(CFG, JSON.stringify(Object.assign(readCfg(), patch), null, 2)); return true; }
+  catch (e) { return false; }
+};
 const cfg = readCfg();
 
-if (cfg.fpsUnlimited) {
+/* Vsync can only be turned off from the command line, before Electron starts - there is no runtime
+   switch. So the checkbox records the choice and the next launch acts on it. Left on, frames are
+   paced to the monitor's refresh rate, whatever that is. */
+if (!cfg.vsync) {
   app.commandLine.appendSwitch('disable-frame-rate-limit');
   app.commandLine.appendSwitch('disable-gpu-vsync');
 }
 
-ipcMain.handle('fps-unlimited:get', () => !!readCfg().fpsUnlimited);
-ipcMain.handle('fps-unlimited:set', (_e, v) => {
-  const next = Object.assign(readCfg(), {fpsUnlimited: !!v});
-  try { fs.writeFileSync(CFG, JSON.stringify(next, null, 2)); return true; } catch (e) { return false; }
+ipcMain.handle('app:quit', () => app.quit());
+ipcMain.handle('settings:get', () => readCfg());
+ipcMain.handle('settings:vsync', (_e, v) => writeCfg({vsync: !!v}));
+ipcMain.handle('settings:windowed', (_e, v) => {
+  /* unlike vsync this one applies immediately - no reason to make the player restart to see it */
+  const ok = writeCfg({windowed: !!v});
+  if (win && !win.isDestroyed()) {
+    /* The fullscreen transition is asynchronous and takes a few hundred ms on Windows. Calling it
+       again mid-flight gets swallowed, and asking for a state the window is already in fires no
+       event at all - both leave the tick showing something the window is not. So: only call when
+       there is a change to make, and either way report the REAL state back once things settle. */
+    if (win.isFullScreen() !== !v) win.setFullScreen(!v);
+    setTimeout(() => {   /* safety net: by now the transition has settled, so this read is trustworthy */
+      if (!win || win.isDestroyed()) return;
+      const windowed = !win.isFullScreen();
+      writeCfg({windowed});
+      win.webContents.send('windowed-changed', windowed);
+    }, 700);
+  }
+  return ok;
 });
 
 /* The ambient tracks start themselves. Chromium blocks that until the user has clicked something,
@@ -41,6 +68,8 @@ function createWindow() {
     backgroundColor: '#1a120b',   /* painted before the page loads, so no white flash on launch */
     autoHideMenuBar: true,
     show: false,
+    fullscreen: !cfg.windowed,    /* fullscreen unless the player asked for a window - the 1280x800
+                                     above is what they drop into the moment they untick it */
     webPreferences: {
       contextIsolation: true,     /* the game needs no Node access - keep the renderer sandboxed */
       nodeIntegration: false,
@@ -65,6 +94,19 @@ function createWindow() {
       e.preventDefault();
     }
   });
+
+  /* F11 changes the window behind the settings panel's back. Persist what actually happened and
+     tell the page, so the Windowed tick never disagrees with the window the player is looking at.
+     The value comes from WHICH event fired, not from asking isFullScreen(): the events arrive
+     before that flag flips, so reading it here wrote the previous state back every single time and
+     left the saved file inverted - the window and the tick agreed, and the next launch disagreed
+     with both. */
+  const sync = windowed => {
+    writeCfg({windowed});
+    if (!win.isDestroyed()) win.webContents.send('windowed-changed', windowed);
+  };
+  win.on('enter-full-screen', () => sync(false));
+  win.on('leave-full-screen', () => sync(true));
 }
 
 app.whenReady().then(createWindow);

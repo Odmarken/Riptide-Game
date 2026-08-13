@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="favicon_256.png">
 <!-- ?v= is not decoration: without it iOS Safari serves a cached stylesheet for days, so two
      phones end up running two different builds of the layout. Bump on every visual change. -->
-<link rel="stylesheet" href="style.css?v=12">
+<link rel="stylesheet" href="style.css?v=13">
 </head>
 <body>
 <div id="app">
@@ -110,9 +110,11 @@
       <label class="cfgrow"><span>Music</span><input type="range" id="volAmbSl" min="0" max="100"><b id="volAmbN">50</b></label>
       <label class="cfgrow"><span>Combat</span><input type="range" id="volSfxSl" min="0" max="100"><b id="volSfxN">55</b></label>
       <div class="cfgsep"></div>
-      <label class="cfgrow cfgchk"><input type="checkbox" id="fsChk"><span>Fullscreen</span></label>
-      <label class="cfgrow cfgchk" id="fpsUnlRow" style="display:none"><input type="checkbox" id="fpsUnlChk"><span>Unlimited FPS</span></label>
-      <div class="cfgnote" id="fpsUnlNote" style="display:none">Takes effect on restart</div>
+      <label class="cfgrow cfgchk"><input type="checkbox" id="windowChk"><span>Windowed mode</span></label>
+      <label class="cfgrow cfgchk" id="vsyncRow" style="display:none"><input type="checkbox" id="vsyncChk" checked><span>Vsync</span></label>
+      <div class="cfgnote" id="vsyncNote" style="display:none">Matches your monitor · takes effect on restart</div>
+      <div class="cfgsep"></div>
+      <button id="exitBtn" class="cfgexit">Exit game</button>
     </div>
     <div id="hint">WASD / tap ground to move · tap a foe · tap spells to cast</div>
     <div id="stagemsg"></div>
@@ -639,6 +641,6 @@
   </nav>
 </div>
  
-<script src="game.js?v=13"></script>
+<script src="game.js?v=15"></script>
 </body>
 </html>
