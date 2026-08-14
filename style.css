@@ -131,7 +131,7 @@
   .skill.pot{border-color:var(--brass-deep);font-size:17px}
   /* ⛏ half the size of a spell button, as asked - it is a toggle you set and forget, not something
      you reach for mid-fight, so it should not compete with the potions for the thumb. */
-  .skill.mine{width:23px;height:23px;border-radius:6px;align-self:flex-end;margin-bottom:2px}
+  .skill.mine{width:32px;height:32px;border-radius:8px;align-self:flex-end;margin-bottom:2px}
   .skill.mine.on{border-color:#e8c06a;box-shadow:0 0 9px rgba(232,192,106,.65)}
   /* the mining hall and the smelter reuse the smith's panel and forge slots rather than inventing
      their own - one modal shape across every venue in the game */
@@ -215,6 +215,14 @@
   .sbtn:disabled{opacity:.4;cursor:default}
   .toggle-row{display:flex;justify-content:space-between;align-items:center;font-size:12.5px}
   .spellcard{display:flex;gap:10px;align-items:center}
+  /* ⛏ the mining track, styled off the spell card it sits under. The count rides inside the bar
+     rather than beside it so the row stays the same height as the spells above it. */
+  .minebar{position:relative;height:15px;margin-top:5px;border-radius:8px;overflow:hidden;
+           background:rgba(0,0,0,.34);border:1px solid rgba(120,170,220,.30)}
+  .minebar i{display:block;height:100%;border-radius:8px;
+             background:linear-gradient(180deg,#6fb3ef,#2f6fb5);transition:width .35s ease}
+  .minebar b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+             font-size:10.5px;font-weight:600;color:#eaf3ff;text-shadow:0 1px 2px rgba(0,0,0,.8)}
   .spellg{width:36px;height:36px;border-radius:9px;background:#2a1d13;border:1px solid var(--brass-deep);display:flex;align-items:center;justify-content:center;font-size:17px;flex:0 0 auto}
   .glowdot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
   .wallet{font-size:12px;color:var(--dim);margin:-6px 0 12px}

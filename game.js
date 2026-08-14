@@ -116,6 +116,7 @@ const maceImg=new Image();maceImg.src='assets/weapons/mace.png';
    stops a browser that already cached the old boss from serving it forever. */
 const odinImg=new Image();odinImg.src='assets/boss/odin_boss.png?v=2';
 const odinSpearImg=new Image();odinSpearImg.src='assets/boss/odin_spear.png?v=2';
+const pickImg=new Image();pickImg.src='assets/weapons/pickaxe.png?v=2'; /* the miner's tool */
 /* the three lords of the Violet Halls - painted bodies + one shared blade, tinted per lord */
 const fellordImg=new Image();fellordImg.src='assets/boss/fellord_boss.png?v=2';
 const firelordImg=new Image();firelordImg.src='assets/boss/firelord_boss.png?v=2';
@@ -2253,14 +2254,33 @@ function startAmbience(prof){
 /* Combat / one-shot sounds - all routed through the sfx bus (⚔️ button mutes just these). */
 const sfx={
  hit:()=>{noiseHit(0.08,.11,520);blip(170,70,0.09,.07,'triangle');},
- /* ⛏ steel into stone. Three parts, because one is never enough to sound like anything: the bright
-    crack of the point going in, the dull body of the rock taking it, and a short ring off the head.
-    The pitch wanders a little per swing so a run of them does not turn into a machine. */
+ /* ⛏ steel into stone, built in four layers because a single burst never reads as a struck object.
+    1. the transient - a very short bright crack, which is what the ear uses to judge force
+    2. the stone - band-passed noise with a fast, rough decay: rock crumbling rather than hissing
+    3. the ring - the pick head itself. Struck metal is INHARMONIC, its overtones do not sit on
+       whole-number multiples the way a string's do, so the partials here are 1 : 2.76 : 5.40,
+       the ratios of a struck bar. Using octaves instead would sound like a bell or a chime.
+    4. the mass - a low thud so the hit has weight under all that brightness
+    Everything is nudged per swing so a run of them never turns into a machine. */
  pick:()=>{
-  const j=0.9+Math.random()*0.25;
-  noiseSweep(0.045,.085,3200*j,1100*j);
-  noiseHit(0.13,.075,430);
-  blip(520*j,150,0.09,.035,'square');
+  if(!AC.ctx||(S&&!S.sfx))return;
+  const j=0.92+Math.random()*0.18;
+  noiseSweep(0.020,.040,2600*j,1100*j);            /* 1 - short and not too bright: the first pass
+     put 78% of the energy above 2.5 kHz, which reads as hiss rather than as steel on rock */
+  noiseHit(0.105,.095,820*j);                       /* 2 - the crumble, given more of the mix */
+  noiseHit(0.19,.065,280);                          /* 4 - the weight under it */
+  const t=AC.ctx.currentTime, f0=1180*j;            /* 3 */
+  [[1,0.042,0.36],[2.76,0.018,0.24],[5.40,0.007,0.15]].forEach(([mul,vol,dur])=>{
+   const o=AC.ctx.createOscillator();o.type='triangle';o.frequency.value=f0*mul;
+   const g=AC.ctx.createGain();
+   g.gain.setValueAtTime(0.0001,t);
+   g.gain.linearRampToValueAtTime(vol,t+0.004);      /* near-instant attack: it is a strike.
+      Raw level, not scaled by sfxVol() - the sfxG bus this feeds already carries that gain, and
+      applying it here as well would square it and make the combat slider behave oddly at the ends. */
+   g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+   o.connect(g);g.connect(AC.sfxG||AC.ctx.destination);
+   o.start(t);o.stop(t+dur+0.02);
+  });
  },
  oreFound:()=>{blip(700,1180,0.10,.05,'triangle');blip(1180,1560,0.12,.04,'sine');},
  swing:()=>noiseSweep(0.13,.08,500,2400),
@@ -2489,10 +2509,12 @@ function startFishing(){
 function stopFishing(){fish.on=false;}
 /* catch toast - shows the last haul for 3s while the next cast is already flying */
 let fishToastT=null;
-function fishToast(html,color){
+function fishToast(html,color,ms){
+ /* ms is optional: a fishing catch is an event and holds for three seconds, but mining fires one of
+    these every few swings, so ore asks for something much shorter or the toast never leaves. */
  const t=$('fishToast');
  t.innerHTML=html;t.style.color=color||'';t.style.display='block';
- clearTimeout(fishToastT);fishToastT=setTimeout(()=>{t.style.display='none';},3000);
+ clearTimeout(fishToastT);fishToastT=setTimeout(()=>{t.style.display='none';},ms||3000);
 }
 $('fishBtn').onclick=()=>{if(fish.on)stopFishing();else startFishing();};
 $('torchBtn').onclick=()=>{ /* 🔥 drop a torch at your feet - a breadcrumb through the maze */
@@ -3392,7 +3414,7 @@ function mineRefresh(){
  const b=$('mineLearn');
  if(b)b.onclick=()=>{
   S.mining={trained:true,skill:0,on:false};
-  save();buildSkillbar();renderHUD();sfx.loot();
+  save();buildSkillbar();renderHUD();renderHero();sfx.loot();
   log('<span class="imp">⛏ Mining learned.</span> The pick sits beside your potions - tap it and you will work every rock in the zone.','loot');
   mineRefresh();
  };
@@ -3410,7 +3432,17 @@ function toggleMining(){
  stageMsg(S.mining.on?'⛏ Mining - the pick is out':'⛏ Pick stowed',1400);
  sfx.buy();save();
 }
-let mineTarget=null,mineSwingT=0,mineHits=0,mineNeed=0;
+let mineTarget=null,mineSwingT=0,mineHits=0,mineNeed=0,mineSwingPh=1;
+/* Anything the player does with his own hands puts the pick away: a tap on the ground, a key, a
+   chosen target. Mining drives the hero's feet, so leaving it running while he tries to walk would
+   be a tug of war he cannot win. */
+function stopMining(why){
+ if(!(S&&S.mining&&S.mining.on))return;
+ S.mining.on=false;mineTarget=null;
+ const b=$('mineBtn');if(b)b.classList.remove('on');
+ if(why)stageMsg('⛏ Pick stowed',1100);
+ save();
+}
 /* Rocks are plain scenery solids, so a mined one is simply marked and skipped from then on. It
    comes back next time the zone is built, which is what the player expects from a field of stone -
    and it means none of this has to survive a save. */
@@ -3444,8 +3476,10 @@ function mineTick(dt){
  hero.moving=false;
  hero.fx=Math.sign(mineTarget.x-hero.x)||hero.fx;hero.fy=0;
  mineSwingT-=dt;
+ mineSwingPh=Math.max(0,Math.min(1,1-mineSwingT/0.62)); /* 0 at the strike, 1 by the next */
  if(mineSwingT>0)return true;
  mineSwingT=0.62;                                     /* one swing every 0.62 s */
+ mineSwingPh=0; /* it lands now - restart the arc from the strike */
  hero.swing=0.24;                                     /* reuse the attack animation's arc */
  sfx.pick();
  for(let i=0;i<5;i++)parts.push({x:mineTarget.x+(Math.random()-0.5)*mineTarget.r,y:mineTarget.y-6,
@@ -3453,13 +3487,21 @@ function mineTick(dt){
  if(++mineHits<mineNeed)return true;
  /* the rock gives */
  mineTarget.mined=true;
- mineGain();
+ /* One rock in five teaches you something. At a flat 20% the skill climbs one point at a time all
+    the way up - 1, 2, 3 - so rank 1 is roughly 250 rocks rather than 50, and the whole 500 is a
+    trade you work at rather than a bar that fills on the first afternoon. */
+ if(Math.random()<0.20)mineGain();
  const dr=MINE_DROPS[mineRank().r-1];
- let got=[];
- if(Math.random()<dr.coal){S.ore.coal++;got.push('Coal');}
- if(Math.random()<dr.ore){S.ore.ore++;got.push('Emerald Ore');}
+ let got=[],toast=[];
+ if(Math.random()<dr.coal){S.ore.coal++;got.push('Coal');
+  toast.push(`${uiIcon('it_coal','⬛','lootico')} <b>Coal</b>`);}
+ if(Math.random()<dr.ore){S.ore.ore++;got.push('Emerald Ore');
+  toast.push(`${uiIcon('it_emeraldore','🟩','lootico')} <b>Emerald Ore</b>`);}
  if(got.length){
   sfx.oreFound();
+  /* a short toast on screen as well as the number over the rock - the rock can be off at the edge
+     of the view by the time it breaks, and the whole point is to see what you got */
+  fishToast('+ '+toast.join(' &nbsp;+ '),got.includes('Emerald Ore')?'#9adf9a':'#cfc3ae',1400);
   floatAt(mineTarget.x,mineTarget.y-30,'+'+got.join(' +'),'#9adf9a',true);
   log(`⛏ ${got.join(' and ')} from the rock.`,'loot');
   renderBag();
@@ -3473,6 +3515,7 @@ function mineGain(){
  if(!S.mining)return;
  if(S.mining.skill>=500)return;
  S.mining.skill++;
+ renderHero(); /* the Mining row lives in the hero panel - keep its bar honest */
  const rk=mineRank();
  if(S.mining.skill===rk.at&&rk.r>1){
   sfx.loot();
@@ -3744,28 +3787,38 @@ function drawCityGround(){
    stonework simply continues for 16800 units with no joins to hide. The west run is split around
    the gateway. Culled per run, and the whole thing is skipped while the art is still loading. */
 function drawCityWalls(){
- const ph=cityPattern('wall_strip_h'),pv=cityPattern('wall_strip_v');
- if(!ph||!pv)return;
+ const ih=cityImg('wall_strip_h'),iv=cityImg('wall_strip_v');
+ if(!(ih.complete&&ih.naturalWidth&&iv.complete&&iv.naturalWidth))return;
  const W=world.w,H=world.h,cy=H/2;
  const WI=60,WT=140,WIN=WI+WT,GH=150;
- const hh=cityImg('wall_strip_h').naturalHeight;      /* the art is authored at its world height */
- const vw=cityImg('wall_strip_v').naturalWidth;
+ const hh=ih.naturalHeight;      /* the art is authored at its world height */
+ const vw=iv.naturalWidth;
  const vx0=camX,vy0=camY,vx1=camX+VW/zoom,vy1=camY+VH/zoom;
- /* Clip each band to the camera instead of merely testing whether it is visible at all. The north
-    and south runs are world.w = 16800 wide and the side runs world.h = 5200 tall, so the old test
-    passed and then asked Chromium to rasterise a pattern across the entire map to show the ~1600
-    on screen. Profiling a City frame put this one function at 32.7 ms of 76. The pattern is
-    anchored in world space, so painting only the visible slice produces identical pixels. */
- const band=(x,y,w,h,pat)=>{
+ /* Lay the wall as tiled blits, not as a pattern fill.
+    Clipping the fills to the camera - which is what used to happen here - made no measurable
+    difference, because the cost was never the area. A CanvasPattern is anchored in world space, so
+    every frame the camera moves hands the rasteriser a new device-space phase, and whatever that
+    leaves behind accumulates: profiling put this one function at 19.7 ms of a 26 ms City frame, and
+    an ordinary zone visited AFTER the City ran at 39 ms against its usual 8. Blitting the same tile
+    on a world-aligned grid draws the same pixels with none of that.
+    The rect clip keeps the last tile of a run from spilling past the end of the band - the west wall
+    stops either side of the gateway, and a tile overshooting there would brick up the arch. */
+ const band=(x,y,w,h,img,horiz)=>{
   const x0=Math.max(x,vx0),y0=Math.max(y,vy0),x1=Math.min(x+w,vx1),y1=Math.min(y+h,vy1);
   if(x1<=x0||y1<=y0)return;
-  ctx.fillStyle=pat;ctx.fillRect(x0,y0,x1-x0,y1-y0);
+  if(!(img.complete&&img.naturalWidth))return;
+  const TW=img.naturalWidth,TH=img.naturalHeight;
+  ctx.save();
+  ctx.beginPath();ctx.rect(x0,y0,x1-x0,y1-y0);ctx.clip();
+  if(horiz)for(let tx=Math.floor(x0/TW)*TW;tx<x1;tx+=TW)ctx.drawImage(img,tx,y,TW,TH);
+  else     for(let ty=Math.floor(y0/TH)*TH;ty<y1;ty+=TH)ctx.drawImage(img,x,ty,TW,TH);
+  ctx.restore();
  };
- band(0,WIN-hh,W,hh,ph);                              /* north - stands up from the inner face */
- band(0,H-WI-hh,W,hh,ph);                             /* south */
- band(WIN-vw,0,vw,cy-GH,pv);                          /* west, above the gateway */
- band(WIN-vw,cy+GH,vw,H-(cy+GH),pv);                  /* west, below it */
- band(W-WIN,0,vw,H,pv);                               /* east */
+ band(0,WIN-hh,W,hh,ih,true);                              /* north - stands up from the inner face */
+ band(0,H-WI-hh,W,hh,ih,true);                             /* south */
+ band(WIN-vw,0,vw,cy-GH,iv,false);                          /* west, above the gateway */
+ band(WIN-vw,cy+GH,vw,H-(cy+GH),iv,false);                  /* west, below it */
+ band(W-WIN,0,vw,H,iv,false);                               /* east */
  /* the gatehouse sits IN the wall, not on top of it: same flat top-down projection, scaled so its
     own masonry band comes out exactly as wide as the strip's. Both fractions are measured off the
     art (columns at least half opaque): 0.626 of the gate's width, 0.978 of the strip's tile - the
@@ -5236,6 +5289,9 @@ window.addEventListener('keydown',e=>{
  const k=e.key||'';
  const kl=k.toLowerCase();
  if(!kl)return;
+ /* any movement key puts the pick away. This has to live here, not in the movement block -
+    mining bypasses that whole branch, so a check inside it would never run. */
+ if('wasd'.includes(kl)&&kl.length===1||kl.startsWith('arrow'))stopMining(true);
  if(kl==='escape'&&gameOn&&world&&zoneOf().farm&&buildMode){ /* ✋ same as right-click: put the tool down */
   const held=farmDeselect();
   if(held){e.preventDefault();sfx.warn();stageMsg('✋ Put down '+held,1100);return;}
@@ -5455,9 +5511,10 @@ cv.addEventListener('pointerdown',e=>{
   const d=Math.hypot(wx-en.x,wy-en.y);
   if(d<en.r+20&&d<bd+en.r){best=en;bd=d;}}
  hero.goPortal=false;
- if(best){hero.target=best;hero.moveTo=null;}
+ if(best){hero.target=best;hero.moveTo=null;stopMining(true);}
  else{
   hero.moveTo={x:Math.max(30,Math.min(world.w-30,wx)),y:Math.max(30,Math.min(world.h-30,wy))};hero.target=null;marker={x:hero.moveTo.x,y:hero.moveTo.y,t:0};
+  stopMining(true); /* a tap on the ground is the player taking the wheel */
   holdMove={id:e.pointerId,cx:e.clientX,cy:e.clientY}; /* keep the finger/mouse button down and the hero follows it */
  }
 });
@@ -7744,6 +7801,22 @@ function drawHero(){
  if(dancing)ctx.rotate(Math.sin(h.dance*6)*0.25);
  if((charSprite(S.race,c.id,S.gender==='f')||{}).naturalWidth)bootFeet(S.gender==='f'?Object.assign({fem:true},{moving:h.moving,walk:h.walk}):h);else feet(h,1);
  drawChampionSprite(ctx,S.race,c.id,fx,by,danceSwing,fish.on?false:isFK(S.gear.weapon),fish.on?'fishingrod':(isFG(S.gear.weapon)?'felglaives':(isFK(S.gear.weapon)?'rimfrost':null)),S.gender==='f',h.moving&&!h.dead?2:1,isIce(S.gear.armor));
+ /* the pick, drawn over the hero while he works. It replaces nothing - his weapon stays where it is -
+    it is simply the tool in his hands for as long as the swing lasts. The arc is fast down and slow
+    back up, because that is how anything heavy is swung: gravity does the strike, the arm does the lift. */
+ if(S.mining&&S.mining.on&&mineTarget&&!h.dead&&pickImg.complete&&pickImg.naturalWidth){
+  const p=mineSwingPh;                                  /* 0 the moment it lands, 1 by the next swing */
+  const ang=p<0.28 ? -1.25+(p/0.28)*1.95                /* down: overhead to buried, quick */
+                   :  0.70-((p-0.28)/0.72)*1.95;        /* up: back overhead, unhurried */
+  const dir=Math.sign(mineTarget.x-h.x)||1;
+  const PW=25.5,PH=PW*pickImg.naturalHeight/pickImg.naturalWidth;   /* 50% up from 17 */
+  ctx.save();
+  ctx.translate(dir*13,-9+by);                                      /* held further out from the body */
+  ctx.scale(dir,1);
+  ctx.rotate(ang);
+  ctx.drawImage(mip(pickImg,PW),-PW*0.5,-PH*0.82,PW,PH); /* pivot near the butt, so it swings from the grip */
+  ctx.restore();
+ }
  if(h.hurt>0){ctx.fillStyle='rgba(255,255,255,'+h.hurt*2.5+')';ctx.beginPath();ctx.arc(0,-8+by,11,0,7);ctx.fill();}
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;
  ctx.textAlign='center';
@@ -8214,8 +8287,8 @@ function buildSkillbar(){
   if(autoCfgMode)toggleAutoUse('s'+i,$('au'+i));
   else cast(i,true);
  });
- if(mineTrained()){
-  $('potHp').insertAdjacentHTML('beforebegin',
+ if(mineTrained()){ /* to the right of the mana flask, at the end of the bar */
+  $('potMp').insertAdjacentHTML('afterend',
    `<button class="skill pot mine${S.mining.on?' on':''}" id="mineBtn" title="Mine every rock in the zone">${uiIcon('ui_pick','⛏')}</button>`);
   $('mineBtn').onclick=()=>toggleMining();
  }
@@ -8470,6 +8543,22 @@ function renderHero(){
   <div class="card spellcard"><div class="spellg">${spellGlyph(sp)}</div>
   <div><div class="sn" style="color:var(--parch);font-size:13px">${sp.n} <span style="color:var(--mp);font-size:10px">${spellManaCost(sp)} mana · ${sp.cd}s</span></div>
   <div class="ss" style="color:var(--dim);font-size:11px">${sp.d}</div></div></div>`).join('');
+ /* ⛏ Mining sits under the spells once it has been learned - it is the one thing on this panel the
+    hero can improve outside a fight, so it reads as another line of the spellbook rather than as a
+    setting. The bar counts within the CURRENT rank: an Expert wants to see 40/125 towards rank 4,
+    not 165/500 towards nothing he recognises. */
+ if(mineTrained()){
+  const s=mineSkill(),rk=mineRank(),into=s-rk.at,span=rk.to-rk.at;
+  $('spellList').insertAdjacentHTML('beforeend',`
+   <div class="card spellcard">
+    <div class="spellg">${uiIcon('ui_pick','⛏')}</div>
+    <div style="flex:1;min-width:0">
+     <div class="sn" style="color:var(--parch);font-size:13px">Mining
+      <span style="color:#8fc3ef;font-size:10px">${rk.n} · rank ${rk.r} of 4</span></div>
+     <div class="minebar"><i style="width:${Math.round(100*into/span)}%"></i><b>${into} / ${span}</b></div>
+    </div>
+   </div>`);
+ }
  $('autoEquipBtn').textContent=S.autoEquip?'On':'Off';
 }
 function renderMap(){
