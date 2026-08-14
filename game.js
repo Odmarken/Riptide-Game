@@ -53,17 +53,21 @@ const CITY_HOUSES=['house_timber','house_shop','house_cottage','house_stone',
    centre as a fraction of the drawn width, w is its width. These vary wildly - the cottage rests on
    0.26 of its width, the enchanting hall on 0.86, and several sit off-centre - so one shared ellipse
    left most shadows floating beside the house instead of under it. */
-const CITY_FOOT={
- house_timber:{cx:+0.003,w:0.384}, house_shop:{cx:-0.095,w:0.369},
- house_cottage:{cx:-0.040,w:0.263}, house_stone:{cx:+0.005,w:0.591},
- house_turret:{cx:-0.046,w:0.709}, house_stair:{cx:+0.084,w:0.355},
- house_tenement:{cx:+0.041,w:0.766}, house_manor:{cx:+0.045,w:0.492},
- minehall:{cx:-0.073,w:0.450}, enchanthall:{cx:-0.036,w:0.856}, cathedral:{cx:+0.051,w:0.361},
- smelter:{cx:+0.071,w:0.688},   /* the gate is drawn flat in the wall plane - it casts no standing shadow */
+const CITY_FOOT={ /* Measured ground contact: cx is the footprint's centre as a fraction of the
+   drawn width, w is its width. Taken at 5% of the sprite's height above its lowest pixel - at 2%
+   you catch only the tip of a sloping base and the shadow comes out a sliver, at 12% you are
+   already measuring the first floor. These vary wildly and several sit well off centre - the
+   tenement's base is 12% of its width to the right - which is why one shared ellipse left half
+   the city's shadows floating beside the building instead of under it. */
+ cathedral:{cx:+0.038,w:0.295},   enchanthall:{cx:-0.118,w:0.508}, house_cottage:{cx:-0.041,w:0.202},
+ house_manor:{cx:+0.082,w:0.337}, house_shop:{cx:-0.094,w:0.368},  house_stair:{cx:+0.097,w:0.211},
+ house_stone:{cx:-0.012,w:0.476}, house_tenement:{cx:+0.124,w:0.478}, house_timber:{cx:-0.012,w:0.318},
+ house_turret:{cx:-0.040,w:0.578}, minehall:{cx:-0.099,w:0.393},    smelter:{cx:+0.133,w:0.515},
 };
 function cityShadow(name,W,baseY){ /* sized off that footprint and tucked under the base */
  const f=CITY_FOOT[name]; if(!f)return;
- const rx=W*f.w*0.56,ry=rx*0.30;
+ const rx=W*f.w*0.66,ry=rx*0.32; /* a touch wider than the base - a shadow exactly the
+    footprint's size reads as a painted outline rather than as something resting on ground */
  ctx.fillStyle='rgba(0,0,0,0.30)';
  ctx.beginPath();ctx.ellipse(W*f.cx,baseY-ry*0.45,rx,ry,0,0,7);ctx.fill();
 }
@@ -111,28 +115,28 @@ const maceImg=new Image();maceImg.src='assets/weapons/mace.png';
 /* ODIN's art was repainted in the Thor style - same filename, new picture, so the ?v= is what
    stops a browser that already cached the old boss from serving it forever. */
 const odinImg=new Image();odinImg.src='assets/boss/odin_boss.png?v=2';
-const odinSpearImg=new Image();odinSpearImg.src='assets/boss/odin_spear.png';
+const odinSpearImg=new Image();odinSpearImg.src='assets/boss/odin_spear.png?v=2';
 /* the three lords of the Violet Halls - painted bodies + one shared blade, tinted per lord */
-const fellordImg=new Image();fellordImg.src='assets/boss/fellord_boss.png';
-const firelordImg=new Image();firelordImg.src='assets/boss/firelord_boss.png';
-const frostlordImg=new Image();frostlordImg.src='assets/boss/frostlord_boss.png';
-const cowWeaponImg=new Image();cowWeaponImg.src='assets/boss/cow_weapon.png';
-const cowmobImg=new Image();cowmobImg.src='assets/boss/Cowlevel_boss.png';
+const fellordImg=new Image();fellordImg.src='assets/boss/fellord_boss.png?v=2';
+const firelordImg=new Image();firelordImg.src='assets/boss/firelord_boss.png?v=2';
+const frostlordImg=new Image();frostlordImg.src='assets/boss/frostlord_boss.png?v=2';
+const cowWeaponImg=new Image();cowWeaponImg.src='assets/boss/cow_weapon.png?v=2';
+const cowmobImg=new Image();cowmobImg.src='assets/boss/Cowlevel_boss.png?v=2';
 const armorAltarImg=new Image();armorAltarImg.src='assets/models/armor_altar.png';
-const finalBossImg=new Image();finalBossImg.src='assets/boss/finalboss.png';
-const finalBossFootImg=new Image();finalBossFootImg.src='assets/boss/finalboss_foot.png';
-const finalBossWeaponImg=new Image();finalBossWeaponImg.src='assets/boss/finasboss_weapon.png';
-const cowmobFeetImg=new Image();cowmobFeetImg.src='assets/boss/cowlevel_feet.png';
-const raidSwordImg=new Image();raidSwordImg.src='assets/boss/raidboss_sword.png';
-const gorehuskImg=new Image();gorehuskImg.src='assets/boss/boss_levling4.png';
-const gorehuskFeetLImg=new Image();gorehuskFeetLImg.src='assets/boss/gorehusk_feet_l.png';
-const gorehuskFeetRImg=new Image();gorehuskFeetRImg.src='assets/boss/gorehusk_feet_r.png';
-const bossLvlWeaponImg=new Image();bossLvlWeaponImg.src='assets/boss/bosslevling_weapon.png';
-const mawImg=new Image();mawImg.src='assets/boss/boss_levling2.png';
-const ossricImg=new Image();ossricImg.src='assets/boss/boss_levling3.png';
-const ashmawImg=new Image();ashmawImg.src='assets/boss/boss_levling1.png';
-const krevImg=new Image();krevImg.src='assets/boss/boss_levling5.png';
-const torImg=new Image();torImg.src='assets/boss/tor_boss.png';
+const finalBossImg=new Image();finalBossImg.src='assets/boss/finalboss.png?v=2';
+const finalBossFootImg=new Image();finalBossFootImg.src='assets/boss/finalboss_foot.png?v=2';
+const finalBossWeaponImg=new Image();finalBossWeaponImg.src='assets/boss/finasboss_weapon.png?v=2';
+const cowmobFeetImg=new Image();cowmobFeetImg.src='assets/boss/cowlevel_feet.png?v=2';
+const raidSwordImg=new Image();raidSwordImg.src='assets/boss/raidboss_sword.png?v=2';
+const gorehuskImg=new Image();gorehuskImg.src='assets/boss/boss_levling4.png?v=2';
+const gorehuskFeetLImg=new Image();gorehuskFeetLImg.src='assets/boss/gorehusk_feet_l.png?v=2';
+const gorehuskFeetRImg=new Image();gorehuskFeetRImg.src='assets/boss/gorehusk_feet_r.png?v=2';
+const bossLvlWeaponImg=new Image();bossLvlWeaponImg.src='assets/boss/bosslevling_weapon.png?v=2';
+const mawImg=new Image();mawImg.src='assets/boss/boss_levling2.png?v=2';
+const ossricImg=new Image();ossricImg.src='assets/boss/boss_levling3.png?v=2';
+const ashmawImg=new Image();ashmawImg.src='assets/boss/boss_levling1.png?v=2';
+const krevImg=new Image();krevImg.src='assets/boss/boss_levling5.png?v=2';
+const torImg=new Image();torImg.src='assets/boss/tor_boss.png?v=2';
 /* ---- 🚜 the Farm: build assets, loaded lazily ---- */
 const farmImgs={};
 const farmImg=n=>{if(!farmImgs[n]){farmImgs[n]=new Image();farmImgs[n].src='assets/farm/'+n+'.png';}return farmImgs[n];};
@@ -191,11 +195,11 @@ const FARM_BUILD=[
  {id:'farmsign',n:'Farm Sign',img:'farmsign_farm',tab:'d',W:60,gy:10,col:{r:8}},
  /* --- decorations added later. sh values are measured off each sprite's real ground contact,
         not guessed off its silhouette - see the tree/fountain note above for why that matters. --- */
- {id:'windmill',n:'Windmill',img:'windmill_farm',tab:'d',W:150,gy:16,col:{r:30},sh:{rx:0.38,ry:0.10,dy:-0.01}},
+ {id:'windmill',n:'Windmill',img:'windmill_farm',tab:'d',W:150,gy:16,col:{r:30},sh:{cx:0.159,rx:0.38,ry:0.10,dy:-0.01}},
  {id:'appletree',n:'Apple Tree',img:'appletree_farm',tab:'d',W:170,gy:14,col:{r:16},
-  sh:{rx:0.22,ry:0.055,dy:-0.005},sway:{amp:0.030,spd:0.78,hold:0.58}}, /* sways like tree_farm - trunk still, canopy bends */
- {id:'woodpile',n:'Firewood Pile',img:'woodpile_farm',tab:'d',W:125,gy:10,col:{r:16,crx:44,cry:14,cyo:0},sh:{rx:0.34,ry:0.075,dy:-0.01}},
- {id:'crates',n:'Produce Crates',img:'crates_farm',tab:'d',W:105,gy:10,col:{r:14,crx:38,cry:14,cyo:0},sh:{rx:0.26,ry:0.065,dy:-0.01}},
+  sh:{cx:0.295,rx:0.105,ry:0.032,dy:-0.005},sway:{amp:0.030,spd:0.78,hold:0.58}}, /* sways like tree_farm - trunk still, canopy bends */
+ {id:'woodpile',n:'Firewood Pile',img:'woodpile_farm',tab:'d',W:125,gy:10,col:{r:16,crx:44,cry:14,cyo:0},sh:{cx:0.071,rx:0.22,ry:0.055,dy:-0.01}},
+ {id:'crates',n:'Produce Crates',img:'crates_farm',tab:'d',W:105,gy:10,col:{r:14,crx:38,cry:14,cyo:0},sh:{cx:0.042,rx:0.17,ry:0.045,dy:-0.01}},
  {id:'remove',n:'Remove',emoji:'🗑',tab:'*'} /* removes anything except the farmhouse */
 ];
 /* ⇄/⤢ per-piece look. fl:-1 mirrors the art, sc scales it (1 = catalogue size).
@@ -219,18 +223,18 @@ const flipOf=it=>(it&&it.fl===-1)?-1:1;
 const scaleOf=it=>{const v=it&&+it.sc;return (v&&v>0)?clampSc(v):1;};
 const canFlipDef=def=>!!def&&!def.road;
 const canScaleDef=def=>!!def&&!def.road&&!def.snap&&!def.crop&&!def.noScale;
-const torWeaponImg=new Image();torWeaponImg.src='assets/boss/tor_weapon.png';
-const krevFeetLImg=new Image();krevFeetLImg.src='assets/boss/krev_feet_l.png';
-const krevFeetRImg=new Image();krevFeetRImg.src='assets/boss/krev_feet_r.png';
-const ashmawFeetLImg=new Image();ashmawFeetLImg.src='assets/boss/ashmaw_feet_l.png';
-const ashmawFeetRImg=new Image();ashmawFeetRImg.src='assets/boss/ashmaw_feet_r.png';
-const ossricFeetLImg=new Image();ossricFeetLImg.src='assets/boss/ossric_feet_l.png';
-const ossricFeetRImg=new Image();ossricFeetRImg.src='assets/boss/ossric_feet_r.png';
-const mawFeetLImg=new Image();mawFeetLImg.src='assets/boss/maw_feet_l.png';
-const mawFeetRImg=new Image();mawFeetRImg.src='assets/boss/maw_feet_r.png';
-const fellordFeetImg=new Image();fellordFeetImg.src='assets/boss/fellord_feet.png';
-const firelordFeetImg=new Image();firelordFeetImg.src='assets/boss/firelord_feet.png';
-const frostlordFeetImg=new Image();frostlordFeetImg.src='assets/boss/frostlord_feet.png';
+const torWeaponImg=new Image();torWeaponImg.src='assets/boss/tor_weapon.png?v=2';
+const krevFeetLImg=new Image();krevFeetLImg.src='assets/boss/krev_feet_l.png?v=2';
+const krevFeetRImg=new Image();krevFeetRImg.src='assets/boss/krev_feet_r.png?v=2';
+const ashmawFeetLImg=new Image();ashmawFeetLImg.src='assets/boss/ashmaw_feet_l.png?v=2';
+const ashmawFeetRImg=new Image();ashmawFeetRImg.src='assets/boss/ashmaw_feet_r.png?v=2';
+const ossricFeetLImg=new Image();ossricFeetLImg.src='assets/boss/ossric_feet_l.png?v=2';
+const ossricFeetRImg=new Image();ossricFeetRImg.src='assets/boss/ossric_feet_r.png?v=2';
+const mawFeetLImg=new Image();mawFeetLImg.src='assets/boss/maw_feet_l.png?v=2';
+const mawFeetRImg=new Image();mawFeetRImg.src='assets/boss/maw_feet_r.png?v=2';
+const fellordFeetImg=new Image();fellordFeetImg.src='assets/boss/fellord_feet.png?v=2';
+const firelordFeetImg=new Image();firelordFeetImg.src='assets/boss/firelord_feet.png?v=2';
+const frostlordFeetImg=new Image();frostlordFeetImg.src='assets/boss/frostlord_feet.png?v=2';
 const RAID_SKINS={ /* lift = body bottom in radii · wy/wx = weapon grip */
  betrayer:{img:fellordImg,feet:fellordFeetImg,wpn:()=>raidSwordImg,glow:'#4dff6a',lift:-0.15,wy:-0.40,wx:0.26,size:4.5,fs:0.72,fh:0.95},
  firelord:{img:firelordImg,feet:firelordFeetImg,glow:'#ff4a1a',lift:-0.20,wy:-0.22,wx:0.26,ff:true,fs:0.85},
@@ -314,8 +318,8 @@ function raidBlade(glow,img){ /* the lord's weapon soaked in his colour, cached 
  g.fillRect(0,0,c.width,c.height);
  return raidBladeCache[key]=c;
 }
-const ratbossImg=new Image();ratbossImg.src='assets/boss/rat_boss.png'; /* the crypt rat - art faces left */
-const ratFeetImg=new Image();ratFeetImg.src='assets/boss/rat_feet.png'; /* its clawed foot - points left */
+const ratbossImg=new Image();ratbossImg.src='assets/boss/rat_boss.png?v=2'; /* the crypt rat - art faces left */
+const ratFeetImg=new Image();ratFeetImg.src='assets/boss/rat_feet.png?v=2'; /* its clawed foot - points left */
 const theRingImg=new Image();theRingImg.src='assets/models/thering.png';
 const altarFenceImg=new Image();altarFenceImg.src='assets/models/maps/altarasset.png';
 const staffImg=new Image();staffImg.src='assets/weapons/staff.png';
@@ -1250,7 +1254,7 @@ const speedBoostMul=()=>1+boostBonus(S.boosts?S.boosts.speed:0,'speed');
 const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0,'haste');
 function freshState(name,race,cls){
  return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,lastZone:0,maxZone:0,quest:0,qProg:0,hardcore:false,hcDead:false,gender:'m',
-  rating:0,odinKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',bankGold:0,bankScrap:0,bankEarned:0,bankLastT:0,smithLvl:0,smithJob:null,luckPots:0,luckT:0,gamblerPots:0,gamblerT:0,restedT:0,restedPct:0,restedSpinAt:0,freeGoldCases:0,chests:{violethalls:0},cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
+  rating:0,odinKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',bankGold:0,bankScrap:0,bankEarned:0,bankLastT:0,smithLvl:0,smithJob:null,luckPots:0,luckT:0,gamblerPots:0,gamblerT:0,restedT:0,restedPct:0,restedSpinAt:0,freeGoldCases:0,chests:{violethalls:0},mining:{trained:false,skill:0,on:false},ore:{coal:0,ore:0,gem:0},cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
   gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],pet:null,pets:[],
   boosts:{speed:0,haste:0},autoUse:{},tainted:false,
   cleared:{},bossDead:{},zoneLvlGain:{},
@@ -1414,6 +1418,13 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.restedPct===undefined)s.restedPct=0;
  if(s.restedSpinAt===undefined)s.restedSpinAt=0;
  if(s.freeGoldCases===undefined)s.freeGoldCases=0;
+ /* the mining trade and what it digs up. Both default in rather than being written on train,
+    so a save from before mining existed reads as an untrained miner with an empty satchel. */
+ if(!s.mining)s.mining={trained:false,skill:0,on:false};
+ s.mining.skill=Math.max(0,Math.min(500,s.mining.skill||0));
+ s.mining.on=false; /* never resume mid-swing on load - the world is not built yet */
+ if(!s.ore)s.ore={coal:0,ore:0,gem:0};
+ for(const k of ['coal','ore','gem'])s.ore[k]=Math.max(0,s.ore[k]||0);
  if(s.chests===undefined)s.chests={};
  if(s.chests.blacktemple){ /* the Violet Halls were the Black Temple - saves written before the rename
                               still hold the old key, and dropping it would quietly eat their chests */
@@ -1878,21 +1889,230 @@ function startCowMusic(){
  },step16));
 }
 /* ---- ODIN boss music: plays odin_boss.mp3 if present, else dark synth ---- */
-const ODIN_MUSIC_URL='ambientsong/odin_boss.mp3';
+/* The licensed track that used to play here is gone - startOdinTheme() below plays the fight
+   instead. odinAudio stays declared and permanently null so the pause/resume plumbing that
+   walks every zone's audio element keeps working without a special case. */
 let odinAudio=null;
-function startOdinTrack(){
- if(!ODIN_MUSIC_URL)return false;
- if(!odinAudio){
-  odinAudio=new Audio(ODIN_MUSIC_URL);
-  odinAudio.loop=true;
-  odinAudio.onerror=()=>{odinAudio=null;startMusic(true);}; /* file missing → dark synth */
- }
- odinAudio.volume=ambVol();
- odinAudio.currentTime=0;
- odinAudio.play().catch(()=>{});
- return true;
-}
 function stopOdinTrack(){if(odinAudio)odinAudio.pause();}
+
+/* ---- ⚔ Odin's theme, played rather than streamed ------------------------------------------------
+   Written in the synth instead of shipped as a file. The track it replaces was licensed music that
+   could not go to Steam, and a generated one would have carried its own provenance questions; this
+   is arithmetic, so it is unambiguously ours. It also costs nothing to download and loops without
+   a seam, which no exported audio file manages.
+   D natural minor at 92 bpm. Sixteen bars: eight that build on the tonic, then a turn to the flat
+   sixth and a Phrygian half cadence on A, which is what gives the loop its unresolved menace.
+   Everything is scheduled a bar ahead against the audio clock, never on setInterval's timing -
+   drums placed by wall-clock drift audibly within seconds. */
+const ODIN_BPM=80, ODIN_BEAT=60/ODIN_BPM, ODIN_BAR=ODIN_BEAT*4;
+/* Third time, and this one is built the other way round: not a march but a rite. 68 bpm is slow
+   enough that each strike is an event rather than a pulse, and the bar is mostly silence - which is
+   where the weight actually lives. A drum sounds huge because of the space after it, not the
+   loudness of it.
+   Each bar is eight eighth-note slots.
+   DOOM is two vast strikes and nothing else. ROLL fills the turnaround so the loop breathes.
+   HAMMER is the one that lands twice in quick succession - the arm coming down again before the
+   first hit has finished, which is the sound of somebody hitting something as hard as they can. */
+const ODIN_DEEP={
+ doom:  [1.00,0,0,0,    0.86,0,0,0],
+ roll:  [1.00,0,0,0.52, 0.80,0,0.58,0],
+ hammer:[1.00,0.62,0,0, 0.88,0.55,0,0],
+};
+const ODIN_FRAME={
+ doom:  [0,0,0,0,    0,0,0.30,0],
+ roll:  [0,0,0.32,0, 0,0.26,0,0.38],
+ hammer:[0,0,0.28,0, 0,0,0.30,0.22],
+};
+/* Sub-bass root, the chord above it, and the horn note over the bar. null = the horn rests.
+   The chords are OPEN FIFTHS - root, fifth, octave, no third anywhere. A third is what makes a
+   chord sound major or minor and, to a modern ear, polite; stacked fifths are organum, the oldest
+   harmony in northern Europe, and they are why this reads as Norse rather than as film-score minor.
+   Everything sits an octave below where it started, and the tempo is down from 92 to 76 - weight
+   comes from fewer, larger events, not from more of them. */
+/* D Dorian. The last version was Phrygian, whose flattened second put a semitone against the root
+   and never let go - which is exactly why it came out bleak rather than stirring. Dorian is minor
+   with a RAISED sixth, and that one note (B natural over a D root) is the difference between grief
+   and defiance. It is the mode of most Nordic and Celtic folk music for that reason, and the major
+   chord it puts on the fourth degree - G major inside a minor key - is the moment of light this
+   piece was missing.
+   Thirds are allowed back into the pad now. Bare fifths sound ancient but they also sound cold, and
+   the request was for feeling; the bass keeps its open fifths, the middle gets to be a chord.
+   m = the horn line, as [beat offset, frequency, length in beats] - it sings a phrase now instead
+   of holding one note a bar, which is most of what "feeling" actually is. */
+const ODIN_BARS=[
+ {r:36.71, c:[73.42,110.00,146.83],       m:[],                                p:'doom',   ch:true },
+ {r:36.71, c:[73.42,110.00,146.83],       m:[],                                p:'doom',   ch:false},
+ {r:36.71, c:[73.42,87.31,110.00,146.83], m:[[0,220.00,2],[2,261.63,2]],       p:'roll',   ch:false},
+ {r:36.71, c:[73.42,87.31,110.00,146.83], m:[[0,293.66,3.4]],                  p:'hammer', ch:false},
+ {r:49.00, c:[98.00,123.47,146.83],       m:[[0,349.23,2],[2,329.63,2]],       p:'doom',   ch:true }, /* G major - the light */
+ {r:49.00, c:[98.00,123.47,146.83],       m:[[0,293.66,3.4]],                  p:'doom',   ch:false},
+ {r:43.65, c:[87.31,110.00,130.81],       m:[[0,261.63,2],[2,293.66,2]],       p:'roll',   ch:false}, /* F */
+ {r:32.70, c:[65.41,82.41,98.00],         m:[[0,329.63,3.4]],                  p:'hammer', ch:false}, /* C */
+ {r:36.71, c:[73.42,87.31,110.00,146.83], m:[[0,293.66,1],[1,329.63,1],[2,349.23,2]], p:'doom', ch:true },
+ {r:36.71, c:[73.42,87.31,110.00,146.83], m:[[0,392.00,3.4]],                  p:'doom',   ch:false},
+ {r:49.00, c:[98.00,123.47,146.83],       m:[[0,440.00,2],[2,493.88,2]],       p:'roll',   ch:false}, /* the raised sixth, up top */
+ {r:49.00, c:[98.00,123.47,146.83],       m:[[0,440.00,3.4]],                  p:'hammer', ch:false},
+ {r:43.65, c:[87.31,110.00,130.81],       m:[[0,392.00,2],[2,349.23,2]],       p:'doom',   ch:true },
+ {r:32.70, c:[65.41,82.41,98.00],         m:[[0,329.63,3.4]],                  p:'doom',   ch:false},
+ {r:27.50, c:[55.00,65.41,82.41],         m:[[0,293.66,2],[2,261.63,2]],       p:'roll',   ch:false}, /* Am */
+ {r:36.71, c:[73.42,87.31,110.00,146.83], m:[[0,220.00,3.4]],                  p:'hammer', ch:false}, /* home */
+];
+function odinKick(t,f0,f1,dur,g0){ /* pitch-dropping sine: the pulse under the war drum */
+ const o=AC.ctx.createOscillator();o.type='sine';
+ o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+dur*0.9);
+ const g=AC.ctx.createGain();
+ g.gain.setValueAtTime(g0,t);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+ o.connect(g);g.connect(AC.ambG);o.start(t);o.stop(t+dur+0.02);
+}
+function odinWarDrum(t,g0){
+ /* A big skin drum is two things at once: a pitch that falls away, and the body of the hide it was
+    struck on. The sine alone is a synth kick - clean, small, modern. Adding a low-passed noise body
+    underneath is what makes it read as something hollow and wooden being hit hard. */
+ odinKick(t,92,26,1.45,g0);             /* the fall - lower and longer than a march drum */
+ odinKick(t,49,21,1.85,g0*0.62);        /* the sub, longer still, so the room seems bigger */
+ /* the skin: a low-passed burst with a slow tail. Without it this is a synth kick - clean, small,
+    modern. The noise body is the wood and hide, and it is what makes the hit sound struck. */
+ const n=Math.floor(AC.ctx.sampleRate*0.46);
+ const buf=AC.ctx.createBuffer(1,n,AC.ctx.sampleRate),d=buf.getChannelData(0);
+ for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,3.0);
+ const s=AC.ctx.createBufferSource();s.buffer=buf;
+ const lp=AC.ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=270;lp.Q.value=1.3;
+ const g=AC.ctx.createGain();
+ g.gain.setValueAtTime(g0*0.62,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.46);
+ s.connect(lp);lp.connect(g);g.connect(AC.ambG);s.start(t);s.stop(t+0.46);
+ /* and the crack of the stick on the rim, right at the front - the transient the ear reads as force */
+ const cn=Math.floor(AC.ctx.sampleRate*0.05);
+ const cb=AC.ctx.createBuffer(1,cn,AC.ctx.sampleRate),cd=cb.getChannelData(0);
+ for(let i=0;i<cn;i++)cd[i]=(Math.random()*2-1)*Math.pow(1-i/cn,1.6);
+ const cs=AC.ctx.createBufferSource();cs.buffer=cb;
+ const cf=AC.ctx.createBiquadFilter();cf.type='bandpass';cf.frequency.value=900;cf.Q.value=2.2;
+ const cg=AC.ctx.createGain();
+ cg.gain.setValueAtTime(g0*0.22,t);cg.gain.exponentialRampToValueAtTime(0.0001,t+0.05);
+ cs.connect(cf);cf.connect(cg);cg.connect(AC.ambG);cs.start(t);cs.stop(t+0.05);
+}
+function odinHit(t,dur,g0,cut,q){ /* filtered noise: the rim, and the crash on the turnaround */
+ const n=Math.floor(AC.ctx.sampleRate*dur);
+ const buf=AC.ctx.createBuffer(1,n,AC.ctx.sampleRate),d=buf.getChannelData(0);
+ for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,2.2); /* squared decay - less tail to hear as hiss */
+ const s=AC.ctx.createBufferSource();s.buffer=buf;
+ /* Narrow band, not wide. At Q under about 1 a bandpass barely filters, so the burst arrives as
+    white noise - a hiss rather than a struck skin. Q 2.6 leaves it pitched enough to read as a drum. */
+ const f=AC.ctx.createBiquadFilter();f.type='bandpass';f.frequency.value=cut;f.Q.value=q||2.6;
+ const lp=AC.ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=cut*2.2; /* lid on the top end */
+ const g=AC.ctx.createGain();
+ g.gain.setValueAtTime(g0,t);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+ s.connect(f);f.connect(lp);lp.connect(g);g.connect(AC.ambG);s.start(t);s.stop(t+dur);
+}
+function odinPad(t,freqs,dur){ /* the choir behind it - three voices, each detuned a little apart */
+ freqs.forEach((f,i)=>{
+  [-7,7].forEach(cents=>{
+   const o=AC.ctx.createOscillator();o.type='triangle';o.frequency.value=f;o.detune.value=cents+(i-1)*3;
+   const fl=AC.ctx.createBiquadFilter();fl.type='lowpass';fl.frequency.value=900;
+   const g=AC.ctx.createGain();
+   g.gain.setValueAtTime(0.0001,t);
+   g.gain.linearRampToValueAtTime(0.019,t+dur*0.35);
+   g.gain.setValueAtTime(0.019,t+dur*0.75);
+   g.gain.linearRampToValueAtTime(0.0001,t+dur);
+   o.connect(fl);fl.connect(g);g.connect(AC.ambG);o.start(t);o.stop(t+dur+0.05);
+  });
+ });
+}
+function odinDrone(t,f,dur){
+ /* The root now sits between 27 and 44 Hz, which laptop speakers and most headphones simply do not
+    reproduce - on those it would be felt as nothing at all. So the drone is voiced as the root plus
+    its octave: the fundamental carries the weight on anything with a woofer, the octave carries the
+    pitch everywhere else. */
+ [[f,0.026],[f*2,0.020]].forEach(([fr,lvl])=>{
+  const o=AC.ctx.createOscillator();o.type='sawtooth';o.frequency.value=fr;
+  const fl=AC.ctx.createBiquadFilter();fl.type='lowpass';fl.frequency.value=Math.max(150,fr*4.5);fl.Q.value=2.4;
+  const g=AC.ctx.createGain();
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.linearRampToValueAtTime(lvl,t+0.7);
+  g.gain.linearRampToValueAtTime(0.0001,t+dur);
+  o.connect(fl);fl.connect(g);g.connect(AC.ambG);o.start(t);o.stop(t+dur+0.05);
+ });
+}
+function odinHorn(t,f,dur){ /* the melody: a war horn, slow to speak and slow to let go */
+ const o=AC.ctx.createOscillator();o.type='sawtooth';o.frequency.value=f;
+ const o2=AC.ctx.createOscillator();o2.type='sine';o2.frequency.value=f*0.5;
+ const fl=AC.ctx.createBiquadFilter();fl.type='lowpass';
+ fl.frequency.setValueAtTime(320,t);
+ fl.frequency.linearRampToValueAtTime(1500,t+dur*0.4);
+ fl.frequency.linearRampToValueAtTime(500,t+dur);
+ /* Scale the attack to the note. A fixed 0.25 s rise is right for a held note and far too slow for
+    a passing one - the short notes of the phrase would never reach full volume and the line would
+    come out limping. */
+ const atk=Math.min(0.22,dur*0.28);
+ const g=AC.ctx.createGain();
+ g.gain.setValueAtTime(0.0001,t);
+ g.gain.linearRampToValueAtTime(0.034,t+atk);
+ g.gain.setValueAtTime(0.034,t+dur*0.72);
+ g.gain.linearRampToValueAtTime(0.0001,t+dur);
+ const g2=AC.ctx.createGain();g2.gain.setValueAtTime(0.015,t);g2.gain.linearRampToValueAtTime(0.0001,t+dur);
+ o.connect(fl);fl.connect(g);g.connect(AC.ambG);
+ o2.connect(g2);g2.connect(AC.ambG);
+ o.start(t);o.stop(t+dur+0.05);o2.start(t);o2.stop(t+dur+0.05);
+}
+function odinFrame(t,g0){
+ /* The smaller drum that answers the big one. Higher, tighter, and mostly wood rather than skin -
+    without a second voice the pattern is just a pulse; with it, it is two people playing. */
+ odinKick(t,196,74,0.26,g0*0.5);
+ const n=Math.floor(AC.ctx.sampleRate*0.16);
+ const buf=AC.ctx.createBuffer(1,n,AC.ctx.sampleRate),d=buf.getChannelData(0);
+ for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,2.8);
+ const s=AC.ctx.createBufferSource();s.buffer=buf;
+ const bp=AC.ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=430;bp.Q.value=1.6;
+ const g=AC.ctx.createGain();
+ g.gain.setValueAtTime(g0,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.16);
+ s.connect(bp);bp.connect(g);g.connect(AC.ambG);s.start(t);s.stop(t+0.16);
+}
+function odinChant(t,f){
+ /* The shout. Not a word - a stack of the root, its fifth and its octave pushed through two narrow
+    peaks around 600 and 1100 Hz, which is roughly where the first two vowel formants of a male "o"
+    sit. Short, hard attack, no vibrato. It reads as a crowd rather than as an instrument. */
+ [[f,1],[f*1.5,0.7],[f*2,0.55]].forEach(([fr,lvl])=>{
+  const o=AC.ctx.createOscillator();o.type='sawtooth';o.frequency.value=fr;o.detune.value=(Math.random()-0.5)*22;
+  const f1=AC.ctx.createBiquadFilter();f1.type='bandpass';f1.frequency.value=600;f1.Q.value=5;
+  const f2=AC.ctx.createBiquadFilter();f2.type='bandpass';f2.frequency.value=1100;f2.Q.value=7;
+  const g=AC.ctx.createGain();
+  g.gain.setValueAtTime(0.0001,t);
+  g.gain.linearRampToValueAtTime(0.055*lvl,t+0.05);
+  g.gain.setValueAtTime(0.055*lvl,t+0.30);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+0.62);
+  o.connect(f1);f1.connect(f2);f2.connect(g);g.connect(AC.ambG);
+  o.start(t);o.stop(t+0.66);
+ });
+}
+function odinBar(t,i){
+ const b=ODIN_BARS[i%ODIN_BARS.length];
+ odinDrone(t,b.r,ODIN_BAR);
+ odinPad(t,b.c,ODIN_BAR);
+ if(b.ch)odinChant(t,b.c[0]*2);
+ /* the horn phrase - each note placed against the bar, so it can move rather than just sit */
+ if(b.m)for(const [off,f,len] of b.m)odinHorn(t+off*ODIN_BEAT,f,len*ODIN_BEAT);
+ /* Walk the eighth-note grid and strike whatever the bar's pattern asks for. Keeping the rhythm as
+    data rather than as a run of hard-coded offsets is what let the two patterns be swapped per bar
+    at all - and it is a single array to edit if the groove wants changing. */
+ const deep=ODIN_DEEP[b.p], frame=ODIN_FRAME[b.p], EIGHTH=ODIN_BEAT*0.5;
+ for(let s=0;s<8;s++){
+  if(deep[s])odinWarDrum(t+s*EIGHTH,0.27*deep[s]);
+  if(frame[s])odinFrame(t+s*EIGHTH,0.042*frame[s]);
+ }
+ /* the drummer winding up: two quick strokes into every fourth downbeat */
+ if(i%4===3){odinWarDrum(t+ODIN_BEAT*3.5,0.12);odinWarDrum(t+ODIN_BEAT*3.75,0.17);}
+ if(i%8===7)odinHit(t+ODIN_BEAT*3.5,0.45,0.030,800,1.8); /* one crash per eight bars */
+}
+function startOdinTheme(){
+ if(!AC.ctx)return;
+ let bar=0, next=AC.ctx.currentTime+0.15;
+ const pump=()=>{
+  /* keep roughly two bars queued on the audio clock. Scheduling ahead like this is what stops the
+     drums from stumbling whenever the main thread is busy - which, in a boss fight, it is. */
+  while(next<AC.ctx.currentTime+ODIN_BAR*2){odinBar(next,bar++);next+=ODIN_BAR;}
+ };
+ pump();
+ AC.timers.push(setInterval(pump,ODIN_BAR*500)); /* twice a bar, so a missed tick still lands early */
+}
 /* ---- ☠ The Final Hour: the Forsaken One's own theme ---- */
 const FINAL_MUSIC_URL='ambientsong/finalhour.mp3';
 let finalAudio=null;
@@ -2014,7 +2234,10 @@ function startAmbience(prof){
  stopAmbience();AC.prof=prof;
  if(prof==='final'){if(!startFinalTrack())startMusic(true);return;} /* ☠ the last fight has its own theme */
  if(prof==='cow'){if(!startCowTrack())startCowMusic();return;}
- if(prof==='odin'){windLayer(.14,700,.7);if(!startOdinTrack())startMusic(true);return;}
+ /* No wind layer here. windLayer() is looped noise through a Q-0.7 bandpass, which is barely a
+    filter at all - at the gain it ran, the hiss sat louder than the music it was meant to sit
+    under. The theme carries the atmosphere on its own. */
+ if(prof==='odin'){startOdinTheme();return;}
  if(prof==='crypt'){
   if(!startCryptTrack())startMusic(true);
   cryptGrowlT=30+Math.random()*30; /* something breathes in the dark every 30–60s */
@@ -2030,6 +2253,16 @@ function startAmbience(prof){
 /* Combat / one-shot sounds - all routed through the sfx bus (⚔️ button mutes just these). */
 const sfx={
  hit:()=>{noiseHit(0.08,.11,520);blip(170,70,0.09,.07,'triangle');},
+ /* ⛏ steel into stone. Three parts, because one is never enough to sound like anything: the bright
+    crack of the point going in, the dull body of the rock taking it, and a short ring off the head.
+    The pitch wanders a little per swing so a run of them does not turn into a machine. */
+ pick:()=>{
+  const j=0.9+Math.random()*0.25;
+  noiseSweep(0.045,.085,3200*j,1100*j);
+  noiseHit(0.13,.075,430);
+  blip(520*j,150,0.09,.035,'square');
+ },
+ oreFound:()=>{blip(700,1180,0.10,.05,'triangle');blip(1180,1560,0.12,.04,'sine');},
  swing:()=>noiseSweep(0.13,.08,500,2400),
  bolt:()=>{noiseSweep(0.09,.05,900,2600);blip(800,480,0.07,.04,'sawtooth');},
  fire:()=>{blip(600,120,0.3,.12,'sawtooth');noiseHit(0.25,.08,1000);},
@@ -3117,9 +3350,160 @@ function placeFarmItem(id,x,y){
 /* ⛏/✨ the two professions - the halls exist and open, the skills themselves come later. Kept as
    named functions so the click handler has a stable thing to call, and the panels can be filled in
    later without touching the city at all. */
-function openMiningHall(){stageMsg('⛏ The Mining Hall - the guild is still hiring. Come back soon.',2600);sfx.buy();}
+/* ==================== ⛏ MINING ====================
+   Trained once at the Mining Hall, then it runs itself: the pick button rides the skillbar and the
+   hero works his way around the rocks of whatever leveling zone he is standing in.
+   Skill goes 0-500 across four ranks. The thresholds widen as you climb, so each rank takes longer
+   than the last without the per-swing gain ever changing - the same swing that felt fast at rank 1
+   is a rounding error at rank 4, which is the whole shape of a trade skill. */
+const MINE_RANKS=[
+ {r:1,at:0,   to:50,  n:'Apprentice'},
+ {r:2,at:50,  to:125, n:'Journeyman'},
+ {r:3,at:125, to:250, n:'Expert'},
+ {r:4,at:250, to:500, n:'Master'},
+];
+const mineSkill=()=>Math.max(0,Math.min(500,(S&&S.mining&&S.mining.skill)||0));
+const mineRank=()=>{const s=mineSkill();let r=MINE_RANKS[0];for(const t of MINE_RANKS)if(s>=t.at)r=t;return r;};
+const mineTrained=()=>!!(S&&S.mining&&S.mining.trained);
+/* Rank widens what the rock can give up: rank 1 finds coal and little else, rank 4 finds emerald
+   in one rock out of six. Ore is what the skill is FOR, so it has to visibly improve. */
+const MINE_DROPS=[
+ {coal:0.34, ore:0.05},
+ {coal:0.42, ore:0.09},
+ {coal:0.50, ore:0.13},
+ {coal:0.58, ore:0.18},
+];
+function mineRefresh(){
+ const trained=mineTrained(),s=mineSkill(),rk=mineRank(),cap=rk.to;
+ const dr=MINE_DROPS[rk.r-1];
+ $('mineRankTxt').innerHTML=trained
+  ? `<b style="color:#e8c06a">${rk.n}</b> · rank ${rk.r} of 4 &nbsp;·&nbsp; <b>${s}</b> / ${cap}`
+  : 'The guild takes apprentices. No fee, no oath - only the work.';
+ /* the bar fills across the CURRENT rank, not across all 500 - a rank 2 miner should see how far
+    he is through rank 2, not a sliver that barely moves */
+ const span=cap-rk.at, into=Math.max(0,Math.min(span,s-rk.at));
+ $('mineBar').style.width=(trained?(100*into/span):0)+'%';
+ $('mineYieldTxt').innerHTML=trained
+  ? `At this rank a broken rock gives <b style="color:#cfc3ae">coal ${Math.round(dr.coal*100)}%</b> of the time and <b style="color:#9adf9a">emerald ore ${Math.round(dr.ore*100)}%</b>.`
+  : 'A miner works the stone of any leveling zone, and brings back coal and, in time, emerald ore.';
+ $('mineAction').innerHTML=trained
+  ? `<div class="cl" style="color:var(--dim)">The pick rides beside your potions. Rank rises with every rock you break.</div>`
+  : `<button class="sbtn gold" id="mineLearn" style="padding:11px 18px">⛏ Take up the pick</button>`;
+ const b=$('mineLearn');
+ if(b)b.onclick=()=>{
+  S.mining={trained:true,skill:0,on:false};
+  save();buildSkillbar();renderHUD();sfx.loot();
+  log('<span class="imp">⛏ Mining learned.</span> The pick sits beside your potions - tap it and you will work every rock in the zone.','loot');
+  mineRefresh();
+ };
+}
+function openMiningHall(){$('mineFx').style.display='flex';mineRefresh();sfx.buy();}
+/* Mining only works the leveling zones - the ones with rocks strewn about. The City has none, and
+   a boss arena is no place to be swinging a pick at the scenery. */
+const canMineHere=()=>{const z=zoneOf();return !!(z&&!z.special&&!z.boss);};
+function toggleMining(){
+ if(!mineTrained())return;
+ if(!S.mining.on&&!canMineHere()){stageMsg('⛏ No stone worth breaking here',1600);sfx.warn();return;}
+ S.mining.on=!S.mining.on;
+ if(!S.mining.on)mineTarget=null;
+ const b=$('mineBtn');if(b)b.classList.toggle('on',S.mining.on);
+ stageMsg(S.mining.on?'⛏ Mining - the pick is out':'⛏ Pick stowed',1400);
+ sfx.buy();save();
+}
+let mineTarget=null,mineSwingT=0,mineHits=0,mineNeed=0;
+/* Rocks are plain scenery solids, so a mined one is simply marked and skipped from then on. It
+   comes back next time the zone is built, which is what the player expects from a field of stone -
+   and it means none of this has to survive a save. */
+const rockLive=s=>s&&s.type==='rock'&&!s.mined;
+function nearestRock(){
+ if(!world||!world.solids)return null;
+ let best=null,bd=1e9;
+ for(const s of world.solids){
+  if(!rockLive(s))continue;
+  const d=Math.hypot(hero.x-s.x,hero.y-s.y);
+  if(d<bd){bd=d;best=s;}
+ }
+ return best;
+}
+function mineTick(dt){
+ if(!(S.mining&&S.mining.on&&mineTrained()&&hero&&!hero.dead))return false;
+ if(!canMineHere()){S.mining.on=false;const b=$('mineBtn');if(b)b.classList.remove('on');return false;}
+ if(hero.target&&!hero.target.dead)return false;      /* a fight always wins over a chore */
+ if(!rockLive(mineTarget)){
+  mineTarget=nearestRock();mineHits=0;
+  mineNeed=2+Math.floor(Math.random()*5);             /* 2-6 swings, rolled per rock */
+  if(!mineTarget){
+   S.mining.on=false;const b=$('mineBtn');if(b)b.classList.remove('on');
+   stageMsg('⛏ Every rock here is broken',1800);
+   return false;
+  }
+ }
+ const d=Math.hypot(hero.x-mineTarget.x,hero.y-mineTarget.y);
+ const reach=mineTarget.r+30;
+ if(d>reach){moveToward(hero,mineTarget.x,mineTarget.y,dt);return true;}
+ hero.moving=false;
+ hero.fx=Math.sign(mineTarget.x-hero.x)||hero.fx;hero.fy=0;
+ mineSwingT-=dt;
+ if(mineSwingT>0)return true;
+ mineSwingT=0.62;                                     /* one swing every 0.62 s */
+ hero.swing=0.24;                                     /* reuse the attack animation's arc */
+ sfx.pick();
+ for(let i=0;i<5;i++)parts.push({x:mineTarget.x+(Math.random()-0.5)*mineTarget.r,y:mineTarget.y-6,
+  vx:(Math.random()-0.5)*70,vy:-40-Math.random()*50,t:0,life:0.5,c:'#cfc3ae',r:1.4+Math.random(),g:150});
+ if(++mineHits<mineNeed)return true;
+ /* the rock gives */
+ mineTarget.mined=true;
+ mineGain();
+ const dr=MINE_DROPS[mineRank().r-1];
+ let got=[];
+ if(Math.random()<dr.coal){S.ore.coal++;got.push('Coal');}
+ if(Math.random()<dr.ore){S.ore.ore++;got.push('Emerald Ore');}
+ if(got.length){
+  sfx.oreFound();
+  floatAt(mineTarget.x,mineTarget.y-30,'+'+got.join(' +'),'#9adf9a',true);
+  log(`⛏ ${got.join(' and ')} from the rock.`,'loot');
+  renderBag();
+ }else sfx.loot();
+ renderHUD();save();
+ mineTarget=null;
+ return true;
+}
+/* one swing's worth of skill. Rises to the rank cap and stops - the next rank needs the hall. */
+function mineGain(){
+ if(!S.mining)return;
+ if(S.mining.skill>=500)return;
+ S.mining.skill++;
+ const rk=mineRank();
+ if(S.mining.skill===rk.at&&rk.r>1){
+  sfx.loot();
+  stageMsg('⛏ Mining rank '+rk.r+' - '+rk.n+'!',3000);
+  log(`<span class="imp">⛏ Mining rank ${rk.r}: ${rk.n}.</span> Richer veins answer your pick now.`,'loot');
+ }
+}
 function openEnchantHall(){stageMsg('✨ The Enchanting Hall - the runes are not yet cut. Come back soon.',2600);sfx.buy();}
-function openSmelter(){stageMsg('🔥 The Smelter - the furnace is lit, but there is no ore to pour yet.',2600);sfx.buy();}
+/* ==================== 🔥 THE SMELTER ====================
+   Two slots in and one out, laid out like the blacksmith: ore and coal on the left, the finished
+   stone on the right. Three ore and one coal buy a single emerald - the ratio is what makes a rank
+   4 miner's satchel worth carrying home rather than something you fill in an afternoon. */
+const SMELT_ORE=3, SMELT_COAL=1;
+function smeltRefresh(){
+ const o=S.ore||{coal:0,ore:0,gem:0};
+ const ready=o.ore>=SMELT_ORE&&o.coal>=SMELT_COAL;
+ const fill=(el,icon,fb,have,need)=>{
+  const e=$(el);
+  e.innerHTML=`${uiIcon(icon,fb,'fmico')}<span class="fmn">${have}/${need}</span>`;
+  e.classList.toggle('filled',have>=need);
+ };
+ fill('smSlotOre','it_emeraldore','🟩',o.ore,SMELT_ORE);
+ fill('smSlotCoal','it_coal','⬛',o.coal,SMELT_COAL);
+ const out=$('smSlotOut');
+ out.innerHTML=`${uiIcon('it_emerald','💚','fmico')}<span class="fmn">${o.gem}</span>`;
+ out.classList.toggle('filled',ready);
+ $('smeltHint').innerHTML=`<b style="color:#9adf9a">${SMELT_ORE} emerald ore</b> and <b style="color:#cfc3ae">${SMELT_COAL} coal</b> make one emerald.`;
+ $('smeltCount').textContent=ready?'The furnace is hot enough.':'Not enough to pour.';
+ $('smeltGo').disabled=!ready;
+}
+function openSmelter(){$('smeltFx').style.display='flex';smeltRefresh();sfx.buy();}
 /* ==================== 🏙 THE CITY ====================
    A King's Landing sprawl: one boulevard spine, cross avenues, a ring plaza in the middle and
    narrow alleys threading the blocks. Everything is generated from the zone's seeded RNG, so the
@@ -3941,6 +4325,7 @@ function collide(e,nx,ny){
  if((!e.boss||e.raid)&&!e.cow){
   for(const s of solidCell(nx,ny)){
    if(s.noCol)continue; /* roaming farm animals - walk-through */
+   if(s.mined)continue; /* broken open - nothing left to walk into */
    if(s.type==='gate'&&!(world.raidRooms&&world.raidRooms[s.room]&&world.raidRooms[s.room].sealed))continue;
    if(s.type==='altarportal'||s.type==='ritualportal'||s.type==='farmportal'||s.type==='cityportal'||s.type==='exitportal')continue; /* walk straight through the portals */
    if(s.crx){ /* wide painted buildings block with an ellipse matching their footprint (cyo shifts it up onto the walls) */
@@ -5525,7 +5910,8 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    }
    return;
   }
- }else{
+ }else if(!mineTick(dt)){ /* mining owns the hero's feet while it runs, so it is
+    asked first and the whole walking chain below is skipped while he works */
   if(holdMove){ /* finger still pressed - refresh the walk target to wherever it is now */
    const hr=cv.getBoundingClientRect();
    const hx=(holdMove.cx-hr.left)/zoom+camX,hy=(holdMove.cy-hr.top)/zoom+camY;
@@ -6225,6 +6611,7 @@ function draw(){
  for(const s of world.solids){
   if(s.type==='water')continue;
   if(s.x<cx0||s.x>cx1||s.y<cy0||s.y>cy1)continue; /* off screen - the city has hundreds of these */
+  if(s.mined)continue;   /* rubble now; the rock returns when the zone is rebuilt */
   drawables.push({y:s.y,f:()=>drawProp(s,z)});
  }
  /* townsfolk get the same camera test as the props - the City walks two dozen of them and every one
@@ -6784,7 +7171,10 @@ function drawProp(s,z){
       footprint for pieces whose ground contact is nothing like their silhouette - a tree being
       the case that forced this: wide canopy, narrow trunk. */
    const sh=def.sh||((def.col&&def.col.crx&&!def.snap)?{rx:0.36,ry:0.085,dy:-0.06}:null);
-   if(sh){ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,gy+W*sh.dy,W*sh.rx,W*sh.ry,0,0,7);ctx.fill();}
+   /* sh.cx shifts the blob sideways. Several of these sprites do not stand in the middle of their own
+     picture - the apple tree's trunk sits almost a third of the width to the right of centre - and
+     without this the shadow was pinned to x=0 and floated clear of the thing casting it. */
+  if(sh){ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(W*(sh.cx||0),gy+W*sh.dy,W*sh.rx,W*sh.ry,0,0,7);ctx.fill();}
    ctx.save();
    if(fl<0)ctx.scale(-1,1); /* ⇄ mirrored - the mood tag below stays outside this, or it would read backwards */
    if(def.roam&&s.mv){ /* 🐄 walk cycle: a little hop + body rock, pivoting at the feet, fading out on stop */
@@ -7824,6 +8214,11 @@ function buildSkillbar(){
   if(autoCfgMode)toggleAutoUse('s'+i,$('au'+i));
   else cast(i,true);
  });
+ if(mineTrained()){
+  $('potHp').insertAdjacentHTML('beforebegin',
+   `<button class="skill pot mine${S.mining.on?' on':''}" id="mineBtn" title="Mine every rock in the zone">${uiIcon('ui_pick','⛏')}</button>`);
+  $('mineBtn').onclick=()=>toggleMining();
+ }
  $('potHp').onclick=()=>{if(autoCfgMode)toggleAutoUse('hp',$('auHp'));else usePot('hp',true);};
  $('potMp').onclick=()=>{if(autoCfgMode)toggleAutoUse('mp',$('auMp'));else usePot('mp',true);};
  $('skAutoCfg').onclick=()=>{
@@ -8370,7 +8765,20 @@ function renderBag(){
    <div class="sn" style="color:#c9a45a;font-size:13px;font-weight:600">${uiIcon('it_brokenring','💍','shopico')} The Broken Ring</div>
    <div class="ss" style="color:var(--dim);font-size:11px">Cold, heavy, and humming. ${both?'Ready to be reforged.':'Needs the Recipe of the Ring from the Trader.'} Cannot be sold or discarded.</div></div></div>`;
  }
- $('scrollSec').innerHTML=luckHtml+raidHtml+armorHtml+connHtml+ringHtml+gamblerHtml+restedHtml+vhHtml;
+ /* ⛏ what the pick brought back. Kept as counts rather than as bag objects: they stack without
+    limit, they are never equipped or scrapped, and three hundred lumps of coal would bury the
+    gear the bag is actually for. */
+ let oreHtml='';
+ const _o=S.ore||{coal:0,ore:0,gem:0};
+ if(_o.coal||_o.ore||_o.gem){
+  const row=(icon,fb,n,name,desc)=>n?`<div class="card item"><div>
+    <div class="sn" style="font-size:13px;font-weight:600">${uiIcon(icon,fb,'shopico')} ${name} <span style="color:var(--dim)">×${n}</span></div>
+    <div class="ss" style="color:var(--dim);font-size:11px">${desc}</div></div></div>`:'';
+  oreHtml=row('it_emerald','💚',_o.gem,'Emerald','Cut and clear. Whatever the enchanters end up wanting, this is it.')
+        + row('it_emeraldore','🟩',_o.ore,'Emerald Ore',`Raw green crystal in the rock. ${SMELT_ORE} of these and ${SMELT_COAL} coal make an emerald at the City smelter.`)
+        + row('it_coal','⬛',_o.coal,'Coal','Fuel for the smelter.');
+ }
+ $('scrollSec').innerHTML=luckHtml+raidHtml+armorHtml+connHtml+ringHtml+gamblerHtml+restedHtml+vhHtml+oreHtml;
 
 
  document.querySelectorAll('[data-vhchest]').forEach(b=>b.onclick=openVioletHallsChest);
@@ -10782,6 +11190,16 @@ function smithRefresh(){
 }
 function openSmith(){smithTick();$('smithFx').style.display='flex';smithRefresh();}
 $('smithClose').onclick=()=>$('smithFx').style.display='none';
+$('mineClose').onclick=()=>$('mineFx').style.display='none';
+$('smeltClose').onclick=()=>$('smeltFx').style.display='none';
+$('smeltGo').onclick=()=>{
+ const o=S.ore;
+ if(o.ore<SMELT_ORE||o.coal<SMELT_COAL)return;
+ o.ore-=SMELT_ORE;o.coal-=SMELT_COAL;o.gem++;
+ sfx.loot();save();renderBag();renderHUD();smeltRefresh();
+ stageMsg('🔥 An emerald, cut and clear',2200);
+ log('<span class="imp">🔥 The furnace yields an Emerald.</span>','loot');
+};
 setInterval(()=>{if($('smithFx').style.display==='flex')smithRefresh();},1000);
 /* 🎵 casino ambience - plays whenever any casino window is up, EXCEPT Borek Seamen,
    whose own song owns the room. Zone ambience ducks under it, and comes back when you leave. */
@@ -11064,6 +11482,11 @@ function goHome(){
  stageMsg('🍺 Welcome to Moonshine - rest easy.',2200);
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+ /* Hand focus back to the page. A clicked button keeps keyboard focus, and the moment the player
+    touches WASD the browser decides this is keyboard navigation and paints its focus ring around
+    the tab - the white box. Blurring also stops Space and Enter from re-firing the tab while the
+    hero is being driven. */
+ b.blur();
  if(b.dataset.tab==='home'){goHome();return;}
  openTab(b.dataset.tab);
 });

@@ -129,6 +129,15 @@
   .skill .cost{position:absolute;bottom:1px;right:3px;font-size:8.5px;color:#9fb4e8;font-weight:700;text-shadow:0 1px 2px #000}
   .skill.nomana{filter:saturate(.3) brightness(.7)}
   .skill.pot{border-color:var(--brass-deep);font-size:17px}
+  /* ⛏ half the size of a spell button, as asked - it is a toggle you set and forget, not something
+     you reach for mid-fight, so it should not compete with the potions for the thumb. */
+  .skill.mine{width:23px;height:23px;border-radius:6px;align-self:flex-end;margin-bottom:2px}
+  .skill.mine.on{border-color:#e8c06a;box-shadow:0 0 9px rgba(232,192,106,.65)}
+  /* the mining hall and the smelter reuse the smith's panel and forge slots rather than inventing
+     their own - one modal shape across every venue in the game */
+  .fmico{width:34px;height:34px;object-fit:contain;border-radius:6px}
+  .fmslot .fmn{position:absolute;bottom:2px;right:5px;font-size:11px;font-weight:600;color:var(--parch);text-shadow:0 1px 2px #000}
+  .fmslot{position:relative}
   .skill .cnt{position:absolute;top:1px;right:3px;font-size:9px;color:#fff;font-weight:700;text-shadow:0 1px 2px #000}
   .sep{width:1px;height:36px;background:rgba(255,255,255,.18);margin:0 2px 5px}
   /* auto-cast config: the small Ⓐ between spells and potions */
@@ -217,6 +226,10 @@
   nav button{flex:0 1 auto;padding:0 16px;background:none;border:none;color:var(--dim);cursor:pointer;font-size:11px;letter-spacing:.5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-family:var(--body)}
   nav button svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
   nav button.cur{color:var(--brass)}
+  /* Belt and braces with the blur() in the click handler: the tab already shows which one is
+     current in brass, so the browser's ring adds nothing but a white box over the artwork. */
+  nav button:focus{outline:none}
+  nav button:focus-visible{outline:none}
  
   #create{position:absolute;inset:0;z-index:50;display:none;flex-direction:column;
     padding:calc(26px + env(safe-area-inset-top,0px)) 22px calc(26px + env(safe-area-inset-bottom,0px));overflow-y:auto;
@@ -768,6 +781,8 @@
 #restFx .slotmach{background:linear-gradient(180deg,rgba(30,22,14,.78),rgba(14,10,6,.90)),url('assets/ui/modal_inn.png') center/cover no-repeat}
 #smithFx .casinobox{background:linear-gradient(180deg,rgba(30,22,14,.78),rgba(14,10,6,.90)),url('assets/ui/modal_smith.png') center/cover no-repeat}
 #fishhutMenu .casinobox{background:linear-gradient(180deg,rgba(30,22,14,.78),rgba(14,10,6,.90)),url('assets/ui/modal_fish.png') center/cover no-repeat}
+#mineFx .casinobox{background:linear-gradient(180deg,rgba(30,22,14,.78),rgba(14,10,6,.90)),url('assets/ui/modal_mine.png') center/cover no-repeat}
+#smeltFx .casinobox{background:linear-gradient(180deg,rgba(30,22,14,.78),rgba(14,10,6,.90)),url('assets/ui/modal_smelter.png') center/cover no-repeat}
 
 /* venue title icons - they replace the emoji that used to sit in these headings. Height is in em so
    the icon scales with the heading's own font-size, and it is nudged onto the cap-height baseline. */

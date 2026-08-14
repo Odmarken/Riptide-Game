@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="favicon_256.png">
 <!-- ?v= is not decoration: without it iOS Safari serves a cached stylesheet for days, so two
      phones end up running two different builds of the layout. Bump on every visual change. -->
-<link rel="stylesheet" href="style.css?v=13">
+<link rel="stylesheet" href="style.css?v=16">
 </head>
 <body>
 <div id="app">
@@ -631,6 +631,33 @@
    </div>
   </div>
 
+  <div id="mineFx" style="position:absolute;inset:0;z-index:71;display:none;align-items:center;justify-content:center;background:rgba(10,7,4,.86)">
+   <div class="casinobox" style="border-color:#c8b07a">
+    <div class="slottop" style="color:#e8c06a;margin-bottom:2px"><img class="venico" src="assets/icons/venue_mine.png" alt=""> MINING HALL</div>
+    <div class="cl" id="mineRankTxt" style="margin-bottom:8px"></div>
+    <div style="margin-bottom:10px"><div class="bar xp" style="height:12px"><i id="mineBar" style="width:0%"></i></div></div>
+    <div class="cl" id="mineYieldTxt" style="margin-bottom:12px"></div>
+    <div id="mineAction"></div>
+    <button id="mineClose" class="sbtn" style="margin-top:12px;padding:11px">Leave the Hall</button>
+   </div>
+  </div>
+
+  <div id="smeltFx" style="position:absolute;inset:0;z-index:71;display:none;align-items:center;justify-content:center;background:rgba(10,7,4,.86)">
+   <div class="casinobox" style="border-color:#e08a4a">
+    <div class="slottop" style="color:#ffb46a;margin-bottom:2px"><img class="venico" src="assets/icons/venue_smelter.png" alt=""> THE SMELTER</div>
+    <div class="cl" id="smeltHint" style="margin-bottom:10px"></div>
+    <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0">
+     <div class="fmslot" id="smSlotOre">?</div>
+     <div class="fmslot" id="smSlotCoal">?</div>
+     <div style="font-size:22px;color:#ffb46a">➜</div>
+     <div class="fmslot out" id="smSlotOut">?</div>
+    </div>
+    <div class="cl" id="smeltCount" style="margin-bottom:10px"></div>
+    <button class="sbtn gold" id="smeltGo" style="padding:11px 18px">🔥 Smelt</button>
+    <button id="smeltClose" class="sbtn" style="margin-top:10px;padding:11px">Leave the Furnace</button>
+   </div>
+  </div>
+
   <nav>
     <button data-tab="battle" class="cur"><svg viewBox="0 0 24 24"><path d="M14.5 4 20 9.5 9.5 20 4 14.5z"/><path d="m4 20 3-3M17 7l3-3"/></svg>World</button>
     <button data-tab="hero"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.5 7.5-8 9-4.5-1.5-8-4.5-8-9V6z"/></svg>Hero</button>
@@ -641,6 +668,6 @@
   </nav>
 </div>
  
-<script src="game.js?v=15"></script>
+<script src="game.js?v=24"></script>
 </body>
 </html>
