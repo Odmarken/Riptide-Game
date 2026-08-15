@@ -71,10 +71,34 @@ function cityShadow(name,W,baseY){ /* sized off that footprint and tucked under 
  ctx.fillStyle='rgba(0,0,0,0.30)';
  ctx.beginPath();ctx.ellipse(W*f.cx,baseY-ry*0.45,rx,ry,0,0,7);ctx.fill();
 }
-const gsMapImg=new Image();gsMapImg.src='assets/models/maps/moonshine_map.png';
+/* Zone maps are the biggest files the game fetches - 2.5 to 3.8 MB each - and on a phone they are
+   the ones that fail. A dropped request leaves an Image with complete true and naturalWidth 0, which
+   passes NEITHER test in prerenderGround: not "ready to draw", not "still loading". The zone then
+   kept its flat procedural ground for the rest of the session, and walking out and back in did not
+   help, because the broken Image stays cached under its name.
+   So: retry a few times, backing off, with a cache-buster so the failed response is not what gets
+   served again - and repaint the ground if the player is still standing in that zone when it lands. */
+const MAP_DIR='assets/models/maps/';
+function mapImage(name){
+ const img=new Image(),url=MAP_DIR+name+'.png';
+ img.onerror=()=>{
+  const n=(img._tries=(img._tries||0)+1);
+  if(n>3)return;                                   /* give up quietly - the procedural ground stands in */
+  setTimeout(()=>{img.src=url+'?retry='+n;},600*n);
+ };
+ img.onload=()=>{
+  if(!(world&&gameOn))return;
+  const z=zoneOf();
+  const wanted=z.tavern?'moonshine_map':(z.map||null);
+  if(wanted===name)prerenderGround(z,mulberry32(1)); /* it arrived late; put it down now */
+ };
+ img.src=url;
+ return img;
+}
+const gsMapImg=mapImage('moonshine_map');
 /* painted ground maps for leveling zones - lazily loaded per zone via z.map */
 const zoneMapImgs={};
-const zoneMapImg=n=>{if(!zoneMapImgs[n]){zoneMapImgs[n]=new Image();zoneMapImgs[n].src='assets/models/maps/'+n+'.png';}return zoneMapImgs[n];};
+const zoneMapImg=n=>{if(!zoneMapImgs[n])zoneMapImgs[n]=mapImage(n);return zoneMapImgs[n];};
 const bergImg=new Image();bergImg.src='assets/models/berg.png';
 /* painted character sprites - keyed race+gender+class (e.g. humanmale_warrior.png) */
 const CHAR_SPRITES={ /* all 16 male race+class combos have art in assets/characters */
