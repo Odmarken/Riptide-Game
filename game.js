@@ -1415,9 +1415,16 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.luckT===undefined)s.luckT=0;
  if(s.gamblerPots===undefined)s.gamblerPots=0;
  if(s.gamblerT===undefined)s.gamblerT=0;
+ /* 😴 Rested is capped on the way in, not only on the way out. The wheel already assigns rather than
+    adds and sits behind a 24h cooldown, so it cannot be stacked by playing - but a save is the one
+    thing the game does not author itself. A doc that arrives holding six hours at +500%, whether
+    from tampering, a half-written cloud write or an older build, would otherwise be honoured. */
  if(s.restedT===undefined)s.restedT=0;
  if(s.restedPct===undefined)s.restedPct=0;
  if(s.restedSpinAt===undefined)s.restedSpinAt=0;
+ s.restedT=Math.max(0,Math.min(3600,s.restedT||0));            /* one hour, never more */
+ s.restedPct=Math.max(0,Math.min(0.20,s.restedPct||0));        /* the wheel's best segment is 20% */
+ if(s.restedSpinAt>Date.now())s.restedSpinAt=0;                /* a clock skewed into the future would lock the wheel forever */
  if(s.freeGoldCases===undefined)s.freeGoldCases=0;
  /* the mining trade and what it digs up. Both default in rather than being written on train,
     so a save from before mining existed reads as an untrained miner with an empty satchel. */
@@ -8543,22 +8550,29 @@ function renderHero(){
   <div class="card spellcard"><div class="spellg">${spellGlyph(sp)}</div>
   <div><div class="sn" style="color:var(--parch);font-size:13px">${sp.n} <span style="color:var(--mp);font-size:10px">${spellManaCost(sp)} mana · ${sp.cd}s</span></div>
   <div class="ss" style="color:var(--dim);font-size:11px">${sp.d}</div></div></div>`).join('');
- /* ⛏ Mining sits under the spells once it has been learned - it is the one thing on this panel the
-    hero can improve outside a fight, so it reads as another line of the spellbook rather than as a
-    setting. The bar counts within the CURRENT rank: an Expert wants to see 40/125 towards rank 4,
-    not 165/500 towards nothing he recognises. */
- if(mineTrained()){
-  const s=mineSkill(),rk=mineRank(),into=s-rk.at,span=rk.to-rk.at;
-  $('spellList').insertAdjacentHTML('beforeend',`
-   <div class="card spellcard">
-    <div class="spellg">${uiIcon('ui_pick','⛏')}</div>
+ /* Professions get their own heading under the spellbook. Written as a list rather than as one
+    hard-coded Mining block so Enchanting drops in beside it with a single entry once the Enchanting
+    Hall teaches anything - the heading, the empty case and the row markup are already handled.
+    Each entry reports its own rank and progress; the bar counts within the CURRENT rank, because an
+    Expert wants to see 40/125 towards rank 4, not 165/500 towards a number he does not recognise. */
+ const PROFS=[
+  {id:'mining', name:'Mining', icon:'ui_pick', fallback:'⛏', trained:mineTrained,
+   read:()=>{const rk=mineRank();return {rank:rk.r,of:4,title:rk.n,into:mineSkill()-rk.at,span:rk.to-rk.at};}},
+  /* {id:'enchanting', ...} - the Enchanting Hall is still a stub; it slots in here. */
+ ];
+ const learned=PROFS.filter(p=>p.trained());
+ $('profTitle').style.display=learned.length?'':'none';
+ $('profList').innerHTML=learned.map(p=>{
+  const d=p.read();
+  return `<div class="card spellcard">
+    <div class="spellg">${uiIcon(p.icon,p.fallback)}</div>
     <div style="flex:1;min-width:0">
-     <div class="sn" style="color:var(--parch);font-size:13px">Mining
-      <span style="color:#8fc3ef;font-size:10px">${rk.n} · rank ${rk.r} of 4</span></div>
-     <div class="minebar"><i style="width:${Math.round(100*into/span)}%"></i><b>${into} / ${span}</b></div>
+     <div class="sn" style="color:var(--parch);font-size:13px">${p.name}
+      <span style="color:#8fc3ef;font-size:10px">${d.title} · rank ${d.rank} of ${d.of}</span></div>
+     <div class="minebar"><i style="width:${Math.round(100*d.into/d.span)}%"></i><b>${d.into} / ${d.span}</b></div>
     </div>
-   </div>`);
- }
+   </div>`;
+ }).join('');
  $('autoEquipBtn').textContent=S.autoEquip?'On':'Off';
 }
 function renderMap(){
@@ -11526,10 +11540,18 @@ $('restSpinBtn').onclick=()=>{
   else{
    restSpinning=false;
    const val=REST_SEGS[t];
+   /* Rested REPLACES, it never accumulates. Both fields are assigned, not added to, so a spin taken
+      while an hour is already running restarts that hour at the new percentage rather than banking
+      a second one - you can hold exactly one hour of Rested and never more. The 24h cooldown above
+      is the other half of it: without the assignment a player could log in daily and sit on a
+      growing pile of bonus XP. */
+   const had=S.restedT>0?Math.ceil(S.restedT/60):0, hadPct=Math.round((S.restedPct||0)*100);
    S.restedPct=val/100;S.restedT=3600;S.restedSpinAt=Date.now();
    sfx.quest();
    stageMsg('😴 Rested - +'+val+'% XP for 1 hour!',3000);
-   log('<span class="lfine">😴 Rested</span> - the Moonshine inn grants +'+val+'% XP for 1 hour.');
+   log(had
+    ? `<span class="lfine">😴 Rested</span> - +${val}% XP for 1 hour. This replaces the +${hadPct}% you had running, with ${had} min left.`
+    : `<span class="lfine">😴 Rested</span> - the Moonshine inn grants +${val}% XP for 1 hour.`);
    renderHUD();save();
    updateRestUI();
   }
