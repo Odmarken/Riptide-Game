@@ -14,7 +14,8 @@ const CFG = path.join(app.getPath('userData'), 'settings.json');
 const readCfg = () => {
   let raw = {};
   try { raw = JSON.parse(fs.readFileSync(CFG, 'utf8')); } catch (e) {}
-  return {vsync: raw.vsync !== false, windowed: !!raw.windowed};
+  return {vsync: raw.vsync !== false, windowed: !!raw.windowed,
+          resW: raw.resW | 0, resH: raw.resH | 0};
 };
 const writeCfg = patch => {
   try { fs.writeFileSync(CFG, JSON.stringify(Object.assign(readCfg(), patch), null, 2)); return true; }
@@ -30,6 +31,46 @@ if (!cfg.vsync) {
   app.commandLine.appendSwitch('disable-gpu-vsync');
 }
 
+/* Resolution. The default is always the screen itself - a fresh install should fill the display the
+   player actually has, not a size we guessed - and a stored size only ever exists because they chose
+   one. Candidates are filtered against the work area, so the list never offers a window that would
+   not fit. It applies to the windowed size; in fullscreen the display decides and this is what you
+   drop back into. */
+const RES_CANDIDATES=[[1280,720],[1366,768],[1600,900],[1920,1080],[2560,1440],[3840,2160]];
+function screenSize(){
+ const {screen}=require('electron');
+ const d=screen.getPrimaryDisplay();
+ return {w:d.workAreaSize.width,h:d.workAreaSize.height};
+}
+function resolutionList(){
+ const s=screenSize();
+ const out=[{w:s.w,h:s.h,label:'Match screen ('+s.w+' x '+s.h+')',native:true}];
+ for(const [w,h] of RES_CANDIDATES){
+  if(w<=s.w&&h<=s.h&&!(w===s.w&&h===s.h))out.push({w,h,label:w+' x '+h,native:false});
+ }
+ return out;
+}
+function windowSize(){
+ const c=readCfg(),s=screenSize();
+ if(c.resW>0&&c.resH>0)return {w:Math.min(c.resW,s.w),h:Math.min(c.resH,s.h)};
+ return s;   /* nothing chosen yet - match the screen */
+}
+ipcMain.handle('res:list', () => {
+ const c=readCfg();
+ return {list:resolutionList(), chosen:(c.resW>0&&c.resH>0)?{w:c.resW,h:c.resH}:null};
+});
+ipcMain.handle('res:set', (_e,w,h) => {
+ const s=screenSize();
+ const native=(!w||!h);
+ const W=native?s.w:Math.min(w|0,s.w),H=native?s.h:Math.min(h|0,s.h);
+ writeCfg(native?{resW:0,resH:0}:{resW:W,resH:H});
+ if(win&&!win.isDestroyed()){
+  /* only resize a window that is actually a window - in fullscreen this would be ignored anyway,
+     and the size is stored so it is waiting when they come out of it */
+  if(!win.isFullScreen()){win.setSize(W,H);win.center();}
+ }
+ return {w:W,h:H,fullscreen:!!(win&&!win.isDestroyed()&&win.isFullScreen())};
+});
 ipcMain.handle('app:quit', () => app.quit());
 ipcMain.handle('settings:get', () => readCfg());
 ipcMain.handle('settings:vsync', (_e, v) => writeCfg({vsync: !!v}));
@@ -60,9 +101,10 @@ app.commandLine.appendSwitch('autoplay-policy', 'no-user-gesture-required');
 let win;
 
 function createWindow() {
+  const sz = windowSize();   /* the screen, unless the player has chosen a size */
   win = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width: sz.w,
+    height: sz.h,
     minWidth: 960,
     minHeight: 600,
     backgroundColor: '#1a120b',   /* painted before the page loads, so no white flash on launch */

@@ -11,5 +11,7 @@ contextBridge.exposeInMainWorld('desktop', {
   setVsync: v => ipcRenderer.invoke('settings:vsync', !!v),
   setWindowed: v => ipcRenderer.invoke('settings:windowed', !!v),
   onWindowedChanged: fn => ipcRenderer.on('windowed-changed', (_e, v) => fn(!!v)),
+  getResolutions: () => ipcRenderer.invoke('res:list'),
+  setResolution: (w,h) => ipcRenderer.invoke('res:set', w, h),
   quit: () => ipcRenderer.invoke('app:quit'),
 });

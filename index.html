@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="favicon_256.png">
 <!-- ?v= is not decoration: without it iOS Safari serves a cached stylesheet for days, so two
      phones end up running two different builds of the layout. Bump on every visual change. -->
-<link rel="stylesheet" href="style.css?v=19">
+<link rel="stylesheet" href="style.css?v=28">
 </head>
 <body>
 <div id="app">
@@ -107,14 +107,33 @@
     <button id="musBtn" class="stgbtn" title="Pause game and audio">⏸</button>
     <button id="sideToggle" class="stgbtn" title="Hide panel (B)" style="height:44px;width:16px;padding:0;font-size:9px">❯</button>
     <div id="cfgBox">
-      <label class="cfgrow"><span>Music</span><input type="range" id="volAmbSl" min="0" max="100"><b id="volAmbN">50</b></label>
-      <label class="cfgrow"><span>Combat</span><input type="range" id="volSfxSl" min="0" max="100"><b id="volSfxN">55</b></label>
-      <div class="cfgsep"></div>
-      <label class="cfgrow cfgchk"><input type="checkbox" id="windowChk"><span>Windowed mode</span></label>
-      <label class="cfgrow cfgchk" id="vsyncRow" style="display:none"><input type="checkbox" id="vsyncChk" checked><span>Vsync</span></label>
-      <div class="cfgnote" id="vsyncNote" style="display:none">Matches your monitor · takes effect on restart</div>
-      <div class="cfgsep"></div>
-      <button id="exitBtn" class="cfgexit">Exit game</button>
+      <div class="casinobox" style="border-color:#b8a06a;max-width:400px">
+        <div class="slottop" style="color:#e8dcc6;margin-bottom:10px">⚙ SETTINGS</div>
+        <div class="cfgtabs">
+          <button class="cfgtab on" data-pane="audio">Audio</button>
+          <button class="cfgtab" data-pane="video">Video</button>
+          <button class="cfgtab" data-pane="controls">Controls</button>
+        </div>
+        <div class="cfgpane on" id="paneAudio">
+          <label class="cfgrow"><span>Music</span><input type="range" id="volAmbSl" min="0" max="100"><b id="volAmbN">50</b></label>
+          <label class="cfgrow"><span>Combat</span><input type="range" id="volSfxSl" min="0" max="100"><b id="volSfxN">55</b></label>
+        </div>
+        <div class="cfgpane" id="paneVideo">
+          <label class="cfgrow cfgchk"><input type="checkbox" id="windowChk"><span>Windowed mode</span></label>
+          <label class="cfgrow cfgchk" id="vsyncRow" style="display:none"><input type="checkbox" id="vsyncChk" checked><span>Vsync</span></label>
+          <div class="cfgnote" id="vsyncNote" style="display:none">Matches your monitor · takes effect on restart</div>
+          <label class="cfgrow" id="resRow" style="display:none"><span>Resolution</span><select id="resSel"></select></label>
+          <div class="cfgnote" id="resNote" style="display:none">Applies to the window · fullscreen follows the display</div>
+        </div>
+        <div class="cfgpane" id="paneControls">
+          <img class="kbdart" src="assets/ui/keyboard_controls.png" alt="" draggable="false"
+               onerror="this.style.display='none'">
+          <div class="kbdlist" id="kbdList"></div>
+        </div>
+        <div class="cfgsep"></div>
+        <button id="exitBtn" class="cfgexit">Exit game</button>
+        <button id="cfgClose" class="sbtn" style="margin-top:9px;padding:10px;width:100%">Back to the game</button>
+      </div>
     </div>
     <div id="hint">WASD / tap ground to move · tap a foe · tap spells to cast</div>
     <div id="stagemsg"></div>
@@ -325,6 +344,25 @@
      <button class="bjact" id="bjStand" disabled>Stand</button>
      <button class="bjact alt" id="bjDbl" disabled>Double</button>
      <button id="bjClose" class="sbtn" style="padding:12px 18px;border-radius:12px">Close</button>
+    </div>
+   </div>
+  </div>
+
+  <div id="sebbeFx">
+   <div class="slotmach cups">
+    <div class="slottop">FOLLOW THE BALL</div>
+    <div class="ss" id="sebbeSay" style="color:var(--dim);font-size:11.5px;line-height:1.5;margin-bottom:10px"></div>
+    <div class="cuprow" id="cupRow"></div>
+    <div class="slotres" id="sebbeRes">&nbsp;</div>
+    <div class="slotbet">
+     <button class="qtybtn" id="sebbeBetDn">−</button>
+     <span class="qtynum" id="sebbeBetN">5,000</span>
+     <button class="qtybtn" id="sebbeBetUp">+</button>
+     <span class="slotbetcost">◉ / round</span>
+    </div>
+    <div class="bjbtns">
+     <button class="bjact" id="sebbeStart">Put the ball down</button>
+     <button id="sebbeClose" class="sbtn" style="padding:12px 18px;border-radius:12px">Leave</button>
     </div>
    </div>
   </div>
@@ -555,6 +593,18 @@
    </div>
   </div>
 
+  <div id="finalGateFx">
+   <div class="casinobox" style="border-color:#7fb4e0;max-width:420px;text-align:center">
+    <div class="slottop" style="color:#bcd8ff;margin-bottom:8px">⛧ THE FINAL HOUR</div>
+    <div class="ss" style="color:var(--parch);font-size:14.5px;line-height:1.6;margin-bottom:6px">
+     The door will open. It will not open twice.</div>
+    <div style="font-family:var(--display);font-size:19px;color:#bcd8ff;text-shadow:0 0 14px rgba(127,180,224,.55);margin:14px 0 16px">
+     Are you ready for the final boss?</div>
+    <button class="sbtn gold" id="finalGateYes" style="width:100%;padding:13px">Yes, open it</button>
+    <button class="sbtn" id="finalGateNo" style="width:100%;margin-top:8px;padding:12px">Not yet</button>
+   </div>
+  </div>
+
   <div id="iceReqMsg" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:74;display:none;padding:26px 34px;border-radius:14px;border:1px solid rgba(120,200,255,.55);background:#0b1622;text-align:center;max-width:420px;box-shadow:0 10px 40px rgba(0,0,0,.75)">
    <div style="font-family:var(--display);font-size:21px;color:#9fd4ff;margin-bottom:10px">❄ THE GATE JUDGES YOU</div>
    <div class="ss" style="color:var(--parch);font-size:15px;line-height:1.55;margin-bottom:16px"><b style="color:#9fd4ff">Ice Armor must be equipped.</b><br>Nothing else survives what waits beyond.</div>
@@ -644,6 +694,17 @@
    </div>
   </div>
 
+  <div id="enchFx" style="position:absolute;inset:0;z-index:71;display:none;align-items:center;justify-content:center;background:rgba(10,7,4,.86)">
+   <div class="casinobox" style="border-color:#9a7ac8">
+    <div class="slottop" style="color:#c9a0ff;margin-bottom:2px"><img class="venico" src="assets/icons/venue_ench.png" alt=""> ENCHANTING HALL</div>
+    <div class="cl" id="enchRankTxt" style="margin-bottom:8px"></div>
+    <div style="margin-bottom:8px"><div class="bar xp" style="height:12px"><i id="enchBar" style="width:0%"></i></div></div>
+    <div class="cl" id="enchGems" style="margin-bottom:12px"></div>
+    <div id="enchBody"></div>
+    <button id="enchClose" class="sbtn" style="margin-top:12px;padding:11px">Leave the Hall</button>
+   </div>
+  </div>
+
   <div id="smeltFx" style="position:absolute;inset:0;z-index:71;display:none;align-items:center;justify-content:center;background:rgba(10,7,4,.86)">
    <div class="casinobox" style="border-color:#e08a4a">
     <div class="slottop" style="color:#ffb46a;margin-bottom:2px"><img class="venico" src="assets/icons/venue_smelter.png" alt=""> THE SMELTER</div>
@@ -670,6 +731,6 @@
   </nav>
 </div>
  
-<script src="game.js?v=33"></script>
+<script src="game.js?v=67"></script>
 </body>
 </html>
