@@ -5644,7 +5644,7 @@ function padStick(){
    guessed, so the rest quietly does nothing rather than firing the wrong thing.
    Everything here reads EDGES, not held state: a menu that advanced once per frame while A was down
    would run the whole panel in a tenth of a second. */
-const PAD_B={a:0,b:1,x:2,y:3,up:12,down:13,left:14,right:15};
+const PAD_B={a:0,b:1,x:2,y:3,lt:6,rt:7,start:9,r3:11,up:12,down:13,left:14,right:15};
 let padDown={},padHit={};        /* held now / pressed this frame */
 let padRZoom=0;                  /* right stick Y, deadzoned - drives the camera */
 function padPollButtons(){
@@ -5670,7 +5670,7 @@ function padPollButtons(){
   if(Math.abs(y)>PAD_DEAD)padRZoom=-(y>0?y-PAD_DEAD:y+PAD_DEAD)/(1-PAD_DEAD);  /* push up to zoom in */
   break;
  }
- if(padHit.a||padHit.b||padHit.up||padHit.down||padHit.left||padHit.right||Math.abs(padRZoom)>0)setInputMode('pad');
+ if(Object.keys(padHit).length||Math.abs(padRZoom)>0)setInputMode('pad');
 }
 
 /* ---------- what an A press means when a panel is open ----------
@@ -5746,10 +5746,32 @@ function padInteract(){
  }
  return best;
 }
+/* B backs out. Nearly every panel names its own close button <id>Close, which is enough on its
+   own; the handful that do not are listed here rather than guessed at, because a B press that
+   silently does nothing is worse than no binding at all. */
+const PAD_BACK={sebbeFx:'sebbeClose',finalGateFx:'finalGateNo',casinoMenu:'casinoMenuClose',
+ cfgBox:'cfgClose',slotFx:'slotClose',bjFx:'bjClose',rouFx:'rouClose',rtbFx:'rtbClose',
+ seaFx:'seaClose',gvbFx:'gvbLeave'};   /* the duel calls its exit Leave, not Close */
+function padBack(host){
+ const named=PAD_BACK[host.id]&&$(PAD_BACK[host.id]);
+ const close=named||host.querySelector('[id$=Close]')||host.querySelector('[id$=close]');
+ if(close){close.click();return true;}
+ /* nothing named: fall back to the last button in the panel, which is where Close always sits */
+ const items=padItems(host);
+ if(items.length){items[items.length-1].click();return true;}
+ return false;
+}
 let padNear=null;   /* what the prompt is currently offering, so the draw and the press agree */
 
 function padTick(dt){
  padPollButtons();
+ /* ⚙ the pad's own Settings/Menu button, same as clicking the gear. Handled before the panel
+    branch so it can close the settings panel it just opened. */
+ if(padHit.start){
+  initAudio();syncAudioUI();renderControls();
+  $('cfgBox').classList.toggle('open');
+  return;
+ }
  const host=padPanelOpen();
  if(host){
   /* a panel is up: the d-pad walks it and A presses what is highlighted */
@@ -5761,15 +5783,20 @@ function padTick(dt){
    if(!padFocus)padMenuStep(host,1);
    else{const f=padFocus;f.click();}
   }
-  if(padHit.b){ /* B backs out of whatever is open */
-   const close=host.querySelector('[id$=Close],[id$=close],.sbtn:last-of-type');
-   if(close)close.click();
-  }
+  if(padHit.b)padBack(host);
   return;
  }
  if(padFocus)padMark(null);
  padNear=inputMode==='pad'?padInteract():null;
  if(padHit.a&&padNear)padNear.open();
+ /* 🎒 RT is the bag: press to open it, press again to put it away. On the desktop layout the side
+    column always shows something, so "away" means back to the hero sheet rather than a blank. */
+ if(padHit.rt&&gameOn){
+  const onBag=$('p-bag')&&$('p-bag').classList.contains('open');
+  openTab(onBag?'hero':'bag');
+ }
+ /* ⛏ R3 puts the pick out, for anyone who has been taught to use one */
+ if(padHit.r3&&gameOn&&mineTrained())toggleMining();
  if(Math.abs(padRZoom)>0.01&&gameOn)setZoom(zoom*(1+padRZoom*1.6*dt));
 }
 window.addEventListener('gamepaddisconnected',e=>{if(e.gamepad)delete padCal[e.gamepad.index];});
