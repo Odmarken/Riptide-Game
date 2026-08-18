@@ -5568,7 +5568,10 @@ function bossAI(en,dt){
    the object must never be cached. */
 const PAD_DEAD=0.22;   /* sticks rest off-centre once worn; below this is drift, not intent */
 let padNow=null;   /* this frame's stick reading, or null */
-let padInfo='',padMoved=false;  /* shown beside the fps counter so "nothing happens" is diagnosable */
+let padLeftPair=-1,padPadIndex=-1;   /* which axis pair walked, and on which pad - the right stick is found relative to it */
+/* While the pad was being brought up this corner printed raw axis values so "nothing happens" was
+   diagnosable. The pad works now, so all that is left is a badge saying which device is steering -
+   and it is only drawn while the pad IS steering, so touching the keyboard clears it. */
 /* Which device is steering. Switched by whichever one the player touches, so putting the pad down
    and reaching for the keys - or the reverse - just works without a setting to find. */
 let inputMode='kb';
@@ -5577,7 +5580,8 @@ const keyMoveHeld=()=>MOVE_KEYS.some(k=>keys[k]);
 function setInputMode(m){
  if(inputMode===m)return;
  inputMode=m;
- if(gameOn)fishToast(m==='pad'?'🎮 Controller':'⌨ Keyboard','#8fc3ef',1200);
+ const b=$('padBadge');
+ if(b)b.classList.toggle('on',m==='pad');
 }
 const padCal={};                /* per-pad resting offsets and which axis pair has actually moved */
 /* Controllers do not agree on any of this, and two opposite symptoms from the same pad made that
@@ -5594,7 +5598,6 @@ const padCal={};                /* per-pad resting offsets and which axis pair h
        once been seen near centre cannot be a stick, so it is not eligible to steer. A stick that
        happened to be held when first seen qualifies the moment it is let go. */
 function padStick(){
- padInfo='';
  if(!navigator.getGamepads)return null;
  const pads=navigator.getGamepads();
  const list=[];
@@ -5625,15 +5628,149 @@ function padStick(){
    if(cand+1>=n)continue;
    if(c.rested[cand]&&c.rested[cand+1]&&(c.moved[cand]||c.moved[cand+1])){k=cand;break;}
   }
-  if(k<0){padInfo='🎮 '+a.slice(0,4).map(v=>(v||0).toFixed(2)).join(' ')+' no stick yet ['+(p.mapping||'none')+']';continue;}
+  if(k<0)continue;
+  padLeftPair=k;padPadIndex=p.index;
   const x=a[k]||0,y=a[k+1]||0,m=Math.hypot(x,y);
-  padInfo='🎮 '+a.slice(0,4).map(v=>(v||0).toFixed(2)).join(' ')+' ax'+k+'/'+(k+1)+' ['+(p.mapping||'none')+']';
   if(m<PAD_DEAD)continue;
   /* Rescale what is left of the travel back to 0..1. Without this the stick jumps straight to 22%
      of full pace the instant it leaves the deadzone, and fine movement is impossible. */
   return {x:x/m,y:y/m,mag:Math.min(1,(m-PAD_DEAD)/(1-PAD_DEAD))};
  }
  return null;
+}
+/* ---------- 🎮 buttons, the right stick, and what they do ----------
+   Indices are the "standard" mapping: 0=A 1=B 2=X 3=Y, 12..15 = the d-pad. A pad that reports some
+   other mapping still walks (the left stick is FOUND, not assumed) but its face buttons cannot be
+   guessed, so the rest quietly does nothing rather than firing the wrong thing.
+   Everything here reads EDGES, not held state: a menu that advanced once per frame while A was down
+   would run the whole panel in a tenth of a second. */
+const PAD_B={a:0,b:1,x:2,y:3,up:12,down:13,left:14,right:15};
+let padDown={},padHit={};        /* held now / pressed this frame */
+let padRZoom=0;                  /* right stick Y, deadzoned - drives the camera */
+function padPollButtons(){
+ padHit={};
+ padRZoom=0;
+ if(!navigator.getGamepads)return;
+ const pads=navigator.getGamepads();
+ const p=padPadIndex>=0?pads[padPadIndex]:null;
+ if(!p||!p.connected){padDown={};return;}
+ for(const k in PAD_B){
+  const b=p.buttons&&p.buttons[PAD_B[k]];
+  const on=!!(b&&(b.pressed||b.value>0.5));
+  if(on&&!padDown[k])padHit[k]=true;
+  padDown[k]=on;
+ }
+ /* the right stick is the next usable pair after the one that walks */
+ const a=p.axes||[];
+ for(const cand of [0,2,4]){
+  if(cand===padLeftPair||cand+1>=a.length)continue;
+  const c=padCal[p.index];
+  if(!c||!c.rested[cand]||!c.rested[cand+1])continue;
+  const y=a[cand+1]||0;
+  if(Math.abs(y)>PAD_DEAD)padRZoom=-(y>0?y-PAD_DEAD:y+PAD_DEAD)/(1-PAD_DEAD);  /* push up to zoom in */
+  break;
+ }
+ if(padHit.a||padHit.b||padHit.up||padHit.down||padHit.left||padHit.right||Math.abs(padRZoom)>0)setInputMode('pad');
+}
+
+/* ---------- what an A press means when a panel is open ----------
+   Rather than teach every panel about the pad, walk whatever is on screen: the topmost open panel's
+   own buttons, in document order, are the menu. That way a panel built later is navigable the day
+   it is written, with nothing added to it. */
+const PAD_PANELS=['finalGateFx','sebbeFx','gvbFx','rtbFx','rouFx','bjFx','seaFx','slotFx','casinoMenu',
+ 'chestFx','seaBuyFx','sharkFx','ritualDoneFx','ritualFx','talentFx','smithFx','smithMenu','bankFx',
+ 'restFx','fishhutMenu','mineFx','smeltFx','enchFx','farmCheckoutFx','farmBuyFx','farmDelFx','cfgBox'];
+const padPanelOpen=()=>{
+ for(const id of PAD_PANELS){
+  const e=$(id);
+  /* Ask whether it is RENDERED, not what its own display says. Several of these are inner boxes
+     whose parent is the thing that hides them - #smithMenu sits inside #smithFx and carries no
+     display of its own, so a computed-style test called it open permanently and the pad spent
+     every frame walking a menu that was not on screen. An element inside a hidden ancestor has no
+     client rects, which is the only test that survives that. */
+  if(!e||!e.getClientRects().length)continue;
+  if(getComputedStyle(e).visibility==='hidden')continue;
+  return e;
+ }
+ return null;
+};
+let padFocus=null;
+const padItems=host=>[...host.querySelectorAll('button,select,.casinopick,.enchcell,.cup,[data-fs],[data-rb]')]
+ .filter(e=>!e.disabled&&e.offsetParent!==null&&e.getClientRects().length);
+function padMark(el){
+ document.querySelectorAll('.padfocus').forEach(e=>e.classList.remove('padfocus'));
+ padFocus=el||null;
+ if(el){el.classList.add('padfocus');if(el.scrollIntoView)el.scrollIntoView({block:'nearest'});}
+}
+function padMenuStep(host,d){
+ const items=padItems(host);
+ if(!items.length)return;
+ let i=items.indexOf(padFocus);
+ i=i<0?(d>0?0:items.length-1):(i+d+items.length)%items.length;
+ padMark(items[i]);
+}
+/* ---------- what an A press means in the world ----------
+   The same doors the mouse can click, found by proximity instead of by pixel. Kept as one list so
+   the prompt and the press can never disagree about what is in front of you. */
+function padInteract(){
+ if(!gameOn||!world||!hero||hero.dead)return null;
+ const z=zoneOf(),out=[];
+ const add=(s,label,open,rng)=>{if(s)out.push({s,label,open,rng:rng||150});};
+ const find=t=>world.solids.find(s2=>s2.type===t);
+ if(z.tavern){
+  add(world.solids.find(s2=>s2.type==='house'&&s2.big),'Moonshine Inn',openRestedWheel,170);
+  add(find('casino'),'Borek Casino',openCasinoMenu,170);
+  add(find('bank'),'Bank',openBank,150);
+  add(find('smith'),'Blacksmith',openSmith,150);
+  add(find('fishhut'),'Fishing Hut',openFishHut,150);
+ }else if(z.city){
+  const sb=(world.npcs||[]).find(n=>n.game==='cups');
+  if(sb)out.push({s:sb,label:'Sebbe',open:openCupGame,rng:120});
+  add(find('minehall'),'Mining Hall',openMiningHall,180);
+  add(find('enchanthall'),'Enchanting Hall',openEnchantHall,180);
+  add(find('smelter'),'Smelter',openSmelter,180);
+ }else if(z.altar){
+  add(find('ritualportal'),'The Final Hour',()=>{
+   if((S.prestige||0)<50||(S.lvl||1)<MAXLVL){$('gateMsg').style.display='block';sfx.warn();return;}
+   if(!(S.gear&&isIce(S.gear.armor))){$('iceReqMsg').style.display='block';sfx.warn();return;}
+   openFinalGate();
+  },150);
+  add(find('armoraltar'),'The Altar',openTalents,150);
+ }else if(z.farm){
+  add(find('farmhouse'),'Farmhouse',farmhouseClick,200);
+ }
+ let best=null,bd=1e9;
+ for(const o of out){
+  const d=Math.hypot(hero.x-o.s.x,hero.y-o.s.y);
+  if(d<o.rng&&d<bd){bd=d;best=o;}
+ }
+ return best;
+}
+let padNear=null;   /* what the prompt is currently offering, so the draw and the press agree */
+
+function padTick(dt){
+ padPollButtons();
+ const host=padPanelOpen();
+ if(host){
+  /* a panel is up: the d-pad walks it and A presses what is highlighted */
+  padNear=null;
+  if(padFocus&&!host.contains(padFocus))padMark(null);
+  if(padHit.up||padHit.left)padMenuStep(host,-1);
+  if(padHit.down||padHit.right)padMenuStep(host,1);
+  if(padHit.a){
+   if(!padFocus)padMenuStep(host,1);
+   else{const f=padFocus;f.click();}
+  }
+  if(padHit.b){ /* B backs out of whatever is open */
+   const close=host.querySelector('[id$=Close],[id$=close],.sbtn:last-of-type');
+   if(close)close.click();
+  }
+  return;
+ }
+ if(padFocus)padMark(null);
+ padNear=inputMode==='pad'?padInteract():null;
+ if(padHit.a&&padNear)padNear.open();
+ if(Math.abs(padRZoom)>0.01&&gameOn)setZoom(zoom*(1+padRZoom*1.6*dt));
 }
 window.addEventListener('gamepaddisconnected',e=>{if(e.gamepad)delete padCal[e.gamepad.index];});
 window.addEventListener('gamepadconnected',e=>{
@@ -6205,6 +6342,7 @@ function autoBrain(dt){
 function update(dt){
  if(!gameOn)return;
  padNow=padStick(); /* one poll per frame, shared by the movement block below */
+ padTick(dt);       /* buttons, the right stick, the A prompt and menu walking */
  if(padNow&&!keyMoveHeld())stopMining(true); /* reaching for the stick puts the pick away */
  mpSyncTick();
  updateFarmAnimals(dt);
@@ -6363,11 +6501,11 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
      down and pick up the other. inputMode is set from the keydown handler and from here. */
   let pace=1;
   if(padNow&&inputMode==='pad'){
-   kx=padNow.x;ky=padNow.y;pace=padNow.mag;padMoved=true;
+   kx=padNow.x;ky=padNow.y;pace=padNow.mag;
   }else if(!kx&&!ky&&padNow&&!keyMoveHeld()){
    /* no keys down and none used since the stick moved - the stick takes over */
    setInputMode('pad');
-   kx=padNow.x;ky=padNow.y;pace=padNow.mag;padMoved=true;
+   kx=padNow.x;ky=padNow.y;pace=padNow.mag;
   }
   if(buildMode){kx=0;ky=0;} /* the architect's hands are full */
   if(kx||ky){
@@ -7072,6 +7210,7 @@ function draw(){
  }
  for(const en of enemies)drawables.push({y:en.y,f:()=>drawEnemy(en)});
  if(hero)drawables.push({y:hero.y,f:drawHero});
+ if(padNear)drawables.push({y:hero.y+1,f:()=>drawPadPrompt(padNear)});
  if(mp.on&&mp.started)for(const k in mp.peers){const p=mp.peers[k];if(p&&Date.now()-(p.t||0)<=6000)drawables.push({y:(p._y!==undefined?p._y:(p.y||hero.y)),f:()=>drawMpGhost(k,p)});}
  if(pet&&activePet())drawables.push({y:pet.y,f:drawPet});
  drawables.sort((a,b)=>a.y-b.y);
@@ -8508,6 +8647,29 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g._rune=null;
  }
  g.restore();
+}
+/* 🎮 the Ⓐ prompt. Anchored on the HERO, not on the building. Sitting it over the target looked
+   right for an NPC and useless for a guild hall: the anchor is the footprint, the art is eight
+   times the radius tall, and the badge ended up off the top of the screen. The label names what
+   the button will open, so putting it over the player costs nothing and is always visible. */
+function drawPadPrompt(t){
+ const bob=Math.sin(performance.now()/380)*3;
+ const x=hero.x, y=hero.y-58+bob;
+ ctx.save();
+ ctx.font='700 13px '+getComputedStyle(document.body).fontFamily;
+ const w=ctx.measureText(t.label).width;
+ const bw=w+46,bh=26;
+ ctx.fillStyle='rgba(12,9,5,0.82)';
+ ctx.beginPath();ctx.roundRect(x-bw/2,y-bh/2,bw,bh,9);ctx.fill();
+ ctx.strokeStyle='rgba(217,164,65,0.7)';ctx.lineWidth=1.2;
+ ctx.beginPath();ctx.roundRect(x-bw/2,y-bh/2,bw,bh,9);ctx.stroke();
+ ctx.fillStyle='#d9a441';
+ ctx.beginPath();ctx.arc(x-bw/2+16,y,9,0,7);ctx.fill();
+ ctx.fillStyle='#1a1208';ctx.textAlign='center';ctx.textBaseline='middle';
+ ctx.fillText('A',x-bw/2+16,y+0.5);
+ ctx.fillStyle='#f0e0c0';ctx.textAlign='left';
+ ctx.fillText(t.label,x-bw/2+30,y+0.5);
+ ctx.restore();
 }
 function drawPet(){
  if(!pet||!activePet()||hero.dead)return;
@@ -13620,8 +13782,7 @@ function frame(t){
  fpsN++;fpsT+=dt;
  if(fpsT>=0.5){
   const el=$('fps');
-  if(el)el.textContent=Math.round(fpsN/fpsT)+' fps'+(padInfo?'  '+padInfo+(padMoved?' MOVING':''):'');
-  padMoved=false;
+  if(el)el.textContent=Math.round(fpsN/fpsT)+' fps';
   fpsN=0;fpsT=0;
  }
  if(gameOn&&!gamePaused){

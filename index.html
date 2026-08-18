@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="favicon_256.png">
 <!-- ?v= is not decoration: without it iOS Safari serves a cached stylesheet for days, so two
      phones end up running two different builds of the layout. Bump on every visual change. -->
-<link rel="stylesheet" href="style.css?v=28">
+<link rel="stylesheet" href="style.css?v=29">
 </head>
 <body>
 <div id="app">
@@ -102,6 +102,7 @@
   <div id="stageWrap">
     <canvas id="game"></canvas>
     <div id="fps"></div>
+    <div id="padBadge" title="Controller">🎮</div>
     <button id="sndBtn" class="stgbtn" title="Mute everything">🔊</button>
     <button id="cfgBtn" class="stgbtn" title="Settings">⚙️</button>
     <button id="musBtn" class="stgbtn" title="Pause game and audio">⏸</button>
@@ -731,6 +732,6 @@
   </nav>
 </div>
  
-<script src="game.js?v=67"></script>
+<script src="game.js?v=68"></script>
 </body>
 </html>
