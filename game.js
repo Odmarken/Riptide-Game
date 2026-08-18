@@ -5789,11 +5789,16 @@ function padTick(dt){
  if(padFocus)padMark(null);
  padNear=inputMode==='pad'?padInteract():null;
  if(padHit.a&&padNear)padNear.open();
- /* 🎒 RT is the bag: press to open it, press again to put it away. On the desktop layout the side
-    column always shows something, so "away" means back to the hero sheet rather than a blank. */
+ /* 🎒 RT shows and hides the side panel, on any screen. What "hiding" means cannot be the same in
+    both layouts: wide, the panel is a column beside the game and folds away to give the world the
+    whole window; narrow, it is an overlay ON the game, so folding it away means going back to the
+    battle view. Same button, same intent, whichever screen you are on. */
  if(padHit.rt&&gameOn){
-  const onBag=$('p-bag')&&$('p-bag').classList.contains('open');
-  openTab(onBag?'hero':'bag');
+  if(isDesktopLayout())toggleSide();
+  else{
+   const open=document.querySelector('.panel.open');
+   openTab(open?'battle':(desktopSideTab||'hero'));
+  }
  }
  /* ⛏ R3 puts the pick out, for anyone who has been taught to use one */
  if(padHit.r3&&gameOn&&mineTrained())toggleMining();
