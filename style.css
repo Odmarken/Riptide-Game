@@ -335,6 +335,8 @@
   .delbtn:hover{filter:brightness(1.2)}
   #newCharBtn{margin-top:6px;padding:15px;border-radius:11px;border:none;background:url('assets/ui/ui_buttonrak.png') center/100% 100% no-repeat;color:var(--brass);font-family:var(--display);font-size:14px;cursor:pointer;text-shadow:0 1px 3px rgba(0,0,0,.8)}
   #newCharBtn:hover{filter:brightness(1.15)}
+  #selExitBtn{display:none;margin-top:14px;padding:11px;border-radius:9px;border:none;background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;color:var(--parch);font-family:var(--display);font-size:12px;cursor:pointer;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+  #selExitBtn:hover{filter:brightness(1.2)}
   #createBack{align-self:flex-start;margin-bottom:6px;padding:9px 16px;border-radius:8px;border:none;background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;color:var(--parch);font-size:11px;cursor:pointer;display:none;text-shadow:0 1px 3px rgba(0,0,0,.8)}
   #createBack:hover{filter:brightness(1.2)}
  
@@ -877,6 +879,69 @@
 .enchcell:hover{transform:translateY(-1px);border-color:var(--eg);box-shadow:0 0 10px -1px var(--eg)}
 .enchcell.on{border-color:var(--eg);box-shadow:0 0 14px -1px var(--eg),inset 0 0 12px -4px var(--eg)}
 .enchico{width:100%;height:100%;object-fit:cover;border-radius:8px;pointer-events:none}
+/* how many of this rune are in the hall - only drawn past the first */
+.enchnum{position:absolute;right:-3px;bottom:-3px;min-width:17px;height:17px;padding:0 3px;
+ border-radius:9px;background:#120d08;border:1px solid var(--eg);color:#f2e6cf;
+ font:700 11px/15px var(--ui,sans-serif);text-align:center;pointer-events:none;
+ box-shadow:0 0 8px -2px var(--eg)}
+
+/* ✨ THE CUTTING. A rune is the end of a long chain - six ore, two coal, a smelt, an emerald - so
+   it gets a moment rather than a line in the log. The book opens, the stones fall into the page,
+   and what you got is held up for three seconds. Click anywhere to cut it short. */
+#enchCraftFx{position:absolute;inset:0;z-index:96;display:none;align-items:center;justify-content:center;
+ background:radial-gradient(ellipse at center,rgba(10,6,16,.72),rgba(3,2,6,.93))}
+#enchCraftFx.open{display:flex}
+.ecstage{position:relative;width:330px;height:250px;perspective:900px}
+.ecbook{position:absolute;left:50%;top:52%;width:260px;height:170px;margin:-85px 0 0 -130px;
+ transform-style:preserve-3d;animation:ecIn .55s cubic-bezier(.2,1.5,.4,1) both}
+@keyframes ecIn{from{opacity:0;transform:scale(.5) rotateX(38deg)}to{opacity:1;transform:scale(1) rotateX(14deg)}}
+.ecleaf{position:absolute;top:0;width:130px;height:170px;background:
+ linear-gradient(180deg,#f0e2c2,#d8c49a 62%,#c2ac82);
+ box-shadow:inset 0 0 22px rgba(120,90,50,.45);border:1px solid #8a6f45}
+.ecleaf.l{left:0;border-radius:9px 2px 2px 9px;transform-origin:right center;
+ animation:ecOpenL .7s .42s cubic-bezier(.3,.9,.3,1) both}
+.ecleaf.r{left:130px;border-radius:2px 9px 9px 2px;transform-origin:left center;
+ animation:ecOpenR .7s .42s cubic-bezier(.3,.9,.3,1) both}
+@keyframes ecOpenL{from{transform:rotateY(72deg)}to{transform:rotateY(0)}}
+@keyframes ecOpenR{from{transform:rotateY(-72deg)}to{transform:rotateY(0)}}
+.ecspine{position:absolute;left:128px;top:-4px;width:4px;height:178px;border-radius:2px;
+ background:linear-gradient(180deg,#5a3f22,rgba(90,63,34,.10) 34%,rgba(90,63,34,.10) 66%,#2e1f10);
+ box-shadow:0 0 8px rgba(0,0,0,.5)}
+.ecaura{position:absolute;left:50%;top:52%;width:430px;height:430px;margin:-215px 0 0 -215px;
+ border-radius:50%;pointer-events:none;
+ background:radial-gradient(circle,color-mix(in srgb,var(--eg) 70%,transparent),transparent 58%);
+ opacity:0;animation:ecAura 2.4s .5s ease-out both}
+@keyframes ecAura{0%{opacity:0;transform:scale(.5)}55%{opacity:.85;transform:scale(1)}100%{opacity:.35;transform:scale(1.06)}}
+/* the stones fall in from the ring and land on the page */
+.ecstone{position:absolute;left:50%;top:52%;width:32px;height:32px;margin:-16px 0 0 -16px;
+ border-radius:7px;background:linear-gradient(160deg,#c6bba4,#756957 60%,#463e32);
+ border:1px solid #2b241b;color:var(--eg);font:700 18px/30px serif;text-align:center;
+ text-shadow:0 0 9px var(--eg);opacity:0;box-shadow:0 0 12px -3px var(--eg);
+ animation:ecStone 1.25s cubic-bezier(.35,.05,.2,1) both}
+@keyframes ecStone{
+ 0%{opacity:0;transform:translate(var(--sx),var(--sy)) rotate(var(--sr)) scale(1.2)}
+ 14%{opacity:1}
+ 66%{opacity:1;transform:translate(calc(var(--sx)*.12),calc(var(--sy)*.12)) rotate(calc(var(--sr)*.3)) scale(.95)}
+ 88%{opacity:.9;transform:translate(0,0) rotate(0) scale(.7)}
+ 100%{opacity:0;transform:translate(0,0) rotate(0) scale(.3)}}
+.ecflash{position:absolute;left:50%;top:52%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;
+ background:#fff;opacity:0;animation:ecFlash .5s 1.75s ease-out both;pointer-events:none}
+@keyframes ecFlash{0%{opacity:0;transform:scale(1)}25%{opacity:.95;transform:scale(26)}100%{opacity:0;transform:scale(46)}}
+/* and the rune itself, held up ON THE PAGE. Anchored to the book rather than to the stage: laid
+   out against the stage the name and the flavour ran off the bottom edge onto the dark, which read
+   as a caption under a picture instead of an entry written in the book. */
+.ecgot{position:absolute;left:50%;top:52%;width:236px;text-align:center;opacity:0;
+ animation:ecGot 3.6s 1.95s ease-out both}
+@keyframes ecGot{0%{opacity:0;transform:translate(-50%,-44%) scale(.82)}
+ 12%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+ 88%{opacity:1;transform:translate(-50%,-50%) scale(1)}
+ 100%{opacity:0;transform:translate(-50%,-55%) scale(1.02)}}
+.ecgot img{width:54px;height:54px;border-radius:10px;border:1px solid var(--eg);
+ box-shadow:0 0 22px -4px var(--eg);background:rgba(0,0,0,.45)}
+.ecname{margin-top:5px;font-family:var(--display);font-size:19px;color:var(--eg);
+ text-shadow:0 0 14px var(--eg),0 1px 0 rgba(60,40,15,.5)}
+.ecflav{margin-top:1px;font-size:11px;color:#6b563a;font-style:italic;line-height:1.3}
+.ectag{margin-top:5px;font-size:9.5px;color:#8a7458;letter-spacing:.7px;text-transform:uppercase}
 .enchsel{margin-top:4px;padding:10px 12px;border-radius:11px;border:1px solid var(--line);background:rgba(0,0,0,.32)}
 /* the rune bound to a weapon, top-right of its slot card, breathing in its own colour */
 .enchmark{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:7px;cursor:help;

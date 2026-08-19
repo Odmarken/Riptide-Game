@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="favicon_256.png">
 <!-- ?v= is not decoration: without it iOS Safari serves a cached stylesheet for days, so two
      phones end up running two different builds of the layout. Bump on every visual change. -->
-<link rel="stylesheet" href="style.css?v=29">
+<link rel="stylesheet" href="style.css?v=30">
 </head>
 <body>
 <div id="app">
@@ -56,6 +56,7 @@
     <div id="charList"></div>
     <button id="newCharBtn">＋ Create New Character</button>
     <div class="fineprint">Every hero keeps their own save - progression, bags and gear are fully separate. Sign in to sync heroes to the cloud. Reach level 60 and fell every boss to unlock Prestige and march the realm again against harder foes.</div>
+    <button id="selExitBtn">🚪 Exit Game</button>
   </div>
  
   <div id="lbFx">
@@ -136,7 +137,6 @@
         <button id="cfgClose" class="sbtn" style="margin-top:9px;padding:10px;width:100%">Back to the game</button>
       </div>
     </div>
-    <div id="hint">WASD / tap ground to move · tap a foe · tap spells to cast</div>
     <div id="stagemsg"></div>
     <button id="fishBtn" title="Fiska"><img class="btnico" src="assets/icons/ui_hook.png" alt="🪝"><span class="cnt" id="fishWormN"></span></button>
     <button id="torchBtn" title="Drop a torch to mark your path"><img class="btnico" src="assets/icons/ui_torch.png" alt="🔥"><span class="cnt" id="torchN"></span></button>
@@ -594,6 +594,10 @@
    </div>
   </div>
 
+  <div id="enchCraftFx">
+   <div class="ecstage" id="ecStage"></div>
+  </div>
+
   <div id="finalGateFx">
    <div class="casinobox" style="border-color:#7fb4e0;max-width:420px;text-align:center">
     <div class="slottop" style="color:#bcd8ff;margin-bottom:8px">⛧ THE FINAL HOUR</div>
@@ -732,6 +736,6 @@
   </nav>
 </div>
  
-<script src="game.js?v=70"></script>
+<script src="game.js?v=76"></script>
 </body>
 </html>

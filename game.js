@@ -365,11 +365,18 @@ const theRingImg=new Image();theRingImg.src='assets/models/thering.png';
 const altarFenceImg=new Image();altarFenceImg.src='assets/models/maps/altarasset.png';
 const staffImg=new Image();staffImg.src='assets/weapons/staff.png';
 const swordImg=new Image();swordImg.src='assets/weapons/sword.png';
+function femBootW(raceId,clsId){
+ /* boot width tuned to the sprite's drawn hips - sturdier under a broad dwarf, daintier under a slim undead */
+ const im=charSprite(raceId,clsId,true);
+ if(!(im&&im.complete&&im.naturalWidth))return 9.5;
+ const w=48*im.naturalWidth/im.naturalHeight; /* the width the sprite is actually drawn at (H=48) */
+ return Math.max(8,Math.min(11.5,w*0.29));
+}
 function bootFeet(e,g2){
  const g=g2||ctx;
  if(!(bootImg.complete&&bootImg.naturalWidth)){if(!g2)feet(e,1);return;}
  const o=e.moving?Math.sin(e.walk*2)*4:0;
- const W=e.fem?9.5:12,H=W*bootImg.naturalHeight/bootImg.naturalWidth; /* daintier boots on the ladies */
+ const W=e.bw||(e.fem?9.5:12),H=W*bootImg.naturalHeight/bootImg.naturalWidth; /* daintier boots on the ladies */
  const sx=5+(e.sx||0); /* sx: extra stance width (big bosses stand wider) */
  g.drawImage(mip(bootImg,64),-sx-W/2,12-H/2+o,W,H); /* left - full counter-swing */
  g.save();g.scale(-1,1);
@@ -3549,11 +3556,32 @@ function drawEdgeFog(){
  ctx.restore();
 }
 /* Mining only works the leveling zones - the ones with rocks strewn about. The City has none, and
-   a boss arena is no place to be swinging a pick at the scenery. */
-const canMineHere=()=>{const z=zoneOf();return !!(z&&!z.special&&!z.boss);};
+   a boss arena is no place to be swinging a pick at the scenery.
+   Beyond that, the ground opens up as the trade does: the minable zones are split evenly across
+   the four ranks, so an apprentice works the first three and nothing further east until he has
+   earned it. Derived from the zone list rather than written out, so adding a zone re-divides the
+   ground by itself instead of leaving a gap nobody remembers to fill. */
+const MINE_ZONES=ZONES.map((z,i)=>(!z.special&&!z.boss)?i:-1).filter(i=>i>=0);
+const MINE_PER_RANK=Math.ceil(MINE_ZONES.length/MINE_RANKS.length);
+/* which mining rank this zone asks for; 99 for ground that is never minable */
+const mineZoneRank=zi=>{
+ const p=MINE_ZONES.indexOf(zi===undefined?(S?S.zone:-1):zi);
+ return p<0?99:Math.min(MINE_RANKS.length,Math.floor(p/MINE_PER_RANK)+1);
+};
+const canMineHere=()=>{
+ const z=zoneOf();
+ if(!z||z.special||z.boss)return false;
+ return mineRank().r>=mineZoneRank();
+};
 function toggleMining(){
  if(!mineTrained())return;
- if(!S.mining.on&&!canMineHere()){stageMsg('⛏ No stone worth breaking here',1600);sfx.warn();return;}
+ if(!S.mining.on&&!canMineHere()){
+  const need=mineZoneRank();
+  stageMsg(need<=MINE_RANKS.length
+   ? '⛏ This stone wants Mining rank '+need+': '+MINE_RANKS[need-1].n
+   : '⛏ No stone worth breaking here',2000);
+  sfx.warn();return;
+ }
  S.mining.on=!S.mining.on;
  if(!S.mining.on)mineTarget=null;
  const b=$('mineBtn');if(b)b.classList.toggle('on',S.mining.on);
@@ -3574,6 +3602,7 @@ function stopMining(why){
 /* Rocks are plain scenery solids, so a mined one is simply marked and skipped from then on. It
    comes back next time the zone is built, which is what the player expects from a field of stone -
    and it means none of this has to survive a save. */
+const MOB_RESPAWN=12;  /* seconds before a slain foe gets back up - doubled from 6 */
 const rockLive=s=>s&&s.type==='rock'&&!s.mined;
 function nearestRock(){
  if(!world||!world.solids)return null;
@@ -3620,10 +3649,12 @@ function mineTick(dt){
     trade you work at rather than a bar that fills on the first afternoon. */
  if(Math.random()<0.20)mineGain();
  const dr=MINE_DROPS[mineRank().r-1];
+ /* the further east the stone, the more readily it gives up ore - 15% better per tier of ground */
+ const oreChance=dr.ore*(1+0.15*(Math.min(MINE_RANKS.length,mineZoneRank())-1));
  let got=[],toast=[];
  if(Math.random()<dr.coal){S.ore.coal++;got.push('Coal');
   toast.push(`${uiIcon('it_coal','⬛','lootico')} <b>Coal</b>`);}
- if(Math.random()<dr.ore){S.ore.ore++;got.push('Emerald Ore');
+ if(Math.random()<oreChance){S.ore.ore++;got.push('Emerald Ore');
   toast.push(`${uiIcon('it_emeraldore','🟩','lootico')} <b>Emerald Ore</b>`);}
  if(got.length){
   sfx.oreFound();
@@ -3679,12 +3710,17 @@ const enchTrained=()=>!!(S&&S.ench&&S.ench.trained);
 const ENCH_TRAIN_COST=200000;  /* twice the pick - runes are the deeper craft */
 const ENCH_COST=2;             /* emeralds per rune - and an emerald is 3 ore plus a coal, so a
                                   rune is 6 ore and 2 coal of mining before the hall sees it */
-function enchGain(){
+const ENCH_PER_CUT=2;   /* points a single cut rune is worth */
+function enchGain(n){
  if(!S.ench)return;
  if(S.ench.skill>=500)return;
- S.ench.skill++;
+ /* Compare the rank BEFORE and AFTER rather than testing for landing exactly on a threshold. Two
+    points at a time can step straight over one - 49 to 51 never equals 50 - and the rank-up would
+    pass in silence. */
+ const was=enchRank().r;
+ S.ench.skill=Math.min(500,S.ench.skill+(n||ENCH_PER_CUT));
  const rk=enchRank();
- if(S.ench.skill===rk.at&&rk.r>1){
+ if(rk.r>was){
   sfx.loot();
   stageMsg('✨ Enchanting rank '+rk.r+': '+rk.n+'!',3000);
   log(`<span class="imp">✨ Enchanting rank ${rk.r}: ${rk.n}.</span> Deeper runes answer you now.`,'loot');
@@ -3702,13 +3738,50 @@ function enchCut(){
  S.ench.bag.push(got.id);
  enchGain();
  sfx.quest();
- stageMsg('✨ '+got.n+'!',2400);
  log(`<span class="lfine">✨ ${got.n}</span> cut from an emerald. ${got.flavour}`,'loot');
  save();renderBag();enchRefresh();
+ enchCeremony(got);   /* the rune is already in the hall - this is the telling of it */
 }
-function enchApply(idx){
+/* ✨ The cutting, as a moment rather than a line in the log. A rune is the end of a long chain -
+   six ore and two coal smelted into an emerald, twice over - so the book opens, eight rune stones
+   fall out of the ring into the page, and what came out is held up for three seconds. Drawn rather
+   than painted, so it costs nothing to load and takes the rune's own colour.
+   Click anywhere to cut it short. Nothing can be missed by doing so: the rune is already in the
+   hall before the first frame of this plays. */
+const ENCH_CEREMONY_MS=5600;
+let enchCeremonyT=null;
+function enchCeremony(w){
+ const fx=$('enchCraftFx'),st=$('ecStage');
+ if(!fx||!st||!w)return;
+ const GLYPH=['ᚠ','ᚱ','ᚲ','ᚷ','ᚹ','ᚾ','ᛁ','ᛊ'];
+ const stones=GLYPH.map((gl,i)=>{
+  const a=(i/GLYPH.length)*Math.PI*2, R=140+((i*37)%40);
+  return '<span class="ecstone" style="--sx:'+(Math.cos(a)*R).toFixed(0)+'px;--sy:'+(Math.sin(a)*R*0.7).toFixed(0)+'px;--sr:'+((i*53)%90-45)+'deg;animation-delay:'+(0.5+i*0.075).toFixed(2)+'s">'+gl+'</span>';
+ }).join('');
+ st.style.setProperty('--eg',w.glow);
+ st.innerHTML=
+  '<div class="ecaura"></div>'+
+  '<div class="ecbook"><div class="ecleaf l"></div><div class="ecleaf r"></div><div class="ecspine"></div></div>'+
+  stones+
+  '<div class="ecflash"></div>'+
+  '<div class="ecgot">'+uiIcon(w.icon,'✨','')+
+   '<div class="ecname">'+esc(w.n)+'</div>'+
+   '<div class="ecflav">'+esc(w.flavour)+'</div>'+
+   '<div class="ectag">cut and set in the hall</div></div>';
+ fx.classList.add('open');
+ if(enchCeremonyT)clearTimeout(enchCeremonyT);
+ enchCeremonyT=setTimeout(enchCeremonyEnd,ENCH_CEREMONY_MS);
+}
+function enchCeremonyEnd(){
+ if(enchCeremonyT){clearTimeout(enchCeremonyT);enchCeremonyT=null;}
+ const fx=$('enchCraftFx');
+ if(fx){fx.classList.remove('open');$('ecStage').innerHTML='';}
+}
+$('enchCraftFx').onclick=enchCeremonyEnd;
+function enchApply(id){
  const bag=(S.ench&&S.ench.bag)||[];
- const id=bag[idx];if(!id)return;
+ const idx=bag.indexOf(id);          /* spend one off the stack, whichever copy */
+ if(idx<0)return;
  if(!S.gear.weapon){stageMsg('✨ No weapon to enchant',1700);sfx.warn();return;}
  const w=wenchById(id);if(!w)return;
  /* The field is wench, NOT ench. migrate() carries a legacy rule that reads item.ench as an old
@@ -3724,7 +3797,7 @@ function enchApply(idx){
   : `<span class="lfine">✨ ${w.n}</span> is bound to ${itemName(S.gear.weapon)}.`,'loot');
  save();renderHero();renderBag();enchRefresh();
 }
-let enchPick=-1;
+let enchPick='';   /* which KIND is selected, not an index - the list shifts when one is spent */
 function enchRefresh(){
  if(!$('enchFx'))return;
  const trained=enchTrained(),s=enchSkill(),rk=enchRank(),cap=rk.to;
@@ -3751,12 +3824,17 @@ function enchRefresh(){
   return;
  }
  const bag=(S.ench.bag||[]);
- const cells=bag.map((id,i)=>{
-  const w=wenchById(id);if(!w)return '';
-  return `<button class="enchcell${enchPick===i?' on':''}" data-ei="${i}" title="${esc(w.n)}"
-    style="--eg:${w.glow}">${uiIcon(w.icon,'✨','enchico')}</button>`;
- }).join('');
- const sel=enchPick>=0?wenchById(bag[enchPick]):null;
+ /* Stacked by kind. The bag itself stays a flat list of ids - that is what enchApply spends from
+    and what existing saves already hold - and only the DRAWING groups them, so nothing needs
+    migrating and a part-spent stack cannot drift out of step with the list behind it. */
+ const counts={};
+ bag.forEach(id=>{counts[id]=(counts[id]||0)+1;});
+ const kinds=WENCH.filter(w=>counts[w.id]);          /* fixed order, so cells stop jumping about */
+ const cells=kinds.map(w=>
+  `<button class="enchcell${enchPick===w.id?' on':''}" data-ei="${w.id}" title="${esc(w.n)}"
+    style="--eg:${w.glow}">${uiIcon(w.icon,'✨','enchico')}${
+    counts[w.id]>1?`<span class="enchnum">${counts[w.id]}</span>`:''}</button>`).join('');
+ const sel=counts[enchPick]?wenchById(enchPick):null;
  $('enchBody').innerHTML=`
   <div class="cl" style="margin-bottom:8px">A rune costs ${ENCH_COST} emeralds. What comes out is the hall's business.</div>
   <button class="sbtn gold" id="enchCutBtn" ${gems<ENCH_COST?'disabled':''} style="padding:10px 16px;margin-bottom:12px">
@@ -3771,16 +3849,35 @@ function enchRefresh(){
     </div>`:''}`;
  const cb=$('enchCutBtn');if(cb)cb.onclick=enchCut;
  document.querySelectorAll('#enchBody [data-ei]').forEach(b=>b.onclick=()=>{
-  enchPick=+b.dataset.ei;enchRefresh();
+  enchPick=b.dataset.ei;enchRefresh();
  });
- const ab=$('enchApplyBtn');if(ab)ab.onclick=()=>{const i=enchPick;enchPick=-1;enchApply(i);};
+ const ab=$('enchApplyBtn');if(ab)ab.onclick=()=>{const i=enchPick;enchPick='';enchApply(i);};
 }
-function openEnchantHall(){enchPick=-1;$('enchFx').style.display='flex';enchRefresh();sfx.buy();}
+function openEnchantHall(){enchPick='';$('enchFx').style.display='flex';enchRefresh();sfx.buy();}
 /* ==================== 🔥 THE SMELTER ====================
    Two slots in and one out, laid out like the blacksmith: ore and coal on the left, the finished
    stone on the right. Three ore and one coal buy a single emerald - the ratio is what makes a rank
    4 miner's satchel worth carrying home rather than something you fill in an afternoon. */
 const SMELT_ORE=3, SMELT_COAL=1;
+/* 🔥 The furnace is no longer instant. The ore and coal go in when you light it and the emerald
+   comes out five minutes later - and it keeps burning while the window is shut, while you are in
+   another zone, and while the game is closed, because the finish is a timestamp rather than a
+   countdown that only ticks when someone is watching. */
+const SMELT_MS=5*60*1000;
+const smeltLeft=()=>S&&S.smelt?Math.max(0,S.smelt.done-Date.now()):0;
+const smeltClock=ms=>{const t=Math.ceil(ms/1000);return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');};
+function smeltTick(){
+ if(!S||!S.smelt)return false;
+ if(Date.now()<S.smelt.done)return false;
+ S.ore=S.ore||{coal:0,ore:0,gem:0};
+ S.ore.gem++;
+ S.smelt=null;
+ save();renderBag();
+ sfx.loot();
+ stageMsg('🔥 An emerald, cut and clear',2400);
+ log('<span class="imp">🔥 The furnace yields an Emerald.</span>','loot');
+ return true;
+}
 function smeltRefresh(){
  const o=S.ore||{coal:0,ore:0,gem:0};
  const ready=o.ore>=SMELT_ORE&&o.coal>=SMELT_COAL;
@@ -3795,8 +3892,12 @@ function smeltRefresh(){
  out.innerHTML=`${uiIcon('it_emerald','💚','fmico')}<span class="fmn">${o.gem}</span>`;
  out.classList.toggle('filled',ready);
  $('smeltHint').innerHTML=`<b style="color:#9adf9a">${SMELT_ORE} emerald ore</b> and <b style="color:#cfc3ae">${SMELT_COAL} coal</b> make one emerald.`;
- $('smeltCount').textContent=ready?'The furnace is hot enough.':'Not enough to pour.';
- $('smeltGo').disabled=!ready;
+ const firing=smeltLeft()>0;
+ $('smeltCount').textContent=firing?'The furnace is working. '+smeltClock(smeltLeft())+' to go.'
+   :ready?'The furnace is hot enough.':'Not enough to pour.';
+ const go=$('smeltGo');
+ go.textContent=firing?'🔥 Firing… '+smeltClock(smeltLeft()):'🔥 Smelt';
+ go.disabled=firing||!ready;
 }
 function openSmelter(){$('smeltFx').style.display='flex';smeltRefresh();sfx.buy();}
 /* ==================== 🏙 THE CITY ====================
@@ -4344,7 +4445,7 @@ function buildZone(){
     }
    }
    if(!ok)continue;
-   const rock=z.rocky?R()<.6:R()<.2;
+   const rock=z.city?false:(z.rocky?R()<.6:R()<.2); /* no boulders in a paved capital */
    if(!rock&&z.noTrees)continue; /* desert-style zones: rocks only */
    if(z.map&&onPaintedRoad(z.map,x,y,50))continue; /* keep props off the painted road */
    world.solids.push({x,y,r:rock?14+R()*8:12+R()*6,type:rock?'rock':'tree',s:0.5+R()*1.6,seed:R()*100}); /* same wide size spread as Moonshine */
@@ -6757,7 +6858,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   if(en.dead){
    en.deadT+=dt;
    /* regular foes respawn for grinding; bosses and their adds never do */
-   if(en.deadT>6&&!en.boss&&!en.add&&!en.cow){en.hp=en.max;en.dead=false;en.x=en.home.x;en.y=en.home.y;en.state='wander';}
+   if(en.deadT>MOB_RESPAWN&&!en.boss&&!en.add&&!en.cow){en.hp=en.max;en.dead=false;en.x=en.home.x;en.y=en.home.y;en.state='wander';}
    continue;
   }
   if(en.boss){
@@ -8157,6 +8258,23 @@ function runeGlowSprite(img,colour,gripFrac,sx,sw){
  s.drawImage(img,sx,0,sw,ih,0,0,W,H);
  s.globalCompositeOperation='source-in';
  s.fillStyle=colour;s.fillRect(0,0,W,H);
+ /* 1b. Trace the shape's OUTER EDGE, row by row. A bow's art holds two things: a straight string
+    down one side and a limb curving away from it, and the middle of that bounding box is the empty
+    air between them - which is why a curve derived from the box ran through the gap instead of
+    along the wood. Read here, while the silhouette is still whole. */
+ let limb=null;
+ try{
+  const px=s.getImageData(0,0,W,H).data,K=24;
+  limb=[];
+  for(let k=0;k<=K;k++){
+   const y=Math.min(H-1,Math.round(H*k/K));
+   let hi=-1;
+   for(let x=W-1;x>=0;x--){if(px[(y*W+x)*4+3]>60){hi=x;break;}}
+   /* an empty row keeps the last edge rather than snapping to centre, so a tip that runs out of
+      pixels does not yank the bolt back into the middle */
+   limb.push(hi<0?(limb.length?limb[limb.length-1]:0):(hi-W/2)/(W/2));
+  }
+ }catch(e){limb=null;}   /* a tainted canvas just means the old straight line */
  /* 2. fade the grip out - a rune lights the steel, never the leather in your fist */
  if(gripFrac>0){
   s.globalCompositeOperation='destination-out';
@@ -8172,7 +8290,7 @@ function runeGlowSprite(img,colour,gripFrac,sx,sw){
  pass(H*0.095,0.62);   /* the wide bloom - this is where the colour reads from */
  pass(H*0.034,0.58);   /* the close glow */
  o.filter='none';o.globalAlpha=0.26;o.drawImage(sil,PAD,PAD);  /* just enough core to keep an edge */
- const res={cv:out,padX:PAD/W,padY:PAD/H,sil:sil};
+ const res={cv:out,padX:PAD/W,padY:PAD/H,sil:sil,limb:limb};
  runeGlowCache[key]=res;
  return res;
 }
@@ -8260,106 +8378,150 @@ function runeOnSpare(g,w,img,x,y,W,H,gripFrac,sx,sw,draw){
 }
 
 /* the rune's own signature, drawn over the weapon art */
-function runeMarks(g,w,y0,y1){
+function runeMarks(g,w,y0,y1,hw,bend,sp){
  if(!w)return;
  const t=performance.now()/1000,tip=y1,span=y0-y1;
+ /* Everything sideways is measured against the WEAPON'S OWN half-width, never a number picked by
+    eye. bow.png is 170x1187 - drawn 44 tall it is six pixels wide - so a spacing tuned on a sword
+    hangs clear of a bow by half its own width again. */
+ const HW=Math.max(2,hw||4);
+ const bx=(bend||0)*HW;
+ /* THE SPINE. Every mark rides this line, not the centre of the art. A bow's picture holds a
+    straight string down one side and a limb curving away from it, and the middle of that box is
+    the empty air between them - so a flame, a frost shard or a rune scratch placed at x=0 hangs in
+    the gap. runeGlowSprite traces the art's outer edge when it is built; that trace starts at the
+    TOP row, which is the weapon's tip, so it is read backwards against u. Weapons that do not bend
+    pass no trace and keep the straight line they always had. */
+ const lb=(bend&&sp&&sp.limb&&sp.limb.length)?sp.limb:null;
+ const spineAt=u=>{
+  const y=y0+(tip-y0)*u;
+  if(lb){
+   const f=(1-u)*(lb.length-1),i=Math.floor(f),t2=f-i;
+   const a=lb[i],b=lb[Math.min(lb.length-1,i+1)];
+   return {x:(a+(b-a)*t2)*HW*0.86, y};    /* just inside the edge, so it sits ON the limb */
+  }
+  const m=1-u;
+  return {x:2*m*u*bx, y:m*m*y0+2*m*u*(y0+tip)/2+u*u*tip};
+ };
+ const uAt=y=>span?(y0-y)/span:0;         /* a height on the weapon: 0 at the grip, 1 at the tip */
+ const sx=y=>spineAt(uAt(y)).x;           /* how far the weapon has wandered sideways by that height */
+ const spineStroke=(uA,uB,steps)=>{       /* a stroke running its length, following the bend */
+  g.beginPath();
+  const n=steps||(lb?12:1);
+  for(let i=0;i<=n;i++){
+   const p=spineAt(uA+(uB-uA)*(i/n));
+   i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y);
+  }
+  g.stroke();
+ };
  g.save();
  g.globalCompositeOperation='lighter';
  g.lineCap='round';g.lineJoin='round';
  switch(w.id){
 
- case 'emberbite':{ /* 🔥 flame licking up the blade, hottest at the edge */
+ case 'emberbite':{ /* flame licking up the weapon, hottest at the edge */
   for(let i=0;i<4;i++){
-   const base=y0-span*(0.10+i*0.22);                /* four tongues spaced up the blade */
+   const base=y0-span*(0.10+i*0.22);                /* four tongues spaced along it */
+   const cx=sx(base);
    const ph=t*6.5+i*1.9;
    const lean=Math.sin(ph)*3.4, rise=7+Math.sin(ph*1.7)*2.6;
    g.globalAlpha=0.22+0.16*Math.sin(ph*1.3);
    g.fillStyle=w.glow;
    g.beginPath();
-   g.moveTo(-2.4,base);
-   g.quadraticCurveTo(lean*0.7,base-rise*0.55,lean,base-rise);
-   g.quadraticCurveTo(lean*0.7-1.2,base-rise*0.5,2.4,base);
+   g.moveTo(cx-2.4,base);
+   g.quadraticCurveTo(cx+lean*0.7,base-rise*0.55,cx+lean,base-rise);
+   g.quadraticCurveTo(cx+lean*0.7-1.2,base-rise*0.5,cx+2.4,base);
    g.closePath();g.fill();
   }
   g.globalAlpha=0.34+0.14*Math.sin(t*9);            /* the white-hot edge, a hint not a stripe */
   g.strokeStyle='#ffe2b0';g.lineWidth=1.1;
-  g.beginPath();g.moveTo(0,y0-1);g.lineTo(0,tip+2);g.stroke();
+  spineStroke(0.02,0.97);
   break;
  }
 
- case 'frostgrip':{ /* ❄ rime creeping up from the hilt, crystals growing and shrinking */
+ case 'frostgrip':{ /* rime creeping up from the grip, crystals growing and shrinking */
   for(let i=0;i<6;i++){
-   const y=y0-span*(0.06+i*0.16), side=i%2?1:-1;
+   const y=y0-span*(0.06+i*0.16), side=i%2?1:-1, cx=sx(y);
    const grow=0.55+0.45*Math.sin(t*1.9+i*1.1);
    const s=(1.15+i*0.13)*grow;
    g.globalAlpha=0.34+0.30*grow;
    g.fillStyle=i%3?w.glow:'#eafaff';
    g.beginPath();                                   /* a shard, long out from the edge and thin */
-   g.moveTo(side*1.7,y);g.lineTo(side*(1.7+s*0.9),y-s*0.5);
-   g.lineTo(side*(1.7+s*3.0),y);g.lineTo(side*(1.7+s*0.9),y+s*0.5);
+   g.moveTo(cx+side*1.7,y);g.lineTo(cx+side*(1.7+s*0.9),y-s*0.5);
+   g.lineTo(cx+side*(1.7+s*3.0),y);g.lineTo(cx+side*(1.7+s*0.9),y+s*0.5);
    g.closePath();g.fill();
   }
   g.globalAlpha=0.28;
   g.strokeStyle='#eafaff';g.lineWidth=0.9;
-  g.beginPath();g.moveTo(0,y0);g.lineTo(0,tip+3);g.stroke();
+  spineStroke(0.0,0.95);
   break;
  }
 
- case 'veinseeker':{ /* 💚 a hunting shimmer that sweeps the blade, with motes circling it */
-  const p=(t*0.75)%1, y=y0-span*p;                  /* the sweep, hilt to tip, over and over */
+ case 'veinseeker':{ /* a hunting shimmer that sweeps the weapon, with motes circling it */
+  const p=(t*0.75)%1, y=y0-span*p, cx=sx(y);        /* the sweep, grip to tip, over and over */
   const gr=g.createLinearGradient(0,y+9,0,y-9);
   gr.addColorStop(0,'rgba(110,224,138,0)');
   gr.addColorStop(0.5,w.glow);
   gr.addColorStop(1,'rgba(110,224,138,0)');
   g.globalAlpha=0.55;g.strokeStyle=gr;g.lineWidth=4;
-  g.beginPath();g.moveTo(0,y+9);g.lineTo(0,y-9);g.stroke();
+  g.beginPath();g.moveTo(cx,y+9);g.lineTo(cx,y-9);g.stroke();
   for(let i=0;i<3;i++){                             /* motes orbiting, tightening as they hunt */
    const a=t*2.3+i*2.09, orb=4.6+Math.sin(t*1.3+i)*1.7;
    const my=y0-span*(0.28+i*0.22)+Math.cos(a)*3.2;
    g.globalAlpha=0.40+0.32*Math.sin(a);
    g.fillStyle=i?w.glow:'#d8ffe4';
-   g.beginPath();g.arc(Math.sin(a)*orb,my,0.85,0,7);g.fill();
+   g.beginPath();g.arc(sx(my)+Math.sin(a)*orb,my,0.85,0,7);g.fill();
   }
   break;
  }
 
- case 'stormetch':{ /* ⚡ lightning etched along the blade, re-struck a dozen times a second */
-  const q=Math.floor(t*13);                         /* one bolt shape per quantum - it crackles, not shimmers */
+ case 'stormetch':{
+  /* Lightning struck along the spine. Straight segments, not curves: smoothing the corners away
+     turned it into a ribbon, and lightning is made of sharp changes of direction. The kick tapers
+     to nothing at both ends so the bolt stays ON the weapon rather than swinging past the limb. */
+  const q=Math.floor(t*13);                         /* one bolt per quantum - it crackles, not shimmers */
   for(let b=0;b<2;b++){
    const seed=q*3+b*17;
    if(runeNoise(seed)<0.30)continue;                /* not every quantum draws every bolt */
-   g.globalAlpha=b?0.34:0.70;
+   g.globalAlpha=b?0.30:0.62;
    g.strokeStyle=b?w.glow:'#f0e2ff';
-   g.lineWidth=b?1.7:1.0;
-   g.beginPath();g.moveTo(0,y0);
-   for(let i=1;i<=6;i++)g.lineTo((runeNoise(seed*7+i)-0.5)*7.5,y0+(tip-y0)*(i/6));
+   g.lineWidth=b?1.15:0.70;
+   const pts=[],N=9;
+   for(let i=0;i<=N;i++){
+    const u=i/N,p=spineAt(u);
+    const taper=Math.sin(u*Math.PI);                /* 0 at grip and tip, widest in the middle */
+    pts.push({x:p.x+(runeNoise(seed*7+i)-0.5)*HW*0.32*taper, y:p.y});
+   }
+   g.beginPath();g.moveTo(pts[0].x,pts[0].y);
+   for(let i=1;i<pts.length;i++)g.lineTo(pts[i].x,pts[i].y);
    g.stroke();
   }
   if(runeNoise(q)>0.88){                            /* the strike - a flare at the tip */
+   const p=spineAt(0.97);
    g.globalAlpha=0.8;g.fillStyle='#f0e2ff';
-   g.beginPath();g.arc(0,tip+2,3.4,0,7);g.fill();
+   g.beginPath();g.arc(p.x,p.y,3.0,0,7);g.fill();
   }
   break;
  }
 
- case 'goldrune':{ /* 🪙 runes cut into the steel, and gold light running down the edge */
+ case 'goldrune':{ /* runes cut into the steel, and gold light running along it */
   g.strokeStyle=w.glow;g.lineWidth=0.9;
   for(let i=0;i<3;i++){                             /* three short scratches, engraved not stuck on */
-   const y=y0-span*(0.28+i*0.22), s=1.9;
+   const y=y0-span*(0.28+i*0.22), s=1.9, cx=sx(y);
    g.globalAlpha=0.30+0.30*Math.sin(t*2.1+i*2.0);   /* each catches the light in its own time */
    g.beginPath();
-   g.moveTo(-s,y-s*0.7);g.lineTo(s,y-s*0.7);        /* a bar, a stroke down, a bar - a rune, not a wheel */
-   g.moveTo(0,y-s*0.7);g.lineTo(0,y+s*0.7);
-   g.moveTo(-s*0.6,y+s*0.7);g.lineTo(s*0.6,y+s*0.7);
+   g.moveTo(cx-s,y-s*0.7);g.lineTo(cx+s,y-s*0.7);   /* a bar, a stroke down, a bar - a rune */
+   g.moveTo(cx,y-s*0.7);g.lineTo(cx,y+s*0.7);
+   g.moveTo(cx-s*0.6,y+s*0.7);g.lineTo(cx+s*0.6,y+s*0.7);
    g.stroke();
   }
-  const p=(t*0.42)%1,sy=y0-span*p;                  /* the sheen, sliding slowly down the steel */
+  const p=(t*0.42)%1,sy=y0-span*p,cx2=sx(sy);       /* the sheen, sliding slowly along the steel */
   const gr2=g.createLinearGradient(0,sy+7,0,sy-7);
   gr2.addColorStop(0,'rgba(255,242,200,0)');
   gr2.addColorStop(0.5,'#fff2c8');
   gr2.addColorStop(1,'rgba(255,242,200,0)');
   g.globalAlpha=0.45;g.strokeStyle=gr2;g.lineWidth=2.6;
-  g.beginPath();g.moveTo(0,sy+7);g.lineTo(0,sy-7);g.stroke();
+  g.beginPath();g.moveTo(cx2,sy+7);g.lineTo(cx2,sy-7);g.stroke();
   break;
  }
  }
@@ -8525,9 +8687,16 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
  /* ✨ the enchant is lit inside each weapon branch below, from that branch's own picture, so the
     light always lands on the weapon actually in his hand. runeTip is where the sparks come off. */
  g._rune=null;
- const runeAt=(im,x,y,W,H,grip,sx,sw)=>{
+ /* mir: this art is flipped when he faces left, so the light has to flip with it - otherwise the
+    glow sits on the far side of a bow that has turned around. bend: how far the weapon's spine
+    curves away from straight, as a fraction of its length. */
+ const runeAt=(im,x,y,W,H,grip,mir,bend,sx,sw)=>{
   if(!rune)return;
-  runeUnder(g,rune,im,x,y,W,H,grip,sx,sw);
+  const flip=!!mir&&sgn<0;
+  if(flip)g.save(),g.scale(-1,1);
+  runeUnder(g,rune,im,flip?-x-W:x,y,W,H,grip,sx,sw);
+  if(flip)g.restore();
+  g._runeFlip=flip;g._runeBend=bend||0;g._runeHW=W/2;
   runeTip={x:tx+(-y)*Math.sin(wAng), y:ty+y*Math.cos(wAng)};
  };
  if(weaponId==='fishingrod'){
@@ -8539,7 +8708,8 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   const fa=fgArtFor(clsId); /* priest · mage · hunter carry one fel weapon; the warrior keeps the pair */
   if(fa){
    const st=fa.std,H=(pw?st.pw:st.pl)*fa.h,W=H*fa.img.naturalWidth/fa.img.naturalHeight;
-   runeAt(fa.img,-W/2,st.grip(H),W,H,clsId==='mage'?0.10:clsId==='hunter'?0.06:0.24);
+   runeAt(fa.img,-W/2,st.grip(H),W,H,clsId==='mage'?0.10:clsId==='hunter'?0.06:0.24,
+         fa.mirror,clsId==='hunter'?1.7:0);
    g.shadowColor='#4dff9a';g.shadowBlur=rune?0:9;
    g.save();
    if(fa.mirror&&sgn<0)g.scale(-1,1); /* the bow's string always faces the archer */
@@ -8613,7 +8783,8 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
    const st=art.std;
    const H=(st?(pw?st.pw:st.pl):(pw?50:40))*art.h,W=H*art.img.naturalWidth/art.img.naturalHeight;
    const top=st?st.grip(H):(pw?-2:6)-H;
-   runeAt(art.img,-W/2,top,W,H,clsId==='mage'?0.10:clsId==='hunter'?0.06:0.24);
+   runeAt(art.img,-W/2,top,W,H,clsId==='mage'?0.10:clsId==='hunter'?0.06:0.24,
+         art.mirror,clsId==='hunter'?1.7:0);
    g.save();
    if(art.mirror&&sgn<0)g.scale(-1,1); /* mirror so the string always faces the archer */
    g.drawImage(mip(art.img,W),-W/2,top,W,H); /* grip in the painted hero's hand */
@@ -8642,12 +8813,12 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
  }else if(clsId==='mage'&&staffImg.complete&&staffImg.naturalWidth){
   /* painted staff (assets/weapons/staff.png) - the Mage standard weapon */
   const H=pw?42:30,W=H*staffImg.naturalWidth/staffImg.naturalHeight;
-  runeAt(staffImg,-W/2,5-H,W,H,0.10);
+  runeAt(staffImg,-W/2,5-H,W,H,0.10,false,0);
   g.drawImage(mip(staffImg,W),-W/2,5-H,W,H);
  }else if(clsId==='priest'&&maceImg.complete&&maceImg.naturalWidth){
   /* painted mace (assets/weapons/mace.png) - the Priest standard weapon, grip in the hand */
   const H=pw?38:27,W=H*maceImg.naturalWidth/maceImg.naturalHeight;
-  runeAt(maceImg,-W/2,4-H,W,H,0.30);
+  runeAt(maceImg,-W/2,4-H,W,H,0.30,false,0);
   g.drawImage(mip(maceImg,W),-W/2,4-H,W,H);
  }else if(clsId==='mage'||clsId==='priest'){
   g.strokeStyle='#c9a45a';g.lineWidth=3;g.beginPath();g.moveTo(0,4);g.lineTo(0,-12);g.stroke();
@@ -8656,7 +8827,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   if(bowImg.complete&&bowImg.naturalWidth){
    /* painted bow (assets/weapons/bow.png) - tall narrow recurve, held upright in the hand */
    const H=pw?44:31,W=H*bowImg.naturalWidth/bowImg.naturalHeight;
-   runeAt(bowImg,-W/2,-4-H/2,W,H,0.06);
+   runeAt(bowImg,-W/2,-4-H/2,W,H,0.06,true,1.7);
    g.save();
    if(sgn<0)g.scale(-1,1); /* mirror so the string always faces the archer */
    g.drawImage(mip(bowImg,W),-W/2,-4-H/2,W,H);
@@ -8667,16 +8838,18 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
  }else if(swordImg.complete&&swordImg.naturalWidth){
   /* painted sword (assets/weapons/sword.png) - the warrior standard, grip in the hand */
   const H=pw?38:27,W=H*swordImg.naturalWidth/swordImg.naturalHeight;
-  runeAt(swordImg,-W/2,4-H,W,H,0.26);
+  runeAt(swordImg,-W/2,4-H,W,H,0.26,false,0);
   g.drawImage(mip(swordImg,W),-W/2,4-H,W,H);
  }else{
   g.strokeStyle='#e8e4d8';g.lineWidth=3;g.beginPath();g.moveTo(0,4);g.lineTo(0,-13);g.stroke();
   g.strokeStyle='#a4761f';g.beginPath();g.moveTo(-3,0);g.lineTo(3,0);g.stroke();
  }
  if(g._rune){
+  if(g._runeFlip)g.save(),g.scale(-1,1);
   runeTint(g,g._rune,g._runeSp,g._runeRect[0],g._runeRect[1],g._runeRect[2],g._runeRect[3]);
-  runeMarks(g,g._rune,g._runeY0,g._runeY1);
-  g._rune=null;
+  runeMarks(g,g._rune,g._runeY0,g._runeY1,g._runeHW,g._runeBend,g._runeSp);
+  if(g._runeFlip)g.restore();
+  g._rune=null;g._runeFlip=false;
  }
  g.restore();
 }
@@ -8746,7 +8919,7 @@ function drawHero(){
  if(h.buff.atk&&h.buff.atk.t>0){ctx.strokeStyle='rgba(255,200,90,'+(0.4+0.2*Math.sin(performance.now()/120))+')';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(0,6+gY,15,7,0,0,7);ctx.stroke();}
  if(h.buff.haste&&h.buff.haste.t>0){ctx.strokeStyle='rgba(200,240,255,0.5)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,6+gY,18,8,0,0,7);ctx.stroke();}
  if(dancing)ctx.rotate(Math.sin(h.dance*6)*0.25);
- if((charSprite(S.race,c.id,S.gender==='f')||{}).naturalWidth)bootFeet(S.gender==='f'?Object.assign({fem:true},{moving:h.moving,walk:h.walk}):h);else feet(h,1);
+ if((charSprite(S.race,c.id,S.gender==='f')||{}).naturalWidth)bootFeet(S.gender==='f'?{fem:true,bw:femBootW(S.race,c.id),moving:h.moving,walk:h.walk}:h);else feet(h,1);
  /* ✨ the weapon's rune - not while fishing, since the rod is not the enchanted thing in his hand */
  const wRune=(fish.on||h.dead)?null:runeOf(S.gear.weapon);
  drawChampionSprite(ctx,S.race,c.id,fx,by,danceSwing,fish.on?false:isFK(S.gear.weapon),fish.on?'fishingrod':(isFG(S.gear.weapon)?'felglaives':(isFK(S.gear.weapon)?'rimfrost':null)),S.gender==='f',h.moving&&!h.dead?2:1,isIce(S.gear.armor),wRune);
@@ -9805,7 +9978,7 @@ function renderBag(){
    </div>`;
  }
  let vhHtml='';
- if(S.chests&&S.chests.violethalls>0)vhHtml=`<div class="card item" style="border-color:#39ff6a66;box-shadow:0 0 10px rgba(57,255,106,.15)"><div><div class="sn" style="color:#39ff6a;font-size:13px;font-weight:600">${uiIcon('it_chest','🟩','shopico')} Violet Halls Chest <span style="color:var(--dim)">×${S.chests.violethalls}</span></div><div class="ss" style="color:var(--dim);font-size:11px">The spoils of the three lords. Chance for Fel Glaives, gold, or free GOLD GOLD GOLD cases.</div></div><div class="btns"><button class="sbtn gold" data-vhchest>Open</button></div></div>`;
+ if(S.chests&&S.chests.violethalls>0)vhHtml=`<div class="card item" style="border-color:#39ff6a66;box-shadow:0 0 10px rgba(57,255,106,.15)"><div><div class="sn" style="color:#39ff6a;font-size:13px;font-weight:600">${uiIcon('it_chest','🟩','shopico')} Violet Halls Chest <span style="color:var(--dim)">×${S.chests.violethalls}</span></div><div class="ss" style="color:var(--dim);font-size:11px">The spoils of the three lords. Chance for Fel Glaives, emeralds, gold, or free GOLD GOLD GOLD cases.</div></div><div class="btns"><button class="sbtn gold" data-vhchest>Open</button></div></div>`;
  let ringHtml='';
  if(S.theKnife){
   ringHtml+=`<div class="card item" style="border-color:#bcd8ff88;box-shadow:0 0 10px rgba(188,216,255,.12)"><div>
@@ -10224,6 +10397,7 @@ function fillerCard(){
   const rr=Math.random();
   if(rr<0.14)return {icon:lootIco('it_weapon','🗡️'),cc:'#39ff6a',t:'legendary'};
   if(rr<0.38)return {icon:lootIco('it_chest','🎁'),cc:'#8fc3ef',t:'freebox'};
+  if(rr<0.68)return {icon:lootIco('it_emerald','💚'),cc:'#9adf9a',t:'emerald'}; /* teased at its real rate */
   return {icon:lootIco('it_gold','◉'),cc:'#ffd76a',t:'gold'};
  }
  if(curCase==='gold'){
@@ -10314,7 +10488,19 @@ const BT_LOOT=[
  {w:7,kind:'freebox',n:6},
  {w:3.5,kind:'freebox',n:10},
 ];
+/* 💚 The lords keep the enchanters supplied: 30% of chests pay in emeralds instead of the old
+   spoils, which go on sharing the other 70% in exactly the proportions they had before. One
+   emerald is the usual haul - a third of those drops runs generous and gives two, three or four. */
+const BT_GEM_CHANCE=0.30, BT_GEM_MANY=0.33;
 function btPrizeValue(){
+ if(Math.random()<BT_GEM_CHANCE){
+  const n=Math.random()<BT_GEM_MANY?2+Math.floor(Math.random()*3):1;
+  S.ore=S.ore||{coal:0,ore:0,gem:0};
+  S.ore.gem+=n;
+  log(`VIOLET HALLS: <span class="lfine">${n} emerald${n===1?'':'s'}</span>!`,'loot');
+  return {icon:lootIco('it_emerald','💚'),tier:'Emerald'+(n===1?'':'s'),name:n+' emerald'+(n===1?'':'s'),color:'#9adf9a',
+          sub:n>=ENCH_COST?'Enough for a rune at the enchanters.':'The enchanters cut runes from these.',big:n>=3};
+ }
  const total=BT_LOOT.reduce((a,b)=>a+b.w,0);let r=Math.random()*total,p=BT_LOOT[BT_LOOT.length-1];
  for(const x of BT_LOOT){r-=x.w;if(r<=0){p=x;break;}}
  if(p.kind==='felglaives'){
@@ -12436,13 +12622,20 @@ document.addEventListener('click',e=>{
 });
 $('smeltGo').onclick=()=>{
  const o=S.ore;
+ if(smeltLeft()>0)return;                       /* already burning */
  if(o.ore<SMELT_ORE||o.coal<SMELT_COAL)return;
- o.ore-=SMELT_ORE;o.coal-=SMELT_COAL;o.gem++;
- sfx.loot();save();renderBag();renderHUD();smeltRefresh();
- stageMsg('🔥 An emerald, cut and clear',2200);
- log('<span class="imp">🔥 The furnace yields an Emerald.</span>','loot');
+ /* the ore and coal go in now; the emerald comes out when the clock does */
+ o.ore-=SMELT_ORE;o.coal-=SMELT_COAL;
+ S.smelt={done:Date.now()+SMELT_MS};
+ sfx.buy();save();renderBag();renderHUD();smeltRefresh();
+ stageMsg('🔥 The furnace is lit - five minutes',2400);
+ log('<span class="imp">🔥 The furnace is lit.</span> An emerald in five minutes.','loot');
 };
 setInterval(()=>{if($('smithFx').style.display==='flex')smithRefresh();},1000);
+setInterval(()=>{
+ const done=smeltTick();
+ if($('smeltFx').style.display==='flex'&&(done||smeltLeft()>0))smeltRefresh();
+},1000);
 /* 🎵 casino ambience - plays whenever any casino window is up, EXCEPT Borek Seamen,
    whose own song owns the room. Zone ambience ducks under it, and comes back when you leave. */
 let casinoAudio=null;
@@ -13325,7 +13518,7 @@ function drawPortrait(cnv,ch){
   g.save();g.translate(W/2,H*0.684);g.scale(1.16,1.16);
   g.fillStyle='rgba(0,0,0,0.3)';g.beginPath();g.ellipse(0,19,13,5,0,0,7);g.fill();
   if(sc){g.strokeStyle=sc.glow;g.globalAlpha=0.55;g.lineWidth=1;g.beginPath();g.ellipse(0,18,15,6,0,0,7);g.stroke();g.globalAlpha=1;}
-  bootFeet({moving:false,walk:0,fem:ch.gender==='f'},g);
+  bootFeet({moving:false,walk:0,fem:ch.gender==='f',bw:ch.gender==='f'?femBootW(RACE_ALIAS[ch.race]||ch.race,c.id):0},g);
   drawChampionSprite(g,ch.race,c.id,1,0,0,!!(ch.gear&&ch.gear.weapon&&isFKLegend(ch.gear.weapon.legend)),ch.gear&&ch.gear.weapon&&(ch.gear.weapon.id||ch.gear.weapon.legend),ch.gender==='f',1,!!(ch.gear&&ch.gear.armor&&ch.gear.armor.legend==='icearmor'),wr);
   g.restore();
  }else{
@@ -13649,6 +13842,12 @@ $('exitBtn').onclick=async()=>{
  if(window.desktop&&window.desktop.quit)window.desktop.quit().catch(()=>{});
  else location.reload();
 };
+/* 🚪 Exit from the character select - desktop only, nothing is loaded here so there is nothing to save.
+   In a browser tab there is nothing to quit either, so the button never shows there. */
+if(window.desktop&&window.desktop.quit){
+ $('selExitBtn').style.display='block';
+ $('selExitBtn').onclick=()=>window.desktop.quit().catch(()=>{});
+}
 /* ⏱ Vsync is desktop-only: it is switched off by command-line flags that must be set before Electron
    starts, so the box records the wish and the next launch honours it. Left on, frames are paced to
    whatever the monitor actually runs at. In a browser the refresh rate belongs to the browser, so
@@ -13789,7 +13988,6 @@ function beginGame(isNew){
  setTimeout(preloadMaps,1500); /* let the current zone's assets win the bandwidth race first */
  bankTick();
  smithTick();
- setTimeout(()=>{$('hint').style.opacity=0;},8000);
  if(isNew){
   log(`<span class="imp">${S.name} the ${classOf().name}</span> arrives in ${zoneOf().name}.`);
   stageMsg('Welcome to Riptide - spells are 1/2/3, potions 4/5.',3000);
