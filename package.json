@@ -9,7 +9,7 @@
   "private": true,
   "scripts": {
     "start": "electron .",
-    "dist": "electron-packager . \"Riptide RPG\" --platform=win32 --arch=x64 --out=dist --overwrite --no-asar --icon=build/icon.ico --app-version=0.1.0 --ignore=\"^/(dist|build|node_modules|\\.claude|\\.git)\"",
+    "dist": "electron-packager . \"Riptide RPG\" --platform=win32 --arch=x64 --out=dist --overwrite --icon=build/icon.ico --app-version=0.1.0 --ignore=\"^/(dist|build|node_modules|\\.claude|\\.git)\"",
     "installer": "electron-builder --win nsis"
   },
   "devDependencies": {
@@ -24,7 +24,7 @@
       "output": "dist",
       "buildResources": "build"
     },
-    "asar": false,
+    "asar": true,
     "files": [
       "main.js",
       "preload.js",
