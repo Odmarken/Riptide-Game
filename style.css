@@ -80,8 +80,11 @@
   /* ⚙ Settings is a panel in the middle of the screen now, on the same .casinobox the smith and the
      other venues use, rather than a popover tucked under its own button. It is where the player
      leaves the game from, so it should feel like somewhere you arrive, not a tooltip. */
-  #cfgBox{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;
-          background:rgba(10,7,4,.86);padding:16px;box-sizing:border-box}
+  /* fixed, not absolute: opened from the character screen the panel used to centre itself inside
+     #stageWrap, which is only part of the window there, so it sat off to one side. Against the
+     viewport it lands in the middle wherever it is opened from. No dimming behind it. */
+  #cfgBox{position:fixed;inset:0;z-index:72;display:none;align-items:center;justify-content:center;
+          padding:16px;box-sizing:border-box}
   #cfgBox.open{display:flex}
   #cfgBox .casinobox{background:linear-gradient(180deg,rgba(30,22,14,.80),rgba(14,10,6,.92)),url('assets/ui/modal_settings.png') center/cover no-repeat}
   #cfgBox .cfgrow{width:100%}
@@ -283,7 +286,15 @@
   #create h1{font-family:var(--display);font-size:27px;color:var(--parch);text-shadow:0 2px 12px rgba(217,164,65,.25)}
   #create .tag{color:var(--dim);font-size:12px;margin:4px 0 16px;letter-spacing:1.5px;text-transform:uppercase}
   #create label{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:1.2px;display:block;margin:13px 0 7px}
-  #cname{width:100%;padding:14px 38px 14px 58px;border-radius:9px;border:none;background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;color:var(--parch);font-size:15px;font-family:var(--display);text-shadow:0 1px 2px rgba(0,0,0,.7)}
+  /* ✍️ The name field wears the same plate as the buttons, but cut as a 9-slice instead of
+     stretched to fit. The plate is drawn 1484x344 and this bar is 760x60, so filling it squeezed the
+     art 3x harder vertically than horizontally - which is what pulled the rounded ends and their
+     arrows out of shape. Slicing 180px in from each end and 45/55 off the rails lets both end
+     fittings keep their own size, and only the flat rail between them follows the width. The 48px
+     side borders against 12px top and bottom is the ratio that scales the ends evenly - 180/45.
+     The middle is a flat plate in the plate's own colour rather than the picture's centre, which
+     at this width would read as a smeared texture. */
+  #cname{width:100%;padding:8px 20px;background:transparent;border:12px solid transparent;border-left-width:48px;border-right-width:48px;border-image:url('assets/ui/ui_buttons.png') 45 180 55 180 fill stretch;color:var(--parch);font-size:15px;font-family:var(--display);text-shadow:0 1px 2px rgba(0,0,0,.7)}
   #cname:focus{outline:none;filter:brightness(1.15)}
   #cname.nameerr{border-color:#ff5a5a;box-shadow:0 0 10px rgba(255,90,90,.35);animation:nameshake .3s}
   #cname.nameerr::placeholder{color:#ff8a7a}
@@ -333,9 +344,13 @@
   .playbtn:hover{filter:brightness(1.2)}
   .delbtn{font-size:10px;padding:6px 8px;border-radius:7px;border:none;background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;color:#e09a8a;cursor:pointer;text-shadow:0 1px 2px rgba(0,0,0,.8)}
   .delbtn:hover{filter:brightness(1.2)}
-  #newCharBtn{margin-top:6px;padding:15px;border-radius:11px;border:none;background:url('assets/ui/ui_buttonrak.png') center/100% 100% no-repeat;color:var(--brass);font-family:var(--display);font-size:14px;cursor:pointer;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+  /* same 9-slice trick as the name field: the ends keep their size, only the rail runs the width.
+     37px sides against 12px rails is 130/42, the plate's own ratio, so nothing is skewed. */
+  #newCharBtn{margin-top:6px;padding:10px;background:transparent;border:12px solid transparent;border-left-width:37px;border-right-width:37px;border-image:url('assets/ui/ui_buttonrak.png') 42 130 45 130 fill stretch;color:var(--brass);font-family:var(--display);font-size:14px;cursor:pointer;text-shadow:0 1px 3px rgba(0,0,0,.8)}
   #newCharBtn:hover{filter:brightness(1.15)}
-  #selExitBtn{display:none;margin-top:14px;padding:11px;border-radius:9px;border:none;background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;color:var(--parch);font-family:var(--display);font-size:12px;cursor:pointer;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+  /* leaving the game gets the hardcore plate - the one red thing on a brown screen, which is the
+     right amount of warning for the button that closes everything. 43/14 is 180/58, its own ratio. */
+  #selExitBtn{display:none;width:50%;align-self:center;margin-top:14px;padding:7px;background:transparent;border:14px solid transparent;border-left-width:43px;border-right-width:43px;border-image:url('assets/ui/ui_buttonshardcore.png?v=2') 58 180 58 180 fill stretch;color:#ffe0da;font-family:var(--display);font-size:12px;cursor:pointer;text-shadow:0 1px 3px rgba(0,0,0,.8)}
   #selExitBtn:hover{filter:brightness(1.2)}
   #createBack{align-self:flex-start;margin-bottom:6px;padding:9px 16px;border-radius:8px;border:none;background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;color:var(--parch);font-size:11px;cursor:pointer;display:none;text-shadow:0 1px 3px rgba(0,0,0,.8)}
   #createBack:hover{filter:brightness(1.2)}
@@ -427,7 +442,7 @@
   }
 
 
-  /* --- Borek 67 slot machine --- */
+  /* --- Lucky 7 slot machine --- */
   #slotFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(10,7,4,.86)}
   #slotFx.open{display:flex}
   .slotmach{display:flex;flex-direction:column;align-items:center;padding:22px 26px 20px;border-radius:18px;border:2px solid var(--brass);background:linear-gradient(180deg,#332519,#150e08);box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 24px rgba(217,164,65,.18)}
@@ -526,8 +541,14 @@
   .loginbtn.primary{color:#ffd76a;filter:brightness(1.2) drop-shadow(0 0 6px rgba(217,164,65,.35))}
   .loginbtn.primary:hover{filter:brightness(1.35) drop-shadow(0 0 8px rgba(217,164,65,.5))}
   #guestBtn{width:100%;margin-top:9px;color:var(--brass)}
+  /* right-hand end of the content column, under the heading. Not pinned to the window corner:
+     #select is fixed and full width on the desktop, with the column centred by its own padding, so
+     a corner button lands out in the wallpaper instead of over the plates. align-self keeps it on
+     the same right edge the plates use, whatever that width turns out to be. */
+  #selCfgBtn{align-self:flex-end;margin:0 0 7px;padding:3px 6px;background:transparent;border:6px solid transparent;border-left-width:24px;border-right-width:24px;border-image:url('assets/ui/ui_buttons.png') 45 180 55 180 fill stretch;color:var(--parch);font-family:var(--display);font-size:12px;cursor:pointer;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+  #selCfgBtn:hover{filter:brightness(1.2)}
   .selectacct{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:-4px 0 12px;padding:12px 30px;background:url('assets/ui/ui_buttonrak.png') center/100% 100% no-repeat;border:none;border-radius:9px}
-  .selectacct .sbtn{border:none;background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;color:var(--parch);padding:9px 18px;text-shadow:0 1px 3px rgba(0,0,0,.8)}
+  .selectacct .sbtn{background:transparent;border:6px solid transparent;border-left-width:24px;border-right-width:24px;border-image:url('assets/ui/ui_buttons.png') 45 180 55 180 fill stretch;color:var(--parch);padding:3px 6px;text-shadow:0 1px 3px rgba(0,0,0,.8)}
   .selectacct .sbtn:hover{filter:brightness(1.2)}
   .statusval{font-size:9px;color:var(--dim);white-space:nowrap;min-width:54px;text-align:right}
   .statusgrid{display:grid;grid-template-columns:1fr;gap:5px;margin-top:7px}
@@ -573,13 +594,11 @@
     .casewrap{width:min(78vw,760px)}
   }
 
-/* --- Borek Seamen: 3/5/5/3 ways slot --- */
+/* --- Slots: 3/5/5/3 ways slot --- */
 #seaFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(10,7,4,.86)}
 #seaFx.open{display:flex}
 .slotmach.sea{position:relative;border-color:#5b9bd5;background:linear-gradient(180deg,#1d3345,#0d1620);box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 24px rgba(91,155,213,.2)}
 .slotmach.sea .slottop{color:#8fc3ef;text-shadow:0 0 14px rgba(91,155,213,.55)}
-#seaVolWrap{position:absolute;top:10px;right:12px;display:flex;align-items:center;gap:6px;font-size:14px;color:#8fc3ef;z-index:4}
-#seaVolWrap input{width:78px;accent-color:#5b9bd5;cursor:pointer}
 .slotmach.sea.bigwin{border-color:#ffd100;animation:slotGlow .8s ease-in-out infinite}
 /* Cell size scales with BOTH viewport width and height so the machine fits 4:3
    tablets (iPad) as well as phones and 4k screens - never below 62px, capped at 110px. */
@@ -626,7 +645,7 @@
 #restSpinBtn{font-family:var(--display);font-size:16px;letter-spacing:.5px;padding:14px 28px;border-radius:12px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;cursor:pointer;box-shadow:0 0 16px rgba(217,164,65,.3)}
 #restSpinBtn:disabled{opacity:.45;cursor:default;box-shadow:none}
 
-/* --- Borek Blackjack --- */
+/* --- Blackjack --- */
 #bjFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(10,7,4,.86)}
 #bjFx.open{display:flex}
 #rouFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(10,7,4,.86)}
@@ -955,3 +974,8 @@
    the icon scales with the heading's own font-size, and it is nudged onto the cap-height baseline. */
 .venico{height:1.15em;width:auto;vertical-align:-0.18em;margin-right:.12em;
         filter:drop-shadow(0 2px 4px rgba(0,0,0,.55))}
+
+/* 🎮 the pad is driving - the pointer goes away until the real mouse moves. The * is needed
+   because buttons and the canvas set cursors of their own, and any one of them would keep an arrow
+   on screen. */
+body.padcursor, body.padcursor *{cursor:none!important}

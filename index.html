@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="favicon_256.png">
 <!-- ?v= is not decoration: without it iOS Safari serves a cached stylesheet for days, so two
      phones end up running two different builds of the layout. Bump on every visual change. -->
-<link rel="stylesheet" href="style.css?v=30">
+<link rel="stylesheet" href="style.css?v=48">
 </head>
 <body>
 <div id="app">
@@ -49,14 +49,15 @@
   <div id="select">
     <h1>Riptide</h1>
     <div class="tag">Choose your champion</div>
+    <button id="selCfgBtn" title="Settings">Settings</button>
     <div class="selectacct">
-      <div class="cl" id="acctInfo" style="margin:0">Not signed in.</div>
+      <div class="cl" id="acctInfo" style="margin:0;flex:1">Not signed in.</div>
       <button class="sbtn" id="fbOut" style="display:none">Sign out</button>
     </div>
     <div id="charList"></div>
     <button id="newCharBtn">＋ Create New Character</button>
     <div class="fineprint">Every hero keeps their own save - progression, bags and gear are fully separate. Sign in to sync heroes to the cloud. Reach level 60 and fell every boss to unlock Prestige and march the realm again against harder foes.</div>
-    <button id="selExitBtn">🚪 Exit Game</button>
+    <button id="selExitBtn">Exit Game</button>
   </div>
  
   <div id="lbFx">
@@ -138,7 +139,7 @@
       </div>
     </div>
     <div id="stagemsg"></div>
-    <button id="fishBtn" title="Fiska"><img class="btnico" src="assets/icons/ui_hook.png" alt="🪝"><span class="cnt" id="fishWormN"></span></button>
+    <button id="fishBtn" title="Fish"><img class="btnico" src="assets/icons/ui_hook.png" alt="🪝"><span class="cnt" id="fishWormN"></span></button>
     <button id="torchBtn" title="Drop a torch to mark your path"><img class="btnico" src="assets/icons/ui_torch.png" alt="🔥"><span class="cnt" id="torchN"></span></button>
     <div id="fishToast"></div>
     <button id="farmCheckBtn" title="Checkout"><img class="btnico" src="assets/icons/ui_cart.png" alt="🛒"><span class="cnt" id="farmCartN"></span></button>
@@ -242,7 +243,7 @@
 
   <div id="slotFx">
     <div class="slotmach">
-      <div class="slottop"><img class="venico" src="assets/icons/venue_casino.png" alt=""> BOREK CASINO</div>
+      <div class="slottop"><img class="venico" src="assets/icons/venue_casino.png" alt=""> RIPTIDE CASINO</div>
       <div class="slotreels">
         <div class="slotwin"><div class="slotreel" id="sr0"></div></div>
         <div class="slotwin"><div class="slotreel" id="sr1"></div></div>
@@ -267,8 +268,7 @@
 
   <div id="seaFx">
     <div class="slotmach sea">
-      <div class="slottop">🦈 BOREK SEAMEN <button class="sbtn" id="seaInfoBtn" style="width:26px;height:26px;padding:0;font-size:13px">ℹ</button></div>
-      <div id="seaVolWrap" title="Music volume"><button id="seaMuteBtn" style="background:none;border:none;padding:0;font-size:16px;cursor:pointer;line-height:1">🔊</button><input type="range" id="seaVol" min="0" max="100" value="35"></div>
+      <div class="slottop">🦈 SLOTS <button class="sbtn" id="seaInfoBtn" style="width:26px;height:26px;padding:0;font-size:13px">ℹ</button></div>
       <div class="seagrid">
         <div class="seacolwin" data-rows="3"><div class="seastrip" id="sc0"></div></div>
         <div class="seacolwin" data-rows="5"><div class="seastrip" id="sc1"></div></div>
@@ -328,7 +328,7 @@
 
   <div id="bjFx">
    <div class="slotmach bj">
-    <div class="slottop">🃏 BOREK BLACKJACK</div>
+    <div class="slottop">🃏 BLACKJACK</div>
     <div class="bjrow"><div class="bjlab">Dealer <span id="bjDTot" class="bjtot"></span></div><div class="bjcards" id="bjDealerC"></div></div>
     <div class="bjrow"><div class="bjlab">You <span id="bjPTot" class="bjtot"></span></div><div class="bjcards" id="bjHandC"></div></div>
     <div class="slotres" id="bjRes">&nbsp;</div>
@@ -417,11 +417,11 @@
 
   <div id="casinoMenu">
    <div class="casinobox">
-    <div class="slottop" style="color:var(--brass);margin-bottom:6px"><img class="venico" src="assets/icons/venue_casino.png" alt=""> BOREK CASINO</div>
+    <div class="slottop" style="color:var(--brass);margin-bottom:6px"><img class="venico" src="assets/icons/venue_casino.png" alt=""> RIPTIDE CASINO</div>
     <div class="cl" style="margin-bottom:14px">The house always wins. Pick your game.</div>
-    <button class="casinopick" data-game="slots"><span class="cg">🎰</span><span class="ct"><b>Borek 67</b><i>Classic slots - win up to 100x</i></span></button>
-    <button class="casinopick" data-game="sea"><span class="cg">🦈</span><span class="ct"><b>Borek Seamen</b><i>Hold &amp; respin - lock reels, chase free spins</i></span></button>
-    <button class="casinopick" data-game="bj"><span class="cg">🃏</span><span class="ct"><b>Borek Blackjack</b><i>Beat the dealer to 21 - pays 3:2</i></span></button>
+    <button class="casinopick" data-game="slots"><span class="cg">🎰</span><span class="ct"><b>Lucky 7</b><i>Classic slots - win up to 100x</i></span></button>
+    <button class="casinopick" data-game="sea"><span class="cg">🦈</span><span class="ct"><b>Slots</b><i>Hold &amp; respin - lock reels, chase free spins</i></span></button>
+    <button class="casinopick" data-game="bj"><span class="cg">🃏</span><span class="ct"><b>Blackjack</b><i>Beat the dealer to 21 - pays 3:2</i></span></button>
     <button class="casinopick" data-game="rou"><span class="cg">🎡</span><span class="ct"><b>Roulette</b><i>Numbers &amp; colours - straight up pays 35:1</i></span></button>
     <button class="casinopick" data-game="rtb"><span class="cg">🚌</span><span class="ct"><b>Ride the Bus</b><i>Four guesses - ride to 20x or bust</i></span></button>
     <button class="casinopick" data-game="gvb"><span class="cg">🎲</span><span class="ct"><b>Gamble against friend</b><i>Chest duel - winner takes the loser's stake</i></span></button>

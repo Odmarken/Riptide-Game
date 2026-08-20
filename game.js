@@ -162,9 +162,9 @@ const fellordImg=new Image();fellordImg.src='assets/boss/fellord_boss.png?v=2';
 const firelordImg=new Image();firelordImg.src='assets/boss/firelord_boss.png?v=2';
 const frostlordImg=new Image();frostlordImg.src='assets/boss/frostlord_boss.png?v=2';
 const cowWeaponImg=new Image();cowWeaponImg.src='assets/boss/cow_weapon.png?v=2';
-const cowmobImg=new Image();cowmobImg.src='assets/boss/Cowlevel_boss.png?v=2';
+const cowmobImg=new Image();cowmobImg.src='assets/boss/Cowlevel_boss.png?v=3';
 const armorAltarImg=new Image();armorAltarImg.src='assets/models/armor_altar.png';
-const finalBossImg=new Image();finalBossImg.src='assets/boss/finalboss.png?v=2';
+const finalBossImg=new Image();finalBossImg.src='assets/boss/finalboss.png?v=3';
 const finalBossFootImg=new Image();finalBossFootImg.src='assets/boss/finalboss_foot.png?v=2';
 const finalBossWeaponImg=new Image();finalBossWeaponImg.src='assets/boss/finasboss_weapon.png?v=2';
 const cowmobFeetImg=new Image();cowmobFeetImg.src='assets/boss/cowlevel_feet.png?v=2';
@@ -176,7 +176,7 @@ const bossLvlWeaponImg=new Image();bossLvlWeaponImg.src='assets/boss/bosslevling
 const mawImg=new Image();mawImg.src='assets/boss/boss_levling2.png?v=2';
 const ossricImg=new Image();ossricImg.src='assets/boss/boss_levling3.png?v=2';
 const ashmawImg=new Image();ashmawImg.src='assets/boss/boss_levling1.png?v=2';
-const krevImg=new Image();krevImg.src='assets/boss/boss_levling5.png?v=2';
+const krevImg=new Image();krevImg.src='assets/boss/boss_levling5.png?v=3';
 const torImg=new Image();torImg.src='assets/boss/tor_boss.png?v=2';
 /* ---- 🚜 the Farm: build assets, loaded lazily ---- */
 const farmImgs={};
@@ -406,15 +406,6 @@ function pixelSolid(img,u,v){
 }
 const stenImg=new Image();stenImg.src='assets/models/sten.png';
 
-window.seaMusic=new Audio('ambientsong/seamen_song.mp3');
-window.seaMusic.loop=true;
-window.seaVolVal=0.35; /* desired music level - applied via a Web Audio gain node (iOS ignores audio.volume) */
-window.seaMuted=false;
-try{
- const v=parseFloat(localStorage.getItem('seaVol'));if(!isNaN(v))window.seaVolVal=Math.min(1,Math.max(0,v));
- window.seaMuted=localStorage.getItem('seaMuted')==='1';
-}catch(e){}
-window.seaMusic.volume=window.seaVolVal; /* fallback level until the gain node takes over */
 /* ==================== DATA ==================== */
 const MAXLVL=60;
 const SEASON=1; /* bump this to wipe everyone */
@@ -1195,7 +1186,7 @@ let S=null;
 const $=id=>document.getElementById(id);
 const dispName=ch=>(ch.name||'?')+((ch.rating||0)>0?' ('+(ch.rating||0)+')':'');
 const raceOf=()=>RACES.find(r=>r.id===S.race);
-const classOf=()=>CLASSES.find(c=>c.id===S.cls);
+const classOf=()=>S?CLASSES.find(c=>c.id===S.cls):null; /* null before a hero is picked - the settings panel opens there too */
 const gearSum=k=>{if(isFK(S.gear.weapon))syncRimfrost(S.gear.weapon);if(isFG(S.gear.weapon))syncFelGlaives(S.gear.weapon);if(isRing(S.gear.trinket))syncTheRing(S.gear.trinket);if(isIce(S.gear.armor))syncIceArmor(S.gear.armor);let t=0;for(const sl in S.gear){const g=S.gear[sl];if(g&&g[k])t+=g[k]}return t};
 /* two Active Scroll slots - same scroll type cannot stack */
 /* fused scrolls (forged with 🔗 connectors) carry a second enchant in id2/tier2 -
@@ -4350,7 +4341,7 @@ function buildZone(){
    ['Ragnar Lagom','orc','warrior',0,[[cx+360,cy+100],[cx+460,cy-20]],24],
    ['Fiskar-Frasse','human','hunter',0,[[cx-360,cy+100],[cx-190,cy+270]],32],
    ['Tant Ulla','undead','priest',1,[[cx+190,cy+270],[cx+360,cy+100]],27],
-   ['Börje Borek Jr.','human','warrior',0,[[cx,cy-250],[cx+460,cy-20],[cx+40,cy+40]],38],
+   ['Börje Junior','human','warrior',0,[[cx,cy-250],[cx+460,cy-20],[cx+40,cy+40]],38],
   ];
   world.npcs=NPC_DEFS.map(([name,race,cls,fem,pts,speed])=>({
    name,race,cls,female:!!fem,
@@ -5684,6 +5675,24 @@ function setInputMode(m){
  const b=$('padBadge');
  if(b)b.classList.toggle('on',m==='pad');
 }
+/* 🎮 The pointer has no business sitting on the screen while a pad is driving - nobody moved it
+   there, it is just parked wherever the mouse was last put, usually in the middle of the world.
+   It goes on the first pad input and comes back when the real mouse MOVES. A bare mousemove is not
+   proof of that: the browser fires one at the unchanged position whenever the page scrolls or a
+   panel opens under the pointer, and taking that as a wake-up would flash the cursor back mid-fight.
+   So the position has to actually differ from the last one seen. */
+let padCursorOff=false,padLastPtr=null;
+function padCursor(off){
+ if(padCursorOff===off)return;
+ padCursorOff=off;
+ document.body.classList.toggle('padcursor',off);
+}
+window.addEventListener('mousemove',e=>{
+ const q=padLastPtr;padLastPtr={x:e.clientX,y:e.clientY};
+ if(q&&(Math.abs(e.clientX-q.x)>1||Math.abs(e.clientY-q.y)>1))padCursor(false);
+},true);
+window.addEventListener('mousedown',()=>padCursor(false),true);
+window.addEventListener('wheel',()=>padCursor(false),{capture:true,passive:true});
 const padCal={};                /* per-pad resting offsets and which axis pair has actually moved */
 /* Controllers do not agree on any of this, and two opposite symptoms from the same pad made that
    plain: unplugged it walked into a corner, plugged in it would not move at all. Both are one cause
@@ -5820,7 +5829,7 @@ function padInteract(){
  const find=t=>world.solids.find(s2=>s2.type===t);
  if(z.tavern){
   add(world.solids.find(s2=>s2.type==='house'&&s2.big),'Moonshine Inn',openRestedWheel,170);
-  add(find('casino'),'Borek Casino',openCasinoMenu,170);
+  add(find('casino'),'Riptide Casino',openCasinoMenu,170);
   add(find('bank'),'Bank',openBank,150);
   add(find('smith'),'Blacksmith',openSmith,150);
   add(find('fishhut'),'Fishing Hut',openFishHut,150);
@@ -5906,8 +5915,11 @@ function padTick(dt){
  if(Math.abs(padRZoom)>0.01&&gameOn)setZoom(zoom*(1+padRZoom*1.6*dt));
 }
 window.addEventListener('gamepaddisconnected',e=>{if(e.gamepad)delete padCal[e.gamepad.index];});
-window.addEventListener('gamepadconnected',e=>{
- if(gameOn)fishToast('🎮 <b>'+(e.gamepad.id||'Controller').slice(0,34)+'</b> connected - left stick walks','#8fc3ef',2600);
+/* The pad's own id is not worth showing: on Windows almost everything speaks XInput, so a third-party
+   pad announces itself as an Xbox 360 Controller regardless of what is actually in your hands. A
+   name that is usually wrong tells the player less than no name at all. */
+window.addEventListener('gamepadconnected',()=>{
+ if(gameOn)fishToast('🎮 <b>Controller</b> connected - left stick walks','#8fc3ef',2600);
 });
 window.addEventListener('gamepaddisconnected',()=>{if(gameOn)fishToast('🎮 Controller disconnected','#8fa898',2200);});
 const keys={};
@@ -6476,6 +6488,8 @@ function update(dt){
  if(!gameOn)return;
  padNow=padStick(); /* one poll per frame, shared by the movement block below */
  padTick(dt);       /* buttons, the right stick, the A prompt and menu walking */
+ /* any of the three counts as the pad driving: the stick walking, a button, the camera stick */
+ if(padNow||Object.keys(padHit).length||Math.abs(padRZoom)>0)padCursor(true);
  if(padNow&&!keyMoveHeld())stopMining(true); /* reaching for the stick puts the pick away */
  mpSyncTick();
  updateFarmAnimals(dt);
@@ -9965,7 +9979,7 @@ function renderBag(){
   const mins=Math.ceil(S.gamblerT/60);
   gamblerHtml=`<div class="card item" style="border-color:#ffd76a${active?';box-shadow:0 0 10px rgba(255,215,106,.25)':''}"><div>
    <div class="sn" style="color:#ffd76a;font-size:13px;font-weight:600">${uiIcon('ui_dice','🎲','shopico')} Potion of Gambler <span style="color:var(--dim)">×${S.gamblerPots||0}</span></div>
-   <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#ffd76a">ACTIVE - '+mins+' min remaining.</b> ':''}+20% XP gain and +2% crit chance for 30 minutes. Won only on a 100x max win at Borek 67.</div></div>
+   <div class="ss" style="color:var(--dim);font-size:11px">${active?'<b style="color:#ffd76a">ACTIVE - '+mins+' min remaining.</b> ':''}+20% XP gain and +2% crit chance for 30 minutes. Won only on a 100x max win at Lucky 7.</div></div>
    <div class="btns"><button class="sbtn gold" id="gamblerUse" ${(S.gamblerPots||0)<1?'disabled':''}>${active?'Extend +30m':'Drink'}</button></div></div>`;
  }
  // 😴 rested buff - granted by the Moonshine inn wheel, activates automatically
@@ -10751,7 +10765,7 @@ function slotSettle(out){
    dingDingDing(jackpot);
    spawnSlotParts(jackpot?'#ffd100':out.color,jackpot?30:16);
    if(jackpot)setTimeout(()=>spawnSlotParts('#ffd100',20),600);
-   log(`Borek 67: <span class="llegendary">${out.mul}x - +${paid.toLocaleString()} ◉</span>${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}!`,'loot');
+   log(`Lucky 7: <span class="llegendary">${out.mul}x - +${paid.toLocaleString()} ◉</span>${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}!`,'loot');
    if(jackpot){
     S.gamblerPots=(S.gamblerPots||0)+1;
     log(`Max win! <span class="llegendary">🎲 Potion of Gambler</span> - +20% XP & +2% crit for 30 min, now in your Bag.`,'loot');
@@ -10764,14 +10778,14 @@ function slotSettle(out){
   }else{
    res.textContent='Winner! '+out.mul+'x - +'+paid.toLocaleString()+'◉'+(over?' ('+over.toLocaleString()+' to overflow)':'');
    sfx.loot();spawnSlotParts(out.color,8);
-   log(`Borek 67: <span class="loot">${out.mul}x</span> - +${paid.toLocaleString()} ◉${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}.`,'loot');
+   log(`Lucky 7: <span class="loot">${out.mul}x</span> - +${paid.toLocaleString()} ◉${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}.`,'loot');
   }
  }else if(out.kind==='scrap'){
   const got=addScraps(out.n);
   slotSession.scrap+=got;
   res.textContent=out.msg;
   sfx.forge();
-  log(`Borek 67: +${got} ⚙ Scraps${got<out.n?' (scrap cap!)':''}.`,'loot');
+  log(`Lucky 7: +${got} ⚙ Scraps${got<out.n?' (scrap cap!)':''}.`,'loot');
  }else{
   res.textContent=out.msg;
   blip(300,180,0.25,.05,'sawtooth');
@@ -10850,7 +10864,7 @@ $('slotClose').onclick=()=>{
  casinoAmbApply();
 };
 
-/* ==================== BOREK SEAMEN - hold & respin slot ==================== */
+/* ==================== SLOTS - hold & respin slot ==================== */
 const SEA_BETS=[100,500,1000,2000],SEA_COLS=4;
 const SEA_ROWSBY=[3,5,5,3];
 let seaBetIx=0,seaBet=SEA_BETS[seaBetIx],seaFast=false;
@@ -11048,7 +11062,7 @@ function spinSea(){
  const res=$('seaRes');
  res.classList.remove('bigres');
  res.style.color=isFree?'#ffd100':'#8fa898';
- res.textContent=isFree?'🎁 FREE SPIN - '+seaFree+' kvar efter denna':' ';
+ res.textContent=isFree?'🎁 FREE SPIN - '+seaFree+' left after this':' ';
  updateSeaUI();
  sfx.buy();
  const mult=seaRollOutcome(isFree);
@@ -11184,7 +11198,7 @@ function seaPayout(grid,amount){
   res.style.color='#ffd100';
   res.classList.add('bigres');
   res.textContent='🎁 BONUS - '+SEA_BONUS_SPINS+' FREE SPINS!';
-  log(`Borek Seamen: <span class="llegendary">🎁 ${SEA_BONUS_SPINS} FREE SPINS!</span>`,'loot');
+  log(`Slots: <span class="llegendary">🎁 ${SEA_BONUS_SPINS} FREE SPINS!</span>`,'loot');
   return true;
  };
  if(amount<=0){
@@ -11204,7 +11218,7 @@ function seaPayout(grid,amount){
   const scraps=amount>=seaCost()*4?12:6;
   const gotScrap=addScraps(scraps);
   seaSession.scrap+=gotScrap;
-  if(gotScrap>0)log(`Borek Seamen: <span class="lfine">+${gotScrap} scraps</span>.`,'loot');
+  if(gotScrap>0)log(`Slots: <span class="lfine">+${gotScrap} scraps</span>.`,'loot');
  }
  const multTxt='x'+parseFloat((amount/seaCost()).toFixed(2));
  const big=amount>=seaCost()*10;
@@ -11216,7 +11230,7 @@ function seaPayout(grid,amount){
   $('seaFx').querySelector('.slotmach').classList.add('bigwin');
   dingDingDing(amount>=seaCost()*50);
   spawnPartsIn($('seaFx'),'#ffd100',22);
-  log(`Borek Seamen: <span class="llegendary">+${paid.toLocaleString()} ◉</span> ${multTxt}!`,'loot');
+  log(`Slots: <span class="llegendary">+${paid.toLocaleString()} ◉</span> ${multTxt}!`,'loot');
   seaCelebrateTimer=setTimeout(()=>{
    clearSeaCelebration();
    awardBonus();          /* bonus visas efter firandet */
@@ -11227,7 +11241,7 @@ function seaPayout(grid,amount){
   res.textContent='Winner! '+paid.toLocaleString()+'◉ · '+multTxt;
   sfx.loot();
   spawnPartsIn($('seaFx'),'#8fc3ef',10);
-  log(`Borek Seamen: <span class="loot">+${paid.toLocaleString()} ◉</span> ${multTxt}.`,'loot');
+  log(`Slots: <span class="loot">+${paid.toLocaleString()} ◉</span> ${multTxt}.`,'loot');
   awardBonus();           /* bonus + vinst samtidigt: bonustexten vinner */
  }
  renderHUD();save();updateSeaUI();
@@ -11247,7 +11261,7 @@ function updateSeaUI(){
  const b=$('seaSpinBtn'),cost=seaCost();
  if(b){
   b.disabled=seaSpinning||seaCelebrating||(seaFree<=0&&totalGold()<cost);
-  b.textContent=seaFree>0?'🎁 FREE SPIN · '+seaFree+' kvar'
+  b.textContent=seaFree>0?'🎁 FREE SPIN · '+seaFree+' left'
    :totalGold()<cost?'🦈 Spin · '+cost.toLocaleString()+'◉ - broke!'
    :'🦈 Spin · '+cost.toLocaleString()+'◉';
  }
@@ -11278,49 +11292,8 @@ function stopSeaAuto(msg){
  if(msg){$('seaRes').style.color='#ff8a7a';$('seaRes').textContent=msg;$('seaRes').classList.remove('bigres');sfx.warn();}
  updateSeaUI();
 }
-/* iOS ignores audio.volume writes, and even MediaElementSource routing is unreliable
-   there. Bulletproof path: decode the song to an AudioBuffer and play it as PURE Web
-   Audio through a gain node - gain always works on phones. The <audio> element remains
-   as a fallback (and first-open bridge while the song decodes). */
-let seaGain=null,seaBuf=null,seaBufSrc=null,seaBufLoading=false;
-function seaStopBuf(){if(seaBufSrc){try{seaBufSrc.stop();}catch(e){}try{seaBufSrc.disconnect();}catch(e){}seaBufSrc=null;}}
-function seaBufPlay(){
- seaStopBuf();
- seaBufSrc=AC.ctx.createBufferSource();
- seaBufSrc.buffer=seaBuf;seaBufSrc.loop=true;
- seaBufSrc.connect(seaGain);seaBufSrc.start();
-}
-function seaMusicStart(){
- if(AC.ctx){
-  if(AC.ctx.state==='suspended')AC.ctx.resume().catch(()=>{});
-  if(!seaGain){seaGain=AC.ctx.createGain();seaGain.connect(AC.ctx.destination);}
-  seaApplyVol();
-  if(seaBuf){seaBufPlay();return;}
-  if(!seaBufLoading){
-   seaBufLoading=true;
-   fetch('ambientsong/seamen_song.mp3')
-    .then(r=>r.arrayBuffer())
-    .then(ab=>new Promise((res,rej)=>AC.ctx.decodeAudioData(ab,res,rej))) /* callback form: works on old Safari too */
-    .then(b=>{
-     seaBuf=b;
-     if($('seaFx').classList.contains('open')){try{seaMusic.pause();}catch(e){}seaBufPlay();}
-    })
-    .catch(()=>{seaBufLoading=false;}); /* fetch/decode failed - the element fallback keeps playing */
-  }
- }
- /* fallback + bridge while decoding */
- seaApplyVol();
- seaMusic.currentTime=0;seaMusic.play().catch(()=>{});
-}
-function seaMusicStop(){seaStopBuf();try{seaMusic.pause();}catch(e){}}
-function seaApplyVol(){
- const v=window.seaMuted?0:window.seaVolVal;
- if(seaGain)seaGain.gain.value=v;
- try{seaMusic.volume=v;seaMusic.muted=v<=0;}catch(e){}
-}
 function openSea(){
  seaFree=0;
- seaMusicStart();
  /* mute ambient while casino music plays */
  if(AC.ambG){const t0=AC.ctx.currentTime;AC.ambG.gain.cancelScheduledValues(t0);AC.ambG.gain.setValueAtTime(0,t0);} /* iOS-safe duck */
  if(ambAudio)ambAudio.pause();
@@ -11339,16 +11312,6 @@ function openSea(){
  $('seaRes').innerHTML='&nbsp;';
  updateSeaUI();
 }
-$('seaVol').value=Math.round(window.seaVolVal*100);
-$('seaVol').oninput=e=>{window.seaVolVal=(+e.target.value)/100;seaApplyVol();try{localStorage.setItem('seaVol',window.seaVolVal);}catch(err){}};
-if(IS_TOUCH)$('seaVol').style.display='none'; /* phones: slider can't control level - mute button only */
-$('seaMuteBtn').textContent=window.seaMuted?'🔇':'🔊';
-$('seaMuteBtn').onclick=()=>{
- window.seaMuted=!window.seaMuted;
- $('seaMuteBtn').textContent=window.seaMuted?'🔇':'🔊';
- seaApplyVol();
- try{localStorage.setItem('seaMuted',window.seaMuted?'1':'0');}catch(err){}
-};
 $('seaSpinBtn').onclick=()=>{if(!seaAuto)spinSea();};
 $('seaFastBtn').onclick=()=>{seaFast=!seaFast;$('seaFastBtn').classList.toggle('on',seaFast);};
 $('seaAutoBtn').onclick=()=>{
@@ -11372,11 +11335,10 @@ $('seaClose').onclick=()=>{
  if(seaSpinning&&!seaAuto)return;
  stopSeaAuto();clearSeaCelebration();clearTimeout(seaAutoTimer);
  $('seaFx').classList.remove('open');
- seaMusicStop();
  casinoAmbApply(); /* restores zone ambience - or hands the room back to the casino track */
 };
 
-/* ==================== BOREK BLACKJACK ==================== */
+/* ==================== BLACKJACK ==================== */
 const BJ_MIN=1000,BJ_MAX=15000,BJ_STEP=1000;
 let bjBet=1000,bjP=[],bjD=[],bjLive=false,bjWager=0;
 let bjSeen=0,bjHoleHidden=false,bjSettled=false;
@@ -11446,12 +11408,12 @@ function bjSettle(kind){
   res.style.color='#ffd100';res.classList.add('bigres');
   res.textContent='🃏 BLACKJACK! +'+paid.toLocaleString()+'◉ · pays 3:2';
   dingDingDing(false);spawnPartsIn($('bjFx'),'#ffd100',18);
-  log(`Borek Blackjack: <span class="llegendary">BLACKJACK - +${paid.toLocaleString()} ◉</span>!`,'loot');
+  log(`Blackjack: <span class="llegendary">BLACKJACK - +${paid.toLocaleString()} ◉</span>!`,'loot');
  }else if(kind==='win'){
   res.style.color='#9adf9a';
   res.textContent='Winner! +'+paid.toLocaleString()+'◉';
   sfx.loot();spawnPartsIn($('bjFx'),'#9adf9a',10);
-  log(`Borek Blackjack: <span class="loot">+${paid.toLocaleString()} ◉</span>.`,'loot');
+  log(`Blackjack: <span class="loot">+${paid.toLocaleString()} ◉</span>.`,'loot');
  }else if(kind==='push'){
   res.style.color='#8fa898';
   res.textContent='Push - bet returned.';
@@ -12636,13 +12598,13 @@ setInterval(()=>{
  const done=smeltTick();
  if($('smeltFx').style.display==='flex'&&(done||smeltLeft()>0))smeltRefresh();
 },1000);
-/* 🎵 casino ambience - plays whenever any casino window is up, EXCEPT Borek Seamen,
-   whose own song owns the room. Zone ambience ducks under it, and comes back when you leave. */
+/* 🎵 casino ambience - one track for every casino window, Slots included: it used to run its
+   own song there, which meant walking between two rooms of the same building changed the music.
+   Zone ambience ducks under it, and comes back when you leave. */
 let casinoAudio=null;
 function casinoAmbApply(){
- const anyOpen=['casinoMenu','slotFx','bjFx','rouFx','rtbFx','sebbeFx','finalGateFx'].some(id=>{const e=$(id);return e&&e.classList.contains('open');})||($('gvbFx')&&$('gvbFx').style.display==='flex');
- const seaO=!!($('seaFx')&&$('seaFx').classList.contains('open'));
- if(anyOpen&&!seaO){
+ const anyOpen=['casinoMenu','slotFx','seaFx','bjFx','rouFx','rtbFx','sebbeFx','finalGateFx'].some(id=>{const e=$(id);return e&&e.classList.contains('open');})||($('gvbFx')&&$('gvbFx').style.display==='flex');
+ if(anyOpen){
   if(!casinoAudio){casinoAudio=new Audio('ambientsong/casino_ambient.mp3');casinoAudio.loop=true;}
   const v=ambVol();casinoAudio.volume=v;casinoAudio.muted=v<=0;
   if(casinoAudio.paused)casinoAudio.play().catch(()=>{});
@@ -12650,7 +12612,7 @@ function casinoAmbApply(){
   [ambAudio,cowAudio,odinAudio,cryptAudio,finalAudio].forEach(a=>{if(a)a.pause();});
  }else{
   if(casinoAudio)casinoAudio.pause();
-  if(!anyOpen&&!seaO){ /* left the casino - the zone breathes again */
+  if(!anyOpen){ /* left the casino - the zone breathes again */
    applyVolumes();
    if(gameOn){
     if(zoneOf().cow&&cowAudio)cowAudio.play().catch(()=>{});
@@ -13702,6 +13664,7 @@ $('autoEquipBtn').onclick=()=>{S.autoEquip=!S.autoEquip;renderHero();save();};
 /* 🔊 is now a plain mute for everything. The sliders moved into the ⚙ panel, so leaving this button
    as a slider flyout would have put the music level in two places that could disagree. */
 $('sndBtn').onclick=()=>{
+ if(!S)return;
  initAudio();
  const on=!(S.sound||S.sfx);
  S.sound=on;S.sfx=on;
@@ -13712,16 +13675,26 @@ $('sndBtn').onclick=()=>{
  syncAudioUI();applyVolumes();save();
 };
 function syncAudioUI(){
- const muted=!(S.sound||S.sfx);
+ /* The panel opens from the character screen too, where no hero has been picked and S is still
+    null. Read through the same defaults ambVol/sfxVol already fall back to, and disable the three
+    controls that write into the save - there is nowhere to put their value yet. */
+ const st=S||{sound:true,sfx:true,volAmb:0.5,volSfx:0.55};
+ [$('sndBtn'),$('volAmbSl'),$('volSfxSl')].forEach(e=>{if(e)e.disabled=!S;});
+ const muted=!(st.sound||st.sfx);
  $('sndBtn').textContent=muted?'🔇':'🔊';$('sndBtn').classList.toggle('off',muted);
- const a=Math.round((S.volAmb??0.5)*100),s=Math.round((S.volSfx??0.55)*100);
+ const a=Math.round((st.volAmb??0.5)*100),s=Math.round((st.volSfx??0.55)*100);
  $('volAmbSl').value=a;$('volAmbN').textContent=a;
  $('volSfxSl').value=s;$('volSfxN').textContent=s;
  /* only the browser's tick is derived here - on the desktop the shell owns the window and pushes
     the value in, so recomputing it from the page would fight whatever the shell just did */
  if(!(window.desktop&&window.desktop.setWindowed))$('windowChk').checked=!isFullscreen();
 }
-$('cfgBtn').onclick=()=>{initAudio();syncAudioUI();renderControls();$('cfgBox').classList.toggle('open');};
+/* One way into the settings, opened from two places. #cfgBox lives in #stageWrap, which shares
+   #app's stacking context and carries a higher z-index than the character screen - so the panel
+   draws over it and works before a hero has even been picked. */
+const openSettings=()=>{initAudio();syncAudioUI();renderControls();$('cfgBox').classList.toggle('open');};
+$('cfgBtn').onclick=openSettings;
+$('selCfgBtn').onclick=openSettings;
 /* Audio / Video tabs. One pane in the flow at a time, so the panel does not stand at the height of
    its tallest tab while showing its shortest. */
 document.querySelectorAll('.cfgtab').forEach(t=>t.onclick=()=>{
@@ -13736,7 +13709,7 @@ document.querySelectorAll('.cfgtab').forEach(t=>t.onclick=()=>{
    out of step with the game is worse than no controls screen. The spell rows read their names from
    the class, so a Warrior sees Heroic Strike where a Mage sees Fireball. */
 function renderControls(){
- const sp=(classOf().spells||[]);
+ const sp=((classOf()||{}).spells||[]);   /* no hero yet: the spell rows fall back to their own text */
  const spell=(i,fb)=>sp[i]
   ? sp[i].n+' - '+spellManaCost(sp[i])+' mana, '+sp[i].cd+'s cooldown'
   : fb;
@@ -13794,11 +13767,13 @@ if(window.desktop&&window.desktop.getResolutions){
 $('cfgBox').addEventListener('pointerdown',e=>{if(e.target===$('cfgBox'))$('cfgBox').classList.remove('open');});
 $('cfgClose').onclick=()=>$('cfgBox').classList.remove('open');
 $('volAmbSl').oninput=e=>{
+ if(!S)return;
  S.volAmb=e.target.value/100;S.sound=S.volAmb>0;
  $('volAmbN').textContent=e.target.value;
  syncAudioUI();applyVolumes();save();
 };
 $('volSfxSl').oninput=e=>{
+ if(!S)return;
  S.volSfx=e.target.value/100;S.sfx=S.volSfx>0;
  $('volSfxN').textContent=e.target.value;
  syncAudioUI();applyVolumes();save();
