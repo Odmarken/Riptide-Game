@@ -8450,7 +8450,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
    g.shadowColor='#4dff9a';g.shadowBlur=rune?0:9;
    g.save();
    if(fa.mirror&&sgn<0)g.scale(-1,1); /* the bow's string always faces the archer */
-   g.drawImage(mip(fa.img,W),-W/2,st.grip(H),W,H);
+   if(!runePaint)g.drawImage(mip(fa.img,W),-W/2,st.grip(H),W,H);
    g.restore();
    g.shadowBlur=0;
   }else if(wgImg.complete&&wgImg.naturalWidth){
@@ -8460,7 +8460,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
    runeAt(wgImg,-W/2,-H/2,W,H,0,'always');
    g.shadowColor='#4dff9a';g.shadowBlur=rune?0:9;
    g.save();g.scale(-1,1);
-   g.drawImage(mip(wgImg,W),-W/2,-H/2,W,H);
+   if(!runePaint)g.drawImage(mip(wgImg,W),-W/2,-H/2,W,H);
    g.restore();
    g.shadowBlur=0;
   }else{ /* fallback while the image loads */
@@ -8485,7 +8485,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
          art.mirror);
    g.save();
    if(art.mirror&&sgn<0)g.scale(-1,1); /* mirror so the string always faces the archer */
-   g.drawImage(mip(art.img,W),-W/2,top,W,H); /* grip in the painted hero's hand */
+   if(!runePaint)g.drawImage(mip(art.img,W),-W/2,top,W,H); /* grip in the painted hero's hand */
    g.restore();
    g.shadowBlur=0;
   }else{ /* fallback while the image loads: icy runeblade */
@@ -8512,12 +8512,12 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   /* painted staff (assets/weapons/staff.png) - the Mage standard weapon */
   const H=pw?42:30,W=H*staffImg.naturalWidth/staffImg.naturalHeight;
   runeAt(staffImg,-W/2,5-H,W,H,0.10);
-  g.drawImage(mip(staffImg,W),-W/2,5-H,W,H);
+  if(!runePaint)g.drawImage(mip(staffImg,W),-W/2,5-H,W,H);
  }else if(clsId==='priest'&&maceImg.complete&&maceImg.naturalWidth){
   /* painted mace (assets/weapons/mace.png) - the Priest standard weapon, grip in the hand */
   const H=pw?38:27,W=H*maceImg.naturalWidth/maceImg.naturalHeight;
   runeAt(maceImg,-W/2,4-H,W,H,0.30);
-  g.drawImage(mip(maceImg,W),-W/2,4-H,W,H);
+  if(!runePaint)g.drawImage(mip(maceImg,W),-W/2,4-H,W,H);
  }else if(clsId==='mage'||clsId==='priest'){
   g.strokeStyle='#c9a45a';g.lineWidth=3;g.beginPath();g.moveTo(0,4);g.lineTo(0,-12);g.stroke();
   g.fillStyle=clsId==='mage'?'#7fd0ff':'#ffd76a';g.beginPath();g.arc(0,-14,3+Math.sin(performance.now()/200)*0.6,0,7);g.fill();
@@ -8528,7 +8528,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
    runeAt(bowImg,-W/2,-4-H/2,W,H,0.06,true);
    g.save();
    if(sgn<0)g.scale(-1,1); /* mirror so the string always faces the archer */
-   g.drawImage(mip(bowImg,W),-W/2,-4-H/2,W,H);
+   if(!runePaint)g.drawImage(mip(bowImg,W),-W/2,-4-H/2,W,H);
    g.restore();
   }else{ /* fallback while the image loads */
    g.strokeStyle='#a07a4a';g.lineWidth=3;g.beginPath();g.arc(0,-4,8,-1.2,1.2);g.stroke();
@@ -8537,7 +8537,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   /* painted sword (assets/weapons/sword.png) - the warrior standard, grip in the hand */
   const H=pw?38:27,W=H*swordImg.naturalWidth/swordImg.naturalHeight;
   runeAt(swordImg,-W/2,4-H,W,H,0.26);
-  g.drawImage(mip(swordImg,W),-W/2,4-H,W,H);
+  if(!runePaint)g.drawImage(mip(swordImg,W),-W/2,4-H,W,H);
  }else{
   g.strokeStyle='#e8e4d8';g.lineWidth=3;g.beginPath();g.moveTo(0,4);g.lineTo(0,-13);g.stroke();
   g.strokeStyle='#a4761f';g.beginPath();g.moveTo(-3,0);g.lineTo(3,0);g.stroke();

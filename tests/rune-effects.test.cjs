@@ -8,13 +8,44 @@ const root = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(root, 'assets/weapons/rune-effects.js'), 'utf8');
 const profiles = fs.readFileSync(path.join(root, 'assets/weapons/rune-profiles.js'), 'utf8');
 
+function recordingContext(initial = {}) {
+ const ops = [], stack = [];
+ const g = {globalAlpha: 1, globalCompositeOperation: 'source-over', fillStyle: '#000', filter: 'none',
+  alphaSamples: [0, 0, 0, 0], ...initial,
+  save() {stack.push({globalAlpha: this.globalAlpha, globalCompositeOperation: this.globalCompositeOperation,
+   fillStyle: this.fillStyle, filter: this.filter});},
+  restore() {assert.ok(stack.length, 'Canvas save/restore must stay balanced');Object.assign(this, stack.pop());},
+  drawImage(img, ...rect) {
+   ops.push({type: 'image', img, rect, alpha: this.globalAlpha, blend: this.globalCompositeOperation});
+   composite(img.alphaSamples || img.context2d?.alphaSamples || [1, 1, 1, 1]);
+  },
+  fillRect(...rect) {
+   ops.push({type: 'fill', rect, alpha: this.globalAlpha, blend: this.globalCompositeOperation, colour: this.fillStyle});
+   composite([1, 1, 1, 1]);
+  },
+  createLinearGradient: () => ({addColorStop() {}}),
+ };
+ // Alpha equations are shared by colour/multiply and normal source-over. These
+ // representative pixels catch double-masking without pretending to emulate RGB.
+ function composite(samples) {
+  g.alphaSamples = g.alphaSamples.map((dst, i) => {
+   const src = samples[i] * g.globalAlpha;
+   if (g.globalCompositeOperation === 'destination-in') return dst * src;
+   if (g.globalCompositeOperation === 'destination-out') return dst * (1 - src);
+   if (g.globalCompositeOperation === 'source-in') return src * dst;
+   return src + dst * (1 - src);
+  });
+ }
+ return {g, ops, stack};
+}
+
 function harness() {
  let canvases = 0;
  const context = vm.createContext({parts: [], gamePaused: false, performance: {now: () => 500},
   document: {createElement() {
    canvases++;
-   return {width: 0, height: 0, getContext: () => ({drawImage() {}, fillRect() {},
-    createLinearGradient: () => ({addColorStop() {}})})};
+   const rec = recordingContext();
+   return {width: 0, height: 0, context2d: rec.g, ops: rec.ops, getContext: () => rec.g};
   }},
  });
  vm.runInContext(profiles + '\n' + source, context, {filename: 'rune-effects.js'});
@@ -150,14 +181,76 @@ test('profile emitters follow flip, rotation and scene DPR/zoom/camera transform
 test('glow caches respect image identity, source changes and separate anonymous canvases', () => {
  const h = harness(), a = image(), b = image();
  const first = h.context.runeGlowSprite(a, '#f80', .1);
- assert.equal(h.context.runeGlowSprite(a, '#f80', .1), first);assert.equal(h.canvases, 2);
- assert.notEqual(h.context.runeGlowSprite(b, '#f80', .1), first);assert.equal(h.canvases, 4);
+ assert.equal(h.context.runeGlowSprite(a, '#f80', .1), first);assert.equal(h.canvases, 3);
+ assert.notEqual(h.context.runeGlowSprite(b, '#f80', .1), first);assert.equal(h.canvases, 6);
  a.src += '&revision=2';assert.notEqual(h.context.runeGlowSprite(a, '#f80', .1), first);
  const c = {width: 100, height: 200}, d = {width: 100, height: 200};
  assert.notEqual(h.context.runeGlowSprite(c, '#f80', 0), h.context.runeGlowSprite(d, '#f80', 0));
  assert.equal(h.context.runeGlowSprite(image({complete: false}), '#f80', 0), null);
  assert.equal(h.context.runeGlowSprite({naturalWidth: 0, naturalHeight: 0}, '#f80', 0), null);
  assert.equal(h.context.runeProfileFor(image({src: 'file:///assets/weapons/bow%2Epng?rev=4#tip'})), first.profile);
+});
+
+test('tint draws the complete recoloured art once and preserves caller opacity and compositing', () => {
+ const h = harness(), rec = recordingContext({globalAlpha: .37, globalCompositeOperation: 'screen'});
+ const sp = {art: {name: 'full weapon'}, sil: {name: 'grip-masked glow'}};
+ h.context.runeTint(rec.g, rune('emberbite'), sp, -7, -39, 14, 52);
+ assert.equal(rec.ops.length, 1);
+ assert.equal(rec.ops[0].img, sp.art);
+ assert.deepEqual(rec.ops[0].rect, [-7, -39, 14, 52]);
+ assert.equal(rec.ops[0].alpha, .37);assert.equal(rec.ops[0].blend, 'source-over');
+ assert.equal(rec.g.globalAlpha, .37);assert.equal(rec.g.globalCompositeOperation, 'screen');
+ assert.equal(rec.stack.length, 0);
+ h.context.runeTint(rec.g, null, sp, 0, 0, 10, 10);
+ h.context.runeTint(rec.g, rune('emberbite'), null, 0, 0, 10, 10);
+ assert.equal(rec.ops.length, 1, 'Absent tint data must not add an extra base draw');
+});
+
+test('recolouring restores source transparency once and leaves the grip mask out of the base art', () => {
+ const h = harness(), img = image({alphaSamples: [0, .15, .5, 1]});
+ const colour = '#b83b50', sp = h.context.runeGlowSprite(img, colour, .1, 20, 90, .32);
+ const ink = sp.art.ops, images = ink.filter(op => op.type === 'image');
+ assert.equal(images.length, 2, 'Read the source once for colour and once to restore alpha');
+ assert.equal(images[0].img, img);assert.equal(images[1].img, img);
+ assert.deepEqual(images[0].rect.slice(0, 4), [20, 0, 90, 1187]);
+ assert.deepEqual(images[1].rect, images[0].rect, 'The alpha restore must use the identical source crop');
+ assert.equal(ink.at(-1).blend, 'destination-in');assert.equal(ink.at(-1).alpha, 1);
+ const paint = ink.filter(op => op.type === 'fill');
+ assert.deepEqual(paint.map(op => [op.blend, op.alpha, op.colour]), [['color', 1, colour], ['multiply', .32, colour]]);
+ sp.art.context2d.alphaSamples.forEach((alpha, i) => close(alpha, img.alphaSamples[i]));
+ assert.ok(!ink.some(op => op.blend === 'destination-out'), 'Full colour covers the grip and thin string too');
+ assert.ok(sp.sil.ops.some(op => op.blend === 'destination-out'), 'Only the independent glow fades around the hand');
+ assert.notEqual(sp.art, sp.sil);
+});
+
+test('tone, source crop and colour select separate cached artwork without repeating identical work', () => {
+ const h = harness(), img = image();
+ const base = h.context.runeGlowSprite(img, '#f80', .1, 0, 170, .12);
+ for (const args of [['#f80', .1, 0, 170, .32], ['#f80', .1, 20, 90, .12], ['#80d8ff', .1, 0, 170, .12]]) {
+  const other = h.context.runeGlowSprite(img, ...args), count = h.canvases;
+  assert.notEqual(other, base);assert.notEqual(other.art, base.art);
+  assert.equal(h.context.runeGlowSprite(img, ...args), other);
+  assert.equal(h.canvases, count, 'Drawing another frame reuses the recoloured artwork');
+ }
+});
+
+test('enchanted spares draw one recoloured base, while unenchanted or unloaded spares draw the raw fallback once', () => {
+ const h = harness(), img = image(), rec = recordingContext({globalAlpha: .61, globalCompositeOperation: 'multiply'});
+ let rawDraws = 0;
+ const raw = () => {rawDraws++;rec.g.drawImage(img, -12, -6, 24, 12);};
+ h.context.runeOnSpare(rec.g, rune('veinseeker'), img, -12, -6, 24, 12, 0, 0, 85, raw);
+ const sp = h.context.runeGlowSprite(img, '#aabbcc', 0, 0, 85, .32);
+ assert.equal(rawDraws, 0);
+ assert.equal(rec.ops.filter(op => op.type === 'image' && op.img === sp.art).length, 1);
+ assert.equal(rec.ops.filter(op => op.type === 'image' && op.img === sp.cv).length, 1, 'The only other draw is the halo');
+ assert.equal(rec.ops.filter(op => op.type === 'image' && op.img === img).length, 0);
+ assert.equal(rec.g.globalAlpha, .61);assert.equal(rec.g.globalCompositeOperation, 'multiply');assert.equal(rec.stack.length, 0);
+ for (const [w, sourceImg] of [[null, img], [rune('emberbite'), image({complete: false})]]) {
+  rec.ops.length = 0;
+  const before = rawDraws;
+  h.context.runeOnSpare(rec.g, w, sourceImg, -12, -6, 24, 12, 0, 0, 85, raw);
+  assert.equal(rawDraws, before + 1);assert.equal(rec.ops.length, 1);assert.equal(rec.ops[0].img, img);
+ }
 });
 
 test('the shared particle limit prevents runaway rune allocation', () => {

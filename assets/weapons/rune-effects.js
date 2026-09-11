@@ -10,20 +10,30 @@ function runeProfileFor(img){
  const name=decodeURIComponent((img.src||'').split(/[?#]/)[0]).split('/').pop().replace(/\.png$/i,'');
  return typeof WEAPON_RUNE_PROFILES!=='undefined'?WEAPON_RUNE_PROFILES[name]||null:null;
 }
-function runeGlowSprite(img,colour,gripFrac,sx,sw){
+function runeGlowSprite(img,colour,gripFrac,sx,sw,tone=.12){
  if(!img||img.complete===false)return null;
  const iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height;
  if(!iw||!ih)return null;
  sx=sx||0;sw=sw||iw;
- const key=[img.src||'',colour,gripFrac,sx,sw].join('|');
+ const key=[img.src||'',colour,gripFrac,sx,sw,tone].join('|');
  let cache=runeGlowCache.get(img);if(!cache){cache=new Map();runeGlowCache.set(img,cache);}
  if(cache.has(key))return cache.get(key);
+ // Recolour the complete artwork independently of the glow's grip mask. Paint an
+ // opaque colour layer, then restore the original alpha once, including thin strings.
+ const art=document.createElement('canvas');art.height=Math.min(512,ih);
+ art.width=Math.max(1,Math.round(art.height*sw/ih));
+ const ink=art.getContext('2d');
+ ink.drawImage(img,sx,0,sw,ih,0,0,art.width,art.height);
+ ink.globalCompositeOperation='color';ink.fillStyle=colour;ink.fillRect(0,0,art.width,art.height);
+ ink.globalCompositeOperation='multiply';ink.globalAlpha=tone;ink.fillRect(0,0,art.width,art.height);
+ ink.globalCompositeOperation='destination-in';ink.globalAlpha=1;
+ ink.drawImage(img,sx,0,sw,ih,0,0,art.width,art.height);
  const profile=runeProfileFor(img),H=Math.min(192,ih),W=Math.max(1,Math.round(H*sw/ih));
  const blur=Math.max(1,Math.min(H*.045,W*.24)),PAD=Math.ceil(blur*3);
  const sil=document.createElement('canvas');sil.width=W;sil.height=H;
  const s=sil.getContext('2d');s.drawImage(img,sx,0,sw,ih,0,0,W,H);
  s.globalCompositeOperation='source-in';s.fillStyle=colour;s.fillRect(0,0,W,H);
- // Fade the actual hand grip. Bows and staves are held at their middle, not their bottom.
+ // Only the glow fades at the hand grip; the base colour covers the complete weapon.
  if(profile&&profile.grip&&profile.grip[1]>0){
   const [cy,half]=profile.grip,edge=half*.45;
   s.globalCompositeOperation='destination-out';
@@ -42,7 +52,7 @@ function runeGlowSprite(img,colour,gripFrac,sx,sw){
  g.filter='blur('+blur+'px)';g.globalAlpha=.40;g.drawImage(sil,PAD,PAD);
  g.filter='blur('+Math.max(.6,blur*.36)+'px)';g.globalAlpha=.54;g.drawImage(sil,PAD,PAD);
  g.filter='none';g.globalAlpha=.13;g.drawImage(sil,PAD,PAD);
- const result={cv:out,sil,padX:PAD/W,padY:PAD/H,profile,key};cache.set(key,result);return result;
+ const result={cv:out,sil,art,padX:PAD/W,padY:PAD/H,profile,key};cache.set(key,result);return result;
 }
 function runeHalo(g,w,sp,x,y,W,H){
  if(!w||!sp)return;
@@ -55,19 +65,16 @@ function runeHalo(g,w,sp,x,y,W,H){
 }
 function runeTint(g,w,sp,x,y,W,H){
  if(!w||!sp)return;
- g.save();g.globalCompositeOperation='color';g.globalAlpha*=.88;
- g.drawImage(sp.sil,x,y,W,H);g.restore();
- g.save();g.globalCompositeOperation='multiply';g.globalAlpha*=w.id==='veinseeker'?.32:.12;
- g.drawImage(sp.sil,x,y,W,H);g.restore();
- g.save();g.globalCompositeOperation='lighter';g.globalAlpha*=w.id==='veinseeker'?.035:.11;
- g.drawImage(sp.sil,x,y,W,H);g.restore();
+ // This replaces the original sprite. Overlaying both would leak the old hue
+ // through semitransparent edges and make those edges too opaque.
+ g.save();g.globalCompositeOperation='source-over';g.drawImage(sp.art,x,y,W,H);g.restore();
 }
 function runeUnder(g,w,img,x,y,W,H,gripFrac,sx,sw){
  if(!w)return null;
- const sp=runeGlowSprite(img,w.glow,gripFrac,sx,sw);if(sp)runeHalo(g,w,sp,x,y,W,H);return sp;
+ const sp=runeGlowSprite(img,w.glow,gripFrac,sx,sw,w.id==='veinseeker'?.32:.12);if(sp)runeHalo(g,w,sp,x,y,W,H);return sp;
 }
 function runeOnSpare(g,w,img,x,y,W,H,gripFrac,sx,sw,draw){
- const sp=runeUnder(g,w,img,x,y,W,H,gripFrac,sx,sw);draw();if(sp)runeTint(g,w,sp,x,y,W,H);
+ const sp=runeUnder(g,w,img,x,y,W,H,gripFrac,sx,sw);if(sp)runeTint(g,w,sp,x,y,W,H);else draw();
 }
 function runePathPoint(path,u,x,y,W,H){
  const k=Math.max(0,Math.min(1,u))*(path.length-1),i=Math.floor(k),a=path[i],b=path[Math.min(i+1,path.length-1)],f=k-i;
