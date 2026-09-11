@@ -41,7 +41,7 @@ function recordingContext(initial = {}) {
 
 function harness() {
  let canvases = 0;
- const context = vm.createContext({parts: [], gamePaused: false, performance: {now: () => 500},
+ const context = vm.createContext({parts: [], gamePaused: false, performance: {now: () => 500},spriteEdgeSource:img=>img,
   document: {createElement() {
    canvases++;
    const rec = recordingContext();

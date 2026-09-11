@@ -18,20 +18,21 @@ function runeGlowSprite(img,colour,gripFrac,sx,sw,tone=.12){
  const key=[img.src||'',colour,gripFrac,sx,sw,tone].join('|');
  let cache=runeGlowCache.get(img);if(!cache){cache=new Map();runeGlowCache.set(img,cache);}
  if(cache.has(key))return cache.get(key);
+ const source=spriteEdgeSource(img);
  // Recolour the complete artwork independently of the glow's grip mask. Paint an
  // opaque colour layer, then restore the original alpha once, including thin strings.
  const art=document.createElement('canvas');art.height=Math.min(512,ih);
  art.width=Math.max(1,Math.round(art.height*sw/ih));
  const ink=art.getContext('2d');
- ink.drawImage(img,sx,0,sw,ih,0,0,art.width,art.height);
+ ink.drawImage(source,sx,0,sw,ih,0,0,art.width,art.height);
  ink.globalCompositeOperation='color';ink.fillStyle=colour;ink.fillRect(0,0,art.width,art.height);
  ink.globalCompositeOperation='multiply';ink.globalAlpha=tone;ink.fillRect(0,0,art.width,art.height);
  ink.globalCompositeOperation='destination-in';ink.globalAlpha=1;
- ink.drawImage(img,sx,0,sw,ih,0,0,art.width,art.height);
+ ink.drawImage(source,sx,0,sw,ih,0,0,art.width,art.height);
  const profile=runeProfileFor(img),H=Math.min(192,ih),W=Math.max(1,Math.round(H*sw/ih));
  const blur=Math.max(1,Math.min(H*.045,W*.24)),PAD=Math.ceil(blur*3);
  const sil=document.createElement('canvas');sil.width=W;sil.height=H;
- const s=sil.getContext('2d');s.drawImage(img,sx,0,sw,ih,0,0,W,H);
+ const s=sil.getContext('2d');s.drawImage(source,sx,0,sw,ih,0,0,W,H);
  s.globalCompositeOperation='source-in';s.fillStyle=colour;s.fillRect(0,0,W,H);
  // Only the glow fades at the hand grip; the base colour covers the complete weapon.
  if(profile&&profile.grip&&profile.grip[1]>0){

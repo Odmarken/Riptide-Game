@@ -3384,7 +3384,7 @@ function renderFarmStore(){
   const ivN=ivK?(((S.farm&&S.farm.inv)||{})[ivK]||0):null; /* 🎰 casino-won stock waiting to be placed */
   return `<div class="fsitem${sel?' sel':''}${it.locked||stLock||hg?' lock':''}" data-fs="${it.id}">
    ${stK?`<div class="fscnt">${stN}</div>`:ivN!==null?`<div class="fscnt">${ivN}</div>`:''}
-   ${it.img?`<img src="assets/farm/${it.img}.png" draggable="false">`:`<div style="font-size:34px;text-align:center;padding:8px 0">${it.emoji||'❓'}</div>`}
+   ${it.img?`<img src="assets/farm/${it.img}.png" onload="spriteEdgeThumbnail(this)" draggable="false">`:`<div style="font-size:34px;text-align:center;padding:8px 0">${it.emoji||'❓'}</div>`}
    <div class="fsn">${it.n}</div>
    ${it.road?`<div class="fsl" style="color:var(--brass)">${FARM_ROAD_RATE[it.id]||0}◉ per unit drawn</div>`:(FARM_PRICES[it.id]||0)||(FARM_SCRAPS[it.id]||0)?`<div class="fsl" style="color:var(--brass)">${[FARM_PRICES[it.id]?FARM_PRICES[it.id].toLocaleString()+'◉':null,FARM_SCRAPS[it.id]?FARM_SCRAPS[it.id]+'⚙':null].filter(Boolean).join(' + ')}</div>`:''}
    ${it.locked?`<div class="fsl">🔒 ${it.locked}</div>`:stLock?`<div class="fsl">🔒 ${stN}/5 - harvest hay</div>`:hg?`<div class="fsl">🔒 ${hg}</div>`:sel?'<div class="fsl" style="color:#ffd76a">✓ Selected - click the field</div>':''}
@@ -7694,6 +7694,7 @@ function drawPortal(){
    sparse pixels and the texture "crawls" as the camera moves. mip() returns a cached,
    progressively half-stepped copy (~1-2x the draw size): stable, sharp and cheaper. ---- */
 function mip(img,W){
+ img=spriteEdgeSource(img);
  if(!img.naturalWidth)return img;
  /* account for camera zoom + retina DPR: W world-px can be several times more device-px,
     and picking a mip below that is what made buildings/characters go soft */
