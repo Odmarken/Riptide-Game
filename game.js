@@ -790,7 +790,7 @@ async function mpEnsureFirebase(){
 function mpLook(){
  const g=(S&&S.gear)||{},w=g.weapon||null;
  return {race:S&&S.race?S.race:'human',cls:S&&S.cls?S.cls:'warrior',
-  w:w?(isFG(w)?'felglaives':(isFK(w)?'rimfrost':(w.id||w.legend||null))):null,ws:w?(w.star||w.up||1):1,
+  w:w?(isFG(w)?'felglaives':(isFK(w)?'rimfrost':(w.id||w.legend||null))):null,ws:w?(w.star||w.up||1):1,wench:w&&w.wench||null,
   a:g.armor?(g.armor.id||null):null,ice:!!(g.armor&&isIce(g.armor)),pet:S&&S.pet?S.pet:null,fk:!!(w&&isFK(w)),wg:!!(w&&isFG(w)),fem:!!(S&&S.gender==='f')};
 }
 async function mpCreate(){
@@ -1120,7 +1120,7 @@ function drawHeroLike(x,y,look,alpha,anim,name,hp){
  ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0,8,14,6,0,0,7);ctx.fill();
  if(dancing)ctx.rotate(Math.sin(phase*6)*0.25);
  feet({walk:phase*1.8},(moving||dancing)?1:0.15);
- drawChampionSprite(ctx,race,cls,fx,by,swing,!!look.fk||!!look.fm||isFKLegend(look.w),look.w,!!look.fem,(moving||dancing)?2:1,!!look.ice); /* full gear look - ice armor & walk frame like the local hero; look.fm is the pre-rename field a peer on the old build still sends */
+ drawChampionSprite(ctx,race,cls,fx,by,swing,!!look.fk||!!look.fm||isFKLegend(look.w),look.w,!!look.fem,(moving||dancing)?2:1,!!look.ice,wenchById(look.wench)); /* older peers without a rune field still render normally */
  if(look.pet){ctx.font='13px sans-serif';ctx.textAlign='center';const pp=petOf(look.pet);if(pp)petGlyphCanvas(ctx,pp,-18,10);else ctx.fillText('🐾',-18,10);}
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
  /* peer nametag higher so weapons/Rimfrost do not collide */
@@ -3760,8 +3760,8 @@ const WENCH=[
   flavour:'The edge holds a coal that never cools.'},
  {id:'frostgrip', n:'Frostgrip',  lvl:1, glow:'#7fd8ff', icon:'en_frost',
   flavour:'Steel cold enough that the air around it creaks.'},
- {id:'veinseeker',n:'Veinseeker', lvl:1, glow:'#6ee08a', icon:'en_vein',
-  flavour:'Cut from the same emerald it hunts for.'},
+ {id:'veinseeker',n:'Veinseeker', lvl:1, glow:'#b83b50', icon:'en_vein',
+  flavour:'A dark red sheen gathers along the hungry edge.'},
  {id:'stormetch', n:'Stormetch',  lvl:1, glow:'#b98cff', icon:'en_storm',
   flavour:'The rune argues with the air and the air loses.'},
  {id:'goldrune',  n:'Goldrune',   lvl:1, glow:'#ffd76a', icon:'en_gold',
@@ -4533,7 +4533,7 @@ function buildZone(){
   hero.potCd={hp:(prev.potCd&&prev.potCd.hp)||0,mp:(prev.potCd&&prev.potCd.mp)||0};
  }
  pet={x:hero.x-30,y:hero.y+14,fx:1,fy:0,walk:0,moving:false,r:8,avoid:null,speed:0};
- enemies=[];bolts=[];ebolts=[];hazards=[];floats=[];parts=[];rings=[];zaps=[];bloods=[];
+ enemies=[];bolts=[];ebolts=[];hazards=[];floats=[];parts=[];rings=[];zaps=[];bloods=[];resetRuneEmission();
  const tmpls=zoneTemplates(z);
  cowRunning=false;cowT=0;cowSpawnT=0;cowItems=0;cowBagFull=false;
  cowChest=null;cowChestT=10;cowChestMsgT=0;cowBigT=12; /* first chest lands 10s after entering */
@@ -6521,6 +6521,7 @@ function autoBrain(dt){
  });
 }
 function update(dt){
+ runeFxDt=dt; /* simulation time is consumed once by the current weapon draw */
  if(!gameOn)return;
  padNow=padStick(); /* one poll per frame, shared by the movement block below */
  padTick(dt);       /* buttons, the right stick, the A prompt and menu walking */
@@ -7024,7 +7025,11 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
  }
  // fx
  for(let i=floats.length-1;i>=0;i--){floats[i].t+=dt;if(floats[i].t>1)floats.splice(i,1);}
- for(let i=parts.length-1;i>=0;i--){const p=parts[i];p.t+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=p.g*dt;if(p.t>p.life)parts.splice(i,1);}
+ for(let i=parts.length-1;i>=0;i--){
+  const p=parts[i];
+  if(p.runeFx){if(stepRuneParticle(p,dt))parts.splice(i,1);continue;}
+  p.t+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=p.g*dt;if(p.t>p.life)parts.splice(i,1);
+ }
  for(let i=rings.length-1;i>=0;i--){rings[i].t+=dt;if(rings[i].t>rings[i].dur)rings.splice(i,1);}
  for(let i=bloods.length-1;i>=0;i--){bloods[i].t+=dt;if(bloods[i].t>bloods[i].life)bloods.splice(i,1);}
  for(let i=zaps.length-1;i>=0;i--){zaps[i].t+=dt;if(zaps[i].t>zaps[i].life)zaps.splice(i,1);}
@@ -7459,6 +7464,7 @@ function draw(){
   }
  }
  for(const p of parts){
+  if(drawRuneParticle(ctx,p))continue;
   ctx.globalAlpha=Math.max(0,1-p.t/p.life);
   ctx.fillStyle=p.c;
   if(p.d){
@@ -8294,344 +8300,9 @@ function drawHourglassBody(g,cx,cy,by,c2,c1,w){
  g.fillStyle=c2;shape(0);
  g.fillStyle=c1;shape(1.8);
 }
-/* ✨ WEAPON RUNES - what an enchant looks like in the world.
-   Everything below is drawn in the WEAPON's own space: the grip sits at y=+4 and the blade runs up
-   the -Y axis to the tip at y=5-len. Writing it along that axis means the effect inherits the
-   attack swing, the walk bob and the facing flip for nothing.
-   The model is WoW's enchant glows: the halo goes UNDER the weapon art so the weapon still reads
-   first and the enchant second, and only the sparks and sigils go over the top. Each rune is built
-   to its own name - Emberbite burns, Frostgrip rimes over, Veinseeker hunts, Stormetch crackles,
-   Goldrune shines. */
-const runeNoise=n=>{const x=Math.sin(n*127.1)*43758.5453;return x-Math.floor(x);};
-const runeOf=it=>(it&&it.wench)?wenchById(it.wench):null;
-let runeTip={x:0,y:0}; /* blade tip in hero-local pixels, refreshed each time the hero is drawn */
-
-/* 🔥 The glow is built FROM THE WEAPON'S OWN SILHOUETTE, not stroked along it. A straight fat line
-   gives you a lightsaber tube with round ends that ignores the blade's taper and hangs off the
-   point; blurring the art's own alpha instead means the light hugs whatever shape is there - a
-   tapered sword, a curved bow, a mace head - and thins out exactly where the steel does. That one
-   difference is most of what separates a WoW enchant from a coloured stick.
-   Three blur passes make the falloff: a wide dim halo, a tighter bright one, and the tinted
-   silhouette itself as the hot core. Built once per weapon-and-colour and cached, so the per-frame
-   cost is three drawImage calls. */
-const runeGlowCache={};
-function runeGlowSprite(img,colour,gripFrac,sx,sw){
- if(!img)return null;
- const iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height;
- if(!iw||!ih||(img.complete===false))return null;
- sx=sx||0;sw=sw||iw;
- const key=(img.src||'cv'+iw+'x'+ih)+'|'+colour+'|'+gripFrac+'|'+sx+'|'+sw;
- if(runeGlowCache[key]!==undefined)return runeGlowCache[key];
- const H=Math.min(160,ih),W=Math.max(1,Math.round(H*sw/ih));
- const PAD=Math.round(H*0.22);                        /* room for the blur to spread into */
- /* 1. the art as a flat block of the rune's colour */
- const sil=document.createElement('canvas');sil.width=W;sil.height=H;
- const s=sil.getContext('2d');
- s.drawImage(img,sx,0,sw,ih,0,0,W,H);
- s.globalCompositeOperation='source-in';
- s.fillStyle=colour;s.fillRect(0,0,W,H);
- /* 1b. Trace the shape's OUTER EDGE, row by row. A bow's art holds two things: a straight string
-    down one side and a limb curving away from it, and the middle of that bounding box is the empty
-    air between them - which is why a curve derived from the box ran through the gap instead of
-    along the wood. Read here, while the silhouette is still whole. */
- let limb=null;
- try{
-  const px=s.getImageData(0,0,W,H).data,K=24;
-  limb=[];
-  for(let k=0;k<=K;k++){
-   const y=Math.min(H-1,Math.round(H*k/K));
-   let hi=-1;
-   for(let x=W-1;x>=0;x--){if(px[(y*W+x)*4+3]>60){hi=x;break;}}
-   /* an empty row keeps the last edge rather than snapping to centre, so a tip that runs out of
-      pixels does not yank the bolt back into the middle */
-   limb.push(hi<0?(limb.length?limb[limb.length-1]:0):(hi-W/2)/(W/2));
-  }
- }catch(e){limb=null;}   /* a tainted canvas just means the old straight line */
- /* 2. fade the grip out - a rune lights the steel, never the leather in your fist */
- if(gripFrac>0){
-  s.globalCompositeOperation='destination-out';
-  const gr=s.createLinearGradient(0,H*(1-gripFrac*1.7),0,H*(1-gripFrac*0.35));
-  gr.addColorStop(0,'rgba(0,0,0,0)');gr.addColorStop(1,'rgba(0,0,0,1)');
-  s.fillStyle=gr;s.fillRect(0,H*(1-gripFrac*1.7),W,H*gripFrac*1.7);
- }
- /* 3. stack the blurs into one sprite */
- const out=document.createElement('canvas');out.width=W+PAD*2;out.height=H+PAD*2;
- const o=out.getContext('2d');
- o.globalCompositeOperation='lighter';
- const pass=(blur,alpha)=>{o.filter='blur('+blur+'px)';o.globalAlpha=alpha;o.drawImage(sil,PAD,PAD);};
- pass(H*0.095,0.62);   /* the wide bloom - this is where the colour reads from */
- pass(H*0.034,0.58);   /* the close glow */
- o.filter='none';o.globalAlpha=0.26;o.drawImage(sil,PAD,PAD);  /* just enough core to keep an edge */
- const res={cv:out,padX:PAD/W,padY:PAD/H,sil:sil,limb:limb};
- runeGlowCache[key]=res;
- return res;
-}
-/* the glow, drawn under the weapon art in the same rect the art will occupy. It spreads a little
-   WIDER and a little LONGER than the steel it comes from - light does not stop at the edge of the
-   metal, and a glow clipped exactly to the silhouette reads as a decal rather than as something
-   burning. */
-/* Both spreads are measured off the art's NARROW side, never its long one. A sword hangs tip-up,
-   so its width is the narrow side and 16% of it is a pixel and a half - right. A glaive is drawn
-   lying flat, so its width is the LENGTH, and the same 16% put ten pixels of light out past each
-   tip, hanging in the air where no blade was. Blade thickness is the honest scale for a bloom
-   whichever way the weapon is turned. */
-const RUNE_FAT=0.16, RUNE_LONG=0.29;   /* both of min(W,H) */
-function runeHalo(g,w,sp,x,y,W,H){
- if(!w||!sp)return null;
- const t=performance.now()/1000;
- const pulse=w.id==='emberbite' ? 0.74+0.26*Math.sin(t*7.3)+0.09*Math.sin(t*17.1)   /* fire never sits still */
-           : w.id==='frostgrip' ? 0.82+0.18*Math.sin(t*1.7)                          /* cold breathes slowly */
-           : w.id==='stormetch' ? (runeNoise(Math.floor(t*13))>0.82?1.30:0.58)       /* mostly dim, sudden strikes */
-           : w.id==='goldrune'  ? 0.82+0.18*Math.sin(t*2.2)
-           :                      0.86+0.14*Math.sin(t*3.1);
- const px=sp.padX*W,py=sp.padY*H,m=Math.min(W,H),fx2=m*RUNE_FAT,fy2=m*RUNE_LONG;
- g.save();
- g.globalCompositeOperation='lighter';
- g.globalAlpha=Math.min(1,0.88*pulse);
- g.drawImage(sp.cv,x-px-fx2,y-py-fy2,W+px*2+fx2*2,H+py*2+fy2*2);
- g.restore();
- return sp;
-}
-
-/* 🎨 the steel itself takes the rune's colour. Additive light alone cannot do this: piling orange
-   on top of a bright blade only drives it toward white, which is why the first pass came out
-   looking like plain steel with a coloured fog around it. The 'color' blend swaps the HUE of the
-   pixels underneath while leaving their luminance alone, so the highlights, the fuller and the
-   crossguard all survive - the blade still looks like forged metal, just metal that is on fire. */
-function runeTint(g,w,sp,x,y,W,H){
- if(!w||!sp)return;
- const t=performance.now()/1000;
- const heat=w.id==='stormetch'?(runeNoise(Math.floor(t*13))>0.82?1:0.72)
-           :w.id==='emberbite'?0.86+0.14*Math.sin(t*7.3):1;
- g.save();
- g.globalCompositeOperation='color';
- g.globalAlpha=0.80*heat;
- g.drawImage(sp.sil,x,y,W,H);
- g.globalCompositeOperation='lighter';   /* and a breath of its own light on top of that */
- g.globalAlpha=0.20*heat;
- g.drawImage(sp.sil,x,y,W,H);
- g.restore();
-}
-
-/* ⚡ a bolt struck between two points, jittered sideways off the line joining them. runeMarks has
-   its own version that runs UP a blade; this one runs ALONG a weapon lying flat, which is the only
-   way to put lightning on the glaives. */
-function runeBolt(g,x0,y0,x1,y1,amp,seed,n){
- const dx=x1-x0,dy=y1-y0,L=Math.hypot(dx,dy)||1,nx=-dy/L,ny=dx/L;
- g.beginPath();g.moveTo(x0,y0);
- for(let i=1;i<=n;i++){
-  const p=i/n,j=i===n?0:(runeNoise(seed*7+i)-0.5)*amp;
-  g.lineTo(x0+dx*p+nx*j,y0+dy*p+ny*j);
- }
- g.stroke();
-}
-
-/* Lay the glow under whatever art is about to be drawn, and remember the rect so the tint and the
-   rune's own marks can be laid over the same shape once the art is down. Every weapon branch calls
-   this with ITS OWN picture: the plain sword, Rimfrost, a single fel weapon, the glaive pair. That
-   is the whole point - the enchant belongs to the weapon in the hand, so a warrior holding the
-   glaives must not get a sword-shaped glow floating where no sword is. */
-function runeUnder(g,w,img,x,y,W,H,gripFrac,sx,sw){
- if(!w)return null;
- const sp=runeGlowSprite(img,w.glow,gripFrac,sx,sw);
- if(!sp)return null;
- runeHalo(g,w,sp,x,y,W,H);
- g._rune=w;g._runeSp=sp;g._runeRect=[x,y,W,H];
- g._runeY0=y+H*(1-gripFrac);g._runeY1=y+H*0.04;
- return sp;
-}
-/* the same, for a weapon nobody swings - the pair strapped across the back. Glow and tint only:
-   flames and lightning belong on the blade being used, not on the spare. */
-function runeOnSpare(g,w,img,x,y,W,H,gripFrac,sx,sw,draw){
- const sp=w?runeGlowSprite(img,w.glow,gripFrac,sx,sw):null;
- if(sp)runeHalo(g,w,sp,x,y,W,H);
- draw();
- if(sp)runeTint(g,w,sp,x,y,W,H);
-}
-
-/* the rune's own signature, drawn over the weapon art */
-function runeMarks(g,w,y0,y1,hw,bend,sp){
- if(!w)return;
- const t=performance.now()/1000,tip=y1,span=y0-y1;
- /* Everything sideways is measured against the WEAPON'S OWN half-width, never a number picked by
-    eye. bow.png is 170x1187 - drawn 44 tall it is six pixels wide - so a spacing tuned on a sword
-    hangs clear of a bow by half its own width again. */
- const HW=Math.max(2,hw||4);
- const bx=(bend||0)*HW;
- /* THE SPINE. Every mark rides this line, not the centre of the art. A bow's picture holds a
-    straight string down one side and a limb curving away from it, and the middle of that box is
-    the empty air between them - so a flame, a frost shard or a rune scratch placed at x=0 hangs in
-    the gap. runeGlowSprite traces the art's outer edge when it is built; that trace starts at the
-    TOP row, which is the weapon's tip, so it is read backwards against u. Weapons that do not bend
-    pass no trace and keep the straight line they always had. */
- const lb=(bend&&sp&&sp.limb&&sp.limb.length)?sp.limb:null;
- const spineAt=u=>{
-  const y=y0+(tip-y0)*u;
-  if(lb){
-   const f=(1-u)*(lb.length-1),i=Math.floor(f),t2=f-i;
-   const a=lb[i],b=lb[Math.min(lb.length-1,i+1)];
-   return {x:(a+(b-a)*t2)*HW*0.86, y};    /* just inside the edge, so it sits ON the limb */
-  }
-  const m=1-u;
-  return {x:2*m*u*bx, y:m*m*y0+2*m*u*(y0+tip)/2+u*u*tip};
- };
- const uAt=y=>span?(y0-y)/span:0;         /* a height on the weapon: 0 at the grip, 1 at the tip */
- const sx=y=>spineAt(uAt(y)).x;           /* how far the weapon has wandered sideways by that height */
- const spineStroke=(uA,uB,steps)=>{       /* a stroke running its length, following the bend */
-  g.beginPath();
-  const n=steps||(lb?12:1);
-  for(let i=0;i<=n;i++){
-   const p=spineAt(uA+(uB-uA)*(i/n));
-   i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y);
-  }
-  g.stroke();
- };
- g.save();
- g.globalCompositeOperation='lighter';
- g.lineCap='round';g.lineJoin='round';
- switch(w.id){
-
- case 'emberbite':{ /* flame licking up the weapon, hottest at the edge */
-  for(let i=0;i<4;i++){
-   const base=y0-span*(0.10+i*0.22);                /* four tongues spaced along it */
-   const cx=sx(base);
-   const ph=t*6.5+i*1.9;
-   const lean=Math.sin(ph)*3.4, rise=7+Math.sin(ph*1.7)*2.6;
-   g.globalAlpha=0.22+0.16*Math.sin(ph*1.3);
-   g.fillStyle=w.glow;
-   g.beginPath();
-   g.moveTo(cx-2.4,base);
-   g.quadraticCurveTo(cx+lean*0.7,base-rise*0.55,cx+lean,base-rise);
-   g.quadraticCurveTo(cx+lean*0.7-1.2,base-rise*0.5,cx+2.4,base);
-   g.closePath();g.fill();
-  }
-  g.globalAlpha=0.34+0.14*Math.sin(t*9);            /* the white-hot edge, a hint not a stripe */
-  g.strokeStyle='#ffe2b0';g.lineWidth=1.1;
-  spineStroke(0.02,0.97);
-  break;
- }
-
- case 'frostgrip':{ /* rime creeping up from the grip, crystals growing and shrinking */
-  for(let i=0;i<6;i++){
-   const y=y0-span*(0.06+i*0.16), side=i%2?1:-1, cx=sx(y);
-   const grow=0.55+0.45*Math.sin(t*1.9+i*1.1);
-   const s=(1.15+i*0.13)*grow;
-   g.globalAlpha=0.34+0.30*grow;
-   g.fillStyle=i%3?w.glow:'#eafaff';
-   g.beginPath();                                   /* a shard, long out from the edge and thin */
-   g.moveTo(cx+side*1.7,y);g.lineTo(cx+side*(1.7+s*0.9),y-s*0.5);
-   g.lineTo(cx+side*(1.7+s*3.0),y);g.lineTo(cx+side*(1.7+s*0.9),y+s*0.5);
-   g.closePath();g.fill();
-  }
-  g.globalAlpha=0.28;
-  g.strokeStyle='#eafaff';g.lineWidth=0.9;
-  spineStroke(0.0,0.95);
-  break;
- }
-
- case 'veinseeker':{ /* a hunting shimmer that sweeps the weapon, with motes circling it */
-  const p=(t*0.75)%1, y=y0-span*p, cx=sx(y);        /* the sweep, grip to tip, over and over */
-  const gr=g.createLinearGradient(0,y+9,0,y-9);
-  gr.addColorStop(0,'rgba(110,224,138,0)');
-  gr.addColorStop(0.5,w.glow);
-  gr.addColorStop(1,'rgba(110,224,138,0)');
-  g.globalAlpha=0.55;g.strokeStyle=gr;g.lineWidth=4;
-  g.beginPath();g.moveTo(cx,y+9);g.lineTo(cx,y-9);g.stroke();
-  for(let i=0;i<3;i++){                             /* motes orbiting, tightening as they hunt */
-   const a=t*2.3+i*2.09, orb=4.6+Math.sin(t*1.3+i)*1.7;
-   const my=y0-span*(0.28+i*0.22)+Math.cos(a)*3.2;
-   g.globalAlpha=0.40+0.32*Math.sin(a);
-   g.fillStyle=i?w.glow:'#d8ffe4';
-   g.beginPath();g.arc(sx(my)+Math.sin(a)*orb,my,0.85,0,7);g.fill();
-  }
-  break;
- }
-
- case 'stormetch':{
-  /* Lightning struck along the spine. Straight segments, not curves: smoothing the corners away
-     turned it into a ribbon, and lightning is made of sharp changes of direction. The kick tapers
-     to nothing at both ends so the bolt stays ON the weapon rather than swinging past the limb. */
-  const q=Math.floor(t*13);                         /* one bolt per quantum - it crackles, not shimmers */
-  for(let b=0;b<2;b++){
-   const seed=q*3+b*17;
-   if(runeNoise(seed)<0.30)continue;                /* not every quantum draws every bolt */
-   g.globalAlpha=b?0.30:0.62;
-   g.strokeStyle=b?w.glow:'#f0e2ff';
-   g.lineWidth=b?1.15:0.70;
-   const pts=[],N=9;
-   for(let i=0;i<=N;i++){
-    const u=i/N,p=spineAt(u);
-    const taper=Math.sin(u*Math.PI);                /* 0 at grip and tip, widest in the middle */
-    pts.push({x:p.x+(runeNoise(seed*7+i)-0.5)*HW*0.32*taper, y:p.y});
-   }
-   g.beginPath();g.moveTo(pts[0].x,pts[0].y);
-   for(let i=1;i<pts.length;i++)g.lineTo(pts[i].x,pts[i].y);
-   g.stroke();
-  }
-  if(runeNoise(q)>0.88){                            /* the strike - a flare at the tip */
-   const p=spineAt(0.97);
-   g.globalAlpha=0.8;g.fillStyle='#f0e2ff';
-   g.beginPath();g.arc(p.x,p.y,3.0,0,7);g.fill();
-  }
-  break;
- }
-
- case 'goldrune':{ /* runes cut into the steel, and gold light running along it */
-  g.strokeStyle=w.glow;g.lineWidth=0.9;
-  for(let i=0;i<3;i++){                             /* three short scratches, engraved not stuck on */
-   const y=y0-span*(0.28+i*0.22), s=1.9, cx=sx(y);
-   g.globalAlpha=0.30+0.30*Math.sin(t*2.1+i*2.0);   /* each catches the light in its own time */
-   g.beginPath();
-   g.moveTo(cx-s,y-s*0.7);g.lineTo(cx+s,y-s*0.7);   /* a bar, a stroke down, a bar - a rune */
-   g.moveTo(cx,y-s*0.7);g.lineTo(cx,y+s*0.7);
-   g.moveTo(cx-s*0.6,y+s*0.7);g.lineTo(cx+s*0.6,y+s*0.7);
-   g.stroke();
-  }
-  const p=(t*0.42)%1,sy=y0-span*p,cx2=sx(sy);       /* the sheen, sliding slowly along the steel */
-  const gr2=g.createLinearGradient(0,sy+7,0,sy-7);
-  gr2.addColorStop(0,'rgba(255,242,200,0)');
-  gr2.addColorStop(0.5,'#fff2c8');
-  gr2.addColorStop(1,'rgba(255,242,200,0)');
-  g.globalAlpha=0.45;g.strokeStyle=gr2;g.lineWidth=2.6;
-  g.beginPath();g.moveTo(cx2,sy+7);g.lineTo(cx2,sy-7);g.stroke();
-  break;
- }
- }
- g.restore();
-}
-
-/* What the blade sheds, thrown into the WORLD at the tip so it is left behind as the hero walks
-   rather than dragged along with the weapon. All of it drips: d:1 stretches each one into a
-   teardrop along its own motion, and gravity does the rest, so a rune reads as running off the
-   steel instead of bubbling beside it. */
-function runeSpark(w,x,y){
- if(!w)return;
- const jx=()=>x+(Math.random()-0.5)*7, jy=()=>y+(Math.random()-0.5)*7;
- switch(w.id){
- case 'emberbite': /* molten - flicked off the edge, then it falls and cools */
-  if(chance(0.30))parts.push({x:jx(),y:jy(),vx:(Math.random()-0.5)*16,vy:-14-Math.random()*14,
-   t:0,life:0.75,c:Math.random()<0.4?'#ffd08a':w.glow,r:1.0+Math.random()*0.9,g:130,d:1});
-  break;
- case 'frostgrip': /* meltwater running off the rime */
-  if(chance(0.16))parts.push({x:jx(),y:jy(),vx:(Math.random()-0.5)*8,vy:6+Math.random()*10,
-   t:0,life:0.85,c:Math.random()<0.35?'#eafaff':w.glow,r:1.0+Math.random()*0.9,g:150,d:1});
-  break;
- case 'veinseeker':
-  if(chance(0.15))parts.push({x:jx(),y:jy(),vx:(Math.random()-0.5)*18,vy:-10-Math.random()*12,
-   t:0,life:0.7,c:Math.random()<0.35?'#d8ffe4':w.glow,r:0.9+Math.random()*0.8,g:110,d:1});
-  break;
- case 'stormetch': /* nothing, then a burst - fast enough that each one draws as a streak */
-  if(chance(0.09))for(let i=0;i<3;i++)parts.push({x:jx(),y:jy(),
-   vx:(Math.random()-0.5)*110,vy:(Math.random()-0.5)*110,
-   t:0,life:0.22,c:Math.random()<0.5?'#f0e2ff':w.glow,r:0.8+Math.random()*0.6,g:40,d:1});
-  break;
- case 'goldrune': /* gold is heavy - it runs slowly and drops straight */
-  if(chance(0.13))parts.push({x:jx(),y:jy(),vx:(Math.random()-0.5)*9,vy:-4-Math.random()*8,
-   t:0,life:0.9,c:Math.random()<0.4?'#fff2c8':w.glow,r:0.9+Math.random()*0.8,g:120,d:1});
-  break;
- }
-}
+/* Weapon rune profiles, materials and emission live in assets/weapons/rune-*.js. */
 function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painted,iceArm,rune){
+ let runePaint=null,runeEmission=null;
  raceId=RACE_ALIAS[raceId]||raceId; /* peers/leaderboard entries may still send legacy ids */
  clsId=CLASS_ALIAS[clsId]||clsId;
  const r=RACES.find(x=>x.id===raceId);
@@ -8756,20 +8427,14 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
  const wAng=(sgn<0?-1:1)*(pw?0.85:0.5)+sw*sgn;
  g.rotate(wAng);
  g.lineCap='round';
- /* ✨ the enchant is lit inside each weapon branch below, from that branch's own picture, so the
-    light always lands on the weapon actually in his hand. runeTip is where the sparks come off. */
- g._rune=null;
- /* mir: this art is flipped when he faces left, so the light has to flip with it - otherwise the
-    glow sits on the far side of a bow that has turned around. bend: how far the weapon's spine
-    curves away from straight, as a fraction of its length. */
- const runeAt=(im,x,y,W,H,grip,mir,bend,sx,sw)=>{
+ /* Capture each active weapon's actual rectangle and mirror, including the flat glaives. */
+ const runeAt=(im,x,y,W,H,grip,mir=false)=>{
   if(!rune)return;
-  const flip=!!mir&&sgn<0;
-  if(flip)g.save(),g.scale(-1,1);
-  runeUnder(g,rune,im,flip?-x-W:x,y,W,H,grip,sx,sw);
-  if(flip)g.restore();
-  g._runeFlip=flip;g._runeBend=bend||0;g._runeHW=W/2;
-  runeTip={x:tx+(-y)*Math.sin(wAng), y:ty+y*Math.cos(wAng)};
+  const flip=mir==='always'||!!mir&&sgn<0;
+  g.save();if(flip)g.scale(-1,1);
+  const sp=runeUnder(g,rune,im,x,y,W,H,grip);
+  g.restore();
+  if(sp)runePaint={sp,x,y,W,H,flip};
  };
  if(weaponId==='fishingrod'){
   /* fishing rod: cork grip + tapered rod aimed forward over the water */
@@ -8781,7 +8446,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   if(fa){
    const st=fa.std,H=(pw?st.pw:st.pl)*fa.h,W=H*fa.img.naturalWidth/fa.img.naturalHeight;
    runeAt(fa.img,-W/2,st.grip(H),W,H,clsId==='mage'?0.10:clsId==='hunter'?0.06:0.24,
-         fa.mirror,clsId==='hunter'?1.7:0);
+         fa.mirror);
    g.shadowColor='#4dff9a';g.shadowBlur=rune?0:9;
    g.save();
    if(fa.mirror&&sgn<0)g.scale(-1,1); /* the bow's string always faces the archer */
@@ -8792,50 +8457,11 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
    /* painted Fel Glaives pair (assets/models/felglaive.png) - held level, pointing straight ahead */
    const W=62,H=W*wgImg.naturalHeight/wgImg.naturalWidth;
    g.rotate(-(sgn<0?-1:1)*(pw?0.85:0.5)); /* cancel the base tilt; the attack swing still animates */
-   /* the pair lies flat rather than hanging tip-up, so no grip to fade and no axial marks - the
-      glow and the tint carry the enchant on their own */
-   if(rune){
-    const sp=runeGlowSprite(wgImg,rune.glow,0);
-    if(sp){
-     g.save();g.scale(-1,1);
-     runeHalo(g,rune,sp,-W/2,-H/2,W,H);
-     g.restore();
-    }
-    g._runeFlat=sp;
-   }
+   runeAt(wgImg,-W/2,-H/2,W,H,0,'always');
    g.shadowColor='#4dff9a';g.shadowBlur=rune?0:9;
-   g.save();g.scale(-1,1); /* mirrored the other way from the back pair */
+   g.save();g.scale(-1,1);
    g.drawImage(mip(wgImg,W),-W/2,-H/2,W,H);
-   if(g._runeFlat)runeTint(g,rune,g._runeFlat,-W/2,-H/2,W,H);
    g.restore();
-   if(rune){
-    /* Drops come off the FORWARD tip of the pair. Without this the glaives never set runeTip at
-       all, so they dripped from wherever the last weapon drawn had left it - up by his shoulder. */
-    const a=wAng-(sgn<0?-1:1)*(pw?0.85:0.5);   /* base tilt already cancelled: what is left is the swing */
-    const px2=W*0.42,py2=H*0.18;
-    runeTip={x:tx+px2*Math.cos(a)-py2*Math.sin(a), y:ty+px2*Math.sin(a)+py2*Math.cos(a)};
-    if(rune.id==='stormetch'){
-     /* struck along the pair rather than up it, and re-struck faster than the blade version so it
-        jumps instead of shimmering - a flat weapon needs the movement to read as lightning */
-     const tt=performance.now()/1000,q=Math.floor(tt*18);
-     g.save();g.globalCompositeOperation='lighter';g.lineCap='round';g.lineJoin='round';
-     for(let b=0;b<2;b++){
-      const seed=q*5+b*31;
-      if(runeNoise(seed)<0.22)continue;
-      g.globalAlpha=b?0.36:0.78;
-      g.strokeStyle=b?rune.glow:'#f0e2ff';
-      g.lineWidth=b?1.9:1.0;
-      runeBolt(g,-W*0.46,(runeNoise(seed+3)-0.5)*H*0.35,
-                 W*0.46,(runeNoise(seed+9)-0.5)*H*0.35,H*0.62,seed,9);
-     }
-     if(runeNoise(q)>0.86){                    /* the strike itself, at one end or the other */
-      g.globalAlpha=0.75;g.fillStyle='#f0e2ff';
-      g.beginPath();g.arc((runeNoise(q+2)<0.5?-1:1)*W*0.44,0,2.6,0,7);g.fill();
-     }
-     g.restore();
-    }
-   }
-   g._runeFlat=null;
    g.shadowBlur=0;
   }else{ /* fallback while the image loads */
    g.save();
@@ -8856,7 +8482,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
    const H=(st?(pw?st.pw:st.pl):(pw?50:40))*art.h,W=H*art.img.naturalWidth/art.img.naturalHeight;
    const top=st?st.grip(H):(pw?-2:6)-H;
    runeAt(art.img,-W/2,top,W,H,clsId==='mage'?0.10:clsId==='hunter'?0.06:0.24,
-         art.mirror,clsId==='hunter'?1.7:0);
+         art.mirror);
    g.save();
    if(art.mirror&&sgn<0)g.scale(-1,1); /* mirror so the string always faces the archer */
    g.drawImage(mip(art.img,W),-W/2,top,W,H); /* grip in the painted hero's hand */
@@ -8885,12 +8511,12 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
  }else if(clsId==='mage'&&staffImg.complete&&staffImg.naturalWidth){
   /* painted staff (assets/weapons/staff.png) - the Mage standard weapon */
   const H=pw?42:30,W=H*staffImg.naturalWidth/staffImg.naturalHeight;
-  runeAt(staffImg,-W/2,5-H,W,H,0.10,false,0);
+  runeAt(staffImg,-W/2,5-H,W,H,0.10);
   g.drawImage(mip(staffImg,W),-W/2,5-H,W,H);
  }else if(clsId==='priest'&&maceImg.complete&&maceImg.naturalWidth){
   /* painted mace (assets/weapons/mace.png) - the Priest standard weapon, grip in the hand */
   const H=pw?38:27,W=H*maceImg.naturalWidth/maceImg.naturalHeight;
-  runeAt(maceImg,-W/2,4-H,W,H,0.30,false,0);
+  runeAt(maceImg,-W/2,4-H,W,H,0.30);
   g.drawImage(mip(maceImg,W),-W/2,4-H,W,H);
  }else if(clsId==='mage'||clsId==='priest'){
   g.strokeStyle='#c9a45a';g.lineWidth=3;g.beginPath();g.moveTo(0,4);g.lineTo(0,-12);g.stroke();
@@ -8899,7 +8525,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   if(bowImg.complete&&bowImg.naturalWidth){
    /* painted bow (assets/weapons/bow.png) - tall narrow recurve, held upright in the hand */
    const H=pw?44:31,W=H*bowImg.naturalWidth/bowImg.naturalHeight;
-   runeAt(bowImg,-W/2,-4-H/2,W,H,0.06,true,1.7);
+   runeAt(bowImg,-W/2,-4-H/2,W,H,0.06,true);
    g.save();
    if(sgn<0)g.scale(-1,1); /* mirror so the string always faces the archer */
    g.drawImage(mip(bowImg,W),-W/2,-4-H/2,W,H);
@@ -8910,20 +8536,21 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
  }else if(swordImg.complete&&swordImg.naturalWidth){
   /* painted sword (assets/weapons/sword.png) - the warrior standard, grip in the hand */
   const H=pw?38:27,W=H*swordImg.naturalWidth/swordImg.naturalHeight;
-  runeAt(swordImg,-W/2,4-H,W,H,0.26,false,0);
+  runeAt(swordImg,-W/2,4-H,W,H,0.26);
   g.drawImage(mip(swordImg,W),-W/2,4-H,W,H);
  }else{
   g.strokeStyle='#e8e4d8';g.lineWidth=3;g.beginPath();g.moveTo(0,4);g.lineTo(0,-13);g.stroke();
   g.strokeStyle='#a4761f';g.beginPath();g.moveTo(-3,0);g.lineTo(3,0);g.stroke();
  }
- if(g._rune){
-  if(g._runeFlip)g.save(),g.scale(-1,1);
-  runeTint(g,g._rune,g._runeSp,g._runeRect[0],g._runeRect[1],g._runeRect[2],g._runeRect[3]);
-  runeMarks(g,g._rune,g._runeY0,g._runeY1,g._runeHW,g._runeBend,g._runeSp);
-  if(g._runeFlip)g.restore();
-  g._rune=null;g._runeFlip=false;
+ if(runePaint){
+  const {sp,x,y,W,H,flip}=runePaint;
+  g.save();if(flip)g.scale(-1,1);
+  runeTint(g,rune,sp,x,y,W,H);runeMarks(g,rune,sp,x,y,W,H);
+  runeEmission=runeEmitter(g,sp,x,y,W,H);
+  g.restore();
  }
  g.restore();
+ return runeEmission; /* local to this draw; portraits and unloaded art cannot leave stale emitters */
 }
 /* 🎮 the Ⓐ prompt. Anchored on the HERO, not on the building. Sitting it over the target looked
    right for an NPC and useless for a guild hall: the anchor is the footprint, the art is eight
@@ -8962,6 +8589,8 @@ function drawPet(){
  ctx.restore();
 }
 function drawHero(){
+ const fxDt=runeFxDt;runeFxDt=0;
+ const runeScene=ctx.getTransform().inverse();
  const h=hero;if(h.dead&&h.deadT>0.7)return;
  const r=raceOf(),c=classOf(),now=performance.now()/1000;
  ctx.save();ctx.translate(h.x,h.y);
@@ -8994,8 +8623,9 @@ function drawHero(){
  if((charSprite(S.race,c.id,S.gender==='f')||{}).naturalWidth)bootFeet(S.gender==='f'?{fem:true,bw:femBootW(S.race,c.id),moving:h.moving,walk:h.walk}:h);else feet(h,1);
  /* ✨ the weapon's rune - not while fishing, since the rod is not the enchanted thing in his hand */
  const wRune=(fish.on||h.dead)?null:runeOf(S.gear.weapon);
- drawChampionSprite(ctx,S.race,c.id,fx,by,danceSwing,fish.on?false:isFK(S.gear.weapon),fish.on?'fishingrod':(isFG(S.gear.weapon)?'felglaives':(isFK(S.gear.weapon)?'rimfrost':null)),S.gender==='f',h.moving&&!h.dead?2:1,isIce(S.gear.armor),wRune);
- if(wRune)runeSpark(wRune,h.x+runeTip.x,h.y+runeTip.y);
+ const emission=drawChampionSprite(ctx,S.race,c.id,fx,by,danceSwing,fish.on?false:isFK(S.gear.weapon),fish.on?'fishingrod':(isFG(S.gear.weapon)?'felglaives':(isFK(S.gear.weapon)?'rimfrost':null)),S.gender==='f',h.moving&&!h.dead?2:1,isIce(S.gear.armor),wRune);
+ if(wRune&&emission&&!gamePaused)runeSpark(wRune,{...emission,points:emission.points.map(p=>runePointTransform(runeScene,p))},fxDt,h.y+gY+8);
+ else resetRuneEmission();
  /* the pick, drawn over the hero while he works. It replaces nothing - his weapon stays where it is -
     it is simply the tool in his hands for as long as the swing lasts. The arc is fast down and slow
     back up, because that is how anything heavy is swung: gravity does the strike, the arm does the lift. */
