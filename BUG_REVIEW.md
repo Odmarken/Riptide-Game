@@ -1,6 +1,6 @@
 Bugggranskning av Riptide RPG, 2026-09-11
 
-Nio verifierade logikfel, sorterade med de allvarligaste först. P1 betyder hög prioritet; P2 betyder ett konkret fel som bör rättas. Spelkoden har inte ändrats.
+Nio verifierade logikfel i version `ea46697`, sorterade med de allvarligaste först. P1 betyder hög prioritet; P2 betyder ett konkret fel som bör rättas. Granskningen ändrade inte spelkoden. Punkt 4 har därefter rättats i samband med skuggor och klickytor; övriga punkter beskriver fortfarande kvarvarande fel. Radreferenserna gäller granskningsversionen.
 
 Verifieringen använde originalfunktioner och händelsehanterare från `game.js` i isolerade Node VM-tester. UI, tid, nätverksmeddelanden och sparningar simulerades. Inga riktiga konton, molndokument eller spelarsparningar användes. `node --check` gick igenom för `game.js`, `main.js` och `preload.js`. En separat Electron-körning kunde inte starta renderaren korrekt i testmiljön (`ERR_FAILED` och GPU-processfel), så detta är inte en fullständig manuell spelgenomgång eller ett test mot riktiga multiplayeranslutningar.
 
@@ -23,6 +23,8 @@ Verifieringen använde originalfunktioner och händelsehanterare från `game.js`
    Test: sista bossens död via Firestore gav 0 kistor och 0 raidpotions; ett senare RTC-meddelande ändrade inte resultatet. Enbart RTC gav 1 kista, 1 raidpotion och registrerad lockout. Åtgärd: låt båda transporterna använda samma döds- och belöningshantering, med skydd mot dubbel utdelning.
 
 4. **P2 – Flyttade farmbyggnader lämnar osynliga hinder på gamla platsen.** [game.js:4730](game.js#L4730)
+
+   **Rättad:** `rebuildFarmItems()` ogiltigförklarar nu kollisionscachen även när antalet objekt är oförändrat.
 
    Kollisionscachen byggs om endast när antalet objekt ändras. `rebuildFarmItems()` skapar nya objekt vid flytt eller storleksändring, men antalet är normalt oförändrat. Cachen behåller därför gamla positioner och storlekar.
 

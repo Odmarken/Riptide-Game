@@ -3,7 +3,7 @@ const casinoImg=new Image();casinoImg.src='assets/models/casino.png';
 const treeImg=new Image();treeImg.src='assets/models/träd.png';
 treeImg._pad=1.2;treeImg._anchor=0.89; /* per-art calibration: padding compensation + trunk-bottom fraction */
 const treeSnowImg=new Image();treeSnowImg.src='assets/models/trädsnow.png';
-treeSnowImg._pad=1.33;treeSnowImg._anchor=0.86;
+treeSnowImg._pad=1.33;treeSnowImg._anchor=0.865;
 const fkImg=new Image();fkImg.src='assets/models/rimfrost.png'; /* the original blade - warrior */
 /* ❄ one legendary, four faces: Rimfrost takes the shape its bearer can actually wield.
    The item is the same in very way that matters - same name, same key, same stats - only
@@ -62,27 +62,39 @@ const CITY_HOUSES=Object.keys(CITY_HOUSE);
 const CITY_LANES=CITY_HOUSES.filter(k=>CITY_HOUSE[k].lane);
 /* seed → face. Deterministic, so the same street shows the same houses every visit. */
 const cityHouseKey=(seed,alley)=>{const p=alley?CITY_LANES:CITY_HOUSES;return p[Math.floor(seed*7)%p.length];};
-/* Where each building actually meets the ground, measured off its own pixels: cx is the footprint's
-   centre as a fraction of the drawn width, w is its width. These vary wildly - the cottage rests on
-   0.26 of its width, the enchanting hall on 0.86, and several sit off-centre - so one shared ellipse
-   left most shadows floating beside the house instead of under it. */
-const CITY_FOOT={ /* Measured ground contact: cx is the footprint's centre as a fraction of the
-   drawn width, w is its width. Taken at 5% of the sprite's height above its lowest pixel - at 2%
-   you catch only the tip of a sloping base and the shadow comes out a sliver, at 12% you are
-   already measuring the first floor. These vary wildly and several sit well off centre - the
-   tenement's base is 12% of its width to the right - which is why one shared ellipse left half
-   the city's shadows floating beside the building instead of under it. */
- cathedral:{cx:+0.038,w:0.295},   enchanthall:{cx:-0.118,w:0.508}, house_cottage:{cx:-0.041,w:0.202},
- house_manor:{cx:+0.082,w:0.337}, house_shop:{cx:-0.094,w:0.368},  house_stair:{cx:+0.097,w:0.211},
- house_stone:{cx:-0.012,w:0.476}, house_tenement:{cx:+0.124,w:0.478}, house_timber:{cx:-0.012,w:0.318},
- house_turret:{cx:-0.040,w:0.578}, minehall:{cx:-0.099,w:0.393},    smelter:{cx:+0.133,w:0.515},
+/* Ground footprints cover the whole isometric foundation, including its receding sides.
+   A single scanline near the bottom only measures the front corner. cx/rx use image width;
+   cy/ry use image height, with cy measured from the top of the image. */
+const CITY_FOOT={
+ cathedral:     {cx:0,     cy:.885,rx:.460,ry:.120},
+ enchanthall:   {cx:-.010, cy:.940,rx:.455,ry:.065},
+ house_cottage:{cx:-.010, cy:.890,rx:.430,ry:.115},
+ house_manor:  {cx:.015,  cy:.925,rx:.455,ry:.080},
+ house_shop:   {cx:-.010, cy:.925,rx:.470,ry:.080},
+ house_stair:  {cx:.045,  cy:.910,rx:.440,ry:.090},
+ house_stone:  {cx:.020,  cy:.945,rx:.420,ry:.060},
+ house_tenement:{cx:.040, cy:.945,rx:.400,ry:.060},
+ house_timber: {cx:.015,  cy:.930,rx:.310,ry:.075},
+ house_turret: {cx:0,     cy:.935,rx:.455,ry:.070},
+ minehall:     {cx:.015,  cy:.910,rx:.485,ry:.100},
+ smelter:      {cx:.030,  cy:.910,rx:.490,ry:.100},
 };
-function cityShadow(name,W,baseY){ /* sized off that footprint and tucked under the base */
- const f=CITY_FOOT[name]; if(!f)return;
- const rx=W*f.w*0.66,ry=rx*0.32; /* a touch wider than the base - a shadow exactly the
-    footprint's size reads as a painted outline rather than as something resting on ground */
- ctx.fillStyle='rgba(0,0,0,0.30)';
- ctx.beginPath();ctx.ellipse(W*f.cx,baseY-ry*0.45,rx,ry,0,0,7);ctx.fill();
+let groundShadowImg=null;
+function drawGroundShadow(x,y,rx,ry,alpha=.27,rot=0){
+ if(!(rx>0&&ry>0))return;
+ if(!groundShadowImg){
+  const c=document.createElement('canvas');c.width=128;c.height=64;
+  const g=c.getContext('2d');g.scale(1,.5);
+  const grad=g.createRadialGradient(64,64,0,64,64,64);
+  grad.addColorStop(0,'rgba(0,0,0,1)');grad.addColorStop(.62,'rgba(0,0,0,.88)');
+  grad.addColorStop(.84,'rgba(0,0,0,.40)');grad.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=grad;g.fillRect(0,0,128,128);groundShadowImg=c;
+ }
+ ctx.save();ctx.globalAlpha*=alpha;ctx.translate(x,y);if(rot)ctx.rotate(rot);
+ ctx.drawImage(groundShadowImg,-rx,-ry,rx*2,ry*2);ctx.restore();
+}
+function cityShadow(name,W,H,top){
+ const f=CITY_FOOT[name];if(f)drawGroundShadow(W*f.cx,top+H*f.cy,W*f.rx,H*f.ry);
 }
 /* Zone maps are the biggest files the game fetches - 2.5 to 3.8 MB each - and on a phone they are
    the ones that fail. A dropped request leaves an Image with complete true and naturalWidth 0, which
@@ -182,28 +194,30 @@ const torImg=new Image();torImg.src='assets/boss/tor_boss.png?v=2';
 const farmImgs={};
 const farmImg=n=>{if(!farmImgs[n]){farmImgs[n]=new Image();farmImgs[n].src='assets/farm/'+n+'.png';}return farmImgs[n];};
 const FARM_BUILD=[
+ /* Contact shadows are calibrated against the visible roots, feet and bases. cx/rx/ry/dy
+    use the rendered width; rot follows the ground plane. Floor decals need no extra blob. */
  /* 🏗 Building */
  {id:'staket',n:'Fence',img:'staketvit_sidan',tab:'b',W:130,gy:12,col:{r:14,crx:65,cry:9,cyo:4},snap:'h'}, /* thin wall ellipse spanning the full run - no slipping between the posts */
  {id:'staketv',n:'Fence (vertical)',img:'staket_ovan',tab:'b',W:13,gy:14,col:{r:14,crx:8,cry:47,cyo:-33},snap:'v'}, /* sized so its post caps render the same width as the horizontal fence's (~13 world units) */
- {id:'lada',n:'Barn',img:'lada_farm',tab:'b',W:380,gy:30,col:{crx:130,cry:38,cyo:-40}},
- {id:'chickenhouse',n:'Chicken Coop',img:'chickenhouse_farm',tab:'b',W:230,gy:28,col:{crx:88,cry:34,cyo:-32}},
- {id:'medium',n:'Farmhouse',img:'Farmhouse_medium',tab:'b',W:408,gy:41,col:{crx:143,cry:49,cyo:-49},noScale:1},
- {id:'mansion',n:'Mansion',img:'farmhouse_mansion',tab:'b',W:850,gy:62,col:{crx:290,cry:85,cyo:-85},noScale:1},      /* 2.5× the home farmhouse */
- {id:'farmhouse',n:'Farmhouse',img:'farmhouse_litet',tab:'x',W:340,gy:32,noScale:1}, /* the home house - movable in build mode, never sold or removed; tab x hides it from the store */
+ {id:'lada',n:'Barn',img:'lada_farm',tab:'b',W:380,gy:30,col:{crx:130,cry:38,cyo:-40},sh:{rx:0.43,ry:0.105,dy:-0.09}},
+ {id:'chickenhouse',n:'Chicken Coop',img:'chickenhouse_farm',tab:'b',W:230,gy:28,col:{crx:88,cry:34,cyo:-32},sh:{cx:-0.02,rx:0.44,ry:0.125,dy:-0.12}},
+ {id:'medium',n:'Farmhouse',img:'Farmhouse_medium',tab:'b',W:408,gy:41,col:{crx:143,cry:49,cyo:-49},noScale:1,sh:{rx:0.43,ry:0.115,dy:-0.105}},
+ {id:'mansion',n:'Mansion',img:'farmhouse_mansion',tab:'b',W:850,gy:62,col:{crx:290,cry:85,cyo:-85},noScale:1,sh:{rx:0.44,ry:0.085,dy:-0.08}},      /* 2.5× the home farmhouse */
+ {id:'farmhouse',n:'Farmhouse',img:'farmhouse_litet',tab:'x',W:340,gy:32,noScale:1,sh:{rx:0.45,ry:0.10,dy:-0.095}}, /* the home house - movable in build mode, never sold or removed; tab x hides it from the store */
  /* 🐄 Animals */
  /* 🐄 animals roam the plot freely (roam:1) - fences pen them in; speed = stroll pace */
  /* eatT = hunger interval: grown beasts eat every 2h, young ones every hour */
- {id:'chickenfarm',n:'Chicken',img:'chickenfarm_liten',tab:'a',W:29,gy:6,col:{r:6},roam:1,speed:30,eatT:3600000},
- {id:'chickenfarm_big',n:'Chicken',img:'chickenfarm_big',tab:'x',W:48,gy:7,col:{r:9},roam:1,speed:26,eatT:7200000}, /* grown - not sold, grows from the young one */
- {id:'cowfarm',n:'Calf',img:'cowfarm_liten',tab:'a',W:49,gy:8,col:{r:9},roam:1,speed:24,eatT:3600000},
- {id:'cowfarm_big',n:'Cow',img:'cowfarm_big',tab:'x',W:120,gy:13,col:{r:20},roam:1,speed:18,eatT:7200000}, /* grown - not sold; matches Bull */
- {id:'tjur',n:'Bull',img:'tjur_farm',tab:'a',W:156,gy:21,col:{r:26},roam:1,speed:16,eatT:7200000},
+ {id:'chickenfarm',n:'Chicken',img:'chickenfarm_liten',tab:'a',W:29,gy:6,col:{r:6},roam:1,speed:30,eatT:3600000,sh:{rx:0.22,ry:0.065,dy:-0.025}},
+ {id:'chickenfarm_big',n:'Chicken',img:'chickenfarm_big',tab:'x',W:48,gy:7,col:{r:9},roam:1,speed:26,eatT:7200000,sh:{cx:-0.045,rx:0.23,ry:0.065,dy:-0.04}}, /* grown - not sold, grows from the young one */
+ {id:'cowfarm',n:'Calf',img:'cowfarm_liten',tab:'a',W:49,gy:8,col:{r:9},roam:1,speed:24,eatT:3600000,sh:{cx:0.11,rx:0.25,ry:0.07,dy:-0.045}},
+ {id:'cowfarm_big',n:'Cow',img:'cowfarm_big',tab:'x',W:120,gy:13,col:{r:20},roam:1,speed:18,eatT:7200000,sh:{cx:0.04,rx:0.30,ry:0.07,dy:-0.04}}, /* grown - not sold; matches Bull */
+ {id:'tjur',n:'Bull',img:'tjur_farm',tab:'a',W:156,gy:21,col:{r:26},roam:1,speed:16,eatT:7200000,sh:{cx:0.07,rx:0.31,ry:0.07,dy:-0.04}},
  /* 🌾 Food - hay growth stages; crop:1 items live in S.farm.c, not solids */
  /* all three share one canvas + crop, so identical W renders the dirt patch identically */
  {id:'hay',n:'Hay Seeds',img:'hö_frö',W:93,gy:10,tab:'m',crop:1},
  {id:'hay_medium',n:'Hay Growing',img:'hö_medium',W:93,gy:10,tab:'x',crop:1}, /* stages appear only by growing */
  {id:'hay_klar',n:'Hay Ready',img:'hö_klar',W:93,gy:10,tab:'x',crop:1},
- {id:'hobal',n:'Hay',img:'höbal',tab:'m',W:80,gy:18,col:{r:25},noScale:1}, /* solid object - animals & hero walk around it; feed, so it stays one standard size */
+ {id:'hobal',n:'Hay',img:'höbal',tab:'m',W:80,gy:18,col:{r:25},noScale:1,sh:{rx:0.40,ry:0.09,dy:-0.06}}, /* solid object - animals & hero walk around it; feed, so it stays one standard size */
  {id:'chickenseeds',n:'Chicken Seeds',img:'chickenseeds',tab:'m',W:64,gy:8,crop:1}, /* ground decal on the crop grid */
  /* 🛣 Roads - Sims-style: click to anchor, click again to lay the stretch; chain keeps going from the last point */
  {id:'dirt_road',n:'Dirt Road',img:'dirt_road',tab:'o',road:1,rw:44,W:44,gy:22},
@@ -211,36 +225,33 @@ const FARM_BUILD=[
  /* 🌳 Decoration */
  /* glow: where the flame sits in the art, as fractions of the sprite - measured off the pixels,
     not eyeballed - plus the pool's radius as a fraction of W. See the farmitem draw for the flicker. */
- {id:'light_farm',n:'Lamp Post',img:'light_farm',tab:'d',W:42,gy:10,col:{r:8},glow:{fx:0.799,fy:0.408,r:0.78}},
+ {id:'light_farm',n:'Lamp Post',img:'light_farm',tab:'d',W:42,gy:10,col:{r:8},glow:{fx:0.799,fy:0.408,r:0.78},sh:{cx:-0.25,rx:0.25,ry:0.055,dy:-0.045}},
  {id:'bush',n:'Bush',img:'häck_farm',tab:'d',W:130,gy:16,col:{r:14,crx:65,cry:10,cyo:5},snap:'h'},
  {id:'bushv',n:'Bush (vertical)',img:'häckvertikal_farm',tab:'d',W:53,gy:16,col:{r:14,crx:18,cry:60,cyo:-45},snap:'v'},
- /* the roaming herd paths around anything with col, so the two ground pieces below carry
-    none on purpose - they are mats you can lay anywhere without boxing an animal in */
  {id:'fountain',n:'Fountain',img:'fountain_farm',tab:'d',W:150,gy:20,col:{r:40},
-  sh:{rx:0.46,ry:0.105,dy:-0.015}}, /* the stone base fills the art's full width - a wide shadow, unlike the tree's */
- /* trunk only - walk under the canopy. sh: its own blob shadow, tight around the trunk rather than
-    the wide canopy (the default shadow keys off col.crx, which a tree has no business having).
+  sh:{rx:0.48,ry:0.11,dy:-0.085}}, /* the stone base fills the art's full width - a wide shadow, unlike the tree's */
+ /* trunk only - walk under the canopy. The contact shadow covers the roots below the canopy.
     sway: hold = the fraction of the art, measured from the top, that bends; below that the trunk
     is rigid, so the tree rocks at the leaves and stays planted at the roots. */
  {id:'tree_farm',n:'Tree',img:'tree_farm',tab:'d',W:200,gy:14,col:{r:16},
-  sh:{rx:0.15,ry:0.042,dy:-0.005},sway:{amp:0.030,spd:0.85,hold:0.60}},
- {id:'well',n:'Well',img:'well_farm',tab:'d',W:110,gy:16,col:{r:30}},
- {id:'scarecrow',n:'Scarecrow',img:'scarecrow_farm',tab:'d',W:70,gy:8,col:{r:10}},
+  sh:{rx:0.23,ry:0.065,dy:-0.05},sway:{amp:0.030,spd:0.85,hold:0.60}},
+ {id:'well',n:'Well',img:'well_farm',tab:'d',W:110,gy:16,col:{r:30},sh:{rx:0.40,ry:0.105,dy:-0.09}},
+ {id:'scarecrow',n:'Scarecrow',img:'scarecrow_farm',tab:'d',W:70,gy:8,col:{r:10},sh:{cx:0.015,rx:0.11,ry:0.04,dy:-0.025}},
  {id:'flowerbed',n:'Flower Bed',img:'flowerbed_farm',tab:'d',W:130,gy:10,snap:'h'}, /* snaps into long borders like the hedge */
- {id:'pond',n:'Pond',img:'pond_farm',tab:'d',W:190,gy:12,col:{r:30,crx:80,cry:34,cyo:2}},
+ {id:'pond',n:'Pond',img:'pond_farm',tab:'d',W:190,gy:12,col:{r:30,crx:80,cry:34,cyo:2},sh:false}, /* its painted earth rim already lies on the ground */
  {id:'pumpkins',n:'Pumpkin Patch',img:'pumpkins_farm',tab:'d',W:120,gy:8},
- {id:'bench',n:'Garden Bench',img:'bench_farm',tab:'d',W:90,gy:12,col:{r:12,crx:42,cry:12,cyo:0}},
- {id:'trough',n:'Water Trough',img:'trough_farm',tab:'d',W:100,gy:12,col:{r:14,crx:46,cry:14,cyo:0}},
- {id:'haywagon',n:'Hay Wagon',img:'haywagon_farm',tab:'d',W:170,gy:20,col:{r:30,crx:74,cry:28,cyo:-6}},
- {id:'beehives',n:'Beehives',img:'beehives_farm',tab:'d',W:80,gy:12,col:{r:18}},
- {id:'farmsign',n:'Farm Sign',img:'farmsign_farm',tab:'d',W:60,gy:10,col:{r:8}},
- /* --- decorations added later. sh values are measured off each sprite's real ground contact,
-        not guessed off its silhouette - see the tree/fountain note above for why that matters. --- */
- {id:'windmill',n:'Windmill',img:'windmill_farm',tab:'d',W:150,gy:16,col:{r:30},sh:{cx:0.159,rx:0.38,ry:0.10,dy:-0.01}},
+ {id:'bench',n:'Garden Bench',img:'bench_farm',tab:'d',W:90,gy:12,col:{r:12,crx:42,cry:12,cyo:0},sh:{cx:-0.02,rx:0.49,ry:0.085,dy:-0.115,rot:0.19}},
+ {id:'trough',n:'Water Trough',img:'trough_farm',tab:'d',W:100,gy:12,col:{r:14,crx:46,cry:14,cyo:0},sh:{rx:0.44,ry:0.065,dy:-0.03}},
+ {id:'haywagon',n:'Hay Wagon',img:'haywagon_farm',tab:'d',W:170,gy:20,col:{r:30,crx:74,cry:28,cyo:-6},sh:{cx:-0.10,rx:0.35,ry:0.085,dy:-0.065}},
+ {id:'beehives',n:'Beehives',img:'beehives_farm',tab:'d',W:80,gy:12,col:{r:18},sh:{rx:0.43,ry:0.13,dy:-0.115}},
+ {id:'farmsign',n:'Farm Sign',img:'farmsign_farm',tab:'d',W:60,gy:10,col:{r:8},sh:{cx:0.285,rx:0.15,ry:0.05,dy:-0.03}},
+ /* Low sprite rows can contain loose fruit or a single projecting corner, so these
+    footprints follow the whole base rather than only the lowest opaque pixels. */
+ {id:'windmill',n:'Windmill',img:'windmill_farm',tab:'d',W:150,gy:16,col:{r:30},sh:{cx:0.11,rx:0.42,ry:0.105,dy:-0.075}},
  {id:'appletree',n:'Apple Tree',img:'appletree_farm',tab:'d',W:170,gy:14,col:{r:16},
-  sh:{cx:0.295,rx:0.105,ry:0.032,dy:-0.005},sway:{amp:0.030,spd:0.78,hold:0.58}}, /* sways like tree_farm - trunk still, canopy bends */
- {id:'woodpile',n:'Firewood Pile',img:'woodpile_farm',tab:'d',W:125,gy:10,col:{r:16,crx:44,cry:14,cyo:0},sh:{cx:0.071,rx:0.22,ry:0.055,dy:-0.01}},
- {id:'crates',n:'Produce Crates',img:'crates_farm',tab:'d',W:105,gy:10,col:{r:14,crx:38,cry:14,cyo:0},sh:{cx:0.042,rx:0.17,ry:0.045,dy:-0.01}},
+  sh:{rx:0.24,ry:0.065,dy:-0.075},sway:{amp:0.030,spd:0.78,hold:0.58}}, /* roots are centred; the apple at the far right is separate */
+ {id:'woodpile',n:'Firewood Pile',img:'woodpile_farm',tab:'d',W:125,gy:10,col:{r:16,crx:44,cry:14,cyo:0},sh:{cx:-0.02,rx:0.43,ry:0.10,dy:-0.085}},
+ {id:'crates',n:'Produce Crates',img:'crates_farm',tab:'d',W:105,gy:10,col:{r:14,crx:38,cry:14,cyo:0},sh:{rx:0.39,ry:0.10,dy:-0.09}},
  {id:'remove',n:'Remove',emoji:'🗑',tab:'*'} /* removes anything except the farmhouse */
 ];
 /* ⇄/⤢ per-piece look. fl:-1 mirrors the art, sc scales it (1 = catalogue size).
@@ -388,21 +399,82 @@ const bankImg=new Image();bankImg.src='assets/models/bank.png';
 const tavernImg=new Image();tavernImg.src='assets/models/tavern.png';
 const smithImg=new Image();smithImg.src='assets/models/blacksmith.png';
 const fishhutImg=new Image();fishhutImg.src='assets/models/fishinghut.png';
-/* pixel-perfect hit test against a painted model (u,v in 0..1 across the drawn sprite);
-   falls back to treating everything as solid if pixels are unreadable (file://) */
+/* A single rectangle describes the art for both drawing and clicking. The transparent margins
+   belong to the PNG, not to the building. Footprints use the same image coordinates. */
+const HOME_BUILDINGS={
+ house:{img:tavernImg,mask:'tavern',label:'Moonshine Inn',open:()=>openRestedWheel(),width:11.4,anchor:.852,base:1.3*.55+11.4*.04,
+  foot:{cx:-.005859,cy:.731771,rx:.431641,ry:.122396},door:{x:-.100586,y:.895182}},
+ casino:{img:casinoImg,mask:'casino',label:'Riptide Casino',open:()=>openCasinoMenu(),width:7.68,anchor:.75,base:1.35*.55+7.68*.04,
+  foot:{cx:-.006836,cy:.642578,rx:.416992,ry:.108724},door:{x:-.022461,y:.792969}},
+ bank:{img:bankImg,mask:'bank',label:'Bank',open:()=>openBank(),width:6.5,anchor:.745,base:1.3*.55+6.5*.04,
+  foot:{cx:-.013672,cy:.642578,rx:.426758,ry:.104167},door:{x:-.030273,y:.787760}},
+ smith:{img:smithImg,mask:'blacksmith',label:'Blacksmith',open:()=>openSmith(),width:5.8,anchor:.87,base:1.2*.55+5.8*.04,
+  foot:{cx:.011719,cy:.725911,rx:.416016,ry:.145833},door:{x:.188477,y:.910156}},
+ fishhut:{img:fishhutImg,mask:'fishinghut',label:'Fishing Hut',open:()=>openFishHut(),width:5.75,anchor:.783,baseY:24,
+  foot:{cx:-.001953,cy:.667318,rx:.456055,ry:.117839},door:{x:-.104492,y:.852865}},
+};
+function homeBuildingFrame(s){
+ const def=HOME_BUILDINGS[s.type];if(!def||(s.type==='house'&&!s.big))return null;
+ const img=def.img,ready=!!(img.complete&&img.naturalWidth&&img.naturalHeight);
+ const W=s.r*def.width,H=W*(ready?img.naturalHeight/img.naturalWidth:1.5);
+ const bottom=def.baseY!==undefined?def.baseY:s.r*def.base;
+ return {def,img,ready,W,H,left:-W/2,top:bottom-H*def.anchor};
+}
+function homeBuildingAt(x,y){
+ let best=null,bestY=-Infinity;
+ for(const s of world.solids){
+  const f=homeBuildingFrame(s);if(!f||!f.ready||s.y<bestY)continue;
+  if(pixelSolid(f.img,(x-s.x-f.left)/f.W,(y-s.y-f.top)/f.H)){
+   best=s;bestY=s.y; /* later entries win ties, just as in the stable paint sort */
+  }
+ }
+ return best;
+}
+function homeBuildingDoor(s){
+ const f=homeBuildingFrame(s);if(!f)return {x:s.x,y:s.y+70};
+ return {x:s.x+f.W*f.def.door.x,y:s.y+f.top+f.H*f.def.door.y};
+}
+function syncHomeBuildingFootprint(s){
+ const f=homeBuildingFrame(s);if(!f)return;
+ const foot=f.def.foot;
+ s.cxo=f.W*foot.cx;s.cyo=f.top+f.H*foot.cy;
+ s.crx=f.W*foot.rx;s.cry=f.H*foot.ry;
+}
+function enterHomeBuilding(s){
+ const f=homeBuildingFrame(s);if(!f)return;
+ const door=homeBuildingDoor(s),rng=90;
+ hero.target=null;hero.goPortal=false;holdMove=null;
+ if(dist(hero,door)<rng){hero.moveTo=null;f.def.open();return;}
+ hero.moveTo={...door};marker={...door,t:0};
+ hero.pendingDoor={s:door,open:f.def.open,rng};
+}
+/* Cache the whole alpha buffer once, after the image loads. A failed read uses the generated
+   silhouette, including in file:// builds; it must never turn transparent margins into a button. */
 const hitCtxCache=new Map();
+const fallbackHitCache=new Map();
 function pixelSolid(img,u,v){
+ if(!img.complete||!img.naturalWidth||!img.naturalHeight||!Number.isFinite(u)||!Number.isFinite(v)||u<0||u>=1||v<0||v>=1)return false;
+ const src=img.currentSrc||img.src;
  try{
-  let g2=hitCtxCache.get(img);
-  if(!g2){
+  let mask=hitCtxCache.get(img);
+  if(!mask||mask.src!==src){
    const c=document.createElement('canvas');
    c.width=128;c.height=Math.max(1,Math.round(128*img.naturalHeight/img.naturalWidth));
-   g2=c.getContext('2d',{willReadFrequently:true});
-   g2.drawImage(img,0,0,c.width,c.height);hitCtxCache.set(img,g2);
+   const g=c.getContext('2d',{willReadFrequently:true});
+   g.drawImage(img,0,0,c.width,c.height);
+   mask={src,w:c.width,h:c.height,data:g.getImageData(0,0,c.width,c.height).data};
+   hitCtxCache.set(img,mask);
   }
-  const c=g2.canvas;
-  return g2.getImageData(Math.min(c.width-1,Math.floor(u*c.width)),Math.min(c.height-1,Math.floor(v*c.height)),1,1).data[3]>60;
- }catch(e){return true;}
+  return mask.data[(Math.floor(v*mask.h)*mask.w+Math.floor(u*mask.w))*4+3]>60;
+ }catch(e){
+  const def=Object.values(HOME_BUILDINGS).find(d=>d.img===img);
+  const mask=def&&typeof HOME_HIT_MASKS!=='undefined'&&HOME_HIT_MASKS[def.mask];
+  if(!mask)return false;
+  let bytes=fallbackHitCache.get(mask);
+  if(!bytes){bytes=Uint8Array.from(atob(mask.data),c=>c.charCodeAt(0));fallbackHitCache.set(mask,bytes);}
+  const i=Math.floor(v*mask.height)*mask.width+Math.floor(u*mask.width);
+  return !!(bytes[i>>3]&(1<<(i&7)));
+ }
 }
 const stenImg=new Image();stenImg.src='assets/models/sten.png';
 
@@ -2756,6 +2828,7 @@ function updateRatBoss(dt){
 }
 function rebuildFarmItems(){ /* placed buildings become solids; crops draw with the ground */
  if(!world)return;
+ world._sg=null; /* moving/resizing can replace solids without changing their count */
  world.solids=world.solids.filter(s2=>!s2.farmItem);
  for(const it of ((S&&S.farm&&S.farm.b)||[])){
   if(it._moving)continue;
@@ -4332,6 +4405,8 @@ function buildZone(){
   world.solids.push({x:cx+1140,y:cy,r:38,type:'cityportal'});
   /* the Fishing Hut - worm vendor on the lake's south shore */
   world.solids.push({x:cx+760,y:cy-350,r:30,type:'fishhut',crx:80,cry:32,cyo:-38});
+  /* Use the painted foundation for collision as well as the contact shadow. */
+  world.solids.forEach(syncHomeBuildingFootprint);
   /* friendly townsfolk roaming their own little routes between the buildings */
   const NPC_DEFS=[
    ['Sven-Ove','human','warrior',0,[[cx-330,cy-110],[cx-480,cy-20]],34],
@@ -4730,8 +4805,8 @@ function solidCell(x,y){
  if(!world._sg||world._sgN!==world.solids.length){
   const g=new Map();
   for(const s of world.solids){
-   const ex=Math.max(s.r||0,s.crx||0)+60,ey=Math.max(s.r||0,s.cry||0)+60,cy=s.y+(s.cyo||0);
-   for(let gx=Math.floor((s.x-ex)/SGRID);gx<=Math.floor((s.x+ex)/SGRID);gx++)
+   const ex=Math.max(s.r||0,s.crx||0)+60,ey=Math.max(s.r||0,s.cry||0)+60,cx=s.x+(s.cxo||0),cy=s.y+(s.cyo||0);
+   for(let gx=Math.floor((cx-ex)/SGRID);gx<=Math.floor((cx+ex)/SGRID);gx++)
     for(let gy=Math.floor((cy-ey)/SGRID);gy<=Math.floor((cy+ey)/SGRID);gy++){
      const k=gx+','+gy;let a=g.get(k);if(!a)g.set(k,a=[]);a.push(s);
     }
@@ -4749,7 +4824,7 @@ function collide(e,nx,ny){
    if(s.type==='gate'&&!(world.raidRooms&&world.raidRooms[s.room]&&world.raidRooms[s.room].sealed))continue;
    if(s.type==='altarportal'||s.type==='ritualportal'||s.type==='farmportal'||s.type==='cityportal'||s.type==='exitportal')continue; /* walk straight through the portals */
    if(s.crx){ /* wide painted buildings block with an ellipse matching their footprint (cyo shifts it up onto the walls) */
-    const kx=(nx-s.x)/(s.crx+e.r),ky=(ny-s.y-(s.cyo||0))/(s.cry+e.r);
+    const kx=(nx-s.x-(s.cxo||0))/(s.crx+e.r),ky=(ny-s.y-(s.cyo||0))/(s.cry+e.r);
     if(kx*kx+ky*ky<1)return true;
     continue;
    }
@@ -5828,11 +5903,9 @@ function padInteract(){
  const add=(s,label,open,rng)=>{if(s)out.push({s,label,open,rng:rng||150});};
  const find=t=>world.solids.find(s2=>s2.type===t);
  if(z.tavern){
-  add(world.solids.find(s2=>s2.type==='house'&&s2.big),'Moonshine Inn',openRestedWheel,170);
-  add(find('casino'),'Riptide Casino',openCasinoMenu,170);
-  add(find('bank'),'Bank',openBank,150);
-  add(find('smith'),'Blacksmith',openSmith,150);
-  add(find('fishhut'),'Fishing Hut',openFishHut,150);
+  for(const s of world.solids){
+   const f=homeBuildingFrame(s);if(f)add(homeBuildingDoor(s),f.def.label,f.def.open,90);
+  }
  }else if(z.city){
   const sb=(world.npcs||[]).find(n=>n.game==='cups');
   if(sb)out.push({s:sb,label:'Sebbe',open:openCupGame,rng:120});
@@ -5992,6 +6065,10 @@ cv.addEventListener('pointerdown',e=>{
  const r=cv.getBoundingClientRect();
  const wx=(e.clientX-r.left)/zoom+camX,wy=(e.clientY-r.top)/zoom+camY;
  hero.pendingDoor=null; /* any new click cancels a pending walk-to-building */
+ if(zoneOf().tavern){
+  const building=homeBuildingAt(wx,wy);
+  if(building){enterHomeBuilding(building);return;}
+ }
  const apx=world.solids.find(s=>s.type==='altarportal');
  if(apx&&Math.hypot(wx-apx.x,wy-apx.y)<apx.r+28){
   const dest=zoneOf().tavern?ALTAR_ZONE:TAVERN_ZONE;
@@ -6112,47 +6189,6 @@ cv.addEventListener('pointerdown',e=>{
    else{hero.target=null;hero.goPortal=false;hero.moveTo={x:hall.x,y:hall.y+70};
     marker={x:hall.x,y:hall.y+70,t:0};hero.pendingDoor={s:hall,open,rng:130};}
    return;
-  }
- }
- if(zoneOf().tavern){
-  /* buildings need melee range - near: menu opens; far: run to the door, menu opens on arrival */
-  const walkOrOpen=(s,open)=>{
-   const rng=s.type==='casino'||s.type==='house'?150:115;
-   if(Math.hypot(hero.x-s.x,hero.y-s.y)<rng){open();return;}
-   hero.target=null;hero.goPortal=false;
-   const ty=s.y+(s.type==='casino'?85:70); /* aim just below the anchor: the door */
-   hero.moveTo={x:s.x,y:ty};marker={x:s.x,y:ty,t:0};
-   hero.pendingDoor={s,open,rng};
-  };
-  const inn=world.solids.find(s=>s.type==='house'&&s.big);
-  if(inn){ /* pixel-perfect, same as the casino/bank */
-   const W=inn.r*11.4,H=tavernImg.naturalWidth?W*tavernImg.naturalHeight/tavernImg.naturalWidth:W,bot=inn.r*1.3*0.55+W*0.04;
-   const u=(wx-(inn.x-W/2))/W,v=(wy-(inn.y+bot-H*0.852))/H;
-   if(u>=0&&u<1&&v>=0&&v<1&&pixelSolid(tavernImg,u,v)){walkOrOpen(inn,openRestedWheel);return;}
-  }
-  const cas=world.solids.find(s=>s.type==='casino');
-  if(cas){ /* pixel-perfect: only clicks on the building's visible pixels count */
-   const W=cas.r*7.68,H=casinoImg.naturalWidth?W*casinoImg.naturalHeight/casinoImg.naturalWidth:W,bot=cas.r*1.35*0.55+W*0.04;
-   const u=(wx-(cas.x-W/2))/W,v=(wy-(cas.y+bot-H*0.75))/H;
-   if(u>=0&&u<1&&v>=0&&v<1&&pixelSolid(casinoImg,u,v)){walkOrOpen(cas,openCasinoMenu);return;}
-  }
-  const bnk=world.solids.find(s=>s.type==='bank');
-  if(bnk){ /* pixel-perfect, same as the casino */
-   const W=bnk.r*6.5,H=bankImg.naturalWidth?W*bankImg.naturalHeight/bankImg.naturalWidth:W,bot=bnk.r*1.3*0.55+W*0.04;
-   const u=(wx-(bnk.x-W/2))/W,v=(wy-(bnk.y+bot-H*0.745))/H;
-   if(u>=0&&u<1&&v>=0&&v<1&&pixelSolid(bankImg,u,v)){walkOrOpen(bnk,openBank);return;}
-  }
-  const sm=world.solids.find(s=>s.type==='smith');
-  if(sm){ /* pixel-perfect, same as the other buildings */
-   const W=sm.r*5.8,H=smithImg.naturalWidth?W*smithImg.naturalHeight/smithImg.naturalWidth:W,bot=sm.r*1.2*0.55+W*0.04;
-   const u=(wx-(sm.x-W/2))/W,v=(wy-(sm.y+bot-H*0.87))/H;
-   if(u>=0&&u<1&&v>=0&&v<1&&pixelSolid(smithImg,u,v)){walkOrOpen(sm,openSmith);return;}
-  }
-  const fhut=world.solids.find(s=>s.type==='fishhut');
-  if(fhut){ /* pixel-perfect */
-   const W=fhut.r*5.75,H=fishhutImg.naturalWidth?W*fishhutImg.naturalHeight/fishhutImg.naturalWidth:W,bot=24;
-   const u=(wx-(fhut.x-W/2))/W,v=(wy-(fhut.y+bot-H*0.783))/H;
-   if(u>=0&&u<1&&v>=0&&v<1&&pixelSolid(fishhutImg,u,v)){walkOrOpen(fhut,openFishHut);return;}
   }
  }
  let best=null,bd=32;
@@ -7347,7 +7383,8 @@ function draw(){
   if(s.type==='water')continue;
   if(s.x<cx0||s.x>cx1||s.y<cy0||s.y>cy1)continue; /* off screen - the city has hundreds of these */
   if(s.mined)continue;   /* rubble now; the rock returns when the zone is rebuilt */
-  drawables.push({y:s.y,f:()=>drawProp(s,z)});
+  drawPropShadow(s,z);
+  drawables.push({y:s.y,f:()=>drawProp(s,z,false)});
  }
  /* townsfolk get the same camera test as the props - the City walks two dozen of them and every one
     was being queued, sorted and drawn whether or not it was anywhere near the screen */
@@ -7704,8 +7741,71 @@ function seeThrough(s,W,H,top){
  const ex=1-Math.max(0,(Math.abs(dx)-W*0.34)/(W*0.18));  /* full fade in the middle, easing at the edges */
  return 1-0.62*Math.max(0,Math.min(1,ex));
 }
-function drawProp(s,z){
+/* Shadows are a ground pass: drawing a nearer building must never paint its shadow across
+   a house behind it. Direct drawProp calls (previews/QA) can still draw their own shadow. */
+function drawPropShadow(s,z){
+ if(s._moving||(s.it&&s.it._moving)||s.mined)return;
  ctx.save();ctx.translate(s.x,s.y);
+ const ready=im=>im&&im.complete&&im.naturalWidth;
+ const home=homeBuildingFrame(s);
+ if(home&&home.ready){
+  const f=home.def.foot;
+  drawGroundShadow(home.W*f.cx,home.top+home.H*f.cy,home.W*f.rx,home.H*f.ry);
+ }else if(s.type==='tree'){
+  const im=z.snowTrees?treeSnowImg:treeImg;
+  if(ready(im)){
+   const H=s.r*(2.6+s.s*2.2)*im._pad,W=H*im.naturalWidth/im.naturalHeight;
+   drawGroundShadow(0,4-W*.025,W*(z.snowTrees?.22:.20),W*(z.snowTrees?.070:.065));
+  }else drawGroundShadow(0,4,s.r*1.15,s.r*.5);
+ }else if(s.type==='cityhouse'){
+  const key=s.key||cityHouseKey(s.seed||0,false),im=cityImg(key);
+  if(ready(im)){
+   const H=(CITY_HOUSE[key]||{h:s.r*7.8}).h,W=H*im.naturalWidth/im.naturalHeight;
+   cityShadow(key,W,H,s.r*.30-H);
+  }else drawGroundShadow(0,s.r*1.25*.42,s.r*1.45*1.05,s.r*1.25*.22);
+ }else if(['minehall','enchanthall','smelter','cathedral'].includes(s.type)){
+  const im=cityImg(s.type);
+  if(ready(im)){
+   const H=s.r*(s.type==='cathedral'?CATH_ART:9),W=H*im.naturalWidth/im.naturalHeight;
+   cityShadow(s.type,W,H,s.r*CATH_FOOT-H);
+  }
+ }else if(s.type==='farmitem'||s.type==='farmhouse'){
+  const def=FARM_BUILD.find(d=>d.id===(s.type==='farmhouse'?'farmhouse':s.ftype));
+  if(def&&def.sh&&ready(farmImg(def.img))){
+   const sh=def.sh,sc=s.type==='farmhouse'?1:scaleOf(s.it),fl=s.type==='farmhouse'?1:flipOf(s.it);
+   const W=(def.W||200)*sc,gy=(def.gy!==undefined?def.gy:30)*sc;
+   drawGroundShadow(W*(sh.cx||0)*fl,gy+W*sh.dy,W*sh.rx,W*sh.ry,.27,(sh.rot||0)*fl);
+  }
+ }else if(s.type==='house'){
+  const w=s.r*(s.big?1.7:1.5),hh=s.r*(s.big?1.3:1.1);
+  drawGroundShadow(0,hh*.45,w*1.1,hh*.4);
+ }else if(s.type==='smith')drawGroundShadow(0,s.r*1.2*.45,s.r*1.7*1.1,s.r*1.2*.4);
+ else if(s.type==='bank')drawGroundShadow(0,s.r*1.3*.45,s.r*1.8*1.12,s.r*1.3*.42);
+ else if(s.type==='casino')drawGroundShadow(0,s.r*1.35*.45,s.r*1.8,s.r*1.35*.4);
+ else if(s.type==='fishhut')drawGroundShadow(0,6,27,9);
+ else if(s.type==='well'){
+  if(ready(brunnImg))drawGroundShadow(0,8-75*.109,75*.47,75*.105);
+  else drawGroundShadow(0,6,22,9);
+ }else if(s.type==='armoraltar'){
+  if(ready(armorAltarImg))drawGroundShadow(0,14-215*.13,215*.44,215*.05);
+ }else if(s.type==='berg'){
+  if(ready(bergImg)){const W=s.dr*2.1;drawGroundShadow(0,s.dr*.5-W*.055,W*.46,W*.055,.23);}
+ }else if(s.type==='rock'){
+  if(ready(stenImg)){const W=s.r*(1.6+(s.s||1)*.9);drawGroundShadow(0,6-W*.06,W*.47,W*.095);}
+  else drawGroundShadow(0,4,s.r*1.1,s.r*.5);
+ }else if(s.type==='lantern')drawGroundShadow(0,4,7,3);
+ else if(s.type==='wall')drawGroundShadow(0,8,s.r*1.15,s.r*.5);
+ ctx.restore();
+}
+function drawProp(s,z,withShadow=true){
+ if(withShadow)drawPropShadow(s,z);
+ ctx.save();ctx.translate(s.x,s.y);
+ const home=homeBuildingFrame(s);
+ if(home&&home.ready){
+  const fade=seeThrough(s,home.W,home.H,home.top);if(fade<1)ctx.globalAlpha*=fade;
+  ctx.drawImage(mip(home.img,home.W),home.left,home.top,home.W,home.H);
+  ctx.restore();return;
+ }
  if(s.type==='tree'){
   const sway=Math.sin(performance.now()/700+s.x)*2.2; /* a touch quicker + wider */
   const tImg=z.snowTrees?treeSnowImg:treeImg; /* snowy variant in frost/moor zones */
@@ -7713,12 +7813,12 @@ function drawProp(s,z){
    /* painted tree - size varies per tree via r & s; per-art calibration on the Image */
    const H=s.r*(2.6+s.s*2.2)*tImg._pad;
    const W=H*tImg.naturalWidth/tImg.naturalHeight;
-   ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,4,W*0.34,W*0.13,0,0,7);ctx.fill();
-   ctx.rotate(sway*0.022);
-   ctx.drawImage(mip(tImg,W),-W/2,4-H*tImg._anchor,W,H); /* trunk bottom lands on the shadow */
+
+   ctx.translate(0,4);ctx.rotate(sway*0.022);
+   ctx.drawImage(mip(tImg,W),-W/2,-H*tImg._anchor,W,H); /* sway pivots at the grounded trunk */
    ctx.restore();return;
   }
-  ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,4,s.r*1.15,s.r*0.5,0,0,7);ctx.fill();
+
   ctx.fillStyle='#5a4630';ctx.fillRect(-2.5,-4,5,10);
   if(z.rocky){ /* low-poly pine: stacked triangles */
    for(let i=0;i<3;i++){
@@ -7751,14 +7851,7 @@ function drawProp(s,z){
   }
  }else if(s.type==='house'){
   const w=s.big?s.r*1.7:s.r*1.5,hh=s.big?s.r*1.3:s.r*1.1;
-  if(s.big&&tavernImg.complete&&tavernImg.naturalWidth){
-   /* painted tavern (assets/models/tavern.png) - sign is baked in; content bottom at 85.2% of the art */
-   const W=s.r*11.4,H=W*tavernImg.naturalHeight/tavernImg.naturalWidth,bot=hh*0.55+W*0.04;
-   const fd=seeThrough(s,W,H,bot-H*0.852);if(fd<1)ctx.globalAlpha*=fd;
-   ctx.drawImage(mip(tavernImg,W),-W/2,bot-H*0.852,W,H);
-   ctx.restore();return;
-  }
-  ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,hh*0.45,w*1.1,hh*0.4,0,0,7);ctx.fill();
+
   /* walls */
   ctx.fillStyle='#8a7458';ctx.fillRect(-w,-hh*0.55,w*2,hh);
   ctx.fillStyle='rgba(0,0,0,0.12)';ctx.fillRect(0,-hh*0.55,w,hh); /* shaded side */
@@ -7792,14 +7885,13 @@ function drawProp(s,z){
       drawn at exactly the same size. Collision is still s.r, a circle far smaller than the art,
       so the walkable footprint is untouched. */
    const H=(CITY_HOUSE[key]||{h:s.r*7.8}).h,W=H*im.naturalWidth/im.naturalHeight;
-   if(zoom>0.42)cityShadow(key,W,s.r*0.30); /* LOD: zoomed out a shadow is a smudge nobody sees */
    const fade=seeThrough(s,W,H,s.r*0.30-H);
    if(fade<1)ctx.globalAlpha*=fade;
    ctx.drawImage(mip(im,W),-W/2,s.r*0.30-H,W,H); /* footprint on the shadow, art rising off it */
    ctx.globalAlpha=1;
   }else{
    const w=s.r*1.45,hh=s.r*1.25;
-   ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,hh*0.42,w*1.05,hh*0.22,0,0,7);ctx.fill();
+
    ctx.fillStyle='#b09a76';ctx.fillRect(-w,-hh*0.55,w*2,hh);
    ctx.fillStyle='#6b4130';
    ctx.beginPath();ctx.moveTo(-w*1.15,-hh*0.55);ctx.lineTo(0,-hh*1.3);ctx.lineTo(w*1.15,-hh*0.55);ctx.closePath();ctx.fill();
@@ -7813,7 +7905,6 @@ function drawProp(s,z){
   const tint=s.type==='minehall'?'#c9a441':s.type==='enchanthall'?'#a66bd0':s.type==='smelter'?'#ff7a3a':'#ffe0a0';
   if(im.complete&&im.naturalWidth){
    const H=s.r*(s.type==='cathedral'?CATH_ART:9.0),W=H*im.naturalWidth/im.naturalHeight;
-   if(zoom>0.42)cityShadow(kind,W,s.r*CATH_FOOT);
    const pulse=0.55+0.45*Math.sin(performance.now()/620+(s.seed||0));
    ctx.save();ctx.shadowColor=tint;ctx.shadowBlur=(s.type==='cathedral'?26:18)*pulse;
    const fade=seeThrough(s,W,H,s.r*0.30-H);
@@ -7830,14 +7921,7 @@ function drawProp(s,z){
   }
  }else if(s.type==='smith'){
   const w=s.r*1.7,hh=s.r*1.2;
-  if(smithImg.complete&&smithImg.naturalWidth){
-   /* painted blacksmith (assets/models/blacksmith.png) - content bottom at 87% of the art */
-   const W=s.r*5.8,H=W*smithImg.naturalHeight/smithImg.naturalWidth,bot=hh*0.55+W*0.04;
-   const fd=seeThrough(s,W,H,bot-H*0.87);if(fd<1)ctx.globalAlpha*=fd;
-   ctx.drawImage(mip(smithImg,W),-W/2,bot-H*0.87,W,H);
-   ctx.restore();return;
-  }
-  ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0,hh*0.45,w*1.1,hh*0.4,0,0,7);ctx.fill();
+
   ctx.fillStyle='#6a5648';ctx.fillRect(-w,-hh*0.5,w*2,hh);
   ctx.fillStyle='rgba(0,0,0,0.15)';ctx.fillRect(0,-hh*0.5,w,hh);
   ctx.fillStyle='#4a4a52';
@@ -7850,14 +7934,7 @@ function drawProp(s,z){
   ctx.fillStyle='#ffb46a';ctx.fillText('⚒️ BLACKSMITH',0,-hh*1.25);
  }else if(s.type==='bank'){
   const w=s.r*1.8,hh=s.r*1.3;
-  if(bankImg.complete&&bankImg.naturalWidth){
-   /* painted bank (assets/models/bank.png) - content bottom sits at 74.5% of the art */
-   const W=s.r*6.5,H=W*bankImg.naturalHeight/bankImg.naturalWidth,bot=hh*0.55+W*0.04;
-   const fd=seeThrough(s,W,H,bot-H*0.745);if(fd<1)ctx.globalAlpha*=fd;
-   ctx.drawImage(mip(bankImg,W),-W/2,bot-H*0.745,W,H);
-   ctx.restore();return;
-  }
-  ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0,hh*0.45,w*1.12,hh*0.42,0,0,7);ctx.fill();
+
   ctx.fillStyle='#a89878';ctx.fillRect(-w,-hh*0.55,w*2,hh);
   ctx.fillStyle='rgba(0,0,0,0.12)';ctx.fillRect(0,-hh*0.55,w,hh);
   ctx.fillStyle='#c8b898';
@@ -7874,12 +7951,7 @@ function drawProp(s,z){
  }else if(s.type==='casino'){
   /* painted casino model (assets/models/casino.png) - sign is baked into the art, no text label */
   const w=s.r*1.8,hh=s.r*1.35;
-  if(casinoImg.complete&&casinoImg.naturalWidth){
-   /* keep the art's own aspect ratio - drawing it square squashed the tall model */
-   const W=s.r*7.68,H=W*casinoImg.naturalHeight/casinoImg.naturalWidth;
-   const fd=seeThrough(s,W,H,hh*0.55+W*0.04-H*0.75);if(fd<1)ctx.globalAlpha*=fd;
-   ctx.drawImage(mip(casinoImg,W),-W/2,hh*0.55+W*0.04-H*0.75,W,H); /* content bottom at 75% of the art */
-  }else{ /* fallback while the image loads */
+  { /* fallback while the image loads */
    ctx.fillStyle='#9a8468';ctx.fillRect(-w,-hh*0.55,w*2,hh);
    ctx.fillStyle='#8a2e26';
    ctx.beginPath();ctx.moveTo(-w*1.18,-hh*0.55);ctx.lineTo(0,-hh*1.45);ctx.lineTo(w*1.18,-hh*0.55);ctx.closePath();ctx.fill();
@@ -7904,7 +7976,7 @@ function drawProp(s,z){
   const im=farmImg('farmhouse_litet');
   if(!s._moving&&im.complete&&im.naturalWidth){ /* hidden while being carried in build mode */
    const W=340,H=W*im.naturalHeight/im.naturalWidth;
-   ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,10,W*0.36,W*0.085,0,0,7);ctx.fill(); /* tucked under the sprite - only a rim peeks out */
+
    ctx.drawImage(crisp(im,W),-W/2,32-H,W,H);
    const own=S.farm&&S.farm.owned,unlocked=(S.prestige||0)>=FARM_PRESTIGE;
    const txt=own?'':(unlocked?'Buy Farm · 500,000◉ + 500⚙':'🔒 Requires Prestige '+FARM_PRESTIGE);
@@ -7922,14 +7994,6 @@ function drawProp(s,z){
       without rebuilding every solid on each pointer move */
    const sc=scaleOf(s.it),fl=flipOf(s.it);
    const W=(def.W||200)*sc,H=W*im.naturalHeight/im.naturalWidth,gy=(def.gy!==undefined?def.gy:30)*sc;
-   /* blob shadow, tucked under the sprite; fences (snap) get none. def.sh overrides the default
-      footprint for pieces whose ground contact is nothing like their silhouette - a tree being
-      the case that forced this: wide canopy, narrow trunk. */
-   const sh=def.sh||((def.col&&def.col.crx&&!def.snap)?{rx:0.36,ry:0.085,dy:-0.06}:null);
-   /* sh.cx shifts the blob sideways. Several of these sprites do not stand in the middle of their own
-     picture - the apple tree's trunk sits almost a third of the width to the right of centre - and
-     without this the shadow was pinned to x=0 and floated clear of the thing casting it. */
-  if(sh){ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(W*(sh.cx||0),gy+W*sh.dy,W*sh.rx,W*sh.ry,0,0,7);ctx.fill();}
    ctx.save();
    if(fl<0)ctx.scale(-1,1); /* ⇄ mirrored - the mood tag below stays outside this, or it would read backwards */
    if(def.roam&&s.mv){ /* 🐄 walk cycle: a little hop + body rock, pivoting at the feet, fading out on stop */
@@ -8046,13 +8110,7 @@ function drawProp(s,z){
    ctx.drawImage(mip(altarFenceImg,W),-W/2,10-H,W,H);
   }
  }else if(s.type==='fishhut'){
-  if(fishhutImg.complete&&fishhutImg.naturalWidth){
-   /* painted fishing hut (assets/models/fishinghut.png) - content bottom at 78.3% of the art */
-   const W=s.r*5.75,H=W*fishhutImg.naturalHeight/fishhutImg.naturalWidth,bot=24;
-   const fd=seeThrough(s,W,H,bot-H*0.783);if(fd<1)ctx.globalAlpha*=fd;
-   ctx.drawImage(mip(fishhutImg,W),-W/2,bot-H*0.783,W,H);
-   ctx.restore();return;
-  }
+
   /* fallback while the image loads: a simple shack */
   ctx.fillStyle='#6a5648';ctx.fillRect(-24,-18,48,26);
   ctx.fillStyle='#4a4a52';ctx.beginPath();ctx.moveTo(-28,-18);ctx.lineTo(0,-36);ctx.lineTo(28,-18);ctx.closePath();ctx.fill();
@@ -8063,7 +8121,7 @@ function drawProp(s,z){
    const fy=14-H*0.50; /* the bowl's soulfire sits about halfway up the art */
    const pl=0.5+0.5*Math.sin(performance.now()/420+s.x);
    /* one tight contact shadow, hugging the stone base - no pale pool on the floor */
-   ctx.fillStyle='rgba(0,0,0,0.30)';ctx.beginPath();ctx.ellipse(0,-4,W*0.30,W*0.055,0,0,7);ctx.fill();
+
    ctx.drawImage(crisp(im,W),-W/2,14-H,W,H);
    /* ✨ embers drifting up out of the fire, plus the odd bright spark */
    if(chance(0.75))parts.push({x:s.x+(Math.random()-0.5)*W*0.20,y:s.y+fy+(Math.random()-0.5)*30,
@@ -8080,10 +8138,10 @@ function drawProp(s,z){
   if(brunnImg.complete&&brunnImg.naturalWidth){
    /* painted well (assets/models/brunn.png) */
    const W=75,H=W*brunnImg.naturalHeight/brunnImg.naturalWidth;
-   ctx.fillStyle='rgba(0,0,0,0.22)';ctx.beginPath();ctx.ellipse(0,6,W*0.44,W*0.15,0,0,7);ctx.fill();
+
    ctx.drawImage(mip(brunnImg,W),-W/2,8-H,W,H); /* stone base sits on the shadow */
   }else{ /* fallback while the image loads */
-  ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,6,22,9,0,0,7);ctx.fill();
+
   ctx.fillStyle='#8b8a80';ctx.beginPath();ctx.ellipse(0,0,18,10,0,0,7);ctx.fill();
   ctx.fillStyle='#2f4a5a';ctx.beginPath();ctx.ellipse(0,-2,13,7,0,0,7);ctx.fill();
   ctx.strokeStyle='#5a4630';ctx.lineWidth=3;
@@ -8109,14 +8167,14 @@ function drawProp(s,z){
  }else if(s.type==='wall'){
   const pat=zoneOf().raid?raidWallPattern():null;
   if(pat){ /* stone pattern anchored in WORLD space - every segment lines up into one wall */
-   ctx.fillStyle='rgba(0,0,0,0.30)';ctx.fillRect(-24,2,48,12); /* ground shadow */
+
    ctx.save();ctx.translate(-s.x,-s.y); /* undo the per-solid translate so the pattern never shifts */
    ctx.fillStyle=pat;
    ctx.fillRect(s.x-22,s.y-38,44,48);
    ctx.restore();
    ctx.restore();return;
   }
-  ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0,8,s.r*1.15,s.r*0.5,0,0,7);ctx.fill();
+
   ctx.fillStyle='#5a5468';ctx.fillRect(-s.r,-s.r*1.6,s.r*2,s.r*2.1);
   ctx.fillStyle='rgba(255,255,255,0.08)';ctx.fillRect(-s.r,-s.r*1.6,s.r*2,6);
   ctx.fillStyle='rgba(0,0,0,0.18)';ctx.fillRect(-s.r,s.r*0.2,s.r*2,s.r*0.3);
@@ -8128,7 +8186,7 @@ function drawProp(s,z){
   if(bergImg.complete&&bergImg.naturalWidth){
    const W=s.dr*2.1,H=W*bergImg.naturalHeight/bergImg.naturalWidth;
    /* soft rim shadow tucked under the base - mostly hidden by the pile itself */
-   ctx.fillStyle='rgba(0,0,0,0.16)';ctx.beginPath();ctx.ellipse(0,s.dr*0.5-H*0.05,W*0.38,W*0.09,0,0,7);ctx.fill();
+
    ctx.drawImage(mip(bergImg,W),-W/2,s.dr*0.5-H,W,H); /* base sits on the shadow */
   }else{ /* fallback while the image loads: plain gray peak */
    ctx.fillStyle='#8b8a80';ctx.beginPath();
@@ -8137,10 +8195,10 @@ function drawProp(s,z){
  }else if(stenImg.complete&&stenImg.naturalWidth){
   /* painted boulder (assets/models/sten.png) - all zones, sized per rock via r & s */
   const W=s.r*(1.6+(s.s||1)*0.9),H=W*stenImg.naturalHeight/stenImg.naturalWidth;
-  ctx.fillStyle='rgba(0,0,0,0.2)';ctx.beginPath();ctx.ellipse(0,4,W*0.46,W*0.16,0,0,7);ctx.fill();
+
   ctx.drawImage(mip(stenImg,W),-W/2,6-H,W,H); /* boulder base sits on the shadow */
  }else{ /* fallback while the image loads: low-poly boulder */
-  ctx.fillStyle='rgba(0,0,0,0.2)';ctx.beginPath();ctx.ellipse(0,4,s.r*1.1,s.r*0.5,0,0,7);ctx.fill();
+
   ctx.fillStyle='#8b8a80';ctx.beginPath();
   ctx.moveTo(-s.r,3);ctx.lineTo(-s.r*0.5,-s.r*0.9);ctx.lineTo(s.r*0.4,-s.r);ctx.lineTo(s.r,2);ctx.closePath();ctx.fill();
   ctx.fillStyle='rgba(255,255,255,0.15)';ctx.beginPath();
