@@ -288,6 +288,9 @@ const canFlipDef=def=>!!def&&!def.road;
 const canScaleDef=def=>!!def&&!def.road&&!def.snap&&!def.crop&&!def.noScale;
 const torWeaponImg=new Image();torWeaponImg.src='assets/boss/tor_weapon.png?v=2';
 const fellordFeetImg=new Image();fellordFeetImg.src='assets/boss/fellord_feet.png?v=2';
+const fellordCompleteFootImg=new Image();fellordCompleteFootImg.src='assets/boss/fellord_foot_complete.png';
+const thorCompleteFootImg=new Image();thorCompleteFootImg.src='assets/boss/thor_foot_complete.png';
+const odinCompleteFootImg=new Image();odinCompleteFootImg.src='assets/boss/odin_foot_complete.png';
 const firelordFeetImg=new Image();firelordFeetImg.src='assets/boss/firelord_feet.png?v=2';
 const frostlordFeetImg=new Image();frostlordFeetImg.src='assets/boss/frostlord_feet.png?v=2';
 const RAID_SKINS={ /* lift = body bottom in radii · wy/wx = weapon grip */
@@ -296,7 +299,7 @@ const RAID_SKINS={ /* lift = body bottom in radii · wy/wx = weapon grip */
  cave_troll_briarhollow:{img:caveTrollBriarImg,original:fullBriarImg,frame:[183,51,650,847],wpn:()=>bossLvlWeaponImg,grip:[113/561,605/756],glow:'#7adf3a',lift:0.0,wy:-0.09,wx:0.37,size:6.78},
  cave_troll_cindervein:{img:caveTrollCinderImg,original:fullCinderImg,frame:[183,51,650,847],wpn:()=>bossLvlWeaponImg,grip:[113/561,605/756],glow:'#ff7a2a',lift:0.0,wy:-0.09,wx:0.37,size:6.78},
  cave_troll_frostveil:{img:caveTrollFrostImg,original:fullFrostImg,frame:[183,51,650,847],wpn:()=>bossLvlWeaponImg,grip:[113/561,605/756],glow:'#7fd0ff',lift:0.0,wy:-0.09,wx:0.37,size:6.78},
- betrayer:{img:fellordImg,join:[{img:fellordFeetImg,x:310,y:669,w:129,h:197,flip:true},{img:fellordFeetImg,x:483,y:669,w:129,h:197}],wpn:()=>raidSwordImg,glow:'#4dff6a',lift:-0.155172,wy:-0.401149,wx:0.26,size:4.5},
+ betrayer:{img:fellordImg,join:[{img:fellordCompleteFootImg,crop:[271,340,649,992],x:310,y:669,w:129,h:197,flip:true},{img:fellordCompleteFootImg,crop:[271,340,649,992],x:483,y:669,w:129,h:197}],wpn:()=>raidSwordImg,glow:'#4dff6a',lift:-0.155172,wy:-0.401149,wx:0.26,size:4.5},
  firelord:{img:firelordImg,join:[{img:firelordFeetImg,x:167,y:694,w:185,h:185*89/150},{img:firelordFeetImg,x:380,y:694,w:185,h:185*89/150,flip:true}],glow:'#ff4a1a',lift:0.36,wy:-0.108,wx:0.26},
  frostking:{img:frostlordImg,join:[{img:frostlordFeetImg,x:319,y:716,w:135,h:135*167/124,flip:true},{img:frostlordFeetImg,x:515,y:716,w:135,h:135*167/124}],wpn:()=>raidSwordImg,glow:'#7fd0ff',lift:-0.051208,wy:-0.284242,wx:0.26,ox:-0.16},
  gorehusk:{img:gorehuskImg,original:fullGorehuskImg,frame:[72,69,911,850],cutout:{key:'black'},wpn:()=>bossLvlWeaponImg,glow:'#7adf3a',lift:0.411176,wy:-0.22851,wx:0.44,size:7.5},
@@ -305,7 +308,7 @@ const RAID_SKINS={ /* lift = body bottom in radii · wy/wx = weapon grip */
  ashmaw:{img:ashmawImg,original:fullAshmawImg,frame:[89,69,898,853],cutout:{key:'black'},wpn:()=>bossLvlWeaponImg,glow:'#ff4a2a',lift:0.482603,wy:-0.202986,wx:0.44,size:7.5},
  /* Leveling bosses retain their authored torso and weapon scale. */
  krev:{img:krevImg,original:fullKrevImg,frame:[64,55,900,920],cutout:{key:'black'},wpn:()=>cowWeaponImg,glow:'#ff9a2a',lift:0.597717,wy:-0.190304,wx:0.44,size:7.5,ws:0.85},
- thor:{img:torImg,join:[{img:bootImg,x:241,y:764,w:180,h:180*677/578},{img:bootImg,x:476,y:764,w:180,h:180*677/578,flip:true}],wpn:()=>torWeaponImg,glow:'#7fd0ff',zap:true,lift:-0.080532,wy:-0.322482,wx:0.44,size:5.25},
+ thor:{img:torImg,join:[{img:thorCompleteFootImg,crop:[230,500,694,812],cutout:{key:'white',minimum:180,chroma:22,edgeMaximum:180,edgeSoftness:96},x:241,y:764,w:180,h:180*677/578},{img:thorCompleteFootImg,crop:[230,500,694,812],cutout:{key:'white',minimum:180,chroma:22,edgeMaximum:180,edgeSoftness:96},x:476,y:764,w:180,h:180*677/578,flip:true}],wpn:()=>torWeaponImg,glow:'#7fd0ff',zap:true,lift:-0.080532,wy:-0.322482,wx:0.44,size:5.25},
  /* 🐄 Cow Level herd - painted hell-minotaur; the Alpha draws 2× the normal cow */
  /* ☠ the final boss - twin scythes, one on each side, and mirrored feet */
  reaper:{img:finalBossImg,join:[{img:finalBossFootImg,x:211,y:587,w:130,h:125},{img:finalBossFootImg,x:327,y:587,w:130,h:125,flip:true}],wpn:()=>finalBossWeaponImg,glow:'#a06bd0',lift:0.035975,wy:-0.341921,wx:0.38,wxr:0.30,size:7.3,dual:true,ws:0.78}, /* wxr pulls the right scythe in */
@@ -381,7 +384,7 @@ function raidBlade(glow,img){ /* the lord's weapon soaked in his colour, cached 
  return raidBladeCache[key]=c;
 }
 const ratbossImg=new Image();ratbossImg.src='assets/boss/rat_boss.png?v=2'; /* the crypt rat - art faces left */
-const ODIN_SKIN={img:odinImg,join:[{img:bootImg,x:266,y:851,w:170,h:170*677/578},{img:bootImg,x:464,y:851,w:170,h:170*677/578,flip:true}]};
+const ODIN_SKIN={img:odinImg,join:[{img:odinCompleteFootImg,crop:[181,292,796,933],cutout:{key:'white',minimum:180,chroma:22,edgeMaximum:180,edgeSoftness:96},x:266,y:851,w:170,h:170*677/578},{img:odinCompleteFootImg,crop:[181,292,796,933],cutout:{key:'white',minimum:180,chroma:22,edgeMaximum:180,edgeSoftness:96},x:464,y:851,w:170,h:170*677/578,flip:true}]};
 const RAT_SKIN={img:ratbossImg,original:fullRatImg,frame:[25,19,983,985],cutout:{key:'white',remove:[[160,860,30000]]}};
 const theRingImg=new Image();theRingImg.src='assets/models/thering.png';
 const altarFenceImg=new Image();altarFenceImg.src='assets/models/maps/altarasset.png';
@@ -2873,7 +2876,8 @@ function mazeFirstStep(si,sj,gi,gj){
    creeps straight at you across the open floor */
 function updateRatBoss(dt){
  const rb=world.ratboss,C=CRYPT.C,ox=CRYPT.ox,oy=CRYPT.oy,cols=CRYPT.cols,rows=CRYPT.rows;
- if(hero.dead)return; /* it got its meal - sit still during the death cam */
+ rb.gait=Math.max(0,(rb.gait||0)-dt*6);
+ if(hero.dead){rb.gait=0;rb.moving=false;return;} /* feet settle during the death cam */
  if(Math.hypot(hero.x-rb.x,hero.y-rb.y)<48){
   /* caught! the rat ALWAYS one-shots - you wake up back home in Moonshine.
      Like the cow level, this never counts as a hardcore death: you are carried out, gear intact. */
@@ -2907,6 +2911,7 @@ function updateRatBoss(dt){
  rb.x+=(tx-rb.x)/d*step;rb.y+=(ty-rb.y)/d*step;
  if(tx>rb.x+1)rb.fx=1;else if(tx<rb.x-1)rb.fx=-1;
  rb.walk+=dt*3.4;rb.moving=true;
+ rb.footPhase=(rb.footPhase||0)+step*.045;rb.gait=Math.min(1,rb.gait+dt*16);
 }
 function rebuildFarmItems(){ /* placed buildings become solids; crops draw with the ground */
  if(!world)return;
@@ -7016,7 +7021,8 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    /* stride length scales with the creature: a boss covers ground in long strides,
       a rat in short ones. Without this, fast movers vibrate instead of walking. */
    en.wt=(en.wt||0)+md*(0.7/Math.max(8,en.r||12));
-   en.mv=Math.max(0,Math.min(1,(en.mv||0)+(md>0.4?dt*10:-dt*6)));
+   /* A speed threshold also detects slow steps at high refresh rates. */
+   en.mv=Math.max(0,Math.min(1,(en.mv||0)+(md>Math.max(.002,dt*2)?dt*10:-dt*6)));
   }
   en._nd=!!(mp.on&&mp.started&&!mp.host&&en.raid&&en.netX!==undefined); /* net-driven: host owns this boss's position */
   if(en._nd){
@@ -7309,7 +7315,11 @@ function drawRatBoss(){
  const bob=rb.moving?Math.sin(rb.walk*4)*2:0; /* skittering bob */
  const H=195,W=ratbossImg.naturalWidth?H*ratbossImg.naturalWidth/ratbossImg.naturalHeight:H*1.44;
  const whole=EnemyFullbody.get(RAT_SKIN),px=H/(ratbossImg.naturalHeight||985);
- if(whole)ctx.drawImage(mip(whole.img,whole.width*px),-W/2+whole.x*px,38-H+whole.y*px+bob,whole.width*px,whole.height*px);
+ if(whole){
+  const gait=hero&&hero.dead?0:(rb.gait===undefined?(rb.moving?1:0):rb.gait);
+  const art=EnemyFootMotion.frame(whole.img,EnemyFootProfiles.rat,rb.footPhase===undefined?(rb.walk||0)*2:rb.footPhase,gait,whole.width*px*(zoom||1)*(DPR||1));
+  ctx.drawImage(mip(art,whole.width*px),-W/2+whole.x*px,38-H+whole.y*px+bob,whole.width*px,whole.height*px);
+ }
  else if(ratbossImg.complete&&ratbossImg.naturalWidth)ctx.drawImage(mip(ratbossImg,W),-W/2,38-H+bob,W,H);
  else{ctx.fillStyle='#4a3a34';ctx.beginPath();ctx.ellipse(0,-20,60,34,0,0,7);ctx.fill();} /* fallback while loading */
  ctx.restore();
@@ -8895,7 +8905,7 @@ function drawEnemy(en){
   { /* body walk cycle: a small hop + rock pivoting at the base */
    const walking=(en.mv||0)>0.01&&!en.dead;
    const ph=en.wt||0;
-   const hop=Math.abs(Math.sin(ph))*en.r*0.10*(en.mv||0);
+   const hop=Math.abs(Math.sin(ph))*en.r*0.025*(en.mv||0);
    /* 🫁 idle breath - these bosses used to freeze solid the moment they stopped, which is what
       made them read as cardboard cut-outs. A slow rise/fall plus a hair of lean on its own clock,
       faded out by mv so it hands over to the stride instead of double-bobbing. The x term
@@ -8910,7 +8920,8 @@ function drawEnemy(en){
    ctx.rotate(lean); /* the rock fades with the stride */
    if(whole){
     const px=H/raidSkin.img.naturalHeight;
-    ctx.drawImage(mip(whole.img,whole.width*px),-W/2+whole.x*px,-H+whole.y*px-hop+breath,whole.width*px,whole.height*px);
+    const art=EnemyFootMotion.frame(whole.img,EnemyFootProfiles[skinKey],ph,EnemyFootMotion.amount(en),whole.width*px*(zoom||1)*(DPR||1));
+    ctx.drawImage(mip(art,whole.width*px),-W/2+whole.x*px,-H+whole.y*px-hop+breath,whole.width*px,whole.height*px);
    }else ctx.drawImage(mip(raidSkin.img,W),-W/2,-H-hop+breath,W,H); /* loading fallback */
    ctx.restore();
   }
@@ -8943,14 +8954,16 @@ function drawEnemy(en){
  }else if(odinPainted){ /* Odin's surviving artwork is joined into one fixed sprite. */
   const H=en.r*4.4,W=H*odinImg.naturalWidth/odinImg.naturalHeight;
   { /* same walk cycle as the skinned lords */
-   const walking=en.state==='chase'&&!en.dead;
-   const ph=(en.walk||0)*2;
-   const hop=walking?Math.abs(Math.sin(ph))*en.r*0.10:0;
+   const gait=EnemyFootMotion.amount(en),ph=en.wt||0;
+   const hop=Math.abs(Math.sin(ph))*en.r*0.025*gait;
    ctx.save();
    ctx.translate(0,en.r*0.1+by);
-   if(walking)ctx.rotate(Math.sin(ph)*0.045);
+   ctx.rotate(Math.sin(ph)*0.045*gait);
    const whole=EnemyFullbody.get(ODIN_SKIN),px=H/odinImg.naturalHeight;
-   if(whole)ctx.drawImage(mip(whole.img,whole.width*px),-W/2+whole.x*px,-H+whole.y*px-hop,whole.width*px,whole.height*px);
+   if(whole){
+    const art=EnemyFootMotion.frame(whole.img,EnemyFootProfiles.odin,ph,gait,whole.width*px*(zoom||1)*(DPR||1));
+    ctx.drawImage(mip(art,whole.width*px),-W/2+whole.x*px,-H+whole.y*px-hop,whole.width*px,whole.height*px);
+   }
    else ctx.drawImage(mip(odinImg,W),-W/2,-H-hop,W,H);
    ctx.restore();
   }
@@ -8964,10 +8977,12 @@ function drawEnemy(en){
  }else if(mobSkin){ /* 🎨 painted foe - grey art soaked in this enemy's own colour */
   const H=en.r*(MOB_SIZE[en.kind]||4.6),W=H*mobSkin.naturalWidth/mobSkin.naturalHeight;
   const whole=mobSkin===REVENANT_SKIN.img?EnemyFullbody.get(REVENANT_SKIN):null;
-  const raw=whole?whole.img:mobSkin,art=mobTinted(raw,en.c)||raw,px=H/mobSkin.naturalHeight;
+  const raw=whole?whole.img:mobSkin,baseArt=mobTinted(raw,en.c)||raw,px=H/mobSkin.naturalHeight;
   if(whole)mobExtra=Math.max(0,whole.y+whole.height-mobSkin.naturalHeight)*px;
   const ph=en.wt||0,k=en.mv||0;                      /* same stride cadence as the farm animals */
-  const hop=Math.abs(Math.sin(ph))*(1.5+W*0.03)*k;
+  const profile=EnemyFootProfiles[mobSkin.src.split('/').pop().split('?')[0].replace('.png','')];
+  const art=EnemyFootMotion.frame(baseArt,profile,ph,EnemyFootMotion.amount(en),(whole?whole.width*px:W)*(zoom||1)*(DPR||1));
+  const hop=Math.abs(Math.sin(ph))*(profile?.length ? .45+W*.008 : 1.5+W*.03)*k;
   const fx=(hero&&hero.x<en.x)?-1:1;                        /* face the hero */
   ctx.save();
   ctx.translate(0,en.r*0.62+by-mobExtra);

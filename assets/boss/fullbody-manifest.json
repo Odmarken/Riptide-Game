@@ -1,5 +1,5 @@
 {
-  "description": "Enemy feet restored as complete sprites; original files are preserved byte-for-byte. Runtime cutouts are cached once. Reassembled sprites share one transform, with no independent foot animation.",
+  "description": "Enemy feet restored as complete cached sprites. Original files are preserved byte-for-byte. A short shin band compresses from its fixed upper edge during walking while each attached foot lifts intact; the torso, weapons and combat geometry stay unchanged.",
   "originalCommit": "48b816a",
   "trollJob": "d9f132a7-40b8-4180-8350-50c67dd7284f",
   "originals": {
@@ -150,21 +150,34 @@
       "body": "assets/boss/fellord_boss.png",
       "parts": [
         {
-          "img": "assets/boss/fellord_feet.png",
+          "img": "assets/boss/fellord_foot_complete.png",
           "x": 310,
           "y": 669,
           "w": 129,
           "h": 197,
-          "flip": true
+          "flip": true,
+          "crop": [
+            271,
+            340,
+            649,
+            992
+          ]
         },
         {
-          "img": "assets/boss/fellord_feet.png",
+          "img": "assets/boss/fellord_foot_complete.png",
           "x": 483,
           "y": 669,
           "w": 129,
-          "h": 197
+          "h": 197,
+          "crop": [
+            271,
+            340,
+            649,
+            992
+          ]
         }
-      ]
+      ],
+      "replacementFootManifest": "assets/boss/complete-foot-manifest.json"
     },
     "firelord": {
       "body": "assets/boss/firelord_boss.png",
@@ -210,21 +223,48 @@
       "body": "assets/boss/tor_boss.png",
       "parts": [
         {
-          "img": "assets/characters/fot.png",
+          "img": "assets/boss/thor_foot_complete.png",
           "x": 241,
           "y": 764,
           "w": 180,
-          "h": 210.83044982698962
+          "h": 210.83044982698962,
+          "crop": [
+            230,
+            500,
+            694,
+            812
+          ],
+          "cutout": {
+            "key": "white",
+            "minimum": 180,
+            "chroma": 22,
+            "edgeMaximum": 180,
+            "edgeSoftness": 96
+          }
         },
         {
-          "img": "assets/characters/fot.png",
+          "img": "assets/boss/thor_foot_complete.png",
           "x": 476,
           "y": 764,
           "w": 180,
           "h": 210.83044982698962,
-          "flip": true
+          "flip": true,
+          "crop": [
+            230,
+            500,
+            694,
+            812
+          ],
+          "cutout": {
+            "key": "white",
+            "minimum": 180,
+            "chroma": 22,
+            "edgeMaximum": 180,
+            "edgeSoftness": 96
+          }
         }
-      ]
+      ],
+      "replacementFootManifest": "assets/boss/complete-foot-manifest.json"
     },
     "reaper": {
       "body": "assets/boss/finalboss.png",
@@ -250,21 +290,48 @@
       "body": "assets/boss/odin_boss.png",
       "parts": [
         {
-          "img": "assets/characters/fot.png",
+          "img": "assets/boss/odin_foot_complete.png",
           "x": 266,
           "y": 851,
           "w": 170,
-          "h": 199.11764705882354
+          "h": 199.11764705882354,
+          "crop": [
+            181,
+            292,
+            796,
+            933
+          ],
+          "cutout": {
+            "key": "white",
+            "minimum": 180,
+            "chroma": 22,
+            "edgeMaximum": 180,
+            "edgeSoftness": 96
+          }
         },
         {
-          "img": "assets/characters/fot.png",
+          "img": "assets/boss/odin_foot_complete.png",
           "x": 464,
           "y": 851,
           "w": 170,
           "h": 199.11764705882354,
-          "flip": true
+          "flip": true,
+          "crop": [
+            181,
+            292,
+            796,
+            933
+          ],
+          "cutout": {
+            "key": "white",
+            "minimum": 180,
+            "chroma": 22,
+            "edgeMaximum": 180,
+            "edgeSoftness": 96
+          }
         }
-      ]
+      ],
+      "replacementFootManifest": "assets/boss/complete-foot-manifest.json"
     },
     "revenant": {
       "body": "assets/mobs/und_revenant.png",
@@ -279,5 +346,12 @@
       ]
     }
   },
-  "limitations": "No complete originals survive for Betrayer, Firelord, Frostking, Thor, Odin or Reaper. They use their preserved artwork joined in fixed reviewed positions. Odin was generated cropped at mid-thigh. Revenant was already cropped in its first Git version; the saved matching bone-foot pair is joined behind its shins."
+  "limitations": "No complete originals survive for Betrayer, Firelord, Frostking, Thor, Odin or Reaper. Firelord, Frostking and Reaper use their preserved foot artwork joined in fixed reviewed positions. Betrayer had clipped toe contours; Thor and Odin previously reused player boots. These three now use newly generated matching armored feet from complete-foot-manifest.json, with all original bodies and source files preserved. Odin was generated cropped at mid-thigh. Revenant was already cropped in its first Git version; the saved matching bone-foot pair is joined behind its shins.",
+  "motion": {
+    "renderer": "assets/boss/foot-motion.js",
+    "profiles": "assets/boss/foot-motion-profiles.js",
+    "phase": "Distance actually walked (wt; separate footPhase for the crypt rat).",
+    "representation": "One complete sprite per pose, with fixed upper-leg anchors and alternating attached feet. No detached foot draw calls.",
+    "cacheLimitBytes": 50331648
+  }
 }

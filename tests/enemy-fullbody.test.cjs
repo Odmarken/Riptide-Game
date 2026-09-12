@@ -24,6 +24,17 @@ test('rat background key preserves white highlights behind painted outlines',()=
  assert.equal(a.get(0,0)[3],0);assert.deepEqual(a.get(5,5),[255,255,255,255]);
  assert.deepEqual(a.get(2,2),[60,42,35,255]);
 });
+test('reviewed checker key clears both neutral background tones without losing enclosed steel',()=>{
+ const a=raster(11,11,[195,197,196,255]);
+ for(let y=0;y<11;y++)for(let x=0;x<11;x++)if((x+y)%2)a.set(x,y,[248,250,249,255]);
+ for(let y=2;y<9;y++)for(let x=2;x<9;x++)a.set(x,y,[38,40,39,255]);
+ a.set(5,5,[215,220,219,255]);a.set(2,5,[170,172,171,255]);
+ mask(a.p,11,11,{key:'white',minimum:180,chroma:22,edgeMaximum:180,edgeSoftness:96});
+ assert.equal(a.get(0,0)[3],0);assert.equal(a.get(1,0)[3],0);
+ assert.deepEqual(a.get(5,5),[215,220,219,255],'enclosed silver stays opaque');
+ assert.equal(a.get(2,2)[3],255,'dark outline stays opaque');
+ assert.ok(a.get(2,5)[3]>0&&a.get(2,5)[3]<40,'only the neutral edge fringe softens');
+});
 test('reviewed detached reference removal cannot erase a large connected boss',()=>{
  const a=raster(16,12,[255,255,255,255]);
  for(let y=1;y<11;y++)for(let x=7;x<15;x++)a.set(x,y,[80,40,30,255]);
@@ -54,6 +65,14 @@ test('missing art retries after load and static feet are joined behind the body 
  assert.deepEqual(canvases[0].draws.map(d=>d[0]),[foot,foot,body]);assert.equal(api.get(skin),a);
  const master=image('master',128,128);master.complete=false;
  const s={img:body,original:master,frame:[0,0,100,120]};assert.equal(api.get(s),null);master.complete=true;assert.ok(api.get(s));
+});
+test('padded replacement feet use the reviewed source crop without resizing the body frame',()=>{
+ const {api,canvases}=harness(),body=image('body',937,725),foot=image('padded-boot',1049,1499);
+ const skin={img:body,join:[{img:foot,crop:[271,340,649,992],x:310,y:669,w:129,h:197,flip:true}]};
+ const a=api.get(skin);assert.equal(a.width,937);assert.equal(a.height,866);assert.equal(a.x,0);assert.equal(a.y,0);
+ assert.deepEqual(canvases[0].draws[0],[foot,271,340,649,992,0,0,129,197]);
+ assert.deepEqual(canvases[0].draws[1],[body,-0,-0]);
+ assert.equal(api.get(skin),a,'joined full sprite is cached');
 });
 test('restored canvases retain the actual game mip downscaling and reuse the cached reduction',()=>{
  const {api,canvases,document}=harness(),skin={img:image('body',650,847),original:image('master',1024,1024),frame:[183,51,650,847]};

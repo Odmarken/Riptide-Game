@@ -1,0 +1,241 @@
+{
+  "tool": "built-in image_gen",
+  "reviewedGeometry": {
+    "sourceCropsAndJoins": {
+      "fellord": {
+        "sourceCrop": [
+          271,
+          340,
+          649,
+          992
+        ],
+        "joins": [
+          {
+            "x": 310,
+            "y": 669,
+            "w": 129,
+            "h": 197,
+            "flip": true
+          },
+          {
+            "x": 483,
+            "y": 669,
+            "w": 129,
+            "h": 197
+          }
+        ]
+      },
+      "thor": {
+        "sourceCrop": [
+          230,
+          500,
+          694,
+          812
+        ],
+        "joins": [
+          {
+            "x": 241,
+            "y": 764,
+            "w": 180,
+            "h": 210.83044982698962
+          },
+          {
+            "x": 476,
+            "y": 764,
+            "w": 180,
+            "h": 210.83044982698962,
+            "flip": true
+          }
+        ]
+      },
+      "odin": {
+        "sourceCrop": [
+          181,
+          292,
+          796,
+          933
+        ],
+        "joins": [
+          {
+            "x": 266,
+            "y": 851,
+            "w": 170,
+            "h": 199.11764705882354
+          },
+          {
+            "x": 464,
+            "y": 851,
+            "w": 170,
+            "h": 199.11764705882354,
+            "flip": true
+          }
+        ]
+      }
+    },
+    "backgroundMargins": {
+      "thor": {
+        "region": [
+          0,
+          0,
+          160,
+          1358
+        ],
+        "minimumChannel": 190,
+        "maximumChannel": 255,
+        "maximumChroma": 8
+      },
+      "odin": {
+        "region": [
+          0,
+          0,
+          160,
+          1356
+        ],
+        "minimumChannel": 193,
+        "maximumChannel": 255,
+        "maximumChroma": 9
+      }
+    },
+    "preview": "dist/.feet-restore-qa/new-boot-contact.png",
+    "result": "Minimum180/chroma22 removes the complete checker field outside the reviewed silhouettes. No foreground touches the image boundaries. A thin neutral antialias fringe remains at source resolution and should be softened by the runtime mask boundary; generated source RGB is preserved.",
+    "boundaryPixelExamples": {
+      "thor": [
+        [
+          494,
+          44,
+          179,
+          180,
+          178,
+          255
+        ],
+        [
+          495,
+          44,
+          165,
+          167,
+          166,
+          255
+        ]
+      ],
+      "odin": [
+        [
+          564,
+          135,
+          172,
+          174,
+          171,
+          255
+        ],
+        [
+          565,
+          135,
+          159,
+          160,
+          158,
+          255
+        ]
+      ]
+    }
+  },
+  "generatedDirectory": "C:/Users/App-L/.codex/generated_images/01a09223-22a4-75b0-9cd1-3bb631f9c005",
+  "description": "Three newly generated complete single-boot sources. Existing body and foot artwork was not modified. Fel Lord has native transparency. Thor and Odin are preserved RGB generator output and REQUIRE reviewed runtime background keying; they are not native transparent PNGs.",
+  "assets": {
+    "fellord": {
+      "file": "assets/boss/fellord_foot_complete.png",
+      "sourceFile": "exec-0307f873-1d76-4a53-8bb8-4efdae7c5d81.png",
+      "size": [
+        1049,
+        1499
+      ],
+      "nativeAlpha": true,
+      "sha256": "c4b2ec547daed67afdd2fcbecda03cbe812af67cecc147e1d350e6dcea09ad74",
+      "bounds": [
+        271,
+        196,
+        649,
+        1136
+      ],
+      "defaultVisibleWidth": 129,
+      "toeDirection": "right",
+      "references": [
+        "assets/boss/fellord_boss.png",
+        "assets/boss/fellord_feet.png"
+      ],
+      "prompt": "Use case: precise-object-edit. Create ONE complete isolated armored boot and short shin sprite for the Fel Lord in this painted fantasy RPG. Image 1 is the existing body, reference only: match its dark indigo and blue-black steel, restrained cyan metal edge highlights, angular blue inset ornament, heavy clean ink outlines and painted shading. Image 2 is the old foot, the edit target: reconstruct its missing cropped outer toe and outer boot contour, keeping the armor identity. Show a SINGLE short armored lower shin and complete foot, front three-quarter view with toe pointing slightly toward viewer-right, upright shin entering at top. Shape should be compact, about width:height 0.70, matching the old boot stance. Top shin is a modest overlap section for joining behind the body, no extra knee, no huge cuff, no new spikes. Entire foot and sole must be visible, generous genuinely transparent padding on all four sides, actual alpha transparent background. No second boot, no body, no floor, no cast shadow, no text, no ornament unrelated to the references. Preserve complete toe contours. Production game sprite, not a realistic product photo."
+    },
+    "thor": {
+      "file": "assets/boss/thor_foot_complete.png",
+      "sourceFile": "exec-f1c06a0f-97f4-44c3-9713-49fc24dcd8a1.png",
+      "size": [
+        1158,
+        1358
+      ],
+      "nativeAlpha": false,
+      "sha256": "2dac659bb339bc4da2a1e1a63701ec63ed7f226288ed5f8448559ba3a38385a1",
+      "bounds": [
+        230,
+        44,
+        694,
+        1268
+      ],
+      "defaultVisibleWidth": 180,
+      "toeDirection": "left",
+      "requiresRuntimeCutout": {
+        "key": "white",
+        "minimum": 180,
+        "chroma": 22,
+        "edgeMaximum": 180,
+        "edgeSoftness": 96
+      },
+      "references": [
+        "assets/boss/tor_boss.png"
+      ],
+      "prompt": "Use case: stylized-concept. Create ONE isolated complete armored boot plus short lower shin sprite for the Thor character in the reference. Reference is body/style only; do not reproduce the character. Match its hand-painted fantasy chibi game art: strong dark crisp contours, cool slate steel plate, restrained bronze trim, dark brown leather under the plate, subtle pale cyan edge highlights like his armor. The boot must look like the natural lower-leg continuation of that exact character, with compact steel toe and shin plates matching the existing knee plate. SINGLE boot, neutral front three-quarter stance, toe pointing slightly toward viewer-left, upright shin, width:height about 0.85. Short straight armored shin at top to overlap behind body. Avoid large orange rolled cuffs, oversized knee guards, fur, spurs, exaggerated spikes or redesign. Entire sole and toe contour visible with generous real transparent padding on every edge. Actual alpha transparent background, no floor, no cast shadow, no body, no pair, no text. Painted crisp game sprite, not a soft 3D brown boot."
+    },
+    "odin": {
+      "file": "assets/boss/odin_foot_complete.png",
+      "sourceFile": "exec-51a1ab2d-55df-4334-b2b1-998d900f9da3.png",
+      "size": [
+        1159,
+        1356
+      ],
+      "nativeAlpha": false,
+      "sha256": "25821879a71b30901e605017b6c1bc60de64ef7d6b49bd72318a640f0473d746",
+      "bounds": [
+        181,
+        135,
+        796,
+        1090
+      ],
+      "defaultVisibleWidth": 170,
+      "toeDirection": "left",
+      "requiresRuntimeCutout": {
+        "key": "white",
+        "minimum": 180,
+        "chroma": 22,
+        "edgeMaximum": 180,
+        "edgeSoftness": 96
+      },
+      "references": [
+        "assets/boss/odin_boss.png"
+      ],
+      "prompt": "Use case: stylized-concept. Create ONE isolated complete armored boot and short lower shin sprite that naturally continues the exact Odin boss armor in the reference. Reference is body/style only; do not reproduce the character. Match its crisp dark ink outlines and painted fantasy game style, deep midnight royal-blue steel plates, black-blue recesses, small muted steel rims and subtle violet reflections, a few small round rivets consistent with his armor. Keep highlights controlled; no glow or rune needed. SINGLE compact boot, neutral front three-quarter view with toe pointing slightly toward viewer-left, upright short shin entering at top. Width:height about 0.85. Short armor shaft for overlap behind his existing lower-leg plates, no oversized knee guard. Do not use an orange leather cuff; do not add fur or redesign. Complete foot including entire toe and sole contour; generous genuinely transparent padding on all four sides. Actual alpha transparent background, no second boot, no body, no floor, no cast shadow, no text. Production painted game sprite."
+    }
+  },
+  "discardedTransparencyAttempts": {
+    "prompt": "Use case: background-extraction. Edit only the background of this exact single-boot game sprite. Remove ALL of the visible white and grey checkerboard outside the boot, including every distorted checker square, and replace it with REAL alpha-channel transparency. The checkerboard is unwanted painted background, not part of the boot. Output a genuine RGBA transparent PNG. Preserve the entire boot drawing, silhouette, dark ink contour, colors, all armor decoration, original stance and every toe pixel; do not redesign, do not change lighting or size proportions. Keep generous transparent padding and the entire sole visible. No added objects, no floor, no shadow. The final background must have alpha zero, with no remaining checkerboard pixels, no white matte, and no new background.",
+    "outputs": [
+      "exec-713e8880-c007-435e-a83c-beff01b81358.png",
+      "exec-f1d18278-2df7-42f2-806f-cb7513567905.png"
+    ],
+    "reason": "Generator returned RGB with painted checkerboard again."
+  },
+  "discardedTransparencyRetry": {
+    "prompt": "Use case: background-extraction. Two image references: image 1 is a successful TRANSPARENT RGBA game sprite and is a technical transparency-format reference only. Image 2 is the edit target, a different single armored boot whose background was mistakenly painted. Return ONLY the boot drawing from image 2, extracted as a cutout on the SAME true empty alpha background format as image 1. Preserve image 2's exact colors, drawing, complete toe, stance and armor. Remove all of its background, leaving no opaque or grey or white pixels outside the boot silhouette. No backdrop pattern, no background illustration, no shadow. Use actual alpha transparency like image 1. The result is the single boot from image 2, fully isolated and uncut, never a pair. Do not draw image 1's boot.",
+    "outputs": [
+      "exec-ef716628-1635-4b74-b99c-4842ca1b32db.png",
+      "exec-be726fc9-a6af-4a7e-a0c7-b12a79b7adfe.png"
+    ],
+    "reason": "Still no alpha channel; first color/style outputs selected instead."
+  }
+}
