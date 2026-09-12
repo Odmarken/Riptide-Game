@@ -161,6 +161,13 @@
   }
   g.restore();return true;
  }
+ function translucentTexture(g,im,rect,crop,scale,alpha,options){
+  if(!imageReady(im))return;
+  const layer=makeCanvas(options,384);if(!layer)return;const b=layer.getContext('2d');
+  b.scale(.5,.5);b.translate(-rect.x,-rect.y);texture(b,im,rect,crop,scale);
+  // Blend once after the opaque repeats join, so their overlap cannot form stripes.
+  g.save();g.globalAlpha=alpha;g.drawImage(layer,rect.x,rect.y,rect.w,rect.h);g.restore();
+ }
  function paintDungeonWalls(g,world,v,images){
   const t=world.theme,im=world.key==='briarhollow'?images.cryptwall:images.raidwall||images.cryptwall;
   for(const wall of world.mwalls){
@@ -189,14 +196,14 @@
   if(world.dungeon){
    if(world.key==='briarhollow'){
     texture(g,images.dirtroad,rect,dirtCrop(images.dirtroad),1.15);
-    g.globalAlpha=.36;texture(g,images.farm,rect,null,.7);g.globalAlpha=1;
+    translucentTexture(g,images.farm,rect,null,.7,.36,options);
     g.fillStyle='rgba(19,42,20,.36)';g.fillRect(rect.x,rect.y,CHUNK,CHUNK);
    }else if(world.key==='cindervein'){
     const im=images.raidfloor;if(imageReady(im)){const iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height;texture(g,im,rect,[iw*.12,ih*.12,iw*.76,ih*.76],.72);}
     g.fillStyle='rgba(123,63,26,.27)';g.fillRect(rect.x,rect.y,CHUNK,CHUNK);
    }else{
     const im=images.crypt;if(imageReady(im)){const iw=im.naturalWidth||im.width,ih=im.naturalHeight||im.height;texture(g,im,rect,[iw*.43,ih*.71,iw*.28,ih*.24],1.1);}
-    const snow=images.snow;if(imageReady(snow)){g.globalAlpha=.53;texture(g,snow,rect,[0,0,snow.naturalWidth||snow.width,(snow.naturalHeight||snow.height)*.25],.85);g.globalAlpha=1;}
+    const snow=images.snow;if(imageReady(snow))translucentTexture(g,snow,rect,[0,0,snow.naturalWidth||snow.width,(snow.naturalHeight||snow.height)*.25],.85,.53,options);
     g.fillStyle='rgba(98,153,191,.17)';g.fillRect(rect.x,rect.y,CHUNK,CHUNK);
    }
    paintDungeonWalls(g,world,rect,images);

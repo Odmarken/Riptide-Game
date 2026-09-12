@@ -58,7 +58,7 @@ for(const key of ['briarhollow','cindervein','frostveil']){
 test('dungeons have distinct room routes and invalid identifiers fail explicitly',()=>{
  const layouts=['briarhollow','cindervein','frostveil'].map(k=>JSON.stringify(W.create(k).floors));assert.equal(new Set(layouts).size,3);assert.throws(()=>W.create('unknown'),RangeError);
 });
-function fakeContext(counter){return new Proxy({createRadialGradient(){return {addColorStop(){}};}},{get(o,k){if(k in o)return o[k];return (...args)=>{if(k==='drawImage'){counter.draws++;if(counter.onDraw)counter.onDraw(args);}};},set(o,k,v){o[k]=v;return true;}});}
+function fakeContext(counter){return new Proxy({createRadialGradient(){return {addColorStop(){}};}},{get(o,k){if(k in o)return o[k];return (...args)=>{if(k==='drawImage'){counter.draws++;if(counter.onDraw)counter.onDraw(args,o);}};},set(o,k,v){o[k]=v;return true;}});}
 test('ground canvas size, cache, and draw cost stay bounded even at world overview',()=>{
  const count={draws:0,canvases:0},ctx=fakeContext(count),w=W.create(),options={createCanvas(width,height){count.canvases++;assert.ok(width<=384&&height<=384);return {getContext:()=>fakeContext(count)};}};
  W.renderGround(ctx,w,{x:5000,y:5000,w:1600,h:1000},options);const created=count.canvases;assert.ok(created>0&&created<=12);
@@ -77,5 +77,17 @@ test('roads and Briar floors exclude the real dirt tile translucent border',()=>
   let draws=0;const count={draws:0,onDraw(args){if(args[0]===im){draws++;assert.deepEqual(args.slice(1,5),[2,2,252,252]);}}};
   const world=W.create(key),ctx=fakeContext(count),options={images:{dirtroad:im},createCanvas(){return {getContext:()=>fakeContext(count)};}};
   W.renderGround(ctx,world,{x:world.spawn.x-400,y:world.spawn.y-300,w:800,h:600},options);assert.ok(draws>0,key);
+ }
+});
+test('translucent floor textures blend complete layers instead of overlapping repeats',()=>{
+ for(const [key,asset,alpha]of [['briarhollow','farm',.36],['frostveil','snow',.53]]){
+  const im={width:1024,height:1024,complete:true};let repeats=0,blends=0;
+  const count={draws:0,onDraw(args,ctx){
+   if(args[0]===im){repeats++;assert.equal(ctx.globalAlpha??1,1,'texture repeats must be opaque');}
+   else if(ctx.globalAlpha===alpha){blends++;assert.equal(args.length,5);assert.equal(args[0].width,384);assert.equal(args[0].height,384);}
+  }};
+  const world=W.create(key),options={images:{[asset]:im},createCanvas(width,height){return {width,height,getContext:()=>fakeContext(count)};}};
+  W.renderGround(fakeContext(count),world,{x:world.spawn.x-400,y:world.spawn.y-300,w:800,h:600},options);
+  assert.ok(repeats>0,key);assert.ok(blends>0,key);assert.ok(blends<repeats,key);
  }
 });
