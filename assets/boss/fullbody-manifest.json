@@ -1,0 +1,283 @@
+{
+  "description": "Enemy feet restored as complete sprites; original files are preserved byte-for-byte. Runtime cutouts are cached once. Reassembled sprites share one transform, with no independent foot animation.",
+  "originalCommit": "48b816a",
+  "trollJob": "d9f132a7-40b8-4180-8350-50c67dd7284f",
+  "originals": {
+    "cave_troll_briarhollow": {
+      "file": "assets/boss/originals/cave_troll_briarhollow.png",
+      "sha256": "7fd887f6d75433c190dba987275674ccfc7ca36580a0e5f82b38bfae8f1b5af9",
+      "bodyFrame": [
+        183,
+        51,
+        650,
+        847
+      ]
+    },
+    "cave_troll_cindervein": {
+      "file": "assets/boss/originals/cave_troll_cindervein.png",
+      "sha256": "41406e0516e42c3ba06f751c1615d68a0e9ffa1d129c1cc6a80999da910e5126",
+      "bodyFrame": [
+        183,
+        51,
+        650,
+        847
+      ]
+    },
+    "cave_troll_frostveil": {
+      "file": "assets/boss/originals/cave_troll_frostveil.png",
+      "sha256": "3d7304031492fe1801f7959a3a9484d3931f5147a01eadefb1adc94e36d35481",
+      "bodyFrame": [
+        183,
+        51,
+        650,
+        847
+      ]
+    },
+    "gorehusk": {
+      "file": "assets/boss/originals/boss_levling4.png",
+      "sha256": "b5e38cf86ec60dca6907f00352bf914615d3371aac5b99ab8c975bdd80e792c1",
+      "bodyFrame": [
+        72,
+        69,
+        911,
+        850
+      ],
+      "cutout": {
+        "key": "black"
+      }
+    },
+    "maw": {
+      "file": "assets/boss/originals/boss_levling2.png",
+      "sha256": "400d592070ecf4aa6ebba8d97ca7452c87a812390b5afcc038b0019ac946b886",
+      "bodyFrame": [
+        76,
+        87,
+        908,
+        861
+      ],
+      "cutout": {
+        "key": "black"
+      }
+    },
+    "ossric": {
+      "file": "assets/boss/originals/boss_levling3.png",
+      "sha256": "e60b41b01eef7a8003ce83259c87e603b47d7551c9f386aa1cbf5b46144e3c9f",
+      "bodyFrame": [
+        87,
+        79,
+        894,
+        833
+      ],
+      "cutout": {
+        "key": "black"
+      }
+    },
+    "ashmaw": {
+      "file": "assets/boss/originals/boss_levling1.png",
+      "sha256": "cde1f11ef903310bc9dbcec9be4205512a15355eb2fd855b5bd26d6674d50f81",
+      "bodyFrame": [
+        89,
+        69,
+        898,
+        853
+      ],
+      "cutout": {
+        "key": "black"
+      }
+    },
+    "krev": {
+      "file": "assets/boss/originals/boss_levling5.png",
+      "sha256": "cbaad7606c5006d735ecbcf35b127165a44c17e3afd946f2af9955060ee3559c",
+      "bodyFrame": [
+        64,
+        55,
+        900,
+        920
+      ],
+      "cutout": {
+        "key": "black"
+      }
+    },
+    "cowmob": {
+      "file": "assets/boss/originals/Cow_boss.png",
+      "sha256": "a600a75fc3dff29d7bec7069cdf6f691c2a30ae79f579135eb095b611461e285",
+      "bodyFrame": [
+        239,
+        26,
+        577,
+        794
+      ],
+      "cutout": {
+        "key": "black"
+      }
+    },
+    "cowmob_big": {
+      "file": "assets/boss/originals/Cow_boss.png",
+      "sha256": "a600a75fc3dff29d7bec7069cdf6f691c2a30ae79f579135eb095b611461e285",
+      "bodyFrame": [
+        239,
+        26,
+        577,
+        794
+      ],
+      "cutout": {
+        "key": "black"
+      }
+    },
+    "rat": {
+      "file": "assets/boss/originals/rat_boss.png",
+      "sha256": "281b9a70053d60daac8029a9622a1a05ca19d1623271296d43eb1a09a00c3b16",
+      "bodyFrame": [
+        25,
+        19,
+        983,
+        985
+      ],
+      "cutout": {
+        "key": "white",
+        "remove": [
+          [
+            160,
+            860,
+            30000
+          ]
+        ]
+      }
+    }
+  },
+  "joined": {
+    "betrayer": {
+      "body": "assets/boss/fellord_boss.png",
+      "parts": [
+        {
+          "img": "assets/boss/fellord_feet.png",
+          "x": 310,
+          "y": 669,
+          "w": 129,
+          "h": 197,
+          "flip": true
+        },
+        {
+          "img": "assets/boss/fellord_feet.png",
+          "x": 483,
+          "y": 669,
+          "w": 129,
+          "h": 197
+        }
+      ]
+    },
+    "firelord": {
+      "body": "assets/boss/firelord_boss.png",
+      "parts": [
+        {
+          "img": "assets/boss/firelord_feet.png",
+          "x": 167,
+          "y": 694,
+          "w": 185,
+          "h": 109.76666666666667
+        },
+        {
+          "img": "assets/boss/firelord_feet.png",
+          "x": 380,
+          "y": 694,
+          "w": 185,
+          "h": 109.76666666666667,
+          "flip": true
+        }
+      ]
+    },
+    "frostking": {
+      "body": "assets/boss/frostlord_boss.png",
+      "parts": [
+        {
+          "img": "assets/boss/frostlord_feet.png",
+          "x": 319,
+          "y": 716,
+          "w": 135,
+          "h": 181.81451612903226,
+          "flip": true
+        },
+        {
+          "img": "assets/boss/frostlord_feet.png",
+          "x": 515,
+          "y": 716,
+          "w": 135,
+          "h": 181.81451612903226
+        }
+      ]
+    },
+    "thor": {
+      "body": "assets/boss/tor_boss.png",
+      "parts": [
+        {
+          "img": "assets/characters/fot.png",
+          "x": 241,
+          "y": 764,
+          "w": 180,
+          "h": 210.83044982698962
+        },
+        {
+          "img": "assets/characters/fot.png",
+          "x": 476,
+          "y": 764,
+          "w": 180,
+          "h": 210.83044982698962,
+          "flip": true
+        }
+      ]
+    },
+    "reaper": {
+      "body": "assets/boss/finalboss.png",
+      "parts": [
+        {
+          "img": "assets/boss/finalboss_foot.png",
+          "x": 211,
+          "y": 587,
+          "w": 130,
+          "h": 125
+        },
+        {
+          "img": "assets/boss/finalboss_foot.png",
+          "x": 327,
+          "y": 587,
+          "w": 130,
+          "h": 125,
+          "flip": true
+        }
+      ]
+    },
+    "odin": {
+      "body": "assets/boss/odin_boss.png",
+      "parts": [
+        {
+          "img": "assets/characters/fot.png",
+          "x": 266,
+          "y": 851,
+          "w": 170,
+          "h": 199.11764705882354
+        },
+        {
+          "img": "assets/characters/fot.png",
+          "x": 464,
+          "y": 851,
+          "w": 170,
+          "h": 199.11764705882354,
+          "flip": true
+        }
+      ]
+    },
+    "revenant": {
+      "body": "assets/mobs/und_revenant.png",
+      "parts": [
+        {
+          "img": "assets/mobs/feet_bone.png",
+          "x": 9,
+          "y": 175,
+          "w": 123.2,
+          "h": 86.24
+        }
+      ]
+    }
+  },
+  "limitations": "No complete originals survive for Betrayer, Firelord, Frostking, Thor, Odin or Reaper. They use their preserved artwork joined in fixed reviewed positions. Odin was generated cropped at mid-thigh. Revenant was already cropped in its first Git version; the saved matching bone-foot pair is joined behind its shins."
+}

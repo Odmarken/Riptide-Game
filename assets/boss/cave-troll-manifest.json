@@ -41,22 +41,42 @@
       838,
       722,
       988
-    ]
+    ],
+    "status": "Archived provenance only; separate foot images are no longer rendered."
   },
   "raidSkin": {
     "wpn": "bosslevling_weapon.png",
     "size": 6.78,
-    "lift": 0.0,
-    "fh": 1.201,
-    "fs": 1.065,
+    "lift": 0,
     "wx": 0.37,
     "wy": -0.09,
-    "grip": [0.2014260249554367, 0.8002645502645502],
-    "gripSource": [561, 756],
-    "gripPoint": [113, 605],
-    "handSource": [650, 847],
-    "handPoints": {"left": [84.5, 770.77], "right": [565.5, 770.77]},
-    "derivation": "size keeps body+visible feet at 7.5 radii; lift/fh/fs are radii from the same scale; wx/wy put the club pivot on the fist centroid. The reviewed solid handle point follows the body's hop, breath and lean; older boss skins retain their original pivot."
+    "grip": [
+      0.2014260249554367,
+      0.8002645502645502
+    ],
+    "gripSource": [
+      561,
+      756
+    ],
+    "gripPoint": [
+      113,
+      605
+    ],
+    "handSource": [
+      650,
+      847
+    ],
+    "handPoints": {
+      "left": [
+        84.5,
+        770.77
+      ],
+      "right": [
+        565.5,
+        770.77
+      ]
+    },
+    "derivation": "The complete 1024px original is drawn relative to its historic bodyRect. Torso scale and reviewed fist/club contact stay identical; original feet follow the very same hop, breath and lean."
   },
   "variants": {
     "briarhollow": {
@@ -76,7 +96,7 @@
         "hue": 83,
         "sat_scale": 1.08,
         "sat_add": 0.025,
-        "value": 1.0
+        "value": 1
       },
       "glow": "#7adf3a"
     },
@@ -121,6 +141,30 @@
         "value": 1.04
       },
       "glow": "#7fd0ff"
+    }
+  },
+  "rendering": "Full original sprite with attached feet; one image and one body transform. The old cropped body is retained only as the coordinate frame for the reviewed club grip.",
+  "restored": {
+    "representation": "fullbody",
+    "frame": [
+      183,
+      51,
+      650,
+      847
+    ],
+    "originals": {
+      "briarhollow": {
+        "file": "originals/cave_troll_briarhollow.png",
+        "sha256": "7fd887f6d75433c190dba987275674ccfc7ca36580a0e5f82b38bfae8f1b5af9"
+      },
+      "cindervein": {
+        "file": "originals/cave_troll_cindervein.png",
+        "sha256": "41406e0516e42c3ba06f751c1615d68a0e9ffa1d129c1cc6a80999da910e5126"
+      },
+      "frostveil": {
+        "file": "originals/cave_troll_frostveil.png",
+        "sha256": "3d7304031492fe1801f7959a3a9484d3931f5147a01eadefb1adc94e36d35481"
+      }
     }
   }
 }

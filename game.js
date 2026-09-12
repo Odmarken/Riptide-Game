@@ -182,17 +182,25 @@ const armorAltarImg=new Image();armorAltarImg.src='assets/models/armor_altar.png
 const finalBossImg=new Image();finalBossImg.src='assets/boss/finalboss.png?v=3';
 const finalBossFootImg=new Image();finalBossFootImg.src='assets/boss/finalboss_foot.png?v=2';
 const finalBossWeaponImg=new Image();finalBossWeaponImg.src='assets/boss/finasboss_weapon.png?v=2';
-const cowmobFeetImg=new Image();cowmobFeetImg.src='assets/boss/cowlevel_feet.png?v=2';
 const raidSwordImg=new Image();raidSwordImg.src='assets/boss/raidboss_sword.png?v=2';
 const gorehuskImg=new Image();gorehuskImg.src='assets/boss/boss_levling4.png?v=2';
-const gorehuskFeetLImg=new Image();gorehuskFeetLImg.src='assets/boss/gorehusk_feet_l.png?v=2';
-const gorehuskFeetRImg=new Image();gorehuskFeetRImg.src='assets/boss/gorehusk_feet_r.png?v=2';
 const bossLvlWeaponImg=new Image();bossLvlWeaponImg.src='assets/boss/bosslevling_weapon.png?v=2';
 const mawImg=new Image();mawImg.src='assets/boss/boss_levling2.png?v=2';
 const ossricImg=new Image();ossricImg.src='assets/boss/boss_levling3.png?v=2';
 const ashmawImg=new Image();ashmawImg.src='assets/boss/boss_levling1.png?v=2';
 const krevImg=new Image();krevImg.src='assets/boss/boss_levling5.png?v=3';
 const torImg=new Image();torImg.src='assets/boss/tor_boss.png?v=2';
+/* Uncut originals, preserved byte-for-byte from Git / the original troll job. */
+const fullBriarImg=new Image();fullBriarImg.src='assets/boss/originals/cave_troll_briarhollow.png?v=1';
+const fullCinderImg=new Image();fullCinderImg.src='assets/boss/originals/cave_troll_cindervein.png?v=1';
+const fullFrostImg=new Image();fullFrostImg.src='assets/boss/originals/cave_troll_frostveil.png?v=1';
+const fullAshmawImg=new Image();fullAshmawImg.src='assets/boss/originals/boss_levling1.png?v=1';
+const fullMawImg=new Image();fullMawImg.src='assets/boss/originals/boss_levling2.png?v=1';
+const fullOssricImg=new Image();fullOssricImg.src='assets/boss/originals/boss_levling3.png?v=1';
+const fullGorehuskImg=new Image();fullGorehuskImg.src='assets/boss/originals/boss_levling4.png?v=1';
+const fullKrevImg=new Image();fullKrevImg.src='assets/boss/originals/boss_levling5.png?v=1';
+const fullCowImg=new Image();fullCowImg.src='assets/boss/originals/Cow_boss.png?v=1';
+const fullRatImg=new Image();fullRatImg.src='assets/boss/originals/rat_boss.png?v=1';
 /* ---- 🚜 the Farm: build assets, loaded lazily ---- */
 const farmImgs={};
 const farmImg=n=>{if(!farmImgs[n]){farmImgs[n]=new Image();farmImgs[n].src='assets/farm/'+n+'.png';}return farmImgs[n];};
@@ -279,47 +287,30 @@ const scaleOf=it=>{const v=it&&+it.sc;return (v&&v>0)?clampSc(v):1;};
 const canFlipDef=def=>!!def&&!def.road;
 const canScaleDef=def=>!!def&&!def.road&&!def.snap&&!def.crop&&!def.noScale;
 const torWeaponImg=new Image();torWeaponImg.src='assets/boss/tor_weapon.png?v=2';
-const krevFeetLImg=new Image();krevFeetLImg.src='assets/boss/krev_feet_l.png?v=2';
-const krevFeetRImg=new Image();krevFeetRImg.src='assets/boss/krev_feet_r.png?v=2';
-const ashmawFeetLImg=new Image();ashmawFeetLImg.src='assets/boss/ashmaw_feet_l.png?v=2';
-const ashmawFeetRImg=new Image();ashmawFeetRImg.src='assets/boss/ashmaw_feet_r.png?v=2';
-const ossricFeetLImg=new Image();ossricFeetLImg.src='assets/boss/ossric_feet_l.png?v=2';
-const ossricFeetRImg=new Image();ossricFeetRImg.src='assets/boss/ossric_feet_r.png?v=2';
-const mawFeetLImg=new Image();mawFeetLImg.src='assets/boss/maw_feet_l.png?v=2';
-const mawFeetRImg=new Image();mawFeetRImg.src='assets/boss/maw_feet_r.png?v=2';
 const fellordFeetImg=new Image();fellordFeetImg.src='assets/boss/fellord_feet.png?v=2';
 const firelordFeetImg=new Image();firelordFeetImg.src='assets/boss/firelord_feet.png?v=2';
 const frostlordFeetImg=new Image();frostlordFeetImg.src='assets/boss/frostlord_feet.png?v=2';
-const caveTrollBriarFeetLImg=new Image();caveTrollBriarFeetLImg.src='assets/boss/cave_troll_briarhollow_feet_l.png?v=1';
-const caveTrollBriarFeetRImg=new Image();caveTrollBriarFeetRImg.src='assets/boss/cave_troll_briarhollow_feet_r.png?v=1';
-const caveTrollCinderFeetLImg=new Image();caveTrollCinderFeetLImg.src='assets/boss/cave_troll_cindervein_feet_l.png?v=1';
-const caveTrollCinderFeetRImg=new Image();caveTrollCinderFeetRImg.src='assets/boss/cave_troll_cindervein_feet_r.png?v=1';
-const caveTrollFrostFeetLImg=new Image();caveTrollFrostFeetLImg.src='assets/boss/cave_troll_frostveil_feet_l.png?v=1';
-const caveTrollFrostFeetRImg=new Image();caveTrollFrostFeetRImg.src='assets/boss/cave_troll_frostveil_feet_r.png?v=1';
 const RAID_SKINS={ /* lift = body bottom in radii · wy/wx = weapon grip */
- /* the dungeon cave trolls - one chibi drawing in three palettes, split like the leveling bosses below:
-    body cut flat at the ankles, true left/right feet that keep 60 shin rows of overlap behind the cut,
-    the leveling club pivoting on the fist. assets/boss/cave-troll-manifest.json records the measurements. */
- cave_troll_briarhollow:{img:caveTrollBriarImg,feetL:caveTrollBriarFeetLImg,feetR:caveTrollBriarFeetRImg,wpn:()=>bossLvlWeaponImg,grip:[113/561,605/756],glow:'#7adf3a',lift:0.0,wy:-0.09,wx:0.37,size:6.78,fs:1.065,fh:1.201},
- cave_troll_cindervein:{img:caveTrollCinderImg,feetL:caveTrollCinderFeetLImg,feetR:caveTrollCinderFeetRImg,wpn:()=>bossLvlWeaponImg,grip:[113/561,605/756],glow:'#ff7a2a',lift:0.0,wy:-0.09,wx:0.37,size:6.78,fs:1.065,fh:1.201},
- cave_troll_frostveil:{img:caveTrollFrostImg,feetL:caveTrollFrostFeetLImg,feetR:caveTrollFrostFeetRImg,wpn:()=>bossLvlWeaponImg,grip:[113/561,605/756],glow:'#7fd0ff',lift:0.0,wy:-0.09,wx:0.37,size:6.78,fs:1.065,fh:1.201},
- betrayer:{img:fellordImg,feet:fellordFeetImg,wpn:()=>raidSwordImg,glow:'#4dff6a',lift:-0.15,wy:-0.40,wx:0.26,size:4.5,fs:0.72,fh:0.95},
- firelord:{img:firelordImg,feet:firelordFeetImg,glow:'#ff4a1a',lift:-0.20,wy:-0.22,wx:0.26,ff:true,fs:0.85},
- frostking:{img:frostlordImg,feet:frostlordFeetImg,wpn:()=>raidSwordImg,glow:'#7fd0ff',lift:-0.18,wy:-0.31,wx:0.26,fs:0.72,fh:0.95,ox:-0.16},
- gorehusk:{img:gorehuskImg,feetL:gorehuskFeetLImg,feetR:gorehuskFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#7adf3a',lift:0.10,wy:-0.27,wx:0.44,size:7.5,fs:0.8,fh:1.12},
- maw:{img:mawImg,feetL:mawFeetLImg,feetR:mawFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#5bc8ff',lift:0.58,wy:-0.19,wx:0.44,size:7.5,fs:1.05,fh:1.12},
- ossric:{img:ossricImg,feetL:ossricFeetLImg,feetR:ossricFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#b0793a',lift:0.58,wy:-0.19,wx:0.44,size:7.5,fs:1.05,fh:1.12},
- ashmaw:{img:ashmawImg,feetL:ashmawFeetLImg,feetR:ashmawFeetRImg,wpn:()=>bossLvlWeaponImg,glow:'#ff4a2a',lift:0.58,wy:-0.19,wx:0.44,size:7.5,fs:1.05,fh:1.12},
- /* krev's art keeps more leg than the others, so its thigh cut sits 3px BELOW where the feet start -
-    the only one of the five with a real gap. fh lifts the feet up past the cut; fs matches the stance
-    to where its legs actually are in the art (±0.166 of the sprite width, measured off the pixels). */
- krev:{img:krevImg,feetL:krevFeetLImg,feetR:krevFeetRImg,wpn:()=>cowWeaponImg,glow:'#ff9a2a',lift:0.15,wy:-0.25,wx:0.44,size:7.5,fs:1.22,fh:1.42,ws:0.85},
- thor:{img:torImg,wpn:()=>torWeaponImg,glow:'#7fd0ff',zap:true,boots:true,bsx:11,lift:0.30,wy:-0.25,wx:0.44,size:5.25},
+ /* Dungeon trolls use their uncut chibi masters. The historic body frame keeps
+    the reviewed fist/club alignment and visible size while the original feet return. */
+ cave_troll_briarhollow:{img:caveTrollBriarImg,original:fullBriarImg,frame:[183,51,650,847],wpn:()=>bossLvlWeaponImg,grip:[113/561,605/756],glow:'#7adf3a',lift:0.0,wy:-0.09,wx:0.37,size:6.78},
+ cave_troll_cindervein:{img:caveTrollCinderImg,original:fullCinderImg,frame:[183,51,650,847],wpn:()=>bossLvlWeaponImg,grip:[113/561,605/756],glow:'#ff7a2a',lift:0.0,wy:-0.09,wx:0.37,size:6.78},
+ cave_troll_frostveil:{img:caveTrollFrostImg,original:fullFrostImg,frame:[183,51,650,847],wpn:()=>bossLvlWeaponImg,grip:[113/561,605/756],glow:'#7fd0ff',lift:0.0,wy:-0.09,wx:0.37,size:6.78},
+ betrayer:{img:fellordImg,join:[{img:fellordFeetImg,x:310,y:669,w:129,h:197,flip:true},{img:fellordFeetImg,x:483,y:669,w:129,h:197}],wpn:()=>raidSwordImg,glow:'#4dff6a',lift:-0.155172,wy:-0.401149,wx:0.26,size:4.5},
+ firelord:{img:firelordImg,join:[{img:firelordFeetImg,x:167,y:694,w:185,h:185*89/150},{img:firelordFeetImg,x:380,y:694,w:185,h:185*89/150,flip:true}],glow:'#ff4a1a',lift:0.36,wy:-0.108,wx:0.26},
+ frostking:{img:frostlordImg,join:[{img:frostlordFeetImg,x:319,y:716,w:135,h:135*167/124,flip:true},{img:frostlordFeetImg,x:515,y:716,w:135,h:135*167/124}],wpn:()=>raidSwordImg,glow:'#7fd0ff',lift:-0.051208,wy:-0.284242,wx:0.26,ox:-0.16},
+ gorehusk:{img:gorehuskImg,original:fullGorehuskImg,frame:[72,69,911,850],cutout:{key:'black'},wpn:()=>bossLvlWeaponImg,glow:'#7adf3a',lift:0.411176,wy:-0.22851,wx:0.44,size:7.5},
+ maw:{img:mawImg,original:fullMawImg,frame:[76,87,908,861],cutout:{key:'black'},wpn:()=>bossLvlWeaponImg,glow:'#5bc8ff',lift:0.72,wy:-0.171333,wx:0.44,size:7.5},
+ ossric:{img:ossricImg,original:fullOssricImg,frame:[87,79,894,833],cutout:{key:'black'},wpn:()=>bossLvlWeaponImg,glow:'#b0793a',lift:0.332845,wy:-0.222954,wx:0.44,size:7.5},
+ ashmaw:{img:ashmawImg,original:fullAshmawImg,frame:[89,69,898,853],cutout:{key:'black'},wpn:()=>bossLvlWeaponImg,glow:'#ff4a2a',lift:0.482603,wy:-0.202986,wx:0.44,size:7.5},
+ /* Leveling bosses retain their authored torso and weapon scale. */
+ krev:{img:krevImg,original:fullKrevImg,frame:[64,55,900,920],cutout:{key:'black'},wpn:()=>cowWeaponImg,glow:'#ff9a2a',lift:0.597717,wy:-0.190304,wx:0.44,size:7.5,ws:0.85},
+ thor:{img:torImg,join:[{img:bootImg,x:241,y:764,w:180,h:180*677/578},{img:bootImg,x:476,y:764,w:180,h:180*677/578,flip:true}],wpn:()=>torWeaponImg,glow:'#7fd0ff',zap:true,lift:-0.080532,wy:-0.322482,wx:0.44,size:5.25},
  /* 🐄 Cow Level herd - painted hell-minotaur; the Alpha draws 2× the normal cow */
  /* ☠ the final boss - twin scythes, one on each side, and mirrored feet */
- reaper:{img:finalBossImg,feet:finalBossFootImg,wpn:()=>finalBossWeaponImg,glow:'#a06bd0',lift:0.05,wy:-0.34,wx:0.38,wxr:0.30,size:7.3,fs:0.55,fh:0.81,vf:true,ff:true,dual:true,ws:0.78}, /* +30% overall; ff mirrors the hooves; wxr pulls the right scythe in */
- cowmob:{img:cowmobImg,feet:cowmobFeetImg,wpn:()=>cowWeaponImg,glow:'#ff5a2a',lift:-0.15,wy:-0.30,wx:0.30,size:4.6,fs:0.6,fh:0.68,ff:true,vf:true},
- cowmob_big:{img:cowmobImg,feet:cowmobFeetImg,wpn:()=>cowWeaponImg,glow:'#ff5a2a',lift:0.08,wy:-0.30,wx:0.30,size:3.1,fs:0.4,fh:0.45,ff:true,vf:true}}; /* feet scaled down - r is 3× but the body only draws 2×; body sits closer to the hooves */
+ reaper:{img:finalBossImg,join:[{img:finalBossFootImg,x:211,y:587,w:130,h:125},{img:finalBossFootImg,x:327,y:587,w:130,h:125,flip:true}],wpn:()=>finalBossWeaponImg,glow:'#a06bd0',lift:0.035975,wy:-0.341921,wx:0.38,wxr:0.30,size:7.3,dual:true,ws:0.78}, /* wxr pulls the right scythe in */
+ cowmob:{img:cowmobImg,original:fullCowImg,frame:[239,26,577,794],cutout:{key:'black'},wpn:()=>cowWeaponImg,glow:'#ff5a2a',lift:-0.345,wy:-0.342391,wx:0.30,size:4.6},
+ cowmob_big:{img:cowmobImg,original:fullCowImg,frame:[239,26,577,794],cutout:{key:'black'},wpn:()=>cowWeaponImg,glow:'#ff5a2a',lift:0.002,wy:-0.325161,wx:0.30,size:3.1}}; /* Alpha keeps its existing relative size. */
 /* ---- painted mob sprites: neutral grey art, tinted per enemy so all 37 foes stay distinct ---- */
 const mobImg={};
 const MOB_SET={
@@ -330,6 +321,10 @@ const MOB_SET={
 const MOB_SIZE={humanoid:4.6,beast:4.2,undead:4.6}; /* sprite height in enemy radii */
 const mobSprite=n=>{if(!mobImg[n]){mobImg[n]=new Image();mobImg[n].src='assets/mobs/'+n+'.png';}return mobImg[n];};
 Object.values(MOB_SET).forEach(a=>a.forEach(mobSprite)); /* preload */
+/* This one mob was already cropped in its first source file. Rejoin the saved
+   matching bone feet once, behind its shins, and tint the complete sprite. */
+const revenantFeetImg=new Image();revenantFeetImg.src='assets/mobs/feet_bone.png';
+const REVENANT_SKIN={img:mobSprite('und_revenant'),join:[{img:revenantFeetImg,x:9,y:175,w:123.2,h:86.24}]};
 const mobHash=s=>{let h=0;for(let i=0;i<(s||'').length;i++)h=(h*31+s.charCodeAt(i))>>>0;return h;};
 /* every foe gets the sprite that actually fits its name - a Boar is a boar, a Web Matron a spider */
 const MOB_BY_NAME={
@@ -357,17 +352,17 @@ const mobSkinFor=en=>{
  const im=mobSprite(name);
  return im.complete&&im.naturalWidth?im:null;
 };
-const mobTintCache={};
+const mobTintCache=new WeakMap();
 function mobTinted(img,col){ /* soak the grey sprite in the foe's colour, cached per art+tint */
- const key=img.src+':'+col;
- if(mobTintCache[key])return mobTintCache[key];
- if(!img.complete||!img.naturalWidth)return null;
- const c=document.createElement('canvas');c.width=img.naturalWidth;c.height=img.naturalHeight;
+ let colours=mobTintCache.get(img);if(colours&&colours[col])return colours[col];
+ const width=img.naturalWidth||img.width,height=img.naturalHeight||img.height;
+ if(!width||!height||img.complete===false)return null;
+ const c=document.createElement('canvas');c.width=width;c.height=height;
  const g=c.getContext('2d');
  g.drawImage(img,0,0);
  g.globalCompositeOperation='source-atop';
  g.globalAlpha=0.42;g.fillStyle=col;g.fillRect(0,0,c.width,c.height);
- return mobTintCache[key]=c;
+ if(!colours){colours={};mobTintCache.set(img,colours);}return colours[col]=c;
 }
 const raidBladeCache={};
 function raidBlade(glow,img){ /* the lord's weapon soaked in his colour, cached per art+tint */
@@ -386,7 +381,8 @@ function raidBlade(glow,img){ /* the lord's weapon soaked in his colour, cached 
  return raidBladeCache[key]=c;
 }
 const ratbossImg=new Image();ratbossImg.src='assets/boss/rat_boss.png?v=2'; /* the crypt rat - art faces left */
-const ratFeetImg=new Image();ratFeetImg.src='assets/boss/rat_feet.png?v=2'; /* its clawed foot - points left */
+const ODIN_SKIN={img:odinImg,join:[{img:bootImg,x:266,y:851,w:170,h:170*677/578},{img:bootImg,x:464,y:851,w:170,h:170*677/578,flip:true}]};
+const RAT_SKIN={img:ratbossImg,original:fullRatImg,frame:[25,19,983,985],cutout:{key:'white',remove:[[160,860,30000]]}};
 const theRingImg=new Image();theRingImg.src='assets/models/thering.png';
 const altarFenceImg=new Image();altarFenceImg.src='assets/models/maps/altarasset.png';
 const staffImg=new Image();staffImg.src='assets/weapons/staff.png';
@@ -7303,7 +7299,7 @@ function drawRaidFog(){
  ctx.fillStyle=g;
  ctx.fill();
 }
-/* the crypt rat - painted body over four scurrying feet (diagonal pairs, like a real rat) */
+/* The crypt rat uses its complete original drawing, including both clawed feet. */
 function drawRatBoss(){
  const rb=world.ratboss;
  if(rb.x<camX-220||rb.x>camX+VW/zoom+220||rb.y<camY-180||rb.y>camY+VH/zoom+180)return;
@@ -7312,19 +7308,10 @@ function drawRatBoss(){
  if(rb.fx>0)ctx.scale(-1,1); /* art faces left natively - mirror when heading right */
  const bob=rb.moving?Math.sin(rb.walk*4)*2:0; /* skittering bob */
  const H=195,W=ratbossImg.naturalWidth?H*ratbossImg.naturalWidth/ratbossImg.naturalHeight:H*1.44;
- const feet=ratFeetImg.complete&&ratFeetImg.naturalWidth;
- const FW=56,FH=feet?FW*ratFeetImg.naturalHeight/ratFeetImg.naturalWidth:0;
- const o=rb.moving?Math.sin(rb.walk*2)*9:0; /* two clawed feet counter-swing while it stalks */
- if(feet){ /* rear foot, tucked slightly behind the body */
-  ctx.globalAlpha=0.85;
-  ctx.drawImage(mip(ratFeetImg,FW),W*0.06-FW/2-o,38-FH,FW,FH);
-  ctx.globalAlpha=1;
- }
- if(ratbossImg.complete&&ratbossImg.naturalWidth)ctx.drawImage(mip(ratbossImg,W),-W/2,18-H+bob,W,H);
+ const whole=EnemyFullbody.get(RAT_SKIN),px=H/(ratbossImg.naturalHeight||985);
+ if(whole)ctx.drawImage(mip(whole.img,whole.width*px),-W/2+whole.x*px,38-H+whole.y*px+bob,whole.width*px,whole.height*px);
+ else if(ratbossImg.complete&&ratbossImg.naturalWidth)ctx.drawImage(mip(ratbossImg,W),-W/2,38-H+bob,W,H);
  else{ctx.fillStyle='#4a3a34';ctx.beginPath();ctx.ellipse(0,-20,60,34,0,0,7);ctx.fill();} /* fallback while loading */
- if(feet){ /* front foot on top */
-  ctx.drawImage(mip(ratFeetImg,FW),-W*0.31-FW/2+o,42-FH,FW,FH);
- }
  ctx.restore();
 }
 /* the blue loot chest with a pulsing glow - shared by the Cow Level and The Crypts */
@@ -8898,41 +8885,13 @@ function drawEnemy(en){
  const skinKey=en.skin||en.bossId;
  const raidSkin=RAID_SKINS[skinKey]&&RAID_SKINS[skinKey].img.naturalWidth?RAID_SKINS[skinKey]:null; /* raid lords + skinned leveling bosses + dungeon trolls + cow herd */
  const mobSkin=(!raidSkin&&!odinPainted&&!en.boss&&!en.cow&&en.name!=='Crow')?mobSkinFor(en):null; /* painted foes and boss adds - the Crow adds keep their own look */
- if(en.kind!=='undead'&&!odinPainted&&!raidSkin&&!mobSkin)feet(en,en.r/13);
+ if(en.kind!=='undead'&&en.bossId!=='odin'&&!RAID_SKINS[skinKey]&&!mobSkin)feet(en,en.r/13);
+ let mobExtra=0;
  const dark='rgba(0,0,0,0.28)';
- if(raidSkin){ /* a lord of the Violet Halls - painted body over swinging cut-off feet */
+ if(raidSkin){ /* a complete enemy sprite: body and feet share one transform */
   const H=en.r*(raidSkin.size||5.0),W=H*raidSkin.img.naturalWidth/raidSkin.img.naturalHeight;
   let gripPose=null;
-  const fimg=raidSkin.feet,fL=raidSkin.feetL,fR=raidSkin.feetR;
-  const FH=en.r*(raidSkin.fh||0.75);
-  /* stride offset from distance actually travelled, faded by mv - the same cycle the
-     hero's boots and the farm animals use. Applied on Y: feet LIFT, they never slide. */
-  const o=Math.sin(en.wt||0)*en.r*0.26*(en.mv||0);
-  if(raidSkin.boots){ /* the hero's own boots, scaled up - Thor walks like the rest of us */
-   const bs=en.r/13;
-   ctx.save();ctx.scale(bs,bs);bootFeet({moving:en.state==='chase',walk:en.walk||0,sx:raidSkin.bsx||0});ctx.restore();
-  }else if(fL&&fR&&fL.naturalWidth&&fR.naturalWidth){ /* true left/right art - no mirroring needed */
-   const WL=FH*fL.naturalWidth/fL.naturalHeight,WR=FH*fR.naturalWidth/fR.naturalHeight;
-   const sp=en.r*(raidSkin.fs||0.5);
-   ctx.drawImage(mip(fL,WL),-sp-WL/2,en.r*0.72-FH+o,WL,FH);   /* one foot rises… */
-   ctx.drawImage(mip(fR,WR),sp-WR/2,en.r*0.72-FH-o,WR,FH);    /* …as the other falls */
-  }else if(fimg&&fimg.complete&&fimg.naturalWidth){
-   /* single-foot art: right = the art, left = mirrored counter-swing */
-   const FW=FH*fimg.naturalWidth/fimg.naturalHeight;
-   const fpx=(raidSkin.ff?-1:1)*en.r*(raidSkin.fs||0.5); /* ff flips the art side · fs spreads the stance */
-   if(raidSkin.vf){ /* vf: hooves step up/down like the hero's boots - alternate lifts, never sideways */
-    const lift=Math.abs(o)*0.7,l1=o>=0?lift:0,l2=o>=0?0:lift;
-    ctx.drawImage(mip(fimg,FW),fpx-FW/2,en.r*0.72-FH-l1,FW,FH);
-    ctx.save();ctx.scale(-1,1);
-    ctx.drawImage(mip(fimg,FW),fpx-FW/2,en.r*0.72-FH-l2,FW,FH);
-    ctx.restore();
-   }else{
-    ctx.drawImage(mip(fimg,FW),fpx-FW/2,en.r*0.72-FH+o,FW,FH);
-    ctx.save();ctx.scale(-1,1);
-    ctx.drawImage(mip(fimg,FW),fpx-FW/2,en.r*0.72-FH-o,FW,FH); /* mirrored foot, opposite phase */
-    ctx.restore();
-   }
-  }
+  const whole=EnemyFullbody.get(raidSkin);
   { /* body walk cycle: a small hop + rock pivoting at the base */
    const walking=(en.mv||0)>0.01&&!en.dead;
    const ph=en.wt||0;
@@ -8949,7 +8908,10 @@ function drawEnemy(en){
    ctx.save();
    ctx.translate(en.r*(raidSkin.ox||0),en.r*raidSkin.lift+by);
    ctx.rotate(lean); /* the rock fades with the stride */
-   ctx.drawImage(mip(raidSkin.img,W),-W/2,-H-hop+breath,W,H); /* body floats above the feet */
+   if(whole){
+    const px=H/raidSkin.img.naturalHeight;
+    ctx.drawImage(mip(whole.img,whole.width*px),-W/2+whole.x*px,-H+whole.y*px-hop+breath,whole.width*px,whole.height*px);
+   }else ctx.drawImage(mip(raidSkin.img,W),-W/2,-H-hop+breath,W,H); /* loading fallback */
    ctx.restore();
   }
   const bl=raidBlade(raidSkin.glow,raidSkin.wpn?raidSkin.wpn():null);
@@ -8978,38 +8940,41 @@ function drawEnemy(en){
     ctx.restore();
    }
   }
- }else if(odinPainted){ /* painted ODIN (assets/boss/odin_boss.png) + scaled boot feet */
-  const bs=en.r/13;
-  ctx.save();ctx.scale(bs,bs);bootFeet({moving:en.state==='chase',walk:en.walk||0});ctx.restore();
+ }else if(odinPainted){ /* Odin's surviving artwork is joined into one fixed sprite. */
   const H=en.r*4.4,W=H*odinImg.naturalWidth/odinImg.naturalHeight;
   { /* same walk cycle as the skinned lords */
    const walking=en.state==='chase'&&!en.dead;
    const ph=(en.walk||0)*2;
    const hop=walking?Math.abs(Math.sin(ph))*en.r*0.10:0;
    ctx.save();
-   ctx.translate(0,en.r*0.55+by);
+   ctx.translate(0,en.r*0.1+by);
    if(walking)ctx.rotate(Math.sin(ph)*0.045);
-   ctx.drawImage(mip(odinImg,W),-W/2,-H-hop,W,H);
+   const whole=EnemyFullbody.get(ODIN_SKIN),px=H/odinImg.naturalHeight;
+   if(whole)ctx.drawImage(mip(whole.img,whole.width*px),-W/2+whole.x*px,-H+whole.y*px-hop,whole.width*px,whole.height*px);
+   else ctx.drawImage(mip(odinImg,W),-W/2,-H-hop,W,H);
    ctx.restore();
   }
   if(odinSpearImg.complete&&odinSpearImg.naturalWidth){ /* Gungnir - held on the side he strikes, like the hero's weapon */
    const AH=H*1.0,AW=AH*odinSpearImg.naturalWidth/odinSpearImg.naturalHeight;
    const bfx=(hero&&hero.x<en.x)?-1:1; /* face the target */
-   ctx.save();ctx.translate(bfx*W*0.42,-H*0.28+by);ctx.scale(bfx,1);ctx.rotate(0.5+(en.swing?(0.2-en.swing)*7:0));
+   ctx.save();ctx.translate(bfx*W*0.42,-H*0.28+by-en.r*0.45);ctx.scale(bfx,1);ctx.rotate(0.5+(en.swing?(0.2-en.swing)*7:0));
    ctx.drawImage(mip(odinSpearImg,AW),-AW/2,-AH*0.8,AW,AH);
    ctx.restore();
   }
  }else if(mobSkin){ /* 🎨 painted foe - grey art soaked in this enemy's own colour */
   const H=en.r*(MOB_SIZE[en.kind]||4.6),W=H*mobSkin.naturalWidth/mobSkin.naturalHeight;
-  const art=mobTinted(mobSkin,en.c)||mobSkin;
+  const whole=mobSkin===REVENANT_SKIN.img?EnemyFullbody.get(REVENANT_SKIN):null;
+  const raw=whole?whole.img:mobSkin,art=mobTinted(raw,en.c)||raw,px=H/mobSkin.naturalHeight;
+  if(whole)mobExtra=Math.max(0,whole.y+whole.height-mobSkin.naturalHeight)*px;
   const ph=en.wt||0,k=en.mv||0;                      /* same stride cadence as the farm animals */
   const hop=Math.abs(Math.sin(ph))*(1.5+W*0.03)*k;
   const fx=(hero&&hero.x<en.x)?-1:1;                        /* face the hero */
   ctx.save();
-  ctx.translate(0,en.r*0.62+by);
+  ctx.translate(0,en.r*0.62+by-mobExtra);
   ctx.scale(fx,1);
   ctx.rotate(Math.sin(ph)*0.06*k);
-  ctx.drawImage(mip(art,W),-W/2,-H-hop,W,H);
+  if(whole)ctx.drawImage(mip(art,whole.width*px),-W/2+whole.x*px,-H+whole.y*px-hop,whole.width*px,whole.height*px);
+  else ctx.drawImage(mip(art,W),-W/2,-H-hop,W,H);
   ctx.restore();
  }else if(en.kind==='beast'){
   ctx.fillStyle=en.c;ctx.beginPath();ctx.ellipse(0,-4+by,en.r,en.r*0.75,0,0,7);ctx.fill();
@@ -9145,7 +9110,7 @@ function drawEnemy(en){
  if(en.hurt>0){ctx.fillStyle='rgba(255,255,255,'+en.hurt*2.5+')';ctx.beginPath();ctx.arc(0,-6+by,en.r*0.9,0,7);ctx.fill();}
  ctx.font=(en.boss?'700 11px ':'600 9px ')+getComputedStyle(document.body).fontFamily;
  ctx.textAlign='center';
- const lblY=(typeof odinPainted!=='undefined'&&odinPainted)?-en.r*4.4:raidSkin?-en.r*((raidSkin.size||5)+0.1):mobSkin?-en.r*((MOB_SIZE[en.kind]||4.6)-0.25):-en.r-16; /* painted foes stand taller than the old blobs */
+ const lblY=(typeof odinPainted!=='undefined'&&odinPainted)?-en.r*4.85:raidSkin?-en.r*((raidSkin.size||5)+0.1):mobSkin?-en.r*((MOB_SIZE[en.kind]||4.6)-0.25)-mobExtra:-en.r-16; /* painted foes stand taller than the old blobs */
  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(en.name,1,lblY+by+1);
  ctx.fillStyle=en.boss?'#ffd76a':'#ffe9e0';ctx.fillText(en.name,0,lblY+by);
  if((en.hp<en.max||en.boss)&&!en.dead)drawMiniBar(-en.r,lblY+3+by,en.r*2,en.hp/en.max,'#c75146');
