@@ -9,6 +9,12 @@
  const point=p=>!!p&&Number.isFinite(p.x)&&Number.isFinite(p.y);
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const n=v=>Number(v.toFixed(2));
+ function respawnText(readyAt,now=Date.now()){
+  const seconds=Math.max(0,Math.ceil((readyAt-now)/1000));
+  if(!Number.isFinite(seconds)||!seconds)return 'Respawning…';
+  const h=Math.floor(seconds/3600),m=Math.floor(seconds%3600/60),s=seconds%60;
+  return `Respawns in ${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+ }
  function projection(world){
   if(!world||!Number.isFinite(world.w)||!Number.isFinite(world.h)||world.w<=0||world.h<=0)return null;
   const scale=Math.min((WIDTH-2*PAD)/world.w,(HEIGHT-2*PAD)/world.h);
@@ -51,7 +57,8 @@
     const name=en&&en.name||def&&def.bosses[room.index]&&def.bosses[room.index].name||'Boss '+(room.index+1);
     const dead=!!(en&&en.dead),status=dead?'Defeated':'Alive',color=dead?'#b0d6a1':'#f1b18c';
     layers.push(`<g data-boss="${room.index}" data-status="${status.toLowerCase()}"><title>${escape(name+' — '+status)}</title>${badge(p,dead?'dead':'boss',room.index+1,color)}</g>`);
-    legend.push(`<li><span style="color:${color}">${room.index+1} · ${escape(name)}</span> <span style="color:#d8c7aa">— ${status}</span></li>`);
+    const timer=dead&&Number.isFinite(en.bossReadyAt)&&en.bossReadyAt>0?` <span data-boss-ready-at="${en.bossReadyAt}" style="color:#d8c7aa">${respawnText(en.bossReadyAt)}</span>`:'';
+    legend.push(`<li><span style="color:${color}">${room.index+1} · ${escape(name)}</span> <span style="color:#d8c7aa">— ${status}</span>${timer}</li>`);
     description.push(name+': '+status+'.');
    }
   }else{
@@ -61,13 +68,7 @@
     const emit=()=>{if(segment.length>1)layers.push(`<polyline data-road="${i}" points="${segment.join(' ')}" fill="none" stroke="#d4ba83" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`);segment=[];};
     for(const p of road.points||[]){const q=map.at(p);if(q)segment.push(q.x+','+q.y);else emit();}emit();
    }
-   const entrances=world.entrances||root.WastelandWorld&&root.WastelandWorld.ENTRANCES||[];
-   for(const [i,e] of entrances.entries()){
-    const p=map.at(e);if(!p)continue;
-    const name=names[e.id||e.key]||e.name||'Cave';
-    layers.push(`<g data-entrance="${escape(e.id||e.key||i)}"><title>${escape(name)}</title>${badge(p,'cave','', '#e1c18a')}${label(p,name)}</g>`);
-    legend.push(`<li><span style="color:#e1c18a">◇</span> ${escape(name)}</li>`);description.push(name+' entrance.');
-   }
+   // Cave entrances are found by exploring; neither map publishes their markers or names.
   }
   const exit=map.at(world.exit||world.spawn),exitName=dungeon?'Wasteland':'Home';
   if(exit){layers.push(`<g data-exit="true"><title>${exitName}</title>${badge(exit,'home','','#e9dcb8')}${label(exit,exitName)}</g>`);description.push('Exit to '+exitName+'.');}
@@ -78,9 +79,10 @@
   }else description.push('Player position unavailable.');
   const subtitle=dungeon?'Dungeon overview':'Wilderness overview';
   const svg=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${WIDTH} ${HEIGHT}" role="img" aria-labelledby="${id}-title ${id}-desc" style="display:block;width:100%;height:auto;margin:8px 0;background:#1b201a;border:1px solid #796242;border-radius:7px;box-sizing:border-box"><title id="${id}-title">${names[key]} — ${subtitle}</title><desc id="${id}-desc">${escape(description.join(' '))}</desc>${layers.join('')}<g transform="translate(567 23)" fill="#dfcda4" stroke="#dfcda4"><path d="M0 25V8M-5 14L0 7L5 14" fill="none" stroke-width="1.6"/><text y="2" text-anchor="middle" stroke="none" font-size="17" font-family="Georgia,serif">N</text></g></svg>`;
-  const keyText=`<div style="display:flex;flex-wrap:wrap;gap:5px 14px;color:#d8c7aa;font-size:12px"><span><span style="color:#a2edf2">●</span> ${player?'You':'Position unavailable'}</span><span>⌂ ${exitName}</span><span>${dungeon?'Number · boss; ✓ defeated':'━ Road; ◇ cave'}</span></div>`;
-  return `<figure class="card wasteland-map" style="margin:0 0 12px;padding:12px;box-sizing:border-box;max-width:760px;background:linear-gradient(160deg,#3a3023,#25241b);border-color:#977b50"><figcaption style="font-family:var(--display,Georgia,serif);font-size:17px;color:#f0dfbb">${names[key]} <span style="font-family:inherit;font-size:11px;color:#cab996">· ${subtitle}</span></figcaption>${svg}${keyText}<ul aria-label="${dungeon?'Bosses':'Cave entrances'}" style="list-style:none;padding:0;margin:9px 0 0;display:grid;gap:5px;font-size:13px;line-height:1.4;color:#ecddbf">${legend.join('')}</ul></figure>`;
+  const keyText=`<div style="display:flex;flex-wrap:wrap;gap:5px 14px;color:#d8c7aa;font-size:12px"><span><span style="color:#a2edf2">●</span> ${player?'You':'Position unavailable'}</span><span>⌂ ${exitName}</span><span>${dungeon?'Number · boss; ✓ defeated':'━ Road'}</span></div>`;
+  const bossList=dungeon?`<ul aria-label="Bosses" style="list-style:none;padding:0;margin:9px 0 0;display:grid;gap:5px;font-size:13px;line-height:1.4;color:#ecddbf">${legend.join('')}</ul>`:'';
+  return `<figure class="card wasteland-map" style="margin:0 0 12px;padding:12px;box-sizing:border-box;max-width:760px;background:linear-gradient(160deg,#3a3023,#25241b);border-color:#977b50"><figcaption style="font-family:var(--display,Georgia,serif);font-size:17px;color:#f0dfbb">${names[key]} <span style="font-family:inherit;font-size:11px;color:#cab996">· ${subtitle}</span></figcaption>${svg}${keyText}${bossList}</figure>`;
  }
- const api=Object.freeze({render});root.WastelandMap=api;
+ const api=Object.freeze({render,respawnText});root.WastelandMap=api;
  if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

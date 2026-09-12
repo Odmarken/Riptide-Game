@@ -8,8 +8,20 @@ const W=require('../assets/wasteland/world.js');
 const root=path.resolve(__dirname,'..');
 const D=vm.runInNewContext(fs.readFileSync(path.join(root,'assets/wasteland/dungeons.js'),'utf8')+';WastelandDungeons',{});
 const keys=['briarhollow','cindervein','frostveil'];
-const stats={level:60,maxHp:1500,attack:280};
-function encounter(key='briarhollow',s=stats){return D.createEncounter(key,W.create(key,17).enemySpawns,s);}
+const game=fs.readFileSync(path.join(root,'game.js'),'utf8');
+const normalSource=['eHP','eATK','effectiveHeroLvl','effZoneLvl','xpZoneLvl','goldZoneLvl','pMul','pRew']
+ .map(name=>game.match(new RegExp('^const '+name+'=.*$','m'))[0]).join('\n')+'\n'+
+ game.slice(game.indexOf('function zoneTemplates('),game.indexOf('\nfunction zoneQuests('))+'\n'+
+ game.slice(game.indexOf('function spawnEnemyAt('),game.indexOf('\nfunction spawnAdd('));
+function normalStats(level=60,prestige=0,zoneLevel=1){
+ const zone={lvl:zoneLevel,en:[['One','beast','#abc'],['Two','beast','#abc'],['Three','beast','#abc']]};
+ const context={S:{lvl:level,prestige},MAXLVL:60,enemies:[],expeditionZone:z=>!!(z.dungeon||z.wasteland),mobGold:()=>0,zoneOf:()=>zone};
+ const api=vm.runInNewContext(normalSource+';({zoneTemplates,spawnEnemyAt})',context);
+ const mobs=api.zoneTemplates(zone),boss=api.zoneTemplates({lvl:zoneLevel,boss:['Normal boss','#abc','boss']})[0];
+ return {mobs,boss,spawn:t=>api.spawnEnemyAt(t,null,{x:100,y:100})};
+}
+const stats=normalStats();
+function encounter(key='briarhollow',s=stats,options){return D.createEncounter(key,W.create(key,17).enemySpawns,s,options);}
 function heroNear(en,x=160,y=0){return {x:en.home.x+x,y:en.home.y+y,dead:false};}
 function tickUntil(en,hero,predicate,hooks={},limit=400){
  for(let i=0;i<limit&&!predicate();i++)D.updateEnemy(en,.05,hero,hooks);
@@ -31,7 +43,7 @@ test('all actual dungeon layouts create 15 themed foes and six distinct existing
    if(en.boss){
     bosses.push(en);assert.equal(en.dungeonMoves.length,2);
     assert.deepEqual(Array.from(en.dungeonMoves,m=>m.shape).sort(),['circle','cone']);
-    for(const m of en.dungeonMoves){assert.ok(m.warn>=1.35);assert.ok(m.damage<=.24);}
+    for(const m of en.dungeonMoves){assert.ok(m.warn>=1.35);assert.ok(m.damage>=1.2&&m.damage<=1.44);}
    }else assert.ok(fs.existsSync(path.join(root,'assets/mobs',en.mobSprite+'.png')),en.mobSprite);
   }
  }
@@ -49,22 +61,30 @@ test('invalid layouts cannot silently omit or duplicate a book boss',()=>{
  assert.throws(()=>D.createEncounter('briarhollow',spawns.map((p,i)=>i? p:{...p,x:NaN}),stats),/Invalid/);
 });
 
-test('scaling is finite for malformed/extreme stats and preserves the benefit of better gear',()=>{
- for(const level of [1,60,180,10000,NaN,Infinity,-4])for(const gear of [1,280,1e9,NaN,Infinity]){
-  const run=encounter('frostveil',{level,attack:gear,maxHp:gear});
-  for(const en of run.enemies){
-   assert.ok(Number.isFinite(en.max)&&en.max>=1);
-   assert.ok(Number.isFinite(en.atk)&&en.atk>=1);
-   assert.ok(Number.isFinite(en.dungeonDamageHealth));
+test('dungeon HP, attack and body size match actual ordinary spawns across levels, zones and prestige',()=>{
+ for(const level of [1,30,60])for(const prestige of [0,1,5,20,50])for(const zoneLevel of [1,60]){
+  const templates=normalStats(level,prestige,zoneLevel);
+  for(const key of keys)for(const en of encounter(key,templates).enemies){
+   const ordinary=templates.spawn(en.boss?templates.boss:templates.mobs[en.dungeonIndex]);
+   assert.equal(en.max,ordinary.max,`${key} L${level} P${prestige} HP`);
+   assert.equal(en.atk,ordinary.atk,`${key} L${level} P${prestige} attack`);
+   assert.equal(en.r,ordinary.r,'same painted body scale and collision radius');
+   assert.equal(en.speed,ordinary.speed);assert.equal(en.atkCd,en.boss?1.5:1.15);
   }
  }
- const weak=encounter('briarhollow',{level:60,attack:168,maxHp:1000});
- const strong=encounter('briarhollow',{level:60,attack:672,maxHp:10000});
- assert.ok(strong.enemies[15].max/672<weak.enemies[15].max/168,'better weapon reduces hits needed');
- assert.ok(strong.enemies[15].atk/10000<weak.enemies[15].atk/1000,'health gear reduces relative damage');
- const input={...stats},snap=encounter('briarhollow',input),hp=snap.enemies[15].max;
- input.attack=1e9;input.maxHp=1;D.reset(snap);
- assert.equal(snap.enemies[15].max,hp,'encounter stats do not follow mutable equipment input');
+ const weak=encounter('briarhollow',{...stats,attack:1,maxHp:1}),strong=encounter('briarhollow',{...stats,attack:1e9,maxHp:1e9});
+ assert.deepEqual(Array.from(weak.enemies,e=>[e.max,e.atk]),Array.from(strong.enemies,e=>[e.max,e.atk]),'equipment no longer rescales enemies');
+ assert.ok(normalStats(1,1).boss.hp>normalStats(60,0).boss.hp,'rebirth does not reset difficulty');
+ const input={mobs:stats.mobs.map(m=>({...m})),boss:{...stats.boss}},snap=encounter('briarhollow',input),hp=snap.enemies[0].max;
+ input.boss.hp=1;D.reset(snap);assert.equal(snap.enemies[0].max,hp,'entry snapshots remain stable');
+});
+
+test('missing or corrupt normal templates fail explicitly instead of spawning invalid or weaker foes',()=>{
+ assert.throws(()=>encounter('briarhollow',{level:60,attack:200}),/ordinary mob templates/);
+ for(const invalid of [0,-1,NaN,Infinity,Number.MAX_VALUE]){
+  assert.throws(()=>encounter('briarhollow',{mobs:stats.mobs,boss:{hp:invalid,atk:20}}),/finite positive/);
+  assert.throws(()=>encounter('briarhollow',{mobs:stats.mobs,boss:{hp:100,atk:invalid}}),/finite positive/);
+ }
 });
 
 test('all regular deaths are unrewarded and never respawn; each boss grants exactly one book',()=>{
@@ -83,18 +103,18 @@ test('all regular deaths are unrewarded and never respawn; each boss grants exac
  }
 });
 
-test('reset/reentry restore all encounters and retire stale killed/projectile references',()=>{
- const run=encounter('cindervein'),old=run.enemies.slice(),oldId=old[0].encounterId;
+test('reset restores mobs, respects boss cooldowns and retires stale killed/projectile references',()=>{
+ const timers={},run=encounter('cindervein',stats,{bossReadyAt:timers,now:()=>1000}),old=run.enemies.slice(),oldId=old[0].encounterId;
  D.defeat(old[0]);D.defeat(old[15]);old[16].dungeonCast={shape:'circle',x:0,y:0};
  D.reset(run);
  assert.equal(run.enemies.length,17);
  for(let i=0;i<17;i++){
-  const fresh=run.enemies[i];assert.notEqual(fresh,old[i]);assert.equal(fresh.dead,false);
-  assert.equal(fresh.hp,fresh.max);assert.equal(fresh.x,fresh.home.x);assert.equal(fresh.y,fresh.home.y);
+  const fresh=run.enemies[i],waiting=fresh.boss&&!!timers[fresh.dungeonIndex];assert.notEqual(fresh,old[i]);assert.equal(fresh.dead,waiting);
+  assert.equal(fresh.hp,waiting?0:fresh.max);assert.equal(fresh.x,fresh.home.x);assert.equal(fresh.y,fresh.home.y);
   assert.notEqual(fresh.encounterId,oldId);assert.equal(fresh.dungeonCast,null);
   assert.equal(D.defeat(old[i]),null,'old death cannot pay after a reset');
  }
- assert.equal(D.defeat(run.enemies.find(e=>e.boss)).books,1,'fresh life may pay normally');
+ assert.equal(D.defeat(run.enemies.find(e=>e.boss)),null,'reset cannot pay a waiting boss twice');
  assert.notEqual(encounter('cindervein').enemies[0].encounterId,run.enemies[0].encounterId);
 });
 
@@ -132,7 +152,8 @@ test('standing in either warning causes one bounded strike with a melee-free rec
    assert.equal(hits.length,n,'no damage before warning expires');
    resolve(en,hero,hooks);
    assert.equal(hits.length,n+1);assert.equal(hits[n][0],cast.damage);assert.equal(hits[n][3],false);
-   assert.ok(cast.damage>0&&cast.damage<=stats.maxHp*.25,'single special cannot one-shot a full-health hero');
+   assert.equal(cast.damage,Math.round(en.atk*en.dungeonMoves[n].damage),'special follows normal boss attack scaling');
+   assert.ok(cast.damage>0&&cast.damage<=en.atk*1.45,'special stays within its telegraphed attack multiplier');
    for(let i=0;i<10;i++)D.updateEnemy(en,.1,hero,hooks);
    assert.equal(hits.length,n+1,'recovery cannot stack an immediate melee hit');
   }
@@ -184,4 +205,66 @@ test('long or invalid frame deltas cannot skip a full warning and deal immediate
  tickUntil(en,hero,()=>!!en.dungeonCast);
  for(const dt of [1000,Infinity,NaN,-1])D.updateEnemy(en,dt,hero,{hurtHero:(...v)=>hits.push(v)});
  assert.ok(en.dungeonCast);assert.ok(en.dungeonCast.elapsed<=.1);assert.equal(hits.length,0);
+});
+
+test('saved boss timers retain only known finite future deadlines and cannot extend beyond two hours',()=>{
+ const now=1000000,raw={briarhollow:{0:now+60000,1:now,2:now+100},cindervein:{0:Infinity,1:'2000000'},frostveil:{0:now+D.BOSS_RESPAWN_MS*3,1:NaN},other:{0:now+1000}};
+ const clean=D.normalizeBossTimers(raw,now);
+ assert.deepEqual(JSON.parse(JSON.stringify(clean)),{briarhollow:{0:now+60000},cindervein:{},frostveil:{0:now+D.BOSS_RESPAWN_MS}});
+ assert.equal(raw.frostveil[0],now+D.BOSS_RESPAWN_MS*3,'validation does not mutate the imported save');
+ for(const invalid of [null,[],{briarhollow:[now+1000]},Object.create({briarhollow:{0:now+1000}})]){
+  assert.deepEqual(JSON.parse(JSON.stringify(D.normalizeBossTimers(invalid,now))),{briarhollow:{},cindervein:{},frostveil:{}});
+ }
+});
+
+test('each boss starts its own two-hour deadline before reward release and duplicate kills cannot extend it',()=>{
+ let now=1000000;const timers={},run=encounter('briarhollow',stats,{bossReadyAt:timers,now:()=>now}),bosses=run.enemies.filter(e=>e.boss);
+ assert.equal(D.BOSS_RESPAWN_MS,7200000);
+ for(const [i,en]of bosses.entries()){
+  const atDeath=now;en.hp=0;
+  const reward=D.defeat(en);
+  assert.equal(reward.books,1);assert.equal(reward.bossIndex,i);
+  assert.equal(timers[i],atDeath+7200000);assert.equal(reward.bossReadyAt,timers[i]);
+  assert.equal(en.bossReadyAt,timers[i]);assert.equal(D.bossRemaining(en,now),7200000);
+  now+=30000;
+  assert.equal(D.defeat(en),null);assert.equal(timers[i],atDeath+7200000);
+ }
+ assert.equal(timers[1]-timers[0],30000,'bosses have independent kill clocks');
+ const before=JSON.stringify(timers),mob=run.enemies.find(e=>!e.boss);
+ assert.equal(D.defeat(mob).books,0);assert.equal(JSON.stringify(timers),before);assert.equal(D.bossRemaining(mob,now),0);
+});
+
+test('boss cooldowns survive zone hops, death resets and serialized reloads without affecting other heroes',()=>{
+ let now=1000000;const character=D.normalizeBossTimers(null,now);
+ const run=encounter('frostveil',stats,{bossReadyAt:character.frostveil,now:()=>now});
+ D.defeat(run.enemies.find(e=>e.boss));D.reset(run);
+ const loaded=JSON.parse(JSON.stringify(character));now+=3600000;
+ const afterHop=encounter('frostveil',stats,{bossReadyAt:loaded.frostveil,now:()=>now});
+ const bosses=afterHop.enemies.filter(e=>e.boss);
+ assert.equal(bosses[0].dead,true);assert.equal(bosses[0].hp,0);assert.equal(bosses[0].dungeonDefeated,true);
+ assert.equal(D.defeat(bosses[0]),null);assert.equal(D.bossRemaining(bosses[0],now),3600000);
+ assert.equal(bosses[1].dead,false,'uncleared boss remains available');
+ assert.equal(encounter('cindervein',stats,{bossReadyAt:loaded.cindervein,now:()=>now}).enemies.filter(e=>e.boss).every(e=>!e.dead),true);
+ assert.equal(encounter('frostveil',stats,{bossReadyAt:{},now:()=>now}).enemies.filter(e=>e.boss).every(e=>!e.dead),true,'another character has independent bosses');
+ now+=3600000;
+ const afterRestart=encounter('frostveil',stats,{bossReadyAt:loaded.frostveil,now:()=>now});
+ assert.equal(afterRestart.enemies.find(e=>e.boss).dead,false);assert.equal(loaded.frostveil[0],undefined);
+});
+
+test('a boss respawns exactly at wall-clock expiry even after pause, with one callback and a fresh reward life',()=>{
+ let now=1000000;const timers={},run=encounter('cindervein',stats,{bossReadyAt:timers,now:()=>now});
+ const en=run.enemies.find(e=>e.boss),firstId=en.encounterId,hero=heroNear(en),events=[];
+ const hooks={onRespawn:e=>events.push(e),hurtHero:()=>assert.fail('respawn must not immediately hit the hero')};
+ D.defeat(en);const deadline=en.bossReadyAt;
+ en.x+=150;en.y+=100;en._ax=en.x;en._ay=en.y;en.wt=4;en.mv=1;en.fx=-1;en.fy=.5;
+ en.slowT=9;en.hurt=1;en.swing=.2;now=deadline-1;
+ D.updateEnemy(en,.1,hero,hooks);assert.equal(en.dead,true);assert.equal(D.bossRemaining(en,now),1);assert.equal(events.length,0);
+ now=deadline;D.updateEnemy(en,0,hero,hooks); // No simulation time passes while the real clock crosses the deadline.
+ assert.equal(en.dead,false);assert.equal(en.hp,en.max);assert.equal(en.x,en.home.x);assert.equal(en.y,en.home.y);
+ assert.equal(en.bossReadyAt,0);assert.equal(timers[0],undefined);assert.equal(events.length,1);assert.equal(events[0],en);
+ assert.notEqual(en.encounterId,firstId);assert.equal(en.dungeonCast,null);assert.equal(en.dungeonDefeated,false);
+ assert.equal(en.slowT,0);assert.equal(en.hurt,0);assert.equal(en.swing,0);
+ for(const key of ['_ax','_ay','wt','mv','fx','fy'])assert.equal(key in en,false,`${key} cannot leak from the previous life`);
+ D.updateEnemy(en,0,hero,hooks);assert.equal(events.length,1);
+ const second=D.defeat(en);assert.equal(second.books,1);assert.equal(second.bossReadyAt,now+7200000);assert.equal(D.defeat(en),null);
 });

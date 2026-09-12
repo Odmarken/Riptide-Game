@@ -26,6 +26,7 @@ function realCity() {
   return context.world;
 }
 const city = realCity();
+const wasteland = require('../assets/wasteland/world.js').create();
 const placeTypes = ['altarportal', 'cathedral', 'enchanthall', 'minehall', 'smelter', 'well'];
 
 function recordingCanvas() {
@@ -44,7 +45,7 @@ function recordingCanvas() {
     drawImage(image, ...args) { record('drawImage', args); ops.at(-1).image = image; },
     createRadialGradient(...args) { record('gradient', args); return { addColorStop() {} }; },
   };
-  for (const name of ['scale', 'rotate', 'translate', 'setTransform', 'clearRect', 'fillRect', 'strokeRect', 'ellipse', 'arc']) {
+  for (const name of ['scale', 'rotate', 'translate', 'setTransform', 'clearRect', 'fillRect', 'strokeRect', 'ellipse', 'arc', 'rect']) {
     g[name] = (...args) => record(name, args);
   }
   const canvas = { width: 0, height: 0, getContext: () => g,
@@ -55,8 +56,9 @@ function recordingCanvas() {
 }
 function harness() {
   const atlasCanvases = [], map = recordingCanvas(), listeners = new Map();
-  const tip = { textContent: '' };
-  const el = { hidden: true, querySelector: selector => selector === 'canvas' ? map.canvas : tip,
+  const tip = { textContent: '' }, title = { textContent: 'CITY' }, attributes = new Map();
+  const el = { hidden: true, querySelector: selector => selector === 'canvas' ? map.canvas : selector === '.minimap-title' ? title : tip,
+    setAttribute(name, value) { attributes.set(name, value); }, getAttribute(name) { return attributes.get(name); },
     addEventListener(name, fn) { listeners.set(name, fn); } };
   const context = vm.createContext({ devicePixelRatio: 1,
     Path2D: class { constructor(path) { this.path = path; } },
@@ -66,7 +68,7 @@ function harness() {
   });
   vm.runInContext(source, context, { filename: 'city-minimap.js' });
   const controller = context.CityMinimap.create(el);
-  return { context, api: context.CityMinimap, controller, atlasCanvases, map, el, tip, listeners };
+  return { context, api: context.CityMinimap, controller, atlasCanvases, map, el, tip, title, listeners };
 }
 
 test('north-up projection centres the player and uses one scale on both axes', () => {
@@ -199,10 +201,91 @@ test('pointer tooltips use CSS coordinates and HUD gestures cannot bubble into w
   }
 });
 
+test('Wasteland exposes only its Home portal and never reads dungeon metadata', () => {
+  const { api } = harness(), world = { ...wasteland };
+  for (const name of ['entrances', 'travelDoors', 'enemySpawns', 'bossRooms', 'solids']) {
+    Object.defineProperty(world, name, { get() { throw new Error('Minimap read private metadata: ' + name); } });
+  }
+  for (const hero of [wasteland.spawn, ...wasteland.entrances, { x: wasteland.w, y: 0 }]) {
+    const places = api.markers(world, hero);
+    assert.equal(places.length, 1);
+    const home = places[0];
+    assert.equal(home.type, 'homeportal'); assert.equal(home.name, 'Home');
+    close(home.distance, Math.hypot(world.exit.x - hero.x, world.exit.y - hero.y));
+    close(home.angle, Math.atan2(world.exit.y - hero.y, world.exit.x - hero.x));
+    if (home.far) close(Math.hypot(home.x - 90, home.y - 90), 72);
+    assert.doesNotMatch(JSON.stringify(places), /briar|cinder|frost|dungeon|cathedral|enchant/i);
+  }
+  assert.equal(api.markers({ ...wasteland, exit: null }, wasteland.spawn).length, 0);
+  assert.equal(api.markers({ ...wasteland, exit: { x: NaN, y: 0 } }, wasteland.spawn).length, 0);
+  assert.equal(api.markers({ ...wasteland, dungeon: 'briarhollow' }, wasteland.spawn).length, 0);
+});
+
+test('Wasteland roads preserve their real polylines and widths with sharp local vector rendering', () => {
+  const h = harness();
+  assert.equal(wasteland.w, 50400); assert.equal(wasteland.h, 26000);
+  for (const [index, road] of wasteland.paths.entries()) {
+    const start = h.map.ops.length, hero = road.points[Math.floor(road.points.length / 2)];
+    h.controller.update(wasteland, { ...hero, fx: 1 }, true, index * 50);
+    const strokes = h.map.ops.slice(start).filter(op => op.op === 'stroke' && op.width === road.width);
+    assert.ok(strokes.some(op => JSON.stringify(op.path) === JSON.stringify(road.points.map(p => [p.x, p.y]))),
+      'The visible road must retain every bend and its real width');
+  }
+  assert.equal(h.atlasCanvases.length, 0, 'Large Wasteland needs no downsampled or whole-world atlas');
+  assert.equal(h.map.ops.filter(op => op.op === 'drawImage').length, 0, 'Roads stay vector-sharp');
+  assert.ok(h.map.ops.some(op => op.op === 'scale' && op.args[0] === 86 / 2600 && op.args[1] === 86 / 2600));
+  h.context.devicePixelRatio = 3;
+  h.controller.update(wasteland, wasteland.spawn, true, 250);
+  assert.equal(h.map.canvas.width, 360); assert.equal(h.map.canvas.height, 360);
+  for (let i = 0; i < 50; i++) h.controller.update(wasteland, { x: i * 1000, y: i * 500 }, true, 300 + i * 50);
+  assert.equal(h.atlasCanvases.length, 0, 'Crossing the full world never accumulates terrain canvases');
+  assert.equal(h.map.stack.length, 0);
+});
+
+test('invalid Wasteland path points break roads rather than drawing false connections', () => {
+  const h = harness(), world = { key: 'wasteland', w: 10000, h: 10000, exit: null,
+    paths: [{ width: 160, points: [{ x: 100, y: 100 }, { x: 300, y: 100 },
+      { x: NaN, y: 100 }, { x: 900, y: 100 }, { x: 1100, y: 100 }] },
+    { width: Infinity, points: [{ x: 100, y: 100 }, { x: 1000, y: 100 }] }] };
+  h.controller.update(world, { x: 600, y: 100 }, true, 0);
+  const strokes = h.map.ops.filter(op => op.op === 'stroke' && op.width === 160);
+  assert.deepEqual(strokes.map(op => op.path), [[[100, 100], [300, 100]], [[900, 100], [1100, 100]]]);
+});
+
+test('City-to-Wasteland switching removes City tooltips and never reveals dungeon destinations', () => {
+  const h = harness();
+  h.controller.update(city, city.spawn, true, 0);
+  const well = h.api.markers(city, city.spawn).find(p => p.type === 'well');
+  const hover = p => h.map.listeners.get('pointermove')({ clientX: 200 + p.x * 150 / 180, clientY: 30 + p.y * 150 / 180 });
+  hover(well); assert.match(h.tip.textContent, /^Well/);
+  const privateWorld = { ...wasteland };
+  for (const name of ['entrances', 'solids', 'travelDoors', 'bossRooms', 'enemySpawns']) {
+    Object.defineProperty(privateWorld, name, { get() { throw new Error('Renderer read ' + name); } });
+  }
+  for (const [index, entrance] of wasteland.entrances.entries()) {
+    h.controller.update(privateWorld, entrance, true, 50 + index * 50);
+    assert.match(h.el.getAttribute('aria-label'), /^Wasteland minimap/);
+    assert.equal(h.title.textContent, 'WASTELAND');
+    assert.doesNotMatch(h.el.getAttribute('aria-label'), /briar|cinder|frost|dungeon|church|enchant/i);
+    hover({ x: 90, y: 90 }); assert.match(h.tip.textContent, /^You/);
+    const home = h.api.markers(privateWorld, entrance)[0]; hover(home);
+    assert.match(h.tip.textContent, /^Home/);
+    for (let y = 0; y <= 180; y += 15) for (let x = 0; x <= 180; x += 15) {
+      hover({ x, y }); assert.match(h.tip.textContent, /^(You|Home)/);
+    }
+  }
+  h.controller.update({ ...wasteland, dungeon: 'frostveil' }, wasteland.spawn, true, 210);
+  assert.equal(h.el.hidden, true); assert.match(h.tip.textContent, /^You/);
+  h.controller.update(city, city.spawn, true, 220);
+  assert.equal(h.el.hidden, false); assert.match(h.el.getAttribute('aria-label'), /^City minimap/);
+  assert.equal(h.title.textContent, 'CITY');
+  hover(well); assert.match(h.tip.textContent, /^Well/);
+});
+
 test('the actual frame hook updates visibility in City, pause, other zones and character menus', () => {
   const calls = [];
   const context = vm.createContext({ lastT: 0, fpsN: 0, fpsT: 0, frameDt: 0, saveT: 0,
-    gameOn: true, gamePaused: false, S: { zone: 1 }, ZONES: [{ city: false }, { city: true }],
+    gameOn: true, gamePaused: false, S: { zone: 1 }, ZONES: [{ city: false }, { city: true }, { wasteland: true }, { wasteland: true, dungeon: 'briarhollow' }],
     world: city, hero: city.spawn, cityMinimap: { update(...args) { calls.push(args); } },
     update() {}, renderVitals() {}, draw() {}, save() {}, requestAnimationFrame() {}, $: () => null,
     ctx: { fillRect() {}, fillText() {} }, VW: 800, VH: 600,
@@ -212,8 +295,10 @@ test('the actual frame hook updates visibility in City, pause, other zones and c
   context.frame(0); assert.equal(calls.at(-1)[2], true);
   context.gamePaused = true; context.frame(20); assert.equal(calls.at(-1)[2], true);
   context.S.zone = 0; context.frame(40); assert.equal(!!calls.at(-1)[2], false);
+  context.S.zone = 2; context.frame(45); assert.equal(!!calls.at(-1)[2], true, 'Wasteland shares the round minimap');
+  context.S.zone = 3; context.frame(50); assert.equal(!!calls.at(-1)[2], false, 'Dungeons do not enable the round minimap');
   context.S.zone = 1; context.gameOn = false; context.frame(60);
   assert.equal(!!calls.at(-1)[2], false, 'Character menus must hide a leftover City map');
   context.S = null; context.frame(80); assert.equal(!!calls.at(-1)[2], false);
-  assert.equal(calls.length, 5, 'Visibility updates even when the game draw is not running');
+  assert.equal(calls.length, 7, 'Visibility updates even when the game draw is not running');
 });

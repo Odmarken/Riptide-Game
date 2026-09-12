@@ -1,5 +1,8 @@
 /* Wasteland dungeon combat. No inventory, save, DOM or network access.
- * createEncounter(key, world.enemySpawns, {level,maxHp,attack}) -> {enemies,...}.
+ * createEncounter(key, world.enemySpawns, {mobs,boss}, {bossReadyAt,now}) -> {enemies,...}.
+ * mobs/boss are ordinary zoneTemplates: all HP/damage scaling stays in game.js.
+ * bossReadyAt is the character's mutable per-dungeon deadline record (indices 0/1).
+ * now is a wall-clock function in milliseconds, default Date.now; timers survive reset.
  * updateEnemy returns true for dungeon foes: skip ALL ordinary AI/respawn then.
  * Hooks: moveToward(enemy,x,y,dt), hurtHero(damage,label,enemy,isMelee),
  *        onWarn(cast,enemy), onStrike(cast,enemy,hit) (last two are optional VFX).
@@ -21,9 +24,9 @@
    ],
    bosses:[
     {name:'Brackenstone',kind:'beast',skin:'ossric',color:'#bda077',speed:80,
-     moves:[cone('Stonebreaker',235,.60,1.35,.20),circle('Falling Rubble',92,1.65,.20)]},
+     moves:[cone('Stonebreaker',235,.60,1.35,1.20),circle('Falling Rubble',92,1.65,1.20)]},
     {name:'Elder Thornroot',kind:'beast',skin:'gorehusk',color:'#9cc668',speed:76,
-     moves:[cone('Briar Sweep',270,.75,1.50,.22),circle('Grasping Roots',105,1.70,.20)]}
+     moves:[cone('Briar Sweep',270,.75,1.50,1.32),circle('Grasping Roots',105,1.70,1.20)]}
    ]},
   cindervein:{key:'cindervein',name:'Cindervein',theme:'ember mine',color:'#e99657',
    mobs:[
@@ -33,9 +36,9 @@
    ],
    bosses:[
     {name:'Ashbound Sentinel',kind:'humanoid',skin:'ashmaw',color:'#f6a463',speed:82,
-     moves:[cone('Cinder Cleave',250,.55,1.35,.22),circle('Emberfall',105,1.60,.22)]},
+     moves:[cone('Cinder Cleave',250,.55,1.35,1.32),circle('Emberfall',105,1.60,1.32)]},
     {name:'Lord Cindervein',kind:'humanoid',skin:'firelord',color:'#ffc06f',speed:78,
-     moves:[cone('Furnace Breath',285,.55,1.60,.24),circle('Molten Seal',118,1.80,.23)]}
+     moves:[cone('Furnace Breath',285,.55,1.60,1.44),circle('Molten Seal',118,1.80,1.38)]}
    ]},
   frostveil:{key:'frostveil',name:'Frostveil',theme:'haunted ice crypt',color:'#a6c8da',
    mobs:[
@@ -45,9 +48,9 @@
    ],
    bosses:[
     {name:'Veilbound Revenant',kind:'undead',skin:'betrayer',color:'#b4b9ed',speed:84,
-     moves:[cone('Soul Rend',255,.60,1.40,.21),circle('Grave Echo',100,1.70,.22)]},
+     moves:[cone('Soul Rend',255,.60,1.40,1.26),circle('Grave Echo',100,1.70,1.32)]},
     {name:'Lord Rimeveil',kind:'undead',skin:'frostking',color:'#bbe4f3',speed:76,
-     moves:[cone('Rime Cleave',275,.68,1.50,.23),circle('Frozen Tomb',112,1.80,.24)]}
+     moves:[cone('Rime Cleave',275,.68,1.50,1.38),circle('Frozen Tomb',112,1.80,1.44)]}
    ]}
  };
  function freeze(value){
@@ -59,37 +62,61 @@
  const finite=(v,fallback,lo,hi)=>clamp(Number.isFinite(v)?v:fallback,lo,hi);
  const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
  const validPoint=p=>!!p&&Number.isFinite(p.x)&&Number.isFinite(p.y);
+ const BOSS_RESPAWN_MS=2*60*60*1000,owners=new WeakMap();
  let serial=0;
 
- function scaling(stats={}){
-  const level=finite(stats.level,1,1,10000),baseAttack=12+level*2.6;
-  const maxHp=finite(stats.maxHp,115+level*14,1,1e9);
-  const attack=finite(stats.attack,baseAttack,1,1e9);
-  // Gear still pays: HP grows with the square root of attack, capped at 3x.
-  // Health gear above twice the level baseline does not inflate incoming hits.
-  return Object.freeze({level,maxHp,attack,power:baseAttack*clamp(Math.sqrt(attack/baseAttack),.7,3),
-   damageHealth:Math.min(maxHp,2*(115+level*14))});
+ function wallTime(value){return Number.isFinite(value)&&value>=0?value:Date.now();}
+ function normalizeBossTimers(raw,now=Date.now()){
+  now=wallTime(now);const result={};
+  for(const key of Object.keys(definitions)){
+   const record=raw&&typeof raw==='object'&&!Array.isArray(raw)&&Object.prototype.hasOwnProperty.call(raw,key)?raw[key]:null;
+   result[key]={};
+   for(const index of [0,1]){
+    const value=record&&typeof record==='object'&&!Array.isArray(record)&&Object.prototype.hasOwnProperty.call(record,index)?record[index]:0;
+    if(Number.isFinite(value)&&value>now)result[key][index]=Math.min(value,now+BOSS_RESPAWN_MS);
+   }
+  }
+  return result;
+ }
+ function bossRemaining(en,now=Date.now()){
+  return en&&en.boss&&Number.isFinite(en.bossReadyAt)?Math.max(0,en.bossReadyAt-wallTime(now)):0;
+ }
+ function scaling(stats){
+  if(!stats||!Array.isArray(stats.mobs)||stats.mobs.length!==3||!stats.boss)
+   throw new TypeError('Dungeon combat needs three ordinary mob templates and one boss template');
+  const copy=(t,boss)=>{
+   if(!t||![t.hp,t.atk].every(v=>Number.isFinite(v)&&v>=1&&v<=Number.MAX_SAFE_INTEGER))
+    throw new TypeError('Dungeon combat templates need finite positive hp/atk');
+   return Object.freeze({hp:Math.round(t.hp),atk:Math.round(t.atk),
+    speed:Number.isFinite(t.speed)&&t.speed>0?t.speed:boss?80:105,
+    atkCd:Number.isFinite(t.atkCd)&&t.atkCd>0?t.atkCd:boss?1.5:1.15});
+  };
+  return Object.freeze({mobs:Object.freeze(stats.mobs.map(t=>copy(t,false))),boss:copy(stats.boss,true)});
  }
  function spawnEnemy(encounter,p,slot){
   const boss=p.type==='boss',index=boss?p.index:((p.index%3)+3)%3;
   const d=definitions[encounter.key],t=(boss?d.bosses:d.mobs)[index],s=encounter.scaling;
-  const hp=Math.max(1,Math.round(s.power*(boss?26+index*6:3.2+index*.35)));
+  const combat=boss?s.boss:s.mobs[index],hp=combat.hp;
   const en={name:t.name,kind:t.kind,boss,raid:false,bossId:boss?'wasteland_'+encounter.key+'_'+index:null,
    skin:t.skin||null,mobSprite:t.mobSprite||null,c:t.color||d.color,
-   x:p.x,y:p.y,home:{x:p.x,y:p.y},r:boss?27:12,max:hp,hp,
-   atk:Math.max(1,Math.round(s.damageHealth*(boss?.06:.032))),xp:0,gold:0,
-   dungeon:encounter.key,dungeonIndex:index,encounterId:encounter.id+':'+encounter.generation,
+   x:p.x,y:p.y,home:{x:p.x,y:p.y},r:boss?26:12,max:hp,hp,
+   atk:combat.atk,xp:0,gold:0,
+   dungeon:encounter.key,dungeonIndex:index,encounterId:encounter.id+':'+encounter.generation+':'+slot+':'+(encounter.lives[slot]||0),
    noRespawn:true,noRewards:true,bookDrop:boss?1:0,roomIdx:p.room??null,
-   add:false,atkCd:boss?1.8:1.65,meleeMul:1,reach:0,awake:false,
-   speed:t.speed,baseSpeed:t.speed,state:'idle',dir:0,wT:0,cd:boss?1.2:.7+(slot%3)*.2,
+   add:false,atkCd:combat.atkCd,meleeMul:1,reach:0,awake:false,
+   speed:combat.speed,baseSpeed:combat.speed,state:'idle',dir:0,wT:0,cd:boss?1.2:.7+(slot%3)*.2,
    dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,cds:{a:2,b:5,c:8},lockT:0,
    hidden:false,trailT:0,avoid:null,pause:true,
    dungeonCast:null,dungeonRecovery:0,dungeonMove:0,dungeonCooldown:2.2,
-   dungeonMoves:t.moves||[],dungeonDamageHealth:s.damageHealth,
-   dungeonDefeated:false,dungeonRetired:false};
+   dungeonMoves:t.moves||[],bossReadyAt:0,dungeonDefeated:false,dungeonRetired:false};
+  const deadline=encounter.bossReadyAt[index];
+  if(boss&&Number.isFinite(deadline)&&deadline>encounter.now()){
+   en.bossReadyAt=deadline;en.dead=true;en.deadT=1;en.hp=0;en.state='dead';en.dungeonDefeated=true;
+  }else if(boss)delete encounter.bossReadyAt[index];
+  owners.set(en,{encounter,slot});
   return en;
  }
- function createEncounter(key,spawns,stats){
+ function createEncounter(key,spawns,stats,options={}){
   if(!definitions[key])throw new RangeError('Unknown Wasteland dungeon: '+key);
   if(!Array.isArray(spawns))throw new TypeError('Dungeon enemySpawns must be an array');
   const bossIndices=[];
@@ -103,7 +130,11 @@
    throw new RangeError('A dungeon needs exactly bosses 0 and 1');
   const mobs=points.length-2;
   if(mobs<12||mobs>18)throw new RangeError('A dungeon needs 12 to 18 regular foes');
-  const encounter={key,id:++serial,generation:0,scaling:scaling(stats),spawns:freeze(points),enemies:[]};
+  const clock=typeof options.now==='function'?options.now:Date.now,now=()=>wallTime(clock());
+  const bossReadyAt=options.bossReadyAt&&typeof options.bossReadyAt==='object'&&!Array.isArray(options.bossReadyAt)?options.bossReadyAt:{};
+  const clean=normalizeBossTimers({[key]:bossReadyAt},now())[key];
+  for(const index of [0,1]){if(clean[index])bossReadyAt[index]=clean[index];else delete bossReadyAt[index];}
+  const encounter={key,id:++serial,generation:0,scaling:scaling(stats),spawns:freeze(points),enemies:[],lives:{},bossReadyAt,now};
   return reset(encounter);
  }
  function reset(encounter){
@@ -114,10 +145,16 @@
  }
  function defeat(en){
   if(!en||!en.dungeon||en.dungeonDefeated||en.dungeonRetired)return null;
+  const owner=owners.get(en);if(!owner)return null;
+  if(en.boss){
+   // Persist the cooldown before returning permission to grant the book.
+   en.bossReadyAt=owner.encounter.now()+BOSS_RESPAWN_MS;
+   owner.encounter.bossReadyAt[en.dungeonIndex]=en.bossReadyAt;
+  }
   en.dungeonDefeated=true;en.dead=true;en.hp=0;en.deadT=0;en.hidden=false;en.dungeonCast=null;
   en.dungeonRecovery=0;en.state='dead';
   return {dungeon:en.dungeon,bossId:en.bossId,name:en.name,books:en.boss?1:0,
-   encounterId:en.encounterId,x:en.x,y:en.y};
+   encounterId:en.encounterId,bossIndex:en.boss?en.dungeonIndex:null,bossReadyAt:en.bossReadyAt,x:en.x,y:en.y};
  }
  function pointInTelegraph(cast,point){
   if(!cast||!validPoint(cast)||!validPoint(point))return false;
@@ -133,7 +170,7 @@
   en.dungeonMove++;
   en.dungeonCast={...move,x:move.shape==='circle'?hero.x:en.x,y:move.shape==='circle'?hero.y:en.y,
    angle:Math.atan2(hero.y-en.y,hero.x-en.x),elapsed:0,color:en.c,
-   damage:Math.max(1,Math.round(en.dungeonDamageHealth*move.damage))};
+   damage:Math.max(1,Math.round(en.atk*move.damage))};
   en.pause=true;en.moving=false;
   if(hooks.onWarn)hooks.onWarn(en.dungeonCast,en);
  }
@@ -154,7 +191,21 @@
   dt=finite(dt,0,0,.1);
   en.moving=false;
   if(en.dungeonRetired)return true;
-  if(en.dead){en.deadT+=dt;en.dungeonCast=null;return true;}
+  if(en.dead){
+   en.deadT+=dt;en.dungeonCast=null;
+   const owner=owners.get(en);
+   if(en.boss&&en.bossReadyAt>0&&owner&&bossRemaining(en,owner.encounter.now())===0){
+    const {encounter,slot}=owner;
+    delete encounter.bossReadyAt[en.dungeonIndex];encounter.lives[slot]=(encounter.lives[slot]||0)+1;
+    const fresh=spawnEnemy(encounter,encounter.spawns[slot],slot);
+    // Keep the live enemy reference, but not status/stride fields added during
+    // its previous life (especially _ax/_ay after returning from the corpse).
+    for(const key of Object.keys(en))delete en[key];
+    Object.assign(en,fresh);owners.set(en,{encounter,slot});
+    if(hooks.onRespawn)hooks.onRespawn(en);
+   }
+   return true;
+  }
   if(en.hurt)en.hurt=Math.max(0,en.hurt-dt);
   if(en.swing)en.swing=Math.max(0,en.swing-dt);
   if(!validPoint(hero)||hero.dead){en.dungeonCast=null;en.pause=true;return true;}
@@ -215,5 +266,5 @@
    ctx.restore();
   }
  }
- root.WastelandDungeons=Object.freeze({definitions,createEncounter,reset,defeat,updateEnemy,drawTelegraphs,pointInTelegraph});
+ root.WastelandDungeons=Object.freeze({definitions,BOSS_RESPAWN_MS,normalizeBossTimers,bossRemaining,createEncounter,reset,defeat,updateEnemy,drawTelegraphs,pointInTelegraph});
 })(typeof globalThis!=='undefined'?globalThis:window);

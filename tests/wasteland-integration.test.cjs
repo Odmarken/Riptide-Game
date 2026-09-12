@@ -17,6 +17,7 @@ const integration=[
  section('const TAVERN_ZONE=','const expeditionZone='),
  section('const expeditionZone=','const expeditionImages='),
  section('function travelExpedition(s){','function expeditionDoors(){'),
+ section('/* stat curves */','function zoneQuests(z){'),
  section('function zoneQuests(z){','/* ==================== STATE'),
  section("const SLOTS=['weapon'",'const PREFIX='),
  section('const isLegendary=','/* Upgrade cost:'),
@@ -28,13 +29,14 @@ const integration=[
  section('function update(dt){',' padNow=padStick();')+' padNow=padStick();}',
  // Execute the actual retirement prefix before the unrelated map construction.
  section('function buildZone(){',' if(!zoneOf().special')+'}',
- 'globalThis.testApi={ZONES,TAVERN_ZONE,WASTELAND_ZONE,travelExpedition,zoneQuests,knowledgeBook,isKnowledgeBook,killEnemy,cleanBagItem,tryAutoEquip,upgradeItem,bagSellable,buildZone,update,getSpawn:()=>expeditionSpawn};'
+ 'globalThis.testApi={ZONES,TAVERN_ZONE,WASTELAND_ZONE,travelExpedition,zoneTemplates,zoneQuests,knowledgeBook,isKnowledgeBook,killEnemy,cleanBagItem,tryAutoEquip,upgradeItem,bagSellable,buildZone,update,getSpawn:()=>expeditionSpawn};'
 ].join('\n');
 const plain=value=>JSON.parse(JSON.stringify(value));
 function harness(key='briarhollow'){
  const calls=[],forbidden=name=>()=>{throw new Error('Ordinary reward/effect reached: '+name);};
  const S={zone:0,gold:123,scraps:47,xp:83,qProg:4,bag:[],scrolls:[],gear:{weapon:null,armor:null,trinket:null}};
  const context={S,calls,hero:{hp:400,dead:false,target:null},world:null,mp:{on:false,started:false},WastelandWorld:W,
+  MAXLVL:60,pMul:()=>1+.1*(S.prestige||0),pRew:()=>1,mobGold:()=>0,
   raceOf:()=>({leech:.03}),heroMax:()=>1000,hasEnch:id=>id==='reaper',scrollPct:id=>id==='reaper'?.02:0,
   inGearSet:()=>false,itemName:it=>it.name,inBossFight:forbidden('upgrade combat check'),capUp:forbidden('upgrade cap'),upCost:forbidden('upgrade cost'),
   calcPower:forbidden('book stat calculation'),addGold:forbidden('gold'),addScraps:forbidden('scraps'),gainXP:forbidden('XP'),rollItem:forbidden('gear'),completeQuest:forbidden('quest'),
@@ -44,7 +46,10 @@ function harness(key='briarhollow'){
  context.zoneOf=()=>context.testApi.ZONES[S.zone];
  vm.createContext(context);vm.runInContext(dungeonSource+'\n'+integration,context);
  S.zone=context.testApi.ZONES.findIndex(z=>z.dungeon===key);
- context.world=W.create(key);context.world.encounter=context.WastelandDungeons.createEncounter(key,context.world.enemySpawns,{level:60,maxHp:1000,attack:200});
+ S.wastelandBossReadyAt=context.WastelandDungeons.normalizeBossTimers(null);
+ const definition=context.WastelandDungeons.definitions[key],z=context.zoneOf();
+ const templates={mobs:context.testApi.zoneTemplates({lvl:z.lvl,en:definition.mobs.map(m=>[m.name,m.kind,definition.color])}),boss:context.testApi.zoneTemplates({lvl:z.lvl,boss:['Guardian',definition.color,'wasteland']})[0]};
+ context.world=W.create(key);context.world.encounter=context.WastelandDungeons.createEncounter(key,context.world.enemySpawns,templates,{bossReadyAt:S.wastelandBossReadyAt[key]});
  return {...context,api:context.testApi,context};
 }
 for(const key of ['briarhollow','cindervein','frostveil']){
@@ -56,6 +61,7 @@ for(const key of ['briarhollow','cindervein','frostveil']){
    assert.equal(h.hero.hp,450,'Undead 3% + Reaper 2% still heal on dungeon kills');
    assert.equal(h.hero.target,null);assert.equal(en.dead,true);assert.equal(en.dungeonDefeated,true);
    assert.equal(h.S.bag.length,books+(en.boss?1:0));assert.equal(h.calls.filter(c=>c==='saveNow').length,saves+(en.boss?1:0));
+   if(en.boss){assert.equal(h.S.wastelandBossReadyAt[key][en.dungeonIndex],en.bossReadyAt);assert.ok(en.bossReadyAt>Date.now()+7199000);}
    const count=h.calls.length;h.api.killEnemy(en);assert.equal(h.calls.length,count,'duplicate kill has no second effect');assert.equal(h.hero.hp,450);
   }
   assert.deepEqual({gold:h.S.gold,scraps:h.S.scraps,xp:h.S.xp,qProg:h.S.qProg},before);

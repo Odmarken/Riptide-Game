@@ -1,8 +1,13 @@
-/* North-up City navigation. Geometry comes from the live world, never a second map.
- * The small terrain atlas is built once per visit; only the local crop and markers move. */
+/* North-up local navigation from the live world. City keeps its small terrain
+ * atlas; Wasteland's sparse roads stay sharp as vectors at every map position. */
 (function(root){
  'use strict';
  const SIZE=180,CENTER=90,RADIUS=86,RANGE=2600,SCALE=RADIUS/RANGE;
+ const HOME={name:'Home',color:'#dac294',path:'M-8-1L0-8L8-1M-6-2V7H6V-2M-2 7V1H2V7'};
+ const CITY_LABEL='City minimap. North is up; the white arrow is you. Symbols show the Church, Well, Furnace, Mining Hall, Enchanting and City gate. Distant places appear along the rim.';
+ const WASTELAND_LABEL='Wasteland minimap. North is up; the white arrow is you. Roads and the Home portal are shown. A distant Home portal appears along the rim.';
+ const wasteland=world=>world.key==='wasteland'&&!world.dungeon;
+ const point=p=>!!p&&Number.isFinite(p.x)&&Number.isFinite(p.y);
  const PLACES={
   cathedral:{name:'Church',color:'#f4dfaa',path:'M-5 6V-2L0-7L5-2V6ZM0-7V-11M-3-9H3M-1 6V2H1V6'},
   well:{name:'Well',color:'#81d9ea',path:'M-7-2L0-7L7-2M-5-2V6M5-2V6M-6 2H6M-6 6H6M0-2V2M-2 2V5H2V2'},
@@ -13,9 +18,14 @@
  };
  function project(point,hero){return {x:CENTER+(point.x-hero.x)*SCALE,y:CENTER+(point.y-hero.y)*SCALE};}
  function markers(world,hero){
-  const result=(world.solids||[]).filter(s=>PLACES[s.type]).map(s=>{
+  if(world.dungeon)return [];
+  // Only the return portal is a Wasteland landmark. Never enumerate entrances,
+  // enemies or generic travel doors: none may become a badge or tooltip.
+  const landmarks=wasteland(world)?(point(world.exit)?[{x:world.exit.x,y:world.exit.y,type:'homeportal'}]:[]):
+   (world.solids||[]).filter(s=>PLACES[s.type]&&point(s));
+  const result=landmarks.map(s=>{
    const p=project(s,hero),dx=p.x-CENTER,dy=p.y-CENTER,distance=Math.hypot(dx,dy);
-   return {...PLACES[s.type],type:s.type,x:p.x,y:p.y,angle:Math.atan2(dy,dx),far:distance>72,
+   return {...(s.type==='homeportal'?HOME:PLACES[s.type]),type:s.type,x:p.x,y:p.y,angle:Math.atan2(dy,dx),far:distance>72,
     distance:Math.hypot(s.x-hero.x,s.y-hero.y)};
   });
   const placed=result.filter(p=>!p.far);
@@ -35,6 +45,21 @@
   return result;
  }
  function terrain(world){
+  if(wasteland(world)){
+   // Cache only this visit's finite path geometry. A local vector pass avoids a
+   // low-resolution atlas of the 50,400-unit world and needs no growing tile cache.
+   const roads=[];
+   for(const road of world.paths||[]){
+    if(!Number.isFinite(road.width)||road.width<=0)continue;
+    let points=[];
+    const finish=()=>{
+     if(points.length>1)roads.push({points,width:road.width,minX:Math.min(...points.map(p=>p.x)),maxX:Math.max(...points.map(p=>p.x)),minY:Math.min(...points.map(p=>p.y)),maxY:Math.max(...points.map(p=>p.y))});
+     points=[];
+    };
+    for(const p of road.points||[]){if(point(p))points.push({x:p.x,y:p.y});else finish();}finish();
+   }
+   return {roads,w:world.w,h:world.h};
+  }
   const atlas=document.createElement('canvas'),scale=Math.min(1,2048/Math.max(world.w,world.h));
   atlas.width=Math.ceil(world.w*scale);atlas.height=Math.ceil(world.h*scale);
   const g=atlas.getContext('2d');g.scale(scale,scale);
@@ -60,9 +85,27 @@
   }
   return {canvas:atlas,scale};
  }
+ function drawTerrain(g,atlas,hero){
+  if(atlas.canvas){
+   // An affine transform keeps City terrain undistorted near world boundaries.
+   g.drawImage(atlas.canvas,CENTER-hero.x*SCALE,CENTER-hero.y*SCALE,atlas.canvas.width/atlas.scale*SCALE,atlas.canvas.height/atlas.scale*SCALE);
+   return;
+  }
+  g.save();g.translate(CENTER-hero.x*SCALE,CENTER-hero.y*SCALE);g.scale(SCALE,SCALE);
+  g.beginPath();g.rect(0,0,atlas.w,atlas.h);g.clip();g.fillStyle='#424632';g.fillRect(0,0,atlas.w,atlas.h);
+  g.lineCap='round';g.lineJoin='round';
+  for(const road of atlas.roads){
+   const reach=RANGE+road.width/2+35;
+   if(road.maxX<hero.x-reach||road.minX>hero.x+reach||road.maxY<hero.y-reach||road.minY>hero.y+reach)continue;
+   g.beginPath();road.points.forEach((p,i)=>i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y));
+   g.strokeStyle='#2b3024';g.lineWidth=road.width+35;g.stroke();
+   g.strokeStyle=road.width>=180?'#c5ae7c':'#998565';g.lineWidth=road.width;g.stroke();
+  }
+  g.restore();
+ }
  function create(el){
-  const canvas=el.querySelector('canvas'),g=canvas.getContext('2d'),tip=el.querySelector('.minimap-tip');
-  const paths=Object.fromEntries(Object.entries(PLACES).map(([key,p])=>[key,new Path2D(p.path)]));
+  const canvas=el.querySelector('canvas'),g=canvas.getContext('2d'),tip=el.querySelector('.minimap-tip'),title=el.querySelector('.minimap-title');
+  const paths=Object.fromEntries(Object.entries({...PLACES,homeportal:HOME}).map(([key,p])=>[key,new Path2D(p.path)]));
   let cachedWorld=null,atlas=null,lastTime=-Infinity,lastX=null,lastY=null,heading=0,places=[];
   let pointer=null;
   function tooltip(){
@@ -79,10 +122,14 @@
   // or start the game canvas's pinch/drag gesture underneath it.
   for(const name of ['pointerdown','click','dblclick','contextmenu','wheel'])el.addEventListener(name,e=>{e.stopPropagation();if(name!=='pointerdown')e.preventDefault();});
   return {update(world,hero,active,time){
-   const visible=!!(active&&world&&hero);
+   const visible=!!(active&&world&&hero&&!world.dungeon);
    if(el.hidden===visible)el.hidden=!visible;
-   if(!visible){cachedWorld=null;atlas=null;lastX=lastY=null;lastTime=-Infinity;return;}
-   if(world!==cachedWorld){cachedWorld=world;atlas=terrain(world);lastTime=-Infinity;lastX=lastY=null;heading=hero.fx<0?Math.PI:0;}
+   if(!visible){cachedWorld=null;atlas=null;places=[];pointer=null;lastX=lastY=null;lastTime=-Infinity;tooltip();return;}
+   if(world!==cachedWorld){
+    cachedWorld=world;atlas=terrain(world);lastTime=-Infinity;lastX=lastY=null;heading=hero.fx<0?Math.PI:0;
+    el.setAttribute('aria-label',wasteland(world)?WASTELAND_LABEL:CITY_LABEL);
+    title.textContent=wasteland(world)?'WASTELAND':'CITY';
+   }
    if(time-lastTime<50)return;
    lastTime=time;
    const dpr=Math.min(2,root.devicePixelRatio||1),pixels=Math.round(SIZE*dpr);
@@ -92,9 +139,7 @@
    lastX=hero.x;lastY=hero.y;
    g.save();g.beginPath();g.arc(CENTER,CENTER,RADIUS,0,Math.PI*2);g.clip();
    g.fillStyle='#252e27';g.fillRect(0,0,SIZE,SIZE);
-   // Draw the cached atlas with an affine transform; the circular clip also
-   // handles players at the city wall without stretching a cropped source rect.
-   g.drawImage(atlas.canvas,CENTER-hero.x*SCALE,CENTER-hero.y*SCALE,atlas.canvas.width/atlas.scale*SCALE,atlas.canvas.height/atlas.scale*SCALE);
+   drawTerrain(g,atlas,hero);
    const shade=g.createRadialGradient(CENTER,CENTER,40,CENTER,CENTER,RADIUS);
    shade.addColorStop(0,'rgba(15,20,15,0)');shade.addColorStop(1,'rgba(15,20,15,.46)');g.fillStyle=shade;g.fillRect(0,0,SIZE,SIZE);
    places=markers(world,hero);

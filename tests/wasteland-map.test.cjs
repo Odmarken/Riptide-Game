@@ -14,9 +14,9 @@ function projected(world,p){
 }
 function close(a,b){assert.ok(Math.abs(a-b)<.011,`${a} != ${b}`);}
 function playerPoint(html){const m=html.match(/data-player="true" transform="translate\(([-.\d]+) ([-.\d]+)\)"/);return m&&{x:+m[1],y:+m[2]};}
-function encounter(w){return D.createEncounter(w.key,w.enemySpawns,{level:60,attack:250,maxHp:1400}).enemies;}
+function encounter(w){return D.createEncounter(w.key,w.enemySpawns,{mobs:[{hp:500,atk:20},{hp:550,atk:22},{hp:600,atk:24}],boss:{hp:22000,atk:50}}).enemies;}
 
-test('Wasteland SVG uses every actual road, three named entrances, Home and the projected player',()=>{
+test('Wasteland SVG shows actual roads, Home and player without disclosing any dungeon entrance',()=>{
  const world=W.create(),hero={x:25100,y:10900},html=M.render(world,hero,[]);
  const lines=[...html.matchAll(/<polyline data-road="(\d+)" points="([^"]+)"/g)];
  assert.equal(lines.length,world.paths.length);
@@ -25,11 +25,11 @@ test('Wasteland SVG uses every actual road, three named entrances, Home and the 
   assert.equal(points.length,road.points.length);
   points.forEach(([x,y],i)=>{const expected=projected(world,road.points[i]);close(x,expected.x);close(y,expected.y);});
  }
- for(const e of world.entrances){assert.ok(html.includes(`data-entrance="${e.id}"`));assert.ok(html.includes(e.name));}
+ for(const e of world.entrances){assert.ok(!html.includes(e.id));assert.ok(!html.includes(e.name));}
  assert.match(html,/data-exit="true"><title>Home<\/title>/);
  const p=playerPoint(html),expected=projected(world,hero);close(p.x,expected.x);close(p.y,expected.y);
  assert.match(html,/role="img" aria-labelledby=/);assert.match(html,/<desc[^>]*>North is up\./);
- assert.match(html,/aria-label="Cave entrances"/);
+ assert.doesNotMatch(html,/data-entrance=|Cave entrances|◇ cave/);
  assert.doesNotMatch(html,/<(?:img|image|script|button|a)\b|data-z=|onclick=|tabindex=/);
 });
 
@@ -78,6 +78,22 @@ test('re-rendering reflects movement and kills without keeping boss data from th
  const next=M.render(W.create('frostveil'),{x:100,y:100},enemies);
  assert.ok(!next.includes(boss.name));assert.doesNotMatch(next,/data-status="defeated"/);
  assert.equal(M.render({key:'city',w:16800,h:5200},moved,enemies),'');
+});
+
+test('boss countdowns show hours, round up seconds and reach respawning at the exact deadline',()=>{
+ const now=1750000000000,ready=now+7200000;
+ assert.equal(M.respawnText(ready,now),'Respawns in 2:00:00');
+ assert.equal(M.respawnText(ready,now+1001),'Respawns in 1:59:59');
+ assert.equal(M.respawnText(ready,ready-1),'Respawns in 0:00:01');
+ assert.equal(M.respawnText(ready,ready),'Respawning…');
+ assert.equal(M.respawnText(ready,ready+9999),'Respawning…');
+ assert.equal(M.respawnText(NaN,now),'Respawning…');
+ const world=W.create('briarhollow'),enemies=encounter(world),boss=enemies.find(e=>e.boss);
+ boss.dead=true;boss.bossReadyAt=Date.now()+7200000;
+ const html=M.render(world,world.spawn,enemies);
+ assert.match(html,new RegExp(`data-boss-ready-at="${boss.bossReadyAt}"`));
+ assert.equal((html.match(/data-boss-ready-at=/g)||[]).length,1,'only the defeated boss has a timer');
+ assert.doesNotMatch(M.render(W.create(),world.spawn,enemies),/data-boss-ready-at=|Respawns in|Brackenstone/,'overworld reveals no dungeon state');
 });
 
 test('invalid coordinates stay finite, broken roads remain broken, and boss text cannot become markup',()=>{

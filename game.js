@@ -763,11 +763,11 @@ const ZONES=[
  /* Append-only: saved characters refer to zones by their numeric index. */
  {name:'Wasteland',lvl:1,amb:'world',special:true,wasteland:true,en:[],
   ground:'#7a8a4e',ground2:'#6e7d46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
- {name:'Briarhollow',lvl:1,amb:'crypt',special:true,dungeon:'briarhollow',en:[],
+ {name:'Briarhollow',lvl:1,amb:'briarhollow',special:true,dungeon:'briarhollow',en:[],
   ground:'#394530',ground2:'#2b3528',water:'#354f48',tree:'#567146',tree2:'#3c5330',path:'#74694b'},
- {name:'Cindervein',lvl:1,amb:'war',special:true,dungeon:'cindervein',en:[],
+ {name:'Cindervein',lvl:1,amb:'cindervein',special:true,dungeon:'cindervein',en:[],
   ground:'#47332a',ground2:'#302723',water:'#bd4d24',tree:'#71543e',tree2:'#463327',path:'#7c5940'},
- {name:'Frostveil',lvl:1,amb:'frost',special:true,dungeon:'frostveil',snowTrees:true,en:[],
+ {name:'Frostveil',lvl:1,amb:'frostveil',special:true,dungeon:'frostveil',snowTrees:true,en:[],
   ground:'#39444f',ground2:'#29333e',water:'#7eb8d7',tree:'#687f89',tree2:'#4c6572',path:'#8ba1ad'},
 ];
 const TAVERN_ZONE=ZONES.findIndex(z=>z.tavern);
@@ -1423,7 +1423,7 @@ function freshState(name,race,cls){
   rating:0,odinKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',bankGold:0,bankScrap:0,bankEarned:0,bankLastT:0,smithLvl:0,smithJob:null,luckPots:0,luckT:0,gamblerPots:0,gamblerT:0,restedT:0,restedPct:0,restedSpinAt:0,freeGoldCases:0,chests:{violethalls:0},mining:{trained:false,skill:0,on:false},ench:{trained:false,skill:0,bag:[]},ore:{coal:0,ore:0,gem:0},cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
   gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],pet:null,pets:[],
   boosts:{speed:0,haste:0},autoUse:{},tainted:false,
-  cleared:{},bossDead:{},zoneLvlGain:{},
+  cleared:{},bossDead:{},zoneLvlGain:{},wastelandBossReadyAt:WastelandDungeons.normalizeBossTimers(null),
   auto:true,autoEquip:true,sound:true,sfx:true,volAmb:0.5,volSfx:0.55,finished:false};
 }
 function estimateBaseStat(v,up,kind){
@@ -1443,6 +1443,7 @@ function ensureItemBase(it){
  return it;
 }
 function migrate(s){ /* fills fields missing from older saves */
+ s.wastelandBossReadyAt=WastelandDungeons.normalizeBossTimers(s.wastelandBossReadyAt);
  s.tainted=false;
  s.taintV=0;
  if(s.scraps===undefined)s.scraps=0;
@@ -2416,9 +2417,14 @@ function startMusic(dark){
 }
 function startAmbience(prof){
  if(!AC.ctx)return;
- if(prof!=='cow'&&prof!=='odin'&&prof!=='crypt'&&prof!=='final')prof='world'; /* one shared track for all normal zones */
+ if(prof!=='cow'&&prof!=='odin'&&prof!=='crypt'&&prof!=='final'&&!WastelandMusic.has(prof))prof='world'; /* one shared track for all normal zones */
  if(AC.prof===prof)return;
  stopAmbience();AC.prof=prof;
+ if(WastelandMusic.has(prof)){
+  const song=WastelandMusic.start(prof,{ctx:AC.ctx,destination:AC.ambG,isPaused:()=>gamePaused||audioPaused||!gameOn});
+  if(song)AC.amb.push(song);
+  return;
+ }
  if(prof==='final'){if(!startFinalTrack())startMusic(true);return;} /* ☠ the last fight has its own theme */
  if(prof==='cow'){if(!startCowTrack())startCowMusic();return;}
  /* No wind layer here. windLayer() is looped noise through a Q-0.7 bandpass, which is barely a
@@ -4614,7 +4620,12 @@ function buildZone(){
  cowRunning=false;cowT=0;cowSpawnT=0;cowItems=0;cowBagFull=false;
  cowChest=null;cowChestT=10;cowChestMsgT=0;cowBigT=12; /* first chest lands 10s after entering */
  if(z.dungeon){
-  world.encounter=WastelandDungeons.createEncounter(z.dungeon,world.enemySpawns,{level:effectiveHeroLvl(),maxHp:heroMax(),attack:heroAtk()});
+  const definition=WastelandDungeons.definitions[z.dungeon];
+  S.wastelandBossReadyAt=WastelandDungeons.normalizeBossTimers(S.wastelandBossReadyAt);
+  world.encounter=WastelandDungeons.createEncounter(z.dungeon,world.enemySpawns,{
+   mobs:zoneTemplates({lvl:z.lvl,en:definition.mobs.map(m=>[m.name,m.kind,definition.color])}),
+   boss:zoneTemplates({lvl:z.lvl,boss:['Dungeon guardian',definition.color,'wasteland']})[0]
+  },{bossReadyAt:S.wastelandBossReadyAt[z.dungeon],now:Date.now});
   enemies=world.encounter.enemies;
  }else if(z.cow){
   cowRunning=true;
@@ -7015,7 +7026,8 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
     const dmg=hurtHero(amount);sfx.hit();
     if(melee&&hasEnch('thorns')&&!foe.dead){const n=Math.max(1,Math.round(dmg*scrollPct('thorns')));foe.hp-=n;floatAt(foe.x,foe.y-30,n+'','#9adf9a');if(foe.hp<=0)killEnemy(foe);}
     return dmg;
-   },onWarn:cast=>stageMsg(cast.name+' — move out of the marked area!',Math.round(cast.warn*1000),'#efd58a')});
+   },onWarn:cast=>stageMsg(cast.name+' — move out of the marked area!',Math.round(cast.warn*1000),'#efd58a'),
+   onRespawn:foe=>{stageMsg(foe.name+' has returned.',2400,'#efd58a');renderHUD();save();}});
    continue;
   }
   if(en.dead){
@@ -9167,6 +9179,12 @@ function refreshOpenPanel(){
  else if(p.id==='p-shop')renderShop();
  else if(p.id==='p-map')renderMap();
 }
+function expeditionQuestText(z){
+ if(!z.dungeon)return 'Explore the Wasteland. Follow the roads and discover its forgotten caves.';
+ const fallen=enemies.filter(e=>e.boss&&e.dead),next=Math.min(...fallen.map(e=>e.bossReadyAt||Infinity));
+ const status=fallen.length===2?'Both guardians have fallen.':fallen.length===1?'One guardian remains.':'Two guardians await. Dodge their marked attacks. Each guards a Book of Knowledge.';
+ return status+(Number.isFinite(next)?' '+WastelandMap.respawnText(next):'');
+}
 function renderHUD(){
  $('hGold').innerHTML=(S.overflow?'<span style="color:#9adf9a;font-size:11px">(+'+S.overflow.toLocaleString()+')</span> ':'')+S.gold.toLocaleString();
  $('hScrap').textContent=S.scraps.toLocaleString();
@@ -9176,7 +9194,7 @@ function renderHUD(){
  if(expeditionZone(z)){
   const defeated=enemies.filter(e=>e.boss&&e.dead).length;
   $('qName').textContent=z.name;
-  $('qDesc').textContent=z.dungeon?(defeated===2?'Both guardians have fallen. Return through the entrance portal.':'Two guardians await. Dodge their marked attacks. Each guards a Book of Knowledge.'):'Follow the roads to three forgotten dungeons. Open Map to find the entrances.';
+  $('qDesc').textContent=expeditionQuestText(z);
   $('qBar').style.width=z.dungeon?defeated*50+'%':'100%';$('qCount').textContent=z.dungeon?defeated+' / 2':'Explore';
   $('nextBtn').style.display='none';$('autoBtn').classList.toggle('on',S.auto);$('autoBtn').textContent=S.auto?'AUTO ✓':'AUTO';
   refreshOpenPanel();return;
@@ -9703,6 +9721,14 @@ let mapContinent='east';
 /* live Thor countdown - only touches the text, never rebuilds the panel */
 let raidWasOpen=false;
 setInterval(()=>{
+ if(!gameOn||!S||!zoneOf().dungeon)return;
+ const now=Date.now();
+ $('qDesc').textContent=expeditionQuestText(zoneOf());
+ if($('p-map').classList.contains('open'))for(const el of $('zoneList').querySelectorAll('[data-boss-ready-at]')){
+  el.textContent=WastelandMap.respawnText(Number(el.dataset.bossReadyAt),now);
+ }
+},1000);
+setInterval(()=>{
  const el=$('thorTimer');
  if(!el||!S)return;
  const st=thorStatus(),locked=thorLocked();
@@ -9768,7 +9794,7 @@ function scrapBagItems(match,label){
 function renderBag(){
  S.bag=(S.bag||[]).map(cleanBagItem).filter(Boolean);
  const books=S.bag.filter(isKnowledgeBook);
- const knowledgeHtml=books.length?`<div class="card item knowledge-book"><div><div class="sn llegendary">${uiIcon('it_book','📖','shopico')} Book of Knowledge <span style="color:var(--dim)">×${books.length}</span></div><div class="ss">A relic recovered from the guardians of Wasteland.<br>Its purpose has not yet been revealed.</div></div></div>`:'';
+ const knowledgeHtml=books.length?`<div class="card item knowledge-book"><div><div class="sn" style="font-size:13px;font-weight:600">${uiIcon('it_book','📖','shopico')} Book of Knowledge <span style="color:var(--dim)">×${books.length}</span></div><div class="ss" style="color:var(--dim);font-size:11px">A relic recovered from the guardians of Wasteland. Its purpose has not yet been revealed.</div></div></div>`:'';
  $('bagWallet').innerHTML=walletStr();
  // 🍀 luck potions - always at the top
  let luckHtml='';
@@ -13840,7 +13866,7 @@ function frame(t){
   ctx.textAlign='center';
   ctx.fillStyle='#efe3c2';ctx.fillText('⏸ PAUSED',VW/2,VH/2);
  }
- cityMinimap.update(world,hero,gameOn&&S&&!!ZONES[S.zone]?.city,t);
+ cityMinimap.update(world,hero,gameOn&&S&&!ZONES[S.zone]?.dungeon&&!!(ZONES[S.zone]?.city||ZONES[S.zone]?.wasteland),t);
  requestAnimationFrame(frame);
 }
 resize();
