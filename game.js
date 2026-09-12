@@ -338,7 +338,7 @@ const MOB_BY_NAME={
 };
 const mobSkinFor=en=>{
  const set=MOB_SET[en.kind];if(!set)return null;
- const name=MOB_BY_NAME[en.name]||set[mobHash(en.name)%set.length]; /* unnamed foes still get a stable pick */
+ const name=en.mobSprite||MOB_BY_NAME[en.name]||set[mobHash(en.name)%set.length]; /* unnamed foes still get a stable pick */
  const im=mobSprite(name);
  return im.complete&&im.naturalWidth?im:null;
 };
@@ -760,11 +760,54 @@ const ZONES=[
  {name:'City',lvl:1,amb:'tavern',special:true,city:true,noBerg:true,noTrees:true,en:[], /* 🏙 the capital - reached by Moonshine's east-road portal
     NOTE: appended LAST so existing saves' zone indices stay valid - never insert zones mid-array */
   ground:'#8c8069',ground2:'#7f7460',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#c8b892'},
+ /* Append-only: saved characters refer to zones by their numeric index. */
+ {name:'Wasteland',lvl:1,amb:'world',special:true,wasteland:true,en:[],
+  ground:'#7a8a4e',ground2:'#6e7d46',water:'#4a86a8',tree:'#4f7d3e',tree2:'#3c6330',path:'#b09a6a'},
+ {name:'Briarhollow',lvl:1,amb:'crypt',special:true,dungeon:'briarhollow',en:[],
+  ground:'#394530',ground2:'#2b3528',water:'#354f48',tree:'#567146',tree2:'#3c5330',path:'#74694b'},
+ {name:'Cindervein',lvl:1,amb:'war',special:true,dungeon:'cindervein',en:[],
+  ground:'#47332a',ground2:'#302723',water:'#bd4d24',tree:'#71543e',tree2:'#463327',path:'#7c5940'},
+ {name:'Frostveil',lvl:1,amb:'frost',special:true,dungeon:'frostveil',snowTrees:true,en:[],
+  ground:'#39444f',ground2:'#29333e',water:'#7eb8d7',tree:'#687f89',tree2:'#4c6572',path:'#8ba1ad'},
 ];
 const TAVERN_ZONE=ZONES.findIndex(z=>z.tavern);
 const ALTAR_ZONE=ZONES.findIndex(z=>z.altar);
 const FARM_ZONE=ZONES.findIndex(z=>z.farm);
 const CITY_ZONE=ZONES.findIndex(z=>z.city);
+const WASTELAND_ZONE=ZONES.findIndex(z=>z.wasteland);
+let expeditionSpawn=null;
+const expeditionZone=z=>!!(z&&(z.wasteland||z.dungeon));
+const expeditionImages={};
+function expeditionEntranceImage(key){
+ if(!expeditionImages[key]){const im=new Image();im.src='assets/wasteland/'+key+'-entrance.png';expeditionImages[key]=im;}
+ return expeditionImages[key];
+}
+function travelExpedition(s){
+ if(!s||!hero||hero.dead)return false;
+ if(hcNoFlee())return false;
+ if(s.destination==='home'){
+  expeditionSpawn={zone:TAVERN_ZONE,x:1220,y:1370};
+  goToZone(TAVERN_ZONE);
+  return true;
+ }else if(s.destination==='wasteland'){
+  if(zoneOf().dungeon){
+   const entrance=WastelandWorld.ENTRANCES.find(e=>e.id===zoneOf().dungeon);
+   if(entrance)expeditionSpawn={zone:WASTELAND_ZONE,x:entrance.x,y:entrance.y+180};
+  }
+  goToZone(WASTELAND_ZONE);
+  return true;
+ }else{
+  const i=ZONES.findIndex(z=>z.dungeon===s.destination);
+  if(i>=0){if(mp.on)mpLeave(false);goToZone(i);return true;}
+ }
+ return false;
+}
+function expeditionDoors(){return world.travelDoors||(world.solids||[]).filter(s=>s.type==='wastelandportal'||s.type==='dungeonentrance');}
+function refreshWastelandChunks(){
+ if(!world||!zoneOf().wasteland)return;
+ const radius=Math.min(4800,Math.max(1800,Math.hypot(VW,VH)/(2*zoom)+850));
+ if(WastelandWorld.updateChunks(world,hero?hero.x:world.spawn.x,hero?hero.y:world.spawn.y,radius))world._sg=null;
+}
 function goToZone(i){
  const z=ZONES[i];if(!z)return;
  if(buildMode)exitBuildMode(); /* leaving the farm mid-build: tear the build UI down cleanly */
@@ -1211,7 +1254,7 @@ const isLevelBossId=id=>!!id; /* Thor + ODIN now use normal boss speed rules too
 const BOSS_SPEED_MUL=2.2;
 const BOSS_ENRAGE_SPEED_MUL=3.5;
 function zoneTemplates(z){
- if(z.cow||z.tavern)return [];
+ if(z.cow||z.tavern||expeditionZone(z))return [];
  const pm=pMul(),pr=pRew();
  const L=effZoneLvl(z);   /* HP/damage scale with effective prestige level */
  const XL=xpZoneLvl(z);  /* XP stays tied to the real zone level */
@@ -1250,6 +1293,7 @@ function zoneTemplates(z){
   xp:Math.round(eHP(XL)/2.6*pr),gold:mobGold(z,1+i*0.10)}));
 }
 function zoneQuests(z){
+ if(expeditionZone(z))return [{name:z.name,desc:z.dungeon?'Defeat the two guardians.':'Explore the Wasteland.',need:999999}];
  if(z.tavern)return [{name:'🍺 Moonshine',desc:'A safe haven. Rest, forge, trade - no foe dares enter.',need:999999}];
  if(z.altar)return [{name:'⛧ The Altar',desc:'A silent ring above the clouds. Something waits to be awakened.',need:999999}];
  if(z.farm){const fl=(S.farm&&S.farm.lvl)||1;
@@ -1389,6 +1433,7 @@ function estimateBaseStat(v,up,kind){
 }
 function ensureItemBase(it){
  if(!it)return it;
+ if(isKnowledgeBook(it))return it;
  if(isLegendaryW(it))return it;
  const u=it.up||0;
  if(it.baseAtk===undefined)it.baseAtk=it.atk?estimateBaseStat(it.atk,u,'atk'):0;
@@ -1597,6 +1642,7 @@ function migrate(s){ /* fills fields missing from older saves */
 }
 /* the road east is open when this zone's quest chain (or boss) is done AND you meet the next zone's level */
 function portalIsOpen(){
+ if(expeditionZone(zoneOf()))return false;
  const nz=ZONES[S.zone+1];
  if(!nz||nz.special)return false; /* no walking portal into the western continent */
  return !!S.cleared[S.zone]&&S.lvl>=nz.lvl&&bossesClearedBefore(S.zone+1);
@@ -1605,6 +1651,10 @@ function portalIsOpen(){
   
 /* ==================== LOOT & UPGRADES ==================== */
 const SLOTS=['weapon','armor','trinket'];
+const isKnowledgeBook=it=>!!it&&it.kind==='knowledge'&&it.id==='book-of-knowledge';
+function knowledgeBook(boss,dungeon){
+ return {id:'book-of-knowledge',kind:'knowledge',slot:'knowledge',name:'Book of Knowledge',rar:'legendary',sell:0,power:0,sourceBoss:String(boss||''),sourceDungeon:String(dungeon||'')};
+}
 const PREFIX={common:['Plain','Worn','Sturdy'],fine:['Keen','Hardened','Trusty'],rare:['Gleaming','Runed','Valiant'],epic:['Kingsforged','Stormbound','Emberwrought']};
 const BASE={weapon:['Blade','Spear','Warbow','Scepter'],armor:['Hauberk','Cuirass','Warcloak','Aegis'],trinket:['Signet','Talisman','Warhorn','Idol']};
 const RARMUL={common:1,fine:1.5,rare:2.3,epic:3.6};
@@ -1787,6 +1837,7 @@ function upCost(it){
  return c;
 }
 function upgradeItem(it){
+ if(!it||!SLOTS.includes(it.slot))return false;
  if(inBossFight()){stageMsg('You cannot forge upgrades mid-boss-fight!',1500);sfx.warn();return false;}
  if((it.up||0)>=capUp(it)){stageMsg(itemName(it)+' is already maxed at +'+capUp(it)+'.',1500);return false;}
  const cost=upCost(it);
@@ -1806,6 +1857,7 @@ function upgradeItem(it){
  return true;
 }
 function tryAutoEquip(it){
+ if(!it||!SLOTS.includes(it.slot))return false;
  const cur=S.gear[it.slot];
  if(!cur||it.power>cur.power){
   if(cur)S.bag.push(cur);
@@ -1822,6 +1874,7 @@ function statBaseStr(it,k,label,suffix=''){
  return `+${v}${suffix} ${label}${baseTxt}`;
 }
 function itemStr(it){
+ if(isKnowledgeBook(it))return 'Its purpose has not yet been revealed.';
  if(isFK(it))syncRimfrost(it);
  else if(isFG(it))syncFelGlaives(it);
  else if(isRing(it))syncTheRing(it);
@@ -4386,6 +4439,8 @@ function drawCryptTorches(vx0,vy0,vx1,vy1){ /* 🔥 breadcrumb markers - flicker
  }
 }
 function buildZone(){
+ /* Delayed multishots can still hold a target from the room we are leaving. */
+ if(world&&world.encounter)for(const en of world.encounter.enemies){en.dead=true;en.dungeonRetired=true;en.dungeonCast=null;}
  if(!zoneOf().special&&(S.maxZone||0)<S.zone)S.maxZone=S.zone;
  const z=zoneOf(),R=mulberry32(S.zone*7919+13);
  const isBoss=!!z.boss;
@@ -4393,7 +4448,15 @@ function buildZone(){
  world.spawn={x:120,y:world.h/2};
  world.portal={x:world.w-80,y:world.h/2};
  world.pathY=world.h/2;world.pathH=110;
- if(z.tavern){
+ if(expeditionZone(z)){
+  world=WastelandWorld.create(z.dungeon||'wasteland');
+  WastelandWorld.ENTRANCES.forEach(e=>expeditionEntranceImage(e.id));
+  ['tree_farm','light_farm','crates_farm'].forEach(id=>farmImg(id));
+  for(const prop of world.solids){const def=prop.type==='farmitem'&&FARM_BUILD.find(d=>d.id===prop.ftype);if(def)farmImg(def.img);}
+  world.travelDoors=[{...world.exit,r:38,type:'wastelandportal',noCol:true,destination:z.dungeon?'wasteland':'home',name:z.dungeon?'Wasteland':'Home'},
+   ...world.entrances.map(e=>({...e,type:'dungeonentrance',noCol:true,destination:e.id}))];
+  if(z.wasteland)world.spawn={x:world.exit.x+180,y:world.exit.y};
+ }else if(z.tavern){
   const cx=world.w/2,cy=world.h/2;
   world.spawn={x:cx,y:cy+180};           /* you arrive at the square */
   world.square={x:cx,y:cy,r:230};        /* plaza radius, used by prerender */
@@ -4412,6 +4475,7 @@ function buildZone(){
   world.solids.push({x:cx-40,y:cy-700,r:38,type:'altarportal'});
   /* 🚜 the Farm portal - far west road */
   world.solids.push({x:cx-1140,y:cy,r:38,type:'farmportal'});
+  world.solids.push({x:cx-80,y:cy+650,r:38,type:'wastelandportal',noCol:true,destination:'wasteland',name:'Wasteland'});
   /* 🏙 the City portal - far east road; a promise, nothing more */
   world.solids.push({x:cx+1140,y:cy,r:38,type:'cityportal'});
   /* the Fishing Hut - worm vendor on the lake's south shore */
@@ -4528,7 +4592,8 @@ function buildZone(){
    world.solids.push({x,y,r:rock?14+R()*8:12+R()*6,type:rock?'rock':'tree',s:0.5+R()*1.6,seed:R()*100}); /* same wide size spread as Moonshine */
   }
  }
- for(let i=0;i<160;i++)world.deco.push({x:R()*world.w,y:R()*world.h,k:R()});
+ if(!expeditionZone(z))for(let i=0;i<160;i++)world.deco.push({x:R()*world.w,y:R()*world.h,k:R()});
+ if(expeditionSpawn&&expeditionSpawn.zone===S.zone){world.spawn={x:expeditionSpawn.x,y:expeditionSpawn.y};expeditionSpawn=null;}
  prerenderGround(z,R);
  const cd0=classOf().spells.map(()=>0);
  /* no zone-hop cheesing: hp/mana/cooldowns travel with you between zones
@@ -4548,7 +4613,10 @@ function buildZone(){
  const tmpls=zoneTemplates(z);
  cowRunning=false;cowT=0;cowSpawnT=0;cowItems=0;cowBagFull=false;
  cowChest=null;cowChestT=10;cowChestMsgT=0;cowBigT=12; /* first chest lands 10s after entering */
- if(z.cow){
+ if(z.dungeon){
+  world.encounter=WastelandDungeons.createEncounter(z.dungeon,world.enemySpawns,{level:effectiveHeroLvl(),maxHp:heroMax(),attack:heroAtk()});
+  enemies=world.encounter.enemies;
+ }else if(z.cow){
   cowRunning=true;
   /* start in the middle of the field - chests can spawn anywhere, so start central */
   world.spawn={x:world.w/2,y:world.h/2};
@@ -4607,6 +4675,7 @@ function buildZone(){
  else if(tmpls.length){for(let i=0;i<24;i++)spawnEnemyAt(tmpls[i%tmpls.length],R);} /* denser maps */
  marker=null;portalMsgT=0;
  camX=hero.x-VW/2;camY=hero.y-VH/2;
+ refreshWastelandChunks();
  startAmbience(z.amb);
 }
 function openSpot(R){
@@ -4719,7 +4788,7 @@ function collectCowChest(){
 }
 function prerenderGround(z,R){
  groundCv=document.createElement('canvas');
- if(z.crypts||z.farm||z.city){groundCv.width=groundCv.height=16;return;} /* floor draws per frame - giant canvases sink phones */
+ if(z.crypts||z.farm||z.city||expeditionZone(z)){groundCv.width=groundCv.height=16;return;} /* floor draws per frame - giant canvases sink phones */
  groundCv.width=world.w;groundCv.height=world.h;
  const g=groundCv.getContext('2d');
  if(z.raid){ /* the Violet Halls floor - tiled at near-native scale, mirrored to hide seams */
@@ -4860,7 +4929,7 @@ function speedOf(e){
  let s=e.speed;
  /* Leveling-zone bosses are aggressive raid targets: fast from pull,
     then enraged movement below 30% HP. Special bosses keep their custom tuning. */
- if(e.boss&&isLevelBossId(e.bossId)){
+ if(e.boss&&!e.dungeon&&isLevelBossId(e.bossId)){
   const base=e.baseSpeed||e.speed||80;
   s=base*(e.hp<=e.max*0.3?BOSS_ENRAGE_SPEED_MUL:BOSS_SPEED_MUL);
  }
@@ -5114,9 +5183,22 @@ function killEnemy(en){
  sfx.die();
  burst(en.x,en.y-10,en.c,12,90,true);
  const r=raceOf();
- let gold=en.cow?0:addGold(Math.round(en.gold*(1+scrollPct('fortune'))));
  if(r.leech)healHero(heroMax()*r.leech,true);
  if(hasEnch('reaper'))healHero(heroMax()*scrollPct('reaper'),true);
+ if(en.dungeon){
+  const reward=WastelandDungeons.defeat(en);
+  if(hero.target===en)hero.target=null;
+  if(reward&&reward.books){
+   S.bag.push(knowledgeBook(en.name,en.dungeon));
+   sfx.loot();sparkles(en.x,en.y-20,'#efd58a',18);
+   floatAt(en.x,en.y-55,'Book of Knowledge','#efd58a');
+   log(`<span class="imp">${en.name}</span> defeated. <span class="llegendary">Book of Knowledge</span> added to your bag.`,'loot');
+   stageMsg('Book of Knowledge added to your bag.',2600,'#efd58a');
+   renderHUD();saveNow();
+  }
+  return; /* These encounters never feed the normal XP, gold, gear or quest routes. */
+ }
+ let gold=en.cow?0:addGold(Math.round(en.gold*(1+scrollPct('fortune'))));
  if(!en.cow&&!en.raid)floatAt(en.x,en.y-en.r-14,gold>0?'+'+gold+' ◉':'◉ CAP','#ffd76a');
  log(`Slew <span class="imp">${en.name}</span> - ${en.xp>0?'+'+en.xp+' xp':'no xp'}${(en.cow||en.raid)?'':', +'+gold+' gold'}.`);
  if(en.cow){
@@ -5913,6 +5995,7 @@ function padInteract(){
  const z=zoneOf(),out=[];
  const add=(s,label,open,rng)=>{if(s)out.push({s,label,open,rng:rng||150});};
  const find=t=>world.solids.find(s2=>s2.type===t);
+ for(const door of expeditionDoors())add(door,door.name,()=>travelExpedition(door),100);
  if(z.tavern){
   for(const s of world.solids){
    const f=homeBuildingFrame(s);if(f)add(homeBuildingDoor(s),f.def.label,f.def.open,90);
@@ -6076,6 +6159,12 @@ cv.addEventListener('pointerdown',e=>{
  const r=cv.getBoundingClientRect();
  const wx=(e.clientX-r.left)/zoom+camX,wy=(e.clientY-r.top)/zoom+camY;
  hero.pendingDoor=null; /* any new click cancels a pending walk-to-building */
+ const door=expeditionDoors().find(s=>s.type==='dungeonentrance'?Math.abs(wx-s.x)<190&&wy>s.y-290&&wy<s.y+48:Math.hypot(wx-s.x,wy-(s.y-30))<65);
+ if(door){
+  if(dist(hero,door)<90)travelExpedition(door);
+  else{hero.target=null;hero.goPortal=false;hero.moveTo={x:door.x,y:door.y+32};marker={...hero.moveTo,t:0};hero.pendingDoor={s:door,open:()=>travelExpedition(door),rng:90};}
+  return;
+ }
  if(zoneOf().tavern){
   const building=homeBuildingAt(wx,wy);
   if(building){enterHomeBuilding(building);return;}
@@ -6534,6 +6623,8 @@ function autoBrain(dt){
 function update(dt){
  runeFxDt=dt; /* simulation time is consumed once by the current weapon draw */
  if(!gameOn)return;
+ refreshWastelandChunks();
+ if(hero&&!hero.dead){const door=expeditionDoors().find(s=>Math.hypot(hero.x-s.x,hero.y-s.y)<(s.type==='dungeonentrance'?65:45));if(door&&travelExpedition(door))return;}
  padNow=padStick(); /* one poll per frame, shared by the movement block below */
  padTick(dt);       /* buttons, the right stick, the A prompt and menu walking */
  /* any of the three counts as the pad driving: the stick walking, a button, the camera stick */
@@ -6666,7 +6757,9 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
  if(hero.dead){
   hero.deadT+=dt;
   if(hero.deadT>3){
-   if(hero.sentHome){
+   if(zoneOf().dungeon){
+    buildZone();renderHUD();save();stageMsg('You regroup at the entrance. The dungeon awakens again.',2600);
+   }else if(hero.sentHome){
     S.lastZone=Math.min(S.zone,ZONES.length-1);
     S.zone=TAVERN_ZONE;S.quest=0;S.qProg=0;
     applyZoneUI();buildZone();renderHUD();save();
@@ -6916,6 +7009,14 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    en.age+=dt;
    en.flankT-=dt; /* re-roll the flank point now and then so the herd weaves */
    if(en.flankT<=0){en.flankT=2+Math.random()*3;en.flankA=Math.random()*6.283;en.flankD=26+Math.random()*85;}
+  }
+  if(en.dungeon){
+   WastelandDungeons.updateEnemy(en,dt,hero,{moveToward,hurtHero:(amount,label,foe,melee)=>{
+    const dmg=hurtHero(amount);sfx.hit();
+    if(melee&&hasEnch('thorns')&&!foe.dead){const n=Math.max(1,Math.round(dmg*scrollPct('thorns')));foe.hp-=n;floatAt(foe.x,foe.y-30,n+'','#9adf9a');if(foe.hp<=0)killEnemy(foe);}
+    return dmg;
+   },onWarn:cast=>stageMsg(cast.name+' — move out of the marked area!',Math.round(cast.warn*1000),'#efd58a')});
+   continue;
   }
   if(en.dead){
    en.deadT+=dt;
@@ -7305,7 +7406,12 @@ function draw(){
  ctx.save();ctx.scale(zoom,zoom);ctx.translate(-camX+shX,-camY+shY);
  ctx.drawImage(groundCv,0,0);
  const z=zoneOf();
- if(z.crypts)drawCryptGround();
+ if(expeditionZone(z)){
+  const view={x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom};
+  WastelandWorld.renderGround(ctx,world,view,{images:{farm:zoneMapImg('farm_zone'),crypt:zoneMapImg('cryptmap'),snow:zoneMapImg('levlingzone_snow'),desert:zoneMapImg('levlingzone_desert'),cryptwall:zoneMapImg('cryptwall'),raidwall:zoneMapImg('raidwall'),raidfloor:zoneMapImg('raidfloor'),dirtroad:farmImg('dirt_road'),gravelroad:farmImg('gravel_road')}});
+  WastelandAmbience.draw(ctx,world,view,now);
+ }
+ else if(z.crypts)drawCryptGround();
  else if(z.farm)drawFarmGround();
  else if(z.city)drawCityGround();
  else if(z.tavern){buildMoonshineRises();drawMoonshineRises(now);} /* 🐟 fish rises on the painted lake */
@@ -7340,6 +7446,7 @@ function draw(){
   drawLootChest(cc.x,cc.y,1.4);
  }
  if(z.crypts&&world.ratboss)drawRatBoss();
+ if(z.dungeon)WastelandDungeons.drawTelegraphs(ctx,enemies);
  /* telegraphed boss hazards */
  for(const h of hazards){
   const p=Math.min(1,h.t/h.warn);
@@ -7395,7 +7502,7 @@ function draw(){
  }
  const drawables=[];
  const cx0=camX-320,cx1=camX+VW/zoom+320,cy0=camY-820,cy1=camY+VH/zoom+320; /* tall art rises far above its anchor */
- for(const s of world.solids){
+ for(const s of world.travelDoors?world.solids.concat(world.travelDoors):world.solids){
   if(s.type==='water')continue;
   if(s.x<cx0||s.x>cx1||s.y<cy0||s.y>cy1)continue; /* off screen - the city has hundreds of these */
   if(s.mined)continue;   /* rubble now; the rock returns when the zone is rebuilt */
@@ -7811,13 +7918,22 @@ function drawPropShadow(s,z){
  }else if(s.type==='rock'){
   if(ready(stenImg)){const W=s.r*(1.6+(s.s||1)*.9);drawGroundShadow(0,6-W*.06,W*.47,W*.095);}
   else drawGroundShadow(0,4,s.r*1.1,s.r*.5);
- }else if(s.type==='lantern')drawGroundShadow(0,4,7,3);
+ }else if(s.type==='dungeonentrance')drawGroundShadow(0,-8,160,32,.20);
+ else if(s.type==='lantern')drawGroundShadow(0,4,7,3);
  else if(s.type==='wall')drawGroundShadow(0,8,s.r*1.15,s.r*.5);
  ctx.restore();
 }
 function drawProp(s,z,withShadow=true){
  if(withShadow)drawPropShadow(s,z);
  ctx.save();ctx.translate(s.x,s.y);
+ if(s.type==='dungeonentrance'){
+  const im=expeditionEntranceImage(s.destination),W=420,H=420;
+  if(im.complete&&im.naturalWidth)ctx.drawImage(mip(im,W),-W/2,28-H,W,H);
+  ctx.font='700 16px Georgia,serif';ctx.textAlign='center';ctx.lineWidth=4;ctx.strokeStyle='#17140f';ctx.strokeText(s.name,0,-H+12);
+  ctx.fillStyle=WastelandDungeons.definitions[s.destination].color;ctx.fillText(s.name,0,-H+12);
+  ctx.font='12px Georgia,serif';ctx.fillStyle='#e7dcc2';ctx.strokeText('Dungeon · 2 bosses',0,55);ctx.fillText('Dungeon · 2 bosses',0,55);
+  ctx.restore();return;
+ }
  const home=homeBuildingFrame(s);
  if(home&&home.ready){
   const fade=seeThrough(s,home.W,home.H,home.top);if(fade<1)ctx.globalAlpha*=fade;
@@ -8092,7 +8208,7 @@ function drawProp(s,z,withShadow=true){
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText('❄ The Altar',1,-235);
   ctx.fillStyle='#bfe4ff';ctx.fillText('❄ The Altar',0,-236);
   ctx.restore();
- }else if(s.type==='cityportal'){ /* 🏙 open - the east road runs to the capital */
+ }else if(s.type==='cityportal'||s.type==='wastelandportal'){ /* shared road-portal silhouette */
   const t=performance.now()/1400+s.x;
   ctx.save();
   ctx.shadowColor='#9ab0ff';ctx.shadowBlur=15;
@@ -8104,8 +8220,9 @@ function drawProp(s,z,withShadow=true){
   ctx.fillStyle='rgba(215,228,255,0.85)';
   for(let i=0;i<3;i++){const a=t+i*2.09;ctx.beginPath();ctx.arc(Math.cos(a)*17,-36+Math.sin(a)*30,2,0,7);ctx.fill();}
   ctx.font='700 12px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
-  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText('City',1,-95);
-  ctx.fillStyle='#aab8ef';ctx.fillText('City',0,-96);
+  const label=s.type==='wastelandportal'?s.name:'City';
+  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(label,1,-95);
+  ctx.fillStyle='#aab8ef';ctx.fillText(label,0,-96);
   ctx.restore();
  }else if(s.type==='ritualportal'){
   const t=performance.now()/650+s.x;
@@ -9056,6 +9173,14 @@ function renderHUD(){
  $('hLvl').textContent='Lv '+S.lvl+(S.prestige?' ✦'+S.prestige:'');
  $('hXP').style.width=(S.lvl>=MAXLVL?100:Math.min(100,100*S.xp/xpNeed(S.lvl)))+'%';
  const z=zoneOf(),q=questOf(),nz=ZONES[S.zone+1];
+ if(expeditionZone(z)){
+  const defeated=enemies.filter(e=>e.boss&&e.dead).length;
+  $('qName').textContent=z.name;
+  $('qDesc').textContent=z.dungeon?(defeated===2?'Both guardians have fallen. Return through the entrance portal.':'Two guardians await. Dodge their marked attacks. Each guards a Book of Knowledge.'):'Follow the roads to three forgotten dungeons. Open Map to find the entrances.';
+  $('qBar').style.width=z.dungeon?defeated*50+'%':'100%';$('qCount').textContent=z.dungeon?defeated+' / 2':'Explore';
+  $('nextBtn').style.display='none';$('autoBtn').classList.toggle('on',S.auto);$('autoBtn').textContent=S.auto?'AUTO ✓':'AUTO';
+  refreshOpenPanel();return;
+ }
  if(zoneOf().tavern){
   $('qName').textContent='🍺 Moonshine';
   $('qDesc').textContent='Safe haven - health and mana return swiftly here.';
@@ -9458,7 +9583,7 @@ function renderMap(){
   if(mapContinent==='raid'&&!z.raidc)return '';
   if(z.tavern)return '';
   if(z.special){
-   if(z.altar||z.farm||z.city||z.finalb)return ''; /* portal-only zones - the City is reached by Moonshine's east road, the Final Hour through the Gate */
+   if(z.altar||z.farm||z.city||z.finalb||expeditionZone(z))return ''; /* portal-only zones */
    if(z.crypts){
     const p20=(S.prestige||0)>=20;
     return `<div class="card zonecard ${p20?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p20?'#a66bd0':''}">
@@ -9528,6 +9653,7 @@ function renderMap(){
     ${cur?'<span class="ztag">Here</span>':locked?(bossGated?'<span class="ztag boss">🔒 Boss</span>':'<span class="ztag">🔒 Lv '+z.lvl+'</span>'):done?'<span class="ztag done">✓ Travel</span>':z.boss?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag">Travel</span>'}
   </div>`;
  }).join('');
+ if(expeditionZone(zoneOf()))$('zoneList').insertAdjacentHTML('afterbegin',WastelandMap.render(world,hero,enemies));
  document.querySelectorAll('.zonecard').forEach(el=>{
   el.onclick=()=>{
    const i=+el.dataset.z,z=ZONES[i];
@@ -9613,6 +9739,7 @@ let scrollTierOpen={}; /* which tier categories are expanded in the Bag */
 let gearRarityOpen={}; /* which gear rarity categories are expanded in the Bag */
 function cleanBagItem(it){
  if(!it||typeof it!=='object')return null;
+ if(isKnowledgeBook(it))return knowledgeBook(it.sourceBoss,it.sourceDungeon);
  if(!it.slot||!it.name)return null;
  const allowed=['weapon','armor','trinket'];
  if(!allowed.includes(it.slot))return null;
@@ -9639,6 +9766,9 @@ function scrapBagItems(match,label){
  return true;
 }
 function renderBag(){
+ S.bag=(S.bag||[]).map(cleanBagItem).filter(Boolean);
+ const books=S.bag.filter(isKnowledgeBook);
+ const knowledgeHtml=books.length?`<div class="card item knowledge-book"><div><div class="sn llegendary">${uiIcon('it_book','📖','shopico')} Book of Knowledge <span style="color:var(--dim)">×${books.length}</span></div><div class="ss">A relic recovered from the guardians of Wasteland.<br>Its purpose has not yet been revealed.</div></div></div>`:'';
  $('bagWallet').innerHTML=walletStr();
  // 🍀 luck potions - always at the top
  let luckHtml='';
@@ -9736,7 +9866,7 @@ function renderBag(){
    bagCat('Chests', vhHtml)
   +bagCat('Flasks', luckHtml+raidHtml+armorHtml+gamblerHtml)
   +bagCat('Buffs',  restedHtml)
-  +bagCat('Items',  connHtml+ringHtml+oreHtml);
+  +bagCat('Items',  connHtml+ringHtml+oreHtml+knowledgeHtml);
 
 
  document.querySelectorAll('[data-vhchest]').forEach(b=>b.onclick=openVioletHallsChest);
@@ -9949,6 +10079,7 @@ function renderBag(){
  };
 
  S.bag=(S.bag||[]).map(cleanBagItem).filter(Boolean);
+ if(S.bag.length&&S.bag.every(isKnowledgeBook)){$('bagList').innerHTML='';return;}
  if(!S.bag.length){$('bagList').innerHTML='<div class="card" style="color:var(--dim);font-size:12px">The bag is empty. Gear, potions and scrolls drop from foes - bosses always drop. Sell spares for gold, or scrap them for ⚙ Scraps to upgrade your gear.</div>';return;}
  const sellable=S.bag.filter(bagSellable); /* same rule the gold cap uses - they must never drift apart */
  const totalScrap=sellable.reduce((t,it)=>t+scrapVal(it),0);
@@ -9958,6 +10089,7 @@ function renderBag(){
  const rarColor={legendary:'#ffd100',epic:'#c9a0ff',rare:'#5b9bd5',fine:'#6dbb6d',common:'#d8e4d6'};
  const byRar={};
  S.bag.forEach((it,i)=>{
+  if(isKnowledgeBook(it))return;
   cleanBagItem(it);
   byRar[it.rar]=byRar[it.rar]||[];
   byRar[it.rar].push({it,i});
@@ -10018,7 +10150,8 @@ function renderBag(){
   scrapBagItems(it=>it.rar===rar,rar+' gear');
  });
  document.querySelectorAll('[data-eq]').forEach(b=>b.onclick=()=>{
-  const i=+b.dataset.eq,it=S.bag.splice(i,1)[0];
+  const i=+b.dataset.eq;if(!S.bag[i]||!SLOTS.includes(S.bag[i].slot))return;
+  const it=S.bag.splice(i,1)[0];
   const cur=S.gear[it.slot];if(cur)S.bag.push(cur);
   S.gear[it.slot]=it;hero.hp=Math.min(hero.hp,heroMax());
   renderBag();renderHUD();save();

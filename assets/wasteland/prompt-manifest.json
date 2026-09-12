@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "generationMode": "built-in image_gen",
+  "generatedOn": "2026-09-12",
+  "workflow": "Three independent generation calls. Original generated PNG files copied without raster postprocessing; native alpha preserved.",
+  "styleReferences": [
+    {
+      "path": "assets/models/träd.png",
+      "role": "Style-only visual reference, inspected before generation"
+    },
+    {
+      "path": "assets/models/berg.png",
+      "role": "Style-only visual reference, inspected before generation"
+    },
+    {
+      "path": "assets/city/minehall.png",
+      "role": "Style-only visual reference, inspected before generation"
+    },
+    {
+      "path": "assets/models/armor_altar.png",
+      "role": "Style-only visual reference, inspected before generation"
+    }
+  ],
+  "visualReview": "All three outputs inspected: complete distinct cave entrances, centered dark walkable openings, compact irregular bases, no text or characters, no opaque background rectangle. Generated perimeter alpha retained without manual thresholding.",
+  "alphaNote": "The source generator emits mostly alpha 251–253 within the visible object and alpha 0 in the transparent background, with very faint residual edge pixels. Original alpha values were preserved.",
+  "assets": [
+    {
+      "id": "briarhollow",
+      "path": "assets/wasteland/briarhollow-entrance.png",
+      "sourceGeneratedFile": "exec-bc8b34b7-1a07-47e2-b5f2-a67ceda02efe.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "sha256": "20be53e0cd5c45739fbf732092e0a14c9f69b7a5b4b7067e17401a5d14368f36",
+      "bytes": 2539037,
+      "transparentPixels": 568441,
+      "opaquePixels": 353,
+      "partialAlphaPixels": 1003722,
+      "nonTransparentBorderPixels": 67,
+      "prompt": "Use case: stylized-concept.\nAsset type: one production-ready transparent PNG overworld dungeon entrance sprite for a 2D fantasy RPG.\nStyle: richly hand-painted fantasy game prop, chunky faceted stone forms, strong clean dark brown/black ink outlines, controlled painterly texture, readable 2.5D isometric three-quarter front view from slightly above, cohesive with old fantasy RPG building sprites. Warm directional light from upper left. Detailed but bold readable silhouette, not photorealistic, not pixel art.\nComposition: square canvas, a SINGLE complete standalone cave entrance centered, occupies about 80 percent width and 82 percent height, modest fully transparent padding on every side. The open dark walkable doorway is wide, obvious, centered near the bottom of the object. A small irregular stone footprint directly under the structure only. Both the object and entrance floor share a coherent isometric ground plane. No cropped extremities.\nOutput: actual transparent background with alpha channel, not a painted white/gray/black background and not a checkerboard drawing. Clean cutout perimeter, no white or gray halo, no background fog, no backdrop gradient, no ground rectangle, no floating shadows extending beyond the compact base. No text, no lettering, no symbols resembling letters, no banners, no people, no animals, no monsters. Only the complete entrance prop.\nSubject: BRIARHOLLOW, an overgrown woodland cavern. A low broad asymmetric arch of weathered slate-gray boulders, dense green moss clinging to the upper stone, thick gnarled brown roots embracing the arch and curling toward the foot, a few large readable fern clusters beside the base. Distinct natural silhouette, a short old tree stump incorporated at the back/top, muted olive and emerald foliage. Deep near-black cave opening with a gentle green reflected tint inside, clearly walkable, no door covering it. The dark opening is the focal point, not a tree. Show several mossy broken stepping stones leading a very short distance outward, fully contained in the compact irregular base. Earthy, ancient, mysterious mood."
+    },
+    {
+      "id": "cindervein",
+      "path": "assets/wasteland/cindervein-entrance.png",
+      "sourceGeneratedFile": "exec-81e0ad3b-873b-4f21-ac02-a7e629948813.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "sha256": "73507801e9e6c3d79c1d04fa87844a3e9b7952580c9f3b7976bbf7697e04611c",
+      "bytes": 2348147,
+      "transparentPixels": 540423,
+      "opaquePixels": 619,
+      "partialAlphaPixels": 1031474,
+      "nonTransparentBorderPixels": 22,
+      "prompt": "Use case: stylized-concept.\nAsset type: one production-ready transparent PNG overworld dungeon entrance sprite for a 2D fantasy RPG.\nStyle: richly hand-painted fantasy game prop, chunky faceted stone forms, strong clean dark brown/black ink outlines, controlled painterly texture, readable 2.5D isometric three-quarter front view from slightly above, cohesive with old fantasy RPG building sprites. Warm directional light from upper left. Detailed but bold readable silhouette, not photorealistic, not pixel art.\nComposition: square canvas, a SINGLE complete standalone cave entrance centered, occupies about 80 percent width and 82 percent height, modest fully transparent padding on every side. The open dark walkable doorway is wide, obvious, centered near the bottom of the object. A small irregular stone footprint directly under the structure only. Both the object and entrance floor share a coherent isometric ground plane. No cropped extremities.\nOutput: actual transparent background with alpha channel, not a painted white/gray/black background and not a checkerboard drawing. Clean cutout perimeter, no white or gray halo, no background fog, no backdrop gradient, no ground rectangle, no floating shadows extending beyond the compact base. No text, no lettering, no symbols resembling letters, no banners, no people, no animals, no monsters. Only the complete entrance prop.\nSubject: CINDERVEIN, an abandoned ember-lit mine entrance. A stout dark charcoal basalt outcrop forms a broad arch, held by aged heavy brown timber support beams and rusted iron corner braces. Distinct angular industrial silhouette, a collapsed short wooden brace on one side, a little broken mine rail emerging from the open cavern toward the front and ending within the small irregular gravel base. The large near-black tunnel mouth glows dimly warm amber deep inside. A few contained orange molten fissures in the basalt at the sides and a tiny hanging copper mine lantern add localized warmth, no smoke plume or glow across transparent background. No minecart blocking the doorway. Gritty, foreboding, warm black/brown/orange palette."
+    },
+    {
+      "id": "frostveil",
+      "path": "assets/wasteland/frostveil-entrance.png",
+      "sourceGeneratedFile": "exec-b3031487-f82b-4222-844e-617f5271f18e.png",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "sha256": "a5faf5e9018f1c4abfc36995c83c2b153efa343bbc8a8f8daaac2c710d2c5b3e",
+      "bytes": 2232859,
+      "transparentPixels": 632051,
+      "opaquePixels": 178,
+      "partialAlphaPixels": 940287,
+      "nonTransparentBorderPixels": 66,
+      "prompt": "Use case: stylized-concept.\nAsset type: one production-ready transparent PNG overworld dungeon entrance sprite for a 2D fantasy RPG.\nStyle: richly hand-painted fantasy game prop, chunky faceted stone forms, strong clean dark brown/black ink outlines, controlled painterly texture, readable 2.5D isometric three-quarter front view from slightly above, cohesive with old fantasy RPG building sprites. Warm directional light from upper left. Detailed but bold readable silhouette, not photorealistic, not pixel art.\nComposition: square canvas, a SINGLE complete standalone cave entrance centered, occupies about 80 percent width and 82 percent height, modest fully transparent padding on every side. The open dark walkable doorway is wide, obvious, centered near the bottom of the object. A small irregular stone footprint directly under the structure only. Both the object and entrance floor share a coherent isometric ground plane. No cropped extremities.\nOutput: actual transparent background with alpha channel, not a painted white/gray/black background and not a checkerboard drawing. Clean cutout perimeter, no white or gray halo, no background fog, no backdrop gradient, no ground rectangle, no floating shadows extending beyond the compact base. No text, no lettering, no symbols resembling letters, no banners, no people, no animals, no monsters. Only the complete entrance prop.\nSubject: FROSTVEIL, an icy haunted crypt-cave entrance. A broad gray-blue weathered stone arch cut into a compact rugged rock mound, with two short broken ancient crypt pillars flanking the large dark open portal. Distinct frost-crusted jagged silhouette, long grouped translucent blue icicles hanging along the top of the arch but leaving the passage fully clear, small snow caps on upper ledges, several bold icy blue crystal clusters at the sides of the compact base. The deep near-black walkable opening has a faint contained cyan spectral reflection inside, no ghost character and no fog outside the object. A few worn stone steps descend into the opening, one shallow broad icy threshold in front. Cold desaturated blue, slate gray, small cyan accents, eerie and ancient mood."
+    }
+  ]
+}
