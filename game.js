@@ -8432,10 +8432,10 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g.beginPath();g.arc(bcx+2.9,bcy-1.1,1,0,7);g.fill();
  }
  } /* end procedural body (skipped when a painted race sprite exists) */
- /* weapon - painted sprites are wider, so the hand sits further out and lower */
+ /* Armor grips follow the painted gauntlet, including the body's running rock. */
  const pw=!!frame;
- const tx=fx*(pw?11:9),ty=(pw?-1:-6)+by;
- g.save();g.translate(tx,ty);
+ const hand=pw?characterHandPoint(frame,fx,by):{x:fx*9,y:-6+by};
+ g.save();g.translate(hand.x,hand.y);
  const sw=swing?(0.24-swing)*9:0;
  const wAng=(sgn<0?-1:1)*(pw?0.85:0.5)+sw*sgn;
  g.rotate(wAng);

@@ -10,6 +10,8 @@ const { readRgbaPng } = require('./helpers/png.cjs');
 const root = path.resolve(__dirname, '..');
 const game = fs.readFileSync(path.join(root, 'game.js'), 'utf8');
 const layout = fs.readFileSync(path.join(root, 'assets/characters/layout.js'), 'utf8');
+const runeEffects = fs.readFileSync(path.join(root, 'assets/weapons/rune-effects.js'), 'utf8');
+const runeProfiles = fs.readFileSync(path.join(root, 'assets/weapons/rune-profiles.js'), 'utf8');
 const races = ['human', 'dwarf', 'orc', 'undead'];
 const classes = ['warrior', 'mage', 'hunter', 'priest'];
 const heroes = races.flatMap(race => ['male', 'female'].flatMap(gender =>
@@ -43,12 +45,33 @@ function visibleBounds(im) {
   }
   return [left, top, right + 1 - left, bottom + 1 - top];
 }
+function multiply(a, b) {
+  return { a: a.a * b.a + a.c * b.b, b: a.b * b.a + a.d * b.b,
+    c: a.a * b.c + a.c * b.d, d: a.b * b.c + a.d * b.d,
+    e: a.a * b.e + a.c * b.f + a.e, f: a.b * b.e + a.d * b.f + a.f };
+}
+function pointAt(m, x, y) {
+  return { x: m.a * x + m.c * y + m.e, y: m.b * x + m.d * y + m.f };
+}
+function weaponImage(name) {
+  const src = `assets/weapons/${name}.png`, bytes = fs.readFileSync(path.join(root, src));
+  return { src, complete: true, naturalWidth: bytes.readUInt32BE(16), naturalHeight: bytes.readUInt32BE(20) };
+}
 function harness(overrides = {}) {
   const lookups = [], draws = [], translations = [], stack = [];
+  let transform = { a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 };
   const ctx = {
-    save() { stack.push(true); }, restore() { assert.ok(stack.pop(), 'Balanced canvas saves'); },
-    scale() {}, rotate() {}, translate(x, y) { translations.push([x, y]); },
-    drawImage(img, ...rect) { draws.push({ img, rect }); },
+    save() { stack.push({ ...transform }); },
+    restore() { assert.ok(stack.length, 'Balanced canvas saves'); transform = stack.pop(); },
+    scale(x, y) { transform = multiply(transform, { a: x, b: 0, c: 0, d: y, e: 0, f: 0 }); },
+    rotate(a) { transform = multiply(transform,
+      { a: Math.cos(a), b: Math.sin(a), c: -Math.sin(a), d: Math.cos(a), e: 0, f: 0 }); },
+    translate(x, y) {
+      translations.push([x, y]);
+      transform = multiply(transform, { a: 1, b: 0, c: 0, d: 1, e: x, f: y });
+    },
+    getTransform() { return { ...transform }; },
+    drawImage(img, ...rect) { draws.push({ img, rect, matrix: { ...transform } }); },
   };
   const images = new Map();
   const context = vm.createContext({ ctx, bootImg: image('fot'), CHAR_RUN: {},
@@ -61,14 +84,29 @@ function harness(overrides = {}) {
       return images.get(name);
     },
     mip: img => img, crisp: img => img, isFGLegend: () => false,
-    swordImg: { src: 'sword.png', complete: true, naturalWidth: 200, naturalHeight: 800 },
+    swordImg: weaponImage('sword'), maceImg: weaponImage('mace'),
+    staffImg: weaponImage('staff'), bowImg: weaponImage('bow'),
+    runeMarks() {},
+    runeTint(g, rune, sp, ...rect) { g.drawImage(sp.image, ...rect); },
   });
   const aliases = ['RACE_ALIAS', 'CLASS_ALIAS'].map(name => {
     const match = game.match(new RegExp(`const ${name}=.*?;`));
     assert.ok(match, `Missing ${name}`);
     return match[0];
   }).join('\n');
-  vm.runInContext(`${layout}\n${aliases}\nglobalThis.bounds=CHARACTER_BOUNDS;`, context);
+  vm.runInContext(`${layout}\n${aliases}\nglobalThis.bounds=CHARACTER_BOUNDS;
+    globalThis.armorHands=ICE_ARMOR_HANDS;`, context);
+  // Use the shipped UV points and actual emitter. Painting is recorded above;
+  // its colour/alpha pipeline is covered separately in rune-effects.test.cjs.
+  vm.runInContext(`${runeProfiles}\nfunction runeUnder(g,rune,image){
+    const name=image.src.split('/').pop().replace('.png','');
+    return {image,key:name,profile:WEAPON_RUNE_PROFILES[name]};
+  }`, context);
+  const transformFunction = runeEffects.match(/^function runePointTransform\(.*$/m);
+  const emitterStart = runeEffects.indexOf('function runeEmitter(');
+  const emitterEnd = runeEffects.indexOf('function runeSpark(', emitterStart);
+  assert.ok(transformFunction && emitterStart >= 0 && emitterEnd > emitterStart);
+  vm.runInContext(transformFunction[0] + '\n' + runeEffects.slice(emitterStart, emitterEnd), context);
   vm.runInContext(section('function femBootW(', 'const brunnImg='), context);
   vm.runInContext(section('function drawChampionSprite(', 'function drawPadPrompt('), context);
   return { context, lookups, draws, translations, stack };
@@ -197,7 +235,96 @@ test('a loaded armor body keeps the painted hand and weapon size even before nor
   assert.equal(h.draws.length, 2);
   assert.equal(h.draws[0].img, armor);
   assert.deepEqual(h.draws[0].rect, [frame.x, frame.y, frame.width, frame.height]);
-  assert.deepEqual(h.translations, [[11, -1]], 'The painted hand remains active');
+  const hand = h.context.characterHandPoint(frame, 1, 0);
+  assert.deepEqual(h.translations, [[hand.x, hand.y]], 'The reviewed armor hand remains active');
   assert.equal(h.draws[1].rect[3], 38, 'Painted standard sword height, not procedural height 27');
   assert.equal(h.stack.length, 0);
+});
+
+test('all eight armor hand points touch solid gauntlets and are shared across the 32 class combinations', () => {
+  const { context } = harness();
+  const armorNames = heroes.filter(name => name.endsWith('_armor'));
+  assert.deepEqual(Object.keys(context.armorHands).sort(), armorNames.sort());
+  for (const race of races) for (const female of [false, true]) {
+    const name = `${race}${female ? 'female' : 'male'}_armor`, im = png(name);
+    const [x, y] = context.armorHands[name];
+    assert.ok(Number.isInteger(x) && Number.isInteger(y) && x >= 0 && x < im.width && y >= 0 && y < im.height, name);
+    assert.ok(im.alpha(x, y) > 128, `${name}: reviewed hand centre must be solid art`);
+    let previous = null;
+    for (const cls of classes) {
+      const frame = context.paintedCharacterFrame(race, cls, female, true);
+      close((frame.hand.x - frame.x) * im.width / frame.width, x, `${name}: source hand x`);
+      close((frame.hand.y - frame.y) * im.height / frame.height, y, `${name}: source hand y`);
+      if (previous) assert.deepEqual(frame.hand, previous, `${name}: ${cls} must not shift the same gauntlet`);
+      previous = frame.hand;
+    }
+  }
+});
+
+test('armor weapon origins match the actual rendered gauntlet through facing, running and dancing', () => {
+  const h = harness();
+  // An outer scene transform catches attachment coordinates accidentally being
+  // returned in screen space or transformed twice by a portrait/world caller.
+  h.context.ctx.translate(240, -35); h.context.ctx.rotate(.21); h.context.ctx.scale(1.7, 1.7);
+  const outer = h.context.ctx.getTransform();
+  for (const race of races) for (const female of [false, true]) for (const cls of classes) {
+    const name = `${race}${female ? 'female' : 'male'}_armor`, [sx, sy] = h.context.armorHands[name];
+    for (const fx of [-1, -.001, 0, .001, 1]) for (const by of [-6, -1.8, 0, 1.8]) {
+      h.draws.length = 0;
+      h.context.drawChampionSprite(h.context.ctx, race, cls, fx, by, .18, false, null, female, 2, true, null);
+      assert.equal(h.draws.length, 2);
+      const [body, weapon] = h.draws, [x, y, width, height] = body.rect;
+      const expected = pointAt(body.matrix,
+        x + sx / body.img.naturalWidth * width, y + sy / body.img.naturalHeight * height);
+      const origin = pointAt(weapon.matrix, 0, 0);
+      close(origin.x, expected.x, `${name}/${cls}/${fx}/${by}: hand x follows body canvas matrix`);
+      close(origin.y, expected.y, `${name}/${cls}/${fx}/${by}: hand y follows body canvas matrix`);
+      assert.deepEqual(h.context.ctx.getTransform(), outer);
+      assert.equal(h.stack.length, 0);
+    }
+  }
+});
+
+test('unarmored and dimension-mismatched sprites retain the ordinary weapon anchor', () => {
+  const { context } = harness();
+  const frames = heroes.filter(name => !name.endsWith('_armor')).map(name => context.characterBodyFrame(image(name)));
+  for (const name of heroes.filter(name => name.endsWith('_armor'))) {
+    const original = image(name);
+    frames.push(context.characterBodyFrame({ ...original, naturalWidth: original.naturalWidth + 1 }));
+    frames.push(context.characterBodyFrame({ ...original, naturalHeight: original.naturalHeight + 1 }));
+  }
+  frames.push(context.characterBodyFrame(image('humanmale_armor', { src: 'assets/characters/unreviewed_armor.png' })));
+  for (const frame of frames) {
+    assert.equal(frame.hand, null, 'Only the reviewed original armor dimensions opt in');
+    for (const fx of [-1, -.001, 0, .001, 1]) for (const by of [-6, -1.8, 0, 1.8]) {
+      const hand = context.characterHandPoint(frame, fx, by);
+      close(hand.x, fx * 11); close(hand.y, -1 + by);
+    }
+  }
+});
+
+test('the actual rune emitter follows the armor-attached weapon through swing and bow mirroring', () => {
+  const h = harness();
+  h.context.ctx.translate(80, 170); h.context.ctx.rotate(-.32); h.context.ctx.scale(2.4, 2.4);
+  const outer = h.context.ctx.getTransform();
+  const profiles = vm.runInContext('WEAPON_RUNE_PROFILES', h.context);
+  for (const race of races) for (const female of [false, true]) for (const cls of classes) {
+    for (const fx of [-1, 1]) for (const by of [-6, 1.8]) {
+      h.draws.length = 0;
+      const emission = h.context.drawChampionSprite(h.context.ctx, race, cls, fx, by, .18,
+        false, null, female, 2, true, { id: 'veinseeker', glow: '#ff3344' });
+      const weapon = h.draws[1], [x, y, width, height] = weapon.rect;
+      const key = weapon.img.src.split('/').pop().replace('.png', '');
+      const points = profiles[key].emit;
+      assert.ok(emission && points.length > 0);
+      assert.equal(emission.points.length, points.length);
+      points.forEach(([u, v], i) => {
+        const expected = pointAt(weapon.matrix, x + u * width, y + v * height);
+        close(emission.points[i].x, expected.x, `${race}/${female}/${cls}: rune x`);
+        close(emission.points[i].y, expected.y, `${race}/${female}/${cls}: rune y`);
+      });
+      assert.deepEqual(h.context.ctx.getTransform(), outer);
+      assert.equal(h.stack.length, 0);
+    }
+  }
 });

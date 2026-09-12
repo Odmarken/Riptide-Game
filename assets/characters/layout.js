@@ -46,17 +46,36 @@ const CHARACTER_BOUNDS={
  "npc/npc_female":[387,822,4,5,379,812],
  "npc/npc_sebbe":[516,699,1,4,514,693]
 };
+/* Reviewed grip centres in the native (left-facing) Ice Armor PNGs. Broad
+ * gauntlets do not share the ordinary costume's fixed weapon attachment. */
+const ICE_ARMOR_HANDS={
+ humanmale_armor:[80,728],humanfemale_armor:[42,632],
+ dwarfmale_armor:[54,726],dwarffemale_armor:[48,644],
+ orcmale_armor:[64,726],orcfemale_armor:[55,642],
+ undeadmale_armor:[52,726],undeadfemale_armor:[42,641]
+};
 function characterBodyFrame(img,bodyHeight=48,bodyBottom=5){
  if(!img||img.complete===false||!img.naturalWidth||!img.naturalHeight)return null;
  const iw=img.naturalWidth,ih=img.naturalHeight;
  const name=decodeURIComponent(img.src.split(/[?#]/)[0]).replace(/\\/g,'/').split('/characters/').pop().replace(/\.png$/,'');
  const reviewed=CHARACTER_BOUNDS[name];
  // A replaced or unknown image uses its full frame until its bounds are reviewed.
- const box=reviewed&&reviewed[0]===iw&&reviewed[1]===ih?reviewed.slice(2):[0,0,iw,ih];
+ const matched=reviewed&&reviewed[0]===iw&&reviewed[1]===ih;
+ const box=matched?reviewed.slice(2):[0,0,iw,ih];
  const scale=bodyHeight/box[3];
- return {x:-(box[0]+box[2]/2)*scale,y:bodyBottom-(box[1]+box[3])*scale,
+ const x=-(box[0]+box[2]/2)*scale,y=bodyBottom-(box[1]+box[3])*scale;
+ const grip=matched&&ICE_ARMOR_HANDS[name];
+ return {x,y,
   width:iw*scale,height:ih*scale,visibleWidth:box[2]*scale,
-  bodyBottom,bodyHeight,headY:bodyBottom-bodyHeight};
+  bodyBottom,bodyHeight,headY:bodyBottom-bodyHeight,
+  hand:grip?{x:x+grip[0]*scale,y:y+grip[1]*scale}:null};
+}
+function characterHandPoint(frame,fx,by){
+ if(!frame.hand)return {x:fx*11,y:-1+by};
+ // Match the body exactly: bob inside its rotation, then mirror the native art.
+ // Facing uses the same sign as the sprite even when aiming nearly north/south.
+ const a=by*.025,c=Math.cos(a),s=Math.sin(a),x=frame.hand.x,y=frame.hand.y+by;
+ return {x:(fx<0?1:-1)*(x*c-y*s),y:x*s+y*c};
 }
 function characterBootFrame(race,female,img,bodyBottom=5){
  // Stable feet for each frame: a robe's width or an armor swap cannot grow boots.
