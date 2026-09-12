@@ -4,6 +4,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
+const {readRgbaPng}=require('./helpers/png.cjs');
 const W=require('../assets/wasteland/world.js');
 const root=path.resolve(__dirname,'..');
 const D=vm.runInNewContext(fs.readFileSync(path.join(root,'assets/wasteland/dungeons.js'),'utf8')+';WastelandDungeons',{});
@@ -30,7 +31,7 @@ function tickUntil(en,hero,predicate,hooks={},limit=400){
 function resolve(en,hero,hooks={}){tickUntil(en,hero,()=>!en.dungeonCast,hooks);}
 const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`);
 
-test('all actual dungeon layouts create 15 themed foes and six distinct existing boss models',()=>{
+test('all actual dungeon layouts create 15 themed foes and two distinct bosses with one troll palette per dungeon',()=>{
  const bosses=[];
  for(const key of keys){
   const world=W.create(key),run=D.createEncounter(key,world.enemySpawns,stats);
@@ -42,15 +43,94 @@ test('all actual dungeon layouts create 15 themed foes and six distinct existing
    assert.equal(en.xp,0);assert.equal(en.gold,0);assert.equal(en.raid,false);
    if(en.boss){
     bosses.push(en);assert.equal(en.dungeonMoves.length,2);
+    assert.equal(en.skin,'cave_troll_'+key);
     assert.deepEqual(Array.from(en.dungeonMoves,m=>m.shape).sort(),['circle','cone']);
     for(const m of en.dungeonMoves){assert.ok(m.warn>=1.35);assert.ok(m.damage>=1.2&&m.damage<=1.44);}
    }else assert.ok(fs.existsSync(path.join(root,'assets/mobs',en.mobSprite+'.png')),en.mobSprite);
   }
  }
- assert.equal(new Set(bosses.map(e=>e.skin)).size,6);
+ assert.equal(new Set(bosses.map(e=>e.skin)).size,3);
  assert.equal(new Set(bosses.map(e=>e.bossId)).size,6);
- const skinBodies={ossric:'boss_levling3',gorehusk:'boss_levling4',ashmaw:'boss_levling1',firelord:'firelord_boss',betrayer:'fellord_boss',frostking:'frostlord_boss'};
- for(const en of bosses)assert.ok(fs.existsSync(path.join(root,'assets/boss',skinBodies[en.skin]+'.png')),en.skin);
+ for(const en of bosses)assert.ok(fs.existsSync(path.join(root,'assets/boss',en.skin+'.png')),en.skin);
+});
+
+function bossRenderer(){
+ const draws=[],texts=[],stack=[],calls={feet:0,blade:0};
+ let matrix=[1,0,0,1,0,0];
+ function transform(a,b,c,d,e,f){const m=matrix;matrix=[m[0]*a+m[2]*b,m[1]*a+m[3]*b,m[0]*c+m[2]*d,m[1]*c+m[3]*d,m[0]*e+m[2]*f+m[4],m[1]*e+m[3]*f+m[5]];}
+ const ctx=new Proxy({
+  save(){stack.push(matrix.slice());},restore(){assert.ok(stack.length);matrix=stack.pop();},
+  translate(x,y){transform(1,0,0,1,x,y);},scale(x,y){transform(x,0,0,y,0,0);},
+  rotate(a){transform(Math.cos(a),Math.sin(a),-Math.sin(a),Math.cos(a),0,0);},
+  drawImage(img,...rect){draws.push({img,rect,matrix:matrix.slice()});},
+  fillText(text,x,y){texts.push({text,x,y,matrix:matrix.slice()});}
+ },{get:(o,k)=>k in o?o[k]:(...args)=>{for(const a of args)if(typeof a==='number')assert.ok(Number.isFinite(a),`${String(k)} finite`);}});
+ const context={ctx,hero:{x:1000,y:1000},performance:{now:()=>700},document:{body:{}},getComputedStyle:()=>({fontFamily:'serif'}),
+  mip:im=>im,feet:()=>calls.feet++,bootFeet:()=>calls.feet++,mobSkinFor:()=>null,shade:c=>c,parts:[],zapLine(){},
+  raidBlade(){calls.blade++;return {src:'separate weapon',width:200,height:400};},drawMiniBar(){}};
+ for(const m of game.matchAll(/const (\w+)=new Image\(\);\1\.src='([^']+)'/g))context[m[1]]={src:m[2],complete:true,naturalWidth:1024,naturalHeight:1024};
+ const skins=game.slice(game.indexOf('const CAVE_TROLL_LAYOUT='),game.indexOf('/* ---- painted mob sprites:'));
+ const renderer=game.slice(game.indexOf('function fullBodyBossFrame('),game.indexOf('\nfunction drawMiniBar('));
+ const api=vm.runInNewContext(skins+'\n'+renderer+';({RAID_SKINS,CAVE_TROLL_LAYOUT,fullBodyBossFrame,drawEnemy})',context);
+ return {...api,context,draws,texts,stack,calls,clear(){draws.length=0;texts.length=0;calls.feet=0;calls.blade=0;}};
+}
+function projected(m,x,y){return {x:m[0]*x+m[2]*y+m[4],y:m[1]*x+m[3]*y+m[5]};}
+
+test('the three troll PNGs share reviewed visible bounds, uniform scale and a common ground anchor',()=>{
+ const api=bossRenderer(),layout=api.CAVE_TROLL_LAYOUT;
+ let referenceAlpha=null;
+ for(const key of keys){
+  const skin=api.RAID_SKINS['cave_troll_'+key],im=readRgbaPng(path.join(root,'assets/boss/cave_troll_'+key+'.png'));
+  assert.deepEqual([im.width,im.height],Array.from(layout.source));
+  const bounds=[im.width,im.height,-1,-1],alpha=Buffer.alloc(im.width*im.height);
+  for(let y=0;y<im.height;y++)for(let x=0;x<im.width;x++){
+   const a=im.pixels[(y*im.width+x)*4+3];alpha[y*im.width+x]=a;if(a<128)continue;
+   bounds[0]=Math.min(bounds[0],x);bounds[1]=Math.min(bounds[1],y);bounds[2]=Math.max(bounds[2],x);bounds[3]=Math.max(bounds[3],y);
+  }
+  assert.deepEqual([bounds[0],bounds[1],bounds[2]-bounds[0]+1,bounds[3]-bounds[1]+1],Array.from(layout.bounds));
+  if(referenceAlpha)assert.deepEqual(alpha,referenceAlpha,'palette changes preserve every silhouette pixel');else referenceAlpha=alpha;
+  for(const r of [13,26,40]){
+   const frame=api.fullBodyBossFrame(skin,r);
+   close(frame.width/im.width,frame.height/im.height);close(frame.scale*layout.bounds[3],r*7.3);
+   close(frame.x+layout.foot[0]*frame.scale,0);close(frame.y+layout.foot[1]*frame.scale,0);
+   close(frame.ground,r*.55);close(frame.top,frame.ground+frame.y+layout.bounds[1]*frame.scale);
+   assert.ok(frame.width>0&&frame.height>0,'the whole uncropped source is drawn with a positive uniform scale');
+  }
+ }
+});
+
+test('actual boss rendering draws one complete troll through walking, attacks and mirroring, while legacy bosses keep their parts',()=>{
+ const api=bossRenderer();
+ for(const key of keys)for(const boss of encounter(key).enemies.filter(e=>e.boss))for(const side of [-1,1])for(const state of ['idle','chase','strike']){
+  api.clear();api.context.hero.x=boss.x+side*100;
+  const en={...boss,state,walk:1.3,mv:state==='chase'?1:0,wt:2.2,swing:state==='strike'?.15:0};
+  api.drawEnemy(en);assert.equal(api.stack.length,0);assert.equal(api.draws.length,1);assert.equal(api.calls.feet,0);assert.equal(api.calls.blade,0);
+  const draw=api.draws[0],frame=api.fullBodyBossFrame(api.RAID_SKINS[en.skin],en.r),p=api.CAVE_TROLL_LAYOUT;
+  assert.equal(draw.img.src.split('?')[0],'assets/boss/'+en.skin+'.png');
+  assert.equal(draw.rect.length,4,'draw the entire source, never a source crop');
+  for(const v of [...draw.rect,...draw.matrix])assert.ok(Number.isFinite(v));
+  const foot=projected(draw.matrix,draw.rect[0]+p.foot[0]*frame.scale,draw.rect[1]+p.foot[1]*frame.scale);
+  const bob=state==='chase'?Math.sin(en.walk*2)*1.6:Math.sin(1+en.home.x)*.7;
+  close(foot.x,en.x);close(foot.y,en.y+en.r*.55+bob);assert.equal(Math.sign(draw.matrix[0]),-side,'club faces the hero');
+  const [bx,by,bw,bh]=p.bounds;
+  const top=Math.min(...[[bx,by],[bx+bw,by],[bx,by+bh],[bx+bw,by+bh]].map(([x,y])=>projected(draw.matrix,draw.rect[0]+x*frame.scale,draw.rect[1]+y*frame.scale).y));
+  const label=api.texts.at(-1);assert.ok(projected(label.matrix,label.x,label.y).y<top-8,'name stays above visible art, including its walk rock');
+ }
+ for(const key of ['gorehusk','ossric','ashmaw','firelord','betrayer','frostking']){
+  api.clear();const en={...encounter().enemies.find(e=>e.boss),skin:key,bossId:key};api.drawEnemy(en);
+  assert.equal(api.draws.length,4,`${key} retains body, two feet and weapon`);assert.equal(api.calls.blade,1);assert.equal(api.stack.length,0);
+ }
+});
+
+test('unready or dimension-mismatched troll art has a finite fallback and recovers when ready',()=>{
+ const api=bossRenderer(),en=encounter().enemies.find(e=>e.boss),skin=api.RAID_SKINS[en.skin],original={...skin.img};
+ for(const invalid of [{complete:false},{naturalWidth:0,naturalHeight:0},{naturalWidth:512},{naturalHeight:2048}]){
+  Object.assign(skin.img,original,invalid);assert.equal(api.fullBodyBossFrame(skin,en.r),null);
+  api.clear();api.drawEnemy(en);assert.equal(api.draws.length,0);assert.equal(api.stack.length,0);
+  for(const label of api.texts)assert.ok(Number.isFinite(label.x)&&Number.isFinite(label.y));
+ }
+ Object.assign(skin.img,original);api.clear();api.drawEnemy(en);assert.equal(api.draws.length,1);
+ for(const r of [0,-1,NaN,Infinity])assert.equal(api.fullBodyBossFrame(skin,r),null);
 });
 
 test('invalid layouts cannot silently omit or duplicate a book boss',()=>{

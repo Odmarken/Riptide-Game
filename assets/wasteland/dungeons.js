@@ -23,9 +23,9 @@
     {name:'Briarspinner',kind:'beast',mobSprite:'bst_spider',speed:102}
    ],
    bosses:[
-    {name:'Brackenstone',kind:'beast',skin:'ossric',color:'#bda077',speed:80,
+    {name:'Brackenstone',kind:'beast',skin:'cave_troll_briarhollow',color:'#bda077',speed:80,
      moves:[cone('Stonebreaker',235,.60,1.35,1.20),circle('Falling Rubble',92,1.65,1.20)]},
-    {name:'Elder Thornroot',kind:'beast',skin:'gorehusk',color:'#9cc668',speed:76,
+    {name:'Elder Thornroot',kind:'beast',skin:'cave_troll_briarhollow',color:'#9cc668',speed:76,
      moves:[cone('Briar Sweep',270,.75,1.50,1.32),circle('Grasping Roots',105,1.70,1.20)]}
    ]},
   cindervein:{key:'cindervein',name:'Cindervein',theme:'ember mine',color:'#e99657',
@@ -35,9 +35,9 @@
     {name:'Sootguard',kind:'humanoid',mobSprite:'hum_soldier',speed:92}
    ],
    bosses:[
-    {name:'Ashbound Sentinel',kind:'humanoid',skin:'ashmaw',color:'#f6a463',speed:82,
+    {name:'Ashbound Sentinel',kind:'humanoid',skin:'cave_troll_cindervein',color:'#f6a463',speed:82,
      moves:[cone('Cinder Cleave',250,.55,1.35,1.32),circle('Emberfall',105,1.60,1.32)]},
-    {name:'Lord Cindervein',kind:'humanoid',skin:'firelord',color:'#ffc06f',speed:78,
+    {name:'Lord Cindervein',kind:'humanoid',skin:'cave_troll_cindervein',color:'#ffc06f',speed:78,
      moves:[cone('Furnace Breath',285,.55,1.60,1.44),circle('Molten Seal',118,1.80,1.38)]}
    ]},
   frostveil:{key:'frostveil',name:'Frostveil',theme:'haunted ice crypt',color:'#a6c8da',
@@ -47,9 +47,9 @@
     {name:'Crypt Revenant',kind:'undead',mobSprite:'und_revenant',speed:98}
    ],
    bosses:[
-    {name:'Veilbound Revenant',kind:'undead',skin:'betrayer',color:'#b4b9ed',speed:84,
+    {name:'Veilbound Revenant',kind:'undead',skin:'cave_troll_frostveil',color:'#b4b9ed',speed:84,
      moves:[cone('Soul Rend',255,.60,1.40,1.26),circle('Grave Echo',100,1.70,1.32)]},
-    {name:'Lord Rimeveil',kind:'undead',skin:'frostking',color:'#bbe4f3',speed:76,
+    {name:'Lord Rimeveil',kind:'undead',skin:'cave_troll_frostveil',color:'#bbe4f3',speed:76,
      moves:[cone('Rime Cleave',275,.68,1.50,1.38),circle('Frozen Tomb',112,1.80,1.44)]}
    ]}
  };

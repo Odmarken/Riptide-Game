@@ -173,6 +173,9 @@ const pickImg=new Image();pickImg.src='assets/weapons/pickaxe.png?v=2'; /* the m
 const fellordImg=new Image();fellordImg.src='assets/boss/fellord_boss.png?v=2';
 const firelordImg=new Image();firelordImg.src='assets/boss/firelord_boss.png?v=2';
 const frostlordImg=new Image();frostlordImg.src='assets/boss/frostlord_boss.png?v=2';
+const caveTrollBriarImg=new Image();caveTrollBriarImg.src='assets/boss/cave_troll_briarhollow.png?v=1';
+const caveTrollCinderImg=new Image();caveTrollCinderImg.src='assets/boss/cave_troll_cindervein.png?v=1';
+const caveTrollFrostImg=new Image();caveTrollFrostImg.src='assets/boss/cave_troll_frostveil.png?v=1';
 const cowWeaponImg=new Image();cowWeaponImg.src='assets/boss/cow_weapon.png?v=2';
 const cowmobImg=new Image();cowmobImg.src='assets/boss/Cowlevel_boss.png?v=3';
 const armorAltarImg=new Image();armorAltarImg.src='assets/models/armor_altar.png';
@@ -287,7 +290,13 @@ const mawFeetRImg=new Image();mawFeetRImg.src='assets/boss/maw_feet_r.png?v=2';
 const fellordFeetImg=new Image();fellordFeetImg.src='assets/boss/fellord_feet.png?v=2';
 const firelordFeetImg=new Image();firelordFeetImg.src='assets/boss/firelord_feet.png?v=2';
 const frostlordFeetImg=new Image();frostlordFeetImg.src='assets/boss/frostlord_feet.png?v=2';
+/* All three troll palettes share one full-body drawing, including its feet and club.
+   Reviewed alpha >=128 bounds and the sole centre keep canvas padding out of its size. */
+const CAVE_TROLL_LAYOUT={source:[1024,1024],bounds:[46,37,891,896],foot:[520,889],facing:-1};
 const RAID_SKINS={ /* lift = body bottom in radii · wy/wx = weapon grip */
+ cave_troll_briarhollow:{img:caveTrollBriarImg,fullBody:CAVE_TROLL_LAYOUT,size:7.3},
+ cave_troll_cindervein:{img:caveTrollCinderImg,fullBody:CAVE_TROLL_LAYOUT,size:7.3},
+ cave_troll_frostveil:{img:caveTrollFrostImg,fullBody:CAVE_TROLL_LAYOUT,size:7.3},
  betrayer:{img:fellordImg,feet:fellordFeetImg,wpn:()=>raidSwordImg,glow:'#4dff6a',lift:-0.15,wy:-0.40,wx:0.26,size:4.5,fs:0.72,fh:0.95},
  firelord:{img:firelordImg,feet:firelordFeetImg,glow:'#ff4a1a',lift:-0.20,wy:-0.22,wx:0.26,ff:true,fs:0.85},
  frostking:{img:frostlordImg,feet:frostlordFeetImg,wpn:()=>raidSwordImg,glow:'#7fd0ff',lift:-0.18,wy:-0.31,wx:0.26,fs:0.72,fh:0.95,ox:-0.16},
@@ -8852,6 +8861,14 @@ function updateNpcs(dt){
   n.walk+=dt*n.speed/45;
  }
 }
+function fullBodyBossFrame(skin,r){
+ const p=skin&&skin.fullBody,im=skin&&skin.img;
+ if(!p||!im||!im.complete||im.naturalWidth!==p.source[0]||im.naturalHeight!==p.source[1]||!(r>0&&Number.isFinite(r)))return null;
+ const [bx,by,bw,bh]=p.bounds,[fx,fy]=p.foot;
+ if(![bx,by,bw,bh,fx,fy,skin.size].every(Number.isFinite)||bx<0||by<0||bw<=0||bh<=0||bx+bw>im.naturalWidth||by+bh>im.naturalHeight||fx<0||fy<0||fx>im.naturalWidth||fy>im.naturalHeight||skin.size<=0)return null;
+ const scale=r*skin.size/bh,ground=r*.55;
+ return {x:-fx*scale,y:-fy*scale,width:im.naturalWidth*scale,height:im.naturalHeight*scale,top:ground+(by-fy)*scale,ground,scale};
+}
 function drawEnemy(en){
  if(en.dead&&en.deadT>0.8)return;
  const now=performance.now();
@@ -8881,11 +8898,20 @@ function drawEnemy(en){
  if(en.slowT>0){ctx.strokeStyle='rgba(160,224,255,0.6)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,en.r*0.5,en.r+3,en.r*0.5,0,0,7);ctx.stroke();}
  const odinPainted=en.bossId==='odin'&&odinImg.complete&&odinImg.naturalWidth;
  const skinKey=en.skin||en.bossId;
- const raidSkin=RAID_SKINS[skinKey]&&RAID_SKINS[skinKey].img.naturalWidth?RAID_SKINS[skinKey]:null; /* raid lords + skinned leveling bosses + cow herd */
+ let raidSkin=RAID_SKINS[skinKey]&&RAID_SKINS[skinKey].img.naturalWidth?RAID_SKINS[skinKey]:null; /* raid lords + skinned leveling bosses + cow herd */
+ const fullBodyFrame=raidSkin&&raidSkin.fullBody?fullBodyBossFrame(raidSkin,en.r):null;
+ if(raidSkin&&raidSkin.fullBody&&!fullBodyFrame)raidSkin=null;
  const mobSkin=(!raidSkin&&!odinPainted&&!en.boss&&!en.cow&&en.name!=='Crow')?mobSkinFor(en):null; /* painted foes and boss adds - the Crow adds keep their own look */
  if(en.kind!=='undead'&&!odinPainted&&!raidSkin&&!mobSkin)feet(en,en.r/13);
  const dark='rgba(0,0,0,0.28)';
- if(raidSkin){ /* a lord of the Violet Halls - painted body over swinging cut-off feet */
+ if(fullBodyFrame){ /* the cave troll already includes both feet and its club */
+  const walking=(en.mv||0)>.01&&!en.dead,ph=en.wt||0;
+  const rock=en.dead?0:walking?Math.sin(ph)*.012*Math.min(1,en.mv||0):Math.sin(now/1100+en.x*.017)*.004;
+  ctx.save();ctx.translate(0,fullBodyFrame.ground+by);ctx.rotate(rock);
+  ctx.scale((hero&&hero.x<en.x?-1:1)*(raidSkin.fullBody.facing===-1?-1:1),1);
+  ctx.drawImage(mip(raidSkin.img,fullBodyFrame.width),fullBodyFrame.x,fullBodyFrame.y,fullBodyFrame.width,fullBodyFrame.height);
+  ctx.restore();
+ }else if(raidSkin){ /* a lord of the Violet Halls - painted body over swinging cut-off feet */
   const H=en.r*(raidSkin.size||5.0),W=H*raidSkin.img.naturalWidth/raidSkin.img.naturalHeight;
   const fimg=raidSkin.feet,fL=raidSkin.feetL,fR=raidSkin.feetR;
   const FH=en.r*(raidSkin.fh||0.75);
@@ -9123,8 +9149,7 @@ function drawEnemy(en){
  if(en.hurt>0){ctx.fillStyle='rgba(255,255,255,'+en.hurt*2.5+')';ctx.beginPath();ctx.arc(0,-6+by,en.r*0.9,0,7);ctx.fill();}
  ctx.font=(en.boss?'700 11px ':'600 9px ')+getComputedStyle(document.body).fontFamily;
  ctx.textAlign='center';
- const lblSkin=RAID_SKINS[en.skin||en.bossId];
- const lblY=(typeof odinPainted!=='undefined'&&odinPainted)?-en.r*4.4:(lblSkin&&lblSkin.img.naturalWidth)?-en.r*((lblSkin.size||5)+0.1):mobSkin?-en.r*((MOB_SIZE[en.kind]||4.6)-0.25):-en.r-16; /* painted foes stand taller than the old blobs */
+ const lblY=(typeof odinPainted!=='undefined'&&odinPainted)?-en.r*4.4:fullBodyFrame?fullBodyFrame.top-12:raidSkin?-en.r*((raidSkin.size||5)+0.1):mobSkin?-en.r*((MOB_SIZE[en.kind]||4.6)-0.25):-en.r-16; /* labels follow the visible top, not transparent canvas padding */
  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(en.name,1,lblY+by+1);
  ctx.fillStyle=en.boss?'#ffd76a':'#ffe9e0';ctx.fillText(en.name,0,lblY+by);
  if((en.hp<en.max||en.boss)&&!en.dead)drawMiniBar(-en.r,lblY+3+by,en.r*2,en.hp/en.max,'#c75146');

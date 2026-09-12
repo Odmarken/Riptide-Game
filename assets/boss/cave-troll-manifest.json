@@ -1,0 +1,55 @@
+{
+  "generator": "Higgsfield",
+  "model": "gpt_image_2",
+  "jobId": "c694208a-071a-4d7a-b416-23487213f4f5",
+  "source": [
+    1024,
+    1024
+  ],
+  "bounds": [
+    46,
+    37,
+    891,
+    896
+  ],
+  "foot": [
+    520,
+    889
+  ],
+  "facing": -1,
+  "paletteMethod": "One generated sprite, identical alpha/geometry; recolor olive stone and moss, preserve leather, wood, tusks and linework.",
+  "backgroundRemoval": "Magenta key, local foreground alpha reconstruction and edge decontamination.",
+  "alphaSha256": "5da6d9daf7be1f6ebd3c395b7a19c776fb70b93e02b2da1bfcefd5f158ec7f66",
+  "variants": {
+    "briarhollow": {
+      "file": "cave_troll_briarhollow.png",
+      "palette": {
+        "hue": 83,
+        "sat_scale": 1.08,
+        "sat_add": 0.025,
+        "value": 1.0
+      },
+      "sha256": "6113f999ed09dc922b6ec1f05f521588c2ae9e5a455238d2b065d3d69dcb59ae"
+    },
+    "cindervein": {
+      "file": "cave_troll_cindervein.png",
+      "palette": {
+        "hue": 26,
+        "sat_scale": 1.35,
+        "sat_add": 0.08,
+        "value": 1.015
+      },
+      "sha256": "ff6a902d1f6a55ec0cc512911dae0fe3f80eaa0cbb9b47eb7234e6123444c7c9"
+    },
+    "frostveil": {
+      "file": "cave_troll_frostveil.png",
+      "palette": {
+        "hue": 204,
+        "sat_scale": 1.05,
+        "sat_add": 0.12,
+        "value": 1.04
+      },
+      "sha256": "91dd0bb512eecb4738f584c38a344fb8b0bb292698e1e853058c45baa2dfaa32"
+    }
+  }
+}
