@@ -75,6 +75,23 @@
   .stgbtn{position:absolute;right:8px;width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(10,18,14,.55);color:#fff;font-size:15px;cursor:pointer;z-index:6}
   #sndBtn{top:6px} #cfgBtn{top:44px;font-size:15px}
   #musBtn{top:82px;font-size:13px}
+  #cityMinimap{position:absolute;top:8px;right:50px;width:156px;height:156px;z-index:6;border-radius:50%;
+    border:3px solid #ae8750;background:#20271f;box-shadow:0 0 0 2px #35281b,0 3px 12px #0009,inset 0 0 0 2px #ecd399;
+    touch-action:none;outline:none}
+  #cityMinimap[hidden]{display:none}
+  #cityMinimap canvas{display:block;width:100%;height:100%;border-radius:50%}
+  #cityMinimap:focus-visible{outline:2px solid #f4dfaa;outline-offset:4px}
+  .minimap-north,.minimap-title{position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;
+    color:#f3dfaf;font:700 10px var(--display);text-shadow:0 1px 3px #000,0 0 4px #000}
+  .minimap-north{top:0;padding:0 4px;background:#2a3026;border-radius:0 0 5px 5px}
+  .minimap-title{bottom:-5px;padding:2px 10px;letter-spacing:1.5px;font-size:9px;border:1px solid #a4824e;
+    border-radius:6px;background:linear-gradient(#443821,#241e15)}
+  .minimap-tip{position:absolute;top:calc(100% + 10px);right:0;max-width:205px;width:max-content;padding:5px 8px;
+    border:1px solid #80663e;border-radius:5px;background:#201b13ed;color:#efe3c2;font-size:10px;
+    pointer-events:none;visibility:hidden;box-shadow:0 2px 6px #0006}
+  #cityMinimap:hover .minimap-tip,#cityMinimap:focus-visible .minimap-tip{visibility:visible}
+  @media(max-width:899px){#cityMinimap{width:132px;height:132px}}
+  @media(max-width:359px),(max-height:500px){#cityMinimap{width:116px;height:116px}}
   #sideToggle{top:120px;height:64px;width:22px;padding:0;font-size:11px;display:none;align-items:center;justify-content:center}
   .stgbtn.off{opacity:.45}
   /* ⚙ Settings is a panel in the middle of the screen now, on the same .casinobox the smith and the

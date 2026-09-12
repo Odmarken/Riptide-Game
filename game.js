@@ -13686,6 +13686,7 @@ let lastT=0;
    stuttered frame would otherwise send the number swinging, which is the opposite of a useful
    diagnostic. Written to the DOM twice a second; touching textContent every frame is its own cost. */
 let fpsN=0,fpsT=0;
+const cityMinimap=CityMinimap.create($('cityMinimap'));
 function frame(t){
  const dt=Math.min(0.05,(t-lastT)/1000||0.016);lastT=t;
  frameDt=dt;
@@ -13706,6 +13707,7 @@ function frame(t){
   ctx.textAlign='center';
   ctx.fillStyle='#efe3c2';ctx.fillText('⏸ PAUSED',VW/2,VH/2);
  }
+ cityMinimap.update(world,hero,gameOn&&S&&!!ZONES[S.zone]?.city,t);
  requestAnimationFrame(frame);
 }
 resize();

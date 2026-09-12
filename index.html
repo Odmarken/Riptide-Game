@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="favicon_256.png">
 <!-- ?v= is not decoration: without it iOS Safari serves a cached stylesheet for days, so two
      phones end up running two different builds of the layout. Bump on every visual change. -->
-<link rel="stylesheet" href="style.css?v=48">
+<link rel="stylesheet" href="style.css?v=49">
 </head>
 <body>
 <div id="app">
@@ -103,6 +103,12 @@
  
   <div id="stageWrap">
     <canvas id="game"></canvas>
+    <div id="cityMinimap" hidden tabindex="0" role="img" aria-label="City minimap. North is up; the white arrow is you. Symbols show the Church, Well, Furnace, Mining Hall, Enchanting and City gate. Distant places appear along the rim.">
+      <canvas aria-hidden="true"></canvas>
+      <span class="minimap-north" aria-hidden="true">N</span>
+      <span class="minimap-title" aria-hidden="true">CITY</span>
+      <span class="minimap-tip" aria-hidden="true">You · north is up</span>
+    </div>
     <div id="fps"></div>
     <div id="padBadge" title="Controller">🎮</div>
     <button id="sndBtn" class="stgbtn" title="Mute everything">🔊</button>
@@ -743,6 +749,7 @@
 <script src="assets/weapons/rune-profiles.js?v=1"></script>
 <script src="assets/weapons/rune-particles.js?v=1"></script>
 <script src="assets/weapons/rune-effects.js?v=3"></script>
-<script src="game.js?v=81"></script>
+<script src="assets/ui/city-minimap.js?v=1"></script>
+<script src="game.js?v=82"></script>
 </body>
 </html>
