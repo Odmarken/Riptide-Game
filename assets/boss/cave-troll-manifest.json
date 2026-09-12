@@ -1,55 +1,126 @@
 {
   "generator": "Higgsfield",
-  "model": "gpt_image_2",
-  "jobId": "c694208a-071a-4d7a-b416-23487213f4f5",
+  "model": "gpt_image_2_5",
+  "jobId": "d9f132a7-40b8-4180-8350-50c67dd7284f",
+  "style": "Chibi redraw of the first troll: oversized head, upright symmetrical front pose, empty hands, no club. Style references: tor_boss.png and humanmale_warrior.png.",
+  "paletteMethod": "One generated sprite, identical alpha/geometry; recolor olive stone and moss (hue 48-178, soft mask), preserve leather, amber eyes, tusks and linework.",
+  "backgroundRemoval": "Native transparent output from gpt_image_2_5; alpha normalised from its 254 cap and haze below 6 removed.",
   "source": [
     1024,
     1024
   ],
-  "bounds": [
-    46,
-    37,
-    891,
-    896
-  ],
-  "foot": [
-    520,
-    889
-  ],
-  "facing": -1,
-  "paletteMethod": "One generated sprite, identical alpha/geometry; recolor olive stone and moss, preserve leather, wood, tusks and linework.",
-  "backgroundRemoval": "Magenta key, local foreground alpha reconstruction and edge decontamination.",
-  "alphaSha256": "5da6d9daf7be1f6ebd3c395b7a19c776fb70b93e02b2da1bfcefd5f158ec7f66",
+  "masterAlphaSha256": "c70c537e0ccad61ea1331a5977b10bfc09cc78c047f28d88f3145d2f01c0db8c",
+  "split": {
+    "method": "Like the other leveling bosses: the body is cut flat at the ankles and the feet are separate left/right art that keeps 60 shin rows above the cut so a dropped foot never opens a gap; the loincloth tip between the legs and the hanging fists beside them stay with the body.",
+    "cutRow": 898,
+    "overlapRows": 60,
+    "shinColumns": {
+      "left": [
+        333,
+        460
+      ],
+      "right": [
+        556,
+        678
+      ]
+    },
+    "bodyRect": [
+      183,
+      51,
+      833,
+      898
+    ],
+    "feetLRect": [
+      289,
+      838,
+      457,
+      988
+    ],
+    "feetRRect": [
+      556,
+      838,
+      722,
+      988
+    ]
+  },
+  "raidSkin": {
+    "wpn": "bosslevling_weapon.png",
+    "size": 6.78,
+    "lift": 0.0,
+    "fh": 1.201,
+    "fs": 1.065,
+    "wx": 0.37,
+    "wy": -0.09,
+    "grip": [0.2014260249554367, 0.8002645502645502],
+    "gripSource": [561, 756],
+    "gripPoint": [113, 605],
+    "handSource": [650, 847],
+    "handPoints": {"left": [84.5, 770.77], "right": [565.5, 770.77]},
+    "derivation": "size keeps body+visible feet at 7.5 radii; lift/fh/fs are radii from the same scale; wx/wy put the club pivot on the fist centroid. The reviewed solid handle point follows the body's hop, breath and lean; older boss skins retain their original pivot."
+  },
   "variants": {
     "briarhollow": {
-      "file": "cave_troll_briarhollow.png",
+      "body": {
+        "file": "cave_troll_briarhollow.png",
+        "sha256": "77ce5251baa9463f8b5b436826e3706d5fdd307b17d98d8148b499621d0bd13a"
+      },
+      "feetL": {
+        "file": "cave_troll_briarhollow_feet_l.png",
+        "sha256": "dfb1d1a1f76c5875933a0427ff32957a41177871b09bdada4f5fb3b314084984"
+      },
+      "feetR": {
+        "file": "cave_troll_briarhollow_feet_r.png",
+        "sha256": "9e6828dc612eeee4e00fb58639680ad82dbaa63b7f8c688608351b07df5fb6ba"
+      },
       "palette": {
         "hue": 83,
         "sat_scale": 1.08,
         "sat_add": 0.025,
         "value": 1.0
       },
-      "sha256": "6113f999ed09dc922b6ec1f05f521588c2ae9e5a455238d2b065d3d69dcb59ae"
+      "glow": "#7adf3a"
     },
     "cindervein": {
-      "file": "cave_troll_cindervein.png",
+      "body": {
+        "file": "cave_troll_cindervein.png",
+        "sha256": "6ff474e2b3ff724d6022017e141abd15e6f0288e9e29abbdb334d4a2b793c91e"
+      },
+      "feetL": {
+        "file": "cave_troll_cindervein_feet_l.png",
+        "sha256": "64ca80bd3ff45debfd39f4a1f1c7ea00be80b0f5e4ff2c0688a551305989ee18"
+      },
+      "feetR": {
+        "file": "cave_troll_cindervein_feet_r.png",
+        "sha256": "aa4c74f4bc48f252e419a12550ed81340f51c6f585fbaebef05777506473bf1e"
+      },
       "palette": {
         "hue": 26,
         "sat_scale": 1.35,
         "sat_add": 0.08,
         "value": 1.015
       },
-      "sha256": "ff6a902d1f6a55ec0cc512911dae0fe3f80eaa0cbb9b47eb7234e6123444c7c9"
+      "glow": "#ff7a2a"
     },
     "frostveil": {
-      "file": "cave_troll_frostveil.png",
+      "body": {
+        "file": "cave_troll_frostveil.png",
+        "sha256": "79f0428bd97f3ab0e36b10cf79f110ca31eaaf6ee8448e622f25e1dba8943404"
+      },
+      "feetL": {
+        "file": "cave_troll_frostveil_feet_l.png",
+        "sha256": "c034855ff04a3a80ab857a2413b946b43f14d273f3822c3c174128bf9dff63f2"
+      },
+      "feetR": {
+        "file": "cave_troll_frostveil_feet_r.png",
+        "sha256": "1d76ebfc3f842cdfff109bc496ce416c089997c97ca071b95b098bae6de947db"
+      },
       "palette": {
         "hue": 204,
         "sat_scale": 1.05,
         "sat_add": 0.12,
         "value": 1.04
       },
-      "sha256": "91dd0bb512eecb4738f584c38a344fb8b0bb292698e1e853058c45baa2dfaa32"
+      "glow": "#7fd0ff"
     }
   }
 }

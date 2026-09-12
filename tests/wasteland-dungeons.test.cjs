@@ -54,6 +54,17 @@ test('all actual dungeon layouts create 15 themed foes and two distinct bosses w
  for(const en of bosses)assert.ok(fs.existsSync(path.join(root,'assets/boss',en.skin+'.png')),en.skin);
 });
 
+const sourceSizes=new Map();
+function sourceSize(src){
+ const filename=path.join(root,src.split('?')[0]);
+ if(!sourceSizes.has(filename)){
+  const fd=fs.openSync(filename,'r'),header=Buffer.alloc(24);
+  try{fs.readSync(fd,header,0,24,0);}finally{fs.closeSync(fd);}
+  assert.equal(header.toString('ascii',1,4),'PNG');
+  sourceSizes.set(filename,[header.readUInt32BE(16),header.readUInt32BE(20)]);
+ }
+ return sourceSizes.get(filename);
+}
 function bossRenderer(){
  const draws=[],texts=[],stack=[],calls={feet:0,blade:0};
  let matrix=[1,0,0,1,0,0];
@@ -67,70 +78,135 @@ function bossRenderer(){
  },{get:(o,k)=>k in o?o[k]:(...args)=>{for(const a of args)if(typeof a==='number')assert.ok(Number.isFinite(a),`${String(k)} finite`);}});
  const context={ctx,hero:{x:1000,y:1000},performance:{now:()=>700},document:{body:{}},getComputedStyle:()=>({fontFamily:'serif'}),
   mip:im=>im,feet:()=>calls.feet++,bootFeet:()=>calls.feet++,mobSkinFor:()=>null,shade:c=>c,parts:[],zapLine(){},
-  raidBlade(){calls.blade++;return {src:'separate weapon',width:200,height:400};},drawMiniBar(){}};
- for(const m of game.matchAll(/const (\w+)=new Image\(\);\1\.src='([^']+)'/g))context[m[1]]={src:m[2],complete:true,naturalWidth:1024,naturalHeight:1024};
- const skins=game.slice(game.indexOf('const CAVE_TROLL_LAYOUT='),game.indexOf('/* ---- painted mob sprites:'));
- const renderer=game.slice(game.indexOf('function fullBodyBossFrame('),game.indexOf('\nfunction drawMiniBar('));
- const api=vm.runInNewContext(skins+'\n'+renderer+';({RAID_SKINS,CAVE_TROLL_LAYOUT,fullBodyBossFrame,drawEnemy})',context);
+  raidBlade(glow,img){calls.blade++;img=img||context.cowWeaponImg;return {src:'separate weapon',glow,art:img.src,width:512,height:Math.round(512*img.naturalHeight/img.naturalWidth)};},drawMiniBar(){}};
+ for(const m of game.matchAll(/const (\w+)=new Image\(\);\1\.src='([^']+)'/g)){
+  if(!/\.png(?:\?|$)/.test(m[2]))continue;
+  const [naturalWidth,naturalHeight]=sourceSize(m[2]);context[m[1]]={src:m[2],complete:true,naturalWidth,naturalHeight};
+ }
+ const skins=game.slice(game.indexOf('const RAID_SKINS='),game.indexOf('/* ---- painted mob sprites:'));
+ const renderer=game.slice(game.indexOf('function drawEnemy('),game.indexOf('\nfunction drawMiniBar('));
+ const api=vm.runInNewContext(skins+'\n'+renderer+';({RAID_SKINS,drawEnemy})',context);
  return {...api,context,draws,texts,stack,calls,clear(){draws.length=0;texts.length=0;calls.feet=0;calls.blade=0;}};
 }
 function projected(m,x,y){return {x:m[0]*x+m[2]*y+m[4],y:m[1]*x+m[3]*y+m[5]};}
+const trollManifest=JSON.parse(fs.readFileSync(path.join(root,'assets/boss/cave-troll-manifest.json'),'utf8'));
+const trollPart=(key,part)=>'assets/boss/cave_troll_'+key+{body:'',feetL:'_feet_l',feetR:'_feet_r'}[part]+'.png';
+function alphaOf(im){const a=Buffer.alloc(im.width*im.height);for(let i=0;i<a.length;i++)a[i]=im.pixels[i*4+3];return a;}
 
-test('the three troll PNGs share reviewed visible bounds, uniform scale and a common ground anchor',()=>{
- const api=bossRenderer(),layout=api.CAVE_TROLL_LAYOUT;
- let referenceAlpha=null;
+test('the three troll palettes share one body and foot silhouette, cut flat at the ankles and cropped tight',()=>{
+ const api=bossRenderer(),layout=trollManifest.raidSkin,split=trollManifest.split,reference={},bottomArt={};
+ assert.equal(split.bodyRect[3],split.cutRow,'the body ends exactly at the ankle cut');
+ assert.equal(split.feetLRect[1],split.cutRow-split.overlapRows);assert.equal(split.feetRRect[1],split.feetLRect[1]);
+ assert.equal(split.feetLRect[3],split.feetRRect[3],'both feet share one row range, so one FH scales them alike');
  for(const key of keys){
-  const skin=api.RAID_SKINS['cave_troll_'+key],im=readRgbaPng(path.join(root,'assets/boss/cave_troll_'+key+'.png'));
-  assert.deepEqual([im.width,im.height],Array.from(layout.source));
-  const bounds=[im.width,im.height,-1,-1],alpha=Buffer.alloc(im.width*im.height);
-  for(let y=0;y<im.height;y++)for(let x=0;x<im.width;x++){
-   const a=im.pixels[(y*im.width+x)*4+3];alpha[y*im.width+x]=a;if(a<128)continue;
-   bounds[0]=Math.min(bounds[0],x);bounds[1]=Math.min(bounds[1],y);bounds[2]=Math.max(bounds[2],x);bounds[3]=Math.max(bounds[3],y);
-  }
-  assert.deepEqual([bounds[0],bounds[1],bounds[2]-bounds[0]+1,bounds[3]-bounds[1]+1],Array.from(layout.bounds));
-  if(referenceAlpha)assert.deepEqual(alpha,referenceAlpha,'palette changes preserve every silhouette pixel');else referenceAlpha=alpha;
-  for(const r of [13,26,40]){
-   const frame=api.fullBodyBossFrame(skin,r);
-   close(frame.width/im.width,frame.height/im.height);close(frame.scale*layout.bounds[3],r*7.3);
-   close(frame.x+layout.foot[0]*frame.scale,0);close(frame.y+layout.foot[1]*frame.scale,0);
-   close(frame.ground,r*.55);close(frame.top,frame.ground+frame.y+layout.bounds[1]*frame.scale);
-   assert.ok(frame.width>0&&frame.height>0,'the whole uncropped source is drawn with a positive uniform scale');
+  const skin=api.RAID_SKINS['cave_troll_'+key];
+  for(const k of ['size','lift','fh','fs','wx','wy'])close(skin[k],layout[k]);
+  assert.deepEqual(Array.from(skin.grip),layout.grip);
+  assert.equal(skin.wpn().src.split('?')[0],'assets/boss/bosslevling_weapon.png','the leveling bosses\' club');
+  assert.equal(skin.img.src.split('?')[0],trollPart(key,'body'));
+  assert.equal(skin.feetL.src.split('?')[0],trollPart(key,'feetL'));assert.equal(skin.feetR.src.split('?')[0],trollPart(key,'feetR'));
+  assert.equal(skin.glow,trollManifest.variants[key].glow);
+  for(const part of ['body','feetL','feetR']){
+   const im=readRgbaPng(path.join(root,trollPart(key,part))),rect=split[part+'Rect'];
+   assert.deepEqual([im.width,im.height],[rect[2]-rect[0],rect[3]-rect[1]],`${key} ${part} matches its manifest crop`);
+   const alpha=alphaOf(im);
+   if(reference[part])assert.deepEqual(alpha,reference[part],`${key} ${part}: palette changes preserve every silhouette pixel`);else reference[part]=alpha;
+   const rowHas=y=>{for(let x=0;x<im.width;x++)if(alpha[y*im.width+x]>=8)return true;return false;};
+   const colHas=x=>{for(let y=0;y<im.height;y++)if(alpha[y*im.width+x]>=8)return true;return false;};
+   assert.ok(rowHas(0)&&colHas(0)&&colHas(im.width-1),`${key} ${part} is cropped tight`);
+   if(part==='body')assert.ok(rowHas(im.height-1),'the body crop ends on art');else{bottomArt[part]=rowHas(im.height-1);}
   }
  }
+ assert.ok(bottomArt.feetL||bottomArt.feetR,'the shared foot row range ends on the lowest toe');
+ const body=readRgbaPng(path.join(root,trollPart('briarhollow','body')));
+ let solid=0;for(let x=0;x<body.width;x++)if(body.pixels[((body.height-1)*body.width+x)*4+3]>=128)solid++;
+ assert.ok(solid>=150,'the bottom row is a flat cut through both shins, not a tapering toe: '+solid+' solid px');
+ for(const part of ['feetL','feetR']){ /* on the shin rows above the cut each foot stays inside its shin columns: no fist pixels ride along */
+  const im=readRgbaPng(path.join(root,trollPart('briarhollow',part))),alpha=alphaOf(im),rect=split[part+'Rect'],band=split.shinColumns[part==='feetL'?'left':'right'];
+  let shin=0;for(let y=0;y<split.overlapRows;y++)for(let x=0;x<im.width;x++)if(alpha[y*im.width+x]>=8){shin++;assert.ok(rect[0]+x>=band[0]&&rect[0]+x<band[1],`${part} row ${y} x ${rect[0]+x} is outside its shin`);}
+  assert.ok(shin>split.overlapRows*60,part+' keeps a real shin above the cut');
+ }
+ /* on screen: the ankle cut sits at lift, the feet bottom at 0.72r, and the feet reach further up behind the
+    body than the 0.26r stride plus the 0.10r hop, so a dropped foot never opens a gap under the cut */
+ assert.ok(layout.lift-(0.72-layout.fh)>0.36,'feet overlap the cut by more than stride + hop');
+ assert.ok(Math.abs(layout.size+(0.72-layout.lift)-7.5)<0.05,'body plus visible feet stand 7.5 radii like the other leveling bosses');
+ assert.ok(layout.wx>0&&layout.wx<0.5&&layout.wy<0&&layout.wy>-1,'the club pivot is inside the body: on a fist');
 });
 
-test('actual boss rendering draws one complete troll through walking, attacks and mirroring, while legacy bosses keep their parts',()=>{
+test('troll bosses draw both feet, the body and the leveling club exactly like the other leveling bosses',()=>{
  const api=bossRenderer();
  for(const key of keys)for(const boss of encounter(key).enemies.filter(e=>e.boss))for(const side of [-1,1])for(const state of ['idle','chase','strike']){
   api.clear();api.context.hero.x=boss.x+side*100;
   const en={...boss,state,walk:1.3,mv:state==='chase'?1:0,wt:2.2,swing:state==='strike'?.15:0};
-  api.drawEnemy(en);assert.equal(api.stack.length,0);assert.equal(api.draws.length,1);assert.equal(api.calls.feet,0);assert.equal(api.calls.blade,0);
-  const draw=api.draws[0],frame=api.fullBodyBossFrame(api.RAID_SKINS[en.skin],en.r),p=api.CAVE_TROLL_LAYOUT;
-  assert.equal(draw.img.src.split('?')[0],'assets/boss/'+en.skin+'.png');
-  assert.equal(draw.rect.length,4,'draw the entire source, never a source crop');
-  for(const v of [...draw.rect,...draw.matrix])assert.ok(Number.isFinite(v));
-  const foot=projected(draw.matrix,draw.rect[0]+p.foot[0]*frame.scale,draw.rect[1]+p.foot[1]*frame.scale);
-  const bob=state==='chase'?Math.sin(en.walk*2)*1.6:Math.sin(1+en.home.x)*.7;
-  close(foot.x,en.x);close(foot.y,en.y+en.r*.55+bob);assert.equal(Math.sign(draw.matrix[0]),-side,'club faces the hero');
-  const [bx,by,bw,bh]=p.bounds;
-  const top=Math.min(...[[bx,by],[bx+bw,by],[bx,by+bh],[bx+bw,by+bh]].map(([x,y])=>projected(draw.matrix,draw.rect[0]+x*frame.scale,draw.rect[1]+y*frame.scale).y));
-  const label=api.texts.at(-1);assert.ok(projected(label.matrix,label.x,label.y).y<top-8,'name stays above visible art, including its walk rock');
+  api.drawEnemy(en);assert.equal(api.stack.length,0);assert.equal(api.calls.feet,0);assert.equal(api.calls.blade,1);
+  assert.deepEqual(api.draws.map(d=>d.img.src.split('?')[0]),[trollPart(key,'feetL'),trollPart(key,'feetR'),trollPart(key,'body'),'separate weapon'],'feet first, then the body, then the club in front');
+  assert.equal(api.draws[3].img.art.split('?')[0],'assets/boss/bosslevling_weapon.png');
+  for(const d of api.draws){assert.equal(d.rect.length,4,'whole images, never source crops');for(const v of [...d.rect,...d.matrix])assert.ok(Number.isFinite(v));}
+  const skin=api.RAID_SKINS[en.skin],r=en.r,H=r*skin.size,[fl,fr,body,club]=api.draws;
+  const bob=state==='chase'?Math.sin(en.walk*2)*1.6:Math.sin(1+en.home.x)*.7,stride=Math.sin(en.wt)*r*0.26*(en.mv||0);
+  close(fl.rect[3],r*skin.fh);close(fr.rect[3],r*skin.fh);
+  close(projected(fl.matrix,fl.rect[0],fl.rect[1]+fl.rect[3]).y,en.y+r*0.72+stride,'left foot on the ground line, lifting with the stride');
+  close(projected(fr.matrix,fr.rect[0],fr.rect[1]+fr.rect[3]).y,en.y+r*0.72-stride,'right foot counter-swings');
+  close(projected(fl.matrix,fl.rect[0]+fl.rect[2]/2,0).x,en.x-r*skin.fs);close(projected(fr.matrix,fr.rect[0]+fr.rect[2]/2,0).x,en.x+r*skin.fs);
+  close(body.rect[3],H);
+  const cut=projected(body.matrix,body.rect[0]+body.rect[2]/2,body.rect[1]+body.rect[3]);
+  assert.ok(Math.abs(cut.x-en.x)<0.5&&Math.abs(cut.y-(en.y+r*skin.lift+bob))<=r*0.13,'the ankle cut stays centred on lift, moving only by hop, breath and the walk rock');
+  const pivot=projected(club.matrix,club.rect[0]+club.rect[2]*113/561,club.rect[1]+club.rect[3]*605/756),head=projected(club.matrix,club.rect[0]+club.rect[2]/2,club.rect[1]);
+  const hand=projected(body.matrix,body.rect[0]+body.rect[2]*(side<0?84.5:565.5)/650,body.rect[1]+body.rect[3]*770.77/847);
+  close(pivot.x,hand.x);close(pivot.y,hand.y);
+  assert.ok(head.y<pivot.y&&(head.x-pivot.x)*side>0,'the club rises from the fist towards the hero');
+  const crown=projected(body.matrix,body.rect[0]+body.rect[2]/2,body.rect[1]),label=api.texts.at(-1); /* the walk rock only lifts the transparent corners */
+  assert.ok(projected(label.matrix,label.x,label.y).y<crown.y,'name stays above the top of the head through hop and breath');
  }
  for(const key of ['gorehusk','ossric','ashmaw','firelord','betrayer','frostking']){
   api.clear();const en={...encounter().enemies.find(e=>e.boss),skin:key,bossId:key};api.drawEnemy(en);
   assert.equal(api.draws.length,4,`${key} retains body, two feet and weapon`);assert.equal(api.calls.blade,1);assert.equal(api.stack.length,0);
+  const club=api.draws[3],skin=api.RAID_SKINS[key],body=api.draws[2],side=api.context.hero.x<en.x?-1:1,bob=Math.sin(1+en.home.x)*.7;
+  close(club.rect[0],-club.rect[2]/2);close(club.rect[1],-club.rect[3]*.8);
+  const pivot=projected(club.matrix,0,0);close(pivot.x,en.x+side*body.rect[2]*skin.wx);close(pivot.y,en.y+body.rect[3]*skin.wy+bob);
  }
 });
 
-test('unready or dimension-mismatched troll art has a finite fallback and recovers when ready',()=>{
- const api=bossRenderer(),en=encounter().enemies.find(e=>e.boss),skin=api.RAID_SKINS[en.skin],original={...skin.img};
- for(const invalid of [{complete:false},{naturalWidth:0,naturalHeight:0},{naturalWidth:512},{naturalHeight:2048}]){
-  Object.assign(skin.img,original,invalid);assert.equal(api.fullBodyBossFrame(skin,en.r),null);
-  api.clear();api.drawEnemy(en);assert.equal(api.draws.length,0);assert.equal(api.stack.length,0);
-  for(const label of api.texts)assert.ok(Number.isFinite(label.x)&&Number.isFinite(label.y));
+test('the real solid club handle stays on reviewed fist pixels through the complete troll swing and stride',()=>{
+ const api=bossRenderer(),weapon=readRgbaPng(path.join(root,'assets/boss/bosslevling_weapon.png')),layout=trollManifest.raidSkin;
+ assert.deepEqual([weapon.width,weapon.height],layout.gripSource);assert.deepEqual(layout.gripPoint,[113,605]);
+ const alphaAt=(im,x,y)=>im.pixels[(Math.floor(y)*im.width+Math.floor(x))*4+3];
+ assert.equal(alphaAt(weapon,weapon.width*.5,weapon.height*.8),0,'the old centre pivot lies outside the weapon');
+ for(let y=601;y<=609;y++)for(let x=109;x<=117;x++)assert.ok(alphaAt(weapon,x,y)>=240,'reviewed grip sits within the solid handle');
+ for(const key of keys){
+  const art=readRgbaPng(path.join(root,trollPart(key,'body')));assert.deepEqual([art.width,art.height],layout.handSource);
+  assert.deepEqual(layout.handPoints,{left:[84.5,770.77],right:[565.5,770.77]});
+  for(const p of Object.values(layout.handPoints))assert.ok(alphaAt(art,...p)>=240,'reviewed hand anchor is solid painted fist');
+  for(const boss of encounter(key).enemies.filter(e=>e.boss))for(const side of [-1,1])for(const swing of [0,.001,.05,.1,.15,.2])for(const wt of [0,Math.PI/2,Math.PI*1.5]){
+   api.clear();api.context.hero.x=boss.x+side*100;
+   api.drawEnemy({...boss,state:swing?'strike':'chase',walk:wt,mv:1,wt,swing});
+   const [, ,body,club]=api.draws,p=layout.handPoints[side<0?'left':'right'];
+   const hand=projected(body.matrix,body.rect[0]+body.rect[2]*p[0]/art.width,body.rect[1]+body.rect[3]*p[1]/art.height);
+   const grip=projected(club.matrix,club.rect[0]+club.rect[2]*113/weapon.width,club.rect[1]+club.rect[3]*605/weapon.height);
+   close(grip.x,hand.x);close(grip.y,hand.y);
+  }
  }
- Object.assign(skin.img,original);api.clear();api.drawEnemy(en);assert.equal(api.draws.length,1);
- for(const r of [0,-1,NaN,Infinity])assert.equal(api.fullBodyBossFrame(skin,r),null);
+});
+
+test('unready troll art falls back to the plain painted foe and recovers when loaded',()=>{
+ const api=bossRenderer();
+ for(const key of keys){
+  const en=encounter(key).enemies.find(e=>e.boss),skin=api.RAID_SKINS[en.skin];
+  for(const part of ['img','feetL','feetR']){
+   const original={...skin[part]};
+   for(const invalid of [{complete:false,naturalWidth:0,naturalHeight:0},{naturalWidth:0}]){
+    Object.assign(skin[part],original,invalid);api.clear();api.drawEnemy(en);assert.equal(api.stack.length,0);
+    const srcs=api.draws.map(d=>d.img.src.split('?')[0]);
+    if(part==='img'){ /* no body yet: the generic foe draws instead, without any troll piece or a floating club */
+     assert.ok(!srcs.some(s=>s.startsWith('assets/boss/cave_troll_')),'no troll piece');assert.equal(api.calls.blade,0);
+     assert.equal(api.calls.feet,en.kind==='undead'?0:1,'plain feet only for walking kinds');
+    }else assert.deepEqual(srcs,[trollPart(key,'body'),'separate weapon'],'a missing foot never hides the body or club');
+    for(const label of api.texts)assert.ok(Number.isFinite(label.x)&&Number.isFinite(label.y));
+   }
+   Object.assign(skin[part],original);
+  }
+  api.clear();api.drawEnemy(en);assert.equal(api.draws.length,4,key+' recovers');
+ }
 });
 
 test('invalid layouts cannot silently omit or duplicate a book boss',()=>{
