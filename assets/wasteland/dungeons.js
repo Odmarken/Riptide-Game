@@ -257,12 +257,6 @@
    const progress=clamp(cast.elapsed/cast.warn,0,1);
    ctx.save();trace(ctx,cast);
    ctx.fillStyle=cast.color;ctx.globalAlpha=.17+.12*progress;ctx.fill();
-   ctx.globalAlpha=.9;ctx.strokeStyle='#ffddad';ctx.lineWidth=2.5;ctx.stroke();
-   const labelX=cast.shape==='circle'?cast.x:cast.x+Math.cos(cast.angle)*cast.range*.82;
-   const labelY=cast.shape==='circle'?cast.y-cast.radius-10:cast.y+Math.sin(cast.angle)*cast.range*.82-10;
-   ctx.globalAlpha=1;ctx.font='bold 12px Georgia,serif';ctx.textAlign='center';
-   ctx.lineWidth=3;ctx.strokeStyle='rgba(14,10,8,.9)';ctx.strokeText(cast.name,labelX,labelY);
-   ctx.fillStyle='#fff0cf';ctx.fillText(cast.name,labelX,labelY);
    ctx.restore();
   }
  }

@@ -2489,6 +2489,7 @@ const sfx={
  level:()=>{[523,659,784,1046].forEach((f,i)=>setTimeout(()=>blip(f,f,0.18,.09),i*90));},
  loot:()=>{blip(1046,1568,0.12,.06);},
  forge:()=>{noiseHit(0.05,.1,2600);blip(620,540,0.12,.07,'square');setTimeout(()=>blip(880,880,0.12,.05),90);},
+ place:()=>{noiseHit(0.09,.10,420);blip(130,55,0.16,.16,'sine');}, /* soft wood/stone landing, through the SFX bus */
  buy:()=>{blip(1046,1046,0.07,.06);setTimeout(()=>blip(1318,1318,0.09,.06),70);},
  potion:()=>{blip(500,300,0.12,.07);setTimeout(()=>blip(420,260,0.12,.06),100);},
  die:()=>{blip(300,60,0.7,.1,'sawtooth');},
@@ -3552,14 +3553,14 @@ function placeFarmItem(id,x,y){
   if(Math.hypot(x-roadAnchor.x,y-roadAnchor.y)<24){roadAnchor=null;blip(300,180,0.1,.05);return;}
   farmCart.push({t:id,road:1,x0:roadAnchor.x,y0:roadAnchor.y,x1:x,y1:y,x:Math.round((roadAnchor.x+x)/2),y:Math.round((roadAnchor.y+y)/2)});
   roadAnchor={x,y};
-  blip(600,900,0.08,.05);updateCartUI();
+  sfx.place();updateCartUI();
   return;
  }
  const sp=snapPos(id,x,y);x=Math.round(sp.x);y=Math.round(sp.y);
  if(x<40||x>=4200||y<40||y>world.h-40){blip(300,180,0.1,.05);return;}
  if(cropCellTaken(id,x,y)){stageMsg('🌾 Occupied - pick a free tile',1300);sfx.warn();return;}
  farmCart.push({t:id,x,y,_drop:performance.now()}); /* a ghost until you pay for it; _drop plays the landing once */
- blip(600,900,0.08,.05);
+ sfx.place();
  updateCartUI();
 }
 /* ⛏/✨ the two professions - the halls exist and open, the skills themselves come later. Kept as
@@ -4338,12 +4339,9 @@ function drawCityWalls(){
  const gi=cityImg('wall_gate_v');
  if(gi.complete&&gi.naturalWidth){
   const gw=vw*0.978/0.626,gh=gw*gi.naturalHeight/gi.naturalWidth;
-  /* The strips are pattern fills, so their tiling phase is anchored at world x=0, not at the band's
-     own edge - the column showing at the edge is (WIN mod vw), not column 0. The gate is a plain
-     sprite with no such phase, so without this nudge onto the tiling its planks run beside the
-     wall's instead of into them. Correlating the two column profiles confirms it: 0.96 with the
-     nudge, -0.02 without. */
-  const gx=WIN-vw/2-gw/2+(vw-WIN%vw)%vw,gy=cy-gh/2;
+  /* Vertical strips are blitted at WIN-vw, so the gate shares that band's centre.
+     The old pattern-phase offset shifted it east after the wall switched to blits. */
+  const gx=WIN-vw/2-gw/2,gy=cy-gh/2;
   if(!(gx+gw<vx0||gx>vx1||gy+gh<vy0||gy>vy1))ctx.drawImage(mip(gi,gw),gx,gy,gw,gh);
  }
 }
@@ -6223,7 +6221,7 @@ cv.addEventListener('pointerdown',e=>{
      if(it){it.x=Math.round(sp.x);it.y=Math.round(sp.y);delete it._moving;}
      if(it&&moveItem.kind==='fh'){S.farm.hx=it.x;S.farm.hy=it.y;} /* persist the farmhouse's new home */
      if(moveItem.kind!=='g'){rebuildFarmItems();save();}
-     moveItem=null;sfx.buy();
+     moveItem=null;if(it)sfx.place();
     }
     return;
    }
@@ -7026,7 +7024,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
     const dmg=hurtHero(amount);sfx.hit();
     if(melee&&hasEnch('thorns')&&!foe.dead){const n=Math.max(1,Math.round(dmg*scrollPct('thorns')));foe.hp-=n;floatAt(foe.x,foe.y-30,n+'','#9adf9a');if(foe.hp<=0)killEnemy(foe);}
     return dmg;
-   },onWarn:cast=>stageMsg(cast.name+' — move out of the marked area!',Math.round(cast.warn*1000),'#efd58a'),
+   },
    onRespawn:foe=>{stageMsg(foe.name+' has returned.',2400,'#efd58a');renderHUD();save();}});
    continue;
   }
@@ -9153,7 +9151,11 @@ const tickerMsgs=[];
 function log(html,cls){
  tickerMsgs.unshift(`<div class="${cls||''}">${html}</div>`);
  if(tickerMsgs.length>3)tickerMsgs.pop();
- $('ticker').innerHTML=tickerMsgs.slice().reverse().join('');
+ const ticker=$('ticker');
+ ticker.innerHTML=tickerMsgs.slice().reverse().join('');
+ ticker.classList.remove('idle');
+ clearTimeout(ticker._hideTimer);
+ ticker._hideTimer=setTimeout(()=>ticker.classList.add('idle'),20000);
 }
 function applyZoneUI(){
  $('hZone').textContent=zoneOf().name+(zoneOf().boss||zoneOf().raid?' ☠':'');
