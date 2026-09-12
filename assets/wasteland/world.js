@@ -257,9 +257,13 @@
  function dungeonDetails(g,world,v){
   if(world.key==='cindervein'){
    g.lineCap='butt';for(const p of world.paths)for(let i=1;i<p.points.length;i++){
-    const seg=clippedSegment(p.points[i-1],p.points[i],v,60);if(!seg)continue;const [a,b]=seg,dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy);if(!len)continue;const nx=-dy/len,ny=dx/len;
+    const origin=p.points[i-1],end=p.points[i],seg=clippedSegment(origin,end,v,60);if(!seg)continue;
+    const [a,b]=seg,dx=end.x-origin.x,dy=end.y-origin.y,len=Math.hypot(dx,dy);if(!len)continue;const ux=dx/len,uy=dy/len,nx=-uy,ny=ux;
     g.strokeStyle='#a38d75';g.lineWidth=4;for(const off of [-23,23]){g.beginPath();g.moveTo(a.x+nx*off,a.y+ny*off);g.lineTo(b.x+nx*off,b.y+ny*off);g.stroke();}
-    g.strokeStyle='#4a3427';g.lineWidth=9;const start=(Math.abs(a.x)+Math.abs(a.y))%72;for(let d=72-start;d<len;d+=72){const x=a.x+dx*d/len,y=a.y+dy*d/len;g.beginPath();g.moveTo(x-nx*38,y-ny*38);g.lineTo(x+nx*38,y+ny*38);g.stroke();}
+    // World-space phase is independent of the camera crop and travel direction.
+    // Clip only the range of visible sleepers, never their 72-unit spacing origin.
+    const from=a.x*ux+a.y*uy,to=b.x*ux+b.y*uy,offset=origin.x*ux+origin.y*uy;
+    g.strokeStyle='#4a3427';g.lineWidth=9;for(let d=Math.ceil((from-1e-7)/72)*72;d<=to;d+=72){const x=origin.x+ux*(d-offset),y=origin.y+uy*(d-offset);g.beginPath();g.moveTo(x-nx*38,y-ny*38);g.lineTo(x+nx*38,y+ny*38);g.stroke();}
    }
   }
   for(const r of world.rooms){if(!intersects(r,v,40))continue;

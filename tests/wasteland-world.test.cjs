@@ -91,3 +91,33 @@ test('translucent floor textures blend complete layers instead of overlapping re
   assert.ok(repeats>0,key);assert.ok(blends>0,key);assert.ok(blends<repeats,key);
  }
 });
+
+test('all Cindervein rail sleepers stay fixed in world space across camera movement, zoom and segment direction',()=>{
+ const world=W.create('cindervein');
+ function sleepers(w,view,focus){
+  let points=[];const positions=new Set();
+  const ctx=new Proxy({
+   beginPath(){points=[];},moveTo(x,y){points.push({x,y});},lineTo(x,y){points.push({x,y});},
+   stroke(){
+    if(this.strokeStyle!=='#4a3427'||points.length!==2)return;
+    const x=(points[0].x+points[1].x)/2,y=(points[0].y+points[1].y)/2;
+    if(Math.abs(x-focus.x)<75&&Math.abs(y-focus.y)<75)positions.add(x.toFixed(5)+','+y.toFixed(5));
+   }
+  },{get(o,k){return k in o?o[k]:()=>{};}});
+  W.renderGround(ctx,w,view,{createCanvas:()=>null});
+  return [...positions].sort();
+ }
+ for(const route of world.paths)for(let i=1;i<route.points.length;i++){
+  const a=route.points[i-1],b=route.points[i];if(Math.hypot(b.x-a.x,b.y-a.y)<200)continue;
+  const focus={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+  const scene={...world,rooms:[],paths:[{width:route.width,points:[a,b]}]};
+  const base=sleepers(scene,{x:focus.x-400,y:focus.y-300,w:800,h:600},focus);
+  assert.ok(base.length>0,'comparison region includes actual sleepers');
+  for(const zoom of [.45,.88,1,1.73,2.4])for(const delta of [0,7.25,29.75]){
+   const view={x:focus.x-400/zoom+delta,y:focus.y-300/zoom+delta,w:800/zoom,h:600/zoom};
+   assert.deepEqual(sleepers(scene,view,focus),base,`rail ${a.x},${a.y} -> ${b.x},${b.y}, zoom ${zoom}, camera +${delta}`);
+   const reverse={...scene,paths:[{width:route.width,points:[b,a]}]};
+   assert.deepEqual(sleepers(reverse,view,focus),base,'reversing the same rail cannot move its sleepers');
+  }
+ }
+});

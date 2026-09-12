@@ -9673,7 +9673,6 @@ function renderMap(){
     ${cur?'<span class="ztag">Here</span>':locked?(bossGated?'<span class="ztag boss">🔒 Boss</span>':'<span class="ztag">🔒 Lv '+z.lvl+'</span>'):done?'<span class="ztag done">✓ Travel</span>':z.boss?'<span class="ztag boss">☠ Enter</span>':'<span class="ztag">Travel</span>'}
   </div>`;
  }).join('');
- if(expeditionZone(zoneOf()))$('zoneList').insertAdjacentHTML('afterbegin',WastelandMap.render(world,hero,enemies));
  document.querySelectorAll('.zonecard').forEach(el=>{
   el.onclick=()=>{
    const i=+el.dataset.z,z=ZONES[i];
@@ -9724,11 +9723,7 @@ let mapContinent='east';
 let raidWasOpen=false;
 setInterval(()=>{
  if(!gameOn||!S||!zoneOf().dungeon)return;
- const now=Date.now();
  $('qDesc').textContent=expeditionQuestText(zoneOf());
- if($('p-map').classList.contains('open'))for(const el of $('zoneList').querySelectorAll('[data-boss-ready-at]')){
-  el.textContent=WastelandMap.respawnText(Number(el.dataset.bossReadyAt),now);
- }
 },1000);
 setInterval(()=>{
  const el=$('thorTimer');
