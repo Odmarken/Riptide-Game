@@ -377,11 +377,14 @@ const altarFenceImg=new Image();altarFenceImg.src='assets/models/maps/altarasset
 const staffImg=new Image();staffImg.src='assets/weapons/staff.png';
 const swordImg=new Image();swordImg.src='assets/weapons/sword.png';
 function femBootW(raceId,clsId){
- /* boot width tuned to the sprite's drawn hips - sturdier under a broad dwarf, daintier under a slim undead */
- const im=charSprite(raceId,clsId,true);
- if(!(im&&im.complete&&im.naturalWidth))return 9.5;
- const w=48*im.naturalWidth/im.naturalHeight; /* the width the sprite is actually drawn at (H=48) */
- return Math.max(8,Math.min(11.5,w*0.29));
+ return characterBootFrame(RACE_ALIAS[raceId]||raceId,true,bootImg).bw;
+}
+function paintedCharacterFrame(raceId,clsId,female,iceArm){
+ raceId=RACE_ALIAS[raceId]||raceId;clsId=CLASS_ALIAS[clsId]||clsId;
+ const image=charSprite(raceId,iceArm?'armor':clsId,female),body=characterBodyFrame(image);
+ if(!body)return null;
+ const boots=characterBootFrame(raceId,female,bootImg,body.bodyBottom);
+ return {image,...body,boots,groundY:boots.groundY};
 }
 function bootFeet(e,g2){
  const g=g2||ctx;
@@ -389,9 +392,14 @@ function bootFeet(e,g2){
  const o=e.moving?Math.sin(e.walk*2)*4:0;
  const W=e.bw||(e.fem?9.5:12),H=W*bootImg.naturalHeight/bootImg.naturalWidth; /* daintier boots on the ladies */
  const sx=5+(e.sx||0); /* sx: extra stance width (big bosses stand wider) */
- g.drawImage(mip(bootImg,64),-sx-W/2,12-H/2+o,W,H); /* left - full counter-swing */
+ const top=e.top===undefined?12-H/2:e.top;
+ const bob=e.planted?Math.min(0,e.bob||0):0;
+ // Painted legs end at the body hem. Lift the stepping foot instead of lowering
+ // its partner into empty space; bosses retain their authored counter-swing.
+ const left=e.planted?Math.min(0,o):o,right=e.planted?Math.min(0,-o):-o;
+ g.drawImage(mip(bootImg,64),-sx-W/2,top+bob+left,W,H);
  g.save();g.scale(-1,1);
- g.drawImage(mip(bootImg,64),-sx-W/2,12-H/2-o,W,H); /* right = mirrored */
+ g.drawImage(mip(bootImg,64),-sx-W/2,top+bob+right,W,H);
  g.restore();
 }
 const brunnImg=new Image();brunnImg.src='assets/models/brunn.png';
@@ -1115,17 +1123,20 @@ function drawHeroLike(x,y,look,alpha,anim,name,hp){
   fx=Math.sin(phase*3)>=0?1:-1;
   swing=0.24-Math.abs(Math.sin(phase*10))*0.18;
  }
+ const character=paintedCharacterFrame(race,cls,!!look.fem,!!look.ice);
+ const groundY=character?character.groundY:8;
  ctx.save();ctx.translate(x,y);ctx.globalAlpha=alpha==null?1:alpha;
  /* same grounding as local hero: full opacity + real floor shadow */
- ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0,8,14,6,0,0,7);ctx.fill();
+ ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0,groundY,character?12+(groundY-8)*0.3:14,5,0,0,7);ctx.fill();
  if(dancing)ctx.rotate(Math.sin(phase*6)*0.25);
- feet({walk:phase*1.8},(moving||dancing)?1:0.15);
+ if(character)bootFeet({...character.boots,moving:moving||dancing,walk:phase*1.8,bob:by});
+ else feet({walk:phase*1.8},(moving||dancing)?1:0.15);
  drawChampionSprite(ctx,race,cls,fx,by,swing,!!look.fk||!!look.fm||isFKLegend(look.w),look.w,!!look.fem,(moving||dancing)?2:1,!!look.ice,wenchById(look.wench)); /* older peers without a rune field still render normally */
  if(look.pet){ctx.font='13px sans-serif';ctx.textAlign='center';const pp=petOf(look.pet);if(pp)petGlyphCanvas(ctx,pp,-18,10);else ctx.fillText('🐾',-18,10);}
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
- /* peer nametag higher so weapons/Rimfrost do not collide */
- ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(name||'Hero',1,-44+by+1);ctx.fillStyle='#dff4ff';ctx.fillText(name||'Hero',0,-44+by);
- if(hp!==undefined)drawMiniBar(-14,-39+by,28,hp,'#4caf6d');
+ const headY=character?character.headY:-30,nameY=headY-(hp!==undefined?10:3);
+ ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(name||'Hero',1,nameY+by+1);ctx.fillStyle='#dff4ff';ctx.fillText(name||'Hero',0,nameY+by);
+ if(hp!==undefined)drawMiniBar(-14,headY-7+by,28,hp,'#4caf6d');
  ctx.restore();
 }
 function drawMpGhost(k,p){
@@ -8335,8 +8346,9 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
  }
  const armored=painted&&!!iceArm; /* 🧊 Ice Armor reskin - only when THIS character wears it */
  const eCls=armored?'armor':clsId;
- const rImg=painted?charSprite(raceId,eCls,female):null; /* painted sprites are for the local hero only */
- if(rImg&&rImg.complete&&rImg.naturalWidth){
+ const frame=painted?paintedCharacterFrame(raceId,clsId,female,armored):null;
+ const rImg=frame&&frame.image;
+ if(frame){
   /* painted character - mirrored when facing left, bobbing + rocking while running */
   g.save();
   if(sgn>0)g.scale(-1,1); /* art faces left natively - mirror when running right */
@@ -8347,10 +8359,10 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
    const fr=Math.floor(performance.now()/1000*run.fps)%run.n;
    const fw=run.img.naturalWidth/run.n,fh=run.img.naturalHeight;
    const H=48,W=H*fw/fh;
-   g.drawImage(run.img,fr*fw,0,fw,fh,-W/2,9-H+by,W,H);
+   g.drawImage(run.img,fr*fw,0,fw,fh,-W/2,frame.bodyBottom-H+by,W,H);
   }else{
-   const H=48,W=H*rImg.naturalWidth/rImg.naturalHeight;
-   g.drawImage(g===ctx?crisp(rImg,W):mip(rImg,W),-W/2,5-H+by,W,H); /* in-world hero: exact device pixels */
+   const W=frame.width,H=frame.height;
+   g.drawImage(g===ctx?crisp(rImg,W):mip(rImg,W),frame.x,frame.y+by,W,H); /* in-world hero: exact device pixels */
   }
   g.restore();
  }else{
@@ -8421,7 +8433,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
  }
  } /* end procedural body (skipped when a painted race sprite exists) */
  /* weapon - painted sprites are wider, so the hand sits further out and lower */
- const pw=painted&&charSprite(raceId,clsId,female)&&charSprite(raceId,clsId,female).naturalWidth;
+ const pw=!!frame;
  const tx=fx*(pw?11:9),ty=(pw?-1:-6)+by;
  g.save();g.translate(tx,ty);
  const sw=swing?(0.24-swing)*9:0;
@@ -8606,7 +8618,8 @@ function drawHero(){
   danceSwing=0.24-Math.abs(Math.sin(h.dance*10))*0.18;
  }
  /* painted heroes stand taller with hovering boots - ground fx sits at their boots' level */
- const gY=((charSprite(S.race,c.id,S.gender==='f')||{}).naturalWidth)?9:0;
+ const character=paintedCharacterFrame(S.race,c.id,S.gender==='f',isIce(S.gear.armor));
+ const gY=character?character.groundY-8:0;
  ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,8+gY,12+gY*0.3,5,0,0,7);ctx.fill();
  /* scroll auras - one soft colored ring per active enchant */
  activeEnchs().forEach((e,i)=>{
@@ -8621,7 +8634,7 @@ function drawHero(){
  if(h.buff.atk&&h.buff.atk.t>0){ctx.strokeStyle='rgba(255,200,90,'+(0.4+0.2*Math.sin(performance.now()/120))+')';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(0,6+gY,15,7,0,0,7);ctx.stroke();}
  if(h.buff.haste&&h.buff.haste.t>0){ctx.strokeStyle='rgba(200,240,255,0.5)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,6+gY,18,8,0,0,7);ctx.stroke();}
  if(dancing)ctx.rotate(Math.sin(h.dance*6)*0.25);
- if((charSprite(S.race,c.id,S.gender==='f')||{}).naturalWidth)bootFeet(S.gender==='f'?{fem:true,bw:femBootW(S.race,c.id),moving:h.moving,walk:h.walk}:h);else feet(h,1);
+ if(character)bootFeet({...character.boots,moving:h.moving,walk:h.walk,bob:by});else feet(h,1);
  /* ✨ the weapon's rune - not while fishing, since the rod is not the enchanted thing in his hand */
  const wRune=(fish.on||h.dead)?null:runeOf(S.gear.weapon);
  const emission=drawChampionSprite(ctx,S.race,c.id,fx,by,danceSwing,fish.on?false:isFK(S.gear.weapon),fish.on?'fishingrod':(isFG(S.gear.weapon)?'felglaives':(isFK(S.gear.weapon)?'rimfrost':null)),S.gender==='f',h.moving&&!h.dead?2:1,isIce(S.gear.armor),wRune);
@@ -8647,7 +8660,7 @@ function drawHero(){
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;
  ctx.textAlign='center';
  /* name only (no rating), lifted clear of the sprite; hp lives in the header bar instead */
- let nmY=((charSprite(S.race,c.id,S.gender==='f')||{}).naturalWidth)?-46:-33; /* painted sprites stand taller */
+ let nmY=character?character.headY-3:-33;
  if(isRing(S.gear.trinket))nmY-=9; /* make room for the hovering ring under the name */
  if(isRing(S.gear.trinket)&&theRingImg.complete&&theRingImg.naturalWidth&&!h.dead){
   /* 💍 The Ring hovers above its bearer, slowly turning */
@@ -8669,21 +8682,24 @@ function drawNpc(n){
  const now=performance.now();
  const by=n.moving?Math.sin(n.walk*7)*1.8:Math.sin(now/600+n.x)*0.8;
  ctx.save();ctx.translate(n.x,n.y);
- ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,8,13,5.5,0,0,7);ctx.fill();
  const pImg=n.art||(n.female?npcFemaleImg:npcMaleImg); /* painted villagers - one male, one female */
- if(pImg.complete&&pImg.naturalWidth){
-  bootFeet({moving:n.moving,walk:n.walk*1.8,fem:!!n.female});
+ const body=characterBodyFrame(pImg,44,7),size=n.big||1;
+ const boots=characterBootFrame('npc',!!n.female,bootImg,7);
+ ctx.save();ctx.scale(size,size);
+ ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,body?boots.groundY:8,13,5.5,0,0,7);ctx.fill();
+ if(body){
+  bootFeet({...boots,moving:n.moving,walk:n.walk*1.8,bob:by});
   ctx.save();
   if(n.fx>0)ctx.scale(-1,1); /* art faces left natively - mirror when walking right */
   ctx.rotate(by*0.02);
-  const H=44*(n.big||1),W=H*pImg.naturalWidth/pImg.naturalHeight;
-  ctx.drawImage(mip(pImg,W),-W/2,7-H+by,W,H);
+  ctx.drawImage(mip(pImg,body.width*size),body.x,body.y+by,body.width,body.height);
   ctx.restore();
  }else{
   feet({walk:n.walk*1.8},n.moving?1:0.15);
   drawChampionSprite(ctx,n.race,n.cls,n.fx,by,0,false,null,n.female);
  }
- const ny=-40-44*((n.big||1)-1)+by;   /* the taller he is, the higher his name has to sit */
+ ctx.restore();
+ const ny=((body?body.headY:-37)-3+by)*size;
  ctx.font='700 '+(n.game?11:10)+'px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(n.name,1,ny+1);
  ctx.fillStyle=n.game?'#ffd76a':'#cfe6c2';   /* the ones with something to sell stand out */
@@ -13163,13 +13179,13 @@ function drawPortrait(cnv,ch){
  const scA=(ch.activeScrolls||[ch.activeScroll]).filter(Boolean)[0];
  const sc=scA?enchOf(scA.id||scA):null;
  const wr=runeOf(ch.gear&&ch.gear.weapon);   /* the weapon enchant, if this character has one */
- const ps=charSprite(RACE_ALIAS[ch.race]||ch.race,c.id,ch.gender==='f'); /* legacy entries still carry old race ids */
- if(ps&&ps.complete&&ps.naturalWidth){
+ const character=paintedCharacterFrame(ch.race,c.id,ch.gender==='f',!!(ch.gear&&ch.gear.armor&&ch.gear.armor.legend==='icearmor'));
+ if(character){
   /* painted model portrait - smaller scale so the taller sprite + boots fit the frame */
   g.save();g.translate(W/2,H*0.684);g.scale(1.16,1.16);
-  g.fillStyle='rgba(0,0,0,0.3)';g.beginPath();g.ellipse(0,19,13,5,0,0,7);g.fill();
-  if(sc){g.strokeStyle=sc.glow;g.globalAlpha=0.55;g.lineWidth=1;g.beginPath();g.ellipse(0,18,15,6,0,0,7);g.stroke();g.globalAlpha=1;}
-  bootFeet({moving:false,walk:0,fem:ch.gender==='f',bw:ch.gender==='f'?femBootW(RACE_ALIAS[ch.race]||ch.race,c.id):0},g);
+  g.fillStyle='rgba(0,0,0,0.3)';g.beginPath();g.ellipse(0,character.groundY,13,5,0,0,7);g.fill();
+  if(sc){g.strokeStyle=sc.glow;g.globalAlpha=0.55;g.lineWidth=1;g.beginPath();g.ellipse(0,character.groundY-1,15,6,0,0,7);g.stroke();g.globalAlpha=1;}
+  bootFeet({...character.boots,moving:false,walk:0},g);
   drawChampionSprite(g,ch.race,c.id,1,0,0,!!(ch.gear&&ch.gear.weapon&&isFKLegend(ch.gear.weapon.legend)),ch.gear&&ch.gear.weapon&&(ch.gear.weapon.id||ch.gear.weapon.legend),ch.gender==='f',1,!!(ch.gear&&ch.gear.armor&&ch.gear.armor.legend==='icearmor'),wr);
   g.restore();
  }else{
