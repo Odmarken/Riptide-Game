@@ -13,6 +13,25 @@
   {id:'cindervein',name:'Cindervein',x:43200,y:20500,r:110,clearRadius:330,art:'assets/wasteland/cindervein-entrance.png'},
   {id:'frostveil',name:'Frostveil',x:41400,y:4200,r:110,clearRadius:330,art:'assets/wasteland/frostveil-entrance.png'}
  ];
+ // A fixed landmark in the northern wedge of the three-way road junction.
+ // The renderer preserves the artwork's aspect ratio inside this reference size;
+ // collision belongs only to the low building footprint, never its roof.
+ const STABLE={
+  id:'wasteland-stable',name:'Torstens Stall',junction:{x:14000,y:18000},
+  building:{x:14700,y:17240,w:620,h:520,art:'assets/mounts/stable.png',footRatio:.96,
+   bounds:{x:14390,y:16740.8,w:620,h:520},collider:{r:76,crx:245,cry:76,cyo:-25}},
+  vendor:{id:'torsten-tygel',name:'Torsten Tygel',x:14700,y:17550,r:18,range:120,
+   race:'human',cls:'warrior',female:false,game:'stable',big:1.1,fx:-1,fy:0,walk:0,moving:false},
+  paddock:{bounds:{x:15200,y:16680,w:650,h:520},
+   gate:{x:15200,y:17070,from:16990,to:17150,width:160,side:'west'},
+   displaySpots:[{x:15400,y:17035,fx:-1},{x:15625,y:16970,fx:1}]},
+  // Access lanes clear scenery but do not alter the four authored roads.
+  approach:[{x:14700,y:17809.090909090908},{x:14700,y:17550},{x:14700,y:17350}],
+  paddockApproach:[{x:14700,y:17550},{x:15100,y:17500},{x:15100,y:17070},{x:15260,y:17070}],
+  clearZones:[{x:14345,y:16665,w:715,h:670},{x:15120,y:16590,w:820,h:710},{x:14580,y:17250,w:650,h:410}]
+ };
+ function freezeData(value){if(value&&typeof value==='object'){for(const child of Object.values(value))freezeData(child);Object.freeze(value);}return value;}
+ freezeData(STABLE);
  const LAYOUTS={
   briarhollow:{cols:60,rows:40,rooms:[[2,29,7,7],[14,28,8,8],[13,13,9,9],[27,14,9,8],[29,28,8,8],[44,25,13,13],[29,2,8,8],[44,2,13,13]],links:[[0,1],[1,2],[2,3],[3,4],[4,5],[3,6],[6,7],[2,6]]},
   cindervein:{cols:60,rows:40,rooms:[[2,17,7,7],[14,16,8,8],[14,2,8,8],[28,2,9,9],[28,17,9,8],[44,2,13,13],[28,30,8,8],[44,25,13,13]],links:[[0,1],[1,2],[2,3],[3,4],[4,5],[4,6],[6,7],[1,6]]},
@@ -24,7 +43,35 @@
  function distanceToSegment(x,y,a,b){const dx=b.x-a.x,dy=b.y-a.y,t=clamp(((x-a.x)*dx+(y-a.y)*dy)/(dx*dx+dy*dy||1),0,1);return Math.hypot(x-a.x-dx*t,y-a.y-dy*t);}
  function road(points,width=160){return {width,points:points.map(p=>({x:p[0],y:p[1]}))};}
  function nearRoad(world,x,y,pad){for(const p of world.paths)for(let i=1;i<p.points.length;i++)if(distanceToSegment(x,y,p.points[i-1],p.points[i])<p.width/2+pad)return true;return false;}
- function clearSpot(world,x,y,pad){if(Math.hypot(x-world.spawn.x,y-world.spawn.y)<420+pad)return true;return world.entrances.some(e=>Math.hypot(x-e.x,y-e.y)<e.clearRadius+pad)||nearRoad(world,x,y,pad);}
+ function clearSpot(world,x,y,pad){
+  if(Math.hypot(x-world.spawn.x,y-world.spawn.y)<420+pad)return true;
+  if(world.stable&&world.stable.clearZones.some(r=>x>r.x-pad&&x<r.x+r.w+pad&&y>r.y-pad&&y<r.y+r.h+pad))return true;
+  return world.entrances.some(e=>Math.hypot(x-e.x,y-e.y)<e.clearRadius+pad)||nearRoad(world,x,y,pad);
+ }
+ function addStable(world){
+  // Per-world copies may acquire UI state; the exported landmark remains immutable.
+  const stable=world.stable=JSON.parse(JSON.stringify(STABLE)),b=stable.building,p=stable.paddock,props=[];
+  props.push({x:b.x,y:b.y,type:'stable',...b.collider,wastelandProp:true,stableLandmark:'building'});
+  // These catalogue IDs and collider dimensions match the existing farm art.
+  const shapes={staket:{r:14,crx:65,cry:9,cyo:4},staketv:{r:14,crx:8,cry:47,cyo:-33},hobal:{r:25},trough:{r:14,crx:46,cry:14,cyo:0}};
+  const add=(ftype,x,y,sc=1)=>{
+   const shape=shapes[ftype],s={x,y,r:shape.r*sc,type:'farmitem',ftype,it:{sc},wastelandProp:true,stableLandmark:ftype};
+   if(shape.crx){s.crx=shape.crx*sc;s.cry=shape.cry*sc;s.cyo=shape.cyo*sc;}props.push(s);
+  };
+  const horizontal=(y)=>{
+   const n=Math.ceil(p.bounds.w/130),step=p.bounds.w/n,sc=step/130;
+   for(let i=0;i<n;i++)add('staket',p.bounds.x+(i+.5)*step,y-4*sc,sc);
+  };
+  const vertical=(x,from,to)=>{
+   const n=Math.ceil((to-from)/94),step=(to-from)/n,sc=step/94;
+   for(let i=0;i<n;i++)add('staketv',x,from+(i+.5)*step+33*sc,sc);
+  };
+  horizontal(p.bounds.y);horizontal(p.bounds.y+p.bounds.h);
+  vertical(p.bounds.x+p.bounds.w,p.bounds.y,p.bounds.y+p.bounds.h);
+  vertical(p.bounds.x,p.bounds.y,p.gate.from);vertical(p.bounds.x,p.gate.to,p.bounds.y+p.bounds.h);
+  add('hobal',15450,16805);add('hobal',15540,16815);add('trough',15730,16795);
+  stable.props=props;world._landmarkProps.push(...props);world.npcs=[stable.vendor];
+ }
  function baseWorld(key,seed,w,h){return {key,wasteland:true,dungeon:key==='wasteland'?null:key,seed:seed>>>0,w,h,spawn:{x:0,y:0},portal:{x:-500,y:-500},solids:[],mwalls:[],deco:[],waters:[],paths:[],floors:[],entrances:[],enemySpawns:[],bossRooms:[],pathY:-500,pathH:0};}
  function create(key='wasteland',seed=13){
   if(key!=='wasteland'&&!LAYOUTS[key])throw new RangeError('Unknown Wasteland zone: '+key);
@@ -38,6 +85,7 @@
    road([[12600,6200],[21000,7400],[28500,9200]],140)
   ];
   w._landmarkProps=[];
+  addStable(w);
   for(const e of w.entrances)for(const side of [-1,1]){
    for(const [dx,dy]of [[450,-200],[450,220],[520,0],[500,-330]]){
     const x=e.x+dx*side,y=e.y+dy;if(clearSpot(w,x,y,150))continue;
@@ -290,6 +338,6 @@
   if(world.dungeon){if(tiles>144)paintDungeonWalls(g,world,v,{});dungeonDetails(g,world,v);}else if(tiles>144)strokeRoads(g,world,v);
   g.restore();
  }
- const api={create,updateChunks,renderGround,isWalkable,distanceToSegment,CHUNK,CELL,MAX_RADIUS,ENTRANCES:ENTRANCES.map(e=>Object.freeze({...e}))};
+ const api={create,updateChunks,renderGround,isWalkable,distanceToSegment,CHUNK,CELL,MAX_RADIUS,STABLE,ENTRANCES:ENTRANCES.map(e=>Object.freeze({...e}))};
  root.WastelandWorld=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

@@ -1,0 +1,227 @@
+{
+  "generator": "Higgsfield",
+  "model": "gpt_image_2_5",
+  "quality": "high",
+  "resolution": "1k",
+  "background": "transparent",
+  "aspect_ratio": "1:1",
+  "referenceHandling": "Existing assets were inspected locally only. Reference upload was rejected by automatic approval review; no reference images were exported or supplied. The four jobs use generic text descriptions of the requested painted chibi game style.",
+  "assets": {
+    "stable": {
+      "file": "assets/mounts/stable.png",
+      "jobId": "59b3ca3e-b4b7-4363-b17e-6de3fbafc373",
+      "status": "completed",
+      "prompt": "Production asset for a cozy hand-painted fantasy chibi RPG. Bold clean dark ink contours, readable broad painted highlights, compact sturdy shapes, painterly textures rather than photorealism or smooth 3D. One complete isolated subject only. True transparent RGBA background, no checkerboard, no ground patch, no cast shadow, no text or watermark. Keep all extremities inside frame with 8% transparent padding. Rustic timber STABLE BUILDING with an attractive red tiled pitched roof, heavy warm oak beams, worn cream plaster and a low stone foundation. Compact game building viewed isometrically from above at front three-quarter angle, front entrance facing lower-left of the image. Wide open stable double doorway with a dark interior and a little golden straw inside; small loft hay hatch and simple decorative horseshoe above entrance, small hanging lantern. No animals and no people. Building only: no broad yard or lawn, no surrounding fence, no detached props, just its own tiny threshold and tight foundation. Friendly chunky fantasy architecture, readable when drawn about 160px wide.",
+      "size": [
+        1024,
+        1024
+      ],
+      "bounds": [
+        60,
+        48,
+        915,
+        913
+      ],
+      "sha256": "47ec19e0383c7813c0ecbc794af367979f2247d957a9bf1224e44f00a40abf82",
+      "nativeAlpha": true,
+      "zeroAlphaPixels": 467796,
+      "semiAlphaPixels": 580780,
+      "opaque255Pixels": 0,
+      "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260913_221933_59b3ca3e-b4b7-4363-b17e-6de3fbafc373.png"
+    },
+    "horse": {
+      "file": "assets/mounts/horse.png",
+      "jobId": "4de2fb02-ea77-40e2-8d64-4ad5a7d47486",
+      "status": "completed",
+      "prompt": "Production asset for a cozy hand-painted fantasy chibi RPG. Bold clean dark ink contours, readable broad painted highlights, compact sturdy shapes, painterly textures rather than photorealism or smooth 3D. One complete isolated subject only. True transparent RGBA background, no checkerboard, no ground patch, no cast shadow, no text or watermark. Keep all extremities inside frame with 8% transparent padding. Riderless saddled animal mount, standing calmly in a SIDE VIEW with a slight front three-quarter angle, body horizontal, FACING RIGHT (head to the right, tail to the left). Chibi proportions with oversized appealing head, compact strong torso and relatively short legs. Show all four paws/hooves in a natural staggered stance, clearly separated enough for simple leg animation. All supporting feet share a flat ground line near 85% image height. Put the back and a clear simple flat saddle seat near 48% image height, approximately center x, immediately behind the shoulders; enough empty space above the seat for a separate humanoid rider. Saddle must be low, with a readable seat, no huge pommel, no rider, no packs that hide the seat. No long loose reins or stirrups covering the animal's flank. A warm chestnut-brown riding HORSE with dark chocolate mane and tail, small cream muzzle highlight and expressive dark eyes. Plain brown leather saddle on a muted burgundy blanket with restrained brass hardware; simple leather bridle. Original charming fantasy farm horse, strong short legs and rounded hooves, no armor covering the body.",
+      "size": [
+        1024,
+        1024
+      ],
+      "bounds": [
+        51,
+        43,
+        927,
+        938
+      ],
+      "sha256": "e8226cbbfd89f9f6c111d83741de7496471ebbbd903ee195afeaa16c718f4f06",
+      "nativeAlpha": true,
+      "zeroAlphaPixels": 591565,
+      "semiAlphaPixels": 457011,
+      "opaque255Pixels": 0,
+      "seat": [
+        482,
+        437
+      ],
+      "ground": [
+        512,
+        981
+      ],
+      "facing": 1,
+      "legCandidates": [
+        [
+          184,
+          316,
+          850,
+          924,
+          0
+        ],
+        [
+          350,
+          532,
+          800,
+          916,
+          3.141592653589793
+        ],
+        [
+          570,
+          711,
+          808,
+          925,
+          3.141592653589793
+        ],
+        [
+          721,
+          880,
+          806,
+          928,
+          0
+        ]
+      ],
+      "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260913_221933_4de2fb02-ea77-40e2-8d64-4ad5a7d47486.png"
+    },
+    "leopard": {
+      "file": "assets/mounts/leopard.png",
+      "jobId": "0dcb2957-e71d-4fb6-ab59-b27b303bf5b0",
+      "status": "completed",
+      "prompt": "Production asset for a cozy hand-painted fantasy chibi RPG. Bold clean dark ink contours, readable broad painted highlights, compact sturdy shapes, painterly textures rather than photorealism or smooth 3D. One complete isolated subject only. True transparent RGBA background, no checkerboard, no ground patch, no cast shadow, no text or watermark. Keep all extremities inside frame with 8% transparent padding. Riderless saddled animal mount, standing calmly in a SIDE VIEW with a slight front three-quarter angle, body horizontal, FACING RIGHT (head to the right, tail to the left). Chibi proportions with oversized appealing head, compact strong torso and relatively short legs. Show all four paws/hooves in a natural staggered stance, clearly separated enough for simple leg animation. All supporting feet share a flat ground line near 85% image height. Put the back and a clear simple flat saddle seat near 48% image height, approximately center x, immediately behind the shoulders; enough empty space above the seat for a separate humanoid rider. Saddle must be low, with a readable seat, no huge pommel, no rider, no packs that hide the seat. No long loose reins or stirrups covering the animal's flank. A powerful spotted LEOPARD riding mount. Golden warm tan fur with clearly painted dark rosette spots, cream lower muzzle/chest, dark ringed long tail curling gently left while staying fully in frame. Large friendly alert feline head, rounded ears, sturdy rounded paws. Simple dark brown leather riding saddle on a desaturated forest-green blanket with small brass trim. Tail must not cross or obscure the saddle. Natural fur colors, no magic glow and no heavy armor.",
+      "size": [
+        1024,
+        1024
+      ],
+      "bounds": [
+        16,
+        113,
+        992,
+        814
+      ],
+      "sha256": "e60321774548abb0784b68ec592d22d6624d29843542f935b1f2b116d4169499",
+      "nativeAlpha": true,
+      "zeroAlphaPixels": 629091,
+      "semiAlphaPixels": 419485,
+      "opaque255Pixels": 0,
+      "seat": [
+        513,
+        438
+      ],
+      "ground": [
+        512,
+        927
+      ],
+      "facing": 1,
+      "legCandidates": [
+        [
+          165,
+          312,
+          790,
+          853,
+          0
+        ],
+        [
+          376,
+          557,
+          790,
+          847,
+          3.141592653589793
+        ],
+        [
+          643,
+          813,
+          780,
+          856,
+          3.141592653589793
+        ],
+        [
+          819,
+          998,
+          790,
+          847,
+          0
+        ]
+      ],
+      "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260913_221933_0dcb2957-e71d-4fb6-ab59-b27b303bf5b0.png"
+    },
+    "spectral-tiger": {
+      "file": "assets/mounts/spectral-tiger.png",
+      "jobId": "163696e6-52cd-493e-bdf2-3652eaa6cb6c",
+      "status": "completed",
+      "prompt": "Production asset for a cozy hand-painted fantasy chibi RPG. Bold clean dark ink contours, readable broad painted highlights, compact sturdy shapes, painterly textures rather than photorealism or smooth 3D. One complete isolated subject only. True transparent RGBA background, no checkerboard, no ground patch, no cast shadow, no text or watermark. Keep all extremities inside frame with 8% transparent padding. Riderless saddled animal mount, standing calmly in a SIDE VIEW with a slight front three-quarter angle, body horizontal, FACING RIGHT (head to the right, tail to the left). Chibi proportions with oversized appealing head, compact strong torso and relatively short legs. Show all four paws/hooves in a natural staggered stance, clearly separated enough for simple leg animation. All supporting feet share a flat ground line near 85% image height. Put the back and a clear simple flat saddle seat near 48% image height, approximately center x, immediately behind the shoulders; enough empty space above the seat for a separate humanoid rider. Saddle must be low, with a readable seat, no huge pommel, no rider, no packs that hide the seat. No long loose reins or stirrups covering the animal's flank. An original BLUE SPECTRAL TIGER riding mount inspired by classic high-fantasy MMORPG mounts, not a copy of a named existing design. Translucent luminous blue feline body, deep sapphire tiger stripes, pale cyan highlights and eyes, compact large tiger head and strong paws. Restrained cold silver and navy-blue armor plates at the cheeks and shoulders, low silver/navy saddle and clear seat. All colors stay cool blue, silver and navy; no orange, yellow, gold or warm armor. Ethereal semi-transparent fur but a crisp readable silhouette, minimal close cyan edge glow only, no sprawling smoke, no ground aura, no particles floating beyond the main silhouette. Original gentle but majestic chibi game creature.",
+      "size": [
+        1024,
+        1024
+      ],
+      "bounds": [
+        25,
+        166,
+        986,
+        764
+      ],
+      "sha256": "f84db344eda7f4b3579ffc577594d7f08169e095faebe88bbd2b764659094bac",
+      "nativeAlpha": true,
+      "zeroAlphaPixels": 501304,
+      "semiAlphaPixels": 547272,
+      "opaque255Pixels": 0,
+      "seat": [
+        480,
+        458
+      ],
+      "ground": [
+        512,
+        930
+      ],
+      "facing": 1,
+      "legCandidates": [
+        [
+          153,
+          320,
+          790,
+          843,
+          0
+        ],
+        [
+          355,
+          565,
+          780,
+          844,
+          3.141592653589793
+        ],
+        [
+          569,
+          779,
+          800,
+          855,
+          3.141592653589793
+        ],
+        [
+          779,
+          993,
+          800,
+          844,
+          0
+        ]
+      ],
+      "alphaNote": "The body is painted at alpha about252 with a restrained blue edge glow; actual translucency of the body can be controlled by the mount renderer. Distant background is alpha0, close glow may be alpha1-20.",
+      "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260913_221933_163696e6-52cd-493e-bdf2-3652eaa6cb6c.png"
+    }
+  },
+  "geometryNotes": {
+    "bounds": "Inclusive alpha>=128 bounds [x,y,width,height]. Source images have genuine alpha; RGB under zero alpha is intentionally preserved, so RGB-only viewers may show a false colored background.",
+    "legCandidates": "[x0,x1,rootY,ankleY,phaseRadians] in1024px source coordinates. These are measured starting regions for renderer visual QA, not final animation approval. Tiger intervals use nonoverlapping bands; front roots move down to800 to avoid neighbouring legs.",
+    "preservation": "Four original downloaded Higgsfield PNGs are saved byte-for-byte. No recolor, crop or alpha edits were applied.",
+    "localReferencesInspected": [
+      "assets/farm/farmhouse_litet.png",
+      "assets/characters/humanmale_warrior.png",
+      "assets/mobs/bst_wolf.png"
+    ]
+  }
+}

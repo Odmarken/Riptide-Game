@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="favicon_256.png">
 <!-- ?v= is not decoration: without it iOS Safari serves a cached stylesheet for days, so two
      phones end up running two different builds of the layout. Bump on every visual change. -->
-<link rel="stylesheet" href="style.css?v=50">
+<link rel="stylesheet" href="style.css?v=51">
 </head>
 <body>
 <div id="app">
@@ -732,6 +732,19 @@
    </div>
   </div>
 
+  <div id="stableFx" role="dialog" aria-modal="true" aria-labelledby="stableTitle" style="position:absolute;inset:0;z-index:71;display:none;align-items:center;justify-content:center;background:rgba(10,7,4,.86)">
+   <div class="casinobox stable-box">
+    <div class="slottop" id="stableTitle">Torsten's Stables</div>
+    <div class="cl">Torsten Tygel · Mount keeper</div>
+    <p class="cl">A companion for the roads of Wasteland. Choose a mount, then saddle up with X.</p>
+    <div id="stableSlot" class="stable-slot"></div>
+    <div id="stableStock" class="stable-stock"></div>
+    <div id="stableWallet" class="cl"></div>
+    <div id="stableMessage" class="cl" role="status" aria-live="polite"></div>
+    <button id="stableClose" class="sbtn" style="margin-top:10px;padding:11px">Leave the Stables</button>
+   </div>
+  </div>
+
   <nav>
     <button data-tab="battle" class="cur"><svg viewBox="0 0 24 24"><path d="M14.5 4 20 9.5 9.5 20 4 14.5z"/><path d="m4 20 3-3M17 7l3-3"/></svg>World</button>
     <button data-tab="hero"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.5 7.5-8 9-4.5-1.5-8-4.5-8-9V6z"/></svg>Hero</button>
@@ -753,11 +766,13 @@
 <script src="assets/weapons/rune-particles.js?v=1"></script>
 <script src="assets/weapons/rune-effects.js?v=3"></script>
 <script src="assets/ui/city-minimap.js?v=2"></script>
-<script src="assets/wasteland/world.js?v=2"></script>
+<script src="assets/wasteland/world.js?v=3"></script>
 <script src="assets/wasteland/dungeons.js?v=4"></script>
 <script src="assets/wasteland/ambience.js?v=1"></script>
 <script src="assets/wasteland/music.js?v=1"></script>
 <script src="assets/ui/wasteland-map.js?v=2"></script>
-<script src="game.js?v=94"></script>
+<script src="assets/mounts/mounts.js?v=1"></script>
+<script src="assets/mounts/renderer.js?v=1"></script>
+<script src="game.js?v=95"></script>
 </body>
 </html>

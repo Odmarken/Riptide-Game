@@ -142,6 +142,8 @@ const npcMaleImg=new Image();npcMaleImg.src='assets/characters/npc/npc_male.png'
    turn-of-the-century overcoat, at the same size and framing, so he drops into the same slot. */
 const npcSebbeImg=new Image();npcSebbeImg.src='assets/characters/npc/npc_sebbe.png';
 const npcFemaleImg=new Image();npcFemaleImg.src='assets/characters/npc/npc_female.png';
+const mountImages=Object.fromEntries(Mounts.catalog.map(m=>{const im=new Image();im.src=m.art;return [m.id,im];}));
+const stableImg=new Image();stableImg.src='assets/mounts/stable.png';
 const charSpriteCache={};
 function charSprite(raceId,clsId,female){
  const key=raceId+(female?'female':'male')+'_'+clsId;
@@ -1324,6 +1326,7 @@ function zoneQuests(z){
   
 /* ==================== STATE ==================== */
 let S=null;
+const mountRide=Mounts.createRide();
 const $=id=>document.getElementById(id);
 const dispName=ch=>(ch.name||'?')+((ch.rating||0)>0?' ('+(ch.rating||0)+')':'');
 const raceOf=()=>RACES.find(r=>r.id===S.race);
@@ -1435,7 +1438,7 @@ const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0,'haste');
 function freshState(name,race,cls){
  return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,lastZone:0,maxZone:0,quest:0,qProg:0,hardcore:false,hcDead:false,gender:'m',
   rating:0,odinKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',bankGold:0,bankScrap:0,bankEarned:0,bankLastT:0,smithLvl:0,smithJob:null,luckPots:0,luckT:0,gamblerPots:0,gamblerT:0,restedT:0,restedPct:0,restedSpinAt:0,freeGoldCases:0,chests:{violethalls:0},mining:{trained:false,skill:0,on:false},ench:{trained:false,skill:0,bag:[]},ore:{coal:0,ore:0,gem:0},cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
-  gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],pet:null,pets:[],
+  gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],pet:null,pets:[],mounts:Mounts.normalize(null),
   boosts:{speed:0,haste:0},autoUse:{},tainted:false,
   cleared:{},bossDead:{},zoneLvlGain:{},wastelandBossReadyAt:WastelandDungeons.normalizeBossTimers(null),
   auto:true,autoEquip:true,sound:true,sfx:true,volAmb:0.5,volSfx:0.55,finished:false};
@@ -1457,6 +1460,7 @@ function ensureItemBase(it){
  return it;
 }
 function migrate(s){ /* fills fields missing from older saves */
+ s.mounts=Mounts.normalize(s.mounts);
  s.wastelandBossReadyAt=WastelandDungeons.normalizeBossTimers(s.wastelandBossReadyAt);
  s.tainted=false;
  s.taintV=0;
@@ -4459,6 +4463,8 @@ function drawCryptTorches(vx0,vy0,vx1,vy1){ /* 🔥 breadcrumb markers - flicker
  }
 }
 function buildZone(){
+ Mounts.reset(mountRide);
+ if($('stableFx'))$('stableFx').style.display='none';
  /* Delayed multishots can still hold a target from the room we are leaving. */
  if(world&&world.encounter)for(const en of world.encounter.enemies){en.dead=true;en.dungeonRetired=true;en.dungeonCast=null;}
  if(!zoneOf().special&&(S.maxZone||0)<S.zone)S.maxZone=S.zone;
@@ -4699,6 +4705,7 @@ function buildZone(){
  }
  else if(tmpls.length){for(let i=0;i<24;i++)spawnEnemyAt(tmpls[i%tmpls.length],R);} /* denser maps */
  marker=null;portalMsgT=0;
+ setZoom(zoom);
  camX=hero.x-VW/2;camY=hero.y-VH/2;
  refreshWastelandChunks();
  startAmbience(z.amb);
@@ -4950,7 +4957,7 @@ function collide(e,nx,ny){
 }
 function speedOf(e){
  if(e===pet)return 175*swiftMul()*speedBoostMul()*1.15;
- if(e===hero)return 175*swiftMul()*speedBoostMul();
+ if(e===hero)return 175*swiftMul()*speedBoostMul()*Mounts.multiplier(mountRide,S,zoneOf());
  let s=e.speed;
  /* Leveling-zone bosses are aggressive raid targets: fast from pull,
     then enraged movement below 30% HP. Special bosses keep their custom tuning. */
@@ -4967,6 +4974,15 @@ function speedOf(e){
 /* Smoother obstacle avoidance: try a diagonal slide first, then commit to one
    side for ~0.6s instead of flip-flopping every frame (which caused jitter/stuck heroes). */
 function moveToward(e,tx,ty,dt,mul){
+ /* Riding can cover an entire fence collider in one slow frame. Run the same slide/avoidance
+    logic in short steps so every accepted move, including sidesteps, checks the intervening ground. */
+ if(e===hero&&mountRide.id&&Mounts.allowed(zoneOf())){
+  const steps=Math.ceil(speedOf(e)*dt*(mul===undefined?1:mul)/8);
+  if(steps>1){
+   for(let i=0;i<steps;i++)if(moveToward(e,tx,ty,dt/steps,mul))return true;
+   return false;
+  }
+ }
  const dx=tx-e.x,dy=ty-e.y,d=Math.hypot(dx,dy);
  if(d<2)return true;
  /* Never step further than the target is away. Without the clamp the step is speed*dt flat, so a
@@ -5147,6 +5163,7 @@ function nearestEnemyWithin(rng){
  return best;
 }
 function cast(i,manual){
+ if(mountRide.id||mountRide.casting){if(manual)stageMsg('Dismount with X before casting.',1000);return false;}
  const c=classOf(),sp=c.spells[i];
  if(hero.dead)return false;
  if(hero.deadWait){if(manual)stageMsg('💀 You are fallen - the seal blocks your magic until the lord dies',1400);return false;}
@@ -5980,9 +5997,9 @@ function padPollButtons(){
    Rather than teach every panel about the pad, walk whatever is on screen: the topmost open panel's
    own buttons, in document order, are the menu. That way a panel built later is navigable the day
    it is written, with nothing added to it. */
-const PAD_PANELS=['finalGateFx','sebbeFx','gvbFx','rtbFx','rouFx','bjFx','seaFx','slotFx','casinoMenu',
+const PAD_PANELS=['cfgBox','finalGateFx','sebbeFx','gvbFx','rtbFx','rouFx','bjFx','seaFx','slotFx','casinoMenu',
  'chestFx','seaBuyFx','sharkFx','ritualDoneFx','ritualFx','talentFx','smithFx','smithMenu','bankFx',
- 'restFx','fishhutMenu','mineFx','smeltFx','enchFx','farmCheckoutFx','farmBuyFx','farmDelFx','cfgBox'];
+ 'restFx','fishhutMenu','mineFx','smeltFx','enchFx','stableFx','farmCheckoutFx','farmBuyFx','farmDelFx'];
 const padPanelOpen=()=>{
  for(const id of PAD_PANELS){
   const e=$(id);
@@ -6021,6 +6038,7 @@ function padInteract(){
  const add=(s,label,open,rng)=>{if(s)out.push({s,label,open,rng:rng||150});};
  const find=t=>world.solids.find(s2=>s2.type===t);
  for(const door of expeditionDoors())add(door,door.name,()=>travelExpedition(door),100);
+ if(Mounts.allowed(z))add(world.stable?.vendor,'Torsten Tygel',openStable,110);
  if(z.tavern){
   for(const s of world.solids){
    const f=homeBuildingFrame(s);if(f)add(homeBuildingDoor(s),f.def.label,f.def.open,90);
@@ -6120,6 +6138,10 @@ window.addEventListener('keydown',e=>{
  const k=e.key||'';
  const kl=k.toLowerCase();
  if(!kl)return;
+ if(kl==='x'){
+  if(!e.repeat&&gameOn&&!gamePaused&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||'')&&!document.activeElement?.isContentEditable){e.preventDefault();toggleMount();}
+  return;
+ }
  /* any movement key puts the pick away. This has to live here, not in the movement block -
     mining bypasses that whole branch, so a check inside it would never run. */
  if('wasd'.includes(kl)&&kl.length===1||kl.startsWith('arrow')){setInputMode('kb');stopMining(true);}
@@ -6184,6 +6206,12 @@ cv.addEventListener('pointerdown',e=>{
  const r=cv.getBoundingClientRect();
  const wx=(e.clientX-r.left)/zoom+camX,wy=(e.clientY-r.top)/zoom+camY;
  hero.pendingDoor=null; /* any new click cancels a pending walk-to-building */
+ const stableVendor=(world.npcs||[]).find(n=>n.game==='stable');
+ if(stableVendor&&Math.abs(wx-stableVendor.x)<34&&wy>stableVendor.y-66&&wy<stableVendor.y+18){
+  if(dist(hero,stableVendor)<110)openStable();
+  else{hero.target=null;hero.goPortal=false;hero.moveTo={x:stableVendor.x,y:stableVendor.y+35};marker={...hero.moveTo,t:0};hero.pendingDoor={s:stableVendor,open:openStable,rng:110};}
+  return;
+ }
  const door=expeditionDoors().find(s=>s.type==='dungeonentrance'?Math.abs(wx-s.x)<190&&wy>s.y-290&&wy<s.y+48:Math.hypot(wx-s.x,wy-(s.y-30))<65);
  if(door){
   if(dist(hero,door)<90)travelExpedition(door);
@@ -6536,8 +6564,6 @@ window.addEventListener('pointercancel',endHoldMove);
 /* ---- camera zoom: mouse wheel on the map, 2-finger pinch on phones ---- */
 let zoom=1,pinchD=0,pinching=false;
 const ZMAX=3;
-/* Temporary expanded camera range in Wasteland and its dungeons. */
-const wastelandZoom=()=>!!(S&&(zoneOf().wasteland||zoneOf().dungeon));
 /* 🔍 debug camera. The normal floor is 0.9 on desktop, nowhere near enough to take in a
    16800-wide city. dbgZoom() unlocks 20x out and snaps to a whole-zone fit; call it again to put
    the camera back. Console only - nothing in the UI reaches it. */
@@ -6553,14 +6579,13 @@ let debugZoom=false;
    screen, and the farm at 8400x2600 already overflows vertically on 1080p. Those two get the edge
    treatment instead of a leash. */
 const zmin=()=>{
- if(wastelandZoom())return 1/20;
  if(debugZoom)return 1/20;                           /* the whole zone, however big */
  if(buildMode)return 1/3;                            /* the architect gets his overview */
  const base=(IS_TOUCH&&Math.min(VW,VH)<820)?0.5:0.9; /* phones may pull back further than desktop */
  if(!world||!world.w||!world.h)return base;
  return Math.max(base,VW/world.w,VH/world.h);
 };
-function setZoom(z){zoom=Math.max(zmin(),Math.min(wastelandZoom()?20:ZMAX,z));}
+function setZoom(z){zoom=Math.max(zmin(),Math.min(ZMAX,z));}
 function dbgZoom(on){
  debugZoom=on===undefined?!debugZoom:!!on;
  if(debugZoom&&world)setZoom(Math.min(VW/world.w,VH/world.h)*0.94); /* fit the whole zone, with a margin */
@@ -6781,6 +6806,8 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
     each other and the motes read as bubbles stuck to his armour. The feet rings still mark the
     active scrolls. To bring them back, emit one part per activeEnchs() entry on hero.glowT. */
  hero.moving=false;
+ Mounts.tick(mountRide,S,{zone:zoneOf(),hero,paused:gamePaused},dt);
+ updateMountButton();
  // ----- hero -----
  if(hero.dead){
   hero.deadT+=dt;
@@ -6800,8 +6827,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    }
    return;
   }
- }else if(!mineTick(dt)){ /* mining owns the hero's feet while it runs, so it is
-    asked first and the whole walking chain below is skipped while he works */
+ }else if(!mountRide.casting&&$('stableFx').style.display!=='flex'&&!mineTick(dt)){ /* mounting, the stable menu and mining keep the hero still */
   if(holdMove){ /* finger still pressed - refresh the walk target to wherever it is now */
    const hr=cv.getBoundingClientRect();
    const hx=(holdMove.cx-hr.left)/zoom+camX,hy=(holdMove.cy-hr.top)/zoom+camY;
@@ -7540,6 +7566,11 @@ function draw(){
   if(n.x<cx0||n.x>cx1||n.y<cy0||n.y>cy1)continue;
   drawables.push({y:n.y,f:()=>drawNpc(n)});
  }
+ if(world.stable)world.stable.paddock.displaySpots.forEach((spot,i)=>{
+  if(spot.x<cx0||spot.x>cx1||spot.y<cy0||spot.y>cy1)return;
+  const id=i?'leopard':'horse';
+  drawables.push({y:spot.y,f:()=>MountRenderer.draw(ctx,{id,img:mountImages[id],x:spot.x,y:spot.y,fx:spot.fx,moving:0,phase:0,deviceScale:zoom*DPR})});
+ });
  for(const en of enemies)drawables.push({y:en.y,f:()=>drawEnemy(en)});
  if(hero)drawables.push({y:hero.y,f:drawHero});
  if(padNear)drawables.push({y:hero.y+1,f:()=>drawPadPrompt(padNear)});
@@ -7898,7 +7929,9 @@ function drawPropShadow(s,z){
  ctx.save();ctx.translate(s.x,s.y);
  const ready=im=>im&&im.complete&&im.naturalWidth;
  const home=homeBuildingFrame(s);
- if(home&&home.ready){
+ if(s.type==='stable'){
+  drawGroundShadow(0,-27,235,54,.24);
+ }else if(home&&home.ready){
   const f=home.def.foot;
   drawGroundShadow(home.W*f.cx,home.top+home.H*f.cy,home.W*f.rx,home.H*f.ry);
  }else if(s.type==='tree'){
@@ -7951,6 +7984,13 @@ function drawPropShadow(s,z){
 function drawProp(s,z,withShadow=true){
  if(withShadow)drawPropShadow(s,z);
  ctx.save();ctx.translate(s.x,s.y);
+ if(s.type==='stable'){
+  if(stableImg.complete&&stableImg.naturalWidth){
+   const W=world.stable?.building.w||620,H=W*stableImg.naturalHeight/stableImg.naturalWidth,top=-H*.96;
+   ctx.globalAlpha*=seeThrough(s,W,H,top);ctx.drawImage(mip(stableImg,W),-W/2,top,W,H);
+  }
+  ctx.restore();return;
+ }
  if(s.type==='dungeonentrance'){
   const im=expeditionEntranceImage(s.destination),W=420,H=420;
   if(im.complete&&im.naturalWidth)ctx.drawImage(mip(im,W),-W/2,28-H,W,H);
@@ -8455,7 +8495,7 @@ function drawHourglassBody(g,cx,cy,by,c2,c1,w){
  g.fillStyle=c1;shape(1.8);
 }
 /* Weapon rune profiles, materials and emission live in assets/weapons/rune-*.js. */
-function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painted,iceArm,rune){
+function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painted,iceArm,rune,riding){
  let runePaint=null,runeEmission=null;
  raceId=RACE_ALIAS[raceId]||raceId; /* peers/leaderboard entries may still send legacy ids */
  clsId=CLASS_ALIAS[clsId]||clsId;
@@ -8493,6 +8533,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
  if(frame){
   /* painted character - mirrored when facing left, bobbing + rocking while running */
   g.save();
+  if(riding?.clipBody)riding.clipBody(g);
   if(sgn>0)g.scale(-1,1); /* art faces left natively - mirror when running right */
   g.rotate(by*0.025);
   const run=painted===2?CHAR_RUN[raceId+(female?'female':'male')+'_'+eCls]:null;
@@ -8751,7 +8792,8 @@ function drawHero(){
  ctx.save();ctx.translate(h.x,h.y);
  ctx.globalAlpha=h.dead?Math.max(0,1-h.deadT*1.6):1;
  if(h.dead)ctx.rotate(Math.min(1.5,h.deadT*3));
- const dancing=h.dance>0&&!h.dead;
+ const riding=!h.dead&&mountRide.id&&Mounts.allowed(zoneOf());
+ const dancing=h.dance>0&&!h.dead&&!riding;
  let by=h.moving?Math.sin(h.walk*2)*1.8:Math.sin(performance.now()/600)*0.8;
  let fx=h.fx,danceSwing=h.swing;
  if(dancing){
@@ -8761,8 +8803,8 @@ function drawHero(){
  }
  /* painted heroes stand taller with hovering boots - ground fx sits at their boots' level */
  const character=paintedCharacterFrame(S.race,c.id,S.gender==='f',isIce(S.gear.armor));
- const gY=character?character.groundY-8:0;
- ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,8+gY,12+gY*0.3,5,0,0,7);ctx.fill();
+ const gY=riding?8:character?character.groundY-8:0;
+ if(!riding){ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,8+gY,12+gY*0.3,5,0,0,7);ctx.fill();}
  /* scroll auras - one soft colored ring per active enchant */
  activeEnchs().forEach((e,i)=>{
   const a=0.20+0.09*Math.sin(now*1.8+i*2.1);
@@ -8776,10 +8818,19 @@ function drawHero(){
  if(h.buff.atk&&h.buff.atk.t>0){ctx.strokeStyle='rgba(255,200,90,'+(0.4+0.2*Math.sin(performance.now()/120))+')';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(0,6+gY,15,7,0,0,7);ctx.stroke();}
  if(h.buff.haste&&h.buff.haste.t>0){ctx.strokeStyle='rgba(200,240,255,0.5)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,6+gY,18,8,0,0,7);ctx.stroke();}
  if(dancing)ctx.rotate(Math.sin(h.dance*6)*0.25);
- if(character)bootFeet({...character.boots,moving:h.moving,walk:h.walk,bob:by});else feet(h,1);
+ if(!riding){if(character)bootFeet({...character.boots,moving:h.moving,walk:h.walk,bob:by});else feet(h,1);}
  /* ✨ the weapon's rune - not while fishing, since the rod is not the enchanted thing in his hand */
  const wRune=(fish.on||h.dead)?null:runeOf(S.gear.weapon);
- const emission=drawChampionSprite(ctx,S.race,c.id,fx,by,danceSwing,fish.on?false:isFK(S.gear.weapon),fish.on?'fishingrod':(isFG(S.gear.weapon)?'felglaives':(isFK(S.gear.weapon)?'rimfrost':null)),S.gender==='f',h.moving&&!h.dead?2:1,isIce(S.gear.armor),wRune);
+ let rideLayout=null,emission;
+ if(riding){
+  by=0;
+  rideLayout=MountRenderer.draw(ctx,{id:mountRide.id,img:mountImages[mountRide.id],fx,phase:mountRide.phase,moving:mountRide.moving,deviceScale:zoom*DPR,bootWidth:character?.boots.bw},(g,ride)=>{
+   MountRenderer.drawRiderBoots(g,bootImg,ride);
+   return drawChampionSprite(g,S.race,c.id,fx,0,0,isFK(S.gear.weapon),isFG(S.gear.weapon)?'felglaives':isFK(S.gear.weapon)?'rimfrost':null,S.gender==='f',1,isIce(S.gear.armor),wRune,ride);
+  });
+  emission=rideLayout?.riderResult;
+ }else emission=drawChampionSprite(ctx,S.race,c.id,fx,by,danceSwing,fish.on?false:isFK(S.gear.weapon),fish.on?'fishingrod':(isFG(S.gear.weapon)?'felglaives':(isFK(S.gear.weapon)?'rimfrost':null)),S.gender==='f',h.moving&&!h.dead?2:1,isIce(S.gear.armor),wRune);
+ if(mountRide.casting)MountRenderer.drawCast(ctx,{progress:1-mountRide.remaining,id:mountRide.casting,phase:now*2});
  if(wRune&&emission&&!gamePaused)runeSpark(wRune,{...emission,points:emission.points.map(p=>runePointTransform(runeScene,p))},fxDt,h.y+gY+8);
  else resetRuneEmission();
  /* the pick, drawn over the hero while he works. It replaces nothing - his weapon stays where it is -
@@ -8803,6 +8854,7 @@ function drawHero(){
  ctx.textAlign='center';
  /* name only (no rating), lifted clear of the sprite; hp lives in the header bar instead */
  let nmY=character?character.headY-3:-33;
+ if(rideLayout){ctx.translate(rideLayout.riderX,0);nmY+=rideLayout.riderY;}
  if(isRing(S.gear.trinket))nmY-=9; /* make room for the hovering ring under the name */
  if(isRing(S.gear.trinket)&&theRingImg.complete&&theRingImg.naturalWidth&&!h.dead){
   /* 💍 The Ring hovers above its bearer, slowly turning */
@@ -9162,6 +9214,8 @@ function log(html,cls){
  ticker._hideTimer=setTimeout(()=>ticker.classList.add('idle'),20000);
 }
 function applyZoneUI(){
+ if($('stableFx'))$('stableFx').style.display='none';
+ updateMountButton();
  $('hZone').textContent=zoneOf().name+(zoneOf().boss||zoneOf().raid?' ☠':'');
  /* the crypts hide the quest text and Continue - the bar stays, the progress row doubles as the 0/3 chest counter, AUTO stays clickable for its refusal */
  const cr=!!zoneOf().crypts;
@@ -9266,9 +9320,55 @@ function toggleAutoUse(key,el){
  setAuBadge(el,autoOn(key));
  sfx.click?sfx.click():0;
 }
+function stableInReach(){
+ const n=world?.stable?.vendor;
+ return !!(gameOn&&S&&hero&&!hero.dead&&Mounts.allowed(zoneOf())&&n&&Math.hypot(hero.x-n.x,hero.y-n.y)<110);
+}
+function openStable(){
+ if(!stableInReach())return;
+ Mounts.reset(mountRide);stopMining();hero.moveTo=null;hero.pendingDoor=null;hero.target=null;hero.goPortal=false;holdMove=null;
+ $('stableFx').style.display='flex';stableRefresh();updateMountButton();sfx.buy();
+}
+function stableRefresh(message=''){
+ const selected=Mounts.selected(S);
+ $('stableSlot').innerHTML=`<div class="fmslot">${selected?`<img src="${selected.art}" alt="${selected.name}">`:'—'}</div><div><small>EQUIPPED MOUNT</small>${selected?selected.name:'Choose your first companion'}</div>`;
+ $('stableStock').innerHTML=Mounts.catalog.map(m=>{
+  const owned=S.mounts.owned.includes(m.id),equipped=selected?.id===m.id;
+  return `<div class="stable-card${equipped?' equipped':''}"><img src="${m.art}" alt="${m.kind}"><h3>${m.name}</h3><p class="cl">${m.description}</p><span class="stable-speed">+${Math.round((m.speed-1)*100)}% riding speed</span>${owned?'<span class="stable-owned">Bought</span>':''}<button class="sbtn${owned?'':' gold'}" data-mount="${m.id}" ${equipped?'disabled':''}>${equipped?'Equipped':owned?'Equip':`Buy · ${m.price.toLocaleString()} gold`}</button></div>`;
+ }).join('');
+ $('stableWallet').textContent=totalGold().toLocaleString()+' gold available';
+ $('stableMessage').textContent=message;
+ $('stableStock').querySelectorAll('[data-mount]').forEach(btn=>btn.onclick=()=>{
+  if(!stableInReach()||$('stableFx').style.display!=='flex')return;
+  const id=btn.dataset.mount,item=Mounts.get(id),owned=S.mounts.owned.includes(id);
+  if(owned){if(!Mounts.equip(S,id))return;Mounts.reset(mountRide);}
+  else{const result=Mounts.buy(S,id,spendGold);if(!result.ok){stableRefresh(result.reason==='gold'?'You need more gold for this companion.':'Already bought.');return;}}
+  save();renderHUD();buildSkillbar();sfx.buy();stableRefresh(owned?item.name+' equipped.':item.name+' is yours.');
+ });
+}
+function toggleMount(){
+ if(!gameOn||!S||!hero)return;
+ const selected=Mounts.selected(S);
+ if(!mountRide.id&&!mountRide.casting&&selected&&(!mountImages[selected.id].complete||!mountImages[selected.id].naturalWidth)){stageMsg('Your mount is arriving. Try again in a moment.',1600);return;}
+ const result=Mounts.toggle(mountRide,S,{zone:zoneOf(),hero,paused:gamePaused,busy:!!padPanelOpen()});
+ if(!result.ok){if(result.reason==='zone')stageMsg('Mounts can be ridden in Wasteland.',1700);return;}
+ if(result.action==='casting'){stopMining();hero.moveTo=null;hero.pendingDoor=null;hero.target=null;hero.goPortal=false;hero.dance=0;holdMove=null;}
+ updateMountButton();
+}
+function updateMountButton(){
+ const btn=$('mountBtn');if(!btn||!S)return;
+ const item=Mounts.selected(S),allowed=Mounts.allowed(zoneOf());
+ btn.disabled=!allowed||!item||!!hero?.dead;
+ btn.classList.toggle('on',!!mountRide.id);
+ btn.setAttribute('aria-pressed',String(!!mountRide.id));
+ btn.title=!allowed?'Mounts can be ridden in Wasteland':mountRide.id?'Dismount (X)':mountRide.casting?'Mounting… X to cancel':`${item?.name||'Mount'} · Saddle up (X) · 1 second`;
+ const fill=$('mountCastFill');if(fill)fill.style.height=(mountRide.casting?mountRide.remaining*100:0)+'%';
+}
 function buildSkillbar(){
  const c=classOf();
  let h='';
+ const equippedMount=Mounts.selected(S);
+ if(equippedMount)h+=`<button class="skill pot mount" id="mountBtn" title="Mount / dismount (X)"><img class="btnico" src="${equippedMount.art}" alt="${equippedMount.name}"><div class="cdm" id="mountCastFill"></div><span class="mount-key">X</span></button>`;
  c.spells.forEach((sp,i)=>{
   h+=`<button class="skill" id="sk${i}" title="${sp.n}">${spellGlyph(sp)}<div class="cdm" id="skcd${i}"></div><span class="cost">${spellManaCost(sp)}</span><span class="au" id="au${i}"></span></button>`;
  });
@@ -9276,6 +9376,8 @@ function buildSkillbar(){
  h+=`<button class="skill pot" id="potHp">${uiIcon('pot_hp','🧪')}<div class="cdm" id="potHpCd"></div><span class="cnt" id="potHpN">0</span><span class="au" id="auHp"></span></button>`;
  h+=`<button class="skill pot" id="potMp">${uiIcon('pot_mp','🔮')}<div class="cdm" id="potMpCd"></div><span class="cnt" id="potMpN">0</span><span class="au" id="auMp"></span></button>`;
  $('skillbar').innerHTML=h;
+ if($('mountBtn'))$('mountBtn').onclick=toggleMount;
+ updateMountButton();
  c.spells.forEach((sp,i)=>$('sk'+i).onclick=()=>{
   if(autoCfgMode)toggleAutoUse('s'+i,$('au'+i));
   else cast(i,true);
@@ -12438,6 +12540,7 @@ function smithRefresh(){
 function openSmith(){smithTick();$('smithFx').style.display='flex';smithRefresh();}
 $('smithClose').onclick=()=>$('smithFx').style.display='none';
 $('mineClose').onclick=()=>$('mineFx').style.display='none';
+$('stableClose').onclick=()=>{$('stableFx').style.display='none';updateMountButton();};
 $('smeltClose').onclick=()=>$('smeltFx').style.display='none';
 $('enchClose').onclick=()=>$('enchFx').style.display='none';
 /* a tap on the rune says what a hover would - touch has no hover */
@@ -13583,6 +13686,7 @@ function renderControls(){
   ['W A S D','Walk in that direction'],
   ['↑ ↓ ← →','Walk - same as WASD'],
   ['Click ground','Walk to that spot. Hold to keep following the cursor'],
+  ['X','Mount / dismount in Wasteland. Saddling up takes 1 second'],
   ['head','Fighting'],
   ['1',spell(0,'First spell')],
   ['2',spell(1,'Second spell')],

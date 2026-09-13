@@ -5,6 +5,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const vm=require('node:vm');
 const W=require('../assets/wasteland/world.js');
+const Mounts=require('../assets/mounts/mounts.js');
 const root=path.resolve(__dirname,'..');
 const source=fs.readFileSync(path.join(root,'game.js'),'utf8');
 const dungeonSource=fs.readFileSync(path.join(root,'assets/wasteland/dungeons.js'),'utf8');
@@ -35,7 +36,7 @@ const plain=value=>JSON.parse(JSON.stringify(value));
 function harness(key='briarhollow'){
  const calls=[],forbidden=name=>()=>{throw new Error('Ordinary reward/effect reached: '+name);};
  const S={zone:0,gold:123,scraps:47,xp:83,qProg:4,bag:[],scrolls:[],gear:{weapon:null,armor:null,trinket:null}};
- const context={S,calls,hero:{hp:400,dead:false,target:null},world:null,mp:{on:false,started:false},WastelandWorld:W,
+ const context={S,calls,hero:{hp:400,dead:false,target:null},world:null,mp:{on:false,started:false},WastelandWorld:W,Mounts,mountRide:Mounts.createRide(),$:()=>null,
   MAXLVL:60,pMul:()=>1+.1*(S.prestige||0),pRew:()=>1,mobGold:()=>0,
   raceOf:()=>({leech:.03}),heroMax:()=>1000,hasEnch:id=>id==='reaper',scrollPct:id=>id==='reaper'?.02:0,
   inGearSet:()=>false,itemName:it=>it.name,inBossFight:forbidden('upgrade combat check'),capUp:forbidden('upgrade cap'),upCost:forbidden('upgrade cost'),
