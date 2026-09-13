@@ -6536,6 +6536,8 @@ window.addEventListener('pointercancel',endHoldMove);
 /* ---- camera zoom: mouse wheel on the map, 2-finger pinch on phones ---- */
 let zoom=1,pinchD=0,pinching=false;
 const ZMAX=3;
+/* Temporary expanded camera range in Wasteland and its dungeons. */
+const wastelandZoom=()=>!!(S&&(zoneOf().wasteland||zoneOf().dungeon));
 /* 🔍 debug camera. The normal floor is 0.9 on desktop, nowhere near enough to take in a
    16800-wide city. dbgZoom() unlocks 20x out and snaps to a whole-zone fit; call it again to put
    the camera back. Console only - nothing in the UI reaches it. */
@@ -6551,13 +6553,14 @@ let debugZoom=false;
    screen, and the farm at 8400x2600 already overflows vertically on 1080p. Those two get the edge
    treatment instead of a leash. */
 const zmin=()=>{
+ if(wastelandZoom())return 1/20;
  if(debugZoom)return 1/20;                           /* the whole zone, however big */
  if(buildMode)return 1/3;                            /* the architect gets his overview */
  const base=(IS_TOUCH&&Math.min(VW,VH)<820)?0.5:0.9; /* phones may pull back further than desktop */
  if(!world||!world.w||!world.h)return base;
  return Math.max(base,VW/world.w,VH/world.h);
 };
-function setZoom(z){zoom=Math.max(zmin(),Math.min(ZMAX,z));}
+function setZoom(z){zoom=Math.max(zmin(),Math.min(wastelandZoom()?20:ZMAX,z));}
 function dbgZoom(on){
  debugZoom=on===undefined?!debugZoom:!!on;
  if(debugZoom&&world)setZoom(Math.min(VW/world.w,VH/world.h)*0.94); /* fit the whole zone, with a margin */
