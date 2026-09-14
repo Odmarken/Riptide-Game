@@ -1,0 +1,407 @@
+{
+  "submittedAt": "2026-09-14T20:51:55.765Z",
+  "requests": [
+    {
+      "index": 2,
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "4k",
+        "aspect_ratio": "3:2",
+        "background": "transparent",
+        "medias": [
+          {
+            "role": "image",
+            "value": "0530d133-5c81-41fa-b685-9ea6d234ab37"
+          },
+          {
+            "role": "image",
+            "value": "4d025f5e-892a-4578-96aa-ce58bb4bcd76"
+          },
+          {
+            "role": "image",
+            "value": "3eac1a85-79a2-425e-b57d-c3a4b0fade85"
+          },
+          {
+            "role": "image",
+            "value": "8a7cd7fe-81e1-4906-8457-70a353aa8b21"
+          },
+          {
+            "role": "image",
+            "value": "b6a76f13-64f9-4d0a-8900-b2ef652c67b8"
+          }
+        ],
+        "count": 1,
+        "prompt": "Create a polished ORIGINAL CREATURE CONCEPT ATLAS for Riptide, a hand-painted fantasy chibi RPG. This is a visual breeding catalogue: every requested cell is ONE NEW hybrid creature, visibly inheriting anatomical traits from BOTH named parents. Reference images show the existing parent species and exact visual style; use their painted shapes and palette, never copy the reference atlas layout.\nEXACT OUTPUT LAYOUT: landscape 3:2 image, an INVISIBLE uniform grid of FIVE equal columns by THREE equal rows. EXACTLY FIFTEEN separate complete creatures. Read the assignments in row-major order: row1 left-to-right cells01-05, row2 cells06-10, row3 cells11-15. Each creature occupies only its own cell and stays centered with at least 20 percent transparent clearance on EVERY side. Entire tails, horns, antlers, paws and wings must fit within that cell. No extras, no empty cells, no overlap. TRUE TRANSPARENT RGBA BACKGROUND outside the silhouettes. No scene, no terrain, no white matte, no checkerboard, no visible grid, NO LETTERING or labels or numbers. Labels will be added by code.\nSTYLE: match the supplied original Riptide Tides: beautiful hand-painted storybook fantasy sprites, bold clean dark-brown ink outlines, warm modeled painterly highlights, detailed fur/feathers/scales, large expressive heads, short sturdy chibi proportions, powerful readable silhouettes, cool mutated fantasy animals. A range of charming to fierce, no gore. Full-body three-quarter SIDE VIEW, head facing RIGHT, tail left; anatomically connected single head/body, grounded feet or a clearly intentional floating pose. Restrained magical body highlights, no huge glow clouds or floor shadows. Six-limbed fantasy creatures only where a specified wing pair or insect anatomy needs it. Balanced inheritance, not an original animal simply recolored.\n\nSTRICT PLACEMENT: Creature centers are at x=10%,30%,50%,70%,90% of the image and y=16.67%,50%,83.33%. Each creature including every appendage fits within just 60% of its own cell width and 70% of its own cell height. Transparent gutters between every pair of neighbors are essential. Do not enlarge a creature to fill its entire cell. Match these fifteen independent center points precisely.\n\nCELL 01 (row 1, column 1): Meadow Mouse + Bramble Bunny. Full-body fantasy chibi: A caramel woodland hopper combines mouse round ears stretched into broad rabbit ears, prominent whiskers and rabbit springing haunches. Four small pink paws, a long slender mouse tail ending in a bramble leaf tuft, cream belly and leafy cheek fur create an alert charming silhouette. Brown ink contours, painterly RPG finish; facing right.\nCELL 02 (row 1, column 2): Meadow Mouse + Pebble Toad. Full-body fantasy chibi: A squat amphibious mouse has rounded furry ears, whiskered pink muzzle and a toad's powerful folded hindquarters. Smooth cream belly meets slate pebble bumps growing naturally across tawny shoulders. Four webbed paws and a thin curled tadpole-like mouse tail balance the compact crouching body. Brown ink contours, painterly RPG finish; facing right.\nCELL 03 (row 1, column 3): Meadow Mouse + Thistle Sparrow. Full-body fantasy chibi: A small winged mouse has warm beige chest fur blending into russet sparrow flight feathers. Its short muzzle narrows into a delicate seed-cracking beak, broad round ears frame a purple thistle crest, two bird feet support its body, and a slender tail ends in a feather fan. Brown ink contours, painterly RPG finish; facing right.\nCELL 04 (row 1, column 4): Meadow Mouse + Amber Beetle. Full-body fantasy chibi: A low six-legged creature combines a mouse's whiskered face, rounded pink ears and cream furry underside with curved amber beetle wing cases. Six jointed legs end in tiny pink grasping toes; a thin curled tail emerges naturally behind the shell and two short antennae rise between the ears. Brown ink contours, painterly RPG finish; facing right.\nCELL 05 (row 1, column 5): Meadow Mouse + Moss Fox. Full-body fantasy chibi: A nimble long-bodied mouse-fox stands on four small russet paws. Broad rounded mouse ears crown a tapering fox muzzle with tiny incisors and long whiskers. Its thin tail thickens gradually into a moss-green fox brush; beige flanks and leafy green shoulder fur retain both woodland parents. Brown ink contours, painterly RPG finish; facing right.\nCELL 06 (row 2, column 1): Meadow Mouse + Reed Otter. Full-body fantasy chibi: A sleek river mouse has an otter's elongated swimming torso, cream throat and four broad webbed paws. Oversized circular mouse ears and a tiny pink whiskered nose remain prominent. The thick otter tail narrows into a curling mouse tip, while reed-green dorsal fur forms a subtle comb. Brown ink contours, painterly RPG finish; facing right.\nCELL 07 (row 2, column 2): Meadow Mouse + Dusk Moth. Full-body fantasy chibi: A hovering mouse-moth has a plump beige furry abdomen, round pink mouse ears and long feathery antennae. Four violet wings grow from its shoulder segments, marked with pale crescents. Tiny mouse forepaws tuck near a whiskered muzzle; four delicate rear insect feet and a curling tail remain visible. Brown ink contours, painterly RPG finish; facing right.\nCELL 08 (row 2, column 3): Meadow Mouse + Shellsnap. Full-body fantasy chibi: A sturdy turtle-mouse carries a naturally grown terracotta shell with golden spiral scutes over its round torso. Beige fur blends into jade scales at four broad digging paws. Round ears, a pink whiskered nose and a slender curled tail project clearly beyond the shell, giving a determined burrowing stance. Brown ink contours, painterly RPG finish; facing right.\nCELL 09 (row 2, column 4): Meadow Mouse + Acorn Boar. Full-body fantasy chibi: A barrel-bodied boar-mouse has round pink ears, a whiskered piglike snout and two tiny outward ivory tusks. Tawny piglet stripes cross its shaggy back; four short legs end in split clawed toes. A thin mouse tail curls behind an acorn-shaped bristly rump tuft, with a stubborn playful expression. Brown ink contours, painterly RPG finish; facing right.\nCELL 10 (row 2, column 5): Meadow Mouse + Ember Cub. Full-body fantasy chibi: A compact mouse-lion has round oversized ears rising from a fiery cheek mane, a short whiskered muzzle and tiny visible incisors. Large lion forepaws support a beige furry torso above smaller mouse hindfeet. Its slender curled tail carries an ember tuft; orange chest fur glows only along the tips. Brown ink contours, painterly RPG finish; facing right.\nCELL 11 (row 3, column 1): Meadow Mouse + Moon Owl. Full-body fantasy chibi: A round moon-owl mouse has a silver feather facial disk shaped around broad rounded mouse ears, a small pink beaked nose and prominent whiskers. Midnight-blue wings replace its forelimbs, two soft clawed feet support a cream furry belly, and a long mouse tail ends in a short silver feather tassel. Brown ink contours, painterly RPG finish; facing right.\nCELL 12 (row 3, column 2): Meadow Mouse + Crystal Gecko. Full-body fantasy chibi: A lithe gecko-mouse has a whiskered cream muzzle and large round ears edged with translucent turquoise scales. Four lavender adhesive toes spread from each short limb; tawny belly fur merges into teal crystal back plates. Its long curling mouse tail thickens at the base into a gecko's faceted tail. Brown ink contours, painterly RPG finish; facing right.\nCELL 13 (row 3, column 3): Meadow Mouse + Storm Lynx. Full-body fantasy chibi: A fierce little lynx-mouse has broad circular ears drawn upward into black lynx tufts, cyan whiskers and tiny front incisors. Its low storm-grey body carries oversized feline forepaws and smaller pink hindtoes. A slender mouse tail curls around a short bushy base; electric markings trace its muscular shoulders. Brown ink contours, painterly RPG finish; facing right.\nCELL 14 (row 3, column 4): Meadow Mouse + Thorn Badger. Full-body fantasy chibi: A burrowing mouse-badger has a low broad torso, long shovel claws and rounded mouse ears protruding from thorny shoulder fur. Cream and charcoal facial stripes converge on its pink whiskered nose. Beige flanks soften the armored emerald ridge, while a long bare curled tail contrasts the powerful digging forequarters. Brown ink contours, painterly RPG finish; facing right.\nCELL 15 (row 3, column 5): Meadow Mouse + Cinder Wolf. Full-body fantasy chibi: A compact predatory wolf-mouse combines a long canine chest and strong forelegs with oversized round ears, incisors and thin whiskers. Charcoal fur flows into a rust belly and ember mane. Its bushy wolf tail tapers into a bare curled mouse tip; restrained fire brightens closed-mouth fangs and back fur. Brown ink contours, painterly RPG finish; facing right."
+      }
+    },
+    {
+      "index": 3,
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "4k",
+        "aspect_ratio": "3:2",
+        "background": "transparent",
+        "medias": [
+          {
+            "role": "image",
+            "value": "0530d133-5c81-41fa-b685-9ea6d234ab37"
+          },
+          {
+            "role": "image",
+            "value": "4d025f5e-892a-4578-96aa-ce58bb4bcd76"
+          },
+          {
+            "role": "image",
+            "value": "3eac1a85-79a2-425e-b57d-c3a4b0fade85"
+          },
+          {
+            "role": "image",
+            "value": "8a7cd7fe-81e1-4906-8457-70a353aa8b21"
+          },
+          {
+            "role": "image",
+            "value": "b6a76f13-64f9-4d0a-8900-b2ef652c67b8"
+          }
+        ],
+        "count": 1,
+        "prompt": "Create a polished ORIGINAL CREATURE CONCEPT ATLAS for Riptide, a hand-painted fantasy chibi RPG. This is a visual breeding catalogue: every requested cell is ONE NEW hybrid creature, visibly inheriting anatomical traits from BOTH named parents. Reference images show the existing parent species and exact visual style; use their painted shapes and palette, never copy the reference atlas layout.\nEXACT OUTPUT LAYOUT: landscape 3:2 image, an INVISIBLE uniform grid of FIVE equal columns by THREE equal rows. EXACTLY FIFTEEN separate complete creatures. Read the assignments in row-major order: row1 left-to-right cells01-05, row2 cells06-10, row3 cells11-15. Each creature occupies only its own cell and stays centered with at least 20 percent transparent clearance on EVERY side. Entire tails, horns, antlers, paws and wings must fit within that cell. No extras, no empty cells, no overlap. TRUE TRANSPARENT RGBA BACKGROUND outside the silhouettes. No scene, no terrain, no white matte, no checkerboard, no visible grid, NO LETTERING or labels or numbers. Labels will be added by code.\nSTYLE: match the supplied original Riptide Tides: beautiful hand-painted storybook fantasy sprites, bold clean dark-brown ink outlines, warm modeled painterly highlights, detailed fur/feathers/scales, large expressive heads, short sturdy chibi proportions, powerful readable silhouettes, cool mutated fantasy animals. A range of charming to fierce, no gore. Full-body three-quarter SIDE VIEW, head facing RIGHT, tail left; anatomically connected single head/body, grounded feet or a clearly intentional floating pose. Restrained magical body highlights, no huge glow clouds or floor shadows. Six-limbed fantasy creatures only where a specified wing pair or insect anatomy needs it. Balanced inheritance, not an original animal simply recolored.\n\nSTRICT PLACEMENT: Creature centers are at x=10%,30%,50%,70%,90% of the image and y=16.67%,50%,83.33%. Each creature including every appendage fits within just 60% of its own cell width and 70% of its own cell height. Transparent gutters between every pair of neighbors are essential. Do not enlarge a creature to fill its entire cell. Match these fifteen independent center points precisely.\n\nCELL 01 (row 1, column 1): Meadow Mouse + Frost Ibex. Full-body fantasy chibi: A sure-footed ibex-mouse has short powerful haunches, four compact limbs and a cream furry barrel chest. Broad round mouse ears sit below two ridged backward-curving ice horns. Its forefeet retain grasping pink toes while hindfeet become tiny split hooves; a thin curled tail and long whiskers soften its stern face. Brown ink contours, painterly RPG finish; facing right.\nCELL 02 (row 1, column 2): Meadow Mouse + Sunmane. Full-body fantasy chibi: A proud mouse-lion has an oversized golden mane radiating around large round ears and a small whiskered muzzle with ivory incisors. Heavy lion forepaws and lighter mouse hindfeet support a compact honey-colored body. Its long fine tail ends in a sunburst tuft, creating a regal yet mischievous posture. Brown ink contours, painterly RPG finish; facing right.\nCELL 03 (row 1, column 3): Meadow Mouse + Rune Stag. Full-body fantasy chibi: A woodland mouse-stag has a compact cream-chested body lifted on slender short deer legs, tiny split hooves and wide rounded pink ears. Branching antlers grow behind its whiskered mouse face, with mint runes carved into their natural bark texture. A thin curled tail and beige shoulder fur preserve its mouse ancestry. Brown ink contours, painterly RPG finish; facing right.\nCELL 04 (row 1, column 4): Meadow Mouse + Coral Drake. Full-body fantasy chibi: A playful reef mouse-dragon has round fin-edged ears, a pink whiskered muzzle and a cream furry belly grading into coral scales. Four webbed clawed paws support the low body. Small red membrane wings join its shoulders, and its thin curled mouse tail broadens into a sea-green fin near the tip. Brown ink contours, painterly RPG finish; facing right.\nCELL 05 (row 1, column 5): Meadow Mouse + Dawn Phoenix. Full-body fantasy chibi: A radiant mouse-phoenix has a cream furry chest, round golden ears and a tiny beaked mouse muzzle with fine whiskers. Broad flame-shaped feather wings grow from its shoulders above two pink taloned feet. The long mouse tail unfurls into attached ember feathers, with amber light held tightly along its warm plumage. Brown ink contours, painterly RPG finish; facing right.\nCELL 06 (row 2, column 1): Meadow Mouse + Obsidian Bear. Full-body fantasy chibi: A stocky bear-mouse has immense rounded forepaws with digging claws, broad mouse ears and a compact whiskered muzzle bearing two small incisors. Charcoal fur and a cream belly meet glossy volcanic shoulder plates. A long thin mouse tail curls beside its heavy haunches, making the powerful squat silhouette unmistakably hybrid. Brown ink contours, painterly RPG finish; facing right.\nCELL 07 (row 2, column 2): Meadow Mouse + Aurora Kirin. Full-body fantasy chibi: A graceful mouse-kirin combines a tiny whiskered face and broad round ears with a compact deerlike body on four neat hooves. Lilac scales grow through cream fur; one pearly forehead horn and a flowing pastel mane frame its head. A slender mouse tail extends into attached mint and pink silky ribbons. Brown ink contours, painterly RPG finish; facing right.\nCELL 08 (row 2, column 3): Meadow Mouse + Spectral Panther. Full-body fantasy chibi: A translucent sapphire panther-mouse crouches on broad feline paws beneath a compact sleek torso. Oversized round ears, a pink-blue whiskered nose and tiny incisors coexist with short icy saber fangs. Its long fine tail loops tightly left, while darker blue shoulder markings define real muscle beneath pale cyan edge light. Brown ink contours, painterly RPG finish; facing right.\nCELL 09 (row 2, column 4): Meadow Mouse + Spectral Wyrm. Full-body fantasy chibi: A floating serpentine mouse-dragon has a rounded whiskered dragon muzzle, oversized circular ears edged with silver fins and two tiny horns. Beige pearl chest fur blends into translucent sapphire scales along one continuous curled body. Tiny grasping forepaws and a long tapered mouse-like tail complete its compact S-shaped silhouette. Brown ink contours, painterly RPG finish; facing right.\nCELL 10 (row 2, column 5): Bramble Bunny + Pebble Toad. Full-body fantasy chibi: A rabbit-toad crouches on broad webbed hindfeet beneath oversized springing haunches. Long caramel ears frame amber protruding toad eyes and a cream rabbit muzzle. Sage leaf tufts blend into olive pebble-textured skin across the spine; short furry forepaws and a tiny rounded tail keep the charming silhouette balanced. Brown ink contours, painterly RPG finish; facing right.\nCELL 11 (row 3, column 1): Bramble Bunny + Thistle Sparrow. Full-body fantasy chibi: A nimble rabbit-sparrow has long upright ears edged in russet feathers, a short beaked muzzle and cream cheek fur. Two compact feather wings fold against its caramel torso. Powerful rabbit hindlegs end in small bird talons, while a purple thistle crest and a rounded tail feather puff complete its springing silhouette. Brown ink contours, painterly RPG finish; facing right.\nCELL 12 (row 3, column 2): Bramble Bunny + Amber Beetle. Full-body fantasy chibi: A rabbit-beetle stands on six short segmented limbs, the rear pair enlarged into rabbit jumping haunches with soft cream toes. Long velvety ears carry delicate antenna tips above a rabbit muzzle. Paired amber wing cases naturally enclose its caramel torso, with leafy ridges and a small white tail puff behind. Brown ink contours, painterly RPG finish; facing right.\nCELL 13 (row 3, column 3): Bramble Bunny + Moss Fox. Full-body fantasy chibi: A long-eared rabbit-fox has a narrow fox muzzle, cream cheek ruff and oversized rabbit hindquarters. Four soft russet paws support a low agile body, while a lush moss-green fox tail sweeps behind. Sage leafy fur runs up the long ears and shoulder line, creating a clever alert woodland hunter. Brown ink contours, painterly RPG finish; facing right.\nCELL 14 (row 3, column 4): Bramble Bunny + Reed Otter. Full-body fantasy chibi: A river rabbit-otter combines a long sleek brown torso and broad flattened tail with tall caramel ears, a cream rabbit muzzle and powerful hopping haunches. Four webbed paws spread beneath it, rear feet noticeably longer. Reed-green cheek tufts and leafy ear edges create a natural aquatic bramble camouflage. Brown ink contours, painterly RPG finish; facing right.\nCELL 15 (row 3, column 5): Bramble Bunny + Dusk Moth. Full-body fantasy chibi: A soft rabbit-moth hovers with huge hindfeet tucked beneath its cream furry belly. Long rabbit ears feather into moth antennae above a caramel muzzle. Four violet crescent-patterned wings attach symmetrically to its shoulder and hip segments, while leafy cheek tufts and a small round tail blend into lilac body fur. Brown ink contours, painterly RPG finish; facing right."
+      }
+    },
+    {
+      "index": 4,
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "4k",
+        "aspect_ratio": "3:2",
+        "background": "transparent",
+        "medias": [
+          {
+            "role": "image",
+            "value": "0530d133-5c81-41fa-b685-9ea6d234ab37"
+          },
+          {
+            "role": "image",
+            "value": "4d025f5e-892a-4578-96aa-ce58bb4bcd76"
+          },
+          {
+            "role": "image",
+            "value": "3eac1a85-79a2-425e-b57d-c3a4b0fade85"
+          },
+          {
+            "role": "image",
+            "value": "8a7cd7fe-81e1-4906-8457-70a353aa8b21"
+          },
+          {
+            "role": "image",
+            "value": "b6a76f13-64f9-4d0a-8900-b2ef652c67b8"
+          }
+        ],
+        "count": 1,
+        "prompt": "Create a polished ORIGINAL CREATURE CONCEPT ATLAS for Riptide, a hand-painted fantasy chibi RPG. This is a visual breeding catalogue: every requested cell is ONE NEW hybrid creature, visibly inheriting anatomical traits from BOTH named parents. Reference images show the existing parent species and exact visual style; use their painted shapes and palette, never copy the reference atlas layout.\nEXACT OUTPUT LAYOUT: landscape 3:2 image, an INVISIBLE uniform grid of FIVE equal columns by THREE equal rows. EXACTLY FIFTEEN separate complete creatures. Read the assignments in row-major order: row1 left-to-right cells01-05, row2 cells06-10, row3 cells11-15. Each creature occupies only its own cell and stays centered with at least 20 percent transparent clearance on EVERY side. Entire tails, horns, antlers, paws and wings must fit within that cell. No extras, no empty cells, no overlap. TRUE TRANSPARENT RGBA BACKGROUND outside the silhouettes. No scene, no terrain, no white matte, no checkerboard, no visible grid, NO LETTERING or labels or numbers. Labels will be added by code.\nSTYLE: match the supplied original Riptide Tides: beautiful hand-painted storybook fantasy sprites, bold clean dark-brown ink outlines, warm modeled painterly highlights, detailed fur/feathers/scales, large expressive heads, short sturdy chibi proportions, powerful readable silhouettes, cool mutated fantasy animals. A range of charming to fierce, no gore. Full-body three-quarter SIDE VIEW, head facing RIGHT, tail left; anatomically connected single head/body, grounded feet or a clearly intentional floating pose. Restrained magical body highlights, no huge glow clouds or floor shadows. Six-limbed fantasy creatures only where a specified wing pair or insect anatomy needs it. Balanced inheritance, not an original animal simply recolored.\n\nSTRICT PLACEMENT: Creature centers are at x=10%,30%,50%,70%,90% of the image and y=16.67%,50%,83.33%. Each creature including every appendage fits within just 60% of its own cell width and 70% of its own cell height. Transparent gutters between every pair of neighbors are essential. Do not enlarge a creature to fill its entire cell. Match these fifteen independent center points precisely.\n\nCELL 01 (row 1, column 1): Bramble Bunny + Shellsnap. Full-body fantasy chibi: A sturdy rabbit-turtle has a high rounded terracotta shell grown into its caramel back, bordered by sage leaf-shaped scutes. Long soft ears and a cream rabbit muzzle extend forward from a jade-scaled neck. Four visible feet include two powerful rabbit hindpaws; a small white tail protrudes behind the shell. Brown ink contours, painterly RPG finish; facing right.\nCELL 02 (row 1, column 2): Bramble Bunny + Acorn Boar. Full-body fantasy chibi: A stocky rabbit-boar has long alert ears, a flattened whiskered snout and two small ivory tusks. Tan piglet stripes run over caramel fur into leafy bramble ridges. Its short muscular forelegs contrast powerful rabbit haunches and long split-toed hindfeet, while a bristly round tail and stubborn brow create a feisty stance. Brown ink contours, painterly RPG finish; facing right.\nCELL 03 (row 1, column 3): Bramble Bunny + Ember Cub. Full-body fantasy chibi: A fiery rabbit-lion combines long caramel ears and springing rabbit haunches with oversized feline forepaws and a compact lion muzzle. Ember-red mane tufts grow through sage cheek leaves; orange fur ends in glowing tips along the shoulders. Its small rabbit tail becomes a round flame tuft above two long cream hindfeet. Brown ink contours, painterly RPG finish; facing right.\nCELL 04 (row 1, column 4): Bramble Bunny + Moon Owl. Full-body fantasy chibi: A watchful rabbit-owl has a silver facial disk around a short rabbit muzzle, long feather-edged ears and a crescent brow marking. Midnight-blue wings fold along its cream furry torso. Two powerful rabbit hindlegs end in taloned toes; leafy shoulder feathers and a soft round tail provide a compact grounded silhouette. Brown ink contours, painterly RPG finish; facing right.\nCELL 05 (row 1, column 5): Bramble Bunny + Crystal Gecko. Full-body fantasy chibi: A climbing rabbit-gecko crouches on strong rabbit haunches with four splayed lavender adhesive feet. Long ears carry translucent turquoise crystal ridges above a cream whiskered muzzle. Caramel belly fur blends into teal back scales, while a long tapered gecko tail curls around the small bramble-leaf rump tuft. Brown ink contours, painterly RPG finish; facing right.\nCELL 06 (row 2, column 1): Bramble Bunny + Storm Lynx. Full-body fantasy chibi: A fierce rabbit-lynx has tall black-tufted ears, a short feline muzzle and narrow confident eyes above broad cream cheek fur. Huge rabbit hindquarters power a low storm-grey body, with clawed feline forepaws and long rear feet. Cyan lightning markings cross leafy shoulder tufts, ending at a compact bristly rabbit tail. Brown ink contours, painterly RPG finish; facing right.\nCELL 07 (row 2, column 2): Bramble Bunny + Thorn Badger. Full-body fantasy chibi: A tough rabbit-badger has long ears edged with emerald thorns and a cream-charcoal striped face tapering to a rabbit nose. Broad digging forepaws balance strong rabbit haunches on a low grey torso. Dense bramble fur armor grows from its shoulders, with long cream hindfeet and a short white tail fully visible. Brown ink contours, painterly RPG finish; facing right.\nCELL 08 (row 2, column 3): Bramble Bunny + Cinder Wolf. Full-body fantasy chibi: A lean rabbit-wolf has a narrow canine muzzle with small closed-mouth fangs beneath tall rabbit ears. Charcoal forequarters and strong wolf paws merge with massive rust-colored rabbit hindlegs. Ember mane tufts thread through sage cheek leaves; a short bushy tail and elongated rear feet create an aggressive bounding silhouette. Brown ink contours, painterly RPG finish; facing right.\nCELL 09 (row 2, column 4): Bramble Bunny + Frost Ibex. Full-body fantasy chibi: A mountain rabbit-ibex has huge cream hindquarters, long pale blue ears and a small rabbit muzzle beneath two ridged ice horns sweeping backward. Its short forefeet end in cloven hooves while elongated rear hooves retain a rabbit's hopping silhouette. Leaf-shaped frost scales fringe its shoulders and tiny round tail. Brown ink contours, painterly RPG finish; facing right.\nCELL 10 (row 2, column 5): Bramble Bunny + Sunmane. Full-body fantasy chibi: A regal rabbit-lion has a broad golden mane framing long upright caramel ears and a cream rabbit muzzle with small feline fangs. Muscular lion forepaws contrast long powerful rabbit hindfeet. Honey fur carries leaf-shaped mane layers, and a round glowing tail tuft balances its proud compact stance. Brown ink contours, painterly RPG finish; facing right.\nCELL 11 (row 3, column 1): Bramble Bunny + Rune Stag. Full-body fantasy chibi: A woodland rabbit-stag has long leaf-fringed ears beside branching mint-runed antlers, a cream rabbit muzzle and a chestnut deerlike neck. Compact forelegs end in little hooves while powerful rabbit hindquarters stretch into elongated cloven feet. A small white tail and leafy shoulder ruff preserve its soft yet magical silhouette. Brown ink contours, painterly RPG finish; facing right.\nCELL 12 (row 3, column 2): Bramble Bunny + Coral Drake. Full-body fantasy chibi: A rabbit-drake combines tall sea-green fin ears, a cream rabbit muzzle and powerful hopping hindlegs with a coral-scaled torso. Small red membrane wings grow from its shoulders, above furry forepaws ending in webbed claws. A curled dragon tail bears a soft white tuft, and sage cheek fins echo bramble leaves. Brown ink contours, painterly RPG finish; facing right.\nCELL 13 (row 3, column 3): Bramble Bunny + Dawn Phoenix. Full-body fantasy chibi: A radiant rabbit-phoenix has long ears layered in amber feathers and a cream rabbit muzzle beneath a small flame crest. Golden feather wings emerge from its orange furry torso. Two long rabbit hindfeet end in delicate talons, and its rounded tail blooms into a compact fan of ember-tipped feathers. Brown ink contours, painterly RPG finish; facing right.\nCELL 14 (row 3, column 4): Bramble Bunny + Obsidian Bear. Full-body fantasy chibi: A hulking rabbit-bear has huge rounded forepaws, heavy rabbit haunches and long thick ears rising behind a stern broad muzzle. Charcoal fur grows between glossy volcanic shoulder plates edged with bramble thorns. Long rear feet and a small cream tail retain its rabbit identity beneath a powerful squat bear torso. Brown ink contours, painterly RPG finish; facing right.\nCELL 15 (row 3, column 5): Bramble Bunny + Aurora Kirin. Full-body fantasy chibi: A graceful rabbit-kirin has long cream ears swept beside one pearly horn, a small rabbit muzzle and pastel flowing cheek mane. Lilac scales line its deerlike torso, which ends in powerful rabbit haunches and elongated cloven hindfeet. Two neat forehooves and a round tail trailing silk-light strands complete the shape. Brown ink contours, painterly RPG finish; facing right."
+      }
+    },
+    {
+      "index": 5,
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "4k",
+        "aspect_ratio": "3:2",
+        "background": "transparent",
+        "medias": [
+          {
+            "role": "image",
+            "value": "0530d133-5c81-41fa-b685-9ea6d234ab37"
+          },
+          {
+            "role": "image",
+            "value": "4d025f5e-892a-4578-96aa-ce58bb4bcd76"
+          },
+          {
+            "role": "image",
+            "value": "3eac1a85-79a2-425e-b57d-c3a4b0fade85"
+          },
+          {
+            "role": "image",
+            "value": "8a7cd7fe-81e1-4906-8457-70a353aa8b21"
+          },
+          {
+            "role": "image",
+            "value": "b6a76f13-64f9-4d0a-8900-b2ef652c67b8"
+          }
+        ],
+        "count": 1,
+        "prompt": "Create a polished ORIGINAL CREATURE CONCEPT ATLAS for Riptide, a hand-painted fantasy chibi RPG. This is a visual breeding catalogue: every requested cell is ONE NEW hybrid creature, visibly inheriting anatomical traits from BOTH named parents. Reference images show the existing parent species and exact visual style; use their painted shapes and palette, never copy the reference atlas layout.\nEXACT OUTPUT LAYOUT: landscape 3:2 image, an INVISIBLE uniform grid of FIVE equal columns by THREE equal rows. EXACTLY FIFTEEN separate complete creatures. Read the assignments in row-major order: row1 left-to-right cells01-05, row2 cells06-10, row3 cells11-15. Each creature occupies only its own cell and stays centered with at least 20 percent transparent clearance on EVERY side. Entire tails, horns, antlers, paws and wings must fit within that cell. No extras, no empty cells, no overlap. TRUE TRANSPARENT RGBA BACKGROUND outside the silhouettes. No scene, no terrain, no white matte, no checkerboard, no visible grid, NO LETTERING or labels or numbers. Labels will be added by code.\nSTYLE: match the supplied original Riptide Tides: beautiful hand-painted storybook fantasy sprites, bold clean dark-brown ink outlines, warm modeled painterly highlights, detailed fur/feathers/scales, large expressive heads, short sturdy chibi proportions, powerful readable silhouettes, cool mutated fantasy animals. A range of charming to fierce, no gore. Full-body three-quarter SIDE VIEW, head facing RIGHT, tail left; anatomically connected single head/body, grounded feet or a clearly intentional floating pose. Restrained magical body highlights, no huge glow clouds or floor shadows. Six-limbed fantasy creatures only where a specified wing pair or insect anatomy needs it. Balanced inheritance, not an original animal simply recolored.\n\nSTRICT PLACEMENT: Creature centers are at x=10%,30%,50%,70%,90% of the image and y=16.67%,50%,83.33%. Each creature including every appendage fits within just 60% of its own cell width and 70% of its own cell height. Transparent gutters between every pair of neighbors are essential. Do not enlarge a creature to fill its entire cell. Match these fifteen independent center points precisely.\n\nCELL 01 (row 1, column 1): Bramble Bunny + Spectral Panther. Full-body fantasy chibi: A translucent blue rabbit-panther crouches on broad feline forepaws and oversized rabbit hindfeet. Long pointed ears rise from a cream-cyan muzzle with short icy saber fangs; dark sapphire markings follow its powerful haunches. A thin feline tail ends in a round luminous tuft, keeping the aggressive leaping silhouette compact. Brown ink contours, painterly RPG finish; facing right.\nCELL 02 (row 1, column 2): Pebble Toad + Thistle Sparrow. Full-body fantasy chibi: A squat toad-sparrow has a broad amber-eyed face narrowing into a short seed beak, with a purple thistle crest between its eye ridges. Russet feather wings fold over olive pebble-textured flanks. Two massive webbed hindfeet support its cream belly, and a small feather tail fans behind the rounded rump. Brown ink contours, painterly RPG finish; facing right.\nCELL 03 (row 1, column 3): Pebble Toad + Amber Beetle. Full-body fantasy chibi: A compact toad-beetle has six jointed legs, the rear pair enlarged into muscular amphibian jumping limbs with webbed toes. A broad toad face carries bright amber eyes and short beetle antennae. Twin honey-colored wing cases grow over its slate pebbled back, with a soft cream throat and natural rocky shell rims. Brown ink contours, painterly RPG finish; facing right.\nCELL 04 (row 1, column 4): Pebble Toad + Moss Fox. Full-body fantasy chibi: A bog fox-toad crouches on broad webbed hindpaws beneath a low russet torso. Pointed fox ears and a narrow cream muzzle emerge from prominent toad eye ridges; olive pebble scales replace fur along the spine. Its bushy moss-green tail broadens into a soft fin fringe, balancing two delicate forepaws. Brown ink contours, painterly RPG finish; facing right.\nCELL 05 (row 1, column 5): Pebble Toad + Reed Otter. Full-body fantasy chibi: A river toad-otter has a long brown swimming torso, broad whiskered muzzle and raised amber toad eyes. Four webbed paws include powerful folded hindlegs; a thick flattened otter tail extends behind. Cream throat fur grades into slate pebble skin across the shoulders, with reed-green dorsal tufts framing the stone bumps. Brown ink contours, painterly RPG finish; facing right.\nCELL 06 (row 2, column 1): Pebble Toad + Dusk Moth. Full-body fantasy chibi: A hovering toad-moth has a squat olive body with slate pebble bumps and a broad amber-eyed face framed by feathery antennae. Four violet crescent-marked wings grow from its sides. Two small forelimbs and large folded webbed hindfeet hang beneath a cream fuzzy belly; short moth leglets integrate near the thorax. Brown ink contours, painterly RPG finish; facing right.\nCELL 07 (row 2, column 2): Pebble Toad + Shellsnap. Full-body fantasy chibi: A heavy toad-turtle has a high terracotta shell with irregular pebble scutes growing naturally across its roof. A broad olive toad head and amber bulging eyes extend over a cream throat. Two short forefeet and two enormous webbed hindfeet spread beside its jade-scaled body, with a tiny pointed turtle tail. Brown ink contours, painterly RPG finish; facing right.\nCELL 08 (row 2, column 3): Pebble Toad + Acorn Boar. Full-body fantasy chibi: A stout toad-boar has a flattened pig snout, outward ivory tusks and amber toad eyes beneath an acorn-shaped rocky brow. Brown piglet stripes fade into olive pebble skin along its rounded back. Four short limbs end in broad split webbed toes, with muscular jumping haunches and a tiny bristly tail. Brown ink contours, painterly RPG finish; facing right.\nCELL 09 (row 2, column 4): Pebble Toad + Ember Cub. Full-body fantasy chibi: A toad-lion has a broad feline muzzle set between raised amber eyes, with a short ember mane growing around its thick neck. Huge webbed hindfeet and small clawed forepaws brace an olive-orange torso. Pebble back bumps glow warmly at their cracks, while a short tufted tail curls behind the powerful haunches. Brown ink contours, painterly RPG finish; facing right.\nCELL 10 (row 2, column 5): Pebble Toad + Moon Owl. Full-body fantasy chibi: A moon-owl toad has a rounded silver facial disk around broad amber toad eyes and a short curved beak. Midnight-blue wings fold over pebble-skinned olive shoulders. Two huge webbed taloned feet support a cream speckled belly, while a crescent brow and a short fan tail create a solemn marsh sentinel. Brown ink contours, painterly RPG finish; facing right.\nCELL 11 (row 3, column 1): Pebble Toad + Crystal Gecko. Full-body fantasy chibi: A climbing toad-gecko has a broad amber-eyed head, thick pebble shoulders and a long curled gecko tail. Its muscular folded hindlegs end in wide lavender adhesive toes; smaller matching forefeet spread forward. Olive skin transitions into teal crystal scales, with chunky translucent stones growing naturally along the spine. Brown ink contours, painterly RPG finish; facing right.\nCELL 12 (row 3, column 2): Pebble Toad + Storm Lynx. Full-body fantasy chibi: A fierce toad-lynx crouches on broad feline forepaws and enormous webbed jumping feet. Black-tufted ears rise from prominent amber toad eye ridges, above a short fanged muzzle. Storm-grey fur fades into olive pebbled hindquarters; cyan lightning markings connect shoulder tufts to a short bristly tail. Brown ink contours, painterly RPG finish; facing right.\nCELL 13 (row 3, column 3): Pebble Toad + Thorn Badger. Full-body fantasy chibi: A squat toad-badger has a cream-charcoal striped face with bulging amber eyes and a broad flat muzzle. Huge clawed forefeet and powerful webbed hindlegs support its low olive torso. Emerald thorn fur grows between slate pebble plates along the shoulders, ending in a short sturdy badger tail. Brown ink contours, painterly RPG finish; facing right.\nCELL 14 (row 3, column 4): Pebble Toad + Cinder Wolf. Full-body fantasy chibi: A menacing wolf-toad has a long canine muzzle beneath raised amber eyes, pointed ears and small ember fangs. Charcoal fur covers strong forelegs before merging into pebbled olive jumping haunches. Wide webbed hindfeet and a thick low tail stabilize the body; a close red flame ridge runs along its neck. Brown ink contours, painterly RPG finish; facing right.\nCELL 15 (row 3, column 5): Pebble Toad + Frost Ibex. Full-body fantasy chibi: A mountain toad-ibex has a broad pebbled head beneath two ridged backward-curving ice horns, cream cheek fur and stern amber eyes. Compact front hooves and massive split webbed hindfeet support a squat pale-blue torso. Crystalline pebble bumps cover its shoulders; a small beard and short goat tail finish the silhouette. Brown ink contours, painterly RPG finish; facing right."
+      }
+    },
+    {
+      "index": 6,
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "4k",
+        "aspect_ratio": "3:2",
+        "background": "transparent",
+        "medias": [
+          {
+            "role": "image",
+            "value": "0530d133-5c81-41fa-b685-9ea6d234ab37"
+          },
+          {
+            "role": "image",
+            "value": "4d025f5e-892a-4578-96aa-ce58bb4bcd76"
+          },
+          {
+            "role": "image",
+            "value": "3eac1a85-79a2-425e-b57d-c3a4b0fade85"
+          },
+          {
+            "role": "image",
+            "value": "8a7cd7fe-81e1-4906-8457-70a353aa8b21"
+          },
+          {
+            "role": "image",
+            "value": "b6a76f13-64f9-4d0a-8900-b2ef652c67b8"
+          }
+        ],
+        "count": 1,
+        "prompt": "Create a polished ORIGINAL CREATURE CONCEPT ATLAS for Riptide, a hand-painted fantasy chibi RPG. This is a visual breeding catalogue: every requested cell is ONE NEW hybrid creature, visibly inheriting anatomical traits from BOTH named parents. Reference images show the existing parent species and exact visual style; use their painted shapes and palette, never copy the reference atlas layout.\nEXACT OUTPUT LAYOUT: landscape 3:2 image, an INVISIBLE uniform grid of FIVE equal columns by THREE equal rows. EXACTLY FIFTEEN separate complete creatures. Read the assignments in row-major order: row1 left-to-right cells01-05, row2 cells06-10, row3 cells11-15. Each creature occupies only its own cell and stays centered with at least 20 percent transparent clearance on EVERY side. Entire tails, horns, antlers, paws and wings must fit within that cell. No extras, no empty cells, no overlap. TRUE TRANSPARENT RGBA BACKGROUND outside the silhouettes. No scene, no terrain, no white matte, no checkerboard, no visible grid, NO LETTERING or labels or numbers. Labels will be added by code.\nSTYLE: match the supplied original Riptide Tides: beautiful hand-painted storybook fantasy sprites, bold clean dark-brown ink outlines, warm modeled painterly highlights, detailed fur/feathers/scales, large expressive heads, short sturdy chibi proportions, powerful readable silhouettes, cool mutated fantasy animals. A range of charming to fierce, no gore. Full-body three-quarter SIDE VIEW, head facing RIGHT, tail left; anatomically connected single head/body, grounded feet or a clearly intentional floating pose. Restrained magical body highlights, no huge glow clouds or floor shadows. Six-limbed fantasy creatures only where a specified wing pair or insect anatomy needs it. Balanced inheritance, not an original animal simply recolored.\n\nSTRICT PLACEMENT: Creature centers are at x=10%,30%,50%,70%,90% of the image and y=16.67%,50%,83.33%. Each creature including every appendage fits within just 60% of its own cell width and 70% of its own cell height. Transparent gutters between every pair of neighbors are essential. Do not enlarge a creature to fill its entire cell. Match these fifteen independent center points precisely.\n\nCELL 01 (row 1, column 1): Pebble Toad + Sunmane. Full-body fantasy chibi: A majestic toad-lion has a broad amber-eyed muzzle surrounded by a heavy golden mane whose layers resemble rounded river pebbles. Large feline forepaws and enormous webbed hindlegs hold a low honey-olive body. A cream throat and short tufted tail balance the pose, with warm light confined to mane tips. Brown ink contours, painterly RPG finish; facing right.\nCELL 02 (row 1, column 2): Pebble Toad + Rune Stag. Full-body fantasy chibi: A woodland toad-stag has a broad amber-eyed amphibian face below branching antlers marked with mint runes. Chestnut fur on its short neck blends into olive pebble skin across a squat body. Slim cloven forefeet contrast powerful webbed hindhooves; a cream throat and tiny deer tail preserve the stag's graceful details. Brown ink contours, painterly RPG finish; facing right.\nCELL 03 (row 1, column 3): Pebble Toad + Coral Drake. Full-body fantasy chibi: A reef toad-dragon has a broad amber-eyed mouth, sea-green cheek fins and coral-red shoulder wings. Olive pebble skin grades into pink scales over its low torso. Four webbed clawed feet include enormous jumping hindlegs, while a curled finned tail and cream throat connect the amphibian and dragon anatomy naturally. Brown ink contours, painterly RPG finish; facing right.\nCELL 04 (row 1, column 4): Pebble Toad + Dawn Phoenix. Full-body fantasy chibi: A phoenix-toad has a rounded beaked face with raised amber eyes, a small flame crest and a cream throat pouch. Broad golden feather wings grow above its olive pebbled torso. Two powerful webbed taloned legs brace the body; a short fan of ember feathers emerges from the rocky rump. Brown ink contours, painterly RPG finish; facing right.\nCELL 05 (row 1, column 5): Pebble Toad + Obsidian Bear. Full-body fantasy chibi: A massive bear-toad has a broad grey muzzle, rounded bear ears and raised amber amphibian eyes. Enormous clawed forepaws brace charcoal shoulders armored in glossy volcanic plates, while the rear body swells into olive pebbled jumping haunches. Huge webbed hindfeet and a tiny bear tail maintain one heavy crouching silhouette. Brown ink contours, painterly RPG finish; facing right.\nCELL 06 (row 2, column 1): Pebble Toad + Spectral Panther. Full-body fantasy chibi: A spectral panther-toad crouches with a sleek feline chest, broad saber-fanged muzzle and raised amphibian eye ridges. Translucent sapphire skin forms rounded pebble scales over massive jumping haunches. Two broad cat forepaws and webbed hindfeet support the body, while a long curved panther tail carries a tight cyan glow. Brown ink contours, painterly RPG finish; facing right.\nCELL 07 (row 2, column 2): Pebble Toad + Spectral Wyrm. Full-body fantasy chibi: A floating toad-serpent has a broad pebbled amphibian head with amber eyes, tiny silver horns and a cream throat pouch. Its translucent sapphire body curves in one compact S, thick near the head and tapered at the tail. Two powerful webbed forelimbs project from the chest, with small silver dorsal fins. Brown ink contours, painterly RPG finish; facing right.\nCELL 08 (row 2, column 3): Thistle Sparrow + Amber Beetle. Full-body fantasy chibi: A sparrow-beetle has a plump cream feather chest, small seed beak and a purple thistle crest between short antennae. Six jointed legs end in birdlike gripping claws. Amber wing cases open slightly over russet feathered flight wings, while a short fan tail grows naturally from the ridged honey-colored abdomen. Brown ink contours, painterly RPG finish; facing right.\nCELL 09 (row 2, column 4): Thistle Sparrow + Moss Fox. Full-body fantasy chibi: A fox-sparrow griffin has a russet feather chest grading into moss-green fox hindquarters, four small clawed feet and broad sparrow wings. Pointed furry ears flank a purple thistle crest above a short beaked fox muzzle. Its luxurious green tail ends in layered cream feathers, giving the creature a low agile stance. Brown ink contours, painterly RPG finish; facing right.\nCELL 10 (row 2, column 5): Thistle Sparrow + Reed Otter. Full-body fantasy chibi: A sparrow-otter has a streamlined brown torso, cream feather throat and a small beaked muzzle with otter whiskers. Russet wings grow from the shoulder line above four webbed paws. Its thick flattened tail carries a short feather fringe, while reed-green back tufts meet a compact purple thistle crest. Brown ink contours, painterly RPG finish; facing right.\nCELL 11 (row 3, column 1): Thistle Sparrow + Dusk Moth. Full-body fantasy chibi: A sparrow-moth hovers with a round cream feather belly, russet head and a tiny seed beak beneath feathery antennae. Four violet wings have silver crescent centers and real brown feather edges. Two bird feet and four small insect feet tuck below, while a purple thistle crest merges into its furry thorax. Brown ink contours, painterly RPG finish; facing right.\nCELL 12 (row 3, column 2): Thistle Sparrow + Shellsnap. Full-body fantasy chibi: A sparrow-turtle has a high terracotta shell divided into golden feather-shaped scutes, with russet wings emerging organically beside it. A cream feathered neck leads to a small seed beak and purple thistle crest. Four jade clawed feet support the round body, while a short tail fans into brown flight feathers. Brown ink contours, painterly RPG finish; facing right.\nCELL 13 (row 3, column 3): Thistle Sparrow + Acorn Boar. Full-body fantasy chibi: A sparrow-boar has a rounded brown barrel torso streaked with tan feather stripes, four short split-clawed feet and compact russet wings. Its snout narrows into a hard seed beak with two tiny side tusks. Purple thistle feathers blend into an acorn-like crest, and a bristly feather tail flicks upward. Brown ink contours, painterly RPG finish; facing right.\nCELL 14 (row 3, column 4): Thistle Sparrow + Ember Cub. Full-body fantasy chibi: A sparrow-lion griffin has a cream feather chest, short seed beak and purple thistle crest surrounded by an ember mane. Broad russet wings join its orange torso above four feline paws. Rounded lion haunches end in a tail tipped with both red flame feathers and warm fur, creating a bold pouncing stance. Brown ink contours, painterly RPG finish; facing right.\nCELL 15 (row 3, column 5): Thistle Sparrow + Moon Owl. Full-body fantasy chibi: A sparrow-owl has a round silver facial disk surrounding a pointed seed-cracking beak, large wise eyes and a purple thistle crest. Midnight-blue wings carry russet sparrow coverts and cream bars. Two feathered taloned legs support the compact body, while its tail extends into a longer brown sparrow fan beneath a crescent-marked brow. Brown ink contours, painterly RPG finish; facing right."
+      }
+    },
+    {
+      "index": 7,
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "4k",
+        "aspect_ratio": "3:2",
+        "background": "transparent",
+        "medias": [
+          {
+            "role": "image",
+            "value": "0530d133-5c81-41fa-b685-9ea6d234ab37"
+          },
+          {
+            "role": "image",
+            "value": "4d025f5e-892a-4578-96aa-ce58bb4bcd76"
+          },
+          {
+            "role": "image",
+            "value": "3eac1a85-79a2-425e-b57d-c3a4b0fade85"
+          },
+          {
+            "role": "image",
+            "value": "8a7cd7fe-81e1-4906-8457-70a353aa8b21"
+          },
+          {
+            "role": "image",
+            "value": "b6a76f13-64f9-4d0a-8900-b2ef652c67b8"
+          }
+        ],
+        "count": 1,
+        "prompt": "Create a polished ORIGINAL CREATURE CONCEPT ATLAS for Riptide, a hand-painted fantasy chibi RPG. This is a visual breeding catalogue: every requested cell is ONE NEW hybrid creature, visibly inheriting anatomical traits from BOTH named parents. Reference images show the existing parent species and exact visual style; use their painted shapes and palette, never copy the reference atlas layout.\nEXACT OUTPUT LAYOUT: landscape 3:2 image, an INVISIBLE uniform grid of FIVE equal columns by THREE equal rows. EXACTLY FIFTEEN separate complete creatures. Read the assignments in row-major order: row1 left-to-right cells01-05, row2 cells06-10, row3 cells11-15. Each creature occupies only its own cell and stays centered with at least 20 percent transparent clearance on EVERY side. Entire tails, horns, antlers, paws and wings must fit within that cell. No extras, no empty cells, no overlap. TRUE TRANSPARENT RGBA BACKGROUND outside the silhouettes. No scene, no terrain, no white matte, no checkerboard, no visible grid, NO LETTERING or labels or numbers. Labels will be added by code.\nSTYLE: match the supplied original Riptide Tides: beautiful hand-painted storybook fantasy sprites, bold clean dark-brown ink outlines, warm modeled painterly highlights, detailed fur/feathers/scales, large expressive heads, short sturdy chibi proportions, powerful readable silhouettes, cool mutated fantasy animals. A range of charming to fierce, no gore. Full-body three-quarter SIDE VIEW, head facing RIGHT, tail left; anatomically connected single head/body, grounded feet or a clearly intentional floating pose. Restrained magical body highlights, no huge glow clouds or floor shadows. Six-limbed fantasy creatures only where a specified wing pair or insect anatomy needs it. Balanced inheritance, not an original animal simply recolored.\n\nSTRICT PLACEMENT: Creature centers are at x=10%,30%,50%,70%,90% of the image and y=16.67%,50%,83.33%. Each creature including every appendage fits within just 60% of its own cell width and 70% of its own cell height. Transparent gutters between every pair of neighbors are essential. Do not enlarge a creature to fill its entire cell. Match these fifteen independent center points precisely.\n\nCELL 01 (row 1, column 1): Thistle Sparrow + Crystal Gecko. Full-body fantasy chibi: A sparrow-gecko has a low teal body with crystal back scales, a cream feather chest and a small beaked lizard muzzle. Russet feather wings emerge from its shoulders above four lavender adhesive feet. A purple thistle crest becomes faceted crystal feathers, while the long curled tail ends in a brown flight-feather fan. Brown ink contours, painterly RPG finish; facing right.\nCELL 02 (row 1, column 2): Thistle Sparrow + Storm Lynx. Full-body fantasy chibi: A sparrow-lynx griffin stands on four powerful feline paws beneath a compact storm-grey torso. Its short beaked muzzle carries whiskers and black-tufted ears beside a purple thistle crest. Russet feather wings carry pale cyan lightning bars, while a short feathered lynx tail and cream chest emphasize its tense ready-to-pounce posture. Brown ink contours, painterly RPG finish; facing right.\nCELL 03 (row 1, column 3): Thistle Sparrow + Thorn Badger. Full-body fantasy chibi: A sparrow-badger has a long striped cream-charcoal muzzle ending in a short beak, with a purple thistle crest above narrow alert eyes. Four broad digging paws brace its low grey torso. Russet wings grow through emerald thorn shoulder fur, and a short feather tail contrasts its heavy burrowing forequarters. Brown ink contours, painterly RPG finish; facing right.\nCELL 04 (row 1, column 4): Thistle Sparrow + Cinder Wolf. Full-body fantasy chibi: A sparrow-wolf griffin has a narrow beaked canine muzzle, pointed ears and a purple thistle crest streaming into an ember mane. Four strong wolf paws support a charcoal torso under broad russet wings. Rust feather markings cross its cream chest, while the bushy tail ends in dark red flight feathers. Brown ink contours, painterly RPG finish; facing right.\nCELL 05 (row 1, column 5): Thistle Sparrow + Frost Ibex. Full-body fantasy chibi: A sparrow-ibex has two ridged ice horns behind a purple feather crest, a short seed-beaked muzzle and a cream feather beard. Four compact cloven hooves support its pale-blue goatlike torso. Russet wings carry frosted feather tips, while a short stiff tail and sturdy raised chest create a confident mountain silhouette. Brown ink contours, painterly RPG finish; facing right.\nCELL 06 (row 2, column 1): Thistle Sparrow + Sunmane. Full-body fantasy chibi: A proud sparrow-lion griffin has a broad golden mane framing a short seed beak, small ears and a purple thistle crest. Huge feline paws hold its honey-colored body under wide russet wings with golden edges. Its long lion tail ends in a layered brown feather fan, mixing regal mass with songbird detail. Brown ink contours, painterly RPG finish; facing right.\nCELL 07 (row 2, column 2): Thistle Sparrow + Rune Stag. Full-body fantasy chibi: A sparrow-stag has a cream feather chest, short beaked deer muzzle and branching mint-runed antlers around a purple thistle crest. Four slender cloven legs support its compact chestnut body. Broad russet wings connect at the shoulders, while leaf-shaped feathers line the flanks and a small fan tail lifts behind. Brown ink contours, painterly RPG finish; facing right.\nCELL 08 (row 2, column 3): Thistle Sparrow + Coral Drake. Full-body fantasy chibi: A sparrow-drake has a short beaked dragon muzzle, sea-green fin ears and a purple thistle crest. Its coral-scaled torso carries wings with red membranes along the roots and russet flight feathers along the edges. Four short webbed claws support its cream belly, while a curled tail finishes in a small feathered fin. Brown ink contours, painterly RPG finish; facing right.\nCELL 09 (row 2, column 4): Thistle Sparrow + Dawn Phoenix. Full-body fantasy chibi: A sparrow-phoenix has a compact cream-breasted songbird body, small seed beak and an upright purple thistle crest edged with ember light. Broad layered wings shift from russet coverts to long golden flame feathers. Two delicate taloned feet and a compact curled feather tail preserve the sparrow's round proportions within a majestic fiery silhouette. Brown ink contours, painterly RPG finish; facing right.\nCELL 10 (row 2, column 5): Thistle Sparrow + Obsidian Bear. Full-body fantasy chibi: A sparrow-bear griffin has heavy charcoal haunches, four massive clawed paws and a cream feather chest. A broad bear muzzle ends in a short seed beak beneath a purple thistle crest and rounded ears. Russet wings grow between volcanic shoulder plates, with short rocky feather ridges and a compact brown tail. Brown ink contours, painterly RPG finish; facing right.\nCELL 11 (row 3, column 1): Thistle Sparrow + Aurora Kirin. Full-body fantasy chibi: A sparrow-kirin has a slender cream body on four neat hooves, a small seed-beaked muzzle and one pearly horn amid purple thistle feathers. Lilac scales blend into russet shoulder plumage, giving rise to broad feather wings. Its pastel flowing mane and long silky tail carry attached feather tips in mint and gold. Brown ink contours, painterly RPG finish; facing right.\nCELL 12 (row 3, column 2): Thistle Sparrow + Spectral Wyrm. Full-body fantasy chibi: A floating sparrow-serpent dragon has a small seed beak blended into a fanged dragon muzzle, silver horns and a purple thistle crest. Its continuous sapphire body coils in a compact S, with cream chest feathers and russet feather fins. Two small taloned feet and a long feather-tipped tail remain fully visible. Brown ink contours, painterly RPG finish; facing right.\nCELL 13 (row 3, column 3): Amber Beetle + Moss Fox. Full-body fantasy chibi: A fox-beetle has a low russet body protected by naturally grown amber wing cases, with moss-green fur edging each shell plate. Six short jointed legs end in small fox paws. A pointed cream muzzle, tall triangular ears and delicate antennae frame its clever face; a bushy green tail sweeps behind the shell. Brown ink contours, painterly RPG finish; facing right.\nCELL 14 (row 3, column 4): Amber Beetle + Reed Otter. Full-body fantasy chibi: An otter-beetle has an elongated brown body with smooth amber wing cases shaped like overlapping river stones. Six short swimming legs end in webbed toes, and a thick flattened otter tail extends behind. Its rounded whiskered muzzle and cream furry throat contrast two short antennae and reed-green seams along the carapace. Brown ink contours, painterly RPG finish; facing right.\nCELL 15 (row 3, column 5): Amber Beetle + Dusk Moth. Full-body fantasy chibi: A beetle-moth has a plush lilac thorax, broad feathery antennae and a ridged amber abdomen. Two honey-colored wing cases lift to reveal four violet wings with silver crescent markings and translucent golden veins. Six small jointed legs curl beneath a cream fuzzy belly, keeping the hovering insect silhouette coherent and compact. Brown ink contours, painterly RPG finish; facing right."
+      }
+    }
+  ],
+  "response": {
+    "jobs": [
+      {
+        "index": 2,
+        "job_id": "4f5c0064-9486-433c-8330-22c26b3fbfd5",
+        "status": "pending",
+        "adjustments": {
+          "medias[0].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[1].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[2].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[3].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[4].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          }
+        }
+      },
+      {
+        "index": 3,
+        "job_id": "9910f3fa-d58f-4d3d-8782-69be73e5741b",
+        "status": "pending",
+        "adjustments": {
+          "medias[0].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[1].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[2].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[3].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[4].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          }
+        }
+      },
+      {
+        "index": 4,
+        "status": "submission_failed",
+        "error": "gpt_image_2_5 backend request failed (429): rate_limit_reached",
+        "adjustments": {
+          "medias[0].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[1].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[2].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[3].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[4].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          }
+        }
+      },
+      {
+        "index": 5,
+        "job_id": "97e51726-17c8-417c-b1ba-df79f154dc1e",
+        "status": "pending",
+        "adjustments": {
+          "medias[0].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[1].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[2].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[3].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[4].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          }
+        }
+      },
+      {
+        "index": 6,
+        "job_id": "264656d1-bd0c-4554-9f5a-a81c8f8dec2f",
+        "status": "pending",
+        "adjustments": {
+          "medias[0].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[1].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[2].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[3].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[4].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          }
+        }
+      },
+      {
+        "index": 7,
+        "status": "submission_failed",
+        "error": "gpt_image_2_5 backend request failed (429): rate_limit_reached",
+        "adjustments": {
+          "medias[0].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[1].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[2].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[3].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[4].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          }
+        }
+      }
+    ],
+    "submitted_count": 4,
+    "failed_count": 2
+  }
+}

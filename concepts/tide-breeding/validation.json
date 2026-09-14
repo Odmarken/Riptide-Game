@@ -1,0 +1,34 @@
+{
+  "verifiedAt": "2026-09-14T21:24:12.796Z",
+  "scope": "preview-only",
+  "species": 25,
+  "uniquePairs": 300,
+  "selfCrosses": 0,
+  "combinationsPerParent": 24,
+  "generatedSheets": 22,
+  "sourceCreatures": 318,
+  "refinedReplacements": 18,
+  "allPromptsMatchSubmittedReceipts": true,
+  "allImageHashesMatch": true,
+  "allSourcesHaveVerifiedGeometry": true,
+  "generator": "Higgsfield",
+  "model": "gpt_image_2_5",
+  "creditsUsed": 99,
+  "browserChecks": {
+    "checks": 23,
+    "passed": 23,
+    "failed": 0
+  },
+  "scriptErrors": 0,
+  "externalRequests": 0,
+  "imageFilesUnchangedDuringQA": true,
+  "alphaGeometry": {
+    "sourceBodies": 318,
+    "unresolvedSheets": 0,
+    "clippedBodies": 18,
+    "ownPixelsExcluded": 0,
+    "foreignPixelsRemaining": 0
+  },
+  "visualReview": "All318sourcecreatures reviewed,18weak designs replaced,300finaluniquehybrids. Desktop/mobilegallery,wholebodydetails,parentportraits andrefinementdetails inspected.",
+  "previewOnly": true
+}

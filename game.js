@@ -214,6 +214,7 @@ const FARM_BUILD=[
  {id:'staketv',n:'Fence (vertical)',img:'staket_ovan',tab:'b',W:13,gy:14,col:{r:14,crx:8,cry:47,cyo:-33},snap:'v'}, /* sized so its post caps render the same width as the horizontal fence's (~13 world units) */
  {id:'lada',n:'Barn',img:'lada_farm',tab:'b',W:380,gy:30,col:{crx:130,cry:38,cyo:-40},sh:{rx:0.43,ry:0.105,dy:-0.09}},
  {id:'chickenhouse',n:'Chicken Coop',img:'chickenhouse_farm',tab:'b',W:230,gy:28,col:{crx:88,cry:34,cyo:-32},sh:{cx:-0.02,rx:0.44,ry:0.125,dy:-0.12}},
+ {id:'tide_incubator',n:'Tide Incubator',img:'tide_incubator',tab:'b',W:230,gy:24,col:{crx:80,cry:29,cyo:-30},noScale:1,door:{x:.37,y:.88},sh:{rx:.40,ry:.105,dy:-.10}},
  {id:'medium',n:'Farmhouse',img:'Farmhouse_medium',tab:'b',W:408,gy:41,col:{crx:143,cry:49,cyo:-49},noScale:1,sh:{rx:0.43,ry:0.115,dy:-0.105}},
  {id:'mansion',n:'Mansion',img:'farmhouse_mansion',tab:'b',W:850,gy:62,col:{crx:290,cry:85,cyo:-85},noScale:1,sh:{rx:0.44,ry:0.085,dy:-0.08}},      /* 2.5× the home farmhouse */
  {id:'farmhouse',n:'Farmhouse',img:'farmhouse_litet',tab:'x',W:340,gy:32,noScale:1,sh:{rx:0.45,ry:0.10,dy:-0.095}}, /* the home house - movable in build mode, never sold or removed; tab x hides it from the store */
@@ -1550,6 +1551,7 @@ function migrate(s){ /* fills fields missing from older saves */
  };
  if(s.farm.b)s.farm.b.forEach(fixLook);
  if(s.farm.c)s.farm.c.forEach(fixLook);
+ TideFarm.ensureStationIds(s.farm);
  /* 🏷 the three legendaries were renamed off their borrowed names. Rewrite the stored keys,
     or is*() stops recognising them and a legendary quietly turns into an unscaled nameless
     item. Runs over the worn slots and the bag; gear sets hold gsid references into the bag,
@@ -2931,8 +2933,39 @@ function updateRatBoss(dt){
  rb.walk+=dt*3.4;rb.moving=true;
  rb.footPhase=(rb.footPhase||0)+step*.045;rb.gait=Math.min(1,rb.gait+dt*16);
 }
+function farmBreedingDoor(it){
+ return TideFarm.door(it,FARM_BUILD.find(d=>d.id===TideFarm.BUILDING_ID),farmImg(TideFarm.BUILDING_ID));
+}
+function farmBreedingInReach(id){
+ const it=TideFarm.station(S?.farm,id),d=it&&farmBreedingDoor(it);
+ return !!(gameOn&&S?.farm?.owned&&zoneOf().farm&&!buildMode&&hero&&!hero.dead&&d&&dist(hero,d)<90);
+}
+function openFarmBreeding(id){
+ if(!farmBreedingInReach(id))return;
+ hero.moveTo=null;hero.pendingDoor=null;hero.target=null;holdMove=null;
+ TideUI.openBreeding(id,{canInteract:()=>farmBreedingInReach(id)});
+}
+function farmBreedingAt(x,y){
+ if(!S?.farm?.owned)return null;
+ const def=FARM_BUILD.find(d=>d.id===TideFarm.BUILDING_ID),im=farmImg(TideFarm.BUILDING_ID);
+ if(!im.complete||!im.naturalWidth)return null;
+ for(const it of S.farm.b.filter(it=>it.t===TideFarm.BUILDING_ID&&!it._moving).sort((a,b)=>b.y-a.y)){
+  const p=TideFarm.imagePoint(it,def,im,x,y);
+  if(p&&pixelSolid(im,p.u,p.v))return it;
+ }
+ return null;
+}
+function enterFarmBreeding(it){
+ const id=it.breedingStationId,d=farmBreedingDoor(it);if(!d)return;
+ if(farmBreedingInReach(id)){openFarmBreeding(id);return;}
+ hero.target=null;hero.goPortal=false;holdMove=null;hero.moveTo={...d};marker={...d,t:0};
+ hero.pendingDoor={s:d,open:()=>openFarmBreeding(id),rng:90};
+}
+function farmBreedingBusy(it){return !!(it?.t===TideFarm.BUILDING_ID&&Tides.breedingStatus(S.tides,it.breedingStationId));}
+function farmBreedingRemoveWarning(){stageMsg('Reveal and collect the Tide before removing its incubator.',2400);sfx.warn();}
 function rebuildFarmItems(){ /* placed buildings become solids; crops draw with the ground */
  if(!world)return;
+ TideFarm.ensureStationIds(S?.farm);
  world._sg=null; /* moving/resizing can replace solids without changing their count */
  world.solids=world.solids.filter(s2=>!s2.farmItem);
  for(const it of ((S&&S.farm&&S.farm.b)||[])){
@@ -3014,7 +3047,7 @@ const FARM_PRICES={lada:250000,staket:5000,staketv:5000,chickenhouse:100000,chic
  fountain:20000,tree_farm:15000,well:15000,scarecrow:10000,
  flowerbed:10000,pond:20000,pumpkins:10000,bench:10000,
  trough:12000,haywagon:18000,beehives:12000,farmsign:10000,
- windmill:60000,appletree:18000,woodpile:8000,crates:8000}; /* gold cost per placement */
+ windmill:60000,appletree:18000,woodpile:8000,crates:8000,tide_incubator:TideFarm.PRICE}; /* gold cost per placement */
 const FARM_SCRAPS={lada:300,chickenhouse:150,medium:600,mansion:800}; /* ⚙ scrap cost on top of gold */
 const FARM_ROAD_RATE={dirt_road:10,gravel_road:15}; /* 🛣 roads are priced by length: ◉ per world-unit drawn */
 const roadCost=g2=>Math.round(Math.hypot(g2.x1-g2.x0,g2.y1-g2.y0)*(FARM_ROAD_RATE[g2.t]||0));
@@ -3491,6 +3524,7 @@ function renderFarmStore(){
    ${stK?`<div class="fscnt">${stN}</div>`:ivN!==null?`<div class="fscnt">${ivN}</div>`:''}
    ${it.img?`<img src="assets/farm/${it.img}.png" onload="spriteEdgeThumbnail(this)" draggable="false">`:`<div style="font-size:34px;text-align:center;padding:8px 0">${it.emoji||'❓'}</div>`}
    <div class="fsn">${it.n}</div>
+   ${it.id===TideFarm.BUILDING_ID?'<div class="fsl">Breed two Tides · 1 min</div>':''}
    ${it.road?`<div class="fsl" style="color:var(--brass)">${FARM_ROAD_RATE[it.id]||0}◉ per unit drawn</div>`:(FARM_PRICES[it.id]||0)||(FARM_SCRAPS[it.id]||0)?`<div class="fsl" style="color:var(--brass)">${[FARM_PRICES[it.id]?FARM_PRICES[it.id].toLocaleString()+'◉':null,FARM_SCRAPS[it.id]?FARM_SCRAPS[it.id]+'⚙':null].filter(Boolean).join(' + ')}</div>`:''}
    ${it.locked?`<div class="fsl">🔒 ${it.locked}</div>`:stLock?`<div class="fsl">🔒 ${stN}/5 - harvest hay</div>`:hg?`<div class="fsl">🔒 ${hg}</div>`:sel?'<div class="fsl" style="color:#ffd76a">✓ Selected - click the field</div>':''}
   </div>`;
@@ -3517,6 +3551,7 @@ function placeFarmItem(id,x,y){
   if(gi>=0){farmCart.splice(gi,1);updateCartUI();blip(300,180,0.1,.05);return;}
   let bi=-1,bd=95;
   S.farm.b.forEach((b2,i)=>{const d=Math.hypot(b2.x-x,b2.y-y);if(d<bd){bd=d;bi=i;}});
+  if(bi>=0&&farmBreedingBusy(S.farm.b[bi])){farmBreedingRemoveWarning();return;}
   if(bi>=0){const rb2=S.farm.b.splice(bi,1)[0];const rf=farmRefund([rb2]);rebuildFarmItems();sfx.forge();stageMsg('🗑 Removed'+rf,1500);renderFarmStore();save();renderHUD();return;}
   let ci=-1,cd=45;
   S.farm.c.forEach((c2,i)=>{const d=Math.hypot(c2.x-x,c2.y-y);if(d<cd){cd=d;ci=i;}});
@@ -6077,6 +6112,9 @@ function padInteract(){
   add(find('armoraltar'),'The Altar',openTalents,150);
  }else if(z.farm){
   add(find('farmhouse'),'Farmhouse',farmhouseClick,200);
+  if(!buildMode&&S.farm?.owned)for(const it of S.farm.b){
+   if(it.t===TideFarm.BUILDING_ID&&!it._moving)add(farmBreedingDoor(it),'Tide Incubator',()=>openFarmBreeding(it.breedingStationId),90);
+  }
  }
  let best=null,bd=1e9;
  for(const o of out){
@@ -6318,6 +6356,7 @@ cv.addEventListener('pointerdown',e=>{
    }
    return;
   }
+  const nursery=farmBreedingAt(wx,wy);if(nursery){enterFarmBreeding(nursery);return;}
   const fh=world.solids.find(s2=>s2.type==='farmhouse');
   if(fh&&Math.abs(wx-fh.x)<190&&wy>fh.y-330&&wy<fh.y+60){
    const open=()=>farmhouseClick();
@@ -6502,6 +6541,7 @@ $('farmDelYes').onclick=()=>{
  if(!R)return;
  const inRct=(x,y)=>x>=R.x0&&x<=R.x1&&y>=R.y0&&y<=R.y1;
  const remB=S.farm.b.filter(b2=>inRct(b2.x,b2.y));
+ if(remB.some(farmBreedingBusy)){farmBreedingRemoveWarning();return;}
  const remC=S.farm.c.filter(c2=>inRct(c2.x,c2.y));
  const remR=((S.farm&&S.farm.r)||[]).filter(r2=>inRct((r2.x0+r2.x1)/2,(r2.y0+r2.y1)/2));
  S.farm.b=S.farm.b.filter(b2=>!inRct(b2.x,b2.y));
@@ -7073,12 +7113,15 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   }
  }
  // ----- pet follows, immortal and untargetable -----
- if(pet&&activePet()&&!hero.dead){
+ if(pet&&(activePet()||TideUI.visibleCompanion())&&!hero.dead){
   const d=dist(pet,hero);
+  const followingTide=TideUI.visibleCompanion(),gap=followingTide?62:26;
   pet.moving=false;
-  if(d>200){pet.x=hero.x-hero.fx*24;pet.y=hero.y+12;}
-  else if(d>42)moveToward(pet,hero.x-hero.fx*26,hero.y+12,dt);
+  const followY=followingTide?18:12;
+  if(d>(followingTide?240:200)){pet.x=hero.x-hero.fx*(followingTide?gap:24);pet.y=hero.y+followY;}
+  else if(d>gap+16||(followingTide&&d<gap-8))moveToward(pet,hero.x-hero.fx*gap,hero.y+followY,dt);
   else pet.walk+=dt*3;
+  pet.tideMotion=(pet.tideMotion||0)+((pet.moving?1:0)-(pet.tideMotion||0))*Math.min(1,dt*10);
  }
  mpHostRaidThreatTick(dt);
  if(zoneOf().tavern||zoneOf().city)updateNpcs(dt); /* 🏙 the city has townsfolk too - without this they draw but never walk */
@@ -7619,7 +7662,7 @@ function draw(){
  if(hero)drawables.push({y:hero.y,f:drawHero});
  if(padNear)drawables.push({y:hero.y+1,f:()=>drawPadPrompt(padNear)});
  if(mp.on&&mp.started)for(const k in mp.peers){const p=mp.peers[k];if(p&&Date.now()-(p.t||0)<=6000)drawables.push({y:(p._y!==undefined?p._y:(p.y||hero.y)),f:()=>drawMpGhost(k,p)});}
- if(pet&&activePet())drawables.push({y:pet.y,f:drawPet});
+ if(pet&&(activePet()||TideUI.visibleCompanion()))drawables.push({y:pet.y,f:drawPet});
  drawables.sort((a,b)=>a.y-b.y);
  for(const d of drawables)d.f();
  if(fish.on&&hero&&!hero.dead){ /* fishing line + float (arcs through the air while a cast is in flight) */
@@ -8278,6 +8321,10 @@ function drawProp(s,z,withShadow=true){
     ctx.fillStyle=grd;ctx.beginPath();ctx.arc(gx,gyy,gr,0,7);ctx.fill();
     ctx.restore();
    }
+   if(def.id===TideFarm.BUILDING_ID){
+    const job=Tides.breedingStatus(S.tides,s.it.breedingStationId),near=hero&&dist(hero,s)<350;
+    if(job||near){ctx.save();ctx.font='700 10px system-ui';ctx.textAlign='center';ctx.shadowColor='#18130b';ctx.shadowBlur=3;ctx.fillStyle=job?.ready?'#a6e9ca':'#e4d4a9';ctx.fillText(job?(job.ready?'? Ready to reveal':'Tide incubating'):'Tide Incubator',0,gy-H-7);ctx.restore();}
+   }
    if(def.roam&&s.it){ /* mood tag: 💕 expecting/brooding · ❤ sated (next meal not yet due) */
     const tag=(s.it.preg||s.it.egg)?'💕':(Date.now()-(s.it.fed||0)<(def.eatT||HAPPY_T)?'❤':null);
     if(tag){ctx.font='700 12px system-ui';ctx.textAlign='center';ctx.fillStyle='#ff8aa0';ctx.fillText(tag,0,gy-H-5);}
@@ -8817,7 +8864,10 @@ function drawPadPrompt(t){
  ctx.restore();
 }
 function drawPet(){
- if(TideUI.isBattling()||!pet||!activePet()||hero.dead)return;
+ if(TideUI.isBattling()||!pet||hero.dead)return;
+ const visible=TideUI.visibleCompanion();
+ if(visible){TideUI.drawCompanion(ctx,pet.x,pet.y,{pet:visible,fx:pet.fx,motion:pet.tideMotion||0,phase:pet.walk,time:performance.now()/1000});return;}
+ if(!activePet())return;
  const p=petOf(S.pet),now=performance.now();
  ctx.save();ctx.translate(pet.x,pet.y);
  const by=pet.moving?Math.sin(pet.walk*2)*1.6:Math.sin(now/500)*0.7;

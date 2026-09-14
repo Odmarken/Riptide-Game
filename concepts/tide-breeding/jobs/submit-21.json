@@ -1,0 +1,77 @@
+{
+  "submittedAt": "2026-09-14T21:13:45.915Z",
+  "requests": [
+    {
+      "index": 21,
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "4k",
+        "aspect_ratio": "3:2",
+        "background": "transparent",
+        "medias": [
+          {
+            "role": "image",
+            "value": "0530d133-5c81-41fa-b685-9ea6d234ab37"
+          },
+          {
+            "role": "image",
+            "value": "4d025f5e-892a-4578-96aa-ce58bb4bcd76"
+          },
+          {
+            "role": "image",
+            "value": "3eac1a85-79a2-425e-b57d-c3a4b0fade85"
+          },
+          {
+            "role": "image",
+            "value": "8a7cd7fe-81e1-4906-8457-70a353aa8b21"
+          },
+          {
+            "role": "image",
+            "value": "b6a76f13-64f9-4d0a-8900-b2ef652c67b8"
+          }
+        ],
+        "count": 1,
+        "prompt": "Create a polished ORIGINAL CREATURE CONCEPT ATLAS for Riptide, a hand-painted fantasy chibi RPG. This is a visual breeding catalogue: every requested cell is ONE NEW hybrid creature, visibly inheriting anatomical traits from BOTH named parents. Reference images show the existing parent species and exact visual style; use their painted shapes and palette, never copy the reference atlas layout.\nEXACT OUTPUT LAYOUT: landscape 3:2 image, an INVISIBLE uniform grid of FIVE equal columns by THREE equal rows. EXACTLY FIFTEEN separate complete creatures. Read the assignments in row-major order: row1 left-to-right cells01-05, row2 cells06-10, row3 cells11-15. Each creature occupies only its own cell and stays centered with at least 20 percent transparent clearance on EVERY side. Entire tails, horns, antlers, paws and wings must fit within that cell. No extras, no empty cells, no overlap. TRUE TRANSPARENT RGBA BACKGROUND outside the silhouettes. No scene, no terrain, no white matte, no checkerboard, no visible grid, NO LETTERING or labels or numbers. Labels will be added by code.\nSTYLE: match the supplied original Riptide Tides: beautiful hand-painted storybook fantasy sprites, bold clean dark-brown ink outlines, warm modeled painterly highlights, detailed fur/feathers/scales, large expressive heads, short sturdy chibi proportions, powerful readable silhouettes, cool mutated fantasy animals. A range of charming to fierce, no gore. Full-body three-quarter SIDE VIEW, head facing RIGHT, tail left; anatomically connected single head/body, grounded feet or a clearly intentional floating pose. Restrained magical body highlights, no huge glow clouds or floor shadows. Six-limbed fantasy creatures only where a specified wing pair or insect anatomy needs it. Balanced inheritance, not an original animal simply recolored.\n\nSTRICT PLACEMENT: Creature centers are at x=10%,30%,50%,70%,90% of the image and y=16.67%,50%,83.33%. Each creature including every appendage fits within just 60% of its own cell width and 70% of its own cell height. Transparent gutters between every pair of neighbors are essential. Do not enlarge a creature to fill its entire cell. Match these fifteen independent center points precisely.\n\r\n\nREFINEMENT PASS: The first attempts hid the smaller parent's anatomy. PRIORITY: every mandatory anatomical trait below must remain LARGE, unmistakable and visible in silhouette. A blue color or a leaf collar alone does not count as inheritance. Make newly combined organisms, never place one original animal unmodified. Ignore parent species names as silhouette defaults; follow these anatomical instructions precisely.\nCELL 01 (row 1, column 1): meadowmouse + stormlynx. Create one compact rodent-feline hybrid, with oversized CIRCULAR mouse ears carrying narrow black lynx tufts, not triangular cat ears. A broad lynx chest and snowshoe forepaws connect to visibly rounded mouse hindquarters and smaller pink hindtoes. Show a long thin bare pink mouse tail curling well outside the body, never a bobtail. Its short pointed mouse muzzle has two tiny incisors beneath feline cheek ruffs. Storm-grey fur and restrained cyan markings follow the powerful shoulders. Full connected chibi body, facing right.\nCELL 02 (row 1, column 2): meadowmouse + cinderwolf. Design one sturdy wolf-mouse with enormous round pink-lined mouse ears, visible whiskers and a narrow rodent nose integrated into a moderately elongated canine jaw. Strong wolf forelegs and charcoal chest fur connect to round mouse haunches and small naked pink rear toes. The tail must be mostly thin, bare and curled, with only a short bushy base. A swept ember mane and fierce wolf brows contrast with two tiny mouse incisors. Complete chibi quadruped facing right, no separate creatures.\nCELL 03 (row 1, column 3): bramblebunny + frostibex. Create one mountain rabbit-ibex whose two extremely long rabbit ears rise clearly beside, not behind, two backward-curving ice horns. Keep a small rabbit nose, obvious split upper lip and round cotton tail. Its silhouette has huge folded rabbit hindquarters, low shoulders and elongated rear feet ending in split hoof tips; smaller front hooves brace the chest. White goat wool and a short beard frame the throat, while pale blue frost ridges follow the back. Whole connected chibi animal facing right.\nCELL 04 (row 1, column 4): bramblebunny + aurorakirin. Make one graceful rabbit-kirin with two unmistakably long pink-lined rabbit ears standing taller than its central pearly horn. A rabbit split lip and small nose join an arched kirin neck, keeping the head fully mammalian. Huge folded rabbit haunches dominate the rear silhouette, with elongated cloven hindfeet and two neat front hooves. Lilac shoulder scales transition into cream fur. A round cotton tail sprouts a few pastel silky strands; flowing mint-pink mane must leave both ears exposed. Full-body chibi, facing right.\nCELL 05 (row 1, column 5): pebbletoad + stormlynx. Build one crouched toad-lynx with furry lynx shoulders, tufted ears and two broad feline front paws, but enormous folded TOAD hindlegs covered in exposed olive pebble skin. Spread the long webbed rear toes clearly to either side, with membranes plainly visible; never four ordinary cat paws. Raised golden amphibian eye ridges sit over a short feline nose and broad toad chin. Grey cheek ruffs meet the bare throat pouch. Cyan markings stay on the shoulder fur. Full connected chibi quadruped facing right.\nCELL 06 (row 2, column 1): pebbletoad + frostibex. Create one squat toad-ibex with a broad pebbled amphibian face, raised amber eyes and a visible throat pouch beneath two grand backward-sweeping ice horns. Short goat ears and a small white beard frame the jaw. Two compact front hooves support the woolly chest; enormous folded bare toad hindlegs spread into broad webbed feet, with only the two central toe tips hardened like tiny hooves. Olive-blue pebble skin must dominate the rear half, never continuous goat fur. Whole connected chibi, facing right.\nCELL 07 (row 2, column 2): pebbletoad + spectralpanther. Design one low spectral panther-toad with a muscular feline chest, short saber-fanged muzzle and two broad front cat paws. Its rear body must become enormous folded frog haunches covered in smooth translucent sapphire skin with raised round pebble bumps. Long hindtoes spread widely with bright cyan WEBBING, clearly different from the front paws. Raised amphibian eyes and a broad throat pouch modify the feline head. Retain a long curved panther tail, narrow predatory brows and crisp chibi proportions. Entire connected creature, facing right.\nCELL 08 (row 2, column 3): meadowmouse + mossfox. Combine one russet fox and field mouse into a compact chibi quadruped. Two oversized ROUND pink-lined mouse ears sit above a tapered fox muzzle ending in a tiny rodent nose and visible short incisors. Moss-green shoulder fur and a cream fox chest connect to rounded mouse hindquarters and delicate pink hindpaws. The tail starts with a short dense mossy fox brush, then extends into a much longer thin bare mouse curl. Keep a cunning fox gaze, complete feet and whole tail, facing right.\nCELL 09 (row 2, column 4): bramblebunny + stormlynx. Create one athletic rabbit-lynx with exceptionally long upright rabbit ears, pink inner skin and black lynx tufts only at their tips. A small split rabbit lip sits inside broad feline cheek ruffs. Powerful folded bunny hindquarters rise above the lower shoulder line; two elongated rabbit hindfeet contrast with broad round lynx front paws. Show a round cream cotton tail, not a long cat tail. Storm-grey fur carries narrow cyan lightning marks through the shoulders and ears. Whole connected chibi animal facing right.\nCELL 10 (row 2, column 5): thistlesparrow + acornboar. Create one stout sparrow-boar with a striped brown barrel torso, pink rooting snout and two little ivory tusks. Strong folded russet sparrow wings must grow directly from its shoulders and remain clearly visible against the body, not just a small feather crest. The forelegs end in large curved bird talons while the rear legs retain cloven pig hooves. A cream feather throat, short upper beak ridge and purple thistle crest blend into its single head. Show a broad fanned feather tail. Full-body chibi, facing right.\nCELL 11 (row 3, column 1): reedotter + aurorakirin. Create one river otter-kirin with a LONG LOW aquatic torso, short sturdy legs and a thick tapered swimming tail held fully visible behind it, never a horse tail. Its rounded whiskered otter muzzle and small round ears remain obvious beneath a central pearly kirin horn. Broad webbed front paws contrast with small split hindhooves joined by visible toe membranes. Cream throat fur and reed-brown flanks transition into lilac shoulder scales. A flowing mint-pink neck mane provides the kirin silhouette. Full-body chibi, facing right.\nCELL 12 (row 3, column 2): reedotter + spectralpanther. Build one low aquatic otter-panther with a visibly elongated flexible otter torso, very short legs and a thick muscular swimming tail tapering gradually behind it, never a thin curled cat tail. All four broad feet show spread WEBBED toes. A round whiskered otter muzzle, cream chin and small rounded ears combine with panther fierce brows, short saber fangs and strong feline shoulders. Reed-brown chest fur grades into translucent sapphire flanks with pale cyan edges. Complete connected chibi animal facing right, no upright cat stance.\nCELL 13 (row 3, column 3): reedotter + stormlynx. Design one sturdy otter-lynx with a long low river-otter body, short limbs and a thick tapered swimming tail fully extended behind the hips. Its rounded whiskered otter face has small round ears crowned by unmistakable long black lynx tufts. Broad feline shoulders and powerful hindquarters join four oversized paws whose spread toes carry clearly visible swimming membranes. A cream throat and reed-brown belly meet storm-grey back fur. Fine cyan lightning marks trace cheek ruffs and shoulder muscles. Whole connected chibi animal, facing right.\nCELL 14 (row 3, column 4): acornboar + stormlynx. Create one muscular boar-lynx with a prominent flat upturned PINK PIG SNOUT and two large ivory tusks curving upward beside a single closed feline jaw. Tall black lynx ear tufts and wide cheek ruffs frame this unmistakably piglike face. Its barrel boar hindbody has striped bristles and two sturdy cloven rear hooves, while powerful feline forelegs end in broad padded paws. A hard raised razorback bristle ridge carries narrow cyan lightning veins through storm-grey fur. Show a short curled pig tail. Full-body chibi, facing right.\nCELL 15 (row 3, column 5): acornboar + thornbadger. Make one low heavy badger-boar whose cream-and-charcoal BADGER FACE STRIPES lead into a broad upturned pink pig snout, with two conspicuous ivory tusks rising beside the closed mouth. Huge badger digging forearms end in broad shovel claws; round boar hindquarters stand on clearly split rear hooves. Hard brown dorsal bristles interlock with emerald thorn ridges, leaving both textures recognizable. Small rounded ears and a short curled pig tail complete the compact silhouette. Keep the rooting muzzle dominant rather than a pointed badger nose. Full-body chibi."
+      }
+    }
+  ],
+  "response": {
+    "jobs": [
+      {
+        "index": 21,
+        "job_id": "160e33b1-84ec-4629-a45c-62b0076f020b",
+        "status": "pending",
+        "adjustments": {
+          "medias[0].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[1].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[2].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[3].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[4].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          }
+        }
+      }
+    ],
+    "submitted_count": 1,
+    "failed_count": 0
+  }
+}

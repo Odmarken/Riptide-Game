@@ -1,0 +1,1202 @@
+[
+  {
+    "id": "duskmoth--moonowl",
+    "parentA": "duskmoth",
+    "parentB": "moonowl",
+    "name": "Nocturne Lanternwing",
+    "descriptionSv": "En liten ugglefjäril med ansiktskrans, klor och fyra fjärilsvingar kantade av fjädrar.",
+    "promptEn": "Fuse a compact owl chest and silver facial disk with feathery moth antennae and four rounded violet membrane wings. Midnight feathers grow along each wing margin, silver crescents sit within the membranes, and two sturdy owl talons support a soft segmented abdomen."
+  },
+  {
+    "id": "duskmoth--crystalgecko",
+    "parentA": "duskmoth",
+    "parentB": "crystalgecko",
+    "name": "Prismwing Skitter",
+    "descriptionSv": "En kristallgecko med stora tådynor, böjd svans och fyra mjuka nattfjärilsvingar.",
+    "promptEn": "Create a low turquoise gecko with splayed lavender adhesive toes and a curled crystalline tail. Four dusk-violet moth wings grow from a soft furry shoulder thorax, their membranes interrupted by tiny crystal veins. Feathery antennae frame an angular lizard brow above focused eyes."
+  },
+  {
+    "id": "duskmoth--stormlynx",
+    "parentA": "duskmoth",
+    "parentB": "stormlynx",
+    "name": "Tempest Silkmane",
+    "descriptionSv": "En kraftig lodjursfjäril med tofsöron, antenner och fyra blixtådrade vingar.",
+    "promptEn": "Combine powerful lynx haunches, oversized feline forepaws and black ear tufts with a plush moth thorax ruff. Four angular violet membrane wings emerge behind the shoulders, crossed by pale cyan branching veins. Long whiskers curve upward into paired feathery antennae; the tail stays short and feline."
+  },
+  {
+    "id": "duskmoth--thornbadger",
+    "parentA": "duskmoth",
+    "parentB": "thornbadger",
+    "name": "Briar Velvetmaw",
+    "descriptionSv": "En grävling med randigt ansikte, taggig rygg och veckade nattfjärilsvingar.",
+    "promptEn": "Build a squat digging beast with a badger striped muzzle and broad shovel claws. Four thick moth wings fold like serrated leaves along its back, anchored between emerald thorn ridges. Lavender thorax fur blends into charcoal badger flanks, while brushlike antennae sweep back from small rounded ears."
+  },
+  {
+    "id": "duskmoth--cinderwolf",
+    "parentA": "duskmoth",
+    "parentB": "cinderwolf",
+    "name": "Ashsilk Nightfang",
+    "descriptionSv": "En varglik nattfjäril med glödande nackpäls och långa sotfärgade vingar.",
+    "promptEn": "Make a lean wolf with a long fanged muzzle, springy canine legs and a full brush tail. Its red ember neck mane becomes moth thorax fluff, supporting four narrow smoke-violet wings with copper veins. Feathered antennae rise beside pointed ears, and wing tips curl like singed velvet."
+  },
+  {
+    "id": "duskmoth--frostibex",
+    "parentA": "duskmoth",
+    "parentB": "frostibex",
+    "name": "Rimewing Clamber",
+    "descriptionSv": "En bergsget med ishorn och frostiga fjärilsvingar som växer ur ullen.",
+    "promptEn": "Combine an ibex barrel chest, cloven hooves and two sweeping ice horns with a moth abdomen tapering into a short fuzzy tail. Four broad violet wings emerge through white shoulder wool, crystal frost tracing their scalloped edges. Fine antennae curve between the horns above a determined goat face."
+  },
+  {
+    "id": "duskmoth--sunmane",
+    "parentA": "duskmoth",
+    "parentB": "sunmane",
+    "name": "Gilded Nightpride",
+    "descriptionSv": "Ett lejon med fjärilsmjuk man, antenner och fyra solkantade nattvingar.",
+    "promptEn": "Create a muscular lion whose circular mane is layered moth fluff and golden fur. Four broad violet membrane wings emerge from the shoulder girdle, their margins fringed with sun-gold hairs. Keep a feline muzzle, broad paws, tufted lion tail and paired plume antennae rising through the mane."
+  },
+  {
+    "id": "duskmoth--runestag",
+    "parentA": "duskmoth",
+    "parentB": "runestag",
+    "name": "Runesilk Hart",
+    "descriptionSv": "En hjortfjäril med greniga horn, klövar och runådrade vingar.",
+    "promptEn": "Give a compact stag four fine cloven legs, a long deer muzzle and branching wooden antlers. Four dusk-moth wings unfold from its narrow torso, mint rune veins following the membranes. Its cream chest becomes lavender thorax fur, and feather antennae grow beside the antler bases rather than replacing them."
+  },
+  {
+    "id": "duskmoth--coraldrake",
+    "parentA": "duskmoth",
+    "parentB": "coraldrake",
+    "name": "Reefsilk Wyrmling",
+    "descriptionSv": "En koralldrake med antenner och fyra fjärilsvingar mellan koralltaggarna.",
+    "promptEn": "Merge a coral drake snout, four clawed legs and curled scaled tail with a soft moth thorax. Replace dragon wing membranes with four scalloped violet moth wings supported by coral finger bones. Sea-green fin ears frame feathery antennae; coral spines continue along the upper back."
+  },
+  {
+    "id": "duskmoth--dawnphoenix",
+    "parentA": "duskmoth",
+    "parentB": "dawnphoenix",
+    "name": "Daybreak Moonflutter",
+    "descriptionSv": "En fågelfjäril med rovfågelsnäbb, klor och fyra fjäderkantade vingar.",
+    "promptEn": "Design a regal bird-moth with a phoenix hooked beak and two strong avian feet below a fluffy lilac thorax. Four expansive moth wings have golden feathered leading edges and violet crescent membranes. A short segmented abdomen extends into layered sunrise tail plumes, with two delicate antennae above the crest."
+  },
+  {
+    "id": "duskmoth--obsidianbear",
+    "parentA": "duskmoth",
+    "parentB": "obsidianbear",
+    "name": "Blackglass Silkback",
+    "descriptionSv": "En tung björn med stenspalter över ryggen och fyra sotlila fjärilsvingar.",
+    "promptEn": "Create a massive bear with heavy shoulders, round ears and planted clawed paws. Four thick moth wings rise from gaps between natural obsidian shoulder plates; violet velvet membranes carry silver crescents. Soft thorax fur forms its chest, and broad feathery antennae emerge above a stern bear brow."
+  },
+  {
+    "id": "duskmoth--aurorakirin",
+    "parentA": "duskmoth",
+    "parentB": "aurorakirin",
+    "name": "Aurorasilk Courser",
+    "descriptionSv": "En kirin med klövar, pärlhorn och skimrande fjärilsvingar som möter manen.",
+    "promptEn": "Fuse a cream kirin body, neat cloven hooves and pearly forehead horn with four rounded moth wings. Their lilac membranes grow from scaled shoulders and flow into mint-pink mane filaments. Feathery antennae sweep back beside deer ears, while a furry segmented tail finishes in silky aurora strands."
+  },
+  {
+    "id": "duskmoth--spectralpanther",
+    "parentA": "duskmoth",
+    "parentB": "spectralpanther",
+    "name": "Veilwing Prowler",
+    "descriptionSv": "En smygande blå panter med genomskinliga nattvingar och antenner kring öronen.",
+    "promptEn": "Make a sleek sapphire panther crouching on four broad feline paws, with a long curved tail. Four translucent moth wings grow directly from its shoulder muscles, edged in fuzzy midnight hairs with silver crescents. Paired feather antennae arc behind cat ears; pale cyan currents follow wing veins into the flanks."
+  },
+  {
+    "id": "duskmoth--spectralwyrm",
+    "parentA": "duskmoth",
+    "parentB": "spectralwyrm",
+    "name": "Moonveil Silkserpent",
+    "descriptionSv": "En svävande andedrake med böjd kropp, pälsig bröstkrans och fyra nattfjärilsvingar.",
+    "promptEn": "Build a compact floating S-shaped serpent with a horned dragon head and complete tapered tail. A moth thorax ruff surrounds its upper neck, supporting four large violet membrane wings. Feathered antennae extend beside silver horns, while sapphire belly scales gradually become soft lilac segments toward the wing roots."
+  },
+  {
+    "id": "shellsnap--acornboar",
+    "parentA": "shellsnap",
+    "parentB": "acornboar",
+    "name": "Acorn Bastionhog",
+    "descriptionSv": "En låg vildsvinspadda med betar, klövar och en välvd sköldpaddssköld.",
+    "promptEn": "Combine a round terrapin shell and heavy low turtle shoulders with a boar snout, short ivory tusks and four stout cloven feet. Brown striped bristles grow between warm terracotta shell panels, while jade scaled cheeks meet a blunt pig muzzle. A short curled tail emerges below the shell rim."
+  },
+  {
+    "id": "shellsnap--embercub",
+    "parentA": "shellsnap",
+    "parentB": "embercub",
+    "name": "Cinder Shellpride",
+    "descriptionSv": "Ett lejon med glödande man kring halsen och en sköld som växer ur ryggen.",
+    "promptEn": "Create a compact lion with broad padded paws and a rounded terrapin shell integrated into its back. Ember mane tufts frame the shell opening around the neck, exposing jade scales beneath orange cheek fur. The tail is thick at its turtle base and ends in a fiery lion tuft."
+  },
+  {
+    "id": "shellsnap--moonowl",
+    "parentA": "shellsnap",
+    "parentB": "moonowl",
+    "name": "Mooncarapace Watcher",
+    "descriptionSv": "En uggla med rund ryggsköld, fjälliga klor och silverfjädrar längs skalet.",
+    "promptEn": "Make a stout upright owl with a silver facial disk, hooked beak and two strong scaled talons. A terracotta turtle shell forms the rounded back, with folded midnight wings emerging from its side openings. Jade scales cover the lower neck; small feathers trace the shell seams and crescent-shaped rim."
+  },
+  {
+    "id": "shellsnap--crystalgecko",
+    "parentA": "shellsnap",
+    "parentB": "crystalgecko",
+    "name": "Prismplate Snapper",
+    "descriptionSv": "En sköldpaddsgecko med klättertår, lång svans och kristalliserade skalplattor.",
+    "promptEn": "Fuse a low turtle shell and broad reptile head with a gecko flexible spine, splayed adhesive toes and long curled tail. Terracotta scutes become raised turquoise crystal facets toward the spine, leaving the protective rim clearly visible. Lavender toe pads and narrow focused eyes emphasize the agile gecko anatomy."
+  },
+  {
+    "id": "shellsnap--stormlynx",
+    "parentA": "shellsnap",
+    "parentB": "stormlynx",
+    "name": "Thunderplate Stalker",
+    "descriptionSv": "Ett lodjur med skyddande ryggsköld, stora tassar och blixtar längs skalets fogar.",
+    "promptEn": "Design a crouched lynx with tall tufted ears, broad cat paws and compact hindquarters. A high terrapin shell grows over its back, split into warm ochre plates by cyan lightning seams. Jade scales armor the ankles beneath grey fur, and a short bobtail protrudes through the rear shell opening."
+  },
+  {
+    "id": "shellsnap--thornbadger",
+    "parentA": "shellsnap",
+    "parentB": "thornbadger",
+    "name": "Briarback Rampart",
+    "descriptionSv": "En grävling med grävklor, randigt ansikte och en taggig sköldpaddsrygg.",
+    "promptEn": "Give a low badger body a broad domed turtle shell edged with emerald thorn growths. Its cream-and-charcoal striped muzzle extends from a jade scaled neck, and heavy digging foreclaws support the shell. Rough grey fur emerges between the shell rim and muscular hind legs; a short badger tail remains visible."
+  },
+  {
+    "id": "shellsnap--cinderwolf",
+    "parentA": "shellsnap",
+    "parentB": "cinderwolf",
+    "name": "Furnace Shellfang",
+    "descriptionSv": "En varg med sotig päls, tänder och en tung glödande ryggsköld.",
+    "promptEn": "Combine a wolf long muzzle, pointed ears and powerful canine legs with a terrapin carapace fitted to its hunched back. Orange mane fur spills around the shell front; ochre plates bear thin ember seams. Jade ankle scales transition to charcoal paws, and a full wolf brush tail exits the shell."
+  },
+  {
+    "id": "shellsnap--frostibex",
+    "parentA": "shellsnap",
+    "parentB": "frostibex",
+    "name": "Glacier Carapace",
+    "descriptionSv": "En bergsget med ishorn och en sköld vars kant liknar packis.",
+    "promptEn": "Create a sturdy ibex with swept ice horns, a short beard and four cloven hooves. Its barrel torso is enclosed in a turtle shell, terracotta panels frosted into blue facets along the rim. White wool protrudes naturally from neck and leg openings, with jade scales on its lower muzzle."
+  },
+  {
+    "id": "shellsnap--sunmane",
+    "parentA": "shellsnap",
+    "parentB": "sunmane",
+    "name": "Solstice Shieldlion",
+    "descriptionSv": "Ett tungt lejon med solman, breda tassar och en hög ryggsköld.",
+    "promptEn": "Fuse a large golden lion chest and round mane with a terrapin domed back and plated underbelly. The mane frames the shell neck opening in short thick rays. Broad clawed paws have jade scaled wrists; ochre shell scutes echo the mane layering, and a full tufted tail curls around the rear."
+  },
+  {
+    "id": "shellsnap--runestag",
+    "parentA": "shellsnap",
+    "parentB": "runestag",
+    "name": "Runebark Shellhart",
+    "descriptionSv": "En hornprydd hjort med klövar och ett skal som möter barkliknande ryggplattor.",
+    "promptEn": "Give a stag branching antlers, fine cloven legs and a cream throat beneath a turtle shell. The high carapace is warm brown with mint rune grooves, merging into barklike scutes around the shoulders. Jade scales appear on the long deer muzzle and knees, while the short deer tail emerges below the rim."
+  },
+  {
+    "id": "shellsnap--coraldrake",
+    "parentA": "shellsnap",
+    "parentB": "coraldrake",
+    "name": "Coral Citadelle",
+    "descriptionSv": "En fyrbent revdrake med sköld, korallvingar och kraftig böjd svans.",
+    "promptEn": "Make a squat reef dragon with coral horns, sea-green cheek fins and four powerful clawed legs. A terrapin shell replaces the upper back, with coral branches growing from its scute seams. Small membranous dragon wings attach beside the shell rim, and the long scaled tail curls outside the protective silhouette."
+  },
+  {
+    "id": "shellsnap--dawnphoenix",
+    "parentA": "shellsnap",
+    "parentB": "dawnphoenix",
+    "name": "Sunvault Firecrest",
+    "descriptionSv": "En fågel med sköldpaddsrygg, gyllene vingar och två kraftiga klor.",
+    "promptEn": "Build an upright phoenix with hooked golden beak, avian talons and broad sunrise wings. A rounded turtle carapace covers its back, with feathers growing from the side openings and warm shell seams. Jade scales form the lower throat and feet; layered flame-tail plumes extend completely beyond the shell rim."
+  },
+  {
+    "id": "shellsnap--obsidianbear",
+    "parentA": "shellsnap",
+    "parentB": "obsidianbear",
+    "name": "Blackvault Ursadon",
+    "descriptionSv": "En massiv björn med bred sköldpaddsrygg och stenhårda skulderplattor.",
+    "promptEn": "Combine a bear enormous forequarters, broad muzzle and four planted clawed paws with a high terrapin shell. Obsidian armor plates replace the upper scutes, transitioning to warm ochre panels at the rim. Jade scales cover the neck below dense charcoal fur; retain small round bear ears and a short heavy tail."
+  },
+  {
+    "id": "shellsnap--aurorakirin",
+    "parentA": "shellsnap",
+    "parentB": "aurorakirin",
+    "name": "Pearlshell Kirin",
+    "descriptionSv": "En lätt kirin med pärlhorn, klövar och skimrande fjäll kring ryggskölden.",
+    "promptEn": "Create a compact kirin with a pearly forehead horn, flowing pastel mane and four delicate hooves. Its back carries a naturally grown turtle carapace, with terracotta panels merging into lilac scales around the neck. The mane threads between shell ridges, while its long silky tail extends freely from the rear opening."
+  },
+  {
+    "id": "shellsnap--spectralpanther",
+    "parentA": "shellsnap",
+    "parentB": "spectralpanther",
+    "name": "Veilvault Prowler",
+    "descriptionSv": "En blå panter med sköldpaddsrygg och ljus som löper genom skalets fogar.",
+    "promptEn": "Make a low stalking panther with narrow feline face, large paws and a curved muscular tail. A terrapin shell arches over its back, its strong rounded scutes translucent sapphire at the edges. Jade scales blend into spectral blue fur along the wrists; cyan currents follow the shell seams into the legs."
+  },
+  {
+    "id": "shellsnap--spectralwyrm",
+    "parentA": "shellsnap",
+    "parentB": "spectralwyrm",
+    "name": "Astral Coilback",
+    "descriptionSv": "En slingrande draksköldpadda med kraftigt skal, böjd hals och lång andesvans.",
+    "promptEn": "Fuse a broad terrapin shell and four sturdy turtle feet with an elongated horned dragon neck and serpentine tail. Sapphire scales flow out of the warm plated carapace, curling into a compact S silhouette behind it. Silver horns, cyan throat fins and a pale segmented belly reveal the spectral wyrm inheritance."
+  },
+  {
+    "id": "acornboar--embercub",
+    "parentA": "acornboar",
+    "parentB": "embercub",
+    "name": "Cinder Tuskcub",
+    "descriptionSv": "Ett knubbigt lejonvildsvin med betar, glödman och kraftiga framtassar.",
+    "promptEn": "Create a stocky lion cub with a blunt boar snout, ivory side tusks and powerful front paws. Short cloven rear feet brace beneath striped brown haunches. Its ember mane grows from a boar bristle ridge, and a curled pig tail ends in a warm red lion tuft."
+  },
+  {
+    "id": "acornboar--moonowl",
+    "parentA": "acornboar",
+    "parentB": "moonowl",
+    "name": "Moonroot Tuskowl",
+    "descriptionSv": "En kompakt ugglesvinhybrid med betar, fjädrar och starka grävklor.",
+    "promptEn": "Merge a round boar barrel body with a broad owl chest and folded midnight feather wings. A silver facial disk frames a short piglike muzzle carrying a small hooked upper beak and ivory tusks. Two heavy front digging talons and stout rear cloven feet support striped bristled flanks."
+  },
+  {
+    "id": "acornboar--crystalgecko",
+    "parentA": "acornboar",
+    "parentB": "crystalgecko",
+    "name": "Prismroot Grunter",
+    "descriptionSv": "Ett fjälligt vildsvin med betar, stora klättertår och kristallsvans.",
+    "promptEn": "Make a low broad beast with a boar snout, ivory tusks and stout striped torso. Replace hooves with four splayed gecko feet bearing lavender adhesive pads; a long curled lizard tail balances the body. Turquoise crystal ridges grow through its brown bristle spine, continuing onto scaled cheeks and tail."
+  },
+  {
+    "id": "acornboar--stormlynx",
+    "parentA": "acornboar",
+    "parentB": "stormlynx",
+    "name": "Thunderroot Razorback",
+    "descriptionSv": "Ett kraftigt lodjurssvin med betar, tofsöron och elektrisk borstkam.",
+    "promptEn": "Combine a lynx high muscular forelegs and broad feline paws with a boar barrel torso and blunt tusked muzzle. Tall black ear tufts rise above a cyan-streaked bristle ridge. Brown piglet stripes fragment into storm markings, and heavy cloven rear toes and a short curled bobtail complete the mixed anatomy."
+  },
+  {
+    "id": "acornboar--thornbadger",
+    "parentA": "acornboar",
+    "parentB": "thornbadger",
+    "name": "Briartusk Burrower",
+    "descriptionSv": "Ett lågt vildsvin med grävlingens ansiktsrand, grävklor och taggig rygg.",
+    "promptEn": "Fuse a stout boar body, short tusks and flattened rooting snout with a badger striped face and powerful digging foreclaws. Emerald thorns grow through the brown dorsal bristle ridge. Broad hind feet end in split blunt claws resembling hooves; small rounded ears and a short bristly tail reinforce the burrowing silhouette."
+  },
+  {
+    "id": "acornboar--cinderwolf",
+    "parentA": "acornboar",
+    "parentB": "cinderwolf",
+    "name": "Embertusk Ravager",
+    "descriptionSv": "En vargsvinshybrid med lång käke, utstående betar och glödande borstman.",
+    "promptEn": "Create a forward-leaning predator with a long wolf jaw widened into a boar rooting nose and two upward ivory tusks. Powerful canine forepaws contrast with stocky boar hindquarters and cloven rear feet. Charcoal fur carries a raised red bristle mane, while the full brush tail curls slightly at its tip."
+  },
+  {
+    "id": "acornboar--frostibex",
+    "parentA": "acornboar",
+    "parentB": "frostibex",
+    "name": "Rimehorn Tuskram",
+    "descriptionSv": "Ett vildsvin med ishorn, betar och tät vit bergsgetsull.",
+    "promptEn": "Combine a broad boar snout and ivory tusks with a compact ibex chest, split hooves and two long swept ice horns. Dense white goat wool grows around dark striped piglet flanks; icy bristles continue down the back. A small beard under the tusked jaw balances a short curled tail."
+  },
+  {
+    "id": "acornboar--sunmane",
+    "parentA": "acornboar",
+    "parentB": "sunmane",
+    "name": "Goldtusk Pridebreaker",
+    "descriptionSv": "Ett tungt lejon med vildsvinsnos, betar och en man av gyllene borst.",
+    "promptEn": "Build a muscular golden lion with a broad boar nose and ivory tusks growing beside its feline fangs. Its circular mane becomes layered golden bristles, continuing into a raised razorback ridge. Large front paws and stout cloven rear feet carry a barrel torso, ending in a curled tufted tail."
+  },
+  {
+    "id": "acornboar--runestag",
+    "parentA": "acornboar",
+    "parentB": "runestag",
+    "name": "Runetusk Wildhart",
+    "descriptionSv": "En hjortsvinshybrid med greniga horn, betar och runor mellan borststråna.",
+    "promptEn": "Give a sturdy boar chest four longer stag legs and dark cloven hooves. A deer brow with branching wooden antlers slopes into a short tusked rooting muzzle. Chestnut bristles carry mint rune channels, and a cream deer throat tuft joins the bristled chest; keep a short curled boar tail."
+  },
+  {
+    "id": "acornboar--coraldrake",
+    "parentA": "acornboar",
+    "parentB": "coraldrake",
+    "name": "Reeftusk Broodling",
+    "descriptionSv": "En koralldrake med betar, vildsvinsnos och korta kraftiga ben.",
+    "promptEn": "Make a stocky coral drake with a flattened boar snout, broad ivory tusks and a bristled cheek ruff. Four short clawed legs support its barrel torso; coral wings and sea-green fins grow from the shoulders. A long curled scaled tail retains a tiny bristle tuft, with piglet stripes visible between coral plates."
+  },
+  {
+    "id": "acornboar--dawnphoenix",
+    "parentA": "acornboar",
+    "parentB": "dawnphoenix",
+    "name": "Sunbristle Firehog",
+    "descriptionSv": "Ett vildsvin med gyllene fjädervingar, betar och en flammande stjärtplym.",
+    "promptEn": "Fuse a boar sturdy barrel chest and tusked rooting muzzle with a phoenix sharp hooked upper beak and broad golden wings. Brown bristles transition into orange feather quills along its spine. Four stout legs end in hooked hooflike claws, and a compact fan of flame feathers replaces the curled tail."
+  },
+  {
+    "id": "acornboar--obsidianbear",
+    "parentA": "acornboar",
+    "parentB": "obsidianbear",
+    "name": "Blacktusk Mauler",
+    "descriptionSv": "En enorm björnsvinshybrid med betar, framtassar och sprucken vulkanrygg.",
+    "promptEn": "Create a heavy bear with towering shoulders and enormous clawed forepaws, a boar barrel belly and stout cloven hind feet. Its broad muzzle ends in a rooting nose flanked by ivory tusks. Charcoal fur and brown bristles grow between natural obsidian back plates, with a short curled bristle tail."
+  },
+  {
+    "id": "acornboar--aurorakirin",
+    "parentA": "acornboar",
+    "parentB": "aurorakirin",
+    "name": "Opaltusk Courser",
+    "descriptionSv": "En kirin med pärlhorn, vildsvinsbetar och skimrande borst längs ryggen.",
+    "promptEn": "Combine a kirin arched neck, pearly horn and four graceful cloven hooves with a compact boar torso and blunt tusked muzzle. Lilac scales emerge through brown striped bristles, while a pastel flowing mane follows the spine. A short curled boar tail extends into mint-pink silky strands."
+  },
+  {
+    "id": "acornboar--spectralpanther",
+    "parentA": "acornboar",
+    "parentB": "spectralpanther",
+    "name": "Veiltusk Pouncer",
+    "descriptionSv": "En blå panter med vildsvinets breda nos, betar och kraftiga bakkropp.",
+    "promptEn": "Design a crouched spectral panther with wide feline paws and a long curved tail, but a boar powerful barrel hindbody and flattened tusked muzzle. Sapphire bristles form a raised shoulder ridge, pale cyan stripes crossing its translucent flanks. Rounded pig ears blend into pointed feline rims above fierce narrow eyes."
+  },
+  {
+    "id": "acornboar--spectralwyrm",
+    "parentA": "acornboar",
+    "parentB": "spectralwyrm",
+    "name": "Astral Tuskcoil",
+    "descriptionSv": "En betförsedd andedrake med vildsvinsbogar och lång slingrande svans.",
+    "promptEn": "Fuse a heavy boar shoulder barrel and four short split-hoof feet with an elongated serpentine dragon neck and full curling tail. The horned head has a broad rooting nose and ivory side tusks. Brown bristles along the shoulder spine transition smoothly into translucent sapphire scales and pale cyan fins."
+  },
+  {
+    "id": "embercub--moonowl",
+    "parentA": "embercub",
+    "parentB": "moonowl",
+    "name": "Crescent Cindergriff",
+    "descriptionSv": "En lejonunge med ugglevingar, ansiktskrans och glödande fjäderman.",
+    "promptEn": "Fuse a lion cub torso and padded hind paws with feathered owl forelimbs ending in curved talons. A silver owl facial disk surrounds a short feline muzzle and hooked beak tip. Midnight wings emerge behind an ember feather mane, while a tufted lion tail stays fully visible."
+  },
+  {
+    "id": "embercub--crystalgecko",
+    "parentA": "embercub",
+    "parentB": "crystalgecko",
+    "name": "Cinderprism Cub",
+    "descriptionSv": "En kristallfjällig lejonunge med klättertår och en lång glödspetsad svans.",
+    "promptEn": "Give a fiery lion cub a longer gecko torso and curled scaled tail, keeping its rounded feline cheeks and small ember mane. Four broad feet separate into lavender adhesive toes beneath furry ankles. Turquoise crystal spines grow through orange shoulder fur and continue into the tail flame tuft."
+  },
+  {
+    "id": "embercub--stormlynx",
+    "parentA": "embercub",
+    "parentB": "stormlynx",
+    "name": "Sparkmane Lynxcub",
+    "descriptionSv": "Ett smidigt lodjurslejon med tofsöron, stor man och kraftiga baktassar.",
+    "promptEn": "Combine a young lion broad chest and small red mane with a lynx long springing hindlegs, large snowshoe paws and tall black ear tufts. A short bobtail sprouts a compact ember plume. Grey flank fur carries fine cyan streaks that branch into the warm mane roots."
+  },
+  {
+    "id": "embercub--thornbadger",
+    "parentA": "embercub",
+    "parentB": "thornbadger",
+    "name": "Briarcinder Scrapper",
+    "descriptionSv": "En låg lejonunge med grävklor, randigt ansikte och taggar genom glödmanen.",
+    "promptEn": "Create a low burrowing lion cub with a badger long striped muzzle and powerful digging foreclaws. Its small ember mane blends into a dense emerald thorn collar around the shoulders. Grey stocky hindquarters contrast with orange feline chest fur, and the short badger tail ends in a tiny ember tuft."
+  },
+  {
+    "id": "embercub--cinderwolf",
+    "parentA": "embercub",
+    "parentB": "cinderwolf",
+    "name": "Coalheart Fangcub",
+    "descriptionSv": "En bredaxlad lejonvarg med spetsöron och en dubbel glödman.",
+    "promptEn": "Merge a lion cub round chest, padded forepaws and cheek mane with a wolf long fanged muzzle, tall pointed ears and springy hindlegs. Two distinct mane layers form a compact circular lion ruff and a swept canine dorsal crest. The long brush tail ends in a dense ember tuft."
+  },
+  {
+    "id": "embercub--frostibex",
+    "parentA": "embercub",
+    "parentB": "frostibex",
+    "name": "Rimecinder Horncub",
+    "descriptionSv": "En lejonunge med ishorn, klövade bakfötter och frost i glödmanen.",
+    "promptEn": "Build a sturdy young lion with two swept crystalline ibex horns growing above rounded feline ears. Padded front paws and cloven back hooves support a compact goatlike barrel. White wool forms the lower beard, while orange ember mane strands curve around icy horn bases; a small tufted tail remains clear."
+  },
+  {
+    "id": "embercub--sunmane",
+    "parentA": "embercub",
+    "parentB": "sunmane",
+    "name": "Twincrest Solarpride",
+    "descriptionSv": "Ett kraftigt lejon med en inre glödman och en yttre solfjäderformad man.",
+    "promptEn": "Create a compact powerful lion with oversized cub paws, short sturdy limbs and mature Sunmane jaw muscles. Its mane has two anatomically distinct layers: a tight inner ember ruff and broad outer golden cheek fins sweeping backward like rays. The lion tail has a forked double tuft echoing both mane layers."
+  },
+  {
+    "id": "embercub--runestag",
+    "parentA": "embercub",
+    "parentB": "runestag",
+    "name": "Cinderbranch Hartcub",
+    "descriptionSv": "En lejonunge med hjorthorn, klövade bakben och runor under glödmanen.",
+    "promptEn": "Combine a lion cub chest, small ember mane and rounded feline muzzle with a stag branching antlers and long cloven hindlegs. Broad padded forepaws remain lionlike. Mint rune channels trace the chestnut flanks between short orange fur, while the elongated neck and cream throat transition naturally into the mane."
+  },
+  {
+    "id": "embercub--coraldrake",
+    "parentA": "embercub",
+    "parentB": "coraldrake",
+    "name": "Cinderreef Whelp",
+    "descriptionSv": "En lejonunge med korallvingar, fjällsvans och små horn genom manen.",
+    "promptEn": "Make a compact feline dragon with broad lion cub paws, an orange ember mane and a short fanged muzzle. Coral horns grow through the mane and small teal membrane wings attach at the shoulders. Coral scales blend into furry hips, continuing along a fully curled dragon tail tipped with ember fur."
+  },
+  {
+    "id": "embercub--dawnphoenix",
+    "parentA": "embercub",
+    "parentB": "dawnphoenix",
+    "name": "Dawncrest Liongriff",
+    "descriptionSv": "En lejonfågel med flammande vingar, klor och en fjäderman kring ansiktet.",
+    "promptEn": "Fuse a lion cub broad torso and feline hindpaws with a phoenix feathered forechest, hooked front talons and two golden wings. Its short cat muzzle has a small beaked upper tip, framed by a compact ember feather mane. The lion tail opens into a curved three-plume sunrise fan."
+  },
+  {
+    "id": "embercub--obsidianbear",
+    "parentA": "embercub",
+    "parentB": "obsidianbear",
+    "name": "Emberstone Bruiser",
+    "descriptionSv": "En björnlik lejonunge med stora tassar och svarta stenplattor runt glödmanen.",
+    "promptEn": "Give a stout lion cub enormous bear shoulders, round bear ears and heavy planted forepaws. Its small orange mane emerges between obsidian plates around the neck and upper back. A shortened broad bear muzzle retains feline cheek pads, while the stocky rear body carries a thick ember-tipped lion tail."
+  },
+  {
+    "id": "embercub--aurorakirin",
+    "parentA": "embercub",
+    "parentB": "aurorakirin",
+    "name": "Opalflare Fawncub",
+    "descriptionSv": "En hornprydd lejonunge med kirinens hals, klövar och pastellfärgad man.",
+    "promptEn": "Combine a lion cub padded forepaws and compact ember cheek ruff with an arched kirin neck, pearly forehead horn and cloven rear hooves. Lilac scales run through orange shoulder fur. Flowing mint-pink mane strands braid visually with fiery red tufts, and a long silky tail retains a small lion tuft."
+  },
+  {
+    "id": "embercub--spectralpanther",
+    "parentA": "embercub",
+    "parentB": "spectralpanther",
+    "name": "Veilcinder Stalker",
+    "descriptionSv": "En blå panter med lejonungens kraftiga tassar och en låg glödande man.",
+    "promptEn": "Create a low feline hunter with Spectral Panther long spine, curved tail and narrow eyes, enlarged by lion cub forepaws and a compact circular mane. The mane grows into a raised ember dorsal fin of fur. Orange chest hairs transition into translucent sapphire flanks, preserving a single strong muscular silhouette."
+  },
+  {
+    "id": "embercub--spectralwyrm",
+    "parentA": "embercub",
+    "parentB": "spectralwyrm",
+    "name": "Astral Manecoil",
+    "descriptionSv": "En andedrake med lejonungens bogar, framtassar och liten eldig man.",
+    "promptEn": "Fuse a lion cub stout chest and four padded paws with a long spectral dragon neck and curling scaled tail. The horned dragon face retains broad feline cheek pads, surrounded by an ember mane. Orange fur transitions into sapphire scales along the neck, with pale cyan fins emerging between mane tufts."
+  },
+  {
+    "id": "moonowl--crystalgecko",
+    "parentA": "moonowl",
+    "parentB": "crystalgecko",
+    "name": "Prismmoon Climber",
+    "descriptionSv": "En ugglegecko med ansiktskrans, fjädervingar och stora lila klättertår.",
+    "promptEn": "Create a low gecko with a curved crystal tail, silver owl facial disk and small hooked beak. Folded midnight feather wings grow from its shoulders above four splayed adhesive feet. Turquoise scales alternate with soft chest feathers, and crescent crystal plates rise along its back beneath focused golden eyes."
+  },
+  {
+    "id": "moonowl--stormlynx",
+    "parentA": "moonowl",
+    "parentB": "stormlynx",
+    "name": "Thunderdisc Prowler",
+    "descriptionSv": "Ett lodjur med ugglans ansiktskrans, vingar och fjäderklädda framtassar.",
+    "promptEn": "Combine a lynx muscular quadruped body, broad hindpaws and short bobtail with an owl silver facial disk and hooked beak tip. Midnight wings attach behind tufted shoulders, while front paws grow curved avian claws. Tall black ear tufts merge with feather crests, crossed by fine cyan lightning veins."
+  },
+  {
+    "id": "moonowl--thornbadger",
+    "parentA": "moonowl",
+    "parentB": "thornbadger",
+    "name": "Briarmoon Digger",
+    "descriptionSv": "En grävling med ugglekrans, klor och fjädervingar under ryggtaggarna.",
+    "promptEn": "Make a squat badger with a long striped muzzle framed by an owl circular silver face ruff. Folded feather wings sit beneath emerald thorn shoulder ridges. Heavy forefeet combine badger digging claws and owl talons, while charcoal hindquarters and a short tail support a dense midnight feathered chest."
+  },
+  {
+    "id": "moonowl--cinderwolf",
+    "parentA": "moonowl",
+    "parentB": "cinderwolf",
+    "name": "Ashmoon Howler",
+    "descriptionSv": "En varg med ugglevingars fjädrar, silverkrans och en flammande nackkam.",
+    "promptEn": "Fuse a wolf long muzzle, canine legs and full brush tail with an owl broad facial disk and strong feathered wings. Silver face feathers wrap the muzzle without replacing its fangs. Midnight flight feathers grow through ember shoulder fur, and black ear points curve into an alert owl crest."
+  },
+  {
+    "id": "moonowl--frostibex",
+    "parentA": "moonowl",
+    "parentB": "frostibex",
+    "name": "Frostmoon Hornwing",
+    "descriptionSv": "En bergsget med ugglevingar, ansiktskrans och två stora ishorn.",
+    "promptEn": "Create an ibex with four cloven hooves and tall swept ice horns above a silver owl facial disk. A short hooked beak tip joins its goat muzzle and beard. Midnight wings grow from its woolly shoulders, with white feather down blending into blue-frosted flank wool and a compact fanned tail."
+  },
+  {
+    "id": "moonowl--sunmane",
+    "parentA": "moonowl",
+    "parentB": "sunmane",
+    "name": "Mooncrown Gryphlion",
+    "descriptionSv": "Ett lejon med bred ugglekrans, gyllene fjäderman och stora nattvingar.",
+    "promptEn": "Build a proud lion with broad padded hindpaws and taloned feathered forefeet. A silver owl facial disk sits within a full golden lion mane, surrounding one short feline-beaked muzzle. Large midnight wings rise behind the mane; the tufted lion tail fans into silver-tipped feathers at its end."
+  },
+  {
+    "id": "moonowl--runestag",
+    "parentA": "moonowl",
+    "parentB": "runestag",
+    "name": "Runemoon Antlerwing",
+    "descriptionSv": "En hjort med ugglevingars silhuett, ansiktskrans och greniga horn.",
+    "promptEn": "Combine a compact stag body, cloven hooves and branching wooden antlers with an owl silver face disk and feathered neck. Two broad midnight wings emerge below the antler line. Mint rune marks continue from brown deer flanks onto the flight feathers, while a short deer muzzle retains a subtle hooked beak tip."
+  },
+  {
+    "id": "moonowl--coraldrake",
+    "parentA": "moonowl",
+    "parentB": "coraldrake",
+    "name": "Reefmoon Screecher",
+    "descriptionSv": "En uggledrake med korallhorn, fjädervingar och lång fjällsvans.",
+    "promptEn": "Make a squat coral dragon with four clawed feet, curled tail and a silver owl facial disk around its beaked fanged muzzle. Broad midnight feather wings retain coral leading-edge bones. Sea-green cheek fins merge into owl ear crests, and coral scales break into pale feathers along the chest."
+  },
+  {
+    "id": "moonowl--dawnphoenix",
+    "parentA": "moonowl",
+    "parentB": "dawnphoenix",
+    "name": "Eclipse Plumecrown",
+    "descriptionSv": "En kraftig rovfågel med ugglekrans, fenixkrona och dubbla sol- och månvingar.",
+    "promptEn": "Create one regal two-legged bird combining an owl rounded chest and silver facial disk with a phoenix tall crest, hooked beak and flowing tail plumes. Its two wings layer broad midnight owl flight feathers beneath elongated golden phoenix feathers. A crescent forehead marking sits below a swept sunrise crown."
+  },
+  {
+    "id": "moonowl--obsidianbear",
+    "parentA": "moonowl",
+    "parentB": "obsidianbear",
+    "name": "Blackmoon Ursagriff",
+    "descriptionSv": "En tung ugglebjörn med ansiktskrans, väldiga tassar och stenpansrade vingar.",
+    "promptEn": "Fuse a bear towering shoulders and heavy four-pawed stance with an owl silver facial disk and short hooked muzzle. Broad midnight wings fold over natural obsidian back plates, their feather roots emerging between stone seams. Bear ears become small feather crests; massive foreclaws curve like thick owl talons."
+  },
+  {
+    "id": "moonowl--aurorakirin",
+    "parentA": "moonowl",
+    "parentB": "aurorakirin",
+    "name": "Auroramoon Skyhart",
+    "descriptionSv": "En kirin med ugglekrans, pärlhorn och breda fjädervingar.",
+    "promptEn": "Combine a kirin arched neck, pearly horn and neat hooves with an owl silver facial disk and broad midnight wings. Lilac scales blend into cream feather down along the chest. Pastel mane strands flow between feather layers, while a long silky tail finishes in a compact fan of crescent-tipped feathers."
+  },
+  {
+    "id": "moonowl--spectralpanther",
+    "parentA": "moonowl",
+    "parentB": "spectralpanther",
+    "name": "Veilmoon Nightgriff",
+    "descriptionSv": "En blå panter med ugglekrans, fjädervingar och böjda rovfågelklor.",
+    "promptEn": "Create a stalking panther with muscular hindlegs and a long curved tail, plus an owl circular facial disk and short beaked muzzle. Two spectral feather wings attach at the shoulders, with taloned forepaws below. Silver feather edges remain crisp over translucent sapphire fur; focused owl eyes sit under feline brows."
+  },
+  {
+    "id": "moonowl--spectralwyrm",
+    "parentA": "moonowl",
+    "parentB": "spectralwyrm",
+    "name": "Astral Moonseraph",
+    "descriptionSv": "En slingrande andedrake med ugglekrans och stora silverkantade fjädervingar.",
+    "promptEn": "Build a floating S-shaped wyrm with a long scaled tail and horned dragon muzzle framed by an owl silver facial disk. Two broad feathered wings emerge from its neck-shoulder section. Midnight feathers grade into translucent sapphire scales, while tiny curved owl talons tuck visibly beneath a compact feathered chest."
+  },
+  {
+    "id": "crystalgecko--stormlynx",
+    "parentA": "crystalgecko",
+    "parentB": "stormlynx",
+    "name": "Prismstorm Pouncer",
+    "descriptionSv": "Ett lodjur med klättertår, kristallsvans och elektriska ryggkammar.",
+    "promptEn": "Fuse a lynx muscular chest, tufted ears and high hindquarters with a gecko flexible elongated back and curled crystal tail. Oversized feline paws spread into lavender adhesive toes. Turquoise crystals protrude through storm-grey shoulder fur, their angular ridges continuing down the spine with fine cyan lightning seams."
+  },
+  {
+    "id": "crystalgecko--thornbadger",
+    "parentA": "crystalgecko",
+    "parentB": "thornbadger",
+    "name": "Prismbriar Burrowback",
+    "descriptionSv": "En grävlingecko med klättertår och en blandning av kristaller och ryggtaggar.",
+    "promptEn": "Create a squat badger with a long cream-and-charcoal striped muzzle and broad digging forearms. Gecko adhesive toe pads widen beneath its claws, and a curved scaled tail replaces the short tail. Emerald thorns interlock with turquoise crystal plates along the back, while grey fur merges into scaled flanks."
+  },
+  {
+    "id": "crystalgecko--cinderwolf",
+    "parentA": "crystalgecko",
+    "parentB": "cinderwolf",
+    "name": "Cinderprism Fangrunner",
+    "descriptionSv": "En kristallvarg med geckotår, lång fjällsvans och en flammande kristallman.",
+    "promptEn": "Give a wolf long fanged muzzle and powerful shoulders a flexible gecko lower body and curled lizard tail. Four springy legs end in broad adhesive toes beneath furry ankles. Turquoise crystals pierce the ember mane and dorsal crest, transitioning from charcoal fur to teal scales toward the hips."
+  },
+  {
+    "id": "crystalgecko--frostibex",
+    "parentA": "crystalgecko",
+    "parentB": "frostibex",
+    "name": "Prismhorn Cliffstep",
+    "descriptionSv": "En bergsgetsgecko med ishorn, klättertår och lång böjd kristallsvans.",
+    "promptEn": "Combine an ibex barrel chest, beard and sweeping ice horns with a gecko elongated scaled body and full curved tail. Its sturdy legs end in split hooflike outer toes surrounding lavender adhesive pads. White wool meets turquoise crystal ridges at the shoulders, creating a strong sure-footed climbing silhouette."
+  },
+  {
+    "id": "crystalgecko--sunmane",
+    "parentA": "crystalgecko",
+    "parentB": "sunmane",
+    "name": "Prismmane Sunclaw",
+    "descriptionSv": "Ett lejon med kristallman, breda klättertår och en lång fjällsvans.",
+    "promptEn": "Build a muscular golden lion with a gecko flexible spine, adhesive toes and long curled scaled tail. Its broad mane contains alternating warm fur rays and turquoise crystal blades rooted naturally in the neck. Scales spread from the cheekbones onto the flanks, preserving lion muzzle muscles and heavy forequarters."
+  },
+  {
+    "id": "crystalgecko--runestag",
+    "parentA": "crystalgecko",
+    "parentB": "runestag",
+    "name": "Runefacet Climber",
+    "descriptionSv": "En hornprydd hjortgecko med långa klättertår och runor mellan kristallerna.",
+    "promptEn": "Make a compact stag with branching antlers and an elongated gecko tail. Four slender deer legs end in spread lavender adhesive toes shaped around split hooflike tips. Mint runes flow between turquoise crystal scutes along chestnut flanks, while cream throat fur transitions into a pale scaled belly."
+  },
+  {
+    "id": "crystalgecko--coraldrake",
+    "parentA": "crystalgecko",
+    "parentB": "coraldrake",
+    "name": "Reefprism Spireling",
+    "descriptionSv": "En revdrake med geckotår, kristallfjäll och små korallvingar.",
+    "promptEn": "Fuse a coral dragon horned head, four strong limbs and small teal wings with a gecko broad adhesive toes and strongly curled tail. Turquoise crystal plates alternate with coral scales along its back. Coral cheek fins grow into translucent faceted edges, and the low flexible torso retains a cream lizard belly."
+  },
+  {
+    "id": "crystalgecko--dawnphoenix",
+    "parentA": "crystalgecko",
+    "parentB": "dawnphoenix",
+    "name": "Sunprism Feathercoil",
+    "descriptionSv": "En geckofågel med fjädervingar, gyllene näbb och kristallsvans.",
+    "promptEn": "Create a four-footed gecko with lavender adhesive toes, an angular head bearing a phoenix hooked beak and broad golden feather wings. Turquoise crystal scutes blend into orange shoulder feathers. Its long curled scaled tail ends in three flame-colored feather vanes, while a swept feather crest follows the crystal brow."
+  },
+  {
+    "id": "crystalgecko--obsidianbear",
+    "parentA": "crystalgecko",
+    "parentB": "obsidianbear",
+    "name": "Blackprism Cliffmaw",
+    "descriptionSv": "En massiv björn med klättertår, kristallplattor och lång geckosvans.",
+    "promptEn": "Combine a bear huge shoulders, round ears and blunt powerful muzzle with a gecko flexible rear torso and long curved tail. Broad bear paws spread into thick lavender adhesive toes. Natural obsidian shoulder slabs gradually become turquoise crystal scutes toward the hips, with charcoal fur between the armored plates."
+  },
+  {
+    "id": "crystalgecko--aurorakirin",
+    "parentA": "crystalgecko",
+    "parentB": "aurorakirin",
+    "name": "Opalprism Windstep",
+    "descriptionSv": "En kirin med geckotår, pärlhorn och böjd kristallsvans.",
+    "promptEn": "Create a graceful kirin with pearly horn and pastel mane, but an elongated gecko body and curled crystalline tail. Four slender legs terminate in split hooflike toes with lavender adhesive pads. Lilac scales transition into raised turquoise crystal facets, and the arched neck keeps cream fur beneath a reptilian jawline."
+  },
+  {
+    "id": "crystalgecko--spectralpanther",
+    "parentA": "crystalgecko",
+    "parentB": "spectralpanther",
+    "name": "Veilprism Wallstalker",
+    "descriptionSv": "En andepanter med stora klättertår och kristaller längs sin långa svans.",
+    "promptEn": "Give a spectral panther a gecko flexible low torso, long curled scaled tail and wide adhesive toe pads. Its short feline muzzle and strong shoulder muscles remain pronounced. Translucent turquoise crystal fins grow from sapphire fur along the spine, with lavender pads and pale cyan belly scales defining the climbing anatomy."
+  },
+  {
+    "id": "crystalgecko--spectralwyrm",
+    "parentA": "crystalgecko",
+    "parentB": "spectralwyrm",
+    "name": "Astral Prismcoil",
+    "descriptionSv": "En kristalldrake med slingrande kropp, små klätterfötter och hornad skalle.",
+    "promptEn": "Fuse a spectral wyrm long S-shaped body, silver horns and narrow dragon head with four small gecko limbs ending in large lavender adhesive pads. Turquoise crystal blades run along the neck and curled tail, replacing some cyan fins. Preserve a full pale segmented belly and compact connected floating silhouette."
+  },
+  {
+    "id": "stormlynx--thornbadger",
+    "parentA": "stormlynx",
+    "parentB": "thornbadger",
+    "name": "Thunderbriar Scrapper",
+    "descriptionSv": "Ett lågt lodjur med grävklor, grävlingens ansiktsrand och elektriska taggar.",
+    "promptEn": "Combine a lynx broad feline haunches, tall tufted ears and short bobtail with a badger low heavy shoulders and striped digging muzzle. Oversized forepaws carry thick shovel claws. Emerald thorn ridges grow through storm-grey fur, cyan lightning channels linking the thorns to the long black ear tufts."
+  },
+  {
+    "id": "stormlynx--cinderwolf",
+    "parentA": "stormlynx",
+    "parentB": "cinderwolf",
+    "name": "Thunderash Fangstalker",
+    "descriptionSv": "En lodjursvarg med stora tassar, lång käke och glödande nackkam.",
+    "promptEn": "Build a compact wolf with a long fanged jaw and full brush tail, strengthened by lynx high haunches, broad snowshoe paws and tall black ear tufts. A swept ember crest grows between the shoulders. Cyan lightning marks branch through charcoal fur, while broad lynx cheek ruffs frame the canine muzzle."
+  },
+  {
+    "id": "stormlynx--frostibex",
+    "parentA": "stormlynx",
+    "parentB": "frostibex",
+    "name": "Rimethunder Hornpounce",
+    "descriptionSv": "Ett lodjur med stora ishorn, getskägg och klövade bakfötter.",
+    "promptEn": "Give a lynx springing shoulders and broad front paws the compact barrel, beard and swept ice horns of an ibex. Rear legs end in cloven blue hooves beneath grey fur. Black ear tufts rise beside the horn roots, and cyan lightning veins continue from the shoulder coat into crystalline horn ridges."
+  },
+  {
+    "id": "stormlynx--sunmane",
+    "parentA": "stormlynx",
+    "parentB": "sunmane",
+    "name": "Thundercrown Pride",
+    "descriptionSv": "Ett lejon med lodjurets tofsöron, stora hoppben och en blixtgenomdragen man.",
+    "promptEn": "Fuse a lion broad chest, mature jaw and round golden mane with a lynx tall hindquarters, massive snowshoe paws and short bobtail. Long black ear tufts project clearly above the mane. The mane sweeps into angular cheek blades around grey storm fur, with fine cyan channels between golden hair layers."
+  },
+  {
+    "id": "stormlynx--runestag",
+    "parentA": "stormlynx",
+    "parentB": "runestag",
+    "name": "Runethunder Wildclaw",
+    "descriptionSv": "Ett hornprytt lodjur med hjortbakben, stora framtassar och runmönstrad päls.",
+    "promptEn": "Create a muscular lynx forebody with broad paws and a stag longer cloven hindlegs, cream throat and branching wooden antlers. Tall black ear tufts sit within the antler spread. Mint rune lines connect naturally to cyan lightning markings across chestnut-grey flanks, and a short deerlike bobtail balances the silhouette."
+  },
+  {
+    "id": "stormlynx--coraldrake",
+    "parentA": "stormlynx",
+    "parentB": "coraldrake",
+    "name": "Reefstorm Pouncer",
+    "descriptionSv": "Ett lodjur med korallhorn, drakvingar och en lång taggig svans.",
+    "promptEn": "Combine a lynx heavy springing haunches, broad paws and tufted ears with a coral drake scaled muzzle, small membrane wings and curled long tail. Coral hornlets grow beside black ear tufts. Teal fin cheeks blend into grey fur, while cyan lightning seams run between coral shoulder scales."
+  },
+  {
+    "id": "stormlynx--dawnphoenix",
+    "parentA": "stormlynx",
+    "parentB": "dawnphoenix",
+    "name": "Dawnstorm Talongriff",
+    "descriptionSv": "Ett kraftigt lodjursgryff med rovfågelklor, solvingar och lång fjäderstjärt.",
+    "promptEn": "Create a lynx-bodied griffin with broad feline hindpaws, feathered front legs and hooked phoenix talons. A short feline muzzle carries a beaked upper edge under tall black ear tufts. Golden wings emerge from storm-grey shoulders, while its short bobtail opens into three curved sunrise plumes streaked with cyan veins."
+  },
+  {
+    "id": "stormlynx--obsidianbear",
+    "parentA": "stormlynx",
+    "parentB": "obsidianbear",
+    "name": "Blackstorm Ursalynx",
+    "descriptionSv": "En björntung katt med tofsöron, stora tassar och elektriska stenplattor.",
+    "promptEn": "Merge a bear towering shoulder hump and enormous clawed forepaws with a lynx high rear haunches, short bobtail and tall black ear tufts. The broad bear muzzle narrows into feline cheek pads. Natural obsidian plates protect the storm-grey back, with cyan lightning seams following the spaces between stone slabs."
+  },
+  {
+    "id": "stormlynx--aurorakirin",
+    "parentA": "stormlynx",
+    "parentB": "aurorakirin",
+    "name": "Aurorastorm Hornstalker",
+    "descriptionSv": "Ett lodjur med kirinens horn, bågformade hals och skimrande svans.",
+    "promptEn": "Give a lynx broad forepaws and powerful feline hindquarters an arched kirin neck, pearly forehead horn and long flowing tail. Rear feet develop split hooflike central claws. Lilac shoulder scales meet storm-grey fur, while pastel mane ribbons flow between tall black ear tufts and cyan lightning markings."
+  },
+  {
+    "id": "stormlynx--spectralpanther",
+    "parentA": "stormlynx",
+    "parentB": "spectralpanther",
+    "name": "Veilstorm Bobfang",
+    "descriptionSv": "En långsträckt blå lodjurspanter med breda tassar och höga svarta örontofsar.",
+    "promptEn": "Fuse a lynx tall shoulder silhouette, huge snowshoe paws and pronounced black ear tufts with a spectral panther long low spine and full curling tail. Dense grey cheek fur dissolves into translucent sapphire flanks. Cyan vein patterns follow enlarged leg muscles, while a short central bobtail tuft remains at the long tail base."
+  },
+  {
+    "id": "stormlynx--spectralwyrm",
+    "parentA": "stormlynx",
+    "parentB": "spectralwyrm",
+    "name": "Astral Stormjaw",
+    "descriptionSv": "En andedrake med lodjursbogar, stora tassar och svans som slingrar sig bakom.",
+    "promptEn": "Create a four-legged serpent cat with lynx massive springing haunches and broad paws beneath an elongated spectral dragon neck. The dragon muzzle retains feline cheeks and black ear tufts beside silver horns. A fully curled sapphire scaled tail balances the storm-grey forebody, with cyan fins following the dorsal lightning ridge."
+  },
+  {
+    "id": "thornbadger--cinderwolf",
+    "parentA": "thornbadger",
+    "parentB": "cinderwolf",
+    "name": "Cinderbriar Fangback",
+    "descriptionSv": "En låg varg med grävlingens randiga ansikte och taggar genom glödmanen.",
+    "promptEn": "Combine a badger squat powerful torso, striped face and shovel foreclaws with a wolf long fanged muzzle, pointed ears and full brush tail. Emerald thorns grow in a raised ridge through its ember shoulder mane. Charcoal fur meets cream facial stripes, and canine rear legs give the burrower a ready-to-charge stance."
+  },
+  {
+    "id": "thornbadger--frostibex",
+    "parentA": "thornbadger",
+    "parentB": "frostibex",
+    "name": "Rimebriar Digghorn",
+    "descriptionSv": "En grävling med stora ishorn, getskägg och klövade bakfötter.",
+    "promptEn": "Create a low badger with oversized digging front claws and a cream-and-charcoal striped muzzle, crowned by two swept ibex ice horns. Stocky hindlegs end in cloven blue hooves. White goat wool merges with emerald thorn shoulder ridges, and a short beard hangs beneath the strong burrowing jaw."
+  },
+  {
+    "id": "thornbadger--sunmane",
+    "parentA": "thornbadger",
+    "parentB": "sunmane",
+    "name": "Briarcrown Earthlion",
+    "descriptionSv": "Ett lejon med grävlingens randiga ansikte, grävklor och en bred taggman.",
+    "promptEn": "Build a lion broad chest and powerful hindquarters around a badger low shoulder line, long striped muzzle and digging foreclaws. A thick golden mane interlocks with emerald thorn growths, continuing along the back. Grey belly fur meets warm flanks, and the short sturdy tail ends in a dense golden tuft."
+  },
+  {
+    "id": "thornbadger--runestag",
+    "parentA": "thornbadger",
+    "parentB": "runestag",
+    "name": "Runebriar Burrowhart",
+    "descriptionSv": "En hornprydd grävling med hjortbakben och runor mellan ryggtaggarna.",
+    "promptEn": "Fuse a badger heavy digging forebody and striped muzzle with a stag branching antlers, cream throat and cloven rear feet. Emerald thorns merge into barklike plates along the shoulders. Mint rune lines flow across chestnut-grey flanks toward the antler bases, and a short deer tail completes the compact quadruped."
+  },
+  {
+    "id": "thornbadger--coraldrake",
+    "parentA": "thornbadger",
+    "parentB": "coraldrake",
+    "name": "Reefbriar Tunnelmaw",
+    "descriptionSv": "En grävlingdrake med korallhorn, små vingar och kraftiga grävklor.",
+    "promptEn": "Make a squat burrowing dragon with a badger striped elongated muzzle and huge foreclaws. Coral horns and sea-green cheek fins grow beside small rounded ears. A pair of compact membrane wings attach behind emerald thorn shoulders, while grey fur transitions into coral scales down a long curled dragon tail."
+  },
+  {
+    "id": "thornbadger--dawnphoenix",
+    "parentA": "thornbadger",
+    "parentB": "dawnphoenix",
+    "name": "Dawnbriar Talonback",
+    "descriptionSv": "En grävlingfågel med grävklor, gyllene vingar och en man av taggar och fjädrar.",
+    "promptEn": "Combine a badger low broad body, striped face and digging forelegs with a phoenix hooked beak tip and two strong golden wings. Emerald thorn spines transition into stiff orange feather quills along the back. Rear feet remain sturdy badger paws, and a short three-plume flame tail extends beyond the rump."
+  },
+  {
+    "id": "thornbadger--obsidianbear",
+    "parentA": "thornbadger",
+    "parentB": "obsidianbear",
+    "name": "Blackbriar Rampager",
+    "descriptionSv": "En massiv grävlingbjörn med randig käke och taggar mellan vulkanplattorna.",
+    "promptEn": "Create a bear towering shoulder hump and huge front paws with a badger low elongated rear torso and striped pointed muzzle. Its foreclaws are broad digging blades rather than thin talons. Emerald thorns grow through seams in natural obsidian back armor, contrasting with dense charcoal fur and small round ears."
+  },
+  {
+    "id": "thornbadger--aurorakirin",
+    "parentA": "thornbadger",
+    "parentB": "aurorakirin",
+    "name": "Opalbriar Burrowhorn",
+    "descriptionSv": "En grävling med pärlhorn, kirinman och klövade bakfötter.",
+    "promptEn": "Give a badger sturdy digging chest, broad claws and striped muzzle an arched kirin neck with a pearly horn. Hindfeet become neat cloven hooves beneath grey fur. Lilac scales and emerald thorns alternate along the shoulder ridge, while mint-pink mane strands and a long silky tail soften the powerful silhouette."
+  },
+  {
+    "id": "thornbadger--spectralpanther",
+    "parentA": "thornbadger",
+    "parentB": "spectralpanther",
+    "name": "Veilbriar Nightburrow",
+    "descriptionSv": "En blå panter med grävlingens randiga nos, grävklor och genomskinliga ryggtaggar.",
+    "promptEn": "Make a low spectral panther with a badger broad digging shoulders, shovel claws and cream-striped elongated face. Its rear torso remains sleek and feline, ending in a long curved tail. Emerald thorn ridges emerge through translucent sapphire fur, with bright cyan edges defining the thick paws and narrow watchful eyes."
+  },
+  {
+    "id": "thornbadger--spectralwyrm",
+    "parentA": "thornbadger",
+    "parentB": "spectralwyrm",
+    "name": "Astral Briarcoil",
+    "descriptionSv": "En slingrande drakgrävling med grävklor, randig nos och taggig andesvans.",
+    "promptEn": "Combine a badger low heavy chest and four digging paws with an elongated spectral dragon neck and curled scaled tail. A cream-striped tapered muzzle blends into one horned dragon face. Emerald shoulder thorns become sapphire dorsal fins along the neck and tail, retaining dense grey fur around the powerful forearms."
+  },
+  {
+    "id": "cinderwolf--frostibex",
+    "parentA": "cinderwolf",
+    "parentB": "frostibex",
+    "name": "Rimeash Hornwolf",
+    "descriptionSv": "En varg med stora ishorn, getskägg och klövar under den sotiga pälsen.",
+    "promptEn": "Fuse a wolf long fanged muzzle, pointed ears and springy forepaws with an ibex compact chest, swept ice horns and cloven rear hooves. A short white beard grows beneath the canine jaw. Ember mane tufts curl around blue horn bases and continue down charcoal shoulders into frosted goat wool."
+  },
+  {
+    "id": "cinderwolf--sunmane",
+    "parentA": "cinderwolf",
+    "parentB": "sunmane",
+    "name": "Ashcrown Pridewolf",
+    "descriptionSv": "En bredkäkad lejonvarg med stor man, spetsöron och lång buskig svans.",
+    "promptEn": "Create a lion powerful front chest, mature cheek pads and broad paws joined to a wolf lean waist, springy hindlegs and full brush tail. The long canine jaw sits inside a two-tier mane: rounded golden cheeks and a swept ember dorsal crest. Tall wolf ears project above the layered mane."
+  },
+  {
+    "id": "cinderwolf--runestag",
+    "parentA": "cinderwolf",
+    "parentB": "runestag",
+    "name": "Runecinder Hartfang",
+    "descriptionSv": "En hjortvarg med greniga horn, vargtassar och klövade bakben.",
+    "promptEn": "Combine a wolf fanged long muzzle and muscular forelegs with a stag high arched neck, branching wooden antlers and cloven rear feet. Cream throat fur flows into a red ember mane. Mint runes cross chestnut-charcoal flanks beneath raised shoulder fur, and the full brush tail remains distinctly canine."
+  },
+  {
+    "id": "cinderwolf--coraldrake",
+    "parentA": "cinderwolf",
+    "parentB": "coraldrake",
+    "name": "Cinderreef Fangedrake",
+    "descriptionSv": "En vargdrake med korallhorn, vingar och lång glödande fjällsvans.",
+    "promptEn": "Build a lean wolf with pointed ears, long fanged muzzle and powerful paws, then extend its spine into a curled coral dragon tail. Small teal membrane wings attach behind the ember mane. Coral hornlets and cheek fins emerge through charcoal face fur, with scaled plates protecting the shoulders and thighs."
+  },
+  {
+    "id": "cinderwolf--dawnphoenix",
+    "parentA": "cinderwolf",
+    "parentB": "dawnphoenix",
+    "name": "Dawnash Firegriff",
+    "descriptionSv": "En vargfågel med rovfågelklor, breda solvingar och fjäderplym i svansen.",
+    "promptEn": "Fuse a wolf lean torso, long fanged muzzle and canine hindpaws with feathered phoenix forelegs ending in golden talons. Broad orange-gold wings rise behind an ember neck crest. A small hooked beak ridge blends into the upper jaw, while the full wolf brush tail opens into curved flame plumes."
+  },
+  {
+    "id": "cinderwolf--obsidianbear",
+    "parentA": "cinderwolf",
+    "parentB": "obsidianbear",
+    "name": "Blackash Mawguard",
+    "descriptionSv": "En väldig björnvarg med lång käke, glödman och tunga stenbogar.",
+    "promptEn": "Create a bear massive shoulder hump and heavy clawed front paws joined to a wolf lean rear torso, long jaw and full brush tail. Ember mane fur grows between obsidian shoulder slabs. Round bear cheek volume merges with pointed canine ears, giving one powerful snarling head above planted charcoal forelegs."
+  },
+  {
+    "id": "cinderwolf--aurorakirin",
+    "parentA": "cinderwolf",
+    "parentB": "aurorakirin",
+    "name": "Opalash Hornrunner",
+    "descriptionSv": "En hornprydd varg med kirinens hals, klövar och långa svepande man.",
+    "promptEn": "Combine a wolf long canine muzzle, strong forepaws and alert ears with a kirin arched neck, pearly horn and cloven rear feet. Lilac scales emerge beneath charcoal fur along the flanks. Its ember mane transitions into mint-pink flowing strands, while the long brush tail carries a silky aurora tip."
+  },
+  {
+    "id": "cinderwolf--spectralpanther",
+    "parentA": "cinderwolf",
+    "parentB": "spectralpanther",
+    "name": "Veilash Nightmaw",
+    "descriptionSv": "En smygande vargpanter med lång käke, kattrygg och en låg glödande man.",
+    "promptEn": "Give a spectral panther low muscular torso and curved feline tail a wolf long fanged muzzle, pointed ears and powerful canine forelegs. A raised ember mane follows the neck and shoulder line. Charcoal hair transitions into translucent sapphire flank fur, while broad feline hindpaws and narrow blue eyes define its stalking stance."
+  },
+  {
+    "id": "cinderwolf--spectralwyrm",
+    "parentA": "cinderwolf",
+    "parentB": "spectralwyrm",
+    "name": "Astral Ashcoil",
+    "descriptionSv": "En vargdrake med kraftiga tassar, slingrande hals och lång genomskinlig svans.",
+    "promptEn": "Fuse a wolf four powerful legs and lean chest with an elongated spectral dragon neck and complete coiled tail. The single horned head combines a canine long jaw and silver dragon horns. Charcoal fur and an ember neck crest grade into sapphire scales, with cyan fins continuing along the sinuous spine."
+  },
+  {
+    "id": "frostibex--sunmane",
+    "parentA": "frostibex",
+    "parentB": "sunmane",
+    "name": "Rimecrown Hornlion",
+    "descriptionSv": "Ett lejon med stora ishorn, tät man och kraftiga klövade bakben.",
+    "promptEn": "Combine a lion broad chest, golden mane and heavy padded forepaws with an ibex swept ice horns, white beard and cloven hindhooves. A compact goat barrel supports the large feline shoulders. Golden mane layers frame the blue horn roots, and the long tufted lion tail contrasts with frosted flank wool."
+  },
+  {
+    "id": "frostibex--runestag",
+    "parentA": "frostibex",
+    "parentB": "runestag",
+    "name": "Runerime Crownstag",
+    "descriptionSv": "En hjortget med klövar och horn som böjs bakåt innan de grenar sig.",
+    "promptEn": "Create a strong mountain deer with an ibex stocky chest, beard and four broad cloven hooves. Its horns sweep backward like icy goat horns before branching into wooden stag tines, one continuous organic structure. White wool meets chestnut flanks carrying mint rune grooves, with crystal ridges along the shoulders."
+  },
+  {
+    "id": "frostibex--coraldrake",
+    "parentA": "frostibex",
+    "parentB": "coraldrake",
+    "name": "Rimereef Hornscale",
+    "descriptionSv": "En bergsgetsdrake med ishorn, korallvingar och lång fjällsvans.",
+    "promptEn": "Fuse an ibex barrel body, white beard and swept ice horns with a coral drake fanged muzzle, teal membrane wings and curled scaled tail. Four sturdy legs end in split hooflike dragon claws. White wool transitions into coral shoulder scales, and sea-green cheek fins fan behind the icy horn roots."
+  },
+  {
+    "id": "frostibex--dawnphoenix",
+    "parentA": "frostibex",
+    "parentB": "dawnphoenix",
+    "name": "Dawnrime Skyhorn",
+    "descriptionSv": "En bergsget med fenixvingar, ishorn och en fjäderstjärt som böjs uppåt.",
+    "promptEn": "Make a stocky ibex with four cloven hooves and sweeping ice horns, its chest layered in cream feather down. Broad golden phoenix wings attach behind the shoulders. A hooked beak tip subtly joins the goat muzzle, while the short tail extends into three curved sunrise plumes contrasting with blue frosted wool."
+  },
+  {
+    "id": "frostibex--obsidianbear",
+    "parentA": "frostibex",
+    "parentB": "obsidianbear",
+    "name": "Blackrime Hornmaul",
+    "descriptionSv": "En massiv björn med ishorn, getskägg och vulkanplattor över bogarna.",
+    "promptEn": "Build a huge bear forebody with broad clawed front paws, a compact ibex rear barrel and cloven back hooves. Two swept ice horns rise above round ears and a short white beard. Natural obsidian shoulder plates border dense frost-white wool, while the broad bear muzzle remains stern and powerful."
+  },
+  {
+    "id": "frostibex--aurorakirin",
+    "parentA": "frostibex",
+    "parentB": "aurorakirin",
+    "name": "Aurorarime Crowncourser",
+    "descriptionSv": "En kirin med tre sammanhängande hornformer, kraftiga klövar och tät vinterman.",
+    "promptEn": "Combine a kirin long arched neck, pearly forehead horn and flowing pastel tail with an ibex stocky body, beard and two swept ice horns. Four broad cloven hooves support the compact frame. Lilac scales emerge between thick white wool, while mint-pink mane strands stream around all three distinct horn bases."
+  },
+  {
+    "id": "frostibex--spectralpanther",
+    "parentA": "frostibex",
+    "parentB": "spectralpanther",
+    "name": "Veilrime Hornpouncer",
+    "descriptionSv": "En blå panter med stora ishorn, getskägg och klövade bakfötter.",
+    "promptEn": "Create a crouched spectral panther with broad front paws, a compact ibex chest and cloven blue rear hooves. Long swept ice horns rise above feline ears; a short beard follows the fanged jaw. White shoulder wool dissolves into translucent sapphire flanks, continuing into a full curved panther tail."
+  },
+  {
+    "id": "frostibex--spectralwyrm",
+    "parentA": "frostibex",
+    "parentB": "spectralwyrm",
+    "name": "Astral Rimehorn",
+    "descriptionSv": "En slingrande andedrake med bergsgetsbogar, ishorn och fyra klövade fötter.",
+    "promptEn": "Fuse an ibex strong barrel chest, white beard and four cloven feet with an elongated spectral dragon neck and curled scaled tail. Its paired swept ice horns replace the smaller dragon horns naturally. White wool around the shoulders grades into sapphire scales, with crystal fins tracing the long pale-bellied spine."
+  },
+  {
+    "id": "sunmane--runestag",
+    "parentA": "sunmane",
+    "parentB": "runestag",
+    "name": "Runecrown Antlerpride",
+    "descriptionSv": "Ett stort lejon med hjorthorn, klövade bakben och en runmönstrad man.",
+    "promptEn": "Create a lion broad chest, massive padded forepaws and full golden mane joined to a stag slender cloven hindlegs and chestnut flanks. Branching wooden antlers emerge clearly above the mane. A slightly elongated deer neck supports the powerful feline muzzle, while mint runes flow between mane strands onto the sides."
+  },
+  {
+    "id": "sunmane--coraldrake",
+    "parentA": "sunmane",
+    "parentB": "coraldrake",
+    "name": "Reefcrown Pridewyrm",
+    "descriptionSv": "Ett lejon med korallhorn, stora drakvingar och en full fjällsvans.",
+    "promptEn": "Fuse a muscular lion with broad paws, mature feline muzzle and a full golden mane with coral dragon wings and a long curled scaled tail. Coral horns grow through the upper mane, while teal cheek fins flare behind the jaws. Scales blend into golden fur across the shoulders and hindquarters."
+  },
+  {
+    "id": "sunmane--dawnphoenix",
+    "parentA": "sunmane",
+    "parentB": "dawnphoenix",
+    "name": "Sunthrone Gryphon",
+    "descriptionSv": "Ett majestätiskt lejongryff med rovfågelklor, stor fjäderman och solvingar.",
+    "promptEn": "Build a powerful lion rear body with padded hindpaws and a phoenix feathered front chest ending in golden talons. Its lion cheek pads frame a hooked beaked muzzle within a broad golden feather mane. Huge layered sunrise wings attach behind the shoulders, and the tufted lion tail ends in long curved flame plumes."
+  },
+  {
+    "id": "sunmane--obsidianbear",
+    "parentA": "sunmane",
+    "parentB": "obsidianbear",
+    "name": "Blackcrown Pridebear",
+    "descriptionSv": "En väldig lejonbjörn med stor man och vulkanplattor mellan skuldrorna.",
+    "promptEn": "Combine a bear towering shoulder hump, barrel torso and enormous clawed paws with a lion mature cheek pads, broad muzzle and full golden mane. The mane grows through natural obsidian neck plates, extending into a rugged dorsal crest. Charcoal rear fur contrasts with golden chest hair and a complete tufted lion tail."
+  },
+  {
+    "id": "sunmane--aurorakirin",
+    "parentA": "sunmane",
+    "parentB": "aurorakirin",
+    "name": "Opalcrown Lionhart",
+    "descriptionSv": "Ett hornprytt lejon med kirinhals, klövade bakfötter och skimrande man.",
+    "promptEn": "Create a regal lion with massive padded forepaws and broad golden cheek mane, lifted by a kirin arched neck and pearly forehead horn. Hindfeet become neat cloven hooves beneath cream fur. Lilac scales protect the flanks, while pastel strands flow through the mane and along a long tufted silky tail."
+  },
+  {
+    "id": "sunmane--spectralpanther",
+    "parentA": "sunmane",
+    "parentB": "spectralpanther",
+    "name": "Veilcrown Nightpride",
+    "descriptionSv": "En kraftig blå panter med lejonman, bred käke och lång böjd svans.",
+    "promptEn": "Fuse a lion heavy shoulder mass, broad mature jaw and full circular mane with a panther elongated low torso, powerful feline hips and long curling tail. Golden mane hairs transition into translucent sapphire layers toward the shoulders. Pale cyan currents reveal the larger chest muscles, keeping a crisp fierce stalking silhouette."
+  },
+  {
+    "id": "sunmane--spectralwyrm",
+    "parentA": "sunmane",
+    "parentB": "spectralwyrm",
+    "name": "Astral Crownwyrm",
+    "descriptionSv": "En lejonburen andedrake med lång hornad hals, stor man och slingrande svans.",
+    "promptEn": "Build a broad lion forebody and four planted feline paws beneath an elongated horned spectral dragon neck. The dragon face retains strong lion cheek pads surrounded by a full golden mane. Gold fur grades into sapphire scales along the neck and long coiled tail, with cyan fins emerging between mane rays."
+  },
+  {
+    "id": "runestag--coraldrake",
+    "parentA": "runestag",
+    "parentB": "coraldrake",
+    "name": "Runehorn Reefwarden",
+    "descriptionSv": "En hjortdrake med greniga horn, korallvingar och lång fjällsvans.",
+    "promptEn": "Combine a stag slender cloven legs, cream throat and branching wooden antlers with a coral drake muscular scaled torso and long curled tail. Small teal wings attach behind the shoulders. Coral ridges follow the antler branches, while mint runes cross chestnut fur between shoulder scales and a fanged deerlike muzzle."
+  },
+  {
+    "id": "runestag--dawnphoenix",
+    "parentA": "runestag",
+    "parentB": "dawnphoenix",
+    "name": "Dawnhorn Skywarden",
+    "descriptionSv": "En hornprydd hjortfågel med stora solvingar, klövar och fjäderstjärt.",
+    "promptEn": "Create a stag-bodied sky beast with four cloven hooves, branching antlers and a narrow deer muzzle ending in a small hooked beak tip. Broad golden phoenix wings emerge from a feathered cream chest. Mint runes continue onto orange flight feathers, and the short deer tail extends into three curved flame plumes."
+  },
+  {
+    "id": "runestag--obsidianbear",
+    "parentA": "runestag",
+    "parentB": "obsidianbear",
+    "name": "Blackhorn Runemaul",
+    "descriptionSv": "En björntung hjort med greniga horn, framtassar och stenplattor längs ryggen.",
+    "promptEn": "Fuse a bear massive shoulder hump and heavy clawed forepaws with a stag longer cloven hindlegs and branching wooden antlers. A broad bear muzzle narrows slightly into a deer nose above a cream throat. Mint runes glow in natural obsidian plate seams across chestnut-charcoal flanks, ending at a short deer tail."
+  },
+  {
+    "id": "runestag--aurorakirin",
+    "parentA": "runestag",
+    "parentB": "aurorakirin",
+    "name": "Aurorarune Crownheart",
+    "descriptionSv": "En kirinhjort med greniga horn, ett pärlhorn och en lång skimrande man.",
+    "promptEn": "Combine a stag sturdy chestnut body, wide branching wooden antlers and cloven hooves with a kirin arched neck, central pearly horn and flowing mane. Lilac scales line the upper legs beneath cream fur. Mint rune channels follow the antlers and flanks, while pastel tail strands stream from a deerlike rump."
+  },
+  {
+    "id": "runestag--spectralpanther",
+    "parentA": "runestag",
+    "parentB": "spectralpanther",
+    "name": "Veilhorn Nightwarden",
+    "descriptionSv": "En blå panter med hjorthorn, lång hals och klövade bakfötter.",
+    "promptEn": "Create a low panther hunter with large feline forepaws, a stag elongated neck and cloven hindfeet. Branching wooden antlers grow above its short feline muzzle and long deer ears. Chestnut shoulder fur grades into translucent sapphire flanks, with mint runes following the ribs and a full curved panther tail."
+  },
+  {
+    "id": "runestag--spectralwyrm",
+    "parentA": "runestag",
+    "parentB": "spectralwyrm",
+    "name": "Astral Runehart",
+    "descriptionSv": "En slingrande drakhjort med greniga horn, klövar och runor över fjällen.",
+    "promptEn": "Fuse a compact stag chest and four cloven legs with a long spectral dragon neck and complete coiled tail. The single narrow dragon head carries branching wooden deer antlers and a cream throat fringe. Mint runes flow across sapphire scales, while chestnut shoulder fur transitions smoothly into pale segmented belly plates."
+  },
+  {
+    "id": "coraldrake--dawnphoenix",
+    "parentA": "coraldrake",
+    "parentB": "dawnphoenix",
+    "name": "Dawnreef Featherdrake",
+    "descriptionSv": "En koralldrake med stora fjädervingar och en böjd fenixstjärt.",
+    "promptEn": "Combine a coral dragon four-clawed stance, horned head and curled scaled tail with a phoenix hooked beak ridge and broad golden feather wings. Coral wing bones remain visible beneath layered flight feathers. Teal cheek fins break into feather crests, while the tail alternates coral scutes and long curved orange plumes."
+  },
+  {
+    "id": "coraldrake--obsidianbear",
+    "parentA": "coraldrake",
+    "parentB": "obsidianbear",
+    "name": "Blackreef Ursadrake",
+    "descriptionSv": "En massiv björndrake med korallvingar, stora tassar och tung stenrygg.",
+    "promptEn": "Create a dragon-bear with enormous bear shoulders, broad planted paws and round ears framing a horned coral muzzle. Compact teal membrane wings grow behind natural obsidian shoulder slabs. Charcoal fur merges into coral scales along the muscular hips and long curled tail, while thick claws and cheek fins remain fully visible."
+  },
+  {
+    "id": "coraldrake--aurorakirin",
+    "parentA": "coraldrake",
+    "parentB": "aurorakirin",
+    "name": "Opalreef Crownscale",
+    "descriptionSv": "En kirindrake med pärlhorn, korallvingar och en lång skimrande fjällsvans.",
+    "promptEn": "Fuse a kirin arched neck, pearly forehead horn and elegant cloven hooves with a coral dragon horned muzzle, teal wings and curled scaled tail. Coral side horns frame the central pearl horn naturally. Lilac flank scales grade into coral plates, and pastel mane strands continue between the dorsal fins."
+  },
+  {
+    "id": "coraldrake--spectralpanther",
+    "parentA": "coraldrake",
+    "parentB": "spectralpanther",
+    "name": "Veilreef Prowldrake",
+    "descriptionSv": "En panterdrake med korallhorn, vingar och en genomskinlig fjällsvans.",
+    "promptEn": "Give a stalking spectral panther broad paws, low muscular torso and narrow cat eyes a coral drake scaled muzzle, coral horns and small teal membrane wings. Its long feline tail becomes scaled and finned toward the tip. Coral plates blend into translucent sapphire fur across the shoulders and hips."
+  },
+  {
+    "id": "coraldrake--spectralwyrm",
+    "parentA": "coraldrake",
+    "parentB": "spectralwyrm",
+    "name": "Astral Reefcoil",
+    "descriptionSv": "En slingrande revdrake med vingar, fyra små klor och genomskinlig blå bakdel.",
+    "promptEn": "Create a compact long-necked dragon combining coral drake four clawed limbs and teal membrane wings with a spectral wyrm elongated S-shaped torso and curling tail. Coral head horns flow into small silver tips. Solid coral shoulder scales gradually become translucent sapphire plates toward the pale segmented belly and finned tail."
+  },
+  {
+    "id": "dawnphoenix--obsidianbear",
+    "parentA": "dawnphoenix",
+    "parentB": "obsidianbear",
+    "name": "Blackdawn Talonbear",
+    "descriptionSv": "En björnfågel med väldiga tassar, vulkanplattor och breda flamvingar.",
+    "promptEn": "Build a massive bear with heavy shoulders, round ears and broad clawed hindpaws, its forefeet merging into thick golden phoenix talons. Two broad sunrise wings grow from gaps in natural obsidian shoulder plates. A short hooked beak ridge joins the powerful bear muzzle, and flame feather plumes replace its tiny tail."
+  },
+  {
+    "id": "dawnphoenix--aurorakirin",
+    "parentA": "dawnphoenix",
+    "parentB": "aurorakirin",
+    "name": "Auroradawn Skycourser",
+    "descriptionSv": "En kirin med solvingar, pärlhorn och en svans av långa ljusa fjädrar.",
+    "promptEn": "Combine a kirin arched neck, pearly horn and four neat cloven hooves with broad phoenix feather wings and a curved flame-plume tail. A subtle hooked beak ridge joins the deerlike muzzle. Lilac scales transition into golden shoulder feathers, while mint-pink mane strands flow through an upright sunrise crest."
+  },
+  {
+    "id": "dawnphoenix--spectralpanther",
+    "parentA": "dawnphoenix",
+    "parentB": "spectralpanther",
+    "name": "Veildawn Gryphstalker",
+    "descriptionSv": "En blå panterfågel med gyllene klor, stora vingar och lång fjäderstjärt.",
+    "promptEn": "Fuse a spectral panther sleek muscular torso, feline hindpaws and long curved tail with a phoenix feathered forechest and golden front talons. Broad sunrise wings grow from sapphire shoulders. A hooked beak tip blends into one feline muzzle, while translucent blue tail fur opens into three long orange-gold feather plumes."
+  },
+  {
+    "id": "dawnphoenix--spectralwyrm",
+    "parentA": "dawnphoenix",
+    "parentB": "spectralwyrm",
+    "name": "Astral Dawnswirl",
+    "descriptionSv": "En lång andedrake med fenixvingar, klor och gyllene fjädrar längs ryggen.",
+    "promptEn": "Create a floating S-shaped spectral serpent with a horned dragon head, hooked beak ridge and two tiny visible golden talons beneath its chest. Broad phoenix wings emerge from the upper torso. Sunrise feathers overlap sapphire neck scales, continuing into a layered plume fan along the full curled tail."
+  },
+  {
+    "id": "obsidianbear--aurorakirin",
+    "parentA": "obsidianbear",
+    "parentB": "aurorakirin",
+    "name": "Blackopal Crownmaul",
+    "descriptionSv": "En massiv kirinbjörn med pärlhorn, stora framtassar och man mellan stenplattorna.",
+    "promptEn": "Combine a bear towering shoulders, huge front paws and broad muzzle with a kirin arched neck, pearly horn and cloven hindfeet. Natural obsidian slabs overlap lilac scales along the back. A flowing mint-pink mane emerges between the plates, and the stocky charcoal rump extends into a long silky aurora tail."
+  },
+  {
+    "id": "obsidianbear--spectralpanther",
+    "parentA": "obsidianbear",
+    "parentB": "spectralpanther",
+    "name": "Blackveil Nightmauler",
+    "descriptionSv": "En björntung andepanter med låga bakben och stenplattor över skuldrorna.",
+    "promptEn": "Create a low stalking beast with bear enormous shoulder muscles, broad round-eared head and heavy clawed forepaws, joined to panther sleek hips and a full curved tail. Natural obsidian plates break into translucent sapphire armor scales along the flanks. Charcoal cheek fur remains solid around narrow cyan feline eyes."
+  },
+  {
+    "id": "obsidianbear--spectralwyrm",
+    "parentA": "obsidianbear",
+    "parentB": "spectralwyrm",
+    "name": "Veilmaw Ursadrake",
+    "descriptionSv": "En väldig björndrake med tunga tassar, lång drakhals och stenrygg som övergår i blå andefjäll.",
+    "promptEn": "Build a massive bear-dragon with towering bear shoulders, four enormous planted bear paws and a thick barrel chest. Its elongated spectral dragon neck supports one horned fanged dragon head; a complete serpentine tail coils behind. Obsidian spine slabs transition into translucent sapphire scales along the neck and tail, retaining charcoal fur around the forearms."
+  },
+  {
+    "id": "aurorakirin--spectralpanther",
+    "parentA": "aurorakirin",
+    "parentB": "spectralpanther",
+    "name": "Auroraveil Hornprowler",
+    "descriptionSv": "En hornprydd andepanter med kirinhals, klövade bakfötter och lång skimrande man.",
+    "promptEn": "Fuse a spectral panther low muscular body and broad front paws with a kirin arched neck, pearly forehead horn and cloven hindfeet. Lilac scales follow the translucent sapphire flanks. Its pastel mane flows between feline ears and down the back, joining a long curved cat tail ending in silky aurora strands."
+  },
+  {
+    "id": "aurorakirin--spectralwyrm",
+    "parentA": "aurorakirin",
+    "parentB": "spectralwyrm",
+    "name": "Aurorastral Crowncoil",
+    "descriptionSv": "En slingrande kirindrake med pärlhorn, fyra klövar och en lång pastellman.",
+    "promptEn": "Combine a kirin small hooved quadruped chest, pearly forehead horn and flowing pastel mane with a spectral wyrm elongated dragon neck and complete S-curled tail. Silver side horns frame the central pearl horn. Lilac shoulder scales grade into translucent sapphire belly plates, with mint-pink hair following the sinuous dorsal ridge."
+  },
+  {
+    "id": "spectralpanther--spectralwyrm",
+    "parentA": "spectralpanther",
+    "parentB": "spectralwyrm",
+    "name": "Veilfang Coilprowler",
+    "descriptionSv": "En lång andepanter med drakhals, horn och en svans som slingrar sig runt kroppen.",
+    "promptEn": "Create a sleek four-pawed panther-dragon with a muscular feline chest and low stalking hips. Extend the neck into a short graceful serpent curve supporting a horned dragon muzzle with feline cheek pads. Sapphire fur becomes translucent scales along the spine and full coiled tail, with cyan fins and silver horns defining the hybrid silhouette."
+  }
+]

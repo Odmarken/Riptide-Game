@@ -1,0 +1,275 @@
+{
+  "submittedAt": "2026-09-14T21:01:15.019Z",
+  "requests": [
+    {
+      "index": 10,
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "4k",
+        "aspect_ratio": "3:2",
+        "background": "transparent",
+        "medias": [
+          {
+            "role": "image",
+            "value": "0530d133-5c81-41fa-b685-9ea6d234ab37"
+          },
+          {
+            "role": "image",
+            "value": "4d025f5e-892a-4578-96aa-ce58bb4bcd76"
+          },
+          {
+            "role": "image",
+            "value": "3eac1a85-79a2-425e-b57d-c3a4b0fade85"
+          },
+          {
+            "role": "image",
+            "value": "8a7cd7fe-81e1-4906-8457-70a353aa8b21"
+          },
+          {
+            "role": "image",
+            "value": "b6a76f13-64f9-4d0a-8900-b2ef652c67b8"
+          }
+        ],
+        "count": 1,
+        "prompt": "Create a polished ORIGINAL CREATURE CONCEPT ATLAS for Riptide, a hand-painted fantasy chibi RPG. This is a visual breeding catalogue: every requested cell is ONE NEW hybrid creature, visibly inheriting anatomical traits from BOTH named parents. Reference images show the existing parent species and exact visual style; use their painted shapes and palette, never copy the reference atlas layout.\nEXACT OUTPUT LAYOUT: landscape 3:2 image, an INVISIBLE uniform grid of FIVE equal columns by THREE equal rows. EXACTLY FIFTEEN separate complete creatures. Read the assignments in row-major order: row1 left-to-right cells01-05, row2 cells06-10, row3 cells11-15. Each creature occupies only its own cell and stays centered with at least 20 percent transparent clearance on EVERY side. Entire tails, horns, antlers, paws and wings must fit within that cell. No extras, no empty cells, no overlap. TRUE TRANSPARENT RGBA BACKGROUND outside the silhouettes. No scene, no terrain, no white matte, no checkerboard, no visible grid, NO LETTERING or labels or numbers. Labels will be added by code.\nSTYLE: match the supplied original Riptide Tides: beautiful hand-painted storybook fantasy sprites, bold clean dark-brown ink outlines, warm modeled painterly highlights, detailed fur/feathers/scales, large expressive heads, short sturdy chibi proportions, powerful readable silhouettes, cool mutated fantasy animals. A range of charming to fierce, no gore. Full-body three-quarter SIDE VIEW, head facing RIGHT, tail left; anatomically connected single head/body, grounded feet or a clearly intentional floating pose. Restrained magical body highlights, no huge glow clouds or floor shadows. Six-limbed fantasy creatures only where a specified wing pair or insect anatomy needs it. Balanced inheritance, not an original animal simply recolored.\n\nSTRICT PLACEMENT: Creature centers are at x=10%,30%,50%,70%,90% of the image and y=16.67%,50%,83.33%. Each creature including every appendage fits within just 60% of its own cell width and 70% of its own cell height. Transparent gutters between every pair of neighbors are essential. Do not enlarge a creature to fill its entire cell. Match these fifteen independent center points precisely.\n\nCELL 01 (row 1, column 1): Moss Fox + Obsidian Bear. Full-body fantasy chibi: A fox-bear has a broad muscular charcoal torso, massive clawed forepaws and a tapered russet muzzle below tall pointed ears. Glossy volcanic plates grow through moss-green shoulder fur. Its enormous cream-tipped fox tail balances rounded bear haunches, with a cream chest and long cheek ruff giving a fierce forest guardian silhouette. Brown ink contours, painterly RPG finish; facing right.\nCELL 02 (row 1, column 2): Moss Fox + Aurora Kirin. Full-body fantasy chibi: A fox-kirin has a pointed russet muzzle, tall ears and one pearly horn inside a flowing pastel mane. Four neat hooves support a compact deerlike torso with lilac scales showing through cream and moss-green fur. Its long fox tail blends a plush pale tip into attached mint-pink silky strands, creating a graceful guardian. Brown ink contours, painterly RPG finish; facing right.\nCELL 03 (row 1, column 3): Moss Fox + Spectral Panther. Full-body fantasy chibi: A spectral fox-panther has a narrow angular muzzle with short icy saber fangs, tall fox ears and powerful feline paws. Its translucent sapphire torso carries dark moss-shaped shoulder markings that resemble raised fur. A huge fox brush tail glows cyan along its pale tip, contrasting the low sleek predatory body and long whiskers. Brown ink contours, painterly RPG finish; facing right.\nCELL 04 (row 1, column 4): Moss Fox + Spectral Wyrm. Full-body fantasy chibi: A floating fox-serpent has a narrow russet dragon muzzle, pointed furry ears and tiny silver horns. A cream chest flows into one long translucent sapphire body curled in an S, with moss-green fur forming a continuous dorsal mane. Two small fox forepaws and a scaled tail ending in a plush pale brush remain visible. Brown ink contours, painterly RPG finish; facing right.\nCELL 05 (row 1, column 5): Reed Otter + Dusk Moth. Full-body fantasy chibi: An otter-moth has a sleek brown furry torso, cream whiskered muzzle and rounded ears beside feathery antennae. Four violet crescent-patterned wings emerge above four small webbed paws. Reed-green fur follows the wing roots and the broad flattened otter tail, while a soft lilac belly gives the hovering body gentle readable volume. Brown ink contours, painterly RPG finish; facing right.\nCELL 06 (row 2, column 1): Reed Otter + Shellsnap. Full-body fantasy chibi: An otter-turtle has an elongated brown swimming body beneath a low terracotta shell with golden spiral scutes. A rounded whiskered muzzle and cream furry throat extend from its jade-scaled neck. Four webbed clawed feet support the shell, while a broad flattened tail and reed-green seams soften its streamlined river silhouette. Brown ink contours, painterly RPG finish; facing right.\nCELL 07 (row 2, column 2): Reed Otter + Acorn Boar. Full-body fantasy chibi: An otter-boar has a long low brown torso with tan piglet stripes, a broad whiskered snout and two little ivory tusks. Four short webbed hooves spread beneath its cream throat and belly. Reed-green dorsal bristles run into an acorn-shaped crown, while a thick flattened otter tail balances the stocky swimming body. Brown ink contours, painterly RPG finish; facing right.\nCELL 08 (row 2, column 3): Reed Otter + Ember Cub. Full-body fantasy chibi: An otter-lion cub has a rounded whiskered feline muzzle, cream throat and a compact ember mane edged with reed-green fur. Its long orange-brown torso rests on four broad webbed paws, with larger feline forefeet. A thick flattened otter tail ends in a low red flame tuft, creating an agile aquatic hunter. Brown ink contours, painterly RPG finish; facing right.\nCELL 09 (row 2, column 4): Reed Otter + Moon Owl. Full-body fantasy chibi: An otter-owl has a round silver facial disk around a small beaked muzzle with fine whiskers and a crescent brow. Midnight-blue wings attach above four webbed paws on its sleek brown torso. Cream throat feathers blend into reed-green back fur, and a broad flattened tail carries short layered feather edges. Brown ink contours, painterly RPG finish; facing right.\nCELL 10 (row 2, column 5): Reed Otter + Crystal Gecko. Full-body fantasy chibi: An otter-gecko has a long sleek brown body with a cream whiskered muzzle and small round ears. Four lavender feet combine webbing and adhesive pads for swimming and climbing. Teal crystal scales grow through reed-green back fur, while its thick otter tail curves like a gecko's and gains translucent faceted edges. Brown ink contours, painterly RPG finish; facing right.\nCELL 11 (row 3, column 1): Reed Otter + Storm Lynx. Full-body fantasy chibi: An otter-lynx has a long streamlined storm-grey torso, rounded whiskered muzzle and compact ears ending in black tufts. Four broad webbed cat paws brace its cream chest. Cyan lightning markings wind through reed-green dorsal fur, while a thick flattened otter tail and narrow feline eyes create a fierce river ambusher. Brown ink contours, painterly RPG finish; facing right.\nCELL 12 (row 3, column 2): Reed Otter + Thorn Badger. Full-body fantasy chibi: An otter-badger has a long low brown-grey torso, cream-charcoal facial stripes and a rounded whiskered muzzle. Huge digging foreclaws retain webbing, with two broad swimming hindfeet behind. Emerald thorn fur grows along the shoulders into reed-green dorsal tufts; a thick flattened otter tail preserves its amphibious silhouette beneath the rugged armor. Brown ink contours, painterly RPG finish; facing right.\nCELL 13 (row 3, column 3): Reed Otter + Cinder Wolf. Full-body fantasy chibi: An otter-wolf has a long charcoal swimming torso, a narrow canine muzzle softened by whiskers and small rounded ears. Four strong webbed paws support its cream throat and rust belly. An ember mane grows between reed-green shoulder tufts, while a broad flattened otter tail carries short dark-red fiery fur along its rim. Brown ink contours, painterly RPG finish; facing right.\nCELL 14 (row 3, column 4): Reed Otter + Sunmane. Full-body fantasy chibi: An otter-lion has a broad golden mane framing a rounded whiskered muzzle and small ears. Its muscular elongated honey-brown torso rests on four webbed feline paws, front paws especially large. Cream throat fur and reed-green back strands connect the mane to a broad flattened otter tail edged with golden hair. Brown ink contours, painterly RPG finish; facing right.\nCELL 15 (row 3, column 5): Reed Otter + Rune Stag. Full-body fantasy chibi: An otter-stag has a rounded cream whiskered muzzle, small ears and branching mint-runed antlers above a short deerlike neck. Its long chestnut body stands on four low webbed cloven feet. Reed-green back fur grows between subtle rune markings, while a broad flattened tail makes the antlered swimming silhouette unmistakably aquatic. Brown ink contours, painterly RPG finish; facing right."
+      }
+    },
+    {
+      "index": 11,
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "4k",
+        "aspect_ratio": "3:2",
+        "background": "transparent",
+        "medias": [
+          {
+            "role": "image",
+            "value": "0530d133-5c81-41fa-b685-9ea6d234ab37"
+          },
+          {
+            "role": "image",
+            "value": "4d025f5e-892a-4578-96aa-ce58bb4bcd76"
+          },
+          {
+            "role": "image",
+            "value": "3eac1a85-79a2-425e-b57d-c3a4b0fade85"
+          },
+          {
+            "role": "image",
+            "value": "8a7cd7fe-81e1-4906-8457-70a353aa8b21"
+          },
+          {
+            "role": "image",
+            "value": "b6a76f13-64f9-4d0a-8900-b2ef652c67b8"
+          }
+        ],
+        "count": 1,
+        "prompt": "Create a polished ORIGINAL CREATURE CONCEPT ATLAS for Riptide, a hand-painted fantasy chibi RPG. This is a visual breeding catalogue: every requested cell is ONE NEW hybrid creature, visibly inheriting anatomical traits from BOTH named parents. Reference images show the existing parent species and exact visual style; use their painted shapes and palette, never copy the reference atlas layout.\nEXACT OUTPUT LAYOUT: landscape 3:2 image, an INVISIBLE uniform grid of FIVE equal columns by THREE equal rows. EXACTLY FIFTEEN separate complete creatures. Read the assignments in row-major order: row1 left-to-right cells01-05, row2 cells06-10, row3 cells11-15. Each creature occupies only its own cell and stays centered with at least 20 percent transparent clearance on EVERY side. Entire tails, horns, antlers, paws and wings must fit within that cell. No extras, no empty cells, no overlap. TRUE TRANSPARENT RGBA BACKGROUND outside the silhouettes. No scene, no terrain, no white matte, no checkerboard, no visible grid, NO LETTERING or labels or numbers. Labels will be added by code.\nSTYLE: match the supplied original Riptide Tides: beautiful hand-painted storybook fantasy sprites, bold clean dark-brown ink outlines, warm modeled painterly highlights, detailed fur/feathers/scales, large expressive heads, short sturdy chibi proportions, powerful readable silhouettes, cool mutated fantasy animals. A range of charming to fierce, no gore. Full-body three-quarter SIDE VIEW, head facing RIGHT, tail left; anatomically connected single head/body, grounded feet or a clearly intentional floating pose. Restrained magical body highlights, no huge glow clouds or floor shadows. Six-limbed fantasy creatures only where a specified wing pair or insect anatomy needs it. Balanced inheritance, not an original animal simply recolored.\n\nSTRICT PLACEMENT: Creature centers are at x=10%,30%,50%,70%,90% of the image and y=16.67%,50%,83.33%. Each creature including every appendage fits within just 60% of its own cell width and 70% of its own cell height. Transparent gutters between every pair of neighbors are essential. Do not enlarge a creature to fill its entire cell. Match these fifteen independent center points precisely.\n\nCELL 01 (row 1, column 1): Reed Otter + Coral Drake. Full-body fantasy chibi: An otter-drake has a broad whiskered muzzle, cream throat and sea-green fin ears. Four webbed clawed paws support a long brown torso that grades into coral scales. Small red membrane wings join the shoulders above reed-green fur, while a thick flattened tail curls with a transparent fin running along its lower edge. Brown ink contours, painterly RPG finish; facing right.\nCELL 02 (row 1, column 2): Reed Otter + Dawn Phoenix. Full-body fantasy chibi: An otter-phoenix has a rounded beaked muzzle with fine whiskers, a cream feather throat and a small flame crest. Broad golden wings emerge above four webbed paws on its sleek orange-brown torso. Reed-green back down flows into a flattened otter tail with attached amber feather blades, preserving a compact swimming form. Brown ink contours, painterly RPG finish; facing right.\nCELL 03 (row 1, column 3): Reed Otter + Obsidian Bear. Full-body fantasy chibi: An otter-bear has a broad whiskered grey muzzle, rounded ears and massive webbed clawed forepaws. Glossy volcanic shoulder plates armor an elongated charcoal torso with a cream furry throat. Reed-green fur fills the plate seams, while strong swimming hindfeet and a thick flattened otter tail balance its heavy predatory body. Brown ink contours, painterly RPG finish; facing right.\nCELL 04 (row 1, column 4): Reed Otter + Aurora Kirin. Full-body fantasy chibi: An otter-kirin has a rounded cream whiskered face, small ears and one pearly horn inside a flowing pastel mane. Its sleek elongated body carries lilac scales through brown river fur. Four short webbed hooves support the torso, while a broad flattened otter tail trails attached mint-pink silk strands beside reed-green back tufts. Brown ink contours, painterly RPG finish; facing right.\nCELL 05 (row 1, column 5): Reed Otter + Spectral Panther. Full-body fantasy chibi: A spectral otter-panther has a long sleek sapphire torso, a rounded whiskered muzzle with icy fangs and small feline ears. Four broad webbed cat paws brace a pale cyan chest. Its thick flattened otter tail curves behind, while dark reedlike dorsal markings and restrained transparent edge light give the river predator a sharp silhouette. Brown ink contours, painterly RPG finish; facing right.\nCELL 06 (row 2, column 1): Reed Otter + Spectral Wyrm. Full-body fantasy chibi: A floating otter-serpent has a rounded whiskered dragon muzzle, small ears and tiny silver horns. Its cream furry chest extends into one translucent sapphire body curled in a compact S. Two webbed forepaws reach forward; reed-green dorsal fur blends into silver fins along the thick flattened tail before the tapered end. Brown ink contours, painterly RPG finish; facing right.\nCELL 07 (row 2, column 2): Dusk Moth + Shellsnap. Full-body fantasy chibi: A turtle-moth has a rounded jade head, feathery antennae and a soft lilac throat beneath a naturally grown terracotta shell. Four violet crescent-marked wings emerge symmetrically beside the golden scutes. Four short turtle feet and two smaller insect feet curl below the cream belly, while a tiny pointed tail extends behind. Brown ink contours, painterly RPG finish; facing right.\nCELL 08 (row 2, column 3): Dusk Moth + Acorn Boar. Full-body fantasy chibi: A boar-moth has a plump brown furry torso, tan piglet stripes and a broad snout with two ivory tusks. Feathery antennae rise from an acorn-shaped lilac crest. Four violet crescent-patterned wings grow beside six short jointed hooflike feet, while a tiny curled bristly tail balances its determined hovering body. Brown ink contours, painterly RPG finish; facing right.\nCELL 09 (row 2, column 4): Dusk Moth + Ember Cub. Full-body fantasy chibi: A lion-moth has a compact orange feline face, small fangs and an ember mane mixed with lilac down. Feathery antennae curve above round ears; four violet crescent wings grow from its soft segmented torso. Six small limbs include enlarged feline forepaws, and a short tail ends in a glowing fluffy tuft. Brown ink contours, painterly RPG finish; facing right.\nCELL 10 (row 2, column 5): Dusk Moth + Moon Owl. Fuse a compact owl chest and silver facial disk with feathery moth antennae and four rounded violet membrane wings. Midnight feathers grow along each wing margin, silver crescents sit within the membranes, and two sturdy owl talons support a soft segmented abdomen.\nCELL 11 (row 3, column 1): Dusk Moth + Crystal Gecko. Create a low turquoise gecko with splayed lavender adhesive toes and a curled crystalline tail. Four dusk-violet moth wings grow from a soft furry shoulder thorax, their membranes interrupted by tiny crystal veins. Feathery antennae frame an angular lizard brow above focused eyes.\nCELL 12 (row 3, column 2): Dusk Moth + Storm Lynx. Combine powerful lynx haunches, oversized feline forepaws and black ear tufts with a plush moth thorax ruff. Four angular violet membrane wings emerge behind the shoulders, crossed by pale cyan branching veins. Long whiskers curve upward into paired feathery antennae; the tail stays short and feline.\nCELL 13 (row 3, column 3): Dusk Moth + Thorn Badger. Build a squat digging beast with a badger striped muzzle and broad shovel claws. Four thick moth wings fold like serrated leaves along its back, anchored between emerald thorn ridges. Lavender thorax fur blends into charcoal badger flanks, while brushlike antennae sweep back from small rounded ears.\nCELL 14 (row 3, column 4): Dusk Moth + Cinder Wolf. Make a lean wolf with a long fanged muzzle, springy canine legs and a full brush tail. Its red ember neck mane becomes moth thorax fluff, supporting four narrow smoke-violet wings with copper veins. Feathered antennae rise beside pointed ears, and wing tips curl like singed velvet.\nCELL 15 (row 3, column 5): Dusk Moth + Frost Ibex. Combine an ibex barrel chest, cloven hooves and two sweeping ice horns with a moth abdomen tapering into a short fuzzy tail. Four broad violet wings emerge through white shoulder wool, crystal frost tracing their scalloped edges. Fine antennae curve between the horns above a determined goat face."
+      }
+    },
+    {
+      "index": 12,
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "4k",
+        "aspect_ratio": "3:2",
+        "background": "transparent",
+        "medias": [
+          {
+            "role": "image",
+            "value": "0530d133-5c81-41fa-b685-9ea6d234ab37"
+          },
+          {
+            "role": "image",
+            "value": "4d025f5e-892a-4578-96aa-ce58bb4bcd76"
+          },
+          {
+            "role": "image",
+            "value": "3eac1a85-79a2-425e-b57d-c3a4b0fade85"
+          },
+          {
+            "role": "image",
+            "value": "8a7cd7fe-81e1-4906-8457-70a353aa8b21"
+          },
+          {
+            "role": "image",
+            "value": "b6a76f13-64f9-4d0a-8900-b2ef652c67b8"
+          }
+        ],
+        "count": 1,
+        "prompt": "Create a polished ORIGINAL CREATURE CONCEPT ATLAS for Riptide, a hand-painted fantasy chibi RPG. This is a visual breeding catalogue: every requested cell is ONE NEW hybrid creature, visibly inheriting anatomical traits from BOTH named parents. Reference images show the existing parent species and exact visual style; use their painted shapes and palette, never copy the reference atlas layout.\nEXACT OUTPUT LAYOUT: landscape 3:2 image, an INVISIBLE uniform grid of FIVE equal columns by THREE equal rows. EXACTLY FIFTEEN separate complete creatures. Read the assignments in row-major order: row1 left-to-right cells01-05, row2 cells06-10, row3 cells11-15. Each creature occupies only its own cell and stays centered with at least 20 percent transparent clearance on EVERY side. Entire tails, horns, antlers, paws and wings must fit within that cell. No extras, no empty cells, no overlap. TRUE TRANSPARENT RGBA BACKGROUND outside the silhouettes. No scene, no terrain, no white matte, no checkerboard, no visible grid, NO LETTERING or labels or numbers. Labels will be added by code.\nSTYLE: match the supplied original Riptide Tides: beautiful hand-painted storybook fantasy sprites, bold clean dark-brown ink outlines, warm modeled painterly highlights, detailed fur/feathers/scales, large expressive heads, short sturdy chibi proportions, powerful readable silhouettes, cool mutated fantasy animals. A range of charming to fierce, no gore. Full-body three-quarter SIDE VIEW, head facing RIGHT, tail left; anatomically connected single head/body, grounded feet or a clearly intentional floating pose. Restrained magical body highlights, no huge glow clouds or floor shadows. Six-limbed fantasy creatures only where a specified wing pair or insect anatomy needs it. Balanced inheritance, not an original animal simply recolored.\n\nSTRICT PLACEMENT: Creature centers are at x=10%,30%,50%,70%,90% of the image and y=16.67%,50%,83.33%. Each creature including every appendage fits within just 60% of its own cell width and 70% of its own cell height. Transparent gutters between every pair of neighbors are essential. Do not enlarge a creature to fill its entire cell. Match these fifteen independent center points precisely.\n\nCELL 01 (row 1, column 1): Dusk Moth + Sunmane. Create a muscular lion whose circular mane is layered moth fluff and golden fur. Four broad violet membrane wings emerge from the shoulder girdle, their margins fringed with sun-gold hairs. Keep a feline muzzle, broad paws, tufted lion tail and paired plume antennae rising through the mane.\nCELL 02 (row 1, column 2): Dusk Moth + Coral Drake. Merge a coral drake snout, four clawed legs and curled scaled tail with a soft moth thorax. Replace dragon wing membranes with four scalloped violet moth wings supported by coral finger bones. Sea-green fin ears frame feathery antennae; coral spines continue along the upper back.\nCELL 03 (row 1, column 3): Dusk Moth + Dawn Phoenix. Design a regal bird-moth with a phoenix hooked beak and two strong avian feet below a fluffy lilac thorax. Four expansive moth wings have golden feathered leading edges and violet crescent membranes. A short segmented abdomen extends into layered sunrise tail plumes, with two delicate antennae above the crest.\nCELL 04 (row 1, column 4): Dusk Moth + Obsidian Bear. Create a massive bear with heavy shoulders, round ears and planted clawed paws. Four thick moth wings rise from gaps between natural obsidian shoulder plates; violet velvet membranes carry silver crescents. Soft thorax fur forms its chest, and broad feathery antennae emerge above a stern bear brow.\nCELL 05 (row 1, column 5): Dusk Moth + Aurora Kirin. Fuse a cream kirin body, neat cloven hooves and pearly forehead horn with four rounded moth wings. Their lilac membranes grow from scaled shoulders and flow into mint-pink mane filaments. Feathery antennae sweep back beside deer ears, while a furry segmented tail finishes in silky aurora strands.\nCELL 06 (row 2, column 1): Dusk Moth + Spectral Panther. Make a sleek sapphire panther crouching on four broad feline paws, with a long curved tail. Four translucent moth wings grow directly from its shoulder muscles, edged in fuzzy midnight hairs with silver crescents. Paired feather antennae arc behind cat ears; pale cyan currents follow wing veins into the flanks.\nCELL 07 (row 2, column 2): Dusk Moth + Spectral Wyrm. Build a compact floating S-shaped serpent with a horned dragon head and complete tapered tail. A moth thorax ruff surrounds its upper neck, supporting four large violet membrane wings. Feathered antennae extend beside silver horns, while sapphire belly scales gradually become soft lilac segments toward the wing roots.\nCELL 08 (row 2, column 3): Shellsnap + Acorn Boar. Combine a round terrapin shell and heavy low turtle shoulders with a boar snout, short ivory tusks and four stout cloven feet. Brown striped bristles grow between warm terracotta shell panels, while jade scaled cheeks meet a blunt pig muzzle. A short curled tail emerges below the shell rim.\nCELL 09 (row 2, column 4): Shellsnap + Ember Cub. Create a compact lion with broad padded paws and a rounded terrapin shell integrated into its back. Ember mane tufts frame the shell opening around the neck, exposing jade scales beneath orange cheek fur. The tail is thick at its turtle base and ends in a fiery lion tuft.\nCELL 10 (row 2, column 5): Shellsnap + Moon Owl. Make a stout upright owl with a silver facial disk, hooked beak and two strong scaled talons. A terracotta turtle shell forms the rounded back, with folded midnight wings emerging from its side openings. Jade scales cover the lower neck; small feathers trace the shell seams and crescent-shaped rim.\nCELL 11 (row 3, column 1): Shellsnap + Crystal Gecko. Fuse a low turtle shell and broad reptile head with a gecko flexible spine, splayed adhesive toes and long curled tail. Terracotta scutes become raised turquoise crystal facets toward the spine, leaving the protective rim clearly visible. Lavender toe pads and narrow focused eyes emphasize the agile gecko anatomy.\nCELL 12 (row 3, column 2): Shellsnap + Storm Lynx. Design a crouched lynx with tall tufted ears, broad cat paws and compact hindquarters. A high terrapin shell grows over its back, split into warm ochre plates by cyan lightning seams. Jade scales armor the ankles beneath grey fur, and a short bobtail protrudes through the rear shell opening.\nCELL 13 (row 3, column 3): Shellsnap + Thorn Badger. Give a low badger body a broad domed turtle shell edged with emerald thorn growths. Its cream-and-charcoal striped muzzle extends from a jade scaled neck, and heavy digging foreclaws support the shell. Rough grey fur emerges between the shell rim and muscular hind legs; a short badger tail remains visible.\nCELL 14 (row 3, column 4): Shellsnap + Cinder Wolf. Combine a wolf long muzzle, pointed ears and powerful canine legs with a terrapin carapace fitted to its hunched back. Orange mane fur spills around the shell front; ochre plates bear thin ember seams. Jade ankle scales transition to charcoal paws, and a full wolf brush tail exits the shell.\nCELL 15 (row 3, column 5): Shellsnap + Frost Ibex. Create a sturdy ibex with swept ice horns, a short beard and four cloven hooves. Its barrel torso is enclosed in a turtle shell, terracotta panels frosted into blue facets along the rim. White wool protrudes naturally from neck and leg openings, with jade scales on its lower muzzle."
+      }
+    },
+    {
+      "index": 13,
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "4k",
+        "aspect_ratio": "3:2",
+        "background": "transparent",
+        "medias": [
+          {
+            "role": "image",
+            "value": "0530d133-5c81-41fa-b685-9ea6d234ab37"
+          },
+          {
+            "role": "image",
+            "value": "4d025f5e-892a-4578-96aa-ce58bb4bcd76"
+          },
+          {
+            "role": "image",
+            "value": "3eac1a85-79a2-425e-b57d-c3a4b0fade85"
+          },
+          {
+            "role": "image",
+            "value": "8a7cd7fe-81e1-4906-8457-70a353aa8b21"
+          },
+          {
+            "role": "image",
+            "value": "b6a76f13-64f9-4d0a-8900-b2ef652c67b8"
+          }
+        ],
+        "count": 1,
+        "prompt": "Create a polished ORIGINAL CREATURE CONCEPT ATLAS for Riptide, a hand-painted fantasy chibi RPG. This is a visual breeding catalogue: every requested cell is ONE NEW hybrid creature, visibly inheriting anatomical traits from BOTH named parents. Reference images show the existing parent species and exact visual style; use their painted shapes and palette, never copy the reference atlas layout.\nEXACT OUTPUT LAYOUT: landscape 3:2 image, an INVISIBLE uniform grid of FIVE equal columns by THREE equal rows. EXACTLY FIFTEEN separate complete creatures. Read the assignments in row-major order: row1 left-to-right cells01-05, row2 cells06-10, row3 cells11-15. Each creature occupies only its own cell and stays centered with at least 20 percent transparent clearance on EVERY side. Entire tails, horns, antlers, paws and wings must fit within that cell. No extras, no empty cells, no overlap. TRUE TRANSPARENT RGBA BACKGROUND outside the silhouettes. No scene, no terrain, no white matte, no checkerboard, no visible grid, NO LETTERING or labels or numbers. Labels will be added by code.\nSTYLE: match the supplied original Riptide Tides: beautiful hand-painted storybook fantasy sprites, bold clean dark-brown ink outlines, warm modeled painterly highlights, detailed fur/feathers/scales, large expressive heads, short sturdy chibi proportions, powerful readable silhouettes, cool mutated fantasy animals. A range of charming to fierce, no gore. Full-body three-quarter SIDE VIEW, head facing RIGHT, tail left; anatomically connected single head/body, grounded feet or a clearly intentional floating pose. Restrained magical body highlights, no huge glow clouds or floor shadows. Six-limbed fantasy creatures only where a specified wing pair or insect anatomy needs it. Balanced inheritance, not an original animal simply recolored.\n\nSTRICT PLACEMENT: Creature centers are at x=10%,30%,50%,70%,90% of the image and y=16.67%,50%,83.33%. Each creature including every appendage fits within just 60% of its own cell width and 70% of its own cell height. Transparent gutters between every pair of neighbors are essential. Do not enlarge a creature to fill its entire cell. Match these fifteen independent center points precisely.\n\nCELL 01 (row 1, column 1): Shellsnap + Sunmane. Fuse a large golden lion chest and round mane with a terrapin domed back and plated underbelly. The mane frames the shell neck opening in short thick rays. Broad clawed paws have jade scaled wrists; ochre shell scutes echo the mane layering, and a full tufted tail curls around the rear.\nCELL 02 (row 1, column 2): Shellsnap + Rune Stag. Give a stag branching antlers, fine cloven legs and a cream throat beneath a turtle shell. The high carapace is warm brown with mint rune grooves, merging into barklike scutes around the shoulders. Jade scales appear on the long deer muzzle and knees, while the short deer tail emerges below the rim.\nCELL 03 (row 1, column 3): Shellsnap + Coral Drake. Make a squat reef dragon with coral horns, sea-green cheek fins and four powerful clawed legs. A terrapin shell replaces the upper back, with coral branches growing from its scute seams. Small membranous dragon wings attach beside the shell rim, and the long scaled tail curls outside the protective silhouette.\nCELL 04 (row 1, column 4): Shellsnap + Dawn Phoenix. Build an upright phoenix with hooked golden beak, avian talons and broad sunrise wings. A rounded turtle carapace covers its back, with feathers growing from the side openings and warm shell seams. Jade scales form the lower throat and feet; layered flame-tail plumes extend completely beyond the shell rim.\nCELL 05 (row 1, column 5): Shellsnap + Obsidian Bear. Combine a bear enormous forequarters, broad muzzle and four planted clawed paws with a high terrapin shell. Obsidian armor plates replace the upper scutes, transitioning to warm ochre panels at the rim. Jade scales cover the neck below dense charcoal fur; retain small round bear ears and a short heavy tail.\nCELL 06 (row 2, column 1): Shellsnap + Aurora Kirin. Create a compact kirin with a pearly forehead horn, flowing pastel mane and four delicate hooves. Its back carries a naturally grown turtle carapace, with terracotta panels merging into lilac scales around the neck. The mane threads between shell ridges, while its long silky tail extends freely from the rear opening.\nCELL 07 (row 2, column 2): Shellsnap + Spectral Panther. Make a low stalking panther with narrow feline face, large paws and a curved muscular tail. A terrapin shell arches over its back, its strong rounded scutes translucent sapphire at the edges. Jade scales blend into spectral blue fur along the wrists; cyan currents follow the shell seams into the legs.\nCELL 08 (row 2, column 3): Shellsnap + Spectral Wyrm. Fuse a broad terrapin shell and four sturdy turtle feet with an elongated horned dragon neck and serpentine tail. Sapphire scales flow out of the warm plated carapace, curling into a compact S silhouette behind it. Silver horns, cyan throat fins and a pale segmented belly reveal the spectral wyrm inheritance.\nCELL 09 (row 2, column 4): Acorn Boar + Ember Cub. Create a stocky lion cub with a blunt boar snout, ivory side tusks and powerful front paws. Short cloven rear feet brace beneath striped brown haunches. Its ember mane grows from a boar bristle ridge, and a curled pig tail ends in a warm red lion tuft.\nCELL 10 (row 2, column 5): Acorn Boar + Moon Owl. Merge a round boar barrel body with a broad owl chest and folded midnight feather wings. A silver facial disk frames a short piglike muzzle carrying a small hooked upper beak and ivory tusks. Two heavy front digging talons and stout rear cloven feet support striped bristled flanks.\nCELL 11 (row 3, column 1): Acorn Boar + Storm Lynx. Combine a lynx high muscular forelegs and broad feline paws with a boar barrel torso and blunt tusked muzzle. Tall black ear tufts rise above a cyan-streaked bristle ridge. Brown piglet stripes fragment into storm markings, and heavy cloven rear toes and a short curled bobtail complete the mixed anatomy.\nCELL 12 (row 3, column 2): Acorn Boar + Thorn Badger. Fuse a stout boar body, short tusks and flattened rooting snout with a badger striped face and powerful digging foreclaws. Emerald thorns grow through the brown dorsal bristle ridge. Broad hind feet end in split blunt claws resembling hooves; small rounded ears and a short bristly tail reinforce the burrowing silhouette.\nCELL 13 (row 3, column 3): Acorn Boar + Cinder Wolf. Create a forward-leaning predator with a long wolf jaw widened into a boar rooting nose and two upward ivory tusks. Powerful canine forepaws contrast with stocky boar hindquarters and cloven rear feet. Charcoal fur carries a raised red bristle mane, while the full brush tail curls slightly at its tip.\nCELL 14 (row 3, column 4): Acorn Boar + Frost Ibex. Combine a broad boar snout and ivory tusks with a compact ibex chest, split hooves and two long swept ice horns. Dense white goat wool grows around dark striped piglet flanks; icy bristles continue down the back. A small beard under the tusked jaw balances a short curled tail.\nCELL 15 (row 3, column 5): Acorn Boar + Sunmane. Build a muscular golden lion with a broad boar nose and ivory tusks growing beside its feline fangs. Its circular mane becomes layered golden bristles, continuing into a raised razorback ridge. Large front paws and stout cloven rear feet carry a barrel torso, ending in a curled tufted tail."
+      }
+    }
+  ],
+  "response": {
+    "jobs": [
+      {
+        "index": 10,
+        "job_id": "f2c23cfe-3609-48e5-8dfa-6e44d85ec72e",
+        "status": "pending",
+        "adjustments": {
+          "medias[0].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[1].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[2].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[3].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[4].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          }
+        }
+      },
+      {
+        "index": 11,
+        "job_id": "fa523884-4ee2-4def-9c19-1635d8e4d438",
+        "status": "pending",
+        "adjustments": {
+          "medias[0].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[1].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[2].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[3].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[4].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          }
+        }
+      },
+      {
+        "index": 12,
+        "job_id": "e4748e54-6847-497e-96e4-4859726d7584",
+        "status": "pending",
+        "adjustments": {
+          "medias[0].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[1].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[2].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[3].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[4].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          }
+        }
+      },
+      {
+        "index": 13,
+        "job_id": "416b7e76-d84e-4a3e-9e8f-2ee4eb7016d4",
+        "status": "pending",
+        "adjustments": {
+          "medias[0].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[1].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[2].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[3].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[4].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          }
+        }
+      }
+    ],
+    "submitted_count": 4,
+    "failed_count": 0
+  }
+}

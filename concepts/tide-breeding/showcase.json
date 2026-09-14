@@ -1,0 +1,122 @@
+[
+  {
+    "id": "obsidianbear--spectralwyrm",
+    "parentA": "obsidianbear",
+    "parentB": "spectralwyrm",
+    "name": "Veilmaw Ursadrake",
+    "descriptionSv": "Björntunga tassar, drakhals och en svans av blå andeskalor.",
+    "promptEn": "One formidable bear-dragon hybrid: immense obsidian bear shoulders and four broad clawed bear paws, a curved elongated spectral dragon neck with one horned bear-dragon head and short bear ears, a long curling sapphire scaled tail. Black volcanic spine plates transition naturally into translucent blue scales. Strong planted silhouette; no wings."
+  },
+  {
+    "id": "bramblebunny--spectralwyrm",
+    "parentA": "bramblebunny",
+    "parentB": "spectralwyrm",
+    "name": "Bramble Coil",
+    "descriptionSv": "Kaninöron och kraftiga bakben på en slingrande liten drake.",
+    "promptEn": "A compact rabbit-wyrm hybrid with very long upright rabbit ears integrated beside silver dragon horns, a rounded rabbit muzzle with tiny dragon fangs, strong furry rabbit hind feet, short clawed forepaws, and a single long curled serpentine body-tail. Warm tawny fur transitions into translucent sapphire scales beneath a leafy bramble collar."
+  },
+  {
+    "id": "coraldrake--obsidianbear",
+    "parentA": "coraldrake",
+    "parentB": "obsidianbear",
+    "name": "Reefback Ursa",
+    "descriptionSv": "En bred björndrake med korallvingar och vulkaniska ryggplattor.",
+    "promptEn": "A hulking bear-drake with a broad bear muzzle, little round ears beside sea-green fin ears, four thick clawed bear paws and a thick curved dragon tail. Coral-red membranous wings emerge anatomically from powerful black-furred shoulders. Pink coral growths interlock with obsidian back armor. Compact powerful proportions, confident narrowed eyes."
+  },
+  {
+    "id": "thistlesparrow--spectralpanther",
+    "parentA": "thistlesparrow",
+    "parentB": "spectralpanther",
+    "name": "Thistleveil Gryphcat",
+    "descriptionSv": "Ett blått kattdjur med sparvens vingar, fjädertofs och klor.",
+    "promptEn": "An agile spectral panther-sparrow hybrid with a single catlike face ending in a short delicate beak, tufted thistle-purple feather crown, four feline legs with avian talons and folded sparrow wings attached to the shoulder blades. Long curling blue spectral cat tail ends in a russet feather fan. Feathered chest and translucent patterned blue flanks."
+  },
+  {
+    "id": "moonowl--obsidianbear",
+    "parentA": "moonowl",
+    "parentB": "obsidianbear",
+    "name": "Moonbrow Ursowl",
+    "descriptionSv": "Björnkropp med uggleansikte, stora fjädervingar och stentunga klor.",
+    "promptEn": "A stocky owl-bear with massive bear shoulders, four planted bear legs with hooked talons, a round moon-owl facial disk merged into one short bear muzzle and beak, and two large folded midnight-blue feather wings emerging from the back. Obsidian plates nest among shoulder feathers, silver crescent brow and stern golden eyes."
+  },
+  {
+    "id": "amberbeetle--dawnphoenix",
+    "parentA": "amberbeetle",
+    "parentB": "dawnphoenix",
+    "name": "Sunscarab",
+    "descriptionSv": "En flammande skalbaggsfågel med bärnstensskal och fjädervingar.",
+    "promptEn": "A phoenix-beetle hybrid with a single hooked amber beak-face, delicate beetle antennae below a flame-feather crown, a compact six-legged golden beetle body and two glowing amber wing cases opened above broad orange-red phoenix feather wings. Long layered phoenix tail feathers grow from the abdomen. Whole anatomy coherent and readable, no detached parts."
+  },
+  {
+    "id": "pebbletoad--aurorakirin",
+    "parentA": "pebbletoad",
+    "parentB": "aurorakirin",
+    "name": "Aurora Boghorn",
+    "descriptionSv": "En hornkrönt padda med pärlemorskalor, man och breda simhudsfötter.",
+    "promptEn": "A regal toad-kirin hybrid: low rounded toad torso on four muscular splayed webbed feet, one gentle elongated amphibian-kirin face, a spiraling opal forehead horn and long pointed kirin ears. Stony toad back nodules blend into iridescent overlapping kirin scales, and a flowing pastel aurora mane runs into a short tadpole-like curling tail."
+  },
+  {
+    "id": "reedotter--frostibex",
+    "parentA": "reedotter",
+    "parentB": "frostibex",
+    "name": "Glacier Reedrunner",
+    "descriptionSv": "Utterns långa kropp och simsvans med isbockens krökta horn.",
+    "promptEn": "A low streamlined otter-ibex with a whiskered otter face, paired backward-curving icy goat horns, small goat ears and a long furry aquatic torso. Four short powerful legs terminate in broad webbed cloven hoof-paws, a thick tapering otter tail stays fully visible. Cream and brown fur carries pale-blue crystalline shoulder tufts and a small reed ruff."
+  },
+  {
+    "id": "duskmoth--runestag",
+    "parentA": "duskmoth",
+    "parentB": "runestag",
+    "name": "Dusk Antlerwing",
+    "descriptionSv": "En hjort med nattfjärilsvingar, fjäderlika antenner och lysande horn.",
+    "promptEn": "An elegant chibi moth-stag quadruped with four slim hoofed deer legs, chestnut deer torso and one soft deer-moth face with feathery antennae. Branching antlers sweep around four velvety violet and dusky pink moth wings rooted naturally behind the shoulders. Mint luminous rune patterns repeat from deer flanks into the wing veins."
+  },
+  {
+    "id": "stormlynx--coraldrake",
+    "parentA": "stormlynx",
+    "parentB": "coraldrake",
+    "name": "Tempest Reefclaw",
+    "descriptionSv": "Ett lodjur med drakvingar, korallfjäll och blixtljusa morrhår.",
+    "promptEn": "A muscular lynx-drake crouched on four feline clawed paws: storm-gray lynx face, dark ear tufts joined to sea-green fin ears, cyan lightning whiskers and narrow alert eyes. Coral-pink scales grow over shoulders into two small membranous wings; a long curled dragon tail ends in a black lynx tuft. Fur and scale boundaries follow anatomy."
+  },
+  {
+    "id": "mossfox--shellsnap",
+    "parentA": "mossfox",
+    "parentB": "shellsnap",
+    "name": "Mossshell Vulpin",
+    "descriptionSv": "En räv med låg sköldpaddskropp, tydlig ryggsköld och buskig svans.",
+    "promptEn": "A fox-turtle hybrid with a sly russet fox muzzle, tall fox ears, a low compact fox torso covered by a real domed sea-glass turtle shell, and four sturdy clawed paws with pebbled reptile forearms. A full thick moss-tipped fox tail curves behind. Green moss grows in shell seams, preserving a fox's lively posture."
+  },
+  {
+    "id": "acornboar--crystalgecko",
+    "parentA": "acornboar",
+    "parentB": "crystalgecko",
+    "name": "Prismtusk",
+    "descriptionSv": "En vildsvinsödla med betar, kristallrygg och stora klättertår.",
+    "promptEn": "A squat boar-gecko with a broad boar snout, paired polished acorn tusks and clever gecko eyes, four powerful legs ending in wide lavender adhesive toe pads, and a long curled lizard tail. Brown bristly shoulders gradually become teal reptile scales; sharp turquoise crystal ridges rise along its muscular spine. One compact continuous body."
+  },
+  {
+    "id": "embercub--thornbadger",
+    "parentA": "embercub",
+    "parentB": "thornbadger",
+    "name": "Briarflare Cub",
+    "descriptionSv": "En lejonunge med grävlingens ansiktsränder och glödande taggman.",
+    "promptEn": "A sturdy lion-badger hybrid with broad digging forepaws, a low tough badger chest and powerful lion hindquarters. One young lion face bears bold cream-and-charcoal badger stripes and small fangs. Its compact mane is woven from natural green thorns with ember-orange tips; a full lion tail ends in a thorn-and-flame tuft."
+  },
+  {
+    "id": "cinderwolf--sunmane",
+    "parentA": "cinderwolf",
+    "parentB": "sunmane",
+    "name": "Crownfang",
+    "descriptionSv": "En långbent varglejon med gyllene man och glödande vargsvans.",
+    "promptEn": "A proud wolf-lion hybrid on four large clawed paws: lean wolf muzzle and upright wolf ears rise through a broad sun-gold lion mane streaked with ember-red tufts. Charcoal wolf shoulders merge into honey-gold lion flanks. Long bushy wolf tail has a flaming golden lion tuft; low focused brows and visible closed-mouth fangs."
+  },
+  {
+    "id": "dawnphoenix--spectralwyrm",
+    "parentA": "dawnphoenix",
+    "parentB": "spectralwyrm",
+    "name": "Astral Suncoil",
+    "descriptionSv": "En lång andedrake med fenixnäbb, eldvingar och böljande fjädersvans.",
+    "promptEn": "A spectacular phoenix-wyrm with one horned draconic bird head and hooked golden beak, an S-curved serpentine sapphire-scaled body, one pair of large layered orange-red phoenix wings and two small gold taloned legs. Its long coiled tail turns into flowing flame feathers. Translucent blue dragon belly contrasts with glowing dawn-feather back."
+  }
+]

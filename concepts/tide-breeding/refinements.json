@@ -1,0 +1,180 @@
+{
+  "sheets": [
+    {
+      "index": 21,
+      "purpose": "Stronger anatomical inheritance from both parents",
+      "hybrids": [
+        {
+          "id": "meadowmouse--stormlynx",
+          "name": "Staticnibbler",
+          "originalSheet": 2,
+          "originalCell": 13,
+          "priority": "high",
+          "descriptionSv": "En kraftig lodjursmus med runda öron, svarta tofsar, rosa baktår och en lång bar svans.",
+          "promptEn": "Create one compact rodent-feline hybrid, with oversized CIRCULAR mouse ears carrying narrow black lynx tufts, not triangular cat ears. A broad lynx chest and snowshoe forepaws connect to visibly rounded mouse hindquarters and smaller pink hindtoes. Show a long thin bare pink mouse tail curling well outside the body, never a bobtail. Its short pointed mouse muzzle has two tiny incisors beneath feline cheek ruffs. Storm-grey fur and restrained cyan markings follow the powerful shoulders. Full connected chibi body, facing right."
+        },
+        {
+          "id": "meadowmouse--cinderwolf",
+          "name": "Ashwhisk",
+          "originalSheet": 2,
+          "originalCell": 15,
+          "priority": "high",
+          "descriptionSv": "En vargmus med rundade musöron, gnagartår och en lång bar svans bakom glödmanen.",
+          "promptEn": "Design one sturdy wolf-mouse with enormous round pink-lined mouse ears, visible whiskers and a narrow rodent nose integrated into a moderately elongated canine jaw. Strong wolf forelegs and charcoal chest fur connect to round mouse haunches and small naked pink rear toes. The tail must be mostly thin, bare and curled, with only a short bushy base. A swept ember mane and fierce wolf brows contrast with two tiny mouse incisors. Complete chibi quadruped facing right, no separate creatures."
+        },
+        {
+          "id": "bramblebunny--frostibex",
+          "name": "Frostlop Craghare",
+          "originalSheet": 4,
+          "originalCell": 9,
+          "priority": "high",
+          "descriptionSv": "En kaninbergget med långa öron, stora hoppbakben, ishorn och klövade fötter.",
+          "promptEn": "Create one mountain rabbit-ibex whose two extremely long rabbit ears rise clearly beside, not behind, two backward-curving ice horns. Keep a small rabbit nose, obvious split upper lip and round cotton tail. Its silhouette has huge folded rabbit hindquarters, low shoulders and elongated rear feet ending in split hoof tips; smaller front hooves brace the chest. White goat wool and a short beard frame the throat, while pale blue frost ridges follow the back. Whole connected chibi animal facing right."
+        },
+        {
+          "id": "bramblebunny--aurorakirin",
+          "name": "Auroralop Gladebound",
+          "originalSheet": 4,
+          "originalCell": 15,
+          "priority": "high",
+          "descriptionSv": "En kaninkirin med höga öron, stora hoppbakben, pärlhorn och skimrande fjäll.",
+          "promptEn": "Make one graceful rabbit-kirin with two unmistakably long pink-lined rabbit ears standing taller than its central pearly horn. A rabbit split lip and small nose join an arched kirin neck, keeping the head fully mammalian. Huge folded rabbit haunches dominate the rear silhouette, with elongated cloven hindfeet and two neat front hooves. Lilac shoulder scales transition into cream fur. A round cotton tail sprouts a few pastel silky strands; flowing mint-pink mane must leave both ears exposed. Full-body chibi, facing right."
+        },
+        {
+          "id": "pebbletoad--stormlynx",
+          "name": "Stormcroak Ambusher",
+          "originalSheet": 5,
+          "originalCell": 12,
+          "priority": "high",
+          "descriptionSv": "Ett paddlodjur med stora simhudsfötter, knottriga hoppbakben och kraftiga kattframtassar.",
+          "promptEn": "Build one crouched toad-lynx with furry lynx shoulders, tufted ears and two broad feline front paws, but enormous folded TOAD hindlegs covered in exposed olive pebble skin. Spread the long webbed rear toes clearly to either side, with membranes plainly visible; never four ordinary cat paws. Raised golden amphibian eye ridges sit over a short feline nose and broad toad chin. Grey cheek ruffs meet the bare throat pouch. Cyan markings stay on the shoulder fur. Full connected chibi quadruped facing right."
+        },
+        {
+          "id": "pebbletoad--frostibex",
+          "name": "Glaciercroak Hornback",
+          "originalSheet": 5,
+          "originalCell": 15,
+          "priority": "high",
+          "descriptionSv": "En paddbergget med ishorn, bred paddkäke och stora simhudsfötter bakom framklövarna.",
+          "promptEn": "Create one squat toad-ibex with a broad pebbled amphibian face, raised amber eyes and a visible throat pouch beneath two grand backward-sweeping ice horns. Short goat ears and a small white beard frame the jaw. Two compact front hooves support the woolly chest; enormous folded bare toad hindlegs spread into broad webbed feet, with only the two central toe tips hardened like tiny hooves. Olive-blue pebble skin must dominate the rear half, never continuous goat fur. Whole connected chibi, facing right."
+        },
+        {
+          "id": "pebbletoad--spectralpanther",
+          "name": "Veilcroak Sabermist",
+          "originalSheet": 6,
+          "originalCell": 6,
+          "priority": "high",
+          "descriptionSv": "En andepanter med knottriga paddbakben, bred haka och tydliga blå simhudsfötter.",
+          "promptEn": "Design one low spectral panther-toad with a muscular feline chest, short saber-fanged muzzle and two broad front cat paws. Its rear body must become enormous folded frog haunches covered in smooth translucent sapphire skin with raised round pebble bumps. Long hindtoes spread widely with bright cyan WEBBING, clearly different from the front paws. Raised amphibian eyes and a broad throat pouch modify the feline head. Retain a long curved panther tail, narrow predatory brows and crisp chibi proportions. Entire connected creature, facing right."
+        },
+        {
+          "id": "meadowmouse--mossfox",
+          "name": "Mossnibble",
+          "originalSheet": 2,
+          "originalCell": 5,
+          "priority": "medium",
+          "descriptionSv": "En mossrävsmus med runda öron, små gnagartassar och en tunn svans med mossig rot.",
+          "promptEn": "Combine one russet fox and field mouse into a compact chibi quadruped. Two oversized ROUND pink-lined mouse ears sit above a tapered fox muzzle ending in a tiny rodent nose and visible short incisors. Moss-green shoulder fur and a cream fox chest connect to rounded mouse hindquarters and delicate pink hindpaws. The tail starts with a short dense mossy fox brush, then extends into a much longer thin bare mouse curl. Keep a cunning fox gaze, complete feet and whole tail, facing right."
+        },
+        {
+          "id": "bramblebunny--stormlynx",
+          "name": "Thunderlop Pouncer",
+          "originalSheet": 4,
+          "originalCell": 6,
+          "priority": "medium",
+          "descriptionSv": "Ett kaninlodjur med långa tofsöron, stora hoppbakben och runda framtassar.",
+          "promptEn": "Create one athletic rabbit-lynx with exceptionally long upright rabbit ears, pink inner skin and black lynx tufts only at their tips. A small split rabbit lip sits inside broad feline cheek ruffs. Powerful folded bunny hindquarters rise above the lower shoulder line; two elongated rabbit hindfeet contrast with broad round lynx front paws. Show a round cream cotton tail, not a long cat tail. Storm-grey fur carries narrow cyan lightning marks through the shoulders and ears. Whole connected chibi animal facing right."
+        },
+        {
+          "id": "thistlesparrow--acornboar",
+          "name": "Thistletusk Forager",
+          "originalSheet": 6,
+          "originalCell": 13,
+          "priority": "medium",
+          "descriptionSv": "Ett vildsvinsgryff med betar, tydliga sparvvingar och två stora fågelklor framtill.",
+          "promptEn": "Create one stout sparrow-boar with a striped brown barrel torso, pink rooting snout and two little ivory tusks. Strong folded russet sparrow wings must grow directly from its shoulders and remain clearly visible against the body, not just a small feather crest. The forelegs end in large curved bird talons while the rear legs retain cloven pig hooves. A cream feather throat, short upper beak ridge and purple thistle crest blend into its single head. Show a broad fanned feather tail. Full-body chibi, facing right."
+        },
+        {
+          "id": "reedotter--aurorakirin",
+          "name": "Reedaurora Mistpaddler",
+          "originalSheet": 11,
+          "originalCell": 4,
+          "priority": "high",
+          "descriptionSv": "En långsträckt utterkirin med simhudstassar, kraftig simsvans, pärlhorn och skimrande man.",
+          "promptEn": "Create one river otter-kirin with a LONG LOW aquatic torso, short sturdy legs and a thick tapered swimming tail held fully visible behind it, never a horse tail. Its rounded whiskered otter muzzle and small round ears remain obvious beneath a central pearly kirin horn. Broad webbed front paws contrast with small split hindhooves joined by visible toe membranes. Cream throat fur and reed-brown flanks transition into lilac shoulder scales. A flowing mint-pink neck mane provides the kirin silhouette. Full-body chibi, facing right."
+        },
+        {
+          "id": "reedotter--spectralpanther",
+          "name": "Reedveil Riverstalker",
+          "originalSheet": 11,
+          "originalCell": 5,
+          "priority": "high",
+          "descriptionSv": "En andeutterpanter med rund morrhårsmule, simhudstassar och tjock avsmalnande simsvans.",
+          "promptEn": "Build one low aquatic otter-panther with a visibly elongated flexible otter torso, very short legs and a thick muscular swimming tail tapering gradually behind it, never a thin curled cat tail. All four broad feet show spread WEBBED toes. A round whiskered otter muzzle, cream chin and small rounded ears combine with panther fierce brows, short saber fangs and strong feline shoulders. Reed-brown chest fur grades into translucent sapphire flanks with pale cyan edges. Complete connected chibi animal facing right, no upright cat stance."
+        },
+        {
+          "id": "reedotter--stormlynx",
+          "name": "Reedstorm Riverlynx",
+          "originalSheet": 10,
+          "originalCell": 11,
+          "priority": "medium",
+          "descriptionSv": "En utterlodjurshybrid med låg simkropp, runda öron med svarta tofsar och stora simhudstassar.",
+          "promptEn": "Design one sturdy otter-lynx with a long low river-otter body, short limbs and a thick tapered swimming tail fully extended behind the hips. Its rounded whiskered otter face has small round ears crowned by unmistakable long black lynx tufts. Broad feline shoulders and powerful hindquarters join four oversized paws whose spread toes carry clearly visible swimming membranes. A cream throat and reed-brown belly meet storm-grey back fur. Fine cyan lightning marks trace cheek ruffs and shoulder muscles. Whole connected chibi animal, facing right."
+        },
+        {
+          "id": "acornboar--stormlynx",
+          "name": "Thunderroot Razorback",
+          "originalSheet": 13,
+          "originalCell": 11,
+          "priority": "high",
+          "descriptionSv": "Ett kraftigt lodjurssvin med rosa tryne, tydliga betar, örontofsar och klövade bakfötter.",
+          "promptEn": "Create one muscular boar-lynx with a prominent flat upturned PINK PIG SNOUT and two large ivory tusks curving upward beside a single closed feline jaw. Tall black lynx ear tufts and wide cheek ruffs frame this unmistakably piglike face. Its barrel boar hindbody has striped bristles and two sturdy cloven rear hooves, while powerful feline forelegs end in broad padded paws. A hard raised razorback bristle ridge carries narrow cyan lightning veins through storm-grey fur. Show a short curled pig tail. Full-body chibi, facing right."
+        },
+        {
+          "id": "acornboar--thornbadger",
+          "name": "Briartusk Burrower",
+          "originalSheet": 13,
+          "originalCell": 12,
+          "priority": "high",
+          "descriptionSv": "Ett grävlingsvildsvin med uppvänt rosa tryne, stora betar, grävklor och taggig borstkam.",
+          "promptEn": "Make one low heavy badger-boar whose cream-and-charcoal BADGER FACE STRIPES lead into a broad upturned pink pig snout, with two conspicuous ivory tusks rising beside the closed mouth. Huge badger digging forearms end in broad shovel claws; round boar hindquarters stand on clearly split rear hooves. Hard brown dorsal bristles interlock with emerald thorn ridges, leaving both textures recognizable. Small rounded ears and a short curled pig tail complete the compact silhouette. Keep the rooting muzzle dominant rather than a pointed badger nose. Full-body chibi."
+        }
+      ]
+    },
+    {
+      "index": 22,
+      "columns": 3,
+      "rows": 1,
+      "purpose": "Final anatomical refinements: wolf/phoenix, lion/kirin, stag/bear",
+      "hybrids": [
+        {
+          "id": "cinderwolf--dawnphoenix",
+          "name": "Dawnash Firegriff",
+          "originalSheet": 18,
+          "originalCell": 8,
+          "priority": "high",
+          "descriptionSv": "En fyrbent glödvarg med tydlig vargkäke, stora tassar och breda gyllene fenixvingar.",
+          "promptEn": "Create one FOUR-LEGGED WOLF with a long mammalian canine muzzle, visible short fangs, pointed furry ears and four large planted wolf paws. Keep its strong chest, low rear hips and complete bushy wolf tail. Two broad phoenix feather wings grow from the shoulders, with layered golden flight feathers clearly separated from charcoal body fur. A swept sunrise feather crest blends into an ember neck mane; a few flame plumes extend from the tail tip. No bird head or upright bird body. Full-body chibi, facing right."
+        },
+        {
+          "id": "sunmane--aurorakirin",
+          "name": "Opalcrown Lionhart",
+          "originalSheet": 19,
+          "originalCell": 10,
+          "priority": "high",
+          "descriptionSv": "Ett bredaxlat lejon med stor guldman, pärlhorn och kirinens fjälliga klövbakben.",
+          "promptEn": "Build one broad-shouldered LION with a huge circular golden mane, rounded cat ears, wide feline muzzle and two massive padded front paws. Its face must remain clearly lionlike beneath one pearly kirin forehead horn, never a narrow deer face. Behind the powerful chest, a compact kirin hindbody carries lilac scales and two neat cloven rear hooves. Pastel mint-pink strands flow along the mane rear edge into a long silky tufted tail. Preserve strong feline cheek pads and confident brows. Whole connected chibi quadruped, facing right."
+        },
+        {
+          "id": "runestag--obsidianbear",
+          "name": "Blackhorn Runemaul",
+          "originalSheet": 19,
+          "originalCell": 15,
+          "priority": "high",
+          "descriptionSv": "En massiv björnhjort med väldiga framtassar, vulkanpansar och greniga runhorn.",
+          "promptEn": "Create one massive BEAR-bodied stag hybrid with a towering shoulder hump, thick barrel torso and two enormous weight-bearing bear forelegs ending in broad clawed paws. Natural obsidian slabs armor its shoulders and spine. A wide heavy bear muzzle narrows slightly at the nose beneath large branching stag antlers carrying mint rune grooves. Keep round bear ears, a cream deer throat fringe and compact stag haunches ending in two cloven rear hooves. The chest must greatly outweigh the hindquarters, never a slim deer body. Full-body chibi."
+        }
+      ]
+    }
+  ]
+}

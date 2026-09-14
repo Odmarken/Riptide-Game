@@ -1,0 +1,72 @@
+{
+  "submittedAt": "2026-09-14T20:42:47.086Z",
+  "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "4k",
+    "aspect_ratio": "3:2",
+    "background": "transparent",
+    "medias": [
+      {
+        "role": "image",
+        "value": "0530d133-5c81-41fa-b685-9ea6d234ab37"
+      },
+      {
+        "role": "image",
+        "value": "4d025f5e-892a-4578-96aa-ce58bb4bcd76"
+      },
+      {
+        "role": "image",
+        "value": "3eac1a85-79a2-425e-b57d-c3a4b0fade85"
+      },
+      {
+        "role": "image",
+        "value": "8a7cd7fe-81e1-4906-8457-70a353aa8b21"
+      },
+      {
+        "role": "image",
+        "value": "b6a76f13-64f9-4d0a-8900-b2ef652c67b8"
+      }
+    ],
+    "prompt": "Create a polished ORIGINAL CREATURE CONCEPT ATLAS for Riptide, a hand-painted fantasy chibi RPG. This is a visual breeding catalogue: every requested cell is ONE NEW hybrid creature, visibly inheriting anatomical traits from BOTH named parents. Reference images show the existing parent species and exact visual style; use their painted shapes and palette, never copy the reference atlas layout.\nEXACT OUTPUT LAYOUT: landscape 3:2 image, an INVISIBLE uniform grid of FIVE equal columns by THREE equal rows. EXACTLY FIFTEEN separate complete creatures. Read the assignments in row-major order: row1 left-to-right cells01-05, row2 cells06-10, row3 cells11-15. Each creature occupies only its own cell and stays centered with at least 12 percent transparent clearance on EVERY side. Entire tails, horns, antlers, paws and wings must fit within that cell. No extras, no empty cells, no overlap. TRUE TRANSPARENT RGBA BACKGROUND outside the silhouettes. No scene, no terrain, no white matte, no checkerboard, no visible grid, NO LETTERING or labels or numbers. Labels will be added by code.\nSTYLE: match the supplied original Riptide Tides: beautiful hand-painted storybook fantasy sprites, bold clean dark-brown ink outlines, warm modeled painterly highlights, detailed fur/feathers/scales, large expressive heads, short sturdy chibi proportions, powerful readable silhouettes, cool mutated fantasy animals. A range of charming to fierce, no gore. Full-body three-quarter SIDE VIEW, head facing RIGHT, tail left; anatomically connected single head/body, grounded feet or a clearly intentional floating pose. Restrained magical body highlights, no huge glow clouds or floor shadows. Six-limbed fantasy creatures only where a specified wing pair or insect anatomy needs it. Balanced inheritance, not an original animal simply recolored.\n\nCELL 01 (row 1, column 1): obsidianbear + spectralwyrm. One formidable bear-dragon hybrid: immense obsidian bear shoulders and four broad clawed bear paws, a curved elongated spectral dragon neck with one horned bear-dragon head and short bear ears, a long curling sapphire scaled tail. Black volcanic spine plates transition naturally into translucent blue scales. Strong planted silhouette; no wings.\nCELL 02 (row 1, column 2): bramblebunny + spectralwyrm. A compact rabbit-wyrm hybrid with very long upright rabbit ears integrated beside silver dragon horns, a rounded rabbit muzzle with tiny dragon fangs, strong furry rabbit hind feet, short clawed forepaws, and a single long curled serpentine body-tail. Warm tawny fur transitions into translucent sapphire scales beneath a leafy bramble collar.\nCELL 03 (row 1, column 3): coraldrake + obsidianbear. A hulking bear-drake with a broad bear muzzle, little round ears beside sea-green fin ears, four thick clawed bear paws and a thick curved dragon tail. Coral-red membranous wings emerge anatomically from powerful black-furred shoulders. Pink coral growths interlock with obsidian back armor. Compact powerful proportions, confident narrowed eyes.\nCELL 04 (row 1, column 4): thistlesparrow + spectralpanther. An agile spectral panther-sparrow hybrid with a single catlike face ending in a short delicate beak, tufted thistle-purple feather crown, four feline legs with avian talons and folded sparrow wings attached to the shoulder blades. Long curling blue spectral cat tail ends in a russet feather fan. Feathered chest and translucent patterned blue flanks.\nCELL 05 (row 1, column 5): moonowl + obsidianbear. A stocky owl-bear with massive bear shoulders, four planted bear legs with hooked talons, a round moon-owl facial disk merged into one short bear muzzle and beak, and two large folded midnight-blue feather wings emerging from the back. Obsidian plates nest among shoulder feathers, silver crescent brow and stern golden eyes.\nCELL 06 (row 2, column 1): amberbeetle + dawnphoenix. A phoenix-beetle hybrid with a single hooked amber beak-face, delicate beetle antennae below a flame-feather crown, a compact six-legged golden beetle body and two glowing amber wing cases opened above broad orange-red phoenix feather wings. Long layered phoenix tail feathers grow from the abdomen. Whole anatomy coherent and readable, no detached parts.\nCELL 07 (row 2, column 2): pebbletoad + aurorakirin. A regal toad-kirin hybrid: low rounded toad torso on four muscular splayed webbed feet, one gentle elongated amphibian-kirin face, a spiraling opal forehead horn and long pointed kirin ears. Stony toad back nodules blend into iridescent overlapping kirin scales, and a flowing pastel aurora mane runs into a short tadpole-like curling tail.\nCELL 08 (row 2, column 3): reedotter + frostibex. A low streamlined otter-ibex with a whiskered otter face, paired backward-curving icy goat horns, small goat ears and a long furry aquatic torso. Four short powerful legs terminate in broad webbed cloven hoof-paws, a thick tapering otter tail stays fully visible. Cream and brown fur carries pale-blue crystalline shoulder tufts and a small reed ruff.\nCELL 09 (row 2, column 4): duskmoth + runestag. An elegant chibi moth-stag quadruped with four slim hoofed deer legs, chestnut deer torso and one soft deer-moth face with feathery antennae. Branching antlers sweep around four velvety violet and dusky pink moth wings rooted naturally behind the shoulders. Mint luminous rune patterns repeat from deer flanks into the wing veins.\nCELL 10 (row 2, column 5): stormlynx + coraldrake. A muscular lynx-drake crouched on four feline clawed paws: storm-gray lynx face, dark ear tufts joined to sea-green fin ears, cyan lightning whiskers and narrow alert eyes. Coral-pink scales grow over shoulders into two small membranous wings; a long curled dragon tail ends in a black lynx tuft. Fur and scale boundaries follow anatomy.\nCELL 11 (row 3, column 1): mossfox + shellsnap. A fox-turtle hybrid with a sly russet fox muzzle, tall fox ears, a low compact fox torso covered by a real domed sea-glass turtle shell, and four sturdy clawed paws with pebbled reptile forearms. A full thick moss-tipped fox tail curves behind. Green moss grows in shell seams, preserving a fox's lively posture.\nCELL 12 (row 3, column 2): acornboar + crystalgecko. A squat boar-gecko with a broad boar snout, paired polished acorn tusks and clever gecko eyes, four powerful legs ending in wide lavender adhesive toe pads, and a long curled lizard tail. Brown bristly shoulders gradually become teal reptile scales; sharp turquoise crystal ridges rise along its muscular spine. One compact continuous body.\nCELL 13 (row 3, column 3): embercub + thornbadger. A sturdy lion-badger hybrid with broad digging forepaws, a low tough badger chest and powerful lion hindquarters. One young lion face bears bold cream-and-charcoal badger stripes and small fangs. Its compact mane is woven from natural green thorns with ember-orange tips; a full lion tail ends in a thorn-and-flame tuft.\nCELL 14 (row 3, column 4): cinderwolf + sunmane. A proud wolf-lion hybrid on four large clawed paws: lean wolf muzzle and upright wolf ears rise through a broad sun-gold lion mane streaked with ember-red tufts. Charcoal wolf shoulders merge into honey-gold lion flanks. Long bushy wolf tail has a flaming golden lion tuft; low focused brows and visible closed-mouth fangs.\nCELL 15 (row 3, column 5): dawnphoenix + spectralwyrm. A spectacular phoenix-wyrm with one horned draconic bird head and hooked golden beak, an S-curved serpentine sapphire-scaled body, one pair of large layered orange-red phoenix wings and two small gold taloned legs. Its long coiled tail turns into flowing flame feathers. Translucent blue dragon belly contrasts with glowing dawn-feather back.",
+    "count": 1
+  },
+  "response": {
+    "jobs": [
+      {
+        "index": 1,
+        "job_id": "34325a8c-0d87-4ada-a4a4-a83f9c768e14",
+        "status": "pending",
+        "adjustments": {
+          "medias[0].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[1].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[2].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[3].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[4].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          }
+        }
+      }
+    ],
+    "submitted_count": 1,
+    "failed_count": 0
+  }
+}

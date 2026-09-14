@@ -1,0 +1,77 @@
+{
+  "submittedAt": "2026-09-14T20:56:42.153Z",
+  "requests": [
+    {
+      "index": 4,
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "4k",
+        "aspect_ratio": "3:2",
+        "background": "transparent",
+        "medias": [
+          {
+            "role": "image",
+            "value": "0530d133-5c81-41fa-b685-9ea6d234ab37"
+          },
+          {
+            "role": "image",
+            "value": "4d025f5e-892a-4578-96aa-ce58bb4bcd76"
+          },
+          {
+            "role": "image",
+            "value": "3eac1a85-79a2-425e-b57d-c3a4b0fade85"
+          },
+          {
+            "role": "image",
+            "value": "8a7cd7fe-81e1-4906-8457-70a353aa8b21"
+          },
+          {
+            "role": "image",
+            "value": "b6a76f13-64f9-4d0a-8900-b2ef652c67b8"
+          }
+        ],
+        "count": 1,
+        "prompt": "Create a polished ORIGINAL CREATURE CONCEPT ATLAS for Riptide, a hand-painted fantasy chibi RPG. This is a visual breeding catalogue: every requested cell is ONE NEW hybrid creature, visibly inheriting anatomical traits from BOTH named parents. Reference images show the existing parent species and exact visual style; use their painted shapes and palette, never copy the reference atlas layout.\nEXACT OUTPUT LAYOUT: landscape 3:2 image, an INVISIBLE uniform grid of FIVE equal columns by THREE equal rows. EXACTLY FIFTEEN separate complete creatures. Read the assignments in row-major order: row1 left-to-right cells01-05, row2 cells06-10, row3 cells11-15. Each creature occupies only its own cell and stays centered with at least 20 percent transparent clearance on EVERY side. Entire tails, horns, antlers, paws and wings must fit within that cell. No extras, no empty cells, no overlap. TRUE TRANSPARENT RGBA BACKGROUND outside the silhouettes. No scene, no terrain, no white matte, no checkerboard, no visible grid, NO LETTERING or labels or numbers. Labels will be added by code.\nSTYLE: match the supplied original Riptide Tides: beautiful hand-painted storybook fantasy sprites, bold clean dark-brown ink outlines, warm modeled painterly highlights, detailed fur/feathers/scales, large expressive heads, short sturdy chibi proportions, powerful readable silhouettes, cool mutated fantasy animals. A range of charming to fierce, no gore. Full-body three-quarter SIDE VIEW, head facing RIGHT, tail left; anatomically connected single head/body, grounded feet or a clearly intentional floating pose. Restrained magical body highlights, no huge glow clouds or floor shadows. Six-limbed fantasy creatures only where a specified wing pair or insect anatomy needs it. Balanced inheritance, not an original animal simply recolored.\n\nSTRICT PLACEMENT: Creature centers are at x=10%,30%,50%,70%,90% of the image and y=16.67%,50%,83.33%. Each creature including every appendage fits within just 60% of its own cell width and 70% of its own cell height. Transparent gutters between every pair of neighbors are essential. Do not enlarge a creature to fill its entire cell. Match these fifteen independent center points precisely.\n\nCELL 01 (row 1, column 1): Bramble Bunny + Shellsnap. Full-body fantasy chibi: A sturdy rabbit-turtle has a high rounded terracotta shell grown into its caramel back, bordered by sage leaf-shaped scutes. Long soft ears and a cream rabbit muzzle extend forward from a jade-scaled neck. Four visible feet include two powerful rabbit hindpaws; a small white tail protrudes behind the shell. Brown ink contours, painterly RPG finish; facing right.\nCELL 02 (row 1, column 2): Bramble Bunny + Acorn Boar. Full-body fantasy chibi: A stocky rabbit-boar has long alert ears, a flattened whiskered snout and two small ivory tusks. Tan piglet stripes run over caramel fur into leafy bramble ridges. Its short muscular forelegs contrast powerful rabbit haunches and long split-toed hindfeet, while a bristly round tail and stubborn brow create a feisty stance. Brown ink contours, painterly RPG finish; facing right.\nCELL 03 (row 1, column 3): Bramble Bunny + Ember Cub. Full-body fantasy chibi: A fiery rabbit-lion combines long caramel ears and springing rabbit haunches with oversized feline forepaws and a compact lion muzzle. Ember-red mane tufts grow through sage cheek leaves; orange fur ends in glowing tips along the shoulders. Its small rabbit tail becomes a round flame tuft above two long cream hindfeet. Brown ink contours, painterly RPG finish; facing right.\nCELL 04 (row 1, column 4): Bramble Bunny + Moon Owl. Full-body fantasy chibi: A watchful rabbit-owl has a silver facial disk around a short rabbit muzzle, long feather-edged ears and a crescent brow marking. Midnight-blue wings fold along its cream furry torso. Two powerful rabbit hindlegs end in taloned toes; leafy shoulder feathers and a soft round tail provide a compact grounded silhouette. Brown ink contours, painterly RPG finish; facing right.\nCELL 05 (row 1, column 5): Bramble Bunny + Crystal Gecko. Full-body fantasy chibi: A climbing rabbit-gecko crouches on strong rabbit haunches with four splayed lavender adhesive feet. Long ears carry translucent turquoise crystal ridges above a cream whiskered muzzle. Caramel belly fur blends into teal back scales, while a long tapered gecko tail curls around the small bramble-leaf rump tuft. Brown ink contours, painterly RPG finish; facing right.\nCELL 06 (row 2, column 1): Bramble Bunny + Storm Lynx. Full-body fantasy chibi: A fierce rabbit-lynx has tall black-tufted ears, a short feline muzzle and narrow confident eyes above broad cream cheek fur. Huge rabbit hindquarters power a low storm-grey body, with clawed feline forepaws and long rear feet. Cyan lightning markings cross leafy shoulder tufts, ending at a compact bristly rabbit tail. Brown ink contours, painterly RPG finish; facing right.\nCELL 07 (row 2, column 2): Bramble Bunny + Thorn Badger. Full-body fantasy chibi: A tough rabbit-badger has long ears edged with emerald thorns and a cream-charcoal striped face tapering to a rabbit nose. Broad digging forepaws balance strong rabbit haunches on a low grey torso. Dense bramble fur armor grows from its shoulders, with long cream hindfeet and a short white tail fully visible. Brown ink contours, painterly RPG finish; facing right.\nCELL 08 (row 2, column 3): Bramble Bunny + Cinder Wolf. Full-body fantasy chibi: A lean rabbit-wolf has a narrow canine muzzle with small closed-mouth fangs beneath tall rabbit ears. Charcoal forequarters and strong wolf paws merge with massive rust-colored rabbit hindlegs. Ember mane tufts thread through sage cheek leaves; a short bushy tail and elongated rear feet create an aggressive bounding silhouette. Brown ink contours, painterly RPG finish; facing right.\nCELL 09 (row 2, column 4): Bramble Bunny + Frost Ibex. Full-body fantasy chibi: A mountain rabbit-ibex has huge cream hindquarters, long pale blue ears and a small rabbit muzzle beneath two ridged ice horns sweeping backward. Its short forefeet end in cloven hooves while elongated rear hooves retain a rabbit's hopping silhouette. Leaf-shaped frost scales fringe its shoulders and tiny round tail. Brown ink contours, painterly RPG finish; facing right.\nCELL 10 (row 2, column 5): Bramble Bunny + Sunmane. Full-body fantasy chibi: A regal rabbit-lion has a broad golden mane framing long upright caramel ears and a cream rabbit muzzle with small feline fangs. Muscular lion forepaws contrast long powerful rabbit hindfeet. Honey fur carries leaf-shaped mane layers, and a round glowing tail tuft balances its proud compact stance. Brown ink contours, painterly RPG finish; facing right.\nCELL 11 (row 3, column 1): Bramble Bunny + Rune Stag. Full-body fantasy chibi: A woodland rabbit-stag has long leaf-fringed ears beside branching mint-runed antlers, a cream rabbit muzzle and a chestnut deerlike neck. Compact forelegs end in little hooves while powerful rabbit hindquarters stretch into elongated cloven feet. A small white tail and leafy shoulder ruff preserve its soft yet magical silhouette. Brown ink contours, painterly RPG finish; facing right.\nCELL 12 (row 3, column 2): Bramble Bunny + Coral Drake. Full-body fantasy chibi: A rabbit-drake combines tall sea-green fin ears, a cream rabbit muzzle and powerful hopping hindlegs with a coral-scaled torso. Small red membrane wings grow from its shoulders, above furry forepaws ending in webbed claws. A curled dragon tail bears a soft white tuft, and sage cheek fins echo bramble leaves. Brown ink contours, painterly RPG finish; facing right.\nCELL 13 (row 3, column 3): Bramble Bunny + Dawn Phoenix. Full-body fantasy chibi: A radiant rabbit-phoenix has long ears layered in amber feathers and a cream rabbit muzzle beneath a small flame crest. Golden feather wings emerge from its orange furry torso. Two long rabbit hindfeet end in delicate talons, and its rounded tail blooms into a compact fan of ember-tipped feathers. Brown ink contours, painterly RPG finish; facing right.\nCELL 14 (row 3, column 4): Bramble Bunny + Obsidian Bear. Full-body fantasy chibi: A hulking rabbit-bear has huge rounded forepaws, heavy rabbit haunches and long thick ears rising behind a stern broad muzzle. Charcoal fur grows between glossy volcanic shoulder plates edged with bramble thorns. Long rear feet and a small cream tail retain its rabbit identity beneath a powerful squat bear torso. Brown ink contours, painterly RPG finish; facing right.\nCELL 15 (row 3, column 5): Bramble Bunny + Aurora Kirin. Full-body fantasy chibi: A graceful rabbit-kirin has long cream ears swept beside one pearly horn, a small rabbit muzzle and pastel flowing cheek mane. Lilac scales line its deerlike torso, which ends in powerful rabbit haunches and elongated cloven hindfeet. Two neat forehooves and a round tail trailing silk-light strands complete the shape. Brown ink contours, painterly RPG finish; facing right."
+      }
+    }
+  ],
+  "response": {
+    "jobs": [
+      {
+        "index": 4,
+        "job_id": "bef8f7c6-efb2-4eec-a292-59f60792c8f2",
+        "status": "pending",
+        "adjustments": {
+          "medias[0].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[1].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[2].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[3].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[4].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          }
+        }
+      }
+    ],
+    "submitted_count": 1,
+    "failed_count": 0
+  }
+}

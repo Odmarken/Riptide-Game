@@ -1,0 +1,25 @@
+{
+  "generator": "Higgsfield",
+  "jobId": "9ef4d2e6-47ca-4c3d-9364-1d78286df78e",
+  "file": "assets/farm/tide_incubator.png",
+  "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260914_221635_9ef4d2e6-47ca-4c3d-9364-1d78286df78e.png",
+  "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "1k",
+    "background": "transparent",
+    "aspect_ratio": "1:1",
+    "count": 1,
+    "medias": [
+      {
+        "role": "image",
+        "value": "59b3ca3e-b4b7-4363-b17e-6de3fbafc373"
+      }
+    ],
+    "prompt": "Create a NEW compact magical TIDE BREEDING COTTAGE / INCUBATOR HOUSE for the same hand-painted chibi fantasy RPG as the reference stable. Match the reference's exact bold dark brown contours, rich painterly oak, red clay roof tiles, warm cream plaster, chunky low stone foundation, three-quarter isometric view from above, entry facing lower left. A small cozy square cottage with a steep red tiled roof and a little amber-glass rooftop cupola. Large open arched front doorway shows one attractive brass-and-teal magical egg incubator inside: oval softly glowing turquoise crystal egg held in a small brass cradle, readable at game scale. Two small decorative carved animal silhouettes flank a brass egg emblem above the door, no letters. Warm little lantern, subtle ivy on one corner, tasteful brass piping around the window, one turquoise oval window on visible right wall. This must feel like a fantasy farm building, not a science-fiction machine. ONE complete isolated building including tiny doorstep; no people, no animals outside, no scenery, no lawn or dirt patch, no fence, no ground shadow, no extra objects, no labels/text/watermark/checkerboard. True transparent RGBA background. Entire roof, walls and foundation in frame with8percentclear padding on all sides. Compact architecture readable when rendered220worldunits wide. Original new architecture matching the reference's game style."
+  },
+  "width": 1024,
+  "height": 1024,
+  "sha256": "fae0657f0495b9b5e69c2d92e81a0f3325c757b3f7d3bbac91c0603ab6d2c375",
+  "nativeTransparentPng": true
+}

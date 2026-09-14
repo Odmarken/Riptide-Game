@@ -1,0 +1,1202 @@
+[
+  {
+    "id": "meadowmouse--bramblebunny",
+    "parentA": "meadowmouse",
+    "parentB": "bramblebunny",
+    "name": "Bramblewhisk",
+    "descriptionSv": "En rundörad skogshoppare med kaninbakben och lång mussvans med lövtofs.",
+    "promptEn": "Full-body fantasy chibi: A caramel woodland hopper combines mouse round ears stretched into broad rabbit ears, prominent whiskers and rabbit springing haunches. Four small pink paws, a long slender mouse tail ending in a bramble leaf tuft, cream belly and leafy cheek fur create an alert charming silhouette. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "meadowmouse--pebbletoad",
+    "parentA": "meadowmouse",
+    "parentB": "pebbletoad",
+    "name": "Pebblepocket",
+    "descriptionSv": "En stenknölig paddmus med runda öron, morrhår och breda simhudsfötter.",
+    "promptEn": "Full-body fantasy chibi: A squat amphibious mouse has rounded furry ears, whiskered pink muzzle and a toad's powerful folded hindquarters. Smooth cream belly meets slate pebble bumps growing naturally across tawny shoulders. Four webbed paws and a thin curled tadpole-like mouse tail balance the compact crouching body. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "meadowmouse--thistlesparrow",
+    "parentA": "meadowmouse",
+    "parentB": "thistlesparrow",
+    "name": "Seedwing",
+    "descriptionSv": "En liten musfågel med fjädervingar, fågelklor och mussvans med fjädervippa.",
+    "promptEn": "Full-body fantasy chibi: A small winged mouse has warm beige chest fur blending into russet sparrow flight feathers. Its short muzzle narrows into a delicate seed-cracking beak, broad round ears frame a purple thistle crest, two bird feet support its body, and a slender tail ends in a feather fan. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "meadowmouse--amberbeetle",
+    "parentA": "meadowmouse",
+    "parentB": "amberbeetle",
+    "name": "Sapscuttle",
+    "descriptionSv": "En sexbent bärnstensmus med skalrygg och runda känselöron.",
+    "promptEn": "Full-body fantasy chibi: A low six-legged creature combines a mouse's whiskered face, rounded pink ears and cream furry underside with curved amber beetle wing cases. Six jointed legs end in tiny pink grasping toes; a thin curled tail emerges naturally behind the shell and two short antennae rise between the ears. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "meadowmouse--mossfox",
+    "parentA": "meadowmouse",
+    "parentB": "mossfox",
+    "name": "Mossnibble",
+    "descriptionSv": "En smidig rävlik mus med stora runda öron och buskig mossgrön svans.",
+    "promptEn": "Full-body fantasy chibi: A nimble long-bodied mouse-fox stands on four small russet paws. Broad rounded mouse ears crown a tapering fox muzzle with tiny incisors and long whiskers. Its thin tail thickens gradually into a moss-green fox brush; beige flanks and leafy green shoulder fur retain both woodland parents. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "meadowmouse--reedotter",
+    "parentA": "meadowmouse",
+    "parentB": "reedotter",
+    "name": "Reedskipper",
+    "descriptionSv": "En långsmal utter-mus med runda öron, simhud och platt smalnande svans.",
+    "promptEn": "Full-body fantasy chibi: A sleek river mouse has an otter's elongated swimming torso, cream throat and four broad webbed paws. Oversized circular mouse ears and a tiny pink whiskered nose remain prominent. The thick otter tail narrows into a curling mouse tip, while reed-green dorsal fur forms a subtle comb. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "meadowmouse--duskmoth",
+    "parentA": "meadowmouse",
+    "parentB": "duskmoth",
+    "name": "Velvetwhisk",
+    "descriptionSv": "En lurvig musmal med rundade öron och fyra månmönstrade vingar.",
+    "promptEn": "Full-body fantasy chibi: A hovering mouse-moth has a plump beige furry abdomen, round pink mouse ears and long feathery antennae. Four violet wings grow from its shoulder segments, marked with pale crescents. Tiny mouse forepaws tuck near a whiskered muzzle; four delicate rear insect feet and a curling tail remain visible. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "meadowmouse--shellsnap",
+    "parentA": "meadowmouse",
+    "parentB": "shellsnap",
+    "name": "Burrowshell",
+    "descriptionSv": "En mus med naturligt välvt sköldpaddsskal och tassar som grävklor.",
+    "promptEn": "Full-body fantasy chibi: A sturdy turtle-mouse carries a naturally grown terracotta shell with golden spiral scutes over its round torso. Beige fur blends into jade scales at four broad digging paws. Round ears, a pink whiskered nose and a slender curled tail project clearly beyond the shell, giving a determined burrowing stance. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "meadowmouse--acornboar",
+    "parentA": "meadowmouse",
+    "parentB": "acornboar",
+    "name": "Acornsnout",
+    "descriptionSv": "En liten betförsedd vildsvinsmus med rundöron och randig borstpäls.",
+    "promptEn": "Full-body fantasy chibi: A barrel-bodied boar-mouse has round pink ears, a whiskered piglike snout and two tiny outward ivory tusks. Tawny piglet stripes cross its shaggy back; four short legs end in split clawed toes. A thin mouse tail curls behind an acorn-shaped bristly rump tuft, with a stubborn playful expression. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "meadowmouse--embercub",
+    "parentA": "meadowmouse",
+    "parentB": "embercub",
+    "name": "Cindercheek",
+    "descriptionSv": "En muslik eldkatt med stor mankrage, lejonframtassar och tunn glödsvans.",
+    "promptEn": "Full-body fantasy chibi: A compact mouse-lion has round oversized ears rising from a fiery cheek mane, a short whiskered muzzle and tiny visible incisors. Large lion forepaws support a beige furry torso above smaller mouse hindfeet. Its slender curled tail carries an ember tuft; orange chest fur glows only along the tips. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "meadowmouse--moonowl",
+    "parentA": "meadowmouse",
+    "parentB": "moonowl",
+    "name": "Moonmuzzle",
+    "descriptionSv": "En nattlig ugglemus med öronformad ansiktsskiva och mjuka silvervingar.",
+    "promptEn": "Full-body fantasy chibi: A round moon-owl mouse has a silver feather facial disk shaped around broad rounded mouse ears, a small pink beaked nose and prominent whiskers. Midnight-blue wings replace its forelimbs, two soft clawed feet support a cream furry belly, and a long mouse tail ends in a short silver feather tassel. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "meadowmouse--crystalgecko",
+    "parentA": "meadowmouse",
+    "parentB": "crystalgecko",
+    "name": "Prismwhisk",
+    "descriptionSv": "En fyrbent kristallmus med geckotår och lång kristalltaggig svans.",
+    "promptEn": "Full-body fantasy chibi: A lithe gecko-mouse has a whiskered cream muzzle and large round ears edged with translucent turquoise scales. Four lavender adhesive toes spread from each short limb; tawny belly fur merges into teal crystal back plates. Its long curling mouse tail thickens at the base into a gecko's faceted tail. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "meadowmouse--stormlynx",
+    "parentA": "meadowmouse",
+    "parentB": "stormlynx",
+    "name": "Staticnibbler",
+    "descriptionSv": "En kompakt muslo med stora tofsöron, kraftiga tassar och blixtmorrhår.",
+    "promptEn": "Full-body fantasy chibi: A fierce little lynx-mouse has broad circular ears drawn upward into black lynx tufts, cyan whiskers and tiny front incisors. Its low storm-grey body carries oversized feline forepaws and smaller pink hindtoes. A slender mouse tail curls around a short bushy base; electric markings trace its muscular shoulders. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "meadowmouse--thornbadger",
+    "parentA": "meadowmouse",
+    "parentB": "thornbadger",
+    "name": "Briarburrow",
+    "descriptionSv": "En låg bred musgrävling med randigt ansikte och taggig skulderrygg.",
+    "promptEn": "Full-body fantasy chibi: A burrowing mouse-badger has a low broad torso, long shovel claws and rounded mouse ears protruding from thorny shoulder fur. Cream and charcoal facial stripes converge on its pink whiskered nose. Beige flanks soften the armored emerald ridge, while a long bare curled tail contrasts the powerful digging forequarters. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "meadowmouse--cinderwolf",
+    "parentA": "meadowmouse",
+    "parentB": "cinderwolf",
+    "name": "Ashwhisk",
+    "descriptionSv": "En långnosad vargmus med runda öron, flammande nackkam och glödande tänder.",
+    "promptEn": "Full-body fantasy chibi: A compact predatory wolf-mouse combines a long canine chest and strong forelegs with oversized round ears, incisors and thin whiskers. Charcoal fur flows into a rust belly and ember mane. Its bushy wolf tail tapers into a bare curled mouse tip; restrained fire brightens closed-mouth fangs and back fur. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "meadowmouse--frostibex",
+    "parentA": "meadowmouse",
+    "parentB": "frostibex",
+    "name": "Frostnibble",
+    "descriptionSv": "En hornprydd musbock med kluvna bakhovar och små framtassar.",
+    "promptEn": "Full-body fantasy chibi: A sure-footed ibex-mouse has short powerful haunches, four compact limbs and a cream furry barrel chest. Broad round mouse ears sit below two ridged backward-curving ice horns. Its forefeet retain grasping pink toes while hindfeet become tiny split hooves; a thin curled tail and long whiskers soften its stern face. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "meadowmouse--sunmane",
+    "parentA": "meadowmouse",
+    "parentB": "sunmane",
+    "name": "Sunwhisk Regent",
+    "descriptionSv": "En kunglig muslejonhybrid med rundöron, solman och kraftiga framtassar.",
+    "promptEn": "Full-body fantasy chibi: A proud mouse-lion has an oversized golden mane radiating around large round ears and a small whiskered muzzle with ivory incisors. Heavy lion forepaws and lighter mouse hindfeet support a compact honey-colored body. Its long fine tail ends in a sunburst tuft, creating a regal yet mischievous posture. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "meadowmouse--runestag",
+    "parentA": "meadowmouse",
+    "parentB": "runestag",
+    "name": "Runeburrow Hart",
+    "descriptionSv": "En liten mus-hjort med grenhorn, smala ben och lång mussvans.",
+    "promptEn": "Full-body fantasy chibi: A woodland mouse-stag has a compact cream-chested body lifted on slender short deer legs, tiny split hooves and wide rounded pink ears. Branching antlers grow behind its whiskered mouse face, with mint runes carved into their natural bark texture. A thin curled tail and beige shoulder fur preserve its mouse ancestry. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "meadowmouse--coraldrake",
+    "parentA": "meadowmouse",
+    "parentB": "coraldrake",
+    "name": "Reefwhisk Drakelet",
+    "descriptionSv": "En liten revdrake med musöron, morrhår och simhudsbeklädda klotassar.",
+    "promptEn": "Full-body fantasy chibi: A playful reef mouse-dragon has round fin-edged ears, a pink whiskered muzzle and a cream furry belly grading into coral scales. Four webbed clawed paws support the low body. Small red membrane wings join its shoulders, and its thin curled mouse tail broadens into a sea-green fin near the tip. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "meadowmouse--dawnphoenix",
+    "parentA": "meadowmouse",
+    "parentB": "dawnphoenix",
+    "name": "Dawnwhisk Flare",
+    "descriptionSv": "En musfågel med rundöron, flamfjädrar och lång solfjädersvans.",
+    "promptEn": "Full-body fantasy chibi: A radiant mouse-phoenix has a cream furry chest, round golden ears and a tiny beaked mouse muzzle with fine whiskers. Broad flame-shaped feather wings grow from its shoulders above two pink taloned feet. The long mouse tail unfurls into attached ember feathers, with amber light held tightly along its warm plumage. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "meadowmouse--obsidianbear",
+    "parentA": "meadowmouse",
+    "parentB": "obsidianbear",
+    "name": "Obsidian Squeakmaul",
+    "descriptionSv": "En bastant björnmus med rundöron, jättetassar och vulkaniska ryggplattor.",
+    "promptEn": "Full-body fantasy chibi: A stocky bear-mouse has immense rounded forepaws with digging claws, broad mouse ears and a compact whiskered muzzle bearing two small incisors. Charcoal fur and a cream belly meet glossy volcanic shoulder plates. A long thin mouse tail curls beside its heavy haunches, making the powerful squat silhouette unmistakably hybrid. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "meadowmouse--aurorakirin",
+    "parentA": "meadowmouse",
+    "parentB": "aurorakirin",
+    "name": "Aurora Whiskerhoof",
+    "descriptionSv": "En fjällig muskirin med pärlhorn, kluvna hovar och böljande aurorasvans.",
+    "promptEn": "Full-body fantasy chibi: A graceful mouse-kirin combines a tiny whiskered face and broad round ears with a compact deerlike body on four neat hooves. Lilac scales grow through cream fur; one pearly forehead horn and a flowing pastel mane frame its head. A slender mouse tail extends into attached mint and pink silky ribbons. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "meadowmouse--spectralpanther",
+    "parentA": "meadowmouse",
+    "parentB": "spectralpanther",
+    "name": "Veilwhisk Prowler",
+    "descriptionSv": "En blå genomskinlig muspanter med långa hörntänder, rundöron och smal svans.",
+    "promptEn": "Full-body fantasy chibi: A translucent sapphire panther-mouse crouches on broad feline paws beneath a compact sleek torso. Oversized round ears, a pink-blue whiskered nose and tiny incisors coexist with short icy saber fangs. Its long fine tail loops tightly left, while darker blue shoulder markings define real muscle beneath pale cyan edge light. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "meadowmouse--spectralwyrm",
+    "parentA": "meadowmouse",
+    "parentB": "spectralwyrm",
+    "name": "Astral Whiskercoil",
+    "descriptionSv": "En svävande musdrake med rundöron, morrhår och en lång fjällig spiralstjärt.",
+    "promptEn": "Full-body fantasy chibi: A floating serpentine mouse-dragon has a rounded whiskered dragon muzzle, oversized circular ears edged with silver fins and two tiny horns. Beige pearl chest fur blends into translucent sapphire scales along one continuous curled body. Tiny grasping forepaws and a long tapered mouse-like tail complete its compact S-shaped silhouette. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "bramblebunny--pebbletoad",
+    "parentA": "bramblebunny",
+    "parentB": "pebbletoad",
+    "name": "Bramblestone Hopper",
+    "descriptionSv": "En kompakt kaninpadda med långa mjuka öron och stenknöliga hoppben.",
+    "promptEn": "Full-body fantasy chibi: A rabbit-toad crouches on broad webbed hindfeet beneath oversized springing haunches. Long caramel ears frame amber protruding toad eyes and a cream rabbit muzzle. Sage leaf tufts blend into olive pebble-textured skin across the spine; short furry forepaws and a tiny rounded tail keep the charming silhouette balanced. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "bramblebunny--thistlesparrow",
+    "parentA": "bramblebunny",
+    "parentB": "thistlesparrow",
+    "name": "Thistletuft Jackwing",
+    "descriptionSv": "En kaninfågel med långa fjäderöron, fågelvingar och kraftiga hoppben.",
+    "promptEn": "Full-body fantasy chibi: A nimble rabbit-sparrow has long upright ears edged in russet feathers, a short beaked muzzle and cream cheek fur. Two compact feather wings fold against its caramel torso. Powerful rabbit hindlegs end in small bird talons, while a purple thistle crest and a rounded tail feather puff complete its springing silhouette. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "bramblebunny--amberbeetle",
+    "parentA": "bramblebunny",
+    "parentB": "amberbeetle",
+    "name": "Amberhop Carapace",
+    "descriptionSv": "En pansrad kanininsekt med känselöron, skalrygg och stora ledade bakben.",
+    "promptEn": "Full-body fantasy chibi: A rabbit-beetle stands on six short segmented limbs, the rear pair enlarged into rabbit jumping haunches with soft cream toes. Long velvety ears carry delicate antenna tips above a rabbit muzzle. Paired amber wing cases naturally enclose its caramel torso, with leafy ridges and a small white tail puff behind. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "bramblebunny--mossfox",
+    "parentA": "bramblebunny",
+    "parentB": "mossfox",
+    "name": "Bramblebrush Vulpin",
+    "descriptionSv": "En långörad rävkanin med kraftiga bakben och stor lövklädd rävsvans.",
+    "promptEn": "Full-body fantasy chibi: A long-eared rabbit-fox has a narrow fox muzzle, cream cheek ruff and oversized rabbit hindquarters. Four soft russet paws support a low agile body, while a lush moss-green fox tail sweeps behind. Sage leafy fur runs up the long ears and shoulder line, creating a clever alert woodland hunter. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "bramblebunny--reedotter",
+    "parentA": "bramblebunny",
+    "parentB": "reedotter",
+    "name": "Reedhop Paddler",
+    "descriptionSv": "En långsmal kaninutter med stora simhudsfötter och platt bred svans.",
+    "promptEn": "Full-body fantasy chibi: A river rabbit-otter combines a long sleek brown torso and broad flattened tail with tall caramel ears, a cream rabbit muzzle and powerful hopping haunches. Four webbed paws spread beneath it, rear feet noticeably longer. Reed-green cheek tufts and leafy ear edges create a natural aquatic bramble camouflage. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "bramblebunny--duskmoth",
+    "parentA": "bramblebunny",
+    "parentB": "duskmoth",
+    "name": "Duskear Flutterbun",
+    "descriptionSv": "En fluffig kaninmal med långa känselöron och fyra violetta vingar.",
+    "promptEn": "Full-body fantasy chibi: A soft rabbit-moth hovers with huge hindfeet tucked beneath its cream furry belly. Long rabbit ears feather into moth antennae above a caramel muzzle. Four violet crescent-patterned wings attach symmetrically to its shoulder and hip segments, while leafy cheek tufts and a small round tail blend into lilac body fur. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "bramblebunny--shellsnap",
+    "parentA": "bramblebunny",
+    "parentB": "shellsnap",
+    "name": "Brambleback Shelldancer",
+    "descriptionSv": "En kaninsköldpadda med stora hoppfötter, lövöron och välvt terrakottaskal.",
+    "promptEn": "Full-body fantasy chibi: A sturdy rabbit-turtle has a high rounded terracotta shell grown into its caramel back, bordered by sage leaf-shaped scutes. Long soft ears and a cream rabbit muzzle extend forward from a jade-scaled neck. Four visible feet include two powerful rabbit hindpaws; a small white tail protrudes behind the shell. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "bramblebunny--acornboar",
+    "parentA": "bramblebunny",
+    "parentB": "acornboar",
+    "name": "Tuskbriar Jackboar",
+    "descriptionSv": "En betförsedd kaningalt med långa öron och randig taggpäls.",
+    "promptEn": "Full-body fantasy chibi: A stocky rabbit-boar has long alert ears, a flattened whiskered snout and two small ivory tusks. Tan piglet stripes run over caramel fur into leafy bramble ridges. Its short muscular forelegs contrast powerful rabbit haunches and long split-toed hindfeet, while a bristly round tail and stubborn brow create a feisty stance. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "bramblebunny--embercub",
+    "parentA": "bramblebunny",
+    "parentB": "embercub",
+    "name": "Emberfoot Jacklion",
+    "descriptionSv": "En eldkanin med lejonman, stora framtassar och glödande hoppben.",
+    "promptEn": "Full-body fantasy chibi: A fiery rabbit-lion combines long caramel ears and springing rabbit haunches with oversized feline forepaws and a compact lion muzzle. Ember-red mane tufts grow through sage cheek leaves; orange fur ends in glowing tips along the shoulders. Its small rabbit tail becomes a round flame tuft above two long cream hindfeet. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "bramblebunny--moonowl",
+    "parentA": "bramblebunny",
+    "parentB": "moonowl",
+    "name": "Moonlop Sentinel",
+    "descriptionSv": "En långörad ugglekanin med silveransikte och midnattsblå vingar.",
+    "promptEn": "Full-body fantasy chibi: A watchful rabbit-owl has a silver facial disk around a short rabbit muzzle, long feather-edged ears and a crescent brow marking. Midnight-blue wings fold along its cream furry torso. Two powerful rabbit hindlegs end in taloned toes; leafy shoulder feathers and a soft round tail provide a compact grounded silhouette. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "bramblebunny--crystalgecko",
+    "parentA": "bramblebunny",
+    "parentB": "crystalgecko",
+    "name": "Crystalhop Skitter",
+    "descriptionSv": "En kristallkanin med geckotår, fjälliga öron och lång böjd svans.",
+    "promptEn": "Full-body fantasy chibi: A climbing rabbit-gecko crouches on strong rabbit haunches with four splayed lavender adhesive feet. Long ears carry translucent turquoise crystal ridges above a cream whiskered muzzle. Caramel belly fur blends into teal back scales, while a long tapered gecko tail curls around the small bramble-leaf rump tuft. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "bramblebunny--stormlynx",
+    "parentA": "bramblebunny",
+    "parentB": "stormlynx",
+    "name": "Thunderlop Pouncer",
+    "descriptionSv": "En långörad kaninlo med svarttofsade öron och stora elektriska hoppben.",
+    "promptEn": "Full-body fantasy chibi: A fierce rabbit-lynx has tall black-tufted ears, a short feline muzzle and narrow confident eyes above broad cream cheek fur. Huge rabbit hindquarters power a low storm-grey body, with clawed feline forepaws and long rear feet. Cyan lightning markings cross leafy shoulder tufts, ending at a compact bristly rabbit tail. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "bramblebunny--thornbadger",
+    "parentA": "bramblebunny",
+    "parentB": "thornbadger",
+    "name": "Briarburrow Jackguard",
+    "descriptionSv": "En låg kaningrävling med långt randigt ansikte och taggiga öron.",
+    "promptEn": "Full-body fantasy chibi: A tough rabbit-badger has long ears edged with emerald thorns and a cream-charcoal striped face tapering to a rabbit nose. Broad digging forepaws balance strong rabbit haunches on a low grey torso. Dense bramble fur armor grows from its shoulders, with long cream hindfeet and a short white tail fully visible. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "bramblebunny--cinderwolf",
+    "parentA": "bramblebunny",
+    "parentB": "cinderwolf",
+    "name": "Cinderlop Fangrunner",
+    "descriptionSv": "En kaninvarg med långa öron, vargmule och flammande ryggkam.",
+    "promptEn": "Full-body fantasy chibi: A lean rabbit-wolf has a narrow canine muzzle with small closed-mouth fangs beneath tall rabbit ears. Charcoal forequarters and strong wolf paws merge with massive rust-colored rabbit hindlegs. Ember mane tufts thread through sage cheek leaves; a short bushy tail and elongated rear feet create an aggressive bounding silhouette. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "bramblebunny--frostibex",
+    "parentA": "bramblebunny",
+    "parentB": "frostibex",
+    "name": "Frostlop Craghare",
+    "descriptionSv": "En hornprydd kaninbock med långa öron och iskluvna hoppfötter.",
+    "promptEn": "Full-body fantasy chibi: A mountain rabbit-ibex has huge cream hindquarters, long pale blue ears and a small rabbit muzzle beneath two ridged ice horns sweeping backward. Its short forefeet end in cloven hooves while elongated rear hooves retain a rabbit's hopping silhouette. Leaf-shaped frost scales fringe its shoulders and tiny round tail. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "bramblebunny--sunmane",
+    "parentA": "bramblebunny",
+    "parentB": "sunmane",
+    "name": "Sunlop Pridebound",
+    "descriptionSv": "En solgul kaninlejonhybrid med mäktig man och stora hoppben.",
+    "promptEn": "Full-body fantasy chibi: A regal rabbit-lion has a broad golden mane framing long upright caramel ears and a cream rabbit muzzle with small feline fangs. Muscular lion forepaws contrast long powerful rabbit hindfeet. Honey fur carries leaf-shaped mane layers, and a round glowing tail tuft balances its proud compact stance. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "bramblebunny--runestag",
+    "parentA": "bramblebunny",
+    "parentB": "runestag",
+    "name": "Runelop Hartbound",
+    "descriptionSv": "En långörad kaninhjort med små grenhorn och höga hoppben.",
+    "promptEn": "Full-body fantasy chibi: A woodland rabbit-stag has long leaf-fringed ears beside branching mint-runed antlers, a cream rabbit muzzle and a chestnut deerlike neck. Compact forelegs end in little hooves while powerful rabbit hindquarters stretch into elongated cloven feet. A small white tail and leafy shoulder ruff preserve its soft yet magical silhouette. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "bramblebunny--coraldrake",
+    "parentA": "bramblebunny",
+    "parentB": "coraldrake",
+    "name": "Corallop Reefhopper",
+    "descriptionSv": "En långörad kanindrake med korallvingar och stora simhudsfötter.",
+    "promptEn": "Full-body fantasy chibi: A rabbit-drake combines tall sea-green fin ears, a cream rabbit muzzle and powerful hopping hindlegs with a coral-scaled torso. Small red membrane wings grow from its shoulders, above furry forepaws ending in webbed claws. A curled dragon tail bears a soft white tuft, and sage cheek fins echo bramble leaves. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "bramblebunny--dawnphoenix",
+    "parentA": "bramblebunny",
+    "parentB": "dawnphoenix",
+    "name": "Dawnlop Sunfeather",
+    "descriptionSv": "En kaninfågel med långa fjäderöron, gyllene vingar och stora hoppfötter.",
+    "promptEn": "Full-body fantasy chibi: A radiant rabbit-phoenix has long ears layered in amber feathers and a cream rabbit muzzle beneath a small flame crest. Golden feather wings emerge from its orange furry torso. Two long rabbit hindfeet end in delicate talons, and its rounded tail blooms into a compact fan of ember-tipped feathers. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "bramblebunny--obsidianbear",
+    "parentA": "bramblebunny",
+    "parentB": "obsidianbear",
+    "name": "Obsidian Jackmaul",
+    "descriptionSv": "En massiv björnkanin med jättelika hoppben och vulkaniska skulderplattor.",
+    "promptEn": "Full-body fantasy chibi: A hulking rabbit-bear has huge rounded forepaws, heavy rabbit haunches and long thick ears rising behind a stern broad muzzle. Charcoal fur grows between glossy volcanic shoulder plates edged with bramble thorns. Long rear feet and a small cream tail retain its rabbit identity beneath a powerful squat bear torso. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "bramblebunny--aurorakirin",
+    "parentA": "bramblebunny",
+    "parentB": "aurorakirin",
+    "name": "Auroralop Gladebound",
+    "descriptionSv": "En elegant kaninkirin med pärlhorn, böljande man och kluvna hoppfötter.",
+    "promptEn": "Full-body fantasy chibi: A graceful rabbit-kirin has long cream ears swept beside one pearly horn, a small rabbit muzzle and pastel flowing cheek mane. Lilac scales line its deerlike torso, which ends in powerful rabbit haunches and elongated cloven hindfeet. Two neat forehooves and a round tail trailing silk-light strands complete the shape. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "bramblebunny--spectralpanther",
+    "parentA": "bramblebunny",
+    "parentB": "spectralpanther",
+    "name": "Veillop Saberbound",
+    "descriptionSv": "En blå spökkaninpanter med långa öron, hörntänder och kraftiga bakben.",
+    "promptEn": "Full-body fantasy chibi: A translucent blue rabbit-panther crouches on broad feline forepaws and oversized rabbit hindfeet. Long pointed ears rise from a cream-cyan muzzle with short icy saber fangs; dark sapphire markings follow its powerful haunches. A thin feline tail ends in a round luminous tuft, keeping the aggressive leaping silhouette compact. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "bramblebunny--spectralwyrm",
+    "parentA": "bramblebunny",
+    "parentB": "spectralwyrm",
+    "name": "Astral Lopcoil",
+    "descriptionSv": "En långörad kanindrake med kraftiga bakben och böjd fjällig serpentinsvans.",
+    "promptEn": "Full-body fantasy chibi: A spectral rabbit-serpent has a long translucent sapphire torso curled behind powerful cream-furred rabbit haunches. Tall rabbit ears taper into silver fins beside tiny dragon horns. One short whiskered muzzle shows restrained fangs; two small forepaws, two elongated hindfeet and a long curled scaled tail remain organically connected. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "pebbletoad--thistlesparrow",
+    "parentA": "pebbletoad",
+    "parentB": "thistlesparrow",
+    "name": "Pebblecrest Skypadder",
+    "descriptionSv": "En bred paddfågel med fjädervingar, stenknölig rygg och stora simhudsfötter.",
+    "promptEn": "Full-body fantasy chibi: A squat toad-sparrow has a broad amber-eyed face narrowing into a short seed beak, with a purple thistle crest between its eye ridges. Russet feather wings fold over olive pebble-textured flanks. Two massive webbed hindfeet support its cream belly, and a small feather tail fans behind the rounded rump. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "pebbletoad--amberbeetle",
+    "parentA": "pebbletoad",
+    "parentB": "amberbeetle",
+    "name": "Ambershell Toadguard",
+    "descriptionSv": "En sexbent skalpadda med bärnstensrygg och stora fjädrande bakben.",
+    "promptEn": "Full-body fantasy chibi: A compact toad-beetle has six jointed legs, the rear pair enlarged into muscular amphibian jumping limbs with webbed toes. A broad toad face carries bright amber eyes and short beetle antennae. Twin honey-colored wing cases grow over its slate pebbled back, with a soft cream throat and natural rocky shell rims. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "pebbletoad--mossfox",
+    "parentA": "pebbletoad",
+    "parentB": "mossfox",
+    "name": "Mossjaw Bogfox",
+    "descriptionSv": "En paddlik räv med breda hoppben, spetsöron och mossklädd svans.",
+    "promptEn": "Full-body fantasy chibi: A bog fox-toad crouches on broad webbed hindpaws beneath a low russet torso. Pointed fox ears and a narrow cream muzzle emerge from prominent toad eye ridges; olive pebble scales replace fur along the spine. Its bushy moss-green tail broadens into a soft fin fringe, balancing two delicate forepaws. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "pebbletoad--reedotter",
+    "parentA": "pebbletoad",
+    "parentB": "reedotter",
+    "name": "Riverstone Slickback",
+    "descriptionSv": "En långsmal utterpadda med morrhår, stenknölar och bred simsvans.",
+    "promptEn": "Full-body fantasy chibi: A river toad-otter has a long brown swimming torso, broad whiskered muzzle and raised amber toad eyes. Four webbed paws include powerful folded hindlegs; a thick flattened otter tail extends behind. Cream throat fur grades into slate pebble skin across the shoulders, with reed-green dorsal tufts framing the stone bumps. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "pebbletoad--duskmoth",
+    "parentA": "pebbletoad",
+    "parentB": "duskmoth",
+    "name": "Duskstone Mothcroak",
+    "descriptionSv": "En stenryggad paddmal med fyra violetta vingar och stora bakfötter.",
+    "promptEn": "Full-body fantasy chibi: A hovering toad-moth has a squat olive body with slate pebble bumps and a broad amber-eyed face framed by feathery antennae. Four violet crescent-marked wings grow from its sides. Two small forelimbs and large folded webbed hindfeet hang beneath a cream fuzzy belly; short moth leglets integrate near the thorax. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "pebbletoad--shellsnap",
+    "parentA": "pebbletoad",
+    "parentB": "shellsnap",
+    "name": "Pebblevault Snapper",
+    "descriptionSv": "En kraftig paddsköldpadda med stenkantat skal och stora hoppben.",
+    "promptEn": "Full-body fantasy chibi: A heavy toad-turtle has a high terracotta shell with irregular pebble scutes growing naturally across its roof. A broad olive toad head and amber bulging eyes extend over a cream throat. Two short forefeet and two enormous webbed hindfeet spread beside its jade-scaled body, with a tiny pointed turtle tail. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "pebbletoad--acornboar",
+    "parentA": "pebbletoad",
+    "parentB": "acornboar",
+    "name": "Bogtusk Grunter",
+    "descriptionSv": "En bred paddgalt med betar, stenknölig rygg och stora simhudsfötter.",
+    "promptEn": "Full-body fantasy chibi: A stout toad-boar has a flattened pig snout, outward ivory tusks and amber toad eyes beneath an acorn-shaped rocky brow. Brown piglet stripes fade into olive pebble skin along its rounded back. Four short limbs end in broad split webbed toes, with muscular jumping haunches and a tiny bristly tail. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "pebbletoad--embercub",
+    "parentA": "pebbletoad",
+    "parentB": "embercub",
+    "name": "Cindercroak Pouncer",
+    "descriptionSv": "En eldpadda med lejonframtassar och en låg man av glödande stenknölar.",
+    "promptEn": "Full-body fantasy chibi: A toad-lion has a broad feline muzzle set between raised amber eyes, with a short ember mane growing around its thick neck. Huge webbed hindfeet and small clawed forepaws brace an olive-orange torso. Pebble back bumps glow warmly at their cracks, while a short tufted tail curls behind the powerful haunches. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "pebbletoad--moonowl",
+    "parentA": "pebbletoad",
+    "parentB": "moonowl",
+    "name": "Moonstone Marshwatch",
+    "descriptionSv": "En ugglepadda med silverfärgad ansiktsskiva och stenknöliga hoppben.",
+    "promptEn": "Full-body fantasy chibi: A moon-owl toad has a rounded silver facial disk around broad amber toad eyes and a short curved beak. Midnight-blue wings fold over pebble-skinned olive shoulders. Two huge webbed taloned feet support a cream speckled belly, while a crescent brow and a short fan tail create a solemn marsh sentinel. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "pebbletoad--crystalgecko",
+    "parentA": "pebbletoad",
+    "parentB": "crystalgecko",
+    "name": "Prismpond Climber",
+    "descriptionSv": "En kristallpadda med geckotår, kantiga ryggkristaller och lång böjd svans.",
+    "promptEn": "Full-body fantasy chibi: A climbing toad-gecko has a broad amber-eyed head, thick pebble shoulders and a long curled gecko tail. Its muscular folded hindlegs end in wide lavender adhesive toes; smaller matching forefeet spread forward. Olive skin transitions into teal crystal scales, with chunky translucent stones growing naturally along the spine. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "pebbletoad--stormlynx",
+    "parentA": "pebbletoad",
+    "parentB": "stormlynx",
+    "name": "Stormcroak Ambusher",
+    "descriptionSv": "En paddlo med tofsöron, stora kattframtassar och elektriska hoppben.",
+    "promptEn": "Full-body fantasy chibi: A fierce toad-lynx crouches on broad feline forepaws and enormous webbed jumping feet. Black-tufted ears rise from prominent amber toad eye ridges, above a short fanged muzzle. Storm-grey fur fades into olive pebbled hindquarters; cyan lightning markings connect shoulder tufts to a short bristly tail. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "pebbletoad--thornbadger",
+    "parentA": "pebbletoad",
+    "parentB": "thornbadger",
+    "name": "Thornstone Burrower",
+    "descriptionSv": "En grävlingpadda med randigt huvud, grävklor och taggiga stenplattor.",
+    "promptEn": "Full-body fantasy chibi: A squat toad-badger has a cream-charcoal striped face with bulging amber eyes and a broad flat muzzle. Huge clawed forefeet and powerful webbed hindlegs support its low olive torso. Emerald thorn fur grows between slate pebble plates along the shoulders, ending in a short sturdy badger tail. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "pebbletoad--cinderwolf",
+    "parentA": "pebbletoad",
+    "parentB": "cinderwolf",
+    "name": "Ashcroak Fenfang",
+    "descriptionSv": "En vargpadda med lång mule, flamkam och väldiga simhudsfötter.",
+    "promptEn": "Full-body fantasy chibi: A menacing wolf-toad has a long canine muzzle beneath raised amber eyes, pointed ears and small ember fangs. Charcoal fur covers strong forelegs before merging into pebbled olive jumping haunches. Wide webbed hindfeet and a thick low tail stabilize the body; a close red flame ridge runs along its neck. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "pebbletoad--frostibex",
+    "parentA": "pebbletoad",
+    "parentB": "frostibex",
+    "name": "Glaciercroak Hornback",
+    "descriptionSv": "En ispadda med stora böjda horn och kluvna simhudsfötter.",
+    "promptEn": "Full-body fantasy chibi: A mountain toad-ibex has a broad pebbled head beneath two ridged backward-curving ice horns, cream cheek fur and stern amber eyes. Compact front hooves and massive split webbed hindfeet support a squat pale-blue torso. Crystalline pebble bumps cover its shoulders; a small beard and short goat tail finish the silhouette. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "pebbletoad--sunmane",
+    "parentA": "pebbletoad",
+    "parentB": "sunmane",
+    "name": "Suncroak Prideguard",
+    "descriptionSv": "En lejonpadda med stor solman och stenknöliga kraftben.",
+    "promptEn": "Full-body fantasy chibi: A majestic toad-lion has a broad amber-eyed muzzle surrounded by a heavy golden mane whose layers resemble rounded river pebbles. Large feline forepaws and enormous webbed hindlegs hold a low honey-olive body. A cream throat and short tufted tail balance the pose, with warm light confined to mane tips. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "pebbletoad--runestag",
+    "parentA": "pebbletoad",
+    "parentB": "runestag",
+    "name": "Runestone Fenhart",
+    "descriptionSv": "En hornprydd hjortpadda med grenhorn och ovanligt starka hoppben.",
+    "promptEn": "Full-body fantasy chibi: A woodland toad-stag has a broad amber-eyed amphibian face below branching antlers marked with mint runes. Chestnut fur on its short neck blends into olive pebble skin across a squat body. Slim cloven forefeet contrast powerful webbed hindhooves; a cream throat and tiny deer tail preserve the stag's graceful details. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "pebbletoad--coraldrake",
+    "parentA": "pebbletoad",
+    "parentB": "coraldrake",
+    "name": "Coralcroak Reefmaw",
+    "descriptionSv": "En padddrake med korallvingar, fenöron och kraftiga simhudsben.",
+    "promptEn": "Full-body fantasy chibi: A reef toad-dragon has a broad amber-eyed mouth, sea-green cheek fins and coral-red shoulder wings. Olive pebble skin grades into pink scales over its low torso. Four webbed clawed feet include enormous jumping hindlegs, while a curled finned tail and cream throat connect the amphibian and dragon anatomy naturally. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "pebbletoad--dawnphoenix",
+    "parentA": "pebbletoad",
+    "parentB": "dawnphoenix",
+    "name": "Dawncroak Emberwing",
+    "descriptionSv": "En bred paddfågel med gyllene vingar och glödande stenrygg.",
+    "promptEn": "Full-body fantasy chibi: A phoenix-toad has a rounded beaked face with raised amber eyes, a small flame crest and a cream throat pouch. Broad golden feather wings grow above its olive pebbled torso. Two powerful webbed taloned legs brace the body; a short fan of ember feathers emerges from the rocky rump. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "pebbletoad--obsidianbear",
+    "parentA": "pebbletoad",
+    "parentB": "obsidianbear",
+    "name": "Obsidian Bogmaul",
+    "descriptionSv": "En väldig björnpadda med stenpansar, jättetassar och tunga hoppben.",
+    "promptEn": "Full-body fantasy chibi: A massive bear-toad has a broad grey muzzle, rounded bear ears and raised amber amphibian eyes. Enormous clawed forepaws brace charcoal shoulders armored in glossy volcanic plates, while the rear body swells into olive pebbled jumping haunches. Huge webbed hindfeet and a tiny bear tail maintain one heavy crouching silhouette. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "pebbletoad--aurorakirin",
+    "parentA": "pebbletoad",
+    "parentB": "aurorakirin",
+    "name": "Aurora Pondkirin",
+    "descriptionSv": "En pärlhornsprydd paddkirin med fjällrygg och stora kluvna hoppfötter.",
+    "promptEn": "Full-body fantasy chibi: A magical toad-kirin has a broad soft amphibian muzzle, amber eyes and one pearly forehead horn framed by pastel mane strands. Cream fur fades into lilac pebble scales across a compact torso. Two neat forehooves contrast oversized webbed split hindfeet; a silky mint tail curls around the crouching body. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "pebbletoad--spectralpanther",
+    "parentA": "pebbletoad",
+    "parentB": "spectralpanther",
+    "name": "Veilcroak Sabermist",
+    "descriptionSv": "En blå spökpadda med panterklor, hörntänder och stora bakben.",
+    "promptEn": "Full-body fantasy chibi: A spectral panther-toad crouches with a sleek feline chest, broad saber-fanged muzzle and raised amphibian eye ridges. Translucent sapphire skin forms rounded pebble scales over massive jumping haunches. Two broad cat forepaws and webbed hindfeet support the body, while a long curved panther tail carries a tight cyan glow. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "pebbletoad--spectralwyrm",
+    "parentA": "pebbletoad",
+    "parentB": "spectralwyrm",
+    "name": "Astral Bogcoil",
+    "descriptionSv": "En svävande paddserpent med stenknöligt huvud och stora främre simfötter.",
+    "promptEn": "Full-body fantasy chibi: A floating toad-serpent has a broad pebbled amphibian head with amber eyes, tiny silver horns and a cream throat pouch. Its translucent sapphire body curves in one compact S, thick near the head and tapered at the tail. Two powerful webbed forelimbs project from the chest, with small silver dorsal fins. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "thistlesparrow--amberbeetle",
+    "parentA": "thistlesparrow",
+    "parentB": "amberbeetle",
+    "name": "Ambershard Finchling",
+    "descriptionSv": "En sexbent sparvinsekt med fjäderkanter på bärnstensvingarna.",
+    "promptEn": "Full-body fantasy chibi: A sparrow-beetle has a plump cream feather chest, small seed beak and a purple thistle crest between short antennae. Six jointed legs end in birdlike gripping claws. Amber wing cases open slightly over russet feathered flight wings, while a short fan tail grows naturally from the ridged honey-colored abdomen. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "thistlesparrow--mossfox",
+    "parentA": "thistlesparrow",
+    "parentB": "mossfox",
+    "name": "Thistlebrush Griffin",
+    "descriptionSv": "En liten rävfågel med fjädervingar, mossgrön rävsvans och spetsig näbbmule.",
+    "promptEn": "Full-body fantasy chibi: A fox-sparrow griffin has a russet feather chest grading into moss-green fox hindquarters, four small clawed feet and broad sparrow wings. Pointed furry ears flank a purple thistle crest above a short beaked fox muzzle. Its luxurious green tail ends in layered cream feathers, giving the creature a low agile stance. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "thistlesparrow--reedotter",
+    "parentA": "thistlesparrow",
+    "parentB": "reedotter",
+    "name": "Reedwing Skimmer",
+    "descriptionSv": "En vattenfågelutter med morrhår, fjädervingar och platt fjäderkantad simsvans.",
+    "promptEn": "Full-body fantasy chibi: A sparrow-otter has a streamlined brown torso, cream feather throat and a small beaked muzzle with otter whiskers. Russet wings grow from the shoulder line above four webbed paws. Its thick flattened tail carries a short feather fringe, while reed-green back tufts meet a compact purple thistle crest. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "thistlesparrow--duskmoth",
+    "parentA": "thistlesparrow",
+    "parentB": "duskmoth",
+    "name": "Duskthistle Fluttercrest",
+    "descriptionSv": "En sparvmal med fyra violetta vingar och varmbrun fjäderkropp.",
+    "promptEn": "Full-body fantasy chibi: A sparrow-moth hovers with a round cream feather belly, russet head and a tiny seed beak beneath feathery antennae. Four violet wings have silver crescent centers and real brown feather edges. Two bird feet and four small insect feet tuck below, while a purple thistle crest merges into its furry thorax. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "thistlesparrow--shellsnap",
+    "parentA": "thistlesparrow",
+    "parentB": "shellsnap",
+    "name": "Thistleshell Wingback",
+    "descriptionSv": "En fågelsköldpadda med fjädervingar och ett skal byggt av fjäderlika plattor.",
+    "promptEn": "Full-body fantasy chibi: A sparrow-turtle has a high terracotta shell divided into golden feather-shaped scutes, with russet wings emerging organically beside it. A cream feathered neck leads to a small seed beak and purple thistle crest. Four jade clawed feet support the round body, while a short tail fans into brown flight feathers. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "thistlesparrow--acornboar",
+    "parentA": "thistlesparrow",
+    "parentB": "acornboar",
+    "name": "Thistletusk Forager",
+    "descriptionSv": "En fågelgalt med näbbtryne, små betar och fjädervingar.",
+    "promptEn": "Full-body fantasy chibi: A sparrow-boar has a rounded brown barrel torso streaked with tan feather stripes, four short split-clawed feet and compact russet wings. Its snout narrows into a hard seed beak with two tiny side tusks. Purple thistle feathers blend into an acorn-like crest, and a bristly feather tail flicks upward. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "thistlesparrow--embercub",
+    "parentA": "thistlesparrow",
+    "parentB": "embercub",
+    "name": "Cinderthistle Gryphlet",
+    "descriptionSv": "En kompakt lejonfågel med sparvvingar, glödman och stora framtassar.",
+    "promptEn": "Full-body fantasy chibi: A sparrow-lion griffin has a cream feather chest, short seed beak and purple thistle crest surrounded by an ember mane. Broad russet wings join its orange torso above four feline paws. Rounded lion haunches end in a tail tipped with both red flame feathers and warm fur, creating a bold pouncing stance. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "thistlesparrow--moonowl",
+    "parentA": "thistlesparrow",
+    "parentB": "moonowl",
+    "name": "Moonthistle Watchwing",
+    "descriptionSv": "En sparvuggla med silveransikte, lång sparvstjärt och lila pannkam.",
+    "promptEn": "Full-body fantasy chibi: A sparrow-owl has a round silver facial disk surrounding a pointed seed-cracking beak, large wise eyes and a purple thistle crest. Midnight-blue wings carry russet sparrow coverts and cream bars. Two feathered taloned legs support the compact body, while its tail extends into a longer brown sparrow fan beneath a crescent-marked brow. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "thistlesparrow--crystalgecko",
+    "parentA": "thistlesparrow",
+    "parentB": "crystalgecko",
+    "name": "Prismthistle Skyclaw",
+    "descriptionSv": "En kristallfågelgecko med klättertår och lång fjällig fjädersvans.",
+    "promptEn": "Full-body fantasy chibi: A sparrow-gecko has a low teal body with crystal back scales, a cream feather chest and a small beaked lizard muzzle. Russet feather wings emerge from its shoulders above four lavender adhesive feet. A purple thistle crest becomes faceted crystal feathers, while the long curled tail ends in a brown flight-feather fan. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "thistlesparrow--stormlynx",
+    "parentA": "thistlesparrow",
+    "parentB": "stormlynx",
+    "name": "Stormthistle Taloncat",
+    "descriptionSv": "En sparvlo med tofsöron, blixttecknade vingar och tunga kattassar.",
+    "promptEn": "Full-body fantasy chibi: A sparrow-lynx griffin stands on four powerful feline paws beneath a compact storm-grey torso. Its short beaked muzzle carries whiskers and black-tufted ears beside a purple thistle crest. Russet feather wings carry pale cyan lightning bars, while a short feathered lynx tail and cream chest emphasize its tense ready-to-pounce posture. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "thistlesparrow--thornbadger",
+    "parentA": "thistlesparrow",
+    "parentB": "thornbadger",
+    "name": "Briarthistle Scrabwing",
+    "descriptionSv": "En låg grävlingfågel med randigt ansikte och taggiga fjädervingar.",
+    "promptEn": "Full-body fantasy chibi: A sparrow-badger has a long striped cream-charcoal muzzle ending in a short beak, with a purple thistle crest above narrow alert eyes. Four broad digging paws brace its low grey torso. Russet wings grow through emerald thorn shoulder fur, and a short feather tail contrasts its heavy burrowing forequarters. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "thistlesparrow--cinderwolf",
+    "parentA": "thistlesparrow",
+    "parentB": "cinderwolf",
+    "name": "Cinderthistle Fangwing",
+    "descriptionSv": "En vargfågel med beväpnad näbbmule, sparvvingar och flammande nackfjädrar.",
+    "promptEn": "Full-body fantasy chibi: A sparrow-wolf griffin has a narrow beaked canine muzzle, pointed ears and a purple thistle crest streaming into an ember mane. Four strong wolf paws support a charcoal torso under broad russet wings. Rust feather markings cross its cream chest, while the bushy tail ends in dark red flight feathers. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "thistlesparrow--frostibex",
+    "parentA": "thistlesparrow",
+    "parentB": "frostibex",
+    "name": "Frostthistle Cragwing",
+    "descriptionSv": "En hornprydd sparvbock med fjädervingar och isblå klövar.",
+    "promptEn": "Full-body fantasy chibi: A sparrow-ibex has two ridged ice horns behind a purple feather crest, a short seed-beaked muzzle and a cream feather beard. Four compact cloven hooves support its pale-blue goatlike torso. Russet wings carry frosted feather tips, while a short stiff tail and sturdy raised chest create a confident mountain silhouette. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "thistlesparrow--sunmane",
+    "parentA": "thistlesparrow",
+    "parentB": "sunmane",
+    "name": "Sunthistle Gryphon",
+    "descriptionSv": "En lejonfågel med bred solman och russetfärgade sparvvingar.",
+    "promptEn": "Full-body fantasy chibi: A proud sparrow-lion griffin has a broad golden mane framing a short seed beak, small ears and a purple thistle crest. Huge feline paws hold its honey-colored body under wide russet wings with golden edges. Its long lion tail ends in a layered brown feather fan, mixing regal mass with songbird detail. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "thistlesparrow--runestag",
+    "parentA": "thistlesparrow",
+    "parentB": "runestag",
+    "name": "Runethistle Hartwing",
+    "descriptionSv": "En hjortfågel med grenhorn, smala ben och bruna fjädervingar.",
+    "promptEn": "Full-body fantasy chibi: A sparrow-stag has a cream feather chest, short beaked deer muzzle and branching mint-runed antlers around a purple thistle crest. Four slender cloven legs support its compact chestnut body. Broad russet wings connect at the shoulders, while leaf-shaped feathers line the flanks and a small fan tail lifts behind. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "thistlesparrow--coraldrake",
+    "parentA": "thistlesparrow",
+    "parentB": "coraldrake",
+    "name": "Coralthistle Reefwing",
+    "descriptionSv": "En liten drakfågel med fjädervingar, korallfjäll och lång fenstjärt.",
+    "promptEn": "Full-body fantasy chibi: A sparrow-drake has a short beaked dragon muzzle, sea-green fin ears and a purple thistle crest. Its coral-scaled torso carries wings with red membranes along the roots and russet flight feathers along the edges. Four short webbed claws support its cream belly, while a curled tail finishes in a small feathered fin. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "thistlesparrow--dawnphoenix",
+    "parentA": "thistlesparrow",
+    "parentB": "dawnphoenix",
+    "name": "Dawnthistle Songflare",
+    "descriptionSv": "En stolt sparvfågel med gyllene flamvingar och tydlig lila tistelkam.",
+    "promptEn": "Full-body fantasy chibi: A sparrow-phoenix has a compact cream-breasted songbird body, small seed beak and an upright purple thistle crest edged with ember light. Broad layered wings shift from russet coverts to long golden flame feathers. Two delicate taloned feet and a compact curled feather tail preserve the sparrow's round proportions within a majestic fiery silhouette. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "thistlesparrow--obsidianbear",
+    "parentA": "thistlesparrow",
+    "parentB": "obsidianbear",
+    "name": "Obsidian Thistlemaul",
+    "descriptionSv": "En massiv björnfågel med kort näbb, fjädervingar och vulkaniska skulderplattor.",
+    "promptEn": "Full-body fantasy chibi: A sparrow-bear griffin has heavy charcoal haunches, four massive clawed paws and a cream feather chest. A broad bear muzzle ends in a short seed beak beneath a purple thistle crest and rounded ears. Russet wings grow between volcanic shoulder plates, with short rocky feather ridges and a compact brown tail. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "thistlesparrow--aurorakirin",
+    "parentA": "thistlesparrow",
+    "parentB": "aurorakirin",
+    "name": "Aurora Thistlehoof",
+    "descriptionSv": "En fjällig kirinfågel med pärlhorn, fjädervingar och tunna klövar.",
+    "promptEn": "Full-body fantasy chibi: A sparrow-kirin has a slender cream body on four neat hooves, a small seed-beaked muzzle and one pearly horn amid purple thistle feathers. Lilac scales blend into russet shoulder plumage, giving rise to broad feather wings. Its pastel flowing mane and long silky tail carry attached feather tips in mint and gold. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "thistlesparrow--spectralpanther",
+    "parentA": "thistlesparrow",
+    "parentB": "spectralpanther",
+    "name": "Veilthistle Saberwing",
+    "descriptionSv": "En blå panterfågel med kort näbb, hörntänder och genomskinliga fjädervingar.",
+    "promptEn": "Full-body fantasy chibi: A spectral panther-sparrow griffin has a sleek sapphire body on four broad feline paws, a short beak flanked by icy fangs and a silver-violet thistle crest. Translucent feather wings grow from muscular shoulders. Dark blue face markings, a cream-cyan chest and a long tail ending in a feather fan create a predatory silhouette. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "thistlesparrow--spectralwyrm",
+    "parentA": "thistlesparrow",
+    "parentB": "spectralwyrm",
+    "name": "Astral Thistlecoil",
+    "descriptionSv": "En fjäderklädd serpentindrake med sparvnäbb och lång böjd svans.",
+    "promptEn": "Full-body fantasy chibi: A floating sparrow-serpent dragon has a small seed beak blended into a fanged dragon muzzle, silver horns and a purple thistle crest. Its continuous sapphire body coils in a compact S, with cream chest feathers and russet feather fins. Two small taloned feet and a long feather-tipped tail remain fully visible. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "amberbeetle--mossfox",
+    "parentA": "amberbeetle",
+    "parentB": "mossfox",
+    "name": "Mossamber Brushscarab",
+    "descriptionSv": "En sexbent rävskalbagge med spetsöron och mossgrön svans.",
+    "promptEn": "Full-body fantasy chibi: A fox-beetle has a low russet body protected by naturally grown amber wing cases, with moss-green fur edging each shell plate. Six short jointed legs end in small fox paws. A pointed cream muzzle, tall triangular ears and delicate antennae frame its clever face; a bushy green tail sweeps behind the shell. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "amberbeetle--reedotter",
+    "parentA": "amberbeetle",
+    "parentB": "reedotter",
+    "name": "Reedamber Paddlescarab",
+    "descriptionSv": "En strömlinjeformad utterskalbagge med simfötter och platt svans.",
+    "promptEn": "Full-body fantasy chibi: An otter-beetle has an elongated brown body with smooth amber wing cases shaped like overlapping river stones. Six short swimming legs end in webbed toes, and a thick flattened otter tail extends behind. Its rounded whiskered muzzle and cream furry throat contrast two short antennae and reed-green seams along the carapace. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "amberbeetle--duskmoth",
+    "parentA": "amberbeetle",
+    "parentB": "duskmoth",
+    "name": "Duskamber Mooncarapace",
+    "descriptionSv": "En skalmal med bärnstensvingfodral och fyra violetta månmönstrade vingar.",
+    "promptEn": "Full-body fantasy chibi: A beetle-moth has a plush lilac thorax, broad feathery antennae and a ridged amber abdomen. Two honey-colored wing cases lift to reveal four violet wings with silver crescent markings and translucent golden veins. Six small jointed legs curl beneath a cream fuzzy belly, keeping the hovering insect silhouette coherent and compact. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "amberbeetle--shellsnap",
+    "parentA": "amberbeetle",
+    "parentB": "shellsnap",
+    "name": "Ambervault Terrascarab",
+    "descriptionSv": "En tung sköldpaddsskalbagge med sex ben och välvt bärnstensskal.",
+    "promptEn": "Full-body fantasy chibi: A beetle-turtle has a high domed shell combining terracotta spiral scutes and two amber wing-case halves joined by one central seam. A jade turtle head with small antennae projects above its cream belly. Six sturdy jointed legs end in broad turtle claws, while a short pointed tail extends behind the natural carapace. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "amberbeetle--acornboar",
+    "parentA": "amberbeetle",
+    "parentB": "acornboar",
+    "name": "Amberroot Tuskbeetle",
+    "descriptionSv": "En kraftig galtinsekt med betar och randigt bärnstensskal.",
+    "promptEn": "Full-body fantasy chibi: A boar-beetle has a compact barrel body under ridged amber wing cases patterned with tan piglet stripes. Six muscular jointed legs end in split hooves, while its broad brown snout carries two ivory tusks and short antennae. Bristly acorn-shaped brow fur and a tiny curled tail soften the heavy natural shell. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "amberbeetle--embercub",
+    "parentA": "amberbeetle",
+    "parentB": "embercub",
+    "name": "Emberamber Maneclaw",
+    "descriptionSv": "En lejoninsekt med glödman, stora klotassar och sex ledade ben.",
+    "promptEn": "Full-body fantasy chibi: A lion-beetle has a broad feline muzzle with small fangs surrounded by an ember-red mane growing through amber shoulder plates. Six jointed legs include enlarged clawed forepaws beneath a cream furry chest. Honey wing cases curve over its orange abdomen, ending at a short lion tail with a compact glowing tuft. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "amberbeetle--moonowl",
+    "parentA": "amberbeetle",
+    "parentB": "moonowl",
+    "name": "Moonamber Watchscarab",
+    "descriptionSv": "En uggleskalbagge med silveransikte och mörka fjädervingar under bärnstensskal.",
+    "promptEn": "Full-body fantasy chibi: An owl-beetle has a round silver facial disk, golden eyes and a short curved beak beneath feathery antennae. Amber wing cases form a compact high back and part over midnight-blue feather wings. Six small jointed taloned legs support its cream downy underside, with a crescent brow and a short feather tail. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "amberbeetle--crystalgecko",
+    "parentA": "amberbeetle",
+    "parentB": "crystalgecko",
+    "name": "Prismamber Glasscrawler",
+    "descriptionSv": "En kristallgeckoskalbagge med sex klätterben och lång fjällig svans.",
+    "promptEn": "Full-body fantasy chibi: A gecko-beetle has a low teal torso under translucent amber wing cases studded with turquoise crystal ridges. Six jointed legs end in broad lavender adhesive toe pads. Its focused lizard muzzle carries short antennae, while a long curled gecko tail emerges from the segmented abdomen and catches warm golden light along each scale. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "amberbeetle--stormlynx",
+    "parentA": "amberbeetle",
+    "parentB": "stormlynx",
+    "name": "Stormamber Sparkpincer",
+    "descriptionSv": "En elektrisk lodjursinsekt med tofsöron och kraftiga främre klor.",
+    "promptEn": "Full-body fantasy chibi: A lynx-beetle has a broad feline face with black ear tufts, small fangs and two short charged antennae. Six jointed legs include huge storm-grey front paws, supporting amber wing cases streaked with cyan veins. A cream fur chest and short bristly lynx tail break up the low armored body. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "amberbeetle--thornbadger",
+    "parentA": "amberbeetle",
+    "parentB": "thornbadger",
+    "name": "Thornamber Burrowscarab",
+    "descriptionSv": "En grävlinginsekt med randigt huvud och taggiga skulderplattor.",
+    "promptEn": "Full-body fantasy chibi: A badger-beetle has a long cream-charcoal striped muzzle and small amber antennae above a low armored torso. Six jointed legs include oversized shovel-clawed forefeet. Honey wing cases interlock with emerald thorn shoulder ridges, while warm grey belly fur and a short badger tail create a tough burrowing creature with natural integrated armor. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "amberbeetle--cinderwolf",
+    "parentA": "amberbeetle",
+    "parentB": "cinderwolf",
+    "name": "Cinderamber Fangscarab",
+    "descriptionSv": "En vargskalbagge med glödande käkar och svarta bärnstensplattor.",
+    "promptEn": "Full-body fantasy chibi: A wolf-beetle has an elongated canine muzzle with closed ember fangs, pointed ears and two short antennae. Six powerful jointed legs support charcoal fur beneath dark amber wing cases. Red mane bristles grow naturally between shoulder plates, and a full bushy wolf tail extends behind the segmented shell with warm glowing tips. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "amberbeetle--frostibex",
+    "parentA": "amberbeetle",
+    "parentB": "frostibex",
+    "name": "Frostamber Hornscarab",
+    "descriptionSv": "En hornprydd bergsinsekt med sex klövben och iskantat skal.",
+    "promptEn": "Full-body fantasy chibi: An ibex-beetle has a cream goat muzzle, a small beard and two ridged ice horns curving above short antennae. Six short jointed legs end in blue split hooves beneath a high amber carapace. Pale-blue fur grows between translucent wing-case plates, with frosted ridges and a small upright goat tail. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "amberbeetle--sunmane",
+    "parentA": "amberbeetle",
+    "parentB": "sunmane",
+    "name": "Sunamber Crownscarab",
+    "descriptionSv": "En sollejoninsekt med stor man och sex kraftiga ben.",
+    "promptEn": "Full-body fantasy chibi: A lion-beetle has a stern golden feline face surrounded by a broad sun-shaped mane growing through amber neck plates. Six strong jointed legs end in rounded clawed paws beneath its honey-colored shell. Tiny antennae rise between round ears, while a tufted lion tail and cream belly soften the regal armored silhouette. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "amberbeetle--runestag",
+    "parentA": "amberbeetle",
+    "parentB": "runestag",
+    "name": "Runeamber Hartscarab",
+    "descriptionSv": "En hjortskalbagge med grenhorn och sex smala klövben.",
+    "promptEn": "Full-body fantasy chibi: A stag-beetle hybrid has branching mint-runed antlers rather than mandibles, a narrow chestnut deer muzzle and two small antennae near the horn roots. Six elegant jointed legs end in neat cloven hooves. Amber wing cases carry natural leaf-shaped ridges above a cream furry chest, with a tiny raised deer tail. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "amberbeetle--coraldrake",
+    "parentA": "amberbeetle",
+    "parentB": "coraldrake",
+    "name": "Coralamber Reefscarab",
+    "descriptionSv": "En revdrakinsekt med korallvingar och sex simhudsklor.",
+    "promptEn": "Full-body fantasy chibi: A reef dragon-beetle has a coral-scaled muzzle, sea-green fin ears and short antennae above a cream throat. Six jointed webbed claws support an amber shell whose wing cases part around red membrane wings. The segmented torso flows into a curled coral tail, with fin-shaped natural ridges along each honey-colored plate. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "amberbeetle--dawnphoenix",
+    "parentA": "amberbeetle",
+    "parentB": "dawnphoenix",
+    "name": "Dawnamber Firescarab",
+    "descriptionSv": "En fågelskalbagge med gyllene fjädervingar under glödande bärnstensskal.",
+    "promptEn": "Full-body fantasy chibi: A phoenix-beetle has a small golden beak, bright amber eyes and a flame-feather crest between short antennae. Glowing honey wing cases part over broad fiery feather wings. Six delicate taloned legs support a compact amber abdomen, while cream chest down and a curled plume tail connect insect plates to bird plumage. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "amberbeetle--obsidianbear",
+    "parentA": "amberbeetle",
+    "parentB": "obsidianbear",
+    "name": "Obsidian Ambermaul",
+    "descriptionSv": "En massiv björnskalbagge med sex kloben och vulkaniskt bärnstenspansar.",
+    "promptEn": "Full-body fantasy chibi: A bear-beetle has a broad charcoal-furred muzzle, rounded ears and stout antennae above a massive cream chest. Six thick jointed legs end in oversized bear claws. Dark amber wing cases interlock with glossy volcanic shoulder plates, forming a low heavy natural carapace; a short furry tail remains visible behind the shell. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "amberbeetle--aurorakirin",
+    "parentA": "amberbeetle",
+    "parentB": "aurorakirin",
+    "name": "Aurora Ambershell",
+    "descriptionSv": "En pärlhornsprydd kirinskalbagge med sex fina hovar och böljande man.",
+    "promptEn": "Full-body fantasy chibi: A kirin-beetle has a cream deerlike face, one pearly horn and short antennae embedded in a flowing pastel mane. Six slender jointed legs end in neat hooves beneath lilac-scaled amber wing cases. Golden shell ridges blend into soft fur at the chest, and a long mint-pink tail trails organically from the abdomen. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "amberbeetle--spectralpanther",
+    "parentA": "amberbeetle",
+    "parentB": "spectralpanther",
+    "name": "Veilamber Saberclaw",
+    "descriptionSv": "En blå genomskinlig panterskalbagge med hörntänder och sex tassben.",
+    "promptEn": "Full-body fantasy chibi: A spectral panther-beetle has a sleek sapphire feline head with icy fangs, narrow eyes and fine antennae. Six agile jointed legs end in broad translucent cat paws. Dark blue glasslike wing cases keep amber ridges within their structure, while a long curved panther tail and cyan chest fur balance the armored torso. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "amberbeetle--spectralwyrm",
+    "parentA": "amberbeetle",
+    "parentB": "spectralwyrm",
+    "name": "Astral Ambercoil",
+    "descriptionSv": "En ringlad drakskalbagge med segmenterat bärnstensskal och små främre klor.",
+    "promptEn": "Full-body fantasy chibi: A floating serpent-beetle has a fierce dragon muzzle, tiny silver horns and two long curved antennae. Its continuous sapphire body coils into a compact S beneath overlapping translucent amber armor segments. Three pairs of small hooked legs cluster near the chest, while thin silver fins follow the fully visible tapered tail. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "mossfox--reedotter",
+    "parentA": "mossfox",
+    "parentB": "reedotter",
+    "name": "Mossreed Slipfox",
+    "descriptionSv": "En långsmal rävutter med spetsöron, simhud och platt mossklädd svans.",
+    "promptEn": "Full-body fantasy chibi: A fox-otter has an elongated russet swimming torso, pointed fox ears and a cream whiskered muzzle. Four broad webbed paws hold a low playful stance. Its thick otter tail widens into a flattened moss-green fox brush with a cream tip, while reedlike dorsal fur runs smoothly into lush leafy shoulder tufts. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "mossfox--duskmoth",
+    "parentA": "mossfox",
+    "parentB": "duskmoth",
+    "name": "Mossdusk Velvetfox",
+    "descriptionSv": "En fyrvingad rävmal med fjäderlika känselspröt och mossgrön svans.",
+    "promptEn": "Full-body fantasy chibi: A fox-moth has a slim russet body, a cream muzzle and pointed furry ears behind feathery antennae. Four violet crescent-marked wings grow from shoulder and flank roots above four tiny fox paws. Moss-green fur fringes the wings naturally, and a full bushy tail curls behind its lilac downy abdomen. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "mossfox--shellsnap",
+    "parentA": "mossfox",
+    "parentB": "shellsnap",
+    "name": "Mossvault Shellfox",
+    "descriptionSv": "En låg rävsköldpadda med spetsöron och mosskantat terrakottaskal.",
+    "promptEn": "Full-body fantasy chibi: A fox-turtle has a narrow russet muzzle, tall triangular ears and jade-scaled forelegs ending in small claws. A naturally grown terracotta shell arches over its compact torso with moss-green fur between golden scutes. Four sturdy feet and a large cream-tipped fox tail project beyond the shell, creating a cautious alert stance. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "mossfox--acornboar",
+    "parentA": "mossfox",
+    "parentB": "acornboar",
+    "name": "Mossroot Tuskrunner",
+    "descriptionSv": "En rävsvins-hybrid med spetsmule, betar och mossgrön borstsvans.",
+    "promptEn": "Full-body fantasy chibi: A fox-boar has a sleek russet head with pointed ears, a widened snout and two ivory tusks. Tan piglet stripes cross its sturdy moss-furred torso, supported by four short split-clawed paws. A thick green fox tail flares behind acorn-like rump bristles, while a cream cheek ruff frames a clever stubborn expression. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "mossfox--embercub",
+    "parentA": "mossfox",
+    "parentB": "embercub",
+    "name": "Mossfire Brushcub",
+    "descriptionSv": "En rävlejonhybrid med smal mule, liten eldman och stor grön rävsvans.",
+    "promptEn": "Full-body fantasy chibi: A fox-lion cub has a pointed cream muzzle, tall fox ears and broad feline forepaws under a compact orange chest. A small ember mane grades into moss-green shoulder fur, with darker leaf-shaped layers at its roots. Its long luxurious fox tail ends in a cream flame-shaped tuft, balancing strong rounded lion haunches. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "mossfox--moonowl",
+    "parentA": "mossfox",
+    "parentB": "moonowl",
+    "name": "Mossmoon Nightvulpin",
+    "descriptionSv": "En rävuggla med silveransikte, fjädervingar och grön rävsvans.",
+    "promptEn": "Full-body fantasy chibi: A fox-owl griffin has a silver facial disk fitted around a pointed russet muzzle with a small hooked beak and tall furry ears. Midnight-blue wings emerge above four soft clawed paws. Moss-green fox hindquarters and a huge cream-tipped tail blend into layered feathers, while a crescent brow gives a focused watchful expression. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "mossfox--crystalgecko",
+    "parentA": "mossfox",
+    "parentB": "crystalgecko",
+    "name": "Mossprism Scalebrush",
+    "descriptionSv": "En rävgecko med kristallrygg, klättertår och lång krökt svans.",
+    "promptEn": "Full-body fantasy chibi: A fox-gecko has a narrow russet muzzle, pointed furry ears and alert eyes above a low teal-scaled body. Four lavender adhesive feet spread beneath moss-green shoulder fur. Turquoise crystal ridges grow along the spine, while its long gecko tail thickens into a cream-tipped fox brush along the upper edge. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "mossfox--stormlynx",
+    "parentA": "mossfox",
+    "parentB": "stormlynx",
+    "name": "Stormmoss Tuftfang",
+    "descriptionSv": "En rävlo med höga tofsöron, tunga tassar och buskig elektrisk svans.",
+    "promptEn": "Full-body fantasy chibi: A fox-lynx has a long narrow russet muzzle and high triangular ears ending in black lynx tufts. Its compact storm-grey torso carries powerful feline forepaws and a lush moss-green fox tail with a cream tip. Cyan lightning markings trace the cheek ruff and tail roots, contrasting sharp whiskers and a tense hunting pose. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "mossfox--thornbadger",
+    "parentA": "mossfox",
+    "parentB": "thornbadger",
+    "name": "Mossbriar Brushbadger",
+    "descriptionSv": "En låg rävgrävling med randigt ansikte och taggig grön rävsvans.",
+    "promptEn": "Full-body fantasy chibi: A fox-badger has a low broad grey torso, powerful digging forepaws and a long cream-charcoal striped fox muzzle. Tall pointed ears rise above emerald thorn shoulder ridges. A large moss-green fox tail with a pale tip balances its heavy hindquarters, while russet lower legs and leaflike cheek fur soften the armored silhouette. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "mossfox--cinderwolf",
+    "parentA": "mossfox",
+    "parentB": "cinderwolf",
+    "name": "Mosscinder Ashvulpin",
+    "descriptionSv": "En rävvarg med tungt bröst, smal mule och en svans av mossa och glöd.",
+    "promptEn": "Full-body fantasy chibi: A fox-wolf has a narrow russet muzzle, exceptionally tall fox ears and a deeper wolf chest on four strong paws. Charcoal back fur rises into a red ember mane that merges with moss-green shoulder tufts. Its oversized green fox tail keeps a cream tip, while closed-mouth fangs and a low head make it predatory. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "mossfox--frostibex",
+    "parentA": "mossfox",
+    "parentB": "frostibex",
+    "name": "Mossfrost Cragvulpin",
+    "descriptionSv": "En rävbock med böjda ishorn, kluvna hovar och stor grön svans.",
+    "promptEn": "Full-body fantasy chibi: A fox-ibex has a pointed russet muzzle, tall furry ears and two ridged ice horns sweeping backward. Four short cloven hooves carry its compact cream-chested goatlike body. Pale-blue fur blends into moss-green shoulder tufts, while a full cream-tipped fox tail and a small icy beard make its silhouette distinctly woodland and alpine. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "mossfox--sunmane",
+    "parentA": "mossfox",
+    "parentB": "sunmane",
+    "name": "Mosssun Crownvulpin",
+    "descriptionSv": "En rävlejonhybrid med stor solman, lång mule och bred mossgrön svans.",
+    "promptEn": "Full-body fantasy chibi: A regal fox-lion has a narrow russet muzzle and tall pointed ears inside a broad golden mane layered like sunlit leaves. Massive feline forepaws support a honey-colored body with moss-green back fur. Its long plush fox tail ends in cream, and angular eyes emphasize the contrast between leonine weight and vulpine elegance. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "mossfox--runestag",
+    "parentA": "mossfox",
+    "parentB": "runestag",
+    "name": "Mossrune Antlerbrush",
+    "descriptionSv": "En rävhjort med grenhorn, korta hjortben och buskig grön svans.",
+    "promptEn": "Full-body fantasy chibi: A woodland fox-stag has a pointed cream muzzle, tall russet ears and branching antlers with mint rune markings. Four slender cloven legs lift its compact chestnut torso. Moss-green fur covers the shoulders and a luxurious cream-tipped fox tail, while delicate leaf-shaped cheek tufts connect the antlered head to its agile foxlike body. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "mossfox--coraldrake",
+    "parentA": "mossfox",
+    "parentB": "coraldrake",
+    "name": "Mossreef Findrake",
+    "descriptionSv": "En rävdrake med korallvingar, fenöron och mossklädd fjällig svans.",
+    "promptEn": "Full-body fantasy chibi: A fox-drake has a narrow russet dragon muzzle, pointed sea-green fin ears and four small webbed clawed paws. Coral scales cross its low torso beneath small red membrane wings. Moss-green fur grows along the spine into a plush curved tail with a cream fin tip, retaining both fox brush and dragon tail structure. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "mossfox--dawnphoenix",
+    "parentA": "mossfox",
+    "parentB": "dawnphoenix",
+    "name": "Mossdawn Sunbrush",
+    "descriptionSv": "En rävfågel med gyllene vingar och en lång grön fjädersvans.",
+    "promptEn": "Full-body fantasy chibi: A fox-phoenix griffin has a pointed russet muzzle ending in a small golden beak, tall furry ears and a flame-feather brow. Broad golden wings emerge from its cream-chested torso above four fox paws. Moss-green hindquarters flow into a long bushy tail layered with attached ember feathers and a pale tip. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "mossfox--obsidianbear",
+    "parentA": "mossfox",
+    "parentB": "obsidianbear",
+    "name": "Mossobsidian Brushmaul",
+    "descriptionSv": "En tung rävbjörn med spetsöron, enorma tassar och mossgrön svans.",
+    "promptEn": "Full-body fantasy chibi: A fox-bear has a broad muscular charcoal torso, massive clawed forepaws and a tapered russet muzzle below tall pointed ears. Glossy volcanic plates grow through moss-green shoulder fur. Its enormous cream-tipped fox tail balances rounded bear haunches, with a cream chest and long cheek ruff giving a fierce forest guardian silhouette. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "mossfox--aurorakirin",
+    "parentA": "mossfox",
+    "parentB": "aurorakirin",
+    "name": "Mossaurora Gladevulpin",
+    "descriptionSv": "En hornprydd rävkirin med hovar, lilafjäll och lång böljande grön svans.",
+    "promptEn": "Full-body fantasy chibi: A fox-kirin has a pointed russet muzzle, tall ears and one pearly horn inside a flowing pastel mane. Four neat hooves support a compact deerlike torso with lilac scales showing through cream and moss-green fur. Its long fox tail blends a plush pale tip into attached mint-pink silky strands, creating a graceful guardian. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "mossfox--spectralpanther",
+    "parentA": "mossfox",
+    "parentB": "spectralpanther",
+    "name": "Mossveil Saberbrush",
+    "descriptionSv": "En blå rävpanter med spetsöron, hörntänder och stor genomskinlig rävsvans.",
+    "promptEn": "Full-body fantasy chibi: A spectral fox-panther has a narrow angular muzzle with short icy saber fangs, tall fox ears and powerful feline paws. Its translucent sapphire torso carries dark moss-shaped shoulder markings that resemble raised fur. A huge fox brush tail glows cyan along its pale tip, contrasting the low sleek predatory body and long whiskers. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "mossfox--spectralwyrm",
+    "parentA": "mossfox",
+    "parentB": "spectralwyrm",
+    "name": "Mossastral Coilfox",
+    "descriptionSv": "En lång smal rävserpent med spetsöron, små horn och mosskantad svans.",
+    "promptEn": "Full-body fantasy chibi: A floating fox-serpent has a narrow russet dragon muzzle, pointed furry ears and tiny silver horns. A cream chest flows into one long translucent sapphire body curled in an S, with moss-green fur forming a continuous dorsal mane. Two small fox forepaws and a scaled tail ending in a plush pale brush remain visible. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "reedotter--duskmoth",
+    "parentA": "reedotter",
+    "parentB": "duskmoth",
+    "name": "Reeddusk Riverflutter",
+    "descriptionSv": "En långsmal uttermal med fyra violetta vingar och platt simsvans.",
+    "promptEn": "Full-body fantasy chibi: An otter-moth has a sleek brown furry torso, cream whiskered muzzle and rounded ears beside feathery antennae. Four violet crescent-patterned wings emerge above four small webbed paws. Reed-green fur follows the wing roots and the broad flattened otter tail, while a soft lilac belly gives the hovering body gentle readable volume. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "reedotter--shellsnap",
+    "parentA": "reedotter",
+    "parentB": "shellsnap",
+    "name": "Reedvault Riverback",
+    "descriptionSv": "En uttersköldpadda med morrhår, naturligt skal och bred platt svans.",
+    "promptEn": "Full-body fantasy chibi: An otter-turtle has an elongated brown swimming body beneath a low terracotta shell with golden spiral scutes. A rounded whiskered muzzle and cream furry throat extend from its jade-scaled neck. Four webbed clawed feet support the shell, while a broad flattened tail and reed-green seams soften its streamlined river silhouette. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "reedotter--acornboar",
+    "parentA": "reedotter",
+    "parentB": "acornboar",
+    "name": "Reedtusk Marshgrunter",
+    "descriptionSv": "En vattenlevande uttergalt med betar, simhud och platt svans.",
+    "promptEn": "Full-body fantasy chibi: An otter-boar has a long low brown torso with tan piglet stripes, a broad whiskered snout and two little ivory tusks. Four short webbed hooves spread beneath its cream throat and belly. Reed-green dorsal bristles run into an acorn-shaped crown, while a thick flattened otter tail balances the stocky swimming body. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "reedotter--embercub",
+    "parentA": "reedotter",
+    "parentB": "embercub",
+    "name": "Reedember Riverpounce",
+    "descriptionSv": "En utterlejonhybrid med eldmankrage, simtassar och platt glödsvans.",
+    "promptEn": "Full-body fantasy chibi: An otter-lion cub has a rounded whiskered feline muzzle, cream throat and a compact ember mane edged with reed-green fur. Its long orange-brown torso rests on four broad webbed paws, with larger feline forefeet. A thick flattened otter tail ends in a low red flame tuft, creating an agile aquatic hunter. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "reedotter--moonowl",
+    "parentA": "reedotter",
+    "parentB": "moonowl",
+    "name": "Reedmoon Streamwatch",
+    "descriptionSv": "En utteruggla med silveransikte, mörka vingar och platt simsvans.",
+    "promptEn": "Full-body fantasy chibi: An otter-owl has a round silver facial disk around a small beaked muzzle with fine whiskers and a crescent brow. Midnight-blue wings attach above four webbed paws on its sleek brown torso. Cream throat feathers blend into reed-green back fur, and a broad flattened tail carries short layered feather edges. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "reedotter--crystalgecko",
+    "parentA": "reedotter",
+    "parentB": "crystalgecko",
+    "name": "Reedprism Glassdiver",
+    "descriptionSv": "En uttergecko med kristallrygg, klättersimfötter och lång platt svans.",
+    "promptEn": "Full-body fantasy chibi: An otter-gecko has a long sleek brown body with a cream whiskered muzzle and small round ears. Four lavender feet combine webbing and adhesive pads for swimming and climbing. Teal crystal scales grow through reed-green back fur, while its thick otter tail curves like a gecko's and gains translucent faceted edges. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "reedotter--stormlynx",
+    "parentA": "reedotter",
+    "parentB": "stormlynx",
+    "name": "Reedstorm Riverlynx",
+    "descriptionSv": "En utterlo med tofsöron, simhudsklor och elektrisk platt svans.",
+    "promptEn": "Full-body fantasy chibi: An otter-lynx has a long streamlined storm-grey torso, rounded whiskered muzzle and compact ears ending in black tufts. Four broad webbed cat paws brace its cream chest. Cyan lightning markings wind through reed-green dorsal fur, while a thick flattened otter tail and narrow feline eyes create a fierce river ambusher. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "reedotter--thornbadger",
+    "parentA": "reedotter",
+    "parentB": "thornbadger",
+    "name": "Reedbriar Bankburrower",
+    "descriptionSv": "En långsmal uttergrävling med randigt ansikte och taggig platt svans.",
+    "promptEn": "Full-body fantasy chibi: An otter-badger has a long low brown-grey torso, cream-charcoal facial stripes and a rounded whiskered muzzle. Huge digging foreclaws retain webbing, with two broad swimming hindfeet behind. Emerald thorn fur grows along the shoulders into reed-green dorsal tufts; a thick flattened otter tail preserves its amphibious silhouette beneath the rugged armor. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "reedotter--cinderwolf",
+    "parentA": "reedotter",
+    "parentB": "cinderwolf",
+    "name": "Reedcinder Steamfang",
+    "descriptionSv": "En långsmal uttervarg med flammande nackkam och bred simsvans.",
+    "promptEn": "Full-body fantasy chibi: An otter-wolf has a long charcoal swimming torso, a narrow canine muzzle softened by whiskers and small rounded ears. Four strong webbed paws support its cream throat and rust belly. An ember mane grows between reed-green shoulder tufts, while a broad flattened otter tail carries short dark-red fiery fur along its rim. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "reedotter--frostibex",
+    "parentA": "reedotter",
+    "parentB": "frostibex",
+    "name": "Reedfrost Riverhorn",
+    "descriptionSv": "En utterbock med stora ishorn och kluvna simhudsfötter.",
+    "promptEn": "Full-body fantasy chibi: An otter-ibex has a rounded whiskered muzzle, short cream beard and two ridged ice horns above small round ears. Its long pale-blue torso stands on four compact webbed cloven feet. Reed-green dorsal fur grades into frosted scales, and a thick flattened otter tail curves behind its strong low swimming haunches. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "reedotter--sunmane",
+    "parentA": "reedotter",
+    "parentB": "sunmane",
+    "name": "Reedsun Currentmane",
+    "descriptionSv": "En utterlejonhybrid med stor solman och bred platt simsvans.",
+    "promptEn": "Full-body fantasy chibi: An otter-lion has a broad golden mane framing a rounded whiskered muzzle and small ears. Its muscular elongated honey-brown torso rests on four webbed feline paws, front paws especially large. Cream throat fur and reed-green back strands connect the mane to a broad flattened otter tail edged with golden hair. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "reedotter--runestag",
+    "parentA": "reedotter",
+    "parentB": "runestag",
+    "name": "Reedrune Riverhart",
+    "descriptionSv": "En hornprydd utterhjort med simhudshovar och lång platt svans.",
+    "promptEn": "Full-body fantasy chibi: An otter-stag has a rounded cream whiskered muzzle, small ears and branching mint-runed antlers above a short deerlike neck. Its long chestnut body stands on four low webbed cloven feet. Reed-green back fur grows between subtle rune markings, while a broad flattened tail makes the antlered swimming silhouette unmistakably aquatic. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "reedotter--coraldrake",
+    "parentA": "reedotter",
+    "parentB": "coraldrake",
+    "name": "Reedcoral Tideglider",
+    "descriptionSv": "En utterdrake med korallvingar, fenöron och platt fjällig simsvans.",
+    "promptEn": "Full-body fantasy chibi: An otter-drake has a broad whiskered muzzle, cream throat and sea-green fin ears. Four webbed clawed paws support a long brown torso that grades into coral scales. Small red membrane wings join the shoulders above reed-green fur, while a thick flattened tail curls with a transparent fin running along its lower edge. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "reedotter--dawnphoenix",
+    "parentA": "reedotter",
+    "parentB": "dawnphoenix",
+    "name": "Reeddawn Flamepaddler",
+    "descriptionSv": "En utterfågel med gyllene vingar och bred fjäderkantad simsvans.",
+    "promptEn": "Full-body fantasy chibi: An otter-phoenix has a rounded beaked muzzle with fine whiskers, a cream feather throat and a small flame crest. Broad golden wings emerge above four webbed paws on its sleek orange-brown torso. Reed-green back down flows into a flattened otter tail with attached amber feather blades, preserving a compact swimming form. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "reedotter--obsidianbear",
+    "parentA": "reedotter",
+    "parentB": "obsidianbear",
+    "name": "Reedobsidian Rivermaul",
+    "descriptionSv": "En kraftig utterbjörn med stenplattor och bred simsvans.",
+    "promptEn": "Full-body fantasy chibi: An otter-bear has a broad whiskered grey muzzle, rounded ears and massive webbed clawed forepaws. Glossy volcanic shoulder plates armor an elongated charcoal torso with a cream furry throat. Reed-green fur fills the plate seams, while strong swimming hindfeet and a thick flattened otter tail balance its heavy predatory body. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "reedotter--aurorakirin",
+    "parentA": "reedotter",
+    "parentB": "aurorakirin",
+    "name": "Reedaurora Mistpaddler",
+    "descriptionSv": "En utterkirin med pärlhorn, simhovar och böljande platt svans.",
+    "promptEn": "Full-body fantasy chibi: An otter-kirin has a rounded cream whiskered face, small ears and one pearly horn inside a flowing pastel mane. Its sleek elongated body carries lilac scales through brown river fur. Four short webbed hooves support the torso, while a broad flattened otter tail trails attached mint-pink silk strands beside reed-green back tufts. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "reedotter--spectralpanther",
+    "parentA": "reedotter",
+    "parentB": "spectralpanther",
+    "name": "Reedveil Riverstalker",
+    "descriptionSv": "En blå utterpanter med hörntänder, simhudstassar och bred platt svans.",
+    "promptEn": "Full-body fantasy chibi: A spectral otter-panther has a long sleek sapphire torso, a rounded whiskered muzzle with icy fangs and small feline ears. Four broad webbed cat paws brace a pale cyan chest. Its thick flattened otter tail curves behind, while dark reedlike dorsal markings and restrained transparent edge light give the river predator a sharp silhouette. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "reedotter--spectralwyrm",
+    "parentA": "reedotter",
+    "parentB": "spectralwyrm",
+    "name": "Reedastral Rivercoil",
+    "descriptionSv": "En svävande utterserpent med morrhår, främre simfötter och böjd fenstjärt.",
+    "promptEn": "Full-body fantasy chibi: A floating otter-serpent has a rounded whiskered dragon muzzle, small ears and tiny silver horns. Its cream furry chest extends into one translucent sapphire body curled in a compact S. Two webbed forepaws reach forward; reed-green dorsal fur blends into silver fins along the thick flattened tail before the tapered end. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "duskmoth--shellsnap",
+    "parentA": "duskmoth",
+    "parentB": "shellsnap",
+    "name": "Duskvault Moonwing",
+    "descriptionSv": "En sköldpaddsmal med fyra violetta vingar och högt terrakottaskal.",
+    "promptEn": "Full-body fantasy chibi: A turtle-moth has a rounded jade head, feathery antennae and a soft lilac throat beneath a naturally grown terracotta shell. Four violet crescent-marked wings emerge symmetrically beside the golden scutes. Four short turtle feet and two smaller insect feet curl below the cream belly, while a tiny pointed tail extends behind. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "duskmoth--acornboar",
+    "parentA": "duskmoth",
+    "parentB": "acornboar",
+    "name": "Dusktusk Nightflutter",
+    "descriptionSv": "En sexbent galtmal med fjäderkänselspröt och stora violetta vingar.",
+    "promptEn": "Full-body fantasy chibi: A boar-moth has a plump brown furry torso, tan piglet stripes and a broad snout with two ivory tusks. Feathery antennae rise from an acorn-shaped lilac crest. Four violet crescent-patterned wings grow beside six short jointed hooflike feet, while a tiny curled bristly tail balances its determined hovering body. Brown ink contours, painterly RPG finish; facing right."
+  },
+  {
+    "id": "duskmoth--embercub",
+    "parentA": "duskmoth",
+    "parentB": "embercub",
+    "name": "Duskember Maneflutter",
+    "descriptionSv": "En lejonmal med eldmankrage, stora framtassar och fyra månmönstrade vingar.",
+    "promptEn": "Full-body fantasy chibi: A lion-moth has a compact orange feline face, small fangs and an ember mane mixed with lilac down. Feathery antennae curve above round ears; four violet crescent wings grow from its soft segmented torso. Six small limbs include enlarged feline forepaws, and a short tail ends in a glowing fluffy tuft. Brown ink contours, painterly RPG finish; facing right."
+  }
+]

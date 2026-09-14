@@ -1,0 +1,209 @@
+{
+  "submittedAt": "2026-09-14T21:12:42.505Z",
+  "requests": [
+    {
+      "index": 18,
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "4k",
+        "aspect_ratio": "3:2",
+        "background": "transparent",
+        "medias": [
+          {
+            "role": "image",
+            "value": "0530d133-5c81-41fa-b685-9ea6d234ab37"
+          },
+          {
+            "role": "image",
+            "value": "4d025f5e-892a-4578-96aa-ce58bb4bcd76"
+          },
+          {
+            "role": "image",
+            "value": "3eac1a85-79a2-425e-b57d-c3a4b0fade85"
+          },
+          {
+            "role": "image",
+            "value": "8a7cd7fe-81e1-4906-8457-70a353aa8b21"
+          },
+          {
+            "role": "image",
+            "value": "b6a76f13-64f9-4d0a-8900-b2ef652c67b8"
+          }
+        ],
+        "count": 1,
+        "prompt": "Create a polished ORIGINAL CREATURE CONCEPT ATLAS for Riptide, a hand-painted fantasy chibi RPG. This is a visual breeding catalogue: every requested cell is ONE NEW hybrid creature, visibly inheriting anatomical traits from BOTH named parents. Reference images show the existing parent species and exact visual style; use their painted shapes and palette, never copy the reference atlas layout.\nEXACT OUTPUT LAYOUT: landscape 3:2 image, an INVISIBLE uniform grid of FIVE equal columns by THREE equal rows. EXACTLY FIFTEEN separate complete creatures. Read the assignments in row-major order: row1 left-to-right cells01-05, row2 cells06-10, row3 cells11-15. Each creature occupies only its own cell and stays centered with at least 20 percent transparent clearance on EVERY side. Entire tails, horns, antlers, paws and wings must fit within that cell. No extras, no empty cells, no overlap. TRUE TRANSPARENT RGBA BACKGROUND outside the silhouettes. No scene, no terrain, no white matte, no checkerboard, no visible grid, NO LETTERING or labels or numbers. Labels will be added by code.\nSTYLE: match the supplied original Riptide Tides: beautiful hand-painted storybook fantasy sprites, bold clean dark-brown ink outlines, warm modeled painterly highlights, detailed fur/feathers/scales, large expressive heads, short sturdy chibi proportions, powerful readable silhouettes, cool mutated fantasy animals. A range of charming to fierce, no gore. Full-body three-quarter SIDE VIEW, head facing RIGHT, tail left; anatomically connected single head/body, grounded feet or a clearly intentional floating pose. Restrained magical body highlights, no huge glow clouds or floor shadows. Six-limbed fantasy creatures only where a specified wing pair or insect anatomy needs it. Balanced inheritance, not an original animal simply recolored.\n\nSTRICT PLACEMENT: Creature centers are at x=10%,30%,50%,70%,90% of the image and y=16.67%,50%,83.33%. Each creature including every appendage fits within just 60% of its own cell width and 70% of its own cell height. Transparent gutters between every pair of neighbors are essential. Do not enlarge a creature to fill its entire cell. Match these fifteen independent center points precisely.\n\nCELL 01 (row 1, column 1): Thorn Badger + Obsidian Bear. Create a bear towering shoulder hump and huge front paws with a badger low elongated rear torso and striped pointed muzzle. Its foreclaws are broad digging blades rather than thin talons. Emerald thorns grow through seams in natural obsidian back armor, contrasting with dense charcoal fur and small round ears.\nCELL 02 (row 1, column 2): Thorn Badger + Aurora Kirin. Give a badger sturdy digging chest, broad claws and striped muzzle an arched kirin neck with a pearly horn. Hindfeet become neat cloven hooves beneath grey fur. Lilac scales and emerald thorns alternate along the shoulder ridge, while mint-pink mane strands and a long silky tail soften the powerful silhouette.\nCELL 03 (row 1, column 3): Thorn Badger + Spectral Panther. Make a low spectral panther with a badger broad digging shoulders, shovel claws and cream-striped elongated face. Its rear torso remains sleek and feline, ending in a long curved tail. Emerald thorn ridges emerge through translucent sapphire fur, with bright cyan edges defining the thick paws and narrow watchful eyes.\nCELL 04 (row 1, column 4): Thorn Badger + Spectral Wyrm. Combine a badger low heavy chest and four digging paws with an elongated spectral dragon neck and curled scaled tail. A cream-striped tapered muzzle blends into one horned dragon face. Emerald shoulder thorns become sapphire dorsal fins along the neck and tail, retaining dense grey fur around the powerful forearms.\nCELL 05 (row 1, column 5): Cinder Wolf + Frost Ibex. Fuse a wolf long fanged muzzle, pointed ears and springy forepaws with an ibex compact chest, swept ice horns and cloven rear hooves. A short white beard grows beneath the canine jaw. Ember mane tufts curl around blue horn bases and continue down charcoal shoulders into frosted goat wool.\nCELL 06 (row 2, column 1): Cinder Wolf + Rune Stag. Combine a wolf fanged long muzzle and muscular forelegs with a stag high arched neck, branching wooden antlers and cloven rear feet. Cream throat fur flows into a red ember mane. Mint runes cross chestnut-charcoal flanks beneath raised shoulder fur, and the full brush tail remains distinctly canine.\nCELL 07 (row 2, column 2): Cinder Wolf + Coral Drake. Build a lean wolf with pointed ears, long fanged muzzle and powerful paws, then extend its spine into a curled coral dragon tail. Small teal membrane wings attach behind the ember mane. Coral hornlets and cheek fins emerge through charcoal face fur, with scaled plates protecting the shoulders and thighs.\nCELL 08 (row 2, column 3): Cinder Wolf + Dawn Phoenix. Fuse a wolf lean torso, long fanged muzzle and canine hindpaws with feathered phoenix forelegs ending in golden talons. Broad orange-gold wings rise behind an ember neck crest. A small hooked beak ridge blends into the upper jaw, while the full wolf brush tail opens into curved flame plumes.\nCELL 09 (row 2, column 4): Cinder Wolf + Obsidian Bear. Create a bear massive shoulder hump and heavy clawed front paws joined to a wolf lean rear torso, long jaw and full brush tail. Ember mane fur grows between obsidian shoulder slabs. Round bear cheek volume merges with pointed canine ears, giving one powerful snarling head above planted charcoal forelegs.\nCELL 10 (row 2, column 5): Cinder Wolf + Aurora Kirin. Combine a wolf long canine muzzle, strong forepaws and alert ears with a kirin arched neck, pearly horn and cloven rear feet. Lilac scales emerge beneath charcoal fur along the flanks. Its ember mane transitions into mint-pink flowing strands, while the long brush tail carries a silky aurora tip.\nCELL 11 (row 3, column 1): Cinder Wolf + Spectral Panther. Give a spectral panther low muscular torso and curved feline tail a wolf long fanged muzzle, pointed ears and powerful canine forelegs. A raised ember mane follows the neck and shoulder line. Charcoal hair transitions into translucent sapphire flank fur, while broad feline hindpaws and narrow blue eyes define its stalking stance.\nCELL 12 (row 3, column 2): Cinder Wolf + Spectral Wyrm. Fuse a wolf four powerful legs and lean chest with an elongated spectral dragon neck and complete coiled tail. The single horned head combines a canine long jaw and silver dragon horns. Charcoal fur and an ember neck crest grade into sapphire scales, with cyan fins continuing along the sinuous spine.\nCELL 13 (row 3, column 3): Frost Ibex + Sunmane. Combine a lion broad chest, golden mane and heavy padded forepaws with an ibex swept ice horns, white beard and cloven hindhooves. A compact goat barrel supports the large feline shoulders. Golden mane layers frame the blue horn roots, and the long tufted lion tail contrasts with frosted flank wool.\nCELL 14 (row 3, column 4): Frost Ibex + Rune Stag. Create a strong mountain deer with an ibex stocky chest, beard and four broad cloven hooves. Its horns sweep backward like icy goat horns before branching into wooden stag tines, one continuous organic structure. White wool meets chestnut flanks carrying mint rune grooves, with crystal ridges along the shoulders.\nCELL 15 (row 3, column 5): Frost Ibex + Coral Drake. Fuse an ibex barrel body, white beard and swept ice horns with a coral drake fanged muzzle, teal membrane wings and curled scaled tail. Four sturdy legs end in split hooflike dragon claws. White wool transitions into coral shoulder scales, and sea-green cheek fins fan behind the icy horn roots."
+      }
+    },
+    {
+      "index": 19,
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "4k",
+        "aspect_ratio": "3:2",
+        "background": "transparent",
+        "medias": [
+          {
+            "role": "image",
+            "value": "0530d133-5c81-41fa-b685-9ea6d234ab37"
+          },
+          {
+            "role": "image",
+            "value": "4d025f5e-892a-4578-96aa-ce58bb4bcd76"
+          },
+          {
+            "role": "image",
+            "value": "3eac1a85-79a2-425e-b57d-c3a4b0fade85"
+          },
+          {
+            "role": "image",
+            "value": "8a7cd7fe-81e1-4906-8457-70a353aa8b21"
+          },
+          {
+            "role": "image",
+            "value": "b6a76f13-64f9-4d0a-8900-b2ef652c67b8"
+          }
+        ],
+        "count": 1,
+        "prompt": "Create a polished ORIGINAL CREATURE CONCEPT ATLAS for Riptide, a hand-painted fantasy chibi RPG. This is a visual breeding catalogue: every requested cell is ONE NEW hybrid creature, visibly inheriting anatomical traits from BOTH named parents. Reference images show the existing parent species and exact visual style; use their painted shapes and palette, never copy the reference atlas layout.\nEXACT OUTPUT LAYOUT: landscape 3:2 image, an INVISIBLE uniform grid of FIVE equal columns by THREE equal rows. EXACTLY FIFTEEN separate complete creatures. Read the assignments in row-major order: row1 left-to-right cells01-05, row2 cells06-10, row3 cells11-15. Each creature occupies only its own cell and stays centered with at least 20 percent transparent clearance on EVERY side. Entire tails, horns, antlers, paws and wings must fit within that cell. No extras, no empty cells, no overlap. TRUE TRANSPARENT RGBA BACKGROUND outside the silhouettes. No scene, no terrain, no white matte, no checkerboard, no visible grid, NO LETTERING or labels or numbers. Labels will be added by code.\nSTYLE: match the supplied original Riptide Tides: beautiful hand-painted storybook fantasy sprites, bold clean dark-brown ink outlines, warm modeled painterly highlights, detailed fur/feathers/scales, large expressive heads, short sturdy chibi proportions, powerful readable silhouettes, cool mutated fantasy animals. A range of charming to fierce, no gore. Full-body three-quarter SIDE VIEW, head facing RIGHT, tail left; anatomically connected single head/body, grounded feet or a clearly intentional floating pose. Restrained magical body highlights, no huge glow clouds or floor shadows. Six-limbed fantasy creatures only where a specified wing pair or insect anatomy needs it. Balanced inheritance, not an original animal simply recolored.\n\nSTRICT PLACEMENT: Creature centers are at x=10%,30%,50%,70%,90% of the image and y=16.67%,50%,83.33%. Each creature including every appendage fits within just 60% of its own cell width and 70% of its own cell height. Transparent gutters between every pair of neighbors are essential. Do not enlarge a creature to fill its entire cell. Match these fifteen independent center points precisely.\n\nCELL 01 (row 1, column 1): Frost Ibex + Dawn Phoenix. Make a stocky ibex with four cloven hooves and sweeping ice horns, its chest layered in cream feather down. Broad golden phoenix wings attach behind the shoulders. A hooked beak tip subtly joins the goat muzzle, while the short tail extends into three curved sunrise plumes contrasting with blue frosted wool.\nCELL 02 (row 1, column 2): Frost Ibex + Obsidian Bear. Build a huge bear forebody with broad clawed front paws, a compact ibex rear barrel and cloven back hooves. Two swept ice horns rise above round ears and a short white beard. Natural obsidian shoulder plates border dense frost-white wool, while the broad bear muzzle remains stern and powerful.\nCELL 03 (row 1, column 3): Frost Ibex + Aurora Kirin. Combine a kirin long arched neck, pearly forehead horn and flowing pastel tail with an ibex stocky body, beard and two swept ice horns. Four broad cloven hooves support the compact frame. Lilac scales emerge between thick white wool, while mint-pink mane strands stream around all three distinct horn bases.\nCELL 04 (row 1, column 4): Frost Ibex + Spectral Panther. Create a crouched spectral panther with broad front paws, a compact ibex chest and cloven blue rear hooves. Long swept ice horns rise above feline ears; a short beard follows the fanged jaw. White shoulder wool dissolves into translucent sapphire flanks, continuing into a full curved panther tail.\nCELL 05 (row 1, column 5): Frost Ibex + Spectral Wyrm. Fuse an ibex strong barrel chest, white beard and four cloven feet with an elongated spectral dragon neck and curled scaled tail. Its paired swept ice horns replace the smaller dragon horns naturally. White wool around the shoulders grades into sapphire scales, with crystal fins tracing the long pale-bellied spine.\nCELL 06 (row 2, column 1): Sunmane + Rune Stag. Create a lion broad chest, massive padded forepaws and full golden mane joined to a stag slender cloven hindlegs and chestnut flanks. Branching wooden antlers emerge clearly above the mane. A slightly elongated deer neck supports the powerful feline muzzle, while mint runes flow between mane strands onto the sides.\nCELL 07 (row 2, column 2): Sunmane + Coral Drake. Fuse a muscular lion with broad paws, mature feline muzzle and a full golden mane with coral dragon wings and a long curled scaled tail. Coral horns grow through the upper mane, while teal cheek fins flare behind the jaws. Scales blend into golden fur across the shoulders and hindquarters.\nCELL 08 (row 2, column 3): Sunmane + Dawn Phoenix. Build a powerful lion rear body with padded hindpaws and a phoenix feathered front chest ending in golden talons. Its lion cheek pads frame a hooked beaked muzzle within a broad golden feather mane. Huge layered sunrise wings attach behind the shoulders, and the tufted lion tail ends in long curved flame plumes.\nCELL 09 (row 2, column 4): Sunmane + Obsidian Bear. Combine a bear towering shoulder hump, barrel torso and enormous clawed paws with a lion mature cheek pads, broad muzzle and full golden mane. The mane grows through natural obsidian neck plates, extending into a rugged dorsal crest. Charcoal rear fur contrasts with golden chest hair and a complete tufted lion tail.\nCELL 10 (row 2, column 5): Sunmane + Aurora Kirin. Create a regal lion with massive padded forepaws and broad golden cheek mane, lifted by a kirin arched neck and pearly forehead horn. Hindfeet become neat cloven hooves beneath cream fur. Lilac scales protect the flanks, while pastel strands flow through the mane and along a long tufted silky tail.\nCELL 11 (row 3, column 1): Sunmane + Spectral Panther. Fuse a lion heavy shoulder mass, broad mature jaw and full circular mane with a panther elongated low torso, powerful feline hips and long curling tail. Golden mane hairs transition into translucent sapphire layers toward the shoulders. Pale cyan currents reveal the larger chest muscles, keeping a crisp fierce stalking silhouette.\nCELL 12 (row 3, column 2): Sunmane + Spectral Wyrm. Build a broad lion forebody and four planted feline paws beneath an elongated horned spectral dragon neck. The dragon face retains strong lion cheek pads surrounded by a full golden mane. Gold fur grades into sapphire scales along the neck and long coiled tail, with cyan fins emerging between mane rays.\nCELL 13 (row 3, column 3): Rune Stag + Coral Drake. Combine a stag slender cloven legs, cream throat and branching wooden antlers with a coral drake muscular scaled torso and long curled tail. Small teal wings attach behind the shoulders. Coral ridges follow the antler branches, while mint runes cross chestnut fur between shoulder scales and a fanged deerlike muzzle.\nCELL 14 (row 3, column 4): Rune Stag + Dawn Phoenix. Create a stag-bodied sky beast with four cloven hooves, branching antlers and a narrow deer muzzle ending in a small hooked beak tip. Broad golden phoenix wings emerge from a feathered cream chest. Mint runes continue onto orange flight feathers, and the short deer tail extends into three curved flame plumes.\nCELL 15 (row 3, column 5): Rune Stag + Obsidian Bear. Fuse a bear massive shoulder hump and heavy clawed forepaws with a stag longer cloven hindlegs and branching wooden antlers. A broad bear muzzle narrows slightly into a deer nose above a cream throat. Mint runes glow in natural obsidian plate seams across chestnut-charcoal flanks, ending at a short deer tail."
+      }
+    },
+    {
+      "index": 20,
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "4k",
+        "aspect_ratio": "3:2",
+        "background": "transparent",
+        "medias": [
+          {
+            "role": "image",
+            "value": "0530d133-5c81-41fa-b685-9ea6d234ab37"
+          },
+          {
+            "role": "image",
+            "value": "4d025f5e-892a-4578-96aa-ce58bb4bcd76"
+          },
+          {
+            "role": "image",
+            "value": "3eac1a85-79a2-425e-b57d-c3a4b0fade85"
+          },
+          {
+            "role": "image",
+            "value": "8a7cd7fe-81e1-4906-8457-70a353aa8b21"
+          },
+          {
+            "role": "image",
+            "value": "b6a76f13-64f9-4d0a-8900-b2ef652c67b8"
+          }
+        ],
+        "count": 1,
+        "prompt": "Create a polished ORIGINAL CREATURE CONCEPT ATLAS for Riptide, a hand-painted fantasy chibi RPG. This is a visual breeding catalogue: every requested cell is ONE NEW hybrid creature, visibly inheriting anatomical traits from BOTH named parents. Reference images show the existing parent species and exact visual style; use their painted shapes and palette, never copy the reference atlas layout.\nEXACT OUTPUT LAYOUT: landscape 3:2 image, an INVISIBLE uniform grid of FIVE equal columns by THREE equal rows. EXACTLY FIFTEEN separate complete creatures. Read the assignments in row-major order: row1 left-to-right cells01-05, row2 cells06-10, row3 cells11-15. Each creature occupies only its own cell and stays centered with at least 20 percent transparent clearance on EVERY side. Entire tails, horns, antlers, paws and wings must fit within that cell. No extras, no empty cells, no overlap. TRUE TRANSPARENT RGBA BACKGROUND outside the silhouettes. No scene, no terrain, no white matte, no checkerboard, no visible grid, NO LETTERING or labels or numbers. Labels will be added by code.\nSTYLE: match the supplied original Riptide Tides: beautiful hand-painted storybook fantasy sprites, bold clean dark-brown ink outlines, warm modeled painterly highlights, detailed fur/feathers/scales, large expressive heads, short sturdy chibi proportions, powerful readable silhouettes, cool mutated fantasy animals. A range of charming to fierce, no gore. Full-body three-quarter SIDE VIEW, head facing RIGHT, tail left; anatomically connected single head/body, grounded feet or a clearly intentional floating pose. Restrained magical body highlights, no huge glow clouds or floor shadows. Six-limbed fantasy creatures only where a specified wing pair or insect anatomy needs it. Balanced inheritance, not an original animal simply recolored.\n\nSTRICT PLACEMENT: Creature centers are at x=10%,30%,50%,70%,90% of the image and y=16.67%,50%,83.33%. Each creature including every appendage fits within just 60% of its own cell width and 70% of its own cell height. Transparent gutters between every pair of neighbors are essential. Do not enlarge a creature to fill its entire cell. Match these fifteen independent center points precisely.\n\nCELL 01 (row 1, column 1): Rune Stag + Aurora Kirin. Combine a stag sturdy chestnut body, wide branching wooden antlers and cloven hooves with a kirin arched neck, central pearly horn and flowing mane. Lilac scales line the upper legs beneath cream fur. Mint rune channels follow the antlers and flanks, while pastel tail strands stream from a deerlike rump.\nCELL 02 (row 1, column 2): Rune Stag + Spectral Panther. Create a low panther hunter with large feline forepaws, a stag elongated neck and cloven hindfeet. Branching wooden antlers grow above its short feline muzzle and long deer ears. Chestnut shoulder fur grades into translucent sapphire flanks, with mint runes following the ribs and a full curved panther tail.\nCELL 03 (row 1, column 3): Rune Stag + Spectral Wyrm. Fuse a compact stag chest and four cloven legs with a long spectral dragon neck and complete coiled tail. The single narrow dragon head carries branching wooden deer antlers and a cream throat fringe. Mint runes flow across sapphire scales, while chestnut shoulder fur transitions smoothly into pale segmented belly plates.\nCELL 04 (row 1, column 4): Coral Drake + Dawn Phoenix. Combine a coral dragon four-clawed stance, horned head and curled scaled tail with a phoenix hooked beak ridge and broad golden feather wings. Coral wing bones remain visible beneath layered flight feathers. Teal cheek fins break into feather crests, while the tail alternates coral scutes and long curved orange plumes.\nCELL 05 (row 1, column 5): Coral Drake + Aurora Kirin. Fuse a kirin arched neck, pearly forehead horn and elegant cloven hooves with a coral dragon horned muzzle, teal wings and curled scaled tail. Coral side horns frame the central pearl horn naturally. Lilac flank scales grade into coral plates, and pastel mane strands continue between the dorsal fins.\nCELL 06 (row 2, column 1): Coral Drake + Spectral Panther. Give a stalking spectral panther broad paws, low muscular torso and narrow cat eyes a coral drake scaled muzzle, coral horns and small teal membrane wings. Its long feline tail becomes scaled and finned toward the tip. Coral plates blend into translucent sapphire fur across the shoulders and hips.\nCELL 07 (row 2, column 2): Coral Drake + Spectral Wyrm. Create a compact long-necked dragon combining coral drake four clawed limbs and teal membrane wings with a spectral wyrm elongated S-shaped torso and curling tail. Coral head horns flow into small silver tips. Solid coral shoulder scales gradually become translucent sapphire plates toward the pale segmented belly and finned tail.\nCELL 08 (row 2, column 3): Dawn Phoenix + Obsidian Bear. Build a massive bear with heavy shoulders, round ears and broad clawed hindpaws, its forefeet merging into thick golden phoenix talons. Two broad sunrise wings grow from gaps in natural obsidian shoulder plates. A short hooked beak ridge joins the powerful bear muzzle, and flame feather plumes replace its tiny tail.\nCELL 09 (row 2, column 4): Dawn Phoenix + Aurora Kirin. Combine a kirin arched neck, pearly horn and four neat cloven hooves with broad phoenix feather wings and a curved flame-plume tail. A subtle hooked beak ridge joins the deerlike muzzle. Lilac scales transition into golden shoulder feathers, while mint-pink mane strands flow through an upright sunrise crest.\nCELL 10 (row 2, column 5): Dawn Phoenix + Spectral Panther. Fuse a spectral panther sleek muscular torso, feline hindpaws and long curved tail with a phoenix feathered forechest and golden front talons. Broad sunrise wings grow from sapphire shoulders. A hooked beak tip blends into one feline muzzle, while translucent blue tail fur opens into three long orange-gold feather plumes.\nCELL 11 (row 3, column 1): Obsidian Bear + Aurora Kirin. Combine a bear towering shoulders, huge front paws and broad muzzle with a kirin arched neck, pearly horn and cloven hindfeet. Natural obsidian slabs overlap lilac scales along the back. A flowing mint-pink mane emerges between the plates, and the stocky charcoal rump extends into a long silky aurora tail.\nCELL 12 (row 3, column 2): Obsidian Bear + Spectral Panther. Create a low stalking beast with bear enormous shoulder muscles, broad round-eared head and heavy clawed forepaws, joined to panther sleek hips and a full curved tail. Natural obsidian plates break into translucent sapphire armor scales along the flanks. Charcoal cheek fur remains solid around narrow cyan feline eyes.\nCELL 13 (row 3, column 3): Aurora Kirin + Spectral Panther. Fuse a spectral panther low muscular body and broad front paws with a kirin arched neck, pearly forehead horn and cloven hindfeet. Lilac scales follow the translucent sapphire flanks. Its pastel mane flows between feline ears and down the back, joining a long curved cat tail ending in silky aurora strands.\nCELL 14 (row 3, column 4): Aurora Kirin + Spectral Wyrm. Combine a kirin small hooved quadruped chest, pearly forehead horn and flowing pastel mane with a spectral wyrm elongated dragon neck and complete S-curled tail. Silver side horns frame the central pearl horn. Lilac shoulder scales grade into translucent sapphire belly plates, with mint-pink hair following the sinuous dorsal ridge.\nCELL 15 (row 3, column 5): Spectral Panther + Spectral Wyrm. Create a sleek four-pawed panther-dragon with a muscular feline chest and low stalking hips. Extend the neck into a short graceful serpent curve supporting a horned dragon muzzle with feline cheek pads. Sapphire fur becomes translucent scales along the spine and full coiled tail, with cyan fins and silver horns defining the hybrid silhouette."
+      }
+    }
+  ],
+  "response": {
+    "jobs": [
+      {
+        "index": 18,
+        "job_id": "f031582b-522f-46e8-90d8-8aac4bc87133",
+        "status": "pending",
+        "adjustments": {
+          "medias[0].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[1].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[2].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[3].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[4].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          }
+        }
+      },
+      {
+        "index": 19,
+        "job_id": "ca4e3ce3-1548-41ca-a3f8-db04ff0b9678",
+        "status": "pending",
+        "adjustments": {
+          "medias[0].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[1].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[2].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[3].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[4].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          }
+        }
+      },
+      {
+        "index": 20,
+        "job_id": "73925abf-8c32-4d30-bd6f-3a79775bbae9",
+        "status": "pending",
+        "adjustments": {
+          "medias[0].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[1].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[2].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[3].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[4].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          }
+        }
+      }
+    ],
+    "submitted_count": 3,
+    "failed_count": 0
+  }
+}

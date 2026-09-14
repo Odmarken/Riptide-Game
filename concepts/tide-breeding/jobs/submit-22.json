@@ -1,0 +1,77 @@
+{
+  "submittedAt": "2026-09-14T21:19:58.810Z",
+  "requests": [
+    {
+      "index": 22,
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "4k",
+        "aspect_ratio": "3:2",
+        "background": "transparent",
+        "medias": [
+          {
+            "role": "image",
+            "value": "0530d133-5c81-41fa-b685-9ea6d234ab37"
+          },
+          {
+            "role": "image",
+            "value": "4d025f5e-892a-4578-96aa-ce58bb4bcd76"
+          },
+          {
+            "role": "image",
+            "value": "3eac1a85-79a2-425e-b57d-c3a4b0fade85"
+          },
+          {
+            "role": "image",
+            "value": "8a7cd7fe-81e1-4906-8457-70a353aa8b21"
+          },
+          {
+            "role": "image",
+            "value": "b6a76f13-64f9-4d0a-8900-b2ef652c67b8"
+          }
+        ],
+        "count": 1,
+        "prompt": "Create a polished ORIGINAL CREATURE CONCEPT ATLAS for Riptide, hand-painted fantasy chibi RPG, using supplied original parent atlases only as style and species references. EXACTLY THREE standalone new hybrids, in ONE HORIZONTAL ROW of THREE EQUAL CELLS on a landscape 3:2 canvas. Centers x=16.67%,50%,83.33%; each y=50%. Each creature, tail, paws, horns, wings fits inside its own third with wide transparent gutters and 12 percent cell clearance. TRUE TRANSPARENT RGBA background. NO other creatures, no extra rows, no labels, text, numbers, visible grid, landscape, white matte or checkerboard. Full-body connected anatomy, head facing RIGHT in three-quarter side view. Clean dark-brown outlines, rich painterly highlights, detailed fur/scales/feathers, big expressive chibi heads, sturdy powerful bodies. The hybrids must unmistakably inherit the PHYSICAL ANATOMY of BOTH parents. Do not reproduce an existing parent's silhouette with only new colors. These three are anatomy correction designs; mandatory features below must be prominent. Prefer quadruped mammal bodies with other inherited features integrated coherently.\nCELL 1, LEFT: cinderwolf + dawnphoenix. Create one FOUR-LEGGED WOLF with a long mammalian canine muzzle, visible short fangs, pointed furry ears and four large planted wolf paws. Keep its strong chest, low rear hips and complete bushy wolf tail. Two broad phoenix feather wings grow from the shoulders, with layered golden flight feathers clearly separated from charcoal body fur. A swept sunrise feather crest blends into an ember neck mane; a few flame plumes extend from the tail tip. No bird head or upright bird body. Full-body chibi, facing right.\nCELL 2, CENTER: sunmane + aurorakirin. Build one broad-shouldered LION with a huge circular golden mane, rounded cat ears, wide feline muzzle and two massive padded front paws. Its face must remain clearly lionlike beneath one pearly kirin forehead horn, never a narrow deer face. Behind the powerful chest, a compact kirin hindbody carries lilac scales and two neat cloven rear hooves. Pastel mint-pink strands flow along the mane rear edge into a long silky tufted tail. Preserve strong feline cheek pads and confident brows. Whole connected chibi quadruped, facing right.\nCELL 3, RIGHT: runestag + obsidianbear. Create one massive BEAR-bodied stag hybrid with a towering shoulder hump, thick barrel torso and two enormous weight-bearing bear forelegs ending in broad clawed paws. Natural obsidian slabs armor its shoulders and spine. A wide heavy bear muzzle narrows slightly at the nose beneath large branching stag antlers carrying mint rune grooves. Keep round bear ears, a cream deer throat fringe and compact stag haunches ending in two cloven rear hooves. The chest must greatly outweigh the hindquarters, never a slim deer body. Full-body chibi."
+      }
+    }
+  ],
+  "response": {
+    "jobs": [
+      {
+        "index": 22,
+        "job_id": "06b80f61-63e4-4ce8-be0d-fd7e5a23a16d",
+        "status": "pending",
+        "adjustments": {
+          "medias[0].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[1].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[2].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[3].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          },
+          "medias[4].role": {
+            "requested": "image",
+            "used": "image_references",
+            "reason": "GPT Image 2.5 backend expects schema-key media roles"
+          }
+        }
+      }
+    ],
+    "submitted_count": 1,
+    "failed_count": 0
+  }
+}
