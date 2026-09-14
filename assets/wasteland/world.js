@@ -196,7 +196,17 @@
   return true;
  }
  const intersects=(a,b,pad=0)=>a.x<=b.x+b.w+pad&&a.y<=b.y+b.h+pad&&a.x+a.w>=b.x-pad&&a.y+a.h>=b.y-pad;
- function imageReady(im){return !!(im&&(im.naturalWidth||im.width)&&im.complete!==false);}
+ const terrainImageIds=new WeakMap();let nextTerrainImageId=1;
+ function imageReady(im){return !!(im&&im.complete!==false&&(im.naturalWidth===undefined?im.width:im.naturalWidth)>0&&(im.naturalHeight===undefined?im.height:im.naturalHeight)>0);}
+ function terrainImageSignature(images){
+  return Object.keys(images).sort().map(k=>{
+   const im=images[k];if(!im)return k+':none';
+   if(!terrainImageIds.has(im))terrainImageIds.set(im,nextTerrainImageId++);
+   // Image dimensions can arrive before its pixels finish loading. A fallback
+   // chunk must be rebuilt when that same, already-sized image becomes ready.
+   return [k,terrainImageIds.get(im),imageReady(im)?1:0,im.naturalWidth===undefined?im.width:im.naturalWidth,im.naturalHeight===undefined?im.height:im.naturalHeight,im.currentSrc||im.src||''].join(':');
+  }).join('|');
+ }
  function dirtCrop(im){return imageReady(im)?[2,2,(im.naturalWidth||im.width)-4,(im.naturalHeight||im.height)-4]:null;}
  function makeCanvas(options,size){const c=options.createCanvas?options.createCanvas(size,size):typeof document!=='undefined'?document.createElement('canvas'):typeof OffscreenCanvas!=='undefined'?new OffscreenCanvas(size,size):null;if(c)c.width=c.height=size;return c;}
  function texture(g,im,rect,crop,scale=1){
@@ -235,7 +245,7 @@
   }
  }
  function terrainChunk(world,cx,cy,options){
-  const images=options.images||{},sig=Object.keys(images).sort().map(k=>k+':'+(images[k]&&(images[k].naturalWidth||images[k].width)||0)).join('|');
+  const images=options.images||{},sig=terrainImageSignature(images);
   if(world._terrainSig!==sig){world._terrainSig=sig;world._terrainCache=new Map();}
   const cache=world._terrainCache,key=cx+','+cy;
   if(cache.has(key)){const c=cache.get(key);cache.delete(key);cache.set(key,c);return c;}

@@ -77,17 +77,20 @@ test('the production Wasteland callback excludes props, stable grounds, all port
  assert.ok(count>500,'actual geometry accepts a healthy population near landmarks and edges');
 });
 
-test('production exploration holds its movement anchor across menus, death and raw City world keys',()=>{
+test('production world encounters pause in menus and restore the same local animals after City and reload',()=>{
  const h=harness(),c=h.context;c.zone={wasteland:true};c.world=W.create();h.hero.x=2400;h.hero.y=23600;
- W.updateChunks(c.world,h.hero.x,h.hero.y,1800);h.ui.updateExploration();const survey=h.S.tides.exploration,start=survey.counter;
+ vm.runInContext('Date.now=()=>1800000000000',c);
+ W.updateChunks(c.world,h.hero.x,h.hero.y,1800);h.ui.updateExploration();
+ const snapshot=()=>h.S.tides.exploration.wild.map(w=>({id:w.id,speciesId:w.speciesId,level:w.level,x:w.x,y:w.y})).sort((a,b)=>a.id.localeCompare(b.id));
+ const initial=snapshot();assert.ok(initial.length>0);
  for(const pause of ['hub','panel','game','dead']){
   if(pause==='hub')h.el('tideHub').hidden=false;if(pause==='panel')c.activePanel={};if(pause==='game')c.gamePaused=true;if(pause==='dead')h.hero.dead=true;
-  for(let i=0;i<20;i++){h.hero.x+=20;h.ui.updateExploration();}assert.equal(survey.counter,start,pause);
-  h.el('tideHub').hidden=true;c.activePanel=null;c.gamePaused=false;h.hero.dead=false;h.ui.updateExploration();assert.equal(survey.counter,start,'no catch-up on closing '+pause);
+  for(let i=0;i<20;i++){h.hero.x+=20;h.ui.updateExploration();}assert.deepEqual(snapshot(),initial,pause);
+  h.el('tideHub').hidden=true;c.activePanel=null;c.gamePaused=false;h.hero.dead=false;h.hero.x=2400;h.ui.updateExploration();assert.deepEqual(snapshot(),initial,'same place after closing '+pause);
  }
- const old=c.world;c.world={w:16800,h:5200,solids:[]};c.zone={city:true};h.ui.updateExploration();assert.equal(survey.lastX,null);
- c.world=old;c.zone={wasteland:true};h.hero.x=2400;h.hero.y=23600;h.ui.updateExploration();assert.equal(survey.counter,start);
- const restored=E.create(JSON.parse(JSON.stringify(survey)));assert.equal(restored.counter,start);assert.equal(restored.initialized,true);
+ const old=c.world;c.world={w:16800,h:5200,solids:[]};c.zone={city:true};h.ui.updateExploration();assert.equal(h.ui.nearestWild(),null);
+ c.world=old;c.zone={wasteland:true};h.hero.x=2400;h.hero.y=23600;h.ui.updateExploration();assert.deepEqual(snapshot(),initial);
+ h.S.tides.exploration=E.create(JSON.parse(JSON.stringify(h.S.tides.exploration)));h.ui.updateExploration();assert.deepEqual(snapshot(),initial);
 });
 
 test('clicking even a spectral Tide opens the neutral challenge route without targeting an enemy',()=>{

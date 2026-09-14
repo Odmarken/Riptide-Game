@@ -66,6 +66,37 @@ test('ground canvas size, cache, and draw cost stay bounded even at world overvi
  for(let i=0;i<40;i++)W.renderGround(ctx,w,{x:i*1000,y:10000,w:1600,h:1000},options);assert.ok(w._terrainCache.size<=72);
  const before=count.canvases;W.renderGround(ctx,w,{x:0,y:0,w:w.w,h:w.h},options);assert.equal(count.canvases,before);
 });
+test('grass chunks recover when an already-sized image finishes loading',()=>{
+ const world=W.create(),image={naturalWidth:1024,naturalHeight:1024,width:1024,height:1024,complete:false,src:'farm.png'};
+ let grassDraws=0;const count={draws:0,canvases:0,onDraw(args){if(args[0]===image)grassDraws++;}};
+ const options={images:{farm:image},createCanvas(){count.canvases++;return {getContext:()=>fakeContext(count)};}},ctx=fakeContext(count);
+ const view={x:10000,y:10000,w:1200,h:900};
+ W.renderGround(ctx,world,view,options);const fallbackTiles=new Map(world._terrainCache),fallbackCanvases=count.canvases;
+ assert.ok(fallbackTiles.size>1);assert.equal(grassDraws,0,'an incomplete image cannot paint the terrain');
+ W.renderGround(ctx,world,view,options);assert.equal(count.canvases,fallbackCanvases,'loading frames reuse their bounded fallback');
+ image.complete=true; // Natural dimensions are unchanged when the pixels arrive.
+ W.renderGround(ctx,world,view,options);assert.ok(grassDraws>0,'the loaded grass is painted on the next frame');
+ for(const [key,tile]of fallbackTiles)assert.notEqual(world._terrainCache.get(key),tile,'all visible fallback chunks must be replaced');
+ assert.equal(world._terrainCache.size,fallbackTiles.size);
+ const readyCanvases=count.canvases,readyDraws=grassDraws;
+ W.renderGround(ctx,world,view,options);assert.equal(count.canvases,readyCanvases);assert.equal(grassDraws,readyDraws,'finished terrain stays cached');
+});
+test('terrain cache follows image replacement, source changes and height, including broken images with display dimensions',()=>{
+ const world=W.create(),view={x:10000,y:10000,w:200,h:150},count={draws:0,canvases:0},drawn=[];
+ count.onDraw=args=>{if(args[0].src)drawn.push(args);};
+ const options={images:{farm:{naturalWidth:1024,naturalHeight:768,complete:true,src:'farm.png'}},createCanvas(){count.canvases++;return {getContext:()=>fakeContext(count)};}},ctx=fakeContext(count);
+ W.renderGround(ctx,world,view,options);let created=count.canvases;
+ for(const change of [
+  ()=>{options.images.farm={...options.images.farm};},
+  ()=>{options.images.farm.src='replacement.png';},
+  ()=>{options.images.farm.naturalHeight=512;}
+ ]){
+  change();W.renderGround(ctx,world,view,options);assert.ok(count.canvases>created,'image changes invalidate stale pixels');created=count.canvases;
+ }
+ assert.equal(drawn.at(-1)[4],512,'updated image height is used for the texture');
+ options.images.farm={width:1024,height:1024,naturalWidth:0,naturalHeight:0,complete:true,src:'broken.png'};
+ W.renderGround(ctx,world,view,options);assert.equal(drawn.some(args=>args[0].src==='broken.png'),false,'CSS size must not make a failed image drawable');
+});
 test('roads and Briar floors exclude the real dirt tile translucent border',()=>{
  const {readRgbaPng}=require('./helpers/png.cjs'),path=require('node:path');
  const png=readRgbaPng(path.join(__dirname,'../assets/farm/dirt_road.png'));

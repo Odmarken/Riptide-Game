@@ -144,7 +144,8 @@ const TideUI=(()=>{
  function exploration(){if(!S.tides.exploration)S.tides.exploration=TideExploration.create();return S.tides.exploration;}
  function updateExploration(dt=0){
   if(!S?.tides||!world||!hero)return;
-  TideExploration.advance(exploration(),{dt,worldKey:world.key,x:hero.x,y:hero.y,now:Date.now(),hasLasso:S.tides.lassoOwned,petLevel:owned()?.level||1,paused:gamePaused||modalOpen()||!!padPanelOpen()||hero.dead,
+  const view=typeof VW==='number'&&typeof zoom==='number'?{x:camX,y:camY,w:VW/zoom,h:VH/zoom}:null;
+  TideExploration.advance(exploration(),{dt,view,worldKey:world.key,x:hero.x,y:hero.y,now:Date.now(),hasLasso:S.tides.lassoOwned,petLevel:owned()?.level||1,paused:gamePaused||modalOpen()||!!padPanelOpen()||hero.dead,
    isValidPosition:(x,y)=>!collide(hero,x,y)&&!expeditionDoors().some(d=>Math.hypot(d.x-x,d.y-y)<220)&&!(world.stable?.clearZones||[]).some(r=>x>r.x-50&&x<r.x+r.w+50&&y>r.y-50&&y<r.y+r.h+50)});
  }
  function wildList(){return outdoors()&&S.tides?.lassoOwned&&!session?exploration().wild:[];}
