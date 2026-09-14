@@ -53,45 +53,53 @@ if (!cfg.vsync) {
   app.commandLine.appendSwitch('disable-gpu-vsync');
 }
 
-/* Resolution. The default is always the screen itself - a fresh install should fill the display the
-   player actually has, not a size we guessed - and a stored size only ever exists because they chose
-   one. Candidates are filtered against the work area, so the list never offers a window that would
-   not fit. It applies to the windowed size; in fullscreen the display decides and this is what you
-   drop back into. */
+/* Electron sizes windows in DIP, not physical pixels. Keep saved resW/resH in DIP so existing
+   window preferences survive, but show physical resolutions to the player. Fullscreen includes
+   the taskbar area; only a window is limited to the work area of its current display. */
 const RES_CANDIDATES=[[1280,720],[1366,768],[1600,900],[1920,1080],[2560,1440],[3840,2160]];
-function screenSize(){
+function currentDisplay(){
  const {screen}=require('electron');
- const d=screen.getPrimaryDisplay();
- return {w:d.workAreaSize.width,h:d.workAreaSize.height};
+ return win&&!win.isDestroyed()?screen.getDisplayMatching(win.getBounds()):screen.getPrimaryDisplay();
 }
-function resolutionList(){
- const s=screenSize();
- const out=[{w:s.w,h:s.h,label:'Match screen ('+s.w+' x '+s.h+')',native:true}];
+function displayPixels(d){
+ return {w:Math.round(d.bounds.width*d.scaleFactor),h:Math.round(d.bounds.height*d.scaleFactor)};
+}
+function windowSize(c=readCfg(),d=currentDisplay()){
+ const a=d.workArea;
+ return {w:Math.min(a.width,Math.max(960,c.resW>0?c.resW:a.width)),
+         h:Math.min(a.height,Math.max(600,c.resH>0?c.resH:a.height))};
+}
+function resolutionState(){
+ const d=currentDisplay(),s=displayPixels(d),c=readCfg();
+ const list=[{w:s.w,h:s.h,label:'Match screen ('+s.w+' x '+s.h+')',native:true}];
  for(const [w,h] of RES_CANDIDATES){
-  if(w<=s.w&&h<=s.h&&!(w===s.w&&h===s.h))out.push({w,h,label:w+' x '+h,native:false});
+  const W=Math.round(w/d.scaleFactor),H=Math.round(h/d.scaleFactor);
+  if(W>=960&&H>=600&&W<=d.workArea.width&&H<=d.workArea.height)
+   list.push({w:W,h:H,label:w+' x '+h,native:false});
  }
- return out;
+ const chosen=c.resW>0&&c.resH>0?windowSize(c,d):null;
+ if(chosen&&!list.some(o=>!o.native&&o.w===chosen.w&&o.h===chosen.h))
+  list.push({...chosen,label:Math.round(chosen.w*d.scaleFactor)+' x '+Math.round(chosen.h*d.scaleFactor)+' (window)',native:false});
+ return {list,chosen,display:s,fullscreen:!!(win&&!win.isDestroyed()&&win.isFullScreen())};
 }
-function windowSize(){
- const c=readCfg(),s=screenSize();
- if(c.resW>0&&c.resH>0)return {w:Math.min(c.resW,s.w),h:Math.min(c.resH,s.h)};
- return s;   /* nothing chosen yet - match the screen */
+function applyWindowSize(){
+ if(!win||win.isDestroyed()||win.isFullScreen())return;
+ const d=currentDisplay(),s=windowSize(readCfg(),d),a=d.workArea;
+ win.setMinimumSize(Math.min(960,a.width),Math.min(600,a.height));
+ win.setBounds({x:a.x+Math.round((a.width-s.w)/2),y:a.y+Math.round((a.height-s.h)/2),width:s.w,height:s.h});
 }
-ipcMain.handle('res:list', () => {
- const c=readCfg();
- return {list:resolutionList(), chosen:(c.resW>0&&c.resH>0)?{w:c.resW,h:c.resH}:null};
-});
+function notifyDisplayChanged(){
+ if(win&&!win.isDestroyed())win.webContents.send('display-changed',resolutionState());
+}
+ipcMain.handle('res:list', () => resolutionState());
 ipcMain.handle('res:set', (_e,w,h) => {
- const s=screenSize();
+ const d=currentDisplay();
  const native=(!w||!h);
- const W=native?s.w:Math.min(w|0,s.w),H=native?s.h:Math.min(h|0,s.h);
- writeCfg(native?{resW:0,resH:0}:{resW:W,resH:H});
- if(win&&!win.isDestroyed()){
-  /* only resize a window that is actually a window - in fullscreen this would be ignored anyway,
-     and the size is stored so it is waiting when they come out of it */
-  if(!win.isFullScreen()){win.setSize(W,H);win.center();}
- }
- return {w:W,h:H,fullscreen:!!(win&&!win.isDestroyed()&&win.isFullScreen())};
+ const s=windowSize(native?{resW:0,resH:0}:{resW:w|0,resH:h|0},d);
+ writeCfg(native?{resW:0,resH:0}:{resW:s.w,resH:s.h});
+ applyWindowSize();
+ notifyDisplayChanged();
+ return {w:Math.round(s.w*d.scaleFactor),h:Math.round(s.h*d.scaleFactor),fullscreen:!!(win&&!win.isDestroyed()&&win.isFullScreen())};
 });
 ipcMain.handle('app:quit', () => app.quit());
 ipcMain.handle('settings:get', () => readCfg());
@@ -127,13 +135,12 @@ function createWindow() {
   win = new BrowserWindow({
     width: sz.w,
     height: sz.h,
-    minWidth: 960,
-    minHeight: 600,
+    minWidth: Math.min(960,sz.w),
+    minHeight: Math.min(600,sz.h),
     backgroundColor: '#1a120b',   /* painted before the page loads, so no white flash on launch */
     autoHideMenuBar: true,
     show: false,
-    fullscreen: !cfg.windowed,    /* fullscreen unless the player asked for a window - the 1280x800
-                                     above is what they drop into the moment they untick it */
+    fullscreen: !cfg.windowed,
     webPreferences: {
       contextIsolation: true,     /* the game needs no Node access - keep the renderer sandboxed */
       nodeIntegration: false,
@@ -190,9 +197,32 @@ function createWindow() {
   const sync = windowed => {
     writeCfg({windowed});
     if (!win.isDestroyed()) win.webContents.send('windowed-changed', windowed);
+    setImmediate(() => {
+      if(windowed)applyWindowSize();
+      notifyDisplayChanged();
+    });
   };
   win.on('enter-full-screen', () => sync(false));
   win.on('leave-full-screen', () => sync(true));
+  /* Moving between monitors or changing Windows scaling must refresh an already open menu too. */
+  let displayKey='';
+  const refreshDisplay=()=>{
+    if(win.isDestroyed())return;
+    const d=currentDisplay(),key=JSON.stringify([d.id,d.bounds,d.workArea,d.scaleFactor]);
+    if(key===displayKey)return;
+    displayKey=key;
+    notifyDisplayChanged();
+  };
+  const {screen}=require('electron');
+  win.on('move',refreshDisplay);
+  screen.on('display-metrics-changed',refreshDisplay);
+  screen.on('display-added',refreshDisplay);
+  screen.on('display-removed',refreshDisplay);
+  win.on('closed',()=>{
+    screen.removeListener('display-metrics-changed',refreshDisplay);
+    screen.removeListener('display-added',refreshDisplay);
+    screen.removeListener('display-removed',refreshDisplay);
+  });
 }
 
 app.whenReady().then(createWindow);

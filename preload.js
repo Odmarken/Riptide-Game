@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('desktop', {
   setWindowed: v => ipcRenderer.invoke('settings:windowed', !!v),
   onWindowedChanged: fn => ipcRenderer.on('windowed-changed', (_e, v) => fn(!!v)),
   getResolutions: () => ipcRenderer.invoke('res:list'),
+  onDisplayChanged: fn => ipcRenderer.on('display-changed', (_e, value) => fn(value)),
   setResolution: (w,h) => ipcRenderer.invoke('res:set', w, h),
   quit: () => ipcRenderer.invoke('app:quit'),
 });

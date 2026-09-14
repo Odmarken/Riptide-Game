@@ -14,12 +14,12 @@ function tracked(x,y,extra={}){
  }});
  return {entity,moves};
 }
-function setup({x=15525,y=16656,id='spectral-tiger',swift=1,empty=false}={}){
+function setup({x=15525,y=16656,id='spectral-tiger',swift=1,empty=false,zone={wasteland:true}}={}){
  const world=empty?{w:50400,h:26000,solids:[]}:W.create('wasteland',13);
  if(!empty)W.updateChunks(world,x,y,1000);
  const {entity:hero,moves}=tracked(x,y),mountRide=Mounts.createRide();mountRide.id=id;
  const env={world,hero,mountRide,Mounts,pet:null,S:{mounts:{owned:['spectral-tiger'],equipped:'spectral-tiger'}},
-  zoneOf:()=>({wasteland:true}),swiftMul:()=>swift,speedBoostMul:()=>2.6,
+  zoneOf:()=>zone,swiftMul:()=>swift,speedBoostMul:()=>2.6,
   Math:Object.assign(Object.create(Math),{random:()=>.25})};
  vm.createContext(env);vm.runInContext(physics,env);
  return {...env,moves};
@@ -73,6 +73,21 @@ test('open ground preserves mounted speed, analogue pace and target clamping',()
  assert.equal(near.moveToward(near.hero,tx,near.hero.y,.05),true);
 });
 
+test('mounted movement in City, Farm and Home cannot skip thin walls or building footprints',()=>{
+ for(const zone of [{city:true},{farm:true},{tavern:true}])for(const shape of ['wall','building']){
+  const f=setup({x:500,y:500,empty:true,zone}),from={x:500,y:500};
+  if(shape==='wall')f.world.mwalls=[{x:430,y:520,w:140,h:4}];
+  else f.world.solids=[{type:'farmitem',x:500,y:532,crx:95,cry:3,cyo:0}];
+  assert.equal(f.collide(f.hero,from.x,from.y),false);
+  assert.equal(f.collide(f.hero,500,532),true);
+  assert.equal(f.collide(f.hero,500,562),false,'a large untested step could skip the whole obstruction');
+  assert.equal(f.speedOf(f.hero),955.5);
+  f.moveToward(f.hero,500,600,.065);
+  assert.ok(f.hero.y<520,'the rider stays on the approach side');
+  assert.ok(f.moves.length>1);safeSteps(f,from);
+ }
+});
+
 test('unmounted heroes, pets and enemies retain their original single-step movement path',()=>{
  const f=setup({id:null,empty:true}),x=f.hero.x;
  f.moveToward(f.hero,x+1000,f.hero.y,.05);
@@ -80,7 +95,7 @@ test('unmounted heroes, pets and enemies retain their original single-step movem
  for(const kind of ['pet','enemy']){
   const mover=tracked(1000,1000,{speed:950}),env=setup({empty:true});
   // The extracted functions need the actual pet identity to exercise its existing speed branch.
-  const context={world:env.world,hero:env.hero,mountRide:env.mountRide,Mounts,S:env.S,
+  const context={world:env.world,hero:env.hero,mountRide:env.mountRide,Mounts,S:env.S,TideUI:{visibleCompanion:()=>null},
    pet:kind==='pet'?mover.entity:null,zoneOf:env.zoneOf,swiftMul:env.swiftMul,speedBoostMul:env.speedBoostMul};
   vm.createContext(context);vm.runInContext(physics,context);
   const speed=context.speedOf(mover.entity);
@@ -88,4 +103,14 @@ test('unmounted heroes, pets and enemies retain their original single-step movem
   assert.equal(mover.moves.length,1,kind+' does not enter the mounted substep path');
   assert.ok(Math.abs(mover.entity.x-1000-speed*.05)<1e-9);
  }
+});
+
+test('a Tide keeping pace with a mounted player also checks every step against thin farm fences',()=>{
+ const env=setup({empty:true,zone:{farm:true}}),mover=tracked(500,500);
+ env.world.mwalls=[{x:430,y:520,w:140,h:4}];
+ const context={world:env.world,hero:env.hero,pet:mover.entity,mountRide:env.mountRide,Mounts,S:env.S,
+  TideUI:{visibleCompanion:()=>({id:'tide-1'})},zoneOf:env.zoneOf,swiftMul:env.swiftMul,speedBoostMul:env.speedBoostMul};
+ vm.createContext(context);vm.runInContext(physics,context);
+ context.moveToward(mover.entity,500,650,.065);assert.ok(mover.moves.length>1);assert.ok(mover.entity.y<520);
+ let from={x:500,y:500};for(const to of mover.moves){assert.ok(Math.hypot(to.x-from.x,to.y-from.y)<=8+1e-9);assert.equal(context.collide(mover.entity,to.x,to.y),false);from=to;}
 });

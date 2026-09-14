@@ -2,6 +2,11 @@
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;root.TideFarm=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const BUILDING_ID='tide_incubator',PRICE=500000;
+ function capacity(farm){const level=Number(farm?.lvl);return Number.isFinite(level)?Math.max(1,Math.min(3,Math.floor(level))):1;}
+ function count(farm,cart=[]){return (Array.isArray(farm?.b)?farm.b:[]).filter(it=>it?.t===BUILDING_ID).length+(Array.isArray(cart)?cart:[]).filter(it=>it?.t===BUILDING_ID).length;}
+ function canPlace(farm,cart=[]){return count(farm,cart)<capacity(farm);}
+ function cartWithinLimit(farm,cart=[]){return !cart.some(it=>it?.t===BUILDING_ID)||count(farm,cart)<=capacity(farm);}
+ function timerLabel(job){if(!job)return '';const seconds=job.ready?0:Math.max(0,Math.ceil((Number(job.remainingMs)||0)/1000));return Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');}
  function ensureStationIds(farm){
   if(!farm||!Array.isArray(farm.b))return;
   const used=new Set(),reserved=new Set(farm.b.filter(it=>it?.t===BUILDING_ID&&typeof it.breedingStationId==='string').map(it=>it.breedingStationId));
@@ -22,5 +27,5 @@
  }
  function door(it,def,image){const f=frame(it,def,image);if(!f)return null;const d=def.door||{x:.37,y:.88};return {x:it.x+(d.x-.5)*f.W*f.flip,y:f.y+d.y*f.H+22*Math.max(1,f.sc)};}
  function imagePoint(it,def,image,x,y){const f=frame(it,def,image);if(!f)return null;let u=(x-f.x)/f.W;const v=(y-f.y)/f.H;if(f.flip<0)u=1-u;return {u,v};}
- return Object.freeze({BUILDING_ID,PRICE,ensureStationIds,station,frame,door,imagePoint});
+ return Object.freeze({BUILDING_ID,PRICE,capacity,count,canPlace,cartWithinLimit,timerLabel,ensureStationIds,station,frame,door,imagePoint});
 });

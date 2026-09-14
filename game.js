@@ -214,7 +214,7 @@ const FARM_BUILD=[
  {id:'staketv',n:'Fence (vertical)',img:'staket_ovan',tab:'b',W:13,gy:14,col:{r:14,crx:8,cry:47,cyo:-33},snap:'v'}, /* sized so its post caps render the same width as the horizontal fence's (~13 world units) */
  {id:'lada',n:'Barn',img:'lada_farm',tab:'b',W:380,gy:30,col:{crx:130,cry:38,cyo:-40},sh:{rx:0.43,ry:0.105,dy:-0.09}},
  {id:'chickenhouse',n:'Chicken Coop',img:'chickenhouse_farm',tab:'b',W:230,gy:28,col:{crx:88,cry:34,cyo:-32},sh:{cx:-0.02,rx:0.44,ry:0.125,dy:-0.12}},
- {id:'tide_incubator',n:'Tide Incubator',img:'tide_incubator',tab:'b',W:230,gy:24,col:{crx:80,cry:29,cyo:-30},noScale:1,door:{x:.37,y:.88},sh:{rx:.40,ry:.105,dy:-.10}},
+ {id:'tide_incubator',n:'Tide Incubator',img:'tide_incubator',tab:'b',W:299,gy:31.2,col:{crx:104,cry:37.7,cyo:-39},noScale:1,door:{x:.37,y:.88},sh:{rx:.40,ry:.105,dy:-.10}},
  {id:'medium',n:'Farmhouse',img:'Farmhouse_medium',tab:'b',W:408,gy:41,col:{crx:143,cry:49,cyo:-49},noScale:1,sh:{rx:0.43,ry:0.115,dy:-0.105}},
  {id:'mansion',n:'Mansion',img:'farmhouse_mansion',tab:'b',W:850,gy:62,col:{crx:290,cry:85,cyo:-85},noScale:1,sh:{rx:0.44,ry:0.085,dy:-0.08}},      /* 2.5× the home farmhouse */
  {id:'farmhouse',n:'Farmhouse',img:'farmhouse_litet',tab:'x',W:340,gy:32,noScale:1,sh:{rx:0.45,ry:0.10,dy:-0.095}}, /* the home house - movable in build mode, never sold or removed; tab x hides it from the store */
@@ -2549,7 +2549,8 @@ const cv=$('game'),ctx=cv.getContext('2d');
 let VW=0,VH=0,DPR=1,vigCv=null;
 function resize(){
  const r=$('stageWrap').getBoundingClientRect();
- DPR=Math.min(2,window.devicePixelRatio||1);
+ /* The desktop canvas follows the display even above 200% Windows scaling. */
+ DPR=window.desktop?(window.devicePixelRatio||1):Math.min(2,window.devicePixelRatio||1);
  VW=r.width;VH=r.height;
  cv.width=Math.round(VW*DPR);cv.height=Math.round(VH*DPR);
  ctx.setTransform(DPR,0,0,DPR,0,0);
@@ -3503,6 +3504,7 @@ function renderFarmStore(){
   const fl=(S.farm&&S.farm.lvl)||1;
   if(id==='medium'&&fl<2)return 'Farm Level 2 required';
   if(id==='mansion'&&fl<3)return 'Farm Level 3 required';
+  if(id===TideFarm.BUILDING_ID&&!TideFarm.canPlace(S.farm,farmCart))return 'Max '+TideFarm.capacity(S.farm)+' at Farm Level '+fl;
   if((id==='lada'||id==='chickenhouse')&&countFarm(t=>t===id,true)>=houseMax())return 'Max '+houseMax()+' at Level '+fl;
   if(isHay(id)&&hayCount()>=hayMax())return 'Max '+hayMax()+' hay at Level '+fl;
   if(id==='cowfarm'||id==='chickenfarm'||id==='tjur'||id==='hay'){ /* 🎰 needs won stock */
@@ -3524,7 +3526,7 @@ function renderFarmStore(){
    ${stK?`<div class="fscnt">${stN}</div>`:ivN!==null?`<div class="fscnt">${ivN}</div>`:''}
    ${it.img?`<img src="assets/farm/${it.img}.png" onload="spriteEdgeThumbnail(this)" draggable="false">`:`<div style="font-size:34px;text-align:center;padding:8px 0">${it.emoji||'❓'}</div>`}
    <div class="fsn">${it.n}</div>
-   ${it.id===TideFarm.BUILDING_ID?'<div class="fsl">Breed two Tides · 1 min</div>':''}
+   ${it.id===TideFarm.BUILDING_ID?'<div class="fsl">Breed two Tides · 1 min</div><div class="fsl">'+TideFarm.count(S.farm,farmCart)+' / '+TideFarm.capacity(S.farm)+' incubators</div>':''}
    ${it.road?`<div class="fsl" style="color:var(--brass)">${FARM_ROAD_RATE[it.id]||0}◉ per unit drawn</div>`:(FARM_PRICES[it.id]||0)||(FARM_SCRAPS[it.id]||0)?`<div class="fsl" style="color:var(--brass)">${[FARM_PRICES[it.id]?FARM_PRICES[it.id].toLocaleString()+'◉':null,FARM_SCRAPS[it.id]?FARM_SCRAPS[it.id]+'⚙':null].filter(Boolean).join(' + ')}</div>`:''}
    ${it.locked?`<div class="fsl">🔒 ${it.locked}</div>`:stLock?`<div class="fsl">🔒 ${stN}/5 - harvest hay</div>`:hg?`<div class="fsl">🔒 ${hg}</div>`:sel?'<div class="fsl" style="color:#ffd76a">✓ Selected - click the field</div>':''}
   </div>`;
@@ -3548,7 +3550,7 @@ function placeFarmItem(id,x,y){
  if(id==='remove'){ /* pending ghosts go silently; committed pieces as before */
   let gi=-1,gd=95;
   farmCart.forEach((g2,i)=>{const d=Math.hypot(g2.x-x,g2.y-y);if(d<gd){gd=d;gi=i;}});
-  if(gi>=0){farmCart.splice(gi,1);updateCartUI();blip(300,180,0.1,.05);return;}
+  if(gi>=0){const removed=farmCart.splice(gi,1)[0];updateCartUI();if(removed.t===TideFarm.BUILDING_ID)renderFarmStore();blip(300,180,0.1,.05);return;}
   let bi=-1,bd=95;
   S.farm.b.forEach((b2,i)=>{const d=Math.hypot(b2.x-x,b2.y-y);if(d<bd){bd=d;bi=i;}});
   if(bi>=0&&farmBreedingBusy(S.farm.b[bi])){farmBreedingRemoveWarning();return;}
@@ -3598,6 +3600,7 @@ function placeFarmItem(id,x,y){
  const fLvl=(S.farm.lvl||1);
  if(id==='medium'&&fLvl<2){stageMsg('🔒 Farm Level 2 required',1600);sfx.warn();return;}
  if(id==='mansion'&&fLvl<3){stageMsg('🔒 Farm Level 3 required',1600);sfx.warn();return;}
+ if(id===TideFarm.BUILDING_ID&&!TideFarm.canPlace(S.farm,farmCart)){stageMsg('Max '+TideFarm.capacity(S.farm)+' incubators at Farm Level '+fLvl,1800);sfx.warn();return;}
  if((id==='lada'||id==='chickenhouse')&&countFarm(t=>t===id,true)>=houseMax()){stageMsg('🔒 Max '+houseMax()+' at Farm Level '+fLvl,1600);sfx.warn();return;}
  if(isHay(id)&&hayCount()>=hayMax()){stageMsg('🌾 Max '+hayMax()+' hay patches at Farm Level '+fLvl,1600);sfx.warn();return;}
  if(id==='cowfarm'||id==='chickenfarm'||id==='tjur'||id==='hay'){ /* 🎰 stock-gated: casino wins only */
@@ -3631,6 +3634,7 @@ function placeFarmItem(id,x,y){
  farmCart.push({t:id,x,y,_drop:performance.now()}); /* a ghost until you pay for it; _drop plays the landing once */
  sfx.place();
  updateCartUI();
+ if(id===TideFarm.BUILDING_ID)renderFarmStore();
 }
 /* ⛏/✨ the two professions - the halls exist and open, the skills themselves come later. Kept as
    named functions so the click handler has a stable thing to call, and the panels can be filled in
@@ -5006,7 +5010,7 @@ function collide(e,nx,ny){
  return nx<e.r+16||ny<e.r+16||nx>world.w-e.r-16||ny>world.h-e.r-16;
 }
 function speedOf(e){
- if(e===pet)return 175*swiftMul()*speedBoostMul()*1.15;
+ if(e===pet)return 175*swiftMul()*speedBoostMul()*1.15*(TideUI.visibleCompanion()?Mounts.multiplier(mountRide,S,zoneOf()):1);
  if(e===hero)return 175*swiftMul()*speedBoostMul()*Mounts.multiplier(mountRide,S,zoneOf());
  let s=e.speed;
  /* Leveling-zone bosses are aggressive raid targets: fast from pull,
@@ -5026,7 +5030,7 @@ function speedOf(e){
 function moveToward(e,tx,ty,dt,mul){
  /* Riding can cover an entire fence collider in one slow frame. Run the same slide/avoidance
     logic in short steps so every accepted move, including sidesteps, checks the intervening ground. */
- if(e===hero&&mountRide.id&&Mounts.allowed(zoneOf())){
+ if((e===hero||(e===pet&&TideUI.visibleCompanion()))&&mountRide.id&&Mounts.allowed(zoneOf())){
   const steps=Math.ceil(speedOf(e)*dt*(mul===undefined?1:mul)/8);
   if(steps>1){
    for(let i=0;i<steps;i++)if(moveToward(e,tx,ty,dt/steps,mul))return true;
@@ -6090,7 +6094,7 @@ function padInteract(){
  const add=(s,label,open,rng)=>{if(s)out.push({s,label,open,rng:rng||150});};
  const find=t=>world.solids.find(s2=>s2.type===t);
  for(const door of expeditionDoors())add(door,door.name,()=>travelExpedition(door),100);
- if(Mounts.allowed(z))add(world.stable?.vendor,'Torsten Tygel',openStable,110);
+ if(z.wasteland&&!z.dungeon)add(world.stable?.vendor,'Torsten Tygel',openStable,110);
  const wildTide=TideUI.nearestWild();if(wildTide)add(wildTide,Tides.getSpecies(wildTide.speciesId).name,()=>TideUI.openWild(wildTide.id),180);
  if(z.tavern){
   for(const s of world.solids){
@@ -6524,7 +6528,7 @@ window.addEventListener('pointerup',e=>{
   const R={x0:Math.min(rd.x0,rd.x1),x1:Math.max(rd.x0,rd.x1),y0:Math.min(rd.y0,rd.y1),y1:Math.max(rd.y0,rd.y1)};
   const preCart=farmCart.length;
   farmCart=farmCart.filter(g2=>!(g2.x>=R.x0&&g2.x<=R.x1&&g2.y>=R.y0&&g2.y<=R.y1));
-  if(farmCart.length!==preCart)updateCartUI();
+  if(farmCart.length!==preCart){updateCartUI();renderFarmStore();}
   const inR=(mx,my)=>mx>=R.x0&&mx<=R.x1&&my>=R.y0&&my<=R.y1;
   const nb=S.farm.b.filter(b2=>inR(b2.x,b2.y)).length;
   const nc=S.farm.c.filter(c2=>inR(c2.x,c2.y)).length;
@@ -6566,6 +6570,7 @@ $('farmHarvBtn').onclick=()=>{
  stageMsg(buildSel==='harvest'?'✂ Harvest mode - click hay that is ready':'✂ Harvest mode off',1400);
 };
 $('farmCheckYes').onclick=()=>{
+ if(!TideFarm.cartWithinLimit(S.farm,farmCart)){stageMsg('Max '+TideFarm.capacity(S.farm)+' incubators at this Farm Level. Remove an extra incubator from the pending items.',2400);sfx.warn();return;}
  const total=farmCartTotal(),scr=farmCartScraps();
  if(scr>0&&(S.scraps||0)<scr){stageMsg('Not enough Scraps - '+scr+'⚙ needed',1800);sfx.warn();return;}
  if(total>0&&!spendGold(total)){stageMsg('Not enough gold - '+total.toLocaleString()+'◉ needed',1800);sfx.warn();return;}
@@ -7116,12 +7121,19 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
  if(pet&&(activePet()||TideUI.visibleCompanion())&&!hero.dead){
   const d=dist(pet,hero);
   const followingTide=TideUI.visibleCompanion(),gap=followingTide?62:26;
+  const oldX=pet.x,oldY=pet.y;let relocated=false;
   pet.moving=false;
   const followY=followingTide?18:12;
-  if(d>(followingTide?240:200)){pet.x=hero.x-hero.fx*(followingTide?gap:24);pet.y=hero.y+followY;}
+  if(d>(followingTide?240:200)){pet.x=hero.x-hero.fx*(followingTide?gap:24);pet.y=hero.y+followY;relocated=true;}
   else if(d>gap+16||(followingTide&&d<gap-8))moveToward(pet,hero.x-hero.fx*gap,hero.y+followY,dt);
   else pet.walk+=dt*3;
-  pet.tideMotion=(pet.tideMotion||0)+((pet.moving?1:0)-(pet.tideMotion||0))*Math.min(1,dt*10);
+  if(followingTide){
+   const dx=pet.x-oldX,dy=pet.y-oldY,step=relocated?0:Math.hypot(dx,dy);
+   pet.moving=step>.02;
+   pet.tidePhase=((pet.tidePhase||0)+step*.075)%(Math.PI*2);
+   if(!relocated&&Math.abs(dx)>.02)pet.tideFacing=dx<0?-1:1;
+   pet.tideMotion=(pet.tideMotion||0)+((pet.moving?1:0)-(pet.tideMotion||0))*Math.min(1,dt*12);
+  }else pet.tideMotion=0;
  }
  mpHostRaidThreatTick(dt);
  if(zoneOf().tavern||zoneOf().city)updateNpcs(dt); /* 🏙 the city has townsfolk too - without this they draw but never walk */
@@ -8322,8 +8334,8 @@ function drawProp(s,z,withShadow=true){
     ctx.restore();
    }
    if(def.id===TideFarm.BUILDING_ID){
-    const job=Tides.breedingStatus(S.tides,s.it.breedingStationId),near=hero&&dist(hero,s)<350;
-    if(job||near){ctx.save();ctx.font='700 10px system-ui';ctx.textAlign='center';ctx.shadowColor='#18130b';ctx.shadowBlur=3;ctx.fillStyle=job?.ready?'#a6e9ca':'#e4d4a9';ctx.fillText(job?(job.ready?'? Ready to reveal':'Tide incubating'):'Tide Incubator',0,gy-H-7);ctx.restore();}
+    const job=Tides.breedingStatus(S.tides,s.it.breedingStationId);
+    if(job){ctx.save();ctx.font='700 11px system-ui';ctx.textAlign='center';ctx.shadowColor='#18130b';ctx.shadowBlur=3;ctx.fillStyle=job.ready?'#a6e9ca':'#e4d4a9';ctx.fillText(TideFarm.timerLabel(job),0,gy-H-7);ctx.restore();}
    }
    if(def.roam&&s.it){ /* mood tag: 💕 expecting/brooding · ❤ sated (next meal not yet due) */
     const tag=(s.it.preg||s.it.egg)?'💕':(Date.now()-(s.it.fed||0)<(def.eatT||HAPPY_T)?'❤':null);
@@ -8866,7 +8878,7 @@ function drawPadPrompt(t){
 function drawPet(){
  if(TideUI.isBattling()||!pet||hero.dead)return;
  const visible=TideUI.visibleCompanion();
- if(visible){TideUI.drawCompanion(ctx,pet.x,pet.y,{pet:visible,fx:pet.fx,motion:pet.tideMotion||0,phase:pet.walk,time:performance.now()/1000});return;}
+ if(visible){TideUI.drawCompanion(ctx,pet.x,pet.y,{pet:visible,fx:pet.tideFacing??pet.fx,motion:pet.tideMotion||0,phase:pet.tidePhase||0,time:performance.now()/1000});return;}
  if(!activePet())return;
  const p=petOf(S.pet),now=performance.now();
  ctx.save();ctx.translate(pet.x,pet.y);
@@ -9416,7 +9428,7 @@ function toggleAutoUse(key,el){
 }
 function stableInReach(){
  const n=world?.stable?.vendor;
- return !!(gameOn&&S&&hero&&!hero.dead&&Mounts.allowed(zoneOf())&&n&&Math.hypot(hero.x-n.x,hero.y-n.y)<110);
+ return !!(gameOn&&S&&hero&&!hero.dead&&zoneOf().wasteland&&!zoneOf().dungeon&&n&&Math.hypot(hero.x-n.x,hero.y-n.y)<110);
 }
 function openStable(){
  if(!stableInReach())return;
@@ -9445,7 +9457,7 @@ function toggleMount(){
  const selected=Mounts.selected(S);
  if(!mountRide.id&&!mountRide.casting&&selected&&(!mountImages[selected.id].complete||!mountImages[selected.id].naturalWidth)){stageMsg('Your mount is arriving. Try again in a moment.',1600);return;}
  const result=Mounts.toggle(mountRide,S,{zone:zoneOf(),hero,paused:gamePaused,busy:!!padPanelOpen()});
- if(!result.ok){if(result.reason==='zone')stageMsg('Mounts can be ridden in Wasteland.',1700);return;}
+ if(!result.ok){if(result.reason==='zone')stageMsg('Mounts can be ridden in Wasteland, City, Farm and Home.',2000);return;}
  if(result.action==='casting'){stopMining();hero.moveTo=null;hero.pendingDoor=null;hero.target=null;hero.goPortal=false;hero.dance=0;holdMove=null;}
  updateMountButton();
 }
@@ -9455,7 +9467,7 @@ function updateMountButton(){
  btn.disabled=!allowed||!item||!!hero?.dead;
  btn.classList.toggle('on',!!mountRide.id);
  btn.setAttribute('aria-pressed',String(!!mountRide.id));
- btn.title=!allowed?'Mounts can be ridden in Wasteland':mountRide.id?'Dismount (X)':mountRide.casting?'Mounting… X to cancel':`${item?.name||'Mount'} · Saddle up (X) · 1 second`;
+ btn.title=!allowed?'Mounts can be ridden in Wasteland, City, Farm and Home':mountRide.id?'Dismount (X)':mountRide.casting?'Mounting… X to cancel':`${item?.name||'Mount'} · Saddle up (X) · 1 second`;
  const fill=$('mountCastFill');if(fill)fill.style.height=(mountRide.casting?mountRide.remaining*100:0)+'%';
 }
 function buildSkillbar(){
@@ -13786,7 +13798,7 @@ function renderControls(){
   ['W A S D','Walk in that direction'],
   ['↑ ↓ ← →','Walk - same as WASD'],
   ['Click ground','Walk to that spot. Hold to keep following the cursor'],
-  ['X','Mount / dismount in Wasteland. Saddling up takes 1 second'],
+  ['X','Ride your equipped mount in Wasteland, City, Farm or Home. Saddling up takes 1 second'],
   ['1 / 2 in Tide battles','Use your Tide attack / unique power, one action per round'],
   ['head','Fighting'],
   ['1',spell(0,'First spell')],
@@ -13812,12 +13824,15 @@ function renderControls(){
    there rather than offering something that would do nothing. The first entry matches the display and
    is what a fresh install uses; a stored size only ever exists because the player picked one. */
 if(window.desktop&&window.desktop.getResolutions){
- window.desktop.getResolutions().then(r=>{
+ const showResolutions=r=>{
   if(!r||!r.list||!r.list.length)return;
   $('resRow').style.display='flex';
   $('resNote').style.display='block';
   const sel=$('resSel');
   sel.innerHTML=r.list.map((o,i)=>`<option value="${o.native?'':o.w+'x'+o.h}">${o.label}</option>`).join('');
+  $('resNote').textContent=r.display
+   ? 'Fullscreen: '+r.display.w+' x '+r.display.h+' · Windowed choices fit the desktop'
+   : 'Applies to the window · fullscreen follows the display';
   if(r.chosen){
    const want=r.chosen.w+'x'+r.chosen.h;
    if([...sel.options].some(o=>o.value===want))sel.value=want;
@@ -13830,7 +13845,9 @@ if(window.desktop&&window.desktop.getResolutions){
     else if(res)stageMsg('🖵 '+res.w+' × '+res.h,1800);
    }).catch(()=>{});
   };
- }).catch(()=>{});
+ };
+ window.desktop.getResolutions().then(showResolutions).catch(()=>{});
+ if(window.desktop.onDisplayChanged)window.desktop.onDisplayChanged(r=>{showResolutions(r);resize();});
 }
 /* The darkened backdrop is itself a click target: hitting it closes, hitting the panel does not.
    Esc and the gear both still toggle, so there are three ways out and none of them is a hunt. */

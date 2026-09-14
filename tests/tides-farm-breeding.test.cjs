@@ -50,7 +50,7 @@ function breedingJob(h,it,now=1000){
 }
 
 test('the real Farm checkout charges500000gold per incubator, commits only paid ghosts and assigns persistent IDs',()=>{
- const h=harness(700000);h.c.S.overflow=400000;
+ const h=harness(700000);h.c.S.overflow=400000;h.c.S.farm.lvl=2;
  assert.equal(TideFarm.PRICE,500000);assert.equal(h.def.id,TideFarm.BUILDING_ID);assert.equal(h.def.noScale,1);
  h.c.placeFarmItem(TideFarm.BUILDING_ID,1000,1000);h.c.placeFarmItem(TideFarm.BUILDING_ID,1600,1000);
  assert.equal(h.c.farmCart.length,2);assert.equal(h.c.S.farm.b.length,0);assert.equal(h.c.farmCartTotal(),1000000);assert.equal(h.c.farmCartScraps(),0);
@@ -61,6 +61,120 @@ test('the real Farm checkout charges500000gold per incubator, commits only paid 
  assert.equal(new Set(h.c.S.farm.b.map(it=>it.breedingStationId)).size,2);
  assert.ok(h.calls.some(x=>x.type==='save'));
  const before=clone(h.c.S);h.el('farmCheckYes').onclick();assert.deepEqual(clone(h.c.S),before,'duplicate checkout cannot buy the committed cart twice');
+});
+
+test('Farm level controls incubator capacity, including unpaid ghosts and buildings being moved',()=>{
+ for(const level of [1,2,3]){
+  const farm={lvl:level,b:[{t:'tree_farm'}]};
+  assert.equal(TideFarm.capacity(farm),level);
+  assert.equal(TideFarm.count(farm),0);
+  assert.equal(TideFarm.canPlace(farm),true);
+  const cart=[];
+  for(let i=0;i<level;i++){
+   assert.equal(TideFarm.canPlace(farm,cart),true);
+   if(i===0)farm.b.push({t:TideFarm.BUILDING_ID,_moving:true});
+   else cart.push({t:TideFarm.BUILDING_ID});
+  }
+  cart.push({t:'tree_farm'});
+  assert.equal(TideFarm.count(farm,cart),level);
+  assert.equal(TideFarm.canPlace(farm,cart),false);
+  assert.equal(TideFarm.cartWithinLimit(farm,cart),true);
+  cart.push({t:TideFarm.BUILDING_ID});
+  assert.equal(TideFarm.cartWithinLimit(farm,cart),false);
+ }
+});
+
+test('the actual placement route stops at one incubator per Farm level before creating any extra ghost',()=>{
+ for(const level of [1,2,3]){
+  const h=harness(2000000);h.c.S.farm.lvl=level;
+  for(let i=0;i<level;i++)h.c.placeFarmItem(TideFarm.BUILDING_ID,1000+i*400,1000);
+  assert.equal(h.c.farmCart.length,level);
+  const before=clone(h.c.S),cartBefore=clone(h.c.farmCart);
+  h.c.placeFarmItem(TideFarm.BUILDING_ID,1000+level*400,1000);
+  assert.deepEqual(clone(h.c.S),before);
+  assert.deepEqual(clone(h.c.farmCart),cartBefore);
+  assert.ok(h.calls.some(x=>x.type==='warn'));
+  h.el('farmCheckYes').onclick();
+  assert.equal(h.c.S.farm.b.length,level);
+  assert.equal(h.c.S.gold,2000000-level*500000);
+  h.c.placeFarmItem(TideFarm.BUILDING_ID,1000+level*400,1000);
+  assert.equal(h.c.farmCart.length,0,'paid stations also consume the available capacity');
+ }
+});
+
+test('the Farm shop locks the incubator at capacity and unlocks after a Farm level increase',()=>{
+ const h=harness(),card={dataset:{fs:TideFarm.BUILDING_ID}};
+ h.c.buildTab='b';h.c.buildSel=null;
+ h.c.document={querySelectorAll:()=>[card]};
+ h.c.countFarm=(predicate,includeCart)=>h.c.S.farm.b.filter(it=>predicate(it.t)).length+(includeCart?h.c.farmCart.filter(it=>predicate(it.t)).length:0);
+ h.c.houseMax=()=>1;
+ vm.runInContext(section('function renderFarmStore(','function placeFarmItem('),h.c);
+ const cardClasses=()=>h.el('farmStoreList').innerHTML.match(/<div class="([^"]*)" data-fs="tide_incubator">/)[1];
+ h.c.renderFarmStore();assert.doesNotMatch(cardClasses(),/\block\b/);
+ h.c.placeFarmItem(TideFarm.BUILDING_ID,1000,1000);
+ h.c.renderFarmStore();assert.match(cardClasses(),/\block\b/);
+ card.onclick();assert.equal(h.c.buildSel,null);assert.ok(h.calls.some(x=>x.type==='warn'));
+ h.c.S.farm.lvl=2;h.c.renderFarmStore();assert.doesNotMatch(cardClasses(),/\block\b/);
+ card.onclick();assert.equal(h.c.buildSel,TideFarm.BUILDING_ID);
+});
+
+test('checkout revalidates a changed Farm limit before spending gold, scraps or consuming the cart',()=>{
+ const h=harness(2000000);h.c.S.farm.lvl=2;h.c.S.overflow=100000;
+ h.c.placeFarmItem(TideFarm.BUILDING_ID,1000,1000);
+ h.c.placeFarmItem(TideFarm.BUILDING_ID,1400,1000);
+ assert.equal(h.c.farmCart.length,2);
+ h.c.S.farm.lvl=1;
+ const before=clone(h.c.S),cartBefore=clone(h.c.farmCart);
+ h.el('farmCheckYes').onclick();
+ assert.deepEqual(clone(h.c.S),before);
+ assert.deepEqual(clone(h.c.farmCart),cartBefore);
+ assert.ok(h.calls.some(x=>x.type==='warn'));
+ h.c.S.farm.lvl=2;h.el('farmCheckYes').onclick();
+ assert.equal(h.c.S.farm.b.length,2);assert.equal(h.c.farmCart.length,0);
+ assert.equal(h.c.totalGold(),1100000);
+});
+
+test('legacy farms keep excess incubators and may still buy unrelated items',()=>{
+ const h=harness();h.c.S.farm.b=[
+  {t:TideFarm.BUILDING_ID,x:1000,y:1000},
+  {t:TideFarm.BUILDING_ID,x:1400,y:1000},
+  {t:TideFarm.BUILDING_ID,x:1800,y:1000}
+ ];
+ h.c.restoreFarmLook(h.c.S);h.c.rebuildFarmItems();
+ assert.equal(h.c.S.farm.b.length,3);
+ assert.equal(TideFarm.canPlace(h.c.S.farm),false);
+ assert.equal(TideFarm.cartWithinLimit(h.c.S.farm,[]),true);
+ assert.equal(TideFarm.cartWithinLimit(h.c.S.farm,[{t:'tree_farm'}]),true);
+ assert.equal(TideFarm.cartWithinLimit(h.c.S.farm,[{t:TideFarm.BUILDING_ID}]),false);
+ const ids=h.c.S.farm.b.map(it=>it.breedingStationId);
+ h.c.placeFarmItem('tree_farm',2200,1000);assert.equal(h.c.farmCart.length,1);
+ h.el('farmCheckYes').onclick();
+ assert.equal(h.c.S.farm.b.length,4);
+ assert.deepEqual(h.c.S.farm.b.slice(0,3).map(it=>it.breedingStationId),ids);
+ assert.equal(h.c.S.farm.b.at(-1).t,'tree_farm');
+ assert.ok(h.c.S.gold<1000000,'unrelated purchase uses its normal price');
+});
+
+test('removing a ghost or idle station frees its incubator slot without increasing the Farm level',()=>{
+ const h=harness();
+ h.c.placeFarmItem(TideFarm.BUILDING_ID,1000,1000);
+ assert.equal(TideFarm.canPlace(h.c.S.farm,h.c.farmCart),false);
+ h.c.placeFarmItem('remove',1000,1000);
+ assert.equal(h.c.farmCart.length,0);assert.equal(TideFarm.canPlace(h.c.S.farm,h.c.farmCart),true);
+ const station=buy(h);assert.equal(TideFarm.canPlace(h.c.S.farm),false);
+ h.c.placeFarmItem('remove',station.x,station.y);
+ assert.equal(TideFarm.canPlace(h.c.S.farm),true);
+ h.c.placeFarmItem(TideFarm.BUILDING_ID,1400,1000);h.el('farmCheckYes').onclick();
+ assert.equal(h.c.S.farm.lvl,1);assert.equal(h.c.S.farm.b.length,1);
+ assert.notEqual(h.c.S.farm.b[0].breedingStationId,station.breedingStationId);
+});
+
+test('incubator countdown rounds upward to the next second and never shows a negative time',()=>{
+ assert.equal(TideFarm.timerLabel(null),'');
+ for(const [remainingMs,label]of [[60000,'1:00'],[59001,'1:00'],[59000,'0:59'],[1001,'0:02'],[1,'0:01'],[0,'0:00'],[-1,'0:00']]){
+  assert.equal(TideFarm.timerLabel({phase:'incubating',remainingMs}),label);
+ }
+ for(const phase of ['ready','revealed'])assert.equal(TideFarm.timerLabel({phase,ready:true,remainingMs:0}),'0:00');
 });
 
 test('insufficient gold leaves the incubator ghost and wallet intact without creating a station',()=>{
@@ -104,7 +218,7 @@ test('door geometry and pixel hit-testing follow the exact image transform in bo
   assert.equal(h.c.farmBreedingAt(x,y),it);
   const transparentX=frame.x+(fl<0?.95:.05)*frame.W;assert.equal(h.c.farmBreedingAt(transparentX,y),null);
   assert.equal(h.c.collide({r:16},door.x,door.y),false,`door walkable at flip${fl}/scale${sc}`);
-  assert.equal(h.c.collide({r:16},it.x,it.y-30*sc),true,'building footprint remains solid');
+  assert.equal(h.c.collide({r:16},it.x,it.y+h.def.col.cyo*sc),true,'building footprint remains solid');
  }
 });
 

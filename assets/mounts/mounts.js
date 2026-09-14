@@ -11,7 +11,7 @@ const Mounts=(()=>{
   const owned=catalog.filter(m=>Array.isArray(value?.owned)&&value.owned.includes(m.id)).map(m=>m.id);
   return {owned,equipped:owned.includes(value?.equipped)?value.equipped:owned[0]||null};
  }
- const allowed=zone=>!!(zone?.wasteland&&!zone.dungeon);
+ const allowed=zone=>!!(zone&&!zone.dungeon&&(zone.wasteland||zone.city||zone.farm||zone.tavern));
  const selected=state=>{const m=state?.mounts;return m?.owned?.includes(m.equipped)?get(m.equipped):null;};
  function buy(state,id,spend){
   const item=get(id);if(!state||!item)return {ok:false,reason:'unknown'};

@@ -3,6 +3,7 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const M=require('../assets/mounts/mounts.js');
 const outdoor={wasteland:true};
+const ridingZones=[outdoor,{city:true},{farm:true},{tavern:true}];
 const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-9,a+' vs '+b);
 function setup(id='horse'){
  const state={mounts:M.normalize({owned:[id],equipped:id})};
@@ -101,8 +102,42 @@ test('saddling cancels after movement, including several subpixel steps during a
  assert.equal(still.ride.id,'horse','small numerical position jitter does not cancel a stationary cast');
 });
 
-test('City, dungeons, death, missing ownership and equipment changes immediately remove riding speed',()=>{
- const banned=[{},null,{city:true},{tavern:true},{raid:true},{dungeon:'briarhollow'},{wasteland:true,dungeon:'cindervein'}];
+test('every mount can saddle up, ride and dismount in Wasteland, City, Farm and Home',()=>{
+ for(const zone of ridingZones)for(const item of M.catalog){
+  const f=setup(item.id);f.context.zone=zone;
+  assert.equal(M.allowed(zone),true);
+  assert.equal(M.toggle(f.ride,f.state,f.context).action,'casting');
+  M.tick(f.ride,f.state,f.context,.99);
+  assert.equal(f.ride.id,null);assert.equal(M.multiplier(f.ride,f.state,zone),1);
+  M.tick(f.ride,f.state,f.context,.01);
+  assert.equal(f.ride.id,item.id);assert.equal(M.multiplier(f.ride,f.state,zone),item.speed);
+  f.hero.x+=20;M.tick(f.ride,f.state,f.context,.1);
+  assert.ok(f.ride.phase>0);assert.equal(f.ride.moving,1);
+  assert.equal(M.toggle(f.ride,f.state,f.context).action,'down');
+  assert.equal(M.multiplier(f.ride,f.state,zone),1);assert.deepEqual(f.ride,M.createRide());
+ }
+});
+
+test('riding in the added zones still requires an owned and equipped mount',()=>{
+ for(const zone of ridingZones)for(const collection of [
+  {owned:[],equipped:null},
+  {owned:['horse'],equipped:null},
+  {owned:['horse'],equipped:'leopard'},
+  {owned:[],equipped:'horse'}
+ ]){
+  const f=setup();f.context.zone=zone;f.state.mounts=structuredClone(collection);
+  const before=JSON.stringify(f.state);
+  assert.deepEqual(M.toggle(f.ride,f.state,f.context),{ok:false,reason:'empty'});
+  assert.equal(f.ride.id,null);assert.equal(f.ride.casting,null);
+  M.tick(f.ride,f.state,f.context,1);
+  assert.equal(M.multiplier(f.ride,f.state,zone),1);
+  assert.equal(JSON.stringify(f.state),before,'entering a riding zone never selects a mount for the player');
+ }
+});
+
+test('dungeons, unsupported zones, death, missing ownership and equipment changes immediately remove riding speed',()=>{
+ const banned=[{},null,{raid:true},{cow:true},{altar:true},{crypts:true},{boss:true},{dungeon:'briarhollow'},
+  ...ridingZones.map(zone=>({...zone,dungeon:'cindervein'}))];
  for(const zone of banned){
   assert.equal(M.allowed(zone),false);
   const f=mounted();assert.equal(M.multiplier(f.ride,f.state,zone),1);
@@ -123,9 +158,9 @@ test('the actual speedOf hook boosts only the mounted hero and preserves pet and
  const game=fs.readFileSync(path.join(__dirname,'../game.js'),'utf8');
  const start=game.indexOf('function speedOf('),end=game.indexOf('function moveToward(',start);
  assert.ok(start>=0&&end>start);
- for(const item of M.catalog){
-  const f=setup(item.id),pet={},mob={speed:90},slowMob={speed:90,slowT:2};
-  const env={hero:f.hero,pet,S:f.state,mountRide:f.ride,Mounts:M,zoneOf:()=>outdoor,swiftMul:()=>1.2,speedBoostMul:()=>1.1};
+ for(const zone of ridingZones)for(const item of M.catalog){
+  const f=setup(item.id),pet={},mob={speed:90},slowMob={speed:90,slowT:2};f.context.zone=zone;
+  const env={hero:f.hero,pet,S:f.state,mountRide:f.ride,Mounts:M,TideUI:{visibleCompanion:()=>null},zoneOf:()=>zone,swiftMul:()=>1.2,speedBoostMul:()=>1.1};
   const speed=vm.runInNewContext(game.slice(start,end)+';speedOf',env),base=175*1.2*1.1;
   close(speed(f.hero),base);M.toggle(f.ride,f.state,f.context);close(speed(f.hero),base);
   M.tick(f.ride,f.state,f.context,1);close(speed(f.hero),base*item.speed);

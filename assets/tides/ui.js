@@ -38,9 +38,9 @@ const TideUI=(()=>{
  function paintIcons(){
   document.querySelectorAll('[data-tide-art]').forEach(c=>{const f=frameFor(c.dataset.tideArt);if(!f)return;const g=c.getContext('2d'),k=Math.min((c.width-12)/f.w,(c.height-12)/f.h);g.clearRect(0,0,c.width,c.height);g.drawImage(f.image,f.x,f.y,f.w,f.h,(c.width-f.w*k)/2,(c.height-f.h*k)/2,f.w*k,f.h*k);});
  }
- function drawAnimal(g,id,x,y,height,fx=1,motion=0,phase=0,alpha=1,time=motionClock,alive=true){
+ function drawAnimal(g,id,x,y,height,fx=1,motion=0,phase=0,alpha=1,time=motionClock,alive=true,stride=1){
   const f=frameFor(id);if(!f)return false;
-  TideMotion.draw(g,f,id,x,y,height,fx,motion,phase,alpha,time,alive);return true;
+  TideMotion.draw(g,f,id,x,y,height,fx,motion,phase,alpha,time,alive,stride);return true;
  }
  function animalVisual(id,base=36){
   const s=species(id),f=frameFor(id),bounds=s?.art?.rect||(typeof TideArtLayout==='object'?TideArtLayout[id]?.bounds:null);
@@ -175,7 +175,8 @@ const TideUI=(()=>{
  function drawCompanion(g,x,y,options={}){
   const p=visibleCompanion();if(!p)return false;
   const height=options.height||Math.max(30,Math.min(64,36*(species(p.speciesId)?.visualScale||1)));
-  return drawAnimal(g,p.speciesId,x,y,height,options.fx??1,options.motion??0,options.phase??0,options.alpha??1,options.time??motionClock,true);
+  // Stronger footfalls stay readable at follower size; battle and wild strides keep their existing scale.
+  return drawAnimal(g,p.speciesId,x,y,height,options.fx??1,options.motion??0,options.phase??0,options.alpha??1,options.time??motionClock,true,1.5);
  }
  function petCard(p){
   const s=species(p.speciesId),equipped=S.tides.equippedId===p.id;
