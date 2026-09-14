@@ -24,19 +24,25 @@ test('world sprites combine species size with increasingly imposing three to fiv
 
 test('every pair fits mobile and desktop battle arenas, preserves relative size and stops melee at the opponent',()=>{
  const c=harness();
- for(const [w,h]of [[390,844],[1440,1000],[844,390],[320,568]])for(const player of catalog)for(const foe of catalog){
-  const hudBottom=h*(h<600?.03:w<=650?.04:.07)+(w<=650?145:120);
-  const l=c.battleLayout(w,h,player.id,foe.id,hudBottom),p=l.player,f=l.foe,label=`${w}x${h} ${player.id}/${foe.id}`;
+ // Dimensions are the battle canvas, which can be narrower than the window
+ // when the side panel remains open. Include the reported 480x390 landscape.
+ for(const [w,h,hudBottom,controlsTop]of [[390,844,160,630],[1440,1000,190,750],[844,390,96,270],[320,568,125,365],[480,390,105,258],[320,390,112,256]])for(const player of catalog)for(const foe of catalog){
+  const l=c.battleLayout(w,h,player.id,foe.id,hudBottom,controlsTop,{headY:-42,groundY:18}),p=l.player,f=l.foe,label=`${w}x${h} ${player.id}/${foe.id}`;
   assert.ok(l.left-p.width*.55>l.heroRight,label+' clear of hero');
   assert.ok(l.right+f.width*.55<=w-11.9,label+' right wing fits');
   assert.ok(l.left+p.width*.55<l.right-f.width*.55,label+' standing animals do not overlap');
   assert.ok(l.floor-Math.max(p.height,f.height)*1.08>=Math.min(130,h*.18)-.01,label+' heads fit below top');
   assert.ok(l.floor-Math.max(p.height,f.height)*1.08>=hudBottom+11.99,label+' heads and breathing clear health cards');
+  assert.ok(l.heroTop>=hudBottom+11.99,label+' Ring, head and weapon clear health cards');
+  assert.ok(l.heroBottom<=controlsTop-11.99,label+' boots clear the controls');
+  assert.ok(l.floor<controlsTop-8,label+' animals clear the controls');
   assert.ok(Math.abs(p.height/f.height-player.visualScale/foe.visualScale)<1e-8,label+' relative animal size retained');
   assert.ok(l.left+l.travel<l.right&&l.right-l.travel>l.left,label+' attack does not cross opponent');
   assert.ok(l.left+l.travel+p.width*.55<=w,label+' charging player stays on screen');
   assert.ok(l.right-l.travel-f.width*.55>l.heroRight,label+' charging opponent stays clear of hero');
  }
+ const desktop=c.battleLayout(1440,1000,'bramblebunny','crystalgecko',190,750,{headY:-42,groundY:18});
+ assert.equal(desktop.heroScale,4.2);assert.equal(desktop.heroX,1440*.105);assert.equal(desktop.floor,580,'ordinary desktop staging is unchanged');
 });
 
 test('actual wild click handling includes tall heads and wide wings while retaining small animal click targets',()=>{

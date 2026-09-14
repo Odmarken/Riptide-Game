@@ -41,16 +41,19 @@ const TideUI=(()=>{
   const size=animalVisual(w.speciesId),half=Math.max(26,size.width*.55+6),top=w.y+6-Math.max(52,size.height*1.08+8);
   return {...size,left:w.x-half,right:w.x+half,top,bottom:w.y+16};
  }
- function battleLayout(w,h,playerId,foeId,hudBottom=0){
-  const floor=h*(h<600?.54:.58),heroX=w*.105,heroScale=w<650?Math.min(2.6,w*.27/58):Math.min(4.2,h*.3/58,w*.2/58);
+ function battleLayout(w,h,playerId,foeId,hudBottom=0,controlsTop=h,heroFrame=null){
+  const top=Math.max(Math.min(130,h*.18),hudBottom+12),bottom=Math.max(top+1,controlsTop-12);
+  // Reserve the whole hero, including the hovering Ring, tall weapons and boots.
+  const heroAbove=Math.max(64,-(heroFrame?.headY??-42)+22),heroBelow=Math.max(14,(heroFrame?.groundY??14)+3);
+  const heroX=w*.105,heroScale=Math.min(w<650?Math.min(2.6,w*.27/58):Math.min(4.2,h*.3/58,w*.2/58),(bottom-top)/(heroAbove+heroBelow));
+  const floor=Math.min(Math.max(h*(h<600?.54:.58),top+5+heroAbove*heroScale),bottom+5-heroBelow*heroScale);
   const start=Math.max(w*.22,heroX+heroScale*32+12),end=w-Math.max(12,w*.025),gap=Math.max(14,w*.1);
   const p=animalVisual(playerId,w<650?85:135),f=animalVisual(foeId,w<650?85:135);
-  const top=Math.max(Math.min(130,h*.18),hudBottom+12);
   const fit=Math.min(1,Math.max(1,end-start-gap)/((p.width+f.width)*1.1),Math.max(1,floor-top)/(Math.max(p.height,f.height)*1.08));
   for(const size of [p,f]){size.height*=fit;size.width*=fit;}
   const extra=Math.max(0,end-start-p.width*1.1-f.width*1.1-gap);
   const left=start+p.width*.55+extra*.2,right=end-f.width*.55-extra*.2;
-  return {floor,left,right,player:p,foe:f,heroX,heroScale,heroRight:heroX+heroScale*32,travel:Math.max(0,right-left-(p.width+f.width)*.42-8)};
+  return {floor,left,right,player:p,foe:f,heroX,heroScale,heroRight:heroX+heroScale*32,heroTop:floor-5-heroAbove*heroScale,heroBottom:floor-5+heroBelow*heroScale,travel:Math.max(0,right-left-(p.width+f.width)*.42-8)};
  }
  function stopHero(){
   if(!hero)return;hero.moveTo=null;hero.pendingDoor=null;hero.target=null;hero.goPortal=false;hero.moving=false;hero.dance=0;holdMove=null;stopMining();
@@ -283,7 +286,8 @@ const TideUI=(()=>{
   g.fillStyle='rgba(22,22,9,.12)';g.fillRect(0,0,w,h);
   const shade=g.createLinearGradient(0,0,0,h);shade.addColorStop(0,'rgba(4,8,5,.52)');shade.addColorStop(.35,'rgba(4,8,5,0)');shade.addColorStop(.75,'rgba(4,8,5,.1)');shade.addColorStop(1,'rgba(4,8,5,.55)');g.fillStyle=shade;g.fillRect(0,0,w,h);
   const hudBottom=el('tideTurn').parentElement.getBoundingClientRect().bottom-r.top;
-  const b=session.animation?.display||session.battle,anim=session.animation,layout=battleLayout(w,h,b.player.speciesId,b.foe.speciesId,hudBottom),{floor,left,right}=layout,ps=layout.player,fs=layout.foe;
+  const controlsTop=el('tideActions').parentElement.getBoundingClientRect().top-r.top;
+  const b=session.animation?.display||session.battle,anim=session.animation,layout=battleLayout(w,h,b.player.speciesId,b.foe.speciesId,hudBottom,controlsTop,paintedCharacterFrame(S.race,S.cls,S.gender==='f',isIce(S.gear.armor))),{floor,left,right}=layout,ps=layout.player,fs=layout.foe;
   let lx=left,rx=right,ly=floor,ry=floor,actor=null,progress=0,style='melee',color='#ddd',hit=0;
   if(anim){const index=Math.min(anim.moves.length-1,Math.floor(anim.elapsed/.85));actor=anim.moves[index];progress=Math.max(0,Math.min(1,(anim.elapsed-index*.85)/.85));if(actor){const s=species(b[actor.side].speciesId),move=actor.type==='power'?s.skill:s.attack;style=move.style;color=move.color;hit=Math.sin(Math.PI*Math.max(0,(progress-.45)/.55));if(style==='melee'){const p=Math.sin(Math.PI*progress),travel=layout.travel*p;if(actor.side==='player'){lx+=travel;ly-=Math.sin(progress*Math.PI*3)*9*p;}else{rx-=travel;ry-=Math.sin(progress*Math.PI*3)*9*p;}}}}
   // Use the same equipped cosmetics as the world hero, with battle-local particles.
