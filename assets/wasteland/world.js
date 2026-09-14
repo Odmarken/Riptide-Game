@@ -18,8 +18,8 @@
  // collision belongs only to the low building footprint, never its roof.
  const STABLE={
   id:'wasteland-stable',name:'Torstens Stall',junction:{x:14000,y:18000},
-  building:{x:14700,y:17240,w:620,h:520,art:'assets/mounts/stable.png',footRatio:.96,
-   bounds:{x:14390,y:16740.8,w:620,h:520},collider:{r:76,crx:245,cry:76,cyo:-25}},
+  building:{x:14700,y:17240,w:310,h:260,art:'assets/mounts/stable.png',footRatio:.96,
+   bounds:{x:14545,y:16990.4,w:310,h:260},collider:{r:38,crx:122.5,cry:38,cyo:-12.5}},
   vendor:{id:'torsten-tygel',name:'Torsten Tygel',x:14700,y:17550,r:18,range:120,
    race:'human',cls:'warrior',female:false,game:'stable',big:1.1,fx:-1,fy:0,walk:0,moving:false},
   paddock:{bounds:{x:15200,y:16680,w:650,h:520},

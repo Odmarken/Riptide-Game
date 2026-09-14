@@ -7974,7 +7974,8 @@ function drawPropShadow(s,z){
  const ready=im=>im&&im.complete&&im.naturalWidth;
  const home=homeBuildingFrame(s);
  if(s.type==='stable'){
-  drawGroundShadow(0,-27,235,54,.24);
+  const scale=(world.stable?.building.w||310)/620;
+  drawGroundShadow(0,-27*scale,235*scale,54*scale,.24);
  }else if(home&&home.ready){
   const f=home.def.foot;
   drawGroundShadow(home.W*f.cx,home.top+home.H*f.cy,home.W*f.rx,home.H*f.ry);
@@ -8030,7 +8031,7 @@ function drawProp(s,z,withShadow=true){
  ctx.save();ctx.translate(s.x,s.y);
  if(s.type==='stable'){
   if(stableImg.complete&&stableImg.naturalWidth){
-   const W=world.stable?.building.w||620,H=W*stableImg.naturalHeight/stableImg.naturalWidth,top=-H*.96;
+   const W=world.stable?.building.w||310,H=W*stableImg.naturalHeight/stableImg.naturalWidth,top=-H*.96;
    ctx.globalAlpha*=seeThrough(s,W,H,top);ctx.drawImage(mip(stableImg,W),-W/2,top,W,H);
   }
   ctx.restore();return;

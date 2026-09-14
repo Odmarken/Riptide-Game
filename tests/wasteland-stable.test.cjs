@@ -25,7 +25,7 @@ test('the stable is a deterministic landmark north of the existing junction with
  const a=W.create('wasteland',13),b=W.create('wasteland',987),s=a.stable;
  assert.deepEqual(s,b.stable);assert.notEqual(s,b.stable);assert.notEqual(s.vendor,b.stable.vendor);
  assert.equal(a.npcs.length,1);assert.equal(a.npcs[0],s.vendor);assert.equal(s.vendor.name,'Torsten Tygel');
- assert.equal(s.vendor.game,'stable');assert.equal(s.building.w,620);assert.ok(s.building.x>s.junction.x&&s.building.y<s.junction.y);
+ assert.equal(s.vendor.game,'stable');assert.equal(s.building.w,310);assert.ok(s.building.x>s.junction.x&&s.building.y<s.junction.y);
  assert.deepEqual([a.w,a.h],[50400,26000]);assert.deepEqual(a.spawn,{x:2400,y:23600});
  assert.deepEqual(a.paths.map(p=>[p.width,p.points.map(p=>[p.x,p.y])]),[
   [180,[[2400,23600],[8000,22000],[14000,18000],[25000,15000],[33000,18000],[43200,20500]]],
