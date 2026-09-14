@@ -1,0 +1,726 @@
+{
+  "generator": "Higgsfield",
+  "model": "gpt_image_2_5",
+  "quality": "high",
+  "resolution": "2k",
+  "background": "transparent",
+  "aspect_ratio": "3:2",
+  "referenceHandling": "Existing horse.png, leopard.png and mounts/art-manifest.json inspected locally. Text-only generation. No existing image exported or supplied as reference.",
+  "progression": [
+    "cute common animals",
+    "charming adventurous animals",
+    "cool confident elemental creatures",
+    "fierce aggressive rare creatures",
+    "majestic menacing legendary and spectral creatures"
+  ],
+  "atlases": {
+    "tides-1": {
+      "file": "assets/tides/tides-1.png",
+      "size": [
+        2048,
+        1360
+      ],
+      "columns": 3,
+      "rows": 2,
+      "emptyCell": 5,
+      "sha256": "e97f95f97a2a7c94f0e8dc68ed6506fc2cf4b53afc8530e40f1b68246164c71e",
+      "nativeAlpha": true,
+      "jobId": "0530d133-5c81-41fa-b685-9ea6d234ab37",
+      "status": "completed",
+      "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260914_144516_0530d133-5c81-41fa-b685-9ea6d234ab37.png",
+      "prompt": "Create a production SPRITE ATLAS for a cozy hand-painted fantasy chibi RPG called Riptide. WIDE 3:2 image. EXACT layout is an invisible grid of 3 equal columns and 2 equal rows, six square cells. Five completely separate animal sprites, one centered in each of cells 0,1,2,3,4 in ROW-MAJOR ORDER; bottom-right cell 5 must stay COMPLETELY EMPTY TRANSPARENT. Transparent RGBA background everywhere outside the five animal silhouettes. NO visible grid, labels, letters, text, numbers, checkerboard, backdrop, ground patches, cast shadows, floor, detached props or decorative background effects. Treat each cell as its own canvas: leave at least 12% clear transparent padding around all sides of each animal, all ears, feet, tails, wings and magical body features fully contained inside its own cell. The animals are independent separate species, NOT evolution stages; no connection or touching across cells. STYLE: polished hand-painted storybook game sprites, bold clean dark brown ink contours, broad warm painterly highlights, visible painted fur/feather/scales texture, compact sturdy forms, oversized friendly expressive heads and appealing dark eyes, short chibi legs, cute but beautifully detailed, readable at 64px. Match a fantasy game featuring painted chestnut horses and golden spotted leopards. Original animal designs, no recognizable franchise characters. EACH animal has its FULL BODY visible in a SIDE VIEW with slight front three-quarter angle, head FACING RIGHT, tail to left. Natural standing pose with all four paws/hooves visible for quadrupeds, two feet for birds, appropriate visible feet for insects, or gently floating moth/serpent. Clean readable silhouette. No riders, clothes, saddles or armor. Keep magic glows tight to the body. Species/cell assignment:\nTOP-LEFT cell 0: tiny round meadow MOUSE with warm beige fur, cream belly, pink inner round ears, slender curled tail and a little mossy green fur tuft.\nTOP-CENTER cell 1: charming caramel BUNNY with long ears and a cream muzzle and tail, subtle sage leafy fur tufts on cheeks.\nTOP-RIGHT cell 2: small sturdy TOAD with muted slate-grey and olive mottled skin, rounded pebble-like bumps and bright amber eyes.\nBOTTOM-LEFT cell 3: plump brown SPARROW with russet wings, cream face and small purple thistle-like crest, standing on two feet.\nBOTTOM-CENTER cell 4: cute golden amber BEETLE with six little legs, shiny honey-brown wing cases with engraved natural ridges, two short antennae and friendly dark eyes.\nBOTTOM-RIGHT cell 5: absolutely EMPTY TRANSPARENT. Exactly five animals, no extra creatures, no duplicated animals."
+    },
+    "tides-2": {
+      "file": "assets/tides/tides-2.png",
+      "size": [
+        2048,
+        1360
+      ],
+      "columns": 3,
+      "rows": 2,
+      "emptyCell": 5,
+      "sha256": "52cd6f12db6b9d9aa764d2942590c115d0a43966793ff4b8428e2bf0e4e040f7",
+      "nativeAlpha": true,
+      "jobId": "4d025f5e-892a-4578-96aa-ce58bb4bcd76",
+      "status": "completed",
+      "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260914_144521_4d025f5e-892a-4578-96aa-ce58bb4bcd76.png",
+      "prompt": "Create a production SPRITE ATLAS for a cozy hand-painted fantasy chibi RPG called Riptide. WIDE 3:2 image. EXACT layout is an invisible grid of 3 equal columns and 2 equal rows, six square cells. Five completely separate animal sprites, one centered in each of cells 0,1,2,3,4 in ROW-MAJOR ORDER; bottom-right cell 5 must stay COMPLETELY EMPTY TRANSPARENT. Transparent RGBA background everywhere outside the five animal silhouettes. NO visible grid, labels, letters, text, numbers, checkerboard, backdrop, ground patches, cast shadows, floor, detached props or decorative background effects. Treat each cell as its own canvas: leave at least 12% clear transparent padding around all sides of each animal, all ears, feet, tails, wings and magical body features fully contained inside its own cell. The animals are independent separate species, NOT evolution stages; no connection or touching across cells. STYLE: polished hand-painted storybook game sprites, bold clean dark brown ink contours, broad warm painterly highlights, visible painted fur/feather/scales texture, compact sturdy forms, oversized friendly expressive heads and appealing dark eyes, short chibi legs, cute but beautifully detailed, readable at 64px. Match a fantasy game featuring painted chestnut horses and golden spotted leopards. Original animal designs, no recognizable franchise characters. EACH animal has its FULL BODY visible in a SIDE VIEW with slight front three-quarter angle, head FACING RIGHT, tail to left. Natural standing pose with all four paws/hooves visible for quadrupeds, two feet for birds, appropriate visible feet for insects, or gently floating moth/serpent. Clean readable silhouette. No riders, clothes, saddles or armor. Keep magic glows tight to the body. Species/cell assignment:\nTOP-LEFT cell 0: small young FOX with rusty orange face and feet, luxurious moss-green back fur and bushy green tail with a pale cream tip.\nTOP-CENTER cell 1: adorable river OTTER with rich brown fur, cream throat, smooth broad tail and subtle reed-green fur accents.\nTOP-RIGHT cell 2: fluffy PURPLE MOTH with a soft lilac furry body, feathery antennae, four beautiful dusk-violet wings with restrained silver crescent patterns; slight three-quarter side view and readable full open wings.\nBOTTOM-LEFT cell 3: tiny friendly TURTLE with jade-green skin and a high rounded terracotta shell, golden natural shell panels and stubby feet.\nBOTTOM-CENTER cell 4: BABY BOAR with dark warm brown fur, tan piglet back stripes, tiny ivory tusks and a tuft resembling an acorn cap.\nBOTTOM-RIGHT cell 5: absolutely EMPTY TRANSPARENT. Exactly five animals, no extra creatures, no duplicated animals."
+    },
+    "tides-3": {
+      "file": "assets/tides/tides-3.png",
+      "size": [
+        2048,
+        1360
+      ],
+      "columns": 3,
+      "rows": 2,
+      "emptyCell": 5,
+      "sha256": "d251ea978bacf0b190bbe3828c37cfc8450933898ef69eafdb029f0c23ac17bb",
+      "nativeAlpha": true,
+      "jobId": "3eac1a85-79a2-425e-b57d-c3a4b0fade85",
+      "status": "completed",
+      "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260914_144824_3eac1a85-79a2-425e-b57d-c3a4b0fade85.png",
+      "prompt": "Create a production SPRITE ATLAS for a cozy hand-painted fantasy chibi RPG called Riptide. WIDE 3:2 image. EXACT layout is an invisible grid of 3 equal columns and 2 equal rows, six square cells. Five completely separate animal sprites, one centered in each of cells 0,1,2,3,4 in ROW-MAJOR ORDER; bottom-right cell 5 must stay COMPLETELY EMPTY TRANSPARENT. Transparent RGBA background everywhere outside the five animal silhouettes. NO visible grid, labels, letters, text, numbers, checkerboard, backdrop, ground patches, cast shadows, floor, detached props or decorative background effects. Treat each cell as its own canvas: leave at least 12% clear transparent padding around all sides of each animal, all ears, feet, tails, wings and magical body features fully contained inside its own cell. The animals are independent separate species, NOT evolution stages; no connection or touching across cells. STYLE: polished hand-painted storybook game sprites, bold clean dark brown ink contours, broad warm painterly highlights, visible painted fur/feather/scales texture, compact sturdy forms, oversized confident expressive heads, focused narrower eyes and sharp heroic brows, short chibi legs, cool confident and beautifully detailed, readable at 64px. Match a fantasy game featuring painted chestnut horses and golden spotted leopards. Original animal designs, no recognizable franchise characters. EACH animal has its FULL BODY visible in a SIDE VIEW with slight front three-quarter angle, head FACING RIGHT, tail to left. Natural standing pose with all four paws/hooves visible for quadrupeds, two feet for birds, appropriate visible feet for insects, or gently floating moth/serpent. Clean readable silhouette. No riders, clothes or saddles. Small tasteful natural armor-like body features are allowed. Keep magic glows tight to the body. Species/cell assignment:\nTOP-LEFT cell 0: proud fiery young LION with warm orange fur, pale muzzle and small red ember-tipped fluffy mane and tail tip; gentle close-to-body amber glow.\nTOP-CENTER cell 1: round young MOON OWL standing on two feet, midnight-blue wings, pale silver face, subtle crescent marking on forehead, focused wise golden eyes.\nTOP-RIGHT cell 2: small teal GECKO with translucent turquoise crystal scales along its back, lavender toe pads, curved full tail and confident focused eyes.\nBOTTOM-LEFT cell 3: cool powerful electric LYNX with storm-grey and muted blue fur, black ear tufts, pale cyan lightning-like natural fur markings; tiny cyan glints tight to fur.\nBOTTOM-CENTER cell 4: tough confident BADGER with cream and charcoal striped face, warm grey fur and dense emerald thorn-like fur ridges along its shoulders.\nBOTTOM-RIGHT cell 5: absolutely EMPTY TRANSPARENT. Exactly five animals, no extra creatures, no duplicated animals.\nThese are middle-rarity elemental Tides, with confident COOL HEROIC expressions and visible power: lowered eyebrows, focused gaze, slightly angular faces, small fangs for the lion and lynx, strong planted feet. NOT wide-eyed smiling baby pets. Original hand-painted chibi proportions remain but the creatures are noticeably cooler, stronger and more assertive than common mice and rabbits. No gore."
+    },
+    "tides-4": {
+      "file": "assets/tides/tides-4.png",
+      "size": [
+        2048,
+        1360
+      ],
+      "columns": 3,
+      "rows": 2,
+      "emptyCell": 5,
+      "sha256": "bf0a83c45cc74a7e5f6cd87208e01f89464c2901ce7dd850572f9fed9a99db40",
+      "nativeAlpha": true,
+      "jobId": "8a7cd7fe-81e1-4906-8457-70a353aa8b21",
+      "status": "completed",
+      "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260914_144829_8a7cd7fe-81e1-4906-8457-70a353aa8b21.png",
+      "prompt": "Create a production SPRITE ATLAS for a cozy hand-painted fantasy chibi RPG called Riptide. WIDE 3:2 image. EXACT layout is an invisible grid of 3 equal columns and 2 equal rows, six square cells. Five completely separate animal sprites, one centered in each of cells 0,1,2,3,4 in ROW-MAJOR ORDER; bottom-right cell 5 must stay COMPLETELY EMPTY TRANSPARENT. Transparent RGBA background everywhere outside the five animal silhouettes. NO visible grid, labels, letters, text, numbers, checkerboard, backdrop, ground patches, cast shadows, floor, detached props or decorative background effects. Treat each cell as its own canvas: leave at least 12% clear transparent padding around all sides of each animal, all ears, feet, tails, wings and magical body features fully contained inside its own cell. The animals are independent separate species, NOT evolution stages; no connection or touching across cells. STYLE: polished hand-painted storybook game sprites, bold clean dark brown ink contours, broad warm painterly highlights, visible painted fur/feather/scales texture, compact sturdy forms, oversized fierce expressive heads, focused narrow piercing eyes and aggressive brows, short chibi legs, fierce aggressive and beautifully detailed, readable at 64px. Match a fantasy game featuring painted chestnut horses and golden spotted leopards. Original animal designs, no recognizable franchise characters. EACH animal has its FULL BODY visible in a SIDE VIEW with slight front three-quarter angle, head FACING RIGHT, tail to left. Natural standing pose with all four paws/hooves visible for quadrupeds, two feet for birds, appropriate visible feet for insects, or gently floating moth/serpent. Clean readable silhouette. No riders, clothes or saddles. Restrained fantasy natural armor plates at shoulders and backs are welcome. Keep magic glows tight to the body. Species/cell assignment:\nTOP-LEFT cell 0: powerful snarling ember WOLF with exposed ivory fangs and an aggressive low head with charcoal-grey fur, warm rust underside and ember-red mane tufts, alert fluffy ears and full bushy tail.\nTOP-CENTER cell 1: fierce ice IBEX GOAT with long powerful jagged icy horns and a stubborn threatening brow with fluffy cream and pale blue fur, short curved translucent icy horns, blue hooves and tiny crystalline back tufts.\nTOP-RIGHT cell 2: fierce golden battle LION with exposed ivory fangs, a snarling mouth and strong intimidating brow with honey-gold body and glorious compact warm sun-gold mane, cream muzzle and intense piercing amber eyes.\nBOTTOM-LEFT cell 3: fierce forest warrior STAG DEER with a sharp aggressive brow and large formidable branching antlers with chestnut coat, cream chest, small branching antlers, subtle luminous mint rune-like markings along flank.\nBOTTOM-CENTER cell 4: fierce compact CORAL DRAGON with pointed horns and an open snarling mouth showing sharp fangs, pinkish coral scales, cream belly, four short feet, sea-green fin ears and a pair of small coral-red wings, curled tail completely visible.\nBOTTOM-RIGHT cell 5: absolutely EMPTY TRANSPARENT. Exactly five animals, no extra creatures, no duplicated animals.\nThese are rare powerful battle Tides. Visibly AGGRESSIVE and dangerous: snarling expressions, narrowed eyes, sharp fangs/horns/claws, bold power stances, angular compact silhouettes. Keep full bodies clearly separated and completely inside each cell, compact chibi proportions and original hand-painted fantasy RPG style. NOT smiling baby animals. No gore."
+    },
+    "tides-5": {
+      "file": "assets/tides/tides-5.png",
+      "size": [
+        2048,
+        1360
+      ],
+      "columns": 3,
+      "rows": 2,
+      "emptyCell": 5,
+      "sha256": "fbb45d79e71bd914ab43ecf72bf328d39c9ed0195914c52130255f0c2222315c",
+      "nativeAlpha": true,
+      "jobId": "b6a76f13-64f9-4d0a-8900-b2ef652c67b8",
+      "status": "completed",
+      "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260914_144620_b6a76f13-64f9-4d0a-8900-b2ef652c67b8.png",
+      "prompt": "Create a production SPRITE ATLAS for a cozy hand-painted fantasy chibi RPG called Riptide. WIDE 3:2 image. EXACT layout is an invisible grid of 3 equal columns and 2 equal rows, six square cells. Five completely separate animal sprites, one centered in each of cells 0,1,2,3,4 in ROW-MAJOR ORDER; bottom-right cell 5 must stay COMPLETELY EMPTY TRANSPARENT. Transparent RGBA background everywhere outside the five animal silhouettes. NO visible grid, labels, letters, text, numbers, checkerboard, backdrop, ground patches, cast shadows, floor, detached props or decorative background effects. Treat each cell as its own canvas: leave at least 12% clear transparent padding around all sides of each animal, all ears, feet, tails, wings and magical body features fully contained inside its own cell. The animals are independent separate species, NOT evolution stages; no connection or touching across cells. STYLE: polished hand-painted storybook game sprites, bold clean dark brown ink contours, broad warm painterly highlights, visible painted fur/feather/scales texture, compact sturdy forms, oversized powerful expressive heads and fierce piercing eyes, short chibi legs, majestic, menacing and beautifully detailed, readable at 64px. Match a fantasy game featuring painted chestnut horses and golden spotted leopards. Original animal designs, no recognizable franchise characters. EACH animal has its FULL BODY visible in a SIDE VIEW with slight front three-quarter angle, head FACING RIGHT, tail to left. Natural standing pose with all four paws/hooves visible for quadrupeds, two feet for birds, appropriate visible feet for insects, or gently floating moth/serpent. Clean readable silhouette. No riders, clothes or saddles. Restrained natural fantasy armor and fierce expressions are welcome. Keep magic glows tight to the body. Species/cell assignment:\nTOP-LEFT cell 0: majestic aggressive DAWN PHOENIX bird with rose-pink and golden peach feathers, rounded body, two visible feet, partially spread golden wings and elegant compact curled tail, gentle warm feather glow.\nTOP-CENTER cell 1: fierce imposing OBSIDIAN BEAR with charcoal-black fur, grey muzzle and subtle glossy dark volcanic stone plates along shoulders, intense menacing expression, open snarling mouth showing fangs.\nTOP-RIGHT cell 2: majestic warrior AURORA KIRIN with a cream deer-like quadruped body, delicate lilac scales, one small pearly horn, pastel mint-pink-lavender flowing mane and tail, four neat hooves.\nBOTTOM-LEFT cell 3: sleek fierce BLUE ETHEREAL PANTHER with translucent luminous sapphire-blue feline body, pale cyan highlights, dark-blue face markings and dark navy eyes, crisp readable silhouette and short blue edge glow; all colors blue, cyan and silver; four paws and full curved tail.\nBOTTOM-CENTER cell 4: menacing majestic BLUE ETHEREAL SERPENT DRAGON floating in a compact graceful S curl within its square cell, fierce dragon head with fangs facing right, tiny silver horns, translucent sapphire and pale cyan scales, small fins, long tapered tail curled left and wholly visible; no legs, no smoke, crisp readable silhouette.\nBOTTOM-RIGHT cell 5: absolutely EMPTY TRANSPARENT. Exactly five animals, no extra creatures, no duplicated animals.\nTHESE ARE THE MOST POWERFUL LEGENDARY TIDES. Cool intimidating high-level creatures with fierce brows, confident threatening poses, visible horns or fangs as appropriate. Keep the compact chibi storybook proportions and original painted game style, but they must look dramatically more aggressive and majestic than common cute pets. No gore."
+    }
+  },
+  "species": {
+    "meadowmouse": {
+      "atlas": "tides-1",
+      "cell": 0,
+      "cellRect": [
+        0,
+        0,
+        682,
+        680
+      ],
+      "sourceRect": [
+        56,
+        196,
+        592,
+        480
+      ],
+      "bounds": [
+        68,
+        208,
+        567,
+        456
+      ],
+      "facing": 1
+    },
+    "bramblebunny": {
+      "atlas": "tides-1",
+      "cell": 1,
+      "cellRect": [
+        682,
+        0,
+        683,
+        680
+      ],
+      "sourceRect": [
+        756,
+        13,
+        534,
+        674
+      ],
+      "bounds": [
+        768,
+        25,
+        502,
+        650
+      ],
+      "facing": 1
+    },
+    "pebbletoad": {
+      "atlas": "tides-1",
+      "cell": 2,
+      "cellRect": [
+        1365,
+        0,
+        683,
+        680
+      ],
+      "sourceRect": [
+        1410,
+        255,
+        540,
+        450
+      ],
+      "bounds": [
+        1423,
+        268,
+        514,
+        423
+      ],
+      "facing": 1
+    },
+    "thistlesparrow": {
+      "atlas": "tides-1",
+      "cell": 3,
+      "cellRect": [
+        0,
+        680,
+        682,
+        680
+      ],
+      "sourceRect": [
+        34,
+        725,
+        630,
+        618
+      ],
+      "bounds": [
+        46,
+        738,
+        603,
+        590
+      ],
+      "facing": 1
+    },
+    "amberbeetle": {
+      "atlas": "tides-1",
+      "cell": 4,
+      "cellRect": [
+        682,
+        680,
+        683,
+        680
+      ],
+      "sourceRect": [
+        748,
+        846,
+        610,
+        462
+      ],
+      "bounds": [
+        760,
+        858,
+        586,
+        437
+      ],
+      "facing": 1
+    },
+    "mossfox": {
+      "atlas": "tides-2",
+      "cell": 0,
+      "cellRect": [
+        0,
+        0,
+        682,
+        680
+      ],
+      "sourceRect": [
+        20,
+        81,
+        648,
+        588
+      ],
+      "bounds": [
+        33,
+        94,
+        622,
+        562
+      ],
+      "facing": 1
+    },
+    "reedotter": {
+      "atlas": "tides-2",
+      "cell": 1,
+      "cellRect": [
+        682,
+        0,
+        683,
+        680
+      ],
+      "sourceRect": [
+        685,
+        133,
+        692,
+        542
+      ],
+      "bounds": [
+        697,
+        145,
+        666,
+        518
+      ],
+      "facing": 1
+    },
+    "duskmoth": {
+      "atlas": "tides-2",
+      "cell": 2,
+      "cellRect": [
+        1365,
+        0,
+        683,
+        680
+      ],
+      "sourceRect": [
+        1415,
+        61,
+        626,
+        608
+      ],
+      "bounds": [
+        1428,
+        74,
+        600,
+        582
+      ],
+      "facing": 1
+    },
+    "shellsnap": {
+      "atlas": "tides-2",
+      "cell": 3,
+      "cellRect": [
+        0,
+        680,
+        682,
+        680
+      ],
+      "sourceRect": [
+        43,
+        801,
+        632,
+        492
+      ],
+      "bounds": [
+        56,
+        814,
+        606,
+        467
+      ],
+      "facing": 1
+    },
+    "acornboar": {
+      "atlas": "tides-2",
+      "cell": 4,
+      "cellRect": [
+        682,
+        680,
+        683,
+        680
+      ],
+      "sourceRect": [
+        712,
+        715,
+        629,
+        582
+      ],
+      "bounds": [
+        724,
+        728,
+        605,
+        556
+      ],
+      "facing": 1
+    },
+    "embercub": {
+      "atlas": "tides-3",
+      "cell": 0,
+      "cellRect": [
+        0,
+        0,
+        682,
+        680
+      ],
+      "sourceRect": [
+        9,
+        31,
+        672,
+        641
+      ],
+      "bounds": [
+        21,
+        44,
+        647,
+        622
+      ],
+      "facing": 1
+    },
+    "moonowl": {
+      "atlas": "tides-3",
+      "cell": 1,
+      "cellRect": [
+        682,
+        0,
+        683,
+        680
+      ],
+      "sourceRect": [
+        769,
+        44,
+        481,
+        656
+      ],
+      "bounds": [
+        782,
+        57,
+        456,
+        630
+      ],
+      "facing": 1
+    },
+    "crystalgecko": {
+      "atlas": "tides-3",
+      "cell": 2,
+      "cellRect": [
+        1365,
+        0,
+        683,
+        680
+      ],
+      "sourceRect": [
+        1352,
+        180,
+        668,
+        520
+      ],
+      "bounds": [
+        1365,
+        193,
+        642,
+        495
+      ],
+      "facing": 1
+    },
+    "stormlynx": {
+      "atlas": "tides-3",
+      "cell": 3,
+      "cellRect": [
+        0,
+        680,
+        682,
+        680
+      ],
+      "sourceRect": [
+        37,
+        677,
+        649,
+        653
+      ],
+      "bounds": [
+        49,
+        683,
+        625,
+        633
+      ],
+      "facing": 1
+    },
+    "thornbadger": {
+      "atlas": "tides-3",
+      "cell": 4,
+      "cellRect": [
+        682,
+        680,
+        683,
+        680
+      ],
+      "sourceRect": [
+        710,
+        769,
+        632,
+        560
+      ],
+      "bounds": [
+        723,
+        782,
+        606,
+        534
+      ],
+      "facing": 1
+    },
+    "cinderwolf": {
+      "atlas": "tides-4",
+      "cell": 0,
+      "cellRect": [
+        0,
+        0,
+        682,
+        680
+      ],
+      "sourceRect": [
+        6,
+        104,
+        706,
+        558
+      ],
+      "bounds": [
+        18,
+        117,
+        681,
+        539
+      ],
+      "facing": 1
+    },
+    "frostibex": {
+      "atlas": "tides-4",
+      "cell": 1,
+      "cellRect": [
+        682,
+        0,
+        683,
+        680
+      ],
+      "sourceRect": [
+        749,
+        12,
+        592,
+        658
+      ],
+      "bounds": [
+        762,
+        25,
+        567,
+        632
+      ],
+      "facing": 1
+    },
+    "sunmane": {
+      "atlas": "tides-4",
+      "cell": 2,
+      "cellRect": [
+        1365,
+        0,
+        683,
+        680
+      ],
+      "sourceRect": [
+        1349,
+        70,
+        681,
+        602
+      ],
+      "bounds": [
+        1362,
+        83,
+        656,
+        576
+      ],
+      "facing": 1
+    },
+    "runestag": {
+      "atlas": "tides-4",
+      "cell": 3,
+      "cellRect": [
+        0,
+        680,
+        682,
+        680
+      ],
+      "sourceRect": [
+        66,
+        662,
+        633,
+        675
+      ],
+      "bounds": [
+        79,
+        667,
+        607,
+        658
+      ],
+      "facing": 1
+    },
+    "coraldrake": {
+      "atlas": "tides-4",
+      "cell": 4,
+      "cellRect": [
+        682,
+        680,
+        683,
+        680
+      ],
+      "sourceRect": [
+        704,
+        692,
+        698,
+        648
+      ],
+      "bounds": [
+        717,
+        705,
+        672,
+        622
+      ],
+      "facing": 1
+    },
+    "dawnphoenix": {
+      "atlas": "tides-5",
+      "cell": 0,
+      "cellRect": [
+        0,
+        0,
+        682,
+        680
+      ],
+      "sourceRect": [
+        20,
+        8,
+        632,
+        672
+      ],
+      "bounds": [
+        32,
+        21,
+        607,
+        652
+      ],
+      "facing": 1
+    },
+    "obsidianbear": {
+      "atlas": "tides-5",
+      "cell": 1,
+      "cellRect": [
+        682,
+        0,
+        683,
+        680
+      ],
+      "sourceRect": [
+        672,
+        72,
+        707,
+        604
+      ],
+      "bounds": [
+        685,
+        85,
+        694,
+        579
+      ],
+      "facing": 1
+    },
+    "aurorakirin": {
+      "atlas": "tides-5",
+      "cell": 2,
+      "cellRect": [
+        1365,
+        0,
+        683,
+        680
+      ],
+      "sourceRect": [
+        1379,
+        5,
+        628,
+        675
+      ],
+      "bounds": [
+        1379,
+        18,
+        615,
+        649
+      ],
+      "facing": 1
+    },
+    "spectralpanther": {
+      "atlas": "tides-5",
+      "cell": 3,
+      "cellRect": [
+        0,
+        680,
+        682,
+        680
+      ],
+      "sourceRect": [
+        9,
+        752,
+        679,
+        579
+      ],
+      "bounds": [
+        22,
+        765,
+        644,
+        552
+      ],
+      "facing": 1
+    },
+    "spectralwyrm": {
+      "atlas": "tides-5",
+      "cell": 4,
+      "cellRect": [
+        682,
+        680,
+        683,
+        680
+      ],
+      "sourceRect": [
+        744,
+        680,
+        601,
+        662
+      ],
+      "bounds": [
+        756,
+        687,
+        576,
+        642
+      ],
+      "facing": 1
+    }
+  },
+  "assets": {
+    "lasso": {
+      "file": "assets/tides/lasso.png",
+      "size": [
+        1024,
+        1024
+      ],
+      "bounds": [
+        148,
+        128,
+        824,
+        777
+      ],
+      "sourceRect": [
+        132,
+        112,
+        856,
+        809
+      ],
+      "sha256": "fc16634e195b6bf2b90b7c6d5b23cf1775af1a5af2572725cff392a9439907b0",
+      "nativeAlpha": true,
+      "jobId": "036d7d5c-8fed-4779-b7bc-c4884230d5b6",
+      "status": "completed",
+      "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260914_144624_036d7d5c-8fed-4779-b7bc-c4884230d5b6.png",
+      "prompt": "One isolated inventory item sprite for a cozy hand-painted chibi fantasy RPG: a neatly coiled GOLDEN HEMP ROPE LASSO, several compact thick rope loops, tied small central leather knot and a readable open catching loop curling up-right. Bold clean dark brown ink contours, broad warm painted highlights, subtle braided rope texture, chunky appealing fantasy game item, readable at 32 pixels. Three-quarter top-down angle. Warm golden ochre rope with tiny brown leather binding. Entire lasso fully contained with 12 percent transparent padding all around. True transparent RGBA background, no floor, no ground patch, no cast shadow, no checkerboard, no text, no letters, no numbers, no watermark, no hands or people. Centered single item only."
+    }
+  },
+  "geometryNotes": {
+    "bounds": "Inclusive alpha>=128 main connected-component bounds [x,y,width,height], measured on native PNG bytes. sourceRect is recommended [x,y,width,height] for canvas drawImage and CSS sprite cropping. Rectangle width/height need not be equal; retain source aspect ratio.",
+    "nativeAlpha": "All source PNGs have genuine transparency. Bodies are generally alpha252 rather than255. Painted RGB survives underneath alpha0, so RGB-only image viewers show a misleading backdrop. Use RGBA rendering.",
+    "atlasGrid": "3 columns by2 rows; row-major cell0-4 are creatures, cell5 has no sixth creature. Native 2k output is2048×1360. Some outlines cross nominal grid boundaries; use species sourceRect overrides to preserve ears, antlers, tails and toes. Faint ambient alpha below32 may cross adjacent cells.",
+    "preservation": "Downloaded PNGs are unchanged byte-for-byte. No raster crop, recolor or alpha edits applied.",
+    "visualQA": "All25 original species verified in requested order, facing right, complete full bodies visible. Revised atlases3 and4 implement user's cute-to-cool-to-aggressive direction. Lasso shows complete coiled golden rope. Last grid cell contains no extra creature; faint source glow and slight boundary overflow are excluded by custom source rectangles.",
+    "tightBoundary": "In atlas5 bear/kirin bounding boxes meet at x1379; bear sourceRect ends at1379 and kirin starts there. The split preserves both solid silhouettes; a single antialiased edge column can touch this seam."
+  },
+  "supersededJobs": [
+    {
+      "atlas": "tides-3",
+      "jobId": "08e84c9f-29c0-443f-a9a4-d90169b0f495",
+      "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260914_144526_08e84c9f-29c0-443f-a9a4-d90169b0f495.png",
+      "reason": "Replaced after user requested progression from cute to cool and aggressive.",
+      "prompt": "Create a production SPRITE ATLAS for a cozy hand-painted fantasy chibi RPG called Riptide. WIDE 3:2 image. EXACT layout is an invisible grid of 3 equal columns and 2 equal rows, six square cells. Five completely separate animal sprites, one centered in each of cells 0,1,2,3,4 in ROW-MAJOR ORDER; bottom-right cell 5 must stay COMPLETELY EMPTY TRANSPARENT. Transparent RGBA background everywhere outside the five animal silhouettes. NO visible grid, labels, letters, text, numbers, checkerboard, backdrop, ground patches, cast shadows, floor, detached props or decorative background effects. Treat each cell as its own canvas: leave at least 12% clear transparent padding around all sides of each animal, all ears, feet, tails, wings and magical body features fully contained inside its own cell. The animals are independent separate species, NOT evolution stages; no connection or touching across cells. STYLE: polished hand-painted storybook game sprites, bold clean dark brown ink contours, broad warm painterly highlights, visible painted fur/feather/scales texture, compact sturdy forms, oversized friendly expressive heads and appealing dark eyes, short chibi legs, cute but beautifully detailed, readable at 64px. Match a fantasy game featuring painted chestnut horses and golden spotted leopards. Original animal designs, no recognizable franchise characters. EACH animal has its FULL BODY visible in a SIDE VIEW with slight front three-quarter angle, head FACING RIGHT, tail to left. Natural standing pose with all four paws/hooves visible for quadrupeds, two feet for birds, appropriate visible feet for insects, or gently floating moth/serpent. Clean readable silhouette. No riders, clothes, saddles or armor. Keep magic glows tight to the body. Species/cell assignment:\nTOP-LEFT cell 0: tiny FIRE LION CUB with warm orange fur, pale muzzle and small red ember-tipped fluffy mane and tail tip; gentle close-to-body amber glow.\nTOP-CENTER cell 1: round young MOON OWL standing on two feet, midnight-blue wings, pale silver face, subtle crescent marking on forehead, large warm curious eyes.\nTOP-RIGHT cell 2: small teal GECKO with translucent turquoise crystal scales along its back, lavender toe pads, curved full tail and large friendly eyes.\nBOTTOM-LEFT cell 3: electric young LYNX with storm-grey and muted blue fur, black ear tufts, pale cyan lightning-like natural fur markings; tiny cyan glints tight to fur.\nBOTTOM-CENTER cell 4: sturdy young BADGER with cream and charcoal striped face, warm grey fur and dense emerald thorn-like fur ridges along its shoulders.\nBOTTOM-RIGHT cell 5: absolutely EMPTY TRANSPARENT. Exactly five animals, no extra creatures, no duplicated animals."
+    },
+    {
+      "atlas": "tides-4",
+      "jobId": "f32cf9c5-81f8-4187-afc0-948fae2d688a",
+      "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260914_144530_f32cf9c5-81f8-4187-afc0-948fae2d688a.png",
+      "reason": "Replaced after user requested progression from cute to cool and aggressive.",
+      "prompt": "Create a production SPRITE ATLAS for a cozy hand-painted fantasy chibi RPG called Riptide. WIDE 3:2 image. EXACT layout is an invisible grid of 3 equal columns and 2 equal rows, six square cells. Five completely separate animal sprites, one centered in each of cells 0,1,2,3,4 in ROW-MAJOR ORDER; bottom-right cell 5 must stay COMPLETELY EMPTY TRANSPARENT. Transparent RGBA background everywhere outside the five animal silhouettes. NO visible grid, labels, letters, text, numbers, checkerboard, backdrop, ground patches, cast shadows, floor, detached props or decorative background effects. Treat each cell as its own canvas: leave at least 12% clear transparent padding around all sides of each animal, all ears, feet, tails, wings and magical body features fully contained inside its own cell. The animals are independent separate species, NOT evolution stages; no connection or touching across cells. STYLE: polished hand-painted storybook game sprites, bold clean dark brown ink contours, broad warm painterly highlights, visible painted fur/feather/scales texture, compact sturdy forms, oversized friendly expressive heads and appealing dark eyes, short chibi legs, cute but beautifully detailed, readable at 64px. Match a fantasy game featuring painted chestnut horses and golden spotted leopards. Original animal designs, no recognizable franchise characters. EACH animal has its FULL BODY visible in a SIDE VIEW with slight front three-quarter angle, head FACING RIGHT, tail to left. Natural standing pose with all four paws/hooves visible for quadrupeds, two feet for birds, appropriate visible feet for insects, or gently floating moth/serpent. Clean readable silhouette. No riders, clothes, saddles or armor. Keep magic glows tight to the body. Species/cell assignment:\nTOP-LEFT cell 0: young ember WOLF with charcoal-grey fur, warm rust underside and ember-red mane tufts, alert fluffy ears and full bushy tail.\nTOP-CENTER cell 1: young ice IBEX GOAT with fluffy cream and pale blue fur, short curved translucent icy horns, blue hooves and tiny crystalline back tufts.\nTOP-RIGHT cell 2: cute noble young golden LION with honey-gold body and glorious compact warm sun-gold mane, cream muzzle and friendly amber eyes.\nBOTTOM-LEFT cell 3: young forest STAG DEER with chestnut coat, cream chest, small branching antlers, subtle luminous mint rune-like markings along flank.\nBOTTOM-CENTER cell 4: friendly tiny CORAL DRAGON, pinkish coral scales, cream belly, four short feet, sea-green fin ears and a pair of small coral-red wings, curled tail completely visible.\nBOTTOM-RIGHT cell 5: absolutely EMPTY TRANSPARENT. Exactly five animals, no extra creatures, no duplicated animals."
+    }
+  ]
+}

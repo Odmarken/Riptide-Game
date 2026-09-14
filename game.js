@@ -1438,7 +1438,7 @@ const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0,'haste');
 function freshState(name,race,cls){
  return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,lastZone:0,maxZone:0,quest:0,qProg:0,hardcore:false,hcDead:false,gender:'m',
   rating:0,odinKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',bankGold:0,bankScrap:0,bankEarned:0,bankLastT:0,smithLvl:0,smithJob:null,luckPots:0,luckT:0,gamblerPots:0,gamblerT:0,restedT:0,restedPct:0,restedSpinAt:0,freeGoldCases:0,chests:{violethalls:0},mining:{trained:false,skill:0,on:false},ench:{trained:false,skill:0,bag:[]},ore:{coal:0,ore:0,gem:0},cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
-  gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],pet:null,pets:[],mounts:Mounts.normalize(null),
+  gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],pet:null,pets:[],mounts:Mounts.normalize(null),tides:Tides.createCollection(),
   boosts:{speed:0,haste:0},autoUse:{},tainted:false,
   cleared:{},bossDead:{},zoneLvlGain:{},wastelandBossReadyAt:WastelandDungeons.normalizeBossTimers(null),
   auto:true,autoEquip:true,sound:true,sfx:true,volAmb:0.5,volSfx:0.55,finished:false};
@@ -1461,6 +1461,8 @@ function ensureItemBase(it){
 }
 function migrate(s){ /* fills fields missing from older saves */
  s.mounts=Mounts.normalize(s.mounts);
+ s.tides=Tides.normalizeCollection(s.tides);
+ s.tides.exploration=TideExploration.create(s.tides.exploration);
  s.wastelandBossReadyAt=WastelandDungeons.normalizeBossTimers(s.wastelandBossReadyAt);
  s.tainted=false;
  s.taintV=0;
@@ -4463,6 +4465,7 @@ function drawCryptTorches(vx0,vy0,vx1,vy1){ /* 🔥 breadcrumb markers - flicker
  }
 }
 function buildZone(){
+ TideUI.leaveZone();
  Mounts.reset(mountRide);
  if($('stableFx'))$('stableFx').style.display='none';
  /* Delayed multishots can still hold a target from the room we are leaving. */
@@ -5163,6 +5166,7 @@ function nearestEnemyWithin(rng){
  return best;
 }
 function cast(i,manual){
+ if(TideUI.isBattling())return false;
  if(mountRide.id||mountRide.casting){if(manual)stageMsg('Dismount with X before casting.',1000);return false;}
  const c=classOf(),sp=c.spells[i];
  if(hero.dead)return false;
@@ -5222,6 +5226,7 @@ function killEnemy(en){
  if(en.dead)return;
  if(mp.on&&mp.started&&!mp.host&&en.raid&&!en.netDead)return;
  en.dead=true;en.deadT=0;en.hidden=false;
+ if(S.tides?.lassoOwned)TideUI.awardKill(en);
  sfx.die();
  burst(en.x,en.y-10,en.c,12,90,true);
  const r=raceOf();
@@ -5997,7 +6002,7 @@ function padPollButtons(){
    Rather than teach every panel about the pad, walk whatever is on screen: the topmost open panel's
    own buttons, in document order, are the menu. That way a panel built later is navigable the day
    it is written, with nothing added to it. */
-const PAD_PANELS=['cfgBox','finalGateFx','sebbeFx','gvbFx','rtbFx','rouFx','bjFx','seaFx','slotFx','casinoMenu',
+const PAD_PANELS=['cfgBox','tideHub','tideBattleFx','finalGateFx','sebbeFx','gvbFx','rtbFx','rouFx','bjFx','seaFx','slotFx','casinoMenu',
  'chestFx','seaBuyFx','sharkFx','ritualDoneFx','ritualFx','talentFx','smithFx','smithMenu','bankFx',
  'restFx','fishhutMenu','mineFx','smeltFx','enchFx','stableFx','farmCheckoutFx','farmBuyFx','farmDelFx'];
 const padPanelOpen=()=>{
@@ -6039,11 +6044,13 @@ function padInteract(){
  const find=t=>world.solids.find(s2=>s2.type===t);
  for(const door of expeditionDoors())add(door,door.name,()=>travelExpedition(door),100);
  if(Mounts.allowed(z))add(world.stable?.vendor,'Torsten Tygel',openStable,110);
+ const wildTide=TideUI.nearestWild();if(wildTide)add(wildTide,Tides.getSpecies(wildTide.speciesId).name,()=>TideUI.openWild(wildTide.id),180);
  if(z.tavern){
   for(const s of world.solids){
    const f=homeBuildingFrame(s);if(f)add(homeBuildingDoor(s),f.def.label,f.def.open,90);
   }
  }else if(z.city){
+  add(find('cathedral'),'The Tidekeeper',TideUI.openChurch,210);
   const sb=(world.npcs||[]).find(n=>n.game==='cups');
   if(sb)out.push({s:sb,label:'Sebbe',open:openCupGame,rng:120});
   add(find('minehall'),'Mining Hall',openMiningHall,180);
@@ -6138,6 +6145,16 @@ window.addEventListener('keydown',e=>{
  const k=e.key||'';
  const kl=k.toLowerCase();
  if(!kl)return;
+ if((/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||'')||document.activeElement?.isContentEditable)&&kl!=='escape')return;
+ if(TideUI.modalOpen()&&!TideUI.isBattling()){if(kl==='escape'){e.preventDefault();TideUI.closeHub();}return;}
+ if(TideUI.isBattling()){
+  if(kl==='escape'){e.preventDefault();$('cfgBox').classList.toggle('open');return;}
+  if(!e.repeat&&!gamePaused&&!$('cfgBox').classList.contains('open')){
+   if(kl==='1'){e.preventDefault();TideUI.act('attack');}
+   if(kl==='2'){e.preventDefault();TideUI.act('power');}
+  }
+  return;
+ }
  if(kl==='x'){
   if(!e.repeat&&gameOn&&!gamePaused&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||'')&&!document.activeElement?.isContentEditable){e.preventDefault();toggleMount();}
   return;
@@ -6206,6 +6223,7 @@ cv.addEventListener('pointerdown',e=>{
  const r=cv.getBoundingClientRect();
  const wx=(e.clientX-r.left)/zoom+camX,wy=(e.clientY-r.top)/zoom+camY;
  hero.pendingDoor=null; /* any new click cancels a pending walk-to-building */
+ if(TideUI.wildClick(wx,wy))return;
  const stableVendor=(world.npcs||[]).find(n=>n.game==='stable');
  if(stableVendor&&Math.abs(wx-stableVendor.x)<34&&wy>stableVendor.y-66&&wy<stableVendor.y+18){
   if(dist(hero,stableVendor)<110)openStable();
@@ -6323,6 +6341,13 @@ cv.addEventListener('pointerdown',e=>{
   }
  }
  if(zoneOf().city){
+  const church=world.solids.find(s=>s.type==='cathedral');
+  if(church&&Math.abs(wx-church.x)<church.r*2.7&&wy>church.y-church.r*5.5&&wy<church.y+church.r*.5){
+   const open=TideUI.openChurch;
+   if(TideUI.churchInReach())open();
+   else{hero.target=null;hero.goPortal=false;hero.moveTo={x:church.x,y:church.y+70};marker={...hero.moveTo,t:0};hero.pendingDoor={s:church,open,rng:210};}
+   return;
+  }
   /* 🥤 Sebbe first: he is small next to a cathedral, so he gets the click if it lands on him. */
   const sb=(world.npcs||[]).find(n=>n.game==='cups');
   if(sb&&Math.abs(wx-sb.x)<34&&wy>sb.y-64&&wy<sb.y+16){
@@ -6676,7 +6701,10 @@ function autoBrain(dt){
 function update(dt){
  runeFxDt=dt; /* simulation time is consumed once by the current weapon draw */
  if(!gameOn)return;
+ TideUI.tick(dt);
+ if(TideUI.isBattling()){padNow=padStick();padTick(dt);return;}
  refreshWastelandChunks();
+ TideUI.updateExploration();
  if(hero&&!hero.dead){const door=expeditionDoors().find(s=>Math.hypot(hero.x-s.x,hero.y-s.y)<(s.type==='dungeonentrance'?65:45));if(door&&travelExpedition(door))return;}
  padNow=padStick(); /* one poll per frame, shared by the movement block below */
  padTick(dt);       /* buttons, the right stick, the A prompt and menu walking */
@@ -6827,7 +6855,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    }
    return;
   }
- }else if(!mountRide.casting&&$('stableFx').style.display!=='flex'&&!mineTick(dt)){ /* mounting, the stable menu and mining keep the hero still */
+ }else if(!mountRide.casting&&!TideUI.modalOpen()&&$('stableFx').style.display!=='flex'&&!mineTick(dt)){ /* mounting, venue menus and mining keep the hero still */
   if(holdMove){ /* finger still pressed - refresh the walk target to wherever it is now */
    const hr=cv.getBoundingClientRect();
    const hx=(holdMove.cx-hr.left)/zoom+camX,hy=(holdMove.cy-hr.top)/zoom+camY;
@@ -7553,7 +7581,9 @@ function draw(){
  }
  const drawables=[];
  const cx0=camX-320,cx1=camX+VW/zoom+320,cy0=camY-820,cy1=camY+VH/zoom+320; /* tall art rises far above its anchor */
+ TideUI.addWildDrawables(drawables,{x0:cx0,x1:cx1,y0:cy0,y1:cy1});
  for(const s of world.travelDoors?world.solids.concat(world.travelDoors):world.solids){
+  if(TideUI.isBattling())continue; /* the staged Tide duel uses a clear patch of the current terrain */
   if(s.type==='water')continue;
   if(s.x<cx0||s.x>cx1||s.y<cy0||s.y>cy1)continue; /* off screen - the city has hundreds of these */
   if(s.mined)continue;   /* rubble now; the rock returns when the zone is rebuilt */
@@ -7562,11 +7592,11 @@ function draw(){
  }
  /* townsfolk get the same camera test as the props - the City walks two dozen of them and every one
     was being queued, sorted and drawn whether or not it was anywhere near the screen */
- if(world.npcs)for(const n of world.npcs){
+ if(world.npcs&&!TideUI.isBattling())for(const n of world.npcs){
   if(n.x<cx0||n.x>cx1||n.y<cy0||n.y>cy1)continue;
   drawables.push({y:n.y,f:()=>drawNpc(n)});
  }
- if(world.stable)world.stable.paddock.displaySpots.forEach((spot,i)=>{
+ if(world.stable&&!TideUI.isBattling())world.stable.paddock.displaySpots.forEach((spot,i)=>{
   if(spot.x<cx0||spot.x>cx1||spot.y<cy0||spot.y>cy1)return;
   const id=i?'leopard':'horse';
   drawables.push({y:spot.y,f:()=>MountRenderer.draw(ctx,{id,img:mountImages[id],x:spot.x,y:spot.y,fx:spot.fx,moving:0,phase:0,deviceScale:zoom*DPR})});
@@ -8785,6 +8815,7 @@ function drawPet(){
  ctx.restore();
 }
 function drawHero(){
+ if(TideUI.isBattling())return;
  const fxDt=runeFxDt;runeFxDt=0;
  const runeScene=ctx.getTransform().inverse();
  const h=hero;if(h.dead&&h.deadT>0.7)return;
@@ -9522,6 +9553,7 @@ function gearSwapTo(i){
  sfx.loot();renderHero();renderBag();renderHUD();save();
 }
 function renderHero(){
+ TideUI.entry();
  const c=classOf(),r=raceOf();
  $('heroTitle').innerHTML=`${esc(dispName(S))} - ${r.name} ${c.name}`+(S.prestige?` · Prestige ${S.prestige}`:'')+
   ` <button id="renameBtn" title="Rename hero">✏️</button>`+
@@ -9995,7 +10027,8 @@ function renderBag(){
    bagCat('Chests', vhHtml)
   +bagCat('Flasks', luckHtml+raidHtml+armorHtml+gamblerHtml)
   +bagCat('Buffs',  restedHtml)
-  +bagCat('Items',  connHtml+ringHtml+oreHtml+knowledgeHtml);
+  +bagCat('Items',  connHtml+ringHtml+oreHtml+knowledgeHtml+TideUI.bagItem());
+ TideUI.bindBag();
 
 
  document.querySelectorAll('[data-vhchest]').forEach(b=>b.onclick=openVioletHallsChest);
@@ -13422,6 +13455,7 @@ function updateAcctUI(){
  }
 }
 function showLogin(msg=''){
+ TideUI.leaveZone();
  gameOn=false;
  S=null; /* drop any lingering character so it can never be pushed into the next profile */
  $('create').style.display='none';$('create').classList.remove('open');
@@ -13540,6 +13574,7 @@ async function renderSelect(){
  $('newCharBtn').style.display=chars.length>=8?'none':'block';
 }
 function showSelect(){
+ TideUI.leaveZone();
  gameOn=false;
  $('login').classList.remove('open');
  if(AC.ctx){stopAmbience();AC.prof=null;}
@@ -13687,6 +13722,7 @@ function renderControls(){
   ['↑ ↓ ← →','Walk - same as WASD'],
   ['Click ground','Walk to that spot. Hold to keep following the cursor'],
   ['X','Mount / dismount in Wasteland. Saddling up takes 1 second'],
+  ['1 / 2 in Tide battles','Use your Tide attack / unique power, one action per round'],
   ['head','Fighting'],
   ['1',spell(0,'First spell')],
   ['2',spell(1,'Second spell')],
@@ -13964,6 +14000,7 @@ function frame(t){
   update(dt);renderVitals(dt);
   saveT+=dt;if(saveT>12){saveT=0;save();}
   draw();
+  TideUI.afterDraw();
  }else if(gameOn&&gamePaused){
   draw();
   ctx.fillStyle='rgba(5,10,8,0.55)';ctx.fillRect(0,0,VW,VH);

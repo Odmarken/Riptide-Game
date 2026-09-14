@@ -288,6 +288,7 @@ test('the actual frame hook updates visibility in City, pause, other zones and c
     gameOn: true, gamePaused: false, S: { zone: 1 }, ZONES: [{ city: false }, { city: true }, { wasteland: true }, { wasteland: true, dungeon: 'briarhollow' }],
     world: city, hero: city.spawn, cityMinimap: { update(...args) { calls.push(args); } },
     update() {}, renderVitals() {}, draw() {}, save() {}, requestAnimationFrame() {}, $: () => null,
+    TideUI: { afterDraw() {} },
     ctx: { fillRect() {}, fillText() {} }, VW: 800, VH: 600,
     document: { body: {} }, getComputedStyle: () => ({ fontFamily: 'serif' }),
   });

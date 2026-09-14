@@ -19,6 +19,7 @@
 <!-- ?v= is not decoration: without it iOS Safari serves a cached stylesheet for days, so two
      phones end up running two different builds of the layout. Bump on every visual change. -->
 <link rel="stylesheet" href="style.css?v=51">
+<link rel="stylesheet" href="assets/tides/ui.css?v=1">
 </head>
 <body>
 <div id="app">
@@ -203,6 +204,7 @@
     <div id="spellList"></div>
     <div class="ptitle" id="profTitle" style="font-size:15px;display:none">Professions</div>
     <div id="profList"></div>
+    <div id="tideStorageEntry"></div>
     <div id="prestigeSec"></div>
     <div class="card toggle-row"><span>Auto-equip stronger gear</span><button class="sbtn gold" id="autoEquipBtn">On</button></div>
     <div class="card toggle-row"><span>Play a different hero</span><button class="sbtn gold" id="charSelBtn">⇄ Change Character</button></div>
@@ -745,6 +747,30 @@
    </div>
   </div>
 
+  <div id="tideHub" class="tide-modal" role="dialog" aria-modal="true" aria-labelledby="tideHubTitle" hidden>
+   <div class="casinobox tide-hub-box">
+    <div class="slottop" id="tideHubTitle">Tide storage</div>
+    <div id="tideHubIntro" class="cl"></div>
+    <div id="tideHubTools"></div>
+    <div id="tideHubBody"></div>
+    <div id="tideHubMessage" role="status" aria-live="polite" class="cl"></div>
+    <button class="sbtn" id="tideHubClose">Close</button>
+   </div>
+  </div>
+  <div id="tideBattleFx" class="tide-battle" role="dialog" aria-modal="true" aria-label="Tide battle" hidden>
+   <canvas id="tideArena" aria-label="Your Tide on the left battles a wild Tide on the right"></canvas>
+   <div class="tide-battle-top">
+    <div class="tide-combatant"><div id="tidePlayerName"></div><div class="tide-health"><i id="tidePlayerHp"></i><b id="tidePlayerHpText"></b></div><small id="tidePlayerStatus"></small></div>
+    <div id="tideTurn">Round 1</div>
+    <div class="tide-combatant foe"><div id="tideFoeName"></div><div class="tide-health"><i id="tideFoeHp"></i><b id="tideFoeHpText"></b></div><small id="tideFoeStatus"></small></div>
+   </div>
+   <div class="tide-battle-bottom">
+    <div id="tideBattleLog" role="log" aria-live="polite"></div>
+    <div id="tideActions"><button class="sbtn gold" id="tideAttack"></button><button class="sbtn" id="tidePower"></button><button class="sbtn" id="tideRetreat">Retreat</button></div>
+    <div id="tideResult" hidden></div>
+   </div>
+  </div>
+
   <nav>
     <button data-tab="battle" class="cur"><svg viewBox="0 0 24 24"><path d="M14.5 4 20 9.5 9.5 20 4 14.5z"/><path d="m4 20 3-3M17 7l3-3"/></svg>World</button>
     <button data-tab="hero"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.5 7.5-8 9-4.5-1.5-8-4.5-8-9V6z"/></svg>Hero</button>
@@ -773,6 +799,11 @@
 <script src="assets/ui/wasteland-map.js?v=2"></script>
 <script src="assets/mounts/mounts.js?v=1"></script>
 <script src="assets/mounts/renderer.js?v=1"></script>
-<script src="game.js?v=95"></script>
+<script src="assets/tides/catalog.js?v=1"></script>
+<script src="assets/tides/core.js?v=1"></script>
+<script src="assets/tides/exploration.js?v=1"></script>
+<script src="assets/tides/art-layout.js?v=1"></script>
+<script src="assets/tides/ui.js?v=1"></script>
+<script src="game.js?v=96"></script>
 </body>
 </html>
