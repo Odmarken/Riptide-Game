@@ -143,8 +143,22 @@ test('walking phase depends on distance, idle feet settle, and a teleport never 
  assert.equal(a.ride.phase,phase);assert.equal(a.ride.moving,0);
  a.hero.x+=2000;M.tick(a.ride,a.state,a.context,.1);
  assert.equal(a.ride.phase,phase);assert.equal(a.ride.moving,0);
- a.hero.x+=2;M.tick(a.ride,a.state,a.context,.1);close(a.ride.phase,(phase+.14)%(Math.PI*2));
+ a.hero.x+=2;M.tick(a.ride,a.state,a.context,.1);close(a.ride.phase,(phase+.084)%(Math.PI*2));
  assert.equal(a.ride.moving,1,'the first genuine step after teleport resumes from the new location');
  const paused=JSON.stringify(a.ride);M.tick(a.ride,a.state,{...a.context,paused:true},100);
  assert.equal(JSON.stringify(a.ride),paused);
+});
+
+test('all mounts keep the same stride at different frame rates and breathe while resting without moving feet',()=>{
+ for(const id of ['horse','leopard','spectral-tiger']){
+  const a=mounted(id),b=mounted(id);
+  for(let n=0;n<30;n++){a.hero.x+=3;M.tick(a.ride,a.state,a.context,1/30);}
+  for(let n=0;n<120;n++){b.hero.x+=.75;M.tick(b.ride,b.state,b.context,1/120);}
+  close(a.ride.phase,b.ride.phase);close(a.ride.time,b.ride.time);
+  const phase=a.ride.phase,time=a.ride.time;
+  M.tick(a.ride,a.state,a.context,.5);
+  assert.equal(a.ride.phase,phase);assert.equal(a.ride.moving,0);assert.notEqual(a.ride.time,time);
+  const resting=JSON.stringify(a.ride);M.tick(a.ride,a.state,{...a.context,paused:true},.5);
+  assert.equal(JSON.stringify(a.ride),resting,'pausing freezes breathing as well as strides');
+ }
 });

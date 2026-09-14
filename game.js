@@ -142,7 +142,7 @@ const npcMaleImg=new Image();npcMaleImg.src='assets/characters/npc/npc_male.png'
    turn-of-the-century overcoat, at the same size and framing, so he drops into the same slot. */
 const npcSebbeImg=new Image();npcSebbeImg.src='assets/characters/npc/npc_sebbe.png';
 const npcFemaleImg=new Image();npcFemaleImg.src='assets/characters/npc/npc_female.png';
-const mountImages=Object.fromEntries(Mounts.catalog.map(m=>{const im=new Image();im.src=m.art;return [m.id,im];}));
+const mountImages=Object.fromEntries(Mounts.catalog.map(m=>{const im=new Image();im.src=m.art+(m.artVersion?'?v='+m.artVersion:'');return [m.id,im];}));
 const stableImg=new Image();stableImg.src='assets/mounts/stable.png';
 const charSpriteCache={};
 function charSprite(raceId,clsId,female){
@@ -7613,7 +7613,7 @@ function draw(){
  if(world.stable&&!TideUI.isBattling())world.stable.paddock.displaySpots.forEach((spot,i)=>{
   if(spot.x<cx0||spot.x>cx1||spot.y<cy0||spot.y>cy1)return;
   const id=i?'leopard':'horse';
-  drawables.push({y:spot.y,f:()=>MountRenderer.draw(ctx,{id,img:mountImages[id],x:spot.x,y:spot.y,fx:spot.fx,moving:0,phase:0,deviceScale:zoom*DPR})});
+  drawables.push({y:spot.y,f:()=>MountRenderer.draw(ctx,{id,img:mountImages[id],x:spot.x,y:spot.y,fx:spot.fx,moving:0,phase:0,time:performance.now()/1000,deviceScale:zoom*DPR})});
  });
  for(const en of enemies)drawables.push({y:en.y,f:()=>drawEnemy(en)});
  if(hero)drawables.push({y:hero.y,f:drawHero});
@@ -8869,8 +8869,8 @@ function drawHero(){
  let rideLayout=null,emission;
  if(riding){
   by=0;
-  rideLayout=MountRenderer.draw(ctx,{id:mountRide.id,img:mountImages[mountRide.id],fx,phase:mountRide.phase,moving:mountRide.moving,deviceScale:zoom*DPR,bootWidth:character?.boots.bw},(g,ride)=>{
-   MountRenderer.drawRiderBoots(g,bootImg,ride);
+  rideLayout=MountRenderer.draw(ctx,{id:mountRide.id,img:mountImages[mountRide.id],fx,phase:mountRide.phase,time:mountRide.time,moving:mountRide.moving,deviceScale:zoom*DPR,bootImg,bootWidth:character?.boots.bw},(g,ride)=>{
+   MountRenderer.drawRiderBoots(g,bootImg,ride,'near');
    return drawChampionSprite(g,S.race,c.id,fx,0,0,isFK(S.gear.weapon),isFG(S.gear.weapon)?'felglaives':isFK(S.gear.weapon)?'rimfrost':null,S.gender==='f',1,isIce(S.gear.armor),wRune,ride);
   });
   emission=rideLayout?.riderResult;
@@ -9376,10 +9376,10 @@ function openStable(){
 }
 function stableRefresh(message=''){
  const selected=Mounts.selected(S);
- $('stableSlot').innerHTML=`<div class="fmslot">${selected?`<img src="${selected.art}" alt="${selected.name}">`:'—'}</div><div><small>EQUIPPED MOUNT</small>${selected?selected.name:'Choose your first companion'}</div>`;
+ $('stableSlot').innerHTML=`<div class="fmslot">${selected?`<img src="${mountImages[selected.id].src}" alt="${selected.name}">`:'—'}</div><div><small>EQUIPPED MOUNT</small>${selected?selected.name:'Choose your first companion'}</div>`;
  $('stableStock').innerHTML=Mounts.catalog.map(m=>{
   const owned=S.mounts.owned.includes(m.id),equipped=selected?.id===m.id;
-  return `<div class="stable-card${equipped?' equipped':''}"><img src="${m.art}" alt="${m.kind}"><h3>${m.name}</h3><p class="cl">${m.description}</p><span class="stable-speed">+${Math.round((m.speed-1)*100)}% riding speed</span>${owned?'<span class="stable-owned">Bought</span>':''}<button class="sbtn${owned?'':' gold'}" data-mount="${m.id}" ${equipped?'disabled':''}>${equipped?'Equipped':owned?'Equip':`Buy · ${m.price.toLocaleString()} gold`}</button></div>`;
+  return `<div class="stable-card${equipped?' equipped':''}"><img src="${mountImages[m.id].src}" alt="${m.kind}"><h3>${m.name}</h3><p class="cl">${m.description}</p><span class="stable-speed">+${Math.round((m.speed-1)*100)}% riding speed</span>${owned?'<span class="stable-owned">Bought</span>':''}<button class="sbtn${owned?'':' gold'}" data-mount="${m.id}" ${equipped?'disabled':''}>${equipped?'Equipped':owned?'Equip':`Buy · ${m.price.toLocaleString()} gold`}</button></div>`;
  }).join('');
  $('stableWallet').textContent=totalGold().toLocaleString()+' gold available';
  $('stableMessage').textContent=message;
@@ -9413,7 +9413,7 @@ function buildSkillbar(){
  const c=classOf();
  let h='';
  const equippedMount=Mounts.selected(S);
- if(equippedMount)h+=`<button class="skill pot mount" id="mountBtn" title="Mount / dismount (X)"><img class="btnico" src="${equippedMount.art}" alt="${equippedMount.name}"><div class="cdm" id="mountCastFill"></div><span class="mount-key">X</span></button>`;
+ if(equippedMount)h+=`<button class="skill pot mount" id="mountBtn" title="Mount / dismount (X)"><img class="btnico" src="${mountImages[equippedMount.id].src}" alt="${equippedMount.name}"><div class="cdm" id="mountCastFill"></div><span class="mount-key">X</span></button>`;
  c.spells.forEach((sp,i)=>{
   h+=`<button class="skill" id="sk${i}" title="${sp.n}">${spellGlyph(sp)}<div class="cdm" id="skcd${i}"></div><span class="cost">${spellManaCost(sp)}</span><span class="au" id="au${i}"></span></button>`;
  });

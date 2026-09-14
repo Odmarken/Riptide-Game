@@ -3,7 +3,7 @@ const Mounts=(()=>{
  const catalog=Object.freeze([
   Object.freeze({id:'horse',name:'Chestnut Courser',kind:'Horse',price:25000,speed:1.65,art:'assets/mounts/horse.png',description:'A steady companion for the long roads of Wasteland.'}),
   Object.freeze({id:'leopard',name:'Amberfang Leopard',kind:'Leopard',price:150000,speed:1.9,art:'assets/mounts/leopard.png',description:'A sure-footed spotted hunter with a swift, rolling stride.'}),
-  Object.freeze({id:'spectral-tiger',name:'Azure Spectral Tiger',kind:'Spectral tiger',price:750000,speed:2.1,art:'assets/mounts/spectral-tiger.png',description:'Blue spirit-fire shimmers beneath its ancient silver armour.'})
+  Object.freeze({id:'spectral-tiger',name:'Azure Spectral Tiger',kind:'Spectral tiger',price:750000,speed:2.1,art:'assets/mounts/spectral-tiger.png',artVersion:2,description:'Blue spirit-fire shimmers beneath its ancient silver armour.'})
  ]);
  const byId=new Map(catalog.map(m=>[m.id,m]));
  const get=id=>byId.get(id)||null;
@@ -26,7 +26,8 @@ const Mounts=(()=>{
   const collection=normalize(state.mounts);if(!collection.owned.includes(id))return false;
   collection.equipped=id;state.mounts=collection;return true;
  }
- const createRide=()=>({id:null,casting:null,remaining:0,castTravel:0,phase:0,moving:0,lastX:null,lastY:null});
+ const stride={horse:.042,leopard:.037,'spectral-tiger':.034};
+ const createRide=()=>({id:null,casting:null,remaining:0,castTravel:0,phase:0,time:0,moving:0,lastX:null,lastY:null});
  function reset(ride){Object.assign(ride,createRide());}
  function toggle(ride,state,{zone,hero,paused=false,busy=false}){
   if(!hero||hero.dead||paused||busy)return {ok:false,reason:'busy'};
@@ -50,8 +51,9 @@ const Mounts=(()=>{
    if(ride.remaining<1e-9){ride.id=ride.casting;ride.casting=null;ride.remaining=0;}
   }
   if(ride.id){
+   ride.time=(ride.time+dt)%(Math.PI*2/2.15);
    // Teleports do not create a stride or a huge phase jump.
-   if(travel<160)ride.phase=(ride.phase+travel*.07)%(Math.PI*2);
+   if(travel<160)ride.phase=(ride.phase+travel*stride[ride.id])%(Math.PI*2);
    ride.moving=Math.max(0,Math.min(1,ride.moving+(travel>dt*2&&travel<160?dt*10:-dt*8)));
   }
  }
