@@ -8032,7 +8032,7 @@ function drawProp(s,z,withShadow=true){
  if(s.type==='stable'){
   if(stableImg.complete&&stableImg.naturalWidth){
    const W=world.stable?.building.w||310,H=W*stableImg.naturalHeight/stableImg.naturalWidth,top=-H*.96;
-   ctx.globalAlpha*=seeThrough(s,W,H,top);ctx.drawImage(mip(stableImg,W),-W/2,top,W,H);
+   ctx.globalAlpha*=seeThrough(s,W,H,top);ctx.scale(-1,1);ctx.drawImage(mip(stableImg,W),-W/2,top,W,H);
   }
   ctx.restore();return;
  }
