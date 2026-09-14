@@ -2,6 +2,7 @@
 const TideUI=(()=>{
  const frames=new Map(),sheets=new Map();
  let session=null,hubMode='',wildChoice=null,storageLimit=48,clockTick=0;
+ let storagePetId=null,storageOwner=null,storageReturnTab='hero',storageReturnScroll=0,storageScroll=0,storageReturnHub=null;
  const el=id=>document.getElementById(id),html=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const species=id=>Tides.getSpecies(id),owned=()=>Tides.equipped(S.tides),outdoors=()=>!!(S&&zoneOf().wasteland&&!zoneOf().dungeon);
  const stars=s=>`<span class="tide-stars${s.spectral?' spectral':''}">${'★'.repeat(s.stars)}${s.spectral?' · Spectral':''}</span>`;
@@ -60,36 +61,87 @@ const TideUI=(()=>{
  function entry(){
   const host=el('tideStorageEntry');if(!host||!S)return;
   if(!S.tides?.lassoOwned){host.innerHTML='';return;}
-  const p=owned(),s=p&&species(p.speciesId);
-  host.innerHTML=`<button class="card tide-entry" id="tideStorageButton">${s?icon(s):'<span>✦</span>'}<span><span class="sn">Tide storage · ${S.tides.pets.length.toLocaleString()}</span><br><span class="ss">${s?html(s.name)+' · Level '+p.level+' · '+restText(p):'Choose your battle companion'}<br>Collect, train and equip your Tides</span></span></button>`;
-  el('tideStorageButton').onclick=openStorage;paintIcons();
+  host.innerHTML='<button class="card tide-entry" id="tideStorageButton">Tide storage</button>';
+  el('tideStorageButton').onclick=openStorage;
  }
  function bagItem(){return S.tides?.lassoOwned?`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600"><img src="assets/tides/lasso.png" class="shopico" alt=""> Tidekeeper's Lasso</div><div class="ss" style="font-size:11px;color:var(--dim)">Reusable. Challenge wild Tides in Wasteland and win to tame them. Cannot be sold or discarded.</div></div><div class="btns"><button class="sbtn" id="tideBagStorage">Tide storage</button></div></div>`:'';}
  function bindBag(){if(el('tideBagStorage'))el('tideBagStorage').onclick=openStorage;}
  function petCard(p){
-  const s=species(p.speciesId),st=Tides.stats(p),ready=!remaining(p),equipped=S.tides.equippedId===p.id,next=Tides.xpToNext(p.level);
-  return `<div class="tide-card${equipped?' equipped':''}" data-tide-pet="${html(p.id)}">${icon(s)}<h3>${html(s.name)}</h3>${stars(s)}<div class="cl">Level ${p.level} · ${st.maxHp} HP · ${st.atk} ATK</div><div class="tide-xp"><i style="width:${next?Math.min(100,p.xp/next*100):100}%"></i></div><div class="cl">${next?p.xp+' / '+next+' XP':'Maximum level'}</div><span class="tide-state${ready?'':' resting'}">${restText(p)}</span><div class="tide-skills"><b>${html(s.attack.name)}</b><br>${html(s.attack.description)}<br><b>${html(s.skill.name)}</b><br>${html(s.skill.description)}</div><button class="sbtn${equipped?' gold':''}" data-tide-equip="${html(p.id)}" ${equipped||!ready?'disabled':''}>${equipped?'Equipped':ready?'Equip':'Recovering'}</button></div>`;
+  const s=species(p.speciesId),equipped=S.tides.equippedId===p.id;
+  return `<button class="tide-card${equipped?' equipped':''}" data-tide-pet="${html(p.id)}" aria-label="View ${html(s.name)} stats">${icon(s)}<span class="tide-card-name">${html(s.name)}</span>${stars(s)}<span class="cl">Level <span data-tide-level>${p.level}</span></span><span class="tide-state" data-tide-state>${restText(p)}</span><span class="tide-equipped-badge" data-tide-equipped>${equipped?'Equipped':''}</span></button>`;
+ }
+ function storageOpen(){return !!el('p-tides')?.classList.contains('open');}
+ function filteredPets(){
+  const query=(el('tideSearch')?.value||'').trim().toLowerCase(),filter=el('tideFilter')?.value||'all';
+  return S.tides.pets.filter(p=>{const s=species(p.speciesId);return (!query||s.name.toLowerCase().includes(query))&&(filter==='all'||filter==='ready'&&!remaining(p)||filter==='spectral'&&s.spectral||String(s.stars)===filter);});
  }
  function renderStorage(reset=true){
-  if(hubMode!=='storage')return;
+  if(!storageOpen()||storagePetId)return;
   if(reset)storageLimit=48;
-  const query=(el('tideSearch')?.value||'').trim().toLowerCase(),filter=el('tideFilter')?.value||'all';
-  const filtered=S.tides.pets.filter(p=>{const s=species(p.speciesId);return (!query||s.name.toLowerCase().includes(query))&&(filter==='all'||filter==='ready'&&!remaining(p)||filter==='spectral'&&s.spectral||String(s.stars)===filter);});
-  const scroll=el('tideHubBody').scrollTop,shown=filtered.slice(0,storageLimit);
-  el('tideHubBody').innerHTML=`<div class="tide-grid">${shown.map(petCard).join('')}</div>${!shown.length?'<p class="cl">No Tides match this search.</p>':''}${shown.length<filtered.length?'<p class="cl">Scroll to see more companions…</p>':''}`;
-  el('tideHubBody').scrollTop=reset?0:scroll;
-  el('tideHubBody').querySelectorAll('[data-tide-equip]').forEach(b=>b.onclick=()=>{if(session||hubMode!=='storage')return;const result=Tides.equip(S.tides,b.dataset.tideEquip);if(!result.ok)return;save();entry();renderStorage(false);updateStorageHeader();sfx.click?.();});
-  el('tideHubBody').onscroll=()=>{const box=el('tideHubBody');if(storageLimit<filtered.length&&box.scrollTop+box.clientHeight>=box.scrollHeight-120){storageLimit+=48;renderStorage(false);}};
-  paintIcons();
+  const box=el('p-tides'),scroll=box.scrollTop,filtered=filteredPets(),shown=filtered.slice(0,storageLimit);
+  el('tideStorageTools').hidden=false;
+  el('tideStorageBody').innerHTML=`<div class="tide-grid">${shown.map(petCard).join('')}</div>${!shown.length?'<p class="cl">No Tides match this search.</p>':''}${shown.length<filtered.length?'<p class="cl">Scroll to see more companions…</p>':''}`;
+  el('tideStorageBody').querySelectorAll('[data-tide-pet]').forEach(b=>b.onclick=()=>openPet(b.dataset.tidePet));
+  box.scrollTop=reset?0:scroll;refreshStorageValues();paintIcons();
  }
  function updateStorageHeader(){
   const p=owned(),s=p&&species(p.speciesId);
-  el('tideEquipped').innerHTML=s?`${icon(s)}<span>Equipped: <b>${html(s.name)}</b> · Level ${p.level}<br><small>Gains XP from your mob kills and even more from Tide victories.</small></span>`:'Choose a companion';paintIcons();
+  el('tideStorageIntro').textContent=`${S.tides.pets.length.toLocaleString()} companions · ${new Set(S.tides.pets.map(p=>p.speciesId)).size} / 25 species discovered`;
+  el('tideEquipped').textContent=s?`Equipped: ${s.name} · Level ${p.level} · ${restText(p)}`:'Select a Tide to view its stats and equip it.';
  }
  function openStorage(){
-  if(!S?.tides?.lassoOwned||!openHub('storage','Tide storage',`${S.tides.pets.length.toLocaleString()} companions · ${new Set(S.tides.pets.map(p=>p.speciesId)).size} / 25 species discovered · No storage limit`))return;
-  el('tideHubTools').innerHTML='<div class="tide-equipped-line" id="tideEquipped"></div><div class="tide-tools"><input id="tideSearch" type="search" placeholder="Find a Tide" aria-label="Find a Tide"><select id="tideFilter" aria-label="Filter Tides"><option value="all">All companions</option><option value="ready">Ready for battle</option><option value="1">★ Common</option><option value="2">★★ Uncommon</option><option value="3">★★★ Rare</option><option value="4">★★★★ Epic</option><option value="5">★★★★★ Legendary</option><option value="spectral">Spectral</option></select></div>';
-  el('tideSearch').oninput=()=>renderStorage();el('tideFilter').onchange=()=>renderStorage();updateStorageHeader();renderStorage();
+  if(!gameOn||!S?.tides?.lassoOwned||session)return;
+  const current=document.querySelector('.panel.open');
+  if(current?.id!=='p-tides'){
+   storageReturnTab=current?.id.slice(2)||'battle';storageReturnScroll=current?.scrollTop||0;storagePetId=null;storageScroll=0;storageOwner=null;
+  }
+  storageReturnHub=hubMode==='wild'?{mode:'wild',id:wildChoice}:hubMode==='church'?{mode:'church'}:null;
+  closeHub();toggleSide(false);openTab('tides');
+ }
+ function renderStoragePage(){
+  if(storageOwner!==S.tides){
+   storageOwner=S.tides;storagePetId=null;storageLimit=48;storageScroll=0;
+   el('tideStorageTools').innerHTML='<div class="tide-equipped-line" id="tideEquipped"></div><div class="tide-tools"><input id="tideSearch" type="search" placeholder="Find a Tide" aria-label="Find a Tide"><select id="tideFilter" aria-label="Filter Tides"><option value="all">All companions</option><option value="ready">Ready for battle</option><option value="1">★ Common</option><option value="2">★★ Uncommon</option><option value="3">★★★ Rare</option><option value="4">★★★★ Epic</option><option value="5">★★★★★ Legendary</option><option value="spectral">Spectral</option></select></div>';
+   el('tideSearch').oninput=()=>renderStorage();el('tideFilter').onchange=()=>renderStorage();
+  }
+  el('tideStorageBack').onclick=storageBack;
+  el('p-tides').onscroll=()=>{const box=el('p-tides');if(!storagePetId&&storageLimit<filteredPets().length&&box.scrollTop+box.clientHeight>=box.scrollHeight-120){storageLimit+=48;renderStorage(false);}};
+  if(storagePetId)renderPet();else renderStorage(false);updateStorageHeader();
+ }
+ function openPet(id){
+  if(!storageOpen()||!S.tides.pets.some(p=>p.id===id))return;
+  storageScroll=el('p-tides').scrollTop;storagePetId=id;renderPet();el('p-tides').scrollTop=0;
+ }
+ function renderPet(){
+  const p=S.tides.pets.find(p=>p.id===storagePetId);if(!p){storagePetId=null;renderStorage();return;}
+  const s=species(p.speciesId);
+  el('tideStorageTools').hidden=true;
+  el('tideStorageBody').innerHTML=`<div class="card tide-detail" id="tideDetail">${icon(s)}<h3>${html(s.name)}</h3>${stars(s)}<p class="cl">${html(s.description)}</p><div class="tide-stat-grid"><div><span>Level</span><b data-tide-level></b></div><div><span>Health</span><b data-tide-hp></b></div><div><span>Attack</span><b data-tide-atk></b></div></div><div class="tide-xp"><i data-tide-xp-bar></i></div><div class="cl" data-tide-xp></div><div class="tide-state" data-tide-state></div><div class="tide-skills"><b>${html(s.attack.name)}</b><p>${html(s.attack.description)}</p><b>${html(s.skill.name)}</b><p>${html(s.skill.description)}</p></div><button class="sbtn" data-tide-equip="${html(p.id)}"></button><p class="cl">Your equipped Tide earns XP from mob kills and Tide battles.</p></div>`;
+  el('tideDetail').querySelector('[data-tide-equip]').onclick=e=>{
+   if(session||!storageOpen()||remaining(p))return;const result=Tides.equip(S.tides,p.id);if(!result.ok)return;
+   save();entry();refreshStorageValues();sfx.click?.();e.currentTarget.blur();
+  };
+  refreshStorageValues();paintIcons();
+ }
+ function refreshStorageValues(){
+  if(!storageOpen()||!S?.tides?.lassoOwned)return;
+  const fill=(box,p)=>{
+   const st=Tides.stats(p),next=Tides.xpToNext(p.level),ready=!remaining(p),equipped=S.tides.equippedId===p.id;
+   for(const [key,value]of Object.entries({level:p.level,hp:st.maxHp,atk:st.atk,xp:next?`${p.xp} / ${next} XP`:'Maximum level',state:restText(p),equipped:equipped?'Equipped':''}))box.querySelectorAll('[data-tide-'+key+']').forEach(n=>n.textContent=value);
+   box.querySelectorAll('[data-tide-state]').forEach(n=>n.classList.toggle('resting',!ready));
+   box.querySelectorAll('[data-tide-xp-bar]').forEach(n=>n.style.width=(next?Math.min(100,p.xp/next*100):100)+'%');
+   const button=box.querySelector('[data-tide-equip]');if(button){button.disabled=equipped||!ready;button.textContent=equipped?'Equipped':ready?'Equip':'Recovering';}
+   box.classList.toggle('equipped',equipped);
+  };
+  el('tideStorageBody').querySelectorAll('[data-tide-pet]').forEach(card=>{const p=S.tides.pets.find(p=>p.id===card.dataset.tidePet);if(p)fill(card,p);});
+  const p=S.tides.pets.find(p=>p.id===storagePetId);if(p&&el('tideDetail'))fill(el('tideDetail'),p);updateStorageHeader();
+ }
+ function storageBack(){
+  if(!storageOpen())return;
+  if(storagePetId){storagePetId=null;renderStorage(false);el('p-tides').scrollTop=storageScroll;return;}
+  const back=storageReturnHub;storageReturnHub=null;openTab(storageReturnTab==='battle'&&isDesktopLayout()?'hero':storageReturnTab);
+  const previous=el('p-'+storageReturnTab);if(previous)previous.scrollTop=storageReturnScroll;
+  if(back?.mode==='wild')openWild(back.id);else if(back?.mode==='church')openChurch();
  }
  function exploration(){if(!S.tides.exploration)S.tides.exploration=TideExploration.create();return S.tides.exploration;}
  function updateExploration(){
@@ -191,7 +243,7 @@ const TideUI=(()=>{
   let lx=left,rx=right,ly=floor,ry=floor,actor=null,progress=0,style='melee',color='#ddd',hit=0;
   if(anim){const index=Math.min(anim.moves.length-1,Math.floor(anim.elapsed/.85));actor=anim.moves[index];progress=Math.max(0,Math.min(1,(anim.elapsed-index*.85)/.85));if(actor){const s=species(b[actor.side].speciesId),move=actor.type==='power'?s.skill:s.attack;style=move.style;color=move.color;hit=Math.sin(Math.PI*Math.max(0,(progress-.45)/.55));if(style==='melee'){const p=Math.sin(Math.PI*progress),travel=(right-left-size*.55)*p;if(actor.side==='player'){lx+=travel;ly-=Math.sin(progress*Math.PI*3)*9*p;}else{rx-=travel;ry-=Math.sin(progress*Math.PI*3)*9*p;}}}}
   // The player's own race, armor and weapon remain visible behind the left Tide.
-  g.save();g.translate(w*.15,floor-5);const hs=Math.min(size/58,1.65);g.scale(hs,hs);const f=paintedCharacterFrame(S.race,S.cls,S.gender==='f',isIce(S.gear.armor));if(f)bootFeet({...f.boots,moving:false,walk:0,bob:0},g);drawChampionSprite(g,S.race,S.cls,1,0,0,isFK(S.gear.weapon),isFG(S.gear.weapon)?'felglaives':isFK(S.gear.weapon)?'rimfrost':null,S.gender==='f',1,isIce(S.gear.armor),null);g.restore();
+  g.save();g.translate(w*.105,floor-5);const hs=w<650?Math.min(2.6,w*.27/58):Math.min(4.2,h*.3/58,w*.2/58);g.scale(hs,hs);const f=paintedCharacterFrame(S.race,S.cls,S.gender==='f',isIce(S.gear.armor));if(f)bootFeet({...f.boots,moving:false,walk:0,bob:0},g);drawChampionSprite(g,S.race,S.cls,1,0,0,isFK(S.gear.weapon),isFG(S.gear.weapon)?'felglaives':isFK(S.gear.weapon)?'rimfrost':null,S.gender==='f',1,isIce(S.gear.armor),null);g.restore();
   drawAnimal(g,b.player.speciesId,lx,ly,size,1,actor?.side==='player'?1:0,progress*Math.PI*6,b.player.hp<=0&&session.shownResult?.6:1);
   drawAnimal(g,b.foe.speciesId,rx,ry,size,-1,actor?.side==='foe'?1:0,progress*Math.PI*6,b.foe.hp<=0&&session.shownResult?.5:1);
   if(actor&&style==='magic'){
@@ -204,7 +256,7 @@ const TideUI=(()=>{
  function tick(dt){
   clockTick+=dt;
   if(clockTick>=1&&hubMode==='wild'&&el('tideChallenge')){const p=owned();el('tideChallenge').disabled=!p||remaining(p)>0;if(el('tideWildReady'))el('tideWildReady').textContent=restText(p);}
-  if(clockTick>=1){clockTick=0;if(hubMode==='storage')el('tideHubBody').querySelectorAll('[data-tide-pet]').forEach(card=>{const p=S.tides.pets.find(p=>p.id===card.dataset.tidePet);if(!p)return;const state=card.querySelector('.tide-state'),btn=card.querySelector('button'),ready=!remaining(p);state.textContent=restText(p);state.classList.toggle('resting',!ready);btn.disabled=!ready||p.id===S.tides.equippedId;btn.textContent=p.id===S.tides.equippedId?'Equipped':ready?'Equip':'Recovering';});}
+  if(clockTick>=1){clockTick=0;refreshStorageValues();}
   if(!session)return;session.time+=dt;
   const a=session.animation;if(a){
    a.elapsed+=dt;
@@ -222,5 +274,5 @@ const TideUI=(()=>{
   if(!session?.backdrop||session.time>2||session.time<(session.nextBackdrop||0))return;
   session.nextBackdrop=session.time+.25;session.backdrop.getContext('2d').drawImage(cv,0,0);paintBattle();
  }
- return {entry,bagItem,bindBag,openChurch,churchInReach,openStorage,openWild,wildClick,nearestWild,updateExploration,addWildDrawables,modalOpen,isBattling:()=>!!session,begin,act,retreat,closeHub,closeBattle,leaveZone,awardKill,tick,paintBattle,afterDraw,frameFor,drawAnimal,paintIcons};
+ return {entry,bagItem,bindBag,openChurch,churchInReach,openStorage,renderStoragePage,storageOpen,storageBack,openWild,wildClick,nearestWild,updateExploration,addWildDrawables,modalOpen,isBattling:()=>!!session,begin,act,retreat,closeHub,closeBattle,leaveZone,awardKill,tick,paintBattle,afterDraw,frameFor,drawAnimal,paintIcons};
 })();

@@ -19,7 +19,7 @@
 <!-- ?v= is not decoration: without it iOS Safari serves a cached stylesheet for days, so two
      phones end up running two different builds of the layout. Bump on every visual change. -->
 <link rel="stylesheet" href="style.css?v=51">
-<link rel="stylesheet" href="assets/tides/ui.css?v=1">
+<link rel="stylesheet" href="assets/tides/ui.css?v=2">
 </head>
 <body>
 <div id="app">
@@ -227,6 +227,13 @@
     <div class="wallet" id="bagWallet"></div>
     <div id="scrollSec"></div>
     <div id="bagList"></div>
+  </div>
+
+  <div class="panel" id="p-tides" aria-labelledby="tideStorageTitle">
+    <div class="tide-storage-top"><button class="sbtn" id="tideStorageBack" aria-label="Back">← Back</button><div class="ptitle" id="tideStorageTitle">Tide storage</div></div>
+    <div class="cl" id="tideStorageIntro"></div>
+    <div id="tideStorageTools"></div>
+    <div id="tideStorageBody"></div>
   </div>
  
   <div class="panel" id="p-shop">
@@ -803,7 +810,7 @@
 <script src="assets/tides/core.js?v=1"></script>
 <script src="assets/tides/exploration.js?v=1"></script>
 <script src="assets/tides/art-layout.js?v=1"></script>
-<script src="assets/tides/ui.js?v=1"></script>
-<script src="game.js?v=96"></script>
+<script src="assets/tides/ui.js?v=2"></script>
+<script src="game.js?v=97"></script>
 </body>
 </html>

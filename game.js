@@ -6146,6 +6146,7 @@ window.addEventListener('keydown',e=>{
  const kl=k.toLowerCase();
  if(!kl)return;
  if((/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||'')||document.activeElement?.isContentEditable)&&kl!=='escape')return;
+ if(gameOn&&S&&kl==='escape'&&TideUI.storageOpen()&&!TideUI.modalOpen()&&!$('cfgBox').classList.contains('open')){e.preventDefault();document.activeElement?.blur();TideUI.storageBack();return;}
  if(TideUI.modalOpen()&&!TideUI.isBattling()){if(kl==='escape'){e.preventDefault();TideUI.closeHub();}return;}
  if(TideUI.isBattling()){
   if(kl==='escape'){e.preventDefault();$('cfgBox').classList.toggle('open');return;}
@@ -6220,6 +6221,7 @@ cv.addEventListener('contextmenu',()=>{
 cv.addEventListener('pointerdown',e=>{
  if(!gameOn||gamePaused||hero.dead||pinching)return;
  if(e.button===2)return; /* the right button is the deselect gesture - contextmenu owns it */
+ if($('p-tides')?.contains(document.activeElement))document.activeElement.blur();
  const r=cv.getBoundingClientRect();
  const wx=(e.clientX-r.left)/zoom+camX,wy=(e.clientY-r.top)/zoom+camY;
  hero.pendingDoor=null; /* any new click cancels a pending walk-to-building */
@@ -7688,7 +7690,7 @@ function draw(){
   }else{ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();}
   ctx.globalAlpha=1;
  }
- for(const f of floats){
+ for(const f of TideUI.isBattling()?[]:floats){
   ctx.font=(f.big?'700 15px':'700 12.5px')+' '+getComputedStyle(document.body).fontFamily;
   ctx.textAlign='center';ctx.globalAlpha=1-f.t;
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(f.txt,f.x+1,f.y-f.t*44+1);
@@ -8802,7 +8804,7 @@ function drawPadPrompt(t){
  ctx.restore();
 }
 function drawPet(){
- if(!pet||!activePet()||hero.dead)return;
+ if(TideUI.isBattling()||!pet||!activePet()||hero.dead)return;
  const p=petOf(S.pet),now=performance.now();
  ctx.save();ctx.translate(pet.x,pet.y);
  const by=pet.moving?Math.sin(pet.walk*2)*1.6:Math.sin(now/500)*0.7;
@@ -12756,12 +12758,14 @@ function confirmBox(msg,onYes){ /* small in-style "are you sure" overlay */
 let desktopSideTab='hero';
 function openTab(t){
  if(isDesktopLayout()&&t==='battle')t=desktopSideTab;
+ if(t==='tides'&&!S?.tides?.lassoOwned)t='hero';
  if(t!=='battle')desktopSideTab=t;
  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));
- document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('cur',b.dataset.tab===t));
+ document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('cur',b.dataset.tab===(t==='tides'?'hero':t)));
  if(t==='hero'){renderHero();$('p-hero').classList.add('open');}
  if(t==='map'){if(S&&zoneOf().west)mapContinent='west';if(S&&zoneOf().valhalla)mapContinent='valhalla';if(S&&zoneOf().raidc)mapContinent='raid';renderMap();$('p-map').classList.add('open');}
  if(t==='bag'){renderBag();$('p-bag').classList.add('open');}
+ if(t==='tides'){$('p-tides').classList.add('open');TideUI.renderStoragePage();}
  if(t==='shop'){renderShop();$('p-shop').classList.add('open');}
 }
 /* ==================== MOONSHINE INN - daily Rested XP wheel ====================
