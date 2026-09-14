@@ -2,9 +2,10 @@
  * supplied by the game; the bounded, JSON-safe survey belongs to one character. */
 (function(root){
  'use strict';
- const WIDTH=50400,HEIGHT=26000,MAX_WILD=14,MAX_STEP=500,DESPAWN_DISTANCE=1500;
- const MIN_ROLL_DISTANCE=100,MAX_ROLL_DISTANCE=180,SPAWN_CHANCE=.66;
- const MIN_RADIUS=120,MAX_RADIUS=440,SEPARATION=68,MIN_TTL=300000,MAX_TTL=600000;
+ const WIDTH=50400,HEIGHT=26000,MAX_WILD=8,MAX_STEP=500,DESPAWN_DISTANCE=1500;
+ const MIN_ROLL_DISTANCE=220,MAX_ROLL_DISTANCE=360,SPAWN_CHANCE=.50;
+ const MIN_RADIUS=280,MAX_RADIUS=750,SEPARATION=120,MIN_TTL=300000,MAX_TTL=600000;
+ const ROAM_RADIUS=60,ROAM_SPEED=16;
  const GROUPS=Object.freeze([
   Object.freeze(['meadowmouse','bramblebunny','pebbletoad','thistlesparrow','amberbeetle']),
   Object.freeze(['mossfox','reedotter','duskmoth','shellsnap','acornboar']),
@@ -17,6 +18,28 @@
  const number=(n,fallback)=>Number.isFinite(n)?n:fallback;
  const integer=(n,fallback,min=0,max=Number.MAX_SAFE_INTEGER)=>clamp(Math.floor(number(n,fallback)),min,max);
  const position=p=>!!p&&Number.isFinite(p.x)&&Number.isFinite(p.y);
+ function animalSeed(id){
+  let hash=2166136261;
+  for(let i=0;i<id.length;i++)hash=Math.imul(hash^id.charCodeAt(i),16777619);
+  return hash>>>0;
+ }
+ // A separate stream lets animals wander while the player stands still without
+ // changing encounter rolls, species, levels or the saved exploration counter.
+ function roamRandom(p){
+  p.roamSeed=(Math.imul(p.roamSeed,1664525)+1013904223)>>>0;
+  return p.roamSeed/4294967296;
+ }
+ function restoreRoaming(p,raw=p){
+  const homeX=number(raw.homeX,p.x),homeY=number(raw.homeY,p.y);
+  const homeValid=homeX>=24&&homeX<=WIDTH-24&&homeY>=24&&homeY<=HEIGHT-24&&Math.hypot(homeX-p.x,homeY-p.y)<=ROAM_RADIUS+1;
+  p.homeX=homeValid?homeX:p.x;p.homeY=homeValid?homeY:p.y;
+  p.roamSeed=integer(raw.roamSeed,animalSeed(p.id),0,4294967295);
+  p.roamTime=clamp(number(raw.roamTime,2+(p.roamSeed%5000)/1000),0,8);
+  const targetValid=Number.isFinite(raw.roamTargetX)&&Number.isFinite(raw.roamTargetY)&&Math.hypot(raw.roamTargetX-p.homeX,raw.roamTargetY-p.homeY)<=ROAM_RADIUS;
+  p.roamTargetX=targetValid?raw.roamTargetX:null;p.roamTargetY=targetValid?raw.roamTargetY:null;
+  p.motion=clamp(number(raw.motion,0),0,1);
+  return p;
+ }
  function create(saved,options={}){
   const raw=saved&&typeof saved==='object'&&!Array.isArray(saved)?saved:{};
   const seed=integer(raw.seed,integer(options.seed,Math.floor(Math.random()*4294967296)),0,4294967295);
@@ -27,14 +50,15 @@
    if(wild.some(p=>Math.hypot(p.x-item.x,p.y-item.y)<SEPARATION))continue;
    seen.add(item.id);
    const spawnedAt=Math.max(0,number(item.spawnedAt,0));
-   wild.push({id:item.id,speciesId:item.speciesId,level:integer(item.level,1,1,20),x:item.x,y:item.y,fx:item.fx<0?-1:1,
-    spawnedAt,expiresAt:clamp(number(item.expiresAt,spawnedAt+MIN_TTL),spawnedAt,spawnedAt+MAX_TTL),walkphase:number(item.walkphase,0)});
+   wild.push(restoreRoaming({id:item.id,speciesId:item.speciesId,level:integer(item.level,1,1,20),x:item.x,y:item.y,fx:item.fx<0?-1:1,
+    spawnedAt,expiresAt:clamp(number(item.expiresAt,spawnedAt+MIN_TTL),spawnedAt,spawnedAt+MAX_TTL),walkphase:number(item.walkphase,0)},item));
   }
   const usedId=wild.reduce((highest,p)=>Math.max(highest,integer(Number(p.id.split('-').at(-1)),0)),0);
-  return {version:1,seed,randomState:integer(raw.randomState,seed,0,4294967295),counter:integer(raw.counter,0),
+  const nextDistance=raw.version===2?clamp(number(raw.nextDistance,300),MIN_ROLL_DISTANCE,MAX_ROLL_DISTANCE):300;
+  return {version:2,seed,randomState:integer(raw.randomState,seed,0,4294967295),counter:integer(raw.counter,0),
    nextId:Math.max(integer(raw.nextId,1,1),usedId+1),rolls:integer(raw.rolls,0),
    initialized:raw.initialized===true||wild.length>0,starterSeen:raw.starterSeen===true||wild.length>0,
-   distance:clamp(number(raw.distance,0),0,MAX_ROLL_DISTANCE),nextDistance:clamp(number(raw.nextDistance,140),MIN_ROLL_DISTANCE,MAX_ROLL_DISTANCE),
+   distance:raw.version===2?clamp(number(raw.distance,0),0,nextDistance):0,nextDistance,
    lastX:Number.isFinite(raw.lastX)?raw.lastX:null,lastY:Number.isFinite(raw.lastY)?raw.lastY:null,
    lastWorldKey:typeof raw.lastWorldKey==='string'?raw.lastWorldKey:null,lastNow:Math.max(0,number(raw.lastNow,0)),wild,
    recent:(Array.isArray(raw.recent)?raw.recent:[]).filter(p=>position(p)&&Number.isFinite(p.until)).slice(-32).map(p=>({x:p.x,y:p.y,until:p.until}))};
@@ -67,10 +91,10 @@
   if(r<.85)return clamp(level-3+Math.floor(v*7),1,20);
   return clamp(level+3+Math.floor(v*6),1,20);
  }
- function clearPosition(state,context,x,y){
+ function clearPosition(state,context,x,y,ignore){
   const world=context.world,edge=24,w=number(context.width,number(world&&world.w,WIDTH)),h=number(context.height,number(world&&world.h,HEIGHT));
   if(x<edge||y<edge||x>w-edge||y>h-edge)return false;
-  if(state.wild.some(p=>Math.hypot(p.x-x,p.y-y)<SEPARATION)||state.recent.some(p=>Math.hypot(p.x-x,p.y-y)<SEPARATION))return false;
+  if(state.wild.some(p=>p!==ignore&&Math.hypot(p.x-x,p.y-y)<SEPARATION)||state.recent.some(p=>Math.hypot(p.x-x,p.y-y)<SEPARATION))return false;
   if(world){
    const landmarks=[...(world.entrances||[]),world.exit,world.portal].filter(position);
    if(landmarks.some(p=>Math.hypot(p.x-x,p.y-y)<Math.max(120,number(p.r,0)+55)))return false;
@@ -90,9 +114,42 @@
    const entry={id:'tide-'+state.seed.toString(36)+'-'+state.nextId++,speciesId:chooseSpecies(state,x,y,override,starter),
     level:chooseLevel(state,context.petLevel,override,starter),x,y,fx:random(state,override)<.5?-1:1,
     spawnedAt:now,expiresAt:now+MIN_TTL+Math.floor(random(state,override)*(MAX_TTL-MIN_TTL)),walkphase:random(state,override)*Math.PI*2};
-   state.starterSeen=true;state.wild.push(entry);return entry;
+   restoreRoaming(entry);state.starterSeen=true;state.wild.push(entry);return entry;
   }
   return null;
+ }
+ function roam(state,context){
+  const dt=clamp(number(context.dt,0),0,.25);if(!dt)return;
+  for(const p of state.wild){
+   if(!Number.isFinite(p.roamSeed))restoreRoaming(p);
+   let moving=false;
+   if(p.roamTargetX===null){
+    p.roamTime-=dt;
+    if(p.roamTime<=0){
+     p.roamTime=0;
+     for(let attempt=0;attempt<6;attempt++){
+      const angle=roamRandom(p)*Math.PI*2,radius=20+roamRandom(p)*(ROAM_RADIUS-20);
+      const x=p.homeX+Math.cos(angle)*radius,y=p.homeY+Math.sin(angle)*radius;
+      if(Math.hypot(x-p.x,y-p.y)<12||!clearPosition(state,context,x,y,p))continue;
+      p.roamTargetX=x;p.roamTargetY=y;break;
+     }
+     if(p.roamTargetX===null)p.roamTime=2+roamRandom(p)*5;
+    }
+   }
+   if(p.roamTargetX!==null){
+    const dx=p.roamTargetX-p.x,dy=p.roamTargetY-p.y,distance=Math.hypot(dx,dy),step=Math.min(distance,ROAM_SPEED*dt);
+    const x=p.x+(distance?dx/distance*step:0),y=p.y+(distance?dy/distance*step:0);
+    if(distance>.01&&clearPosition(state,context,x,y,p)){
+     p.x=x;p.y=y;moving=true;if(Math.abs(dx)>.5)p.fx=dx<0?-1:1;
+     p.walkphase=(p.walkphase+step/18*Math.PI*2)%(Math.PI*2);
+    }
+    if(!moving||distance<=step+.01){
+     p.roamTargetX=null;p.roamTargetY=null;p.roamTime=2+roamRandom(p)*5;
+    }
+   }
+   p.motion+=(Number(moving)-p.motion)*(1-Math.exp(-dt*12));
+   if(p.motion<.001)p.motion=0;
+  }
  }
  function advance(state,context={}){
   if(!state||!Array.isArray(state.wild))return [];
@@ -109,9 +166,10 @@
   state.lastWorldKey=worldKey;state.lastX=context.x;state.lastY=context.y;
   if(!state.initialized){
    state.initialized=true;
-   for(let i=0;i<3;i++)spawn(state,context,now);
+   spawn(state,context,now);
    return state.wild;
   }
+  roam(state,context);
   // Teleports and zone changes establish a fresh anchor without banking travel.
   if(context.teleported||travel>MAX_STEP||travel<=0)return state.wild;
   state.distance+=travel;
@@ -130,7 +188,7 @@
   if(state.recent.length>32)state.recent.splice(0,state.recent.length-32);
   return entry;
  }
- const api={create,advance,take,GROUPS,MAX_WILD,MAX_STEP,DESPAWN_DISTANCE,MIN_ROLL_DISTANCE,MAX_ROLL_DISTANCE,SPAWN_CHANCE,MIN_RADIUS,MAX_RADIUS,MIN_TTL,MAX_TTL};
+ const api={create,advance,take,GROUPS,MAX_WILD,MAX_STEP,DESPAWN_DISTANCE,MIN_ROLL_DISTANCE,MAX_ROLL_DISTANCE,SPAWN_CHANCE,MIN_RADIUS,MAX_RADIUS,SEPARATION,MIN_TTL,MAX_TTL,ROAM_RADIUS,ROAM_SPEED};
  if(typeof module!=='undefined'&&module.exports)module.exports=api;
  root.TideExploration=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

@@ -6706,7 +6706,7 @@ function update(dt){
  TideUI.tick(dt);
  if(TideUI.isBattling()){padNow=padStick();padTick(dt);return;}
  refreshWastelandChunks();
- TideUI.updateExploration();
+ TideUI.updateExploration(dt);
  if(hero&&!hero.dead){const door=expeditionDoors().find(s=>Math.hypot(hero.x-s.x,hero.y-s.y)<(s.type==='dungeonentrance'?65:45));if(door&&travelExpedition(door))return;}
  padNow=padStick(); /* one poll per frame, shared by the movement block below */
  padTick(dt);       /* buttons, the right stick, the A prompt and menu walking */

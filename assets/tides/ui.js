@@ -1,7 +1,7 @@
 /* Tides presentation and game integration. Rules and exploration remain independently testable. */
 const TideUI=(()=>{
  const frames=new Map(),sheets=new Map();
- let session=null,hubMode='',wildChoice=null,storageLimit=48,clockTick=0;
+ let session=null,hubMode='',wildChoice=null,storageLimit=48,clockTick=0,motionClock=0;
  let storagePetId=null,storageOwner=null,storageReturnTab='hero',storageReturnScroll=0,storageScroll=0,storageReturnHub=null;
  const el=id=>document.getElementById(id),html=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const species=id=>Tides.getSpecies(id),owned=()=>Tides.equipped(S.tides),outdoors=()=>!!(S&&zoneOf().wasteland&&!zoneOf().dungeon);
@@ -28,11 +28,9 @@ const TideUI=(()=>{
  function paintIcons(){
   document.querySelectorAll('[data-tide-art]').forEach(c=>{const f=frameFor(c.dataset.tideArt);if(!f)return;const g=c.getContext('2d'),k=Math.min((c.width-12)/f.w,(c.height-12)/f.h);g.clearRect(0,0,c.width,c.height);g.drawImage(f.image,f.x,f.y,f.w,f.h,(c.width-f.w*k)/2,(c.height-f.h*k)/2,f.w*k,f.h*k);});
  }
- function drawAnimal(g,id,x,y,height,fx=1,motion=0,phase=0,alpha=1){
-  const f=frameFor(id);if(!f)return false;const w=height*f.w/f.h;
-  g.save();g.translate(x,y);g.fillStyle='rgba(0,0,0,.21)';g.beginPath();g.ellipse(0,1,w*.31,Math.max(3,height*.08),0,0,Math.PI*2);g.fill();g.globalAlpha*=alpha;
-  g.scale(fx<0?-1:1,1);g.translate(0,-Math.abs(Math.sin(phase))*height*.035*motion);g.rotate(Math.sin(phase)*.025*motion);
-  g.drawImage(f.image,f.x,f.y,f.w,f.h,-w/2,-height,w,height);g.restore();return true;
+ function drawAnimal(g,id,x,y,height,fx=1,motion=0,phase=0,alpha=1,time=motionClock,alive=true){
+  const f=frameFor(id);if(!f)return false;
+  TideMotion.draw(g,f,id,x,y,height,fx,motion,phase,alpha,time,alive);return true;
  }
  function stopHero(){
   if(!hero)return;hero.moveTo=null;hero.pendingDoor=null;hero.target=null;hero.goPortal=false;hero.moving=false;hero.dance=0;holdMove=null;stopMining();
@@ -144,9 +142,9 @@ const TideUI=(()=>{
   if(back?.mode==='wild')openWild(back.id);else if(back?.mode==='church')openChurch();
  }
  function exploration(){if(!S.tides.exploration)S.tides.exploration=TideExploration.create();return S.tides.exploration;}
- function updateExploration(){
+ function updateExploration(dt=0){
   if(!S?.tides||!world||!hero)return;
-  TideExploration.advance(exploration(),{worldKey:world.key,x:hero.x,y:hero.y,now:Date.now(),hasLasso:S.tides.lassoOwned,petLevel:owned()?.level||1,paused:gamePaused||modalOpen()||!!padPanelOpen()||hero.dead,
+  TideExploration.advance(exploration(),{dt,worldKey:world.key,x:hero.x,y:hero.y,now:Date.now(),hasLasso:S.tides.lassoOwned,petLevel:owned()?.level||1,paused:gamePaused||modalOpen()||!!padPanelOpen()||hero.dead,
    isValidPosition:(x,y)=>!collide(hero,x,y)&&!expeditionDoors().some(d=>Math.hypot(d.x-x,d.y-y)<220)&&!(world.stable?.clearZones||[]).some(r=>x>r.x-50&&x<r.x+r.w+50&&y>r.y-50&&y<r.y+r.h+50)});
  }
  function wildList(){return outdoors()&&S.tides?.lassoOwned&&!session?exploration().wild:[];}
@@ -154,7 +152,7 @@ const TideUI=(()=>{
   for(const w of wildList()){
    if(w.x<bounds.x0||w.x>bounds.x1||w.y<bounds.y0||w.y>bounds.y1)continue;
    list.push({y:w.y,f:()=>{const s=species(w.speciesId),near=Math.hypot(hero.x-w.x,hero.y-w.y)<160,H=29+s.stars*3;
-    drawAnimal(ctx,s.id,w.x,w.y+6,H,w.fx||1,0,0,s.spectral?.93:1);
+    drawAnimal(ctx,s.id,w.x,w.y+6,H,w.fx||1,w.motion||0,w.walkphase||0,s.spectral?.93:1,motionClock+(w.homeX||w.x)*.01);
     ctx.save();ctx.textAlign='center';ctx.font='700 9px Georgia,serif';ctx.fillStyle=s.spectral?'#8ed8ff':'#dcc78e';ctx.shadowColor='#000';ctx.shadowBlur=3;ctx.fillText('★'.repeat(s.stars),w.x,w.y-H-8);if(near){ctx.font='700 10px Georgia,serif';ctx.fillStyle='#efe6ca';ctx.fillText(s.name+' · Lv '+w.level,w.x,w.y-H-21);}ctx.restore();}});
   }
  }
@@ -244,8 +242,8 @@ const TideUI=(()=>{
   if(anim){const index=Math.min(anim.moves.length-1,Math.floor(anim.elapsed/.85));actor=anim.moves[index];progress=Math.max(0,Math.min(1,(anim.elapsed-index*.85)/.85));if(actor){const s=species(b[actor.side].speciesId),move=actor.type==='power'?s.skill:s.attack;style=move.style;color=move.color;hit=Math.sin(Math.PI*Math.max(0,(progress-.45)/.55));if(style==='melee'){const p=Math.sin(Math.PI*progress),travel=(right-left-size*.55)*p;if(actor.side==='player'){lx+=travel;ly-=Math.sin(progress*Math.PI*3)*9*p;}else{rx-=travel;ry-=Math.sin(progress*Math.PI*3)*9*p;}}}}
   // The player's own race, armor and weapon remain visible behind the left Tide.
   g.save();g.translate(w*.105,floor-5);const hs=w<650?Math.min(2.6,w*.27/58):Math.min(4.2,h*.3/58,w*.2/58);g.scale(hs,hs);const f=paintedCharacterFrame(S.race,S.cls,S.gender==='f',isIce(S.gear.armor));if(f)bootFeet({...f.boots,moving:false,walk:0,bob:0},g);drawChampionSprite(g,S.race,S.cls,1,0,0,isFK(S.gear.weapon),isFG(S.gear.weapon)?'felglaives':isFK(S.gear.weapon)?'rimfrost':null,S.gender==='f',1,isIce(S.gear.armor),null);g.restore();
-  drawAnimal(g,b.player.speciesId,lx,ly,size,1,actor?.side==='player'?1:0,progress*Math.PI*6,b.player.hp<=0&&session.shownResult?.6:1);
-  drawAnimal(g,b.foe.speciesId,rx,ry,size,-1,actor?.side==='foe'?1:0,progress*Math.PI*6,b.foe.hp<=0&&session.shownResult?.5:1);
+  drawAnimal(g,b.player.speciesId,lx,ly,size,1,actor?.side==='player'&&style==='melee'?Math.sin(progress*Math.PI):0,progress*Math.PI*8,b.player.hp<=0&&session.shownResult?.6:1,session.time,b.player.hp>0);
+  drawAnimal(g,b.foe.speciesId,rx,ry,size,-1,actor?.side==='foe'&&style==='melee'?Math.sin(progress*Math.PI):0,progress*Math.PI*8,b.foe.hp<=0&&session.shownResult?.5:1,session.time+1.7,b.foe.hp>0);
   if(actor&&style==='magic'){
    const s=species(b[actor.side].speciesId),self=actor.type==='power'&&!s.skill.damage,from=actor.side==='player'?left:right,to=self?from:(actor.side==='player'?right:left),p=Math.min(1,progress*1.55),px=from+(to-from)*p,py=floor-size*.55-Math.sin(p*Math.PI)*size*.28;
    g.save();g.strokeStyle=color;g.fillStyle=color;g.shadowColor=color;g.shadowBlur=15;g.globalAlpha=Math.sin(progress*Math.PI);g.lineWidth=3;
@@ -254,7 +252,7 @@ const TideUI=(()=>{
   if(actor&&progress>.5&&progress<.8&&(actor.type==='attack'||species(b[actor.side].speciesId).skill.damage)){const x=actor.side==='player'?right:left;g.save();g.strokeStyle=color;g.lineWidth=2;g.globalAlpha=hit*.7;for(let i=0;i<6;i++){const a=i*Math.PI/3;g.beginPath();g.moveTo(x+Math.cos(a)*size*.12,floor-size*.5+Math.sin(a)*size*.12);g.lineTo(x+Math.cos(a)*size*.3,floor-size*.5+Math.sin(a)*size*.3);g.stroke();}g.restore();}
  }
  function tick(dt){
-  clockTick+=dt;
+  clockTick+=dt;motionClock+=dt;
   if(clockTick>=1&&hubMode==='wild'&&el('tideChallenge')){const p=owned();el('tideChallenge').disabled=!p||remaining(p)>0;if(el('tideWildReady'))el('tideWildReady').textContent=restText(p);}
   if(clockTick>=1){clockTick=0;refreshStorageValues();}
   if(!session)return;session.time+=dt;
