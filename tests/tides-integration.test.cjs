@@ -103,6 +103,18 @@ test('clicking even a spectral Tide opens the neutral challenge route without ta
  c.zone={dungeon:'frostveil'};assert.equal(h.ui.wildClick(2500,23580),false);
 });
 
+test('an encounter that expires in its open challenge cannot start a battle or reserve the companion',()=>{
+ const h=harness(),c=h.context;c.zone={wasteland:true};c.world=W.create();h.hero.x=2400;h.hero.y=23600;
+ vm.runInContext('Date.now=()=>1800000000000',c);
+ const w={id:'expired-preview',speciesId:'spectralwyrm',level:30,x:h.hero.x+50,y:h.hero.y,expiresAt:1800000000001};
+ h.S.tides.exploration.wild=[w];h.ui.openWild(w.id);assert.equal(h.el('tideHub').hidden,false);
+ const pets=JSON.parse(JSON.stringify(h.S.tides.pets)),battleId=h.S.tides.nextBattleId;
+ vm.runInContext('Date.now=()=>1800000000002',c);h.ui.begin(w.id);
+ assert.equal(h.ui.isBattling(),false);assert.equal(h.S.tides.activeBattle,null);assert.equal(h.S.tides.nextBattleId,battleId);
+ assert.deepEqual(h.S.tides.pets,pets);assert.equal(h.el('tideHub').hidden,true);
+ assert.equal(h.S.tides.exploration.wild.some(p=>p.id===w.id),false);
+});
+
 test('typing a Tide search cannot cast spells, spend potions or acquire a world enemy target',()=>{
  const h=harness(),c=h.context,listeners={};c.window={addEventListener:(event,fn)=>{listeners[event]=fn;}};
  c.document.activeElement={tagName:'INPUT'};h.el('tideHub').hidden=false;

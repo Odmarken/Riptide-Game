@@ -41,11 +41,12 @@ const TideUI=(()=>{
   const size=animalVisual(w.speciesId),half=Math.max(26,size.width*.55+6),top=w.y+6-Math.max(52,size.height*1.08+8);
   return {...size,left:w.x-half,right:w.x+half,top,bottom:w.y+16};
  }
- function battleLayout(w,h,playerId,foeId){
+ function battleLayout(w,h,playerId,foeId,hudBottom=0){
   const floor=h*(h<600?.54:.58),heroX=w*.105,heroScale=w<650?Math.min(2.6,w*.27/58):Math.min(4.2,h*.3/58,w*.2/58);
   const start=Math.max(w*.22,heroX+heroScale*32+12),end=w-Math.max(12,w*.025),gap=Math.max(14,w*.1);
   const p=animalVisual(playerId,w<650?85:135),f=animalVisual(foeId,w<650?85:135);
-  const fit=Math.min(1,Math.max(1,end-start-gap)/((p.width+f.width)*1.1),Math.max(40,floor-Math.min(130,h*.18))/(Math.max(p.height,f.height)*1.08));
+  const top=Math.max(Math.min(130,h*.18),hudBottom+12);
+  const fit=Math.min(1,Math.max(1,end-start-gap)/((p.width+f.width)*1.1),Math.max(1,floor-top)/(Math.max(p.height,f.height)*1.08));
   for(const size of [p,f]){size.height*=fit;size.width*=fit;}
   const extra=Math.max(0,end-start-p.width*1.1-f.width*1.1-gap);
   const left=start+p.width*.55+extra*.2,right=end-f.width*.55-extra*.2;
@@ -194,9 +195,11 @@ const TideUI=(()=>{
  function begin(id){
   if(session||!outdoors()||gamePaused||hero.dead||hubMode!=='wild'||wildChoice!==id)return;
   const w=exploration().wild.find(w=>w.id===id),p=owned();if(!w||!p||Math.hypot(hero.x-w.x,hero.y-w.y)>185)return;
+  const now=Date.now();
+  if(w.expiresAt<=Math.max(now,exploration().lastNow||0)){closeHub();updateExploration();stageMsg('That Tide has wandered away.',1800);return;}
   if(!frameFor(w.speciesId)||!frameFor(p.speciesId)){el('tideHubMessage').textContent='Your Tides are arriving. Try again in a moment.';return;}
-  const result=Tides.beginBattle(S.tides,w);if(!result.ok){el('tideHubMessage').textContent=result.reason==='injured'?'Your Tide is still recovering. Choose a ready companion.':'This companion cannot battle yet.';return;}
-  TideExploration.take(exploration(),id,Date.now());saveNow();closeHub();Mounts.reset(mountRide);updateMountButton();stopHero();
+  const result=Tides.beginBattle(S.tides,w,{now});if(!result.ok){el('tideHubMessage').textContent=result.reason==='injured'?'Your Tide is still recovering. Choose a ready companion.':'This companion cannot battle yet.';return;}
+  TideExploration.take(exploration(),id,now);saveNow();closeHub();Mounts.reset(mountRide);updateMountButton();stopHero();
   session={battle:result.battle,oldZoom:zoom,oldCamX:camX,oldCamY:camY,time:0,animation:null,result:null,shownResult:false,logIndex:0};
   setZoom(Math.min(3,Math.max(2.1,zoom)));camX=(hero.x+w.x)/2-VW/zoom/2;camY=(hero.y+w.y)/2-VH/zoom/2;
   draw();const backdrop=document.createElement('canvas');backdrop.width=cv.width;backdrop.height=cv.height;backdrop.getContext('2d').drawImage(cv,0,0);session.backdrop=backdrop;
@@ -268,7 +271,8 @@ const TideUI=(()=>{
   if(session.backdrop){const k=Math.max(w/session.backdrop.width,h/session.backdrop.height)*(1.035-Math.min(1,session.time/.65)*.035),bw=session.backdrop.width*k,bh=session.backdrop.height*k;g.drawImage(session.backdrop,(w-bw)/2,(h-bh)/2,bw,bh);}
   g.fillStyle='rgba(22,22,9,.12)';g.fillRect(0,0,w,h);
   const shade=g.createLinearGradient(0,0,0,h);shade.addColorStop(0,'rgba(4,8,5,.52)');shade.addColorStop(.35,'rgba(4,8,5,0)');shade.addColorStop(.75,'rgba(4,8,5,.1)');shade.addColorStop(1,'rgba(4,8,5,.55)');g.fillStyle=shade;g.fillRect(0,0,w,h);
-  const b=session.animation?.display||session.battle,anim=session.animation,layout=battleLayout(w,h,b.player.speciesId,b.foe.speciesId),{floor,left,right}=layout,ps=layout.player,fs=layout.foe;
+  const hudBottom=el('tideTurn').parentElement.getBoundingClientRect().bottom-r.top;
+  const b=session.animation?.display||session.battle,anim=session.animation,layout=battleLayout(w,h,b.player.speciesId,b.foe.speciesId,hudBottom),{floor,left,right}=layout,ps=layout.player,fs=layout.foe;
   let lx=left,rx=right,ly=floor,ry=floor,actor=null,progress=0,style='melee',color='#ddd',hit=0;
   if(anim){const index=Math.min(anim.moves.length-1,Math.floor(anim.elapsed/.85));actor=anim.moves[index];progress=Math.max(0,Math.min(1,(anim.elapsed-index*.85)/.85));if(actor){const s=species(b[actor.side].speciesId),move=actor.type==='power'?s.skill:s.attack;style=move.style;color=move.color;hit=Math.sin(Math.PI*Math.max(0,(progress-.45)/.55));if(style==='melee'){const p=Math.sin(Math.PI*progress),travel=layout.travel*p;if(actor.side==='player'){lx+=travel;ly-=Math.sin(progress*Math.PI*3)*9*p;}else{rx-=travel;ry-=Math.sin(progress*Math.PI*3)*9*p;}}}}
   // The player's own race, armor and weapon remain visible behind the left Tide.

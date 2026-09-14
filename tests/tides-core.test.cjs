@@ -91,7 +91,7 @@ test('normalization repairs old data, clears previous injuries for playtesting a
   const before = clone(raw), c = T.normalizeCollection(raw, 20);
   assert.deepEqual(raw, before); assert.equal(c.pets.length, 3); assert.equal(new Set(c.pets.map(p => p.id)).size, 3);
   assert.equal(c.lassoOwned, true); assert.equal(T.equipped(c).xp, 17); assert.equal(T.equipped(c).injuredUntil, 0);
-  assert.equal(c.pets[1].level, 20); assert.equal(c.pets[1].xp, 0); assert.equal(c.pets[2].level, 1);
+  assert.equal(c.pets[1].level, 30); assert.equal(c.pets[1].xp, 0); assert.equal(c.pets[2].level, 1);
   assert.deepEqual(c.exploration, raw.exploration); assert.notEqual(c.exploration, raw.exploration);
   assert.deepEqual(T.normalizeCollection(clone(c), 20), c);
 });
@@ -111,8 +111,61 @@ test('only the equipped Tide earns small world XP, old injuries do not block pla
   assert.equal(T.equip(c, 'reserve', 2000).injured, false);
   assert.equal(T.awardWorldXp(c, {now: 4999}).ok, true);
   assert.equal(T.awardWorldXp(c, {now: 5000}).ok, true);
-  c.pets[1].level = 20; c.pets[1].xp = 0;
-  T.awardWorldXp(c, {now: 5000}); assert.equal(c.pets[1].level, 20); assert.equal(c.pets[1].xp, 0);
+  c.pets[1].level = 30; c.pets[1].xp = 0;
+  T.awardWorldXp(c, {now: 5000}); assert.equal(c.pets[1].level, 30); assert.equal(c.pets[1].xp, 0);
+});
+
+test('existing level 20 companions can progress to 30, where XP stops, and high levels survive reload', () => {
+  assert.equal(T.MAX_LEVEL, 30);
+  const c = T.normalizeCollection(clone(collection('bramblebunny', 20)), 2000), pet = T.equipped(c);
+  assert.equal(pet.level, 20); assert.equal(pet.xp, 0);
+  assert.equal(T.xpToNext(20), 264);
+  pet.xp = T.xpToNext(20) - 2;
+  assert.equal(T.awardWorldXp(c, {now: 2000}).levels, 1);
+  assert.equal(pet.level, 21); assert.equal(pet.xp, 0);
+  pet.level = 29; pet.xp = T.xpToNext(29) - 1;
+  T.awardWorldXp(c, {now: 2000});
+  assert.equal(pet.level, 30); assert.equal(pet.xp, 0); assert.equal(T.xpToNext(30), 0);
+  for(let i=0;i<100;i++)T.awardWorldXp(c, {now: 2000});
+  assert.equal(pet.level, 30); assert.equal(pet.xp, 0);
+  c.pets.push({...pet,id:'trained-spectral',speciesId:'spectralwyrm',level:27,xp:17});
+  c.pets.push({...pet,id:'older-spectral',speciesId:'spectralpanther',level:5,xp:7});
+  const loaded = T.normalizeCollection(clone(c), 2000);
+  assert.deepEqual(loaded.pets, c.pets, 'wild spawn minimum must not grant levels to already-owned spectral companions');
+  for(const species of T.catalog){
+    const old=T.stats(species.id,20),current=T.stats(species.id,30);
+    assert.equal(current.level,30);assert.ok(current.maxHp>old.maxHp&&current.atk>old.atk);
+    assert.deepEqual(T.stats(species.id,999),current);
+  }
+});
+
+test('wild spectral rolls stay at levels 25 to 30 even with a level-one companion', () => {
+  const c=collection();
+  for(const [speciesId,ticket]of [['spectralpanther',.9997],['spectralwyrm',.9999]]){
+    const levels=new Set();
+    for(let i=0;i<6;i++){
+      const rolls=[ticket,(i+.5)/6];
+      const wild=T.rollWild(c,{rng:()=>rolls.shift()});
+      assert.equal(wild.speciesId,speciesId);levels.add(wild.level);
+    }
+    assert.deepEqual([...levels],[25,26,27,28,29,30]);
+    assert.equal(T.rollWild(c,{rng:()=>ticket,level:1}).level,25);
+    assert.equal(T.rollWild(c,{rng:()=>ticket,level:99}).level,30);
+  }
+  assert.equal(T.rollWild(c,{rng:()=>0,level:1}).level,1);
+});
+
+test('capturing a level 30 encounter preserves its level and victory XP can train past the former cap', () => {
+  const c=collection('obsidianbear',20),pet=T.equipped(c);
+  pet.xp=T.xpToNext(20)-1;
+  const battle=begin(c,'spectralwyrm',30);
+  assert.equal(battle.foe.level,30);
+  battle.foe.hp=1;assert.equal(play(battle),'win');
+  const result=T.finishBattle(c,battle,{now:3000});
+  assert.equal(result.captured.level,30);assert.ok(pet.level>20&&pet.level<=30);
+  const loaded=T.normalizeCollection(clone(c),4000);
+  assert.equal(loaded.pets.find(p=>p.id===result.captured.id).level,30);
+  assert.equal(T.finishBattle(c,battle).reason,'settled');
 });
 
 test('invalid actions and cooling powers are inert; legal rounds expose both sides and deterministic persisted RNG', () => {
@@ -214,7 +267,7 @@ test('an old in-memory injury cannot block a new battle and defeat text promises
 });
 
 test('deterministic matchups keep all powers finite, every starter viable, and five-star companions beatable at equal level', () => {
-  for (const level of [1, 10, 20]) {
+  for (const level of [1, 10, 20, 30]) {
     const wins = Array(25).fill(0), losses = Array(25).fill(0), commonWins = Array(5).fill(0);
     for (let i = 0; i < 25; i++) for (let j = 0; j < 25; j++) for (let sample = 0; sample < 12; sample++) {
       const seed = ((123456789 + sample * 768371 + i * 18221 + j * 392887) >>> 0) / 4294967296;

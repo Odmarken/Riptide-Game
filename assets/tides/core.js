@@ -5,7 +5,7 @@
   root.Tides = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (catalog) {
   'use strict';
-  const MAX_LEVEL = 20, LASSO_PRICE = 10000;
+  const MAX_LEVEL = 30, SPECTRAL_MIN_LEVEL = 25, LASSO_PRICE = 10000;
   // Temporarily disabled for playtesting. Restore 2 * 60 * 60 * 1000 to enable Tide injuries again.
   const INJURY_MS = 0;
   const byId = new Map(catalog.map(species => [species.id, species]));
@@ -123,8 +123,11 @@
     const total = catalog.reduce((sum, species) => sum + species.encounterWeight, 0);
     let ticket = random(options.rng) * total;
     const species = catalog.find(item => (ticket -= item.encounterWeight) < 0) || catalog[catalog.length - 1];
-    const level = options.level === undefined ? (equipped(c)?.level || 1) + Math.floor(random(options.rng) * 5) - 2 : options.level;
-    return {speciesId: species.id, level: clamp(integer(level, 1), 1, MAX_LEVEL)};
+    const minLevel = species.spectral ? SPECTRAL_MIN_LEVEL : 1;
+    const level = options.level === undefined ? species.spectral
+      ? minLevel + Math.floor(random(options.rng) * (MAX_LEVEL - minLevel + 1))
+      : (equipped(c)?.level || 1) + Math.floor(random(options.rng) * 5) - 2 : options.level;
+    return {speciesId: species.id, level: clamp(integer(level, minLevel), minLevel, MAX_LEVEL)};
   }
 
   function combatant(speciesId, level) {
@@ -262,7 +265,7 @@
     return finishBattle(c, battle, options);
   }
 
-  return Object.freeze({catalog, MAX_LEVEL, LASSO_PRICE, INJURY_MS, createCollection, normalizeCollection,
+  return Object.freeze({catalog, MAX_LEVEL, SPECTRAL_MIN_LEVEL, LASSO_PRICE, INJURY_MS, createCollection, normalizeCollection,
     getSpecies, stats, xpToNext, equipped, equip, remainingInjury, purchaseLasso, awardWorldXp,
     rollWild, beginBattle, act, finishBattle, abandonBattle});
 });

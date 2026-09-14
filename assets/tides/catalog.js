@@ -61,11 +61,13 @@
     cinderwolf:1.35, frostibex:1.45, sunmane:1.5, runestag:1.6, coraldrake:1.45,
     dawnphoenix:1.65, obsidianbear:1.8, aurorakirin:1.65, spectralpanther:1.4, spectralwyrm:2.1
   };
+  // Rare Tides grow more imposing while retaining each animal's proportions.
+  const starVisualScales = [0, 1, 1, 1.3, 1.6, 2];
   return Object.freeze(groups.flatMap((group, groupIndex) => group.map((row, cell) => {
     const [id, name, description, hpScale, attackScale, skillName, skillDescription, effects] = row;
     const stars = groupIndex + 1, spectral = id.startsWith('spectral');
     const [attackName, attackStyle, color] = attacks[groupIndex * 5 + cell];
-    return Object.freeze({id, name, description, stars, spectral, hpScale, attackScale, visualScale:visualScales[id],
+    return Object.freeze({id, name, description, stars, spectral, hpScale, attackScale, visualScale:visualScales[id]*starVisualScales[stars],
       sheet: 'assets/tides/tides-' + stars + '.png', cell, columns: 3, rows: 2,
       encounterWeight: spectral ? 2 : [0, 1200, 520, 220, 53, 31 / 3][stars],
       attack: Object.freeze({name: attackName, description: 'A reliable strike. Reduces power cooldown by one turn.', style: attackStyle, color}),

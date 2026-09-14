@@ -1,5 +1,5 @@
 const test=require('node:test'),assert=require('node:assert/strict');
-const E=require('../assets/tides/exploration.js');
+const E=require('../assets/tides/exploration.js'),T=require('../assets/tides/core.js');
 function context(extra={}){const c={worldKey:'wasteland',hasLasso:true,x:25000,y:13000,petLevel:12,now:6000000,...extra};if(!c.view)c.view={x:c.x-504,y:c.y-430,w:1008,h:860};return c;}
 function setup(extra={},seed=73521){const state=E.create(null,{seed}),c=context(extra);E.advance(state,c);return {state,c};}
 function at(c,x,y){return {...c,x,y,view:{x:x-504,y:y-430,w:1008,h:860}};}
@@ -49,7 +49,7 @@ test('world samples retain every species and tier rarity with uniform species od
  assert.ok(fractions[2]>.095&&fractions[2]<.125);assert.ok(fractions[3]>.022&&fractions[3]<.031);assert.ok(fractions[4]>.0025&&fractions[4]<.0045);
  const spectral=((counts.get('spectralpanther')||0)+(counts.get('spectralwyrm')||0))/total;assert.ok(spectral>.00015&&spectral<.0008,'spectral proportion '+spectral);
  for(const group of E.GROUPS.slice(0,4)){const values=group.map(id=>counts.get(id));assert.ok(Math.max(...values)/Math.min(...values)<1.3,'equal species weights within tier');}
- assert.equal(Math.min(...levels),1);assert.equal(Math.max(...levels),20);
+ assert.equal(Math.min(...levels),1);assert.ok(Math.max(...levels)<=T.MAX_LEVEL);
 });
 
 test('a whole-world viewport and extended exploration keep local objects and saved state bounded',()=>{
@@ -67,7 +67,7 @@ test('capturing consumes one encounter and survives reload, travel and changes o
  assert.equal(E.take(state,id,c.now),p);assert.equal(E.take(state,id,c.now),null);assert.equal(state.taken.length,1);
  let restored=E.create(JSON.parse(JSON.stringify(state)));assert.deepEqual(restored,state);
  for(let i=0;i<10;i++){
-  E.advance(restored,{...at(c,40000,5000),petLevel:20});E.advance(restored,{...c,petLevel:20});
+  E.advance(restored,{...at(c,40000,5000),petLevel:T.MAX_LEVEL});E.advance(restored,{...c,petLevel:T.MAX_LEVEL});
   assert.ok(!restored.wild.some(p=>p.id===id));assert.deepEqual(identity(restored.wild),original.filter(p=>p[0]!==id));
   restored=E.create(JSON.parse(JSON.stringify(restored)));
  }
@@ -128,12 +128,39 @@ test('old survey migration changes only transient exploration and malformed save
  const {state}=setup({view:{x:0,y:0,w:E.WIDTH,h:E.HEIGHT}}),first=state.wild[0];
  const raw={...state,wild:[{...first,level:500,homeX:NaN,homeY:-1000,motion:99,roamTargetX:1e9,roamTargetY:0},...state.wild,...state.wild],
   taken:[{cellX:-1,cellY:0,epoch:10},{cellX:2,cellY:3,epoch:10},{cellX:2,cellY:3,epoch:10}],levels:[{epoch:10,level:999},{epoch:10,level:2}]};
- const clean=E.create(raw);assert.ok(clean.wild.length<=64);assert.equal(clean.wild[0].level,20);assert.equal(clean.wild[0].homeX,first.x);assert.equal(clean.wild[0].motion,1);assert.equal(clean.wild[0].roamTargetX,null);
- assert.equal(clean.taken.length,1);assert.equal(clean.levels.length,1);assert.equal(clean.levels[0].level,20);
+ const clean=E.create(raw);assert.ok(clean.wild.length<=64);assert.equal(clean.wild[0].level,T.MAX_LEVEL);assert.equal(clean.wild[0].homeX,first.x);assert.equal(clean.wild[0].motion,1);assert.equal(clean.wild[0].roamTargetX,null);
+ assert.equal(clean.taken.length,1);assert.equal(clean.levels.length,1);assert.equal(clean.levels[0].level,T.MAX_LEVEL);
  for(const value of [null,[],4,'wrong',{}, {wild:'wrong',taken:'wrong'}])assert.equal(E.create(value,{seed:1}).wild.length,0);
 });
 
 test('scripted encounters remain challengeable and consumed exactly once without cell tombstones',()=>{
  const {state,c}=setup(),p={id:'scripted',speciesId:'spectralwyrm',level:20,x:c.x,y:c.y,expiresAt:c.now+10000};state.wild.push(p);
  E.advance(state,c);assert.ok(state.wild.includes(p));assert.equal(E.take(state,p.id,c.now),p);assert.equal(E.take(state,p.id,c.now),null);assert.equal(state.taken.length,0);
+});
+
+test('high level companions discover levels21 through30 while normal wilds and saved epoch baselines retain their levels',()=>{
+ assert.equal(T.MAX_LEVEL,30);const levels=new Set();
+ for(const petLevel of [27,30,500])for(let seed=1;seed<=100;seed++){
+  const {state}=setup({petLevel},seed);for(const p of state.wild){assert.ok(p.level>=1&&p.level<=T.MAX_LEVEL);if(!p.speciesId.startsWith('spectral'))levels.add(p.level);}
+  assert.ok(state.levels.every(p=>p.level===Math.min(T.MAX_LEVEL,petLevel)));
+ }
+ for(let level=21;level<=30;level++)assert.ok(levels.has(level),'wild level '+level+' is available');
+ const {state,c}=setup({petLevel:27}),normal=state.wild.filter(p=>!p.speciesId.startsWith('spectral'));
+ normal[0].level=27;normal[1].level=30;normal[2].level=20;
+ const snapshot=identity(state.wild),copy=E.create(JSON.parse(JSON.stringify(state)));assert.deepEqual(copy,state);
+ E.advance(copy,{...c,petLevel:30});assert.deepEqual(identity(copy.wild),snapshot);assert.ok(copy.levels.every(p=>p.level===27));
+ assert.equal(copy.wild.find(p=>p.id===normal[2].id).level,20,'existing ordinary level20 wilds are not promoted');
+});
+
+test('both spectral species spawn at levels25 to30 even with a level1 companion and old wild saves migrate safely',()=>{
+ for(const [seed,id]of [[159,'spectralpanther'],[364,'spectralwyrm']]){
+  const {state,c}=setup({petLevel:1},seed),p=state.wild.find(p=>p.speciesId===id);assert.ok(p,id+' generated from its natural cell');
+  assert.ok(p.level>=25&&p.level<=30);assert.ok(state.wild.filter(p=>!p.speciesId.startsWith('spectral')).every(p=>p.level<=9),'ordinary early encounters retain their low level range');
+  const oldIdentity=[p.id,p.homeX,p.homeY,p.speciesId,p.expiresAt];p.level=3;
+  const restored=E.create(JSON.parse(JSON.stringify(state))),loaded=restored.wild.find(w=>w.id===p.id);assert.equal(loaded.level,25);
+  assert.deepEqual([loaded.id,loaded.homeX,loaded.homeY,loaded.speciesId,loaded.expiresAt],oldIdentity);
+  E.advance(state,c);assert.equal(p.level,25,'already loaded old wilds are corrected without a reload');
+  loaded.level=30;const roundTrip=E.create(JSON.parse(JSON.stringify(restored)));assert.equal(roundTrip.wild.find(w=>w.id===p.id).level,30);
+  assert.ok(E.take(roundTrip,p.id,c.now));const savedCapture=E.create(JSON.parse(JSON.stringify(roundTrip)));E.advance(savedCapture,c);assert.ok(!savedCapture.wild.some(w=>w.id===p.id),'level migration cannot restore a captured cell');
+ }
 });

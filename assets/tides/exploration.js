@@ -2,6 +2,7 @@
  * nearby cells are materialized; a character saves captures and roaming state. */
 (function(root){
  'use strict';
+ const {MAX_LEVEL,SPECTRAL_MIN_LEVEL}=typeof module==='object'&&module.exports?require('./core.js'):root.Tides;
  const WIDTH=50400,HEIGHT=26000,CELL_SIZE=512,COLS=Math.ceil(WIDTH/CELL_SIZE),ROWS=Math.ceil(HEIGHT/CELL_SIZE);
  const MAX_WILD=64,MAX_CELLS=100,LOAD_MARGIN=256,MAX_LOAD_RADIUS=2600,SPAWN_CHANCE=.48,REFRESH_MS=600000;
  const SEPARATION=120,ROAM_RADIUS=60,ROAM_SPEED=16;
@@ -14,6 +15,7 @@
  ]);
  const IDS=new Set(GROUPS.flat()),clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),number=(n,f)=>Number.isFinite(n)?n:f;
  const integer=(n,f,min=0,max=Number.MAX_SAFE_INTEGER)=>clamp(Math.floor(number(n,f)),min,max);
+ const spectralFloor=Math.min(SPECTRAL_MIN_LEVEL,MAX_LEVEL),wildLevel=(id,level)=>integer(level,1,id.startsWith('spectral')?spectralFloor:1,MAX_LEVEL);
  const position=p=>!!p&&Number.isFinite(p.x)&&Number.isFinite(p.y);
  function hash(a,b,c,d=0){let n=(Math.imul(a,73856093)^Math.imul(b,19349663)^Math.imul(c,83492791)^d)>>>0;n=Math.imul(n^(n>>>16),0x7feb352d);n=Math.imul(n^(n>>>15),0x846ca68b);return (n^(n>>>16))>>>0;}
  function rng(seed){return ()=>{seed=(seed+0x6d2b79f5)>>>0;let t=seed;t=Math.imul(t^(t>>>15),1|t);t^=t+Math.imul(t^(t>>>7),61|t);return ((t^(t>>>14))>>>0)/4294967296;};}
@@ -37,7 +39,7 @@
    if(wild.length>=MAX_WILD)break;
    if(!cellValid(p)||!IDS.has(p.speciesId)||!position(p)||p.x<24||p.y<24||p.x>WIDTH-24||p.y>HEIGHT-24)continue;
    const id=cellId(seed,p.cellX,p.cellY,p.epoch);if(seen.has(id)||p.id!==id)continue;seen.add(id);
-   wild.push(restoreRoaming({id,cellX:p.cellX,cellY:p.cellY,epoch:p.epoch,speciesId:p.speciesId,level:integer(p.level,1,1,20),x:p.x,y:p.y,fx:p.fx<0?-1:1,
+   wild.push(restoreRoaming({id,cellX:p.cellX,cellY:p.cellY,epoch:p.epoch,speciesId:p.speciesId,level:wildLevel(p.speciesId,p.level),x:p.x,y:p.y,fx:p.fx<0?-1:1,
     spawnedAt:expiry(seed,p)-REFRESH_MS,expiresAt:expiry(seed,p),walkphase:number(p.walkphase,0)},p));
   }
   const taken=[],takenCells=new Set();
@@ -46,7 +48,7 @@
    if(takenCells.has(key))continue;takenCells.add(key);taken.push({cellX:p.cellX,cellY:p.cellY,epoch:p.epoch,until:expiry(seed,p)});
   }
   const levels=[];
-  for(const p of current&&Array.isArray(raw.levels)?raw.levels:[]){if(!p||!Number.isSafeInteger(p.epoch)||p.epoch<0||levels.some(l=>l.epoch===p.epoch))continue;levels.push({epoch:p.epoch,level:integer(p.level,1,1,20)});if(levels.length>=3)break;}
+  for(const p of current&&Array.isArray(raw.levels)?raw.levels:[]){if(!p||!Number.isSafeInteger(p.epoch)||p.epoch<0||levels.some(l=>l.epoch===p.epoch))continue;levels.push({epoch:p.epoch,level:integer(p.level,1,1,MAX_LEVEL)});if(levels.length>=3)break;}
   return {version:3,seed,counter:integer(raw.counter,0),lastNow:Math.max(0,number(raw.lastNow,0)),wild,taken,levels};
  }
  // Every species can occupy every world cell. The two spectral species together
@@ -56,7 +58,7 @@
   if(tier===4){if(r>=.9996)return GROUPS[4][random()<.5?3:4];return GROUPS[4][Math.floor(random()*3)];}
   return GROUPS[tier][Math.floor(random()*GROUPS[tier].length)];
  }
- function chooseLevel(random,petLevel){const level=integer(petLevel,1,1,20),r=random(),v=random();if(r<.30)return 1+Math.floor(v*Math.max(3,level-3));if(r<.85)return clamp(level-3+Math.floor(v*7),1,20);return clamp(level+3+Math.floor(v*6),1,20);}
+ function chooseLevel(random,petLevel,speciesId){const level=integer(petLevel,1,1,MAX_LEVEL),r=random(),v=random();if(speciesId.startsWith('spectral'))return spectralFloor+Math.floor(v*(MAX_LEVEL-spectralFloor+1));if(r<.30)return 1+Math.floor(v*Math.max(3,level-3));if(r<.85)return clamp(level-3+Math.floor(v*7),1,MAX_LEVEL);return clamp(level+3+Math.floor(v*6),1,MAX_LEVEL);}
  function clearPosition(state,context,x,y,ignore,spacing=true){
   const world=context.world,edge=24,w=number(context.width,number(world&&world.w,WIDTH)),h=number(context.height,number(world&&world.h,HEIGHT));
   if(x<edge||y<edge||x>w-edge||y>h-edge)return false;
@@ -81,8 +83,8 @@
   const random=rng(hash(cell.x,cell.y,state.seed,epoch));if(random()>=SPAWN_CHANCE)return null;
   const id=cellId(state.seed,cell.x,cell.y,epoch);
   if(state.taken.some(p=>p.cellX===cell.x&&p.cellY===cell.y&&p.epoch===epoch))return null;
-  const s=chooseSpecies(random),petLevel=chooseLevel(random,level),existing=state.wild.find(p=>p.id===id);
-  if(existing)return existing;
+  const s=chooseSpecies(random),petLevel=chooseLevel(random,level,s),existing=state.wild.find(p=>p.id===id);
+  if(existing){existing.level=wildLevel(existing.speciesId,existing.level);return existing;}
   // Placement retries cannot reroll a cell's species or level.
   const placement=rng(hash(cell.x,cell.y,state.seed,epoch^0x794d)),x0=cell.x*CELL_SIZE,y0=cell.y*CELL_SIZE;
   for(let attempt=0;attempt<12;attempt++){
@@ -121,8 +123,9 @@
   if(context.paused||context.dead)return state.wild;
   const now=Math.max(state.lastNow,number(context.now,Date.now())),epoch=Math.floor(now/REFRESH_MS);state.lastNow=now;
   state.taken=state.taken.filter(p=>p.until>now);state.levels=state.levels.filter(p=>p.epoch>=epoch-1&&p.epoch<=epoch);
-  for(const e of [Math.max(0,epoch-1),epoch])if(!state.levels.some(p=>p.epoch===e))state.levels.push({epoch:e,level:integer(context.petLevel,1,1,20)});
+  for(const e of [Math.max(0,epoch-1),epoch])if(!state.levels.some(p=>p.epoch===e))state.levels.push({epoch:e,level:integer(context.petLevel,1,1,MAX_LEVEL)});
   const local=state.wild.filter(p=>!cellValid(p)&&p.id&&IDS.has(p.speciesId)&&position(p)&&p.expiresAt>now&&Math.hypot(p.x-context.x,p.y-context.y)<=MAX_LOAD_RADIUS).slice(0,MAX_WILD);
+  for(const p of local)p.level=wildLevel(p.speciesId,p.level);
   for(const cell of cellsNear(context)){
    if(local.length>=MAX_WILD)break;
    const e=Math.floor((now-offset(state.seed,cell.x,cell.y))/REFRESH_MS),level=state.levels.find(p=>p.epoch===e)?.level||1;

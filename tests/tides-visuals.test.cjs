@@ -7,8 +7,15 @@ function harness(){
  vm.createContext(c);vm.runInContext(source.slice(source.indexOf(' function animalVisual('),source.indexOf(' function stopHero(')),c);return c;
 }
 
-test('every Tide has a physical visual scale and world sprites follow animal size instead of rarity',()=>{
- const c=harness();assert.equal(catalog.length,25);assert.ok(catalog.every(s=>Number.isFinite(s.visualScale)&&s.visualScale>=.7&&s.visualScale<=2.2));
+test('world sprites combine species size with increasingly imposing three to five star tiers',()=>{
+ const c=harness();assert.equal(catalog.length,25);assert.ok(catalog.every(s=>Number.isFinite(s.visualScale)&&s.visualScale>=.7&&s.visualScale<=4.2));
+ assert.equal(c.animalVisual('bramblebunny').height,36);
+ for(const stars of [3,4,5]){
+  const current=catalog.filter(s=>s.stars===stars).map(s=>c.animalVisual(s.id).height);
+  const previous=catalog.filter(s=>s.stars===stars-1).map(s=>c.animalVisual(s.id).height);
+  assert.ok(Math.min(...current)>Math.max(...previous),stars+' star animals stand taller than the preceding tier');
+ }
+ assert.ok(catalog.filter(s=>s.stars===5).every(s=>c.animalVisual(s.id).height>100),'every five star Tide has a large world silhouette');
  assert.ok(c.animalVisual('obsidianbear').height>c.animalVisual('bramblebunny').height*1.7);
  assert.ok(c.animalVisual('spectralwyrm').height>c.animalVisual('obsidianbear').height);
  assert.ok(c.animalVisual('meadowmouse').height<c.animalVisual('bramblebunny').height);
@@ -18,11 +25,13 @@ test('every Tide has a physical visual scale and world sprites follow animal siz
 test('every pair fits mobile and desktop battle arenas, preserves relative size and stops melee at the opponent',()=>{
  const c=harness();
  for(const [w,h]of [[390,844],[1440,1000],[844,390],[320,568]])for(const player of catalog)for(const foe of catalog){
-  const l=c.battleLayout(w,h,player.id,foe.id),p=l.player,f=l.foe,label=`${w}x${h} ${player.id}/${foe.id}`;
+  const hudBottom=h*(h<600?.03:w<=650?.04:.07)+(w<=650?145:120);
+  const l=c.battleLayout(w,h,player.id,foe.id,hudBottom),p=l.player,f=l.foe,label=`${w}x${h} ${player.id}/${foe.id}`;
   assert.ok(l.left-p.width*.55>l.heroRight,label+' clear of hero');
   assert.ok(l.right+f.width*.55<=w-11.9,label+' right wing fits');
   assert.ok(l.left+p.width*.55<l.right-f.width*.55,label+' standing animals do not overlap');
   assert.ok(l.floor-Math.max(p.height,f.height)*1.08>=Math.min(130,h*.18)-.01,label+' heads fit below top');
+  assert.ok(l.floor-Math.max(p.height,f.height)*1.08>=hudBottom+11.99,label+' heads and breathing clear health cards');
   assert.ok(Math.abs(p.height/f.height-player.visualScale/foe.visualScale)<1e-8,label+' relative animal size retained');
   assert.ok(l.left+l.travel<l.right&&l.right-l.travel>l.left,label+' attack does not cross opponent');
   assert.ok(l.left+l.travel+p.width*.55<=w,label+' charging player stays on screen');
