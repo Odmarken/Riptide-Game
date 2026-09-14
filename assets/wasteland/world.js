@@ -18,16 +18,16 @@
  // collision belongs only to the low building footprint, never its roof.
  const STABLE={
   id:'wasteland-stable',name:'Torstens Stall',junction:{x:14000,y:18000},
-  building:{x:14700,y:17240,w:310,h:260,art:'assets/mounts/stable.png',footRatio:.96,
-   bounds:{x:14545,y:16990.4,w:310,h:260},collider:{r:38,crx:122.5,cry:38,cyo:-12.5}},
-  vendor:{id:'torsten-tygel',name:'Torsten Tygel',x:14700,y:17550,r:18,range:120,
+  building:{x:14700,y:17120,w:310,h:260,art:'assets/mounts/stable.png',footRatio:.96,
+   bounds:{x:14545,y:16870.4,w:310,h:260},collider:{r:38,crx:122.5,cry:38,cyo:-12.5}},
+  vendor:{id:'torsten-tygel',name:'Torsten Tygel',x:15125,y:17115,r:18,range:120,
    race:'human',cls:'warrior',female:false,game:'stable',big:1.1,fx:-1,fy:0,walk:0,moving:false},
   paddock:{bounds:{x:15200,y:16680,w:650,h:520},
    gate:{x:15200,y:17070,from:16990,to:17150,width:160,side:'west'},
    displaySpots:[{x:15400,y:17035,fx:-1},{x:15625,y:16970,fx:1}]},
   // Access lanes clear scenery but do not alter the four authored roads.
-  approach:[{x:14700,y:17809.090909090908},{x:14700,y:17550},{x:14700,y:17350}],
-  paddockApproach:[{x:14700,y:17550},{x:15100,y:17500},{x:15100,y:17070},{x:15260,y:17070}],
+  approach:[{x:14700,y:17809.090909090908},{x:15100,y:17500},{x:15125,y:17115},{x:14700,y:17220}],
+  paddockApproach:[{x:15125,y:17115},{x:15100,y:17070},{x:15260,y:17070}],
   clearZones:[{x:14345,y:16665,w:715,h:670},{x:15120,y:16590,w:820,h:710},{x:14580,y:17250,w:650,h:410}]
  };
  function freezeData(value){if(value&&typeof value==='object'){for(const child of Object.values(value))freezeData(child);Object.freeze(value);}return value;}
