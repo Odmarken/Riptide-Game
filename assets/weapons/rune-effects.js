@@ -3,8 +3,10 @@
 const runeNoise=n=>{const x=Math.sin(n*127.1)*43758.5453;return x-Math.floor(x);};
 const runeOf=it=>(it&&it.wench)?wenchById(it.wench):null;
 const runeGlowCache=new WeakMap();
-let runeFxDt=0,runeEmitCarry=0,runeEmitKey='';
-function resetRuneEmission(){runeFxDt=0;runeEmitCarry=0;runeEmitKey='';}
+let runeFxDt=0;
+const runeWorldEmission={carry:0,key:''};
+function createRuneEmissionState(){return {carry:0,key:'',parts:[]};}
+function resetRuneEmission(){runeFxDt=0;runeWorldEmission.carry=0;runeWorldEmission.key='';}
 function runePointTransform(m,p){return {x:m.a*p.x+m.c*p.y+m.e,y:m.b*p.x+m.d*p.y+m.f};}
 function runeProfileFor(img){
  const name=decodeURIComponent((img.src||'').split(/[?#]/)[0]).split('/').pop().replace(/\.png$/i,'');
@@ -55,9 +57,9 @@ function runeGlowSprite(img,colour,gripFrac,sx,sw,tone=.12){
  g.filter='none';g.globalAlpha=.13;g.drawImage(sil,PAD,PAD);
  const result={cv:out,sil,art,padX:PAD/W,padY:PAD/H,profile,key};cache.set(key,result);return result;
 }
-function runeHalo(g,w,sp,x,y,W,H){
+function runeHalo(g,w,sp,x,y,W,H,time){
  if(!w||!sp)return;
- const t=performance.now()/1000;
+ const t=time??performance.now()/1000;
  const pulse=w.id==='emberbite'?.78+.12*Math.sin(t*7.3)+.08*Math.sin(t*17.1):.85+.10*Math.sin(t*2.1);
  const px=sp.padX*W,py=sp.padY*H;
  g.save();g.globalCompositeOperation='lighter';g.globalAlpha*=pulse*(w.id==='veinseeker'?.62:.80);
@@ -70,20 +72,20 @@ function runeTint(g,w,sp,x,y,W,H){
  // through semitransparent edges and make those edges too opaque.
  g.save();g.globalCompositeOperation='source-over';g.drawImage(sp.art,x,y,W,H);g.restore();
 }
-function runeUnder(g,w,img,x,y,W,H,gripFrac,sx,sw){
+function runeUnder(g,w,img,x,y,W,H,gripFrac,sx,sw,time){
  if(!w)return null;
- const sp=runeGlowSprite(img,w.glow,gripFrac,sx,sw,w.id==='veinseeker'?.32:.12);if(sp)runeHalo(g,w,sp,x,y,W,H);return sp;
+ const sp=runeGlowSprite(img,w.glow,gripFrac,sx,sw,w.id==='veinseeker'?.32:.12);if(sp)runeHalo(g,w,sp,x,y,W,H,time);return sp;
 }
-function runeOnSpare(g,w,img,x,y,W,H,gripFrac,sx,sw,draw){
- const sp=runeUnder(g,w,img,x,y,W,H,gripFrac,sx,sw);if(sp)runeTint(g,w,sp,x,y,W,H);else draw();
+function runeOnSpare(g,w,img,x,y,W,H,gripFrac,sx,sw,draw,time){
+ const sp=runeUnder(g,w,img,x,y,W,H,gripFrac,sx,sw,time);if(sp)runeTint(g,w,sp,x,y,W,H);else draw();
 }
 function runePathPoint(path,u,x,y,W,H){
  const k=Math.max(0,Math.min(1,u))*(path.length-1),i=Math.floor(k),a=path[i],b=path[Math.min(i+1,path.length-1)],f=k-i;
  return {x:x+(a[0]+(b[0]-a[0])*f)*W,y:y+(a[1]+(b[1]-a[1])*f)*H};
 }
-function runeMarks(g,w,sp,x,y,W,H){
+function runeMarks(g,w,sp,x,y,W,H,time){
  if(!w||!sp||!sp.profile)return;
- const t=performance.now()/1000,size=Math.max(.65,Math.min(1.25,Math.max(W,H)/48));
+ const t=time??performance.now()/1000,size=Math.max(.65,Math.min(1.25,Math.max(W,H)/48));
  const paths=sp.profile.paths;
  g.save();g.lineCap='round';g.lineJoin='round';
  const trace=(path,a,b)=>{
@@ -140,25 +142,26 @@ function runeEmitter(g,sp,x,y,W,H){
  return {key:sp.key,size:Math.max(.7,Math.min(1.15,Math.max(W,H)/48)),
   points:sp.profile.emit.map(p=>runePointTransform(m,{x:x+p[0]*W,y:y+p[1]*H}))};
 }
-function runeSpark(w,emission,dt,floorY){
- if(!w||!emission||!emission.points.length||gamePaused){runeEmitCarry=0;runeEmitKey='';return;}
+function runeSpark(w,emission,dt,floorY,state=runeWorldEmission){
+ if(!w||!emission||!emission.points.length||gamePaused){state.carry=0;state.key='';return;}
  if(!(dt>0))return; /* extra renders neither emit nor discard accumulated simulation time */
- const key=w.id+'|'+emission.key;if(key!==runeEmitKey){runeEmitCarry=0;runeEmitKey=key;}
+ const key=w.id+'|'+emission.key;if(key!==state.key){state.carry=0;state.key=key;}
  const rates={emberbite:9,frostgrip:3.2,veinseeker:3.8,stormetch:4.2,goldrune:3};
- runeEmitCarry+=Math.min(.05,dt)*(rates[w.id]||0);
- let count=Math.floor(runeEmitCarry);runeEmitCarry-=count;
- if(parts.length>=480)return;
+ state.carry+=Math.min(.05,dt)*(rates[w.id]||0);
+ let count=Math.floor(state.carry);state.carry-=count;
+ const pool=state.parts||parts;
+ if(pool.length>=480)return;
  const liquid=w.id==='frostgrip'||w.id==='veinseeker';
  let points=emission.points;
  if(liquid){const bottom=Math.max(...points.map(p=>p.y));points=points.filter(p=>p.y>=bottom-3);}
- while(count-->0&&parts.length<480){
+ while(count-->0&&pool.length<480){
   const point=points[Math.floor(Math.random()*points.length)],size=emission.size;
   const p={x:point.x,y:point.y,t:0,life:.65,c:w.glow,r:(.40+Math.random()*.22)*size,vx:0,vy:0,g:0};
   if(w.id==='emberbite'){p.runeFx='ember';p.vx=(Math.random()-.5)*6;p.vy=-8-Math.random()*10;p.g=-7;p.life=.45+Math.random()*.25;}
   else if(liquid){p.runeFx=w.id==='frostgrip'?'water':'blood';p.vx=(Math.random()-.5)*1.5;p.vy=2+Math.random()*2;p.g=p.runeFx==='water'?94:112;p.life=1.05;p.floorY=Math.max(point.y+4,floorY);}
   else if(w.id==='stormetch'){p.runeFx='spark';p.vx=(Math.random()-.5)*60;p.vy=(Math.random()-.5)*50;p.life=.10+Math.random()*.07;p.r=.25*size;}
   else{p.runeFx='gold';p.vx=(Math.random()-.5)*3;p.vy=-2-Math.random()*3;p.g=5;p.life=.6;p.r=.35*size;}
-  parts.push(p);
+  pool.push(p);
  }
 }
 function stepRuneParticle(p,dt){

@@ -207,13 +207,24 @@ const TideUI=(()=>{
   el('tideAttack').onclick=()=>act('attack');el('tidePower').onclick=()=>act('power');el('tideRetreat').onclick=retreat;
   appendLog('Choose one attack or power each round. The wild Tide then takes its turn.');battleHud();paintBattle();saveNow();
  }
+ const actionMarks={
+  attack:{label:'Attack',path:'<path d="m14 3 7-1-1 7-10 10-5-5Z"/><path d="m4 12 8 8M7 17l-4 4"/>'},
+  healing:{label:'Healing',path:'<path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6Z"/>'},
+  support:{label:'Support',path:'<path d="m12 2 9 4v6c0 5-5 8-9 10-4-2-9-5-9-10V6Z"/><path d="M12 6v11M7 10h10"/>'}
+ };
+ function battleAction(id,move,kind,note=''){
+  const button=el(id),mark=actionMarks[kind];button.dataset.actionType=kind;
+  button.innerHTML='<span class="tide-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+mark.path+'</svg></span><span class="tide-action-copy"><b>'+html(move.name)+'</b><small>'+html(move.description+note)+'</small></span>';
+  button.setAttribute('aria-label',mark.label+': '+move.name+'. '+move.description+note);
+ }
  function battleHud(){
   if(!session)return;const b=session.animation?.display||session.battle;
   for(const [side,prefix]of [['player','tidePlayer'],['foe','tideFoe']]){const u=b[side],s=species(u.speciesId);el(prefix+'Name').innerHTML=html(s.name)+' · Lv '+u.level+stars(s);el(prefix+'Hp').style.width=Math.max(0,u.hp/u.maxHp*100)+'%';el(prefix+'HpText').textContent=Math.max(0,Math.round(u.hp))+' / '+u.maxHp;el(prefix+'Status').textContent=[u.shield>0?'Shield '+u.shield:'',u.buffTurns>0?'Empowered '+u.buffTurns+' turns':'',u.poisonTurns>0?'Lingering damage '+u.poisonTurns+' turns':'',u.weakenTurns>0?'Weakened '+u.weakenTurns+' turns':''].filter(Boolean).join(' · ');}
   const s=species(b.player.speciesId),busy=!!session.animation||!!session.result;
   el('tideTurn').textContent='Round '+b.turn;
-  el('tideAttack').innerHTML='<b>'+html(s.attack.name)+'</b><small>'+html(s.attack.description)+'</small>';
-  el('tidePower').innerHTML='<b>'+html(s.skill.name)+'</b><small>'+html(s.skill.description)+(b.player.powerCooldown?' · Ready in '+b.player.powerCooldown+' attacks':'')+'</small>';
+  battleAction('tideAttack',s.attack,'attack');
+  const powerKind=s.skill.heal>0||s.skill.drain>0?'healing':s.skill.damage>0||s.skill.poison>0?'attack':'support';
+  battleAction('tidePower',s.skill,powerKind,b.player.powerCooldown?' · Ready in '+b.player.powerCooldown+' attacks':'');
   el('tideAttack').disabled=busy;el('tidePower').disabled=busy||b.player.powerCooldown>0;el('tideRetreat').disabled=busy;
  }
  function act(choice){
@@ -275,8 +286,17 @@ const TideUI=(()=>{
   const b=session.animation?.display||session.battle,anim=session.animation,layout=battleLayout(w,h,b.player.speciesId,b.foe.speciesId,hudBottom),{floor,left,right}=layout,ps=layout.player,fs=layout.foe;
   let lx=left,rx=right,ly=floor,ry=floor,actor=null,progress=0,style='melee',color='#ddd',hit=0;
   if(anim){const index=Math.min(anim.moves.length-1,Math.floor(anim.elapsed/.85));actor=anim.moves[index];progress=Math.max(0,Math.min(1,(anim.elapsed-index*.85)/.85));if(actor){const s=species(b[actor.side].speciesId),move=actor.type==='power'?s.skill:s.attack;style=move.style;color=move.color;hit=Math.sin(Math.PI*Math.max(0,(progress-.45)/.55));if(style==='melee'){const p=Math.sin(Math.PI*progress),travel=layout.travel*p;if(actor.side==='player'){lx+=travel;ly-=Math.sin(progress*Math.PI*3)*9*p;}else{rx-=travel;ry-=Math.sin(progress*Math.PI*3)*9*p;}}}}
-  // The player's own race, armor and weapon remain visible behind the left Tide.
-  g.save();g.translate(layout.heroX,floor-5);g.scale(layout.heroScale,layout.heroScale);const f=paintedCharacterFrame(S.race,S.cls,S.gender==='f',isIce(S.gear.armor));if(f)bootFeet({...f.boots,moving:false,walk:0,bob:0},g);drawChampionSprite(g,S.race,S.cls,1,0,0,isFK(S.gear.weapon),isFG(S.gear.weapon)?'felglaives':isFK(S.gear.weapon)?'rimfrost':null,S.gender==='f',1,isIce(S.gear.armor),null);g.restore();
+  // Use the same equipped cosmetics as the world hero, with battle-local particles.
+  g.save();g.translate(layout.heroX,floor-5);g.scale(layout.heroScale,layout.heroScale);
+  const f=paintedCharacterFrame(S.race,S.cls,S.gender==='f',isIce(S.gear.armor)),wRune=runeOf(S.gear.weapon),heroScene=g.getTransform().inverse();
+  if(f)bootFeet({...f.boots,moving:false,walk:0,bob:0},g);
+  const emission=drawChampionSprite(g,S.race,S.cls,1,0,0,isFK(S.gear.weapon),isFG(S.gear.weapon)?'felglaives':isFK(S.gear.weapon)?'rimfrost':null,S.gender==='f',1,isIce(S.gear.armor),wRune,null,session.time);
+  drawEquippedRing(g,S.gear.trinket,f?f.headY:-30,session.time,hero.dead);
+  const fx=session.heroEffects||(session.heroEffects={...createRuneEmissionState(),time:session.time});
+  const fxDt=gamePaused?0:Math.max(0,Math.min(.05,session.time-fx.time));fx.time=session.time;
+  if(fxDt>0)for(let i=fx.parts.length-1;i>=0;i--)if(stepRuneParticle(fx.parts[i],fxDt))fx.parts.splice(i,1);
+  runeSpark(wRune,emission?{...emission,points:emission.points.map(p=>runePointTransform(heroScene,p))}:null,fxDt,f?f.groundY:8,fx);
+  fx.parts.forEach(p=>drawRuneParticle(g,p));g.restore();
   drawAnimal(g,b.player.speciesId,lx,ly,ps.height,1,actor?.side==='player'&&style==='melee'?Math.sin(progress*Math.PI):0,progress*Math.PI*8,b.player.hp<=0&&session.shownResult?.6:1,session.time,b.player.hp>0);
   drawAnimal(g,b.foe.speciesId,rx,ry,fs.height,-1,actor?.side==='foe'&&style==='melee'?Math.sin(progress*Math.PI):0,progress*Math.PI*8,b.foe.hp<=0&&session.shownResult?.5:1,session.time+1.7,b.foe.hp>0);
   if(actor&&style==='magic'){

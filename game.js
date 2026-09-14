@@ -8540,7 +8540,7 @@ function drawHourglassBody(g,cx,cy,by,c2,c1,w){
  g.fillStyle=c1;shape(1.8);
 }
 /* Weapon rune profiles, materials and emission live in assets/weapons/rune-*.js. */
-function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painted,iceArm,rune,riding){
+function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painted,iceArm,rune,riding,effectTime){
  let runePaint=null,runeEmission=null;
  raceId=RACE_ALIAS[raceId]||raceId; /* peers/leaderboard entries may still send legacy ids */
  clsId=CLASS_ALIAS[clsId]||clsId;
@@ -8562,7 +8562,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
    /* the spare is enchanted too - one weapon, so one rune, whichever half of it you are looking at.
       Its glow is cut from the same half of the pair art that gets drawn. */
    runeOnSpare(g,rune,wgm,-GH/2,-GW/2,GH,GW,0,0,hw,
-    ()=>g.drawImage(wgm,0,0,hw,hh2,-GH/2,-GW/2,GH,GW));
+    ()=>g.drawImage(wgm,0,0,hw,hh2,-GH/2,-GW/2,GH,GW),effectTime);
    g.restore();
    g.shadowBlur=0;
   }else{ /* fallback while the image loads */
@@ -8673,7 +8673,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   if(!rune)return;
   const flip=mir==='always'||!!mir&&sgn<0;
   g.save();if(flip)g.scale(-1,1);
-  const sp=runeUnder(g,rune,im,x,y,W,H,grip);
+  const sp=runeUnder(g,rune,im,x,y,W,H,grip,undefined,undefined,effectTime);
   g.restore();
   if(sp)runePaint={sp,x,y,W,H,flip};
  };
@@ -8712,7 +8712,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
    g.restore();
   }
  }else if(fm){
-  const tt=performance.now()/1000;
+  const tt=effectTime??performance.now()/1000;
   g.shadowColor='#6fd0ff';g.shadowBlur=rune?0:10+Math.sin(tt*3)*3;
   const art=fkArtFor(clsId); /* blade · mace · staff · bow, by what this class can wield */
   if(art.img.complete&&art.img.naturalWidth){
@@ -8786,7 +8786,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
  if(runePaint){
   const {sp,x,y,W,H,flip}=runePaint;
   g.save();if(flip)g.scale(-1,1);
-  runeTint(g,rune,sp,x,y,W,H);runeMarks(g,rune,sp,x,y,W,H);
+  runeTint(g,rune,sp,x,y,W,H);runeMarks(g,rune,sp,x,y,W,H,effectTime);
   runeEmission=runeEmitter(g,sp,x,y,W,H);
   g.restore();
  }
@@ -8828,6 +8828,13 @@ function drawPet(){
  ctx.restore();
  if(Math.random()<0.008)floatAt(pet.x,pet.y-16,p.id==='cat'?'mjau':p.id==='shark'?'blub':'voff','#ffd76a');
  ctx.restore();
+}
+function drawEquippedRing(g,trinket,headY,time=performance.now()/1000,dead=false){
+ if(dead||!isRing(trinket)||!theRingImg.complete||!theRingImg.naturalWidth)return;
+ const rw=24,rh=rw*theRingImg.naturalHeight/theRingImg.naturalWidth;
+ g.save();g.translate(0,headY-2+Math.sin(time*1.8)*3);
+ g.shadowColor='#ffd76a';g.shadowBlur=9;
+ g.drawImage(mip(theRingImg,rw),-rw/2,-rh/2,rw,rh);g.restore();
 }
 function drawHero(){
  if(TideUI.isBattling())return;
@@ -8902,16 +8909,7 @@ function drawHero(){
  let nmY=character?character.headY-3:-33;
  if(rideLayout){ctx.translate(rideLayout.riderX,0);nmY+=rideLayout.riderY;}
  if(isRing(S.gear.trinket))nmY-=9; /* make room for the hovering ring under the name */
- if(isRing(S.gear.trinket)&&theRingImg.complete&&theRingImg.naturalWidth&&!h.dead){
-  /* 💍 The Ring hovers above its bearer, slowly turning */
-  const t=performance.now()/1000;
-  const rw=24,rh=rw*theRingImg.naturalHeight/theRingImg.naturalWidth;
-  const ry=nmY+10+Math.sin(t*1.8)*3; /* nmY is lifted 9px when the ring is on - net: ring stays put */
-  ctx.save();ctx.translate(0,ry);
-  ctx.shadowColor='#ffd76a';ctx.shadowBlur=9;
-  ctx.drawImage(mip(theRingImg,rw),-rw/2,-rh/2,rw,rh);
-  ctx.restore();
- }
+ drawEquippedRing(ctx,S.gear.trinket,(character?character.headY:-30)+(rideLayout?.riderY||0),now,h.dead);
  if(!S.hideName){ /* 👁 toggle in the hero panel. The ring above still hovers - it is gear, not a label */
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(S.name||'Hero',1,nmY+by+1);
   ctx.fillStyle='#fff';ctx.fillText(S.name||'Hero',0,nmY+by);

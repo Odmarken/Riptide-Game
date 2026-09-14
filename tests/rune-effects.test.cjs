@@ -261,3 +261,35 @@ test('the shared particle limit prevents runaway rune allocation', () => {
  h.context.runeSpark(rune('emberbite'), emission(), .05, 45);
  assert.ok(h.context.parts.length <= 1, 'A full particle pool must not bank a large future burst');
 });
+
+test('battle emission pools cannot add particles to the world or change its fractional timing', () => {
+ const h=harness(),battle=h.context.createRuneEmissionState(),other=h.context.createRuneEmissionState();
+ for(let i=0;i<2;i++)h.context.runeSpark(rune('emberbite'),emission(),.05,45); // .9 world carry.
+ for(let i=0;i<60;i++)h.context.runeSpark(rune('frostgrip'),emission(),1/60,45,battle);
+ assert.ok(battle.parts.length>=3);assert.equal(other.parts.length,0);assert.equal(h.context.parts.length,0);
+ h.context.runeSpark(rune('emberbite'),emission(),.05,45);
+ assert.equal(h.context.parts.length,1,'the battle did not reset the world emitter');
+ const carry=battle.carry,key=battle.key,count=battle.parts.length;
+ h.context.resetRuneEmission();assert.equal(battle.carry,carry);assert.equal(battle.key,key);
+ for(let i=0;i<20;i++)h.context.runeSpark(rune('frostgrip'),emission(),0,45,battle);
+ assert.equal(battle.parts.length,count);assert.equal(battle.carry,carry);
+ h.context.gamePaused=true;h.context.runeSpark(rune('frostgrip'),emission(),1,45,battle);
+ assert.equal(battle.parts.length,count);assert.equal(battle.carry,0);
+});
+
+test('a supplied battle clock freezes both the weapon glow and material marks during wall-clock redraws', () => {
+ const h=harness(),sp={cv:{},padX:.1,padY:.1,profile:{paths:[[[.1,.1],[.6,.9]]]}},rec=recordingContext();
+ const operations=[];
+ for(const name of ['beginPath','moveTo','lineTo','stroke','fill','closePath','bezierCurveTo','quadraticCurveTo','translate','rotate'])
+  rec.g[name]=(...args)=>operations.push([name,...args]);
+ for(const id of ['emberbite','frostgrip','veinseeker','stormetch','goldrune']){
+  const paint=(now,time)=>{
+   h.context.performance.now=()=>now;rec.ops.length=0;operations.length=0;
+   h.context.runeHalo(rec.g,rune(id),sp,-4,-20,8,40,time);
+   h.context.runeMarks(rec.g,rune(id),sp,-4,-20,8,40,time);
+   return JSON.stringify({glow:rec.ops,marks:operations});
+  };
+  assert.equal(paint(1000,0),paint(80000,0),id+' respects a paused battle clock including zero');
+  assert.notEqual(paint(1000,0),paint(1000,.73),id+' animates when the battle advances');
+ }
+});
