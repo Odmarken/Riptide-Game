@@ -81,7 +81,7 @@ test('the permanent lasso costs exactly 10000 gold once and includes a random le
   assert.equal(starters.size, 5);
 });
 
-test('normalization repairs old data without losing individual duplicates, progression, injury or exploration', () => {
+test('normalization repairs old data, clears previous injuries for playtesting and preserves duplicates, progression and exploration', () => {
   for (const raw of [null, undefined, [], 'bad', {}, {pets: 'bad'}]) assert.deepEqual(T.normalizeCollection(raw, 10), T.createCollection());
   const raw = {lassoOwned: false, pets: [
     {id: 'tide-7', speciesId: 'meadowmouse', level: 3, xp: 17, injuredUntil: 500},
@@ -90,13 +90,13 @@ test('normalization repairs old data without losing individual duplicates, progr
   ], equippedId: 'tide-7', exploration: {distance: 17, encounters: [{id: 'wild-1', speciesId: 'moonowl'}]}};
   const before = clone(raw), c = T.normalizeCollection(raw, 20);
   assert.deepEqual(raw, before); assert.equal(c.pets.length, 3); assert.equal(new Set(c.pets.map(p => p.id)).size, 3);
-  assert.equal(c.lassoOwned, true); assert.equal(T.equipped(c).xp, 17); assert.equal(T.equipped(c).injuredUntil, 500);
+  assert.equal(c.lassoOwned, true); assert.equal(T.equipped(c).xp, 17); assert.equal(T.equipped(c).injuredUntil, 0);
   assert.equal(c.pets[1].level, 20); assert.equal(c.pets[1].xp, 0); assert.equal(c.pets[2].level, 1);
   assert.deepEqual(c.exploration, raw.exploration); assert.notEqual(c.exploration, raw.exploration);
   assert.deepEqual(T.normalizeCollection(clone(c), 20), c);
 });
 
-test('only the equipped, healthy Tide earns small world XP; duplicate death events do not award again', () => {
+test('only the equipped Tide earns small world XP, old injuries do not block playtesting and duplicate deaths do not award again', () => {
   const c = collection(), pet = T.equipped(c);
   c.pets.push({...pet, id: 'reserve'});
   assert.equal(T.awardWorldXp(c, {now: 2000, eventId: 'mob-1'}).xp, 2);
@@ -107,7 +107,9 @@ test('only the equipped, healthy Tide earns small world XP; duplicate death even
   assert.equal(T.equip(c, 'reserve', 2000).ok, true);
   T.awardWorldXp(c, {now: 2000}); assert.equal(c.pets[1].xp, 2); assert.equal(pet.xp, 0);
   c.pets[1].injuredUntil = 5000;
-  assert.equal(T.awardWorldXp(c, {now: 4999}).reason, 'injured');
+  assert.equal(T.remainingInjury(c.pets[1], 2000), 0);
+  assert.equal(T.equip(c, 'reserve', 2000).injured, false);
+  assert.equal(T.awardWorldXp(c, {now: 4999}).ok, true);
   assert.equal(T.awardWorldXp(c, {now: 5000}).ok, true);
   c.pets[1].level = 20; c.pets[1].xp = 0;
   T.awardWorldXp(c, {now: 5000}); assert.equal(c.pets[1].level, 20); assert.equal(c.pets[1].xp, 0);
@@ -132,10 +134,10 @@ test('invalid actions and cooling powers are inert; legal rounds expose both sid
   assert.equal(T.finishBattle(c, battle, {now: 2000}).reason, 'unfinished');
 });
 
-test('a victory captures each encounter once, grants substantial XP, and stale results cannot heal a subsequent injury', () => {
+test('a victory captures each encounter once, grants substantial XP, and stale results cannot settle a subsequent battle', () => {
   const c = collection('meadowmouse', 10), pet = T.equipped(c), originalId = pet.id;
   const battle = begin(c);
-  assert.ok(pet.injuredUntil > 2000);
+  assert.equal(pet.injuredUntil, 0);
   assert.equal(play(battle), 'win');
   const stale = clone(battle), result = T.finishBattle(c, battle, {now: 3000});
   assert.equal(result.ok, true); assert.equal(result.captured.speciesId, 'meadowmouse');
@@ -158,37 +160,57 @@ test('storage accepts repeated captures as independent creatures without a party
   c.pets[1].xp = 9; c.pets[1].injuredUntil = 9000;
   assert.equal(c.pets[2].xp, 0); assert.equal(c.pets[2].injuredUntil, 0);
   const restored = T.normalizeCollection(clone(c), 6000);
-  assert.equal(restored.pets.length, 161); assert.deepEqual(restored.pets, c.pets);
+  assert.equal(restored.pets.length, 161); assert.deepEqual(restored.pets, c.pets.map(pet=>({...pet,injuredUntil:0})));
 });
 
-test('defeat and abandonment enforce two real hours of rest across reload; expiry is exact and duplicate settlement is inert', () => {
+test('defeat and abandonment allow immediate reuse during playtesting while duplicate settlement remains inert', () => {
+  assert.equal(T.INJURY_MS, 0);
   const c = collection(), battle = begin(c, 'spectralwyrm', 20, 0.2, 10000), pet = T.equipped(c);
   assert.equal(play(battle), 'loss');
   const result = T.finishBattle(c, battle, {now: 12000});
   assert.equal(result.outcome, 'loss'); assert.equal(c.pets.length, 1); assert.equal(pet.xp, 0);
-  assert.equal(pet.injuredUntil, 12000 + T.INJURY_MS);
+  assert.equal(pet.injuredUntil, 0);
+  const settled = clone(c);
   assert.equal(T.finishBattle(c, battle, {now: 20000}).reason, 'settled');
-  const loaded = T.normalizeCollection(clone(c), 15000);
-  assert.equal(T.remainingInjury(T.equipped(loaded), 15000), T.INJURY_MS - 3000);
-  assert.equal(T.beginBattle(loaded, {speciesId: 'meadowmouse', level: 1}, {now: pet.injuredUntil - 1}).reason, 'injured');
-  const next = begin(loaded, 'meadowmouse', 1, 0.3, pet.injuredUntil);
-  assert.equal(T.abandonBattle(loaded, next, {now: pet.injuredUntil + 20}).outcome, 'loss');
-  assert.equal(T.equipped(loaded).injuredUntil, pet.injuredUntil + 20 + T.INJURY_MS);
+  assert.deepEqual(c, settled);
+  const next = begin(c, 'meadowmouse', 1, 0.3, 12000);
+  assert.equal(T.abandonBattle(c, next, {now: 12000}).outcome, 'loss');
+  assert.equal(pet.injuredUntil, 0); assert.equal(pet.xp, 0); assert.equal(c.pets.length, 1);
+  const loaded = T.normalizeCollection(clone(c), 12000);
+  assert.equal(T.remainingInjury(T.equipped(loaded), 12000), 0);
+  const fresh = begin(loaded, 'meadowmouse', 1, 0.3, 12000), beforeDuplicate = clone(loaded);
   assert.equal(T.abandonBattle(loaded, next, {now: 999999999}).reason, 'settled');
+  assert.deepEqual(loaded, beforeDuplicate); assert.equal(loaded.activeBattle.id, fresh.id);
 });
 
-test('closing an unfinished fight reserves a persisted loss, cannot reroll, and does not restart the rest timer on every reload', () => {
+test('reloading an unfinished fight abandons it without rewards or injury and allows a new fight immediately', () => {
   const c = collection(), battle = begin(c, 'spectralpanther', 1, 0.2, 10000);
   assert.equal(T.beginBattle(c, {speciesId: 'meadowmouse', level: 1}, {now: 10001}).reason, 'battle');
-  const loaded = T.normalizeCollection(clone(c), 11000), deadline = 10000 + T.INJURY_MS;
-  assert.equal(loaded.activeBattle, null); assert.equal(T.equipped(loaded).injuredUntil, deadline);
+  c.pets[0].injuredUntil = 10000 + 2 * 60 * 60 * 1000; // An unfinished fight saved before playtesting.
+  const loaded = T.normalizeCollection(clone(c), 11000);
+  assert.equal(loaded.activeBattle, null); assert.equal(T.equipped(loaded).injuredUntil, 0);
   assert.equal(T.finishBattle(loaded, battle, {now: 12000}).reason, 'settled');
-  const secondLoad = T.normalizeCollection(clone(loaded), deadline - 10);
-  assert.equal(T.equipped(secondLoad).injuredUntil, deadline);
-  assert.equal(T.awardWorldXp(secondLoad, {now: deadline - 1}).reason, 'injured');
-  assert.equal(T.awardWorldXp(secondLoad, {now: deadline}).ok, true);
-  const offline = T.normalizeCollection(clone(c), deadline + 1000);
-  assert.equal(T.remainingInjury(T.equipped(offline), deadline + 1000), 0);
+  assert.equal(loaded.pets.length, 1); assert.equal(T.equipped(loaded).xp, 0);
+  const secondLoad = T.normalizeCollection(clone(loaded), 11000);
+  assert.equal(T.equipped(secondLoad).injuredUntil, 0);
+  assert.equal(T.awardWorldXp(secondLoad, {now: 11000}).ok, true);
+  const fresh = begin(secondLoad, 'meadowmouse', 1, 0.3, 11000);
+  assert.notEqual(fresh.id, battle.id);
+  const before = clone(secondLoad);
+  assert.equal(T.finishBattle(secondLoad, battle, {now: 11000}).reason, 'settled');
+  assert.deepEqual(secondLoad, before);
+});
+
+test('an old in-memory injury cannot block a new battle and defeat text promises no waiting during playtesting', () => {
+  const c = collection();
+  T.equipped(c).injuredUntil = 10000 + 2 * 60 * 60 * 1000;
+  const battle = begin(c, 'spectralwyrm', 20, 0.2, 10000);
+  assert.equal(T.equipped(c).injuredUntil, 0);
+  battle.player.hp = 1;
+  const result = T.act(battle, 'attack');
+  assert.equal(result.outcome, 'loss');
+  assert.match(result.events.find(event=>event.type==='result').text, /ready to battle again/);
+  assert.equal(result.events.some(event=>/hours|rest/.test(event.text)), false);
 });
 
 test('deterministic matchups keep all powers finite, every starter viable, and five-star companions beatable at equal level', () => {

@@ -3,7 +3,7 @@
 (function(root){
  'use strict';
  const WIDTH=50400,HEIGHT=26000,CELL_SIZE=512,COLS=Math.ceil(WIDTH/CELL_SIZE),ROWS=Math.ceil(HEIGHT/CELL_SIZE);
- const MAX_WILD=64,MAX_CELLS=100,LOAD_MARGIN=256,MAX_LOAD_RADIUS=2600,SPAWN_CHANCE=.65,REFRESH_MS=600000;
+ const MAX_WILD=64,MAX_CELLS=100,LOAD_MARGIN=256,MAX_LOAD_RADIUS=2600,SPAWN_CHANCE=.48,REFRESH_MS=600000;
  const SEPARATION=120,ROAM_RADIUS=60,ROAM_SPEED=16;
  const GROUPS=Object.freeze([
   Object.freeze(['meadowmouse','bramblebunny','pebbletoad','thistlesparrow','amberbeetle']),

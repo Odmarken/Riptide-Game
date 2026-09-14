@@ -27,7 +27,7 @@ test('world distribution is sparse, surrounds the player and loads immediately w
    assert.equal(p.aggro,undefined);assert.equal(p.damage,undefined);
   }
  }
- assert.equal(quadrants.size,4);assert.ok(visible/200>1.4&&visible/200<3.1,'roughly two animals per normal viewport: '+visible/200);
+ assert.equal(quadrants.size,4);assert.ok(visible/200>1.1&&visible/200<2.4,'sparse animals in a normal viewport: '+visible/200);
  const {state,c}=setup(),before=identity(state.wild),counter=state.counter;
  for(let i=0;i<100;i++)E.advance(state,c);
  assert.deepEqual(identity(state.wild),before);assert.equal(state.counter,counter,'standing still does not continually create new encounters');
@@ -44,7 +44,7 @@ test('world samples retain every species and tier rarity with uniform species od
   }
  }
  const fractions=E.GROUPS.map(g=>g.reduce((n,id)=>n+(counts.get(id)||0),0)/total);
- assert.equal(counts.size,25);assert.ok(total>55000&&total<64000,'65% of world cells occupied: '+total);
+ assert.equal(counts.size,25);assert.ok(total>40000&&total<47000,'48% of world cells occupied: '+total);
  assert.ok(fractions[0]>.58&&fractions[0]<.62);assert.ok(fractions[1]>.24&&fractions[1]<.28);
  assert.ok(fractions[2]>.095&&fractions[2]<.125);assert.ok(fractions[3]>.022&&fractions[3]<.031);assert.ok(fractions[4]>.0025&&fractions[4]<.0045);
  const spectral=((counts.get('spectralpanther')||0)+(counts.get('spectralwyrm')||0))/total;assert.ok(spectral>.00015&&spectral<.0008,'spectral proportion '+spectral);
@@ -53,7 +53,7 @@ test('world samples retain every species and tier rarity with uniform species od
 });
 
 test('a whole-world viewport and extended exploration keep local objects and saved state bounded',()=>{
- const {state,c}=setup({view:{x:0,y:0,w:E.WIDTH,h:E.HEIGHT}});assert.ok(state.wild.length<=64&&state.wild.length>=45);
+ const {state,c}=setup({view:{x:0,y:0,w:E.WIDTH,h:E.HEIGHT}});assert.ok(state.wild.length<=64&&state.wild.length>=32);
  for(const p of state.wild)assert.ok(Math.abs(p.homeX-c.x)<=E.MAX_LOAD_RADIUS+E.CELL_SIZE&&Math.abs(p.homeY-c.y)<=E.MAX_LOAD_RADIUS+E.CELL_SIZE);
  for(let i=0;i<1000;i++){
   const x=300+(i*1277)%(E.WIDTH-600),y=300+(i*947)%(E.HEIGHT-600);

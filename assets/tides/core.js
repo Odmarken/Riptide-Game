@@ -5,7 +5,9 @@
   root.Tides = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (catalog) {
   'use strict';
-  const MAX_LEVEL = 20, LASSO_PRICE = 10000, INJURY_MS = 2 * 60 * 60 * 1000;
+  const MAX_LEVEL = 20, LASSO_PRICE = 10000;
+  // Temporarily disabled for playtesting. Restore 2 * 60 * 60 * 1000 to enable Tide injuries again.
+  const INJURY_MS = 0;
   const byId = new Map(catalog.map(species => [species.id, species]));
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
   const number = (value, fallback = 0) => typeof value === 'number' && Number.isFinite(value) ? value : fallback;
@@ -44,7 +46,7 @@
       used.add(id);
       const pet = {id, speciesId: saved.speciesId, level: clamp(integer(saved.level, 1), 1, MAX_LEVEL),
         xp: Math.max(0, integer(saved.xp)), caughtAt: Math.max(0, number(saved.caughtAt, time)),
-        injuredUntil: Math.max(0, number(saved.injuredUntil))};
+        injuredUntil: INJURY_MS > 0 ? Math.max(0, number(saved.injuredUntil)) : 0};
       addXp(pet, 0); c.pets.push(pet);
       const sequence = /^tide-(\d+)$/.exec(id);
       if (sequence) c.nextId = Math.max(c.nextId, Number(sequence[1]) + 1);
@@ -59,9 +61,9 @@
     if (raw.exploration && typeof raw.exploration === 'object' && !Array.isArray(raw.exploration)) {
       try { c.exploration = JSON.parse(JSON.stringify(raw.exploration)); } catch (_) { /* Invalid non-save input. */ }
     }
-    // Reloading an unfinished fight is abandonment. Injury was reserved at start,
-    // and its original real-time deadline is preserved across subsequent reloads.
-    if (raw.activeBattle && typeof raw.activeBattle === 'object') {
+    // Reloading an unfinished fight is abandonment. When enabled, preserve the
+    // injury's original real-time deadline; playtesting clears old injuries too.
+    if (INJURY_MS > 0 && raw.activeBattle && typeof raw.activeBattle === 'object') {
       const pet = c.pets.find(item => item.id === raw.activeBattle.ownedId);
       if (pet) pet.injuredUntil = Math.max(pet.injuredUntil,
         Math.max(0, number(raw.activeBattle.startedAt, time)) + INJURY_MS);
@@ -79,7 +81,7 @@
   }
 
   function equipped(c) { return c?.pets?.find(pet => pet.id === c.equippedId) || null; }
-  function remainingInjury(pet, now = Date.now()) { return Math.max(0, number(pet?.injuredUntil) - nowOf({now})); }
+  function remainingInjury(pet, now = Date.now()) { return INJURY_MS > 0 ? Math.max(0, number(pet?.injuredUntil) - nowOf({now})) : 0; }
 
   function newPet(c, speciesId, level, now) {
     let id;
@@ -141,7 +143,7 @@
     const battle = {id: 'battle-' + c.nextBattleId++, ownedId: pet.id, enemy, startedAt: now, turn: 1,
       player: combatant(pet.speciesId, pet.level), foe: combatant(enemy.speciesId, enemy.level),
       seed: Math.floor(random(options.rng) * 4294967295) || 1, outcome: null, committed: false};
-    pet.injuredUntil = now + INJURY_MS;
+    pet.injuredUntil = INJURY_MS > 0 ? now + INJURY_MS : 0;
     c.activeBattle = {id: battle.id, ownedId: pet.id, enemy: {...enemy}, startedAt: now};
     return {ok: true, battle};
   }
@@ -230,7 +232,7 @@
       battle.outcome = battle.player.hp / battle.player.maxHp > battle.foe.hp / battle.foe.maxHp ? 'win' : 'loss';
       event('limit', 'player', 'The long duel ends on remaining health.');
     }
-    if (battle.outcome) event('result', 'player', battle.outcome === 'win' ? 'Victory! The wild Tide can now be captured.' : 'Your Tide needs two hours of rest.');
+    if (battle.outcome) event('result', 'player', battle.outcome === 'win' ? 'Victory! The wild Tide can now be captured.' : INJURY_MS > 0 ? 'Your Tide needs two hours of rest.' : 'Defeat. Your Tide is ready to battle again.');
     else battle.turn++;
     return {ok: true, events, outcome: battle.outcome, turn: battle.turn};
   }
@@ -249,7 +251,7 @@
       pet.injuredUntil = 0;
       xp = Math.round(30 + active.enemy.level * 8 + getSpecies(active.enemy.speciesId).stars * 3);
       levels = addXp(pet, xp);
-    } else pet.injuredUntil = now + INJURY_MS;
+    } else pet.injuredUntil = INJURY_MS > 0 ? now + INJURY_MS : 0;
     battle.committed = true; c.activeBattle = null;
     return {ok: true, outcome: battle.outcome, pet, captured, xp, levels};
   }

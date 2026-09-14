@@ -2465,6 +2465,18 @@ function startAmbience(prof){
 }
 /* Combat / one-shot sounds - all routed through the sfx bus (⚔️ button mutes just these). */
 const sfx={
+ /* Small creature duels: a soft rush, a rounded impact, and a warm power chime.
+    These use the same combat volume/mute bus as every other attack. */
+ tideCast:(style,power=false)=>{
+  if(style==='melee')noiseSweep(.11,power?.075:.055,450,1700);
+  else{noiseSweep(.13,.035,650,2000);blip(520,920,.18,power?.055:.04,'sine');}
+ },
+ tideImpact:(style,power=false)=>{
+  const strength=power?1.12:1,magic=style==='magic';
+  noiseHit(.065,.08*strength,magic?1350:430);
+  blip(magic?640:150,magic?310:65,.12,.07*strength,magic?'sine':'triangle');
+ },
+ tidePower:()=>{blip(440,660,.2,.045,'sine');blip(660,880,.25,.025,'sine');noiseSweep(.12,.02,700,1400);},
  hit:()=>{noiseHit(0.08,.11,520);blip(170,70,0.09,.07,'triangle');},
  /* ⛏ steel into stone, built in four layers because a single burst never reads as a struck object.
     1. the transient - a very short bright crack, which is what the ear uses to judge force

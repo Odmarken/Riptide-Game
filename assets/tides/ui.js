@@ -7,7 +7,7 @@ const TideUI=(()=>{
  const species=id=>Tides.getSpecies(id),owned=()=>Tides.equipped(S.tides),outdoors=()=>!!(S&&zoneOf().wasteland&&!zoneOf().dungeon);
  const stars=s=>`<span class="tide-stars${s.spectral?' spectral':''}">${'★'.repeat(s.stars)}${s.spectral?' · Spectral':''}</span>`;
  const icon=s=>`<canvas class="tide-sprite" width="320" height="280" data-tide-art="${s.id}" role="img" aria-label="${html(s.name)}"></canvas>`;
- const remaining=p=>Math.max(0,(p?.injuredUntil||0)-Date.now());
+ const remaining=p=>Tides.remainingInjury(p);
  function restText(p){const secs=Math.ceil(remaining(p)/1000);return secs?'Resting · '+Math.floor(secs/3600)+':'+String(Math.floor(secs/60)%60).padStart(2,'0')+':'+String(secs%60).padStart(2,'0'):'Ready';}
  function imageFor(s){
   if(!sheets.has(s.sheet)){const im=new Image();im.onload=()=>paintIcons();im.src=s.sheet;sheets.set(s.sheet,im);}
@@ -31,6 +31,25 @@ const TideUI=(()=>{
  function drawAnimal(g,id,x,y,height,fx=1,motion=0,phase=0,alpha=1,time=motionClock,alive=true){
   const f=frameFor(id);if(!f)return false;
   TideMotion.draw(g,f,id,x,y,height,fx,motion,phase,alpha,time,alive);return true;
+ }
+ function animalVisual(id,base=36){
+  const s=species(id),f=frameFor(id),bounds=typeof TideArtLayout==='object'?TideArtLayout[id]?.bounds:null;
+  const height=base*(s?.visualScale||1),aspect=f?f.w/f.h:bounds?bounds[2]/bounds[3]:1;
+  return {height,width:height*aspect};
+ }
+ function wildBounds(w){
+  const size=animalVisual(w.speciesId),half=Math.max(26,size.width*.55+6),top=w.y+6-Math.max(52,size.height*1.08+8);
+  return {...size,left:w.x-half,right:w.x+half,top,bottom:w.y+16};
+ }
+ function battleLayout(w,h,playerId,foeId){
+  const floor=h*(h<600?.54:.58),heroX=w*.105,heroScale=w<650?Math.min(2.6,w*.27/58):Math.min(4.2,h*.3/58,w*.2/58);
+  const start=Math.max(w*.22,heroX+heroScale*32+12),end=w-Math.max(12,w*.025),gap=Math.max(14,w*.1);
+  const p=animalVisual(playerId,w<650?85:135),f=animalVisual(foeId,w<650?85:135);
+  const fit=Math.min(1,Math.max(1,end-start-gap)/((p.width+f.width)*1.1),Math.max(40,floor-Math.min(130,h*.18))/(Math.max(p.height,f.height)*1.08));
+  for(const size of [p,f]){size.height*=fit;size.width*=fit;}
+  const extra=Math.max(0,end-start-p.width*1.1-f.width*1.1-gap);
+  const left=start+p.width*.55+extra*.2,right=end-f.width*.55-extra*.2;
+  return {floor,left,right,player:p,foe:f,heroX,heroScale,heroRight:heroX+heroScale*32,travel:Math.max(0,right-left-(p.width+f.width)*.42-8)};
  }
  function stopHero(){
   if(!hero)return;hero.moveTo=null;hero.pendingDoor=null;hero.target=null;hero.goPortal=false;hero.moving=false;hero.dance=0;holdMove=null;stopMining();
@@ -59,7 +78,7 @@ const TideUI=(()=>{
  function entry(){
   const host=el('tideStorageEntry');if(!host||!S)return;
   if(!S.tides?.lassoOwned){host.innerHTML='';return;}
-  host.innerHTML='<button class="card tide-entry" id="tideStorageButton">Tide storage</button>';
+  host.innerHTML='<button class="card tide-entry" id="tideStorageButton"><img class="tide-entry-icon" src="assets/tides/lasso.png" alt="" aria-hidden="true" draggable="false"><span>Tide storage</span></button>';
   el('tideStorageButton').onclick=openStorage;
  }
  function bagItem(){return S.tides?.lassoOwned?`<div class="card item"><div><div class="sn" style="font-size:13px;font-weight:600"><img src="assets/tides/lasso.png" class="shopico" alt=""> Tidekeeper's Lasso</div><div class="ss" style="font-size:11px;color:var(--dim)">Reusable. Challenge wild Tides in Wasteland and win to tame them. Cannot be sold or discarded.</div></div><div class="btns"><button class="sbtn" id="tideBagStorage">Tide storage</button></div></div>`:'';}
@@ -151,14 +170,14 @@ const TideUI=(()=>{
  function wildList(){return outdoors()&&S.tides?.lassoOwned&&!session?exploration().wild:[];}
  function addWildDrawables(list,bounds){
   for(const w of wildList()){
-   if(w.x<bounds.x0||w.x>bounds.x1||w.y<bounds.y0||w.y>bounds.y1)continue;
-   list.push({y:w.y,f:()=>{const s=species(w.speciesId),near=Math.hypot(hero.x-w.x,hero.y-w.y)<160,H=29+s.stars*3;
+   const box=wildBounds(w);if(box.right<bounds.x0||box.left>bounds.x1||box.bottom<bounds.y0||box.top-26>bounds.y1)continue;
+   list.push({y:w.y,f:()=>{const s=species(w.speciesId),near=Math.hypot(hero.x-w.x,hero.y-w.y)<160,H=box.height;
     drawAnimal(ctx,s.id,w.x,w.y+6,H,w.fx||1,w.motion||0,w.walkphase||0,s.spectral?.93:1,motionClock+(w.homeX||w.x)*.01);
     ctx.save();ctx.textAlign='center';ctx.font='700 9px Georgia,serif';ctx.fillStyle=s.spectral?'#8ed8ff':'#dcc78e';ctx.shadowColor='#000';ctx.shadowBlur=3;ctx.fillText('★'.repeat(s.stars),w.x,w.y-H-8);if(near){ctx.font='700 10px Georgia,serif';ctx.fillStyle='#efe6ca';ctx.fillText(s.name+' · Lv '+w.level,w.x,w.y-H-21);}ctx.restore();}});
   }
  }
  function wildClick(x,y){
-  const w=wildList().filter(w=>Math.abs(x-w.x)<30&&y>w.y-58&&y<w.y+16).sort((a,b)=>Math.hypot(x-a.x,y-a.y)-Math.hypot(x-b.x,y-b.y))[0];
+  const w=wildList().filter(w=>{const b=wildBounds(w);return x>=b.left&&x<=b.right&&y>=b.top&&y<=b.bottom;}).sort((a,b)=>Math.hypot(x-a.x,y-a.y)-Math.hypot(x-b.x,y-b.y))[0];
   if(!w)return false;
   if(Math.hypot(hero.x-w.x,hero.y-w.y)<180)openWild(w.id);
   else{hero.target=null;hero.goPortal=false;hero.moveTo={x:w.x,y:w.y+45};marker={...hero.moveTo,t:0};hero.pendingDoor={s:w,open:()=>openWild(w.id),rng:170};}
@@ -168,7 +187,7 @@ const TideUI=(()=>{
   const w=wildList().find(w=>w.id===id);if(!w||Math.hypot(hero.x-w.x,hero.y-w.y)>185)return;
   const s=species(w.speciesId),p=owned(),ready=p&&!remaining(p);
   if(!openHub('wild','A wild Tide','Neutral · It will only fight if you challenge it'))return;wildChoice=id;
-  el('tideHubBody').innerHTML=`<div class="tide-challenge">${icon(s)}<h3>${html(s.name)}</h3>${stars(s)}<p>Level ${w.level}<br>${html(s.description)}</p><p>${p?'Your companion: <b>'+html(species(p.speciesId).name)+'</b> · Level '+p.level+'<br><span id="tideWildReady">'+restText(p)+'</span>':'Equip a Tide from storage to challenge this animal.'}</p><button class="sbtn gold" id="tideChallenge" ${ready?'':'disabled'}>Tide battle</button><button class="sbtn" id="tideWildStorage">Choose a companion</button><p>Win to tame this Tide. Defeat or leaving an unfinished battle means two hours of rest.</p></div>`;
+  el('tideHubBody').innerHTML=`<div class="tide-challenge">${icon(s)}<h3>${html(s.name)}</h3>${stars(s)}<p>Level ${w.level}<br>${html(s.description)}</p><p>${p?'Your companion: <b>'+html(species(p.speciesId).name)+'</b> · Level '+p.level+'<br><span id="tideWildReady">'+restText(p)+'</span>':'Equip a Tide from storage to challenge this animal.'}</p><button class="sbtn gold" id="tideChallenge" ${ready?'':'disabled'}>Tide battle</button><button class="sbtn" id="tideWildStorage">Choose a companion</button><p>Win to tame this Tide. ${Tides.INJURY_MS?'Defeat or leaving an unfinished battle means two hours of rest.':'After a defeat, your Tide can battle again immediately.'}</p></div>`;
   el('tideChallenge').onclick=()=>begin(id);el('tideWildStorage').onclick=openStorage;paintIcons();
  }
  function appendLog(text){const box=el('tideBattleLog'),row=document.createElement('div');row.textContent=text;box.append(row);while(box.children.length>18)box.firstChild.remove();box.scrollTop=box.scrollHeight;}
@@ -198,6 +217,7 @@ const TideUI=(()=>{
   if(!session||session.animation||session.result||gamePaused)return;
   const display={player:{...session.battle.player},foe:{...session.battle.foe},turn:session.battle.turn};
   const result=Tides.act(session.battle,choice);if(!result.ok)return;
+  initAudio();
   const moves=result.events.filter(e=>e.type==='attack'||e.type==='power');
   let moveIndex=-1,eventTime=0;
   const events=result.events.map(e=>{
@@ -210,15 +230,25 @@ const TideUI=(()=>{
   if(result.outcome){session.result=Tides.finishBattle(S.tides,session.battle);saveNow();entry();}
   battleHud();
  }
+ function battleSound(e,a){
+  if(!['attack','power','damage'].includes(e.type))return;
+  const action=e.type==='damage'?a.moves.find(m=>m.side===e.side):e;
+  if(!action)return;
+  const s=species(a.display[e.side].speciesId),power=action.type==='power',move=power?s.skill:s.attack;
+  // Consume sounds with the combat timeline, so repainting cannot repeat a hit.
+  if(e.type==='damage')sfx.tideImpact(move.style,power);
+  else if(power&&!move.damage)sfx.tidePower();
+  else sfx.tideCast(move.style,power);
+ }
  function retreat(){
   if(!session||session.animation||session.result||gamePaused)return;
-  if(!session.retreatAsked){session.retreatAsked=true;appendLog('Retreat counts as a defeat: your Tide will need two hours of rest. Click Retreat again to leave.');return;}
+  if(!session.retreatAsked){session.retreatAsked=true;appendLog('Retreat counts as a defeat.'+(Tides.INJURY_MS?' Your Tide will need two hours of rest.':'')+' Click Retreat again to leave.');return;}
   session.result=Tides.abandonBattle(S.tides,session.battle);saveNow();entry();showResult();
  }
  function showResult(){
   if(!session||session.shownResult||!session.result?.ok)return;session.shownResult=true;
   const r=session.result,won=r.outcome==='win';el('tideActions').style.display='none';el('tideResult').hidden=false;
-  el('tideResult').innerHTML=won?`<h3>A new bond!</h3><div><b>${html(species(r.captured.speciesId).name)}</b> · Level ${r.captured.level} joined your Tide storage.</div><div>${html(species(r.pet.speciesId).name)} earned ${r.xp} XP${r.levels?' and reached level '+r.pet.level:''}.</div><button class="sbtn gold" id="tideContinue">Continue exploring</button><button class="sbtn" id="tideResultStorage">Tide storage</button>`:`<h3>Time to recover</h3><div>${html(species(r.pet.speciesId).name)} is injured and needs two hours of rest.</div><div>You can equip another healthy Tide from storage.</div><button class="sbtn gold" id="tideContinue">Return to Wasteland</button><button class="sbtn" id="tideResultStorage">Tide storage</button>`;
+  el('tideResult').innerHTML=won?`<h3>A new bond!</h3><div><b>${html(species(r.captured.speciesId).name)}</b> · Level ${r.captured.level} joined your Tide storage.</div><div>${html(species(r.pet.speciesId).name)} earned ${r.xp} XP${r.levels?' and reached level '+r.pet.level:''}.</div><button class="sbtn gold" id="tideContinue">Continue exploring</button><button class="sbtn" id="tideResultStorage">Tide storage</button>`:`<h3>${Tides.INJURY_MS?'Time to recover':'Defeat'}</h3><div>${html(species(r.pet.speciesId).name)} ${Tides.INJURY_MS?'is injured and needs two hours of rest.':'is ready to battle again.'}</div><div>${Tides.INJURY_MS?'You can equip another healthy Tide from storage.':'Try again or choose another Tide from storage.'}</div><button class="sbtn gold" id="tideContinue">Return to Wasteland</button><button class="sbtn" id="tideResultStorage">Tide storage</button>`;
   el('tideContinue').onclick=closeBattle;el('tideResultStorage').onclick=()=>{closeBattle();openStorage();};sfx[won?'loot':'warn']?.();battleHud();
  }
  function closeBattle(){
@@ -238,19 +268,21 @@ const TideUI=(()=>{
   if(session.backdrop){const k=Math.max(w/session.backdrop.width,h/session.backdrop.height)*(1.035-Math.min(1,session.time/.65)*.035),bw=session.backdrop.width*k,bh=session.backdrop.height*k;g.drawImage(session.backdrop,(w-bw)/2,(h-bh)/2,bw,bh);}
   g.fillStyle='rgba(22,22,9,.12)';g.fillRect(0,0,w,h);
   const shade=g.createLinearGradient(0,0,0,h);shade.addColorStop(0,'rgba(4,8,5,.52)');shade.addColorStop(.35,'rgba(4,8,5,0)');shade.addColorStop(.75,'rgba(4,8,5,.1)');shade.addColorStop(1,'rgba(4,8,5,.55)');g.fillStyle=shade;g.fillRect(0,0,w,h);
-  const floor=h*(h<600?.54:.58),size=Math.min(w<650?90:135,h*.24,w*.19),left=w*.32,right=w*.76,b=session.animation?.display||session.battle,anim=session.animation;
+  const b=session.animation?.display||session.battle,anim=session.animation,layout=battleLayout(w,h,b.player.speciesId,b.foe.speciesId),{floor,left,right}=layout,ps=layout.player,fs=layout.foe;
   let lx=left,rx=right,ly=floor,ry=floor,actor=null,progress=0,style='melee',color='#ddd',hit=0;
-  if(anim){const index=Math.min(anim.moves.length-1,Math.floor(anim.elapsed/.85));actor=anim.moves[index];progress=Math.max(0,Math.min(1,(anim.elapsed-index*.85)/.85));if(actor){const s=species(b[actor.side].speciesId),move=actor.type==='power'?s.skill:s.attack;style=move.style;color=move.color;hit=Math.sin(Math.PI*Math.max(0,(progress-.45)/.55));if(style==='melee'){const p=Math.sin(Math.PI*progress),travel=(right-left-size*.55)*p;if(actor.side==='player'){lx+=travel;ly-=Math.sin(progress*Math.PI*3)*9*p;}else{rx-=travel;ry-=Math.sin(progress*Math.PI*3)*9*p;}}}}
+  if(anim){const index=Math.min(anim.moves.length-1,Math.floor(anim.elapsed/.85));actor=anim.moves[index];progress=Math.max(0,Math.min(1,(anim.elapsed-index*.85)/.85));if(actor){const s=species(b[actor.side].speciesId),move=actor.type==='power'?s.skill:s.attack;style=move.style;color=move.color;hit=Math.sin(Math.PI*Math.max(0,(progress-.45)/.55));if(style==='melee'){const p=Math.sin(Math.PI*progress),travel=layout.travel*p;if(actor.side==='player'){lx+=travel;ly-=Math.sin(progress*Math.PI*3)*9*p;}else{rx-=travel;ry-=Math.sin(progress*Math.PI*3)*9*p;}}}}
   // The player's own race, armor and weapon remain visible behind the left Tide.
-  g.save();g.translate(w*.105,floor-5);const hs=w<650?Math.min(2.6,w*.27/58):Math.min(4.2,h*.3/58,w*.2/58);g.scale(hs,hs);const f=paintedCharacterFrame(S.race,S.cls,S.gender==='f',isIce(S.gear.armor));if(f)bootFeet({...f.boots,moving:false,walk:0,bob:0},g);drawChampionSprite(g,S.race,S.cls,1,0,0,isFK(S.gear.weapon),isFG(S.gear.weapon)?'felglaives':isFK(S.gear.weapon)?'rimfrost':null,S.gender==='f',1,isIce(S.gear.armor),null);g.restore();
-  drawAnimal(g,b.player.speciesId,lx,ly,size,1,actor?.side==='player'&&style==='melee'?Math.sin(progress*Math.PI):0,progress*Math.PI*8,b.player.hp<=0&&session.shownResult?.6:1,session.time,b.player.hp>0);
-  drawAnimal(g,b.foe.speciesId,rx,ry,size,-1,actor?.side==='foe'&&style==='melee'?Math.sin(progress*Math.PI):0,progress*Math.PI*8,b.foe.hp<=0&&session.shownResult?.5:1,session.time+1.7,b.foe.hp>0);
+  g.save();g.translate(layout.heroX,floor-5);g.scale(layout.heroScale,layout.heroScale);const f=paintedCharacterFrame(S.race,S.cls,S.gender==='f',isIce(S.gear.armor));if(f)bootFeet({...f.boots,moving:false,walk:0,bob:0},g);drawChampionSprite(g,S.race,S.cls,1,0,0,isFK(S.gear.weapon),isFG(S.gear.weapon)?'felglaives':isFK(S.gear.weapon)?'rimfrost':null,S.gender==='f',1,isIce(S.gear.armor),null);g.restore();
+  drawAnimal(g,b.player.speciesId,lx,ly,ps.height,1,actor?.side==='player'&&style==='melee'?Math.sin(progress*Math.PI):0,progress*Math.PI*8,b.player.hp<=0&&session.shownResult?.6:1,session.time,b.player.hp>0);
+  drawAnimal(g,b.foe.speciesId,rx,ry,fs.height,-1,actor?.side==='foe'&&style==='melee'?Math.sin(progress*Math.PI):0,progress*Math.PI*8,b.foe.hp<=0&&session.shownResult?.5:1,session.time+1.7,b.foe.hp>0);
   if(actor&&style==='magic'){
-   const s=species(b[actor.side].speciesId),self=actor.type==='power'&&!s.skill.damage,from=actor.side==='player'?left:right,to=self?from:(actor.side==='player'?right:left),p=Math.min(1,progress*1.55),px=from+(to-from)*p,py=floor-size*.55-Math.sin(p*Math.PI)*size*.28;
+   const friendly=actor.side==='player',s=species(b[actor.side].speciesId),self=actor.type==='power'&&!s.skill.damage,ownSize=friendly?ps:fs,targetSize=self?ownSize:friendly?fs:ps,ownX=friendly?left:right;
+   const from=self?ownX:ownX+(friendly?1:-1)*ownSize.width*.28,to=self?from:(friendly?right-fs.width*.25:left+ps.width*.25),fromY=floor-ownSize.height*.58,toY=floor-targetSize.height*.5;
+   const p=Math.min(1,progress*1.55),px=from+(to-from)*p,py=fromY+(toY-fromY)*p-Math.sin(p*Math.PI)*Math.min(ownSize.height,targetSize.height)*.28;
    g.save();g.strokeStyle=color;g.fillStyle=color;g.shadowColor=color;g.shadowBlur=15;g.globalAlpha=Math.sin(progress*Math.PI);g.lineWidth=3;
-   if(self){g.beginPath();g.ellipse(from,floor-size*.42,size*.36,size*.55,0,0,Math.PI*2);g.stroke();}else{g.beginPath();g.arc(px,py,8+Math.sin(progress*20)*2,0,Math.PI*2);g.fill();for(let i=1;i<5;i++){g.globalAlpha*=.72;g.beginPath();g.arc(px-(to-from)*.022*i,py+i*2,6-i,0,Math.PI*2);g.fill();}}g.restore();
+   if(self){g.beginPath();g.ellipse(from,floor-ownSize.height*.42,ownSize.width*.48,ownSize.height*.55,0,0,Math.PI*2);g.stroke();}else{g.beginPath();g.arc(px,py,8+Math.sin(progress*20)*2,0,Math.PI*2);g.fill();for(let i=1;i<5;i++){g.globalAlpha*=.72;g.beginPath();g.arc(px-(to-from)*.022*i,py+i*2,6-i,0,Math.PI*2);g.fill();}}g.restore();
   }
-  if(actor&&progress>.5&&progress<.8&&(actor.type==='attack'||species(b[actor.side].speciesId).skill.damage)){const x=actor.side==='player'?right:left;g.save();g.strokeStyle=color;g.lineWidth=2;g.globalAlpha=hit*.7;for(let i=0;i<6;i++){const a=i*Math.PI/3;g.beginPath();g.moveTo(x+Math.cos(a)*size*.12,floor-size*.5+Math.sin(a)*size*.12);g.lineTo(x+Math.cos(a)*size*.3,floor-size*.5+Math.sin(a)*size*.3);g.stroke();}g.restore();}
+  if(actor&&progress>.5&&progress<.8&&(actor.type==='attack'||species(b[actor.side].speciesId).skill.damage)){const target=actor.side==='player'?fs:ps,x=actor.side==='player'?right-fs.width*.25:left+ps.width*.25,size=Math.min(target.height,target.width);g.save();g.strokeStyle=color;g.lineWidth=2;g.globalAlpha=hit*.7;for(let i=0;i<6;i++){const a=i*Math.PI/3;g.beginPath();g.moveTo(x+Math.cos(a)*size*.12,floor-target.height*.5+Math.sin(a)*size*.12);g.lineTo(x+Math.cos(a)*size*.3,floor-target.height*.5+Math.sin(a)*size*.3);g.stroke();}g.restore();}
  }
  function tick(dt){
   clockTick+=dt;motionClock+=dt;
@@ -260,7 +292,7 @@ const TideUI=(()=>{
   const a=session.animation;if(a){
    a.elapsed+=dt;
    while(a.shown<a.events.length&&a.events[a.shown].at<=a.elapsed){
-    const e=a.events[a.shown++],u=a.display[e.targetSide];appendLog(e.text);
+    const e=a.events[a.shown++],u=a.display[e.targetSide];appendLog(e.text);battleSound(e,a);
     if(u){if(['damage','poison','recoil'].includes(e.type))u.hp=Math.max(0,u.hp-e.amount);else if(e.type==='heal')u.hp=Math.min(u.maxHp,u.hp+e.amount);else if(e.type==='shield')u.shield+=e.amount;}
     battleHud();
    }
@@ -273,5 +305,5 @@ const TideUI=(()=>{
   if(!session?.backdrop||session.time>2||session.time<(session.nextBackdrop||0))return;
   session.nextBackdrop=session.time+.25;session.backdrop.getContext('2d').drawImage(cv,0,0);paintBattle();
  }
- return {entry,bagItem,bindBag,openChurch,churchInReach,openStorage,renderStoragePage,storageOpen,storageBack,openWild,wildClick,nearestWild,updateExploration,addWildDrawables,modalOpen,isBattling:()=>!!session,begin,act,retreat,closeHub,closeBattle,leaveZone,awardKill,tick,paintBattle,afterDraw,frameFor,drawAnimal,paintIcons};
+ return {entry,bagItem,bindBag,openChurch,churchInReach,openStorage,renderStoragePage,storageOpen,storageBack,openWild,wildClick,nearestWild,updateExploration,addWildDrawables,modalOpen,isBattling:()=>!!session,begin,act,retreat,closeHub,closeBattle,leaveZone,awardKill,tick,paintBattle,afterDraw,frameFor,drawAnimal,paintIcons,animalVisual,wildBounds,battleLayout};
 })();

@@ -54,11 +54,18 @@
     ['Spirit Breath', 'magic', '#9edcfa']
   ];
   const meleePowers = new Set(['thistlesparrow', 'acornboar', 'embercub', 'frostibex', 'obsidianbear', 'spectralpanther']);
+  const visualScales = {
+    meadowmouse:.78, bramblebunny:1, pebbletoad:.82, thistlesparrow:.78, amberbeetle:.75,
+    mossfox:1.12, reedotter:1.05, duskmoth:.9, shellsnap:.95, acornboar:1.2,
+    embercub:1.15, moonowl:1.05, crystalgecko:1.05, stormlynx:1.25, thornbadger:1.08,
+    cinderwolf:1.35, frostibex:1.45, sunmane:1.5, runestag:1.6, coraldrake:1.45,
+    dawnphoenix:1.65, obsidianbear:1.8, aurorakirin:1.65, spectralpanther:1.4, spectralwyrm:2.1
+  };
   return Object.freeze(groups.flatMap((group, groupIndex) => group.map((row, cell) => {
     const [id, name, description, hpScale, attackScale, skillName, skillDescription, effects] = row;
     const stars = groupIndex + 1, spectral = id.startsWith('spectral');
     const [attackName, attackStyle, color] = attacks[groupIndex * 5 + cell];
-    return Object.freeze({id, name, description, stars, spectral, hpScale, attackScale,
+    return Object.freeze({id, name, description, stars, spectral, hpScale, attackScale, visualScale:visualScales[id],
       sheet: 'assets/tides/tides-' + stars + '.png', cell, columns: 3, rows: 2,
       encounterWeight: spectral ? 2 : [0, 1200, 520, 220, 53, 31 / 3][stars],
       attack: Object.freeze({name: attackName, description: 'A reliable strike. Reduces power cooldown by one turn.', style: attackStyle, color}),
