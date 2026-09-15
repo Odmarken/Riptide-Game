@@ -1,25 +1,48 @@
 {
+  "version": 2,
   "generator": "Higgsfield",
-  "jobId": "9ef4d2e6-47ca-4c3d-9364-1d78286df78e",
+  "jobId": "ead7971b-a9d7-46a5-b57f-dcb98ee9e5ba",
   "file": "assets/farm/tide_incubator.png",
-  "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260914_221635_9ef4d2e6-47ca-4c3d-9364-1d78286df78e.png",
+  "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260915_170848_ead7971b-a9d7-46a5-b57f-dcb98ee9e5ba.png",
   "params": {
     "model": "gpt_image_2_5",
     "quality": "high",
-    "resolution": "1k",
+    "resolution": "2k",
     "background": "transparent",
     "aspect_ratio": "1:1",
     "count": 1,
     "medias": [
       {
         "role": "image",
-        "value": "59b3ca3e-b4b7-4363-b17e-6de3fbafc373"
+        "value": "9ef4d2e6-47ca-4c3d-9364-1d78286df78e"
+      },
+      {
+        "role": "image",
+        "value": "83928818-66c1-4cff-a3db-0287a0d4ee46"
       }
     ],
-    "prompt": "Create a NEW compact magical TIDE BREEDING COTTAGE / INCUBATOR HOUSE for the same hand-painted chibi fantasy RPG as the reference stable. Match the reference's exact bold dark brown contours, rich painterly oak, red clay roof tiles, warm cream plaster, chunky low stone foundation, three-quarter isometric view from above, entry facing lower left. A small cozy square cottage with a steep red tiled roof and a little amber-glass rooftop cupola. Large open arched front doorway shows one attractive brass-and-teal magical egg incubator inside: oval softly glowing turquoise crystal egg held in a small brass cradle, readable at game scale. Two small decorative carved animal silhouettes flank a brass egg emblem above the door, no letters. Warm little lantern, subtle ivy on one corner, tasteful brass piping around the window, one turquoise oval window on visible right wall. This must feel like a fantasy farm building, not a science-fiction machine. ONE complete isolated building including tiny doorstep; no people, no animals outside, no scenery, no lawn or dirt patch, no fence, no ground shadow, no extra objects, no labels/text/watermark/checkerboard. True transparent RGBA background. Entire roof, walls and foundation in frame with8percentclear padding on all sides. Compact architecture readable when rendered220worldunits wide. Original new architecture matching the reference's game style."
+    "prompt": "Use case: stylized-concept. Create a redesigned TIDE BREEDING / INCUBATOR HOUSE game sprite for Riptide RPG. Image 1 is the existing incubator: retain its compact square footprint, three-quarter elevated view, lower-left facing arched entrance with a visible turquoise magical egg in a brass cradle, complete low foundation, and the same general silhouette occupancy. Image 2 is the approved TIDE TRAINING house and is the primary STYLE reference: match its rich dimensional painted fantasy finish, dark walnut carved timber, deep oxblood curved layered tiled roofs, charcoal block stone base, beautiful warm amber lanterns, antique gold metal details and deep teal banners. Redesign the old plain cream cottage into a handsome magical creature breeding guild cottage in the same architectural family as image 2, with a bold carved central gable, small red-roofed lantern cupola, carved paired little beast heads facing a golden egg crest above the doorway, a handsome teal pennant with a gold egg/DNA motif and a turquoise oval side window. The open arch must clearly reveal ONE luminous turquoise egg in a brass incubator; warm intimate interior, not science-fiction. Slightly imposing and adventurous, charming chunky proportions, strong dark outlines and sculpted painterly material shading, not flat clip art, plastic toy or smooth 3D. No lettering/sign text. One isolated complete building only. No people, no live animals, no fences or surrounding farm ground, no scenery, no detached extra objects. Entire roof, finial and stone doorstep contained in frame with 4-6 percent transparent padding, lowest stone around95percentimageheight. Preserve a compact base compatible with the original footprint. True transparent RGBA, clear alpha outside the silhouette, fully painted opaque walls, no checkerboard, no white halo or diffuse glow outside silhouette, no cast ground shadow. Cohesive richly painted game art matching the approved training house."
   },
-  "width": 1024,
-  "height": 1024,
-  "sha256": "fae0657f0495b9b5e69c2d92e81a0f3325c757b3f7d3bbac91c0603ab6d2c375",
-  "nativeTransparentPng": true
+  "width": 2048,
+  "height": 2048,
+  "sha256": "e89428a460504cd075d46246876f1ef44cd401840b38348b561ec6e074629f26",
+  "nativeTransparentPng": true,
+  "revision": "Training-lodge-inspired carved walnut, deep red tiled roof, gold egg crest and teal DNA banner; original incubator function and compact footprint retained.",
+  "previousGenerations": [
+    {
+      "jobId": "9ef4d2e6-47ca-4c3d-9364-1d78286df78e",
+      "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260914_221635_9ef4d2e6-47ca-4c3d-9364-1d78286df78e.png",
+      "sha256": "fae0657f0495b9b5e69c2d92e81a0f3325c757b3f7d3bbac91c0603ab6d2c375"
+    }
+  ],
+  "preservation": "Generated PNG saved byte-for-byte; no recolor, crop or alpha modification.",
+  "alphaBounds": [
+    181,
+    24,
+    1707,
+    1981
+  ],
+  "alphaBoundsFormat": "[x,y,width,height] at alpha>=128",
+  "zeroAlphaPixels": 2020796,
+  "alphaNote": "Native generated alpha retained; subject mostly alpha250-254. Background is transparent with a few very faint antialias pixels."
 }

@@ -1,7 +1,7 @@
 /* Per-character stable ownership and a disposable, distance-driven riding state. */
 const Mounts=(()=>{
  const catalog=Object.freeze([
-  Object.freeze({id:'horse',name:'Chestnut Courser',kind:'Horse',price:25000,speed:1.65,art:'assets/mounts/horse.png',description:'A steady companion for the long roads of Wasteland.'}),
+  Object.freeze({id:'horse',name:'Chestnut Courser',kind:'Horse',price:25000,speed:1.65,art:'assets/mounts/horse.png',artVersion:2,description:'A goofy, good-hearted companion with a tongue-out grin and a rolling stride.'}),
   Object.freeze({id:'leopard',name:'Amberfang Leopard',kind:'Leopard',price:150000,speed:1.9,art:'assets/mounts/leopard.png',description:'A sure-footed spotted hunter with a swift, rolling stride.'}),
   Object.freeze({id:'spectral-tiger',name:'Azure Spectral Tiger',kind:'Spectral tiger',price:750000,speed:2.1,art:'assets/mounts/spectral-tiger.png',artVersion:2,description:'Blue spirit-fire shimmers beneath its ancient silver armour.'})
  ]);

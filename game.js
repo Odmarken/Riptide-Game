@@ -206,7 +206,7 @@ const fullCowImg=new Image();fullCowImg.src='assets/boss/originals/Cow_boss.png?
 const fullRatImg=new Image();fullRatImg.src='assets/boss/originals/rat_boss.png?v=1';
 /* ---- 🚜 the Farm: build assets, loaded lazily ---- */
 const farmImgs={};
-const farmImg=n=>{if(!farmImgs[n]){farmImgs[n]=new Image();farmImgs[n].src='assets/farm/'+n+'.png';}return farmImgs[n];};
+const farmImg=n=>{if(!farmImgs[n]){farmImgs[n]=new Image();farmImgs[n].src='assets/farm/'+n+'.png'+(n==='tide_incubator'?'?v=2':'');}return farmImgs[n];};
 const FARM_BUILD=[
  /* Contact shadows are calibrated against the visible roots, feet and bases. cx/rx/ry/dy
     use the rendered width; rot follows the ground plane. Floor decals need no extra blob. */
@@ -9089,12 +9089,15 @@ function drawHero(){
  ctx.textAlign='center';
  /* name only (no rating), lifted clear of the sprite; hp lives in the header bar instead */
  let nmY=character?character.headY-3:-33;
- if(rideLayout){ctx.translate(rideLayout.riderX,0);nmY+=rideLayout.riderY;}
  if(isRing(S.gear.trinket))nmY-=9; /* make room for the hovering ring under the name */
- drawEquippedRing(ctx,S.gear.trinket,(character?character.headY:-30)+(rideLayout?.riderY||0),now,h.dead);
+ ctx.save();
+ if(rideLayout)MountRenderer.riderTransform(ctx,rideLayout);
+ drawEquippedRing(ctx,S.gear.trinket,character?character.headY:-30,now,h.dead);
+ ctx.restore();
+ const namePoint=rideLayout?MountRenderer.riderPoint(rideLayout,0,nmY):{x:0,y:nmY+by};
  if(!S.hideName){ /* 👁 toggle in the hero panel. The ring above still hovers - it is gear, not a label */
-  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(S.name||'Hero',1,nmY+by+1);
-  ctx.fillStyle='#fff';ctx.fillText(S.name||'Hero',0,nmY+by);
+  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(S.name||'Hero',namePoint.x+1,namePoint.y+1);
+  ctx.fillStyle='#fff';ctx.fillText(S.name||'Hero',namePoint.x,namePoint.y);
  }
  ctx.restore();
 }

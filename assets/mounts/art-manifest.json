@@ -5,7 +5,7 @@
   "resolution": "1k",
   "background": "transparent",
   "aspect_ratio": "1:1",
-  "referenceHandling": "All assets were generated in Higgsfield from text descriptions of the painted chibi game style. Local reference images were inspected only; no reference images were uploaded or supplied for the completed generations.",
+  "referenceHandling": "Original stable and leopard were generated from text descriptions. Replacement horse uses its original Higgsfield generation as the edit target and the approved Tide Training lodge as a painted style reference; see per-asset params. Spectral tiger generation provenance is retained below.",
   "assets": {
     "stable": {
       "file": "assets/mounts/stable.png",
@@ -31,69 +31,96 @@
     },
     "horse": {
       "file": "assets/mounts/horse.png",
-      "jobId": "4de2fb02-ea77-40e2-8d64-4ad5a7d47486",
+      "jobId": "07ec0a7c-f26e-4295-835f-ace0eaf4cfeb",
       "status": "completed",
-      "prompt": "Production asset for a cozy hand-painted fantasy chibi RPG. Bold clean dark ink contours, readable broad painted highlights, compact sturdy shapes, painterly textures rather than photorealism or smooth 3D. One complete isolated subject only. True transparent RGBA background, no checkerboard, no ground patch, no cast shadow, no text or watermark. Keep all extremities inside frame with 8% transparent padding. Riderless saddled animal mount, standing calmly in a SIDE VIEW with a slight front three-quarter angle, body horizontal, FACING RIGHT (head to the right, tail to the left). Chibi proportions with oversized appealing head, compact strong torso and relatively short legs. Show all four paws/hooves in a natural staggered stance, clearly separated enough for simple leg animation. All supporting feet share a flat ground line near 85% image height. Put the back and a clear simple flat saddle seat near 48% image height, approximately center x, immediately behind the shoulders; enough empty space above the seat for a separate humanoid rider. Saddle must be low, with a readable seat, no huge pommel, no rider, no packs that hide the seat. No long loose reins or stirrups covering the animal's flank. A warm chestnut-brown riding HORSE with dark chocolate mane and tail, small cream muzzle highlight and expressive dark eyes. Plain brown leather saddle on a muted burgundy blanket with restrained brass hardware; simple leather bridle. Original charming fantasy farm horse, strong short legs and rounded hooves, no armor covering the body.",
+      "prompt": "Use case: precise-object-edit / game sprite redesign. Image 1 is the horse mount EDIT TARGET. Image 2 is ONLY a painted material/shading style reference from the same RPG, not an object to include. Redesign the horse into an adorably goofy, slightly dim-witted but lovable fantasy chibi horse. The original was too conventionally handsome. Give him a bigger soft cream muzzle, comically relaxed half-lidded eyes with a slightly confused cross-eyed glance, one ear casually tilted outward, a tousled scruffy forelock, and a plainly visible little pink tongue flopping out from the right corner of his mouth. Tongue is visible at small game scale, playful silly blep expression, not a huge roaring mouth or grotesque face. Still a robust healthy rideable CHESTNUT HORSE with dark chocolate mane and tail, four strong legs and full rounded hooves. Retain the original exact right-facing three-quarter side pose, body proportions, image-space torso placement, legs and foot placements, saddle position/scale and silhouette below the neck as closely as possible so its existing animation rig fits: saddle seat around(482,437) in1024square coordinates, feet on ground around y970. Keep saddle empty with unobstructed air above for a separate rider. Plain dark brown leather saddle on burgundy cloth, a tiny restrained antique brass egg crest can tie it to the breeding cottage. Match the richer dimensional hand-painted finish, carved-looking bold contours, warm shading and polished fantasy readability of reference2 while keeping natural horse fur and anatomy. No building/architecture in the output. All four legs/hooves fully intact and organically attached, no cut-off feet, no separated pieces, no extra legs. No rider, no big backpack, no loose reins/stirrups across the flank. Preserve original square composition, complete tail/head/ears/hooves inside canvas. TRUE transparent RGBA background, alpha0 outside clean silhouette, no colored background, no checkerboard, no fog or cast ground shadow, no halo. Single full-body horse sprite only, no text or watermark.",
       "size": [
         1024,
         1024
       ],
       "bounds": [
-        51,
-        43,
-        927,
-        938
+        48,
+        38,
+        957,
+        956
       ],
-      "sha256": "e8226cbbfd89f9f6c111d83741de7496471ebbbd903ee195afeaa16c718f4f06",
+      "sha256": "eba963abd0f473479bac892a9f2132ebfe0567e9aa0dbe09f64b88707a59c472",
       "nativeAlpha": true,
-      "zeroAlphaPixels": 591565,
-      "semiAlphaPixels": 457011,
+      "zeroAlphaPixels": 571087,
+      "semiAlphaPixels": 477489,
       "opaque255Pixels": 0,
       "seat": [
         482,
         437
       ],
       "ground": [
-        512,
-        981
+        526,
+        994
       ],
       "facing": 1,
       "legCandidates": [
         [
           174,
-          330,
+          335,
           802,
           918,
           0
         ],
         [
           345,
-          542,
+          552,
           780,
           914,
           3.141592653589793
         ],
         [
           562,
-          712,
+          736,
           777,
-          923,
+          925,
           3.141592653589793
         ],
         [
-          715,
-          885,
+          739,
+          912,
           783,
-          921,
+          920,
           0
         ]
       ],
-      "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260913_221933_4de2fb02-ea77-40e2-8d64-4ad5a7d47486.png",
+      "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260915_170916_07ec0a7c-f26e-4295-835f-ace0eaf4cfeb.png",
       "front": [
         0.59,
         0.18,
         0.84,
         0.67
+      ],
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "1k",
+        "background": "transparent",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "4de2fb02-ea77-40e2-8d64-4ad5a7d47486"
+          },
+          {
+            "role": "image",
+            "value": "83928818-66c1-4cff-a3db-0287a0d4ee46"
+          }
+        ],
+        "prompt": "Use case: precise-object-edit / game sprite redesign. Image 1 is the horse mount EDIT TARGET. Image 2 is ONLY a painted material/shading style reference from the same RPG, not an object to include. Redesign the horse into an adorably goofy, slightly dim-witted but lovable fantasy chibi horse. The original was too conventionally handsome. Give him a bigger soft cream muzzle, comically relaxed half-lidded eyes with a slightly confused cross-eyed glance, one ear casually tilted outward, a tousled scruffy forelock, and a plainly visible little pink tongue flopping out from the right corner of his mouth. Tongue is visible at small game scale, playful silly blep expression, not a huge roaring mouth or grotesque face. Still a robust healthy rideable CHESTNUT HORSE with dark chocolate mane and tail, four strong legs and full rounded hooves. Retain the original exact right-facing three-quarter side pose, body proportions, image-space torso placement, legs and foot placements, saddle position/scale and silhouette below the neck as closely as possible so its existing animation rig fits: saddle seat around(482,437) in1024square coordinates, feet on ground around y970. Keep saddle empty with unobstructed air above for a separate rider. Plain dark brown leather saddle on burgundy cloth, a tiny restrained antique brass egg crest can tie it to the breeding cottage. Match the richer dimensional hand-painted finish, carved-looking bold contours, warm shading and polished fantasy readability of reference2 while keeping natural horse fur and anatomy. No building/architecture in the output. All four legs/hooves fully intact and organically attached, no cut-off feet, no separated pieces, no extra legs. No rider, no big backpack, no loose reins/stirrups across the flank. Preserve original square composition, complete tail/head/ears/hooves inside canvas. TRUE transparent RGBA background, alpha0 outside clean silhouette, no colored background, no checkerboard, no fog or cast ground shadow, no halo. Single full-body horse sprite only, no text or watermark."
+      },
+      "revision": "Goofy half-lidded expression, floppy ear, tousled forelock and tongue out; complete riderless chestnut horse with the original saddle pose.",
+      "previousGenerations": [
+        {
+          "jobId": "4de2fb02-ea77-40e2-8d64-4ad5a7d47486",
+          "sha256": "e8226cbbfd89f9f6c111d83741de7496471ebbbd903ee195afeaa16c718f4f06",
+          "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260913_221933_4de2fb02-ea77-40e2-8d64-4ad5a7d47486.png"
+        }
       ]
     },
     "leopard": {
@@ -242,8 +269,8 @@
   },
   "geometryNotes": {
     "bounds": "Inclusive alpha>=128 bounds [x,y,width,height]. Source images have genuine alpha; RGB under zero alpha is intentionally preserved, so RGB-only viewers may show a false colored background.",
-    "legCandidates": "[x0,x1,rootY,ankleY,phaseRadians] in 1024px source coordinates. Nonoverlapping source bands support a connected knee-and-ankle gait; the renderer adds horizontal room for swinging hooves and paws. The far rider boot is clipped behind the body silhouette and only the near boot overlays the flank.",
-    "preservation": "The active Higgsfield PNGs are saved byte-for-byte. The spectral tiger was replaced by a new generation; its previous version is retained in Git history. No recolor, crop or alpha edits were applied.",
+    "legCandidates": "[x0,x1,rootY,ankleY,phaseRadians] in 1024px source coordinates. Nonoverlapping source bands support connected knees and complete hooves/paws, with padding for stride and compensation for body rocking. Rider hips follow the transformed saddle; the far boot is masked behind the full body silhouette.",
+    "preservation": "The active Higgsfield PNGs are saved byte-for-byte. The spectral tiger and horse were replaced by new generations; previous versions remain in Git history. No recolor, crop or alpha edits were applied.",
     "localReferencesInspected": [
       "assets/farm/farmhouse_litet.png",
       "assets/characters/humanmale_warrior.png",
