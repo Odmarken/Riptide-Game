@@ -35,7 +35,6 @@
       <section class="hero-guide-tip hero-guide-auto">
        <h2><span class="hero-guide-icon">${icons.auto}</span>Auto play</h2>
        <p><strong>AUTO starts on.</strong> Your hero finds enemies, walks and fights, and uses enabled spells and potions. Press the highlighted <strong>AUTO</strong> button to switch it off and play manually.</p>
-       <span class="hero-guide-small">Dungeon and raid fights are manual. Odin and Thor still allow AUTO.</span>
       </section>
       <section class="hero-guide-tip">
        <h2><span class="hero-guide-icon">${icons.map}</span>Explore &amp; level up</h2>
