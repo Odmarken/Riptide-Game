@@ -44,7 +44,7 @@
     if (!active?.training || active.guildSeriesId !== series.id) return {ok: false, reason: 'battle'};
     const result = Tides.finishBattle(collection, battle, options);
     if (!result.ok) return result;
-    series.score[result.outcome === 'win' ? 'player' : 'foe']++;
+    if (result.outcome !== 'draw') series.score[result.outcome === 'win' ? 'player' : 'foe']++;
     const finished = series.score.player >= WINS_REQUIRED || series.score.foe >= WINS_REQUIRED;
     series.status = finished ? 'finished' : 'between-rounds';
     if (finished) {
@@ -60,7 +60,8 @@
       return {ok: false, reason: 'equipped'};
     const result = Tides.beginBattle(collection, series.opponent, {...options, training: true, guildSeriesId: series.id});
     if (!result.ok) return result;
-    series.round++; series.battleId = result.battle.id; series.status = 'battling';
+    series.round = series.score.player + series.score.foe + 1;
+    series.battleId = result.battle.id; series.status = 'battling';
     return {...result, series};
   }
   function abandon(collection, series, battle, options = {}) {

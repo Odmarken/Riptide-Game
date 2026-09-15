@@ -279,83 +279,92 @@
     if (action !== 'attack' && action !== 'power') return {ok: false, reason: 'action', events: [], outcome: null};
     if (action === 'power' && battle.player.powerCooldown > 0) return {ok: false, reason: 'cooldown', events: [], outcome: null};
     const events = [], rng = options.rng || (() => seededRandom(battle));
+    const sides = ['player', 'foe'], before = {player: {...battle.player}, foe: {...battle.foe}};
+    const after = {player: {...before.player}, foe: {...before.foe}};
     const name = unit => getSpecies(unit.speciesId).name;
-    const event = (type, side, text, amount = 0, targetSide = side) => events.push({type, side, targetSide, text, amount});
-    function checkOutcome() {
-      if (battle.player.hp <= 0) battle.outcome = 'loss';
-      else if (battle.foe.hp <= 0) battle.outcome = 'win';
-      return battle.outcome;
+    const enemySkill = getSkill(before.foe);
+    // Both decisions see the round's starting state, never the other action's
+    // damage or status changes. Visual animation order does not confer priority.
+    const waitsForHealing = enemySkill.heal && before.foe.maxHp - before.foe.hp < before.foe.maxHp * enemySkill.heal * 0.8;
+    const enemyAction = before.foe.powerCooldown === 0 && !waitsForHealing && random(rng) < 0.9 ? 'power' : 'attack';
+    const plans = {};
+    function emit(plan, type, text, amount = 0, targetSide = plan.targetSide, sourceSide = plan.side) {
+      plan.events.push({type, side: sourceSide, targetSide, text, amount, actionSide: plan.side, actionIndex: plan.actionIndex});
     }
-    function hurt(target, amount, side, targetSide, pierce = 0, type = 'damage') {
-      const requested = Math.max(0, Math.round(amount));
-      const absorbed = Math.min(target.shield, Math.round(requested * (1 - pierce)));
-      target.shield -= absorbed;
-      const actual = Math.min(target.hp, requested - absorbed);
-      target.hp -= actual;
-      event(type, side, name(target) + ' takes ' + actual + ' damage' + (absorbed ? ' (' + absorbed + ' blocked)' : '') + '.', actual, targetSide);
-      return actual;
-    }
-    function heal(unit, amount, side) {
-      const actual = Math.min(unit.maxHp - unit.hp, Math.max(0, Math.round(amount)));
-      unit.hp += actual;
-      if (actual) event('heal', side, name(unit) + ' restores ' + actual + ' health.', actual);
-    }
-    function move(unit, target, selected, side, targetSide) {
+    for (const [actionIndex, side] of sides.entries()) {
+      const targetSide = side === 'player' ? 'foe' : 'player', unit = before[side], next = after[side];
+      const selected = side === 'player' ? action : enemyAction, skill = selected === 'power' ? getSkill(unit) : {};
+      const plan = plans[side] = {side, targetSide, actionIndex, skill, events: [], hits: [], incoming: 0, dealt: 0, poison: 0, healed: 0};
       if (unit.poisonTurns > 0) {
-        unit.poisonTurns--;
-        const damage = Math.min(unit.hp, unit.poison); unit.hp -= damage;
-        event('poison', targetSide, name(unit) + ' takes ' + damage + ' lingering damage.', damage, side);
-        if (unit.poisonTurns === 0) unit.poison = 0;
-        if (checkOutcome()) return;
+        plan.poison = Math.max(0, unit.poison);
+        next.poisonTurns--; if (next.poisonTurns === 0) next.poison = 0;
+        const shownPoison = Math.min(unit.hp, plan.poison);
+        emit(plan, 'poison', name(unit) + ' takes ' + plan.poison + ' lingering damage.', shownPoison, side, targetSide);
       }
       const buff = unit.buffTurns > 0 ? unit.buff : 0, weaken = unit.weakenTurns > 0 ? unit.weaken : 0;
-      const power = unit.atk * (1 + buff) * (1 - weaken) * (0.86 + random(rng) * 0.28);
-      if (unit.buffTurns > 0 && --unit.buffTurns === 0) unit.buff = 0;
-      if (unit.weakenTurns > 0 && --unit.weakenTurns === 0) unit.weaken = 0;
-      if (selected === 'attack') {
-        event('attack', side, name(unit) + ' uses ' + getSpecies(unit.speciesId).attack.name + '.', 0, targetSide);
-        hurt(target, power, side, targetSide);
-        unit.powerCooldown = Math.max(0, unit.powerCooldown - 1);
-      } else {
-        const skill = getSkill(unit);
-        event('power', side, name(unit) + ' uses ' + skill.name + '.', 0, targetSide);
-        unit.powerCooldown = skill.cooldown;
-        if (skill.cleanse) { unit.poison = 0; unit.poisonTurns = 0; }
-        let damage = 0;
-        if (skill.damage) {
-          const strength = skill.damage + (skill.missingHpBonus || 0) * (1 - unit.hp / unit.maxHp);
-          const hits = skill.hits || 1;
-          for (let i = 0; i < hits && target.hp > 0; i++) damage += hurt(target, power * strength * (unit.powerMultiplier || 1) / hits, side, targetSide, skill.pierce || 0);
-        }
-        if (skill.heal || skill.missingHeal) heal(unit, unit.maxHp * (skill.heal || 0) + (unit.maxHp - unit.hp) * (skill.missingHeal || 0), side);
-        if (skill.drain) heal(unit, damage * skill.drain, side);
-        if (skill.shield) {
-          const previous = unit.shield;
-          unit.shield = Math.min(Math.round(unit.maxHp * 0.45), unit.shield + Math.round(unit.atk * skill.shield));
-          event('shield', side, name(unit) + ' gains ' + (unit.shield - previous) + ' shield.', unit.shield - previous);
-        }
-        if (skill.buff) { unit.buff = skill.buff; unit.buffTurns = skill.buffTurns; event('buff', side, name(unit) + ' powers up for ' + skill.buffTurns + ' turns.'); }
-        if (skill.weaken) { target.weaken = skill.weaken; target.weakenTurns = skill.weakenTurns; event('weaken', side, name(target) + ' is weakened.', 0, targetSide); }
-        if (skill.poison && target.hp > 0) { target.poison = Math.max(1, Math.round(unit.atk * skill.poison * (unit.powerMultiplier || 1))); target.poisonTurns = skill.poisonTurns; event('status', side, name(target) + ' will take lingering damage.', 0, targetSide); }
-        // Recoil cannot turn an otherwise successful finishing blow into a loss.
-        if (skill.recoil && target.hp > 0) hurt(unit, Math.min(unit.hp - 1, unit.atk * skill.recoil), side, side, 1, 'recoil');
+      const power = unit.atk * (1 + buff) * (1 - weaken) * (.86 + random(rng) * .28);
+      if (unit.buffTurns > 0 && --next.buffTurns === 0) next.buff = 0;
+      if (unit.weakenTurns > 0 && --next.weakenTurns === 0) next.weaken = 0;
+      emit(plan, selected, name(unit) + ' uses ' + (selected === 'power' ? skill.name : getSpecies(unit.speciesId).attack.name) + '.');
+      next.powerCooldown = selected === 'power' ? skill.cooldown : Math.max(0, unit.powerCooldown - 1);
+      if (selected === 'attack') plan.hits.push({amount: Math.max(0, Math.round(power)), pierce: 0});
+      else if (skill.damage) {
+        const strength = skill.damage + (skill.missingHpBonus || 0) * (1 - unit.hp / unit.maxHp), hits = skill.hits || 1;
+        for (let i = 0; i < hits; i++) plan.hits.push({amount: Math.max(0, Math.round(power * strength * (unit.powerMultiplier || 1) / hits)), pierce: skill.pierce || 0});
       }
-      checkOutcome();
+      if (skill.cleanse) { next.poison = 0; next.poisonTurns = 0; }
+      if (skill.shield) {
+        const added = Math.max(0, Math.min(Math.round(unit.maxHp * .45) - unit.shield, Math.round(unit.atk * skill.shield)));
+        next.shield += added;
+        emit(plan, 'shield', name(unit) + ' gains ' + added + ' shield.', added, side);
+      }
+      if (skill.buff) { next.buff = skill.buff; next.buffTurns = skill.buffTurns; emit(plan, 'buff', name(unit) + ' powers up for ' + skill.buffTurns + ' turns.', 0, side); }
     }
-    move(battle.player, battle.foe, action, 'player', 'foe');
-    if (!battle.outcome) {
-      const enemySkill = getSkill(battle.foe);
-      const waitsForHealing = enemySkill.heal && battle.foe.maxHp - battle.foe.hp < battle.foe.maxHp * enemySkill.heal * 0.8;
-      const enemyAction = battle.foe.powerCooldown === 0 && !waitsForHealing && random(rng) < 0.9 ? 'power' : 'attack';
-      move(battle.foe, battle.player, enemyAction, 'foe', 'player');
+    // New shields protect against this round's committed hits on BOTH sides.
+    for (const side of sides) {
+      const plan = plans[side], target = after[plan.targetSide], targetBefore = before[plan.targetSide], targetPlan = plans[plan.targetSide];
+      for (const hit of plan.hits) {
+        const absorbed = Math.min(target.shield, Math.round(hit.amount * (1 - hit.pierce)));
+        target.shield -= absorbed;
+        const rawDamage = hit.amount - absorbed;
+        const actual = Math.min(Math.max(0, targetBefore.hp - targetPlan.poison - targetPlan.incoming), rawDamage);
+        targetPlan.incoming += rawDamage; plan.dealt += actual;
+        emit(plan, 'damage', name(target) + ' takes ' + rawDamage + ' damage' + (absorbed ? ' (' + absorbed + ' blocked)' : '') + '.', actual);
+      }
+      const skill = plan.skill;
+      if (skill.weaken) { target.weaken = skill.weaken; target.weakenTurns = skill.weakenTurns; emit(plan, 'weaken', name(target) + ' is weakened.'); }
+      if (skill.poison) { target.poison = Math.max(1, Math.round(before[side].atk * skill.poison * (before[side].powerMultiplier || 1))); target.poisonTurns = skill.poisonTurns; emit(plan, 'status', name(target) + ' will take lingering damage.'); }
     }
+    for (const side of sides) {
+      const unit = before[side], next = after[side], plan = plans[side], skill = plan.skill;
+      const healing = Math.max(0, Math.round(unit.maxHp * (skill.heal || 0) + (unit.maxHp - unit.hp) * (skill.missingHeal || 0))) + Math.max(0, Math.round(plan.dealt * (skill.drain || 0)));
+      // Combine healing and incoming damage BEFORE clamping. Neither a lethal
+      // hit nor a lethal old poison tick cancels the already chosen action.
+      plan.healed = Math.min(healing, Math.max(0, unit.maxHp - unit.hp + plan.poison + plan.incoming));
+      next.hp = clamp(unit.hp - plan.poison - plan.incoming + plan.healed, 0, unit.maxHp);
+      if (plan.healed) emit(plan, 'heal', name(unit) + ' restores ' + plan.healed + ' health.', plan.healed, side);
+    }
+    for (const side of sides) {
+      const plan = plans[side], next = after[side];
+      // Recoil cannot kill its caster, or penalize a successful finishing hit.
+      if (plan.skill.recoil && after[plan.targetSide].hp > 0) {
+        const damage = Math.max(0, Math.min(next.hp - 1, Math.round(before[side].atk * plan.skill.recoil)));
+        next.hp -= damage;
+        if (damage) emit(plan, 'recoil', name(next) + ' takes ' + damage + ' recoil damage.', damage, side);
+      }
+      Object.assign(battle[side], next); events.push(...plan.events);
+    }
+    if (battle.player.hp <= 0 && battle.foe.hp <= 0) battle.outcome = 'draw';
+    else if (battle.player.hp <= 0) battle.outcome = 'loss';
+    else if (battle.foe.hp <= 0) battle.outcome = 'win';
     if (!battle.outcome && battle.turn >= 60) {
-      battle.outcome = battle.player.hp / battle.player.maxHp > battle.foe.hp / battle.foe.maxHp ? 'win' : 'loss';
-      event('limit', 'player', 'The long duel ends on remaining health.');
+      const difference = battle.player.hp / battle.player.maxHp - battle.foe.hp / battle.foe.maxHp;
+      battle.outcome = difference > 0 ? 'win' : difference < 0 ? 'loss' : 'draw';
+      events.push({type: 'limit', side: 'player', targetSide: 'player', text: 'The long duel ends on remaining health.', amount: 0});
     }
-    if (battle.outcome) event('result', 'player', battle.training
-      ? battle.outcome === 'win' ? 'Round won!' : 'Round lost.'
-      : battle.outcome === 'win' ? 'Victory! The wild Tide can now be captured.' : INJURY_MS > 0 ? 'Your Tide needs two hours of rest.' : 'Defeat. Your Tide is ready to battle again.');
+    if (battle.outcome) events.push({type: 'result', side: 'player', targetSide: 'player', amount: 0, text: battle.outcome === 'draw'
+      ? 'Draw. Both Tides can battle again.' : battle.training ? battle.outcome === 'win' ? 'Round won!' : 'Round lost.'
+      : battle.outcome === 'win' ? 'Victory! The wild Tide can now be captured.' : INJURY_MS > 0 ? 'Your Tide needs two hours of rest.' : 'Defeat. Your Tide is ready to battle again.'});
     else battle.turn++;
     return {ok: true, events, outcome: battle.outcome, turn: battle.turn};
   }
@@ -364,13 +373,15 @@
     const active = c?.activeBattle;
     if (!battle || battle.committed || !active || active.id !== battle.id || active.ownedId !== battle.ownedId)
       return {ok: false, reason: 'settled'};
-    if (battle.outcome !== 'win' && battle.outcome !== 'loss') return {ok: false, reason: 'unfinished'};
+    if (!['win', 'loss', 'draw'].includes(battle.outcome)) return {ok: false, reason: 'unfinished'};
     const pet = c.pets.find(item => item.id === active.ownedId), now = nowOf(options);
     if (!pet) return {ok: false, reason: 'unowned'};
     let captured = null, xp = 0, levels = 0;
     if (active.training === true) {
       // The saved encounter is authoritative, even if a caller omitted the
       // training flag on its animation copy of the battle.
+    } else if (battle.outcome === 'draw') {
+      pet.injuredUntil = 0;
     } else if (battle.outcome === 'win') {
       // Use the original encounter, so UI state cannot swap the captured species.
       captured = newPet(c, active.enemy.speciesId, active.enemy.level, now);

@@ -22,6 +22,23 @@ test('world sprites combine species size with increasingly imposing three to fiv
  for(const s of catalog){const size=c.animalVisual(s.id),bounds=art.TideArtLayout[s.id].bounds;assert.equal(size.height,36*s.visualScale);assert.ok(Math.abs(size.width/size.height-bounds[2]/bounds[3])<1e-8);}
 });
 
+test('visible companions use the same uncapped world size as their species, including every hybrid',()=>{
+ const Tides=require('../assets/tides/core.js');
+ const c=harness();c.species=Tides.getSpecies;
+ c.frameFor=id=>{const b=Tides.getSpecies(id).art?.rect||art.TideArtLayout[id].bounds;return {w:b[2],h:b[3]};};
+ c.visibleCompanion=()=>c.visible;c.motionClock=0;c.drawAnimal=(...args)=>{c.drawn=args;return true;};
+ vm.runInContext(source.slice(source.indexOf(' function drawCompanion('),source.indexOf(' function petCard(')),c);
+ for(const s of Tides.allSpecies()){
+  c.visible={speciesId:s.id,mutations:{hp:2,attack:1,power:1,sixStar:true}};
+  assert.equal(c.drawCompanion({},100,200,{motion:.7,phase:2}),true,s.id);
+  assert.equal(c.drawn[4],c.animalVisual(s.id).height,s.id+' matches the world model');
+  assert.equal(c.drawn[6],.7);assert.equal(c.drawn[7],2);
+ }
+ c.visible={speciesId:'spectralwyrm'};c.drawCompanion({},0,0);assert.ok(c.drawn[4]>150,'large model is not capped at64');
+ c.visible={speciesId:'meadowmouse'};c.drawCompanion({},0,0);assert.ok(c.drawn[4]<30,'small model is not inflated to30');
+ c.visible=null;assert.equal(c.drawCompanion({},0,0),false);
+});
+
 test('every pair fits mobile and desktop battle arenas, preserves relative size and stops melee at the opponent',()=>{
  const c=harness();
  // Dimensions are the battle canvas, which can be narrower than the window

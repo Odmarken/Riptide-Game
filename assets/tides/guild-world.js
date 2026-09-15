@@ -18,7 +18,7 @@
   const pick=list=>list[Math.min(list.length-1,Math.floor(clamp(Number(rng())||0,0,.999999)*list.length))];
   const originals=catalog.filter(s=>s&&typeof s.id==='string'&&!s.hybrid),hybrids=catalog.filter(s=>s&&typeof s.id==='string'&&s.hybrid);
   const level=clamp(Math.floor(Number(maxLevel)||30),1,30);
-  const members=[['Alva',-490,-180],['Milo',-365,-455],['Saga',365,-455],['Vidar',490,-180],['Freja',-465,300],['Nils',465,300]];
+  const members=[['Arvid',-490,-180],['Milo',-365,-455],['Sigge',365,-455],['Vidar',490,-180],['Filip',-465,300],['Nils',465,300]];
   const npcs=members.map(([name,dx,dy],i)=>{
    const pool=i%2&&hybrids.length?hybrids:originals.length?originals:hybrids;
    const species=pool.length?pick(pool):null;

@@ -215,8 +215,34 @@ test('all original opponents fight through the existing attack rules and emit ro
       assert.equal(result.ok, true); assert.ok(++turns <= 60);
       events = result.events;
     }
-    assert.ok(events.some(e => e.type === 'result' && /^Round (won|lost)!?\.?$/.test(e.text)));
+    assert.ok(events.some(e => e.type === 'result' && (/^Round (won|lost)!?\.?$/.test(e.text) || /^Draw\./.test(e.text))));
     assert.ok(events.every(e => !/captur|hours of rest/i.test(e.text)));
     assert.equal(G.finishRound(c, series, battle).ok, true);
   }
+});
+
+test('Guild draws award nothing and replay the same numbered match until a deciding result', () => {
+  const c = collection(), before = clone(c.pets), {series, battle: first} = start(c);
+  const trainer = series.trainer, opponent = clone(series.opponent);
+  let battle = first;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const result = endRound(c, series, battle, 'draw');
+    assert.equal(result.outcome, 'draw'); assert.equal(result.finished, false);
+    assert.equal(series.round, 1); assert.deepEqual(series.score, {player: 0, foe: 0});
+    assert.equal(series.status, 'between-rounds'); assert.equal(result.captured, null); assert.equal(result.xp, 0);
+    const next = G.nextRound(c, series); assert.equal(next.ok, true); battle = next.battle;
+    assert.equal(series.round, 1); assert.equal(series.trainer, trainer); assert.deepEqual(series.opponent, opponent);
+    assert.equal(battle.player.hp, battle.player.maxHp); assert.equal(battle.foe.hp, battle.foe.maxHp);
+  }
+  endRound(c, series, battle, 'win'); battle = G.nextRound(c, series).battle;
+  assert.equal(series.round, 2);
+  endRound(c, series, battle, 'draw'); battle = G.nextRound(c, series).battle;
+  assert.equal(series.round, 2); assert.deepEqual(series.score, {player: 1, foe: 0});
+  endRound(c, series, battle, 'loss'); battle = G.nextRound(c, series).battle;
+  assert.equal(series.round, 3);
+  endRound(c, series, battle, 'draw'); battle = G.nextRound(c, series).battle;
+  assert.equal(series.round, 3); assert.deepEqual(series.score, {player: 1, foe: 1});
+  const result = endRound(c, series, battle, 'win');
+  assert.equal(result.finished, true); assert.equal(series.outcome, 'win');
+  assert.deepEqual(series.score, {player: 2, foe: 1}); assert.deepEqual(c.pets, before);
 });

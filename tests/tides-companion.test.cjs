@@ -4,7 +4,7 @@ const follow=source.slice(source.indexOf(' if(pet&&(activePet()||TideUI.visibleC
 const draw=source.slice(source.indexOf('function drawPet(){'),source.indexOf('function drawEquippedRing('));
 function harness(){
  const c={pet:{x:-26,y:12,fx:1,walk:0,moving:false},hero:{x:0,y:0,fx:1,dead:false},visible:{id:'tide-1'},legacy:null,dt:1/60,calls:[],battling:false,
-  dist:(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),activePet:()=>c.legacy,TideUI:{visibleCompanion:()=>c.visible,isBattling:()=>c.battling,drawCompanion:(g,x,y,options)=>c.calls.push(['tide',x,y,options])},ctx:{},
+  dist:(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),activePet:()=>c.legacy,TideUI:{animalVisual:()=>({width:36,height:36}),visibleCompanion:()=>c.visible,isBattling:()=>c.battling,drawCompanion:(g,x,y,options)=>c.calls.push(['tide',x,y,options])},ctx:{},
   moveToward(p,x,y,dt){const d=Math.hypot(x-p.x,y-p.y),step=Math.min(d,175*dt);p.x+=(x-p.x)/d*step;p.y+=(y-p.y)/d*step;p.moving=true;},performance:{now:()=>1000}};
  vm.createContext(c);vm.runInContext('function follow(){'+follow+'}\n'+draw,c);return c;
 }
@@ -16,6 +16,17 @@ test('a visible Tide follows without a legacy pet and steps clear of the hero wh
 test('Tide battles and dead heroes hide the visual companion; clearing the eye leaves no Tide',()=>{
  const c=harness();c.battling=true;c.drawPet();assert.equal(c.calls.length,0);c.battling=false;c.hero.dead=true;c.drawPet();assert.equal(c.calls.length,0);
  c.hero.dead=false;c.visible=null;c.drawPet();assert.equal(c.calls.length,0);const pos=[c.pet.x,c.pet.y];c.follow();assert.deepEqual([c.pet.x,c.pet.y],pos);
+});
+
+test('large visible Tides leave room beside the hero and do not teleport at their normal follow distance',()=>{
+ const c=harness();c.TideUI.animalVisual=()=>({width:420,height:150});
+ for(let i=0;i<150;i++)c.follow();
+ assert.ok(Math.abs(c.pet.x)-420*.55>=23,'body and wings stay clear of the hero');
+ assert.ok(c.dist(c.pet,c.hero)>240,'large companions may stand beyond the old teleport threshold');
+ const pos=[c.pet.x,c.pet.y],phase=c.pet.tidePhase;
+ for(let i=0;i<60;i++)c.follow();
+ assert.deepEqual([c.pet.x,c.pet.y],pos);assert.equal(c.pet.tidePhase,phase);
+ c.hero.x=1000;c.follow();assert.ok(c.dist(c.pet,c.hero)<280,'relocation preserves size-aware spacing');
 });
 test('the normal pet keeps its original follow radius and teleport offset when no Tide is visible',()=>{
  const c=harness();c.visible=null;c.legacy={atkMul:.1};c.pet.x=-201;c.pet.y=0;c.follow();assert.equal(c.pet.x,-24);assert.equal(c.pet.y,12);

@@ -176,7 +176,7 @@ const TideUI=(()=>{
  function visibleCompanion(){return S?.tides?Tides.visible(S.tides):null;}
  function drawCompanion(g,x,y,options={}){
   const p=visibleCompanion();if(!p)return false;
-  const height=options.height||Math.max(30,Math.min(64,36*(species(p.speciesId)?.visualScale||1)));
+  const height=options.height||animalVisual(p.speciesId).height;
   // Stronger footfalls stay readable at follower size; battle and wild strides keep their existing scale.
   return drawAnimal(g,p.speciesId,x,y,height,options.fx??1,options.motion??0,options.phase??0,options.alpha??1,options.time??motionClock,true,1.5);
  }
@@ -294,7 +294,7 @@ const TideUI=(()=>{
   const w=wildList().find(w=>w.id===id);if(!w||Math.hypot(hero.x-w.x,hero.y-w.y)>185)return;
   const s=species(w.speciesId),p=owned(),ready=p&&!remaining(p)&&!Tides.isBreedingParent(S.tides,p.id);
   if(!openHub('wild','A wild Tide','Neutral · It will only fight if you challenge it'))return;wildChoice=id;
-  el('tideHubBody').innerHTML=`<div class="tide-challenge">${icon(s)}<h3>${html(s.name)}</h3>${stars(s)}<p>Level ${w.level}<br>${html(s.description)}</p><p>${p?'Your companion: <b>'+html(species(p.speciesId).name)+'</b> · Level '+p.level+'<br><span id="tideWildReady">'+restText(p)+'</span>':'Equip a Tide from storage to challenge this animal.'}</p><button class="sbtn gold" id="tideChallenge" ${ready?'':'disabled'}>Tide battle</button><button class="sbtn" id="tideWildStorage">Choose a companion</button><p>Win to tame this Tide. ${Tides.INJURY_MS?'Defeat or leaving an unfinished battle means two hours of rest.':'After a defeat, your Tide can battle again immediately.'}</p></div>`;
+  el('tideHubBody').innerHTML=`<div class="tide-challenge">${icon(s)}<h3>${html(s.name)}</h3>${stars(s)}<p>Level ${w.level}<br>${html(s.description)}</p><p>${p?'Your companion: <b>'+html(species(p.speciesId).name)+'</b> · Level '+p.level+'<br><span id="tideWildReady">'+restText(p)+'</span>':'Equip a Tide from storage to challenge this animal.'}</p><button class="sbtn gold" id="tideChallenge" ${ready?'':'disabled'}>Tide battle</button><button class="sbtn" id="tideWildStorage">Choose a companion</button><p>Both Tides complete their chosen action each round, even if knocked out. A double knockout is a draw.</p><p>Win to tame this Tide. ${Tides.INJURY_MS?'Defeat or leaving an unfinished battle means two hours of rest.':'After a defeat, your Tide can battle again immediately.'} A draw grants no capture or XP and causes no injury.</p></div>`;
   el('tideChallenge').onclick=()=>begin(id);el('tideWildStorage').onclick=openStorage;paintIcons();
  }
  function appendLog(text){const box=el('tideBattleLog'),row=document.createElement('div');row.textContent=text;box.append(row);while(box.children.length>18)box.firstChild.remove();box.scrollTop=box.scrollHeight;}
@@ -305,7 +305,7 @@ const TideUI=(()=>{
   const p=owned(),s=p&&species(p.speciesId),ready=!!(S.tides.lassoOwned&&p&&!remaining(p)&&!Tides.isBreedingParent(S.tides,p.id));
   // Warm the five original-species atlases before a random opponent is drawn.
   Tides.catalog.forEach(imageFor);if(s)imageFor(s);
-  el('tideHubBody').innerHTML=`<div class="tide-challenge tide-guild-challenge"><div class="tide-guild-emblem" aria-hidden="true">⚔</div><h3>Enter the arena</h3><p>Face a new guild trainer and one of the 25 original Tides. Their Tide matches your companion's level.</p>${p?`<div class="tide-guild-companion">${icon(s)}<b>${html(s.name)}</b><span>Level ${p.level} · ${html(restText(p))}</span></div>`:'<p>Equip a Tide from Tide storage to join a match.</p>'}<p>First to <b>two victories</b> wins the series. Both Tides recover fully before each match.</p><button class="sbtn gold" id="tideGuildStart" ${ready?'':'disabled'}>Battle · Best of three</button>${S.tides.lassoOwned?'<button class="sbtn" id="tideGuildStorage">Choose a companion</button>':'<p>Get your Tidekeeper\'s Lasso at the City church first.</p>'}<p class="tide-guild-practice">Practice freely: no captures, XP or injuries.</p></div>`;
+  el('tideHubBody').innerHTML=`<div class="tide-challenge tide-guild-challenge"><div class="tide-guild-emblem" aria-hidden="true">⚔</div><h3>Enter the arena</h3><p>Face a new guild trainer and one of the 25 original Tides. Their Tide matches your companion's level.</p>${p?`<div class="tide-guild-companion">${icon(s)}<b>${html(s.name)}</b><span>Level ${p.level} · ${html(restText(p))}</span></div>`:'<p>Equip a Tide from Tide storage to join a match.</p>'}<p>First to <b>two victories</b> wins the series. Both Tides complete their chosen action, even if knocked out. Double knockouts are draws: replay that match with the score unchanged. Both Tides recover fully before each match.</p><button class="sbtn gold" id="tideGuildStart" ${ready?'':'disabled'}>Battle · Best of three</button>${S.tides.lassoOwned?'<button class="sbtn" id="tideGuildStorage">Choose a companion</button>':'<p>Get your Tidekeeper\'s Lasso at the City church first.</p>'}<p class="tide-guild-practice">Practice freely: no captures, XP or injuries.</p></div>`;
   el('tideGuildStart').onclick=beginGuild;if(el('tideGuildStorage'))el('tideGuildStorage').onclick=openStorage;paintIcons();return true;
  }
  function showBattleControls(){
@@ -321,19 +321,19 @@ const TideUI=(()=>{
   closeHub();Mounts.reset(mountRide);updateMountButton();stopHero();
   session={guild:result.series,owner,battle:result.battle,oldZoom:zoom,oldCamX:camX,oldCamY:camY,time:0,animation:null,result:null,shownResult:false,heroEffects:null,trainerEffects:{}};
   frameFor(result.battle.foe.speciesId);setZoom(Math.min(3,Math.max(2.1,zoom)));showBattleControls();
-  appendLog('Match 1 of 3. First to two victories wins the series.');battleHud();paintBattle();saveNow();return true;
+  appendLog('Match 1 of 3. Both chosen actions complete each round. First to two victories wins; drawn matches are replayed.');battleHud();paintBattle();saveNow();return true;
  }
  function nextGuildRound(){
   if(!session?.guild||session.animation||!session.shownResult||session.guild.status!=='between-rounds'||session.owner!==S?.tides||!guildAllowed()||gamePaused)return false;
-  const result=TideGuild.nextRound(session.owner,session.guild);if(!result.ok)return false;
+  const replay=session.result?.outcome==='draw',result=TideGuild.nextRound(session.owner,session.guild);if(!result.ok)return false;
   session.guild=result.series;session.battle=result.battle;session.result=null;session.shownResult=false;session.retreatAsked=false;session.pendingOutcome=null;session.animation=null;
-  showBattleControls();appendLog('Match '+session.guild.round+' of 3. Both Tides are restored to full health.');battleHud();paintBattle();saveNow();return true;
+  showBattleControls();appendLog((replay?'Replaying match ':'Match ')+session.guild.round+' of 3. Both Tides are restored to full health.');battleHud();paintBattle();saveNow();return true;
  }
- function finishGuildRound(){
-  if(!session?.guild||session.animation||session.result||!session.pendingOutcome)return;
-  const result=TideGuild.finishRound(session.owner,session.guild,session.battle);
+ function finishRound(){
+  if(!session||session.animation||session.result||!session.pendingOutcome)return;
+  const result=session.guild?TideGuild.finishRound(session.owner,session.guild,session.battle):Tides.finishBattle(session.owner,session.battle);
   session.pendingOutcome=null;if(!result.ok){closeBattle();return;}
-  session.guild=result.series;session.result=result;saveNow();entry();
+  if(session.guild)session.guild=result.series;session.result=result;saveNow();entry();
  }
  function begin(id){
   if(session||!outdoors()||gamePaused||hero.dead||hubMode!=='wild'||wildChoice!==id)return;
@@ -343,11 +343,11 @@ const TideUI=(()=>{
   if(!frameFor(w.speciesId)||!frameFor(p.speciesId)){el('tideHubMessage').textContent='Your Tides are arriving. Try again in a moment.';return;}
   const result=Tides.beginBattle(S.tides,w,{now});if(!result.ok){el('tideHubMessage').textContent=result.reason==='injured'?'Your Tide is still recovering. Choose a ready companion.':'This companion cannot battle yet.';return;}
   TideExploration.take(exploration(),id,now);saveNow();closeHub();Mounts.reset(mountRide);updateMountButton();stopHero();
-  session={battle:result.battle,oldZoom:zoom,oldCamX:camX,oldCamY:camY,time:0,animation:null,result:null,shownResult:false,logIndex:0};
+  session={owner:S.tides,battle:result.battle,oldZoom:zoom,oldCamX:camX,oldCamY:camY,time:0,animation:null,result:null,shownResult:false,logIndex:0};
   setZoom(Math.min(3,Math.max(2.1,zoom)));camX=(hero.x+w.x)/2-VW/zoom/2;camY=(hero.y+w.y)/2-VH/zoom/2;
   draw();const backdrop=document.createElement('canvas');backdrop.width=cv.width;backdrop.height=cv.height;backdrop.getContext('2d').drawImage(cv,0,0);session.backdrop=backdrop;
   showBattleControls();
-  appendLog('Choose one attack or power each round. The wild Tide then takes its turn.');battleHud();paintBattle();saveNow();
+  appendLog('Choose one attack or power each round. Both Tides complete their chosen action, even if knocked out. A double knockout is a draw.');battleHud();paintBattle();saveNow();
  }
  const actionMarks={
   attack:{label:'Attack',path:'<path d="m14 3 7-1-1 7-10 10-5-5Z"/><path d="m4 12 8 8M7 17l-4 4"/>'},
@@ -370,21 +370,33 @@ const TideUI=(()=>{
   battleAction('tidePower',skill,powerKind,b.player.powerCooldown?' · Ready in '+b.player.powerCooldown+' attacks':'');
   el('tideAttack').disabled=busy;el('tidePower').disabled=busy||b.player.powerCooldown>0;el('tideRetreat').disabled=busy;
  }
+ function battleTimeline(raw,display){
+  const moves=[],events=[];let eventTime=-.045;
+  for(const e of raw){
+   const previous=moves[moves.length-1];let at;
+   if(e.type==='attack'||e.type==='power'){
+    // Leave space for this actor's pre-action poison tick and the prior lunge.
+    const start=Math.max(previous?previous.start+previous.duration+.05:0,eventTime+.035),move={...e,start,duration:.85};
+    moves.push(move);at=start+.08;
+   }else if(e.type==='result'||e.type==='limit')at=previous?previous.start+previous.duration+.05:.05;
+   else if(e.type==='poison'&&(!previous||e.actionIndex!==previous.actionIndex))at=previous?previous.start+previous.duration+.05:.05;
+   else at=previous?previous.start+.43:.05;
+   eventTime=Math.max(eventTime+.045,at);events.push({...e,at:eventTime});
+  }
+  const last=moves[moves.length-1];
+  return {elapsed:0,duration:Math.max(last?last.start+last.duration+.15:.3,eventTime+.1),moves,events,shown:0,display};
+ }
+ function animationMove(animation){
+  const actor=animation?.moves.find(move=>animation.elapsed>=move.start&&animation.elapsed<move.start+move.duration)||null;
+  return {actor,progress:actor?Math.max(0,Math.min(1,(animation.elapsed-actor.start)/actor.duration)):0};
+ }
  function act(choice){
   if(!session||session.animation||session.result||gamePaused)return;
   const display={player:{...session.battle.player},foe:{...session.battle.foe},turn:session.battle.turn};
   const result=Tides.act(session.battle,choice);if(!result.ok)return;
   initAudio();
-  const moves=result.events.filter(e=>e.type==='attack'||e.type==='power');
-  let moveIndex=-1,eventTime=0;
-  const events=result.events.map(e=>{
-   if(e.type==='attack'||e.type==='power'){moveIndex++;eventTime=moveIndex*.85+.08;}
-   else if(e.type==='result'||e.type==='limit')eventTime=Math.max(1,moves.length)*.85+.1;
-   else eventTime=Math.max(eventTime+.035,Math.max(0,moveIndex)*.85+.43);
-   return {...e,at:eventTime};
-  });
-  session.animation={elapsed:0,duration:Math.max(1,moves.length)*.85+.2,moves,events,shown:0,display};
-  if(result.outcome){if(session.guild)session.pendingOutcome=result.outcome;else{session.result=Tides.finishBattle(S.tides,session.battle);saveNow();entry();}}
+  session.animation=battleTimeline(result.events,display);
+  if(result.outcome)session.pendingOutcome=result.outcome;
   battleHud();
  }
  function battleSound(e,a){
@@ -408,12 +420,16 @@ const TideUI=(()=>{
  }
  function showResult(){
   if(!session||session.shownResult||!session.result?.ok)return;session.shownResult=true;
-  const r=session.result,won=r.outcome==='win';el('tideActions').style.display='none';el('tideResult').hidden=false;
+  const r=session.result,won=r.outcome==='win',drawn=r.outcome==='draw';el('tideActions').style.display='none';el('tideResult').hidden=false;
   if(session.guild){
    const series=session.guild,finished=series.status==='finished',victory=series.outcome==='win';
-   el('tideResult').innerHTML=`<h3>${finished?victory?'Series victory!':'Series complete':won?'Match won!':'Match lost'}</h3><div class="tide-guild-result-score">You <b>${series.score.player} – ${series.score.foe}</b> ${html(series.trainer.name)}</div><div>${finished?victory?'Two victories. The guild salutes you.':'A new opponent awaits whenever you are ready.':'Both Tides return at full health for the next match.'}</div><button class="sbtn gold" id="tideGuildContinue">${finished?'Fight again':'Next match'}</button><button class="sbtn" id="tideGuildLeave">Return to guild</button>`;
+   el('tideResult').innerHTML=`<h3>${drawn?'Draw!':finished?victory?'Series victory!':'Series complete':won?'Match won!':'Match lost'}</h3><div class="tide-guild-result-score">You <b>${series.score.player} – ${series.score.foe}</b> ${html(series.trainer.name)}</div><div>${drawn?'Neither trainer earns a point. Replay this match against the same opponent at full health.':finished?victory?'Two victories. The guild salutes you.':'A new opponent awaits whenever you are ready.':'Both Tides return at full health for the next match.'}</div><button class="sbtn gold" id="tideGuildContinue">${drawn?'Replay match':finished?'Fight again':'Next match'}</button><button class="sbtn" id="tideGuildLeave">Return to guild</button>`;
    el('tideGuildContinue').onclick=finished?()=>{if(!guildAllowed()||gamePaused)return;closeBattle();if(openGuild())beginGuild();}:nextGuildRound;
-   el('tideGuildLeave').onclick=closeBattle;sfx[(finished?victory:won)?'loot':'warn']?.();battleHud();return;
+   el('tideGuildLeave').onclick=closeBattle;sfx[drawn?'click':(finished?victory:won)?'loot':'warn']?.();battleHud();return;
+  }
+  if(drawn){
+   el('tideResult').innerHTML='<h3>Draw!</h3><div>Neither Tide wins this battle.</div><div>No Tide was captured and no XP was awarded. Your companion is ready to battle again, with no injury.</div><button class="sbtn gold" id="tideContinue">Continue exploring</button><button class="sbtn" id="tideResultStorage">Tide storage</button>';
+   el('tideContinue').onclick=closeBattle;el('tideResultStorage').onclick=()=>{closeBattle();openStorage();};sfx.click?.();battleHud();return;
   }
   el('tideResult').innerHTML=won?`<h3>A new bond!</h3><div><b>${html(species(r.captured.speciesId).name)}</b> · Level ${r.captured.level} joined your Tide storage.</div><div>${html(species(r.pet.speciesId).name)} earned ${r.xp} XP${r.levels?' and reached level '+r.pet.level:''}.</div><button class="sbtn gold" id="tideContinue">Continue exploring</button><button class="sbtn" id="tideResultStorage">Tide storage</button>`:`<h3>${Tides.INJURY_MS?'Time to recover':'Defeat'}</h3><div>${html(species(r.pet.speciesId).name)} ${Tides.INJURY_MS?'is injured and needs two hours of rest.':'is ready to battle again.'}</div><div>${Tides.INJURY_MS?'You can equip another healthy Tide from storage.':'Try again or choose another Tide from storage.'}</div><button class="sbtn gold" id="tideContinue">Return to Wasteland</button><button class="sbtn" id="tideResultStorage">Tide storage</button>`;
   el('tideContinue').onclick=closeBattle;el('tideResultStorage').onclick=()=>{closeBattle();openStorage();};sfx[won?'loot':'warn']?.();battleHud();
@@ -421,7 +437,7 @@ const TideUI=(()=>{
  function closeBattle(){
   if(!session)return;
   if(session.guild){if(session.guild.status!=='finished'&&session.guild.status!=='abandoned'){TideGuild.abandon(session.owner,session.guild,session.battle);if(session.owner===S?.tides)saveNow();}}
-  else if(!session.result){Tides.abandonBattle(S.tides,session.battle);saveNow();}
+  else if(!session.result){const owner=session.owner||S.tides;if(session.battle.outcome)Tides.finishBattle(owner,session.battle);else Tides.abandonBattle(owner,session.battle);if(owner===S?.tides)saveNow();}
   const old=session;session=null;el('tideBattleFx').hidden=true;el('tideBattleFx').classList.remove('tide-guild-battle');setZoom(old.oldZoom);camX=old.oldCamX;camY=old.oldCamY;stopHero();entry();
  }
  function leaveZone(){closeHub();if(session)closeBattle();}
@@ -443,7 +459,7 @@ const TideUI=(()=>{
   const trainer=session.guild?.trainer,trainerFrame=trainer?paintedCharacterFrame(trainer.race,trainer.cls,trainer.fem,trainer.ice):null;
   const b=session.animation?.display||session.battle,anim=session.animation,layout=battleLayout(w,h,b.player.speciesId,b.foe.speciesId,hudBottom,controlsTop,paintedCharacterFrame(S.race,S.cls,S.gender==='f',isIce(S.gear.armor)),{guild:!!session.guild,trainerFrame}),{floor,left,right}=layout,ps=layout.player,fs=layout.foe;
   let lx=left,rx=right,ly=floor,ry=floor,actor=null,progress=0,style='melee',color='#ddd',hit=0;
-  if(anim){const index=Math.min(anim.moves.length-1,Math.floor(anim.elapsed/.85));actor=anim.moves[index];progress=Math.max(0,Math.min(1,(anim.elapsed-index*.85)/.85));if(actor){const unit=b[actor.side],s=species(unit.speciesId),move=actor.type==='power'?petSkill(unit):s.attack;style=move.style;color=move.color;hit=Math.sin(Math.PI*Math.max(0,(progress-.45)/.55));if(style==='melee'){const p=Math.sin(Math.PI*progress),travel=layout.travel*p;if(actor.side==='player'){lx+=travel;ly-=Math.sin(progress*Math.PI*3)*9*p;}else{rx-=travel;ry-=Math.sin(progress*Math.PI*3)*9*p;}}}}
+  if(anim){({actor,progress}=animationMove(anim));if(actor){const unit=b[actor.side],s=species(unit.speciesId),move=actor.type==='power'?petSkill(unit):s.attack;style=move.style;color=move.color;hit=Math.sin(Math.PI*Math.max(0,(progress-.45)/.55));if(style==='melee'){const p=Math.sin(Math.PI*progress),travel=layout.travel*p;if(actor.side==='player'){lx+=travel;ly-=Math.sin(progress*Math.PI*3)*9*p;}else{rx-=travel;ry-=Math.sin(progress*Math.PI*3)*9*p;}}}}
   if(trainer)drawGuildTrainer(g,layout.foeHeroX,floor-5,trainer,layout.heroScale,-1,session.time,session.trainerEffects);
   // Use the same equipped cosmetics as the world hero, with battle-local particles.
   g.save();g.translate(layout.heroX,floor-5);g.scale(layout.heroScale,layout.heroScale);
@@ -456,8 +472,8 @@ const TideUI=(()=>{
   if(fxDt>0)for(let i=fx.parts.length-1;i>=0;i--)if(stepRuneParticle(fx.parts[i],fxDt))fx.parts.splice(i,1);
   runeSpark(wRune,emission?{...emission,points:emission.points.map(p=>runePointTransform(heroScene,p))}:null,fxDt,f?f.groundY:8,fx);
   fx.parts.forEach(p=>drawRuneParticle(g,p));g.restore();
-  drawAnimal(g,b.player.speciesId,lx,ly,ps.height,1,actor?.side==='player'&&style==='melee'?Math.sin(progress*Math.PI):0,progress*Math.PI*8,b.player.hp<=0&&session.shownResult?.6:1,session.time,b.player.hp>0);
-  drawAnimal(g,b.foe.speciesId,rx,ry,fs.height,-1,actor?.side==='foe'&&style==='melee'?Math.sin(progress*Math.PI):0,progress*Math.PI*8,b.foe.hp<=0&&session.shownResult?.5:1,session.time+1.7,b.foe.hp>0);
+  drawAnimal(g,b.player.speciesId,lx,ly,ps.height,1,actor?.side==='player'&&style==='melee'?Math.sin(progress*Math.PI):0,progress*Math.PI*8,b.player.hp<=0&&session.shownResult?.6:1,session.time,b.player.hp>0||actor?.side==='player');
+  drawAnimal(g,b.foe.speciesId,rx,ry,fs.height,-1,actor?.side==='foe'&&style==='melee'?Math.sin(progress*Math.PI):0,progress*Math.PI*8,b.foe.hp<=0&&session.shownResult?.5:1,session.time+1.7,b.foe.hp>0||actor?.side==='foe');
   if(actor&&style==='magic'){
    const friendly=actor.side==='player',self=actor.type==='power'&&!petSkill(b[actor.side]).damage,ownSize=friendly?ps:fs,targetSize=self?ownSize:friendly?fs:ps,ownX=friendly?left:right;
    const from=self?ownX:ownX+(friendly?1:-1)*ownSize.width*.28,to=self?from:(friendly?right-fs.width*.25:left+ps.width*.25),fromY=floor-ownSize.height*.58,toY=floor-targetSize.height*.5;
@@ -472,15 +488,17 @@ const TideUI=(()=>{
   if(hubMode==='guild'&&!guildAllowed())closeHub();
   if(clockTick>=1&&hubMode==='wild'&&el('tideChallenge')){const p=owned();el('tideChallenge').disabled=!p||remaining(p)>0||Tides.isBreedingParent(S.tides,p.id);if(el('tideWildReady'))el('tideWildReady').textContent=restText(p);}
   if(clockTick>=1){clockTick=0;refreshStorageValues();}
-  if(!session)return;if(session.guild&&(session.owner!==S?.tides||!guildAllowed())){closeBattle();return;}session.time+=dt;
+  if(!session)return;if(session.owner&&session.owner!==S?.tides||session.guild&&!guildAllowed()){closeBattle();return;}session.time+=dt;
   const a=session.animation;if(a){
    a.elapsed+=dt;
    while(a.shown<a.events.length&&a.events[a.shown].at<=a.elapsed){
-    const e=a.events[a.shown++],u=a.display[e.targetSide];appendLog(e.text);battleSound(e,a);
-    if(u){if(['damage','poison','recoil'].includes(e.type))u.hp=Math.max(0,u.hp-e.amount);else if(e.type==='heal')u.hp=Math.min(u.maxHp,u.hp+e.amount);else if(e.type==='shield')u.shield+=e.amount;}
+    const e=a.events[a.shown++];appendLog(e.text);battleSound(e,a);
+    // Both actions resolve together. Keep the starting bars while they animate;
+    // replaying clipped event amounts would misrepresent simultaneous healing.
+    // Clearing animation below commits both authoritative combatants at once.
     battleHud();
    }
-   if(a.elapsed>=a.duration){while(a.shown<a.events.length)appendLog(a.events[a.shown++].text);session.animation=null;session.retreatAsked=false;finishGuildRound();if(!session)return;battleHud();if(session.result)showResult();}
+   if(a.elapsed>=a.duration){while(a.shown<a.events.length)appendLog(a.events[a.shown++].text);session.animation=null;session.retreatAsked=false;finishRound();if(!session)return;battleHud();if(session.result)showResult();}
   }
   paintBattle();
  }

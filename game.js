@@ -7192,11 +7192,11 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
  // ----- pet follows, immortal and untargetable -----
  if(pet&&(activePet()||TideUI.visibleCompanion())&&!hero.dead){
   const d=dist(pet,hero);
-  const followingTide=TideUI.visibleCompanion(),gap=followingTide?62:26;
+  const followingTide=TideUI.visibleCompanion(),gap=followingTide?Math.max(62,TideUI.animalVisual(followingTide.speciesId).width*.55+32):26;
   const oldX=pet.x,oldY=pet.y;let relocated=false;
   pet.moving=false;
   const followY=followingTide?18:12;
-  if(d>(followingTide?240:200)){pet.x=hero.x-hero.fx*(followingTide?gap:24);pet.y=hero.y+followY;relocated=true;}
+  if(d>(followingTide?Math.max(240,gap+100):200)){pet.x=hero.x-hero.fx*(followingTide?gap:24);pet.y=hero.y+followY;relocated=true;}
   else if(d>gap+16||(followingTide&&d<gap-8))moveToward(pet,hero.x-hero.fx*gap,hero.y+followY,dt);
   else pet.walk+=dt*3;
   if(followingTide){
