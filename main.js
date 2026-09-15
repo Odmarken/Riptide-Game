@@ -144,6 +144,9 @@ function createWindow() {
     webPreferences: {
       contextIsolation: true,     /* the game needs no Node access - keep the renderer sandboxed */
       nodeIntegration: false,
+      /* Combat, online presence and chest reels share the renderer's timers/animation loop.
+         Keep that loop alive after Alt+Tab or minimize; only the game's own pause should stop it. */
+      backgroundThrottling: false,
       devTools: DEV,
       preload: path.join(__dirname, 'preload.js'),
     },

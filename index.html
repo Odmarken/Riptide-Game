@@ -18,9 +18,10 @@
 <link rel="apple-touch-icon" href="favicon_256.png">
 <!-- ?v= is not decoration: without it iOS Safari serves a cached stylesheet for days, so two
      phones end up running two different builds of the layout. Bump on every visual change. -->
-<link rel="stylesheet" href="style.css?v=54">
+<link rel="stylesheet" href="style.css?v=55">
 <link rel="stylesheet" href="assets/tides/ui.css?v=9">
 <link rel="stylesheet" href="assets/ui/crafting.css?v=1">
+<link rel="stylesheet" href="assets/ui/hero-guide.css?v=1">
 </head>
 <body>
 <div id="app">
@@ -269,8 +270,8 @@
     <div class="chestreveal" id="chestReveal"></div>
     <div class="casebtns" id="caseBtns">
       <div class="case-spin-actions">
-        <button id="respinBtn">🎁 Respin · 5,000◉</button>
         <button id="caseAutoBtn" type="button" aria-pressed="false">Auto spin</button>
+        <button id="respinBtn">🎁 Respin · 5,000◉</button>
       </div>
       <button id="caseScrapBtn" class="sbtn scrapb" style="display:none;padding:12px 18px;border-radius:12px">⚙ Scrap Chest Gear</button>
       <button id="caseClose">Close</button>
@@ -817,6 +818,7 @@
   </nav>
 </div>
  
+<script src="assets/ui/desktop-frames.js?v=1"></script>
 <script src="assets/models/home-hit-masks.js?v=1"></script>
 <script src="assets/sprite-cutout-masks.js?v=2"></script>
 <script src="assets/sprite-edges.js?v=2"></script>
@@ -849,7 +851,8 @@
 <script src="assets/tides/art-layout.js?v=1"></script>
 <script src="assets/tides/motion.js?v=2"></script>
 <script src="assets/tides/ui.js?v=16"></script>
-<script src="game.js?v=119"></script>
+<script src="assets/ui/hero-guide.js?v=1"></script>
+<script src="game.js?v=120"></script>
 <script src="assets/ui/crafting.js?v=1"></script>
 </body>
 </html>

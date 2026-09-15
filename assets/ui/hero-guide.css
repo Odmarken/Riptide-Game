@@ -1,0 +1,63 @@
+/* A calm, paused first look at the game, with a cutout over the actual AUTO control. */
+#heroGuide{position:fixed;inset:0;z-index:2500;color:#e9dbc0;font-family:var(--body,sans-serif);isolation:isolate;overscroll-behavior:contain}
+#heroGuide *,#heroGuide *::before,#heroGuide *::after{box-sizing:border-box}
+.hero-guide-callout{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.hero-guide-shade{fill:#090704c9}
+.hero-guide-highlight{fill:none;stroke:#ffd991;stroke-width:2.5;filter:drop-shadow(0 0 6px #e3a64f)}
+.hero-guide-arrow{fill:none;stroke:#ffd991;stroke-width:2.5;stroke-linecap:round;filter:drop-shadow(0 2px 3px #000)}
+#heroGuideArrowhead path{fill:none;stroke:#ffd991;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.hero-guide-card{position:absolute;display:flex;flex-direction:column;padding:26px;border:1px solid #ad8750;border-radius:19px;background:radial-gradient(ellipse at 8% 0%,#6c492338,transparent 65%),linear-gradient(145deg,#2b2118f5,#19130ff8),url('ui_allt.png') center/cover;box-shadow:0 20px 90px #000b,inset 0 1px #fff1;overflow:hidden}
+.hero-guide-heading{display:flex;align-items:center;gap:14px;flex-shrink:0;padding:0;margin:0;border:0;background:none}
+.hero-guide-crest{display:grid;place-items:center;width:52px;height:56px;flex-shrink:0;border:1px solid #886739;border-radius:12px;background:linear-gradient(150deg,#614829,#2b2116);box-shadow:inset 0 1px #ffe4b01c}
+.hero-guide-crest svg{width:29px;height:29px;fill:none;stroke:#e9bf7a;stroke-width:1.35;stroke-linejoin:round;stroke-linecap:round}
+.hero-guide-eyebrow{color:#c8a365;font-size:9px;letter-spacing:2px;font-weight:650;margin-bottom:4px}
+#heroGuideTitle{font:30px/1.12 var(--display,serif);color:#f3e4c8;margin:0}
+.hero-guide-paused{display:flex;align-items:center;gap:7px;color:#cbb391;white-space:nowrap;margin-left:auto;font-size:11px;padding:6px 9px;border:1px solid #755637;border-radius:20px;background:#15110db3}
+.hero-guide-paused i{width:8px;height:9px;display:inline-block;border-left:3px solid #d6b577;border-right:3px solid #d6b577}
+#heroGuideIntro{flex-shrink:0;color:#bca98b;font-size:12px;line-height:1.6;margin:16px 0 18px}
+.hero-guide-content{min-height:0;overflow:auto;overscroll-behavior:contain;padding:1px 5px 2px 1px;scrollbar-width:thin;scrollbar-color:#82623c #1c160f}
+.hero-guide-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.hero-guide-tip{min-width:0;padding:17px 16px;border:1px solid #6a51348c;border-radius:12px;background:linear-gradient(150deg,#47331f85,#211911b0)}
+.hero-guide-auto{border-color:#a27a418c;background:linear-gradient(150deg,#6248226b,#2c2116b0)}
+.hero-guide-tip h2{display:flex;align-items:center;gap:9px;font:19px/1.3 var(--display,serif);color:#eddbb7;margin:0 0 10px}
+.hero-guide-icon{width:24px;height:24px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center}
+.hero-guide-icon svg{width:21px;height:21px;fill:none;stroke:#d6b477;stroke-width:1.45;stroke-linecap:round;stroke-linejoin:round}
+.hero-guide-tip p{font-size:12px;line-height:1.65;margin:0;color:#c9b99d}
+.hero-guide-tip strong{color:#ead6b0;font-weight:650}
+.hero-guide-small{display:block;margin-top:11px;font-size:10.5px;line-height:1.6;color:#ac997c}
+.hero-guide-controls{display:flex;flex-direction:column;gap:8px;margin:0}
+.hero-guide-controls>div{display:grid;grid-template-columns:minmax(109px,.95fr) minmax(0,1.2fr);align-items:center;gap:7px}
+.hero-guide-controls dt{font-size:10px;color:#9b886a;white-space:nowrap}
+.hero-guide-controls dd{margin:0;font-size:11px;line-height:1.5;color:#c9b99d}
+.hero-guide-controls kbd{display:inline-block;padding:2px 4px;border:1px solid #785d3a;border-bottom-width:2px;border-radius:4px;font:10px/1.25 var(--body,sans-serif);color:#e6d0a9;background:#211910}
+.hero-guide-footer{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:19px;padding-top:18px;border-top:1px solid #745a3580;flex-shrink:0}
+.hero-guide-footer>span{font-size:11px;line-height:1.5;color:#b49e7b}
+#heroGuideReady{display:inline-flex;align-items:center;justify-content:center;gap:24px;min-height:45px;padding:12px 21px;border:1px solid #c19a5d;border-radius:9px;background:linear-gradient(180deg,#77562d,#4b351f);box-shadow:inset 0 1px #ffe5ac26,0 4px 13px #0003;color:#ffe2af;font:17px/1.2 var(--display,serif);cursor:pointer;white-space:nowrap}
+#heroGuideReady:hover{background:linear-gradient(180deg,#8a6537,#594125);border-color:#e2bd7c}
+#heroGuide :focus-visible{outline:2px solid #ffe1a4;outline-offset:3px}
+.hero-guide-content:focus-visible{outline-offset:-2px}
+@media(max-width:600px){
+ .hero-guide-card{padding:18px 16px;border-radius:15px}
+ .hero-guide-heading{gap:10px}
+ .hero-guide-crest{width:39px;height:44px;border-radius:9px}.hero-guide-crest svg{width:23px;height:23px}
+ .hero-guide-eyebrow{font-size:7px;letter-spacing:1.4px}
+ #heroGuideTitle{font-size:23px}
+ .hero-guide-paused{font-size:9px;padding:5px 7px;gap:4px}
+ #heroGuideIntro{font-size:11px;margin:13px 0}
+ .hero-guide-grid{grid-template-columns:1fr;gap:9px}
+ .hero-guide-tip{padding:13px}.hero-guide-tip h2{font-size:18px;margin-bottom:8px}
+ .hero-guide-small{margin-top:8px}
+ .hero-guide-controls>div{grid-template-columns:124px 1fr}
+ .hero-guide-footer{margin-top:12px;padding-top:12px;gap:8px}
+ .hero-guide-footer>span{font-size:10px;max-width:42%}
+ #heroGuideReady{min-height:43px;font-size:16px;padding:10px 15px;gap:16px}
+}
+@media(max-width:375px){.hero-guide-paused{position:absolute;right:14px;top:12px}.hero-guide-heading{padding-top:9px}#heroGuideTitle{font-size:21px}}
+@media(max-height:620px){
+ .hero-guide-card{padding:15px 18px}
+ .hero-guide-crest{width:39px;height:40px}.hero-guide-crest svg{width:24px;height:24px}
+ #heroGuideTitle{font-size:24px}
+ #heroGuideIntro{margin:10px 0;font-size:11px}
+ .hero-guide-footer{margin-top:11px;padding-top:10px}
+ #heroGuideReady{min-height:39px;padding:9px 16px;font-size:16px}
+}

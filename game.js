@@ -1545,6 +1545,7 @@ function ensureItemBase(it){
  return it;
 }
 function migrate(s){ /* fills fields missing from older saves */
+ s.introPending=s.introPending===true; /* existing heroes never get the new-character guide */
  s.mounts=Mounts.normalize(s.mounts);
  s.tides=Tides.normalizeCollection(s.tides);
  s.tides.exploration=TideExploration.create(s.tides.exploration);
@@ -6341,6 +6342,9 @@ let padNear=null;   /* what the prompt is currently offering, so the draw and th
 
 function padTick(dt){
  padPollButtons();
+ if(typeof HeroGuide!=='undefined'&&HeroGuide.isOpen()){
+  padNear=null;if(padHit.a)$('heroGuideReady')?.click();return;
+ }
  /* ⚙ the pad's own Settings/Menu button, same as clicking the gear. Handled before the panel
     branch so it can close the settings panel it just opened. */
  if(padHit.start){
@@ -6390,6 +6394,7 @@ window.addEventListener('gamepadconnected',()=>{
 window.addEventListener('gamepaddisconnected',()=>{if(gameOn)fishToast('🎮 Controller disconnected','#8fa898',2200);});
 const keys={};
 window.addEventListener('keydown',e=>{
+ if(typeof HeroGuide!=='undefined'&&HeroGuide.isOpen())return;
  initAudio();
  const k=e.key||'';
  const kl=k.toLowerCase();
@@ -6990,6 +6995,7 @@ function autoBrain(dt){
 function update(dt){
  runeFxDt=dt; /* simulation time is consumed once by the current weapon draw */
  if(!gameOn)return;
+ if(typeof HeroGuide!=='undefined'&&HeroGuide.isOpen())return;
  if(S.auto&&!combatAutoAllowed())refreshCombatAutoControls();
  TideUI.tick(dt);
  if(TideUI.isBattling()){padNow=padStick();padTick(dt);return;}
@@ -13824,6 +13830,7 @@ function updateAcctUI(){
  }
 }
 function showLogin(msg=''){
+ dismissHeroGuide();
  TideUI.leaveZone();
  gameOn=false;
  S=null; /* drop any lingering character so it can never be pushed into the next profile */
@@ -13943,6 +13950,7 @@ async function renderSelect(){
  $('newCharBtn').style.display=chars.length>=8?'none':'block';
 }
 function showSelect(){
+ dismissHeroGuide();
  TideUI.leaveZone();
  gameOn=false;
  $('login').classList.remove('open');
@@ -14264,7 +14272,46 @@ if(window.desktop&&window.desktop.getSettings){
  };
 }
 let audioPaused=false,gamePaused=false;
+let heroGuideOwner=null;
+function clearGuideInput(){
+ for(const key of Object.keys(keys))delete keys[key];
+ holdMove=null;marker=null;
+ if(hero){hero.moveTo=null;hero.pendingDoor=null;hero.target=null;hero.moving=false;}
+}
+function dismissHeroGuide(){
+ if(!heroGuideOwner)return;
+ heroGuideOwner=null;HeroGuide.close();clearGuideInput();gamePaused=audioPaused;
+}
+function positionHeroGuideCamera(){
+ if(!hero)return;
+ const vw=VW/zoom,vh=VH/zoom;
+ camX=world.w>vw?Math.max(0,Math.min(world.w-vw,hero.x-vw/2)):(world.w-vw)/2;
+ camY=world.h>vh?Math.max(0,Math.min(world.h-vh,hero.y-vh/2)):(world.h-vh)/2;
+}
+function showHeroGuide(){
+ const owner=S;heroGuideOwner=owner;gamePaused=true;clearGuideInput();
+ positionHeroGuideCamera(); /* frame the paused world without running a combat update */
+ HeroGuide.open({onReady(){
+  if(heroGuideOwner!==owner)return;
+  if(S!==owner||!gameOn){dismissHeroGuide();return;}
+  owner.introPending=false;dismissHeroGuide();saveNow();
+  stageMsg('Your adventure begins!',1800);
+ }});
+}
+// The guide pauses all gameplay, including buttons behind the overlay. Its own
+// controls still receive their normal keyboard and pointer events.
+for(const type of ['click','pointerdown','contextmenu','wheel'])document.addEventListener(type,e=>{
+ if(!HeroGuide.isOpen()||$('heroGuide')?.contains(e.target))return;
+ e.preventDefault();e.stopImmediatePropagation();
+},{capture:true,passive:false});
+window.addEventListener('resize',()=>{
+ if(HeroGuide.isOpen()){
+  if(!isDesktopLayout())openTab('battle');
+  positionHeroGuideCamera();
+ }
+});
 $('musBtn').onclick=()=>{
+ if(HeroGuide.isOpen())return;
  initAudio();
  audioPaused=!audioPaused;
  gamePaused=audioPaused;
@@ -14373,6 +14420,10 @@ function bootPreload(){
 }
 bootPreload();
 function beginGame(isNew){
+ dismissHeroGuide();
+ if(isNew)S.introPending=true;
+ const needsGuide=S.introPending===true;
+ if(needsGuide)gamePaused=true; /* set before the world can advance even one frame */
  $('create').style.display='none';$('create').classList.remove('open');
  $('select').classList.remove('open');
  openTab('battle');
@@ -14389,6 +14440,7 @@ function beginGame(isNew){
   stageMsg('Welcome to Riptide - spells are 1/2/3, potions 4/5.',3000);
   save();
  }else log(`<span class="imp">Welcome back, ${S.name}.</span> The march resumes.`);
+ if(needsGuide){showHeroGuide();saveNow();}
 }
 /* Effects were written as "X% chance this frame", which quietly ties their density to the frame
    rate: the same smoke that looks right at 60 fps arrives thirteen times as fast at 800, and
@@ -14412,17 +14464,21 @@ function frame(t){
   if(el)el.textContent=Math.round(fpsN/fpsT)+' fps';
   fpsN=0;fpsT=0;
  }
- if(gameOn&&!gamePaused){
+ const guideOpen=HeroGuide.isOpen();
+ if(gameOn&&!gamePaused&&!guideOpen){
   update(dt);renderVitals(dt);
   saveT+=dt;if(saveT>12){saveT=0;save();}
   draw();
   TideUI.afterDraw();
- }else if(gameOn&&gamePaused){
+ }else if(gameOn&&(gamePaused||guideOpen)){
+  if(guideOpen){padNow=padStick();padTick(dt);}
   draw();
+  if(!guideOpen){
   ctx.fillStyle='rgba(5,10,8,0.55)';ctx.fillRect(0,0,VW,VH);
   ctx.font='700 30px '+getComputedStyle(document.body).fontFamily;
   ctx.textAlign='center';
   ctx.fillStyle='#efe3c2';ctx.fillText('⏸ PAUSED',VW/2,VH/2);
+  }
  }
  cityMinimap.update(world,hero,gameOn&&S&&!ZONES[S.zone]?.dungeon&&!!(ZONES[S.zone]?.city||ZONES[S.zone]?.wasteland),t);
  requestAnimationFrame(frame);
