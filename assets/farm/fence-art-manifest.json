@@ -1,0 +1,59 @@
+{
+  "generator": "Higgsfield",
+  "model": "gpt_image_2_5",
+  "file": "assets/farm/staket_ovan.png",
+  "jobId": "6f7101c7-4af9-448b-907f-763b49e7c7b8",
+  "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260915_173759_6f7101c7-4af9-448b-907f-763b49e7c7b8.png",
+  "params": {
+    "model": "gpt_image_2_5",
+    "quality": "high",
+    "resolution": "2k",
+    "background": "transparent",
+    "aspect_ratio": "auto",
+    "count": 1,
+    "medias": [
+      {
+        "role": "image",
+        "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/main/assets/farm/staket_ovan.png"
+      },
+      {
+        "role": "image",
+        "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/main/assets/farm/staketvit_sidan.png"
+      }
+    ],
+    "prompt": "Precise production sprite REPAIR. Reference1 is the vertical top-view fence EDIT TARGET (a very tall narrow 145 by1045 pixel sprite). Reference2 is its matching horizontal white fence, STYLE reference only. Repair ONLY the vertical fence in reference1. Its upper connecting rails are thin ghostlike transparent outlines and need to become solid painted wooden rails all the way between the two posts. Match reference2's opaque warm ivory whitewashed wood, brown wood grain, strong dark brown outline and small antique brass fittings. Maintain the exact original narrow overhead/end-on viewpoint running straight VERTICALLY NORTH-SOUTH, same TWO square capped posts at upper and lower ends, same relative cap locations and post bodies. Two substantial continuous parallel white-painted wooden top rails between the posts, painted opaque ivory faces and warm shadowed brown sides, connected cleanly at both ends. NO holes or transparent paint within the wood. The open spaces BETWEEN separate rails must stay fully transparent. This is an edge-on vertical connecting fence run, NOT a front-facing horizontal fence rotated ninety degrees; do not invent extra posts, diagonal perspective or new fence style. Reconstruct missing pale rail faces with real solid wood; remove all broad hazy/gray/white edge mattes, retaining crisp antialias at silhouette only. Keep same tall narrow target composition and minimal padding as reference1; do not let the horizontal style reference determine composition. Subject fills a narrow tall canvas approximately1:7.2width:height. Complete entire fence with both caps and bottoms visible; no cropping, scenery, grass, groundshadow, checkerboard pattern, text, watermark or UI. TRUE transparent RGBA background only outside wood and in actual open slots. Solid wood painted at full opacity. Single repaired vertical fence sprite."
+  },
+  "nativeSize": [
+    1024,
+    3072
+  ],
+  "sourceFrame": [
+    338,
+    0,
+    346,
+    3072
+  ],
+  "logicalSize": [
+    145,
+    1045
+  ],
+  "repair": "Reconstructed solid whitewashed wooden rails and removed the old translucent brown matte from the open slot. Horizontal fence reviewed and retained.",
+  "preservation": "Generated PNG saved byte-for-byte with native alpha. Rendering selects the reviewed source frame into the original logical145x1045sprite to preserve Farm saves, snapping, footprints and paddock layouts.",
+  "sha256": "b4c7eb40007f2f158fd7edbe4d17dc376bb53f281f820f5301892dd6f2aa648b",
+  "alphaValidation": {
+    "wood": "Sampled rail interiors alpha250-254, median253",
+    "openSlot": "Medianalpha0, mean0.000238 across75563sampled nativepixels",
+    "sourceBoundsAt128": [
+      344,
+      5,
+      677,
+      3061
+    ]
+  },
+  "reviewedHorizontal": {
+    "file": "assets/farm/staketvit_sidan.png",
+    "sha256": "1c87531ece05b2d8df463295a06b1c3cec61c59167b039f61101ba55c0a140a9",
+    "changed": false,
+    "validation": "Rail, post and cap samplesalpha255; open gapsalpha0. Native1032x394canvas retained."
+  }
+}

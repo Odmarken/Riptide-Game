@@ -206,7 +206,23 @@ const fullCowImg=new Image();fullCowImg.src='assets/boss/originals/Cow_boss.png?
 const fullRatImg=new Image();fullRatImg.src='assets/boss/originals/rat_boss.png?v=1';
 /* ---- 🚜 the Farm: build assets, loaded lazily ---- */
 const farmImgs={};
-const farmImg=n=>{if(!farmImgs[n]){farmImgs[n]=new Image();farmImgs[n].src='assets/farm/'+n+'.png'+(n==='tide_incubator'?'?v=2':'');}return farmImgs[n];};
+const FARM_IMAGE_FRAMES={staket_ovan:{sourceSize:[1024,3072],source:[338,0,346,3072],size:[145,1045]}};
+const farmAssetUrl=n=>'assets/farm/'+n+'.png'+(['tide_incubator','staket_ovan'].includes(n)?'?v=2':'');
+function farmImageSource(n,im){
+ const frame=FARM_IMAGE_FRAMES[n];
+ if(!frame||!im.complete||!im.naturalWidth)return im;
+ if(im.naturalWidth!==frame.sourceSize[0]||im.naturalHeight!==frame.sourceSize[1])return im;
+ const key=im.src+'|'+im.naturalWidth+'x'+im.naturalHeight;
+ if(im._farmFrame?.key===key)return im._farmFrame.image;
+ // Higgsfield's padded export is fitted to the original logical sprite frame.
+ // Farm saves, fence snapping and the authored paddocks retain their exact spans.
+ const c=document.createElement('canvas');[c.width,c.height]=frame.size;
+ const g=c.getContext('2d');g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
+ g.drawImage(im,...frame.source,0,0,c.width,c.height);
+ Object.assign(c,{naturalWidth:c.width,naturalHeight:c.height,complete:true,src:im.src});
+ im._farmFrame={key,image:c};return c;
+}
+const farmImg=n=>{if(!farmImgs[n]){farmImgs[n]=new Image();farmImgs[n].src=farmAssetUrl(n);}return farmImageSource(n,farmImgs[n]);};
 const FARM_BUILD=[
  /* Contact shadows are calibrated against the visible roots, feet and bases. cx/rx/ry/dy
     use the rendered width; rot follows the ground plane. Floor decals need no extra blob. */
@@ -3592,7 +3608,7 @@ function renderFarmStore(){
   const ivN=ivK?(((S.farm&&S.farm.inv)||{})[ivK]||0):null; /* 🎰 casino-won stock waiting to be placed */
   return `<div class="fsitem${sel?' sel':''}${it.locked||stLock||hg?' lock':''}" data-fs="${it.id}">
    ${stK?`<div class="fscnt">${stN}</div>`:ivN!==null?`<div class="fscnt">${ivN}</div>`:''}
-   ${it.img?`<img src="assets/farm/${it.img}.png" onload="spriteEdgeThumbnail(this)" draggable="false">`:`<div style="font-size:34px;text-align:center;padding:8px 0">${it.emoji||'❓'}</div>`}
+   ${it.img?`<img src="${farmAssetUrl(it.img)}" onload="spriteEdgeThumbnail(this)" draggable="false">`:`<div style="font-size:34px;text-align:center;padding:8px 0">${it.emoji||'❓'}</div>`}
    <div class="fsn">${it.n}</div>
    ${it.id===TideFarm.BUILDING_ID?'<div class="fsl">Breed two Tides · 1 min</div><div class="fsl">'+TideFarm.count(S.farm,farmCart)+' / '+TideFarm.capacity(S.farm)+' incubators</div>':''}
    ${it.road?`<div class="fsl" style="color:var(--brass)">${FARM_ROAD_RATE[it.id]||0}◉ per unit drawn</div>`:(FARM_PRICES[it.id]||0)||(FARM_SCRAPS[it.id]||0)?`<div class="fsl" style="color:var(--brass)">${[FARM_PRICES[it.id]?FARM_PRICES[it.id].toLocaleString()+'◉':null,FARM_SCRAPS[it.id]?FARM_SCRAPS[it.id]+'⚙':null].filter(Boolean).join(' + ')}</div>`:''}
@@ -4188,6 +4204,54 @@ const CITY_NAMES=[
  'Mose Krita','Nanna Rost','Orvar Lykta','Petronella Skarp','Rurik Tunna','Signe Vide',
  'Torkel Nagel','Ulrika Bly','Valter Skorsten','Ylva Fnask','Åke Bredaxe','Ödgar Dunkel',
 ];
+function spaceCityHouses(candidates,wallInset){
+ // Reserve the complete painted facade, not the much smaller walking collider.
+ // The old terrace candidates still consume exactly the same seeded random
+ // values, so this spacing pass does not move services or reroll the townsfolk.
+ const GAP=16,hallAspect={minehall:684/900,enchanthall:535/900,smelter:864/1000,cathedral:796/900};
+ const frame=h=>{
+  const def=CITY_HOUSE[h.key],height=def?def.h:h.r*(h.type==='cathedral'?CATH_ART:9);
+  const width=height*(def?def.ar:hallAspect[h.type]);
+  return {x:h.x-width/2,y:h.y+h.r*.30-height,w:width,h:height};
+ };
+ const occupied=world.solids.filter(s=>hallAspect[s.type]).map(frame),placed=[];
+ const overlaps=(a,b,gap=GAP)=>a.x<b.x+b.w+gap&&a.x+a.w+gap>b.x&&a.y<b.y+b.h+gap&&a.y+a.h+gap>b.y;
+ const fits=h=>{
+  const b=frame(h),inset=wallInset+30;
+  if(b.x<inset||b.y<inset||b.x+b.w>world.w-inset||b.y+b.h>world.h-inset)return false;
+  if(occupied.some(other=>overlaps(b,other)))return false;
+  for(const s of world.streets){
+   const half=s.w/2;
+   const road={x:Math.min(s.x0,s.x1)-half,y:Math.min(s.y0,s.y1)-half,w:Math.abs(s.x1-s.x0)+s.w,h:Math.abs(s.y1-s.y0)+s.w};
+   if(overlaps(b,road,12))return false;
+   if(overlaps({x:h.x-h.r,y:h.y-h.r,w:h.r*2,h:h.r*2},road,12))return false;
+  }
+  for(const p of world.plazas){
+   const x=Math.max(b.x,Math.min(p.x,b.x+b.w)),y=Math.max(b.y,Math.min(p.y,b.y+b.h));
+   if(Math.hypot(x-p.x,y-p.y)<p.r+12)return false;
+  }
+  return true;
+ };
+ for(const h of candidates){
+  let next=fits(h)?h:null;
+  if(!next){
+   const s=h.street,dx=s.x1-s.x0,dy=s.y1-s.y0,length=Math.hypot(dx,dy),ux=dx/length,uy=dy/length;
+   const def=CITY_HOUSE[h.key],bottom=h.r*.30;
+   // A south-facing row must allow the whole roof to rise behind its doorway.
+   const off=s.w/2+24+(dx?(h.side>0?def.h-bottom:h.r+16):h.hw);
+   const extent=Math.abs(ux)*h.hw+Math.abs(uy)*def.h/2;
+   for(let n=0;n<=32&&!next;n++){
+    const shift=n===0?0:Math.ceil(n/2)*36*(n%2?1:-1),d=h.d+shift;
+    if(d<extent+24||d>length-extent-24)continue;
+    const trial={...h,x:s.x0+ux*d-uy*h.side*off,y:s.y0+uy*d+ux*h.side*off};
+    if(fits(trial))next=trial;
+   }
+  }
+  // An occasional empty yard is preferable to a roof covering its neighbour.
+  if(next){placed.push(next);occupied.push(frame(next));}
+ }
+ return placed;
+}
 function buildCity(R){
  const W=world.w,H=world.h,cx=W/2,cy=H/2;
  const st=[];
@@ -4273,12 +4337,12 @@ function buildCity(R){
     const off=s.w/2+24+hw;
     const x=s.x0+ux*d+nx*side*off, y=s.y0+uy*d+ny*side*off;
     if(R()>=0.15&&fits(x,y,r,hw))              /* the odd gap: a yard, a gate, a burnt-out plot */
-     houses.push({x,y,r,hw,key,seed:R()*100});
+     houses.push({x,y,r,hw,key,seed:R()*100,street:s,side,d});
     d+=hw*1.2+16;
    }
   }
  }
- for(const h of houses)world.solids.push({x:h.x,y:h.y,r:h.r,type:'cityhouse',key:h.key,seed:h.seed});
+ for(const h of spaceCityHouses(houses,WIN))world.solids.push({x:h.x,y:h.y,r:h.r,type:'cityhouse',key:h.key,seed:h.seed});
 
  /* --- 🧱 the curtain wall. Collision is four mwalls rectangles rather than ~90 solid segments:
     collide() already understands mwalls, and the crypt is the only other user (its drawing is

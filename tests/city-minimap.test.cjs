@@ -86,7 +86,7 @@ test('north-up projection centres the player and uses one scale on both axes', (
 
 test('markers use all six live City landmarks and ignore houses and unrelated props', () => {
   const { api } = harness();
-  assert.ok(city.streets.length > 40 && city.solids.filter(s => s.type === 'cityhouse').length > 300,
+  assert.ok(city.streets.length > 40 && new Set(city.solids.filter(s => s.type === 'cityhouse').map(s => s.key)).size === 7,
     'Fixture must execute the production City builder, including its alleys and houses');
   const world = { ...city, solids: [...city.solids, { type: 'tree', x: NaN, y: Infinity },
     { type: 'unknown', x: 0, y: 0 }, { type: 'rock', x: 0, y: 0 }] };

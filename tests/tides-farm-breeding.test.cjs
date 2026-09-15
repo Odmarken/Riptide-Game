@@ -22,6 +22,7 @@ function harness(gold=1000000){
   snapPos:(id,x,y)=>({x,y}),cropCellTaken:()=>false,isHay:()=>false,isBull:()=>false,isCattle:()=>false,isChicken:()=>false,
   goldCap:()=>1e12,SCRAP_CAP:1e9,totalGold:()=>c.S.gold+(c.S.overflow||0)};
  vm.createContext(c);
+ vm.runInContext(section('const farmAssetUrl=','function farmImageSource('),c);
  vm.runInContext(section('const FARM_BUILD=','const FARM_PRESTIGE=')+';globalThis.catalogue=FARM_BUILD;',c);
  vm.runInContext(section('const FARM_SC_MIN=','const torWeaponImg='),c);
  vm.runInContext(section('const FARM_PRICES=','let snapMode=true;'),c);
