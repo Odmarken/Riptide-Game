@@ -2658,15 +2658,15 @@ function toggleSide(force){
  document.body.classList.toggle('sidehidden',sideHidden);
  const b=$('sideToggle');
  if(b){
-  b.textContent=sideHidden?'❮':'❯';
   b.title=(sideHidden?'Show':'Hide')+' panel (B)';
+  b.setAttribute('aria-label',b.title);b.setAttribute('aria-expanded',String(!sideHidden));
  }
  setTimeout(resize,260);
 }
 window.addEventListener('resize',()=>{
  if(window.innerWidth<900&&sideHidden){
   sideHidden=false;document.body.classList.remove('sidehidden');
-  const b=$('sideToggle');if(b){b.textContent='❯';b.title='Hide panel (B)';}
+  const b=$('sideToggle');if(b){b.title='Hide panel (B)';b.setAttribute('aria-label',b.title);b.setAttribute('aria-expanded','true');}
  }
 });
 $('sideToggle').onclick=()=>toggleSide();
@@ -6214,7 +6214,7 @@ const padPanelOpen=()=>{
  return null;
 };
 let padFocus=null;
-const padItems=host=>[...host.querySelectorAll('button,select,.casinopick,.enchcell,.cup,[data-fs],[data-rb]')]
+const padItems=host=>[...host.querySelectorAll('button,select,input[type="range"],.casinopick,.enchcell,.cup,[data-fs],[data-rb]')]
  .filter(e=>!e.disabled&&e.offsetParent!==null&&e.getClientRects().length);
 function padMark(el){
  document.querySelectorAll('.padfocus').forEach(e=>e.classList.remove('padfocus'));
@@ -6227,6 +6227,17 @@ function padMenuStep(host,d){
  let i=items.indexOf(padFocus);
  i=i<0?(d>0?0:items.length-1):(i+d+items.length)%items.length;
  padMark(items[i]);
+}
+function padAdjustRange(direction){
+ const el=padFocus;if(!el||el.tagName!=='INPUT'||el.type!=='range'||el.disabled)return false;
+ const min=el.min===''?0:Number(el.min),max=el.max===''?100:Number(el.max),step=Number(el.step),before=el.value;
+ const amount=Number.isFinite(step)&&step>0?step:1;
+ el.value=String(Math.max(min,Math.min(max,Number(el.value)+direction*amount)));
+ if(el.value!==before){
+  el.dispatchEvent(new Event('input',{bubbles:true}));
+  el.dispatchEvent(new Event('change',{bubbles:true}));
+ }
+ return true;
 }
 /* ---------- what an A press means in the world ----------
    The same doors the mouse can click, found by proximity instead of by pixel. Kept as one list so
@@ -6297,8 +6308,7 @@ function padTick(dt){
  /* ⚙ the pad's own Settings/Menu button, same as clicking the gear. Handled before the panel
     branch so it can close the settings panel it just opened. */
  if(padHit.start){
-  initAudio();syncAudioUI();renderControls();
-  $('cfgBox').classList.toggle('open');
+  openSettings();
   return;
  }
  const host=padPanelOpen();
@@ -6306,8 +6316,9 @@ function padTick(dt){
   /* a panel is up: the d-pad walks it and A presses what is highlighted */
   padNear=null;
   if(padFocus&&!host.contains(padFocus))padMark(null);
-  if(padHit.up||padHit.left)padMenuStep(host,-1);
-  if(padHit.down||padHit.right)padMenuStep(host,1);
+  const horizontal=padHit.left?-1:padHit.right?1:0,adjusted=horizontal&&padAdjustRange(horizontal);
+  if(padHit.up||(!adjusted&&padHit.left))padMenuStep(host,-1);
+  if(padHit.down||(!adjusted&&padHit.right))padMenuStep(host,1);
   if(padHit.a){
    if(!padFocus)padMenuStep(host,1);
    else{const f=padFocus;f.click();}
@@ -6351,7 +6362,7 @@ window.addEventListener('keydown',e=>{
  if(gameOn&&S&&kl==='escape'&&TideUI.storageOpen()&&!TideUI.modalOpen()&&!$('cfgBox').classList.contains('open')){e.preventDefault();document.activeElement?.blur();TideUI.storageBack();return;}
  if(TideUI.modalOpen()&&!TideUI.isBattling()){if(kl==='escape'){e.preventDefault();TideUI.closeHub();}return;}
  if(TideUI.isBattling()){
-  if(kl==='escape'){e.preventDefault();$('cfgBox').classList.toggle('open');return;}
+  if(kl==='escape'){e.preventDefault();openSettings();return;}
   if(!e.repeat&&!gamePaused&&!$('cfgBox').classList.contains('open')){
    if(kl==='1'){e.preventDefault();TideUI.act('attack');}
    if(kl==='2'){e.preventDefault();TideUI.act('power');}
@@ -6372,9 +6383,7 @@ window.addEventListener('keydown',e=>{
  if(kl==='escape'&&gameOn){ /* ⚙ Esc is the settings key. Checked after the build-mode case above, so
                                putting a held piece down still wins - that is the more urgent undo. */
   e.preventDefault();
-  const box=$('cfgBox');
-  if(!box.classList.contains('open')){syncAudioUI();renderControls();}
-  box.classList.toggle('open');
+  openSettings();
   return;
  }
  if(kl==='enter'){
@@ -13941,6 +13950,7 @@ $('nextBtn').onclick=()=>{
  stageMsg('Marching to the portal…',1600);
 };
 $('autoEquipBtn').onclick=()=>{S.autoEquip=!S.autoEquip;renderHero();save();};
+const displaySettings=DisplaySettings.create();
 /* 🔊 is now a plain mute for everything. The sliders moved into the ⚙ panel, so leaving this button
    as a slider flyout would have put the music level in two places that could disagree. */
 $('sndBtn').onclick=()=>{
@@ -13961,10 +13971,12 @@ function syncAudioUI(){
  const st=S||{sound:true,sfx:true,volAmb:0.5,volSfx:0.55};
  [$('sndBtn'),$('volAmbSl'),$('volSfxSl')].forEach(e=>{if(e)e.disabled=!S;});
  const muted=!(st.sound||st.sfx);
- $('sndBtn').textContent=muted?'🔇':'🔊';$('sndBtn').classList.toggle('off',muted);
+ const soundButton=$('sndBtn');soundButton.dataset.muted=String(muted);soundButton.classList.toggle('off',muted);
+ soundButton.title=muted?'Unmute audio':'Mute audio';soundButton.setAttribute('aria-label',soundButton.title);soundButton.setAttribute('aria-pressed',String(muted));
  const a=Math.round((st.volAmb??0.5)*100),s=Math.round((st.volSfx??0.55)*100);
  $('volAmbSl').value=a;$('volAmbN').textContent=a;
  $('volSfxSl').value=s;$('volSfxN').textContent=s;
+ for(const input of [$('volAmbSl'),$('volSfxSl')]){DisplaySettings.paintRange(input);input.setAttribute('aria-valuetext',input.value+'%');}
  /* only the browser's tick is derived here - on the desktop the shell owns the window and pushes
     the value in, so recomputing it from the page would fight whatever the shell just did */
  if(!(window.desktop&&window.desktop.setWindowed))$('windowChk').checked=!isFullscreen();
@@ -13972,18 +13984,47 @@ function syncAudioUI(){
 /* One way into the settings, opened from two places. #cfgBox lives in #stageWrap, which shares
    #app's stacking context and carries a higher z-index than the character screen - so the panel
    draws over it and works before a hero has even been picked. */
-const openSettings=()=>{initAudio();syncAudioUI();renderControls();$('cfgBox').classList.toggle('open');};
+let settingsReturnFocus=null;
+function closeSettings(){
+ $('cfgBox').classList.remove('open');
+ $('cfgBtn').setAttribute('aria-expanded','false');
+ if(sizeItem){const it=farmListOf(sizeItem.kind)[sizeItem.i];if(it){sizeItem.sc0=scaleOf(it);sizeItem.d0=null;}}
+ if(settingsReturnFocus?.isConnected)settingsReturnFocus.focus({preventScroll:true});
+ settingsReturnFocus=null;
+}
+const openSettings=()=>{
+ if($('cfgBox').classList.contains('open')){closeSettings();return;}
+ settingsReturnFocus=document.activeElement;
+ initAudio();syncAudioUI();displaySettings.sync();renderControls();
+ holdMove=null;for(const key of Object.keys(keys))delete keys[key];
+ $('cfgBox').classList.add('open');$('cfgBtn').setAttribute('aria-expanded','true');
+ document.querySelector('.cfgtab.on')?.focus({preventScroll:true});
+};
 $('cfgBtn').onclick=openSettings;
 $('selCfgBtn').onclick=openSettings;
 /* Audio / Video tabs. One pane in the flow at a time, so the panel does not stand at the height of
    its tallest tab while showing its shortest. */
-document.querySelectorAll('.cfgtab').forEach(t=>t.onclick=()=>{
- document.querySelectorAll('.cfgtab').forEach(o=>o.classList.toggle('on',o===t));
- $('paneAudio').classList.toggle('on',t.dataset.pane==='audio');
- $('paneVideo').classList.toggle('on',t.dataset.pane==='video');
- $('paneControls').classList.toggle('on',t.dataset.pane==='controls');
- t.blur();
+const settingsTabs=[...document.querySelectorAll('.cfgtab')];
+function selectSettingsTab(tab){
+ settingsTabs.forEach(t=>{
+  const on=t===tab,pane=$(t.getAttribute('aria-controls'));
+  t.classList.toggle('on',on);t.setAttribute('aria-selected',String(on));t.tabIndex=on?0:-1;
+  if(pane){pane.classList.toggle('on',on);pane.hidden=!on;}
+ });
+}
+settingsTabs.forEach((tab,i)=>{
+ tab.onclick=()=>selectSettingsTab(tab);
+ tab.addEventListener('keydown',e=>{
+  let next;
+  if(e.key==='ArrowRight')next=(i+1)%settingsTabs.length;
+  if(e.key==='ArrowLeft')next=(i+settingsTabs.length-1)%settingsTabs.length;
+  if(e.key==='Home')next=0;
+  if(e.key==='End')next=settingsTabs.length-1;
+  if(next===undefined)return;
+  e.preventDefault();selectSettingsTab(settingsTabs[next]);settingsTabs[next].focus();
+ });
 });
+selectSettingsTab(document.querySelector('.cfgtab.on')||settingsTabs[0]);
 /* ⌨ Controls. Written out from the bindings that actually exist in the keydown handler rather than
    from memory, and rendered as text rather than baked into the picture - a controls screen that is
    out of step with the game is worse than no controls screen. The spell rows read their names from
@@ -14051,8 +14092,21 @@ if(window.desktop&&window.desktop.getResolutions){
 }
 /* The darkened backdrop is itself a click target: hitting it closes, hitting the panel does not.
    Esc and the gear both still toggle, so there are three ways out and none of them is a hunt. */
-$('cfgBox').addEventListener('pointerdown',e=>{if(e.target===$('cfgBox'))$('cfgBox').classList.remove('open');});
-$('cfgClose').onclick=()=>$('cfgBox').classList.remove('open');
+$('cfgBox').addEventListener('pointerdown',e=>{e.stopPropagation();if(e.target===$('cfgBox'))closeSettings();});
+/* Settings gestures must never steer a held walk or resize a farm decoration. */
+for(const type of ['pointermove','pointerup','pointercancel'])$('cfgBox').addEventListener(type,e=>e.stopPropagation());
+$('cfgBox').addEventListener('keydown',e=>{
+ e.stopPropagation();
+ if(e.key==='Escape'){e.preventDefault();closeSettings();return;}
+ if(e.key!=='Tab')return;
+ const focusable=[...$('cfgBox').querySelectorAll('button,input,select,[tabindex]')]
+  .filter(el=>!el.disabled&&el.tabIndex>=0&&el.getClientRects().length);
+ const first=focusable[0],last=focusable[focusable.length-1];
+ if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}
+ else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}
+});
+$('cfgClose').onclick=closeSettings;
+if($('cfgDismiss'))$('cfgDismiss').onclick=closeSettings;
 $('volAmbSl').oninput=e=>{
  if(!S)return;
  S.volAmb=e.target.value/100;S.sound=S.volAmb>0;
@@ -14139,8 +14193,8 @@ $('musBtn').onclick=()=>{
  if(odinAudio){if(audioPaused)odinAudio.pause();else if(gameOn&&zoneOf().amb==='odin')odinAudio.play().catch(()=>{});}
  if(cryptAudio){if(audioPaused)cryptAudio.pause();else if(gameOn&&zoneOf().crypts)cryptAudio.play().catch(()=>{});}
  if(finalAudio){if(audioPaused)finalAudio.pause();else if(gameOn&&zoneOf().amb==='final')finalAudio.play().catch(()=>{});}
- $('musBtn').textContent=audioPaused?'▶':'⏸';
- $('musBtn').classList.toggle('off',audioPaused);
+ const pauseButton=$('musBtn');pauseButton.dataset.paused=String(audioPaused);pauseButton.classList.toggle('off',audioPaused);
+ pauseButton.title=audioPaused?'Resume game and audio':'Pause game and audio';pauseButton.setAttribute('aria-label',pauseButton.title);pauseButton.setAttribute('aria-pressed',String(audioPaused));
  stageMsg(audioPaused?'Game paused':'Game resumed',1200);
 };
 

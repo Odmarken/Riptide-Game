@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="favicon_256.png">
 <!-- ?v= is not decoration: without it iOS Safari serves a cached stylesheet for days, so two
      phones end up running two different builds of the layout. Bump on every visual change. -->
-<link rel="stylesheet" href="style.css?v=52">
+<link rel="stylesheet" href="style.css?v=53">
 <link rel="stylesheet" href="assets/tides/ui.css?v=8">
 </head>
 <body>
@@ -112,38 +112,54 @@
     </div>
     <div id="fps"></div>
     <div id="padBadge" title="Controller">🎮</div>
-    <button id="sndBtn" class="stgbtn" title="Mute everything">🔊</button>
-    <button id="cfgBtn" class="stgbtn" title="Settings">⚙️</button>
-    <button id="musBtn" class="stgbtn" title="Pause game and audio">⏸</button>
-    <button id="sideToggle" class="stgbtn" title="Hide panel (B)" style="height:44px;width:16px;padding:0;font-size:9px">❯</button>
+    <button id="sndBtn" class="stgbtn" title="Mute everything" aria-label="Mute everything" aria-pressed="false" data-muted="false"></button>
+    <button id="cfgBtn" class="stgbtn" title="Settings" aria-label="Open settings" aria-controls="cfgBox"></button>
+    <button id="musBtn" class="stgbtn" title="Pause game and audio" aria-label="Pause game and audio" aria-pressed="false" data-paused="false"></button>
+    <button id="sideToggle" class="stgbtn" title="Hide panel (B)" aria-label="Hide panel" aria-expanded="true"></button>
     <div id="sideResize" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize side panel" aria-controls="p-hero p-map p-bag p-tides p-shop" title="Drag to resize panel. Double-click to reset. Left / Right arrows adjust width."><span aria-hidden="true"></span></div>
-    <div id="cfgBox">
-      <div class="casinobox" style="border-color:#b8a06a;max-width:400px">
-        <div class="slottop" style="color:#e8dcc6;margin-bottom:10px">⚙ SETTINGS</div>
-        <div class="cfgtabs">
-          <button class="cfgtab on" data-pane="audio">Audio</button>
-          <button class="cfgtab" data-pane="video">Video</button>
-          <button class="cfgtab" data-pane="controls">Controls</button>
+    <div id="cfgBox" role="dialog" aria-modal="true" aria-labelledby="cfgTitle">
+      <div class="casinobox cfgcard">
+        <div class="cfgheading">
+          <div class="cfgtitle"><span class="cfgcrest" aria-hidden="true"></span><h2 id="cfgTitle">Settings</h2></div>
+          <button id="cfgDismiss" class="cfgdismiss" title="Close settings" aria-label="Close settings"></button>
         </div>
-        <div class="cfgpane on" id="paneAudio">
-          <label class="cfgrow"><span>Music</span><input type="range" id="volAmbSl" min="0" max="100"><b id="volAmbN">50</b></label>
-          <label class="cfgrow"><span>Combat</span><input type="range" id="volSfxSl" min="0" max="100"><b id="volSfxN">55</b></label>
+        <div class="cfgtabs" role="tablist" aria-label="Settings sections">
+          <button class="cfgtab on" id="cfgTabAudio" data-pane="audio" role="tab" aria-selected="true" aria-controls="paneAudio">Audio</button>
+          <button class="cfgtab" id="cfgTabVideo" data-pane="video" role="tab" aria-selected="false" aria-controls="paneVideo" tabindex="-1">Video</button>
+          <button class="cfgtab" id="cfgTabControls" data-pane="controls" role="tab" aria-selected="false" aria-controls="paneControls" tabindex="-1">Controls</button>
         </div>
-        <div class="cfgpane" id="paneVideo">
-          <label class="cfgrow cfgchk"><input type="checkbox" id="windowChk"><span>Windowed mode</span></label>
-          <label class="cfgrow cfgchk" id="vsyncRow" style="display:none"><input type="checkbox" id="vsyncChk" checked><span>Vsync</span></label>
-          <div class="cfgnote" id="vsyncNote" style="display:none">Matches your monitor · takes effect on restart</div>
-          <label class="cfgrow" id="resRow" style="display:none"><span>Resolution</span><select id="resSel"></select></label>
-          <div class="cfgnote" id="resNote" style="display:none">Applies to the window · fullscreen follows the display</div>
+        <div class="cfgpane on" id="paneAudio" role="tabpanel" aria-labelledby="cfgTabAudio" tabindex="0">
+          <div class="cfgsection">
+            <h3 class="cfgsectiontitle">Audio levels</h3>
+            <label class="cfgrow cfgslider"><span>Music</span><b class="cfgvalue" id="volAmbN">50</b><input type="range" id="volAmbSl" min="0" max="100" value="50" aria-label="Music volume"></label>
+            <label class="cfgrow cfgslider"><span>Combat</span><b class="cfgvalue" id="volSfxN">55</b><input type="range" id="volSfxSl" min="0" max="100" value="55" aria-label="Combat volume"></label>
+          </div>
         </div>
-        <div class="cfgpane" id="paneControls">
+        <div class="cfgpane" id="paneVideo" role="tabpanel" aria-labelledby="cfgTabVideo" tabindex="0">
+          <div class="cfgsection">
+            <h3 class="cfgsectiontitle">Display</h3>
+            <label class="cfgrow cfgchk"><input type="checkbox" id="windowChk"><span>Windowed mode</span></label>
+            <label class="cfgrow cfgchk" id="vsyncRow" style="display:none"><input type="checkbox" id="vsyncChk" checked><span>Vsync</span></label>
+            <div class="cfgnote" id="vsyncNote" style="display:none">Matches your monitor · takes effect on restart</div>
+            <label class="cfgrow cfgresolution" id="resRow" style="display:none"><span>Resolution</span><select id="resSel"></select></label>
+            <div class="cfgnote cfgresolutionnote" id="resNote" style="display:none">Applies to the window · fullscreen follows the display</div>
+          </div>
+          <div class="cfgsection">
+            <h3 class="cfgsectiontitle">Game image</h3>
+            <label class="cfgrow cfgslider"><span>Brightness</span><b class="cfgvalue" id="brightnessN">100</b><input type="range" id="brightnessSl" min="60" max="140" step="1" value="100" aria-label="Game brightness"></label>
+            <label class="cfgrow cfgslider"><span>Contrast</span><b class="cfgvalue" id="contrastN">100</b><input type="range" id="contrastSl" min="60" max="140" step="1" value="100" aria-label="Game contrast"></label>
+            <button id="videoReset" class="cfgreset">Reset brightness &amp; contrast</button>
+          </div>
+        </div>
+        <div class="cfgpane" id="paneControls" role="tabpanel" aria-labelledby="cfgTabControls" tabindex="0">
           <img class="kbdart" src="assets/ui/keyboard_controls.png" alt="" draggable="false"
                onerror="this.style.display='none'">
           <div class="kbdlist" id="kbdList"></div>
         </div>
-        <div class="cfgsep"></div>
-        <button id="exitBtn" class="cfgexit">Exit game</button>
-        <button id="cfgClose" class="sbtn" style="margin-top:9px;padding:10px;width:100%">Back to the game</button>
+        <div class="cfgfooter">
+          <button id="cfgClose" class="sbtn cfgback">Back to the game</button>
+          <button id="exitBtn" class="cfgexit">Exit game</button>
+        </div>
       </div>
     </div>
     <div id="stagemsg"></div>
@@ -800,6 +816,7 @@
 <script src="assets/weapons/rune-particles.js?v=1"></script>
 <script src="assets/weapons/rune-effects.js?v=4"></script>
 <script src="assets/ui/sidebar-resize.js?v=1"></script>
+<script src="assets/ui/display-settings.js?v=1"></script>
 <script src="assets/ui/city-minimap.js?v=4"></script>
 <script src="assets/wasteland/world.js?v=8"></script>
 <script src="assets/wasteland/dungeons.js?v=5"></script>
@@ -820,6 +837,6 @@
 <script src="assets/tides/art-layout.js?v=1"></script>
 <script src="assets/tides/motion.js?v=2"></script>
 <script src="assets/tides/ui.js?v=14"></script>
-<script src="game.js?v=114"></script>
+<script src="game.js?v=115"></script>
 </body>
 </html>

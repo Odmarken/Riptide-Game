@@ -73,10 +73,23 @@
   #stagemsg.bigblink{font-size:26px;letter-spacing:1.5px;animation:msgblink .55s ease-in-out infinite}
   @keyframes msgblink{50%{opacity:.5}}
   #stagemsg.show{opacity:1}
-  .stgbtn{position:absolute;right:8px;width:32px;height:32px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(10,18,14,.55);color:#fff;font-size:15px;cursor:pointer;z-index:6}
-  #sndBtn{top:6px} #cfgBtn{top:44px;font-size:15px}
-  #musBtn{top:82px;font-size:13px}
-  #cityMinimap{position:absolute;top:8px;right:50px;width:156px;height:156px;z-index:6;border-radius:50%;
+  .stgbtn{position:absolute;right:8px;width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;
+    border-radius:9px;border:1px solid #9e7845;background:linear-gradient(135deg,#6b4b2d,#3d291c 55%,#251a13);
+    color:#e4c48a;box-shadow:0 2px 6px #0006,inset 0 1px 0 #e3bc6e35,inset 0 0 0 2px #21170e80;
+    cursor:pointer;z-index:6;transition:background .15s,border-color .15s,color .15s,box-shadow .15s}
+  .stgbtn::before,.cfgcrest::before,.cfgdismiss::before,.cfgtab::before{content:"";display:block;width:20px;height:20px;flex:none;
+    background:currentColor;-webkit-mask:var(--control-icon) center/contain no-repeat;mask:var(--control-icon) center/contain no-repeat;pointer-events:none}
+  .stgbtn:hover{color:#ffe5ae;border-color:#e4b962;background:linear-gradient(135deg,#87643c,#533720 65%,#352317)}
+  .stgbtn:active{box-shadow:inset 0 2px 6px #0008;color:#fff0c8}
+  .stgbtn:focus-visible{outline:2px solid #f3d295;outline-offset:3px}
+  .stgbtn:disabled{opacity:.45;cursor:default}
+  #sndBtn{top:8px;--control-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11 4 6 8H3v8h3l5 4zM15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14'/%3E%3C/svg%3E")}
+  #sndBtn[data-muted="true"]{color:#b99d73;--control-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M11 4 6 8H3v8h3l5 4zM16 9l6 6M22 9l-6 6'/%3E%3C/svg%3E")}
+  #cfgBtn,.cfgcrest{--control-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9.5 3-.7 2.3-2.1 1.2-2.4-.5-2.5 4.3 1.7 1.8v2.4l-1.7 1.8 2.5 4.3 2.4-.5 2.1 1.2.7 2.3h5l.7-2.3 2.1-1.2 2.4.5 2.5-4.3-1.7-1.8v-2.4l1.7-1.8L19.7 6l-2.4.5-2.1-1.2-.7-2.3z' transform='translate(2 0) scale(.84)'/%3E%3Ccircle cx='12' cy='12' r='3.2'/%3E%3C/svg%3E")}
+  #cfgBtn{top:52px}
+  #musBtn{top:96px;--control-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Crect x='5' y='4' width='5' height='16' rx='1.3'/%3E%3Crect x='14' y='4' width='5' height='16' rx='1.3'/%3E%3C/svg%3E")}
+  #musBtn[data-paused="true"]{--control-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='black'%3E%3Cpath d='M6 4c0-.8.8-1.2 1.5-.8l13 8a1 1 0 0 1 0 1.6l-13 8C6.8 21.2 6 20.8 6 20z'/%3E%3C/svg%3E")}
+  #cityMinimap{position:absolute;top:8px;right:54px;width:156px;height:156px;z-index:6;border-radius:50%;
     border:3px solid #ae8750;background:#20271f;box-shadow:0 0 0 2px #35281b,0 3px 12px #0009,inset 0 0 0 2px #ecd399;
     touch-action:none;outline:none}
   #cityMinimap[hidden]{display:none}
@@ -93,7 +106,8 @@
   #cityMinimap:hover .minimap-tip,#cityMinimap:focus-visible .minimap-tip{visibility:visible}
   @media(max-width:899px){#cityMinimap{width:132px;height:132px}}
   @media(max-width:359px),(max-height:500px){#cityMinimap{width:116px;height:116px}}
-  #sideToggle{top:120px;height:64px;width:22px;padding:0;font-size:11px;display:none;align-items:center;justify-content:center}
+  #sideToggle{top:140px;display:none;--control-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 5 7 7-7 7'/%3E%3C/svg%3E")}
+  body.sidehidden #sideToggle::before{transform:rotate(180deg)}
   #sideResize{display:none;position:absolute;right:0;top:50%;transform:translateY(-50%);width:20px;height:70px;
     align-items:center;justify-content:center;z-index:21;cursor:ew-resize;touch-action:none;
     border:1px solid #9e7845;border-right:0;border-radius:9px 0 0 9px;
@@ -105,31 +119,86 @@
   body.side-resizing,body.side-resizing *{cursor:ew-resize!important;user-select:none!important}
   body.side-resizing #app{transition:none}
   body.sidehidden #sideResize,body:has(#login.open) #sideResize,body:has(#select.open) #sideResize,body:has(#create.open) #sideResize,body:has(#tideBattleFx:not([hidden])) #sideResize{display:none}
-  .stgbtn.off{opacity:.45}
-  /* ⚙ Settings is a panel in the middle of the screen now, on the same .casinobox the smith and the
-     other venues use, rather than a popover tucked under its own button. It is where the player
-     leaves the game from, so it should feel like somewhere you arrive, not a tooltip. */
-  /* fixed, not absolute: opened from the character screen the panel used to centre itself inside
-     #stageWrap, which is only part of the window there, so it sat off to one side. Against the
-     viewport it lands in the middle wherever it is opened from. No dimming behind it. */
+  .stgbtn.off{color:#bea078}
+  /* Settings stays centered on the viewport, including when opened from character selection.
+     Keep the existing painted interior; controls use the same brass and wood as the side grip. */
   #cfgBox{position:fixed;inset:0;z-index:72;display:none;align-items:center;justify-content:center;
-          padding:16px;box-sizing:border-box}
+    padding:16px;box-sizing:border-box}
   #cfgBox.open{display:flex}
-  #cfgBox .casinobox{background:linear-gradient(180deg,rgba(30,22,14,.80),rgba(14,10,6,.92)),url('assets/ui/modal_settings.png') center/cover no-repeat}
-  #cfgBox .cfgrow{width:100%}
-  #cfgBox .cfgrow input[type=range]{flex:1}
-  #cfgBox .cfgrow>span{min-width:78px;text-align:left}
-  /* Audio / Video as two tabs. Only one pane is ever in the flow, so the panel is the height of what
-     it is showing rather than the height of everything it could show. */
-  .cfgtabs{display:flex;flex-direction:column;gap:7px;margin-bottom:12px} /* stacked, Audio first */
-  .cfgtab{width:100%;padding:9px 10px;border-radius:9px;border:1px solid var(--line);background:rgba(0,0,0,.28);
-          color:var(--dim);font-family:inherit;font-size:13px;letter-spacing:.4px;cursor:pointer;transition:all .15s}
-  .cfgtab:hover{color:var(--parch)}
-  .cfgtab.on{border-color:var(--brass);background:linear-gradient(180deg,#3a2a1c,#221610);color:var(--brass)}
-  .cfgpane{display:none;flex-direction:column;gap:8px}
+  #cfgBox .casinobox{width:min(100%,520px);max-height:calc(100dvh - 32px);padding:24px;border:1px solid #b18a52;border-radius:19px;
+    background:linear-gradient(180deg,rgba(30,22,14,.80),rgba(14,10,6,.92)),url('assets/ui/modal_settings.png') center/cover no-repeat;
+    box-shadow:0 18px 60px #0009,inset 0 0 0 3px #23190ec9,inset 0 0 0 4px #ac80452e;overflow-y:auto;text-align:left;
+    scrollbar-gutter:stable;overscroll-behavior:contain}
+  .cfgheading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:22px}
+  .cfgtitle{display:flex;align-items:center;gap:12px}
+  #cfgTitle{color:#f0dfb8;font:500 29px/1.1 var(--display);letter-spacing:1px}
+  .cfgcrest{width:39px;height:39px;display:flex;align-items:center;justify-content:center;color:#e3bd77;border:1px solid #ac804573;
+    border-radius:11px;background:linear-gradient(135deg,#69492caa,#2a1d1580);box-shadow:inset 0 1px 0 #ecd0981a}
+  .cfgcrest::before{width:24px;height:24px}
+  #cfgBox .cfgdismiss{width:32px;height:32px;display:flex;align-items:center;justify-content:center;flex:none;border:1px solid #80613c;
+    border-radius:8px;background:#2b1e15b3;color:#cbb18a;cursor:pointer;
+    --control-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='m6 6 12 12M18 6 6 18'/%3E%3C/svg%3E")}
+  #cfgBox .cfgdismiss:hover{background:#60412a;color:#ffe5ae;border-color:#bd965d}
+  .cfgtabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:5px;margin-bottom:20px;
+    border:1px solid #74563480;border-radius:11px;background:#120d0980;box-shadow:inset 0 2px 6px #0004}
+  .cfgtab{min-width:0;display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 7px;border-radius:7px;
+    border:1px solid transparent;background:transparent;color:#bda787;font:600 13px var(--body);cursor:pointer;
+    transition:background .15s,border-color .15s,color .15s}
+  .cfgtab::before{width:17px;height:17px}
+  .cfgtab[data-pane="audio"]{--control-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18V5l11-2v13M9 8l11-2'/%3E%3Cellipse cx='6' cy='18' rx='3' ry='2.5'/%3E%3Cellipse cx='17' cy='16' rx='3' ry='2.5'/%3E%3C/svg%3E")}
+  .cfgtab[data-pane="video"]{--control-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='3' width='20' height='14' rx='2'/%3E%3Cpath d='M12 17v4M7 21h10'/%3E%3C/svg%3E")}
+  .cfgtab[data-pane="controls"]{--control-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='5' width='20' height='14' rx='2'/%3E%3Cpath d='M6 9h.1M10 9h.1M14 9h.1M18 9h.1M6 12h.1M10 12h.1M14 12h.1M18 12h.1M7 15h10'/%3E%3C/svg%3E")}
+  .cfgtab:hover{color:#f5dfb3;background:#533a2366}
+  .cfgtab.on{border-color:#ac8349;background:linear-gradient(135deg,#74502e,#44301f);color:#ffe1a3;box-shadow:inset 0 1px 0 #f5d18d33,0 1px 4px #0005}
+  .cfgpane{display:none;flex-direction:column;gap:14px;outline:none}
   .cfgpane.on{display:flex}
-  #cfgBox select{flex:1;padding:6px 8px;border-radius:7px;border:1px solid var(--line);
-                 background:#241a12;color:var(--parch);font-family:inherit;font-size:12px;cursor:pointer}
+  .cfgsection{display:flex;flex-direction:column;gap:15px;padding:16px 17px;border:1px solid #89643d65;border-radius:12px;
+    background:linear-gradient(135deg,#51382038,#1c140d70);box-shadow:inset 0 1px 0 #eac48608}
+  .cfgsectiontitle{font:600 10px/1.3 var(--body);letter-spacing:1.6px;text-transform:uppercase;color:#c5a472;margin:0 0 1px}
+  #cfgBox .cfgrow{width:100%;font-size:13px;color:#e9dcc5;line-height:1.4}
+  #cfgBox .cfgrow>span{min-width:0;text-align:left}
+  #cfgBox .cfgslider{display:grid;grid-template-columns:1fr auto;gap:6px 12px;cursor:default}
+  #cfgBox .cfgvalue{min-width:46px;padding:2px 7px;text-align:center;color:#e8c98f;font-size:12px;background:#17100b88;
+    border:1px solid #70533566;border-radius:5px;font-variant-numeric:tabular-nums}
+  #cfgBox .cfgvalue::after{content:'%';margin-left:1px;font-size:10px;color:#aa906b}
+  #cfgBox .cfgrow input[type=range]{--range-fill:50%;grid-column:1/-1;appearance:none;-webkit-appearance:none;width:100%;min-width:0;height:24px;margin:0;background:transparent;cursor:pointer;border-radius:4px;touch-action:none}
+  #cfgBox input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:4px;background:linear-gradient(90deg,#b28343,#e1bb70) left/var(--range-fill) 100% no-repeat,#17100c;border:1px solid #8e693c70;box-shadow:inset 0 1px 3px #0008}
+  #cfgBox input[type=range]::-moz-range-track{height:4px;border-radius:4px;background:#17100c;border:1px solid #8e693c70}
+  #cfgBox input[type=range]::-moz-range-progress{height:4px;border-radius:4px;background:#d9ab60}
+  #cfgBox input[type=range]::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:17px;height:22px;margin-top:-9px;border:1px solid #ebc581;border-radius:5px;background:linear-gradient(90deg,#765030,#bc8c4c 45%,#8f6438);box-shadow:0 2px 5px #0008,inset 0 0 0 2px #55391d88}
+  #cfgBox input[type=range]::-moz-range-thumb{width:15px;height:20px;border:1px solid #ebc581;border-radius:5px;background:linear-gradient(90deg,#765030,#bc8c4c 45%,#8f6438);box-shadow:0 2px 5px #0008}
+  #cfgBox input[type=range]:hover::-webkit-slider-thumb{border-color:#ffe2a4;background:linear-gradient(90deg,#956838,#d4a25b 45%,#a77942)}
+  #cfgBox input:disabled{opacity:.45;cursor:default}
+  #cfgBox .cfgchk{gap:10px;cursor:pointer}
+  #cfgBox .cfgchk input{appearance:none;-webkit-appearance:none;width:20px;height:20px;flex:none;border:1px solid #987345;border-radius:5px;
+    background:#21170fe6;box-shadow:inset 0 1px 4px #0005;cursor:pointer}
+  #cfgBox .cfgchk input:checked{border-color:#d9ae63;background:center/14px 14px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23302316' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 10 4 4 8-9'/%3E%3C/svg%3E"),linear-gradient(135deg,#efcf86,#b7833d);box-shadow:inset 0 1px 0 #ffe4ab66}
+  #cfgBox .cfgresolution{align-items:stretch;flex-direction:column;gap:7px;margin-top:3px}
+  #cfgBox select{min-width:0;width:100%;padding:10px 34px 10px 11px;border-radius:7px;border:1px solid #987345;
+    appearance:none;-webkit-appearance:none;color:#f0dfbc;font:13px var(--body);cursor:pointer;
+    background:right 12px center/12px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23d9b982' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3 6 5 5 5-5'/%3E%3C/svg%3E"),linear-gradient(#322218,#21170f)}
+  #cfgBox select option{background:#2b1e14;color:#f0dfbc}
+  #cfgBox .cfgnote{margin:-8px 0 0 30px;color:#baa184;font-size:11px;line-height:1.5}
+  #cfgBox .cfgresolutionnote{margin:-8px 0 0}
+  #cfgBox .cfgreset{align-self:flex-start;border:0;border-bottom:1px solid #a8824e88;padding:3px 0;background:transparent;
+    color:#d4b784;font:12px var(--body);cursor:pointer}
+  #cfgBox .cfgreset:hover{color:#ffe0a1;border-color:#e0b573}
+  .cfgfooter{display:flex;gap:10px;align-items:center;margin-top:20px;padding-top:18px;border-top:1px solid #a07b4638}
+  #cfgBox .cfgback,#cfgBox .cfgexit{padding:11px 16px;border-radius:8px;font:600 13px var(--body);cursor:pointer;line-height:1.35}
+  #cfgBox .cfgback{flex:1;border:1px solid #b1874d;background:linear-gradient(135deg,#795432,#49311f);color:#f3dba7;box-shadow:inset 0 1px 0 #e9bf7330}
+  #cfgBox .cfgback:hover{border-color:#e0b775;background:linear-gradient(135deg,#956a3d,#604329);color:#ffebbc}
+  #cfgBox .cfgexit{width:auto;flex:none;border:1px solid #815240;background:linear-gradient(135deg,#573426,#352119);color:#dcb49b;font-weight:500}
+  #cfgBox .cfgexit:hover{background:linear-gradient(135deg,#713c2c,#46251c);border-color:#b07254;color:#ffdbbe}
+  #cfgBox button:focus-visible,#cfgBox input:focus-visible,#cfgBox select:focus-visible,.cfgpane:focus-visible{outline:2px solid #f1ca80;outline-offset:3px}
+  @media(max-width:520px){
+    #cfgBox{padding:12px}
+    #cfgBox .casinobox{max-height:calc(100dvh - 24px);padding:19px 16px;border-radius:15px}
+    .cfgheading{margin-bottom:18px}.cfgtitle{gap:10px}#cfgTitle{font-size:25px}
+    .cfgtabs{margin-bottom:16px;gap:3px;padding:4px}.cfgtab{gap:5px;padding:11px 3px;font-size:12px}.cfgtab::before{width:15px;height:15px}
+    .cfgsection{padding:14px;gap:13px}.cfgfooter{gap:8px;margin-top:16px;padding-top:15px}
+    #cfgBox .cfgback,#cfgBox .cfgexit{padding:11px 12px;font-size:12px}
+  }
+  @media(max-height:600px){#cfgBox .casinobox{padding:18px}.cfgheading{margin-bottom:14px}.cfgtabs{margin-bottom:14px}.cfgsection{padding:12px 15px;gap:11px}.cfgfooter{margin-top:14px;padding-top:13px}}
   /* Controls: the keyboard is illustration, the list below it is the truth. Generated art cannot be
      trusted to letter a dozen keycaps correctly, and a controls screen that lies is worse than none -
      so the caps are blank in the picture and every binding is written out in real text. */
