@@ -3,10 +3,11 @@
   const commonjs = typeof module === 'object' && module.exports;
   const api = factory(commonjs ? require('./catalog.js') : root.TidesCatalog,
     commonjs ? require('./breeding.js') : root.TideBreeding,
-    commonjs ? require('./hybrids.js') : root.TidesHybrids || root.TideHybrids || []);
+    commonjs ? require('./hybrids.js') : root.TidesHybrids || root.TideHybrids || [],
+    commonjs ? require('./training.js') : root.TideTraining);
   if (typeof module === 'object' && module.exports) module.exports = api;
   root.Tides = api;
-})(typeof globalThis !== 'undefined' ? globalThis : this, function (catalog, breeding, hybrids) {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (catalog, breeding, hybrids, training) {
   'use strict';
   const MAX_LEVEL = 30, SPECTRAL_MIN_LEVEL = 25, LASSO_PRICE = 10000;
   // Temporarily disabled for playtesting. Restore 2 * 60 * 60 * 1000 to enable Tide injuries again.
@@ -25,6 +26,7 @@
   const normalizeMutations = raw => breeding ? breeding.normalizeMutations(raw) : emptyMutations();
   const mutationSummary = pet => breeding ? breeding.mutationSummary(pet) : {...emptyMutations(), count: 0};
   const isBreedingParent = (c, id) => breeding ? breeding.isParentLocked(c, id) : false;
+  const isTraining = (c, id) => training ? training.isTraining(c, id) : false;
   function combinedSkill(a, b) {
     const x = a.skill, y = b.skill;
     const skill = {name: x.name + ' + ' + y.name,
@@ -97,7 +99,8 @@
 
   function createCollection() {
     return {version: 2, lassoOwned: false, pets: [], equippedId: null, visibleId: null, nextId: 1, nextBattleId: 1,
-      activeBattle: null, guildSeries: null, recentWorldEvents: [], breedingJobs: [], nextBreedingId: 1};
+      activeBattle: null, guildSeries: null, recentWorldEvents: [], breedingJobs: [], nextBreedingId: 1,
+      training: {version: 1, lastNow: 0, jobs: []}};
   }
 
   function normalizePet(saved, now = Date.now()) {
@@ -143,6 +146,12 @@
     c.nextBattleId = Math.max(1, integer(raw.nextBattleId, 1));
     c.nextBreedingId = Math.max(1, integer(raw.nextBreedingId, 1));
     if (breeding) c.breedingJobs = breeding.normalizeJobs(raw.breedingJobs, c, time);
+    if (training) {
+      c.training = training.normalize(raw.training, c, time);
+      if (isTraining(c, c.equippedId)) c.equippedId = null;
+      if (isTraining(c, c.visibleId)) c.visibleId = null;
+      training.update(c, {now: time});
+    }
     c.recentWorldEvents = (Array.isArray(raw.recentWorldEvents) ? raw.recentWorldEvents : [])
       .filter(id => typeof id === 'string').slice(-128);
     // The exploration module owns this schema and sanitizes it when loaded.
@@ -182,6 +191,7 @@
     if (id === null) { c.visibleId = null; return {ok: true, pet: null}; }
     const pet = c?.pets?.find(p => p.id === id);
     if (!pet) return {ok: false, reason: 'unowned'};
+    if (isTraining(c, id)) return {ok: false, reason: 'training'};
     c.visibleId = id; return {ok: true, pet};
   }
   function toggleVisible(c, id) { return setVisible(c, c?.visibleId === id ? null : id); }
@@ -214,6 +224,7 @@
     if (c.activeBattle || c.guildSeries) return {ok: false, reason: 'battle'};
     const pet = c.pets.find(item => item.id === ownedId);
     if (!pet) return {ok: false, reason: 'unowned'};
+    if (isTraining(c, pet.id)) return {ok: false, reason: 'training'};
     c.equippedId = pet.id;
     return {ok: true, pet, injured: remainingInjury(pet, now) > 0};
   }
@@ -221,6 +232,7 @@
   function awardWorldXp(c, options = {}) {
     const pet = equipped(c);
     if (!pet) return {ok: false, reason: 'equipped'};
+    if (isTraining(c, pet.id)) return {ok: false, reason: 'training'};
     if (c.activeBattle || c.guildSeries || remainingInjury(pet, nowOf(options))) return {ok: false, reason: 'injured'};
     const eventId = typeof options.eventId === 'string' ? options.eventId : null;
     if (eventId && c.recentWorldEvents.includes(eventId)) return {ok: false, reason: 'duplicate'};
@@ -253,6 +265,7 @@
     if (c.guildSeries && (!training || options.guildSeriesId !== c.guildSeries.id)) return {ok: false, reason: 'battle'};
     const pet = equipped(c), now = nowOf(options);
     if (!pet) return {ok: false, reason: 'equipped'};
+    if (isTraining(c, pet.id)) return {ok: false, reason: 'training'};
     if (isBreedingParent(c, pet.id)) return {ok: false, reason: 'breeding'};
     if (remainingInjury(pet, now)) return {ok: false, reason: 'injured'};
     if (!getSpecies(wild?.speciesId)) return {ok: false, reason: 'unknown'};
@@ -401,14 +414,20 @@
 
   registerHybrids(hybrids);
   const startBreeding = (c, options = {}) => c?.guildSeries ? {ok: false, reason: 'battle'}
+    : isTraining(c, options.parentAId) || isTraining(c, options.parentBId) ? {ok: false, reason: 'training'}
     : breeding.start(c, options.stationId, options.parentAId, options.parentBId, options);
   return Object.freeze({catalog, MAX_LEVEL, SPECTRAL_MIN_LEVEL, LASSO_PRICE, INJURY_MS, createCollection, normalizeCollection, normalizePet,
     registerHybrids, allSpecies: () => [...byId.values()], getHybrid, getSkill, mutationSummary, normalizeMutations,
     visible, setVisible, toggleVisible, toggleFavorite, isBreedingParent, BREEDING_CONFIG: breeding?.CONFIG,
+    addXp, isTraining, TRAINING_CONFIG: training?.CONFIG,
+    startTraining: (c, id, options) => training.start(c, id, options),
+    collectTraining: (c, id, options) => training.collect(c, id, options),
+    trainingStatus: (c, now) => training.status(c, now), updateTraining: (c, options) => training.update(c, options),
+    eligibleTrainingPets: (c, options) => training.eligible(c, options),
     startBreeding, breedingStatus: (c, stationId, now) => breeding.status(c, stationId, now),
     revealBreeding: (c, stationId, options) => breeding.reveal(c, stationId, options),
     claimBreeding: (c, stationId, options) => breeding.claim(c, stationId, options),
-    eligibleBreedingParents: (c, options) => breeding.eligibleParents(c, options),
+    eligibleBreedingParents: (c, options) => breeding.eligibleParents(c, options).filter(p => !isTraining(c, p.id)),
     getSpecies, stats, xpToNext, equipped, equip, remainingInjury, purchaseLasso, awardWorldXp,
     rollWild, beginBattle, act, finishBattle, abandonBattle});
 });

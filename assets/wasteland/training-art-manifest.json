@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "asset": "training-lodge.png",
+  "provider": "Higgsfield",
+  "model": "gpt_image_2_5",
+  "jobId": "f1dfffd3-286b-4bea-90a6-86f024a75a46",
+  "generatedAt": "2026-09-15",
+  "reference": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/main/assets/mounts/stable.png",
+  "resultUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260915_160539_f1dfffd3-286b-4bea-90a6-86f024a75a46.png",
+  "background": "transparent",
+  "prompt": "Use case: stylized-concept. Asset type: one transparent PNG building sprite for the existing Riptide 2D fantasy RPG. Reference image is STYLE ONLY: match its chunky hand-painted timber, thick clean dark ink outlines, warm terracotta tiles, readable chibi proportions and slightly elevated three-quarter isometric camera. Generate a NEW desert Tide training lodge: a compact welcoming sandstone-and-timber animal trainer's house, broad terracotta tiled roof with slightly weathered cream sandstone arches, dark wooden open doorway at the lower front, small teal cloth shade awning on one side, rolled lasso hanging by the door, a wooden sign with ONLY a simple gold paw emblem (no lettering), a few clay water jars and a hay bale tight against the wall. No animals or people baked into the art. It will stand beside three separately rendered paddocks, so DO NOT draw fences or a yard. Entire complete standalone house visible, one compact irregular stone foundation, no cropped roof or side. Strong upper-left lighting, warm ochre/sandstone, rich brown wood, muted teal details. Centered single sprite with approximately 8 percent transparent padding, frontal doorway visually obvious, bottom footprint at the bottom center. Actual alpha transparency outside the silhouette, absolutely no painted backdrop, no white/gray fringe, no colored glow beyond the silhouette, no floating drop shadow, no text, no watermark, no additional objects outside the compact base. Keep linework and materials fully consistent with the reference game building."
+}

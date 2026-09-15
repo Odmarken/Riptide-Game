@@ -164,3 +164,70 @@ test('both spectral species spawn at levels25 to30 even with a level1 companion 
   assert.ok(E.take(roundTrip,p.id,c.now));const savedCapture=E.create(JSON.parse(JSON.stringify(roundTrip)));E.advance(savedCapture,c);assert.ok(!savedCapture.wild.some(w=>w.id===p.id),'level migration cannot restore a captured cell');
  }
 });
+
+test('all three overworlds retain independent deterministic encounters through border travel and reload',()=>{
+ const {state,c}=setup(),grass=identity(state.wild),originalSeed=state.seed,ids=new Set(state.wild.map(p=>p.id));
+ const snapshots=new Map([['wasteland',grass]]);
+ for(const key of ['wasteland-snow','wasteland-desert']){
+  const local=E.advance(state,{...c,worldKey:key});assert.ok(local.length>0,key+' has ordinary wild Tides');
+  const region=E.forWorld(state,key);assert.equal(local,region.wild);assert.equal(E.forWorld(region,key),region);
+  assert.notEqual(region.seed,originalSeed);assert.ok(local.every(p=>!ids.has(p.id)));
+  for(const p of local)ids.add(p.id);snapshots.set(key,identity(local));
+ }
+ assert.deepEqual(identity(state.wild),grass,'visiting another biome never swaps the legacy root wilderness');
+ let copy=E.create(JSON.parse(JSON.stringify(state)));assert.deepEqual(copy,state);
+ for(let trip=0;trip<6;trip++)for(const key of E.WORLD_KEYS){
+  E.advance(copy,{...c,worldKey:key,petLevel:30});assert.deepEqual(identity(E.forWorld(copy,key).wild),snapshots.get(key));
+  copy=E.create(JSON.parse(JSON.stringify(copy)));
+ }
+ assert.equal(copy.seed,originalSeed);assert.equal(copy.version,3);
+ const alternate=E.create(null,{seed:originalSeed});
+ for(const key of [...E.WORLD_KEYS].reverse()){
+  E.advance(alternate,{...c,worldKey:key});assert.deepEqual(identity(E.forWorld(alternate,key).wild),snapshots.get(key),'visit order cannot reroll '+key);
+ }
+});
+
+test('captured biome cells stay consumed while travelling and switching pets until their normal refresh',()=>{
+ const {state,c}=setup(),captures=[];
+ for(const key of E.WORLD_KEYS){
+  const local=E.advance(state,{...c,worldKey:key}),p=local[0];captures.push({key,p});
+  assert.equal(E.take(state,p.id,c.now),p,'root take locates the correct biome');assert.equal(E.take(state,p.id,c.now),null);
+ }
+ let copy=E.create(JSON.parse(JSON.stringify(state)));
+ for(let trip=0;trip<8;trip++)for(const {key,p}of captures){
+  E.advance(copy,{...c,worldKey:key,petLevel:30});const region=E.forWorld(copy,key);
+  assert.ok(!region.wild.some(w=>w.id===p.id));assert.equal(region.taken.length,1);
+  assert.deepEqual(E.create(JSON.parse(JSON.stringify(region))),region,'individual scoped state also normalizes');
+  copy=E.create(JSON.parse(JSON.stringify(copy)));
+ }
+ for(const {key,p}of captures){
+  E.advance(copy,{...c,worldKey:key,now:p.expiresAt+1});assert.ok(!E.forWorld(copy,key).taken.some(t=>t.cellX===p.cellX&&t.cellY===p.cellY));
+ }
+});
+
+test('legacy captures and level baselines survive adding biomes; malformed child states are bounded',()=>{
+ const {state,c}=setup(),captured=state.wild[0];E.take(state,captured.id,c.now);const legacy=JSON.parse(JSON.stringify(state));
+ const copy=E.create(legacy);assert.deepEqual(copy,legacy);assert.equal(copy.worlds,undefined);
+ for(const key of E.WORLD_KEYS.slice(1))E.advance(copy,{...c,worldKey:key});
+ const {worlds,...root}=copy;assert.deepEqual(root,legacy);
+ const corrupted={...copy,worlds:{...worlds,city:{version:3},'wasteland-desert':{...worlds['wasteland-desert'],worlds:{'wasteland-snow':worlds['wasteland-snow']}}}};
+ const safe=E.create(corrupted);assert.deepEqual(Object.keys(safe.worlds).sort(),['wasteland-desert','wasteland-snow']);
+ assert.equal(safe.worlds['wasteland-desert'].worlds,undefined);assert.equal(E.forWorld(safe,'city'),safe);assert.equal(safe.worlds.city,undefined);
+ assert.ok(JSON.stringify(safe).length<105000,'three visits store only three bounded local populations');
+ E.advance(safe,c);assert.ok(!safe.wild.some(p=>p.id===captured.id));
+});
+
+test('snow and desert use the same rarity and spectral level rules while training pens stay free of wild Tides',()=>{
+ for(const key of E.WORLD_KEYS.slice(1)){
+  const found=new Set(),spectralLevels=new Set();let total=0;
+  for(let seed=1;seed<=450;seed++){
+   const state=E.create(null,{seed}),wild=E.advance(state,context({worldKey:key,petLevel:1,view:{x:0,y:0,w:E.WIDTH,h:E.HEIGHT}}));
+   for(const p of wild){found.add(p.speciesId);total++;if(p.speciesId.startsWith('spectral'))spectralLevels.add(p.level);}
+  }
+  assert.equal(found.size,25,key+' retains all original species');assert.ok(total>15000&&total<22000);
+  assert.ok(spectralLevels.size>0);assert.ok([...spectralLevels].every(level=>level>=25&&level<=30));
+  const state=E.create(null,{seed:21}),world={key,w:E.WIDTH,h:E.HEIGHT,training:{clearZones:[{x:24000,y:12000,w:2000,h:2000}]}};
+  const animals=E.advance(state,context({worldKey:key,world}));
+  assert.ok(animals.every(p=>!(p.x>23976&&p.x<26024&&p.y>11976&&p.y<14024)));
+ }
+});

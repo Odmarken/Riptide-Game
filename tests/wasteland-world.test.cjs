@@ -29,7 +29,7 @@ test('safe roads form a connected graph from City exit to all three entrances',(
 });
 test('entrance approaches remain clear and chunk props use valid existing art types',()=>{
  const w=W.create();for(const e of [...w.entrances,{...w.spawn,clearRadius:420}]){
-  W.updateChunks(w,e.x,e.y,1800);for(const s of w.solids){assert.ok(Math.hypot(s.x-e.x,s.y-e.y)>=e.clearRadius+150);assert.ok(['tree','rock','farmitem'].includes(s.type));if(s.type==='farmitem')assert.equal(s.ftype,'tree_farm');}
+  W.updateChunks(w,e.x,e.y,1800);for(const s of w.solids){assert.ok(Math.hypot(s.x-e.x,s.y-e.y)>=e.clearRadius+150);assert.ok(['tree','rock','farmitem'].includes(s.type));if(s.type==='farmitem')assert.ok((s.entranceLandmark?['tree_farm','woodpile','crates','light_farm']:['tree_farm']).includes(s.ftype));}
  }
 });
 test('chunk geometry is deterministic, bounded, and invalidates equal-length collision grids',()=>{

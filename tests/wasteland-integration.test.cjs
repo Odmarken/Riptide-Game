@@ -6,7 +6,7 @@ const path=require('node:path');
 const vm=require('node:vm');
 const W=require('../assets/wasteland/world.js');
 const Mounts=require('../assets/mounts/mounts.js');
-const TideUI={leaveZone(){},tick(){},isBattling:()=>false,updateExploration(){}};
+const TideUI={leaveZone(){},tick(){},isBattling:()=>false,modalOpen:()=>false,updateExploration(){}};
 const root=path.resolve(__dirname,'..');
 const source=fs.readFileSync(path.join(root,'game.js'),'utf8');
 const dungeonSource=fs.readFileSync(path.join(root,'assets/wasteland/dungeons.js'),'utf8');
@@ -19,6 +19,7 @@ const integration=[
  section('const TAVERN_ZONE=','const expeditionZone='),
  section('const expeditionZone=','const expeditionImages='),
  section('function travelExpedition(s){','function expeditionDoors(){'),
+ section('function travelWastelandEdge(){','function refreshWastelandChunks(){'),
  section('/* stat curves */','function zoneQuests(z){'),
  section('function zoneQuests(z){','/* ==================== STATE'),
  section("const SLOTS=['weapon'",'const PREFIX='),
@@ -31,7 +32,7 @@ const integration=[
  section('function update(dt){',' padNow=padStick();')+' padNow=padStick();}',
  // Execute the actual retirement prefix before the unrelated map construction.
  section('function buildZone(){',' if(!zoneOf().special')+'}',
- 'globalThis.testApi={ZONES,TAVERN_ZONE,WASTELAND_ZONE,travelExpedition,zoneTemplates,zoneQuests,knowledgeBook,isKnowledgeBook,killEnemy,cleanBagItem,tryAutoEquip,upgradeItem,bagSellable,buildZone,update,getSpawn:()=>expeditionSpawn};'
+ 'globalThis.testApi={ZONES,TAVERN_ZONE,WASTELAND_ZONE,travelExpedition,travelWastelandEdge,zoneTemplates,zoneQuests,knowledgeBook,isKnowledgeBook,killEnemy,cleanBagItem,tryAutoEquip,upgradeItem,bagSellable,buildZone,update,getSpawn:()=>expeditionSpawn};'
 ].join('\n');
 const plain=value=>JSON.parse(JSON.stringify(value));
 function harness(key='briarhollow'){
@@ -94,8 +95,10 @@ test('canonical books cannot be auto-equipped, upgraded, sold, or consumed as no
  // Keep the ordinary gear path working: this guard must not disable all equipment.
  const gear={slot:'weapon',rar:'common',power:10,name:'Plain Blade',sell:3};assert.equal(h.api.tryAutoEquip(gear),true);assert.equal(h.S.gear.weapon,gear);assert.equal(h.api.bagSellable(gear),true);
 });
-test('all four actual appended zones provide safe quests without legacy q arrays',()=>{
- const h=harness(),zones=h.api.ZONES.filter(z=>z.wasteland||z.dungeon);assert.equal(zones.length,4);
+test('all six expedition zones provide safe quests without legacy q arrays and preserve saved zone indices',()=>{
+ const h=harness(),zones=h.api.ZONES.filter(z=>z.wasteland||z.dungeon);assert.equal(zones.length,6);
+ assert.equal(h.api.ZONES[27].name,'Wasteland');assert.equal(h.api.ZONES[31].name,'Tides Guild');
+ assert.equal(h.api.ZONES[32].biome,'wasteland-snow');assert.equal(h.api.ZONES[33].biome,'wasteland-desert');
  for(const z of zones){assert.equal(z.q,undefined);const quests=h.api.zoneQuests(z);assert.equal(quests.length,1);assert.equal(quests[0].name,z.name);assert.ok(quests[0].need>2);assert.equal(typeof quests[0].desc,'string');}
 });
 test('dungeon returns land beside the correct entrance and Home routes to Moonshine',()=>{
@@ -118,4 +121,77 @@ test('actual update continues simulation when hardcore blocks an overlapping por
  Object.assign(h.hero,{x:100,y:100});Object.assign(h.context,{gameOn:true,runeFxDt:0,padNow:null,refreshWastelandChunks:()=>{},expeditionDoors:()=>[{x:100,y:100,type:'wastelandportal',destination:'home'}],padStick:()=>{throw sentinel;},hcNoFlee:()=>true});
  assert.throws(()=>h.api.update(.016),error=>error===sentinel);assert.equal(h.calls.length,0);assert.equal(h.context.runeFxDt,.016);
  h.context.hcNoFlee=()=>false;assert.doesNotThrow(()=>h.api.update(.016));assert.equal(h.S.zone,h.api.TAVERN_ZONE,'successful travel returns before the old frame continues');
+});
+
+function edgeHarness(key,position,zoom=1){
+ const h=harness(),c=h.context;
+ c.world=W.create(key);h.S.zone=h.api.ZONES.findIndex(z=>z.wasteland&&(z.biome||'wasteland')===key);
+ Object.assign(c.hero,{...position,r:13,fx:-.6,fy:.8,mana:120,moveTo:{x:position.x+60,y:position.y+60}});
+ Object.assign(c,{TideUI:{...TideUI},gamePaused:false,zoom,VW:1440,VH:920,camX:-100,camY:-100,clamp:(v,min,max)=>Math.max(min,Math.min(max,v)),
+  refreshWastelandChunks:()=>{W.updateChunks(c.world,c.hero.x,c.hero.y,1800);h.calls.push('chunks');},updateMountButton:()=>h.calls.push('mountButton')});
+ Object.assign(c.mountRide,{id:'spectral-tiger',phase:1.23,time:.7,moving:.8,lastX:position.x,lastY:position.y});
+ c.goToZone=index=>{
+  h.calls.push(['travel',index]);h.S.zone=index;const z=h.api.ZONES[index],spawn=h.api.getSpawn();
+  c.world=W.create(z.biome||'wasteland');assert.equal(spawn.zone,index);
+  c.world.spawn={x:spawn.x,y:spawn.y};
+  // Model the existing builder's disposable hero/mount and initial camera. The
+  // extracted edge function must then restore riding and correct the camera.
+  c.hero={x:spawn.x,y:spawn.y,r:13,hp:c.hero.hp,mana:c.hero.mana,dead:false,fx:1,fy:0,moveTo:null};
+  Mounts.reset(c.mountRide);c.camX=c.hero.x-c.VW/2;c.camY=c.hero.y-c.VH/2;
+ };
+ return h;
+}
+
+test('actual biome edge travel keeps all four routes aligned, mounted and safely inside the destination',()=>{
+ const routes=[
+  {from:'wasteland',to:'wasteland-snow',position:{x:28500,y:40},landing:{x:28500,y:25875},step:{x:0,y:-180}},
+  {from:'wasteland-snow',to:'wasteland',position:{x:28500,y:25960},landing:{x:28500,y:125},step:{x:0,y:180}},
+  {from:'wasteland',to:'wasteland-desert',position:{x:50360,y:18000},landing:{x:125,y:18000},step:{x:180,y:0}},
+  {from:'wasteland-desert',to:'wasteland',position:{x:40,y:18000},landing:{x:50275,y:18000},step:{x:-180,y:0}},
+ ];
+ for(const route of routes)for(const zoom of [.55,1,2.6]){
+  const h=edgeHarness(route.from,route.position,zoom),c=h.context,ride=plain(c.mountRide),health={hp:c.hero.hp,mana:c.hero.mana};
+  assert.equal(h.api.travelWastelandEdge(),true,route.from+' to '+route.to);
+  assert.equal(c.world.key,route.to);assert.equal(h.api.ZONES[h.S.zone].biome||'wasteland',route.to);
+  assert.deepEqual({x:c.hero.x,y:c.hero.y},route.landing);
+  assert.equal(W.isWalkable(c.world,c.hero.x,c.hero.y,c.hero.r),true,'landing remains in the walkable edge clearance');
+  assert.equal(c.world.solids.some(s=>Math.hypot(s.x-c.hero.x,s.y-c.hero.y)<(s.r||0)+c.hero.r),false,'no tree, rock or landmark overlaps the landing');
+  assert.deepEqual({hp:c.hero.hp,mana:c.hero.mana},health);assert.equal(c.hero.fx,-.6);assert.equal(c.hero.fy,.8);
+  assert.deepEqual(plain(c.mountRide),ride,'riding state survives the normal builder reset');
+  assert.deepEqual(plain(c.hero.moveTo),{x:route.landing.x+route.step.x,y:route.landing.y+route.step.y},'click movement continues inward');
+  assert.equal(c.camX,c.clamp(c.hero.x-c.VW/(2*zoom),0,c.world.w-c.VW/zoom));
+  assert.equal(c.camY,c.clamp(c.hero.y-c.VH/(2*zoom),0,c.world.h-c.VH/zoom));
+  assert.ok(c.camX>=0&&c.camY>=0&&c.camX+c.VW/zoom<=c.world.w&&c.camY+c.VH/zoom<=c.world.h,'first arrival frame never shows outside the world');
+  const calls=h.calls.length;assert.equal(h.api.travelWastelandEdge(),false,'arrival cannot immediately bounce to the previous region');assert.equal(h.calls.length,calls);
+  assert.ok(h.calls.includes('chunks'));assert.ok(h.calls.includes('mountButton'));
+ }
+});
+
+test('a crossed edge without a neighbor cannot mask an available return edge at a corner',()=>{
+ for(const y of [35,25965]){
+  const h=edgeHarness('wasteland-desert',{x:35,y}),c=h.context;
+  assert.equal(c.world.edgeNeighbors[y<50?'north':'south'],undefined);
+  assert.equal(h.api.travelWastelandEdge(),true,'the west return is still available beside a closed north/south edge');
+  assert.equal(c.world.key,'wasteland');assert.equal(c.hero.x,50275);assert.equal(c.hero.y,y);
+  assert.equal(W.isWalkable(c.world,c.hero.x,c.hero.y,c.hero.r),true);
+ }
+ const idle=edgeHarness('wasteland',{x:28500,y:40});idle.context.hero.moveTo=null;
+ assert.equal(idle.api.travelWastelandEdge(),true);assert.equal(idle.context.hero.moveTo,null,'no click target is invented for keyboard or idle travel');
+ const foot=edgeHarness('wasteland',{x:28500,y:40});Mounts.reset(foot.context.mountRide);
+ assert.equal(foot.api.travelWastelandEdge(),true);assert.equal(foot.context.mountRide.id,null,'walking across a border does not equip a mount');
+});
+
+test('biome travel is blocked during battles, venue menus, death and pause without changing progress',()=>{
+ const guards=[c=>{c.TideUI.isBattling=()=>true;},c=>{c.TideUI.modalOpen=()=>true;},c=>{c.hero.dead=true;},c=>{c.gamePaused=true;}];
+ for(const guard of guards){
+  const h=edgeHarness('wasteland',{x:28500,y:40}),c=h.context;guard(c);
+  const before=plain({hero:c.hero,ride:c.mountRide,state:h.S}),world=c.world;
+  assert.equal(h.api.travelWastelandEdge(),false);assert.equal(c.world,world);assert.equal(h.api.getSpawn(),null);
+  assert.deepEqual(plain({hero:c.hero,ride:c.mountRide,state:h.S}),before);assert.deepEqual(h.calls,[]);
+ }
+ for(const [key,position]of [['wasteland',{x:28500,y:500}],['wasteland-snow',{x:2000,y:35}],['wasteland-desert',{x:50365,y:18000}]]){
+  const h=edgeHarness(key,position);assert.equal(h.api.travelWastelandEdge(),false,'interior and unconnected boundaries never teleport');assert.deepEqual(h.calls,[]);
+ }
+ const missing=edgeHarness('wasteland',{x:28500,y:35});missing.context.world.edgeNeighbors.north='unknown';
+ assert.equal(missing.api.travelWastelandEdge(),false);assert.deepEqual(missing.calls,[]);
 });

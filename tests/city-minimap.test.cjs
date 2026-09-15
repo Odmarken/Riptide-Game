@@ -34,7 +34,7 @@ function recordingCanvas() {
   let currentPath = [];
   const record = (op, args) => {
     assert.ok(args.every(n => typeof n !== 'number' || Number.isFinite(n)), `${op} received non-finite geometry`);
-    ops.push({ op, args: [...args] });
+    ops.push({ op, args: [...args], fillStyle: g.fillStyle });
   };
   const g = {
     save() { stack.push(true); }, restore() { assert.ok(stack.pop(), 'Canvas saves remain balanced'); },
@@ -280,6 +280,40 @@ test('City-to-Wasteland switching removes City tooltips and never reveals dungeo
   assert.equal(h.el.hidden, false); assert.match(h.el.getAttribute('aria-label'), /^City minimap/);
   assert.equal(h.title.textContent, 'CITY');
   hover(well); assert.match(h.tip.textContent, /^Well/);
+});
+
+test('snow and desert maps use their biome colors, edge roads and actual Wasteland return borders', () => {
+  const h = harness();
+  for (const [index, fixture] of [
+    {key:'wasteland-snow', name:'Frostwild', spawn:{x:28500,y:25700}, point:{x:28500,y:26000}, color:'#bacdd1'},
+    {key:'wasteland-desert', name:'Sundrift', spawn:{x:300,y:18000}, point:{x:0,y:18000}, color:'#bda06b'},
+  ].entries()) {
+    const road={width:180,points:[fixture.point,fixture.spawn,{x:fixture.spawn.x+500,y:fixture.spawn.y-500}]};
+    const world={...fixture,w:50400,h:26000,paths:[],edgePaths:[road],exit:null};
+    for(const name of ['solids','entrances','enemySpawns','travelDoors','bossRooms'])Object.defineProperty(world,name,{get(){throw new Error('Minimap read hidden '+name);}});
+    const markers=h.api.markers(world,fixture.spawn);assert.equal(markers.length,1);
+    assert.equal(markers[0].name,'Wasteland');assert.equal(markers[0].type,'wastelandreturn');
+    close(markers[0].distance,300);close(markers[0].angle,Math.atan2(fixture.point.y-fixture.spawn.y,fixture.point.x-fixture.spawn.x));
+    const start=h.map.ops.length;h.controller.update(world,fixture.spawn,true,index*50);
+    assert.equal(h.el.hidden,false);assert.equal(h.title.textContent,fixture.name.toUpperCase());
+    assert.match(h.el.getAttribute('aria-label'),/way back to Wasteland/);assert.doesNotMatch(h.el.getAttribute('aria-label'),/Home|portal|dungeon/);
+    const ops=h.map.ops.slice(start);assert.ok(ops.some(o=>o.op==='fillRect'&&o.fillStyle===fixture.color));
+    assert.ok(ops.some(o=>o.op==='stroke'&&o.width===180&&JSON.stringify(o.path)===JSON.stringify(road.points.map(p=>[p.x,p.y]))));
+    assert.equal(h.atlasCanvases.length,0);assert.equal(h.map.stack.length,0);
+    h.map.listeners.get('pointermove')({clientX:200+markers[0].x*150/180,clientY:30+markers[0].y*150/180});assert.match(h.tip.textContent,/^Wasteland/);
+  }
+});
+
+test('biome maps do not invent a Home portal and dungeon variants remain hidden', () => {
+  const h=harness();
+  for(const key of ['wasteland-snow','wasteland-desert']){
+    const world={key,w:50400,h:26000,paths:[],exit:{x:1000,y:1000},spawn:null};
+    assert.equal(h.api.markers(world,{x:1000,y:1000}).length,0,'no fake Home icon from an unrelated exit');
+    for(const dungeon of ['briarhollow','cindervein','frostveil']){
+      const indoor={...world,dungeon,spawn:{x:300,y:1000}};assert.equal(h.api.markers(indoor,indoor.spawn).length,0);
+      h.controller.update(indoor,indoor.spawn,true,0);assert.equal(h.el.hidden,true);
+    }
+  }
 });
 
 test('the actual frame hook updates visibility in City, pause, other zones and character menus', () => {

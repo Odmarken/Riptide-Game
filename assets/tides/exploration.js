@@ -6,6 +6,7 @@
  const WIDTH=50400,HEIGHT=26000,CELL_SIZE=512,COLS=Math.ceil(WIDTH/CELL_SIZE),ROWS=Math.ceil(HEIGHT/CELL_SIZE);
  const MAX_WILD=64,MAX_CELLS=100,LOAD_MARGIN=256,MAX_LOAD_RADIUS=2600,SPAWN_CHANCE=.48,REFRESH_MS=600000;
  const SEPARATION=120,ROAM_RADIUS=60,ROAM_SPEED=16;
+ const WORLD_KEYS=Object.freeze(['wasteland','wasteland-snow','wasteland-desert']);
  const GROUPS=Object.freeze([
   Object.freeze(['meadowmouse','bramblebunny','pebbletoad','thistlesparrow','amberbeetle']),
   Object.freeze(['mossfox','reedotter','duskmoth','shellsnap','acornboar']),
@@ -34,6 +35,7 @@
  }
  function create(saved,options={}){
   const raw=saved&&typeof saved==='object'&&!Array.isArray(saved)?saved:{},current=raw.version===3;
+  const worldKey=WORLD_KEYS.includes(options.worldKey)?options.worldKey:WORLD_KEYS.includes(raw.worldKey)?raw.worldKey:null;
   const seed=integer(raw.seed,integer(options.seed,Math.floor(Math.random()*4294967296)),0,4294967295),wild=[],seen=new Set();
   for(const p of current&&Array.isArray(raw.wild)?raw.wild:[]){
    if(wild.length>=MAX_WILD)break;
@@ -49,7 +51,25 @@
   }
   const levels=[];
   for(const p of current&&Array.isArray(raw.levels)?raw.levels:[]){if(!p||!Number.isSafeInteger(p.epoch)||p.epoch<0||levels.some(l=>l.epoch===p.epoch))continue;levels.push({epoch:p.epoch,level:integer(p.level,1,1,MAX_LEVEL)});if(levels.length>=3)break;}
-  return {version:3,seed,counter:integer(raw.counter,0),lastNow:Math.max(0,number(raw.lastNow,0)),wild,taken,levels};
+  const state={version:3,seed,counter:integer(raw.counter,0),lastNow:Math.max(0,number(raw.lastNow,0)),wild,taken,levels};
+  if(worldKey&&worldKey!=='wasteland')state.worldKey=worldKey;
+  // Keep the original version-3 Wasteland state intact. Only two bounded child
+  // states are added, so visiting a border cannot erase a captured encounter or
+  // reroll its cell. Older saves need no coordinate or seed migration.
+  if(!worldKey&&raw.worlds&&typeof raw.worlds==='object'&&!Array.isArray(raw.worlds)){
+   for(const key of WORLD_KEYS.slice(1))if(raw.worlds[key]&&typeof raw.worlds[key]==='object'&&!Array.isArray(raw.worlds[key])){
+    const childSeed=biomeSeed(seed,key),savedChild={...raw.worlds[key],seed:childSeed};
+    (state.worlds||(state.worlds={}))[key]=create(savedChild,{seed:childSeed,worldKey:key});
+   }
+  }
+  return state;
+ }
+ const biomeSeed=(seed,key)=>hash(seed,animalSeed(key),0x70657473);
+ function forWorld(state,key='wasteland'){
+  if(!state||!WORLD_KEYS.includes(key)||key==='wasteland'||state.worldKey===key)return state;
+  const worlds=state.worlds||(state.worlds={});
+  if(!worlds[key])worlds[key]=create(null,{seed:biomeSeed(state.seed,key),worldKey:key});
+  return worlds[key];
  }
  // Every species can occupy every world cell. The two spectral species together
  // are 0.04% of generated encounters; no rarity follows the player.
@@ -66,7 +86,7 @@
   if(world){
    const landmarks=[...(world.entrances||[]),world.exit,world.portal].filter(position);
    if(landmarks.some(p=>Math.hypot(p.x-x,p.y-y)<Math.max(120,number(p.r,0)+55)))return false;
-   if(world.stable&&world.stable.clearZones&&world.stable.clearZones.some(p=>x>p.x-24&&x<p.x+p.w+24&&y>p.y-24&&y<p.y+p.h+24))return false;
+   for(const site of [world.stable,world.training])if(site&&Array.isArray(site.clearZones)&&site.clearZones.some(p=>x>p.x-24&&x<p.x+p.w+24&&y>p.y-24&&y<p.y+p.h+24))return false;
   }
   return typeof context.isValidPosition!=='function'||!!context.isValidPosition(x,y,22);
  }
@@ -119,7 +139,8 @@
  function advance(state,context={}){
   if(!state||!Array.isArray(state.wild))return [];
   const worldKey=context.worldKey||(context.world&&context.world.key)||null;
-  if(worldKey!=='wasteland'||context.world&&context.world.dungeon||context.hasLasso!==true||!position(context))return [];
+  if(!WORLD_KEYS.includes(worldKey)||context.world&&context.world.dungeon||context.hasLasso!==true||!position(context))return [];
+  if(state.worldKey!==worldKey&&worldKey!=='wasteland')state=forWorld(state,worldKey);
   if(context.paused||context.dead)return state.wild;
   const now=Math.max(state.lastNow,number(context.now,Date.now())),epoch=Math.floor(now/REFRESH_MS);state.lastNow=now;
   state.taken=state.taken.filter(p=>p.until>now);state.levels=state.levels.filter(p=>p.epoch>=epoch-1&&p.epoch<=epoch);
@@ -135,11 +156,16 @@
  }
  function take(state,id,now){
   if(!state||!Array.isArray(state.wild))return null;
-  const i=state.wild.findIndex(p=>p.id===id);if(i<0)return null;
+  const i=state.wild.findIndex(p=>p.id===id);if(i<0){
+   // Root callers can consume a child encounter too; ids include each biome's
+   // distinct seed, so a capture cannot consume an animal in another region.
+   for(const key of WORLD_KEYS.slice(1))if(state.worlds&&state.worlds[key]){const p=take(state.worlds[key],id,now);if(p)return p;}
+   return null;
+  }
   const p=state.wild[i],time=Math.max(number(now,state.lastNow),state.lastNow);if(p.expiresAt<=time)return null;
   state.wild.splice(i,1);
   if(cellValid(p)){state.taken=state.taken.filter(t=>t.until>time&&(t.cellX!==p.cellX||t.cellY!==p.cellY));state.taken.push({cellX:p.cellX,cellY:p.cellY,epoch:p.epoch,until:p.expiresAt});}return p;
  }
- const api={create,advance,take,GROUPS,WIDTH,HEIGHT,CELL_SIZE,COLS,ROWS,MAX_WILD,MAX_CELLS,LOAD_MARGIN,MAX_LOAD_RADIUS,SPAWN_CHANCE,REFRESH_MS,SEPARATION,ROAM_RADIUS,ROAM_SPEED};
+ const api={create,forWorld,advance,take,WORLD_KEYS,GROUPS,WIDTH,HEIGHT,CELL_SIZE,COLS,ROWS,MAX_WILD,MAX_CELLS,LOAD_MARGIN,MAX_LOAD_RADIUS,SPAWN_CHANCE,REFRESH_MS,SEPARATION,ROAM_RADIUS,ROAM_SPEED};
  if(typeof module!=='undefined'&&module.exports)module.exports=api;root.TideExploration=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

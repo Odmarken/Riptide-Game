@@ -144,6 +144,7 @@ const npcSebbeImg=new Image();npcSebbeImg.src='assets/characters/npc/npc_sebbe.p
 const npcFemaleImg=new Image();npcFemaleImg.src='assets/characters/npc/npc_female.png';
 const mountImages=Object.fromEntries(Mounts.catalog.map(m=>{const im=new Image();im.src=m.art+(m.artVersion?'?v='+m.artVersion:'');return [m.id,im];}));
 const stableImg=new Image();stableImg.src='assets/mounts/stable.png';
+const trainingLodgeImg=new Image();trainingLodgeImg.src='assets/wasteland/training-lodge.png';
 const charSpriteCache={};
 function charSprite(raceId,clsId,female){
  const key=raceId+(female?'female':'male')+'_'+clsId;
@@ -788,6 +789,10 @@ const ZONES=[
   ground:'#39444f',ground2:'#29333e',water:'#7eb8d7',tree:'#687f89',tree2:'#4c6572',path:'#8ba1ad'},
  {name:'Tides Guild',lvl:1,amb:'cave',special:true,tideguild:true,noBerg:true,noTrees:true,en:[],
   ground:'#36312b',ground2:'#292620',water:'#43686d',tree:'#51483a',tree2:'#3c342a',path:'#8c7755'},
+ {name:'Frostwild Reach',lvl:1,amb:'world',special:true,wasteland:true,biome:'wasteland-snow',snowTrees:true,en:[],
+  ground:'#c6d4db',ground2:'#adbfca',water:'#7eb8d7',tree:'#687f89',tree2:'#4c6572',path:'#9aabb5'},
+ {name:'Sunscar Sands',lvl:1,amb:'world',special:true,wasteland:true,biome:'wasteland-desert',en:[],
+  ground:'#c9a86b',ground2:'#b99256',water:'#71abb1',tree:'#857544',tree2:'#635d37',path:'#b78f57'},
 ];
 const TAVERN_ZONE=ZONES.findIndex(z=>z.tavern);
 const ALTAR_ZONE=ZONES.findIndex(z=>z.altar);
@@ -854,6 +859,20 @@ function travelExpedition(s){
  return false;
 }
 function expeditionDoors(){return world.travelDoors||(world.solids||[]).filter(s=>s.type==='wastelandportal'||s.type==='dungeonentrance');}
+function travelWastelandEdge(){
+ if(!world?.edgeNeighbors||!hero||hero.dead||TideUI.isBattling()||TideUI.modalOpen()||gamePaused)return false;
+ const edge=[['north',hero.y<50],['south',hero.y>world.h-50],['west',hero.x<50],['east',hero.x>world.w-50]].find(([side,crossed])=>crossed&&world.edgeNeighbors[side])?.[0];
+ const destination=edge&&world.edgeNeighbors[edge];if(!destination)return false;
+ const index=ZONES.findIndex(z=>z.wasteland&&(z.biome||'wasteland')===destination);if(index<0)return false;
+ const inset=125,x=edge==='west'?world.w-inset:edge==='east'?inset:hero.x,y=edge==='north'?world.h-inset:edge==='south'?inset:hero.y;
+ const ride={...mountRide},facing={fx:hero.fx,fy:hero.fy},walking=hero.moveTo;
+ expeditionSpawn={zone:index,x,y};goToZone(index);Object.assign(hero,facing);
+ camX=Math.max(0,Math.min(hero.x-VW/(2*zoom),world.w-VW/zoom));
+ camY=Math.max(0,Math.min(hero.y-VH/(2*zoom),world.h-VH/zoom));
+ if(ride.id&&Mounts.allowed(zoneOf()))Object.assign(mountRide,ride);
+ if(walking)hero.moveTo={x:x+(edge==='east'?180:edge==='west'?-180:0),y:y+(edge==='south'?180:edge==='north'?-180:0)};
+ refreshWastelandChunks();updateMountButton();return true;
+}
 function refreshWastelandChunks(){
  if(!world||!zoneOf().wasteland)return;
  const radius=Math.min(4800,Math.max(1800,Math.hypot(VW,VH)/(2*zoom)+850));
@@ -4595,13 +4614,14 @@ function buildZone(){
   world.npcs.forEach(n=>{n.art=npcSebbeImg;});
   guildImages();
  }else if(expeditionZone(z)){
-  world=WastelandWorld.create(z.dungeon||'wasteland');
+  world=WastelandWorld.create(z.dungeon||z.biome||'wasteland');
   WastelandWorld.ENTRANCES.forEach(e=>expeditionEntranceImage(e.id));
   ['tree_farm','light_farm','crates_farm'].forEach(id=>farmImg(id));
   for(const prop of world.solids){const def=prop.type==='farmitem'&&FARM_BUILD.find(d=>d.id===prop.ftype);if(def)farmImg(def.img);}
-  world.travelDoors=[{...world.exit,r:38,type:'wastelandportal',noCol:true,destination:z.dungeon?'wasteland':'home',name:z.dungeon?'Wasteland':'Home'},
+  world.travelDoors=[...(world.exit?[{...world.exit,r:38,type:'wastelandportal',noCol:true,destination:z.dungeon?'wasteland':'home',name:z.dungeon?'Wasteland':'Home'}]:[]),
    ...world.entrances.map(e=>({...e,type:'dungeonentrance',noCol:true,destination:e.id}))];
-  if(z.wasteland)world.spawn={x:world.exit.x+180,y:world.exit.y};
+  if(z.wasteland&&world.exit)world.spawn={x:world.exit.x+180,y:world.exit.y};
+  if(world.training)world.training.vendor.art=npcSebbeImg;
  }else if(z.tavern){
   const cx=world.w/2,cy=world.h/2;
   world.spawn={x:cx,y:cy+180};           /* you arrive at the square */
@@ -6162,6 +6182,7 @@ function padInteract(){
  const find=t=>world.solids.find(s2=>s2.type===t);
  for(const door of expeditionDoors())add(door,door.name,()=>travelExpedition(door),100);
  if(z.wasteland&&!z.dungeon)add(world.stable?.vendor,'Torsten Tygel',openStable,110);
+ if(world.training)add(world.training.vendor,'Tide Training Grounds',TideUI.openTraining,140);
  const wildTide=TideUI.nearestWild();if(wildTide)add(wildTide,Tides.getSpecies(wildTide.speciesId).name,()=>TideUI.openWild(wildTide.id),180);
  if(z.tavern){
   for(const s of world.solids){
@@ -6352,6 +6373,15 @@ cv.addEventListener('pointerdown',e=>{
  hero.pendingDoor=null; /* any new click cancels a pending walk-to-building */
  if(guildWorldClick(wx,wy))return;
  if(TideUI.wildClick(wx,wy))return;
+ const training=world.training;
+ if(training){
+  const n=training.vendor,b=training.building;
+  if((Math.abs(wx-n.x)<36&&wy>n.y-72&&wy<n.y+20)||(wx>b.bounds.x&&wx<b.bounds.x+b.bounds.w&&wy>b.bounds.y&&wy<b.bounds.y+b.bounds.h)){
+   if(trainingInReach())TideUI.openTraining();
+   else{hero.target=null;hero.goPortal=false;hero.moveTo={x:n.x,y:n.y+35};marker={...hero.moveTo,t:0};hero.pendingDoor={s:n,open:TideUI.openTraining,rng:140};}
+   return;
+  }
+ }
  const stableVendor=(world.npcs||[]).find(n=>n.game==='stable');
  if(stableVendor&&Math.abs(wx-stableVendor.x)<34&&wy>stableVendor.y-66&&wy<stableVendor.y+18){
   if(dist(hero,stableVendor)<110)openStable();
@@ -6836,6 +6866,7 @@ function update(dt){
  if(TideUI.isBattling()){padNow=padStick();padTick(dt);return;}
  refreshWastelandChunks();
  TideUI.updateExploration(dt);
+ if(travelWastelandEdge())return;
  if(hero&&!hero.dead){const door=expeditionDoors().find(s=>Math.hypot(hero.x-s.x,hero.y-s.y)<(s.type==='dungeonentrance'?65:45));if(door&&travelExpedition(door))return;}
  padNow=padStick(); /* one poll per frame, shared by the movement block below */
  padTick(dt);       /* buttons, the right stick, the A prompt and menu walking */
@@ -7751,6 +7782,16 @@ function draw(){
   const id=i?'leopard':'horse';
   drawables.push({y:spot.y,f:()=>MountRenderer.draw(ctx,{id,img:mountImages[id],x:spot.x,y:spot.y,fx:spot.fx,moving:0,phase:0,time:performance.now()/1000,deviceScale:zoom*DPR})});
  });
+ if(world.training&&!TideUI.isBattling())for(const slot of Tides.trainingStatus(S.tides)){
+  if(slot.empty)continue;
+  const spot=world.training.paddocks[slot.slot].displaySpot;
+  if(spot.x<cx0||spot.x>cx1||spot.y<cy0||spot.y>cy1)continue;
+  const id=slot.pet.speciesId,time=performance.now()/1000,visual=TideUI.animalVisual(id);
+  const pace=time*.35+slot.slot*2,dx=Math.sin(pace)*72,x=spot.x+dx,y=spot.y+Math.sin(pace*2)*24;
+  drawables.push({y,f:()=>{
+   TideUI.drawAnimal(ctx,id,x,y,visual.height,Math.cos(pace)<0?-1:1,.6,time*3+slot.slot,1,time);
+  }});
+ }
  for(const en of enemies)drawables.push({y:en.y,f:()=>drawEnemy(en)});
  if(hero)drawables.push({y:hero.y,f:drawHero});
  if(padNear)drawables.push({y:hero.y+1,f:()=>drawPadPrompt(padNear)});
@@ -7971,7 +8012,7 @@ function draw(){
    ctx.setLineDash([]);
   }
  }
- if(z.crypts&&world.mwalls)drawCryptFog(); /* the dark closes in - last world-space layer */
+ if((z.crypts||z.dungeon)&&world.mwalls)drawCryptFog(); /* the dark closes in - last world-space layer */
  else if(z.raid&&!hero.dead)drawRaidFog(); /* the temple keeps its secrets behind the walls */
  drawEdgeFog(); /* last thing in world space - it must cover the fence on the border too */
  ctx.restore();
@@ -8112,14 +8153,16 @@ function drawPropShadow(s,z){
  if(s.type==='stable'){
   const scale=(world.stable?.building.w||310)/620;
   drawGroundShadow(0,-27*scale,235*scale,54*scale,.24);
+ }else if(s.type==='tidetraining'){
+  drawGroundShadow(0,-46,170,40,.24);
  }else if(home&&home.ready){
   const f=home.def.foot;
   drawGroundShadow(home.W*f.cx,home.top+home.H*f.cy,home.W*f.rx,home.H*f.ry);
  }else if(s.type==='tree'){
-  const im=z.snowTrees?treeSnowImg:treeImg;
+  const im=(s.snowy||z.snowTrees)?treeSnowImg:treeImg;
   if(ready(im)){
    const H=s.r*(2.6+s.s*2.2)*im._pad,W=H*im.naturalWidth/im.naturalHeight;
-   drawGroundShadow(0,4-W*.025,W*(z.snowTrees?.22:.20),W*(z.snowTrees?.070:.065));
+   drawGroundShadow(0,4-W*.025,W*((s.snowy||z.snowTrees)?.22:.20),W*((s.snowy||z.snowTrees)?.070:.065));
   }else drawGroundShadow(0,4,s.r*1.15,s.r*.5);
  }else if(s.type==='cityhouse'){
   const key=s.key||cityHouseKey(s.seed||0,false),im=cityImg(key);
@@ -8165,6 +8208,13 @@ function drawPropShadow(s,z){
 function drawProp(s,z,withShadow=true){
  if(withShadow)drawPropShadow(s,z);
  ctx.save();ctx.translate(s.x,s.y);
+ if(s.type==='tidetraining'){
+  if(trainingLodgeImg.complete&&trainingLodgeImg.naturalWidth){
+   const b=world.training.building,W=b.w,H=W*trainingLodgeImg.naturalHeight/trainingLodgeImg.naturalWidth,top=-H*b.footRatio;
+   ctx.globalAlpha*=seeThrough(s,W,H,top);ctx.drawImage(mip(trainingLodgeImg,W),-W/2,top,W,H);
+  }
+  ctx.restore();return;
+ }
  if(s.type==='stable'){
   if(stableImg.complete&&stableImg.naturalWidth){
    const W=world.stable?.building.w||310,H=W*stableImg.naturalHeight/stableImg.naturalWidth,top=-H*.96;
@@ -8188,7 +8238,7 @@ function drawProp(s,z,withShadow=true){
  }
  if(s.type==='tree'){
   const sway=Math.sin(performance.now()/700+s.x)*2.2; /* a touch quicker + wider */
-  const tImg=z.snowTrees?treeSnowImg:treeImg; /* snowy variant in frost/moor zones */
+  const tImg=(s.snowy||z.snowTrees)?treeSnowImg:treeImg; /* snowy trees also decorate Frostveil's entrance */
   if(tImg.complete&&tImg.naturalWidth){
    /* painted tree - size varies per tree via r & s; per-art calibration on the Image */
    const H=s.r*(2.6+s.s*2.2)*tImg._pad;
@@ -9517,6 +9567,10 @@ function toggleAutoUse(key,el){
 function stableInReach(){
  const n=world?.stable?.vendor;
  return !!(gameOn&&S&&hero&&!hero.dead&&zoneOf().wasteland&&!zoneOf().dungeon&&n&&Math.hypot(hero.x-n.x,hero.y-n.y)<110);
+}
+function trainingInReach(){
+ const n=world?.training?.vendor;
+ return !!(gameOn&&S&&hero&&!hero.dead&&zoneOf().biome==='wasteland-desert'&&n&&Math.hypot(hero.x-n.x,hero.y-n.y)<140);
 }
 function openStable(){
  if(!stableInReach())return;

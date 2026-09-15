@@ -4,10 +4,18 @@
  'use strict';
  const SIZE=180,CENTER=90,RADIUS=86,RANGE=2600,SCALE=RADIUS/RANGE;
  const HOME={name:'Home',color:'#dac294',path:'M-8-1L0-8L8-1M-6-2V7H6V-2M-2 7V1H2V7'};
+ const RETURN={name:'Wasteland',color:'#dac294',path:'M8 0H-8M-3-5L-8 0L-3 5'};
+ const BIOMES={
+  wasteland:{name:'Wasteland',ground:'#424632',lip:'#2b3024',road:'#c5ae7c',track:'#998565'},
+  'wasteland-snow':{name:'Snowfields',ground:'#bacdd1',lip:'#657c85',road:'#eff3e8',track:'#d0dde0'},
+  'wasteland-desert':{name:'Desert',ground:'#bda06b',lip:'#80623f',road:'#ead4a1',track:'#d4b981'}
+ };
  const CITY_LABEL='City minimap. North is up; the white arrow is you. Symbols show the Church, Well, Furnace, Mining Hall, Enchanting and City gate. Distant places appear along the rim.';
  const WASTELAND_LABEL='Wasteland minimap. North is up; the white arrow is you. Roads and the Home portal are shown. A distant Home portal appears along the rim.';
- const wasteland=world=>world.key==='wasteland'&&!world.dungeon;
+ const wasteland=world=>!!BIOMES[world.key]&&!world.dungeon;
+ const biome=world=>BIOMES[world.key]||BIOMES.wasteland;
  const point=p=>!!p&&Number.isFinite(p.x)&&Number.isFinite(p.y);
+ const returnBorder=world=>point(world.spawn)?world.key==='wasteland-snow'?{x:world.spawn.x,y:world.h}:world.key==='wasteland-desert'?{x:0,y:world.spawn.y}:null:null;
  const PLACES={
   cathedral:{name:'Church',color:'#f4dfaa',path:'M-5 6V-2L0-7L5-2V6ZM0-7V-11M-3-9H3M-1 6V2H1V6'},
   well:{name:'Well',color:'#81d9ea',path:'M-7-2L0-7L7-2M-5-2V6M5-2V6M-6 2H6M-6 6H6M0-2V2M-2 2V5H2V2'},
@@ -21,11 +29,12 @@
   if(world.dungeon)return [];
   // Only the return portal is a Wasteland landmark. Never enumerate entrances,
   // enemies or generic travel doors: none may become a badge or tooltip.
-  const landmarks=wasteland(world)?(point(world.exit)?[{x:world.exit.x,y:world.exit.y,type:'homeportal'}]:[]):
+  const returnPoint=world.key==='wasteland'?world.exit:returnBorder(world);
+  const landmarks=wasteland(world)?(point(returnPoint)?[{x:returnPoint.x,y:returnPoint.y,type:world.key==='wasteland'?'homeportal':'wastelandreturn'}]:[]):
    (world.solids||[]).filter(s=>PLACES[s.type]&&point(s));
   const result=landmarks.map(s=>{
    const p=project(s,hero),dx=p.x-CENTER,dy=p.y-CENTER,distance=Math.hypot(dx,dy);
-   return {...(s.type==='homeportal'?HOME:PLACES[s.type]),type:s.type,x:p.x,y:p.y,angle:Math.atan2(dy,dx),far:distance>72,
+   return {...(s.type==='homeportal'?HOME:s.type==='wastelandreturn'?RETURN:PLACES[s.type]),type:s.type,x:p.x,y:p.y,angle:Math.atan2(dy,dx),far:distance>72,
     distance:Math.hypot(s.x-hero.x,s.y-hero.y)};
   });
   const placed=result.filter(p=>!p.far);
@@ -49,7 +58,7 @@
    // Cache only this visit's finite path geometry. A local vector pass avoids a
    // low-resolution atlas of the 50,400-unit world and needs no growing tile cache.
    const roads=[];
-   for(const road of world.paths||[]){
+   for(const road of [...(world.paths||[]),...(world.edgePaths||[])]){
     if(!Number.isFinite(road.width)||road.width<=0)continue;
     let points=[];
     const finish=()=>{
@@ -58,7 +67,7 @@
     };
     for(const p of road.points||[]){if(point(p))points.push({x:p.x,y:p.y});else finish();}finish();
    }
-   return {roads,w:world.w,h:world.h};
+   return {roads,w:world.w,h:world.h,palette:biome(world)};
   }
   const atlas=document.createElement('canvas'),scale=Math.min(1,2048/Math.max(world.w,world.h));
   atlas.width=Math.ceil(world.w*scale);atlas.height=Math.ceil(world.h*scale);
@@ -92,20 +101,21 @@
    return;
   }
   g.save();g.translate(CENTER-hero.x*SCALE,CENTER-hero.y*SCALE);g.scale(SCALE,SCALE);
-  g.beginPath();g.rect(0,0,atlas.w,atlas.h);g.clip();g.fillStyle='#424632';g.fillRect(0,0,atlas.w,atlas.h);
+  const palette=atlas.palette||BIOMES.wasteland;
+  g.beginPath();g.rect(0,0,atlas.w,atlas.h);g.clip();g.fillStyle=palette.ground;g.fillRect(0,0,atlas.w,atlas.h);
   g.lineCap='round';g.lineJoin='round';
   for(const road of atlas.roads){
    const reach=RANGE+road.width/2+35;
    if(road.maxX<hero.x-reach||road.minX>hero.x+reach||road.maxY<hero.y-reach||road.minY>hero.y+reach)continue;
    g.beginPath();road.points.forEach((p,i)=>i?g.lineTo(p.x,p.y):g.moveTo(p.x,p.y));
-   g.strokeStyle='#2b3024';g.lineWidth=road.width+35;g.stroke();
-   g.strokeStyle=road.width>=180?'#c5ae7c':'#998565';g.lineWidth=road.width;g.stroke();
+   g.strokeStyle=palette.lip;g.lineWidth=road.width+35;g.stroke();
+   g.strokeStyle=road.width>=180?palette.road:palette.track;g.lineWidth=road.width;g.stroke();
   }
   g.restore();
  }
  function create(el){
   const canvas=el.querySelector('canvas'),g=canvas.getContext('2d'),tip=el.querySelector('.minimap-tip'),title=el.querySelector('.minimap-title');
-  const paths=Object.fromEntries(Object.entries({...PLACES,homeportal:HOME}).map(([key,p])=>[key,new Path2D(p.path)]));
+  const paths=Object.fromEntries(Object.entries({...PLACES,homeportal:HOME,wastelandreturn:RETURN}).map(([key,p])=>[key,new Path2D(p.path)]));
   let cachedWorld=null,atlas=null,lastTime=-Infinity,lastX=null,lastY=null,heading=0,places=[];
   let pointer=null;
   function tooltip(){
@@ -127,8 +137,9 @@
    if(!visible){cachedWorld=null;atlas=null;places=[];pointer=null;lastX=lastY=null;lastTime=-Infinity;tooltip();return;}
    if(world!==cachedWorld){
     cachedWorld=world;atlas=terrain(world);lastTime=-Infinity;lastX=lastY=null;heading=hero.fx<0?Math.PI:0;
-    el.setAttribute('aria-label',wasteland(world)?WASTELAND_LABEL:CITY_LABEL);
-    title.textContent=wasteland(world)?'WASTELAND':'CITY';
+    const landscape=biome(world),name=world.name||landscape.name;
+    el.setAttribute('aria-label',wasteland(world)?world.key==='wasteland'?WASTELAND_LABEL:name+' minimap. North is up; the white arrow is you. Roads and the way back to Wasteland are shown.':CITY_LABEL);
+    title.textContent=wasteland(world)?name.toUpperCase():'CITY';
    }
    if(time-lastTime<50)return;
    lastTime=time;
