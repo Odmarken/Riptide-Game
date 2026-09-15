@@ -786,12 +786,46 @@ const ZONES=[
   ground:'#47332a',ground2:'#302723',water:'#bd4d24',tree:'#71543e',tree2:'#463327',path:'#7c5940'},
  {name:'Frostveil',lvl:1,amb:'frostveil',special:true,dungeon:'frostveil',snowTrees:true,en:[],
   ground:'#39444f',ground2:'#29333e',water:'#7eb8d7',tree:'#687f89',tree2:'#4c6572',path:'#8ba1ad'},
+ {name:'Tides Guild',lvl:1,amb:'cave',special:true,tideguild:true,noBerg:true,noTrees:true,en:[],
+  ground:'#36312b',ground2:'#292620',water:'#43686d',tree:'#51483a',tree2:'#3c342a',path:'#8c7755'},
 ];
 const TAVERN_ZONE=ZONES.findIndex(z=>z.tavern);
 const ALTAR_ZONE=ZONES.findIndex(z=>z.altar);
 const FARM_ZONE=ZONES.findIndex(z=>z.farm);
 const CITY_ZONE=ZONES.findIndex(z=>z.city);
 const WASTELAND_ZONE=ZONES.findIndex(z=>z.wasteland);
+const TIDE_GUILD_ZONE=ZONES.findIndex(z=>z.tideguild);
+function guildImages(){return {raidfloor:zoneMapImg('raidfloor'),raidwall:zoneMapImg('raidwall'),cryptwall:zoneMapImg('cryptwall'),crypt:zoneMapImg('cryptmap')};}
+function guildInReach(){
+ const n=world?.npcs?.find(n=>n.game==='tideguild');
+ return !!(gameOn&&S&&hero&&!hero.dead&&zoneOf().tideguild&&n&&Math.hypot(hero.x-n.x,hero.y-n.y)<120);
+}
+function enterTideGuild(){
+ const well=world?.solids.find(s=>s.type==='well');
+ if(!gameOn||!hero||hero.dead||!zoneOf().city||!well||dist(hero,well)>100||TideUI.isBattling())return false;
+ if(mp.on)mpLeave(false);
+ goToZone(TIDE_GUILD_ZONE);return true;
+}
+function leaveTideGuild(){
+ if(!gameOn||!hero||hero.dead||!zoneOf().tideguild||!world.exit||dist(hero,world.exit)>115||TideUI.isBattling())return false;
+ expeditionSpawn={zone:CITY_ZONE,x:8400,y:2695};
+ goToZone(CITY_ZONE);return true;
+}
+function guildWorldClick(wx,wy){
+ let target,open,range,movePoint;
+ if(zoneOf().city){
+  const s=world.solids.find(s=>s.type==='well'),height=brunnImg.naturalWidth?75*brunnImg.naturalHeight/brunnImg.naturalWidth:72;
+  if(s&&Math.abs(wx-s.x)<43&&wy>s.y+8-height&&wy<s.y+16){target=s;movePoint={x:s.x,y:s.y+58};open=enterTideGuild;range=100;}
+ }else if(zoneOf().tideguild){
+  const n=world.npcs.find(n=>n.game==='tideguild'),exit=world.exit;
+  if(n&&Math.abs(wx-n.x)<40&&wy>n.y-95&&wy<n.y+22){target=n;open=TideUI.openGuild;range=110;}
+  else if(exit&&Math.abs(wx-exit.x)<70&&wy>exit.y-120&&wy<exit.y+32){target=exit;open=leaveTideGuild;range=100;}
+ }
+ if(!target)return false;
+ if(dist(hero,target)<range)open();
+ else{hero.target=null;hero.goPortal=false;hero.moveTo=movePoint||{x:target.x,y:target.y};marker={...hero.moveTo,t:0};hero.pendingDoor={s:target,open,rng:range};}
+ return true;
+}
 let expeditionSpawn=null;
 const expeditionZone=z=>!!(z&&(z.wasteland||z.dungeon));
 const expeditionImages={};
@@ -1199,6 +1233,33 @@ function drawHeroLike(x,y,look,alpha,anim,name,hp){
  if(hp!==undefined)drawMiniBar(-14,headY-7+by,28,hp,'#4caf6d');
  ctx.restore();
 }
+/* Guild opponents reuse the same class weapons and full outfit layers as playable heroes.
+   This is appearance only: trainer equipment never changes the Tide's combat numbers. */
+function createGuildTrainer(rng=Math.random){
+ const roll=()=>Math.max(0,Math.min(.999999999,Number(rng())||0));
+ const pick=values=>values[Math.floor(roll()*values.length)],fem=roll()<.5;
+ const names=fem?['Alva','Disa','Freja','Hilda','Liv','Mira','Signe','Ylva']:['Alrik','Bosse','Einar','Gunnar','Ivar','Nils','Torsten','Vidar'];
+ return {name:pick(names)+' '+pick(['Mossheart','Emberhand','Tideborn','Stonebrook','Dawnwhisper','Frostvale','Thornwatch','Brightpaw']),
+  race:pick(RACES).id,cls:pick(CLASSES).id,fem,w:pick([null,'rimfrost','felglaives']),
+  ice:roll()<.4,wench:pick([null,...WENCH.map(r=>r.id)]),ring:roll()<.4};
+}
+function drawGuildTrainer(g,x,y,look,scale=1,fx=-1,time=performance.now()/1000,effects=null){
+ const f=paintedCharacterFrame(look.race,look.cls,!!look.fem,!!look.ice),rune=wenchById(look.wench);
+ g.save();g.translate(x,y);g.scale(scale,scale);
+ const by=Math.sin(time*1.7)*.45,scene=g.getTransform().inverse();
+ g.fillStyle='rgba(0,0,0,.3)';g.beginPath();g.ellipse(0,f?f.groundY:8,14,5,0,0,Math.PI*2);g.fill();
+ if(f)bootFeet({...f.boots,moving:false,walk:0,bob:by},g);
+ const emission=drawChampionSprite(g,look.race,look.cls,fx,by,0,isFKLegend(look.w),look.w,!!look.fem,1,!!look.ice,rune,null,time);
+ drawEquippedRing(g,look.ring?{legend:'thering'}:null,f?f.headY:-30,time);
+ if(effects){
+  if(!effects.parts)Object.assign(effects,createRuneEmissionState(),{time});
+  const dt=gamePaused?0:Math.max(0,Math.min(.05,time-effects.time));effects.time=time;
+  for(let i=effects.parts.length-1;i>=0;i--)if(stepRuneParticle(effects.parts[i],dt))effects.parts.splice(i,1);
+  runeSpark(rune,emission?{...emission,points:emission.points.map(p=>runePointTransform(scene,p))}:null,dt,f?f.groundY:8,effects);
+  effects.parts.forEach(p=>drawRuneParticle(g,p));
+ }
+ g.restore();
+}
 function drawMpGhost(k,p){
  if(!p||Date.now()-(p.t||0)>6000)return;
  if(p._x===undefined){p._x=p.x||hero.x;p._y=p.y||hero.y;}
@@ -1310,6 +1371,7 @@ function zoneTemplates(z){
   xp:Math.round(eHP(XL)/2.6*pr),gold:mobGold(z,1+i*0.10)}));
 }
 function zoneQuests(z){
+ if(z.tideguild)return [{name:'Tides Guild',desc:'Meet the guild beneath the City. Speak to the Battle keeper for a best-of-three Tide duel.',need:999999}];
  if(expeditionZone(z))return [{name:z.name,desc:z.dungeon?'Defeat the two guardians.':'Explore the Wasteland.',need:999999}];
  if(z.tavern)return [{name:'🍺 Moonshine',desc:'A safe haven. Rest, forge, trade - no foe dares enter.',need:999999}];
  if(z.altar)return [{name:'⛧ The Altar',desc:'A silent ring above the clouds. Something waits to be awakened.',need:999999}];
@@ -4528,7 +4590,11 @@ function buildZone(){
  world.spawn={x:120,y:world.h/2};
  world.portal={x:world.w-80,y:world.h/2};
  world.pathY=world.h/2;world.pathH=110;
- if(expeditionZone(z)){
+ if(z.tideguild){
+  world=TideGuildWorld.create({catalog:Tides.allSpecies(),maxLevel:Tides.MAX_LEVEL,rng:Math.random});
+  world.npcs.forEach(n=>{n.art=npcSebbeImg;});
+  guildImages();
+ }else if(expeditionZone(z)){
   world=WastelandWorld.create(z.dungeon||'wasteland');
   WastelandWorld.ENTRANCES.forEach(e=>expeditionEntranceImage(e.id));
   ['tree_farm','light_farm','crates_farm'].forEach(id=>farmImg(id));
@@ -4672,7 +4738,7 @@ function buildZone(){
    world.solids.push({x,y,r:rock?14+R()*8:12+R()*6,type:rock?'rock':'tree',s:0.5+R()*1.6,seed:R()*100}); /* same wide size spread as Moonshine */
   }
  }
- if(!expeditionZone(z))for(let i=0;i<160;i++)world.deco.push({x:R()*world.w,y:R()*world.h,k:R()});
+ if(!expeditionZone(z)&&!z.tideguild)for(let i=0;i<160;i++)world.deco.push({x:R()*world.w,y:R()*world.h,k:R()});
  if(expeditionSpawn&&expeditionSpawn.zone===S.zone){world.spawn={x:expeditionSpawn.x,y:expeditionSpawn.y};expeditionSpawn=null;}
  prerenderGround(z,R);
  const cd0=classOf().spells.map(()=>0);
@@ -4874,7 +4940,7 @@ function collectCowChest(){
 }
 function prerenderGround(z,R){
  groundCv=document.createElement('canvas');
- if(z.crypts||z.farm||z.city||expeditionZone(z)){groundCv.width=groundCv.height=16;return;} /* floor draws per frame - giant canvases sink phones */
+ if(z.crypts||z.farm||z.city||z.tideguild||expeditionZone(z)){groundCv.width=groundCv.height=16;return;} /* floor draws per frame - giant canvases sink phones */
  groundCv.width=world.w;groundCv.height=world.h;
  const g=groundCv.getContext('2d');
  if(z.raid){ /* the Violet Halls floor - tiled at near-native scale, mirrored to hide seams */
@@ -4982,6 +5048,7 @@ function solidCell(x,y){
  return world._sg.get(Math.floor(x/SGRID)+','+Math.floor(y/SGRID))||[];
 }
 function collide(e,nx,ny){
+ if(world.guild&&!TideGuildWorld.contains(nx,ny,e.r||12))return true;
  /* Bosses and cows ignore trees/rocks - the herd tramples straight through. */
  if((!e.boss||e.raid)&&!e.cow){
   for(const s of solidCell(nx,ny)){
@@ -6101,12 +6168,16 @@ function padInteract(){
    const f=homeBuildingFrame(s);if(f)add(homeBuildingDoor(s),f.def.label,f.def.open,90);
   }
  }else if(z.city){
+  add(find('well'),'Tides Guild',enterTideGuild,100);
   add(find('cathedral'),'The Tidekeeper',TideUI.openChurch,210);
   const sb=(world.npcs||[]).find(n=>n.game==='cups');
   if(sb)out.push({s:sb,label:'Sebbe',open:openCupGame,rng:120});
   add(find('minehall'),'Mining Hall',openMiningHall,180);
   add(find('enchanthall'),'Enchanting Hall',openEnchantHall,180);
   add(find('smelter'),'Smelter',openSmelter,180);
+ }else if(z.tideguild){
+  add(world.npcs.find(n=>n.game==='tideguild'),'Battle',TideUI.openGuild,120);
+  add(world.exit,'City',leaveTideGuild,115);
  }else if(z.altar){
   add(find('ritualportal'),'The Final Hour',()=>{
    if((S.prestige||0)<50||(S.lvl||1)<MAXLVL){$('gateMsg').style.display='block';sfx.warn();return;}
@@ -6279,6 +6350,7 @@ cv.addEventListener('pointerdown',e=>{
  const r=cv.getBoundingClientRect();
  const wx=(e.clientX-r.left)/zoom+camX,wy=(e.clientY-r.top)/zoom+camY;
  hero.pendingDoor=null; /* any new click cancels a pending walk-to-building */
+ if(guildWorldClick(wx,wy))return;
  if(TideUI.wildClick(wx,wy))return;
  const stableVendor=(world.npcs||[]).find(n=>n.game==='stable');
  if(stableVendor&&Math.abs(wx-stableVendor.x)<34&&wy>stableVendor.y-66&&wy<stableVendor.y+18){
@@ -7554,7 +7626,8 @@ function draw(){
  ctx.save();ctx.scale(zoom,zoom);ctx.translate(-camX+shX,-camY+shY);
  ctx.drawImage(groundCv,0,0);
  const z=zoneOf();
- if(expeditionZone(z)){
+ if(z.tideguild)TideGuildWorld.renderGround(ctx,world,{x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom},{images:guildImages(),time:now});
+ else if(expeditionZone(z)){
   const view={x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom};
   WastelandWorld.renderGround(ctx,world,view,{images:{farm:zoneMapImg('farm_zone'),crypt:zoneMapImg('cryptmap'),snow:zoneMapImg('levlingzone_snow'),desert:zoneMapImg('levlingzone_desert'),cryptwall:zoneMapImg('cryptwall'),raidwall:zoneMapImg('raidwall'),raidfloor:zoneMapImg('raidfloor'),dirtroad:farmImg('dirt_road'),gravelroad:farmImg('gravel_road')}});
   WastelandAmbience.draw(ctx,world,view,now);
@@ -7664,6 +7737,14 @@ function draw(){
  if(world.npcs&&!TideUI.isBattling())for(const n of world.npcs){
   if(n.x<cx0||n.x>cx1||n.y<cy0||n.y>cy1)continue;
   drawables.push({y:n.y,f:()=>drawNpc(n)});
+  if(n.tideSpeciesId){
+   const tx=n.x+(n.fx<0?-96:96),ty=n.y+25;
+   drawables.push({y:ty,f:()=>{
+    const species=Tides.getSpecies(n.tideSpeciesId),height=Math.min(106,Math.max(42,(species?.visualScale||1)*42));
+    TideUI.drawAnimal(ctx,n.tideSpeciesId,tx,ty,height,n.fx||1,0,0,1,now);
+    ctx.save();ctx.font='600 9px system-ui';ctx.textAlign='center';ctx.fillStyle='#bcd4c6';ctx.shadowColor='#17110a';ctx.shadowBlur=3;ctx.fillText((species?.name||'Tide')+' · Lv '+n.tideLevel,tx,ty+16);ctx.restore();
+   }});
+  }
  }
  if(world.stable&&!TideUI.isBattling())world.stable.paddock.displaySpots.forEach((spot,i)=>{
   if(spot.x<cx0||spot.x>cx1||spot.y<cy0||spot.y>cy1)return;
@@ -9357,6 +9438,11 @@ function renderHUD(){
  $('hLvl').textContent='Lv '+S.lvl+(S.prestige?' ✦'+S.prestige:'');
  $('hXP').style.width=(S.lvl>=MAXLVL?100:Math.min(100,100*S.xp/xpNeed(S.lvl)))+'%';
  const z=zoneOf(),q=questOf(),nz=ZONES[S.zone+1];
+ if(z.tideguild){
+  $('qName').textContent='Tides Guild';$('qDesc').textContent='Speak to the Battle keeper. Best of three — first to two wins.';
+  $('qBar').style.width='100%';$('qCount').textContent='Battle';$('nextBtn').style.display='none';
+  $('autoBtn').classList.toggle('on',S.auto);$('autoBtn').textContent=S.auto?'AUTO ✓':'AUTO';refreshOpenPanel();return;
+ }
  if(expeditionZone(z)){
   const defeated=enemies.filter(e=>e.boss&&e.dead).length;
   $('qName').textContent=z.name;
@@ -9816,7 +9902,7 @@ function renderMap(){
   if(mapContinent==='raid'&&!z.raidc)return '';
   if(z.tavern)return '';
   if(z.special){
-   if(z.altar||z.farm||z.city||z.finalb||expeditionZone(z))return ''; /* portal-only zones */
+   if(z.altar||z.farm||z.city||z.tideguild||z.finalb||expeditionZone(z))return ''; /* portal-only zones */
    if(z.crypts){
     const p20=(S.prestige||0)>=20;
     return `<div class="card zonecard ${p20?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p20?'#a66bd0':''}">

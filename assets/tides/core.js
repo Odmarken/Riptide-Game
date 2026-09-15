@@ -97,7 +97,7 @@
 
   function createCollection() {
     return {version: 2, lassoOwned: false, pets: [], equippedId: null, visibleId: null, nextId: 1, nextBattleId: 1,
-      activeBattle: null, recentWorldEvents: [], breedingJobs: [], nextBreedingId: 1};
+      activeBattle: null, guildSeries: null, recentWorldEvents: [], breedingJobs: [], nextBreedingId: 1};
   }
 
   function normalizePet(saved, now = Date.now()) {
@@ -151,7 +151,9 @@
     }
     // Reloading an unfinished fight is abandonment. When enabled, preserve the
     // injury's original real-time deadline; playtesting clears old injuries too.
-    if (INJURY_MS > 0 && raw.activeBattle && typeof raw.activeBattle === 'object') {
+    // Guild training is retired on reload, with no injury or rewards. Never
+    // restore its opponent as an ordinary catchable wild encounter.
+    if (INJURY_MS > 0 && raw.activeBattle && typeof raw.activeBattle === 'object' && raw.activeBattle.training !== true) {
       const pet = c.pets.find(item => item.id === raw.activeBattle.ownedId);
       if (pet) pet.injuredUntil = Math.max(pet.injuredUntil,
         Math.max(0, number(raw.activeBattle.startedAt, time)) + INJURY_MS);
@@ -209,7 +211,7 @@
   }
 
   function equip(c, ownedId, now = Date.now()) {
-    if (c.activeBattle) return {ok: false, reason: 'battle'};
+    if (c.activeBattle || c.guildSeries) return {ok: false, reason: 'battle'};
     const pet = c.pets.find(item => item.id === ownedId);
     if (!pet) return {ok: false, reason: 'unowned'};
     c.equippedId = pet.id;
@@ -219,7 +221,7 @@
   function awardWorldXp(c, options = {}) {
     const pet = equipped(c);
     if (!pet) return {ok: false, reason: 'equipped'};
-    if (c.activeBattle || remainingInjury(pet, nowOf(options))) return {ok: false, reason: 'injured'};
+    if (c.activeBattle || c.guildSeries || remainingInjury(pet, nowOf(options))) return {ok: false, reason: 'injured'};
     const eventId = typeof options.eventId === 'string' ? options.eventId : null;
     if (eventId && c.recentWorldEvents.includes(eventId)) return {ok: false, reason: 'duplicate'};
     const amount = clamp(integer(options.amount, 2), 0, 5);
@@ -247,6 +249,8 @@
   function beginBattle(c, wild, options = {}) {
     if (!c.lassoOwned) return {ok: false, reason: 'lasso'};
     if (c.activeBattle) return {ok: false, reason: 'battle'};
+    const training = options.training === true;
+    if (c.guildSeries && (!training || options.guildSeriesId !== c.guildSeries.id)) return {ok: false, reason: 'battle'};
     const pet = equipped(c), now = nowOf(options);
     if (!pet) return {ok: false, reason: 'equipped'};
     if (isBreedingParent(c, pet.id)) return {ok: false, reason: 'breeding'};
@@ -256,8 +260,12 @@
     const battle = {id: 'battle-' + c.nextBattleId++, ownedId: pet.id, enemy, startedAt: now, turn: 1,
       player: combatant(pet, pet.level), foe: combatant(enemy, enemy.level),
       seed: Math.floor(random(options.rng) * 4294967295) || 1, outcome: null, committed: false};
-    pet.injuredUntil = INJURY_MS > 0 ? now + INJURY_MS : 0;
+    if (!training) pet.injuredUntil = INJURY_MS > 0 ? now + INJURY_MS : 0;
     c.activeBattle = {id: battle.id, ownedId: pet.id, enemy: {...enemy}, startedAt: now};
+    if (training) {
+      const metadata = {training: true, mode: 'guild', guildSeriesId: options.guildSeriesId || null};
+      Object.assign(battle, metadata); Object.assign(c.activeBattle, metadata);
+    }
     return {ok: true, battle};
   }
 
@@ -345,7 +353,9 @@
       battle.outcome = battle.player.hp / battle.player.maxHp > battle.foe.hp / battle.foe.maxHp ? 'win' : 'loss';
       event('limit', 'player', 'The long duel ends on remaining health.');
     }
-    if (battle.outcome) event('result', 'player', battle.outcome === 'win' ? 'Victory! The wild Tide can now be captured.' : INJURY_MS > 0 ? 'Your Tide needs two hours of rest.' : 'Defeat. Your Tide is ready to battle again.');
+    if (battle.outcome) event('result', 'player', battle.training
+      ? battle.outcome === 'win' ? 'Round won!' : 'Round lost.'
+      : battle.outcome === 'win' ? 'Victory! The wild Tide can now be captured.' : INJURY_MS > 0 ? 'Your Tide needs two hours of rest.' : 'Defeat. Your Tide is ready to battle again.');
     else battle.turn++;
     return {ok: true, events, outcome: battle.outcome, turn: battle.turn};
   }
@@ -358,7 +368,10 @@
     const pet = c.pets.find(item => item.id === active.ownedId), now = nowOf(options);
     if (!pet) return {ok: false, reason: 'unowned'};
     let captured = null, xp = 0, levels = 0;
-    if (battle.outcome === 'win') {
+    if (active.training === true) {
+      // The saved encounter is authoritative, even if a caller omitted the
+      // training flag on its animation copy of the battle.
+    } else if (battle.outcome === 'win') {
       // Use the original encounter, so UI state cannot swap the captured species.
       captured = newPet(c, active.enemy.speciesId, active.enemy.level, now);
       pet.injuredUntil = 0;
@@ -366,7 +379,7 @@
       levels = addXp(pet, xp);
     } else pet.injuredUntil = INJURY_MS > 0 ? now + INJURY_MS : 0;
     battle.committed = true; c.activeBattle = null;
-    return {ok: true, outcome: battle.outcome, pet, captured, xp, levels};
+    return {ok: true, outcome: battle.outcome, pet, captured, xp, levels, training: active.training === true};
   }
 
   function abandonBattle(c, battle, options = {}) {
@@ -376,7 +389,8 @@
   }
 
   registerHybrids(hybrids);
-  const startBreeding = (c, options = {}) => breeding.start(c, options.stationId, options.parentAId, options.parentBId, options);
+  const startBreeding = (c, options = {}) => c?.guildSeries ? {ok: false, reason: 'battle'}
+    : breeding.start(c, options.stationId, options.parentAId, options.parentBId, options);
   return Object.freeze({catalog, MAX_LEVEL, SPECTRAL_MIN_LEVEL, LASSO_PRICE, INJURY_MS, createCollection, normalizeCollection, normalizePet,
     registerHybrids, allSpecies: () => [...byId.values()], getHybrid, getSkill, mutationSummary, normalizeMutations,
     visible, setVisible, toggleVisible, toggleFavorite, isBreedingParent, BREEDING_CONFIG: breeding?.CONFIG,
