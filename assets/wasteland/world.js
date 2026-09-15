@@ -9,6 +9,7 @@
   'wasteland-snow':{name:'Frostwild Reach',biome:'snow',offset:{x:0,y:-REGION_H},neighbors:{south:'wasteland'}},
   'wasteland-desert':{name:'Sunscar Sands',biome:'desert',offset:{x:REGION_W,y:0},neighbors:{west:'wasteland'}}
  };
+ const REGIONS=Object.freeze(Object.entries(OVERWORLDS).map(([key,def])=>Object.freeze({key,name:def.name,biome:def.biome,x:def.offset.x,y:def.offset.y+REGION_H,w:REGION_W,h:REGION_H})));
  const THEMES={
   briarhollow:{name:'Briarhollow',floor:'#354a37',wall:'#17271e',edge:'#657452',light:'#a8c786',tint:'rgba(67,104,48,.23)'},
   cindervein:{name:'Cindervein',floor:'#554335',wall:'#292326',edge:'#8c6450',light:'#ffad61',tint:'rgba(149,76,28,.23)'},
@@ -95,7 +96,7 @@
   stable.props=props;world._landmarkProps.push(...props);world.npcs=[stable.vendor];
  }
  function baseWorld(key,seed,w,h){return {key,wasteland:true,overworld:!!OVERWORLDS[key],dungeon:OVERWORLDS[key]?null:key,seed:seed>>>0,w,h,spawn:{x:0,y:0},portal:{x:-500,y:-500},solids:[],mwalls:[],deco:[],waters:[],paths:[],floors:[],entrances:[],enemySpawns:[],bossRooms:[],pathY:-500,pathH:0};}
- function create(key='wasteland',seed=13){
+ function createRegion(key='wasteland',seed=13){
   if(!OVERWORLDS[key]&&!LAYOUTS[key])throw new RangeError('Unknown Wasteland zone: '+key);
   if(!OVERWORLDS[key])return createDungeon(key,seed);
   const w=baseWorld(key,seed,REGION_W,REGION_H),def=OVERWORLDS[key];
@@ -113,6 +114,64 @@
   addStable(w);
   addEntranceLandmarks(w);
   w._chunkCache=new Map();w._chunkKey='';updateChunks(w,w.spawn.x,w.spawn.y,1800);return w;
+ }
+ // Region-local authoring and persistent random seeds remain unchanged. The
+ // playable world is a single coordinate space; crossing a seam never rebuilds it.
+ function translated(value,dx,dy){
+  if(Array.isArray(value))return value.map(item=>translated(item,dx,dy));
+  if(!value||typeof value!=='object')return value;
+  const out={};for(const [key,item]of Object.entries(value))out[key]=translated(item,dx,dy);
+  if(Number.isFinite(out.x))out.x+=dx;if(Number.isFinite(out.y))out.y+=dy;
+  if(Number.isFinite(out.cx))out.cx+=dx;if(Number.isFinite(out.cy))out.cy+=dy;
+  if(Number.isFinite(out.from)&&Number.isFinite(out.to)&&out.side){const offset=out.side==='west'||out.side==='east'?dy:dx;out.from+=offset;out.to+=offset;}
+  return out;
+ }
+ function create(key='wasteland',seed=13){
+  if(!OVERWORLDS[key])return createRegion(key,seed);
+  const world=baseWorld('wasteland',seed,REGION_W*2,REGION_H*2);
+  world.unified=true;world.name='Wasteland';world.biome='mixed';world.regions=REGIONS;
+  world._regions=REGIONS.map(region=>({...region,world:createRegion(region.key,seed)}));
+  const grass=world._regions.find(r=>r.key==='wasteland'),desert=world._regions.find(r=>r.biome==='desert'),entry=world._regions.find(r=>r.key===key);
+  world.spawn=translated(entry.world.spawn,entry.x,entry.y);
+  world.exit=translated(grass.world.exit,grass.x,grass.y);
+  world.entrances=translated(grass.world.entrances,grass.x,grass.y);
+  world.stable=translated(grass.world.stable,grass.x,grass.y);
+  world.training=translated(desert.world.training,desert.x,desert.y);
+  world.npcs=[world.stable.vendor,world.training.vendor];
+  world.paths=world._regions.flatMap(r=>translated(worldPaths(r.world),r.x,r.y));
+  world._landmarkProps=world._regions.flatMap(r=>translated(r.world._landmarkProps,r.x,r.y));
+  // The missing northeast quadrant is outside the L-shaped landmass.
+  world.mwalls=[{x:REGION_W,y:0,w:REGION_W,h:REGION_H}];
+  world._chunkKey='';updateChunks(world,world.spawn.x,world.spawn.y,1800);return world;
+ }
+ function contains(world,x,y,r=0){
+  if(!world||!Number.isFinite(x)||!Number.isFinite(y)||x<r||y<r||x>world.w-r||y>world.h-r)return false;
+  return !world.unified||!(x+r>REGION_W&&y-r<REGION_H);
+ }
+ function biomeAt(world,x,y){
+  if(!world?.unified)return world?.biome||null;
+  return REGIONS.find(r=>x>=r.x&&y>=r.y&&x<=r.x+r.w&&y<=r.y+r.h)?.biome||null;
+ }
+ function trimRegionCaches(world,property,limit){
+  let total=world._regions.reduce((n,r)=>n+(r.world[property]?.size||0),0);
+  if(total<=limit)return;
+  // Evict the oldest entries from the least recently rendered region first.
+  for(const region of [...world._regions].sort((a,b)=>(a.lastVisible||0)-(b.lastVisible||0))){
+   const cache=region.world[property];if(!cache)continue;
+   while(cache.size&&total>limit){cache.delete(cache.keys().next().value);total--;}
+  }
+ }
+ function updateUnifiedChunks(world,x,y,viewRadius){
+  const radius=clamp(Number.isFinite(viewRadius)?viewRadius:1800,CHUNK,MAX_RADIUS),key=Math.floor(x/CHUNK)+','+Math.floor(y/CHUNK)+','+Math.ceil(radius/CHUNK);
+  if(world._chunkKey===key)return false;world._chunkKey=key;
+  const solids=[],deco=[],view={x:x-radius-CHUNK,y:y-radius-CHUNK,w:(radius+CHUNK)*2,h:(radius+CHUNK)*2};
+  for(const region of world._regions){
+   if(!intersects(region,view)){region.world._chunkCache.clear();region.world._chunkKey='';continue;}
+   updateChunks(region.world,x-region.x,y-region.y,radius);
+   solids.push(...translated(region.world.solids,region.x,region.y));deco.push(...translated(region.world.deco,region.x,region.y));
+  }
+  world.solids=solids;world.deco=deco;world._sg=null;world._sgN=-1;
+  trimRegionCaches(world,'_chunkCache',GEOMETRY_CACHE);return true;
  }
  function farmProp(ftype,x,y,sc=1,metadata={}){
   const shapes={staket:{r:14,crx:65,cry:9,cyo:4},staketv:{r:14,crx:8,cry:47,cyo:-33},hobal:{r:25},trough:{r:14,crx:46,cry:14,cyo:0},
@@ -266,6 +325,7 @@
  }
  function updateChunks(world,x,y,viewRadius=1800){
   if(!world||!world.overworld)return false;
+  if(world.unified)return updateUnifiedChunks(world,x,y,viewRadius);
   const radius=clamp(Number.isFinite(viewRadius)?viewRadius:1800,CHUNK,MAX_RADIUS),cx=Math.floor(clamp(x,0,world.w)/CHUNK),cy=Math.floor(clamp(y,0,world.h)/CHUNK),n=Math.ceil(radius/CHUNK),key=cx+','+cy+','+n;
   if(world._chunkKey===key)return false;world._chunkKey=key;
   const solids=[],deco=[];
@@ -276,12 +336,13 @@
   world.solids=solids;world.deco=deco;world._sg=null;world._sgN=-1;return true;
  }
  function isWalkable(world,x,y,r=0){
+  if(!contains(world,x,y,r))return false;
   if(x<r+16||y<r+16||x>world.w-r-16||y>world.h-r-16)return false;
   for(const wall of world.mwalls)if(x>wall.x-r&&x<wall.x+wall.w+r&&y>wall.y-r&&y<wall.y+wall.h+r)return false;
   return true;
  }
  function terrainWeights(world,x,y){
-  const offset=world.worldOffset||{x:0,y:0},gx=x+offset.x,gy=y+offset.y;
+  const offset=world.unified?{x:0,y:-REGION_H}:world.worldOffset||{x:0,y:0},gx=x+offset.x,gy=y+offset.y;
   const smooth=v=>{v=clamp(v,0,1);return v*v*(3-2*v);};
   const snow=smooth((BLEND/2-gy)/BLEND),desert=smooth((gx-REGION_W+BLEND/2)/BLEND);
   return {grass:(1-snow)*(1-desert),snow:snow*(1-desert),desert};
@@ -477,6 +538,16 @@
   }
  }
  function renderGround(g,world,view,options={}){
+  if(world?.unified){
+   g.save();g.fillStyle='#171d20';g.fillRect(view.x,view.y,view.w,view.h);
+   world._renderTick=(world._renderTick||0)+1;
+   for(const region of world._regions){
+    if(!intersects(region,view)){region.world._terrainCache?.clear();continue;}
+    region.lastVisible=world._renderTick;g.save();g.translate(region.x,region.y);
+    renderGround(g,region.world,{...view,x:view.x-region.x,y:view.y-region.y},options);g.restore();
+   }
+   trimRegionCaches(world,'_terrainCache',TERRAIN_CACHE);g.restore();return;
+  }
   if(!world||!view)return;const v={x:Math.max(0,view.x),y:Math.max(0,view.y),w:0,h:0};v.w=Math.max(0,Math.min(world.w,view.x+view.w)-v.x);v.h=Math.max(0,Math.min(world.h,view.y+view.h)-v.y);if(!v.w||!v.h)return;
   g.save();g.beginPath();g.rect(v.x,v.y,v.w,v.h);g.clip();g.fillStyle=world.dungeon?world.theme.floor:world.biome==='snow'?'#c6d8dc':world.biome==='desert'?'#ceaf70':'#718343';g.fillRect(v.x,v.y,v.w,v.h);
   const tiles=Math.ceil(v.w/CHUNK+1)*Math.ceil(v.h/CHUNK+1);
@@ -490,6 +561,6 @@
   else{if(tiles>144)strokeRoads(g,world,v);overworldDetails(g,world,v);}
   g.restore();
  }
- const api={create,updateChunks,renderGround,isWalkable,distanceToSegment,terrainWeights,worldPaths,CHUNK,CELL,MAX_RADIUS,REGION_W,REGION_H,BLEND,STABLE,TRAINING,OVERWORLDS,ENTRANCES:ENTRANCES.map(e=>Object.freeze({...e}))};
+ const api={create,updateChunks,renderGround,isWalkable,contains,biomeAt,distanceToSegment,terrainWeights,worldPaths,CHUNK,CELL,MAX_RADIUS,REGION_W,REGION_H,BLEND,REGIONS,STABLE:freezeData(translated(STABLE,0,REGION_H)),TRAINING:freezeData(translated(TRAINING,REGION_W,REGION_H)),OVERWORLDS,ENTRANCES:ENTRANCES.map(e=>Object.freeze(translated(e,0,REGION_H)))};
  root.WastelandWorld=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);

@@ -201,29 +201,30 @@ test('pointer tooltips use CSS coordinates and HUD gestures cannot bubble into w
   }
 });
 
-test('Wasteland exposes only its Home portal and never reads dungeon metadata', () => {
+test('Wasteland exposes Home, Torsten and training while never reading dungeon metadata', () => {
   const { api } = harness(), world = { ...wasteland };
   for (const name of ['entrances', 'travelDoors', 'enemySpawns', 'bossRooms', 'solids']) {
     Object.defineProperty(world, name, { get() { throw new Error('Minimap read private metadata: ' + name); } });
   }
   for (const hero of [wasteland.spawn, ...wasteland.entrances, { x: wasteland.w, y: 0 }]) {
     const places = api.markers(world, hero);
-    assert.equal(places.length, 1);
-    const home = places[0];
+    assert.equal(places.length, 3);
+    assert.deepEqual(Array.from(places,p=>p.type).sort(),['homeportal','stable','training']);
+    const home = places.find(p=>p.type==='homeportal');
     assert.equal(home.type, 'homeportal'); assert.equal(home.name, 'Home');
     close(home.distance, Math.hypot(world.exit.x - hero.x, world.exit.y - hero.y));
     close(home.angle, Math.atan2(world.exit.y - hero.y, world.exit.x - hero.x));
     if (home.far) close(Math.hypot(home.x - 90, home.y - 90), 72);
     assert.doesNotMatch(JSON.stringify(places), /briar|cinder|frost|dungeon|cathedral|enchant/i);
   }
-  assert.equal(api.markers({ ...wasteland, exit: null }, wasteland.spawn).length, 0);
-  assert.equal(api.markers({ ...wasteland, exit: { x: NaN, y: 0 } }, wasteland.spawn).length, 0);
+  assert.equal(api.markers({ ...wasteland, exit: null }, wasteland.spawn).length, 2);
+  assert.equal(api.markers({ ...wasteland, exit: { x: NaN, y: 0 } }, wasteland.spawn).length, 2);
   assert.equal(api.markers({ ...wasteland, dungeon: 'briarhollow' }, wasteland.spawn).length, 0);
 });
 
 test('Wasteland roads preserve their real polylines and widths with sharp local vector rendering', () => {
   const h = harness();
-  assert.equal(wasteland.w, 50400); assert.equal(wasteland.h, 26000);
+  assert.equal(wasteland.w, 100800); assert.equal(wasteland.h, 52000);
   for (const [index, road] of wasteland.paths.entries()) {
     const start = h.map.ops.length, hero = road.points[Math.floor(road.points.length / 2)];
     h.controller.update(wasteland, { ...hero, fx: 1 }, true, index * 50);
@@ -235,9 +236,10 @@ test('Wasteland roads preserve their real polylines and widths with sharp local 
   assert.equal(h.map.ops.filter(op => op.op === 'drawImage').length, 0, 'Roads stay vector-sharp');
   assert.ok(h.map.ops.some(op => op.op === 'scale' && op.args[0] === 86 / 2600 && op.args[1] === 86 / 2600));
   h.context.devicePixelRatio = 3;
-  h.controller.update(wasteland, wasteland.spawn, true, 250);
+  const afterRoads=wasteland.paths.length*50+50;
+  h.controller.update(wasteland, wasteland.spawn, true, afterRoads);
   assert.equal(h.map.canvas.width, 360); assert.equal(h.map.canvas.height, 360);
-  for (let i = 0; i < 50; i++) h.controller.update(wasteland, { x: i * 1000, y: i * 500 }, true, 300 + i * 50);
+  for (let i = 0; i < 50; i++) h.controller.update(wasteland, { x: i * 1000, y: i * 500 }, true, afterRoads+50+i*50);
   assert.equal(h.atlasCanvases.length, 0, 'Crossing the full world never accumulates terrain canvases');
   assert.equal(h.map.stack.length, 0);
 });
@@ -271,7 +273,7 @@ test('City-to-Wasteland switching removes City tooltips and never reveals dungeo
     const home = h.api.markers(privateWorld, entrance)[0]; hover(home);
     assert.match(h.tip.textContent, /^Home/);
     for (let y = 0; y <= 180; y += 15) for (let x = 0; x <= 180; x += 15) {
-      hover({ x, y }); assert.match(h.tip.textContent, /^(You|Home)/);
+      hover({ x, y }); assert.match(h.tip.textContent, /^(You|Home|Torsten Tygel|Tide Training Grounds)/);
     }
   }
   h.controller.update({ ...wasteland, dungeon: 'frostveil' }, wasteland.spawn, true, 210);
@@ -282,38 +284,38 @@ test('City-to-Wasteland switching removes City tooltips and never reveals dungeo
   hover(well); assert.match(h.tip.textContent, /^Well/);
 });
 
-test('snow and desert maps use their biome colors, edge roads and actual Wasteland return borders', () => {
-  const h = harness();
-  for (const [index, fixture] of [
-    {key:'wasteland-snow', name:'Frostwild', spawn:{x:28500,y:25700}, point:{x:28500,y:26000}, color:'#bacdd1'},
-    {key:'wasteland-desert', name:'Sundrift', spawn:{x:300,y:18000}, point:{x:0,y:18000}, color:'#bda06b'},
-  ].entries()) {
-    const road={width:180,points:[fixture.point,fixture.spawn,{x:fixture.spawn.x+500,y:fixture.spawn.y-500}]};
-    const world={...fixture,w:50400,h:26000,paths:[],edgePaths:[road],exit:null};
-    for(const name of ['solids','entrances','enemySpawns','travelDoors','bossRooms'])Object.defineProperty(world,name,{get(){throw new Error('Minimap read hidden '+name);}});
-    const markers=h.api.markers(world,fixture.spawn);assert.equal(markers.length,1);
-    assert.equal(markers[0].name,'Wasteland');assert.equal(markers[0].type,'wastelandreturn');
-    close(markers[0].distance,300);close(markers[0].angle,Math.atan2(fixture.point.y-fixture.spawn.y,fixture.point.x-fixture.spawn.x));
-    const start=h.map.ops.length;h.controller.update(world,fixture.spawn,true,index*50);
-    assert.equal(h.el.hidden,false);assert.equal(h.title.textContent,fixture.name.toUpperCase());
-    assert.match(h.el.getAttribute('aria-label'),/way back to Wasteland/);assert.doesNotMatch(h.el.getAttribute('aria-label'),/Home|portal|dungeon/);
-    const ops=h.map.ops.slice(start);assert.ok(ops.some(o=>o.op==='fillRect'&&o.fillStyle===fixture.color));
-    assert.ok(ops.some(o=>o.op==='stroke'&&o.width===180&&JSON.stringify(o.path)===JSON.stringify(road.points.map(p=>[p.x,p.y]))));
-    assert.equal(h.atlasCanvases.length,0);assert.equal(h.map.stack.length,0);
-    h.map.listeners.get('pointermove')({clientX:200+markers[0].x*150/180,clientY:30+markers[0].y*150/180});assert.match(h.tip.textContent,/^Wasteland/);
-  }
+test('one continuous minimap paints each biome and leaves the missing quadrant dark',()=>{
+ const h=harness(),colors={grass:'#424632',snow:'#bacdd1',desert:'#bda06b'};
+ for(const [index,r]of wasteland.regions.entries()){
+  const hero={x:r.x+r.w/2,y:r.y+r.h/2},start=h.map.ops.length;
+  h.controller.update(wasteland,hero,true,index*50);
+  assert.equal(h.el.hidden,false);assert.equal(h.title.textContent,'WASTELAND');
+  assert.match(h.el.getAttribute('aria-label'),/Torsten Tygel/);assert.match(h.el.getAttribute('aria-label'),/Tide Training Grounds/);
+  const ops=h.map.ops.slice(start);
+  assert.ok(ops.some(o=>o.op==='fillRect'&&o.fillStyle===colors[r.biome]&&JSON.stringify(o.args)===JSON.stringify([r.x,r.y,r.w,r.h])));
+  assert.equal(h.atlasCanvases.length,0);assert.equal(h.map.stack.length,0);
+ }
+ const start=h.map.ops.length;h.controller.update(wasteland,{x:50400,y:26000},true,200);
+ const ops=h.map.ops.slice(start),terrainColors=new Set(Object.values(colors));
+ assert.equal(ops.filter(o=>o.op==='fillRect'&&terrainColors.has(o.fillStyle)).length,3,'the join shows all three real regions');
+ assert.ok(!ops.some(o=>o.op==='fillRect'&&terrainColors.has(o.fillStyle)&&o.args[0]===50400&&o.args[1]===0),'the northeastern void is never filled with invented terrain');
 });
 
-test('biome maps do not invent a Home portal and dungeon variants remain hidden', () => {
-  const h=harness();
-  for(const key of ['wasteland-snow','wasteland-desert']){
-    const world={key,w:50400,h:26000,paths:[],exit:{x:1000,y:1000},spawn:null};
-    assert.equal(h.api.markers(world,{x:1000,y:1000}).length,0,'no fake Home icon from an unrelated exit');
-    for(const dungeon of ['briarhollow','cindervein','frostveil']){
-      const indoor={...world,dungeon,spawn:{x:300,y:1000}};assert.equal(h.api.markers(indoor,indoor.spawn).length,0);
-      h.controller.update(indoor,indoor.spawn,true,0);assert.equal(h.el.hidden,true);
-    }
-  }
+test('Torsten and training markers use exact global service positions and stay readable along the rim',()=>{
+ const h=harness(),venues=[['stable',wasteland.stable.vendor,/Torsten Tygel/],['training',wasteland.training.vendor,/Tide Training Grounds/]];
+ for(const [type,position,name]of venues){
+  const marker=h.api.markers(wasteland,position).find(p=>p.type===type);assert.match(marker.name,name);assert.equal(marker.far,false);close(marker.x,90);close(marker.y,90);
+ }
+ for(const hero of [{x:80,y:80},{x:50320,y:80},{x:100720,y:51920},wasteland.spawn]){
+  const markers=h.api.markers(wasteland,hero);assert.equal(markers.length,3);
+  for(let i=0;i<markers.length;i++)for(let j=0;j<i;j++)if(markers[i].far||markers[j].far)assert.ok(Math.hypot(markers[i].x-markers[j].x,markers[i].y-markers[j].y)>=23-1e-9);
+ }
+ const blank={key:'wasteland',unified:true,w:100800,h:52000,paths:[],regions:wasteland.regions,spawn:{x:28500,y:26000},exit:null};
+ assert.equal(h.api.markers(blank,blank.spawn).length,0,'there are no artificial return markers at internal biome seams');
+ for(const dungeon of ['briarhollow','cindervein','frostveil']){
+  const indoor={...wasteland,dungeon};assert.equal(h.api.markers(indoor,wasteland.spawn).length,0);
+  h.controller.update(indoor,wasteland.spawn,true,0);assert.equal(h.el.hidden,true);
+ }
 });
 
 test('the actual frame hook updates visibility in City, pause, other zones and character menus', () => {

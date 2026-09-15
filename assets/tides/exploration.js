@@ -4,9 +4,18 @@
  'use strict';
  const {MAX_LEVEL,SPECTRAL_MIN_LEVEL}=typeof module==='object'&&module.exports?require('./core.js'):root.Tides;
  const WIDTH=50400,HEIGHT=26000,CELL_SIZE=512,COLS=Math.ceil(WIDTH/CELL_SIZE),ROWS=Math.ceil(HEIGHT/CELL_SIZE);
- const MAX_WILD=64,MAX_CELLS=100,LOAD_MARGIN=256,MAX_LOAD_RADIUS=2600,SPAWN_CHANCE=.48,REFRESH_MS=600000;
+ const MAX_WILD=64,MAX_CELLS=100,LOAD_MARGIN=256,MAX_LOAD_RADIUS=2600,SPAWN_CHANCE=.90,REFRESH_MS=600000;
  const SEPARATION=120,ROAM_RADIUS=60,ROAM_SPEED=16;
  const WORLD_KEYS=Object.freeze(['wasteland','wasteland-snow','wasteland-desert']);
+ const REGIONS=Object.freeze([
+  Object.freeze({key:'wasteland',x:0,y:HEIGHT,w:WIDTH,h:HEIGHT}),
+  Object.freeze({key:'wasteland-snow',x:0,y:0,w:WIDTH,h:HEIGHT}),
+  Object.freeze({key:'wasteland-desert',x:WIDTH,y:HEIGHT,w:WIDTH,h:HEIGHT})
+ ]);
+ // The save keeps its original local cells; this disposable view projects them
+ // into the one connected map without rewriting seeds or captured-cell records.
+ const projectedViews=new WeakMap();
+ const visible=state=>projectedViews.get(state)||state?.wild||[];
  const GROUPS=Object.freeze([
   Object.freeze(['meadowmouse','bramblebunny','pebbletoad','thistlesparrow','amberbeetle']),
   Object.freeze(['mossfox','reedotter','duskmoth','shellsnap','acornboar']),
@@ -101,6 +110,15 @@
  function materialize(state,context,cell,now,level){
   const epoch=Math.floor((now-offset(state.seed,cell.x,cell.y))/REFRESH_MS);if(epoch<0)return null;
   const random=rng(hash(cell.x,cell.y,state.seed,epoch));if(random()>=SPAWN_CHANCE)return null;
+  const priority=hash(cell.x,cell.y,state.seed,0x75ab3d1);
+  // A candidate wins against the eight neighboring cells using only world data.
+  // Roughly one cell in nine is a habitat; 90% of habitats contain a Tide. The
+  // priority never changes when a neighboring encounter refreshes, so an animal
+  // stays available until its own expiry and does not follow the camera/player.
+  for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+   if(!dx&&!dy)continue;const x=cell.x+dx,y=cell.y+dy;if(x<0||y<0||x>=COLS||y>=ROWS)continue;
+   const competitor=hash(x,y,state.seed,0x75ab3d1);if(competitor<priority||competitor===priority&&(dy<0||!dy&&dx<0))return null;
+  }
   const id=cellId(state.seed,cell.x,cell.y,epoch);
   if(state.taken.some(p=>p.cellX===cell.x&&p.cellY===cell.y&&p.epoch===epoch))return null;
   const s=chooseSpecies(random),petLevel=chooseLevel(random,level,s),existing=state.wild.find(p=>p.id===id);
@@ -136,10 +154,39 @@
    p.motion+=(Number(moving)-p.motion)*(1-Math.exp(-dt*12));if(p.motion<.001)p.motion=0;
   }
  }
+ function projectAnimal(p,region){
+  const result={...p,regionKey:region.key,x:p.x+region.x,y:p.y+region.y};
+  for(const [field,shift]of [['homeX',region.x],['homeY',region.y],['roamTargetX',region.x],['roamTargetY',region.y]])if(Number.isFinite(p[field]))result[field]=p[field]+shift;
+  return result;
+ }
+ function advanceUnified(state,context){
+  if(context.paused||context.dead)return visible(state);
+  const now=Math.max(state.lastNow,number(context.now,Date.now())),result=[];
+  state.lastNow=now;
+  for(const region of REGIONS){
+   const localContext={...context,world:null,worldKey:region.key,unified:false,x:context.x-region.x,y:context.y-region.y,width:WIDTH,height:HEIGHT,now};
+   if(context.view)localContext.view={...context.view,x:context.view.x-region.x,y:context.view.y-region.y};
+   if(!cellsNear(localContext).length)continue;
+   localContext.isValidPosition=(x,y)=>clearPosition({wild:[]},context,x+region.x,y+region.y,null,false);
+   const localState=forWorld(state,region.key),animals=advanceRegion(localState,localContext);
+   for(const p of animals)result.push(projectAnimal(p,region));
+  }
+  // The radius/cell budget already bounds each local state. At a seam combine
+  // both sides, keeping the nearest finite view instead of creating a new spawn.
+  result.sort((a,b)=>Math.hypot(a.x-context.x,a.y-context.y)-Math.hypot(b.x-context.x,b.y-context.y)||a.id.localeCompare(b.id));
+  if(result.length>MAX_WILD)result.length=MAX_WILD;
+  projectedViews.set(state,result);return result;
+ }
  function advance(state,context={}){
   if(!state||!Array.isArray(state.wild))return [];
   const worldKey=context.worldKey||(context.world&&context.world.key)||null;
   if(!WORLD_KEYS.includes(worldKey)||context.world&&context.world.dungeon||context.hasLasso!==true||!position(context))return [];
+  if(context.world?.unified||context.unified)return advanceUnified(state,context);
+  projectedViews.delete(state);
+  return advanceRegion(state,context);
+ }
+ function advanceRegion(state,context={}){
+  const worldKey=context.worldKey||(context.world&&context.world.key)||null;
   if(state.worldKey!==worldKey&&worldKey!=='wasteland')state=forWorld(state,worldKey);
   if(context.paused||context.dead)return state.wild;
   const now=Math.max(state.lastNow,number(context.now,Date.now())),epoch=Math.floor(now/REFRESH_MS);state.lastNow=now;
@@ -159,13 +206,14 @@
   const i=state.wild.findIndex(p=>p.id===id);if(i<0){
    // Root callers can consume a child encounter too; ids include each biome's
    // distinct seed, so a capture cannot consume an animal in another region.
-   for(const key of WORLD_KEYS.slice(1))if(state.worlds&&state.worlds[key]){const p=take(state.worlds[key],id,now);if(p)return p;}
+   for(const key of WORLD_KEYS.slice(1))if(state.worlds&&state.worlds[key]){const p=take(state.worlds[key],id,now);if(p){if(projectedViews.has(state))projectedViews.set(state,visible(state).filter(w=>w.id!==id));return p;}}
    return null;
   }
   const p=state.wild[i],time=Math.max(number(now,state.lastNow),state.lastNow);if(p.expiresAt<=time)return null;
   state.wild.splice(i,1);
+  if(projectedViews.has(state))projectedViews.set(state,visible(state).filter(w=>w.id!==id));
   if(cellValid(p)){state.taken=state.taken.filter(t=>t.until>time&&(t.cellX!==p.cellX||t.cellY!==p.cellY));state.taken.push({cellX:p.cellX,cellY:p.cellY,epoch:p.epoch,until:p.expiresAt});}return p;
  }
- const api={create,forWorld,advance,take,WORLD_KEYS,GROUPS,WIDTH,HEIGHT,CELL_SIZE,COLS,ROWS,MAX_WILD,MAX_CELLS,LOAD_MARGIN,MAX_LOAD_RADIUS,SPAWN_CHANCE,REFRESH_MS,SEPARATION,ROAM_RADIUS,ROAM_SPEED};
+ const api={create,forWorld,visible,advance,take,WORLD_KEYS,REGIONS,GROUPS,WIDTH,HEIGHT,CELL_SIZE,COLS,ROWS,MAX_WILD,MAX_CELLS,LOAD_MARGIN,MAX_LOAD_RADIUS,SPAWN_CHANCE,REFRESH_MS,SEPARATION,ROAM_RADIUS,ROAM_SPEED};
  if(typeof module!=='undefined'&&module.exports)module.exports=api;root.TideExploration=api;
 })(typeof globalThis!=='undefined'?globalThis:this);

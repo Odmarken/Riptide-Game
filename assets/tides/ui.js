@@ -331,14 +331,15 @@ const TideUI=(()=>{
   const previous=el('p-'+storageReturnTab);if(previous)previous.scrollTop=storageReturnScroll;
   if(back?.mode==='wild')openWild(back.id);else if(back?.mode==='church')openChurch();else if(back?.mode==='guild')openGuild();else if(back?.mode==='training')openTraining();else if(back?.mode==='breeding')openBreeding(back.id,{canInteract:back.canInteract});
  }
- function exploration(){if(!S.tides.exploration)S.tides.exploration=TideExploration.create();return TideExploration.forWorld(S.tides.exploration,world.key);}
+ function exploration(){if(!S.tides.exploration)S.tides.exploration=TideExploration.create();return S.tides.exploration;}
+ function explorationWild(){return TideExploration.visible(exploration());}
  function updateExploration(dt=0){
   if(!S?.tides||!world||!hero)return;
   const view=typeof VW==='number'&&typeof zoom==='number'?{x:camX,y:camY,w:VW/zoom,h:VH/zoom}:null;
-  TideExploration.advance(exploration(),{dt,view,worldKey:world.key,x:hero.x,y:hero.y,now:Date.now(),hasLasso:S.tides.lassoOwned,petLevel:owned()?.level||1,paused:gamePaused||modalOpen()||!!padPanelOpen()||hero.dead,
+  TideExploration.advance(exploration(),{dt,view,world,worldKey:world.key,x:hero.x,y:hero.y,now:Date.now(),hasLasso:S.tides.lassoOwned,petLevel:owned()?.level||1,paused:gamePaused||modalOpen()||!!padPanelOpen()||hero.dead,
    isValidPosition:(x,y)=>!collide(hero,x,y)&&!expeditionDoors().some(d=>Math.hypot(d.x-x,d.y-y)<220)&&![...(world.stable?.clearZones||[]),...(world.training?.clearZones||[])].some(r=>x>r.x-50&&x<r.x+r.w+50&&y>r.y-50&&y<r.y+r.h+50)});
  }
- function wildList(){return outdoors()&&S.tides?.lassoOwned&&!session?exploration().wild:[];}
+ function wildList(){return outdoors()&&S.tides?.lassoOwned&&!session?explorationWild():[];}
  function addWildDrawables(list,bounds){
   for(const w of wildList()){
    const box=wildBounds(w);if(box.right<bounds.x0||box.left>bounds.x1||box.bottom<bounds.y0||box.top-26>bounds.y1)continue;
@@ -401,7 +402,7 @@ const TideUI=(()=>{
  }
  function begin(id){
   if(session||!outdoors()||gamePaused||hero.dead||hubMode!=='wild'||wildChoice!==id)return;
-  const w=exploration().wild.find(w=>w.id===id),p=owned();if(!w||!p||Math.hypot(hero.x-w.x,hero.y-w.y)>185)return;
+  const w=explorationWild().find(w=>w.id===id),p=owned();if(!w||!p||Math.hypot(hero.x-w.x,hero.y-w.y)>185)return;
   const now=Date.now();
   if(w.expiresAt<=Math.max(now,exploration().lastNow||0)){closeHub();updateExploration();stageMsg('That Tide has wandered away.',1800);return;}
   if(!frameFor(w.speciesId)||!frameFor(p.speciesId)){el('tideHubMessage').textContent='Your Tides are arriving. Try again in a moment.';return;}

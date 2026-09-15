@@ -15,7 +15,8 @@ function tracked(x,y,extra={}){
  return {entity,moves};
 }
 function setup({x=15525,y=16656,id='spectral-tiger',swift=1,empty=false,zone={wasteland:true}}={}){
- const world=empty?{w:50400,h:26000,solids:[]}:W.create('wasteland',13);
+ // These historical fence coordinates belong to the original authored region.
+ const world=empty?{w:50400,h:26000,solids:[]}:W.create('wasteland',13)._regions.find(r=>r.key==='wasteland').world;
  if(!empty)W.updateChunks(world,x,y,1000);
  const {entity:hero,moves}=tracked(x,y),mountRide=Mounts.createRide();mountRide.id=id;
  const env={world,hero,mountRide,Mounts,pet:null,S:{mounts:{owned:['spectral-tiger'],equipped:'spectral-tiger'}},

@@ -1,7 +1,9 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
-const W=require('../assets/wasteland/world.js');
+const FullW=require('../assets/wasteland/world.js');
+// Verify the original authored stable/roads before the unified-map translation.
+const W={...FullW,create(key='wasteland',seed){const w=FullW.create(key,seed);return w.unified?w._regions.find(r=>r.key===key).world:w;}};
 const source=fs.readFileSync(path.join(__dirname,'../game.js'),'utf8');
 
 function physics(world){

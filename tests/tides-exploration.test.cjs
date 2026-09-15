@@ -27,7 +27,7 @@ test('world distribution is sparse, surrounds the player and loads immediately w
    assert.equal(p.aggro,undefined);assert.equal(p.damage,undefined);
   }
  }
- assert.equal(quadrants.size,4);assert.ok(visible/200>1.1&&visible/200<2.4,'sparse animals in a normal viewport: '+visible/200);
+ assert.equal(quadrants.size,4);assert.ok(visible/200>.15&&visible/200<.5,'sparse habitats in a normal viewport: '+visible/200);
  const {state,c}=setup(),before=identity(state.wild),counter=state.counter;
  for(let i=0;i<100;i++)E.advance(state,c);
  assert.deepEqual(identity(state.wild),before);assert.equal(state.counter,counter,'standing still does not continually create new encounters');
@@ -35,7 +35,7 @@ test('world distribution is sparse, surrounds the player and loads immediately w
 
 test('world samples retain every species and tier rarity with uniform species odds within each tier',()=>{
  const counts=new Map(),levels=new Set();let total=0;
- for(let seed=1;seed<=18;seed++){
+ for(let seed=1;seed<=72;seed++){
   const state=E.create(null,{seed}),seen=new Set();
   for(let yy=1024;yy<E.HEIGHT+1024;yy+=2048)for(let xx=1024;xx<E.WIDTH+1024;xx+=2048){
    const x=Math.min(E.WIDTH-128,xx),y=Math.min(E.HEIGHT-128,yy),c=context({x,y,view:{x:x-1024,y:y-1024,w:2048,h:2048}});
@@ -44,7 +44,7 @@ test('world samples retain every species and tier rarity with uniform species od
   }
  }
  const fractions=E.GROUPS.map(g=>g.reduce((n,id)=>n+(counts.get(id)||0),0)/total);
- assert.equal(counts.size,25);assert.ok(total>40000&&total<47000,'48% of world cells occupied: '+total);
+ assert.equal(counts.size,25);assert.ok(total>34000&&total<41000,'roughly one occupied habitat per ten cells: '+total);
  assert.ok(fractions[0]>.58&&fractions[0]<.62);assert.ok(fractions[1]>.24&&fractions[1]<.28);
  assert.ok(fractions[2]>.095&&fractions[2]<.125);assert.ok(fractions[3]>.022&&fractions[3]<.031);assert.ok(fractions[4]>.0025&&fractions[4]<.0045);
  const spectral=((counts.get('spectralpanther')||0)+(counts.get('spectralwyrm')||0))/total;assert.ok(spectral>.00015&&spectral<.0008,'spectral proportion '+spectral);
@@ -53,7 +53,7 @@ test('world samples retain every species and tier rarity with uniform species od
 });
 
 test('a whole-world viewport and extended exploration keep local objects and saved state bounded',()=>{
- const {state,c}=setup({view:{x:0,y:0,w:E.WIDTH,h:E.HEIGHT}});assert.ok(state.wild.length<=64&&state.wild.length>=32);
+ const {state,c}=setup({view:{x:0,y:0,w:E.WIDTH,h:E.HEIGHT}});assert.ok(state.wild.length<=20&&state.wild.length>=5);
  for(const p of state.wild)assert.ok(Math.abs(p.homeX-c.x)<=E.MAX_LOAD_RADIUS+E.CELL_SIZE&&Math.abs(p.homeY-c.y)<=E.MAX_LOAD_RADIUS+E.CELL_SIZE);
  for(let i=0;i<1000;i++){
   const x=300+(i*1277)%(E.WIDTH-600),y=300+(i*947)%(E.HEIGHT-600);
@@ -76,7 +76,7 @@ test('capturing consumes one encounter and survives reload, travel and changes o
 });
 
 test('staggered real-time cycles refresh cells without movement and cannot be rolled backward',()=>{
- const {state,c}=setup(),old=state.wild.map(p=>({...p})),first=Math.min(...old.map(p=>p.expiresAt));
+ const {state,c}=setup({view:{x:0,y:0,w:E.WIDTH,h:E.HEIGHT}}),old=state.wild.map(p=>({...p})),first=Math.min(...old.map(p=>p.expiresAt));
  assert.ok(new Set(old.map(p=>p.expiresAt)).size>3,'cells do not all reset together');
  E.advance(state,{...c,now:first-1});assert.deepEqual(identity(state.wild),identity(old));
  E.advance(state,{...c,now:first+1});assert.ok(!state.wild.some(p=>p.id===old.find(p=>p.expiresAt===first).id));
@@ -145,7 +145,7 @@ test('high level companions discover levels21 through30 while normal wilds and s
   assert.ok(state.levels.every(p=>p.level===Math.min(T.MAX_LEVEL,petLevel)));
  }
  for(let level=21;level<=30;level++)assert.ok(levels.has(level),'wild level '+level+' is available');
- const {state,c}=setup({petLevel:27}),normal=state.wild.filter(p=>!p.speciesId.startsWith('spectral'));
+ const {state,c}=setup({petLevel:27,view:{x:0,y:0,w:E.WIDTH,h:E.HEIGHT}}),normal=state.wild.filter(p=>!p.speciesId.startsWith('spectral'));
  normal[0].level=27;normal[1].level=30;normal[2].level=20;
  const snapshot=identity(state.wild),copy=E.create(JSON.parse(JSON.stringify(state)));assert.deepEqual(copy,state);
  E.advance(copy,{...c,petLevel:30});assert.deepEqual(identity(copy.wild),snapshot);assert.ok(copy.levels.every(p=>p.level===27));
@@ -153,8 +153,8 @@ test('high level companions discover levels21 through30 while normal wilds and s
 });
 
 test('both spectral species spawn at levels25 to30 even with a level1 companion and old wild saves migrate safely',()=>{
- for(const [seed,id]of [[159,'spectralpanther'],[364,'spectralwyrm']]){
-  const {state,c}=setup({petLevel:1},seed),p=state.wild.find(p=>p.speciesId===id);assert.ok(p,id+' generated from its natural cell');
+ for(const [seed,id]of [[988,'spectralpanther'],[632,'spectralwyrm']]){
+  const {state,c}=setup({petLevel:1,view:{x:0,y:0,w:E.WIDTH,h:E.HEIGHT}},seed),p=state.wild.find(p=>p.speciesId===id);assert.ok(p,id+' generated from its natural cell');
   assert.ok(p.level>=25&&p.level<=30);assert.ok(state.wild.filter(p=>!p.speciesId.startsWith('spectral')).every(p=>p.level<=9),'ordinary early encounters retain their low level range');
   const oldIdentity=[p.id,p.homeX,p.homeY,p.speciesId,p.expiresAt];p.level=3;
   const restored=E.create(JSON.parse(JSON.stringify(state))),loaded=restored.wild.find(w=>w.id===p.id);assert.equal(loaded.level,25);
@@ -166,7 +166,7 @@ test('both spectral species spawn at levels25 to30 even with a level1 companion 
 });
 
 test('all three overworlds retain independent deterministic encounters through border travel and reload',()=>{
- const {state,c}=setup(),grass=identity(state.wild),originalSeed=state.seed,ids=new Set(state.wild.map(p=>p.id));
+ const {state,c}=setup({view:{x:0,y:0,w:E.WIDTH,h:E.HEIGHT}}),grass=identity(state.wild),originalSeed=state.seed,ids=new Set(state.wild.map(p=>p.id));
  const snapshots=new Map([['wasteland',grass]]);
  for(const key of ['wasteland-snow','wasteland-desert']){
   const local=E.advance(state,{...c,worldKey:key});assert.ok(local.length>0,key+' has ordinary wild Tides');
@@ -188,7 +188,7 @@ test('all three overworlds retain independent deterministic encounters through b
 });
 
 test('captured biome cells stay consumed while travelling and switching pets until their normal refresh',()=>{
- const {state,c}=setup(),captures=[];
+ const {state,c}=setup({view:{x:0,y:0,w:E.WIDTH,h:E.HEIGHT}}),captures=[];
  for(const key of E.WORLD_KEYS){
   const local=E.advance(state,{...c,worldKey:key}),p=local[0];captures.push({key,p});
   assert.equal(E.take(state,p.id,c.now),p,'root take locates the correct biome');assert.equal(E.take(state,p.id,c.now),null);
@@ -220,14 +220,84 @@ test('legacy captures and level baselines survive adding biomes; malformed child
 test('snow and desert use the same rarity and spectral level rules while training pens stay free of wild Tides',()=>{
  for(const key of E.WORLD_KEYS.slice(1)){
   const found=new Set(),spectralLevels=new Set();let total=0;
-  for(let seed=1;seed<=450;seed++){
+  for(let seed=1;seed<=3000;seed++){
    const state=E.create(null,{seed}),wild=E.advance(state,context({worldKey:key,petLevel:1,view:{x:0,y:0,w:E.WIDTH,h:E.HEIGHT}}));
    for(const p of wild){found.add(p.speciesId);total++;if(p.speciesId.startsWith('spectral'))spectralLevels.add(p.level);}
   }
-  assert.equal(found.size,25,key+' retains all original species');assert.ok(total>15000&&total<22000);
+  assert.equal(found.size,25,key+' retains all original species');assert.ok(total>26000&&total<34000);
   assert.ok(spectralLevels.size>0);assert.ok([...spectralLevels].every(level=>level>=25&&level<=30));
   const state=E.create(null,{seed:21}),world={key,w:E.WIDTH,h:E.HEIGHT,training:{clearZones:[{x:24000,y:12000,w:2000,h:2000}]}};
   const animals=E.advance(state,context({worldKey:key,world}));
   assert.ok(animals.every(p=>!(p.x>23976&&p.x<26024&&p.y>11976&&p.y<14024)));
+ }
+});
+
+function unifiedContext(region,extra={}){
+ const x=region.x+25000,y=region.y+13000;
+ return {worldKey:'wasteland',world:{key:'wasteland',unified:true,w:E.WIDTH*2,h:E.HEIGHT*2,regions:E.REGIONS},hasLasso:true,x,y,petLevel:12,now:6000000,
+  view:{x:x-2600,y:y-2600,w:5200,h:5200},...extra};
+}
+
+test('one continuous map projects all old regional encounters and captures without changing the saved coordinate system',()=>{
+ const root=E.create(null,{seed:73521}),captures=[],originals=new Map();
+ for(const region of E.REGIONS){
+  const local=E.advance(root,context({worldKey:region.key,view:{x:0,y:0,w:E.WIDTH,h:E.HEIGHT}}));
+  assert.ok(local.length>0);const captured=local[0];assert.equal(E.take(root,captured.id,6000000),captured);captures.push(captured.id);
+  originals.set(region.key,new Map(E.forWorld(root,region.key).wild.map(p=>[p.id,{...p}])));
+ }
+ const before=JSON.parse(JSON.stringify(root));let restored=E.create(before);
+ for(const region of E.REGIONS){
+  const context=unifiedContext(region),drawn=E.advance(restored,context);assert.ok(drawn.length>0);assert.equal(drawn,E.visible(restored));
+  for(const p of drawn){
+   const old=originals.get(region.key).get(p.id);assert.ok(old,'same original cell remains materialized');
+   assert.equal(p.regionKey,region.key);assert.equal(p.x,old.x+region.x);assert.equal(p.y,old.y+region.y);
+   assert.equal(p.homeX,old.homeX+region.x);assert.equal(p.homeY,old.homeY+region.y);
+   assert.equal(p.speciesId,old.speciesId);assert.equal(p.level,old.level);assert.equal(p.expiresAt,old.expiresAt);
+   assert.ok(!captures.includes(p.id));
+  }
+  const snapshot=identity(drawn);restored=E.create(JSON.parse(JSON.stringify(restored)));E.advance(restored,context);assert.deepEqual(identity(E.visible(restored)),snapshot);
+ }
+ assert.equal(restored.seed,before.seed);assert.equal(restored.version,3);
+ for(const region of E.REGIONS){const local=E.forWorld(restored,region.key),old=region.key==='wasteland'?before:before.worlds[region.key];assert.equal(local.seed,old.seed);assert.deepEqual(local.taken,old.taken);assert.deepEqual(local.levels,old.levels);}
+ assert.doesNotMatch(JSON.stringify(restored),/"regionKey"/,'global render projections are not duplicated in character saves');
+});
+
+test('crossing either biome seam keeps both visible populations and consumes the correct projected animal exactly once',()=>{
+ const root=E.create(null,{seed:73521}),world=unifiedContext(E.REGIONS[0]).world;
+ for(const [x,y,expected]of [[28500,26000,['wasteland','wasteland-snow']],[50400,44000,['wasteland','wasteland-desert']]]){
+  const context={...unifiedContext(E.REGIONS[0]),world,x,y,view:{x:x-2500,y:y-2500,w:5000,h:5000}};
+  const first=E.advance(root,context);assert.deepEqual([...new Set(first.map(p=>p.regionKey))].sort(),expected.sort());
+  const p=first[0],region=E.REGIONS.find(r=>r.key===p.regionKey),local=E.forWorld(root,p.regionKey);
+  const source=local.wild.find(q=>q.id===p.id);assert.ok(source);assert.equal(source.x+region.x,p.x);assert.equal(source.y+region.y,p.y);
+  assert.equal(E.take(root,p.id,context.now),source);assert.equal(E.take(root,p.id,context.now),null);assert.ok(!E.visible(root).some(w=>w.id===p.id));
+  for(const dx of [-40,40,-40,40]){E.advance(root,{...context,x:x+dx});assert.ok(!E.visible(root).some(w=>w.id===p.id),'walking over the seam cannot restore a captured cell');}
+  const restored=E.create(JSON.parse(JSON.stringify(root)));E.advance(restored,context);assert.ok(!E.visible(restored).some(w=>w.id===p.id));
+ }
+});
+
+test('unified exploration respects the L-shaped bounds and keeps venues clear in global coordinates',()=>{
+ const root=E.create(null,{seed:73521}),world=unifiedContext(E.REGIONS[0]).world;
+ const grass=E.REGIONS[0],desert=E.REGIONS[2],context=unifiedContext(desert),x=context.x,y=context.y;
+ world.training={clearZones:[{x:x-1000,y:y-1000,w:2000,h:2000}]};
+ const drawn=E.advance(root,{...context,world});assert.ok(drawn.length>0);
+ assert.ok(drawn.every(p=>!(p.x>x-1024&&p.x<x+1024&&p.y>y-1024&&p.y<y+1024)),'the desert training property uses translated coordinates');
+ E.advance(root,{...unifiedContext(grass),world,x:75000,y:10000,view:{x:73000,y:8000,w:4000,h:4000}});assert.deepEqual(E.visible(root),[],'nothing spawns in the missing northeastern quadrant');
+ for(const region of E.REGIONS)for(const [dx,dy]of [[30,30],[region.w-30,region.h-30]]){
+  const cx=region.x+dx,cy=region.y+dy;E.advance(root,{...unifiedContext(region),x:cx,y:cy,view:{x:cx-1000,y:cy-1000,w:2000,h:2000}});
+  for(const p of E.visible(root))assert.ok(E.REGIONS.some(r=>p.x>=r.x+24&&p.x<=r.x+r.w-24&&p.y>=r.y+24&&p.y<=r.y+r.h-24));
+ }
+ assert.ok(JSON.stringify(root).length<105000);
+});
+
+test('deterministic sparse habitats average one to two nearby Tides with no neighboring-cell clusters',()=>{
+ for(const region of E.REGIONS){
+  let nearby=0,occupied=0;const context=unifiedContext(region);
+  for(let seed=1;seed<=1000;seed++){
+   const root=E.create(null,{seed}),animals=E.advance(root,context);occupied+=animals.length;
+   nearby+=animals.filter(p=>Math.hypot(p.x-context.x,p.y-context.y)<=1000).length;
+   for(let i=0;i<animals.length;i++)for(let j=0;j<i;j++)assert.ok(Math.abs(animals[i].cellX-animals[j].cellX)>1||Math.abs(animals[i].cellY-animals[j].cellY)>1,'adjacent512-unit cells cannot both contain a Tide');
+  }
+  assert.ok(nearby/1000>=1&&nearby/1000<1.5,region.key+' nearby average: '+nearby/1000);
+  assert.ok(occupied/1000<13,'wide view no longer loads the old dense population');
  }
 });

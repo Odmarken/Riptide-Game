@@ -8,7 +8,7 @@ function harness(){
  const elements=new Map(),calls=[];
  const el=id=>{if(!elements.has(id))elements.set(id,{id,hidden:true,innerHTML:'',textContent:'',scrollTop:0,style:{},classList:{contains:()=>false,toggle(){},add(){},remove(){}},querySelectorAll:()=>[],getClientRects:()=>[]});return elements.get(id);};
  const S={tides:T.createCollection()};T.purchaseLasso(S.tides,10000,{now:1000,rng:()=>0});S.tides.exploration=E.create(null,{seed:487});
- const context={S,Tides:T,TideExploration:E,Mounts,mountRide:Mounts.createRide(),calls,
+ const context={S,Tides:T,TideExploration:E,WastelandWorld:W,Mounts,mountRide:Mounts.createRide(),calls,
   gameOn:true,gamePaused:false,zone:{city:true},world:{w:16800,h:5200,solids:[],npcs:[]},
   hero:{x:8400,y:2000,r:13,walk:0,dead:false,moveTo:null,pendingDoor:null},keys:{},holdMove:null,marker:null,
   document:{getElementById:el,querySelectorAll:()=>[],activeElement:null},Image:class {complete=false;naturalWidth=0;},
@@ -28,6 +28,11 @@ function harness(){
  const start=pointer.lastIndexOf(' if(zoneOf().city){');assert.ok(start>0);
  vm.runInContext('globalThis.cityClick=function(wx,wy){'+pointer.slice(start)+'};',context);
  return {context,el,calls,ui:context.UI,S,hero:context.hero};
+}
+function scriptedWild(h,w){
+ const region=E.REGIONS.find(r=>w.x>=r.x&&w.x<r.x+r.w&&w.y>=r.y&&w.y<r.y+r.h);assert.ok(region,'scripted encounter belongs to a biome');
+ const state=E.forWorld(h.S.tides.exploration,region.key);state.wild.push({...w,x:w.x-region.x,y:w.y-region.y});
+ h.ui.updateExploration();return E.visible(h.S.tides.exploration).find(p=>p.id===w.id);
 }
 
 test('the actual church click route walks to a reachable door and opens the Tidekeeper from every side',()=>{
@@ -56,63 +61,66 @@ test('church access is City-only and cannot overlap Sebbe or open while dead',()
  c.zone={city:true};h.hero.dead=true;assert.equal(h.ui.churchInReach(),false);h.ui.openChurch();assert.equal(h.el('tideHub').hidden,true);
 });
 
-test('the production Wasteland callback excludes props, stable grounds, all portals and off-map positions',()=>{
+test('the production unified Wasteland callback excludes props, both vendor grounds, all portals and off-map positions',()=>{
  const h=harness(),c=h.context;c.zone={wasteland:true};c.world=W.create();
  c.world.travelDoors=[{...c.world.exit},...c.world.entrances];
- const spots=[c.world.spawn,c.world.stable.vendor,...c.world.entrances,{x:25000,y:13000},{x:80,y:10000},{x:50320,y:13000}];
- let count=0;
+ const spots=[c.world.spawn,c.world.stable.vendor,c.world.training.vendor,...c.world.entrances,{x:25000,y:13000},{x:80,y:10000},{x:50320,y:13000},{x:67900,y:45500}];
+ let count=0;const seen=new Set();
  for(const spot of spots){
   h.hero.x=spot.x;h.hero.y=spot.y;W.updateChunks(c.world,spot.x,spot.y,1800);
   h.S.tides.exploration=E.create(null,{seed:count+10});
   for(let i=0;i<80;i++){
    h.hero.x+=i%2?30:-30;h.ui.updateExploration();
-   for(const w of h.S.tides.exploration.wild){
+   for(const w of E.visible(h.S.tides.exploration)){
     assert.equal(c.collide(h.hero,w.x,w.y),false,'spawn must pass the real game collider');
     assert.ok(c.world.travelDoors.every(d=>Math.hypot(d.x-w.x,d.y-w.y)>=220));
     assert.ok(c.world.stable.clearZones.every(r=>!(w.x>r.x-50&&w.x<r.x+r.w+50&&w.y>r.y-50&&w.y<r.y+r.h+50)));
-    count++;
+    assert.ok(c.world.training.clearZones.every(r=>!(w.x>r.x-50&&w.x<r.x+r.w+50&&w.y>r.y-50&&w.y<r.y+r.h+50)));
+    assert.equal(W.contains(c.world,w.x,w.y,24),true,'spawn lies within the connected L-shaped map');
+    count++;seen.add(w.id);
    }
   }
  }
- assert.ok(count>500,'actual geometry accepts a healthy population near landmarks and edges');
+ assert.ok(seen.size>=4,'actual geometry still accepts sparse encounters near landmarks and in all biomes');
 });
 
 test('production world encounters pause in menus and restore the same local animals after City and reload',()=>{
- const h=harness(),c=h.context;c.zone={wasteland:true};c.world=W.create();h.hero.x=2400;h.hero.y=23600;
+ const h=harness(),c=h.context;c.zone={wasteland:true};c.world=W.create();Object.assign(h.hero,c.world.spawn);const origin={x:h.hero.x,y:h.hero.y};
  vm.runInContext('Date.now=()=>1800000000000',c);
  W.updateChunks(c.world,h.hero.x,h.hero.y,1800);h.ui.updateExploration();
- const snapshot=()=>h.S.tides.exploration.wild.map(w=>({id:w.id,speciesId:w.speciesId,level:w.level,x:w.x,y:w.y})).sort((a,b)=>a.id.localeCompare(b.id));
+ for(let seed=488;!E.visible(h.S.tides.exploration).length&&seed<520;seed++){h.S.tides.exploration=E.create(null,{seed});h.ui.updateExploration();}
+ const snapshot=()=>E.visible(h.S.tides.exploration).map(w=>({id:w.id,speciesId:w.speciesId,level:w.level,x:w.x,y:w.y})).sort((a,b)=>a.id.localeCompare(b.id));
  const initial=snapshot();assert.ok(initial.length>0);
  for(const pause of ['hub','panel','game','dead']){
   if(pause==='hub')h.el('tideHub').hidden=false;if(pause==='panel')c.activePanel={};if(pause==='game')c.gamePaused=true;if(pause==='dead')h.hero.dead=true;
   for(let i=0;i<20;i++){h.hero.x+=20;h.ui.updateExploration();}assert.deepEqual(snapshot(),initial,pause);
-  h.el('tideHub').hidden=true;c.activePanel=null;c.gamePaused=false;h.hero.dead=false;h.hero.x=2400;h.ui.updateExploration();assert.deepEqual(snapshot(),initial,'same place after closing '+pause);
+  h.el('tideHub').hidden=true;c.activePanel=null;c.gamePaused=false;h.hero.dead=false;Object.assign(h.hero,origin);h.ui.updateExploration();assert.deepEqual(snapshot(),initial,'same place after closing '+pause);
  }
  const old=c.world;c.world={w:16800,h:5200,solids:[]};c.zone={city:true};h.ui.updateExploration();assert.equal(h.ui.nearestWild(),null);
- c.world=old;c.zone={wasteland:true};h.hero.x=2400;h.hero.y=23600;h.ui.updateExploration();assert.deepEqual(snapshot(),initial);
+ c.world=old;c.zone={wasteland:true};Object.assign(h.hero,origin);h.ui.updateExploration();assert.deepEqual(snapshot(),initial);
  h.S.tides.exploration=E.create(JSON.parse(JSON.stringify(h.S.tides.exploration)));h.ui.updateExploration();assert.deepEqual(snapshot(),initial);
 });
 
 test('clicking even a spectral Tide opens the neutral challenge route without targeting an enemy',()=>{
  const h=harness(),c=h.context;c.zone={wasteland:true};c.world=W.create();
- h.S.tides.exploration.wild=[{id:'rare',speciesId:'spectralwyrm',level:20,x:2500,y:23600,fx:1,expiresAt:Date.now()+300000}];
- h.hero.x=2100;h.hero.y=23600;h.hero.target={enemy:true};assert.equal(h.ui.wildClick(2500,23580),true);
+ h.hero.x=2100;h.hero.y=49600;scriptedWild(h,{id:'rare',speciesId:'spectralwyrm',level:30,x:2500,y:49600,fx:1,expiresAt:Date.now()+300000});
+ h.hero.target={enemy:true};assert.equal(h.ui.wildClick(2500,49580),true);
  assert.equal(h.hero.target,null);assert.equal(h.hero.pendingDoor.s.id,'rare');
  h.hero.x=2380;h.hero.pendingDoor.open();assert.equal(h.el('tideHub').hidden,false);assert.match(h.el('tideHubBody').innerHTML,/Spectral|spectral/);
- assert.equal(h.S.tides.exploration.wild.length,1,'previewing never consumes the rare encounter');
- c.zone={dungeon:'frostveil'};assert.equal(h.ui.wildClick(2500,23580),false);
+ assert.equal(E.visible(h.S.tides.exploration).filter(w=>w.id==='rare').length,1,'previewing never consumes the rare encounter');
+ c.zone={dungeon:'frostveil'};assert.equal(h.ui.wildClick(2500,49580),false);
 });
 
 test('an encounter that expires in its open challenge cannot start a battle or reserve the companion',()=>{
- const h=harness(),c=h.context;c.zone={wasteland:true};c.world=W.create();h.hero.x=2400;h.hero.y=23600;
+ const h=harness(),c=h.context;c.zone={wasteland:true};c.world=W.create();Object.assign(h.hero,c.world.spawn);
  vm.runInContext('Date.now=()=>1800000000000',c);
  const w={id:'expired-preview',speciesId:'spectralwyrm',level:30,x:h.hero.x+50,y:h.hero.y,expiresAt:1800000000001};
- h.S.tides.exploration.wild=[w];h.ui.openWild(w.id);assert.equal(h.el('tideHub').hidden,false);
+ scriptedWild(h,w);h.ui.openWild(w.id);assert.equal(h.el('tideHub').hidden,false);
  const pets=JSON.parse(JSON.stringify(h.S.tides.pets)),battleId=h.S.tides.nextBattleId;
  vm.runInContext('Date.now=()=>1800000000002',c);h.ui.begin(w.id);
  assert.equal(h.ui.isBattling(),false);assert.equal(h.S.tides.activeBattle,null);assert.equal(h.S.tides.nextBattleId,battleId);
  assert.deepEqual(h.S.tides.pets,pets);assert.equal(h.el('tideHub').hidden,true);
- assert.equal(h.S.tides.exploration.wild.some(p=>p.id===w.id),false);
+ assert.equal(E.visible(h.S.tides.exploration).some(p=>p.id===w.id),false);
 });
 
 test('typing a Tide search cannot cast spells, spend potions or acquire a world enemy target',()=>{
@@ -130,8 +138,8 @@ test('a Tide battle continues polling the controller while stopping world simula
 });
 
 test('controller interaction offers a nearby wild animal through the same challenge UI',()=>{
- const h=harness(),c=h.context;c.zone={wasteland:true};c.world=W.create();h.hero.x=24800;h.hero.y=13000;
- h.S.tides.exploration.wild=[{id:'controller-rare',speciesId:'spectralpanther',level:10,x:24900,y:13000,expiresAt:Date.now()+300000}];
+ const h=harness(),c=h.context;c.zone={wasteland:true};c.world=W.create();h.hero.x=75200;h.hero.y=39000;
+ scriptedWild(h,{id:'controller-rare',speciesId:'spectralpanther',level:30,x:75300,y:39000,expiresAt:Date.now()+300000});
  vm.runInContext(section('function padInteract(){','/* B backs out.'),c);
  const near=c.padInteract();assert.ok(near,'controller can select the nearby neutral animal');assert.equal(near.s.id,'controller-rare');
  near.open();assert.equal(h.el('tideHub').hidden,false);assert.match(h.el('tideHubBody').innerHTML,/Spectral|spectral/);

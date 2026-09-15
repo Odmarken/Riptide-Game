@@ -1,6 +1,9 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const W=require('../assets/wasteland/world.js');
+const FullW=require('../assets/wasteland/world.js');
+// Preserve regression coverage for the authored region-local terrain. The new
+// continuous landmass is exercised separately by wasteland-biomes.test.cjs.
+const W={...FullW,create(key='wasteland',seed){const w=FullW.create(key,seed);return w.unified?w._regions.find(r=>r.key===key).world:w;}};
 
 function reachable(world,radius=30){
  const cols=world.w/W.CELL,rows=world.h/W.CELL,seen=new Set(),queue=[[Math.floor(world.spawn.x/W.CELL),Math.floor(world.spawn.y/W.CELL)]];
@@ -10,7 +13,7 @@ function reachable(world,radius=30){
  }
  return seen;
 }
-test('Wasteland is exactly fifteen City areas and contains no enemy spawns',()=>{
+test('the authored grass region remains exactly fifteen City areas with no enemy spawns',()=>{
  const w=W.create();assert.equal(w.w,50400);assert.equal(w.h,26000);assert.equal(w.w*w.h,15*16800*5200);assert.deepEqual(w.enemySpawns,[]);assert.deepEqual(w.portal,{x:-500,y:-500});
  assert.equal(w.entrances.length,3);assert.equal(new Set(w.entrances.map(e=>e.id)).size,3);
  for(const a of w.entrances){assert.ok(a.x>0&&a.y>0&&a.x<w.w&&a.y<w.h);for(const b of w.entrances)if(a!==b)assert.ok(Math.hypot(a.x-b.x,a.y-b.y)>16000);}
