@@ -256,7 +256,9 @@ const TideUI=(()=>{
  function storageOpen(){return !!el('p-tides')?.classList.contains('open');}
  function filteredPets(){
   const query=(el('tideSearch')?.value||'').trim().toLowerCase(),filter=el('tideFilter')?.value||'all';
-  return S.tides.pets.filter(p=>{const s=species(p.speciesId),n=Tides.stats(p)?.stars||s.stars;return (!query||(s.name+' '+parentNames(s)).toLowerCase().includes(query))&&(filter==='all'||filter==='favorites'&&p.favorite||filter==='ready'&&!remaining(p)&&!Tides.isTraining(S.tides,p.id)&&!Tides.isBreedingParent(S.tides,p.id)||filter==='training'&&Tides.isTraining(S.tides,p.id)||filter==='spectral'&&s.spectral||filter==='hybrids'&&!!s.parentA||filter==='mutations'&&mutation(p).count>0||String(n)===filter);});
+  // Collection order records when a Tide was received, including late-claimed hybrids.
+  // Reverse a copy so sorting the view never changes saved order or equipped IDs.
+  return S.tides.pets.slice().reverse().filter(p=>{const s=species(p.speciesId),n=Tides.stats(p)?.stars||s.stars;return (!query||(s.name+' '+parentNames(s)).toLowerCase().includes(query))&&(filter==='all'||filter==='favorites'&&p.favorite||filter==='ready'&&!remaining(p)&&!Tides.isTraining(S.tides,p.id)&&!Tides.isBreedingParent(S.tides,p.id)||filter==='training'&&Tides.isTraining(S.tides,p.id)||filter==='spectral'&&s.spectral||filter==='hybrids'&&!!s.parentA||filter==='mutations'&&mutation(p).count>0||String(n)===filter);});
  }
  function renderStorage(reset=true){
   if(!storageOpen()||storagePetId)return;
