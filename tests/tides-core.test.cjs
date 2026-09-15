@@ -155,6 +155,37 @@ test('wild spectral rolls stay at levels 25 to 30 even with a level-one companio
   assert.equal(T.rollWild(c,{rng:()=>0,level:1}).level,1);
 });
 
+test('all wild species respect their star minimum for automatic and explicit level rolls', () => {
+  const c=collection(),minimums=[1,5,10,15,20],total=T.catalog.reduce((sum,s)=>sum+s.encounterWeight,0);
+  let weight=0;
+  for(const species of T.catalog){
+    const ticket=(weight+species.encounterWeight/2)/total,min=species.spectral?25:minimums[species.stars-1];
+    weight+=species.encounterWeight;
+    assert.equal(T.wildMinLevel(species.id),min);assert.equal(T.wildMinLevel(species),min);
+    for(const level of [undefined,-10,1,min,min+1,30,99]){
+      const rolls=[ticket,0],wild=T.rollWild(c,{rng:()=>rolls.shift(),...(level===undefined?{}:{level})});
+      assert.equal(wild.speciesId,species.id);
+      assert.equal(wild.level,level===undefined?min:Math.min(30,Math.max(min,level)));
+    }
+    c.pets[0].level=30;
+    assert.equal(T.rollWild(c,{rng:()=>ticket}).level>=min,true);
+    assert.equal(T.rollWild(c,{rng:()=>ticket}).level<=30,true);
+    c.pets[0].level=1;
+  }
+});
+
+test('wild rarity minimums never promote owned Tides or a saved breeding result', () => {
+  const c=collection(),template=c.pets[0];
+  c.pets=T.allSpecies().map((s,i)=>({...clone(template),id:'tide-'+(i+1),speciesId:s.id,level:1,xp:3}));
+  c.nextId=c.pets.length+1;
+  assert.deepEqual(T.normalizeCollection(clone(c),2000).pets,c.pets);
+  const parents=c.pets.filter(p=>['spectralwyrm','obsidianbear'].includes(p.speciesId));
+  const started=T.startBreeding(c,{stationId:'floor-regression',parentAId:parents[0].id,parentBId:parents[1].id,now:2000,rng:()=>0});
+  assert.equal(started.ok,true);assert.equal(c.breedingJobs[0].offspring.level,1);
+  const loaded=T.normalizeCollection(clone(c),3000);
+  assert.deepEqual(loaded.breedingJobs[0].offspring,c.breedingJobs[0].offspring);
+});
+
 test('capturing a level 30 encounter preserves its level and victory XP can train past the former cap', () => {
   const c=collection('obsidianbear',20),pet=T.equipped(c);
   pet.xp=T.xpToNext(20)-1;

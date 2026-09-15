@@ -5,8 +5,11 @@
   root.TideTraining = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function (getTides) {
   'use strict';
-  const CONFIG = Object.freeze({MAX_SLOTS: 3, XP_PER_MINUTE: 6, MS_PER_XP: 10000});
+  // Integer credit units preserve exactly 3.9 XP/min without fractional save timestamps.
+  const XP_UNITS_PER_MS = 39, XP_UNITS = 600000;
+  const CONFIG = Object.freeze({MAX_SLOTS: 3, XP_PER_MINUTE: XP_UNITS_PER_MS * 60000 / XP_UNITS, MS_PER_XP: XP_UNITS / XP_UNITS_PER_MS});
   const finite = (x, fallback = 0) => typeof x === 'number' && Number.isFinite(x) ? x : fallback;
+  const remainder = job => Math.max(0, Math.min(XP_UNITS - 1, Math.floor(finite(job?.xpRemainder))));
   const timeOf = options => Math.min(Number.MAX_SAFE_INTEGER, Math.max(0, Math.floor(finite(typeof options?.now === 'function' ? options.now() : options?.now, Date.now()))));
   const jobs = c => Array.isArray(c?.training?.jobs) ? c.training.jobs : [];
   const clock = (c, options) => Math.max(timeOf(options), Math.min(Number.MAX_SAFE_INTEGER, Math.max(0, Math.floor(finite(c?.training?.lastNow)))));
@@ -30,7 +33,7 @@
       const pet = c.pets.find(p => p.id === saved?.petId), slot = saved?.slot;
       if (!pet || !Number.isInteger(slot) || slot < 0 || slot >= CONFIG.MAX_SLOTS || occupied.has(slot) || pets.has(pet.id) || T.isBreedingParent(c, pet.id)) continue;
       if (!Number.isSafeInteger(saved.startedAt) || saved.startedAt < 0 || !Number.isSafeInteger(saved.lastAccruedAt) || saved.lastAccruedAt < saved.startedAt) continue;
-      result.jobs.push({slot, petId: pet.id, startedAt: saved.startedAt, lastAccruedAt: saved.lastAccruedAt,
+      result.jobs.push({slot, petId: pet.id, startedAt: saved.startedAt, lastAccruedAt: saved.lastAccruedAt, xpRemainder: remainder(saved),
         totalXp: Math.max(0, Math.min(Number.MAX_SAFE_INTEGER, Math.floor(finite(saved.totalXp))))});
       result.lastNow = Math.max(result.lastNow, saved.lastAccruedAt);
       occupied.add(slot); pets.add(pet.id);
@@ -43,14 +46,18 @@
     for (const job of jobs(c)) {
       const pet = c.pets.find(p => p.id === job.petId);
       if (!pet) continue;
-      // Keep the high-water timestamp on clock rollback. Sub-XP time remains
-      // in the saved timestamp, so frequent ticks/reloads never lose progress.
-      const amount = Math.floor(Math.max(0, now - job.lastAccruedAt) / CONFIG.MS_PER_XP);
-      if (!amount || pet.level >= T.MAX_LEVEL) continue;
+      // Keep integer high-water timestamps on clock rollback. Uncredited time
+      // stays in the timestamp; after a payout, retain its exact fractional XP.
+      const elapsed = Math.max(0, now - job.lastAccruedAt), carried = remainder(job);
+      if (elapsed < Math.ceil((XP_UNITS - carried) / XP_UNITS_PER_MS) || pet.level >= T.MAX_LEVEL) continue;
       let capacity = -pet.xp;
       for (let level = pet.level; level < T.MAX_LEVEL; level++) capacity += T.xpToNext(level);
-      const gained = Math.min(amount, capacity), levels = T.addXp(pet, gained);
-      job.lastAccruedAt += amount * CONFIG.MS_PER_XP; job.totalXp += gained;
+      // Once level 30 is reached, excess time is irrelevant. Bound the multiplication
+      // so even an extreme saved clock cannot exceed integer precision.
+      const neededMs = Math.ceil((capacity * XP_UNITS - carried) / XP_UNITS_PER_MS);
+      const units = carried + Math.min(elapsed, neededMs) * XP_UNITS_PER_MS;
+      const gained = Math.min(Math.floor(units / XP_UNITS), capacity), levels = T.addXp(pet, gained);
+      job.lastAccruedAt = now; job.xpRemainder = pet.level >= T.MAX_LEVEL ? 0 : units % XP_UNITS; job.totalXp += gained;
       result.changed = true; result.xp += gained; result.levels += levels; result.pets.push({petId: pet.id, xp: gained, levels});
     }
     return result;
@@ -62,7 +69,7 @@
       if (!pet) return {slot, empty: true};
       return {...job, empty: false, pet, maxLevel: pet.level >= T.MAX_LEVEL,
         elapsedMs: Math.max(0, time - job.startedAt),
-        nextXpMs: pet.level >= T.MAX_LEVEL ? 0 : Math.max(0, job.lastAccruedAt + CONFIG.MS_PER_XP - time)};
+        nextXpMs: pet.level >= T.MAX_LEVEL ? 0 : Math.max(0, Math.ceil((XP_UNITS - remainder(job)) / XP_UNITS_PER_MS) - Math.max(0, time - job.lastAccruedAt))};
     });
   }
   function start(c, petId, options = {}) {
@@ -76,7 +83,7 @@
     const wasEquipped = c.equippedId === pet.id, wasVisible = c.visibleId === pet.id;
     if (wasEquipped) c.equippedId = null;
     if (wasVisible) c.visibleId = null;
-    const job = {slot, petId: pet.id, startedAt: now, lastAccruedAt: now, totalXp: 0};
+    const job = {slot, petId: pet.id, startedAt: now, lastAccruedAt: now, xpRemainder: 0, totalXp: 0};
     c.training = {version: 1, lastNow: now, jobs: [...jobs(c), job]};
     return {ok: true, pet, job: {...job}, wasEquipped, wasVisible};
   }

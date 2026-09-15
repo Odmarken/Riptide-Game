@@ -2,7 +2,7 @@
  * nearby cells are materialized; a character saves captures and roaming state. */
 (function(root){
  'use strict';
- const {MAX_LEVEL,SPECTRAL_MIN_LEVEL}=typeof module==='object'&&module.exports?require('./core.js'):root.Tides;
+ const {MAX_LEVEL,SPECTRAL_MIN_LEVEL,wildMinLevel}=typeof module==='object'&&module.exports?require('./core.js'):root.Tides;
  const WIDTH=50400,HEIGHT=26000,CELL_SIZE=512,COLS=Math.ceil(WIDTH/CELL_SIZE),ROWS=Math.ceil(HEIGHT/CELL_SIZE);
  const MAX_WILD=64,MAX_CELLS=100,LOAD_MARGIN=256,MAX_LOAD_RADIUS=2600,SPAWN_CHANCE=.90,REFRESH_MS=600000;
  const SEPARATION=120,ROAM_RADIUS=60,ROAM_SPEED=16;
@@ -25,7 +25,7 @@
  ]);
  const IDS=new Set(GROUPS.flat()),clamp=(n,a,b)=>Math.max(a,Math.min(b,n)),number=(n,f)=>Number.isFinite(n)?n:f;
  const integer=(n,f,min=0,max=Number.MAX_SAFE_INTEGER)=>clamp(Math.floor(number(n,f)),min,max);
- const spectralFloor=Math.min(SPECTRAL_MIN_LEVEL,MAX_LEVEL),wildLevel=(id,level)=>integer(level,1,id.startsWith('spectral')?spectralFloor:1,MAX_LEVEL);
+ const spectralFloor=Math.min(SPECTRAL_MIN_LEVEL,MAX_LEVEL),wildLevel=(id,level)=>integer(level,1,wildMinLevel(id),MAX_LEVEL);
  const position=p=>!!p&&Number.isFinite(p.x)&&Number.isFinite(p.y);
  function hash(a,b,c,d=0){let n=(Math.imul(a,73856093)^Math.imul(b,19349663)^Math.imul(c,83492791)^d)>>>0;n=Math.imul(n^(n>>>16),0x7feb352d);n=Math.imul(n^(n>>>15),0x846ca68b);return (n^(n>>>16))>>>0;}
  function rng(seed){return ()=>{seed=(seed+0x6d2b79f5)>>>0;let t=seed;t=Math.imul(t^(t>>>15),1|t);t^=t+Math.imul(t^(t>>>7),61|t);return ((t^(t>>>14))>>>0)/4294967296;};}
@@ -87,7 +87,12 @@
   if(tier===4){if(r>=.9996)return GROUPS[4][random()<.5?3:4];return GROUPS[4][Math.floor(random()*3)];}
   return GROUPS[tier][Math.floor(random()*GROUPS[tier].length)];
  }
- function chooseLevel(random,petLevel,speciesId){const level=integer(petLevel,1,1,MAX_LEVEL),r=random(),v=random();if(speciesId.startsWith('spectral'))return spectralFloor+Math.floor(v*(MAX_LEVEL-spectralFloor+1));if(r<.30)return 1+Math.floor(v*Math.max(3,level-3));if(r<.85)return clamp(level-3+Math.floor(v*7),1,MAX_LEVEL);return clamp(level+3+Math.floor(v*6),1,MAX_LEVEL);}
+ function chooseLevel(random,petLevel,speciesId){
+  const level=integer(petLevel,1,1,MAX_LEVEL),r=random(),v=random();
+  if(speciesId.startsWith('spectral'))return spectralFloor+Math.floor(v*(MAX_LEVEL-spectralFloor+1));
+  const rolled=r<.30?1+Math.floor(v*Math.max(3,level-3)):r<.85?level-3+Math.floor(v*7):level+3+Math.floor(v*6);
+  return wildLevel(speciesId,rolled);
+ }
  function clearPosition(state,context,x,y,ignore,spacing=true){
   const world=context.world,edge=24,w=number(context.width,number(world&&world.w,WIDTH)),h=number(context.height,number(world&&world.h,HEIGHT));
   if(x<edge||y<edge||x>w-edge||y>h-edge)return false;

@@ -4,6 +4,7 @@ function context(extra={}){const c={worldKey:'wasteland',hasLasso:true,x:25000,y
 function setup(extra={},seed=73521){const state=E.create(null,{seed}),c=context(extra);E.advance(state,c);return {state,c};}
 function at(c,x,y){return {...c,x,y,view:{x:x-504,y:y-430,w:1008,h:860}};}
 function identity(wild){return wild.map(p=>[p.id,p.speciesId,p.level,p.homeX,p.homeY,p.expiresAt]).sort((a,b)=>a[0].localeCompare(b[0]));}
+function minLevel(p){const species=T.getSpecies(p.speciesId);return species.spectral?25:[1,5,10,15,20][species.stars-1];}
 
 test('random encounters belong to world coordinates regardless of approach, mount speed or visit order',()=>{
  const a=setup(),b=setup();
@@ -40,7 +41,7 @@ test('world samples retain every species and tier rarity with uniform species od
   for(let yy=1024;yy<E.HEIGHT+1024;yy+=2048)for(let xx=1024;xx<E.WIDTH+1024;xx+=2048){
    const x=Math.min(E.WIDTH-128,xx),y=Math.min(E.HEIGHT-128,yy),c=context({x,y,view:{x:x-1024,y:y-1024,w:2048,h:2048}});
    E.advance(state,c);
-   for(const p of state.wild)if(!seen.has(p.id)){seen.add(p.id);counts.set(p.speciesId,(counts.get(p.speciesId)||0)+1);levels.add(p.level);total++;}
+   for(const p of state.wild)if(!seen.has(p.id)){seen.add(p.id);counts.set(p.speciesId,(counts.get(p.speciesId)||0)+1);levels.add(p.level);total++;assert.ok(p.level>=minLevel(p)&&p.level<=30,p.speciesId+' star minimum');}
   }
  }
  const fractions=E.GROUPS.map(g=>g.reduce((n,id)=>n+(counts.get(id)||0),0)/total);
@@ -133,9 +134,11 @@ test('old survey migration changes only transient exploration and malformed save
  for(const value of [null,[],4,'wrong',{}, {wild:'wrong',taken:'wrong'}])assert.equal(E.create(value,{seed:1}).wild.length,0);
 });
 
-test('scripted encounters remain challengeable and consumed exactly once without cell tombstones',()=>{
- const {state,c}=setup(),p={id:'scripted',speciesId:'spectralwyrm',level:20,x:c.x,y:c.y,expiresAt:c.now+10000};state.wild.push(p);
- E.advance(state,c);assert.ok(state.wild.includes(p));assert.equal(E.take(state,p.id,c.now),p);assert.equal(E.take(state,p.id,c.now),null);assert.equal(state.taken.length,0);
+test('scripted encounters respect star minimums and are consumed exactly once without cell tombstones',()=>{
+ for(const species of T.catalog){
+  const {state,c}=setup(),p={id:'scripted',speciesId:species.id,level:1,x:c.x,y:c.y,expiresAt:c.now+10000};state.wild.push(p);
+  E.advance(state,c);assert.ok(state.wild.includes(p));assert.equal(p.level,minLevel(p));assert.equal(E.take(state,p.id,c.now),p);assert.equal(E.take(state,p.id,c.now),null);assert.equal(state.taken.length,0);
+ }
 });
 
 test('high level companions discover levels21 through30 while normal wilds and saved epoch baselines retain their levels',()=>{
@@ -155,13 +158,34 @@ test('high level companions discover levels21 through30 while normal wilds and s
 test('both spectral species spawn at levels25 to30 even with a level1 companion and old wild saves migrate safely',()=>{
  for(const [seed,id]of [[988,'spectralpanther'],[632,'spectralwyrm']]){
   const {state,c}=setup({petLevel:1,view:{x:0,y:0,w:E.WIDTH,h:E.HEIGHT}},seed),p=state.wild.find(p=>p.speciesId===id);assert.ok(p,id+' generated from its natural cell');
-  assert.ok(p.level>=25&&p.level<=30);assert.ok(state.wild.filter(p=>!p.speciesId.startsWith('spectral')).every(p=>p.level<=9),'ordinary early encounters retain their low level range');
+  assert.ok(p.level>=25&&p.level<=30);assert.ok(state.wild.filter(p=>!p.speciesId.startsWith('spectral')).every(p=>p.level>=minLevel(p)&&p.level<=Math.max(9,minLevel(p))),'ordinary early encounters retain their level roll subject to star minimums');
   const oldIdentity=[p.id,p.homeX,p.homeY,p.speciesId,p.expiresAt];p.level=3;
   const restored=E.create(JSON.parse(JSON.stringify(state))),loaded=restored.wild.find(w=>w.id===p.id);assert.equal(loaded.level,25);
   assert.deepEqual([loaded.id,loaded.homeX,loaded.homeY,loaded.speciesId,loaded.expiresAt],oldIdentity);
   E.advance(state,c);assert.equal(p.level,25,'already loaded old wilds are corrected without a reload');
   loaded.level=30;const roundTrip=E.create(JSON.parse(JSON.stringify(restored)));assert.equal(roundTrip.wild.find(w=>w.id===p.id).level,30);
   assert.ok(E.take(roundTrip,p.id,c.now));const savedCapture=E.create(JSON.parse(JSON.stringify(roundTrip)));E.advance(savedCapture,c);assert.ok(!savedCapture.wild.some(w=>w.id===p.id),'level migration cannot restore a captured cell');
+ }
+});
+
+test('saved and in-memory wilds gain only missing rarity levels in every biome without rerolling or restoring captures',()=>{
+ const {state,c}=setup({petLevel:1,view:{x:0,y:0,w:E.WIDTH,h:E.HEIGHT}});
+ for(const key of E.WORLD_KEYS)E.advance(state,{...c,worldKey:key});
+ for(const species of T.catalog){
+  const raw=JSON.parse(JSON.stringify(state)),expected=JSON.parse(JSON.stringify(state));
+  for(const key of E.WORLD_KEYS){
+   const old=E.forWorld(raw,key).wild[0],corrected=E.forWorld(expected,key).wild[0];
+   old.speciesId=corrected.speciesId=species.id;old.level=1;corrected.level=minLevel(old);
+  }
+  const restored=E.create(raw);assert.deepEqual(restored,expected,'only under-level wild levels change on reload');
+  for(const key of E.WORLD_KEYS)E.advance(raw,{...c,worldKey:key});
+  assert.deepEqual(raw,expected,'live state uses the same minimum after visiting each biome');
+  for(const key of E.WORLD_KEYS){
+   const region=E.forWorld(restored,key),wild=region.wild[0];
+   assert.equal(E.take(restored,wild.id,c.now),wild);
+   const reloaded=E.create(JSON.parse(JSON.stringify(restored)));E.advance(reloaded,{...c,worldKey:key});
+   assert.ok(!E.forWorld(reloaded,key).wild.some(p=>p.id===wild.id),'migration preserves consumed cells');
+  }
  }
 });
 
@@ -222,7 +246,7 @@ test('snow and desert use the same rarity and spectral level rules while trainin
   const found=new Set(),spectralLevels=new Set();let total=0;
   for(let seed=1;seed<=3000;seed++){
    const state=E.create(null,{seed}),wild=E.advance(state,context({worldKey:key,petLevel:1,view:{x:0,y:0,w:E.WIDTH,h:E.HEIGHT}}));
-   for(const p of wild){found.add(p.speciesId);total++;if(p.speciesId.startsWith('spectral'))spectralLevels.add(p.level);}
+   for(const p of wild){found.add(p.speciesId);total++;assert.ok(p.level>=minLevel(p)&&p.level<=30,p.speciesId+' star minimum');if(p.speciesId.startsWith('spectral'))spectralLevels.add(p.level);}
   }
   assert.equal(found.size,25,key+' retains all original species');assert.ok(total>26000&&total<34000);
   assert.ok(spectralLevels.size>0);assert.ok([...spectralLevels].every(level=>level>=25&&level<=30));

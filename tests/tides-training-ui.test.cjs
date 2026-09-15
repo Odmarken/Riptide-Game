@@ -10,7 +10,7 @@ function harness(){
 }
 test('training menu shows three places and the passive rate; only a nearby living character can enter',()=>{
  const c=harness();c.access=false;assert.equal(c.openTraining(),false);c.access=true;c.hero.dead=true;assert.equal(c.openTraining(),false);c.hero.dead=false;
- assert.equal(c.openTraining(),true);assert.equal((c.el('tideHubBody').innerHTML.match(/data-training-slot=/g)||[]).length,3);assert.match(c.el('tideHubBody').innerHTML,/6 XP per minute/);assert.match(c.el('tideHubBody').innerHTML,/unequips and hides/);
+ assert.equal(c.openTraining(),true);assert.equal((c.el('tideHubBody').innerHTML.match(/data-training-slot=/g)||[]).length,3);assert.match(c.el('tideHubBody').innerHTML,/3\.9 XP per minute/);assert.match(c.el('tideHubBody').innerHTML,/unequips and hides/);
 });
 test('deposit and collection update the same collection, save immediately, and repeated clicks cannot duplicate slots or pets',()=>{
  const c=harness(),id=c.S.tides.pets[0].id;c.openTraining();c.trainingPicker=1;const before=c.saves;
@@ -24,7 +24,7 @@ test('stale menus cannot alter another character, a distant station or an ongoin
 });
 test('background ticking saves newly earned XP once without requiring the training menu to be open',()=>{
  const c=harness(),id=c.S.tides.pets[0].id;Tides.startTraining(c.S.tides,id,{now:Date.now()-61000});c.hubMode='';const before=c.saves;
- c.tickTraining();assert.equal(c.S.tides.pets[0].xp,6);assert.equal(c.saves,before+1);c.tickTraining();assert.equal(c.saves,before+1);
+ c.tickTraining();assert.equal(c.S.tides.pets[0].xp,3);assert.equal(c.saves,before+1);c.tickTraining();assert.equal(c.saves,before+1);
 });
 test('training pets are excluded from Ready for battle but remain searchable under Training and Favorites',()=>{
  const c=harness(),p=c.S.tides.pets[0];Tides.startTraining(c.S.tides,p.id);p.favorite=true;

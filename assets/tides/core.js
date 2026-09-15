@@ -20,6 +20,10 @@
   const nowOf = options => Math.max(0, number(typeof options?.now === 'function' ? options.now() : options?.now, Date.now()));
   const random = rng => clamp(number((rng || Math.random)(), 0), 0, 0.999999999999);
   const getSpecies = id => byId.get(typeof id === 'string' ? id : id?.speciesId || id?.id) || null;
+  const wildMinLevel = speciesOrId => {
+    const species = getSpecies(speciesOrId);
+    return species?.spectral ? SPECTRAL_MIN_LEVEL : Math.max(1, ((species?.stars || 1) - 1) * 5);
+  };
   const pairKey = (a, b) => [a, b].sort().join('--');
   const getHybrid = (a, b) => hybridByParents.get(pairKey(a, b)) || null;
   const emptyMutations = () => ({hp: 0, attack: 0, power: 0, sixStar: false});
@@ -245,7 +249,7 @@
     const total = catalog.reduce((sum, species) => sum + species.encounterWeight, 0);
     let ticket = random(options.rng) * total;
     const species = catalog.find(item => (ticket -= item.encounterWeight) < 0) || catalog[catalog.length - 1];
-    const minLevel = species.spectral ? SPECTRAL_MIN_LEVEL : 1;
+    const minLevel = wildMinLevel(species);
     const level = options.level === undefined ? species.spectral
       ? minLevel + Math.floor(random(options.rng) * (MAX_LEVEL - minLevel + 1))
       : (equipped(c)?.level || 1) + Math.floor(random(options.rng) * 5) - 2 : options.level;
@@ -429,5 +433,5 @@
     claimBreeding: (c, stationId, options) => breeding.claim(c, stationId, options),
     eligibleBreedingParents: (c, options) => breeding.eligibleParents(c, options).filter(p => !isTraining(c, p.id)),
     getSpecies, stats, xpToNext, equipped, equip, remainingInjury, purchaseLasso, awardWorldXp,
-    rollWild, beginBattle, act, finishBattle, abandonBattle});
+    wildMinLevel, rollWild, beginBattle, act, finishBattle, abandonBattle});
 });

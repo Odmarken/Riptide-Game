@@ -4358,9 +4358,9 @@ function buildCity(R){
   {x:WI,y:cy+GH,w:WT,h:H-(cy+GH)},                       /* west, below the gate */
   {x:W-WIN,y:0,w:WT,h:H},                                /* east */
  ];
- /* The runs are painted as a single pattern-filled band in drawCityGround: laying 620-wide sprites
+ /* The runs are painted as continuous bands: laying 620-wide sprites
     end to end showed every join, and the old perspective side-wall art cascaded diagonally when
-    stacked. The gatehouse is the one remaining sprite, drawn there too. */
+    stacked. The south run is a foreground layer so actors walk behind its raised facade. */
 
  /* --- townsfolk, each looping between points on real streets --- */
  const onStreet=()=>{
@@ -4501,17 +4501,23 @@ function drawCityGround(){
  drawCityWalls();
  ctx.strokeStyle='rgba(0,0,0,0.35)';ctx.lineWidth=26;ctx.strokeRect(0,0,world.w,world.h);
 }
-/* 🧱 the curtain wall runs, as four pattern-filled bands. A pattern repeats in world space, so the
-   stonework simply continues for 16800 units with no joins to hide. The west run is split around
-   the gateway. Culled per run, and the whole thing is skipped while the art is still loading. */
-function drawCityWalls(){
+/* 🧱 Continuous tiled wall bands. Split at the south facade so it covers actors and effects,
+   preserving the side strips' corner overlap without painting transparent edges twice. */
+function drawCityWalls(foreground=false){
  const ih=cityImg('wall_strip_h'),iv=cityImg('wall_strip_v');
  if(!(ih.complete&&ih.naturalWidth&&iv.complete&&iv.naturalWidth))return;
  const W=world.w,H=world.h,cy=H/2;
  const WI=60,WT=140,WIN=WI+WT,GH=150;
  const hh=ih.naturalHeight;      /* the art is authored at its world height */
  const vw=iv.naturalWidth;
- const vx0=camX,vy0=camY,vx1=camX+VW/zoom,vy1=camY+VH/zoom;
+ const southY=H-WI-hh;
+ /* A shared device-pixel boundary avoids an antialiased seam at fractional camera positions. */
+ const wallTransform=ctx.getTransform();
+ const splitY=(Math.floor(southY*wallTransform.d+wallTransform.f)-wallTransform.f)/wallTransform.d;
+ const vx0=camX,vx1=camX+VW/zoom;
+ const vy0=foreground?Math.max(camY,splitY):camY;
+ const vy1=foreground?camY+VH/zoom:Math.min(camY+VH/zoom,splitY);
+ if(vy1<=vy0)return;
  /* Lay the wall as tiled blits, not as a pattern fill.
     Clipping the fills to the camera - which is what used to happen here - made no measurable
     difference, because the cost was never the area. A CanvasPattern is anchored in world space, so
@@ -4533,7 +4539,7 @@ function drawCityWalls(){
   ctx.restore();
  };
  band(0,WIN-hh,W,hh,ih,true);                              /* north - stands up from the inner face */
- band(0,H-WI-hh,W,hh,ih,true);                             /* south */
+ band(0,southY,W,hh,ih,true);                              /* south - covers actors behind the wall */
  band(WIN-vw,0,vw,cy-GH,iv,false);                          /* west, above the gateway */
  band(WIN-vw,cy+GH,vw,H-(cy+GH),iv,false);                  /* west, below it */
  band(W-WIN,0,vw,H,iv,false);                               /* east */
@@ -7943,6 +7949,7 @@ function draw(){
   }else{ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();}
   ctx.globalAlpha=1;
  }
+ if(z.city)drawCityWalls(true); /* the raised south facade also covers mounts, companions and particles */
  for(const f of TideUI.isBattling()?[]:floats){
   ctx.font=(f.big?'700 15px':'700 12.5px')+' '+getComputedStyle(document.body).fontFamily;
   ctx.textAlign='center';ctx.globalAlpha=1-f.t;
