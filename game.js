@@ -151,7 +151,7 @@ function charSprite(raceId,clsId,female){
  if(!CHAR_SPRITES[key])return null;
  let im=charSpriteCache[key];
  if(!im){
-  im=new Image();im.src='assets/characters/'+key+'.png';charSpriteCache[key]=im;
+  im=new Image();im.src='assets/characters/'+key+'.png'+(female&&clsId!=='armor'?'?v=2':'');charSpriteCache[key]=im;
   im.onload=()=>{ /* portraits render before sprites finish loading - repaint the open screens */
    try{
     if($('select').classList.contains('open'))renderSelect();
@@ -8985,7 +8985,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g.beginPath();g.arc(bcx+2.9,bcy-1.1,1,0,7);g.fill();
  }
  } /* end procedural body (skipped when a painted race sprite exists) */
- /* Armor grips follow the painted gauntlet, including the body's running rock. */
+ /* Reviewed grips follow the painted hand, including the body's running rock. */
  const pw=!!frame;
  const hand=pw?characterHandPoint(frame,fx,by):{x:fx*9,y:-6+by};
  g.save();g.translate(hand.x,hand.y);

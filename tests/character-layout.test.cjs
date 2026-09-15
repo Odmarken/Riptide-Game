@@ -95,7 +95,8 @@ function harness(overrides = {}) {
     return match[0];
   }).join('\n');
   vm.runInContext(`${layout}\n${aliases}\nglobalThis.bounds=CHARACTER_BOUNDS;
-    globalThis.armorHands=ICE_ARMOR_HANDS;`, context);
+    globalThis.armorHands=ICE_ARMOR_HANDS;
+    globalThis.costumeHands=FEMALE_COSTUME_HANDS;`, context);
   // Use the shipped UV points and actual emitter. Painting is recorded above;
   // its colour/alpha pipeline is covered separately in rune-effects.test.cjs.
   vm.runInContext(`${runeProfiles}\nfunction runeUnder(g,rune,image){
@@ -261,17 +262,33 @@ test('all eight armor hand points touch solid gauntlets and are shared across th
   }
 });
 
-test('armor weapon origins match the actual rendered gauntlet through facing, running and dancing', () => {
+test('reviewed female costume hands touch solid art and use the correct source coordinates', () => {
+  const { context } = harness();
+  const names = races.flatMap(race => classes.map(cls => `${race}female_${cls}`));
+  assert.deepEqual(Object.keys(context.costumeHands).sort(), names.sort());
+  for (const name of names) {
+    const im = png(name), [x, y] = context.costumeHands[name];
+    assert.ok(Number.isInteger(x) && Number.isInteger(y) && x >= 0 && x < im.width && y >= 0 && y < im.height, name);
+    assert.ok(im.alpha(x, y) > 128, `${name}: reviewed grip must touch the hand or sleeve opening`);
+    const frame = context.characterBodyFrame(image(name));
+    close((frame.hand.x - frame.x) * im.width / frame.width, x, `${name}: source hand x`);
+    close((frame.hand.y - frame.y) * im.height / frame.height, y, `${name}: source hand y`);
+  }
+});
+
+test('armor and female costume weapon origins follow the painted hand through facing, running and dancing', () => {
   const h = harness();
   // An outer scene transform catches attachment coordinates accidentally being
   // returned in screen space or transformed twice by a portrait/world caller.
   h.context.ctx.translate(240, -35); h.context.ctx.rotate(.21); h.context.ctx.scale(1.7, 1.7);
   const outer = h.context.ctx.getTransform();
-  for (const race of races) for (const female of [false, true]) for (const cls of classes) {
-    const name = `${race}${female ? 'female' : 'male'}_armor`, [sx, sy] = h.context.armorHands[name];
+  for (const race of races) for (const female of [false, true]) for (const cls of classes) for (const armor of [true, false]) {
+    if (!armor && !female) continue;
+    const name = `${race}${female ? 'female' : 'male'}_${armor ? 'armor' : cls}`;
+    const [sx, sy] = (armor ? h.context.armorHands : h.context.costumeHands)[name];
     for (const fx of [-1, -.001, 0, .001, 1]) for (const by of [-6, -1.8, 0, 1.8]) {
       h.draws.length = 0;
-      h.context.drawChampionSprite(h.context.ctx, race, cls, fx, by, .18, false, null, female, 2, true, null);
+      h.context.drawChampionSprite(h.context.ctx, race, cls, fx, by, .18, false, null, female, 2, armor, null);
       assert.equal(h.draws.length, 2);
       const [body, weapon] = h.draws, [x, y, width, height] = body.rect;
       const expected = pointAt(body.matrix,
@@ -285,17 +302,17 @@ test('armor weapon origins match the actual rendered gauntlet through facing, ru
   }
 });
 
-test('unarmored and dimension-mismatched sprites retain the ordinary weapon anchor', () => {
+test('ordinary male and dimension-mismatched sprites retain the fixed weapon anchor', () => {
   const { context } = harness();
-  const frames = heroes.filter(name => !name.endsWith('_armor')).map(name => context.characterBodyFrame(image(name)));
-  for (const name of heroes.filter(name => name.endsWith('_armor'))) {
+  const frames = heroes.filter(name => !name.endsWith('_armor') && !name.includes('female')).map(name => context.characterBodyFrame(image(name)));
+  for (const name of heroes.filter(name => name.endsWith('_armor') || name.includes('female'))) {
     const original = image(name);
     frames.push(context.characterBodyFrame({ ...original, naturalWidth: original.naturalWidth + 1 }));
     frames.push(context.characterBodyFrame({ ...original, naturalHeight: original.naturalHeight + 1 }));
   }
   frames.push(context.characterBodyFrame(image('humanmale_armor', { src: 'assets/characters/unreviewed_armor.png' })));
   for (const frame of frames) {
-    assert.equal(frame.hand, null, 'Only the reviewed original armor dimensions opt in');
+    assert.equal(frame.hand, null, 'Only reviewed costume dimensions opt in');
     for (const fx of [-1, -.001, 0, .001, 1]) for (const by of [-6, -1.8, 0, 1.8]) {
       const hand = context.characterHandPoint(frame, fx, by);
       close(hand.x, fx * 11); close(hand.y, -1 + by);

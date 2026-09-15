@@ -1,0 +1,3632 @@
+{
+  "version": 1,
+  "sourceCommit": "7a2d9c8bb85de250e078d2d10770b7d4d75647c6",
+  "description": "Compact female playable class costumes with complete opaque hems. Heads, faces and hair are preserved from the original sprites; shared game boots remain separate.",
+  "scope": {
+    "races": [
+      "human",
+      "dwarf",
+      "orc",
+      "undead"
+    ],
+    "classes": [
+      "warrior",
+      "mage",
+      "hunter",
+      "priest"
+    ],
+    "excluded": [
+      "male characters",
+      "NPCs",
+      "Ice Armor skins"
+    ]
+  },
+  "assets": [
+    {
+      "file": "assets/characters/humanfemale_warrior.png",
+      "sha256": "4e5f769eb43992cddf2b18955a04d5fef490cf9e2c28fd70c6385c17f5d28c52",
+      "bounds": [
+        565,
+        644,
+        70,
+        18,
+        430,
+        602
+      ],
+      "hand": [
+        113,
+        589
+      ],
+      "generation": {
+        "service": "Higgsfield",
+        "jobId": "f13a7b4c-cfe6-4895-b548-bc19879fad7a",
+        "resultUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260915_221457_f13a7b4c-cfe6-4895-b548-bc19879fad7a.png",
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:4",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/humanfemale_warrior.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/humanmale_warrior.png"
+          }
+        ],
+        "prompt": "Use case: precise-object-edit. Edit the FEMALE playable adult fantasy hero in IMAGE 1 for Riptide RPG. IMAGE 2 is only the matching MALE costume proportion and hem reference. The identity, exact face, eyes, expression, hairstyle, hair color, head shape and all details above the neck of image 1 are LOCKED: do not redesign them. Keep the same female character, palette, costume materials and overall outfit, the existing fitted feminine bodice and its tasteful U-shaped neckline/covered bust silhouette. Fix only the overly long lower torso and the cropped/awkward skirt: build a complete, properly finished, SHORT COMPACT CHIBI costume body with a continuous opaque robe or armored skirt from the waist down to the bottom hem, proportioned like image 2. Head should be large, approximately 44-47 percent of the head-to-hem height, shoulders broad enough and torso short, NOT a tall slim human fashion illustration. No visible legs, knees, thighs or calves anywhere; no slit opening; no trousers or detached feet. The game adds boots separately underneath the hem, so end this sprite at the finished hem, with both gloved hands reaching near hem height. No boots or shoes in this image. The whole hem must be visible, rounded at the lower corners and uncut, clean intentional tailored folds or armor plates. Do not simply stretch the skirt downward. Do not expose more skin than image 1. The warrior must retain her metal chestplate and layered pauldrons; the priest her ivory and gold robe and shawl. Match thick crisp dark outlines and rich painted material shading exactly. Same front-facing idle pose, arms resting at sides, no weapon, no effects, no floor or shadow, no labels. One whole head-to-hem sprite centered with 5% clear margin. True transparent RGBA background, opaque painted subject. Keep image 1's face and head unchanged.\nThis specific sprite is: human female warrior."
+      },
+      "finishing": "Generated compact costume registered beneath original head and hair; original protected pixels restored without resampling.",
+      "preservation": {
+        "key": "humanfemale_warrior",
+        "generatedKey": "humanfemale_warrior",
+        "width": 565,
+        "height": 644,
+        "padX": 64,
+        "padY": 16,
+        "hem": 604,
+        "chinRatio": 0.4601328903654485,
+        "registration": {
+          "cost": 872.4677506046762,
+          "scale": 0.31100000000000005,
+          "tx": -49.57000000000005,
+          "dy": -4,
+          "dx": 2,
+          "points": 7442,
+          "originalBounds": [
+            3,
+            2,
+            435,
+            697
+          ],
+          "generatedBounds": [
+            179,
+            13,
+            1561,
+            2250
+          ]
+        },
+        "protectedPolygons": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              437,
+              0
+            ],
+            [
+              437,
+              290
+            ],
+            [
+              0,
+              290
+            ]
+          ],
+          [
+            [
+              51,
+              250
+            ],
+            [
+              135,
+              250
+            ],
+            [
+              138,
+              273
+            ],
+            [
+              121,
+              285
+            ],
+            [
+              108,
+              273
+            ],
+            [
+              93,
+              296
+            ],
+            [
+              82,
+              318
+            ],
+            [
+              51,
+              324
+            ]
+          ],
+          [
+            [
+              285,
+              250
+            ],
+            [
+              386,
+              250
+            ],
+            [
+              386,
+              321
+            ],
+            [
+              362,
+              323
+            ],
+            [
+              339,
+              298
+            ],
+            [
+              326,
+              277
+            ],
+            [
+              315,
+              273
+            ]
+          ]
+        ],
+        "protectedPixels": 129150,
+        "visibleProtected": 82615,
+        "rgbaChannelMismatches": 0,
+        "protectedSourceHash": "4f0eda116cfd7482c1a8f7291d6409250dc104568b4765fdf9cf6736f89fb791",
+        "protectedOutputHash": "4f0eda116cfd7482c1a8f7291d6409250dc104568b4765fdf9cf6736f89fb791",
+        "finalBounds": [
+          70,
+          18,
+          500,
+          620
+        ]
+      }
+    },
+    {
+      "file": "assets/characters/humanfemale_mage.png",
+      "sha256": "083985df0b67f29640604cafab965931e2c932e9c949cfee35cffda20e1886b7",
+      "bounds": [
+        589,
+        646,
+        67,
+        18,
+        453,
+        602
+      ],
+      "hand": [
+        124,
+        602
+      ],
+      "generation": {
+        "service": "Higgsfield",
+        "jobId": "357e179a-ffb6-42c4-8298-038f3bd0ce2f",
+        "resultUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260915_222239_357e179a-ffb6-42c4-8298-038f3bd0ce2f.png",
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:4",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/humanmale_mage.png"
+          }
+        ],
+        "prompt": "Game equipment art: an EMPTY SMALL PURPLE MAGE ROBE, neck opening to finished lower hem only, as a headless clothing inventory sprite. Adapt the clothing materials/colors of the supplied reference: deep indigo and violet rune-trimmed fabric, blue shoulder cape, wide black waist sash, two relaxed flared long sleeves. A COMPACT short rounded opaque robe with finished gold-violet border at the bottom; solid continuous front with no slit, no legs, no feet. Broad chibi-costume proportions, short torso, no tall silhouette. EMPTY GARMENT: NO PERSON, NO HEAD, NO FACE, NO HAIR, NO BODY OR SKIN, NO BUST CONTOURS, NO HANDS. Closed opaque chest, this is a standalone modest clothing item on invisible mannequin. Thick dark outline, rich painted fantasy shading like reference. Clear transparent background, entire robe within the frame with padding. No text, no weapon, no floor. This image will supply only the LOWER robe/sleeve hem region for an existing in-game character; the original upper torso and head will be preserved unchanged separately."
+      },
+      "finishing": "Original head, hair and upper costume retained; generated empty garment supplies the finished lower robe.",
+      "preservation": {
+        "key": "humanfemale_mage",
+        "generatedKey": "humanfemale_mage",
+        "width": 589,
+        "height": 646,
+        "padX": 64,
+        "padY": 16,
+        "hem": 606,
+        "chinRatio": 0.4602649006622517,
+        "registration": {
+          "cost": 0,
+          "originalBounds": [
+            3,
+            2,
+            456,
+            591
+          ],
+          "generatedBounds": [
+            26,
+            392,
+            1717,
+            2057
+          ],
+          "mode": "original upper costume plus empty generated lower robe only"
+        },
+        "protectedPolygons": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              461,
+              0
+            ],
+            [
+              461,
+              291
+            ],
+            [
+              0,
+              291
+            ]
+          ],
+          [
+            [
+              60,
+              252
+            ],
+            [
+              151,
+              252
+            ],
+            [
+              142,
+              274
+            ],
+            [
+              121,
+              290
+            ],
+            [
+              112,
+              309
+            ],
+            [
+              103,
+              327
+            ],
+            [
+              94,
+              354
+            ],
+            [
+              85,
+              381
+            ],
+            [
+              63,
+              390
+            ]
+          ],
+          [
+            [
+              292,
+              252
+            ],
+            [
+              394,
+              252
+            ],
+            [
+              394,
+              391
+            ],
+            [
+              374,
+              390
+            ],
+            [
+              366,
+              359
+            ],
+            [
+              355,
+              339
+            ],
+            [
+              346,
+              316
+            ],
+            [
+              322,
+              293
+            ],
+            [
+              305,
+              282
+            ]
+          ]
+        ],
+        "protectedPixels": 141732,
+        "visibleProtected": 87876,
+        "rgbaChannelMismatches": 0,
+        "protectedSourceHash": "110152117a7785d8f98b6b1e56ceb1eeb8ceee70d0990306d334d26a0eecf181",
+        "protectedOutputHash": "110152117a7785d8f98b6b1e56ceb1eeb8ceee70d0990306d334d26a0eecf181",
+        "finalBounds": [
+          67,
+          18,
+          520,
+          620
+        ]
+      }
+    },
+    {
+      "file": "assets/characters/humanfemale_hunter.png",
+      "sha256": "48704be3bc9051f431a7ce4ac19194a60ca3e1a9a48f95ea296ec616c76d08c0",
+      "bounds": [
+        531,
+        651,
+        69,
+        21,
+        389,
+        606
+      ],
+      "hand": [
+        106,
+        588
+      ],
+      "generation": {
+        "service": "Higgsfield",
+        "jobId": "39f57f06-7492-4d5b-a67c-08223c1e9fe8",
+        "resultUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260915_222133_39f57f06-7492-4d5b-a67c-08223c1e9fe8.png",
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:4",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/humanfemale_hunter.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/humanmale_hunter.png"
+          }
+        ],
+        "prompt": "Use case: precise-object-edit. Edit the FEMALE playable adult fantasy hero in IMAGE 1 for Riptide RPG. IMAGE 2 is only the matching MALE costume proportion and hem reference. The identity, exact face, eyes, expression, hairstyle, hair color, head shape and all details above the neck of image 1 are LOCKED: do not redesign them. Keep the same female character, palette, costume materials and overall outfit, the existing fitted feminine bodice and its tasteful U-shaped neckline/covered bust silhouette. Fix only the overly long lower torso and the cropped/awkward skirt: build a complete, properly finished, SHORT COMPACT CHIBI costume body with a continuous opaque robe or armored skirt from the waist down to the bottom hem, proportioned like image 2. Head should be large, approximately 44-47 percent of the head-to-hem height, shoulders broad enough and torso short, NOT a tall slim human fashion illustration. No visible legs, knees, thighs or calves anywhere; no slit opening; no trousers or detached feet. The game adds boots separately underneath the hem, so end this sprite at the finished hem, with both gloved hands reaching near hem height. No boots or shoes in this image. The whole hem must be visible, rounded at the lower corners and uncut, clean intentional tailored folds or armor plates. Do not simply stretch the skirt downward. Do not expose more skin than image 1. The warrior must retain her metal chestplate and layered pauldrons; the priest her ivory and gold robe and shawl. Match thick crisp dark outlines and rich painted material shading exactly. Same front-facing idle pose, arms resting at sides, no weapon, no effects, no floor or shadow, no labels. One whole head-to-hem sprite centered with 5% clear margin. True transparent RGBA background, opaque painted subject. Keep image 1's face and head unchanged.\nThis specific sprite is: human female hunter. Preserve her current costume: forest-green tunic with brown leather belt, diagonal strap and bracers; close the front lower tunic fully with a short solid skirt panel, no trouser opening."
+      },
+      "finishing": "Generated compact costume registered beneath original head and hair; original protected pixels restored without resampling.",
+      "preservation": {
+        "key": "humanfemale_hunter",
+        "generatedKey": "humanfemale_hunter",
+        "width": 531,
+        "height": 651,
+        "padX": 64,
+        "padY": 16,
+        "hem": 611,
+        "chinRatio": 0.45977011494252873,
+        "registration": {
+          "cost": 869.8012631013169,
+          "scale": 0.29500000000000004,
+          "tx": -52.13500000000005,
+          "dy": -7,
+          "dx": -2,
+          "points": 7442,
+          "originalBounds": [
+            4,
+            5,
+            399,
+            672
+          ],
+          "generatedBounds": [
+            194,
+            39,
+            1512,
+            2241
+          ]
+        },
+        "protectedPolygons": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              403,
+              0
+            ],
+            [
+              403,
+              295
+            ],
+            [
+              0,
+              295
+            ]
+          ],
+          [
+            [
+              34,
+              250
+            ],
+            [
+              137,
+              250
+            ],
+            [
+              129,
+              278
+            ],
+            [
+              104,
+              293
+            ],
+            [
+              90,
+              314
+            ],
+            [
+              73,
+              344
+            ],
+            [
+              61,
+              377
+            ],
+            [
+              41,
+              397
+            ],
+            [
+              31,
+              375
+            ]
+          ],
+          [
+            [
+              258,
+              250
+            ],
+            [
+              367,
+              250
+            ],
+            [
+              367,
+              401
+            ],
+            [
+              347,
+              392
+            ],
+            [
+              341,
+              362
+            ],
+            [
+              327,
+              332
+            ],
+            [
+              307,
+              309
+            ],
+            [
+              290,
+              294
+            ],
+            [
+              276,
+              280
+            ]
+          ]
+        ],
+        "protectedPixels": 126910,
+        "visibleProtected": 88533,
+        "rgbaChannelMismatches": 0,
+        "protectedSourceHash": "2638a615226512c12435036478413cf2abb7ad7d9cd530b23c90f9ed79f6f328",
+        "protectedOutputHash": "2638a615226512c12435036478413cf2abb7ad7d9cd530b23c90f9ed79f6f328",
+        "finalBounds": [
+          69,
+          21,
+          458,
+          627
+        ]
+      }
+    },
+    {
+      "file": "assets/characters/humanfemale_priest.png",
+      "sha256": "ebfc223aba897b5535c236621515bbc0848aaf6fa0d1e964c11ab38df1715ba3",
+      "bounds": [
+        553,
+        649,
+        66,
+        18,
+        421,
+        605
+      ],
+      "hand": [
+        121,
+        585
+      ],
+      "generation": {
+        "service": "Higgsfield",
+        "jobId": "689a7924-5dbc-4ceb-8799-add527a09121",
+        "resultUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260915_222356_689a7924-5dbc-4ceb-8799-add527a09121.png",
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:4",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/humanmale_priest.png"
+          }
+        ],
+        "prompt": "Game equipment sprite: EMPTY SMALL IVORY AND GOLD PRIEST ROBE only, neckline to finished lower hem, as a headless clothing inventory asset. Match the reference outfit materials: ivory-white fabric, gold decorated border, small ivory/gold shoulder shawl, gold waist sash with hanging tail, two relaxed white bell sleeves. COMPACT short chibi clothing proportions with a short torso and rounded, wide, completely opaque skirt. Proper finished gold ornamental hem on skirt and sleeves, no cropped or faded bottom, no splits or leg gaps. CLOSED opaque chest. EMPTY GARMENT on invisible mannequin: NO person, no head, no face, no hair, no body or skin, no bust contours, no hands, no legs, no shoes. Hand-painted rich fantasy shading and crisp dark outlines. True transparent RGBA. Whole garment contained in frame, 5% padding, no text, weapons, shadows or props. Only its lower skirt/sleeve hem will be composited underneath an existing original character upper part."
+      },
+      "finishing": "Original head, hair and upper costume retained; generated empty garment supplies the finished lower robe.",
+      "preservation": {
+        "key": "humanfemale_priest",
+        "generatedKey": "humanfemale_priest",
+        "width": 553,
+        "height": 649,
+        "padX": 64,
+        "padY": 16,
+        "hem": 609,
+        "chinRatio": 0.4596375617792422,
+        "registration": {
+          "cost": 0,
+          "originalBounds": [
+            2,
+            2,
+            423,
+            654
+          ],
+          "generatedBounds": [
+            39,
+            361,
+            1699,
+            2119
+          ],
+          "mode": "original upper costume plus empty generated lower robe only"
+        },
+        "protectedPolygons": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              425,
+              0
+            ],
+            [
+              425,
+              291
+            ],
+            [
+              0,
+              291
+            ]
+          ],
+          [
+            [
+              41,
+              250
+            ],
+            [
+              153,
+              250
+            ],
+            [
+              146,
+              276
+            ],
+            [
+              119,
+              289
+            ],
+            [
+              99,
+              310
+            ],
+            [
+              82,
+              338
+            ],
+            [
+              64,
+              373
+            ],
+            [
+              45,
+              392
+            ]
+          ],
+          [
+            [
+              268,
+              250
+            ],
+            [
+              382,
+              250
+            ],
+            [
+              382,
+              396
+            ],
+            [
+              360,
+              386
+            ],
+            [
+              353,
+              353
+            ],
+            [
+              332,
+              326
+            ],
+            [
+              313,
+              306
+            ],
+            [
+              291,
+              288
+            ],
+            [
+              279,
+              275
+            ]
+          ]
+        ],
+        "protectedPixels": 131825,
+        "visibleProtected": 87382,
+        "rgbaChannelMismatches": 0,
+        "protectedSourceHash": "16a4f09a099da5d40486a1ee538e09174d5c3dca6fed204518a713cdef812275",
+        "protectedOutputHash": "16a4f09a099da5d40486a1ee538e09174d5c3dca6fed204518a713cdef812275",
+        "finalBounds": [
+          66,
+          18,
+          487,
+          623
+        ]
+      }
+    },
+    {
+      "file": "assets/characters/dwarffemale_warrior.png",
+      "sha256": "a5d5646ded7e7ea649a4c66e057ba9ad7161da005156bc28fcac8b692ba862f1",
+      "bounds": [
+        633,
+        627,
+        77,
+        18,
+        485,
+        585
+      ],
+      "hand": [
+        126,
+        559
+      ],
+      "generation": {
+        "service": "Higgsfield",
+        "jobId": "8db678cc-a6f5-416b-aa49-5bcea1d83941",
+        "resultUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260915_222004_8db678cc-a6f5-416b-aa49-5bcea1d83941.png",
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:4",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/dwarffemale_warrior.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/dwarfmale_warrior.png"
+          }
+        ],
+        "prompt": "Use case: precise-object-edit. Edit the FEMALE playable adult fantasy hero in IMAGE 1 for Riptide RPG. IMAGE 2 is only the matching MALE costume proportion and hem reference. The identity, exact face, eyes, expression, hairstyle, hair color, head shape and all details above the neck of image 1 are LOCKED: do not redesign them. Keep the same female character, palette, costume materials and overall outfit, the existing fitted feminine bodice and its tasteful U-shaped neckline/covered bust silhouette. Fix only the overly long lower torso and the cropped/awkward skirt: build a complete, properly finished, SHORT COMPACT CHIBI costume body with a continuous opaque robe or armored skirt from the waist down to the bottom hem, proportioned like image 2. Head should be large, approximately 44-47 percent of the head-to-hem height, shoulders broad enough and torso short, NOT a tall slim human fashion illustration. No visible legs, knees, thighs or calves anywhere; no slit opening; no trousers or detached feet. The game adds boots separately underneath the hem, so end this sprite at the finished hem, with both gloved hands reaching near hem height. No boots or shoes in this image. The whole hem must be visible, rounded at the lower corners and uncut, clean intentional tailored folds or armor plates. Do not simply stretch the skirt downward. Do not expose more skin than image 1. The warrior must retain her metal chestplate and layered pauldrons; the priest her ivory and gold robe and shawl. Match thick crisp dark outlines and rich painted material shading exactly. Same front-facing idle pose, arms resting at sides, no weapon, no effects, no floor or shadow, no labels. One whole head-to-hem sprite centered with 5% clear margin. True transparent RGBA background, opaque painted subject. Keep image 1's face and head unchanged.\nThis specific sprite is: dwarf female warrior. Preserve her current costume: dark steel shaped chestplate, layered pauldrons and bronze edging; closed continuous solid armor skirt."
+      },
+      "finishing": "Generated compact costume registered beneath original head and hair; original protected pixels restored without resampling.",
+      "preservation": {
+        "key": "dwarffemale_warrior",
+        "generatedKey": "dwarffemale_warrior",
+        "width": 633,
+        "height": 627,
+        "padX": 64,
+        "padY": 16,
+        "hem": 587,
+        "chinRatio": 0.4598290598290598,
+        "registration": {
+          "cost": 1428.173190650521,
+          "scale": 0.30700000000000005,
+          "tx": -6.41050000000007,
+          "dy": -3,
+          "dx": 2,
+          "points": 7102,
+          "originalBounds": [
+            2,
+            2,
+            504,
+            663
+          ],
+          "generatedBounds": [
+            61,
+            6,
+            1642,
+            2259
+          ]
+        },
+        "protectedPolygons": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              505,
+              0
+            ],
+            [
+              505,
+              286
+            ],
+            [
+              0,
+              286
+            ]
+          ],
+          [
+            [
+              48,
+              232
+            ],
+            [
+              196,
+              232
+            ],
+            [
+              180,
+              259
+            ],
+            [
+              178,
+              279
+            ],
+            [
+              171,
+              310
+            ],
+            [
+              169,
+              336
+            ],
+            [
+              157,
+              367
+            ],
+            [
+              154,
+              390
+            ],
+            [
+              140,
+              416
+            ],
+            [
+              129,
+              436
+            ],
+            [
+              104,
+              439
+            ],
+            [
+              94,
+              424
+            ],
+            [
+              103,
+              402
+            ],
+            [
+              105,
+              379
+            ],
+            [
+              115,
+              353
+            ],
+            [
+              118,
+              330
+            ],
+            [
+              118,
+              310
+            ],
+            [
+              104,
+              283
+            ],
+            [
+              89,
+              299
+            ],
+            [
+              75,
+              324
+            ],
+            [
+              58,
+              345
+            ],
+            [
+              42,
+              344
+            ]
+          ],
+          [
+            [
+              334,
+              233
+            ],
+            [
+              460,
+              233
+            ],
+            [
+              472,
+              353
+            ],
+            [
+              449,
+              351
+            ],
+            [
+              438,
+              320
+            ],
+            [
+              421,
+              294
+            ],
+            [
+              398,
+              277
+            ],
+            [
+              368,
+              256
+            ],
+            [
+              343,
+              249
+            ]
+          ]
+        ],
+        "protectedPixels": 156225,
+        "visibleProtected": 91033,
+        "rgbaChannelMismatches": 0,
+        "protectedSourceHash": "6acf270e18f484933e21333b519782cb64c9aa5815080f9f09cacf2e62328be9",
+        "protectedOutputHash": "6acf270e18f484933e21333b519782cb64c9aa5815080f9f09cacf2e62328be9",
+        "finalBounds": [
+          77,
+          18,
+          562,
+          603
+        ]
+      }
+    },
+    {
+      "file": "assets/characters/dwarffemale_mage.png",
+      "sha256": "43e9651e0226884165d26340f62fbdf9d02ddd3b6841d9e1808bb0f5433c5aa5",
+      "bounds": [
+        676,
+        625,
+        64,
+        18,
+        546,
+        583
+      ],
+      "hand": [
+        138,
+        520
+      ],
+      "generation": {
+        "service": "Higgsfield",
+        "jobId": "9d3694a5-56f5-42fd-9a7e-8de7fa558e53",
+        "resultUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260915_222004_9d3694a5-56f5-42fd-9a7e-8de7fa558e53.png",
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:4",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/dwarffemale_mage.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/dwarfmale_mage.png"
+          }
+        ],
+        "prompt": "Use case: precise-object-edit. Edit the FEMALE playable adult fantasy hero in IMAGE 1 for Riptide RPG. IMAGE 2 is only the matching MALE costume proportion and hem reference. The identity, exact face, eyes, expression, hairstyle, hair color, head shape and all details above the neck of image 1 are LOCKED: do not redesign them. Keep the same female character, palette, costume materials and overall outfit, the existing fitted feminine bodice and its tasteful U-shaped neckline/covered bust silhouette. Fix only the overly long lower torso and the cropped/awkward skirt: build a complete, properly finished, SHORT COMPACT CHIBI costume body with a continuous opaque robe or armored skirt from the waist down to the bottom hem, proportioned like image 2. Head should be large, approximately 44-47 percent of the head-to-hem height, shoulders broad enough and torso short, NOT a tall slim human fashion illustration. No visible legs, knees, thighs or calves anywhere; no slit opening; no trousers or detached feet. The game adds boots separately underneath the hem, so end this sprite at the finished hem, with both gloved hands reaching near hem height. No boots or shoes in this image. The whole hem must be visible, rounded at the lower corners and uncut, clean intentional tailored folds or armor plates. Do not simply stretch the skirt downward. Do not expose more skin than image 1. The warrior must retain her metal chestplate and layered pauldrons; the priest her ivory and gold robe and shawl. Match thick crisp dark outlines and rich painted material shading exactly. Same front-facing idle pose, arms resting at sides, no weapon, no effects, no floor or shadow, no labels. One whole head-to-hem sprite centered with 5% clear margin. True transparent RGBA background, opaque painted subject. Keep image 1's face and head unchanged.\nThis specific sprite is: dwarf female mage. Preserve her current costume: purple/indigo rune-trimmed fabric, blue mantle, dark sash; finish the full purple hem without long legs."
+      },
+      "finishing": "Generated compact costume registered beneath original head and hair; original protected pixels restored without resampling.",
+      "preservation": {
+        "key": "dwarffemale_mage",
+        "generatedKey": "dwarffemale_mage",
+        "width": 676,
+        "height": 625,
+        "padX": 64,
+        "padY": 16,
+        "hem": 585,
+        "chinRatio": 0.45969125214408235,
+        "registration": {
+          "cost": 1266.1900675295442,
+          "scale": 0.32200000000000006,
+          "tx": -7.640000000000043,
+          "dy": -3,
+          "dx": -2,
+          "points": 7108,
+          "originalBounds": [
+            2,
+            2,
+            547,
+            723
+          ],
+          "generatedBounds": [
+            22,
+            11,
+            1718,
+            2304
+          ]
+        },
+        "protectedPolygons": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              548,
+              0
+            ],
+            [
+              548,
+              285
+            ],
+            [
+              0,
+              285
+            ]
+          ],
+          [
+            [
+              65,
+              232
+            ],
+            [
+              213,
+              232
+            ],
+            [
+              199,
+              257
+            ],
+            [
+              193,
+              290
+            ],
+            [
+              192,
+              315
+            ],
+            [
+              183,
+              343
+            ],
+            [
+              176,
+              371
+            ],
+            [
+              168,
+              401
+            ],
+            [
+              160,
+              423
+            ],
+            [
+              142,
+              436
+            ],
+            [
+              122,
+              433
+            ],
+            [
+              119,
+              417
+            ],
+            [
+              123,
+              391
+            ],
+            [
+              131,
+              367
+            ],
+            [
+              141,
+              339
+            ],
+            [
+              146,
+              311
+            ],
+            [
+              132,
+              287
+            ],
+            [
+              119,
+              277
+            ],
+            [
+              106,
+              294
+            ],
+            [
+              92,
+              318
+            ],
+            [
+              80,
+              347
+            ],
+            [
+              60,
+              353
+            ]
+          ],
+          [
+            [
+              354,
+              232
+            ],
+            [
+              481,
+              232
+            ],
+            [
+              492,
+              356
+            ],
+            [
+              469,
+              353
+            ],
+            [
+              455,
+              321
+            ],
+            [
+              438,
+              290
+            ],
+            [
+              404,
+              264
+            ],
+            [
+              371,
+              249
+            ]
+          ]
+        ],
+        "protectedPixels": 167598,
+        "visibleProtected": 89660,
+        "rgbaChannelMismatches": 0,
+        "protectedSourceHash": "f09d12f7341d289594c96b0e5c4148dec4b05efcae2b6cbf541b01a9fb825afc",
+        "protectedOutputHash": "f09d12f7341d289594c96b0e5c4148dec4b05efcae2b6cbf541b01a9fb825afc",
+        "finalBounds": [
+          64,
+          18,
+          610,
+          601
+        ]
+      }
+    },
+    {
+      "file": "assets/characters/dwarffemale_hunter.png",
+      "sha256": "40f3ac4a7740a6caebcb2eaf91b6ee11e6fcc9eb4d0d366baaa0130351619cd0",
+      "bounds": [
+        627,
+        625,
+        67,
+        18,
+        493,
+        583
+      ],
+      "hand": [
+        112,
+        577
+      ],
+      "generation": {
+        "service": "Higgsfield",
+        "jobId": "9d70cf58-2818-4dc9-9d8f-8a1c90495f7d",
+        "resultUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260915_222004_9d70cf58-2818-4dc9-9d8f-8a1c90495f7d.png",
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:4",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/dwarffemale_hunter.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/dwarfmale_hunter.png"
+          }
+        ],
+        "prompt": "Use case: precise-object-edit. Edit the FEMALE playable adult fantasy hero in IMAGE 1 for Riptide RPG. IMAGE 2 is only the matching MALE costume proportion and hem reference. The identity, exact face, eyes, expression, hairstyle, hair color, head shape and all details above the neck of image 1 are LOCKED: do not redesign them. Keep the same female character, palette, costume materials and overall outfit, the existing fitted feminine bodice and its tasteful U-shaped neckline/covered bust silhouette. Fix only the overly long lower torso and the cropped/awkward skirt: build a complete, properly finished, SHORT COMPACT CHIBI costume body with a continuous opaque robe or armored skirt from the waist down to the bottom hem, proportioned like image 2. Head should be large, approximately 44-47 percent of the head-to-hem height, shoulders broad enough and torso short, NOT a tall slim human fashion illustration. No visible legs, knees, thighs or calves anywhere; no slit opening; no trousers or detached feet. The game adds boots separately underneath the hem, so end this sprite at the finished hem, with both gloved hands reaching near hem height. No boots or shoes in this image. The whole hem must be visible, rounded at the lower corners and uncut, clean intentional tailored folds or armor plates. Do not simply stretch the skirt downward. Do not expose more skin than image 1. The warrior must retain her metal chestplate and layered pauldrons; the priest her ivory and gold robe and shawl. Match thick crisp dark outlines and rich painted material shading exactly. Same front-facing idle pose, arms resting at sides, no weapon, no effects, no floor or shadow, no labels. One whole head-to-hem sprite centered with 5% clear margin. True transparent RGBA background, opaque painted subject. Keep image 1's face and head unchanged.\nThis specific sprite is: dwarf female hunter. Preserve her current costume: forest-green tunic with brown leather belt, diagonal strap and bracers; close the front lower tunic fully with a short solid skirt panel, no trouser opening."
+      },
+      "finishing": "Generated compact costume registered beneath original head and hair; original protected pixels restored without resampling.",
+      "preservation": {
+        "key": "dwarffemale_hunter",
+        "generatedKey": "dwarffemale_hunter",
+        "width": 627,
+        "height": 625,
+        "padX": 64,
+        "padY": 16,
+        "hem": 585,
+        "chinRatio": 0.45969125214408235,
+        "registration": {
+          "cost": 1136.5063255552432,
+          "scale": 0.28900000000000003,
+          "tx": -1.9300000000000352,
+          "dy": -2,
+          "dx": 0,
+          "points": 7114,
+          "originalBounds": [
+            2,
+            2,
+            497,
+            662
+          ],
+          "generatedBounds": [
+            16,
+            8,
+            1724,
+            2291
+          ]
+        },
+        "protectedPolygons": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              499,
+              0
+            ],
+            [
+              499,
+              284
+            ],
+            [
+              0,
+              284
+            ]
+          ],
+          [
+            [
+              40,
+              232
+            ],
+            [
+              184,
+              232
+            ],
+            [
+              172,
+              261
+            ],
+            [
+              164,
+              290
+            ],
+            [
+              161,
+              318
+            ],
+            [
+              153,
+              347
+            ],
+            [
+              143,
+              376
+            ],
+            [
+              140,
+              399
+            ],
+            [
+              127,
+              422
+            ],
+            [
+              111,
+              436
+            ],
+            [
+              96,
+              435
+            ],
+            [
+              91,
+              421
+            ],
+            [
+              95,
+              398
+            ],
+            [
+              103,
+              373
+            ],
+            [
+              113,
+              344
+            ],
+            [
+              118,
+              317
+            ],
+            [
+              111,
+              291
+            ],
+            [
+              100,
+              277
+            ],
+            [
+              83,
+              299
+            ],
+            [
+              72,
+              327
+            ],
+            [
+              54,
+              352
+            ],
+            [
+              35,
+              351
+            ]
+          ],
+          [
+            [
+              325,
+              232
+            ],
+            [
+              455,
+              232
+            ],
+            [
+              470,
+              353
+            ],
+            [
+              447,
+              351
+            ],
+            [
+              434,
+              320
+            ],
+            [
+              415,
+              291
+            ],
+            [
+              386,
+              266
+            ],
+            [
+              346,
+              249
+            ]
+          ]
+        ],
+        "protectedPixels": 153049,
+        "visibleProtected": 89539,
+        "rgbaChannelMismatches": 0,
+        "protectedSourceHash": "d8179fb3236d0cc50cd44d67b75ff1c9f91a3babc780fb5aa270b6c5717ec295",
+        "protectedOutputHash": "d8179fb3236d0cc50cd44d67b75ff1c9f91a3babc780fb5aa270b6c5717ec295",
+        "finalBounds": [
+          67,
+          18,
+          560,
+          601
+        ]
+      }
+    },
+    {
+      "file": "assets/characters/dwarffemale_priest.png",
+      "sha256": "956d3810eeace5fa6b5b0672adcb339ffd5cab7ae63c0e7aa1ca2e3cb75bb5d5",
+      "bounds": [
+        687,
+        627,
+        83,
+        18,
+        512,
+        585
+      ],
+      "hand": [
+        146,
+        505
+      ],
+      "generation": {
+        "service": "Higgsfield",
+        "jobId": "07d8d942-8ae6-42f5-b29d-f98aa1857e33",
+        "resultUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260915_222132_07d8d942-8ae6-42f5-b29d-f98aa1857e33.png",
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:4",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/dwarffemale_priest.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/dwarfmale_priest.png"
+          }
+        ],
+        "prompt": "Use case: precise-object-edit. Edit the FEMALE playable adult fantasy hero in IMAGE 1 for Riptide RPG. IMAGE 2 is only the matching MALE costume proportion and hem reference. The identity, exact face, eyes, expression, hairstyle, hair color, head shape and all details above the neck of image 1 are LOCKED: do not redesign them. Keep the same female character, palette, costume materials and overall outfit, the existing fitted feminine bodice and its tasteful U-shaped neckline/covered bust silhouette. Fix only the overly long lower torso and the cropped/awkward skirt: build a complete, properly finished, SHORT COMPACT CHIBI costume body with a continuous opaque robe or armored skirt from the waist down to the bottom hem, proportioned like image 2. Head should be large, approximately 44-47 percent of the head-to-hem height, shoulders broad enough and torso short, NOT a tall slim human fashion illustration. No visible legs, knees, thighs or calves anywhere; no slit opening; no trousers or detached feet. The game adds boots separately underneath the hem, so end this sprite at the finished hem, with both gloved hands reaching near hem height. No boots or shoes in this image. The whole hem must be visible, rounded at the lower corners and uncut, clean intentional tailored folds or armor plates. Do not simply stretch the skirt downward. Do not expose more skin than image 1. The warrior must retain her metal chestplate and layered pauldrons; the priest her ivory and gold robe and shawl. Match thick crisp dark outlines and rich painted material shading exactly. Same front-facing idle pose, arms resting at sides, no weapon, no effects, no floor or shadow, no labels. One whole head-to-hem sprite centered with 5% clear margin. True transparent RGBA background, opaque painted subject. Keep image 1's face and head unchanged.\nThis specific sprite is: dwarf female priest. Preserve her current costume: ivory-white fabric with warm gold decorative trim and shawl; complete rounded full opaque ivory hem."
+      },
+      "finishing": "Generated compact costume registered beneath original head and hair; original protected pixels restored without resampling.",
+      "preservation": {
+        "key": "dwarffemale_priest",
+        "generatedKey": "dwarffemale_priest",
+        "width": 687,
+        "height": 627,
+        "padX": 64,
+        "padY": 16,
+        "hem": 587,
+        "chinRatio": 0.4598290598290598,
+        "registration": {
+          "cost": 1400.107384441939,
+          "scale": 0.33100000000000007,
+          "tx": -10.32200000000006,
+          "dy": -2,
+          "dx": -3,
+          "points": 7096,
+          "originalBounds": [
+            14,
+            2,
+            542,
+            737
+          ],
+          "generatedBounds": [
+            88,
+            6,
+            1636,
+            2315
+          ]
+        },
+        "protectedPolygons": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              559,
+              0
+            ],
+            [
+              559,
+              284
+            ],
+            [
+              0,
+              284
+            ]
+          ],
+          [
+            [
+              70,
+              232
+            ],
+            [
+              217,
+              232
+            ],
+            [
+              204,
+              259
+            ],
+            [
+              199,
+              284
+            ],
+            [
+              195,
+              316
+            ],
+            [
+              185,
+              344
+            ],
+            [
+              179,
+              371
+            ],
+            [
+              175,
+              397
+            ],
+            [
+              161,
+              425
+            ],
+            [
+              148,
+              436
+            ],
+            [
+              132,
+              435
+            ],
+            [
+              127,
+              420
+            ],
+            [
+              133,
+              394
+            ],
+            [
+              140,
+              369
+            ],
+            [
+              147,
+              343
+            ],
+            [
+              151,
+              319
+            ],
+            [
+              148,
+              292
+            ],
+            [
+              134,
+              276
+            ],
+            [
+              113,
+              291
+            ],
+            [
+              99,
+              319
+            ],
+            [
+              84,
+              348
+            ],
+            [
+              65,
+              351
+            ]
+          ],
+          [
+            [
+              360,
+              232
+            ],
+            [
+              487,
+              232
+            ],
+            [
+              495,
+              353
+            ],
+            [
+              473,
+              350
+            ],
+            [
+              459,
+              320
+            ],
+            [
+              442,
+              292
+            ],
+            [
+              418,
+              273
+            ],
+            [
+              384,
+              255
+            ],
+            [
+              367,
+              250
+            ]
+          ]
+        ],
+        "protectedPixels": 169610,
+        "visibleProtected": 88751,
+        "rgbaChannelMismatches": 0,
+        "protectedSourceHash": "797b6778e1b25704651f4fc3779132a0154a88426e2565eb08fae5eab3354af6",
+        "protectedOutputHash": "797b6778e1b25704651f4fc3779132a0154a88426e2565eb08fae5eab3354af6",
+        "finalBounds": [
+          83,
+          18,
+          595,
+          603
+        ]
+      }
+    },
+    {
+      "file": "assets/characters/orcfemale_warrior.png",
+      "sha256": "9293a93c333d46f8f41e5e6f3859c66b3d48949fdf929d4e0611839ff7428727",
+      "bounds": [
+        601,
+        707,
+        71,
+        21,
+        459,
+        662
+      ],
+      "hand": [
+        119,
+        622
+      ],
+      "generation": {
+        "service": "Higgsfield",
+        "jobId": "aa07ca71-2bde-47f3-a7b7-94a762454bc8",
+        "resultUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260915_222013_aa07ca71-2bde-47f3-a7b7-94a762454bc8.png",
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:4",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/orcfemale_warrior.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/orcmale_warrior.png"
+          }
+        ],
+        "prompt": "Use case: precise-object-edit. Edit the FEMALE playable adult fantasy hero in IMAGE 1 for Riptide RPG. IMAGE 2 is only the matching MALE costume proportion and hem reference. The identity, exact face, eyes, expression, hairstyle, hair color, head shape and all details above the neck of image 1 are LOCKED: do not redesign them. Keep the same female character, palette, costume materials and overall outfit, the existing fitted feminine bodice and its tasteful U-shaped neckline/covered bust silhouette. Fix only the overly long lower torso and the cropped/awkward skirt: build a complete, properly finished, SHORT COMPACT CHIBI costume body with a continuous opaque robe or armored skirt from the waist down to the bottom hem, proportioned like image 2. Head should be large, approximately 44-47 percent of the head-to-hem height, shoulders broad enough and torso short, NOT a tall slim human fashion illustration. No visible legs, knees, thighs or calves anywhere; no slit opening; no trousers or detached feet. The game adds boots separately underneath the hem, so end this sprite at the finished hem, with both gloved hands reaching near hem height. No boots or shoes in this image. The whole hem must be visible, rounded at the lower corners and uncut, clean intentional tailored folds or armor plates. Do not simply stretch the skirt downward. Do not expose more skin than image 1. The warrior must retain her metal chestplate and layered pauldrons; the priest her ivory and gold robe and shawl. Match thick crisp dark outlines and rich painted material shading exactly. Same front-facing idle pose, arms resting at sides, no weapon, no effects, no floor or shadow, no labels. One whole head-to-hem sprite centered with 5% clear margin. True transparent RGBA background, opaque painted subject. Keep image 1's face and head unchanged.\nThis specific sprite is: orc female warrior. Preserve her current costume: dark steel shaped chestplate, layered pauldrons and bronze edging; closed continuous solid armor skirt."
+      },
+      "finishing": "Generated compact costume registered beneath original head and hair; original protected pixels restored without resampling.",
+      "preservation": {
+        "key": "orcfemale_warrior",
+        "generatedKey": "orcfemale_warrior",
+        "width": 601,
+        "height": 707,
+        "padX": 64,
+        "padY": 16,
+        "hem": 667,
+        "chinRatio": 0.46015037593984964,
+        "registration": {
+          "cost": 837.2334087481146,
+          "scale": 0.3390000000000001,
+          "tx": -57.41300000000007,
+          "dy": -2,
+          "dx": 0,
+          "points": 7956,
+          "originalBounds": [
+            5,
+            5,
+            468,
+            753
+          ],
+          "generatedBounds": [
+            189,
+            14,
+            1545,
+            2278
+          ]
+        },
+        "protectedPolygons": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              473,
+              0
+            ],
+            [
+              473,
+              321
+            ],
+            [
+              0,
+              321
+            ]
+          ],
+          [
+            [
+              53,
+              275
+            ],
+            [
+              157,
+              275
+            ],
+            [
+              153,
+              305
+            ],
+            [
+              158,
+              335
+            ],
+            [
+              157,
+              363
+            ],
+            [
+              166,
+              393
+            ],
+            [
+              157,
+              418
+            ],
+            [
+              146,
+              437
+            ],
+            [
+              130,
+              439
+            ],
+            [
+              119,
+              428
+            ],
+            [
+              119,
+              405
+            ],
+            [
+              125,
+              381
+            ],
+            [
+              123,
+              359
+            ],
+            [
+              117,
+              333
+            ],
+            [
+              107,
+              330
+            ],
+            [
+              93,
+              345
+            ],
+            [
+              78,
+              354
+            ],
+            [
+              53,
+              355
+            ]
+          ],
+          [
+            [
+              304,
+              275
+            ],
+            [
+              398,
+              275
+            ],
+            [
+              405,
+              355
+            ],
+            [
+              381,
+              351
+            ],
+            [
+              359,
+              333
+            ],
+            [
+              350,
+              320
+            ],
+            [
+              337,
+              330
+            ],
+            [
+              339,
+              357
+            ],
+            [
+              334,
+              384
+            ],
+            [
+              333,
+              411
+            ],
+            [
+              322,
+              433
+            ],
+            [
+              307,
+              439
+            ],
+            [
+              298,
+              428
+            ],
+            [
+              299,
+              408
+            ],
+            [
+              305,
+              381
+            ],
+            [
+              309,
+              352
+            ]
+          ]
+        ],
+        "protectedPixels": 162517,
+        "visibleProtected": 98250,
+        "rgbaChannelMismatches": 0,
+        "protectedSourceHash": "60b2f93809946820cec1a49d4139522c5b3b5c68fcd6c75a3c89d057fe3edc64",
+        "protectedOutputHash": "60b2f93809946820cec1a49d4139522c5b3b5c68fcd6c75a3c89d057fe3edc64",
+        "finalBounds": [
+          71,
+          21,
+          530,
+          683
+        ]
+      }
+    },
+    {
+      "file": "assets/characters/orcfemale_mage.png",
+      "sha256": "7029dfa3548b851079820d06b8cdaffae460a2daa67a5921796082953fca4da7",
+      "bounds": [
+        560,
+        705,
+        67,
+        18,
+        423,
+        663
+      ],
+      "hand": [
+        130,
+        594
+      ],
+      "generation": {
+        "service": "Higgsfield",
+        "jobId": "7053e678-6e9a-48c7-aba7-2b202ed5ee5f",
+        "resultUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260915_222133_7053e678-6e9a-48c7-aba7-2b202ed5ee5f.png",
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:4",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/orcfemale_mage.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/orcmale_mage.png"
+          }
+        ],
+        "prompt": "Use case: precise-object-edit. Edit the FEMALE playable adult fantasy hero in IMAGE 1 for Riptide RPG. IMAGE 2 is only the matching MALE costume proportion and hem reference. The identity, exact face, eyes, expression, hairstyle, hair color, head shape and all details above the neck of image 1 are LOCKED: do not redesign them. Keep the same female character, palette, costume materials and overall outfit, the existing fitted feminine bodice and its tasteful U-shaped neckline/covered bust silhouette. Fix only the overly long lower torso and the cropped/awkward skirt: build a complete, properly finished, SHORT COMPACT CHIBI costume body with a continuous opaque robe or armored skirt from the waist down to the bottom hem, proportioned like image 2. Head should be large, approximately 44-47 percent of the head-to-hem height, shoulders broad enough and torso short, NOT a tall slim human fashion illustration. No visible legs, knees, thighs or calves anywhere; no slit opening; no trousers or detached feet. The game adds boots separately underneath the hem, so end this sprite at the finished hem, with both gloved hands reaching near hem height. No boots or shoes in this image. The whole hem must be visible, rounded at the lower corners and uncut, clean intentional tailored folds or armor plates. Do not simply stretch the skirt downward. Do not expose more skin than image 1. The warrior must retain her metal chestplate and layered pauldrons; the priest her ivory and gold robe and shawl. Match thick crisp dark outlines and rich painted material shading exactly. Same front-facing idle pose, arms resting at sides, no weapon, no effects, no floor or shadow, no labels. One whole head-to-hem sprite centered with 5% clear margin. True transparent RGBA background, opaque painted subject. Keep image 1's face and head unchanged.\nThis specific sprite is: orc female mage. Preserve her current costume: purple/indigo rune-trimmed fabric, blue mantle, dark sash; finish the full purple hem without long legs."
+      },
+      "finishing": "Generated compact costume registered beneath original head and hair; original protected pixels restored without resampling.",
+      "preservation": {
+        "key": "orcfemale_mage",
+        "generatedKey": "orcfemale_mage",
+        "width": 560,
+        "height": 705,
+        "padX": 64,
+        "padY": 16,
+        "hem": 665,
+        "chinRatio": 0.46003016591251883,
+        "registration": {
+          "cost": 892.4286079182631,
+          "scale": 0.31000000000000005,
+          "tx": -40.75000000000006,
+          "dy": -5,
+          "dx": -1,
+          "points": 7830,
+          "originalBounds": [
+            2,
+            2,
+            430,
+            617
+          ],
+          "generatedBounds": [
+            143,
+            5,
+            1507,
+            2311
+          ]
+        },
+        "protectedPolygons": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              432,
+              0
+            ],
+            [
+              432,
+              322
+            ],
+            [
+              0,
+              322
+            ]
+          ],
+          [
+            [
+              45,
+              274
+            ],
+            [
+              138,
+              274
+            ],
+            [
+              134,
+              300
+            ],
+            [
+              137,
+              329
+            ],
+            [
+              132,
+              355
+            ],
+            [
+              137,
+              387
+            ],
+            [
+              134,
+              409
+            ],
+            [
+              124,
+              435
+            ],
+            [
+              113,
+              441
+            ],
+            [
+              102,
+              429
+            ],
+            [
+              100,
+              405
+            ],
+            [
+              104,
+              381
+            ],
+            [
+              105,
+              359
+            ],
+            [
+              96,
+              346
+            ],
+            [
+              83,
+              356
+            ],
+            [
+              75,
+              384
+            ],
+            [
+              65,
+              413
+            ],
+            [
+              45,
+              419
+            ]
+          ],
+          [
+            [
+              287,
+              274
+            ],
+            [
+              388,
+              274
+            ],
+            [
+              394,
+              428
+            ],
+            [
+              377,
+              434
+            ],
+            [
+              361,
+              395
+            ],
+            [
+              356,
+              369
+            ],
+            [
+              344,
+              350
+            ],
+            [
+              326,
+              339
+            ],
+            [
+              320,
+              354
+            ],
+            [
+              320,
+              386
+            ],
+            [
+              318,
+              410
+            ],
+            [
+              306,
+              435
+            ],
+            [
+              292,
+              438
+            ],
+            [
+              288,
+              424
+            ],
+            [
+              290,
+              402
+            ],
+            [
+              294,
+              376
+            ],
+            [
+              295,
+              350
+            ]
+          ]
+        ],
+        "protectedPixels": 153606,
+        "visibleProtected": 100634,
+        "rgbaChannelMismatches": 0,
+        "protectedSourceHash": "0ea33e03086b42aecea6c0faf2b5853ce69488d4c925011acc9f85415e21e58d",
+        "protectedOutputHash": "0ea33e03086b42aecea6c0faf2b5853ce69488d4c925011acc9f85415e21e58d",
+        "finalBounds": [
+          67,
+          18,
+          490,
+          681
+        ]
+      }
+    },
+    {
+      "file": "assets/characters/orcfemale_hunter.png",
+      "sha256": "12e56602233ff9bcae612c7de1e3425634145e6582cc0697922a54612b3f03b2",
+      "bounds": [
+        536,
+        709,
+        72,
+        21,
+        394,
+        664
+      ],
+      "hand": [
+        111,
+        642
+      ],
+      "generation": {
+        "service": "Higgsfield",
+        "jobId": "7f301ca6-b56e-4e93-bb34-60ecae8dc884",
+        "resultUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260915_222356_7f301ca6-b56e-4e93-bb34-60ecae8dc884.png",
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:4",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/orcfemale_hunter.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/orcmale_hunter.png"
+          }
+        ],
+        "prompt": "Use case: precise-object-edit. Edit the FEMALE playable adult fantasy hero in IMAGE 1 for Riptide RPG. IMAGE 2 is only the matching MALE costume proportion and hem reference. The identity, exact face, eyes, expression, hairstyle, hair color, head shape and all details above the neck of image 1 are LOCKED: do not redesign them. Keep the same female character, palette, costume materials and overall outfit, the existing fitted feminine bodice and its tasteful U-shaped neckline/covered bust silhouette. Fix only the overly long lower torso and the cropped/awkward skirt: build a complete, properly finished, SHORT COMPACT CHIBI costume body with a continuous opaque robe or armored skirt from the waist down to the bottom hem, proportioned like image 2. Head should be large, approximately 44-47 percent of the head-to-hem height, shoulders broad enough and torso short, NOT a tall slim human fashion illustration. No visible legs, knees, thighs or calves anywhere; no slit opening; no trousers or detached feet. The game adds boots separately underneath the hem, so end this sprite at the finished hem, with both gloved hands reaching near hem height. No boots or shoes in this image. The whole hem must be visible, rounded at the lower corners and uncut, clean intentional tailored folds or armor plates. Do not simply stretch the skirt downward. Do not expose more skin than image 1. The warrior must retain her metal chestplate and layered pauldrons; the priest her ivory and gold robe and shawl. Match thick crisp dark outlines and rich painted material shading exactly. Same front-facing idle pose, arms resting at sides, no weapon, no effects, no floor or shadow, no labels. One whole head-to-hem sprite centered with 5% clear margin. True transparent RGBA background, opaque painted subject. Keep image 1's face and head unchanged.\nThis specific sprite is: orc female hunter. Preserve her current costume: forest-green tunic with brown leather belt, diagonal strap and bracers; close the front lower tunic fully with a short solid skirt panel, no trouser opening."
+      },
+      "finishing": "Generated compact costume registered beneath original head and hair; original protected pixels restored without resampling.",
+      "preservation": {
+        "key": "orcfemale_hunter",
+        "generatedKey": "orcfemale_hunter",
+        "width": 536,
+        "height": 709,
+        "padX": 64,
+        "padY": 16,
+        "hem": 669,
+        "chinRatio": 0.46026986506746626,
+        "registration": {
+          "cost": 1110.1757221020487,
+          "scale": 0.29200000000000004,
+          "tx": -40.86400000000003,
+          "dy": 2,
+          "dx": 1,
+          "points": 7859,
+          "originalBounds": [
+            5,
+            5,
+            403,
+            700
+          ],
+          "generatedBounds": [
+            167,
+            14,
+            1517,
+            2291
+          ]
+        },
+        "protectedPolygons": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              408,
+              0
+            ],
+            [
+              408,
+              324
+            ],
+            [
+              0,
+              324
+            ]
+          ],
+          [
+            [
+              29,
+              275
+            ],
+            [
+              127,
+              275
+            ],
+            [
+              122,
+              303
+            ],
+            [
+              124,
+              331
+            ],
+            [
+              122,
+              358
+            ],
+            [
+              124,
+              385
+            ],
+            [
+              120,
+              412
+            ],
+            [
+              109,
+              439
+            ],
+            [
+              98,
+              438
+            ],
+            [
+              89,
+              423
+            ],
+            [
+              92,
+              400
+            ],
+            [
+              92,
+              377
+            ],
+            [
+              86,
+              355
+            ],
+            [
+              76,
+              358
+            ],
+            [
+              63,
+              382
+            ],
+            [
+              49,
+              410
+            ],
+            [
+              28,
+              423
+            ]
+          ],
+          [
+            [
+              271,
+              275
+            ],
+            [
+              376,
+              275
+            ],
+            [
+              380,
+              420
+            ],
+            [
+              364,
+              428
+            ],
+            [
+              350,
+              404
+            ],
+            [
+              343,
+              379
+            ],
+            [
+              332,
+              356
+            ],
+            [
+              311,
+              338
+            ],
+            [
+              307,
+              359
+            ],
+            [
+              311,
+              383
+            ],
+            [
+              307,
+              408
+            ],
+            [
+              299,
+              432
+            ],
+            [
+              286,
+              439
+            ],
+            [
+              276,
+              428
+            ],
+            [
+              278,
+              403
+            ],
+            [
+              281,
+              376
+            ],
+            [
+              282,
+              350
+            ]
+          ]
+        ],
+        "protectedPixels": 146946,
+        "visibleProtected": 100119,
+        "rgbaChannelMismatches": 0,
+        "protectedSourceHash": "32de04e1559d061e0eb4fc7e2c016f8047658096db080fb2e2da04dbcf96642e",
+        "protectedOutputHash": "32de04e1559d061e0eb4fc7e2c016f8047658096db080fb2e2da04dbcf96642e",
+        "finalBounds": [
+          72,
+          21,
+          466,
+          685
+        ]
+      }
+    },
+    {
+      "file": "assets/characters/orcfemale_priest.png",
+      "sha256": "8fead0f27aacc08669627955b5e117871a3998d780628a2c1a2c07b4885d98c2",
+      "bounds": [
+        558,
+        707,
+        66,
+        18,
+        426,
+        663
+      ],
+      "hand": [
+        119,
+        638
+      ],
+      "generation": {
+        "service": "Higgsfield",
+        "jobId": "689a7924-5dbc-4ceb-8799-add527a09121",
+        "resultUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260915_222356_689a7924-5dbc-4ceb-8799-add527a09121.png",
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:4",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/humanmale_priest.png"
+          }
+        ],
+        "prompt": "Game equipment sprite: EMPTY SMALL IVORY AND GOLD PRIEST ROBE only, neckline to finished lower hem, as a headless clothing inventory asset. Match the reference outfit materials: ivory-white fabric, gold decorated border, small ivory/gold shoulder shawl, gold waist sash with hanging tail, two relaxed white bell sleeves. COMPACT short chibi clothing proportions with a short torso and rounded, wide, completely opaque skirt. Proper finished gold ornamental hem on skirt and sleeves, no cropped or faded bottom, no splits or leg gaps. CLOSED opaque chest. EMPTY GARMENT on invisible mannequin: NO person, no head, no face, no hair, no body or skin, no bust contours, no hands, no legs, no shoes. Hand-painted rich fantasy shading and crisp dark outlines. True transparent RGBA. Whole garment contained in frame, 5% padding, no text, weapons, shadows or props. Only its lower skirt/sleeve hem will be composited underneath an existing original character upper part."
+      },
+      "finishing": "Original head, hair and upper costume retained; generated empty garment supplies the finished lower robe.",
+      "preservation": {
+        "key": "orcfemale_priest",
+        "generatedKey": "humanfemale_priest",
+        "width": 558,
+        "height": 707,
+        "padX": 64,
+        "padY": 16,
+        "hem": 667,
+        "chinRatio": 0.46015037593984964,
+        "registration": {
+          "cost": 0,
+          "originalBounds": [
+            2,
+            2,
+            428,
+            682
+          ],
+          "generatedBounds": [
+            39,
+            361,
+            1699,
+            2119
+          ],
+          "mode": "original upper costume plus empty generated lower robe only"
+        },
+        "protectedPolygons": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              430,
+              0
+            ],
+            [
+              430,
+              322
+            ],
+            [
+              0,
+              322
+            ]
+          ],
+          [
+            [
+              40,
+              274
+            ],
+            [
+              137,
+              274
+            ],
+            [
+              136,
+              297
+            ],
+            [
+              135,
+              324
+            ],
+            [
+              135,
+              355
+            ],
+            [
+              137,
+              384
+            ],
+            [
+              135,
+              408
+            ],
+            [
+              123,
+              436
+            ],
+            [
+              111,
+              435
+            ],
+            [
+              102,
+              421
+            ],
+            [
+              102,
+              397
+            ],
+            [
+              104,
+              373
+            ],
+            [
+              102,
+              350
+            ],
+            [
+              84,
+              353
+            ],
+            [
+              74,
+              381
+            ],
+            [
+              61,
+              407
+            ],
+            [
+              43,
+              421
+            ]
+          ],
+          [
+            [
+              288,
+              274
+            ],
+            [
+              389,
+              274
+            ],
+            [
+              398,
+              425
+            ],
+            [
+              380,
+              433
+            ],
+            [
+              365,
+              405
+            ],
+            [
+              355,
+              375
+            ],
+            [
+              342,
+              350
+            ],
+            [
+              323,
+              339
+            ],
+            [
+              322,
+              360
+            ],
+            [
+              325,
+              383
+            ],
+            [
+              320,
+              412
+            ],
+            [
+              307,
+              434
+            ],
+            [
+              294,
+              437
+            ],
+            [
+              286,
+              423
+            ],
+            [
+              288,
+              399
+            ],
+            [
+              294,
+              376
+            ],
+            [
+              295,
+              350
+            ]
+          ]
+        ],
+        "protectedPixels": 153688,
+        "visibleProtected": 99215,
+        "rgbaChannelMismatches": 0,
+        "protectedSourceHash": "84dc9145062f64d9bff79bb9137056ea16fc5523953252bb45112f7ed9a5af5b",
+        "protectedOutputHash": "84dc9145062f64d9bff79bb9137056ea16fc5523953252bb45112f7ed9a5af5b",
+        "finalBounds": [
+          66,
+          18,
+          492,
+          681
+        ]
+      }
+    },
+    {
+      "file": "assets/characters/undeadfemale_warrior.png",
+      "sha256": "9a05627d2abe67124a2b9e7a4a156b2d97eb05ddd15c5636e2ba89a4efcff971",
+      "bounds": [
+        539,
+        649,
+        75,
+        21,
+        388,
+        604
+      ],
+      "hand": [
+        116,
+        561
+      ],
+      "generation": {
+        "service": "Higgsfield",
+        "jobId": "aa76fdc4-c945-46dc-bc56-38978a4c504e",
+        "resultUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260915_222013_aa76fdc4-c945-46dc-bc56-38978a4c504e.png",
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:4",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/undeadfemale_warrior.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/undeadmale_warrior.png"
+          }
+        ],
+        "prompt": "Use case: precise-object-edit. Edit the FEMALE playable adult fantasy hero in IMAGE 1 for Riptide RPG. IMAGE 2 is only the matching MALE costume proportion and hem reference. The identity, exact face, eyes, expression, hairstyle, hair color, head shape and all details above the neck of image 1 are LOCKED: do not redesign them. Keep the same female character, palette, costume materials and overall outfit, the existing fitted feminine bodice and its tasteful U-shaped neckline/covered bust silhouette. Fix only the overly long lower torso and the cropped/awkward skirt: build a complete, properly finished, SHORT COMPACT CHIBI costume body with a continuous opaque robe or armored skirt from the waist down to the bottom hem, proportioned like image 2. Head should be large, approximately 44-47 percent of the head-to-hem height, shoulders broad enough and torso short, NOT a tall slim human fashion illustration. No visible legs, knees, thighs or calves anywhere; no slit opening; no trousers or detached feet. The game adds boots separately underneath the hem, so end this sprite at the finished hem, with both gloved hands reaching near hem height. No boots or shoes in this image. The whole hem must be visible, rounded at the lower corners and uncut, clean intentional tailored folds or armor plates. Do not simply stretch the skirt downward. Do not expose more skin than image 1. The warrior must retain her metal chestplate and layered pauldrons; the priest her ivory and gold robe and shawl. Match thick crisp dark outlines and rich painted material shading exactly. Same front-facing idle pose, arms resting at sides, no weapon, no effects, no floor or shadow, no labels. One whole head-to-hem sprite centered with 5% clear margin. True transparent RGBA background, opaque painted subject. Keep image 1's face and head unchanged.\nThis specific sprite is: undead female warrior. Preserve her current costume: dark steel shaped chestplate, layered pauldrons and bronze edging; closed continuous solid armor skirt."
+      },
+      "finishing": "Generated compact costume registered beneath original head and hair; original protected pixels restored without resampling.",
+      "preservation": {
+        "key": "undeadfemale_warrior",
+        "generatedKey": "undeadfemale_warrior",
+        "width": 539,
+        "height": 649,
+        "padX": 64,
+        "padY": 16,
+        "hem": 609,
+        "chinRatio": 0.4596375617792422,
+        "registration": {
+          "cost": 2708.6038170005413,
+          "scale": 0.30500000000000005,
+          "tx": -57.75750000000005,
+          "dy": -1,
+          "dx": -1,
+          "points": 7388,
+          "originalBounds": [
+            5,
+            5,
+            407,
+            684
+          ],
+          "generatedBounds": [
+            224,
+            21,
+            1499,
+            2291
+          ]
+        },
+        "protectedPolygons": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              411,
+              0
+            ],
+            [
+              411,
+              293
+            ],
+            [
+              0,
+              293
+            ]
+          ],
+          [
+            [
+              30,
+              251
+            ],
+            [
+              148,
+              251
+            ],
+            [
+              137,
+              277
+            ],
+            [
+              126,
+              298
+            ],
+            [
+              128,
+              325
+            ],
+            [
+              139,
+              346
+            ],
+            [
+              137,
+              370
+            ],
+            [
+              123,
+              388
+            ],
+            [
+              114,
+              410
+            ],
+            [
+              105,
+              425
+            ],
+            [
+              93,
+              420
+            ],
+            [
+              91,
+              403
+            ],
+            [
+              96,
+              382
+            ],
+            [
+              93,
+              355
+            ],
+            [
+              86,
+              336
+            ],
+            [
+              79,
+              317
+            ],
+            [
+              65,
+              322
+            ],
+            [
+              50,
+              343
+            ],
+            [
+              31,
+              342
+            ]
+          ],
+          [
+            [
+              269,
+              250
+            ],
+            [
+              381,
+              250
+            ],
+            [
+              390,
+              389
+            ],
+            [
+              372,
+              391
+            ],
+            [
+              359,
+              364
+            ],
+            [
+              345,
+              339
+            ],
+            [
+              330,
+              319
+            ],
+            [
+              312,
+              285
+            ],
+            [
+              289,
+              268
+            ]
+          ]
+        ],
+        "protectedPixels": 131446,
+        "visibleProtected": 90303,
+        "rgbaChannelMismatches": 0,
+        "protectedSourceHash": "1c0c8f149021df8413e72782d2af9da9c19f1a41081388bb6170a0cd4a33d2fe",
+        "protectedOutputHash": "1c0c8f149021df8413e72782d2af9da9c19f1a41081388bb6170a0cd4a33d2fe",
+        "finalBounds": [
+          75,
+          21,
+          463,
+          625
+        ]
+      }
+    },
+    {
+      "file": "assets/characters/undeadfemale_mage.png",
+      "sha256": "0d13628a095c59623fe5c7c115944ed33d463c3ad4c0665ca6b4386aaabe7df5",
+      "bounds": [
+        628,
+        622,
+        78,
+        18,
+        472,
+        580
+      ],
+      "hand": [
+        139,
+        521
+      ],
+      "generation": {
+        "service": "Higgsfield",
+        "jobId": "6613e2f9-5b12-4bb0-a81b-f8c3ae04e75a",
+        "resultUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260915_222356_6613e2f9-5b12-4bb0-a81b-f8c3ae04e75a.png",
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:4",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/undeadfemale_mage.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/undeadmale_mage.png"
+          }
+        ],
+        "prompt": "Use case: precise-object-edit. Edit the FEMALE playable adult fantasy hero in IMAGE 1 for Riptide RPG. IMAGE 2 is only the matching MALE costume proportion and hem reference. The identity, exact face, eyes, expression, hairstyle, hair color, head shape and all details above the neck of image 1 are LOCKED: do not redesign them. Keep the same female character, palette, costume materials and overall outfit, the existing fitted feminine bodice and its tasteful U-shaped neckline/covered bust silhouette. Fix only the overly long lower torso and the cropped/awkward skirt: build a complete, properly finished, SHORT COMPACT CHIBI costume body with a continuous opaque robe or armored skirt from the waist down to the bottom hem, proportioned like image 2. Head should be large, approximately 44-47 percent of the head-to-hem height, shoulders broad enough and torso short, NOT a tall slim human fashion illustration. No visible legs, knees, thighs or calves anywhere; no slit opening; no trousers or detached feet. The game adds boots separately underneath the hem, so end this sprite at the finished hem, with both gloved hands reaching near hem height. No boots or shoes in this image. The whole hem must be visible, rounded at the lower corners and uncut, clean intentional tailored folds or armor plates. Do not simply stretch the skirt downward. Do not expose more skin than image 1. The warrior must retain her metal chestplate and layered pauldrons; the priest her ivory and gold robe and shawl. Match thick crisp dark outlines and rich painted material shading exactly. Same front-facing idle pose, arms resting at sides, no weapon, no effects, no floor or shadow, no labels. One whole head-to-hem sprite centered with 5% clear margin. True transparent RGBA background, opaque painted subject. Keep image 1's face and head unchanged.\nThis specific sprite is: undead female mage. Preserve her current costume: purple/indigo rune-trimmed fabric, blue mantle, dark sash; finish the full purple hem without long legs."
+      },
+      "finishing": "Generated compact costume registered beneath original head and hair; original protected pixels restored without resampling.",
+      "preservation": {
+        "key": "undeadfemale_mage",
+        "generatedKey": "undeadfemale_mage",
+        "width": 628,
+        "height": 622,
+        "padX": 64,
+        "padY": 16,
+        "hem": 582,
+        "chinRatio": 0.4603448275862069,
+        "registration": {
+          "cost": 3662.5532391213096,
+          "scale": 0.31900000000000006,
+          "tx": -17.32200000000006,
+          "dy": -5,
+          "dx": 0,
+          "points": 7147,
+          "originalBounds": [
+            2,
+            2,
+            498,
+            762
+          ],
+          "generatedBounds": [
+            97,
+            16,
+            1579,
+            2302
+          ]
+        },
+        "protectedPolygons": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              500,
+              0
+            ],
+            [
+              500,
+              282
+            ],
+            [
+              0,
+              282
+            ]
+          ],
+          [
+            [
+              66,
+              245
+            ],
+            [
+              188,
+              245
+            ],
+            [
+              172,
+              271
+            ],
+            [
+              163,
+              294
+            ],
+            [
+              167,
+              315
+            ],
+            [
+              170,
+              337
+            ],
+            [
+              165,
+              354
+            ],
+            [
+              153,
+              372
+            ],
+            [
+              141,
+              394
+            ],
+            [
+              128,
+              403
+            ],
+            [
+              116,
+              398
+            ],
+            [
+              115,
+              384
+            ],
+            [
+              124,
+              366
+            ],
+            [
+              125,
+              349
+            ],
+            [
+              114,
+              331
+            ],
+            [
+              105,
+              317
+            ],
+            [
+              94,
+              335
+            ],
+            [
+              86,
+              363
+            ],
+            [
+              74,
+              387
+            ],
+            [
+              58,
+              393
+            ]
+          ],
+          [
+            [
+              313,
+              245
+            ],
+            [
+              425,
+              245
+            ],
+            [
+              436,
+              395
+            ],
+            [
+              417,
+              402
+            ],
+            [
+              402,
+              375
+            ],
+            [
+              389,
+              347
+            ],
+            [
+              371,
+              328
+            ],
+            [
+              357,
+              300
+            ],
+            [
+              333,
+              278
+            ]
+          ]
+        ],
+        "protectedPixels": 155983,
+        "visibleProtected": 89945,
+        "rgbaChannelMismatches": 0,
+        "protectedSourceHash": "52df86376726d4d058ec37e569befbf0e6cae8c27e481a426a39180460cfddf4",
+        "protectedOutputHash": "52df86376726d4d058ec37e569befbf0e6cae8c27e481a426a39180460cfddf4",
+        "finalBounds": [
+          78,
+          18,
+          550,
+          598
+        ]
+      }
+    },
+    {
+      "file": "assets/characters/undeadfemale_hunter.png",
+      "sha256": "aa9ff7ca2bb998a17a8540af464f7ea0ccf28b378cbc6d150117bbb0c8339ebb",
+      "bounds": [
+        537,
+        653,
+        71,
+        21,
+        399,
+        608
+      ],
+      "hand": [
+        111,
+        596
+      ],
+      "generation": {
+        "service": "Higgsfield",
+        "jobId": "7f34d17c-ce01-4142-98a1-fb8fc41b82ac",
+        "resultUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260915_222357_7f34d17c-ce01-4142-98a1-fb8fc41b82ac.png",
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:4",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/undeadfemale_hunter.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/undeadmale_hunter.png"
+          }
+        ],
+        "prompt": "Use case: precise-object-edit. Edit the FEMALE playable adult fantasy hero in IMAGE 1 for Riptide RPG. IMAGE 2 is only the matching MALE costume proportion and hem reference. The identity, exact face, eyes, expression, hairstyle, hair color, head shape and all details above the neck of image 1 are LOCKED: do not redesign them. Keep the same female character, palette, costume materials and overall outfit, the existing fitted feminine bodice and its tasteful U-shaped neckline/covered bust silhouette. Fix only the overly long lower torso and the cropped/awkward skirt: build a complete, properly finished, SHORT COMPACT CHIBI costume body with a continuous opaque robe or armored skirt from the waist down to the bottom hem, proportioned like image 2. Head should be large, approximately 44-47 percent of the head-to-hem height, shoulders broad enough and torso short, NOT a tall slim human fashion illustration. No visible legs, knees, thighs or calves anywhere; no slit opening; no trousers or detached feet. The game adds boots separately underneath the hem, so end this sprite at the finished hem, with both gloved hands reaching near hem height. No boots or shoes in this image. The whole hem must be visible, rounded at the lower corners and uncut, clean intentional tailored folds or armor plates. Do not simply stretch the skirt downward. Do not expose more skin than image 1. The warrior must retain her metal chestplate and layered pauldrons; the priest her ivory and gold robe and shawl. Match thick crisp dark outlines and rich painted material shading exactly. Same front-facing idle pose, arms resting at sides, no weapon, no effects, no floor or shadow, no labels. One whole head-to-hem sprite centered with 5% clear margin. True transparent RGBA background, opaque painted subject. Keep image 1's face and head unchanged.\nThis specific sprite is: undead female hunter. Preserve her current costume: forest-green tunic with brown leather belt, diagonal strap and bracers; close the front lower tunic fully with a short solid skirt panel, no trouser opening."
+      },
+      "finishing": "Generated compact costume registered beneath original head and hair; original protected pixels restored without resampling.",
+      "preservation": {
+        "key": "undeadfemale_hunter",
+        "generatedKey": "undeadfemale_hunter",
+        "width": 537,
+        "height": 653,
+        "padX": 64,
+        "padY": 16,
+        "hem": 613,
+        "chinRatio": 0.45990180032733224,
+        "registration": {
+          "cost": 2154.432150595883,
+          "scale": 0.29200000000000004,
+          "tx": -47.686000000000035,
+          "dy": 0,
+          "dx": 2,
+          "points": 7384,
+          "originalBounds": [
+            4,
+            5,
+            405,
+            684
+          ],
+          "generatedBounds": [
+            187,
+            16,
+            1554,
+            2263
+          ]
+        },
+        "protectedPolygons": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              409,
+              0
+            ],
+            [
+              409,
+              296
+            ],
+            [
+              0,
+              296
+            ]
+          ],
+          [
+            [
+              24,
+              252
+            ],
+            [
+              145,
+              252
+            ],
+            [
+              132,
+              275
+            ],
+            [
+              125,
+              299
+            ],
+            [
+              127,
+              321
+            ],
+            [
+              128,
+              343
+            ],
+            [
+              119,
+              365
+            ],
+            [
+              116,
+              385
+            ],
+            [
+              107,
+              407
+            ],
+            [
+              99,
+              423
+            ],
+            [
+              87,
+              420
+            ],
+            [
+              86,
+              401
+            ],
+            [
+              91,
+              381
+            ],
+            [
+              89,
+              365
+            ],
+            [
+              79,
+              347
+            ],
+            [
+              66,
+              359
+            ],
+            [
+              59,
+              383
+            ],
+            [
+              46,
+              405
+            ],
+            [
+              28,
+              412
+            ]
+          ],
+          [
+            [
+              267,
+              252
+            ],
+            [
+              381,
+              252
+            ],
+            [
+              390,
+              410
+            ],
+            [
+              372,
+              409
+            ],
+            [
+              359,
+              385
+            ],
+            [
+              348,
+              360
+            ],
+            [
+              334,
+              340
+            ],
+            [
+              314,
+              303
+            ],
+            [
+              292,
+              278
+            ]
+          ]
+        ],
+        "protectedPixels": 135362,
+        "visibleProtected": 94021,
+        "rgbaChannelMismatches": 0,
+        "protectedSourceHash": "bee7405350004eea2bff9d15f0f94e911a3166b1eaed064861265ea6bf3538b2",
+        "protectedOutputHash": "bee7405350004eea2bff9d15f0f94e911a3166b1eaed064861265ea6bf3538b2",
+        "finalBounds": [
+          71,
+          21,
+          470,
+          629
+        ]
+      }
+    },
+    {
+      "file": "assets/characters/undeadfemale_priest.png",
+      "sha256": "146793c42d950ce382555f4d543353a0d36ea3d1532c746971ffaaf0dcef7208",
+      "bounds": [
+        559,
+        631,
+        62,
+        18,
+        435,
+        589
+      ],
+      "hand": [
+        118,
+        553
+      ],
+      "generation": {
+        "service": "Higgsfield",
+        "jobId": "6b968a1b-c868-4228-bc7b-e887584a3e61",
+        "resultUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260915_221457_6b968a1b-c868-4228-bc7b-e887584a3e61.png",
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:4",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/undeadfemale_priest.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/7a2d9c8bb85de250e078d2d10770b7d4d75647c6/assets/characters/undeadmale_priest.png"
+          }
+        ],
+        "prompt": "Use case: precise-object-edit. Edit the FEMALE playable adult fantasy hero in IMAGE 1 for Riptide RPG. IMAGE 2 is only the matching MALE costume proportion and hem reference. The identity, exact face, eyes, expression, hairstyle, hair color, head shape and all details above the neck of image 1 are LOCKED: do not redesign them. Keep the same female character, palette, costume materials and overall outfit, the existing fitted feminine bodice and its tasteful U-shaped neckline/covered bust silhouette. Fix only the overly long lower torso and the cropped/awkward skirt: build a complete, properly finished, SHORT COMPACT CHIBI costume body with a continuous opaque robe or armored skirt from the waist down to the bottom hem, proportioned like image 2. Head should be large, approximately 44-47 percent of the head-to-hem height, shoulders broad enough and torso short, NOT a tall slim human fashion illustration. No visible legs, knees, thighs or calves anywhere; no slit opening; no trousers or detached feet. The game adds boots separately underneath the hem, so end this sprite at the finished hem, with both gloved hands reaching near hem height. No boots or shoes in this image. The whole hem must be visible, rounded at the lower corners and uncut, clean intentional tailored folds or armor plates. Do not simply stretch the skirt downward. Do not expose more skin than image 1. The warrior must retain her metal chestplate and layered pauldrons; the priest her ivory and gold robe and shawl. Match thick crisp dark outlines and rich painted material shading exactly. Same front-facing idle pose, arms resting at sides, no weapon, no effects, no floor or shadow, no labels. One whole head-to-hem sprite centered with 5% clear margin. True transparent RGBA background, opaque painted subject. Keep image 1's face and head unchanged.\nThis specific sprite is: undead female priest."
+      },
+      "finishing": "Generated compact costume registered beneath original head and hair; original protected pixels restored without resampling.",
+      "preservation": {
+        "key": "undeadfemale_priest",
+        "generatedKey": "undeadfemale_priest",
+        "width": 559,
+        "height": 631,
+        "padX": 64,
+        "padY": 16,
+        "hem": 591,
+        "chinRatio": 0.4601018675721562,
+        "registration": {
+          "cost": 2745.8048780487807,
+          "scale": 0.30400000000000005,
+          "tx": -41.684000000000026,
+          "dy": -2,
+          "dx": 0,
+          "points": 7134,
+          "originalBounds": [
+            2,
+            2,
+            429,
+            664
+          ],
+          "generatedBounds": [
+            130,
+            7,
+            1562,
+            2304
+          ]
+        },
+        "protectedPolygons": [
+          [
+            [
+              0,
+              0
+            ],
+            [
+              431,
+              0
+            ],
+            [
+              431,
+              285
+            ],
+            [
+              0,
+              285
+            ]
+          ],
+          [
+            [
+              33,
+              245
+            ],
+            [
+              108,
+              245
+            ],
+            [
+              110,
+              263
+            ],
+            [
+              105,
+              280
+            ],
+            [
+              99,
+              299
+            ],
+            [
+              96,
+              318
+            ],
+            [
+              87,
+              334
+            ],
+            [
+              81,
+              349
+            ],
+            [
+              73,
+              362
+            ],
+            [
+              65,
+              376
+            ],
+            [
+              56,
+              389
+            ],
+            [
+              52,
+              398
+            ],
+            [
+              43,
+              391
+            ],
+            [
+              37,
+              382
+            ],
+            [
+              36,
+              371
+            ],
+            [
+              32,
+              365
+            ],
+            [
+              41,
+              346
+            ],
+            [
+              47,
+              334
+            ],
+            [
+              53,
+              323
+            ],
+            [
+              50,
+              316
+            ],
+            [
+              44,
+              307
+            ],
+            [
+              42,
+              291
+            ],
+            [
+              51,
+              277
+            ],
+            [
+              55,
+              266
+            ],
+            [
+              52,
+              254
+            ]
+          ],
+          [
+            [
+              97,
+              245
+            ],
+            [
+              129,
+              245
+            ],
+            [
+              138,
+              259
+            ],
+            [
+              143,
+              274
+            ],
+            [
+              144,
+              285
+            ],
+            [
+              140,
+              296
+            ],
+            [
+              132,
+              303
+            ],
+            [
+              126,
+              310
+            ],
+            [
+              122,
+              317
+            ],
+            [
+              122,
+              325
+            ],
+            [
+              125,
+              337
+            ],
+            [
+              132,
+              349
+            ],
+            [
+              136,
+              359
+            ],
+            [
+              136,
+              369
+            ],
+            [
+              131,
+              379
+            ],
+            [
+              124,
+              385
+            ],
+            [
+              119,
+              391
+            ],
+            [
+              115,
+              398
+            ],
+            [
+              115,
+              404
+            ],
+            [
+              118,
+              407
+            ],
+            [
+              123,
+              409
+            ],
+            [
+              121,
+              413
+            ],
+            [
+              114,
+              413
+            ],
+            [
+              107,
+              410
+            ],
+            [
+              102,
+              405
+            ],
+            [
+              99,
+              400
+            ],
+            [
+              98,
+              393
+            ],
+            [
+              100,
+              388
+            ],
+            [
+              103,
+              385
+            ],
+            [
+              95,
+              387
+            ],
+            [
+              93,
+              382
+            ],
+            [
+              103,
+              378
+            ],
+            [
+              110,
+              371
+            ],
+            [
+              113,
+              362
+            ],
+            [
+              111,
+              352
+            ],
+            [
+              106,
+              344
+            ],
+            [
+              100,
+              335
+            ],
+            [
+              97,
+              326
+            ],
+            [
+              97,
+              316
+            ],
+            [
+              99,
+              307
+            ],
+            [
+              104,
+              295
+            ],
+            [
+              109,
+              281
+            ],
+            [
+              109,
+              268
+            ],
+            [
+              105,
+              255
+            ]
+          ],
+          [
+            [
+              277,
+              245
+            ],
+            [
+              389,
+              245
+            ],
+            [
+              399,
+              405
+            ],
+            [
+              379,
+              410
+            ],
+            [
+              365,
+              388
+            ],
+            [
+              354,
+              362
+            ],
+            [
+              342,
+              340
+            ],
+            [
+              324,
+              308
+            ],
+            [
+              303,
+              282
+            ],
+            [
+              288,
+              270
+            ]
+          ]
+        ],
+        "protectedPixels": 136784,
+        "visibleProtected": 90370,
+        "rgbaChannelMismatches": 0,
+        "protectedSourceHash": "bec1e4d9640afdc4faad9c00a222d52f54e9e08a8228f0ad09c4011dd082cee9",
+        "protectedOutputHash": "bec1e4d9640afdc4faad9c00a222d52f54e9e08a8228f0ad09c4011dd082cee9",
+        "finalBounds": [
+          62,
+          18,
+          497,
+          607
+        ]
+      }
+    }
+  ]
+}
