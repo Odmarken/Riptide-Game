@@ -1929,7 +1929,7 @@ function smithTick(){
   log(`⚒️ The forge cools - <span class="llegendary">Rimfrost ★${j.to}</span> is reborn!`,'loot');
   stageMsg('⚒️ Rimfrost ★'+j.to+' complete!',2600);sfx.level();
  }
- save();if($('smithFx')&&$('smithFx').style.display==='flex')smithRefresh();
+ smithCompleted(j);save();if($('smithFx')&&$('smithFx').style.display==='flex')smithRefresh();
 }
 setInterval(()=>{if(gameOn)smithTick();},5000);
 /* Scraps: salvage value by rarity */
@@ -4005,6 +4005,7 @@ const ENCH_TRAIN_COST=200000;  /* twice the pick - runes are the deeper craft */
 const ENCH_COST=2;             /* emeralds per rune - and an emerald is 3 ore plus a coal, so a
                                   rune is 6 ore and 2 coal of mining before the hall sees it */
 const ENCH_PER_CUT=2;   /* points a single cut rune is worth */
+let enchLastCut=null,enchFeedback=null; /* presentation only; never written into character saves */
 function enchGain(n){
  if(!S.ench)return;
  if(S.ench.skill>=500)return;
@@ -4030,6 +4031,9 @@ function enchCut(){
  S.ore.gem-=ENCH_COST;
  S.ench.bag=S.ench.bag||[];
  S.ench.bag.push(got.id);
+ enchPick=got.id;
+ enchLastCut={owner:S.ench,id:got.id};
+ enchFeedback={owner:S.ench,kind:'cut',text:got.n+' added to your runes.'};
  enchGain();
  sfx.quest();
  log(`<span class="lfine">✨ ${got.n}</span> cut from an emerald. ${got.flavour}`,'loot');
@@ -4076,7 +4080,7 @@ function enchApply(id){
  const bag=(S.ench&&S.ench.bag)||[];
  const idx=bag.indexOf(id);          /* spend one off the stack, whichever copy */
  if(idx<0)return;
- if(!S.gear.weapon){stageMsg('✨ No weapon to enchant',1700);sfx.warn();return;}
+ if(!S.gear||!S.gear.weapon){stageMsg('✨ No weapon to enchant',1700);sfx.warn();return;}
  const w=wenchById(id);if(!w)return;
  /* The field is wench, NOT ench. migrate() carries a legacy rule that reads item.ench as an old
     scroll enchant, moves it into activeScrolls and nulls it - a rune parked there vanished on the
@@ -4084,6 +4088,7 @@ function enchApply(id){
  const had=S.gear.weapon.wench?wenchById(S.gear.weapon.wench):null;
  S.gear.weapon.wench=id;
  bag.splice(idx,1);
+ enchFeedback={owner:S.ench,kind:'bind',text:w.n+' bound to '+itemName(S.gear.weapon)+(had?'; '+had.n+' replaced.':'.')};
  sfx.loot();
  stageMsg('✨ '+w.n+' bound to your weapon',2600);
  log(had
@@ -4097,17 +4102,20 @@ function enchRefresh(){
  const trained=enchTrained(),s=enchSkill(),rk=enchRank(),cap=rk.to;
  const gems=(S.ore&&S.ore.gem)||0;
  $('enchRankTxt').innerHTML=trained
-  ? `<b style="color:#b98cff">${rk.n}</b> · rank ${rk.r} of 4 &nbsp;·&nbsp; <b>${s}</b> / ${cap}`
-  : 'The hall takes apprentices. Bring emeralds and it will teach you to cut them.';
+  ? `<b>${rk.n}</b> · Rank ${rk.r} of 4 <span class="craft-badge">${s} / ${cap}</span>`
+  : 'Cut emeralds into runes, then bind their glow to your weapon.';
  const span=cap-rk.at,into=Math.max(0,Math.min(span,s-rk.at));
  $('enchBar').style.width=(trained?(100*into/span):0)+'%';
  $('enchGems').style.display=trained?'':'none';
- $('enchGems').innerHTML=`${uiIcon('it_emerald','💚','shopico')} <b>${gems}</b> emerald${gems===1?'':'s'}`;
+ $('enchGems').innerHTML=`${uiIcon('it_emerald','💚','shopico')} <b>${gems.toLocaleString()}</b> emerald${gems===1?'':'s'} in your bag`;
  if(!trained){
-  $('enchBody').innerHTML=`<div class="cl" style="margin-bottom:12px">Members cut emeralds into runes here. The terms are for members.</div>
-   <button class="sbtn gold" id="enchLearn" ${totalGold()>=ENCH_TRAIN_COST?'':'disabled'} style="padding:11px 18px">
-     ✨ Learn enchanting · ${ENCH_TRAIN_COST.toLocaleString()}</button>
-   <div class="cfgnote" style="margin:6px 0 0">${totalGold()>=ENCH_TRAIN_COST?'':'The hall fee is beyond you for now.'}</div>`;
+  $('enchBody').innerHTML=`<div class="craft-empty">
+    <span class="craft-slot-art" aria-hidden="true">${uiIcon('venue_ench','✨','')}</span>
+    <h3 class="craft-section-title">Become an apprentice</h3>
+    <p class="craft-note">Learn the craft to turn ${ENCH_COST} emeralds into a random rune. Keep your runes here until you are ready to bind one.</p>
+   </div><div class="craft-materials"><span class="craft-badge">${ENCH_TRAIN_COST.toLocaleString()} gold to learn</span><span>${totalGold().toLocaleString()} gold available</span></div>
+   <div class="craft-actions"><button type="button" class="sbtn gold" id="enchLearn" ${totalGold()>=ENCH_TRAIN_COST?'':'disabled'}>Learn enchanting</button></div>
+   <p class="craft-note">${totalGold()>=ENCH_TRAIN_COST?'A permanent craft for this character.':'Gather '+(ENCH_TRAIN_COST-totalGold()).toLocaleString()+' more gold to learn.'}</p>`;
   $('enchLearn').onclick=()=>{
    if(!spendGold(ENCH_TRAIN_COST)){stageMsg('✨ The hall wants '+ENCH_TRAIN_COST.toLocaleString()+' ◉ to teach you',2000);sfx.warn();return;}
    S.ench={trained:true,skill:0,bag:[]};
@@ -4123,29 +4131,43 @@ function enchRefresh(){
     migrating and a part-spent stack cannot drift out of step with the list behind it. */
  const counts={};
  bag.forEach(id=>{counts[id]=(counts[id]||0)+1;});
+ if(!counts[enchPick])enchPick='';
  const kinds=WENCH.filter(w=>counts[w.id]);          /* fixed order, so cells stop jumping about */
  const cells=kinds.map(w=>
-  `<button class="enchcell${enchPick===w.id?' on':''}" data-ei="${w.id}" title="${esc(w.n)}"
-    style="--eg:${w.glow}">${uiIcon(w.icon,'✨','enchico')}${
-    counts[w.id]>1?`<span class="enchnum">${counts[w.id]}</span>`:''}</button>`).join('');
+  `<button type="button" class="craft-choice${enchPick===w.id?' on':''}" data-ei="${w.id}" aria-pressed="${enchPick===w.id}" aria-label="${esc(w.n)}, ${counts[w.id]} available"
+    style="--eg:${w.glow}"><span class="craft-slot-art">${uiIcon(w.icon,'✨','')}</span><span class="craft-slot-name">${esc(w.n)}</span><span class="craft-badge">×${counts[w.id]}</span></button>`).join('');
  const sel=counts[enchPick]?wenchById(enchPick):null;
+ const weapon=S.gear&&S.gear.weapon,heldRune=weapon&&wenchById(weapon.wench);
+ const last=enchLastCut&&enchLastCut.owner===S.ench?wenchById(enchLastCut.id):null;
+ const feedback=enchFeedback&&enchFeedback.owner===S.ench?enchFeedback:null;
  $('enchBody').innerHTML=`
-  <div class="cl" style="margin-bottom:8px">A rune costs ${ENCH_COST} emeralds. What comes out is the hall's business.</div>
-  <button class="sbtn gold" id="enchCutBtn" ${gems<ENCH_COST?'disabled':''} style="padding:10px 16px;margin-bottom:12px">
-    ${gems<ENCH_COST?'Need '+ENCH_COST+' emeralds':'✨ Cut a rune · '+ENCH_COST+' 💚'}</button>
-  <div class="ss" style="color:var(--dim);text-transform:uppercase;letter-spacing:.6px;font-size:10px;margin-bottom:6px">Runes in the hall</div>
-  <div class="enchgrid">${cells||'<div class="cl" style="grid-column:1/-1;margin:0">Empty. Cut one.</div>'}</div>
-  ${sel?`<div class="enchsel" style="border-color:${sel.glow}66">
-     <div class="sn" style="color:${sel.glow};font-size:13px">${sel.n}</div>
-     <div class="ss" style="color:var(--dim);font-size:11px">${esc(sel.flavour)}</div>
-     <div class="ss" style="color:var(--dim);font-size:10.5px;margin-top:4px">No effect bound yet - the stats come next.</div>
-     <button class="sbtn gold" id="enchApplyBtn" style="margin-top:8px;padding:9px 14px">Craft onto weapon</button>
-    </div>`:''}`;
+  <h3 class="craft-section-title">Cut a rune</h3>
+  <div class="craft-pair">
+   <article class="craft-slot${gems>=ENCH_COST?' filled':''}"><span class="craft-slot-label">Material</span><span class="craft-slot-art">${uiIcon('it_emerald','💚','')}</span><strong class="craft-slot-name">${ENCH_COST} Emeralds</strong><span class="craft-slot-note">${gems.toLocaleString()} available</span></article>
+   <span class="craft-plus" aria-hidden="true">→</span>
+   <article class="craft-slot${last?' filled':''}"${last?` style="--eg:${last.glow}"`:''}><span class="craft-slot-label">${last?'Last rune cut':'Mystery result'}</span><span class="craft-slot-art" aria-hidden="true">${last?uiIcon(last.icon,'✨',''):'?'}</span><strong class="craft-slot-name">${last?esc(last.n):'One random rune'}</strong><span class="craft-slot-note">${last?esc(last.flavour):'Revealed when you cut'}</span></article>
+  </div>
+  <div class="craft-actions"><button type="button" class="sbtn gold" id="enchCutBtn" ${gems<ENCH_COST?'disabled':''}>Cut a rune · ${ENCH_COST} emeralds</button></div>
+  <p class="craft-note">${gems<ENCH_COST?'You need '+(ENCH_COST-gems)+' more emerald'+(ENCH_COST-gems===1?'':'s')+'.':'Each cut adds a random rune to your collection.'} +${ENCH_PER_CUT} enchanting skill per cut, up to 500.</p>
+  ${feedback&&feedback.kind==='cut'?`<p class="craft-status" role="status">${esc(feedback.text)}</p>`:''}
+  <h3 class="craft-section-title">Bind a rune</h3>
+  <div class="craft-pair">
+   <article class="craft-slot${weapon?' filled':''}"><span class="craft-slot-label">Equipped weapon</span><span class="craft-slot-art" aria-hidden="true">${weapon?uiIcon('it_weapon','⚔',''):'?'}</span><strong class="craft-slot-name">${weapon?esc(itemName(weapon)):'No weapon equipped'}</strong><span class="craft-slot-note">${heldRune?'Current rune: '+esc(heldRune.n):weapon?'No rune bound':'Equip a weapon to bind a rune'}</span></article>
+   <span class="craft-plus" aria-hidden="true">+</span>
+   <article class="craft-slot${sel?' filled':''}"${sel?` style="--eg:${sel.glow}"`:''}><span class="craft-slot-label">Selected rune</span><span class="craft-slot-art" aria-hidden="true">${sel?uiIcon(sel.icon,'✨',''):'?'}</span><strong class="craft-slot-name">${sel?esc(sel.n):'Choose a rune below'}</strong><span class="craft-slot-note">${sel?esc(sel.flavour):'One rune is used when bound'}</span></article>
+  </div>
+  <h3 class="craft-section-title">Your runes <span class="craft-badge">${bag.length}</span></h3>
+  <div class="craft-picker">${cells||'<p class="craft-empty">Your rune collection is empty. Cut a rune above to begin.</p>'}</div>
+  <div class="craft-result"><span class="craft-result-icon" aria-hidden="true">${sel?uiIcon(sel.icon,'✨',''):uiIcon('it_weapon','⚔','')}</span><div><h3 class="craft-result-title">${sel&&weapon?esc(sel.n)+' · '+esc(itemName(weapon)):'A new glow for your weapon'}</h3><p class="craft-result-meta">${sel&&weapon?'Bind '+esc(sel.n)+' to your equipped weapon.':'Select a rune and equip a weapon to preview the binding.'}</p>${heldRune&&sel?`<p class="craft-note">Replaces ${esc(heldRune.n)}. The current rune will be lost.</p>`:''}</div></div>
+  <div class="craft-actions"><button type="button" class="sbtn gold" id="enchApplyBtn" ${sel&&weapon?'':'disabled'}>Bind rune to weapon</button></div>
+  <p class="craft-note">Binding uses one selected rune and changes your weapon's glow.</p>
+  ${feedback&&feedback.kind==='bind'?`<p class="craft-status" role="status">${esc(feedback.text)}</p>`:''}`;
  const cb=$('enchCutBtn');if(cb)cb.onclick=enchCut;
  document.querySelectorAll('#enchBody [data-ei]').forEach(b=>b.onclick=()=>{
   enchPick=b.dataset.ei;enchRefresh();
+  document.querySelectorAll('#enchBody [data-ei]').forEach(next=>{if(next.dataset.ei===enchPick)next.focus({preventScroll:true});});
  });
- const ab=$('enchApplyBtn');if(ab)ab.onclick=()=>{const i=enchPick;enchPick='';enchApply(i);};
+ const ab=$('enchApplyBtn');if(ab)ab.onclick=()=>enchApply(enchPick);
 }
 function openEnchantHall(){enchPick='';$('enchFx').style.display='flex';enchRefresh();sfx.buy();}
 /* ==================== 🔥 THE SMELTER ====================
@@ -4158,6 +4180,7 @@ const SMELT_ORE=3, SMELT_COAL=1;
    another zone, and while the game is closed, because the finish is a timestamp rather than a
    countdown that only ticks when someone is watching. */
 const SMELT_MS=5*60*1000;
+let smeltFinishedFor=null; /* completion feedback belongs to this loaded character only */
 const smeltLeft=()=>S&&S.smelt?Math.max(0,S.smelt.done-Date.now()):0;
 const smeltClock=ms=>{const t=Math.ceil(ms/1000);return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');};
 function smeltTick(){
@@ -4166,6 +4189,7 @@ function smeltTick(){
  S.ore=S.ore||{coal:0,ore:0,gem:0};
  S.ore.gem++;
  S.smelt=null;
+ smeltFinishedFor=S;
  save();renderBag();
  sfx.loot();
  stageMsg('🔥 An emerald, cut and clear',2400);
@@ -4175,22 +4199,28 @@ function smeltTick(){
 function smeltRefresh(){
  const o=S.ore||{coal:0,ore:0,gem:0};
  const ready=o.ore>=SMELT_ORE&&o.coal>=SMELT_COAL;
- const fill=(el,icon,fb,have,need)=>{
+ const firing=!!S.smelt,left=smeltLeft(),finished=!firing&&smeltFinishedFor===S;
+ const fill=(el,icon,fb,name,have,need)=>{
   const e=$(el);
-  e.innerHTML=`${uiIcon(icon,fb,'fmico')}<span class="fmn">${have}/${need}</span>`;
-  e.classList.toggle('filled',have>=need);
+  e.innerHTML=`<span class="craft-slot-label">${firing?'Loaded into furnace':el==='smSlotOre'?'Raw material':'Fuel'}</span><span class="craft-slot-art">${uiIcon(icon,fb,'')}</span><strong class="craft-slot-name">${need} ${name}</strong><span class="craft-slot-note">${have.toLocaleString()} in your bag${!firing&&have<need?' · need '+(need-have)+' more':''}</span>`;
+  e.classList.toggle('filled',firing||have>=need);
  };
- fill('smSlotOre','it_emeraldore','🟩',o.ore,SMELT_ORE);
- fill('smSlotCoal','it_coal','⬛',o.coal,SMELT_COAL);
+ fill('smSlotOre','it_emeraldore','🟩','Emerald Ore',o.ore,SMELT_ORE);
+ fill('smSlotCoal','it_coal','⬛','Coal',o.coal,SMELT_COAL);
  const out=$('smSlotOut');
- out.innerHTML=`${uiIcon('it_emerald','💚','fmico')}<span class="fmn">${o.gem}</span>`;
- out.classList.toggle('filled',ready);
- $('smeltHint').innerHTML=`<b style="color:#9adf9a">${SMELT_ORE} emerald ore</b> and <b style="color:#cfc3ae">${SMELT_COAL} coal</b> make one emerald.`;
- const firing=smeltLeft()>0;
- $('smeltCount').textContent=firing?'The furnace is working. '+smeltClock(smeltLeft())+' to go.'
-   :ready?'The furnace is hot enough.':'Not enough to pour.';
+ out.innerHTML=uiIcon('it_emerald','💚','');
+ $('smeltResultTitle').textContent=finished?'Emerald smelted':firing?'One emerald is forming':'1 Emerald';
+ $('smeltResultNote').textContent=(finished?'Added automatically to your bag. ':firing?'Added to your bag when the firing ends. ':'The finished stone, ready for rune cutting. ')+o.gem.toLocaleString()+' emerald'+(o.gem===1?'':'s')+' in your bag.';
+ $('smeltHint').textContent=SMELT_ORE+' emerald ore + '+SMELT_COAL+' coal → 1 emerald';
+ $('smeltCount').textContent=firing?(left>0?'Firing · '+smeltClock(left)+' remaining':'Finishing your emerald…')
+   :finished?'Firing complete. Your emerald is already in your bag.':ready?'Materials ready · Firing takes 5 minutes.':'Gather the missing materials to light the furnace.';
+ const progress=$('smeltProgress'),percent=finished?100:firing?Math.max(0,Math.min(100,100*(1-left/SMELT_MS))):0;
+ progress.hidden=!firing&&!finished;
+ progress.setAttribute('role','progressbar');progress.setAttribute('aria-label','Furnace progress');
+ progress.setAttribute('aria-valuemin','0');progress.setAttribute('aria-valuemax','100');progress.setAttribute('aria-valuenow',String(Math.round(percent)));
+ progress.querySelector('i').style.width=percent+'%';
  const go=$('smeltGo');
- go.textContent=firing?'🔥 Firing… '+smeltClock(smeltLeft()):'🔥 Smelt';
+ go.textContent=firing?'Firing…':finished?'Smelt another emerald · 5 min':'Smelt 1 emerald · 5 min';
  go.disabled=firing||!ready;
 }
 function openSmelter(){$('smeltFx').style.display='flex';smeltRefresh();sfx.buy();}
@@ -12694,171 +12724,110 @@ document.querySelectorAll('[data-bank]').forEach(b=>b.onclick=()=>{
  sfx.buy();bankRefresh();renderHUD();save();
 });
 let smithSel=null; /* which forge station is open */
-let smithFkSel=0;   /* chosen Rimfrost target: 2 or 3 */
+let smithFkSel=0,smithOwner=null,smithInputKey='',smithChosen=null,smithPickSlot=null,smithFuseChosen=null,smithNotice=null;
+const smithItemIds=new WeakMap();let smithItemSerial=0;
+function smithIdentity(it){if(!smithItemIds.has(it))smithItemIds.set(it,++smithItemSerial);return smithItemIds.get(it);}
+function smithHTML(node,html,key=html){if(!node||node._smithKey===key)return false;node.innerHTML=html;node._smithKey=key;return true;}
+function smithArt(kind){const paths={fm:'models/rimfrost',fk:'models/rimfrost',fg:'models/felglaive',ring:'models/thering',recipe:'icons/it_scroll',broken:'icons/it_brokenring',fuse:'icons/it_scroll',lvl:'icons/venue_smith'};return `<img src="assets/${paths[kind]||paths.lvl}.png" alt="" draggable="false">`;}
+function smithResult(kind,title,meta){return `<div class="craft-result"><span class="craft-result-icon">${smithArt(kind)}</span><div><div class="craft-result-title">${title}</div><div class="craft-result-meta">${meta}</div></div></div>`;}
+function smithCompleted(j){smithNotice={owner:S,kind:j.kind,title:j.kind==='lvl'?'Blacksmith level '+j.to:j.kind==='ring'?'The Ring is complete':(j.kind==='fg'?'Fel Glaives':'Rimfrost')+' ★'+j.to+' is complete',meta:j.kind==='lvl'?'Your blacksmith is ready for the next craft.':j.kind==='ring'?'Equipped in your trinket slot.':'Your new weapon is waiting in the bag.'};}
+function smithWeapons(fg,star){
+ const matches=it=>(fg?isFG(it):isFK(it))&&legendStar(it)===star,bag=(S.bag||[]).filter(matches),eq=S.gear.weapon,seen=new Set();
+ return bag.filter(it=>!inGearSet(it)).concat(bag.filter(it=>inGearSet(it)),matches(eq)?[eq]:[]).filter(it=>{if(seen.has(it))return false;seen.add(it);return true;});
+}
+function smithWeaponNote(it){return (S.gear.weapon===it?'Equipped':inGearSet(it)?'In a gear set':'In bag')+' · Upgrade +'+(it.up||0)+' · '+Math.round(it.atk||0)+' attack';}
+function smithScrolls(){
+ const seen=new Set();return (S.scrolls||[]).map((sc,i)=>({sc,k:'b'+i})).concat((S.activeScrolls||[]).map((sc,i)=>({sc,k:'e'+i}))).filter(o=>{if(!o.sc||o.sc.id2||o.sc.tier!==MAXTIER||!enchOf(o.sc.id)||seen.has(o.sc))return false;seen.add(o.sc);return true;});
+}
 function smithRefresh(){
- const lv=S.smithLvl||0;
- $('smithLvlTxt').textContent='Blacksmith level '+lv+(lv>=10?' (max)':'');
- const j=S.smithJob;
- $('smithJobTxt').textContent=j?(j.kind==='lvl'?'⏳ Training to level '+j.to:j.kind==='ring'?'⏳ Forging The Ring':j.kind==='fg'?'⏳ Forging Fel Glaives ★'+j.to:'⏳ Forging Rimfrost ★'+j.to)+' - '+fmtMS(Math.max(0,j.endT-Date.now()))+' left':'';
- /* ---- station picker: once several reforges are unlocked, choose from a list ---- */
- const p=S.prestige||0;
- const fkTier=(lv>=10&&p>=20)?3:(lv>=5&&p>=10)?2:0;
- const stations=[
-  ['fm','❄ Rimfrost',!!fkTier],
-  ['fg','⚔ Fel Glaives',!!fkTier],
-  ['ring','💍 The Ring',!!(S.ringRecipe&&S.brokenRing)],
-  ['fuse','🔗 Fuse Scrolls',(S.connectors||0)>0]
- ];
+ if(!S)return;
+ if(smithOwner!==S){smithOwner=S;smithInputKey='';smithChosen=null;smithPickSlot=null;smithFuseChosen=null;if(smithNotice?.owner!==S)smithNotice=null;}
+ const owner=S,lv=S.smithLvl||0,p=S.prestige||0,j=S.smithJob,busy=!!j,canT2=lv>=5&&p>=10,canT3=lv>=10&&p>=20;
+ $('smithLvlTxt').textContent='Blacksmith level '+lv+' / 10';
+ const title=j?(j.kind==='lvl'?'Training to level '+j.to:j.kind==='ring'?'Forging The Ring':'Forging '+(j.kind==='fg'?'Fel Glaives':'Rimfrost')+' ★'+j.to):'';
+ $('smithJobTxt').textContent=j?title+' · '+fmtMS(Math.max(0,j.endT-Date.now()))+' remaining':'Choose a station, prepare the ingredients, then forge.';
+ const jp=$('smithJobPanel');
+ if(jp){
+  jp.hidden=!j&&!smithNotice;
+  smithHTML(jp,j?`<div class="craft-status craft-job-status">${smithArt(j.kind)}<div><b>${title}</b><div data-smith-countdown></div></div></div><div class="craft-progress" role="progressbar" aria-label="Forge progress" aria-valuemin="0" aria-valuemax="100"><i data-smith-progress></i></div><p class="craft-note">The forge keeps working while you are away. Your result is delivered automatically.</p>`:smithNotice?smithResult(smithNotice.kind,esc(smithNotice.title),esc(smithNotice.meta)):'',j?'job:'+j.kind+':'+j.to+':'+j.endT:smithNotice);
+  if(j){const left=Math.max(0,j.endT-Date.now()),progress=Math.max(0,Math.min(100,(1-left/SMITH_HOUR)*100));jp.querySelector('[data-smith-countdown]').textContent=fmtMS(left)+' remaining';jp.querySelector('[data-smith-progress]').style.width=progress+'%';jp.querySelector('[role="progressbar"]').setAttribute('aria-valuenow',String(Math.floor(progress)));}
+ }
  if(!smithSel)smithSel='fm';
+ const stations=[['fm','Rimfrost',canT2],['fg','Fel Glaives',canT2],['ring','The Ring',lv>=10],['fuse','Scroll fusion',lv>=10]];
  const mn=$('smithMenu');
- if(mn){ /* the station list always shows - locked stations sit dimmed with a padlock */
-  mn.innerHTML='<div style="display:flex;gap:5px;margin:4px 0 8px">'+stations.map(st=>`<button class="sbtn ${smithSel===st[0]?'gold':''}" data-smsel="${st[0]}" style="flex:1;min-width:0;padding:8px 3px;font-size:11px;line-height:1.3;white-space:normal;overflow:hidden;${st[2]?'':'opacity:.55'}">${st[2]?'':'🔒 '}${st[1]}</button>`).join('')+'</div>';
-  mn.querySelectorAll('[data-smsel]').forEach(b=>b.onclick=()=>{smithSel=b.dataset.smsel;smithRefresh();});
- }
- const show=id=>smithSel===id;
+ smithHTML(mn,'<div class="craft-tabs" aria-label="Blacksmith stations">'+stations.map(([id,name,ready])=>`<button type="button" class="craft-tab${smithSel===id?' active':''}" data-smsel="${id}" aria-pressed="${smithSel===id}">${smithArt(id)}<span>${name}${ready?'':'<small>Locked</small>'}</span></button>`).join('')+'</div>');
+ mn.querySelectorAll('[data-smsel]').forEach(b=>b.onclick=()=>{smithSel=b.dataset.smsel;smithPickSlot=null;smithRefresh();});
  const lu=$('smithLvlUp');
- if(lv<10&&!j){
-  lu.innerHTML=`<button class="sbtn scrapb" id="smithLvlBtn" ${S.scraps<800?'disabled':''}>Train to level ${lv+1} · 800⚙ · 2 hours</button>`;
-  $('smithLvlBtn').onclick=()=>{
-   if(S.scraps<800){sfx.warn();return;}
-   S.scraps-=800;
-   S.smithJob={kind:'lvl',to:(S.smithLvl||0)+1,endT:Date.now()+SMITH_HOUR};
-   sfx.buy();renderHUD();save();smithRefresh();
+ smithHTML(lu,lv<10?`<div class="craft-upgrade"><div><b>Train the blacksmith</b><p class="craft-note">Level ${lv+1} · 800 scrap · 2 hours<br>${Number(S.scraps||0).toLocaleString()} scrap available${busy?' · Forge currently busy':''}</p></div><button class="sbtn scrapb" id="smithLvlBtn" ${busy||S.scraps<800?'disabled':''}>Train to level ${lv+1}</button></div>`:'<p class="craft-note"><span class="craft-badge">Master blacksmith</span> All station levels unlocked.</p>');
+ if($('smithLvlBtn'))$('smithLvlBtn').onclick=()=>{if(S!==owner||S.smithJob||(S.smithLvl||0)>=10||S.scraps<800)return;S.scraps-=800;S.smithJob={kind:'lvl',to:(S.smithLvl||0)+1,endT:Date.now()+SMITH_HOUR};smithNotice=null;sfx.buy();renderHUD();save();smithRefresh();};
+ const ru=$('smithRingRow');ru.hidden=smithSel!=='ring';
+ if(smithSel==='ring'){
+  const forged=!!S.ringForged||(S.bag||[]).some(isRing)||Object.values(S.gear).some(isRing),ready=!!S.ringRecipe&&!!S.brokenRing&&lv>=10&&!busy&&!forged;
+  const ingredient=(label,kind,name,have,note)=>`<div class="craft-slot${have?' filled':''}"><span class="craft-slot-label">${label}</span><span class="craft-slot-art">${smithArt(kind)}</span><span class="craft-slot-name">${name}</span><span class="craft-slot-note">${have?'Ready':note}</span></div>`;
+  smithHTML(ru,'<h3 class="craft-section-title">Forge The Ring</h3><div class="craft-pair">'+ingredient('Ingredient 1','recipe','Recipe of the Ring',S.ringRecipe,'Buy from the Wandering Trader')+'<span aria-hidden="true">+</span>'+ingredient('Ingredient 2','broken','The Broken Ring',S.brokenRing,'Fish in the Moonshine lake')+'</div>'+smithResult('ring','The Ring','Legendary trinket · +10% crit · Uses 1% mana per strike')+`<p class="craft-note">${forged?'Already forged. There is only one Ring.':lv<10?'Requires blacksmith level 10.':busy?'The forge is busy. Return when the current job is complete.':'Both ingredients are consumed. Your previous trinket moves safely to the bag.'}</p><div class="craft-actions"><button class="sbtn gold" id="ringForgeBtn" ${ready?'':'disabled'}>${forged?'Already forged':'Forge The Ring · 2 hours'}</button></div>`);
+  $('ringForgeBtn').onclick=()=>{if(S!==owner||S.ringForged||(S.bag||[]).some(isRing)||Object.values(S.gear).some(isRing)||!S.ringRecipe||!S.brokenRing||(S.smithLvl||0)<10||S.smithJob)return;S.ringRecipe=false;S.brokenRing=false;S.smithJob={kind:'ring',endT:Date.now()+SMITH_HOUR};smithNotice=null;stageMsg('The forge burns black — The Ring in 2 hours.',2600);sfx.buy();save();smithRefresh();renderBag();};
+ }
+ const fu=$('smithFuseRow');fu.hidden=smithSel!=='fuse';
+ if(smithSel==='fuse'){
+  const entries=smithScrolls();
+  if(!smithFuseChosen)smithFuseChosen=[entries[0]?.sc||null,entries.find(o=>o.sc.id!==entries[0]?.sc.id)?.sc||null];
+  smithFuseChosen=smithFuseChosen.map(sc=>entries.some(o=>o.sc===sc)?sc:null);
+  const pick=(sc)=>entries.find(o=>o.sc===sc),signature=lv+':'+(S.connectors||0)+':'+entries.map(o=>o.k+':'+smithIdentity(o.sc)+':'+o.sc.id).join(',');
+  const input=(i)=>`<label class="craft-slot${smithFuseChosen[i]?' filled':''}"><span class="craft-slot-label">Scroll ${i+1}</span><span class="craft-slot-art">${smithArt('fuse')}</span><span class="craft-slot-name">Tier IV enchant</span><select id="fuse${i?'B':'A'}" class="sbtn" aria-label="Choose Tier IV scroll ${i+1}"><option value="">Choose a scroll</option>${entries.map(o=>`<option value="${o.k}" ${o.sc===smithFuseChosen[i]?'selected':''}>${esc(enchName(o.sc))}${o.k[0]==='e'?' (equipped)':''}</option>`).join('')}</select></label>`;
+  smithHTML(fu,`<h3 class="craft-section-title">Link two different enchants</h3><div class="craft-pair">${input(0)}<span aria-hidden="true">+</span>${input(1)}</div><div id="smithFusePreview"></div><p class="craft-note">${uiIcon('it_scrap','⚙','shopico')} ${S.connectors||0} / 2 Crypt Connectors · Blacksmith level ${lv} / 10<br>Connectors come from Crypt chests. Fused scrolls hold both effects in one slot.</p><div class="craft-actions"><button class="sbtn gold" id="fuseBtn">Fuse scrolls · 2 connectors</button></div>`,signature);
+  const preview=()=>{
+   const a=pick(smithFuseChosen[0]),b=pick(smithFuseChosen[1]),different=a&&b&&a.sc!==b.sc&&a.sc.id!==b.sc.id,can=lv>=10&&(S.connectors||0)>=2&&different;
+   ['fuseA','fuseB'].forEach((id,i)=>$(id).closest('.craft-slot').classList.toggle('filled',!![a,b][i]));
+   const reason=lv<10?'Requires blacksmith level 10.':!different?'Choose two different Tier IV effects.':(S.connectors||0)<2?'Requires two Crypt Connectors.':'Instant fusion. Both selected scrolls and two connectors are consumed.';
+   smithHTML($('smithFusePreview'),smithResult('fuse',different?esc(enchName({id:a.sc.id,tier:MAXTIER,id2:b.sc.id,tier2:MAXTIER})):'Combined Tier IV scroll',reason));$('fuseBtn').disabled=!can;
   };
- }else lu.innerHTML='';
- const ru=$('smithRingRow');
- if(ru&&!show('ring'))ru.innerHTML='';
- else if(ru){
-  if(S.ringRecipe&&S.brokenRing&&!j&&lv>=10){
-   ru.innerHTML=`<button class="sbtn gold" id="ringForgeBtn" style="width:100%;margin:6px 0">💍 Forge The Ring · 2 hours</button>`;
-   $('ringForgeBtn').onclick=()=>{
-    if(!(S.ringRecipe&&S.brokenRing)||(S.smithLvl||0)<10||S.smithJob)return;
-    S.ringRecipe=false;S.brokenRing=false; /* both halves feed the forge */
-    S.smithJob={kind:'ring',endT:Date.now()+SMITH_HOUR};
-    stageMsg('⚒️ The forge burns black - The Ring in 2 hours.',2600);
-    sfx.buy();save();smithRefresh();renderBag();
-   };
-  }else if(S.ringRecipe&&S.brokenRing&&!j&&lv<10){
-   ru.innerHTML='<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">💍 The Ring awaits a level 10 blacksmith.</div>';
-  }else if(!j)ru.innerHTML=S.ringForged
-   ?'<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">💍 The Ring has already been forged - there is only ever one.</div>'
-   :'<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">💍 Needs the <b>Recipe of the Ring</b> (Wandering Trader) and the <b>Broken Ring</b> (fished from the lake).</div>';
-  else ru.innerHTML='';
+  ['fuseA','fuseB'].forEach((id,i)=>{$(id).onchange=()=>{smithFuseChosen[i]=entries.find(o=>o.k===$(id).value)?.sc||null;preview();};});
+  preview();
+  $('fuseBtn').onclick=()=>{
+   if(S!==owner||(S.smithLvl||0)<10||(S.connectors||0)<2)return;
+   const live=smithScrolls(),a=live.find(o=>o.sc===smithFuseChosen[0]),b=live.find(o=>o.sc===smithFuseChosen[1]);
+   if(!a||!b||a.sc===b.sc||a.sc.id===b.sc.id){stageMsg('Choose two different Tier IV scrolls.',1900);sfx.warn();smithRefresh();return;}
+   S.connectors-=2;
+   [a,b].forEach(o=>{if(o.k[0]==='e')EQS()[+o.k.slice(1)]=null;});
+   [a,b].filter(o=>o.k[0]==='b').map(o=>+o.k.slice(1)).sort((x,y)=>y-x).forEach(i=>S.scrolls.splice(i,1));
+   const fused={id:a.sc.id,tier:MAXTIER,id2:b.sc.id,tier2:MAXTIER};S.scrolls.push(fused);
+   smithNotice={owner:S,kind:'fuse',title:'Scroll fusion complete',meta:enchName(fused)+' is waiting in your bag.'};smithFuseChosen=null;
+   stageMsg(enchName(fused)+' — fused into one scroll!',3000,'#8fe3c9');log(`The Blacksmith links <span class="lscroll">${enchName(fused)}</span> into a single scroll — two enchants, one slot.`,'loot');sfx.forge();save();smithRefresh();renderHUD();renderBag();renderHero();
+  };
  }
- const fu=$('smithFuseRow');
- if(fu&&!show('fuse')){fu.innerHTML='';fu.dataset.sig='';}
- else if(fu){
-  /* the forge takes Tier IV scrolls from the bag AND from the two equipped slots */
-  const ivBag=(S.scrolls||[]).map((sc,i)=>({sc,k:'b'+i})).filter(o=>o.sc&&!o.sc.id2&&o.sc.tier===MAXTIER)
-   .concat((S.activeScrolls||[]).map((sc,i)=>({sc,k:'e'+i})).filter(o=>o.sc&&!o.sc.id2&&o.sc.tier===MAXTIER));
-  const can=lv>=10&&(S.connectors||0)>=2&&ivBag.length>=2;
-  const sig=(can?'y':'n')+(S.connectors||0)+':'+lv+':'+ivBag.map(o=>o.k+o.sc.id).join(',');
-  if(fu.dataset.sig!==sig){ /* the row holds <select>s - rebuild only on real change (refresh ticks every second) */
-   fu.dataset.sig=sig;
-   if(can){
-    const opts=sel=>ivBag.map(o=>`<option value="${o.k}" ${o.k===sel?'selected':''}>${enchOf(o.sc.id).n.replace('Scroll of ','')} IV${o.k[0]==='e'?' (equipped)':''}</option>`).join('');
-    fu.innerHTML=`<div class="ss" style="margin:8px 0 4px;color:#8fe3c9">🔗 Fuse two different Tier IV scrolls into one · <b>${S.connectors}</b> connectors</div>
-     <div style="display:flex;gap:6px;margin-bottom:6px">
-      <select id="fuseA" class="sbtn" style="flex:1">${opts(ivBag[0].k)}</select>
-      <select id="fuseB" class="sbtn" style="flex:1">${opts(ivBag[1].k)}</select>
-     </div>
-     <button class="sbtn gold" id="fuseBtn" style="width:100%;margin-bottom:6px">🔗 Fuse · consumes 2 connectors</button>`;
-    $('fuseBtn').onclick=()=>{
-     const ka=$('fuseA').value,kb=$('fuseB').value;
-     const get=k=>k[0]==='b'?(S.scrolls||[])[+k.slice(1)]:(S.activeScrolls||[])[+k.slice(1)];
-     const a=get(ka),b2=get(kb);
-     if(ka===kb||!a||!b2||a.id2||b2.id2||a.tier!==MAXTIER||b2.tier!==MAXTIER){stageMsg('Pick two different Tier IV scrolls',1600);sfx.warn();return;}
-     if(a.id===b2.id){stageMsg('Two of the same effect never stack - pick two different scrolls',1900);sfx.warn();return;}
-     if((S.connectors||0)<2){sfx.warn();return;}
-     S.connectors-=2;
-     /* equipped halves empty their slot; bag halves splice high index first so the other stays valid */
-     [ka,kb].forEach(k=>{if(k[0]==='e')EQS()[+k.slice(1)]=null;});
-     [ka,kb].filter(k=>k[0]==='b').map(k=>+k.slice(1)).sort((x,y)=>y-x).forEach(i=>S.scrolls.splice(i,1));
-     const fused={id:a.id,tier:MAXTIER,id2:b2.id,tier2:MAXTIER};
-     S.scrolls.push(fused);
-     stageMsg('🔗 '+enchName(fused)+' - fused into one scroll!',3000,'#8fe3c9');
-     log(`The Blacksmith links <span class="lscroll">${enchName(fused)}</span> into a single scroll - two enchants, one slot.`,'loot');
-     sfx.forge();
-     fu.dataset.sig='';
-     save();smithRefresh();renderHUD();renderBag();renderHero();
-    };
-   }else if((S.connectors||0)>0){
-    fu.innerHTML=`<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">🔗 Connectors ${Math.min(2,S.connectors||0)}/2${lv<10?' · needs a level 10 blacksmith':''}${(S.connectors||0)<2?' · find more in Crypt chests':''}${ivBag.length<2?' · needs two different Tier IV scrolls (bag or equipped)':''}</div>`;
-   }else fu.innerHTML='<div class="ss" style="color:var(--dim);font-size:11px;margin:6px 0">🔗 <b>Crypt Connectors</b> drop from chests in The Crypts (15%). Two of them fuse a pair of Tier IV scrolls into one.</div>';
-  }
- }
- const tier=fkTier;
- const fg=$('smithForge');
- const legSel=show('fm')?'fm':show('fg')?'fg':null; /* one forge serves both legendaries */
- if(!tier||j||!legSel){
-  fg.style.display='none';
-  if(!j&&legSel){
-   const nm=legSel==='fg'?'the Fel Glaives':'Rimfrost';
-   if(lv<5)$('smithJobTxt').textContent='Reach blacksmith level 5 to reforge '+nm+'.';
-   else if(p<10)$('smithJobTxt').textContent='Reforging '+nm+' ★2 demands Prestige 10.';
-   else if(lv>=10&&p<20)$('smithJobTxt').textContent=nm+' ★3 demands Prestige 20.';
-  }
-  return;
- }
- fg.style.display='block';
- const fgSt=legSel==='fg';
- /* everything counts, but the forge eats in the least disruptive order: loose bag copies
-    first, then ones a gear set has starred, and the blade in your hands only if it must */
- const bagOnly=fgSt?fgBagOfStar:fkBagOfStar;
- const bagOf=st=>{
-  const eqW=S.gear.weapon;
-  const eqOk=(fgSt?isFG(eqW):isFK(eqW))&&legendStar(eqW)===st;
-  const bag=bagOnly(st);
-  const all=bag.filter(it=>!inGearSet(it)).concat(bag.filter(it=>inGearSet(it))).concat(eqOk?[eqW]:[]);
-  /* dedupe by identity: a worn blade that is also still listed in the bag is ONE blade, and
-     counting it twice would let the forge start on a single copy and strand the bag row */
-  const seen=new Set();
-  return all.filter(it=>{if(seen.has(it))return false;seen.add(it);return true;});
- };
- const NM=fgSt?'Fel Glaives':'Rimfrost';
- const IC=fgSt?'⚔':'❄';
- /* choose the target: ★2 (two plain blades) or ★3 (two ★2) - ★3 needs smith 10 + Prestige 20 */
- const canT3=lv>=10&&p>=20;
- if(!canT3)smithFkSel=2;
- else if(!smithFkSel)smithFkSel=bagOf(2).length>=2?3:2;
- const fp=$('fmPick');
- if(fp){
-  fp.innerHTML=canT3?'<div style="display:flex;gap:6px;margin:2px 0 6px">'+[2,3].map(t=>`<button class="sbtn ${smithFkSel===t?'gold':''}" data-fksel="${t}" style="flex:1">${t===2?IC+' + '+IC+' → ★2':'★2 + ★2 → ★3'}</button>`).join('')+'</div>':'';
-  fp.querySelectorAll('[data-fksel]').forEach(b=>b.onclick=()=>{smithFkSel=+b.dataset.fksel;smithRefresh();});
- }
- const src=smithFkSel-1,out=smithFkSel;
- const have=bagOf(src).length,ok=have>=2;
- const slotTxt=st=>IC+(st>1?'★'+st:'');
- $('fmSlotA').textContent=have>=1?slotTxt(src):'?';$('fmSlotA').classList.toggle('filled',have>=1);
- $('fmSlotB').textContent=have>=2?slotTxt(src):'?';$('fmSlotB').classList.toggle('filled',have>=2);
- $('fmSlotOut').textContent='★'+out;$('fmSlotOut').classList.toggle('filled',ok);
- $('fmPreview').innerHTML=ok
-  ?(fgSt
-   ?`Fel Glaives <b style="color:#4dff9a">★${out}</b> - <b>+${out===3?20:15}% boss damage</b>, <b>+${out*2}% lifesteal</b>. Upgrades &amp; attack reset (cap +6 unchanged). Consumes both ★${src}.`
-   :`Rimfrost <b style="color:#ffd76a">★${out}</b> - <b>+${out*2}% crit</b>, <b>+${out*2}% lifesteal</b>. Upgrades &amp; attack reset (cap +6 unchanged). Consumes both ★${src}.`)
-  :`Need <b>2× ${NM}${src>1?' ★'+src:''}</b> - bag, equipped and gear-set ⭐ copies all count (${have}/2).`;
- const btn=$('fmForgeBtn');btn.disabled=!ok;
+ const forge=$('smithForge'),leg=smithSel==='fm'||smithSel==='fg';forge.style.display=leg?'block':'none';if(!leg)return;
+ const fg=smithSel==='fg',name=fg?'Fel Glaives':'Rimfrost';
+ if(!canT3)smithFkSel=2;else if(!smithFkSel)smithFkSel=smithWeapons(fg,2).length>=2?3:2;
+ const src=smithFkSel-1,out=smithFkSel,key=smithSel+':'+out;
+ if(smithInputKey!==key){smithInputKey=key;smithChosen=null;smithPickSlot=null;}
+ const list=smithWeapons(fg,src),inputs=smithChosen?smithChosen.map(it=>list.includes(it)?it:null):[list[0]||null,list[1]||null];
+ if(smithChosen)smithChosen=inputs;
+ const unlocked=out===3?canT3:canT2,ready=unlocked&&!busy&&inputs[0]&&inputs[1]&&inputs[0]!==inputs[1];
+ const fp=$('fmPick');smithHTML(fp,'<h3 class="craft-section-title">Reforge '+name+'</h3><div class="craft-tabs" aria-label="Weapon star upgrade">'+[2,3].map(t=>`<button class="craft-tab${out===t?' active':''}" data-fksel="${t}" aria-pressed="${out===t}" ${t===3&&!canT3?'disabled':''}>${t===2?'★1 + ★1 → ★2':'★2 + ★2 → ★3'}<small>${t===2?'Blacksmith 5 · Prestige 10':'Blacksmith 10 · Prestige 20'}</small></button>`).join('')+'</div>');
+ fp.querySelectorAll('[data-fksel]').forEach(b=>b.onclick=()=>{smithFkSel=+b.dataset.fksel;smithPickSlot=null;smithRefresh();});
+ ['fmSlotA','fmSlotB'].forEach((id,i)=>{
+  const button=$(id),it=inputs[i];button.classList.toggle('filled',!!it);button.classList.toggle('selected',smithPickSlot===i);button.disabled=busy;button.setAttribute('aria-label','Choose '+name+' ingredient '+(i+1));button.setAttribute('aria-expanded',String(smithPickSlot===i));button.setAttribute('aria-controls','fmInventory');
+  smithHTML(button,`<span class="craft-slot-label">Weapon ${i+1}</span><span class="craft-slot-art">${it?smithArt(smithSel):'?'}</span><span class="craft-slot-name">${it?esc(itemName(it)):name+' ★'+src}</span><span class="craft-slot-note">${it?esc(smithWeaponNote(it)):'Choose a matching weapon'}</span>`);
+  button.onclick=()=>{smithPickSlot=smithPickSlot===i?null:i;smithRefresh();};
+ });
+ const inventory=$('fmInventory');
+ if(inventory){inventory.hidden=smithPickSlot===null||busy;if(!inventory.hidden){
+  const selecting=smithPickSlot;
+  smithHTML(inventory,`<h4 class="craft-section-title">Choose weapon ${selecting+1}</h4><div class="craft-picker">${list.length?list.map(it=>`<button class="craft-choice${inputs[selecting]===it?' selected':''}" data-smith-item="${smithIdentity(it)}" ${inputs[1-selecting]===it?'disabled':''}>${smithArt(smithSel)}<span><b>${esc(itemName(it))}</b><small>${esc(smithWeaponNote(it))}${inputs[1-selecting]===it?' · In the other slot':''}</small></span></button>`).join(''):'<p class="craft-empty">No '+name+' ★'+src+' weapons available. Bag, equipped and gear-set copies all count.</p>'}</div>`);
+  inventory.querySelectorAll('[data-smith-item]').forEach(button=>button.onclick=()=>{if(S!==owner||S.smithJob)return;const it=list.find(it=>String(smithIdentity(it))===button.dataset.smithItem),current=smithWeapons(fg,src);if(!it||!current.includes(it)||inputs[1-selecting]===it){smithRefresh();return;}smithChosen=inputs.slice();smithChosen[selecting]=it;smithPickSlot=null;smithRefresh();});
+ }}
+ const stats=fg?`+${out===3?20:15}% boss damage · +${out*2}% lifesteal`:`+${out*2}% crit · +${out*2}% lifesteal`;
+ smithHTML($('fmSlotOut'),smithArt(smithSel));$('fmSlotOut').classList.toggle('filled',!!ready);
+ smithHTML($('fmPreview'),`<div class="craft-result-title">${name} ★${out}</div><div class="craft-result-meta">${stats}</div><p class="craft-note">${!unlocked?'Requires blacksmith level '+(out===3?10:5)+' and Prestige '+(out===3?20:10)+'.':busy?'The forge is busy. Your current job continues above.':!inputs[0]||!inputs[1]?'Choose two different '+name+' ★'+src+' weapons ('+list.length+' available).':'Both selected weapons are consumed. Upgrades and attack reset; the +6 upgrade cap stays unchanged.'}<br>Click an input to choose its exact copy. Equipped weapons and gear-set references are removed when consumed.</p>`);
+ const btn=$('fmForgeBtn');btn.disabled=!ready;btn.textContent='Forge '+name+' ★'+out+' · 2 hours';
  btn.onclick=()=>{
-  const list=bagOf(src);if(list.length<2)return;
-  /* pick both victims up front. Recomputing the list mid-loop could hand back undefined,
-     and indexOf(undefined) is -1, which would make splice(-1,1) eat an innocent item. */
-  const victims=[list[0],list[1]];
+  if(S!==owner||!S)return;
+  const current=smithWeapons(fg,src),eligible=(S.smithLvl||0)>=(out===3?10:5)&&(S.prestige||0)>=(out===3?20:10),victims=inputs.slice();
+  if(S!==owner||S.smithJob||!eligible||!victims[0]||!victims[1]||victims[0]===victims[1]||!victims.every(it=>current.includes(it))){stageMsg('Your ingredients changed. Choose two available weapons.',1800);sfx.warn();smithChosen=victims.map(it=>current.includes(it)?it:null);smithRefresh();return;}
   let unequipped=false;
-  victims.forEach(it=>{
-   if(!it)return;
-   releaseFromSets(it); /* the loadout loses its reference before the blade leaves */
-   SLOTS.forEach(sl=>{if(S.gear[sl]===it){S.gear[sl]=null;unequipped=true;}}); /* fed from your hands */
-   const bi=(S.bag||[]).indexOf(it);
-   if(bi>=0)S.bag.splice(bi,1);
-  });
-  if(unequipped&&hero)hero.hp=Math.min(hero.hp,heroMax());
-  cleanGsids();
-  S.smithJob={kind:fgSt?'fg':'fk',to:out,endT:Date.now()+SMITH_HOUR};
-  stageMsg('⚒️ The forge roars - '+NM+' ★'+out+' in 2 hours.',2400);
-  sfx.buy();save();smithRefresh();
-  /* every surface that can still be showing the swallowed blade */
-  renderBag();renderHero();renderHUD();
-  if(typeof publishLB==='function')publishLB(S,true);
+  victims.forEach(it=>{releaseFromSets(it);SLOTS.forEach(slot=>{if(S.gear[slot]===it){S.gear[slot]=null;unequipped=true;}});const index=(S.bag||[]).indexOf(it);if(index>=0)S.bag.splice(index,1);});
+  if(unequipped&&hero)hero.hp=Math.min(hero.hp,heroMax());cleanGsids();S.smithJob={kind:fg?'fg':'fk',to:out,endT:Date.now()+SMITH_HOUR};smithChosen=null;smithPickSlot=null;smithNotice=null;
+  stageMsg('The forge roars — '+name+' ★'+out+' in 2 hours.',2400);sfx.buy();save();smithRefresh();renderBag();renderHero();renderHUD();if(typeof publishLB==='function')publishLB(S,true);
  };
 }
 function openSmith(){smithTick();$('smithFx').style.display='flex';smithRefresh();}
@@ -12881,6 +12850,7 @@ $('smeltGo').onclick=()=>{
  /* the ore and coal go in now; the emerald comes out when the clock does */
  o.ore-=SMELT_ORE;o.coal-=SMELT_COAL;
  S.smelt={done:Date.now()+SMELT_MS};
+ smeltFinishedFor=null;
  sfx.buy();save();renderBag();renderHUD();smeltRefresh();
  stageMsg('🔥 The furnace is lit - five minutes',2400);
  log('<span class="imp">🔥 The furnace is lit.</span> An emerald in five minutes.','loot');

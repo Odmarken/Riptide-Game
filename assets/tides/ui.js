@@ -5,6 +5,7 @@ const TideUI=(()=>{
  let storagePetId=null,storageOwner=null,storageReturnTab='hero',storageReturnScroll=0,storageScroll=0,storageReturnHub=null;
  let breedingStation=null,breedingOwner=null,breedingAccess=null,breedingParents=[null,null],breedingPicker=null,breedingReward=null,breedingTimer=null,breedingRevealing=null,breedingPhase='';
  let trainingOwner=null,trainingPicker=null;
+ let breedingHelp=false;
  const el=id=>document.getElementById(id),html=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const species=id=>Tides.getSpecies(id),owned=()=>Tides.equipped(S.tides),outdoors=()=>!!(S&&zoneOf().wasteland&&!zoneOf().dungeon);
  const stars=(s,p=null)=>{const n=p?(p.stars||Tides.stats(p)?.stars||s.stars):s.stars;return `<span class="tide-stars${s.spectral?' spectral':''}${n===6?' mutant':''}" aria-label="${n} stars${n===6?', mutant':''}">${'★'.repeat(n)}${n===6?' · Mutant':s.spectral?' · Spectral':''}</span>`;};
@@ -107,7 +108,7 @@ const TideUI=(()=>{
   if(!S?.tides||!stationId||options.canInteract&&!options.canInteract())return false;
   if(!openHub('breeding','Tide Breeding','Pair two different original species and discover a new Tide.'))return false;
   if(breedingOwner!==S.tides||breedingStation!==stationId){breedingParents=[null,null];breedingReward=null;}
-  breedingStation=stationId;breedingOwner=S.tides;breedingAccess=typeof options.canInteract==='function'?options.canInteract:null;breedingPicker=null;
+  breedingStation=stationId;breedingOwner=S.tides;breedingAccess=typeof options.canInteract==='function'?options.canInteract:null;breedingPicker=null;breedingHelp=false;
   const job=Tides.breedingStatus(breedingOwner,breedingStation,Date.now());
   // A revealed job survives reloads. Claiming it is safe to retry and never duplicates the pet.
   if(job?.revealed)finishBreedingReveal(breedingOwner,breedingStation,job.id);
@@ -116,12 +117,15 @@ const TideUI=(()=>{
  function breedingSlot(p,index,locked){return `<button class="tide-parent-slot${p?' filled':''}" data-breeding-slot="${index}" ${locked?'disabled':''} aria-label="${p?'Change':'Choose'} parent ${index===0?'A':'B'}${p?': '+html(species(p.speciesId).name):''}"><span class="tide-parent-label">Parent ${index===0?'A':'B'}</span>${p?icon(species(p.speciesId))+'<b>'+html(species(p.speciesId).name)+'</b>'+stars(species(p.speciesId),p)+'<small>Level '+p.level+'</small>':'<span class="tide-parent-plus" aria-hidden="true">+</span><b>Choose a Tide</b><small>From your storage</small>'}</button>`;}
  function renderBreeding(){
   if(hubMode!=='breeding'||S?.tides!==breedingOwner)return;
+  if(breedingHelp){renderBreedingHelp();return;}
   if(breedingPicker!==null){renderBreedingPicker();return;}
   const job=Tides.breedingStatus(breedingOwner,breedingStation,Date.now());breedingPhase=job?.phase||'empty';
   if(job)breedingParents=[job.parentAId,job.parentBId];
   const parents=breedingParents.map(id=>breedingOwner.pets.find(p=>p.id===id)),body=el('tideHubBody');
   el('tideHubTools').innerHTML='';
   body.innerHTML=`<div class="tide-breeding"><div class="tide-parent-pair">${breedingSlot(parents[0],0,!!job)}<span class="tide-pair-mark" aria-hidden="true">×</span>${breedingSlot(parents[1],1,!!job)}</div><p class="tide-breeding-note">Both parents stay in your storage. They cannot battle or breed again until the new Tide is revealed.</p>${job?'':`<button class="sbtn gold tide-breed-start" id="tideBreedStart" ${parents.every(Boolean)?'':'disabled'}>Begin breeding · 1 minute</button>`}<div class="tide-incubation${breedingRevealing===job?.id?' revealing':''}" id="tideIncubation">${job?`<div class="tide-mystery" aria-label="Unrevealed Tide">?</div><h3>${job.ready?'Your Tide is ready':'A new bond is growing'}</h3><p id="tideBreedCountdown" role="timer"></p><div class="tide-incubation-progress"><i id="tideBreedProgress"></i></div>${job.ready?'<button class="sbtn gold" id="tideBreedReveal" '+(breedingRevealing===job.id?'disabled':'')+'>Reveal Tide</button>':'<p class="cl">You can keep playing and return when it is ready.</p>'}`:breedingReward?breedingRewardMarkup(breedingReward):'<div class="tide-mystery sleeping" aria-hidden="true">?</div><p class="cl">Your new Tide will appear here.</p>'}</div></div>`;
+  el('tideHubTools').innerHTML='<div class="tide-help-toolbar"><button class="sbtn" id="tideBreedHelp">How to breed</button></div>';
+  el('tideBreedHelp').onclick=()=>{breedingHelp=true;renderBreeding();el('tideHubBody').scrollTop=0;el('tideBreedHelpBack').focus();};
   body.querySelectorAll('[data-breeding-slot]').forEach(b=>b.onclick=()=>{if(!breedingAllowed()){breedingMessage('station');return;}breedingPicker=Number(b.dataset.breedingSlot);renderBreedingPicker();});
   if(el('tideBreedStart'))el('tideBreedStart').onclick=()=>{
    if(!breedingAllowed()){breedingMessage('station');return;}
@@ -131,6 +135,20 @@ const TideUI=(()=>{
   if(el('tideBreedReveal'))el('tideBreedReveal').onclick=()=>revealBreeding(job.id);
   if(el('tideBreedStorage'))el('tideBreedStorage').onclick=()=>{const id=breedingReward.id;openStorage();openPet(id);};
   refreshBreeding(false);paintIcons();
+ }
+ function renderBreedingHelp(){
+  const config=Tides.BREEDING_CONFIG,percent=n=>Math.round(n*100)+'%',base=config.COUNT_WEIGHTS.slice(1).reduce((sum,n)=>sum+n,0)/config.COUNT_WEIGHTS.reduce((sum,n)=>sum+n,0);
+  const duration=Math.round(config.DURATION_MS/60000),gain=percent(config.STAT_PER_STACK),sixGain=percent(config.SIX_STAR_MULTIPLIER-1);
+  const table=[1,2,3,4,5].map(a=>'<tr><th scope="row">'+a+'★</th>'+[1,2,3,4,5].map(b=>'<td>'+percent(base+(5-(a+b)/2)*config.MUTATION_CHANCE_PER_STAR)+'</td>').join('')+'</tr>').join('');
+  el('tideHubTools').innerHTML='<button class="sbtn" id="tideBreedHelpBack">← Back to breeding</button>';
+  el('tideHubBody').innerHTML=`<article class="tide-breeding-help"><h3>How to breed</h3><p>Pair two different original species to discover one of 300 hybrids. Your parents stay with you.</p>
+   <ol class="tide-help-steps"><li><b>Choose two parents.</b> Click Parent A and Parent B to select owned Tides. Hybrids cannot be parents yet. Collect a Tide from Training Grounds before breeding it.</li><li><b>Begin breeding.</b> Incubation takes ${duration} minute${duration===1?'':'s'}. You can keep playing or close the game. These parents cannot battle or breed again while their offspring is waiting.</li><li><b>Reveal your Tide.</b> Return when the timer ends and click Reveal Tide. The hybrid joins Tide storage at level ${config.OFFSPRING_LEVEL}.</li></ol>
+   <section><h4>What does the hybrid inherit?</h4><p>Its appearance combines both species. Its normal stars are the parents’ average, rounded up at a half-star: <b>5★ + 1★ → 3★</b>, <b>5★ + 2★ → 4★</b>. Its base health and attack traits are averaged, and attack 2 combines both parents’ powers at balanced strength. Swapping Parent A and B does not change the chances.</p></section>
+   <section><h4>Mutation chances</h4><p>Lower-star parents are more likely to produce mutations, and more likely to roll several. The chance uses both parents’ stars <b>before rounding</b>. This table shows the chance of at least one mutation when neither parent is Spectral.</p><div class="tide-help-table"><table><caption>Parent A × Parent B · at least one mutation</caption><thead><tr><th scope="col">Stars</th>${[1,2,3,4,5].map(n=>'<th scope="col">'+n+'★</th>').join('')}</tr></thead><tbody>${table}</tbody></table></div><p><b>Spectral:</b> one or two Spectral parents always give at least one mutation. A lower-star partner still improves the chance of multiple mutations. The maximum is <b>${config.MAX_MUTATIONS} mutations total</b>.</p></section>
+   <section><h4>What each mutation does</h4><div class="tide-help-mutations"><div><b>Health</b><span>+${gain} maximum HP per mutation.</span></div><div><b>Base attack</b><span>+${gain} attack value per mutation, strengthening basic attacks and powers that use attack value.</span></div><div><b>Special power</b><span>+${gain} damage from attack 2, including poison. This does not directly increase healing, shields or buffs.</span></div><div><b>★★★★★★ Mutant</b><span>An extremely rare mutation that grants six stars and multiplies HP and attack by another ${config.SIX_STAR_MULTIPLIER.toFixed(2)}. It adds +${sixGain} on top of the other bonuses and counts as one mutation. It can occur only once per hybrid.</span></div></div><p>Each mutation roll has about a one-third chance to improve Health, Base attack or Special power. The six-star chance is <b>${(config.TYPE_WEIGHTS.sixStar/Object.values(config.TYPE_WEIGHTS).reduce((sum,n)=>sum+n,0)*100).toFixed(2)}% per mutation roll</b>.</p></section>
+   <section><h4>Reading your Tide’s DNA</h4><p>Open <b>Tide storage</b> and click the hybrid. The card shows its mutation count. DNA <b>+1</b> beside a stat means +${gain}; <b>+2</b> means +${percent(config.STAT_PER_STACK*2)}. Multiple mutations can improve the same stat: eight Health mutations give +${percent(config.STAT_PER_STACK*8)} HP. A six-star mutation is included in the eight-mutation limit.</p><p>Use the <b>DNA mutations</b> storage filter to find them quickly. Every breeding rolls new mutations; opening Help or reloading the game keeps an existing result unchanged.</p></section>
+  </article>`;
+  el('tideBreedHelpBack').onclick=()=>{breedingHelp=false;renderBreeding();el('tideHubBody').scrollTop=0;el('tideBreedHelp')?.focus();};
  }
  function breedingRewardMarkup(p){const s=species(p.speciesId),m=mutation(p);return `<div class="tide-breeding-reward">${icon(s)}<h3>${html(s.name)}</h3>${stars(s,p)}<p class="tide-lineage">${html(parentNames(s))}</p><p class="tide-reward-mutations">${dna(m.hp,'Health')}${dna(m.attack,'Base attack')}${dna(m.power,'Special power')}${m.sixStar?'<span class="tide-mutant-note">Six-star mutation</span>':''}</p><p>Joined your Tide storage.</p><button class="sbtn" id="tideBreedStorage">View Tide</button></div>`;}
  function renderBreedingPicker(){
@@ -151,7 +169,7 @@ const TideUI=(()=>{
  function refreshBreeding(allowRender=true){
   if(hubMode!=='breeding'||S?.tides!==breedingOwner)return;
   if(!breedingAllowed()){closeHub();return;}
-  if(breedingPicker!==null)return;
+  if(breedingPicker!==null||breedingHelp)return;
   const job=Tides.breedingStatus(breedingOwner,breedingStation,Date.now());
   if(allowRender&&(job?.phase||'empty')!==breedingPhase){renderBreeding();return;}
   if(!job)return;

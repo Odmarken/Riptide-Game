@@ -19,7 +19,8 @@
 <!-- ?v= is not decoration: without it iOS Safari serves a cached stylesheet for days, so two
      phones end up running two different builds of the layout. Bump on every visual change. -->
 <link rel="stylesheet" href="style.css?v=53">
-<link rel="stylesheet" href="assets/tides/ui.css?v=8">
+<link rel="stylesheet" href="assets/tides/ui.css?v=9">
+<link rel="stylesheet" href="assets/ui/crafting.css?v=1">
 </head>
 <body>
 <div id="app">
@@ -696,27 +697,30 @@
    </div>
   </div>
 
-  <div id="smithFx" style="position:absolute;inset:0;z-index:71;display:none;align-items:center;justify-content:center;background:rgba(10,7,4,.86)">
-   <div class="casinobox" style="border-color:#c88a5a">
-    <div class="slottop" style="color:#ffb46a;margin-bottom:2px"><img class="venico" src="assets/icons/venue_smith.png" alt=""> BLACKSMITH</div>
-    <div class="cl" id="smithLvlTxt" style="margin-bottom:8px"></div>
-    <div id="smithJobTxt" class="cl" style="color:#ffd76a;min-height:1.2em;margin-bottom:6px"></div>
+  <div id="smithFx" class="craft-modal" role="dialog" aria-modal="true" aria-labelledby="smithTitle" style="display:none">
+   <div class="casinobox craft-box craft-smith">
+    <header class="craft-header"><img class="craft-venue-icon" src="assets/icons/venue_smith.png" alt=""><div><div class="craft-kicker">THE FORGE</div><h2 id="smithTitle" class="craft-title">Blacksmith</h2><p class="craft-subtitle">Bring your finest pieces. Forge something greater.</p></div></header>
+    <div class="craft-scroll">
+    <div class="craft-rank"><span id="smithLvlTxt"></span><span class="craft-badge">Masterwork crafting</span></div>
     <div id="smithMenu"></div>
+    <div id="smithJobTxt" class="craft-status" role="status"></div>
+    <div id="smithJobPanel"></div>
     <div id="smithLvlUp"></div>
     <div id="smithRingRow"></div>
     <div id="smithFuseRow"></div>
     <div id="smithForge" style="display:none">
      <div id="fmPick"></div>
-     <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0">
-      <div class="fmslot" id="fmSlotA">?</div>
-      <div class="fmslot" id="fmSlotB">?</div>
-      <div style="font-size:22px;color:#ffb46a">➜</div>
-      <div class="fmslot out" id="fmSlotOut">?</div>
+     <div class="craft-pair">
+      <button type="button" class="craft-slot" id="fmSlotA" aria-label="Choose first weapon">?</button>
+      <span class="craft-join" aria-hidden="true">+</span>
+      <button type="button" class="craft-slot" id="fmSlotB" aria-label="Choose second weapon">?</button>
      </div>
-     <div class="cl" id="fmPreview" style="margin-bottom:8px"></div>
-     <button class="sbtn gold" id="fmForgeBtn" style="padding:11px 18px">⚒️ Forge (2 hours)</button>
+     <div id="fmInventory"></div>
+     <div class="craft-result"><div id="fmSlotOut" class="craft-result-icon">?</div><div id="fmPreview" class="craft-result-meta"></div></div>
+     <div class="craft-actions"><button class="sbtn gold" id="fmForgeBtn">Forge · 2 hours</button></div>
     </div>
-    <button id="smithClose" class="sbtn" style="margin-top:10px;padding:11px">Leave the Forge</button>
+    </div>
+    <footer class="craft-footer"><span>Crafting continues while you explore.</span><button id="smithClose" class="sbtn">Leave the Forge</button></footer>
    </div>
   </div>
 
@@ -731,30 +735,34 @@
    </div>
   </div>
 
-  <div id="enchFx" style="position:absolute;inset:0;z-index:71;display:none;align-items:center;justify-content:center;background:rgba(10,7,4,.86)">
-   <div class="casinobox" style="border-color:#9a7ac8">
-    <div class="slottop" style="color:#c9a0ff;margin-bottom:2px"><img class="venico" src="assets/icons/venue_ench.png" alt=""> ENCHANTING HALL</div>
-    <div class="cl" id="enchRankTxt" style="margin-bottom:8px"></div>
-    <div style="margin-bottom:8px"><div class="bar xp" style="height:12px"><i id="enchBar" style="width:0%"></i></div></div>
-    <div class="cl" id="enchGems" style="margin-bottom:12px"></div>
+  <div id="enchFx" class="craft-modal" role="dialog" aria-modal="true" aria-labelledby="enchTitle" style="display:none">
+   <div class="casinobox craft-box craft-enchant">
+    <header class="craft-header"><img class="craft-venue-icon" src="assets/icons/venue_ench.png" alt=""><div><div class="craft-kicker">THE RUNEWORK</div><h2 id="enchTitle" class="craft-title">Enchanting Hall</h2><p class="craft-subtitle">Cut emeralds. Discover a rune. Bind it to your weapon.</p></div></header>
+    <div class="craft-scroll">
+    <div class="craft-rank"><span id="enchRankTxt"></span><span class="craft-badge" id="enchGems"></span></div>
+    <div class="craft-progress craft-rank-progress"><i id="enchBar" style="width:0%"></i></div>
     <div id="enchBody"></div>
-    <button id="enchClose" class="sbtn" style="margin-top:12px;padding:11px">Leave the Hall</button>
+    </div>
+    <footer class="craft-footer"><span>Your runes are kept safely in the hall.</span><button id="enchClose" class="sbtn">Leave the Hall</button></footer>
    </div>
   </div>
 
-  <div id="smeltFx" style="position:absolute;inset:0;z-index:71;display:none;align-items:center;justify-content:center;background:rgba(10,7,4,.86)">
-   <div class="casinobox" style="border-color:#e08a4a">
-    <div class="slottop" style="color:#ffb46a;margin-bottom:2px"><img class="venico" src="assets/icons/venue_smelter.png" alt=""> THE SMELTER</div>
-    <div class="cl" id="smeltHint" style="margin-bottom:10px"></div>
-    <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0">
-     <div class="fmslot" id="smSlotOre">?</div>
-     <div class="fmslot" id="smSlotCoal">?</div>
-     <div style="font-size:22px;color:#ffb46a">➜</div>
-     <div class="fmslot out" id="smSlotOut">?</div>
+  <div id="smeltFx" class="craft-modal" role="dialog" aria-modal="true" aria-labelledby="smeltTitle" style="display:none">
+   <div class="casinobox craft-box craft-smelt">
+    <header class="craft-header"><img class="craft-venue-icon" src="assets/icons/venue_smelter.png" alt=""><div><div class="craft-kicker">THE FURNACE</div><h2 id="smeltTitle" class="craft-title">Smelting</h2><p class="craft-subtitle">From rough stone to a gem worthy of the rune forge.</p></div></header>
+    <div class="craft-scroll">
+    <p class="craft-note" id="smeltHint"></p>
+    <div class="craft-pair">
+     <div class="craft-slot" id="smSlotOre">?</div>
+     <span class="craft-join" aria-hidden="true">+</span>
+     <div class="craft-slot" id="smSlotCoal">?</div>
     </div>
-    <div class="cl" id="smeltCount" style="margin-bottom:10px"></div>
-    <button class="sbtn gold" id="smeltGo" style="padding:11px 18px">🔥 Smelt</button>
-    <button id="smeltClose" class="sbtn" style="margin-top:10px;padding:11px">Leave the Furnace</button>
+    <div class="craft-result"><div id="smSlotOut" class="craft-result-icon">?</div><div><h3 id="smeltResultTitle" class="craft-result-title">Emerald</h3><p id="smeltResultNote" class="craft-result-meta"></p></div></div>
+    <div id="smeltProgress" class="craft-progress"><i></i></div>
+    <p class="craft-status" id="smeltCount" role="status"></p>
+    <div class="craft-actions"><button class="sbtn gold" id="smeltGo">Smelt · 5 minutes</button></div>
+    </div>
+    <footer class="craft-footer"><span>The furnace keeps burning while you explore.</span><button id="smeltClose" class="sbtn">Leave the Furnace</button></footer>
    </div>
   </div>
 
@@ -836,7 +844,8 @@
 <script src="assets/tides/exploration.js?v=8"></script>
 <script src="assets/tides/art-layout.js?v=1"></script>
 <script src="assets/tides/motion.js?v=2"></script>
-<script src="assets/tides/ui.js?v=15"></script>
-<script src="game.js?v=116"></script>
+<script src="assets/tides/ui.js?v=16"></script>
+<script src="game.js?v=117"></script>
+<script src="assets/ui/crafting.js?v=1"></script>
 </body>
 </html>
