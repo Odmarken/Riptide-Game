@@ -9080,11 +9080,13 @@ function drawNpc(n){
   drawChampionSprite(ctx,n.race,n.cls,n.fx,by,0,false,null,n.female);
  }
  ctx.restore();
- const ny=((body?body.headY:-37)-3+by)*size;
- ctx.font='700 '+(n.game?11:10)+'px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
- ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(n.name,1,ny+1);
- ctx.fillStyle=n.game?'#ffd76a':'#cfe6c2';   /* the ones with something to sell stand out */
- ctx.fillText(n.name,0,ny);
+ if(n.guildRole!=='member'){
+  const ny=((body?body.headY:-37)-3+by)*size;
+  ctx.font='700 '+(n.game?11:10)+'px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
+  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(n.name,1,ny+1);
+  ctx.fillStyle=n.game?'#ffd76a':'#cfe6c2';   /* the ones with something to sell stand out */
+  ctx.fillText(n.name,0,ny);
+ }
  ctx.restore();
 }
 function updateNpcs(dt){
