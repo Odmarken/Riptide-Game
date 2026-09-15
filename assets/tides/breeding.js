@@ -8,6 +8,7 @@
   const CONFIG = Object.freeze({DURATION_MS: 60000, MAX_DURATION_MS: 7 * 24 * 60 * 60 * 1000,
     MAX_MUTATIONS: 8, STAT_PER_STACK: 0.05, SIX_STAR_MULTIPLIER: 1.10,
     COUNT_WEIGHTS: Object.freeze([7000, 1800, 700, 280, 130, 60, 22, 7, 1]),
+    MUTATION_CHANCE_PER_STAR: 0.10, MULTI_MUTATION_WEIGHT_PER_STAR: 0.25,
     TYPE_WEIGHTS: Object.freeze({hp: 3333, attack: 3333, power: 3333, sixStar: 1}),
     OFFSPRING_LEVEL: 1, ALLOW_HYBRID_PARENTS: false});
   const finite = (x, fallback = 0) => typeof x === 'number' && Number.isFinite(x) ? x : fallback;
@@ -33,8 +34,21 @@
     const m = normalizeMutations(pet?.mutations || pet);
     return {...m, count: m.hp + m.attack + m.power + (m.sixStar ? 1 : 0)};
   }
-  function rollMutations(spectralParent, rng) {
-    const count = choose(CONFIG.COUNT_WEIGHTS.map((weight, n) => [n, spectralParent && n === 0 ? 0 : weight]), rng);
+  function rollMutations(spectralParent, rng, parentStars = 5) {
+    // Use the parents' unrounded average: 5+2 must have better odds than 5+3,
+    // even though both hybrids round to four stars. Five-star pairs keep the old rolls.
+    const missingStars = 5 - clamp(finite(parentStars, 5), 1, 5);
+    const weights = CONFIG.COUNT_WEIGHTS.map((weight, n) => [n, n === 0 ? spectralParent ? 0 : weight
+      : weight * (1 + missingStars * (n - 1) * CONFIG.MULTI_MUTATION_WEIGHT_PER_STAR)]);
+    if (missingStars > 0 && !spectralParent) {
+      const basePositive = CONFIG.COUNT_WEIGHTS.slice(1).reduce((sum, weight) => sum + weight, 0);
+      const baseChance = basePositive / (basePositive + CONFIG.COUNT_WEIGHTS[0]);
+      const chance = Math.min(1, baseChance + missingStars * CONFIG.MUTATION_CHANCE_PER_STAR);
+      const positive = weights.slice(1).reduce((sum, entry) => sum + entry[1], 0);
+      weights[0][1] = positive * (1 - chance) / chance;
+    }
+    // Spectral removes zero, while the same count weighting still rewards lower-star partners.
+    const count = choose(weights, rng);
     const result = {hp: 0, attack: 0, power: 0, sixStar: false};
     for (let i = 0; i < count; i++) {
       const type = choose(Object.entries(CONFIG.TYPE_WEIGHTS).map(([type, weight]) => [type, type === 'sixStar' && result.sixStar ? 0 : weight]), rng);
@@ -72,7 +86,7 @@
     const species = T.getHybrid(sa.id, sb.id);
     if (!species) return {ok: false, reason: 'unknown-hybrid'};
     // Roll before changing any state, then persist the actual result, never a future reroll seed.
-    const mutations = rollMutations(sa.spectral || sb.spectral, options.rng);
+    const mutations = rollMutations(sa.spectral || sb.spectral, options.rng, (sa.stars + sb.stars) / 2);
     const duration = clamp(integer(options.durationMs, CONFIG.DURATION_MS), 1, CONFIG.MAX_DURATION_MS);
     let nextId = Math.max(1, integer(c.nextId, 1)), petId;
     do { petId = 'tide-' + nextId++; } while (c.pets.some(p => p.id === petId) || jobs(c).some(j => j.offspring.id === petId));

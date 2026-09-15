@@ -131,6 +131,128 @@ test('weighted mutation rolls range0–8, guarantee1–8 for either spectral par
   assert.ok(six < 40, 'six-star is much rarer than ordinary mutations');
 });
 
+// Supply the count ticket once, then choose HP for every mutation type.
+function countRoll(spectral, ticket, stars) {
+  let first = true;
+  const rng = () => first ? (first = false, ticket) : 0;
+  return B.mutationSummary(stars === undefined ? B.rollMutations(spectral, rng) : B.rollMutations(spectral, rng, stars)).count;
+}
+
+test('the two-argument mutation API and explicit five stars retain the original count boundaries', () => {
+  const ordinary = [.7, .88, .95, .978, .991, .997, .9992, .9999];
+  const spectral = [.6, 2500 / 3000, 2780 / 3000, .97, .99, 2992 / 3000, 2999 / 3000];
+  for (const [isSpectral, boundaries] of [[false, ordinary], [true, spectral]]) {
+    for (const stars of [undefined, 5]) {
+      assert.equal(countRoll(isSpectral, 0, stars), isSpectral ? 1 : 0);
+      assert.equal(countRoll(isSpectral, .999999999, stars), 8);
+      boundaries.forEach((threshold, i) => {
+        const count = i + (isSpectral ? 1 : 0);
+        assert.equal(countRoll(isSpectral, threshold - 1e-10, stars), count);
+        assert.equal(countRoll(isSpectral, threshold + 1e-10, stars), count + 1);
+      });
+    }
+  }
+});
+
+test('unrounded parental means give exact ordinary mutation chances from 70 percent to 30 percent', () => {
+  const cases = [[1, .70], [1.5, .65], [2, .60], [2.5, .55], [3, .50], [3.5, .45], [4, .40], [4.5, .35], [5, .30]];
+  for (const [stars, chance] of cases) {
+    let mutated = 0;
+    for (let i = 0; i < 2000; i++) if (countRoll(false, (i + .5) / 2000, stars)) mutated++;
+    assert.equal(mutated, Math.round(chance * 2000), `${stars} parental stars`);
+    assert.equal(countRoll(false, 1 - chance - 1e-10, stars), 0);
+    assert.equal(countRoll(false, 1 - chance + 1e-10, stars), 1);
+  }
+});
+
+test('lower-star partners shift positive mutation counts upward for ordinary and spectral offspring', () => {
+  // Frozen positive-count CDFs for 1, 3.5 and 5 parental stars, before the zero outcome.
+  const cases = [
+    [1, .70, [.35650623885918004, .6337888690829867, .8001584472172707, .9031491384432561, .9625668449197861, .9887106357694593, .9984155278272925]],
+    [3.5, .45, [.4776594686038412, .733074601121173, .8631041231299964, .9364115832421136, .9762165389591004, .9930009619530965, .9990380469035062]],
+    [5, .30, [.6, 2500 / 3000, 2780 / 3000, .97, .99, 2992 / 3000, 2999 / 3000]]
+  ];
+  for (const [stars, chance, boundaries] of cases) for (const spectral of [false, true]) {
+    const zero = spectral ? 0 : 1 - chance, positive = spectral ? 1 : chance;
+    boundaries.forEach((threshold, i) => {
+      const ticket = zero + positive * threshold;
+      assert.equal(countRoll(spectral, ticket - 1e-10, stars), i + 1, `${stars}, spectral=${spectral}, below ${i + 2}`);
+      assert.equal(countRoll(spectral, ticket + 1e-10, stars), i + 2, `${stars}, spectral=${spectral}, above ${i + 1}`);
+    });
+    assert.equal(countRoll(spectral, .999999999, stars), 8);
+  }
+  assert.equal(countRoll(true, .5, 5), 1);
+  assert.equal(countRoll(true, .5, 3.5), 2, 'spectral guarantee retains the lower-parent multi-mutation bonus');
+  assert.equal(countRoll(true, .7, 1), 3);
+});
+
+test('all300 actual breeding pairs use original species stars and produce identical mutations in either parent order', () => {
+  let pairs = 0; const starPairs = new Set();
+  for (let i = 0; i < T.catalog.length; i++) for (let j = i + 1; j < T.catalog.length; j++) {
+    const a = T.catalog[i], b = T.catalog[j], avg = (a.stars + b.stars) / 2;
+    starPairs.add([a.stars, b.stars].sort().join('+'));
+    for (const ticket of [.325, .475, .525, .575, .625, .75, .95, .999999999]) {
+      const expected = countRoll(a.spectral || b.spectral, ticket, avg);
+      for (const reverse of [false, true]) {
+        const c = collection([a.id, b.id]);
+        c.pets[0].mutations = {hp: 0, attack: 0, power: 0, sixStar: true};
+        c.pets[0].level = 30; c.pets[1].level = 1;
+        let first = true;
+        start(c, {parentAId: c.pets[reverse ? 1 : 0].id, parentBId: c.pets[reverse ? 0 : 1].id,
+          rng: () => first ? (first = false, ticket) : 0});
+        assert.equal(T.mutationSummary(c.breedingJobs[0].offspring).count, expected, `${a.id}+${b.id}, ticket ${ticket}, reverse=${reverse}`);
+      }
+    }
+    pairs++;
+  }
+  assert.equal(pairs, 300); assert.equal(starPairs.size, 15);
+});
+
+test('five-plus-two has better mutation odds than five-plus-three despite both hybrids rounding to four stars', () => {
+  const two = collection(['dawnphoenix', 'mossfox']), three = collection(['dawnphoenix', 'moonowl']);
+  for (const c of [two, three]) { let first = true; start(c, {rng: () => first ? (first = false, .575) : 0}); }
+  assert.equal(T.getSpecies(two.breedingJobs[0].offspring).stars, 4);
+  assert.equal(T.getSpecies(three.breedingJobs[0].offspring).stars, 4);
+  assert.equal(T.mutationSummary(two.breedingJobs[0].offspring).count, 1);
+  assert.equal(T.mutationSummary(three.breedingJobs[0].offspring).count, 0);
+});
+
+test('mutation types and the single six-star limit remain unchanged across every parental mean', () => {
+  assert.deepEqual(B.CONFIG.TYPE_WEIGHTS, {hp: 3333, attack: 3333, power: 3333, sixStar: 1});
+  for (const stars of [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]) for (const spectral of [false, true]) {
+    const firstTicket = spectral ? 0 : .70 - (5 - stars) * .10 + 1e-8;
+    for (const [ticket, type] of [[0, 'hp'], [.33329, 'hp'], [.33331, 'attack'], [.66659, 'attack'], [.66661, 'power'], [.99989, 'power'], [.99991, 'sixStar']]) {
+      let first = true;
+      const rolled = B.rollMutations(spectral, () => first ? (first = false, firstTicket) : ticket, stars);
+      assert.equal(B.mutationSummary(rolled).count, 1);
+      assert.equal(rolled[type], type === 'sixStar' ? true : 1);
+    }
+    const maximum = B.rollMutations(spectral, () => .999999999, stars);
+    assert.deepEqual(maximum, {hp: 0, attack: 0, power: 7, sixStar: true});
+  }
+});
+
+test('old pending ordinary and spectral results survive the balance change without rerolls during load, reveal or claim', () => {
+  for (const [ids, mutations] of [
+    [['dawnphoenix', 'meadowmouse'], {hp: 0, attack: 0, power: 0, sixStar: false}],
+    [['spectralwyrm', 'meadowmouse'], {hp: 1, attack: 0, power: 0, sixStar: false}],
+    [['spectralpanther', 'mossfox'], {hp: 2, attack: 2, power: 3, sixStar: true}]
+  ]) {
+    const c = collection(ids); start(c); c.breedingJobs[0].offspring.mutations = mutations;
+    const saved = clone(c.breedingJobs[0]), random = Math.random;
+    try {
+      Math.random = () => {throw Error('persisted offspring must not reroll');};
+      const pending = T.normalizeCollection(clone(c), 60000);
+      assert.deepEqual(pending.breedingJobs[0], saved);
+      const ready = T.normalizeCollection(clone(pending), 90000);
+      assert.deepEqual(T.revealBreeding(ready, saved.stationId, {now: 90000}).pet, saved.offspring);
+      const revealed = T.normalizeCollection(clone(ready), 90001);
+      assert.deepEqual(T.claimBreeding(revealed, saved.stationId, {now: 90001}).pet, saved.offspring);
+      assert.deepEqual(revealed.pets.at(-1), saved.offspring);
+    } finally { Math.random = random; }
+  }
+});
+
 test('only the six-star mutation grants6stars; HP/Atk/Power stack independently and carry into combat', () => {
   const speciesId = hybrid('spectralwyrm', 'obsidianbear').id;
   const normal = {...collection().pets[0], speciesId, level: 30}, mutated = {...normal, mutations: {hp: 2, attack: 2, power: 3, sixStar: true}};
