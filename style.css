@@ -6,7 +6,7 @@
     --rare:#5b9bd5; --epic:#a66bd0; --fine:#6dbb6d;
     --display:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
     --body:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-    --sidew:420px;
+    --sidew:max(320px,30vw);
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
   html,body{height:100%;overscroll-behavior:none}
@@ -94,6 +94,17 @@
   @media(max-width:899px){#cityMinimap{width:132px;height:132px}}
   @media(max-width:359px),(max-height:500px){#cityMinimap{width:116px;height:116px}}
   #sideToggle{top:120px;height:64px;width:22px;padding:0;font-size:11px;display:none;align-items:center;justify-content:center}
+  #sideResize{display:none;position:absolute;right:0;top:50%;transform:translateY(-50%);width:20px;height:70px;
+    align-items:center;justify-content:center;z-index:21;cursor:ew-resize;touch-action:none;
+    border:1px solid #9e7845;border-right:0;border-radius:9px 0 0 9px;
+    background:linear-gradient(90deg,#302016,#68482c 65%,#392519);color:#dbb97c;
+    box-shadow:-2px 2px 6px #0008,inset 1px 0 0 #c69a5640;outline:none}
+  #sideResize span{width:6px;height:25px;border-left:1px solid currentColor;border-right:1px solid currentColor;pointer-events:none}
+  #sideResize:hover,#sideResize:focus-visible{color:#ffe5ae;border-color:#e4b962;background:linear-gradient(90deg,#4b311e,#836039 65%,#4b311e)}
+  #sideResize:focus-visible{box-shadow:0 0 0 2px #e4b962,-2px 2px 8px #0008}
+  body.side-resizing,body.side-resizing *{cursor:ew-resize!important;user-select:none!important}
+  body.side-resizing #app{transition:none}
+  body.sidehidden #sideResize,body:has(#login.open) #sideResize,body:has(#select.open) #sideResize,body:has(#create.open) #sideResize,body:has(#tideBattleFx:not([hidden])) #sideResize{display:none}
   .stgbtn.off{opacity:.45}
   /* ⚙ Settings is a panel in the middle of the screen now, on the same .casinobox the smith and the
      other venues use, rather than a popover tucked under its own button. It is where the player
@@ -598,11 +609,12 @@
   /* ---- desktop RuneScape-style split layout; mobile rules above stay untouched ---- */
   @media (min-width:900px){
     body{display:block;overflow:hidden}
-    #app{max-width:none;width:100vw;height:100dvh;display:grid;grid-template-columns:minmax(0,7fr) minmax(320px,3fr);grid-template-rows:auto minmax(0,1fr) auto;background:var(--night);transition:grid-template-columns .25s ease}
+    #app{max-width:none;width:100vw;height:100dvh;display:grid;grid-template-columns:minmax(0,1fr) var(--sidew);grid-template-rows:auto minmax(0,1fr) auto;background:var(--night);transition:grid-template-columns .25s ease}
     body.sidehidden #app{grid-template-columns:minmax(0,1fr) 0px}
     body.sidehidden nav,body.sidehidden .panel{opacity:0;pointer-events:none;overflow:hidden}
     body.sidehidden #stageWrap,body.sidehidden header,body.sidehidden #questcard{border-right:0}
     #sideToggle{display:flex}
+    #sideResize{display:flex}
     body.sidehidden #sideToggle{transform:none}
     header{grid-column:1;grid-row:1;padding:10px 16px 9px;border-right:none;background:url('assets/ui/ui_allt.png') center/100% 100% no-repeat}
     header .hrow{max-width:none}

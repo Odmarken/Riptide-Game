@@ -2634,7 +2634,9 @@ let VW=0,VH=0,DPR=1,vigCv=null;
 function resize(){
  const r=$('stageWrap').getBoundingClientRect();
  /* The desktop canvas follows the display even above 200% Windows scaling. */
- DPR=window.desktop?(window.devicePixelRatio||1):Math.min(2,window.devicePixelRatio||1);
+ const nextDPR=window.desktop?(window.devicePixelRatio||1):Math.min(2,window.devicePixelRatio||1);
+ if(VW===r.width&&VH===r.height&&DPR===nextDPR&&vigCv)return;
+ DPR=nextDPR;
  VW=r.width;VH=r.height;
  cv.width=Math.round(VW*DPR);cv.height=Math.round(VH*DPR);
  ctx.setTransform(DPR,0,0,DPR,0,0);
@@ -5428,13 +5430,13 @@ function killEnemy(en){
   const reward=WastelandDungeons.defeat(en);
   if(hero.target===en)hero.target=null;
   if(reward&&reward.books){
-   S.bag.push(knowledgeBook(en.name,en.dungeon));
+   S.bag.push(knowledgeBook(reward.guardians,en.dungeon));
    sfx.loot();sparkles(en.x,en.y-20,'#efd58a',18);
    floatAt(en.x,en.y-55,'Book of Knowledge','#efd58a');
-   log(`<span class="imp">${en.name}</span> defeated. <span class="llegendary">Book of Knowledge</span> added to your bag.`,'loot');
-   stageMsg('Book of Knowledge added to your bag.',2600,'#efd58a');
-   renderHUD();saveNow();
+   log(`<span class="imp">${reward.dungeonName}</span> cleared. Both guardians defeated; one <span class="llegendary">Book of Knowledge</span> added to your bag.`,'loot');
+   stageMsg('Dungeon cleared! Book of Knowledge added to your bag.',2600,'#efd58a');
   }
+  if(reward&&en.boss){renderHUD();saveNow();} // Save partial clears and inventory together with their boss deadlines.
   return; /* These encounters never feed the normal XP, gold, gear or quest routes. */
  }
  let gold=en.cow?0:addGold(Math.round(en.gold*(1+scrollPct('fortune'))));
@@ -9537,7 +9539,7 @@ function refreshOpenPanel(){
 function expeditionQuestText(z){
  if(!z.dungeon)return 'Explore the Wasteland. Follow the roads and discover its forgotten caves.';
  const fallen=enemies.filter(e=>e.boss&&e.dead),next=Math.min(...fallen.map(e=>e.bossReadyAt||Infinity));
- const status=fallen.length===2?'Both guardians have fallen.':fallen.length===1?'One guardian remains.':'Two guardians await. Dodge their marked attacks. Each guards a Book of Knowledge.';
+ const status=fallen.length===2?'Both guardians have fallen.':fallen.length===1?'One guardian remains. Defeat both for one Book of Knowledge.':'Two guardians await. Defeat both for one Book of Knowledge. Dodge their marked attacks.';
  return status+(Number.isFinite(next)?' '+WastelandMap.respawnText(next):'');
 }
 function renderHUD(){
@@ -14291,6 +14293,25 @@ function frame(t){
  cityMinimap.update(world,hero,gameOn&&S&&!ZONES[S.zone]?.dungeon&&!!(ZONES[S.zone]?.city||ZONES[S.zone]?.wasteland),t);
  requestAnimationFrame(frame);
 }
+const sidebarResize=SidebarResize.create({handle:$('sideResize'),app:$('app'),
+ onDragStart(){
+  holdMove=null;marker=null;if(hero)hero.moveTo=null;
+  for(const key of Object.keys(keys))delete keys[key];
+ },
+ onDragEnd(){
+  /* Resume the farm size tool from the new viewport without resizing its item. */
+  if(sizeItem){const it=farmListOf(sizeItem.kind)[sizeItem.i];if(it){sizeItem.sc0=scaleOf(it);sizeItem.d0=null;}}
+ }
+});
+let stageResizeFrame=0;
+const stageResizeObserver=new ResizeObserver(()=>{
+ if(stageResizeFrame)return;
+ stageResizeFrame=requestAnimationFrame(()=>{
+  stageResizeFrame=0;resize();
+  if(gameOn&&world&&!TideUI.isBattling())setZoom(zoom);
+ });
+});
+stageResizeObserver.observe($('stageWrap'));
 resize();
 requestAnimationFrame(frame);
 (async()=>{

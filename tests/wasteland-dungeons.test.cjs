@@ -236,19 +236,20 @@ test('missing or corrupt normal templates fail explicitly instead of spawning in
  }
 });
 
-test('all regular deaths are unrewarded and never respawn; each boss grants exactly one book',()=>{
+test('all regular deaths are unrewarded and never respawn; both bosses together grant exactly one book',()=>{
  for(const key of keys){
-  const run=encounter(key);let books=0;
+  const run=encounter(key);let books=0,bossKills=0;
   for(const en of run.enemies){
    en.hp=0;en.dead=true; // The game sets dead before its dungeon-only reward branch.
    const result=D.defeat(en);books+=result.books;
-   assert.equal(result.books,en.boss?1:0);
+   if(en.boss)bossKills++;
+   assert.equal(result.books,en.boss&&bossKills===2?1:0);
    assert.equal(D.defeat(en),null);
    en.dead=false;assert.equal(D.defeat(en),null,'clearing visible dead flag cannot duplicate rewards');en.dead=true;
    for(let i=0;i<700;i++)D.updateEnemy(en,.1,heroNear(en));
    assert.equal(en.dead,true,'corpse stays dead beyond ordinary 12s respawn');assert.equal(en.hp,0);
   }
-  assert.equal(books,2);
+  assert.equal(books,1);
  }
 });
 
@@ -366,13 +367,13 @@ test('saved boss timers retain only known finite future deadlines and cannot ext
  }
 });
 
-test('each boss starts its own two-hour deadline before reward release and duplicate kills cannot extend it',()=>{
+test('each boss starts its own two-hour deadline and only the second death releases the clear reward',()=>{
  let now=1000000;const timers={},run=encounter('briarhollow',stats,{bossReadyAt:timers,now:()=>now}),bosses=run.enemies.filter(e=>e.boss);
  assert.equal(D.BOSS_RESPAWN_MS,7200000);
  for(const [i,en]of bosses.entries()){
   const atDeath=now;en.hp=0;
   const reward=D.defeat(en);
-  assert.equal(reward.books,1);assert.equal(reward.bossIndex,i);
+  assert.equal(reward.books,i===1?1:0);assert.equal(reward.bossIndex,i);
   assert.equal(timers[i],atDeath+7200000);assert.equal(reward.bossReadyAt,timers[i]);
   assert.equal(en.bossReadyAt,timers[i]);assert.equal(D.bossRemaining(en,now),7200000);
   now+=30000;
@@ -415,5 +416,48 @@ test('a boss respawns exactly at wall-clock expiry even after pause, with one ca
  assert.equal(en.slowT,0);assert.equal(en.hurt,0);assert.equal(en.swing,0);
  for(const key of ['_ax','_ay','wt','mv','fx','fy'])assert.equal(key in en,false,`${key} cannot leak from the previous life`);
  D.updateEnemy(en,0,hero,hooks);assert.equal(events.length,1);
- const second=D.defeat(en);assert.equal(second.books,1);assert.equal(second.bossReadyAt,now+7200000);assert.equal(D.defeat(en),null);
+ const second=D.defeat(en);assert.equal(second.books,0,'killing the same guardian again does not complete the dungeon');assert.equal(second.bossReadyAt,now+7200000);assert.equal(D.defeat(en),null);
+});
+
+test('unclaimed clear progress survives reload but expires with its guardian, and old per-boss saves do not retroactively pay',()=>{
+ const now=1000000,until=now+D.BOSS_RESPAWN_MS;
+ const raw={briarhollow:{0:until,clearProgress:1},cindervein:{0:now,1:until,clearProgress:3},frostveil:{0:until,1:until}};
+ const clean=D.normalizeBossTimers(JSON.parse(JSON.stringify(raw)),now);
+ assert.deepEqual(JSON.parse(JSON.stringify(clean)),{briarhollow:{0:until,clearProgress:1},cindervein:{1:until,clearProgress:2},frostveil:{0:until,1:until}});
+ for(const corrupt of [-1,4,1.5,'3',NaN,Infinity])assert.equal(D.normalizeBossTimers({briarhollow:{0:until,1:until,clearProgress:corrupt}},now).briarhollow.clearProgress,undefined);
+ const run=encounter('frostveil',stats,{bossReadyAt:clean.frostveil,now:()=>now});
+ assert.equal(run.enemies.filter(e=>e.boss).every(e=>e.dead),true);
+ for(const en of run.enemies.filter(e=>e.boss))assert.equal(D.defeat(en),null);
+ assert.equal(clean.frostveil.clearProgress,undefined,'missing progress means those old kills already paid');
+});
+
+test('a completion consumes both kills, so staggered respawns and repeated farming of one boss cannot reuse the other',()=>{
+ for(const key of keys)for(const order of [[0,1],[1,0]]){
+  let now=1000000;const timers={},run=encounter(key,stats,{bossReadyAt:timers,now:()=>now}),bosses=run.enemies.filter(e=>e.boss);
+  const first=bosses[order[0]],last=bosses[order[1]];
+  assert.equal(D.defeat(first).books,0);assert.equal(timers.clearProgress,1<<order[0]);now+=1000;
+  assert.equal(D.defeat(last).books,1);assert.equal(timers.clearProgress,undefined);
+  now=first.bossReadyAt;D.updateEnemy(first,0,heroNear(first));assert.equal(D.defeat(first).books,0,'other guardian belongs to the previous completed clear');
+  now=last.bossReadyAt;D.updateEnemy(last,0,heroNear(last));assert.equal(D.defeat(last).books,1,'both new deaths complete another clear');
+  for(let n=0;n<3;n++){now=last.bossReadyAt;D.updateEnemy(last,0,heroNear(last));assert.equal(D.defeat(last).books,0,'one boss alone never pays');}
+ }
+});
+
+test('a guardian that respawns before its partner dies must be defeated again for a clear',()=>{
+ let now=1000;const timers={},run=encounter('briarhollow',stats,{bossReadyAt:timers,now:()=>now}),[a,b]=run.enemies.filter(e=>e.boss);
+ assert.equal(D.defeat(a).books,0);now=a.bossReadyAt;
+ // No update tick has run yet: expired deadlines must not count even if the old corpse remains visible.
+ assert.equal(D.defeat(b).books,0);assert.equal(timers.clearProgress,2);
+ D.updateEnemy(a,0,heroNear(a));assert.equal(D.defeat(a).books,1);
+});
+
+test('partial clears stay isolated between the three dungeons and stale boss objects cannot claim a live cooldown twice',()=>{
+ let now=1000;const state=D.normalizeBossTimers(null,now),runs=keys.map(key=>encounter(key,stats,{bossReadyAt:state[key],now:()=>now}));
+ for(const run of runs){const a=run.enemies.find(e=>e.boss);assert.equal(D.defeat(a).books,0);}
+ for(const [i,run]of runs.entries()){
+  const a=run.enemies.find(e=>e.boss),b=run.enemies.filter(e=>e.boss)[1];a.dungeonDefeated=false;a.dead=false;
+  assert.equal(D.defeat(a),null,'persisted cooldown independently rejects a duplicate death');
+  assert.equal(D.defeat(b).books,1);assert.equal(state[keys[i]].clearProgress,undefined);
+  for(let n=i+1;n<runs.length;n++)assert.equal(state[keys[n]].clearProgress,1,'another clear must not consume this dungeon credit');
+ }
 });

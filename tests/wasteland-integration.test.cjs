@@ -34,44 +34,74 @@ const integration=[
  'globalThis.testApi={ZONES,TAVERN_ZONE,WASTELAND_ZONE,travelExpedition,zoneTemplates,zoneQuests,knowledgeBook,isKnowledgeBook,killEnemy,cleanBagItem,tryAutoEquip,upgradeItem,bagSellable,buildZone,update,getSpawn:()=>expeditionSpawn};'
 ].join('\n');
 const plain=value=>JSON.parse(JSON.stringify(value));
-function harness(key='briarhollow'){
+function harness(key='briarhollow',options={}){
  const calls=[],forbidden=name=>()=>{throw new Error('Ordinary reward/effect reached: '+name);};
- const S={zone:0,gold:123,scraps:47,xp:83,qProg:4,bag:[],scrolls:[],gear:{weapon:null,armor:null,trinket:null}};
- const context={S,calls,hero:{hp:400,dead:false,target:null},world:null,mp:{on:false,started:false},WastelandWorld:W,Mounts,TideUI,mountRide:Mounts.createRide(),$:()=>null,
+ const S=options.state?plain(options.state):{zone:0,gold:123,scraps:47,xp:83,qProg:4,bag:[],scrolls:[],gear:{weapon:null,armor:null,trinket:null}};
+ const clock=options.clock||{now:Date.now()},snapshots=[];
+ const context={S,calls,clock,snapshots,Date:class extends Date{static now(){return clock.now;}},hero:{hp:400,dead:false,target:null},world:null,mp:{on:false,started:false},WastelandWorld:W,Mounts,TideUI,mountRide:Mounts.createRide(),$:()=>null,
   MAXLVL:60,pMul:()=>1+.1*(S.prestige||0),pRew:()=>1,mobGold:()=>0,
   raceOf:()=>({leech:.03}),heroMax:()=>1000,hasEnch:id=>id==='reaper',scrollPct:id=>id==='reaper'?.02:0,
   inGearSet:()=>false,itemName:it=>it.name,inBossFight:forbidden('upgrade combat check'),capUp:forbidden('upgrade cap'),upCost:forbidden('upgrade cost'),
   calcPower:forbidden('book stat calculation'),addGold:forbidden('gold'),addScraps:forbidden('scraps'),gainXP:forbidden('XP'),rollItem:forbidden('gear'),completeQuest:forbidden('quest'),
-  burst:()=>{},sparkles:()=>{},floatAt:()=>{},stageMsg:()=>{},log:()=>{},save:()=>calls.push('save'),saveNow:()=>calls.push('saveNow'),renderHUD:()=>calls.push('HUD'),
+  burst:()=>{},sparkles:()=>{},floatAt:()=>{},stageMsg:()=>{},log:()=>{},save:()=>calls.push('save'),saveNow:()=>{calls.push('saveNow');snapshots.push(plain(S));},renderHUD:()=>calls.push('HUD'),
   sfx:{die:()=>calls.push('die'),loot:()=>calls.push('loot')},hcNoFlee:()=>false,
   goToZone:i=>{calls.push(['travel',i]);S.zone=i;},mpLeave:value=>calls.push(['mpLeave',value])};
  context.zoneOf=()=>context.testApi.ZONES[S.zone];
  vm.createContext(context);vm.runInContext(dungeonSource+'\n'+integration,context);
  S.zone=context.testApi.ZONES.findIndex(z=>z.dungeon===key);
- S.wastelandBossReadyAt=context.WastelandDungeons.normalizeBossTimers(null);
+ S.wastelandBossReadyAt=context.WastelandDungeons.normalizeBossTimers(S.wastelandBossReadyAt,clock.now);
  const definition=context.WastelandDungeons.definitions[key],z=context.zoneOf();
  const templates={mobs:context.testApi.zoneTemplates({lvl:z.lvl,en:definition.mobs.map(m=>[m.name,m.kind,definition.color])}),boss:context.testApi.zoneTemplates({lvl:z.lvl,boss:['Guardian',definition.color,'wasteland']})[0]};
  context.world=W.create(key);context.world.encounter=context.WastelandDungeons.createEncounter(key,context.world.enemySpawns,templates,{bossReadyAt:S.wastelandBossReadyAt[key]});
  return {...context,api:context.testApi,context};
 }
 for(const key of ['briarhollow','cindervein','frostveil']){
- test(key+': actual killEnemy gives only two books, keeps death passives, and ignores repeat kills',()=>{
+ test(key+': actual killEnemy gives one book for both bosses, keeps death passives, and ignores repeat kills',()=>{
   const h=harness(key),before={gold:h.S.gold,scraps:h.S.scraps,xp:h.S.xp,qProg:h.S.qProg};
+  let bossKills=0;
   for(const en of h.world.encounter.enemies){
    h.hero.hp=400;h.hero.target=en;const books=h.S.bag.length,saves=h.calls.filter(c=>c==='saveNow').length;
    h.api.killEnemy(en);
    assert.equal(h.hero.hp,450,'Undead 3% + Reaper 2% still heal on dungeon kills');
    assert.equal(h.hero.target,null);assert.equal(en.dead,true);assert.equal(en.dungeonDefeated,true);
-   assert.equal(h.S.bag.length,books+(en.boss?1:0));assert.equal(h.calls.filter(c=>c==='saveNow').length,saves+(en.boss?1:0));
+   if(en.boss)bossKills++;
+   assert.equal(h.S.bag.length,books+(en.boss&&bossKills===2?1:0));assert.equal(h.calls.filter(c=>c==='saveNow').length,saves+(en.boss?1:0));
    if(en.boss){assert.equal(h.S.wastelandBossReadyAt[key][en.dungeonIndex],en.bossReadyAt);assert.ok(en.bossReadyAt>Date.now()+7199000);}
    const count=h.calls.length;h.api.killEnemy(en);assert.equal(h.calls.length,count,'duplicate kill has no second effect');assert.equal(h.hero.hp,450);
   }
   assert.deepEqual({gold:h.S.gold,scraps:h.S.scraps,xp:h.S.xp,qProg:h.S.qProg},before);
-  assert.equal(h.S.bag.length,2);assert.deepEqual(h.S.scrolls,[]);
+  assert.equal(h.S.bag.length,1);assert.deepEqual(h.S.scrolls,[]);
   const bosses=h.world.encounter.enemies.filter(e=>e.boss);
-  h.S.bag.forEach((book,i)=>{assert.equal(h.api.isKnowledgeBook(book),true);assert.equal(book.sourceBoss,bosses[i].name);assert.equal(book.sourceDungeon,key);});
+  const book=h.S.bag[0];assert.equal(h.api.isKnowledgeBook(book),true);assert.equal(book.sourceBoss,bosses.map(b=>b.name).join(' & '));assert.equal(book.sourceDungeon,key);
  });
 }
+
+for(const key of ['briarhollow','cindervein','frostveil'])for(const order of [[0,1],[1,0]])test(key+': kill order '+order.join(' then ')+' saves partial and completed clears and requires two fresh kills next time',()=>{
+ const clock={now:1000000};let h=harness(key,{clock});
+ const boss=i=>h.world.encounter.enemies.find(e=>e.boss&&e.dungeonIndex===i);
+ h.api.killEnemy(boss(order[0]));assert.equal(h.S.bag.length,0);assert.equal(h.snapshots.length,1,'first guardian must save even without loot');
+ const firstSave=h.snapshots.at(-1),firstDeadline=firstSave.wastelandBossReadyAt[key][order[0]];
+ assert.equal(firstSave.wastelandBossReadyAt[key].clearProgress,1<<order[0]);
+ clock.now+=1000;h=harness(key,{state:firstSave,clock});assert.equal(boss(order[0]).dead,true);
+ h.api.killEnemy(boss(order[1]));assert.equal(h.S.bag.length,1);assert.equal(h.snapshots.length,1);
+ const completed=h.snapshots.at(-1),secondDeadline=completed.wastelandBossReadyAt[key][order[1]];
+ assert.equal(completed.bag.length,1);assert.equal(completed.wastelandBossReadyAt[key].clearProgress,undefined,'inventory and consumed progress share one save');
+ h=harness(key,{state:completed,clock});for(const i of order)h.api.killEnemy(boss(i));assert.equal(h.S.bag.length,1);assert.equal(h.snapshots.length,0,'re-entry cannot pay again');
+ clock.now=firstDeadline;h.WastelandDungeons.updateEnemy(boss(order[0]),0,{x:0,y:0});h.api.killEnemy(boss(order[0]));assert.equal(h.S.bag.length,1,'the old second guardian cannot count again');
+ h=harness(key,{state:h.snapshots.at(-1),clock});assert.equal(h.S.wastelandBossReadyAt[key].clearProgress,1<<order[0]);
+ clock.now=secondDeadline;h.WastelandDungeons.updateEnemy(boss(order[1]),0,{x:0,y:0});h.api.killEnemy(boss(order[1]));assert.equal(h.S.bag.length,2);
+ const final=h.snapshots.at(-1);assert.equal(final.bag.length,2);assert.equal(final.wastelandBossReadyAt[key].clearProgress,undefined);
+});
+
+test('old saved books remain intact and already paid legacy guardian deaths cannot be reused',()=>{
+ const clock={now:1000000},initial=harness('briarhollow',{clock}),state=plain(initial.S);
+ state.bag.push(initial.api.knowledgeBook('Old guardian','briarhollow'));
+ state.wastelandBossReadyAt.briarhollow={0:clock.now+3600000};
+ const h=harness('briarhollow',{state,clock}),bosses=h.world.encounter.enemies.filter(e=>e.boss);
+ h.api.killEnemy(bosses[1]);assert.equal(h.S.bag.length,1);assert.equal(h.S.bag[0].sourceBoss,'Old guardian');
+ assert.equal(h.S.wastelandBossReadyAt.briarhollow.clearProgress,2);
+ clock.now+=3600000;h.WastelandDungeons.updateEnemy(bosses[0],0,{x:0,y:0});h.api.killEnemy(bosses[0]);assert.equal(h.S.bag.length,2);
+});
 test('actual buildZone retirement prefix prevents stale multishot targets from yielding books or heals',()=>{
  const h=harness(),targets=h.world.encounter.enemies.slice();for(const en of targets)en.dungeonCast={shape:'circle'};
  h.api.buildZone();

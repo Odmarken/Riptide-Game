@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="favicon_256.png">
 <!-- ?v= is not decoration: without it iOS Safari serves a cached stylesheet for days, so two
      phones end up running two different builds of the layout. Bump on every visual change. -->
-<link rel="stylesheet" href="style.css?v=51">
+<link rel="stylesheet" href="style.css?v=52">
 <link rel="stylesheet" href="assets/tides/ui.css?v=8">
 </head>
 <body>
@@ -116,6 +116,7 @@
     <button id="cfgBtn" class="stgbtn" title="Settings">⚙️</button>
     <button id="musBtn" class="stgbtn" title="Pause game and audio">⏸</button>
     <button id="sideToggle" class="stgbtn" title="Hide panel (B)" style="height:44px;width:16px;padding:0;font-size:9px">❯</button>
+    <div id="sideResize" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize side panel" aria-controls="p-hero p-map p-bag p-tides p-shop" title="Drag to resize panel. Double-click to reset. Left / Right arrows adjust width."><span aria-hidden="true"></span></div>
     <div id="cfgBox">
       <div class="casinobox" style="border-color:#b8a06a;max-width:400px">
         <div class="slottop" style="color:#e8dcc6;margin-bottom:10px">⚙ SETTINGS</div>
@@ -798,9 +799,10 @@
 <script src="assets/weapons/rune-profiles.js?v=1"></script>
 <script src="assets/weapons/rune-particles.js?v=1"></script>
 <script src="assets/weapons/rune-effects.js?v=4"></script>
+<script src="assets/ui/sidebar-resize.js?v=1"></script>
 <script src="assets/ui/city-minimap.js?v=4"></script>
 <script src="assets/wasteland/world.js?v=8"></script>
-<script src="assets/wasteland/dungeons.js?v=4"></script>
+<script src="assets/wasteland/dungeons.js?v=5"></script>
 <script src="assets/wasteland/ambience.js?v=1"></script>
 <script src="assets/wasteland/music.js?v=1"></script>
 <script src="assets/ui/wasteland-map.js?v=2"></script>
@@ -818,6 +820,6 @@
 <script src="assets/tides/art-layout.js?v=1"></script>
 <script src="assets/tides/motion.js?v=2"></script>
 <script src="assets/tides/ui.js?v=14"></script>
-<script src="game.js?v=113"></script>
+<script src="game.js?v=114"></script>
 </body>
 </html>

@@ -328,7 +328,7 @@ test('the actual frame hook updates visibility in City, pause, other zones and c
     ctx: { fillRect() {}, fillText() {} }, VW: 800, VH: 600,
     document: { body: {} }, getComputedStyle: () => ({ fontFamily: 'serif' }),
   });
-  vm.runInContext(section('function frame(t){', '\nresize();'), context);
+  vm.runInContext(section('function frame(t){', '\nconst sidebarResize='), context);
   context.frame(0); assert.equal(calls.at(-1)[2], true);
   context.gamePaused = true; context.frame(20); assert.equal(calls.at(-1)[2], true);
   context.S.zone = 0; context.frame(40); assert.equal(!!calls.at(-1)[2], false);

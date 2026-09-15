@@ -2,12 +2,13 @@
  * createEncounter(key, world.enemySpawns, {mobs,boss}, {bossReadyAt,now}) -> {enemies,...}.
  * mobs/boss are ordinary zoneTemplates: all HP/damage scaling stays in game.js.
  * bossReadyAt is the character's mutable per-dungeon deadline record (indices 0/1).
+ * Its clearProgress bitmask stores unclaimed kills while those bosses stay dead.
  * now is a wall-clock function in milliseconds, default Date.now; timers survive reset.
  * updateEnemy returns true for dungeon foes: skip ALL ordinary AI/respawn then.
  * Hooks: moveToward(enemy,x,y,dt), hurtHero(damage,label,enemy,isMelee),
  *        onWarn(cast,enemy), onStrike(cast,enemy,hit) (last two are optional VFX).
  * defeat(enemy) owns its once-per-life guard, including if killEnemy set dead first.
- * Its {books:0|1} result is the ONLY dungeon reward; bypass ordinary kill rewards.
+ * Its {books:0|1} result rewards BOTH guardians once per clear, never each boss.
  * reset(encounter) replaces enemies and retires old references. The caller must
  * adopt encounter.enemies and clear projectiles/hazards on death or re-entry.
  * drawTelegraphs runs in the same world transform as enemy drawing. */
@@ -66,6 +67,14 @@
  let serial=0;
 
  function wallTime(value){return Number.isFinite(value)&&value>=0?value:Date.now();}
+ function clearProgress(record,now){
+  // Old saves have no mask: their individual boss drops were already paid.
+  const mask=Number.isInteger(record?.clearProgress)&&record.clearProgress>=1&&record.clearProgress<=3?record.clearProgress:0;
+  return mask&((Number.isFinite(record?.[0])&&record[0]>now?1:0)|(Number.isFinite(record?.[1])&&record[1]>now?2:0));
+ }
+ function setClearProgress(record,mask){
+  if(mask)record.clearProgress=mask;else delete record.clearProgress;
+ }
  function normalizeBossTimers(raw,now=Date.now()){
   now=wallTime(now);const result={};
   for(const key of Object.keys(definitions)){
@@ -75,6 +84,8 @@
     const value=record&&typeof record==='object'&&!Array.isArray(record)&&Object.prototype.hasOwnProperty.call(record,index)?record[index]:0;
     if(Number.isFinite(value)&&value>now)result[key][index]=Math.min(value,now+BOSS_RESPAWN_MS);
    }
+   if(record&&typeof record==='object'&&!Array.isArray(record)&&Object.prototype.hasOwnProperty.call(record,'clearProgress'))
+    setClearProgress(result[key],clearProgress({0:result[key][0],1:result[key][1],clearProgress:record.clearProgress},now));
   }
   return result;
  }
@@ -102,7 +113,7 @@
    x:p.x,y:p.y,home:{x:p.x,y:p.y},r:boss?26:12,max:hp,hp,
    atk:combat.atk,xp:0,gold:0,
    dungeon:encounter.key,dungeonIndex:index,encounterId:encounter.id+':'+encounter.generation+':'+slot+':'+(encounter.lives[slot]||0),
-   noRespawn:true,noRewards:true,bookDrop:boss?1:0,roomIdx:p.room??null,
+   noRespawn:true,noRewards:true,bookDrop:0,roomIdx:p.room??null,
    add:false,atkCd:combat.atkCd,meleeMul:1,reach:0,awake:false,
    speed:combat.speed,baseSpeed:combat.speed,state:'idle',dir:0,wT:0,cd:boss?1.2:.7+(slot%3)*.2,
    dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,cds:{a:2,b:5,c:8},lockT:0,
@@ -112,7 +123,7 @@
   const deadline=encounter.bossReadyAt[index];
   if(boss&&Number.isFinite(deadline)&&deadline>encounter.now()){
    en.bossReadyAt=deadline;en.dead=true;en.deadT=1;en.hp=0;en.state='dead';en.dungeonDefeated=true;
-  }else if(boss)delete encounter.bossReadyAt[index];
+  }else if(boss){delete encounter.bossReadyAt[index];setClearProgress(encounter.bossReadyAt,clearProgress(encounter.bossReadyAt,encounter.now()));}
   owners.set(en,{encounter,slot});
   return en;
  }
@@ -134,6 +145,7 @@
   const bossReadyAt=options.bossReadyAt&&typeof options.bossReadyAt==='object'&&!Array.isArray(options.bossReadyAt)?options.bossReadyAt:{};
   const clean=normalizeBossTimers({[key]:bossReadyAt},now())[key];
   for(const index of [0,1]){if(clean[index])bossReadyAt[index]=clean[index];else delete bossReadyAt[index];}
+  setClearProgress(bossReadyAt,clean.clearProgress||0);
   const encounter={key,id:++serial,generation:0,scaling:scaling(stats),spawns:freeze(points),enemies:[],lives:{},bossReadyAt,now};
   return reset(encounter);
  }
@@ -146,14 +158,21 @@
  function defeat(en){
   if(!en||!en.dungeon||en.dungeonDefeated||en.dungeonRetired)return null;
   const owner=owners.get(en);if(!owner)return null;
+  let books=0;
   if(en.boss){
-   // Persist the cooldown before returning permission to grant the book.
-   en.bossReadyAt=owner.encounter.now()+BOSS_RESPAWN_MS;
-   owner.encounter.bossReadyAt[en.dungeonIndex]=en.bossReadyAt;
+   const record=owner.encounter.bossReadyAt,now=owner.encounter.now();
+   if(Number.isFinite(record[en.dungeonIndex])&&record[en.dungeonIndex]>now)return null;
+   const mask=clearProgress(record,now)|(1<<en.dungeonIndex);
+   en.bossReadyAt=now+BOSS_RESPAWN_MS;
+   record[en.dungeonIndex]=en.bossReadyAt;
+   // Consume BOTH fresh kills before allowing the caller to add one inventory item.
+   // A second kill of only one respawned guardian cannot reuse the previous clear.
+   books=mask===3?1:0;setClearProgress(record,books?0:mask);
   }
   en.dungeonDefeated=true;en.dead=true;en.hp=0;en.deadT=0;en.hidden=false;en.dungeonCast=null;
   en.dungeonRecovery=0;en.state='dead';
-  return {dungeon:en.dungeon,bossId:en.bossId,name:en.name,books:en.boss?1:0,
+  return {dungeon:en.dungeon,dungeonName:definitions[en.dungeon].name,bossId:en.bossId,name:en.name,books,
+   guardians:definitions[en.dungeon].bosses.map(b=>b.name).join(' & '),
    encounterId:en.encounterId,bossIndex:en.boss?en.dungeonIndex:null,bossReadyAt:en.bossReadyAt,x:en.x,y:en.y};
  }
  function pointInTelegraph(cast,point){
@@ -196,7 +215,7 @@
    const owner=owners.get(en);
    if(en.boss&&en.bossReadyAt>0&&owner&&bossRemaining(en,owner.encounter.now())===0){
     const {encounter,slot}=owner;
-    delete encounter.bossReadyAt[en.dungeonIndex];encounter.lives[slot]=(encounter.lives[slot]||0)+1;
+    delete encounter.bossReadyAt[en.dungeonIndex];setClearProgress(encounter.bossReadyAt,clearProgress(encounter.bossReadyAt,encounter.now()));encounter.lives[slot]=(encounter.lives[slot]||0)+1;
     const fresh=spawnEnemy(encounter,encounter.spawns[slot],slot);
     // Keep the live enemy reference, but not status/stride fields added during
     // its previous life (especially _ax/_ay after returning from the corpse).
