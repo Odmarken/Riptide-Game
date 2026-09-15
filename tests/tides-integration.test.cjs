@@ -132,7 +132,7 @@ test('typing a Tide search cannot cast spells, spend potions or acquire a world 
 });
 
 test('a Tide battle continues polling the controller while stopping world simulation',()=>{
- const calls=[],context={gameOn:true,runeFxDt:0,TideUI:{tick:()=>calls.push('battle'),isBattling:()=>true},padNow:null,padStick:()=>null,padTick:()=>calls.push('controller')};
+ const calls=[],context={gameOn:true,S:{auto:false},runeFxDt:0,TideUI:{tick:()=>calls.push('battle'),isBattling:()=>true},padNow:null,padStick:()=>null,padTick:()=>calls.push('controller')};
  vm.runInNewContext(section('function update(dt){',' refreshWastelandChunks();')+'throw new Error("World simulation reached during Tide battle");}\nupdate(.016);',context);
  assert.deepEqual(calls,['battle','controller']);
 });

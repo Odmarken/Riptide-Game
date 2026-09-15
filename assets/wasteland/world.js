@@ -531,9 +531,6 @@
     // The approach rails use fixed authored coordinates, never camera phase.
     g.strokeStyle='#655443';g.lineWidth=5;for(const off of [-26,26]){g.beginPath();g.moveTo(e.x-120,e.y+off);g.lineTo(e.x-570,e.y-110+off);g.stroke();}
     g.strokeStyle='#59412b';g.lineWidth=11;for(let i=0;i<7;i++){const x=e.x-150-i*64,y=e.y-(i*64+30)*110/450;g.beginPath();g.moveTo(x-8,y+40);g.lineTo(x+8,y-40);g.stroke();}
-   }else{
-    g.strokeStyle='rgba(204,239,250,.5)';g.lineWidth=3;
-    for(const side of [-1,1]){g.beginPath();g.moveTo(e.x+side*225,e.y+80);g.lineTo(e.x+side*355,e.y+175);g.lineTo(e.x+side*435,e.y+145);g.moveTo(e.x+side*355,e.y+175);g.lineTo(e.x+side*365,e.y+250);g.stroke();}
    }g.restore();
   }
  }

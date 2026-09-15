@@ -6932,7 +6932,34 @@ function nearestQuestEnemy(){
  return best;
 }
 let autoT=0;
+/* Dungeons and raid/boss arenas are fought manually. The two Valhalla gods remain
+   eligible; ordinary leveling fields and the Cow Level keep their existing AUTO. */
+function combatAutoAllowed(z=zoneOf()){
+ const boss=z?.boss?.[2];
+ return !!z&&(boss==='odin'||boss==='thor'||!(z.dungeon||z.crypts||z.raid||z.boss));
+}
+function refreshCombatAutoControls(){
+ const allowed=combatAutoAllowed();
+ if(!allowed){
+  S.auto=false;autoCfgMode=false;
+  $('skillbar')?.classList.remove('autocfg');
+ }
+ for(const id of ['autoBtn','skAutoCfg']){
+  const b=$(id);if(!b)continue;
+  b.hidden=!allowed;b.disabled=!allowed;b.style.display=allowed?'':'none';
+ }
+ const b=$('autoBtn');
+ if(b){b.classList.toggle('on',!!S.auto);b.textContent=S.auto?'AUTO ✓':'AUTO';b.setAttribute('aria-pressed',String(!!S.auto));}
+ return allowed;
+}
+function toggleCombatAuto(){
+ if(!S)return;
+ if(!refreshCombatAutoControls()){stageMsg('Auto is unavailable in dungeons and raids',1600);sfx.warn();save();return;}
+ S.auto=!S.auto;renderHUD();save();
+}
 function autoBrain(dt){
+ if(!S||!S.auto)return;
+ if(!combatAutoAllowed()){refreshCombatAutoControls();return;}
  autoT-=dt;if(autoT>0)return;autoT=0.3;
  const c=classOf();
  // potions - only the ones the player allows AUTO to use
@@ -6963,6 +6990,7 @@ function autoBrain(dt){
 function update(dt){
  runeFxDt=dt; /* simulation time is consumed once by the current weapon draw */
  if(!gameOn)return;
+ if(S.auto&&!combatAutoAllowed())refreshCombatAutoControls();
  TideUI.tick(dt);
  if(TideUI.isBattling()){padNow=padStick();padTick(dt);return;}
  refreshWastelandChunks();
@@ -9558,9 +9586,10 @@ function log(html,cls){
 }
 function applyZoneUI(){
  if($('stableFx'))$('stableFx').style.display='none';
+ refreshCombatAutoControls();
  updateMountButton();
  $('hZone').textContent=zoneOf().name+(zoneOf().boss||zoneOf().raid?' ☠':'');
- /* the crypts hide the quest text and Continue - the bar stays, the progress row doubles as the 0/3 chest counter, AUTO stays clickable for its refusal */
+ /* The crypts hide the quest text and Continue; the progress row doubles as the 0/3 chest counter. */
  const cr=!!zoneOf().crypts;
  if(!cr){const ci=$('cryptIntro');if(ci)ci.style.display='none';}
  if(!zoneOf().farm){buildMode=false;buildSel=null;buildPan=null;const fs2=$('farmStore');if(fs2)fs2.style.display='none';}
@@ -9589,6 +9618,7 @@ function expeditionQuestText(z){
  return status+(Number.isFinite(next)?' '+WastelandMap.respawnText(next):'');
 }
 function renderHUD(){
+ refreshCombatAutoControls();
  $('hGold').innerHTML=(S.overflow?'<span style="color:#9adf9a;font-size:11px">(+'+S.overflow.toLocaleString()+')</span> ':'')+S.gold.toLocaleString();
  $('hScrap').textContent=S.scraps.toLocaleString();
  $('hLvl').textContent='Lv '+S.lvl+(S.prestige?' ✦'+S.prestige:'');
@@ -9742,6 +9772,7 @@ function buildSkillbar(){
  $('potHp').onclick=()=>{if(autoCfgMode)toggleAutoUse('hp',$('auHp'));else usePot('hp',true);};
  $('potMp').onclick=()=>{if(autoCfgMode)toggleAutoUse('mp',$('auMp'));else usePot('mp',true);};
  $('skAutoCfg').onclick=()=>{
+  if(!refreshCombatAutoControls())return;
   autoCfgMode=!autoCfgMode;
   $('skillbar').classList.toggle('autocfg',autoCfgMode);
   if(autoCfgMode){updateAutoBadges();stageMsg('Tap spells/potions to allow ✔ or block ✖ them for AUTO - tap Ⓐ again to save',2600);}
@@ -9749,6 +9780,7 @@ function buildSkillbar(){
  };
  autoCfgMode=false;
  $('skillbar').classList.remove('autocfg');
+ refreshCombatAutoControls();
 }
 let hudT=0;
 function renderVitals(dt){
@@ -10320,7 +10352,7 @@ function renderBag(){
   const both=S.ringRecipe&&S.brokenRing,smithOk=(S.smithLvl||0)>=10;
   if(S.ringRecipe)ringHtml+=`<div class="card item" style="border-color:#ffd76a"><div>
    <div class="sn" style="color:#ffd76a;font-size:13px;font-weight:600">${uiIcon('it_trinket','💍','shopico')} Recipe of the Ring</div>
-   <div class="ss" style="color:var(--dim);font-size:11px">${both?'':'The other half sleeps at the bottom of the Moonshine lake. '}Cannot be sold or discarded.</div></div>
+   <div class="ss" style="color:var(--dim);font-size:11px">Cannot be sold or discarded.</div></div>
    ${both?`<div class="btns"><span class="ss" style="color:#ffd76a;font-size:11px">${smithOk?'⚒ Ready - visit the Blacksmith!':'⚒ Requires Blacksmith level 10'}</span></div>`:''}</div>`;
   if(S.brokenRing)ringHtml+=`<div class="card item" style="border-color:#c9a45a"><div>
    <div class="sn" style="color:#c9a45a;font-size:13px;font-weight:600">${uiIcon('it_brokenring','💍','shopico')} The Broken Ring</div>
@@ -10712,12 +10744,64 @@ function spawnChestParts(color,n){
  }
 }
 /* --- GAMBAAA! case opening - CS:GO-style reel. The spin cannot be skipped;
-   Respin and Close only appear once the prize has landed. --- */
+   Respin and Close unlock after landing. Auto can be stopped during the spin. --- */
 const CASE_COST=5000,GOLD_COST=20000;
 let caseSpinning=false,caseRAF=0,curCase='gamba'; /* which chest is spinning */
 const chestQty={gamba:1,gold:1};
+let caseAuto=null,caseAutoTimer=0,caseAutoMessage='',casePaymentSource='gold';
+const CASE_AUTO_DELAY=1200;
 let lootUID=1,lastCaseLootIds=[];
 const caseCost=()=>curCase==='violethalls'?0:(curCase==='gold'?GOLD_COST:CASE_COST);
+function newCaseAuto(){
+ return {owner:S,type:curCase,qty:chestQty[curCase]||1,
+  source:curCase==='violethalls'?'chests':curCase==='gold'&&((S.freeGoldCases||0)>0||casePaymentSource==='free')?'free':'gold'};
+}
+function caseAutoCount(auto){
+ if(!auto||auto.owner!==S||auto.type!==curCase||!gameOn||!$('chestFx').classList.contains('open'))return 0;
+ const available=auto.source==='chests'?(S.chests?.violethalls||0):auto.source==='free'?(S.freeGoldCases||0):Math.floor(totalGold()/(auto.type==='gold'?GOLD_COST:CASE_COST));
+ return Math.max(0,Math.min(auto.qty,Math.floor(available)));
+}
+function updateCaseControls(){
+ const rb=$('respinBtn'),qty=chestQty[curCase]||1;
+ if(curCase==='violethalls'){
+  const available=(S.chests?.violethalls||0)>0;
+  rb.disabled=caseSpinning||!!caseAuto||!available;
+  rb.textContent=available?'🟩 Open another Violet Halls Chest':'🟩 No Violet Halls Chests left';
+ }else{
+  const cost=caseCost()*(qty-(curCase==='gold'?Math.min(S.freeGoldCases||0,qty):0));
+  rb.disabled=caseSpinning||!!caseAuto||totalGold()<cost;
+  rb.textContent=cost<=0?'🎁 Respin '+qty+'x · FREE':'🎁 Respin '+qty+'x · '+cost.toLocaleString()+'◉'+(totalGold()<cost?' - broke!':'');
+ }
+ const ab=$('caseAutoBtn');
+ ab.textContent=caseAuto?'■ Stop':'▶ Auto spin';ab.classList.toggle('on',!!caseAuto);ab.setAttribute('aria-pressed',String(!!caseAuto));
+ ab.disabled=!caseAuto&&!caseAutoCount(newCaseAuto());
+ ab.title='Automatically open this chest. Pauses on legendary weapons, pets and farm animals.';
+ $('caseClose').disabled=caseSpinning;
+ $('caseScrapBtn').disabled=caseSpinning||!!caseAuto;
+ $('caseAutoStatus').textContent=caseAutoMessage||'\u00a0';
+}
+function stopCaseAuto(message=''){
+ clearTimeout(caseAutoTimer);caseAutoTimer=0;caseAuto=null;caseAutoMessage=message;updateCaseControls();
+}
+function caseAutoExhausted(auto){
+ return auto.source==='free'?'Auto spin stopped · No free chests left.':auto.source==='chests'?'Auto spin stopped · No chests left.':'Auto spin stopped · Not enough gold.';
+}
+function queueCaseAuto(){
+ clearTimeout(caseAutoTimer);caseAutoTimer=0;
+ const auto=caseAuto;if(!auto||caseSpinning)return;
+ if(!caseAutoCount(auto)){stopCaseAuto(caseAutoExhausted(auto));return;}
+ caseAutoTimer=setTimeout(()=>{
+  caseAutoTimer=0;
+  if(caseAuto!==auto||caseSpinning)return;
+  const count=caseAutoCount(auto);
+  if(!count){stopCaseAuto(caseAutoExhausted(auto));return;}
+  if(auto.type==='violethalls'){openVioletHallsChest(true);return;}
+  // Free-case auto sessions never spill into gold. The last batch can be smaller.
+  const wins=rollChestBatch(auto.type,count);
+  if(wins)startCaseSpin(wins);else stopCaseAuto(caseAutoExhausted(auto));
+ },CASE_AUTO_DELAY);
+}
+function caseSpecialPrize(wins){return wins.find(win=>['LEGENDARY','PET','FARM ANIMAL'].includes(String(win.tier).toUpperCase()));}
 const CASE_RARS=[
  {r:.55,cc:'#d8e4d6',t:'common'},{r:.85,cc:'#6dbb6d',t:'fine'},
  {r:.965,cc:'#5b9bd5',t:'rare'},{r:.995,cc:'#c9a0ff',t:'epic'},{r:1,cc:'#e8c9ef',t:'scroll'}
@@ -10854,7 +10938,9 @@ function btPrizeValue(){
  log(`VIOLET HALLS: <span class="loot">${p.n} free GOLD GOLD GOLD cases</span>!`,'loot');
  return {icon:lootIco('it_chest','🎁'),tier:'Free cases',name:p.n+' GOLD GOLD GOLD',color:'#8fc3ef',sub:'Added to your free gold-chest counter.',big:p.n>=6};
 }
-function openVioletHallsChest(){
+function openVioletHallsChest(fromAuto=false){
+ if(caseSpinning)return;
+ if(fromAuto!==true)stopCaseAuto();
  if(!(S.chests&&S.chests.violethalls>0)){stageMsg('No Violet Halls Chest to open',1400);sfx.warn();return;}
  S.chests.violethalls--;curCase='violethalls';lastCaseLootIds=[];save();renderBag();renderHUD();
  startCaseSpin(btPrizeValue());
@@ -10867,6 +10953,7 @@ function rollChestBatch(type,count){
   total=cost*(count-freeUsed);
  }
  if(!spendGold(total)){stageMsg('Not enough gold - costs '+total.toLocaleString()+' ◉',1500);return null;}
+ casePaymentSource=freeUsed===count?'free':'gold';
  if(freeUsed){
   S.freeGoldCases-=freeUsed;
   log(`Redeemed ${freeUsed} free case${freeUsed>1?'s':''} - ${S.freeGoldCases} left.`,'loot');
@@ -10891,10 +10978,13 @@ function startCaseSpin(wins){
  const fx=$('chestFx'),reel=$('caseReel'),rev=$('chestReveal'),rays=$('chestRays');
  fx.classList.add('open');fx.classList.toggle('multi',wins.length>1);fx.classList.remove('flash');
  document.querySelectorAll('.caseextra').forEach(x=>x.remove());
- $('caseBtns').classList.remove('show');
- rev.classList.remove('show');rev.innerHTML='';
+ $('caseBtns').classList.add('show');
+ rev.classList.remove('show');rev.setAttribute('aria-hidden','true');prepareCaseReveal(wins);
  rays.style.opacity=0;rays.classList.toggle('epic',wins.some(w=>w.epic));
- caseSpinning=true;cancelAnimationFrame(caseRAF);
+ caseSpinning=true;fx.classList.add('spinning');cancelAnimationFrame(caseRAF);
+ clearTimeout(caseAutoTimer);caseAutoTimer=0;
+ updateCaseScrap();
+ updateCaseControls();
  const baseWrap=reel.parentElement,wraps=[baseWrap];
  for(let i=1;i<wins.length;i++){
   const w=document.createElement('div');w.className='casewrap caseextra';
@@ -10917,14 +11007,9 @@ function startCaseSpin(wins){
  };
  caseRAF=requestAnimationFrame(tick);
 }
-function finishCase(wins){
+function prepareCaseReveal(wins){
  wins=Array.isArray(wins)?wins:[wins];
- caseSpinning=false;
- const fx=$('chestFx'),rev=$('chestReveal'),rays=$('chestRays');
- document.querySelectorAll('.casecard.winc').forEach(wc=>wc.classList.add('win'));
- const best=wins.find(w=>w.epic)||wins.find(w=>w.big)||wins[0];
- rays.style.setProperty('--rayc',best.color+'55');rays.style.opacity=1;
- wins.forEach(w=>spawnChestParts(w.color,w.epic?16:8));
+ const rev=$('chestReveal');
  if(wins.length===1){
   const win=wins[0];
   rev.innerHTML=`<div class="cricon" style="color:${win.color}">${win.icon}</div>
@@ -10934,35 +11019,45 @@ function finishCase(wins){
  }else{
   rev.innerHTML='<div class="crname" style="color:var(--parch)">Opened '+wins.length+' chests</div><div class="crgrid">'+wins.map(w=>`<div class="crmini" style="--cc:${w.color}"><div class="mi">${w.icon}</div><div class="mt">${w.tier}</div><div class="mn">${w.name}</div></div>`).join('')+'</div>';
  }
- rev.classList.add('show');
+}
+function finishCase(wins){
+ wins=Array.isArray(wins)?wins:[wins];
+ caseSpinning=false;
+ const fx=$('chestFx'),rev=$('chestReveal'),rays=$('chestRays');
+ fx.classList.remove('spinning');
+ document.querySelectorAll('.casecard.winc').forEach(wc=>wc.classList.add('win'));
+ const best=wins.find(w=>w.epic)||wins.find(w=>w.big)||wins[0];
+ rays.style.setProperty('--rayc',best.color+'55');rays.style.opacity=1;
+ wins.forEach(w=>spawnChestParts(w.color,w.epic?16:8));
+ rev.classList.add('show');rev.setAttribute('aria-hidden','false');
  if(wins.some(w=>w.epic)){fx.classList.add('flash');sfx.level();noiseSweep(0.5,.08,400,3000);}
  else if(wins.some(w=>w.big))sfx.quest();
  else sfx.loot();
- const rb=$('respinBtn'),qty=chestQty[curCase]||1;
- if(curCase==='violethalls'){rb.disabled=!(S.chests&&S.chests.violethalls>0);rb.textContent=rb.disabled?'🟩 No Violet Halls Chests left':'🟩 Open another Violet Halls Chest';}
- let cost=caseCost()*qty;
- if(curCase==='gold'){const f=Math.min(S.freeGoldCases||0,qty);cost=caseCost()*(qty-f);}
- if(curCase!=='violethalls'){
-  rb.disabled=totalGold()<cost;
-  rb.textContent=cost<=0?'🎁 Respin '+qty+'x · FREE':(rb.disabled?'🎁 Respin '+qty+'x · '+cost.toLocaleString()+'◉ - broke!':'🎁 Respin '+qty+'x · '+cost.toLocaleString()+'◉');
- }
+ updateCaseScrap();
+ $('caseBtns').classList.add('show');
+ const special=caseSpecialPrize(wins);
+ if(caseAuto&&special)stopCaseAuto('Auto spin paused · '+special.name+'!');
+ else {updateCaseControls();queueCaseAuto();}
+}
+function updateCaseScrap(){
  const cs=$('caseScrapBtn'),chestGear=S.bag.filter(it=>lastCaseLootIds.includes(it._lid)&&!isLegendary(it));
+ delete cs.dataset.armed;cs.style.color='';cs.style.borderColor='';
  if(chestGear.length){
   const total=chestGear.reduce((t,it)=>t+scrapVal(it),0);
   cs.style.display='inline-block';cs.textContent='⚙ Scrap Chest Gear +'+total+'⚙';delete cs.dataset.armed;
  }else cs.style.display='none';
- $('caseBtns').classList.add('show');
 }
 function hideChestFx(){
+ stopCaseAuto();
  if(caseSpinning)return;
  cancelAnimationFrame(caseRAF);
- $('chestFx').classList.remove('open','multi');
+ $('chestFx').classList.remove('open','multi','spinning');
  $('caseScrapBtn').style.display='none';
  document.querySelectorAll('.caseextra').forEach(x=>x.remove());
 }
 $('caseClose').onclick=hideChestFx;
 $('caseScrapBtn').onclick=()=>{
- if(caseSpinning)return;
+ if(caseSpinning||caseAuto)return;
  const b=$('caseScrapBtn'),items=S.bag.filter(it=>lastCaseLootIds.includes(it._lid)&&!isLegendary(it));
  if(!items.length){b.style.display='none';return;}
  if(!b.dataset.armed){
@@ -10975,16 +11070,27 @@ $('caseScrapBtn').onclick=()=>{
 };
 $('respinBtn').onclick=()=>{
  if(caseSpinning)return;
+ stopCaseAuto();
  if(curCase==='violethalls'){openVioletHallsChest();return;}
  const wins=rollChestBatch(curCase,chestQty[curCase]);
  if(wins)startCaseSpin(wins);
 };
+$('caseAutoBtn').onclick=()=>{
+ if(caseAuto){stopCaseAuto('Auto spin stopped.');return;}
+ const auto=newCaseAuto();if(!caseAutoCount(auto))return;
+ caseAuto=auto;caseAutoMessage=auto.source==='free'?'Auto spin · Free chests only.':auto.source==='chests'?'Auto spin · Remaining chests.':'Auto spin · Until gold runs out.';
+ updateCaseControls();queueCaseAuto();
+};
 function openChest(){
+ if(caseSpinning)return;
+ stopCaseAuto();
  curCase='gamba';
  const wins=rollChestBatch('gamba',chestQty.gamba);
  if(wins)startCaseSpin(wins);
 }
 function openGoldChest(){
+ if(caseSpinning)return;
+ stopCaseAuto();
  curCase='gold';
  const wins=rollChestBatch('gold',chestQty.gold);
  if(wins)startCaseSpin(wins);
@@ -12935,7 +13041,7 @@ function renderShop(){
   const ringOk=!ringOwned&&!ringDone&&(S.prestige||0)>=20&&(S.rating||0)>=2500&&totalGold()>=500000;
   const ringLbl=ringDone?'💍 Forged ✦':ringOwned?'Purchased ✦':(S.rating||0)<2500?'🔒 2500 rating':(S.prestige||0)<20?'🔒 Prestige 20':'500,000◉';
   h+=`<div class="card item" style="border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.15)"><div><div class="sn" style="font-size:13px;font-weight:600;color:#ffd76a">${uiIcon('it_trinket','💍','shopico')} Recipe of the Ring</div>
-   <div class="ss" style="color:var(--dim);font-size:11px">Ancient instructions for a ring of terrible power. Costs <b style="color:var(--brass)">500,000◉</b> · requires <b style="color:var(--brass)">2500 rating</b> and <b style="color:var(--brass)">Prestige 20</b>. The other half sleeps at the bottom of a lake…</div></div>
+   <div class="ss" style="color:var(--dim);font-size:11px">Ancient instructions for a ring of terrible power. Costs <b style="color:var(--brass)">500,000◉</b> · requires <b style="color:var(--brass)">2500 rating</b> and <b style="color:var(--brass)">Prestige 20</b>.</div></div>
    <div class="btns"><button class="sbtn gold" id="ringRecipeBtn" ${ringOk?'':'disabled'}>${ringLbl}</button></div></div>`;
  }
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Upgrades</div>';
@@ -13917,10 +14023,7 @@ $('fbForgot').onclick=fbForgotPass;
 $('fbOut').onclick=async()=>{if(sessUnsub){sessUnsub();sessUnsub=null;}if(FB.auth)await FB.auth.signOut();FB.user=null;showLogin();};
 $('lbBtn2').onclick=showLeaderboard;
 $('lbClose').onclick=()=>$('lbFx').classList.remove('open');
-$('autoBtn').onclick=()=>{
- if(zoneOf().crypts){S.auto=false;stageMsg('Auto is unavailable in the Crypts',1600);sfx.warn();return;}
- S.auto=!S.auto;renderHUD();save();
-};
+$('autoBtn').onclick=toggleCombatAuto;
 $('nextBtn').onclick=()=>{
  if(!portalIsOpen())return;
  hero.target=null;hero.moveTo=null;hero.goPortal=true;

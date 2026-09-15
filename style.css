@@ -474,10 +474,10 @@
   #createBack{align-self:flex-start;margin-bottom:6px;padding:9px 16px;border-radius:8px;border:none;background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;color:var(--parch);font-size:11px;cursor:pointer;display:none;text-shadow:0 1px 3px rgba(0,0,0,.8)}
   #createBack:hover{filter:brightness(1.2)}
  
-  #chestFx{position:absolute;inset:0;z-index:70;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(10,7,4,.84);cursor:default;padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px);box-sizing:border-box}
+  #chestFx{position:absolute;inset:0;z-index:70;display:none;align-items:center;justify-content:flex-start;flex-direction:column;overflow-y:auto;background:rgba(10,7,4,.84);cursor:default;padding:calc(14px + env(safe-area-inset-top,0px)) 0 calc(14px + env(safe-area-inset-bottom,0px));box-sizing:border-box}
   #chestFx.open{display:flex}
   /* --- CS:GO-style case reel --- */
-  .casewrap{position:relative;width:min(92vw,560px);height:116px;border:1px solid var(--brass-deep);border-radius:12px;background:linear-gradient(180deg,#101a15,#0a120e);overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.6),inset 0 0 30px rgba(0,0,0,.5)}
+  .casewrap{position:relative;flex:0 0 auto;width:min(92vw,560px);height:116px;border:1px solid var(--brass-deep);border-radius:12px;background:linear-gradient(180deg,#101a15,#0a120e);overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.6),inset 0 0 30px rgba(0,0,0,.5)}
   .casereel{position:absolute;top:12px;left:0;height:92px;display:flex;gap:8px;will-change:transform}
   .casecard{flex:0 0 84px;height:92px;border-radius:9px;border:1px solid var(--cc,#54402a);background:linear-gradient(180deg,#241a12,#150e08);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
   .casecard .ci{font-size:26px;filter:drop-shadow(0 0 6px var(--cc))}
@@ -494,17 +494,14 @@
   .qtybtn.on{border-color:var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a}
   .qtynum{min-width:18px;text-align:center;color:var(--parch);font-weight:700}
   .qtytotal{white-space:nowrap;color:var(--brass)}
-  /* Multi-chest: flex-start + overflow is the only combination that lets you scroll to the top
-     when the reels overflow - centring a scrolling flex column clips the first row unreachably.
-     The auto margins hand the centring back when the content DOES fit, so a small open sits in
-     the middle instead of hugging the notch. env() keeps it clear of the status bar / cutout. */
-  #chestFx.multi{justify-content:flex-start;overflow-y:auto;
-    padding:calc(14px + env(safe-area-inset-top,0px)) 0 calc(14px + env(safe-area-inset-bottom,0px))}
-  #chestFx.multi>:first-child{margin-top:auto}
-  #chestFx.multi>:last-child{margin-bottom:auto}
+  /* Stable anchors keep the stack centred even while prize particles are appended after the
+     controls. :last-child used to move the reels down until the final particle disappeared.
+     Auto margins collapse on short screens so every reel remains reachable by scrolling. */
+  #chestFx>.casewrap:first-child{margin-top:auto}
+  #chestFx>#caseBtns{margin-bottom:auto}
   #chestFx.multi .casewrap{margin-bottom:7px;flex:0 0 auto}
   .caseextra{position:relative;width:min(92vw,560px);height:116px;border:1px solid var(--brass-deep);border-radius:12px;background:linear-gradient(180deg,#101a15,#0a120e);overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.6),inset 0 0 30px rgba(0,0,0,.5)}
-  .crgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;width:min(92vw,620px);margin-top:8px}
+  .crgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;width:min(92vw,620px);max-width:100%;margin-top:8px}
   .crmini{border:1px solid var(--cc);border-radius:10px;background:rgba(19,31,26,.86);padding:9px;text-align:center;box-shadow:0 0 10px color-mix(in srgb,var(--cc),transparent 72%)}
   .crmini .mi{font-size:28px;filter:drop-shadow(0 0 10px var(--cc))}
   .crmini .mt{font-size:9px;letter-spacing:1.3px;text-transform:uppercase;color:var(--cc);margin-top:2px}
@@ -515,22 +512,31 @@
   .casemark::before,.casemark::after{content:'';position:absolute;left:50%;transform:translateX(-50%);border:6px solid transparent}
   .casemark::before{top:0;border-top-color:var(--brass)}
   .casemark::after{bottom:0;border-bottom-color:var(--brass)}
-  .chestrays{position:absolute;width:300px;height:300px;border-radius:50%;pointer-events:none;
+  .chestrays{position:absolute;left:50%;top:50%;translate:-50% -50%;width:min(300px,60vw);height:min(300px,60vw);border-radius:50%;pointer-events:none;
    background:repeating-conic-gradient(var(--rayc,rgba(255,215,106,.33)) 0 8deg,transparent 8deg 26deg);
    -webkit-mask:radial-gradient(circle,#000 0%,transparent 68%);mask:radial-gradient(circle,#000 0%,transparent 68%);
    animation:raySpin 8s linear infinite;transition:opacity .35s;opacity:0}
-  .chestrays.epic{width:380px;height:380px;animation-duration:4s}
+  .chestrays.epic{width:min(380px,60vw);height:min(380px,60vw);animation-duration:4s}
   @keyframes raySpin{to{transform:rotate(360deg)}}
-  .chestreveal{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:0 30px;min-height:126px;margin-top:12px;opacity:0;transform:translateY(18px) scale(.82);transition:all .45s cubic-bezier(.2,1.4,.4,1);pointer-events:none}
+  .chestreveal{position:relative;flex:0 0 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;max-width:100%;box-sizing:border-box;padding:0 20px;min-height:126px;margin-top:12px;opacity:0;transform:translateY(18px) scale(.82);transition:opacity .45s ease,transform .45s cubic-bezier(.2,1.4,.4,1);pointer-events:none}
   .chestreveal.show{opacity:1;transform:none}
-  .cricon{font-size:46px;filter:drop-shadow(0 0 16px currentColor)}
+  #chestFx.spinning .chestreveal{visibility:hidden;opacity:0;transition:none}
+  .cricon{display:flex;align-items:center;justify-content:center;min-height:50px;line-height:1;font-size:46px;filter:drop-shadow(0 0 16px currentColor)}
+  .cricon .lootico{display:block;width:48px;height:48px;object-fit:contain}
   .crname{font-family:var(--display);font-size:19px;text-shadow:0 0 16px currentColor}
   .crsub{font-size:11px;color:var(--dim);line-height:1.45}
   .crtier{font-size:10px;letter-spacing:2px;text-transform:uppercase;opacity:.85}
-  .casebtns{display:flex;gap:10px;margin-top:16px;align-items:center;opacity:0;pointer-events:none;transition:opacity .3s}
+  .casebtns{display:flex;flex:0 0 auto;flex-wrap:wrap;justify-content:center;width:min(94%,700px);gap:10px;margin-top:16px;align-items:center;opacity:0;pointer-events:none;transition:opacity .3s}
   .casebtns.show{opacity:1;pointer-events:auto}
-  #respinBtn{font-family:var(--display);font-size:16px;letter-spacing:.5px;padding:14px 30px;border-radius:12px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;cursor:pointer;box-shadow:0 0 18px rgba(217,164,65,.35)}
+  #caseAutoStatus{flex:0 0 100%;min-height:2.8em;line-height:1.4;text-align:center;font-size:11px;color:var(--dim);overflow-wrap:anywhere}
+  .case-spin-actions{display:flex;align-items:stretch;justify-content:center;gap:8px;max-width:100%}
+  #respinBtn{font-family:var(--display);font-size:16px;letter-spacing:.5px;white-space:nowrap;padding:14px 30px;border-radius:12px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;cursor:pointer;box-shadow:0 0 18px rgba(217,164,65,.35)}
   #respinBtn:disabled{opacity:.45;cursor:default;box-shadow:none}
+  #caseAutoBtn{flex:0 0 106px;min-height:44px;padding:10px 12px;border:1px solid #876038;border-radius:10px;background:linear-gradient(180deg,#4a3421,#261b12);color:var(--parch);font-family:var(--display);font-size:12px;cursor:pointer;box-shadow:inset 0 1px rgba(255,224,160,.1);transition:border-color .15s,background .15s}
+  #caseAutoBtn:hover{border-color:var(--brass);background:linear-gradient(180deg,#5a4029,#352419)}
+  #caseAutoBtn[aria-pressed="true"]{border-color:var(--brass);color:#ffe3a8;background:linear-gradient(180deg,#6b4d23,#382715);box-shadow:inset 0 0 0 1px rgba(217,164,65,.18),0 0 12px rgba(217,164,65,.18)}
+  #caseAutoBtn:disabled,#caseClose:disabled{opacity:.45;cursor:default;box-shadow:none}
+  .casebtns button:focus-visible{outline:2px solid #ffe3a8;outline-offset:3px}
   #caseClose{font-family:var(--display);font-size:13px;padding:12px 20px;border-radius:12px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);cursor:pointer}
 
 
@@ -548,17 +554,22 @@
     .crmini .mt{font-size:6.5px;letter-spacing:.8px}
     .crmini .mn{font-size:9.5px}
     /* single-win reveal: tighter */
-    .chestreveal{min-height:86px;margin-top:6px}
-    .cricon{font-size:30px}
+    .chestreveal{min-height:86px;margin-top:6px;padding:0 10px}
+    .cricon{font-size:30px;min-height:34px}
+    .cricon .lootico{width:32px;height:32px}
     .crname{font-size:15px}
     .crsub{font-size:10px}
     /* buttons: don't eat vertical space */
     .casebtns{margin-top:10px;gap:7px}
-    #respinBtn{font-size:13px;padding:10px 18px}
+    .case-spin-actions{width:100%;gap:7px}
+    #respinBtn{min-width:0;font-size:13px;white-space:normal;padding:10px 14px}
+    #caseAutoBtn{flex-basis:94px;padding:8px;font-size:11px}
     #caseClose{font-size:11px;padding:9px 14px}
-    #chestFx.multi{padding-top:calc(10px + env(safe-area-inset-top,0px))}
+    #chestFx{padding-top:calc(10px + env(safe-area-inset-top,0px))}
     #chestFx.multi .casewrap,#chestFx.multi .caseextra{margin-bottom:5px}
   }
+
+  @media(prefers-reduced-motion:reduce){.chestreveal{transform:none;transition:opacity .15s}.casecard.win{animation:none}}
 
 
   /* --- Lucky 7 slot machine --- */
