@@ -151,7 +151,7 @@ function charSprite(raceId,clsId,female){
  if(!CHAR_SPRITES[key])return null;
  let im=charSpriteCache[key];
  if(!im){
-  im=new Image();im.src='assets/characters/'+key+'.png'+(female&&clsId!=='armor'?'?v=2':'');charSpriteCache[key]=im;
+  im=new Image();im.src='assets/characters/'+key+'.png?v=3';charSpriteCache[key]=im;
   im.onload=()=>{ /* portraits render before sprites finish loading - repaint the open screens */
    try{
     if($('select').classList.contains('open'))renderSelect();
@@ -417,7 +417,7 @@ function paintedCharacterFrame(raceId,clsId,female,iceArm){
  raceId=RACE_ALIAS[raceId]||raceId;clsId=CLASS_ALIAS[clsId]||clsId;
  const image=charSprite(raceId,iceArm?'armor':clsId,female),body=characterBodyFrame(image);
  if(!body)return null;
- const boots=characterBootFrame(raceId,female,bootImg,body.bodyBottom);
+ const boots=characterBootFrame(raceId,female,bootImg,body.bodyBottom,body.bootTop);
  return {image,...body,boots,groundY:boots.groundY};
 }
 function bootFeet(e,g2){

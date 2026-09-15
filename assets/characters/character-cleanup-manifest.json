@@ -1,0 +1,3205 @@
+{
+  "version": 1,
+  "sourceCommit": "3359e022f053682d19f73059de6c4eae04744f24",
+  "reviewed": 40,
+  "description": "Selective robe proportion and arm corrections, transparent background cleanup and reviewed Ice Armor boot attachments. Faces and character identity retained.",
+  "mageSleeveGeneration": {
+    "params": {
+      "model": "gpt_image_2_5",
+      "quality": "high",
+      "resolution": "2k",
+      "background": "transparent",
+      "aspect_ratio": "3:4",
+      "count": 1,
+      "medias": [
+        {
+          "role": "image",
+          "value": "357e179a-ffb6-42c4-8298-038f3bd0ce2f"
+        }
+      ],
+      "prompt": "Use case: precise-object-edit. Edit this EMPTY fantasy mage costume game asset. Keep its purple cloth, blue shoulder shawl, pale silver runic embroidery, dark sash, thick painted outlines, and the complete closed lower robe hem. Repair the two sleeves: make each sleeve hang naturally at its side, with readable elbow and forearm lengths, then add a small relaxed closed HAND INSIDE AN OPAQUE DARK-PURPLE LEATHER GLOVE emerging visibly from each sleeve opening. Both gloves must be fully visible with clear thumbs and fingers, attached naturally at the wrists; not cut off, not flattened, not oversized. Hands end just above the finished robe hem. Keep balanced compact fantasy RPG costume proportions, not a long robe and not squashed vertically. Match the exact painted shading/material style of the input. This is an empty headless costume sprite with gloves, no person, no face, no neck, no skin, no legs, no feet, no boots, no weapon. Single front-facing outfit, arms at sides. Transparent RGBA background, no black or white backdrop, no floor, no shadow, no glow. Preserve all other clothing details as closely as possible."
+    },
+    "job": {
+      "index": 0,
+      "job_id": "612464fc-35ce-490c-8c88-06a493f5cff6",
+      "status": "completed",
+      "type": "image",
+      "model": "gpt_image_2_5",
+      "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260915_225643_612464fc-35ce-490c-8c88-06a493f5cff6.png"
+    }
+  },
+  "iceBootTop": {
+    "human": 1.5,
+    "dwarf": 0,
+    "orc": 1.5,
+    "undead": 1
+  },
+  "assets": [
+    {
+      "key": "dwarffemale_mage",
+      "kind": "costume",
+      "sha256": "96f474e1d8e686ab64f58e3d8f174a6a71822fd34dcb6f386790b8c3667791b2",
+      "bounds": [
+        676,
+        733,
+        64,
+        18,
+        546,
+        691
+      ],
+      "proof": {
+        "key": "dwarffemale_mage",
+        "mode": "Generated body natural aspect, original protected head/hair",
+        "registration": {
+          "cost": 1266.1900675295442,
+          "scale": 0.32200000000000006,
+          "tx": -7.640000000000043,
+          "dy": -3,
+          "dx": -2,
+          "points": 7108,
+          "originalBounds": [
+            2,
+            2,
+            547,
+            723
+          ],
+          "generatedBounds": [
+            22,
+            11,
+            1718,
+            2304
+          ]
+        },
+        "padX": 64,
+        "padY": 16,
+        "coreY": 285,
+        "hem": 693,
+        "width": 676,
+        "height": 733,
+        "beforeVisible": {
+          "width": 546,
+          "height": 583
+        },
+        "afterVisible": {
+          "width": 546,
+          "height": 691
+        },
+        "beforeBounds": [
+          64,
+          18,
+          610,
+          601
+        ],
+        "afterBounds": [
+          64,
+          18,
+          610,
+          709
+        ],
+        "previousYToX": 0.6609560067681893,
+        "newYToX": 0.8989001692047375,
+        "chinFraction": 0.3878437047756874,
+        "protectedPixels": 167598,
+        "protectedChannelMismatches": 0,
+        "sha256": "96f474e1d8e686ab64f58e3d8f174a6a71822fd34dcb6f386790b8c3667791b2",
+        "proposedGrip": [
+          138,
+          599
+        ],
+        "facePolygonOriginalCoordinates": [
+          [
+            230,
+            108
+          ],
+          [
+            323,
+            108
+          ],
+          [
+            400,
+            165
+          ],
+          [
+            395,
+            224
+          ],
+          [
+            351,
+            265
+          ],
+          [
+            274,
+            274
+          ],
+          [
+            197,
+            265
+          ],
+          [
+            153,
+            224
+          ],
+          [
+            148,
+            165
+          ]
+        ],
+        "protectedFacePixels": 33216,
+        "protectedFaceRgbaChanges": 0,
+        "headRgbChanges": 0,
+        "opaqueProtectedHeadPixels": 80246,
+        "opaqueProtectedHeadRgbaMismatches": 0
+      },
+      "file": "assets/characters/dwarffemale_mage.png"
+    },
+    {
+      "key": "dwarffemale_priest",
+      "kind": "costume",
+      "sha256": "0a95eb075a6a626eea6af7dbe9e87058dc7b76b968da6076e8e4e0aeee3a6cfb",
+      "bounds": [
+        687,
+        756,
+        83,
+        18,
+        512,
+        714
+      ],
+      "proof": {
+        "key": "dwarffemale_priest",
+        "mode": "Generated body natural aspect, original protected head/hair",
+        "registration": {
+          "cost": 1400.107384441939,
+          "scale": 0.33100000000000007,
+          "tx": -10.32200000000006,
+          "dy": -2,
+          "dx": -3,
+          "points": 7096,
+          "originalBounds": [
+            14,
+            2,
+            542,
+            737
+          ],
+          "generatedBounds": [
+            88,
+            6,
+            1636,
+            2315
+          ]
+        },
+        "padX": 64,
+        "padY": 16,
+        "coreY": 284,
+        "hem": 716,
+        "width": 687,
+        "height": 756,
+        "beforeVisible": {
+          "width": 512,
+          "height": 585
+        },
+        "afterVisible": {
+          "width": 512,
+          "height": 714
+        },
+        "beforeBounds": [
+          83,
+          18,
+          595,
+          603
+        ],
+        "afterBounds": [
+          83,
+          18,
+          595,
+          732
+        ],
+        "previousYToX": 0.6309016896921489,
+        "newYToX": 0.8995033991650438,
+        "chinFraction": 0.37675070028011204,
+        "protectedPixels": 169610,
+        "protectedChannelMismatches": 0,
+        "sha256": "0a95eb075a6a626eea6af7dbe9e87058dc7b76b968da6076e8e4e0aeee3a6cfb",
+        "proposedGrip": [
+          146,
+          592
+        ],
+        "facePolygonOriginalCoordinates": [
+          [
+            235,
+            108
+          ],
+          [
+            330,
+            108
+          ],
+          [
+            408,
+            165
+          ],
+          [
+            402,
+            225
+          ],
+          [
+            358,
+            266
+          ],
+          [
+            280,
+            275
+          ],
+          [
+            201,
+            266
+          ],
+          [
+            157,
+            225
+          ],
+          [
+            151,
+            165
+          ]
+        ],
+        "protectedFacePixels": 34040,
+        "protectedFaceRgbaChanges": 0,
+        "headRgbChanges": 0,
+        "opaqueProtectedHeadPixels": 79255,
+        "opaqueProtectedHeadRgbaMismatches": 0
+      },
+      "file": "assets/characters/dwarffemale_priest.png"
+    },
+    {
+      "key": "undeadfemale_mage",
+      "kind": "costume",
+      "sha256": "377204f3498a01faa8eb40c5a02be98431d9e2a6ec0f6ddc026d351a3a68c5c9",
+      "bounds": [
+        628,
+        725,
+        78,
+        18,
+        472,
+        683
+      ],
+      "proof": {
+        "key": "undeadfemale_mage",
+        "mode": "Generated body natural aspect, original protected head/hair",
+        "registration": {
+          "cost": 3662.5532391213096,
+          "scale": 0.31900000000000006,
+          "tx": -17.32200000000006,
+          "dy": -5,
+          "dx": 0,
+          "points": 7147,
+          "originalBounds": [
+            2,
+            2,
+            498,
+            762
+          ],
+          "generatedBounds": [
+            97,
+            16,
+            1579,
+            2302
+          ]
+        },
+        "padX": 64,
+        "padY": 16,
+        "coreY": 282,
+        "hem": 685,
+        "width": 628,
+        "height": 725,
+        "beforeVisible": {
+          "width": 472,
+          "height": 580
+        },
+        "afterVisible": {
+          "width": 472,
+          "height": 683
+        },
+        "beforeBounds": [
+          78,
+          18,
+          550,
+          598
+        ],
+        "afterBounds": [
+          78,
+          18,
+          550,
+          701
+        ],
+        "previousYToX": 0.6706338383951282,
+        "newYToX": 0.9008847895774555,
+        "chinFraction": 0.39092240117130306,
+        "protectedPixels": 155983,
+        "protectedChannelMismatches": 0,
+        "sha256": "377204f3498a01faa8eb40c5a02be98431d9e2a6ec0f6ddc026d351a3a68c5c9",
+        "proposedGrip": [
+          139,
+          598
+        ],
+        "facePolygonOriginalCoordinates": [
+          [
+            210,
+            108
+          ],
+          [
+            295,
+            108
+          ],
+          [
+            365,
+            164
+          ],
+          [
+            360,
+            223
+          ],
+          [
+            320,
+            264
+          ],
+          [
+            250,
+            273
+          ],
+          [
+            180,
+            264
+          ],
+          [
+            140,
+            223
+          ],
+          [
+            135,
+            164
+          ]
+        ],
+        "protectedFacePixels": 30105,
+        "protectedFaceRgbaChanges": 0,
+        "headRgbChanges": 0,
+        "opaqueProtectedHeadPixels": 80426,
+        "opaqueProtectedHeadRgbaMismatches": 0
+      },
+      "file": "assets/characters/undeadfemale_mage.png"
+    },
+    {
+      "key": "undeadfemale_priest",
+      "kind": "costume",
+      "sha256": "2d2d9530a3dc455dcc0558b14a60a266b1c7065b4969cc76b93f80d721e817c5",
+      "bounds": [
+        559,
+        697,
+        62,
+        18,
+        435,
+        655
+      ],
+      "proof": {
+        "key": "undeadfemale_priest",
+        "mode": "Generated body natural aspect, original protected head/hair",
+        "registration": {
+          "cost": 2745.8048780487807,
+          "scale": 0.30400000000000005,
+          "tx": -41.684000000000026,
+          "dy": -2,
+          "dx": 0,
+          "points": 7134,
+          "originalBounds": [
+            2,
+            2,
+            429,
+            664
+          ],
+          "generatedBounds": [
+            130,
+            7,
+            1562,
+            2304
+          ]
+        },
+        "padX": 64,
+        "padY": 16,
+        "coreY": 285,
+        "hem": 657,
+        "width": 559,
+        "height": 697,
+        "beforeVisible": {
+          "width": 435,
+          "height": 589
+        },
+        "afterVisible": {
+          "width": 435,
+          "height": 655
+        },
+        "beforeBounds": [
+          62,
+          18,
+          497,
+          607
+        ],
+        "afterBounds": [
+          62,
+          18,
+          497,
+          673
+        ],
+        "previousYToX": 0.7401745457360138,
+        "newYToX": 0.899820035992801,
+        "chinFraction": 0.41374045801526715,
+        "protectedPixels": 136784,
+        "protectedChannelMismatches": 0,
+        "sha256": "2d2d9530a3dc455dcc0558b14a60a266b1c7065b4969cc76b93f80d721e817c5",
+        "proposedGrip": [
+          118,
+          607
+        ],
+        "facePolygonOriginalCoordinates": [
+          [
+            181,
+            109
+          ],
+          [
+            254,
+            109
+          ],
+          [
+            315,
+            167
+          ],
+          [
+            310,
+            227
+          ],
+          [
+            276,
+            268
+          ],
+          [
+            216,
+            277
+          ],
+          [
+            155,
+            268
+          ],
+          [
+            121,
+            227
+          ],
+          [
+            116,
+            167
+          ]
+        ],
+        "protectedFacePixels": 26428,
+        "protectedFaceRgbaChanges": 0,
+        "headRgbChanges": 0,
+        "opaqueProtectedHeadPixels": 81496,
+        "opaqueProtectedHeadRgbaMismatches": 0
+      },
+      "file": "assets/characters/undeadfemale_priest.png"
+    },
+    {
+      "key": "humanfemale_priest",
+      "kind": "costume",
+      "sha256": "a6b7738145169b91b2bfc051c11fe3bd9433dd78103e6f75ff51867f9e347ec5",
+      "bounds": [
+        553,
+        649,
+        66,
+        18,
+        421,
+        605
+      ],
+      "proof": {
+        "key": "humanfemale_priest",
+        "mode": "Original arm/hand silhouettes instead of rectangular patches",
+        "registration": {
+          "cost": 0,
+          "originalBounds": [
+            2,
+            2,
+            423,
+            654
+          ],
+          "generatedBounds": [
+            39,
+            361,
+            1699,
+            2119
+          ],
+          "mode": "original upper costume plus empty generated lower robe only"
+        },
+        "padX": 64,
+        "padY": 16,
+        "coreY": 291,
+        "hem": 609,
+        "width": 553,
+        "height": 649,
+        "beforeVisible": {
+          "width": 421,
+          "height": 605
+        },
+        "afterVisible": {
+          "width": 421,
+          "height": 605
+        },
+        "beforeBounds": [
+          66,
+          18,
+          487,
+          623
+        ],
+        "afterBounds": [
+          66,
+          18,
+          487,
+          623
+        ],
+        "previousYToX": 0.837465564738292,
+        "newYToX": 0.837465564738292,
+        "chinFraction": 0.46115702479338844,
+        "protectedPixels": 131825,
+        "protectedChannelMismatches": 0,
+        "sha256": "a6b7738145169b91b2bfc051c11fe3bd9433dd78103e6f75ff51867f9e347ec5",
+        "proposedGrip": [
+          121,
+          585
+        ],
+        "facePolygonOriginalCoordinates": [
+          [
+            179,
+            112
+          ],
+          [
+            251,
+            112
+          ],
+          [
+            310,
+            171
+          ],
+          [
+            306,
+            233
+          ],
+          [
+            272,
+            275
+          ],
+          [
+            213,
+            285
+          ],
+          [
+            153,
+            275
+          ],
+          [
+            119,
+            233
+          ],
+          [
+            115,
+            171
+          ]
+        ],
+        "protectedFacePixels": 26710,
+        "protectedFaceRgbaChanges": 0,
+        "headRgbChanges": 0,
+        "opaqueProtectedHeadPixels": 77032,
+        "opaqueProtectedHeadRgbaMismatches": 0
+      },
+      "file": "assets/characters/humanfemale_priest.png"
+    },
+    {
+      "key": "orcfemale_priest",
+      "kind": "costume",
+      "sha256": "dcd68ba0a99a8dd4048ffd6f25b412e5e357ff236f1f7755fdd63428bd35016f",
+      "bounds": [
+        558,
+        707,
+        66,
+        19,
+        426,
+        662
+      ],
+      "proof": {
+        "key": "orcfemale_priest",
+        "mode": "Original arm/hand silhouettes instead of rectangular patches",
+        "registration": {
+          "cost": 0,
+          "originalBounds": [
+            2,
+            2,
+            428,
+            682
+          ],
+          "generatedBounds": [
+            39,
+            361,
+            1699,
+            2119
+          ],
+          "mode": "original upper costume plus empty generated lower robe only"
+        },
+        "padX": 64,
+        "padY": 16,
+        "coreY": 322,
+        "hem": 667,
+        "width": 558,
+        "height": 707,
+        "beforeVisible": {
+          "width": 426,
+          "height": 663
+        },
+        "afterVisible": {
+          "width": 426,
+          "height": 662
+        },
+        "beforeBounds": [
+          66,
+          18,
+          492,
+          681
+        ],
+        "afterBounds": [
+          66,
+          19,
+          492,
+          681
+        ],
+        "previousYToX": 0.9194444444444444,
+        "newYToX": 0.9194444444444444,
+        "chinFraction": 0.46153846153846156,
+        "protectedPixels": 153688,
+        "protectedChannelMismatches": 7550,
+        "sha256": "dcd68ba0a99a8dd4048ffd6f25b412e5e357ff236f1f7755fdd63428bd35016f",
+        "proposedGrip": [
+          119,
+          638
+        ],
+        "protectedHeadRgbMismatches": 0,
+        "opaqueProtectedHeadPixels": 89911,
+        "opaqueProtectedHeadRgbaMismatches": 0,
+        "alphaCleanup": {
+          "changedPixels": 7989,
+          "rule": "Exterior neutral matte alpha <224, >=2px from alpha>=224 silhouette; immediate antialias rim kept; RGB unchanged",
+          "headBottom": 459
+        },
+        "facePolygonOriginalCoordinates": [
+          [
+            181,
+            123
+          ],
+          [
+            254,
+            123
+          ],
+          [
+            314,
+            188
+          ],
+          [
+            310,
+            256
+          ],
+          [
+            275,
+            302
+          ],
+          [
+            215,
+            313
+          ],
+          [
+            155,
+            302
+          ],
+          [
+            120,
+            256
+          ],
+          [
+            116,
+            188
+          ]
+        ],
+        "protectedFacePixels": 29822,
+        "protectedFaceRgbaChanges": 0,
+        "headRgbChanges": 0
+      },
+      "file": "assets/characters/orcfemale_priest.png"
+    },
+    {
+      "key": "humanfemale_mage",
+      "kind": "costume",
+      "sha256": "e2c661d21e47e40a284e786403324358cbf012023c628645f6f4f9bb82f5c802",
+      "bounds": [
+        589,
+        646,
+        99,
+        18,
+        392,
+        602
+      ],
+      "proof": {
+        "key": "humanfemale_mage",
+        "mode": "New Higgsfield sleeves/gloves only; current bodice, neckline, hem, head and hair unchanged",
+        "sourceJob": "612464fc-35ce-490c-8c88-06a493f5cff6",
+        "padX": 64,
+        "padY": 16,
+        "width": 589,
+        "height": 646,
+        "coreY": 291,
+        "hem": 606,
+        "beforeVisible": {
+          "width": 453,
+          "height": 602
+        },
+        "afterVisible": {
+          "width": 392,
+          "height": 602
+        },
+        "beforeBounds": [
+          67,
+          18,
+          520,
+          620
+        ],
+        "afterBounds": [
+          99,
+          18,
+          491,
+          620
+        ],
+        "sleeveUniformScale": 0.2,
+        "sleeveY": 284,
+        "sleeveLeftX": 85,
+        "sleeveRightX": 155.2,
+        "editedPolygons": [
+          [
+            [
+              0,
+              418
+            ],
+            [
+              170,
+              418
+            ],
+            [
+              194,
+              434
+            ],
+            [
+              203,
+              485
+            ],
+            [
+              191,
+              517
+            ],
+            [
+              171,
+              548
+            ],
+            [
+              146,
+              583
+            ],
+            [
+              123,
+              609
+            ],
+            [
+              113,
+              633
+            ],
+            [
+              0,
+              646
+            ]
+          ],
+          [
+            [
+              589,
+              418
+            ],
+            [
+              419,
+              418
+            ],
+            [
+              395,
+              434
+            ],
+            [
+              386,
+              485
+            ],
+            [
+              398,
+              517
+            ],
+            [
+              418,
+              548
+            ],
+            [
+              443,
+              583
+            ],
+            [
+              466,
+              609
+            ],
+            [
+              476,
+              633
+            ],
+            [
+              589,
+              646
+            ]
+          ]
+        ],
+        "protectedPixels": 141732,
+        "protectedChannelMismatches": 8805,
+        "unmodifiedChannelMismatches": 0,
+        "proposedGrip": [
+          135,
+          583
+        ],
+        "sha256": "e2c661d21e47e40a284e786403324358cbf012023c628645f6f4f9bb82f5c802",
+        "protectedHeadRgbMismatches": 0,
+        "opaqueProtectedHeadPixels": 77813,
+        "opaqueProtectedHeadRgbaMismatches": 0,
+        "alphaCleanup": {
+          "changedPixels": 9327,
+          "rule": "Exterior neutral matte alpha <224, >=2px from alpha>=224 silhouette; immediate antialias rim kept; RGB unchanged",
+          "headBottom": 412
+        },
+        "facePolygonOriginalCoordinates": [
+          [
+            194,
+            112
+          ],
+          [
+            272,
+            112
+          ],
+          [
+            337,
+            171
+          ],
+          [
+            332,
+            232
+          ],
+          [
+            295,
+            274
+          ],
+          [
+            231,
+            284
+          ],
+          [
+            166,
+            274
+          ],
+          [
+            129,
+            232
+          ],
+          [
+            124,
+            171
+          ]
+        ],
+        "protectedFacePixels": 28889,
+        "protectedFaceRgbaChanges": 0,
+        "headRgbChanges": 0
+      },
+      "file": "assets/characters/humanfemale_mage.png"
+    },
+    {
+      "key": "orcfemale_warrior",
+      "kind": "costume",
+      "sha256": "a5f06234cafbeb5b9e30e993b251e1055ac51a8c637becbe5e69e1a3cadd2e0f",
+      "bounds": [
+        601,
+        707,
+        71,
+        22,
+        459,
+        661
+      ],
+      "proof": {
+        "key": "orcfemale_warrior",
+        "mode": "Original art retained; exterior head matte alpha cleanup only",
+        "padX": 64,
+        "padY": 16,
+        "width": 601,
+        "height": 707,
+        "coreY": 321,
+        "hem": 667,
+        "beforeVisible": {
+          "width": 459,
+          "height": 662
+        },
+        "beforeBounds": [
+          71,
+          21,
+          530,
+          683
+        ],
+        "proposedGrip": [
+          119,
+          622
+        ],
+        "afterVisible": {
+          "width": 459,
+          "height": 661
+        },
+        "afterBounds": [
+          71,
+          22,
+          530,
+          683
+        ],
+        "protectedPixels": 162517,
+        "protectedChannelMismatches": 9611,
+        "protectedHeadRgbMismatches": 0,
+        "opaqueProtectedHeadPixels": 87483,
+        "opaqueProtectedHeadRgbaMismatches": 0,
+        "alphaCleanup": {
+          "changedPixels": 9666,
+          "rule": "Exterior neutral matte alpha <224, >=2px from alpha>=224 silhouette; immediate antialias rim kept; RGB unchanged",
+          "headBottom": 460
+        },
+        "sha256": "a5f06234cafbeb5b9e30e993b251e1055ac51a8c637becbe5e69e1a3cadd2e0f",
+        "facePolygonOriginalCoordinates": [
+          [
+            199,
+            123
+          ],
+          [
+            279,
+            123
+          ],
+          [
+            345,
+            188
+          ],
+          [
+            341,
+            256
+          ],
+          [
+            303,
+            302
+          ],
+          [
+            237,
+            313
+          ],
+          [
+            170,
+            302
+          ],
+          [
+            132,
+            256
+          ],
+          [
+            128,
+            188
+          ]
+        ],
+        "protectedFacePixels": 32735,
+        "protectedFaceRgbaChanges": 0,
+        "headRgbChanges": 0
+      },
+      "file": "assets/characters/orcfemale_warrior.png"
+    },
+    {
+      "key": "orcfemale_mage",
+      "kind": "costume",
+      "sha256": "853b70f5aa896a95fd6d570be0089d59f03eaebe9e03693f4f9bc2656e065ad9",
+      "bounds": [
+        560,
+        705,
+        67,
+        19,
+        423,
+        662
+      ],
+      "proof": {
+        "key": "orcfemale_mage",
+        "mode": "Original art retained; exterior head matte alpha cleanup only",
+        "padX": 64,
+        "padY": 16,
+        "width": 560,
+        "height": 705,
+        "coreY": 322,
+        "hem": 665,
+        "beforeVisible": {
+          "width": 423,
+          "height": 663
+        },
+        "beforeBounds": [
+          67,
+          18,
+          490,
+          681
+        ],
+        "proposedGrip": [
+          130,
+          594
+        ],
+        "afterVisible": {
+          "width": 423,
+          "height": 662
+        },
+        "afterBounds": [
+          67,
+          19,
+          490,
+          681
+        ],
+        "protectedPixels": 153606,
+        "protectedChannelMismatches": 9487,
+        "protectedHeadRgbMismatches": 0,
+        "opaqueProtectedHeadPixels": 89398,
+        "opaqueProtectedHeadRgbaMismatches": 0,
+        "alphaCleanup": {
+          "changedPixels": 9607,
+          "rule": "Exterior neutral matte alpha <224, >=2px from alpha>=224 silhouette; immediate antialias rim kept; RGB unchanged",
+          "headBottom": 463
+        },
+        "sha256": "853b70f5aa896a95fd6d570be0089d59f03eaebe9e03693f4f9bc2656e065ad9",
+        "facePolygonOriginalCoordinates": [
+          [
+            181,
+            123
+          ],
+          [
+            255,
+            123
+          ],
+          [
+            315,
+            187
+          ],
+          [
+            311,
+            255
+          ],
+          [
+            276,
+            301
+          ],
+          [
+            216,
+            312
+          ],
+          [
+            156,
+            301
+          ],
+          [
+            121,
+            255
+          ],
+          [
+            117,
+            187
+          ]
+        ],
+        "protectedFacePixels": 29718,
+        "protectedFaceRgbaChanges": 0,
+        "headRgbChanges": 0
+      },
+      "file": "assets/characters/orcfemale_mage.png"
+    },
+    {
+      "key": "orcfemale_hunter",
+      "kind": "costume",
+      "sha256": "f7f34a55debe1f40575b3ba31af8ed77c69b98f0fa3ae32ea1198869bb67fd84",
+      "bounds": [
+        536,
+        709,
+        72,
+        22,
+        394,
+        663
+      ],
+      "proof": {
+        "key": "orcfemale_hunter",
+        "mode": "Original art retained; exterior head matte alpha cleanup only",
+        "padX": 64,
+        "padY": 16,
+        "width": 536,
+        "height": 709,
+        "coreY": 324,
+        "hem": 669,
+        "beforeVisible": {
+          "width": 394,
+          "height": 664
+        },
+        "beforeBounds": [
+          72,
+          21,
+          466,
+          685
+        ],
+        "proposedGrip": [
+          111,
+          642
+        ],
+        "afterVisible": {
+          "width": 394,
+          "height": 663
+        },
+        "afterBounds": [
+          72,
+          22,
+          466,
+          685
+        ],
+        "protectedPixels": 146946,
+        "protectedChannelMismatches": 9330,
+        "protectedHeadRgbMismatches": 0,
+        "opaqueProtectedHeadPixels": 89362,
+        "opaqueProtectedHeadRgbaMismatches": 0,
+        "alphaCleanup": {
+          "changedPixels": 9444,
+          "rule": "Exterior neutral matte alpha <224, >=2px from alpha>=224 silhouette; immediate antialias rim kept; RGB unchanged",
+          "headBottom": 460
+        },
+        "sha256": "f7f34a55debe1f40575b3ba31af8ed77c69b98f0fa3ae32ea1198869bb67fd84",
+        "facePolygonOriginalCoordinates": [
+          [
+            171,
+            124
+          ],
+          [
+            241,
+            124
+          ],
+          [
+            298,
+            188
+          ],
+          [
+            294,
+            256
+          ],
+          [
+            261,
+            303
+          ],
+          [
+            204,
+            314
+          ],
+          [
+            147,
+            303
+          ],
+          [
+            114,
+            256
+          ],
+          [
+            110,
+            188
+          ]
+        ],
+        "protectedFacePixels": 28304,
+        "protectedFaceRgbaChanges": 0,
+        "headRgbChanges": 0
+      },
+      "file": "assets/characters/orcfemale_hunter.png"
+    },
+    {
+      "key": "humanfemale_armor",
+      "kind": "ice-alpha",
+      "sha256": "926a640c43ee281d1de40e4096afda644e737129988e2a7143a30205e9b2c35a",
+      "bounds": [
+        420,
+        674,
+        6,
+        6,
+        408,
+        661
+      ],
+      "proof": {
+        "key": "humanfemale_armor",
+        "width": 420,
+        "height": 674,
+        "sourceHash": "522e60a9be9f31f4b3df4155900db93b16e7d225e4deef72a544c3e9a532d597",
+        "candidateHash": "926a640c43ee281d1de40e4096afda644e737129988e2a7143a30205e9b2c35a",
+        "rgbByteChanges": 0,
+        "decodedByteMismatches": 0,
+        "alphaChangedPixels": 38188,
+        "alphaIncreasedPixels": 0,
+        "faceRgbaChanges": 0,
+        "faceBox": [
+          100,
+          115,
+          210,
+          165
+        ],
+        "changesByReason": {
+          "1": 23039,
+          "2": 8215,
+          "3": 6934
+        },
+        "bounds": [
+          420,
+          674,
+          6,
+          6,
+          408,
+          661
+        ],
+        "masks": {
+          "gap": [
+            [
+              119,
+              445
+            ],
+            [
+              127,
+              462
+            ],
+            [
+              135,
+              486
+            ],
+            [
+              140,
+              504
+            ],
+            [
+              127,
+              509
+            ],
+            [
+              129,
+              519
+            ],
+            [
+              119,
+              531
+            ],
+            [
+              118,
+              546
+            ],
+            [
+              107,
+              571
+            ],
+            [
+              96,
+              598
+            ],
+            [
+              88,
+              606
+            ],
+            [
+              92,
+              615
+            ],
+            [
+              87,
+              641
+            ],
+            [
+              84,
+              650
+            ],
+            [
+              80,
+              650
+            ],
+            [
+              79,
+              639
+            ],
+            [
+              80,
+              622
+            ],
+            [
+              80,
+              608
+            ],
+            [
+              78,
+              590
+            ],
+            [
+              74,
+              581
+            ],
+            [
+              83,
+              564
+            ],
+            [
+              89,
+              535
+            ],
+            [
+              99,
+              518
+            ],
+            [
+              98,
+              509
+            ],
+            [
+              107,
+              481
+            ]
+          ],
+          "legs": [
+            [
+              91,
+              674
+            ],
+            [
+              91,
+              646
+            ],
+            [
+              159,
+              631
+            ],
+            [
+              210,
+              668
+            ],
+            [
+              266,
+              631
+            ],
+            [
+              331,
+              648
+            ],
+            [
+              331,
+              674
+            ]
+          ],
+          "gaps": [
+            [
+              [
+                119,
+                445
+              ],
+              [
+                127,
+                462
+              ],
+              [
+                135,
+                486
+              ],
+              [
+                140,
+                504
+              ],
+              [
+                127,
+                509
+              ],
+              [
+                129,
+                519
+              ],
+              [
+                119,
+                531
+              ],
+              [
+                118,
+                546
+              ],
+              [
+                107,
+                571
+              ],
+              [
+                96,
+                598
+              ],
+              [
+                88,
+                606
+              ],
+              [
+                92,
+                615
+              ],
+              [
+                87,
+                641
+              ],
+              [
+                84,
+                650
+              ],
+              [
+                80,
+                650
+              ],
+              [
+                79,
+                639
+              ],
+              [
+                80,
+                622
+              ],
+              [
+                80,
+                608
+              ],
+              [
+                78,
+                590
+              ],
+              [
+                74,
+                581
+              ],
+              [
+                83,
+                564
+              ],
+              [
+                89,
+                535
+              ],
+              [
+                99,
+                518
+              ],
+              [
+                98,
+                509
+              ],
+              [
+                107,
+                481
+              ]
+            ],
+            [
+              [
+                301,
+                445
+              ],
+              [
+                293,
+                462
+              ],
+              [
+                285,
+                486
+              ],
+              [
+                280,
+                504
+              ],
+              [
+                293,
+                509
+              ],
+              [
+                291,
+                519
+              ],
+              [
+                301,
+                531
+              ],
+              [
+                302,
+                546
+              ],
+              [
+                313,
+                571
+              ],
+              [
+                324,
+                598
+              ],
+              [
+                332,
+                606
+              ],
+              [
+                328,
+                615
+              ],
+              [
+                333,
+                641
+              ],
+              [
+                336,
+                650
+              ],
+              [
+                340,
+                650
+              ],
+              [
+                341,
+                639
+              ],
+              [
+                340,
+                622
+              ],
+              [
+                340,
+                608
+              ],
+              [
+                342,
+                590
+              ],
+              [
+                346,
+                581
+              ],
+              [
+                337,
+                564
+              ],
+              [
+                331,
+                535
+              ],
+              [
+                321,
+                518
+              ],
+              [
+                322,
+                509
+              ],
+              [
+                313,
+                481
+              ]
+            ]
+          ]
+        }
+      },
+      "file": "assets/characters/humanfemale_armor.png"
+    },
+    {
+      "key": "dwarffemale_armor",
+      "kind": "ice-alpha",
+      "sha256": "5a4bb215da47adaa71e0984b401d29925c0d08cf99ff7ec8e8a7a6c8d42c73e2",
+      "bounds": [
+        544,
+        714,
+        6,
+        6,
+        532,
+        701
+      ],
+      "proof": {
+        "key": "dwarffemale_armor",
+        "width": 544,
+        "height": 714,
+        "sourceHash": "760f5f8e21609853543ac9fabe9c7454a122c4b41109e82a48693782208e1cfe",
+        "candidateHash": "5a4bb215da47adaa71e0984b401d29925c0d08cf99ff7ec8e8a7a6c8d42c73e2",
+        "rgbByteChanges": 0,
+        "decodedByteMismatches": 0,
+        "alphaChangedPixels": 46218,
+        "alphaIncreasedPixels": 0,
+        "faceRgbaChanges": 0,
+        "faceBox": [
+          150,
+          105,
+          220,
+          175
+        ],
+        "changesByReason": {
+          "1": 24506,
+          "2": 10169,
+          "3": 11543
+        },
+        "bounds": [
+          544,
+          714,
+          6,
+          6,
+          532,
+          701
+        ],
+        "masks": {
+          "gap": [
+            [
+              146,
+              435
+            ],
+            [
+              160,
+              451
+            ],
+            [
+              169,
+              478
+            ],
+            [
+              176,
+              496
+            ],
+            [
+              156,
+              505
+            ],
+            [
+              149,
+              521
+            ],
+            [
+              150,
+              539
+            ],
+            [
+              134,
+              561
+            ],
+            [
+              125,
+              580
+            ],
+            [
+              113,
+              610
+            ],
+            [
+              111,
+              622
+            ],
+            [
+              109,
+              634
+            ],
+            [
+              112,
+              648
+            ],
+            [
+              109,
+              667
+            ],
+            [
+              100,
+              674
+            ],
+            [
+              101,
+              660
+            ],
+            [
+              102,
+              643
+            ],
+            [
+              104,
+              624
+            ],
+            [
+              96,
+              609
+            ],
+            [
+              95,
+              590
+            ],
+            [
+              98,
+              581
+            ],
+            [
+              104,
+              552
+            ],
+            [
+              113,
+              534
+            ],
+            [
+              122,
+              510
+            ],
+            [
+              130,
+              490
+            ],
+            [
+              137,
+              466
+            ]
+          ],
+          "legs": [
+            [
+              111,
+              714
+            ],
+            [
+              111,
+              676
+            ],
+            [
+              216,
+              646
+            ],
+            [
+              273,
+              712
+            ],
+            [
+              335,
+              646
+            ],
+            [
+              430,
+              676
+            ],
+            [
+              430,
+              714
+            ]
+          ],
+          "gaps": [
+            [
+              [
+                146,
+                435
+              ],
+              [
+                160,
+                451
+              ],
+              [
+                169,
+                478
+              ],
+              [
+                176,
+                496
+              ],
+              [
+                156,
+                505
+              ],
+              [
+                149,
+                521
+              ],
+              [
+                150,
+                539
+              ],
+              [
+                134,
+                561
+              ],
+              [
+                125,
+                580
+              ],
+              [
+                113,
+                610
+              ],
+              [
+                111,
+                622
+              ],
+              [
+                109,
+                634
+              ],
+              [
+                112,
+                648
+              ],
+              [
+                109,
+                667
+              ],
+              [
+                100,
+                674
+              ],
+              [
+                101,
+                660
+              ],
+              [
+                102,
+                643
+              ],
+              [
+                104,
+                624
+              ],
+              [
+                96,
+                609
+              ],
+              [
+                95,
+                590
+              ],
+              [
+                98,
+                581
+              ],
+              [
+                104,
+                552
+              ],
+              [
+                113,
+                534
+              ],
+              [
+                122,
+                510
+              ],
+              [
+                130,
+                490
+              ],
+              [
+                137,
+                466
+              ]
+            ],
+            [
+              [
+                398,
+                435
+              ],
+              [
+                384,
+                451
+              ],
+              [
+                375,
+                478
+              ],
+              [
+                368,
+                496
+              ],
+              [
+                388,
+                505
+              ],
+              [
+                395,
+                521
+              ],
+              [
+                394,
+                539
+              ],
+              [
+                410,
+                561
+              ],
+              [
+                419,
+                580
+              ],
+              [
+                431,
+                610
+              ],
+              [
+                433,
+                622
+              ],
+              [
+                435,
+                634
+              ],
+              [
+                432,
+                648
+              ],
+              [
+                435,
+                667
+              ],
+              [
+                444,
+                674
+              ],
+              [
+                443,
+                660
+              ],
+              [
+                442,
+                643
+              ],
+              [
+                440,
+                624
+              ],
+              [
+                448,
+                609
+              ],
+              [
+                449,
+                590
+              ],
+              [
+                446,
+                581
+              ],
+              [
+                440,
+                552
+              ],
+              [
+                431,
+                534
+              ],
+              [
+                422,
+                510
+              ],
+              [
+                414,
+                490
+              ],
+              [
+                407,
+                466
+              ]
+            ]
+          ]
+        }
+      },
+      "file": "assets/characters/dwarffemale_armor.png"
+    },
+    {
+      "key": "orcfemale_armor",
+      "kind": "ice-alpha",
+      "sha256": "c2bde20c5d17422bc2c155c0cd9fb3cb05c275a5c106d1b44f8f0a57f5c7c72c",
+      "bounds": [
+        463,
+        690,
+        7,
+        6,
+        451,
+        678
+      ],
+      "proof": {
+        "key": "orcfemale_armor",
+        "width": 463,
+        "height": 690,
+        "sourceHash": "58020adc010cb2341fe4d1f68d875bd1703eb838bc79fe8f39c9a9a71a5cc254",
+        "candidateHash": "c2bde20c5d17422bc2c155c0cd9fb3cb05c275a5c106d1b44f8f0a57f5c7c72c",
+        "rgbByteChanges": 0,
+        "decodedByteMismatches": 0,
+        "alphaChangedPixels": 36752,
+        "alphaIncreasedPixels": 0,
+        "faceRgbaChanges": 0,
+        "faceBox": [
+          155,
+          160,
+          170,
+          150
+        ],
+        "changesByReason": {
+          "1": 27985,
+          "2": 8767
+        },
+        "bounds": [
+          463,
+          690,
+          7,
+          6,
+          451,
+          678
+        ],
+        "masks": {
+          "gap": [
+            [
+              142,
+              480
+            ],
+            [
+              151,
+              497
+            ],
+            [
+              154,
+              516
+            ],
+            [
+              165,
+              530
+            ],
+            [
+              149,
+              542
+            ],
+            [
+              144,
+              559
+            ],
+            [
+              139,
+              579
+            ],
+            [
+              126,
+              600
+            ],
+            [
+              125,
+              620
+            ],
+            [
+              116,
+              649
+            ],
+            [
+              112,
+              674
+            ],
+            [
+              102,
+              681
+            ],
+            [
+              101,
+              660
+            ],
+            [
+              103,
+              649
+            ],
+            [
+              99,
+              634
+            ],
+            [
+              92,
+              624
+            ],
+            [
+              98,
+              613
+            ],
+            [
+              100,
+              599
+            ],
+            [
+              102,
+              584
+            ],
+            [
+              108,
+              566
+            ],
+            [
+              116,
+              549
+            ],
+            [
+              125,
+              532
+            ],
+            [
+              121,
+              521
+            ],
+            [
+              124,
+              502
+            ],
+            [
+              135,
+              489
+            ]
+          ],
+          "gaps": [
+            [
+              [
+                142,
+                480
+              ],
+              [
+                151,
+                497
+              ],
+              [
+                154,
+                516
+              ],
+              [
+                165,
+                530
+              ],
+              [
+                149,
+                542
+              ],
+              [
+                144,
+                559
+              ],
+              [
+                139,
+                579
+              ],
+              [
+                126,
+                600
+              ],
+              [
+                125,
+                620
+              ],
+              [
+                116,
+                649
+              ],
+              [
+                112,
+                674
+              ],
+              [
+                102,
+                681
+              ],
+              [
+                101,
+                660
+              ],
+              [
+                103,
+                649
+              ],
+              [
+                99,
+                634
+              ],
+              [
+                92,
+                624
+              ],
+              [
+                98,
+                613
+              ],
+              [
+                100,
+                599
+              ],
+              [
+                102,
+                584
+              ],
+              [
+                108,
+                566
+              ],
+              [
+                116,
+                549
+              ],
+              [
+                125,
+                532
+              ],
+              [
+                121,
+                521
+              ],
+              [
+                124,
+                502
+              ],
+              [
+                135,
+                489
+              ]
+            ],
+            [
+              [
+                321,
+                480
+              ],
+              [
+                312,
+                497
+              ],
+              [
+                309,
+                516
+              ],
+              [
+                298,
+                530
+              ],
+              [
+                314,
+                542
+              ],
+              [
+                319,
+                559
+              ],
+              [
+                324,
+                579
+              ],
+              [
+                337,
+                600
+              ],
+              [
+                338,
+                620
+              ],
+              [
+                347,
+                649
+              ],
+              [
+                351,
+                674
+              ],
+              [
+                361,
+                681
+              ],
+              [
+                362,
+                660
+              ],
+              [
+                360,
+                649
+              ],
+              [
+                364,
+                634
+              ],
+              [
+                371,
+                624
+              ],
+              [
+                365,
+                613
+              ],
+              [
+                363,
+                599
+              ],
+              [
+                361,
+                584
+              ],
+              [
+                355,
+                566
+              ],
+              [
+                347,
+                549
+              ],
+              [
+                338,
+                532
+              ],
+              [
+                342,
+                521
+              ],
+              [
+                339,
+                502
+              ],
+              [
+                328,
+                489
+              ]
+            ]
+          ]
+        }
+      },
+      "file": "assets/characters/orcfemale_armor.png"
+    },
+    {
+      "key": "undeadfemale_armor",
+      "kind": "ice-alpha",
+      "sha256": "fed931e7aa012590501c87c6ee40c526fe73c3390e40669157ea41930f649df4",
+      "bounds": [
+        429,
+        685,
+        6,
+        6,
+        417,
+        661
+      ],
+      "proof": {
+        "key": "undeadfemale_armor",
+        "width": 429,
+        "height": 685,
+        "sourceHash": "8dd9edbcba9bf7e027a498ffbeb1ba74a4e30e8e8417831b6cb137ca16a76a85",
+        "candidateHash": "fed931e7aa012590501c87c6ee40c526fe73c3390e40669157ea41930f649df4",
+        "rgbByteChanges": 0,
+        "decodedByteMismatches": 0,
+        "alphaChangedPixels": 35633,
+        "alphaIncreasedPixels": 0,
+        "faceRgbaChanges": 0,
+        "faceBox": [
+          105,
+          125,
+          200,
+          150
+        ],
+        "changesByReason": {
+          "1": 19707,
+          "2": 8609,
+          "3": 7317
+        },
+        "bounds": [
+          429,
+          685,
+          6,
+          6,
+          417,
+          661
+        ],
+        "masks": {
+          "gap": [
+            [
+              117,
+              446
+            ],
+            [
+              126,
+              465
+            ],
+            [
+              136,
+              483
+            ],
+            [
+              141,
+              500
+            ],
+            [
+              131,
+              507
+            ],
+            [
+              125,
+              517
+            ],
+            [
+              120,
+              535
+            ],
+            [
+              114,
+              551
+            ],
+            [
+              108,
+              565
+            ],
+            [
+              99,
+              581
+            ],
+            [
+              100,
+              601
+            ],
+            [
+              97,
+              620
+            ],
+            [
+              91,
+              643
+            ],
+            [
+              84,
+              657
+            ],
+            [
+              78,
+              666
+            ],
+            [
+              78,
+              647
+            ],
+            [
+              80,
+              633
+            ],
+            [
+              80,
+              615
+            ],
+            [
+              77,
+              596
+            ],
+            [
+              71,
+              590
+            ],
+            [
+              77,
+              577
+            ],
+            [
+              80,
+              557
+            ],
+            [
+              89,
+              541
+            ],
+            [
+              97,
+              521
+            ],
+            [
+              101,
+              501
+            ],
+            [
+              104,
+              482
+            ],
+            [
+              112,
+              462
+            ]
+          ],
+          "legs": [
+            [
+              90,
+              685
+            ],
+            [
+              90,
+              658
+            ],
+            [
+              154,
+              635
+            ],
+            [
+              213,
+              667
+            ],
+            [
+              273,
+              635
+            ],
+            [
+              338,
+              658
+            ],
+            [
+              338,
+              685
+            ]
+          ],
+          "gaps": [
+            [
+              [
+                117,
+                446
+              ],
+              [
+                126,
+                465
+              ],
+              [
+                136,
+                483
+              ],
+              [
+                141,
+                500
+              ],
+              [
+                131,
+                507
+              ],
+              [
+                125,
+                517
+              ],
+              [
+                120,
+                535
+              ],
+              [
+                114,
+                551
+              ],
+              [
+                108,
+                565
+              ],
+              [
+                99,
+                581
+              ],
+              [
+                100,
+                601
+              ],
+              [
+                97,
+                620
+              ],
+              [
+                91,
+                643
+              ],
+              [
+                84,
+                657
+              ],
+              [
+                78,
+                666
+              ],
+              [
+                78,
+                647
+              ],
+              [
+                80,
+                633
+              ],
+              [
+                80,
+                615
+              ],
+              [
+                77,
+                596
+              ],
+              [
+                71,
+                590
+              ],
+              [
+                77,
+                577
+              ],
+              [
+                80,
+                557
+              ],
+              [
+                89,
+                541
+              ],
+              [
+                97,
+                521
+              ],
+              [
+                101,
+                501
+              ],
+              [
+                104,
+                482
+              ],
+              [
+                112,
+                462
+              ]
+            ],
+            [
+              [
+                312,
+                446
+              ],
+              [
+                303,
+                465
+              ],
+              [
+                293,
+                483
+              ],
+              [
+                288,
+                500
+              ],
+              [
+                298,
+                507
+              ],
+              [
+                304,
+                517
+              ],
+              [
+                309,
+                535
+              ],
+              [
+                315,
+                551
+              ],
+              [
+                321,
+                565
+              ],
+              [
+                330,
+                581
+              ],
+              [
+                329,
+                601
+              ],
+              [
+                332,
+                620
+              ],
+              [
+                338,
+                643
+              ],
+              [
+                345,
+                657
+              ],
+              [
+                351,
+                666
+              ],
+              [
+                351,
+                647
+              ],
+              [
+                349,
+                633
+              ],
+              [
+                349,
+                615
+              ],
+              [
+                352,
+                596
+              ],
+              [
+                358,
+                590
+              ],
+              [
+                352,
+                577
+              ],
+              [
+                349,
+                557
+              ],
+              [
+                340,
+                541
+              ],
+              [
+                332,
+                521
+              ],
+              [
+                328,
+                501
+              ],
+              [
+                325,
+                482
+              ],
+              [
+                317,
+                462
+              ]
+            ]
+          ]
+        }
+      },
+      "file": "assets/characters/undeadfemale_armor.png"
+    },
+    {
+      "key": "humanmale_armor",
+      "kind": "ice-alpha",
+      "sha256": "a2071288a0f7dffb2ecb3bfa7e0f79f5221ebd7f935818f995e68f61b9fec1d3",
+      "bounds": [
+        561,
+        800,
+        0,
+        0,
+        561,
+        799
+      ],
+      "proof": {
+        "key": "humanmale_armor",
+        "width": 561,
+        "height": 800,
+        "sourceHash": "8a20690a8b899b8c36da290f06a2064baf1136476295ae314e3e5d9e178c05ff",
+        "candidateHash": "a2071288a0f7dffb2ecb3bfa7e0f79f5221ebd7f935818f995e68f61b9fec1d3",
+        "rgbByteChanges": 0,
+        "decodedByteMismatches": 0,
+        "alphaChangedPixels": 26,
+        "alphaIncreasedPixels": 0,
+        "faceRgbaChanges": 0,
+        "faceBox": [
+          120,
+          155,
+          315,
+          270
+        ],
+        "changesByReason": {
+          "4": 26
+        },
+        "bounds": [
+          561,
+          800,
+          0,
+          0,
+          561,
+          799
+        ],
+        "masks": {
+          "holes": [
+            {
+              "box": [
+                452,
+                85,
+                28,
+                40
+              ],
+              "seed": [
+                462,
+                100
+              ]
+            }
+          ]
+        }
+      },
+      "file": "assets/characters/humanmale_armor.png"
+    },
+    {
+      "key": "dwarfmale_armor",
+      "kind": "ice-alpha",
+      "sha256": "b71e07a74ab3719c8444686d5fa4aba7cf6becea10665aa5ee8501023ea1a6bb",
+      "bounds": [
+        595,
+        800,
+        0,
+        0,
+        595,
+        800
+      ],
+      "proof": {
+        "key": "dwarfmale_armor",
+        "width": 595,
+        "height": 800,
+        "sourceHash": "d535972fca76259d46fd8c45bedb8550e54b5193d28e7238005ec264a08b81f4",
+        "candidateHash": "b71e07a74ab3719c8444686d5fa4aba7cf6becea10665aa5ee8501023ea1a6bb",
+        "rgbByteChanges": 0,
+        "decodedByteMismatches": 0,
+        "alphaChangedPixels": 32,
+        "alphaIncreasedPixels": 0,
+        "faceRgbaChanges": 0,
+        "faceBox": [
+          130,
+          145,
+          350,
+          175
+        ],
+        "changesByReason": {
+          "4": 32
+        },
+        "bounds": [
+          595,
+          800,
+          0,
+          0,
+          595,
+          800
+        ],
+        "masks": {
+          "holes": [
+            {
+              "box": [
+                86,
+                318,
+                32,
+                35
+              ],
+              "seed": [
+                100,
+                327
+              ]
+            }
+          ]
+        }
+      },
+      "file": "assets/characters/dwarfmale_armor.png"
+    },
+    {
+      "key": "undeadmale_armor",
+      "kind": "ice-alpha",
+      "sha256": "775d85497b78a905ddaa76de5ac0ee997bccf1ad1ed944990d8ae145727e7331",
+      "bounds": [
+        574,
+        800,
+        0,
+        0,
+        574,
+        800
+      ],
+      "proof": {
+        "key": "undeadmale_armor",
+        "width": 574,
+        "height": 800,
+        "sourceHash": "811588e796973bf1565d36e7d2bf8962f2eec5c8dd8885ec4b078250df8e3d26",
+        "candidateHash": "775d85497b78a905ddaa76de5ac0ee997bccf1ad1ed944990d8ae145727e7331",
+        "rgbByteChanges": 0,
+        "decodedByteMismatches": 0,
+        "alphaChangedPixels": 124,
+        "alphaIncreasedPixels": 0,
+        "faceRgbaChanges": 0,
+        "faceBox": [
+          125,
+          120,
+          325,
+          230
+        ],
+        "changesByReason": {
+          "4": 124
+        },
+        "bounds": [
+          574,
+          800,
+          0,
+          0,
+          574,
+          800
+        ],
+        "masks": {
+          "holes": [
+            {
+              "box": [
+                450,
+                86,
+                35,
+                54
+              ],
+              "seed": [
+                466,
+                115
+              ]
+            }
+          ]
+        }
+      },
+      "file": "assets/characters/undeadmale_armor.png"
+    },
+    {
+      "key": "humanmale_warrior",
+      "kind": "male-alpha",
+      "sha256": "bc4caa52386d059666b9254f35eff08a058373a73a64b870a551c7ac9ff56742",
+      "bounds": [
+        532,
+        800,
+        0,
+        0,
+        532,
+        800
+      ],
+      "proof": {
+        "key": "humanmale_warrior",
+        "regions": [
+          [
+            430,
+            81,
+            444,
+            101
+          ]
+        ],
+        "seeds": null,
+        "changedAlphaPixels": 18,
+        "rgbMismatches": 0,
+        "alphaIncreases": 0,
+        "width": 532,
+        "height": 800,
+        "sha256": "bc4caa52386d059666b9254f35eff08a058373a73a64b870a551c7ac9ff56742"
+      },
+      "file": "assets/characters/humanmale_warrior.png"
+    },
+    {
+      "key": "humanmale_hunter",
+      "kind": "male-alpha",
+      "sha256": "ea1bec23855581569460278e30d84001ed34a6e5fe71883fa1931e96ee1d6d9b",
+      "bounds": [
+        540,
+        800,
+        0,
+        0,
+        540,
+        800
+      ],
+      "proof": {
+        "key": "humanmale_hunter",
+        "regions": [
+          [
+            429,
+            78,
+            451,
+            108
+          ]
+        ],
+        "seeds": null,
+        "changedAlphaPixels": 1,
+        "rgbMismatches": 0,
+        "alphaIncreases": 0,
+        "width": 540,
+        "height": 800,
+        "sha256": "ea1bec23855581569460278e30d84001ed34a6e5fe71883fa1931e96ee1d6d9b"
+      },
+      "file": "assets/characters/humanmale_hunter.png"
+    },
+    {
+      "key": "undeadmale_warrior",
+      "kind": "male-alpha",
+      "sha256": "3e68a79ce00edff2a8d7cc76e839204456a94de3ac5f15c295130d5262d8dd6a",
+      "bounds": [
+        525,
+        800,
+        0,
+        0,
+        525,
+        788
+      ],
+      "proof": {
+        "key": "undeadmale_warrior",
+        "regions": [
+          [
+            430,
+            90,
+            449,
+            132
+          ],
+          [
+            446,
+            146,
+            462,
+            202
+          ]
+        ],
+        "seeds": [
+          [
+            434,
+            96
+          ],
+          [
+            448,
+            151
+          ]
+        ],
+        "changedAlphaPixels": 351,
+        "rgbMismatches": 0,
+        "alphaIncreases": 0,
+        "width": 525,
+        "height": 800,
+        "sha256": "3e68a79ce00edff2a8d7cc76e839204456a94de3ac5f15c295130d5262d8dd6a"
+      },
+      "file": "assets/characters/undeadmale_warrior.png"
+    },
+    {
+      "key": "undeadmale_mage",
+      "kind": "male-alpha",
+      "sha256": "5405dcd10ff79fbd33355a9602cb2eb4156866fc71ce9f6a50929a74934a0f65",
+      "bounds": [
+        531,
+        800,
+        0,
+        0,
+        531,
+        800
+      ],
+      "proof": {
+        "key": "undeadmale_mage",
+        "regions": [
+          [
+            427,
+            89,
+            448,
+            129
+          ],
+          [
+            451,
+            146,
+            462,
+            171
+          ]
+        ],
+        "seeds": [
+          [
+            430,
+            93
+          ],
+          [
+            454,
+            151
+          ]
+        ],
+        "changedAlphaPixels": 161,
+        "rgbMismatches": 0,
+        "alphaIncreases": 0,
+        "width": 531,
+        "height": 800,
+        "sha256": "5405dcd10ff79fbd33355a9602cb2eb4156866fc71ce9f6a50929a74934a0f65"
+      },
+      "file": "assets/characters/undeadmale_mage.png"
+    },
+    {
+      "key": "undeadmale_hunter",
+      "kind": "male-alpha",
+      "sha256": "a80a6b60d09e205a8425e9090a955709392d253218774f337841d50a2005d869",
+      "bounds": [
+        540,
+        800,
+        0,
+        0,
+        540,
+        800
+      ],
+      "proof": {
+        "key": "undeadmale_hunter",
+        "regions": [
+          [
+            429,
+            86,
+            450,
+            126
+          ],
+          [
+            455,
+            143,
+            464,
+            169
+          ]
+        ],
+        "seeds": [
+          [
+            432,
+            91
+          ],
+          [
+            459,
+            149
+          ]
+        ],
+        "changedAlphaPixels": 149,
+        "rgbMismatches": 0,
+        "alphaIncreases": 0,
+        "width": 540,
+        "height": 800,
+        "sha256": "a80a6b60d09e205a8425e9090a955709392d253218774f337841d50a2005d869"
+      },
+      "file": "assets/characters/undeadmale_hunter.png"
+    },
+    {
+      "key": "undeadmale_priest",
+      "kind": "male-alpha",
+      "sha256": "54f4ec8babacb6fab06712b335b9f87516aab8ae77eb32715f3c7de742abab56",
+      "bounds": [
+        515,
+        800,
+        0,
+        0,
+        515,
+        800
+      ],
+      "proof": {
+        "key": "undeadmale_priest",
+        "regions": [
+          [
+            403,
+            81,
+            424,
+            120
+          ],
+          [
+            419,
+            134,
+            435,
+            184
+          ]
+        ],
+        "seeds": [
+          [
+            408,
+            87
+          ],
+          [
+            422,
+            139
+          ]
+        ],
+        "changedAlphaPixels": 318,
+        "rgbMismatches": 0,
+        "alphaIncreases": 0,
+        "width": 515,
+        "height": 800,
+        "sha256": "54f4ec8babacb6fab06712b335b9f87516aab8ae77eb32715f3c7de742abab56"
+      },
+      "file": "assets/characters/undeadmale_priest.png"
+    }
+  ]
+}

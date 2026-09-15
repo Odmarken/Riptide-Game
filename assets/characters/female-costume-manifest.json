@@ -188,18 +188,18 @@
     },
     {
       "file": "assets/characters/humanfemale_mage.png",
-      "sha256": "083985df0b67f29640604cafab965931e2c932e9c949cfee35cffda20e1886b7",
+      "sha256": "e2c661d21e47e40a284e786403324358cbf012023c628645f6f4f9bb82f5c802",
       "bounds": [
         589,
         646,
-        67,
+        99,
         18,
-        453,
+        392,
         602
       ],
       "hand": [
-        124,
-        602
+        135,
+        583
       ],
       "generation": {
         "service": "Higgsfield",
@@ -352,6 +352,188 @@
           520,
           620
         ]
+      },
+      "revision": {
+        "sourceCommit": "3359e022f053682d19f73059de6c4eae04744f24",
+        "details": {
+          "key": "humanfemale_mage",
+          "mode": "New Higgsfield sleeves/gloves only; current bodice, neckline, hem, head and hair unchanged",
+          "sourceJob": "612464fc-35ce-490c-8c88-06a493f5cff6",
+          "padX": 64,
+          "padY": 16,
+          "width": 589,
+          "height": 646,
+          "coreY": 291,
+          "hem": 606,
+          "beforeVisible": {
+            "width": 453,
+            "height": 602
+          },
+          "afterVisible": {
+            "width": 392,
+            "height": 602
+          },
+          "beforeBounds": [
+            67,
+            18,
+            520,
+            620
+          ],
+          "afterBounds": [
+            99,
+            18,
+            491,
+            620
+          ],
+          "sleeveUniformScale": 0.2,
+          "sleeveY": 284,
+          "sleeveLeftX": 85,
+          "sleeveRightX": 155.2,
+          "editedPolygons": [
+            [
+              [
+                0,
+                418
+              ],
+              [
+                170,
+                418
+              ],
+              [
+                194,
+                434
+              ],
+              [
+                203,
+                485
+              ],
+              [
+                191,
+                517
+              ],
+              [
+                171,
+                548
+              ],
+              [
+                146,
+                583
+              ],
+              [
+                123,
+                609
+              ],
+              [
+                113,
+                633
+              ],
+              [
+                0,
+                646
+              ]
+            ],
+            [
+              [
+                589,
+                418
+              ],
+              [
+                419,
+                418
+              ],
+              [
+                395,
+                434
+              ],
+              [
+                386,
+                485
+              ],
+              [
+                398,
+                517
+              ],
+              [
+                418,
+                548
+              ],
+              [
+                443,
+                583
+              ],
+              [
+                466,
+                609
+              ],
+              [
+                476,
+                633
+              ],
+              [
+                589,
+                646
+              ]
+            ]
+          ],
+          "protectedPixels": 141732,
+          "protectedChannelMismatches": 8805,
+          "unmodifiedChannelMismatches": 0,
+          "proposedGrip": [
+            135,
+            583
+          ],
+          "sha256": "e2c661d21e47e40a284e786403324358cbf012023c628645f6f4f9bb82f5c802",
+          "protectedHeadRgbMismatches": 0,
+          "opaqueProtectedHeadPixels": 77813,
+          "opaqueProtectedHeadRgbaMismatches": 0,
+          "alphaCleanup": {
+            "changedPixels": 9327,
+            "rule": "Exterior neutral matte alpha <224, >=2px from alpha>=224 silhouette; immediate antialias rim kept; RGB unchanged",
+            "headBottom": 412
+          },
+          "facePolygonOriginalCoordinates": [
+            [
+              194,
+              112
+            ],
+            [
+              272,
+              112
+            ],
+            [
+              337,
+              171
+            ],
+            [
+              332,
+              232
+            ],
+            [
+              295,
+              274
+            ],
+            [
+              231,
+              284
+            ],
+            [
+              166,
+              274
+            ],
+            [
+              129,
+              232
+            ],
+            [
+              124,
+              171
+            ]
+          ],
+          "protectedFacePixels": 28889,
+          "protectedFaceRgbaChanges": 0,
+          "headRgbChanges": 0
+        },
+        "manifest": "assets/characters/character-cleanup-manifest.json"
       }
     },
     {
@@ -532,7 +714,7 @@
     },
     {
       "file": "assets/characters/humanfemale_priest.png",
-      "sha256": "ebfc223aba897b5535c236621515bbc0848aaf6fa0d1e964c11ab38df1715ba3",
+      "sha256": "a6b7738145169b91b2bfc051c11fe3bd9433dd78103e6f75ff51867f9e347ec5",
       "bounds": [
         553,
         649,
@@ -692,6 +874,109 @@
           487,
           623
         ]
+      },
+      "revision": {
+        "sourceCommit": "3359e022f053682d19f73059de6c4eae04744f24",
+        "details": {
+          "key": "humanfemale_priest",
+          "mode": "Original arm/hand silhouettes instead of rectangular patches",
+          "registration": {
+            "cost": 0,
+            "originalBounds": [
+              2,
+              2,
+              423,
+              654
+            ],
+            "generatedBounds": [
+              39,
+              361,
+              1699,
+              2119
+            ],
+            "mode": "original upper costume plus empty generated lower robe only"
+          },
+          "padX": 64,
+          "padY": 16,
+          "coreY": 291,
+          "hem": 609,
+          "width": 553,
+          "height": 649,
+          "beforeVisible": {
+            "width": 421,
+            "height": 605
+          },
+          "afterVisible": {
+            "width": 421,
+            "height": 605
+          },
+          "beforeBounds": [
+            66,
+            18,
+            487,
+            623
+          ],
+          "afterBounds": [
+            66,
+            18,
+            487,
+            623
+          ],
+          "previousYToX": 0.837465564738292,
+          "newYToX": 0.837465564738292,
+          "chinFraction": 0.46115702479338844,
+          "protectedPixels": 131825,
+          "protectedChannelMismatches": 0,
+          "sha256": "a6b7738145169b91b2bfc051c11fe3bd9433dd78103e6f75ff51867f9e347ec5",
+          "proposedGrip": [
+            121,
+            585
+          ],
+          "facePolygonOriginalCoordinates": [
+            [
+              179,
+              112
+            ],
+            [
+              251,
+              112
+            ],
+            [
+              310,
+              171
+            ],
+            [
+              306,
+              233
+            ],
+            [
+              272,
+              275
+            ],
+            [
+              213,
+              285
+            ],
+            [
+              153,
+              275
+            ],
+            [
+              119,
+              233
+            ],
+            [
+              115,
+              171
+            ]
+          ],
+          "protectedFacePixels": 26710,
+          "protectedFaceRgbaChanges": 0,
+          "headRgbChanges": 0,
+          "opaqueProtectedHeadPixels": 77032,
+          "opaqueProtectedHeadRgbaMismatches": 0
+        },
+        "manifest": "assets/characters/character-cleanup-manifest.json"
       }
     },
     {
@@ -924,18 +1209,18 @@
     },
     {
       "file": "assets/characters/dwarffemale_mage.png",
-      "sha256": "43e9651e0226884165d26340f62fbdf9d02ddd3b6841d9e1808bb0f5433c5aa5",
+      "sha256": "96f474e1d8e686ab64f58e3d8f174a6a71822fd34dcb6f386790b8c3667791b2",
       "bounds": [
         676,
-        625,
+        733,
         64,
         18,
         546,
-        583
+        691
       ],
       "hand": [
         138,
-        520
+        599
       ],
       "generation": {
         "service": "Higgsfield",
@@ -1144,6 +1429,113 @@
           610,
           601
         ]
+      },
+      "revision": {
+        "sourceCommit": "3359e022f053682d19f73059de6c4eae04744f24",
+        "details": {
+          "key": "dwarffemale_mage",
+          "mode": "Generated body natural aspect, original protected head/hair",
+          "registration": {
+            "cost": 1266.1900675295442,
+            "scale": 0.32200000000000006,
+            "tx": -7.640000000000043,
+            "dy": -3,
+            "dx": -2,
+            "points": 7108,
+            "originalBounds": [
+              2,
+              2,
+              547,
+              723
+            ],
+            "generatedBounds": [
+              22,
+              11,
+              1718,
+              2304
+            ]
+          },
+          "padX": 64,
+          "padY": 16,
+          "coreY": 285,
+          "hem": 693,
+          "width": 676,
+          "height": 733,
+          "beforeVisible": {
+            "width": 546,
+            "height": 583
+          },
+          "afterVisible": {
+            "width": 546,
+            "height": 691
+          },
+          "beforeBounds": [
+            64,
+            18,
+            610,
+            601
+          ],
+          "afterBounds": [
+            64,
+            18,
+            610,
+            709
+          ],
+          "previousYToX": 0.6609560067681893,
+          "newYToX": 0.8989001692047375,
+          "chinFraction": 0.3878437047756874,
+          "protectedPixels": 167598,
+          "protectedChannelMismatches": 0,
+          "sha256": "96f474e1d8e686ab64f58e3d8f174a6a71822fd34dcb6f386790b8c3667791b2",
+          "proposedGrip": [
+            138,
+            599
+          ],
+          "facePolygonOriginalCoordinates": [
+            [
+              230,
+              108
+            ],
+            [
+              323,
+              108
+            ],
+            [
+              400,
+              165
+            ],
+            [
+              395,
+              224
+            ],
+            [
+              351,
+              265
+            ],
+            [
+              274,
+              274
+            ],
+            [
+              197,
+              265
+            ],
+            [
+              153,
+              224
+            ],
+            [
+              148,
+              165
+            ]
+          ],
+          "protectedFacePixels": 33216,
+          "protectedFaceRgbaChanges": 0,
+          "headRgbChanges": 0,
+          "opaqueProtectedHeadPixels": 80246,
+          "opaqueProtectedHeadRgbaMismatches": 0
+        },
+        "manifest": "assets/characters/character-cleanup-manifest.json"
       }
     },
     {
@@ -1372,18 +1764,18 @@
     },
     {
       "file": "assets/characters/dwarffemale_priest.png",
-      "sha256": "956d3810eeace5fa6b5b0672adcb339ffd5cab7ae63c0e7aa1ca2e3cb75bb5d5",
+      "sha256": "0a95eb075a6a626eea6af7dbe9e87058dc7b76b968da6076e8e4e0aeee3a6cfb",
       "bounds": [
         687,
-        627,
+        756,
         83,
         18,
         512,
-        585
+        714
       ],
       "hand": [
         146,
-        505
+        592
       ],
       "generation": {
         "service": "Higgsfield",
@@ -1596,18 +1988,125 @@
           595,
           603
         ]
+      },
+      "revision": {
+        "sourceCommit": "3359e022f053682d19f73059de6c4eae04744f24",
+        "details": {
+          "key": "dwarffemale_priest",
+          "mode": "Generated body natural aspect, original protected head/hair",
+          "registration": {
+            "cost": 1400.107384441939,
+            "scale": 0.33100000000000007,
+            "tx": -10.32200000000006,
+            "dy": -2,
+            "dx": -3,
+            "points": 7096,
+            "originalBounds": [
+              14,
+              2,
+              542,
+              737
+            ],
+            "generatedBounds": [
+              88,
+              6,
+              1636,
+              2315
+            ]
+          },
+          "padX": 64,
+          "padY": 16,
+          "coreY": 284,
+          "hem": 716,
+          "width": 687,
+          "height": 756,
+          "beforeVisible": {
+            "width": 512,
+            "height": 585
+          },
+          "afterVisible": {
+            "width": 512,
+            "height": 714
+          },
+          "beforeBounds": [
+            83,
+            18,
+            595,
+            603
+          ],
+          "afterBounds": [
+            83,
+            18,
+            595,
+            732
+          ],
+          "previousYToX": 0.6309016896921489,
+          "newYToX": 0.8995033991650438,
+          "chinFraction": 0.37675070028011204,
+          "protectedPixels": 169610,
+          "protectedChannelMismatches": 0,
+          "sha256": "0a95eb075a6a626eea6af7dbe9e87058dc7b76b968da6076e8e4e0aeee3a6cfb",
+          "proposedGrip": [
+            146,
+            592
+          ],
+          "facePolygonOriginalCoordinates": [
+            [
+              235,
+              108
+            ],
+            [
+              330,
+              108
+            ],
+            [
+              408,
+              165
+            ],
+            [
+              402,
+              225
+            ],
+            [
+              358,
+              266
+            ],
+            [
+              280,
+              275
+            ],
+            [
+              201,
+              266
+            ],
+            [
+              157,
+              225
+            ],
+            [
+              151,
+              165
+            ]
+          ],
+          "protectedFacePixels": 34040,
+          "protectedFaceRgbaChanges": 0,
+          "headRgbChanges": 0,
+          "opaqueProtectedHeadPixels": 79255,
+          "opaqueProtectedHeadRgbaMismatches": 0
+        },
+        "manifest": "assets/characters/character-cleanup-manifest.json"
       }
     },
     {
       "file": "assets/characters/orcfemale_warrior.png",
-      "sha256": "9293a93c333d46f8f41e5e6f3859c66b3d48949fdf929d4e0611839ff7428727",
+      "sha256": "a5f06234cafbeb5b9e30e993b251e1055ac51a8c637becbe5e69e1a3cadd2e0f",
       "bounds": [
         601,
         707,
         71,
-        21,
+        22,
         459,
-        662
+        661
       ],
       "hand": [
         119,
@@ -1836,18 +2335,108 @@
           530,
           683
         ]
+      },
+      "revision": {
+        "sourceCommit": "3359e022f053682d19f73059de6c4eae04744f24",
+        "details": {
+          "key": "orcfemale_warrior",
+          "mode": "Original art retained; exterior head matte alpha cleanup only",
+          "padX": 64,
+          "padY": 16,
+          "width": 601,
+          "height": 707,
+          "coreY": 321,
+          "hem": 667,
+          "beforeVisible": {
+            "width": 459,
+            "height": 662
+          },
+          "beforeBounds": [
+            71,
+            21,
+            530,
+            683
+          ],
+          "proposedGrip": [
+            119,
+            622
+          ],
+          "afterVisible": {
+            "width": 459,
+            "height": 661
+          },
+          "afterBounds": [
+            71,
+            22,
+            530,
+            683
+          ],
+          "protectedPixels": 162517,
+          "protectedChannelMismatches": 9611,
+          "protectedHeadRgbMismatches": 0,
+          "opaqueProtectedHeadPixels": 87483,
+          "opaqueProtectedHeadRgbaMismatches": 0,
+          "alphaCleanup": {
+            "changedPixels": 9666,
+            "rule": "Exterior neutral matte alpha <224, >=2px from alpha>=224 silhouette; immediate antialias rim kept; RGB unchanged",
+            "headBottom": 460
+          },
+          "sha256": "a5f06234cafbeb5b9e30e993b251e1055ac51a8c637becbe5e69e1a3cadd2e0f",
+          "facePolygonOriginalCoordinates": [
+            [
+              199,
+              123
+            ],
+            [
+              279,
+              123
+            ],
+            [
+              345,
+              188
+            ],
+            [
+              341,
+              256
+            ],
+            [
+              303,
+              302
+            ],
+            [
+              237,
+              313
+            ],
+            [
+              170,
+              302
+            ],
+            [
+              132,
+              256
+            ],
+            [
+              128,
+              188
+            ]
+          ],
+          "protectedFacePixels": 32735,
+          "protectedFaceRgbaChanges": 0,
+          "headRgbChanges": 0
+        },
+        "manifest": "assets/characters/character-cleanup-manifest.json"
       }
     },
     {
       "file": "assets/characters/orcfemale_mage.png",
-      "sha256": "7029dfa3548b851079820d06b8cdaffae460a2daa67a5921796082953fca4da7",
+      "sha256": "853b70f5aa896a95fd6d570be0089d59f03eaebe9e03693f4f9bc2656e065ad9",
       "bounds": [
         560,
         705,
         67,
-        18,
+        19,
         423,
-        663
+        662
       ],
       "hand": [
         130,
@@ -2080,18 +2669,108 @@
           490,
           681
         ]
+      },
+      "revision": {
+        "sourceCommit": "3359e022f053682d19f73059de6c4eae04744f24",
+        "details": {
+          "key": "orcfemale_mage",
+          "mode": "Original art retained; exterior head matte alpha cleanup only",
+          "padX": 64,
+          "padY": 16,
+          "width": 560,
+          "height": 705,
+          "coreY": 322,
+          "hem": 665,
+          "beforeVisible": {
+            "width": 423,
+            "height": 663
+          },
+          "beforeBounds": [
+            67,
+            18,
+            490,
+            681
+          ],
+          "proposedGrip": [
+            130,
+            594
+          ],
+          "afterVisible": {
+            "width": 423,
+            "height": 662
+          },
+          "afterBounds": [
+            67,
+            19,
+            490,
+            681
+          ],
+          "protectedPixels": 153606,
+          "protectedChannelMismatches": 9487,
+          "protectedHeadRgbMismatches": 0,
+          "opaqueProtectedHeadPixels": 89398,
+          "opaqueProtectedHeadRgbaMismatches": 0,
+          "alphaCleanup": {
+            "changedPixels": 9607,
+            "rule": "Exterior neutral matte alpha <224, >=2px from alpha>=224 silhouette; immediate antialias rim kept; RGB unchanged",
+            "headBottom": 463
+          },
+          "sha256": "853b70f5aa896a95fd6d570be0089d59f03eaebe9e03693f4f9bc2656e065ad9",
+          "facePolygonOriginalCoordinates": [
+            [
+              181,
+              123
+            ],
+            [
+              255,
+              123
+            ],
+            [
+              315,
+              187
+            ],
+            [
+              311,
+              255
+            ],
+            [
+              276,
+              301
+            ],
+            [
+              216,
+              312
+            ],
+            [
+              156,
+              301
+            ],
+            [
+              121,
+              255
+            ],
+            [
+              117,
+              187
+            ]
+          ],
+          "protectedFacePixels": 29718,
+          "protectedFaceRgbaChanges": 0,
+          "headRgbChanges": 0
+        },
+        "manifest": "assets/characters/character-cleanup-manifest.json"
       }
     },
     {
       "file": "assets/characters/orcfemale_hunter.png",
-      "sha256": "12e56602233ff9bcae612c7de1e3425634145e6582cc0697922a54612b3f03b2",
+      "sha256": "f7f34a55debe1f40575b3ba31af8ed77c69b98f0fa3ae32ea1198869bb67fd84",
       "bounds": [
         536,
         709,
         72,
-        21,
+        22,
         394,
-        664
+        663
       ],
       "hand": [
         111,
@@ -2320,18 +2999,108 @@
           466,
           685
         ]
+      },
+      "revision": {
+        "sourceCommit": "3359e022f053682d19f73059de6c4eae04744f24",
+        "details": {
+          "key": "orcfemale_hunter",
+          "mode": "Original art retained; exterior head matte alpha cleanup only",
+          "padX": 64,
+          "padY": 16,
+          "width": 536,
+          "height": 709,
+          "coreY": 324,
+          "hem": 669,
+          "beforeVisible": {
+            "width": 394,
+            "height": 664
+          },
+          "beforeBounds": [
+            72,
+            21,
+            466,
+            685
+          ],
+          "proposedGrip": [
+            111,
+            642
+          ],
+          "afterVisible": {
+            "width": 394,
+            "height": 663
+          },
+          "afterBounds": [
+            72,
+            22,
+            466,
+            685
+          ],
+          "protectedPixels": 146946,
+          "protectedChannelMismatches": 9330,
+          "protectedHeadRgbMismatches": 0,
+          "opaqueProtectedHeadPixels": 89362,
+          "opaqueProtectedHeadRgbaMismatches": 0,
+          "alphaCleanup": {
+            "changedPixels": 9444,
+            "rule": "Exterior neutral matte alpha <224, >=2px from alpha>=224 silhouette; immediate antialias rim kept; RGB unchanged",
+            "headBottom": 460
+          },
+          "sha256": "f7f34a55debe1f40575b3ba31af8ed77c69b98f0fa3ae32ea1198869bb67fd84",
+          "facePolygonOriginalCoordinates": [
+            [
+              171,
+              124
+            ],
+            [
+              241,
+              124
+            ],
+            [
+              298,
+              188
+            ],
+            [
+              294,
+              256
+            ],
+            [
+              261,
+              303
+            ],
+            [
+              204,
+              314
+            ],
+            [
+              147,
+              303
+            ],
+            [
+              114,
+              256
+            ],
+            [
+              110,
+              188
+            ]
+          ],
+          "protectedFacePixels": 28304,
+          "protectedFaceRgbaChanges": 0,
+          "headRgbChanges": 0
+        },
+        "manifest": "assets/characters/character-cleanup-manifest.json"
       }
     },
     {
       "file": "assets/characters/orcfemale_priest.png",
-      "sha256": "8fead0f27aacc08669627955b5e117871a3998d780628a2c1a2c07b4885d98c2",
+      "sha256": "dcd68ba0a99a8dd4048ffd6f25b412e5e357ff236f1f7755fdd63428bd35016f",
       "bounds": [
         558,
         707,
         66,
-        18,
+        19,
         426,
-        663
+        662
       ],
       "hand": [
         119,
@@ -2552,6 +3321,115 @@
           492,
           681
         ]
+      },
+      "revision": {
+        "sourceCommit": "3359e022f053682d19f73059de6c4eae04744f24",
+        "details": {
+          "key": "orcfemale_priest",
+          "mode": "Original arm/hand silhouettes instead of rectangular patches",
+          "registration": {
+            "cost": 0,
+            "originalBounds": [
+              2,
+              2,
+              428,
+              682
+            ],
+            "generatedBounds": [
+              39,
+              361,
+              1699,
+              2119
+            ],
+            "mode": "original upper costume plus empty generated lower robe only"
+          },
+          "padX": 64,
+          "padY": 16,
+          "coreY": 322,
+          "hem": 667,
+          "width": 558,
+          "height": 707,
+          "beforeVisible": {
+            "width": 426,
+            "height": 663
+          },
+          "afterVisible": {
+            "width": 426,
+            "height": 662
+          },
+          "beforeBounds": [
+            66,
+            18,
+            492,
+            681
+          ],
+          "afterBounds": [
+            66,
+            19,
+            492,
+            681
+          ],
+          "previousYToX": 0.9194444444444444,
+          "newYToX": 0.9194444444444444,
+          "chinFraction": 0.46153846153846156,
+          "protectedPixels": 153688,
+          "protectedChannelMismatches": 7550,
+          "sha256": "dcd68ba0a99a8dd4048ffd6f25b412e5e357ff236f1f7755fdd63428bd35016f",
+          "proposedGrip": [
+            119,
+            638
+          ],
+          "protectedHeadRgbMismatches": 0,
+          "opaqueProtectedHeadPixels": 89911,
+          "opaqueProtectedHeadRgbaMismatches": 0,
+          "alphaCleanup": {
+            "changedPixels": 7989,
+            "rule": "Exterior neutral matte alpha <224, >=2px from alpha>=224 silhouette; immediate antialias rim kept; RGB unchanged",
+            "headBottom": 459
+          },
+          "facePolygonOriginalCoordinates": [
+            [
+              181,
+              123
+            ],
+            [
+              254,
+              123
+            ],
+            [
+              314,
+              188
+            ],
+            [
+              310,
+              256
+            ],
+            [
+              275,
+              302
+            ],
+            [
+              215,
+              313
+            ],
+            [
+              155,
+              302
+            ],
+            [
+              120,
+              256
+            ],
+            [
+              116,
+              188
+            ]
+          ],
+          "protectedFacePixels": 29822,
+          "protectedFaceRgbaChanges": 0,
+          "headRgbChanges": 0
+        },
+        "manifest": "assets/characters/character-cleanup-manifest.json"
       }
     },
     {
@@ -2772,18 +3650,18 @@
     },
     {
       "file": "assets/characters/undeadfemale_mage.png",
-      "sha256": "0d13628a095c59623fe5c7c115944ed33d463c3ad4c0665ca6b4386aaabe7df5",
+      "sha256": "377204f3498a01faa8eb40c5a02be98431d9e2a6ec0f6ddc026d351a3a68c5c9",
       "bounds": [
         628,
-        622,
+        725,
         78,
         18,
         472,
-        580
+        683
       ],
       "hand": [
         139,
-        521
+        598
       ],
       "generation": {
         "service": "Higgsfield",
@@ -2988,6 +3866,113 @@
           550,
           598
         ]
+      },
+      "revision": {
+        "sourceCommit": "3359e022f053682d19f73059de6c4eae04744f24",
+        "details": {
+          "key": "undeadfemale_mage",
+          "mode": "Generated body natural aspect, original protected head/hair",
+          "registration": {
+            "cost": 3662.5532391213096,
+            "scale": 0.31900000000000006,
+            "tx": -17.32200000000006,
+            "dy": -5,
+            "dx": 0,
+            "points": 7147,
+            "originalBounds": [
+              2,
+              2,
+              498,
+              762
+            ],
+            "generatedBounds": [
+              97,
+              16,
+              1579,
+              2302
+            ]
+          },
+          "padX": 64,
+          "padY": 16,
+          "coreY": 282,
+          "hem": 685,
+          "width": 628,
+          "height": 725,
+          "beforeVisible": {
+            "width": 472,
+            "height": 580
+          },
+          "afterVisible": {
+            "width": 472,
+            "height": 683
+          },
+          "beforeBounds": [
+            78,
+            18,
+            550,
+            598
+          ],
+          "afterBounds": [
+            78,
+            18,
+            550,
+            701
+          ],
+          "previousYToX": 0.6706338383951282,
+          "newYToX": 0.9008847895774555,
+          "chinFraction": 0.39092240117130306,
+          "protectedPixels": 155983,
+          "protectedChannelMismatches": 0,
+          "sha256": "377204f3498a01faa8eb40c5a02be98431d9e2a6ec0f6ddc026d351a3a68c5c9",
+          "proposedGrip": [
+            139,
+            598
+          ],
+          "facePolygonOriginalCoordinates": [
+            [
+              210,
+              108
+            ],
+            [
+              295,
+              108
+            ],
+            [
+              365,
+              164
+            ],
+            [
+              360,
+              223
+            ],
+            [
+              320,
+              264
+            ],
+            [
+              250,
+              273
+            ],
+            [
+              180,
+              264
+            ],
+            [
+              140,
+              223
+            ],
+            [
+              135,
+              164
+            ]
+          ],
+          "protectedFacePixels": 30105,
+          "protectedFaceRgbaChanges": 0,
+          "headRgbChanges": 0,
+          "opaqueProtectedHeadPixels": 80426,
+          "opaqueProtectedHeadRgbaMismatches": 0
+        },
+        "manifest": "assets/characters/character-cleanup-manifest.json"
       }
     },
     {
@@ -3208,18 +4193,18 @@
     },
     {
       "file": "assets/characters/undeadfemale_priest.png",
-      "sha256": "146793c42d950ce382555f4d543353a0d36ea3d1532c746971ffaaf0dcef7208",
+      "sha256": "2d2d9530a3dc455dcc0558b14a60a266b1c7065b4969cc76b93f80d721e817c5",
       "bounds": [
         559,
-        631,
+        697,
         62,
         18,
         435,
-        589
+        655
       ],
       "hand": [
         118,
-        553
+        607
       ],
       "generation": {
         "service": "Higgsfield",
@@ -3626,6 +4611,113 @@
           497,
           607
         ]
+      },
+      "revision": {
+        "sourceCommit": "3359e022f053682d19f73059de6c4eae04744f24",
+        "details": {
+          "key": "undeadfemale_priest",
+          "mode": "Generated body natural aspect, original protected head/hair",
+          "registration": {
+            "cost": 2745.8048780487807,
+            "scale": 0.30400000000000005,
+            "tx": -41.684000000000026,
+            "dy": -2,
+            "dx": 0,
+            "points": 7134,
+            "originalBounds": [
+              2,
+              2,
+              429,
+              664
+            ],
+            "generatedBounds": [
+              130,
+              7,
+              1562,
+              2304
+            ]
+          },
+          "padX": 64,
+          "padY": 16,
+          "coreY": 285,
+          "hem": 657,
+          "width": 559,
+          "height": 697,
+          "beforeVisible": {
+            "width": 435,
+            "height": 589
+          },
+          "afterVisible": {
+            "width": 435,
+            "height": 655
+          },
+          "beforeBounds": [
+            62,
+            18,
+            497,
+            607
+          ],
+          "afterBounds": [
+            62,
+            18,
+            497,
+            673
+          ],
+          "previousYToX": 0.7401745457360138,
+          "newYToX": 0.899820035992801,
+          "chinFraction": 0.41374045801526715,
+          "protectedPixels": 136784,
+          "protectedChannelMismatches": 0,
+          "sha256": "2d2d9530a3dc455dcc0558b14a60a266b1c7065b4969cc76b93f80d721e817c5",
+          "proposedGrip": [
+            118,
+            607
+          ],
+          "facePolygonOriginalCoordinates": [
+            [
+              181,
+              109
+            ],
+            [
+              254,
+              109
+            ],
+            [
+              315,
+              167
+            ],
+            [
+              310,
+              227
+            ],
+            [
+              276,
+              268
+            ],
+            [
+              216,
+              277
+            ],
+            [
+              155,
+              268
+            ],
+            [
+              121,
+              227
+            ],
+            [
+              116,
+              167
+            ]
+          ],
+          "protectedFacePixels": 26428,
+          "protectedFaceRgbaChanges": 0,
+          "headRgbChanges": 0,
+          "opaqueProtectedHeadPixels": 81496,
+          "opaqueProtectedHeadRgbaMismatches": 0
+        },
+        "manifest": "assets/characters/character-cleanup-manifest.json"
       }
     }
   ]

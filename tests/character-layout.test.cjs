@@ -172,15 +172,17 @@ test('replacement dimensions and unknown art use a full frame; unloaded art reco
   assert.deepEqual(context.characterBodyFrame(windows), frame);
 });
 
-test('boots remain stable for each race and gender across every class and armor swap', () => {
+test('boot sizes remain stable while female Ice Armor boots tuck beneath its reviewed side plates', () => {
   const { context } = harness();
   for (const race of races) for (const female of [false, true]) {
     const reference = context.paintedCharacterFrame(race, 'warrior', female, false).boots;
     for (const cls of classes) for (const armor of [false, true]) {
       const frame = context.paintedCharacterFrame(race, cls, female, armor);
-      assert.deepEqual(frame.boots, reference, `${race}/${female}/${cls}/${armor}`);
+      const expectedTop = female && armor ? {human:1.5,dwarf:0,orc:1.5,undead:1}[race] : reference.top;
+      const expectedGround = reference.groundY + expectedTop - reference.top;
+      assert.deepEqual({...frame.boots,groundY:0}, {...reference,top:expectedTop,groundY:0}, `${race}/${female}/${cls}/${armor}`);
       if (female) close(context.femBootW(race, cls), reference.bw);
-      close(frame.groundY, reference.groundY);
+      close(frame.groundY, expectedGround);
     }
   }
   close(context.femBootW('stoneborn', 'mage'), context.femBootW('dwarf', 'hunter'));
@@ -191,7 +193,7 @@ test('real boot proportions and planted steps keep both feet attached to the sha
   for (const race of races) for (const female of [false, true]) {
     const body = h.context.paintedCharacterFrame(race, 'mage', female, true);
     const boots = body.boots;
-    const fallback = h.context.characterBootFrame(race, female, null);
+    const fallback = h.context.characterBootFrame(race, female, null, body.bodyBottom, body.bootTop);
     close(fallback.groundY, boots.groundY, 'Unloaded boot aspect matches the shipped asset');
     for (const walk of [0, Math.PI / 4, -Math.PI / 4]) for (const bob of [-1.8, 0, 1.8]) {
       h.draws.length = 0;
