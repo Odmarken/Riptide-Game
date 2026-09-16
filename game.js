@@ -299,6 +299,16 @@ const FARM_BUILD=[
  {id:'rosebush',n:'Rose Bush',img:'rosebush_farm',tab:'d',W:82,gy:10,col:{r:18},sh:{rx:0.35,ry:0.085,dy:-0.06}},
  {id:'stone_wall',n:'Low Stone Wall',img:'stone_wall_farm',tab:'d',W:100,gy:10,col:{r:12,crx:50,cry:9,cyo:1},snap:'h',sh:{rx:0.49,ry:0.065,dy:-0.04}},
  {id:'logstool',n:'Rustic Log Stool',img:'logstool_farm',tab:'d',W:44,gy:7,col:{r:12},sh:{rx:0.39,ry:0.11,dy:-0.07}},
+ {id:'war_weapon_rack',n:"Warrior's Weapon Rack",img:'war_weapon_rack_farm',tab:'d',W:126,gy:14,col:{r:22,crx:58,cry:16,cyo:-2},sh:{rx:0.49,ry:0.095,dy:-0.05}},
+ {id:'oathblade_stone',n:'Oathblade in Stone',img:'oathblade_stone_farm',tab:'d',W:88,gy:12,col:{r:26,crx:40,cry:16,cyo:-1},sh:{rx:0.48,ry:0.12,dy:-0.08}},
+ {id:'black_knight_statue',n:'Black Knight Statue',img:'black_knight_statue_farm',tab:'d',W:112,gy:14,col:{r:25,crx:51,cry:19,cyo:-3},sh:{rx:0.49,ry:0.12,dy:-0.065}},
+ {id:'dragon_sentinel',n:'Dragon Sentinel Statue',img:'dragon_sentinel_farm',tab:'d',W:155,gy:18,col:{r:35,crx:66,cry:24,cyo:-5},sh:{rx:0.46,ry:0.12,dy:-0.07}},
+ {id:'direwolf_statue',n:'Direwolf Statue',img:'direwolf_statue_farm',tab:'d',W:126,gy:14,col:{r:30,crx:57,cry:18,cyo:-2},sh:{rx:0.49,ry:0.105,dy:-0.065}},
+ {id:'gargoyle_guardian',n:'Gargoyle Guardian',img:'gargoyle_guardian_farm',tab:'d',W:116,gy:14,col:{r:25,crx:38,cry:18,cyo:-2},sh:{rx:0.36,ry:0.12,dy:-0.07}},
+ {id:'dread_armor_stand',n:'Dread Armor Display',img:'dread_armor_stand_farm',tab:'d',W:96,gy:12,col:{r:21,crx:29,cry:14,cyo:-1},sh:{rx:0.33,ry:0.11,dy:-0.065}},
+ {id:'raven_war_banner',n:'Raven War Banner',img:'raven_war_banner_farm',tab:'d',W:76,gy:9,col:{r:14,crx:32,cry:11,cyo:0},sh:{rx:0.48,ry:0.12,dy:-0.075}},
+ {id:'soulfire_brazier',n:'Soulfire Brazier',img:'soulfire_brazier_farm',tab:'d',W:80,gy:12,col:{r:21,crx:33,cry:15,cyo:-1},sh:{rx:0.48,ry:0.12,dy:-0.065}},
+ {id:'void_runestone',n:'Void Runestone',img:'void_runestone_farm',tab:'d',W:92,gy:12,col:{r:24,crx:40,cry:16,cyo:-2},sh:{rx:0.48,ry:0.115,dy:-0.075}},
  {id:'remove',n:'Remove',emoji:'🗑',tab:'*'} /* removes anything except the farmhouse */
 ];
 /* ⇄/⤢ per-piece look. fl:-1 mirrors the art, sc scales it (1 = catalogue size).
@@ -3153,7 +3163,8 @@ const FARM_PRICES={lada:250000,staket:5000,staketv:5000,staket_black:5000,staket
  flowerbed:10000,pond:20000,pumpkins:10000,bench:10000,
  trough:12000,haywagon:18000,beehives:12000,farmsign:10000,
  windmill:60000,appletree:18000,woodpile:8000,crates:8000,tide_incubator:TideFarm.PRICE,
- flowerpot:8000,garden_arch:25000,pergola:35000,picnic_table:15000,barrels:8000,mushrooms:5000,birdhouse:10000,rosebush:8000,stone_wall:6000,logstool:5000}; /* gold cost per placement */
+ flowerpot:8000,garden_arch:25000,pergola:35000,picnic_table:15000,barrels:8000,mushrooms:5000,birdhouse:10000,rosebush:8000,stone_wall:6000,logstool:5000,
+ war_weapon_rack:18000,oathblade_stone:22000,black_knight_statue:38000,dragon_sentinel:45000,direwolf_statue:32000,gargoyle_guardian:30000,dread_armor_stand:25000,raven_war_banner:15000,soulfire_brazier:20000,void_runestone:35000}; /* gold cost per placement */
 const FARM_SCRAPS={lada:300,chickenhouse:150,medium:600,mansion:800}; /* ⚙ scrap cost on top of gold */
 const FARM_ROAD_RATE={dirt_road:10,gravel_road:15}; /* 🛣 roads are priced by length: ◉ per world-unit drawn */
 const roadCost=g2=>Math.round(Math.hypot(g2.x1-g2.x0,g2.y1-g2.y0)*(FARM_ROAD_RATE[g2.t]||0));

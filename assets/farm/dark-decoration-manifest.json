@@ -1,0 +1,869 @@
+{
+  "version": 1,
+  "sourceCommit": "9bf7d1f834791ecd3a4d16f0332ea7481bce3da8",
+  "description": "Ten dark fantasy farm decorations: weapon displays, carved guardians, armor, banner, brazier and runestone. Original Higgsfield paint retained at native resolution.",
+  "assets": [
+    {
+      "id": "war_weapon_rack",
+      "name": "Warrior's Weapon Rack",
+      "file": "assets/farm/war_weapon_rack_farm.png",
+      "sha256": "bebf9cda404e7d1568f76f1ad6b64268ecfea8482ae5e56c6a272a8127569798",
+      "generator": "Higgsfield",
+      "job": {
+        "index": 0,
+        "job_id": "fa924479-b1c2-42c5-aa75-d07172d700ea",
+        "status": "completed",
+        "type": "image",
+        "model": "gpt_image_2_5",
+        "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260916_183323_fa924479-b1c2-42c5-aa75-d07172d700ea.png"
+      },
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: isolated buildable farm decoration sprite for Riptide RPG. References are STYLE AND MATERIAL guides only; create the new subject below. Match the same polished hand-painted fantasy game aesthetic, thick clean dark outlines, chunky slightly chibi proportions, crisp readable shapes, detailed painterly wood/metal/stone. Slightly elevated front three-quarter camera with shallow depth; prop stands upright with a level footing. Dark cool medieval palette with readable midtones, charcoal iron, dark slate, muted antique brass, restrained colored accents. Not photorealistic, not a flat icon.\nSubject: ONE sturdy freestanding dark oak weapon display rack reinforced with charcoal iron and antique brass bolts. Two broad battle axes, one straight steel greatsword and a halberd stand neatly upright in its slots, with a single round battered iron shield resting against the rack. All weapons visibly supported, coherent simple anatomy of blades and handles. Wide horizontal rack, shallow depth, two chunky feet.\nComposition: exactly ONE standalone complete decoration, centered, large in frame with 5% transparent safety padding on every side; do not crop any top, weapon, wing, tail or foot. REAL transparent PNG alpha outside the object and through all open gaps. Paint only the physical object. No floor, no ground patch, no cast shadow, no background color, no gradient, no haze, no vignette, no backdrop glow, no checkerboard pattern, no text, no labels, no watermark. The game adds its own ground contact shadow. Consistent soft upper-left light, detailed silhouette edges, full object opaque except explicitly translucent flame tips.",
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/9bf7d1f834791ecd3a4d16f0332ea7481bce3da8/assets/farm/well_farm.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/9bf7d1f834791ecd3a4d16f0332ea7481bce3da8/assets/farm/staketsvart_sidan.png"
+          }
+        ]
+      },
+      "cleanup": {
+        "id": "war_weapon_rack",
+        "file": "war_weapon_rack_farm.png",
+        "sourceSize": [
+          2048,
+          1360
+        ],
+        "sourceFrame": [
+          95,
+          0,
+          1866,
+          1293
+        ],
+        "crop": [
+          95,
+          0,
+          1866,
+          1293
+        ],
+        "nativeSize": [
+          1866,
+          1293
+        ],
+        "size": [
+          1866,
+          1293
+        ],
+        "sourceSha256": "4a2e0c6974110997302a8a64bf354384e79c723d96d9f129565affcdeed7295a",
+        "sha256": "bebf9cda404e7d1568f76f1ad6b64268ecfea8482ae5e56c6a272a8127569798",
+        "sourceBytes": 3678812,
+        "bytes": 3270661,
+        "alphaChangedPixels": 95703,
+        "removedMattePixels": 95703,
+        "maxRemovedAlpha": 6,
+        "rgbByteChanges": 0,
+        "artCoreRgbaChanges": 0,
+        "coreRgbaChanges": 0,
+        "alphaIncreasedPixels": 0,
+        "visibleBounds": [
+          6,
+          0,
+          1854,
+          1287
+        ],
+        "antialiasRim": 2,
+        "padding": 6,
+        "method": "Only alpha 1-15 farther than 2 pixels from alpha>=16 becomes transparent; every RGB byte and art-core RGBA preserved; native-resolution lossless crop.",
+        "droppedCorePixels": 0,
+        "sourceBorderCorePixels": 5,
+        "resampled": false,
+        "edgeReview": "Native halberd outline tapers to its complete rounded apex at y=0. Five partially transparent alpha>=16 pixels touch top; max alpha 231. Top row retained exactly, no new clipping."
+      }
+    },
+    {
+      "id": "oathblade_stone",
+      "name": "Oathblade in Stone",
+      "file": "assets/farm/oathblade_stone_farm.png",
+      "sha256": "4c771f98ef6b691a423ab76d0d2718d26c4b2fdbe2c2e59448264020c6c9494d",
+      "generator": "Higgsfield",
+      "job": {
+        "index": 1,
+        "job_id": "def905b5-a5df-49a0-ad22-a75a111b3c25",
+        "status": "completed",
+        "type": "image",
+        "model": "gpt_image_2_5",
+        "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260916_183322_def905b5-a5df-49a0-ad22-a75a111b3c25.png"
+      },
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:4",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: isolated buildable farm decoration sprite for Riptide RPG. References are STYLE AND MATERIAL guides only; create the new subject below. Match the same polished hand-painted fantasy game aesthetic, thick clean dark outlines, chunky slightly chibi proportions, crisp readable shapes, detailed painterly wood/metal/stone. Slightly elevated front three-quarter camera with shallow depth; prop stands upright with a level footing. Dark cool medieval palette with readable midtones, charcoal iron, dark slate, muted antique brass, restrained colored accents. Not photorealistic, not a flat icon.\nSubject: ONE imposing broad dark-steel greatsword standing upright with its blade embedded firmly into a small cracked charcoal basalt boulder. Strong symmetrical angular guard, antique brass bindings, deep crimson gemstone pommel. A narrow icy-blue inlaid groove down the exposed blade, subtle light confined to the groove. Wide rock foundation, complete blade/guard/hilt, no floating weapon.\nComposition: exactly ONE standalone complete decoration, centered, large in frame with 5% transparent safety padding on every side; do not crop any top, weapon, wing, tail or foot. REAL transparent PNG alpha outside the object and through all open gaps. Paint only the physical object. No floor, no ground patch, no cast shadow, no background color, no gradient, no haze, no vignette, no backdrop glow, no checkerboard pattern, no text, no labels, no watermark. The game adds its own ground contact shadow. Consistent soft upper-left light, detailed silhouette edges, full object opaque except explicitly translucent flame tips.",
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/9bf7d1f834791ecd3a4d16f0332ea7481bce3da8/assets/farm/well_farm.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/9bf7d1f834791ecd3a4d16f0332ea7481bce3da8/assets/farm/staketsvart_sidan.png"
+          }
+        ]
+      },
+      "cleanup": {
+        "id": "oathblade_stone",
+        "file": "oathblade_stone_farm.png",
+        "sourceSize": [
+          1744,
+          2336
+        ],
+        "sourceFrame": [
+          265,
+          7,
+          1206,
+          2319
+        ],
+        "crop": [
+          265,
+          7,
+          1206,
+          2319
+        ],
+        "nativeSize": [
+          1206,
+          2319
+        ],
+        "size": [
+          1206,
+          2319
+        ],
+        "sourceSha256": "7335aa93b862ac648693cbd580faf9d393540be546159385927f57376cb6f3cc",
+        "sha256": "4c771f98ef6b691a423ab76d0d2718d26c4b2fdbe2c2e59448264020c6c9494d",
+        "sourceBytes": 3523263,
+        "bytes": 2871129,
+        "alphaChangedPixels": 42161,
+        "removedMattePixels": 42161,
+        "maxRemovedAlpha": 4,
+        "rgbByteChanges": 0,
+        "artCoreRgbaChanges": 0,
+        "coreRgbaChanges": 0,
+        "alphaIncreasedPixels": 0,
+        "visibleBounds": [
+          6,
+          6,
+          1194,
+          2307
+        ],
+        "antialiasRim": 2,
+        "padding": 6,
+        "method": "Only alpha 1-15 farther than 2 pixels from alpha>=16 becomes transparent; every RGB byte and art-core RGBA preserved; native-resolution lossless crop.",
+        "droppedCorePixels": 0,
+        "sourceBorderCorePixels": 0,
+        "resampled": false
+      }
+    },
+    {
+      "id": "black_knight_statue",
+      "name": "Black Knight Statue",
+      "file": "assets/farm/black_knight_statue_farm.png",
+      "sha256": "16aa0b23987bcf4daad964f2db0d82b827739c1fb460d13d5b4deff867a19ddf",
+      "generator": "Higgsfield",
+      "job": {
+        "index": 2,
+        "job_id": "2620e6fc-66ac-4dfa-a96d-76733ee80b2b",
+        "status": "completed",
+        "type": "image",
+        "model": "gpt_image_2_5",
+        "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260916_183322_2620e6fc-66ac-4dfa-a96d-76733ee80b2b.png"
+      },
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:4",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: isolated buildable farm decoration sprite for Riptide RPG. References are STYLE AND MATERIAL guides only; create the new subject below. Match the same polished hand-painted fantasy game aesthetic, thick clean dark outlines, chunky slightly chibi proportions, crisp readable shapes, detailed painterly wood/metal/stone. Slightly elevated front three-quarter camera with shallow depth; prop stands upright with a level footing. Dark cool medieval palette with readable midtones, charcoal iron, dark slate, muted antique brass, restrained colored accents. Not photorealistic, not a flat icon.\nSubject: ONE monumental statue of a stocky fully armored black knight standing solemnly on a low square stone plinth, both gauntlets resting on the pommel of a giant downward sword. Closed angular helmet, broad layered pauldrons, no visible face or skin. Sculpted entirely from weathered dark slate stone with a few antique brass trims. Clearly a carved statue, imposing compact heroic proportions, complete boots and plinth.\nComposition: exactly ONE standalone complete decoration, centered, large in frame with 5% transparent safety padding on every side; do not crop any top, weapon, wing, tail or foot. REAL transparent PNG alpha outside the object and through all open gaps. Paint only the physical object. No floor, no ground patch, no cast shadow, no background color, no gradient, no haze, no vignette, no backdrop glow, no checkerboard pattern, no text, no labels, no watermark. The game adds its own ground contact shadow. Consistent soft upper-left light, detailed silhouette edges, full object opaque except explicitly translucent flame tips.",
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/9bf7d1f834791ecd3a4d16f0332ea7481bce3da8/assets/farm/well_farm.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/9bf7d1f834791ecd3a4d16f0332ea7481bce3da8/assets/farm/staketsvart_sidan.png"
+          }
+        ]
+      },
+      "cleanup": {
+        "id": "black_knight_statue",
+        "file": "black_knight_statue_farm.png",
+        "sourceSize": [
+          1744,
+          2336
+        ],
+        "sourceFrame": [
+          338,
+          1,
+          1112,
+          2325
+        ],
+        "crop": [
+          338,
+          1,
+          1112,
+          2325
+        ],
+        "nativeSize": [
+          1112,
+          2325
+        ],
+        "size": [
+          1112,
+          2325
+        ],
+        "sourceSha256": "6750856b03749b449f4d47c454e27fec1cc8c4f33959318b70833ef9c5ef1b09",
+        "sha256": "16aa0b23987bcf4daad964f2db0d82b827739c1fb460d13d5b4deff867a19ddf",
+        "sourceBytes": 4839632,
+        "bytes": 3875044,
+        "alphaChangedPixels": 30225,
+        "removedMattePixels": 30225,
+        "maxRemovedAlpha": 4,
+        "rgbByteChanges": 0,
+        "artCoreRgbaChanges": 0,
+        "coreRgbaChanges": 0,
+        "alphaIncreasedPixels": 0,
+        "visibleBounds": [
+          6,
+          6,
+          1100,
+          2313
+        ],
+        "antialiasRim": 2,
+        "padding": 6,
+        "method": "Only alpha 1-15 farther than 2 pixels from alpha>=16 becomes transparent; every RGB byte and art-core RGBA preserved; native-resolution lossless crop.",
+        "droppedCorePixels": 0,
+        "sourceBorderCorePixels": 0,
+        "resampled": false
+      }
+    },
+    {
+      "id": "dragon_sentinel",
+      "name": "Dragon Sentinel Statue",
+      "file": "assets/farm/dragon_sentinel_farm.png",
+      "sha256": "ea66ae1f44e20a280bfe0a1525ad9fd73c8a8bfc6b5e06626ace39c8fe5f8702",
+      "generator": "Higgsfield",
+      "job": {
+        "index": 3,
+        "job_id": "6974d360-764e-461e-9fbe-c3e68436ba4d",
+        "status": "completed",
+        "type": "image",
+        "model": "gpt_image_2_5",
+        "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260916_183323_6974d360-764e-461e-9fbe-c3e68436ba4d.png"
+      },
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: isolated buildable farm decoration sprite for Riptide RPG. References are STYLE AND MATERIAL guides only; create the new subject below. Match the same polished hand-painted fantasy game aesthetic, thick clean dark outlines, chunky slightly chibi proportions, crisp readable shapes, detailed painterly wood/metal/stone. Slightly elevated front three-quarter camera with shallow depth; prop stands upright with a level footing. Dark cool medieval palette with readable midtones, charcoal iron, dark slate, muted antique brass, restrained colored accents. Not photorealistic, not a flat icon.\nSubject: ONE impressive charcoal-stone dragon statue perched on a low octagonal pedestal. Stocky muscular body, proud horned head with closed jaws and a couple of visible fangs, two compact folded wings rising behind its shoulders, long tail curling around the pedestal. Clearly carved stone throughout with worn edges and tiny restrained burgundy mineral accents. Intimidating strong silhouette, complete tail, both wing tips and base, not a living dragon.\nComposition: exactly ONE standalone complete decoration, centered, large in frame with 5% transparent safety padding on every side; do not crop any top, weapon, wing, tail or foot. REAL transparent PNG alpha outside the object and through all open gaps. Paint only the physical object. No floor, no ground patch, no cast shadow, no background color, no gradient, no haze, no vignette, no backdrop glow, no checkerboard pattern, no text, no labels, no watermark. The game adds its own ground contact shadow. Consistent soft upper-left light, detailed silhouette edges, full object opaque except explicitly translucent flame tips.",
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/9bf7d1f834791ecd3a4d16f0332ea7481bce3da8/assets/farm/well_farm.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/9bf7d1f834791ecd3a4d16f0332ea7481bce3da8/assets/farm/staketsvart_sidan.png"
+          }
+        ]
+      },
+      "cleanup": {
+        "id": "dragon_sentinel",
+        "file": "dragon_sentinel_farm.png",
+        "sourceSize": [
+          2048,
+          2048
+        ],
+        "sourceFrame": [
+          353,
+          0,
+          1279,
+          2042
+        ],
+        "crop": [
+          353,
+          0,
+          1279,
+          2042
+        ],
+        "nativeSize": [
+          1279,
+          2042
+        ],
+        "size": [
+          1279,
+          2042
+        ],
+        "sourceSha256": "2123c0a7489cfc7a23cc083d98c5a7356be9b8ef941a7d31c3fadee02a8c5527",
+        "sha256": "ea66ae1f44e20a280bfe0a1525ad9fd73c8a8bfc6b5e06626ace39c8fe5f8702",
+        "sourceBytes": 5072559,
+        "bytes": 4116579,
+        "alphaChangedPixels": 30603,
+        "removedMattePixels": 30603,
+        "maxRemovedAlpha": 6,
+        "rgbByteChanges": 0,
+        "artCoreRgbaChanges": 0,
+        "coreRgbaChanges": 0,
+        "alphaIncreasedPixels": 0,
+        "visibleBounds": [
+          6,
+          0,
+          1267,
+          2036
+        ],
+        "antialiasRim": 2,
+        "padding": 6,
+        "method": "Only alpha 1-15 farther than 2 pixels from alpha>=16 becomes transparent; every RGB byte and art-core RGBA preserved; native-resolution lossless crop.",
+        "droppedCorePixels": 0,
+        "sourceBorderCorePixels": 0,
+        "resampled": false
+      }
+    },
+    {
+      "id": "direwolf_statue",
+      "name": "Direwolf Statue",
+      "file": "assets/farm/direwolf_statue_farm.png",
+      "sha256": "5617c97e63d74f103b03a4eb523b1040eaddd726e54d7cb3a44defc0dedd3dcd",
+      "generator": "Higgsfield",
+      "job": {
+        "index": 4,
+        "job_id": "f742311e-f94f-48e9-8f70-76c63da81c78",
+        "status": "completed",
+        "type": "image",
+        "model": "gpt_image_2_5",
+        "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260916_183322_f742311e-f94f-48e9-8f70-76c63da81c78.png"
+      },
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: isolated buildable farm decoration sprite for Riptide RPG. References are STYLE AND MATERIAL guides only; create the new subject below. Match the same polished hand-painted fantasy game aesthetic, thick clean dark outlines, chunky slightly chibi proportions, crisp readable shapes, detailed painterly wood/metal/stone. Slightly elevated front three-quarter camera with shallow depth; prop stands upright with a level footing. Dark cool medieval palette with readable midtones, charcoal iron, dark slate, muted antique brass, restrained colored accents. Not photorealistic, not a flat icon.\nSubject: ONE dark iron statue of a powerful stocky direwolf standing with four paws firmly planted on a low rectangular stone plinth. Broad chest, thick sculpted pointed fur, alert lowered head with a stern closed mouth and two small fangs, tail curved down beside its hind legs. Subtle polished silver edges and tiny sapphire-inlaid eyes, sculpted statue surface not living fur. Slightly three-quarter front view with strong complete silhouette.\nComposition: exactly ONE standalone complete decoration, centered, large in frame with 5% transparent safety padding on every side; do not crop any top, weapon, wing, tail or foot. REAL transparent PNG alpha outside the object and through all open gaps. Paint only the physical object. No floor, no ground patch, no cast shadow, no background color, no gradient, no haze, no vignette, no backdrop glow, no checkerboard pattern, no text, no labels, no watermark. The game adds its own ground contact shadow. Consistent soft upper-left light, detailed silhouette edges, full object opaque except explicitly translucent flame tips.",
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/9bf7d1f834791ecd3a4d16f0332ea7481bce3da8/assets/farm/well_farm.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/9bf7d1f834791ecd3a4d16f0332ea7481bce3da8/assets/farm/staketsvart_sidan.png"
+          }
+        ]
+      },
+      "cleanup": {
+        "id": "direwolf_statue",
+        "file": "direwolf_statue_farm.png",
+        "sourceSize": [
+          2048,
+          1360
+        ],
+        "sourceFrame": [
+          429,
+          0,
+          1191,
+          1360
+        ],
+        "crop": [
+          429,
+          0,
+          1191,
+          1360
+        ],
+        "nativeSize": [
+          1191,
+          1360
+        ],
+        "size": [
+          1191,
+          1360
+        ],
+        "sourceSha256": "b381c3a5c7d9d6994a475580b5a5aca6a354c76b4c66da1b5b22f0ae0c0f9ae5",
+        "sha256": "5617c97e63d74f103b03a4eb523b1040eaddd726e54d7cb3a44defc0dedd3dcd",
+        "sourceBytes": 3172102,
+        "bytes": 2322384,
+        "alphaChangedPixels": 25348,
+        "removedMattePixels": 25348,
+        "maxRemovedAlpha": 6,
+        "rgbByteChanges": 0,
+        "artCoreRgbaChanges": 0,
+        "coreRgbaChanges": 0,
+        "alphaIncreasedPixels": 0,
+        "visibleBounds": [
+          6,
+          4,
+          1179,
+          1353
+        ],
+        "antialiasRim": 2,
+        "padding": 6,
+        "method": "Only alpha 1-15 farther than 2 pixels from alpha>=16 becomes transparent; every RGB byte and art-core RGBA preserved; native-resolution lossless crop.",
+        "droppedCorePixels": 0,
+        "sourceBorderCorePixels": 0,
+        "resampled": false
+      }
+    },
+    {
+      "id": "gargoyle_guardian",
+      "name": "Gargoyle Guardian",
+      "file": "assets/farm/gargoyle_guardian_farm.png",
+      "sha256": "4b2be82a935a5b4e3c1acb1bcecc1c820b183153e73a86d242678604ff031565",
+      "generator": "Higgsfield",
+      "job": {
+        "index": 5,
+        "job_id": "d270daa4-2eff-4ab8-8333-b749509cfc9b",
+        "status": "completed",
+        "type": "image",
+        "model": "gpt_image_2_5",
+        "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260916_183558_d270daa4-2eff-4ab8-8333-b749509cfc9b.png"
+      },
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: isolated buildable farm decoration sprite for Riptide RPG. References are STYLE AND MATERIAL guides only; create the new subject below. Match the same polished hand-painted fantasy game aesthetic, thick clean dark outlines, chunky slightly chibi proportions, crisp readable shapes, detailed painterly wood/metal/stone. Slightly elevated front three-quarter camera with shallow depth; prop stands upright with a level footing. Dark cool medieval palette with readable midtones, charcoal iron, dark slate, muted antique brass, restrained colored accents. Not photorealistic, not a flat icon.\nSubject: ONE chunky dark stone gargoyle statue crouching on a square Gothic pedestal, clawed hands gripping the corners, compact bat wings folded upward, two blunt curled horns and a stern toothy carved face. Clearly inanimate weathered charcoal rock, faint moss in a few creases, stone chipping along beveled edges. Menacing but charming stylized fantasy proportions, no gore, entire wings/horns/base visible.\nComposition: exactly ONE standalone complete decoration, centered, large in frame with 5% transparent safety padding on every side; do not crop any top, weapon, wing, tail or foot. REAL transparent PNG alpha outside the object and through all open gaps. Paint only the physical object. No floor, no ground patch, no cast shadow, no background color, no gradient, no haze, no vignette, no backdrop glow, no checkerboard pattern, no text, no labels, no watermark. The game adds its own ground contact shadow. Consistent soft upper-left light, detailed silhouette edges, full object opaque except explicitly translucent flame tips.",
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/9bf7d1f834791ecd3a4d16f0332ea7481bce3da8/assets/farm/well_farm.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/9bf7d1f834791ecd3a4d16f0332ea7481bce3da8/assets/farm/staketsvart_sidan.png"
+          }
+        ]
+      },
+      "cleanup": {
+        "id": "gargoyle_guardian",
+        "file": "gargoyle_guardian_farm.png",
+        "sourceSize": [
+          2048,
+          2048
+        ],
+        "sourceFrame": [
+          345,
+          10,
+          1340,
+          2016
+        ],
+        "crop": [
+          345,
+          10,
+          1340,
+          2016
+        ],
+        "nativeSize": [
+          1340,
+          2016
+        ],
+        "size": [
+          1340,
+          2016
+        ],
+        "sourceSha256": "2c45ec2e159133728ff93c7b2a4d0e6d466c1b4f52e68b81b5d621d493c15095",
+        "sha256": "4b2be82a935a5b4e3c1acb1bcecc1c820b183153e73a86d242678604ff031565",
+        "sourceBytes": 4803783,
+        "bytes": 3980149,
+        "alphaChangedPixels": 40888,
+        "removedMattePixels": 40888,
+        "maxRemovedAlpha": 5,
+        "rgbByteChanges": 0,
+        "artCoreRgbaChanges": 0,
+        "coreRgbaChanges": 0,
+        "alphaIncreasedPixels": 0,
+        "visibleBounds": [
+          6,
+          6,
+          1328,
+          2004
+        ],
+        "antialiasRim": 2,
+        "padding": 6,
+        "method": "Only alpha 1-15 farther than 2 pixels from alpha>=16 becomes transparent; every RGB byte and art-core RGBA preserved; native-resolution lossless crop.",
+        "droppedCorePixels": 0,
+        "sourceBorderCorePixels": 0,
+        "resampled": false
+      }
+    },
+    {
+      "id": "dread_armor_stand",
+      "name": "Dread Armor Display",
+      "file": "assets/farm/dread_armor_stand_farm.png",
+      "sha256": "8eb53656a37789e48e89e2f456a9a830f415e449b227841aff4dedc731eef6a2",
+      "generator": "Higgsfield",
+      "job": {
+        "index": 6,
+        "job_id": "05250df6-c9bc-4000-96c7-78793a6c9934",
+        "status": "completed",
+        "type": "image",
+        "model": "gpt_image_2_5",
+        "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260916_183557_05250df6-c9bc-4000-96c7-78793a6c9934.png"
+      },
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:4",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: isolated buildable farm decoration sprite for Riptide RPG. References are STYLE AND MATERIAL guides only; create the new subject below. Match the same polished hand-painted fantasy game aesthetic, thick clean dark outlines, chunky slightly chibi proportions, crisp readable shapes, detailed painterly wood/metal/stone. Slightly elevated front three-quarter camera with shallow depth; prop stands upright with a level footing. Dark cool medieval palette with readable midtones, charcoal iron, dark slate, muted antique brass, restrained colored accents. Not photorealistic, not a flat icon.\nSubject: ONE freestanding display of an empty complete suit of heavy war armor on a stout dark wooden mannequin stand with a small octagonal base. Charcoal steel plates, broad spiked pauldrons, closed hornless helmet, antique brass edges and deep oxblood-red cloth panels. Empty gauntlets attached naturally, a battle axe secured at one side and small shield at the other. No person, no visible skin, all parts grounded and supported; compact game prop.\nComposition: exactly ONE standalone complete decoration, centered, large in frame with 5% transparent safety padding on every side; do not crop any top, weapon, wing, tail or foot. REAL transparent PNG alpha outside the object and through all open gaps. Paint only the physical object. No floor, no ground patch, no cast shadow, no background color, no gradient, no haze, no vignette, no backdrop glow, no checkerboard pattern, no text, no labels, no watermark. The game adds its own ground contact shadow. Consistent soft upper-left light, detailed silhouette edges, full object opaque except explicitly translucent flame tips.",
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/9bf7d1f834791ecd3a4d16f0332ea7481bce3da8/assets/farm/well_farm.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/9bf7d1f834791ecd3a4d16f0332ea7481bce3da8/assets/farm/staketsvart_sidan.png"
+          }
+        ]
+      },
+      "cleanup": {
+        "id": "dread_armor_stand",
+        "file": "dread_armor_stand_farm.png",
+        "sourceSize": [
+          1744,
+          2336
+        ],
+        "sourceFrame": [
+          164,
+          1,
+          1314,
+          2317
+        ],
+        "crop": [
+          164,
+          1,
+          1314,
+          2317
+        ],
+        "nativeSize": [
+          1314,
+          2317
+        ],
+        "size": [
+          1314,
+          2317
+        ],
+        "sourceSha256": "530861f243aad31f1b8e06a2a2d32ee045948edfe46feb246d004bc6828c6fd7",
+        "sha256": "8eb53656a37789e48e89e2f456a9a830f415e449b227841aff4dedc731eef6a2",
+        "sourceBytes": 4893391,
+        "bytes": 4277141,
+        "alphaChangedPixels": 18508,
+        "removedMattePixels": 18508,
+        "maxRemovedAlpha": 6,
+        "rgbByteChanges": 0,
+        "artCoreRgbaChanges": 0,
+        "coreRgbaChanges": 0,
+        "alphaIncreasedPixels": 0,
+        "visibleBounds": [
+          6,
+          6,
+          1302,
+          2305
+        ],
+        "antialiasRim": 2,
+        "padding": 6,
+        "method": "Only alpha 1-15 farther than 2 pixels from alpha>=16 becomes transparent; every RGB byte and art-core RGBA preserved; native-resolution lossless crop.",
+        "droppedCorePixels": 0,
+        "sourceBorderCorePixels": 0,
+        "resampled": false
+      }
+    },
+    {
+      "id": "raven_war_banner",
+      "name": "Raven War Banner",
+      "file": "assets/farm/raven_war_banner_farm.png",
+      "sha256": "8646d4b85909b3465b8e1e6b8178909e3fde309f1bb35f29fab7975e5131c341",
+      "generator": "Higgsfield",
+      "job": {
+        "index": 7,
+        "job_id": "094fbfed-3e37-4eee-b847-db0d7a54d8be",
+        "status": "completed",
+        "type": "image",
+        "model": "gpt_image_2_5",
+        "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260916_183355_094fbfed-3e37-4eee-b847-db0d7a54d8be.png"
+      },
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "2:3",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: isolated buildable farm decoration sprite for Riptide RPG. References are STYLE AND MATERIAL guides only; create the new subject below. Match the same polished hand-painted fantasy game aesthetic, thick clean dark outlines, chunky slightly chibi proportions, crisp readable shapes, detailed painterly wood/metal/stone. Slightly elevated front three-quarter camera with shallow depth; prop stands upright with a level footing. Dark cool medieval palette with readable midtones, charcoal iron, dark slate, muted antique brass, restrained colored accents. Not photorealistic, not a flat icon.\nSubject: ONE freestanding war banner: a dark forged iron upright pole topped by a small sculpted raven finial, supported by a heavy three-foot metal stand. A deep burgundy hanging cloth pennant with black borders and a simple gold raven silhouette emblem hangs from the short horizontal crossbar, slightly tattered lower edge. Cloth shown mostly flat and readable, no words, no letters. Entire pole and all support feet in frame.\nComposition: exactly ONE standalone complete decoration, centered, large in frame with 5% transparent safety padding on every side; do not crop any top, weapon, wing, tail or foot. REAL transparent PNG alpha outside the object and through all open gaps. Paint only the physical object. No floor, no ground patch, no cast shadow, no background color, no gradient, no haze, no vignette, no backdrop glow, no checkerboard pattern, no text, no labels, no watermark. The game adds its own ground contact shadow. Consistent soft upper-left light, detailed silhouette edges, full object opaque except explicitly translucent flame tips.",
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/9bf7d1f834791ecd3a4d16f0332ea7481bce3da8/assets/farm/well_farm.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/9bf7d1f834791ecd3a4d16f0332ea7481bce3da8/assets/farm/staketsvart_sidan.png"
+          }
+        ]
+      },
+      "cleanup": {
+        "id": "raven_war_banner",
+        "file": "raven_war_banner_farm.png",
+        "sourceSize": [
+          1360,
+          2048
+        ],
+        "sourceFrame": [
+          332,
+          2,
+          715,
+          2021
+        ],
+        "crop": [
+          332,
+          2,
+          715,
+          2021
+        ],
+        "nativeSize": [
+          715,
+          2021
+        ],
+        "size": [
+          715,
+          2021
+        ],
+        "sourceSha256": "979d11fda0a335c0220fd73489b6e10da82affea809e83f8f410025e13da6929",
+        "sha256": "8646d4b85909b3465b8e1e6b8178909e3fde309f1bb35f29fab7975e5131c341",
+        "sourceBytes": 2865492,
+        "bytes": 1879255,
+        "alphaChangedPixels": 195541,
+        "removedMattePixels": 195541,
+        "maxRemovedAlpha": 11,
+        "rgbByteChanges": 0,
+        "artCoreRgbaChanges": 0,
+        "coreRgbaChanges": 0,
+        "alphaIncreasedPixels": 0,
+        "visibleBounds": [
+          6,
+          6,
+          703,
+          2009
+        ],
+        "antialiasRim": 2,
+        "padding": 6,
+        "method": "Only alpha 1-15 farther than 2 pixels from alpha>=16 becomes transparent; every RGB byte and art-core RGBA preserved; native-resolution lossless crop.",
+        "droppedCorePixels": 0,
+        "sourceBorderCorePixels": 0,
+        "resampled": false
+      }
+    },
+    {
+      "id": "soulfire_brazier",
+      "name": "Soulfire Brazier",
+      "file": "assets/farm/soulfire_brazier_farm.png",
+      "sha256": "cd71fb70abeee3d6a7af2c8c39f62e3178f0921a9db3ecbdaf9fb7e4c2e4ff00",
+      "generator": "Higgsfield",
+      "job": {
+        "index": 8,
+        "job_id": "b1001c8a-77c2-4b8b-871b-9918c30697d4",
+        "status": "completed",
+        "type": "image",
+        "model": "gpt_image_2_5",
+        "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260916_183355_b1001c8a-77c2-4b8b-871b-9918c30697d4.png"
+      },
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:4",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: isolated buildable farm decoration sprite for Riptide RPG. References are STYLE AND MATERIAL guides only; create the new subject below. Match the same polished hand-painted fantasy game aesthetic, thick clean dark outlines, chunky slightly chibi proportions, crisp readable shapes, detailed painterly wood/metal/stone. Slightly elevated front three-quarter camera with shallow depth; prop stands upright with a level footing. Dark cool medieval palette with readable midtones, charcoal iron, dark slate, muted antique brass, restrained colored accents. Not photorealistic, not a flat icon.\nSubject: ONE sinister freestanding iron brazier on three short thick curved legs. Broad charcoal-black metal bowl with antique brass rivets and three small decorative carved skull motifs around the rim. A compact bright cyan-blue magical flame rises directly from the bowl; translucent flame tips but light stays close to the bowl, no aura cloud. Solid stylized metal object, subtle cool reflections on its rim, no smoke, no ground flames, complete feet.\nComposition: exactly ONE standalone complete decoration, centered, large in frame with 5% transparent safety padding on every side; do not crop any top, weapon, wing, tail or foot. REAL transparent PNG alpha outside the object and through all open gaps. Paint only the physical object. No floor, no ground patch, no cast shadow, no background color, no gradient, no haze, no vignette, no backdrop glow, no checkerboard pattern, no text, no labels, no watermark. The game adds its own ground contact shadow. Consistent soft upper-left light, detailed silhouette edges, full object opaque except explicitly translucent flame tips.",
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/9bf7d1f834791ecd3a4d16f0332ea7481bce3da8/assets/farm/well_farm.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/9bf7d1f834791ecd3a4d16f0332ea7481bce3da8/assets/farm/staketsvart_sidan.png"
+          }
+        ]
+      },
+      "cleanup": {
+        "id": "soulfire_brazier",
+        "file": "soulfire_brazier_farm.png",
+        "sourceSize": [
+          1744,
+          2336
+        ],
+        "sourceFrame": [
+          100,
+          0,
+          1545,
+          2265
+        ],
+        "crop": [
+          100,
+          0,
+          1545,
+          2265
+        ],
+        "nativeSize": [
+          1545,
+          2265
+        ],
+        "size": [
+          1545,
+          2265
+        ],
+        "sourceSha256": "7cf5f8cbb619f66786f23ace6930b3d987cd23d7d1b6e5fdf01b8b039df14f77",
+        "sha256": "cd71fb70abeee3d6a7af2c8c39f62e3178f0921a9db3ecbdaf9fb7e4c2e4ff00",
+        "sourceBytes": 4330623,
+        "bytes": 3908210,
+        "alphaChangedPixels": 93208,
+        "removedMattePixels": 93208,
+        "maxRemovedAlpha": 4,
+        "rgbByteChanges": 0,
+        "artCoreRgbaChanges": 0,
+        "coreRgbaChanges": 0,
+        "alphaIncreasedPixels": 0,
+        "visibleBounds": [
+          6,
+          0,
+          1533,
+          2259
+        ],
+        "antialiasRim": 2,
+        "padding": 6,
+        "method": "Lossless native crop. Every RGB and alpha>=16 pixel preserved. Low-alpha flame region and cyan flame pixels preserved exactly. Only other alpha 1-15 farther than 2 pixels from alpha>=16 becomes transparent.",
+        "droppedCorePixels": 0,
+        "sourceBorderCorePixels": 0,
+        "resampled": false,
+        "preservedSoftFlamePixels": 203137,
+        "protectedFlameRgbaChanges": 0,
+        "protectedFlameRegion": {
+          "rectangle": [
+            280,
+            0,
+            1211,
+            1011
+          ],
+          "additional": "Any cyan pixel (B-R>=20 and G-R>=10) at y<=1010"
+        }
+      }
+    },
+    {
+      "id": "void_runestone",
+      "name": "Void Runestone",
+      "file": "assets/farm/void_runestone_farm.png",
+      "sha256": "5ab8ea5c54becc65393a5ef4d0af675712a25ea04ab30526b923a1d07da5362a",
+      "generator": "Higgsfield",
+      "job": {
+        "index": 9,
+        "job_id": "1a52f48a-46b4-4cc4-bae3-40f6db988aca",
+        "status": "completed",
+        "type": "image",
+        "model": "gpt_image_2_5",
+        "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260916_183354_1a52f48a-46b4-4cc4-bae3-40f6db988aca.png"
+      },
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:4",
+        "count": 1,
+        "prompt": "Use case: stylized-concept. Asset type: isolated buildable farm decoration sprite for Riptide RPG. References are STYLE AND MATERIAL guides only; create the new subject below. Match the same polished hand-painted fantasy game aesthetic, thick clean dark outlines, chunky slightly chibi proportions, crisp readable shapes, detailed painterly wood/metal/stone. Slightly elevated front three-quarter camera with shallow depth; prop stands upright with a level footing. Dark cool medieval palette with readable midtones, charcoal iron, dark slate, muted antique brass, restrained colored accents. Not photorealistic, not a flat icon.\nSubject: ONE short imposing irregular black obsidian standing monolith on a small broken basalt foot. Tall faceted stone with jagged but complete top, three abstract angular purple magical rune shapes carved into the front and a few fine violet mineral cracks. Not letters or readable writing. Heavy thick grounded base, dark charcoal with readable slate edge highlights, subtle light confined inside engravings, no floating rocks, no surrounding aura.\nComposition: exactly ONE standalone complete decoration, centered, large in frame with 5% transparent safety padding on every side; do not crop any top, weapon, wing, tail or foot. REAL transparent PNG alpha outside the object and through all open gaps. Paint only the physical object. No floor, no ground patch, no cast shadow, no background color, no gradient, no haze, no vignette, no backdrop glow, no checkerboard pattern, no text, no labels, no watermark. The game adds its own ground contact shadow. Consistent soft upper-left light, detailed silhouette edges, full object opaque except explicitly translucent flame tips.",
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/9bf7d1f834791ecd3a4d16f0332ea7481bce3da8/assets/farm/well_farm.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/9bf7d1f834791ecd3a4d16f0332ea7481bce3da8/assets/farm/staketsvart_sidan.png"
+          }
+        ]
+      },
+      "cleanup": {
+        "id": "void_runestone",
+        "file": "void_runestone_farm.png",
+        "sourceSize": [
+          1744,
+          2336
+        ],
+        "sourceFrame": [
+          293,
+          2,
+          1161,
+          2330
+        ],
+        "crop": [
+          293,
+          2,
+          1161,
+          2330
+        ],
+        "nativeSize": [
+          1161,
+          2330
+        ],
+        "size": [
+          1161,
+          2330
+        ],
+        "sourceSha256": "869a9a4c15cd80d87990773bb4cfff201425d87eed92a0037cc66f107135d17d",
+        "sha256": "5ab8ea5c54becc65393a5ef4d0af675712a25ea04ab30526b923a1d07da5362a",
+        "sourceBytes": 3688418,
+        "bytes": 3096211,
+        "alphaChangedPixels": 15779,
+        "removedMattePixels": 15779,
+        "maxRemovedAlpha": 3,
+        "rgbByteChanges": 0,
+        "artCoreRgbaChanges": 0,
+        "coreRgbaChanges": 0,
+        "alphaIncreasedPixels": 0,
+        "visibleBounds": [
+          6,
+          6,
+          1149,
+          2318
+        ],
+        "antialiasRim": 2,
+        "padding": 6,
+        "method": "Only alpha 1-15 farther than 2 pixels from alpha>=16 becomes transparent; every RGB byte and art-core RGBA preserved; native-resolution lossless crop.",
+        "droppedCorePixels": 0,
+        "sourceBorderCorePixels": 0,
+        "resampled": false
+      }
+    }
+  ]
+}
