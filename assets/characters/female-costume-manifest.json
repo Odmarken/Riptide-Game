@@ -188,7 +188,7 @@
     },
     {
       "file": "assets/characters/humanfemale_mage.png",
-      "sha256": "e2c661d21e47e40a284e786403324358cbf012023c628645f6f4f9bb82f5c802",
+      "sha256": "4b1d94b1c1cd242a6cf449c2e26383fe0224bbd2f4b3af2514a0191288b31d52",
       "bounds": [
         589,
         646,
@@ -198,8 +198,8 @@
         602
       ],
       "hand": [
-        135,
-        583
+        140,
+        576
       ],
       "generation": {
         "service": "Higgsfield",
@@ -534,6 +534,367 @@
           "headRgbChanges": 0
         },
         "manifest": "assets/characters/character-cleanup-manifest.json"
+      },
+      "handRevision": {
+        "sourceCommit": "e063342ef44f371945088d58c2ca0928261a60f3",
+        "description": "Replace the human mage purple gloves with compact bare hands matching the human priest and hunter.",
+        "generation": {
+          "sourceCommit": "e063342ef44f371945088d58c2ca0928261a60f3",
+          "params": {
+            "model": "gpt_image_2_5",
+            "quality": "high",
+            "resolution": "2k",
+            "background": "transparent",
+            "aspect_ratio": "3:1",
+            "count": 1,
+            "medias": [
+              {
+                "role": "image",
+                "value": "f2118efe-219a-4ccc-b799-caa8d21b9aca"
+              },
+              {
+                "role": "image",
+                "value": "bfc2d27f-905b-41c9-b791-c93ffbf213a3"
+              }
+            ],
+            "prompt": "Use case: precise-object-edit. Image 1 is the edit target, a cropped lower purple mage robe with two dark purple gloves. Image 2 is a style reference ONLY for the small bare human hands at its edges. Replace ONLY both dark purple gloves in image 1 with small BARE HUMAN HANDS that closely match image 2: warm peach skin, compact gently curled fingers, visible thumb, simple painted fantasy RPG shading and crisp dark outline. Match the reference hand width and short length relative to the sleeve cuffs. Natural relaxed hands, palms turned inward at the character's sides, fingers loosely curled, no elongated fingers. Have a short visible wrist join naturally into each unchanged purple rune cuff. Preserve image 1's exact purple sleeves, cuffs, robe, belt, hem, position and proportions. Retain the original crop; do not add an upper body, head, legs or boots. Keep both hands completely visible. No gloves, no jewelry, no weapon, no glow. Transparent RGBA background; preserve the transparency between the arms and skirt. Deliver one edited crop, no collage or labels."
+          },
+          "job": {
+            "index": 0,
+            "job_id": "c985dcf0-4517-4e25-b1bf-5c9717c07cbc",
+            "status": "completed",
+            "type": "image",
+            "model": "gpt_image_2_5",
+            "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260916_093653_c985dcf0-4517-4e25-b1bf-5c9717c07cbc.png"
+          }
+        },
+        "proof": {
+          "key": "humanfemale_mage",
+          "candidate": "candidate.png",
+          "sha256": "4b1d94b1c1cd242a6cf449c2e26383fe0224bbd2f4b3af2514a0191288b31d52",
+          "sourceSha256": "e2c661d21e47e40a284e786403324358cbf012023c628645f6f4f9bb82f5c802",
+          "generatedSha256": "fa990365546e2f7a56de05771cb223efd80c82c30e798f52ef2ab1f74a4af89f",
+          "jobId": "c985dcf0-4517-4e25-b1bf-5c9717c07cbc",
+          "bounds": [
+            589,
+            646,
+            99,
+            18,
+            392,
+            602
+          ],
+          "proposedGrip": [
+            140,
+            576
+          ],
+          "editPolygons": [
+            [
+              [
+                99,
+                541
+              ],
+              [
+                184,
+                541
+              ],
+              [
+                184,
+                627
+              ],
+              [
+                99,
+                627
+              ]
+            ],
+            [
+              [
+                406,
+                541
+              ],
+              [
+                491,
+                541
+              ],
+              [
+                491,
+                627
+              ],
+              [
+                406,
+                627
+              ]
+            ]
+          ],
+          "outsideEditRgbaChanges": 0,
+          "headRgbaChanges": 0,
+          "changedPixels": 6146,
+          "sourceHandPolygons": [
+            [
+              [
+                273,
+                367
+              ],
+              [
+                323,
+                384
+              ],
+              [
+                381,
+                410
+              ],
+              [
+                444,
+                443
+              ],
+              [
+                460,
+                473
+              ],
+              [
+                471,
+                510
+              ],
+              [
+                477,
+                549
+              ],
+              [
+                484,
+                598
+              ],
+              [
+                493,
+                636
+              ],
+              [
+                489,
+                657
+              ],
+              [
+                480,
+                667
+              ],
+              [
+                460,
+                669
+              ],
+              [
+                442,
+                661
+              ],
+              [
+                442,
+                680
+              ],
+              [
+                436,
+                697
+              ],
+              [
+                422,
+                709
+              ],
+              [
+                399,
+                714
+              ],
+              [
+                368,
+                713
+              ],
+              [
+                341,
+                704
+              ],
+              [
+                318,
+                697
+              ],
+              [
+                297,
+                684
+              ],
+              [
+                281,
+                664
+              ],
+              [
+                262,
+                637
+              ],
+              [
+                251,
+                610
+              ],
+              [
+                243,
+                586
+              ],
+              [
+                244,
+                558
+              ],
+              [
+                249,
+                527
+              ],
+              [
+                252,
+                492
+              ],
+              [
+                257,
+                459
+              ],
+              [
+                261,
+                430
+              ],
+              [
+                264,
+                399
+              ],
+              [
+                268,
+                374
+              ]
+            ],
+            [
+              [
+                2418,
+                366
+              ],
+              [
+                2360,
+                387
+              ],
+              [
+                2300,
+                410
+              ],
+              [
+                2237,
+                444
+              ],
+              [
+                2224,
+                473
+              ],
+              [
+                2210,
+                511
+              ],
+              [
+                2202,
+                550
+              ],
+              [
+                2197,
+                589
+              ],
+              [
+                2189,
+                632
+              ],
+              [
+                2190,
+                653
+              ],
+              [
+                2202,
+                667
+              ],
+              [
+                2221,
+                669
+              ],
+              [
+                2240,
+                665
+              ],
+              [
+                2253,
+                654
+              ],
+              [
+                2259,
+                678
+              ],
+              [
+                2271,
+                700
+              ],
+              [
+                2291,
+                711
+              ],
+              [
+                2320,
+                716
+              ],
+              [
+                2352,
+                710
+              ],
+              [
+                2375,
+                699
+              ],
+              [
+                2399,
+                680
+              ],
+              [
+                2420,
+                654
+              ],
+              [
+                2438,
+                622
+              ],
+              [
+                2449,
+                595
+              ],
+              [
+                2450,
+                570
+              ],
+              [
+                2445,
+                536
+              ],
+              [
+                2440,
+                502
+              ],
+              [
+                2436,
+                462
+              ],
+              [
+                2432,
+                429
+              ],
+              [
+                2429,
+                398
+              ],
+              [
+                2426,
+                370
+              ]
+            ]
+          ],
+          "handUniformScale": 0.22,
+          "offsetsX": [
+            62,
+            -64.36000000000001
+          ],
+          "offsetY": 445,
+          "restorationSource": "dist/.female-costume-qa/restored-final/humanfemale_mage.png",
+          "note": "Only native hand regions change. The small hem area previously hidden behind long purple fingers is restored from the pre-glove source. All other RGBA pixels remain exact."
+        }
       }
     },
     {

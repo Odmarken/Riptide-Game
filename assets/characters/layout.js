@@ -57,7 +57,7 @@ const ICE_ARMOR_HANDS={
 /* Native grip centres for the compact female costumes. Mage robe sleeves can
  * cover the palm; their grip sits at the sleeve opening. */
 const FEMALE_COSTUME_HANDS={
- humanfemale_warrior:[113,589],humanfemale_mage:[135,583],
+ humanfemale_warrior:[113,589],humanfemale_mage:[140,576],
  humanfemale_hunter:[106,588],humanfemale_priest:[121,585],
  dwarffemale_warrior:[126,559],dwarffemale_mage:[138,599],
  dwarffemale_hunter:[112,577],dwarffemale_priest:[146,592],

@@ -151,7 +151,7 @@ function charSprite(raceId,clsId,female){
  if(!CHAR_SPRITES[key])return null;
  let im=charSpriteCache[key];
  if(!im){
-  im=new Image();im.src='assets/characters/'+key+'.png?v=3';charSpriteCache[key]=im;
+  im=new Image();im.src='assets/characters/'+key+'.png?v='+(key==='humanfemale_mage'?4:3);charSpriteCache[key]=im;
   im.onload=()=>{ /* portraits render before sprites finish loading - repaint the open screens */
    try{
     if($('select').classList.contains('open'))renderSelect();
