@@ -1,0 +1,1088 @@
+{
+  "version": 1,
+  "sourceCommit": "0f5b0bfa39501a366b862f2133ee02f1956f5e9a",
+  "description": "Horizontal replacement bench, ten buildable garden decorations, and two charcoal color variants retaining the existing white fence geometry and alpha.",
+  "assets": [
+    {
+      "id": "bench",
+      "file": "assets/farm/bench_farm.png",
+      "sha256": "1e0bc89e8dac52fe70218cb227472c412f0e0c9d192f81f246bddbd4db9ea208",
+      "generator": "Higgsfield",
+      "job": {
+        "index": 0,
+        "job_id": "0fa11b66-53b8-4082-9a55-68fffaf6c354",
+        "status": "completed",
+        "type": "image",
+        "model": "gpt_image_2_5",
+        "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260916_101759_0fa11b66-53b8-4082-9a55-68fffaf6c354.png"
+      },
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/0f5b0bfa39501a366b862f2133ee02f1956f5e9a/assets/farm/bench_farm.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/0f5b0bfa39501a366b862f2133ee02f1956f5e9a/assets/farm/well_farm.png"
+          }
+        ],
+        "prompt": "Use case: precise-object-edit. EDIT the bench in image 1 to face perfectly straight forward, not diagonally. Its long seat front edge and three backrest slats must run absolutely HORIZONTALLY left-to-right, level and parallel to the bottom of the image. Symmetric left and right cast iron armrests and legs at matching heights, warm honey brown wooden slats and dark wrought iron scroll supports, visible top of the seat from a slightly elevated front view. Same rustic bench design, just straighten its orientation. Four complete feet, grounded on a level baseline. NOT a diagonal isometric bench, no slope, no tilted camera, no skew. Asset type: transparent buildable decoration sprite for Riptide RPG. Match the REFERENCES' richly handpainted cozy medieval fantasy game art: chunky charming proportions, crisp dark brown outlines, dimensional painted highlights, textured warm natural materials, detailed but readable at small game scale. References are MATERIAL AND STYLE only unless the request explicitly edits the bench. Slightly elevated game camera, consistent top-left soft light. SINGLE isolated complete object, centrally composed and filling the canvas with only 3-5 percent clear padding around every extremity. TRUE TRANSPARENT RGBA background, all solid materials fully opaque, transparent gaps clean. Absolutely no checkerboard, radial streaks, white/black/grey matte, exterior haze, cast ground shadow, terrain, environment, people, UI, labels, text or watermark. Do not copy any artifacts outside the reference silhouettes. Produce a finished clean production sprite."
+      },
+      "cleanup": {
+        "id": "bench",
+        "file": "bench_farm.png",
+        "sourceSize": [
+          2048,
+          1360
+        ],
+        "sourceFrame": [
+          40,
+          104,
+          1964,
+          1151
+        ],
+        "crop": [
+          40,
+          104,
+          1964,
+          1151
+        ],
+        "nativeSize": [
+          1964,
+          1151
+        ],
+        "size": [
+          1964,
+          1151
+        ],
+        "sourceSha256": "f80614048da1292aea593f9b130dbb1b26bcace679fe59c9a5300aa7d569c3d6",
+        "sha256": "1e0bc89e8dac52fe70218cb227472c412f0e0c9d192f81f246bddbd4db9ea208",
+        "sourceBytes": 2960975,
+        "bytes": 2576633,
+        "alphaChangedPixels": 52316,
+        "removedMattePixels": 52316,
+        "maxRemovedAlpha": 3,
+        "rgbByteChanges": 0,
+        "artCoreRgbaChanges": 0,
+        "coreRgbaChanges": 0,
+        "alphaIncreasedPixels": 0,
+        "visibleBounds": [
+          6,
+          6,
+          1952,
+          1139
+        ],
+        "antialiasRim": 2,
+        "padding": 6,
+        "method": "Only alpha 1–15 farther than 2 pixels from alpha >=16 becomes transparent; every RGB byte and art-core RGBA preserved; native-resolution lossless crop."
+      }
+    },
+    {
+      "id": "flowerpot",
+      "file": "assets/farm/flowerpot_farm.png",
+      "sha256": "f05cd3df7592151efe977248138c8bfcfc1e6c2a70dabd530620beb4fd2c61f6",
+      "generator": "Higgsfield",
+      "job": {
+        "index": 1,
+        "job_id": "96a3f473-81e5-4b42-a20b-8ea191b710ed",
+        "status": "completed",
+        "type": "image",
+        "model": "gpt_image_2_5",
+        "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260916_101759_96a3f473-81e5-4b42-a20b-8ea191b710ed.png"
+      },
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/0f5b0bfa39501a366b862f2133ee02f1956f5e9a/assets/farm/flowerbed_farm.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/0f5b0bfa39501a366b862f2133ee02f1956f5e9a/assets/farm/well_farm.png"
+          }
+        ],
+        "prompt": "Use case: stylized-concept. ONE broad round terracotta garden planter filled with a compact lush bouquet of red, gold and violet small flowers, green leaves, thick subtly decorated clay rim and a few natural weathered chips. Stable round base, charming sturdy proportions. No separate objects. Asset type: transparent buildable decoration sprite for Riptide RPG. Match the REFERENCES' richly handpainted cozy medieval fantasy game art: chunky charming proportions, crisp dark brown outlines, dimensional painted highlights, textured warm natural materials, detailed but readable at small game scale. References are MATERIAL AND STYLE only unless the request explicitly edits the bench. Slightly elevated game camera, consistent top-left soft light. SINGLE isolated complete object, centrally composed and filling the canvas with only 3-5 percent clear padding around every extremity. TRUE TRANSPARENT RGBA background, all solid materials fully opaque, transparent gaps clean. Absolutely no checkerboard, radial streaks, white/black/grey matte, exterior haze, cast ground shadow, terrain, environment, people, UI, labels, text or watermark. Do not copy any artifacts outside the reference silhouettes. Produce a finished clean production sprite."
+      },
+      "cleanup": {
+        "id": "flowerpot",
+        "file": "flowerpot_farm.png",
+        "sourceSize": [
+          2048,
+          2048
+        ],
+        "sourceFrame": [
+          127,
+          123,
+          1797,
+          1845
+        ],
+        "crop": [
+          127,
+          123,
+          1797,
+          1845
+        ],
+        "nativeSize": [
+          1797,
+          1845
+        ],
+        "size": [
+          1797,
+          1845
+        ],
+        "sourceSha256": "5e9201f23435bd385447984bae00e391754c526c154217f27d10d7b42a39c6a5",
+        "sha256": "f05cd3df7592151efe977248138c8bfcfc1e6c2a70dabd530620beb4fd2c61f6",
+        "sourceBytes": 5225222,
+        "bytes": 4679786,
+        "alphaChangedPixels": 84155,
+        "removedMattePixels": 84155,
+        "maxRemovedAlpha": 4,
+        "rgbByteChanges": 0,
+        "artCoreRgbaChanges": 0,
+        "coreRgbaChanges": 0,
+        "alphaIncreasedPixels": 0,
+        "visibleBounds": [
+          6,
+          6,
+          1785,
+          1833
+        ],
+        "antialiasRim": 2,
+        "padding": 6,
+        "method": "Only alpha 1–15 farther than 2 pixels from alpha >=16 becomes transparent; every RGB byte and art-core RGBA preserved; native-resolution lossless crop."
+      }
+    },
+    {
+      "id": "garden_arch",
+      "file": "assets/farm/garden_arch_farm.png",
+      "sha256": "7a03828190ec63feaf5e76a1008de71873456267b19fcb5ef710533480fe37c5",
+      "generator": "Higgsfield",
+      "job": {
+        "index": 2,
+        "job_id": "55f112ac-e36b-4e07-8956-1f621a934e0b",
+        "status": "completed",
+        "type": "image",
+        "model": "gpt_image_2_5",
+        "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260916_101758_55f112ac-e36b-4e07-8956-1f621a934e0b.png"
+      },
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/0f5b0bfa39501a366b862f2133ee02f1956f5e9a/assets/farm/well_farm.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/0f5b0bfa39501a366b862f2133ee02f1956f5e9a/assets/farm/flowerbed_farm.png"
+          }
+        ],
+        "prompt": "Use case: stylized-concept. ONE freestanding low garden arch made of chunky warm grey mossy stone blocks, a complete rounded arch supported by two sturdy short square stone pillars. A small climbing ivy vine and just a few purple flowers decorate the outside upper corners. Wide OPEN WALK-THROUGH center fully transparent, no door, no fence, no ground. Mostly front-facing slightly elevated game view; both pillar feet on same horizontal baseline. Complete top and bases. Asset type: transparent buildable decoration sprite for Riptide RPG. Match the REFERENCES' richly handpainted cozy medieval fantasy game art: chunky charming proportions, crisp dark brown outlines, dimensional painted highlights, textured warm natural materials, detailed but readable at small game scale. References are MATERIAL AND STYLE only unless the request explicitly edits the bench. Slightly elevated game camera, consistent top-left soft light. SINGLE isolated complete object, centrally composed and filling the canvas with only 3-5 percent clear padding around every extremity. TRUE TRANSPARENT RGBA background, all solid materials fully opaque, transparent gaps clean. Absolutely no checkerboard, radial streaks, white/black/grey matte, exterior haze, cast ground shadow, terrain, environment, people, UI, labels, text or watermark. Do not copy any artifacts outside the reference silhouettes. Produce a finished clean production sprite."
+      },
+      "cleanup": {
+        "id": "garden_arch",
+        "file": "garden_arch_farm.png",
+        "sourceSize": [
+          2048,
+          2048
+        ],
+        "sourceFrame": [
+          119,
+          50,
+          1814,
+          1948
+        ],
+        "crop": [
+          119,
+          50,
+          1814,
+          1948
+        ],
+        "nativeSize": [
+          1814,
+          1948
+        ],
+        "size": [
+          1814,
+          1948
+        ],
+        "sourceSha256": "da265a5e05f44c50874a1668c1f83732f0a572fdb6eabc776a1c5703c388b618",
+        "sha256": "7a03828190ec63feaf5e76a1008de71873456267b19fcb5ef710533480fe37c5",
+        "sourceBytes": 5237790,
+        "bytes": 4654832,
+        "alphaChangedPixels": 109288,
+        "removedMattePixels": 109288,
+        "maxRemovedAlpha": 6,
+        "rgbByteChanges": 0,
+        "artCoreRgbaChanges": 0,
+        "coreRgbaChanges": 0,
+        "alphaIncreasedPixels": 0,
+        "visibleBounds": [
+          6,
+          6,
+          1802,
+          1936
+        ],
+        "antialiasRim": 2,
+        "padding": 6,
+        "method": "Only alpha 1–15 farther than 2 pixels from alpha >=16 becomes transparent; every RGB byte and art-core RGBA preserved; native-resolution lossless crop."
+      }
+    },
+    {
+      "id": "pergola",
+      "file": "assets/farm/pergola_farm.png",
+      "sha256": "ed052dad53b50a4c769c75143151605f8c4ac3a95fa5dee7ecfdebd46cd221fa",
+      "generator": "Higgsfield",
+      "job": {
+        "index": 3,
+        "job_id": "d6f0a72b-f961-4d94-acdf-2149c4cc5829",
+        "status": "completed",
+        "type": "image",
+        "model": "gpt_image_2_5",
+        "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260916_101759_d6f0a72b-f961-4d94-acdf-2149c4cc5829.png"
+      },
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/0f5b0bfa39501a366b862f2133ee02f1956f5e9a/assets/farm/well_farm.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/0f5b0bfa39501a366b862f2133ee02f1956f5e9a/assets/farm/flowerbed_farm.png"
+          }
+        ],
+        "prompt": "Use case: stylized-concept. ONE freestanding compact wooden pergola for a fantasy farm garden: four thick dark oak posts, handsome carved beams, OPEN slatted lattice roof with sparse ivy and soft pink roses over the top corners. Warm walnut/golden oak, brass joint pins. The space under the roof must be entirely open and walk-through, no floor platform, no chairs, no ground tile, no hanging objects in center. Slightly elevated front view with shallow visible depth and level front beam. Compact complete architecture, all four post feet visible. Asset type: transparent buildable decoration sprite for Riptide RPG. Match the REFERENCES' richly handpainted cozy medieval fantasy game art: chunky charming proportions, crisp dark brown outlines, dimensional painted highlights, textured warm natural materials, detailed but readable at small game scale. References are MATERIAL AND STYLE only unless the request explicitly edits the bench. Slightly elevated game camera, consistent top-left soft light. SINGLE isolated complete object, centrally composed and filling the canvas with only 3-5 percent clear padding around every extremity. TRUE TRANSPARENT RGBA background, all solid materials fully opaque, transparent gaps clean. Absolutely no checkerboard, radial streaks, white/black/grey matte, exterior haze, cast ground shadow, terrain, environment, people, UI, labels, text or watermark. Do not copy any artifacts outside the reference silhouettes. Produce a finished clean production sprite."
+      },
+      "cleanup": {
+        "id": "pergola",
+        "file": "pergola_farm.png",
+        "sourceSize": [
+          2048,
+          2048
+        ],
+        "sourceFrame": [
+          88,
+          107,
+          1871,
+          1835
+        ],
+        "crop": [
+          88,
+          107,
+          1871,
+          1835
+        ],
+        "nativeSize": [
+          1871,
+          1835
+        ],
+        "size": [
+          1871,
+          1835
+        ],
+        "sourceSha256": "3057a211988fd22836a01f26fc530d076a9ba0a6cf3f28dc3bb6692637a3c91d",
+        "sha256": "ed052dad53b50a4c769c75143151605f8c4ac3a95fa5dee7ecfdebd46cd221fa",
+        "sourceBytes": 4809021,
+        "bytes": 4275548,
+        "alphaChangedPixels": 118054,
+        "removedMattePixels": 118054,
+        "maxRemovedAlpha": 7,
+        "rgbByteChanges": 0,
+        "artCoreRgbaChanges": 0,
+        "coreRgbaChanges": 0,
+        "alphaIncreasedPixels": 0,
+        "visibleBounds": [
+          6,
+          6,
+          1859,
+          1823
+        ],
+        "antialiasRim": 2,
+        "padding": 6,
+        "method": "Only alpha 1–15 farther than 2 pixels from alpha >=16 becomes transparent; every RGB byte and art-core RGBA preserved; native-resolution lossless crop."
+      }
+    },
+    {
+      "id": "picnic_table",
+      "file": "assets/farm/picnic_table_farm.png",
+      "sha256": "4c8ac0a179035b85770a40be35c39a24815fb93e144a880de01a4a2b3f763619",
+      "generator": "Higgsfield",
+      "job": {
+        "index": 4,
+        "job_id": "06cd7734-33d5-46d0-aeb5-d19a2a1d0e2f",
+        "status": "completed",
+        "type": "image",
+        "model": "gpt_image_2_5",
+        "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260916_101758_06cd7734-33d5-46d0-aeb5-d19a2a1d0e2f.png"
+      },
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/0f5b0bfa39501a366b862f2133ee02f1956f5e9a/assets/farm/bench_farm.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/0f5b0bfa39501a366b862f2133ee02f1956f5e9a/assets/farm/well_farm.png"
+          }
+        ],
+        "prompt": "Use case: stylized-concept. ONE rustic wooden picnic table with two attached long benches, robust A-frame legs, thick warm oak planks and a few small dark iron bolt heads. The table's long front edge runs LEVEL HORIZONTALLY left-to-right, with a slightly elevated front camera so tabletop and the front bench are visible. Blank tabletop, no food or cloth or clutter. All legs and attached benches complete, compact fantasy proportions. Asset type: transparent buildable decoration sprite for Riptide RPG. Match the REFERENCES' richly handpainted cozy medieval fantasy game art: chunky charming proportions, crisp dark brown outlines, dimensional painted highlights, textured warm natural materials, detailed but readable at small game scale. References are MATERIAL AND STYLE only unless the request explicitly edits the bench. Slightly elevated game camera, consistent top-left soft light. SINGLE isolated complete object, centrally composed and filling the canvas with only 3-5 percent clear padding around every extremity. TRUE TRANSPARENT RGBA background, all solid materials fully opaque, transparent gaps clean. Absolutely no checkerboard, radial streaks, white/black/grey matte, exterior haze, cast ground shadow, terrain, environment, people, UI, labels, text or watermark. Do not copy any artifacts outside the reference silhouettes. Produce a finished clean production sprite."
+      },
+      "cleanup": {
+        "id": "picnic_table",
+        "file": "picnic_table_farm.png",
+        "sourceSize": [
+          2048,
+          1360
+        ],
+        "sourceFrame": [
+          31,
+          132,
+          1984,
+          1199
+        ],
+        "crop": [
+          31,
+          132,
+          1984,
+          1199
+        ],
+        "nativeSize": [
+          1984,
+          1199
+        ],
+        "size": [
+          1984,
+          1199
+        ],
+        "sourceSha256": "3fbad8daac3a5e979d0743bba7d35e8b80b6fa408acde01edbed8c8e5b5135e3",
+        "sha256": "4c8ac0a179035b85770a40be35c39a24815fb93e144a880de01a4a2b3f763619",
+        "sourceBytes": 3086057,
+        "bytes": 2786108,
+        "alphaChangedPixels": 20420,
+        "removedMattePixels": 20420,
+        "maxRemovedAlpha": 3,
+        "rgbByteChanges": 0,
+        "artCoreRgbaChanges": 0,
+        "coreRgbaChanges": 0,
+        "alphaIncreasedPixels": 0,
+        "visibleBounds": [
+          6,
+          6,
+          1972,
+          1187
+        ],
+        "antialiasRim": 2,
+        "padding": 6,
+        "method": "Only alpha 1–15 farther than 2 pixels from alpha >=16 becomes transparent; every RGB byte and art-core RGBA preserved; native-resolution lossless crop."
+      }
+    },
+    {
+      "id": "barrels",
+      "file": "assets/farm/barrels_farm.png",
+      "sha256": "e970f3d18d9c8fd6ae957ec6ae82de42b13aefa23d5e4c7cad9bef613612ad2b",
+      "generator": "Higgsfield",
+      "job": {
+        "index": 5,
+        "job_id": "611e40f6-6d81-4f8a-9a5f-6719ce472ad2",
+        "status": "completed",
+        "type": "image",
+        "model": "gpt_image_2_5",
+        "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260916_101922_611e40f6-6d81-4f8a-9a5f-6719ce472ad2.png"
+      },
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/0f5b0bfa39501a366b862f2133ee02f1956f5e9a/assets/farm/well_farm.png"
+          }
+        ],
+        "prompt": "Use case: stylized-concept. ONE compact grouped farm decoration made of three weathered oak storage barrels, two upright side by side with a smaller barrel behind them. Thick golden wood staves, dark charcoal iron hoops, visible circular wooden lids, handpainted grain and tiny moss weathering at bases. Grounded compact pile with simple readable silhouette; no crates, no grass, no loose extras. Asset type: transparent buildable decoration sprite for Riptide RPG. Match the REFERENCES' richly handpainted cozy medieval fantasy game art: chunky charming proportions, crisp dark brown outlines, dimensional painted highlights, textured warm natural materials, detailed but readable at small game scale. References are MATERIAL AND STYLE only unless the request explicitly edits the bench. Slightly elevated game camera, consistent top-left soft light. SINGLE isolated complete object, centrally composed and filling the canvas with only 3-5 percent clear padding around every extremity. TRUE TRANSPARENT RGBA background, all solid materials fully opaque, transparent gaps clean. Absolutely no checkerboard, radial streaks, white/black/grey matte, exterior haze, cast ground shadow, terrain, environment, people, UI, labels, text or watermark. Do not copy any artifacts outside the reference silhouettes. Produce a finished clean production sprite."
+      },
+      "cleanup": {
+        "id": "barrels",
+        "file": "barrels_farm.png",
+        "sourceSize": [
+          2048,
+          2048
+        ],
+        "sourceFrame": [
+          113,
+          149,
+          1832,
+          1777
+        ],
+        "crop": [
+          113,
+          149,
+          1832,
+          1777
+        ],
+        "nativeSize": [
+          1832,
+          1777
+        ],
+        "size": [
+          1832,
+          1777
+        ],
+        "sourceSha256": "f4a6af62830979057866aa1fde05f86187570b9028eb40a523926d2d2f65e8b7",
+        "sha256": "e970f3d18d9c8fd6ae957ec6ae82de42b13aefa23d5e4c7cad9bef613612ad2b",
+        "sourceBytes": 5366649,
+        "bytes": 4729745,
+        "alphaChangedPixels": 84373,
+        "removedMattePixels": 84373,
+        "maxRemovedAlpha": 3,
+        "rgbByteChanges": 0,
+        "artCoreRgbaChanges": 0,
+        "coreRgbaChanges": 0,
+        "alphaIncreasedPixels": 0,
+        "visibleBounds": [
+          6,
+          6,
+          1820,
+          1765
+        ],
+        "antialiasRim": 2,
+        "padding": 6,
+        "method": "Only alpha 1–15 farther than 2 pixels from alpha >=16 becomes transparent; every RGB byte and art-core RGBA preserved; native-resolution lossless crop."
+      }
+    },
+    {
+      "id": "mushrooms",
+      "file": "assets/farm/mushrooms_farm.png",
+      "sha256": "9a0bf159379eee339ef3cf6c0c78350e40cecb9f53609422bc65ee7850a1520d",
+      "generator": "Higgsfield",
+      "job": {
+        "index": 6,
+        "job_id": "1607a35a-05cc-492a-a53d-04f9775bf519",
+        "status": "completed",
+        "type": "image",
+        "model": "gpt_image_2_5",
+        "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260916_101922_1607a35a-05cc-492a-a53d-04f9775bf519.png"
+      },
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/0f5b0bfa39501a366b862f2133ee02f1956f5e9a/assets/farm/flowerbed_farm.png"
+          },
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/0f5b0bfa39501a366b862f2133ee02f1956f5e9a/assets/farm/well_farm.png"
+          }
+        ],
+        "prompt": "Use case: stylized-concept. ONE small compact cluster of FIVE whimsical woodland mushrooms, thick ivory stalks and rich red-orange caps with a few cream spots, mixed sizes from small to medium. Charming fantasy farm decoration, gently cool magical violet accent on one tiny cap. Mushrooms meet at a tiny common mossy root cluster, no broad ground patch or turf tile. Complete stalk bottoms. Clear detailed readable silhouettes. Asset type: transparent buildable decoration sprite for Riptide RPG. Match the REFERENCES' richly handpainted cozy medieval fantasy game art: chunky charming proportions, crisp dark brown outlines, dimensional painted highlights, textured warm natural materials, detailed but readable at small game scale. References are MATERIAL AND STYLE only unless the request explicitly edits the bench. Slightly elevated game camera, consistent top-left soft light. SINGLE isolated complete object, centrally composed and filling the canvas with only 3-5 percent clear padding around every extremity. TRUE TRANSPARENT RGBA background, all solid materials fully opaque, transparent gaps clean. Absolutely no checkerboard, radial streaks, white/black/grey matte, exterior haze, cast ground shadow, terrain, environment, people, UI, labels, text or watermark. Do not copy any artifacts outside the reference silhouettes. Produce a finished clean production sprite."
+      },
+      "cleanup": {
+        "id": "mushrooms",
+        "file": "mushrooms_farm.png",
+        "sourceSize": [
+          2048,
+          2048
+        ],
+        "sourceFrame": [
+          276,
+          92,
+          1518,
+          1872
+        ],
+        "crop": [
+          276,
+          92,
+          1518,
+          1872
+        ],
+        "nativeSize": [
+          1518,
+          1872
+        ],
+        "size": [
+          1518,
+          1872
+        ],
+        "sourceSha256": "859bb019009da14085a4d53c2a561954fbc0a25597d8844cf4b798508bcc467c",
+        "sha256": "9a0bf159379eee339ef3cf6c0c78350e40cecb9f53609422bc65ee7850a1520d",
+        "sourceBytes": 4404533,
+        "bytes": 3685275,
+        "alphaChangedPixels": 42416,
+        "removedMattePixels": 42416,
+        "maxRemovedAlpha": 3,
+        "rgbByteChanges": 0,
+        "artCoreRgbaChanges": 0,
+        "coreRgbaChanges": 0,
+        "alphaIncreasedPixels": 0,
+        "visibleBounds": [
+          6,
+          6,
+          1506,
+          1860
+        ],
+        "antialiasRim": 2,
+        "padding": 6,
+        "method": "Only alpha 1–15 farther than 2 pixels from alpha >=16 becomes transparent; every RGB byte and art-core RGBA preserved; native-resolution lossless crop."
+      }
+    },
+    {
+      "id": "birdhouse",
+      "file": "assets/farm/birdhouse_farm.png",
+      "sha256": "8739323898b55911eb6a6d252586ffdd03030d99af1410fc929074bff228e5a3",
+      "generator": "Higgsfield",
+      "job": {
+        "index": 7,
+        "job_id": "b07a5107-e660-4b9b-a2c1-69d0456cbbd9",
+        "status": "completed",
+        "type": "image",
+        "model": "gpt_image_2_5",
+        "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260916_102051_b07a5107-e660-4b9b-a2c1-69d0456cbbd9.png"
+      },
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "2:3",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/0f5b0bfa39501a366b862f2133ee02f1956f5e9a/assets/farm/well_farm.png"
+          }
+        ],
+        "prompt": "Use case: stylized-concept. ONE charming small oak birdhouse mounted securely on a short rustic wooden post. Little warm red tiled gable roof, round dark entrance hole, tiny perch, subtle flower carving on the front, small base foot at ground level. No birds or other creatures. Slightly elevated three-quarter front game view, compact chunky proportions, entire post and base included. Same rich carved timber materials as reference well. Asset type: transparent buildable decoration sprite for Riptide RPG. Match the REFERENCES' richly handpainted cozy medieval fantasy game art: chunky charming proportions, crisp dark brown outlines, dimensional painted highlights, textured warm natural materials, detailed but readable at small game scale. References are MATERIAL AND STYLE only unless the request explicitly edits the bench. Slightly elevated game camera, consistent top-left soft light. SINGLE isolated complete object, centrally composed and filling the canvas with only 3-5 percent clear padding around every extremity. TRUE TRANSPARENT RGBA background, all solid materials fully opaque, transparent gaps clean. Absolutely no checkerboard, radial streaks, white/black/grey matte, exterior haze, cast ground shadow, terrain, environment, people, UI, labels, text or watermark. Do not copy any artifacts outside the reference silhouettes. Produce a finished clean production sprite."
+      },
+      "cleanup": {
+        "id": "birdhouse",
+        "file": "birdhouse_farm.png",
+        "sourceSize": [
+          1360,
+          2048
+        ],
+        "sourceFrame": [
+          185,
+          19,
+          997,
+          2008
+        ],
+        "crop": [
+          185,
+          19,
+          997,
+          2008
+        ],
+        "nativeSize": [
+          997,
+          2008
+        ],
+        "size": [
+          997,
+          2008
+        ],
+        "sourceSha256": "11f3f82e633da2c357a53d1a5ba27d8a3a4d9eb34520a12c3f02a442f330d892",
+        "sha256": "8739323898b55911eb6a6d252586ffdd03030d99af1410fc929074bff228e5a3",
+        "sourceBytes": 2993721,
+        "bytes": 2490645,
+        "alphaChangedPixels": 12145,
+        "removedMattePixels": 12145,
+        "maxRemovedAlpha": 4,
+        "rgbByteChanges": 0,
+        "artCoreRgbaChanges": 0,
+        "coreRgbaChanges": 0,
+        "alphaIncreasedPixels": 0,
+        "visibleBounds": [
+          6,
+          6,
+          985,
+          1996
+        ],
+        "antialiasRim": 2,
+        "padding": 6,
+        "method": "Only alpha 1–15 farther than 2 pixels from alpha >=16 becomes transparent; every RGB byte and art-core RGBA preserved; native-resolution lossless crop."
+      }
+    },
+    {
+      "id": "rosebush",
+      "file": "assets/farm/rosebush_farm.png",
+      "sha256": "9f78a20bd9bed5e4fba1b653dd72e41775b55b7cef48bafeaf005a62ac8c0755",
+      "generator": "Higgsfield",
+      "job": {
+        "index": 8,
+        "job_id": "59601728-ad7b-4be6-b25d-1b3009a45461",
+        "status": "completed",
+        "type": "image",
+        "model": "gpt_image_2_5",
+        "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260916_101922_59601728-ad7b-4be6-b25d-1b3009a45461.png"
+      },
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/0f5b0bfa39501a366b862f2133ee02f1956f5e9a/assets/farm/flowerbed_farm.png"
+          }
+        ],
+        "prompt": "Use case: stylized-concept. ONE compact rounded garden rose bush with lush dark green leaves and around nine rich crimson and soft pink rose blooms in varying sizes, woody base lightly visible under foliage. Dense healthy cultivated garden shrub, low broad mound silhouette. No pot, no fence, no loose petals or detached flowers, no turf tile. Roots meet ground at centered small base. Asset type: transparent buildable decoration sprite for Riptide RPG. Match the REFERENCES' richly handpainted cozy medieval fantasy game art: chunky charming proportions, crisp dark brown outlines, dimensional painted highlights, textured warm natural materials, detailed but readable at small game scale. References are MATERIAL AND STYLE only unless the request explicitly edits the bench. Slightly elevated game camera, consistent top-left soft light. SINGLE isolated complete object, centrally composed and filling the canvas with only 3-5 percent clear padding around every extremity. TRUE TRANSPARENT RGBA background, all solid materials fully opaque, transparent gaps clean. Absolutely no checkerboard, radial streaks, white/black/grey matte, exterior haze, cast ground shadow, terrain, environment, people, UI, labels, text or watermark. Do not copy any artifacts outside the reference silhouettes. Produce a finished clean production sprite."
+      },
+      "cleanup": {
+        "id": "rosebush",
+        "file": "rosebush_farm.png",
+        "sourceSize": [
+          2048,
+          2048
+        ],
+        "sourceFrame": [
+          143,
+          205,
+          1783,
+          1659
+        ],
+        "crop": [
+          143,
+          205,
+          1783,
+          1659
+        ],
+        "nativeSize": [
+          1783,
+          1659
+        ],
+        "size": [
+          1783,
+          1659
+        ],
+        "sourceSha256": "690c65b87f7abe04c58daccea402d5ac650dccf3cf5534e7309b314b212f34cf",
+        "sha256": "9f78a20bd9bed5e4fba1b653dd72e41775b55b7cef48bafeaf005a62ac8c0755",
+        "sourceBytes": 4561956,
+        "bytes": 3974064,
+        "alphaChangedPixels": 27445,
+        "removedMattePixels": 27445,
+        "maxRemovedAlpha": 4,
+        "rgbByteChanges": 0,
+        "artCoreRgbaChanges": 0,
+        "coreRgbaChanges": 0,
+        "alphaIncreasedPixels": 0,
+        "visibleBounds": [
+          6,
+          6,
+          1771,
+          1647
+        ],
+        "antialiasRim": 2,
+        "padding": 6,
+        "method": "Only alpha 1–15 farther than 2 pixels from alpha >=16 becomes transparent; every RGB byte and art-core RGBA preserved; native-resolution lossless crop."
+      }
+    },
+    {
+      "id": "stone_wall",
+      "file": "assets/farm/stone_wall_farm.png",
+      "sha256": "a354e6e1ea8f77c5a3ac4d5221ee700c8c2410dc35cf4488ad501cb77d4acc19",
+      "generator": "Higgsfield",
+      "job": {
+        "index": 9,
+        "job_id": "41019387-90ea-4f4e-8428-e51651c245f1",
+        "status": "completed",
+        "type": "image",
+        "model": "gpt_image_2_5",
+        "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260916_101922_41019387-90ea-4f4e-8428-e51651c245f1.png"
+      },
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "3:2",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/0f5b0bfa39501a366b862f2133ee02f1956f5e9a/assets/farm/well_farm.png"
+          }
+        ],
+        "prompt": "Use case: stylized-concept. ONE straight low rustic stone garden wall module, built from two layers of chunky rounded warm grey and tan stones with a continuous row of flat stone caps. Runs perfectly LEVEL HORIZONTALLY left-to-right with equal-height blunt vertical ends. Front-facing slightly elevated game view, top surface visible, no diagonal isometric angle. A few restrained moss patches in crevices. No end towers, no ground or broad foundation. End-to-end tileable piece, fills most of image width. Asset type: transparent buildable decoration sprite for Riptide RPG. Match the REFERENCES' richly handpainted cozy medieval fantasy game art: chunky charming proportions, crisp dark brown outlines, dimensional painted highlights, textured warm natural materials, detailed but readable at small game scale. References are MATERIAL AND STYLE only unless the request explicitly edits the bench. Slightly elevated game camera, consistent top-left soft light. SINGLE isolated complete object, centrally composed and filling the canvas with only 3-5 percent clear padding around every extremity. TRUE TRANSPARENT RGBA background, all solid materials fully opaque, transparent gaps clean. Absolutely no checkerboard, radial streaks, white/black/grey matte, exterior haze, cast ground shadow, terrain, environment, people, UI, labels, text or watermark. Do not copy any artifacts outside the reference silhouettes. Produce a finished clean production sprite."
+      },
+      "cleanup": {
+        "id": "stone_wall",
+        "file": "stone_wall_farm.png",
+        "sourceSize": [
+          2048,
+          1360
+        ],
+        "sourceFrame": [
+          16,
+          434,
+          2016,
+          536
+        ],
+        "crop": [
+          16,
+          434,
+          2016,
+          536
+        ],
+        "nativeSize": [
+          2016,
+          536
+        ],
+        "size": [
+          2016,
+          536
+        ],
+        "sourceSha256": "0122e15e1db05525e17df0f996199761ee7dc01445f2d916608c60a150fda3f9",
+        "sha256": "a354e6e1ea8f77c5a3ac4d5221ee700c8c2410dc35cf4488ad501cb77d4acc19",
+        "sourceBytes": 2708257,
+        "bytes": 1879156,
+        "alphaChangedPixels": 67860,
+        "removedMattePixels": 67860,
+        "maxRemovedAlpha": 4,
+        "rgbByteChanges": 0,
+        "artCoreRgbaChanges": 0,
+        "coreRgbaChanges": 0,
+        "alphaIncreasedPixels": 0,
+        "visibleBounds": [
+          6,
+          6,
+          2004,
+          524
+        ],
+        "antialiasRim": 2,
+        "padding": 6,
+        "method": "Only alpha 1–15 farther than 2 pixels from alpha >=16 becomes transparent; every RGB byte and art-core RGBA preserved; native-resolution lossless crop."
+      }
+    },
+    {
+      "id": "logstool",
+      "file": "assets/farm/logstool_farm.png",
+      "sha256": "1c28f238b86f323145753902fdce7e80390890fcb00833dc57afe5f884e49923",
+      "generator": "Higgsfield",
+      "job": {
+        "index": 10,
+        "job_id": "51375ebf-ee69-45d2-951c-994a31f83a62",
+        "status": "completed",
+        "type": "image",
+        "model": "gpt_image_2_5",
+        "result_url": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260916_102052_51375ebf-ee69-45d2-951c-994a31f83a62.png"
+      },
+      "params": {
+        "model": "gpt_image_2_5",
+        "quality": "high",
+        "resolution": "2k",
+        "background": "transparent",
+        "aspect_ratio": "1:1",
+        "count": 1,
+        "medias": [
+          {
+            "role": "image",
+            "value": "https://raw.githubusercontent.com/Odmarken/Riptide-Game/0f5b0bfa39501a366b862f2133ee02f1956f5e9a/assets/farm/well_farm.png"
+          }
+        ],
+        "prompt": "Use case: stylized-concept. ONE sturdy rustic log stool: squat cylindrical oak stump with a thick flat circular cut-wood seat, visible warm golden growth rings, dark brown textured bark sides and small stable root feet. A short carved spiral marking on the bark, subtle handpainted weathering. Slightly elevated three-quarter view, no cushion, no tools, no axe, no mushrooms, no broad floor patch. Asset type: transparent buildable decoration sprite for Riptide RPG. Match the REFERENCES' richly handpainted cozy medieval fantasy game art: chunky charming proportions, crisp dark brown outlines, dimensional painted highlights, textured warm natural materials, detailed but readable at small game scale. References are MATERIAL AND STYLE only unless the request explicitly edits the bench. Slightly elevated game camera, consistent top-left soft light. SINGLE isolated complete object, centrally composed and filling the canvas with only 3-5 percent clear padding around every extremity. TRUE TRANSPARENT RGBA background, all solid materials fully opaque, transparent gaps clean. Absolutely no checkerboard, radial streaks, white/black/grey matte, exterior haze, cast ground shadow, terrain, environment, people, UI, labels, text or watermark. Do not copy any artifacts outside the reference silhouettes. Produce a finished clean production sprite."
+      },
+      "cleanup": {
+        "id": "logstool",
+        "file": "logstool_farm.png",
+        "sourceSize": [
+          2048,
+          2048
+        ],
+        "sourceFrame": [
+          265,
+          121,
+          1544,
+          1847
+        ],
+        "crop": [
+          265,
+          121,
+          1544,
+          1847
+        ],
+        "nativeSize": [
+          1544,
+          1847
+        ],
+        "size": [
+          1544,
+          1847
+        ],
+        "sourceSha256": "6e9feca7456b95f7187d81eb0d1e4abfed4b67b72495da520a744cd01d181bce",
+        "sha256": "1c28f238b86f323145753902fdce7e80390890fcb00833dc57afe5f884e49923",
+        "sourceBytes": 4697037,
+        "bytes": 3880155,
+        "alphaChangedPixels": 231110,
+        "removedMattePixels": 231110,
+        "maxRemovedAlpha": 4,
+        "rgbByteChanges": 0,
+        "artCoreRgbaChanges": 0,
+        "coreRgbaChanges": 0,
+        "alphaIncreasedPixels": 0,
+        "visibleBounds": [
+          6,
+          6,
+          1532,
+          1835
+        ],
+        "antialiasRim": 2,
+        "padding": 6,
+        "method": "Only alpha 1–15 farther than 2 pixels from alpha >=16 becomes transparent; every RGB byte and art-core RGBA preserved; native-resolution lossless crop."
+      }
+    },
+    {
+      "id": "staket_black",
+      "file": "assets/farm/staketsvart_sidan.png",
+      "sha256": "cc4f4b2dc5b256c562a472cf0566f46169a1d10ce40561edec5b1d3c783ab546",
+      "method": "Deterministic RGB-only charcoal paint remap of existing Higgsfield fence art. No generation, resizing, geometric edits or alpha changes.",
+      "proof": {
+        "source": "staketvit_sidan",
+        "target": "staketsvart_sidan",
+        "nativeSize": [
+          1032,
+          394
+        ],
+        "sourceFrame": [
+          0,
+          0,
+          1032,
+          394
+        ],
+        "logicalSize": [
+          1032,
+          394
+        ],
+        "worldWidth": 130,
+        "metalRegions": [
+          [
+            1,
+            62,
+            127,
+            85
+          ],
+          [
+            1,
+            338,
+            127,
+            394
+          ],
+          [
+            451,
+            62,
+            577,
+            85
+          ],
+          [
+            451,
+            338,
+            577,
+            394
+          ],
+          [
+            901,
+            62,
+            1027,
+            85
+          ],
+          [
+            901,
+            338,
+            1027,
+            394
+          ]
+        ],
+        "metalDisks": [
+          [
+            62,
+            147,
+            12.3
+          ],
+          [
+            62,
+            273.5,
+            12.3
+          ],
+          [
+            512,
+            147,
+            12.3
+          ],
+          [
+            512,
+            273.5,
+            12.3
+          ],
+          [
+            962,
+            147,
+            12.3
+          ],
+          [
+            962,
+            273.5,
+            12.3
+          ]
+        ],
+        "file": "assets/farm/staketsvart_sidan.png",
+        "sourceFile": "assets/farm/staketvit_sidan.png",
+        "sourceSha256": "1c87531ece05b2d8df463295a06b1c3cec61c59167b039f61101ba55c0a140a9",
+        "sha256": "cc4f4b2dc5b256c562a472cf0566f46169a1d10ce40561edec5b1d3c783ab546",
+        "width": 1032,
+        "height": 394,
+        "dimensionsUnchanged": true,
+        "alphaByteChanges": 0,
+        "readbackAlphaByteChanges": 0,
+        "sourceAlphaSha256": "1f5f2a771994cea877119977bc7ed62d99bc5c9bcefa58c71feecdef4d246278",
+        "alphaSha256": "1f5f2a771994cea877119977bc7ed62d99bc5c9bcefa58c71feecdef4d246278",
+        "changedPaintPixels": 190157,
+        "protectedMetalPixels": 32694,
+        "protectedMetalRgbaChanges": 0,
+        "sourceMetalSha256": "4b1de90d93cfbe9a5a18f6c779d871c80c3822b59b2e895ee0bbe746e696cbd8",
+        "metalSha256": "4b1de90d93cfbe9a5a18f6c779d871c80c3822b59b2e895ee0bbe746e696cbd8",
+        "transparentPixelRgbaChanges": 0
+      }
+    },
+    {
+      "id": "staketv_black",
+      "file": "assets/farm/staketsvart_ovan.png",
+      "sha256": "fa6472842e11f8ea34fa58b2ba794e5fbf7174518451dcb7cb16578bfd8285ab",
+      "method": "Deterministic RGB-only charcoal paint remap of existing Higgsfield fence art. No generation, resizing, geometric edits or alpha changes.",
+      "proof": {
+        "source": "staket_ovan",
+        "target": "staketsvart_ovan",
+        "nativeSize": [
+          1024,
+          3072
+        ],
+        "sourceFrame": [
+          338,
+          0,
+          346,
+          3072
+        ],
+        "logicalSize": [
+          145,
+          1045
+        ],
+        "worldWidth": 13,
+        "metalRegions": [
+          [
+            365,
+            333,
+            411,
+            432
+          ],
+          [
+            615,
+            333,
+            660,
+            432
+          ],
+          [
+            365,
+            624,
+            411,
+            722
+          ],
+          [
+            615,
+            624,
+            660,
+            722
+          ],
+          [
+            342,
+            2721,
+            396,
+            2832
+          ],
+          [
+            634,
+            2721,
+            684,
+            2832
+          ],
+          [
+            386,
+            150,
+            641,
+            195
+          ],
+          [
+            381,
+            2598,
+            650,
+            2645
+          ],
+          [
+            365,
+            3055,
+            653,
+            3072
+          ]
+        ],
+        "file": "assets/farm/staketsvart_ovan.png",
+        "sourceFile": "assets/farm/staket_ovan.png",
+        "sourceSha256": "b4c7eb40007f2f158fd7edbe4d17dc376bb53f281f820f5301892dd6f2aa648b",
+        "sha256": "fa6472842e11f8ea34fa58b2ba794e5fbf7174518451dcb7cb16578bfd8285ab",
+        "width": 1024,
+        "height": 3072,
+        "dimensionsUnchanged": true,
+        "alphaByteChanges": 0,
+        "readbackAlphaByteChanges": 0,
+        "sourceAlphaSha256": "f54c7d9c56e47c72084feb61b5159288434f85865f735e050f054b373643ce0b",
+        "alphaSha256": "f54c7d9c56e47c72084feb61b5159288434f85865f735e050f054b373643ce0b",
+        "changedPaintPixels": 491017,
+        "protectedMetalPixels": 58485,
+        "protectedMetalRgbaChanges": 0,
+        "sourceMetalSha256": "6dc889586fa7b923d93c3fa86a32ae1a46a7ba95472cabd2edf0ad4480a4c45a",
+        "metalSha256": "6dc889586fa7b923d93c3fa86a32ae1a46a7ba95472cabd2edf0ad4480a4c45a",
+        "transparentPixelRgbaChanges": 0
+      }
+    }
+  ]
+}

@@ -206,8 +206,11 @@ const fullCowImg=new Image();fullCowImg.src='assets/boss/originals/Cow_boss.png?
 const fullRatImg=new Image();fullRatImg.src='assets/boss/originals/rat_boss.png?v=1';
 /* ---- 🚜 the Farm: build assets, loaded lazily ---- */
 const farmImgs={};
-const FARM_IMAGE_FRAMES={staket_ovan:{sourceSize:[1024,3072],source:[338,0,346,3072],size:[145,1045]}};
-const farmAssetUrl=n=>'assets/farm/'+n+'.png'+(['tide_incubator','staket_ovan'].includes(n)?'?v=2':'');
+const FARM_IMAGE_FRAMES={
+ staket_ovan:{sourceSize:[1024,3072],source:[338,0,346,3072],size:[145,1045]},
+ staketsvart_ovan:{sourceSize:[1024,3072],source:[338,0,346,3072],size:[145,1045]}
+};
+const farmAssetUrl=n=>'assets/farm/'+n+'.png'+(['tide_incubator','staket_ovan','bench_farm'].includes(n)?'?v=2':'');
 function farmImageSource(n,im){
  const frame=FARM_IMAGE_FRAMES[n];
  if(!frame||!im.complete||!im.naturalWidth)return im;
@@ -229,6 +232,8 @@ const FARM_BUILD=[
  /* 🏗 Building */
  {id:'staket',n:'Fence',img:'staketvit_sidan',tab:'b',W:130,gy:12,col:{r:14,crx:65,cry:9,cyo:4},snap:'h'}, /* thin wall ellipse spanning the full run - no slipping between the posts */
  {id:'staketv',n:'Fence (vertical)',img:'staket_ovan',tab:'b',W:13,gy:14,col:{r:14,crx:8,cry:47,cyo:-33},snap:'v'}, /* sized so its post caps render the same width as the horizontal fence's (~13 world units) */
+ {id:'staket_black',n:'Black Fence',img:'staketsvart_sidan',tab:'b',W:130,gy:12,col:{r:14,crx:65,cry:9,cyo:4},snap:'h'},
+ {id:'staketv_black',n:'Black Fence (vertical)',img:'staketsvart_ovan',tab:'b',W:13,gy:14,col:{r:14,crx:8,cry:47,cyo:-33},snap:'v'},
  {id:'lada',n:'Barn',img:'lada_farm',tab:'b',W:380,gy:30,col:{crx:130,cry:38,cyo:-40},sh:{rx:0.43,ry:0.105,dy:-0.09}},
  {id:'chickenhouse',n:'Chicken Coop',img:'chickenhouse_farm',tab:'b',W:230,gy:28,col:{crx:88,cry:34,cyo:-32},sh:{cx:-0.02,rx:0.44,ry:0.125,dy:-0.12}},
  {id:'tide_incubator',n:'Tide Incubator',img:'tide_incubator',tab:'b',W:299,gy:31.2,col:{crx:104,cry:37.7,cyo:-39},noScale:1,door:{x:.37,y:.88},sh:{rx:.40,ry:.105,dy:-.10}},
@@ -271,7 +276,7 @@ const FARM_BUILD=[
  {id:'flowerbed',n:'Flower Bed',img:'flowerbed_farm',tab:'d',W:130,gy:10,snap:'h'}, /* snaps into long borders like the hedge */
  {id:'pond',n:'Pond',img:'pond_farm',tab:'d',W:190,gy:12,col:{r:30,crx:80,cry:34,cyo:2},sh:false}, /* its painted earth rim already lies on the ground */
  {id:'pumpkins',n:'Pumpkin Patch',img:'pumpkins_farm',tab:'d',W:120,gy:8},
- {id:'bench',n:'Garden Bench',img:'bench_farm',tab:'d',W:90,gy:12,col:{r:12,crx:42,cry:12,cyo:0},sh:{cx:-0.02,rx:0.49,ry:0.085,dy:-0.115,rot:0.19}},
+ {id:'bench',n:'Garden Bench',img:'bench_farm',tab:'d',W:90,gy:12,col:{r:12,crx:42,cry:12,cyo:0},sh:{rx:0.49,ry:0.085,dy:-0.06,rot:0}},
  {id:'trough',n:'Water Trough',img:'trough_farm',tab:'d',W:100,gy:12,col:{r:14,crx:46,cry:14,cyo:0},sh:{rx:0.44,ry:0.065,dy:-0.03}},
  {id:'haywagon',n:'Hay Wagon',img:'haywagon_farm',tab:'d',W:170,gy:20,col:{r:30,crx:74,cry:28,cyo:-6},sh:{cx:-0.10,rx:0.35,ry:0.085,dy:-0.065}},
  {id:'beehives',n:'Beehives',img:'beehives_farm',tab:'d',W:80,gy:12,col:{r:18},sh:{rx:0.43,ry:0.13,dy:-0.115}},
@@ -283,6 +288,17 @@ const FARM_BUILD=[
   sh:{rx:0.24,ry:0.065,dy:-0.075},sway:{amp:0.030,spd:0.78,hold:0.58}}, /* roots are centred; the apple at the far right is separate */
  {id:'woodpile',n:'Firewood Pile',img:'woodpile_farm',tab:'d',W:125,gy:10,col:{r:16,crx:44,cry:14,cyo:0},sh:{cx:-0.02,rx:0.43,ry:0.10,dy:-0.085}},
  {id:'crates',n:'Produce Crates',img:'crates_farm',tab:'d',W:105,gy:10,col:{r:14,crx:38,cry:14,cyo:0},sh:{rx:0.39,ry:0.10,dy:-0.09}},
+ {id:'flowerpot',n:'Round Flower Planter',img:'flowerpot_farm',tab:'d',W:64,gy:9,col:{r:16},sh:{rx:0.34,ry:0.10,dy:-0.06}},
+ /* Open garden structures stay walk-through so the space beneath them can be used. */
+ {id:'garden_arch',n:'Stone Garden Arch',img:'garden_arch_farm',tab:'d',W:120,gy:14,noCol:1,sh:{rx:0.47,ry:0.075,dy:-0.07}},
+ {id:'pergola',n:'Wooden Pergola',img:'pergola_farm',tab:'d',W:160,gy:20,noCol:1,sh:{rx:0.45,ry:0.10,dy:-0.07}},
+ {id:'picnic_table',n:'Picnic Table',img:'picnic_table_farm',tab:'d',W:110,gy:14,col:{r:20,crx:43,cry:18,cyo:-2},sh:{rx:0.44,ry:0.11,dy:-0.07}},
+ {id:'barrels',n:'Stacked Barrels',img:'barrels_farm',tab:'d',W:70,gy:10,col:{r:20},sh:{rx:0.40,ry:0.10,dy:-0.07}},
+ {id:'mushrooms',n:'Mushroom Cluster',img:'mushrooms_farm',tab:'d',W:60,gy:6,col:{r:10},sh:{rx:0.36,ry:0.075,dy:-0.04}},
+ {id:'birdhouse',n:'Birdhouse',img:'birdhouse_farm',tab:'d',W:48,gy:8,col:{r:7},sh:{rx:0.14,ry:0.05,dy:-0.025}},
+ {id:'rosebush',n:'Rose Bush',img:'rosebush_farm',tab:'d',W:82,gy:10,col:{r:18},sh:{rx:0.35,ry:0.085,dy:-0.06}},
+ {id:'stone_wall',n:'Low Stone Wall',img:'stone_wall_farm',tab:'d',W:100,gy:10,col:{r:12,crx:50,cry:9,cyo:1},snap:'h',sh:{rx:0.49,ry:0.065,dy:-0.04}},
+ {id:'logstool',n:'Rustic Log Stool',img:'logstool_farm',tab:'d',W:44,gy:7,col:{r:12},sh:{rx:0.39,ry:0.11,dy:-0.07}},
  {id:'remove',n:'Remove',emoji:'🗑',tab:'*'} /* removes anything except the farmhouse */
 ];
 /* ⇄/⤢ per-piece look. fl:-1 mirrors the art, sc scales it (1 = catalogue size).
@@ -3064,7 +3080,7 @@ function rebuildFarmItems(){ /* placed buildings become solids; crops draw with 
   /* ⤢ a resized piece blocks the ground it actually covers - the whole hull scales with it */
   const sol={x:it.x,y:it.y,r:(col.r||40)*sc,type:'farmitem',ftype:it.t,farmItem:1,it};
   if(col.crx){sol.crx=col.crx*sc;sol.cry=col.cry*sc;sol.cyo=col.cyo*sc;}
-  if(def.roam)sol.noCol=1; /* 🐄 roamers: walk-through, and the solid follows the beast (sol→it only - S stays JSON-safe) */
+  if(def.roam||def.noCol)sol.noCol=1; /* Walk-through animals and open garden structures; roamers follow the beast without changing S. */
   world.solids.push(sol);
  }
 }
@@ -3131,11 +3147,12 @@ function farmDeselect(){
  if(held)renderFarmStore();
  return held;
 }
-const FARM_PRICES={lada:250000,staket:5000,staketv:5000,chickenhouse:100000,chickenfarm:0,chickenfarm_big:0,cowfarm:0,cowfarm_big:0,tjur:0,hay:0,hay_medium:0,hay_klar:0,hobal:0,chickenseeds:0,medium:350000,mansion:500000,dirt_road:0,gravel_road:0,light_farm:10000,bush:5000,bushv:5000,
+const FARM_PRICES={lada:250000,staket:5000,staketv:5000,staket_black:5000,staketv_black:5000,chickenhouse:100000,chickenfarm:0,chickenfarm_big:0,cowfarm:0,cowfarm_big:0,tjur:0,hay:0,hay_medium:0,hay_klar:0,hobal:0,chickenseeds:0,medium:350000,mansion:500000,dirt_road:0,gravel_road:0,light_farm:10000,bush:5000,bushv:5000,
  fountain:20000,tree_farm:15000,well:15000,scarecrow:10000,
  flowerbed:10000,pond:20000,pumpkins:10000,bench:10000,
  trough:12000,haywagon:18000,beehives:12000,farmsign:10000,
- windmill:60000,appletree:18000,woodpile:8000,crates:8000,tide_incubator:TideFarm.PRICE}; /* gold cost per placement */
+ windmill:60000,appletree:18000,woodpile:8000,crates:8000,tide_incubator:TideFarm.PRICE,
+ flowerpot:8000,garden_arch:25000,pergola:35000,picnic_table:15000,barrels:8000,mushrooms:5000,birdhouse:10000,rosebush:8000,stone_wall:6000,logstool:5000}; /* gold cost per placement */
 const FARM_SCRAPS={lada:300,chickenhouse:150,medium:600,mansion:800}; /* ⚙ scrap cost on top of gold */
 const FARM_ROAD_RATE={dirt_road:10,gravel_road:15}; /* 🛣 roads are priced by length: ◉ per world-unit drawn */
 const roadCost=g2=>Math.round(Math.hypot(g2.x1-g2.x0,g2.y1-g2.y0)*(FARM_ROAD_RATE[g2.t]||0));
