@@ -1540,6 +1540,7 @@ function freshState(name,race,cls){
  return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,lastZone:0,maxZone:0,quest:0,qProg:0,hardcore:false,hcDead:false,gender:'m',
   rating:0,odinKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',bankGold:0,bankScrap:0,bankEarned:0,bankLastT:0,smithLvl:0,smithJob:null,luckPots:0,luckT:0,gamblerPots:0,gamblerT:0,restedT:0,restedPct:0,restedSpinAt:0,freeGoldCases:0,chests:{violethalls:0},mining:{trained:false,skill:0,on:false},ench:{trained:false,skill:0,bag:[]},ore:{coal:0,ore:0,gem:0},cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
   gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],pet:null,pets:[],mounts:Mounts.normalize(null),tides:Tides.createCollection(),
+  farm:FarmLayout.migrate({owned:false,b:[],c:[],r:[],lvl:1,xp:0,baleN:0,cseedN:0,inv:{}}),
   boosts:{speed:0,haste:0},autoUse:{},tainted:false,
   cleared:{},bossDead:{},zoneLvlGain:{},wastelandBossReadyAt:WastelandDungeons.normalizeBossTimers(null),
   auto:true,autoEquip:true,sound:true,sfx:true,volAmb:0.5,volSfx:0.55,finished:false};
@@ -1634,7 +1635,7 @@ function migrate(s){ /* fills fields missing from older saves */
  if(!s.knifeAwarded&&(s.rating||0)>=3000){s.knifeAwarded=true;s.theKnife=true;} /* already past 3000 - the knife finds them */
  if(s.gearSets===undefined){s.gearSets=[null,null];s.gearSetSel=-1;} /* two swappable loadouts */
  if(s.farm===undefined)s.farm={owned:false,b:[],c:[]}; /* 🚜 the farm: buildings + crops */
- if(s.farm.hx===undefined){s.farm.hx=975;s.farm.hy=1320;} /* farmhouse home spot - movable in build mode */
+ FarmLayout.migrate(s.farm); /* keep the complete saved layout together in the expanded central field */
  if(s.farm.lvl===undefined)s.farm.lvl=1; /* 🚜 farm level - levels via farm XP (slaughter) */
  if(s.farm.xp===undefined)s.farm.xp=0;
  if(s.farm.r===undefined)s.farm.r=[]; /* 🛣 laid road segments */
@@ -3239,7 +3240,7 @@ function updateFarmAnimals(dt){
    if(it.preg&&now-it.preg>PREG_T){
     delete it.preg;
     if(barnRoom()>0){ /* barn full → the calf never comes */
-     S.farm.b.push({t:'cowfarm',x:Math.max(60,Math.min(4140,it.x+24)),y:Math.max(60,Math.min(world.h-60,it.y+16)),fed:now});
+     S.farm.b.push({t:'cowfarm',x:FarmLayout.clampAnimalX(it.x+24),y:FarmLayout.clampAnimalY(it.y+16),fed:now});
      stageMsg('🐄 A calf was born!',2000);sfx.buy();sparkles(it.x,it.y-20,'#ffc9e0',12);
      rebuildFarmItems();save();return;
     }
@@ -3248,7 +3249,7 @@ function updateFarmAnimals(dt){
    if(it.egg&&now-it.egg>HATCH_T){
     delete it.egg;
     if(coopRoom()>0){ /* coop full → no hatch */
-     S.farm.b.push({t:'chickenfarm',x:Math.max(60,Math.min(4140,it.x+16)),y:Math.max(60,Math.min(world.h-60,it.y+10)),fed:now});
+     S.farm.b.push({t:'chickenfarm',x:FarmLayout.clampAnimalX(it.x+16),y:FarmLayout.clampAnimalY(it.y+10),fed:now});
      stageMsg('🐣 A chick hatched!',2000);sfx.buy();sparkles(it.x,it.y-14,'#ffe9a0',10);
      rebuildFarmItems();save();return;
     }
@@ -3299,8 +3300,8 @@ function updateFarmAnimals(dt){
    const pr={r:(def.col&&def.col.r)||10};
    for(let tr=0;tr<6;tr++){ /* stroll targets must be walkable - penned animals roam INSIDE their pen */
     const a=Math.random()*Math.PI*2,d=(80+Math.random()*260)*(1-tr*0.13); /* shrink per retry so tight pens still work */
-    const tx=Math.max(60,Math.min(4140,it.x+Math.cos(a)*d));
-    const ty=Math.max(60,Math.min(world.h-60,it.y+Math.sin(a)*d));
+    const tx=FarmLayout.clampAnimalX(it.x+Math.cos(a)*d);
+    const ty=FarmLayout.clampAnimalY(it.y+Math.sin(a)*d);
     if(pathClear(it.x,it.y,tx,ty,pr)){sol.tx=tx;sol.ty=ty;break;}
    }
    if(sol.tx===undefined)sol.pz=0.6+Math.random(); /* boxed in tight - wait a beat and try again */
@@ -3353,9 +3354,9 @@ function simFarmAway(){
    }else if(ty==='cowfarm_big'&&!it.preg){
     const bulls=b.filter(b3=>b3.t==='tjur').length; /* on the same feeding schedule → sated while food lasts */
     if(bulls>0&&barnRoom()>0&&Math.random()<Math.min(1,bulls*0.15))
-     newborns.push({t:'cowfarm',x:Math.max(60,Math.min(4140,it.x+24)),y:it.y+16,fed:t});
+     newborns.push({t:'cowfarm',x:FarmLayout.clampAnimalX(it.x+24),y:FarmLayout.clampAnimalY(it.y+16),fed:t});
    }else if(ty==='chickenfarm_big'&&coopRoom()>0&&Math.random()<0.15){
-    newborns.push({t:'chickenfarm',x:Math.max(60,Math.min(4140,it.x+16)),y:it.y+10,fed:t});
+    newborns.push({t:'chickenfarm',x:FarmLayout.clampAnimalX(it.x+16),y:FarmLayout.clampAnimalY(it.y+10),fed:t});
    }
    const d2=FARM_BUILD.find(o=>o.id===ty);
    t+=(d2&&d2.eatT)||3600000;
@@ -3398,7 +3399,7 @@ function simFarmAway(){
   }
   return false;
  };
- const cx=v=>Math.max(60,Math.min(4140,v)),cy=v=>Math.max(60,Math.min(2540,v));
+ const cx=FarmLayout.clampAnimalX,cy=FarmLayout.clampAnimalY;
  let ate=0,grew=0,born=0,hatched=0;
  for(const it of S.farm.b.slice()){
   const def=FARM_BUILD.find(o=>o.id===it.t);
@@ -3504,6 +3505,12 @@ function farmRefund(list){
  return parts.length?' ('+parts.join(' · ')+')':'';
 }
 const CROP_GX=72,CROP_GY=48; /* crop grid = the dirt patch footprint, so patches tile like a field */
+function farmBuildPositionOk(it,x,y){
+ if(!FarmLayout.contains(x,y))return false;
+ if(!it?.road)return true;
+ const dx=x-it.x,dy=y-it.y;
+ return FarmLayout.contains(it.x0+dx,it.y0+dy)&&FarmLayout.contains(it.x1+dx,it.y1+dy);
+}
 function cropCellTaken(id,x,y){
  const def=FARM_BUILD.find(o=>o.id===id);
  if(!def||!def.crop)return false;
@@ -3513,7 +3520,7 @@ function cropCellTaken(id,x,y){
 function snapPos(id,x,y){
  const def=FARM_BUILD.find(o=>o.id===id);
  if(def&&def.crop) /* crops ALWAYS grid-snap - the 🧲 toggle can't turn it off, so no stacking cheese */
-  return {x:Math.round(x/CROP_GX)*CROP_GX,y:Math.round(y/CROP_GY)*CROP_GY};
+  return {x:FarmLayout.OFFSET_X+Math.round((x-FarmLayout.OFFSET_X)/CROP_GX)*CROP_GX,y:FarmLayout.OFFSET_Y+Math.round((y-FarmLayout.OFFSET_Y)/CROP_GY)*CROP_GY};
  if(!snapMode)return {x,y};
  if(!def||!def.snap)return {x,y};
  const my=itemSpanOf(def);
@@ -3561,8 +3568,8 @@ function enterBuildMode(){
  buildMode=true;buildSel=null;buildTab='b';
  hero.moveTo=null;hero.target=null;hero.pendingDoor=null;
  /* bird's-eye: fit the whole buildable field on screen */
- setZoom(Math.min(VW/4400,VH/2750));
- camX=2100-VW/(2*zoom);camY=1300-VH/(2*zoom);
+ setZoom(Math.min(VW/(FarmLayout.BUILD.x1-FarmLayout.BUILD.x0+240),VH/(FarmLayout.HEIGHT+200)));
+ camX=FarmLayout.WIDTH/2-VW/(2*zoom);camY=FarmLayout.HEIGHT/2-VH/(2*zoom);
  $('farmStore').style.display='flex';
  $('farmStore').classList.remove('collapsed');
  const fc=$('fsCollapse');if(fc)fc.textContent='❮';
@@ -3724,7 +3731,7 @@ function placeFarmItem(id,x,y){
  }
  const rdef=FARM_BUILD.find(o=>o.id===id);
  if(rdef&&rdef.road){ /* 🛣 Sims-style: first click anchors, second click lays the stretch, chain continues */
-  if(x<40||x>=4200||y<40||y>world.h-40){blip(300,180,0.1,.05);return;}
+  if(!FarmLayout.contains(x,y)){blip(300,180,0.1,.05);return;}
   if(!roadAnchor){roadAnchor={x,y};blip(700,950,0.07,.04);stageMsg('🛣 Click where this stretch should end - same spot cancels',1700);return;}
   if(Math.hypot(x-roadAnchor.x,y-roadAnchor.y)<24){roadAnchor=null;blip(300,180,0.1,.05);return;}
   farmCart.push({t:id,road:1,x0:roadAnchor.x,y0:roadAnchor.y,x1:x,y1:y,x:Math.round((roadAnchor.x+x)/2),y:Math.round((roadAnchor.y+y)/2)});
@@ -3733,7 +3740,7 @@ function placeFarmItem(id,x,y){
   return;
  }
  const sp=snapPos(id,x,y);x=Math.round(sp.x);y=Math.round(sp.y);
- if(x<40||x>=4200||y<40||y>world.h-40){blip(300,180,0.1,.05);return;}
+ if(!FarmLayout.contains(x,y)){blip(300,180,0.1,.05);return;}
  if(cropCellTaken(id,x,y)){stageMsg('🌾 Occupied - pick a free tile',1300);sfx.warn();return;}
  farmCart.push({t:id,x,y,_drop:performance.now()}); /* a ghost until you pay for it; _drop plays the landing once */
  sfx.place();
@@ -3798,8 +3805,7 @@ function openMiningHall(){$('mineFx').style.display='flex';mineRefresh();sfx.buy
 /* ==================== 🌫 THE EDGE OF THE WORLD ====================
    Normal play can no longer see past the map - zmin() covers the screen. But two views are exempt on
    purpose: build mode pulls back to place things, and dbgZoom looks at a whole zone from outside it.
-   Both then show the void beyond the map, and the farm at 8400x2600 is short enough that it happens
-   on any desktop, not only a big one.
+   Both can show the void beyond the map when the camera fits the buildable field or a whole zone.
    So the edge gets weather instead of a leash. White drifting fog fills everything outside the world
    and feathers a little way INSIDE it, which is the part that matters: it is the hard boundary line
    that reads as broken, not the emptiness beyond it. Drawn last in world space, so it covers fences
@@ -4606,17 +4612,20 @@ function drawCityWalls(foreground=false){
   if(!(gx+gw<vx0||gx>vx1||gy+gh<vy0||gy>vy1))ctx.drawImage(mip(gi,gw),gx,gy,gw,gh);
  }
 }
-function drawFarmGround(){ /* farm_zone stretched over one cow-field, laid twice - the second flipped to hide the seam */
+function drawFarmGround(){ /* Extend the original field with mirrored tiles at the same texture scale. */
  const img=zoneMapImg('farm_zone');
  const vx0=camX,vy0=camY,vx1=camX+VW/zoom,vy1=camY+VH/zoom;
- if(!(img.complete&&img.naturalWidth)){ctx.fillStyle='#6e7d46';ctx.fillRect(vx0,vy0,vx1-vx0,vy1-vy0);return;}
+ if(!(img.complete&&img.naturalWidth)){ctx.fillStyle='#6e7d46';ctx.fillRect(0,0,world.w,world.h);return;}
  const TW=4200,TH=2600;
- for(let t=0;t<2;t++){
-  const x0=t*TW;
-  if(x0>vx1||x0+TW<vx0)continue;
-  if(t===1){ctx.save();ctx.translate(x0+TW/2,TH/2);ctx.scale(-1,1);ctx.drawImage(mip(img,TW),-TW/2,-TH/2,TW,TH);ctx.restore();}
-  else ctx.drawImage(mip(img,TW),x0,0,TW,TH);
+ const ox=FarmLayout.OFFSET_X,oy=FarmLayout.OFFSET_Y,src=mip(img,TW);
+ const tx0=Math.floor((Math.max(0,vx0)-ox)/TW),tx1=Math.ceil((Math.min(world.w,vx1)-ox)/TW);
+ const ty0=Math.floor((Math.max(0,vy0)-oy)/TH),ty1=Math.ceil((Math.min(world.h,vy1)-oy)/TH);
+ ctx.save();ctx.beginPath();ctx.rect(0,0,world.w,world.h);ctx.clip();
+ for(let ty=ty0;ty<ty1;ty++)for(let tx=tx0;tx<tx1;tx++){
+  ctx.save();ctx.translate(ox+(tx+.5)*TW,oy+(ty+.5)*TH);ctx.scale(tx%2?-1:1,ty%2?-1:1);
+  ctx.drawImage(src,-TW/2,-TH/2,TW,TH);ctx.restore();
  }
+ ctx.restore();
  ctx.strokeStyle='rgba(0,0,0,0.35)';ctx.lineWidth=26;ctx.strokeRect(0,0,world.w,world.h);
  for(const r of ((S&&S.farm&&S.farm.r)||[]))drawRoadSeg(r); /* 🛣 roads sit on the ground, under the crops */
  const cropsSorted=((S&&S.farm&&S.farm.c)||[]).slice().sort((a,b)=>a.y-b.y); /* back row first - front straws overlap the row behind */
@@ -4714,7 +4723,7 @@ function buildZone(){
  if(legacyWastelandBiome){S.zone=WASTELAND_ZONE;applyZoneUI();}
  const z=zoneOf(),R=mulberry32(S.zone*7919+13);
  const isBoss=!!z.boss;
- world={w:z.crypts?13440:z.city?16800:z.farm?8400:z.finalb?3300:z.raid?3800:z.cow?4200:z.tavern?2600:isBoss?2400:3000,h:z.crypts?7740:z.city?5200:z.farm?2600:z.finalb?2200:z.raid?1900:z.cow?2600:z.tavern?1700:isBoss?1600:2000,solids:[],deco:[],waters:[]}; /* larger maps - full desktop view + hidden side panel; cow field is the biggest, the final arena is tall */
+ world={w:z.crypts?13440:z.city?16800:z.farm?FarmLayout.WIDTH:z.finalb?3300:z.raid?3800:z.cow?4200:z.tavern?2600:isBoss?2400:3000,h:z.crypts?7740:z.city?5200:z.farm?FarmLayout.HEIGHT:z.finalb?2200:z.raid?1900:z.cow?2600:z.tavern?1700:isBoss?1600:2000,solids:[],deco:[],waters:[]}; /* each zone owns its world dimensions */
  world.spawn={x:120,y:world.h/2};
  world.portal={x:world.w-80,y:world.h/2};
  world.pathY=world.h/2;world.pathH=110;
@@ -4801,10 +4810,10 @@ function buildZone(){
  }else{
   if(z.crypts)buildCryptMaze();
   if(z.farm){ /* 🚜 the Farm - the little farmhouse guards the fields */
-   world.spawn={x:470,y:1300}; /* a good few steps clear of the way-home portal */
+   world.spawn={...FarmLayout.SPAWN}; /* a good few steps clear of the way-home portal */
    world.portal={x:-500,y:-500}; /* no default exit swirl */
-   world.solids.push({x:120,y:1300,r:38,type:'altarportal'}); /* the way home */
-   world.solids.push({x:(S.farm&&S.farm.hx)||975,y:(S.farm&&S.farm.hy)||1320,r:46,type:'farmhouse',crx:150,cry:44,cyo:-60});
+   world.solids.push({...FarmLayout.EXIT,r:38,type:'altarportal'}); /* the way home */
+   world.solids.push({x:S.farm?.hx??FarmLayout.HOUSE.x,y:S.farm?.hy??FarmLayout.HOUSE.y,r:46,type:'farmhouse',crx:150,cry:44,cyo:-60});
    rebuildFarmItems();
    zoneMapImg('farm_zone');
   }
@@ -6556,9 +6565,10 @@ cv.addEventListener('pointerdown',e=>{
     return;
    }
    if(moveItem){ /* set it down here */
-    if(wx>=40&&wx<4200&&wy>=40&&wy<=world.h-40){
+    if(FarmLayout.contains(wx,wy)){
      const it=farmListOf(moveItem.kind)[moveItem.i];
      const sp=it?snapPos(it.t,wx,wy):null;
+     if(it&&!farmBuildPositionOk(it,Math.round(sp.x),Math.round(sp.y))){blip(300,180,0.1,.05);return;}
      if(it&&cropCellTaken(it.t,Math.round(sp.x),Math.round(sp.y))){stageMsg('🌾 Occupied - pick a free tile',1300);sfx.warn();return;}
      if(it&&it.road){const ddx=Math.round(sp.x)-it.x,ddy=Math.round(sp.y)-it.y;it.x0+=ddx;it.x1+=ddx;it.y0+=ddy;it.y1+=ddy;} /* carry the whole stretch */
      if(it){it.x=Math.round(sp.x);it.y=Math.round(sp.y);delete it._moving;}
@@ -6573,11 +6583,11 @@ cv.addEventListener('pointerdown',e=>{
    if(buildSel&&IS_TOUCH){ /* 📱 phones: drag the piece into place, drop on release - one per selection */
     const pd=FARM_BUILD.find(o=>o.id===buildSel);
     if(pd&&!pd.road){
-     if(wx>=40&&wx<4200&&wy>=40&&wy<=world.h-40)placeDrag={id:e.pointerId,t:buildSel,x:wx,y:wy};
+     if(FarmLayout.contains(wx,wy))placeDrag={id:e.pointerId,t:buildSel,x:wx,y:wy};
      return;
     }
    }
-   if(buildSel&&wx>=40&&wx<4200&&wy>=40&&wy<=world.h-40)placeFarmItem(buildSel,wx,wy);
+   if(buildSel&&FarmLayout.contains(wx,wy))placeFarmItem(buildSel,wx,wy);
    else if(!buildSel){
     const hit=farmHitTest(wx,wy);
     if(hit){movePicked=hit;showMovePopup(hit,e.clientX,e.clientY);return;}
@@ -6884,12 +6894,11 @@ let debugZoom=false;
    The cost is real and worth naming: the painted maps are ~1536 px stretched over 2400-3000 units, so
    a higher zoom upscales them further. Sharper maps are a separate job.
    Two views are deliberately exempt. dbgZoom exists to see a whole zone from outside it, and BUILD
-   MODE exists to pull back and place things - clamping that would cost 2.5x the overview on a 4K
-   screen, and the farm at 8400x2600 already overflows vertically on 1080p. Those two get the edge
-   treatment instead of a leash. */
+   MODE exists to pull back and place things, including the expanded farm's full height.
+   Those two get the edge treatment instead of a leash. */
 const zmin=()=>{
  if(debugZoom)return 1/20;                           /* the whole zone, however big */
- if(buildMode)return 1/3;                            /* the architect gets his overview */
+ if(buildMode)return Math.min(1/3,VW/(FarmLayout.BUILD.x1-FarmLayout.BUILD.x0+240),VH/(FarmLayout.HEIGHT+200)); /* fit the complete buildable field */
  const base=(IS_TOUCH&&Math.min(VW,VH)<820)?0.5:0.9; /* phones may pull back further than desktop */
  if(!world||!world.w||!world.h)return base;
  return Math.max(base,VW/world.w,VH/world.h);
@@ -8041,12 +8050,14 @@ function draw(){
  if(z.farm&&buildMode){ /* buildable boundary + pending ghosts + ghost of the selected item */
   { /* 📐 build grid - instant visual cue that build mode is on */
    const GRID=100;
-   const vx0=Math.max(40,camX),vx1=Math.min(4200,camX+VW/zoom);
-   const vy0=Math.max(40,camY),vy1=Math.min(world.h-40,camY+VH/zoom);
+   const vx0=Math.max(FarmLayout.BUILD.x0,camX),vx1=Math.min(FarmLayout.BUILD.x1,camX+VW/zoom);
+   const vy0=Math.max(FarmLayout.BUILD.y0,camY),vy1=Math.min(FarmLayout.BUILD.y1,camY+VH/zoom);
    ctx.strokeStyle='rgba(255,255,255,0.13)';ctx.lineWidth=Math.min(5,2.5/zoom);
    ctx.beginPath();
-   for(let lx=Math.ceil(vx0/GRID)*GRID;lx<=vx1;lx+=GRID){ctx.moveTo(lx,vy0);ctx.lineTo(lx,vy1);}
-   for(let ly=Math.ceil(vy0/GRID)*GRID;ly<=vy1;ly+=GRID){ctx.moveTo(vx0,ly);ctx.lineTo(vx1,ly);}
+   if(vx1>=vx0&&vy1>=vy0){
+    for(let lx=Math.ceil(vx0/GRID)*GRID;lx<=vx1;lx+=GRID){ctx.moveTo(lx,vy0);ctx.lineTo(lx,vy1);}
+    for(let ly=Math.ceil(vy0/GRID)*GRID;ly<=vy1;ly+=GRID){ctx.moveTo(vx0,ly);ctx.lineTo(vx1,ly);}
+   }
    ctx.stroke();
   }
   ctx.globalAlpha=0.70; /* unpaid ghosts: clearly provisional, but solid enough to judge the layout */
@@ -8094,7 +8105,7 @@ function draw(){
   }
   ctx.globalAlpha=1;
   ctx.strokeStyle='rgba(255,255,255,0.30)';ctx.setLineDash([16,12]);ctx.lineWidth=3;
-  ctx.strokeRect(20,20,4180,world.h-40);ctx.setLineDash([]);
+  ctx.strokeRect(FarmLayout.BUILD.x0,FarmLayout.BUILD.y0,FarmLayout.BUILD.x1-FarmLayout.BUILD.x0,FarmLayout.BUILD.y1-FarmLayout.BUILD.y0);ctx.setLineDash([]);
   if(sizeItem){ /* ⤢ live readout - a ring at the new footprint plus the percentage */
    const it=farmListOf(sizeItem.kind)[sizeItem.i];
    if(it){
@@ -8110,7 +8121,8 @@ function draw(){
   if(buildSel||moveItem){
    const gid=moveItem?moveItem.t:buildSel;
    const gp=gid&&gid!=='remove'?snapPos(gid,mouseWX,mouseWY):{x:mouseWX,y:mouseWY};
-   const ok=gp.x>=40&&gp.x<4200&&gp.y>=40&&gp.y<=world.h-40&&!cropCellTaken(gid,Math.round(gp.x),Math.round(gp.y));
+   const carried=moveItem?farmListOf(moveItem.kind)[moveItem.i]:null;
+   const ok=farmBuildPositionOk(carried,Math.round(gp.x),Math.round(gp.y))&&!cropCellTaken(gid,Math.round(gp.x),Math.round(gp.y));
    ctx.globalAlpha=ok?0.55:0.25;
    const def=FARM_BUILD.find(x=>x.id===gid);
    if(def&&def.road&&roadAnchor){ /* 🛣 live stretch preview from the anchor to the cursor */
