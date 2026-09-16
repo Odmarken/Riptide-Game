@@ -3,11 +3,12 @@
  'use strict';
  const STORAGE_KEY='riptide.displaySettings',MIN=60,MAX=140;
  function normalize(raw){
-  const result={brightness:100,contrast:100};
+  const result={brightness:100,contrast:100,showFps:true};
   if(!raw||typeof raw!=='object'||Array.isArray(raw))return result;
-  for(const key of Object.keys(result)){
+  for(const key of ['brightness','contrast']){
    if(typeof raw[key]==='number'&&Number.isFinite(raw[key]))result[key]=Math.round(Math.max(MIN,Math.min(MAX,raw[key])));
   }
+  if(typeof raw.showFps==='boolean')result.showFps=raw.showFps;
   return result;
  }
  function filter(value){
@@ -31,18 +32,24 @@
       so its own canvas gets one adjustment, never a second baked-in filter. */
    const effect=filter(value);
    for(const id of ['game','tideArena']){const canvas=doc.getElementById(id);if(canvas)canvas.style.filter=effect;}
+   const fps=doc.getElementById('fps'),fpsToggle=doc.getElementById('fpsChk');
+   if(fps)fps.hidden=!value.showFps;
+   if(fpsToggle)fpsToggle.checked=value.showFps;
    for(const key of ['brightness','contrast']){
     const input=doc.getElementById(key+'Sl'),output=doc.getElementById(key+'N');
     if(input){input.value=value[key];input.setAttribute('aria-valuetext',value[key]+'%');paintRange(input);}
     if(output)output.textContent=value[key];
    }
   }
-  function reset(){value=normalize(null);try{store?.removeItem(STORAGE_KEY);}catch(_){}sync();}
+  function reset(){value=normalize({showFps:value.showFps});sync();save();}
   for(const key of ['brightness','contrast']){
    doc.getElementById(key+'Sl')?.addEventListener('input',e=>{
     value=normalize({...value,[key]:Number(e.target.value)});sync();save();
    });
   }
+  doc.getElementById('fpsChk')?.addEventListener('change',e=>{
+   value={...value,showFps:e.target.checked};sync();save();
+  });
   doc.getElementById('videoReset')?.addEventListener('click',reset);
   root.addEventListener?.('storage',e=>{if(e.key===STORAGE_KEY||e.key===null){value=read();sync();}});
   value=read();sync();

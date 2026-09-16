@@ -99,7 +99,7 @@ function characterHandPoint(frame,fx,by){
 }
 function characterBootFrame(race,female,img,bodyBottom=5,reviewedTop=null){
  // Stable feet for each frame: a robe's width or an armor swap cannot grow boots.
- const bw=female?({human:8.6,dwarf:10.7,orc:8.6,undead:8.2}[race]||9.5):12;
+ const bw=female?({human:8.6,dwarf:10.7,orc:8.6,undead:8.2,npc:7.8}[race]||9.5):12;
  const aspect=img&&img.naturalWidth?img.naturalHeight/img.naturalWidth:677/578;
  const top=Number.isFinite(reviewedTop)?reviewedTop:bodyBottom-2;
  return {bw,top,planted:true,fem:!!female,groundY:top+bw*aspect-2};
