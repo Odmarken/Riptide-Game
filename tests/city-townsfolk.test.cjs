@@ -1,4 +1,4 @@
-/* The City's townsfolk and watch, built headless from the production city builder: at least forty
+/* The City's townsfolk and watch, built headless from the production city builder: at least sixty
  * villagers, every one walking the streets rather than through the terraces, and five guards in two
  * patrols marching closed rounds of the main streets. Run with node --test. */
 const test=require('node:test');
@@ -24,16 +24,16 @@ const townsfolk=w=>w.npcs.filter(n=>!n.patrol&&!n.game);
 const guards=w=>w.npcs.filter(n=>n.patrol);
 const along=(a,b,t)=>({x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t});
 
-test('at least forty townsfolk walk the City, in the old faces and the new',()=>{
+test('at least sixty townsfolk walk the City, in the old faces and the new',()=>{
  for(const seed of [1,13,42]){
   const {world:w,folk}=city(seed),folks=townsfolk(w);
-  assert.ok(folks.length>=40,`seed ${seed}: ${folks.length} townsfolk`);
+  assert.ok(folks.length>=60,`seed ${seed}: ${folks.length} townsfolk`);
   assert.equal(folks.length,folk.length,'every name on the roster found a route');
   assert.equal(new Set(folks.map(n=>n.name)).size,folks.length,'no name twice');
   const skins=new Set(folks.map(n=>n.skin));
   for(const k of ['male','female','noble_velvet','noble_elder','noble_dandy','noble_lady','noble_dowager','noble_maiden','merchant','monk','blacksmith','baker','market_woman'])
    assert.ok(skins.has(k),`skin ${k} is worn`);
-  assert.ok(folks.filter(n=>/^noble_/.test(n.skin)).length>=12,'a dozen nobles');
+  assert.ok(folks.filter(n=>/^noble_/.test(n.skin)).length>=18,'a dozen and a half nobles');
   assert.ok(w.npcs.some(n=>n.game==='cups'&&n.name==='Sebbe'),'Sebbe still runs his cups');
   for(const n of folks){
    assert.equal(typeof n.skin,'string');
@@ -162,7 +162,7 @@ test('a patrol marches its round without halting and keeps its file; townsfolk p
  assert.ok(lap<420,'seven minutes covers a lap');
  /* townsfolk: somebody has paused, and everyone turned around instead of running off the end */
  /* a corner pause is 0.6-3.2 s of Math.random, so the whole run is asked, not the final tick alone -
-    all 48 happen to be walking at one instant a few percent of the time */
+    all 72 happen to be walking at one instant a small fraction of the time */
  assert.ok(idleTicks>ticks/10,`villagers idled on only ${idleTicks} of ${ticks} ticks`);
  for(const n of folks){
   assert.ok(n.i>=0&&n.i<n.pts.length,`${n.name} index ${n.i}`);

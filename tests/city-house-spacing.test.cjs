@@ -57,8 +57,10 @@ test('spacing remains deterministic and preserves City size, services, gate and 
  ]);
  assert.deepEqual(w.solids.filter(s=>['well','altarportal'].includes(s.type)).map(s=>[s.type,s.x,s.y]),[['altarportal',300,2600],['well',8400,2600]]);
  const hash=data=>crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');
- // Recorded when the townsfolk moved onto the street graph (48 villagers, two patrols, Sebbe):
- // decoration changes must not consume more seeded RNG and silently reroll their routes.
- assert.equal(hash(w.npcs),'a584731958d4367392a28b530fe5beb292fefa9999dd7fbd5ba71db31fb87f82');
+ // Recorded when the second wave of townsfolk joined (72 villagers, two patrols, Sebbe); the first
+ // 48 hash exactly as they did on the day they moved onto the street graph, because the new names
+ // are appended to the roster and the seeded RNG is drawn in roster order. Decoration changes must
+ // not consume more seeded RNG and silently reroll the routes.
+ assert.equal(hash(w.npcs),'d7d5cca7d66a16530948a413007666b23e5873644c2b1483b11b21dd50ae4304');
  assert.deepEqual(w.mwalls.map(s=>[s.x,s.y,s.w,s.h]),[[0,60,16800,140],[0,5000,16800,140],[60,0,140,2525],[60,2675,140,2525],[16600,0,140,5200]]);
 });

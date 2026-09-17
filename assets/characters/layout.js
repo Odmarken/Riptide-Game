@@ -111,10 +111,14 @@ function characterHandPoint(frame,fx,by){
  const a=by*.025,c=Math.cos(a),s=Math.sin(a),x=frame.hand.x,y=frame.hand.y+by;
  return {x:(fx<0?1:-1)*(x*c-y*s),y:x*s+y*c};
 }
+/* The ladies' shoes sit one unit lower than the men's (2026-09-17): tucked as tight as the boots
+ * they read as part of the hem, and a sliver of air below the gowns and the compact costumes
+ * reads as ankles. It applies to every female frame - heroes, Ice Armor and the townswomen. */
+const FEMALE_BOOT_DROP=1;
 function characterBootFrame(race,female,img,bodyBottom=5,reviewedTop=null){
  // Stable feet for each frame: a robe's width or an armor swap cannot grow boots.
  const bw=female?({human:8.6,dwarf:10.7,orc:8.6,undead:8.2,npc:7.8}[race]||9.5):12;
  const aspect=img&&img.naturalWidth?img.naturalHeight/img.naturalWidth:677/578;
- const top=Number.isFinite(reviewedTop)?reviewedTop:bodyBottom-2;
+ const top=(Number.isFinite(reviewedTop)?reviewedTop:bodyBottom-2)+(female?FEMALE_BOOT_DROP:0);
  return {bw,top,planted:true,fem:!!female,groundY:top+bw*aspect-2};
 }

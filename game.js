@@ -4295,7 +4295,10 @@ const CITY_NAMES=[
 /* Who walks the streets, by name and skin. The 24 original townsfolk keep their names and get a
    face that suits them; the rest are the gentry the cathedral square deserved - counts, barons, a
    dowager duchess - plus a few merchants, clergy and tradesfolk, and six hero costumes so the dwarves,
-   orcs and undead are seen in the capital too. Nobles keep to the central district. */
+   orcs and undead are seen in the capital too. Nobles keep to the central district. The last two
+   dozen (2026-09-17) wear the same faces again and only thicken the crowd: the city looked empty
+   at 48 on 16800 units of street. They come after the originals on purpose - the seeded RNG is
+   consumed in roster order, so the older routes are what they were. */
 const CITY_FOLK=[
  ['Alrik Stenhand','male'],['Bodil Vass','baker'],['Cederik Malm','blacksmith'],['Disa Kvarn','market_woman'],
  ['Emrik Sot','blacksmith'],['Frida Tjära','female'],['Gorm Hammarson','male'],['Halla Nystan','baker'],
@@ -4311,6 +4314,14 @@ const CITY_FOLK=[
  ['Bagar-Lovisa','baker'],['Syster Agnes','female'],
  ['Brokk Malmhand','dwarfmale_hunter'],['Tova Bergsdotter','dwarffemale_priest'],['Zorga Blodtand','orcfemale_mage'],
  ['Urzul Gråhud','orcmale_hunter'],['Morwen Askvind','undeadfemale_mage'],['Eskil Pilfinger','humanmale_hunter'],
+ /* the second wave */
+ ['Greve Torsten Ekeblad','noble_velvet'],['Kammarherre Otto Lilje','noble_elder'],['Junker Filip Silverlöv','noble_dandy'],
+ ['Friherrinnan Beata Örnfot','noble_lady'],['Fru Gunilla Ekeblad','noble_dowager'],['Fröken Amalia Vidhem','noble_maiden'],
+ ['Köpman Bertil Skilling','merchant'],['Handlare Melker Vikt','merchant'],['Broder Botolf','monk'],['Broder Kjell','monk'],
+ ['Mäster Ragnvald Ässja','blacksmith'],['Smedgesäll Hjalmar','blacksmith'],['Bagar-Klara','baker'],['Bagar-Stina','baker'],
+ ['Torg-Gunhild','market_woman'],['Torg-Elin','market_woman'],['Syster Tyra','female'],['Syster Ragnhild','female'],
+ ['Sven Kolare','male'],['Knut Tegel','male'],['Fiskar-Ottar','male'],
+ ['Dagny Järnhäl','dwarffemale_warrior'],['Grash Benknäckare','orcmale_warrior'],['Vex Gravkall','undeadmale_hunter'],
 ];
 /* what a skin says about its wearer: the gowns and the female hero costumes are women, and a hero
    costume key names the race whose boots it wears (defined here so the headless city builder has them) */
@@ -8078,7 +8089,7 @@ function draw(){
   drawPropShadow(s,z);
   drawables.push({y:s.y,f:()=>drawProp(s,z,false)});
  }
- /* townsfolk get the same camera test as the props - the City walks two dozen of them and every one
+ /* townsfolk get the same camera test as the props - the City walks six dozen of them and every one
     was being queued, sorted and drawn whether or not it was anywhere near the screen */
  if(world.npcs&&!TideUI.isBattling())for(const n of world.npcs){
   if(n.x<cx0||n.x>cx1||n.y<cy0||n.y>cy1)continue;

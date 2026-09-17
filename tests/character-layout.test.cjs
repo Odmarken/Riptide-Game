@@ -180,7 +180,8 @@ test('boot sizes remain stable while female Ice Armor boots tuck beneath its rev
     const reference = context.paintedCharacterFrame(race, 'warrior', female, false).boots;
     for (const cls of classes) for (const armor of [false, true]) {
       const frame = context.paintedCharacterFrame(race, cls, female, armor);
-      const expectedTop = female && armor ? {human:1.5,dwarf:0,orc:1.5,undead:1}[race] : reference.top;
+      // the reviewed Ice Armor tops plus the one-unit drop every female frame gets
+      const expectedTop = female && armor ? {human:1.5,dwarf:0,orc:1.5,undead:1}[race] + 1 : reference.top;
       const expectedGround = reference.groundY + expectedTop - reference.top;
       assert.deepEqual({...frame.boots,groundY:0}, {...reference,top:expectedTop,groundY:0}, `${race}/${female}/${cls}/${armor}`);
       if (female) close(context.femBootW(race, cls), reference.bw);
