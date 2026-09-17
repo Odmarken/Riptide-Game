@@ -142,6 +142,27 @@ const npcMaleImg=new Image();npcMaleImg.src='assets/characters/npc/npc_male.png'
    turn-of-the-century overcoat, at the same size and framing, so he drops into the same slot. */
 const npcSebbeImg=new Image();npcSebbeImg.src='assets/characters/npc/npc_sebbe.png';
 const npcFemaleImg=new Image();npcFemaleImg.src='assets/characters/npc/npc_female.png';
+/* 🏙 City townsfolk skins. Twelve more painted villagers, drawn 2026-09-16 with Higgsfield gpt_image_2_5
+   (flare) to the framing of the two originals: the men are busts cut flat at the hips so the shared
+   boots finish them, the ladies are full-length gowns like the nun. A townsperson carries the skin as
+   a plain string - buildCity runs headless in the tests and hands out no Image objects - and drawNpc
+   resolves it here. A race+gender+class key ('dwarfmale_warrior') is one of the hero costumes, so the
+   other three races have a few faces on the streets too. */
+const NPC_SKINS={male:'npc_male',female:'npc_female',sebbe:'npc_sebbe',guard:'npc_guard',
+ noble_velvet:'npc_noble_velvet',noble_elder:'npc_noble_elder',noble_dandy:'npc_noble_dandy',merchant:'npc_merchant',
+ monk:'npc_monk',blacksmith:'npc_blacksmith',noble_lady:'npc_noble_lady',noble_dowager:'npc_noble_dowager',
+ noble_maiden:'npc_noble_maiden',baker:'npc_baker',market_woman:'npc_market_woman'};
+const npcSkinCache={};
+function npcSkinImage(skin){
+ if(!skin)return null;
+ if(skin in npcSkinCache)return npcSkinCache[skin];
+ let im=null;
+ if(NPC_SKINS[skin]){im=new Image();im.src='assets/characters/npc/'+NPC_SKINS[skin]+'.png';}
+ else{const m=npcSkinCostume(skin);if(m)im=charSprite(m[1],m[3],m[2]==='female');}
+ return npcSkinCache[skin]=im;
+}
+/* the boots are sized per race for the hero costumes; the painted villagers share the 'npc' pair */
+function npcSkinRace(skin){const m=npcSkinCostume(skin);return m?m[1]:'npc';}
 const mountImages=Object.fromEntries(Mounts.catalog.map(m=>{const im=new Image();im.src=m.art+(m.artVersion?'?v='+m.artVersion:'');return [m.id,im];}));
 const stableImg=new Image();stableImg.src='assets/mounts/stable.png';
 const trainingLodgeImg=new Image();trainingLodgeImg.src='assets/wasteland/training-lodge.png?v=2';
@@ -4271,6 +4292,110 @@ const CITY_NAMES=[
  'Mose Krita','Nanna Rost','Orvar Lykta','Petronella Skarp','Rurik Tunna','Signe Vide',
  'Torkel Nagel','Ulrika Bly','Valter Skorsten','Ylva Fnask','Åke Bredaxe','Ödgar Dunkel',
 ];
+/* Who walks the streets, by name and skin. The 24 original townsfolk keep their names and get a
+   face that suits them; the rest are the gentry the cathedral square deserved - counts, barons, a
+   dowager duchess - plus a few merchants, clergy and tradesfolk, and six hero costumes so the dwarves,
+   orcs and undead are seen in the capital too. Nobles keep to the central district. */
+const CITY_FOLK=[
+ ['Alrik Stenhand','male'],['Bodil Vass','baker'],['Cederik Malm','blacksmith'],['Disa Kvarn','market_woman'],
+ ['Emrik Sot','blacksmith'],['Frida Tjära','female'],['Gorm Hammarson','male'],['Halla Nystan','baker'],
+ ['Ivar Bleke','monk'],['Jorunn Salt','market_woman'],['Kettil Grå','male'],['Linnea Spik','female'],
+ ['Mose Krita','monk'],['Nanna Rost','baker'],['Orvar Lykta','male'],['Petronella Skarp','market_woman'],
+ ['Rurik Tunna','merchant'],['Signe Vide','female'],['Torkel Nagel','male'],['Ulrika Bly','baker'],
+ ['Valter Skorsten','male'],['Ylva Fnask','market_woman'],['Åke Bredaxe','dwarfmale_warrior'],['Ödgar Dunkel','undeadmale_priest'],
+ ['Greve Ansgar Vidhem','noble_velvet'],['Friherre Ulf Gyllenklo','noble_velvet'],['Hertig Lodvig Ekeblad','noble_elder'],
+ ['Lagman Sixten Örnfot','noble_elder'],['Riddar Björn Rosenstam','noble_dandy'],['Junker Casimir Lilje','noble_dandy'],
+ ['Grevinnan Adela Vidhem','noble_lady'],['Baronessan Ingrid Silverlöv','noble_lady'],['Änkehertiginnan Hedvig','noble_dowager'],
+ ['Fru Märta Stjärnfält','noble_dowager'],['Fröken Elvira Rosenstam','noble_maiden'],['Fröken Cecilia Gyllenklo','noble_maiden'],
+ ['Köpman Gottfrid Pung','merchant'],['Handlare Isak Krona','merchant'],['Broder Anselm','monk'],['Mäster Hallvard Städ','blacksmith'],
+ ['Bagar-Lovisa','baker'],['Syster Agnes','female'],
+ ['Brokk Malmhand','dwarfmale_hunter'],['Tova Bergsdotter','dwarffemale_priest'],['Zorga Blodtand','orcfemale_mage'],
+ ['Urzul Gråhud','orcmale_hunter'],['Morwen Askvind','undeadfemale_mage'],['Eskil Pilfinger','humanmale_hunter'],
+];
+/* what a skin says about its wearer: the gowns and the female hero costumes are women, and a hero
+   costume key names the race whose boots it wears (defined here so the headless city builder has them) */
+function npcSkinFemale(skin){return /^(female|baker|market_woman|noble_lady|noble_dowager|noble_maiden)$|female_/.test(skin||'');}
+function npcSkinCostume(skin){return /^(human|dwarf|orc|undead)(male|female)_(warrior|mage|hunter|priest)$/.exec(skin||'');}
+/* 🛡 the city watch: five guards in two patrols, each marching a closed round of the main streets in
+   single file. The loops are corners of the grid; the lane keeps them on the south/east side of the
+   kerb line, which clears the well in the square and walks them past the halls' doors, not through
+   the halls. Names on the file, leader first. */
+const CITY_WATCH=[
+ {id:'east',lane:52,names:['Vakt Brynolf','Vakt Sigurd','Vakt Håkan'],loop:[[5500,2600],[11300,2600],[11300,4020],[5500,4020]]},
+ {id:'west',lane:52,names:['Vakt Ebbe','Vakt Gunne'],loop:[[2600,1180],[5500,1180],[5500,2600],[2600,2600]]},
+];
+const WATCH_SPACING=38,WATCH_SPEED=58;
+/* distance from a point to the a-b stretch of an edge */
+function citySegDist(e,p){
+ const dx=e.b.x-e.a.x,dy=e.b.y-e.a.y,L=dx*dx+dy*dy||1;
+ let t=((p.x-e.a.x)*dx+(p.y-e.a.y)*dy)/L;t=t<0?0:t>1?1:t;
+ return Math.hypot(p.x-(e.a.x+dx*t),p.y-(e.a.y+dy*t));
+}
+/* --- 🚶 the walkable street graph. Streets are axis-aligned segments; every crossing, T-junction
+   and dead end is a node, every stretch between two nodes an edge that knows its street's width.
+   Townsfolk walk this graph instead of straight lines between random street points, which is what
+   used to march them through terraces and the cathedral. `rule(e)` may veto an edge (return null)
+   or annotate it: e.minLane forces walkers that far off the kerb line, e.side=1 keeps them on the
+   south/east side. --- */
+function cityStreetGraph(st,rule){
+ const nodes=new Map();
+ const node=(x,y)=>{x=Math.round(x);y=Math.round(y);const k=x+','+y;let n=nodes.get(k);if(!n){n={x,y,edges:[]};nodes.set(k,n);}return n;};
+ const onSeg=st.map(s=>[node(s.x0,s.y0),node(s.x1,s.y1)]);
+ for(let i=0;i<st.length;i++)for(let j=i+1;j<st.length;j++){
+  const a=st[i],b=st[j],ah=a.y0===a.y1,bh=b.y0===b.y1;
+  if(ah===bh)continue;                          /* parallel streets never meet */
+  const h=ah?a:b,v=ah?b:a;
+  const hx0=Math.min(h.x0,h.x1)-1,hx1=Math.max(h.x0,h.x1)+1,vy0=Math.min(v.y0,v.y1)-1,vy1=Math.max(v.y0,v.y1)+1;
+  if(v.x0<hx0||v.x0>hx1||h.y0<vy0||h.y0>vy1)continue;
+  const n=node(v.x0,h.y0);onSeg[i].push(n);onSeg[j].push(n);
+ }
+ const edges=[];
+ st.forEach((s,i)=>{
+  const horiz=s.y0===s.y1,ns=[...new Set(onSeg[i])].sort((p,q)=>horiz?p.x-q.x:p.y-q.y);
+  for(let k=1;k<ns.length;k++){
+   let e={a:ns[k-1],b:ns[k],w:s.w,minLane:0,side:0};
+   if(e.a===e.b)continue;
+   if(rule)e=rule(e);
+   if(!e)continue;
+   edges.push(e);e.a.edges.push(e);e.b.edges.push(e);
+  }
+ });
+ return {nodes:[...nodes.values()],edges};
+}
+/* A stroll: `steps` edges from a random node, never doubling straight back unless the street ends.
+   `pick(node)` fences the whole walk - the start and every corner after it - which is how the gentry
+   stay in their district instead of merely setting out from it; a walk that runs into the fence
+   with no way on is rerolled. The lane is one sideways offset for the whole route - waypoints are node+(lane,lane), which sits
+   on the offset line of both a horizontal and a vertical street, so corners need no special case.
+   Its magnitude fits the narrowest street on the route (alleys are 88 wide) and respects every
+   edge's minLane/side; a route that cannot satisfy both is rerolled. */
+function cityRoute(graph,R,steps,pick){
+ const allowed=n=>!pick||pick(n);
+ const starts=graph.nodes.filter(n=>n.edges.length&&allowed(n));
+ if(!starts.length)return null;
+ for(let attempt=0;attempt<24;attempt++){
+  const path=[starts[Math.floor(R()*starts.length)]],used=[];
+  let prev=null,fenced=false;
+  for(let k=0;k<steps;k++){
+   const cur=path[path.length-1],far=e=>e.a===cur?e.b:e.a;
+   const open=cur.edges.filter(e=>allowed(far(e)));
+   let choices=open.filter(e=>e!==prev);
+   if(!choices.length)choices=open;
+   if(!choices.length){fenced=true;break;}
+   const e=choices[Math.floor(R()*choices.length)];
+   path.push(far(e));used.push(e);prev=e;
+  }
+  if(fenced)continue;
+  let maxL=Infinity,minL=0,side=0;
+  for(const e of used){maxL=Math.min(maxL,e.w/2-22);minL=Math.max(minL,e.minLane);side=side||e.side;}
+  if(minL>maxL)continue;
+  let lane=minL+R()*(maxL-minL);
+  if(!side&&R()<0.5)lane=-lane;
+  lane=Math.round(lane);
+  return {pts:path.map(n=>({x:n.x+lane,y:n.y+lane})),lane};
+ }
+ return null;
+}
 function spaceCityHouses(candidates,wallInset){
  // Reserve the complete painted facade, not the much smaller walking collider.
  // The old terrace candidates still consume exactly the same seeded random
@@ -4427,18 +4552,37 @@ function buildCity(R){
     end to end showed every join, and the old perspective side-wall art cascaded diagonally when
     stacked. The south run is a foreground layer so actors walk behind its raised facade. */
 
- /* --- townsfolk, each looping between points on real streets --- */
- const onStreet=()=>{
-  const s=st[Math.floor(R()*st.length)],t=0.15+R()*0.7;
-  return [s.x0+(s.x1-s.x0)*t,s.y0+(s.y1-s.y0)*t];
- };
- const races=['human','dwarf','orc','undead'],clss=['warrior','mage','hunter','priest'];
- world.npcs=CITY_NAMES.map(name=>{
-  const pts=[onStreet(),onStreet(),onStreet()];
-  return {name,race:races[Math.floor(R()*4)],cls:clss[Math.floor(R()*4)],female:R()<0.45,
-   pts:pts.map(p=>({x:p[0],y:p[1]})),i:0,dir:1,x:pts[0][0],y:pts[0][1],
-   speed:24+R()*44,walk:R()*5,fx:1,pauseT:R()*3,moving:false};
+ /* --- 🚶 townsfolk and the watch, all on the street graph. The graph drops the stretches the
+    cathedral stands on (its footprint straddles the central avenue and backs onto the north street)
+    and the gate arch with the portal in it, so nobody strolls through the nave or idles in the
+    swirl. The well in the square wants a lane of 30+ either side; the three halls sit on their
+    street's north kerb, so their stretches are walked on the south side, in front of the doors. --- */
+ const keepCathedral={x:cx,y:CATH_PLAZA_Y+125,r:330},keepGate={x:300,y:cy,r:90};
+ const graph=cityStreetGraph(st,e=>{
+  if(citySegDist(e,keepCathedral)<keepCathedral.r||citySegDist(e,keepGate)<keepGate.r)return null;
+  if(citySegDist(e,{x:cx,y:cy})<40)e.minLane=30;
+  for(const [hx,hy] of [[4050,1180],[12750,4020],[7150,4020]])if(citySegDist(e,{x:hx,y:hy})<100){e.side=1;e.minLane=Math.max(e.minLane,24);}
+  return e;
  });
+ const central=n=>n.x>=5500&&n.x<=11300&&n.y>=1180&&n.y<=4020;   /* the gentry's district */
+ world.npcs=[];
+ for(const [name,skin] of CITY_FOLK){
+  const noble=/^noble_/.test(skin),costume=npcSkinCostume(skin);
+  const route=cityRoute(graph,R,5+Math.floor(R()*4),noble?central:null);
+  if(!route)continue;
+  world.npcs.push({name,skin,race:costume?costume[1]:'human',cls:costume?costume[3]:'warrior',female:npcSkinFemale(skin),
+   pts:route.pts,i:0,dir:1,x:route.pts[0].x,y:route.pts[0].y,
+   speed:noble?22+R()*18:26+R()*40,walk:R()*5,fx:1,pauseT:R()*3,moving:false});
+ }
+ /* 🛡 the patrols. One shared loop per group; guard j starts j*WATCH_SPACING back along the closing
+    stretch, and since the file never pauses and all march at one speed the spacing keeps. */
+ for(const g of CITY_WATCH){
+  const pts=g.loop.map(([x,y])=>({x:x+g.lane,y:y+g.lane}));
+  const last=pts[pts.length-1],dx=pts[0].x-last.x,dy=pts[0].y-last.y,L=Math.hypot(dx,dy)||1;
+  g.names.forEach((name,j)=>world.npcs.push({name,skin:'guard',watch:g.id,patrol:true,race:'human',cls:'warrior',female:false,big:1.06,
+   pts,i:0,dir:1,x:pts[0].x-dx/L*WATCH_SPACING*j,y:pts[0].y-dy/L*WATCH_SPACING*j,
+   speed:WATCH_SPEED,walk:j*1.3,fx:1,pauseT:0,moving:false}));
+ }
  /* 🥤 Sebbe. Not one of the wandering townsfolk - he has a pitch on the cathedral square and stays
     on it, because a man running a cup game does not chase his customers. Bigger than the rest so
     he reads as somebody worth clicking rather than more scenery. */
@@ -9291,9 +9435,9 @@ function drawNpc(n){
  const now=performance.now();
  const by=n.moving?Math.sin(n.walk*7)*1.8:Math.sin(now/600+n.x)*0.8;
  ctx.save();ctx.translate(n.x,n.y);
- const pImg=n.art||(n.female?npcFemaleImg:npcMaleImg); /* painted villagers - one male, one female */
+ const pImg=n.art||npcSkinImage(n.skin)||(n.female?npcFemaleImg:npcMaleImg); /* Sebbe's own art, a named skin, or the two originals */
  const body=characterBodyFrame(pImg,44,7),size=n.big||1;
- const boots=characterBootFrame('npc',!!n.female,bootImg,7);
+ const boots=characterBootFrame(npcSkinRace(n.skin),!!n.female,bootImg,7);
  ctx.save();ctx.scale(size,size);
  ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,body?boots.groundY:8,13,5.5,0,0,7);ctx.fill();
  if(body){
@@ -9312,7 +9456,7 @@ function drawNpc(n){
   const ny=((body?body.headY:-37)-3+by)*size;
   ctx.font='700 '+(n.game?11:10)+'px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(n.name,1,ny+1);
-  ctx.fillStyle=n.game?'#ffd76a':'#cfe6c2';   /* the ones with something to sell stand out */
+  ctx.fillStyle=n.game?'#ffd76a':n.watch?'#bcd0ee':'#cfe6c2';   /* the ones with something to sell stand out; the watch in steel */
   ctx.fillText(n.name,0,ny);
  }
  ctx.restore();
@@ -9324,6 +9468,7 @@ function updateNpcs(dt){
   const t=n.pts[n.i];
   const dx=t.x-n.x,dy=t.y-n.y,d=Math.hypot(dx,dy);
   if(d<6){ /* reached the waypoint: idle a moment, then head for the next (ping-pong) */
+   if(n.patrol){n.i=(n.i+1)%n.pts.length;continue;} /* 🛡 a patrol is a closed round, walked without a halt */
    n.i+=n.dir;
    if(n.i>=n.pts.length||n.i<0){n.dir*=-1;n.i+=n.dir*2;}
    n.pauseT=0.6+Math.random()*2.6;
@@ -14416,7 +14561,8 @@ function bootPreload(){
   .forEach(n=>push('assets/icons/'+n+'.png'));
  /* rune marks - the leaderboard stamps one on every enchanted weapon, so they want to be ready */
  WENCH.forEach(w=>push('assets/icons/'+w.icon+'.png'));
- push('assets/characters/npc/npc_sebbe.png');   /* the only townsman with his own picture */
+ push('assets/characters/npc/npc_sebbe.png');   /* Sebbe's own picture, and the City's dozen painted faces */
+ Object.values(NPC_SKINS).forEach(f=>push('assets/characters/npc/'+f+'.png'));
  /* mob sprites */
  Object.values(MOB_SET).forEach(a=>a.forEach(n=>push('assets/mobs/'+n+'.png')));
  /* world props and the hero's own gear art */

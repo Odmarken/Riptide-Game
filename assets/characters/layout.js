@@ -44,7 +44,21 @@ const CHARACTER_BOUNDS={
  "undeadmale_warrior":[525,800,0,0,525,788],
  "npc/npc_male":[516,699,4,5,508,689],
  "npc/npc_female":[387,822,4,5,379,812],
- "npc/npc_sebbe":[516,699,1,4,514,693]
+ "npc/npc_sebbe":[516,699,1,4,514,693],
+ /* City townsfolk drawn 2026-09-16 with Higgsfield gpt_image_2_5 (flare): busts cut at the hips like npc_male,
+    the ladies full-length like npc_female. Measured on the installed files. */
+ "npc/npc_guard":[523,700,1,2,522,698],
+ "npc/npc_noble_velvet":[531,700,2,1,527,698],
+ "npc/npc_noble_elder":[565,700,1,1,562,698],
+ "npc/npc_noble_dandy":[525,700,0,0,525,699],
+ "npc/npc_merchant":[529,700,0,2,529,697],
+ "npc/npc_monk":[545,700,0,1,544,698],
+ "npc/npc_blacksmith":[545,700,1,1,543,697],
+ "npc/npc_noble_lady":[358,820,0,1,358,818],
+ "npc/npc_noble_dowager":[358,820,1,1,356,818],
+ "npc/npc_noble_maiden":[343,820,1,0,341,819],
+ "npc/npc_baker":[331,820,0,0,331,819],
+ "npc/npc_market_woman":[349,820,1,1,347,819]
 };
 /* Reviewed grip centres in the native (left-facing) Ice Armor PNGs. Broad
  * gauntlets do not share the ordinary costume's fixed weapon attachment. */

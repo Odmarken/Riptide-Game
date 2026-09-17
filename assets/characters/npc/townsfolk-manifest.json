@@ -1,0 +1,306 @@
+{
+ "generator": "Higgsfield",
+ "model": "gpt_image_2_5",
+ "variant": "flare",
+ "quality": "medium",
+ "resolution": "1k",
+ "background": "transparent",
+ "date": "2026-09-16",
+ "style": "Chibi townsfolk in the framing of the two originals. Busts (men) reference npc_male + npc_sebbe and are cut flat at the hips so the shared boots finish them; full-length ladies reference npc_female (the nun) with a floor-length gown.",
+ "references": {
+  "npc_male": "f43b7229-e2c5-4ed5-b33a-0b07d78d87e7",
+  "npc_sebbe": "c94149b8-a81c-41e2-9b3f-d5e63640c074",
+  "npc_female": "08f56778-6a5d-4f40-b578-18ca4d0ae1d6"
+ },
+ "processing": "Native transparent output: alpha scaled from its 254 cap to 255, haze below 6 dropped, tight crop at alpha>0, LANCZOS resize to 700 px (busts) or 820 px (full-length). No repainting. bounds128 are the alpha>128 boxes recorded in assets/characters/layout.js.",
+ "sprites": {
+  "npc_guard.png": {
+   "jobId": "69d1c4a2-07bf-4cf3-bb06-546eb43efbde",
+   "kind": "bust",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    11,
+    1,
+    880,
+    1163
+   ],
+   "size": [
+    523,
+    700
+   ],
+   "bounds128": [
+    1,
+    2,
+    522,
+    698
+   ]
+  },
+  "npc_noble_velvet.png": {
+   "jobId": "92879cd1-be32-435a-9c34-bd93891f445d",
+   "kind": "bust",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    3,
+    7,
+    876,
+    1158
+   ],
+   "size": [
+    531,
+    700
+   ],
+   "bounds128": [
+    2,
+    1,
+    527,
+    698
+   ]
+  },
+  "npc_noble_elder.png": {
+   "jobId": "14908a2e-1ee1-41d9-bc96-55e3825f39b0",
+   "kind": "bust",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    1,
+    57,
+    879,
+    1145
+   ],
+   "size": [
+    565,
+    700
+   ],
+   "bounds128": [
+    1,
+    1,
+    562,
+    698
+   ]
+  },
+  "npc_noble_dandy.png": {
+   "jobId": "0d3bfe8e-a707-423c-966b-3be47a231782",
+   "kind": "bust",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    5,
+    0,
+    873,
+    1157
+   ],
+   "size": [
+    525,
+    700
+   ],
+   "bounds128": [
+    0,
+    0,
+    525,
+    699
+   ]
+  },
+  "npc_merchant.png": {
+   "jobId": "e365d558-e1b0-4db8-b896-90514ad11e3f",
+   "kind": "bust",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    0,
+    0,
+    880,
+    1165
+   ],
+   "size": [
+    529,
+    700
+   ],
+   "bounds128": [
+    0,
+    2,
+    529,
+    697
+   ]
+  },
+  "npc_noble_lady.png": {
+   "jobId": "b069a154-aeaf-48d8-a621-eb0effdd2081",
+   "kind": "full",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    85,
+    11,
+    663,
+    1334
+   ],
+   "size": [
+    358,
+    820
+   ],
+   "bounds128": [
+    0,
+    1,
+    358,
+    818
+   ]
+  },
+  "npc_noble_dowager.png": {
+   "jobId": "a6b29681-a118-4524-b1c1-fcfd35f2a326",
+   "kind": "full",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    83,
+    6,
+    664,
+    1338
+   ],
+   "size": [
+    358,
+    820
+   ],
+   "bounds128": [
+    1,
+    1,
+    356,
+    818
+   ]
+  },
+  "npc_noble_maiden.png": {
+   "jobId": "c1d32ec0-3caf-4cc3-a19f-8ad48c699e71",
+   "kind": "full",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    92,
+    4,
+    652,
+    1341
+   ],
+   "size": [
+    343,
+    820
+   ],
+   "bounds128": [
+    1,
+    0,
+    341,
+    819
+   ]
+  },
+  "npc_monk.png": {
+   "jobId": "0fc9a1b0-b5f0-4e2f-b14d-d79b5bbf491d",
+   "kind": "bust",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    11,
+    49,
+    869,
+    1151
+   ],
+   "size": [
+    545,
+    700
+   ],
+   "bounds128": [
+    0,
+    1,
+    544,
+    698
+   ]
+  },
+  "npc_baker.png": {
+   "jobId": "b2c268a4-990b-4016-a52a-22b6dd87bfd3",
+   "kind": "full",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    107,
+    8,
+    644,
+    1337
+   ],
+   "size": [
+    331,
+    820
+   ],
+   "bounds128": [
+    0,
+    0,
+    331,
+    819
+   ]
+  },
+  "npc_blacksmith.png": {
+   "jobId": "8b9ac8f3-fc2f-4a1f-a2c2-46f9a95be206",
+   "kind": "bust",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    15,
+    72,
+    863,
+    1162
+   ],
+   "size": [
+    545,
+    700
+   ],
+   "bounds128": [
+    1,
+    1,
+    543,
+    697
+   ]
+  },
+  "npc_market_woman.png": {
+   "jobId": "2a0dedb8-f42a-4fd4-a029-cfffc20ec481",
+   "kind": "full",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    94,
+    11,
+    656,
+    1332
+   ],
+   "size": [
+    349,
+    820
+   ],
+   "bounds128": [
+    1,
+    1,
+    347,
+    819
+   ]
+  }
+ }
+}

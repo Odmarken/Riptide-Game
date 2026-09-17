@@ -57,8 +57,8 @@ test('spacing remains deterministic and preserves City size, services, gate and 
  ]);
  assert.deepEqual(w.solids.filter(s=>['well','altarportal'].includes(s.type)).map(s=>[s.type,s.x,s.y]),[['altarportal',300,2600],['well',8400,2600]]);
  const hash=data=>crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');
- // Recorded before the spacing fix: decoration changes must not consume more
- // seeded RNG and silently reroll the 24 villagers or move Sebbe's cup game.
- assert.equal(hash(w.npcs),'887513fe9a9ebeb4d209331aa9d46352f7236036ce6c65b5267b321be6d147a0');
+ // Recorded when the townsfolk moved onto the street graph (48 villagers, two patrols, Sebbe):
+ // decoration changes must not consume more seeded RNG and silently reroll their routes.
+ assert.equal(hash(w.npcs),'a584731958d4367392a28b530fe5beb292fefa9999dd7fbd5ba71db31fb87f82');
  assert.deepEqual(w.mwalls.map(s=>[s.x,s.y,s.w,s.h]),[[0,60,16800,140],[0,5000,16800,140],[60,0,140,2525],[60,2675,140,2525],[16600,0,140,5200]]);
 });
