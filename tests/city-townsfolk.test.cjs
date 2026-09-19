@@ -54,6 +54,9 @@ test('every stroll follows the streets, one lane wide, and keeps out of the nave
   const {world:w}=city(seed);
   const cath=w.solids.find(s=>s.type==='cathedral'),well=w.solids.find(s=>s.type==='well'),portal=w.solids.find(s=>s.type==='altarportal');
   const halls=w.solids.filter(s=>['minehall','enchanthall','smelter'].includes(s.type));
+  const flight=w.rails; /* 👑 the palace stair: nobody strolls between, or through, its balustrades */
+  assert.equal(flight.length,4);
+  const stairX=Math.min(...flight.map(r=>r.x));
   const inCathedral=p=>{const kx=(p.x-cath.x)/(cath.crx+16),ky=(p.y-cath.y-cath.cyo)/(cath.cry+16);return kx*kx+ky*ky<1;};
   for(const n of townsfolk(w)){
    for(let i=0;i<n.pts.length;i++){
@@ -68,6 +71,7 @@ test('every stroll follows the streets, one lane wide, and keeps out of the nave
       assert.ok(!inCathedral(p),`${n.name} walks through the cathedral`);
       assert.ok(Math.hypot(p.x-well.x,p.y-well.y)>=well.r,`${n.name} walks through the well`);
       assert.ok(Math.hypot(p.x-portal.x,p.y-portal.y)>=portal.r+40,`${n.name} idles in the gate portal`);
+      assert.ok(p.x<stairX-40||Math.abs(p.y-2600)>160,`${n.name} walks up the palace stair`);
       for(const h of halls){
        const kx=(p.x-h.x-(h.cxo||0))/h.crx,ky=(p.y-h.y-h.cyo)/h.cry;
        assert.ok(kx*kx+ky*ky>=1,`${n.name} walks through the ${h.type}`);

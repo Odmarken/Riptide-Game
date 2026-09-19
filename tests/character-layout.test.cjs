@@ -17,7 +17,8 @@ const classes = ['warrior', 'mage', 'hunter', 'priest'];
 const heroes = races.flatMap(race => ['male', 'female'].flatMap(gender =>
   [...classes, 'armor'].map(cls => `${race}${gender}_${cls}`)));
 const townsfolk = ['guard', 'noble_velvet', 'noble_elder', 'noble_dandy', 'merchant', 'monk', 'blacksmith',
-  'noble_lady', 'noble_dowager', 'noble_maiden', 'baker', 'market_woman'].map(k => `npc/npc_${k}`);
+  'noble_lady', 'noble_dowager', 'noble_maiden', 'baker', 'market_woman',
+  'king', 'kings_hand', 'royal_guard'].map(k => `npc/npc_${k}`);
 const names = [...heroes, 'npc/npc_male', 'npc/npc_female', 'npc/npc_sebbe', ...townsfolk];
 const art = new Map();
 

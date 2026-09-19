@@ -1,0 +1,214 @@
+{
+ "generator": "Higgsfield",
+ "model": "gpt_image_2_5",
+ "variant": "flare",
+ "quality": "medium",
+ "resolution": "1k",
+ "background": "transparent",
+ "date": "2026-09-19",
+ "style": "The court and furniture of the Throne Hall plus the palace stair in the City. Busts reference npc_male + npc_sebbe and one earlier townsperson (noble_elder, noble_velvet, guard) and are cut flat at the hips; props and the stair reference flattened copies of cathedral.png, minehall.png and house_stair.png for the city's ink-and-sandstone style.",
+ "references": {
+  "npc_male": "f43b7229-e2c5-4ed5-b33a-0b07d78d87e7",
+  "npc_sebbe": "c94149b8-a81c-41e2-9b3f-d5e63640c074",
+  "cathedral_flat": "7e1012c9-d4b9-4eeb-90c0-b1703ce7447a",
+  "house_stair_flat": "f799a3c9-9110-491e-ac98-f2e8b3867ffb",
+  "minehall_flat": "35d3dfa5-94f9-478c-8ec3-e5da4f99c7ce",
+  "wall_gate_top_flat": "cd340c8a-4b72-48d2-bd6e-728c8bdae1b7"
+ },
+ "processing": "Native transparent output: alpha scaled from its 254 cap to 255, haze below 6 dropped, tight crop at alpha>0. Busts LANCZOS-resized to 700 px like npc_male; props keep their native pixels. No repainting. bounds128 are the alpha>128 boxes; the busts' are recorded in assets/characters/layout.js.",
+ "unused": {
+  "stairB (banners, square towers)": "5f2c9a2b-8630-4659-a54c-35cb0ffe9117",
+  "stair, isometric sandstone with lions (first take, replaced 2026-09-20: wrong projection and colour for the flat grey curtain wall)": "a64b8e7f-f1cc-405a-94c3-7427b71f6c55",
+  "stair, flat with braziers, no gatehouse": "cca9f49e-4863-44dd-bbe0-81172218650a",
+  "stair, flat with lions and crown carpet, no gatehouse": "57289a50-160b-4c72-8c4b-623463115e0e"
+ },
+ "art": {
+  "npc_king.png": {
+   "jobId": "5de8eb24-4e57-40ca-ac57-b3b10fa4d673",
+   "kind": "bust",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    8,
+    0,
+    872,
+    1155
+   ],
+   "size": [
+    524,
+    700
+   ],
+   "bounds128": [
+    0,
+    1,
+    524,
+    699
+   ]
+  },
+  "npc_kings_hand.png": {
+   "jobId": "175cd688-778e-4415-890b-9fd79f3fb42c",
+   "kind": "bust",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    7,
+    4,
+    872,
+    1157
+   ],
+   "size": [
+    525,
+    700
+   ],
+   "bounds128": [
+    1,
+    2,
+    523,
+    697
+   ]
+  },
+  "npc_royal_guard.png": {
+   "jobId": "2c377fa0-c607-4666-9f08-ed9e7ba73b4d",
+   "kind": "bust",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    10,
+    0,
+    869,
+    1168
+   ],
+   "size": [
+    515,
+    700
+   ],
+   "bounds128": [
+    0,
+    2,
+    515,
+    698
+   ]
+  },
+  "throne.png": {
+   "jobId": "bcea574c-e508-4082-9147-e89e19cc42f7",
+   "kind": "prop",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    174,
+    0,
+    706,
+    1153
+   ],
+   "size": [
+    532,
+    1153
+   ],
+   "bounds128": [
+    1,
+    3,
+    530,
+    1149
+   ]
+  },
+  "council_table.png": {
+   "jobId": "b65681ca-83dc-4140-b05a-e44bcc413bae",
+   "kind": "prop",
+   "source": [
+    1024,
+    688
+   ],
+   "crop": [
+    14,
+    5,
+    1007,
+    677
+   ],
+   "size": [
+    993,
+    672
+   ],
+   "bounds128": [
+    1,
+    1,
+    991,
+    671
+   ]
+  },
+  "palacestair.png": {
+   "jobId": "4707ba17-bf75-40a3-9e97-fb95db54015a",
+   "kind": "ground",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    29,
+    13,
+    1313,
+    736
+   ],
+   "size": [
+    1284,
+    723
+   ],
+   "note": "Flat top-down flight with its gatehouse, referenced on a flattened crop of wall_gate_v.png so stone and projection match the curtain wall. Towers 349 px wide = the wall band; centre column 1105, carpet centre row 365 (see PALACE in game.js)."
+  },
+  "hall_pillar.png": {
+   "jobId": "2ee85690-b852-4cd4-a22b-78766710351d",
+   "kind": "prop",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    184,
+    9,
+    567,
+    1334
+   ],
+   "size": [
+    383,
+    1325
+   ],
+   "bounds128": [
+    1,
+    1,
+    381,
+    1323
+   ]
+  },
+  "hall_brazier.png": {
+   "jobId": "eae1f6fd-c349-4c42-9c60-a247b41ea570",
+   "kind": "prop",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    139,
+    31,
+    739,
+    1137
+   ],
+   "size": [
+    600,
+    1106
+   ],
+   "bounds128": [
+    1,
+    1,
+    598,
+    1104
+   ]
+  }
+ }
+}

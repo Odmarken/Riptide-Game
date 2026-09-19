@@ -43,7 +43,7 @@ const FG_ART={
 const fgArtFor=clsId=>{const a=FG_ART[clsId];return (a&&a.img.complete&&a.img.naturalWidth)?a:null;};
 /* 🏙 city art. CITY_HOUSES is indexed by a house's seed, so a terrace picks its faces
    deterministically and the same street looks the same every visit. */
-const CITY_ART_V=5; /* bump when a city asset is redrawn - the filenames stay put while the pictures
+const CITY_ART_V=6; /* bump when a city asset is redrawn - the filenames stay put while the pictures
                        behind them change, so without this a cached wall_gate_v.png survives a hard refresh */
 const cityImg=n=>{if(!cityImgs[n]){cityImgs[n]=new Image();cityImgs[n].src='assets/city/'+n+'.png?v='+CITY_ART_V;}return cityImgs[n];};
 const cityImgs={};
@@ -58,6 +58,24 @@ const CITY_HOUSE={
  house_turret  :{h:340,ar:0.743},        house_tenement:{h:375,ar:0.556},
  house_manor   :{h:405,ar:0.676},
 };
+/* 👑 The palace stair at the far east end of the great boulevard - the way up to the Throne Hall. The
+   painting (assets/city/palacestair.png, Higgsfield gpt_image_2_5 2026-09-19, second take) is drawn in
+   the same flat top-down projection and the same grey-brown stone as the curtain wall: a straight
+   flight lying ON the boulevard, climbing east along its centre line to a gatehouse whose two towers
+   sit in the east wall exactly as the west gate's do. It is ground, not a prop - you walk up the
+   carpet between the balustrades, and the gate takes you in.
+   The art is 1284x723; its towers are 349 px wide and are scaled to the wall band (232 units), their
+   centre column (1105) sits on the band's centre line (16715), and the carpet's centre row (365)
+   sits on the boulevard's (2600). Points on the painting are given in its own pixels. */
+const PALACE=(()=>{const k=232/349;return {k,w:1284*k,h:723*k,x:16715-1105*k,y:2600-365*k};})();
+const palacePoint=(px,py)=>({x:PALACE.x+px*PALACE.k,y:PALACE.y+py*PALACE.k});
+const PALACE_STEP=palacePoint(900,365);    /* the top of the flight, on the gate's threshold: stepping here takes you in */
+const PALACE_FOOT=palacePoint(620,365);    /* where you stand when you come back out, a few steps down */
+const PALACE_MOUTH=palacePoint(-50,365);   /* the cobbles in front of the first step, between the braziers */
+/* what blocks, as rects in the painting's pixels: each balustrade taken out to its plinth's outer edge,
+   so the outside of the stair is one straight face with no notch for a walker to wedge into, and the
+   inner half of each brazier plinth */
+const PALACE_RAILS=[[0,190,934,60],[0,480,934,58],[0,250,100,42],[0,436,100,44]];
 const CITY_HOUSES=Object.keys(CITY_HOUSE);
 const CITY_LANES=CITY_HOUSES.filter(k=>CITY_HOUSE[k].lane);
 /* seed → face. Deterministic, so the same street shows the same houses every visit. */
@@ -151,7 +169,9 @@ const npcFemaleImg=new Image();npcFemaleImg.src='assets/characters/npc/npc_femal
 const NPC_SKINS={male:'npc_male',female:'npc_female',sebbe:'npc_sebbe',guard:'npc_guard',
  noble_velvet:'npc_noble_velvet',noble_elder:'npc_noble_elder',noble_dandy:'npc_noble_dandy',merchant:'npc_merchant',
  monk:'npc_monk',blacksmith:'npc_blacksmith',noble_lady:'npc_noble_lady',noble_dowager:'npc_noble_dowager',
- noble_maiden:'npc_noble_maiden',baker:'npc_baker',market_woman:'npc_market_woman'};
+ noble_maiden:'npc_noble_maiden',baker:'npc_baker',market_woman:'npc_market_woman',
+ /* 👑 the court of the Throne Hall, drawn 2026-09-19 the same way */
+ king:'npc_king',kings_hand:'npc_kings_hand',royal_guard:'npc_royal_guard'};
 const npcSkinCache={};
 function npcSkinImage(skin){
  if(!skin)return null;
@@ -857,6 +877,9 @@ const ZONES=[
   ground:'#c6d4db',ground2:'#adbfca',water:'#7eb8d7',tree:'#687f89',tree2:'#4c6572',path:'#9aabb5'},
  {name:'Sunscar Sands',lvl:1,amb:'world',special:true,wasteland:true,biome:'wasteland-desert',en:[],
   ground:'#c9a86b',ground2:'#b99256',water:'#71abb1',tree:'#857544',tree2:'#635d37',path:'#b78f57'},
+ /* 👑 The Throne Hall above the City - reached by the palace stair at the east end of the boulevard. */
+ {name:'Throne Hall',lvl:1,amb:'tavern',special:true,throne:true,noBerg:true,noTrees:true,en:[],
+  ground:'#3a3632',ground2:'#2a2724',water:'#43686d',tree:'#51483a',tree2:'#3c342a',path:'#8a1f27'},
 ];
 const TAVERN_ZONE=ZONES.findIndex(z=>z.tavern);
 const ALTAR_ZONE=ZONES.findIndex(z=>z.altar);
@@ -864,6 +887,7 @@ const FARM_ZONE=ZONES.findIndex(z=>z.farm);
 const CITY_ZONE=ZONES.findIndex(z=>z.city);
 const WASTELAND_ZONE=ZONES.findIndex(z=>z.wasteland);
 const TIDE_GUILD_ZONE=ZONES.findIndex(z=>z.tideguild);
+const THRONE_ZONE=ZONES.findIndex(z=>z.throne);
 function guildImages(){return {raidfloor:zoneMapImg('raidfloor'),raidwall:zoneMapImg('raidwall'),cryptwall:zoneMapImg('cryptwall'),crypt:zoneMapImg('cryptmap')};}
 function guildInReach(){
  const n=world?.npcs?.find(n=>n.game==='tideguild');
@@ -889,6 +913,48 @@ function guildWorldClick(wx,wy){
   const n=world.npcs.find(n=>n.game==='tideguild'),exit=world.exit;
   if(n&&Math.abs(wx-n.x)<40&&wy>n.y-95&&wy<n.y+22){target=n;open=TideUI.openGuild;range=110;}
   else if(exit&&Math.abs(wx-exit.x)<70&&wy>exit.y-120&&wy<exit.y+32){target=exit;open=leaveTideGuild;range=100;}
+ }
+ if(!target)return false;
+ if(dist(hero,target)<range)open();
+ else{hero.target=null;hero.goPortal=false;hero.moveTo=movePoint||{x:target.x,y:target.y};marker={...hero.moveTo,t:0};hero.pendingDoor={s:target,open,rng:range};}
+ return true;
+}
+/* ==================== 👑 THE THRONE HALL ==================== */
+/* Up the palace stair from the boulevard; back down through the doors at the foot of the hall.
+   Coming home you land below the stair so the walk-in trigger does not fire again at once. */
+function enterThroneHall(){
+ const s=world?.solids.find(s=>s.type==='palacestair');
+ if(!gameOn||!hero||hero.dead||!zoneOf().city||!s||TideUI.isBattling())return false;
+ if(mp.on)mpLeave(false);
+ goToZone(THRONE_ZONE);return true;
+}
+function leaveThroneHall(){
+ if(!gameOn||!hero||hero.dead||!zoneOf().throne||TideUI.isBattling())return false;
+ expeditionSpawn={zone:CITY_ZONE,...PALACE_FOOT};
+ goToZone(CITY_ZONE);return true;
+}
+function throneWorldClick(wx,wy){
+ let target,open,range,movePoint;
+ if(zoneOf().city){
+  /* a click anywhere on the painting walks you up it. From outside the balustrades the way in is
+     round by the first step, so the walk goes to the mouth first and carries on from there. */
+  const u=(wx-PALACE.x)/PALACE.w,v=(wy-PALACE.y)/PALACE.h,im=cityImg('palacestair');
+  if(u>=0&&u<1&&v>=0&&v<1&&(im.complete&&im.naturalWidth?pixelSolid(im,u,v):Math.abs(v-.5)<.22||u>.72)){
+   const walk=(p,then,rng)=>{hero.target=null;hero.goPortal=false;hero.moveTo={...p};marker={...p,t:0};hero.pendingDoor=then?{s:p,open:then,rng}:null;};
+   const climb=()=>walk(PALACE_STEP);                      /* the threshold takes you in by itself */
+   const mouth=()=>walk(PALACE_MOUTH,climb,46);
+   const between=hero.x>PALACE.x&&Math.abs(hero.y-PALACE_STEP.y)<70;
+   if(between)climb();
+   else if(hero.x>PALACE.x-60)walk({x:PALACE.x-80,y:PALACE_STEP.y+(hero.y<PALACE_STEP.y?-1:1)*(PALACE.h*.27+40)},mouth,46); /* beside the flight: round its corner first */
+   else mouth();
+   return true;
+  }
+ }else if(zoneOf().throne){
+  const king=world.npcs.find(n=>n.game==='king'),hand=world.npcs.find(n=>n.game==='ledger'),table=world.solids.find(s=>s.kind==='table'),exit=world.exit;
+  if(king&&Math.abs(wx-king.x)<48&&wy>king.y-115&&wy<king.y+24){target=king;movePoint={x:king.x,y:king.y+95};open=kingSpeak;range=150;}
+  else if(hand&&Math.abs(wx-hand.x)<40&&wy>hand.y-100&&wy<hand.y+22){target=hand;movePoint={x:hand.x,y:hand.y+70};open=openLedger;range=130;}
+  else if(table&&Math.abs(wx-table.x)<table.crx&&wy>table.y-table.cry-100&&wy<table.y+table.cry){target=table;movePoint={x:table.x,y:table.y+table.cry+50};open=openLedger;range=table.cry+90;}
+  else if(exit&&Math.abs(wx-exit.x)<110&&wy>exit.y-40&&wy<exit.y+130){target=exit;open=leaveThroneHall;range=90;}
  }
  if(!target)return false;
  if(dist(hero,target)<range)open();
@@ -1440,6 +1506,7 @@ function zoneTemplates(z){
   xp:Math.round(eHP(XL)/2.6*pr),gold:mobGold(z,1+i*0.10)}));
 }
 function zoneQuests(z){
+ if(z.throne)return [{name:'👑 Throne Hall',desc:'The King holds court. His Hand keeps the Crown Ledger at the council table behind the throne.',need:999999}];
  if(z.tideguild)return [{name:'Tides Guild',desc:'Meet the guild beneath the City. Speak to the Battle keeper for a best-of-three Tide duel.',need:999999}];
  if(expeditionZone(z))return [{name:z.name,desc:z.dungeon?'Defeat the two guardians.':'Explore the Wasteland.',need:999999}];
  if(z.tavern)return [{name:'🍺 Moonshine',desc:'A safe haven. Rest, forge, trade - no foe dares enter.',need:999999}];
@@ -1570,7 +1637,7 @@ const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0,'haste');
 function freshState(name,race,cls){
  return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,lastZone:0,maxZone:0,quest:0,qProg:0,hardcore:false,hcDead:false,gender:'m',
   rating:0,odinKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',bankGold:0,bankScrap:0,bankEarned:0,bankLastT:0,smithLvl:0,smithJob:null,luckPots:0,luckT:0,gamblerPots:0,gamblerT:0,restedT:0,restedPct:0,restedSpinAt:0,freeGoldCases:0,chests:{violethalls:0},mining:{trained:false,skill:0,on:false},ench:{trained:false,skill:0,bag:[]},ore:{coal:0,ore:0,gem:0},cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
-  gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],pet:null,pets:[],mounts:Mounts.normalize(null),tides:Tides.createCollection(),
+  gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],pet:null,pets:[],mounts:Mounts.normalize(null),tides:Tides.createCollection(),city:CityEconomy.create(),
   farm:FarmLayout.migrate({owned:false,b:[],c:[],r:[],lvl:1,xp:0,baleN:0,cseedN:0,inv:{}}),
   boosts:{speed:0,haste:0},autoUse:{},tainted:false,
   cleared:{},bossDead:{},zoneLvlGain:{},wastelandBossReadyAt:WastelandDungeons.normalizeBossTimers(null),
@@ -1598,6 +1665,11 @@ function migrate(s){ /* fills fields missing from older saves */
  s.tides=Tides.normalizeCollection(s.tides);
  s.tides.exploration=TideExploration.create(s.tides.exploration);
  s.wastelandBossReadyAt=WastelandDungeons.normalizeBossTimers(s.wastelandBossReadyAt);
+ s.city=CityEconomy.normalize(s.city); /* 👑 the Crown Ledger */
+ /* A save written by a NEWER build can stand in a zone this build has never heard of - the zone table
+    is append-only, so an older exe or an old browser tab simply has a shorter one. Such a hero wakes
+    up in Moonshine instead of taking the character list down with him. */
+ if(!ZONES[s.zone|0])s.zone=TAVERN_ZONE;
  s.tainted=false;
  s.taintV=0;
  if(s.scraps===undefined)s.scraps=0;
@@ -4605,6 +4677,34 @@ function buildCity(R){
  world.npcs.push({name:'Sebbe',race:'human',cls:'warrior',female:false,big:1.62,game:'cups',art:npcSebbeImg,
   pts:[{x:SEB_X,y:SEB_Y}],i:0,dir:1,x:SEB_X,y:SEB_Y,
   speed:0,walk:0,fx:-1,pauseT:1e9,moving:false});
+ /* 👑 The palace stair lies on the boulevard's east end and climbs to a gatehouse in the curtain wall,
+    with a cobbled forecourt where it begins. It joins the city LAST, after the terraces and the
+    townsfolk have drawn their seeded numbers, so adding it rerolled nothing: the houses its painting
+    or forecourt would cover are simply taken down instead. The solid is only the landmark (the
+    minimap and the pad look for it) - the painting is ground, drawn with the walls, and what blocks
+    is world.rails: the balustrades and the brazier plinths. */
+ const stair={x:PALACE_STEP.x,y:PALACE_STEP.y,r:60,type:'palacestair',big:true,seed:21,noCol:true};
+ const stairBox={x:PALACE.x-16,y:PALACE.y-16,w:PALACE.w+32,h:PALACE.h+32};
+ const court={x:PALACE.x-30,y:2600,r:250};
+ world.solids=world.solids.filter(s=>{
+  if(s.type!=='cityhouse')return true;
+  const hd=CITY_HOUSE[s.key],hh=hd.h,hw=hh*hd.ar/2,b={x:s.x-hw,y:s.y+s.r*.3-hh,w:hw*2,h:hh};
+  if(b.x<stairBox.x+stairBox.w&&b.x+b.w>stairBox.x&&b.y<stairBox.y+stairBox.h&&b.y+b.h>stairBox.y)return false;
+  const nx=Math.max(b.x,Math.min(court.x,b.x+b.w)),ny=Math.max(b.y,Math.min(court.y,b.y+b.h));
+  return Math.hypot(nx-court.x,ny-court.y)>=court.r+12;
+ });
+ world.solids.push(stair);
+ world.rails=PALACE_RAILS.map(([px,py,pw,ph])=>({...palacePoint(px,py),w:pw*PALACE.k,h:ph*PALACE.k}));
+ world.plazas.push(court);
+ /* The boulevard's east end is a dead end of the street graph, and a stroll that reached it now ran
+    straight up the flight. Those walkers turn round at the forecourt instead: the waypoint is pulled
+    back along the same stretch, so the route keeps its shape, its lane and every seeded number. */
+ const turn=court.x-court.r-40;
+ for(const n of world.npcs){
+  if(n.patrol||n.game)continue;
+  for(const p of n.pts)if(p.x>turn&&Math.abs(p.y-cy)<=150)p.x=turn;
+  n.x=n.pts[0].x;n.y=n.pts[0].y;
+ }
 }
 /* The three ground tiles, as canvas patterns. Because the world transform is already applied when
    these fill, one art pixel is one world unit - the tiles are authored at the size they should
@@ -4777,6 +4877,20 @@ function drawCityWalls(foreground=false){
   const gx=WIN-vw/2-gw/2,gy=cy-gh/2;
   if(!(gx+gw<vx0||gx>vx1||gy+gh<vy0||gy>vy1))ctx.drawImage(mip(gi,gw),gx,gy,gw,gh);
  }
+ /* 👑 the palace stair and its gatehouse: the same flat projection, laid over the boulevard and the
+    east band once, in the ground pass, so everyone walks on top of it. The fires breathe. */
+ const pi=cityImg('palacestair'),P=PALACE;
+ if(!foreground&&pi.complete&&pi.naturalWidth&&!(P.x+P.w<vx0||P.x>vx1||P.y+P.h<vy0||P.y>vy1)){
+  ctx.drawImage(mip(pi,P.w),P.x,P.y,P.w,P.h);
+  const t=performance.now()/1000;
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  for(const [px,py,r,seed] of [[48,240,95,1],[48,487,95,2],[1100,365,150,3]]){
+   const c=palacePoint(px,py),f=.75+.25*Math.sin(t*5.3+seed*2.1)*Math.sin(t*3.1+seed),g=ctx.createRadialGradient(c.x,c.y,0,c.x,c.y,r);
+   g.addColorStop(0,'rgba(255,190,90,'+(.30*f).toFixed(3)+')');g.addColorStop(1,'rgba(255,140,40,0)');
+   ctx.fillStyle=g;ctx.fillRect(c.x-r,c.y-r,r*2,r*2);
+  }
+  ctx.restore();
+ }
 }
 function drawFarmGround(){ /* Extend the original field with mirrored tiles at the same texture scale. */
  const img=zoneMapImg('farm_zone');
@@ -4893,7 +5007,10 @@ function buildZone(){
  world.spawn={x:120,y:world.h/2};
  world.portal={x:world.w-80,y:world.h/2};
  world.pathY=world.h/2;world.pathH=110;
- if(z.tideguild){
+ if(z.throne){
+  world=ThroneWorld.create();   /* 👑 the hall is a module-built interior like the guild */
+  guildImages();['throne','council_table','hall_pillar','hall_brazier'].forEach(cityImg);
+ }else if(z.tideguild){
   world=TideGuildWorld.create({catalog:Tides.allSpecies(),maxLevel:Tides.MAX_LEVEL,rng:Math.random});
   world.npcs.forEach(n=>{n.art=npcSebbeImg;});
   guildImages();
@@ -4983,7 +5100,7 @@ function buildZone(){
    rebuildFarmItems();
    zoneMapImg('farm_zone');
   }
-  if(z.city)buildCity(R);
+  if(z.city){buildCity(R);cityApplyProtest();} /* 👑 the crowd is on the boulevard when you walk in, if the ledger says so */
   if(z.finalb){ /* ☠ you walk in from the south, dead centre - the arena rises ahead of you */
    world.spawn={x:world.w/2,y:world.h-160};
    world.portal={x:-500,y:-500}; /* no exit swirl - win or leave by the map */
@@ -5016,7 +5133,7 @@ function buildZone(){
   /* fewer props with an enforced minimum gap so nothing clumps and traps the hero */
   const MINGAP=58;
   const clearOf=(x,y)=>!world.solids.some(s=>dist({x,y},s)<(s.type==='water'||s.type==='berg'?s.r+46:MINGAP));
-  const nT=(z.raid||isBoss||z.altar||z.crypts||z.farm)?0:70; /* boss arenas, sky sanctum, crypts & farm: clean ground */
+  const nT=(z.raid||isBoss||z.altar||z.crypts||z.farm||z.throne)?0:70; /* boss arenas, sky sanctum, crypts & farm: clean ground */
   for(let i=0;i<nT;i++){
    let x,y,ok=false;
    if(isBoss){
@@ -5042,8 +5159,10 @@ function buildZone(){
    world.solids.push({x,y,r:rock?14+R()*8:12+R()*6,type:rock?'rock':'tree',s:0.5+R()*1.6,seed:R()*100}); /* same wide size spread as Moonshine */
   }
  }
- if(!expeditionZone(z)&&!z.tideguild)for(let i=0;i<160;i++)world.deco.push({x:R()*world.w,y:R()*world.h,k:R()});
+ if(!expeditionZone(z)&&!z.tideguild&&!z.throne)for(let i=0;i<160;i++)world.deco.push({x:R()*world.w,y:R()*world.h,k:R()});
  if(expeditionSpawn&&expeditionSpawn.zone===S.zone){world.spawn={x:expeditionSpawn.x,y:expeditionSpawn.y};expeditionSpawn=null;}
+ else if(z.city&&S.atPalace)world.spawn={...PALACE_FOOT}; /* 👑 logged out in the Throne Hall: wake up at the foot of its stair */
+ delete S.atPalace;
  prerenderGround(z,R);
  const cd0=classOf().spells.map(()=>0);
  /* no zone-hop cheesing: hp/mana/cooldowns travel with you between zones
@@ -5244,7 +5363,7 @@ function collectCowChest(){
 }
 function prerenderGround(z,R){
  groundCv=document.createElement('canvas');
- if(z.crypts||z.farm||z.city||z.tideguild||expeditionZone(z)){groundCv.width=groundCv.height=16;return;} /* floor draws per frame - giant canvases sink phones */
+ if(z.crypts||z.farm||z.city||z.tideguild||z.throne||expeditionZone(z)){groundCv.width=groundCv.height=16;return;} /* floor draws per frame - giant canvases sink phones */
  groundCv.width=world.w;groundCv.height=world.h;
  const g=groundCv.getContext('2d');
  if(z.raid){ /* the Violet Halls floor - tiled at near-native scale, mirrored to hide seams */
@@ -5354,6 +5473,7 @@ function solidCell(x,y){
 function collide(e,nx,ny){
  if(world.unified&&!WastelandWorld.contains(world,nx,ny,(e.r||12)+16))return true;
  if(world.guild&&!TideGuildWorld.contains(nx,ny,e.r||12))return true;
+ if(world.throne&&!ThroneWorld.contains(nx,ny,e.r||12))return true;
  /* Bosses and cows ignore trees/rocks - the herd tramples straight through. */
  if((!e.boss||e.raid)&&!e.cow){
   for(const s of solidCell(nx,ny)){
@@ -5371,6 +5491,10 @@ function collide(e,nx,ny){
  }
  if(world.mwalls)for(const w of world.mwalls){
   if(nx>w.x-e.r&&nx<w.x+w.w+e.r&&ny>w.y-e.r&&ny<w.y+w.h+e.r)return true;
+ }
+ if(world.rails)for(const w of world.rails){ /* 👑 balustrades and plinths of the palace stair - feet, not shoulders */
+  const rr=(e.r||12)*.6;
+  if(nx>w.x-rr&&nx<w.x+w.w+rr&&ny>w.y-rr&&ny<w.y+w.h+rr)return true;
  }
  if(world.arena){ /* ☠ final arena: the ring and its stair are the only solid ground */
   const a=world.arena,rr=(e.r||12)*0.6; /* feet, not shoulders, decide the edge */
@@ -6427,7 +6551,7 @@ function padPollButtons(){
    it is written, with nothing added to it. */
 const PAD_PANELS=['cfgBox','tideHub','tideBattleFx','finalGateFx','sebbeFx','gvbFx','rtbFx','rouFx','bjFx','seaFx','slotFx','casinoMenu',
  'chestFx','seaBuyFx','sharkFx','ritualDoneFx','ritualFx','talentFx','smithFx','smithMenu','bankFx',
- 'restFx','fishhutMenu','mineFx','smeltFx','enchFx','stableFx','farmCheckoutFx','farmBuyFx','farmDelFx'];
+ 'restFx','fishhutMenu','mineFx','smeltFx','enchFx','ledgerFx','stableFx','farmCheckoutFx','farmBuyFx','farmDelFx'];
 const padPanelOpen=()=>{
  for(const id of PAD_PANELS){
   const e=$(id);
@@ -6492,6 +6616,12 @@ function padInteract(){
   add(find('minehall'),'Mining Hall',openMiningHall,180);
   add(find('enchanthall'),'Enchanting Hall',openEnchantHall,180);
   add(find('smelter'),'Smelter',openSmelter,180);
+  add(PALACE_STEP,'Throne Hall',enterThroneHall,150);
+ }else if(z.throne){
+  add(world.npcs.find(n=>n.game==='king'),'The King',kingSpeak,150);
+  add(world.npcs.find(n=>n.game==='ledger'),'The Crown Ledger',openLedger,130);
+  add(world.solids.find(s2=>s2.kind==='table'),'The Crown Ledger',openLedger,260);
+  add(world.exit,'City',leaveThroneHall,90);
  }else if(z.tideguild){
   add(world.npcs.find(n=>n.game==='tideguild'),'Battle',TideUI.openGuild,120);
   add(world.exit,'City',leaveTideGuild,115);
@@ -6670,6 +6800,7 @@ cv.addEventListener('pointerdown',e=>{
  const wx=(e.clientX-r.left)/zoom+camX,wy=(e.clientY-r.top)/zoom+camY;
  hero.pendingDoor=null; /* any new click cancels a pending walk-to-building */
  if(guildWorldClick(wx,wy))return;
+ if(throneWorldClick(wx,wy))return;
  if(TideUI.wildClick(wx,wy))return;
  const training=world.training;
  if(training){
@@ -7210,6 +7341,18 @@ function update(dt){
    S.farm.simT=Date.now(); /* live systems own the clock while standing here */
   }
  }
+ if(S&&S.city){ /* 👑 the Crown Ledger closes every five minutes of play, wherever you happen to be */
+  const closes=CityEconomy.advance(S.city,dt);
+  for(let i=0;i<closes;i++)cityLedgerClose();
+ }
+ if(hero&&!hero.dead&&world&&world.solids&&zoneOf().city){ /* 👑 walk onto the palace stair and it takes you up */
+  if(Math.hypot(hero.x-PALACE_STEP.x,hero.y-PALACE_STEP.y)<50&&enterThroneHall())return;
+  if(S.city&&S.city.protest&&world.npcs&&chance(0.006)){ /* ✊ the crowd finds its voice now and then */
+   const crowd=world.npcs.filter(n=>n.protest),n=crowd[Math.floor(Math.random()*crowd.length)];
+   if(n)floatAt(n.x,n.y-72,PROTEST_CHANTS[Math.floor(Math.random()*PROTEST_CHANTS.length)],'#ffb3a3',true);
+  }
+ }
+ if(hero&&!hero.dead&&world&&world.exit&&zoneOf().throne&&Math.hypot(hero.x-world.exit.x,hero.y-world.exit.y)<60&&leaveThroneHall())return;
  if(hero&&!hero.dead&&world&&world.solids&&zoneOf().tavern){ /* 🚜 walk straight into the Farm portal - no click needed */
   const fp=world.solids.find(s2=>s2.type==='farmportal');
   if(fp&&Math.hypot(hero.x-fp.x,hero.y-fp.y)<55){goToZone(FARM_ZONE);return;}
@@ -7565,7 +7708,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   }else pet.tideMotion=0;
  }
  mpHostRaidThreatTick(dt);
- if(zoneOf().tavern||zoneOf().city)updateNpcs(dt); /* 🏙 the city has townsfolk too - without this they draw but never walk */
+ if(zoneOf().tavern||zoneOf().city||zoneOf().throne)updateNpcs(dt); /* 🏙 the city has townsfolk too - without this they draw but never walk */
  // ----- enemies -----
  for(const en of enemies){
   /* 🚶 walk-cycle state, identical to the farm animals: phase from distance actually
@@ -7983,7 +8126,8 @@ function draw(){
  ctx.save();ctx.scale(zoom,zoom);ctx.translate(-camX+shX,-camY+shY);
  ctx.drawImage(groundCv,0,0);
  const z=zoneOf();
- if(z.tideguild)TideGuildWorld.renderGround(ctx,world,{x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom},{images:guildImages(),time:now});
+ if(z.throne)ThroneWorld.renderGround(ctx,world,{x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom},{images:guildImages(),time:now});
+ else if(z.tideguild)TideGuildWorld.renderGround(ctx,world,{x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom},{images:guildImages(),time:now});
  else if(expeditionZone(z)){
   const view={x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom};
   WastelandWorld.renderGround(ctx,world,view,{images:{farm:zoneMapImg('farm_zone'),crypt:zoneMapImg('cryptmap'),snow:zoneMapImg('levlingzone_snow'),desert:zoneMapImg('levlingzone_desert'),cryptwall:zoneMapImg('cryptwall'),raidwall:zoneMapImg('raidwall'),raidfloor:zoneMapImg('raidfloor'),dirtroad:farmImg('dirt_road'),gravelroad:farmImg('gravel_road')}});
@@ -8083,7 +8227,7 @@ function draw(){
  TideUI.addWildDrawables(drawables,{x0:cx0,x1:cx1,y0:cy0,y1:cy1});
  for(const s of world.travelDoors?world.solids.concat(world.travelDoors):world.solids){
   if(TideUI.isBattling())continue; /* the staged Tide duel uses a clear patch of the current terrain */
-  if(s.type==='water')continue;
+  if(s.type==='water'||s.type==='palacestair')continue; /* 👑 the palace stair is ground, painted with the walls - its solid is only a landmark */
   if(s.x<cx0||s.x>cx1||s.y<cy0||s.y>cy1)continue; /* off screen - the city has hundreds of these */
   if(s.mined)continue;   /* rubble now; the rock returns when the zone is rebuilt */
   drawPropShadow(s,z);
@@ -8506,6 +8650,8 @@ function drawPropShadow(s,z){
    const H=s.r*(s.type==='cathedral'?CATH_ART:9),W=H*im.naturalWidth/im.naturalHeight;
    cityShadow(s.type,W,H,s.r*CATH_FOOT-H);
   }
+ }else if(s.type==='throneprop'){
+  ThroneWorld.drawShadow(ctx,s);
  }else if(s.type==='farmitem'||s.type==='farmhouse'){
   const def=FARM_BUILD.find(d=>d.id===(s.type==='farmhouse'?'farmhouse':s.ftype));
   if(def&&def.sh&&ready(farmImg(def.img))){
@@ -8679,6 +8825,8 @@ function drawProp(s,z,withShadow=true){
     ctx.fillStyle=tint;ctx.fillText(lbl,0,s.r*0.30-H-10);
    }
   }
+ }else if(s.type==='throneprop'){
+  ThroneWorld.drawProp(ctx,s,performance.now()/1000,{...guildImages(),throne:cityImg('throne'),table:cityImg('council_table'),pillar:cityImg('hall_pillar'),brazier:cityImg('hall_brazier')});
  }else if(s.type==='smith'){
   const w=s.r*1.7,hh=s.r*1.2;
 
@@ -9463,18 +9611,37 @@ function drawNpc(n){
   drawChampionSprite(ctx,n.race,n.cls,n.fx,by,0,false,null,n.female);
  }
  ctx.restore();
- if(n.guildRole!=='member'){
+ if(n.protest&&n.protest.sign)drawProtestSign(n,body,by,size);
+ if(n.guildRole!=='member'&&!n.protest){ /* ✊ a marching block wears its placards, not two dozen overlapping names */
   const ny=((body?body.headY:-37)-3+by)*size;
   ctx.font='700 '+(n.game?11:10)+'px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(n.name,1,ny+1);
-  ctx.fillStyle=n.game?'#ffd76a':n.watch?'#bcd0ee':'#cfe6c2';   /* the ones with something to sell stand out; the watch in steel */
+  ctx.fillStyle=n.game||n.royal?'#ffd76a':n.watch||n.guard?'#bcd0ee':n.protest?'#ffb3a3':'#cfe6c2';   /* the ones with something to sell stand out; the watch and the guard in steel; the crowd flushed */
   ctx.fillText(n.name,0,ny);
  }
  ctx.restore();
 }
+/* ✊ a placard on a stick, held up beside the head and wagging with the step */
+function drawProtestSign(n,body,by,size){
+ const top=((body?body.headY:-37)+by)*size;
+ ctx.save();ctx.translate(n.fx>0?10:-10,top+18);ctx.rotate(Math.sin(n.walk*3.5)*0.08);
+ ctx.strokeStyle='#5a3a1e';ctx.lineWidth=2.5;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-40);ctx.stroke();
+ ctx.fillStyle='#d8c493';ctx.strokeStyle='#4a2d17';ctx.lineWidth=1.5;
+ ctx.beginPath();ctx.rect(-37,-57,74,19);ctx.fill();ctx.stroke();
+ ctx.font='700 7px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';ctx.fillStyle='#3a1a0c';
+ ctx.fillText(n.protest.sign,0,-44);
+ ctx.restore();
+}
 function updateNpcs(dt){
  if(!world.npcs)return;
+ world.protestT=(world.protestT||0)+dt;
  for(const n of world.npcs){
+  if(n.protest){ /* ✊ the crowd marches the boulevard as one block, avenue to avenue and back */
+   const span=2200,per=span*2/46,ph=(world.protestT%per)/per,tri=ph<.5?ph*2:2-ph*2;
+   n.x=world.w/2-span/2+tri*span+n.protest.ox;n.y=world.h/2+n.protest.oy;
+   n.fx=ph<.5?1:-1;n.moving=true;n.walk+=dt*46/45;
+   continue;
+  }
   if(n.pauseT>0){n.pauseT-=dt;n.moving=false;continue;}
   const t=n.pts[n.i];
   const dx=t.x-n.x,dy=t.y-n.y,d=Math.hypot(dx,dy);
@@ -9826,6 +9993,11 @@ function renderHUD(){
  $('hLvl').textContent='Lv '+S.lvl+(S.prestige?' ✦'+S.prestige:'');
  $('hXP').style.width=(S.lvl>=MAXLVL?100:Math.min(100,100*S.xp/xpNeed(S.lvl)))+'%';
  const z=zoneOf(),q=questOf(),nz=ZONES[S.zone+1];
+ if(z.throne){
+  $('qName').textContent='👑 Throne Hall';$('qDesc').textContent=cityHudLine();
+  $('qBar').style.width='100%';$('qCount').textContent='👑';$('nextBtn').style.display='none';
+  $('autoBtn').classList.toggle('on',S.auto);$('autoBtn').textContent=S.auto?'AUTO ✓':'AUTO';refreshOpenPanel();return;
+ }
  if(z.tideguild){
   $('qName').textContent='Tides Guild';$('qDesc').textContent='Speak to the Battle keeper. Best of three — first to two wins.';
   $('qBar').style.width='100%';$('qCount').textContent='Battle';$('nextBtn').style.display='none';
@@ -9849,7 +10021,7 @@ function renderHUD(){
  }
  if(zoneOf().city){ /* no quest here - the generic branch would show a 0 / 999999 bar */
   $('qName').textContent='🏙 The City';
-  $('qDesc').textContent='The capital. Two guild halls take apprentices: Mining and Enchanting.';
+  $('qDesc').textContent=cityHudLine(); /* 👑 the treasury, the mood and the next close */
   $('qBar').style.width='100%';$('qCount').textContent='⌂';
   $('nextBtn').style.display='none';
   $('autoBtn').classList.toggle('on',S.auto);$('autoBtn').textContent=S.auto?'AUTO ✓':'AUTO';
@@ -10296,7 +10468,7 @@ function renderMap(){
   if(mapContinent==='raid'&&!z.raidc)return '';
   if(z.tavern)return '';
   if(z.special){
-   if(z.altar||z.farm||z.city||z.tideguild||z.finalb||expeditionZone(z))return ''; /* portal-only zones */
+   if(z.altar||z.farm||z.city||z.tideguild||z.throne||z.finalb||expeditionZone(z))return ''; /* portal-only zones */
    if(z.crypts){
     const p20=(S.prestige||0)>=20;
     return `<div class="card zonecard ${p20?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p20?'#a66bd0':''}">
@@ -13031,6 +13203,153 @@ document.querySelectorAll('[data-bank]').forEach(b=>b.onclick=()=>{
  }
  sfx.buy();bankRefresh();renderHUD();save();
 });
+/* ==================== 👑 THE CROWN LEDGER ==================== */
+/* The city's books live in S.city (CityEconomy). The clock is play time: update() feeds it dt, and
+   every five minutes cityLedgerClose() charges the budget, rolls the week's news and decides whether
+   the crowd is on the boulevard. The panel is the council table in the Throne Hall. */
+const PROTEST_SIGNS=['BREAD!','LOWER THE TAX!','PAY THE WATCH!','NO MORE TOLLS!','OPEN THE GRANARY','WE ARE HUNGRY'];
+const PROTEST_CHANTS=['✊ Bread!','✊ Lower the tax!','✊ Down with the tolls!','✊ Open the granary!','✊ Pay the watch!','✊ The King feasts, we starve!'];
+function cityContext(){
+ return {prestige:S.prestige||0,lvl:S.lvl||1,mining:(S.mining&&S.mining.skill)||0,miningTrained:!!(S.mining&&S.mining.trained),
+  ench:(S.ench&&S.ench.skill)||0,enchTrained:!!(S.ench&&S.ench.trained),smith:S.smithLvl||0,smelter:!!S.smelt,
+  farmOwned:!!(S.farm&&S.farm.owned),farmLvl:(S.farm&&S.farm.lvl)||1};
+}
+function cityClockLeft(){
+ const left=Math.max(0,CityEconomy.TICK_SECONDS-((S.city&&S.city.clock)||0));
+ return Math.floor(left/60)+':'+String(Math.floor(left%60)).padStart(2,'0');
+}
+function cityHudLine(){
+ const c=S&&S.city;if(!c)return 'The capital.';
+ return 'Treasury '+c.treasury.toLocaleString()+' ◉ · the people are '+CityEconomy.moodName(c.mood).toLowerCase()+(c.protest?' and marching on the boulevard':'')+' · the ledger closes in '+cityClockLeft();
+}
+/* ✊ Below a mood of 25 two dozen commoners leave their routes and march the great boulevard as one
+   block; past 40 they go back to their strolls. Called after buildCity and after every close, so the
+   crowd is there when you walk in and goes home when the bread arrives. */
+function cityApplyProtest(){
+ if(!world||!zoneOf().city||!world.npcs)return;
+ const on=!!(S.city&&S.city.protest);
+ let k=0;
+ for(const n of world.npcs){
+  if(n.patrol||n.game||/^noble_/.test(n.skin||''))continue;
+  if(on&&k<24){
+   if(!n.protest){n.homePts=n.pts;n.homeI=n.i;}
+   const row=k%4,col=Math.floor(k/4);
+   n.protest={ox:(col-2.5)*46,oy:[-104,-62,62,104][row],sign:k%3===0?PROTEST_SIGNS[Math.floor(k/3)%PROTEST_SIGNS.length]:null};
+   n.pauseT=0;k++;
+  }else if(n.protest){
+   n.pts=n.homePts||n.pts;n.i=Math.min(n.homeI||0,n.pts.length-1);n.protest=null;
+   n.x=n.pts[n.i].x;n.y=n.pts[n.i].y;n.pauseT=Math.random()*2;n.moving=false;
+  }
+ }
+}
+function cityLedgerClose(){
+ if(!S||!S.city)return;
+ const was=S.city.protest;
+ const r=CityEconomy.tick(S.city,cityContext(),Math.random);
+ const amt=(r.net>=0?'+':'−')+Math.abs(r.net).toLocaleString()+' ◉';
+ log('📜 The ledger closed: <span class="'+(r.net>=0?'loot':'imp')+'">'+amt+'</span> · treasury '+r.treasury.toLocaleString()+' ◉ · the people are '+CityEconomy.moodName(r.mood).toLowerCase()+'.',r.net>=0?'loot':'imp');
+ for(const e of r.events)log('🏙 '+e);
+ if(r.protest&&!was){stageMsg('✊ The people are marching on the boulevard!',3600,'#ff8a7a',true);sfx.warn();}
+ else if(!r.protest&&was){stageMsg('The crowds have gone home.',2800,'#9adf9a');sfx.quest();}
+ else stageMsg('📜 The ledger closed: '+amt,2400,r.net>=0?'#9adf9a':'#ff8a7a');
+ cityApplyProtest();
+ if($('ledgerFx').style.display==='flex')ledgerRefresh();
+ renderHUD();save();
+}
+function kingSpeak(){
+ const c=S.city,f=CityEconomy.forecast(c,cityContext()),who=S.name||'friend';
+ let line;
+ if(c.protest)line='Do you hear them, under my own windows? Go to my Hand in the chamber behind me and mend it - or I will find someone who can.';
+ else if(c.treasury<0)line='The Tides Bank writes me letters. I do not care for letters. My Hand has the ledger - see the crown in credit by the next close.';
+ else if(f.net<0)line='My Hand tells me the city spends more than it takes. Sit with him at the table and find where the gold goes.';
+ else if(c.mood>=85)line='They sing my name in the square, '+who+'. Keep it so. My Hand will show you how the books are kept.';
+ else line='Welcome to my hall, '+who+'. The city keeps its own books - my Hand sits with them at the council table behind the throne.';
+ stageMsg('👑 '+line,5200,'#ffd76a');
+ log('👑 <b>'+ThroneWorld.KING_NAME+':</b> '+line);
+}
+let ledgerTab='overview',ledgerNote='';
+const fmtGold=n=>Math.round(n).toLocaleString();
+const fmtSigned=n=>(n>=0?'+':'−')+fmtGold(Math.abs(n));
+const ledgerRows=lines=>'<table class="ledger-table">'+lines.map(l=>'<tr><td>'+l.icon+' '+l.name+'<small>'+l.note+'</small></td><td>'+fmtGold(l.amount)+'</td></tr>').join('')+'</table>';
+function ledgerHTML(){
+ const c=S.city,ctx=cityContext(),E=CityEconomy,f=E.forecast(c,ctx);
+ if(ledgerTab==='overview'){
+  const last=c.last;
+  return '<div class="ledger-tiles">'
+   +'<div class="ledger-tile"><span>Treasury</span><b class="'+(c.treasury<0?'bad':'')+'">◉ '+fmtGold(c.treasury)+'</b><small>'+(c.loan>0?'owes '+fmtGold(c.loan)+' ◉ to Tides Bank':'no debts')+'</small></div>'
+   +'<div class="ledger-tile"><span>The people</span><b style="color:'+E.moodColor(c.mood)+'">'+E.moodName(c.mood)+' · '+c.mood+'</b><small>'+(c.protest?'marching on the boulevard':'settling toward '+E.moodName(f.moodTarget).toLowerCase()+' ('+f.moodTarget+')')+'</small></div>'
+   +'<div class="ledger-tile"><span>Next close</span><b id="ledgerNext">'+cityClockLeft()+'</b><small>forecast <span class="'+(f.net>=0?'pos':'neg')+'">'+fmtSigned(f.net)+' ◉</span></small></div>'
+   +'</div>'
+   +'<div class="ledger-cols"><section><h3>Income · ◉ '+fmtGold(f.totalIn)+'</h3>'+ledgerRows(f.income)+'</section>'
+   +'<section><h3>Expenses · ◉ '+fmtGold(f.totalOut)+'</h3>'+ledgerRows(f.expenses)+'</section></div>'
+   +'<div class="ledger-net"><span>Net per close <b class="'+(f.net>=0?'pos':'neg')+'">'+fmtSigned(f.net)+' ◉</b></span><span>Prestige '+(S.prestige||0)+' scales every line ×'+f.scale.toFixed(2)+'</span><span>Earned '+fmtGold(c.earned)+' · spent '+fmtGold(c.spent)+' over '+c.ticks+' closes</span></div>'
+   +'<div class="ledger-transfer"><div><span>To your purse (◉ '+fmtGold(S.gold)+' / '+fmtGold(goldCap())+')</span>'
+   +['10000','100000','all'].map(v=>'<button class="sbtn gold" data-lact="take" data-v="'+v+'">'+(v==='all'?'All':(+v/1000)+'K')+' ◉</button>').join('')+'</div>'
+   +'<div><span>Into the treasury</span>'+['10000','100000','all'].map(v=>'<button class="sbtn" data-lact="give" data-v="'+v+'">'+(v==='all'?'All':(+v/1000)+'K')+' ◉</button>').join('')+'</div></div>'
+   +(last?'<p class="craft-note">Last close <b class="'+(last.net>=0?'pos':'neg')+'">'+fmtSigned(last.net)+' ◉</b>'+(last.events.length?' · '+last.events.join(' '):' · a quiet week.')+'</p>'
+        :'<p class="craft-note">The books opened the moment you first climbed the stair. The first close is in '+cityClockLeft()+'.</p>');
+ }
+ if(ledgerTab==='budget'){
+  let h='<div class="ledger-line"><h3>💰 Poll tax</h3><p>What every townsperson owes the crown each close. The higher it goes, the more they dodge it - and the angrier they get.</p><div class="ledger-opts">'
+   +E.TAX_RATES.map(t=>'<button class="sbtn'+(c.budget.tax===t?' on':'')+'" data-lact="tax" data-v="'+t+'" aria-pressed="'+(c.budget.tax===t)+'">'+t+'%<small>mood '+(E.TAX_MOOD[t]>=0?'+':'')+E.TAX_MOOD[t]+'</small></button>').join('')+'</div></div>';
+  for(const k of E.LINE_KEYS){
+   const L=E.LINES[k];
+   h+='<div class="ledger-line"><h3>'+L.icon+' '+L.name+'</h3><p>'+L.blurb+'</p><div class="ledger-opts">'
+    +L.levels.map((lv,i)=>'<button class="sbtn'+(c.budget[k]===i?' on':'')+'" data-lact="level" data-k="'+k+'" data-v="'+i+'" aria-pressed="'+(c.budget[k]===i)+'">'+lv.name+'<small>'+fmtGold(lv.cost*f.scale)+' ◉ · mood '+(lv.mood>=0?'+':'')+lv.mood+(lv.men!==undefined?' · '+lv.men+' men':'')+(lv.trade?' · trade ×'+lv.trade:'')+(lv.order?' · order ×'+lv.order:'')+'</small></button>').join('')+'</div></div>';
+  }
+  h+='<div class="ledger-net"><span>With this budget the crown nets <b class="'+(f.net>=0?'pos':'neg')+'">'+fmtSigned(f.net)+' ◉</b> per close</span><span>and the people settle at <b style="color:'+E.moodColor(f.moodTarget)+'">'+E.moodName(f.moodTarget)+' ('+f.moodTarget+')</b></span></div>';
+  return h;
+ }
+ if(ledgerTab==='bank'){
+  const limit=E.creditLimit(ctx),room=limit-c.loan,interest=Math.round(c.loan*E.LOAN_RATE);
+  return '<div class="ledger-tiles">'
+   +'<div class="ledger-tile"><span>Owed to Tides Bank</span><b class="'+(c.loan>0?'bad':'')+'">◉ '+fmtGold(c.loan)+'</b><small>'+(c.borrowed>0?fmtGold(c.borrowed)+' ◉ borrowed in all':'the crown has never borrowed')+'</small></div>'
+   +'<div class="ledger-tile"><span>Interest per close</span><b>◉ '+fmtGold(interest)+'</b><small>'+(E.LOAN_RATE*100)+'% of the balance, every five minutes</small></div>'
+   +'<div class="ledger-tile"><span>Credit limit</span><b>◉ '+fmtGold(limit)+'</b><small>100 000 + 20 000 per prestige · room for '+fmtGold(room)+'</small></div></div>'
+   +'<p class="craft-note">🏦 The Tides Bank lends to the crown against your prestige. What you borrow lands in the treasury at once; the interest is charged with the other expenses at every close, and a crown that owes more than six tenths of its limit makes the people uneasy. Repay from a treasury in credit.</p>'
+   +'<div class="ledger-transfer"><div><span>Borrow</span>'+['10000','50000','100000','max'].map(v=>'<button class="sbtn gold" data-lact="borrow" data-v="'+v+'"'+(room<=0?' disabled':'')+'>'+(v==='max'?'Max':(+v/1000)+'K')+' ◉</button>').join('')+'</div>'
+   +'<div><span>Repay</span>'+['10000','50000','all'].map(v=>'<button class="sbtn" data-lact="repay" data-v="'+v+'"'+(c.loan<=0?' disabled':'')+'>'+(v==='all'?'All':(+v/1000)+'K')+' ◉</button>').join('')+'</div></div>'
+   +(c.treasury<0?'<p class="craft-note neg">⚠️ The treasury is '+fmtGold(c.treasury)+' ◉ in the red: the overdraft costs '+(E.OVERDRAFT_RATE*100)+'% per close on top and sours the mood. A loan covers it.</p>':'');
+ }
+ const rows=c.history.slice().reverse();
+ if(!rows.length)return '<div class="craft-empty">No close on the books yet. The ledger closes every five minutes of play - the first is in '+cityClockLeft()+'.</div>';
+ const max=Math.max(1,...rows.map(r=>Math.max(r.in,r.out)));
+ return '<div class="ledger-legend"><span><i style="background:#7fc8a0"></i>Income</span><span><i style="background:#d98b6a"></i>Expenses</span><span>net on the right · newest first</span></div><div class="ledger-hist">'
+  +rows.map(r=>'<div class="ledger-row" title="Close '+r.n+': income '+fmtGold(r.in)+', expenses '+fmtGold(r.out)+', mood '+r.mood+'"><span>#'+r.n+'</span><div class="ledger-bars"><div class="ledger-bar in" style="width:'+(100*r.in/max).toFixed(1)+'%"></div><div class="ledger-bar out" style="width:'+(100*r.out/max).toFixed(1)+'%"></div></div><b class="'+(r.net>=0?'pos':'neg')+'">'+fmtSigned(r.net)+'</b></div>'
+   +(r.events.length||r.protest?'<p class="ledger-ev">'+(r.protest?'✊ the crowd was on the boulevard · ':'')+r.events.join(' ')+'</p>':'')).join('')+'</div>';
+}
+function ledgerRefresh(){
+ if(!S||!S.city)return;
+ document.querySelectorAll('[data-ltab]').forEach(b=>{const on=b.dataset.ltab===ledgerTab;b.classList.toggle('active',on);b.setAttribute('aria-selected',on);});
+ $('ledgerBody').innerHTML=ledgerHTML();
+ $('ledgerMsg').textContent=ledgerNote;ledgerNote='';
+}
+function ledgerAction(act,k,v){
+ const c=S.city,E=CityEconomy;let ok=true,msg='';
+ const amt=all=>v==='all'||v==='max'?all:parseInt(v,10);
+ if(act==='tax'){ok=E.setBudget(c,'tax',parseInt(v,10));msg='The poll tax is now '+c.budget.tax+'%.';}
+ else if(act==='level'){ok=E.setBudget(c,k,parseInt(v,10));msg=ok?E.LINES[k].name+': '+E.LINES[k].levels[c.budget[k]].name+'.':'';}
+ else if(act==='take'){const n=E.withdraw(c,amt(1e12),goldRoom());ok=n>0;S.gold+=n;msg=ok?n.toLocaleString()+' ◉ taken to your purse.':'Nothing to take - the treasury is empty or your vault is full.';}
+ else if(act==='give'){const n=E.deposit(c,amt(totalGold()),totalGold());ok=n>0&&spendGold(n);msg=ok?n.toLocaleString()+' ◉ paid into the treasury.':'You have no gold to give.';}
+ else if(act==='borrow'){const n=E.borrow(c,cityContext(),amt(1e12));ok=n>0;msg=ok?'Tides Bank lends the crown '+n.toLocaleString()+' ◉.':'The bank will lend no more.';}
+ else if(act==='repay'){const n=E.repay(c,amt(1e12));ok=n>0;msg=ok?n.toLocaleString()+' ◉ repaid.':'Nothing to repay with - the treasury must be in credit.';}
+ ledgerNote=msg;
+ if(ok)sfx.buy();else sfx.warn();
+ ledgerRefresh();renderHUD();save();
+}
+function openLedger(){
+ if(!S||!S.city)return;
+ ledgerTab='overview';ledgerNote='';ledgerRefresh();
+ $('ledgerFx').style.display='flex';
+}
+$('ledgerClose').onclick=()=>$('ledgerFx').style.display='none';
+$('ledgerTabs').addEventListener('click',e=>{const b=e.target.closest('[data-ltab]');if(!b)return;ledgerTab=b.dataset.ltab;ledgerRefresh();});
+$('ledgerBody').addEventListener('click',e=>{const b=e.target.closest('[data-lact]');if(!b||b.disabled)return;ledgerAction(b.dataset.lact,b.dataset.k,b.dataset.v);});
+setInterval(()=>{ /* the countdown on the ledger and the HUD line tick once a second */
+ if(!gameOn||!S||!S.city||!hero)return;
+ const nx=$('ledgerNext');if(nx&&$('ledgerFx').style.display==='flex')nx.textContent=cityClockLeft();
+ if((zoneOf().city||zoneOf().throne)&&!hero.dead)$('qDesc').textContent=cityHudLine();
+},1000);
 let smithSel=null; /* which forge station is open */
 let smithFkSel=0,smithOwner=null,smithInputKey='',smithChosen=null,smithPickSlot=null,smithFuseChosen=null,smithNotice=null;
 const smithItemIds=new WeakMap();let smithItemSerial=0;
@@ -13540,12 +13859,21 @@ function flushCloud(){
  if(!(FB.pushDirty&&FB.ready&&FB.user&&S&&S.id)||FB.kicked)return;
  const at=Date.now();
  FB.lastPush=at;
- cloudPushChar(S).then(ok=>{if(ok&&FB.lastPush===at)FB.pushDirty=false;}); /* a newer push owns the flag */
+ cloudPushChar(saveSnapshot()).then(ok=>{if(ok&&FB.lastPush===at)FB.pushDirty=false;}); /* a newer push owns the flag */
+}
+/* 👑 What is written down. The Throne Hall is a room of the City, and it is the newest index in the
+   zone table - an older build (the packaged exe of two days ago, a stale browser tab) has no such
+   zone, and on 2026-09-19 a hero saved inside it emptied that build's whole character list. So a hero
+   in the hall is recorded as standing in the City, with a note to put him back at the foot of the
+   palace stair; buildZone reads the note. Any future interior should be stored the same way. */
+function saveSnapshot(){
+ const z=ZONES[S.zone];
+ return z&&z.throne?{...S,zone:CITY_ZONE,atPalace:true}:S;
 }
 async function save(){
  if(!S||!S.id||FB.kicked)return;
  S.rev=(S.rev|0)+1;S.savedAt=Date.now(); /* rev decides merges; savedAt is only for support */
- memChars[S.id]=JSON.stringify(S);
+ memChars[S.id]=JSON.stringify(saveSnapshot());
  await deviceSet('riptide-char-'+S.id,memChars[S.id]);
  if(FB.ready&&FB.user){
   FB.pushDirty=true;
@@ -13558,11 +13886,11 @@ async function save(){
 async function saveNow(){
  if(!S||!S.id||FB.kicked)return;
  S.rev=(S.rev|0)+1;S.savedAt=Date.now();
- memChars[S.id]=JSON.stringify(S);
+ memChars[S.id]=JSON.stringify(saveSnapshot());
  await deviceSet('riptide-char-'+S.id,memChars[S.id]);
  if(FB.ready&&FB.user){
   FB.lastPush=Date.now();
-  if(await cloudPushChar(S))FB.pushDirty=false;
+  if(await cloudPushChar(saveSnapshot()))FB.pushDirty=false;
  }
  publishLB(S,true);
 }
@@ -14093,7 +14421,7 @@ async function renderSelect(){
    <div class="cinfo">
     <div class="cn">${esc(dispName(ch))}${ch.hardcore?` <span style="color:#ff5a5a;font-size:11px;font-weight:700">💀 ${hcDead?'FALLEN':'HARDCORE'}</span>`:''}${ch.prestige?`<span class="pstar">✦ Prestige ${ch.prestige}</span>`:''}</div>
     <div class="cl">${r.name} ${c.name} · Level ${ch.lvl}</div>
-    <div class="cl">⚔ ${fmtGS(charGearScore(ch))} gear score · ${ZONES[ch.zone].name}</div>
+    <div class="cl">⚔ ${fmtGS(charGearScore(ch))} gear score · ${(ZONES[ch.zone]||ZONES[TAVERN_ZONE]).name}</div>
    </div>
    <div class="cbtns">
     ${hcDead?'<button class="playbtn" disabled style="opacity:.55;cursor:default">💀 Fallen</button>':`<button class="playbtn" data-play="${ch.id}">Enter World</button>`}

@@ -5,8 +5,8 @@ const root=path.resolve(__dirname,'..'),source=fs.readFileSync(path.join(root,'g
 function section(start,end){const a=source.indexOf(start),b=source.indexOf(end,a);assert.ok(a>=0&&b>a);return source.slice(a,b);}
 function city(seed=13){
  const context=vm.createContext({world:{w:16800,h:5200,solids:[]},npcSebbeImg:{}});
- vm.runInContext(section('const CATH_ART=','const CITY_FOOT=')+section('const CITY_NAMES=','const cityPat=')+source.match(/^function mulberry32\(.*$/m)[0]+`;buildCity(mulberry32(${seed}));globalThis.faces=CITY_HOUSE;`,context);
- return {world:JSON.parse(JSON.stringify(context.world)),faces:context.faces};
+ vm.runInContext(section('const CATH_ART=','const CITY_FOOT=')+section('const CITY_NAMES=','const cityPat=')+source.match(/^function mulberry32\(.*$/m)[0]+`;buildCity(mulberry32(${seed}));globalThis.faces=CITY_HOUSE;globalThis.palace=PALACE;`,context);
+ return {world:JSON.parse(JSON.stringify(context.world)),faces:context.faces,palace:JSON.parse(JSON.stringify(context.palace))};
 }
 const sizes=new Map();
 function frame(s,faces){
@@ -21,7 +21,9 @@ const services=w=>w.solids.filter(s=>['cathedral','minehall','enchanthall','smel
 
 test('complete City house art stays separated from neighbouring roofs and all service buildings',()=>{
  for(const seed of [1,13,42,8675309]){
-  const {world:w,faces}=city(seed),homes=houses(w),drawn=[...services(w),...homes].map(s=>({s,...frame(s,faces)}));
+  const {world:w,faces,palace}=city(seed),homes=houses(w),drawn=[...services(w),...homes].map(s=>({s,...frame(s,faces)}));
+  /* 👑 the palace stair is ground art with its own box, not an r*9 facade */
+  for(const h of homes)assert.equal(overlaps(frame(h,faces),palace,15),false,`seed${seed}: a house stands on the palace stair`);
   assert.ok(homes.length>260,'the existing city remains populated');
   assert.equal(new Set(homes.map(s=>s.key)).size,7,'all original house faces remain in the city');
   for(let i=0;i<drawn.length;i++)for(let j=i+1;j<drawn.length;j++)
@@ -55,12 +57,18 @@ test('spacing remains deterministic and preserves City size, services, gate and 
  assert.deepEqual(services(w).map(s=>[s.type,s.x,s.y,s.r]),[
   ['minehall',4050,1180,58],['enchanthall',12750,4020,58],['cathedral',8400,1425.2,96],['smelter',7150,4020,58]
  ]);
+ const stair=w.solids.find(s=>s.type==='palacestair');
+ assert.ok(stair&&stair.noCol&&Math.abs(stair.y-2600)<1e-6&&stair.x>16500&&stair.x<16600,'the palace gate is on the boulevard, against the east wall');
+ assert.equal(w.rails.length,4);
  assert.deepEqual(w.solids.filter(s=>['well','altarportal'].includes(s.type)).map(s=>[s.type,s.x,s.y]),[['altarportal',300,2600],['well',8400,2600]]);
  const hash=data=>crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');
  // Recorded when the second wave of townsfolk joined (72 villagers, two patrols, Sebbe); the first
  // 48 hash exactly as they did on the day they moved onto the street graph, because the new names
  // are appended to the roster and the seeded RNG is drawn in roster order. Decoration changes must
  // not consume more seeded RNG and silently reroll the routes.
- assert.equal(hash(w.npcs),'d7d5cca7d66a16530948a413007666b23e5873644c2b1483b11b21dd50ae4304');
+ // Re-recorded 2026-09-19 when the palace stair took the boulevard's east end: the three strollers who
+ // reached that dead end (Syster Agnes, Urzul Gråhud, Broder Botolf) now turn round at its forecourt.
+ // Only that one waypoint moved - before the change every other route hashed as d7d5cca7...4304 did.
+ assert.equal(hash(w.npcs),'0b736b2144791d7f30bf049eedd69a2a399e36f64b7427715095296ff9191582');
  assert.deepEqual(w.mwalls.map(s=>[s.x,s.y,s.w,s.h]),[[0,60,16800,140],[0,5000,16800,140],[60,0,140,2525],[60,2675,140,2525],[16600,0,140,5200]]);
 });

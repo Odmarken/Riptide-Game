@@ -58,7 +58,11 @@ const CHARACTER_BOUNDS={
  "npc/npc_noble_dowager":[358,820,1,1,356,818],
  "npc/npc_noble_maiden":[343,820,1,0,341,819],
  "npc/npc_baker":[331,820,0,0,331,819],
- "npc/npc_market_woman":[349,820,1,1,347,819]
+ "npc/npc_market_woman":[349,820,1,1,347,819],
+ /* The court of the Throne Hall, 2026-09-19, same model and references: busts cut at the hips. */
+ "npc/npc_king":[524,700,0,1,524,699],
+ "npc/npc_kings_hand":[525,700,1,2,523,697],
+ "npc/npc_royal_guard":[515,700,0,2,515,698]
 };
 /* Reviewed grip centres in the native (left-facing) Ice Armor PNGs. Broad
  * gauntlets do not share the ordinary costume's fixed weapon attachment. */

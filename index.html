@@ -21,6 +21,7 @@
 <link rel="stylesheet" href="style.css?v=55">
 <link rel="stylesheet" href="assets/tides/ui.css?v=9">
 <link rel="stylesheet" href="assets/ui/crafting.css?v=1">
+<link rel="stylesheet" href="assets/city/ledger.css?v=1">
 <link rel="stylesheet" href="assets/ui/hero-guide.css?v=1">
 </head>
 <body>
@@ -106,7 +107,7 @@
  
   <div id="stageWrap">
     <canvas id="game"></canvas>
-    <div id="cityMinimap" hidden tabindex="0" role="img" aria-label="City minimap. North is up; the white arrow is you. Symbols show the Church, Well, Furnace, Mining Hall, Enchanting and City gate. Distant places appear along the rim.">
+    <div id="cityMinimap" hidden tabindex="0" role="img" aria-label="City minimap. North is up; the white arrow is you. Symbols show the Church, Well, Furnace, Mining Hall, Enchanting, Throne Hall and City gate. Distant places appear along the rim.">
       <canvas aria-hidden="true"></canvas>
       <span class="minimap-north" aria-hidden="true">N</span>
       <span class="minimap-title" aria-hidden="true">CITY</span>
@@ -772,6 +773,21 @@
    </div>
   </div>
 
+  <div id="ledgerFx" class="craft-modal" role="dialog" aria-modal="true" aria-labelledby="ledgerTitle" style="display:none">
+   <div class="casinobox craft-box craft-ledger">
+    <header class="craft-header"><div class="ledger-seal" aria-hidden="true">👑</div><div><div class="craft-kicker">THE COUNCIL CHAMBER</div><h2 id="ledgerTitle" class="craft-title">The Crown Ledger</h2><p class="craft-subtitle">Taxes, tolls and the price of keeping a city. The King’s Hand keeps the books; you set the budget.</p></div></header>
+    <div class="craft-tabs" id="ledgerTabs" role="tablist">
+     <button class="craft-tab active" data-ltab="overview" role="tab" aria-selected="true">📜 Overview</button>
+     <button class="craft-tab" data-ltab="budget" role="tab" aria-selected="false">⚖️ Budget</button>
+     <button class="craft-tab" data-ltab="bank" role="tab" aria-selected="false">🏦 Tides Bank</button>
+     <button class="craft-tab" data-ltab="history" role="tab" aria-selected="false">📈 Ledger</button>
+    </div>
+    <div class="craft-scroll"><div id="ledgerBody"></div></div>
+    <p class="craft-status" id="ledgerMsg" role="status" aria-live="polite"></p>
+    <footer class="craft-footer"><span>The ledger closes every five minutes of play, wherever you are. The people march when their mood falls below 25.</span><button id="ledgerClose" class="sbtn">Leave the Chamber</button></footer>
+   </div>
+  </div>
+
   <div id="stableFx" role="dialog" aria-modal="true" aria-labelledby="stableTitle" style="position:absolute;inset:0;z-index:71;display:none;align-items:center;justify-content:center;background:rgba(10,7,4,.86)">
    <div class="casinobox stable-box">
     <div class="slottop" id="stableTitle">Torsten's Stables</div>
@@ -826,13 +842,15 @@
 <script src="assets/boss/fullbody.js?v=2"></script>
 <script src="assets/boss/foot-motion-profiles.js?v=1"></script>
 <script src="assets/boss/foot-motion.js?v=1"></script>
-<script src="assets/characters/layout.js?v=7"></script>
+<script src="assets/characters/layout.js?v=8"></script>
 <script src="assets/weapons/rune-profiles.js?v=1"></script>
 <script src="assets/weapons/rune-particles.js?v=1"></script>
 <script src="assets/weapons/rune-effects.js?v=4"></script>
 <script src="assets/ui/sidebar-resize.js?v=1"></script>
 <script src="assets/ui/display-settings.js?v=2"></script>
-<script src="assets/ui/city-minimap.js?v=4"></script>
+<script src="assets/ui/city-minimap.js?v=7"></script>
+<script src="assets/city/economy.js?v=1"></script>
+<script src="assets/city/throne-world.js?v=5"></script>
 <script src="assets/wasteland/world.js?v=9"></script>
 <script src="assets/wasteland/dungeons.js?v=5"></script>
 <script src="assets/wasteland/ambience.js?v=1"></script>
@@ -854,7 +872,7 @@
 <script src="assets/tides/motion.js?v=2"></script>
 <script src="assets/tides/ui.js?v=16"></script>
 <script src="assets/ui/hero-guide.js?v=2"></script>
-<script src="game.js?v=127"></script>
-<script src="assets/ui/crafting.js?v=1"></script>
+<script src="game.js?v=131"></script>
+<script src="assets/ui/crafting.js?v=2"></script>
 </body>
 </html>
