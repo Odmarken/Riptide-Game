@@ -38,6 +38,9 @@ test('an untouched city shows only its market; every work that has a site shows 
  assert.ok(done.filter(p=>p.kind==='lamp').every(p=>p.lit&&p.x<=15500+260));
  assert.equal(done.find(p=>p.kind==='statue').crowned,true);assert.equal(done.find(p=>p.kind==='statue').hero,'Birgitta');
  assert.ok(done.filter(p=>p.kind==='stall').every(p=>p.covered));
+ /* 🏦 what the bank has sold leaves nothing behind on the square - not even a building site */
+ const sold=Works.props(w,{works:{aqueduct:'seized',statue:'seized',gardens:'seized',lamps:'seized',coveredmarket:'seized'},stalls:0});
+ assert.deepEqual(sold,[]);
  /* nothing on the square stands in the carriageway of the boulevard or the avenue, or on the well */
  const c=w.plazas[0];
  for(const p of done.filter(p=>['fountain','statue','garden','site'].includes(p.kind)))assert.ok(Math.abs(p.y-c.y)>140+p.r&&Math.abs(p.x-c.x)>100+p.r,p.kind+' blocks a street');
@@ -53,6 +56,7 @@ test('every work with a house site has an anchor and a signboard, and keeps its 
  const w=city();
  const one=Works.assignHouses(w,{works:{school:'building'},left:{school:1}});
  assert.equal(one.length,1);assert.equal(one[0].id,'school');assert.equal(one[0].status,'building');assert.equal(one[0].left,1);
+ assert.equal(Works.assignHouses(w,{works:{school:'seized'}})[0].status,'seized','a seized work keeps its house, to wear the seal of the bank');
  const all={};for(const id of housed)all[id]='done';
  const every=Works.assignHouses(w,{works:all});
  assert.equal(every.length,housed.length);assert.equal(new Set(every.map(a=>a.house)).size,housed.length,'one house each');
@@ -61,8 +65,8 @@ test('every work with a house site has an anchor and a signboard, and keeps its 
 });
 
 test('the market shrinks with the fee and grows with the covered market and the population',()=>{
- assert.deepEqual([0,1,2,3].map(f=>Works.stallCount(f,false,72)),[6,4,3,1]);
- assert.equal(Works.stallCount(1,true,72),9);assert.equal(Works.stallCount(0,true,160),12,'twelve pitches and no more');
+ assert.deepEqual([0,1,2,3].map(f=>Works.stallCount(f,false,350)),[6,4,3,1]);
+ assert.equal(Works.stallCount(1,true,350),9);assert.equal(Works.stallCount(1,false,800),7,'a bigger city fills more pitches');assert.equal(Works.stallCount(0,true,5000),12,'twelve pitches and no more');
  assert.equal(Works.stallSlots(city()).length,12);
 });
 
@@ -116,7 +120,7 @@ test('everything draws with finite geometry at any instant',()=>{
   for(const t of Works.traffic(w,{wagons:4,migrants:4},time))Works.drawTraffic(g,t,time);
   Works.drawLitter(g,w,{x:4000,y:2000,w:2400,h:1300},3,time);
   for(const b of Works.bunting(w,{x:4000,y:2000,w:2400,h:1300},3))Works.drawBunting(g,b,time);
-  for(const status of ['building','done'])for(const def of E.WORKS.filter(x=>x.site==='house'))
+  for(const status of ['building','done','seized'])for(const def of E.WORKS.filter(x=>x.site==='house'))
    Works.drawHouseWork(g,{id:def.id,status,left:2,sign:def.sign,icon:def.icon,cat:def.cat},260,300,-290,time);
   Works.drawHouseWork(g,{id:'x',status:'done',left:0,sign:'X',icon:'x',cat:'nope'},0,0,0,time);
   Works.drawVacant(g,260,300,-290);
@@ -127,7 +131,8 @@ test('everything draws with finite geometry at any instant',()=>{
 test('game.js hands the streets to the ledger: the look, the props, the people, the gaol and the panel are wired',()=>{
  const src=fs.readFileSync(path.join(__dirname,'..','game.js'),'utf8'),html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
  for(const hook of ['CityWorks.props(world,look)','CityWorks.assignHouses(world,look)','CityWorks.drawHouseWork(','CityWorks.drawVacant(','CityWorks.drawLitter(','CityWorks.traffic(world,world.look,now)',
-  'CityWorks.bunting(','CityWorks.drawProp(ctx,s,','CityWorks.drawShadow(ctx,s)','ThroneWorld.prisoner(','hallStair(T.GAOL_ARRIVE','hallStair(T.HALL_ARRIVE','E.claimCrown(c,v)','E.invest(c,cityContext(),k)','roster:cityRoster()'])
+  'CityWorks.bunting(','CityWorks.drawProp(ctx,s,','CityWorks.drawShadow(ctx,s)','ThroneWorld.prisoner(','hallStair(T.GAOL_ARRIVE','hallStair(T.HALL_ARRIVE','E.claimCrown(c,v)','E.invest(c,cityContext(),k)','roster:cityRoster()',
+  'E.charter(c)','function ledgerCharter(','function ledgerSeasonCard(','function ledgerGranary(','live:true','CityEconomy.attend(S.city)','fmtRough(','function ledgerSeasonChart(','function ledgerBank(','seasonChartHover','E.rehire(c,cityContext())',"works[id]='seized'",'CityEconomy.ROYAL_GUARD-c.guards'])
   assert.ok(src.includes(hook),'missing '+hook);
  assert.ok(/function cityApplyAll\(\)\{cityApplyPeople\(\);cityApplyProtest\(\);cityApplyUnrest\(\);cityApplyWatch\(\);cityApplyWorks\(\);/.test(src));
  for(const tab of ['works','crown','gaol'])assert.ok(html.includes('data-ltab="'+tab+'"'),tab+' tab');

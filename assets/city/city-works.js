@@ -59,11 +59,12 @@
   const c=square(world),out=[],works=look.works||{},st=id=>works[id];
   const add=(kind,x,y,r,extra)=>out.push({type:'citywork',kind,x,y,r,seed:hash(x,y)%1000,...extra});
   const site=(id,x,y,name)=>add('site',x,y,34,{work:id,name,left:(look.left||{})[id]||1});
-  if(st('aqueduct')==='done')add('fountain',c.x-270,c.y-250,46);else if(st('aqueduct'))site('aqueduct',c.x-270,c.y-250,'FOUNTAIN');
-  if(st('statue')==='done')add('statue',c.x+270,c.y-250,26,{crowned:!!look.crowned,hero:look.hero||''});else if(st('statue'))site('statue',c.x+270,c.y-250,'STATUE');
-  if(st('gardens')==='done')add('garden',c.x+285,c.y+258,20,{noCol:true});else if(st('gardens'))site('gardens',c.x+285,c.y+258,'GARDENS');
+  const going=id=>st(id)==='building';          /* a work the bank has sold leaves nothing on the square */
+  if(st('aqueduct')==='done')add('fountain',c.x-270,c.y-250,46);else if(going('aqueduct'))site('aqueduct',c.x-270,c.y-250,'FOUNTAIN');
+  if(st('statue')==='done')add('statue',c.x+270,c.y-250,26,{crowned:!!look.crowned,hero:look.hero||''});else if(going('statue'))site('statue',c.x+270,c.y-250,'STATUE');
+  if(st('gardens')==='done')add('garden',c.x+285,c.y+258,20,{noCol:true});else if(going('gardens'))site('gardens',c.x+285,c.y+258,'GARDENS');
   if(st('coveredmarket')==='building')site('coveredmarket',c.x-300,c.y+330,'COVERED MARKET');
-  if(st('lamps'))for(const p of lampSpots(world,look.xMax))add('lamp',p.x,p.y,7,{lit:st('lamps')==='done',noCol:true});
+  if(st('lamps')==='done'||going('lamps'))for(const p of lampSpots(world,look.xMax))add('lamp',p.x,p.y,7,{lit:st('lamps')==='done',noCol:true});
   stallSlots(world).slice(0,clamp(Math.round(look.stalls||0),0,12)).forEach((p,i)=>add('stall',p.x,p.y,24,{goods:i%5,covered:st('coveredmarket')==='done'}));
   return out;
  }
@@ -81,7 +82,7 @@
   return out;
  }
  /* how many awnings the square carries */
- function stallCount(feeLevel,covered,pop){return clamp([6,4,3,1][clamp(feeLevel|0,0,3)]+(covered?5:0)+Math.floor(Math.max(0,(pop||0)-72)/30),0,12);}
+ function stallCount(feeLevel,covered,pop){return clamp([6,4,3,1][clamp(feeLevel|0,0,3)]+(covered?5:0)+Math.floor(Math.max(0,(pop||0)-350)/150),0,12);}   /* a pitch more for every 150 souls over the 350 the books open on */
  /* traffic on the boulevard, as pure functions of time: wagons both ways, handcarts one way */
  function traffic(world,look,time){
   const c=square(world),x0=420,x1=(look.xMax||world.w-1300)+200,span=x1-x0,out=[];
@@ -207,6 +208,18 @@
  /* drawn in the house's own frame: (0,0) is its anchor, the art spans x ±W/2 and y from `top` to `top+H` */
  function drawHouseWork(g,work,W,H,top,time=0){
   const w=Math.max(40,W),h=Math.max(40,H),tint=TINT[work.cat]||'#ffd27a';
+  if(work.status==='seized'){
+   /* 🏦 sold by the bank: a chain across the door, the bank's seal on a board, the name struck through */
+   const y=top+h*.74;
+   g.save();g.strokeStyle='#8a8478';g.lineWidth=3;g.beginPath();g.moveTo(-w*.16,y);g.quadraticCurveTo(0,y+12,w*.16,y);g.stroke();
+   rect(g,-6,y+2,12,13,'#55504a','#15130f',1.5);g.restore();
+   rect(g,-w*.26,top+h*.50,w*.52,30,'#e9dcb8','#4a2d17',2);
+   g.save();g.font='700 9px Georgia, serif';g.textAlign='center';g.fillStyle='#7a1b1b';g.fillText('SEIZED',0,top+h*.50+13);g.fillStyle='#3a1a0c';g.font='700 7.5px Georgia, serif';g.fillText('BY THE TIDES BANK',0,top+h*.50+24);g.restore();
+   ellipse(g,w*.22,top+h*.50+15,8,8,'#7a1b1b','#3a0d10',1.5);
+   label(g,work.sign,0,top-10,'rgba(230,219,201,.55)',12);
+   g.save();g.strokeStyle='rgba(230,219,201,.55)';g.lineWidth=1.5;g.beginPath();g.moveTo(-work.sign.length*3.6,top-14);g.lineTo(work.sign.length*3.6,top-14);g.stroke();g.restore();
+   return;
+  }
   if(work.status==='building'){
    const x0=-w*.46,x1=w*.46,y0=top+h*.18,y1=top+h;
    g.strokeStyle='#6d4a28';g.lineWidth=4;g.lineCap='butt';

@@ -97,3 +97,46 @@
 .ledger-alert .sbtn.ledger-coupbtn{border-color:#ffd76a;color:#ffe9a8;background:#3a2c10}
 @media(max-width:640px){.ledger-works{grid-template-columns:1fr}}
 .ledger-gauge-mark.end span{left:auto;right:0;transform:none}
+/* 🏦 the founding loan: the Hand's three pages */
+.charter-hand{display:flex;gap:14px;align-items:flex-start;margin-bottom:14px;padding:14px 16px;border:1px solid var(--craft-line);border-radius:12px;background:#1d160fd9}
+.charter-face{flex:0 0 54px;width:54px;height:54px;display:grid;place-items:center;font-size:28px;border:1px solid var(--craft-line);border-radius:50%;background:linear-gradient(145deg,#44311dcc,#18110fcc)}
+.charter-hand b{font:600 11px var(--body,sans-serif);letter-spacing:1.4px;text-transform:uppercase;color:var(--craft-accent)}
+.charter-hand p{font:14px/1.6 var(--display,serif);color:#ead9bb;margin:6px 0 0}.charter-hand p b{font:inherit;letter-spacing:0;text-transform:none;color:#ffe9a8}
+.charter-nav{margin-top:14px}.charter-nav .sbtn{min-height:44px}
+.charter-sign{flex:2!important;font-size:13px!important}
+.charter-dots{display:flex;gap:6px;justify-content:center;margin-top:12px}.charter-dots i{width:8px;height:8px;border-radius:50%;background:#4a3a26}.charter-dots i.on{background:var(--craft-accent)}
+.craft-ledger .craft-tab:disabled{opacity:.38;cursor:default}
+/* 🏦 the season chart: two lines on one axis, a recessive grid, a crosshair and one tooltip */
+.season-wrap{margin:4px 0 14px;padding:12px 14px 8px;border:1px solid var(--craft-line);border-radius:12px;background:#1d160f}
+.season-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px}.season-head h3{margin:0}
+.season-legend{display:flex;gap:14px;flex-wrap:wrap;font:11px var(--body,sans-serif);color:#cdbb9c}
+.season-legend .key,.season-tip .key{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:3px}
+.season-legend .key.target,.season-tip .key.target{background:#8f7d64;height:1px}
+.season-plot{position:relative}
+.season-chart{width:100%;height:auto;display:block;touch-action:none}
+.sc-grid{stroke:#33281a;stroke-width:1}.sc-grid.zero{stroke:#5a4a33}
+.sc-axis{font:10px var(--body,sans-serif);fill:#8f7d64;paint-order:stroke;stroke:#1d160f;stroke-width:4px;stroke-linejoin:round}
+.sc-label{font:600 11px var(--body,sans-serif);fill:#ead9bb;paint-order:stroke;stroke:#1d160f;stroke-width:5px;stroke-linejoin:round}
+.sc-target{stroke:#8f7d64;stroke-width:1}
+.sc-line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.sc-dot{stroke:#1d160f;stroke-width:2}
+.sc-cross{stroke:#bda78c;stroke-width:1}
+.season-tip{position:absolute;top:8px;width:214px;white-space:nowrap;padding:8px 10px;border:1px solid var(--craft-line);border-radius:8px;background:#120d08f2;font:11px/1.55 var(--body,sans-serif);color:#bda78c;pointer-events:none}
+.season-tip b{color:#f3e4c9;font-weight:700}.season-tip-head{font-weight:600;color:var(--craft-accent);letter-spacing:.6px;margin-bottom:3px}
+.season-table{margin-top:4px;font:11px var(--body,sans-serif);color:#a89372}.season-table summary{cursor:pointer;padding:4px 0}.season-table table{margin-top:6px}
+.season-table td{text-align:right}.season-table td:first-child{text-align:left}
+.season-pick{margin-bottom:12px}.season-pick .sbtn{flex:0 1 110px;min-width:90px}
+/* 🌾 the granary panel on the Overview */
+.ledger-granary{margin-bottom:14px}.ledger-granary.low{border-color:#c98500}.ledger-granary.hungry{border-color:#a0533f;background:#2a1812}
+.ledger-granary p b{color:#f3e4c9}.ledger-granary-foot{margin:8px 0 0!important}
+.granary-bar{height:10px;margin:2px 0 10px}.granary-bar i{background:#c9a24a}
+.ledger-granary.low .granary-bar i{background:#c98500}.ledger-granary.hungry .granary-bar i{background:#e66767}
+/* 🌬 the winds under the Overview tiles */
+.ledger-winds{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:0 0 12px;font:11.5px/1.5 var(--body,sans-serif);color:#bda78c}
+.ledger-winds>span:first-child{flex-basis:100%;font-style:italic}
+.ledger-winds .wind{padding:3px 10px;border:1px solid #4a3a26;border-radius:999px;background:#15100b;color:#cdbb9c}.ledger-winds .wind b{color:#f3e4c9}
+.ledger-winds .wind.good{border-color:#4f7a4a}.ledger-winds .wind.good b{color:#9adf9a}.ledger-winds .wind.bad{border-color:#a0533f}.ledger-winds .wind.bad b{color:#ff8a7a}
+/* 🎲 the season's card on the Overview */
+.ledger-season{margin-bottom:14px;border-color:var(--craft-accent);background:#2a2214}.ledger-season.ordinary{border-color:var(--craft-line);background:#1d160fd9}
+.ledger-season p{margin-bottom:6px!important}
+.ledger-fx span.good{border-color:#4f7a4a;color:#bfe0b8}.ledger-fx span.bad{border-color:#a0533f;color:#ffc9bd}

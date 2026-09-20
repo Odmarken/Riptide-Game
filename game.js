@@ -13332,7 +13332,7 @@ const cityTitle=()=>S&&S.gender==='f'?'Queen':'King';
 function cityContext(){
  return {prestige:S.prestige||0,lvl:S.lvl||1,mining:(S.mining&&S.mining.skill)||0,miningTrained:!!(S.mining&&S.mining.trained),
   ench:(S.ench&&S.ench.skill)||0,enchTrained:!!(S.ench&&S.ench.trained),smith:S.smithLvl||0,smelter:!!S.smelt,
-  farmOwned:!!(S.farm&&S.farm.owned),farmLvl:(S.farm&&S.farm.lvl)||1,roster:cityRoster()};
+  farmOwned:!!(S.farm&&S.farm.owned),farmLvl:(S.farm&&S.farm.lvl)||1,roster:cityRoster(),live:true};
 }
 function cityClockLeft(){
  const left=Math.max(0,CityEconomy.TICK_SECONDS-((S.city&&S.city.clock)||0));
@@ -13340,10 +13340,11 @@ function cityClockLeft(){
 }
 function cityHudLine(){
  const c=S&&S.city;if(!c)return 'The capital.';
+ if(!c.chartered)return 'The strongroom is empty and the books are shut. The King’s Hand is waiting for you at the council table, behind the throne.';
  const trouble=c.incidents.map(i=>CityEconomy.INCIDENTS.find(d=>d.id===i.id)).map(d=>d.icon+' '+d.name.toLowerCase());
  return 'Treasury '+c.treasury.toLocaleString()+' ◉ · '+c.pop+' townsfolk, '+CityEconomy.moodName(c.mood).toLowerCase()+(c.protest?' and marching on the boulevard':'')
-  +' · '+(c.crowned?'👑 the crown is yours':'trust '+Math.floor(c.trust)+'%')
-  +(trouble.length?' · '+trouble.join(' · '):'')+(c.petition?' · 📜 a petition waits at the council table':'')+(c.king.demand?' · 👑 the King wants something':'')+' · the ledger closes in '+cityClockLeft();
+  +' · '+(c.crowned?'👑 the crown is yours':'trust '+Math.floor(c.trust)+'%')+' · season '+c.season.n+', close '+(c.season.closes+1)+'/'+CityEconomy.SEASON_CLOSES+(c.treasury<0?' · 🏦 IN THE RED':'')
+  +(c.food.hunger>0?' · 🌾 THE CITY IS HUNGRY':CityEconomy.foodView(c,cityContext()).low?' · 🌾 bread for '+(n=>n+' more close'+(n===1?'':'s'))(CityEconomy.foodView(c,cityContext()).closes):'')+(c.unattended>=CityEconomy.REMIND_AFTER?' · 🔔 you have ledgers to attend':'')+(trouble.length?' · '+trouble.join(' · '):'')+(c.petition?' · 📜 a petition waits at the council table':'')+(c.king.demand?' · 👑 the King wants something':'')+' · the ledger closes in '+cityClockLeft();
 }
 /* a commoner who can be pulled off his stroll for a march or a fight, and put back afterwards */
 const cityCommoner=n=>!n.patrol&&!n.game&&!n.hidden&&!/^noble_/.test(n.skin||'');
@@ -13429,9 +13430,10 @@ function cityApplyPeople(){
  if(!world||!zoneOf().city||!world.npcs||!S.city)return;
  const c=S.city,jailed=new Set(c.jail.map(p=>p.name));
  const folk=world.npcs.filter(n=>!n.patrol&&!n.game&&!n.newcomer&&!n.recruit);
- const gone=Math.max(0,folk.length-c.pop);
+ const crowd=Math.max(4,Math.round(c.pop*folk.length/CityEconomy.POPULATION));   /* one walker for every five souls or so: nobody draws five thousand */
+ const gone=Math.max(0,folk.length-crowd);
  folk.forEach((n,i)=>{n.hidden=i>=folk.length-gone||jailed.has(n.name);});
- const want=Math.min(NEWCOMER_MAX,Math.max(0,c.pop-folk.length)),have=world.npcs.filter(n=>n.newcomer);
+ const want=Math.min(NEWCOMER_MAX,Math.max(0,crowd-folk.length)),have=world.npcs.filter(n=>n.newcomer);
  if(have.length>want)world.npcs=world.npcs.filter(n=>!(n.newcomer&&n.nth>=want));
  const hosts=folk.filter(n=>!/^noble_/.test(n.skin||'')&&n.pts&&n.pts.length>1);
  for(let k=have.length;k<want&&hosts.length;k++){
@@ -13450,12 +13452,13 @@ function cityApplyPeople(){
 function cityLook(){
  const c=S.city,E=CityEconomy,works={},left={};
  for(const id of Object.keys(c.works)){works[id]=c.works[id].left>0?'building':'done';left[id]=c.works[id].left;}
+ for(const id of c.seized)if(!works[id])works[id]='seized';
  const carts=['carters','carters','caravanserai','quay','fleet','exchange'].filter(id=>E.has(c,id)).length;
  const stopped=c.protest||c.budget.roads===0||c.incidents.some(i=>i.id==='potholes');
  const full=c.pop>=E.HOUSING+E.worksFx(c).housing;
  return {works,left,crowned:c.crowned,hero:S.name||'',xMax:PALACE.x-420,festival:c.budget.festival,
   stalls:Math.round(CityWorks.stallCount(c.budget.fee,E.has(c,'coveredmarket'),c.pop)*(c.protest?.4:1)),
-  wagons:stopped?0:Math.round((1+carts)*E.RATES.duty.levels[c.budget.duty].vol),
+  wagons:stopped?0:Math.round((1+carts)*E.RATES.duty.levels[c.budget.duty].vol)+(c.food.auto?1:0),   /* 🌾 the standing grain shipment is one more wagon */
   migrants:c.attract>=55&&!full?Math.min(4,1+Math.floor((c.attract-55)/12)):c.attract<40?-Math.min(4,1+Math.floor((40-c.attract)/10)):0,
   dirt:Math.min(3,Math.max(0,2-c.budget.clean-(E.has(c,'sewers')?1:0))+(c.incidents.some(i=>i.id==='middens')?1:0)),
   vacancy:Math.max(0,Math.min(1,(E.POPULATION-c.pop)/E.POPULATION))*.7};
@@ -13481,6 +13484,9 @@ function cityCrierLines(){
  const building=Object.keys(c.works).filter(id=>c.works[id].left>0).map(id=>E.WORKS.find(w=>w.id===id).name);
  if(building.length)out.push('By order of the crown: '+building.join(', ')+' - under construction. Mind the scaffolding!');
  if(c.jail.length)out.push(c.jail.length+' in the gaol under the hall this week. Let it be a lesson!');
+ if(c.chartered&&c.food.hunger>0)out.unshift('Hear ye! The granary is EMPTY! No bread today - and none tomorrow, unless the crown buys grain!');
+ else if(c.chartered&&E.foodView(c,cityContext()).low)out.unshift('Hear ye! The granary is running low - bread for '+(n=>n+' more close'+(n===1?'':'s'))(CityEconomy.foodView(c,cityContext()).closes)+'!');
+ if(c.unattended>=E.NEGLECT_AFTER)out.push('Has anybody SEEN the steward? Anybody?');
  if(!c.crowned)out.push('The King is '+E.pleasureName(c.king.pleasure).toLowerCase()+', and his humour is '+E.HUMOURS.find(h=>h.id===c.king.humour).name.toLowerCase()+'. God save him.');
  else out.push('God save '+cityTitle()+' '+(S.name||'')+'! Long may '+(S.gender==='f'?'she':'he')+' reign!');
  if(c.budget.tax>=20)out.push('The poll tax stands at '+c.budget.tax+' in the hundred. Do not shoot the crier.');
@@ -13508,6 +13514,7 @@ function hallApply(){
  const c=S.city,cells=CityEconomy.cells(c);
  world.npcs=world.npcs.filter(n=>!n.prisoner&&!(c.crowned&&n.game==='king'));
  c.jail.forEach((p,i)=>world.npcs.push(ThroneWorld.prisoner(i%cells,p,i>=cells?2:c.jail.length>cells&&i<c.jail.length-cells?1:0)));
+ world.npcs.filter(n=>n.guard).forEach((n,i)=>{n.hidden=i<6&&i>=6-(CityEconomy.ROYAL_GUARD-c.guards);});
  for(const s2 of world.solids)if(s2.kind==='bars'){
   const inside=c.jail.filter((p,i)=>i%cells===s2.cell);
   s2.walled=s2.cell>=cells;s2.label=inside.map(p=>inside.length>1?p.name.split(' ')[0]:p.name).join(' & ');s2.royal=inside.some(p=>p.life);
@@ -13539,11 +13546,14 @@ function cityLedgerClose(){
  if(r.purse>0){const n=Math.min(r.purse,goldRoom());S.gold+=n;if(n>0)log('💎 Your privy purse: <span class="loot">+'+n.toLocaleString()+' ◉</span> to your own gold.','loot');}
  if(S.city.trust>=CityEconomy.COUP_TRUST&&!S.city.crowned&&!S.city.coupTold){S.city.coupTold=true;stageMsg('👑 The realm trusts you more than its King. The crown is there to be taken.',5200,'#ffd76a',true);log('👑 <b>Your trust stands at 100%.</b> Go to the council table - the Crown tab - when you are ready.','loot');}
  const amt=(r.net>=0?'+':'−')+Math.abs(r.net).toLocaleString()+' ◉';
- log('📜 The ledger closed: <span class="'+(r.net>=0?'loot':'imp')+'">'+amt+'</span> · treasury '+r.treasury.toLocaleString()+' ◉ · the people are '+CityEconomy.moodName(r.mood).toLowerCase()+'.',r.net>=0?'loot':'imp');
+ log('📜 The ledger closed: <span class="'+(r.net>=0?'loot':'imp')+'">'+amt+'</span>'+(r.expected!==undefined&&Math.abs(r.net-r.expected)>=500?' (the Hand expected '+fmtRough(r.expected)+')':'')+' · treasury '+r.treasury.toLocaleString()+' ◉ · the people are '+CityEconomy.moodName(r.mood).toLowerCase()+'.',r.net>=0?'loot':'imp');
  for(const e of r.events)log('🏙 '+e);
- for(const u of r.unrest)log(u,/^✔|^🛡|^🏗|^🧳|^🔓/.test(u)?'loot':/^⛓|^📜/.test(u)?'':'imp');
- const fresh=r.unrest.find(u=>!/^✔|^🛡|^📜|^🏗|^🔓|^⛓|^🧳|^👑 The King’s humour/.test(u));
- if(r.protest&&!was){stageMsg('✊ The people are marching on the boulevard!',3600,'#ff8a7a',true);sfx.warn();}
+ for(const u of r.unrest)log(u,/^✔|^🛡|^🏗|^🧳|^🔓/.test(u)?'loot':/^⛓|^📜|^🌬|^🧾/.test(u)?'':'imp');
+ const fresh=r.unrest.find(u=>!/^✔|^🛡|^📜|^🏗|^🔓|^⛓|^🧳|^🏦|^🌬|^🧾|^👑 The King’s humour/.test(u));
+ const bank=r.unrest.find(u=>/^🏦 (The bank|The treasury is in the red|Nobody will|There was nothing)/.test(u))||r.unrest.find(u=>/^🌾 The granary is (EMPTY|empty)/.test(u));
+ if(r.review){const g=r.review.grade;stageMsg('🏦 Season '+r.review.n+' is closed - the Tides Bank grades your books '+g+'.',5200,'AB'.includes(g)?'#9adf9a':g==='C'?'#ffd76a':'#ff8a7a',true);if('AB'.includes(g))sfx.quest();else sfx.warn();}
+ else if(bank){stageMsg(bank,5200,'#ff8a7a',true);sfx.warn();}
+ else if(r.protest&&!was){stageMsg('✊ The people are marching on the boulevard!',3600,'#ff8a7a',true);sfx.warn();}
  else if(!r.protest&&was){stageMsg('The crowds have gone home.',2800,'#9adf9a');sfx.quest();}
  else if(fresh){stageMsg(fresh,4200,'#ff8a7a',true);sfx.warn();}
  else stageMsg('📜 The ledger closed: '+amt,2400,r.net>=0?'#9adf9a':'#ff8a7a');
@@ -13557,6 +13567,10 @@ function kingSpeak(){
   const mine=c.protest?'They are under YOUR windows now.':hot?hot.name+'. It is your city to mend.':c.trust<40?'The guard salutes a little slower than it did. Win them back.':'The hall is quiet. The guard stands straighter when you pass.';
   stageMsg('👑 Your throne, '+cityTitle()+' '+who+'. '+mine,4600,'#ffd76a');log('👑 <b>The throne of the City</b> is yours. '+mine);
   openLedger('crown');return;
+ }
+ if(!c.chartered){
+  const line='You are the new steward? Good. My Hand is at the council table behind me, and he has not smiled in a month. Go and find out why.';
+  stageMsg('👑 '+line,5200,'#ffd76a');log('👑 <b>'+ThroneWorld.KING_NAME+':</b> '+line);return;
  }
  if(c.king.demand){
   const d=CityEconomy.crownView(c,cityContext()).demand;
@@ -13580,7 +13594,11 @@ function kingSpeak(){
 let ledgerTab='overview',ledgerBack='overview',ledgerNote='';
 const fmtGold=n=>Math.round(n).toLocaleString();
 const fmtSigned=n=>(n>=0?'+':'−')+fmtGold(Math.abs(n));
-const ledgerRows=lines=>'<table class="ledger-table">'+lines.map(l=>'<tr><td>'+l.icon+' '+l.name+'<small>'+l.note+'</small></td><td>'+fmtGold(l.amount)+'</td></tr>').join('')+'</table>';
+/* 🌬 an estimate is shown as one: rounded to two figures, never to the coin. The history tab has what really happened. */
+const roughly=n=>{const a=Math.abs(n);if(a<100)return Math.round(n/10)*10;const m=Math.pow(10,Math.floor(Math.log10(a))-1);return Math.round(n/m)*m;};
+const fmtRough=n=>'≈ '+(n<0?'−':'')+fmtGold(Math.abs(roughly(n)));
+const fmtRoughSigned=n=>'≈ '+(roughly(n)>=0?'+':'−')+fmtGold(Math.abs(roughly(n)));
+const ledgerRows=lines=>'<table class="ledger-table">'+lines.map(l=>'<tr><td>'+l.icon+' '+l.name+'<small>'+l.note.replace(/\d[\d\s,.]*(?= sacks at)/,'')+'</small></td><td>'+(l.amount?fmtRough(l.amount):'-')+'</td></tr>').join('')+'</table>';
 /* a 0-100 gauge with its thresholds marked, the value as a pin and a plain label under it */
 function ledgerGauge(value,target,marks,color){
  return '<div class="ledger-gauge" role="img" aria-label="'+value+' of 100"><div class="ledger-gauge-track">'
@@ -13623,10 +13641,38 @@ function ledgerIncidents(f,c){
   +'<div class="ledger-opts"><button class="sbtn gold" data-lact="fix" data-k="'+i.line+'" data-v="'+i.level+'">'+i.fix+'<small>raises the budget line - it ends at the next close</small></button>'
   +'<button class="sbtn" data-lact="settle" data-k="'+i.id+'"'+(c.treasury<i.cost?' disabled':'')+'>Pay to end it now<small>'+fmtGold(i.cost)+' ◉ from the treasury, once</small></button></div></div>').join('');
 }
+/* 🎲 What kind of season this is, and what the card does - sizes and all, since they are rolled afresh every time */
+function ledgerSeasonCard(card,q){
+ const m=card.mods,pct=v=>(v>0?'+':'−')+Math.abs(Math.round(v*100))+'%',times=v=>'×'+(+v).toFixed(2).replace(/0$/,''),chips=[];
+ if(m.trade)chips.push(['Trade '+pct(m.trade),m.trade>0]);if(m.harvest)chips.push(['Harvest '+pct(m.harvest),m.harvest>0]);if(m.prices)chips.push(['Prices '+pct(m.prices),m.prices<0]);
+ if(m.wage)chips.push(['Wages '+times(m.wage),false]);if(m.eat)chips.push(['The city eats '+times(m.eat),false]);if(m.court)chips.push(['The court costs '+times(m.court),false]);
+ if(m.interest)chips.push(['Interest '+times(m.interest),false]);if(m.church)chips.push(['Church intakes '+times(m.church),true]);
+ if(m.mood)chips.push(['Temper '+(m.mood>0?'+':'−')+Math.abs(m.mood),m.mood>0]);if(m.attract)chips.push(['Draw '+(m.attract>0?'+':'−')+Math.abs(m.attract),m.attract>0]);
+ if(m.trouble)chips.push(['Trouble likelier',false]);if(m.wishes)chips.push(['The King wants '+times(m.wishes)+' as often',false]);
+ if(m.arrive)chips.push(['Arrivals '+times(m.arrive)+' - invited or not',true]);if(m.sick)chips.push(['Takes '+(m.sick*100).toFixed(1)+'% of the city at every close',false]);
+ return '<div class="ledger-line ledger-season '+card.id+'"><h3>'+card.icon+' Season '+q.n+' · '+card.name+'</h3><p>'+card.text+(card.id==='ordinary'?'':' It lasts the season - '+(CityEconomy.SEASON_CLOSES-q.closes)+' more close'+(CityEconomy.SEASON_CLOSES-q.closes===1?'':'s')+' - and no two seasons are the same: the next is dealt when this one closes.')+'</p>'
+  +(chips.length?'<p class="ledger-fx">'+chips.map(([t,good])=>'<span class="'+(good?'good':'bad')+'">'+t+'</span>').join('')+'</p>':'')+'</div>';
+}
+/* 🌾 The granary, on the Overview: how long the bread lasts, grain by the shipment, and the standing orders */
+function ledgerGranary(c,ctx){
+ const E=CityEconomy,v=E.foodView(c,ctx),pct=Math.max(0,Math.min(100,Math.round(100*v.stock/v.cap)));
+ const state=v.hunger>0?'The city is hungry':v.closes<E.FOOD_LOW?'Running low':v.closes<E.FOOD_RESERVE?'Enough for now':'Well stocked';
+ return '<div class="ledger-line ledger-granary'+(v.hunger>0?' hungry':v.low?' low':'')+'"><h3>🌾 The granary · '+state+'</h3>'
+  +'<p>The city eats <b>'+fmtGold(v.need)+' sacks</b> at every close - one a household, of '+fmtGold(c.pop)+' souls. There are <b>'+fmtGold(v.stock)+'</b> in the stores: bread for <b>'+(v.closes>=99?'ever':v.closes+' close'+(v.closes===1?'':'s'))+'</b>.'
+   +(v.hunger>0?' <b class="neg">People are going without.</b> Hunger builds with every close the granary is short - the temper, the city’s draw and the realm’s trust sink with it, and the hungriest leave - and eases only half a point a close once the bread is back. It stands at '+v.hunger.toFixed(1)+' of '+E.HUNGER_MAX+'.':'')+'</p>'
+  +'<div class="ledger-seatbar granary-bar" role="img" aria-label="'+fmtGold(v.stock)+' of '+fmtGold(v.cap)+' sacks"><i style="width:'+pct+'%"></i></div>'
+  +'<div class="ledger-opts">'
+  +v.lots.map(n=>'<button class="sbtn gold" data-lact="food" data-v="'+n+'"'+(v.room<=0||c.treasury<v.price?' disabled':'')+'>Buy '+fmtGold(n)+' sacks<small>'+fmtGold(n*v.price)+' ◉ · '+Math.floor(n/Math.max(1,v.need))+' closes of bread</small></button>').join('')
+  +'<button class="sbtn gold" data-lact="food" data-v="fill"'+(v.room<=0||c.treasury<v.price?' disabled':'')+'>Fill the stores<small>'+fmtGold(v.room)+' sacks · '+fmtGold(v.room*v.price)+' ◉</small></button>'
+  +'<button class="sbtn'+(v.auto?' on':'')+'" data-lact="autofood" aria-pressed="'+v.auto+'">'+(v.auto?'✔ Standing shipments: ON':'Standing shipments: off')+'<small>'+(v.auto?fmtGold(v.ship.sacks)+' sacks · '+fmtGold(v.ship.cost)+' ◉ at the next close'+(v.ship.short?' - ALL the strongroom can pay':''):'grain comes in gradually at every close, at '+v.autoPrice+' ◉ a sack instead of '+v.price)+'</small></button></div>'
+  +'<p class="ledger-granary-foot">A sack costs <b>'+v.price+' ◉</b> bought here by the shipment, <b>'+v.autoPrice+' ◉</b> on standing orders (a quarter more - but it comes whether you are at the table or not). '
+   +(v.cuts.length?'Cheaper by '+Math.round(v.discount*100)+'% thanks to: '+v.cuts.map(x=>x.name).join(', ')+'.':'Better transport makes grain cheaper: the Carters’ Yard, the Stone Quay, the Merchant Fleet, the Covered Market - and a farm of your own.')
+   +' The stores hold '+fmtGold(v.cap)+' sacks.</p></div>';
+}
 /* 🏗 the Works tab */
 function ledgerWorks(c,ctx){
  const E=CityEconomy,v=E.worksView(c,ctx);
- const state={done:'✔ standing',building:'🚧 building',ready:'order it',locked:'locked',busy:'no crew free',poor:'cannot afford'};
+ const state={done:'✔ standing',building:'🚧 building',ready:'order it',locked:'locked',busy:'no crew free',poor:'cannot afford',frozen:'in the red'};
  return '<div class="ledger-tiles">'
   +'<div class="ledger-tile"><span>Public works</span><b>'+v.done+' / '+v.total+'</b><small>bought once from the treasury, they pay for ever - less their upkeep</small></div>'
   +'<div class="ledger-tile"><span>The Master Builder’s crews</span><b>'+v.building+' / '+v.crews+' at work</b><small>'+(v.building?v.list.filter(w=>w.status==='building').map(w=>w.name+' ('+w.left+')').join(' · '):'all three crews are idle')+'</small></div>'
@@ -13637,7 +13683,7 @@ function ledgerWorks(c,ctx){
     +(w.status==='done'?'<p class="ledger-work-foot pos">Standing'+(w.upkeep?' · upkeep '+fmtGold(w.upkeep)+' ◉ a close':'')+(w.site?' · you can see it in the City':'')+'</p>'
      :w.status==='building'?'<p class="ledger-work-foot">🚧 '+w.left+' close'+(w.left>1?'s':'')+' to go'+(w.site?' · the scaffolding is up in the City':'')+'</p>'
      :'<div class="ledger-opts"><button class="sbtn gold" data-lact="invest" data-k="'+w.id+'"'+(w.status==='ready'?'':' disabled')+'>'+fmtGold(w.cost)+' ◉ · '+w.build+' close'+(w.build>1?'s':'')
-       +'<small>'+(w.status==='locked'?'first: '+w.missing.join(', '):w.status==='busy'?'all crews are at work':w.status==='poor'?'the treasury is short '+fmtGold(w.cost-c.treasury)+' ◉':'upkeep '+fmtGold(w.upkeep)+' ◉ a close')+'</small></button></div>')
+       +'<small>'+(w.status==='locked'?'first: '+w.missing.join(', '):w.status==='frozen'?'nothing is ordered while the treasury is in the red':w.status==='busy'?'all crews are at work':w.status==='poor'?'the treasury is short '+fmtGold(w.cost-c.treasury)+' ◉':'upkeep '+fmtGold(w.upkeep)+' ◉ a close')+'</small></button></div>')
     +'</div>').join('')+'</div>').join('');
 }
 /* 👑 the Crown tab: the realm's trust in you, and the King - until there is no King but you */
@@ -13683,70 +13729,199 @@ function ledgerGaol(c,ctx){
    :'<p class="craft-note">🕊 Every cell stands empty. The watch brings people in at the close - go down the stair in the west wall of the hall, just inside the doors, and you can talk to them through the bars.</p>')
   +'<p class="craft-note">Whoever sits here is a real townsperson: they are gone from the streets of the City until they have served their term, been fined or been pardoned.</p>';
 }
+/* 🏦 Before the books open: the King's Hand walks the new steward through an empty strongroom, the
+   city's costs, and the loan that will pay for them. Three pages, and a signature at the end. */
+let charterStep=0;
+function ledgerCharter(c,ctx){
+ const E=CityEconomy,v=E.charterView(c,ctx),who=S.name||'steward';
+ const hand='<div class="charter-hand"><div class="charter-face" aria-hidden="true">📜</div><div><b>'+ThroneWorld.HAND_NAME+'</b>';
+ const dots='<div class="charter-dots" aria-label="page '+(charterStep+1)+' of 3">'+[0,1,2].map(i=>'<i class="'+(i===charterStep?'on':'')+'"></i>').join('')+'</div>';
+ const nav=(back,next)=>'<div class="ledger-opts charter-nav">'+(back?'<button class="sbtn" data-lact="chstep" data-v="'+(charterStep-1)+'">Back</button>':'')+next+'</div>'+dots;
+ const rows=l=>'<table class="ledger-table">'+l.map(x=>'<tr><td>'+x.icon+' '+x.name+'<small>'+x.note+'</small></td><td>'+fmtRough(x.amount)+'</td></tr>').join('')+'</table>';
+ if(charterStep===0)return hand+'<p>“'+who+'. Before you touch anything, come and look in the strongroom with me.”</p>'
+  +'<p>“It is empty. Not low - <b>empty</b>. The last steward left with the last of it, and the King has not noticed because nobody has dared tell him. The watch is owed. The guard is owed. The granary runs on the millers’ patience.”</p>'
+  +'<p>“So. Okay. We need to make a <b>budget</b> for the city - for our expected costs - and then we need to find the gold to pay for it. Sit down. It will not take long, and you will not like it.”</p></div></div>'
+  +'<div class="ledger-tiles"><div class="ledger-tile"><span>In the strongroom</span><b class="bad">◉ 0</b><small>and a mouse</small></div>'
+  +'<div class="ledger-tile"><span>The city costs, roughly</span><b>'+fmtRough(v.perCloseOut)+' ◉</b><small>at every close, as it stands</small></div>'
+  +'<div class="ledger-tile"><span>The city brings in, roughly</span><b>'+fmtRough(v.perCloseIn)+' ◉</b><small>at every close - in a good week</small></div></div>'
+  +nav(false,'<button class="sbtn gold" data-lact="chstep" data-v="1">Show me the budget</button>');
+ if(charterStep===1)return hand+'<p>“This is one close - five minutes of the city’s life. On the left what comes in, on the right what it costs to keep the gates open. They are my <b>best guesses</b>, steward, no more: trade, the harvest and prices move with every close, and nothing in this city has ever cost the same two closes running. The bank counts in <b>seasons of '+v.closes+' closes</b>, so that is how we shall plan.”</p></div></div>'
+  +'<div class="ledger-cols"><section><h3>Comes in · '+fmtRough(v.perCloseIn)+' a close</h3>'+rows(v.income)+'</section><section><h3>Goes out · '+fmtRough(v.perCloseOut)+' a close</h3>'+rows(v.expenses)+'</section></div>'
+  +'<h3 class="ledger-gap">A season of '+v.closes+' closes, as the budget stands</h3><table class="ledger-table">'
+  +'<tr><td>What the city brings in</td><td class="pos">'+fmtRoughSigned(v.seasonIn)+'</td></tr>'
+  +'<tr><td>What the city costs<small>the King first of all - then the guard, the watch, the roads, the granary, the court, the sweepers, the schools, the markets, and grain for '+S.city.pop+' mouths</small></td><td class="neg">'+fmtRoughSigned(-v.perCloseOut*v.closes)+'</td></tr>'
+  +'<tr><td>Interest on the loan I am about to ask you to sign<small>'+(v.rate*100)+'% of '+fmtGold(v.loan)+' ◉ at every close</small></td><td class="neg">'+fmtRoughSigned(-v.interest*v.closes)+'</td></tr>'
+  +'<tr class="ledger-sum"><td>The season, if you change nothing - roughly, and in a quiet season</td><td class="'+(v.seasonNet>=0?'pos':'neg')+'">'+fmtRoughSigned(v.seasonNet)+'</td></tr></table>'
+  +'<p class="craft-note">“You see it. The city does <b>not</b> pay for itself - the King alone costs more than the watch and the roads together - and that is before a brawl, a bad harvest or one of His Majesty’s wishes. Every season the men on the payroll ask for '+Math.round(v.wageRise*100)+'% more. A steward who only keeps the books is ruined inside three seasons. The gold has to be put to <b>work</b> - a carters’ yard, a quay, a market hall - and the rates have to be <b>moved</b> as the winds turn. That is what the loan is for.”</p>'
+  +nav(true,'<button class="sbtn gold" data-lact="chstep" data-v="2">And the loan?</button>');
+ return hand+'<p>“The Tides Bank will lend the crown <b>'+fmtGold(v.loan)+' ◉</b> today, against your signature. These are their terms. Read them - they will hold you to every one.”</p></div></div>'
+  +'<table class="ledger-table">'
+  +'<tr><td>💰 The founding loan<small>in the strongroom the moment you sign</small></td><td>'+fmtGold(v.loan)+' ◉</td></tr>'
+  +'<tr><td>➕ A reserve on the line<small>you may draw it later in the season, for a work or a bad week</small></td><td>'+fmtGold(v.reserve)+' ◉</td></tr>'
+  +'<tr><td>📈 Interest<small>'+(v.rate*100)+'% of whatever is owed, at every close</small></td><td>'+fmtGold(v.interest)+' ◉ a close</td></tr>'
+  +'<tr><td>🎯 The season’s target<small>at the last of the '+v.closes+' closes the debt must be a tenth smaller than at the first. Borrow along the way if you must - it is where the debt ENDS that they read</small></td><td>'+fmtGold(v.target)+' ◉ or less</td></tr>'
+  +'<tr><td>🅰️ A good season<small>debt at the target, strongroom never dry, the crown worth more than it was</small></td><td class="pos">a wider line, cheaper money</td></tr>'
+  +'<tr><td>🅵 A bad one<small>and whatever stands above the target is called in from the strongroom on the spot</small></td><td class="neg">a narrower line, dearer money</td></tr>'
+  +'<tr><td>🧾 A close we cannot pay<small>the bank covers it from the line, and adds '+(v.coverFee*100)+'% to the debt for the favour</small></td><td>while the line lasts</td></tr>'
+  +'<tr><td>⚖️ Past the line: the red<small>one close of grace. Then the bailiffs, one thing at every close: a building site, a file of the watch, a finished work, two of the Royal Guard, the festivals, the court</small></td><td class="neg">they sell what they take</td></tr></table>'
+  +'<p class="craft-note">“It is a hard bargain. It is also the only one there is. Sign, and the books open: the first close falls five minutes after. And steward - <b>buy grain before you do anything else</b>. The granary holds bread for three closes, and not a crumb more.”</p>'
+  +nav(true,'<button class="sbtn gold charter-sign" data-lact="charter">✒️ Approve the loan · '+fmtGold(v.loan)+' ◉<small>the crown will owe the Tides Bank every coin of it</small></button>');
+}
+/* 🏦 compact gold for an axis or an end label: 412K, 1.2M */
+const fmtK=n=>{const a=Math.abs(n),sgn=n<0?'−':'';return a>=1e6?sgn+(a/1e6).toFixed(a>=1e7?0:1).replace(/\.0$/,'')+'M':a>=1e3?sgn+Math.round(a/1e3)+'K':sgn+Math.round(a);};
+const SEASON_INK={t:'#3987e5',d:'#d95926'};   /* treasury blue, debt orange: validated as a pair on the ledger's surface (dataviz validate_palette, dark, #1d160f) */
+let seasonChartData=null,ledgerSeasonPick=null;
+/* One season as two lines on one axis - what the strongroom holds and what it owes - against the
+   bank's target. The x axis is the whole season, so the lines grow across it as the closes fall. */
+function ledgerSeasonChart(q,length,title){
+ const pts=[{t:q.startTreasury,d:q.startLoan,n:0}].concat(q.series),W=760,H=270,L=58,R=118,T=18,B=30;
+ const hi=Math.max(1,q.target,...pts.map(p=>Math.max(p.t,p.d))),lo=Math.min(0,...pts.map(p=>p.t));
+ const step=[1e3,2e3,5e3,1e4,2e4,5e4,1e5,2e5,5e5,1e6,2e6,5e6].find(v=>(hi-lo)/v<=5)||1e7;
+ const top=Math.ceil(hi/step)*step,bot=Math.floor(lo/step)*step;
+ const x=i=>L+i*(W-L-R)/length,y=v=>T+(top-v)*(H-T-B)/(top-bot);
+ const path=k=>pts.map((p,i)=>(i?'L':'M')+x(i).toFixed(1)+' '+y(p[k]).toFixed(1)).join(' ');
+ const last=pts[pts.length-1],end=pts.length-1;
+ let grid='';for(let v=bot;v<=top;v+=step)grid+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y(v).toFixed(1)+'" y2="'+y(v).toFixed(1)+'" class="sc-grid'+(v===0?' zero':'')+'"/><text x="'+(L-8)+'" y="'+(y(v)+3.5).toFixed(1)+'" text-anchor="end" class="sc-axis">'+fmtK(v)+'</text>';
+ let ticks='';for(const i of [0,Math.round(length/4),Math.round(length/2),Math.round(length*3/4),length])ticks+='<text x="'+x(i).toFixed(1)+'" y="'+(H-9)+'" text-anchor="middle" class="sc-axis">'+(i===0?'start':i)+'</text>';
+ /* end labels ride the line ends unless the two would collide; the legend above always names them */
+ const apart=Math.abs(y(last.t)-y(last.d))>=16;
+ const tag=(k,name)=>apart?'<text x="'+(x(end)+10).toFixed(1)+'" y="'+(y(last[k])+4).toFixed(1)+'" class="sc-label">'+name+' '+fmtK(last[k])+'</text>':'';
+ seasonChartData={pts,length,L,R,W,H,T,B,n:q.n,target:q.target,top,bot};
+ return '<div class="season-wrap"><div class="season-head"><h3>'+title+'</h3><div class="season-legend"><span><i class="key" style="background:'+SEASON_INK.t+'"></i>Treasury</span><span><i class="key" style="background:'+SEASON_INK.d+'"></i>Debt to the bank</span><span><i class="key target"></i>The bank’s target for the last close</span></div></div>'
+  +'<div class="season-plot"><svg class="season-chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Season '+q.n+': treasury '+fmtGold(last.t)+', debt '+fmtGold(last.d)+', target '+fmtGold(q.target)+', after '+end+' of '+length+' closes">'
+  +grid+ticks
+  +'<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y(q.target).toFixed(1)+'" y2="'+y(q.target).toFixed(1)+'" class="sc-target"/><text x="'+(L+6)+'" y="'+(y(q.target)-6).toFixed(1)+'" class="sc-axis">target '+fmtK(q.target)+'</text>'
+  +'<path d="'+path('d')+'" class="sc-line" stroke="'+SEASON_INK.d+'"/><path d="'+path('t')+'" class="sc-line" stroke="'+SEASON_INK.t+'"/>'
+  +'<circle cx="'+x(end).toFixed(1)+'" cy="'+y(last.d).toFixed(1)+'" r="4.5" class="sc-dot" fill="'+SEASON_INK.d+'"/><circle cx="'+x(end).toFixed(1)+'" cy="'+y(last.t).toFixed(1)+'" r="4.5" class="sc-dot" fill="'+SEASON_INK.t+'"/>'
+  +tag('t','Treasury')+tag('d','Debt')
+  +'<line class="sc-cross" y1="'+T+'" y2="'+(H-B)+'" x1="0" x2="0" visibility="hidden"/></svg><div class="season-tip" hidden></div></div>'
+  +'<details class="season-table"><summary>Show the season as a table</summary><table class="ledger-table"><tr><td>Close</td><td>Treasury</td><td>Debt</td><td>Net of the close</td></tr>'
+  +pts.map((p,i)=>'<tr><td>'+(i?i:'start')+'</td><td>'+fmtGold(p.t)+'</td><td>'+fmtGold(p.d)+'</td><td class="'+(p.n>=0?'pos':'neg')+'">'+(i?fmtSigned(p.n):'-')+'</td></tr>').join('')+'</table></details></div>';
+}
+/* the crosshair finds the close; one tooltip names both series. Built with textContent, never markup. */
+function seasonChartHover(e){
+ const svg=e.target.closest&&e.target.closest('.season-chart'),d=seasonChartData;
+ document.querySelectorAll('.season-tip').forEach(t=>{if(!svg)t.hidden=true;});
+ document.querySelectorAll('.sc-cross').forEach(l=>{if(!svg)l.setAttribute('visibility','hidden');});
+ if(!svg||!d)return;
+ const box=svg.getBoundingClientRect(),sx=(e.clientX-box.left)*d.W/box.width;
+ const i=Math.max(0,Math.min(d.pts.length-1,Math.round((sx-d.L)/((d.W-d.L-d.R)/d.length)))),p=d.pts[i],px=d.L+i*(d.W-d.L-d.R)/d.length;
+ const cross=svg.querySelector('.sc-cross');cross.setAttribute('x1',px);cross.setAttribute('x2',px);cross.setAttribute('visibility','visible');
+ const tip=svg.parentNode.querySelector('.season-tip');tip.hidden=false;tip.textContent='';
+ const row=(ink,value,label)=>{const r=document.createElement('div'),k=document.createElement('i'),b=document.createElement('b'),t=document.createElement('span');
+  k.className='key'+(ink?'':' target');if(ink)k.style.background=ink;b.textContent=value;t.textContent=' '+label;r.append(k,b,t);tip.append(r);};
+ const head=document.createElement('div');head.className='season-tip-head';head.textContent=i?'Close '+i+' of '+d.length:'The season opens';tip.append(head);
+ row(SEASON_INK.t,fmtGold(p.t)+' ◉','in the treasury');row(SEASON_INK.d,fmtGold(p.d)+' ◉','owed to the bank');
+ if(i)row(null,fmtSigned(p.n)+' ◉','net of this close');
+ row(null,fmtGold(d.target)+' ◉','the bank’s target');
+ const left=px*box.width/d.W;tip.style.left=Math.min(box.width-226,Math.max(0,left+(left>box.width*.55?-228:14)))+'px';
+}
+function ledgerBank(c,ctx){
+ const E=CityEconomy,v=E.bankView(c,ctx),q=v.season;
+ c.reviewSeen=true;
+ const picked=ledgerSeasonPick!==null&&v.seasons.find(x=>x.n===ledgerSeasonPick),lastReview=v.seasons[0];
+ const gradeInk=g=>'AB'.includes(g)?'pos':g==='C'?'':'neg';
+ const review=x=>'<div class="ledger-petition"><h3>🏦 Season '+x.n+(x.card&&x.card!=='ordinary'?' ('+E.cardDef(x.card).name.toLowerCase()+')':'')+' · the bank’s grade: <span class="'+gradeInk(x.grade)+'">'+x.grade+'</span></h3><p>“Steward - '+x.verdict+'”</p><table class="ledger-table">'
+  +'<tr><td>The debt<small>from '+fmtGold(x.startLoan)+' to '+fmtGold(x.endLoan)+' · the target was '+fmtGold(x.target)+'</small></td><td class="'+(x.paid?'pos':'neg')+'">'+(x.paid?'at the target':'above the target')+'</td></tr>'
+  +(x.swept?'<tr><td>Called in from the strongroom<small>what stood above the target, as far as the treasury could pay it</small></td><td class="neg">−'+fmtGold(x.swept)+'</td></tr>':'')
+  +'<tr><td>Closes in the red · closes bailed out from the line</td><td class="'+(x.red||x.covered?'neg':'pos')+'">'+x.red+' · '+x.covered+'</td></tr>'
+  +'<tr><td>What the crown is worth<small>treasury less debt</small></td><td class="'+(x.worth>x.worthStart?'pos':'neg')+'">'+fmtSigned(x.worthStart)+' → '+fmtSigned(x.worth)+'</td></tr>'
+  +'<tr><td>Interest paid over the season</td><td>'+fmtGold(x.interest)+'</td></tr>'
+  +'<tr><td>The credit line</td><td class="'+(x.limit>x.limitWas?'pos':x.limit<x.limitWas?'neg':'')+'">'+fmtGold(x.limitWas)+' → '+fmtGold(x.limit)+'</td></tr>'
+  +'<tr><td>The rate, per close</td><td class="'+(x.rate<x.rateWas?'pos':x.rate>x.rateWas?'neg':'')+'">'+(x.rateWas*100).toFixed(3)+'% → '+(x.rate*100).toFixed(3)+'%</td></tr></table></div>';
+ return (v.frozen?'<div class="ledger-alert"><button class="sbtn" data-lact="goto" data-v="budget">🏦 IN THE RED by '+fmtGold(-c.treasury)+' ◉ and the line is spent. '+(v.bailiffs?'The bailiffs take something at every close until the treasury is in the black.':'One close of grace, then the bailiffs.')+' Pay gold in below, cut the budget, or raise a rate.</button></div>':'')
+  +'<div class="ledger-tiles">'
+  +'<div class="ledger-tile"><span>Owed to the Tides Bank</span><b class="'+(c.loan>0?'bad':'')+'">◉ '+fmtGold(v.loan)+'</b><small>'+(+(v.rate*100).toFixed(3))+'% a close · '+fmtGold(v.interest)+' ◉ in interest at the next</small></div>'
+  +'<div class="ledger-tile"><span>The credit line</span><b>◉ '+fmtGold(v.limit)+'</b><small>room for '+fmtGold(v.room)+' ◉ more'+(f75(c)?' · a devoted council adds a tenth':'')+'</small></div>'
+  +'<div class="ledger-tile"><span>Season '+q.n+' · close '+(q.closes+1)+' of '+v.length+'</span><b class="'+(q.toRepay>0?'':'pos')+'">'+(q.toRepay>0?'◉ '+fmtGold(q.toRepay)+' to repay':'✔ at the target')+'</b><small>the debt must stand at '+fmtGold(q.target)+' ◉ or less when the season closes, in '+q.left+' close'+(q.left===1?'':'s')+'</small></div></div>'
+  +(picked?ledgerSeasonChart(picked,v.length,'Season '+picked.n+' · graded '+picked.grade):ledgerSeasonChart(q,v.length,'Season '+q.n+' · so far'))
+  +(v.seasons.length?'<div class="ledger-opts season-pick"><button class="sbtn'+(picked?'':' on')+'" data-lact="season" data-v="now">Season '+q.n+'<small>running</small></button>'
+    +v.seasons.map(x=>'<button class="sbtn'+(picked&&picked.n===x.n?' on':'')+'" data-lact="season" data-v="'+x.n+'">Season '+x.n+'<small>grade '+x.grade+'</small></button>').join('')+'</div>':'')
+  +(picked?review(picked):lastReview?review(lastReview):'<p class="craft-note">The first review falls at the last close of this season. The bank reads three things: is the debt at the target, was the strongroom ever dry, and is the crown worth more than it was.</p>')
+  +'<div class="ledger-transfer"><div><span>Borrow · '+fmtGold(v.room)+' ◉ left on the line</span>'+['10000','50000','100000','max'].map(x=>'<button class="sbtn gold" data-lact="borrow" data-v="'+x+'"'+(v.room<=0?' disabled':'')+'>'+(x==='max'?'Max':(+x/1000)+'K')+' ◉</button>').join('')+'</div>'
+  +'<div><span>Repay · from the treasury</span>'+['10000','50000','100000','target','all'].map(x=>'<button class="sbtn" data-lact="repay" data-v="'+x+'"'+(c.loan<=0||c.treasury<=0||(x==='target'&&q.toRepay<=0)?' disabled':'')+'>'+(x==='all'?'All':x==='target'?'To the target':(+x/1000)+'K')+(x==='target'?'':' ◉')+'</button>').join('')+'</div></div>'
+  +(v.guards<v.fullGuard||v.seized.length?'<h3 class="ledger-gap">What the bailiffs took</h3><table class="ledger-table">'
+    +(v.guards<v.fullGuard?'<tr><td>⚔️ '+(v.fullGuard-v.guards)+' of the Royal Guard paid off<small>'+v.guards+' men are left at the pillars of the hall</small></td><td><button class="sbtn" data-lact="rehire"'+(v.frozen||c.treasury<v.rehireCost?' disabled':'')+'>Hire two back · '+fmtGold(v.rehireCost)+' ◉</button></td></tr>':'')
+    +(v.seized.length?'<tr><td>🏗 Sold by the bank<small>their houses in the City wear the bank’s seal. Order them again on the Works tab - at the full price</small></td><td>'+v.seized.join(', ')+'</td></tr>':'')+'</table>':'')
+  +'<h3 class="ledger-gap">How the bank grades a season</h3><table class="ledger-table">'
+  +Object.keys(v.grades).map(g=>'<tr><td><b class="'+gradeInk(g)+'">'+g+'</b><small>'+v.grades[g].verdict+'</small></td><td>line '+(v.grades[g].line>=0?'+':'−')+Math.abs(v.grades[g].line*100)+'%'+(v.grades[g].repaid?' + '+(v.grades[g].repaid*100)+'% of what you repaid':'')+'<br>rate '+(v.grades[g].rate>0?'+':v.grades[g].rate<0?'−':'')+Math.abs(v.grades[g].rate*100).toFixed(3)+'%</td></tr>').join('')+'</table>';
+}
+const f75=c=>CityEconomy.favour(c)>=75;
 function ledgerHelp(){
  const E=CityEconomy;
  const sec=(h,items)=>'<section class="ledger-help"><h3>'+h+'</h3><ul>'+items.map(i=>'<li>'+i+'</li>').join('')+'</ul></section>';
  return '<div class="ledger-helpwrap">'
-  +sec('📜 The close',['The ledger closes every <b>five minutes of play</b>, wherever you are - in a dungeon, on the farm, at the casino.','At a close the crown takes its income, pays its expenses, and the difference goes into the <b>treasury</b>. Every line scales with your <b>prestige</b>.','The Overview tab always shows exactly what the next close will charge. The treasury is the city\'s gold, not yours: move gold between it and your purse at the bottom of the Overview.'])
+  +sec('📜 The close',['The ledger closes every <b>five minutes of play</b>, wherever you are - in a dungeon, on the farm, at the casino.','At a close the crown takes its income, pays its expenses, and the difference goes into the <b>treasury</b>. The prices are the same for every steward, and what your own trades add - the farm, the guild halls, your mining and smithing - is a modest perk, never enough to carry the city.','<b>Every figure the Hand shows is an estimate</b> (≈). Three winds move with every close - <b>trade</b> (tolls, exports, customs), the <b>harvest</b> (taxes, rents, the tithes, and the price of grain) and <b>prices</b> (everything the crown buys) - each close lands a few percent off the estimate on top of that, and at every season’s end <b>wages rise '+Math.round(E.WAGE_RISE*100)+'%</b>. A budget nobody touches drifts into the red: the rates have to be moved as things change. The Ledger tab shows what really happened.','The Overview tab shows roughly what the next close will bring. The treasury is the city\'s gold, not yours - and while the crown owes the bank, the bank\'s: only what the treasury holds <b>beyond its debt</b> can be carried to your purse.'])
   +sec('⚖️ The budget',['The <b>poll tax</b> is the biggest income and the biggest grievance. High taxes are also dodged more when the people are angry.','The five lines - Watch, Roads, Granary, Festivals, Court - each have four levels. Higher levels cost more every close, lift the mood, and some lift trade (roads, court) or order (watch), which feed the tolls and customs.','Changes take effect at the next close.'])
   +sec('👥 The people',['The mood runs 0-100 and moves <b>a third of the way</b> toward its target at each close. The People tab lists everything that pushes the target up or down.','Below <b>'+E.PROTEST_START+'</b> the people march on the boulevard with placards. They go home once the mood is back above <b>'+E.PROTEST_END+'</b>.','An unhappy city pays less tax and trades less.'])
   +sec('🥊 Unrest',['At every close there is a chance of trouble: a brawl, a gang war, cutpurses, bread queues, broken roads, an insulted envoy, a joyless city. Which one is <b>random</b>; a thin watch, no bread or a sour mood makes trouble likelier.','Each incident names the budget line that ends it - a brawl needs the <b>City Watch doubled</b>. Raise the line and it is dealt with at the next close, or <b>pay once</b> to end it on the spot.','Left alone it costs mood and gold every close, and <b>spreads</b>: up to twice as bad after four closes. Brawls and gang wars can be seen in the City - and so can the watch: disbanded, doubled and royal change how many guards patrol.','If a line is already strong enough when trouble is rolled, it is nipped in the bud and the people notice.'])
   +sec('🏛 The council',['Six councillors sit at this table. Each watches one thing: the Master of Coin the balance and the debt, the others one budget line each. Their approval drifts toward what that line deserves; an incident on their line drags it down.','Now and then one of them brings a <b>petition</b>: grant it (usually for gold) and they remember it, refuse and they remember that too. A petition lapses after two closes.','Favour of <b>75+</b>: trade +6% and the Tides Bank lends a tenth more. Below <b>35</b>: the council pads every bill by 6%.'])
   +sec('⚖️ Rents, fees and duties',['Three more rates sit under the poll tax on the Budget tab. <b>Crown rents</b> are paid per head; <b>market fees</b> multiply the tolls but drive stallholders off the square (count the awnings in the City); <b>import duties</b> multiply the customs but keep the wagons off the boulevard.','Every rate pulls on the mood AND on how attractive the city is.'])
+  +sec('🎲 Seasons',['<b>No two seasons are alike.</b> When a season opens a card is dealt for it - a trade boom, a slump, a bumper harvest, drought, a hard winter, the sweating sickness, war on the border, a royal wedding, a year of pilgrimage, a restless season, refugees on the roads, the great fair, dear money - and the size of everything on the card is rolled afresh, so two hard winters are never the same winter. The same kind never comes twice running, and the first season is an ordinary one.','The Overview shows the card and what it does for the rest of the season. Plan for it: stock grain before a winter, build the hospital before the sickness comes back, pay the debt down when money is dear.'])
+  +sec('⛪ Church intakes',['The cathedral’s tithes and collections are an income of their own. Fuller plates in a contented city, on feast days, under a pious King - and thinner after a lean harvest. The <b>crown’s share</b> is a rate on the Budget tab: leave it to the Church and the people like you for it; take a heavy share, or seize the plate, and the High Almoner and a pious King take it personally.'])
   +sec('🏗 Public works',['The Works tab lists '+E.WORKS.length+' things the crown can build. You pay the whole price up front, one of <b>three crews</b> builds it over a few closes, and then it earns, pleases, teaches or houses <b>for ever</b>, less a small upkeep.','Many need another work first - a fleet needs a quay, a university needs a library. Borrowing from the Tides Bank to build is what the bank is for.','You can see them: scaffolding goes up on a house in the City while a crew is on it and a signboard after; lamps, the fountain, the statue, the gardens, the market awnings and the wagons on the boulevard are all the ledger’s doing.'])
   +sec('📚 Learning',['The people’s learning runs 0-100 and creeps toward what the <b>Schools</b> line and the learning works deserve. Learned hands earn more: the poll tax and the exports grow by 0.6% a point above 20 - nearly half again at 100. It is the slowest investment and the best.'])
-  +sec('🧲 Attractiveness and population',['How much anyone wants to live here runs 0-100 (People tab). At <b>55 and above</b> families move in at every close - the higher, the more - until the roofs run out (build tenements). <b>Below 40</b> they pack their carts and leave, faster the lower it gets.','Everyone who lives here pays poll tax and rent, so population is the big lever. You can see it: more or fewer people on the streets, handcarts coming in or going out through the west gate, and boarded-up houses when the city empties.'])
+  +sec('🧲 Attractiveness and population',['The books open on <b>'+E.POPULATION+' townsfolk</b> and the city can grow to <b>'+E.POP_MAX.toLocaleString()+'</b> - the streets show a sample of them, not a head count; the ledger and the chat say how many came or went. How much anyone wants to live here runs 0-100 (People tab). At <b>55 and above</b> people move in at every close - about twenty at a time, more the bigger the city - until the roofs run out: 500 to begin with, and the New Tenements, the New Quarter, the Suburbs and the Riverside District take it to five thousand. <b>Below 40</b> they pack their carts and leave, faster the lower it gets.','Everyone who lives here pays poll tax and rent, so population is the big lever. You can see it: more or fewer people on the streets, handcarts coming in or going out through the west gate, and boarded-up houses when the city empties.'])
   +sec('👑 The King',['The King has a <b>purse</b> (a budget line), a <b>humour</b> that turns every few closes - content, needy, restless, pious, warlike, melancholy - and <b>wishes</b>: a barge, a lion, a bigger allowance. Grant one and it costs; refuse and he sulks. Ignore it for two closes and he sulks harder.','Below a pleasure of <b>30</b> he helps himself to the treasury at every close and has people arrested for nothing.'])
   +sec('🤝 Trust, and the crown',['The realm’s <b>trust in you</b> adds up close by close: a happy people, a council behind you and an attractive city raise it; marches, trouble left in the streets and an overdraft lower it. Carrying gold out of the treasury to your own purse costs trust; paying gold in earns a little.','At <b>100%</b> the Crown tab lets you take the crown. You rule as King - or Queen - with no King to keep, the privy purse paid into your own gold every close, and the treasury yours to draw on freely.'])
+  +sec('🌾 The granary',['The city eats <b>a sack a household at every close</b> (five heads to a hearth), out of the stores - and the books open on <b>three closes</b> of grain. Stores filled to the rafters feed the opening city for about eight; the Covered Market, the Stone Quay and the New Quarter each add room. The Overview shows how many closes of bread are left, and the HUD line and the town crier warn when it is fewer than '+E.FOOD_LOW+'.','<b>Buy grain by the shipment</b> at this table - the cheap way, if you are here to do it - or switch on the <b>standing shipments</b>: every close they bring what the city eats, and a quarter of the way to a reserve of '+E.FOOD_RESERVE+' closes, at a quarter over the price. They stop when the strongroom cannot pay.','Grain gets cheaper with transport - the Carters’ Yard, the Stone Quay, the Merchant Fleet, the Covered Market, a farm of your own - and the quay and the market make the stores bigger.','When the stores run short <b>hunger builds</b> slowly, by the share of the city that went without, close after close - ten closes with no bread at all to reach the worst of it: up to −36 on the temper, −18 on the city’s draw, −2 a close on the realm’s trust, and the hungriest leave. Once the bread is back it eases only <b>half a point a close</b>.'])
+  +sec('🔔 Ledgers to attend',['The ledger closes wherever you are - but a city is not run from a dungeon. After <b>'+E.REMIND_AFTER+' closes</b> without opening the ledger the chat reminds you: <b>you have ledgers to attend</b>.','There is no cliff, only a slope: from the <b>first close</b> you are away the realm’s trust in you drains by about a tenth of a point, and it deepens by as much again with <b>every close</b> you stay away - over a point a close after ten, four at the very worst. What each councillor thinks you deserve sinks a point and a half per close away (forty at the most), and their opinion follows it down. It is not only the council: the city’s temper sinks 0.6 a close away (to −18) and its draw 0.4 (to −12), so taxes thin, families stop coming and, left long enough, the crowd comes out. Opening the ledger at the council table stops the slide and starts the count again - what was lost has to be earned back.'])
   +sec('⛓ The gaol',['Down the stair in the west wall of the hall, on your left as you come in. At every close the watch may bring in a townsperson - really: they vanish from the streets until they are out. You can talk to them through the bars, and at the gaoler’s desk pardon them or fine them.'])
-  +sec('🏦 The Tides Bank',['Borrow against your credit limit: 100 000 + 20 000 per prestige, plus the <b>credit you have earned</b>. Interest is '+(E.LOAN_RATE*100)+'% of what you owe, every close.','<b>Building credit:</b> every coin you repay adds a quarter of itself to your limit; every close you pay interest from a treasury in credit adds a little more; a debt-free close in profit adds a little too. An overdraft burns 8% of the credit you have earned, every close.','A treasury below zero costs '+(E.OVERDRAFT_RATE*100)+'% per close and sours the mood by 18.'])
+  +sec('🏦 The Tides Bank and its seasons',['The strongroom starts <b>empty</b>. The books open when you sign the <b>founding loan</b> of '+fmtGold(E.FOUNDING_LOAN)+' ◉; the bank keeps another '+fmtGold(E.RESERVE_LINE)+' ◉ on the line for later. What you owe costs '+(E.LOAN_RATE*100)+'% of itself at every close, to begin with.','Play runs in <b>seasons of '+E.SEASON_CLOSES+' closes</b>. For each the bank sets a target: the debt must be <b>a tenth smaller</b> at the last close than it was at the first. You may borrow more along the way - what counts is where the debt <b>ends</b>.','At the last close the bank <b>grades the books A to F</b>: is the debt at the target, was the strongroom ever dry, is the crown worth more than it was. An A widens the line by everything you repaid and 12% more, and cheapens the money; a D or an F narrows the line, makes the money dearer, and whatever debt stands above the target is <b>called in</b> from the strongroom on the spot.','If a close cannot be paid, the bank <b>covers the shortfall from your line</b> and adds '+(E.COVER_FEE*100)+'% to the debt for the favour. When the line is spent the treasury is <b>in the red</b>: it costs '+(E.OVERDRAFT_RATE*100)+'% a close, sours the mood by 18, no budget line can be raised and no work ordered.','After <b>one close of grace</b> the <b>bailiffs</b> come, and take one thing at every close you stay in the red: a building site (sold for half), a file of the watch, a finished work (sold for a third - its house in the City wears the bank\'s seal), two of the Royal Guard, the festivals, the court. What they sell is credited to the treasury. When nothing is left the bank cuts every budget line to the bone.','The Bank tab charts every season: the treasury, the debt, and the target.'])
   +'<button class="sbtn gold" data-lact="back">Back to the ledger</button></div>';
 }
 function ledgerHTML(){
  const c=S.city,ctx=cityContext(),E=CityEconomy,f=E.forecast(c,ctx);
  if(ledgerTab==='help')return ledgerHelp();
+ if(!c.chartered)return ledgerCharter(c,ctx);
  if(ledgerTab==='overview'){
   const last=c.last;
   const coup=!c.crowned&&c.trust>=E.COUP_TRUST;
-  return (f.incidents.length||c.petition||c.king.demand||coup?'<div class="ledger-alert">'+f.incidents.map(i=>'<button class="sbtn" data-lact="goto" data-v="people">'+i.icon+' '+i.name+' - '+i.fix.toLowerCase()+'</button>').join('')
+  return (c.food.hunger>0||E.foodView(c,ctx).low?'<div class="ledger-alert"><button class="sbtn" data-lact="goto" data-v="overview">🌾 '+(c.food.hunger>0?'The granary is EMPTY and the city is going hungry - it gets worse with every close.':'The granary holds bread for '+(n=>n+' more close'+(n===1?'':'s'))(CityEconomy.foodView(c,cityContext()).closes)+'.')+' Buy grain below'+(c.food.auto?'.':', or set the standing shipments going.')+'</button></div>':'')
+   +(c.treasury<0?'<div class="ledger-alert"><button class="sbtn" data-lact="goto" data-v="bank">🏦 The treasury is in the red and the line is spent - '+(c.arrears>=E.SEIZE_AFTER-1?'the bailiffs take something at every close':'the bailiffs come after the next close')+'. Pay gold in, cut the budget, raise a rate.</button></div>':'')
+   +(f.incidents.length||c.petition||c.king.demand||coup?'<div class="ledger-alert">'+f.incidents.map(i=>'<button class="sbtn" data-lact="goto" data-v="people">'+i.icon+' '+i.name+' - '+i.fix.toLowerCase()+'</button>').join('')
     +(c.petition?'<button class="sbtn" data-lact="goto" data-v="council">📜 A petition waits for your answer</button>':'')
     +(c.king.demand?'<button class="sbtn" data-lact="goto" data-v="crown">👑 The King wants something</button>':'')
     +(coup?'<button class="sbtn ledger-coupbtn" data-lact="goto" data-v="crown">👑 The realm trusts you more than its King - the crown is there to be taken</button>':'')+'</div>':'')
    +'<div class="ledger-tiles">'
-   +'<div class="ledger-tile"><span>Treasury</span><b class="'+(c.treasury<0?'bad':'')+'">◉ '+fmtGold(c.treasury)+'</b><small>'+(c.loan>0?'owes '+fmtGold(c.loan)+' ◉ to Tides Bank':'no debts')+'</small></div>'
+   +'<div class="ledger-tile"><span>Treasury</span><b class="'+(c.treasury<0?'bad':'')+'">◉ '+fmtGold(c.treasury)+'</b><small>'+(c.treasury<0?'IN THE RED - '+(c.arrears>=E.SEIZE_AFTER-1?'the bailiffs come at the next close':'one close of grace'):c.loan>0?'owes '+fmtGold(c.loan)+' ◉ to Tides Bank':'no debts')+'</small></div>'
    +'<div class="ledger-tile"><span>The people</span><b style="color:'+E.moodColor(c.mood)+'">'+E.moodName(c.mood)+' · '+c.mood+'</b><small>'+(c.protest?'marching on the boulevard':'settling toward '+E.moodName(f.moodTarget).toLowerCase()+' ('+f.moodTarget+')')+'</small></div>'
-   +'<div class="ledger-tile"><span>Next close</span><b id="ledgerNext">'+cityClockLeft()+'</b><small>forecast <span class="'+(f.net>=0?'pos':'neg')+'">'+fmtSigned(f.net)+' ◉</span> · council '+E.favourName(f.favour).toLowerCase()+'</small></div>'
+   +'<div class="ledger-tile"><span>Next close</span><b id="ledgerNext">'+cityClockLeft()+'</b><small>the Hand expects <span class="'+(f.net>=0?'pos':'neg')+'">'+fmtRoughSigned(f.net)+' ◉</span> · council '+E.favourName(f.favour).toLowerCase()+'</small></div>'
    +'<div class="ledger-tile"><span>The city</span><b>'+c.pop+' townsfolk</b><small>'+E.attractName(c.attract)+' · '+c.attract+(c.attract>=55?(c.pop>=f.housing?' - but every roof is taken':' - families are moving in'):c.attract<40?' - families are leaving':' - nobody comes, nobody goes')+'</small></div>'
    +'<div class="ledger-tile"><span>The people’s learning</span><b>'+Math.round(c.skill)+'</b><small>heading for '+f.skillTarget+' · taxes and exports ×'+f.craft.toFixed(2)+'</small></div>'
    +'<div class="ledger-tile"><span>'+(c.crowned?'Your legitimacy':'Trust in you')+'</span><b style="color:#ffd76a">'+Math.floor(c.trust)+'%</b><small>'+(c.crowned?'👑 '+cityTitle()+' '+(S.name||''):E.trustName(c.trust)+' · '+(f.trustDelta>=0?'+':'−')+Math.abs(f.trustDelta).toFixed(1)+' a close'+(c.trust>=E.COUP_TRUST?' · the crown is there to be taken':''))+'</small></div>'
    +'</div>'
-   +'<div class="ledger-cols"><section><h3>Income · ◉ '+fmtGold(f.totalIn)+'</h3>'+ledgerRows(f.income)+'</section>'
-   +'<section><h3>Expenses · ◉ '+fmtGold(f.totalOut)+'</h3>'+ledgerRows(f.expenses.filter(l=>l.amount||!['whims','obstruction','overdraft','gaol','upkeep'].includes(l.id)))+'</section></div>'
-   +'<div class="ledger-net"><span>Net per close <b class="'+(f.net>=0?'pos':'neg')+'">'+fmtSigned(f.net)+' ◉</b></span><span>Prestige '+(S.prestige||0)+' scales every line ×'+f.scale.toFixed(2)+'</span><span>Earned '+fmtGold(c.earned)+' · spent '+fmtGold(c.spent)+' over '+c.ticks+' closes</span></div>'
-   +'<div class="ledger-transfer"><div><span>To your purse (◉ '+fmtGold(S.gold)+' / '+fmtGold(goldCap())+')</span>'
+   +ledgerSeasonCard(f.card,c.season)
+   +ledgerGranary(c,ctx)
+   +'<div class="ledger-winds"><span>🌬 The Hand’s estimate for the next close - it never lands on it.</span>'+f.winds.map(w=>'<span class="wind '+(w.key==='prices'?(w.value>.05?'bad':w.value<-.05?'good':''):(w.value>.05?'good':w.value<-.05?'bad':''))+'">'+(w.key==='trade'?'⛵ Trade':w.key==='harvest'?'🌾 Harvest':'🧾 Prices')+': <b>'+w.name+'</b></span>').join('')+(f.wage>1?'<span class="wind">Wages: <b>+'+Math.round((f.wage-1)*100)+'%</b> since the books opened</span>':'')+'</div>'
+   +'<div class="ledger-cols"><section><h3>Income · '+fmtRough(f.totalIn)+' ◉</h3>'+ledgerRows(f.income)+'</section>'
+   +'<section><h3>Expenses · '+fmtRough(f.totalOut)+' ◉</h3>'+ledgerRows(f.expenses.filter(l=>l.amount||!['whims','obstruction','overdraft','gaol','upkeep'].includes(l.id)))+'</section></div>'
+   +'<div class="ledger-net"><span>The next close, roughly <b class="'+(f.net>=0?'pos':'neg')+'">'+fmtRoughSigned(f.net)+' ◉</b></span><span>Season '+c.season.n+' · close '+(c.season.closes+1)+' of '+E.SEASON_CLOSES+' · the bank wants the debt at <b>'+fmtGold(c.season.target)+' ◉</b> or less by the end - it is '+fmtGold(c.loan)+'</span><span>Earned '+fmtGold(c.earned)+' · spent '+fmtGold(c.spent)+' over '+c.ticks+' closes</span></div>'
+   +'<div class="ledger-transfer"><div><span>To your purse (◉ '+fmtGold(S.gold)+' / '+fmtGold(goldCap())+') · only the '+fmtGold(Math.max(0,c.treasury-c.loan))+' ◉ the treasury holds beyond its debt</span>'
    +['10000','100000','all'].map(v=>'<button class="sbtn gold" data-lact="take" data-v="'+v+'">'+(v==='all'?'All':(+v/1000)+'K')+' ◉</button>').join('')+'</div>'
    +'<div><span>Into the treasury</span>'+['10000','100000','all'].map(v=>'<button class="sbtn" data-lact="give" data-v="'+v+'">'+(v==='all'?'All':(+v/1000)+'K')+' ◉</button>').join('')+'</div></div>'
-   +(last?'<p class="craft-note">Last close <b class="'+(last.net>=0?'pos':'neg')+'">'+fmtSigned(last.net)+' ◉</b>'+(last.events.length?' · '+last.events.join(' '):' · a quiet week.')+'</p>'
+   +(last?'<p class="craft-note">Last close <b class="'+(last.net>=0?'pos':'neg')+'">'+fmtSigned(last.net)+' ◉</b>'+(last.expected!==undefined?' (the Hand had expected '+fmtRoughSigned(last.expected)+')':'')+(last.events.length?' · '+last.events.join(' '):' · a quiet week.')+'</p>'
         :'<p class="craft-note">The books opened the moment you first climbed the stair. The first close is in '+cityClockLeft()+'.</p>');
  }
  if(ledgerTab==='budget'){
   const asked=k=>f.incidents.filter(i=>i.line===k);
-  let h='<div class="ledger-line"><h3>💰 Poll tax</h3><p>What every townsperson owes the crown each close. The higher it goes, the more they dodge it - and the angrier they get.</p><div class="ledger-opts">'
+  let h=(E.frozen(c)?'<div class="ledger-alert"><button class="sbtn" data-lact="goto" data-v="bank">🏦 In the red: the bank lets you cut any line, and raise taxes, rents, fees and duties - but no line may be raised until the treasury is in the black.</button></div>':'')
+   +'<div class="ledger-line"><h3>💰 Poll tax</h3><p>What every townsperson owes the crown each close. The higher it goes, the more they dodge it - and the angrier they get.</p><div class="ledger-opts">'
    +E.TAX_RATES.map(t=>'<button class="sbtn'+(c.budget.tax===t?' on':'')+'" data-lact="tax" data-v="'+t+'" aria-pressed="'+(c.budget.tax===t)+'">'+t+'%<small>mood '+(E.TAX_MOOD[t]>=0?'+':'')+E.TAX_MOOD[t]+' · draw '+(E.TAX_ATTRACT[t]>=0?'+':'')+E.TAX_ATTRACT[t]+'</small></button>').join('')+'</div></div>';
   for(const k of E.RATE_KEYS){ /* ⚖️ rents, market fees, import duties */
    const R=E.RATES[k];
    h+='<div class="ledger-line"><h3>'+R.icon+' '+R.name+'</h3><p>'+R.blurb+'</p><div class="ledger-opts">'
     +R.levels.map((lv,i)=>'<button class="sbtn'+(c.budget[k]===i?' on':'')+'" data-lact="level" data-k="'+k+'" data-v="'+i+'" aria-pressed="'+(c.budget[k]===i)+'">'+lv.name
-     +'<small>'+(k==='rent'?lv.rate+' ◉ a head':'×'+lv.rate+' taken'+(lv.vol!==1?' · traffic ×'+lv.vol:''))+' · mood '+(lv.mood>=0?'+':'')+lv.mood+' · draw '+(lv.attract>=0?'+':'')+lv.attract+'</small></button>').join('')+'</div></div>';
+     +'<small>'+(k==='rent'?lv.rate*E.COIN+' ◉ a household':'×'+lv.rate+' taken'+(lv.vol!==1?' · traffic ×'+lv.vol:''))+' · mood '+(lv.mood>=0?'+':'')+lv.mood+' · draw '+(lv.attract>=0?'+':'')+lv.attract+'</small></button>').join('')+'</div></div>';
   }
   for(const k of E.LINE_KEYS){
    const L=E.LINES[k];
    h+='<div class="ledger-line"><h3>'+L.icon+' '+(k==='purse'&&c.crowned?'Your Privy Purse':L.name)+'</h3><p>'+(k==='purse'&&c.crowned?'What the crown pays the one who wears it - you. It goes into your own gold at every close, and the people notice a greedy monarch.':L.blurb)+'</p>'
     +asked(k).map(i=>'<p class="ledger-ask neg">'+i.icon+' '+i.name+' - needs <b>'+L.levels[i.level].name+'</b> or better.</p>').join('')
     +'<div class="ledger-opts">'
-    +L.levels.map((lv,i)=>'<button class="sbtn'+(c.budget[k]===i?' on':'')+'" data-lact="level" data-k="'+k+'" data-v="'+i+'" aria-pressed="'+(c.budget[k]===i)+'">'+lv.name+'<small>'+fmtGold(lv.cost*f.scale)+' ◉ · mood '+(lv.mood>=0?'+':'')+lv.mood+(lv.men!==undefined?' · '+lv.men+' men':'')+(lv.trade?' · trade ×'+lv.trade:'')+(lv.order?' · order ×'+lv.order:'')+(lv.attract?' · draw '+(lv.attract>0?'+':'')+lv.attract:'')+(lv.skill?' · learning '+(lv.skill>0?'+':'')+lv.skill:'')+(k==='purse'?' · '+(c.crowned?'into your own gold':'his pleasure → '+lv.pleasure):lv.pleasure?' · King '+(lv.pleasure>0?'+':'')+lv.pleasure:'')+'</small></button>').join('')+'</div></div>';
+    +L.levels.map((lv,i)=>'<button class="sbtn'+(c.budget[k]===i?' on':'')+'" data-lact="level" data-k="'+k+'" data-v="'+i+'" aria-pressed="'+(c.budget[k]===i)+'">'+lv.name+'<small>'+fmtRough(lv.cost*f.scale*(f.factor[k]||1))+' ◉ · mood '+(lv.mood>=0?'+':'')+lv.mood+(lv.men!==undefined?' · '+lv.men+' men':'')+(lv.trade?' · trade ×'+lv.trade:'')+(lv.order?' · order ×'+lv.order:'')+(lv.attract?' · draw '+(lv.attract>0?'+':'')+lv.attract:'')+(lv.skill?' · learning '+(lv.skill>0?'+':'')+lv.skill:'')+(k==='purse'?' · '+(c.crowned?'into your own gold':'his pleasure → '+lv.pleasure):lv.pleasure?' · King '+(lv.pleasure>0?'+':'')+lv.pleasure:'')+'</small></button>').join('')+'</div></div>';
   }
-  h+='<div class="ledger-net"><span>With this budget the crown nets <b class="'+(f.net>=0?'pos':'neg')+'">'+fmtSigned(f.net)+' ◉</b> per close</span><span>the people settle at <b style="color:'+E.moodColor(f.moodTarget)+'">'+E.moodName(f.moodTarget)+' ('+f.moodTarget+')</b></span><span>and the city’s draw at <b>'+E.attractName(f.attractTarget)+' ('+f.attractTarget+')</b></span></div>';
+  h+='<div class="ledger-net"><span>With this budget the Hand expects <b class="'+(f.net>=0?'pos':'neg')+'">'+fmtRoughSigned(f.net)+' ◉</b> a close</span><span>the people settle at <b style="color:'+E.moodColor(f.moodTarget)+'">'+E.moodName(f.moodTarget)+' ('+f.moodTarget+')</b></span><span>and the city’s draw at <b>'+E.attractName(f.attractTarget)+' ('+f.attractTarget+')</b></span></div>';
   return h;
  }
  if(ledgerTab==='people'){
@@ -13763,7 +13938,7 @@ function ledgerHTML(){
    +'<h3 class="ledger-gap">🧲 How attractive the city is</h3><div class="ledger-tiles">'
    +'<div class="ledger-tile"><span>Attractiveness</span><b>'+E.attractName(c.attract)+' · '+c.attract+'</b><small>heading for '+f.attractTarget+' · moves a third of the way at every close</small></div>'
    +'<div class="ledger-tile"><span>Population</span><b>'+c.pop+' / '+f.housing+' roofs</b><small>'+(c.last&&c.last.moved?(c.last.moved>0?'🧳 '+c.last.moved+' moved in':'🎒 '+(-c.last.moved)+' left')+' at the last close':'nobody came or went at the last close')+'</small></div>'
-   +'<div class="ledger-tile"><span>What happens next</span><b>'+(c.attract>=55?(c.pop>=f.housing?'Turned away':'Moving in'):c.attract<40?'Leaving':'Staying put')+'</b><small>'+(c.attract>=55?(c.pop>=f.housing?'every roof is taken - build tenements (Works)':'about '+Math.max(1,Math.floor((c.attract-50)/10))+' a close'):c.attract<40?'about '+Math.max(1,Math.floor((40-c.attract)/8))+' a close, until it is 40 again':'55 brings families in · below 40 drives them out')+'</small></div></div>'
+   +'<div class="ledger-tile"><span>What happens next</span><b>'+(c.attract>=55?(c.pop>=f.housing?'Turned away':'Moving in'):c.attract<40?'Leaving':'Staying put')+'</b><small>'+(c.attract>=55?(c.pop>=f.housing?'every roof is taken - build another quarter (Works)':'about '+Math.max(5,Math.round((c.attract-50)/10*E.HOUSEHOLD*Math.sqrt(c.pop/E.POPULATION)))+' a close'):c.attract<40?'about '+Math.max(5,Math.round((40-c.attract)/8*E.HOUSEHOLD*Math.sqrt(c.pop/E.POPULATION)))+' a close, until it is 40 again':'55 brings families in · below 40 drives them out')+'</small></div></div>'
    +ledgerGauge(c.attract,f.attractTarget,[{at:40,label:'leaving 40'},{at:55,label:'arriving 55'}],'#9ad0e8')
    +'<table class="ledger-table">'+f.attractFactors.filter((x,i)=>i===0||x.value!==0).map((x,i)=>'<tr><td>'+x.name+'</td><td class="'+(i===0?'':x.value>0?'pos':'neg')+'">'+(i===0?x.value:fmtSigned(x.value))+'</td></tr>').join('')
    +'<tr class="ledger-sum"><td>Where the city’s draw is heading</td><td>'+f.attractTarget+'</td></tr></table>';
@@ -13777,6 +13952,7 @@ function ledgerHTML(){
    +'<div class="ledger-tile"><span>The council is</span><b>'+v.name+' · '+v.favour+'</b><small>'+v.effect+'</small></div>'
    +'<div class="ledger-tile"><span>On the table</span><b>'+(p?'📜 A petition':'Nothing')+'</b><small>'+(p?'from the '+p.seatDef.title+' - lapses in '+p.left+' close'+(p.left===1?'':'s'):'petitions arrive at random, about one close in three')+'</small></div></div>'
    +ledgerGauge(v.favour,null,[{at:35,label:'obstruct 35'},{at:75,label:'devoted 75'}],'#d9a441')
+   +'<p class="craft-note">🔔 The council expects its steward at this table. From the first close you are away every seat starts to cool and the realm’s trust in you starts to drain - slowly at first, a little faster with every close you stay away. Opening the ledger is enough to be seen, and the slide stops there.</p>'
    +(p?'<div class="ledger-petition"><h3>'+p.seatDef.icon+' '+p.seatDef.who+', '+p.seatDef.title+'</h3><p>“'+p.text+'”</p>'
      +'<div class="ledger-incident-cost"><span>'+(p.cost?'Costs <b>'+fmtGold(p.cost)+' ◉</b> · ':'')+(p.gold?'brings in <b class="pos">+'+fmtGold(p.gold)+' ◉</b> · ':'')+'people <b class="'+(p.mood>=0?'pos':'neg')+'">'+fmtSigned(p.mood)+'</b> · '+p.seatDef.title+' <b class="pos">+'+p.favour+'</b>'
      +Object.keys(p.others||{}).map(id=>' · '+E.COUNCIL.find(s=>s.id===id).title+' <b class="'+(p.others[id]>=0?'pos':'neg')+'">'+fmtSigned(p.others[id])+'</b>').join('')+'</span></div>'
@@ -13786,33 +13962,20 @@ function ledgerHTML(){
      +'<div class="ledger-seatbar" role="img" aria-label="approval '+s.approval+' of 100"><i style="width:'+s.approval+'%"></i></div>'
      +'<p><b>'+s.approval+'</b> '+(s.trend>0?'▲ warming':s.trend<0?'▼ cooling':'· steady')+' <span>“'+s.say+'”</span></p></div>').join('')+'</div>';
  }
- if(ledgerTab==='bank'){
-  const limit=f.creditLimit,base=E.creditLimit(ctx),room=limit-c.loan,interest=Math.round(c.loan*E.LOAN_RATE);
-  return '<div class="ledger-tiles">'
-   +'<div class="ledger-tile"><span>Owed to Tides Bank</span><b class="'+(c.loan>0?'bad':'')+'">◉ '+fmtGold(c.loan)+'</b><small>'+(c.borrowed>0?fmtGold(c.borrowed)+' ◉ borrowed · '+fmtGold(c.repaid)+' ◉ repaid in all':'the crown has never borrowed')+'</small></div>'
-   +'<div class="ledger-tile"><span>Interest per close</span><b>◉ '+fmtGold(interest)+'</b><small>'+(E.LOAN_RATE*100)+'% of the balance, every five minutes</small></div>'
-   +'<div class="ledger-tile"><span>Credit limit</span><b>◉ '+fmtGold(limit)+'</b><small>room for '+fmtGold(room)+' ◉ more</small></div></div>'
-   +'<h3>How your limit is made</h3><table class="ledger-table">'
-   +'<tr><td>The crown\'s name<small>100 000 + 20 000 per prestige</small></td><td>'+fmtGold(base)+'</td></tr>'
-   +'<tr><td>Credit you have earned<small>a quarter of every coin repaid · interest paid from a treasury in credit · debt-free closes in profit · an overdraft burns 8% of it per close</small></td><td class="pos">+'+fmtGold(c.credit)+'</td></tr>'
-   +'<tr><td>The council\'s backing<small>a tenth on top while their favour is 75 or more - now '+f.favour+'</small></td><td class="'+(f.favour>=75?'pos':'')+'">'+(f.favour>=75?'+'+fmtGold(limit-base-c.credit):'-')+'</td></tr>'
-   +'<tr class="ledger-sum"><td>What the Tides Bank will lend</td><td>'+fmtGold(limit)+'</td></tr></table>'
-   +'<div class="ledger-transfer"><div><span>Borrow</span>'+['10000','50000','100000','max'].map(v=>'<button class="sbtn gold" data-lact="borrow" data-v="'+v+'"'+(room<=0?' disabled':'')+'>'+(v==='max'?'Max':(+v/1000)+'K')+' ◉</button>').join('')+'</div>'
-   +'<div><span>Repay · builds credit</span>'+['10000','50000','all'].map(v=>'<button class="sbtn" data-lact="repay" data-v="'+v+'"'+(c.loan<=0?' disabled':'')+'>'+(v==='all'?'All':(+v/1000)+'K')+' ◉</button>').join('')+'</div></div>'
-   +(c.treasury<0?'<p class="craft-note neg">⚠️ The treasury is '+fmtGold(c.treasury)+' ◉ in the red: the overdraft costs '+(E.OVERDRAFT_RATE*100)+'% per close, sours the mood and burns your earned credit. A loan covers it.</p>':'');
- }
+ if(ledgerTab==='bank')return ledgerBank(c,ctx);
  const rows=c.history.slice().reverse();
  if(!rows.length)return '<div class="craft-empty">No close on the books yet. The ledger closes every five minutes of play - the first is in '+cityClockLeft()+'.</div>';
  const max=Math.max(1,...rows.map(r=>Math.max(r.in,r.out)));
  return '<div class="ledger-legend"><span><i style="background:#7fc8a0"></i>Income</span><span><i style="background:#d98b6a"></i>Expenses</span><span>net on the right · newest first</span></div><div class="ledger-hist">'
-  +rows.map(r=>'<div class="ledger-row" title="Close '+r.n+': income '+fmtGold(r.in)+', expenses '+fmtGold(r.out)+', mood '+r.mood+'"><span>#'+r.n+'</span><div class="ledger-bars"><div class="ledger-bar in" style="width:'+(100*r.in/max).toFixed(1)+'%"></div><div class="ledger-bar out" style="width:'+(100*r.out/max).toFixed(1)+'%"></div></div><b class="'+(r.net>=0?'pos':'neg')+'">'+fmtSigned(r.net)+'</b></div>'
+  +rows.map(r=>'<div class="ledger-row" title="Close '+r.n+': income '+fmtGold(r.in)+', expenses '+fmtGold(r.out)+(r.expected!==undefined?', the Hand had expected '+fmtRoughSigned(r.expected):'')+', mood '+r.mood+'"><span>#'+r.n+'</span><div class="ledger-bars"><div class="ledger-bar in" style="width:'+(100*r.in/max).toFixed(1)+'%"></div><div class="ledger-bar out" style="width:'+(100*r.out/max).toFixed(1)+'%"></div></div><b class="'+(r.net>=0?'pos':'neg')+'">'+fmtSigned(r.net)+'</b></div>'
    +(r.events.length||r.protest||(r.unrest&&r.unrest.length)?'<p class="ledger-ev">'+(r.protest?'✊ the crowd was on the boulevard · ':'')+r.events.concat(r.unrest||[]).join(' ')+'</p>':'')).join('')+'</div>';
 }
 function ledgerRefresh(){
  if(!S||!S.city)return;
- document.querySelectorAll('[data-ltab]').forEach(b=>{const on=b.dataset.ltab===ledgerTab;b.classList.toggle('active',on);b.setAttribute('aria-selected',on);});
- $('ledgerHelp').setAttribute('aria-pressed',ledgerTab==='help');
  const dot=(id,on)=>{const b=document.querySelector('[data-ltab="'+id+'"]');if(b)b.classList.toggle('alert',on);};
+ document.querySelectorAll('[data-ltab]').forEach(b=>{const on=b.dataset.ltab===ledgerTab;b.classList.toggle('active',on);b.setAttribute('aria-selected',on);b.disabled=!S.city.chartered;});
+ dot('bank',S.city.chartered&&(S.city.treasury<0||!S.city.reviewSeen)&&ledgerTab!=='bank');
+ $('ledgerHelp').setAttribute('aria-pressed',ledgerTab==='help');
  dot('people',S.city.incidents.length>0||S.city.protest);dot('council',!!S.city.petition);
  dot('crown',!!S.city.king.demand||(!S.city.crowned&&S.city.trust>=CityEconomy.COUP_TRUST));dot('gaol',S.city.jail.length>CityEconomy.cells(S.city));
  const crownTab=document.querySelector('[data-ltab="crown"]');if(crownTab)crownTab.textContent=S.city.crowned?'👑 Your Crown':'👑 The King';
@@ -13821,11 +13984,25 @@ function ledgerRefresh(){
 }
 function ledgerAction(act,k,v){
  const c=S.city,E=CityEconomy;let ok=true,msg='';
+ if(c.chartered)E.attend(c);
  const amt=all=>v==='all'||v==='max'?all:parseInt(v,10);
  if(act==='goto'){ledgerTab=v;ledgerRefresh();return;}
+ if(act==='chstep'){charterStep=Math.max(0,Math.min(2,parseInt(v,10)||0));ledgerRefresh();document.querySelector('#ledgerFx .craft-scroll').scrollTop=0;return;}
+ if(act==='season'){ledgerSeasonPick=v==='now'?null:parseInt(v,10);ledgerRefresh();return;}
+ if(act==='charter'){
+  const r=E.charter(c);if(!r)return;
+  charterStep=0;ledgerTab='overview';ledgerNote=r.text;sfx.buy();
+  stageMsg('✒️ Signed. '+fmtGold(E.FOUNDING_LOAN)+' ◉ is in the strongroom - and the crown owes every coin of it.',5200,'#ffd76a',true);
+  log('🌾 <b>'+ThroneWorld.HAND_NAME+':</b> The granary holds bread for three closes. Buy grain on the Overview - or set the standing shipments going.','imp');
+  log('🏦 <b>The founding loan is signed.</b> '+fmtGold(E.FOUNDING_LOAN)+' ◉ borrowed from the Tides Bank. Season 1 runs '+E.SEASON_CLOSES+' closes; the debt must stand at '+fmtGold(c.season.target)+' ◉ or less when it ends.','loot');
+  cityApplyAll();ledgerRefresh();renderHUD();save();return;
+ }
  if(act==='back'){ledgerTab=ledgerBack;ledgerRefresh();return;}
  if(act==='tax'){ok=E.setBudget(c,'tax',parseInt(v,10));msg='The poll tax is now '+c.budget.tax+'%.';}
- else if(act==='level'){const G=E.LINES[k]||E.RATES[k];ok=E.setBudget(c,k,parseInt(v,10));msg=ok?G.name+': '+G.levels[c.budget[k]].name+'.':'';}
+ else if(act==='level'){const G=E.LINES[k]||E.RATES[k];ok=E.setBudget(c,k,parseInt(v,10));msg=ok?G.name+': '+G.levels[c.budget[k]].name+'.':E.frozen(c)?'The treasury is in the red: the bank lets you cut a line, not raise one.':'';}
+ else if(act==='rehire'){const r=E.rehire(c,cityContext());ok=r.ok;msg=r.text;}
+ else if(act==='food'){const r=E.buyFood(c,cityContext(),v==='fill'?1e9:parseInt(v,10));ok=r.ok;msg=r.text;}
+ else if(act==='autofood'){const on=E.setAutoFood(c,!c.food.auto),fv=E.foodView(c,cityContext());msg=on?'The standing shipments are running: grain comes in at every close, at '+fv.autoPrice+' ◉ a sack. Watch for the wagon on the boulevard.':'The standing shipments are stopped. The granary is stocked by hand from now on.';}
  else if(act==='invest'){const r=E.invest(c,cityContext(),k);ok=r.ok;msg=r.text;}
  else if(act==='kingyes'||act==='kingno'){const r=E.answerKing(c,cityContext(),act==='kingyes');ok=!!(r&&r.ok);msg=r?r.text:'';}
  else if(act==='pardon'){const r=E.pardon(c,k);ok=!!r;msg=r?r.text:'';}
@@ -13837,10 +14014,10 @@ function ledgerAction(act,k,v){
  else if(act==='fix'){const want=Math.max(c.budget[k],parseInt(v,10));ok=E.setBudget(c,k,want);msg=ok?E.LINES[k].name+' raised to '+E.LINES[k].levels[want].name+' - the trouble ends at the next close.':'';}
  else if(act==='settle'){const n=E.settle(c,cityContext(),k);ok=n>0;msg=ok?'Paid '+n.toLocaleString()+' ◉. It is over - for now.':'The treasury cannot cover it.';}
  else if(act==='grant'||act==='refuse'){const r=E.answer(c,cityContext(),act==='grant');ok=!!(r&&r.ok);msg=r?r.text:'';}
- else if(act==='take'){const t0=c.trust,n=E.withdraw(c,amt(1e12),goldRoom(),cityContext());ok=n>0;S.gold+=n;msg=ok?n.toLocaleString()+' ◉ taken to your purse.'+(c.trust<t0?' The Master of Coin made a note: trust −'+(t0-c.trust).toFixed(1)+'.':''):'Nothing to take - the treasury is empty or your vault is full.';}
+ else if(act==='take'){const t0=c.trust,n=E.withdraw(c,amt(1e12),goldRoom(),cityContext());ok=n>0;S.gold+=n;msg=ok?n.toLocaleString()+' ◉ taken to your purse.'+(c.trust<t0?' The Master of Coin made a note: trust −'+(t0-c.trust).toFixed(1)+'.':''):c.treasury<=c.loan?'Borrowed gold never leaves the strongroom: the treasury holds nothing beyond what it owes the bank.':'Nothing to take - your vault is full.';}
  else if(act==='give'){const t0=c.trust,n=E.deposit(c,amt(totalGold()),totalGold(),cityContext());ok=n>0&&spendGold(n);msg=ok?n.toLocaleString()+' ◉ paid into the treasury.'+(c.trust>t0?' It was noticed: trust +'+(c.trust-t0).toFixed(1)+'.':''):'You have no gold to give.';}
  else if(act==='borrow'){const n=E.borrow(c,cityContext(),amt(1e12));ok=n>0;msg=ok?'Tides Bank lends the crown '+n.toLocaleString()+' ◉.':'The bank will lend no more.';}
- else if(act==='repay'){const before=c.credit,n=E.repay(c,amt(1e12));ok=n>0;msg=ok?n.toLocaleString()+' ◉ repaid - your credit limit grows by '+(c.credit-before).toLocaleString()+' ◉.':'Nothing to repay with - the treasury must be in credit.';}
+ else if(act==='repay'){const n=E.repay(c,v==='target'?Math.max(0,c.loan-c.season.target):amt(1e12));ok=n>0;msg=ok?n.toLocaleString()+' ◉ repaid. The crown owes '+c.loan.toLocaleString()+' ◉'+(c.loan<=c.season.target?' - at the season’s target.':'; the season’s target is '+c.season.target.toLocaleString()+' ◉.'):'Nothing to repay with - the treasury must be in credit.';}
  ledgerNote=msg;
  if(ok)sfx.buy();else sfx.warn();
  cityApplyAll();
@@ -13848,13 +14025,22 @@ function ledgerAction(act,k,v){
 }
 function openLedger(tab){
  if(!S||!S.city)return;
- ledgerTab=typeof tab==='string'?tab:'overview';ledgerNote='';ledgerRefresh();
+ ledgerTab=typeof tab==='string'&&S.city.chartered?tab:'overview';ledgerNote='';
+ if(S.city.chartered){ /* 🔔 the steward is at the table again */
+  const away=CityEconomy.attend(S.city);
+  if(away>=CityEconomy.NEGLECT_AFTER){const line=away>=CityEconomy.NEGLECT_HARD?'So you remember where the table is. '+away+' closes, steward. The council has been meeting without you - sit down and earn them back.':'You have been missed, steward. '+away+' closes of paper are waiting - and the council has noticed the empty chair.';
+   log('📜 <b>'+ThroneWorld.HAND_NAME+':</b> '+line);ledgerNote=line;save();}
+ }
+ if(!S.city.chartered){charterStep=0;log('📜 <b>'+ThroneWorld.HAND_NAME+':</b> Steward. Before you touch anything, come and look in the strongroom with me.');}
+ ledgerRefresh();
  $('ledgerFx').style.display='flex';
 }
 const openCouncil=()=>openLedger('council');
 $('ledgerClose').onclick=()=>$('ledgerFx').style.display='none';
 $('ledgerHelp').onclick=()=>{if(ledgerTab==='help')ledgerTab=ledgerBack;else{ledgerBack=ledgerTab;ledgerTab='help';}ledgerRefresh();};
 $('ledgerTabs').addEventListener('click',e=>{const b=e.target.closest('[data-ltab]');if(!b)return;ledgerTab=b.dataset.ltab;ledgerRefresh();});
+$('ledgerBody').addEventListener('pointermove',seasonChartHover);
+$('ledgerBody').addEventListener('pointerleave',seasonChartHover);
 $('ledgerBody').addEventListener('click',e=>{const b=e.target.closest('[data-lact]');if(!b||b.disabled)return;ledgerAction(b.dataset.lact,b.dataset.k,b.dataset.v);});
 setInterval(()=>{ /* the countdown on the ledger and the HUD line tick once a second */
  if(!gameOn||!S||!S.city||!hero)return;

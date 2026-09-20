@@ -5,26 +5,116 @@
  * empties, and the realm's trust in YOU - at a hundred the crown is there to be taken. Pure
  * arithmetic with no DOM and no clock of its own: game.js feeds it five minutes of play at a time
  * and paints the result, so the whole thing runs headless in the tests. Amounts are gold per close;
- * a close is one tick. Everything that happens in the city is rolled from the rng handed to tick(). */
+ * a close is one tick. Everything that happens in the city is rolled from the rng handed to tick().
+ * 🏦 The money is the Tides Bank's. The strongroom starts EMPTY and the books do not open until the
+ * steward signs the founding loan at the council table. From then on play runs in seasons: at the
+ * end of each the bank reads the books, grades them, and moves the credit line and the rate. A
+ * shortfall is covered from the line at a fee while there is a line; past it the treasury is in the
+ * red, and after a close of grace the bailiffs start taking things - the watch, works, the guard. */
 (function(root,factory){
  const api=factory();
  if(typeof module==='object'&&module.exports)module.exports=api;
  root.CityEconomy=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
+ const VERSION=2;                 /* a save from before the founding loan opens on an empty strongroom */
  const TICK_SECONDS=300;          /* the ledger closes every five minutes of play */
- const LOAN_RATE=0.005;           /* Tides Bank: half a percent of what is owed, every close */
+ const COIN=10;                   /* every gold amount in the tables below is in tens of ◉ */
+ const SEASON_CLOSES=20;          /* ⚠ a short season while the system is being tried out - the real one is 50 */
+ const FOUNDING_LOAN=500000;      /* what the steward signs for before the books open */
+ const RESERVE_LINE=150000;       /* and what the bank keeps on the line beyond it, to be drawn later in the season */
+ const LOAN_RATE=0.005;           /* Tides Bank: what is owed costs this much of itself every close, to begin with */
+ const MIN_RATE=0.003,MAX_RATE=0.009;
+ const RED_FLOOR=0.25;            /* the red never runs deeper than a quarter of the line: past that, bills simply go unpaid */
+ const DUE_SHARE=0.10;            /* by the end of a season the debt must be this much smaller than it began */
+ const COVER_FEE=0.05;            /* the bank covers a shortfall from the line, and charges for the favour */
+ const SEIZE_AFTER=2;             /* consecutive closes in the red before the bailiffs come */
+ const SEASONS_KEPT=6;
+ const GUARD_WAGE=55,MIN_GUARD=2; /* a man at a pillar, per close; the bank never takes the last two */
+ /* 🔔 A city is not run from a dungeon. state.unattended counts the closes since the steward last
+    opened the ledger at the council table, and everything that follows from it is a SLOPE, never a
+    step: from the first close away the realm's trust drains a little more each close (0.12 per close
+    away, to 4 at the most) and what every councillor thinks the steward deserves sinks a point and a
+    half per close away (to 40 at the most) - their opinion follows it down at the council's usual
+    pace. It is not only the council: a city nobody is seen to run grows uneasy (the temper's target
+    sinks 0.6 a close away, to 18) and stops being talked of as a place to move to (its draw sinks
+    0.4 a close away, to 12). After REMIND_AFTER closes the chat says so, at every third close;
+    NEGLECT_AFTER and NEGLECT_HARD only change how sharply it is worded. */
+ const REMIND_AFTER=3,NEGLECT_AFTER=6,NEGLECT_HARD=12;
+ const TRUST_SLOPE=0.12,TRUST_DRAIN_MAX=4,SEAT_SLOPE=1.5,SEAT_DRAIN_MAX=40,MOOD_SLOPE=0.6,MOOD_DRAIN_MAX=18,DRAW_SLOPE=0.4,DRAW_DRAIN_MAX=12;
+ const neglect=state=>{const n=Math.max(0,num(state&&state.unattended));
+  return {closes:n,trust:-Math.min(TRUST_DRAIN_MAX,round1(n*TRUST_SLOPE))||0,seats:Math.min(SEAT_DRAIN_MAX,Math.round(n*SEAT_SLOPE)),
+   mood:-Math.min(MOOD_DRAIN_MAX,Math.round(n*MOOD_SLOPE))||0,attract:-Math.min(DRAW_DRAIN_MAX,Math.round(n*DRAW_SLOPE))||0};};
+ /* 🌾 The granary. The city eats a sack a head at every close, out of a stock that somebody has to
+    keep up: buy grain by the shipment at the council table (the cheap way, if you are there to do
+    it), or set the standing shipments going - they bring in what the city eats and a little more
+    at every close, gradually, at a quarter over the price. Better transport makes grain cheaper
+    and the stores bigger. When the stock runs short, hunger BUILDS - by the share of the city that
+    went without, close after close - and eases only slowly once the bread is back: the temper,
+    the city's draw and the realm's trust all sink with it, and the hungriest leave. */
+ /* bread is a pressing need, not a quarterly errand: the books open on THREE closes of grain, and stores
+    filled to the rafters feed the opening city for about eight - so it is the standing shipments, or a
+    steward who comes back to the table */
+ const FOOD_START=210,FOOD_CAP=600,FOOD_STORE=300,FOOD_PRICE=2,AUTO_PREMIUM=1.25,FOOD_RESERVE=6,HUNGER_MAX=6,FOOD_LOW=3;
+ const HUNGER_GAIN=0.6,HUNGER_EASE=0.5;   /* a wholly unfed close adds 0.6: ten closes of nothing to reach the worst of it; a fed one takes half a point back */
+ const FOOD_LOTS=[100,200,400];
+ /* 🌬 Nothing in the city costs the same two closes running. Three winds wander, each pulled back
+    toward calm: TRADE (tolls, exports, customs), the HARVEST (what people can pay in tax and rent,
+    and what grain costs) and PRICES (everything the crown buys rather than hires). On top of them
+    every close lands a few percent off what the Hand expected, and at every season's end the men on
+    the crown's payroll ask for their rise - so a budget nobody touches drifts out of true. The
+    forecast is therefore an ESTIMATE; the ledger's history shows what really happened.
+    Only a live game blows the winds (ctx.live): the headless arithmetic tests run in still air. */
+ const WIND_KEYS=['trade','harvest','prices'],WIND_MAX=0.3,WIND_PULL=0.85,WIND_GUST=0.16,JITTER_IN=0.12,JITTER_OUT=0.06,WAGE_RISE=0.03,WAGE_MAX=3;
+ const WIND_NAMES={trade:['slack','quiet','steady','brisk','booming'],harvest:['failed','lean','fair','good','fat'],prices:['cheap','easy','fair','dear','ruinous']};
+ const windName=(key,v)=>WIND_NAMES[key][v<-.15?0:v<-.05?1:v<=.05?2:v<=.15?3:4];
+ /* 🎲 No two seasons are alike. When a season opens a CARD is dealt for it - what kind of season it
+    will be - and the size of everything on the card is rolled too, so even two hard winters differ.
+    mods: trade/harvest/prices lean the winds for the whole season; wage multiplies the payroll; eat
+    the grain the city gets through; court the cost of the court; church the plate; mood and attract
+    pull on the people and the city's draw; trouble adds to the chance of an incident at a close;
+    wishes multiplies how often the King wants something; arrive multiplies who comes to the gate
+    (and above 1 they come whatever the city is like); sick is the share of the city lost at each
+    close. Only a live game deals cards (ctx.live): in still air every season is an ordinary one. */
+ const span=(rng,a,b)=>Math.round((a+(b-a)*draw(rng))*1000)/1000;
+ const SEASON_CARDS=[
+  {id:'ordinary',icon:'📅',name:'An ordinary season',w:2,text:'Nothing in particular is expected of it. Which is not the same as nothing happening.',roll:()=>({})},
+  {id:'boom',icon:'⛵',name:'A trade boom',w:1.5,text:'Every road and river is full of other people’s goods, and all of them pay at the gate.',roll:r=>({trade:span(r,.12,.26),attract:3})},
+  {id:'slump',icon:'🕸',name:'A slump in trade',w:1.5,text:'The caravans have found somewhere else to be. The market square echoes.',roll:r=>({trade:-span(r,.12,.26)})},
+  {id:'bumper',icon:'🌾',name:'A bumper harvest',w:1.5,text:'The barns will not shut. Bread is cheap, purses are full and the tithe barn is fuller.',roll:r=>({harvest:span(r,.12,.25),mood:3})},
+  {id:'drought',icon:'☀️',name:'Drought',w:1.5,text:'Not a drop since the spring. What grain there is costs what the seller says it costs.',roll:r=>({harvest:-span(r,.15,.28),mood:-3})},
+  {id:'winter',icon:'❄️',name:'A hard winter',w:1.5,text:'The river froze in the first week. Everything is dearer, and the city eats a quarter more to keep warm.',roll:r=>({prices:span(r,.12,.24),eat:span(r,1.15,1.4),mood:-3})},
+  {id:'sickness',icon:'☠️',name:'The sweating sickness',w:1,text:'It came in with a ship. The carts go round at dawn. Drains and a hospital blunt it; nothing stops it.',roll:r=>({sick:span(r,.006,.014),mood:-6,attract:-8,church:1.4})},
+  {id:'war',icon:'⚔️',name:'War on the border',w:1,text:'Every man who can hold a pike wants paying like a soldier, the roads are not safe and the King has found his grandfather’s armour.',roll:r=>({wage:span(r,1.12,1.3),trade:-span(r,.05,.14),wishes:1.6,trouble:.04})},
+  {id:'wedding',icon:'💍',name:'A royal wedding',w:1,text:'A cousin of the King marries in the cathedral. The court costs half as much again, the King wants everything, and the whole realm comes to look.',roll:r=>({court:span(r,1.4,1.8),wishes:2,mood:5,attract:6,trade:span(r,.03,.1)})},
+  {id:'pilgrims',icon:'⛪',name:'A year of pilgrimage',w:1,text:'A relic has been seen to weep. The roads are full of the devout, and the plate comes back heavy.',roll:r=>({church:span(r,1.7,2.6),attract:5,trouble:.03})},
+  {id:'restless',icon:'🥊',name:'A restless season',w:1.5,text:'Nobody can say why. The apprentices are spoiling for it, and the watch sleeps in its boots.',roll:r=>({trouble:span(r,.1,.2),mood:-2})},
+  {id:'refugees',icon:'🧳',name:'Refugees on the roads',w:1,text:'A town down the coast has burned. They are coming whether there is a roof for them or not.',roll:r=>({arrive:span(r,1.8,3),mood:-2,prices:span(r,.04,.1)})},
+  {id:'fair',icon:'🎪',name:'The great fair',w:1,text:'Once in a generation the great fair comes to the city. Tolls, thieves and visitors, in that order.',roll:r=>({trade:span(r,.08,.18),trouble:.06,attract:4,mood:3})},
+  {id:'dear',icon:'🧾',name:'Dear money',w:1,text:'The banks of three realms have raised their rates together, and everything bought on credit costs more - including the crown.',roll:r=>({prices:span(r,.08,.16),interest:span(r,1.15,1.4)})},
+ ];
+ const ORDINARY=Object.freeze({id:'ordinary',mods:Object.freeze({})});
+ function dealCard(rng,last){
+  if(!rng)return {id:'ordinary',mods:{}};
+  const pool=SEASON_CARDS.filter(c=>c.id!==last),c=pickWeighted(pool,rng);     /* never the same season twice running */
+  return {id:c.id,mods:c.roll(rng)};
+ }
+ const cardDef=id=>SEASON_CARDS.find(c=>c.id===id)||SEASON_CARDS[0];
+ const cardOf=state=>(state.season&&state.season.card)||ORDINARY;
+ /* 🧙 what the hero's own trades add is a perk, not a second treasury */
+ const HERO_EXPORTS_MAX=60,HERO_FARM_LEVELS=5;
  const OVERDRAFT_RATE=0.01;       /* a treasury below zero costs twice the bank's rate */
  const HISTORY=12;                /* an hour of closes kept on the ledger tab */
- const POPULATION=72;             /* the townsfolk on the streets (CITY_FOLK) when the books open */
- const MIN_POP=6,HOUSING=96;      /* the last few never leave; roofs for 96 until more are built */
+ const POPULATION=350;            /* souls within the walls when the books open - the streets show a sample of them, not a head count */
+ const POP_MAX=5000;              /* as big as the city can ever get, with every quarter built */
+ const HOUSEHOLD=5;               /* the crown counts, taxes, rents and feeds by the household: five heads to a hearth */
+ const MIN_POP=30,HOUSING=500,LEAVE_MAX=0.05;      /* the last few never leave; roofs for 96 until more are built */
  const MAX_BUILDING=3;            /* the Master Builder has three crews */
  const CELLS=6,MAX_CELLS=10;      /* the gaol under the hall: six cells, ten with the new wing */
  const COUP_TRUST=100;            /* the realm's trust in you at which the crown can be claimed */
  const ROYAL_GUARD=8;             /* the men at the pillars of the hall, paid before anyone */
  const PROTEST_START=25,PROTEST_END=40;   /* hysteresis, so the crowd does not flicker */
  const MAX_INCIDENTS=2;           /* the city never burns in more than two places at once */
- const CREDIT_CAP=2000000;        /* the most a good name is worth on top of the base limit */
  const TAX_RATES=[0,5,10,15,20,25,30];
  const TAX_MOOD={0:12,5:6,10:0,15:-7,20:-15,25:-25,30:-38};
  const TAX_ATTRACT={0:6,5:3,10:0,15:-3,20:-7,25:-12,30:-18};
@@ -36,49 +126,49 @@
  const LINES={
   watch:{name:'City Watch',icon:'🛡',blurb:'Patrols on the main streets. Order is what makes a merchant unpack his cart - and what breaks up a brawl.',levels:[
    {name:'Disbanded',men:0,cost:0,mood:-12,order:.55,attract:-10},
-   {name:'Standard',men:5,cost:200,mood:0,order:1},
-   {name:'Doubled',men:10,cost:400,mood:4,order:1.15,attract:4},
-   {name:'Royal',men:15,cost:620,mood:6,order:1.25,attract:6}]},
+   {name:'Standard',men:5,cost:220,mood:0,order:1},
+   {name:'Doubled',men:10,cost:460,mood:4,order:1.15,attract:4},
+   {name:'Royal',men:15,cost:720,mood:6,order:1.25,attract:6}]},
   roads:{name:'Roads & Walls',icon:'🧱',blurb:'Cobbles, gates and the curtain wall. Good roads carry more trade.',levels:[
    {name:'Neglected',cost:0,mood:-8,trade:.8,attract:-5},
-   {name:'Kept',cost:150,mood:0,trade:1},
-   {name:'Paved',cost:320,mood:4,trade:1.12,attract:3},
-   {name:'Grand',cost:520,mood:8,trade:1.22,attract:6}]},
+   {name:'Kept',cost:170,mood:0,trade:1},
+   {name:'Paved',cost:360,mood:4,trade:1.12,attract:3},
+   {name:'Grand',cost:600,mood:8,trade:1.22,attract:6}]},
   relief:{name:'Granary & Poor Relief',icon:'🍞',blurb:'Bread for the tenements. Nothing calms a city like a full granary.',levels:[
    {name:'None',cost:0,mood:-6,attract:-3},
-   {name:'Bread dole',cost:120,mood:6},
-   {name:'Full granary',cost:260,mood:14,attract:2},
-   {name:'Feasts for all',cost:420,mood:22,attract:3}]},
+   {name:'Bread dole',cost:140,mood:6},
+   {name:'Full granary',cost:300,mood:14,attract:2},
+   {name:'Feasts for all',cost:480,mood:22,attract:3}]},
   festival:{name:'Festivals',icon:'🎉',blurb:'Feast days, tournaments and games on the cathedral square. From feast days up, the boulevard is hung with bunting.',levels:[
    {name:'None',cost:0,mood:0},
-   {name:'Feast days',cost:100,mood:5,attract:2},
-   {name:'Tournaments',cost:240,mood:11,attract:5},
-   {name:'Royal games',cost:400,mood:17,attract:8}]},
+   {name:'Feast days',cost:120,mood:5,attract:2},
+   {name:'Tournaments',cost:280,mood:11,attract:5},
+   {name:'Royal games',cost:460,mood:17,attract:8}]},
   court:{name:'The Royal Court',icon:'👑',blurb:'The King’s table, his guests and his tailors. A splendid court draws the gentry, and their gold - and keeps the King sweet.',levels:[
-   {name:'Frugal',cost:60,mood:-3,trade:.95,attract:-1,pleasure:-8},
-   {name:'Modest',cost:140,mood:0,trade:1},
-   {name:'Splendid',cost:300,mood:2,trade:1.05,attract:2,pleasure:5},
-   {name:'Lavish',cost:500,mood:4,trade:1.1,attract:4,pleasure:9}]},
+   {name:'Frugal',cost:90,mood:-3,trade:.95,attract:-1,pleasure:-8},
+   {name:'Modest',cost:240,mood:0,trade:1},
+   {name:'Splendid',cost:480,mood:2,trade:1.05,attract:2,pleasure:5},
+   {name:'Lavish',cost:780,mood:4,trade:1.1,attract:4,pleasure:9}]},
   clean:{name:'Street Cleaning',icon:'🧹',blurb:'Sweepers, night-soil carts and rat-catchers. A clean city draws settlers; a filthy one breeds the flux - and you can see which it is from the boulevard.',levels:[
    {name:'Filth',cost:0,mood:-8,attract:-12},
-   {name:'Sweepers',cost:90,mood:0},
-   {name:'Night carts',cost:210,mood:4,attract:6},
-   {name:'Spotless',cost:360,mood:7,attract:10}]},
+   {name:'Sweepers',cost:110,mood:0},
+   {name:'Night carts',cost:250,mood:4,attract:6},
+   {name:'Spotless',cost:420,mood:7,attract:10}]},
   learn:{name:'Schools & Learning',icon:'📚',blurb:'Letters and numbers for the children of the city. Slow to pay and it never stops paying: skilled hands earn more, and owe more.',levels:[
    {name:'None',cost:0,mood:-2,skill:-15},
-   {name:'Parish schools',cost:100,mood:0,skill:0},
-   {name:'Grammar schools',cost:240,mood:2,skill:12,attract:2},
-   {name:'Free schooling',cost:420,mood:5,skill:22,attract:4}]},
+   {name:'Parish schools',cost:120,mood:0,skill:0},
+   {name:'Grammar schools',cost:280,mood:2,skill:12,attract:2},
+   {name:'Free schooling',cost:480,mood:5,skill:22,attract:4}]},
   food:{name:'Markets & Provisions',icon:'🥩',blurb:'Inspectors at the stalls, honest weights, fresh fish on ice. What the city eats is half of what it thinks of you.',levels:[
    {name:'Scraps',cost:0,mood:-7,attract:-8},
-   {name:'Plain fare',cost:80,mood:0},
-   {name:'Fresh markets',cost:200,mood:5,attract:5},
-   {name:'Plenty',cost:340,mood:9,attract:9}]},
+   {name:'Plain fare',cost:100,mood:0},
+   {name:'Fresh markets',cost:240,mood:5,attract:5},
+   {name:'Plenty',cost:400,mood:9,attract:9}]},
   purse:{name:'The King’s Purse',icon:'💎',blurb:'What the crown pays the one who wears it. A King kept short sulks, helps himself and has people arrested; a King kept well leaves you to your work.',levels:[
-   {name:'Pittance',cost:50,mood:2,pleasure:22},
-   {name:'Customary',cost:140,mood:0,pleasure:55},
-   {name:'Generous',cost:320,mood:-1,pleasure:72},
-   {name:'Princely',cost:580,mood:-3,pleasure:88}]},
+   {name:'Pittance',cost:200,mood:2,pleasure:22},
+   {name:'Customary',cost:500,mood:0,pleasure:55},
+   {name:'Generous',cost:900,mood:-1,pleasure:72},
+   {name:'Princely',cost:1400,mood:-3,pleasure:88}]},
  };
  const LINE_KEYS=Object.keys(LINES);
  /* ⚖️ The rates the crown charges. rate is what is taken, vol what it does to the traffic. */
@@ -99,8 +189,14 @@
    {name:'Protective',rate:1.5,vol:.92,mood:-2,attract:-3},
    {name:'Wall of tariffs',rate:2,vol:.78,mood:-6,attract:-9}]},
  };
+ /* ⛪ the cathedral's plate: what the crown takes of the tithes and the collections */
+ RATES.tithe={name:'The crown’s share of the tithes',icon:'⛪',blurb:'The cathedral takes a tenth of everything and the collections besides. How much of that finds its way to the strongroom is for the steward to say - and for the Tidekeeper, the High Almoner and a pious King to resent.',levels:[
+   {name:'Leave it to the Church',rate:0,mood:3,attract:2},
+   {name:'The customary share',rate:1,mood:0,attract:0},
+   {name:'A heavy share',rate:1.8,mood:-4,attract:-2},
+   {name:'Seize the plate',rate:2.8,mood:-11,attract:-5}]};
  const RATE_KEYS=Object.keys(RATES);
- const DEFAULT_BUDGET=Object.freeze({tax:10,rent:1,fee:1,duty:1,watch:1,roads:1,relief:1,festival:0,court:1,clean:1,learn:1,food:1,purse:1});
+ const DEFAULT_BUDGET=Object.freeze({tax:10,rent:1,fee:1,duty:1,tithe:1,watch:1,roads:1,relief:1,festival:0,court:1,clean:1,learn:1,food:1,purse:1});
  /* 🏗 Public works: bought once from the treasury, built over a few closes by one of three crews,
     and then they pay - or please, or teach, or house - for ever, less their upkeep. cost, upkeep
     and the gold in fx are before the prestige scale. needs are works that must stand first. site is
@@ -115,59 +211,63 @@
   {id:'order',name:'Law & Order',icon:'⚖️'},
  ];
  const WORKS=[
-  {id:'carters',cat:'trade',name:'Carters’ Yard',icon:'🐴',cost:1500,build:1,upkeep:20,fx:{exports:110,trade:.03},site:'house',sign:'CARTERS’ YARD',
+  {id:'carters',cat:'trade',name:'Carters’ Yard',icon:'🐴',cost:1900,build:1,upkeep:25,fx:{exports:110,trade:.03},site:'house',sign:'CARTERS’ YARD',
    blurb:'Stabling, a wheelwright and a loading dock inside the west gate. Wagons start to roll the boulevard.',done:'The first wagons are on the boulevard.'},
-  {id:'caravanserai',cat:'trade',name:'Caravanserai',icon:'🐫',cost:3200,build:2,upkeep:40,needs:['carters'],fx:{tolls:190,attract:3},site:'house',sign:'CARAVANSERAI',
+  {id:'caravanserai',cat:'trade',name:'Caravanserai',icon:'🐫',cost:4000,build:2,upkeep:50,needs:['carters'],fx:{tolls:190,attract:3},site:'house',sign:'CARAVANSERAI',
    blurb:'Beds, fodder and a strongroom for the long-haul caravans from Moonshine. They stay, and they spend.',done:'The Moonshine caravans overnight in the city now.'},
-  {id:'quay',cat:'trade',name:'Stone Quay',icon:'⚓',cost:4200,build:2,upkeep:50,needs:['carters'],fx:{exports:260},site:'house',sign:'HARBOUR OFFICE',
+  {id:'quay',cat:'trade',name:'Stone Quay',icon:'⚓',cost:5200,build:2,upkeep:60,needs:['carters'],fx:{exports:260},site:'house',sign:'HARBOUR OFFICE',
    blurb:'A proper quay at the river gate in place of the mud landing. Barges load in an hour instead of a day.',done:'Barges are loading at the new quay.'},
-  {id:'customs',cat:'trade',name:'Customs House',icon:'🧾',cost:3000,build:2,upkeep:40,fx:{duty:.45,order:.04},site:'house',sign:'CUSTOMS HOUSE',blocks:['smugglers'],
+  {id:'customs',cat:'trade',name:'Customs House',icon:'🧾',cost:3800,build:2,upkeep:50,fx:{duty:.45,order:.04},site:'house',sign:'CUSTOMS HOUSE',blocks:['smugglers'],
    blurb:'Scales, seals and clerks who cannot be bought cheaply. Nothing slips past the east gate again.',done:'The smugglers will have to find another city.'},
-  {id:'fleet',cat:'trade',name:'Merchant Fleet',icon:'⛵',cost:9000,build:3,upkeep:130,needs:['quay'],fx:{exports:620},site:'house',sign:'FLEET COUNTING HOUSE',
+  {id:'fleet',cat:'trade',name:'Merchant Fleet',icon:'⛵',cost:11500,build:3,upkeep:155,needs:['quay'],fx:{exports:630},site:'house',sign:'FLEET COUNTING HOUSE',
    blurb:'Three cogs under the crown’s own flag. The city’s ore and steel sail to foreign courts instead of waiting for buyers.',done:'Three cogs sailed on the morning tide under your flag.'},
-  {id:'lighthouse',cat:'trade',name:'Lighthouse',icon:'🗼',cost:4800,build:2,upkeep:40,needs:['quay'],fx:{trade:.07,exports:90},
+  {id:'lighthouse',cat:'trade',name:'Lighthouse',icon:'🗼',cost:6000,build:2,upkeep:50,needs:['quay'],fx:{trade:.07,exports:90},
    blurb:'A fire on the point at the river mouth. Captains who used to pass in the dark put in instead.',done:'The light on the point burned all night.'},
-  {id:'exchange',cat:'trade',name:'Merchants’ Exchange',icon:'🏛',cost:12000,build:3,upkeep:110,needs:['fleet','caravanserai'],fx:{trade:.12,income:260,attract:4},site:'house',sign:'THE EXCHANGE',
+  {id:'exchange',cat:'trade',name:'Merchants’ Exchange',icon:'🏛',cost:15000,build:3,upkeep:130,needs:['fleet','caravanserai'],fx:{trade:.12,income:260,attract:4},site:'house',sign:'THE EXCHANGE',
    blurb:'A pillared hall where cargoes are sold before they land. Every trading house in three realms wants a desk in it.',done:'The Exchange rang its bell for the first time.'},
-  {id:'school',cat:'learn',name:'Parish Schoolhouse',icon:'🏫',cost:2200,build:1,upkeep:40,fx:{skill:8,mood:2},site:'house',sign:'SCHOOLHOUSE',
+  {id:'school',cat:'learn',name:'Parish Schoolhouse',icon:'🏫',cost:2800,build:1,upkeep:50,fx:{skill:8,mood:2},site:'house',sign:'SCHOOLHOUSE',
    blurb:'One room, one stove, one master with a birch. The start of everything else on this list.',done:'Forty children learned the letter A.'},
-  {id:'apprentice',cat:'learn',name:'Guild Apprenticeships',icon:'🛠',cost:2800,build:1,upkeep:40,needs:['school'],fx:{skill:6,exports:100},site:'house',sign:'APPRENTICE HALL',
+  {id:'apprentice',cat:'learn',name:'Guild Apprenticeships',icon:'🛠',cost:3500,build:1,upkeep:50,needs:['school'],fx:{skill:6,exports:100},site:'house',sign:'APPRENTICE HALL',
    blurb:'The crown pays the indenture; the guilds take the poor boys as well as the masters’ sons.',done:'The guilds took forty new apprentices.'},
-  {id:'library',cat:'learn',name:'Public Library',icon:'📖',cost:5000,build:2,upkeep:55,needs:['school'],fx:{skill:10,attract:4},site:'house',sign:'LIBRARY',
+  {id:'library',cat:'learn',name:'Public Library',icon:'📖',cost:6200,build:2,upkeep:70,needs:['school'],fx:{skill:10,attract:4},site:'house',sign:'LIBRARY',
    blurb:'Six hundred books, chained to the desks, open to anyone with clean hands.',done:'The library opened its doors.'},
-  {id:'press',cat:'learn',name:'Printing Press',icon:'📰',cost:4200,build:2,upkeep:30,needs:['library'],fx:{skill:8,income:70},site:'house',sign:'PRINTING HOUSE',
+  {id:'press',cat:'learn',name:'Printing Press',icon:'📰',cost:5200,build:2,upkeep:35,needs:['library'],fx:{skill:8,income:80},site:'house',sign:'PRINTING HOUSE',
    blurb:'Almanacs, psalters and a weekly broadsheet. The town crier gets a great deal more to shout about.',done:'The first broadsheet sold out by noon.'},
-  {id:'university',cat:'learn',name:'University of the Tides',icon:'🎓',cost:16000,build:4,upkeep:190,needs:['library'],fx:{skill:22,attract:8,income:240},site:'house',sign:'UNIVERSITY',
+  {id:'university',cat:'learn',name:'University of the Tides',icon:'🎓',cost:20000,build:4,upkeep:230,needs:['library'],fx:{skill:22,attract:8,income:240},site:'house',sign:'UNIVERSITY',
    blurb:'Law, physic and the natural philosophy of tides. Students come from four realms, and they all pay rent.',done:'The University matriculated its first scholars.'},
-  {id:'sewers',cat:'living',name:'Sewers & Drains',icon:'🕳',cost:5200,build:3,upkeep:40,fx:{attract:6,mood:3,clean:1},blocks:['flood','flux'],
+  {id:'sewers',cat:'living',name:'Sewers & Drains',icon:'🕳',cost:6500,build:3,upkeep:50,fx:{attract:6,mood:3,clean:1},blocks:['flood','flux'],
    blurb:'Brick drains under the lower streets, out to the river. The rain goes where it is told, and so does everything else.',done:'The lower streets stayed dry in the rain.'},
-  {id:'aqueduct',cat:'living',name:'Aqueduct & Fountain',icon:'⛲',cost:8000,build:3,upkeep:50,needs:['sewers'],fx:{attract:7,mood:3},site:'fountain',
+  {id:'aqueduct',cat:'living',name:'Aqueduct & Fountain',icon:'⛲',cost:10000,build:3,upkeep:60,needs:['sewers'],fx:{attract:7,mood:3},site:'fountain',
    blurb:'Sweet water from the hills, ending in a fountain on the great square.',done:'Water ran in the fountain on the square.'},
-  {id:'bathhouse',cat:'living',name:'Public Bathhouse',icon:'🛁',cost:3400,build:2,upkeep:45,fx:{mood:3,attract:3,income:80},site:'house',sign:'BATHHOUSE',
+  {id:'bathhouse',cat:'living',name:'Public Bathhouse',icon:'🛁',cost:4200,build:2,upkeep:55,fx:{mood:3,attract:3,income:80},site:'house',sign:'BATHHOUSE',
    blurb:'Hot water, a penny a head. The city smells better within the week.',done:'The bathhouse lit its furnaces.'},
-  {id:'hospital',cat:'living',name:'Hospital of St Agnes',icon:'🏥',cost:7200,build:3,upkeep:100,fx:{mood:5,attract:5},site:'house',sign:'HOSPITAL',blocks:['flux'],
+  {id:'hospital',cat:'living',name:'Hospital of St Agnes',icon:'🏥',cost:9000,build:3,upkeep:120,fx:{mood:5,attract:5},site:'house',sign:'HOSPITAL',blocks:['flux'],
    blurb:'Forty beds and sisters who wash their hands. The flux stops at its door.',done:'The sisters took in their first patients.'},
-  {id:'coveredmarket',cat:'living',name:'Covered Market',icon:'🏪',cost:4000,build:2,upkeep:35,fx:{tolls:230,attract:2},site:'stalls',
+  {id:'coveredmarket',cat:'living',name:'Covered Market',icon:'🏪',cost:5000,build:2,upkeep:45,fx:{tolls:230,attract:2},site:'stalls',
    blurb:'Pitches under cover on the great square, let by the season. Twice the stalls, in any weather.',done:'The square filled with new awnings.'},
-  {id:'tenements',cat:'living',name:'New Tenements',icon:'🏘',cost:4800,build:2,upkeep:0,fx:{housing:24},site:'house',sign:'NEW TENEMENTS',
-   blurb:'Four storeys of sound brick on crown land. Roofs for two dozen more - who will all pay rent and poll tax.',done:'Two dozen new households have a roof.'},
-  {id:'newquarter',cat:'living',name:'The New Quarter',icon:'🏙',cost:11000,build:4,upkeep:40,needs:['tenements','sewers'],fx:{housing:40,attract:3},site:'house',sign:'THE NEW QUARTER',
-   blurb:'A planned district with drains, a well on every corner and room for forty households.',done:'The New Quarter was opened with a ribbon and a band.'},
-  {id:'lamps',cat:'culture',name:'Street Lamps',icon:'🏮',cost:2400,build:1,upkeep:35,fx:{order:.05,attract:4,mood:2},site:'lamps',
+  {id:'tenements',cat:'living',name:'New Tenements',icon:'🏘',cost:6000,build:2,upkeep:0,fx:{housing:500},site:'house',sign:'NEW TENEMENTS',
+   blurb:'Four storeys of sound brick on crown land, street after street. Roofs for five hundred more - who will all pay rent and poll tax.',done:'Five hundred more have a roof.'},
+  {id:'newquarter',cat:'living',name:'The New Quarter',icon:'🏙',cost:14000,build:4,upkeep:50,needs:['tenements','sewers'],fx:{housing:1500,attract:3},site:'house',sign:'THE NEW QUARTER',
+   blurb:'A planned district with drains, a well on every corner and room for fifteen hundred.',done:'The New Quarter was opened with a ribbon and a band.'},
+  {id:'suburbs',cat:'living',name:'Suburbs beyond the Wall',icon:'🏡',cost:18000,build:4,upkeep:60,needs:['newquarter','watchtowers'],fx:{housing:1200,attract:2},
+   blurb:'Timber streets outside the gates, under the eye of the new towers. Room for twelve hundred who could never afford the walls.',done:'Smoke rose from a thousand new chimneys beyond the wall.'},
+  {id:'riverside',cat:'living',name:'The Riverside District',icon:'🌉',cost:24000,build:4,upkeep:80,needs:['newquarter','quay','aqueduct'],fx:{housing:1300,attract:4,tolls:120},
+   blurb:'Warehouses below, lodgings above, the whole bank of the river built up from the quay to the mill. The last great quarter: with it the city can hold five thousand.',done:'The Riverside District was opened. The city can hold five thousand souls.'},
+  {id:'lamps',cat:'culture',name:'Street Lamps',icon:'🏮',cost:3000,build:1,upkeep:45,fx:{order:.05,attract:4,mood:2},site:'lamps',
    blurb:'Oil lamps the length of the great boulevard, and lamplighters to tend them.',done:'The boulevard was lit from gate to palace.'},
-  {id:'gardens',cat:'culture',name:'Royal Gardens',icon:'🌳',cost:3800,build:2,upkeep:45,fx:{attract:6,mood:3},site:'garden',
+  {id:'gardens',cat:'culture',name:'Royal Gardens',icon:'🌳',cost:4800,build:2,upkeep:55,fx:{attract:6,mood:3},site:'garden',
    blurb:'Flower beds and young limes on the great square, open to all.',done:'The gardens on the square came into flower.'},
-  {id:'theatre',cat:'culture',name:'Playhouse',icon:'🎭',cost:5600,build:2,upkeep:60,fx:{mood:5,attract:5,income:90},site:'house',sign:'PLAYHOUSE',
+  {id:'theatre',cat:'culture',name:'Playhouse',icon:'🎭',cost:7000,build:2,upkeep:70,fx:{mood:5,attract:5,income:90},site:'house',sign:'PLAYHOUSE',
    blurb:'A wooden O with a thatched gallery. Tragedies on Mondays.',done:'The Playhouse opened with a comedy about a tax collector.'},
-  {id:'arena',cat:'culture',name:'Tourney Grounds',icon:'🏇',cost:8800,build:3,upkeep:80,fx:{mood:4,attract:6,income:210},site:'house',sign:'TOURNEY LISTS',
+  {id:'arena',cat:'culture',name:'Tourney Grounds',icon:'🏇',cost:11000,build:3,upkeep:95,fx:{mood:4,attract:6,income:210},site:'house',sign:'TOURNEY LISTS',
    blurb:'Permanent lists with stands for two thousand. Knights come for the prize; the crowd comes for the knights.',done:'The lists saw their first broken lance.'},
-  {id:'statue',cat:'culture',name:'Statue of the Steward',icon:'🗿',cost:2600,build:1,upkeep:0,fx:{attract:2},site:'statue',once:{trust:5,pleasure:-8},
+  {id:'statue',cat:'culture',name:'Statue of the Steward',icon:'🗿',cost:3200,build:1,upkeep:0,fx:{attract:2},site:'statue',once:{trust:5,pleasure:-8},
    blurb:'You, in bronze, on the great square. The people will like it. The King will not.',done:'Your statue was unveiled on the square.'},
-  {id:'watchtowers',cat:'order',name:'Watchtowers',icon:'🗼',cost:3200,build:2,upkeep:45,fx:{order:.08,safety:.06},
+  {id:'watchtowers',cat:'order',name:'Watchtowers',icon:'🗼',cost:4000,build:2,upkeep:55,fx:{order:.08,safety:.06},
    blurb:'Manned towers on the curtain wall with bells that carry to every ward. Trouble is seen before it starts.',done:'The tower bells were tested. The whole city jumped.'},
-  {id:'courthouse',cat:'order',name:'Courthouse',icon:'⚖️',cost:4800,build:2,upkeep:55,fx:{mood:2,fines:1},site:'house',sign:'COURTHOUSE',once:{trust:3},
+  {id:'courthouse',cat:'order',name:'Courthouse',icon:'⚖️',cost:6000,build:2,upkeep:70,fx:{mood:2,fines:1},site:'house',sign:'COURTHOUSE',once:{trust:3},
    blurb:'Judges, juries and written law. Fines double, and the gaol pays a little of its own way.',done:'The first case was heard in open court.'},
-  {id:'gaolwing',cat:'order',name:'New Gaol Wing',icon:'⛓',cost:2600,build:1,upkeep:25,fx:{cells:4},
+  {id:'gaolwing',cat:'order',name:'New Gaol Wing',icon:'⛓',cost:3200,build:1,upkeep:30,fx:{cells:4},
    blurb:'Four more cells under the hall. Nobody sleeps three to a bench any more.',done:'Four new cells were unlocked under the hall.'},
  ];
  /* What happens between closes. gold and mood are before the prestige scale; when() gates an
@@ -182,7 +282,7 @@
   {text:'Fire in the tenements - the watch fought it through the night.',gold:-300,mood:-3,w:2,when:s=>s.budget.watch>=1},
   {text:'Fire in the tenements and nobody left to fight it.',gold:-450,mood:-8,w:3,when:s=>s.budget.watch===0},
   {text:'Smugglers slipped past the east gate under cover of dark.',gold:-200,w:3,tag:'smugglers',when:s=>s.budget.watch<=1},
-  {text:'Rats got into the granary.',gold:-150,mood:-4,w:2,when:s=>s.budget.relief<=1},
+  {text:'Rats got into the granary.',gold:-150,mood:-4,food:-.15,w:2,when:s=>s.budget.relief<=1},
   {text:'The cathedral held a feast day and the whole city turned out.',mood:5,w:3},
   {text:'A week of rain flooded the lower streets.',gold:-120,mood:-3,w:2,tag:'flood',when:s=>s.budget.roads<=1},
   {text:'The Mining Hall struck a rich seam.',gold:280,w:2,when:(s,c)=>!!c.miningTrained},
@@ -192,13 +292,13 @@
   {text:'A merchant prince opened a counting house on the boulevard.',gold:340,w:1.5,when:s=>s.mood>=60},
   {text:'A preacher in the square blamed the crown for the price of bread.',mood:-4,w:2,when:s=>s.mood<50},
   {text:'Wolves took sheep from the farms beyond the wall.',gold:-110,mood:-2,w:1.5},
-  {text:'The flux went through the lower wards. The carts were busy for a week.',gold:-260,mood:-6,pop:-3,w:2.5,tag:'flux',when:s=>s.budget.clean===0},
+  {text:'The flux went through the lower wards. The carts were busy for a week.',gold:-260,mood:-6,pop:-18,w:2.5,tag:'flux',when:s=>s.budget.clean===0},
   {text:'Spoiled meat at the shambles put half a street to bed.',gold:-90,mood:-4,w:2,when:s=>s.budget.food===0},
   {text:'The fleet came home from the southern ports with its holds full of silver.',gold:520,w:2,when:s=>has(s,'fleet')},
   {text:'A scholar of the University published a treatise the whole continent is reading.',gold:160,mood:2,w:1.5,when:s=>has(s,'university')},
   {text:'The Playhouse’s new comedy ran for three weeks to full houses.',gold:140,mood:3,w:1.5,when:s=>has(s,'theatre')},
-  {text:'A guild of weavers moved to the city, looms and all.',gold:120,pop:4,w:1.5,when:s=>s.attract>=65},
-  {text:'Three families loaded a cart and left by the west gate before dawn.',pop:-3,mood:-1,w:2,when:s=>s.attract<35},
+  {text:'A guild of weavers moved to the city, looms and all.',gold:120,pop:22,w:1.5,when:s=>s.attract>=65},
+  {text:'Three families loaded a cart and left by the west gate before dawn.',pop:-15,mood:-1,w:2,when:s=>s.attract<35},
  ];
  /* 🥊 Unrest. An incident is rolled at a close, stays until the budget line it names reaches the
     level it asks for (or the crown pays to have it dealt with), and costs mood and gold every
@@ -315,7 +415,9 @@
  }
  function create(){
   const council={};for(const seat of COUNCIL)council[seat.id]=60;
-  return {treasury:5000,loan:0,mood:60,clock:0,ticks:0,earned:0,spent:0,borrowed:0,repaid:0,credit:0,protest:false,
+  return {v:VERSION,chartered:false,treasury:0,loan:0,limit:0,rate:LOAN_RATE,mood:60,clock:0,ticks:0,earned:0,spent:0,borrowed:0,repaid:0,protest:false,
+   guards:ROYAL_GUARD,arrears:0,seizeI:0,seized:[],season:null,seasons:[],reviewSeen:true,unattended:0,food:{stock:0,auto:false,hunger:0},
+   wage:1,winds:{trade:0,harvest:0,prices:0},
    budget:{...DEFAULT_BUDGET},incidents:[],council,petition:null,
    pop:POPULATION,attract:50,skill:20,trust:10,crowned:false,deposed:null,
    king:{pleasure:60,humour:'content',humourAge:0,demand:null,raise:0},works:{},jail:[],
@@ -323,14 +425,36 @@
  }
  function normalize(s){
   const out=create();
-  if(!s||typeof s!=='object')return out;
+  if(!s||typeof s!=='object'||s.v!==VERSION)return out;   /* 🏦 older books are closed: everybody starts from the empty strongroom */
+  out.chartered=!!s.chartered;
+  out.limit=Math.max(0,Math.round(num(s.limit,0)));
+  out.rate=clamp(num(s.rate,LOAN_RATE),MIN_RATE,MAX_RATE);
+  out.guards=clamp(Math.round(num(s.guards,ROYAL_GUARD)),MIN_GUARD,ROYAL_GUARD);
+  out.arrears=Math.max(0,Math.floor(num(s.arrears,0)));out.seizeI=Math.max(0,Math.floor(num(s.seizeI,0)));
+  out.seized=(Array.isArray(s.seized)?s.seized:[]).filter((id,i,a)=>workDef(id)&&a.indexOf(id)===i);
+  out.reviewSeen=s.reviewSeen!==false;
+  out.unattended=Math.max(0,Math.floor(num(s.unattended,0)));
+  out.wage=clamp(Math.round(num(s.wage,1)*1e4)/1e4,1,WAGE_MAX);
+  for(const key of WIND_KEYS)out.winds[key]=clamp(Math.round(num(s.winds&&s.winds[key],0)*1e3)/1e3,-WIND_MAX,WIND_MAX);
+  const fd=s.food&&typeof s.food==='object'?s.food:{};
+  out.food={stock:Math.max(0,Math.round(num(fd.stock,0))),auto:!!fd.auto,hunger:clamp(Math.round(num(fd.hunger,0)*100)/100,0,HUNGER_MAX)};
+  const point=q=>({t:Math.round(num(q&&q.t)),d:Math.max(0,Math.round(num(q&&q.d))),n:Math.round(num(q&&q.n))});
+  const series=a=>(Array.isArray(a)?a:[]).slice(0,SEASON_CLOSES).map(point);
+  if(out.chartered){
+   const q=s.season&&typeof s.season==='object'?s.season:{};
+   const cm={};if(q.card&&typeof q.card==='object'&&q.card.mods&&typeof q.card.mods==='object')for(const key of Object.keys(q.card.mods))if(Number.isFinite(Number(q.card.mods[key])))cm[key]=Number(q.card.mods[key]);
+   out.season={n:Math.max(1,Math.floor(num(q.n,1))),card:{id:cardDef(q.card&&q.card.id).id,mods:cardDef(q.card&&q.card.id).id==='ordinary'?{}:cm},closes:0,startLoan:Math.max(0,Math.round(num(q.startLoan,num(s.loan)))),startTreasury:Math.round(num(q.startTreasury,num(s.treasury))),
+    target:Math.max(0,Math.round(num(q.target,0))),red:Math.max(0,Math.floor(num(q.red,0))),covered:Math.max(0,Math.floor(num(q.covered,0))),interest:Math.max(0,Math.round(num(q.interest,0))),series:series(q.series)};
+   out.season.closes=out.season.series.length;
+   out.seasons=(Array.isArray(s.seasons)?s.seasons:[]).filter(x=>x&&typeof x==='object'&&'ABCDF'.includes(x.grade)).slice(-SEASONS_KEPT)
+    .map(x=>({...x,series:series(x.series)}));
+  }
   out.treasury=Math.round(num(s.treasury,out.treasury));
   out.loan=Math.max(0,Math.round(num(s.loan,0)));
   out.mood=clamp(Math.round(num(s.mood,out.mood)),0,100);
   out.clock=clamp(num(s.clock,0),0,TICK_SECONDS);
   out.ticks=Math.max(0,Math.floor(num(s.ticks,0)));
   for(const k of ['earned','spent','borrowed','repaid'])out[k]=Math.max(0,Math.round(num(s[k],0)));
-  out.credit=clamp(Math.round(num(s.credit,0)),0,CREDIT_CAP);
   out.protest=!!s.protest;
   const b=s.budget||{};
   out.budget.tax=TAX_RATES.includes(num(b.tax,10))?num(b.tax,10):10;
@@ -341,7 +465,7 @@
   for(const seat of COUNCIL)out.council[seat.id]=clamp(Math.round(num(s.council&&s.council[seat.id],60)),0,100);
   out.petition=s.petition&&petitionDef(s.petition.id)?{id:s.petition.id,age:Math.max(0,Math.floor(num(s.petition.age,0)))}:null;
   /* the long game - every field is new to a save from before it, and takes its opening value */
-  out.pop=clamp(Math.round(num(s.pop,POPULATION)),MIN_POP,999);
+  out.pop=clamp(Math.round(num(s.pop,POPULATION)),MIN_POP,POP_MAX);
   out.attract=clamp(Math.round(num(s.attract,50)),0,100);
   out.skill=clamp(round1(num(s.skill,20)),0,100);
   out.trust=clamp(round1(num(s.trust,10)),0,100);
@@ -363,17 +487,18 @@
   out.last=out.history.length?out.history[out.history.length-1]:null;
   return out;
  }
- /* prestige is the real multiplier: a prestige-50 hero runs a city that moves six times the gold */
- function scale(ctx){return 1+num(ctx.prestige)*.10+Math.max(0,num(ctx.lvl,1)-1)*.01;}
+ /* One city, one currency: the tables are in tens of ◉ and that is all the scale there is. The
+    founding loan is 500 000 for every steward, so the prices have to be the same for every steward. */
+ function scale(){return COIN;}
  function favour(state){const c=(state&&state.council)||{};return Math.round(COUNCIL.reduce((t,s)=>t+num(c[s.id],60),0)/COUNCIL.length);}
  function favourName(v){return v<25?'Hostile':v<40?'Cold':v<60?'Wary':v<75?'Supportive':'Devoted';}
- /* 🏦 What the Tides Bank will lend: a base set by prestige, a good name earned by paying what you
-    owe (state.credit), and a tenth on top when the council stands behind you. */
+ /* 🏦 What the Tides Bank will lend: the line it set at the last season's review (the founding
+    loan and a reserve, to begin with), and a tenth on top when the council stands behind you. */
  function creditLimit(ctx,state){
-  const base=100000+num(ctx&&ctx.prestige)*20000;
-  if(!state)return Math.round(base);
-  return Math.round((base+clamp(num(state.credit),0,CREDIT_CAP))*(favour(state)>=75?1.1:1));
+  if(!state)return FOUNDING_LOAN+RESERVE_LINE;
+  return Math.round(num(state.limit)*(favour(state)>=75?1.1:1));
  }
+ const frozen=state=>state.treasury<0;         /* in the red nothing may be raised and nothing ordered */
  function moodName(m){return m<PROTEST_START?'Rioting':m<PROTEST_END?'Restless':m<55?'Uneasy':m<70?'Content':m<85?'Prosperous':'Jubilant';}
  function moodColor(m){return m<PROTEST_START?'#ff6f61':m<PROTEST_END?'#ff9f6b':m<55?'#e6c46a':m<70?'#bfe08a':'#8ee6a8';}
  function attractName(a){return a<15?'Shunned':a<35?'Emptying':a<55?'Ordinary':a<75?'Sought after':a<90?'Thriving':'The jewel of the realm';}
@@ -392,17 +517,50 @@
   return t;
  }
  const cells=state=>Math.min(MAX_CELLS,CELLS+worksFx(state).cells);
- /* The whole ledger for one close, before it happens. Everything the panel shows comes from here,
-    so the numbers on the budget tab are exactly what the next close will charge. */
+ const hearths=state=>Math.ceil(state.pop/HOUSEHOLD);                                  /* 🏠 households: what is taxed, rented to and fed */
+ const eats=state=>{const c=state.season&&state.season.card;return c&&c.mods&&Number.isFinite(c.mods.eat)?c.mods.eat:1;};   /* a hard winter eats more */
+ /* 🌾 what grain costs here, how much the stores hold, and what the standing shipments will bring at the next close */
+ function foodView(state,ctx={}){
+  const k=scale(ctx),F=state.food,need=Math.ceil(hearths(state)*eats(state));
+  const cuts=[['carters','Carters’ Yard',.05],['quay','Stone Quay',.10],['fleet','Merchant Fleet',.10],['coveredmarket','Covered Market',.05]].filter(c=>has(state,c[0])).map(c=>({name:c[1],cut:c[2]}));
+  if(ctx.farmOwned)cuts.push({name:'Your own farm',cut:.10});
+  const discount=cuts.reduce((t,c)=>t+c.cut,0);
+  const harvest=num(state.winds&&state.winds.harvest)+num(cardOf(state).mods.harvest);        /* a lean harvest is dear bread */
+  const price=Math.max(1,Math.round(FOOD_PRICE*k*(1-discount)*(1-harvest*.8))),autoPrice=Math.max(1,Math.round(price*AUTO_PREMIUM));
+  const cap=FOOD_CAP+(has(state,'coveredmarket')?FOOD_STORE:0)+(has(state,'quay')?FOOD_STORE:0)+(has(state,'newquarter')?FOOD_STORE:0);
+  /* gradually: what the city eats, and a quarter of the way to a reserve of six closes - as far as the strongroom can pay */
+  const want=F.auto?Math.min(Math.max(0,cap-F.stock),need+Math.max(0,Math.ceil((FOOD_RESERVE*need-F.stock)/4))):0;
+  const means=Math.max(0,state.treasury)+(state.chartered?Math.max(0,creditLimit(ctx,state)-state.loan):0);   /* the strongroom, and what is left on the line */
+  const sacks=F.auto?Math.min(want,Math.floor(means/autoPrice)):0;
+  return {stock:F.stock,need,cap,closes:need>0?Math.floor(F.stock/need):99,price,autoPrice,discount,cuts,auto:F.auto,hunger:F.hunger,lots:FOOD_LOTS,room:Math.max(0,cap-F.stock),
+   ship:{sacks,cost:sacks*autoPrice,short:F.auto&&sacks<Math.min(want,need)},low:need>0&&F.stock<need*FOOD_LOW,harvest:windName('harvest',harvest)};
+ }
+ /* a shipment bought at the table: as many sacks as asked for, as the stores have room for, as the treasury can pay */
+ function buyFood(state,ctx,sacks){
+  const v=foodView(state,ctx),n=Math.min(Math.floor(num(sacks)),v.room,state.treasury>0?Math.floor(state.treasury/v.price):0);
+  if(n<=0)return {ok:false,text:v.room<=0?'The stores are full to the rafters.':'The treasury cannot pay for a single sack.'};
+  state.treasury-=n*v.price;state.spent+=n*v.price;state.food.stock+=n;
+  return {ok:true,sacks:n,cost:n*v.price,text:n.toLocaleString()+' sacks of grain bought for '+(n*v.price).toLocaleString()+' ◉. The granary holds bread for '+Math.floor(state.food.stock/Math.max(1,Math.ceil(hearths(state)*eats(state))))+' closes.'};
+ }
+ function setAutoFood(state,on){state.food.auto=!!on;return state.food.auto;}
+ /* The whole ledger for one close, before it happens. Everything the panel shows comes from here -
+    as the Hand's ESTIMATE: in a live game the close lands a few percent either side of it. */
  function forecast(state,ctx={}){
   const k=scale(ctx),b=state.budget,r=v=>Math.round(v);
   const L={};for(const key of LINE_KEYS.concat(RATE_KEYS))L[key]=level(key,b[key]);
-  const {watch,roads,relief,festival,court,clean,learn,food,purse,rent,fee,duty}=L;
+  const {watch,roads,relief,festival,court,clean,learn,food,purse,rent,fee,duty,tithe}=L;
   const W=worksFx(state),K=state.king,crowned=!!state.crowned;
   const fav=favour(state),backing=fav>=75?1.06:1;
-  const order=watch.order+W.order,trade=roads.trade*court.trade*backing*duty.vol*(1+W.trade);
+  const card=cardOf(state),cm=card.mods,churchMod=num(cm.church,1);
+  const wind={trade:num(state.winds&&state.winds.trade)+num(cm.trade),harvest:num(state.winds&&state.winds.harvest)+num(cm.harvest),prices:num(state.winds&&state.winds.prices)+num(cm.prices)};
+  const wage=num(state.wage,1)*num(cm.wage,1),dear=1+wind.prices,crop=1+wind.harvest*.6;
+  /* 🏙 a bigger city costs more to run: what serves the streets grows with the head count (not quite
+     in step - there are economies in size), and a King of five thousand expects more than a King of 350 */
+  const heads=Math.max(state.pop,POPULATION/2)/POPULATION,big=Math.pow(heads,.8),grand=Math.pow(heads,.5);
+  const factor={watch:wage*big,roads:wage*big,learn:wage*big,clean:wage*dear*big,relief:dear*big,festival:dear*big,food:dear*big,court:dear*grand*num(cm.court,1),purse:wage*grand*(1+.15*num(K.raise))};
+  const order=watch.order+W.order,trade=roads.trade*court.trade*backing*duty.vol*(1+W.trade)*(1+wind.trade);
   const temper=.7+state.mood/333;             /* the restless dodge the tax man: 0.7 at 0, 1.0 at 100 */
-  const craft=1+(state.skill-20)*.006;        /* 📚 learned hands earn more: 1.0 at 20, 1.48 at 100 */
+  const craft=1+(state.skill-20)*.004;        /* 📚 learned hands earn more: 1.0 at 20, 1.32 at 100 */
   const visit=.85+state.attract*.003;         /* a city worth visiting fills its market: 1.0 at 50 */
   const mining=num(ctx.mining),ench=num(ctx.ench),smith=num(ctx.smith),farmLvl=Math.max(1,num(ctx.farmLvl,1));
   const limit=creditLimit(ctx,state);
@@ -412,33 +570,36 @@
     mood:r(def.mood*grow),gold:r(-def.gold*grow*k),cost:settleCost(def,ctx),met:b[def.line]>=def.level};
   });
   const held=state.jail.length,room=cells(state),crowded=Math.max(0,held-room);
+  const grain=foodView(state,ctx),hunger=state.food.hunger,away=neglect(state);
   const fines=W.fines?r(held*14*k):0;
   const income=[
-   {id:'taxes',name:'Poll tax',icon:'💰',amount:r(state.pop*b.tax/100*80*k*temper*craft),note:state.pop+' townsfolk at '+b.tax+'% - '+TAX_NOTE[b.tax]},
-   {id:'rents',name:'Crown rents',icon:'🏠',amount:r(state.pop*rent.rate*k*temper),note:rent.name+' - '+rent.rate+' ◉ a head from '+state.pop+' townsfolk'},
+   {id:'taxes',name:'Poll tax',icon:'💰',amount:r(hearths(state)*b.tax/100*80*k*temper*craft*crop),note:state.pop.toLocaleString()+' townsfolk in '+hearths(state).toLocaleString()+' households at '+b.tax+'% - '+TAX_NOTE[b.tax]},
+   {id:'rents',name:'Crown rents',icon:'🏠',amount:r(hearths(state)*rent.rate*k*temper*crop),note:rent.name+' - '+rent.rate*k+' ◉ a household from '+hearths(state).toLocaleString()+' households'},
    {id:'tolls',name:'Market tolls',icon:'⚖️',amount:r((300*fee.vol+W.tolls)*fee.rate*k*order*trade*(.75+state.mood/200)*visit),note:'the square, the terraces and the tenement stalls - fees '+fee.name.toLowerCase()},
-   {id:'exports',name:'Exports',icon:'🚢',amount:r((200+mining*6+smith*40+ench*4+W.exports)*k*trade*craft),note:'ore, gems and forged steel out through the gate'},
-   {id:'imports',name:'Import duties',icon:'📦',amount:r(220*k*order*duty.rate*duty.vol*(1+W.duty)),note:'customs on everything that comes in - '+duty.name.toLowerCase()},
-   {id:'guilds',name:'Guild dues',icon:'⛏',amount:r(((ctx.miningTrained?120:0)+(ctx.enchTrained?120:0)+(ctx.smelter?80:0))*k),note:'the Mining Hall, the Enchanting Hall and the smelter'},
-   {id:'farm',name:'Farm levy',icon:'🚜',amount:ctx.farmOwned?r(farmLvl*90*k):0,note:ctx.farmOwned?'your farm, level '+farmLvl:'no farm of your own yet'},
-   {id:'licence',name:'Gaming licence',icon:'🎲',amount:r(150*k),note:'the Moonshine casino pays for the privilege'},
+   {id:'exports',name:'Exports',icon:'🚢',amount:r((200+Math.min(HERO_EXPORTS_MAX,mining*.6+smith*4+ench*.4)+W.exports)*k*trade*craft),note:'ore, gems and forged steel out through the gate'},
+   {id:'imports',name:'Import duties',icon:'📦',amount:r(220*k*order*duty.rate*duty.vol*(1+W.duty)*(1+num(wind.trade))),note:'customs on everything that comes in - '+duty.name.toLowerCase()},
+   {id:'guilds',name:'Guild dues',icon:'⛏',amount:r(((ctx.miningTrained?30:0)+(ctx.enchTrained?30:0)+(ctx.smelter?20:0))*k),note:'the Mining Hall, the Enchanting Hall and the smelter'},
+   {id:'farm',name:'Farm levy',icon:'🚜',amount:ctx.farmOwned?r(Math.min(HERO_FARM_LEVELS,farmLvl)*20*k):0,note:ctx.farmOwned?'your farm, level '+farmLvl:'no farm of your own yet'},
+   {id:'licence',name:'Gaming licence',icon:'🎲',amount:r(250*k),note:'the Moonshine casino pays for the privilege'},
+   {id:'church',name:'Church intakes',icon:'⛪',amount:r(hearths(state)*2.5*churchMod*tithe.rate*k*(.6+state.mood/250)*(1+festival.cost/1200)*(!crowned&&K.humour==='pious'?1.25:1)*crop),note:tithe.rate?tithe.name.toLowerCase()+' of the tithes and the collections - fuller plates in a contented city, on feast days and under a pious King':'the Church keeps its own'},
    {id:'works',name:'Crown works',icon:'🏗',amount:r(W.income*k)+fines,note:!W.count?'nothing built yet - see the Works tab':W.income||fines?'fees, gate money'+(fines?' and court fines':'')+' from '+W.count+' public work'+(W.count>1?'s':''):W.count+' public work'+(W.count>1?'s':'')+' standing - what they earn shows in the lines above'},
   ];
-  const purseCost=r(purse.cost*(1+.15*num(K.raise))*k);
+  const purseCost=r(purse.cost*k*factor.purse);
   const expenses=[
-   {id:'guard',name:'Royal Guard',icon:'⚔️',amount:r(ROYAL_GUARD*45*k),note:ROYAL_GUARD+' men at the pillars of the hall'},
-   {id:'watch',name:'City Watch',icon:'🛡',amount:r(watch.cost*k),note:watch.men+' men - '+watch.name},
-   {id:'roads',name:'Roads & Walls',icon:'🧱',amount:r(roads.cost*k),note:roads.name},
-   {id:'relief',name:'Granary & Poor Relief',icon:'🍞',amount:r(relief.cost*k),note:relief.name},
-   {id:'festival',name:'Festivals',icon:'🎉',amount:r(festival.cost*k),note:festival.name},
-   {id:'court',name:'The Royal Court',icon:'👑',amount:r(court.cost*k),note:court.name},
-   {id:'clean',name:'Street Cleaning',icon:'🧹',amount:r(clean.cost*k),note:clean.name},
-   {id:'learn',name:'Schools & Learning',icon:'📚',amount:r(learn.cost*k),note:learn.name},
-   {id:'food',name:'Markets & Provisions',icon:'🥩',amount:r(food.cost*k),note:food.name},
+   {id:'guard',name:'Royal Guard',icon:'⚔️',amount:r(state.guards*GUARD_WAGE*k*wage),note:state.guards+' men at the pillars of the hall'+(state.guards<ROYAL_GUARD?' - the bank dismissed '+(ROYAL_GUARD-state.guards):'')},
+   {id:'watch',name:'City Watch',icon:'🛡',amount:r(watch.cost*k*factor.watch),note:watch.men+' men - '+watch.name},
+   {id:'roads',name:'Roads & Walls',icon:'🧱',amount:r(roads.cost*k*factor.roads),note:roads.name},
+   {id:'relief',name:'Granary & Poor Relief',icon:'🍞',amount:r(relief.cost*k*factor.relief),note:relief.name},
+   {id:'festival',name:'Festivals',icon:'🎉',amount:r(festival.cost*k*factor.festival),note:festival.name},
+   {id:'court',name:'The Royal Court',icon:'👑',amount:r(court.cost*k*factor.court),note:court.name},
+   {id:'clean',name:'Street Cleaning',icon:'🧹',amount:r(clean.cost*k*factor.clean),note:clean.name},
+   {id:'learn',name:'Schools & Learning',icon:'📚',amount:r(learn.cost*k*factor.learn),note:learn.name},
+   {id:'food',name:'Markets & Provisions',icon:'🥩',amount:r(food.cost*k*factor.food),note:food.name},
+   {id:'grain',name:'Grain shipments',icon:'🌾',amount:grain.ship.cost,note:grain.auto?grain.ship.sacks.toLocaleString()+' sacks at '+grain.autoPrice+' ◉ - the standing shipments'+(grain.ship.short?', as far as the strongroom can pay':''):'no standing shipments - the granary is stocked by hand'},
    {id:'purse',name:crowned?'Your privy purse':'The King’s Purse',icon:'💎',amount:purseCost,note:purse.name+(crowned?' - paid into your own purse at every close':K.raise?' - raised '+K.raise+' time'+(K.raise>1?'s':'')+' at his insistence':'')},
-   {id:'upkeep',name:'Upkeep of the works',icon:'🏗',amount:r(W.upkeep*k),note:W.count?'lamplighters, librarians, harbour pilots':'nothing to keep up yet'},
-   {id:'gaol',name:'The gaol',icon:'⛓',amount:r(held*12*k),note:held?held+' prisoner'+(held>1?'s':'')+' in '+room+' cells':'the cells are empty'},
-   {id:'interest',name:'Tides Bank interest',icon:'🏦',amount:r(state.loan*LOAN_RATE),note:state.loan>0?(LOAN_RATE*100)+'% of '+state.loan.toLocaleString()+' owed':'nothing owed'},
+   {id:'upkeep',name:'Upkeep of the works',icon:'🏗',amount:r(W.upkeep*k*wage*dear),note:W.count?'lamplighters, librarians, harbour pilots':'nothing to keep up yet'},
+   {id:'gaol',name:'The gaol',icon:'⛓',amount:r(held*12*k*dear),note:held?held+' prisoner'+(held>1?'s':'')+' in '+room+' cells':'the cells are empty'},
+   {id:'interest',name:'Tides Bank interest',icon:'🏦',amount:r(state.loan*state.rate*num(cm.interest,1)),note:state.loan>0?+(state.rate*num(cm.interest,1)*100).toFixed(3)+'% of '+state.loan.toLocaleString()+' owed':'nothing owed'},
    {id:'overdraft',name:'Overdraft penalty',icon:'⚠️',amount:state.treasury<0?r(-state.treasury*OVERDRAFT_RATE):0,note:state.treasury<0?'the treasury is below zero':'the treasury is in credit'},
    {id:'unrest',name:'Unrest & damages',icon:'🥊',amount:incidents.reduce((t,i)=>t+i.gold,0),note:incidents.length?incidents.map(i=>i.name.toLowerCase()).join(', '):'the streets are quiet'},
    {id:'whims',name:'The King helps himself',icon:'🗝',amount:!crowned&&K.pleasure<30?r(260*k):0,note:!crowned&&K.pleasure<30?'a furious King sends his chamberlain to the strongroom':crowned?'there is no King but you':'the King keeps his hands out of the strongroom'},
@@ -453,6 +614,7 @@
    {name:'Crown rents - '+rent.name,value:rent.mood},
    {name:'Market fees - '+fee.name,value:fee.mood},
    {name:'Import duties - '+duty.name,value:duty.mood},
+   {name:'The tithes - '+tithe.name,value:tithe.mood},
    {name:'City Watch - '+watch.name,value:watch.mood},
    {name:'Roads & Walls - '+roads.name,value:roads.mood},
    {name:'Granary - '+relief.name,value:relief.mood},
@@ -464,8 +626,12 @@
    {name:(crowned?'Your purse - ':'The King’s purse - ')+purse.name,value:purse.mood},
    {name:'Public works',value:W.mood},
    {name:'The gaol is overcrowded',value:crowded?-3:0},
+   {name:'🌾 Hunger - it builds while the granary is short',value:-Math.min(36,Math.round(hunger*6))||0},
+   {name:'🔔 Nobody has seen the steward ('+away.closes+' close'+(away.closes===1?'':'s')+')',value:away.mood},
+   {name:'The season - '+cardDef(card.id).name.toLowerCase(),value:num(cm.mood)},
    {name:'A treasury below zero',value:state.treasury<0?-18:0},
-   {name:'Deep in debt to the bank',value:state.loan>limit*.6?-4:0},
+   {name:'The crown is at the end of its credit',value:limit>0&&state.loan>limit*.9?-4:0},
+   {name:'Half the Royal Guard dismissed by the bank',value:state.guards<=ROYAL_GUARD/2?-3:0},
    ...incidents.map(i=>({name:i.icon+' '+i.name,value:i.mood})),
   ];
   const moodTarget=clamp(moodFactors.reduce((t,f)=>t+f.value,0),0,100);
@@ -477,12 +643,16 @@
    {name:'Crown rents - '+rent.name,value:rent.attract},
    {name:'Market fees - '+fee.name,value:fee.attract},
    {name:'Import duties - '+duty.name,value:duty.attract},
+   {name:'The tithes - '+tithe.name,value:tithe.attract},
    ...['watch','roads','relief','festival','court','clean','learn','food'].map(key=>({name:LINES[key].name+' - '+L[key].name,value:num(L[key].attract)})),
    {name:'What the people have learned ('+Math.round(state.skill)+')',value:r((state.skill-20)/10)},
    {name:'Public works',value:W.attract},
    {name:'Trouble in the streets',value:-4*incidents.length},
    {name:'The march on the boulevard',value:state.protest?-15:0},
    {name:'An overcrowded gaol',value:crowded?-3:0},
+   {name:'The season - '+cardDef(card.id).name.toLowerCase(),value:num(cm.attract)},
+   {name:'🌾 Hunger in the streets',value:-Math.min(18,Math.round(hunger*3))||0},
+   {name:'🔔 A city nobody is seen to run ('+away.closes+' close'+(away.closes===1?'':'s')+')',value:away.attract},
    {name:'A crown that cannot pay its bills',value:state.treasury<0?-5:0},
   ];
   const attractTarget=clamp(attractFactors.reduce((t,f)=>t+f.value,0),0,100);
@@ -496,11 +666,14 @@
    {name:'The march on the boulevard',value:state.protest?-3:0},
    {name:'Trouble left in the streets',value:round1(-.5*incidents.length)},
    {name:'A treasury below zero',value:state.treasury<0?-2:0},
+   {name:'The ledgers lie unattended ('+num(state.unattended)+' close'+(num(state.unattended)===1?'':'s')+' - it deepens every close)',value:away.trust},
+   {name:'🌾 Hunger',value:-Math.min(2,round1(hunger*.35))||0},
   ];
   const trustDelta=round1(trustFactors.reduce((t,f)=>t+f.value,0));
-  const pleasureTarget=clamp(purse.pleasure+num(court.pleasure)+(state.mood>=70?4:0)-(state.protest?12:0)-(state.treasury<0?6:0),0,100);
+  const pleasureTarget=clamp(purse.pleasure+num(court.pleasure)+(state.mood>=70?4:0)-(state.protest?12:0)-(state.treasury<0?6:0)-(ROYAL_GUARD-state.guards)*2-(K.humour==='pious'?[0,0,6,14][b.tithe]:[0,0,0,5][b.tithe]),0,100);
   return {income,expenses,totalIn,totalOut,net:totalIn-totalOut,moodTarget,moodFactors,incidents,favour:fav,backing,order,trade,scale:k,creditLimit:limit,
-   attractTarget,attractFactors,housing,skillTarget,craft,visit,trustFactors,trustDelta,pleasureTarget,purse:purseCost,cells:room,crowded,works:W};
+   attractTarget,attractFactors,housing,skillTarget,craft,visit,trustFactors,trustDelta,pleasureTarget,purse:purseCost,cells:room,crowded,works:W,grain,
+   wage,factor,winds:WIND_KEYS.map(key=>({key,value:wind[key],name:windName(key,wind[key])})),card:{...cardDef(card.id),mods:cm}};
  }
  function rollEvents(state,ctx,rng,blocks){
   if(draw(rng)>=.4)return [];                 /* most closes are quiet */
@@ -512,9 +685,9 @@
  function seatTarget(seat,state,f){
   if(seat.line){
    const pressed=state.incidents.some(i=>incidentDef(i.id).line===seat.line);
-   return SEAT_TARGET[seat.line][state.budget[seat.line]]-(pressed?15:0);
+   return clamp(SEAT_TARGET[seat.line][state.budget[seat.line]]-(pressed?15:0)-neglect(state).seats-(seat.id==='bread'?[0,0,8,20][state.budget.tithe]:0),0,100);
   }
-  return clamp(55+(f.net>=0?12:-18)+(state.treasury<0?-25:0)+(state.loan>f.creditLimit*.5?-12:0)+(state.loan===0?8:0),0,100);
+  return clamp(55-neglect(state).seats+(f.net>=0?12:-18)+(state.treasury<0?-25:0)+(state.loan>f.creditLimit*.9?-10:0)+(state.chartered&&state.loan===0?12:0),0,100);
  }
  function seatView(seat,state,f){
   const v=state.council[seat.id],t=seatTarget(seat,state,f);
@@ -526,6 +699,7 @@
   const p=state.petition&&petitionDef(state.petition.id);
   return {favour:fav,name:favourName(fav),
    effect:fav>=75?'A devoted council: trade +6% and the Tides Bank lends a tenth more.':fav<35?'A council against you: every bill is padded by 6%.':'The council does its work and no more.',
+   neglect:neglect(state),
    seats:COUNCIL.map(s=>seatView(s,state,f)),
    petition:p?{...p,age:state.petition.age,cost:Math.round(num(p.cost)*f.scale),gold:Math.round(num(p.gold)*f.scale),seatDef:seatDef(p.seat),left:2-state.petition.age}:null};
  }
@@ -554,7 +728,7 @@
   const k=scale(ctx),building=WORKS.filter(w=>state.works[w.id]&&state.works[w.id].left>0).length;
   const list=WORKS.map(w=>{
    const own=state.works[w.id],cost=Math.round(w.cost*k),missing=(w.needs||[]).filter(id=>!has(state,id)).map(id=>workDef(id).name);
-   const status=own?(own.left>0?'building':'done'):missing.length?'locked':building>=MAX_BUILDING?'busy':state.treasury<cost?'poor':'ready';
+   const status=own?(own.left>0?'building':'done'):missing.length?'locked':frozen(state)?'frozen':building>=MAX_BUILDING?'busy':state.treasury<cost?'poor':'ready';
    return {...w,cost,upkeep:Math.round(num(w.upkeep)*k),status,left:own?own.left:w.build,missing,effects:fxText(w,k)};
   });
   return {list,cats:WORK_CATS.map(c=>({...c,works:list.filter(w=>w.cat===c.id)})),building,crews:MAX_BUILDING,done:list.filter(w=>w.status==='done').length,total:WORKS.length};
@@ -565,9 +739,10 @@
   if(!v)return {ok:false,text:'No such work.'};
   if(v.status==='done'||v.status==='building')return {ok:false,text:v.name+' is already '+(v.status==='done'?'standing':'being built')+'.'};
   if(v.status==='locked')return {ok:false,text:'First build: '+v.missing.join(', ')+'.'};
+  if(v.status==='frozen')return {ok:false,text:'The treasury is in the red. The bank will not see a stone laid until it is not.'};
   if(v.status==='busy')return {ok:false,text:'All '+MAX_BUILDING+' of the Master Builder’s crews are at work. Wait for one to finish.'};
   if(v.status==='poor')return {ok:false,text:'The treasury cannot cover '+v.cost.toLocaleString()+' ◉. The Tides Bank lends against a plan like this.'};
-  state.treasury-=v.cost;state.spent+=v.cost;state.works[id]={left:v.build};
+  state.treasury-=v.cost;state.spent+=v.cost;state.works[id]={left:v.build};state.seized=state.seized.filter(x=>x!==id);
   state.council.stone=clamp(state.council.stone+3,0,100);
   return {ok:true,cost:v.cost,text:v.name+' ordered for '+v.cost.toLocaleString()+' ◉ - ready in '+v.build+' close'+(v.build>1?'s':'')+'.'};
  }
@@ -640,20 +815,146 @@
   }
   return {ok:true,text:state.deposed==='gaol'?'The guard stood aside. Alarik went down the stair to his own gaol, and the crown is yours.':'The guard stood aside. Alarik sailed on the evening tide, and the crown is yours.'};
  }
+ /* 🏦 Signing the founding loan opens the books: 500 000 in the strongroom, the same owed, a line a
+    little beyond it, and the first season's clock running. */
+ function newSeason(state,n,share,rng){
+  return {n,card:dealCard(rng,state.season&&state.season.card&&state.season.card.id),closes:0,startLoan:state.loan,startTreasury:state.treasury,target:Math.max(0,Math.round(state.loan*(1-share))),red:0,covered:0,interest:0,series:[]};
+ }
+ function charter(state,rng){
+  if(state.chartered)return null;
+  state.chartered=true;state.loan+=FOUNDING_LOAN;state.treasury+=FOUNDING_LOAN;state.borrowed+=FOUNDING_LOAN;
+  state.limit=FOUNDING_LOAN+RESERVE_LINE;state.rate=LOAN_RATE;state.clock=0;
+  state.food.stock=FOOD_START;               /* 🌾 the last steward left three closes of grain, and no more */
+  state.season=newSeason(state,1,DUE_SHARE,null);      /* the first season is an ordinary one: enough is new already */
+  return {ok:true,text:'Signed. '+FOUNDING_LOAN.toLocaleString()+' ◉ is in the strongroom, and the crown owes the Tides Bank every coin of it.'};
+ }
+ /* what the Hand lays out before the signing: a close, a season, and what the loan costs */
+ function charterView(state,ctx={}){
+  const f=forecast(state,ctx),interest=Math.round(FOUNDING_LOAN*LOAN_RATE),grainCost=foodView(state,ctx).need*foodView(state,ctx).price,out=f.totalOut+grainCost;
+  return {income:f.income.filter(l=>l.amount),expenses:f.expenses.filter(l=>l.amount).concat([{id:'grain',name:'Grain for the granary',icon:'🌾',amount:grainCost,note:'a sack a household, bought by the shipment'}]),grain:grainCost,wageRise:WAGE_RISE,
+   perCloseIn:f.totalIn,perCloseOut:out,interest,net:f.totalIn-out-interest,
+   closes:SEASON_CLOSES,seasonIn:f.totalIn*SEASON_CLOSES,seasonOut:(out+interest)*SEASON_CLOSES,seasonNet:(f.totalIn-out-interest)*SEASON_CLOSES,
+   loan:FOUNDING_LOAN,line:FOUNDING_LOAN+RESERVE_LINE,reserve:RESERVE_LINE,rate:LOAN_RATE,target:Math.round(FOUNDING_LOAN*(1-DUE_SHARE)),due:Math.round(FOUNDING_LOAN*DUE_SHARE),coverFee:COVER_FEE,seizeAfter:SEIZE_AFTER};
+ }
+ /* 🏦 The season's review. What counts is what the books show at the last close: is the debt down to
+    the target the bank set (borrowing more along the way is fine - it is where you END), was the
+    treasury ever in the red or bailed out from the line, and is the crown worth more than it was.
+    A good season widens the line by what was repaid and more, and cheapens the money; a bad one
+    narrows it and makes every coin owed dearer. */
+ const GRADES={
+  A:{line:.12,repaid:1,rate:-.0005,trust:6,coin:10,verdict:'the debt is down, the strongroom never ran dry and the crown is worth more than it was. The line widens and the rate falls.'},
+  B:{line:.06,repaid:.75,rate:-.00025,trust:3,coin:5,verdict:'the debt is down to where we asked and the treasury stayed in the black. The line widens a little.'},
+  C:{line:0,repaid:.5,rate:0,trust:0,coin:0,verdict:'half of what we asked for. The line moves by half of what you repaid, and the rate stays.'},
+  D:{line:-.05,repaid:0,rate:.0005,trust:-4,coin:-8,verdict:'the debt is not where we asked. The line narrows and the money gets dearer.'},
+  F:{line:-.15,repaid:0,rate:.001,trust:-10,coin:-15,verdict:'the debt is up, the strongroom ran dry and our bailiffs know your streets by name. The line is cut, the rate jumps, and next season we want more back.'},
+ };
+ function review(state,ctx,rng){
+  const q=state.season,worthStart=q.startTreasury-q.startLoan,worth=state.treasury-state.loan;
+  const paid=state.loan<=q.target,clean=q.red===0&&q.covered===0,up=worth>worthStart,reduced=Math.max(0,q.startLoan-state.loan);
+  const grade=paid&&clean&&up?'A':paid&&q.red===0?'B':paid||(clean&&up)?'C':q.red<=3?'D':'F',G=GRADES[grade];
+  /* a debt above the target is called in from whatever the strongroom holds, there and then */
+  const swept=paid?0:Math.min(Math.max(0,state.treasury),state.loan-q.target);
+  if(swept>0){state.loan-=swept;state.treasury-=swept;state.repaid+=swept;}
+  const limitWas=state.limit,rateWas=state.rate;
+  state.limit=Math.max(state.loan,200000,Math.round(state.limit*(1+G.line)+reduced*G.repaid));
+  state.rate=clamp(Math.round((state.rate+G.rate)*1e5)/1e5,MIN_RATE,MAX_RATE);
+  state.trust=clamp(round1(state.trust+G.trust),0,100);
+  state.council.coin=clamp(state.council.coin+G.coin,0,100);
+  const summary={n:q.n,grade,verdict:G.verdict,startLoan:q.startLoan,endLoan:state.loan,target:q.target,reduced,paid,startTreasury:q.startTreasury,endTreasury:state.treasury,worthStart,worth,
+   red:q.red,covered:q.covered,interest:q.interest,swept,limitWas,limit:state.limit,rateWas,rate:state.rate,series:q.series};
+  state.seasons.push(summary);while(state.seasons.length>SEASONS_KEPT)state.seasons.shift();
+  state.wage=Math.min(WAGE_MAX,Math.round(num(state.wage,1)*(1+WAGE_RISE)*1e4)/1e4);   /* the guard, the watch, the masons and the King all ask for their rise */
+  summary.wage=state.wage;
+  summary.card=q.card?q.card.id:'ordinary';
+  state.season=newSeason(state,q.n+1,grade==='F'?DUE_SHARE*1.5:DUE_SHARE,rng);
+  state.reviewSeen=false;
+  return summary;
+ }
+ /* 🏦 The bailiffs. One thing at a close, round a fixed ladder, skipping what is not there to take:
+    a building site is stopped and its stone sold for half; a file of the watch is dismissed; a
+    finished work that nothing else stands on is sold for a third of what it cost (and its house in
+    the City wears the bank's seal); two of the Royal Guard are paid off; the festivals stop; the
+    court is cut. What is sold is credited to the treasury - that is how the red ends. */
+ const SEIZE_ORDER=['site','watch','work','guards','revels','work','court','work'];
+ function seize(state,k){
+  for(let tries=0;tries<SEIZE_ORDER.length;tries++){
+   const kind=SEIZE_ORDER[state.seizeI++%SEIZE_ORDER.length],b=state.budget;
+   if(kind==='site'){
+    const id=Object.keys(state.works).find(x=>state.works[x].left>0);
+    if(id){const def=workDef(id),back=Math.round(def.cost*k*.5);delete state.works[id];state.treasury+=back;
+     return '🏦 The bank’s bailiffs stopped work on the '+def.name+' and sold the stone: +'+back.toLocaleString()+' ◉.';}
+   }else if(kind==='work'){
+    const owned=Object.keys(state.works).filter(x=>state.works[x].left===0);
+    const leaves=owned.filter(x=>!Object.keys(state.works).some(y=>(workDef(y).needs||[]).includes(x))).sort((x,y)=>workDef(y).cost-workDef(x).cost);
+    if(leaves.length){const def=workDef(leaves[0]),back=Math.round(def.cost*k*.35);delete state.works[def.id];state.seized.push(def.id);state.treasury+=back;
+     return '🏦 The bank’s bailiffs seized the '+def.name+' and sold it for '+back.toLocaleString()+' ◉ - a third of what it cost you.';}
+   }else if(kind==='watch'){
+    if(b.watch>0){b.watch-=1;return '🏦 The bank’s auditors dismissed a file of the City Watch to cut your costs. It is now '+LINES.watch.levels[b.watch].name.toLowerCase()+'.';}
+   }else if(kind==='guards'){
+    if(state.guards>MIN_GUARD){state.guards-=2;if(!state.crowned)state.king.pleasure=clamp(state.king.pleasure-6,0,100);
+     return '🏦 The bank paid off two of the Royal Guard. '+state.guards+' men are left at the pillars'+(state.crowned?'.':', and the King has counted them.');}
+   }else if(kind==='revels'){
+    if(b.festival>0){b.festival=0;return '🏦 The bank struck the festivals from the budget. The bunting came down overnight.';}
+   }else if(kind==='court'){
+    if(b.court>0){b.court-=1;return '🏦 The bank cut the court to '+LINES.court.levels[b.court].name.toLowerCase()+'. The Lord Chamberlain is beside himself.';}
+   }
+  }
+  /* nothing left to take: the bank writes the budget itself - every line to the bone, the King on a pittance */
+  let cut=0;for(const key of LINE_KEYS)if(state.budget[key]>0){state.budget[key]=0;cut++;}
+  if(cut)return '🏦 There was nothing left to sell, so the bank took the budget into its own hands: every line is cut to the bone.';
+  state.mood=clamp(state.mood-3,0,100);
+  return '🏦 The bank’s men carried the silver out of the hall. There is nothing left to take.';
+ }
+ /* two of the guard can be hired back at a time, from a treasury in the black */
+ function rehire(state,ctx){
+  const cost=Math.round(400*scale(ctx));
+  if(state.guards>=ROYAL_GUARD)return {ok:false,text:'The guard is at full strength.'};
+  if(frozen(state)||state.treasury<cost)return {ok:false,text:'The treasury cannot cover '+cost.toLocaleString()+' ◉.'};
+  state.treasury-=cost;state.spent+=cost;state.guards=Math.min(ROYAL_GUARD,state.guards+2);
+  return {ok:true,text:'Two men took the crown’s coin. '+state.guards+' stand at the pillars.'};
+ }
+ /* 🏦 the Bank tab */
+ function bankView(state,ctx={}){
+  const limit=creditLimit(ctx,state),q=state.season;
+  return {chartered:state.chartered,loan:state.loan,limit,room:Math.max(0,limit-state.loan),rate:state.rate,interest:Math.round(state.loan*state.rate),
+   frozen:frozen(state),arrears:state.arrears,bailiffs:frozen(state)&&state.arrears>=SEIZE_AFTER-1,guards:state.guards,fullGuard:ROYAL_GUARD,rehireCost:Math.round(400*scale(ctx)),
+   seized:state.seized.map(id=>workDef(id).name),surplus:Math.max(0,state.treasury-state.loan),length:SEASON_CLOSES,
+   season:q?{...q,left:SEASON_CLOSES-q.closes,toRepay:Math.max(0,state.loan-q.target),worthStart:q.startTreasury-q.startLoan,worth:state.treasury-state.loan}:null,
+   seasons:state.seasons.slice().reverse(),grades:GRADES};
+ }
  /* One close: charge the ledger, roll the week's news, move the temper a third of the way to where
     the budget says it belongs, settle or spread the unrest, let the council make up its mind, and
     decide whether the crowd is on the boulevard. Then the long game: crews build, the King wants,
     the people learn, the gaol turns over, the realm weighs you, and families come or go. Every new
     roll comes AFTER the old ones, so a scripted rng still means what it meant. */
  function tick(state,ctx={},rng=Math.random){
-  const f=forecast(state,ctx),k=f.scale,unrest=[];
+  const f=forecast(state,ctx),k=f.scale,unrest=[],card=cardOf(state);
   const rolled=rollEvents(state,ctx,rng,f.works.blocks);
   const events=rolled.map(e=>({text:e.text,gold:Math.round(num(e.gold)*k),mood:num(e.mood)}));
   const eventGold=events.reduce((t,e)=>t+e.gold,0);
   let moodShift=events.reduce((t,e)=>t+e.mood,0),moved=rolled.reduce((t,e)=>t+num(e.pop),0),trustShift=0;
-  const net=f.net+eventGold;
+  /* 🌬 what really came in and went out: within a few percent of what the Hand expected, never on it */
+  const live=!!ctx.live,gotIn=live?Math.round(f.totalIn*(1+(draw(rng)-.5)*JITTER_IN)):f.totalIn,paidOut=live?Math.round(f.totalOut*(1+(draw(rng)-.5)*JITTER_OUT)):f.totalOut;
+  const net=gotIn-paidOut+eventGold;
   const before=state.treasury;
   state.treasury=Math.round(state.treasury+net);
+  /* 🏦 a shortfall is covered from the line while there is one, at a fee; past the line it is the red */
+  let covered=0;
+  if(state.chartered&&state.treasury<0){
+   covered=Math.max(0,Math.min(creditLimit(ctx,state)-state.loan,-state.treasury));
+   if(covered>0){
+    const fee=Math.round(covered*COVER_FEE);
+    state.loan+=covered+fee;state.treasury+=covered;state.borrowed+=covered;state.season.covered+=1;
+    unrest.push('🏦 The Tides Bank covered a shortfall of '+covered.toLocaleString()+' ◉ from your line - and added '+fee.toLocaleString()+' ◉ to the debt for the favour.');
+   }
+  }
+  if(state.chartered&&state.treasury<0){
+   state.arrears+=1;state.season.red+=1;
+   if(state.arrears>=SEIZE_AFTER)unrest.push(seize(state,k));
+   else unrest.push('🏦 The treasury is in the red and the line is spent. The bank’s clerk left a letter: one close to mend it, then the bailiffs.');
+   const floor=-Math.round(creditLimit(ctx,state)*RED_FLOOR);
+   if(state.treasury<floor){state.treasury=floor;state.mood=clamp(state.mood-2,0,100);unrest.push('🏦 Nobody will take the crown’s paper any more: this close’s bills went unpaid, and the city knows it.');}
+  }else state.arrears=0;
   /* unrest: what the budget now covers is dealt with, the rest bites and spreads */
   state.incidents=state.incidents.filter(i=>{
    const def=incidentDef(i.id);
@@ -661,7 +962,7 @@
    moodShift+=Math.round(def.mood/3);i.age+=1;return true;
   });
   if(state.incidents.length<MAX_INCIDENTS){
-   const chance=clamp(.22+(state.mood<45?.10:0)+(state.budget.watch===0?.08:0)-f.works.safety,0,.5);
+   const chance=clamp(.22+(state.mood<45?.10:0)+(state.budget.watch===0?.08:0)-f.works.safety+num(card.mods.trouble),0,.6);
    if(draw(rng)<chance){
     const pool=INCIDENTS.filter(d=>!state.incidents.some(i=>i.id===d.id)&&state.ticks>=num(d.after)&&(!d.when||d.when(state,ctx)));
     const def=pickWeighted(pool,rng);
@@ -689,9 +990,6 @@
    const p=pickWeighted(PETITIONS.map(d=>({...d,w:1})),rng);
    if(p){state.petition={id:p.id,age:0};unrest.push('📜 The '+seatDef(p.seat).title+' brings a petition to the table.');}
   }
-  /* 🏦 a good name: interest paid from a treasury in credit builds it, an overdraft burns it */
-  if(state.treasury<0)state.credit=Math.round(state.credit*.92);
-  else state.credit=clamp(state.credit+(state.loan>0?Math.round(state.loan*LOAN_RATE*2):net>0?Math.round(100*k):0),0,CREDIT_CAP);
   if(!state.protest&&state.mood<PROTEST_START)state.protest=true;
   else if(state.protest&&state.mood>=PROTEST_END)state.protest=false;
   /* 🏗 the crews */
@@ -711,7 +1009,7 @@
    if(K.demand){
     K.demand.age+=1;
     if(K.demand.age>=2){K.pleasure=clamp(K.pleasure-12,0,100);K.demand=null;unrest.push('👑 The King’s wish went unanswered. He noticed.');}
-   }else if(draw(rng)<humourDef(K.humour).chance){
+   }else if(draw(rng)<Math.min(.9,humourDef(K.humour).chance*num(card.mods.wishes,1))){
     const d=pickWeighted(DEMANDS.filter(x=>!(x.raise&&K.raise>=4)).map(x=>({...x,w:x.likes.includes(K.humour)?4:1})),rng);
     if(d){K.demand={id:d.id,age:0};unrest.push('👑 The King wants something. He is waiting in the hall.');}
    }
@@ -740,32 +1038,84 @@
     if(kings)state.mood=clamp(state.mood-2,0,100);
    }
   }
+  /* 🌾 the standing shipment lands (it was charged with the rest of the ledger), the rats take their share, the city eats */
+  if(state.chartered){
+   const F=state.food,need=f.grain.need;
+   F.stock+=f.grain.ship.sacks;
+   for(const e of rolled)if(e.food)F.stock=Math.max(0,Math.round(F.stock*(1+e.food)));
+   if(F.stock>=need){
+    F.stock-=need;F.hunger=Math.max(0,Math.round((F.hunger-HUNGER_EASE)*100)/100);
+    const left=need>0?Math.floor(F.stock/need):99;
+    if(left<FOOD_LOW)unrest.push('🌾 The granary holds bread for '+(left<1?'less than one more close':left+' more close'+(left>1?'s':''))+'. Buy grain at the council table'+(F.auto?' - the standing shipments are not keeping up.':', or set the standing shipments going.'));
+   }else{
+    const short=need>0?(need-F.stock)/need:0,first=F.hunger===0;
+    F.stock=0;F.hunger=Math.min(HUNGER_MAX,Math.round((F.hunger+short*HUNGER_GAIN)*100)/100);
+    unrest.push(first?'🌾 The granary is EMPTY. '+Math.round(short*100)+'% of the city went without bread at this close - and it gets worse every close it lasts.':'🌾 The granary is empty and the hunger is spreading. '+(F.auto?'The standing shipments cannot be paid for.':'Nobody has bought grain.'));
+    moved-=Math.floor(F.hunger*HOUSEHOLD);
+   }
+  }
   /* 📚 the people learn, slowly; 🧲 the city's name spreads; 🤝 the realm weighs you */
   state.skill=clamp(round1(state.skill+(f.skillTarget-state.skill)*.08),0,100);
   state.attract=clamp(Math.round(state.attract+(f.attractTarget-state.attract)*.3),0,100);
   state.trust=clamp(round1(state.trust+f.trustDelta+trustShift),0,100);
   /* 🧳 families come to a city worth living in, and leave one that is not */
   const roll=draw(rng);
-  if(state.attract>=55)moved+=Math.floor((state.attract-50)/10+roll);
-  else if(state.attract<40)moved-=Math.floor((40-state.attract)/8+roll);
+  /* a city of hundreds moves by the dozen: about twenty a close when it is sought after, more the bigger it is */
+  const size=HOUSEHOLD*Math.max(1,Math.sqrt(state.pop/POPULATION));
+  if(state.attract>=55)moved+=Math.floor(((state.attract-50)/10+roll)*size*num(card.mods.arrive,1));
+  else if(state.attract<40)moved-=Math.floor(((40-state.attract)/8+roll)*size);
+  if(card.mods.arrive>1&&state.attract<55)moved+=Math.floor(roll*size*card.mods.arrive);            /* refugees come whatever the city is like */
+  if(card.mods.sick)moved-=Math.ceil(state.pop*card.mods.sick*(f.works.blocks.has('flux')?.4:1));   /* the sickness takes its share; a hospital or drains blunt it */
+  moved=Math.max(moved,-Math.max(1,Math.ceil(state.pop*LEAVE_MAX)));       /* a slope, not a cliff: at most one in twenty packs a cart at any one close */
   moved=clamp(moved,MIN_POP-state.pop,Math.max(0,f.housing-state.pop));
   if(moved>0)unrest.push('🧳 '+moved+' new townsfolk came through the west gate to stay.');
   else if(moved<0)unrest.push('🎒 '+(-moved)+' townsfolk packed a cart and left the city.');
-  else if(state.attract>=55&&state.pop>=f.housing)unrest.push('🏘 Families are turned away at the gate - there is not a roof left. Build tenements.');
+  else if(state.attract>=55&&state.pop>=f.housing)unrest.push(f.housing>=POP_MAX?'🏘 The city is as big as its walls will ever hold.':'🏘 Families are turned away at the gate - there is not a roof left. Build more quarters.');
   state.pop+=moved;
+  /* 🔔 another close the steward was not at the table for */
+  if(state.chartered){
+   state.unattended=num(state.unattended)+1;
+   const n=state.unattended;
+   if(n>=REMIND_AFTER&&(n-REMIND_AFTER)%3===0)unrest.push('🔔 You have ledgers to attend.'+(n>=NEGLECT_HARD?' The council meets without you now, and the city has stopped asking where you are.':n>=NEGLECT_AFTER?' The council has started to talk - and so has the city.':''));
+  }
   state.ticks+=1;
-  state.earned+=f.totalIn+Math.max(0,eventGold);
-  state.spent+=f.totalOut+Math.max(0,-eventGold);
-  const entry={n:state.ticks,in:f.totalIn,out:f.totalOut,net,events:events.map(e=>e.text),unrest,mood:state.mood,favour:favour(state),
-   treasury:state.treasury,protest:state.protest,was:before,pop:state.pop,moved,attract:state.attract,trust:state.trust,finished,
+  state.earned+=gotIn+Math.max(0,eventGold);
+  state.spent+=paidOut+Math.max(0,-eventGold);
+  /* 🌬 the winds wander on, each pulled back toward calm; a turn worth knowing about makes the news */
+  if(live)for(const key of WIND_KEYS){
+   const was=windName(key,state.winds[key]);
+   state.winds[key]=clamp(Math.round((state.winds[key]*WIND_PULL+(draw(rng)-.5)*WIND_GUST)*1e3)/1e3,-WIND_MAX,WIND_MAX);
+   const now=windName(key,state.winds[key]);
+   if(now!==was)unrest.push(key==='trade'?'🌬 Trade on the roads and the river has turned '+now+'.':key==='harvest'?'🌬 Word from the farms: the harvest looks '+now+'.':'🌬 Prices in the market have turned '+now+'.');
+  }
+  /* 🏦 the season's book: a point on the chart, and at the last close the bank's review */
+  let reviewed=null;
+  if(state.chartered){
+   const q=state.season;
+   q.interest+=f.expenses.find(l=>l.id==='interest').amount;
+   q.series.push({t:state.treasury,d:state.loan,n:net});q.closes=q.series.length;
+   if(q.closes>=SEASON_CLOSES){
+    reviewed=review(state,ctx,live?rng:null);
+    const dealt=cardDef(state.season.card.id);
+    if(dealt.id!=='ordinary')unrest.push('🎲 Season '+state.season.n+' opens: '+dealt.icon+' '+dealt.name+'. '+dealt.text);
+    unrest.push('🏦 Season '+reviewed.n+' is closed. The Tides Bank grades your books '+reviewed.grade+': '+reviewed.verdict);
+    unrest.push('🧾 A new season, and everybody on the crown’s payroll has asked for a rise: wages are up '+Math.round(WAGE_RISE*100)+'%.');
+    if(reviewed.swept)unrest.push('🏦 The debt stood above the season’s target, so the bank called it in: '+reviewed.swept.toLocaleString()+' ◉ went from the strongroom straight to the debt.');
+   }
+  }
+  const entry={n:state.ticks,covered,review:reviewed?{n:reviewed.n,grade:reviewed.grade}:null,in:gotIn,out:paidOut,expected:f.net,net,events:events.map(e=>e.text),unrest,mood:state.mood,favour:favour(state),
+   treasury:state.treasury,protest:state.protest,was:before,unattended:num(state.unattended),food:state.food.stock,hunger:state.food.hunger,pop:state.pop,moved,attract:state.attract,trust:state.trust,finished,
    purse:state.crowned?f.purse:0};
   state.history.push(entry);
   while(state.history.length>HISTORY)state.history.shift();
   state.last=entry;
   return entry;
  }
+ /* 🔔 the steward is at the table: the count starts again. Returns how many closes had gone by. */
+ function attend(state){const n=num(state.unattended);state.unattended=0;return n;}
  /* Play time drives the clock. Returns how many closes fell inside this slice of time. */
  function advance(state,seconds){
+  if(!state.chartered)return 0;                /* 🏦 the books do not open until the founding loan is signed */
   state.clock=num(state.clock)+Math.max(0,num(seconds));
   let closes=0;
   while(state.clock>=TICK_SECONDS){state.clock-=TICK_SECONDS;closes++;}
@@ -775,29 +1125,31 @@
   if(key==='tax'){if(!TAX_RATES.includes(value))return false;state.budget.tax=value;return true;}
   const g=group(key);
   if(!g||!g.levels[value])return false;
+  if(LINES[key]&&frozen(state)&&value>state.budget[key])return false;   /* 🏦 in the red a line may be cut, never raised */
   state.budget[key]=value;return true;
  }
  function borrow(state,ctx,amount){
+  if(!state.chartered)return 0;
   const room=creditLimit(ctx,state)-state.loan,n=Math.min(Math.floor(num(amount)),room);
   if(n<=0)return 0;
   state.loan+=n;state.treasury+=n;state.borrowed+=n;
   return n;
  }
- /* every coin repaid is worth a quarter of itself in new credit */
+ /* what counts with the bank is where the debt stands when the season closes, not how often gold went to and fro */
  function repay(state,amount){
   const n=Math.min(Math.floor(num(amount)),state.loan,Math.max(0,state.treasury));
   if(n<=0)return 0;
   state.loan-=n;state.treasury-=n;state.repaid=num(state.repaid)+n;
-  state.credit=clamp(num(state.credit)+Math.round(n*.25),0,CREDIT_CAP);
   return n;
  }
  /* Moving gold between the treasury and the hero's purse. room is what the purse can still hold.
     🤝 The Master of Coin counts what a steward carries out of the strongroom, and the city hears:
     a point of trust for every 1 500 ◉ taken (at most ten at a time), half that back for gold put
     in - so lining your pockets and winning the crown pull in opposite directions. A crowned head
-    takes what is its own. */
+    takes what is its own. 🏦 And borrowed gold never leaves the strongroom: only what the treasury
+    holds beyond what it owes the bank can be carried out, by a steward or a crowned head alike. */
  function withdraw(state,amount,room,ctx){
-  const n=Math.min(Math.floor(num(amount)),Math.max(0,state.treasury),Math.max(0,Math.floor(num(room))));
+  const n=Math.min(Math.floor(num(amount)),Math.max(0,state.treasury-state.loan),Math.max(0,Math.floor(num(room))));
   if(n<=0)return 0;
   state.treasury-=n;
   if(!state.crowned)state.trust=clamp(round1(num(state.trust)-Math.min(10,n/(1500*scale(ctx||{})))),0,100);
@@ -838,8 +1190,12 @@
   return {ok:true,accepted:false,text:'Refused. The '+seatDef(p.seat).title+' bows, stiffly.'};
  }
  return Object.freeze({create,normalize,forecast,tick,advance,setBudget,borrow,repay,withdraw,deposit,settle,answer,councilView,
-  worksView,invest,crownView,answerKing,claimCrown,gaolView,pardon,fine,worksFx,has,cells,
+  worksView,invest,crownView,answerKing,claimCrown,gaolView,pardon,fine,worksFx,has,cells,charter,charterView,bankView,rehire,frozen,attend,neglect,REMIND_AFTER,NEGLECT_AFTER,NEGLECT_HARD,TRUST_SLOPE,TRUST_DRAIN_MAX,SEAT_SLOPE,SEAT_DRAIN_MAX,MOOD_SLOPE,MOOD_DRAIN_MAX,DRAW_SLOPE,DRAW_DRAIN_MAX,
+  POP_MAX,HOUSEHOLD,hearths,SEASON_CARDS,cardDef,dealCard,
+  windName,WIND_KEYS,WIND_MAX,JITTER_IN,JITTER_OUT,WAGE_RISE,WAGE_MAX,HERO_EXPORTS_MAX,HERO_FARM_LEVELS,
+  foodView,buyFood,setAutoFood,HUNGER_GAIN,HUNGER_EASE,FOOD_STORE,FOOD_START,FOOD_CAP,FOOD_PRICE,AUTO_PREMIUM,FOOD_RESERVE,HUNGER_MAX,FOOD_LOW,FOOD_LOTS,
   creditLimit,favour,favourName,moodName,moodColor,attractName,trustName,pleasureName,scale,
-  TICK_SECONDS,LOAN_RATE,OVERDRAFT_RATE,HISTORY,POPULATION,MIN_POP,HOUSING,MAX_BUILDING,CELLS,MAX_CELLS,COUP_TRUST,ROYAL_GUARD,PROTEST_START,PROTEST_END,MAX_INCIDENTS,CREDIT_CAP,
+  VERSION,COIN,SEASON_CLOSES,FOUNDING_LOAN,RESERVE_LINE,MIN_RATE,MAX_RATE,RED_FLOOR,DUE_SHARE,COVER_FEE,SEIZE_AFTER,GUARD_WAGE,MIN_GUARD,
+  TICK_SECONDS,LOAN_RATE,OVERDRAFT_RATE,HISTORY,POPULATION,MIN_POP,HOUSING,LEAVE_MAX,MAX_BUILDING,CELLS,MAX_CELLS,COUP_TRUST,ROYAL_GUARD,PROTEST_START,PROTEST_END,MAX_INCIDENTS,
   TAX_RATES,TAX_MOOD,TAX_ATTRACT,LINES,LINE_KEYS,RATES,RATE_KEYS,DEFAULT_BUDGET,EVENTS,INCIDENTS,COUNCIL,PETITIONS,WORKS,WORK_CATS,HUMOURS,DEMANDS,CRIMES});
 });
