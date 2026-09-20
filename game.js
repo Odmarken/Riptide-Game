@@ -957,6 +957,15 @@ function throneWorldClick(wx,wy){
   else if(exit&&Math.abs(wx-exit.x)<110&&wy>exit.y-40&&wy<exit.y+130){target=exit;open=leaveThroneHall;range=90;}
   else{const seat=world.npcs.find(n=>n.seat&&Math.abs(wx-n.x)<34&&wy>n.y-90&&wy<n.y+20); /* 🏛 a councillor: the Council tab */
    if(seat){target=seat;movePoint={x:seat.x+(seat.x<900?-60:60),y:seat.y+(seat.y<640?-10:60)};open=openCouncil;range=170;}}
+  if(!target){ /* ⛓ the gaol: the gaoler keeps the book, a prisoner has something to say, the stairs are a walk away */
+   const T=ThroneWorld,gaoler=world.npcs.find(n=>n.game==='gaol'),throne=world.solids.find(s=>s.kind==='throne');
+   const inmate=world.npcs.find(n=>n.prisoner&&Math.abs(wx-n.x)<30&&wy>n.y-90&&wy<n.y+30);
+   if(gaoler&&Math.abs(wx-gaoler.x)<60&&wy>gaoler.y-100&&wy<gaoler.y+90){target=gaoler;movePoint={x:gaoler.x-10,y:gaoler.y+120};open=openGaol;range=170;}
+   else if(inmate){target=inmate;movePoint={x:inmate.x,y:T.GAOL.y+50};open=()=>prisonerSpeak(inmate);range=150;}
+   else if(Math.abs(wx-T.STAIR.x-60)<90&&Math.abs(wy-T.STAIR_DOWN.y)<90){target=T.STAIR_DOWN;movePoint={...T.STAIR_DOWN};open=()=>{};range=1;}
+   else if(wx>T.GAOL.x+T.GAOL.w-20&&Math.abs(wy-T.STAIR_UP.y)<90&&wy>T.GAOL.y){target=T.STAIR_UP;movePoint={...T.STAIR_UP};open=()=>{};range=1;}
+   else if(S.city.crowned&&throne&&Math.abs(wx-throne.x)<70&&wy>throne.y-260&&wy<throne.y+40){target=throne;movePoint={x:throne.x,y:throne.y+130};open=kingSpeak;range=190;}
+  }
  }
  if(!target)return false;
  if(dist(hero,target)<range)open();
@@ -4820,6 +4829,7 @@ function drawCityGround(){
   ctx.strokeStyle=cobble||z.path;ctx.lineWidth=st.w;
   ctx.beginPath();ctx.moveTo(seg[0],seg[1]);ctx.lineTo(seg[2],seg[3]);ctx.stroke();
  }
+ if(world.look&&world.look.dirt>0&&zoom>0.4)CityWorks.drawLitter(ctx,world,{x:vx0,y:vy0,w:vx1-vx0,h:vy1-vy0},world.look.dirt,performance.now()/1000); /* 🧹 what the sweepers were not paid to take away */
  drawCityWalls();
  ctx.strokeStyle='rgba(0,0,0,0.35)';ctx.lineWidth=26;ctx.strokeRect(0,0,world.w,world.h);
 }
@@ -5012,7 +5022,7 @@ function buildZone(){
  if(z.throne){
   world=ThroneWorld.create();   /* 👑 the hall is a module-built interior like the guild */
   guildImages();['throne','council_table','hall_pillar','hall_brazier'].forEach(cityImg);
-  cityCouncilMarks();
+  cityCouncilMarks();hallApply();
  }else if(z.tideguild){
   world=TideGuildWorld.create({catalog:Tides.allSpecies(),maxLevel:Tides.MAX_LEVEL,rng:Math.random});
   world.npcs.forEach(n=>{n.art=npcSebbeImg;});
@@ -6616,6 +6626,7 @@ function padInteract(){
   add(find('cathedral'),'The Tidekeeper',TideUI.openChurch,210);
   const sb=(world.npcs||[]).find(n=>n.game==='cups');
   if(sb)out.push({s:sb,label:'Sebbe',open:openCupGame,rng:120});
+  add((world.npcs||[]).find(n=>n.game==='crier'),'The Town Crier',crierSpeak,130);
   add(find('minehall'),'Mining Hall',openMiningHall,180);
   add(find('enchanthall'),'Enchanting Hall',openEnchantHall,180);
   add(find('smelter'),'Smelter',openSmelter,180);
@@ -6625,6 +6636,9 @@ function padInteract(){
   add(world.npcs.find(n=>n.game==='ledger'),'The Crown Ledger',openLedger,130);
   add(world.solids.find(s2=>s2.kind==='table'),'The Crown Ledger',openLedger,260);
   for(const n of world.npcs)if(n.seat)add(n,n.name,openCouncil,110);
+  add(world.npcs.find(n=>n.game==='gaol'),'The Gaol Book',openGaol,170);
+  for(const n of world.npcs)if(n.prisoner)add(n,n.name,()=>prisonerSpeak(n),130);
+  if(S.city.crowned)add(world.solids.find(s2=>s2.kind==='throne'),'Your Throne',kingSpeak,190);
   add(world.exit,'City',leaveThroneHall,90);
  }else if(z.tideguild){
   add(world.npcs.find(n=>n.game==='tideguild'),'Battle',TideUI.openGuild,120);
@@ -6947,6 +6961,12 @@ cv.addEventListener('pointerdown',e=>{
    if(Math.hypot(hero.x-sb.x,hero.y-sb.y)<110)openCupGame();
    else{hero.target=null;hero.goPortal=false;hero.moveTo={x:sb.x+34,y:sb.y+18};
     marker={x:sb.x+34,y:sb.y+18,t:0};hero.pendingDoor={s:sb,open:openCupGame,rng:110};}
+   return;
+  }
+  const crier=(world.npcs||[]).find(n=>n.game==='crier'); /* 📣 the town crier tells you the week's news */
+  if(crier&&Math.abs(wx-crier.x)<34&&wy>crier.y-70&&wy<crier.y+16){
+   if(Math.hypot(hero.x-crier.x,hero.y-crier.y)<130)crierSpeak();
+   else{hero.target=null;hero.goPortal=false;hero.moveTo={x:crier.x+40,y:crier.y+20};marker={...hero.moveTo,t:0};hero.pendingDoor={s:crier,open:crierSpeak,rng:130};}
    return;
   }
   /* 🏙 only the two working halls answer a click. Everything else is scenery, so a stray tap on a
@@ -7361,6 +7381,12 @@ function update(dt){
   }
  }
  if(hero&&!hero.dead&&world&&world.exit&&zoneOf().throne&&Math.hypot(hero.x-world.exit.x,hero.y-world.exit.y)<60&&leaveThroneHall())return;
+ if(hero&&!hero.dead&&world&&world.throne&&!TideUI.isBattling()){ /* ⛓ down the stair in the west wall to the gaol, and back up */
+  const T=ThroneWorld;
+  if(Math.hypot(hero.x-T.STAIR_DOWN.x,hero.y-T.STAIR_DOWN.y)<T.STAIR_DOWN.r)hallStair(T.GAOL_ARRIVE,-1,'⛓ The gaol under the hall. '+gaolLine());
+  else if(Math.hypot(hero.x-T.STAIR_UP.x,hero.y-T.STAIR_UP.y)<T.STAIR_UP.r)hallStair(T.HALL_ARRIVE,1,'');
+ }
+ if(zoneOf().city&&world&&world.npcs)cityCrierTick(dt);
  if(hero&&!hero.dead&&world&&world.solids&&zoneOf().tavern){ /* 🚜 walk straight into the Farm portal - no click needed */
   const fp=world.solids.find(s2=>s2.type==='farmportal');
   if(fp&&Math.hypot(hero.x-fp.x,hero.y-fp.y)<55){goToZone(FARM_ZONE);return;}
@@ -8241,6 +8267,14 @@ function draw(){
   drawPropShadow(s,z);
   drawables.push({y:s.y,f:()=>drawProp(s,z,false)});
  }
+ /* 🐴 the boulevard's traffic - trade wagons, and families moving in or out - and 🎉 the festival bunting strung over it */
+ if(z.city&&world.look&&!TideUI.isBattling()){
+  for(const t of CityWorks.traffic(world,world.look,now)){
+   if(t.x<cx0||t.x>cx1||t.y<cy0||t.y>cy1)continue;
+   drawables.push({y:t.y,f:()=>CityWorks.drawTraffic(ctx,t,now)});
+  }
+  for(const b of CityWorks.bunting(world,{x:cx0,y:cy0,w:cx1-cx0,h:cy1-cy0},world.look.festival,world.look.xMax))drawables.push({y:b.y1+30,f:()=>CityWorks.drawBunting(ctx,b,now)});
+ }
  /* townsfolk get the same camera test as the props - the City walks six dozen of them and every one
     was being queued, sorted and drawn whether or not it was anywhere near the screen */
  if(world.npcs&&!TideUI.isBattling())for(const n of world.npcs){
@@ -8661,6 +8695,8 @@ function drawPropShadow(s,z){
   }
  }else if(s.type==='throneprop'){
   ThroneWorld.drawShadow(ctx,s);
+ }else if(s.type==='citywork'){
+  CityWorks.drawShadow(ctx,s);
  }else if(s.type==='farmitem'||s.type==='farmhouse'){
   const def=FARM_BUILD.find(d=>d.id===(s.type==='farmhouse'?'farmhouse':s.ftype));
   if(def&&def.sh&&ready(farmImg(def.img))){
@@ -8804,6 +8840,9 @@ function drawProp(s,z,withShadow=true){
    if(fade<1)ctx.globalAlpha*=fade;
    ctx.drawImage(mip(im,W),-W/2,s.r*0.30-H,W,H); /* footprint on the shadow, art rising off it */
    ctx.globalAlpha=1;
+   /* 🏗 a public work: scaffolding while a crew is on it, a signboard after. 🏚 nobody home: planks and a TO LET board */
+   if(s.work)CityWorks.drawHouseWork(ctx,s.work,W,H,s.r*0.30-H,performance.now()/1000);
+   else if(world.look&&world.look.vacancy>0&&CityWorks.vacant(s,world.look.vacancy))CityWorks.drawVacant(ctx,W,H,s.r*0.30-H);
   }else{
    const w=s.r*1.45,hh=s.r*1.25;
 
@@ -8836,15 +8875,24 @@ function drawProp(s,z,withShadow=true){
   }
  }else if(s.type==='throneprop'){
   ThroneWorld.drawProp(ctx,s,performance.now()/1000,{...guildImages(),throne:cityImg('throne'),table:cityImg('council_table'),pillar:cityImg('hall_pillar'),brazier:cityImg('hall_brazier')});
+  if(s.kind==='throne'&&S&&S.city&&S.city.crowned){ /* 👑 yours now */
+   ctx.font='700 13px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
+   const txt='👑 '+cityTitle()+' '+(S.name||'Hero');
+   ctx.fillStyle='rgba(0,0,0,0.75)';ctx.fillText(txt,1,-331);ctx.fillStyle='#ffd76a';ctx.fillText(txt,0,-332);
+  }
   if(s.kind==='table'&&S&&S.city){ /* 👥 the mood of the people and the council's favour, over the table */
    const c=S.city,E=CityEconomy,font=getComputedStyle(document.body).fontFamily,fav=E.favour(c);
    const lines=[['📜 THE CROWN LEDGER','#ffd27a','700 12px '],
     ['The people: '+E.moodName(c.mood)+' · '+c.mood+(c.protest?' ✊':''),E.moodColor(c.mood),'700 12px '],
-    ['The council: '+E.favourName(fav)+' · '+fav+(c.petition?' · 📜 petition':''),'#e6dbc9','600 11px ']];
+    ['The council: '+E.favourName(fav)+' · '+fav+(c.petition?' · 📜 petition':''),'#e6dbc9','600 11px '],
+    ['🧲 '+E.attractName(c.attract)+' · '+c.attract+' · '+c.pop+' townsfolk','#bfe08a','600 11px '],
+    [c.crowned?'👑 The crown is yours':'🤝 Trust in you: '+Math.floor(c.trust)+'%'+(c.trust>=E.COUP_TRUST?' - the crown is there to be taken':''),'#ffd76a','600 11px ']];
    for(const i of c.incidents){const d=E.INCIDENTS.find(x=>x.id===i.id);lines.push([d.icon+' '+d.name,'#ff9f8a','600 11px ']);}
    ctx.textAlign='center';
    lines.forEach(([txt,col,f],i)=>{const y=-300+i*16;ctx.font=f+font;ctx.fillStyle='rgba(0,0,0,0.75)';ctx.fillText(txt,1,y+1);ctx.fillStyle=col;ctx.fillText(txt,0,y);});
   }
+ }else if(s.type==='citywork'){
+  CityWorks.drawProp(ctx,s,performance.now()/1000); /* 🏗 lamps, awnings, the fountain, the statue, a building plot */
  }else if(s.type==='smith'){
   const w=s.r*1.7,hh=s.r*1.2;
 
@@ -9603,8 +9651,9 @@ function drawHero(){
  ctx.restore();
  const namePoint=rideLayout?MountRenderer.riderPoint(rideLayout,0,nmY):{x:0,y:nmY+by};
  if(!S.hideName){ /* 👁 toggle in the hero panel. The ring above still hovers - it is gear, not a label */
-  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(S.name||'Hero',namePoint.x+1,namePoint.y+1);
-  ctx.fillStyle='#fff';ctx.fillText(S.name||'Hero',namePoint.x,namePoint.y);
+  const shown=(S.city&&S.city.crowned?'👑 ':'')+(S.name||'Hero'); /* 👑 a crowned head says so */
+  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(shown,namePoint.x+1,namePoint.y+1);
+  ctx.fillStyle=S.city&&S.city.crowned?'#ffe08a':'#fff';ctx.fillText(shown,namePoint.x,namePoint.y);
  }
  ctx.restore();
 }
@@ -9630,14 +9679,31 @@ function drawNpc(n){
  }
  ctx.restore();
  if(n.protest&&n.protest.sign)drawProtestSign(n,body,by,size);
- if(n.guildRole!=='member'&&!n.protest&&!n.brawl){ /* ✊ a marching block wears its placards, not two dozen overlapping names */
+ if(n.guildRole!=='member'&&!n.protest&&!n.brawl&&!n.prisoner){ /* ✊ a marching block wears its placards, not two dozen overlapping names; ⛓ a prisoner's name hangs on his grille */
   const ny=((body?body.headY:-37)-3+by)*size;
   ctx.font='700 '+(n.game?11:10)+'px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(n.name,1,ny+1);
   ctx.fillStyle=n.game||n.royal?'#ffd76a':n.watch||n.guard?'#bcd0ee':n.protest?'#ffb3a3':'#cfe6c2';   /* the ones with something to sell stand out; the watch and the guard in steel; the crowd flushed */
   ctx.fillText(n.name,0,ny);
   if(n.mark){ctx.font='13px '+getComputedStyle(document.body).fontFamily;ctx.fillText(n.mark,0,ny-13);} /* 👍 what a councillor thinks of you */
+  if(n.bubble&&n.bubble.t>0)drawNpcBubble(n.bubble,ny-(n.mark?30:16));
  }
+ ctx.restore();
+}
+/* 📣 what the town crier is shouting: a parchment bubble over his head, wrapped to three lines */
+function drawNpcBubble(b,y){
+ const font=getComputedStyle(document.body).fontFamily,words=b.txt.split(' '),lines=[];let line='';
+ ctx.font='600 11px '+font;
+ for(const w of words){const t=line?line+' '+w:w;if(ctx.measureText(t).width>230&&line){lines.push(line);line=w;}else line=t;}
+ if(line)lines.push(line);
+ if(lines.length>4){lines.length=4;lines[3]=lines[3].replace(/.{0,3}$/,'…');}
+ const w=Math.max(...lines.map(l=>ctx.measureText(l).width))+20,h=lines.length*14+12,a=Math.min(1,b.t/.4,(b.life-b.t)/.4);
+ ctx.save();ctx.globalAlpha=Math.max(0,Math.min(1,a));
+ ctx.fillStyle='#efe3c4';ctx.strokeStyle='#4a2d17';ctx.lineWidth=1.5;
+ ctx.beginPath();ctx.rect(-w/2,y-h,w,h);ctx.fill();ctx.stroke();
+ ctx.beginPath();ctx.moveTo(-7,y);ctx.lineTo(0,y+9);ctx.lineTo(7,y);ctx.closePath();ctx.fill();ctx.stroke();
+ ctx.fillStyle='#2a1a0c';ctx.textAlign='center';
+ lines.forEach((l,i)=>ctx.fillText(l,0,y-h+17+i*14));
  ctx.restore();
 }
 /* 🥊 the dust a brawl kicks up, under and around the knot */
@@ -13250,10 +13316,23 @@ const BRAWL_SHOUTS=['💢','POW!','Oof!','💥','Take that!','💢','Hold him!',
    every visit to the City walks past it, the gang war on the avenue south of the well */
 const UNREST_SPOTS={brawl:{x:1750,y:2600,n:6},gang:{x:8400,y:3320,n:8}};
 const WATCH_RECRUITS=['Vakt Arvid','Vakt Birger','Vakt Dag','Vakt Egil','Vakt Folke','Vakt Grim','Vakt Hjalmar','Vakt Ingvar','Vakt Jorund','Vakt Kolbein'];
+/* ⛓ who the watch can bring in: the commoners of the roster, under the names they walk the streets by.
+   The gentry buy their way out, the hero costumes are heroes, and three of the council share a name
+   with a townsperson - nobody arrests the Master of Coin. */
+let cityRosterCache=null;
+function cityRoster(){
+ if(!cityRosterCache){
+  const seats=CityEconomy.COUNCIL.map(c=>c.who);
+  cityRosterCache=CITY_FOLK.filter(([name,skin])=>!/^noble_/.test(skin)&&!npcSkinCostume(skin)&&!seats.some(w=>name.includes(w)))
+   .map(([name,skin])=>({name,skin,female:npcSkinFemale(skin)}));
+ }
+ return cityRosterCache;
+}
+const cityTitle=()=>S&&S.gender==='f'?'Queen':'King';
 function cityContext(){
  return {prestige:S.prestige||0,lvl:S.lvl||1,mining:(S.mining&&S.mining.skill)||0,miningTrained:!!(S.mining&&S.mining.trained),
   ench:(S.ench&&S.ench.skill)||0,enchTrained:!!(S.ench&&S.ench.trained),smith:S.smithLvl||0,smelter:!!S.smelt,
-  farmOwned:!!(S.farm&&S.farm.owned),farmLvl:(S.farm&&S.farm.lvl)||1};
+  farmOwned:!!(S.farm&&S.farm.owned),farmLvl:(S.farm&&S.farm.lvl)||1,roster:cityRoster()};
 }
 function cityClockLeft(){
  const left=Math.max(0,CityEconomy.TICK_SECONDS-((S.city&&S.city.clock)||0));
@@ -13262,11 +13341,12 @@ function cityClockLeft(){
 function cityHudLine(){
  const c=S&&S.city;if(!c)return 'The capital.';
  const trouble=c.incidents.map(i=>CityEconomy.INCIDENTS.find(d=>d.id===i.id)).map(d=>d.icon+' '+d.name.toLowerCase());
- return 'Treasury '+c.treasury.toLocaleString()+' ◉ · the people are '+CityEconomy.moodName(c.mood).toLowerCase()+(c.protest?' and marching on the boulevard':'')
-  +(trouble.length?' · '+trouble.join(' · '):'')+(c.petition?' · 📜 a petition waits at the council table':'')+' · the ledger closes in '+cityClockLeft();
+ return 'Treasury '+c.treasury.toLocaleString()+' ◉ · '+c.pop+' townsfolk, '+CityEconomy.moodName(c.mood).toLowerCase()+(c.protest?' and marching on the boulevard':'')
+  +' · '+(c.crowned?'👑 the crown is yours':'trust '+Math.floor(c.trust)+'%')
+  +(trouble.length?' · '+trouble.join(' · '):'')+(c.petition?' · 📜 a petition waits at the council table':'')+(c.king.demand?' · 👑 the King wants something':'')+' · the ledger closes in '+cityClockLeft();
 }
 /* a commoner who can be pulled off his stroll for a march or a fight, and put back afterwards */
-const cityCommoner=n=>!n.patrol&&!n.game&&!/^noble_/.test(n.skin||'');
+const cityCommoner=n=>!n.patrol&&!n.game&&!n.hidden&&!/^noble_/.test(n.skin||'');
 function citySendHome(n){
  n.pts=n.homePts||n.pts;n.i=Math.min(n.homeI||0,n.pts.length-1);n.protest=null;n.brawl=null;
  n.x=n.pts[n.i].x;n.y=n.pts[n.i].y;n.pauseT=Math.random()*2;n.moving=false;
@@ -13335,17 +13415,134 @@ function cityApplyWatch(){
 function cityCouncilMarks(){
  if(!world||!world.npcs||!S||!S.city)return;
  for(const n of world.npcs)if(n.seat){const v=S.city.council[n.seat];n.mark=v>=70?'👍':v<40?'👎':'';}
+  else if(n.game==='king')n.mark=S.city.king.demand?'❗':S.city.king.pleasure<30?'💢':S.city.king.pleasure>=80?'😊':''; /* 👑 and the King wears his temper */
 }
-function cityApplyAll(){cityApplyProtest();cityApplyUnrest();cityApplyWatch();cityCouncilMarks();}
+/* 🧳 The streets carry as many townsfolk as the ledger counts. Below the opening 72 the roster thins
+   from its end (and whoever is in the gaol is not on the street either); above it newcomers walk
+   the routes of the people they moved in next to, the other way round, under names of their own.
+   The seeded builder never hears of any of it, so the city it builds - and its tests - are unchanged. */
+const NEWCOMER_FIRST=['Arvid','Berta','Claes','Dagmar','Edvin','Freja','Gustav','Hilda','Ingemar','Judit','Karl','Lisbet','Mats','Nora','Ossian','Paula','Ruben','Saga','Tore','Ursula'];
+const NEWCOMER_LAST=['Åker','Björk','Dal','Ek','Fors','Gran','Holm','Lind','Mo','Näs','Rönn','Strand','Tall','Vik','Ås'];
+const NEWCOMER_SKINS=['male','female','baker','market_woman','blacksmith','male','female','merchant','monk','male'];
+const NEWCOMER_MAX=60;
+function cityApplyPeople(){
+ if(!world||!zoneOf().city||!world.npcs||!S.city)return;
+ const c=S.city,jailed=new Set(c.jail.map(p=>p.name));
+ const folk=world.npcs.filter(n=>!n.patrol&&!n.game&&!n.newcomer&&!n.recruit);
+ const gone=Math.max(0,folk.length-c.pop);
+ folk.forEach((n,i)=>{n.hidden=i>=folk.length-gone||jailed.has(n.name);});
+ const want=Math.min(NEWCOMER_MAX,Math.max(0,c.pop-folk.length)),have=world.npcs.filter(n=>n.newcomer);
+ if(have.length>want)world.npcs=world.npcs.filter(n=>!(n.newcomer&&n.nth>=want));
+ const hosts=folk.filter(n=>!/^noble_/.test(n.skin||'')&&n.pts&&n.pts.length>1);
+ for(let k=have.length;k<want&&hosts.length;k++){
+  const host=hosts[(k*7+3)%hosts.length],skin=NEWCOMER_SKINS[k%NEWCOMER_SKINS.length],i=(k*3+1)%host.pts.length;
+  world.npcs.push({name:NEWCOMER_FIRST[k%NEWCOMER_FIRST.length]+' '+NEWCOMER_LAST[(k*7+2)%NEWCOMER_LAST.length],skin,race:'human',cls:'warrior',female:npcSkinFemale(skin),
+   pts:host.pts,i,dir:-1,x:host.pts[i].x,y:host.pts[i].y,speed:28+(k*13)%34,walk:k*.9,fx:1,pauseT:(k%5)*.7,moving:false,newcomer:true,nth:k,
+   mark:k>=want-3&&c.last&&c.last.moved>0?'🧳':''});
+ }
+ for(const n of world.npcs)if(n.newcomer&&n.nth<want-3)n.mark='';
+ /* 📣 the crier has a pitch on the great square, south-east of the well */
+ if(!world.npcs.some(n=>n.game==='crier'))world.npcs.push({name:'Utropare Måns',skin:'merchant',race:'human',cls:'warrior',female:false,big:1.28,game:'crier',
+  pts:[{x:world.w/2+118,y:world.h/2+212}],i:0,dir:1,x:world.w/2+118,y:world.h/2+212,speed:0,walk:0,fx:-1,pauseT:1e9,moving:false});
+}
+/* 🏗 What the ledger looks like from the street (assets/city/city-works.js): the props the works have
+   earned, the houses that wear a sign or a scaffold, and the look the draw passes read every frame. */
+function cityLook(){
+ const c=S.city,E=CityEconomy,works={},left={};
+ for(const id of Object.keys(c.works)){works[id]=c.works[id].left>0?'building':'done';left[id]=c.works[id].left;}
+ const carts=['carters','carters','caravanserai','quay','fleet','exchange'].filter(id=>E.has(c,id)).length;
+ const stopped=c.protest||c.budget.roads===0||c.incidents.some(i=>i.id==='potholes');
+ const full=c.pop>=E.HOUSING+E.worksFx(c).housing;
+ return {works,left,crowned:c.crowned,hero:S.name||'',xMax:PALACE.x-420,festival:c.budget.festival,
+  stalls:Math.round(CityWorks.stallCount(c.budget.fee,E.has(c,'coveredmarket'),c.pop)*(c.protest?.4:1)),
+  wagons:stopped?0:Math.round((1+carts)*E.RATES.duty.levels[c.budget.duty].vol),
+  migrants:c.attract>=55&&!full?Math.min(4,1+Math.floor((c.attract-55)/12)):c.attract<40?-Math.min(4,1+Math.floor((40-c.attract)/10)):0,
+  dirt:Math.min(3,Math.max(0,2-c.budget.clean-(E.has(c,'sewers')?1:0))+(c.incidents.some(i=>i.id==='middens')?1:0)),
+  vacancy:Math.max(0,Math.min(1,(E.POPULATION-c.pop)/E.POPULATION))*.7};
+}
+function cityApplyWorks(){
+ if(!world||!zoneOf().city||!world.solids||!S.city)return;
+ const look=world.look=cityLook(),key=JSON.stringify([look.works,look.left,look.stalls,look.crowned,look.hero]);
+ if(world.lookKey===key)return;          /* the traffic, the refuse and the bunting read the look live; the props only move when it changes */
+ world.lookKey=key;
+ world.solids=world.solids.filter(s2=>s2.type!=='citywork');
+ for(const s2 of world.solids)if(s2.work)s2.work=null;
+ world.solids.push(...CityWorks.props(world,look));
+ for(const a of CityWorks.assignHouses(world,look)){
+  const def=CityEconomy.WORKS.find(w=>w.id===a.id);
+  a.house.work={id:a.id,status:a.status,left:a.left,sign:def.sign,icon:def.icon,cat:def.cat};
+ }
+}
+/* 📣 The crier shouts what the last close wrote, and what a steward should know, a line at a time */
+function cityCrierLines(){
+ const c=S.city,E=CityEconomy,out=[],last=c.last;
+ if(last)for(const t of last.events.concat((last.unrest||[]).map(u=>u.replace(/^[^A-Za-zÅÄÖåäö0-9]+/,''))))out.push('Hear ye! '+t);
+ out.push('Hear ye! '+c.pop+' souls within the walls, and the city is '+E.attractName(c.attract).toLowerCase()+'.');
+ const building=Object.keys(c.works).filter(id=>c.works[id].left>0).map(id=>E.WORKS.find(w=>w.id===id).name);
+ if(building.length)out.push('By order of the crown: '+building.join(', ')+' - under construction. Mind the scaffolding!');
+ if(c.jail.length)out.push(c.jail.length+' in the gaol under the hall this week. Let it be a lesson!');
+ if(!c.crowned)out.push('The King is '+E.pleasureName(c.king.pleasure).toLowerCase()+', and his humour is '+E.HUMOURS.find(h=>h.id===c.king.humour).name.toLowerCase()+'. God save him.');
+ else out.push('God save '+cityTitle()+' '+(S.name||'')+'! Long may '+(S.gender==='f'?'she':'he')+' reign!');
+ if(c.budget.tax>=20)out.push('The poll tax stands at '+c.budget.tax+' in the hundred. Do not shoot the crier.');
+ if(c.trust>=60&&!c.crowned)out.push('They are saying in the taverns that '+(S.name||'the steward')+' would wear a crown well.');
+ return out;
+}
+function cityCrierTick(dt){
+ const n=world.npcs.find(x=>x.game==='crier');if(!n||!S.city||!hero)return;
+ if(n.bubble&&(n.bubble.t-=dt)<=0)n.bubble=null;
+ world.crierT=(world.crierT===undefined?2:world.crierT)-dt;
+ if(world.crierT>0||Math.hypot(hero.x-n.x,hero.y-n.y)>1100)return;
+ const lines=cityCrierLines();world.crierI=((world.crierI||0)+1)%lines.length;
+ n.bubble={txt:lines[world.crierI],t:6.5,life:6.5};world.crierT=10;
+}
+function crierSpeak(){
+ const lines=cityCrierLines();
+ log('📣 <b>Utropare Måns:</b> '+lines.slice(0,5).join(' · '));
+ stageMsg('📣 '+lines[0],4200,'#ffd76a');
+ const n=world.npcs.find(x=>x.game==='crier');if(n){n.bubble={txt:lines[0],t:6.5,life:6.5};world.crierT=10;}
+}
+/* ⛓ The hall as the ledger has it: prisoners behind their grilles (two to a cell once it overflows),
+   the last cells bricked up until the new wing is built, and no King on the dais once he is deposed. */
+function hallApply(){
+ if(!world||!world.throne||!S||!S.city)return;
+ const c=S.city,cells=CityEconomy.cells(c);
+ world.npcs=world.npcs.filter(n=>!n.prisoner&&!(c.crowned&&n.game==='king'));
+ c.jail.forEach((p,i)=>world.npcs.push(ThroneWorld.prisoner(i%cells,p,i>=cells?2:c.jail.length>cells&&i<c.jail.length-cells?1:0)));
+ for(const s2 of world.solids)if(s2.kind==='bars'){
+  const inside=c.jail.filter((p,i)=>i%cells===s2.cell);
+  s2.walled=s2.cell>=cells;s2.label=inside.map(p=>inside.length>1?p.name.split(' ')[0]:p.name).join(' & ');s2.royal=inside.some(p=>p.life);
+ }
+ cityCouncilMarks();
+}
+function hallStair(to,dir,msg){
+ hero.x=to.x;hero.y=to.y;hero.moveTo=null;hero.pendingDoor=null;hero.target=null;marker=null;hero.fx=dir;
+ if(pet){pet.x=to.x-dir*30;pet.y=to.y+10;}
+ camX=hero.x-VW/(2*zoom);camY=hero.y-VH/(2*zoom);      /* a storey apart: cut, do not pan */
+ sfx.quest&&sfx.quest();
+ if(msg)stageMsg(msg,3200,'#d8d2c4');
+}
+function gaolLine(){
+ const v=CityEconomy.gaolView(S.city,cityContext());
+ return v.held?v.held+' of '+v.cells+' cells taken'+(v.crowded?' - overcrowded':'')+'.':'Every cell stands empty.';
+}
+function prisonerSpeak(n){
+ const line=n.say||'I did nothing. Nobody in here did anything.';
+ floatAt(n.x,n.y-84,'“'+line+'”','#e6dbc9',false);
+ log('⛓ <b>'+n.name+'</b> - '+n.crime+': “'+line+'”');
+}
+const openGaol=()=>openLedger('gaol');
+function cityApplyAll(){cityApplyPeople();cityApplyProtest();cityApplyUnrest();cityApplyWatch();cityApplyWorks();cityCouncilMarks();hallApply();}
 function cityLedgerClose(){
  if(!S||!S.city)return;
  const was=S.city.protest;
  const r=CityEconomy.tick(S.city,cityContext(),Math.random);
+ if(r.purse>0){const n=Math.min(r.purse,goldRoom());S.gold+=n;if(n>0)log('💎 Your privy purse: <span class="loot">+'+n.toLocaleString()+' ◉</span> to your own gold.','loot');}
+ if(S.city.trust>=CityEconomy.COUP_TRUST&&!S.city.crowned&&!S.city.coupTold){S.city.coupTold=true;stageMsg('👑 The realm trusts you more than its King. The crown is there to be taken.',5200,'#ffd76a',true);log('👑 <b>Your trust stands at 100%.</b> Go to the council table - the Crown tab - when you are ready.','loot');}
  const amt=(r.net>=0?'+':'−')+Math.abs(r.net).toLocaleString()+' ◉';
  log('📜 The ledger closed: <span class="'+(r.net>=0?'loot':'imp')+'">'+amt+'</span> · treasury '+r.treasury.toLocaleString()+' ◉ · the people are '+CityEconomy.moodName(r.mood).toLowerCase()+'.',r.net>=0?'loot':'imp');
  for(const e of r.events)log('🏙 '+e);
- for(const u of r.unrest)log(u,/^✔|^🛡/.test(u)?'loot':'imp');
- const fresh=r.unrest.find(u=>!/^✔|^🛡|^📜/.test(u));
+ for(const u of r.unrest)log(u,/^✔|^🛡|^🏗|^🧳|^🔓/.test(u)?'loot':/^⛓|^📜/.test(u)?'':'imp');
+ const fresh=r.unrest.find(u=>!/^✔|^🛡|^📜|^🏗|^🔓|^⛓|^🧳|^👑 The King’s humour/.test(u));
  if(r.protest&&!was){stageMsg('✊ The people are marching on the boulevard!',3600,'#ff8a7a',true);sfx.warn();}
  else if(!r.protest&&was){stageMsg('The crowds have gone home.',2800,'#9adf9a');sfx.quest();}
  else if(fresh){stageMsg(fresh,4200,'#ff8a7a',true);sfx.warn();}
@@ -13356,8 +13553,20 @@ function cityLedgerClose(){
 }
 function kingSpeak(){
  const c=S.city,f=CityEconomy.forecast(c,cityContext()),who=S.name||'friend',hot=f.incidents.find(i=>i.street)||f.incidents[0];
+ if(c.crowned){
+  const mine=c.protest?'They are under YOUR windows now.':hot?hot.name+'. It is your city to mend.':c.trust<40?'The guard salutes a little slower than it did. Win them back.':'The hall is quiet. The guard stands straighter when you pass.';
+  stageMsg('👑 Your throne, '+cityTitle()+' '+who+'. '+mine,4600,'#ffd76a');log('👑 <b>The throne of the City</b> is yours. '+mine);
+  openLedger('crown');return;
+ }
+ if(c.king.demand){
+  const d=CityEconomy.crownView(c,cityContext()).demand;
+  stageMsg('👑 “'+d.text+'”',5200,'#ffd76a');log('👑 <b>'+ThroneWorld.KING_NAME+':</b> '+d.text);
+  openLedger('crown');return;
+ }
  let line;
- if(c.protest)line='Do you hear them, under my own windows? Go to my Hand in the chamber behind me and mend it - or I will find someone who can.';
+ if(c.king.pleasure<30)line='You keep me like a poor relation, '+who+'. So I have been helping myself - and having people arrested. Mend my purse.';
+ else if(c.trust>=80)line='They cheer YOU in the square now, '+who+'. I have noticed. Do not think I have not noticed.';
+ else if(c.protest)line='Do you hear them, under my own windows? Go to my Hand in the chamber behind me and mend it - or I will find someone who can.';
  else if(hot)line=hot.name+', in MY city. '+hot.fix+' - or pay someone to end it. The ledger is on the table behind me.';
  else if(c.treasury<0)line='The Tides Bank writes me letters. I do not care for letters. My Hand has the ledger - see the crown in credit by the next close.';
  else if(f.favour<35)line='My council cannot say your name without spitting, '+who+'. A crown needs its council. Make peace at that table.';
@@ -13375,7 +13584,7 @@ const ledgerRows=lines=>'<table class="ledger-table">'+lines.map(l=>'<tr><td>'+l
 /* a 0-100 gauge with its thresholds marked, the value as a pin and a plain label under it */
 function ledgerGauge(value,target,marks,color){
  return '<div class="ledger-gauge" role="img" aria-label="'+value+' of 100"><div class="ledger-gauge-track">'
-  +marks.map(m=>'<i class="ledger-gauge-mark" style="left:'+m.at+'%"><span>'+m.label+'</span></i>').join('')
+  +marks.map(m=>'<i class="ledger-gauge-mark'+(m.at>=92?' end':'')+'" style="left:'+m.at+'%"><span>'+m.label+'</span></i>').join('')
   +'<div class="ledger-gauge-fill" style="width:'+value+'%;background:'+color+'"></div>'
   +(target===null?'':'<b class="ledger-gauge-target" style="left:'+target+'%" title="where it is heading: '+target+'"></b>')
   +'</div><div class="ledger-gauge-scale"><span>0</span><span>50</span><span>100</span></div></div>';
@@ -13414,6 +13623,66 @@ function ledgerIncidents(f,c){
   +'<div class="ledger-opts"><button class="sbtn gold" data-lact="fix" data-k="'+i.line+'" data-v="'+i.level+'">'+i.fix+'<small>raises the budget line - it ends at the next close</small></button>'
   +'<button class="sbtn" data-lact="settle" data-k="'+i.id+'"'+(c.treasury<i.cost?' disabled':'')+'>Pay to end it now<small>'+fmtGold(i.cost)+' ◉ from the treasury, once</small></button></div></div>').join('');
 }
+/* 🏗 the Works tab */
+function ledgerWorks(c,ctx){
+ const E=CityEconomy,v=E.worksView(c,ctx);
+ const state={done:'✔ standing',building:'🚧 building',ready:'order it',locked:'locked',busy:'no crew free',poor:'cannot afford'};
+ return '<div class="ledger-tiles">'
+  +'<div class="ledger-tile"><span>Public works</span><b>'+v.done+' / '+v.total+'</b><small>bought once from the treasury, they pay for ever - less their upkeep</small></div>'
+  +'<div class="ledger-tile"><span>The Master Builder’s crews</span><b>'+v.building+' / '+v.crews+' at work</b><small>'+(v.building?v.list.filter(w=>w.status==='building').map(w=>w.name+' ('+w.left+')').join(' · '):'all three crews are idle')+'</small></div>'
+  +'<div class="ledger-tile"><span>Treasury</span><b class="'+(c.treasury<0?'bad':'')+'">◉ '+fmtGold(c.treasury)+'</b><small>short? the Tides Bank lends against a plan - borrow, build, repay from what it earns</small></div></div>'
+  +v.cats.map(cat=>'<h3 class="ledger-gap">'+cat.icon+' '+cat.name+'</h3><div class="ledger-works">'+cat.works.map(w=>
+    '<div class="ledger-work '+w.status+'"><h4>'+w.icon+' '+w.name+'<small>'+state[w.status]+'</small></h4><p>'+w.blurb+'</p>'
+    +'<p class="ledger-fx">'+w.effects.map(e=>'<span>'+e+'</span>').join('')+'</p>'
+    +(w.status==='done'?'<p class="ledger-work-foot pos">Standing'+(w.upkeep?' · upkeep '+fmtGold(w.upkeep)+' ◉ a close':'')+(w.site?' · you can see it in the City':'')+'</p>'
+     :w.status==='building'?'<p class="ledger-work-foot">🚧 '+w.left+' close'+(w.left>1?'s':'')+' to go'+(w.site?' · the scaffolding is up in the City':'')+'</p>'
+     :'<div class="ledger-opts"><button class="sbtn gold" data-lact="invest" data-k="'+w.id+'"'+(w.status==='ready'?'':' disabled')+'>'+fmtGold(w.cost)+' ◉ · '+w.build+' close'+(w.build>1?'s':'')
+       +'<small>'+(w.status==='locked'?'first: '+w.missing.join(', '):w.status==='busy'?'all crews are at work':w.status==='poor'?'the treasury is short '+fmtGold(w.cost-c.treasury)+' ◉':'upkeep '+fmtGold(w.upkeep)+' ◉ a close')+'</small></button></div>')
+    +'</div>').join('')+'</div>').join('');
+}
+/* 👑 the Crown tab: the realm's trust in you, and the King - until there is no King but you */
+function ledgerCrown(c,ctx){
+ const E=CityEconomy,v=E.crownView(c,ctx),title=cityTitle(),d=v.demand;
+ const trustRows='<table class="ledger-table">'+v.trustFactors.filter(x=>x.value!==0).map(x=>'<tr><td>'+x.name+'</td><td class="'+(x.value>0?'pos':'neg')+'">'+(x.value>0?'+':'−')+Math.abs(x.value).toFixed(1)+'</td></tr>').join('')
+  +'<tr class="ledger-sum"><td>Every close</td><td>'+(v.trustDelta>=0?'+':'−')+Math.abs(v.trustDelta).toFixed(1)+'</td></tr></table>'
+  +'<p class="craft-note">Also: a finished work <b class="pos">+2</b> · trouble dealt with <b class="pos">+1</b> · a petition granted <b class="pos">+1</b> · a prisoner pardoned <b class="pos">+½</b> · gold paid into the treasury <b class="pos">+</b> · gold carried out of it <b class="neg">− 1 per '+fmtGold(1500*E.scale(ctx))+' ◉</b>.</p>';
+ if(v.crowned)return '<div class="ledger-tiles two">'
+   +'<div class="ledger-tile"><span>The crown</span><b>👑 '+title+' '+(S.name||'')+'</b><small>'+(v.deposed==='exile'?'Alarik sailed into exile.':'Alarik sits in cell I of his own gaol. You can visit him.')+'</small></div>'
+   +'<div class="ledger-tile"><span>Your privy purse</span><b class="pos">+'+fmtGold(v.purse)+' ◉</b><small>paid into your own gold at every close - set it on the Budget tab. The treasury is yours to draw on, too.</small></div></div>'
+   +'<h3>Your legitimacy · '+Math.floor(v.trust)+'%</h3>'+ledgerGauge(Math.floor(v.trust),null,[{at:40,label:'royalists stir below 40'}],'#ffd76a')+trustRows;
+ return '<div class="ledger-tiles two">'
+  +'<div class="ledger-tile"><span>The realm’s trust in you</span><b style="color:#ffd76a">'+Math.floor(v.trust)+'% · '+v.trustName+'</b><small>'+(v.canClaim?'the guard will stand aside':v.closesToCrown?'at this rate the crown is '+v.closesToCrown+' closes away':'it is not growing - see what moves it, below')+'</small></div>'
+  +'<div class="ledger-tile"><span>'+ThroneWorld.KING_NAME+'</span><b>'+v.humour.icon+' '+v.pleasureName+' · '+v.pleasure+'</b><small>'+v.humour.say+' His pleasure is heading for '+v.pleasureTarget+'.</small></div></div>'
+  +ledgerGauge(Math.floor(v.trust),null,[{at:E.COUP_TRUST,label:'the crown'}],'#ffd76a')
+  +(v.canClaim?'<div class="ledger-petition ledger-coup"><h3>👑 Take the crown</h3><p>The people sing your name, the council answers to you and the guard has let it be known where it stands. Walk up the dais and the hall will not stop you. You would rule as <b>'+title+' '+(S.name||'')+'</b>: no King to keep sweet, the privy purse paid into your own gold at every close, the treasury yours without a murmur - and every trouble in the city yours alone.</p>'
+    +'<div class="ledger-opts"><button class="sbtn gold" data-lact="coup" data-v="gaol">Take it · Alarik to the gaol<small>cell I, under his own hall</small></button><button class="sbtn gold" data-lact="coup" data-v="exile">Take it · Alarik into exile<small>a ship on the evening tide</small></button></div></div>':'')
+  +(d?'<div class="ledger-petition"><h3>👑 The King wants something</h3><p>“'+d.text+'”</p>'
+    +'<div class="ledger-incident-cost"><span>'+(d.cost?'Costs <b>'+fmtGold(d.cost)+' ◉</b> · ':'Costs nothing · ')+'his pleasure <b class="pos">+'+d.pleasure+'</b>'+(d.mood?' · people <b class="'+(d.mood>=0?'pos':'neg')+'">'+fmtSigned(d.mood)+'</b>':'')+(d.raise?' · <b class="neg">his purse costs 15% more, for good</b>':'')+(d.arrest?' · <b class="neg">a poet goes to the gaol · trust '+d.trust+'</b>':'')
+    +' · lapses in '+d.left+' close'+(d.left===1?'':'s')+' (−12)</span></div>'
+    +'<div class="ledger-opts"><button class="sbtn gold" data-lact="kingyes"'+(c.treasury<d.cost?' disabled':'')+'>Grant it<small>'+(c.treasury<d.cost?'the treasury cannot cover it':'as Your Majesty wishes')+'</small></button>'
+    +'<button class="sbtn" data-lact="kingno">Refuse<small>his pleasure −10'+(d.refuseTrust?' · trust in you +'+d.refuseTrust:'')+'</small></button></div></div>'
+   :'<p class="craft-note">The King wants nothing at the moment. How often he does depends on his humour - '+v.humour.name.toLowerCase()+' now - and it turns every few closes.</p>')
+  +'<div class="ledger-cols"><section><h3>What moves the realm’s trust</h3>'+trustRows+'</section>'
+  +'<section><h3>Keeping a King</h3><table class="ledger-table">'
+  +'<tr><td>His purse<small>set on the Budget tab'+(v.raise?' · raised '+v.raise+'× at his insistence':'')+'</small></td><td>'+fmtGold(v.purse)+' ◉</td></tr>'
+  +'<tr><td>His pleasure<small>drifts a third of the way to '+v.pleasureTarget+' each close: the purse, the court, a singing city, no crowd under his windows</small></td><td>'+v.pleasure+'</td></tr>'
+  +'<tr><td>Below 30 - furious<small>he sends his chamberlain to the strongroom every close, and has people arrested for nothing</small></td><td class="'+(v.whims?'neg':'')+'">'+(v.whims?'−'+fmtGold(v.whims)+' ◉':'-')+'</td></tr></table></section></div>';
+}
+/* ⛓ the Gaol tab */
+function ledgerGaol(c,ctx){
+ const E=CityEconomy,v=E.gaolView(c,ctx);
+ return '<div class="ledger-tiles">'
+  +'<div class="ledger-tile"><span>In the cells</span><b class="'+(v.crowded?'bad':'')+'">'+v.held+' / '+v.cells+'</b><small>'+(v.crowded?'overcrowded - the people do not like it (mood −3, attractiveness −3)':v.cells<E.MAX_CELLS?'four cells are bricked up until the New Gaol Wing is built':'every cell is open')+'</small></div>'
+  +'<div class="ledger-tile"><span>Costs the crown</span><b>◉ '+fmtGold(v.upkeep)+'</b><small>bread and straw, every close</small></div>'
+  +'<div class="ledger-tile"><span>Who ends up here</span><b>The watch decides</b><small>a bigger watch arrests more; what for depends on the city - high taxes, no bread, dear rents</small></div></div>'
+  +(v.prisoners.length?'<div class="ledger-works">'+v.prisoners.map(p=>'<div class="ledger-work"><h4>⛓ '+p.name+'<small>'+(p.life?'for life':p.left+' close'+(p.left===1?'':'s')+' left of '+p.term)+'</small></h4>'
+    +'<p>'+p.crime.charAt(0).toUpperCase()+p.crime.slice(1)+'.'+(p.byKing?' <b class="neg">By the King’s order.</b>':'')+'</p>'+(p.say?'<p class="ledger-voice">“'+p.say+'”</p>':'')
+    +'<div class="ledger-opts">'+(p.life?'<button class="sbtn" data-lact="pardon" data-k="'+p.name+'">Send him into exile<small>a ship, and an empty cell</small></button>'
+      :'<button class="sbtn gold" data-lact="pardon" data-k="'+p.name+'">Pardon<small>people +1 · trust +½'+(p.byKing&&!c.crowned?' · the King −8':'')+'</small></button>'
+       +'<button class="sbtn" data-lact="fine" data-k="'+p.name+'">Fine and release<small>+'+fmtGold(p.fine)+' ◉ to the treasury</small></button>')+'</div></div>').join('')+'</div>'
+   :'<p class="craft-note">🕊 Every cell stands empty. The watch brings people in at the close - go down the stair in the west wall of the hall, just inside the doors, and you can talk to them through the bars.</p>')
+  +'<p class="craft-note">Whoever sits here is a real townsperson: they are gone from the streets of the City until they have served their term, been fined or been pardoned.</p>';
+}
 function ledgerHelp(){
  const E=CityEconomy;
  const sec=(h,items)=>'<section class="ledger-help"><h3>'+h+'</h3><ul>'+items.map(i=>'<li>'+i+'</li>').join('')+'</ul></section>';
@@ -13423,6 +13692,13 @@ function ledgerHelp(){
   +sec('👥 The people',['The mood runs 0-100 and moves <b>a third of the way</b> toward its target at each close. The People tab lists everything that pushes the target up or down.','Below <b>'+E.PROTEST_START+'</b> the people march on the boulevard with placards. They go home once the mood is back above <b>'+E.PROTEST_END+'</b>.','An unhappy city pays less tax and trades less.'])
   +sec('🥊 Unrest',['At every close there is a chance of trouble: a brawl, a gang war, cutpurses, bread queues, broken roads, an insulted envoy, a joyless city. Which one is <b>random</b>; a thin watch, no bread or a sour mood makes trouble likelier.','Each incident names the budget line that ends it - a brawl needs the <b>City Watch doubled</b>. Raise the line and it is dealt with at the next close, or <b>pay once</b> to end it on the spot.','Left alone it costs mood and gold every close, and <b>spreads</b>: up to twice as bad after four closes. Brawls and gang wars can be seen in the City - and so can the watch: disbanded, doubled and royal change how many guards patrol.','If a line is already strong enough when trouble is rolled, it is nipped in the bud and the people notice.'])
   +sec('🏛 The council',['Six councillors sit at this table. Each watches one thing: the Master of Coin the balance and the debt, the others one budget line each. Their approval drifts toward what that line deserves; an incident on their line drags it down.','Now and then one of them brings a <b>petition</b>: grant it (usually for gold) and they remember it, refuse and they remember that too. A petition lapses after two closes.','Favour of <b>75+</b>: trade +6% and the Tides Bank lends a tenth more. Below <b>35</b>: the council pads every bill by 6%.'])
+  +sec('⚖️ Rents, fees and duties',['Three more rates sit under the poll tax on the Budget tab. <b>Crown rents</b> are paid per head; <b>market fees</b> multiply the tolls but drive stallholders off the square (count the awnings in the City); <b>import duties</b> multiply the customs but keep the wagons off the boulevard.','Every rate pulls on the mood AND on how attractive the city is.'])
+  +sec('🏗 Public works',['The Works tab lists '+E.WORKS.length+' things the crown can build. You pay the whole price up front, one of <b>three crews</b> builds it over a few closes, and then it earns, pleases, teaches or houses <b>for ever</b>, less a small upkeep.','Many need another work first - a fleet needs a quay, a university needs a library. Borrowing from the Tides Bank to build is what the bank is for.','You can see them: scaffolding goes up on a house in the City while a crew is on it and a signboard after; lamps, the fountain, the statue, the gardens, the market awnings and the wagons on the boulevard are all the ledger’s doing.'])
+  +sec('📚 Learning',['The people’s learning runs 0-100 and creeps toward what the <b>Schools</b> line and the learning works deserve. Learned hands earn more: the poll tax and the exports grow by 0.6% a point above 20 - nearly half again at 100. It is the slowest investment and the best.'])
+  +sec('🧲 Attractiveness and population',['How much anyone wants to live here runs 0-100 (People tab). At <b>55 and above</b> families move in at every close - the higher, the more - until the roofs run out (build tenements). <b>Below 40</b> they pack their carts and leave, faster the lower it gets.','Everyone who lives here pays poll tax and rent, so population is the big lever. You can see it: more or fewer people on the streets, handcarts coming in or going out through the west gate, and boarded-up houses when the city empties.'])
+  +sec('👑 The King',['The King has a <b>purse</b> (a budget line), a <b>humour</b> that turns every few closes - content, needy, restless, pious, warlike, melancholy - and <b>wishes</b>: a barge, a lion, a bigger allowance. Grant one and it costs; refuse and he sulks. Ignore it for two closes and he sulks harder.','Below a pleasure of <b>30</b> he helps himself to the treasury at every close and has people arrested for nothing.'])
+  +sec('🤝 Trust, and the crown',['The realm’s <b>trust in you</b> adds up close by close: a happy people, a council behind you and an attractive city raise it; marches, trouble left in the streets and an overdraft lower it. Carrying gold out of the treasury to your own purse costs trust; paying gold in earns a little.','At <b>100%</b> the Crown tab lets you take the crown. You rule as King - or Queen - with no King to keep, the privy purse paid into your own gold every close, and the treasury yours to draw on freely.'])
+  +sec('⛓ The gaol',['Down the stair in the west wall of the hall, on your left as you come in. At every close the watch may bring in a townsperson - really: they vanish from the streets until they are out. You can talk to them through the bars, and at the gaoler’s desk pardon them or fine them.'])
   +sec('🏦 The Tides Bank',['Borrow against your credit limit: 100 000 + 20 000 per prestige, plus the <b>credit you have earned</b>. Interest is '+(E.LOAN_RATE*100)+'% of what you owe, every close.','<b>Building credit:</b> every coin you repay adds a quarter of itself to your limit; every close you pay interest from a treasury in credit adds a little more; a debt-free close in profit adds a little too. An overdraft burns 8% of the credit you have earned, every close.','A treasury below zero costs '+(E.OVERDRAFT_RATE*100)+'% per close and sours the mood by 18.'])
   +'<button class="sbtn gold" data-lact="back">Back to the ledger</button></div>';
 }
@@ -13431,15 +13707,21 @@ function ledgerHTML(){
  if(ledgerTab==='help')return ledgerHelp();
  if(ledgerTab==='overview'){
   const last=c.last;
-  return (f.incidents.length||c.petition?'<div class="ledger-alert">'+f.incidents.map(i=>'<button class="sbtn" data-lact="goto" data-v="people">'+i.icon+' '+i.name+' - '+i.fix.toLowerCase()+'</button>').join('')
-    +(c.petition?'<button class="sbtn" data-lact="goto" data-v="council">📜 A petition waits for your answer</button>':'')+'</div>':'')
+  const coup=!c.crowned&&c.trust>=E.COUP_TRUST;
+  return (f.incidents.length||c.petition||c.king.demand||coup?'<div class="ledger-alert">'+f.incidents.map(i=>'<button class="sbtn" data-lact="goto" data-v="people">'+i.icon+' '+i.name+' - '+i.fix.toLowerCase()+'</button>').join('')
+    +(c.petition?'<button class="sbtn" data-lact="goto" data-v="council">📜 A petition waits for your answer</button>':'')
+    +(c.king.demand?'<button class="sbtn" data-lact="goto" data-v="crown">👑 The King wants something</button>':'')
+    +(coup?'<button class="sbtn ledger-coupbtn" data-lact="goto" data-v="crown">👑 The realm trusts you more than its King - the crown is there to be taken</button>':'')+'</div>':'')
    +'<div class="ledger-tiles">'
    +'<div class="ledger-tile"><span>Treasury</span><b class="'+(c.treasury<0?'bad':'')+'">◉ '+fmtGold(c.treasury)+'</b><small>'+(c.loan>0?'owes '+fmtGold(c.loan)+' ◉ to Tides Bank':'no debts')+'</small></div>'
    +'<div class="ledger-tile"><span>The people</span><b style="color:'+E.moodColor(c.mood)+'">'+E.moodName(c.mood)+' · '+c.mood+'</b><small>'+(c.protest?'marching on the boulevard':'settling toward '+E.moodName(f.moodTarget).toLowerCase()+' ('+f.moodTarget+')')+'</small></div>'
    +'<div class="ledger-tile"><span>Next close</span><b id="ledgerNext">'+cityClockLeft()+'</b><small>forecast <span class="'+(f.net>=0?'pos':'neg')+'">'+fmtSigned(f.net)+' ◉</span> · council '+E.favourName(f.favour).toLowerCase()+'</small></div>'
+   +'<div class="ledger-tile"><span>The city</span><b>'+c.pop+' townsfolk</b><small>'+E.attractName(c.attract)+' · '+c.attract+(c.attract>=55?(c.pop>=f.housing?' - but every roof is taken':' - families are moving in'):c.attract<40?' - families are leaving':' - nobody comes, nobody goes')+'</small></div>'
+   +'<div class="ledger-tile"><span>The people’s learning</span><b>'+Math.round(c.skill)+'</b><small>heading for '+f.skillTarget+' · taxes and exports ×'+f.craft.toFixed(2)+'</small></div>'
+   +'<div class="ledger-tile"><span>'+(c.crowned?'Your legitimacy':'Trust in you')+'</span><b style="color:#ffd76a">'+Math.floor(c.trust)+'%</b><small>'+(c.crowned?'👑 '+cityTitle()+' '+(S.name||''):E.trustName(c.trust)+' · '+(f.trustDelta>=0?'+':'−')+Math.abs(f.trustDelta).toFixed(1)+' a close'+(c.trust>=E.COUP_TRUST?' · the crown is there to be taken':''))+'</small></div>'
    +'</div>'
    +'<div class="ledger-cols"><section><h3>Income · ◉ '+fmtGold(f.totalIn)+'</h3>'+ledgerRows(f.income)+'</section>'
-   +'<section><h3>Expenses · ◉ '+fmtGold(f.totalOut)+'</h3>'+ledgerRows(f.expenses)+'</section></div>'
+   +'<section><h3>Expenses · ◉ '+fmtGold(f.totalOut)+'</h3>'+ledgerRows(f.expenses.filter(l=>l.amount||!['whims','obstruction','overdraft','gaol','upkeep'].includes(l.id)))+'</section></div>'
    +'<div class="ledger-net"><span>Net per close <b class="'+(f.net>=0?'pos':'neg')+'">'+fmtSigned(f.net)+' ◉</b></span><span>Prestige '+(S.prestige||0)+' scales every line ×'+f.scale.toFixed(2)+'</span><span>Earned '+fmtGold(c.earned)+' · spent '+fmtGold(c.spent)+' over '+c.ticks+' closes</span></div>'
    +'<div class="ledger-transfer"><div><span>To your purse (◉ '+fmtGold(S.gold)+' / '+fmtGold(goldCap())+')</span>'
    +['10000','100000','all'].map(v=>'<button class="sbtn gold" data-lact="take" data-v="'+v+'">'+(v==='all'?'All':(+v/1000)+'K')+' ◉</button>').join('')+'</div>'
@@ -13450,15 +13732,21 @@ function ledgerHTML(){
  if(ledgerTab==='budget'){
   const asked=k=>f.incidents.filter(i=>i.line===k);
   let h='<div class="ledger-line"><h3>💰 Poll tax</h3><p>What every townsperson owes the crown each close. The higher it goes, the more they dodge it - and the angrier they get.</p><div class="ledger-opts">'
-   +E.TAX_RATES.map(t=>'<button class="sbtn'+(c.budget.tax===t?' on':'')+'" data-lact="tax" data-v="'+t+'" aria-pressed="'+(c.budget.tax===t)+'">'+t+'%<small>mood '+(E.TAX_MOOD[t]>=0?'+':'')+E.TAX_MOOD[t]+'</small></button>').join('')+'</div></div>';
+   +E.TAX_RATES.map(t=>'<button class="sbtn'+(c.budget.tax===t?' on':'')+'" data-lact="tax" data-v="'+t+'" aria-pressed="'+(c.budget.tax===t)+'">'+t+'%<small>mood '+(E.TAX_MOOD[t]>=0?'+':'')+E.TAX_MOOD[t]+' · draw '+(E.TAX_ATTRACT[t]>=0?'+':'')+E.TAX_ATTRACT[t]+'</small></button>').join('')+'</div></div>';
+  for(const k of E.RATE_KEYS){ /* ⚖️ rents, market fees, import duties */
+   const R=E.RATES[k];
+   h+='<div class="ledger-line"><h3>'+R.icon+' '+R.name+'</h3><p>'+R.blurb+'</p><div class="ledger-opts">'
+    +R.levels.map((lv,i)=>'<button class="sbtn'+(c.budget[k]===i?' on':'')+'" data-lact="level" data-k="'+k+'" data-v="'+i+'" aria-pressed="'+(c.budget[k]===i)+'">'+lv.name
+     +'<small>'+(k==='rent'?lv.rate+' ◉ a head':'×'+lv.rate+' taken'+(lv.vol!==1?' · traffic ×'+lv.vol:''))+' · mood '+(lv.mood>=0?'+':'')+lv.mood+' · draw '+(lv.attract>=0?'+':'')+lv.attract+'</small></button>').join('')+'</div></div>';
+  }
   for(const k of E.LINE_KEYS){
    const L=E.LINES[k];
-   h+='<div class="ledger-line"><h3>'+L.icon+' '+L.name+'</h3><p>'+L.blurb+'</p>'
+   h+='<div class="ledger-line"><h3>'+L.icon+' '+(k==='purse'&&c.crowned?'Your Privy Purse':L.name)+'</h3><p>'+(k==='purse'&&c.crowned?'What the crown pays the one who wears it - you. It goes into your own gold at every close, and the people notice a greedy monarch.':L.blurb)+'</p>'
     +asked(k).map(i=>'<p class="ledger-ask neg">'+i.icon+' '+i.name+' - needs <b>'+L.levels[i.level].name+'</b> or better.</p>').join('')
     +'<div class="ledger-opts">'
-    +L.levels.map((lv,i)=>'<button class="sbtn'+(c.budget[k]===i?' on':'')+'" data-lact="level" data-k="'+k+'" data-v="'+i+'" aria-pressed="'+(c.budget[k]===i)+'">'+lv.name+'<small>'+fmtGold(lv.cost*f.scale)+' ◉ · mood '+(lv.mood>=0?'+':'')+lv.mood+(lv.men!==undefined?' · '+lv.men+' men':'')+(lv.trade?' · trade ×'+lv.trade:'')+(lv.order?' · order ×'+lv.order:'')+'</small></button>').join('')+'</div></div>';
+    +L.levels.map((lv,i)=>'<button class="sbtn'+(c.budget[k]===i?' on':'')+'" data-lact="level" data-k="'+k+'" data-v="'+i+'" aria-pressed="'+(c.budget[k]===i)+'">'+lv.name+'<small>'+fmtGold(lv.cost*f.scale)+' ◉ · mood '+(lv.mood>=0?'+':'')+lv.mood+(lv.men!==undefined?' · '+lv.men+' men':'')+(lv.trade?' · trade ×'+lv.trade:'')+(lv.order?' · order ×'+lv.order:'')+(lv.attract?' · draw '+(lv.attract>0?'+':'')+lv.attract:'')+(lv.skill?' · learning '+(lv.skill>0?'+':'')+lv.skill:'')+(k==='purse'?' · '+(c.crowned?'into your own gold':'his pleasure → '+lv.pleasure):lv.pleasure?' · King '+(lv.pleasure>0?'+':'')+lv.pleasure:'')+'</small></button>').join('')+'</div></div>';
   }
-  h+='<div class="ledger-net"><span>With this budget the crown nets <b class="'+(f.net>=0?'pos':'neg')+'">'+fmtSigned(f.net)+' ◉</b> per close</span><span>and the people settle at <b style="color:'+E.moodColor(f.moodTarget)+'">'+E.moodName(f.moodTarget)+' ('+f.moodTarget+')</b></span></div>';
+  h+='<div class="ledger-net"><span>With this budget the crown nets <b class="'+(f.net>=0?'pos':'neg')+'">'+fmtSigned(f.net)+' ◉</b> per close</span><span>the people settle at <b style="color:'+E.moodColor(f.moodTarget)+'">'+E.moodName(f.moodTarget)+' ('+f.moodTarget+')</b></span><span>and the city’s draw at <b>'+E.attractName(f.attractTarget)+' ('+f.attractTarget+')</b></span></div>';
   return h;
  }
  if(ledgerTab==='people'){
@@ -13471,8 +13759,18 @@ function ledgerHTML(){
    +factors.map((x,i)=>'<tr><td>'+x.name+'</td><td class="'+(i===0?'':x.value>0?'pos':'neg')+'">'+(i===0?x.value:fmtSigned(x.value))+'</td></tr>').join('')
    +'<tr class="ledger-sum"><td>Where the mood is heading</td><td>'+f.moodTarget+'</td></tr></table></section>'
    +'<section><h3>The last hour</h3>'+ledgerMoodLine(c.history,c.mood)+'<h3 class="ledger-gap">Heard in the streets</h3>'+ledgerVoices(c,f).map(v=>'<p class="ledger-voice">'+v+'</p>').join('')+'</section></div>'
-   +'<h3 class="ledger-gap">Unrest</h3>'+ledgerIncidents(f,c);
+   +'<h3 class="ledger-gap">Unrest</h3>'+ledgerIncidents(f,c)
+   +'<h3 class="ledger-gap">🧲 How attractive the city is</h3><div class="ledger-tiles">'
+   +'<div class="ledger-tile"><span>Attractiveness</span><b>'+E.attractName(c.attract)+' · '+c.attract+'</b><small>heading for '+f.attractTarget+' · moves a third of the way at every close</small></div>'
+   +'<div class="ledger-tile"><span>Population</span><b>'+c.pop+' / '+f.housing+' roofs</b><small>'+(c.last&&c.last.moved?(c.last.moved>0?'🧳 '+c.last.moved+' moved in':'🎒 '+(-c.last.moved)+' left')+' at the last close':'nobody came or went at the last close')+'</small></div>'
+   +'<div class="ledger-tile"><span>What happens next</span><b>'+(c.attract>=55?(c.pop>=f.housing?'Turned away':'Moving in'):c.attract<40?'Leaving':'Staying put')+'</b><small>'+(c.attract>=55?(c.pop>=f.housing?'every roof is taken - build tenements (Works)':'about '+Math.max(1,Math.floor((c.attract-50)/10))+' a close'):c.attract<40?'about '+Math.max(1,Math.floor((40-c.attract)/8))+' a close, until it is 40 again':'55 brings families in · below 40 drives them out')+'</small></div></div>'
+   +ledgerGauge(c.attract,f.attractTarget,[{at:40,label:'leaving 40'},{at:55,label:'arriving 55'}],'#9ad0e8')
+   +'<table class="ledger-table">'+f.attractFactors.filter((x,i)=>i===0||x.value!==0).map((x,i)=>'<tr><td>'+x.name+'</td><td class="'+(i===0?'':x.value>0?'pos':'neg')+'">'+(i===0?x.value:fmtSigned(x.value))+'</td></tr>').join('')
+   +'<tr class="ledger-sum"><td>Where the city’s draw is heading</td><td>'+f.attractTarget+'</td></tr></table>';
  }
+ if(ledgerTab==='works')return ledgerWorks(c,ctx);
+ if(ledgerTab==='crown')return ledgerCrown(c,ctx);
+ if(ledgerTab==='gaol')return ledgerGaol(c,ctx);
  if(ledgerTab==='council'){
   const v=E.councilView(c,ctx),p=v.petition;
   return '<div class="ledger-tiles two">'
@@ -13516,6 +13814,8 @@ function ledgerRefresh(){
  $('ledgerHelp').setAttribute('aria-pressed',ledgerTab==='help');
  const dot=(id,on)=>{const b=document.querySelector('[data-ltab="'+id+'"]');if(b)b.classList.toggle('alert',on);};
  dot('people',S.city.incidents.length>0||S.city.protest);dot('council',!!S.city.petition);
+ dot('crown',!!S.city.king.demand||(!S.city.crowned&&S.city.trust>=CityEconomy.COUP_TRUST));dot('gaol',S.city.jail.length>CityEconomy.cells(S.city));
+ const crownTab=document.querySelector('[data-ltab="crown"]');if(crownTab)crownTab.textContent=S.city.crowned?'👑 Your Crown':'👑 The King';
  $('ledgerBody').innerHTML=ledgerHTML();
  $('ledgerMsg').textContent=ledgerNote;ledgerNote='';
 }
@@ -13525,12 +13825,20 @@ function ledgerAction(act,k,v){
  if(act==='goto'){ledgerTab=v;ledgerRefresh();return;}
  if(act==='back'){ledgerTab=ledgerBack;ledgerRefresh();return;}
  if(act==='tax'){ok=E.setBudget(c,'tax',parseInt(v,10));msg='The poll tax is now '+c.budget.tax+'%.';}
- else if(act==='level'){ok=E.setBudget(c,k,parseInt(v,10));msg=ok?E.LINES[k].name+': '+E.LINES[k].levels[c.budget[k]].name+'.':'';}
+ else if(act==='level'){const G=E.LINES[k]||E.RATES[k];ok=E.setBudget(c,k,parseInt(v,10));msg=ok?G.name+': '+G.levels[c.budget[k]].name+'.':'';}
+ else if(act==='invest'){const r=E.invest(c,cityContext(),k);ok=r.ok;msg=r.text;}
+ else if(act==='kingyes'||act==='kingno'){const r=E.answerKing(c,cityContext(),act==='kingyes');ok=!!(r&&r.ok);msg=r?r.text:'';}
+ else if(act==='pardon'){const r=E.pardon(c,k);ok=!!r;msg=r?r.text:'';}
+ else if(act==='fine'){const r=E.fine(c,cityContext(),k);ok=!!r;msg=r?r.text:'';}
+ else if(act==='coup'){
+  const r=E.claimCrown(c,v);ok=r.ok;msg=r.text;
+  if(ok){stageMsg('👑 All hail '+cityTitle()+' '+(S.name||'')+'!',6000,'#ffd76a',true);log('👑 <b>'+cityTitle()+' '+(S.name||'')+'</b> - '+r.text,'loot');sfx.quest();if(typeof shake==='function')shake(.5);}
+ }
  else if(act==='fix'){const want=Math.max(c.budget[k],parseInt(v,10));ok=E.setBudget(c,k,want);msg=ok?E.LINES[k].name+' raised to '+E.LINES[k].levels[want].name+' - the trouble ends at the next close.':'';}
  else if(act==='settle'){const n=E.settle(c,cityContext(),k);ok=n>0;msg=ok?'Paid '+n.toLocaleString()+' ◉. It is over - for now.':'The treasury cannot cover it.';}
  else if(act==='grant'||act==='refuse'){const r=E.answer(c,cityContext(),act==='grant');ok=!!(r&&r.ok);msg=r?r.text:'';}
- else if(act==='take'){const n=E.withdraw(c,amt(1e12),goldRoom());ok=n>0;S.gold+=n;msg=ok?n.toLocaleString()+' ◉ taken to your purse.':'Nothing to take - the treasury is empty or your vault is full.';}
- else if(act==='give'){const n=E.deposit(c,amt(totalGold()),totalGold());ok=n>0&&spendGold(n);msg=ok?n.toLocaleString()+' ◉ paid into the treasury.':'You have no gold to give.';}
+ else if(act==='take'){const t0=c.trust,n=E.withdraw(c,amt(1e12),goldRoom(),cityContext());ok=n>0;S.gold+=n;msg=ok?n.toLocaleString()+' ◉ taken to your purse.'+(c.trust<t0?' The Master of Coin made a note: trust −'+(t0-c.trust).toFixed(1)+'.':''):'Nothing to take - the treasury is empty or your vault is full.';}
+ else if(act==='give'){const t0=c.trust,n=E.deposit(c,amt(totalGold()),totalGold(),cityContext());ok=n>0&&spendGold(n);msg=ok?n.toLocaleString()+' ◉ paid into the treasury.'+(c.trust>t0?' It was noticed: trust +'+(c.trust-t0).toFixed(1)+'.':''):'You have no gold to give.';}
  else if(act==='borrow'){const n=E.borrow(c,cityContext(),amt(1e12));ok=n>0;msg=ok?'Tides Bank lends the crown '+n.toLocaleString()+' ◉.':'The bank will lend no more.';}
  else if(act==='repay'){const before=c.credit,n=E.repay(c,amt(1e12));ok=n>0;msg=ok?n.toLocaleString()+' ◉ repaid - your credit limit grows by '+(c.credit-before).toLocaleString()+' ◉.':'Nothing to repay with - the treasury must be in credit.';}
  ledgerNote=msg;

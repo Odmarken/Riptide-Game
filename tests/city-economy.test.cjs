@@ -10,11 +10,11 @@ const quiet=()=>.95;                /* a roll of .95 never triggers an event */
 test('a fresh ledger runs the customary budget at a modest profit and settles the people as content',()=>{
  const s=E.create(),f=E.forecast(s,{prestige:0,lvl:1});
  assert.equal(s.treasury,5000);assert.equal(s.loan,0);assert.equal(s.mood,60);assert.equal(s.protest,false);
- assert.deepEqual(s.budget,{tax:10,watch:1,roads:1,relief:1,festival:0,court:1});
+ assert.deepEqual(s.budget,{tax:10,rent:1,fee:1,duty:1,watch:1,roads:1,relief:1,festival:0,court:1,clean:1,learn:1,food:1,purse:1});
  assert.ok(f.net>300&&f.net<700,`net ${f.net}`);
  assert.ok(f.moodTarget>=58&&f.moodTarget<=66,`mood target ${f.moodTarget}`);
  assert.equal(E.moodName(f.moodTarget),'Content');
- assert.equal(f.income.length,7);assert.equal(f.expenses.length,10);
+ assert.equal(f.income.length,9);assert.equal(f.expenses.length,17);
  assert.equal(f.expenses.find(l=>l.id==='unrest').amount,0);assert.equal(f.expenses.find(l=>l.id==='obstruction').amount,0);
  assert.deepEqual(s.incidents,[]);assert.equal(s.petition,null);assert.equal(s.credit,0);assert.equal(E.favour(s),60);
  assert.ok(f.income.every(l=>Number.isInteger(l.amount)&&l.amount>=0&&l.name&&l.icon&&l.note));
@@ -118,7 +118,7 @@ test('normalize repairs a damaged save and accepts a missing one',()=>{
  assert.deepEqual(fresh,E.create());
  const s=E.normalize({treasury:'12.7',loan:-5,mood:400,clock:9999,ticks:'x',protest:1,budget:{tax:11,watch:9,roads:-1,relief:'2'},history:[null,{n:1,net:5},'bad']});
  assert.equal(s.treasury,13);assert.equal(s.loan,0);assert.equal(s.mood,100);assert.equal(s.clock,E.TICK_SECONDS);assert.equal(s.ticks,0);assert.equal(s.protest,true);
- assert.deepEqual(s.budget,{tax:10,watch:3,roads:0,relief:2,festival:0,court:1});
+ assert.deepEqual(s.budget,{tax:10,rent:1,fee:1,duty:1,watch:3,roads:0,relief:2,festival:0,court:1,clean:1,learn:1,food:1,purse:1});
  assert.deepEqual(s.history,[{n:1,net:5}]);assert.deepEqual(s.last,{n:1,net:5});
  assert.equal(E.setBudget(s,'tax',12),false);assert.equal(E.setBudget(s,'watch',4),false);assert.equal(E.setBudget(s,'nope',1),false);
 });

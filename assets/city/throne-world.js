@@ -4,7 +4,12 @@
  * once into a static layer and lit per frame. The throne, the council table, the pillars and the
  * braziers are paintings (assets/city/throne.png, council_table.png, hall_pillar.png,
  * hall_brazier.png - Higgsfield gpt_image_2_5, 2026-09-19); the canvas versions below them are what
- * shows for the frame or two before a picture has loaded. */
+ * shows for the frame or two before a picture has loaded.
+ * ⛓ Under the hall is the gaol: a stair goes down through the west wall just inside the doors (on
+ * your left as you come in), and comes out in a vaulted cellar with ten barred cells along its north
+ * wall and the gaoler at his desk. It is the same world further down the map, with a static layer of
+ * its own; the two stair-heads hand the hero to each other. Who is in the cells is the ledger's
+ * business - game.js stands the prisoners in them with prisoner(). */
 (function(root,factory){
  const api=factory();
  if(typeof module==='object'&&module.exports)module.exports=api;
@@ -12,7 +17,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const TAU=Math.PI*2;
- const W=1800,H=3400;
+ const W=1800,HALL_H=3400,H=4900;                                  /* the hall's storey ends at HALL_H; the gaol lies below it */
  const HALL=Object.freeze({x:250,y:1150,w:1300,h:2100});          /* the great hall */
  const COUNCIL=Object.freeze({x:300,y:300,w:1200,h:700});          /* the chamber behind the throne */
  const DOORS=Object.freeze([{x:330,y:920,w:130,h:320},{x:1340,y:920,w:130,h:320}]); /* passages past the dais */
@@ -26,6 +31,17 @@
  const SPAWN=Object.freeze({x:900,y:3000});
  const PILLAR_X=Object.freeze([520,1280]),PILLAR_Y=Object.freeze([1560,1900,2240,2580,2920]);
  const WINDOW_Y=Object.freeze([1730,2070,2410,2750]);
+ /* ⛓ the gaol. STAIR is the alcove in the hall's west wall, UPSTAIR the one in the gaol's east wall:
+    you go down westward, so you arrive from the east. Both overlap their room by 60 so a disk can
+    walk in without meeting a jamb. */
+ const GAOL=Object.freeze({x:250,y:4150,w:1100,h:560});
+ const STAIR=Object.freeze({x:150,y:3060,w:160,h:130});
+ const UPSTAIR=Object.freeze({x:GAOL.x+GAOL.w-60,y:GAOL.y+220,w:160,h:130});
+ const STAIR_DOWN=Object.freeze({x:190,y:STAIR.y+65,r:40}),HALL_ARRIVE=Object.freeze({x:HALL.x+95,y:STAIR.y+65});
+ const STAIR_UP=Object.freeze({x:UPSTAIR.x+UPSTAIR.w-40,y:UPSTAIR.y+65,r:40}),GAOL_ARRIVE=Object.freeze({x:GAOL.x+GAOL.w-95,y:UPSTAIR.y+65});
+ const CELL_COUNT=10,CELL_W=88,CELL_D=118;
+ const CELLS=Object.freeze(Array.from({length:CELL_COUNT},(_,i)=>Object.freeze({x:GAOL.x+70+i*104,y:GAOL.y})));
+ const GAOLER=Object.freeze({x:GAOL.x+GAOL.w-330,y:GAOL.y+372}),GAOLER_NAME='Fångvaktare Grim · Gaoler';
  const GUARDS=Object.freeze(['Gardist Torvald','Gardist Ulf','Gardist Einar','Gardist Sten','Gardist Ragnar','Gardist Bo','Gardist Arne','Gardist Halvar']);
  /* 🏛 the six seats of the council (ids match CityEconomy.COUNCIL): who sits there, in which of the
     townsfolk's clothes, and where he stands - three behind the far chairs, three before the near ones */
@@ -59,14 +75,21 @@
   npcs.push(stand(KING_NAME,'king',KING.x,KING.y,-1,{big:1.5,game:'king',royal:true}));
   npcs.push(stand(HAND_NAME,'kings_hand',HAND.x,HAND.y,1,{big:1.3,game:'ledger',royal:true}));
   for(const c of SEATS)npcs.push(stand(c.name,c.skin,c.x,c.y,c.fx,{big:1.15,game:'council',seat:c.seat,royal:true,female:!!c.female}));
+  npcs.push(stand(GAOLER_NAME,'guard',GAOLER.x,GAOLER.y,-1,{big:1.15,game:'gaol'}));
   const solids=[];
   for(const [side,x] of [[-1,PILLAR_X[0]],[1,PILLAR_X[1]]])for(const y of PILLAR_Y)solids.push({x,y,r:34,type:'throneprop',kind:'pillar',side});
   solids.push({x:THRONE.x,y:THRONE.y,r:40,type:'throneprop',kind:'throne',crx:78,cry:34,cyo:-12});
   solids.push({x:TABLE.x,y:TABLE.y,r:60,type:'throneprop',kind:'table',crx:236,cry:110,cyo:-22});
   solids.push({x:DAIS.x-40,y:DAIS.y+DAIS.h+26,r:20,type:'throneprop',kind:'brazier'});
   solids.push({x:DAIS.x+DAIS.w+40,y:DAIS.y+DAIS.h+26,r:20,type:'throneprop',kind:'brazier'});
+  /* ⛓ the gaol: a brazier to see by, the gaoler's desk, and a grille across every cell. The grilles
+     sort with the actors so a prisoner stands BEHIND his bars; they block nothing, the wall does. */
+  solids.push({x:GAOL.x+430,y:GAOL.y+330,r:20,type:'throneprop',kind:'brazier'});
+  solids.push({x:GAOLER.x,y:GAOLER.y+50,r:30,type:'throneprop',kind:'gaoldesk',crx:74,cry:22,cyo:-8});
+  CELLS.forEach((c,i)=>solids.push({x:c.x,y:c.y+4,r:6,type:'throneprop',kind:'bars',cell:i,noCol:true,walled:false}));
   return {key:'thronehall',kind:'thronehall',throne:true,w:W,h:H,
-   hall:{...HALL},council:{...COUNCIL},dais:{...DAIS},carpet:{...CARPET},spawn:{...SPAWN},exit:{...EXIT,id:'city'},
+   hall:{...HALL},council:{...COUNCIL},gaol:{...GAOL},dais:{...DAIS},carpet:{...CARPET},spawn:{...SPAWN},exit:{...EXIT,id:'city'},
+   stairDown:{...STAIR_DOWN},stairUp:{...STAIR_UP},
    portal:{x:-500,y:-500},npcs,solids,mwalls:[],deco:[],waters:[],paths:[],floors:[],enemySpawns:[],bossRooms:[],entrances:[],pathY:-500,pathH:0};
  }
  const inside=(rc,x,y,rx,ry)=>x>=rc.x+rx&&x<=rc.x+rc.w-rx&&y>=rc.y+ry&&y<=rc.y+rc.h-ry;
@@ -75,9 +98,17 @@
  function contains(x,y,r=0){
   if(!Number.isFinite(x)||!Number.isFinite(y)||!Number.isFinite(r))return false;
   r=Math.max(0,r);
-  if(inside(HALL,x,y,r,r)||inside(COUNCIL,x,y,r,r))return true;
+  if(inside(HALL,x,y,r,r)||inside(COUNCIL,x,y,r,r)||inside(GAOL,x,y,r,r))return true;
   for(const d of DOORS)if(inside(d,x,y,r,0))return true;
+  /* the two stair alcoves run east-west: a margin at the closed end and the side walls, none where they open into their room */
+  if(x>=STAIR.x+r&&x<=STAIR.x+STAIR.w&&y>=STAIR.y+r&&y<=STAIR.y+STAIR.h-r)return true;
+  if(x>=UPSTAIR.x&&x<=UPSTAIR.x+UPSTAIR.w-r&&y>=UPSTAIR.y+r&&y<=UPSTAIR.y+UPSTAIR.h-r)return true;
   return false;
+ }
+ /* ⛓ a prisoner for cell i. Two to a cell stand shoulder to shoulder once the gaol is overcrowded. */
+ function prisoner(i,p,doubled=0){
+  const c=CELLS[((i%CELL_COUNT)+CELL_COUNT)%CELL_COUNT],x=c.x+(doubled?(doubled%2?-20:20):0);
+  return stand(p.name,p.skin||'male',x,c.y-40,i%2?-1:1,{big:p.skin==='king'?1.3:1.05,prisoner:true,cell:i,female:!!p.female,crime:p.crime,say:p.say});
  }
 
  /* ---------- painting helpers ---------- */
@@ -217,12 +248,29 @@
   g.beginPath();
   g.rect(HALL.x,HALL.y,HALL.w,HALL.h);g.rect(COUNCIL.x,COUNCIL.y,COUNCIL.w,COUNCIL.h);
   for(const d of DOORS)g.rect(d.x,d.y,d.w,d.h);
+  g.rect(STAIR.x,STAIR.y,HALL.x-STAIR.x,STAIR.h);
+ }
+ /* ⛓ a flight seen from above: treads across the passage, sinking into the dark toward deep (-1 west, 1 east) */
+ function stairFlight(g,a,x0,x1,deep,label){
+  const n=7,w=(x1-x0)/n;
+  for(let i=0;i<n;i++){
+   const t=deep<0?1-i/(n-1):i/(n-1),v=Math.round(96-t*74);
+   rect(g,x0+i*w,a.y,w+1,a.h,'rgb('+v+','+Math.round(v*.94)+','+Math.round(v*.86)+')');
+   rect(g,deep<0?x0+i*w:x0+(i+1)*w-3,a.y,3,a.h,'rgba(0,0,0,.45)');
+  }
+  const dark=g.createLinearGradient(x0,0,x1,0);dark.addColorStop(deep<0?0:1,'rgba(0,0,0,.82)');dark.addColorStop(deep<0?1:0,'rgba(0,0,0,0)');
+  g.fillStyle=dark;g.fillRect(x0,a.y,x1-x0,a.h);
+  rect(g,x0,a.y-8,x1-x0,8,'#9a9180');rect(g,x0,a.y+a.h,x1-x0,8,'#9a9180');
+  g.save();g.textAlign='center';g.textBaseline='middle';g.font='bold 17px Georgia, serif';
+  g.strokeStyle='rgba(5,5,8,.9)';g.lineWidth=5;
+  const lx=deep<0?x1+74:x0-70;
+  g.strokeText(label,lx,a.y-24);g.fillStyle='#e6d6b0';g.fillText(label,lx,a.y-24);g.restore();
  }
 
  /* ---------- the static layer: walls, floors, carpet, dais, tapestries, windows ---------- */
- let staticLayer=null,staticKey='';
+ let staticLayer=null,gaolLayer=null,staticKey='';
  function paintStatic(g,images,options){
-  rect(g,0,0,W,H,'#0a0909');
+  rect(g,0,0,W,HALL_H,'#0a0909');
   /* the wall mass, then the floors cut out of it */
   const wallRect={x:HALL.x-150,y:COUNCIL.y-150,w:HALL.w+300,h:HALL.y+HALL.h+150-(COUNCIL.y-150)};
   rect(g,wallRect.x,wallRect.y,wallRect.w,wallRect.h,'#2a2724');
@@ -238,7 +286,7 @@
    const odd=((x-HALL.x)/100+(y-HALL.y)/100)%2;
    rect(g,x,y,100,100,odd?'rgba(255,240,215,.06)':'rgba(0,0,0,.10)');
   }
-  g.save();g.globalAlpha=.55;texture(g,images.raidfloor||images.crypt,{x:0,y:0,w:W,h:H},.95,options);g.restore();
+  g.save();g.globalAlpha=.55;texture(g,images.raidfloor||images.crypt,{x:0,y:0,w:W,h:HALL_H},.95,options);g.restore();
   g.strokeStyle='rgba(0,0,0,.18)';g.lineWidth=2;
   for(let y=HALL.y;y<=HALL.y+HALL.h;y+=100){g.beginPath();g.moveTo(HALL.x,y);g.lineTo(HALL.x+HALL.w,y);g.stroke();}
   for(let x=HALL.x;x<=HALL.x+HALL.w;x+=100){g.beginPath();g.moveTo(x,HALL.y);g.lineTo(x,HALL.y+HALL.h);g.stroke();}
@@ -309,21 +357,80 @@
   rect(g,door.x-10,door.y,10,door.h,'#9a9180');rect(g,door.x+door.w,door.y,10,door.h,'#9a9180');
   g.save();g.textAlign='center';g.textBaseline='middle';g.font='bold 19px Georgia, serif';
   g.strokeStyle='rgba(5,5,8,.9)';g.lineWidth=5;g.strokeText('↓ City',EXIT.x,HALL.y+HALL.h-26);g.fillStyle='#e6d6b0';g.fillText('↓ City',EXIT.x,HALL.y+HALL.h-26);g.restore();
+  /* ⛓ the gaol stair, down through the west wall just inside the doors */
+  stairFlight(g,STAIR,STAIR.x,HALL.x,-1,'⛓ Gaol');
+ }
+ /* ⛓ The gaol's own static layer, painted in world coordinates: a vaulted cellar of damp stone, ten
+    cells let into its north wall (the grilles are props), straw, a drain, barrels, chains. */
+ const GAOL_VIEW=Object.freeze({x:GAOL.x-200,y:GAOL.y-220,w:GAOL.w+460,h:GAOL.h+420});
+ function paintGaol(g,images,options){
+  const wallRect={x:GAOL.x-150,y:GAOL.y-170,w:GAOL.w+300+110,h:GAOL.h+320};
+  rect(g,GAOL_VIEW.x,GAOL_VIEW.y,GAOL_VIEW.w,GAOL_VIEW.h,'#070606');
+  rect(g,wallRect.x,wallRect.y,wallRect.w,wallRect.h,'#211f1d');
+  if(!texture(g,images.cryptwall||images.raidwall,wallRect,.7,options))stoneFace(g,wallRect.x,wallRect.y,wallRect.w,wallRect.h,'#25221f');
+  rect(g,wallRect.x,wallRect.y,wallRect.w,wallRect.h,'rgba(6,5,4,.55)');
+  const floor=()=>{g.beginPath();g.rect(GAOL.x,GAOL.y,GAOL.w,GAOL.h);g.rect(GAOL.x+GAOL.w,UPSTAIR.y,UPSTAIR.x+UPSTAIR.w-GAOL.x-GAOL.w,UPSTAIR.h);};
+  g.save();floor();g.clip();
+  rect(g,GAOL.x,GAOL.y,GAOL.w+200,GAOL.h,'#34302c');
+  for(let y=GAOL.y;y<GAOL.y+GAOL.h;y+=80)for(let x=GAOL.x;x<GAOL.x+GAOL.w;x+=80)rect(g,x,y,80,80,((x-GAOL.x)/80+(y-GAOL.y)/80)%2?'rgba(255,240,215,.04)':'rgba(0,0,0,.14)');
+  g.save();g.globalAlpha=.5;texture(g,images.crypt||images.raidfloor,{x:GAOL.x,y:GAOL.y,w:GAOL.w,h:GAOL.h},.95,options);g.restore();
+  /* damp: puddles that catch the brazier, a drain in the middle of the floor, straw trodden out of the cells */
+  for(const [px,py,pr] of [[GAOL.x+210,GAOL.y+420,60],[GAOL.x+760,GAOL.y+210,44],[GAOL.x+940,GAOL.y+470,52]])ellipse(g,px,py,pr,pr*.42,'rgba(20,26,30,.55)','rgba(140,160,170,.12)',2);
+  ellipse(g,GAOL.x+560,GAOL.y+300,26,15,'#14110f','#55504a',3);
+  g.strokeStyle='#55504a';g.lineWidth=2;for(let i=-2;i<=2;i++){g.beginPath();g.moveTo(GAOL.x+560+i*8,GAOL.y+288);g.lineTo(GAOL.x+560+i*8,GAOL.y+312);g.stroke();}
+  g.strokeStyle='rgba(196,168,96,.5)';g.lineWidth=1.6;
+  for(let i=0;i<90;i++){const hx=GAOL.x+30+((i*7919)%(GAOL.w-60)),hy=GAOL.y+8+((i*104729)%70),a=(i*2.399)%3.14;g.beginPath();g.moveTo(hx,hy);g.lineTo(hx+Math.cos(a)*13,hy+Math.sin(a)*5);g.stroke();}
+  stairFlight(g,UPSTAIR,GAOL.x+GAOL.w,UPSTAIR.x+UPSTAIR.w,1,'↑ Hall');
+  g.restore();
+  g.save();floor();g.clip();floor();g.strokeStyle='rgba(0,0,0,.6)';g.lineWidth=64;g.stroke();g.restore();
+  floor();g.strokeStyle='#6f695f';g.lineWidth=6;g.stroke();
+  /* the north wall, face on: a cell every 104, its back wall in shadow, a bench, a bucket, scratches */
+  const face={x:GAOL.x,y:GAOL.y-170,w:GAOL.w,h:170};
+  stoneFace(g,face.x,face.y,face.w,face.h,'#2f2b28','rgba(0,0,0,.5)',24);
+  CELLS.forEach((c,i)=>{
+   const x=c.x-CELL_W/2,y=c.y-CELL_D;
+   const back=g.createLinearGradient(0,y,0,c.y);back.addColorStop(0,'#0b0a09');back.addColorStop(1,'#26221e');
+   rect(g,x,y,CELL_W,CELL_D,back);
+   rect(g,x,c.y-26,CELL_W,26,'#2c2722');                                  /* the strip of floor you can see */
+   g.strokeStyle='rgba(196,168,96,.55)';g.lineWidth=1.6;
+   for(let k=0;k<14;k++){const sx=x+6+((k*53+i*17)%(CELL_W-14)),sy=c.y-22+((k*29)%18);g.beginPath();g.moveTo(sx,sy);g.lineTo(sx+9,sy+3);g.stroke();}
+   rect(g,x+(i%2?CELL_W-40:6),c.y-52,34,8,'#4a3a26','#1d150c',1.5);                 /* the bench */
+   ellipse(g,x+(i%2?14:CELL_W-14),c.y-30,7,4,'#3a3026','#15100b',1.5);             /* the bucket */
+   g.strokeStyle='rgba(200,190,170,.28)';g.lineWidth=1.2;                           /* days, scratched in fives */
+   for(let k=0;k<5+(i*3)%7;k++){const tx=x+12+k*5+Math.floor(k/5)*6;g.beginPath();g.moveTo(tx,y+22);g.lineTo(tx,y+34);g.stroke();}
+   g.beginPath();g.moveTo(x-5,c.y);g.lineTo(x-5,y+30);g.arc(c.x,y+30,CELL_W/2+5,Math.PI,0);g.lineTo(x+CELL_W+5,c.y);g.strokeStyle='#6f695f';g.lineWidth=8;g.stroke();
+   g.save();g.textAlign='center';g.font='bold 12px Georgia, serif';g.fillStyle='rgba(230,214,176,.7)';g.fillText(['I','II','III','IV','V','VI','VII','VIII','IX','X'][i],c.x,y-10);g.restore();
+  });
+  /* rings and chains in the corners, barrels in the south-west */
+  for(const cx of [GAOL.x+14,GAOL.x+GAOL.w-14]){
+   ellipse(g,cx,GAOL.y-96,6,6,null,'#7a7468',3);g.strokeStyle='#5d584f';g.lineWidth=3;
+   for(let k=0;k<6;k++){g.beginPath();g.moveTo(cx+(k%2?2:-2),GAOL.y-90+k*10);g.lineTo(cx+(k%2?-2:2),GAOL.y-82+k*10);g.stroke();}
+  }
+  for(const [bx,by] of [[GAOL.x+70,GAOL.y+GAOL.h-70],[GAOL.x+128,GAOL.y+GAOL.h-52],[GAOL.x+92,GAOL.y+GAOL.h-120]]){
+   ellipse(g,bx,by+16,26,10,'rgba(0,0,0,.4)');rect(g,bx-22,by-34,44,50,'#5a3c20','#22150a',2);ellipse(g,bx,by-34,22,8,'#6d4a28','#22150a',2);
+   rect(g,bx-22,by-22,44,4,'#2f2a26');rect(g,bx-22,by+2,44,4,'#2f2a26');
+  }
+  rect(g,face.x,face.y+face.h-8,face.w,8,'#4a453f');
  }
  function renderGround(g,world,view,{images={},time=0,...options}={}){
   rememberedImages={...rememberedImages,...images};images=rememberedImages;
   const vx=view?.x||0,vy=view?.y||0,vw=view?.w||W,vh=view?.h||H;
   g.save();g.fillStyle='#0a0909';g.fillRect(vx,vy,vw,vh);
-  const key=(ready(images.raidwall)?'w':'-')+(ready(images.raidfloor)?'f':'-');
+  const key=(ready(images.raidwall)?'w':'-')+(ready(images.raidfloor)?'f':'-')+(ready(images.cryptwall)?'c':'-')+(ready(images.crypt)?'g':'-');
   if(!staticLayer||staticKey!==key){
-   const c=canvas(W,H,options);
-   if(c){paintStatic(c.getContext('2d'),images,options);staticLayer=c;staticKey=key;}
-   else paintStatic(g,images,options);
+   const c=canvas(W,HALL_H,options),d=canvas(GAOL_VIEW.w,GAOL_VIEW.h,options);
+   if(c&&d){
+    paintStatic(c.getContext('2d'),images,options);
+    const dg=d.getContext('2d');dg.save();dg.translate(-GAOL_VIEW.x,-GAOL_VIEW.y);paintGaol(dg,images,options);dg.restore();
+    staticLayer=c;gaolLayer=d;staticKey=key;
+   }else{paintStatic(g,images,options);paintGaol(g,images,options);}
   }
-  if(staticLayer){
-   const sx=clamp(vx,0,W),sy=clamp(vy,0,H),sw=clamp(vx+vw,0,W)-sx,sh=clamp(vy+vh,0,H)-sy;
-   if(sw>0&&sh>0)g.drawImage(staticLayer,sx,sy,sw,sh,sx,sy,sw,sh);
-  }
+  /* each storey's layer hands over only the slice of itself that is on screen */
+  const blit=(layer,ox,oy,lw,lh)=>{
+   const x0=clamp(vx,ox,ox+lw),y0=clamp(vy,oy,oy+lh),sw=clamp(vx+vw,ox,ox+lw)-x0,sh=clamp(vy+vh,oy,oy+lh)-y0;
+   if(sw>0&&sh>0)g.drawImage(layer,x0-ox,y0-oy,sw,sh,x0,y0,sw,sh);
+  };
+  if(staticLayer){blit(staticLayer,0,0,W,HALL_H);blit(gaolLayer,GAOL_VIEW.x,GAOL_VIEW.y,GAOL_VIEW.w,GAOL_VIEW.h);}
   /* the living light: wall sconces between the windows and the pillars, the braziers by the dais,
      candles in the chamber. Pools on the floor breathe with the flames. */
   const seen=(x,y,r)=>x+r>=vx&&x-r<=vx+vw&&y+r>=vy&&y-r<=vy+vh;
@@ -337,6 +444,14 @@
   for(const wy of WINDOW_Y)for(const [side,x] of [[-1,HALL.x],[1,HALL.x+HALL.w]]){
    if(!seen(x,wy,600))continue;
    light(g,x+side*180,wy+120,300,.35+Math.sin(time*.6+wy)*.05,[255,236,190]);
+  }
+  /* ⛓ a torch over the gaol stair, and one on the wall between every second pair of cells below */
+  if(seen(HALL.x,STAIR.y,260)){light(g,HALL.x+30,STAIR.y-30,190,.75+Math.sin(time*5.9)*.1);rect(g,HALL.x-8,STAIR.y-52,16,40,'#2c2320');flame(g,HALL.x,STAIR.y-54,.9,time,7.7);}
+  for(let i=0;i<CELL_COUNT-1;i+=2){
+   const tx=CELLS[i].x+52,ty=GAOL.y-84;
+   if(!seen(tx,ty,240))continue;
+   light(g,tx,ty+60,230,.62+Math.sin(time*5.1+i)*.1,[255,170,90]);
+   rect(g,tx-4,ty,8,30,'#2c2320');rect(g,tx-7,ty-6,14,8,'#5b4a35');flame(g,tx,ty-4,.8,time,i*1.3);
   }
   if(seen(TABLE.x,TABLE.y,500))light(g,TABLE.x,TABLE.y+10,420,.55+Math.sin(time*3.7)*.06);
   if(seen(THRONE.x,THRONE.y,400))light(g,THRONE.x,THRONE.y+20,380,.5,[255,214,130]);
@@ -358,6 +473,37 @@
   else if(s.kind==='throne')ellipse(g,0,14,84,26,'rgba(0,0,0,.4)');
   else if(s.kind==='table')ellipse(g,0,66,220,44,'rgba(0,0,0,.35)');
   else if(s.kind==='brazier')ellipse(g,0,8,26,10,'rgba(0,0,0,.4)');
+  else if(s.kind==='gaoldesk')ellipse(g,0,10,86,20,'rgba(0,0,0,.4)');
+ }
+ /* ⛓ the grille across a cell: a frame, nine bars, a lock plate. A cell the gaol has not been given
+    yet (s.walled - the New Gaol Wing opens the last four) is bricked up to the arch instead. */
+ function cellBars(g,s){
+  const w=CELL_W,h=CELL_D;
+  if(s.walled){
+   stoneFace(g,-w/2,-h-4,w,h,'#3a3531','rgba(0,0,0,.5)',20);
+   g.save();g.textAlign='center';g.font='italic 11px Georgia, serif';g.fillStyle='rgba(230,214,176,.45)';g.fillText('bricked up',0,-h/2);g.restore();
+   return;
+  }
+  rect(g,-w/2,-h-4,w,6,'#1a1816');rect(g,-w/2,-6,w,6,'#1a1816');
+  for(let i=0;i<9;i++){
+   const x=-w/2+5+i*(w-10)/8;
+   rect(g,x-2,-h,4,h-4,'#3c3a38');rect(g,x-2,-h,1.4,h-4,'rgba(255,255,255,.22)');
+  }
+  rect(g,-w/2,-h*.55,w,5,'#2a2826');
+  rect(g,w/2-24,-h*.55-9,16,22,'#4a4642','#15130f',1.5);ellipse(g,w/2-16,-h*.55+2,2.4,3.4,'#0b0a09');
+  /* who is in it: a slate hung on the grille, since a name behind nine bars cannot be read */
+  if(s.label){
+   rect(g,-w/2+3,-h+5,w-6,15,'#1b1917','#6f695f',1.2);
+   g.save();g.textAlign='center';g.font='700 9px Georgia, serif';g.fillStyle=s.royal?'#ffd76a':'#e6dbc9';g.fillText(s.label,0,-h+16,w-12);g.restore();
+  }
+ }
+ function gaolDesk(g,time){
+  rect(g,-78,-34,156,40,'#5a3a1e','#2a1a0c',2);rect(g,-78,4,156,14,'#3a2410','#2a1a0c',2);
+  for(const x of [-70,62])rect(g,x,18,8,14,'#3a2410');
+  rect(g,-52,-30,46,30,'#e9dcb8','#6b5430',1.5);                                  /* the gaol book */
+  g.strokeStyle='rgba(60,40,20,.5)';g.lineWidth=1;for(let y=-24;y<-4;y+=5){g.beginPath();g.moveTo(-47,y);g.lineTo(-11,y);g.stroke();}
+  ellipse(g,22,-14,12,12,null,'#8a8478',3);for(let i=0;i<4;i++)rect(g,18+i*5,-4,2.5,12+i%2*4,'#8a8478');   /* the ring of keys */
+  rect(g,52,-40,10,22,'#f0e6c8','#a89a7a',1);light(g,57,-52,80,.7+Math.sin(time*6.3)*.15);flame(g,57,-40,.5,time,3.1);
  }
  function pillar(g,s,time,images,options){
   const side=s.side||-1;
@@ -456,8 +602,11 @@
   else if(s.kind==='throne')throne(g,time);
   else if(s.kind==='table')councilTable(g,time);
   else if(s.kind==='brazier')brazier(g,time,s.x*.01);
+  else if(s.kind==='bars')cellBars(g,s);
+  else if(s.kind==='gaoldesk')gaolDesk(g,time);
  }
 
  return Object.freeze({create,contains,renderGround,drawProp,drawShadow,
-  W,H,HALL,COUNCIL,DOORS,DAIS,THRONE,KING,TABLE,HAND,EXIT,SPAWN,PILLAR_X,PILLAR_Y,GUARDS,SEATS,KING_NAME,HAND_NAME,ART});
+  prisoner,W,H,HALL_H,HALL,COUNCIL,GAOL,STAIR,UPSTAIR,STAIR_DOWN,STAIR_UP,HALL_ARRIVE,GAOL_ARRIVE,CELLS,GAOLER,GAOLER_NAME,
+  DOORS,DAIS,THRONE,KING,TABLE,HAND,EXIT,SPAWN,PILLAR_X,PILLAR_Y,GUARDS,SEATS,KING_NAME,HAND_NAME,ART});
 });

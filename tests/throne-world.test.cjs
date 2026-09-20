@@ -69,6 +69,38 @@ test('the court: eight named guards at the pillars, the king before his throne, 
  }
 });
 
+test('the gaol: a stair down through the west wall by the doors, ten barred cells and a gaoler at his desk',()=>{
+ const w=World.create(),G=World.GAOL;
+ assert.ok(G.y>World.HALL_H,'the gaol lies below the storey of the hall');assert.ok(w.h>=G.y+G.h+150);
+ /* on your left as you come in: the stair is in the WEST wall, between the last pillar and the doors */
+ assert.ok(World.STAIR_DOWN.x<World.HALL.x&&World.STAIR_DOWN.y>World.PILLAR_Y[World.PILLAR_Y.length-1]&&World.STAIR_DOWN.y<World.EXIT.y);
+ /* a disk walks from the spawn to the stair-head, and from where it lands below to the gaoler and back up */
+ for(let x=w.spawn.x;x>=World.HALL_ARRIVE.x;x-=4)assert.ok(World.contains(x,w.spawn.y+(World.HALL_ARRIVE.y-w.spawn.y)*(w.spawn.x-x)/(w.spawn.x-World.HALL_ARRIVE.x),13));
+ for(let x=World.HALL_ARRIVE.x;x>=World.STAIR_DOWN.x;x-=2)assert.ok(World.contains(x,World.STAIR_DOWN.y,13),'the way down is blocked at '+x);
+ for(let x=World.GAOL_ARRIVE.x;x<=World.STAIR_UP.x;x+=2)assert.ok(World.contains(x,World.STAIR_UP.y,13),'the way up is blocked at '+x);
+ assert.ok(Math.hypot(World.HALL_ARRIVE.x-World.STAIR_DOWN.x,World.HALL_ARRIVE.y-World.STAIR_DOWN.y)>World.STAIR_DOWN.r+40,'arriving upstairs does not send you straight back down');
+ assert.ok(Math.hypot(World.GAOL_ARRIVE.x-World.STAIR_UP.x,World.GAOL_ARRIVE.y-World.STAIR_UP.y)>World.STAIR_UP.r+40);
+ assert.ok(World.contains(World.GAOL_ARRIVE.x,World.GAOL_ARRIVE.y,13)&&World.contains(World.HALL_ARRIVE.x,World.HALL_ARRIVE.y,13));
+ /* the alcoves hold a disk: nothing the routine accepts sticks through a wall */
+ for(const a of [World.STAIR,World.UPSTAIR])for(let y=a.y-40;y<a.y+a.h+40;y+=7)for(let x=a.x-40;x<a.x+a.w+40;x+=7)if(World.contains(x,y,13)){
+  for(let i=0;i<16;i++)assert.ok(World.contains(x+Math.cos(i*Math.PI/8)*12.99,y+Math.sin(i*Math.PI/8)*12.99),'disk escaped at '+x+','+y);
+ }
+ assert.equal(World.contains(100,World.STAIR_DOWN.y,13),false);assert.equal(World.contains(World.STAIR.x+40,World.STAIR.y-20,13),false);
+ /* ten cells along the north wall, inside the room's width, none of them walkable */
+ assert.equal(World.CELLS.length,10);
+ const bars=w.solids.filter(s=>s.kind==='bars');
+ assert.deepEqual(bars.map(s=>s.cell),[0,1,2,3,4,5,6,7,8,9]);assert.ok(bars.every(s=>s.noCol&&!s.walled));
+ for(const c of World.CELLS){assert.ok(c.x-44>=G.x&&c.x+44<=G.x+G.w);assert.equal(World.contains(c.x,c.y-40,5),false,'a cell is not floor');}
+ const gaoler=w.npcs.find(n=>n.game==='gaol'),desk=w.solids.find(s=>s.kind==='gaoldesk');
+ assert.equal(gaoler.name,World.GAOLER_NAME);assert.ok(desk.y>gaoler.y,'he stands behind his desk');assert.ok(!gaoler.guard,'he is not one of the eight');
+ /* a prisoner stands behind his grille, so the bars are drawn over him */
+ const p=World.prisoner(3,{name:'Bodil Vass',skin:'baker',female:true,crime:'stole a ham',say:'It fell into my coat.'});
+ assert.equal(p.prisoner,true);assert.equal(p.female,true);assert.equal(p.x,World.CELLS[3].x);assert.ok(p.y<bars[3].y);assert.equal(p.speed,0);
+ assert.notEqual(World.prisoner(3,p,1).x,World.prisoner(3,p,2).x,'two to a cell stand apart');
+ assert.ok(World.prisoner(13,{name:'x'}).x===World.CELLS[3].x,'an overflow wraps round the cells');
+ assert.ok(World.prisoner(0,{name:'Alarik',skin:'king'}).big>1.2,'a deposed king is still a big man');
+});
+
 function fakeContext(count){
  return new Proxy({
   createRadialGradient(){return{addColorStop(){}};},createLinearGradient(){return{addColorStop(){}};},
@@ -105,7 +137,7 @@ test('props draw with finite geometry as paintings, and as canvas scenery until 
  assert.equal(count.draws,0,'no painting loaded: canvas scenery only');
  const before=count.calls;
  for(const s of w.solids)World.drawProp(g,s,1.2,art);
- assert.equal(count.draws,w.solids.length,'one blit per prop once its painting is in');
+ assert.equal(count.draws,w.solids.filter(s=>World.ART[s.kind]).length,'one blit per painted prop once its painting is in');
  assert.ok(before>200);
  for(const kind of ['pillar','throne','table','brazier'])assert.ok(World.ART[kind].h>0&&World.ART[kind].drop>=0,kind);
  /* every flame sits inside its picture */
@@ -118,4 +150,17 @@ test('props draw with finite geometry as paintings, and as canvas scenery until 
  World.drawProp(g,brazier,3.2,art);const one=count.calls-c0;
  World.drawProp(g,brazier,97.45,art);assert.equal(count.calls-c0-one,one);
  assert.ok(one>60,'flames, embers, sparks and smoke');
+});
+
+/* runs last: the layers are cached per set of loaded images, and this is the first call that has the crypt stone */
+test('the gaol paints into a layer of its own and its props draw with finite geometry',()=>{
+ const count={calls:0,draws:0,patterns:0},layers=[];
+ const createCanvas=(w,h)=>{const c={width:w,height:h,getContext:()=>fakeContext(count)};layers.push(c);return c;};
+ const w=World.create(),g=fakeContext(count);
+ World.renderGround(g,w,{x:300,y:4100,w:1200,h:700},{images:{raidwall:image,raidfloor:image,cryptwall:image,crypt:image},time:1.5,createCanvas});
+ assert.ok(layers.some(c=>c.height===World.HALL_H)&&layers.some(c=>c.width===World.GAOL.w+460),'one layer per storey');
+ assert.ok(count.draws>=1,'the gaol slice is blitted');
+ const before=count.calls;
+ for(const s of w.solids.filter(s=>s.kind==='bars'||s.kind==='gaoldesk')){World.drawShadow(g,s);World.drawProp(g,s,2.2,{});World.drawProp(g,{...s,walled:true},2.2,{});}
+ assert.ok(count.calls-before>200);
 });
