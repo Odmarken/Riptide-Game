@@ -21,12 +21,22 @@
  const THRONE=Object.freeze({x:900,y:1228});
  const KING=Object.freeze({x:900,y:1318});
  const TABLE=Object.freeze({x:900,y:640});
- const HAND=Object.freeze({x:900,y:850});
+ const HAND=Object.freeze({x:900,y:905});
  const EXIT=Object.freeze({x:900,y:3225,r:70});
  const SPAWN=Object.freeze({x:900,y:3000});
  const PILLAR_X=Object.freeze([520,1280]),PILLAR_Y=Object.freeze([1560,1900,2240,2580,2920]);
  const WINDOW_Y=Object.freeze([1730,2070,2410,2750]);
  const GUARDS=Object.freeze(['Gardist Torvald','Gardist Ulf','Gardist Einar','Gardist Sten','Gardist Ragnar','Gardist Bo','Gardist Arne','Gardist Halvar']);
+ /* 🏛 the six seats of the council (ids match CityEconomy.COUNCIL): who sits there, in which of the
+    townsfolk's clothes, and where he stands - three behind the far chairs, three before the near ones */
+ const SEATS=Object.freeze([
+  {seat:'coin',name:'Gottfrid Pung · Master of Coin',skin:'merchant',x:690,y:478,fx:1},
+  {seat:'sword',name:'Brynolf Järnhand · Lord Commander',skin:'guard',x:900,y:472,fx:1},
+  {seat:'stone',name:'Hallvard Städ · Master Builder',skin:'blacksmith',x:1110,y:478,fx:-1},
+  {seat:'bread',name:'Syster Agnes · High Almoner',skin:'female',female:true,x:700,y:806,fx:1},
+  {seat:'revel',name:'Casimir Lilje · Master of Revels',skin:'noble_dandy',x:900,y:812,fx:-1},
+  {seat:'chamber',name:'Ansgar Vidhem · Lord Chamberlain',skin:'noble_elder',x:1100,y:806,fx:-1},
+ ]);
  const KING_NAME='Kung Alarik Tidvind',HAND_NAME='Eskil Stormark · King’s Hand';
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const ready=im=>!!(im&&im.complete!==false&&(im.naturalWidth||im.width)>0&&(im.naturalHeight||im.height)>0);
@@ -48,6 +58,7 @@
   npcs.push(stand(GUARDS[g++],'royal_guard',DAIS.x+DAIS.w-70,DAIS.y+DAIS.h+22,-1,{guard:true}));
   npcs.push(stand(KING_NAME,'king',KING.x,KING.y,-1,{big:1.5,game:'king',royal:true}));
   npcs.push(stand(HAND_NAME,'kings_hand',HAND.x,HAND.y,1,{big:1.3,game:'ledger',royal:true}));
+  for(const c of SEATS)npcs.push(stand(c.name,c.skin,c.x,c.y,c.fx,{big:1.15,game:'council',seat:c.seat,royal:true,female:!!c.female}));
   const solids=[];
   for(const [side,x] of [[-1,PILLAR_X[0]],[1,PILLAR_X[1]]])for(const y of PILLAR_Y)solids.push({x,y,r:34,type:'throneprop',kind:'pillar',side});
   solids.push({x:THRONE.x,y:THRONE.y,r:40,type:'throneprop',kind:'throne',crx:78,cry:34,cyo:-12});
@@ -448,5 +459,5 @@
  }
 
  return Object.freeze({create,contains,renderGround,drawProp,drawShadow,
-  W,H,HALL,COUNCIL,DOORS,DAIS,THRONE,KING,TABLE,HAND,EXIT,SPAWN,PILLAR_X,PILLAR_Y,GUARDS,KING_NAME,HAND_NAME,ART});
+  W,H,HALL,COUNCIL,DOORS,DAIS,THRONE,KING,TABLE,HAND,EXIT,SPAWN,PILLAR_X,PILLAR_Y,GUARDS,SEATS,KING_NAME,HAND_NAME,ART});
 });

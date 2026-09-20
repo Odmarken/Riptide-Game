@@ -14,7 +14,9 @@ test('a fresh ledger runs the customary budget at a modest profit and settles th
  assert.ok(f.net>300&&f.net<700,`net ${f.net}`);
  assert.ok(f.moodTarget>=58&&f.moodTarget<=66,`mood target ${f.moodTarget}`);
  assert.equal(E.moodName(f.moodTarget),'Content');
- assert.equal(f.income.length,7);assert.equal(f.expenses.length,8);
+ assert.equal(f.income.length,7);assert.equal(f.expenses.length,10);
+ assert.equal(f.expenses.find(l=>l.id==='unrest').amount,0);assert.equal(f.expenses.find(l=>l.id==='obstruction').amount,0);
+ assert.deepEqual(s.incidents,[]);assert.equal(s.petition,null);assert.equal(s.credit,0);assert.equal(E.favour(s),60);
  assert.ok(f.income.every(l=>Number.isInteger(l.amount)&&l.amount>=0&&l.name&&l.icon&&l.note));
  assert.ok(f.expenses.every(l=>Number.isInteger(l.amount)&&l.amount>=0&&l.name&&l.icon&&l.note));
  assert.equal(f.expenses.find(l=>l.id==='guard').amount,E.ROYAL_GUARD*45);
@@ -119,4 +121,118 @@ test('normalize repairs a damaged save and accepts a missing one',()=>{
  assert.deepEqual(s.budget,{tax:10,watch:3,roads:0,relief:2,festival:0,court:1});
  assert.deepEqual(s.history,[{n:1,net:5}]);assert.deepEqual(s.last,{n:1,net:5});
  assert.equal(E.setBudget(s,'tax',12),false);assert.equal(E.setBudget(s,'watch',4),false);assert.equal(E.setBudget(s,'nope',1),false);
+});
+
+/* a scripted rng: the values are handed out in order, then it stays quiet */
+const script=(...v)=>{let i=0;return()=>i<v.length?v[i++]:.95;};
+
+test('a brawl is rolled at a close, bites and spreads until the watch is doubled, and then ends',()=>{
+ const s=E.create();
+ /* no event (.9), trouble (.0 < .22), the first kind in the pool (.0 = brawl), no petition (.9) */
+ const r=E.tick(s,{},script(.9,.0,.0,.9));
+ assert.deepEqual(s.incidents,[{id:'brawl',age:0}]);
+ assert.ok(r.unrest.some(u=>/Brawl on the boulevard/.test(u)&&/Double the City Watch/.test(u)));
+ const f0=E.forecast(s,{}),i0=f0.incidents[0];
+ assert.equal(i0.line,'watch');assert.equal(i0.level,2);assert.equal(i0.met,false);assert.equal(i0.street,true);
+ assert.equal(f0.expenses.find(l=>l.id==='unrest').amount,140);
+ assert.equal(f0.moodTarget,E.forecast(E.create(),{}).moodTarget-6,'it pulls the mood target down');
+ assert.ok(f0.moodFactors.some(x=>/Brawl/.test(x.name)&&x.value===-6));
+ const mood=s.mood;E.tick(s,{},quiet);
+ assert.equal(s.incidents[0].age,1);assert.ok(s.mood<mood,'left alone it bites');
+ const f1=E.forecast(s,{});
+ assert.equal(f1.incidents[0].gold,175);assert.equal(f1.incidents[0].mood,-7,'and spreads: a quarter worse per close');
+ for(let i=0;i<6;i++)E.tick(s,{},quiet);
+ assert.equal(E.forecast(s,{}).incidents[0].gold,280,'capped at twice as bad');
+ assert.ok(E.setBudget(s,'watch',2));
+ assert.equal(E.forecast(s,{}).incidents[0].met,true);
+ const end=E.tick(s,{},quiet);
+ assert.deepEqual(s.incidents,[]);assert.ok(end.unrest.some(u=>/dealt with/.test(u)));
+});
+
+test('a strong enough line nips trouble in the bud, and gold can end an incident on the spot',()=>{
+ const s=E.create();E.setBudget(s,'watch',2);
+ const r=E.tick(s,{},script(.9,.0,.0,.9));
+ assert.deepEqual(s.incidents,[]);assert.ok(r.unrest.some(u=>/nipped in the bud/.test(u)));
+ const t=E.create();E.tick(t,{prestige:10},script(.9,.0,.0,.9));
+ const cost=E.forecast(t,{prestige:10}).incidents[0].cost;
+ assert.equal(cost,Math.round((600+2*500)*2));
+ t.treasury=cost-1;assert.equal(E.settle(t,{prestige:10},'brawl'),0,'not from an empty treasury');
+ t.treasury=cost+50;assert.equal(E.settle(t,{prestige:10},'brawl'),cost);
+ assert.equal(t.treasury,50);assert.deepEqual(t.incidents,[]);assert.equal(E.settle(t,{prestige:10},'brawl'),0);
+});
+
+test('trouble is random, never doubled up, never more than two at once, and likelier in a sour, unwatched city',()=>{
+ const kinds=new Set();
+ for(let seed=1;seed<=40;seed++){
+  let x=seed*2654435761%4294967296;const rng=()=>{x=(Math.imul(x,1664525)+1013904223)>>>0;return x/4294967296;};
+  const s=E.create();E.setBudget(s,'watch',0);E.setBudget(s,'relief',0);
+  for(let i=0;i<20;i++){
+   E.tick(s,{},rng);
+   assert.ok(s.incidents.length<=E.MAX_INCIDENTS);
+   assert.equal(new Set(s.incidents.map(i=>i.id)).size,s.incidents.length);
+   s.incidents.forEach(i=>kinds.add(i.id));
+  }
+ }
+ assert.ok(kinds.size>=5,'saw '+[...kinds].join(', '));
+ assert.ok(E.INCIDENTS.every(d=>E.LINES[d.line]&&E.LINES[d.line].levels[d.level]&&d.mood<0&&d.gold<=0&&d.w>0&&d.fix&&d.text));
+ assert.deepEqual(E.INCIDENTS.filter(d=>d.street).map(d=>d.id),['brawl','gang']);
+});
+
+test('the council: six seats that drift toward what their line deserves, and a favour that pays or costs',()=>{
+ const s=E.create();
+ assert.deepEqual(Object.keys(s.council),E.COUNCIL.map(c=>c.id));assert.equal(E.COUNCIL.length,6);
+ E.setBudget(s,'watch',3);E.setBudget(s,'relief',0);
+ for(let i=0;i<10;i++)E.tick(s,{},quiet);
+ assert.ok(s.council.sword>=85,'the Lord Commander loves a Royal watch: '+s.council.sword);
+ assert.ok(s.council.bread<=30,'the High Almoner does not forgive an empty granary: '+s.council.bread);
+ const v=E.councilView(s,{});
+ assert.equal(v.seats.length,6);assert.equal(v.favour,E.favour(s));assert.ok(v.seats.every(x=>x.say&&x.title&&x.who));
+ /* devoted: trade and credit; hostile: padded bills */
+ const hi=E.create();for(const k of Object.keys(hi.council))hi.council[k]=90;
+ const lo=E.create();for(const k of Object.keys(lo.council))lo.council[k]=20;
+ const base=E.forecast(E.create(),{}),up=E.forecast(hi,{}),down=E.forecast(lo,{});
+ assert.ok(up.income.find(l=>l.id==='tolls').amount>base.income.find(l=>l.id==='tolls').amount);
+ assert.equal(up.creditLimit,110000);assert.equal(base.creditLimit,100000);
+ assert.ok(down.expenses.find(l=>l.id==='obstruction').amount>0);assert.equal(base.expenses.find(l=>l.id==='obstruction').amount,0);
+ assert.equal(E.favourName(90),'Devoted');assert.equal(E.favourName(20),'Hostile');
+});
+
+test('petitions arrive at random, can be granted or refused, and lapse after two closes',()=>{
+ const s=E.create();
+ /* no event, no trouble (.9 >= chance), a petition (.0 < .35), the first on the list (.0) */
+ const r=E.tick(s,{},script(.9,.9,.0,.0));
+ assert.deepEqual(s.petition,{id:'halberds',age:0});assert.ok(r.unrest.some(u=>/petition/.test(u)));
+ const v=E.councilView(s,{prestige:10}).petition;
+ assert.equal(v.cost,1800);assert.equal(v.seat,'sword');assert.equal(v.left,2);
+ const sword=s.council.sword,mood=s.mood;
+ s.treasury=100;assert.equal(E.answer(s,{prestige:10},true).ok,false,'cannot grant what the treasury cannot cover');
+ s.treasury=5000;const yes=E.answer(s,{prestige:10},true);
+ assert.equal(yes.accepted,true);assert.equal(s.treasury,3200);assert.equal(s.council.sword,sword+14);assert.equal(s.mood,mood+1);assert.equal(s.petition,null);
+ assert.equal(E.answer(s,{},true),null);
+ const t=E.create();E.tick(t,{},script(.9,.9,.0,.0));
+ const before=t.council.sword;assert.equal(E.answer(t,{},false).accepted,false);assert.equal(t.council.sword,before-8);
+ const u=E.create();E.tick(u,{},script(.9,.9,.0,.0));E.tick(u,{},quiet);assert.equal(u.petition.age,1);
+ const lapse=E.tick(u,{},quiet);assert.equal(u.petition,null);assert.ok(lapse.unrest.some(x=>/lapsed/.test(x)));
+ assert.ok(E.PETITIONS.every(p=>E.COUNCIL.some(c=>c.id===p.seat)&&p.text&&p.favour>0));
+});
+
+test('credit is built by repaying and by paying interest honestly, and burned by an overdraft',()=>{
+ const s=E.create();
+ assert.equal(E.borrow(s,{},100000),100000);
+ assert.equal(E.repay(s,40000),40000);assert.equal(s.credit,10000,'a quarter of what was repaid');assert.equal(s.repaid,40000);
+ assert.equal(E.creditLimit({},s),110000);assert.equal(E.forecast(s,{}).creditLimit,110000);
+ assert.equal(E.borrow(s,{},1e9),50000,'the new room can be borrowed');
+ const c0=s.credit;E.tick(s,{},quiet);
+ assert.equal(s.credit,c0+Math.round(110000*E.LOAN_RATE*2),'interest paid from a treasury in credit');
+ const d=E.create();E.tick(d,{},quiet);assert.equal(d.credit,100,'a debt-free close in profit');
+ d.credit=50000;d.treasury=-200000;E.tick(d,{},quiet);assert.equal(d.credit,46000,'an overdraft burns 8% a close');
+ d.credit=9e9;assert.equal(E.normalize(d).credit,E.CREDIT_CAP);
+});
+
+test('normalize repairs unrest, council and petition from a damaged save',()=>{
+ const s=E.normalize({incidents:[{id:'brawl',age:'3'},{id:'brawl',age:1},{id:'nope'},null,{id:'gang',age:-4},{id:'hunger'}],council:{coin:140,sword:'x'},petition:{id:'ghost'},credit:-5});
+ assert.deepEqual(s.incidents,[{id:'brawl',age:3},{id:'gang',age:0}]);
+ assert.equal(s.council.coin,100);assert.equal(s.council.sword,60);assert.equal(s.council.bread,60);
+ assert.equal(s.petition,null);assert.equal(s.credit,0);
+ assert.deepEqual(E.normalize({petition:{id:'audit',age:1}}).petition,{id:'audit',age:1});
 });

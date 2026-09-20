@@ -21,7 +21,7 @@
 <link rel="stylesheet" href="style.css?v=55">
 <link rel="stylesheet" href="assets/tides/ui.css?v=9">
 <link rel="stylesheet" href="assets/ui/crafting.css?v=1">
-<link rel="stylesheet" href="assets/city/ledger.css?v=1">
+<link rel="stylesheet" href="assets/city/ledger.css?v=2">
 <link rel="stylesheet" href="assets/ui/hero-guide.css?v=1">
 </head>
 <body>
@@ -775,16 +775,18 @@
 
   <div id="ledgerFx" class="craft-modal" role="dialog" aria-modal="true" aria-labelledby="ledgerTitle" style="display:none">
    <div class="casinobox craft-box craft-ledger">
-    <header class="craft-header"><div class="ledger-seal" aria-hidden="true">👑</div><div><div class="craft-kicker">THE COUNCIL CHAMBER</div><h2 id="ledgerTitle" class="craft-title">The Crown Ledger</h2><p class="craft-subtitle">Taxes, tolls and the price of keeping a city. The King’s Hand keeps the books; you set the budget.</p></div></header>
+    <header class="craft-header"><div class="ledger-seal" aria-hidden="true">👑</div><div><div class="craft-kicker">THE COUNCIL CHAMBER</div><h2 id="ledgerTitle" class="craft-title">The Crown Ledger</h2><p class="craft-subtitle">Taxes, tolls and the price of keeping a city. The King’s Hand keeps the books; you set the budget.</p></div><button id="ledgerHelp" class="ledger-helpbtn" type="button" aria-label="How the ledger works" aria-pressed="false" title="How it all works">?</button></header>
     <div class="craft-tabs" id="ledgerTabs" role="tablist">
      <button class="craft-tab active" data-ltab="overview" role="tab" aria-selected="true">📜 Overview</button>
      <button class="craft-tab" data-ltab="budget" role="tab" aria-selected="false">⚖️ Budget</button>
+     <button class="craft-tab" data-ltab="people" role="tab" aria-selected="false">👥 People</button>
+     <button class="craft-tab" data-ltab="council" role="tab" aria-selected="false">🏛 Council</button>
      <button class="craft-tab" data-ltab="bank" role="tab" aria-selected="false">🏦 Tides Bank</button>
      <button class="craft-tab" data-ltab="history" role="tab" aria-selected="false">📈 Ledger</button>
     </div>
     <div class="craft-scroll"><div id="ledgerBody"></div></div>
     <p class="craft-status" id="ledgerMsg" role="status" aria-live="polite"></p>
-    <footer class="craft-footer"><span>The ledger closes every five minutes of play, wherever you are. The people march when their mood falls below 25.</span><button id="ledgerClose" class="sbtn">Leave the Chamber</button></footer>
+    <footer class="craft-footer"><span>The ledger closes every five minutes of play, wherever you are. Press ? for how it all works.</span><button id="ledgerClose" class="sbtn">Leave the Chamber</button></footer>
    </div>
   </div>
 
@@ -849,8 +851,8 @@
 <script src="assets/ui/sidebar-resize.js?v=1"></script>
 <script src="assets/ui/display-settings.js?v=2"></script>
 <script src="assets/ui/city-minimap.js?v=7"></script>
-<script src="assets/city/economy.js?v=1"></script>
-<script src="assets/city/throne-world.js?v=5"></script>
+<script src="assets/city/economy.js?v=2"></script>
+<script src="assets/city/throne-world.js?v=6"></script>
 <script src="assets/wasteland/world.js?v=9"></script>
 <script src="assets/wasteland/dungeons.js?v=5"></script>
 <script src="assets/wasteland/ambience.js?v=1"></script>
@@ -872,7 +874,7 @@
 <script src="assets/tides/motion.js?v=2"></script>
 <script src="assets/tides/ui.js?v=16"></script>
 <script src="assets/ui/hero-guide.js?v=2"></script>
-<script src="game.js?v=131"></script>
+<script src="game.js?v=132"></script>
 <script src="assets/ui/crafting.js?v=2"></script>
 </body>
 </html>

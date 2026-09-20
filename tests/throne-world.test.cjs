@@ -53,6 +53,13 @@ test('the court: eight named guards at the pillars, the king before his throne, 
  const table=w.solids.find(s=>s.kind==='table');
  assert.ok(hand.y>table.y+table.cry&&Math.abs(hand.x-table.x)<1,'the Hand stands at the near end of the table');
  assert.ok(table.crx>200&&table.cry>90,'the table blocks a broad ellipse');
+ /* 🏛 six councillors round the table, ids matching the economy's seats, three behind the far chairs */
+ const Economy=require('../assets/city/economy.js');
+ const seats=w.npcs.filter(n=>n.game==='council');
+ assert.deepEqual(seats.map(n=>n.seat),Economy.COUNCIL.map(c=>c.id));
+ assert.equal(seats.filter(n=>n.y<table.y).length,3);assert.equal(seats.filter(n=>n.y>table.y).length,3);
+ for(const n of seats){assert.ok(n.name.includes('\u00b7'));assert.ok(World.contains(n.x,n.y,13));assert.ok(Math.hypot(n.x-hand.x,n.y-hand.y)>80,n.name+' crowds the Hand');}
+ assert.equal(seats.find(n=>n.seat==='bread').female,true);
  assert.equal(w.solids.filter(s=>s.kind==='pillar').length,10);
  assert.ok(w.solids.every(s=>s.type==='throneprop'&&s.r>0));
  /* nobody stands inside a blocked prop */
