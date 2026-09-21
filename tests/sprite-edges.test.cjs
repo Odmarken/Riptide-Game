@@ -427,6 +427,9 @@ test('the confirmed house_stone roof fringe is removed while all opaque building
 
 test('reviewed farm PNGs lose edge matte without altering any original opaque pixel', () => {
  const h = harness();
+ // bench_farm.png was redrawn on 2026-09-16 (ac6e7a6) as a clean cutout: it still opts in, but there is no matte left
+ // on it to correct, so for that one the cleanup only has to leave the picture alone.
+ const alreadyClean = new Set(['bench_farm']);
  for (const name of ['flowerbed_farm', 'woodpile_farm', 'trough_farm', 'well_farm', 'bench_farm',
   'farmsign_farm', 'pumpkins_farm', 'scarecrow_farm']) {
   const data = readPixels(path.join(root, 'assets/farm', name + '.png'));
@@ -434,7 +437,8 @@ test('reviewed farm PNGs lose edge matte without altering any original opaque pi
   const profile = h.context.spriteEdgeProfile({src: 'assets/farm/' + name + '.png'});
   assert.ok(profile, `${name}: expected the reviewed asset to opt in`);
   const changed = h.context.cleanSpriteEdgePixels(data.pixels, data.width, data.height, profile);
-  assert.ok(changed > 0, `${name}: expected reviewed edge matte to be corrected`);
+  if (alreadyClean.has(name)) assert.equal(changed, 0, `${name}: a clean redraw has nothing to correct`);
+  else assert.ok(changed > 0, `${name}: expected reviewed edge matte to be corrected`);
   verifyOpaqueUnchanged(before, data.pixels, name);
   for (let i = 0; i < before.length; i += 4) {
    if (data.pixels[i + 3] > before[i + 3]) assert.fail(`${name}: cleanup must not add opacity`);

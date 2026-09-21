@@ -55,6 +55,11 @@
  function stallSlots(world){
   const c=square(world),out=[[-205,215],[-310,262],[-395,196],[-250,300]].map(([dx,dy])=>({x:c.x+dx,y:c.y+dy}));
   for(let k=0;k<4;k++)for(const side of [-1,1])out.push({x:c.x+side*(660+k*170),y:c.y+(k%2?1:-1)*side*118});
+  /* 🧺 a growing city fills its square: pitches round the rim, clear of the wagons' lane, the fountain, the statue,
+     the garden, the maypole, the board and the long tables - and then further out along the boulevard. Appended, so
+     the first twelve pitches never move. */
+  for(const [dx,dy] of [[-380,-160],[335,-165],[-255,-400],[452,192],[-140,-188]])out.push({x:c.x+dx,y:c.y+dy});
+  for(let k=4;k<7;k++)for(const side of [-1,1])out.push({x:c.x+side*(660+k*170),y:c.y+(k%2?1:-1)*side*118});
   return out;
  }
  function lampSpots(world,xMax){
@@ -79,7 +84,7 @@
   if(st('gardens')==='done')add('garden',c.x+285,c.y+258,20,{noCol:true});else if(going('gardens'))site('gardens',c.x+285,c.y+258,'GARDENS');
   if(st('coveredmarket')==='building')site('coveredmarket',c.x-300,c.y+330,'COVERED MARKET');
   if(st('lamps')==='done'||going('lamps'))for(const p of lampSpots(world,look.xMax))add('lamp',p.x,p.y,7,{lit:st('lamps')==='done',noCol:true});
-  stallSlots(world).slice(0,clamp(Math.round(look.stalls||0),0,12)).forEach((p,i)=>add('stall',p.x,p.y,24,{goods:i%5,covered:st('coveredmarket')==='done'}));
+  stallSlots(world).slice(0,clamp(Math.round(look.stalls||0),0,MAX_STALLS)).forEach((p,i)=>add('stall',p.x,p.y,24,{goods:i%5,covered:st('coveredmarket')==='done'}));
   /* 🎭 what the temper of the people puts out on the street. None of it is in anybody's way (noCol). */
   const S=look.street||{},soft=(kind,x,y,extra)=>add(kind,x,y,18,{noCol:true,...extra});
   if(S.maypole)soft('maypole',c.x,c.y-300);
@@ -127,7 +132,8 @@
   return null;
  }
  /* how many awnings the square carries */
- function stallCount(feeLevel,covered,pop){return clamp([6,4,3,1][clamp(feeLevel|0,0,3)]+(covered?5:0)+Math.floor(Math.max(0,(pop||0)-350)/150),0,12);}   /* a pitch more for every 150 souls over the 350 the books open on */
+ const MAX_STALLS=23;
+ function stallCount(feeLevel,covered,pop){return clamp([6,4,3,1][clamp(feeLevel|0,0,3)]+(covered?5:0)+Math.floor(Math.max(0,(pop||0)-350)/100),0,MAX_STALLS);}   /* a pitch more for every 100 souls over the 350 the books open on */
  /* traffic on the boulevard, as pure functions of time: wagons both ways, handcarts one way */
  function traffic(world,look,time){
   const c=square(world),x0=420,x1=(look.xMax||world.w-1300)+200,span=x1-x0,out=[];
@@ -478,6 +484,36 @@
     if(i%2)ellipse(g,x+cx*R*.5,top+sy*R*.5+drop*.5,2.2,2.2,'rgba(255,255,255,'+(alpha*.85).toFixed(3)+')');}
   }
  }
+ /* 💨 Where the chimney pots are on each house painting, as fractions of the art (u across, v down), read off the
+    pictures under a grid. A face with no chimney (the stair house, the Exchange, the Playhouse, the lists, the
+    hospital, the University) or with smoke already painted on it (the Bathhouse, the Schoolhouse) is not listed. */
+ const CHIMNEYS=Object.freeze({
+  house_timber:[[.78,.02]],house_stone:[[.64,.01]],house_shop:[[.65,.01]],house_turret:[[.34,.2]],house_tenement:[[.70,.02],[.42,.04]],house_manor:[[.55,.01]],
+  work_apprentice:[[.73,.01]],work_brothel:[[.72,.01]],work_caravanserai:[[.15,.01],[.84,.01]],work_carters:[[.17,.01],[.83,.01]],work_courthouse:[[.50,.01]],work_customs:[[.50,.01]],
+  work_fleet:[[.73,.11]],work_library:[[.79,.01]],work_newquarter:[[.78,.01]],work_press:[[.76,.01]],work_quay:[[.22,.13]],work_tenements:[[.16,.01],[.50,.01],[.83,.01]],
+  /* beyond the City: Moonshine's houses (these paintings carry wide transparent margins, so the pots sit well inside
+     the frame), the training lodge, the farm's houses, and the smelter's stack - a third number is how big it smokes */
+  tavern:[[.19,.175]],casino:[[.19,.235]],bank:[[.19,.21]],blacksmith:[[.245,.17,1.25]],training_lodge:[[.23,.105]],
+  farmhouse_litet:[[.24,.02]],Farmhouse_medium:[[.18,.095]],farmhouse_mansion:[[.275,.075],[.66,.03]],smelter:[[.31,.01,1.9]],
+ });
+ /* hearth smoke from a lived-in house, in the house's own frame: soft puffs that rise, swell, drift downwind and thin out.
+    `cold` (a hard winter) stokes every fire. Drawn with whatever globalAlpha the house itself is drawn with. */
+ function drawSmoke(g,key,W,H,top,time=0,seed=0,cold=false){
+  const pots=CHIMNEYS[key];if(!pots)return 0;
+  const k0=Math.max(.6,Math.min(1.5,H/320)),n=cold?9:7;
+  for(let c=0;c<pots.length;c++){
+   const k=k0*(pots[c][2]||1),rise=(cold?170:130)*k;
+   const x0=-W/2+pots[c][0]*W,y0=top+pots[c][1]*H,ph=seed*.37+c*1.9;
+   for(let i=0;i<n;i++){
+    const p=(time*.09+i/n+ph)%1,sway=Math.sin(time*.7+i*1.3+ph)*7*k*p,r=(6+p*24)*k,a=Math.sin(Math.min(1,p*4)*Math.PI/2)*Math.pow(1-p,1.3)*(cold?.85:.72);
+    const x=x0+p*40*k+sway,y=y0-5*k-p*rise;
+    ellipse(g,x+r*.18,y+r*.2,r,r*.86,'rgba(70,66,62,'+(a*.35).toFixed(3)+')');        /* the shaded underside: without it a pale puff is lost on pale paving */
+    ellipse(g,x,y,r,r*.86,'rgba(244,241,235,'+a.toFixed(3)+')');
+    ellipse(g,x-r*.3,y-r*.28,r*.55,r*.48,'rgba(255,255,255,'+(a*.55).toFixed(3)+')');
+   }
+  }
+  return pots.length;
+ }
  /* does this house stand empty? a stable hash of its seed against how far the population has fallen */
  function vacant(house,vacancy){return vacancy>0&&!house.work&&(hash(Math.round(house.x),Math.round(house.y))%1000)/1000<vacancy;}
 
@@ -574,6 +610,6 @@
   g.restore();
  }
  return Object.freeze({ANCHORS,TINT,props,assignHouses,stallSlots,lampSpots,stallCount,traffic,litter,bunting,vacant,onStreet,
-  noticeBoard,streetLife,fireLevel,dressing,drawDressing,drawSnow,drawFireworks,
+  CHIMNEYS,drawSmoke,MAX_STALLS,noticeBoard,streetLife,fireLevel,dressing,drawDressing,drawSnow,drawFireworks,
   drawProp,drawShadow,drawHouseWork,drawVacant,drawLitter,drawBunting,drawTraffic});
 });

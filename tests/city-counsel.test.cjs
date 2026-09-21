@@ -29,13 +29,15 @@ test('he speaks of what presses hardest: the red before bread, bread before the 
 });
 
 test('he hints and never counts: no figures, no level names in anything he can say',()=>{
+ const sour=open();sour.budget.salary=3;sour.mood=30;assert.match(E.counselTopics(sour,{},E.forecast(sour,{})).find(t=>t.id==='mood').lines[0],/what their Master of Coin pays himself/);
  const levels=[].concat(...Object.values(E.LINES).concat(Object.values(E.RATES)).map(g=>g.levels.map(l=>l.name))).filter(n=>n!=='None'&&n!=='Fair'&&n!=='Standard'&&n!=='Kept');
  const states=[open(),(()=>{const s=open();s.treasury=-1;s.mood=20;s.protest=true;s.attract=20;s.food.stock=0;s.food.hunger=2;s.king.pleasure=10;s.king.demand={id:'barge',age:1};s.petition={id:'mint',age:1};
   s.incidents=[{id:'brawl',age:3}];s.budget.tax=30;for(const id of Object.keys(s.council))s.council[id]=20;s.jail=Array.from({length:9},(_,i)=>({name:'P'+i,term:3,served:0}));return s;})(),
+  (()=>{const s=open();s.budget.salary=3;s.mood=30;return s;})(),   /* the Master of Coin's own salary is what sours them */
   (()=>{const s=open();s.treasury=2e6;s.budget.tax=20;s.budget.rent=3;s.pop=500;s.attract=80;s.season.card={id:'winter',mods:{eat:1.2}};s.food.auto=true;return s;})()];
  let seen=0;
  for(const s of states)for(const t of E.counselTopics(s,{},E.forecast(s,{})))for(const line of t.lines){
-  seen++;assert.ok(!/\d/.test(line),'a figure in: '+line);
+  seen++;assert.ok(!/\d/.test(line),'a figure in: '+line);assert.ok(!/undefined|NaN/.test(line),'a hole in: '+line);
   for(const n of levels)assert.ok(!line.includes(n),'names the level “'+n+'”: '+line);
  }
  assert.ok(seen>=15,'only '+seen+' lines were looked at');

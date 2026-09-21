@@ -66,8 +66,12 @@ test('every work with a house site has an anchor and a signboard, and keeps its 
 
 test('the market shrinks with the fee and grows with the covered market and the population',()=>{
  assert.deepEqual([0,1,2,3].map(f=>Works.stallCount(f,false,350)),[6,4,3,1]);
- assert.equal(Works.stallCount(1,true,350),9);assert.equal(Works.stallCount(1,false,800),7,'a bigger city fills more pitches');assert.equal(Works.stallCount(0,true,5000),12,'twelve pitches and no more');
- assert.equal(Works.stallSlots(city()).length,12);
+ assert.equal(Works.stallCount(1,true,350),9);assert.equal(Works.stallCount(1,false,800),8,'a pitch more for every hundred souls');assert.equal(Works.stallCount(0,true,5000),Works.MAX_STALLS,'every pitch taken, and no more');
+ const slots=Works.stallSlots(city());assert.equal(slots.length,Works.MAX_STALLS);assert.equal(Works.MAX_STALLS,23);
+ /* the new pitches keep clear of each other, of the wagons' lane across the square and of what else stands on it */
+ for(let i=12;i<slots.length;i++)for(let j=0;j<i;j++)assert.ok(Math.hypot(slots[i].x-slots[j].x,slots[i].y-slots[j].y)>=95,i+' crowds '+j);
+ for(const p of slots.slice(12))assert.ok(Math.abs(p.y-2600)>=110,'a pitch in the wagons’ lane');
+ for(const [dx,dy,r] of [[-270,-250,110],[270,-250,90],[285,258,150],[0,-300,120],[-6,190,110],[118,212,90]])for(const p of slots)assert.ok(Math.hypot(p.x-8400-dx,p.y-2600-dy)>=r,'a pitch on top of something at '+dx+','+dy);
 });
 
 test('traffic is a function of the clock: wagons by the trade, handcarts in or out by the city\'s draw',()=>{

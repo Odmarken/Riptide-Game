@@ -80,7 +80,7 @@
 .ledger-help b{color:#f3e4c9}
 @media(max-width:640px){.ledger-tiles.two,.ledger-seats{grid-template-columns:1fr}}
 /* 🏗 the Works tab, 👑 the Crown tab and ⛓ the Gaol tab */
-.craft-ledger .craft-tab{min-width:84px;padding:9px 6px}
+.craft-ledger .craft-tab{min-width:72px;padding:9px 4px;gap:5px;font-size:12.5px}
 .ledger-works{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .ledger-work{border:1px solid var(--craft-line);border-radius:12px;padding:11px 13px;background:#1d160fd9;min-width:0;display:flex;flex-direction:column;gap:6px}
 .ledger-work h4{margin:0;font:15px/1.3 var(--display,serif);color:#e5d1ab;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
@@ -143,3 +143,10 @@
 .ledger-counsel{border-color:#8a6d3a;background:#241c10}.ledger-counsel .ledger-voice{font-size:13px;color:#ecdcb8;border-left:3px solid var(--craft-accent);padding-left:10px;margin:4px 0 10px}
 .sc-proj{fill:none;stroke-width:2;stroke-dasharray:5 6;stroke-linecap:round;opacity:.8}.sc-cone{opacity:.13}.sc-guess{opacity:.8;font-style:italic}.season-legend .key.guess{background:repeating-linear-gradient(90deg,#cdbb9c 0 4px,transparent 4px 8px)}.season-guess{margin-top:8px}
 .ledger-seat.mine{border-color:var(--craft-accent);background:#2a2214}
+.talk{display:grid;grid-template-columns:230px 1fr;gap:18px;align-items:start}.talk-portrait{display:flex;flex-direction:column;align-items:center;gap:3px;padding:14px 10px;border:1px solid var(--craft-accent);border-radius:14px;background:radial-gradient(circle at 50% 30%,#3a2c16,#1d160f);text-align:center}
+.talk-portrait img{width:190px;height:auto;filter:drop-shadow(0 6px 10px #000a)}.talk-portrait b{font:700 15px/1.2 Georgia,serif;color:#f0e2c4;margin-top:6px}.talk-portrait small{font:11px/1.3 var(--body,sans-serif);color:#a8977a}
+.talk-mood{font:700 13px/1 Georgia,serif;margin-top:8px;letter-spacing:.04em;text-transform:uppercase}.talk-pips{display:flex;gap:5px;margin-top:8px}.talk-pips i{width:16px;height:7px;border-radius:4px;background:#3a2f22;border:1px solid #5a4a36}.talk-pips i.on{background:#d9a441;border-color:#ffd76a}
+.talk-bubble{position:relative;margin:0 0 14px;padding:14px 16px;border:1px solid #8a6d3a;border-radius:14px;background:#2a2214}.talk-bubble:before{content:"";position:absolute;left:-9px;top:34px;width:16px;height:16px;background:#2a2214;border-left:1px solid #8a6d3a;border-bottom:1px solid #8a6d3a;transform:rotate(45deg)}
+.talk-bubble p{font:italic 14.5px/1.6 Georgia,serif;color:#f0e2c4;margin:0}.talk-bubble small{display:block;margin-top:8px;font:11px/1 var(--body,sans-serif);color:#a8977a}
+.talk-bid{margin:0 0 12px;padding:12px 14px;border:1px solid var(--craft-line);border-radius:12px;background:#1d160fd9;text-align:center}.talk-bid>span{display:block;font:700 10.5px/1 var(--body,sans-serif);letter-spacing:.12em;text-transform:uppercase;color:#d9a441}.talk-bid>b{display:block;font:400 28px/1.2 Georgia,serif;color:#f0e2c4;margin:4px 0 0}.talk-bid>small{display:block;color:#a8977a;font-size:11px;margin-bottom:8px}
+@media(max-width:700px){.talk{grid-template-columns:1fr}}

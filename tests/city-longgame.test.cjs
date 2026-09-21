@@ -483,12 +483,8 @@ test('the Velvet Lantern: dear to build, pays like the plate - by the household 
  assert.ok(E.worksView(s,{}).list.find(w=>w.id==='brothel').effects.some(e=>/household/.test(e)));
 });
 
-test('a save from before the new coinage is re-struck at ten to one, not closed',()=>{
- const old={v:2,chartered:true,treasury:412345,loan:480000,limit:650000,earned:90000,spent:70000,borrowed:500000,repaid:20000,pop:410,mood:66,works:{carters:{left:0}},
-  season:{n:1,startLoan:500000,startTreasury:500000,target:450000,interest:9000,series:[{t:498000,d:500000,n:-2000}]},history:[{n:1,in:5000,out:7000,net:-2000,treasury:498000,was:500000,events:[]}]};
- const s=E.normalize(old);
- assert.equal(s.v,E.VERSION);assert.equal(s.treasury,4123450);assert.equal(s.loan,4800000);assert.equal(s.limit,6500000);assert.equal(s.season.target,4500000);
- assert.deepEqual(s.season.series,[{t:4980000,d:5000000,n:-20000}]);assert.equal(s.history[0].net,-20000);
- assert.equal(s.pop,410);assert.equal(s.mood,66);assert.ok(E.has(s,'carters'),'and nothing but the gold is touched');
- assert.equal(old.treasury,412345,'the save handed in is not written on');
+test('every city from before the office had to be earned is closed: it starts again from a commoner on the square',()=>{
+ for(const v of [2,3]){const s=E.normalize({v,chartered:true,treasury:412345,loan:480000,pop:410,office:3,noble:{rank:6,xp:9000}});assert.deepEqual(s,E.create(),'v'+v);}
+ assert.equal(E.create().office,0);assert.equal(E.create().chartered,false);
+ assert.equal(E.recoin({v:2,treasury:5,loan:7},10).treasury,50,'the re-striking tool is still there for the next coinage');
 });

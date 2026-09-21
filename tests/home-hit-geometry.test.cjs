@@ -110,6 +110,8 @@ function harness(options = {}) {
       },
     },
   });
+  context.performance = { now: () => 0 };
+  context.CityWorks = { CHIMNEYS: {}, drawSmoke: () => 0 }; // geometry only: drawProp's hearth smoke over a Home building's chimney
   vm.runInContext(masksSource, context, { filename: 'home-hit-masks.js' });
   vm.runInContext(section('const HOME_BUILDINGS=', 'const stenImg='), context, { filename: 'game.js:Home' });
   vm.runInContext(section('const SGRID=', 'function speedOf('), context, { filename: 'game.js:collision' });

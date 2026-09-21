@@ -46,6 +46,7 @@ function harness() {
     return art.get(file);
   };
   const context = vm.createContext({
+    CityWorks: { CHIMNEYS: {}, drawSmoke: () => 0 }, performance: { now: () => 0 }, // geometry only: drawProp's hearth smoke over a Home building's chimney
     ctx, zoom: .5, seeThrough: () => 1, mip: img => img,
     tavernImg: load('models/tavern.png'), casinoImg: load('models/casino.png'),
     bankImg: load('models/bank.png'), smithImg: load('models/blacksmith.png'),
@@ -78,7 +79,10 @@ const farm = (ftype, it = {}) => ({ type: 'farmitem', ftype, x: 700, y: 900, it 
 
 test('mirroring reflects the calibrated offset and tilt, without moving the ground contact vertically', () => {
   const h = harness();
-  for (const id of ['bench', 'light_farm', 'windmill']) {
+  // The garden bench was redrawn on 2026-09-16 (ac6e7a6) with a centred, untilted footprint, so it no longer exercises
+  // mirroring; the farm sign's shadow sits well off-centre and does. No piece is tilted any more - the sign flip of the
+  // rotation is still held for all of them below.
+  for (const id of ['farmsign', 'light_farm', 'windmill']) {
     const s = farm(id), [normal] = h.shadow(s), [flipped] = h.shadow({ ...s, it: { fl: -1 } });
     assert.ok(normal && flipped, id);
     assert.notEqual(normal.x, s.x, `${id} must exercise an asymmetric footprint`);
@@ -87,7 +91,6 @@ test('mirroring reflects the calibrated offset and tilt, without moving the grou
     close(normal.width, flipped.width, id);
     close(normal.height, flipped.height, id);
     close(normal.rotation, -flipped.rotation, id);
-    if (id === 'bench') assert.notEqual(normal.rotation, 0, 'The bench must exercise its tilted footprint');
   }
 });
 

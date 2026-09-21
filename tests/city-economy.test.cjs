@@ -15,7 +15,9 @@ const quiet=()=>.95;                /* a roll of .95 never triggers an event */
 test('the strongroom starts empty and the books stay shut until the founding loan is signed',()=>{
  const s=E.create();
  assert.equal(s.treasury,0);assert.equal(s.loan,0);assert.equal(s.limit,0);assert.equal(s.chartered,false);assert.equal(s.season,null);assert.equal(s.v,E.VERSION);
- assert.equal(E.advance(s,999990),0,'no close falls before the signing');assert.equal(s.clock,0);
+ /* the clock runs for the clerks at the notice board, but a close before the signing touches no ledger */
+ assert.equal(E.advance(s,E.TICK_SECONDS),1);const idle=E.tick(s,{},()=>.95);
+ assert.equal(idle.idle,true);assert.equal(idle.net,0);assert.equal(s.treasury,0);assert.equal(s.history.length,0);assert.equal(s.season,null);assert.equal(s.mood,60);assert.equal(s.pop,E.POPULATION);s.clock=0;
  assert.equal(E.borrow(s,{},10000),0,'and the bank lends nothing but the founding loan');
  const r=E.charter(s);
  assert.ok(r.ok);assert.equal(s.chartered,true);assert.equal(s.treasury,E.FOUNDING_LOAN);assert.equal(s.loan,E.FOUNDING_LOAN);assert.equal(E.FOUNDING_LOAN,5000000);
@@ -27,7 +29,7 @@ test('the strongroom starts empty and the books stay shut until the founding loa
 test('the customary budget does not pay for itself - the King alone sees to that - and settles the people as content',()=>{
  const s=open(),f=E.forecast(s,{});
  assert.equal(s.mood,60);assert.equal(s.protest,false);
- assert.deepEqual(s.budget,{tax:10,rent:1,fee:1,duty:1,tithe:1,watch:1,roads:1,relief:1,festival:0,court:1,clean:1,learn:1,food:1,purse:1});
+ assert.deepEqual(s.budget,{tax:10,rent:1,fee:1,duty:1,tithe:1,watch:1,roads:1,relief:1,festival:0,court:1,clean:1,learn:1,food:1,purse:1,salary:0});
  assert.ok(f.net<-20000&&f.net>-60000,`net ${f.net}: doing nothing loses money at every close`);
  const purse=f.expenses.find(l=>l.id==='purse').amount;
  assert.ok(purse>=E.ROYAL_GUARD*E.GUARD_WAGE*K&&purse>f.expenses.find(l=>l.id==='watch').amount*2,'a King is the dearest thing a city keeps: '+purse);
@@ -35,7 +37,7 @@ test('the customary budget does not pay for itself - the King alone sees to that
  assert.ok(f.income.find(l=>l.id==='church').amount>0,'the cathedral pays its share');
  assert.ok(f.moodTarget>=58&&f.moodTarget<=66,`mood target ${f.moodTarget}`);
  assert.equal(E.moodName(f.moodTarget),'Content');
- assert.equal(f.income.length,10);assert.equal(f.expenses.length,18);
+ assert.equal(f.income.length,10);assert.equal(f.expenses.length,19);
  assert.equal(f.expenses.find(l=>l.id==='grain').amount,0,'no standing shipments until the steward starts them');
  assert.equal(f.expenses.find(l=>l.id==='unrest').amount,0);assert.equal(f.expenses.find(l=>l.id==='obstruction').amount,0);
  assert.deepEqual(s.incidents,[]);assert.equal(s.petition,null);assert.equal(E.favour(s),60);
@@ -145,7 +147,7 @@ test('normalize repairs a damaged save, accepts a missing one and closes the boo
  const s=E.normalize({v:E.VERSION,chartered:1,treasury:'12.7',loan:-5,limit:'6500000',rate:9,mood:400,clock:9999,ticks:'x',protest:1,budget:{tax:11,watch:9,roads:-1,relief:'2'},history:[null,{n:1,net:5},'bad']});
  assert.equal(s.treasury,13);assert.equal(s.loan,0);assert.equal(s.limit,6500000);assert.equal(s.rate,E.MAX_RATE);assert.equal(s.mood,100);assert.equal(s.clock,E.TICK_SECONDS);assert.equal(s.ticks,0);assert.equal(s.protest,true);
  assert.equal(s.chartered,true);assert.equal(s.season.n,1);assert.deepEqual(s.season.series,[]);
- assert.deepEqual(s.budget,{tax:10,rent:1,fee:1,duty:1,tithe:1,watch:3,roads:0,relief:2,festival:0,court:1,clean:1,learn:1,food:1,purse:1});
+ assert.deepEqual(s.budget,{tax:10,rent:1,fee:1,duty:1,tithe:1,watch:3,roads:0,relief:2,festival:0,court:1,clean:1,learn:1,food:1,purse:1,salary:0});
  assert.deepEqual(s.history,[{n:1,net:5}]);assert.deepEqual(s.last,{n:1,net:5});
  assert.equal(E.setBudget(s,'tax',12),false);assert.equal(E.setBudget(s,'watch',4),false);assert.equal(E.setBudget(s,'nope',1),false);
 });
@@ -252,4 +254,9 @@ test('normalize repairs unrest, council and petition from a damaged save',()=>{
  assert.equal(s.council.stone,100);assert.equal(s.council.coin,undefined,'a seat from an older save that no longer exists is dropped');assert.equal(s.council.sword,60);assert.equal(s.council.bread,60);
  assert.equal(s.petition,null);
  assert.deepEqual(E.normalize({v:E.VERSION,petition:{id:'audit',age:1}}).petition,{id:'audit',age:1});
+});
+
+test('what game.js remembers on the city survives a save: the crown is announced once, not after every restart',()=>{
+ const s=open();assert.equal(s.coupTold,false);s.coupTold=true;
+ assert.equal(E.normalize(JSON.parse(JSON.stringify(s))).coupTold,true);assert.equal(E.normalize({v:E.VERSION,chartered:true}).coupTold,false);
 });

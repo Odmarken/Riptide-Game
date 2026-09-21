@@ -846,6 +846,91 @@
     614,
     640
    ]
+  },
+  "ruler_roderic.png": {
+   "jobId": "e61f6211-a830-4678-971f-d2e87ccdffea",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    6,
+    12,
+    876,
+    1159
+   ],
+   "size": [
+    485,
+    640
+   ]
+  },
+  "ruler_aldric.png": {
+   "jobId": "d477010f-9e9a-40c1-999e-0656136af3de",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    0,
+    0,
+    880,
+    1158
+   ],
+   "size": [
+    486,
+    640
+   ]
+  },
+  "ruler_sigvald.png": {
+   "jobId": "bbcf8add-0940-4caf-97d5-0d6afbbd0106",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    0,
+    2,
+    880,
+    1159
+   ],
+   "size": [
+    487,
+    640
+   ]
+  },
+  "ruler_corvin.png": {
+   "jobId": "d5aef4b0-a9ac-4efd-b8ef-dede48c9e505",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    2,
+    0,
+    877,
+    1162
+   ],
+   "size": [
+    482,
+    640
+   ]
+  },
+  "ruler_isaura.png": {
+   "jobId": "f8b47957-eb77-40a2-a30f-0efc175a8fb0",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    26,
+    0,
+    861,
+    1158
+   ],
+   "size": [
+    461,
+    640
+   ]
   }
  }
 }

@@ -101,3 +101,16 @@ test('every painting the city asks for is on disk, and every finished work that 
  for(const file of Object.keys(manifest.art)){assert.ok(fs.existsSync(path.join(dir,file)),file);assert.match(manifest.art[file].jobId,/^[0-9a-f-]{36}$/);}
  assert.ok(Object.keys(manifest.art).length>=48);
 });
+
+test('hearth smoke rises from every painted chimney pot, and from none where the painting has none',()=>{
+ const count={calls:0},g=fakeContext(count);
+ for(const key of Object.keys(Works.CHIMNEYS)){
+  const fs=require('node:fs'),path=require('node:path'),file=key==='training_lodge'?'training-lodge':key;
+  assert.ok(['city','models','farm','wasteland'].some(dir=>fs.existsSync(path.join(__dirname,'..','assets',dir,file+'.png'))),key+' has a painting');
+  for(const [u,v,size=1] of Works.CHIMNEYS[key])assert.ok(u>0&&u<1&&v>=0&&v<.3&&size>=1&&size<=2,key+' pot off the roof: '+u+','+v);
+  for(const t of [0,3.3,999])assert.equal(Works.drawSmoke(g,key,220,300,-290,t,41,t>100),Works.CHIMNEYS[key].length);
+ }
+ const before=count.calls;
+ for(const key of ['house_stair','work_exchange','work_theatre','work_school','work_bathhouse','nothing'])assert.equal(Works.drawSmoke(g,key,220,300,-290,1,1),0,key);
+ assert.equal(count.calls,before);assert.ok(before>300);
+});
