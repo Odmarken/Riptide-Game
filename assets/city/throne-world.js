@@ -26,7 +26,7 @@
  const THRONE=Object.freeze({x:900,y:1228});
  const KING=Object.freeze({x:900,y:1318});
  const TABLE=Object.freeze({x:900,y:640});
- const HAND=Object.freeze({x:900,y:905});
+ const HAND=Object.freeze({x:700,y:806});   /* the King's Hand keeps the books from the near-left chair, at the table with the council */
  const EXIT=Object.freeze({x:900,y:3225,r:70});
  const SPAWN=Object.freeze({x:900,y:3000});
  const PILLAR_X=Object.freeze([520,1280]),PILLAR_Y=Object.freeze([1560,1900,2240,2580,2920]);
@@ -43,13 +43,13 @@
  const CELLS=Object.freeze(Array.from({length:CELL_COUNT},(_,i)=>Object.freeze({x:GAOL.x+70+i*104,y:GAOL.y})));
  const GAOLER=Object.freeze({x:GAOL.x+GAOL.w-330,y:GAOL.y+372}),GAOLER_NAME='Fångvaktare Grim · Gaoler';
  const GUARDS=Object.freeze(['Gardist Torvald','Gardist Ulf','Gardist Einar','Gardist Sten','Gardist Ragnar','Gardist Bo','Gardist Arne','Gardist Halvar']);
- /* 🏛 the six seats of the council (ids match CityEconomy.COUNCIL): who sits there, in which of the
-    townsfolk's clothes, and where he stands - three behind the far chairs, three before the near ones */
+ /* 🏛 the seats of the council (ids match CityEconomy.COUNCIL): who sits there, in which of the
+    townsfolk's clothes, and where he stands - three behind the far chairs, two before the near ones.
+    The near-left chair is the King's Hand's (HAND); the steward, as Master of Coin, sits where he likes. */
  const SEATS=Object.freeze([
-  {seat:'coin',name:'Gottfrid Pung · Master of Coin',skin:'merchant',x:690,y:478,fx:1},
   {seat:'sword',name:'Brynolf Järnhand · Lord Commander',skin:'guard',x:900,y:472,fx:1},
   {seat:'stone',name:'Hallvard Städ · Master Builder',skin:'blacksmith',x:1110,y:478,fx:-1},
-  {seat:'bread',name:'Syster Agnes · High Almoner',skin:'female',female:true,x:700,y:806,fx:1},
+  {seat:'bread',name:'Gottfrid Pung · High Almoner',skin:'merchant',x:690,y:478,fx:1},   /* behind the far-left chair, where he always stood */
   {seat:'revel',name:'Casimir Lilje · Master of Revels',skin:'noble_dandy',x:900,y:812,fx:-1},
   {seat:'chamber',name:'Ansgar Vidhem · Lord Chamberlain',skin:'noble_elder',x:1100,y:806,fx:-1},
  ]);
@@ -478,7 +478,16 @@
  /* ⛓ the grille across a cell: a frame, nine bars, a lock plate. A cell the gaol has not been given
     yet (s.walled - the New Gaol Wing opens the last four) is bricked up to the arch instead. */
  function cellBars(g,s){
-  const w=CELL_W,h=CELL_D;
+  const w=CELL_W,h=CELL_D,art=rememberedImages[s.walled?'bricked':'bars'];
+  if(ready(art)){
+   /* 🎨 the painted grille (or the bricked-up doorway), fitted to the cell mouth; the slate with the name still hangs on it */
+   g.drawImage(art,-w/2-3,-h-6,w+6,h+8);
+   if(s.label&&!s.walled){
+    rect(g,-w/2+3,-h+5,w-6,15,'#1b1917','#6f695f',1.2);
+    g.save();g.textAlign='center';g.font='700 9px Georgia, serif';g.fillStyle=s.royal?'#ffd76a':'#e6dbc9';g.fillText(s.label,0,-h+16,w-12);g.restore();
+   }
+   return;
+  }
   if(s.walled){
    stoneFace(g,-w/2,-h-4,w,h,'#3a3531','rgba(0,0,0,.5)',20);
    g.save();g.textAlign='center';g.font='italic 11px Georgia, serif';g.fillStyle='rgba(230,214,176,.45)';g.fillText('bricked up',0,-h/2);g.restore();
@@ -580,6 +589,7 @@
   throne:{key:'throne',h:320,drop:26,glow:[.5,.30,200]},
   table:{key:'table',h:286,drop:143,glow:[.47,.30,200]},
   brazier:{key:'brazier',h:104,drop:12,glow:[.5,.20,190],fire:[.5,.30,1]},
+  gaoldesk:{key:'gaoldesk',h:132,drop:40,glow:[.68,.10,90]},      /* 🎨 Higgsfield 2026-09-21 (assets/city/city-art-manifest.json) */
  };
  function drawArt(g,s,time,images){
   const a=ART[s.kind],im=a&&images[a.key];

@@ -773,9 +773,17 @@
    </div>
   </div>
 
+  <div id="boardFx" class="craft-modal" role="dialog" aria-modal="true" aria-labelledby="boardTitle" style="display:none">
+   <div class="casinobox craft-box craft-ledger">
+    <header class="craft-header"><div class="ledger-seal" aria-hidden="true">📌</div><div><div class="craft-kicker">THE GREAT SQUARE</div><h2 id="boardTitle" class="craft-title">The Notice Board</h2><p class="craft-subtitle">What the city wants done, and who will put their name to it. Contracts are let to the nobility - and nothing given here ever comes back.</p></div></header>
+    <div class="craft-scroll"><div id="boardBody"></div></div>
+    <p class="craft-status" id="boardMsg" role="status" aria-live="polite"></p>
+    <footer class="craft-footer"><span>The board is re-posted once an hour of play. Every paper takes a quarter of an hour to clear.</span><button id="boardClose" class="sbtn">Step back</button></footer>
+   </div>
+  </div>
   <div id="ledgerFx" class="craft-modal" role="dialog" aria-modal="true" aria-labelledby="ledgerTitle" style="display:none">
    <div class="casinobox craft-box craft-ledger">
-    <header class="craft-header"><div class="ledger-seal" aria-hidden="true">👑</div><div><div class="craft-kicker">THE COUNCIL CHAMBER</div><h2 id="ledgerTitle" class="craft-title">The Crown Ledger</h2><p class="craft-subtitle">Taxes, rents and public works; a King to keep and a realm to win. The King’s Hand keeps the books; you run the city.</p></div><button id="ledgerHelp" class="ledger-helpbtn" type="button" aria-label="How the ledger works" aria-pressed="false" title="How it all works">?</button></header>
+    <header class="craft-header"><div class="ledger-seal" aria-hidden="true">👑</div><div><div class="craft-kicker">THE COUNCIL CHAMBER</div><h2 id="ledgerTitle" class="craft-title">The Crown Ledger</h2><p class="craft-subtitle">Taxes, rents and public works; a King to keep and a realm to win. You sit as Master of Coin: the King’s Hand keeps the books, you run the city.</p></div><button id="ledgerHelp" class="ledger-helpbtn" type="button" aria-label="How the ledger works" aria-pressed="false" title="How it all works">?</button></header>
     <div class="craft-tabs" id="ledgerTabs" role="tablist">
      <button class="craft-tab active" data-ltab="overview" role="tab" aria-selected="true">📜 Overview</button>
      <button class="craft-tab" data-ltab="budget" role="tab" aria-selected="false">⚖️ Budget</button>

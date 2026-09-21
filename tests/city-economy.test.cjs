@@ -15,11 +15,11 @@ const quiet=()=>.95;                /* a roll of .95 never triggers an event */
 test('the strongroom starts empty and the books stay shut until the founding loan is signed',()=>{
  const s=E.create();
  assert.equal(s.treasury,0);assert.equal(s.loan,0);assert.equal(s.limit,0);assert.equal(s.chartered,false);assert.equal(s.season,null);assert.equal(s.v,E.VERSION);
- assert.equal(E.advance(s,99999),0,'no close falls before the signing');assert.equal(s.clock,0);
- assert.equal(E.borrow(s,{},1000),0,'and the bank lends nothing but the founding loan');
+ assert.equal(E.advance(s,999990),0,'no close falls before the signing');assert.equal(s.clock,0);
+ assert.equal(E.borrow(s,{},10000),0,'and the bank lends nothing but the founding loan');
  const r=E.charter(s);
- assert.ok(r.ok);assert.equal(s.chartered,true);assert.equal(s.treasury,E.FOUNDING_LOAN);assert.equal(s.loan,E.FOUNDING_LOAN);assert.equal(E.FOUNDING_LOAN,500000);
- assert.equal(s.limit,E.FOUNDING_LOAN+E.RESERVE_LINE);assert.equal(s.season.n,1);assert.equal(s.season.target,450000,'a tenth of it back by the end of the season');
+ assert.ok(r.ok);assert.equal(s.chartered,true);assert.equal(s.treasury,E.FOUNDING_LOAN);assert.equal(s.loan,E.FOUNDING_LOAN);assert.equal(E.FOUNDING_LOAN,5000000);
+ assert.equal(s.limit,E.FOUNDING_LOAN+E.RESERVE_LINE);assert.equal(s.season.n,1);assert.equal(s.season.target,4500000,'a tenth of it back by the end of the season');
  assert.equal(E.charter(s),null,'signed once');
  assert.equal(E.advance(s,E.TICK_SECONDS),1,'and now the clock runs');
 });
@@ -28,7 +28,7 @@ test('the customary budget does not pay for itself - the King alone sees to that
  const s=open(),f=E.forecast(s,{});
  assert.equal(s.mood,60);assert.equal(s.protest,false);
  assert.deepEqual(s.budget,{tax:10,rent:1,fee:1,duty:1,tithe:1,watch:1,roads:1,relief:1,festival:0,court:1,clean:1,learn:1,food:1,purse:1});
- assert.ok(f.net<-2000&&f.net>-6000,`net ${f.net}: doing nothing loses money at every close`);
+ assert.ok(f.net<-20000&&f.net>-60000,`net ${f.net}: doing nothing loses money at every close`);
  const purse=f.expenses.find(l=>l.id==='purse').amount;
  assert.ok(purse>=E.ROYAL_GUARD*E.GUARD_WAGE*K&&purse>f.expenses.find(l=>l.id==='watch').amount*2,'a King is the dearest thing a city keeps: '+purse);
  assert.ok(f.net+purse>0,'without him the budget would balance');
@@ -57,7 +57,7 @@ test('one city, one currency: prestige changes nothing, and what the hero adds f
  assert.equal(skilled.income.find(l=>l.id==='farm').amount,60*K);
  /* however far the hero has come: a few thousand a close at the very most, and never enough to carry the city */
  const maxed=E.forecast(s,{mining:999,smith:99,ench:999,miningTrained:true,enchTrained:true,smelter:true,farmOwned:true,farmLvl:99});
- assert.ok(maxed.totalIn-plain.totalIn<=3000&&maxed.totalIn-plain.totalIn>=1500,'perk '+(maxed.totalIn-plain.totalIn));
+ assert.ok(maxed.totalIn-plain.totalIn<=30000&&maxed.totalIn-plain.totalIn>=15000,'perk '+(maxed.totalIn-plain.totalIn));
  assert.ok(maxed.net<0,'a city nobody runs loses money whoever its steward is: '+maxed.net);
  assert.equal(plain.income.find(l=>l.id==='guilds').amount,0);
 });
@@ -94,14 +94,14 @@ test('harsh taxes and no bread start a protest; bread and a lighter tax end it a
 
 test('the Tides Bank lends along its line, charges half a percent a close and is repaid only from a treasury in credit',()=>{
  const s=open();
- assert.equal(E.creditLimit({}),650000);assert.equal(E.creditLimit({prestige:50}),650000,'the line is the bank\'s, not the hero\'s');
+ assert.equal(E.creditLimit({}),6500000);assert.equal(E.creditLimit({prestige:50}),6500000,'the line is the bank\'s, not the hero\'s');
  assert.equal(E.borrow(s,{},1e9),E.RESERVE_LINE,'the reserve is all that is left on the line');
- assert.equal(s.loan,650000);assert.equal(s.treasury,650000);assert.equal(s.borrowed,650000);
+ assert.equal(s.loan,6500000);assert.equal(s.treasury,6500000);assert.equal(s.borrowed,6500000);
  assert.equal(E.borrow(s,{},1),0);
- assert.equal(E.forecast(s,{}).expenses.find(l=>l.id==='interest').amount,3250);
- assert.equal(E.repay(s,40000),40000);assert.equal(s.loan,610000);assert.equal(s.treasury,610000);assert.equal(s.repaid,40000);
+ assert.equal(E.forecast(s,{}).expenses.find(l=>l.id==='interest').amount,32500);
+ assert.equal(E.repay(s,400000),400000);assert.equal(s.loan,6100000);assert.equal(s.treasury,6100000);assert.equal(s.repaid,400000);
  s.treasury=-100;
- assert.equal(E.repay(s,1000),0,'nothing to repay with when the treasury is below zero');
+ assert.equal(E.repay(s,10000),0,'nothing to repay with when the treasury is below zero');
  const f=E.forecast(s,{});
  assert.equal(f.expenses.find(l=>l.id==='overdraft').amount,1);
  assert.ok(f.moodTarget<E.forecast(open(),{}).moodTarget-10,'a crown that cannot pay sours the mood');
@@ -109,13 +109,13 @@ test('the Tides Bank lends along its line, charges half a percent a close and is
 
 test('only what the treasury holds beyond its debt can be carried to the purse, and only as far as the purse has room',()=>{
  const s=open();
- assert.equal(E.withdraw(s,10000,1e9,{}),0,'borrowed gold never leaves the strongroom');
- s.treasury=E.FOUNDING_LOAN+20000;
- assert.equal(E.withdraw(s,30000,2500,{}),2500,'the purse has room for 2 500 only');
- assert.equal(E.withdraw(s,1e9,1e9,{}),17500,'then the rest of the surplus');
+ assert.equal(E.withdraw(s,100000,1e9,{}),0,'borrowed gold never leaves the strongroom');
+ s.treasury=E.FOUNDING_LOAN+200000;
+ assert.equal(E.withdraw(s,300000,25000,{}),25000,'the purse has room for 2 500 only');
+ assert.equal(E.withdraw(s,1e9,1e9,{}),175000,'then the rest of the surplus');
  assert.equal(s.treasury,E.FOUNDING_LOAN);assert.equal(E.withdraw(s,1,1e9,{}),0);
- assert.equal(E.deposit(s,7000,4000,{}),4000,'the purse only has 4 000');
- assert.equal(s.treasury,E.FOUNDING_LOAN+4000);assert.equal(E.deposit(s,-5,100,{}),0);
+ assert.equal(E.deposit(s,70000,40000,{}),40000,'the purse only has 4 000');
+ assert.equal(s.treasury,E.FOUNDING_LOAN+40000);assert.equal(E.deposit(s,-5,100,{}),0);
 });
 
 test('the clock counts play time in five-minute closes and survives a long absence',()=>{
@@ -141,9 +141,9 @@ test('events are gated on the budget and only roll on a low draw',()=>{
 
 test('normalize repairs a damaged save, accepts a missing one and closes the books of an older one',()=>{
  assert.deepEqual(E.normalize(undefined),E.create());
- assert.deepEqual(E.normalize({treasury:88000,loan:0,mood:90,budget:{tax:5}}),E.create(),'a save from before the founding loan starts again from the empty strongroom');
- const s=E.normalize({v:E.VERSION,chartered:1,treasury:'12.7',loan:-5,limit:'650000',rate:9,mood:400,clock:9999,ticks:'x',protest:1,budget:{tax:11,watch:9,roads:-1,relief:'2'},history:[null,{n:1,net:5},'bad']});
- assert.equal(s.treasury,13);assert.equal(s.loan,0);assert.equal(s.limit,650000);assert.equal(s.rate,E.MAX_RATE);assert.equal(s.mood,100);assert.equal(s.clock,E.TICK_SECONDS);assert.equal(s.ticks,0);assert.equal(s.protest,true);
+ assert.deepEqual(E.normalize({treasury:880000,loan:0,mood:90,budget:{tax:5}}),E.create(),'a save from before the founding loan starts again from the empty strongroom');
+ const s=E.normalize({v:E.VERSION,chartered:1,treasury:'12.7',loan:-5,limit:'6500000',rate:9,mood:400,clock:9999,ticks:'x',protest:1,budget:{tax:11,watch:9,roads:-1,relief:'2'},history:[null,{n:1,net:5},'bad']});
+ assert.equal(s.treasury,13);assert.equal(s.loan,0);assert.equal(s.limit,6500000);assert.equal(s.rate,E.MAX_RATE);assert.equal(s.mood,100);assert.equal(s.clock,E.TICK_SECONDS);assert.equal(s.ticks,0);assert.equal(s.protest,true);
  assert.equal(s.chartered,true);assert.equal(s.season.n,1);assert.deepEqual(s.season.series,[]);
  assert.deepEqual(s.budget,{tax:10,rent:1,fee:1,duty:1,tithe:1,watch:3,roads:0,relief:2,festival:0,court:1,clean:1,learn:1,food:1,purse:1});
  assert.deepEqual(s.history,[{n:1,net:5}]);assert.deepEqual(s.last,{n:1,net:5});
@@ -206,21 +206,23 @@ test('trouble is random, never doubled up, never more than two at once, and like
  assert.deepEqual(E.INCIDENTS.filter(d=>d.street).map(d=>d.id),['brawl','gang']);
 });
 
-test('the council: six seats that drift toward what their line deserves, and a favour that pays or costs',()=>{
+test('the council: five seats that drift toward what their line deserves - the sixth chair is the steward’s own - and a favour that pays or costs',()=>{
  const s=open();
- assert.deepEqual(Object.keys(s.council),E.COUNCIL.map(c=>c.id));assert.equal(E.COUNCIL.length,6);
+ assert.deepEqual(Object.keys(s.council),E.COUNCIL.map(c=>c.id));assert.equal(E.COUNCIL.length,5);
+ assert.equal(E.PLAYER_SEAT.title,'Master of Coin');assert.ok(!('coin' in s.council)&&E.COUNCIL.every(c=>c.line),'the steward sits as Master of Coin: nobody marks that chair, and every councillor watches a line');
+ assert.equal(E.COUNCIL.find(c=>c.id==='bread').who,'Gottfrid Pung');assert.ok(!E.COUNCIL.some(c=>/Agnes/.test(c.who)));
  E.setBudget(s,'watch',3);E.setBudget(s,'relief',0);
  for(let i=0;i<10;i++){E.attend(s);E.tick(s,{},quiet);}
  assert.ok(s.council.sword>=85,'the Lord Commander loves a Royal watch: '+s.council.sword);
  assert.ok(s.council.bread<=30,'the High Almoner does not forgive an empty granary: '+s.council.bread);
  const v=E.councilView(s,{});
- assert.equal(v.seats.length,6);assert.equal(v.favour,E.favour(s));assert.ok(v.seats.every(x=>x.say&&x.title&&x.who));
+ assert.equal(v.seats.length,5);assert.equal(v.favour,E.favour(s));assert.ok(v.seats.every(x=>x.say&&x.title&&x.who));
  /* devoted: trade and credit; hostile: padded bills */
  const hi=open();for(const k of Object.keys(hi.council))hi.council[k]=90;
  const lo=open();for(const k of Object.keys(lo.council))lo.council[k]=20;
  const base=E.forecast(open(),{}),up=E.forecast(hi,{}),down=E.forecast(lo,{});
  assert.ok(up.income.find(l=>l.id==='tolls').amount>base.income.find(l=>l.id==='tolls').amount);
- assert.equal(up.creditLimit,715000,'a devoted council is worth a tenth more on the line');assert.equal(base.creditLimit,650000);
+ assert.equal(up.creditLimit,7150000,'a devoted council is worth a tenth more on the line');assert.equal(base.creditLimit,6500000);
  assert.ok(down.expenses.find(l=>l.id==='obstruction').amount>0);assert.equal(base.expenses.find(l=>l.id==='obstruction').amount,0);
  assert.equal(E.favourName(90),'Devoted');assert.equal(E.favourName(20),'Hostile');
 });
@@ -234,8 +236,8 @@ test('petitions arrive at random, can be granted or refused, and lapse after two
  assert.equal(v.cost,900*K);assert.equal(v.seat,'sword');assert.equal(v.left,2);
  const sword=s.council.sword,mood=s.mood;
  s.treasury=100;assert.equal(E.answer(s,{},true).ok,false,'cannot grant what the treasury cannot cover');
- s.treasury=50000;const yes=E.answer(s,{},true);
- assert.equal(yes.accepted,true);assert.equal(s.treasury,50000-900*K);assert.equal(s.council.sword,sword+14);assert.equal(s.mood,mood+1);assert.equal(s.petition,null);
+ s.treasury=500000;const yes=E.answer(s,{},true);
+ assert.equal(yes.accepted,true);assert.equal(s.treasury,500000-900*K);assert.equal(s.council.sword,sword+14);assert.equal(s.mood,mood+1);assert.equal(s.petition,null);
  assert.equal(E.answer(s,{},true),null);
  const t=open();E.tick(t,{},script(.9,.9,.0,.0));
  const before=t.council.sword;assert.equal(E.answer(t,{},false).accepted,false);assert.equal(t.council.sword,before-8);
@@ -245,9 +247,9 @@ test('petitions arrive at random, can be granted or refused, and lapse after two
 });
 
 test('normalize repairs unrest, council and petition from a damaged save',()=>{
- const s=E.normalize({v:E.VERSION,incidents:[{id:'brawl',age:'3'},{id:'brawl',age:1},{id:'nope'},null,{id:'gang',age:-4},{id:'hunger'}],council:{coin:140,sword:'x'},petition:{id:'ghost'}});
+ const s=E.normalize({v:E.VERSION,incidents:[{id:'brawl',age:'3'},{id:'brawl',age:1},{id:'nope'},null,{id:'gang',age:-4},{id:'hunger'}],council:{coin:140,stone:140,sword:'x'},petition:{id:'ghost'}});
  assert.deepEqual(s.incidents,[{id:'brawl',age:3},{id:'gang',age:0}]);
- assert.equal(s.council.coin,100);assert.equal(s.council.sword,60);assert.equal(s.council.bread,60);
+ assert.equal(s.council.stone,100);assert.equal(s.council.coin,undefined,'a seat from an older save that no longer exists is dropped');assert.equal(s.council.sword,60);assert.equal(s.council.bread,60);
  assert.equal(s.petition,null);
  assert.deepEqual(E.normalize({v:E.VERSION,petition:{id:'audit',age:1}}).petition,{id:'audit',age:1});
 });

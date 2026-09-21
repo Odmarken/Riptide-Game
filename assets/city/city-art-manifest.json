@@ -1,0 +1,851 @@
+{
+ "generator": "Higgsfield",
+ "model": "gpt_image_2_5",
+ "variant": "flare",
+ "quality": "medium",
+ "resolution": "1k",
+ "background": "transparent",
+ "date": "2026-09-21",
+ "style": "What the Crown Ledger puts in the City and the gaol: one building for every public work that wears a house (front elevation, facade parallel to the screen, its name carved on its own sign), the props of the great square, the traffic of the boulevard, the signs a house can wear, and the gaol furniture. All referenced on flattened copies of house_shop.png and house_stone.png for the city ink-and-sandstone style.",
+ "references": {
+  "house_shop_flat": "787c3519-f89a-4f5d-8c72-15b97f1ed27d",
+  "house_stone_flat": "460df33b-4cc3-45be-b649-e5621f3c29fa"
+ },
+ "processing": "Native transparent output: alpha scaled from its 254 cap to 255, haze below 6 dropped, tight crop at alpha>0. work_* LANCZOS-resized to 900 px tall like the terrace houses; props to at most 640 px on the long side. No repainting.",
+ "camera": "Buildings: perfectly straight-on front elevation, no side walls, roof sloping back as if seen from slightly above. Wagons and the handcart: side view travelling RIGHT (mirrored in game for the other way).",
+ "art": {
+  "work_library.png": {
+   "jobId": "ddebe111-24f0-48eb-b174-ba4c99309f2a",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    41,
+    7,
+    839,
+    1138
+   ],
+   "size": [
+    635,
+    900
+   ]
+  },
+  "work_brothel.png": {
+   "jobId": "569b0784-d632-4742-9afb-60841bad346d",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    69,
+    0,
+    813,
+    1149
+   ],
+   "size": [
+    583,
+    900
+   ]
+  },
+  "work_caravanserai.png": {
+   "jobId": "d5b23be4-160f-49c1-9a04-f4d42cb4aae4",
+   "source": [
+    896,
+    1120
+   ],
+   "crop": [
+    8,
+    7,
+    890,
+    1105
+   ],
+   "size": [
+    723,
+    900
+   ]
+  },
+  "work_customs.png": {
+   "jobId": "1cc8c872-19a9-4ce0-b010-5f8e45629a17",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    19,
+    6,
+    861,
+    1150
+   ],
+   "size": [
+    662,
+    900
+   ]
+  },
+  "work_fleet.png": {
+   "jobId": "e864906f-4dd1-452b-885d-fbf21f8477b1",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    18,
+    0,
+    862,
+    1148
+   ],
+   "size": [
+    662,
+    900
+   ]
+  },
+  "work_exchange.png": {
+   "jobId": "79f38ea0-63e9-49f1-8b92-7d0fa42578c2",
+   "source": [
+    896,
+    1120
+   ],
+   "crop": [
+    21,
+    0,
+    874,
+    1100
+   ],
+   "size": [
+    698,
+    900
+   ]
+  },
+  "work_school.png": {
+   "jobId": "d04c3b91-abba-49e6-8d2b-2e9371ee92a6",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    2,
+    0,
+    877,
+    1145
+   ],
+   "size": [
+    688,
+    900
+   ]
+  },
+  "work_university.png": {
+   "jobId": "921902fa-52a4-4c20-a0e7-79597b8570dd",
+   "source": [
+    896,
+    1120
+   ],
+   "crop": [
+    8,
+    3,
+    889,
+    1098
+   ],
+   "size": [
+    724,
+    900
+   ]
+  },
+  "work_bathhouse.png": {
+   "jobId": "46d7642b-4af8-4031-a448-a5db9e6007db",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    56,
+    0,
+    827,
+    1141
+   ],
+   "size": [
+    608,
+    900
+   ]
+  },
+  "work_hospital.png": {
+   "jobId": "880cd5f4-b694-49ed-8388-51677dfec952",
+   "source": [
+    896,
+    1120
+   ],
+   "crop": [
+    10,
+    6,
+    886,
+    1094
+   ],
+   "size": [
+    725,
+    900
+   ]
+  },
+  "work_carters.png": {
+   "jobId": "94f67610-8fe8-4dbb-a2f9-1d41d0b71d6b",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    12,
+    30,
+    869,
+    1116
+   ],
+   "size": [
+    710,
+    900
+   ]
+  },
+  "work_quay.png": {
+   "jobId": "25e07011-d9a2-4c12-b4a0-094173fe8643",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    42,
+    10,
+    836,
+    1144
+   ],
+   "size": [
+    630,
+    900
+   ]
+  },
+  "work_apprentice.png": {
+   "jobId": "b7882026-949c-4e5c-8e89-9d5239952428",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    8,
+    3,
+    873,
+    1126
+   ],
+   "size": [
+    693,
+    900
+   ]
+  },
+  "work_press.png": {
+   "jobId": "312ac3cb-7432-4fc1-8d4d-8f66cd548db7",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    11,
+    0,
+    869,
+    1144
+   ],
+   "size": [
+    675,
+    900
+   ]
+  },
+  "work_tenements.png": {
+   "jobId": "f0ef89d5-834d-40b6-8a7c-0e7337b50ebb",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    102,
+    7,
+    780,
+    1154
+   ],
+   "size": [
+    532,
+    900
+   ]
+  },
+  "work_newquarter.png": {
+   "jobId": "f63b8ac6-c7cf-4b20-9244-50cb37c5b232",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    71,
+    0,
+    808,
+    1155
+   ],
+   "size": [
+    574,
+    900
+   ]
+  },
+  "work_theatre.png": {
+   "jobId": "783d2c4c-68cc-4fb3-9e36-25847d1fa27f",
+   "source": [
+    896,
+    1120
+   ],
+   "crop": [
+    0,
+    9,
+    892,
+    1094
+   ],
+   "size": [
+    740,
+    900
+   ]
+  },
+  "work_arena.png": {
+   "jobId": "05ac2668-4538-4f85-8c75-44178e7cca78",
+   "source": [
+    896,
+    1120
+   ],
+   "crop": [
+    11,
+    0,
+    885,
+    1085
+   ],
+   "size": [
+    725,
+    900
+   ]
+  },
+  "lamp.png": {
+   "jobId": "6770d78a-da37-41f8-92e7-2a34df8d2cbf",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    248,
+    11,
+    511,
+    1330
+   ],
+   "size": [
+    128,
+    640
+   ]
+  },
+  "statue.png": {
+   "jobId": "9bf5cad3-af3a-4f48-a442-5f248df8ffc9",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    144,
+    9,
+    639,
+    1317
+   ],
+   "size": [
+    242,
+    640
+   ]
+  },
+  "statue_crowned.png": {
+   "jobId": "f510a43a-cd46-4aed-98e5-bc04bc05c7e2",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    115,
+    31,
+    625,
+    1306
+   ],
+   "size": [
+    256,
+    640
+   ]
+  },
+  "fountain.png": {
+   "jobId": "7c932b91-06c1-43aa-827c-1de44eaf4112",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    50,
+    25,
+    974,
+    988
+   ],
+   "size": [
+    614,
+    640
+   ]
+  },
+  "stall_bread.png": {
+   "jobId": "e53eaf67-a901-4e40-85e0-291dad99562b",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    32,
+    47,
+    996,
+    973
+   ],
+   "size": [
+    640,
+    615
+   ]
+  },
+  "stall_fish.png": {
+   "jobId": "a0ad32d6-0511-418a-b2a1-22e3e8aa400d",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    21,
+    56,
+    998,
+    968
+   ],
+   "size": [
+    640,
+    597
+   ]
+  },
+  "stall_greens.png": {
+   "jobId": "bb836ca5-8ebc-4362-b2d3-ec6af94042f3",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    35,
+    51,
+    989,
+    956
+   ],
+   "size": [
+    640,
+    607
+   ]
+  },
+  "stall_cloth.png": {
+   "jobId": "5acf3c63-0fcb-4b4f-8ed5-203d9676b59b",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    26,
+    21,
+    996,
+    995
+   ],
+   "size": [
+    637,
+    640
+   ]
+  },
+  "work_courthouse.png": {
+   "jobId": "2e552e7b-65eb-42a4-9d69-bb5fcfb77321",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    5,
+    0,
+    877,
+    1146
+   ],
+   "size": [
+    685,
+    900
+   ]
+  },
+  "site.png": {
+   "jobId": "d9c5c3da-3520-4264-ae27-a1357e15d3c3",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    14,
+    19,
+    1014,
+    997
+   ],
+   "size": [
+    640,
+    626
+   ]
+  },
+  "music.png": {
+   "jobId": "0b931599-735d-413d-97de-5922f609a184",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    18,
+    25,
+    1146,
+    852
+   ],
+   "size": [
+    640,
+    469
+   ]
+  },
+  "feast.png": {
+   "jobId": "fd153979-57b2-4f23-963d-2f63d16aad82",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    294,
+    8,
+    1052,
+    736
+   ],
+   "size": [
+    640,
+    615
+   ]
+  },
+  "tent_red.png": {
+   "jobId": "41df817f-7765-4a90-97ea-bc1711efdab8",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    9,
+    9,
+    866,
+    1090
+   ],
+   "size": [
+    507,
+    640
+   ]
+  },
+  "tent_blue.png": {
+   "jobId": "0cc59384-a60d-4a85-8876-5dbe78106644",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    9,
+    1,
+    872,
+    1122
+   ],
+   "size": [
+    493,
+    640
+   ]
+  },
+  "garden.png": {
+   "jobId": "00a78f10-4d3c-4696-9dea-85bca949628d",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    19,
+    35,
+    1144,
+    834
+   ],
+   "size": [
+    640,
+    455
+   ]
+  },
+  "maypole.png": {
+   "jobId": "4229d194-0bcc-4b40-8b54-6e1b7d98ee74",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    15,
+    0,
+    734,
+    1328
+   ],
+   "size": [
+    347,
+    640
+   ]
+  },
+  "breadline.png": {
+   "jobId": "57da19c0-ca04-458f-9d06-b265f6e97ddb",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    39,
+    71,
+    1334,
+    646
+   ],
+   "size": [
+    640,
+    284
+   ]
+  },
+  "beggar.png": {
+   "jobId": "b236604f-20a1-4bc6-8420-65f0b81122aa",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    129,
+    28,
+    896,
+    984
+   ],
+   "size": [
+    513,
+    640
+   ]
+  },
+  "barricade.png": {
+   "jobId": "eb043912-3fa9-4585-a9bc-92677a6a1e38",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    26,
+    0,
+    1142,
+    852
+   ],
+   "size": [
+    640,
+    489
+   ]
+  },
+  "wagon_barrels.png": {
+   "jobId": "ea6f336a-dd78-4f68-9b4a-00fd394b6687",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    43,
+    104,
+    1301,
+    659
+   ],
+   "size": [
+    640,
+    282
+   ]
+  },
+  "wagon_caravan.png": {
+   "jobId": "9de29b21-49dc-4a60-928d-6052a531e500",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    48,
+    67,
+    1308,
+    691
+   ],
+   "size": [
+    640,
+    317
+   ]
+  },
+  "wagon_grain.png": {
+   "jobId": "6ff94ed5-b774-49c7-a8db-6b36115038b5",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    23,
+    97,
+    1324,
+    660
+   ],
+   "size": [
+    640,
+    277
+   ]
+  },
+  "handcart.png": {
+   "jobId": "04bf2309-1ecd-4410-9158-c58faf1cdb00",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    20,
+    194,
+    1149,
+    747
+   ],
+   "size": [
+    640,
+    313
+   ]
+  },
+  "sign_rent.png": {
+   "jobId": "9cbef728-cdf3-4927-9b36-2f914c036e02",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    170,
+    57,
+    851,
+    980
+   ],
+   "size": [
+    472,
+    640
+   ]
+  },
+  "scaffold.png": {
+   "jobId": "82f49784-281d-413a-b569-2875f3cc73ba",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    13,
+    0,
+    870,
+    1156
+   ],
+   "size": [
+    474,
+    640
+   ]
+  },
+  "sign_seized.png": {
+   "jobId": "10c046bc-293b-43e8-8b00-a8e4598138d4",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    131,
+    13,
+    893,
+    997
+   ],
+   "size": [
+    496,
+    640
+   ]
+  },
+  "flower_tub.png": {
+   "jobId": "bf7a1d98-7bba-449a-a923-f6f54723f28e",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    101,
+    25,
+    933,
+    963
+   ],
+   "size": [
+    568,
+    640
+   ]
+  },
+  "cell_bars.png": {
+   "jobId": "ea609012-6722-46c7-b0ab-31f413c2be13",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    1,
+    0,
+    880,
+    1167
+   ],
+   "size": [
+    482,
+    640
+   ]
+  },
+  "cell_bricked.png": {
+   "jobId": "42ef8b49-ecec-44ed-addd-8463f2c5081c",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    34,
+    0,
+    836,
+    1168
+   ],
+   "size": [
+    439,
+    640
+   ]
+  },
+  "gaol_desk.png": {
+   "jobId": "b19cbfcc-98a2-479a-893e-1542e5c84cc9",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    78,
+    0,
+    1116,
+    862
+   ],
+   "size": [
+    640,
+    531
+   ]
+  },
+  "noticeboard.png": {
+   "jobId": "57243d15-a0bf-45db-92f4-14266a7d3ffa",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    56,
+    21,
+    999,
+    1004
+   ],
+   "size": [
+    614,
+    640
+   ]
+  }
+ }
+}

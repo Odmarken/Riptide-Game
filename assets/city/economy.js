@@ -17,19 +17,20 @@
  root.CityEconomy=api;
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
- const VERSION=2;                 /* a save from before the founding loan opens on an empty strongroom */
+ const VERSION=3;                 /* a save from before the founding loan opens on an empty strongroom; one from before the new coinage (v2) is re-struck at ten to one */
  const TICK_SECONDS=300;          /* the ledger closes every five minutes of play */
- const COIN=10;                   /* every gold amount in the tables below is in tens of ◉ */
+ const COIN=100;                  /* every gold amount in the tables below is in hundreds of ◉: a city's books run in millions */
+ const HERO_COIN=10;              /* ...but a hero's own purse is still the old coinage: what passes between the two is weighed at this */
  const SEASON_CLOSES=20;          /* ⚠ a short season while the system is being tried out - the real one is 50 */
- const FOUNDING_LOAN=500000;      /* what the steward signs for before the books open */
- const RESERVE_LINE=150000;       /* and what the bank keeps on the line beyond it, to be drawn later in the season */
+ const FOUNDING_LOAN=5000000;     /* what the steward signs for before the books open */
+ const RESERVE_LINE=1500000;      /* and what the bank keeps on the line beyond it, to be drawn later in the season */
  const LOAN_RATE=0.005;           /* Tides Bank: what is owed costs this much of itself every close, to begin with */
  const MIN_RATE=0.003,MAX_RATE=0.009;
  const RED_FLOOR=0.25;            /* the red never runs deeper than a quarter of the line: past that, bills simply go unpaid */
  const DUE_SHARE=0.10;            /* by the end of a season the debt must be this much smaller than it began */
  const COVER_FEE=0.05;            /* the bank covers a shortfall from the line, and charges for the favour */
  const SEIZE_AFTER=2;             /* consecutive closes in the red before the bailiffs come */
- const SEASONS_KEPT=6;
+ const SEASONS_KEPT=6,MIN_LINE=2000000;   /* the bank never cuts the line below this */
  const GUARD_WAGE=55,MIN_GUARD=2; /* a man at a pillar, per close; the bank never takes the last two */
  /* 🔔 A city is not run from a dungeon. state.unattended counts the closes since the steward last
     opened the ledger at the council table, and everything that follows from it is a SLOPE, never a
@@ -261,6 +262,8 @@
    blurb:'A wooden O with a thatched gallery. Tragedies on Mondays.',done:'The Playhouse opened with a comedy about a tax collector.'},
   {id:'arena',cat:'culture',name:'Tourney Grounds',icon:'🏇',cost:11000,build:3,upkeep:95,fx:{mood:4,attract:6,income:210},site:'house',sign:'TOURNEY LISTS',
    blurb:'Permanent lists with stands for two thousand. Knights come for the prize; the crowd comes for the knights.',done:'The lists saw their first broken lance.'},
+  {id:'brothel',cat:'culture',name:'The Velvet Lantern',icon:'💋',cost:17500,build:3,upkeep:110,fx:{vice:2.4,income:130,attract:3},site:'house',sign:'THE VELVET LANTERN',pious:6,
+   blurb:'A house of red lamps by the harbour, licensed, inspected and taxed by the crown. Every sailor, carter and visiting envoy finds it; the takings grow with the city, the way the collection plate does. The Tidekeeper will preach against it, and a pious King will sulk.',done:'The red lamps were lit by the harbour. The Tidekeeper has already written a sermon.'},
   {id:'statue',cat:'culture',name:'Statue of the Steward',icon:'🗿',cost:3200,build:1,upkeep:0,fx:{attract:2},site:'statue',once:{trust:5,pleasure:-8},
    blurb:'You, in bronze, on the great square. The people will like it. The King will not.',done:'Your statue was unveiled on the square.'},
   {id:'watchtowers',cat:'order',name:'Watchtowers',icon:'🗼',cost:4000,build:2,upkeep:55,fx:{order:.08,safety:.06},
@@ -296,6 +299,8 @@
   {text:'Spoiled meat at the shambles put half a street to bed.',gold:-90,mood:-4,w:2,when:s=>s.budget.food===0},
   {text:'The fleet came home from the southern ports with its holds full of silver.',gold:520,w:2,when:s=>has(s,'fleet')},
   {text:'A scholar of the University published a treatise the whole continent is reading.',gold:160,mood:2,w:1.5,when:s=>has(s,'university')},
+  {text:'A visiting envoy left the Velvet Lantern a good deal lighter than he came.',gold:280,w:1.5,when:s=>has(s,'brothel')},
+  {text:'The Tidekeeper preached an hour against the red lamps. Attendance at both houses was excellent.',mood:-1,gold:60,w:1,when:s=>has(s,'brothel')},
   {text:'The Playhouse’s new comedy ran for three weeks to full houses.',gold:140,mood:3,w:1.5,when:s=>has(s,'theatre')},
   {text:'A guild of weavers moved to the city, looms and all.',gold:120,pop:22,w:1.5,when:s=>s.attract>=65},
   {text:'Three families loaded a cart and left by the west gate before dawn.',pop:-15,mood:-1,w:2,when:s=>s.attract<35},
@@ -315,13 +320,15 @@
   {id:'shortweight',name:'Short weight at the stalls',icon:'⚖️',text:'Chalk in the flour and thumbs on the scales. Without inspectors the honest stallholders are being driven out.',line:'food',level:2,fix:'Fund fresh markets (Markets & Provisions)',mood:-4,gold:-120,w:2},
   {id:'royalists',name:'Royalists in the cellars',icon:'🕯',text:'Men who drank the old King’s wine meet behind shuttered windows. A crown that is not trusted is a crown that can be taken back.',line:'watch',level:3,fix:'Raise the City Watch to Royal',mood:-5,gold:-280,w:4,when:s=>s.crowned&&s.trust<40},
  ];
- /* 🏛 The council: six seats at the table, each with a line of the budget they watch and an opinion
-    of you that drifts toward what that line deserves. Their favour together is your standing. */
+ /* 🏛 The council: six chairs at the table. The sixth is YOURS - the steward sits as Master of Coin,
+    and nobody at the table marks his own books. The other five each watch a line of the budget and
+    hold an opinion of you that drifts toward what that line deserves. Their favour together is your
+    standing. Gottfrid Pung, thirty years a merchant, keeps the poor box as High Almoner. */
+ const PLAYER_SEAT=Object.freeze({id:'coin',title:'Master of Coin',icon:'🪙'});
  const COUNCIL=[
-  {id:'coin',title:'Master of Coin',who:'Gottfrid Pung',icon:'🪙',cares:'a ledger in the black, and a small debt'},
   {id:'sword',title:'Lord Commander',who:'Brynolf Järnhand',icon:'⚔️',line:'watch',cares:'men on the streets'},
   {id:'stone',title:'Master Builder',who:'Hallvard Städ',icon:'🧱',line:'roads',cares:'roads, gates and walls - and anything you let him build'},
-  {id:'bread',title:'High Almoner',who:'Syster Agnes',icon:'🍞',line:'relief',cares:'bread for the poor'},
+  {id:'bread',title:'High Almoner',who:'Gottfrid Pung',icon:'🍞',line:'relief',cares:'bread for the poor - and what every loaf of it costs'},
   {id:'revel',title:'Master of Revels',who:'Casimir Lilje',icon:'🎉',line:'festival',cares:'feast days and tourneys'},
   {id:'chamber',title:'Lord Chamberlain',who:'Ansgar Vidhem',icon:'👑',line:'court',cares:'the splendour of the court'},
  ];
@@ -334,13 +341,13 @@
   {id:'bridge',seat:'stone',text:'The mill bridge is rotting through. Let me rebuild it in stone before it takes a wagon with it.',cost:1400,favour:14,mood:3},
   {id:'sewers',seat:'stone',text:'The lower streets flood with every rain. Dig me proper drains.',cost:1100,favour:12,mood:4},
   {id:'almshouse',seat:'bread',text:'An almshouse by the cathedral, for the winter. It will not be cheap and it will not be forgotten.',cost:1100,favour:14,mood:6},
-  {id:'amnesty',seat:'bread',text:'Free the debtors from the gaol. They cannot pay from a cell.',cost:0,favour:10,mood:5,others:{coin:-8},amnesty:true},
+  {id:'amnesty',seat:'bread',text:'Free the debtors from the gaol. They cannot pay from a cell.',cost:0,favour:10,mood:5,amnesty:true},
   {id:'tourney',seat:'revel',text:'A tourney in the King’s name. The whole realm will talk of it.',cost:1300,favour:14,mood:7,gold:500},
   {id:'fireworks',seat:'revel',text:'Fire-flowers from the east for midsummer night. Trust me.',cost:700,favour:10,mood:5},
   {id:'banquet',seat:'chamber',text:'A banquet for the envoys of three realms. We are judged by our table.',cost:1500,favour:14,mood:1,gold:700},
-  {id:'audit',seat:'coin',text:'Let me audit the guild books. They will grumble, and they will pay what they owe.',cost:0,favour:10,mood:-4,gold:1400},
-  {id:'levy',seat:'coin',text:'A single levy on the counting houses. The people will not weep for bankers.',cost:0,favour:8,mood:2,gold:1100,others:{chamber:-6}},
-  {id:'mint',seat:'coin',text:'Strike a new coinage with less silver in it. Nobody will notice for a year.',cost:0,favour:6,mood:-7,gold:2200,others:{bread:-8}},
+  {id:'audit',seat:'bread',text:'Thirty years I kept guild books, Master of Coin. Let me audit them - I know where they hide it. They will grumble, and they will pay what they owe.',cost:0,favour:10,mood:-4,gold:1400},
+  {id:'levy',seat:'bread',text:'A single levy on the counting houses, in the name of the poor box. The people will not weep for bankers.',cost:0,favour:8,mood:2,gold:1100,others:{chamber:-6}},
+  {id:'mint',seat:'chamber',text:'Strike a new coinage - the King’s better profile, and rather less silver. Nobody will notice for a year.',cost:0,favour:6,mood:-7,gold:2200,others:{bread:-8}},
  ];
  /* 👑 The King. His humour changes every few closes and colours what he asks for and how often;
     his pleasure drifts toward what his purse and his court deserve, and jumps with every wish
@@ -389,7 +396,7 @@
   {text:'ran a crooked cup game on the cathedral square',term:[2,3],w:1.5,say:'Sebbe does it every day and nobody arrests HIM.'},
   {text:'threw a cabbage at the Lord Chamberlain',term:[1,2],w:1.5,say:'I was aiming for his hat.'},
   {text:'kept a pig in the cathedral crypt',term:[1,3],w:1,say:'She likes the cool.'},
-  {text:'forged the Master of Coin’s seal',term:[4,6],w:1,say:'Mine was better than his. That is what upset them.'},
+  {text:'forged the Master of Coin’s seal',term:[4,6],w:1,say:'Your seal, I am told. Mine was better. That is what upset them.'},
   {text:'slept in the fountain, drunk, with no breeches',term:[1,2],w:1.5,say:'I have no memory of the matter and no wish to acquire one.'},
   {text:'led the march on the boulevard',term:[3,5],w:0,say:'You can lock me up. You cannot lock up hunger.',boost:s=>s.protest?8:0},
  ];
@@ -421,11 +428,23 @@
    budget:{...DEFAULT_BUDGET},incidents:[],council,petition:null,
    pop:POPULATION,attract:50,skill:20,trust:10,crowned:false,deposed:null,
    king:{pleasure:60,humour:'content',humourAge:0,demand:null,raise:0},works:{},jail:[],
-   counsel:{at:null,text:'',topic:''},
+   counsel:{at:null,text:'',topic:''},noble:{rank:0,xp:0,given:0,done:0,pending:[],offers:[],offerLeft:0},
    history:[],last:null};
+ }
+ /* 🪙 Re-strike a save in a coinage `by` times lighter: every amount of gold the books hold, and nothing else. */
+ function recoin(s,by){
+  const o=JSON.parse(JSON.stringify(s)),x=(obj,keys)=>{if(obj&&typeof obj==='object')for(const key of keys)if(Number.isFinite(obj[key]))obj[key]=Math.round(obj[key]*by);};
+  const pts=a=>{if(Array.isArray(a))for(const q of a)x(q,['t','d','n']);};
+  x(o,['treasury','loan','limit','earned','spent','borrowed','repaid']);
+  x(o.season,['startLoan','startTreasury','target','interest']);pts(o.season&&o.season.series);
+  for(const q of Array.isArray(o.seasons)?o.seasons:[]){x(q,['startLoan','endLoan','target','reduced','startTreasury','endTreasury','worthStart','worth','interest','swept','limitWas','limit']);pts(q&&q.series);}
+  for(const h of Array.isArray(o.history)?o.history:[])x(h,['in','out','expected','net','treasury','was','covered']);
+  o.v=VERSION;
+  return o;
  }
  function normalize(s){
   const out=create();
+  if(s&&typeof s==='object'&&s.v===2)s=recoin(s,10);      /* 🪙 the new coinage: the same books, a nought on every figure */
   if(!s||typeof s!=='object'||s.v!==VERSION)return out;   /* 🏦 older books are closed: everybody starts from the empty strongroom */
   out.chartered=!!s.chartered;
   out.limit=Math.max(0,Math.round(num(s.limit,0)));
@@ -484,6 +503,12 @@
   out.jail=(Array.isArray(s.jail)?s.jail:[]).filter(p=>p&&typeof p.name==='string'&&p.name&&!names.has(p.name)&&names.add(p.name)).slice(0,MAX_CELLS+2)
    .map(p=>({name:p.name.slice(0,60),skin:typeof p.skin==='string'?p.skin:'male',female:!!p.female,crime:String(p.crime||'disturbed the King’s peace').slice(0,160),
     say:String(p.say||'').slice(0,200),term:Math.max(1,Math.floor(num(p.term,2))),served:Math.max(0,Math.floor(num(p.served,0))),life:!!p.life,byKing:!!p.byKing}));
+  const nb=s.noble&&typeof s.noble==='object'?s.noble:{};
+  out.noble={rank:clamp(Math.floor(num(nb.rank)),0,NOBLE_RANKS.length-1),xp:Math.max(0,Math.round(num(nb.xp))),given:Math.max(0,Math.round(num(nb.given))),done:Math.max(0,Math.floor(num(nb.done))),
+   pending:(Array.isArray(nb.pending)?nb.pending:[]).filter(p=>p&&num(p.amount)>0&&(p.kind==='patent'||(p.kind==='contract'&&contractDef(p.id)))).slice(0,8)
+    .map(p=>({kind:p.kind,...(p.kind==='contract'?{id:p.id,xp:Math.max(0,Math.round(num(p.xp)))}:{}),amount:Math.round(num(p.amount)),left:clamp(Math.floor(num(p.left,NOBLE_CLOSES)),1,NOBLE_CLOSES)})),
+   offers:(Array.isArray(nb.offers)?nb.offers:[]).filter(o=>o&&contractDef(o.id)&&num(o.cost)>0).slice(0,6).map(o=>({id:o.id,cost:Math.round(num(o.cost)),xp:Math.max(0,Math.round(num(o.xp))),taken:!!o.taken})),
+   offerLeft:clamp(Math.floor(num(nb.offerLeft)),0,OFFER_CLOSES)};
   const cs=s.counsel&&typeof s.counsel==='object'?s.counsel:{};
   out.counsel={at:Number.isFinite(cs.at)&&cs.at!==null?clamp(Math.floor(cs.at),0,out.ticks):null,text:String(cs.text||'').slice(0,600),topic:String(cs.topic||'').slice(0,20)};
   out.history=Array.isArray(s.history)?s.history.filter(h=>h&&typeof h==='object').slice(-HISTORY):[];
@@ -510,11 +535,12 @@
  function settleCost(def,ctx){return Math.round((600+def.level*500)*scale(ctx));}
  /* everything the finished works add up to */
  function worksFx(state){
-  const t={exports:0,tolls:0,income:0,trade:0,order:0,duty:0,mood:0,attract:0,skill:0,housing:0,cells:0,safety:0,fines:0,clean:0,upkeep:0,count:0,blocks:new Set()};
+  const t={exports:0,tolls:0,income:0,vice:0,pious:0,trade:0,order:0,duty:0,mood:0,attract:0,skill:0,housing:0,cells:0,safety:0,fines:0,clean:0,upkeep:0,count:0,blocks:new Set()};
   for(const w of WORKS){
    if(!has(state,w.id))continue;
    t.upkeep+=num(w.upkeep);t.count++;
    for(const key of Object.keys(w.fx||{}))t[key]+=w.fx[key];
+   t.pious+=num(w.pious);
    for(const tag of w.blocks||[])t.blocks.add(tag);
   }
   return t;
@@ -585,6 +611,7 @@
    {id:'farm',name:'Farm levy',icon:'🚜',amount:ctx.farmOwned?r(Math.min(HERO_FARM_LEVELS,farmLvl)*20*k):0,note:ctx.farmOwned?'your farm, level '+farmLvl:'no farm of your own yet'},
    {id:'licence',name:'Gaming licence',icon:'🎲',amount:r(250*k),note:'the Moonshine casino pays for the privilege'},
    {id:'church',name:'Church intakes',icon:'⛪',amount:r(hearths(state)*2.5*churchMod*tithe.rate*k*(.6+state.mood/250)*(1+festival.cost/1200)*(!crowned&&K.humour==='pious'?1.25:1)*crop),note:tithe.rate?tithe.name.toLowerCase()+' of the tithes and the collections - fuller plates in a contented city, on feast days and under a pious King':'the Church keeps its own'},
+   ...(W.vice?[{id:'vice',name:'The Velvet Lantern',icon:'💋',amount:r(hearths(state)*W.vice*k*visit*(.7+state.mood/333)*(1+wind.trade*.5)),note:'the crown’s licence on the red lamps - it grows with the city, with its visitors and with trade on the roads'}]:[]),
    {id:'works',name:'Crown works',icon:'🏗',amount:r(W.income*k)+fines,note:!W.count?'nothing built yet - see the Works tab':W.income||fines?'fees, gate money'+(fines?' and court fines':'')+' from '+W.count+' public work'+(W.count>1?'s':''):W.count+' public work'+(W.count>1?'s':'')+' standing - what they earn shows in the lines above'},
   ];
   const purseCost=r(purse.cost*k*factor.purse);
@@ -599,7 +626,7 @@
    {id:'learn',name:'Schools & Learning',icon:'📚',amount:r(learn.cost*k*factor.learn),note:learn.name},
    {id:'food',name:'Markets & Provisions',icon:'🥩',amount:r(food.cost*k*factor.food),note:food.name},
    {id:'grain',name:'Grain shipments',icon:'🌾',amount:grain.ship.cost,note:grain.auto?grain.ship.sacks.toLocaleString()+' sacks at '+grain.autoPrice+' ◉ - the standing shipments'+(grain.ship.short?', as far as the strongroom can pay':''):'no standing shipments - the granary is stocked by hand'},
-   {id:'purse',name:crowned?'Your privy purse':'The King’s Purse',icon:'💎',amount:purseCost,note:purse.name+(crowned?' - paid into your own purse at every close':K.raise?' - raised '+K.raise+' time'+(K.raise>1?'s':'')+' at his insistence':'')},
+   {id:'purse',name:crowned?'Your privy purse':'The King’s Purse',icon:'💎',amount:purseCost,note:purse.name+(crowned?' - a tenth of it reaches your own gold at every close; the rest keeps your household':K.raise?' - raised '+K.raise+' time'+(K.raise>1?'s':'')+' at his insistence':'')},
    {id:'upkeep',name:'Upkeep of the works',icon:'🏗',amount:r(W.upkeep*k*wage*dear),note:W.count?'lamplighters, librarians, harbour pilots':'nothing to keep up yet'},
    {id:'gaol',name:'The gaol',icon:'⛓',amount:r(held*12*k*dear),note:held?held+' prisoner'+(held>1?'s':'')+' in '+room+' cells':'the cells are empty'},
    {id:'interest',name:'Tides Bank interest',icon:'🏦',amount:r(state.loan*state.rate*num(cm.interest,1)),note:state.loan>0?+(state.rate*num(cm.interest,1)*100).toFixed(3)+'% of '+state.loan.toLocaleString()+' owed':'nothing owed'},
@@ -650,6 +677,7 @@
    ...['watch','roads','relief','festival','court','clean','learn','food'].map(key=>({name:LINES[key].name+' - '+L[key].name,value:num(L[key].attract)})),
    {name:'What the people have learned ('+Math.round(state.skill)+')',value:r((state.skill-20)/10)},
    {name:'Public works',value:W.attract},
+   {name:'🎩 A noble patron ('+NOBLE_RANKS[state.noble.rank].title.toLowerCase()+')',value:state.noble.rank},
    {name:'Trouble in the streets',value:-4*incidents.length},
    {name:'The march on the boulevard',value:state.protest?-15:0},
    {name:'An overcrowded gaol',value:crowded?-3:0},
@@ -671,9 +699,10 @@
    {name:'A treasury below zero',value:state.treasury<0?-2:0},
    {name:'The ledgers lie unattended ('+num(state.unattended)+' close'+(num(state.unattended)===1?'':'s')+' - it deepens every close)',value:away.trust},
    {name:'🌾 Hunger',value:-Math.min(2,round1(hunger*.35))||0},
+   {name:'🎩 Your title',value:round1(state.noble.rank*.1)},
   ];
   const trustDelta=round1(trustFactors.reduce((t,f)=>t+f.value,0));
-  const pleasureTarget=clamp(purse.pleasure+num(court.pleasure)+(state.mood>=70?4:0)-(state.protest?12:0)-(state.treasury<0?6:0)-(ROYAL_GUARD-state.guards)*2-(K.humour==='pious'?[0,0,6,14][b.tithe]:[0,0,0,5][b.tithe]),0,100);
+  const pleasureTarget=clamp(purse.pleasure+num(court.pleasure)+(state.mood>=70?4:0)-(state.protest?12:0)-(state.treasury<0?6:0)-(ROYAL_GUARD-state.guards)*2-(K.humour==='pious'?[0,0,6,14][b.tithe]+W.pious:[0,0,0,5][b.tithe]),0,100);   /* a pious King minds the tithes taken - and the red lamps */
   return {income,expenses,totalIn,totalOut,net:totalIn-totalOut,moodTarget,moodFactors,incidents,favour:fav,backing,order,trade,scale:k,creditLimit:limit,
    attractTarget,attractFactors,housing,skillTarget,craft,visit,trustFactors,trustDelta,pleasureTarget,purse:purseCost,cells:room,crowded,works:W,grain,
    wage,factor,winds:WIND_KEYS.map(key=>({key,value:wind[key],name:windName(key,wind[key])})),card:{...cardDef(card.id),mods:cm}};
@@ -686,11 +715,9 @@
  }
  /* what a councillor thinks the budget deserves */
  function seatTarget(seat,state,f){
-  if(seat.line){
-   const pressed=state.incidents.some(i=>incidentDef(i.id).line===seat.line);
-   return clamp(SEAT_TARGET[seat.line][state.budget[seat.line]]-(pressed?15:0)-neglect(state).seats-(seat.id==='bread'?[0,0,8,20][state.budget.tithe]:0),0,100);
-  }
-  return clamp(55-neglect(state).seats+(f.net>=0?12:-18)+(state.treasury<0?-25:0)+(state.loan>f.creditLimit*.9?-10:0)+(state.chartered&&state.loan===0?12:0),0,100);
+  const pressed=state.incidents.some(i=>incidentDef(i.id).line===seat.line);
+  /* Gottfrid is a merchant before he is an almoner: a crown that cannot pay its bills offends him too */
+  return clamp(SEAT_TARGET[seat.line][state.budget[seat.line]]-(pressed?15:0)-neglect(state).seats-(seat.id==='bread'?[0,0,8,20][state.budget.tithe]+(state.treasury<0?10:0):0),0,100);
  }
  function seatView(seat,state,f){
   const v=state.council[seat.id],t=seatTarget(seat,state,f);
@@ -712,6 +739,8 @@
   if(fx.exports)out.push('exports +'+g(fx.exports)+' ◉');
   if(fx.tolls)out.push('market tolls +'+g(fx.tolls)+' ◉');
   if(fx.income)out.push('income +'+g(fx.income)+' ◉');
+  if(fx.vice)out.push('and '+g(fx.vice)+' ◉ more for every household in the city');
+  if(w.pious)out.push('a pious King’s pleasure −'+w.pious);
   if(fx.trade)out.push('trade +'+Math.round(fx.trade*100)+'%');
   if(fx.duty)out.push('customs +'+Math.round(fx.duty*100)+'%');
   if(fx.order)out.push('order +'+Math.round(fx.order*100)+'%');
@@ -845,11 +874,11 @@
     A good season widens the line by what was repaid and more, and cheapens the money; a bad one
     narrows it and makes every coin owed dearer. */
  const GRADES={
-  A:{line:.12,repaid:1,rate:-.0005,trust:6,coin:10,verdict:'the debt is down, the strongroom never ran dry and the crown is worth more than it was. The line widens and the rate falls.'},
-  B:{line:.06,repaid:.75,rate:-.00025,trust:3,coin:5,verdict:'the debt is down to where we asked and the treasury stayed in the black. The line widens a little.'},
-  C:{line:0,repaid:.5,rate:0,trust:0,coin:0,verdict:'half of what we asked for. The line moves by half of what you repaid, and the rate stays.'},
-  D:{line:-.05,repaid:0,rate:.0005,trust:-4,coin:-8,verdict:'the debt is not where we asked. The line narrows and the money gets dearer.'},
-  F:{line:-.15,repaid:0,rate:.001,trust:-10,coin:-15,verdict:'the debt is up, the strongroom ran dry and our bailiffs know your streets by name. The line is cut, the rate jumps, and next season we want more back.'},
+  A:{line:.12,repaid:1,rate:-.0005,trust:6,verdict:'the debt is down, the strongroom never ran dry and the crown is worth more than it was. The line widens and the rate falls.'},
+  B:{line:.06,repaid:.75,rate:-.00025,trust:3,verdict:'the debt is down to where we asked and the treasury stayed in the black. The line widens a little.'},
+  C:{line:0,repaid:.5,rate:0,trust:0,verdict:'half of what we asked for. The line moves by half of what you repaid, and the rate stays.'},
+  D:{line:-.05,repaid:0,rate:.0005,trust:-4,verdict:'the debt is not where we asked. The line narrows and the money gets dearer.'},
+  F:{line:-.15,repaid:0,rate:.001,trust:-10,verdict:'the debt is up, the strongroom ran dry and our bailiffs know your streets by name. The line is cut, the rate jumps, and next season we want more back.'},
  };
  function review(state,ctx,rng){
   const q=state.season,worthStart=q.startTreasury-q.startLoan,worth=state.treasury-state.loan;
@@ -859,10 +888,9 @@
   const swept=paid?0:Math.min(Math.max(0,state.treasury),state.loan-q.target);
   if(swept>0){state.loan-=swept;state.treasury-=swept;state.repaid+=swept;}
   const limitWas=state.limit,rateWas=state.rate;
-  state.limit=Math.max(state.loan,200000,Math.round(state.limit*(1+G.line)+reduced*G.repaid));
+  state.limit=Math.max(state.loan,MIN_LINE,Math.round(state.limit*(1+G.line)+reduced*G.repaid));
   state.rate=clamp(Math.round((state.rate+G.rate)*1e5)/1e5,MIN_RATE,MAX_RATE);
   state.trust=clamp(round1(state.trust+G.trust),0,100);
-  state.council.coin=clamp(state.council.coin+G.coin,0,100);
   const summary={n:q.n,grade,verdict:G.verdict,startLoan:q.startLoan,endLoan:state.loan,target:q.target,reduced,paid,startTreasury:q.startTreasury,endTreasury:state.treasury,worthStart,worth,
    red:q.red,covered:q.covered,interest:q.interest,swept,limitWas,limit:state.limit,rateWas,rate:state.rate,series:q.series};
   state.seasons.push(summary);while(state.seasons.length>SEASONS_KEPT)state.seasons.shift();
@@ -1106,9 +1134,12 @@
     if(reviewed.swept)unrest.push('🏦 The debt stood above the season’s target, so the bank called it in: '+reviewed.swept.toLocaleString()+' ◉ went from the strongroom straight to the debt.');
    }
   }
+  /* 🎩 the noble's papers and the notice board - rolled last of all, so a scripted rng still means what it meant */
+  const noble=state.chartered?nobleTick(state,ctx,rng):{news:[],rankUp:null,xp:0};
+  for(const line of noble.news)unrest.push(line);
   const entry={n:state.ticks,covered,review:reviewed?{n:reviewed.n,grade:reviewed.grade}:null,in:gotIn,out:paidOut,expected:f.net,net,events:events.map(e=>e.text),unrest,mood:state.mood,favour:favour(state),
    treasury:state.treasury,protest:state.protest,was:before,unattended:num(state.unattended),food:state.food.stock,hunger:state.food.hunger,pop:state.pop,moved,attract:state.attract,trust:state.trust,finished,
-   purse:state.crowned?f.purse:0};
+   purse:state.crowned?Math.round(f.purse*HERO_COIN/COIN):0,rankUp:noble.rankUp,nobleXp:noble.xp};   /* 💎 a crowned head keeps a household: a tenth of the privy purse reaches the hero's own gold */
   state.history.push(entry);
   while(state.history.length>HISTORY)state.history.shift();
   state.last=entry;
@@ -1146,8 +1177,8 @@
   return n;
  }
  /* Moving gold between the treasury and the hero's purse. room is what the purse can still hold.
-    🤝 The Master of Coin counts what a steward carries out of the strongroom, and the city hears:
-    a point of trust for every 1 500 ◉ taken (at most ten at a time), half that back for gold put
+    🤝 The clerks count what their Master of Coin carries out of the strongroom, and the city hears:
+    a point of trust for every 15 000 ◉ taken (at most ten at a time), half that back for gold put
     in - so lining your pockets and winning the crown pull in opposite directions. A crowned head
     takes what is its own. 🏦 And borrowed gold never leaves the strongroom: only what the treasury
     holds beyond what it owes the bank can be carried out, by a steward or a crowned head alike. */
@@ -1155,14 +1186,14 @@
   const n=Math.min(Math.floor(num(amount)),Math.max(0,state.treasury-state.loan),Math.max(0,Math.floor(num(room))));
   if(n<=0)return 0;
   state.treasury-=n;
-  if(!state.crowned)state.trust=clamp(round1(num(state.trust)-Math.min(10,n/(1500*scale(ctx||{})))),0,100);
+  if(!state.crowned)state.trust=clamp(round1(num(state.trust)-Math.min(10,n/(1500*HERO_COIN))),0,100);
   return n;
  }
  function deposit(state,amount,purse,ctx){
   const n=Math.min(Math.floor(num(amount)),Math.max(0,Math.floor(num(purse))));
   if(n<=0)return 0;
   state.treasury+=n;
-  state.trust=clamp(round1(num(state.trust)+Math.min(3,n/(3000*scale(ctx||{})))),0,100);
+  state.trust=clamp(round1(num(state.trust)+Math.min(3,n/(3000*HERO_COIN))),0,100);
   return n;
  }
  /* 🥊 pay sellswords, carters or bakers to make one incident go away now, from a treasury that has it */
@@ -1191,6 +1222,122 @@
   }
   bump(p.seat,-8);state.petition=null;
   return {ok:true,accepted:false,text:'Refused. The '+seatDef(p.seat).title+' bows, stiffly.'};
+ }
+ /* 🎩 Nobility. At the notice board on the great square anyone with the gold can petition for a patent
+    of nobility, and a noble can put their OWN gold into the contracts posted there. It is patronage,
+    not banking: NOTHING comes back - no dividend, no refund. What it buys is the good it does the
+    city (when the contract clears) and standing: every contract is worth noble XP, XP is rank, and
+    rank is a title, a point of the city's draw and a tenth of a point of trust a close per rank -
+    and MORE contracts on the board. The board is re-posted every OFFER_CLOSES closes (an hour of
+    play) with one to three contracts, more for the higher ranks, never the same set twice running.
+    Nothing is instant: the heralds and the counting houses take NOBLE_CLOSES closes - fifteen
+    minutes of play - over every paper, and the gold leaves the purse the moment it is handed over.
+    cost is in the hero's own gold, rolled within [lo,hi]; xp is per 1 000 ◉. fx is applied once, at
+    clearing: mood/attract/trust/skill/pleasure are points, seat favours by id, food is sacks,
+    wind nudges a wind, quiet ends one incident, crown is the share of the gold the treasury keeps. */
+ const NOBLE_CLOSES=3,OFFER_CLOSES=12,PATENT_COST=100000;
+ const NOBLE_RANKS=[
+  {id:'commoner',title:'Commoner',titleF:'Commoner',xp:0},
+  {id:'knight',title:'Sir',titleF:'Dame',style:'Knight of the Realm',xp:0},
+  {id:'baron',title:'Baron',titleF:'Baroness',xp:250},
+  {id:'viscount',title:'Viscount',titleF:'Viscountess',xp:700},
+  {id:'count',title:'Count',titleF:'Countess',xp:1600},
+  {id:'marquess',title:'Marquess',titleF:'Marchioness',xp:3500},
+  {id:'duke',title:'Duke',titleF:'Duchess',xp:7500},
+ ];
+ const CONTRACTS=[
+  {id:'orphanage',icon:'🧸',name:'A wing for the orphanage',text:'Forty beds, a stove, and a matron who does not drink. The Almoner has the drawings.',lo:40000,hi:90000,xp:1,rank:1,fx:{mood:2,seats:{bread:4},crown:.3}},
+  {id:'lane',icon:'🧱',name:'Pave Tanners’ Lane',text:'Ankle-deep from October to April. The Master Builder will do it at cost, if somebody finds the cost.',lo:50000,hi:110000,xp:1,rank:1,fx:{mood:1,attract:1,seats:{stone:5},crown:.3}},
+  {id:'feast',icon:'🍖',name:'A feast day in your name',text:'Oxen on the square, ale at the fountain. They will remember the name on the barrels.',lo:40000,hi:90000,xp:1.1,rank:1,fx:{mood:4,trust:1,seats:{revel:4},crown:.1}},
+  {id:'granary',icon:'🌾',name:'Stock the granary against winter',text:'Grain bought now, in your name, and carted to the crown’s stores. Nobody starves under your arms.',lo:60000,hi:140000,xp:1,rank:1,fx:{food:.012,mood:1,crown:0}},
+  {id:'chair',icon:'📚',name:'Endow a schoolmaster',text:'A stipend for a master of letters and numbers, in perpetuity. Slow, and it never stops.',lo:60000,hi:130000,xp:1.1,rank:1,fx:{skill:1.5,crown:.3}},
+  {id:'chantry',icon:'🕯',name:'A chantry at the cathedral',text:'A side chapel, a priest to sing in it, and your name in the stone. The King approves of piety in other people.',lo:70000,hi:150000,xp:1,rank:1,fx:{mood:1,pleasure:4,crown:.3}},
+  {id:'watchco',icon:'🛡',name:'Arm a company of the watch',text:'Mail, halberds and a month’s pay for twenty men. The Lord Commander will know whom to thank.',lo:80000,hi:170000,xp:1.1,rank:1,fx:{trust:1,quiet:1,seats:{sword:6},crown:.2}},
+  {id:'almshouse',icon:'🏚',name:'Found an almshouse',text:'Twelve old soldiers and their widows, off the street for good.',lo:100000,hi:200000,xp:1.2,rank:2,fx:{mood:3,trust:1,seats:{bread:5},crown:.2}},
+  {id:'hunt',icon:'🦌',name:'A gift to the King’s hunt',text:'Hounds from the island kennels and a stag park to loose them in. It is not a bribe if it has antlers.',lo:80000,hi:160000,xp:1,rank:2,fx:{pleasure:8,seats:{chamber:4},crown:.4}},
+  {id:'cog',icon:'⛵',name:'Fit out a merchant cog',text:'A hull lies idle at the quay for want of canvas and a crew. Under your pennant it sails for the southern ports.',lo:120000,hi:260000,xp:1.2,rank:2,fx:{attract:1,wind:['trade',.05],crown:.5}},
+  {id:'tourney',icon:'🏇',name:'Put up a tournament purse',text:'A purse worth riding three realms for. The Master of Revels has not slept since he heard.',lo:150000,hi:300000,xp:1.2,rank:2,fx:{mood:3,attract:2,seats:{revel:6},crown:.2}},
+  {id:'caravan',icon:'🐫',name:'Underwrite the Moonshine caravan',text:'Forty camels, a season on the road, and the city’s name on every bale.',lo:200000,hi:400000,xp:1.3,rank:3,fx:{attract:2,wind:['trade',.08],crown:.5}},
+  {id:'drains',icon:'🕳',name:'Drain the lower wards',text:'The part of the city nobody shows a visitor. Brick culverts, out to the river.',lo:250000,hi:450000,xp:1.3,rank:3,fx:{mood:2,attract:3,seats:{stone:6},crown:.3}},
+  {id:'guildhall',icon:'🏛',name:'Build a guildhall',text:'A hall for the lesser guilds, who have met in a tavern for two hundred years. Every master in the city will owe you a seat at his table.',lo:300000,hi:600000,xp:1.4,rank:4,fx:{skill:2,attract:2,seats:{sword:2,stone:2,bread:2,revel:2,chamber:2},crown:.4}},
+  {id:'regiment',icon:'⚔️',name:'Raise a regiment for the border',text:'Six hundred pikes under your colours. The realm notices who pays for its wars.',lo:400000,hi:800000,xp:1.5,rank:4,fx:{trust:3,pleasure:5,seats:{sword:8},crown:.2}},
+  {id:'library',icon:'📖',name:'Endow the great library',text:'Four thousand volumes bought from a bankrupt abbey, and a wing to put them in. Scholars will come from four realms to read your name over the door.',lo:500000,hi:1000000,xp:1.6,rank:5,fx:{skill:4,attract:3,trust:2,crown:.3}},
+ ];
+ const contractDef=id=>CONTRACTS.find(c=>c.id===id);
+ const nobleRankFor=(patented,xp)=>{if(!patented)return 0;let r=1;for(let i=2;i<NOBLE_RANKS.length;i++)if(xp>=NOBLE_RANKS[i].xp)r=i;return r;};
+ const offerRange=rank=>[1+Math.floor(rank/3),3+Math.floor(rank/2)];      /* 1-3 to a commoner and a knight, 3-6 to a duke */
+ /* re-post the board: a number of contracts within the rank's range, none of them on the last posting, none above the rank */
+ function dealOffers(state,rng){
+  const N=state.noble,[lo,hi]=offerRange(N.rank),n=lo+Math.floor(draw(rng)*(hi-lo+1)),was=new Set(N.offers.map(o=>o.id)),out=[];
+  let pool=CONTRACTS.filter(c=>c.rank<=Math.max(1,N.rank)&&!was.has(c.id));
+  while(out.length<n&&pool.length){
+   const c=pool[Math.floor(draw(rng)*pool.length)];pool=pool.filter(x=>x!==c);
+   const cost=Math.round((c.lo+(c.hi-c.lo)*draw(rng))/5000)*5000;
+   out.push({id:c.id,cost,xp:Math.round(cost/1000*c.xp),taken:false});
+  }
+  N.offers=out;N.offerLeft=OFFER_CLOSES;
+ }
+ function contractFx(fx){
+  const out=[],seat=id=>COUNCIL.find(s=>s.id===id);
+  if(fx.mood)out.push('people +'+fx.mood);if(fx.attract)out.push('the city’s draw +'+fx.attract);if(fx.trust)out.push('trust in you +'+fx.trust);
+  if(fx.skill)out.push('learning +'+fx.skill);if(fx.pleasure)out.push('the King’s pleasure +'+fx.pleasure);if(fx.food)out.push('grain for the granary');
+  if(fx.wind)out.push('trade on the roads picks up');if(fx.quiet)out.push('ends one trouble in the streets');
+  for(const id of Object.keys(fx.seats||{}))if(fx.seats[id]&&seat(id))out.push(seat(id).title+' +'+fx.seats[id]);
+  if(fx.crown)out.push(Math.round(fx.crown*100)+'% of the gold reaches the treasury');
+  return out;
+ }
+ function nobleView(state){
+  const N=state.noble,rank=N.rank,next=NOBLE_RANKS[rank+1]||null,[lo,hi]=offerRange(rank);
+  const wait=left=>Math.max(0,(left-1)*TICK_SECONDS+(TICK_SECONDS-num(state.clock)));
+  return {rank,def:NOBLE_RANKS[rank],ranks:NOBLE_RANKS,xp:N.xp,given:N.given,done:N.done,patentCost:PATENT_COST,closes:NOBLE_CLOSES,minutes:NOBLE_CLOSES*TICK_SECONDS/60,
+   pending:N.pending.map(p=>({...p,name:p.kind==='patent'?'Patent of nobility':contractDef(p.id).name,icon:p.kind==='patent'?'🎩':contractDef(p.id).icon,seconds:wait(p.left)})),
+   petitioned:N.pending.some(p=>p.kind==='patent'),
+   offers:N.offers.map(o=>({...contractDef(o.id),...o,effects:contractFx(contractDef(o.id).fx)})),offerRange:[lo,hi],repost:N.offers.length||state.ticks?wait(Math.max(1,N.offerLeft)):null,
+   next:next&&rank>=1?{...next,left:Math.max(0,next.xp-N.xp),from:NOBLE_RANKS[rank].xp}:null,perks:{attract:rank,trust:round1(rank*.1)}};
+ }
+ /* the petition: the fee is handed to the heralds now, the patent is sealed NOBLE_CLOSES closes later */
+ function ennoble(state,purse){
+  const N=state.noble;
+  if(!state.chartered)return {ok:false,text:'The heralds answer to a crown with its books open. See the King’s Hand first.'};
+  if(N.rank>=1)return {ok:false,text:'You hold a patent already.'};
+  if(N.pending.some(p=>p.kind==='patent'))return {ok:false,text:'Your petition is with the heralds. These things take the time they take.'};
+  if(num(purse)<PATENT_COST)return {ok:false,text:'The heralds’ fee is '+PATENT_COST.toLocaleString()+' ◉ of your own gold.'};
+  N.pending.push({kind:'patent',amount:PATENT_COST,left:NOBLE_CLOSES});
+  return {ok:true,cost:PATENT_COST,text:'The heralds have your petition and your '+PATENT_COST.toLocaleString()+' ◉. The patent will be sealed in '+NOBLE_CLOSES+' closes - a quarter of an hour.'};
+ }
+ /* take a contract off the board: the whole sum from the noble's own purse, now; nothing of it ever comes back */
+ function fundContract(state,id,purse){
+  const N=state.noble,o=N.offers.find(x=>x.id===id);
+  if(N.rank<1)return {ok:false,text:'These contracts are let to the nobility. Petition the heralds for a patent first.'};
+  if(!o||o.taken)return {ok:false,text:'That contract is no longer on the board.'};
+  if(num(purse)<o.cost)return {ok:false,text:'It wants '+o.cost.toLocaleString()+' ◉ of your own gold, all of it, today.'};
+  o.taken=true;N.pending.push({kind:'contract',id,amount:o.cost,xp:o.xp,left:NOBLE_CLOSES});
+  return {ok:true,cost:o.cost,text:contractDef(id).name+': '+o.cost.toLocaleString()+' ◉ handed over. The papers clear in '+NOBLE_CLOSES+' closes - a quarter of an hour.'};
+ }
+ function applyContract(state,ctx,fx,amount){
+  const add=(key,v,max=100)=>{state[key]=clamp(key==='skill'||key==='trust'?round1(state[key]+v):Math.round(state[key]+v),0,max);};
+  if(fx.mood)add('mood',fx.mood);if(fx.attract)add('attract',fx.attract);if(fx.trust)add('trust',fx.trust);if(fx.skill)add('skill',fx.skill);
+  if(fx.pleasure&&!state.crowned)state.king.pleasure=clamp(state.king.pleasure+fx.pleasure,0,100);
+  for(const id of Object.keys(fx.seats||{}))if(id in state.council)state.council[id]=clamp(state.council[id]+fx.seats[id],0,100);
+  if(fx.food)state.food.stock=Math.min(foodView(state,ctx).cap,state.food.stock+Math.round(amount*fx.food));
+  if(fx.wind)state.winds[fx.wind[0]]=clamp(Math.round((state.winds[fx.wind[0]]+fx.wind[1])*1e3)/1e3,-WIND_MAX,WIND_MAX);
+  if(fx.quiet&&state.incidents.length)state.incidents.shift();
+  const crown=Math.round(amount*num(fx.crown));state.treasury+=crown;state.earned+=crown;
+ }
+ /* one close for the papers on the clerks' desks and the postings on the board; returns what happened, for the ledger and the chat */
+ function nobleTick(state,ctx,rng){
+  const N=state.noble,out={news:[],rankUp:null,xp:0};
+  N.pending=N.pending.filter(p=>{
+   p.left-=1;if(p.left>0)return true;
+   if(p.kind==='patent'){N.rank=1;out.rankUp=1;state.treasury+=p.amount;state.earned+=p.amount;state.trust=clamp(round1(state.trust+2),0,100);out.news.push('🎩 Your patent of nobility is sealed. Rise, a Knight of the Realm. The contracts on the notice board are open to you.');}
+   else{const c=contractDef(p.id);applyContract(state,ctx,c.fx,p.amount);N.xp+=p.xp;N.given+=p.amount;N.done+=1;out.xp+=p.xp;out.news.push('🎩 '+c.name+' - done, in your name. Noble standing +'+p.xp+'.');}
+   return false;
+  });
+  const r=nobleRankFor(N.rank>=1,N.xp);
+  if(r>N.rank){N.rank=r;out.rankUp=r;out.news.push('🎩 The heralds have raised you in the peerage: '+NOBLE_RANKS[r].title+' / '+NOBLE_RANKS[r].titleF+'. More contracts will be brought to you.');}
+  N.offerLeft=num(N.offerLeft)-1;
+  if(N.offerLeft<=0){dealOffers(state,rng);out.news.push('📌 New contracts are posted on the notice board: '+N.offers.length+'.');}
+  return out;
  }
  /* 🔭 Where the season is heading, roughly. The Hand carries the books forward to the last close: the
     net he expects for the next close, tempered by what the last few closes really did, with interest
@@ -1274,7 +1421,7 @@
  function counselTopics(state,ctx,f){
   const out=[],add=(id,score,...lines)=>out.push({id,score,lines:lines.filter(Boolean)});
   const b=state.budget,K=state.king,q=state.season,grain=f.grain,wv=worksView(state,ctx);
-  const earns=w=>num(w.fx&&w.fx.exports)+num(w.fx&&w.fx.tolls)+num(w.fx&&w.fx.income)-num(workDef(w.id).upkeep);
+  const earns=w=>num(w.fx&&w.fx.exports)+num(w.fx&&w.fx.tolls)+num(w.fx&&w.fx.income)+num(w.fx&&w.fx.vice)*hearths(state)-num(workDef(w.id).upkeep);
   const ready=wv.list.filter(w=>w.status==='ready'),paying=ready.filter(w=>earns(w)>0).sort((x,y)=>earns(y)/y.cost-earns(x)/x.cost)[0];
   const catName=id=>WORK_CATS.find(c=>c.id===id).name;
   const worksLine=paying&&wv.building<MAX_BUILDING?'Gold in a strongroom earns nothing, and ours is borrowed at interest. A work is paid for once and earns for ever. With a crew standing idle, I would be reading the Master Builder’s drawings under '+catName(paying.cat)+'.':'';
@@ -1305,7 +1452,7 @@
    :'His Majesty sulks. Two lines of the budget are his - one is his purse and the other is his dinner - and his pleasure follows them more faithfully than it follows any gift.');
   if(!state.crowned&&K.demand)add('wish',K.demand.age>=1?58:36,'A wish refused costs you his smile. A wish ignored costs you more of it, and earns you nothing. And mark this: when the wish is a foolish, costly one, the city hears that you said no - and likes you the better.');
   if(state.petition)add('petition',state.petition.age>=1?45:28,'There is a petition on the table. A councillor forgives a paper that lapsed unread sooner than a no to his face - but neither is remembered the way a yes is. Weigh which seat you can least afford to have cold.');
-  if(f.favour<40)add('council',62,'Five of the six at this table watch one line of the budget each, and judge you by little else. The sixth reads only the bottom of the page. See who is cooling on the Council tab - a council against you pads every bill we pay.');
+  if(f.favour<40)add('council',62,'Every one of the five who sit at this table with you watches one line of the budget, and judges you by little else. See who is cooling on the Council tab - a council against you pads every bill we pay.');
   if(state.attract<40){const key=sorest(state,f,1);add('draw',57,key?'Families are loading carts. Were I choosing a city to live in, this is what I should notice first: '+AREA[key]:'Families are loading carts, and I cannot point at one thing. The People tab lists what draws them and what drives them off; it is a long list of small things.');}
   if(state.attract>=55&&state.pop>=f.housing&&f.housing<POP_MAX)add('roofs',52,'Families are being turned away at the gate for want of a roof. Every household that walks on is poll tax and rent we never see. The Master Builder has drawings for that.');
   if(!state.crowned&&f.trustDelta<=0)add('trust',42,'The realm’s trust in you is not growing. It is made of three things: the temper of the people, the six at this table, and whether anyone wants to live here. Each of them earns for you above its middle and costs you below it. The Crown tab says which.');
@@ -1330,13 +1477,13 @@
   state.counsel={at:state.ticks,text,topic:t.id};
   return {ok:true,spent:true,topic:t.id,text};
  }
- return Object.freeze({create,normalize,forecast,tick,advance,setBudget,borrow,repay,withdraw,deposit,settle,answer,councilView,counsel,counselView,counselTopics,COUNSEL_EVERY,projection,
+ return Object.freeze({create,normalize,forecast,tick,advance,setBudget,borrow,repay,withdraw,deposit,settle,answer,councilView,PLAYER_SEAT,nobleView,ennoble,fundContract,dealOffers,NOBLE_RANKS,CONTRACTS,NOBLE_CLOSES,OFFER_CLOSES,PATENT_COST,counsel,counselView,counselTopics,COUNSEL_EVERY,projection,
   worksView,invest,crownView,answerKing,claimCrown,gaolView,pardon,fine,worksFx,has,cells,charter,charterView,bankView,rehire,frozen,attend,neglect,REMIND_AFTER,NEGLECT_AFTER,NEGLECT_HARD,TRUST_SLOPE,TRUST_DRAIN_MAX,SEAT_SLOPE,SEAT_DRAIN_MAX,MOOD_SLOPE,MOOD_DRAIN_MAX,DRAW_SLOPE,DRAW_DRAIN_MAX,
   POP_MAX,HOUSEHOLD,hearths,SEASON_CARDS,cardDef,dealCard,
   windName,WIND_KEYS,WIND_MAX,JITTER_IN,JITTER_OUT,WAGE_RISE,WAGE_MAX,HERO_EXPORTS_MAX,HERO_FARM_LEVELS,
   foodView,buyFood,setAutoFood,HUNGER_GAIN,HUNGER_EASE,FOOD_STORE,FOOD_START,FOOD_CAP,FOOD_PRICE,AUTO_PREMIUM,FOOD_RESERVE,HUNGER_MAX,FOOD_LOW,FOOD_LOTS,
   creditLimit,favour,favourName,moodName,moodColor,attractName,trustName,pleasureName,scale,
-  VERSION,COIN,SEASON_CLOSES,FOUNDING_LOAN,RESERVE_LINE,MIN_RATE,MAX_RATE,RED_FLOOR,DUE_SHARE,COVER_FEE,SEIZE_AFTER,GUARD_WAGE,MIN_GUARD,
+  VERSION,COIN,HERO_COIN,MIN_LINE,recoin,SEASON_CLOSES,FOUNDING_LOAN,RESERVE_LINE,MIN_RATE,MAX_RATE,RED_FLOOR,DUE_SHARE,COVER_FEE,SEIZE_AFTER,GUARD_WAGE,MIN_GUARD,
   TICK_SECONDS,LOAN_RATE,OVERDRAFT_RATE,HISTORY,POPULATION,MIN_POP,HOUSING,LEAVE_MAX,MAX_BUILDING,CELLS,MAX_CELLS,COUP_TRUST,ROYAL_GUARD,PROTEST_START,PROTEST_END,MAX_INCIDENTS,
   TAX_RATES,TAX_MOOD,TAX_ATTRACT,LINES,LINE_KEYS,RATES,RATE_KEYS,DEFAULT_BUDGET,EVENTS,INCIDENTS,COUNCIL,PETITIONS,WORKS,WORK_CATS,HUMOURS,DEMANDS,CRIMES});
 });

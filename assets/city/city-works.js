@@ -27,6 +27,7 @@
   school:[4300,2250],apprentice:[6500,3700],library:[7500,2250],press:[7000,1500],university:[10000,1500],
   bathhouse:[5000,3700],hospital:[10500,3700],tenements:[3300,4300],newquarter:[14800,1500],
   theatre:[9800,2950],arena:[12000,1500],courthouse:[6900,2950],
+  brothel:[12700,4300],      /* appended last, so no house that already wears a sign changes hands */
  });
  const TINT=Object.freeze({trade:'#7fc4e8',learn:'#c9a0e8',living:'#9adf9a',culture:'#ffb46a',order:'#d8d2c4'});
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -36,6 +37,15 @@
  function label(g,text,x,y,color,size=13){
   g.save();g.font='700 '+size+'px Georgia, serif';g.textAlign='center';
   g.fillStyle='rgba(0,0,0,.78)';g.fillText(text,x+1,y+1);g.fillStyle=color;g.fillText(text,x,y);g.restore();
+ }
+
+ /* A painted board - the only lettering a house or a plot carries. Nothing floats over a roof:
+    what a place is called is written ON it, the way a town does it. */
+ function board(g,text,x,y,width,ink='#f0e2c4',wood='#3a2410'){
+  const size=clamp(Math.floor(width*1.55/Math.max(6,text.length)),6,10),h=size+8;
+  rect(g,x-width/2,y,width,h,wood,'#15100b',2);rect(g,x-width/2+2.5,y+2.5,width-5,h-5,'#5a3a1e');
+  g.save();g.font='700 '+size+'px Georgia, serif';g.textAlign='center';g.fillStyle=ink;g.fillText(text,x,y+h/2+size*.36);g.restore();
+  return h;
  }
 
  /* ---------- the plan: what stands where for a given look ---------- */
@@ -106,7 +116,7 @@
  /* how hard the city burns, 0-4: a riot, a temper at the bottom, nobody to carry a bucket, a gang war - and last close's fire still smoulders */
  function fireLevel(v){return clamp((v.protest?2:0)+(v.mood<25?1:0)+(v.watch===0?1:0)+(v.gang?1:0)+(v.fireNews?1:0),0,4);}
  /* what one house wears, the same from every frame and every visit until the ledger closes again:
-    'fire' | 'plague' | 'garland' | 'flowers' | null. A house with a work or a TO LET board wears nothing else. */
+    'fire' | 'plague' | 'garland' | 'flowers' | null. A house with a work or a FOR RENT board wears nothing else. */
  function dressing(house,look){
   if(!look||house.work)return null;
   const hx=Math.round(house.x),hy=Math.round(house.y),roll=(salt)=>(hash(hx+salt*7919,hy-salt*104729)%1000)/1000;
@@ -146,6 +156,7 @@
   else if(s.kind==='feast')ellipse(g,6,18,156,28,'rgba(0,0,0,.26)');
   else if(s.kind==='barricade')ellipse(g,6,14,108,28,'rgba(0,0,0,.30)');
   else if(s.kind==='maypole')ellipse(g,3,6,24,9,'rgba(0,0,0,.30)');
+  else if(s.kind==='noticeboard')ellipse(g,3,6,54,12,'rgba(0,0,0,.30)');
  }
  /* ---------- the people's own doing: small figures, and what they put out ---------- */
  const COATS=['#7a4a3a','#4f6a8c','#5a7a4a','#8a6a3a','#6a4a7a','#8c4a4a','#4a6a6a'];
@@ -197,11 +208,11 @@
   g.beginPath();g.moveTo(-14,0);g.lineTo(-10,-34);g.lineTo(10,-34);g.lineTo(14,0);g.closePath();g.fillStyle='#2a1a0c';g.fill();
   rect(g,-1.5,-Hh-26,3,28,'#3a2410');const sw=Math.sin(time*2.4+s.seed)*3;
   g.beginPath();g.moveTo(1.5,-Hh-26);g.lineTo(24,-Hh-20+sw);g.lineTo(1.5,-Hh-13);g.closePath();g.fillStyle='#e5c05a';g.fill();
-  label(g,s.stripe?'🎪 THE GREAT FAIR':'🎪 WONDERS · ONE PENNY',0,-Hh-34,'#ffd27a',11);
+  board(g,s.stripe?'THE GREAT FAIR':'WONDERS · ONE PENNY',0,-62,84,'#ffd27a');
  }
  function breadline(g,s,time){
   /* a shuttered bakers' hatch, and the queue that has been at it since before dawn */
-  rect(g,56,-52,46,52,'#6d4a28','#2a1a0c',2);rect(g,62,-44,34,20,'#3a2410','#15100b',1.5);label(g,'NO BREAD',79,-58,'#e6dbc9',9);
+  rect(g,56,-52,46,52,'#6d4a28','#2a1a0c',2);rect(g,62,-44,34,20,'#3a2410','#15100b',1.5);g.save();g.font='700 7px Georgia, serif';g.textAlign='center';g.fillStyle='#e6dbc9';g.fillText('NO BREAD',79,-12);g.restore();
   const n=s.long?9:5;
   for(let i=0;i<n;i++){const sh=Math.max(0,Math.sin(time*.8-i*.7))*3;fig(g,40-i*19+sh,(i%2)*5,{coat:COATS[(i*2+1)%COATS.length],step:sh*.6,hat:i%3===0?'#3a2a1a':undefined});}
   if(s.long)label(g,'“Bread!”',-60+Math.sin(time*1.4)*4,-56,'#ff8a7a',11);
@@ -307,23 +318,64 @@
   g.rotate(.5-a);g.strokeStyle='#2a1a0c';g.lineWidth=1.4;const hx=Math.cos(-.5+a)*60,hy=Math.sin(-.5+a)*60;
   g.beginPath();g.moveTo(hx,hy);g.lineTo(hx,hy+30+Math.sin(time*1.1)*6);g.stroke();rect(g,hx-7,hy+30+Math.sin(time*1.1)*6,14,10,'#9a9486','#3a362f',1.2);
   g.restore();
-  label(g,'⚒️ '+(s.name||'WORKS'),0,-112,'#ffd27a',12);
-  label(g,(s.left||1)+' close'+((s.left||1)>1?'s':'')+' to go',0,-98,'#e6dbc9',10);
+  board(g,s.name||'WORKS',-14,-40,84,'#ffd27a');        /* nailed to the fence; how long it will take is in the ledger */
  }
+ /* 📌 the notice board by the crier's pitch: two posts, a little roof, papers */
+ function noticeboard(g){
+  for(const x of [-42,38])rect(g,x,-92,6,96,'#4a2d17','#15100b',1);
+  rect(g,-46,-84,92,60,'#6d4a28','#2a1a0c',2);
+  g.beginPath();g.moveTo(-56,-88);g.lineTo(0,-108);g.lineTo(56,-88);g.closePath();g.fillStyle='#55504a';g.fill();g.strokeStyle='#15100b';g.lineWidth=1.5;g.stroke();
+  for(const [x,y,w,h] of [[-38,-78,22,28],[-10,-80,26,20],[20,-76,18,30],[-12,-54,24,24]]){rect(g,x,y,w,h,'#e9dcb8','#6b5430',1);ellipse(g,x+w/2,y+3,1.6,1.6,'#8a1b1b');}
+ }
+ function noticeBoard(world){const c=square(world);return {type:'citywork',kind:'noticeboard',x:c.x-6,y:c.y+190,r:16,seed:7};}
  const FOLK={maypole,music,feast,tent,breadline,beggar,barricade},FOLK_SCALE=1.55;
- function drawProp(g,s,time=0){
+ /* 🎨 Painted art (assets/city/*.png, Higgsfield 2026-09-21, see city-art-manifest.json). `img` is a
+    lookup game.js hands in - name -> a loaded image, or nothing while it loads and in the headless
+    tests - and every routine below falls back to its canvas drawing without it. h is the drawn height
+    in world units, drop how far below the anchor the art's foot sits. */
+ const ART={lamp:{h:138,drop:5},fountain:{h:146,drop:34},statue:{h:178,drop:10},garden:{h:128,drop:44},site:{h:150,drop:34},stall:{h:122,drop:10},
+  noticeboard:{h:132,drop:8},maypole:{h:272,drop:8},music:{h:92,drop:8},feast:{h:176,drop:50},tent:{h:232,drop:16},breadline:{h:140,drop:10},beggar:{h:70,drop:8},barricade:{h:122,drop:18}};
+ const STALL_ART=['stall_bread','stall_fish','stall_greens','stall_cloth'],WAGON_ART=['wagon_barrels','wagon_caravan','wagon_grain','wagon_caravan'];
+ const artName=s=>s.kind==='stall'?STALL_ART[s.goods%STALL_ART.length]:s.kind==='tent'?(s.stripe?'tent_blue':'tent_red'):s.kind==='statue'?(s.crowned?'statue_crowned':'statue'):s.kind;
+ const ready=im=>!!(im&&(im.naturalWidth||im.width));
+ function drawArt(g,s,time,img){
+  const a=ART[s.kind],im=a&&img&&img(artName(s));
+  if(!ready(im))return false;
+  const H=a.h,W=H*(im.naturalWidth||im.width)/(im.naturalHeight||im.height),flip=(s.kind==='barricade'&&s.flip<0)||(s.kind==='beggar'&&s.face<0)?-1:1;
+  g.save();g.scale(flip,1);g.drawImage(im,-W/2,a.drop-H,W,H);g.restore();
+  if(s.kind==='lamp'&&s.lit){
+   const f=.85+Math.sin(time*5.1+s.seed)*.15,glow=g.createRadialGradient(0,-118,0,0,-118,96);
+   glow.addColorStop(0,'rgba(255,206,120,'+(.34*f).toFixed(3)+')');glow.addColorStop(.5,'rgba(255,170,80,'+(.10*f).toFixed(3)+')');glow.addColorStop(1,'rgba(255,150,60,0)');
+   g.fillStyle=glow;g.fillRect(-96,-214,192,192);ellipse(g,0,4,58,20,'rgba(255,196,110,'+(.10*f).toFixed(3)+')');
+  }
+  if(s.kind==='music')for(let i=0;i<3;i++){const p=(time*.45+i/3)%1;label(g,i%2?'♪':'♫',-30+i*30+Math.sin(time*2+i)*6,-96-p*44,'rgba(255,236,170,'+(1-p).toFixed(3)+')',15);}
+  if(s.kind==='statue'&&s.hero){g.save();g.font='700 7px Georgia, serif';g.textAlign='center';g.fillStyle='#2a1e0c';g.fillText(s.hero.slice(0,12),0,-27);g.restore();}   /* the name, cut into the plaque */
+  if(s.kind==='site'&&s.name)board(g,s.name,-8,-30,84,'#ffd27a');
+  return true;
+ }
+ function drawProp(g,s,time=0,img=null){
+  if(drawArt(g,s,time,img))return;
   if(s.kind==='lamp')lamp(g,s,time);
   else if(s.kind==='stall')stall(g,s,time);
   else if(s.kind==='fountain')fountain(g,s,time);
   else if(s.kind==='statue')statue(g,s,time);
   else if(s.kind==='garden')garden(g,s,time);
   else if(s.kind==='site')site(g,s,time);
+  else if(s.kind==='noticeboard')noticeboard(g);
   else if(FOLK[s.kind]){g.save();g.scale(FOLK_SCALE,FOLK_SCALE);FOLK[s.kind](g,s,time);g.restore();}   /* drawn at handcart size, shown at the size of the townsfolk they stand among */
  }
  /* ---------- what a house wears: scaffolding while a crew is on it, a signboard after ---------- */
  /* drawn in the house's own frame: (0,0) is its anchor, the art spans x ±W/2 and y from `top` to `top+H` */
- function drawHouseWork(g,work,W,H,top,time=0){
+ function drawHouseWork(g,work,W,H,top,time=0,img=null){
   const w=Math.max(40,W),h=Math.max(40,H),tint=TINT[work.cat]||'#ffd27a';
+  const seized=work.status==='seized'&&img&&img('sign_seized'),scaffold=work.status==='building'&&img&&img('scaffold');
+  if(ready(seized)){const sh=Math.min(92,h*.3),sw=sh*seized.naturalWidth/seized.naturalHeight;g.drawImage(seized,-sw/2,top+h*.62-sh/2,sw,sh);return;}   /* 🏦 the bank's notice, chained across the door */
+  if(ready(scaffold)){
+   /* the painted scaffold, stretched over the facade from the street to the eaves; the name on a board lashed to it */
+   g.drawImage(scaffold,-w*.5,top+h*.2,w,h*.8);
+   board(g,work.sign,0,top+h*.2+h*.8*.30,w*.5,'#ffd27a');
+   return;
+  }
   if(work.status==='seized'){
    /* 🏦 sold by the bank: a chain across the door, the bank's seal on a board, the name struck through */
    const y=top+h*.74;
@@ -332,8 +384,6 @@
    rect(g,-w*.26,top+h*.50,w*.52,30,'#e9dcb8','#4a2d17',2);
    g.save();g.font='700 9px Georgia, serif';g.textAlign='center';g.fillStyle='#7a1b1b';g.fillText('SEIZED',0,top+h*.50+13);g.fillStyle='#3a1a0c';g.font='700 7.5px Georgia, serif';g.fillText('BY THE TIDES BANK',0,top+h*.50+24);g.restore();
    ellipse(g,w*.22,top+h*.50+15,8,8,'#7a1b1b','#3a0d10',1.5);
-   label(g,work.sign,0,top-10,'rgba(230,219,201,.55)',12);
-   g.save();g.strokeStyle='rgba(230,219,201,.55)';g.lineWidth=1.5;g.beginPath();g.moveTo(-work.sign.length*3.6,top-14);g.lineTo(work.sign.length*3.6,top-14);g.stroke();g.restore();
    return;
   }
   if(work.status==='building'){
@@ -348,8 +398,7 @@
    ellipse(g,mx,my-20,4.5,5,'#e0b890');rect(g,mx-4,my-15,8,14,'#4a6a8c');g.strokeStyle='#3a2410';g.lineWidth=2.4;
    g.beginPath();g.moveTo(mx+3,my-11);g.lineTo(mx+12,my-16-hit*7);g.stroke();rect(g,mx+10,my-21-hit*7,7,5,'#55504a');
    for(let i=0;i<3;i++){const p=(time*.9+i/3)%1;ellipse(g,mx+14+p*10,my-8-p*14,2+p*5,2+p*4,'rgba(210,196,170,'+((1-p)*.4).toFixed(3)+')');}
-   label(g,'⚒️ '+work.sign,0,top-10,'#ffd27a',12);
-   label(g,work.left+' close'+(work.left>1?'s':'')+' to go',0,top+5,'#e6dbc9',10);
+   board(g,work.sign,0,y1-(y1-y0)/3.2-22,w*.5,'#ffd27a');      /* lashed to the first stage of the scaffold */
    return;
   }
   /* finished: a pennant on the ridge, a board over the door, a warm lamp by it */
@@ -357,23 +406,22 @@
   rect(g,px-1.5,top-26,3,34,'#3a2410');
   g.beginPath();g.moveTo(px+1.5,top-26);g.quadraticCurveTo(px+14,top-24+sway,px+28,top-19+sway*.6);g.quadraticCurveTo(px+14,top-14+sway,px+1.5,top-12);g.closePath();g.fillStyle=tint;g.fill();g.strokeStyle='rgba(0,0,0,.5)';g.lineWidth=1;g.stroke();
   const by=top+h*.60;
-  rect(g,-w*.24,by,w*.48,17,'#3a2410','#15100b',2);rect(g,-w*.24+3,by+3,w*.48-6,11,'#5a3a1e');
-  g.save();g.font='700 9px Georgia, serif';g.textAlign='center';g.fillStyle=tint;g.fillText(work.icon,0,by+12);g.restore();
+  board(g,work.sign,0,by,w*.52,tint);
   const f=.8+Math.sin(time*4.7+w)*.2;ellipse(g,-w*.30,by+8,16,16,'rgba(255,196,110,'+(.16*f).toFixed(3)+')');ellipse(g,-w*.30,by+8,3.5,4.5,'rgba(255,226,160,.95)');
-  label(g,work.icon+' '+work.sign,0,top-32,tint,13);
  }
- /* a house nobody lives in any more: planks across the door, a board on a stake */
- function drawVacant(g,W,H,top){
-  const y=top+H*.72;
+ /* a house nobody lives in any more: planks across the door, a FOR RENT board on a stake */
+ function drawVacant(g,W,H,top,img=null){
+  const y=top+H*.72,sign=img&&img('sign_rent');
   g.save();g.strokeStyle='#6d4a28';g.lineWidth=5;g.lineCap='butt';
   g.beginPath();g.moveTo(-14,y);g.lineTo(14,y+22);g.moveTo(14,y);g.lineTo(-14,y+22);g.stroke();
   g.restore();
-  rect(g,W*.2,top+H-30,3,30,'#4a2d17');rect(g,W*.2-17,top+H-44,37,16,'#d8c493','#4a2d17',1.5);
-  g.save();g.font='700 8px Georgia, serif';g.textAlign='center';g.fillStyle='#3a1a0c';g.fillText('TO LET',W*.2+1.5,top+H-33);g.restore();
+  if(ready(sign)){const sh=62,sw=sh*sign.naturalWidth/sign.naturalHeight;g.drawImage(sign,W*.24-sw/2,top+H+4-sh,sw,sh);return;}
+  rect(g,W*.2,top+H-30,3,30,'#4a2d17');rect(g,W*.2-21,top+H-44,45,16,'#d8c493','#4a2d17',1.5);
+  g.save();g.font='700 8px Georgia, serif';g.textAlign='center';g.fillStyle='#3a1a0c';g.fillText('FOR RENT',W*.2+1.5,top+H-33);g.restore();
  }
  /* 🔥🌸☠️ what a house wears for the temper of the city, in the house's own frame (see dressing) */
- function drawDressing(g,kind,W,H,top,time=0,seed=0){
-  const w=Math.max(40,W),h=Math.max(40,H);
+ function drawDressing(g,kind,W,H,top,time=0,seed=0,img=null){
+  const w=Math.max(40,W),h=Math.max(40,H),tub=img&&img('flower_tub');
   if(kind==='fire'){
    /* smoke first, rolling up and downwind; then tongues of flame in three coats, red to yellow; then sparks */
    const k=clamp(h/200,1,2.2),tongue=(fx,fy,bw,hh,lean,fill)=>{g.beginPath();g.moveTo(fx-bw,fy);g.bezierCurveTo(fx-bw*1.3,fy-hh*.45,fx-bw*.2+lean*.4,fy-hh*.7,fx+lean,fy-hh);g.bezierCurveTo(fx+bw*.5+lean*.4,fy-hh*.6,fx+bw*1.3,fy-hh*.4,fx+bw,fy);g.closePath();g.fillStyle=fill;g.fill();};
@@ -394,7 +442,8 @@
   }
   /* tubs of flowers either side of the door; on a garlanded house a swag of green and a crown banner as well */
   const u=clamp(h/190,1,1.9);
-  for(const side of [-1,1]){const x=side*w*.2,y=top+h-2;
+  if(ready(tub)){const th=34*u,tw=th*tub.naturalWidth/tub.naturalHeight;for(const side of [-1,1])g.drawImage(tub,side*w*.22-tw/2,top+h+3-th,tw,th);}
+  else for(const side of [-1,1]){const x=side*w*.2,y=top+h-2;
    rect(g,x-9*u,y-10*u,18*u,10*u,'#8a5a2b','#2a1a0c',1.2);ellipse(g,x,y-12*u,11*u,6*u,'#3f7a3a');
    for(let i=0;i<5;i++)ellipse(g,x+(-8+i*4)*u+Math.sin(time*1.5+i+seed)*.8,y-(15+(i%2)*3)*u,2.6*u,2.6*u,['#e8607a','#f0c84a','#f4f0e0','#b884e0'][(i+seed)&3]);}
   if(kind!=='garland')return;
@@ -484,8 +533,16 @@
   g.restore();
  }
  /* a wagon and its horse; a family and its handcart */
- function drawTraffic(g,t,time=0){
+ function drawTraffic(g,t,time=0,img=null){
   g.save();g.translate(t.x,t.y);g.globalAlpha=clamp(t.fade,0,1);g.scale(t.dir,1);
+  const im=img&&img(t.kind==='wagon'?WAGON_ART[t.cargo%WAGON_ART.length]:'handcart');
+  if(ready(im)){
+   /* painted, travelling right (the scale above turns it round): it rocks on its springs and dips at the cobbles */
+   const H=t.kind==='wagon'?112:88,W=H*im.naturalWidth/im.naturalHeight,roll=time*5+t.seed;
+   ellipse(g,0,8,W*.46,9,'rgba(0,0,0,.26)');
+   g.rotate(Math.sin(roll*.9)*.012);g.drawImage(im,-W/2,12-H+Math.abs(Math.sin(roll*1.3))*-1.6,W,H);
+   g.restore();return;
+  }
   const roll=time*5+t.seed,bob=Math.sin(roll*1.3)*1.2;
   const wheel=(x,y,r)=>{ellipse(g,x,y,r,r,'#3a2410','#15100b',2);g.strokeStyle='#8a5a2b';g.lineWidth=1.6;for(let i=0;i<4;i++){const a=roll+i*Math.PI/4;g.beginPath();g.moveTo(x-Math.cos(a)*r,y-Math.sin(a)*r);g.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r);g.stroke();}};
   ellipse(g,0,8,t.kind==='wagon'?74:40,9,'rgba(0,0,0,.26)');
@@ -517,6 +574,6 @@
   g.restore();
  }
  return Object.freeze({ANCHORS,TINT,props,assignHouses,stallSlots,lampSpots,stallCount,traffic,litter,bunting,vacant,onStreet,
-  streetLife,fireLevel,dressing,drawDressing,drawSnow,drawFireworks,
+  noticeBoard,streetLife,fireLevel,dressing,drawDressing,drawSnow,drawFireworks,
   drawProp,drawShadow,drawHouseWork,drawVacant,drawLitter,drawBunting,drawTraffic});
 });

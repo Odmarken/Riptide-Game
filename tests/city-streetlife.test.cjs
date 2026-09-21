@@ -76,3 +76,28 @@ test('every new thing draws with finite geometry at any time of day',()=>{
  assert.equal(count.calls,before,'no fireworks are drawn when the square is nowhere near the screen');
  assert.ok(count.calls>500);
 });
+
+test('with its paintings loaded every prop, wagon and house sign is one blit; without them the canvas stand-ins still draw',()=>{
+ const count={calls:0},g=fakeContext(count),w=city(),asked=new Set();let blits=0;
+ const paint=new Proxy(g,{get(o,k){return k==='drawImage'?(...a)=>{blits++;for(const v of a.slice(1))assert.ok(Number.isFinite(v),'drawImage got '+v);}:o[k];},set(o,k,v){o[k]=v;return true;}});
+ const img=n=>{asked.add(n);return {naturalWidth:640,naturalHeight:480};};
+ const all=Works.props(w,{works:{aqueduct:'done',statue:'done',gardens:'done',lamps:'done',coveredmarket:'building'},stalls:8,crowned:true,hero:'Birgitta',xMax:15500,street:{maypole:true,music:true,feast:2,tents:true,breadline:2,barricades:true,beggars:8}});
+ for(const p of all)Works.drawProp(paint,p,2.5,img);
+ assert.equal(blits,all.length,'one painting per prop');
+ for(const n of ['lamp','fountain','statue_crowned','garden','site','stall_bread','stall_fish','stall_greens','stall_cloth','maypole','music','feast','tent_red','tent_blue','breadline','beggar','barricade'])assert.ok(asked.has(n),n);
+ blits=0;for(const t of Works.traffic(w,{wagons:4,migrants:2,xMax:15500},12))Works.drawTraffic(paint,t,12,img);
+ assert.equal(blits,6);for(const n of ['wagon_barrels','wagon_caravan','wagon_grain','handcart'])assert.ok(asked.has(n),n);
+ blits=0;Works.drawHouseWork(paint,{status:'building',sign:'LIBRARY',left:2,cat:'learn'},220,300,-290,1,img);Works.drawHouseWork(paint,{status:'seized',sign:'PLAYHOUSE',cat:'culture'},220,300,-290,1,img);
+ Works.drawVacant(paint,220,300,-290,img);Works.drawDressing(paint,'flowers',220,300,-290,1,7,img);
+ assert.equal(blits,5,'a scaffold, a seizure notice, a FOR RENT board and two tubs of flowers');
+ const before=count.calls;blits=0;for(const p of all)Works.drawProp(paint,p,2.5,()=>null);
+ assert.equal(blits,0);assert.ok(count.calls>before+300,'nothing loaded: canvas scenery only');
+});
+
+test('every painting the city asks for is on disk, and every finished work that wears a house has its own building',()=>{
+ const fs=require('node:fs'),path=require('node:path'),dir=path.join(__dirname,'..','assets','city');
+ const manifest=JSON.parse(fs.readFileSync(path.join(dir,'city-art-manifest.json'),'utf8'));
+ for(const id of Object.keys(Works.ANCHORS))assert.ok(manifest.art['work_'+id+'.png']&&fs.existsSync(path.join(dir,'work_'+id+'.png')),'work_'+id);
+ for(const file of Object.keys(manifest.art)){assert.ok(fs.existsSync(path.join(dir,file)),file);assert.match(manifest.art[file].jobId,/^[0-9a-f-]{36}$/);}
+ assert.ok(Object.keys(manifest.art).length>=48);
+});

@@ -51,15 +51,17 @@ test('the court: eight named guards at the pillars, the king before his throne, 
  assert.ok(throne.y<king.y&&Math.abs(throne.x-king.x)<1,'the throne is drawn behind the king');
  assert.equal(hand.name,World.HAND_NAME);assert.equal(hand.skin,'kings_hand');
  const table=w.solids.find(s=>s.kind==='table');
- assert.ok(hand.y>table.y+table.cry&&Math.abs(hand.x-table.x)<1,'the Hand stands at the near end of the table');
+ assert.ok(hand.y>table.y+table.cry&&hand.x<table.x-150,'the Hand stands before the near-left chair of the table');
  assert.ok(table.crx>200&&table.cry>90,'the table blocks a broad ellipse');
- /* 🏛 six councillors round the table, ids matching the economy's seats, three behind the far chairs */
+ /* 🏛 five councillors round the table, ids matching the economy's seats; the near-left chair is the King's Hand's, and the steward sits as Master of Coin */
  const Economy=require('../assets/city/economy.js');
  const seats=w.npcs.filter(n=>n.game==='council');
  assert.deepEqual(seats.map(n=>n.seat),Economy.COUNCIL.map(c=>c.id));
- assert.equal(seats.filter(n=>n.y<table.y).length,3);assert.equal(seats.filter(n=>n.y>table.y).length,3);
+ assert.equal(seats.length,5);assert.equal(seats.filter(n=>n.y<table.y).length,3);assert.equal(seats.filter(n=>n.y>table.y).length,2);
+ assert.ok(!seats.some(n=>n.seat===Economy.PLAYER_SEAT.id),'no councillor holds the Master of Coin’s seat: it is the steward’s');
+ assert.ok(seats.find(n=>n.seat==='bread').y<table.y,'Gottfrid Pung stands behind the far-left chair, where he always stood');
  for(const n of seats){assert.ok(n.name.includes('\u00b7'));assert.ok(World.contains(n.x,n.y,13));assert.ok(Math.hypot(n.x-hand.x,n.y-hand.y)>80,n.name+' crowds the Hand');}
- assert.equal(seats.find(n=>n.seat==='bread').female,true);
+ assert.match(seats.find(n=>n.seat==='bread').name,/^Gottfrid Pung/);assert.ok(!w.npcs.some(n=>/Agnes/.test(n.name)));
  assert.equal(w.solids.filter(s=>s.kind==='pillar').length,10);
  assert.ok(w.solids.every(s=>s.type==='throneprop'&&s.r>0));
  /* nobody stands inside a blocked prop */
@@ -132,7 +134,7 @@ test('the ground paints once into a static layer, then blits the visible slice a
 
 test('props draw with finite geometry as paintings, and as canvas scenery until the paintings load',()=>{
  const count={calls:0,draws:0,patterns:0},g=fakeContext(count),w=World.create();
- const art={throne:image,table:image,pillar:image,brazier:image};
+ const art={throne:image,table:image,pillar:image,brazier:image,gaoldesk:image};   /* not the grilles: the module remembers every painting it is handed, and the gaol test below wants their canvas stand-ins */
  for(const s of w.solids){World.drawShadow(g,s);World.drawProp(g,s,1.2,{raidwall:image,raidfloor:image});}
  assert.equal(count.draws,0,'no painting loaded: canvas scenery only');
  const before=count.calls;
@@ -163,4 +165,8 @@ test('the gaol paints into a layer of its own and its props draw with finite geo
  const before=count.calls;
  for(const s of w.solids.filter(s=>s.kind==='bars'||s.kind==='gaoldesk')){World.drawShadow(g,s);World.drawProp(g,s,2.2,{});World.drawProp(g,{...s,walled:true},2.2,{});}
  assert.ok(count.calls-before>200);
+ /* 🎨 the cell grilles and the bricked-up doorways are paintings too, once theirs are in: one blit a cell */
+ const cells=w.solids.filter(x=>x.kind==='bars'),was=count.draws;
+ for(const c of cells)World.drawProp(g,c,1.2,{bars:image,bricked:image});
+ assert.equal(count.draws-was,cells.length,'one blit a cell');
 });

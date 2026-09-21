@@ -49,8 +49,8 @@ test('a work is paid for up front, takes its closes to build, and then earns for
  assert.equal(E.invest(s,ctx,'fleet').ok,false,'a fleet needs a quay');
  assert.equal(E.invest(s,ctx,'nope').ok,false);
  s.treasury=100;assert.equal(E.invest(s,ctx,'carters').ok,false,'not from an empty treasury');
- s.treasury=200000;
- const r=E.invest(s,ctx,'carters');assert.ok(r.ok);assert.equal(r.cost,carters.cost*K,'the same price at any prestige');assert.equal(s.treasury,200000-carters.cost*K);
+ s.treasury=2000000;
+ const r=E.invest(s,ctx,'carters');assert.ok(r.ok);assert.equal(r.cost,carters.cost*K,'the same price at any prestige');assert.equal(s.treasury,2000000-carters.cost*K);
  assert.deepEqual(s.works.carters,{left:1});assert.equal(E.invest(s,ctx,'carters').ok,false,'only once');
  assert.equal(line(E.forecast(s,ctx),'income','exports'),line(before,'income','exports'),'nothing until it stands');
  const trust=s.trust,close=E.tick(s,ctx,quiet);
@@ -75,7 +75,7 @@ test('every work is well-formed, reachable and worth something',()=>{
   if(w.site==='house')assert.ok(w.sign,w.id+' has a signboard');
  }
  /* build the lot, in whatever order the prerequisites allow: every work gets built */
- const s=open();s.treasury=1e7;
+ const s=open();s.treasury=1e8;
  for(let i=0;i<80&&Object.keys(s.works).length<E.WORKS.length;i++){
   for(const w of E.worksView(s,{}).list)if(w.status==='ready')E.invest(s,{},w.id);
   E.tick(s,{},quiet);
@@ -103,13 +103,13 @@ test('an attractive city fills until the roofs run out; a shunned one empties to
  for(const [k,v] of [['relief',2],['festival',2],['clean',3],['food',3],['watch',2],['rent',0]])E.setBudget(good,k,v);
  assert.ok(E.forecast(good,{}).attractTarget>=75);
  let full=null;
- for(let i=0;i<30;i++){good.treasury=50000;const r=E.tick(good,{},quiet);if(r.unrest.some(u=>/not a roof left/.test(u))){full=i;break;}}
+ for(let i=0;i<30;i++){good.treasury=500000;const r=E.tick(good,{},quiet);if(r.unrest.some(u=>/not a roof left/.test(u))){full=i;break;}}
  assert.equal(good.pop,E.HOUSING,'the city filled every roof');assert.ok(full!==null,'and then turned families away');
- good.works.tenements={left:0};good.treasury=50000;E.tick(good,{},quiet);
+ good.works.tenements={left:0};good.treasury=500000;E.tick(good,{},quiet);
  assert.ok(good.pop>E.HOUSING,'tenements let them in again');
  const bad=open();
  for(const [k,v] of [['tax',30],['rent',3],['clean',0],['food',0],['watch',0],['relief',0]])E.setBudget(bad,k,v);
- let left=0;for(let i=0;i<90;i++){bad.treasury=50000;const r=E.tick(bad,{},quiet);if(r.moved<0)left-=r.moved;}
+ let left=0;for(let i=0;i<90;i++){bad.treasury=500000;const r=E.tick(bad,{},quiet);if(r.moved<0)left-=r.moved;}
  assert.equal(bad.pop,E.MIN_POP);assert.equal(left,E.POPULATION-E.MIN_POP);assert.ok(bad.attract<10);
  assert.ok(line(E.forecast(bad,{}),'income','taxes')<line(E.forecast(open(),{}),'income','taxes'),'an empty city pays no tax');
 });
@@ -122,9 +122,9 @@ test('the King: a purse to keep him sweet, humours that turn, wishes to grant or
  const v=E.crownView(s,{prestige:10});
  assert.equal(v.demand.cost,1600*K);assert.equal(v.demand.left,2);assert.equal(v.crowned,false);assert.equal(v.canClaim,false);
  s.treasury=10;assert.equal(E.answerKing(s,{},true).ok,false);
- s.treasury=50000;const p=s.king.pleasure,mood=s.mood;
+ s.treasury=500000;const p=s.king.pleasure,mood=s.mood;
  assert.equal(E.answerKing(s,{},true).accepted,true);
- assert.equal(s.treasury,50000-1600*K);assert.equal(s.king.pleasure,p+14);assert.equal(s.mood,mood-3);assert.equal(s.king.demand,null);assert.equal(E.answerKing(s,{},true),null);
+ assert.equal(s.treasury,500000-1600*K);assert.equal(s.king.pleasure,p+14);assert.equal(s.mood,mood-3);assert.equal(s.king.demand,null);assert.equal(E.answerKing(s,{},true),null);
  /* refused: he sulks, and the city likes you for it */
  const t=open();E.tick(t,{},script(.9,.9,.9,.0,.0));const p2=t.king.pleasure,trust=t.trust;
  assert.equal(E.answerKing(t,{},false).accepted,false);assert.equal(t.king.pleasure,p2-10);assert.equal(t.trust,trust+1);
@@ -195,11 +195,11 @@ test('trust is earned close by close, lost to marches and light fingers, and at 
  const f=E.forecast(s,{});assert.ok(f.trustDelta>4,'trust per close '+f.trustDelta);
  assert.equal(E.crownView(s,{}).closesToCrown,Math.ceil(90/f.trustDelta));
  /* carrying the treasury home costs it; paying in earns half as much back */
- const t=open();t.trust=50;t.loan=0;t.treasury=300000;
+ const t=open();t.trust=50;t.loan=0;t.treasury=3000000;
  assert.equal(E.withdraw(t,30000,1e9,{}),30000);assert.equal(t.trust,48);
  assert.equal(E.withdraw(t,270000,1e9,{}),270000);assert.equal(t.trust,38,'at most ten at a time');
  assert.equal(E.deposit(t,30000,1e9,{}),30000);assert.equal(t.trust,39);
- assert.equal(E.withdraw(open(),3000,1e9,{}),0,'and never gold that is the bank\'s');
+ assert.equal(E.withdraw(open(),30000,1e9,{}),0,'and never gold that is the bank\'s');
  /* a march undoes it */
  const m=open();m.trust=50;m.protest=true;m.mood=10;assert.ok(E.forecast(m,{}).trustDelta<-4);
  /* the coup */
@@ -211,12 +211,12 @@ test('trust is earned close by close, lost to marches and light fingers, and at 
  /* no more wishes, no more whims; the purse is the monarch\'s own, and he serves for life */
  s.king.pleasure=0;
  const fc=E.forecast(s,{});assert.equal(line(fc,'expenses','whims'),0);assert.equal(fc.expenses.find(l=>l.id==='purse').name,'Your privy purse');
- for(let i=0;i<12;i++){const due=E.forecast(s,{}).purse,c=E.tick(s,{},()=>.01);assert.equal(s.king.demand,null);assert.equal(c.purse,due,'the privy purse is paid out at every close, as forecast');}
+ for(let i=0;i<12;i++){const due=E.forecast(s,{}).purse,c=E.tick(s,{},()=>.01);assert.equal(s.king.demand,null);assert.equal(c.purse,Math.round(due*E.HERO_COIN/E.COIN),'a tenth of the privy purse reaches the hero’s own gold at every close');}
  assert.ok(s.jail.some(p=>p.life),'Alarik is still there');
  assert.equal(E.fine(s,{},'Alarik Tidvind'),null);
  assert.ok(E.pardon(s,'Alarik Tidvind').ok);assert.equal(s.deposed,'exile');assert.ok(!s.jail.some(p=>p.life));
  /* a crowned head draws on the treasury without a murmur */
- s.loan=0;s.treasury=9000;const trust=s.trust;assert.equal(E.withdraw(s,9000,1e9,{}),9000);assert.equal(s.trust,trust);
+ s.loan=0;s.treasury=90000;const trust=s.trust;assert.equal(E.withdraw(s,90000,1e9,{}),90000);assert.equal(s.trust,trust);
  /* exile from the start */
  const e=open();e.trust=100;assert.ok(E.claimCrown(e,'exile').ok);assert.deepEqual(e.jail,[]);assert.equal(e.deposed,'exile');
  /* a crown nobody trusts breeds royalists */
@@ -224,7 +224,7 @@ test('trust is earned close by close, lost to marches and light fingers, and at 
 });
 
 test('normalize carries the long game through a save, repairs a damaged one and opens an old one at its start',()=>{
- const old=E.normalize({treasury:9000,budget:{tax:15,watch:2}});            /* a save from before the founding loan */
+ const old=E.normalize({treasury:90000,budget:{tax:15,watch:2}});            /* a save from before the founding loan */
  assert.deepEqual(old,E.create(),'opens on the empty strongroom');
  const s=open();s.trust=100;s.treasury=1e6;E.invest(s,{},'carters');E.tick(s,{},quiet);E.invest(s,{},'quay');E.claimCrown(s,'gaol');
  const back=E.normalize(JSON.parse(JSON.stringify(s)));
@@ -290,7 +290,7 @@ test('the granary: the city eats a sack a household, grain is bought by the ship
  const cash=s.treasury,buy=E.buyFood(s,{},200);
  assert.ok(buy.ok);assert.equal(buy.sacks,200);assert.equal(buy.cost,200*v.price);assert.equal(s.treasury,cash-200*v.price);assert.equal(s.food.stock,E.FOOD_START-N+200);
  assert.equal(E.buyFood(s,{},1e9).sacks,E.FOOD_CAP-(E.FOOD_START-N+200),'the stores fill to the rafters and no further');assert.equal(E.buyFood(s,{},10).ok,false);
- const poor=open();poor.food.stock=0;poor.treasury=95;assert.equal(E.buyFood(poor,{},500).sacks,Math.floor(95/v.price));poor.treasury=-5;assert.equal(E.buyFood(poor,{},500).ok,false);
+ const poor=open();poor.food.stock=0;poor.treasury=950;assert.equal(E.buyFood(poor,{},500).sacks,Math.floor(950/v.price));poor.treasury=-5;assert.equal(E.buyFood(poor,{},500).ok,false);
  /* transport makes grain cheaper and the stores bigger; so does a farm of your own */
  const t=open();t.works={carters:{left:0},quay:{left:0},fleet:{left:0},coveredmarket:{left:0}};
  const tv=E.foodView(t,{farmOwned:true});
@@ -308,7 +308,7 @@ test('the granary: the city eats a sack a household, grain is bought by the ship
  assert.ok(hf.moodFactors.some(x=>/Hunger/.test(x.name)&&x.value===-36)&&hf.attractFactors.some(x=>/Hunger/.test(x.name)&&x.value===-18)&&hf.trustFactors.some(x=>/Hunger/.test(x.name)&&x.value===-2));
  assert.ok(h.pop<E.POPULATION,'and the hungriest leave: '+h.pop);
  /* bread again: the hunger eases half a point a close - what was lost comes back slowly */
- E.buyFood(h,{},1000);E.tick(h,{},quiet);assert.equal(h.food.hunger,E.HUNGER_MAX-.5);
+ E.buyFood(h,{},10000);E.tick(h,{},quiet);assert.equal(h.food.hunger,E.HUNGER_MAX-.5);
  for(let i=0;i<11;i++){E.buyFood(h,{},200);E.tick(h,{},quiet);}assert.equal(h.food.hunger,0);
  /* standing shipments: what the city eats and a quarter of the way to six closes' reserve, every close, at a quarter over the price */
  const a=E.create();E.charter(a);a.food.stock=0;assert.equal(E.setAutoFood(a,true),true);
@@ -373,7 +373,7 @@ test('nothing costs the same two closes running: a live game blows three winds, 
  let last;for(let i=0;i<E.SEASON_CLOSES;i++){E.attend(p);last=E.tick(p,{},quiet);}
  assert.equal(p.wage,1+E.WAGE_RISE);assert.ok(last.unrest.some(u=>/asked for a rise/.test(u)));assert.equal(p.seasons[0].wage,p.wage);
  assert.equal(line(E.forecast(p,{}),'expenses','guard'),Math.round(guard0*p.wage));assert.ok(line(E.forecast(p,{}),'expenses','purse')>purse0);
- for(let k=0;k<3;k++)for(let i=0;i<E.SEASON_CLOSES;i++){E.attend(p);p.treasury=400000;E.tick(p,{},quiet);}
+ for(let k=0;k<3;k++)for(let i=0;i<E.SEASON_CLOSES;i++){E.attend(p);p.treasury=4000000;E.tick(p,{},quiet);}
  assert.ok(Math.abs(p.wage-Math.pow(1+E.WAGE_RISE,4))<1e-3,'it compounds: '+p.wage);
  /* and all of it survives a save */
  s.wage=1.0609;const back=E.normalize(JSON.parse(JSON.stringify(s)));assert.deepEqual(back.winds,s.winds);assert.equal(back.wage,1.0609);
@@ -382,7 +382,7 @@ test('nothing costs the same two closes running: a live game blows three winds, 
 
 test('the share of the tithes: fuller plates in a contented city, and a pious King and the High Almoner who take a heavy hand personally',()=>{
  const s=open(),base=line(E.forecast(s,{}),'income','church');
- assert.ok(base>800&&base<2500,'the customary share: '+base);
+ assert.ok(base>800&&base<25000,'the customary share: '+base);
  const glad=open();glad.mood=95;assert.ok(line(E.forecast(glad,{}),'income','church')>base);
  const big=open();big.pop=700;assert.ok(Math.abs(line(E.forecast(big,{}),'income','church')-2*base)<=1,'it grows with every head');
  const feast=open();E.setBudget(feast,'festival',2);assert.ok(line(E.forecast(feast,{}),'income','church')>base,'feast days fill the plate');
@@ -396,14 +396,14 @@ test('the share of the tithes: fuller plates in a contented city, and a pious Ki
 
 test('no two seasons are alike: a live game deals every season a card, rolls the size of everything on it, and never deals the same one twice running',()=>{
  /* still air: every season is an ordinary one, and nothing about it moves the forecast */
- const calm=open();for(let i=0;i<E.SEASON_CLOSES*2;i++){E.attend(calm);calm.treasury=400000;E.tick(calm,{},quiet);}
+ const calm=open();for(let i=0;i<E.SEASON_CLOSES*2;i++){E.attend(calm);calm.treasury=4000000;E.tick(calm,{},quiet);}
  assert.equal(calm.season.n,3);assert.deepEqual(calm.season.card,{id:'ordinary',mods:{}});
  /* live: the first season is ordinary (enough is new already), the ones after it are dealt */
  let x=5150;const rng=()=>{x=(Math.imul(x,1664525)+1013904223)>>>0;return x/4294967296;};
  const s=open();assert.equal(s.season.card.id,'ordinary');
  const dealt=[],opened=[];
  for(let k=0;k<14;k++)for(let i=0;i<E.SEASON_CLOSES;i++){
-  E.attend(s);s.treasury=400000;s.food.stock=1e6;
+  E.attend(s);s.treasury=4000000;s.food.stock=1e6;
   const r=E.tick(s,{live:true},rng);
   if(r.review){dealt.push(s.season.card);opened.push(...r.unrest.filter(u=>/^🎲 Season/.test(u)));assert.equal(s.seasons[s.seasons.length-1].card!==undefined,true,'the review remembers what kind of season it was');}
  }
@@ -465,4 +465,30 @@ test('a bigger city costs more to run - but a household always brings in more th
  assert.equal(line(fb,'expenses','guard'),line(fs0,'expenses','guard'),'eight men at the pillars, however big the city');
  assert.ok(fb.net>fs0.net,'growing still pays: '+fb.net+' against '+fs0.net);
  assert.equal(fs0.factor.watch,1);assert.ok(fb.factor.watch>5);
+});
+
+test('the Velvet Lantern: dear to build, pays like the plate - by the household - draws visitors, and a pious King sulks',()=>{
+ const def=E.WORKS.find(w=>w.id==='brothel');
+ assert.ok(def.cost>=E.WORKS.map(w=>w.cost).sort((a,b)=>b-a)[3],'among the dearest works on the list: '+def.cost);
+ const s=open(),before=E.forecast(s,{});
+ assert.ok(!before.income.some(l=>l.id==='vice'),'no line on the ledger until the lamps are lit');
+ s.works.brothel={left:0};
+ const f=E.forecast(s,{}),vice=f.income.find(l=>l.id==='vice').amount,church=f.income.find(l=>l.id==='church').amount;
+ assert.ok(vice>church*.5&&vice<church*2,'takings of the same order as the plate: '+vice+' against '+church);
+ assert.equal(f.attractTarget,before.attractTarget+3);
+ const big=open();big.works.brothel={left:0};big.pop=2800;
+ assert.ok(E.forecast(big,{}).income.find(l=>l.id==='vice').amount>vice*5,'and it grows with the city');
+ assert.ok(f.net>before.net,'it earns more than its upkeep');
+ s.king.humour='pious';assert.equal(E.forecast(s,{}).pleasureTarget,before.pleasureTarget-6);
+ assert.ok(E.worksView(s,{}).list.find(w=>w.id==='brothel').effects.some(e=>/household/.test(e)));
+});
+
+test('a save from before the new coinage is re-struck at ten to one, not closed',()=>{
+ const old={v:2,chartered:true,treasury:412345,loan:480000,limit:650000,earned:90000,spent:70000,borrowed:500000,repaid:20000,pop:410,mood:66,works:{carters:{left:0}},
+  season:{n:1,startLoan:500000,startTreasury:500000,target:450000,interest:9000,series:[{t:498000,d:500000,n:-2000}]},history:[{n:1,in:5000,out:7000,net:-2000,treasury:498000,was:500000,events:[]}]};
+ const s=E.normalize(old);
+ assert.equal(s.v,E.VERSION);assert.equal(s.treasury,4123450);assert.equal(s.loan,4800000);assert.equal(s.limit,6500000);assert.equal(s.season.target,4500000);
+ assert.deepEqual(s.season.series,[{t:4980000,d:5000000,n:-20000}]);assert.equal(s.history[0].net,-20000);
+ assert.equal(s.pop,410);assert.equal(s.mood,66);assert.ok(E.has(s,'carters'),'and nothing but the gold is touched');
+ assert.equal(old.treasury,412345,'the save handed in is not written on');
 });

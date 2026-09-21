@@ -69,6 +69,8 @@ test('spacing remains deterministic and preserves City size, services, gate and 
  // Re-recorded 2026-09-19 when the palace stair took the boulevard's east end: the three strollers who
  // reached that dead end (Syster Agnes, Urzul Gråhud, Broder Botolf) now turn round at its forecourt.
  // Only that one waypoint moved - before the change every other route hashed as d7d5cca7...4304 did.
- assert.equal(hash(w.npcs),'0b736b2144791d7f30bf049eedd69a2a399e36f64b7427715095296ff9191582');
+ // Re-recorded 2026-09-21 when Syster Agnes left the city and Tvätterskan Agda took her place in the
+ // roster: the same routes to the last waypoint (checked by hashing with the old name put back), only the name differs.
+ assert.equal(hash(w.npcs),'9a57fe09c04d51c72752851c0937cf56e5e77969559d36512fd0e20425b6c0c2');
  assert.deepEqual(w.mwalls.map(s=>[s.x,s.y,s.w,s.h]),[[0,60,16800,140],[0,5000,16800,140],[60,0,140,2525],[60,2675,140,2525],[16600,0,140,5200]]);
 });
