@@ -11,7 +11,7 @@
   'wasteland-snow':{name:'Snowfields',ground:'#bacdd1',lip:'#657c85',road:'#eff3e8',track:'#d0dde0'},
   'wasteland-desert':{name:'Desert',ground:'#bda06b',lip:'#80623f',road:'#ead4a1',track:'#d4b981'}
  };
- const CITY_LABEL='City minimap. North is up; the white arrow is you. Symbols show the Church, Well, Furnace, Mining Hall, Enchanting, Throne Hall and City gate. Distant places appear along the rim.';
+ const CITY_LABEL='City minimap. North is up; the white arrow is you. Symbols show the Church, Well, Furnace, Mining Hall, Enchanting, Throne Hall, Harbour and City gate. Distant places appear along the rim.';
  const WASTELAND_LABEL='Wasteland minimap. North is up; the white arrow is you. Roads, the Home portal, Torsten Tygel’s mounts and the Tide Training Grounds are shown. Distant places appear along the rim.';
  const wasteland=world=>!!BIOMES[world.key]&&!world.dungeon;
  const biome=world=>BIOMES[world.key]||BIOMES.wasteland;
@@ -23,7 +23,8 @@
   minehall:{name:'Mining Hall',color:'#bed6db',path:'M-5 8L4-5M-8-3C-1-9 5-7 8-1M-2-6L3-2'},
   enchanthall:{name:'Enchanting',color:'#d6a8ff',path:'M0-9L6 0L0 9L-6 0ZM-6 0H6M0-9V9M-9-6H-5M-7-8V-4'},
   altarportal:{name:'City gate',color:'#dac294',path:'M-6 7V-7H6V7M-2 7V-1Q0-5 2-1V7M-7-7V-10M0-7V-10M7-7V-10'},
-  palacestair:{name:'Throne Hall',color:'#ffd27a',path:'M-8 6H8L9-3L4 0L0-7L-4 0L-9-3ZM-6 3H6'}
+  palacestair:{name:'Throne Hall',color:'#ffd27a',path:'M-8 6H8L9-3L4 0L0-7L-4 0L-9-3ZM-6 3H6'},
+  harborstair:{name:'Harbour',color:'#8fd0ea',path:'M0-9A2 2 0 1 0 0-5A2 2 0 1 0 0-9M0-5V8M-4-2H4M-8 2C-7 7-3 8 0 8C3 8 7 7 8 2M-8 2L-10 5M8 2L10 5'}
  };
  function project(point,hero){return {x:CENTER+(point.x-hero.x)*SCALE,y:CENTER+(point.y-hero.y)*SCALE};}
  function markers(world,hero){
@@ -92,6 +93,11 @@
    if(s.type!=='palacestair')continue;
    g.fillStyle='#8f8672';g.fillRect(s.x-600,s.y-105,620,210);
    g.fillStyle='#7a1b1b';g.fillRect(s.x-600,s.y-28,620,56);
+  }
+  for(const s of world.solids||[]){ // the harbour flight: a blue-carpeted flight running south to its gate in the wall
+   if(s.type!=='harborstair')continue;
+   g.fillStyle='#8f8672';g.fillRect(s.x-125,s.y-640,250,660);
+   g.fillStyle='#22345a';g.fillRect(s.x-34,s.y-640,68,660);
   }
   g.lineCap='round';
   for(const road of world.streets||[]){

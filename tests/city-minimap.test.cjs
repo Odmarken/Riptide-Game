@@ -27,7 +27,7 @@ function realCity() {
 }
 const city = realCity();
 const wasteland = require('../assets/wasteland/world.js').create();
-const placeTypes = ['altarportal', 'cathedral', 'enchanthall', 'minehall', 'palacestair', 'smelter', 'well'];
+const placeTypes = ['altarportal', 'cathedral', 'enchanthall', 'harborstair', 'minehall', 'palacestair', 'smelter', 'well'];
 
 function recordingCanvas() {
   const ops = [], stack = [], listeners = new Map();

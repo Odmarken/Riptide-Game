@@ -81,6 +81,22 @@ const PALACE_MOUTH=palacePoint(-50,365);   /* the cobbles in front of the first 
    so the outside of the stair is one straight face with no notch for a walker to wedge into, and the
    inner half of each brazier plinth */
 const PALACE_RAILS=[[0,190,934,60],[0,480,934,58],[0,250,100,42],[0,436,100,44]];
+/* ⚓ The harbour gate at the south end of the central avenue - the way down to the Harbour. Two paintings
+   (assets/city/harbor/, Higgsfield gpt_image_2_5 2026-09-21). The flight is ground, in the palace stair's flat
+   top-down projection, lying on the end of the avenue and running south (harbor_stair.png, 422x807, drawn 250
+   wide so its treads pass under the arch). The gatehouse is a front elevation like the south wall it stands in,
+   drawn with that wall in the foreground pass (harbor_gate.png, 990x796, drawn 640 wide with its foot on the
+   wall's foot); its archway is a real hole in the picture - columns 358-636 from row 404 down - so the dark
+   passage, and whoever is walking down it, show through. Behind the gatehouse the hero would be hidden like
+   behind any house, so it fades the same way (harborGateFade). */
+const HARBOR_GATE=(()=>{const cx=8400,foot=5140,k=640/990;return {cx,foot,k,w:640,h:796*k,x:cx-497*k,y:foot-796*k,holeTop:foot-392*k,half:90};})();
+const HARBOR_STAIR=(()=>{const k=250/422;return {k,w:250,h:807*k,x:HARBOR_GATE.cx-125,y:4900-807*k};})();
+const harborStairPoint=(px,py)=>({x:HARBOR_STAIR.x+px*HARBOR_STAIR.k,y:HARBOR_STAIR.y+py*HARBOR_STAIR.k});
+const HARBOR_STEP={x:HARBOR_GATE.cx,y:5062};                 /* in the dark under the arch: stepping here takes you down */
+const HARBOR_FOOT={x:HARBOR_GATE.cx,y:4690};                 /* where you stand when you come back up, on the flight */
+const HARBOR_MOUTH={x:HARBOR_GATE.cx,y:HARBOR_STAIR.y-44};   /* the cobbles in front of the top step, between the braziers */
+/* what blocks, as rects in the flight's own pixels: the two brazier plinths and the balustrades */
+const HARBOR_RAILS=[[0,0,112,112],[310,0,112,112],[22,100,48,707],[350,100,48,707]];
 const CITY_HOUSES=Object.keys(CITY_HOUSE);
 const CITY_LANES=CITY_HOUSES.filter(k=>CITY_HOUSE[k].lane);
 /* seed → face. Deterministic, so the same street shows the same houses every visit. */
@@ -176,7 +192,9 @@ const NPC_SKINS={male:'npc_male',female:'npc_female',sebbe:'npc_sebbe',guard:'np
  monk:'npc_monk',blacksmith:'npc_blacksmith',noble_lady:'npc_noble_lady',noble_dowager:'npc_noble_dowager',
  noble_maiden:'npc_noble_maiden',baker:'npc_baker',market_woman:'npc_market_woman',
  /* 👑 the court of the Throne Hall, drawn 2026-09-19 the same way */
- king:'npc_king',kings_hand:'npc_kings_hand',royal_guard:'npc_royal_guard'};
+ king:'npc_king',kings_hand:'npc_kings_hand',royal_guard:'npc_royal_guard',
+ /* ⚓ the people of the Harbour, drawn 2026-09-21 the same way */
+ sailor:'npc_sailor',pirate:'npc_pirate',pirate_captain:'npc_pirate_captain',dockhand:'npc_dockhand',harbour_master:'npc_harbour_master',fishwife:'npc_fishwife'};
 const npcSkinCache={};
 function npcSkinImage(skin){
  if(!skin)return null;
@@ -885,6 +903,9 @@ const ZONES=[
  /* 👑 The Throne Hall above the City - reached by the palace stair at the east end of the boulevard. */
  {name:'Throne Hall',lvl:1,amb:'tavern',special:true,throne:true,noBerg:true,noTrees:true,en:[],
   ground:'#3a3632',ground2:'#2a2724',water:'#43686d',tree:'#51483a',tree2:'#3c342a',path:'#8a1f27'},
+ /* ⚓ The Harbour under the City - through the gatehouse at the south end of the central avenue and down the cliff. */
+ {name:'The Harbour',lvl:1,amb:'tavern',special:true,harbor:true,noBerg:true,noTrees:true,en:[],
+  ground:'#0f4f66',ground2:'#0c4258',water:'#0f4f66',tree:'#51483a',tree2:'#3c342a',path:'#7d7563'},
 ];
 const TAVERN_ZONE=ZONES.findIndex(z=>z.tavern);
 const ALTAR_ZONE=ZONES.findIndex(z=>z.altar);
@@ -893,6 +914,13 @@ const CITY_ZONE=ZONES.findIndex(z=>z.city);
 const WASTELAND_ZONE=ZONES.findIndex(z=>z.wasteland);
 const TIDE_GUILD_ZONE=ZONES.findIndex(z=>z.tideguild);
 const THRONE_ZONE=ZONES.findIndex(z=>z.throne);
+const HARBOR_ZONE=ZONES.findIndex(z=>z.harbor);
+/* ⚓ the Harbour's paintings, by the names HarborWorld asks for (three of them are the City's own) */
+let harborImageSet=null;
+function harborImages(){
+ if(!harborImageSet){harborImageSet={};for(const n of HarborWorld.IMAGES)harborImageSet[n]=cityImg('harbor/'+n);for(const n of HarborWorld.CITY_IMAGES)harborImageSet[n]=cityImg(n);}
+ return harborImageSet;
+}
 function guildImages(){return {raidfloor:zoneMapImg('raidfloor'),raidwall:zoneMapImg('raidwall'),cryptwall:zoneMapImg('cryptwall'),crypt:zoneMapImg('cryptmap')};}
 function guildInReach(){
  const n=world?.npcs?.find(n=>n.game==='tideguild');
@@ -923,6 +951,69 @@ function guildWorldClick(wx,wy){
  if(dist(hero,target)<range)open();
  else{hero.target=null;hero.goPortal=false;hero.moveTo=movePoint||{x:target.x,y:target.y};marker={...hero.moveTo,t:0};hero.pendingDoor={s:target,open,rng:range};}
  return true;
+}
+/* ==================== ⚓ THE HARBOUR ==================== */
+/* Down the flight at the south end of the central avenue and through the gatehouse; back up the long stair in the
+   cliff. Coming home you land on the flight, clear of the dark under the arch, so the way down does not fire again. */
+function enterHarbor(){
+ if(!gameOn||!hero||hero.dead||!zoneOf().city||TideUI.isBattling())return false;
+ if(mp.on)mpLeave(false);
+ goToZone(HARBOR_ZONE);return true;
+}
+function leaveHarbor(){
+ if(!gameOn||!hero||hero.dead||!zoneOf().harbor||TideUI.isBattling())return false;
+ expeditionSpawn={zone:CITY_ZONE,...HARBOR_FOOT};
+ goToZone(CITY_ZONE);return true;
+}
+function harborSpeak(n){
+ if(!n||!n.say||!n.say.length)return;
+ n.sayI=((n.sayI===undefined?-1:n.sayI)+1)%n.say.length;
+ n.bubble={txt:n.say[n.sayI],t:7,life:7};if(hero)n.fx=hero.x>n.x?1:-1;
+ log('⚓ <b>'+n.name+':</b> '+n.say[n.sayI]);sfx.buy();
+}
+/* the quay has a voice: now and then somebody near you calls his trade, and every bubble runs its time */
+const HARBOR_CRIES={sailor:['Heave! And again!','Wind is turning.','Six weeks at sea. I am going to the tavern.'],pirate:['Arr.','I never saw that crate before in my life.','Keep walking, friend.'],
+ dockhand:['Mind your backs!','Make way - cargo!','Who stacked this?'],fishwife:['Fresh herring!','Eels! Live eels!','Cod, two for a copper!'],merchant:['Pepper, silk, no questions.','The tariff is robbery.','I will take the lot.']};
+function harborTick(dt){
+ if(!world||!world.harbor||!world.npcs)return;
+ for(const n of world.npcs)if(n.bubble&&(n.bubble.t-=dt)<=0)n.bubble=null;
+ world.cryT=(world.cryT===undefined?4:world.cryT)-dt;
+ if(world.cryT>0||!hero)return;
+ world.cryT=7+Math.random()*7;
+ const near=world.npcs.filter(n=>!n.say&&!n.bubble&&HARBOR_CRIES[n.skin]&&Math.hypot(n.x-hero.x,n.y-hero.y)<620);
+ if(!near.length)return;
+ const n=near[Math.floor(Math.random()*near.length)],lines=HARBOR_CRIES[n.skin];
+ n.bubble={txt:lines[Math.floor(Math.random()*lines.length)],t:4.5,life:4.5};
+}
+function harborWorldClick(wx,wy){
+ const walk=(p,then,rng)=>{hero.target=null;hero.goPortal=false;hero.moveTo={...p};marker={...p,t:0};hero.pendingDoor=then?{s:p,open:then,rng}:null;};
+ if(zoneOf().city){
+  /* a click on the flight, the passage or the gatehouse walks you down: round by the top step when you are not on it already */
+  const G=HARBOR_GATE,T=HARBOR_STAIR;
+  const onStair=wx>=T.x&&wx<=T.x+T.w&&wy>=T.y&&wy<=G.foot,onGate=wx>=G.x&&wx<=G.x+G.w&&wy>=G.y&&wy<=G.foot;
+  if(!onStair&&!onGate)return false;
+  const down=()=>walk(HARBOR_STEP);                       /* the dark under the arch takes you down by itself */
+  if(Math.abs(hero.x-G.cx)<T.w/2-40&&hero.y>T.y+70)down();else walk(HARBOR_MOUTH,down,46);
+  return true;
+ }
+ if(!zoneOf().harbor)return false;
+ const H=HarborWorld,n=world.npcs.find(n=>n.say&&Math.abs(wx-n.x)<36&&wy>n.y-96&&wy<n.y+22);
+ if(n){
+  if(dist(hero,n)<120){harborSpeak(n);return true;}
+  const beside=[1,-1].map(k=>({x:n.x+k*54*(n.fx>0?1:-1),y:n.y+26})).find(q=>H.contains(q.x,q.y,14))||{x:n.x,y:n.y+30};
+  hero.target=null;hero.goPortal=false;hero.moveTo=beside;marker={...beside,t:0};hero.pendingDoor={s:n,open:()=>harborSpeak(n),rng:120};
+  return true;
+ }
+ if(Math.abs(wx-H.FLIGHT.cx)<H.FLIGHT.half1+60&&wy<H.Q0-60&&wy>H.ARRIVAL.y){walk({x:H.FLIGHT.cx,y:H.EXIT_Y-40});return true;}   /* the flight, or the gate above it: up you go */
+ return false;
+}
+/* ⚓ how much of the gatehouse is drawn: all of it, until the hero is on the flight behind it */
+function harborGateFade(){
+ if(!hero||hero.dead)return 1;
+ const G=HARBOR_GATE,dx=Math.abs(hero.x-G.cx),dy=hero.y-(G.y-60);
+ if(dx>G.w*.5+30||dy<0)return 1;
+ const ex=1-Math.max(0,(dx-G.w*.32)/(G.w*.18+30)),ey=Math.min(1,dy/120);
+ return 1-.56*Math.max(0,Math.min(1,ex))*ey;
 }
 /* ==================== 👑 THE THRONE HALL ==================== */
 /* Up the palace stair from the boulevard; back down through the doors at the foot of the hall.
@@ -1523,6 +1614,7 @@ function zoneTemplates(z){
   xp:Math.round(eHP(XL)/2.6*pr),gold:mobGold(z,1+i*0.10)}));
 }
 function zoneQuests(z){
+ if(z.harbor)return [{name:'⚓ The Harbour',desc:'The quay under the City. Two old pirate ships and a sloop lie at the piers; everybody here is a trader, to hear them tell it.',need:999999}];
  if(z.throne)return [{name:'👑 Throne Hall',desc:'The King holds court. His Hand keeps the crown’s books at the council table behind the throne - for the Master of Coin, when there is one.',need:999999}];
  if(z.tideguild)return [{name:'Tides Guild',desc:'Meet the guild beneath the City. Speak to the Battle keeper for a best-of-three Tide duel.',need:999999}];
  if(expeditionZone(z))return [{name:z.name,desc:z.dungeon?'Defeat the two guardians.':'Explore the Wasteland.',need:999999}];
@@ -4414,7 +4506,7 @@ const CITY_FOLK=[
 ];
 /* what a skin says about its wearer: the gowns and the female hero costumes are women, and a hero
    costume key names the race whose boots it wears (defined here so the headless city builder has them) */
-function npcSkinFemale(skin){return /^(female|baker|market_woman|noble_lady|noble_dowager|noble_maiden)$|female_/.test(skin||'');}
+function npcSkinFemale(skin){return /^(female|baker|market_woman|fishwife|noble_lady|noble_dowager|noble_maiden)$|female_/.test(skin||'');}
 function npcSkinCostume(skin){return /^(human|dwarf|orc|undead)(male|female)_(warrior|mage|hunter|priest)$/.exec(skin||'');}
 /* 🛡 the city watch: five guards in two patrols, each marching a closed round of the main streets in
    single file. The loops are corners of the grid; the lane keeps them on the south/east side of the
@@ -4643,7 +4735,8 @@ function buildCity(R){
     A gap is left at the west gate so the arch is something you can actually stand in. --- */
  world.mwalls=[
   {x:0,y:WI,w:W,h:WT},                                   /* north */
-  {x:0,y:H-WIN,w:W,h:WT},                                /* south */
+  {x:0,y:H-WIN,w:HARBOR_GATE.cx-HARBOR_GATE.half,h:WT},  /* south, west of the harbour gate */
+  {x:HARBOR_GATE.cx+HARBOR_GATE.half,y:H-WIN,w:W-HARBOR_GATE.cx-HARBOR_GATE.half,h:WT},   /* south, east of it */
   {x:WI,y:0,w:WT,h:cy-GH},                               /* west, above the gate */
   {x:WI,y:cy+GH,w:WT,h:H-(cy+GH)},                       /* west, below the gate */
   {x:W-WIN,y:0,w:WT,h:H},                                /* east */
@@ -4713,13 +4806,26 @@ function buildCity(R){
  world.solids.push(stair);
  world.rails=PALACE_RAILS.map(([px,py,pw,ph])=>({...palacePoint(px,py),w:pw*PALACE.k,h:ph*PALACE.k}));
  world.plazas.push(court);
+ /* ⚓ The harbour gate joins the same way, last of all: a landmark for the minimap and the pad, the balustrades and the
+    jambs of the passage as rails, and any house whose picture would stand on the flight or against the gatehouse taken down. */
+ const hb={x:HARBOR_STAIR.x-24,y:HARBOR_STAIR.y-24,w:HARBOR_STAIR.w+48,h:HARBOR_GATE.foot-HARBOR_STAIR.y+24},hg={x:HARBOR_GATE.x-10,y:HARBOR_GATE.y,w:HARBOR_GATE.w+20,h:HARBOR_GATE.h};
+ world.solids=world.solids.filter(s=>{
+  if(s.type!=='cityhouse')return true;
+  const hd=CITY_HOUSE[s.key],hh=hd.h,hw=hh*hd.ar/2,b={x:s.x-hw,y:s.y+s.r*.3-hh,w:hw*2,h:hh};
+  return ![hb,hg].some(q=>b.x<q.x+q.w&&b.x+b.w>q.x&&b.y<q.y+q.h&&b.y+b.h>q.y);
+ });
+ world.solids.push({x:HARBOR_STEP.x,y:HARBOR_STEP.y,r:60,type:'harborstair',big:true,seed:22,noCol:true});
+ world.rails.push(...HARBOR_RAILS.map(([px,py,pw,ph])=>({...harborStairPoint(px,py),w:pw*HARBOR_STAIR.k,h:ph*HARBOR_STAIR.k,harbor:true})),
+  {x:HARBOR_STAIR.x,y:HARBOR_GATE.holeTop,w:HARBOR_STAIR.w/2-HARBOR_GATE.half,h:H-WIN-HARBOR_GATE.holeTop,harbor:true},
+  {x:HARBOR_GATE.cx+HARBOR_GATE.half,y:HARBOR_GATE.holeTop,w:HARBOR_STAIR.w/2-HARBOR_GATE.half,h:H-WIN-HARBOR_GATE.holeTop,harbor:true});
  /* The boulevard's east end is a dead end of the street graph, and a stroll that reached it now ran
     straight up the flight. Those walkers turn round at the forecourt instead: the waypoint is pulled
     back along the same stretch, so the route keeps its shape, its lane and every seeded number. */
- const turn=court.x-court.r-40;
+ const turn=court.x-court.r-40,ebb=HARBOR_MOUTH.y-30;   /* ⚓ and the central avenue's south end is the head of the harbour flight: the same turn-round */
  for(const n of world.npcs){
   if(n.patrol||n.game)continue;
   for(const p of n.pts)if(p.x>turn&&Math.abs(p.y-cy)<=150)p.x=turn;
+  for(const p of n.pts)if(p.y>ebb&&Math.abs(p.x-HARBOR_GATE.cx)<=150)p.y=ebb;
   n.x=n.pts[0].x;n.y=n.pts[0].y;
  }
 }
@@ -4877,7 +4983,8 @@ function drawCityWalls(foreground=false){
   ctx.restore();
  };
  band(0,WIN-hh,W,hh,ih,true);                              /* north - stands up from the inner face */
- band(0,southY,W,hh,ih,true);                              /* south - covers actors behind the wall */
+ band(0,southY,HARBOR_GATE.x+8,hh,ih,true);                 /* south - covers actors behind the wall; it stops either side of the harbour gatehouse */
+ band(HARBOR_GATE.x+HARBOR_GATE.w-8,southY,W-HARBOR_GATE.x-HARBOR_GATE.w+8,hh,ih,true);
  band(WIN-vw,0,vw,cy-GH,iv,false);                          /* west, above the gateway */
  band(WIN-vw,cy+GH,vw,H-(cy+GH),iv,false);                  /* west, below it */
  band(W-WIN,0,vw,H,iv,false);                               /* east */
@@ -4894,6 +5001,31 @@ function drawCityWalls(foreground=false){
      The old pattern-phase offset shifted it east after the wall switched to blits. */
   const gx=WIN-vw/2-gw/2,gy=cy-gh/2;
   if(!(gx+gw<vx0||gx>vx1||gy+gh<vy0||gy>vy1))ctx.drawImage(mip(gi,gw),gx,gy,gw,gh);
+ }
+ /* ⚓ the harbour gate. Ground pass: the flight on the end of the avenue, and the passage it runs into - treads going
+    down into the dark, with a breath of sea-light at the bottom. Foreground pass: the gatehouse itself, whose arch is a
+    hole, faded while the hero is behind it. */
+ {const G=HARBOR_GATE,T=HARBOR_STAIR,si=cityImg('harbor/harbor_stair'),gi2=cityImg('harbor/harbor_gate');
+  if(!foreground&&!(T.x+T.w<vx0||T.x>vx1||G.foot<vy0||T.y>vy1)){
+   const px=G.cx-G.half-6,pw=G.half*2+12,py=T.y+T.h-6,shade=ctx.createLinearGradient(0,py,0,G.foot);
+   shade.addColorStop(0,'#5d574b');shade.addColorStop(.35,'#2a2722');shade.addColorStop(1,'#07090c');
+   ctx.fillStyle=shade;ctx.fillRect(px,py,pw,G.foot-py);
+   ctx.fillStyle='rgba(0,0,0,.34)';for(let y=py+20;y<G.foot;y+=22)ctx.fillRect(px,y,pw,3);
+   const sea=ctx.createRadialGradient(G.cx,G.foot,0,G.cx,G.foot,150);sea.addColorStop(0,'rgba(90,170,200,.30)');sea.addColorStop(1,'rgba(90,170,200,0)');
+   ctx.fillStyle=sea;ctx.fillRect(px,G.foot-150,pw,150);
+   if(si.complete&&si.naturalWidth){
+    ctx.drawImage(mip(si,T.w),T.x,T.y,T.w,T.h);
+    const t=performance.now()/1000;ctx.save();ctx.globalCompositeOperation='lighter';
+    for(const [ux,uy,r,seed] of [[57,57,90,4],[363,57,90,5]]){
+     const c=harborStairPoint(ux,uy),f=.75+.25*Math.sin(t*5.3+seed*2.1)*Math.sin(t*3.1+seed),g=ctx.createRadialGradient(c.x,c.y,0,c.x,c.y,r);
+     g.addColorStop(0,'rgba(255,190,90,'+(.30*f).toFixed(3)+')');g.addColorStop(1,'rgba(255,140,40,0)');ctx.fillStyle=g;ctx.fillRect(c.x-r,c.y-r,r*2,r*2);
+    }
+    ctx.restore();
+   }
+  }
+  if(foreground&&gi2.complete&&gi2.naturalWidth&&!(G.x+G.w<vx0||G.x>vx1)){
+   ctx.save();ctx.globalAlpha*=harborGateFade();ctx.drawImage(mip(gi2,G.w),G.x,G.y,G.w,G.h);ctx.restore();
+  }
  }
  /* 👑 the palace stair and its gatehouse: the same flat projection, laid over the boulevard and the
     east band once, in the ground pass, so everyone walks on top of it. The fires breathe. */
@@ -5025,7 +5157,10 @@ function buildZone(){
  world.spawn={x:120,y:world.h/2};
  world.portal={x:world.w-80,y:world.h/2};
  world.pathY=world.h/2;world.pathH=110;
- if(z.throne){
+ if(z.harbor){
+  world=HarborWorld.create();   /* ⚓ module-built, like the hall: quay, piers, ships and the people of the quay */
+  HarborWorld.IMAGES.forEach(n=>cityImg('harbor/'+n));HarborWorld.CITY_IMAGES.forEach(cityImg);
+ }else if(z.throne){
   world=ThroneWorld.create();   /* 👑 the hall is a module-built interior like the guild */
   guildImages();['throne','council_table','hall_pillar','hall_brazier'].forEach(cityImg);
   cityCouncilMarks();hallApply();
@@ -5178,10 +5313,11 @@ function buildZone(){
    world.solids.push({x,y,r:rock?14+R()*8:12+R()*6,type:rock?'rock':'tree',s:0.5+R()*1.6,seed:R()*100}); /* same wide size spread as Moonshine */
   }
  }
- if(!expeditionZone(z)&&!z.tideguild&&!z.throne)for(let i=0;i<160;i++)world.deco.push({x:R()*world.w,y:R()*world.h,k:R()});
+ if(!expeditionZone(z)&&!z.tideguild&&!z.throne&&!z.harbor)for(let i=0;i<160;i++)world.deco.push({x:R()*world.w,y:R()*world.h,k:R()});
  if(expeditionSpawn&&expeditionSpawn.zone===S.zone){world.spawn={x:expeditionSpawn.x,y:expeditionSpawn.y};expeditionSpawn=null;}
  else if(z.city&&S.atPalace)world.spawn={...PALACE_FOOT}; /* 👑 logged out in the Throne Hall: wake up at the foot of its stair */
- delete S.atPalace;
+ else if(z.city&&S.atHarbor)world.spawn={...HARBOR_FOOT}; /* ⚓ logged out in the Harbour: wake up on the flight down to it */
+ delete S.atPalace;delete S.atHarbor;
  prerenderGround(z,R);
  const cd0=classOf().spells.map(()=>0);
  /* no zone-hop cheesing: hp/mana/cooldowns travel with you between zones
@@ -5382,7 +5518,7 @@ function collectCowChest(){
 }
 function prerenderGround(z,R){
  groundCv=document.createElement('canvas');
- if(z.crypts||z.farm||z.city||z.tideguild||z.throne||expeditionZone(z)){groundCv.width=groundCv.height=16;return;} /* floor draws per frame - giant canvases sink phones */
+ if(z.crypts||z.farm||z.city||z.tideguild||z.throne||z.harbor||expeditionZone(z)){groundCv.width=groundCv.height=16;return;} /* floor draws per frame - giant canvases sink phones */
  groundCv.width=world.w;groundCv.height=world.h;
  const g=groundCv.getContext('2d');
  if(z.raid){ /* the Violet Halls floor - tiled at near-native scale, mirrored to hide seams */
@@ -5493,6 +5629,7 @@ function collide(e,nx,ny){
  if(world.unified&&!WastelandWorld.contains(world,nx,ny,(e.r||12)+16))return true;
  if(world.guild&&!TideGuildWorld.contains(nx,ny,e.r||12))return true;
  if(world.throne&&!ThroneWorld.contains(nx,ny,e.r||12))return true;
+ if(world.harbor&&!HarborWorld.contains(nx,ny,e.r||12))return true;
  /* Bosses and cows ignore trees/rocks - the herd tramples straight through. */
  if((!e.boss||e.raid)&&!e.cow){
   for(const s of solidCell(nx,ny)){
@@ -6638,6 +6775,10 @@ function padInteract(){
   add(find('enchanthall'),'Enchanting Hall',openEnchantHall,180);
   add(find('smelter'),'Smelter',openSmelter,180);
   add(PALACE_STEP,'Throne Hall',enterThroneHall,150);
+  add(HARBOR_STEP,'The Harbour',enterHarbor,190);
+ }else if(z.harbor){
+  for(const n of world.npcs)if(n.say)add(n,n.name,()=>harborSpeak(n),120);
+  add({x:HarborWorld.FLIGHT.cx,y:HarborWorld.EXIT_Y+40},'City',leaveHarbor,130);
  }else if(z.throne){
   add(world.npcs.find(n=>n.game==='king'),'The King',kingSpeak,150);
   add(world.npcs.find(n=>n.game==='ledger'),'The Crown Ledger',openLedger,130);
@@ -6826,6 +6967,7 @@ cv.addEventListener('pointerdown',e=>{
  hero.pendingDoor=null; /* any new click cancels a pending walk-to-building */
  if(guildWorldClick(wx,wy))return;
  if(throneWorldClick(wx,wy))return;
+ if(harborWorldClick(wx,wy))return;
  if(TideUI.wildClick(wx,wy))return;
  const training=world.training;
  if(training){
@@ -7384,6 +7526,7 @@ function update(dt){
  }
  if(hero&&!hero.dead&&world&&world.solids&&zoneOf().city){ /* 👑 walk onto the palace stair and it takes you up */
   if(Math.hypot(hero.x-PALACE_STEP.x,hero.y-PALACE_STEP.y)<50&&enterThroneHall())return;
+  if(Math.abs(hero.x-HARBOR_STEP.x)<HARBOR_GATE.half&&hero.y>HARBOR_STEP.y-16&&enterHarbor())return;   /* ⚓ and the dark under the harbour gate takes you down */
   if(S.city&&S.city.protest&&world.npcs&&chance(0.006)){ /* ✊ the crowd finds its voice now and then */
    const crowd=world.npcs.filter(n=>n.protest),n=crowd[Math.floor(Math.random()*crowd.length)];
    if(n)floatAt(n.x,n.y-72,PROTEST_CHANTS[Math.floor(Math.random()*PROTEST_CHANTS.length)],'#ffb3a3',true);
@@ -7394,6 +7537,8 @@ function update(dt){
   }
  }
  if(hero&&!hero.dead&&world&&world.exit&&zoneOf().throne&&Math.hypot(hero.x-world.exit.x,hero.y-world.exit.y)<60&&leaveThroneHall())return;
+ if(hero&&!hero.dead&&world&&world.harbor&&hero.y<HarborWorld.EXIT_Y&&leaveHarbor())return;   /* ⚓ far enough up the flight: back to the City */
+ if(world&&world.harbor)harborTick(dt);
  if(hero&&!hero.dead&&world&&world.throne&&!TideUI.isBattling()){ /* ⛓ down the stair in the west wall to the gaol, and back up */
   const T=ThroneWorld;
   if(Math.hypot(hero.x-T.STAIR_DOWN.x,hero.y-T.STAIR_DOWN.y)<T.STAIR_DOWN.r)hallStair(T.GAOL_ARRIVE,-1,'⛓ The gaol under the hall. '+gaolLine());
@@ -7756,7 +7901,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   }else pet.tideMotion=0;
  }
  mpHostRaidThreatTick(dt);
- if(zoneOf().tavern||zoneOf().city||zoneOf().throne)updateNpcs(dt); /* 🏙 the city has townsfolk too - without this they draw but never walk */
+ if(zoneOf().tavern||zoneOf().city||zoneOf().throne||zoneOf().harbor)updateNpcs(dt); /* 🏙 the city has townsfolk too - without this they draw but never walk */
  // ----- enemies -----
  for(const en of enemies){
   /* 🚶 walk-cycle state, identical to the farm animals: phase from distance actually
@@ -8174,7 +8319,8 @@ function draw(){
  ctx.save();ctx.scale(zoom,zoom);ctx.translate(-camX+shX,-camY+shY);
  ctx.drawImage(groundCv,0,0);
  const z=zoneOf();
- if(z.throne)ThroneWorld.renderGround(ctx,world,{x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom},{images:guildImages(),time:now});
+ if(z.harbor)HarborWorld.renderGround(ctx,world,{x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom},{images:harborImages(),time:now});
+ else if(z.throne)ThroneWorld.renderGround(ctx,world,{x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom},{images:guildImages(),time:now});
  else if(z.tideguild)TideGuildWorld.renderGround(ctx,world,{x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom},{images:guildImages(),time:now});
  else if(expeditionZone(z)){
   const view={x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom};
@@ -8275,8 +8421,8 @@ function draw(){
  TideUI.addWildDrawables(drawables,{x0:cx0,x1:cx1,y0:cy0,y1:cy1});
  for(const s of world.travelDoors?world.solids.concat(world.travelDoors):world.solids){
   if(TideUI.isBattling())continue; /* the staged Tide duel uses a clear patch of the current terrain */
-  if(s.type==='water'||s.type==='palacestair')continue; /* 👑 the palace stair is ground, painted with the walls - its solid is only a landmark */
-  if(s.x<cx0||s.x>cx1||s.y<cy0||s.y>cy1)continue; /* off screen - the city has hundreds of these */
+  if(s.type==='water'||s.type==='palacestair'||s.type==='harborstair')continue; /* 👑⚓ the palace stair and the harbour flight are ground, painted with the walls - their solids are only landmarks */
+  if(s.x<cx0-(s.floats?520:0)||s.x>cx1+(s.floats?520:0)||s.y<cy0||s.y>cy1+(s.floats?60:0))continue; /* off screen - the city has hundreds of these (a ship is judged by its length, not its anchor) */
   if(s.mined)continue;   /* rubble now; the rock returns when the zone is rebuilt */
   drawPropShadow(s,z);
   drawables.push({y:s.y,f:()=>drawProp(s,z,false)});
@@ -8326,6 +8472,7 @@ function draw(){
  if(pet&&(activePet()||TideUI.visibleCompanion()))drawables.push({y:pet.y,f:drawPet});
  drawables.sort((a,b)=>a.y-b.y);
  for(const d of drawables)d.f();
+ if(z.harbor&&!TideUI.isBattling())HarborWorld.drawSky(ctx,world,{x:cx0,y:cy0,w:cx1-cx0,h:cy1-cy0},now,harborImages());   /* 🕊 gulls over the masts */
  /* 🎆 the sky over the city: fireworks over a jubilant square, snow in a hard winter */
  if(z.city&&world.look&&!TideUI.isBattling()){
   if(world.look.fireworks)CityWorks.drawFireworks(ctx,world,{x:cx0,y:cy0,w:cx1-cx0,h:cy1-cy0},now);
@@ -8712,6 +8859,8 @@ function drawPropShadow(s,z){
    const H=s.r*(s.type==='cathedral'?CATH_ART:9),W=H*im.naturalWidth/im.naturalHeight;
    cityShadow(s.type,W,H,s.r*CATH_FOOT-H);
   }
+ }else if(s.type==='harborprop'){
+  HarborWorld.drawShadow(ctx,s);
  }else if(s.type==='throneprop'){
   ThroneWorld.drawShadow(ctx,s);
  }else if(s.type==='citywork'){
@@ -8897,6 +9046,9 @@ function drawProp(s,z,withShadow=true){
    if(s.type==='smelter'){if(fade<1)ctx.globalAlpha*=fade;CityWorks.drawSmoke(ctx,'smelter',W,H,s.r*0.30-H,performance.now()/1000,5);ctx.globalAlpha=1;}   /* 💨 the stack never goes out */
    /* no lettering floats over a roof in the City: the halls are known by their art and their glow, and the minimap names them */
   }
+ }else if(s.type==='harborprop'){
+  const im=harborImages(),f=HarborWorld.frame(s,im);   /* ⚓ a ship, a house or the crane fades like any building the hero has walked behind */
+  HarborWorld.drawProp(ctx,s,performance.now()/1000,im,{alpha:f&&f.H>140?seeThrough(s,f.W,f.H,f.top):1});
  }else if(s.type==='throneprop'){
   ThroneWorld.drawProp(ctx,s,performance.now()/1000,{...guildImages(),throne:cityImg('throne'),table:cityImg('council_table'),pillar:cityImg('hall_pillar'),brazier:cityImg('hall_brazier'),gaoldesk:cityImg('gaol_desk'),bars:cityImg('cell_bars'),bricked:cityImg('cell_bricked')});
   if(s.kind==='throne'&&S&&S.city&&S.city.crowned){ /* 👑 yours now */
@@ -10121,6 +10273,11 @@ function renderHUD(){
  $('hLvl').textContent='Lv '+S.lvl+(S.prestige?' ✦'+S.prestige:'');
  $('hXP').style.width=(S.lvl>=MAXLVL?100:Math.min(100,100*S.xp/xpNeed(S.lvl)))+'%';
  const z=zoneOf(),q=questOf(),nz=ZONES[S.zone+1];
+ if(z.harbor){
+  $('qName').textContent='⚓ The Harbour';$('qDesc').textContent='The quay under the City. The flight in the cliff takes you back up.';
+  $('qBar').style.width='100%';$('qCount').textContent='⚓';$('nextBtn').style.display='none';
+  $('autoBtn').classList.toggle('on',S.auto);$('autoBtn').textContent=S.auto?'AUTO ✓':'AUTO';refreshOpenPanel();return;
+ }
  if(z.throne){
   $('qName').textContent='👑 Throne Hall';$('qDesc').textContent=cityHudLine();
   $('qBar').style.width='100%';$('qCount').textContent='👑';$('nextBtn').style.display='none';
@@ -10596,7 +10753,7 @@ function renderMap(){
   if(mapContinent==='raid'&&!z.raidc)return '';
   if(z.tavern)return '';
   if(z.special){
-   if(z.altar||z.farm||z.city||z.tideguild||z.throne||z.finalb||expeditionZone(z))return ''; /* portal-only zones */
+   if(z.altar||z.farm||z.city||z.tideguild||z.throne||z.harbor||z.finalb||expeditionZone(z))return ''; /* portal-only zones */
    if(z.crypts){
     const p20=(S.prestige||0)>=20;
     return `<div class="card zonecard ${p20?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p20?'#a66bd0':''}">
@@ -14842,7 +14999,7 @@ function flushCloud(){
    palace stair; buildZone reads the note. Any future interior should be stored the same way. */
 function saveSnapshot(){
  const z=ZONES[S.zone];
- return z&&z.throne?{...S,zone:CITY_ZONE,atPalace:true}:S;
+ return z&&z.throne?{...S,zone:CITY_ZONE,atPalace:true}:z&&z.harbor?{...S,zone:CITY_ZONE,atHarbor:true}:S;   /* ⚓ the Harbour is newer still: the same rule */
 }
 /* the hero as he would be written, less the two fields every save touches: equal means nothing happened since the last save */
 const saveSig=snap=>snap.id+'|'+JSON.stringify({...snap,rev:0,savedAt:0});

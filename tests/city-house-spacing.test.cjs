@@ -59,7 +59,11 @@ test('spacing remains deterministic and preserves City size, services, gate and 
  ]);
  const stair=w.solids.find(s=>s.type==='palacestair');
  assert.ok(stair&&stair.noCol&&Math.abs(stair.y-2600)<1e-6&&stair.x>16500&&stair.x<16600,'the palace gate is on the boulevard, against the east wall');
- assert.equal(w.rails.length,4);
+ assert.equal(w.rails.filter(r=>!r.harbor).length,4);
+ /* ⚓ the harbour gate: a landmark under the arch at the south end of the central avenue, two plinths, two balustrades and the two jambs of the passage */
+ const flight=w.solids.find(s=>s.type==='harborstair');
+ assert.ok(flight&&flight.noCol&&flight.x===8400&&flight.y>5000&&flight.y<5140,'the way down is in the south wall, on the central avenue');
+ assert.equal(w.rails.filter(r=>r.harbor).length,6);
  assert.deepEqual(w.solids.filter(s=>['well','altarportal'].includes(s.type)).map(s=>[s.type,s.x,s.y]),[['altarportal',300,2600],['well',8400,2600]]);
  const hash=data=>crypto.createHash('sha256').update(JSON.stringify(data)).digest('hex');
  // Recorded when the second wave of townsfolk joined (72 villagers, two patrols, Sebbe); the first
@@ -71,6 +75,11 @@ test('spacing remains deterministic and preserves City size, services, gate and 
  // Only that one waypoint moved - before the change every other route hashed as d7d5cca7...4304 did.
  // Re-recorded 2026-09-21 when Syster Agnes left the city and Tvätterskan Agda took her place in the
  // roster: the same routes to the last waypoint (checked by hashing with the old name put back), only the name differs.
- assert.equal(hash(w.npcs),'9a57fe09c04d51c72752851c0937cf56e5e77969559d36512fd0e20425b6c0c2');
- assert.deepEqual(w.mwalls.map(s=>[s.x,s.y,s.w,s.h]),[[0,60,16800,140],[0,5000,16800,140],[60,0,140,2525],[60,2675,140,2525],[16600,0,140,5200]]);
+ // Re-recorded 2026-09-22 when the harbour flight took the south end of the central avenue: the one stroller who
+ // reached that dead end (Gorm Hammarson, a waypoint at 8411,4651) now turns round at the head of the flight (y 4348).
+ // Only that one waypoint moved - with the turn-round taken out, every route hashed as 9a57fe09...c0c2 did, and no
+ // house stood where the gate went (276 before and after at seed 13; the same in seeds 1, 42 and 8675309).
+ assert.equal(hash(w.npcs),'94732d8c5c680af27a60a9ec04e54e21b3d48a9bddd25273bda2d6d37d816e5d');
+ /* the south wall is two lengths now: the passage under the harbour gatehouse is 180 wide on the central avenue */
+ assert.deepEqual(w.mwalls.map(s=>[s.x,s.y,s.w,s.h]),[[0,60,16800,140],[0,5000,8310,140],[8490,5000,8310,140],[60,0,140,2525],[60,2675,140,2525],[16600,0,140,5200]]);
 });

@@ -1,0 +1,659 @@
+{
+ "generator": "Higgsfield",
+ "model": "gpt_image_2_5",
+ "variant": "flare",
+ "quality": "medium",
+ "resolution": "1k",
+ "background": "transparent (tiles: opaque)",
+ "date": "2026-09-21",
+ "style": "The harbour under the City: the gatehouse in the south wall and the flight down to it (city side), the same gate from the sea with its stair down the cliff, the cliff under the wall, two old pirate ships, a sloop and a dinghy, five quayside houses with their names on their own signs, the furniture of a quay, things that stand in the water, a gull, three ground textures, and six harbour folk in the framing of the townsfolk.",
+ "references": {
+  "wall_strip_h_flat": "55773a17-a86c-40b0-84b8-a60d62f43e44",
+  "palacestair_flat": "fa0d3e4e-4951-42af-8d0b-5690887badc8",
+  "wagon_caravan_flat": "48065087-c4fc-4010-8596-fa813dcf759b",
+  "house_shop_flat": "787c3519-f89a-4f5d-8c72-15b97f1ed27d",
+  "house_stone_flat": "460df33b-4cc3-45be-b649-e5621f3c29fa",
+  "npc_male": "f43b7229-e2c5-4ed5-b33a-0b07d78d87e7",
+  "npc_sebbe": "c94149b8-a81c-41e2-9b3f-d5e63640c074",
+  "npc_female": "08f56778-6a5d-4f40-b578-18ca4d0ae1d6",
+  "and": "harbor_gate (its own job) for the seaward gate, harbor_cliff for the sea rocks, ship_galleon for the wreck"
+ },
+ "camera": "Gate, cliff, houses, beacon: straight-on front elevation. City-side stair: flat top-down like palacestair.png, running north-south. Ships: exact broadside, hull cut flat at the waterline so they float on the game's own water. Props: from the front and slightly above. Gull: from straight above.",
+ "processing": "Native transparent output: alpha scaled from its 254 cap to 255, haze below 6 dropped, tight crop at alpha>0. Houses LANCZOS-resized to 900 px tall, props to at most 640 px, busts to 700 px (the fishwife 820), ships and the big paintings left at native size. harbor_gate: the magenta arch keyed out. harbor_stair: cut below its third lantern pair. buoy: cut at the waterline. sea_tile: made seamless by a wrapped cross-fade; quay_paving and planks are mirror-tiled by the game. No repainting.",
+ "art": {
+  "harbor_gate.png": {
+   "jobId": "f506c15f-6a83-408e-9b73-58fcf07ec351",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    87,
+    44,
+    1077,
+    840
+   ],
+   "size": [
+    990,
+    796
+   ],
+   "note": "magenta arch keyed out to a hole; cut at the masonry foot"
+  },
+  "harbor_stair.png": {
+   "jobId": "5de1a1a9-52d8-46e1-a67c-3617f4251484",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    167,
+    28,
+    589,
+    835
+   ],
+   "size": [
+    422,
+    807
+   ],
+   "note": "cut below the third lantern pair (row 835): the rest of the flight is the dark passage the game paints under the arch"
+  },
+  "ship_galleon.png": {
+   "jobId": "16a38b5e-03f5-402e-93f5-2d87b30d1533",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    17,
+    32,
+    1013,
+    954
+   ],
+   "size": [
+    996,
+    922
+   ]
+  },
+  "ship_carrack.png": {
+   "jobId": "e7fd9683-dd90-46b7-a06b-81c60e478457",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    6,
+    5,
+    1015,
+    949
+   ],
+   "size": [
+    1009,
+    944
+   ]
+  },
+  "ship_sloop.png": {
+   "jobId": "c96d9511-e01c-483b-83a3-e34ad5d6f116",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    12,
+    8,
+    1016,
+    924
+   ],
+   "size": [
+    1004,
+    916
+   ]
+  },
+  "rowboat.png": {
+   "jobId": "3673223c-a651-46d0-b3de-c30ba5c26300",
+   "source": [
+    1024,
+    688
+   ],
+   "crop": [
+    12,
+    143,
+    1011,
+    555
+   ],
+   "size": [
+    640,
+    264
+   ]
+  },
+  "harbor_arrival.png": {
+   "jobId": "24bba9bd-2848-4f67-bdf5-3c24cadaaeed",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    57,
+    19,
+    820,
+    1151
+   ],
+   "size": [
+    763,
+    1132
+   ]
+  },
+  "harbor_cliff.png": {
+   "jobId": "c0d99692-b7a7-4361-ba23-17844927410a",
+   "source": [
+    1008,
+    896
+   ],
+   "crop": [
+    36,
+    62,
+    973,
+    864
+   ],
+   "size": [
+    937,
+    802
+   ]
+  },
+  "sea_tile.png": {
+   "jobId": "2e5f8114-7776-4d82-8eaf-0d14a163ebf8",
+   "source": [
+    1024,
+    1024
+   ],
+   "size": [
+    768,
+    768
+   ],
+   "note": "opaque tile, made seamless by a wrapped cross-fade"
+  },
+  "quay_paving.png": {
+   "jobId": "4646d660-2a70-4cca-b083-c887f1680cdb",
+   "source": [
+    1024,
+    1024
+   ],
+   "size": [
+    768,
+    768
+   ],
+   "note": "opaque tile, mirror-tiled in game"
+  },
+  "planks.png": {
+   "jobId": "7ce069d2-e2e9-4fbf-b332-16f077ed3c4f",
+   "source": [
+    1024,
+    1024
+   ],
+   "size": [
+    768,
+    768
+   ],
+   "note": "opaque tile, mirror-tiled in game"
+  },
+  "harbor_warehouse.png": {
+   "jobId": "c620e075-cd66-4b86-8d7d-59f1427f0278",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    21,
+    8,
+    1001,
+    994
+   ],
+   "size": [
+    895,
+    900
+   ]
+  },
+  "harbor_office.png": {
+   "jobId": "6cd2d503-23ee-42b9-821f-1026e772f9c6",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    17,
+    0,
+    864,
+    1146
+   ],
+   "size": [
+    665,
+    900
+   ]
+  },
+  "harbor_tavern.png": {
+   "jobId": "d3c1cc44-0850-4cd2-afb1-0a8fda330e69",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    10,
+    0,
+    875,
+    1130
+   ],
+   "size": [
+    689,
+    900
+   ]
+  },
+  "harbor_fishhouse.png": {
+   "jobId": "5bbef0c3-3ee5-4a83-8908-3b0eb87e8b1e",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    7,
+    0,
+    1018,
+    993
+   ],
+   "size": [
+    916,
+    900
+   ]
+  },
+  "harbor_chandlery.png": {
+   "jobId": "8ee87099-a952-4654-a360-64d95f1930cc",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    109,
+    6,
+    771,
+    1149
+   ],
+   "size": [
+    521,
+    900
+   ]
+  },
+  "cargo_crates.png": {
+   "jobId": "1bdf8b30-6c36-4d8a-a940-fb7ea8c6d593",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    32,
+    35,
+    1136,
+    843
+   ],
+   "size": [
+    640,
+    468
+   ]
+  },
+  "cargo_barrels.png": {
+   "jobId": "e71b6a5e-1fb5-491c-bb7a-1be2e18edd3e",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    32,
+    35,
+    980,
+    966
+   ],
+   "size": [
+    640,
+    629
+   ]
+  },
+  "cargo_loot.png": {
+   "jobId": "dcb1340e-e2b3-4319-8676-c72545d280eb",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    31,
+    39,
+    1117,
+    829
+   ],
+   "size": [
+    640,
+    466
+   ]
+  },
+  "fish_rack.png": {
+   "jobId": "cf46f79e-6c1a-42f3-b1ec-105e807b6753",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    24,
+    8,
+    1143,
+    842
+   ],
+   "size": [
+    640,
+    477
+   ]
+  },
+  "anchor.png": {
+   "jobId": "4c501bf5-7cab-4938-ad2b-20df22243438",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    194,
+    19,
+    944,
+    989
+   ],
+   "size": [
+    495,
+    640
+   ]
+  },
+  "harbor_crane.png": {
+   "jobId": "edd1e9fa-1e6f-4f06-9202-1dc2a2ff1fc9",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    8,
+    5,
+    876,
+    1133
+   ],
+   "size": [
+    693,
+    900
+   ]
+  },
+  "bollard.png": {
+   "jobId": "037fa0bc-fa51-491d-9d31-93c3ccb9bd53",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    135,
+    96,
+    995,
+    938
+   ],
+   "size": [
+    640,
+    627
+   ]
+  },
+  "cannon.png": {
+   "jobId": "b0fb29f3-6014-4709-a9aa-a64c79235159",
+   "source": [
+    1024,
+    688
+   ],
+   "crop": [
+    45,
+    99,
+    1009,
+    630
+   ],
+   "size": [
+    640,
+    353
+   ]
+  },
+  "lobster_pots.png": {
+   "jobId": "0d1b4ab9-0b34-4b2b-9075-96d0c93cdb94",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    42,
+    62,
+    989,
+    917
+   ],
+   "size": [
+    640,
+    578
+   ]
+  },
+  "boat_upturned.png": {
+   "jobId": "a5dcfca8-3f6f-4a6d-8e52-5148027d6e41",
+   "source": [
+    1024,
+    688
+   ],
+   "crop": [
+    26,
+    68,
+    999,
+    644
+   ],
+   "size": [
+    640,
+    379
+   ]
+  },
+  "harbor_beacon.png": {
+   "jobId": "0374258f-f9bf-48a2-b0e0-aad88e8c0443",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    141,
+    6,
+    610,
+    1318
+   ],
+   "size": [
+    322,
+    900
+   ]
+  },
+  "pier_post.png": {
+   "jobId": "4e35967f-1ee6-43e5-af61-d16b107afbf3",
+   "source": [
+    688,
+    1024
+   ],
+   "crop": [
+    175,
+    49,
+    512,
+    987
+   ],
+   "size": [
+    230,
+    640
+   ]
+  },
+  "buoy.png": {
+   "jobId": "7f0d0468-fe96-483d-8d72-496786dd3fb0",
+   "source": [
+    688,
+    1024
+   ],
+   "crop": [
+    117,
+    13,
+    576,
+    736
+   ],
+   "size": [
+    406,
+    640
+   ],
+   "note": "cut at its waterline (74% of its height)"
+  },
+  "sea_rocks.png": {
+   "jobId": "48ab5e46-52c9-43aa-acd8-0f243c327193",
+   "source": [
+    1024,
+    688
+   ],
+   "crop": [
+    114,
+    12,
+    914,
+    669
+   ],
+   "size": [
+    640,
+    526
+   ]
+  },
+  "wreck_mast.png": {
+   "jobId": "38852612-9e7d-4b3b-a4bf-6971c8f4d4e6",
+   "source": [
+    688,
+    1024
+   ],
+   "crop": [
+    126,
+    5,
+    612,
+    1003
+   ],
+   "size": [
+    312,
+    640
+   ]
+  },
+  "seagull.png": {
+   "jobId": "db8a267d-68c5-4e9b-9de8-4e7bd2565543",
+   "source": [
+    1024,
+    688
+   ],
+   "crop": [
+    11,
+    92,
+    1013,
+    601
+   ],
+   "size": [
+    640,
+    325
+   ]
+  },
+  "npc_sailor.png": {
+   "jobId": "f4b03884-6314-401f-8df9-166223664274",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    35,
+    4,
+    846,
+    1161
+   ],
+   "size": [
+    491,
+    700
+   ]
+  },
+  "npc_pirate.png": {
+   "jobId": "56444c17-c335-46b0-adff-84674b06f860",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    19,
+    7,
+    831,
+    1146
+   ],
+   "size": [
+    499,
+    700
+   ]
+  },
+  "npc_pirate_captain.png": {
+   "jobId": "18ff4d88-98be-4a87-9132-7c11c5ca2682",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    4,
+    6,
+    880,
+    1139
+   ],
+   "size": [
+    541,
+    700
+   ]
+  },
+  "npc_dockhand.png": {
+   "jobId": "9e5e2f65-f9a5-4125-941c-ecf8e80e2395",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    6,
+    57,
+    879,
+    1150
+   ],
+   "size": [
+    559,
+    700
+   ]
+  },
+  "npc_harbour_master.png": {
+   "jobId": "bdf4d883-66db-4398-9065-509011874ab6",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    34,
+    0,
+    845,
+    1135
+   ],
+   "size": [
+    500,
+    700
+   ]
+  },
+  "npc_fishwife.png": {
+   "jobId": "37964f18-67e2-48dc-985b-2283010f0bee",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    67,
+    12,
+    726,
+    1331
+   ],
+   "size": [
+    410,
+    820
+   ]
+  }
+ }
+}

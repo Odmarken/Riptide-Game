@@ -18,6 +18,20 @@ test('a hero in the Throne Hall is written down as standing in the City, with a 
  assert.equal(vm.runInContext('saveSnapshot()===S',c),true,'everywhere else the state is written as it is');
 });
 
+test('a hero in the Harbour is written down as standing in the City too, with a note for the flight',()=>{
+ const c=vm.createContext({ZONES:[{name:'Moonshine',tavern:true},{name:'City',city:true},{name:'Throne Hall',throne:true},{name:'The Harbour',harbor:true}],CITY_ZONE:1,S:null});
+ vm.runInContext(section('function saveSnapshot(){','async function save(){'),c);
+ c.S={id:'a',zone:3,gold:5};
+ const snap=vm.runInContext('saveSnapshot()',c);
+ assert.equal(snap.zone,1);assert.equal(snap.atHarbor,true);assert.equal(snap.atPalace,undefined);assert.equal(snap.gold,5);
+ assert.equal(c.S.zone,3,'the live state is untouched');assert.equal(c.S.atHarbor,undefined);
+ /* and the builder reads the note: back in the City the hero wakes on the flight, clear of the dark under the arch that takes him down */
+ assert.match(source,/else if\(z\.city&&S\.atHarbor\)world\.spawn=\{\.\.\.HARBOR_FOOT\};/);assert.match(source,/delete S\.atPalace;delete S\.atHarbor;/);
+ const c2=vm.createContext({});vm.runInContext(section('const HARBOR_GATE=','/* what blocks, as rects in the flight')+';globalThis.out={foot:HARBOR_FOOT,step:HARBOR_STEP,gate:HARBOR_GATE};',c2);
+ assert.ok(c2.out.foot.y<c2.out.step.y-200&&c2.out.foot.x===c2.out.step.x,'the way down does not fire again the moment you come up');
+ assert.ok(c2.out.step.y>5000&&c2.out.step.y<c2.out.gate.foot,'the step is inside the wall, under the arch');
+});
+
 test('every write of the character goes through the snapshot',()=>{
  assert.equal((source.match(/JSON\.stringify\(S\)/g)||[]).length,0,'no raw JSON.stringify(S)');
  assert.equal((source.match(/cloudPushChar\(S\)/g)||[]).length,0,'no raw cloud push of S');
@@ -28,7 +42,9 @@ test('an unknown zone index never reaches the character list or the world builde
  assert.match(source,/if\(!ZONES\[s\.zone\|0\]\)s\.zone=TAVERN_ZONE;/,'migrate sends the hero to Moonshine');
  assert.doesNotMatch(source,/\$\{ZONES\[ch\.zone\]\.name\}/,'the character card has a fallback zone name');
  assert.match(source,/\(ZONES\[ch\.zone\]\|\|ZONES\[TAVERN_ZONE\]\)\.name/);
- /* the zone table is append-only: the Throne Hall is its last entry */
+ /* the zone table is append-only: the Throne Hall came after the guild, the Harbour after the Throne Hall - and is the last entry */
  const zones=section('const ZONES=[','const TAVERN_ZONE=');
  assert.ok(zones.lastIndexOf('throne:true')>zones.lastIndexOf('tideguild:true'));
+ assert.ok(zones.lastIndexOf('harbor:true')>zones.lastIndexOf('throne:true'));
+ assert.match(zones,/harbor:true[^\n]*\n[^\n]*\},\n\];\n$/,'nothing may be inserted before it');
 });

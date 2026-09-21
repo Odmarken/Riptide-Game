@@ -62,7 +62,14 @@ const CHARACTER_BOUNDS={
  /* The court of the Throne Hall, 2026-09-19, same model and references: busts cut at the hips. */
  "npc/npc_king":[524,700,0,1,524,699],
  "npc/npc_kings_hand":[525,700,1,2,523,697],
- "npc/npc_royal_guard":[515,700,0,2,515,698]
+ "npc/npc_royal_guard":[515,700,0,2,515,698],
+ /* The people of the Harbour, 2026-09-21, same model and references: busts cut at the hips, the fishwife full-length. */
+ "npc/npc_sailor":[491,700,0,2,490,697],
+ "npc/npc_pirate":[499,700,1,1,498,698],
+ "npc/npc_pirate_captain":[541,700,1,1,539,698],
+ "npc/npc_dockhand":[559,700,0,1,557,698],
+ "npc/npc_harbour_master":[500,700,1,4,498,695],
+ "npc/npc_fishwife":[410,820,0,1,410,819]
 };
 /* Reviewed grip centres in the native (left-facing) Ice Armor PNGs. Broad
  * gauntlets do not share the ordinary costume's fixed weapon attachment. */
