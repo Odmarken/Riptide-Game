@@ -15010,11 +15010,13 @@ async function initFirebase(){
    let first=true;
    FB.auth.onAuthStateChanged(async u=>{
     FB.user=u;updateAcctUI();
-    if(u&&seasonReady){await adoptGuestChars();await cloudPullRoster();}
+    /* with a deadline: this callback is awaited by initFirebase() at boot, and a cloud that never answers must not
+       be able to hold the whole game on its loading screen */
+    if(u&&seasonReady)await within((async()=>{await adoptGuestChars();await cloudPullRoster();})(),CLOUD_WAIT_MS,'the hero roster (auth listener)');
     /* A reload restores auth without ever passing through fbSignIn, so without this the tab
        would hold no session lock and run no watcher: unkickable, and free to overwrite
        whatever another device had just claimed. */
-    if(u)await claimSession();
+    if(u)await within(claimSession(),CLOUD_WAIT_MS,'the session claim (auth listener)');
     else{FB.claimedUid=null;if(sessUnsub){sessUnsub();sessUnsub=null;}}
     if(first){first=false;resolve();}
    },()=>{if(first){first=false;resolve();}});
@@ -15045,11 +15047,14 @@ async function fbSignIn(create){
   const cred=create?await FB.auth.createUserWithEmailAndPassword(em,pw):await FB.auth.signInWithEmailAndPassword(em,pw);
   FB.user=(cred&&cred.user)||FB.auth.currentUser; /* set immediately so the roster namespace is right before the auth callback fires */
   $('login').classList.remove('open');
-  await adoptGuestChars();   /* lift anything made before this account existed */
-  await cloudPullRoster();
-  await claimSession();
-  showSelect();
- }catch(e){$('fbErr').textContent=((e&&e.message)||'Sign-in failed.').replace('Firebase: ','');}
+  await enterAfterAuth();      /* opens the character select at once; the cloud gets a deadline, never the screen */
+ }catch(e){
+  /* whatever went wrong, say it where it can be seen: the form was already shut, and an error written into a hidden form
+     is a blank screen with no explanation */
+  console.error('sign-in: '+((e&&e.stack)||e));
+  if(!$('select').classList.contains('open')&&!gameOn)$('login').classList.add('open');
+  $('fbErr').textContent=((e&&e.message)||'Sign-in failed.').replace('Firebase: ','');
+ }
 }
 /* A failed push used to vanish into console.warn, so a save that Firestore rejects outright
    (document over 1 MiB, or past the 40k index-entries-per-document ceiling) looked exactly
@@ -15068,8 +15073,25 @@ function cloudPushProblem(e){
     screenshot from a stuck account is enough to diagnose it */
  try{log('<span class="imp">'+msg+'</span> <span class="ss">['+code+']</span>');}catch(_){}
 }
+/* ☁ When Firestore's channel is blocked or refused (a proxy, a firewall, the project's own trouble - on 2026-09-21 the
+   backend answered every stream for this project with "Unknown SID" while plain REST reads worked), the SDK neither
+   answers nor fails: get() and set() simply never come back. Nothing the player is looking at may wait on that.
+   within() gives a cloud promise a deadline and never rejects: {ok,value} | {failed} | {late}. It says so with
+   console.error, which the desktop build writes to error.log - a hang used to leave no trace at all. */
+const CLOUD_WAIT_MS=8000;
+function within(p,ms,what){
+ let timer;
+ const late=new Promise(res=>{timer=setTimeout(()=>{console.error('cloud: '+what+' did not answer within '+ms+' ms - carrying on without it');res({late:true});},ms);});
+ const done=Promise.resolve(p).then(value=>({ok:true,value}),e=>{console.error('cloud: '+what+' failed - '+((e&&e.message)||e));return {failed:true};});
+ return Promise.race([done,late]).finally(()=>clearTimeout(timer));
+}
 async function cloudPushChar(ch){
  if(!(FB.ready&&FB.user)||FB.kicked)return false;
+ /* the last push has not come back yet: the cloud is not answering, and queueing another whole copy of the hero behind it
+    every fifteen seconds only builds a pile (it is how "write stream exhausted maximum allowed queued writes" was earned).
+    The save on this device is the one that counts; the next push after it clears carries everything. */
+ if(FB.pushing&&Date.now()-FB.pushing<120000)return false;
+ FB.pushing=Date.now();
  try{
   const uid=FB.user.uid,ids=await loadRoster();
   const ref=FB.db.collection('players').doc(uid);
@@ -15085,9 +15107,11 @@ async function cloudPushChar(ch){
    FB.lastRoster=rosterJson;
    await ref.update({['chars.'+ch.id]:JSON.parse(JSON.stringify(ch)),updatedAt:Date.now()});
   }
+  FB.pushing=0;
   return true;
  }catch(e){
   console.warn('cloud push failed',e);
+  FB.pushing=0;
   FB.lastRoster=null; /* the roster write may not have landed either - do not trust the cache */
   cloudPushProblem(e);
   return false;
@@ -15126,13 +15150,22 @@ async function adoptGuestChars(){
  if(moved)stageMsg('☁ '+moved+' character'+(moved>1?'s':'')+' moved into your account',2800);
  return moved;
 }
-async function cloudPullRoster(){
- if(!(FB.ready&&FB.user))return;
+/* Returns true when the cloud was heard from (even if it had nothing), false when it was not. `job.abandoned` is set by a
+   caller that stopped waiting: an answer that arrives after the player was let in on this device's copies is dropped,
+   because writing a cloud copy over a hero who is being played would fight the running save. The revs settle it at the
+   next sign-in instead. */
+let pullJobs=[];
+const abandonPulls=()=>{for(const j of pullJobs)j.abandoned=true;};   /* every pull still waiting - the auth listener starts one of its own */
+async function cloudPullRoster(job){
+ if(!(FB.ready&&FB.user))return false;
+ job=job||{abandoned:false};pullJobs.push(job);
  try{
   const doc=await FB.db.collection('players').doc(FB.user.uid).get();
-  if(!doc.exists)return;
+  pullJobs=pullJobs.filter(j=>j!==job);
+  if(job.abandoned){console.error('cloud: the hero roster answered after the wait was over - ignored until the next sign-in');return false;}
+  if(!doc.exists)return true;
   const data=doc.data()||{};
-  if(String(data.season||'')!==String(SEASON))return; /* ignore pre-season/old-season cloud saves */
+  if(String(data.season||'')!==String(SEASON))return true; /* ignore pre-season/old-season cloud saves */
   const remoteChars=data.chars||{},ids=await loadRoster();
   let changed=false;
   for(const [id,raw] of Object.entries(remoteChars)){
@@ -15156,7 +15189,26 @@ async function cloudPullRoster(){
   }
   if(changed)await saveRoster(ids);
   if($('select').classList.contains('open'))renderSelect();
- }catch(e){console.warn('cloud pull failed',e);}
+  return true;
+ }catch(e){console.warn('cloud pull failed',e);pullJobs=pullJobs.filter(j=>j!==job);return false;}
+}
+/* 🚪 Signed in: what happens next, for the sign-in form and for a remembered session alike. The character select opens AT
+   ONCE - the old order shut the sign-in form, then waited on the cloud with nothing on screen, and a cloud that never
+   answered left a bare HUD for ever with no error anywhere (2026-09-21). While the roster is being fetched the list says
+   so and Enter World is not offered yet: a hero must not be entered on a stale copy a moment before a newer one lands.
+   After CLOUD_WAIT_MS the heroes saved on this device are offered with a warning; they are the primary save anyway, and
+   everything played now goes up once the cloud answers again. */
+let selectFetching=false,cloudSilent=false;
+async function enterAfterAuth(){
+ selectFetching=true;cloudSilent=false;
+ showSelect();
+ const job={abandoned:false};
+ const pull=await within((async()=>{await adoptGuestChars();return cloudPullRoster(job);})(),CLOUD_WAIT_MS,'the hero roster');
+ if(!(pull.ok&&pull.value===true)){abandonPulls();cloudSilent=true;}
+ const claim=await within(claimSession(),cloudSilent?1500:CLOUD_WAIT_MS,'the session claim');   /* it stays queued and lands whenever the cloud is back */
+ if(!claim.ok)cloudSilent=true;
+ selectFetching=false;
+ if($('select').classList.contains('open'))renderSelect();
 }
 /* --- global leaderboard: name, level, prestige, rating, gear, stats and scrolls --- */
 function charStats(ch){
@@ -15197,7 +15249,9 @@ async function publishLB(ch,force){
 async function fetchLB(){
  if(FB.ready){
   try{
-   const q=await FB.db.collection('leaderboard').orderBy('score','desc').limit(200).get();
+   const got=await within(FB.db.collection('leaderboard').orderBy('score','desc').limit(200).get(),CLOUD_WAIT_MS,'the leaderboard');
+   if(!got.ok)throw new Error('no answer');
+   const q=got.value;
    return q.docs.map(d=>d.data()).filter(e=>String(e.season||'')===String(SEASON)).slice(0,100);
   }catch(e){}
  }
@@ -15381,6 +15435,10 @@ async function renderSelect(){
     guarantees two devices agree even for heroes created in the same millisecond, or whose
     birth time could not be recovered at all. */
  chars.sort((a,b)=>(a.createdAt||0)-(b.createdAt||0)||String(a.id).localeCompare(String(b.id)));
+ if(selectFetching){ /* ☁ the cloud has not answered yet: say so, and offer nothing that could be entered on a stale copy */
+  $('charList').innerHTML='<div class="card" style="color:var(--dim);font-size:12px;background:rgba(28,43,36,.7)">☁ Fetching your heroes from the cloud…'+(chars.length?' <span style="opacity:.7">('+chars.length+' saved on this device)</span>':'')+'</div>';
+  return;
+ }
  const cardOf=ch=>{
   const r=RACES.find(x=>x.id===(RACE_ALIAS[ch.race]||ch.race)),c=CLASSES.find(x=>x.id===(CLASS_ALIAS[ch.cls]||ch.cls));
   const hcDead=ch.hardcore&&ch.hcDead;
@@ -15399,7 +15457,8 @@ async function renderSelect(){
  };
  const living=chars.filter(ch=>!(ch.hardcore&&ch.hcDead));
  const fallen=chars.filter(ch=>ch.hardcore&&ch.hcDead);
- let html=living.length?living.map(cardOf).join(''):'<div class="card" style="color:var(--dim);font-size:12px;background:rgba(28,43,36,.7)">No heroes yet - the Eastern Realm waits for its first champion.</div>';
+ const cloudWarn=cloudSilent&&FB.user?'<div class="card" style="font-size:12px;line-height:1.5;color:#ffd9a0;background:rgba(70,44,16,.78);border-color:#b9822a">⚠ <b>The cloud is not answering.</b> These are the heroes saved on this device - the save that counts. Everything you play now is kept here and goes up by itself once the cloud answers again. Sign in again later to check.</div>':'';
+ let html=cloudWarn+(living.length?living.map(cardOf).join(''):'<div class="card" style="color:var(--dim);font-size:12px;background:rgba(28,43,36,.7)">'+(cloudSilent&&FB.user?'No heroes are saved on this device, and the cloud is not answering. Try signing in again in a little while - your heroes are safe in the cloud.':'No heroes yet - the Eastern Realm waits for its first champion.')+'</div>');
  if(fallen.length){ /* the graveyard - a fold-out shelf above Create New Character */
   html+=`<div class="tierhead" id="fallenHead" style="border-color:#a05a5a66;margin-top:10px">
    <span style="color:#ff8a7a">${fallenOpen?'▾':'▸'} 💀 Fallen Heroes</span>
@@ -15734,7 +15793,7 @@ $('exitBtn').onclick=async()=>{
     window goes - the whole point of leaving from a menu rather than by closing it. */
  const b=$('exitBtn');
  b.disabled=true;b.textContent='Saving…';
- try{if(gameOn)await saveNow();}catch(e){}
+ try{if(gameOn)await within(saveNow(),6000,'the last save before quitting');}catch(e){}   /* it is on this device either way (saveNow writes that first) */
  if(window.desktop&&window.desktop.quit)window.desktop.quit().catch(()=>{});
  else location.reload();
 };
@@ -16012,6 +16071,6 @@ requestAnimationFrame(frame);
    await deviceDelete('eastvale-save3');
   }
  }
- if(FB.user){await adoptGuestChars();await cloudPullRoster();await claimSession();showSelect();}
+ if(FB.user)await enterAfterAuth();
  else showLogin();
 })();
