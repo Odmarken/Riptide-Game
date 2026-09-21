@@ -5,7 +5,7 @@ function harness(){
  const c={Tides,hubMode:'',trainingOwner:null,trainingPicker:null,S:{tides:Tides.createCollection()},gameOn:true,hero:{dead:false},session:null,access:true,saves:0,Date,Math};
  Tides.purchaseLasso(c.S.tides,10000,{rng:()=>0});const initial=c.S.tides.pets[0];c.S.tides.pets.push({...initial,id:'tide-2',speciesId:Tides.catalog[1].id});c.S.tides.visibleId=initial.id;
  const nodes=new Map();c.el=id=>{if(!nodes.has(id))nodes.set(id,{innerHTML:'',textContent:'',value:'',hidden:false,querySelectorAll:()=>[],querySelector:()=>null});return nodes.get(id);};
- Object.assign(c,{trainingInReach:()=>c.access,openHub:mode=>{if(c.session)return false;c.hubMode=mode;return true},closeHub:()=>{c.hubMode=''},html:s=>String(s),species:Tides.getSpecies,icon:()=>'<canvas></canvas>',stars:()=>'',paintIcons(){},saveNow:()=>c.saves++,entry(){},refreshStorageValues(){},openStorage(){},sfx:{click(){}}});
+ Object.assign(c,{trainingInReach:()=>c.access,openHub:mode=>{if(c.session)return false;c.hubMode=mode;return true},closeHub:()=>{c.hubMode=''},html:s=>String(s),species:Tides.getSpecies,icon:()=>'<canvas></canvas>',stars:()=>'',paintIcons(){},saveNow:()=>c.saves++,save:()=>c.quietSaves++,quietSaves:0,entry(){},refreshStorageValues(){},openStorage(){},sfx:{click(){}}});
  vm.createContext(c);vm.runInContext(section(' function trainingAllowed(',' function visibleCompanion('),c);return c;
 }
 test('training menu shows three places and the passive rate; only a nearby living character can enter',()=>{
@@ -22,9 +22,11 @@ test('stale menus cannot alter another character, a distant station or an ongoin
  const c=harness(),id=c.S.tides.pets[0].id;c.openTraining();c.trainingPicker=0;c.access=false;assert.equal(c.depositTrainingPet(id),false);c.access=true;c.session={};assert.equal(c.depositTrainingPet(id),false);c.session=null;
  const old=c.S.tides;c.S={tides:Tides.createCollection()};assert.equal(c.depositTrainingPet(id),false);assert.equal(old.training.jobs.length,0);c.tickTraining();assert.equal(c.hubMode,'');
 });
-test('background ticking saves newly earned XP once without requiring the training menu to be open',()=>{
+test('background ticking saves newly earned XP once without requiring the training menu to be open - by the throttled save, never the forced push',()=>{
  const c=harness(),id=c.S.tides.pets[0].id;Tides.startTraining(c.S.tides,id,{now:Date.now()-61000});c.hubMode='';const before=c.saves;
- c.tickTraining();assert.equal(c.S.tides.pets[0].xp,3);assert.equal(c.saves,before+1);c.tickTraining();assert.equal(c.saves,before+1);
+ c.tickTraining();assert.equal(c.S.tides.pets[0].xp,3);assert.equal(c.quietSaves,1);c.tickTraining();assert.equal(c.quietSaves,1);
+ // every XP a paddock earns lands here: with saveNow() that was a whole-hero cloud write every few seconds, all day (2026-09-21)
+ assert.equal(c.saves,before,'the forced cloud push is for deposits and collections, not for the ticking');
 });
 test('training pets are excluded from Ready for battle but remain searchable under Training and Favorites',()=>{
  const c=harness(),p=c.S.tides.pets[0];Tides.startTraining(c.S.tides,p.id);p.favorite=true;

@@ -1036,10 +1036,11 @@ function mpTravelTo(i){
  applyZoneUI();buildZone();renderHUD();save();openTab('battle');
 }
 async function mpEnsureFirebase(){
- if(FB&&FB.ready&&FB.db)return true;
- if(typeof initFirebase==='function')await initFirebase();
- return !!(FB&&FB.ready&&FB.db);
+ if(!(FB&&FB.ready&&FB.db)&&typeof initFirebase==='function')await initFirebase();
+ if(!(FB&&FB.ready&&FB.db))return false;
+ return tryLive();   /* raids and duels ride the live channel; saves have a second road (see cloudCall), these do not */
 }
+const mpNotReady=otherwise=>FB&&FB.rest?'Raids and duels need the live cloud channel, and it is not answering from this network right now. Your saves still go up - try again later.':otherwise;
 function mpLook(){
  const g=(S&&S.gear)||{},w=g.weapon||null;
  return {race:S&&S.race?S.race:'human',cls:S&&S.cls?S.cls:'warrior',
@@ -1047,13 +1048,13 @@ function mpLook(){
   a:g.armor?(g.armor.id||null):null,ice:!!(g.armor&&isIce(g.armor)),pet:S&&S.pet?S.pet:null,fk:!!(w&&isFK(w)),wg:!!(w&&isFG(w)),fem:!!(S&&S.gender==='f')};
 }
 async function mpCreate(){
- const ok=await mpEnsureFirebase();if(!ok){stageMsg('Firebase is not ready - sign in or check config.',2200);sfx.warn();return;}
+ const ok=await mpEnsureFirebase();if(!ok){stageMsg(mpNotReady('Firebase is not ready - sign in or check config.'),FB.rest?5200:2200);sfx.warn();return;}
  mp.code=MPCODE();mp.pid='p'+Math.random().toString(36).slice(2,9);mp.host=true;mp.hostPid=mp.pid;
  await mpRoom().set({host:mp.pid,state:'lobby',created:Date.now()});
  await mpEnter();
 }
 async function mpJoin(code){
- const ok=await mpEnsureFirebase();if(!ok){stageMsg('Firebase is not ready - sign in or check config.',2200);sfx.warn();return;}
+ const ok=await mpEnsureFirebase();if(!ok){stageMsg(mpNotReady('Firebase is not ready - sign in or check config.'),FB.rest?5200:2200);sfx.warn();return;}
  code=(code||'').toUpperCase().trim();
  if(code.length<5){stageMsg('Enter a 5-letter code',1400);sfx.warn();return;}
  const snap=await mpDB().collection('rooms').doc(code).get();
@@ -12964,7 +12965,7 @@ function openGVB(){
 const gvbRef=code=>mpDB().collection('rooms').doc('GVB-'+code); /* lives in the raid-approved collection - 'GVB-' ids can never collide with 5-letter raid codes */
 async function gvbCreate(){
  try{
-  const ok=await mpEnsureFirebase();if(!ok){stageMsg('Firebase is not ready - sign in first.',2200);sfx.warn();return;}
+  const ok=await mpEnsureFirebase();if(!ok){stageMsg(mpNotReady('Firebase is not ready - sign in first.'),FB.rest?5200:2200);sfx.warn();return;}
   gvb.code=MPCODE();gvb.pid='p'+Math.random().toString(36).slice(2,9);
   gvb.ref=gvbRef(gvb.code);
   await gvb.ref.set({gvb:true,state:'lobby',created:Date.now(),host:gvb.pid,order:[gvb.pid],rounds:10,
@@ -12974,7 +12975,7 @@ async function gvbCreate(){
 }
 async function gvbJoin(code){
  try{
-  const ok=await mpEnsureFirebase();if(!ok){stageMsg('Firebase is not ready - sign in first.',2200);sfx.warn();return;}
+  const ok=await mpEnsureFirebase();if(!ok){stageMsg(mpNotReady('Firebase is not ready - sign in first.'),FB.rest?5200:2200);sfx.warn();return;}
   code=(code||'').toUpperCase().trim();
   if(code.length<5){stageMsg('Enter a 5-letter code',1400);sfx.warn();return;}
   const ref=gvbRef(code);
@@ -14818,9 +14819,14 @@ function itemConsistent(it,ch){
 }
 
 /* ☁ how often the cloud copy may be refreshed. Local saves are always instant; this only
-   throttles Firestore. Every push is two writes plus a full-document echo to our own
-   listener, so this number is very close to a direct multiplier on the Firebase bill. */
-const FB_PUSH_MS=15000;
+   throttles Firestore. Every push is a write of the whole hero, so this number is very close to
+   a direct multiplier on the Firebase bill. On 2026-09-21 one account came to 4.5K writes in a
+   day: most of them a training tick that called saveNow() every few seconds (it calls save()
+   now, see tickTraining in tides/ui.js), the rest this throttle at 15 seconds. A minute is
+   plenty: the save on this device is the one that counts, saveNow() forces a push at the moments
+   that matter, and one goes out whenever the window is hidden or closed. Keep saveNow() out of
+   anything that ticks. */
+const FB_PUSH_MS=60000;
 /* ☁ one flush attempt. pushDirty is cleared ONLY once the write actually lands - a tab that
    gets frozen mid-push must retry on the next run, not forget it ever had work to do. */
 function flushCloud(){
@@ -14838,8 +14844,17 @@ function saveSnapshot(){
  const z=ZONES[S.zone];
  return z&&z.throne?{...S,zone:CITY_ZONE,atPalace:true}:S;
 }
+/* the hero as he would be written, less the two fields every save touches: equal means nothing happened since the last save */
+const saveSig=snap=>snap.id+'|'+JSON.stringify({...snap,rev:0,savedAt:0});
+let savedSig='';
 async function save(){
  if(!S||!S.id||FB.kicked)return;
+ /* The autosave comes round every 12 seconds whether or not anything happened. Saving an unchanged hero used to raise rev,
+    rewrite the device copy and send the whole hero to the cloud again - all day long in an idle window. Now it is nothing
+    at all. rev moves only when the hero did, so it can never run ahead of a cloud copy that was not sent. */
+ const sig=saveSig(saveSnapshot());
+ if(sig===savedSig){publishLB(S);return;}
+ savedSig=sig;
  S.rev=(S.rev|0)+1;S.savedAt=Date.now(); /* rev decides merges; savedAt is only for support */
  memChars[S.id]=JSON.stringify(saveSnapshot());
  await deviceSet('riptide-char-'+S.id,memChars[S.id]);
@@ -14854,6 +14869,7 @@ async function save(){
 async function saveNow(){
  if(!S||!S.id||FB.kicked)return;
  S.rev=(S.rev|0)+1;S.savedAt=Date.now();
+ savedSig=saveSig(saveSnapshot());
  memChars[S.id]=JSON.stringify(saveSnapshot());
  await deviceSet('riptide-char-'+S.id,memChars[S.id]);
  if(FB.ready&&FB.user){
@@ -14943,7 +14959,7 @@ const FIREBASE_CONFIG={
  appId:"1:892097723800:web:38b35a2c005acfa63a3fed",
  measurementId:"G-1F59M1QS5Z"
 };
-const FB={ready:false,user:null,auth:null,db:null,tried:false,lastPub:0};
+const FB={ready:false,user:null,auth:null,db:null,tried:false,lastPub:0,rest:false,sdkPending:0};
 /* --- single-session enforcement: one live client per account --- */
 const SESSION_ID='sess_'+Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 let sessUnsub=null;
@@ -14961,20 +14977,39 @@ async function claimSession(){
  if(FB.claimedUid===FB.user.uid&&sessUnsub)return; /* already holding it - no second write */
  FB.claimedUid=FB.user.uid;
  FB.kicked=false;
+ const uid=FB.user.uid,claim={activeSession:SESSION_ID,sessionAt:Date.now()};
  try{
-  await sessRef().set({activeSession:SESSION_ID,sessionAt:Date.now()});
+  await cloudCall('the session claim',()=>sessRef().set(claim),rest=>rest.patch('players/'+uid+'/meta/session',claim),SDK_WAIT_MS,true);
   watchSession(false);
  }catch(e){
   console.warn('session claim failed, falling back to the legacy field',e);
   try{
-   await FB.db.collection('players').doc(FB.user.uid)
-    .set({activeSession:SESSION_ID,sessionAt:Date.now()},{merge:true});
+   await cloudCall('the session claim (legacy field)',()=>FB.db.collection('players').doc(uid).set(claim,{merge:true}),
+    rest=>rest.patch('players/'+uid,claim,[['activeSession'],['sessionAt']]),SDK_WAIT_MS,true);
    watchSession(true);
   }catch(e2){console.warn('legacy session claim failed too',e2);}
  }
 }
+/* Without the live channel there is no listener, so the lock is asked for instead: one small field every 45 seconds (the read
+   is masked down to activeSession, so even the legacy field on the big player document costs a few hundred bytes). Being
+   opened elsewhere is then noticed within the minute rather than within the second - the revs settle whatever was saved
+   in between, exactly as they do for a device that was offline. */
+function watchSessionRest(legacy){
+ const uid=FB.user.uid,path='players/'+uid+(legacy?'':'/meta/session');
+ let busy=false;
+ const timer=setInterval(async()=>{
+  if(busy||FB.kicked||!FB.user||FB.user.uid!==uid)return;
+  busy=true;
+  try{const doc=await restCloud().get(path,['activeSession']);const holder=doc.exists&&doc.data.activeSession;if(holder&&holder!==SESSION_ID)kickSession();}
+  catch(e){} /* a missed beat is only a later answer */
+  busy=false;
+ },SESSION_POLL_MS);
+ sessUnsub=()=>clearInterval(timer);
+}
 function watchSession(legacy){
  if(sessUnsub)sessUnsub();
+ sessUnsub=null;FB.sessLegacy=!!legacy;
+ if(FB.rest){watchSessionRest(legacy);return;}
  const ref=legacy?FB.db.collection('players').doc(FB.user.uid):sessRef();
  sessUnsub=ref.onSnapshot(doc=>{
   const d=doc.data()||{};
@@ -15010,14 +15045,17 @@ async function initFirebase(){
    let first=true;
    FB.auth.onAuthStateChanged(async u=>{
     FB.user=u;updateAcctUI();
-    /* with a deadline: this callback is awaited by initFirebase() at boot, and a cloud that never answers must not
-       be able to hold the whole game on its loading screen */
-    if(u&&seasonReady)await within((async()=>{await adoptGuestChars();await cloudPullRoster();})(),CLOUD_WAIT_MS,'the hero roster (auth listener)');
-    /* A reload restores auth without ever passing through fbSignIn, so without this the tab
-       would hold no session lock and run no watcher: unkickable, and free to overwrite
-       whatever another device had just claimed. */
-    if(u)await within(claimSession(),CLOUD_WAIT_MS,'the session claim (auth listener)');
-    else{FB.claimedUid=null;if(sessUnsub){sessUnsub();sessUnsub=null;}}
+    if(!u){FB.claimedUid=null;if(sessUnsub){sessUnsub();sessUnsub=null;}}
+    /* One pull and one claim per sign-in, and enterAfterAuth() makes them: the start-up code calls it for a remembered
+       session (a reload restores auth without ever passing through fbSignIn - without a claim the tab would be unkickable,
+       and free to overwrite whatever another device had just claimed), and the sign-in form calls it itself. This listener
+       used to make a second pair of its own, side by side with theirs: every hero read twice and a second session write for
+       each sign-in. It now steps in only for a sign-in that came from neither - with a deadline, as everything here: the
+       first call is awaited by initFirebase() at boot, and a silent cloud must not hold the game on its loading screen. */
+    else if(!first&&!FB.formSignIn&&seasonReady){
+     await within((async()=>{await adoptGuestChars();await cloudPullRoster();})(),CLOUD_WAIT_MS,'the hero roster (auth listener)');
+     await within(claimSession(),CLOUD_WAIT_MS,'the session claim (auth listener)');
+    }
     if(first){first=false;resolve();}
    },()=>{if(first){first=false;resolve();}});
   });
@@ -15044,6 +15082,7 @@ async function fbSignIn(create){
  const ok=await initFirebase();
  if(!ok){$('fbErr').textContent='Firebase could not be reached. Check your hosting and Firebase configuration.';return;}
  try{
+  FB.formSignIn=true; /* the auth listener hears of this sign-in too: it leaves the pull and the claim to enterAfterAuth() below */
   const cred=create?await FB.auth.createUserWithEmailAndPassword(em,pw):await FB.auth.signInWithEmailAndPassword(em,pw);
   FB.user=(cred&&cred.user)||FB.auth.currentUser; /* set immediately so the roster namespace is right before the auth callback fires */
   $('login').classList.remove('open');
@@ -15054,7 +15093,7 @@ async function fbSignIn(create){
   console.error('sign-in: '+((e&&e.stack)||e));
   if(!$('select').classList.contains('open')&&!gameOn)$('login').classList.add('open');
   $('fbErr').textContent=((e&&e.message)||'Sign-in failed.').replace('Firebase: ','');
- }
+ }finally{FB.formSignIn=false;}
 }
 /* A failed push used to vanish into console.warn, so a save that Firestore rejects outright
    (document over 1 MiB, or past the 40k index-entries-per-document ceiling) looked exactly
@@ -15073,17 +15112,89 @@ function cloudPushProblem(e){
     screenshot from a stuck account is enough to diagnose it */
  try{log('<span class="imp">'+msg+'</span> <span class="ss">['+code+']</span>');}catch(_){}
 }
-/* ☁ When Firestore's channel is blocked or refused (a proxy, a firewall, the project's own trouble - on 2026-09-21 the
-   backend answered every stream for this project with "Unknown SID" while plain REST reads worked), the SDK neither
-   answers nor fails: get() and set() simply never come back. Nothing the player is looking at may wait on that.
-   within() gives a cloud promise a deadline and never rejects: {ok,value} | {failed} | {late}. It says so with
-   console.error, which the desktop build writes to error.log - a hang used to leave no trace at all. */
-const CLOUD_WAIT_MS=8000;
+/* ☁ When Firestore's channel is blocked or refused (a proxy, a firewall, Google's own edge - on 2026-09-21 it answered
+   every stream for this project from the developer's network with "Unknown SID", while plain REST requests and the same
+   stream from another country worked), the SDK neither answers nor fails: get() and set() simply never come back.
+   Nothing the player is looking at may wait on that. within() gives a cloud promise a deadline and never rejects:
+   {ok,value} | {failed,error} | {late}. It says so with console.error, which the desktop build writes to error.log - a
+   hang used to leave no trace at all. (What fails AFTER its deadline is not reported a second time.) */
+const CLOUD_WAIT_MS=12000;
 function within(p,ms,what){
- let timer;
- const late=new Promise(res=>{timer=setTimeout(()=>{console.error('cloud: '+what+' did not answer within '+ms+' ms - carrying on without it');res({late:true});},ms);});
- const done=Promise.resolve(p).then(value=>({ok:true,value}),e=>{console.error('cloud: '+what+' failed - '+((e&&e.message)||e));return {failed:true};});
+ let timer,over=false;
+ const late=new Promise(res=>{timer=setTimeout(()=>{over=true;console.error('cloud: '+what+' did not answer within '+ms+' ms - carrying on without it');res({late:true});},ms);});
+ const done=Promise.resolve(p).then(value=>({ok:true,value}),e=>{if(!over)console.error('cloud: '+what+' failed - '+((e&&e.message)||e));return {failed:true,error:e};});
  return Promise.race([done,late]).finally(()=>clearTimeout(timer));
+}
+/* ☁ Two roads to the same database. The live channel (the Firebase SDK) is the first choice: it carries the raids, the duels
+   and an instant "opened on another device". When it does not answer, the very same read or write goes out as one plain
+   HTTPS request instead (assets/cloud/firestore-rest.js - same documents, same rules, same sign-in), and the session stays
+   on that road: the SDK's network is shut, so that a save it still holds can never land later, on top of newer ones. The
+   choice is remembered for half an hour, so the next sign-in does not wait on a channel that was dead a minute ago; after
+   that the live channel gets a new chance, and tryLive() gives it one at once when a raid or a duel is asked for. */
+const SDK_WAIT_MS=4000,SDK_WRITE_MS=10000,SESSION_POLL_MS=45000,REST_MEMO='riptide-cloud-rest',REST_MEMO_MS=1800000;
+function restCloud(){
+ if(!FB.restClient&&typeof FirestoreRest!=='undefined'&&typeof fetch==='function')
+  FB.restClient=FirestoreRest.client({fetch:(url,opt)=>fetch(url,opt),project:FIREBASE_CONFIG.projectId,timeoutMs:10000,
+   getToken:async fresh=>FB.user?FB.user.getIdToken(!!fresh):null});
+ return FB.restClient||null;
+}
+const restRemembered=()=>{const t=+LS.get(REST_MEMO)||0;return t>0&&Date.now()-t<REST_MEMO_MS;};
+function goRest(why){ /* `why` empty: the choice was remembered, nothing new happened - nothing to write down */
+ if(FB.rest)return true;
+ if(!restCloud())return false;
+ FB.rest=true;
+ if(why){console.error('cloud: '+why+' got no answer on the live channel - saving over plain requests from here on');LS.set(REST_MEMO,String(Date.now()));}
+ try{Promise.resolve(FB.db.disableNetwork()).catch(()=>{});}catch(e){}
+ if(sessUnsub&&FB.user&&!FB.kicked)watchSession(FB.sessLegacy); /* the listener went with the channel: ask instead */
+ return true;
+}
+/* Something only the live channel can do was asked for: one more chance. Never while a save the SDK took is still unsent -
+   switching its network back on would let that old copy land on top of newer ones. */
+async function tryLive(){
+ if(!FB.rest)return true;
+ if(FB.sdkPending>0||!FB.db)return false;
+ try{
+  await within(FB.db.enableNetwork(),2000,'switching the live channel on');
+  const r=await within(FB.db.collection('leaderboard').limit(1).get({source:'server'}),SDK_WAIT_MS,'the live channel, asked again');
+  if(r.ok){FB.rest=false;LS.del(REST_MEMO);if(sessUnsub&&FB.user&&!FB.kicked)watchSession(FB.sessLegacy);return true;}
+  await within(FB.db.disableNetwork(),2000,'switching the live channel off');
+ }catch(e){}
+ return false;
+}
+/* One cloud call by whichever road answers. The live channel gets `ms`; silence or "unavailable" sends this call - and the
+   rest of the session - down the other road. Any other failure is a real answer (denied, too large): plain requests would
+   be told the same, so it is thrown as it is. `isWrite` counts a write the SDK has taken and not finished (see tryLive). */
+async function cloudCall(what,viaSdk,viaRest,ms,isWrite){
+ if(!FB.rest){
+  let p=Promise.resolve().then(viaSdk);
+  if(isWrite){FB.sdkPending++;p=p.finally(()=>{FB.sdkPending--;});}
+  const r=await within(p,ms,what+' (live channel)');
+  if(r.ok)return r.value;
+  const code=r.error&&r.error.code;
+  if(r.failed&&code!=='unavailable'&&code!=='deadline-exceeded')throw r.error;
+  if(!goRest(what))throw r.error||new Error('the cloud did not answer');
+ }
+ return viaRest(restCloud());
+}
+/* the player's document, {exists,data}, by whichever road answers */
+const cloudGetPlayer=uid=>cloudCall('the hero roster',
+ async()=>{const doc=await FB.db.collection('players').doc(uid).get();return {exists:doc.exists,data:doc.exists?doc.data()||{}:null};},
+ rest=>rest.get('players/'+uid),SDK_WAIT_MS);
+/* The first save a session sends by plain request is read back: the hero must be there as sent, and every hero the sign-in
+   saw must still be there. The update mask is what guarantees it - the tests hold that, and so did a trial against the real
+   database with copies of real heroes (2026-09-21). This is the check that would say so out loud, and put the others back,
+   if the service ever behaved differently. It never fails the save it follows. */
+async function restReadBack(rest,uid,sent){
+ try{
+  const doc=await rest.get('players/'+uid),now=(doc.exists&&doc.data.chars)||{},back=now[sent.id];
+  const seen=FB.cloudSeen&&FB.cloudSeen.uid===uid?FB.cloudSeen.chars:{},lost=Object.keys(seen).filter(id=>!now[id]);
+  if(!back||(+back.rev||0)!==(+sent.rev||0))console.error('cloud: the hero just saved did not read back as sent (rev '+(back&&back.rev)+', sent '+sent.rev+')');
+  if(!lost.length)return true;
+  console.error('cloud: '+lost.length+' hero(es) were gone from the cloud after a save - putting them back');
+  const all={...now};for(const id of lost)all[id]=seen[id];
+  await rest.patch('players/'+uid,{chars:all},[['chars']]);
+ }catch(e){FB.restChecked=null;console.warn('cloud read-back failed',e);} /* look again after the next save */
+ return false;
 }
 async function cloudPushChar(ch){
  if(!(FB.ready&&FB.user)||FB.kicked)return false;
@@ -15094,19 +15205,29 @@ async function cloudPushChar(ch){
  FB.pushing=Date.now();
  try{
   const uid=FB.user.uid,ids=await loadRoster();
-  const ref=FB.db.collection('players').doc(uid);
-  const rosterJson=JSON.stringify(ids);
-  try{
-   if(FB.lastRoster!==rosterJson){ /* the roster only changes on create/delete - skip the extra write otherwise */
+  const rosterJson=JSON.stringify(ids),copy=JSON.parse(JSON.stringify(ch));
+  await cloudCall('the save of '+(ch.name||ch.id),async()=>{
+   const ref=FB.db.collection('players').doc(uid);
+   try{
+    if(FB.lastRoster!==rosterJson){ /* the roster only changes on create/delete - skip the extra write otherwise */
+     await ref.set({season:SEASON,roster:ids,updatedAt:Date.now()},{merge:true});
+     FB.lastRoster=rosterJson;
+    }
+    await ref.update({['chars.'+ch.id]:copy,updatedAt:Date.now()});
+   }catch(inner){ /* first push ever - the doc may not exist yet */
     await ref.set({season:SEASON,roster:ids,updatedAt:Date.now()},{merge:true});
     FB.lastRoster=rosterJson;
+    await ref.update({['chars.'+ch.id]:copy,updatedAt:Date.now()});
    }
-   await ref.update({['chars.'+ch.id]:JSON.parse(JSON.stringify(ch)),updatedAt:Date.now()});
-  }catch(inner){ /* first push ever - the doc may not exist yet */
-   await ref.set({season:SEASON,roster:ids,updatedAt:Date.now()},{merge:true});
+  },async rest=>{
+   /* ONE request. The mask names chars.<this hero> - never chars - and that is what keeps every other hero: only the
+      masked paths of the document are touched, and a document that is not there yet is created. */
+   const fresh=FB.lastRoster!==rosterJson,mask=[['chars',ch.id],['updatedAt']];
+   if(fresh)mask.push(['season'],['roster']);
+   await rest.patch('players/'+uid,{...(fresh?{season:SEASON,roster:ids}:{}),chars:{[ch.id]:copy},updatedAt:Date.now()},mask);
    FB.lastRoster=rosterJson;
-   await ref.update({['chars.'+ch.id]:JSON.parse(JSON.stringify(ch)),updatedAt:Date.now()});
-  }
+   if(FB.restChecked!==uid){FB.restChecked=uid;await restReadBack(rest,uid,copy);}
+  },SDK_WRITE_MS,true);
   FB.pushing=0;
   return true;
  }catch(e){
@@ -15120,9 +15241,11 @@ async function cloudPushChar(ch){
 async function cloudDeleteChar(id){
  if(!(FB.ready&&FB.user))return;
  try{
-  const ids=await loadRoster();
-  const ref=FB.db.collection('players').doc(FB.user.uid);
-  await ref.update({season:SEASON,roster:ids,['chars.'+id]:firebase.firestore.FieldValue.delete(),updatedAt:Date.now()});
+  const ids=await loadRoster(),uid=FB.user.uid;
+  if(FB.cloudSeen&&FB.cloudSeen.chars)delete FB.cloudSeen.chars[id]; /* gone on purpose: the read-back must not put him back */
+  /* by plain request a masked path that is missing from the body is a delete - chars.<id> is named and not sent */
+  await cloudCall('the deleting of a hero',()=>FB.db.collection('players').doc(uid).update({season:SEASON,roster:ids,['chars.'+id]:firebase.firestore.FieldValue.delete(),updatedAt:Date.now()}),
+   rest=>rest.patch('players/'+uid,{season:SEASON,roster:ids,updatedAt:Date.now()},[['season'],['roster'],['chars',id],['updatedAt']]),SDK_WRITE_MS,true);
  }catch(e){console.warn('cloud delete failed',e);}
 }
 /* ☁ Characters made before signing in are stranded: FB.user is null while you play as a guest, so
@@ -15160,13 +15283,14 @@ async function cloudPullRoster(job){
  if(!(FB.ready&&FB.user))return false;
  job=job||{abandoned:false};pullJobs.push(job);
  try{
-  const doc=await FB.db.collection('players').doc(FB.user.uid).get();
+  const uid=FB.user.uid,doc=await cloudGetPlayer(uid);
   pullJobs=pullJobs.filter(j=>j!==job);
   if(job.abandoned){console.error('cloud: the hero roster answered after the wait was over - ignored until the next sign-in');return false;}
   if(!doc.exists)return true;
-  const data=doc.data()||{};
+  const data=doc.data||{};
+  FB.cloudSeen={uid,chars:JSON.parse(JSON.stringify(data.chars||{}))}; /* what the cloud held at sign-in - see restReadBack */
   if(String(data.season||'')!==String(SEASON))return true; /* ignore pre-season/old-season cloud saves */
-  const remoteChars=data.chars||{},ids=await loadRoster();
+  const remoteChars=data.chars||{},ids=await loadRoster(),ahead=[];
   let changed=false;
   for(const [id,raw] of Object.entries(remoteChars)){
    const rr=+((raw&&raw.rev)||0); /* read rev off the raw doc - migrate() would zero it */
@@ -15181,14 +15305,15 @@ async function cloudPullRoster(job){
    if(!local||((rr||lr)?rr>lr:lbScore(ch)>=lbScore(local))){
     memChars[ch.id]=JSON.stringify(ch);
     await deviceSet('riptide-char-'+ch.id,memChars[ch.id]);
-   }else if(lr>rr){
-    /* this device is ahead - the cloud is the one that needs correcting */
-    cloudPushChar(local);
-   }
+   }else if(lr>rr)ahead.push(local); /* this device is ahead - the cloud is the one that needs correcting */
    if(!ids.includes(ch.id)){ids.push(ch.id);changed=true;}
   }
   if(changed)await saveRoster(ids);
   if($('select').classList.contains('open'))renderSelect();
+  /* One after the other, and nobody waits for them. They used to be fired side by side, and every push but the first bounced
+     off the one-at-a-time guard in cloudPushChar - only one hero was ever corrected. The hero being played by then is left
+     out: his own saves go up, and they are newer than this copy. */
+  if(ahead.length)(async()=>{for(const ch of ahead)if(!(S&&S.id===ch.id))await cloudPushChar(ch);})();
   return true;
  }catch(e){console.warn('cloud pull failed',e);pullJobs=pullJobs.filter(j=>j!==job);return false;}
 }
@@ -15202,6 +15327,7 @@ let selectFetching=false,cloudSilent=false;
 async function enterAfterAuth(){
  selectFetching=true;cloudSilent=false;
  showSelect();
+ if(restRemembered())goRest(''); /* the live channel was dead a little while ago: do not make the player wait on it again */
  const job={abandoned:false};
  const pull=await within((async()=>{await adoptGuestChars();return cloudPullRoster(job);})(),CLOUD_WAIT_MS,'the hero roster');
  if(!(pull.ok&&pull.value===true)){abandonPulls();cloudSilent=true;}
@@ -15241,7 +15367,8 @@ async function publishLB(ch,force){
   stats:charStats(ch),
   boosts:ch.boosts||{speed:0,haste:0}};
  if(FB.ready&&FB.user){
-  try{await FB.db.collection('leaderboard').doc('s'+SEASON+'_'+FB.user.uid+'_'+ch.id).set(entry);}catch(e){}
+  const id='s'+SEASON+'_'+FB.user.uid+'_'+ch.id; /* (showLeaderboard awaits this: a bare set() on a dead channel never opened the board) */
+  try{await cloudCall('the leaderboard entry',()=>FB.db.collection('leaderboard').doc(id).set(entry),rest=>rest.patch('leaderboard/'+id,entry),SDK_WAIT_MS);}catch(e){}
  }else{
   try{if(window.storage)await window.storage.set('lb:s'+SEASON+':'+ch.id,JSON.stringify(entry),true);}catch(e){}
  }
@@ -15249,10 +15376,9 @@ async function publishLB(ch,force){
 async function fetchLB(){
  if(FB.ready){
   try{
-   const got=await within(FB.db.collection('leaderboard').orderBy('score','desc').limit(200).get(),CLOUD_WAIT_MS,'the leaderboard');
-   if(!got.ok)throw new Error('no answer');
-   const q=got.value;
-   return q.docs.map(d=>d.data()).filter(e=>String(e.season||'')===String(SEASON)).slice(0,100);
+   const rows=await cloudCall('the leaderboard',async()=>(await FB.db.collection('leaderboard').orderBy('score','desc').limit(200).get()).docs.map(d=>d.data()),
+    async rest=>(await rest.query('leaderboard',{orderBy:'score',descending:true,limit:200})).map(r=>r.data),SDK_WAIT_MS);
+   return rows.filter(e=>String(e.season||'')===String(SEASON)).slice(0,100);
   }catch(e){}
  }
  try{

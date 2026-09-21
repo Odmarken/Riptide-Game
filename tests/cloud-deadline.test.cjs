@@ -12,19 +12,23 @@ const between=(a,b)=>{const i=source.indexOf(a);assert.ok(i>=0,'missing: '+a);co
 
 function loadWithin(){
  const errors=[],context=vm.createContext({console:{error:m=>errors.push(String(m))},setTimeout,clearTimeout,Promise});
- vm.runInContext(between('function within(p,ms,what){','\nasync function cloudPushChar')+';globalThis.within=within;',context);
+ vm.runInContext(between('function within(p,ms,what){','\n/* ☁ Two roads')+';globalThis.within=within;',context);
  return {within:context.within,errors};
 }
 
 test('within() answers with the value, with a failure, or with "late" - and never rejects or hangs',async()=>{
  const {within,errors}=loadWithin();
  assert.deepEqual({...await within(Promise.resolve(7),50,'a')},{ok:true,value:7});
- assert.deepEqual({...await within(Promise.reject(new Error('denied')),50,'b')},{failed:true});
+ const denied=await within(Promise.reject(new Error('denied')),50,'b');
+ assert.equal(denied.failed,true);assert.equal(denied.error.message,'denied','the failure is handed on: whoever asked decides whether the other road is worth trying');
  const t0=Date.now(),late=await within(new Promise(()=>{}),60,'the hero roster');
  assert.deepEqual({...late},{late:true});assert.ok(Date.now()-t0>=50&&Date.now()-t0<1000,'it waited its deadline and no longer');
  assert.deepEqual({...await within(42,50,'not even a promise')},{ok:true,value:42});
  assert.equal(errors.length,2,'a failure and a silence are both written down: '+errors.join(' | '));
  assert.match(errors[0],/cloud: b failed - denied/);assert.match(errors[1],/cloud: the hero roster did not answer within 60 ms/);
+ let fail;const slow=new Promise((_,rej)=>{fail=rej;});
+ assert.deepEqual({...await within(slow,30,'c')},{late:true});fail(new Error('client is offline'));await new Promise(r=>setTimeout(r,10));
+ assert.equal(errors.length,3,'what fails AFTER its deadline is not reported a second time: '+errors.join(' | '));
 });
 
 test('signing in opens the character select at once and gives the cloud a deadline - on both ways in',()=>{
@@ -43,7 +47,7 @@ test('signing in opens the character select at once and gives the cloud a deadli
 
 test('a late answer never lands on a hero who is being played, and leaving the game never hangs',()=>{
  const pull=between('async function cloudPullRoster(job){','\n}');
- assert.ok(pull.indexOf('if(job.abandoned)')>pull.indexOf('.get()')&&pull.indexOf('if(job.abandoned)')<pull.indexOf('migrate(raw)'),'an abandoned pull is dropped before it touches a save');
+ assert.ok(pull.indexOf('if(job.abandoned)')>pull.indexOf('await cloudGetPlayer(uid)')&&pull.indexOf('await cloudGetPlayer(uid)')>0&&pull.indexOf('if(job.abandoned)')<pull.indexOf('migrate(raw)'),'an abandoned pull is dropped before it touches a save');
  assert.match(between("$('exitBtn').onclick=async()=>{","\n};"),/await within\(saveNow\(\),\d+,/);
  const push=between('async function cloudPushChar(ch){','\n}');
  assert.match(push,/if\(FB\.pushing&&Date\.now\(\)-FB\.pushing<\d+\)return false;/,'pushes do not pile up behind one that never came back');

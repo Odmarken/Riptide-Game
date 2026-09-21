@@ -252,7 +252,11 @@ const TideUI=(()=>{
  }
  function tickTraining(){
   if(!gameOn||!S?.tides)return;
-  if(Tides.updateTraining(S.tides).changed){saveNow();refreshStorageValues();}
+  // save(), not saveNow(): this fires for every single XP a paddock earns - every few seconds, all day, with three
+  // companions in training - and saveNow() sends the whole hero to the cloud each time, past the throttle (it was most of
+  // the 4.5K writes of 2026-09-21). Nothing rides on it: training is credited from lastAccruedAt, so whatever a missed
+  // push did not carry is simply earned again on the next tick, on any device.
+  if(Tides.updateTraining(S.tides).changed){save();refreshStorageValues();}
   if(hubMode==='training'){if(trainingOwner!==S.tides||!trainingAllowed())closeHub();else refreshTrainingValues();}
  }
  function visibleCompanion(){return S?.tides?Tides.visible(S.tides):null;}
