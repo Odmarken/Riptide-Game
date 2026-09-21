@@ -1,0 +1,407 @@
+{
+ "generator": "Higgsfield",
+ "model": "gpt_image_2_5",
+ "variant": "flare",
+ "quality": "medium",
+ "resolution": "1k",
+ "background": "transparent (tiles: opaque)",
+ "date": "2026-09-22",
+ "style": "The ground of the City: a calm yard floor, three classes of road (the pale boulevard, the cobbled streets, the dark alleys), fan setts for the squares, seven floor mosaics that say what each square is for, and a few quiet back-yard details - two trees, a bush, a woodpile, a trough, a washing line, plant clumps and pigeons. Nothing here stands on the boulevard or the great square: those are the Crown Ledger's stage.",
+ "references": {
+  "quay_paving (its own job, for the stone style)": "4646d660-2a70-4cca-b083-c887f1680cdb",
+  "mosaic_compass (its own job, for the other six mosaics)": "d9a1483d-3914-4201-80ab-422b24edb25c",
+  "house_shop_flat": "787c3519-f89a-4f5d-8c72-15b97f1ed27d",
+  "wagon_caravan_flat": "48065087-c4fc-4010-8596-fa813dcf759b"
+ },
+ "camera": "Tiles and mosaics: exactly from straight above. Props: from the front and slightly above, foot at the bottom edge. pigeon: side view facing left; pigeon_fly: from straight above, beak up.",
+ "processing": "Tiles LANCZOS-resized to 768 px; road_cobble and plaza_setts made seamless by a wrapped cross-fade (96 px band) and tiled plain, the coursed tiles mirror-tiled by the game. Everything else: alpha scaled from its 254 cap to 255, haze below 6 dropped, tight crop, resized to at most 640 px (linden 760, pigeons 200/260). The clumps are cut from one sheet at its empty columns. No repainting.",
+ "art": {
+  "ground_yard.png": {
+   "jobId": "166ea7cf-b0d2-48f4-a136-c12c1521a819",
+   "source": [
+    1024,
+    1024
+   ],
+   "size": [
+    768,
+    768
+   ],
+   "note": "opaque tile, mirror-tiled by the game"
+  },
+  "road_boulevard.png": {
+   "jobId": "ab23b1a1-c3f4-46a2-a7f7-f28fe4b32b18",
+   "source": [
+    1024,
+    1024
+   ],
+   "size": [
+    768,
+    768
+   ],
+   "note": "opaque tile, mirror-tiled by the game"
+  },
+  "road_cobble.png": {
+   "jobId": "9f18fa0a-ac89-438e-a658-66d0a2ed58a4",
+   "source": [
+    1024,
+    1024
+   ],
+   "size": [
+    768,
+    768
+   ],
+   "note": "opaque tile, made seamless by a wrapped cross-fade, tiled plain"
+  },
+  "road_alley.png": {
+   "jobId": "293b532e-22f1-4a28-be01-ce8cde3c27df",
+   "source": [
+    1024,
+    1024
+   ],
+   "size": [
+    768,
+    768
+   ],
+   "note": "opaque tile, mirror-tiled by the game"
+  },
+  "plaza_setts.png": {
+   "jobId": "d20825a2-7acb-4623-b35e-32ca6b1e87cc",
+   "source": [
+    1024,
+    1024
+   ],
+   "size": [
+    768,
+    768
+   ],
+   "note": "opaque tile, made seamless by a wrapped cross-fade, tiled plain"
+  },
+  "mosaic_compass.png": {
+   "jobId": "d9a1483d-3914-4201-80ab-422b24edb25c",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    14,
+    0,
+    1008,
+    1004
+   ],
+   "size": [
+    634,
+    640
+   ]
+  },
+  "mosaic_sun.png": {
+   "jobId": "fc6faf23-437e-4481-87f6-5ae39a7056f2",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    14,
+    0,
+    1008,
+    1007
+   ],
+   "size": [
+    632,
+    640
+   ]
+  },
+  "mosaic_crown.png": {
+   "jobId": "27324f05-899c-47c7-a619-9bea4c726add",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    14,
+    0,
+    1008,
+    1006
+   ],
+   "size": [
+    632,
+    640
+   ]
+  },
+  "mosaic_anchor.png": {
+   "jobId": "b4d660a0-2718-4fe0-ae6c-57c69e59971c",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    16,
+    0,
+    1007,
+    1006
+   ],
+   "size": [
+    630,
+    640
+   ]
+  },
+  "mosaic_pick.png": {
+   "jobId": "ffae7e2d-c2b2-4032-9431-9f8897e7f3a9",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    13,
+    0,
+    1008,
+    1008
+   ],
+   "size": [
+    632,
+    640
+   ]
+  },
+  "mosaic_rune.png": {
+   "jobId": "66a1e923-8dc0-4c75-9b42-3e303c93e0c8",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    12,
+    0,
+    1008,
+    1008
+   ],
+   "size": [
+    632,
+    640
+   ]
+  },
+  "mosaic_flame.png": {
+   "jobId": "b31aaea1-30b7-4269-81a2-39267ed69792",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    12,
+    0,
+    1011,
+    1012
+   ],
+   "size": [
+    632,
+    640
+   ]
+  },
+  "tree_linden.png": {
+   "jobId": "7f4bb89a-d0e8-4043-993f-3372e45f4225",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    6,
+    10,
+    880,
+    1155
+   ],
+   "size": [
+    580,
+    760
+   ]
+  },
+  "tree_apple.png": {
+   "jobId": "a3ea6643-f251-4c8b-95ab-899643e05cc3",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    18,
+    75,
+    862,
+    1117
+   ],
+   "size": [
+    518,
+    640
+   ]
+  },
+  "bush.png": {
+   "jobId": "d6a69c99-3b16-41df-a733-878785a752c2",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    39,
+    23,
+    1114,
+    845
+   ],
+   "size": [
+    640,
+    489
+   ]
+  },
+  "woodpile.png": {
+   "jobId": "b4ba34be-86b7-402e-85eb-42d6a464d13b",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    68,
+    41,
+    1109,
+    835
+   ],
+   "size": [
+    640,
+    488
+   ]
+  },
+  "trough.png": {
+   "jobId": "554e75ca-703b-4938-b31f-25d3c1c3e10a",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    47,
+    76,
+    1123,
+    795
+   ],
+   "size": [
+    640,
+    428
+   ]
+  },
+  "laundry.png": {
+   "jobId": "88fb1103-4eb4-481d-ac00-1f729ec15b60",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    72,
+    31,
+    1283,
+    717
+   ],
+   "size": [
+    640,
+    363
+   ]
+  },
+  "pigeon.png": {
+   "jobId": "e474efc9-fa49-4728-9241-b41bacab23ca",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    65,
+    230,
+    1001,
+    846
+   ],
+   "size": [
+    200,
+    132
+   ]
+  },
+  "pigeon_fly.png": {
+   "jobId": "e66eeb54-dd8e-42e7-916d-7722444865d1",
+   "source": [
+    1024,
+    688
+   ],
+   "crop": [
+    19,
+    52,
+    1006,
+    647
+   ],
+   "size": [
+    260,
+    157
+   ]
+  },
+  "tuft_1.png": {
+   "jobId": "926b38ba-f080-406c-b78b-ae50de7f9d66",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    27,
+    242,
+    303,
+    517
+   ],
+   "size": [
+    200,
+    199
+   ],
+   "note": "clump 1 of the sheet of four"
+  },
+  "tuft_2.png": {
+   "jobId": "926b38ba-f080-406c-b78b-ae50de7f9d66",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    342,
+    256,
+    633,
+    516
+   ],
+   "size": [
+    200,
+    179
+   ],
+   "note": "clump 2 of the sheet of four"
+  },
+  "tuft_3.png": {
+   "jobId": "926b38ba-f080-406c-b78b-ae50de7f9d66",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    672,
+    227,
+    990,
+    524
+   ],
+   "size": [
+    200,
+    187
+   ],
+   "note": "clump 3 of the sheet of four"
+  },
+  "tuft_4.png": {
+   "jobId": "926b38ba-f080-406c-b78b-ae50de7f9d66",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    1029,
+    254,
+    1318,
+    524
+   ],
+   "size": [
+    200,
+    187
+   ],
+   "note": "clump 4 of the sheet of four"
+  }
+ }
+}

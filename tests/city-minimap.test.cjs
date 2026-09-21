@@ -21,7 +21,7 @@ function realCity() {
   const rng = game.match(/^function mulberry32\(.*$/m);
   assert.ok(rng);
   vm.runInContext(section('const CATH_ART=', 'const CITY_FOOT=') +
-    section('const CITY_NAMES=', 'const cityPat=') + rng[0], context);
+    section('const CITY_NAMES=', '/* 🧱 The floor of the City') + rng[0], context);
   vm.runInContext('buildCity(mulberry32(13));', context);
   return context.world;
 }

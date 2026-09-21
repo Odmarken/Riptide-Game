@@ -5,7 +5,7 @@ const root=path.resolve(__dirname,'..'),source=fs.readFileSync(path.join(root,'g
 function section(start,end){const a=source.indexOf(start),b=source.indexOf(end,a);assert.ok(a>=0&&b>a);return source.slice(a,b);}
 function city(seed=13){
  const context=vm.createContext({world:{w:16800,h:5200,solids:[]},npcSebbeImg:{}});
- vm.runInContext(section('const CATH_ART=','const CITY_FOOT=')+section('const CITY_NAMES=','const cityPat=')+source.match(/^function mulberry32\(.*$/m)[0]+`;buildCity(mulberry32(${seed}));globalThis.faces=CITY_HOUSE;globalThis.palace=PALACE;`,context);
+ vm.runInContext(section('const CATH_ART=','const CITY_FOOT=')+section('const CITY_NAMES=','/* 🧱 The floor of the City')+source.match(/^function mulberry32\(.*$/m)[0]+`;buildCity(mulberry32(${seed}));globalThis.faces=CITY_HOUSE;globalThis.palace=PALACE;`,context);
  return {world:JSON.parse(JSON.stringify(context.world)),faces:context.faces,palace:JSON.parse(JSON.stringify(context.palace))};
 }
 const sizes=new Map();

@@ -37,7 +37,7 @@ test('the customary budget does not pay for itself - the King alone sees to that
  assert.ok(f.income.find(l=>l.id==='church').amount>0,'the cathedral pays its share');
  assert.ok(f.moodTarget>=58&&f.moodTarget<=66,`mood target ${f.moodTarget}`);
  assert.equal(E.moodName(f.moodTarget),'Content');
- assert.equal(f.income.length,10);assert.equal(f.expenses.length,19);
+ assert.equal(f.income.length,11);assert.equal(f.expenses.length,19);   /* eleven since the Harbour took a line of its own out of Exports (2026-09-22) - the same money, see city-harbour-income */
  assert.equal(f.expenses.find(l=>l.id==='grain').amount,0,'no standing shipments until the steward starts them');
  assert.equal(f.expenses.find(l=>l.id==='unrest').amount,0);assert.equal(f.expenses.find(l=>l.id==='obstruction').amount,0);
  assert.deepEqual(s.incidents,[]);assert.equal(s.petition,null);assert.equal(E.favour(s),60);

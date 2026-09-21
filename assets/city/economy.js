@@ -569,6 +569,12 @@
   }
   return t;
  }
+ /* ⚓ What comes over the quay. Since the Harbour was opened under the City (2026-09-22) a steward sees it on a line of
+    its own - but it is the SAME money: the Exports line is split in two, never added to, so every balance in these books
+    is to the coin what it was. The base is the berth fees of the ships at the piers, taken out of the base of the old
+    Exports line; the rest is what the Stone Quay, the Merchant Fleet and the Lighthouse always added to it. */
+ const HARBOUR_WORKS=Object.freeze(['quay','fleet','lighthouse']),HARBOUR_BASE=60;
+ const harbourExports=state=>WORKS.reduce((t,w)=>t+(HARBOUR_WORKS.includes(w.id)&&has(state,w.id)?num(w.fx&&w.fx.exports):0),0);
  const cells=state=>Math.min(MAX_CELLS,CELLS+worksFx(state).cells);
  const hearths=state=>Math.ceil(state.pop/HOUSEHOLD);                                  /* 🏠 households: what is taxed, rented to and fed */
  const eats=state=>{const c=state.season&&state.season.card;return c&&c.mods&&Number.isFinite(c.mods.eat)?c.mods.eat:1;};   /* a hard winter eats more */
@@ -626,11 +632,15 @@
   const held=state.jail.length,room=cells(state),crowded=Math.max(0,held-room);
   const grain=foodView(state,ctx),hunger=state.food.hunger,away=neglect(state);
   const fines=W.fines?r(held*14*k):0;
+  /* ⚓ all that is sold abroad, exactly as it always was - and then the part of it that went by water, shown apart */
+  const shipped=r((200+Math.min(HERO_EXPORTS_MAX,mining*.6+smith*4+ench*.4)+W.exports)*k*trade*craft),byWater=Math.min(shipped,r((HARBOUR_BASE+harbourExports(state))*k*trade*craft));
+  const berths=HARBOUR_WORKS.filter(id=>has(state,id)).map(id=>workDef(id).name);
   const income=[
    {id:'taxes',name:'Poll tax',icon:'💰',amount:r(hearths(state)*b.tax/100*80*k*temper*craft*crop),note:state.pop.toLocaleString()+' townsfolk in '+hearths(state).toLocaleString()+' households at '+b.tax+'% - '+TAX_NOTE[b.tax]},
    {id:'rents',name:'Crown rents',icon:'🏠',amount:r(hearths(state)*rent.rate*k*temper*crop),note:rent.name+' - '+rent.rate*k+' ◉ a household from '+hearths(state).toLocaleString()+' households'},
    {id:'tolls',name:'Market tolls',icon:'⚖️',amount:r((300*fee.vol+W.tolls)*fee.rate*k*order*trade*(.75+state.mood/200)*visit),note:'the square, the terraces and the tenement stalls - fees '+fee.name.toLowerCase()},
-   {id:'exports',name:'Exports',icon:'🚢',amount:r((200+Math.min(HERO_EXPORTS_MAX,mining*.6+smith*4+ench*.4)+W.exports)*k*trade*craft),note:'ore, gems and forged steel out through the gate'},
+   {id:'exports',name:'Exports',icon:'🚢',amount:shipped-byWater,note:'ore, gems and forged steel out through the gate'},
+   {id:'harbour',name:'The Harbour',icon:'⚓',amount:byWater,note:berths.length?'berth fees and cargo over the quay - '+berths.join(', '):'berth fees from the ships at the piers - a Stone Quay, a Merchant Fleet and a Lighthouse would bring far more'},
    {id:'imports',name:'Import duties',icon:'📦',amount:r(220*k*order*duty.rate*duty.vol*(1+W.duty)*(1+num(wind.trade))),note:'customs on everything that comes in - '+duty.name.toLowerCase()},
    {id:'guilds',name:'Guild dues',icon:'⛏',amount:r(((ctx.miningTrained?30:0)+(ctx.enchTrained?30:0)+(ctx.smelter?20:0))*k),note:'the Mining Hall, the Enchanting Hall and the smelter'},
    {id:'farm',name:'Farm levy',icon:'🚜',amount:ctx.farmOwned?r(Math.min(HERO_FARM_LEVELS,farmLvl)*20*k):0,note:ctx.farmOwned?'your farm, level '+farmLvl:'no farm of your own yet'},
@@ -1302,6 +1312,10 @@
   {id:'library',icon:'📖',name:'Endow the great library',text:'Four thousand volumes bought from a bankrupt abbey, and a wing to put them in. Scholars will come from four realms to read your name over the door.',lo:500000,hi:1000000,xp:1.6,rank:5,fx:{skill:4,attract:3,trust:2,crown:.3}},
  ];
  const contractDef=id=>CONTRACTS.find(c=>c.id===id);
+ /* 🧪 TEST SWITCHES - off in the module, so every rule and every test reads the real game. game.js may flip one for a
+    trial. dukeAfterOne: the first contract whose papers clear lifts its patron straight to the top of the peerage
+    (asked for 2026-09-22, to try the Hand's summons without the long climb). */
+ const TEST={dukeAfterOne:false};
  const nobleRankFor=(patented,xp)=>{if(!patented)return 0;let r=1;for(let i=2;i<NOBLE_RANKS.length;i++)if(xp>=NOBLE_RANKS[i].xp)r=i;return r;};
  const offerRange=rank=>[1+Math.floor(rank/3),3+Math.floor(rank/2)];      /* 1-3 to a commoner and a knight, 3-6 to a duke */
  /* re-post the board: a number of contracts within the rank's range, none of them on the last posting, none above the rank */
@@ -1394,7 +1408,8 @@
   N.pending=N.pending.filter(p=>{
    p.left-=1;if(p.left>0)return true;
    if(p.kind==='patent'){N.rank=1;out.rankUp=1;if(state.chartered){state.treasury+=p.amount;state.earned+=p.amount;}state.trust=clamp(round1(state.trust+2),0,100);out.news.push('🎩 Your patent of nobility is sealed. Rise, a Knight of the Realm. The contracts on the notice board are open to you.');}
-   else{const c=contractDef(p.id);applyContract(state,ctx,c.fx,p.amount);N.xp+=p.xp;N.given+=p.amount;N.done+=1;out.xp+=p.xp;out.news.push('🎩 '+c.name+' - done, in your name. Noble standing +'+p.xp+'.');}
+   else{const c=contractDef(p.id);applyContract(state,ctx,c.fx,p.amount);N.xp+=p.xp;N.given+=p.amount;N.done+=1;out.xp+=p.xp;out.news.push('🎩 '+c.name+' - done, in your name. Noble standing +'+p.xp+'.');
+    if(TEST.dukeAfterOne)N.xp=Math.max(N.xp,NOBLE_RANKS[NOBLE_RANKS.length-1].xp);}   /* 🧪 see TEST above */
    return false;
   });
   const r=nobleRankFor(N.rank>=1,N.xp);
@@ -1730,7 +1745,7 @@
   state.counsel={at:state.ticks,text,topic:t.id};
   return {ok:true,spent:true,topic:t.id,text};
  }
- return Object.freeze({create,normalize,forecast,tick,advance,setBudget,borrow,repay,withdraw,deposit,settle,answer,councilView,PLAYER_SEAT,ALLIES,alliesView,allyInvest,alliesFx,talkView,openTalks,makeOffer,acceptCounter,haggleReasons,TALK_COOL_INSULT,TALK_COOL_WALK,ALLY_CLOSES,PARTNER_AT,BUY_AT,COURT_CLOSES,PARTNER_SHARE,meetHand,acceptOffice,nobleView,ennoble,fundContract,dealOffers,postBoard,NOBLE_RANKS,CONTRACTS,NOBLE_CLOSES,OFFER_CLOSES,PATENT_COST,counsel,counselView,counselTopics,COUNSEL_EVERY,projection,
+ return Object.freeze({create,normalize,forecast,tick,advance,setBudget,borrow,repay,withdraw,deposit,settle,answer,councilView,PLAYER_SEAT,ALLIES,alliesView,allyInvest,alliesFx,talkView,openTalks,makeOffer,acceptCounter,haggleReasons,TALK_COOL_INSULT,TALK_COOL_WALK,ALLY_CLOSES,PARTNER_AT,BUY_AT,COURT_CLOSES,PARTNER_SHARE,meetHand,acceptOffice,nobleView,ennoble,fundContract,dealOffers,postBoard,NOBLE_RANKS,CONTRACTS,NOBLE_CLOSES,OFFER_CLOSES,PATENT_COST,TEST,HARBOUR_WORKS,HARBOUR_BASE,counsel,counselView,counselTopics,COUNSEL_EVERY,projection,
   worksView,invest,crownView,answerKing,claimCrown,gaolView,pardon,fine,worksFx,has,cells,charter,charterView,bankView,rehire,frozen,attend,neglect,REMIND_AFTER,NEGLECT_AFTER,NEGLECT_HARD,TRUST_SLOPE,TRUST_DRAIN_MAX,SEAT_SLOPE,SEAT_DRAIN_MAX,MOOD_SLOPE,MOOD_DRAIN_MAX,DRAW_SLOPE,DRAW_DRAIN_MAX,
   POP_MAX,HOUSEHOLD,hearths,SEASON_CARDS,cardDef,dealCard,
   windName,WIND_KEYS,WIND_MAX,JITTER_IN,JITTER_OUT,WAGE_RISE,WAGE_MAX,HERO_EXPORTS_MAX,HERO_FARM_LEVELS,

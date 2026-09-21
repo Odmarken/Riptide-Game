@@ -4829,118 +4829,43 @@ function buildCity(R){
   n.x=n.pts[0].x;n.y=n.pts[0].y;
  }
 }
-/* The three ground tiles, as canvas patterns. Because the world transform is already applied when
-   these fill, one art pixel is one world unit - the tiles are authored at the size they should
-   appear, so no pattern matrix is needed. Built once and cached: creating a pattern per frame is
-   what turns a texture fill into a stutter. */
-const cityPat={};
-function cityPattern(name,rot){
- const k=rot?name+'@'+rot:name;
- if(cityPat[k])return cityPat[k];
- const im=cityImg(name);
- if(!(im.complete&&im.naturalWidth))return null;   /* still loading - the caller falls back to flat colour */
- const pat=ctx.createPattern(im,'repeat');
- /* a turned, slightly larger copy of the same tile. Laid over the straight one it breaks the grid:
-    the two repeats never line up again, so the eye stops seeing 192-unit bands. */
- if(rot&&pat.setTransform&&typeof DOMMatrix!=='undefined'){
-  try{pat.setTransform(new DOMMatrix().rotateSelf(rot).scaleSelf(1.37,1.37));}catch(e){}
- }
- return cityPat[k]=pat;
+/* 🧱 The floor of the City - its yard ground, three classes of road with their kerbs and gutters, the squares and the
+   mosaics that say what each is for, grass along the kerbs - and the few quiet things of
+   a back yard are CityGround's (assets/city/city-ground.js; paintings in assets/city/ground/, Higgsfield 2026-09-22).
+   All of it is read off the city AFTER it is built: the builder, its seeded numbers and every route are as they were.
+   And nothing CityGround stands up is ever on the boulevard or the great square - those are the Crown Ledger's stage,
+   where stalls, lamps, the statue, wagons and barricades come and go with the books. There it is only floor.
+   (It replaced one 768 slab, one 192 cobble pattern for every street and square, and blurred weed blobs. Everything is
+   still tile blits on a world-anchored grid, never a CanvasPattern - see drawCityWalls for why.) */
+let cityGroundSet=null;
+function cityGroundImages(){
+ if(!cityGroundSet){cityGroundSet={};for(const n of CityGround.IMAGES)cityGroundSet[n]=cityImg('ground/'+n);}
+ return cityGroundSet;
 }
-/* A soft irregular patch: ten hashed radii around a squashed circle, joined through their midpoints
-   with quadratic curves so the outline comes out organic instead of faceted or perfectly round. */
-function weedBlob(px,py,r,h){
- const N=10,pts=[];
- for(let i=0;i<N;i++){
-  const a=i/N*6.2832,k=((h>>>(i*3))&15)/15;
-  const rr=r*(0.55+0.70*k);
-  pts.push([px+Math.cos(a)*rr,py+Math.sin(a)*rr*0.66]);
- }
- ctx.beginPath();
- ctx.moveTo((pts[N-1][0]+pts[0][0])/2,(pts[N-1][1]+pts[0][1])/2);
- for(let i=0;i<N;i++){
-  const c=pts[i],n=pts[(i+1)%N];
-  ctx.quadraticCurveTo(c[0],c[1],(c[0]+n[0])/2,(c[1]+n[1])/2);
- }
- ctx.closePath();ctx.fill();
+function cityGroundApply(){
+ const find=t=>world.solids.find(s=>s.type===t),sq=world.plazas[0],court=world.plazas[world.plazas.length-1];
+ const halls=world.solids.filter(s=>['minehall','enchanthall','smelter','cathedral'].includes(s.type));
+ /* where no tree may stand: under the tall paintings of the halls, round the palace stair, round the harbour gate */
+ const keepOut=[...halls.map(s=>{const h=s.r*(s.type==='cathedral'?CATH_ART:9);return {x:s.x-h*.45,y:s.y-h-40,w:h*.9,h:h+160};}),
+  {x:PALACE.x-140,y:PALACE.y-140,w:PALACE.w+280,h:PALACE.h+280},
+  {x:HARBOR_GATE.x-90,y:HARBOR_STAIR.y-200,w:HARBOR_GATE.w+180,h:HARBOR_GATE.foot-HARBOR_STAIR.y+200}];
+ const cath=find('cathedral'),nave=cath&&world.plazas.find(q=>Math.abs(q.x-cath.x)<1&&q.y<cath.y),approach=nave?nave.y+nave.r*.82+104:0;
+ const before=(t,key)=>{const h=find(t);return h?[{key,x:h.x,y:h.y+152,size:200}]:[];};
+ const mosaics=[{key:'mosaic_compass',x:sq.x,y:sq.y,size:430},{key:'mosaic_crown',x:court.x,y:court.y,size:300},
+  {key:'mosaic_anchor',x:HARBOR_GATE.cx,y:HARBOR_STAIR.y-122,size:186},...(nave?[{key:'mosaic_sun',x:cath.x,y:approach,size:186}]:[]),
+  ...before('minehall','mosaic_pick'),...before('enchanthall','mosaic_rune'),...before('smelter','mosaic_flame')];
+ const smelt=find('smelter'),sooty=smelt?world.plazas.findIndex(q=>q.x===smelt.x&&q.y===smelt.y):-1;
+ world.groundPlan=CityGround.plan(world,{mosaics,keepOut,plazaStyles:sooty>=0?{[sooty]:{soot:true}}:{}});
+ world.solids.push(...CityGround.decor(world,world.groundPlan));
+ const ench=find('enchanthall');   /* 🕊 pigeons on the cathedral's approach and before the enchanters' door - never on the great square */
+ world.flocks=[...(nave?[CityGround.flock(cath.x,approach,8,1)]:[]),...(ench?[CityGround.flock(ench.x+70,ench.y+176,5,2)]:[])];
 }
 function drawCityGround(){
- const vx0=camX,vy0=camY,vx1=camX+VW/zoom,vy1=camY+VH/zoom;
- const z=zoneOf();
- const cobble=cityPattern('ground_cobble');
- /* Lay the soil as plain drawImage tiles rather than one pattern-filled rect. A CanvasPattern is
-    anchored in world space, so every frame the camera moves hands the rasteriser a different
-    device-space phase; the cost of that is not the fill itself but what it leaves behind, and it
-    accumulates the longer you stay - which is why the City stayed slow after you left it and why
-    dropping the pattern objects on the way out changed nothing. The tile is authored at one art
-    pixel per world unit, so a straight blit lands identically. Six calls covers a 1234x708 view. */
- const gi=cityImg('city_ground');
- if(gi.complete&&gi.naturalWidth){
-  const T=gi.naturalWidth;
-  for(let x=Math.floor(vx0/T)*T;x<vx1;x+=T)for(let y=Math.floor(vy0/T)*T;y<vy1;y+=T)ctx.drawImage(gi,x,y,T,T);
- }else{
-  ctx.fillStyle=z.ground;ctx.fillRect(vx0,vy0,vx1-vx0,vy1-vy0);
- }
- /* The break-up of the tiling rhythm now lives IN city_ground.png - the tile is 768 wide and carries
-    a baked low-frequency mottle. It used to be a second full-viewport fill of the same pattern
-    rotated 34 degrees at half alpha, and an interleaved A/B put that one pass at 24.8 ms of an
-    87 ms frame: a rotated pattern forces Chromium to resample every covered pixel, and at DPR 2
-    that is the whole screen twice. Baking it costs nothing per frame and cannot band, because the
-    mottle is built from integer-period sinusoids that wrap exactly where a rotated copy never can. */
- /* drifts of weed over the soil, on a hashed grid so the same ground looks the same every visit.
-    The outline is a wobbly closed curve rather than an ellipse - a field of perfect circles reads
-    as stamped decals, which is exactly what it looked like. */
- const weed=cityPattern('ground_weed');
- if(weed&&zoom>0.35){
-  const P=300,sx=Math.floor(vx0/P)*P,sy=Math.floor(vy0/P)*P;
-  ctx.save();ctx.fillStyle=weed;
-  for(let x=sx;x<vx1+P;x+=P)for(let y=sy;y<vy1+P;y+=P){
-   const h=((x*73856093)^(y*19349663)^0x5f3a)>>>0;
-   if(h%100>=72)continue;                       /* plenty of it, with bare soil still showing through */
-   const px=x+(h>>>3)%P,py=y+(h>>>11)%P,r=80+((h>>>17)%120);
-   ctx.globalAlpha=0.26;weedBlob(px,py,r*1.34,h);
-   ctx.globalAlpha=0.62;weedBlob(px,py,r,h>>>5);
-  }
-  ctx.restore();
- }
- /* plazas sit under the streets so the two read as one continuous surface */
- for(const p of world.plazas||[]){
-  if(p.x+p.r<vx0||p.x-p.r>vx1||p.y+p.r<vy0||p.y-p.r>vy1)continue;
-  ctx.fillStyle=cobble||z.path;
-  ctx.beginPath();ctx.ellipse(p.x,p.y,p.r,p.r*0.82,0,0,7);ctx.fill();
-  ctx.strokeStyle='rgba(0,0,0,0.20)';ctx.lineWidth=7;ctx.stroke();
- }
- ctx.lineCap='round';
- /* Same story as the wall bands: an avenue runs the full width of the map, so stroking it whole to
-    show one screenful means Chromium walks 16800 units of pattern-filled geometry per street per
-    frame. Liang-Barsky against the viewport, padded by the street's own width so the lip beneath it
-    and the round caps land exactly where they did. A cap that gets clipped away was off screen. */
- const clipSeg=(x0,y0,x1,y1,pad)=>{
-  const ax0=vx0-pad,ay0=vy0-pad,ax1=vx1+pad,ay1=vy1+pad;
-  const dx=x1-x0,dy=y1-y0;
-  let t0=0,t1=1;
-  const edge=(p,q)=>{
-   if(p===0)return q>=0;                 /* parallel to this edge - inside only if already within */
-   const r=q/p;
-   if(p<0){if(r>t1)return false;if(r>t0)t0=r;}
-   else   {if(r<t0)return false;if(r<t1)t1=r;}
-   return true;
-  };
-  if(!edge(-dx,x0-ax0)||!edge(dx,ax1-x0)||!edge(-dy,y0-ay0)||!edge(dy,ay1-y0))return null;
-  return [x0+dx*t0,y0+dy*t0,x0+dx*t1,y0+dy*t1];
- };
- for(const st of world.streets||[]){
-  const seg=clipSeg(st.x0,st.y0,st.x1,st.y1,st.w+12);
-  if(!seg)continue;
-  /* lip first, cobbles over it - the old order needed a third stroke to hide the lip again, and a
-     pattern stroke is expensive. LOD: the lip is a 4px detail, dropped when zoomed out. */
-  if(zoom>0.5){
-   ctx.strokeStyle='rgba(0,0,0,0.16)';ctx.lineWidth=st.w+9;
-   ctx.beginPath();ctx.moveTo(seg[0],seg[1]);ctx.lineTo(seg[2],seg[3]);ctx.stroke();
-  }
-  ctx.strokeStyle=cobble||z.path;ctx.lineWidth=st.w;
-  ctx.beginPath();ctx.moveTo(seg[0],seg[1]);ctx.lineTo(seg[2],seg[3]);ctx.stroke();
- }
+ const vx0=camX,vy0=camY,vx1=camX+VW/zoom,vy1=camY+VH/zoom,now=performance.now()/1000;
+ if(!world.groundPlan)cityGroundApply();
+ const view={x:vx0,y:vy0,w:vx1-vx0,h:vy1-vy0,zoom};
+ CityGround.render(ctx,world.groundPlan,view,cityGroundImages(),now);
+ CityGround.drawBirds(ctx,world.flocks,view,cityGroundImages(),now,false);
  if(world.look&&world.look.dirt>0&&zoom>0.4)CityWorks.drawLitter(ctx,world,{x:vx0,y:vy0,w:vx1-vx0,h:vy1-vy0},world.look.dirt,performance.now()/1000); /* 🧹 what the sweepers were not paid to take away */
  drawCityWalls();
  ctx.strokeStyle='rgba(0,0,0,0.35)';ctx.lineWidth=26;ctx.strokeRect(0,0,world.w,world.h);
@@ -5254,7 +5179,7 @@ function buildZone(){
    rebuildFarmItems();
    zoneMapImg('farm_zone');
   }
-  if(z.city){buildCity(R);cityApplyAll();} /* 👑 the crowd, the brawl and the size of the watch are there when you walk in, if the ledger says so */
+  if(z.city){buildCity(R);cityGroundApply();cityApplyAll();} /* 👑 the crowd, the brawl and the size of the watch are there when you walk in, if the ledger says so */
   if(z.finalb){ /* ☠ you walk in from the south, dead centre - the arena rises ahead of you */
    world.spawn={x:world.w/2,y:world.h-160};
    world.portal={x:-500,y:-500}; /* no exit swirl - win or leave by the map */
@@ -7545,6 +7470,7 @@ function update(dt){
   else if(Math.hypot(hero.x-T.STAIR_UP.x,hero.y-T.STAIR_UP.y)<T.STAIR_UP.r)hallStair(T.HALL_ARRIVE,1,'');
  }
  if(zoneOf().city&&world&&world.npcs)cityCrierTick(dt);
+ if(zoneOf().city&&world&&world.flocks)CityGround.updateBirds(world.flocks,dt,hero&&!hero.dead?hero:null);
  if(hallScene||(world&&world.throne&&S&&S.city&&S.city.office===1))hallSceneTick(dt);   /* 📜 the Hand meets the Duke he sent for at the door */
  if(hero&&!hero.dead&&world&&world.solids&&zoneOf().tavern){ /* 🚜 walk straight into the Farm portal - no click needed */
   const fp=world.solids.find(s2=>s2.type==='farmportal');
@@ -8472,6 +8398,7 @@ function draw(){
  if(pet&&(activePet()||TideUI.visibleCompanion()))drawables.push({y:pet.y,f:drawPet});
  drawables.sort((a,b)=>a.y-b.y);
  for(const d of drawables)d.f();
+ if(z.city&&world.flocks&&!TideUI.isBattling())CityGround.drawBirds(ctx,world.flocks,{x:cx0,y:cy0,w:cx1-cx0,h:cy1-cy0},cityGroundImages(),now,true);   /* 🕊 the pigeons you startled */
  if(z.harbor&&!TideUI.isBattling())HarborWorld.drawSky(ctx,world,{x:cx0,y:cy0,w:cx1-cx0,h:cy1-cy0},now,harborImages());   /* 🕊 gulls over the masts */
  /* 🎆 the sky over the city: fireworks over a jubilant square, snow in a hard winter */
  if(z.city&&world.look&&!TideUI.isBattling()){
@@ -8859,6 +8786,8 @@ function drawPropShadow(s,z){
    const H=s.r*(s.type==='cathedral'?CATH_ART:9),W=H*im.naturalWidth/im.naturalHeight;
    cityShadow(s.type,W,H,s.r*CATH_FOOT-H);
   }
+ }else if(s.type==='citydecor'){
+  CityGround.drawShadow(ctx,s);
  }else if(s.type==='harborprop'){
   HarborWorld.drawShadow(ctx,s);
  }else if(s.type==='throneprop'){
@@ -9046,6 +8975,9 @@ function drawProp(s,z,withShadow=true){
    if(s.type==='smelter'){if(fade<1)ctx.globalAlpha*=fade;CityWorks.drawSmoke(ctx,'smelter',W,H,s.r*0.30-H,performance.now()/1000,5);ctx.globalAlpha=1;}   /* 💨 the stack never goes out */
    /* no lettering floats over a roof in the City: the halls are known by their art and their glow, and the minimap names them */
   }
+ }else if(s.type==='citydecor'){
+  const im=cityGroundImages(),f=CityGround.frame(s,im);   /* 🌳 a tree fades like a house when the hero walks behind it */
+  CityGround.drawProp(ctx,s,performance.now()/1000,im,{alpha:f&&f.tall?seeThrough(s,f.W,f.H,f.top):1});
  }else if(s.type==='harborprop'){
   const im=harborImages(),f=HarborWorld.frame(s,im);   /* ⚓ a ship, a house or the crane fades like any building the hero has walked behind */
   HarborWorld.drawProp(ctx,s,performance.now()/1000,im,{alpha:f&&f.H>140?seeThrough(s,f.W,f.H,f.top):1});
@@ -13794,11 +13726,16 @@ function cityStreetNews(a,b){
 const nobleTitle=()=>CityEconomy.NOBLE_RANKS[(S.city&&S.city.noble.rank)||0].title;   /* one name to a rank: a Duke is a Duke */
 const fmtWait=sec=>{sec=Math.max(0,Math.ceil(sec));return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');};
 let boardNote='';
+/* 🧪 TEST (asked for 2026-09-22): ONE contract from the notice board makes a Duke, so the Hand's summons, the scene at the
+   hall door and the offer of the office can be tried without the long climb through the peerage. Delete this one line
+   to put the peerage back exactly as it was - the rule itself is CityEconomy.TEST (off by default, and in every test). */
+CityEconomy.TEST.dukeAfterOne=true;
 function boardHTML(){
  const c=S.city,E=CityEconomy,v=E.nobleView(c),gold=totalGold(),t=d=>d.title;
  const bar=v.next?Math.round(100*(v.xp-v.next.from)/Math.max(1,v.next.xp-v.next.from)):100;
  let h=(v.summons?'<div class="ledger-petition ledger-coup"><h3>📜 Under the King’s own seal</h3><p class="ledger-voice">“To '+t(v.def)+' '+(S.name||'')+'. The King’s Hand wishes to speak with you on a matter touching the future of the city. Present yourself at the Throne Hall at your earliest convenience.”</p>'
    +'<p>'+(v.office===2?'He has spoken to you at the door: he is waiting <b>behind the throne, at the council table</b>.':'The Throne Hall is up the <b>palace stair</b>, at the east end of the great boulevard.')+'</p></div>':'')
+  +(E.TEST.dukeAfterOne&&v.rank<v.ranks.length-1?'<p class="craft-note">🧪 <b>Test is on:</b> the first contract whose papers clear makes you a '+t(v.ranks[v.ranks.length-1])+' at once.</p>':'')
   +'<div class="ledger-tiles">'
   +'<div class="ledger-tile"><span>Your standing</span><b style="color:#ffd76a">'+(v.rank?'🎩 '+t(v.def)+' '+(S.name||''):'Commoner')+'</b><small>'+(v.rank?(v.def.style||'of the realm')+' · rank '+v.rank+' of '+(v.ranks.length-1):'the contracts below are let to the nobility')+'</small></div>'
   +'<div class="ledger-tile"><span>Noble standing</span><b>'+v.xp.toLocaleString()+' XP</b><small>'+(v.next?v.next.left.toLocaleString()+' more to '+t(v.next):v.rank?'the highest rank in the peerage':'earned by funding contracts')+'</small></div>'

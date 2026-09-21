@@ -19,7 +19,7 @@ function harness(){
   stageMsg(){},ring(){},nearestEnemyWithin:()=>({x:0,y:0}),sfx:{bolt(){}},$:el,
   zoneOf:()=>context.zone,padPanelOpen:()=>context.activePanel||null};
  vm.createContext(context);
- vm.runInContext(section('const CATH_ART=','const CITY_FOOT=')+section('const CITY_NAMES=','const cityPat=')+
+ vm.runInContext(section('const CATH_ART=','const CITY_FOOT=')+section('const CITY_NAMES=','/* 🧱 The floor of the City')+
   game.slice(game.indexOf('function mulberry32('),game.indexOf('\n',game.indexOf('function mulberry32('))),context);
  vm.runInContext(section('const SGRID=320;','function speedOf(')+section('function moveToward(','/* ==================== FX')+
   section('function expeditionDoors(){','function refreshWastelandChunks(){'),context);
