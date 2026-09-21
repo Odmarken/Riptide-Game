@@ -133,3 +133,20 @@ test('the Bank tab has everything it shows, and the season survives a save',()=>
  assert.equal(bad.seasons.length,1);assert.deepEqual(bad.seasons[0].series,[]);
  E.tick(bad,{},Math.random);
 });
+
+test('the Hand carries the season forward to its last close: a guess with a band that widens, never a promise',()=>{
+ assert.equal(E.projection(E.create(),{}),null,'nothing to project before the books open');
+ const s=open(),p=E.projection(s,{});
+ assert.equal(p.pts.length,N);assert.equal(p.pts[0].i,1);assert.equal(p.end.i,N);assert.equal(p.target,450000);
+ assert.ok(p.net<0&&p.end.t<s.treasury,'a city that loses gold at every close is heading down');
+ assert.ok(p.pts.every((x,i,a)=>x.lo<x.t&&x.t<x.hi&&(!i||x.hi-x.lo>a[i-1].hi-a[i-1].lo)),'the band widens the further out it looks');
+ assert.equal(p.end.d,500000);assert.equal(p.short,50000);assert.equal(p.canPay,true);
+ const before=JSON.stringify(s);E.projection(s,{});assert.equal(JSON.stringify(s),before,'looking ahead changes nothing');
+ /* it is a guess, but not a wild one: a quiet season lands inside the band */
+ for(let i=0;i<N-1;i++){E.attend(s);E.tick(s,{},quiet);}
+ assert.ok(s.treasury>p.pts[N-2].lo&&s.treasury<p.pts[N-2].hi,s.treasury+' outside '+p.pts[N-2].lo+'..'+p.pts[N-2].hi);
+ assert.equal(E.projection(s,{}).pts.length,1);
+ /* a treasury that will run dry is covered from the line in the guess too, at the bank's fee */
+ const poor=open();poor.treasury=3000;const g=E.projection(poor,{});
+ assert.ok(g.end.d>500000&&g.end.t>=0&&g.short>50000&&!g.canPay);
+});

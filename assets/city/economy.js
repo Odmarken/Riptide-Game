@@ -421,6 +421,7 @@
    budget:{...DEFAULT_BUDGET},incidents:[],council,petition:null,
    pop:POPULATION,attract:50,skill:20,trust:10,crowned:false,deposed:null,
    king:{pleasure:60,humour:'content',humourAge:0,demand:null,raise:0},works:{},jail:[],
+   counsel:{at:null,text:'',topic:''},
    history:[],last:null};
  }
  function normalize(s){
@@ -483,6 +484,8 @@
   out.jail=(Array.isArray(s.jail)?s.jail:[]).filter(p=>p&&typeof p.name==='string'&&p.name&&!names.has(p.name)&&names.add(p.name)).slice(0,MAX_CELLS+2)
    .map(p=>({name:p.name.slice(0,60),skin:typeof p.skin==='string'?p.skin:'male',female:!!p.female,crime:String(p.crime||'disturbed the King’s peace').slice(0,160),
     say:String(p.say||'').slice(0,200),term:Math.max(1,Math.floor(num(p.term,2))),served:Math.max(0,Math.floor(num(p.served,0))),life:!!p.life,byKing:!!p.byKing}));
+  const cs=s.counsel&&typeof s.counsel==='object'?s.counsel:{};
+  out.counsel={at:Number.isFinite(cs.at)&&cs.at!==null?clamp(Math.floor(cs.at),0,out.ticks):null,text:String(cs.text||'').slice(0,600),topic:String(cs.topic||'').slice(0,20)};
   out.history=Array.isArray(s.history)?s.history.filter(h=>h&&typeof h==='object').slice(-HISTORY):[];
   out.last=out.history.length?out.history[out.history.length-1]:null;
   return out;
@@ -1189,7 +1192,145 @@
   bump(p.seat,-8);state.petition=null;
   return {ok:true,accepted:false,text:'Refused. The '+seatDef(p.seat).title+' bows, stiffly.'};
  }
- return Object.freeze({create,normalize,forecast,tick,advance,setBudget,borrow,repay,withdraw,deposit,settle,answer,councilView,
+ /* 🔭 Where the season is heading, roughly. The Hand carries the books forward to the last close: the
+    net he expects for the next close, tempered by what the last few closes really did, with interest
+    following the debt and a shortfall covered from the line the way the bank would. It knows nothing
+    of works about to finish, families about to arrive or the King's next wish - so every point comes
+    with a band that widens the further out it looks, and nothing here is a promise. */
+ function projection(state,ctx={}){
+  if(!state.chartered||!state.season)return null;
+  const q=state.season,left=SEASON_CLOSES-q.closes;
+  if(left<=0)return null;
+  const f=forecast(state,ctx),interest=f.expenses.find(l=>l.id==='interest').amount,rate=state.loan>0?interest/state.loan:state.rate;
+  const recent=q.series.slice(-4),seen=recent.length?recent.reduce((t,p)=>t+p.n,0)/recent.length:f.net;
+  const run=(f.net+interest)*.65+(seen+interest)*.35;          /* what a close brings before the bank takes its interest */
+  const wobble=f.totalIn*JITTER_IN/2+f.totalOut*JITTER_OUT/2,limit=creditLimit(ctx,state),floor=-Math.round(limit*RED_FLOOR);
+  let t=state.treasury,d=state.loan;const pts=[];
+  for(let i=1;i<=left;i++){
+   t+=run-d*rate;
+   if(t<0){const cover=Math.max(0,Math.min(limit-d,-t));d+=cover*(1+COVER_FEE);t+=cover;}
+   t=Math.max(t,floor);
+   const band=Math.sqrt(i)*wobble*2+i*f.totalIn*.08;      /* luck evens out; a drifting wind, a brawl or a wish does not */
+   pts.push({i:q.closes+i,t:Math.round(t),d:Math.round(d),lo:Math.round(t-band),hi:Math.round(t+band)});
+  }
+  const end=pts[pts.length-1];
+  return {pts,net:Math.round(run-state.loan*rate),end,target:q.target,short:Math.max(0,end.d-q.target),canPay:end.t>=end.d-q.target};
+ }
+ /* 🤝 The Hand's counsel. Once every COUNSEL_EVERY closes the steward may ask the King's Hand what he
+    would do. He answers with ONE thing - whatever he thinks presses hardest - and he answers like a
+    man who has served three stewards: he says where to look, never which button to press, and never
+    a figure. Ask again and he will rather move on to the next thing than repeat himself, unless the
+    house is on fire. When there is nothing worth saying he says so, and the question is not used up. */
+ const AREA={
+  tax:'nobody loves a tax collector, but ours is hated with real craft. A crown has other ways to earn.',
+  rent:'half the tenements stand on crown land, and the tenants know precisely who their landlord is.',
+  fee:'count the awnings on the square. There used to be more.',
+  duty:'the carters talk to each other, steward, and what they say about our gates is not flattering.',
+  tithe:'the Tidekeeper has started preaching about the plate. From the pulpit. About us.',
+  watch:'a city that does not feel safe does not feel grateful.',
+  roads:'a man judges his city by the street outside his door, and ours has holes in it.',
+  relief:'nothing calms a city like a full bread basket - and I know of nothing cheaper per smile.',
+  festival:'they have had nothing to look forward to for a long while. It need not be much.',
+  court:'a shabby court is noticed further down the hill than you would think.',
+  clean:'walk the lower streets some morning. Breathe through your mouth.',
+  learn:'a city that teaches nobody anything is a city people leave for their children’s sake.',
+  food:'what the city eats is half of what it thinks of you.',
+  purse:'the people can count, and they have counted what the purse on the dais costs them.',
+  hunger:'bread, steward. Before anything else on this table - bread.',
+  unrest:'the trouble in the streets. Everything else you do is judged in its light.',
+ };
+ const CARD_COUNSEL={
+  boom:'The roads are full this season. Whatever multiplies trade multiplies more of it just now - and whatever frightens traffic away frightens away more.',
+  slump:'Trade is thin this season, so do not lean on the gates and the square for your income. What is paid by the household does not care about caravans.',
+  bumper:'Grain will not be this cheap again for a long while, and the stores have a roof. I say no more.',
+  drought:'Grain is dear and will stay dear all season. The standing shipments pay a quarter over a price that is already cruel - a steward who buys by hand at this table does not.',
+  winter:'The city eats more in the cold. A granary that held for six closes in the autumn holds for fewer now - count again.',
+  sickness:'Nothing stops the sweating sickness. But the Master Builder has drawings for two things that blunt it, and both of them are under Health & Living.',
+  war:'Everyone on the payroll costs more this season. What you hire is dear; what you buy is not. It is a season for leaning on the second.',
+  wedding:'The King will want everything this season. Decide now which wishes you can afford to grant, because refusing them all has a price too.',
+  pilgrims:'The plate comes back heavy this year. How much of it reaches the strongroom is a line on the Budget tab - and the Almoner will be watching your hand.',
+  restless:'It is a season for trouble. A watch that is already on the street nips it in the bud; a watch hired afterwards only ends it.',
+  refugees:'They are coming whether we have roofs or not - and every household under a roof pays poll tax and rent. Without a roof they simply walk on.',
+  fair:'The fair brings tolls and thieves in the same carts. Order multiplies what the square pays us.',
+  dear:'Money is dear this season: every coin owed costs more than it did. A debt is a fine thing to have less of just now.',
+ };
+ const COUNSEL_EVERY=4;
+ function counselView(state){
+  const at=state.counsel&&Number.isFinite(state.counsel.at)?state.counsel.at:null;
+  const left=at===null?0:Math.max(0,at+COUNSEL_EVERY-state.ticks);
+  return {every:COUNSEL_EVERY,left,ready:!!state.chartered&&left===0,text:(state.counsel&&state.counsel.text)||'',at};
+ }
+ /* the sorest spot in a list of [key,value] pulls - what the Hand points at when the people are sour or the carts are leaving */
+ function sorest(state,f,pick){
+  const b=state.budget,pulls=[['tax',pick===0?TAX_MOOD[b.tax]:TAX_ATTRACT[b.tax]]];
+  const of=l=>num(pick===0?l.mood:l.attract);
+  for(const key of RATE_KEYS)pulls.push([key,of(level(key,b[key]))]);
+  for(const key of LINE_KEYS)if(pick===0||key!=='purse')pulls.push([key,of(level(key,b[key]))]);
+  pulls.push(['hunger',-Math.round(state.food.hunger*(pick===0?6:3))]);
+  pulls.push(['unrest',pick===0?f.incidents.reduce((t,i)=>t+i.mood,0):-4*f.incidents.length]);
+  pulls.sort((x,y)=>x[1]-y[1]);
+  return pulls[0][1]<0?pulls[0][0]:null;
+ }
+ function counselTopics(state,ctx,f){
+  const out=[],add=(id,score,...lines)=>out.push({id,score,lines:lines.filter(Boolean)});
+  const b=state.budget,K=state.king,q=state.season,grain=f.grain,wv=worksView(state,ctx);
+  const earns=w=>num(w.fx&&w.fx.exports)+num(w.fx&&w.fx.tolls)+num(w.fx&&w.fx.income)-num(workDef(w.id).upkeep);
+  const ready=wv.list.filter(w=>w.status==='ready'),paying=ready.filter(w=>earns(w)>0).sort((x,y)=>earns(y)/y.cost-earns(x)/x.cost)[0];
+  const catName=id=>WORK_CATS.find(c=>c.id===id).name;
+  const worksLine=paying&&wv.building<MAX_BUILDING?'Gold in a strongroom earns nothing, and ours is borrowed at interest. A work is paid for once and earns for ever. With a crew standing idle, I would be reading the Master Builder’s drawings under '+catName(paying.cat)+'.':'';
+  if(state.treasury<0)add('red',100,
+   'While we are in the red the bank lets you cut any line and raise any rate - it only forbids you to spend. I would find the line that pleases fewest and begin there. And nothing forbids a steward’s own purse the strongroom door.',
+   'The bailiffs sell what they take for a third of what it cost us. Anything you cut yourself tonight is cheaper than anything they carry out tomorrow.');
+  if(state.food.hunger>0)add('hunger',95,'The granary is empty, steward, and hunger does not end the day the bread comes back - it eases as slowly as it built. Every close you wait is paid for twice.');
+  else if(grain.low)add('bread',85,grain.auto?'The standing shipments are only as good as the strongroom behind them, and they fill a granary a little at a time. When the stores run this low, a shipment bought by hand at this table is both quicker and cheaper.'
+   :'I have counted the sacks. You should too - and ask yourself who buys the grain on the days you are not at this table.');
+  if(state.last&&state.last.covered>0)add('covered',80,'The bank covered us at the last close and charged a twentieth for the courtesy. Borrowing on purpose, before the close, costs nothing but the interest. Being rescued is the dear way to borrow.');
+  const sour=state.protest||state.mood<45;
+  if(sour){const key=sorest(state,f,0);
+   add('mood',state.protest?78:60,key?(state.protest?'They are marching, steward, and a marching city pays less of everything. If you ask me where it starts: ':'The people are sour. If you ask me where it starts: ')+AREA[key]
+    :'Nothing you do angers them - and nothing you do delights them either. The People tab lists what pulls at their temper; read it for what is missing, not only for what is red.');}
+  const old=f.incidents.reduce((m,i)=>Math.max(m,i.age),-1);
+  if(old>=0)add('unrest',old>=2?70:55,'Trouble left alone grows by the close. Sellswords end it today, once, and it may come back; a budget line ends it for as long as you pay the wages. Which is cheaper depends on how long you mean to keep the line.');
+  if(f.net<0){
+   const bill=f.expenses.filter(l=>LINES[l.id]&&l.amount>0).sort((x,y)=>y.amount-x.amount)[0];
+   add('deficit',60+(state.treasury>0&&state.treasury/-f.net<10?15:0),
+    bill&&'We lose gold at every close. The largest bill you set yourself is '+bill.name+'. I do not say cut it - I say know what it buys you, and whether the level below buys nearly as much.',
+    'Cutting is one way to balance a ledger. The crown also sets a tax and four rates, and they do not all bite the people equally hard for the gold they bring. Compare what each step costs you in temper.',
+    worksLine&&'No city was ever saved into prosperity, steward. We lose gold at every close because too little comes in. '+worksLine);
+  }
+  if(q&&state.loan>q.target&&SEASON_CLOSES-q.closes<=5)add('season',65+(SEASON_CLOSES-q.closes<=2?20:0),
+   state.treasury>=state.loan-q.target?'The bank reads the books at the last close of the season and not a day before. The gold to satisfy it is in the strongroom now. Whether it still is then is your affair - but what you repay yourself counts for you, and what the bank has to call in does not.'
+   :'The season is nearly out and the debt stands above what the bank asked. What it calls in itself earns you no credit and no wider line. Anything that can be turned into gold before the last close - I would at least be asking the question.');
+  if(!state.crowned&&K.pleasure<45)add('king',K.pleasure<30?75:50,K.pleasure<30?'A furious King sends his chamberlain to the strongroom with a key, and has people arrested for bowing wrongly. It is cheaper to keep him sweet than to pay for his temper. Two lines of the budget are his.'
+   :'His Majesty sulks. Two lines of the budget are his - one is his purse and the other is his dinner - and his pleasure follows them more faithfully than it follows any gift.');
+  if(!state.crowned&&K.demand)add('wish',K.demand.age>=1?58:36,'A wish refused costs you his smile. A wish ignored costs you more of it, and earns you nothing. And mark this: when the wish is a foolish, costly one, the city hears that you said no - and likes you the better.');
+  if(state.petition)add('petition',state.petition.age>=1?45:28,'There is a petition on the table. A councillor forgives a paper that lapsed unread sooner than a no to his face - but neither is remembered the way a yes is. Weigh which seat you can least afford to have cold.');
+  if(f.favour<40)add('council',62,'Five of the six at this table watch one line of the budget each, and judge you by little else. The sixth reads only the bottom of the page. See who is cooling on the Council tab - a council against you pads every bill we pay.');
+  if(state.attract<40){const key=sorest(state,f,1);add('draw',57,key?'Families are loading carts. Were I choosing a city to live in, this is what I should notice first: '+AREA[key]:'Families are loading carts, and I cannot point at one thing. The People tab lists what draws them and what drives them off; it is a long list of small things.');}
+  if(state.attract>=55&&state.pop>=f.housing&&f.housing<POP_MAX)add('roofs',52,'Families are being turned away at the gate for want of a roof. Every household that walks on is poll tax and rent we never see. The Master Builder has drawings for that.');
+  if(!state.crowned&&f.trustDelta<=0)add('trust',42,'The realm’s trust in you is not growing. It is made of three things: the temper of the people, the six at this table, and whether anyone wants to live here. Each of them earns for you above its middle and costs you below it. The Crown tab says which.');
+  if(f.net>=0&&worksLine)add('works',40,worksLine);
+  if(f.crowded)add('gaol',38,'The gaol is fuller than it has cells, and the city minds. A man who pays his fine goes home; a man pardoned goes home singing your name. Or the Master Builder can dig.');
+  if(f.net>0&&state.loan>0&&state.treasury>state.loan*.5&&!worksLine)add('debt',35,'We pay the bank for every coin we owe, at every close, and half of what we owe is lying in our own strongroom doing nothing. I leave the arithmetic to you.');
+  if(CARD_COUNSEL[f.card.id])add('card',33,CARD_COUNSEL[f.card.id]);
+  if(f.net>0&&b.learn<=1)add('learn',25,'Schooling is the slowest coin in the budget. It is also the only one that raises the taxes and the exports together without a single soul noticing that he pays more.');
+  if(grain.auto&&!grain.low&&num(state.unattended)===0)add('auto',20,'The standing shipments cost a quarter over the price. They are for a steward who is away. You are sitting in front of me.');
+  return out.filter(t=>t.lines.length).sort((x,y)=>y.score-x.score);
+ }
+ function counsel(state,ctx={},rng=Math.random){
+  if(!state.chartered)return null;
+  const v=counselView(state);
+  if(!v.ready)return {ok:false,text:'I gave you my counsel, steward. Act on it. Ask me again in '+v.left+' close'+(v.left===1?'':'s')+'.'};
+  const topics=counselTopics(state,ctx,forecast(state,ctx));
+  if(!topics.length)return {ok:true,spent:false,topic:'',text:'I have nothing to tell you that you do not already know, steward. Keep doing it. Ask me again when something smells.'};
+  /* he would rather move on to the next thing than say the same thing twice - unless the house is on fire */
+  let t=topics[0];
+  if(t.id===state.counsel.topic&&t.score<90&&topics[1]&&topics[1].score>=t.score-30)t=topics[1];
+  const text=t.lines[Math.floor(draw(rng)*t.lines.length)];
+  state.counsel={at:state.ticks,text,topic:t.id};
+  return {ok:true,spent:true,topic:t.id,text};
+ }
+ return Object.freeze({create,normalize,forecast,tick,advance,setBudget,borrow,repay,withdraw,deposit,settle,answer,councilView,counsel,counselView,counselTopics,COUNSEL_EVERY,projection,
   worksView,invest,crownView,answerKing,claimCrown,gaolView,pardon,fine,worksFx,has,cells,charter,charterView,bankView,rehire,frozen,attend,neglect,REMIND_AFTER,NEGLECT_AFTER,NEGLECT_HARD,TRUST_SLOPE,TRUST_DRAIN_MAX,SEAT_SLOPE,SEAT_DRAIN_MAX,MOOD_SLOPE,MOOD_DRAIN_MAX,DRAW_SLOPE,DRAW_DRAIN_MAX,
   POP_MAX,HOUSEHOLD,hearths,SEASON_CARDS,cardDef,dealCard,
   windName,WIND_KEYS,WIND_MAX,JITTER_IN,JITTER_OUT,WAGE_RISE,WAGE_MAX,HERO_EXPORTS_MAX,HERO_FARM_LEVELS,

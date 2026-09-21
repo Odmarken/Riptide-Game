@@ -140,3 +140,5 @@
 .ledger-season{margin-bottom:14px;border-color:var(--craft-accent);background:#2a2214}.ledger-season.ordinary{border-color:var(--craft-line);background:#1d160fd9}
 .ledger-season p{margin-bottom:6px!important}
 .ledger-fx span.good{border-color:#4f7a4a;color:#bfe0b8}.ledger-fx span.bad{border-color:#a0533f;color:#ffc9bd}
+.ledger-counsel{border-color:#8a6d3a;background:#241c10}.ledger-counsel .ledger-voice{font-size:13px;color:#ecdcb8;border-left:3px solid var(--craft-accent);padding-left:10px;margin:4px 0 10px}
+.sc-proj{fill:none;stroke-width:2;stroke-dasharray:5 6;stroke-linecap:round;opacity:.8}.sc-cone{opacity:.13}.sc-guess{opacity:.8;font-style:italic}.season-legend .key.guess{background:repeating-linear-gradient(90deg,#cdbb9c 0 4px,transparent 4px 8px)}.season-guess{margin-top:8px}

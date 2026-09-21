@@ -7,6 +7,10 @@
  *    of families moving in from the gate - or out through it - as the city's name rises and falls
  *  - bunting when the festivals are funded, refuse and flies when the sweepers are not
  *  - boarded-up houses as the population falls
+ *  - the temper of the people: houses on fire, barricades on the boulevard, a bread queue and beggars
+ *    at the kerb when it goes badly; tubs of flowers and garlands on the houses, a maypole, fiddlers,
+ *    long tables laid in the square and fireworks over it when it goes well
+ *  - the season: snow in a hard winter, crosses on the doors in the sickness, show tents for the fair
  * Pure functions of a small `look` object and the time: no state of its own, no DOM, no images, so
  * it runs headless in the tests. game.js adds the props to world.solids (type 'citywork'), hangs a
  * `work` on the houses that carry a sign, and calls the draw routines from its own passes. */
@@ -66,6 +70,15 @@
   if(st('coveredmarket')==='building')site('coveredmarket',c.x-300,c.y+330,'COVERED MARKET');
   if(st('lamps')==='done'||going('lamps'))for(const p of lampSpots(world,look.xMax))add('lamp',p.x,p.y,7,{lit:st('lamps')==='done',noCol:true});
   stallSlots(world).slice(0,clamp(Math.round(look.stalls||0),0,12)).forEach((p,i)=>add('stall',p.x,p.y,24,{goods:i%5,covered:st('coveredmarket')==='done'}));
+  /* 🎭 what the temper of the people puts out on the street. None of it is in anybody's way (noCol). */
+  const S=look.street||{},soft=(kind,x,y,extra)=>add(kind,x,y,18,{noCol:true,...extra});
+  if(S.maypole)soft('maypole',c.x,c.y-300);
+  if(S.music)soft('music',c.x+150,c.y-250);
+  if(S.feast)for(let i=0;i<clamp(S.feast|0,0,2);i++)soft('feast',c.x+20,c.y+318+i*112,{row:i});
+  if(S.tents){soft('tent',c.x+430,c.y-215,{stripe:0});soft('tent',c.x-455,c.y-300,{stripe:1});}
+  if(S.breadline)soft('breadline',c.x-700,c.y-168,{long:S.breadline>1});
+  if(S.barricades)for(const side of [-1,1])for(const row of [-1,1])soft('barricade',c.x+side*(c.r+380),c.y+row*96,{flip:side*row});
+  for(let k=0;k<clamp(S.beggars|0,0,8);k++){const x=1250+k*1490+(k%2)*380;if(x<(look.xMax||world.w-1300)&&Math.abs(x-c.x)>c.r+60)soft('beggar',x,c.y+(k%2?1:-1)*152,{face:k%2?-1:1});}
   return out;
  }
  /* which terrace house wears which work: nearest free house to each anchor, the same one every visit */
@@ -80,6 +93,28 @@
    if(status)out.push({house:best,id,status,left:(look.left||{})[id]||0});
   }
   return out;
+ }
+ /* 🎭 What the people put out, as a function of a few numbers game.js reads off the ledger:
+    mood 0-100, festival and relief 0-3, protest, hungry 0 none / 1 a bread queue / 2 the granary is empty,
+    card the season's id. Returns what props() places. */
+ function streetLife(v){
+  const mood=v.mood===undefined?60:v.mood,joy=mood>=85?2:mood>=70?1:0,festival=v.festival|0;
+  return {maypole:!v.protest&&(joy===2||(festival>=2&&mood>=55)),music:!v.protest&&mood>=55&&festival+joy>=2,
+   feast:v.protest||v.hungry?0:(v.relief>=3?1:0)+(joy===2?1:0),tents:v.card==='fair',
+   breadline:v.hungry|0,barricades:!!v.protest,beggars:clamp((v.relief===0?3:0)+(v.hungry?2+v.hungry:0)+(mood<40?2:0),0,8)};
+ }
+ /* how hard the city burns, 0-4: a riot, a temper at the bottom, nobody to carry a bucket, a gang war - and last close's fire still smoulders */
+ function fireLevel(v){return clamp((v.protest?2:0)+(v.mood<25?1:0)+(v.watch===0?1:0)+(v.gang?1:0)+(v.fireNews?1:0),0,4);}
+ /* what one house wears, the same from every frame and every visit until the ledger closes again:
+    'fire' | 'plague' | 'garland' | 'flowers' | null. A house with a work or a TO LET board wears nothing else. */
+ function dressing(house,look){
+  if(!look||house.work)return null;
+  const hx=Math.round(house.x),hy=Math.round(house.y),roll=(salt)=>(hash(hx+salt*7919,hy-salt*104729)%1000)/1000;
+  if(look.fires>0&&roll(1+(look.fireSeed|0))<look.fires*.012)return 'fire';
+  if(look.vacancy>0&&vacant(house,look.vacancy))return null;
+  if(look.card==='sickness'&&roll(3)<.09)return 'plague';
+  if(look.joy>0&&roll(5)<(look.joy>1?.6:.28))return look.joy>1&&roll(6)<.5?'garland':'flowers';
+  return null;
  }
  /* how many awnings the square carries */
  function stallCount(feeLevel,covered,pop){return clamp([6,4,3,1][clamp(feeLevel|0,0,3)]+(covered?5:0)+Math.floor(Math.max(0,(pop||0)-350)/150),0,12);}   /* a pitch more for every 150 souls over the 350 the books open on */
@@ -107,6 +142,85 @@
   else if(s.kind==='stall')ellipse(g,4,10,46,14,'rgba(0,0,0,.30)');
   else if(s.kind==='lamp')ellipse(g,3,3,12,5,'rgba(0,0,0,.30)');
   else if(s.kind==='site')ellipse(g,4,12,60,20,'rgba(0,0,0,.28)');
+  else if(s.kind==='tent')ellipse(g,8,14,130,36,'rgba(0,0,0,.30)');
+  else if(s.kind==='feast')ellipse(g,6,18,156,28,'rgba(0,0,0,.26)');
+  else if(s.kind==='barricade')ellipse(g,6,14,108,28,'rgba(0,0,0,.30)');
+  else if(s.kind==='maypole')ellipse(g,3,6,24,9,'rgba(0,0,0,.30)');
+ }
+ /* ---------- the people's own doing: small figures, and what they put out ---------- */
+ const COATS=['#7a4a3a','#4f6a8c','#5a7a4a','#8a6a3a','#6a4a7a','#8c4a4a','#4a6a6a'];
+ /* a townsperson the size of the ones on the handcarts. o: coat, step (leg swing), sit, arm (raised, radians), hat */
+ function fig(g,x,y,o={}){
+  const st=o.step||0,coat=o.coat||COATS[0],lift=o.sit?7:0;
+  if(!o.sit){rect(g,x-4,y-16,3.5,16+st,'#3a2a1a');rect(g,x+.5,y-16,3.5,16-st,'#3a2a1a');}
+  else rect(g,x-5,y-9,10,4,'#3a2a1a');
+  rect(g,x-5,y-33+lift,10,18,coat);
+  if(o.arm!==undefined){g.save();g.strokeStyle=coat;g.lineWidth=3.2;g.lineCap='round';g.beginPath();g.moveTo(x+4,y-30+lift);g.lineTo(x+4+Math.cos(o.arm)*11,y-30+lift-Math.sin(o.arm)*11);g.stroke();g.restore();}
+  ellipse(g,x,y-38+lift,5,5.5,'#e0b890');
+  if(o.hat)rect(g,x-6,y-45+lift,12,4,o.hat);
+ }
+ function maypole(g,s,time){
+  const H=172,n=8,ring=i=>{const a=time*.7+i/n*TAU;return {x:Math.cos(a)*62,y:Math.sin(a)*22,a};};
+  const dancer=i=>{const p=ring(i);fig(g,p.x,p.y+4,{coat:COATS[i%COATS.length],step:Math.sin(time*7+i)*3,arm:1.2});};
+  const ribbon=i=>{const p=ring(i);g.beginPath();g.moveTo(0,-H+8);g.quadraticCurveTo(p.x*.35,-H*.45+p.y,p.x+4,p.y-34);g.strokeStyle=['#a8322f','#f0e2c4','#2f6a8c','#e5c05a'][i%4];g.lineWidth=2;g.stroke();};
+  for(let i=0;i<n;i++)if(Math.sin(ring(i).a)<0){ribbon(i);dancer(i);}
+  rect(g,-3.5,-H,7,H,'#e9dcb8','#4a2d17',1.2);
+  for(let k=0;k<9;k++)rect(g,-3.5,-H+10+k*18,7,7,k%2?'#a8322f':'#2f6a8c');
+  ellipse(g,0,-H+4,20,7,null,'#3f7d48',5);for(let i=0;i<8;i++){const a=i/8*TAU;ellipse(g,Math.cos(a)*20,-H+4+Math.sin(a)*7,3,3,['#e8607a','#f0c84a','#f4f0e0'][i%3]);}
+  ellipse(g,0,-H-6,5,5,'#e5c05a','#6d4d12',1.2);
+  for(let i=0;i<n;i++)if(Math.sin(ring(i).a)>=0){ribbon(i);dancer(i);}
+ }
+ function music(g,s,time){
+  const bow=Math.sin(time*6)*5,beat=Math.abs(Math.sin(time*4));
+  fig(g,-16,0,{coat:'#6a3f86',hat:'#2b2622'});rect(g,-13,-31,14,5,'#8a5a2b','#2a1a0c',1);        /* the fiddle, and the bow across it */
+  g.save();g.strokeStyle='#f0e2c4';g.lineWidth=1.4;g.beginPath();g.moveTo(-14+bow,-36);g.lineTo(2+bow,-24);g.stroke();g.restore();
+  fig(g,18,2,{coat:'#3f7d48',arm:.4+beat*.9});ellipse(g,27,-16,9,5,'#e9dcb8','#4a2d17',1.5);rect(g,18,-16,18,12,'#a8322f','#2a1a0c',1);
+  fig(g,50,-4,{coat:'#b9822a',sit:true});rect(g,55,-40,3,22,'#5a3a1e');                            /* and a piper on a stool */
+  for(let i=0;i<3;i++){const p=(time*.45+i/3)%1;label(g,i%2?'♪':'♫',-6+i*26+Math.sin(time*2+i)*6,-54-p*44,'rgba(255,236,170,'+(1-p).toFixed(3)+')',14);}
+  rect(g,-4,6,14,5,'#2b2622');ellipse(g,3,6,5,2,'#e5c05a');                                          /* the hat, and what is in it */
+ }
+ function feast(g,s,time){
+  for(let i=0;i<6;i++)fig(g,-80+i*32,-10,{coat:COATS[(i+s.seed)%COATS.length],sit:true,arm:(i+(s.seed|0))%3===0?1.1+Math.sin(time*3+i)*.4:undefined});
+  rect(g,-96,-24,192,20,'#f4f0e0','#8a8270',1.5);rect(g,-96,-6,192,5,'#d8d0bc');
+  for(const x of [-88,-30,30,84])rect(g,x,-2,5,14,'#5a3a1e');
+  for(let i=0;i<7;i++){const x=-82+i*27;
+   if(i%3===0){ellipse(g,x,-17,10,5,'#c9904a','#6b4320',1);}                                         /* a loaf */
+   else if(i%3===1){ellipse(g,x,-16,11,5.5,'#d8c8a0','#6b5a3a',1);ellipse(g,x,-18,7,3.5,'#a8522f');} /* a roast on a dish */
+   else{rect(g,x-4,-24,8,10,'#8a8478','#3a362f',1);ellipse(g,x+9,-15,4,3,'#e8607a');}}               /* a tankard, and an apple */
+  rect(g,-90,8,180,5,'#6d4a28','#2a1a0c',1);rect(g,-84,13,4,8,'#4a2d17');rect(g,80,13,4,8,'#4a2d17'); /* the near bench */
+  for(let i=0;i<4;i++)fig(g,-62+i*40,8,{coat:COATS[(i*3+s.seed+2)%COATS.length],sit:true});
+ }
+ function tent(g,s,time){
+  const a=s.stripe?'#2f6a8c':'#a8322f',b='#f0e2c4',W=78,Hh=120;
+  for(let i=0;i<8;i++){const x0=-W+i*W/4,x1=x0+W/4;g.beginPath();g.moveTo(x0,-44);g.lineTo(x1,-44);g.lineTo(x1*.12,-Hh);g.lineTo(x0*.12,-Hh);g.closePath();g.fillStyle=i%2?b:a;g.fill();}
+  for(let i=0;i<8;i++){const x0=-W+i*W/4;rect(g,x0,-44,W/4,44,i%2?a:b);ellipse(g,x0+W/8,-44,W/8,5,i%2?b:a);}
+  g.beginPath();g.moveTo(-14,0);g.lineTo(-10,-34);g.lineTo(10,-34);g.lineTo(14,0);g.closePath();g.fillStyle='#2a1a0c';g.fill();
+  rect(g,-1.5,-Hh-26,3,28,'#3a2410');const sw=Math.sin(time*2.4+s.seed)*3;
+  g.beginPath();g.moveTo(1.5,-Hh-26);g.lineTo(24,-Hh-20+sw);g.lineTo(1.5,-Hh-13);g.closePath();g.fillStyle='#e5c05a';g.fill();
+  label(g,s.stripe?'🎪 THE GREAT FAIR':'🎪 WONDERS · ONE PENNY',0,-Hh-34,'#ffd27a',11);
+ }
+ function breadline(g,s,time){
+  /* a shuttered bakers' hatch, and the queue that has been at it since before dawn */
+  rect(g,56,-52,46,52,'#6d4a28','#2a1a0c',2);rect(g,62,-44,34,20,'#3a2410','#15100b',1.5);label(g,'NO BREAD',79,-58,'#e6dbc9',9);
+  const n=s.long?9:5;
+  for(let i=0;i<n;i++){const sh=Math.max(0,Math.sin(time*.8-i*.7))*3;fig(g,40-i*19+sh,(i%2)*5,{coat:COATS[(i*2+1)%COATS.length],step:sh*.6,hat:i%3===0?'#3a2a1a':undefined});}
+  if(s.long)label(g,'“Bread!”',-60+Math.sin(time*1.4)*4,-56,'#ff8a7a',11);
+ }
+ function beggar(g,s,time){
+  g.save();g.scale(s.face||1,1);
+  rect(g,-16,-4,30,8,'#5d5034');fig(g,0,2,{coat:'#5d5668',sit:true,arm:.15+Math.sin(time*1.6+s.seed)*.2});
+  ellipse(g,18,-2,6,2.6,'#8a8270','#3a362f',1);
+  g.restore();
+ }
+ function barricade(g,s,time){
+  g.save();g.scale(s.flip||1,1);
+  g.save();g.translate(-18,-14);g.rotate(-.5);rect(g,-34,-12,68,22,'#6d4a28','#2a1a0c',2);g.restore();                       /* a cart on its side */
+  ellipse(g,-44,-30,13,13,'#3a2410','#15100b',2);ellipse(g,-44,-30,3,3,'#8a5a2b');
+  for(const [x,y] of [[22,-2],[44,0],[32,-22]]){ellipse(g,x,y-10,10,12,'#7a5230','#2a1a0c',1.5);rect(g,x-10,y-14,20,2.5,'#2f2a26');rect(g,x-10,y-6,20,2.5,'#2f2a26');}
+  for(let i=0;i<4;i++){g.save();g.translate(-6+i*9,-8);g.rotate(-1.1+i*.22);rect(g,0,-2,58,4,'#8a5a2b','#2a1a0c',1);g.restore();}
+  g.restore();
+  const f=.7+Math.sin(time*9+s.seed)*.3;rect(g,2,-64,3,26,'#3a2410');ellipse(g,3.5,-68,5*f,8*f,'rgba(255,170,60,.9)');ellipse(g,3.5,-66,2.5,4,'#ffe9a8');   /* a torch */
+  g.save();g.translate(8,-52);const sw=Math.sin(time*2+s.seed)*.12;g.rotate(sw);rect(g,0,0,30,16,'#7a1b1b','#2a0a0a',1);g.restore();
  }
  function lamp(g,s,time){
   rect(g,-7,-6,14,8,'#2b2622','#0d0b0a',1.5);rect(g,-2.5,-92,5,88,'#33302c');rect(g,-2.5,-92,1.6,88,'rgba(255,255,255,.18)');
@@ -196,6 +310,7 @@
   label(g,'⚒️ '+(s.name||'WORKS'),0,-112,'#ffd27a',12);
   label(g,(s.left||1)+' close'+((s.left||1)>1?'s':'')+' to go',0,-98,'#e6dbc9',10);
  }
+ const FOLK={maypole,music,feast,tent,breadline,beggar,barricade},FOLK_SCALE=1.55;
  function drawProp(g,s,time=0){
   if(s.kind==='lamp')lamp(g,s,time);
   else if(s.kind==='stall')stall(g,s,time);
@@ -203,6 +318,7 @@
   else if(s.kind==='statue')statue(g,s,time);
   else if(s.kind==='garden')garden(g,s,time);
   else if(s.kind==='site')site(g,s,time);
+  else if(FOLK[s.kind]){g.save();g.scale(FOLK_SCALE,FOLK_SCALE);FOLK[s.kind](g,s,time);g.restore();}   /* drawn at handcart size, shown at the size of the townsfolk they stand among */
  }
  /* ---------- what a house wears: scaffolding while a crew is on it, a signboard after ---------- */
  /* drawn in the house's own frame: (0,0) is its anchor, the art spans x ±W/2 and y from `top` to `top+H` */
@@ -254,6 +370,64 @@
   g.restore();
   rect(g,W*.2,top+H-30,3,30,'#4a2d17');rect(g,W*.2-17,top+H-44,37,16,'#d8c493','#4a2d17',1.5);
   g.save();g.font='700 8px Georgia, serif';g.textAlign='center';g.fillStyle='#3a1a0c';g.fillText('TO LET',W*.2+1.5,top+H-33);g.restore();
+ }
+ /* 🔥🌸☠️ what a house wears for the temper of the city, in the house's own frame (see dressing) */
+ function drawDressing(g,kind,W,H,top,time=0,seed=0){
+  const w=Math.max(40,W),h=Math.max(40,H);
+  if(kind==='fire'){
+   /* smoke first, rolling up and downwind; then tongues of flame in three coats, red to yellow; then sparks */
+   const k=clamp(h/200,1,2.2),tongue=(fx,fy,bw,hh,lean,fill)=>{g.beginPath();g.moveTo(fx-bw,fy);g.bezierCurveTo(fx-bw*1.3,fy-hh*.45,fx-bw*.2+lean*.4,fy-hh*.7,fx+lean,fy-hh);g.bezierCurveTo(fx+bw*.5+lean*.4,fy-hh*.6,fx+bw*1.3,fy-hh*.4,fx+bw,fy);g.closePath();g.fillStyle=fill;g.fill();};
+   ellipse(g,0,top+h-4,w*.62,20,'rgba(255,140,50,'+(.18+.07*Math.sin(time*7+seed)).toFixed(3)+')');
+   for(let i=0;i<10;i++){const p=(time*.16+i/10+seed*.13)%1,r=(16+p*46)*k;
+    ellipse(g,Math.sin(i*2.3+seed)*w*.22+p*70*k+Math.sin(time*.9+i)*8,top+h*.3-p*300*k,r,r*.82,'rgba('+(38+i%3*10)+','+(34+i%3*9)+',34,'+(Math.sin(p*Math.PI)*.62).toFixed(3)+')');}
+   for(let i=0;i<9;i++){
+    const fx=(((seed*37+i*61)%100)/100-.5)*w*.66,fy=top+h*(.2+((seed*13+i*29)%55)/100),fl=.72+Math.sin(time*(7+i*.9)+i*1.7)*.28,hh=(34+i%3*16)*fl*k,bw=(7+i%2*3)*k,lean=Math.sin(time*4.3+i*2.1)*6*k;
+    tongue(fx,fy,bw*1.35,hh*1.12,lean*1.2,'rgba(200,52,18,.55)');tongue(fx,fy,bw,hh,lean,'rgba(245,128,32,.92)');tongue(fx,fy,bw*.5,hh*.6,lean*.5,'rgba(255,228,130,.96)');
+    ellipse(g,fx,fy,bw*2.2,bw*.9,'rgba(255,170,60,.22)');
+   }
+   for(let i=0;i<8;i++){const p=(time*.6+i/8)%1;ellipse(g,Math.sin(i*3.1+seed)*w*.28+p*30*k+Math.sin(time*2+i)*6,top+h*.3-p*190*k,1.9*k,1.9*k,'rgba(255,205,100,'+(1-p).toFixed(3)+')');}
+   return;
+  }
+  if(kind==='plague'){
+   const y=top+h*.8;rect(g,-3,y-12,6,24,'#8a1b1b');rect(g,-10,y-5,20,6,'#8a1b1b');
+   return;
+  }
+  /* tubs of flowers either side of the door; on a garlanded house a swag of green and a crown banner as well */
+  const u=clamp(h/190,1,1.9);
+  for(const side of [-1,1]){const x=side*w*.2,y=top+h-2;
+   rect(g,x-9*u,y-10*u,18*u,10*u,'#8a5a2b','#2a1a0c',1.2);ellipse(g,x,y-12*u,11*u,6*u,'#3f7a3a');
+   for(let i=0;i<5;i++)ellipse(g,x+(-8+i*4)*u+Math.sin(time*1.5+i+seed)*.8,y-(15+(i%2)*3)*u,2.6*u,2.6*u,['#e8607a','#f0c84a','#f4f0e0','#b884e0'][(i+seed)&3]);}
+  if(kind!=='garland')return;
+  const gy=top+h*.56;g.save();g.strokeStyle='#3f7d48';g.lineWidth=4;
+  for(const [x0,x1] of [[-w*.34,0],[0,w*.34]]){g.beginPath();g.moveTo(x0,gy);g.quadraticCurveTo((x0+x1)/2,gy+18,x1,gy);g.stroke();}
+  g.restore();
+  for(const x of [-w*.34,0,w*.34])ellipse(g,x,gy,4.5,4.5,'#e8607a','#7a2038',1);
+  const sw=Math.sin(time*1.8+seed)*2;rect(g,w*.26,gy+6,2,4,'#3a2410');
+  g.beginPath();g.moveTo(w*.26-9,gy+10);g.lineTo(w*.26+11,gy+10);g.lineTo(w*.26+11+sw,gy+40);g.lineTo(w*.26+1+sw,gy+33);g.lineTo(w*.26-9+sw,gy+40);g.closePath();g.fillStyle='#e5c05a';g.fill();g.strokeStyle='#6d4d12';g.lineWidth=1;g.stroke();
+ }
+ /* ---------- the sky over the city: snow in a hard winter, fireworks over a jubilant square ---------- */
+ function drawSnow(g,view,time=0){
+  const n=clamp(Math.round(view.w*view.h/4200),60,520);
+  for(let i=0;i<n;i++){
+   const h=hash(i,77),sp=38+(h%40),drift=Math.sin(time*.8+i)*18;
+   const x=view.x+(((h>>>4)%1000)/1000*view.w+drift+view.w)%view.w,y=view.y+((((h>>>14)%1000)/1000*view.h+time*sp)%view.h);
+   ellipse(g,x,y,2+(h%3)*.9,2+(h%3)*.9,'rgba(245,250,255,.9)');
+  }
+  g.fillStyle='rgba(215,230,245,.10)';g.fillRect(view.x,view.y,view.w,view.h);
+ }
+ function drawFireworks(g,world,view,time=0){
+  const c=square(world);
+  if(c.x+700<view.x||c.x-700>view.x+view.w||c.y<view.y-200||c.y-900>view.y+view.h)return;
+  const period=2.8;
+  for(let k=0;k<3;k++){
+   const T=time/period+k/3,n=Math.floor(T),p=T-n,h=hash(n,k+5);
+   const x=c.x+((h%1000)/1000-.5)*900,top=c.y-380-((h>>>10)%260),col=['255,214,110','255,120,110','150,210,255','190,255,170'][(h>>>20)%4];
+   if(p<.3){const q=p/.3,ry=c.y-120-(c.y-120-top)*q;for(let j=0;j<5;j++)ellipse(g,x,ry+j*9,2.6-j*.4,2.6-j*.4,'rgba(255,236,190,'+(.95-j*.18).toFixed(3)+')');continue;}
+   const q=(p-.3)/.7,R=36+q*150,alpha=Math.pow(1-q,1.4),drop=q*q*60;
+   for(let i=0;i<24;i++){const a=i/24*TAU+(h%7),cx=Math.cos(a),sy=Math.sin(a)*.85;
+    for(let j=0;j<4;j++){const rr=R*(1-j*.09);ellipse(g,x+cx*rr,top+sy*rr+drop*(1-j*.15),3.4-j*.7,3.4-j*.7,'rgba('+col+','+(alpha*(1-j*.22)).toFixed(3)+')');}   /* a spark, and the tail it drags */
+    if(i%2)ellipse(g,x+cx*R*.5,top+sy*R*.5+drop*.5,2.2,2.2,'rgba(255,255,255,'+(alpha*.85).toFixed(3)+')');}
+  }
  }
  /* does this house stand empty? a stable hash of its seed against how far the population has fallen */
  function vacant(house,vacancy){return vacancy>0&&!house.work&&(hash(Math.round(house.x),Math.round(house.y))%1000)/1000<vacancy;}
@@ -343,5 +517,6 @@
   g.restore();
  }
  return Object.freeze({ANCHORS,TINT,props,assignHouses,stallSlots,lampSpots,stallCount,traffic,litter,bunting,vacant,onStreet,
+  streetLife,fireLevel,dressing,drawDressing,drawSnow,drawFireworks,
   drawProp,drawShadow,drawHouseWork,drawVacant,drawLitter,drawBunting,drawTraffic});
 });
