@@ -53,5 +53,6 @@ test('a late answer never lands on a hero who is being played, and leaving the g
 test('the character select says what is happening instead of showing nothing',()=>{
  const render=between('async function renderSelect(){','\n document.querySelectorAll(\'[data-play]\')');
  assert.match(render,/if\(selectFetching\)\{[^}]*Fetching your heroes from the cloud/);
- assert.match(render,/The cloud is not answering\./);assert.match(render,/No heroes are saved on this device, and the cloud is not answering/);
+ assert.ok(!/The cloud is not answering\./.test(render),'a silent cloud is not announced over a list of heroes - they are simply offered');
+ assert.match(render,/No heroes are saved on this device, and the cloud is not answering/,'only an EMPTY list explains itself, so nobody thinks their heroes are gone');
 });

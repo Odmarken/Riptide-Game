@@ -15196,8 +15196,8 @@ async function cloudPullRoster(job){
    ONCE - the old order shut the sign-in form, then waited on the cloud with nothing on screen, and a cloud that never
    answered left a bare HUD for ever with no error anywhere (2026-09-21). While the roster is being fetched the list says
    so and Enter World is not offered yet: a hero must not be entered on a stale copy a moment before a newer one lands.
-   After CLOUD_WAIT_MS the heroes saved on this device are offered with a warning; they are the primary save anyway, and
-   everything played now goes up once the cloud answers again. */
+   After CLOUD_WAIT_MS the heroes saved on this device are offered, without comment; they are the primary save anyway,
+   and everything played now goes up once the cloud answers again. */
 let selectFetching=false,cloudSilent=false;
 async function enterAfterAuth(){
  selectFetching=true;cloudSilent=false;
@@ -15457,8 +15457,9 @@ async function renderSelect(){
  };
  const living=chars.filter(ch=>!(ch.hardcore&&ch.hcDead));
  const fallen=chars.filter(ch=>ch.hardcore&&ch.hcDead);
- const cloudWarn=cloudSilent&&FB.user?'<div class="card" style="font-size:12px;line-height:1.5;color:#ffd9a0;background:rgba(70,44,16,.78);border-color:#b9822a">⚠ <b>The cloud is not answering.</b> These are the heroes saved on this device - the save that counts. Everything you play now is kept here and goes up by itself once the cloud answers again. Sign in again later to check.</div>':'';
- let html=cloudWarn+(living.length?living.map(cardOf).join(''):'<div class="card" style="color:var(--dim);font-size:12px;background:rgba(28,43,36,.7)">'+(cloudSilent&&FB.user?'No heroes are saved on this device, and the cloud is not answering. Try signing in again in a little while - your heroes are safe in the cloud.':'No heroes yet - the Eastern Realm waits for its first champion.')+'</div>');
+ /* a silent cloud is not announced here (asked for 2026-09-21): the heroes on this device are simply offered. It is
+    still written to error.log, and a device with NO saved heroes is still told why its list is empty, below. */
+ let html=(living.length?living.map(cardOf).join(''):'<div class="card" style="color:var(--dim);font-size:12px;background:rgba(28,43,36,.7)">'+(cloudSilent&&FB.user?'No heroes are saved on this device, and the cloud is not answering. Try signing in again in a little while - your heroes are safe in the cloud.':'No heroes yet - the Eastern Realm waits for its first champion.')+'</div>');
  if(fallen.length){ /* the graveyard - a fold-out shelf above Create New Character */
   html+=`<div class="tierhead" id="fallenHead" style="border-color:#a05a5a66;margin-top:10px">
    <span style="color:#ff8a7a">${fallenOpen?'▾':'▸'} 💀 Fallen Heroes</span>
