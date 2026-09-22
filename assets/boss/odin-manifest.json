@@ -1,0 +1,67 @@
+{
+  "generator": "Higgsfield",
+  "model": "gpt_image_2_5",
+  "variant": "flare",
+  "date": "2026-09-22",
+  "why": "The old Odin (anime proportions, wide flat hat, painted purple burst behind him, cut at mid-thigh with a separately generated boot) did not sit in the game's chibi style next to Thor and the dungeon trolls. He was redrawn as one complete chibi master and now goes through the same RAID_SKINS path as Thor: body, hop, breath, lean, foot motion and a weapon pivoting on the fist. The special odinPainted draw path and ODIN_SKIN join were removed.",
+  "boss": {
+    "file": "assets/boss/odin_boss.png",
+    "jobId": "d34b381d-0e55-4032-b3b8-d699b3b71350",
+    "quality": "high",
+    "resolution": "1k",
+    "aspect": "1:1",
+    "background": "transparent (native, no remover needed)",
+    "references": [
+      "assets/boss/tor_boss.png flattened on (236,236,232) - style, head size, line weight",
+      "the previous assets/boss/odin_boss.png (git 472f49e) flattened - identity: white braids, eye patch, hat, fur mantle, blue armour, two ravens"
+    ],
+    "promptNotes": "chibi in EXACTLY Thor's style, full body hat-to-soles, upright symmetrical front pose, empty fists, no weapon, a black raven on each shoulder, transparent background, no cast shadow.",
+    "source": [1024, 1024],
+    "post": "alpha 254->255, haze <6 dropped, tight crop [63,6,961,1020] -> 898x1014, no resize",
+    "alternates": {
+      "one raven + gauntlet fists": "fd9343f3-5aa5-4796-b62a-a2a00b05dacb",
+      "one raven, troll as extra reference": "130478d9-f6aa-4664-9a64-0defe7bfeef3"
+    }
+  },
+  "raidSkin": {
+    "size": 6.1,
+    "lift": 0.7,
+    "wx": 0.34,
+    "wy": -0.196,
+    "ws": 0.75,
+    "grip": [0.5, 0.8],
+    "glow": "#7fd0ff",
+    "soak": false,
+    "derivation": "size 6.1 radii makes him Thor's height (975/846*5.25 = 6.05). lift 0.7 puts the soles on the shadow like the trolls. The fists sit at x = 145 and 752 of 898 (wx 0.34) and y = 815 of 1014, i.e. 0.196 H above the soles (wy, relative to lift because grip is set). Verified with a Pillow composite of the game's maths at 4x game scale (scratchpad compose.py)."
+  },
+  "footProfile": {
+    "canvas": [898, 1014],
+    "left": [150, 448, 868, 960],
+    "right": [452, 745, 868, 960],
+    "note": "fists end at row 858, so the root at 868 keeps them planted; the boots flare below 960; soles at 1013."
+  },
+  "weapon": {
+    "file": "assets/boss/odin_spear.png",
+    "note": "unchanged Gungnir; drawn unsoaked (soak:false) so the painted ice head keeps its colour, glow only."
+  },
+  "raven": {
+    "file": "assets/boss/odin_raven.png",
+    "jobId": "8692cb93-1ad2-4d3a-b089-615ecc469749",
+    "quality": "medium",
+    "reference": "assets/city/harbor/seagull.png flattened - same top-down spread-wing pose and framing",
+    "source": [1344, 752],
+    "post": "alpha rescale, haze dropped, tight crop [1,13,1344,725], LANCZOS to 640x339 (the gull is 640 wide)",
+    "flight": "HarborWorld.drawFlight with ODIN_RAVENS in game.js - two ellipses round the arena centre (1200,800), 74 px, the Harbour's gull animation."
+  },
+  "arena": {
+    "file": "assets/models/maps/odin_map.png",
+    "jobId": "9defee17-b896-4d3e-87fb-7af8be25dbd7",
+    "quality": "high",
+    "aspect": "3:2",
+    "reference": "assets/models/maps/tormap_zone.png - straight-down camera and level of detail",
+    "source": [1024, 688],
+    "post": "Higgsfield bytedance upscale to 2k failed twice, so LANCZOS 1.5x locally to 1536x1024 (the size of every other map)",
+    "alternate": "raven-emblem floor without the gate: 437a755d-416c-412b-912e-180f231992c3",
+    "replaces": "a football pitch placeholder (git 7e86356/cf94701)"
+  }
+}

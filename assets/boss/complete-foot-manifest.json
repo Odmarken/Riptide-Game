@@ -1,5 +1,6 @@
 {
   "tool": "built-in image_gen",
+  "retired": "odin: the Odin boot (odin_foot_complete.png) was retired on 2026-09-22 when Odin was redrawn as one complete chibi master (odin-manifest.json); its entries below are provenance only.",
   "reviewedGeometry": {
     "sourceCropsAndJoins": {
       "fellord": {

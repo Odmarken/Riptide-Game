@@ -232,9 +232,12 @@ const CHAR_RUN={};
 const bootImg=new Image();bootImg.src='assets/characters/fot.png';
 const bowImg=new Image();bowImg.src='assets/weapons/bow.png';
 const maceImg=new Image();maceImg.src='assets/weapons/mace.png';
-/* ODIN's art was repainted in the Thor style - same filename, new picture, so the ?v= is what
-   stops a browser that already cached the old boss from serving it forever. */
-const odinImg=new Image();odinImg.src='assets/boss/odin_boss.png?v=2';
+/* ODIN was redrawn as a chibi in Thor's style on 2026-09-22 (assets/boss/odin-manifest.json) - same
+   filename, new picture, so the ?v= is what stops a browser that already cached the old boss from
+   serving it forever. Huginn and Muninn circle his arena on the Harbour's gull flight path. */
+const odinImg=new Image();odinImg.src='assets/boss/odin_boss.png?v=3';
+const odinRavenImg=new Image();odinRavenImg.src='assets/boss/odin_raven.png';
+const ODIN_RAVENS=Object.freeze([[1200,800,780,430,.11,0],[1200,800,560,330,-.09,2.6]]); /* [cx,cy,rx,ry,rad/s,phase] in the 2400x1600 arena */
 const odinSpearImg=new Image();odinSpearImg.src='assets/boss/odin_spear.png?v=2';
 const pickImg=new Image();pickImg.src='assets/weapons/pickaxe.png?v=2'; /* the miner's tool */
 /* the three lords of the Violet Halls - painted bodies + one shared blade, tinted per lord */
@@ -401,7 +404,6 @@ const torWeaponImg=new Image();torWeaponImg.src='assets/boss/tor_weapon.png?v=2'
 const fellordFeetImg=new Image();fellordFeetImg.src='assets/boss/fellord_feet.png?v=2';
 const fellordCompleteFootImg=new Image();fellordCompleteFootImg.src='assets/boss/fellord_foot_complete.png';
 const thorCompleteFootImg=new Image();thorCompleteFootImg.src='assets/boss/thor_foot_complete.png';
-const odinCompleteFootImg=new Image();odinCompleteFootImg.src='assets/boss/odin_foot_complete.png';
 const firelordFeetImg=new Image();firelordFeetImg.src='assets/boss/firelord_feet.png?v=2';
 const frostlordFeetImg=new Image();frostlordFeetImg.src='assets/boss/frostlord_feet.png?v=2';
 const RAID_SKINS={ /* lift = body bottom in radii · wy/wx = weapon grip */
@@ -420,6 +422,9 @@ const RAID_SKINS={ /* lift = body bottom in radii · wy/wx = weapon grip */
  /* Leveling bosses retain their authored torso and weapon scale. */
  krev:{img:krevImg,original:fullKrevImg,frame:[64,55,900,920],cutout:{key:'black'},wpn:()=>cowWeaponImg,glow:'#ff9a2a',lift:0.597717,wy:-0.190304,wx:0.44,size:7.5,ws:0.85},
  thor:{img:torImg,join:[{img:thorCompleteFootImg,crop:[230,500,694,812],cutout:{key:'white',minimum:180,chroma:22,edgeMaximum:180,edgeSoftness:96},x:241,y:764,w:180,h:180*677/578},{img:thorCompleteFootImg,crop:[230,500,694,812],cutout:{key:'white',minimum:180,chroma:22,edgeMaximum:180,edgeSoftness:96},x:476,y:764,w:180,h:180*677/578,flip:true}],wpn:()=>torWeaponImg,glow:'#7fd0ff',zap:true,lift:-0.080532,wy:-0.322482,wx:0.44,size:5.25},
+ /* ⚔ ODIN - one complete chibi master, no joined feet; the foot rows live in EnemyFootProfiles.odin.
+    Gungnir keeps its own paint (soak:false) - only the ice-blue glow is borrowed. */
+ odin:{img:odinImg,wpn:()=>odinSpearImg,grip:[0.5,0.8],glow:'#7fd0ff',soak:false,lift:0.70,wy:-0.196,wx:0.34,size:6.1,ws:0.75},
  /* 🐄 Cow Level herd - painted hell-minotaur; the Alpha draws 2× the normal cow */
  /* ☠ the final boss - twin scythes, one on each side, and mirrored feet */
  reaper:{img:finalBossImg,join:[{img:finalBossFootImg,x:211,y:587,w:130,h:125},{img:finalBossFootImg,x:327,y:587,w:130,h:125,flip:true}],wpn:()=>finalBossWeaponImg,glow:'#a06bd0',lift:0.035975,wy:-0.341921,wx:0.38,wxr:0.30,size:7.3,dual:true,ws:0.78}, /* wxr pulls the right scythe in */
@@ -479,9 +484,9 @@ function mobTinted(img,col){ /* soak the grey sprite in the foe's colour, cached
  if(!colours){colours={};mobTintCache.set(img,colours);}return colours[col]=c;
 }
 const raidBladeCache={};
-function raidBlade(glow,img){ /* the lord's weapon soaked in his colour, cached per art+tint */
+function raidBlade(glow,img,soak=true){ /* the lord's weapon soaked in his colour, cached per art+tint */
  img=img||cowWeaponImg;
- const key=glow+':'+img.src;
+ const key=glow+':'+img.src+(soak?'':':raw');
  if(raidBladeCache[key])return raidBladeCache[key];
  if(!img.complete||!img.naturalWidth)return null;
  const c=document.createElement('canvas');
@@ -489,13 +494,14 @@ function raidBlade(glow,img){ /* the lord's weapon soaked in his colour, cached 
  const g=c.getContext('2d');
  g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
  g.drawImage(img,0,0,c.width,c.height);
- g.globalCompositeOperation='source-atop';
- g.fillStyle=glow;g.globalAlpha=0.42; /* soak the art in the tint */
- g.fillRect(0,0,c.width,c.height);
+ if(soak){ /* Gungnir opts out - its painted ice head would go flat under a blue wash */
+  g.globalCompositeOperation='source-atop';
+  g.fillStyle=glow;g.globalAlpha=0.42; /* soak the art in the tint */
+  g.fillRect(0,0,c.width,c.height);
+ }
  return raidBladeCache[key]=c;
 }
 const ratbossImg=new Image();ratbossImg.src='assets/boss/rat_boss.png?v=2'; /* the crypt rat - art faces left */
-const ODIN_SKIN={img:odinImg,join:[{img:odinCompleteFootImg,crop:[181,292,796,933],cutout:{key:'white',minimum:180,chroma:22,edgeMaximum:180,edgeSoftness:96},x:266,y:851,w:170,h:170*677/578},{img:odinCompleteFootImg,crop:[181,292,796,933],cutout:{key:'white',minimum:180,chroma:22,edgeMaximum:180,edgeSoftness:96},x:464,y:851,w:170,h:170*677/578,flip:true}]};
 const RAT_SKIN={img:ratbossImg,original:fullRatImg,frame:[25,19,983,985],cutout:{key:'white',remove:[[160,860,30000]]}};
 const theRingImg=new Image();theRingImg.src='assets/models/thering.png';
 const altarFenceImg=new Image();altarFenceImg.src='assets/models/maps/altarasset.png';
@@ -8442,6 +8448,7 @@ function draw(){
  for(const d of drawables)d.f();
  if(z.city&&world.flocks&&!TideUI.isBattling())CityGround.drawBirds(ctx,world.flocks,{x:cx0,y:cy0,w:cx1-cx0,h:cy1-cy0},cityGroundImages(),now,true);   /* 🕊 the pigeons you startled */
  if(z.harbor&&!TideUI.isBattling())HarborWorld.drawSky(ctx,world,{x:cx0,y:cy0,w:cx1-cx0,h:cy1-cy0},now,harborImages());   /* 🕊 gulls over the masts */
+ if(z.amb==='odin'&&!TideUI.isBattling())HarborWorld.drawFlight(ctx,ODIN_RAVENS,{x:cx0,y:cy0,w:cx1-cx0,h:cy1-cy0},now,odinRavenImg,74,'#1c1c26');   /* 🐦‍⬛ Huginn and Muninn circle the gates */
  /* 🎆 the sky over the city: fireworks over a jubilant square, snow in a hard winter */
  if(z.city&&world.look&&!TideUI.isBattling()){
   if(world.look.fireworks)CityWorks.drawFireworks(ctx,world,{x:cx0,y:cy0,w:cx1-cx0,h:cy1-cy0},now);
@@ -9937,11 +9944,10 @@ function drawEnemy(en){
  const by=moving?Math.sin(en.walk*2)*1.6:Math.sin(now/700+en.home.x)*0.7;
  ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,en.r*0.55,en.r,en.r*0.42,0,0,7);ctx.fill();
  if(en.slowT>0){ctx.strokeStyle='rgba(160,224,255,0.6)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,en.r*0.5,en.r+3,en.r*0.5,0,0,7);ctx.stroke();}
- const odinPainted=en.bossId==='odin'&&odinImg.complete&&odinImg.naturalWidth;
  const skinKey=en.skin||en.bossId;
- const raidSkin=RAID_SKINS[skinKey]&&RAID_SKINS[skinKey].img.naturalWidth?RAID_SKINS[skinKey]:null; /* raid lords + skinned leveling bosses + dungeon trolls + cow herd */
- const mobSkin=(!raidSkin&&!odinPainted&&!en.boss&&!en.cow&&en.name!=='Crow')?mobSkinFor(en):null; /* painted foes and boss adds - the Crow adds keep their own look */
- if(en.kind!=='undead'&&en.bossId!=='odin'&&!RAID_SKINS[skinKey]&&!mobSkin)feet(en,en.r/13);
+ const raidSkin=RAID_SKINS[skinKey]&&RAID_SKINS[skinKey].img.naturalWidth?RAID_SKINS[skinKey]:null; /* raid lords + ODIN + skinned leveling bosses + dungeon trolls + cow herd */
+ const mobSkin=(!raidSkin&&!en.boss&&!en.cow&&en.name!=='Crow')?mobSkinFor(en):null; /* painted foes and boss adds - the Crow adds keep their own look */
+ if(en.kind!=='undead'&&!RAID_SKINS[skinKey]&&!mobSkin)feet(en,en.r/13);
  let mobExtra=0;
  const dark='rgba(0,0,0,0.28)';
  if(raidSkin){ /* a complete enemy sprite: body and feet share one transform */
@@ -9971,7 +9977,7 @@ function drawEnemy(en){
    }else ctx.drawImage(mip(raidSkin.img,W),-W/2,-H-hop+breath,W,H); /* loading fallback */
    ctx.restore();
   }
-  const bl=raidBlade(raidSkin.glow,raidSkin.wpn?raidSkin.wpn():null);
+  const bl=raidBlade(raidSkin.glow,raidSkin.wpn?raidSkin.wpn():null,raidSkin.soak!==false);
   if(bl){
    const AH=H*(raidSkin.ws||0.6),AW=AH*bl.width/bl.height;
    const bfx=(hero&&hero.x<en.x)?-1:1; /* held on the side it strikes */
@@ -9996,29 +10002,6 @@ function drawEnemy(en){
     ctx.shadowBlur=0;
     ctx.restore();
    }
-  }
- }else if(odinPainted){ /* Odin's surviving artwork is joined into one fixed sprite. */
-  const H=en.r*4.4,W=H*odinImg.naturalWidth/odinImg.naturalHeight;
-  { /* same walk cycle as the skinned lords */
-   const gait=EnemyFootMotion.amount(en),ph=en.wt||0;
-   const hop=Math.abs(Math.sin(ph))*en.r*0.025*gait;
-   ctx.save();
-   ctx.translate(0,en.r*0.1+by);
-   ctx.rotate(Math.sin(ph)*0.045*gait);
-   const whole=EnemyFullbody.get(ODIN_SKIN),px=H/odinImg.naturalHeight;
-   if(whole){
-    const art=EnemyFootMotion.frame(whole.img,EnemyFootProfiles.odin,ph,gait,whole.width*px*(zoom||1)*(DPR||1));
-    ctx.drawImage(mip(art,whole.width*px),-W/2+whole.x*px,-H+whole.y*px-hop,whole.width*px,whole.height*px);
-   }
-   else ctx.drawImage(mip(odinImg,W),-W/2,-H-hop,W,H);
-   ctx.restore();
-  }
-  if(odinSpearImg.complete&&odinSpearImg.naturalWidth){ /* Gungnir - held on the side he strikes, like the hero's weapon */
-   const AH=H*1.0,AW=AH*odinSpearImg.naturalWidth/odinSpearImg.naturalHeight;
-   const bfx=(hero&&hero.x<en.x)?-1:1; /* face the target */
-   ctx.save();ctx.translate(bfx*W*0.42,-H*0.28+by-en.r*0.45);ctx.scale(bfx,1);ctx.rotate(0.5+(en.swing?(0.2-en.swing)*7:0));
-   ctx.drawImage(mip(odinSpearImg,AW),-AW/2,-AH*0.8,AW,AH);
-   ctx.restore();
   }
  }else if(mobSkin){ /* 🎨 painted foe - grey art soaked in this enemy's own colour */
   const H=en.r*(MOB_SIZE[en.kind]||4.6),W=H*mobSkin.naturalWidth/mobSkin.naturalHeight;
@@ -10131,7 +10114,7 @@ function drawEnemy(en){
    ctx.beginPath();ctx.ellipse(0,-en.r-4+by,en.r*0.34,en.r*0.18,0,0,7);ctx.fill();
    ctx.strokeStyle='rgba(127,208,255,'+(0.35+0.25*Math.sin(now/110))+')';
   }else if(B==='odin'){ /* ODIN: blond top, two extra heads, ember glow */
-   if(!odinPainted){
+   if(!raidSkin){ /* the painting has not loaded yet */
    ctx.fillStyle='#f2d98a';
    ctx.beginPath();
    ctx.moveTo(-en.r*0.42,-en.r-2+by);
@@ -10171,7 +10154,7 @@ function drawEnemy(en){
  if(en.hurt>0){ctx.fillStyle='rgba(255,255,255,'+en.hurt*2.5+')';ctx.beginPath();ctx.arc(0,-6+by,en.r*0.9,0,7);ctx.fill();}
  ctx.font=(en.boss?'700 11px ':'600 9px ')+getComputedStyle(document.body).fontFamily;
  ctx.textAlign='center';
- const lblY=(typeof odinPainted!=='undefined'&&odinPainted)?-en.r*4.85:raidSkin?-en.r*((raidSkin.size||5)+0.1):mobSkin?-en.r*((MOB_SIZE[en.kind]||4.6)-0.25)-mobExtra:-en.r-16; /* painted foes stand taller than the old blobs */
+ const lblY=raidSkin?-en.r*((raidSkin.size||5)+0.1):mobSkin?-en.r*((MOB_SIZE[en.kind]||4.6)-0.25)-mobExtra:-en.r-16; /* painted foes stand taller than the old blobs */
  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(en.name,1,lblY+by+1);
  ctx.fillStyle=en.boss?'#ffd76a':'#ffe9e0';ctx.fillText(en.name,0,lblY+by);
  if((en.hp<en.max||en.boss)&&!en.dead)drawMiniBar(-en.r,lblY+3+by,en.r*2,en.hp/en.max,'#c75146');

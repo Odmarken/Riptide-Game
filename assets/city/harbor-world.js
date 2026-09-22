@@ -367,24 +367,29 @@
   g.restore();
   if(a.float||a.wash)waterline(g,Ww*(a.wash?.8:.94),time,seed,a.float?0:2);
  }
- /* 🕊 gulls over everything: seven birds on slow ellipses, each with its shadow on whatever is below */
- const GULLS=Object.freeze([[1500,2500,620,300,.13,0],[2900,2350,560,340,-.11,1.7],[2200,1750,900,180,.09,3.1],[3700,2800,380,260,.16,4.4],[800,3000,420,240,-.14,5.2],[2250,3150,300,180,.19,2.2],[3300,1700,500,150,-.08,.9]]);
- function drawSky(g,world,view,time=0,images={}){
-  remembered={...remembered,...images};const im=remembered.seagull;
-  for(const [cx,cy,rx,ry,w,ph] of GULLS){
+ /* 🕊 birds on slow ellipses, each with its shadow on whatever is below. One [cx,cy,rx,ry,w,phase]
+    per bird (w in radians per second, negative to circle the other way). The Harbour's gulls fly
+    it, and Odin's ravens borrow it with their own picture; `ink` is the glyph drawn until that loads. */
+ function drawFlight(g,birds,view,time=0,im=null,size=62,ink='#eef4f6'){
+  for(const [cx,cy,rx,ry,w,ph] of birds){
    const t=time*w+ph,x=cx+Math.cos(t)*rx,y=cy+Math.sin(t)*ry;
    if(x<view.x-120||x>view.x+view.w+120||y<view.y-160||y>view.y+view.h+60)continue;
-   const heading=Math.atan2(Math.cos(t)*ry*Math.sign(w),-Math.sin(t)*rx*Math.sign(w)),beat=1+Math.sin(time*7+ph*5)*.07,size=62;
+   const heading=Math.atan2(Math.cos(t)*ry*Math.sign(w),-Math.sin(t)*rx*Math.sign(w)),beat=1+Math.sin(time*7+ph*5)*.07;
    ellipse(g,x+70,y+120,22,8,'rgba(0,0,0,.16)');
    g.save();g.translate(x,y);g.rotate(heading+Math.PI/2);g.scale(beat,1);
    if(ready(im))g.drawImage(im,-size/2,-size*ih(im)/iw(im)/2,size,size*ih(im)/iw(im));
-   else{g.strokeStyle='#eef4f6';g.lineWidth=3;g.beginPath();g.moveTo(-18,4);g.quadraticCurveTo(-8,-8,0,0);g.quadraticCurveTo(8,-8,18,4);g.stroke();}
+   else{g.strokeStyle=ink;g.lineWidth=3;g.beginPath();g.moveTo(-18,4);g.quadraticCurveTo(-8,-8,0,0);g.quadraticCurveTo(8,-8,18,4);g.stroke();}
    g.restore();
   }
+ }
+ /* 🕊 gulls over everything: seven birds over the basin */
+ const GULLS=Object.freeze([[1500,2500,620,300,.13,0],[2900,2350,560,340,-.11,1.7],[2200,1750,900,180,.09,3.1],[3700,2800,380,260,.16,4.4],[800,3000,420,240,-.14,5.2],[2250,3150,300,180,.19,2.2],[3300,1700,500,150,-.08,.9]]);
+ function drawSky(g,world,view,time=0,images={}){
+  remembered={...remembered,...images};drawFlight(g,GULLS,view,time,remembered.seagull);
  }
  const IMAGES=Object.freeze([...new Set(Object.values(ART).map(a=>a.key).filter(k=>!['lamp','stall_fish','stall_cloth'].includes(k))),'harbor_arrival','harbor_cliff','sea_tile','quay_paving','planks','seagull']);
  const CITY_IMAGES=Object.freeze(['lamp','stall_fish','stall_cloth']);   /* these three are the City's own paintings */
 
- return Object.freeze({create,contains,renderGround,drawProp,drawShadow,drawSky,frame,
+ return Object.freeze({create,contains,renderGround,drawProp,drawShadow,drawSky,drawFlight,frame,
   W,H,XC,Q0,Q1,QUAY,ARRIVAL,FLIGHT,EXIT,EXIT_Y,SPAWN,CLIFF,PIER_A,MOLE,JETTY,LANES,CROSS,HOUSES,SHIPS,FOLK,TALK,HARBOUR_MASTER,ART,IMAGES,CITY_IMAGES});
 });

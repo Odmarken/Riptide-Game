@@ -33,7 +33,8 @@ const EnemyFootProfiles=(()=>{
   frostking:feet(911,898,[[302,473,792,855,0],[498,668,792,855,PI]]),
   thor:feet(908,975,[[222,441,822,925,0],[458,677,822,925,PI]]),
   reaper:feet(642,712,[[195,336,660,692,0],[336,474,660,692,PI]]),
-  odin:feet(900,1051,[[248,453,919,1001,0],[453,653,919,1001,PI]]),
+  // ODIN's complete chibi master (2026-09-22): root just below the hanging fists, ankle where the boots flare.
+  odin:feet(898,1014,[[150,448,868,960,0],[452,745,868,960,PI]]),
   // The rat's right boundary stops before the detached poison puddle at x825;
   // its root is below the hand and the tail crossing behind that ankle.
   rat:feet(1024,1024,[[218,512,891,938,0],[641,824,913,966,PI]]),

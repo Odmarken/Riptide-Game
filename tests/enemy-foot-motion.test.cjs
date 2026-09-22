@@ -140,7 +140,7 @@ test('the production profiles cover all painted enemies and keep special limb an
  const keys=[...skins.matchAll(/^\s*([a-z][a-z0-9_]*):\{/gm)].map(m=>m[1]);
  const mobSource=game.slice(game.indexOf('const MOB_SET='),game.indexOf('const MOB_SIZE='));
  const mobs=[...mobSource.matchAll(/'(hum_[a-z]+|bst_[a-z]+|und_[a-z]+)'/g)].map(m=>m[1]);
- assert.deepEqual(Object.keys(Profiles).sort(),[...keys,...mobs,'odin','rat'].sort());
+ assert.deepEqual(Object.keys(Profiles).sort(),[...keys,...mobs,'rat'].sort());
  assert.equal(Object.keys(Profiles).length,29);
  assert.equal(Profiles.und_wraith.length,0,'a floating wraith must not acquire fake feet');
  for(const key of ['bst_boar','bst_wolf']){

@@ -286,53 +286,6 @@
         }
       ]
     },
-    "odin": {
-      "body": "assets/boss/odin_boss.png",
-      "parts": [
-        {
-          "img": "assets/boss/odin_foot_complete.png",
-          "x": 266,
-          "y": 851,
-          "w": 170,
-          "h": 199.11764705882354,
-          "crop": [
-            181,
-            292,
-            796,
-            933
-          ],
-          "cutout": {
-            "key": "white",
-            "minimum": 180,
-            "chroma": 22,
-            "edgeMaximum": 180,
-            "edgeSoftness": 96
-          }
-        },
-        {
-          "img": "assets/boss/odin_foot_complete.png",
-          "x": 464,
-          "y": 851,
-          "w": 170,
-          "h": 199.11764705882354,
-          "flip": true,
-          "crop": [
-            181,
-            292,
-            796,
-            933
-          ],
-          "cutout": {
-            "key": "white",
-            "minimum": 180,
-            "chroma": 22,
-            "edgeMaximum": 180,
-            "edgeSoftness": 96
-          }
-        }
-      ],
-      "replacementFootManifest": "assets/boss/complete-foot-manifest.json"
-    },
     "revenant": {
       "body": "assets/mobs/und_revenant.png",
       "parts": [
@@ -346,7 +299,7 @@
       ]
     }
   },
-  "limitations": "No complete originals survive for Betrayer, Firelord, Frostking, Thor, Odin or Reaper. Firelord, Frostking and Reaper use their preserved foot artwork joined in fixed reviewed positions. Betrayer had clipped toe contours; Thor and Odin previously reused player boots. These three now use newly generated matching armored feet from complete-foot-manifest.json, with all original bodies and source files preserved. Odin was generated cropped at mid-thigh. Revenant was already cropped in its first Git version; the saved matching bone-foot pair is joined behind its shins.",
+  "limitations": "Odin was redrawn as one complete chibi master on 2026-09-22 (odin-manifest.json) and no longer joins feet; the notes below predate that. No complete originals survive for Betrayer, Firelord, Frostking, Thor, Odin or Reaper. Firelord, Frostking and Reaper use their preserved foot artwork joined in fixed reviewed positions. Betrayer had clipped toe contours; Thor and Odin previously reused player boots. These three now use newly generated matching armored feet from complete-foot-manifest.json, with all original bodies and source files preserved. Odin was generated cropped at mid-thigh. Revenant was already cropped in its first Git version; the saved matching bone-foot pair is joined behind its shins.",
   "motion": {
     "renderer": "assets/boss/foot-motion.js",
     "profiles": "assets/boss/foot-motion-profiles.js",
