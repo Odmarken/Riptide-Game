@@ -175,7 +175,8 @@ const CHAR_SPRITES={ /* all 16 male race+class combos have art in assets/charact
  orcfemale_warrior:1,orcfemale_mage:1,orcfemale_hunter:1,orcfemale_priest:1,
  undeadfemale_warrior:1,undeadfemale_mage:1,undeadfemale_hunter:1,undeadfemale_priest:1,
  humanmale_armor:1,dwarfmale_armor:1,orcmale_armor:1,undeadmale_armor:1,
- humanfemale_armor:1,dwarffemale_armor:1,orcfemale_armor:1,undeadfemale_armor:1}; /* _armor = 🧊 Ice Armor skins */
+ humanfemale_armor:1,dwarffemale_armor:1,orcfemale_armor:1,undeadfemale_armor:1, /* _armor = 🧊 Ice Armor skins */
+ humanmale_royal:1,dwarfmale_royal:1,orcmale_royal:1,undeadmale_royal:1,humanfemale_royal:1,dwarffemale_royal:1,orcfemale_royal:1,undeadfemale_royal:1}; /* _royal = 👑 the crown's robes (2026-09-22, Higgsfield gpt_image_2_5 flare off the class sprites - every class of a race shares its face, so one per race+gender) */
 const npcMaleImg=new Image();npcMaleImg.src='assets/characters/npc/npc_male.png';
 /* Sebbe wears the same face as the townsmen - the art is npc_male repainted in a flat cap and a
    turn-of-the-century overcoat, at the same size and framing, so he drops into the same slot. */
@@ -192,7 +193,7 @@ const NPC_SKINS={male:'npc_male',female:'npc_female',sebbe:'npc_sebbe',guard:'np
  monk:'npc_monk',blacksmith:'npc_blacksmith',noble_lady:'npc_noble_lady',noble_dowager:'npc_noble_dowager',
  noble_maiden:'npc_noble_maiden',baker:'npc_baker',market_woman:'npc_market_woman',
  /* 👑 the court of the Throne Hall, drawn 2026-09-19 the same way */
- king:'npc_king',kings_hand:'npc_kings_hand',royal_guard:'npc_royal_guard',
+ king:'npc_king',king_beggar:'npc_king_beggar',kings_hand:'npc_kings_hand',royal_guard:'npc_royal_guard',
  /* ⚓ the people of the Harbour, drawn 2026-09-21 the same way */
  sailor:'npc_sailor',pirate:'npc_pirate',pirate_captain:'npc_pirate_captain',dockhand:'npc_dockhand',harbour_master:'npc_harbour_master',fishwife:'npc_fishwife'};
 const npcSkinCache={};
@@ -503,9 +504,37 @@ const swordImg=new Image();swordImg.src='assets/weapons/sword.png';
 function femBootW(raceId,clsId){
  return characterBootFrame(RACE_ALIAS[raceId]||raceId,true,bootImg).bw;
 }
+/* 👘 OUTFITS (asked for 2026-09-22): what the hero is drawn in, independent of what they wear for numbers. 'default' is the
+   class's own colours, 'ice' the cursed plate (unlocked by the Altar's ritual, or by owning the armor), 'royal' the crown's
+   robes (unlocked by taking the crown). S.outfit holds the choice; a save from before the choice existed keeps the old
+   rule - Ice Armor on the back shows Ice Armor. The draw functions take it as `iceArm`: false, true (ice) or 'royal'. */
+const OUTFITS=[
+ {id:'default',icon:'🧵',name:()=>classOf()?classOf().name+"'s colours":'Your colours',desc:'What you set out in. The class, as it always looked.',how:'always yours'},
+ {id:'ice',icon:'🧊',name:()=>'Ice Armor',desc:'The cursed plate the Altar gave you for a life. It never lets go - but it can be hidden.',how:'the Altar’s ritual'},
+ {id:'royal',icon:'👑',name:()=>(S&&S.gender==='f'?'Queen':'King')+'’s robes',desc:'Crimson velvet, ermine and the crown of the City. The tailors of the palace have your measure.',how:'take the crown'},
+];
+function outfitUnlocked(id){
+ if(!S)return id==='default';
+ if(id==='default')return true;
+ if(id==='ice')return !!(S.ritualDone||(S.gear&&isIce(S.gear.armor))||(S.bag||[]).some(it=>it&&isIce(it)));
+ if(id==='royal')return !!(S.city&&S.city.crowned);
+ return false;
+}
+function heroOutfit(){
+ if(!S)return 'default';
+ if(S.outfit===undefined)return S.gear&&isIce(S.gear.armor)?'ice':'default';   /* before the choice existed: the armor on your back */
+ return outfitUnlocked(S.outfit)?S.outfit:'default';
+}
+const outfitArgOf=id=>id==='royal'?'royal':id==='ice';
+const outfitArg=()=>outfitArgOf(heroOutfit());
+const lookOutfit=look=>look&&look.outfit==='royal'?'royal':!!(look&&look.ice);   /* what a peer or a leaderboard entry sent */
+/* 👁 the weapon eye in the hero panel: hidden in the hand, still counted in the numbers */
+const heroWeaponArgs=()=>S&&S.hideWeapon?{fm:false,id:null}:{fm:isFK(S.gear.weapon),id:isFG(S.gear.weapon)?'felglaives':isFK(S.gear.weapon)?'rimfrost':null};
+const ROYAL_BODY_H=56;   /* the crown rides above the head: the royal frame is this tall for the same body as a 48-unit class frame */
 function paintedCharacterFrame(raceId,clsId,female,iceArm){
  raceId=RACE_ALIAS[raceId]||raceId;clsId=CLASS_ALIAS[clsId]||clsId;
- const image=charSprite(raceId,iceArm?'armor':clsId,female),body=characterBodyFrame(image);
+ const royal=iceArm==='royal';
+ const image=charSprite(raceId,royal?'royal':iceArm?'armor':clsId,female),body=characterBodyFrame(image,royal?ROYAL_BODY_H:48);
  if(!body)return null;
  const boots=characterBootFrame(raceId,female,bootImg,body.bodyBottom,body.bootTop);
  return {image,...body,boots,groundY:boots.groundY};
@@ -1032,6 +1061,12 @@ function leaveThroneHall(){
 function throneWorldClick(wx,wy){
  let target,open,range,movePoint;
  if(zoneOf().city){
+  const beg=world.npcs.find(n=>n.game==='beggarking');   /* 🪙 the old King at the foot of the stair has something to ask */
+  if(beg&&Math.abs(wx-beg.x)<48&&wy>beg.y-80&&wy<beg.y+30){
+   const open=()=>beggarSpeak(beg);
+   if(dist(hero,beg)<150)open();else{hero.target=null;hero.goPortal=false;hero.moveTo={x:beg.x+70,y:beg.y+40};marker={...hero.moveTo,t:0};hero.pendingDoor={s:beg,open,rng:150};}
+   return true;
+  }
   /* a click anywhere on the painting walks you up it. From outside the balustrades the way in is
      round by the first step, so the walk goes to the mouth first and carries on from there. */
   const u=(wx-PALACE.x)/PALACE.w,v=(wy-PALACE.y)/PALACE.h,im=cityImg('palacestair');
@@ -1135,8 +1170,9 @@ const mpNotReady=otherwise=>FB&&FB.rest?'Raids and duels need the live cloud cha
 function mpLook(){
  const g=(S&&S.gear)||{},w=g.weapon||null;
  return {race:S&&S.race?S.race:'human',cls:S&&S.cls?S.cls:'warrior',
-  w:w?(isFG(w)?'felglaives':(isFK(w)?'rimfrost':(w.id||w.legend||null))):null,ws:w?(w.star||w.up||1):1,wench:w&&w.wench||null,
-  a:g.armor?(g.armor.id||null):null,ice:!!(g.armor&&isIce(g.armor)),pet:S&&S.pet?S.pet:null,fk:!!(w&&isFK(w)),wg:!!(w&&isFG(w)),fem:!!(S&&S.gender==='f')};
+  w:w&&!(S&&S.hideWeapon)?(isFG(w)?'felglaives':(isFK(w)?'rimfrost':(w.id||w.legend||null))):null,ws:w?(w.star||w.up||1):1,wench:w&&!(S&&S.hideWeapon)&&w.wench||null,   /* 👁 a hidden weapon is hidden for peers too */
+  a:g.armor?(g.armor.id||null):null,pet:S&&S.pet&&!S.hidePet?S.pet:null, /* 👁 a hidden pet is hidden for raid-mates too - peers only ever draw it, never count it */
+  ice:!!S&&outfitArg()===true,outfit:S?heroOutfit():'default',hw:!!(S&&S.hideWeapon),fk:!!(w&&isFK(w)&&!(S&&S.hideWeapon)),wg:!!(w&&isFG(w)&&!(S&&S.hideWeapon)),fem:!!(S&&S.gender==='f')};   /* 👘 the outfit travels with the look */
 }
 async function mpCreate(){
  const ok=await mpEnsureFirebase();if(!ok){stageMsg(mpNotReady('Firebase is not ready - sign in or check config.'),FB.rest?5200:2200);sfx.warn();return;}
@@ -1460,7 +1496,7 @@ function drawHeroLike(x,y,look,alpha,anim,name,hp){
   fx=Math.sin(phase*3)>=0?1:-1;
   swing=0.24-Math.abs(Math.sin(phase*10))*0.18;
  }
- const character=paintedCharacterFrame(race,cls,!!look.fem,!!look.ice);
+ const character=paintedCharacterFrame(race,cls,!!look.fem,lookOutfit(look));
  const groundY=character?character.groundY:8;
  ctx.save();ctx.translate(x,y);ctx.globalAlpha=alpha==null?1:alpha;
  /* same grounding as local hero: full opacity + real floor shadow */
@@ -1468,7 +1504,7 @@ function drawHeroLike(x,y,look,alpha,anim,name,hp){
  if(dancing)ctx.rotate(Math.sin(phase*6)*0.25);
  if(character)bootFeet({...character.boots,moving:moving||dancing,walk:phase*1.8,bob:by});
  else feet({walk:phase*1.8},(moving||dancing)?1:0.15);
- drawChampionSprite(ctx,race,cls,fx,by,swing,!!look.fk||!!look.fm||isFKLegend(look.w),look.w,!!look.fem,(moving||dancing)?2:1,!!look.ice,wenchById(look.wench)); /* older peers without a rune field still render normally */
+ drawChampionSprite(ctx,race,cls,fx,by,swing,!!look.fk||!!look.fm||isFKLegend(look.w),look.w,!!look.fem,(moving||dancing)?2:1,lookOutfit(look),wenchById(look.wench)); /* older peers without a rune field still render normally */
  if(look.pet){ctx.font='13px sans-serif';ctx.textAlign='center';const pp=petOf(look.pet);if(pp)petGlyphCanvas(ctx,pp,-18,10);else ctx.fillText('🐾',-18,10);}
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
  const headY=character?character.headY:-30,nameY=headY-(hp!==undefined?10:3);
@@ -3033,6 +3069,7 @@ $('ritualDoneOk').onclick=()=>{
   if(S.gear.armor)S.bag.push(S.gear.armor);
   S.gear.armor=ritualArmor;
   ritualArmor=null;
+  S.outfit='ice';   /* 👘 the plate is what you set out to wear - the Outfits page can take it off again */
   if(hero)hero.hp=Math.min(hero.hp,heroMax());
   stageMsg('🧊 The Ice Armor grips your body - it will never let go.',3000);
   save();renderBag();renderHero();renderHUD();
@@ -5560,6 +5597,7 @@ function collide(e,nx,ny){
   for(const s of solidCell(nx,ny)){
    if(s.noCol)continue; /* roaming farm animals - walk-through */
    if(s.mined)continue; /* broken open - nothing left to walk into */
+   if(world.hush&&squareHushed(s))continue; /* ⚖️ cleared for the gallows */
    if(s.type==='gate'&&!(world.raidRooms&&world.raidRooms[s.room]&&world.raidRooms[s.room].sealed))continue;
    if(s.type==='altarportal'||s.type==='ritualportal'||s.type==='farmportal'||s.type==='cityportal'||s.type==='exitportal')continue; /* walk straight through the portals */
    if(s.crx){ /* wide painted buildings block with an ellipse matching their footprint (cyo shifts it up onto the walls) */
@@ -6884,7 +6922,7 @@ cv.addEventListener('contextmenu',()=>{
  if(held){sfx.warn();stageMsg('✋ Put down '+held,1100);}
 });
 cv.addEventListener('pointerdown',e=>{
- if(!gameOn||gamePaused||hero.dead||pinching)return;
+ if(!gameOn||gamePaused||hero.dead||pinching||coronation||execution)return; /* 👑⚖️ a scene plays itself out - no clicks land */
  if(e.button===2)return; /* the right button is the deselect gesture - contextmenu owns it */
  if($('p-tides')?.contains(document.activeElement))document.activeElement.blur();
  const r=cv.getBoundingClientRect();
@@ -7472,6 +7510,8 @@ function update(dt){
  if(zoneOf().city&&world&&world.npcs)cityCrierTick(dt);
  if(zoneOf().city&&world&&world.flocks)CityGround.updateBirds(world.flocks,dt,hero&&!hero.dead?hero:null);
  if(hallScene||(world&&world.throne&&S&&S.city&&S.city.office===1))hallSceneTick(dt);   /* 📜 the Hand meets the Duke he sent for at the door */
+ if(coronation)coronationTick(dt);   /* 👑 the crown is taken in the hall, and the hall plays it out */
+ if(execution)executionTick(dt);   /* ⚖️ the old King hangs on the square, and the square plays it out */
  if(hero&&!hero.dead&&world&&world.solids&&zoneOf().tavern){ /* 🚜 walk straight into the Farm portal - no click needed */
   const fp=world.solids.find(s2=>s2.type==='farmportal');
   if(fp&&Math.hypot(hero.x-fp.x,hero.y-fp.y)<55){goToZone(FARM_ZONE);return;}
@@ -7991,8 +8031,9 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
  for(let i=zaps.length-1;i>=0;i--){zaps[i].t+=dt;if(zaps[i].t>zaps[i].life)zaps.splice(i,1);}
  if(marker){marker.t+=dt;if(marker.t>0.8)marker=null;}
  if(!buildMode){ /* build mode frees the camera - pan and zoom where you like */
-  camX+=(hero.x-VW/(2*zoom)-camX)*Math.min(1,dt*6);
-  camY+=(hero.y-VH/(2*zoom)-camY)*Math.min(1,dt*6);
+  const cf=(coronation&&coronation.focus)||(execution&&execution.focus)||hero;   /* 👑⚖️ a scene may take the camera elsewhere for a while */
+  camX+=(cf.x-VW/(2*zoom)-camX)*Math.min(1,dt*6);
+  camY+=(cf.y-VH/(2*zoom)-camY)*Math.min(1,dt*6);
  }
  /* Once the view is wider than the world there is nothing left to pan, and clamping to 0 shoved the
     whole zone into the top-left corner - which read as "zooming out is broken". Centre it instead. */
@@ -8350,8 +8391,9 @@ function draw(){
   if(s.type==='water'||s.type==='palacestair'||s.type==='harborstair')continue; /* 👑⚓ the palace stair and the harbour flight are ground, painted with the walls - their solids are only landmarks */
   if(s.x<cx0-(s.floats?520:0)||s.x>cx1+(s.floats?520:0)||s.y<cy0||s.y>cy1+(s.floats?60:0))continue; /* off screen - the city has hundreds of these (a ship is judged by its length, not its anchor) */
   if(s.mined)continue;   /* rubble now; the rock returns when the zone is rebuilt */
+  if(world.hush&&squareHushed(s))continue;   /* ⚖️ the great square is cleared for the gallows - the well and all */
   drawPropShadow(s,z);
-  drawables.push({y:s.y,f:()=>drawProp(s,z,false)});
+  drawables.push({y:s.sortY!==undefined?s.sortY:s.y,f:()=>drawProp(s,z,false)});   /* sortY: a prop that must stand behind whoever is on it */
  }
  /* 🐴 the boulevard's traffic - trade wagons, and families moving in or out - and 🎉 the festival bunting strung over it */
  if(z.city&&world.look&&!TideUI.isBattling()){
@@ -8988,17 +9030,11 @@ function drawProp(s,z,withShadow=true){
    const txt='👑 '+cityTitle()+' '+(S.name||'Hero');
    ctx.fillStyle='rgba(0,0,0,0.75)';ctx.fillText(txt,1,-331);ctx.fillStyle='#ffd76a';ctx.fillText(txt,0,-332);
   }
-  if(s.kind==='table'&&S&&S.city){ /* 👥 the mood of the people and the council's favour, over the table */
-   const c=S.city,E=CityEconomy,font=getComputedStyle(document.body).fontFamily,fav=E.favour(c);
-   const lines=[['📜 THE CROWN LEDGER','#ffd27a','700 12px '],
-    ['The people: '+E.moodName(c.mood)+' · '+c.mood+(c.protest?' ✊':''),E.moodColor(c.mood),'700 12px '],
-    ['The council: '+E.favourName(fav)+' · '+fav+(c.petition?' · 📜 petition':''),'#e6dbc9','600 11px '],
-    ['🧲 '+E.attractName(c.attract)+' · '+c.attract+' · '+c.pop+' townsfolk','#bfe08a','600 11px '],
-    [c.crowned?'👑 The crown is yours':'🤝 Trust in you: '+Math.floor(c.trust)+'%'+(c.trust>=E.COUP_TRUST?' - the crown is there to be taken':''),'#ffd76a','600 11px ']];
-   for(const i of c.incidents){const d=E.INCIDENTS.find(x=>x.id===i.id);lines.push([d.icon+' '+d.name,'#ff9f8a','600 11px ']);}
-   ctx.textAlign='center';
-   lines.forEach(([txt,col,f],i)=>{const y=-300+i*16;ctx.font=f+font;ctx.fillStyle='rgba(0,0,0,0.75)';ctx.fillText(txt,1,y+1);ctx.fillStyle=col;ctx.fillText(txt,0,y);});
-  }
+  /* (the readout that used to float over the council table - people, council, draw, trust - was taken down 2026-09-22: the ledger's Overview says it all, and the hero panel opens it from anywhere) */
+ }else if(s.type==='gallows'){ /* ⚖️ the scaffold on the square (assets/city/gallows.png): stands at s.y, its deck GALLOWS.deck of its height up; the rope runs from the beam to whoever hangs from it */
+  const im=cityImg('gallows');
+  if(im.complete&&im.naturalWidth){const w=s.w,h=w*im.naturalHeight/im.naturalWidth;ctx.drawImage(mip(im,w),-w/2,-h,w,h);
+   if(s.rope){ctx.strokeStyle='#c49a55';ctx.lineWidth=3.5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(0,-h*GALLOWS.beam);ctx.lineTo(s.rope.x-s.x,s.rope.y-s.y);ctx.stroke();}}
  }else if(s.type==='citywork'){
   CityWorks.drawProp(ctx,s,performance.now()/1000,cityArt); /* 🏗 lamps, awnings, the fountain, the statue, a building plot */
  }else if(s.type==='smith'){
@@ -9415,9 +9451,9 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   }
   g.restore();
  }
- const armored=painted&&!!iceArm; /* 🧊 Ice Armor reskin - only when THIS character wears it */
- const eCls=armored?'armor':clsId;
- const frame=painted?paintedCharacterFrame(raceId,clsId,female,armored):null;
+ const royal=painted&&iceArm==='royal',armored=painted&&!!iceArm&&!royal; /* 🧊 Ice Armor reskin, 👑 or the crown's robes - only when THIS character wears it */
+ const eCls=royal?'royal':armored?'armor':clsId;
+ const frame=painted?paintedCharacterFrame(raceId,clsId,female,royal?'royal':armored):null;
  const rImg=frame&&frame.image;
  if(frame){
   /* painted character - mirrored when facing left, bobbing + rocking while running */
@@ -9664,7 +9700,7 @@ function drawPet(){
  if(TideUI.isBattling()||!pet||hero.dead)return;
  const visible=TideUI.visibleCompanion();
  if(visible){TideUI.drawCompanion(ctx,pet.x,pet.y,{pet:visible,fx:pet.tideFacing??pet.fx,motion:pet.tideMotion||0,phase:pet.tidePhase||0,time:performance.now()/1000});return;}
- if(!activePet())return;
+ if(!activePet()||S.hidePet)return; /* 👁 eye in the pet slot - it still follows and still gives its bonus, it just is not drawn */
  const p=petOf(S.pet),now=performance.now();
  ctx.save();ctx.translate(pet.x,pet.y);
  const by=pet.moving?Math.sin(pet.walk*2)*1.6:Math.sin(now/500)*0.7;
@@ -9702,7 +9738,7 @@ function drawHero(){
   danceSwing=0.24-Math.abs(Math.sin(h.dance*10))*0.18;
  }
  /* painted heroes stand taller with hovering boots - ground fx sits at their boots' level */
- const character=paintedCharacterFrame(S.race,c.id,S.gender==='f',isIce(S.gear.armor));
+ const character=paintedCharacterFrame(S.race,c.id,S.gender==='f',outfitArg());   /* 👘 the chosen outfit, not the armor slot */
  const gY=riding?8:character?character.groundY-8:0;
  if(!riding){ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,8+gY,12+gY*0.3,5,0,0,7);ctx.fill();}
  /* scroll auras - one soft colored ring per active enchant */
@@ -9720,16 +9756,16 @@ function drawHero(){
  if(dancing)ctx.rotate(Math.sin(h.dance*6)*0.25);
  if(!riding){if(character)bootFeet({...character.boots,moving:h.moving,walk:h.walk,bob:by});else feet(h,1);}
  /* ✨ the weapon's rune - not while fishing, since the rod is not the enchanted thing in his hand */
- const wRune=(fish.on||h.dead)?null:runeOf(S.gear.weapon);
+ const wRune=(fish.on||h.dead||S.hideWeapon)?null:runeOf(S.gear.weapon);   /* 👁 a hidden weapon burns no rune either */
  let rideLayout=null,emission;
  if(riding){
   by=0;
   rideLayout=MountRenderer.draw(ctx,{id:mountRide.id,img:mountImages[mountRide.id],fx,phase:mountRide.phase,time:mountRide.time,moving:mountRide.moving,deviceScale:zoom*DPR,bootImg,bootWidth:character?.boots.bw},(g,ride)=>{
    MountRenderer.drawRiderBoots(g,bootImg,ride,'near');
-   return drawChampionSprite(g,S.race,c.id,fx,0,0,isFK(S.gear.weapon),isFG(S.gear.weapon)?'felglaives':isFK(S.gear.weapon)?'rimfrost':null,S.gender==='f',1,isIce(S.gear.armor),wRune,ride);
+   return drawChampionSprite(g,S.race,c.id,fx,0,0,heroWeaponArgs().fm,heroWeaponArgs().id,S.gender==='f',1,outfitArg(),wRune,ride);
   });
   emission=rideLayout?.riderResult;
- }else emission=drawChampionSprite(ctx,S.race,c.id,fx,by,danceSwing,fish.on?false:isFK(S.gear.weapon),fish.on?'fishingrod':(isFG(S.gear.weapon)?'felglaives':(isFK(S.gear.weapon)?'rimfrost':null)),S.gender==='f',h.moving&&!h.dead?2:1,isIce(S.gear.armor),wRune);
+ }else emission=drawChampionSprite(ctx,S.race,c.id,fx,by,danceSwing,fish.on?false:heroWeaponArgs().fm,fish.on?'fishingrod':heroWeaponArgs().id,S.gender==='f',h.moving&&!h.dead?2:1,outfitArg(),wRune);
  if(mountRide.casting)MountRenderer.drawCast(ctx,{progress:1-mountRide.remaining,id:mountRide.casting,phase:now*2});
  if(wRune&&emission&&!gamePaused)runeSpark(wRune,{...emission,points:emission.points.map(p=>runePointTransform(runeScene,p))},fxDt,h.y+gY+8);
  else resetRuneEmission();
@@ -9769,15 +9805,16 @@ function drawHero(){
 }
 function drawNpc(n){
  const now=performance.now();
- const by=n.moving?Math.sin(n.walk*7)*1.8:Math.sin(now/600+n.x)*0.8;
+ const by=n.hop?-Math.abs(Math.sin(now/1000*n.hop.rate+n.hop.phase))*n.hop.h:n.moving?Math.sin(n.walk*7)*1.8:Math.sin(now/600+n.x)*0.8; /* 👑 hop: a townsman bouncing at the coronation */
  ctx.save();ctx.translate(n.x,n.y);
  const pImg=n.art||npcSkinImage(n.skin)||(n.female?npcFemaleImg:npcMaleImg); /* Sebbe's own art, a named skin, or the two originals */
- const body=characterBodyFrame(pImg,44,7),size=n.big||1;
+ const body=characterBodyFrame(pImg,n.sit?36:44,n.sit?9:7),size=n.big||1;   /* 🪙 a sitter (the pardoned King) is drawn whole - feet in the art - and lower */
  const boots=characterBootFrame(npcSkinRace(n.skin),!!n.female,bootImg,7);
  ctx.save();ctx.scale(size,size);
- ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,body?boots.groundY:8,13,5.5,0,0,7);ctx.fill();
+ if(n.hang){const top=body?body.headY-4:-40;ctx.translate(0,top);ctx.rotate(Math.sin(now/1000*1.6+n.hang)*.06);ctx.translate(0,-top);}   /* ⚖️ swinging from the rope, about the head */
+ ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,body?(n.sit?9:boots.groundY):8,n.sit?16:13,5.5,0,0,7);ctx.fill();
  if(body){
-  bootFeet({...boots,moving:n.moving,walk:n.walk*1.8,bob:by});
+  if(!n.sit)bootFeet({...boots,moving:n.moving,walk:n.walk*1.8,bob:by});
   ctx.save();
   if(n.fx>0)ctx.scale(-1,1); /* art faces left natively - mirror when walking right */
   ctx.rotate(by*0.02);
@@ -9793,7 +9830,7 @@ function drawNpc(n){
   const ny=((body?body.headY:-37)-3+by)*size;
   ctx.font='700 '+(n.game?11:10)+'px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(n.name,1,ny+1);
-  ctx.fillStyle=n.game||n.royal?'#ffd76a':n.watch||n.guard?'#bcd0ee':n.protest?'#ffb3a3':'#cfe6c2';   /* the ones with something to sell stand out; the watch and the guard in steel; the crowd flushed */
+  ctx.fillStyle=n.game||n.royal?'#ffd76a':n.watch||n.guard||n.extraGuard?'#bcd0ee':n.protest?'#ffb3a3':'#cfe6c2';   /* the ones with something to sell stand out; the watch and the guard in steel; the crowd flushed */
   ctx.fillText(n.name,0,ny);
   if(n.mark){ctx.font='13px '+getComputedStyle(document.body).fontFamily;ctx.fillText(n.mark,0,ny-13);} /* 👍 what a councillor thinks of you */
   if(n.bubble&&n.bubble.t>0)drawNpcBubble(n.bubble,ny-(n.mark?30:16));
@@ -10497,9 +10534,11 @@ function gearSwapTo(i){
  sfx.loot();renderHero();renderBag();renderHUD();save();
 }
 function renderHero(){
- TideUI.entry();
+ TideUI.entry();ledgerEntry();outfitEntry();
  const c=classOf(),r=raceOf();
- $('heroTitle').innerHTML=`${esc(dispName(S))} - ${r.name} ${c.name}`+(S.prestige?` · Prestige ${S.prestige}`:'')+
+ /* 🎩 the style before the name: a crowned head is King or Queen, a peer wears the rank (one name to a rank, as everywhere else), a commoner nothing */
+ const style=S.city&&S.city.crowned?cityTitle():S.city&&S.city.noble&&S.city.noble.rank>0?nobleTitle():'';
+ $('heroTitle').innerHTML=(style?`<span class="herostyle">${style}</span> `:'')+`${esc(dispName(S))} - ${r.name} ${c.name}`+(S.prestige?` · Prestige ${S.prestige}`:'')+
   ` <button id="renameBtn" title="Rename hero">✏️</button>`+
   ` <button id="nameEyeBtn" class="${S.hideName?'off':''}" title="${S.hideName?'Show':'Hide'} the name above your hero">👁</button>`;
  $('renameBtn').onclick=openRename;
@@ -10536,15 +10575,18 @@ function renderHero(){
   }
   return `<div class="slot">${mark}<div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div>`+
    (g?`<div class="sn r-${g.rar}">${itemName(g)}</div><div class="ss">${itemStr(g)}</div>
-    ${(g.up||0)>=capUp(g)
+    ${(sl==='weapon'?'<div class="petbtns">':'')+((g.up||0)>=capUp(g)
      ?`<button class="upbtn" disabled>MAX +${capUp(g)} ✦</button>`
-     :`<button class="upbtn ${S.scraps>=upCost(g)?'can':''}" data-up="${sl}">Upgrade · ${upCost(g)} ⚙</button>`}`
+     :`<button class="upbtn ${S.scraps>=upCost(g)?'can':''}" data-up="${sl}">Upgrade · ${upCost(g)} ⚙</button>`)
+     +(sl==='weapon'?`<button class="upbtn peteye" data-weaponeye="1" aria-pressed="${!S.hideWeapon}" aria-label="${S.hideWeapon?'Show':'Hide'} your weapon" title="${S.hideWeapon?'Show':'Hide'} the weapon in your hand. It hits just as hard either way.">${TideUI.eyeIcon}</button></div>`:'')}`
      :`<div class="ss">- empty -</div>`)+`</div>`;
  }).join('');
  const petP=activePet();
+ /* 👁 the same eye as on the Tide storage cards: lit while the pet walks beside you, dim when it is tucked away.
+    Cosmetic only - the pet still follows and its bonus still counts, so nothing in the stat grid changes. */
  slotsHtml+=`<div class="slot" style="border-color:${petP?petP.cc+'88':'var(--line)'}"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">Pet</div>`+
   (petP?`<div class="sn" style="color:${petP.cc}">${petP.g} ${petP.n}</div><div class="ss">${petP.d}</div>
-   <button class="upbtn" data-unpet="1">Unequip</button>`
+   <div class="petbtns"><button class="upbtn" data-unpet="1">Unequip</button><button class="upbtn peteye" data-peteye="1" aria-pressed="${!S.hidePet}" aria-label="${S.hidePet?'Show':'Hide'} your pet" title="${S.hidePet?'Show':'Hide'} the pet beside your hero. Its bonus stays either way.">${TideUI.eyeIcon}</button></div>`
    :`<div class="ss">- no pet equipped -</div>`)+`</div>`;
  $('slotRow').innerHTML=slotsHtml;
  document.querySelectorAll('[data-unpet]').forEach(b=>b.onclick=()=>{
@@ -10552,6 +10594,14 @@ function renderHero(){
   S.pets.push(S.pet);S.pet=null;
   log('Your pet returns to the Bag.');
   renderHero();save();
+ });
+ document.querySelectorAll('[data-peteye]').forEach(b=>b.onclick=()=>{ /* 👁 same idea as the name eye above */
+  S.hidePet=!S.hidePet;save();renderHero();
+  stageMsg(S.hidePet?'👁 Pet hidden':'👁 Pet shown',1400);
+ });
+ document.querySelectorAll('[data-weaponeye]').forEach(b=>b.onclick=()=>{ /* 👁 for the roleplayers: the blade stays sheathed, the numbers do not know */
+  S.hideWeapon=!S.hideWeapon;save();renderHero();
+  stageMsg(S.hideWeapon?'👁 Weapon sheathed':'👁 Weapon drawn',1400);
  });
  /* two scroll slots in their own row, side by side */
  let scHtml='';
@@ -13563,6 +13613,11 @@ function cityApplyPeople(){
    mark:k>=want-3&&c.last&&c.last.moved>0?'🧳':''});
  }
  for(const n of world.npcs)if(n.newcomer&&n.nth<want-3)n.mark='';
+ /* 🪙 the pardoned King: a beggar at the foot of the palace stair, in what is left of his robes (asked for 2026-09-22) */
+ const beggar=world.npcs.find(n=>n.game==='beggarking');
+ if(c.deposed==='pardoned'){if(!beggar){const p=palacePoint(-130,250);world.npcs.push({name:'Alarik · once a King',skin:'king_beggar',race:'human',cls:'warrior',female:false,big:1.35,game:'beggarking',sit:true,royal:true,
+   pts:[{x:p.x,y:p.y}],i:0,dir:1,x:p.x,y:p.y,speed:0,walk:0,fx:-1,pauseT:1e9,moving:false,say:BEGGAR_LINES});}}
+ else if(beggar)world.npcs=world.npcs.filter(n=>n.game!=='beggarking');
  /* 📣 the crier has a pitch on the great square, south-east of the well */
  if(!world.npcs.some(n=>n.game==='crier'))world.npcs.push({name:'Utropare Måns',skin:'merchant',race:'human',cls:'warrior',female:false,big:1.28,game:'crier',
   pts:[{x:world.w/2+118,y:world.h/2+212}],i:0,dir:1,x:world.w/2+118,y:world.h/2+212,speed:0,walk:0,fx:-1,pauseT:1e9,moving:false});
@@ -13629,9 +13684,19 @@ function cityCrierLines(){
  if(c.trust>=60&&!c.crowned)out.push('They are saying in the taverns that '+(S.name||'the steward')+' would wear a crown well.');
  return out;
 }
+const BEGGAR_LINES=['Please… can I just have some coin?','Spare a coin for a man who once had all of them.','I had a crown, you know. It pinched.','One coin. For your King. Your OLD King.','They cheer you now. They cheered me once.','A crust, a coin, a kind word. Any of the three.'];
+function beggarSpeak(n){
+ n.sayI=((n.sayI===undefined?-1:n.sayI)+1)%n.say.length;
+ n.bubble={txt:n.say[n.sayI],t:6,life:6};if(hero)n.fx=hero.x>n.x?1:-1;
+ log('🪙 <b>'+n.name+':</b> '+n.say[n.sayI]);
+}
 function cityCrierTick(dt){
  const n=world.npcs.find(x=>x.game==='crier');if(!n||!S.city||!hero)return;
  if(n.bubble&&(n.bubble.t-=dt)<=0)n.bubble=null;
+ {const b=world.npcs.find(x=>x.game==='beggarking');   /* 🪙 the old King asks now and then, when you are near enough to hear */
+  if(b){if(b.bubble&&(b.bubble.t-=dt)<=0)b.bubble=null;
+   world.begT=(world.begT===undefined?6:world.begT)-dt;
+   if(world.begT<=0&&!execution&&Math.hypot(hero.x-b.x,hero.y-b.y)<900){world.begT=14+Math.random()*10;beggarSpeak(b);}}}
  world.crierT=(world.crierT===undefined?2:world.crierT)-dt;
  if(world.crierT>0||Math.hypot(hero.x-n.x,hero.y-n.y)>1100)return;
  const lines=cityCrierLines();world.crierI=((world.crierI||0)+1)%lines.length;
@@ -13683,13 +13748,15 @@ function cityLedgerClose(){
  if(r.idle){ /* 🏦 the books are shut: no ledger closed - only the heralds' and the counting houses' papers moved */
   for(const u of r.unrest)log(u,'loot');
   if(r.rankUp&&!r.summoned){stageMsg('🎩 '+nobleTitle()+' '+(S.name||'')+(r.rankUp===1?' - your patent of nobility is sealed.':' - the heralds have raised you in the peerage.'),5600,'#ffd76a',true);sfx.quest();}
+  if(r.rankUp)renderHero(); /* 🎩 the style before the name in the hero panel */
   cityApplyAll();if($('boardFx').style.display==='flex')boardRefresh();renderHUD();save();return;
  }
- if(r.rankUp){stageMsg('🎩 '+nobleTitle()+' '+(S.name||'')+(r.rankUp===1?' - your patent of nobility is sealed.':' - the heralds have raised you in the peerage.'),5600,'#ffd76a',true);sfx.quest();}
+ if(r.rankUp){stageMsg('🎩 '+nobleTitle()+' '+(S.name||'')+(r.rankUp===1?' - your patent of nobility is sealed.':' - the heralds have raised you in the peerage.'),5600,'#ffd76a',true);sfx.quest();renderHero();}
  if($('boardFx').style.display==='flex')boardRefresh();
  if(r.salary>0){const n=Math.min(r.salary,goldRoom());S.gold+=n;if(n>0)log('🪙 Your salary as Master of Coin: <span class="loot">+'+n.toLocaleString()+' ◉</span> to your own gold.','loot');}
  if(r.purse>0){const n=Math.min(r.purse,goldRoom());S.gold+=n;if(n>0)log('💎 Your privy purse: <span class="loot">+'+n.toLocaleString()+' ◉</span> to your own gold.','loot');}
- if(S.city.trust>=CityEconomy.COUP_TRUST&&!S.city.crowned&&!S.city.coupTold){S.city.coupTold=true;stageMsg('👑 The realm trusts you more than its King. The crown is there to be taken.',5200,'#ffd76a',true);log('👑 <b>Your trust stands at 100%.</b> Go to the council table - the Crown tab - when you are ready.','loot');}
+ if(CityEconomy.canClaim(S.city)&&!S.city.coupTold){S.city.coupTold=true;stageMsg('👑 The realm trusts you more than its King. The crown is there to be taken.',5200,'#ffd76a',true);log('👑 <b>Your trust stands at 100%, and a season is on the books.</b> Go to the council table - the Crown tab - when you are ready.','loot');}
+ if(r.review&&CityEconomy.bonusView(S.city)&&CityEconomy.bonusView(S.city).open){const b=CityEconomy.bonusView(S.city);log('🎁 <b>Season '+b.n+' made '+fmtGold(b.profit)+' ◉.</b> A fifth of it - '+fmtGold(b.max)+' ◉ - may be yours: the Bank tab, when the treasury is in the black.','loot');}
  const amt=(r.net>=0?'+':'−')+Math.abs(r.net).toLocaleString()+' ◉';
  log('📜 The ledger closed: <span class="'+(r.net>=0?'loot':'imp')+'">'+amt+'</span>'+(r.expected!==undefined&&Math.abs(r.net-r.expected)>=5000?' (the Hand expected '+fmtRough(r.expected)+')':'')+' · treasury '+r.treasury.toLocaleString()+' ◉ · the people are '+CityEconomy.moodName(r.mood).toLowerCase()+'.',r.net>=0?'loot':'imp');
  for(const e of r.events)log('🏙 '+e);
@@ -13797,7 +13864,8 @@ function hallSceneTick(dt){
    stageMsg('📜 Behind the throne, at the council table.',3800,'#ffd76a');renderHUD();save();}}
  else if(sc.phase==='go'){const p=sc.route[0];if(!p||walk(p[0],p[1],230)){sc.route.shift();if(!sc.route.length){hand.x=ThroneWorld.HAND.x;hand.y=ThroneWorld.HAND.y;hand.fx=1;hand.moving=false;hand.scripted=false;hallScene=null;}}}
 }
-const hallSceneHolds=()=>!!hallScene&&hallScene.phase!=='go';     /* the hero stands still while he is being spoken to */
+let coronation=null,execution=null;   /* 👑⚖️ see THE CORONATION and THE GALLOWS below - declared here so hallSceneHolds can read them */
+const hallSceneHolds=()=>!!coronation||!!execution||(!!hallScene&&hallScene.phase!=='go');     /* the hero stands still while he is being spoken to - and for the whole of the coronation */
 function kingSpeak(){
  const c=S.city,f=CityEconomy.forecast(c,cityContext()),who=S.name||'friend',hot=f.incidents.find(i=>i.street)||f.incidents[0];
  if(c.crowned){
@@ -13831,7 +13899,244 @@ function kingSpeak(){
  stageMsg('👑 '+line,5200,'#ffd76a');
  log('👑 <b>'+ThroneWorld.KING_NAME+':</b> '+line);
 }
+/* ==================== 👑 THE CORONATION ====================
+   "Take the crown" at the council table does not flip a flag (asked for 2026-09-22). The screen goes black and the
+   eyes open - the Ice Armor ritual's blackout and blinks - on the hall: the hero before the dais, the King on it with
+   his Hand at his side, the council at the foot of the steps, the guard drawn up behind the hero, townsfolk bouncing
+   at the back. The Hand speaks. The King rages. Two of the guard walk him to the gaol stair (or out through the doors,
+   into exile) and he is gone - THAT is the moment CityEconomy.claimCrown runs. The Hand bids the hero take the throne,
+   the hero walks up to it, and everybody goes back where they came from: the council through the passages to their
+   chairs, the guard to the pillars, the townsfolk out through the doors. The hero is not the player's until the last
+   of them has gone (hallSceneHolds, the click handler, the camera and openLedger all read `coronation`).
+   Nothing here is saved: a game shut mid-scene simply has not taken the crown yet, and the button is still there. */
+const CORONATION_LINES={
+ hand1:name=>'The realm has made its choice, and it is heard across the sea: they want their new '+cityTitle()+'. The council agrees. '+cityTitle()+' '+name+' shall be granted the crown.',
+ king:'No! This is MY realm - you cannot do this!! ENOUGH! Stop this madness!',
+ hand2:name=>name+', take the throne - and rule this realm as the council and the people want.',
+};
+function startCoronation(fate){
+ if(coronation||!S||!S.city||!hero||hero.dead||!CityEconomy.canClaim(S.city))return false;
+ $('ledgerFx').style.display='none';
+ coronation={fate:fate==='exile'?'exile':'gaol',phase:'dark',t:0,pt:0,staged:false,blink:0,cast:[],extras:[],focus:null,escorts:[]};
+ hero.moveTo=null;hero.target=null;hero.pendingDoor=null;hero.goPortal=false;marker=null;holdMove=null;
+ const fx=$('ritualFx');fx.style.display='block';fx.style.transition='none';fx.style.opacity='0';
+ requestAnimationFrame(()=>{fx.style.transition='opacity .8s';fx.style.opacity='1';});   /* the eyes close */
+ blip(70,40,1.2,.12,'sine');setTimeout(()=>blip(60,35,1.4,.12,'sine'),1500);setTimeout(()=>blip(52,30,1.6,.10,'sine'),2900);
+ return true;
+}
+/* the hall as the eyes open on it: everybody in their place for the act */
+function stageCoronation(sc){
+ if(!zoneOf().throne)goToZone(THRONE_ZONE);
+ const T=ThroneWorld,front=T.DAIS.y+T.DAIS.h+100,W=world;
+ const npc=(pred)=>W.npcs.find(pred);
+ const place=(n,x,y,fx)=>{if(!n)return;n.x=x;n.y=y;if(fx)n.fx=fx;n.scripted=true;n.moving=false;n.pauseT=1e9;n.bubble=null;n.route=null;sc.cast.push(n);};
+ hero.x=T.THRONE.x;hero.y=front+30;hero.fx=1;hero.moveTo=null;hero.moving=false;
+ if(pet){pet.x=hero.x-40;pet.y=hero.y+14;}
+ camX=hero.x-VW/(2*zoom);camY=hero.y-VH/(2*zoom);   /* cut, do not pan */
+ const king=npc(n=>n.game==='king'),hand=npc(n=>n.game==='ledger');
+ place(king,T.KING.x,T.KING.y,-1);place(hand,T.KING.x-88,T.KING.y+6,1);
+ /* the council at the foot of the steps, three to the west of the carpet and two to the east */
+ const seats=W.npcs.filter(n=>n.seat),cx=[600,680,760,1040,1120];
+ seats.forEach((n,i)=>place(n,cx[i]||900,front-30,cx[i]<900?1:-1));
+ /* the guard: the two at the dais keep their posts (they are the escort); the pillar guards form up behind the hero, with extras to fill the ranks */
+ const guards=W.npcs.filter(n=>n.guard&&!n.hidden),dais=guards.filter(n=>n.y<front-60),rank=guards.filter(n=>!dais.includes(n));
+ sc.escorts=dais.slice(0,2);dais.forEach(n=>{n.scripted=true;n.route=null;n.home={x:n.x,y:n.y,fx:n.fx};sc.cast.push(n);});
+ const spots=[];for(const y of [front+130,front+190])for(const x of [720,780,840,900,960,1020,1080])spots.push([x,y]);
+ rank.forEach(n=>{n.home={x:n.x,y:n.y,fx:n.fx};});
+ spots.forEach(([x,y],i)=>{
+  if(rank[i])place(rank[i],x,y,1);
+  else{const e={name:ThroneWorld.GUARDS[i%ThroneWorld.GUARDS.length].replace(/^Gardist/,'Gardist'),skin:'royal_guard',race:'human',cls:'warrior',female:false,big:1.1,pts:[{x,y}],i:0,dir:1,x,y,speed:0,walk:0,fx:1,pauseT:1e9,moving:false,extraGuard:true,scripted:true,extra:true};W.npcs.push(e);sc.extras.push(e);sc.cast.push(e);}
+ });
+ /* townsfolk at the back on both flanks, on their toes */
+ const folk=cityRoster().slice(0,8);
+ folk.forEach((p,i)=>{const side=i%2?1:-1,x=900+side*(300+Math.floor(i/2)*44),y=front+120+(i%3)*50;
+  const e={name:p.name,skin:p.skin,race:'human',cls:'warrior',female:!!p.female,big:1.05,pts:[{x,y}],i:0,dir:1,x,y,speed:0,walk:0,fx:-side,pauseT:1e9,moving:false,scripted:true,extra:true,hop:{h:12+(i%3)*3,rate:4.6+(i%4)*.5,phase:i*1.3}};
+  W.npcs.push(e);sc.extras.push(e);sc.cast.push(e);});
+}
+const coronationStep=(n,tx,ty,speed,dt)=>{const dx=tx-n.x,dy=ty-n.y,d=Math.hypot(dx,dy);if(d<6){n.moving=false;return true;}
+ n.x+=dx/d*Math.min(d,speed*dt);n.y+=dy/d*Math.min(d,speed*dt);n.moving=true;n.walk=(n.walk||0)+dt*speed/45;if(Math.abs(dx)>2)n.fx=dx>0?1:-1;return false;};
+const coronationRoute=(n,speed,dt)=>{const r=n.route;if(!r||!r.length){n.moving=false;return true;}if(coronationStep(n,r[0][0],r[0][1],speed,dt))r.shift();return !r.length;};
+function coronationTick(dt){
+ const sc=coronation,c=S&&S.city;
+ if(!sc||!c||!hero){coronation=null;return;}
+ sc.t+=dt;sc.pt+=dt;
+ const fx=$('ritualFx'),T=ThroneWorld,front=T.DAIS.y+T.DAIS.h+100,name=S.name||'Hero';
+ const king=world.npcs.find(n=>n.game==='king'),hand=world.npcs.find(n=>n.game==='ledger');
+ for(const n of sc.cast)if(n.bubble&&(n.bubble.t-=dt)<=0)n.bubble=null;
+ const say=(n,txt,secs)=>{if(!n)return;n.bubble={txt,t:secs,life:secs};};
+ const next=p=>{sc.phase=p;sc.pt=0;};
+ if(sc.phase==='dark'){
+  if(!sc.staged&&sc.t>=1.6){sc.staged=true;stageCoronation(sc);}
+  const blinks=[[3.8,'0','opacity .22s'],[4.12,'1',null],[4.44,'0',null],[4.82,'1',null],[5.18,'0','opacity .4s']];   /* three blinks, then awake */
+  while(sc.blink<blinks.length&&sc.t>=blinks[sc.blink][0]){const [,o,tr]=blinks[sc.blink++];if(tr)fx.style.transition=tr;fx.style.opacity=o;}
+  if(sc.t>=5.8){fx.style.display='none';next('hand1');
+   const line=CORONATION_LINES.hand1(name);say(hand,line,9);if(hand)hand.fx=1;log('📜 <b>'+T.HAND_NAME+':</b> '+line);sfx.quest();}
+ }else if(sc.phase==='hand1'){
+  if(sc.pt>=9){next('king');say(king,CORONATION_LINES.king,6);if(king)king.fx=-1;log('👑 <b>'+T.KING_NAME+':</b> '+CORONATION_LINES.king,'imp');shakeT=.4;sfx.warn();}
+ }else if(sc.phase==='king'){
+  if(sc.pt>=6&&king){next('flank');sc.escorts.forEach((g,i)=>{g.route=[[king.x+(i?46:-46),king.y+8]];});if(!sc.escorts.length)next('escort');}
+  else if(sc.pt>=6)next('gone');
+ }else if(sc.phase==='flank'){
+  if(sc.escorts.every(g=>coronationRoute(g,210,dt))){next('escort');sc.focus=king;
+   king.route=sc.fate==='exile'?[[T.KING.x,front],[T.EXIT.x,T.EXIT.y-30]]:[[T.KING.x,front],[T.HALL.x+130,front],[T.HALL.x+130,T.STAIR_DOWN.y],[T.HALL.x+40,T.STAIR_DOWN.y]];
+   log('⚔️ Two of the Royal Guard take the King by the arms'+(sc.fate==='exile'?' and walk him to the doors.':' and walk him toward the stair to his own gaol.'));}
+ }else if(sc.phase==='escort'){
+  const done=king?coronationRoute(king,250,dt):true;
+  if(king)sc.escorts.forEach((g,i)=>{g.x=king.x+(i?46:-46);g.y=king.y+8;g.fx=king.fx;g.moving=king.moving;g.walk=king.walk;});
+  if(done)next('gone');
+ }else if(sc.phase==='gone'){
+  /* the King is out of the hall: now, and only now, the crown changes hands */
+  const r=CityEconomy.claimCrown(c,sc.fate);
+  if(r.ok)log('👑 <b>'+cityTitle()+' '+name+'</b> - '+r.text,'loot');
+  cityApplyAll();save();   /* hallApply: no King in the hall, Alarik in cell I if that is where he went */
+  sc.escorts.forEach((g,i)=>{g.route=[[T.HALL.x+130,front],[g.home.x,front],[g.home.x,g.home.y]];if(sc.fate==='exile')g.route=[[T.EXIT.x,front],[g.home.x,front],[g.home.x,g.home.y]];});
+  sc.focus=null;next('hand2');
+  const line=CORONATION_LINES.hand2(name);say(hand,line,8);if(hand)hand.fx=1;log('📜 <b>'+T.HAND_NAME+':</b> '+line);sfx.quest();
+ }else if(sc.phase==='hand2'){
+  sc.escorts.forEach(g=>coronationRoute(g,230,dt));
+  if(sc.pt>=2.2)next('ascend');
+ }else if(sc.phase==='ascend'){
+  sc.escorts.forEach(g=>coronationRoute(g,230,dt));
+  if(moveToward(hero,T.KING.x,T.KING.y,dt)||Math.hypot(hero.x-T.KING.x,hero.y-T.KING.y)<8){
+   hero.moving=false;hero.fx=-1;
+   stageMsg('👑 All hail '+cityTitle()+' '+name+'!',6000,'#ffd76a',true);sfx.quest();shakeT=.35;
+   sparkles(hero.x,hero.y-40,'#ffd76a',26);burst(hero.x,hero.y-30,'#ffe9a8',18,110,true);
+   for(const n of sc.extras)if(n.hop){n.hop.h+=6;}   /* the crowd goes up */
+   renderHero();renderHUD();
+   next('cheer');
+  }
+ }else if(sc.phase==='cheer'){
+  sc.escorts.forEach(g=>coronationRoute(g,230,dt));
+  if(sc.pt>=3.5){next('disperse');
+   /* everybody home: the council through the passages, the Hand the same way, the guard to the pillars, the rest out through the doors */
+   const via=(side,to)=>{const d=T.DOORS[side],px=d.x+d.w/2;return [[px,front],[px,d.y-30],[to.x,to.y]];};
+   const seatOf=n=>{const s=T.SEATS.find(s=>s.seat===n.seat);return s?{x:s.x,y:s.y,fx:s.fx}:{x:n.pts[0].x,y:n.pts[0].y,fx:n.fx};};
+   for(const n of sc.cast){
+    if(n.seat){const to=seatOf(n);n.home=to;n.route=[[n.x,front],...via(n.x<900?0:1,to)];}
+    else if(n.game==='ledger'){n.home={x:T.HAND.x,y:T.HAND.y,fx:1};n.route=[[n.x,front],...via(0,n.home)];}
+    else if(n.guard&&n.home&&!sc.escorts.includes(n)){n.route=[[n.home.x,n.y],[n.home.x,n.home.y]];}
+    else if(n.extra){const x=Math.max(600,Math.min(1200,n.x));n.hop=null;n.route=[[x,T.EXIT.y-160],[T.EXIT.x,T.EXIT.y-40]];}
+   }
+  }
+ }else if(sc.phase==='disperse'){
+  let left=0;
+  for(const n of sc.cast){
+   if(!n.route){continue;}
+   if(coronationRoute(n,n.extra?190:220,dt)){n.route=null;if(n.home){n.x=n.home.x;n.y=n.home.y;n.fx=n.home.fx;}if(n.extra)n.gone=true;}
+   else left++;
+  }
+  world.npcs=world.npcs.filter(n=>!n.gone);
+  if(!left){
+   for(const n of sc.cast){n.scripted=false;n.moving=false;n.route=null;}
+   world.npcs=world.npcs.filter(n=>!n.extra);
+   coronation=null;hallApply();
+   stageMsg('👑 The hall is yours, '+cityTitle()+' '+name+'.',3600,'#ffd76a');
+   setTimeout(()=>openOutfitOffer('royal'),1200);   /* 👘 and the robes, a breath later */
+  }
+ }
+}
+/* ==================== ⚖️ THE GALLOWS ====================
+   "Hang him on the square" on the Gaol tab (asked for 2026-09-22). The screen goes black and the eyes open - the same
+   blackout and blinks as the coronation - on the great square with everything on it gone, the well included: a
+   gallows stands where the well was, the old King on its deck with the gaoler beside him, the nearest townsfolk in
+   three rows before it and the hero in the front row, not moving. The gaoler tells the square what kind of King he
+   was, the crowd boos, the trap drops, he hangs and swings - and the screen goes black. THAT is when
+   CityEconomy.execute runs. The black lifts on wherever the hero was, and the square has its well and its stalls
+   back as if nothing had happened. `execution` is the only state; nothing is saved mid-scene. */
+const GALLOWS={w:380,deck:.46,beam:.92};   /* the painting's width on the square, and where its deck and its beam sit as a share of its height above the ground line */
+const squareHushed=s=>s.type!=='gallows'&&Math.hypot(s.x-world.w/2,s.y-world.h/2)<560;   /* everything in the plaza, the well included */
+const GALLOWS_LINES=name=>({
+ one:'Alarik Tidvind. Twelve years a King of this city. He kept a purse the strongroom could not fill - and when it could not, he sent his chamberlain down with a key.',
+ two:'He had a poet put in irons for a rhyme. He had honest folk taken for bowing wrong. The gaol under his hall was never once empty.',
+ three:'By the will of the people, by the word of the council, and by the order of '+cityTitle()+' '+name+': he hangs.',
+});
+function startExecution(name){
+ if(execution||coronation||!S||!S.city||!hero||hero.dead)return false;
+ if(!S.city.jail.some(x=>x.name===name&&x.life))return false;
+ $('ledgerFx').style.display='none';cityImg('gallows');   /* the scaffold loads while the screen is dark */
+ execution={who:name,phase:'dark',t:0,pt:0,staged:false,blink:0,extras:[],crowd:[],frozen:[],focus:null,back:{zone:S.zone,x:hero.x,y:hero.y},gallows:null,king:null,gaoler:null,dropY:0};
+ hero.moveTo=null;hero.target=null;hero.pendingDoor=null;hero.goPortal=false;marker=null;holdMove=null;
+ const fx=$('ritualFx');fx.style.display='block';fx.style.transition='none';fx.style.opacity='0';
+ requestAnimationFrame(()=>{fx.style.transition='opacity .8s';fx.style.opacity='1';});
+ blip(70,40,1.2,.12,'sine');setTimeout(()=>blip(60,35,1.4,.12,'sine'),1500);setTimeout(()=>blip(52,30,1.6,.10,'sine'),2900);
+ return true;
+}
+/* the square as the eyes open on it: cleared, the scaffold up, everybody in their place */
+function stageExecution(sc){
+ if(!zoneOf().city){expeditionSpawn=null;goToZone(CITY_ZONE);}
+ const W=world,cx=W.w/2,cy=W.h/2;
+ W.hush=true;
+ const im=cityImg('gallows'),h=GALLOWS.w*(im.naturalWidth?im.naturalHeight/im.naturalWidth:.754);
+ const g={x:cx,y:cy+30,r:0,type:'gallows',noCol:true,w:GALLOWS.w,h,sortY:cy-260,rope:null};
+ W.solids.push(g);W._sg=null;sc.gallows=g;
+ const deckY=g.y-h*GALLOWS.deck;
+ const mk=(name,skin,x,y,fx,extra)=>{const e={name,skin,race:'human',cls:'warrior',female:false,big:1.1,pts:[{x,y}],i:0,dir:1,x,y,speed:0,walk:0,fx,pauseT:1e9,moving:false,scripted:true,extra:true,...extra};W.npcs.push(e);sc.extras.push(e);return e;};
+ sc.king=mk(ThroneWorld.KING_NAME,'king',cx+12,deckY,-1,{big:1.5,royal:true});
+ sc.gaoler=mk(ThroneWorld.GAOLER_NAME,'guard',cx-92,deckY+4,1,{big:1.15,game:'gaolscene'});
+ /* everybody in the city stands where they are for the duration; the nearest townsfolk are brought to the square */
+ for(const n of W.npcs){if(n.extra)continue;sc.frozen.push({n,scripted:!!n.scripted,moving:!!n.moving,hidden:!!n.hidden});n.scripted=true;n.moving=false;}
+ const folk=W.npcs.filter(n=>cityCommoner(n)&&!n.extra).sort((a,b)=>Math.hypot(a.x-cx,a.y-cy)-Math.hypot(b.x-cx,b.y-cy)).slice(0,20);
+ const spots=[];for(let row=0;row<3;row++)for(let i=0;i<7;i++){const x=cx-270+i*90+(row%2?45:0),y=cy+120+row*70;if(row===0&&Math.abs(x-cx)<40)continue;spots.push([x,y]);}
+ folk.forEach((n,i)=>{const sp=spots[i];if(!sp)return;sc.crowd.push({n,x:n.x,y:n.y,pauseT:n.pauseT,fx:n.fx});n.x=sp[0];n.y=sp[1];n.fx=sp[0]<cx?1:-1;n.pauseT=1e9;n.moving=false;n.bubble=null;});
+ const crier=W.npcs.find(n=>n.game==='crier');if(crier)crier.hidden=true;
+ hero.x=cx;hero.y=cy+120;hero.fx=1;hero.moveTo=null;hero.moving=false;
+ if(pet){pet.x=hero.x-40;pet.y=hero.y+14;}
+ sc.focus={x:cx,y:cy-30};
+ camX=sc.focus.x-VW/(2*zoom);camY=sc.focus.y-VH/(2*zoom);   /* cut, do not pan */
+}
+function executionTick(dt){
+ const sc=execution,c=S&&S.city;
+ if(!sc||!c||!hero){execution=null;return;}
+ sc.t+=dt;sc.pt+=dt;
+ const fx=$('ritualFx'),name=S.name||'Hero',L=GALLOWS_LINES(name);
+ for(const n of sc.extras)if(n.bubble&&(n.bubble.t-=dt)<=0)n.bubble=null;
+ const say=(n,txt,secs)=>{if(n)n.bubble={txt,t:secs,life:secs};};
+ const next=p=>{sc.phase=p;sc.pt=0;};
+ const boo=()=>{if(!sc.crowd.length)return;const m=sc.crowd[Math.floor(Math.random()*sc.crowd.length)].n;floatAt(m.x,m.y-70,['Boo!','Shame!','Hang him!','Thief!','BOO!'][Math.floor(Math.random()*5)],'#ff9f8a',false);};
+ const neck=k=>({x:k.x,y:k.y-54});   /* where the rope meets a King drawn at big 1.5 */
+ if(sc.phase==='dark'){
+  if(!sc.staged&&sc.t>=1.6){sc.staged=true;stageExecution(sc);}
+  const blinks=[[3.8,'0','opacity .22s'],[4.12,'1',null],[4.44,'0',null],[4.82,'1',null],[5.18,'0','opacity .4s']];
+  while(sc.blink<blinks.length&&sc.t>=blinks[sc.blink][0]){const [,o,tr]=blinks[sc.blink++];if(tr)fx.style.transition=tr;fx.style.opacity=o;}
+  if(sc.t>=5.8){fx.style.display='none';next('one');say(sc.gaoler,L.one,8);log('⛓ <b>'+ThroneWorld.GAOLER_NAME+':</b> '+L.one);sfx.warn();}
+ }else if(sc.phase==='one'){
+  if(sc.pt>=8){next('two');say(sc.gaoler,L.two,8);log('⛓ <b>'+ThroneWorld.GAOLER_NAME+':</b> '+L.two);}
+ }else if(sc.phase==='two'){
+  if(Math.random()<dt*1.4)boo();
+  if(sc.pt>=8){next('three');say(sc.gaoler,L.three,6);log('⛓ <b>'+ThroneWorld.GAOLER_NAME+':</b> '+L.three,'imp');}
+ }else if(sc.phase==='three'){
+  if(Math.random()<dt*2.5)boo();
+  if(sc.pt>=6){next('drop');sc.dropY=sc.king.y;shakeT=.3;if(sfx.shout)sfx.shout();}
+ }else if(sc.phase==='drop'){
+  const k=sc.king,fall=Math.min(1,sc.pt/.28);
+  k.y=sc.dropY+52*fall*fall;   /* the trap: through the deck, and the rope takes him */
+  if(fall>=1&&!k.hang)k.hang=Math.random()*6;
+  sc.gallows.rope=neck(k);
+  if(Math.random()<dt*.8)boo();
+  if(sc.pt>=3.2){next('fade');fx.style.display='block';fx.style.transition='none';fx.style.opacity='0';requestAnimationFrame(()=>{fx.style.transition='opacity 1.4s';fx.style.opacity='1';});}
+ }else if(sc.phase==='fade'){
+  sc.gallows.rope=neck(sc.king);
+  if(sc.pt>=1.8){next('return');
+   const r=CityEconomy.execute(c,sc.who);   /* the deed, in the books: now, and only now */
+   if(r&&r.ok)log('⚖️ <b>'+sc.who+'</b> - '+r.text,'imp');
+   /* the square is put back exactly as it was, and the hero goes back to where they were */
+   for(const e of sc.extras)e.gone=true;world.npcs=world.npcs.filter(n=>!n.gone);
+   world.solids=world.solids.filter(x=>x!==sc.gallows);world._sg=null;world.hush=false;
+   for(const m of sc.crowd){m.n.x=m.x;m.n.y=m.y;m.n.pauseT=m.pauseT;m.n.fx=m.fx;}
+   for(const f of sc.frozen){f.n.scripted=f.scripted;f.n.moving=f.moving;f.n.hidden=f.hidden;}
+   sc.focus=null;
+   if(sc.back.zone!==S.zone){expeditionSpawn={zone:sc.back.zone,x:sc.back.x,y:sc.back.y};goToZone(sc.back.zone);}
+   else{hero.x=sc.back.x;hero.y=sc.back.y;hero.moveTo=null;if(pet){pet.x=hero.x-30;pet.y=hero.y+10;}}
+   camX=hero.x-VW/(2*zoom);camY=hero.y-VH/(2*zoom);
+   cityApplyAll();renderHUD();save();
+   fx.style.transition='opacity 1.2s';fx.style.opacity='0';
+  }
+ }else if(sc.phase==='return'){
+  if(sc.pt>=1.3){fx.style.display='none';execution=null;stageMsg('⚖️ It is done. The square will not forget it - and nor will the courts abroad.',4600,'#d8d2c4');}
+ }
+}
 let ledgerTab='overview',ledgerBack='overview',ledgerNote='';
+let ledgerPeek=false; /* 👁 a glance from the road: the hero panel opens the Overview alone, read-only, and it does not count as attending */
 const fmtGold=n=>Math.round(n).toLocaleString();
 const fmtSigned=n=>(n>=0?'+':'−')+fmtGold(Math.abs(n));
 /* 🌬 an estimate is shown as one: rounded to two figures, never to the coin. The history tab has what really happened. */
@@ -13885,7 +14190,7 @@ function ledgerIncidents(f,c){
 /* 🤝 The Hand's counsel: one hint, once every few closes - where to look, never which button to press */
 /* 🤝 Allies: three cities and two ports the crown courts with the treasury's gold, and in the end buys. */
 function ledgerAllies(c){
- const E=CityEconomy,v=E.alliesView(c),frozen=E.frozen(c);
+ const E=CityEconomy,v=E.alliesView(c),frozen=E.frozen(c),noCrown=!v.crowned; /* 👑 a steward may look; only a King or Queen sends an envoy */
  const card=a=>{
   const pct=Math.round(a.stake),lots=[250000,1000000,5000000].filter(n=>n<=Math.max(250000,a.toFull));
   return '<div class="ledger-work '+(a.owned?'done':a.locked?'locked':'')+'"><h4>'+a.icon+' '+a.name+'<small>'+(a.owned?'UNDER THE CROWN':a.tier.toUpperCase())+'</small></h4><p>'+a.text+' <i>Held by '+a.lord+'.</i></p>'
@@ -13893,6 +14198,7 @@ function ledgerAllies(c){
    +'<p class="ledger-fx"><span>the crown’s stake '+pct+'%</span><span>'+(a.owned?'pays':'pays now')+' '+fmtGold(a.income)+' ◉ a close</span><span>'+(a.owned?a.perkText:'as ours: '+fmtGold(a.yield)+' ◉ a close · '+a.perkText)+'</span></p>'
    +(a.pending.length?'<p class="ledger-work-foot">🐎 '+a.pending.map((p,i)=>'an envoy with '+fmtGold(p.amount)+' ◉ arrives in <span data-await="'+a.id+':'+i+'">'+fmtWait(p.seconds)+'</span>').join(' · ')+'</p>':'')
    +(a.owned?'<p class="ledger-work-foot pos">Ours. '+a.lord+' kept the title and lost the treasury.</p>'
+    :noCrown?'<p class="ledger-work-foot">👑 '+a.lord+' receives envoys from crowned heads. Take the crown (the Crown tab), and the road is open.</p>'
     :a.locked?'<p class="ledger-work-foot">🔒 '+a.lord+' will not receive an envoy from a city without a <b>'+a.locked+'</b> (Works).</p>'
     :'<div class="ledger-opts">'
      +(a.toFull>0?lots.map(n=>'<button class="sbtn gold" data-lact="ally" data-k="'+a.id+'" data-v="'+n+'"'+(frozen||c.treasury<=0?' disabled':'')+'>Send '+fmtK(Math.min(n,a.toFull))+' ◉<small>+'+(Math.min(n,a.toFull)/a.worth*100).toFixed(1)+'% stake · '+v.closes+' closes</small></button>').join('')
@@ -13905,6 +14211,8 @@ function ledgerAllies(c){
   +'<div class="ledger-tile"><span>Allies & dominions</span><b class="pos">+'+fmtGold(v.fx.income)+' ◉</b><small>a close · '+v.fx.note+'</small></div>'
   +'<div class="ledger-tile"><span>Under the crown</span><b>'+v.fx.owned+' / '+v.list.length+'</b><small>trade +'+Math.round(v.fx.trade*100)+'% · the city’s draw +'+v.fx.attract+'</small></div>'
   +'<div class="ledger-tile"><span>Treasury</span><b class="'+(c.treasury<0?'bad':'')+'">◉ '+fmtGold(c.treasury)+'</b><small>'+(frozen?'in the red: no envoy rides':'an envoy’s chest is the crown’s own gold')+'</small></div></div>'
+  +(noCrown?'<div class="ledger-alert"><button class="sbtn ledger-coupbtn" data-lact="goto" data-v="crown">👑 Other cities and the great ports deal with crowned heads only. A steward may read this page; a King or a Queen sends the envoys.</button></div>':'')
+  +(v.fear!==1?'<p class="craft-note">'+(v.fear>1?'⚖️ You pardoned a king. Every court abroad prices you <b class="neg">'+Math.round((v.fear-1)*100)+'% higher</b>: a full stake costs more, and they are harder to talk round.':'⚖️ They saw the gallows on your square. Every court abroad prices you <b class="pos">'+Math.round((1-v.fear)*100)+'% lower</b>: a full stake costs less, and they are easier to talk round.')+'</p>':'')
   +'<p class="craft-note">🤝 Send envoys with gold from the <b>treasury</b>; a chest takes '+v.closes+' closes to arrive and raises the crown’s <b>stake</b>. From <b>'+v.partnerAt+'%</b> the place is a trading partner and pays a return at every close. Hold <b>'+v.buyAt+'%</b> or more for <b>'+v.court+' closes</b> and whoever holds the place will <b>hear an offer</b> for the whole of it - a King for each city, a Trade Officer for each port. They bargain, and each of them looks at your city with different eyes.</p>'
   +'<h3 class="ledger-gap">🏰 Cities</h3><div class="ledger-works">'+v.list.filter(a=>a.kind==='city').map(card).join('')+'</div>'
   +'<h3 class="ledger-gap">⚓ The great ports <small>· the end game</small></h3><div class="ledger-works">'+v.list.filter(a=>a.kind==='port').map(card).join('')+'</div>';
@@ -13972,14 +14280,20 @@ function ledgerGranary(c,ctx){
 function ledgerWorks(c,ctx){
  const E=CityEconomy,v=E.worksView(c,ctx);
  const state={done:'✔ standing',building:'🚧 building',ready:'order it',locked:'locked',busy:'no crew free',poor:'cannot afford',frozen:'in the red'};
+ /* 🏗 level 2: under a standing work, the price again for everything it does twice over. The lock names what is missing. */
+ const raise=w=>{const u=w.up;
+  if(u.status==='done')return '';
+  if(u.status==='building')return '<p class="ledger-work-foot">🚧 Level '+u.level+' in '+u.left+' close'+(u.left>1?'s':'')+' - it keeps working meanwhile</p>';
+  return '<div class="ledger-opts"><button class="sbtn'+(u.status==='ready'?' gold':'')+'" data-lact="upgrade" data-k="'+w.id+'"'+(u.status==='ready'?'':' disabled')+'>Level '+u.level+' · '+fmtGold(u.cost)+' ◉ · '+u.build+' close'+(u.build>1?'s':'')
+   +'<small>'+(u.status==='locked'?u.why:u.status==='frozen'?'nothing is ordered while the treasury is in the red':u.status==='busy'?'all crews are at work':u.status==='poor'?'the treasury is short '+fmtGold(u.cost-c.treasury)+' ◉':'everything it does, twice over'+(u.upkeep?' · upkeep '+fmtGold(u.upkeep)+' ◉ a close':''))+'</small></button></div>';};
  return '<div class="ledger-tiles">'
-  +'<div class="ledger-tile"><span>Public works</span><b>'+v.done+' / '+v.total+'</b><small>bought once from the treasury, they pay for ever - less their upkeep</small></div>'
-  +'<div class="ledger-tile"><span>The Master Builder’s crews</span><b>'+v.building+' / '+v.crews+' at work</b><small>'+(v.building?v.list.filter(w=>w.status==='building').map(w=>w.name+' ('+w.left+')').join(' · '):'all three crews are idle')+'</small></div>'
+  +'<div class="ledger-tile"><span>Public works</span><b>'+v.done+' / '+v.total+(v.raised?' · '+v.raised+' at level 2':'')+'</b><small>bought once from the treasury, they pay for ever - less their upkeep. Standing, they can be raised to level 2: '+(v.upOpen?'the council is devoted and a season is on the books - order it below':'after a season on the books, for a council devoted to you ('+v.upFavour+'+)')+'</small></div>'
+  +'<div class="ledger-tile"><span>The Master Builder’s crews</span><b>'+v.building+' / '+v.crews+' at work</b><small>'+(v.building?v.list.filter(w=>w.status==='building'||w.up.status==='building').map(w=>w.name+' ('+(w.status==='building'?w.left:'level 2 · '+w.up.left)+')').join(' · '):'all three crews are idle')+'</small></div>'
   +'<div class="ledger-tile"><span>Treasury</span><b class="'+(c.treasury<0?'bad':'')+'">◉ '+fmtGold(c.treasury)+'</b><small>short? the Tides Bank lends against a plan - borrow, build, repay from what it earns</small></div></div>'
   +v.cats.map(cat=>'<h3 class="ledger-gap">'+cat.icon+' '+cat.name+'</h3><div class="ledger-works">'+cat.works.map(w=>
-    '<div class="ledger-work '+w.status+'"><h4>'+w.icon+' '+w.name+'<small>'+state[w.status]+'</small></h4><p>'+w.blurb+'</p>'
+    '<div class="ledger-work '+w.status+(w.lvl>=2?' lvl2':'')+'"><h4>'+w.icon+' '+w.name+'<small>'+state[w.status]+(w.lvl>=2?' · level 2':'')+'</small></h4><p>'+w.blurb+'</p>'
     +'<p class="ledger-fx">'+w.effects.map(e=>'<span>'+e+'</span>').join('')+'</p>'
-    +(w.status==='done'?'<p class="ledger-work-foot pos">Standing'+(w.upkeep?' · upkeep '+fmtGold(w.upkeep)+' ◉ a close':'')+(w.site?' · you can see it in the City':'')+'</p>'
+    +(w.status==='done'?'<p class="ledger-work-foot pos">Standing'+(w.lvl>=2?' at level 2':'')+(w.upkeep?' · upkeep '+fmtGold(w.upkeep)+' ◉ a close':'')+(w.site?' · you can see it in the City':'')+'</p>'+raise(w)
      :w.status==='building'?'<p class="ledger-work-foot">🚧 '+w.left+' close'+(w.left>1?'s':'')+' to go'+(w.site?' · the scaffolding is up in the City':'')+'</p>'
      :'<div class="ledger-opts"><button class="sbtn gold" data-lact="invest" data-k="'+w.id+'"'+(w.status==='ready'?'':' disabled')+'>'+fmtGold(w.cost)+' ◉ · '+w.build+' close'+(w.build>1?'s':'')
        +'<small>'+(w.status==='locked'?'first: '+w.missing.join(', '):w.status==='frozen'?'nothing is ordered while the treasury is in the red':w.status==='busy'?'all crews are at work':w.status==='poor'?'the treasury is short '+fmtGold(w.cost-c.treasury)+' ◉':'upkeep '+fmtGold(w.upkeep)+' ◉ a close')+'</small></button></div>')
@@ -13990,16 +14304,19 @@ function ledgerCrown(c,ctx){
  const E=CityEconomy,v=E.crownView(c,ctx),title=cityTitle(),d=v.demand;
  const trustRows='<table class="ledger-table">'+v.trustFactors.filter(x=>x.value!==0).map(x=>'<tr><td>'+x.name+'</td><td class="'+(x.value>0?'pos':'neg')+'">'+(x.value>0?'+':'−')+Math.abs(x.value).toFixed(1)+'</td></tr>').join('')
   +'<tr class="ledger-sum"><td>Every close</td><td>'+(v.trustDelta>=0?'+':'−')+Math.abs(v.trustDelta).toFixed(1)+'</td></tr></table>'
-  +'<p class="craft-note">Also: a finished work <b class="pos">+2</b> · trouble dealt with <b class="pos">+1</b> · a petition granted <b class="pos">+1</b> · a prisoner pardoned <b class="pos">+½</b> · gold paid into the treasury <b class="pos">+</b> · gold carried out of it <b class="neg">− 1 per '+fmtGold(1500*E.scale(ctx))+' ◉</b>.</p>';
+  +'<p class="craft-note">Also: a finished work <b class="pos">+2</b> · trouble dealt with <b class="pos">+1</b> · a petition granted <b class="pos">+1</b> · a prisoner pardoned <b class="pos">+½</b>.</p>';
  if(v.crowned)return '<div class="ledger-tiles two">'
-   +'<div class="ledger-tile"><span>The crown</span><b>👑 '+title+' '+(S.name||'')+'</b><small>'+(v.deposed==='exile'?'Alarik sailed into exile.':'Alarik sits in cell I of his own gaol. You can visit him.')+'</small></div>'
-   +'<div class="ledger-tile"><span>Your privy purse</span><b class="pos">+'+fmtGold(Math.round(v.purse*E.HERO_COIN/E.COIN))+' ◉</b><small>what reaches your own gold at every close - a tenth of the line on the Budget tab; the rest keeps a royal household. The treasury is yours to draw on, too.</small></div></div>'
+   +'<div class="ledger-tile"><span>The crown</span><b>👑 '+title+' '+(S.name||'')+'</b><small>'+({exile:'Alarik sailed into exile.',pardoned:'Alarik begs at the foot of the palace stair, in what is left of his robes. You pardoned him.',executed:'Alarik was hanged on the great square. Every court abroad heard of it.'}[v.deposed]||'Alarik sits in cell I of his own gaol. You can visit him - and decide what becomes of him, on the Gaol tab.')+'</small></div>'
+   +'<div class="ledger-tile"><span>Your privy purse</span><b class="pos">+'+fmtGold(Math.round(v.purse*E.HERO_COIN/E.COIN))+' ◉</b><small>what reaches your own gold at every close - a tenth of the line on the Budget tab; the rest keeps a royal household.</small></div></div>'
    +'<h3>Your legitimacy · '+Math.floor(v.trust)+'%</h3>'+ledgerGauge(Math.floor(v.trust),null,[{at:40,label:'royalists stir below 40'}],'#ffd76a')+trustRows;
  return '<div class="ledger-tiles two">'
-  +'<div class="ledger-tile"><span>The realm’s trust in you</span><b style="color:#ffd76a">'+Math.floor(v.trust)+'% · '+v.trustName+'</b><small>'+(v.canClaim?'the guard will stand aside':v.closesToCrown?'at this rate the crown is '+v.closesToCrown+' closes away':'it is not growing - see what moves it, below')+'</small></div>'
+  +'<div class="ledger-tile"><span>The realm’s trust in you</span><b style="color:#ffd76a">'+Math.floor(v.trust)+'% · '+v.trustName+'</b><small>'+(v.canClaim?'the guard will stand aside':(w=>w.length?'for the crown, still: '+w.join(' · '):'')([
+     v.trust<v.coupAt?(v.closesToCrown?'trust at '+v.coupAt+'% - '+v.closesToCrown+' closes at this rate':'trust at '+v.coupAt+'% - it is not growing, see below'):'',
+     v.favour<v.coupFavour?'a devoted council - favour '+v.coupFavour+'+ (it is '+v.favour+')':'',
+     v.closesToSeason?'a season on the books - '+v.closesToSeason+' close'+(v.closesToSeason===1?'':'s')+' to the bank’s review':''].filter(Boolean)))+'</small></div>'
   +'<div class="ledger-tile"><span>'+ThroneWorld.KING_NAME+'</span><b>'+v.humour.icon+' '+v.pleasureName+' · '+v.pleasure+'</b><small>'+v.humour.say+' His pleasure is heading for '+v.pleasureTarget+'.</small></div></div>'
   +ledgerGauge(Math.floor(v.trust),null,[{at:E.COUP_TRUST,label:'the crown'}],'#ffd76a')
-  +(v.canClaim?'<div class="ledger-petition ledger-coup"><h3>👑 Take the crown</h3><p>The people sing your name, the council answers to you and the guard has let it be known where it stands. Walk up the dais and the hall will not stop you. You would rule as <b>'+title+' '+(S.name||'')+'</b>: no King to keep sweet, the privy purse paid into your own gold at every close, the treasury yours without a murmur - and every trouble in the city yours alone.</p>'
+  +(v.canClaim?'<div class="ledger-petition ledger-coup"><h3>👑 Take the crown</h3><p>The people sing your name, the council answers to you and the guard has let it be known where it stands. Walk up the dais and the hall will not stop you. You would rule as <b>'+title+' '+(S.name||'')+'</b>: no King to keep sweet, the privy purse paid into your own gold at every close - and every trouble in the city yours alone.</p>'
     +'<div class="ledger-opts"><button class="sbtn gold" data-lact="coup" data-v="gaol">Take it · Alarik to the gaol<small>cell I, under his own hall</small></button><button class="sbtn gold" data-lact="coup" data-v="exile">Take it · Alarik into exile<small>a ship on the evening tide</small></button></div></div>':'')
   +(d?'<div class="ledger-petition"><h3>👑 The King wants something</h3><p>“'+d.text+'”</p>'
     +'<div class="ledger-incident-cost"><span>'+(d.cost?'Costs <b>'+fmtGold(d.cost)+' ◉</b> · ':'Costs nothing · ')+'his pleasure <b class="pos">+'+d.pleasure+'</b>'+(d.mood?' · people <b class="'+(d.mood>=0?'pos':'neg')+'">'+fmtSigned(d.mood)+'</b>':'')+(d.raise?' · <b class="neg">his purse costs 15% more, for good</b>':'')+(d.arrest?' · <b class="neg">a poet goes to the gaol · trust '+d.trust+'</b>':'')
@@ -14022,7 +14339,8 @@ function ledgerGaol(c,ctx){
   +'<div class="ledger-tile"><span>Who ends up here</span><b>The watch decides</b><small>a bigger watch arrests more; what for depends on the city - high taxes, no bread, dear rents</small></div></div>'
   +(v.prisoners.length?'<div class="ledger-works">'+v.prisoners.map(p=>'<div class="ledger-work"><h4>⛓ '+p.name+'<small>'+(p.life?'for life':p.left+' close'+(p.left===1?'':'s')+' left of '+p.term)+'</small></h4>'
     +'<p>'+p.crime.charAt(0).toUpperCase()+p.crime.slice(1)+'.'+(p.byKing?' <b class="neg">By the King’s order.</b>':'')+'</p>'+(p.say?'<p class="ledger-voice">“'+p.say+'”</p>':'')
-    +'<div class="ledger-opts">'+(p.life?'<button class="sbtn" data-lact="pardon" data-k="'+p.name+'">Send him into exile<small>a ship, and an empty cell</small></button>'
+    +'<div class="ledger-opts">'+(p.life?'<button class="sbtn gold" data-lact="pardon" data-k="'+p.name+'">Pardon him<small>the people +'+Math.round(E.MERCY*100)+' · every court abroad '+Math.round(E.MERCY*100)+'% dearer and harder to talk round · he begs at the palace stair</small></button>'
+      +'<button class="sbtn" data-lact="execute" data-k="'+p.name+'">Hang him on the square<small>the people −'+Math.round(E.MERCY*100)+' · every court abroad '+Math.round(E.MERCY*100)+'% cheaper and easier to talk round · a public execution</small></button>'
       :'<button class="sbtn gold" data-lact="pardon" data-k="'+p.name+'">Pardon<small>people +1 · trust +½'+(p.byKing&&!c.crowned?' · the King −8':'')+'</small></button>'
        +'<button class="sbtn" data-lact="fine" data-k="'+p.name+'">Fine and release<small>+'+fmtGold(p.fine)+' ◉ to the treasury</small></button>')+'</div></div>').join('')+'</div>'
    :'<p class="craft-note">🕊 Every cell stands empty. The watch brings people in at the close - go down the stair in the west wall of the hall, just inside the doors, and you can talk to them through the bars.</p>')
@@ -14145,8 +14463,26 @@ function seasonChartHover(e){
  row(null,fmtGold(d.target)+' ◉','the bank’s target');
  const left=px*box.width/d.W;tip.style.left=Math.min(box.width-226,Math.max(0,left+(left>box.width*.55?-228:14)))+'px';
 }
+/* 🎁 the steward's season bonus, with the sum shown: takings − outgoings = profit, × a fifth = the most you may take,
+   then the two conditions - a treasury in the black, and no more than it holds */
+function ledgerBonus(b){
+ const E=CityEconomy,pct=Math.round(b.share*100);
+ const sum='<table class="ledger-table ledger-bonus-sum">'
+  +'<tr><td>Season '+b.n+' took in</td><td class="pos">+'+fmtGold(b.income)+' ◉</td></tr>'
+  +'<tr><td>and paid out</td><td class="neg">−'+fmtGold(b.expenses)+' ◉</td></tr>'
+  +'<tr class="ledger-sum"><td>Profit</td><td class="'+(b.profit>=0?'pos':'neg')+'">'+fmtSigned(b.profit)+' ◉</td></tr>'
+  +'<tr><td>× '+pct+'% - the most a steward may vote themself</td><td>'+(b.max>0?fmtGold(b.max)+' ◉':'nothing - there is no bonus in a loss')+'</td></tr>'
+  +(b.max>0?'<tr><td>The treasury'+(b.black?'':', in the red')+'</td><td class="'+(b.black?'pos':'neg')+'">'+(b.black?'◉ '+fmtGold(S.city.treasury)+' - in the black':'nothing is paid from an empty strongroom')+'</td></tr>':'')
+  +(b.max>0&&b.black&&b.room<b.max?'<tr><td>...which cannot cover the whole fifth</td><td>'+fmtGold(b.room)+' ◉ can be paid now</td></tr>':'')
+  +'</table>';
+ if(b.taken>0)return '<div class="ledger-bonus done"><h3>🎁 Your season bonus · taken</h3>'+sum+'<p class="craft-note">'+fmtGold(b.taken)+' ◉ went to your own gold. The next season’s bonus falls at its last close.</p></div>';
+ if(b.max<=0)return '<div class="ledger-bonus"><h3>🎁 Your season bonus · none</h3>'+sum+'<p class="craft-note">A season that loses money pays its steward nothing. Make the next one count.</p></div>';
+ const n=Math.min(b.room,goldRoom());
+ return '<div class="ledger-bonus"><h3>🎁 Your season bonus · up to '+fmtGold(b.max)+' ◉</h3>'+sum
+  +'<div class="ledger-opts"><button class="sbtn gold" data-lact="bonus" data-v="all"'+(n<=0?' disabled':'')+'>'+(b.black?'Take '+fmtGold(n)+' ◉ to your purse':'The treasury is in the red')+'<small>'+(!b.black?'wait for a close that leaves the treasury in the black':n<=0?'your vault is full':n<b.max?'what the strongroom can pay today - the rest is forfeit':'once, for this season - no trust is lost, it is yours by right')+'</small></button></div></div>';
+}
 function ledgerBank(c,ctx){
- const E=CityEconomy,v=E.bankView(c,ctx),q=v.season;
+ const E=CityEconomy,v=E.bankView(c,ctx),q=v.season,bonus=E.bonusView(c);
  c.reviewSeen=true;
  const picked=ledgerSeasonPick!==null&&v.seasons.find(x=>x.n===ledgerSeasonPick),lastReview=v.seasons[0];
  const gradeInk=g=>'AB'.includes(g)?'pos':g==='C'?'':'neg';
@@ -14157,8 +14493,12 @@ function ledgerBank(c,ctx){
   +'<tr><td>What the crown is worth<small>treasury less debt</small></td><td class="'+(x.worth>x.worthStart?'pos':'neg')+'">'+fmtSigned(x.worthStart)+' → '+fmtSigned(x.worth)+'</td></tr>'
   +'<tr><td>Interest paid over the season</td><td>'+fmtGold(x.interest)+'</td></tr>'
   +'<tr><td>The credit line</td><td class="'+(x.limit>x.limitWas?'pos':x.limit<x.limitWas?'neg':'')+'">'+fmtGold(x.limitWas)+' → '+fmtGold(x.limit)+'</td></tr>'
-  +'<tr><td>The rate, per close</td><td class="'+(x.rate<x.rateWas?'pos':x.rate>x.rateWas?'neg':'')+'">'+(x.rateWas*100).toFixed(3)+'% → '+(x.rate*100).toFixed(3)+'%</td></tr></table></div>';
- return (v.frozen?'<div class="ledger-alert"><button class="sbtn" data-lact="goto" data-v="budget">🏦 IN THE RED by '+fmtGold(-c.treasury)+' ◉ and the line is spent. '+(v.bailiffs?'The bailiffs take something at every close until the treasury is in the black.':'One close of grace, then the bailiffs.')+' Pay gold in below, cut the budget, or raise a rate.</button></div>':'')
+  +'<tr><td>The rate, per close</td><td class="'+(x.rate<x.rateWas?'pos':x.rate>x.rateWas?'neg':'')+'">'+(x.rateWas*100).toFixed(3)+'% → '+(x.rate*100).toFixed(3)+'%</td></tr>'
+  +(x.in!==undefined?'<tr><td>The season’s takings<small>every close’s income, added up</small></td><td class="pos">+'+fmtGold(x.in)+'</td></tr>'
+   +'<tr><td>The season’s outgoings<small>every close’s expenses, added up</small></td><td class="neg">−'+fmtGold(x.out)+'</td></tr>'
+   +'<tr class="ledger-sum"><td>What the season made</td><td class="'+(x.in-x.out>=0?'pos':'neg')+'">'+fmtSigned(x.in-x.out)+'</td></tr>':'')+'</table>'
+  +(bonus&&bonus.n===x.n?ledgerBonus(bonus):'')+'</div>';
+ return (v.frozen?'<div class="ledger-alert"><button class="sbtn" data-lact="goto" data-v="budget">🏦 IN THE RED by '+fmtGold(-c.treasury)+' ◉ and the line is spent. '+(v.bailiffs?'The bailiffs take something at every close until the treasury is in the black.':'One close of grace, then the bailiffs.')+' Cut the budget, raise a rate, or repay nothing until a close lands in the black.</button></div>':'')
   +'<div class="ledger-tiles">'
   +'<div class="ledger-tile"><span>Owed to the Tides Bank</span><b class="'+(c.loan>0?'bad':'')+'">◉ '+fmtGold(v.loan)+'</b><small>'+(+(v.rate*100).toFixed(3))+'% a close · '+fmtGold(v.interest)+' ◉ in interest at the next</small></div>'
   +'<div class="ledger-tile"><span>The credit line</span><b>◉ '+fmtGold(v.limit)+'</b><small>room for '+fmtGold(v.room)+' ◉ more'+(f75(c)?' · a devoted council adds a tenth':'')+'</small></div>'
@@ -14180,7 +14520,7 @@ function ledgerHelp(){
  const E=CityEconomy;
  const sec=(h,items)=>'<section class="ledger-help"><h3>'+h+'</h3><ul>'+items.map(i=>'<li>'+i+'</li>').join('')+'</ul></section>';
  return '<div class="ledger-helpwrap">'
-  +sec('📜 The close',['The ledger closes every <b>five minutes of play</b>, wherever you are - in a dungeon, on the farm, at the casino.','At a close the crown takes its income, pays its expenses, and the difference goes into the <b>treasury</b>. The prices are the same for every steward, and what your own trades add - the farm, the guild halls, your mining and smithing - is a modest perk, never enough to carry the city.','<b>Every figure the Hand shows is an estimate</b> (≈). Three winds move with every close - <b>trade</b> (tolls, exports, customs), the <b>harvest</b> (taxes, rents, the tithes, and the price of grain) and <b>prices</b> (everything the crown buys) - each close lands a few percent off the estimate on top of that, and at every season’s end <b>wages rise '+Math.round(E.WAGE_RISE*100)+'%</b>. A budget nobody touches drifts into the red: the rates have to be moved as things change. The Ledger tab shows what really happened.','The Overview tab shows roughly what the next close will bring. The treasury is the city\'s gold, not yours - and while the crown owes the bank, the bank\'s: only what the treasury holds <b>beyond its debt</b> can be carried to your purse.'])
+  +sec('📜 The close',['The ledger closes every <b>five minutes of play</b>, wherever you are - in a dungeon, on the farm, at the casino.','At a close the crown takes its income, pays its expenses, and the difference goes into the <b>treasury</b>. The prices are the same for every steward, and what your own trades add - the farm, the guild halls, your mining and smithing - is a modest perk, never enough to carry the city.','<b>Every figure the Hand shows is an estimate</b> (≈). Three winds move with every close - <b>trade</b> (tolls, exports, customs), the <b>harvest</b> (taxes, rents, the tithes, and the price of grain) and <b>prices</b> (everything the crown buys) - each close lands a few percent off the estimate on top of that, and at every season’s end <b>wages rise '+Math.round(E.WAGE_RISE*100)+'%</b>. A budget nobody touches drifts into the red: the rates have to be moved as things change. The Ledger tab shows what really happened.','The Overview tab shows roughly what the next close will bring. The treasury is the city\'s gold, not yours, and it never passes between the two purses by hand: what reaches your own gold is <b>your salary</b>, the <b>season bonus</b> and, crowned, the <b>privy purse</b>.'])
   +sec('⚖️ The budget',['The <b>poll tax</b> is the biggest income and the biggest grievance. High taxes are also dodged more when the people are angry.','The five lines - Watch, Roads, Granary, Festivals, Court - each have four levels. Higher levels cost more every close, lift the mood, and some lift trade (roads, court) or order (watch), which feed the tolls and customs.','Changes take effect at the next close.'])
   +sec('👥 The people',['The mood runs 0-100 and moves <b>a third of the way</b> toward its target at each close. The People tab lists everything that pushes the target up or down.','Below <b>'+E.PROTEST_START+'</b> the people march on the boulevard with placards. They go home once the mood is back above <b>'+E.PROTEST_END+'</b>.','An unhappy city pays less tax and trades less.'])
   +sec('🥊 Unrest',['At every close there is a chance of trouble: a brawl, a gang war, cutpurses, bread queues, broken roads, an insulted envoy, a joyless city. Which one is <b>random</b>; a thin watch, no bread or a sour mood makes trouble likelier.','Each incident names the budget line that ends it - a brawl needs the <b>City Watch doubled</b>. Raise the line and it is dealt with at the next close, or <b>pay once</b> to end it on the spot.','Left alone it costs mood and gold every close, and <b>spreads</b>: up to twice as bad after four closes. Brawls and gang wars can be seen in the City - and so can the watch: disbanded, doubled and royal change how many guards patrol.','If a line is already strong enough when trouble is rolled, it is nipped in the bud and the people notice.'])
@@ -14190,39 +14530,43 @@ function ledgerHelp(){
   +sec('⛪ Church intakes',['The cathedral’s tithes and collections are an income of their own. Fuller plates in a contented city, on feast days, under a pious King - and thinner after a lean harvest. The <b>crown’s share</b> is a rate on the Budget tab: leave it to the Church and the people like you for it; take a heavy share, or seize the plate, and the High Almoner and a pious King take it personally.'])
   +sec('🏗 Public works',['The Works tab lists '+E.WORKS.length+' things the crown can build. You pay the whole price up front, one of <b>three crews</b> builds it over a few closes, and then it earns, pleases, teaches or houses <b>for ever</b>, less a small upkeep.','Many need another work first - a fleet needs a quay, a university needs a library. Borrowing from the Tides Bank to build is what the bank is for.','You can see them: scaffolding goes up on a house in the City while a crew is on it and a signboard after; lamps, the fountain, the statue, the gardens, the market awnings and the wagons on the boulevard are all the ledger’s doing.'])
   +sec('📚 Learning',['The people’s learning runs 0-100 and creeps toward what the <b>Schools</b> line and the learning works deserve. Learned hands earn more: the poll tax and the exports grow by 0.6% a point above 20 - nearly half again at 100. It is the slowest investment and the best.'])
-  +sec('🧲 Attractiveness and population',['The books open on <b>'+E.POPULATION+' townsfolk</b> and the city can grow to <b>'+E.POP_MAX.toLocaleString()+'</b> - the streets show a sample of them, not a head count; the ledger and the chat say how many came or went. How much anyone wants to live here runs 0-100 (People tab). At <b>55 and above</b> people move in at every close - about twenty at a time, more the bigger the city - until the roofs run out: 500 to begin with, and the New Tenements, the New Quarter, the Suburbs and the Riverside District take it to five thousand. <b>Below 40</b> they pack their carts and leave, faster the lower it gets.','Everyone who lives here pays poll tax and rent, so population is the big lever. You can see it: more or fewer people on the streets, handcarts coming in or going out through the west gate, and boarded-up houses when the city empties.'])
+  +sec('🧲 Attractiveness and population',['The books open on <b>'+E.POPULATION+' townsfolk</b> and the city can grow to <b>'+E.POP_MAX.toLocaleString()+'</b> - the streets show a sample of them, not a head count; the ledger and the chat say how many came or went. How much anyone wants to live here runs 0-100 (People tab). At <b>55 and above</b> people move in at every close - about twenty at a time, more the bigger the city - until the roofs run out: 500 to begin with, and the New Tenements, the New Quarter, the Suburbs and the Riverside District take it to five thousand. The Master Builder will not draw the tenements until every one of the first five hundred roofs is taken. <b>Below 40</b> they pack their carts and leave, faster the lower it gets.','Everyone who lives here pays poll tax and rent, so population is the big lever. You can see it: more or fewer people on the streets, handcarts coming in or going out through the west gate, and boarded-up houses when the city empties.'])
   +sec('👑 The King',['The King has a <b>purse</b> (a budget line), a <b>humour</b> that turns every few closes - content, needy, restless, pious, warlike, melancholy - and <b>wishes</b>: a barge, a lion, a bigger allowance. Grant one and it costs; refuse and he sulks. Ignore it for two closes and he sulks harder.','Below a pleasure of <b>30</b> he helps himself to the treasury at every close and has people arrested for nothing.'])
-  +sec('🤝 Trust, and the crown',['The realm’s <b>trust in you</b> adds up close by close: a happy people, a council behind you and an attractive city raise it; marches, trouble left in the streets and an overdraft lower it. Carrying gold out of the treasury to your own purse costs trust; paying gold in earns a little.','At <b>100%</b> the Crown tab lets you take the crown. You rule as King - or Queen - with no King to keep, the privy purse paid into your own gold every close, and the treasury yours to draw on freely.'])
+  +sec('🤝 Trust, and the crown',['The realm’s <b>trust in you</b> adds up close by close: a happy people, a council behind you and an attractive city raise it; marches, trouble left in the streets and an overdraft lower it.','At <b>100%</b> - with the council <b>devoted</b> to you (favour '+E.COUP_FAVOUR+'+) and once the bank has graded <b>a full season</b> of your books ('+E.SEASON_CLOSES+' closes) - the Crown tab lets you take the crown. You rule as King - or Queen - with no King to keep and the privy purse paid into your own gold every close.'])
+  +sec('🎁 Your season bonus',['When the bank closes a season, the Bank tab adds up what it took in and paid out. If the season made a profit you may vote yourself <b>a bonus of up to '+Math.round(E.BONUS_SHARE*100)+'% of it</b>, once, to your own gold - the sum is shown line by line.','Two conditions: the treasury must be <b>in the black</b> when you take it, and it pays no more than the strongroom holds. A season that lost money pays nothing. No trust is lost - it is in the book.'])
   +sec('🌾 The granary',['The city eats <b>a sack a household at every close</b> (five heads to a hearth), out of the stores - and the books open on <b>three closes</b> of grain. Stores filled to the rafters feed the opening city for about eight; the Covered Market, the Stone Quay and the New Quarter each add room. The Overview shows how many closes of bread are left, and the HUD line and the town crier warn when it is fewer than '+E.FOOD_LOW+'.','<b>Buy grain by the shipment</b> at this table - the cheap way, if you are here to do it - or switch on the <b>standing shipments</b>: every close they bring what the city eats, and a quarter of the way to a reserve of '+E.FOOD_RESERVE+' closes, at a quarter over the price. They stop when the strongroom cannot pay.','Grain gets cheaper with transport - the Carters’ Yard, the Stone Quay, the Merchant Fleet, the Covered Market, a farm of your own - and the quay and the market make the stores bigger.','When the stores run short <b>hunger builds</b> slowly, by the share of the city that went without, close after close - ten closes with no bread at all to reach the worst of it: up to −36 on the temper, −18 on the city’s draw, −2 a close on the realm’s trust, and the hungriest leave. Once the bread is back it eases only <b>half a point a close</b>.'])
   +sec('🪙 Your salary',['The office of Master of Coin is <b>unpaid</b> unless you decide otherwise: <b>Your salary</b> on the Budget tab has four levels. The crown is charged the line; <b>a tenth of it reaches your own gold</b> at every close, and the rest keeps your clerks and your carriage.','The city can count. A clerk’s wage costs you nothing; Handsome and Shameless cost the people’s temper and the realm’s trust at every close. A treasury in the red pays you nothing.'])
-  +sec('🤝 Allies',['The <b>Allies</b> tab lists three cities - '+E.ALLIES.filter(a=>a.kind==='city').map(a=>a.name).join(', ')+' - and two great ports, '+E.ALLIES.filter(a=>a.kind==='port').map(a=>a.name).join(' and ')+'. You court them with the <b>treasury’s</b> gold: an envoy’s chest takes '+E.ALLY_CLOSES+' closes to arrive and raises the crown’s stake.','From a <b>'+E.PARTNER_AT+'%</b> stake a place is a trading partner and pays a return at every close. Hold <b>'+E.BUY_AT+'%</b> or more for <b>'+E.COURT_CLOSES+' closes</b> and whoever holds it will hear an offer: a <b>King</b> for each city, a <b>Trade Officer</b> for each port. You name a figure and they answer at once - accept, counter with their reasons, turn cold, or throw you out. Each looks at your city with different eyes (the soldier at your watch, the miser at your strongroom, the proud one at your name, the smuggler at the trade winds, the comptroller at your bank grade), a very low offer ends the talks and is remembered, and once bought the place pays its whole yield for ever.','The ports are the end game - tens of millions - and will not receive an envoy from a city without a Stone Quay (Kraken’s Rest) or a Merchant Fleet (Port Meridian).'])
+  +sec('🤝 Allies',['The <b>Allies</b> tab lists three cities - '+E.ALLIES.filter(a=>a.kind==='city').map(a=>a.name).join(', ')+' - and two great ports, '+E.ALLIES.filter(a=>a.kind==='port').map(a=>a.name).join(' and ')+'. They deal with <b>crowned heads only</b> - a steward may read the page, a King or a Queen sends the envoys. You court them with the <b>treasury’s</b> gold: an envoy’s chest takes '+E.ALLY_CLOSES+' closes to arrive and raises the crown’s stake.','From a <b>'+E.PARTNER_AT+'%</b> stake a place is a trading partner and pays a return at every close. Hold <b>'+E.BUY_AT+'%</b> or more for <b>'+E.COURT_CLOSES+' closes</b> and whoever holds it will hear an offer: a <b>King</b> for each city, a <b>Trade Officer</b> for each port. You name a figure and they answer at once - accept, counter with their reasons, turn cold, or throw you out. Each looks at your city with different eyes (the soldier at your watch, the miser at your strongroom, the proud one at your name, the smuggler at the trade winds, the comptroller at your bank grade), a very low offer ends the talks and is remembered, and once bought the place pays its whole yield for ever.','The ports are the end game - tens of millions - and will not receive an envoy from a city without a Stone Quay (Kraken’s Rest) or a Merchant Fleet (Port Meridian).'])
   +sec('🎩 Nobility and the notice board',['The <b>notice board</b> stands by the town crier on the great square. For <b>'+fmtGold(E.PATENT_COST)+' ◉ of your own gold</b> the heralds seal you a patent of nobility; it takes <b>a quarter of an hour of play</b>.','A noble can fund the <b>contracts</b> posted there - an orphanage wing, a merchant cog, a regiment. The whole sum leaves your purse at once, the contract clears a quarter of an hour later and does the city its good then. <b>Nothing ever comes back</b>: what you buy is the city’s good and <b>noble XP</b>.','XP raises your <b>rank</b> - Knight, Baron, Viscount, Count, Marquess, Duke. Each rank adds a point to the city’s draw and a tenth of a point of trust a close, and brings more and greater contracts: the board is re-posted <b>every hour of play</b>, with 1-3 contracts for a knight and up to 6 for a duke.'])
   +sec('🤝 The Hand’s counsel',['Once every <b>'+E.COUNSEL_EVERY+' closes</b> you can ask the King’s Hand, on the Overview, what he would do. He names <b>one thing</b> - whatever he thinks presses hardest - and he says where to look, not which button to press. His last counsel stays on the Overview until you ask again.','If he has nothing worth saying he says so, and the question is not used up.'])
   +sec('🔔 Ledgers to attend',['The ledger closes wherever you are - but a city is not run from a dungeon. After <b>'+E.REMIND_AFTER+' closes</b> without opening the ledger the chat reminds you: <b>you have ledgers to attend</b>.','There is no cliff, only a slope: from the <b>first close</b> you are away the realm’s trust in you drains by about a tenth of a point, and it deepens by as much again with <b>every close</b> you stay away - over a point a close after ten, four at the very worst. What each councillor thinks you deserve sinks a point and a half per close away (forty at the most), and their opinion follows it down. It is not only the council: the city’s temper sinks 0.6 a close away (to −18) and its draw 0.4 (to −12), so taxes thin, families stop coming and, left long enough, the crowd comes out. Opening the ledger at the council table stops the slide and starts the count again - what was lost has to be earned back.'])
-  +sec('⛓ The gaol',['Down the stair in the west wall of the hall, on your left as you come in. At every close the watch may bring in a townsperson - really: they vanish from the streets until they are out. You can talk to them through the bars, and at the gaoler’s desk pardon them or fine them.'])
+  +sec('⛓ The gaol',['Down the stair in the west wall of the hall, on your left as you come in. At every close the watch may bring in a townsperson - really: they vanish from the streets until they are out. You can talk to them through the bars, and at the gaoler’s desk pardon them or fine them.','The old King, if that is where he went, is yours to decide on the Gaol tab. <b>Pardon him</b>: the people <b class="pos">+'+Math.round(E.MERCY*100)+'</b>, but every court abroad prices you <b>'+Math.round(E.MERCY*100)+'% higher</b> and is harder to talk round - and he sits begging at the foot of the palace stair in what is left of his robes. <b>Hang him on the square</b>: the people <b class="neg">−'+Math.round(E.MERCY*100)+'</b>, but every court abroad is frightened into being <b>'+Math.round(E.MERCY*100)+'% cheaper</b> and easier. A public execution: the whole city turns out to watch.'])
   +sec('🏦 The Tides Bank and its seasons',['The strongroom starts <b>empty</b>. The books open when you sign the <b>founding loan</b> of '+fmtGold(E.FOUNDING_LOAN)+' ◉; the bank keeps another '+fmtGold(E.RESERVE_LINE)+' ◉ on the line for later. What you owe costs '+(E.LOAN_RATE*100)+'% of itself at every close, to begin with.','Play runs in <b>seasons of '+E.SEASON_CLOSES+' closes</b>. For each the bank sets a target: the debt must be <b>a tenth smaller</b> at the last close than it was at the first. You may borrow more along the way - what counts is where the debt <b>ends</b>.','At the last close the bank <b>grades the books A to F</b>: is the debt at the target, was the strongroom ever dry, is the crown worth more than it was. An A widens the line by everything you repaid and 12% more, and cheapens the money; a D or an F narrows the line, makes the money dearer, and whatever debt stands above the target is <b>called in</b> from the strongroom on the spot.','If a close cannot be paid, the bank <b>covers the shortfall from your line</b> and adds '+(E.COVER_FEE*100)+'% to the debt for the favour. When the line is spent the treasury is <b>in the red</b>: it costs '+(E.OVERDRAFT_RATE*100)+'% a close, sours the mood by 18, no budget line can be raised and no work ordered.','After <b>one close of grace</b> the <b>bailiffs</b> come, and take one thing at every close you stay in the red: a building site (sold for half), a file of the watch, a finished work (sold for a third - its house in the City wears the bank\'s seal), two of the Royal Guard, the festivals, the court. What they sell is credited to the treasury. When nothing is left the bank cuts every budget line to the bone.','The Bank tab charts every season: the treasury, the debt, and the target.'])
   +'<button class="sbtn gold" data-lact="back">Back to the ledger</button></div>';
 }
 function ledgerHTML(){
  const c=S.city,ctx=cityContext(),E=CityEconomy,f=E.forecast(c,ctx);
  if(ledgerTab==='help')return ledgerHelp();
+ if(ledgerPeek&&!c.chartered)return '<div class="craft-empty">The office is yours, Master of Coin - but the books are not open yet. '+ThroneWorld.HAND_NAME.split(' · ')[0]+' is waiting at the council table with the founding loan; sign it there and the Overview will show here.</div>'; /* 👁 nothing to glance at before the charter, and the charter is signed at the table */
  if(!c.chartered)return c.office>=3?ledgerCharter(c,ctx):ledgerOffer(c);
  if(ledgerTab==='overview'){
   const last=c.last;
-  const coup=!c.crowned&&c.trust>=E.COUP_TRUST;
+  const coup=E.canClaim(c),bonus=E.bonusView(c);
   return (c.food.hunger>0||E.foodView(c,ctx).low?'<div class="ledger-alert"><button class="sbtn" data-lact="goto" data-v="overview">🌾 '+(c.food.hunger>0?'The granary is EMPTY and the city is going hungry - it gets worse with every close.':'The granary holds bread for '+(n=>n+' more close'+(n===1?'':'s'))(CityEconomy.foodView(c,cityContext()).closes)+'.')+' Buy grain below'+(c.food.auto?'.':', or set the standing shipments going.')+'</button></div>':'')
-   +(c.treasury<0?'<div class="ledger-alert"><button class="sbtn" data-lact="goto" data-v="bank">🏦 The treasury is in the red and the line is spent - '+(c.arrears>=E.SEIZE_AFTER-1?'the bailiffs take something at every close':'the bailiffs come after the next close')+'. Pay gold in, cut the budget, raise a rate.</button></div>':'')
-   +(f.incidents.length||c.petition||c.king.demand||coup?'<div class="ledger-alert">'+f.incidents.map(i=>'<button class="sbtn" data-lact="goto" data-v="people">'+i.icon+' '+i.name+' - '+i.fix.toLowerCase()+'</button>').join('')
+   +(c.treasury<0?'<div class="ledger-alert"><button class="sbtn" data-lact="goto" data-v="bank">🏦 The treasury is in the red and the line is spent - '+(c.arrears>=E.SEIZE_AFTER-1?'the bailiffs take something at every close':'the bailiffs come after the next close')+'. Cut the budget, raise a rate.</button></div>':'')
+   +(f.incidents.length||c.petition||c.king.demand||coup||(bonus&&bonus.open)?'<div class="ledger-alert">'+f.incidents.map(i=>'<button class="sbtn" data-lact="goto" data-v="people">'+i.icon+' '+i.name+' - '+i.fix.toLowerCase()+'</button>').join('')
     +(c.petition?'<button class="sbtn" data-lact="goto" data-v="council">📜 A petition waits for your answer</button>':'')
     +(c.king.demand?'<button class="sbtn" data-lact="goto" data-v="crown">👑 The King wants something</button>':'')
-    +(coup?'<button class="sbtn ledger-coupbtn" data-lact="goto" data-v="crown">👑 The realm trusts you more than its King - the crown is there to be taken</button>':'')+'</div>':'')
+    +(coup?'<button class="sbtn ledger-coupbtn" data-lact="goto" data-v="crown">👑 The realm trusts you more than its King - the crown is there to be taken</button>':'')
+    +(bonus&&bonus.open?'<button class="sbtn ledger-bonusbtn" data-lact="goto" data-v="bank">🎁 Season '+bonus.n+' made '+fmtGold(bonus.profit)+' ◉ - a bonus of up to '+fmtGold(bonus.max)+' ◉ waits on the Bank tab'+(bonus.black?'':' (once the treasury is in the black)')+'</button>':'')+'</div>':'')
    +'<div class="ledger-tiles">'
    +'<div class="ledger-tile"><span>Treasury</span><b class="'+(c.treasury<0?'bad':'')+'">◉ '+fmtGold(c.treasury)+'</b><small>'+(c.treasury<0?'IN THE RED - '+(c.arrears>=E.SEIZE_AFTER-1?'the bailiffs come at the next close':'one close of grace'):c.loan>0?'owes '+fmtGold(c.loan)+' ◉ to Tides Bank':'no debts')+'</small></div>'
    +'<div class="ledger-tile"><span>The people</span><b style="color:'+E.moodColor(c.mood)+'">'+E.moodName(c.mood)+' · '+c.mood+'</b><small>'+(c.protest?'marching on the boulevard':'settling toward '+E.moodName(f.moodTarget).toLowerCase()+' ('+f.moodTarget+')')+'</small></div>'
-   +'<div class="ledger-tile"><span>Next close</span><b id="ledgerNext">'+cityClockLeft()+'</b><small>the Hand expects <span class="'+(f.net>=0?'pos':'neg')+'">'+fmtRoughSigned(f.net)+' ◉</span> · council '+E.favourName(f.favour).toLowerCase()+'</small></div>'
+   +'<div class="ledger-tile"><span>Next close</span><b id="ledgerNext">'+cityClockLeft()+'</b><small>'+(w=>'the strongroom would stand at <span class="'+(c.treasury+f.net>=0?'pos':'neg')+'">◉ '+fmtGold(c.treasury+f.net)+'</span>, give or take '+fmtRough(w))(f.totalIn*E.JITTER_IN/2+f.totalOut*E.JITTER_OUT/2)
+     +(c.season.series.length?' · season so far <span class="'+(c.season.series.reduce((t,p)=>t+p.n,0)>=0?'pos':'neg')+'">'+fmtSigned(c.season.series.reduce((t,p)=>t+p.n,0))+' ◉</span> over '+c.season.series.length+' close'+(c.season.series.length===1?'':'s'):' · the season’s first close')+' · council '+E.favourName(f.favour).toLowerCase()+'</small></div>'
    +'<div class="ledger-tile"><span>The city</span><b>'+c.pop+' townsfolk</b><small>'+E.attractName(c.attract)+' · '+c.attract+(c.attract>=55?(c.pop>=f.housing?' - but every roof is taken':' - families are moving in'):c.attract<40?' - families are leaving':' - nobody comes, nobody goes')+'</small></div>'
    +'<div class="ledger-tile"><span>The people’s learning</span><b>'+Math.round(c.skill)+'</b><small>heading for '+f.skillTarget+' · taxes and exports ×'+f.craft.toFixed(2)+'</small></div>'
-   +'<div class="ledger-tile"><span>'+(c.crowned?'Your legitimacy':'Trust in you')+'</span><b style="color:#ffd76a">'+Math.floor(c.trust)+'%</b><small>'+(c.crowned?'👑 '+cityTitle()+' '+(S.name||''):E.trustName(c.trust)+' · '+(f.trustDelta>=0?'+':'−')+Math.abs(f.trustDelta).toFixed(1)+' a close'+(c.trust>=E.COUP_TRUST?' · the crown is there to be taken':''))+'</small></div>'
+   +'<div class="ledger-tile"><span>'+(c.crowned?'Your legitimacy':'Trust in you')+'</span><b style="color:#ffd76a">'+Math.floor(c.trust)+'%</b><small>'+(c.crowned?'👑 '+cityTitle()+' '+(S.name||''):E.trustName(c.trust)+' · '+(f.trustDelta>=0?'+':'−')+Math.abs(f.trustDelta).toFixed(1)+' a close'+(coup?' · the crown is there to be taken':c.trust>=E.COUP_TRUST?' · the Crown tab says what the crown still wants':''))+'</small></div>'
    +'</div>'
    +ledgerCounsel(c)
    +ledgerSeasonCard(f.card,c.season)
@@ -14230,10 +14574,8 @@ function ledgerHTML(){
    +'<div class="ledger-winds"><span>🌬 The Hand’s estimate for the next close - it never lands on it.</span>'+f.winds.map(w=>'<span class="wind '+(w.key==='prices'?(w.value>.05?'bad':w.value<-.05?'good':''):(w.value>.05?'good':w.value<-.05?'bad':''))+'">'+(w.key==='trade'?'⛵ Trade':w.key==='harvest'?'🌾 Harvest':'🧾 Prices')+': <b>'+w.name+'</b></span>').join('')+(f.wage>1?'<span class="wind">Wages: <b>+'+Math.round((f.wage-1)*100)+'%</b> since the books opened</span>':'')+'</div>'
    +'<div class="ledger-cols"><section><h3>Income · '+fmtRough(f.totalIn)+' ◉</h3>'+ledgerRows(f.income)+'</section>'
    +'<section><h3>Expenses · '+fmtRough(f.totalOut)+' ◉</h3>'+ledgerRows(f.expenses.filter(l=>l.amount||!['whims','obstruction','overdraft','gaol','upkeep'].includes(l.id)))+'</section></div>'
-   +'<div class="ledger-net"><span>The next close, roughly <b class="'+(f.net>=0?'pos':'neg')+'">'+fmtRoughSigned(f.net)+' ◉</b></span><span>Season '+c.season.n+' · close '+(c.season.closes+1)+' of '+E.SEASON_CLOSES+' · the bank wants the debt at <b>'+fmtGold(c.season.target)+' ◉</b> or less by the end - it is '+fmtGold(c.loan)+'</span><span>Earned '+fmtGold(c.earned)+' · spent '+fmtGold(c.spent)+' over '+c.ticks+' closes</span></div>'
-   +'<div class="ledger-transfer"><div><span>To your purse (◉ '+fmtGold(S.gold)+' / '+fmtGold(goldCap())+') · only the '+fmtGold(Math.max(0,c.treasury-c.loan))+' ◉ the treasury holds beyond its debt</span>'
-   +['10000','100000','all'].map(v=>'<button class="sbtn gold" data-lact="take" data-v="'+v+'">'+(v==='all'?'All':(+v/1000)+'K')+' ◉</button>').join('')+'</div>'
-   +'<div><span>Into the treasury</span>'+['10000','100000','all'].map(v=>'<button class="sbtn" data-lact="give" data-v="'+v+'">'+(v==='all'?'All':(+v/1000)+'K')+' ◉</button>').join('')+'</div></div>'
+   +'<div class="ledger-net"><span>The next close, roughly <b class="'+(f.net>=0?'pos':'neg')+'">'+fmtRoughSigned(f.net)+' ◉</b></span><span>Season '+c.season.n+' · close '+(c.season.closes+1)+' of '+E.SEASON_CLOSES+' · the bank wants the debt at <b>'+fmtGold(c.season.target)+' ◉</b> or less by the end - it is '+fmtGold(c.loan)+'</span><span>Earned '+fmtGold(c.earned)+' · spent '+fmtGold(c.spent)+' over '+c.kept+' close'+(c.kept===1?'':'s')+' with the books open</span></div>'
+   /* (the two transfer boxes - treasury to purse, purse to treasury - were taken out 2026-09-22: the crown's gold and the hero's stay apart. What reaches your own purse is the salary line, the season bonus and, crowned, the privy purse.) */
    +(last?'<p class="craft-note">Last close <b class="'+(last.net>=0?'pos':'neg')+'">'+fmtSigned(last.net)+' ◉</b>'+(last.expected!==undefined?' (the Hand had expected '+fmtRoughSigned(last.expected)+')':'')+(last.events.length?' · '+last.events.join(' '):' · a quiet week.')+'</p>'
         :'<p class="craft-note">The books opened the moment you first climbed the stair. The first close is in '+cityClockLeft()+'.</p>');
  }
@@ -14312,6 +14654,8 @@ function ledgerHTML(){
 }
 function ledgerRefresh(){
  if(!S||!S.city)return;
+ $('ledgerFx').classList.toggle('peek',ledgerPeek);
+ {const k=document.querySelector('#ledgerFx .craft-kicker');if(k)k.textContent=ledgerPeek?'FROM THE ROAD':'THE COUNCIL CHAMBER';$('ledgerClose').textContent=ledgerPeek?'Close the book':'Leave the Chamber';}
  const dot=(id,on)=>{const b=document.querySelector('[data-ltab="'+id+'"]');if(b)b.classList.toggle('alert',on);};
  document.querySelectorAll('[data-ltab]').forEach(b=>{const on=b.dataset.ltab===ledgerTab;b.classList.toggle('active',on);b.setAttribute('aria-selected',on);b.disabled=!S.city.chartered;});
  dot('bank',S.city.chartered&&(S.city.treasury<0||!S.city.reviewSeen)&&ledgerTab!=='bank');
@@ -14319,9 +14663,10 @@ function ledgerRefresh(){
  dot('people',S.city.incidents.length>0||S.city.protest);dot('council',!!S.city.petition);
  dot('allies',S.city.chartered&&CityEconomy.alliesView(S.city).list.some(a=>a.canBuy));
  {const at=document.querySelector('[data-ltab="allies"]');if(at&&ledgerTab==='talk'){at.classList.add('active');at.setAttribute('aria-selected',true);}}
- dot('crown',!!S.city.king.demand||(!S.city.crowned&&S.city.trust>=CityEconomy.COUP_TRUST));dot('gaol',S.city.jail.length>CityEconomy.cells(S.city));
+ dot('crown',!!S.city.king.demand||CityEconomy.canClaim(S.city));dot('gaol',S.city.jail.length>CityEconomy.cells(S.city));
+ {const b=CityEconomy.bonusView(S.city);if(b&&b.open&&b.black&&ledgerTab!=='bank')dot('bank',true);} /* 🎁 a bonus waiting is a reason to open the Bank tab */
  const crownTab=document.querySelector('[data-ltab="crown"]');if(crownTab)crownTab.textContent=S.city.crowned?'👑 Your Crown':'👑 The King';
- {const sub=document.querySelector('#ledgerFx .craft-subtitle');if(sub)sub.textContent=S.city.office>=3?'Taxes, rents and public works; a King to keep and a realm to win. You sit as Master of Coin: the King’s Hand keeps the books, you run the city.':'The crown’s books, kept by the King’s Hand at the council table - for the Master of Coin, when the city has one.';}
+ {const sub=document.querySelector('#ledgerFx .craft-subtitle');if(sub)sub.textContent=ledgerPeek?'A glance at the books from the road. The Hand reads you the Overview and nothing else - the ledger is kept at the council table, and only there can anything be touched.':S.city.office>=3?'Taxes, rents and public works; a King to keep and a realm to win. You sit as Master of Coin: the King’s Hand keeps the books, you run the city.':'The crown’s books, kept by the King’s Hand at the council table - for the Master of Coin, when the city has one.';}
  $('ledgerBody').innerHTML=ledgerHTML();
  $('ledgerMsg').textContent=ledgerNote;ledgerNote='';
 }
@@ -14335,7 +14680,7 @@ function ledgerAction(act,k,v){
   charterStep=0;ledgerNote=r.text;sfx.quest();
   stageMsg('🪙 '+nobleTitle()+' '+(S.name||'')+', Master of Coin.',5200,'#ffd76a',true);
   log('🪙 <b>You are Master of Coin.</b> '+ThroneWorld.HAND_NAME.split(' · ')[0]+' takes you down to the strongroom.','loot');
-  ledgerRefresh();document.querySelector('#ledgerFx .craft-scroll').scrollTop=0;renderHUD();save();return;
+  ledgerRefresh();document.querySelector('#ledgerFx .craft-scroll').scrollTop=0;renderHUD();renderHero();save();return; /* renderHero: the Crown Ledger card appears in the hero panel the moment the office is taken */
  }
  if(act==='chstep'){charterStep=Math.max(0,Math.min(2,parseInt(v,10)||0));ledgerRefresh();document.querySelector('#ledgerFx .craft-scroll').scrollTop=0;return;}
  if(act==='season'){ledgerSeasonPick=v==='now'?null:parseInt(v,10);ledgerRefresh();return;}
@@ -14365,18 +14710,20 @@ function ledgerAction(act,k,v){
  else if(act==='food'){const r=E.buyFood(c,cityContext(),v==='fill'?1e9:parseInt(v,10));ok=r.ok;msg=r.text;}
  else if(act==='autofood'){const on=E.setAutoFood(c,!c.food.auto),fv=E.foodView(c,cityContext());msg=on?'The standing shipments are running: grain comes in at every close, at '+fv.autoPrice+' ◉ a sack. Watch for the wagon on the boulevard.':'The standing shipments are stopped. The granary is stocked by hand from now on.';}
  else if(act==='invest'){const r=E.invest(c,cityContext(),k);ok=r.ok;msg=r.text;}
+ else if(act==='upgrade'){const r=E.upgrade(c,cityContext(),k);ok=r.ok;msg=r.text;} /* 🏗 level 2 */
  else if(act==='kingyes'||act==='kingno'){const r=E.answerKing(c,cityContext(),act==='kingyes');ok=!!(r&&r.ok);msg=r?r.text:'';}
- else if(act==='pardon'){const r=E.pardon(c,k);ok=!!r;msg=r?r.text:'';}
+ else if(act==='execute'){if(startExecution(k))return;ok=false;msg='Not now.';}   /* ⚖️ the square plays it out; CityEconomy.execute runs at the drop */
+ else if(act==='pardon'){const r=E.pardon(c,k);ok=!!r;msg=r?r.text:'';if(ok&&c.deposed==='pardoned'){log('🪙 <b>'+k+'</b> - '+r.text,'loot');stageMsg('🪙 The old King is pardoned. The square cheers - and every court abroad takes note.',5200,'#ffd76a',true);}}
  else if(act==='fine'){const r=E.fine(c,cityContext(),k);ok=!!r;msg=r?r.text:'';}
- else if(act==='coup'){
-  const r=E.claimCrown(c,v);ok=r.ok;msg=r.text;
-  if(ok){stageMsg('👑 All hail '+cityTitle()+' '+(S.name||'')+'!',6000,'#ffd76a',true);log('👑 <b>'+cityTitle()+' '+(S.name||'')+'</b> - '+r.text,'loot');sfx.quest();if(typeof shake==='function')shake(.5);}
+ else if(act==='coup'){ /* 👑 the crown is not a button: the hall plays it out, and claimCrown runs when the King is gone (see THE CORONATION) */
+  if(!E.canClaim(c)){ok=false;msg=E.claimCrown(c,v).text;}
+  else if(startCoronation(v))return;
+  else{ok=false;msg='Not now.';}
  }
  else if(act==='fix'){const want=Math.max(c.budget[k],parseInt(v,10));ok=E.setBudget(c,k,want);msg=ok?E.LINES[k].name+' raised to '+E.LINES[k].levels[want].name+' - the trouble ends at the next close.':'';}
  else if(act==='settle'){const n=E.settle(c,cityContext(),k);ok=n>0;msg=ok?'Paid '+n.toLocaleString()+' ◉. It is over - for now.':'The treasury cannot cover it.';}
  else if(act==='grant'||act==='refuse'){const r=E.answer(c,cityContext(),act==='grant');ok=!!(r&&r.ok);msg=r?r.text:'';}
- else if(act==='take'){const t0=c.trust,n=E.withdraw(c,amt(1e12),goldRoom(),cityContext());ok=n>0;S.gold+=n;msg=ok?n.toLocaleString()+' ◉ taken to your purse.'+(c.trust<t0?' Your clerks made a note, and clerks talk: trust −'+(t0-c.trust).toFixed(1)+'.':''):c.treasury<=c.loan?'Borrowed gold never leaves the strongroom: the treasury holds nothing beyond what it owes the bank.':'Nothing to take - your vault is full.';}
- else if(act==='give'){const t0=c.trust,n=E.deposit(c,amt(totalGold()),totalGold(),cityContext());ok=n>0&&spendGold(n);msg=ok?n.toLocaleString()+' ◉ paid into the treasury.'+(c.trust>t0?' It was noticed: trust +'+(c.trust-t0).toFixed(1)+'.':''):'You have no gold to give.';}
+ else if(act==='bonus'){const r=E.takeBonus(c,goldRoom());ok=r.ok;msg=r.text;if(ok){S.gold+=r.gold;log('🎁 <b>Your season bonus:</b> <span class="loot">+'+r.gold.toLocaleString()+' ◉</span> to your own gold.','loot');}} /* 🎁 no trust lost - it is not light fingers, it is the book */
  else if(act==='borrow'){const n=E.borrow(c,cityContext(),amt(1e12));ok=n>0;msg=ok?'Tides Bank lends the crown '+n.toLocaleString()+' ◉.':'The bank will lend no more.';}
  else if(act==='repay'){const n=E.repay(c,v==='target'?Math.max(0,c.loan-c.season.target):amt(1e12));ok=n>0;msg=ok?n.toLocaleString()+' ◉ repaid. The crown owes '+c.loan.toLocaleString()+' ◉'+(c.loan<=c.season.target?' - at the season’s target.':'; the season’s target is '+c.season.target.toLocaleString()+' ◉.'):'Nothing to repay with - the treasury must be in credit.';}
  ledgerNote=msg;
@@ -14384,15 +14731,17 @@ function ledgerAction(act,k,v){
  cityApplyAll();
  ledgerRefresh();renderHUD();save();
 }
-function openLedger(tab){
- if(!S||!S.city)return;
- ledgerTab=typeof tab==='string'&&S.city.chartered?tab:'overview';ledgerNote='';
- if(S.city.chartered){ /* 🔔 the steward is at the table again */
+function openLedger(tab,peek=false){
+ if(!S||!S.city||coronation||execution)return;
+ if(peek&&!(S.city.office>=3))return; /* 👁 the office first: a stranger gets no glance at the crown's books */
+ ledgerPeek=!!peek;
+ ledgerTab=typeof tab==='string'&&S.city.chartered&&!ledgerPeek?tab:'overview';ledgerBack='overview';ledgerNote='';
+ if(S.city.chartered&&!ledgerPeek){ /* 🔔 the steward is at the table again - a glance from afar is not that */
   const away=CityEconomy.attend(S.city);
   if(away>=CityEconomy.NEGLECT_AFTER){const line=away>=CityEconomy.NEGLECT_HARD?'So you remember where the table is. '+away+' closes, steward. The council has been meeting without you - sit down and earn them back.':'You have been missed, steward. '+away+' closes of paper are waiting - and the council has noticed the empty chair.';
    log('📜 <b>'+ThroneWorld.HAND_NAME+':</b> '+line);ledgerNote=line;save();}
  }
- if(!S.city.chartered){charterStep=0;if(S.city.office===1)CityEconomy.meetHand(S.city);   /* found him at the table without being met at the door: that will do */
+ if(!S.city.chartered&&!ledgerPeek){charterStep=0;if(S.city.office===1)CityEconomy.meetHand(S.city);   /* found him at the table without being met at the door: that will do - but not from the road */
   log('📜 <b>'+ThroneWorld.HAND_NAME+':</b> '+(S.city.office>=3?'Before you touch anything, come and look in the strongroom with me.':S.city.office>=1?'You came. Sit down - I have a proposal, and you will want to hear all of it.':'These are the crown’s books. They are not for strangers.'));}
  ledgerRefresh();
  $('ledgerFx').style.display='flex';
@@ -14400,10 +14749,67 @@ function openLedger(tab){
 const openCouncil=()=>openLedger('council');
 $('ledgerClose').onclick=()=>$('ledgerFx').style.display='none';
 $('ledgerHelp').onclick=()=>{if(ledgerTab==='help')ledgerTab=ledgerBack;else{ledgerBack=ledgerTab;ledgerTab='help';}ledgerRefresh();};
-$('ledgerTabs').addEventListener('click',e=>{const b=e.target.closest('[data-ltab]');if(!b)return;ledgerTab=b.dataset.ltab;ledgerRefresh();});
+$('ledgerTabs').addEventListener('click',e=>{const b=e.target.closest('[data-ltab]');if(!b||ledgerPeek)return;ledgerTab=b.dataset.ltab;ledgerRefresh();});
 $('ledgerBody').addEventListener('pointermove',seasonChartHover);
 $('ledgerBody').addEventListener('pointerleave',seasonChartHover);
-$('ledgerBody').addEventListener('click',e=>{const b=e.target.closest('[data-lact]');if(!b||b.disabled)return;ledgerAction(b.dataset.lact,b.dataset.k,b.dataset.v);});
+$('ledgerBody').addEventListener('click',e=>{const b=e.target.closest('[data-lact]');if(!b||b.disabled)return;
+ if(ledgerPeek){ /* 👁 a glance touches nothing, and never goes through ledgerAction - that counts as attending. The ? page's Back is the one thing it may press */
+  if(b.dataset.lact==='back')ledgerTab=ledgerBack;else{ledgerNote='Not from here, steward. The books are kept at the council table.';sfx.warn();}
+  ledgerRefresh();return;}
+ ledgerAction(b.dataset.lact,b.dataset.k,b.dataset.v);});
+/* 👘 the hero panel's Outfits card (above the auto-equip row) and the page it opens - a side panel like Tide storage:
+   one card per UNLOCKED outfit, a painted portrait of this hero in it, and a Wear button. A locked outfit is not listed. */
+function outfitEntry(){
+ const host=$('outfitEntry');if(!host||!S)return;
+ const cur=OUTFITS.find(o=>o.id===heroOutfit());
+ host.innerHTML='<button class="card tide-entry" id="outfitButton" title="Choose what your hero is drawn in"><span class="tide-entry-icon ledger-entry-icon" aria-hidden="true">'+(cur?cur.icon:'👘')+'</span><span>Outfits <small>· wearing '+(cur?cur.name():'your colours')+'</small></span></button>';   /* no count: what is not yours yet is not mentioned */
+ $('outfitButton').onclick=()=>openTab('outfits');
+}
+function paintOutfitPortrait(cv,id){
+ const g=cv.getContext('2d'),c=classOf();if(!g||!c||!S)return false;
+ const arg=outfitArgOf(id),f=paintedCharacterFrame(S.race,c.id,S.gender==='f',arg);
+ g.clearRect(0,0,cv.width,cv.height);g.save();g.translate(cv.width/2,cv.height*.8);g.scale(2.3,2.3);
+ g.fillStyle='rgba(0,0,0,.3)';g.beginPath();g.ellipse(0,f?f.groundY:8,14,5,0,0,Math.PI*2);g.fill();
+ if(f)bootFeet({...f.boots,moving:false,walk:0,bob:0},g);
+ drawChampionSprite(g,S.race,c.id,-1,0,0,false,null,S.gender==='f',1,arg,null,null,performance.now()/1000);
+ g.restore();
+ return !!f;   /* false while the painting is still loading - the page repaints itself once more */
+}
+function renderOutfits(){
+ if(!S)return;
+ const cur=heroOutfit(),list=OUTFITS.filter(o=>outfitUnlocked(o.id));
+ $('outfitIntro').textContent=(list.length===1?'One outfit':list.length+' outfits')+'. Cosmetic only: the numbers come from what you wear, the look from what you choose here.';
+ $('outfitBody').innerHTML='<div class="outfit-grid">'+list.map(o=>'<div class="card outfit-card'+(o.id===cur?' worn':'')+'"><canvas width="150" height="190" data-outfit-portrait="'+o.id+'" aria-label="'+esc(o.name())+'"></canvas><h3>'+o.icon+' '+esc(o.name())+'</h3><p class="cl">'+esc(o.desc)+'</p>'
+  +'<button class="sbtn'+(o.id===cur?'':' gold')+'" data-outfit-wear="'+o.id+'"'+(o.id===cur?' disabled':'')+'>'+(o.id===cur?'Worn':'Wear it')+'</button></div>').join('')+'</div>'
+  ;   /* a locked outfit is not listed, not even as a hint (asked for 2026-09-22): you learn of it when it is yours */
+ let loading=false;
+ $('outfitBody').querySelectorAll('[data-outfit-portrait]').forEach(cv=>{if(!paintOutfitPortrait(cv,cv.dataset.outfitPortrait))loading=true;});
+ if(loading)setTimeout(()=>{if($('p-outfits').classList.contains('open'))renderOutfits();},500);
+ $('outfitBody').querySelectorAll('[data-outfit-wear]').forEach(b=>b.onclick=()=>{
+  const id=b.dataset.outfitWear;if(!outfitUnlocked(id))return;
+  S.outfit=id;save();renderOutfits();renderHero();sfx.loot&&sfx.loot();
+  const o=OUTFITS.find(x=>x.id===id);stageMsg(o.icon+' '+o.name()+' - worn.',1800);
+ });
+ $('outfitBack').onclick=()=>openTab('hero');
+}
+/* 👑 the offer that follows the coronation: the robes on screen, a portrait of you in them, and one button */
+function openOutfitOffer(id){
+ if(!S||!outfitUnlocked(id))return;
+ const o=OUTFITS.find(x=>x.id===id);if(!o)return;
+ $('outfitOfferTitle').textContent=o.icon+' '+o.name().toUpperCase();
+ $('outfitOfferText').textContent=id==='royal'?'The tailors of the palace have your measure. Crimson, ermine and the crown - the City wants to see it worn.':o.desc;
+ const cv=$('outfitOfferPortrait');const paint=()=>{if(!paintOutfitPortrait(cv,id)&&$('outfitFx').style.display==='flex')setTimeout(paint,400);};paint();
+ $('outfitOfferWear').onclick=()=>{S.outfit=id;save();renderHero();$('outfitFx').style.display='none';stageMsg(o.icon+' '+o.name()+' - worn.',2400,'#ffd76a');sfx.loot&&sfx.loot();};
+ $('outfitOfferLater').onclick=()=>{$('outfitFx').style.display='none';stageMsg('Outfits are in the hero panel whenever you want them.',2400);};
+ $('outfitFx').style.display='flex';
+}
+/* 👁 the hero panel's way in: the Overview alone, from wherever the hero stands. Appears the moment you are Master of Coin (office 3) - nobody else sees it. */
+function ledgerEntry(){
+ const host=$('ledgerEntry');if(!host||!S)return;
+ if(!S.city||!(S.city.office>=3)){host.innerHTML='';return;}
+ host.innerHTML='<button class="card tide-entry" id="ledgerPeekButton" title="Read the Overview of the Crown Ledger from here. To run the city, sit at the council table."><span class="tide-entry-icon ledger-entry-icon" aria-hidden="true">👑</span><span>Crown Ledger <small>· overview</small></span></button>';
+ $('ledgerPeekButton').onclick=()=>openLedger('overview',true);
+}
 setInterval(()=>{ /* the countdown on the ledger and the HUD line tick once a second */
  if(!gameOn||!S||!S.city||!hero)return;
  const nx=$('ledgerNext');if(nx&&$('ledgerFx').style.display==='flex')nx.textContent=cityClockLeft();
@@ -14710,11 +15116,12 @@ function openTab(t){
  if(t==='tides'&&!S?.tides?.lassoOwned)t='hero';
  if(t!=='battle')desktopSideTab=t;
  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));
- document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('cur',b.dataset.tab===(t==='tides'?'hero':t)));
+ document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('cur',b.dataset.tab===(t==='tides'||t==='outfits'?'hero':t)));
  if(t==='hero'){renderHero();$('p-hero').classList.add('open');}
  if(t==='map'){if(S&&zoneOf().west)mapContinent='west';if(S&&zoneOf().valhalla)mapContinent='valhalla';if(S&&zoneOf().raidc)mapContinent='raid';renderMap();$('p-map').classList.add('open');}
  if(t==='bag'){renderBag();$('p-bag').classList.add('open');}
  if(t==='tides'){$('p-tides').classList.add('open');TideUI.renderStoragePage();}
+ if(t==='outfits'){$('p-outfits').classList.add('open');renderOutfits();}   /* 👘 a side page of the hero panel, like Tide storage */
  if(t==='shop'){renderShop();$('p-shop').classList.add('open');}
 }
 /* ==================== MOONSHINE INN - daily Rested XP wheel ====================

@@ -301,6 +301,32 @@
     347,
     819
    ]
+  },
+  "npc_king_beggar.png": {
+   "jobId": "adedc9ae-1c0b-406b-b2d0-5c62906366dd",
+   "cutoutJobId": "c5f44ed8-a3e9-490a-be2e-75016354d32e",
+   "kind": "seated full figure (the pardoned King - reference npc_king, gpt_image_2_5 flare, then image_background_remover because the model painted a backdrop)",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    25,
+    13,
+    852,
+    1155
+   ],
+   "size": [
+    507,
+    700
+   ],
+   "bounds128": [
+    1,
+    1,
+    505,
+    698
+   ],
+   "date": "2026-09-22"
   }
  }
 }

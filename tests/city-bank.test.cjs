@@ -133,6 +133,42 @@ test('the Bank tab has everything it shows, and the season survives a save',()=>
  E.tick(bad,{},Math.random);
 });
 
+test('🎁 the season bonus: a fifth of what the season made, once, from a treasury in the black - and nothing from a loss',()=>{
+ const s=open();
+ assert.equal(E.bonusView(s),null,'no season graded yet');
+ assert.equal(E.takeBonus(s,1e9).ok,false);
+ /* a season that made money: the steward pays in early and the closes are left to run */
+ season(s,(st,i)=>{if(i===0)E.deposit(st,3000000,1e9,{});});
+ const x=s.seasons[0];
+ assert.equal(x.in-x.out,x.series.reduce((t,p)=>t+p.n,0),'takings less outgoings is what the chart adds up to');
+ assert.equal(x.bonusTaken,0);
+ const v=E.bonusView(s);
+ assert.equal(v.n,1);assert.equal(v.income,x.in);assert.equal(v.expenses,x.out);assert.equal(v.profit,x.in-x.out);assert.equal(v.share,E.BONUS_SHARE);
+ if(v.profit>0){
+  assert.equal(v.max,Math.floor(v.profit*E.BONUS_SHARE));assert.equal(v.open,true);
+  /* in the red: nothing is paid, however good the season was */
+  const cash=s.treasury;s.treasury=-1;
+  assert.equal(E.bonusView(s).black,false);assert.equal(E.bonusView(s).room,0);assert.equal(E.takeBonus(s,1e9).ok,false);
+  s.treasury=cash;
+  /* a purse with no room takes nothing; a full purse takes the fifth, once, and trust is untouched */
+  assert.equal(E.takeBonus(s,0).ok,false);
+  const trust=s.trust,r=E.takeBonus(s,1e9);
+  assert.ok(r.ok);assert.equal(r.gold,Math.min(v.max,Math.floor(cash)));assert.equal(s.treasury,cash-r.gold);assert.equal(s.trust,trust);
+  assert.equal(s.seasons[0].bonusTaken,r.gold);assert.equal(E.bonusView(s).open,false);assert.equal(E.bonusView(s).why,'taken');
+  assert.equal(E.takeBonus(s,1e9).ok,false,'once a season');
+ }
+ /* a season that lost money pays nothing */
+ const l=open();season(l);
+ const lv=E.bonusView(l);assert.ok(lv.profit<0,'doing nothing loses money: '+lv.profit);assert.equal(lv.max,0);assert.equal(lv.open,false);assert.equal(lv.why,'loss');
+ assert.equal(E.takeBonus(l,1e9).ok,false);
+ /* a treasury that cannot cover the whole fifth pays what it holds */
+ const t=open();season(t,(st,i)=>{if(i===0)E.deposit(st,3000000,1e9,{});});
+ if(E.bonusView(t).max>0){t.treasury=100;const tv=E.bonusView(t);assert.equal(tv.room,100);assert.equal(tv.why,'short');assert.equal(E.takeBonus(t,1e9).gold,100);}
+ /* the bonus survives a save and a load */
+ const back=E.normalize(JSON.parse(JSON.stringify(s)));
+ assert.equal(back.seasons[0].in,x.in);assert.equal(back.seasons[0].bonusTaken,x.bonusTaken);assert.equal(back.season.in,s.season.in);
+});
+
 test('the Hand carries the season forward to its last close: a guess with a band that widens, never a promise',()=>{
  assert.equal(E.projection(E.create(),{}),null,'nothing to project before the books open');
  const s=open(),p=E.projection(s,{});

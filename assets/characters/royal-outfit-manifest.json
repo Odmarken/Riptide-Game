@@ -1,0 +1,125 @@
+{
+ "generator": "Higgsfield",
+ "model": "gpt_image_2_5",
+ "variant": "flare",
+ "quality": "high",
+ "resolution": "2k",
+ "background": "transparent",
+ "aspect_ratio": "3:4",
+ "date": "2026-09-22",
+ "description": "The crown's robes: one _royal skin per race+gender (every class of a race shares its face). Each is the race's warrior sprite edited with the King (npc_king) / the first approved result as image_references and a precise-object-edit prompt that locks everything above the neck. Processing: alpha rescaled from its 254 cap, haze <6 dropped, tight crop, LANCZOS resize to 900 px tall.",
+ "sprites": {
+  "humanmale_royal.png": {
+   "jobId": "e232c8d1-f29e-4872-a9f4-4cc846e1c528",
+   "reference": "humanmale_warrior.png",
+   "crop": [
+    14,
+    2,
+    1728,
+    2322
+   ],
+   "size": [
+    665,
+    900
+   ]
+  },
+  "dwarfmale_royal.png": {
+   "jobId": "99afd719-35d5-4eff-981e-6342278a49f2",
+   "reference": "dwarfmale_warrior.png",
+   "crop": [
+    8,
+    9,
+    1736,
+    2305
+   ],
+   "size": [
+    677,
+    900
+   ]
+  },
+  "orcmale_royal.png": {
+   "jobId": "c067f02f-46b2-4794-b6ff-06e2e3b23b29",
+   "reference": "orcmale_warrior.png",
+   "crop": [
+    7,
+    5,
+    1735,
+    2258
+   ],
+   "size": [
+    690,
+    900
+   ]
+  },
+  "undeadmale_royal.png": {
+   "jobId": "b752f9ec-5672-4ce5-9615-e6af6f2192b5",
+   "reference": "undeadmale_warrior.png",
+   "crop": [
+    25,
+    7,
+    1714,
+    2303
+   ],
+   "size": [
+    662,
+    900
+   ]
+  },
+  "humanfemale_royal.png": {
+   "jobId": "79d99b8c-15df-40d3-a2a4-6473f299d551",
+   "reference": "humanfemale_warrior.png",
+   "crop": [
+    86,
+    24,
+    1645,
+    2313
+   ],
+   "size": [
+    613,
+    900
+   ]
+  },
+  "dwarffemale_royal.png": {
+   "jobId": "841d25fc-6afa-4ab3-8cef-25a2f121bcdc",
+   "reference": "dwarffemale_warrior.png",
+   "crop": [
+    87,
+    37,
+    1658,
+    2246
+   ],
+   "size": [
+    640,
+    900
+   ]
+  },
+  "orcfemale_royal.png": {
+   "jobId": "9e59cfea-a14d-4690-8a55-0e88d329e3fe",
+   "reference": "orcfemale_warrior.png",
+   "crop": [
+    79,
+    29,
+    1663,
+    2275
+   ],
+   "size": [
+    635,
+    900
+   ]
+  },
+  "undeadfemale_royal.png": {
+   "jobId": "3de2859c-b2fe-4436-8323-329a7226d1b8",
+   "reference": "undeadfemale_warrior.png",
+   "crop": [
+    120,
+    20,
+    1623,
+    2300
+   ],
+   "size": [
+    593,
+    900
+   ]
+  }
+ }
+}

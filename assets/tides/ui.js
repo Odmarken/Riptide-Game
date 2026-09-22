@@ -596,5 +596,5 @@ const TideUI=(()=>{
   if(!session?.backdrop||session.time>2||session.time<(session.nextBackdrop||0))return;
   session.nextBackdrop=session.time+.25;session.backdrop.getContext('2d').drawImage(cv,0,0);paintBattle();
  }
- return {entry,bagItem,bindBag,openChurch,churchInReach,openBreeding,openGuild,openTraining,visibleCompanion,drawCompanion,openStorage,renderStoragePage,storageOpen,storageBack,openWild,wildClick,nearestWild,updateExploration,addWildDrawables,modalOpen,isBattling:()=>!!session,begin,act,retreat,closeHub,closeBattle,leaveZone,awardKill,tick,paintBattle,afterDraw,frameFor,drawAnimal,paintIcons,animalVisual,wildBounds,battleLayout};
+ return {entry,bagItem,bindBag,openChurch,churchInReach,openBreeding,openGuild,openTraining,visibleCompanion,drawCompanion,eyeIcon,openStorage,renderStoragePage,storageOpen,storageBack,openWild,wildClick,nearestWild,updateExploration,addWildDrawables,modalOpen,isBattling:()=>!!session,begin,act,retreat,closeHub,closeBattle,leaveZone,awardKill,tick,paintBattle,afterDraw,frameFor,drawAnimal,paintIcons,animalVisual,wildBounds,battleLayout};
 })();

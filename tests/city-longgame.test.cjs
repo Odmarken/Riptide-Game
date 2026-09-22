@@ -202,9 +202,15 @@ test('trust is earned close by close, lost to marches and light fingers, and at 
  assert.equal(E.withdraw(open(),30000,1e9,{}),0,'and never gold that is the bank\'s');
  /* a march undoes it */
  const m=open();m.trust=50;m.protest=true;m.mood=10;assert.ok(E.forecast(m,{}).trustDelta<-4);
- /* the coup */
+ /* the coup - trust alone is not enough: the council must be devoted and the bank must have graded a season first (2026-09-22) */
  s.trust=100;s.king.demand={id:'lion',age:0};s.jail.push({name:'Bodil Vass',skin:'baker',crime:'x',term:3,served:0});
- assert.equal(E.crownView(s,{}).canClaim,true);
+ assert.equal(E.crownView(s,{}).canClaim,false,'no season on the books yet');assert.equal(E.claimCrown(s,'gaol').ok,false);
+ assert.equal(E.crownView(s,{}).closesToSeason,E.SEASON_CLOSES*E.COUP_SEASONS-s.season.closes);
+ s.season.n=1+E.COUP_SEASONS;
+ assert.equal(E.crownView(s,{}).canClaim,true);assert.equal(E.crownView(s,{}).closesToSeason,0);
+ {const was={...s.council};for(const k of Object.keys(s.council))s.council[k]=E.COUP_FAVOUR-1;
+  assert.equal(E.crownView(s,{}).canClaim,false,'a council short of devoted says no');assert.match(E.claimCrown(s,'gaol').text,/council/);
+  Object.assign(s.council,was);assert.equal(E.crownView(s,{}).canClaim,true);}
  const r=E.claimCrown(s,'gaol');assert.ok(r.ok);assert.equal(s.crowned,true);assert.equal(s.deposed,'gaol');assert.equal(s.king.demand,null);
  assert.equal(s.jail[0].name,'Alarik Tidvind');assert.equal(s.jail[0].skin,'king');assert.equal(s.jail[0].life,true);assert.equal(s.jail.length,2);
  assert.equal(E.claimCrown(s,'gaol').ok,false,'only once');
@@ -214,11 +220,27 @@ test('trust is earned close by close, lost to marches and light fingers, and at 
  for(let i=0;i<12;i++){const due=E.forecast(s,{}).purse,c=E.tick(s,{},()=>.01);assert.equal(s.king.demand,null);assert.equal(c.purse,Math.round(due*E.HERO_COIN/E.COIN),'a tenth of the privy purse reaches the hero’s own gold at every close');}
  assert.ok(s.jail.some(p=>p.life),'Alarik is still there');
  assert.equal(E.fine(s,{},'Alarik Tidvind'),null);
- assert.ok(E.pardon(s,'Alarik Tidvind').ok);assert.equal(s.deposed,'exile');assert.ok(!s.jail.some(p=>p.life));
+ /* ⚖️ the old King's fate (2026-09-22): a pardon pleases the people and makes every court abroad dearer; the gallows the reverse */
+ {const mood=s.mood,worth=E.alliesView(s).list[0].worth,def=E.ALLIES[0];
+  assert.equal(E.allyFear(s),1);assert.equal(E.execute(s,'Bodil Vass'),null,'only the one in for life');
+  assert.ok(E.pardon(s,'Alarik Tidvind').ok);assert.equal(s.deposed,'pardoned');assert.ok(!s.jail.some(p=>p.life));
+  assert.equal(s.mood,Math.min(100,mood+15));assert.equal(E.allyFear(s),1.15);assert.equal(E.alliesView(s).list[0].worth,Math.round(worth*1.15));
+  assert.equal(E.normalize(JSON.parse(JSON.stringify(s))).deposed,'pardoned');
+  const g=open();g.crowned=true;g.deposed='gaol';g.season.n=2;g.jail.unshift({name:'Alarik Tidvind',skin:'king',female:false,crime:'x',say:'',term:1,served:0,life:true,byKing:false});
+  const gm=g.mood,r=E.execute(g,'Alarik Tidvind');assert.ok(r.ok);assert.equal(g.deposed,'executed');assert.ok(!g.jail.some(p=>p.life));
+  assert.equal(g.mood,Math.max(0,gm-15));assert.equal(E.allyFear(g),.85);assert.equal(E.alliesView(g).list[0].worth,Math.round(def.worth*.85));
+  assert.equal(E.execute(g,'Alarik Tidvind'),null,'once');assert.equal(E.normalize(JSON.parse(JSON.stringify(g))).deposed,'executed');
+  /* the courts price the fate: a soft crown pays more at the table, a feared one less */
+  const soft=open(),hard=open();for(const t of [soft,hard]){t.crowned=true;t.treasury=9e8;t.allies.ravenholt={stake:60,held:E.COURT_CLOSES,owned:false,put:0,pending:[]};E.openTalks(t,'ravenholt',()=>.5);}
+  soft.deposed='pardoned';hard.deposed='executed';
+  assert.ok(E.talkView(soft,{},'ravenholt').ask>E.talkView(hard,{},'ravenholt').ask,'the pardon costs at the table, the gallows pays');
+  /* and a stake buys more of a frightened place: the same chest, a bigger share */
+  const chest=E.allyInvest(hard,'emberfall',1e6);assert.ok(chest.ok);for(let i=0;i<E.ALLY_CLOSES;i++)E.tick(hard,{},quiet);
+  assert.equal(hard.allies.emberfall.stake,Math.round(1e6/Math.round(E.ALLIES[1].worth*.85)*100*100)/100);}
  /* a crowned head draws on the treasury without a murmur */
  s.loan=0;s.treasury=90000;const trust=s.trust;assert.equal(E.withdraw(s,90000,1e9,{}),90000);assert.equal(s.trust,trust);
  /* exile from the start */
- const e=open();e.trust=100;assert.ok(E.claimCrown(e,'exile').ok);assert.deepEqual(e.jail,[]);assert.equal(e.deposed,'exile');
+ const e=open();e.trust=100;e.season.n=2;for(const k of Object.keys(e.council))e.council[k]=E.COUP_FAVOUR;assert.ok(E.claimCrown(e,'exile').ok);assert.deepEqual(e.jail,[]);assert.equal(e.deposed,'exile');
  /* a crown nobody trusts breeds royalists */
  assert.ok(E.INCIDENTS.find(d=>d.id==='royalists').when({crowned:true,trust:20})&&!E.INCIDENTS.find(d=>d.id==='royalists').when({crowned:false,trust:20}));
 });
@@ -226,7 +248,8 @@ test('trust is earned close by close, lost to marches and light fingers, and at 
 test('normalize carries the long game through a save, repairs a damaged one and opens an old one at its start',()=>{
  const old=E.normalize({treasury:90000,budget:{tax:15,watch:2}});            /* a save from before the founding loan */
  assert.deepEqual(old,E.create(),'opens on the empty strongroom');
- const s=open();s.trust=100;s.treasury=1e6;E.invest(s,{},'carters');E.tick(s,{},quiet);E.invest(s,{},'quay');E.claimCrown(s,'gaol');
+ const s=open();s.treasury=1e6;E.invest(s,{},'carters');E.tick(s,{},quiet);E.invest(s,{},'quay');
+ s.trust=100;s.season.n=2;for(const k of Object.keys(s.council))s.council[k]=E.COUP_FAVOUR;assert.ok(E.claimCrown(s,'gaol').ok);
  const back=E.normalize(JSON.parse(JSON.stringify(s)));
  assert.deepEqual(back.works,{carters:{left:0},quay:{left:2}});assert.equal(back.crowned,true);assert.equal(back.deposed,'gaol');
  assert.equal(back.jail[0].life,true);assert.equal(back.pop,s.pop);assert.equal(back.trust,s.trust);
@@ -467,9 +490,43 @@ test('a bigger city costs more to run - but a household always brings in more th
  assert.equal(fs0.factor.watch,1);assert.ok(fb.factor.watch>5);
 });
 
+test('🏗 level 2: a standing work raised once - twice its gifts and its upkeep - after a season, for a devoted council, at its price again (2026-09-22)',()=>{
+ const s=open();s.treasury=1e7;
+ E.invest(s,{},'carters');E.tick(s,{},quiet);
+ const one=E.forecast(s,{}),v1=E.worksView(s,{}).list.find(w=>w.id==='carters');
+ assert.equal(v1.status,'done');assert.equal(v1.lvl,1);assert.equal(v1.up.status,'locked');assert.match(v1.up.why,/season/);
+ assert.equal(E.upgrade(s,{},'carters').ok,false,'no season on the books');
+ assert.equal(E.upgrade(s,{},'quay').ok,false,'not standing');
+ s.season.n=2;
+ assert.match(E.worksView(s,{}).list.find(w=>w.id==='carters').up.why,/devoted/);assert.equal(E.upgrade(s,{},'carters').ok,false,'the council is not devoted');
+ for(const k of Object.keys(s.council))s.council[k]=E.UP_FAVOUR;
+ const v2=E.worksView(s,{}).list.find(w=>w.id==='carters');
+ assert.equal(v2.up.status,'ready');assert.equal(v2.up.cost,v2.cost,'its price again');assert.equal(v2.up.build,v2.build);assert.equal(v2.up.upkeep,v2.upkeep*2);
+ const cash=s.treasury,mid=E.forecast(s,{}),r=E.upgrade(s,{},'carters');
+ assert.ok(r.ok);assert.equal(s.treasury,cash-v2.cost);assert.equal(s.works.carters.up,v2.build);assert.equal(E.raising(s,'carters'),true);
+ assert.equal(E.upgrade(s,{},'carters').ok,false,'a crew is on it');
+ assert.equal(E.worksView(s,{}).building,1,'the crew counts');
+ assert.equal(line(E.forecast(s,{}),'income','exports'),line(mid,'income','exports'),'it keeps working at level 1 meanwhile');
+ const c=E.tick(s,{},quiet);assert.deepEqual(c.raised,['carters']);assert.ok(c.unrest.some(u=>/level 2/.test(u)));
+ assert.equal(E.lvlOf(s,'carters'),2);assert.equal(s.works.carters.up,undefined);assert.equal(E.has(s,'carters'),true);
+ const two=E.forecast(s,{}),v3=E.worksView(s,{}).list.find(w=>w.id==='carters');
+ assert.equal(v3.lvl,2);assert.equal(v3.up.status,'done');assert.equal(v3.upkeep,v1.upkeep*2);
+ assert.equal(E.worksFx(s).exports,110*2);assert.equal(E.worksFx(s).upkeep,25*2);assert.ok(Math.abs(E.worksFx(s).trade-.06)<1e-9);
+ assert.ok(v3.effects.some(e=>/exports \+22.000/.test(e)),v3.effects.join(' | '));   /* the thousands gap is whatever the locale says */
+ assert.equal(line(two,'expenses','upkeep'),line(one,'expenses','upkeep')*2,'twice the keep');
+ assert.equal(E.upgrade(s,{},'carters').ok,false,'once');
+ /* blocks and one-offs do not double; the walls still hold five thousand */
+ const b=open();b.works={customs:{left:0,lvl:2},tenements:{left:0,lvl:2},newquarter:{left:0,lvl:2},suburbs:{left:0,lvl:2},riverside:{left:0,lvl:2}};
+ assert.equal(E.worksFx(b).blocks.size,1);assert.equal(E.forecast(b,{}).housing,E.POP_MAX);
+ /* through a save: the level and a crew half way there */
+ const p=open();p.works={carters:{left:0,lvl:2},quay:{left:0,up:1},fleet:{left:1,lvl:2,up:2},lamps:{left:0,lvl:7}};
+ const back=E.normalize(JSON.parse(JSON.stringify(p)));
+ assert.deepEqual(back.works,{carters:{left:0,lvl:2},quay:{left:0,up:1},fleet:{left:1},lamps:{left:0}});
+});
+
 test('the Velvet Lantern: dear to build, pays like the plate - by the household - draws visitors, and a pious King sulks',()=>{
  const def=E.WORKS.find(w=>w.id==='brothel');
- assert.ok(def.cost>=E.WORKS.map(w=>w.cost).sort((a,b)=>b-a)[3],'among the dearest works on the list: '+def.cost);
+ assert.ok(def.cost>=E.WORKS.map(w=>w.cost).sort((a,b)=>b-a)[4],'among the dearest works on the list: '+def.cost); /* top five since the tenements went to 2 000 000 (2026-09-22) */
  const s=open(),before=E.forecast(s,{});
  assert.ok(!before.income.some(l=>l.id==='vice'),'no line on the ledger until the lamps are lit');
  s.works.brothel={left:0};

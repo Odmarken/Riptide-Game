@@ -18,7 +18,7 @@ const heroes = races.flatMap(race => ['male', 'female'].flatMap(gender =>
   [...classes, 'armor'].map(cls => `${race}${gender}_${cls}`)));
 const townsfolk = ['guard', 'noble_velvet', 'noble_elder', 'noble_dandy', 'merchant', 'monk', 'blacksmith',
   'noble_lady', 'noble_dowager', 'noble_maiden', 'baker', 'market_woman',
-  'king', 'kings_hand', 'royal_guard',
+  'king', 'king_beggar', 'kings_hand', 'royal_guard',
   'sailor', 'pirate', 'pirate_captain', 'dockhand', 'harbour_master', 'fishwife'].map(k => `npc/npc_${k}`);
 const names = [...heroes, 'npc/npc_male', 'npc/npc_female', 'npc/npc_sebbe', ...townsfolk];
 const art = new Map();
@@ -117,7 +117,7 @@ function harness(overrides = {}) {
   return { context, lookups, draws, translations, stack };
 }
 
-test('all 43 reviewed body bounds match the shipped PNG alpha above 128 exactly', () => {
+test('all 44 reviewed body bounds match the shipped PNG alpha above 128 exactly', () => {
   const { context } = harness();
   assert.equal(heroes.length, 40);
   assert.deepEqual(Object.keys(context.bounds).sort(), [...names].sort());

@@ -61,6 +61,7 @@ const CHARACTER_BOUNDS={
  "npc/npc_market_woman":[349,820,1,1,347,819],
  /* The court of the Throne Hall, 2026-09-19, same model and references: busts cut at the hips. */
  "npc/npc_king":[524,700,0,1,524,699],
+ "npc/npc_king_beggar":[507,700,1,1,505,698],
  "npc/npc_kings_hand":[525,700,1,2,523,697],
  "npc/npc_royal_guard":[515,700,0,2,515,698],
  /* The people of the Harbour, 2026-09-21, same model and references: busts cut at the hips, the fishwife full-length. */

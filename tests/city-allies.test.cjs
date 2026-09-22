@@ -36,6 +36,9 @@ test('three cities and two ports: the ports are the end game and want a quay and
  const fs=require('node:fs'),path=require('node:path');for(const a of E.ALLIES)assert.ok(fs.existsSync(path.join(__dirname,'..','assets','city',a.ruler.portrait+'.png')),a.ruler.portrait);
  assert.ok(Math.min(...E.ALLIES.filter(a=>a.kind==='port').map(a=>a.worth))>=2.5*Math.max(...E.ALLIES.filter(a=>a.kind==='city').map(a=>a.worth)));
  const s=open();s.treasury=5e7;
+ /* 👑 (2026-09-22) a steward is refused everywhere; the envoys ride for a crowned head */
+ assert.equal(E.alliesView(s).crowned,false);assert.equal(E.allyInvest(s,'ravenholt',1e6).ok,false);assert.match(E.allyInvest(s,'ravenholt',1e6).text,/crown/);
+ s.crowned=true;assert.equal(E.alliesView(s).crowned,true);
  assert.equal(E.allyInvest(s,'krakensrest',1e6).ok,false);assert.match(E.allyInvest(s,'krakensrest',1e6).text,/Stone Quay/);
  s.works.quay={left:0};assert.equal(E.allyInvest(s,'krakensrest',1e6).ok,true);
  assert.match(E.allyInvest(s,'meridian',1e6).text,/Merchant Fleet/);
@@ -43,7 +46,7 @@ test('three cities and two ports: the ports are the end game and want a quay and
 });
 
 test('an envoy takes three closes; a stake makes a partner, then an ally, and after a while the place can be bought',()=>{
- const s=open();s.treasury=2e7;
+ const s=open();s.treasury=2e7;s.crowned=true;
  const r=E.allyInvest(s,'ravenholt',600000);assert.equal(r.ok,true);assert.equal(s.treasury,2e7-600000);
  closes(s,2);assert.equal(s.allies.ravenholt.stake,0);closes(s,1);
  assert.equal(s.allies.ravenholt.stake,20);assert.equal(E.alliesView(s).list[0].tier,'Trading partner');
@@ -58,7 +61,7 @@ test('an envoy takes three closes; a stake makes a partner, then an ally, and af
  assert.deepEqual(E.normalize(JSON.parse(JSON.stringify(s))).allies,s.allies);
 });
 
-const courted=(id,extra={})=>{const s=open();s.treasury=9e8;s.allies[id]={stake:60,held:E.COURT_CLOSES,owned:false,put:0,pending:[]};Object.assign(s,extra);E.openTalks(s,id,()=>.5);return s;};   /* rng .5: a whim of nought */
+const courted=(id,extra={})=>{const s=open();s.treasury=9e8;s.crowned=true;s.allies[id]={stake:60,held:E.COURT_CLOSES,owned:false,put:0,pending:[]};Object.assign(s,extra);E.openTalks(s,id,()=>.5);return s;};   /* rng .5: a whim of nought */
 
 test('an offer is answered at once: taken, countered with his reasons, met coldly - or the talks end and he remembers',()=>{
  const def=E.ALLIES[0],s=courted('ravenholt'),v=E.talkView(s,{},'ravenholt');
@@ -101,7 +104,7 @@ test('each of the five looks at the city with different eyes, and says why',()=>
  assert.ok(pct('ravenholt',b({watch:0}))>pct('ravenholt',b({watch:1}))&&pct('ravenholt',b({watch:1}))>pct('ravenholt',b({watch:3})),'the soldier prices your watch');
  assert.ok(pct('ravenholt',{incidents:[{id:'brawl',age:1}]})>pct('ravenholt',{}));
  assert.ok(pct('emberfall',{treasury:9e8})>pct('emberfall',{treasury:4e7}),'the miser counts your strongroom');
- assert.ok(pct('silverfjord',{trust:20})>pct('silverfjord',{trust:80})&&pct('silverfjord',{trust:20,crowned:true})<pct('silverfjord',{trust:80}),'the proud one weighs your name - and a crown');
+ assert.ok(pct('silverfjord',{trust:20,crowned:false})>pct('silverfjord',{trust:80,crowned:false})&&pct('silverfjord',{trust:20,crowned:true})<pct('silverfjord',{trust:80,crowned:false}),'the proud one weighs your name - and a crown');   /* courted() crowns by default now - the envoys need it */
  assert.ok(pct('krakensrest',{winds:{trade:.25,harvest:0,prices:0}})>pct('krakensrest',{})&&pct('krakensrest',{winds:{trade:-.25,harvest:0,prices:0}})<pct('krakensrest',{}),'the smuggler reads the trade winds');
  assert.ok(pct('meridian',{seasons:[{grade:'F'}]})>pct('meridian',{})&&pct('meridian',{seasons:[{grade:'A'}]})<pct('meridian',{}),'the comptroller reads your bank grade');
  for(const a of E.ALLIES){const s=courted(a.id);for(const r of E.haggleReasons(s,{},a,{...s.allies[a.id],stake:100,held:40,talk:{grudge:1}}))assert.ok(r.text.length>20&&Number.isFinite(r.pct));}
@@ -111,7 +114,7 @@ test('each of the five looks at the city with different eyes, and says why',()=>
 });
 
 test('no envoy rides on the bank’s patience, and all five under the crown is real money',()=>{
- const s=open();s.treasury=-1;assert.equal(E.allyInvest(s,'emberfall',1e6).ok,false);
+ const s=open();s.crowned=true;s.treasury=-1;assert.equal(E.allyInvest(s,'emberfall',1e6).ok,false);assert.match(E.allyInvest(s,'emberfall',1e6).text,/red/);
  assert.equal(E.allyInvest(E.create(),'emberfall',1e6).ok,false,'nor before the books are open');
  const t=open(),base=E.forecast(t,{}).totalIn;
  for(const a of E.ALLIES)t.allies[a.id]={stake:100,held:99,owned:true,put:a.worth,pending:[]};

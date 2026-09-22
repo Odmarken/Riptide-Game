@@ -113,6 +113,10 @@
  const MAX_BUILDING=3;            /* the Master Builder has three crews */
  const CELLS=6,MAX_CELLS=10;      /* the gaol under the hall: six cells, ten with the new wing */
  const COUP_TRUST=100;            /* the realm's trust in you at which the crown can be claimed */
+ const COUP_SEASONS=1;            /* ...and not before the bank has graded this many full seasons of your books (asked for 2026-09-22: one season, whatever the trust says) */
+ const COUP_FAVOUR=75;            /* ...and not without a devoted council: their favour at this or better (asked for 2026-09-22) */
+ const MERCY=0.15;                /* ⚖️ the deposed King's fate (asked for 2026-09-22): a pardon pleases the people by 15 and makes every foreign court 15% harder; the gallows costs the people 15 and frightens every court into being 15% easier */
+ const BONUS_SHARE=0.2;           /* 🎁 the steward's season bonus: at most a fifth of the season's profit, from a treasury in the black (asked for 2026-09-22) */
  const ROYAL_GUARD=8;             /* the men at the pillars of the hall, paid before anyone */
  const PROTEST_START=25,PROTEST_END=40;   /* hysteresis, so the crowd does not flicker */
  const MAX_INCIDENTS=2;           /* the city never burns in more than two places at once */
@@ -256,8 +260,8 @@
    blurb:'Forty beds and sisters who wash their hands. The flux stops at its door.',done:'The sisters took in their first patients.'},
   {id:'coveredmarket',cat:'living',name:'Covered Market',icon:'🏪',cost:5000,build:2,upkeep:45,fx:{tolls:230,attract:2},site:'stalls',
    blurb:'Pitches under cover on the great square, let by the season. Twice the stalls, in any weather.',done:'The square filled with new awnings.'},
-  {id:'tenements',cat:'living',name:'New Tenements',icon:'🏘',cost:6000,build:2,upkeep:0,fx:{housing:500},site:'house',sign:'NEW TENEMENTS',
-   blurb:'Four storeys of sound brick on crown land, street after street. Roofs for five hundred more - who will all pay rent and poll tax.',done:'Five hundred more have a roof.'},
+  {id:'tenements',cat:'living',name:'New Tenements',icon:'🏘',cost:20000,build:2,upkeep:0,pop:HOUSING,fx:{housing:500},site:'house',sign:'NEW TENEMENTS',   /* pop: the Master Builder draws nothing until every roof is taken (asked for 2026-09-22: 2 000 000 ◉, once the city holds 500) */
+   blurb:'Four storeys of sound brick on crown land, street after street. Roofs for five hundred more - who will all pay rent and poll tax. The Master Builder will not draw it until the city is full.',done:'Five hundred more have a roof.'},
   {id:'newquarter',cat:'living',name:'The New Quarter',icon:'🏙',cost:14000,build:4,upkeep:50,needs:['tenements','sewers'],fx:{housing:1500,attract:3},site:'house',sign:'THE NEW QUARTER',
    blurb:'A planned district with drains, a well on every corner and room for fifteen hundred.',done:'The New Quarter was opened with a ribbon and a band.'},
   {id:'suburbs',cat:'living',name:'Suburbs beyond the Wall',icon:'🏡',cost:18000,build:4,upkeep:60,needs:['newquarter','watchtowers'],fx:{housing:1200,attract:2},
@@ -287,6 +291,12 @@
     event on the budget, so a disbanded watch is what lets the smugglers in. tag is what a finished
     work can put a stop to (WORKS.blocks). */
  const has=(s,id)=>!!(s&&s.works&&s.works[id]&&s.works[id].left===0);
+ /* 🏗 Level 2 (asked for 2026-09-22): a standing work can be raised once - everything it does and everything it costs
+    to keep, twice over - for its price again, by a crew, over the closes it took to build. Only after the bank has
+    graded a season, and only for a steward the council is devoted to (UP_FAVOUR). Blocks and one-off gifts stay single. */
+ const UP_LEVEL=2,UP_FAVOUR=75;
+ const lvlOf=(s,id)=>has(s,id)&&s.works[id].lvl===UP_LEVEL?UP_LEVEL:1;
+ const raising=(s,id)=>!!(s&&s.works&&s.works[id]&&num(s.works[id].up)>0);
  const EVENTS=[
   {text:'A trade caravan from Moonshine paid its tolls at the west gate.',gold:260,w:3},
   {text:'The fishing fleet came home heavy and the fish market overflowed.',gold:220,w:3},
@@ -432,7 +442,7 @@
  }
  function create(){
   const council={};for(const seat of COUNCIL)council[seat.id]=60;
-  return {v:VERSION,chartered:false,treasury:0,loan:0,limit:0,rate:LOAN_RATE,mood:60,clock:0,ticks:0,earned:0,spent:0,borrowed:0,repaid:0,protest:false,
+  return {v:VERSION,chartered:false,treasury:0,loan:0,limit:0,rate:LOAN_RATE,mood:60,clock:0,ticks:0,kept:0,earned:0,spent:0,borrowed:0,repaid:0,protest:false,
    guards:ROYAL_GUARD,arrears:0,seizeI:0,seized:[],season:null,seasons:[],reviewSeen:true,unattended:0,food:{stock:0,auto:false,hunger:0},
    wage:1,winds:{trade:0,harvest:0,prices:0},
    budget:{...DEFAULT_BUDGET},incidents:[],council,petition:null,
@@ -476,11 +486,13 @@
    const q=s.season&&typeof s.season==='object'?s.season:{};
    const cm={};if(q.card&&typeof q.card==='object'&&q.card.mods&&typeof q.card.mods==='object')for(const key of Object.keys(q.card.mods))if(Number.isFinite(Number(q.card.mods[key])))cm[key]=Number(q.card.mods[key]);
    out.season={n:Math.max(1,Math.floor(num(q.n,1))),card:{id:cardDef(q.card&&q.card.id).id,mods:cardDef(q.card&&q.card.id).id==='ordinary'?{}:cm},closes:0,startLoan:Math.max(0,Math.round(num(q.startLoan,num(s.loan)))),startTreasury:Math.round(num(q.startTreasury,num(s.treasury))),
-    target:Math.max(0,Math.round(num(q.target,0))),red:Math.max(0,Math.floor(num(q.red,0))),covered:Math.max(0,Math.floor(num(q.covered,0))),interest:Math.max(0,Math.round(num(q.interest,0))),series:series(q.series)};
+    target:Math.max(0,Math.round(num(q.target,0))),red:Math.max(0,Math.floor(num(q.red,0))),covered:Math.max(0,Math.floor(num(q.covered,0))),interest:Math.max(0,Math.round(num(q.interest,0))),in:Math.max(0,Math.round(num(q.in,0))),out:Math.max(0,Math.round(num(q.out,0))),series:series(q.series)};
    out.season.closes=out.season.series.length;
    out.seasons=(Array.isArray(s.seasons)?s.seasons:[]).filter(x=>x&&typeof x==='object'&&'ABCDF'.includes(x.grade)).slice(-SEASONS_KEPT)
     .map(x=>({...x,series:series(x.series)}));
   }
+  /* closes with the books open - ticks also counts the idle ones before the charter. A save from before the counter: every graded season was a full one */
+  out.kept=num(s.kept,-1)>=0?Math.floor(num(s.kept)):out.chartered?(out.season.n-1)*SEASON_CLOSES+out.season.closes:0;
   out.treasury=Math.round(num(s.treasury,out.treasury));
   out.loan=Math.max(0,Math.round(num(s.loan,0)));
   out.mood=clamp(Math.round(num(s.mood,out.mood)),0,100);
@@ -502,14 +514,18 @@
   out.skill=clamp(round1(num(s.skill,20)),0,100);
   out.trust=clamp(round1(num(s.trust,10)),0,100);
   out.crowned=!!s.crowned;
-  out.deposed=out.crowned?(s.deposed==='exile'?'exile':'gaol'):null;
+  out.deposed=out.crowned?(['exile','gaol','pardoned','executed'].includes(s.deposed)?s.deposed:'gaol'):null;   /* ⚖️ pardoned: a beggar at the palace stair; executed: the gallows on the square */
   const k=s.king||{};
   out.king={pleasure:clamp(Math.round(num(k.pleasure,60)),0,100),humour:humourDef(k.humour).id,humourAge:Math.max(0,Math.floor(num(k.humourAge,0))),
    demand:!out.crowned&&k.demand&&demandDef(k.demand.id)?{id:k.demand.id,age:Math.max(0,Math.floor(num(k.demand.age,0)))}:null,
    raise:clamp(Math.floor(num(k.raise,0)),0,4)};
   for(const id of Object.keys(s.works&&typeof s.works==='object'?s.works:{})){
    const def=workDef(id),w=s.works[id];
-   if(def&&w)out.works[id]={left:clamp(Math.floor(num(w.left,0)),0,def.build)};
+   if(def&&w){out.works[id]={left:clamp(Math.floor(num(w.left,0)),0,def.build)};
+    if(out.works[id].left===0){   /* 🏗 level 2, or a crew on the way to it - only a standing work carries either */
+     if(w.lvl===UP_LEVEL)out.works[id].lvl=UP_LEVEL;
+     else if(num(w.up)>0)out.works[id].up=clamp(Math.floor(num(w.up)),1,def.build);
+    }}
   }
   const names=new Set();
   out.jail=(Array.isArray(s.jail)?s.jail:[]).filter(p=>p&&typeof p.name==='string'&&p.name&&!names.has(p.name)&&names.add(p.name)).slice(0,MAX_CELLS+2)
@@ -562,8 +578,9 @@
   const t={exports:0,tolls:0,income:0,vice:0,pious:0,trade:0,order:0,duty:0,mood:0,attract:0,skill:0,housing:0,cells:0,safety:0,fines:0,clean:0,upkeep:0,count:0,blocks:new Set()};
   for(const w of WORKS){
    if(!has(state,w.id))continue;
-   t.upkeep+=num(w.upkeep);t.count++;
-   for(const key of Object.keys(w.fx||{}))t[key]+=w.fx[key];
+   const lvl=lvlOf(state,w.id);   /* 🏗 level 2: the work twice over - its gifts and its upkeep, not its sins or its one-offs */
+   t.upkeep+=num(w.upkeep)*lvl;t.count++;
+   for(const key of Object.keys(w.fx||{}))t[key]+=w.fx[key]*lvl;
    t.pious+=num(w.pious);
    for(const tag of w.blocks||[])t.blocks.add(tag);
   }
@@ -574,7 +591,7 @@
     is to the coin what it was. The base is the berth fees of the ships at the piers, taken out of the base of the old
     Exports line; the rest is what the Stone Quay, the Merchant Fleet and the Lighthouse always added to it. */
  const HARBOUR_WORKS=Object.freeze(['quay','fleet','lighthouse']),HARBOUR_BASE=60;
- const harbourExports=state=>WORKS.reduce((t,w)=>t+(HARBOUR_WORKS.includes(w.id)&&has(state,w.id)?num(w.fx&&w.fx.exports):0),0);
+ const harbourExports=state=>WORKS.reduce((t,w)=>t+(HARBOUR_WORKS.includes(w.id)&&has(state,w.id)?num(w.fx&&w.fx.exports)*lvlOf(state,w.id):0),0);   /* level 2 doubles the quay's share as it doubles the line */
  const cells=state=>Math.min(MAX_CELLS,CELLS+worksFx(state).cells);
  const hearths=state=>Math.ceil(state.pop/HOUSEHOLD);                                  /* 🏠 households: what is taxed, rented to and fed */
  const eats=state=>{const c=state.season&&state.season.card;return c&&c.mods&&Number.isFinite(c.mods.eat)?c.mods.eat:1;};   /* a hard winter eats more */
@@ -727,7 +744,7 @@
    {name:'A crown that cannot pay its bills',value:state.treasury<0?-5:0},
   ];
   const attractTarget=clamp(attractFactors.reduce((t,f)=>t+f.value,0),0,100);
-  const housing=HOUSING+W.housing;
+  const housing=Math.min(POP_MAX,HOUSING+W.housing);   /* the walls hold five thousand, whatever level the quarters reach */
   const skillTarget=clamp(20+learn.skill+W.skill,0,100);
   /* 🤝 what the realm makes of you, per close. It adds up - trust is earned, not settled into. */
   const trustFactors=[
@@ -775,8 +792,9 @@
    petition:p?{...p,age:state.petition.age,cost:Math.round(num(p.cost)*f.scale),gold:Math.round(num(p.gold)*f.scale),seatDef:seatDef(p.seat),left:2-state.petition.age}:null};
  }
  /* 🏗 the Works tab: every work with what it costs at this prestige, what it does and where it stands */
- function fxText(w,k){
-  const fx=w.fx||{},out=[],g=v=>Math.round(v*k).toLocaleString();
+ function fxText(w,k,lvl=1){
+  const fx0=w.fx||{},fx={};for(const key of Object.keys(fx0))fx[key]=fx0[key]*lvl;   /* 🏗 at level 2 every gift reads doubled */
+  const out=[],g=v=>Math.round(v*k).toLocaleString();
   if(fx.exports)out.push('exports +'+g(fx.exports)+' ◉');
   if(fx.tolls)out.push('market tolls +'+g(fx.tolls)+' ◉');
   if(fx.income)out.push('income +'+g(fx.income)+' ◉');
@@ -798,20 +816,44 @@
   return out;
  }
  function worksView(state,ctx={}){
-  const k=scale(ctx),building=WORKS.filter(w=>state.works[w.id]&&state.works[w.id].left>0).length;
+  const k=scale(ctx),building=WORKS.filter(w=>(state.works[w.id]&&state.works[w.id].left>0)||raising(state,w.id)).length;   /* a crew raising a level is a crew */
+  const fav=favour(state),seasons=seasonsPlayed(state);
   const list=WORKS.map(w=>{
    const own=state.works[w.id],cost=Math.round(w.cost*k),missing=(w.needs||[]).filter(id=>!has(state,id)).map(id=>workDef(id).name);
+   if(w.pop&&state.pop<w.pop)missing.push('a city of '+w.pop+' souls - it holds '+state.pop);   /* 🏘 a roof gate: the work waits for the people, not for another work */
    const status=own?(own.left>0?'building':'done'):missing.length?'locked':frozen(state)?'frozen':building>=MAX_BUILDING?'busy':state.treasury<cost?'poor':'ready';
-   return {...w,cost,upkeep:Math.round(num(w.upkeep)*k),status,left:own?own.left:w.build,missing,effects:fxText(w,k)};
+   const lvl=lvlOf(state,w.id),upLeft=raising(state,w.id)?own.up:0;
+   /* 🏗 the way to level 2, for a standing work: the price again, the same crew and closes, and the two conditions */
+   const upWhy=lvl>=UP_LEVEL?'':upLeft?'':seasons<1?'a season on the books first - the bank grades it at the season’s last close':fav<UP_FAVOUR?'a devoted council - favour '+UP_FAVOUR+'+ (it is '+fav+')':'';
+   const upStatus=status!=='done'?'':lvl>=UP_LEVEL?'done':upLeft?'building':upWhy?'locked':frozen(state)?'frozen':building>=MAX_BUILDING?'busy':state.treasury<cost?'poor':'ready';
+   return {...w,cost,upkeep:Math.round(num(w.upkeep)*k)*lvl,status,left:own?own.left:w.build,missing,effects:fxText(w,k,lvl),
+    lvl,up:{level:UP_LEVEL,cost,build:w.build,left:upLeft,status:upStatus,why:upWhy,upkeep:Math.round(num(w.upkeep)*k)*UP_LEVEL,favour:UP_FAVOUR}};
   });
-  return {list,cats:WORK_CATS.map(c=>({...c,works:list.filter(w=>w.cat===c.id)})),building,crews:MAX_BUILDING,done:list.filter(w=>w.status==='done').length,total:WORKS.length};
+  return {list,cats:WORK_CATS.map(c=>({...c,works:list.filter(w=>w.cat===c.id)})),building,crews:MAX_BUILDING,done:list.filter(w=>w.status==='done').length,total:WORKS.length,
+   raised:list.filter(w=>w.lvl>=UP_LEVEL).length,upFavour:UP_FAVOUR,upOpen:seasons>=1&&fav>=UP_FAVOUR};
+ }
+ /* 🏗 raise a standing work to level 2: its price again, up front, from a treasury that has it */
+ function upgrade(state,ctx,id){
+  const v=worksView(state,ctx).list.find(w=>w.id===id);
+  if(!v)return {ok:false,text:'No such work.'};
+  if(v.status!=='done')return {ok:false,text:v.name+' must be standing first.'};
+  const u=v.up;
+  if(u.status==='done')return {ok:false,text:v.name+' is at level '+UP_LEVEL+' already.'};
+  if(u.status==='building')return {ok:false,text:'A crew is raising '+v.name+' already.'};
+  if(u.status==='locked')return {ok:false,text:'Not yet: '+u.why+'.'};
+  if(u.status==='frozen')return {ok:false,text:'The treasury is in the red. The bank will not see a stone laid until it is not.'};
+  if(u.status==='busy')return {ok:false,text:'All '+MAX_BUILDING+' of the Master Builder’s crews are at work. Wait for one to finish.'};
+  if(u.status==='poor')return {ok:false,text:'The treasury cannot cover '+u.cost.toLocaleString()+' ◉. The Tides Bank lends against a plan like this.'};
+  state.treasury-=u.cost;state.spent+=u.cost;state.works[id].up=u.build;
+  state.council.stone=clamp(state.council.stone+3,0,100);
+  return {ok:true,cost:u.cost,text:v.name+' to level '+UP_LEVEL+' - ordered for '+u.cost.toLocaleString()+' ◉, ready in '+u.build+' close'+(u.build>1?'s':'')+'. It keeps working meanwhile.'};
  }
  /* 🏗 order a work: the whole price up front, from a treasury that has it */
  function invest(state,ctx,id){
   const v=worksView(state,ctx).list.find(w=>w.id===id);
   if(!v)return {ok:false,text:'No such work.'};
   if(v.status==='done'||v.status==='building')return {ok:false,text:v.name+' is already '+(v.status==='done'?'standing':'being built')+'.'};
-  if(v.status==='locked')return {ok:false,text:'First build: '+v.missing.join(', ')+'.'};
+  if(v.status==='locked')return {ok:false,text:(v.pop&&state.pop<v.pop?'First: ':'First build: ')+v.missing.join(', ')+'.'};
   if(v.status==='frozen')return {ok:false,text:'The treasury is in the red. The bank will not see a stone laid until it is not.'};
   if(v.status==='busy')return {ok:false,text:'All '+MAX_BUILDING+' of the Master Builder’s crews are at work. Wait for one to finish.'};
   if(v.status==='poor')return {ok:false,text:'The treasury cannot cover '+v.cost.toLocaleString()+' ◉. The Tides Bank lends against a plan like this.'};
@@ -823,7 +865,8 @@
  function crownView(state,ctx={}){
   const f=forecast(state,ctx),K=state.king,d=K.demand&&demandDef(K.demand.id),h=humourDef(K.humour);
   return {crowned:state.crowned,deposed:state.deposed,trust:state.trust,trustName:trustName(state.trust),trustDelta:f.trustDelta,trustFactors:f.trustFactors,
-   canClaim:!state.crowned&&state.trust>=COUP_TRUST,coupAt:COUP_TRUST,
+   canClaim:canClaim(state),coupAt:COUP_TRUST,coupSeasons:COUP_SEASONS,seasonsPlayed:seasonsPlayed(state),coupFavour:COUP_FAVOUR,favour:favour(state),
+   closesToSeason:seasonsPlayed(state)>=COUP_SEASONS||!state.season?0:(COUP_SEASONS-seasonsPlayed(state))*SEASON_CLOSES-num(state.season.closes),   /* closes until the bank has graded enough seasons */
    closesToCrown:state.crowned||state.trust>=COUP_TRUST?0:f.trustDelta>0?Math.ceil((COUP_TRUST-state.trust)/f.trustDelta):null,
    pleasure:K.pleasure,pleasureName:pleasureName(K.pleasure),pleasureTarget:f.pleasureTarget,humour:h,raise:K.raise,purse:f.purse,whims:f.expenses.find(l=>l.id==='whims').amount,
    demand:d?{...d,age:K.demand.age,left:2-K.demand.age,cost:Math.round(num(d.cost)*f.scale)}:null};
@@ -864,11 +907,22 @@
  function pardon(state,name){
   const i=state.jail.findIndex(p=>p.name===name);if(i<0)return null;
   const p=state.jail[i];state.jail.splice(i,1);
-  if(p.life){state.deposed='exile';return {ok:true,text:p.name+' was put on a ship at dawn. He did not look back.'};}
+  if(p.life){   /* ⚖️ the old King walks: the people love a merciful crown, other courts smell a soft one */
+   state.deposed='pardoned';state.mood=clamp(state.mood+Math.round(MERCY*100),0,100);
+   return {ok:true,text:p.name+' walked out of his own gaol a free man, and the square cheered him all the way to the palace stair - where he sat down, and has not moved since. The people +'+Math.round(MERCY*100)+'. Every foreign court will call it weakness.'};}
   state.mood=clamp(state.mood+1,0,100);state.trust=clamp(round1(state.trust+.5),0,100);
   if(p.byKing&&!state.crowned)state.king.pleasure=clamp(state.king.pleasure-8,0,100);
   return {ok:true,text:p.name+' walks free. Word of it is round the tenements by nightfall.'+(p.byKing&&!state.crowned?' The King is not amused.':'')};
  }
+ /* ⚖️ the gallows: only for the one prisoner who is in for life. The scene in game.js plays first; this runs at the drop. */
+ function execute(state,name){
+  const i=state.jail.findIndex(p=>p.name===name);if(i<0||!state.jail[i].life)return null;
+  const p=state.jail[i];state.jail.splice(i,1);
+  state.deposed='executed';state.mood=clamp(state.mood-Math.round(MERCY*100),0,100);
+  return {ok:true,text:p.name+' was hanged on the great square before the whole city. The people −'+Math.round(MERCY*100)+'. Every foreign court heard of it by the week’s end, and none of them sleeps as well as it did.'};
+ }
+ const allyFear=state=>state.deposed==='pardoned'?1+MERCY:state.deposed==='executed'?1-MERCY:1;   /* what a king's fate does to every price abroad */
+ const allyWorth=(state,def)=>Math.round(def.worth*allyFear(state));
  function fine(state,ctx,name){
   const i=state.jail.findIndex(p=>p.name===name);if(i<0||state.jail[i].life)return null;
   const gold=fineOf(state,ctx,state.jail[i]);
@@ -879,6 +933,8 @@
     what becomes of the old King: a cell under his own hall, or a ship. */
  function claimCrown(state,fate){
   if(state.crowned||state.trust<COUP_TRUST)return {ok:false,text:'The realm does not trust you enough - yet.'};
+  if(favour(state)<COUP_FAVOUR)return {ok:false,text:'The council is not behind you - their favour must stand at '+COUP_FAVOUR+' or better, and it is '+favour(state)+'.'};
+  if(!canClaim(state))return {ok:false,text:'The realm wants to see a full season of your books first. The bank grades it at the season’s last close.'};
   state.crowned=true;state.deposed=fate==='exile'?'exile':'gaol';state.king.demand=null;
   state.mood=clamp(state.mood+6,0,100);
   for(const seat of COUNCIL)state.council[seat.id]=clamp(state.council[seat.id]+5,0,100);
@@ -891,7 +947,32 @@
  /* 🏦 Signing the founding loan opens the books: 500 000 in the strongroom, the same owed, a line a
     little beyond it, and the first season's clock running. */
  function newSeason(state,n,share,rng){
-  return {n,card:dealCard(rng,state.season&&state.season.card&&state.season.card.id),closes:0,startLoan:state.loan,startTreasury:state.treasury,target:Math.max(0,Math.round(state.loan*(1-share))),red:0,covered:0,interest:0,series:[]};
+  return {n,card:dealCard(rng,state.season&&state.season.card&&state.season.card.id),closes:0,startLoan:state.loan,startTreasury:state.treasury,target:Math.max(0,Math.round(state.loan*(1-share))),red:0,covered:0,interest:0,in:0,out:0,series:[]};
+ }
+ /* 👑 the crown needs three things: the realm's trust at COUP_TRUST, the council's favour at COUP_FAVOUR, and a season on
+    the books - the bank must have graded COUP_SEASONS of them */
+ const seasonsPlayed=state=>state.season?Math.max(0,num(state.season.n,1)-1):0;
+ const canClaim=state=>!state.crowned&&state.trust>=COUP_TRUST&&favour(state)>=COUP_FAVOUR&&seasonsPlayed(state)>=COUP_SEASONS;
+ /* 🎁 The season bonus. When the bank closes a season the steward may vote themself a bonus out of
+    what the season made: income less expenses, at most BONUS_SHARE of it, once per season - and only
+    from a treasury in the black, never more than it holds. A season that lost money pays nothing. */
+ function bonusView(state){
+  const x=state.seasons.length?state.seasons[state.seasons.length-1]:null;
+  if(!x||x.in===undefined)return null;   /* older saves: seasons graded before the bonus existed carry no in/out */
+  const profit=x.in-x.out,max=Math.max(0,Math.floor(profit*BONUS_SHARE)),taken=num(x.bonusTaken);
+  const black=state.treasury>0,room=black?Math.max(0,Math.min(max,Math.floor(state.treasury))):0;
+  return {n:x.n,grade:x.grade,income:x.in,expenses:x.out,profit,share:BONUS_SHARE,max,taken,black,room,
+   open:taken===0&&max>0,why:taken>0?'taken':max<=0?'loss':!black?'red':room<max?'short':''};
+ }
+ function takeBonus(state,room){
+  const v=bonusView(state);if(!v)return {ok:false,text:'No season on the books yet.'};
+  if(v.taken>0)return {ok:false,text:'Season '+v.n+'’s bonus was taken already.'};
+  if(v.max<=0)return {ok:false,text:'Season '+v.n+' made no profit. There is no bonus in a loss.'};
+  if(!v.black)return {ok:false,text:'The treasury is in the red. A bonus is paid out of a strongroom that has something in it.'};
+  const n=Math.min(v.room,Math.max(0,Math.floor(num(room))));
+  if(n<=0)return {ok:false,text:'Your vault is full - nothing more fits in your purse.'};
+  state.treasury-=n;state.seasons[state.seasons.length-1].bonusTaken=n;
+  return {ok:true,gold:n,text:'Season '+v.n+'’s bonus: '+n.toLocaleString()+' ◉ to your own gold, out of a profit of '+v.profit.toLocaleString()+' ◉. Your clerks wrote it in the book, in a fair hand.'};
  }
  function charter(state,rng){
   if(state.chartered)return null;
@@ -934,7 +1015,8 @@
   state.rate=clamp(Math.round((state.rate+G.rate)*1e5)/1e5,MIN_RATE,MAX_RATE);
   state.trust=clamp(round1(state.trust+G.trust),0,100);
   const summary={n:q.n,grade,verdict:G.verdict,startLoan:q.startLoan,endLoan:state.loan,target:q.target,reduced,paid,startTreasury:q.startTreasury,endTreasury:state.treasury,worthStart,worth,
-   red:q.red,covered:q.covered,interest:q.interest,swept,limitWas,limit:state.limit,rateWas,rate:state.rate,series:q.series};
+   red:q.red,covered:q.covered,interest:q.interest,swept,limitWas,limit:state.limit,rateWas,rate:state.rate,series:q.series,
+   in:num(q.in),out:num(q.out),bonusTaken:0};   /* 🎁 what the season took in and paid out - the bonus is a share of the difference */
   state.seasons.push(summary);while(state.seasons.length>SEASONS_KEPT)state.seasons.shift();
   state.wage=Math.min(WAGE_MAX,Math.round(num(state.wage,1)*(1+WAGE_RISE)*1e4)/1e4);   /* the guard, the watch, the masons and the King all ask for their rise */
   summary.wage=state.wage;
@@ -1072,9 +1154,15 @@
   if(!state.protest&&state.mood<PROTEST_START)state.protest=true;
   else if(state.protest&&state.mood>=PROTEST_END)state.protest=false;
   /* 🏗 the crews */
-  const finished=[];
+  const finished=[],raised=[];
   for(const id of Object.keys(state.works)){
-   const w=state.works[id];if(w.left<=0)continue;
+   const w=state.works[id];
+   if(w.left<=0&&num(w.up)>0){   /* 🏗 a crew raising a standing work to level 2 - it kept working all the while */
+    w.up-=1;if(w.up>0)continue;
+    delete w.up;w.lvl=UP_LEVEL;raised.push(id);trustShift+=1;state.council.stone=clamp(state.council.stone+2,0,100);
+    unrest.push('🏗 '+workDef(id).name+' - raised to level '+UP_LEVEL+'. Everything it does, it does twice over now - and it costs twice as much to keep.');continue;
+   }
+   if(w.left<=0)continue;
    w.left-=1;if(w.left>0)continue;
    const def=workDef(id);finished.push(id);trustShift+=2;
    state.council.stone=clamp(state.council.stone+2,0,100);
@@ -1157,7 +1245,7 @@
    const n=state.unattended;
    if(n>=REMIND_AFTER&&(n-REMIND_AFTER)%3===0)unrest.push('🔔 You have ledgers to attend.'+(n>=NEGLECT_HARD?' The council meets without you now, and the city has stopped asking where you are.':n>=NEGLECT_AFTER?' The council has started to talk - and so has the city.':''));
   }
-  state.ticks+=1;
+  state.ticks+=1;state.kept=num(state.kept)+1;   /* kept: closes with the books open - what "over N closes" on the Overview counts */
   state.earned+=gotIn+Math.max(0,eventGold);
   state.spent+=paidOut+Math.max(0,-eventGold);
   /* 🌬 the winds wander on, each pulled back toward calm; a turn worth knowing about makes the news */
@@ -1172,6 +1260,7 @@
   if(state.chartered){
    const q=state.season;
    q.interest+=f.expenses.find(l=>l.id==='interest').amount;
+   q.in=num(q.in)+gotIn+Math.max(0,eventGold);q.out=num(q.out)+paidOut+Math.max(0,-eventGold);   /* 🎁 the season's takings and outgoings, counted as earned/spent are, for the bonus at its end */
    q.series.push({t:state.treasury,d:state.loan,n:net});q.closes=q.series.length;
    if(q.closes>=SEASON_CLOSES){
     reviewed=review(state,ctx,live?rng:null);
@@ -1187,7 +1276,7 @@
   const noble=state.chartered?nobleTick(state,ctx,rng):{news:[],rankUp:null,xp:0};
   for(const line of noble.news)unrest.push(line);
   const entry={n:state.ticks,covered,review:reviewed?{n:reviewed.n,grade:reviewed.grade}:null,in:gotIn,out:paidOut,expected:f.net,net,events:events.map(e=>e.text),unrest,mood:state.mood,favour:favour(state),
-   treasury:state.treasury,protest:state.protest,was:before,unattended:num(state.unattended),food:state.food.stock,hunger:state.food.hunger,pop:state.pop,moved,attract:state.attract,trust:state.trust,finished,
+   treasury:state.treasury,protest:state.protest,was:before,unattended:num(state.unattended),food:state.food.stock,hunger:state.food.hunger,pop:state.pop,moved,attract:state.attract,trust:state.trust,finished,raised,
    purse:state.crowned?Math.round(f.purse*HERO_COIN/COIN):0,salary:f.expenses.find(l=>l.id==='salary').amount>0?salaryPay(level('salary',state.budget.salary)):0,   /* paid when - and only when - the line was charged */rankUp:noble.rankUp,nobleXp:noble.xp,summoned:false};   /* 💎 a crowned head keeps a household: a tenth of the privy purse reaches the hero's own gold */
   state.history.push(entry);
   while(state.history.length>HISTORY)state.history.shift();
@@ -1453,22 +1542,23 @@
  }
  function alliesView(state){
   const wait=left=>Math.max(0,(left-1)*TICK_SECONDS+(TICK_SECONDS-num(state.clock)));
-  return {partnerAt:PARTNER_AT,buyAt:BUY_AT,court:COURT_CLOSES,closes:ALLY_CLOSES,fx:alliesFx(state),
+  return {partnerAt:PARTNER_AT,buyAt:BUY_AT,court:COURT_CLOSES,closes:ALLY_CLOSES,fx:alliesFx(state),crowned:!!state.crowned,fear:allyFear(state),   /* 👑 no crown, no envoys; fear: what the old King's fate does to every price */
    list:ALLIES.map(def=>{const a=allyOf(state,def.id),locked=def.needs&&!has(state,def.needs)?workDef(def.needs).name:null,inFlight=a.pending.reduce((t,p)=>t+p.amount,0);
-    const courting=!a.owned&&a.stake>=BUY_AT;
-    return {...def,...a,locked,tier:allyTier(a),income:allyReturn(def,a),inFlight,pending:a.pending.map(p=>({...p,seconds:wait(p.left)})),
-     toFull:Math.max(0,Math.round(def.worth*(100-a.stake)/100)-inFlight),courtLeft:courting?Math.max(0,COURT_CLOSES-a.held):null,
+    const courting=!a.owned&&a.stake>=BUY_AT,worth=allyWorth(state,def);
+    return {...def,...a,worth,locked,tier:allyTier(a),income:allyReturn(def,a),inFlight,pending:a.pending.map(p=>({...p,seconds:wait(p.left)})),
+     toFull:Math.max(0,Math.round(worth*(100-a.stake)/100)-inFlight),courtLeft:courting?Math.max(0,COURT_CLOSES-a.held):null,
      canBuy:courting&&a.held>=COURT_CLOSES&&!locked&&!(a.talk&&a.talk.cooldown>0),cooldown:num(a.talk&&a.talk.cooldown),partnerIncome:Math.round(def.yield*PARTNER_SHARE*Math.max(a.stake,PARTNER_AT)/100)};})};
  }
  /* send an envoy with a chest from the treasury: never borrowed gold into the red, never more than the place is worth */
  function allyInvest(state,id,amount){
   const def=allyDef(id);if(!def)return {ok:false,text:'No such place.'};
   if(!state.chartered)return {ok:false,text:'The crown’s books are shut.'};
+  if(!state.crowned)return {ok:false,text:'Envoys ride under a crown. A steward keeps the books; a King - or a Queen - sends the realm’s gold abroad.'};   /* 👑 asked for 2026-09-22: other cities and the ports are the monarch's game */
   state.allies=state.allies||{};const a=state.allies[id]=state.allies[id]||{stake:0,held:0,owned:false,put:0,pending:[]};
   if(a.owned)return {ok:false,text:def.name+' is ours already.'};
   if(def.needs&&!has(state,def.needs))return {ok:false,text:def.name+' will not receive an envoy from a city without a '+workDef(def.needs).name+'.'};
   if(frozen(state))return {ok:false,text:'The treasury is in the red. No envoy rides on the bank’s patience.'};
-  const room=Math.max(0,Math.round(def.worth*(100-a.stake)/100)-a.pending.reduce((t,p)=>t+p.amount,0)),n=Math.min(Math.floor(num(amount)),room,Math.max(0,state.treasury));
+  const room=Math.max(0,Math.round(allyWorth(state,def)*(100-a.stake)/100)-a.pending.reduce((t,p)=>t+p.amount,0)),n=Math.min(Math.floor(num(amount)),room,Math.max(0,state.treasury));
   if(room<=0)return {ok:false,text:'There is nothing more in '+def.name+' to put gold into. It is time to talk about the rest.'};
   if(n<=0)return {ok:false,text:'The treasury cannot fill a chest.'};
   state.treasury-=n;state.spent+=n;a.pending.push({amount:n,left:ALLY_CLOSES});
@@ -1489,6 +1579,8 @@
   if(a.stake>BUY_AT)add(-Math.min(10,(a.stake-BUY_AT)*.25),'You hold most of the place already. I am only selling you the rest of it.');
   if(a.held>COURT_CLOSES)add(-Math.min(8,(a.held-COURT_CLOSES)*.5),'You have been a patient friend to us, and I count that.');
   if(num(a.talk&&a.talk.grudge))add(5*a.talk.grudge,'And I have not forgotten what you offered me last time.');
+  if(state.deposed==='pardoned')add(MERCY*100,'You let the king you deposed walk free. A soft hand. I price a soft hand.');   /* ⚖️ the old King's fate travels */
+  if(state.deposed==='executed')add(-MERCY*100,'You hanged your own king on the square. I would rather we stayed friends.');
   if(t==='soldier'){
    if(b.watch>=2)add(-5,'Your streets are kept. I respect a city that can hold a line.');
    if(b.watch===0)add(10,'You have disbanded your own watch. My walls would be wasted on you - unless you pay for the waste.');
@@ -1591,7 +1683,7 @@
   const news=[];
   for(const def of ALLIES){const a=state.allies&&state.allies[def.id];if(!a||a.owned)continue;
    const was=allyTier(a);
-   a.pending=a.pending.filter(p=>{p.left-=1;if(p.left>0)return true;a.put+=p.amount;a.stake=Math.min(100,Math.round((a.stake+p.amount/def.worth*100)*100)/100);return false;});
+   a.pending=a.pending.filter(p=>{p.left-=1;if(p.left>0)return true;a.put+=p.amount;a.stake=Math.min(100,Math.round((a.stake+p.amount/allyWorth(state,def)*100)*100)/100);return false;});
    if(a.talk&&a.talk.cooldown>0){a.talk.cooldown-=1;if(a.talk.cooldown===0)news.push('🤝 Word from '+def.name+': '+def.ruler.name+' might - might - receive you again.');}
    if(a.stake>=BUY_AT){a.held+=1;if(a.held===COURT_CLOSES)news.push('🤝 '+def.ruler.name+' of '+def.name+' lets it be known that an offer for the whole place would be heard.');}
    const now=allyTier(a);if(now!==was)news.push('🤝 '+def.name+': '+(now==='Trading partner'?'the first caravans under a treaty are on the road - a trading partner.':now==='Ally'?'an alliance is sworn. Court them for a while, and the place can be bought.':'the envoy was received.'));
@@ -1694,7 +1786,7 @@
   const catName=id=>WORK_CATS.find(c=>c.id===id).name;
   const worksLine=paying&&wv.building<MAX_BUILDING?'Gold in a strongroom earns nothing, and ours is borrowed at interest. A work is paid for once and earns for ever. With a crew standing idle, I would be reading the Master Builder’s drawings under '+catName(paying.cat)+'.':'';
   if(state.treasury<0)add('red',100,
-   'While we are in the red the bank lets you cut any line and raise any rate - it only forbids you to spend. I would find the line that pleases fewest and begin there. And nothing forbids a steward’s own purse the strongroom door.',
+   'While we are in the red the bank lets you cut any line and raise any rate - it only forbids you to spend. I would find the line that pleases fewest and begin there.',
    'The bailiffs sell what they take for a third of what it cost us. Anything you cut yourself tonight is cheaper than anything they carry out tomorrow.');
   if(state.food.hunger>0)add('hunger',95,'The granary is empty, steward, and hunger does not end the day the bread comes back - it eases as slowly as it built. Every close you wait is paid for twice.');
   else if(grain.low)add('bread',85,grain.auto?'The standing shipments are only as good as the strongroom behind them, and they fill a granary a little at a time. When the stores run this low, a shipment bought by hand at this table is both quicker and cheaper.'
@@ -1746,7 +1838,7 @@
   return {ok:true,spent:true,topic:t.id,text};
  }
  return Object.freeze({create,normalize,forecast,tick,advance,setBudget,borrow,repay,withdraw,deposit,settle,answer,councilView,PLAYER_SEAT,ALLIES,alliesView,allyInvest,alliesFx,talkView,openTalks,makeOffer,acceptCounter,haggleReasons,TALK_COOL_INSULT,TALK_COOL_WALK,ALLY_CLOSES,PARTNER_AT,BUY_AT,COURT_CLOSES,PARTNER_SHARE,meetHand,acceptOffice,nobleView,ennoble,fundContract,dealOffers,postBoard,NOBLE_RANKS,CONTRACTS,NOBLE_CLOSES,OFFER_CLOSES,PATENT_COST,TEST,HARBOUR_WORKS,HARBOUR_BASE,counsel,counselView,counselTopics,COUNSEL_EVERY,projection,
-  worksView,invest,crownView,answerKing,claimCrown,gaolView,pardon,fine,worksFx,has,cells,charter,charterView,bankView,rehire,frozen,attend,neglect,REMIND_AFTER,NEGLECT_AFTER,NEGLECT_HARD,TRUST_SLOPE,TRUST_DRAIN_MAX,SEAT_SLOPE,SEAT_DRAIN_MAX,MOOD_SLOPE,MOOD_DRAIN_MAX,DRAW_SLOPE,DRAW_DRAIN_MAX,
+  worksView,invest,upgrade,lvlOf,raising,UP_LEVEL,UP_FAVOUR,crownView,answerKing,claimCrown,canClaim,seasonsPlayed,COUP_SEASONS,COUP_FAVOUR,bonusView,takeBonus,BONUS_SHARE,gaolView,pardon,execute,fine,allyFear,MERCY,worksFx,has,cells,charter,charterView,bankView,rehire,frozen,attend,neglect,REMIND_AFTER,NEGLECT_AFTER,NEGLECT_HARD,TRUST_SLOPE,TRUST_DRAIN_MAX,SEAT_SLOPE,SEAT_DRAIN_MAX,MOOD_SLOPE,MOOD_DRAIN_MAX,DRAW_SLOPE,DRAW_DRAIN_MAX,
   POP_MAX,HOUSEHOLD,hearths,SEASON_CARDS,cardDef,dealCard,
   windName,WIND_KEYS,WIND_MAX,JITTER_IN,JITTER_OUT,WAGE_RISE,WAGE_MAX,HERO_EXPORTS_MAX,HERO_FARM_LEVELS,
   foodView,buyFood,setAutoFood,HUNGER_GAIN,HUNGER_EASE,FOOD_STORE,FOOD_START,FOOD_CAP,FOOD_PRICE,AUTO_PREMIUM,FOOD_RESERVE,HUNGER_MAX,FOOD_LOW,FOOD_LOTS,

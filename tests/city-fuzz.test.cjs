@@ -44,6 +44,7 @@ for(let seed=1;seed<=8;seed++){
   roundTrip(s,seed,'just chartered');
   /* ---------- running the city ---------- */
   for(let i=0;i<620;i++){
+   if(i>=300&&i<=320&&!s.crowned){s.trust=100;for(const k of Object.keys(s.council))s.council[k]=Math.max(s.council[k],E.COUP_FAVOUR);}   /* 👑 a realm that adores you for a while, so the crown - which the ports now need - is within reach in every run */
    const v=views(s,seed);
    if(rng()<.7)E.attend(s);
    if(rng()<.25){const k=pick(E.LINE_KEYS.concat(E.RATE_KEYS));E.setBudget(s,k,Math.floor(rng()*4));}

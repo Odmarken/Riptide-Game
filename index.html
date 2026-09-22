@@ -119,7 +119,7 @@
     <button id="cfgBtn" class="stgbtn" title="Settings" aria-label="Open settings" aria-controls="cfgBox"></button>
     <button id="musBtn" class="stgbtn" title="Pause game and audio" aria-label="Pause game and audio" aria-pressed="false" data-paused="false"></button>
     <button id="sideToggle" class="stgbtn" title="Hide panel (B)" aria-label="Hide panel" aria-expanded="true"></button>
-    <div id="sideResize" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize side panel" aria-controls="p-hero p-map p-bag p-tides p-shop" title="Drag to resize panel. Double-click to reset. Left / Right arrows adjust width."><span aria-hidden="true"></span></div>
+    <div id="sideResize" role="separator" tabindex="0" aria-orientation="vertical" aria-label="Resize side panel" aria-controls="p-hero p-map p-bag p-tides p-outfits p-shop" title="Drag to resize panel. Double-click to reset. Left / Right arrows adjust width."><span aria-hidden="true"></span></div>
     <div id="cfgBox" role="dialog" aria-modal="true" aria-labelledby="cfgTitle">
       <div class="casinobox cfgcard">
         <div class="cfgheading">
@@ -226,7 +226,9 @@
     <div class="ptitle" id="profTitle" style="font-size:15px;display:none">Professions</div>
     <div id="profList"></div>
     <div id="tideStorageEntry"></div>
+    <div id="ledgerEntry"></div>
     <div id="prestigeSec"></div>
+    <div id="outfitEntry"></div>
     <div class="card toggle-row"><span>Auto-equip stronger gear</span><button class="sbtn gold" id="autoEquipBtn">On</button></div>
     <div class="card toggle-row"><span>Play a different hero</span><button class="sbtn gold" id="charSelBtn">⇄ Change Character</button></div>
     <div class="card toggle-row"><span>Global rankings</span><button class="sbtn gold" id="lbBtn2">🏆 Leaderboard</button></div>
@@ -255,6 +257,12 @@
     <div class="cl" id="tideStorageIntro"></div>
     <div id="tideStorageTools"></div>
     <div id="tideStorageBody"></div>
+  </div>
+
+  <div class="panel" id="p-outfits" aria-labelledby="outfitTitle">
+    <div class="tide-storage-top"><button class="sbtn" id="outfitBack" aria-label="Back">← Back</button><div class="ptitle" id="outfitTitle">Outfits</div></div>
+    <div class="cl" id="outfitIntro"></div>
+    <div id="outfitBody"></div>
   </div>
  
   <div class="panel" id="p-shop">
@@ -523,6 +531,15 @@
 
   <div id="ritualFx" style="position:absolute;inset:0;z-index:95;display:none;background:#000;opacity:0;pointer-events:all"></div>
 
+  <div id="outfitFx" role="dialog" aria-modal="true" aria-labelledby="outfitOfferTitle" style="position:absolute;inset:0;z-index:96;display:none;align-items:center;justify-content:center;background:rgba(6,4,2,.88)">
+   <div class="casinobox" style="border-color:#ffd76a;max-width:440px;text-align:center">
+    <div class="slottop" id="outfitOfferTitle" style="color:#ffd76a;margin-bottom:8px">👑 KING’S ROBES</div>
+    <canvas id="outfitOfferPortrait" width="180" height="220" style="display:block;margin:0 auto 10px"></canvas>
+    <div class="ss" id="outfitOfferText" style="color:var(--parch);font-size:14.5px;line-height:1.65;margin-bottom:14px"></div>
+    <button class="sbtn gold" id="outfitOfferWear" style="width:100%;padding:12px;margin-bottom:6px">Wear them</button>
+    <button class="sbtn" id="outfitOfferLater" style="width:100%;padding:10px">Keep my own colours</button>
+   </div>
+  </div>
   <div id="ritualDoneFx" style="position:absolute;inset:0;z-index:96;display:none;align-items:center;justify-content:center;background:rgba(3,6,12,.9)">
    <div class="casinobox" style="border-color:#7fd7ff;max-width:440px;text-align:center">
     <div class="slottop" style="color:#7fd7ff;margin-bottom:8px">⛧ THE RITUAL IS COMPLETE</div>

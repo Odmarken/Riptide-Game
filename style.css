@@ -343,6 +343,13 @@
   .slot .en{color:#d9a0ef;font-size:10px;margin-top:2px}
   .upbtn{margin-top:auto;padding:4px 6px;font-size:9.5px;border-radius:6px;border:1px solid rgba(140,105,70,.4);background:#221610;color:#cfc0a8;cursor:pointer}
   .upbtn.can{border-color:var(--brass-deep);color:var(--brass)}
+  /* 👁 pet slot: Unequip keeps the row, the eye sits square at its right. Same eye, same cyan as the Tide storage cards */
+  .petbtns{display:flex;gap:4px;margin-top:auto}
+  .petbtns .upbtn{margin-top:0;flex:1}
+  .petbtns .peteye{flex:0 0 30px;display:grid;place-items:center;padding:0;color:#98866d}
+  .peteye svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .peteye:hover{border-color:#d7b779;color:#e9d7b4}
+  .peteye[aria-pressed="true"]{color:#a9e4db;border-color:#72b2a9;background:#203d36}
   .r-common{color:var(--ink)} .r-fine{color:var(--fine)} .r-rare{color:var(--rare)} .r-epic{color:var(--epic)} .r-legendary{color:#7fd7ff;text-shadow:0 0 8px rgba(111,208,255,.55)}
   .zonecard{display:flex;align-items:center;gap:12px;cursor:pointer}
   .zonecard.locked{opacity:.45;cursor:default}
@@ -422,6 +429,16 @@
   #prestigeBtn{border:2px solid #ffd76a;animation:awoogaGlow 1.4s ease-in-out infinite}
   @keyframes awoogaGlow{0%,100%{box-shadow:0 0 8px rgba(255,215,106,.4)}50%{box-shadow:0 0 24px rgba(255,215,106,.9),0 0 40px rgba(255,180,60,.35)}}
   /* the translucent rename pencil next to the hero title */
+  #heroTitle .herostyle{color:#ffd76a} /* 🎩 Duke, King, Queen - the style before the name, in the crown's gold */
+  /* 👘 the Outfits page: a card per unlocked outfit with the hero painted in it */
+  .outfit-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:8px}
+  .outfit-card{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:12px 10px}
+  .outfit-card canvas{width:150px;height:190px;border-radius:10px;background:radial-gradient(ellipse at 50% 70%,#3a2a1a,#1c140c 75%);border:1px solid rgba(150,112,74,.35)}
+  .outfit-card h3{margin:0;font:16px var(--display);color:#e5d1ab}
+  .outfit-card .cl{font-size:11px;min-height:2.6em}
+  .outfit-card .sbtn{width:100%}
+  .outfit-card.worn{border-color:#ffd76a;box-shadow:0 0 14px #ffd76a33}
+  .outfit-locked{margin-top:12px;opacity:.75}
   #renameBtn,#nameEyeBtn{background:none;border:none;cursor:pointer;opacity:.4;font-size:13px;padding:0 2px;vertical-align:middle;transition:opacity .15s}
   #renameBtn:hover,#nameEyeBtn:hover{opacity:1}
   #nameEyeBtn{opacity:.72}     /* sits brighter than the pencil - it is a state you can leave switched on */
