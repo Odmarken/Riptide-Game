@@ -14418,7 +14418,7 @@ function ledgerSeasonChart(q,length,title,proj){
  const apart=Math.abs(y(last.t)-y(last.d))>=16;
  /* with the Hand's guess running on from the dots, the labels step aside: the upper line's above it, the lower line's below */
  const tag=(k,name)=>{const o=k==='t'?'d':'t',up=last[k]>last[o]||(last[k]===last[o]&&k==='d');
-  return proj&&proj.pts.length?'<text x="'+(x(end)-8).toFixed(1)+'" y="'+(y(last[k])+(up?-9:17)).toFixed(1)+'" text-anchor="end" class="sc-label">'+name+' '+fmtK(last[k])+'</text>'
+  return proj&&proj.pts.length?'<text x="'+(x(end)+(x(end)<150?8:-8)).toFixed(1)+'" y="'+(y(last[k])+(up?-9:17)).toFixed(1)+'" text-anchor="'+(x(end)<150?'start':'end')+'" class="sc-label">'+name+' '+fmtK(last[k])+'</text>'
    :apart?'<text x="'+(x(end)+10).toFixed(1)+'" y="'+(y(last[k])+4).toFixed(1)+'" class="sc-label">'+name+' '+fmtK(last[k])+'</text>':'';};
  const cl=v=>Math.max(bot,Math.min(top,v)),rough=v=>{const a=Math.abs(v),m=a>=1e5?1e4:a>=1e4?5e3:1e3;return Math.round(v/m)*m;};
  let guess='';
@@ -14433,7 +14433,7 @@ function ledgerSeasonChart(q,length,title,proj){
  return '<div class="season-wrap"><div class="season-head"><h3>'+title+'</h3><div class="season-legend"><span><i class="key" style="background:'+SEASON_INK.t+'"></i>Treasury</span><span><i class="key" style="background:'+SEASON_INK.d+'"></i>Debt to the bank</span><span><i class="key target"></i>The bank’s target for the last close</span>'+(pp?'<span><i class="key guess"></i>Where it is heading, roughly</span>':'')+'</div></div>'
   +'<div class="season-plot"><svg class="season-chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Season '+q.n+': treasury '+fmtGold(last.t)+', debt '+fmtGold(last.d)+', target '+fmtGold(q.target)+', after '+end+' of '+length+' closes">'
   +grid+ticks
-  +'<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y(q.target).toFixed(1)+'" y2="'+y(q.target).toFixed(1)+'" class="sc-target"/><text x="'+(L+6)+'" y="'+(y(q.target)-6).toFixed(1)+'" class="sc-axis">target '+fmtK(q.target)+'</text>'
+  +'<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y(q.target).toFixed(1)+'" y2="'+y(q.target).toFixed(1)+'" class="sc-target"/><text x="'+(W-R-6)+'" y="'+(y(q.target)-6).toFixed(1)+'" text-anchor="end" class="sc-axis">target '+fmtK(q.target)+'</text>'
   +guess+'<path d="'+path('d')+'" class="sc-line" stroke="'+SEASON_INK.d+'"/><path d="'+path('t')+'" class="sc-line" stroke="'+SEASON_INK.t+'"/>'
   +'<circle cx="'+x(end).toFixed(1)+'" cy="'+y(last.d).toFixed(1)+'" r="4.5" class="sc-dot" fill="'+SEASON_INK.d+'"/><circle cx="'+x(end).toFixed(1)+'" cy="'+y(last.t).toFixed(1)+'" r="4.5" class="sc-dot" fill="'+SEASON_INK.t+'"/>'
   +tag('t','Treasury')+tag('d','Debt')
@@ -14461,7 +14461,8 @@ function seasonChartHover(e){
  else{row(SEASON_INK.t,fmtGold(p.t)+' ◉','in the treasury');row(SEASON_INK.d,fmtGold(p.d)+' ◉','owed to the bank');}
  if(i&&!g)row(null,fmtSigned(p.n)+' ◉','net of this close');
  row(null,fmtGold(d.target)+' ◉','the bank’s target');
- const left=px*box.width/d.W;tip.style.left=Math.min(box.width-226,Math.max(0,left+(left>box.width*.55?-228:14)))+'px';
+ const left=px*box.width/d.W,tipWidth=tip.getBoundingClientRect().width;
+ tip.style.left=Math.max(0,Math.min(box.width-tipWidth,left+(left>box.width*.55?-tipWidth-12:14)))+'px';
 }
 /* 🎁 the steward's season bonus, with the sum shown: takings − outgoings = profit, × a fifth = the most you may take,
    then the two conditions - a treasury in the black, and no more than it holds */
@@ -14652,12 +14653,17 @@ function ledgerHTML(){
   +rows.map(r=>'<div class="ledger-row" title="Close '+r.n+': income '+fmtGold(r.in)+', expenses '+fmtGold(r.out)+(r.expected!==undefined?', the Hand had expected '+fmtRoughSigned(r.expected):'')+', mood '+r.mood+'"><span>#'+r.n+'</span><div class="ledger-bars"><div class="ledger-bar in" style="width:'+(100*r.in/max).toFixed(1)+'%"></div><div class="ledger-bar out" style="width:'+(100*r.out/max).toFixed(1)+'%"></div></div><b class="'+(r.net>=0?'pos':'neg')+'">'+fmtSigned(r.net)+'</b></div>'
    +(r.events.length||r.protest||(r.unrest&&r.unrest.length)?'<p class="ledger-ev">'+(r.protest?'✊ the crowd was on the boulevard · ':'')+r.events.concat(r.unrest||[]).join(' ')+'</p>':'')).join('')+'</div>';
 }
+let ledgerRenderedView='';
 function ledgerRefresh(){
  if(!S||!S.city)return;
+ const scroll=document.querySelector('#ledgerFx .craft-scroll'),body=$('ledgerBody');
+ const view=[ledgerTab,ledgerPeek,S.city.chartered].join(':'),sameView=view===ledgerRenderedView,top=scroll.scrollTop;
+ const focused=body.contains(document.activeElement)?document.activeElement:null;
+ const action=focused&&focused.dataset.lact?{...focused.dataset}:null;
  $('ledgerFx').classList.toggle('peek',ledgerPeek);
  {const k=document.querySelector('#ledgerFx .craft-kicker');if(k)k.textContent=ledgerPeek?'FROM THE ROAD':'THE COUNCIL CHAMBER';$('ledgerClose').textContent=ledgerPeek?'Close the book':'Leave the Chamber';}
  const dot=(id,on)=>{const b=document.querySelector('[data-ltab="'+id+'"]');if(b)b.classList.toggle('alert',on);};
- document.querySelectorAll('[data-ltab]').forEach(b=>{const on=b.dataset.ltab===ledgerTab;b.classList.toggle('active',on);b.setAttribute('aria-selected',on);b.disabled=!S.city.chartered;});
+ document.querySelectorAll('[data-ltab]').forEach(b=>{const on=b.dataset.ltab===ledgerTab||(ledgerTab==='talk'&&b.dataset.ltab==='allies');b.classList.toggle('active',on);b.setAttribute('aria-selected',on);b.disabled=!S.city.chartered;b.tabIndex=on?0:-1;b.id='ledger-tab-'+b.dataset.ltab;b.setAttribute('aria-controls','ledgerBody');});
  dot('bank',S.city.chartered&&(S.city.treasury<0||!S.city.reviewSeen)&&ledgerTab!=='bank');
  $('ledgerHelp').setAttribute('aria-pressed',ledgerTab==='help');
  dot('people',S.city.incidents.length>0||S.city.protest);dot('council',!!S.city.petition);
@@ -14668,6 +14674,10 @@ function ledgerRefresh(){
  const crownTab=document.querySelector('[data-ltab="crown"]');if(crownTab)crownTab.textContent=S.city.crowned?'👑 Your Crown':'👑 The King';
  {const sub=document.querySelector('#ledgerFx .craft-subtitle');if(sub)sub.textContent=ledgerPeek?'A glance at the books from the road. The Hand reads you the Overview and nothing else - the ledger is kept at the council table, and only there can anything be touched.':S.city.office>=3?'Taxes, rents and public works; a King to keep and a realm to win. You sit as Master of Coin: the King’s Hand keeps the books, you run the city.':'The crown’s books, kept by the King’s Hand at the council table - for the Master of Coin, when the city has one.';}
  $('ledgerBody').innerHTML=ledgerHTML();
+ const activeTab=document.querySelector('#ledgerTabs [aria-selected="true"]');
+ body.setAttribute('aria-labelledby',ledgerTab==='help'?'ledgerHelp':activeTab&&!ledgerPeek?activeTab.id:'ledgerTitle');
+ scroll.scrollTop=sameView?top:0;ledgerRenderedView=view;
+ if(sameView&&action){const replacement=Array.from(body.querySelectorAll('[data-lact]')).find(b=>!b.disabled&&b.dataset.lact===action.lact&&b.dataset.k===action.k&&b.dataset.v===action.v);if(replacement)replacement.focus({preventScroll:true});}
  $('ledgerMsg').textContent=ledgerNote;ledgerNote='';
 }
 function ledgerAction(act,k,v){
@@ -14743,13 +14753,19 @@ function openLedger(tab,peek=false){
  }
  if(!S.city.chartered&&!ledgerPeek){charterStep=0;if(S.city.office===1)CityEconomy.meetHand(S.city);   /* found him at the table without being met at the door: that will do - but not from the road */
   log('📜 <b>'+ThroneWorld.HAND_NAME+':</b> '+(S.city.office>=3?'Before you touch anything, come and look in the strongroom with me.':S.city.office>=1?'You came. Sit down - I have a proposal, and you will want to hear all of it.':'These are the crown’s books. They are not for strangers.'));}
- ledgerRefresh();
+ ledgerRenderedView='';ledgerRefresh();
  $('ledgerFx').style.display='flex';
 }
 const openCouncil=()=>openLedger('council');
 $('ledgerClose').onclick=()=>$('ledgerFx').style.display='none';
 $('ledgerHelp').onclick=()=>{if(ledgerTab==='help')ledgerTab=ledgerBack;else{ledgerBack=ledgerTab;ledgerTab='help';}ledgerRefresh();};
-$('ledgerTabs').addEventListener('click',e=>{const b=e.target.closest('[data-ltab]');if(!b||ledgerPeek)return;ledgerTab=b.dataset.ltab;ledgerRefresh();});
+$('ledgerTabs').addEventListener('click',e=>{const b=e.target.closest('[data-ltab]');if(!b||b.disabled||ledgerPeek)return;ledgerTab=b.dataset.ltab;ledgerRefresh();});
+$('ledgerTabs').addEventListener('keydown',e=>{
+ const keys=['ArrowDown','ArrowUp','ArrowRight','ArrowLeft','Home','End'];if(!keys.includes(e.key)||ledgerPeek)return;
+ const tabs=Array.from($('ledgerTabs').querySelectorAll('[data-ltab]:not(:disabled)')),i=tabs.indexOf(e.target);if(i<0)return;
+ e.preventDefault();e.stopPropagation();const next=e.key==='Home'?0:e.key==='End'?tabs.length-1:(i+(['ArrowDown','ArrowRight'].includes(e.key)?1:-1)+tabs.length)%tabs.length;
+ tabs[next].click();tabs[next].focus({preventScroll:true});tabs[next].scrollIntoView({block:'nearest',inline:'nearest'});
+});
 $('ledgerBody').addEventListener('pointermove',seasonChartHover);
 $('ledgerBody').addEventListener('pointerleave',seasonChartHover);
 $('ledgerBody').addEventListener('click',e=>{const b=e.target.closest('[data-lact]');if(!b||b.disabled)return;

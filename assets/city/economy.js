@@ -533,7 +533,8 @@
     say:String(p.say||'').slice(0,200),term:Math.max(1,Math.floor(num(p.term,2))),served:Math.max(0,Math.floor(num(p.served,0))),life:!!p.life,byKing:!!p.byKing}));
   for(const def of ALLIES){const a=s.allies&&s.allies[def.id];if(!a||typeof a!=='object')continue;
    out.allies[def.id]={stake:clamp(Math.round(num(a.stake)*100)/100,0,100),held:Math.max(0,Math.floor(num(a.held))),owned:!!a.owned,put:Math.max(0,Math.round(num(a.put))),
-    pending:(Array.isArray(a.pending)?a.pending:[]).filter(p=>p&&num(p.amount)>0).slice(0,12).map(p=>({amount:Math.round(num(p.amount)),left:clamp(Math.floor(num(p.left,ALLY_CLOSES)),1,ALLY_CLOSES)}))};
+    /* Every chest has already been paid for. Reloading must never discard a valid envoy. */
+    pending:(Array.isArray(a.pending)?a.pending:[]).filter(p=>p&&num(p.amount)>0).map(p=>({amount:Math.round(num(p.amount)),left:clamp(Math.floor(num(p.left,ALLY_CLOSES)),1,ALLY_CLOSES)}))};
    if(a.talk&&typeof a.talk==='object'){const T=a.talk,L=T.last&&typeof T.last==='object'?T.last:null;
     out.allies[def.id].talk={whim:clamp(Math.round(num(T.whim)*1000)/1000,-.06,.06),patience:clamp(Math.floor(num(T.patience,def.ruler.patience)),0,def.ruler.patience),counter:Math.max(0,Math.round(num(T.counter))),cooldown:clamp(Math.floor(num(T.cooldown)),0,TALK_COOL_INSULT),grudge:clamp(Math.floor(num(T.grudge)),0,6),
      last:L?{offer:Math.max(0,Math.round(num(L.offer))),outcome:String(L.outcome||'').slice(0,12),text:String(L.text||'').slice(0,900),counter:Math.max(0,Math.round(num(L.counter))),reasons:(Array.isArray(L.reasons)?L.reasons:[]).slice(0,2).map(x=>String(x).slice(0,300))}:null};}
@@ -543,7 +544,8 @@
   out.office=out.chartered?3:clamp(Math.floor(num(s.office)),0,3);
   const nb=s.noble&&typeof s.noble==='object'?s.noble:{};
   out.noble={rank:clamp(Math.floor(num(nb.rank)),0,NOBLE_RANKS.length-1),xp:Math.max(0,Math.round(num(nb.xp))),given:Math.max(0,Math.round(num(nb.given))),done:Math.max(0,Math.floor(num(nb.done))),
-   pending:(Array.isArray(nb.pending)?nb.pending:[]).filter(p=>p&&num(p.amount)>0&&(p.kind==='patent'||(p.kind==='contract'&&contractDef(p.id)))).slice(0,8)
+   /* Two postings can overlap while their paid contracts are still clearing (up to twelve). */
+   pending:(Array.isArray(nb.pending)?nb.pending:[]).filter(p=>p&&num(p.amount)>0&&(p.kind==='patent'||(p.kind==='contract'&&contractDef(p.id))))
     .map(p=>({kind:p.kind,...(p.kind==='contract'?{id:p.id,xp:Math.max(0,Math.round(num(p.xp)))}:{}),amount:Math.round(num(p.amount)),left:clamp(Math.floor(num(p.left,NOBLE_CLOSES)),1,NOBLE_CLOSES)})),
    offers:(Array.isArray(nb.offers)?nb.offers:[]).filter(o=>o&&contractDef(o.id)&&num(o.cost)>0).slice(0,6).map(o=>({id:o.id,cost:Math.round(num(o.cost)),xp:Math.max(0,Math.round(num(o.xp))),taken:!!o.taken})),
    offerLeft:clamp(Math.floor(num(nb.offerLeft)),0,OFFER_CLOSES),
