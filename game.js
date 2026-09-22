@@ -529,7 +529,7 @@ const outfitArgOf=id=>id==='royal'?'royal':id==='ice';
 const outfitArg=()=>outfitArgOf(heroOutfit());
 const lookOutfit=look=>look&&look.outfit==='royal'?'royal':!!(look&&look.ice);   /* what a peer or a leaderboard entry sent */
 /* 👁 the weapon eye in the hero panel: hidden in the hand, still counted in the numbers */
-const heroWeaponArgs=()=>S&&S.hideWeapon?{fm:false,id:null}:{fm:isFK(S.gear.weapon),id:isFG(S.gear.weapon)?'felglaives':isFK(S.gear.weapon)?'rimfrost':null};
+const heroWeaponArgs=()=>S&&S.hideWeapon?{fm:false,id:'hidden'}:{fm:isFK(S.gear.weapon),id:isFG(S.gear.weapon)?'felglaives':isFK(S.gear.weapon)?'rimfrost':null};
 const ROYAL_BODY_H=56;   /* the crown rides above the head: the royal frame is this tall for the same body as a 48-unit class frame */
 function paintedCharacterFrame(raceId,clsId,female,iceArm){
  raceId=RACE_ALIAS[raceId]||raceId;clsId=CLASS_ALIAS[clsId]||clsId;
@@ -1504,7 +1504,7 @@ function drawHeroLike(x,y,look,alpha,anim,name,hp){
  if(dancing)ctx.rotate(Math.sin(phase*6)*0.25);
  if(character)bootFeet({...character.boots,moving:moving||dancing,walk:phase*1.8,bob:by});
  else feet({walk:phase*1.8},(moving||dancing)?1:0.15);
- drawChampionSprite(ctx,race,cls,fx,by,swing,!!look.fk||!!look.fm||isFKLegend(look.w),look.w,!!look.fem,(moving||dancing)?2:1,lookOutfit(look),wenchById(look.wench)); /* older peers without a rune field still render normally */
+ drawChampionSprite(ctx,race,cls,fx,by,swing,!!look.fk||!!look.fm||isFKLegend(look.w),look.hw?'hidden':look.w,!!look.fem,(moving||dancing)?2:1,lookOutfit(look),look.hw?null:wenchById(look.wench)); /* older peers without a rune field still render normally */
  if(look.pet){ctx.font='13px sans-serif';ctx.textAlign='center';const pp=petOf(look.pet);if(pp)petGlyphCanvas(ctx,pp,-18,10);else ctx.fillText('🐾',-18,10);}
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
  const headY=character?character.headY:-30,nameY=headY-(hp!==undefined?10:3);
@@ -9540,6 +9540,8 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g.beginPath();g.arc(bcx+2.9,bcy-1.1,1,0,7);g.fill();
  }
  } /* end procedural body (skipped when a painted race sprite exists) */
+ /* null selects the class's standard weapon; hidden means no weapon or weapon effects at all. */
+ if(weaponId==='hidden')return null;
  /* Reviewed grips follow the painted hand, including the body's running rock. */
  const pw=!!frame;
  const hand=pw?characterHandPoint(frame,fx,by):{x:fx*9,y:-6+by};
@@ -14787,7 +14789,7 @@ function paintOutfitPortrait(cv,id){
  g.clearRect(0,0,cv.width,cv.height);g.save();g.translate(cv.width/2,cv.height*.8);g.scale(2.3,2.3);
  g.fillStyle='rgba(0,0,0,.3)';g.beginPath();g.ellipse(0,f?f.groundY:8,14,5,0,0,Math.PI*2);g.fill();
  if(f)bootFeet({...f.boots,moving:false,walk:0,bob:0},g);
- drawChampionSprite(g,S.race,c.id,-1,0,0,false,null,S.gender==='f',1,arg,null,null,performance.now()/1000);
+ drawChampionSprite(g,S.race,c.id,-1,0,0,false,S.hideWeapon?'hidden':null,S.gender==='f',1,arg,null,null,performance.now()/1000);
  g.restore();
  return !!f;   /* false while the painting is still loading - the page repaints itself once more */
 }
@@ -16040,7 +16042,7 @@ function drawPortrait(cnv,ch){
  g.beginPath();g.ellipse(W/2,H*0.3,W*0.5,H*0.32,0,0,7);g.fill();
  const scA=(ch.activeScrolls||[ch.activeScroll]).filter(Boolean)[0];
  const sc=scA?enchOf(scA.id||scA):null;
- const wr=runeOf(ch.gear&&ch.gear.weapon);   /* the weapon enchant, if this character has one */
+ const wr=ch.hideWeapon?null:runeOf(ch.gear&&ch.gear.weapon);   /* hidden weapons carry no visible enchant */
  const character=paintedCharacterFrame(ch.race,c.id,ch.gender==='f',!!(ch.gear&&ch.gear.armor&&ch.gear.armor.legend==='icearmor'));
  if(character){
   /* painted model portrait - smaller scale so the taller sprite + boots fit the frame */
@@ -16048,13 +16050,13 @@ function drawPortrait(cnv,ch){
   g.fillStyle='rgba(0,0,0,0.3)';g.beginPath();g.ellipse(0,character.groundY,13,5,0,0,7);g.fill();
   if(sc){g.strokeStyle=sc.glow;g.globalAlpha=0.55;g.lineWidth=1;g.beginPath();g.ellipse(0,character.groundY-1,15,6,0,0,7);g.stroke();g.globalAlpha=1;}
   bootFeet({...character.boots,moving:false,walk:0},g);
-  drawChampionSprite(g,ch.race,c.id,1,0,0,!!(ch.gear&&ch.gear.weapon&&isFKLegend(ch.gear.weapon.legend)),ch.gear&&ch.gear.weapon&&(ch.gear.weapon.id||ch.gear.weapon.legend),ch.gender==='f',1,!!(ch.gear&&ch.gear.armor&&ch.gear.armor.legend==='icearmor'),wr);
+  drawChampionSprite(g,ch.race,c.id,1,0,0,!!(ch.gear&&ch.gear.weapon&&isFKLegend(ch.gear.weapon.legend)),ch.hideWeapon?'hidden':ch.gear&&ch.gear.weapon&&(ch.gear.weapon.id||ch.gear.weapon.legend),ch.gender==='f',1,!!(ch.gear&&ch.gear.armor&&ch.gear.armor.legend==='icearmor'),wr);
   g.restore();
  }else{
  g.save();g.translate(W/2,H*0.72);g.scale(2.1,2.1);
  g.fillStyle='rgba(0,0,0,0.3)';g.beginPath();g.ellipse(0,7,11,4.5,0,0,7);g.fill();
  if(sc){g.strokeStyle=sc.glow;g.globalAlpha=0.55;g.lineWidth=1;g.beginPath();g.ellipse(0,6,13,5.5,0,0,7);g.stroke();g.globalAlpha=1;}
- drawChampionSprite(g,ch.race,c.id,1,0,0,!!(ch.gear&&ch.gear.weapon&&isFKLegend(ch.gear.weapon.legend)),ch.gear&&ch.gear.weapon&&(ch.gear.weapon.id||ch.gear.weapon.legend),ch.gender==='f',0,false,wr);
+ drawChampionSprite(g,ch.race,c.id,1,0,0,!!(ch.gear&&ch.gear.weapon&&isFKLegend(ch.gear.weapon.legend)),ch.hideWeapon?'hidden':ch.gear&&ch.gear.weapon&&(ch.gear.weapon.id||ch.gear.weapon.legend),ch.gender==='f',0,false,wr);
  g.restore();
  }
  if(ch.prestige){

@@ -552,11 +552,13 @@ const TideUI=(()=>{
   if(trainer)drawGuildTrainer(g,layout.foeHeroX,floor-5,trainer,layout.heroScale,-1,session.time,session.trainerEffects);
   // Use the same equipped cosmetics as the world hero, with battle-local particles.
   g.save();g.translate(layout.heroX,floor-5);g.scale(layout.heroScale,layout.heroScale);
-  const f=paintedCharacterFrame(S.race,S.cls,S.gender==='f',isIce(S.gear.armor)),wRune=runeOf(S.gear.weapon),heroScene=g.getTransform().inverse();
+  const f=paintedCharacterFrame(S.race,S.cls,S.gender==='f',isIce(S.gear.armor)),wRune=S.hideWeapon?null:runeOf(S.gear.weapon),heroScene=g.getTransform().inverse();
   if(f)bootFeet({...f.boots,moving:false,walk:0,bob:0},g);
-  const emission=drawChampionSprite(g,S.race,S.cls,1,0,0,isFK(S.gear.weapon),isFG(S.gear.weapon)?'felglaives':isFK(S.gear.weapon)?'rimfrost':null,S.gender==='f',1,isIce(S.gear.armor),wRune,null,session.time);
+  const weapon=heroWeaponArgs();
+  const emission=drawChampionSprite(g,S.race,S.cls,1,0,0,weapon.fm,weapon.id,S.gender==='f',1,isIce(S.gear.armor),wRune,null,session.time);
   drawEquippedRing(g,S.gear.trinket,f?f.headY:-30,session.time,hero.dead);
   const fx=session.heroEffects||(session.heroEffects={...createRuneEmissionState(),time:session.time});
+  if(S.hideWeapon)fx.parts.length=0;
   const fxDt=gamePaused?0:Math.max(0,Math.min(.05,session.time-fx.time));fx.time=session.time;
   if(fxDt>0)for(let i=fx.parts.length-1;i>=0;i--)if(stepRuneParticle(fx.parts[i],fxDt))fx.parts.splice(i,1);
   runeSpark(wRune,emission?{...emission,points:emission.points.map(p=>runePointTransform(heroScene,p))}:null,fxDt,f?f.groundY:8,fx);

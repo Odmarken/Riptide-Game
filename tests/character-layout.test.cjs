@@ -117,6 +117,19 @@ function harness(overrides = {}) {
   return { context, lookups, draws, translations, stack };
 }
 
+test('hidden weapons draw only the body, with no default fallback or rune, for every race and class', () => {
+  const h = harness();
+  for (const race of races) for (const cls of classes) for (const female of [false, true]) for (const armor of [false, true]) {
+    h.draws.length = 0;
+    const emission = h.context.drawChampionSprite(h.context.ctx, race, cls, 1, 0, 0,
+      true, 'hidden', female, 1, armor, {id:'veinseeker'});
+    assert.equal(h.draws.length, 1, `${race} ${cls} ${female} ${armor}: body only`);
+    assert.ok(h.draws[0].img.src.includes('characters/'));
+    assert.equal(emission, null);
+    assert.equal(h.stack.length, 0);
+  }
+});
+
 test('all 44 reviewed body bounds match the shipped PNG alpha above 128 exactly', () => {
   const { context } = harness();
   assert.equal(heroes.length, 40);

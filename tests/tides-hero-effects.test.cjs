@@ -18,7 +18,7 @@ function harness(){
   paintedCharacterFrame:(...args)=>{calls.push({type:'frame',args});return frame;},bootFeet:()=>calls.push({type:'boots'}),
   drawRuneParticle:(_g,p)=>calls.push({type:'particle',p:{...p},matrix:transform}),
  };
- vm.createContext(c);vm.runInContext(read('assets/weapons/rune-effects.js')+'\n'+section(game,'function drawEquippedRing(','function drawHero(){'),c);
+ vm.createContext(c);vm.runInContext(read('assets/weapons/rune-effects.js')+'\n'+section(game,'function drawEquippedRing(','function drawHero(){')+'\n'+game.match(/^const heroWeaponArgs=.*$/m)[0],c);
  c.drawChampionSprite=(...args)=>{
   calls.push({type:'champion',args});
   return args[11]?c.runeEmitter(g,{key:'real-weapon',profile:{emit:[[.2,.8]]}},-10,-30,50,40):null;
@@ -59,4 +59,14 @@ test('battle droplets stay attached through DPR and resize, emit only once per t
  const particle=calls.findLast(x=>x.type==='particle');assert.equal(particle.matrix.a,4);assert.equal(particle.matrix.e,420);
  assert.equal(JSON.stringify(fx.parts),positions,'resizing transforms the same local particles');
  assert.equal(c.parts.length,0);assert.equal(h.stack.length,0);
+});
+
+test('hiding battle weapons removes the weapon and lingering rune particles but keeps the Ring',()=>{
+ const {c,calls}=harness();for(let i=0;i<25;i++){c.session.time+=1/60;c.paintHero();}
+ assert.ok(c.session.heroEffects.parts.length>0);
+ calls.length=0;c.S.hideWeapon=true;c.paintHero();
+ const champion=calls.find(x=>x.type==='champion');
+ assert.equal(champion.args[7],'hidden');assert.equal(champion.args[11],null);
+ assert.equal(c.session.heroEffects.parts.length,0);assert.ok(calls.some(x=>x.type==='ring'));
+ c.S.hideWeapon=false;c.paintHero();assert.equal(calls.findLast(x=>x.type==='champion').args[7],null);
 });

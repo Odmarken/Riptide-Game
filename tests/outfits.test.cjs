@@ -47,5 +47,5 @@ test('👁 the weapon eye: sheathed, the hand is empty and the rune is out - the
  const rim=harness(hero({gear:{weapon:{legend:'rimfrost'}}}));assert.deepEqual({...rim.heroWeaponArgs()},{fm:true,id:'rimfrost'});
  const fel=harness(hero({gear:{weapon:{legend:'felglaives'}}}));assert.deepEqual({...fel.heroWeaponArgs()},{fm:false,id:'felglaives'});
  const plain=harness(hero({gear:{weapon:{id:'sword'}}}));assert.deepEqual({...plain.heroWeaponArgs()},{fm:false,id:null});
- const hid=harness(hero({gear:{weapon:{legend:'rimfrost'}},hideWeapon:true}));assert.deepEqual({...hid.heroWeaponArgs()},{fm:false,id:null});
+ const hid=harness(hero({gear:{weapon:{legend:'rimfrost'}},hideWeapon:true}));assert.deepEqual({...hid.heroWeaponArgs()},{fm:false,id:'hidden'});
 });
