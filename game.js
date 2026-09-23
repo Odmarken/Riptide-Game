@@ -14178,7 +14178,8 @@ function ledgerAllies(c){
  const E=CityEconomy,v=E.alliesView(c),frozen=E.frozen(c),noCrown=!v.crowned; /* 👑 a steward may look; only a King or Queen sends an envoy */
  const card=a=>{
   const pct=Math.round(a.stake),lots=[250000,1000000,5000000].filter(n=>n<=Math.max(250000,a.toFull));
-  return '<div class="ledger-work '+(a.owned?'done':a.locked?'locked':'')+'"><h4>'+a.icon+' '+a.name+'<small>'+(a.owned?'UNDER THE CROWN':a.tier.toUpperCase())+'</small></h4><p>'+a.text+' <i>Held by '+a.lord+'.</i></p>'
+  return '<div class="ledger-work '+(a.owned?'done':a.locked?'locked':'')+'"><div class="ally-intro"><div class="ally-description"><h4>'+a.icon+' '+a.name+'<small>'+(a.owned?'UNDER THE CROWN':a.tier.toUpperCase())+'</small></h4><p>'+a.text+' <i>Held by '+a.lord+'.</i></p></div>'
+   +'<img class="ally-portrait" src="assets/city/'+a.ruler.portrait+'.png?v='+CITY_ART_V+'" alt="'+esc(a.ruler.name)+'" width="108" height="144" draggable="false"></div>'
    +'<div class="ledger-seatbar" role="img" aria-label="the crown holds '+pct+'% of '+a.name+'"><i style="width:'+pct+'%"></i></div>'
    +'<p class="ledger-fx"><span>the crown’s stake '+pct+'%</span><span>'+(a.owned?'pays':'pays now')+' '+fmtGold(a.income)+' ◉ a close</span><span>'+(a.owned?a.perkText:'as ours: '+fmtGold(a.yield)+' ◉ a close · '+a.perkText)+'</span></p>'
    +(a.pending.length?'<p class="ledger-work-foot">🐎 '+a.pending.map((p,i)=>'an envoy with '+fmtGold(p.amount)+' ◉ arrives in <span data-await="'+a.id+':'+i+'">'+fmtWait(p.seconds)+'</span>').join(' · ')+'</p>':'')
@@ -14772,40 +14773,56 @@ function outfitEntry(){
 function paintOutfitPortrait(cv,id){
  const g=cv.getContext('2d'),c=classOf();if(!g||!c||!S)return false;
  const arg=outfitArgOf(id),f=paintedCharacterFrame(S.race,c.id,S.gender==='f',arg);
- g.clearRect(0,0,cv.width,cv.height);g.save();g.translate(cv.width/2,cv.height*.8);g.scale(2.3,2.3);
- g.fillStyle='rgba(0,0,0,.3)';g.beginPath();g.ellipse(0,f?f.groundY:8,14,5,0,0,Math.PI*2);g.fill();
- if(f)bootFeet({...f.boots,moving:false,walk:0,bob:0},g);
+ g.clearRect(0,0,cv.width,cv.height);
+ if(!f)return false;   /* wait for this outfit's art instead of showing the unrobed fallback body */
+ g.save();g.translate(cv.width/2,cv.height*.8);g.scale(2.3,2.3);
+ g.fillStyle='rgba(0,0,0,.3)';g.beginPath();g.ellipse(0,f.groundY,14,5,0,0,Math.PI*2);g.fill();
+ bootFeet({...f.boots,moving:false,walk:0,bob:0},g);
  drawChampionSprite(g,S.race,c.id,-1,0,0,false,S.hideWeapon?'hidden':null,S.gender==='f',1,arg,null,null,performance.now()/1000);
  g.restore();
- return !!f;   /* false while the painting is still loading - the page repaints itself once more */
+ return true;
 }
+let outfitPortraitTimer=null;
 function renderOutfits(){
+ clearTimeout(outfitPortraitTimer);
  if(!S)return;
  const cur=heroOutfit(),list=OUTFITS.filter(o=>outfitUnlocked(o.id));
  $('outfitIntro').textContent=(list.length===1?'One outfit':list.length+' outfits')+'. Cosmetic only: the numbers come from what you wear, the look from what you choose here.';
  $('outfitBody').innerHTML='<div class="outfit-grid">'+list.map(o=>'<div class="card outfit-card'+(o.id===cur?' worn':'')+'"><canvas width="150" height="190" data-outfit-portrait="'+o.id+'" aria-label="'+esc(o.name())+'"></canvas><h3>'+o.icon+' '+esc(o.name())+'</h3><p class="cl">'+esc(o.desc)+'</p>'
   +'<button class="sbtn'+(o.id===cur?'':' gold')+'" data-outfit-wear="'+o.id+'"'+(o.id===cur?' disabled':'')+'>'+(o.id===cur?'Worn':'Wear it')+'</button></div>').join('')+'</div>'
   ;   /* a locked outfit is not listed, not even as a hint (asked for 2026-09-22): you learn of it when it is yours */
- let loading=false;
- $('outfitBody').querySelectorAll('[data-outfit-portrait]').forEach(cv=>{if(!paintOutfitPortrait(cv,cv.dataset.outfitPortrait))loading=true;});
- if(loading)setTimeout(()=>{if($('p-outfits').classList.contains('open'))renderOutfits();},500);
+ const owner=S;
+ let pending=Array.from($('outfitBody').querySelectorAll('[data-outfit-portrait]'));
+ const paintPending=()=>{
+  if(S!==owner||!$('p-outfits').classList.contains('open'))return;
+  pending=pending.filter(cv=>!paintOutfitPortrait(cv,cv.dataset.outfitPortrait));
+  if(pending.length)outfitPortraitTimer=setTimeout(paintPending,100);
+ };
+ paintPending();   /* paint loaded PNGs once; waiting for another outfit never rebuilds the cards */
  $('outfitBody').querySelectorAll('[data-outfit-wear]').forEach(b=>b.onclick=()=>{
   const id=b.dataset.outfitWear;if(!outfitUnlocked(id))return;
   S.outfit=id;save();renderOutfits();renderHero();sfx.loot&&sfx.loot();
   const o=OUTFITS.find(x=>x.id===id);stageMsg(o.icon+' '+o.name()+' - worn.',1800);
  });
- $('outfitBack').onclick=()=>openTab('hero');
+ $('outfitBack').onclick=()=>{clearTimeout(outfitPortraitTimer);openTab('hero');};
 }
 /* 👑 the offer that follows the coronation: the robes on screen, a portrait of you in them, and one button */
+let outfitOfferPaintTimer=null;
 function openOutfitOffer(id){
  if(!S||!outfitUnlocked(id))return;
  const o=OUTFITS.find(x=>x.id===id);if(!o)return;
  $('outfitOfferTitle').textContent=o.icon+' '+o.name().toUpperCase();
  $('outfitOfferText').textContent=id==='royal'?'The tailors of the palace have your measure. Crimson, ermine and the crown - the City wants to see it worn.':o.desc;
- const cv=$('outfitOfferPortrait');const paint=()=>{if(!paintOutfitPortrait(cv,id)&&$('outfitFx').style.display==='flex')setTimeout(paint,400);};paint();
- $('outfitOfferWear').onclick=()=>{S.outfit=id;save();renderHero();$('outfitFx').style.display='none';stageMsg(o.icon+' '+o.name()+' - worn.',2400,'#ffd76a');sfx.loot&&sfx.loot();};
- $('outfitOfferLater').onclick=()=>{$('outfitFx').style.display='none';stageMsg('Outfits are in the hero panel whenever you want them.',2400);};
+ clearTimeout(outfitOfferPaintTimer);
+ const cv=$('outfitOfferPortrait'),owner=S;
+ const paint=()=>{
+  if(S!==owner||$('outfitFx').style.display!=='flex')return;
+  if(!paintOutfitPortrait(cv,id))outfitOfferPaintTimer=setTimeout(paint,400);
+ };
+ $('outfitOfferWear').onclick=()=>{clearTimeout(outfitOfferPaintTimer);S.outfit=id;save();renderHero();$('outfitFx').style.display='none';stageMsg(o.icon+' '+o.name()+' - worn.',2400,'#ffd76a');sfx.loot&&sfx.loot();};
+ $('outfitOfferLater').onclick=()=>{clearTimeout(outfitOfferPaintTimer);$('outfitFx').style.display='none';stageMsg('Outfits are in the hero panel whenever you want them.',2400);};
  $('outfitFx').style.display='flex';
+ paint();
 }
 /* 👁 the hero panel's way in: the Overview alone, from wherever the hero stands. Appears the moment you are Master of Coin (office 3) - nobody else sees it. */
 function ledgerEntry(){

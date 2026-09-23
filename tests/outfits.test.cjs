@@ -49,3 +49,80 @@ test('👁 the weapon eye: sheathed, the hand is empty and the rune is out - the
  const plain=harness(hero({gear:{weapon:{id:'sword'}}}));assert.deepEqual({...plain.heroWeaponArgs()},{fm:false,id:null});
  const hid=harness(hero({gear:{weapon:{legend:'rimfrost'}},hideWeapon:true}));assert.deepEqual({...hid.heroWeaponArgs()},{fm:false,id:'hidden'});
 });
+
+function offerHarness(extra={}){
+ const c=harness(hero({city:{crowned:true},...extra})),elements={},timers=new Map(),draws=[];
+ let serial=0,ready=false;
+ const g=new Proxy({}, {get:(target,key)=>target[key]||(()=>{})});
+ c.$=id=>elements[id]||(elements[id]={style:{display:'none'},width:180,height:220,getContext:()=>g});
+ c.classOf=()=>({id:c.S.cls,name:c.S.cls});
+ const body=c.characterBodyFrame;
+ c.characterBodyFrame=(...args)=>ready?body(...args):null;
+ c.bootFeet=()=>{};c.drawChampionSprite=(...args)=>draws.push(args);
+ c.performance={now:()=>0};c.save=()=>{};c.renderHero=()=>{};c.stageMsg=()=>{};c.sfx={};
+ c.setTimeout=fn=>{timers.set(++serial,fn);return serial;};c.clearTimeout=id=>timers.delete(id);
+ vm.runInContext(source.slice(source.indexOf('function paintOutfitPortrait('),source.indexOf('let outfitPortraitTimer=')),c);
+ vm.runInContext(source.slice(source.indexOf('let outfitOfferPaintTimer='),source.indexOf('function ledgerEntry(){')),c);
+ return {c,draws,timers,load(){ready=true;},tick(){const pending=[...timers.values()];timers.clear();pending.forEach(fn=>fn());}};
+}
+
+test('royal offer waits for cold art and then draws the selected race, gender and class in robes',()=>{
+ for(const race of ['human','dwarf','orc','undead'])for(const gender of ['m','f'])for(const cls of ['warrior','mage','hunter','priest']){
+  const h=offerHarness({race,gender,cls}),key=race+(gender==='f'?'female':'male')+'_royal';
+  assert.ok(fs.existsSync(path.join(__dirname,'../assets/characters',key+'.png')));
+  h.c.openOutfitOffer('royal');
+  assert.equal(h.c.$('outfitFx').style.display,'flex');
+  assert.equal(h.draws.length,0,'no unrobed fallback while loading');
+  assert.equal(h.timers.size,1,'a cold first open must schedule a repaint');
+  h.tick();assert.equal(h.timers.size,1,'keep waiting if the art is still loading');
+  h.load();h.tick();
+  assert.equal(h.timers.size,0);
+  assert.ok(h.c.keys.every(k=>k===key));
+  assert.equal(h.draws.length,1);
+  const draw=h.draws[0];
+  assert.equal(draw[1],race);assert.equal(draw[2],cls);assert.equal(draw[8],gender==='f');assert.equal(draw[10],'royal');
+  assert.match(h.c.$('outfitOfferTitle').textContent,gender==='f'?/QUEEN/:/KING/);
+ }
+});
+
+test('closing or reopening the offer cancels pending paints and switching heroes stops them',()=>{
+ const h=offerHarness();h.c.openOutfitOffer('royal');h.c.openOutfitOffer('royal');
+ assert.equal(h.timers.size,1);
+ h.c.$('outfitOfferLater').onclick();assert.equal(h.timers.size,0);assert.equal(h.c.S.outfit,undefined);
+ h.c.openOutfitOffer('royal');h.c.$('outfitOfferWear').onclick();
+ assert.equal(h.timers.size,0);assert.equal(h.c.S.outfit,'royal');
+ h.c.openOutfitOffer('royal');h.c.S=hero({race:'orc',city:{crowned:true}});h.load();h.tick();
+ assert.equal(h.draws.length,0);assert.equal(h.timers.size,0);
+ h.c.openOutfitOffer('royal');assert.equal(h.draws.length,1,'warm art draws immediately');
+});
+
+test('Outfits waits for PNGs without fallback figures or rebuilding the cards, including on reopen',()=>{
+ const h=offerHarness({ritualDone:true}),c=h.c,body=c.$('outfitBody');
+ const portraits=['default','ice','royal'].map(id=>({width:150,height:190,dataset:{outfitPortrait:id},getContext:c.$('outfitOfferPortrait').getContext}));
+ let builds=0,open=true;
+ Object.defineProperty(body,'innerHTML',{set(){builds++;}});
+ body.querySelectorAll=selector=>selector==='[data-outfit-portrait]'?portraits:[];
+ c.$('p-outfits').classList={contains:()=>open};c.esc=s=>s;c.openTab=()=>{open=false;};
+ vm.runInContext(source.slice(source.indexOf('let outfitPortraitTimer='),source.indexOf('let outfitOfferPaintTimer=')),c);
+ c.renderOutfits();
+ assert.equal(builds,1);assert.equal(h.draws.length,0);assert.equal(h.timers.size,1);
+ h.tick();assert.equal(builds,1);assert.equal(h.draws.length,0);
+ h.load();h.tick();
+ assert.equal(builds,1,'loading does not replace the cards');
+ assert.deepEqual(h.draws.map(draw=>draw[10]),[false,true,'royal']);
+ assert.equal(h.timers.size,0);
+ c.$('outfitBack').onclick();open=true;c.renderOutfits();
+ assert.equal(builds,2);assert.equal(h.draws.length,6,'cached PNGs paint immediately on reopen');
+ assert.equal(h.timers.size,0);
+});
+
+test('Outfits cancels superseded loads and never paints a different hero into old cards',()=>{
+ const h=offerHarness(),c=h.c;
+ c.$('outfitBody').querySelectorAll=selector=>selector==='[data-outfit-portrait]'?[{...c.$('outfitOfferPortrait'),dataset:{outfitPortrait:'default'}}]:[];
+ c.$('p-outfits').classList={contains:()=>true};c.esc=s=>s;c.openTab=()=>{};
+ vm.runInContext(source.slice(source.indexOf('let outfitPortraitTimer='),source.indexOf('let outfitOfferPaintTimer=')),c);
+ c.renderOutfits();c.renderOutfits();assert.equal(h.timers.size,1);
+ c.$('outfitBack').onclick();assert.equal(h.timers.size,0);
+ c.renderOutfits();c.S=hero({race:'orc'});h.load();h.tick();
+ assert.equal(h.draws.length,0);assert.equal(h.timers.size,0);
+});
