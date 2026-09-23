@@ -931,6 +931,50 @@
     461,
     640
    ]
+  },
+  "street_dung.png": {
+   "size": [
+    767,
+    443
+   ],
+   "source": [
+    1024,
+    688
+   ],
+   "file": "assets/city/street_dung.png",
+   "crop": [
+    129,
+    119,
+    896,
+    562
+   ],
+   "jobId": "b4678a40-7ef2-4bdf-a5a5-c4fd27be925c",
+   "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260923_091249_b4678a40-7ef2-4bdf-a5a5-c4fd27be925c.png",
+   "prompt": "Production sprite for Riptide RPG, a hand-painted medieval fantasy game. Chunky readable shapes, crisp dark brown ink contours, detailed painted iron/wood/stone textures, warm ochre highlights and muted earth tones. Slightly elevated frontal camera, shallow depth, not isometric, not photorealistic. Exactly ONE complete isolated object with genuine transparent RGBA background, tight composition with 6% clear padding. No scenery, floor, ground patch, cast shadow, text, watermark or checkerboard. Subject: one small low irregular heap of horse manure left on a medieval cobbled street, composed of five or six lumpy dark earthy brown clumps, a few embedded pale straw strands and one small dry leaf. Understated painterly environmental game prop, recognizable dung but NOT a cartoon spiral poop emoji, no face. Ground-facing three-quarter top view, very low flattened mound. Transparent immediately outside the heap and straw. No paving or dirt patch beneath. Must read naturally at 35 pixels wide.",
+   "date": "2026-09-23",
+   "processing": "Native transparent Higgsfield PNG, cropped to alpha >= 6 bounds; no repainting or rescaling."
+  },
+  "wall_torch.png": {
+   "size": [
+    245,
+    995
+   ],
+   "source": [
+    688,
+    1024
+   ],
+   "file": "assets/city/wall_torch.png",
+   "crop": [
+    221,
+    10,
+    466,
+    1005
+   ],
+   "jobId": "dc57d0d3-cb6f-45bc-b06d-380ea9dd6b4d",
+   "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260923_091249_dc57d0d3-cb6f-45bc-b06d-380ea9dd6b4d.png",
+   "prompt": "Production sprite for Riptide RPG, a hand-painted medieval fantasy game. Chunky readable shapes, crisp dark brown ink contours, detailed painted iron/wood/stone textures, warm ochre highlights and muted earth tones. Slightly elevated frontal camera, shallow depth, not isometric, not photorealistic. Exactly ONE complete isolated object with genuine transparent RGBA background, tight composition with 6% clear padding. No scenery, floor, ground patch, cast shadow, text, watermark or checkerboard. Subject: a sturdy medieval wall-mounted torch in a decorative forged black iron sconce. Warm weathered wooden handle wrapped in dark leather, curved iron bracket, riveted small diamond-shaped backplate behind the handle. At the TOP an iron basket holds a compact orange-gold flame with pale warm heart. The flame occupies the upper 35 percent, its base at 38 percent from image top. Rich tactile materials, clearly recognizable at 70 pixels tall. Whole fixture upright and straight, viewed frontally. No wall behind it, no glow outside the silhouette.",
+   "date": "2026-09-23",
+   "processing": "Native transparent Higgsfield PNG, cropped to alpha >= 6 bounds; no repainting or rescaling."
   }
  }
 }

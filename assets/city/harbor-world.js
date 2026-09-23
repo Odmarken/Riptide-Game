@@ -182,16 +182,21 @@
   }
   g.restore();return true;
  }
- /* foam lapping a run of edge: a bright broken line that hugs it and a faint one that breathes in and out */
+ /* Short uneven wavelets fade independently along the shore, rather than a dashed outline. */
  function foam(g,pts,time,seed,out=1){
   g.save();g.lineCap='round';g.lineJoin='round';
-  for(const [gap,width,alpha,dash] of [[5,4.5,.62,[30,16,12,22]],[15+Math.sin(time*1.3+seed)*7,3,.30,[16,26,34,20]]]){
-   g.setLineDash(dash);g.lineDashOffset=-(time*15+seed*40)*(gap>10?-.6:1);g.lineWidth=width;g.strokeStyle='rgba(236,250,255,'+alpha+')';
-   g.beginPath();
-   pts.forEach(([x,y,nx,ny],i)=>{const px=x+nx*gap*out,py=y+ny*gap*out;if(i)g.lineTo(px,py);else g.moveTo(px,py);});
-   g.stroke();
+  for(let j=1;j<pts.length;j++){
+   const [ax,ay]=pts[j-1],[bx,by]=pts[j],dx=bx-ax,dy=by-ay,len=Math.hypot(dx,dy);if(!len)continue;
+   const nx=pts[j-1][2]+pts[j][2],ny=pts[j-1][3]+pts[j][3],nl=Math.hypot(nx,ny)||1;
+   for(let d=18;d<len-12;d+=43){
+    const phase=time*1.25+seed+j*2.3+d*.079,p=(Math.sin(phase)+1)/2;
+    const gap=(5+p*12)*out,x=ax+dx*d/len+nx/nl*gap,y=ay+dy*d/len+ny/nl*gap;
+    const span=8+8*Math.sin(d*.13+seed)**2;
+    g.strokeStyle='rgba(210,239,237,'+(.05+.19*(1-p))+')';g.lineWidth=1.2+p*.7;
+    g.beginPath();g.moveTo(x,y);g.quadraticCurveTo(x+dx/len*span*.5+nx/nl*2,y+dy/len*span*.5+ny/nl*2,x+dx/len*span,y+dy/len*span);g.stroke();
+   }
   }
-  g.setLineDash([]);g.restore();
+  g.restore();
  }
  const rectFoam=rc=>[[rc.x,rc.y,-1,0],[rc.x,rc.y+rc.h,-1,1],[rc.x+rc.w,rc.y+rc.h,1,1],[rc.x+rc.w,rc.y,1,0]];   /* down the west side, along the end, up the east */
 
@@ -237,8 +242,11 @@
   g.strokeStyle=old?'#22170d':'#2e2013';g.lineWidth=7;g.strokeRect(rc.x+3.5,rc.y+3.5,rc.w-7,rc.h-7);
   g.strokeStyle='rgba(255,236,190,.10)';g.lineWidth=2;g.strokeRect(rc.x+9,rc.y+9,rc.w-18,rc.h-18);
  }
- function kerb(g,x,y,w,h,along){   /* a course of pale dressed stones, jointed */
+ function kerb(g,x,y,w,h,along){   /* dressed stone with the quay's painted grain */
   g.fillStyle='#b7ac93';g.fillRect(x,y,w,h);g.fillStyle='rgba(255,255,255,.16)';g.fillRect(x,y,w,Math.min(h,4));
+  const im=remembered.quay_paving;
+  if(ready(im)){g.save();g.beginPath();g.rect(x,y,w,h);g.clip();g.globalAlpha=.42;
+   for(let yy=y;yy<y+h;yy+=180)for(let xx=x;xx<x+w;xx+=180)g.drawImage(im,xx,yy,180,180);g.restore();}
   g.strokeStyle='rgba(40,32,22,.55)';g.lineWidth=2;g.strokeRect(x,y,w,h);
   g.beginPath();if(along)for(let k=x+58;k<x+w-10;k+=58){g.moveTo(k,y);g.lineTo(k,y+h);}else for(let k=y+58;k<y+h-10;k+=58){g.moveTo(x,k);g.lineTo(x+w,k);}g.stroke();
  }
@@ -319,7 +327,7 @@
   crates:{key:'cargo_crates',h:150,drop:16,r:58},barrels:{key:'cargo_barrels',h:150,drop:12,r:50},loot:{key:'cargo_loot',h:96,drop:10,r:36},
   fishrack:{key:'fish_rack',h:150,drop:12,r:52},anchor:{key:'anchor',h:150,drop:12,r:40},pots:{key:'lobster_pots',h:96,drop:10,r:34},
   upturned:{key:'boat_upturned',h:112,drop:12,r:56},cannon:{key:'cannon',h:74,drop:10,r:34},bollard:{key:'bollard',h:46,drop:8,r:13},
-  post:{key:'pier_post',h:118,drop:46},lamp:{key:'lamp',h:150,drop:8,r:9,glow:[[.5,.16,170]]},
+  post:{key:'pier_post',h:88,drop:34},lamp:{key:'lamp',h:150,drop:8,r:9,glow:[[.5,.16,170]]},
   stall_fish:{key:'stall_fish',h:170,drop:14,r:54},stall_cloth:{key:'stall_cloth',h:170,drop:14,r:54},
   galleon:{key:'ship_galleon',w:960,drop:26,float:{amp:5,rot:.008,speed:.62}},
   carrack:{key:'ship_carrack',w:1000,drop:26,float:{amp:4.5,rot:.007,speed:.55}},

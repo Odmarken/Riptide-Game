@@ -117,6 +117,20 @@ function fakeContext(count){
 }
 const image={complete:true,naturalWidth:512,naturalHeight:512};
 
+test('a late-loading drain replaces the cached jail floor once; painted torches render every frame',()=>{
+ const count={calls:0,draws:0,patterns:0},layers=[],artDraws=[];
+ const drain={complete:false,naturalWidth:0,naturalHeight:0},torch={complete:true,naturalWidth:245,naturalHeight:995};
+ const context=()=>{const g=fakeContext(count);g.drawImage=(im,...args)=>{for(const n of args)assert.ok(Number.isFinite(n));artDraws.push(im);};return g;};
+ const createCanvas=(width,height)=>{const c={width,height,getContext:context};layers.push(c);return c;};
+ const world=World.create(),g=context(),view={x:0,y:0,w:World.W,h:World.H};
+ const options={images:{drain_cover:drain,wall_torch:torch},time:0,createCanvas};
+ World.renderGround(g,world,view,options);const before=layers.length;
+ assert.ok(artDraws.includes(torch));assert.ok(!artDraws.includes(drain));
+ Object.assign(drain,{complete:true,naturalWidth:866,naturalHeight:494});
+ World.renderGround(g,world,view,{...options,time:1});assert.equal(layers.length,before+2);assert.ok(artDraws.includes(drain));
+ World.renderGround(g,world,view,{...options,time:2});assert.equal(layers.length,before+2);
+});
+
 test('the ground paints once into a static layer, then blits the visible slice and lights it per frame',()=>{
  const count={calls:0,draws:0,patterns:0},layers=[];
  const createCanvas=(w,h)=>{const c={width:w,height:h,getContext:()=>fakeContext(count)};layers.push(c);return c;};

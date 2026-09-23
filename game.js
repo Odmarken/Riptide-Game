@@ -536,6 +536,7 @@ const outfitArg=()=>outfitArgOf(heroOutfit());
 const lookOutfit=look=>look&&look.outfit==='royal'?'royal':!!(look&&look.ice);   /* what a peer or a leaderboard entry sent */
 /* 👁 the weapon eye in the hero panel: hidden in the hand, still counted in the numbers */
 const heroWeaponArgs=()=>S&&S.hideWeapon?{fm:false,id:'hidden'}:{fm:isFK(S.gear.weapon),id:isFG(S.gear.weapon)?'felglaives':isFK(S.gear.weapon)?'rimfrost':null};
+const heroRing=()=>S&&!S.hideRing&&isRing(S.gear&&S.gear.trinket)?S.gear.trinket:null;
 const ROYAL_BODY_H=56;   /* the crown rides above the head: the royal frame is this tall for the same body as a 48-unit class frame */
 function paintedCharacterFrame(raceId,clsId,female,iceArm){
  raceId=RACE_ALIAS[raceId]||raceId;clsId=CLASS_ALIAS[clsId]||clsId;
@@ -4909,7 +4910,7 @@ function drawCityGround(){
  const view={x:vx0,y:vy0,w:vx1-vx0,h:vy1-vy0,zoom};
  CityGround.render(ctx,world.groundPlan,view,cityGroundImages(),now);
  CityGround.drawBirds(ctx,world.flocks,view,cityGroundImages(),now,false);
- if(world.look&&world.look.dirt>0&&zoom>0.4)CityWorks.drawLitter(ctx,world,{x:vx0,y:vy0,w:vx1-vx0,h:vy1-vy0},world.look.dirt,performance.now()/1000); /* 🧹 what the sweepers were not paid to take away */
+ if(world.look&&world.look.dirt>0&&zoom>0.4)CityWorks.drawLitter(ctx,world,{x:vx0,y:vy0,w:vx1-vx0,h:vy1-vy0},world.look.dirt,performance.now()/1000,{street_dung:cityImg('street_dung')}); /* 🧹 what the sweepers were not paid to take away */
  drawCityWalls();
  ctx.strokeStyle='rgba(0,0,0,0.35)';ctx.lineWidth=26;ctx.strokeRect(0,0,world.w,world.h);
 }
@@ -5130,7 +5131,7 @@ function buildZone(){
   HarborWorld.IMAGES.forEach(n=>cityImg('harbor/'+n));HarborWorld.CITY_IMAGES.forEach(cityImg);
  }else if(z.throne){
   world=ThroneWorld.create();   /* 👑 the hall is a module-built interior like the guild */
-  guildImages();['throne','council_table','hall_pillar','hall_brazier'].forEach(cityImg);
+  guildImages();['throne','council_table','hall_pillar','hall_brazier','wall_torch','ground/drain_cover'].forEach(cityImg);
   cityCouncilMarks();hallApply();
  }else if(z.tideguild){
   world=TideGuildWorld.create({catalog:Tides.allSpecies(),maxLevel:Tides.MAX_LEVEL,rng:Math.random});
@@ -8293,7 +8294,7 @@ function draw(){
  ctx.drawImage(groundCv,0,0);
  const z=zoneOf();
  if(z.harbor)HarborWorld.renderGround(ctx,world,{x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom},{images:harborImages(),time:now});
- else if(z.throne)ThroneWorld.renderGround(ctx,world,{x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom},{images:guildImages(),time:now});
+ else if(z.throne)ThroneWorld.renderGround(ctx,world,{x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom},{images:{...guildImages(),wall_torch:cityImg('wall_torch'),drain_cover:cityImg('ground/drain_cover')},time:now});
  else if(z.tideguild)TideGuildWorld.renderGround(ctx,world,{x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom},{images:guildImages(),time:now});
  else if(expeditionZone(z)){
   const view={x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom};
@@ -9141,7 +9142,7 @@ function drawProp(s,z,withShadow=true){
      ctx.drawImage(im,0,srcH*t0,srcW,srcH*(t1-t0),
                    -W/2+Math.sin(ph)*amp*k*k,top+H*t0,W,H*(t1-t0)+0.5);
     }
-   }else ctx.drawImage(crisp(im,W),-W/2,gy-H,W,H); /* crisp(): device-pixel exact - no mip shimmer on fences */
+   }else if(!FarmDecorationAnimation.draw(ctx,def.id,im,W,H,gy-H,performance.now()/1000,s.x+s.y*.7))ctx.drawImage(crisp(im,W),-W/2,gy-H,W,H); /* crisp(): device-pixel exact - no mip shimmer on fences */
    if(CityWorks.CHIMNEYS[def.img])CityWorks.drawSmoke(ctx,def.img,W,H,gy-H,performance.now()/1000,Math.round(s.x)%97);   /* 💨 a farmhouse with a chimney has a fire under it (inside the mirror, so the smoke follows a flipped house) */
    ctx.restore();
    if(def.glow){
@@ -9799,10 +9800,11 @@ function drawHero(){
  ctx.textAlign='center';
  /* name only (no rating), lifted clear of the sprite; hp lives in the header bar instead */
  let nmY=character?character.headY-3:-33;
- if(isRing(S.gear.trinket))nmY-=9; /* make room for the hovering ring under the name */
+ const ring=heroRing();
+ if(ring)nmY-=9; /* only make room for a visible ring under the name */
  ctx.save();
  if(rideLayout)MountRenderer.riderTransform(ctx,rideLayout);
- drawEquippedRing(ctx,S.gear.trinket,character?character.headY:-30,now,h.dead);
+ drawEquippedRing(ctx,ring,character?character.headY:-30,now,h.dead);
  ctx.restore();
  const namePoint=rideLayout?MountRenderer.riderPoint(rideLayout,0,nmY):{x:0,y:nmY+by};
  if(!S.hideName){ /* 👁 toggle in the hero panel. The ring above still hovers - it is gear, not a label */
@@ -10549,7 +10551,7 @@ function renderHero(){
   <div class="stat"><b>${fmtGS(gearScore())}</b><span>Gear score</span></div>
   <div class="stat"><b>${S.prestige||0}</b><span>Prestige</span></div>`;
  let slotsHtml=SLOTS.map(sl=>{
-  const g=S.gear[sl];
+  const g=S.gear[sl],ringEye=sl==='trinket'&&isRing(g);
   /* ✨ a bound rune rides the top-right corner of its slot, glowing in its own colour. title= gives
      the hover text for nothing, and tapping it says the same thing out loud for touch. */
   let mark='';
@@ -10560,10 +10562,10 @@ function renderHero(){
   }
   return `<div class="slot">${mark}<div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div>`+
    (g?`<div class="sn r-${g.rar}">${itemName(g)}</div><div class="ss">${itemStr(g)}</div>
-    ${(sl==='weapon'?'<div class="petbtns">':'')+((g.up||0)>=capUp(g)
+    ${(sl==='weapon'||ringEye?'<div class="petbtns">':'')+((g.up||0)>=capUp(g)
      ?`<button class="upbtn" disabled>MAX +${capUp(g)} ✦</button>`
      :`<button class="upbtn ${S.scraps>=upCost(g)?'can':''}" data-up="${sl}">Upgrade · ${upCost(g)} ⚙</button>`)
-     +(sl==='weapon'?`<button class="upbtn peteye" data-weaponeye="1" aria-pressed="${!S.hideWeapon}" aria-label="${S.hideWeapon?'Show':'Hide'} your weapon" title="${S.hideWeapon?'Show':'Hide'} the weapon in your hand. It hits just as hard either way.">${TideUI.eyeIcon}</button></div>`:'')}`
+     +(sl==='weapon'?`<button class="upbtn peteye" data-weaponeye="1" aria-pressed="${!S.hideWeapon}" aria-label="${S.hideWeapon?'Show':'Hide'} your weapon" title="${S.hideWeapon?'Show':'Hide'} the weapon in your hand. It hits just as hard either way.">${TideUI.eyeIcon}</button></div>`:ringEye?`<button class="upbtn peteye" data-ringeye="1" aria-pressed="${!S.hideRing}" aria-label="${S.hideRing?'Show':'Hide'} The Ring" title="${S.hideRing?'Show':'Hide'} The Ring above your hero. Its bonuses stay either way.">${TideUI.eyeIcon}</button></div>`:'')}`
      :`<div class="ss">- empty -</div>`)+`</div>`;
  }).join('');
  const petP=activePet();
@@ -10587,6 +10589,10 @@ function renderHero(){
  document.querySelectorAll('[data-weaponeye]').forEach(b=>b.onclick=()=>{ /* 👁 for the roleplayers: the blade stays sheathed, the numbers do not know */
   S.hideWeapon=!S.hideWeapon;save();renderHero();
   stageMsg(S.hideWeapon?'👁 Weapon sheathed':'👁 Weapon drawn',1400);
+ });
+ document.querySelectorAll('[data-ringeye]').forEach(b=>b.onclick=()=>{
+  S.hideRing=!S.hideRing;save();renderHero();
+  stageMsg(S.hideRing?'👁 The Ring hidden':'👁 The Ring shown',1400);
  });
  /* two scroll slots in their own row, side by side */
  let scHtml='';
@@ -14325,8 +14331,8 @@ function ledgerGaol(c,ctx){
   +'<div class="ledger-tile"><span>Who ends up here</span><b>The watch decides</b><small>a bigger watch arrests more; what for depends on the city - high taxes, no bread, dear rents</small></div></div>'
   +(v.prisoners.length?'<div class="ledger-works">'+v.prisoners.map(p=>'<div class="ledger-work"><h4>⛓ '+p.name+'<small>'+(p.life?'for life':p.left+' close'+(p.left===1?'':'s')+' left of '+p.term)+'</small></h4>'
     +'<p>'+p.crime.charAt(0).toUpperCase()+p.crime.slice(1)+'.'+(p.byKing?' <b class="neg">By the King’s order.</b>':'')+'</p>'+(p.say?'<p class="ledger-voice">“'+p.say+'”</p>':'')
-    +'<div class="ledger-opts">'+(p.life?'<button class="sbtn gold" data-lact="pardon" data-k="'+p.name+'">Pardon him<small>the people +'+Math.round(E.MERCY*100)+' · every court abroad '+Math.round(E.MERCY*100)+'% dearer and harder to talk round · he begs at the palace stair</small></button>'
-      +'<button class="sbtn" data-lact="execute" data-k="'+p.name+'">Hang him on the square<small>the people −'+Math.round(E.MERCY*100)+' · every court abroad '+Math.round(E.MERCY*100)+'% cheaper and easier to talk round · a public execution</small></button>'
+    +'<div class="ledger-opts">'+(p.life?'<button class="sbtn gold" data-lact="pardon" data-k="'+p.name+'">Pardon him<small>the people +'+Math.round(E.MERCY*100)+' for '+E.MERCY_SEASONS+' seasons · every court abroad '+Math.round(E.MERCY*100)+'% dearer and harder to talk round · he begs at the palace stair</small></button>'
+      +'<button class="sbtn" data-lact="execute" data-k="'+p.name+'">Hang him on the square<small>the people −'+Math.round(E.MERCY*100)+' for '+E.MERCY_SEASONS+' seasons · every court abroad '+Math.round(E.MERCY*100)+'% cheaper and easier to talk round · a public execution</small></button>'
       :'<button class="sbtn gold" data-lact="pardon" data-k="'+p.name+'">Pardon<small>people +1 · trust +½'+(p.byKing&&!c.crowned?' · the King −8':'')+'</small></button>'
        +'<button class="sbtn" data-lact="fine" data-k="'+p.name+'">Fine and release<small>+'+fmtGold(p.fine)+' ◉ to the treasury</small></button>')+'</div></div>').join('')+'</div>'
    :'<p class="craft-note">🕊 Every cell stands empty. The watch brings people in at the close - go down the stair in the west wall of the hall, just inside the doors, and you can talk to them through the bars.</p>')
@@ -14529,7 +14535,7 @@ function ledgerHelp(){
   +sec('🎩 Nobility and the notice board',['The <b>notice board</b> stands by the town crier on the great square. For <b>'+fmtGold(E.PATENT_COST)+' ◉ of your own gold</b> the heralds seal you a patent of nobility; it takes <b>a quarter of an hour of play</b>.','A noble can fund the <b>contracts</b> posted there - an orphanage wing, a merchant cog, a regiment. The whole sum leaves your purse at once, the contract clears a quarter of an hour later and does the city its good then. <b>Nothing ever comes back</b>: what you buy is the city’s good and <b>noble XP</b>.','XP raises your <b>rank</b> - Knight, Baron, Viscount, Count, Marquess, Duke. Each rank adds a point to the city’s draw and a tenth of a point of trust a close, and brings more and greater contracts: the board is re-posted <b>every hour of play</b>, with 1-3 contracts for a knight and up to 6 for a duke.'])
   +sec('🤝 The Hand’s counsel',['Once every <b>'+E.COUNSEL_EVERY+' closes</b> you can ask the King’s Hand, on the Overview, what he would do. He names <b>one thing</b> - whatever he thinks presses hardest - and he says where to look, not which button to press. His last counsel stays on the Overview until you ask again.','If he has nothing worth saying he says so, and the question is not used up.'])
   +sec('🔔 Ledgers to attend',['The ledger closes wherever you are - but a city is not run from a dungeon. After <b>'+E.REMIND_AFTER+' closes</b> without opening the ledger the chat reminds you: <b>you have ledgers to attend</b>.','There is no cliff, only a slope: from the <b>first close</b> you are away the realm’s trust in you drains by about a tenth of a point, and it deepens by as much again with <b>every close</b> you stay away - over a point a close after ten, four at the very worst. What each councillor thinks you deserve sinks a point and a half per close away (forty at the most), and their opinion follows it down. It is not only the council: the city’s temper sinks 0.6 a close away (to −18) and its draw 0.4 (to −12), so taxes thin, families stop coming and, left long enough, the crowd comes out. Opening the ledger at the council table stops the slide and starts the count again - what was lost has to be earned back.'])
-  +sec('⛓ The jail',['Down the stair in the west wall of the hall, on your left as you come in. At every close the watch may bring in a townsperson - really: they vanish from the streets until they are out. You can talk to them through the bars, and at the jailer’s desk pardon them or fine them.','The old King, if that is where he went, is yours to decide on the Jail tab. <b>Pardon him</b>: the people <b class="pos">+'+Math.round(E.MERCY*100)+'</b>, but every court abroad prices you <b>'+Math.round(E.MERCY*100)+'% higher</b> and is harder to talk round - and he sits begging at the foot of the palace stair in what is left of his robes. <b>Hang him on the square</b>: the people <b class="neg">−'+Math.round(E.MERCY*100)+'</b>, but every court abroad is frightened into being <b>'+Math.round(E.MERCY*100)+'% cheaper</b> and easier. A public execution: the whole city turns out to watch.'])
+  +sec('⛓ The jail',['Down the stair in the west wall of the hall, on your left as you come in. At every close the watch may bring in a townsperson - really: they vanish from the streets until they are out. You can talk to them through the bars, and at the jailer’s desk pardon them or fine them.','The old King, if that is where he went, is yours to decide on the Jail tab. <b>Pardon him</b>: the people <b class="pos">+'+Math.round(E.MERCY*100)+'</b> for '+E.MERCY_SEASONS+' seasons, but every court abroad prices you <b>'+Math.round(E.MERCY*100)+'% higher</b> and is harder to talk round - and he sits begging at the foot of the palace stair in what is left of his robes. <b>Hang him on the square</b>: the people <b class="neg">−'+Math.round(E.MERCY*100)+'</b> for '+E.MERCY_SEASONS+' seasons, but every court abroad is frightened into being <b>'+Math.round(E.MERCY*100)+'% cheaper</b> and easier. A public execution: the whole city turns out to watch.'])
   +sec('🏦 The Tides Bank and its seasons',['The strongroom starts <b>empty</b>. The books open when you sign the <b>founding loan</b> of '+fmtGold(E.FOUNDING_LOAN)+' ◉; the bank keeps another '+fmtGold(E.RESERVE_LINE)+' ◉ on the line for later. What you owe costs '+(E.LOAN_RATE*100)+'% of itself at every close, to begin with.','Play runs in <b>seasons of '+E.SEASON_CLOSES+' closes</b>. For each the bank sets a target: the debt must be <b>a tenth smaller</b> at the last close than it was at the first. You may borrow more along the way - what counts is where the debt <b>ends</b>.','At the last close the bank <b>grades the books A to F</b>: is the debt at the target, was the strongroom ever dry, is the crown worth more than it was. An A widens the line by everything you repaid and 12% more, and cheapens the money; a D or an F narrows the line, makes the money dearer, and whatever debt stands above the target is <b>called in</b> from the strongroom on the spot.','If a close cannot be paid, the bank <b>covers the shortfall from your line</b> and adds '+(E.COVER_FEE*100)+'% to the debt for the favour. When the line is spent the treasury is <b>in the red</b>: it costs '+(E.OVERDRAFT_RATE*100)+'% a close, sours the mood by 18, no budget line can be raised and no work ordered.','After <b>one close of grace</b> the <b>bailiffs</b> come, and take one thing at every close you stay in the red: a building site (sold for half), a file of the watch, a finished work (sold for a third - its house in the City wears the bank\'s seal), two of the Royal Guard, the festivals, the court. What they sell is credited to the treasury. When nothing is left the bank cuts every budget line to the bone.','The Bank tab charts every season: the treasury, the debt, and the target.'])
   +'<button class="sbtn gold" data-lact="back">Back to the ledger</button></div>';
 }
@@ -14581,10 +14587,11 @@ function ledgerHTML(){
   }
   for(const k of E.LINE_KEYS){
    const L=E.LINES[k];
-   h+='<div class="ledger-line"><h3>'+L.icon+' '+(k==='purse'&&c.crowned?'Your Privy Purse':L.name)+'</h3><p>'+(k==='purse'&&c.crowned?'What the crown pays the one who wears it - you. It goes into your overflow gold at every close, and the people notice a greedy monarch.':L.blurb)+'</p>'
+   const blurb=k==='court'&&c.crowned?'Your court hosts nobles, merchants and foreign envoys. Its splendour shapes the people’s mood, trade and the city’s appeal. A modest court saves gold; a lavish one draws visitors and business.':L.blurb;
+   h+='<div class="ledger-line"><h3>'+L.icon+' '+(k==='purse'&&c.crowned?'Your Privy Purse':k==='court'&&c.crowned?'Your Royal Court':L.name)+'</h3><p>'+(k==='purse'&&c.crowned?'What the crown pays the one who wears it - you. It goes into your overflow gold at every close, and the people notice a greedy monarch.':blurb)+'</p>'
     +asked(k).map(i=>'<p class="ledger-ask neg">'+i.icon+' '+i.name+' - needs <b>'+L.levels[i.level].name+'</b> or better.</p>').join('')
     +'<div class="ledger-opts">'
-    +L.levels.map((lv,i)=>'<button class="sbtn'+(c.budget[k]===i?' on':'')+'" data-lact="level" data-k="'+k+'" data-v="'+i+'" aria-pressed="'+(c.budget[k]===i)+'">'+lv.name+'<small>'+fmtRough(lv.cost*f.scale*(f.factor[k]||1))+' ◉ · mood '+(lv.mood>=0?'+':'')+lv.mood+(lv.men!==undefined?' · '+lv.men+' men':'')+(k==='salary'&&lv.cost?' · you receive '+fmtGold(lv.cost*E.HERO_COIN)+' ◉':'')+(lv.trust?' · trust '+(lv.trust>0?'+':'−')+Math.abs(lv.trust)+' a close':'')+(lv.trade?' · trade ×'+lv.trade:'')+(lv.order?' · order ×'+lv.order:'')+(lv.attract?' · draw '+(lv.attract>0?'+':'')+lv.attract:'')+(lv.skill?' · learning '+(lv.skill>0?'+':'')+lv.skill:'')+(k==='purse'?' · '+(c.crowned?'into your overflow gold':'his pleasure → '+lv.pleasure):lv.pleasure?' · King '+(lv.pleasure>0?'+':'')+lv.pleasure:'')+'</small></button>').join('')+'</div></div>';
+    +L.levels.map((lv,i)=>'<button class="sbtn'+(c.budget[k]===i?' on':'')+'" data-lact="level" data-k="'+k+'" data-v="'+i+'" aria-pressed="'+(c.budget[k]===i)+'">'+lv.name+'<small>'+fmtRough(lv.cost*f.scale*(f.factor[k]||1))+' ◉ · mood '+(lv.mood>=0?'+':'')+lv.mood+(lv.men!==undefined?' · '+lv.men+' men':'')+(k==='salary'&&lv.cost?' · you receive '+fmtGold(lv.cost*E.HERO_COIN)+' ◉':'')+(lv.trust?' · trust '+(lv.trust>0?'+':'−')+Math.abs(lv.trust)+' a close':'')+(lv.trade?' · trade ×'+lv.trade:'')+(lv.order?' · order ×'+lv.order:'')+(lv.attract?' · draw '+(lv.attract>0?'+':'')+lv.attract:'')+(lv.skill?' · learning '+(lv.skill>0?'+':'')+lv.skill:'')+(k==='purse'?' · '+(c.crowned?'into your overflow gold':'his pleasure → '+lv.pleasure):!c.crowned&&lv.pleasure?' · King '+(lv.pleasure>0?'+':'')+lv.pleasure:'')+'</small></button>').join('')+'</div></div>';
   }
   h+='<div class="ledger-net"><span>With this budget the Hand expects <b class="'+(f.net>=0?'pos':'neg')+'">'+fmtRoughSigned(f.net)+' ◉</b> a close</span><span>the people settle at <b style="color:'+E.moodColor(f.moodTarget)+'">'+E.moodName(f.moodTarget)+' ('+f.moodTarget+')</b></span><span>and the city’s draw at <b>'+E.attractName(f.attractTarget)+' ('+f.attractTarget+')</b></span></div>';
   return h;

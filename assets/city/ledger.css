@@ -1,5 +1,5 @@
 /* 👑 The Crown Ledger - the council table's panel. Shares the workshops' craft-box shell. */
-.craft-modal .craft-ledger{--craft-accent:#e9c46a;--craft-bright:#ffe9a8;--craft-line:#8a6d34;--craft-soft:rgba(233,196,106,.12);width:min(100%,880px)}
+.craft-modal .craft-ledger{--craft-accent:#e9c46a;--craft-bright:#ffe9a8;--craft-line:#8a6d34;--craft-soft:rgba(233,196,106,.12);width:min(100%,880px);background:linear-gradient(#1b120a45,#1b120a70),url('../ui/ui_allt.png') center/cover no-repeat #342011}
 .ledger-seal{flex:0 0 64px;width:64px;height:64px;display:grid;place-items:center;font-size:34px;border:1px solid var(--craft-line);border-radius:14px;background:linear-gradient(145deg,#44311dcc,#18110fcc);box-shadow:inset 0 1px 0 #fff1}
 .ledger-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
 .ledger-tile{border:1px solid var(--craft-line);border-radius:12px;padding:12px 14px;background:#1d160feb;display:flex;flex-direction:column;gap:3px;min-width:0}
@@ -171,7 +171,7 @@
 @media(max-width:700px){.talk{grid-template-columns:1fr}}
 
 /* The royal book: fixed navigation, a readable page and quiet brass detailing. */
-#ledgerFx .craft-ledger{--craft-accent:#d6b470;--craft-bright:#fff0cd;--craft-line:#6f5839;--craft-soft:#d6b47012;--body:system-ui,-apple-system,"Segoe UI",sans-serif;width:min(100%,1140px);height:min(920px,100%);display:grid;grid-template-columns:164px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto auto;column-gap:24px;padding:26px;border-color:#a0804d;background:radial-gradient(ellipse at 15% 0,#65412730,transparent 55%),linear-gradient(135deg,#271e17,#17120e 75%);box-shadow:0 30px 100px #000b,inset 0 0 0 5px #d6b47007,inset 0 1px #f6deb633}
+#ledgerFx .craft-ledger{--craft-accent:#d6b470;--craft-bright:#fff0cd;--craft-line:#6f5839;--craft-soft:#d6b47012;--body:system-ui,-apple-system,"Segoe UI",sans-serif;width:min(100%,1140px);height:min(920px,100%);display:grid;grid-template-columns:164px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto auto;column-gap:24px;padding:26px;border-color:#a0804d;background:linear-gradient(#1b120a45,#1b120a70),url('../ui/ui_allt.png') center/cover no-repeat #342011;box-shadow:0 30px 100px #000b,inset 0 0 0 5px #d6b47007,inset 0 1px #f6deb633}
 #ledgerFx .craft-header{grid-column:1/-1;min-width:0;margin-bottom:22px;padding:0 0 20px;background:none}
 #ledgerFx .craft-header>div:nth-child(2){min-width:0}
 #ledgerFx .craft-title{font-size:34px;letter-spacing:.4px}

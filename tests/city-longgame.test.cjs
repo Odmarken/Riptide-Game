@@ -151,7 +151,7 @@ test('a King kept short is furious: he helps himself to the treasury and has peo
  const roster=[{name:'Bodil Vass',skin:'baker',female:true},{name:'Gorm Hammarson',skin:'male'}];
  const r=E.tick(s,{roster},script(.9,.9,.9,.9,.9,.0,.0,.0,.0));
  assert.equal(s.jail.length,1);assert.equal(s.jail[0].name,'Bodil Vass');assert.equal(s.jail[0].byKing,true);assert.equal(s.jail[0].female,true);assert.equal(s.jail[0].term,3);
- assert.ok(r.unrest.some(u=>/Bodil Vass was taken to the gaol/.test(u)));
+ assert.ok(r.unrest.some(u=>/Bodil Vass was taken to the jail/.test(u)));
 });
 
 test('the gaol: real townsfolk, terms served, fines and pardons, and nobody arrested twice',()=>{

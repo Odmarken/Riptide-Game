@@ -116,6 +116,7 @@
  const COUP_SEASONS=1;            /* ...and not before the bank has graded this many full seasons of your books (asked for 2026-09-22: one season, whatever the trust says) */
  const COUP_FAVOUR=75;            /* ...and not without a devoted council: their favour at this or better (asked for 2026-09-22) */
  const MERCY=0.15;                /* ⚖️ the deposed King's fate (asked for 2026-09-22): a pardon pleases the people by 15 and makes every foreign court 15% harder; the gallows costs the people 15 and frightens every court into being 15% easier */
+ const MERCY_SEASONS=2;
  const BONUS_SHARE=0.2;           /* 🎁 the steward's season bonus: at most a fifth of the season's profit, from a treasury in the black (asked for 2026-09-22) */
  const ROYAL_GUARD=8;             /* the men at the pillars of the hall, paid before anyone */
  const PROTEST_START=25,PROTEST_END=40;   /* hysteresis, so the crowd does not flicker */
@@ -446,7 +447,7 @@
    guards:ROYAL_GUARD,arrears:0,seizeI:0,seized:[],season:null,seasons:[],reviewSeen:true,unattended:0,food:{stock:0,auto:false,hunger:0},
    wage:1,winds:{trade:0,harvest:0,prices:0},
    budget:{...DEFAULT_BUDGET},incidents:[],council,petition:null,
-   pop:POPULATION,attract:50,skill:20,trust:10,crowned:false,deposed:null,
+   pop:POPULATION,attract:50,skill:20,trust:10,crowned:false,deposed:null,royalMoodLeft:0,
    king:{pleasure:60,humour:'content',humourAge:0,demand:null,raise:0},works:{},jail:[],
    allies:{},
    coupTold:false,
@@ -515,6 +516,7 @@
   out.trust=clamp(round1(num(s.trust,10)),0,100);
   out.crowned=!!s.crowned;
   out.deposed=out.crowned?(['exile','gaol','pardoned','executed'].includes(s.deposed)?s.deposed:'gaol'):null;   /* ⚖️ pardoned: a beggar at the palace stair; executed: the gallows on the square */
+  out.royalMoodLeft=['pardoned','executed'].includes(out.deposed)?clamp(Math.floor(num(s.royalMoodLeft)),0,MERCY_SEASONS*SEASON_CLOSES):0;
   const k=s.king||{};
   out.king={pleasure:clamp(Math.round(num(k.pleasure,60)),0,100),humour:humourDef(k.humour).id,humourAge:Math.max(0,Math.floor(num(k.humourAge,0))),
    demand:!out.crowned&&k.demand&&demandDef(k.demand.id)?{id:k.demand.id,age:Math.max(0,Math.floor(num(k.demand.age,0)))}:null,
@@ -713,6 +715,7 @@
    {name:'🪙 Your salary - '+salary.name,value:salary.mood},
    {name:'🤝 Cities under the crown',value:A.mood},
    {name:'Public works',value:W.mood},
+   ...(crowned&&num(state.royalMoodLeft)>0&&['pardoned','executed'].includes(state.deposed)?[{name:(state.deposed==='pardoned'?'Mercy for the old King':'The old King’s execution')+' - '+state.royalMoodLeft+' closes left',value:(state.deposed==='pardoned'?1:-1)*Math.round(MERCY*100)}]:[]),
    {name:'The jail is overcrowded',value:crowded?-3:0},
    {name:'🌾 Hunger - it builds while the granary is short',value:-Math.min(36,Math.round(hunger*6))||0},
    {name:'🔔 Nobody has seen the steward ('+away.closes+' close'+(away.closes===1?'':'s')+')',value:away.mood},
@@ -910,8 +913,8 @@
   const i=state.jail.findIndex(p=>p.name===name);if(i<0)return null;
   const p=state.jail[i];state.jail.splice(i,1);
   if(p.life){   /* ⚖️ the old King walks: the people love a merciful crown, other courts smell a soft one */
-   state.deposed='pardoned';state.mood=clamp(state.mood+Math.round(MERCY*100),0,100);
-   return {ok:true,text:p.name+' walked out of his own jail a free man, and the square cheered him all the way to the palace stair - where he sat down, and has not moved since. The people +'+Math.round(MERCY*100)+'. Every foreign court will call it weakness.'};}
+   state.deposed='pardoned';state.royalMoodLeft=MERCY_SEASONS*SEASON_CLOSES;state.mood=clamp(state.mood+Math.round(MERCY*100),0,100);
+   return {ok:true,text:p.name+' walked out of his own jail a free man, and the square cheered him all the way to the palace stair - where he sat down, and has not moved since. The people +'+Math.round(MERCY*100)+' for '+MERCY_SEASONS+' seasons. Every foreign court will call it weakness.'};}
   state.mood=clamp(state.mood+1,0,100);state.trust=clamp(round1(state.trust+.5),0,100);
   if(p.byKing&&!state.crowned)state.king.pleasure=clamp(state.king.pleasure-8,0,100);
   return {ok:true,text:p.name+' walks free. Word of it is round the tenements by nightfall.'+(p.byKing&&!state.crowned?' The King is not amused.':'')};
@@ -920,8 +923,8 @@
  function execute(state,name){
   const i=state.jail.findIndex(p=>p.name===name);if(i<0||!state.jail[i].life)return null;
   const p=state.jail[i];state.jail.splice(i,1);
-  state.deposed='executed';state.mood=clamp(state.mood-Math.round(MERCY*100),0,100);
-  return {ok:true,text:p.name+' was hanged on the great square before the whole city. The people −'+Math.round(MERCY*100)+'. Every foreign court heard of it by the week’s end, and none of them sleeps as well as it did.'};
+  state.deposed='executed';state.royalMoodLeft=MERCY_SEASONS*SEASON_CLOSES;state.mood=clamp(state.mood-Math.round(MERCY*100),0,100);
+  return {ok:true,text:p.name+' was hanged on the great square before the whole city. The people −'+Math.round(MERCY*100)+' for '+MERCY_SEASONS+' seasons. Every foreign court heard of it by the week’s end, and none of them sleeps as well as it did.'};
  }
  const allyFear=state=>state.deposed==='pardoned'?1+MERCY:state.deposed==='executed'?1-MERCY:1;   /* what a king's fate does to every price abroad */
  const allyWorth=(state,def)=>Math.round(def.worth*allyFear(state));
@@ -1284,6 +1287,10 @@
   /* 🎩 the noble's papers and the notice board - rolled last of all, so a scripted rng still means what it meant */
   const noble=state.chartered?nobleTick(state,ctx,rng):{news:[],rankUp:null,xp:0};
   for(const line of noble.news)unrest.push(line);
+  if(state.royalMoodLeft>0){
+   state.royalMoodLeft--;
+   if(state.royalMoodLeft===0)unrest.push('📜 Two seasons have passed since the old King’s fate was decided. Its effect on the people’s mood has ended.');
+  }
   const entry={n:state.ticks,covered,review:reviewed?{n:reviewed.n,grade:reviewed.grade}:null,in:gotIn,out:paidOut,expected:f.net,net,events:events.map(e=>e.text),unrest,mood:state.mood,favour:favour(state),
    treasury:state.treasury,protest:state.protest,was:before,unattended:num(state.unattended),food:state.food.stock,hunger:state.food.hunger,pop:state.pop,moved,attract:state.attract,trust:state.trust,finished,raised,
    purse:state.crowned?Math.round(f.purse*HERO_COIN/COIN):0,salary:f.expenses.find(l=>l.id==='salary').amount>0?salaryPay(level('salary',state.budget.salary)):0,   /* paid when - and only when - the line was charged */rankUp:noble.rankUp,nobleXp:noble.xp,summoned:false};   /* 💎 a crowned head keeps a household: a tenth of the privy purse reaches the hero's own gold */
@@ -1847,7 +1854,7 @@
   return {ok:true,spent:true,topic:t.id,text};
  }
  return Object.freeze({create,normalize,forecast,tick,advance,setBudget,borrow,repay,withdraw,deposit,settle,answer,councilView,PLAYER_SEAT,ALLIES,alliesView,allyInvest,alliesFx,talkView,openTalks,makeOffer,acceptCounter,haggleReasons,TALK_COOL_INSULT,TALK_COOL_WALK,ALLY_CLOSES,PARTNER_AT,BUY_AT,COURT_CLOSES,PARTNER_SHARE,meetHand,acceptOffice,nobleView,ennoble,fundContract,dealOffers,postBoard,NOBLE_RANKS,CONTRACTS,NOBLE_CLOSES,OFFER_CLOSES,PATENT_COST,TEST,HARBOUR_WORKS,HARBOUR_BASE,counsel,counselView,counselTopics,COUNSEL_EVERY,projection,
-  worksView,invest,upgrade,lvlOf,raising,UP_LEVEL,UP_FAVOUR,crownView,answerKing,claimCrown,canClaim,seasonsPlayed,COUP_SEASONS,COUP_FAVOUR,bonusView,takeBonus,declineBonus,BONUS_SHARE,gaolView,pardon,execute,fine,allyFear,MERCY,worksFx,has,cells,charter,charterView,bankView,rehire,frozen,attend,neglect,REMIND_AFTER,NEGLECT_AFTER,NEGLECT_HARD,TRUST_SLOPE,TRUST_DRAIN_MAX,SEAT_SLOPE,SEAT_DRAIN_MAX,MOOD_SLOPE,MOOD_DRAIN_MAX,DRAW_SLOPE,DRAW_DRAIN_MAX,
+  worksView,invest,upgrade,lvlOf,raising,UP_LEVEL,UP_FAVOUR,crownView,answerKing,claimCrown,canClaim,seasonsPlayed,COUP_SEASONS,COUP_FAVOUR,bonusView,takeBonus,declineBonus,BONUS_SHARE,gaolView,pardon,execute,fine,allyFear,MERCY,MERCY_SEASONS,worksFx,has,cells,charter,charterView,bankView,rehire,frozen,attend,neglect,REMIND_AFTER,NEGLECT_AFTER,NEGLECT_HARD,TRUST_SLOPE,TRUST_DRAIN_MAX,SEAT_SLOPE,SEAT_DRAIN_MAX,MOOD_SLOPE,MOOD_DRAIN_MAX,DRAW_SLOPE,DRAW_DRAIN_MAX,
   POP_MAX,HOUSEHOLD,hearths,SEASON_CARDS,cardDef,dealCard,
   windName,WIND_KEYS,WIND_MAX,JITTER_IN,JITTER_OUT,WAGE_RISE,WAGE_MAX,HERO_EXPORTS_MAX,HERO_FARM_LEVELS,
   foodView,buyFood,setAutoFood,HUNGER_GAIN,HUNGER_EASE,FOOD_STORE,FOOD_START,FOOD_CAP,FOOD_PRICE,AUTO_PREMIUM,FOOD_RESERVE,HUNGER_MAX,FOOD_LOW,FOOD_LOTS,

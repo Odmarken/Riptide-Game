@@ -556,7 +556,7 @@ const TideUI=(()=>{
   if(f)bootFeet({...f.boots,moving:false,walk:0,bob:0},g);
   const weapon=heroWeaponArgs();
   const emission=drawChampionSprite(g,S.race,S.cls,1,0,0,weapon.fm,weapon.id,S.gender==='f',1,isIce(S.gear.armor),wRune,null,session.time);
-  drawEquippedRing(g,S.gear.trinket,f?f.headY:-30,session.time,hero.dead);
+  drawEquippedRing(g,heroRing(),f?f.headY:-30,session.time,hero.dead);
   const fx=session.heroEffects||(session.heroEffects={...createRuneEmissionState(),time:session.time});
   if(S.hideWeapon)fx.parts.length=0;
   const fxDt=gamePaused?0:Math.max(0,Math.min(.05,session.time-fx.time));fx.time=session.time;

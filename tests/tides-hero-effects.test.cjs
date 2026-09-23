@@ -18,7 +18,7 @@ function harness(){
   paintedCharacterFrame:(...args)=>{calls.push({type:'frame',args});return frame;},bootFeet:()=>calls.push({type:'boots'}),
   drawRuneParticle:(_g,p)=>calls.push({type:'particle',p:{...p},matrix:transform}),
  };
- vm.createContext(c);vm.runInContext(read('assets/weapons/rune-effects.js')+'\n'+section(game,'function drawEquippedRing(','function drawHero(){')+'\n'+game.match(/^const heroWeaponArgs=.*$/m)[0],c);
+ vm.createContext(c);vm.runInContext(read('assets/weapons/rune-effects.js')+'\n'+section(game,'function drawEquippedRing(','function drawHero(){')+'\n'+game.match(/^const heroWeaponArgs=.*$/m)[0]+'\n'+game.match(/^const heroRing=.*$/m)[0],c);
  c.drawChampionSprite=(...args)=>{
   calls.push({type:'champion',args});
   return args[11]?c.runeEmitter(g,{key:'real-weapon',profile:{emit:[[.2,.8]]}},-10,-30,50,40):null;
@@ -69,4 +69,21 @@ test('hiding battle weapons removes the weapon and lingering rune particles but 
  assert.equal(champion.args[7],'hidden');assert.equal(champion.args[11],null);
  assert.equal(c.session.heroEffects.parts.length,0);assert.ok(calls.some(x=>x.type==='ring'));
  c.S.hideWeapon=false;c.paintHero();assert.equal(calls.findLast(x=>x.type==='champion').args[7],null);
+});
+
+test('the Ring eye saves visibility and hides only its drawing, leaving equipment and the weapon rune intact',()=>{
+ const h=harness(),{c,calls}=h,button={},saved=[];
+ const before=JSON.stringify(c.S.gear);
+ c.document={querySelectorAll:()=>[button]};c.save=()=>saved.push(JSON.parse(JSON.stringify(c.S)));
+ c.renderHero=()=>{};c.stageMsg=()=>{};
+ vm.runInContext(section(game," document.querySelectorAll('[data-ringeye]')",' /* two scroll slots'),c);
+ c.paintHero();assert.ok(calls.some(x=>x.type==='ring'),'older characters show the ring by default');
+ calls.length=0;button.onclick();c.paintHero();
+ assert.equal(saved.at(-1).hideRing,true);
+ assert.equal(calls.some(x=>x.type==='ring'),false);
+ assert.equal(calls.find(x=>x.type==='champion').args[11],h.rune);
+ assert.equal(JSON.stringify(c.S.gear),before,'the trinket and its bonuses remain equipped');
+ calls.length=0;button.onclick();c.paintHero();
+ assert.equal(saved.at(-1).hideRing,false);
+ assert.ok(calls.some(x=>x.type==='ring'));
 });

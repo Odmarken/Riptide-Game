@@ -402,6 +402,28 @@
     187
    ],
    "note": "clump 4 of the sheet of four"
+  },
+  "drain_cover.png": {
+   "size": [
+    866,
+    494
+   ],
+   "source": [
+    1024,
+    688
+   ],
+   "file": "assets/city/ground/drain_cover.png",
+   "crop": [
+    77,
+    96,
+    943,
+    590
+   ],
+   "jobId": "c4020356-8feb-4c36-a040-09496ae4a1ab",
+   "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260923_091250_c4020356-8feb-4c36-a040-09496ae4a1ab.png",
+   "prompt": "Production sprite for Riptide RPG, a hand-painted medieval fantasy game. Chunky readable shapes, crisp dark brown ink contours, detailed painted iron/wood/stone textures, warm ochre highlights and muted earth tones. Slightly elevated frontal camera, shallow depth, not isometric, not photorealistic. Exactly ONE complete isolated object with genuine transparent RGBA background, tight composition with 6% clear padding. No scenery, floor, ground patch, cast shadow, text, watermark or checkerboard. Subject: one old round cast-iron drain grate set in a narrow weathered grey stone rim, lying FLAT on the ground. Camera looks down at 55 degrees, round cover appears a wide ellipse, width 1.7 times height. Six parallel iron bars with dark recessed gaps, cross brace, small rivets and a little moss only in crevices. Worn silver-grey highlights and rusty brown edges. Low flush profile, no upright well, no raised structure. Opaque dark recesses between bars; true transparency outside the slim elliptical stone rim. Designed as ground decal for a medieval city and dungeon, readable at 40 pixels wide.",
+   "date": "2026-09-23",
+   "processing": "Native transparent Higgsfield PNG, cropped to alpha >= 6 bounds; no repainting or rescaling."
   }
  }
 }

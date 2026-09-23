@@ -138,7 +138,7 @@ test('ring and upright name follow the same rider transform as the body and ench
   const output={ops:[]},g=context(output),before=g.getTransform();
   g.fillText=(text,x,y)=>{const t=g.getTransform();output.ops.push({kind:'text',text,x,y,matrix:[t.a,t.b,t.c,t.d,t.e,t.f]});};
   const ring={};
-  vm.runInNewContext(renderLabels,{ctx:g,rideLayout:l,character:{headY:-35},S:{gear:{trinket:{}},name:'Rider'},h:{dead:false},now:1,by:0,MountRenderer:renderer,isRing:()=>true,
+  vm.runInNewContext(source.match(/^const heroRing=.*$/m)[0]+'\n'+renderLabels,{ctx:g,rideLayout:l,character:{headY:-35},S:{gear:{trinket:{}},name:'Rider'},h:{dead:false},now:1,by:0,MountRenderer:renderer,isRing:()=>true,
    drawEquippedRing(ctx,item,y){const t=ctx.getTransform();ring.point=point([t.a,t.b,t.c,t.d,t.e,t.f],0,y);}});
   const head=renderer.riderPoint(l,0,-35),label=renderer.riderPoint(l,0,-47);
   close(ring.point[0],head.x);close(ring.point[1],head.y);

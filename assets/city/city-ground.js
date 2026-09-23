@@ -209,6 +209,10 @@
   }
   if(zoom>.5)for(const d of p.drains){
    if(d.x<v.x0-20||d.x>v.x1+20||d.y<v.y0-20||d.y>v.y1+20)continue;
+   if(ready(images.drain_cover)){
+    const im=images.drain_cover,w=38,h=w*ih(im)/iw(im);
+    g.drawImage(im,d.x-w/2,d.y-h/2,w,h);continue;
+   }
    const w=d.horiz?30:13,h=d.horiz?13:30;
    g.fillStyle='#8f8672';g.fillRect(d.x-w/2-3,d.y-h/2-3,w+6,h+6);g.fillStyle='#15120e';g.fillRect(d.x-w/2,d.y-h/2,w,h);
    g.fillStyle='#4a453c';for(let i=1;i<5;i++){if(d.horiz)g.fillRect(d.x-w/2+i*w/5-1,d.y-h/2,2,h);else g.fillRect(d.x-w/2,d.y-h/2+i*h/5-1,w,2);}
@@ -275,6 +279,6 @@
   }
  }
  const IMAGES=Object.freeze(['ground_yard','road_boulevard','road_cobble','road_alley','plaza_setts','mosaic_compass','mosaic_sun','mosaic_crown','mosaic_anchor','mosaic_pick','mosaic_rune','mosaic_flame',
-  'tree_linden','tree_apple','bush','woodpile','trough','laundry','pigeon','pigeon_fly','tuft_1','tuft_2','tuft_3','tuft_4']);
+  'tree_linden','tree_apple','bush','woodpile','trough','laundry','pigeon','pigeon_fly','tuft_1','tuft_2','tuft_3','tuft_4','drain_cover']);
  return Object.freeze({plan,decor,render,drawProp,drawShadow,frame,flock,updateBirds,drawBirds,classOf,CLASSES,DECOR,KEEP,IMAGES});
 });

@@ -149,6 +149,17 @@
   glow.addColorStop(0,`rgba(${tint[0]},${tint[1]},${tint[2]},${.26*strength})`);glow.addColorStop(.4,`rgba(${tint[0]},${tint[1]-50},${tint[2]-40},${.12*strength})`);glow.addColorStop(1,`rgba(${tint[0]},${tint[1]-80},${tint[2]-60},0)`);
   g.fillStyle=glow;g.fillRect(x-r,y-r,r*2,r*2);
  }
+ function wallTorch(g,x,y,time,seed,im){
+  if(!ready(im)){rect(g,x-7,y+3,14,40,'#2c2320');flame(g,x,y,.8,time,seed);return;}
+  const h=92,sw=im.naturalWidth||im.width,sh=im.naturalHeight||im.height,w=h*sw/sh,top=y-h*.23,cut=.22;
+  g.drawImage(im,0,sh*cut,sw,sh*(1-cut),x-w/2,top+h*cut,w,h*(1-cut));
+  /* Deform just the painted flame; the iron basket and handle remain still. */
+  for(let i=0;i<16;i++){
+   const v=i/16*cut,dh=cut/16,k=1-(v+dh)/cut,dx=Math.sin(time*5.2+seed-v*20)*1.5*k*k;
+   g.drawImage(im,0,sh*v,sw,sh*dh,x-w/2+dx,top+h*v,w,h*dh+.3);
+  }
+  fire(g,x,y,.35,time,seed);
+ }
  function flame(g,x,y,size,time,seed){
   const sway=Math.sin(time*4.3+seed)*2.4*size,flick=.9+Math.sin(time*7.1+seed*1.7)*.1;
   g.beginPath();g.moveTo(x-9*size,y);g.bezierCurveTo(x-16*size,y-14*size,x-3*size,y-18*size,x+sway,y-34*size*flick);
@@ -376,8 +387,13 @@
   g.save();g.globalAlpha=.5;texture(g,images.crypt||images.raidfloor,{x:GAOL.x,y:GAOL.y,w:GAOL.w,h:GAOL.h},.95,options);g.restore();
   /* damp: puddles that catch the brazier, a drain in the middle of the floor, straw trodden out of the cells */
   for(const [px,py,pr] of [[GAOL.x+210,GAOL.y+420,60],[GAOL.x+760,GAOL.y+210,44],[GAOL.x+940,GAOL.y+470,52]])ellipse(g,px,py,pr,pr*.42,'rgba(20,26,30,.55)','rgba(140,160,170,.12)',2);
-  ellipse(g,GAOL.x+560,GAOL.y+300,26,15,'#14110f','#55504a',3);
-  g.strokeStyle='#55504a';g.lineWidth=2;for(let i=-2;i<=2;i++){g.beginPath();g.moveTo(GAOL.x+560+i*8,GAOL.y+288);g.lineTo(GAOL.x+560+i*8,GAOL.y+312);g.stroke();}
+  if(ready(images.drain_cover)){
+   const im=images.drain_cover,w=58,h=w*(im.naturalHeight||im.height)/(im.naturalWidth||im.width);
+   g.drawImage(im,GAOL.x+560-w/2,GAOL.y+300-h/2,w,h);
+  }else{
+   ellipse(g,GAOL.x+560,GAOL.y+300,26,15,'#14110f','#55504a',3);
+   g.strokeStyle='#55504a';g.lineWidth=2;for(let i=-2;i<=2;i++){g.beginPath();g.moveTo(GAOL.x+560+i*8,GAOL.y+288);g.lineTo(GAOL.x+560+i*8,GAOL.y+312);g.stroke();}
+  }
   g.strokeStyle='rgba(196,168,96,.5)';g.lineWidth=1.6;
   for(let i=0;i<90;i++){const hx=GAOL.x+30+((i*7919)%(GAOL.w-60)),hy=GAOL.y+8+((i*104729)%70),a=(i*2.399)%3.14;g.beginPath();g.moveTo(hx,hy);g.lineTo(hx+Math.cos(a)*13,hy+Math.sin(a)*5);g.stroke();}
   stairFlight(g,UPSTAIR,GAOL.x+GAOL.w,UPSTAIR.x+UPSTAIR.w,1,'↑ Hall');
@@ -416,7 +432,7 @@
   rememberedImages={...rememberedImages,...images};images=rememberedImages;
   const vx=view?.x||0,vy=view?.y||0,vw=view?.w||W,vh=view?.h||H;
   g.save();g.fillStyle='#0a0909';g.fillRect(vx,vy,vw,vh);
-  const key=(ready(images.raidwall)?'w':'-')+(ready(images.raidfloor)?'f':'-')+(ready(images.cryptwall)?'c':'-')+(ready(images.crypt)?'g':'-');
+  const key=(ready(images.raidwall)?'w':'-')+(ready(images.raidfloor)?'f':'-')+(ready(images.cryptwall)?'c':'-')+(ready(images.crypt)?'g':'-')+(ready(images.drain_cover)?'d':'-');
   if(!staticLayer||staticKey!==key){
    const c=canvas(W,HALL_H,options),d=canvas(GAOL_VIEW.w,GAOL_VIEW.h,options);
    if(c&&d){
@@ -438,20 +454,19 @@
    if(!seen(x,py,220))continue;
    const f=.9+Math.sin(time*5.3+py*.01+side)*.1;
    light(g,x+side*40,py,210,f*.7);
-   rect(g,x-8,py-4,16,44,'#2c2320');rect(g,x-4,py-10,8,10,'#5b4a35');
-   flame(g,x,py-8,.9,time,py*.3+side);
+   wallTorch(g,x,py-8,time,py*.3+side,images.wall_torch);
   }
   for(const wy of WINDOW_Y)for(const [side,x] of [[-1,HALL.x],[1,HALL.x+HALL.w]]){
    if(!seen(x,wy,600))continue;
    light(g,x+side*180,wy+120,300,.35+Math.sin(time*.6+wy)*.05,[255,236,190]);
   }
   /* ⛓ a torch over the jail stair, and one on the wall between every second pair of cells below */
-  if(seen(HALL.x,STAIR.y,260)){light(g,HALL.x+30,STAIR.y-30,190,.75+Math.sin(time*5.9)*.1);rect(g,HALL.x-8,STAIR.y-52,16,40,'#2c2320');flame(g,HALL.x,STAIR.y-54,.9,time,7.7);}
+  if(seen(HALL.x,STAIR.y,260)){light(g,HALL.x+30,STAIR.y-30,190,.75+Math.sin(time*5.9)*.1);wallTorch(g,HALL.x,STAIR.y-54,time,7.7,images.wall_torch);}
   for(let i=0;i<CELL_COUNT-1;i+=2){
    const tx=CELLS[i].x+52,ty=GAOL.y-84;
    if(!seen(tx,ty,240))continue;
    light(g,tx,ty+60,230,.62+Math.sin(time*5.1+i)*.1,[255,170,90]);
-   rect(g,tx-4,ty,8,30,'#2c2320');rect(g,tx-7,ty-6,14,8,'#5b4a35');flame(g,tx,ty-4,.8,time,i*1.3);
+   wallTorch(g,tx,ty-4,time,i*1.3,images.wall_torch);
   }
   if(seen(TABLE.x,TABLE.y,500))light(g,TABLE.x,TABLE.y+10,420,.55+Math.sin(time*3.7)*.06);
   if(seen(THRONE.x,THRONE.y,400))light(g,THRONE.x,THRONE.y+20,380,.5,[255,214,130]);
