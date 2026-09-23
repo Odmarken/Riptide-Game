@@ -18,9 +18,9 @@
 <link rel="apple-touch-icon" href="favicon_256.png">
 <!-- ?v= is not decoration: without it iOS Safari serves a cached stylesheet for days, so two
      phones end up running two different builds of the layout. Bump on every visual change. -->
-<link rel="stylesheet" href="style.css?v=55">
+<link rel="stylesheet" href="style.css?v=56">
 <link rel="stylesheet" href="assets/tides/ui.css?v=10">
-<link rel="stylesheet" href="assets/ui/crafting.css?v=1">
+<link rel="stylesheet" href="assets/ui/crafting.css?v=2">
 <link rel="stylesheet" href="assets/city/ledger.css?v=11">
 <link rel="stylesheet" href="assets/ui/hero-guide.css?v=1">
 </head>
@@ -761,13 +761,13 @@
 
   <div id="enchFx" class="craft-modal" role="dialog" aria-modal="true" aria-labelledby="enchTitle" style="display:none">
    <div class="casinobox craft-box craft-enchant">
-    <header class="craft-header"><img class="craft-venue-icon" src="assets/icons/venue_ench.png" alt=""><div><div class="craft-kicker">THE RUNEWORK</div><h2 id="enchTitle" class="craft-title">Enchanting Hall</h2><p class="craft-subtitle">Cut emeralds. Discover a rune. Bind it to your weapon.</p></div></header>
+    <header class="craft-header"><img class="craft-venue-icon" src="assets/icons/venue_ench.png" alt=""><div><div class="craft-kicker">THE RUNEWORK</div><h2 id="enchTitle" class="craft-title">Enchanting Hall</h2><p class="craft-subtitle">Cut emeralds into runes. Read Books of Knowledge into inscriptions. Bind both to your weapon.</p></div></header>
     <div class="craft-scroll">
     <div class="craft-rank"><span id="enchRankTxt"></span><span class="craft-badge" id="enchGems"></span></div>
     <div class="craft-progress craft-rank-progress"><i id="enchBar" style="width:0%"></i></div>
     <div id="enchBody"></div>
     </div>
-    <footer class="craft-footer"><span>Your runes are kept safely in the hall.</span><button id="enchClose" class="sbtn">Leave the Hall</button></footer>
+    <footer class="craft-footer"><span>Your runes and inscriptions are kept safely in the hall.</span><button id="enchClose" class="sbtn">Leave the Hall</button></footer>
    </div>
   </div>
 
@@ -911,7 +911,7 @@
 <script src="assets/ui/hero-guide.js?v=2"></script>
 <script src="assets/cloud/firestore-rest.js?v=1"></script>
 <script src="assets/boss/odin-arena.js?v=1"></script>
-<script src="game.js?v=163"></script>
+<script src="game.js?v=164"></script>
 <script src="assets/ui/crafting.js?v=2"></script>
 </body>
 </html>

@@ -25,6 +25,7 @@ function harness(){
   save:()=>c.saves++,renderBag(){},renderHero(){},renderHUD(){},stageMsg(){},log(){},sfx:{warn(){},loot(){},quest(){},buy(){}},
   totalGold:()=>c.S.gold,spendGold:n=>{if(c.S.gold<n)return false;c.S.gold-=n;return true;},setTimeout:()=>1,clearTimeout(){}});
  vm.createContext(c);
+ vm.runInContext(section('const isKnowledgeBook=','/* 💍 The Ring is being forged'),c);   /* the hall counts the books in the bag */
  vm.runInContext(section('const MINE_RANKS=[','const mineSkill='),c);
  vm.runInContext(section('const ENCH_RANKS=','const CITY_NAMES='),c);
  vm.runInContext(section("$('smeltGo').onclick=()=>{","setInterval(()=>{if($('smithFx')"),c);

@@ -1105,8 +1105,8 @@
  100%{opacity:0;transform:translate(-50%,-55%) scale(1.02)}}
 .ecgot img{width:54px;height:54px;border-radius:10px;border:1px solid var(--eg);
  box-shadow:0 0 22px -4px var(--eg);background:rgba(0,0,0,.45)}
-.ecname{margin-top:5px;font-family:var(--display);font-size:19px;color:var(--eg);
- text-shadow:0 0 14px var(--eg),0 1px 0 rgba(60,40,15,.5)}
+.ecname{margin-top:5px;font-family:var(--display);font-size:19px;color:var(--ei,var(--eg));
+ text-shadow:0 0 14px var(--eg),0 1px 0 rgba(60,40,15,.5)} /* --ei: a book's inscription is written in a darker ink of its rarity */
 .ecflav{margin-top:1px;font-size:11px;color:#6b563a;font-style:italic;line-height:1.3}
 .ectag{margin-top:5px;font-size:9.5px;color:#8a7458;letter-spacing:.7px;text-transform:uppercase}
 .enchsel{margin-top:4px;padding:10px 12px;border-radius:11px;border:1px solid var(--line);background:rgba(0,0,0,.32)}
@@ -1116,6 +1116,9 @@
           animation:enchPulse 2.6s ease-in-out infinite}
 .enchmark img{width:100%;height:100%;object-fit:cover;pointer-events:none}
 @keyframes enchPulse{0%,100%{box-shadow:0 0 5px -1px var(--eg)}50%{box-shadow:0 0 13px 0 var(--eg)}}
+/* 📖 a weapon's inscription, its own line under the stats in the hero panel, the bag and an inspected profile */
+.insc-line{margin-top:3px;font-size:11px;line-height:1.35}
+.insc-line .shopico{width:16px;height:16px;vertical-align:-3px;margin-right:4px}
 .slot{position:relative}
 
 /* venue title icons - they replace the emoji that used to sit in these headings. Height is in em so

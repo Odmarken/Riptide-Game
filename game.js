@@ -692,7 +692,7 @@ const fmtMS=ms=>{
    refuses them - and syncRimfrost/syncFelGlaives keep stamping a fat baseAtk*4 price
    on spare blades) and gear-set (⭐) items are excluded, or they freeze high-prestige
    players hundreds of thousands below the cap with a "nothing to sell" bag. */
-const bagSellable=it=>!!it&&!isLegendary(it)&&!inGearSet(it);
+const bagSellable=it=>!!it&&!isLegendary(it)&&!inGearSet(it)&&!it.insc; /* 📖 an inscribed weapon only goes one at a time, by hand */
 const bagGoldVal=()=>((S&&S.bag)||[]).reduce((t,it)=>t+(bagSellable(it)?(it.sell||0):0),0);
 const bagScrapVal=()=>((S&&S.bag)||[]).reduce((t,it)=>t+scrapVal(it),0);
 const goldRoom=()=>Math.max(0,goldCap()-S.gold-bagGoldVal());
@@ -1332,7 +1332,7 @@ function mpPlayFx(m,p){
   burst(x,y-10,'#ffffff',3,38);
  }else if(m.a==='boltfx'){ /* peer spell projectile - visual only */
   p.atk=true;p._atkT=performance.now()+240;
-  if(m.tx!=null)bolts.push({x,y:y-10,tgt:{x:m.tx,y:m.ty},sp:470,vis:1,c:m.c||'#c9a0ff',arrow:!!m.ar});
+  if(m.tx!=null)bolts.push({x,y:y-10,tgt:{x:m.tx,y:m.ty},sp:m.orb?300:470,vis:1,c:m.c||'#c9a0ff',arrow:!!m.ar,orb:!!m.orb}); /* 📖 an older peer ignores orb and sees a bolt */
  }else if(m.a==='bolt'||m.a==='spell'){
   p.atk=true;p._atkT=performance.now()+240;
   const v=m.v;
@@ -1815,7 +1815,7 @@ const fkBonus=()=>{const w=S&&S.gear?S.gear.weapon:null;return (isFK(w)&&legendS
 /* Not a fallback: syncFelGlaives sets it.crit to 0, so this +3% is the ONLY crit the glaives
    ever grant - and it lives outside the item, which is why the tooltip never showed it. */
 const fgCrit=()=>{const w=S&&S.gear?S.gear.weapon:null;return isFG(w)&&!(w.crit)?3:0;};
-const heroCrit=()=>classOf().crit+(raceOf().crit||0)+gearSum('crit')+fkBonus()+fgCrit()+((S&&S.gamblerT>0)?2:0);
+const heroCrit=()=>classOf().crit+(raceOf().crit||0)+gearSum('crit')+fkBonus()+fgCrit()+((S&&S.gamblerT>0)?2:0)+wornInsc('keen'); /* 📖 Keen Edge */
 /* Every legendary bonus that is applied outside the item's own fields, in one place, so the
    tooltips and the real stats can never drift apart. Returns what to ADD to the printed
    number - see itemStr and renderInspect, which both fold these in rather than trailing a
@@ -2044,6 +2044,7 @@ function migrate(s){ /* fills fields missing from older saves */
  if(!Array.isArray(s.ench.bag))s.ench.bag=[];
  s.ench.bag=s.ench.bag.filter(id=>WENCH.some(w=>w.id===id));  /* a rune from a build that no longer
                                                                  defines it would render as a blank */
+ if(s.ench.insc!==undefined)s.ench.insc=(Array.isArray(s.ench.insc)?s.ench.insc:[]).map(inscClean).filter(Boolean); /* 📖 see inscClean - a newer build's kinds are kept, only garbage goes */
  if(!s.ore)s.ore={coal:0,ore:0,gem:0};
  for(const k of ['coal','ore','gem'])s.ore[k]=Math.max(0,s.ore[k]||0);
  if(s.chests===undefined)s.chests={};
@@ -2069,15 +2070,18 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.hcDead===undefined)s.hcDead=false;
  if(s.gender===undefined)s.gender='m';
  if(s.pots){s.pots.hp=Math.min(s.pots.hp||0,POT_CAP);s.pots.mp=Math.min(s.pots.mp||0,POT_CAP);}
+ /* 📖 an inscription is a well-formed {id,rar} on a weapon - anything else is dropped (see inscClean) */
+ const fixInsc=it=>{if(it&&it.insc!==undefined){const v=it.slot==='weapon'?inscClean(it.insc):null;if(v)it.insc=v;else delete it.insc;}};
  for(const sl in s.gear){
   const g=s.gear[sl];if(!g)continue;
   if(g.up===undefined)g.up=0;
   ensureItemBase(g);
+  fixInsc(g);
   /* old system enchanted gear directly - carry the first enchant into the new slot */
   if(g.ench){const i=s.activeScrolls[0]?1:0;if(!s.activeScrolls[i])s.activeScrolls[i]=g.ench;else s.scrolls.push(g.ench);g.ench=null;}
  }
  s.bag=(Array.isArray(s.bag)?s.bag:[]).filter(it=>it&&typeof it==='object'); /* a hole in the bag must not stop the hero loading */
- s.bag.forEach(it=>{delete it._lid;if(it.up===undefined)it.up=0;ensureItemBase(it);if(it.ench){s.scrolls.push(it.ench);it.ench=null;}});
+ s.bag.forEach(it=>{delete it._lid;if(it.up===undefined)it.up=0;ensureItemBase(it);fixInsc(it);if(it.ench){s.scrolls.push(it.ench);it.ench=null;}});
  /* legacy scrolls were plain id strings - convert to tier objects (grandfathered at Tier II) */
  s.scrolls=(Array.isArray(s.scrolls)?s.scrolls:[]).map(x=>typeof x==='string'?{id:x,tier:2}:x);
  s.activeScrolls=(Array.isArray(s.activeScrolls)?s.activeScrolls:[null,null]).map(x=>typeof x==='string'?{id:x,tier:2}:x);
@@ -2297,11 +2301,13 @@ function smithTick(){
   if(typeof publishLB==='function')publishLB(S,true);
  }else if(j.kind==='fg'){
   const it=syncFelGlaives({id:'felglaives',slot:'weapon',rar:'legendary',legend:'felglaives',name:'Fel Glaives',star:j.to,atk:0,hp:0,crit:0,haste:0.10,ench:null,up:0,sell:0,maxUp:LEGEND_MAX_UP});
+  if(inscClean(j.insc))it.insc=inscClean(j.insc);   /* 📖 carried over from the blades that went in */
   S.bag.push(it);
   log(`⚒️ The forge cools - <span class="llegendary">Fel Glaives ★${j.to}</span> scream anew!`,'loot');
   stageMsg('⚒️ Fel Glaives ★'+j.to+' complete!',2600);sfx.level();
  }else{
   const it=syncRimfrost({slot:'weapon',rar:'legendary',legend:'rimfrost',name:'Rimfrost',star:j.to,atk:0,hp:0,crit:4,lifesteal:0.02,ench:null,up:0,sell:0});
+  if(inscClean(j.insc))it.insc=inscClean(j.insc);
   S.bag.push(it);
   log(`⚒️ The forge cools - <span class="llegendary">Rimfrost ★${j.to}</span> is reborn!`,'loot');
   stageMsg('⚒️ Rimfrost ★'+j.to+' complete!',2600);sfx.level();
@@ -2340,9 +2346,16 @@ function upgradeItem(it){
  save();
  return true;
 }
+/* 📖 an inscribed weapon was chosen by hand, so auto-equip never takes it off - a better drop waits in
+   the bag. Said once per weapon and session rather than on every drop. */
+let autoKeptInsc=null;
 function tryAutoEquip(it){
  if(!it||!SLOTS.includes(it.slot))return false;
  const cur=S.gear[it.slot];
+ if(cur&&cur.insc&&it.power>cur.power){
+  if(autoKeptInsc!==cur){autoKeptInsc=cur;log(`Auto-equip keeps your inscribed <span class="l${cur.rar}">${itemName(cur)}</span>. Stronger weapons wait in your bag.`);}
+  return false;
+ }
  if(!cur||it.power>cur.power){
   if(cur)S.bag.push(cur);
   S.gear[it.slot]=it;
@@ -2357,8 +2370,10 @@ function statBaseStr(it,k,label,suffix=''){
  const baseTxt=(it.up||0)>0||b!==v?` (${b}${suffix})`:'';
  return `+${v}${suffix} ${label}${baseTxt}`;
 }
+/* 📖 a weapon's inscription as its own line under the stats, in its rarity's colour */
+const inscHtml=it=>it&&inscOk(it.insc)?`<div class="ss insc-line" style="color:${INSC_COL[it.insc.rar]}">${uiIcon(inscById(it.insc.id).icon,inscById(it.insc.id).fb,'shopico')}${esc(inscLine(it.insc))}</div>`:'';
 function itemStr(it){
- if(isKnowledgeBook(it))return 'Its purpose has not yet been revealed.';
+ if(isKnowledgeBook(it))return 'Read it at the Enchanting Hall to reveal an inscription for your weapon.';
  if(isFK(it))syncRimfrost(it);
  else if(isFG(it))syncFelGlaives(it);
  else if(isRing(it))syncTheRing(it);
@@ -2394,6 +2409,7 @@ function shortStats(it){
  if(baseCrit)parts.push('+'+baseCrit+'% CRIT');
  if(it.haste)parts.push('+'+Math.round(it.haste*100)+'% ATK SPEED');
  if(it.lifesteal)parts.push('+'+Math.round(it.lifesteal*1000)/10+'% LIFESTEAL');
+ if(inscOk(it.insc))parts.push('📖 '+inscById(it.insc.id).n); /* what equipping the other one would put down */
  return parts.join(' · ')||'-';
 }
 function compareVal(it){
@@ -4349,7 +4365,8 @@ function mineGain(){
    WHAT A RUNE IS is decided when it is cut, not when it is chosen: you spend the emerald and the hall
    gives you what it gives you. That is the whole hook, so there is no picking from a menu.
    NOTE: these five carry colour, glow and flavour only. None of them changes a number yet - the
-   stats are a deliberate second pass, so nothing here quietly buffs a weapon behind your back. */
+   stats are a deliberate second pass, so nothing here quietly buffs a weapon behind your back.
+   The numbers come from the Books of Knowledge instead - see INSC below. */
 const ENCH_RANKS=MINE_RANKS;   /* same ladder, same four names - one trade system, not two */
 const WENCH=[
  {id:'emberbite', n:'Emberbite',  lvl:1, glow:'#ff7a3a', icon:'en_ember',
@@ -4372,6 +4389,64 @@ const ENCH_COST=2;             /* emeralds per rune - and an emerald is 3 ore pl
                                   rune is 6 ore and 2 coal of mining before the hall sees it */
 const ENCH_PER_CUT=2;   /* points a single cut rune is worth */
 let enchLastCut=null,enchFeedback=null; /* presentation only; never written into character saves */
+/* ==================== 📖 BOOKS OF KNOWLEDGE ====================
+   A Wasteland guardian's book is read in this hall, and what it gives up is an INSCRIPTION: the first
+   thing the hall makes that changes a number. Reading rolls the effect and its rarity, and the rarity
+   leans on the reader's enchanting skill: each rank opens one more rarity - an Apprentice tops out at
+   rare, a Journeyman can read an epic line, an Expert the first legendary one - and inside a rank the
+   odds keep sliding towards the rarer end with every point (INSC_ODDS).
+   An inscription waits in the hall like a rune until it is written onto the EQUIPPED weapon, one to a
+   weapon. It stays with that weapon wherever it goes, and only works while the weapon is worn. */
+const INSC_RARS=['common','fine','rare','epic','legendary'];
+const INSC_COL={common:'#d8e4d6',fine:'#6dbb6d',rare:'#5b9bd5',epic:'#c9a0ff',legendary:'#ffd100'};  /* the bag's rarity colours */
+const INSC_INK={common:'#59625a',fine:'#2f7a2f',rare:'#2c5f99',epic:'#6b3fae',legendary:'#946000'}; /* the same, dark enough for the ceremony's page */
+const INSC=[   /* v: the effect at each rarity in INSC_RARS order, in percent */
+ {id:'twin', n:'Twin Strike',icon:'heroicstrike', fb:'⚔', v:[1,2,3,5,8],     d:v=>v+'% chance to strike twice'},
+ {id:'keen', n:'Keen Edge',  icon:'aimedshot',    fb:'✦', v:[0.5,1,2,3,5],   d:v=>'+'+v+'% crit chance'},
+ {id:'orb',  n:'Arcane Orb', icon:'arcanebarrage',fb:'🔮',v:[1,2,3,5,8],     d:v=>v+'% chance to hurl an arcane orb'},
+ {id:'leech',n:'Bloodthirst',icon:'renew',        fb:'🩸',v:[0.5,1,1.5,2,3], d:v=>'+'+v+'% lifesteal'},
+ {id:'swift',n:'Quickening', icon:'ui_haste',     fb:'⚡', v:[1,2,3,5,8],     d:v=>'+'+v+'% attack speed'},
+];
+const INSC_ORB_MUL=1.5,INSC_ORB_SPLASH=0.5,INSC_ORB_RAD=60; /* an orb hits for 150% of a swing, and half that again splashes on foes beside the target */
+const INSC_ODDS=[   /* per enchanting rank, the rarity weights at its first point and at its last: common, fine, rare, epic, legendary */
+ {from:[70,25,5,0,0],  to:[62,29,9,0,0]},    /* Apprentice: common to rare */
+ {from:[57,30,11,2,0], to:[46,33,16,5,0]},   /* Journeyman: epic opens */
+ {from:[42,33,17,7,1], to:[30,33,23,11,3]},  /* Expert: legendary opens */
+ {from:[27,32,25,12,4],to:[10,25,33,22,10]}, /* Master */
+];
+const ENCH_PER_BOOK=5;   /* a guardian's book teaches more than a cut stone does */
+const inscById=id=>INSC.find(x=>x.id===id)||null;
+const inscOk=v=>!!v&&typeof v==='object'&&!!inscById(v.id)&&INSC_RARS.includes(v.rar);
+/* {id,rar} as short strings and nothing else - saves are not trusted with more. A kind or rarity this
+   build does not know is KEPT: a newer build wrote it and will read it again, so here it just does nothing. */
+const inscClean=v=>v&&typeof v==='object'&&typeof v.id==='string'&&typeof v.rar==='string'&&v.id.length<=24&&v.rar.length<=16?{id:v.id,rar:v.rar}:null;
+const inscVal=v=>inscOk(v)?inscById(v.id).v[INSC_RARS.indexOf(v.rar)]:0;
+const inscKey=v=>v.id+':'+v.rar;
+const inscRar=r=>r[0].toUpperCase()+r.slice(1);
+const inscLine=v=>inscRar(v.rar)+' '+inscById(v.id).n+': '+inscById(v.id).d(inscVal(v));
+/* what the WORN weapon's inscription adds to one effect, in percent - 0 when it carries another one or none */
+const wornInsc=id=>{const w=S&&S.gear&&S.gear.weapon;return w&&w.insc&&w.insc.id===id?inscVal(w.insc):0;};
+const bookCount=()=>((S&&S.bag)||[]).filter(isKnowledgeBook).length;
+/* the rarest inscription among some weapons - the one the star forge carries onto the blade it makes */
+const bestInsc=items=>{
+ let best=null,bk=-2;
+ for(const it of items||[]){const v=it&&inscClean(it.insc);if(!v)continue;const k=inscOk(v)?INSC_RARS.indexOf(v.rar):-1;if(k>bk){best=v;bk=k;}}
+ return best;
+};
+/* the rarity odds (fractions, common..legendary) at a skill: a step at every rank-up, a slope inside each rank */
+function inscOdds(skill){
+ const s=Math.max(0,Math.min(500,+skill||0));
+ let r=0;ENCH_RANKS.forEach((rk,i)=>{if(s>=rk.at)r=i;});
+ const rk=ENCH_RANKS[r],o=INSC_ODDS[r],t=Math.min(1,(s-rk.at)/(rk.to-rk.at));
+ const w=o.from.map((x,k)=>x+(o.to[k]-x)*t),sum=w.reduce((p,q)=>p+q,0);
+ return w.map(x=>x/sum);
+}
+function inscRoll(skill,rRar=Math.random(),rKind=Math.random()){
+ const odds=inscOdds(skill);
+ let k=0;for(let acc=0;k<odds.length-1;k++){acc+=odds[k];if(rRar<acc)break;}
+ while(k>0&&!(odds[k]>0))k--;   /* float dust at the top of the range never lands on a rarity the skill cannot reach */
+ return {id:INSC[Math.min(INSC.length-1,Math.floor(rKind*INSC.length))].id,rar:INSC_RARS[k]};
+}
 function enchGain(n){
  if(!S.ench)return;
  if(S.ench.skill>=500)return;
@@ -4414,7 +4489,9 @@ function enchCut(){
    hall before the first frame of this plays. */
 const ENCH_CEREMONY_MS=5600;
 let enchCeremonyT=null;
-function enchCeremony(w){
+/* 📖 a Book of Knowledge is read through the same moment: opt.ink is the name's colour on the page
+   (a rarity colour such as common's near-white would vanish on parchment), opt.tag the line under it */
+function enchCeremony(w,opt={}){
  const fx=$('enchCraftFx'),st=$('ecStage');
  if(!fx||!st||!w)return;
  const GLYPH=['ᚠ','ᚱ','ᚲ','ᚷ','ᚹ','ᚾ','ᛁ','ᛊ'];
@@ -4423,15 +4500,16 @@ function enchCeremony(w){
   return '<span class="ecstone" style="--sx:'+(Math.cos(a)*R).toFixed(0)+'px;--sy:'+(Math.sin(a)*R*0.7).toFixed(0)+'px;--sr:'+((i*53)%90-45)+'deg;animation-delay:'+(0.5+i*0.075).toFixed(2)+'s">'+gl+'</span>';
  }).join('');
  st.style.setProperty('--eg',w.glow);
+ st.style.setProperty('--ei',opt.ink||w.glow);
  st.innerHTML=
   '<div class="ecaura"></div>'+
   '<div class="ecbook"><div class="ecleaf l"></div><div class="ecleaf r"></div><div class="ecspine"></div></div>'+
   stones+
   '<div class="ecflash"></div>'+
-  '<div class="ecgot">'+uiIcon(w.icon,'✨','')+
+  '<div class="ecgot">'+uiIcon(w.icon,opt.fb||'✨','')+
    '<div class="ecname">'+esc(w.n)+'</div>'+
    '<div class="ecflav">'+esc(w.flavour)+'</div>'+
-   '<div class="ectag">cut and set in the hall</div></div>';
+   '<div class="ectag">'+esc(opt.tag||'cut and set in the hall')+'</div></div>';
  fx.classList.add('open');
  if(enchCeremonyT)clearTimeout(enchCeremonyT);
  enchCeremonyT=setTimeout(enchCeremonyEnd,ENCH_CEREMONY_MS);
@@ -4462,6 +4540,47 @@ function enchApply(id){
   : `<span class="lfine">✨ ${w.n}</span> is bound to ${itemName(S.gear.weapon)}.`,'loot');
  save();renderHero();renderBag();enchRefresh();
 }
+/* 📖 read one Book of Knowledge: the book goes, an inscription you did not choose comes, and the
+   reading teaches ENCH_PER_BOOK skill. The rarity is rolled on the skill you walked in with. */
+let inscLast=null;   /* presentation only, like enchLastCut */
+function enchReadBook(){
+ if(!enchTrained())return;
+ const i=(S.bag||[]).findIndex(isKnowledgeBook);
+ if(i<0){stageMsg('📖 You have no Book of Knowledge',1600);sfx.warn();return;}
+ const got=inscRoll(enchSkill()),e=inscById(got.id);
+ S.bag.splice(i,1);
+ if(!Array.isArray(S.ench.insc))S.ench.insc=[];
+ S.ench.insc.push(got);
+ inscPick=inscKey(got);
+ inscLast={owner:S.ench,v:got};
+ enchFeedback={owner:S.ench,kind:'read',text:inscRar(got.rar)+' '+e.n+' added to your inscriptions.'};
+ enchGain(ENCH_PER_BOOK);
+ sfx.quest();
+ log(`📖 The Book of Knowledge gives up <span class="l${got.rar}">${e.n}</span> - ${inscLine(got)}.`,'loot');
+ save();renderBag();enchRefresh();
+ enchCeremony({icon:e.icon,n:e.n,glow:INSC_COL[got.rar],flavour:e.d(inscVal(got))},{ink:INSC_INK[got.rar],fb:e.fb,tag:inscRar(got.rar)+' inscription'});
+}
+/* write one inscription of the chosen kind onto the equipped weapon. One to a weapon: whatever it
+   carried before is gone, and the new one stays on this weapon even after it leaves your hand. */
+function enchInscribe(key){
+ const list=(S.ench&&Array.isArray(S.ench.insc))?S.ench.insc:[];
+ const idx=list.findIndex(v=>inscOk(v)&&inscKey(v)===key);
+ if(idx<0)return;
+ const weapon=S.gear&&S.gear.weapon;
+ if(!weapon){stageMsg('📖 Equip a weapon to inscribe it',1700);sfx.warn();return;}
+ const v=inscClean(list[idx]),e=inscById(v.id),had=inscOk(weapon.insc)?weapon.insc:null;
+ weapon.insc=v;
+ list.splice(idx,1);
+ enchFeedback={owner:S.ench,kind:'insc',text:e.n+' inscribed on '+itemName(weapon)+(had?'; '+inscById(had.id).n+' erased.':'.')};
+ sfx.loot();
+ stageMsg('📖 '+e.n+' inscribed on your weapon',2600);
+ log(had
+  ? `<span class="l${v.rar}">📖 ${e.n}</span> is written over ${inscById(had.id).n} on ${itemName(weapon)}.`
+  : `<span class="l${v.rar}">📖 ${e.n}</span> is inscribed on ${itemName(weapon)}.`,'loot');
+ save();renderHero();renderBag();enchRefresh();
+}
+let inscPick='';   /* the selected inscription KIND (id:rarity) - the list shifts when one is spent */
+let enchTab='runes';   /* 'runes' or 'books' - kept for the session, so a miner who only cuts is not sent elsewhere */
 let enchPick='';   /* which KIND is selected, not an index - the list shifts when one is spent */
 function enchRefresh(){
  if(!$('enchFx'))return;
@@ -4472,13 +4591,16 @@ function enchRefresh(){
   : 'Cut emeralds into runes, then bind their glow to your weapon.';
  const span=cap-rk.at,into=Math.max(0,Math.min(span,s-rk.at));
  $('enchBar').style.width=(trained?(100*into/span):0)+'%';
+ const books=bookCount();
  $('enchGems').style.display=trained?'':'none';
- $('enchGems').innerHTML=`${uiIcon('it_emerald','💚','shopico')} <b>${gems.toLocaleString()}</b> emerald${gems===1?'':'s'} in your bag`;
+ $('enchGems').innerHTML=enchTab==='books'
+  ? `${uiIcon('it_book','📖','shopico')} <b>${books}</b> Book${books===1?'':'s'} of Knowledge in your bag`
+  : `${uiIcon('it_emerald','💚','shopico')} <b>${gems.toLocaleString()}</b> emerald${gems===1?'':'s'} in your bag`;
  if(!trained){
   $('enchBody').innerHTML=`<div class="craft-empty">
     <span class="craft-slot-art" aria-hidden="true">${uiIcon('venue_ench','✨','')}</span>
     <h3 class="craft-section-title">Become an apprentice</h3>
-    <p class="craft-note">Learn the craft to turn ${ENCH_COST} emeralds into a random rune. Keep your runes here until you are ready to bind one.</p>
+    <p class="craft-note">Learn the craft to turn ${ENCH_COST} emeralds into a random rune, and to read the Books of Knowledge the Wasteland guardians keep. Keep your runes here until you are ready to bind one.</p>
    </div><div class="craft-materials"><span class="craft-badge">${ENCH_TRAIN_COST.toLocaleString()} gold to learn</span><span>${totalGold().toLocaleString()} gold available</span></div>
    <div class="craft-actions"><button type="button" class="sbtn gold" id="enchLearn" ${totalGold()>=ENCH_TRAIN_COST?'':'disabled'}>Learn enchanting</button></div>
    <p class="craft-note">${totalGold()>=ENCH_TRAIN_COST?'A permanent craft for this character.':'Gather '+(ENCH_TRAIN_COST-totalGold()).toLocaleString()+' more gold to learn.'}</p>`;
@@ -4491,6 +4613,17 @@ function enchRefresh(){
   };
   return;
  }
+ /* the two crafts of the hall, one tab each. Wired by id rather than by a selector, so the tabs can
+    never be mistaken for the rune or inscription cells below them. */
+ const tabs=`<div class="craft-tabs" aria-label="Enchanting Hall crafts">
+   <button type="button" class="craft-tab${enchTab==='runes'?' active':''}" id="enchTabRunes" aria-pressed="${enchTab==='runes'}">${uiIcon('en_storm','✨','')}<span>Runes</span></button>
+   <button type="button" class="craft-tab${enchTab==='books'?' active':''}" id="enchTabBooks" aria-pressed="${enchTab==='books'}">${uiIcon('it_book','📖','')}<span>Books of Knowledge${books?' <b class="insc-tabcount">×'+books+'</b>':''}</span></button>
+  </div>`;
+ const wireTabs=()=>{
+  $('enchTabRunes').onclick=()=>{enchTab='runes';enchRefresh();};
+  $('enchTabBooks').onclick=()=>{enchTab='books';enchRefresh();};
+ };
+ if(enchTab==='books'){inscRefresh(tabs,books);wireTabs();return;}
  const bag=(S.ench.bag||[]);
  /* Stacked by kind. The bag itself stays a flat list of ids - that is what enchApply spends from
     and what existing saves already hold - and only the DRAWING groups them, so nothing needs
@@ -4506,7 +4639,7 @@ function enchRefresh(){
  const weapon=S.gear&&S.gear.weapon,heldRune=weapon&&wenchById(weapon.wench);
  const last=enchLastCut&&enchLastCut.owner===S.ench?wenchById(enchLastCut.id):null;
  const feedback=enchFeedback&&enchFeedback.owner===S.ench?enchFeedback:null;
- $('enchBody').innerHTML=`
+ $('enchBody').innerHTML=tabs+`
   <h3 class="craft-section-title">Cut a rune</h3>
   <div class="craft-pair">
    <article class="craft-slot${gems>=ENCH_COST?' filled':''}"><span class="craft-slot-label">Material</span><span class="craft-slot-art">${uiIcon('it_emerald','💚','')}</span><strong class="craft-slot-name">${ENCH_COST} Emeralds</strong><span class="craft-slot-note">${gems.toLocaleString()} available</span></article>
@@ -4534,8 +4667,59 @@ function enchRefresh(){
   document.querySelectorAll('#enchBody [data-ei]').forEach(next=>{if(next.dataset.ei===enchPick)next.focus({preventScroll:true});});
  });
  const ab=$('enchApplyBtn');if(ab)ab.onclick=()=>enchApply(enchPick);
+ wireTabs();
 }
-function openEnchantHall(){enchPick='';$('enchFx').style.display='flex';enchRefresh();sfx.buy();}
+/* 📖 the Books of Knowledge tab: read a book above, write an inscription onto the weapon below -
+   the same two-step shape as the runes, so the hall reads as one craft with two materials */
+function inscRefresh(tabs,books){
+ const list=(Array.isArray(S.ench.insc)?S.ench.insc:[]).filter(inscOk);
+ const counts={};
+ list.forEach(v=>{const k=inscKey(v);counts[k]=(counts[k]||0)+1;});
+ if(!counts[inscPick])inscPick='';
+ const kinds=[];   /* rarest first, then the table's order - a fixed order, so cells stop jumping about */
+ for(const r of INSC_RARS.slice().reverse())for(const e of INSC)if(counts[e.id+':'+r])kinds.push({id:e.id,rar:r});
+ const icon=v=>{const e=inscById(v.id);return uiIcon(e.icon,e.fb,'');};
+ const cells=kinds.map(v=>{const e=inscById(v.id),k=inscKey(v);return `<button type="button" class="craft-choice insc-choice${inscPick===k?' on':''}" data-ii="${k}" aria-pressed="${inscPick===k}" aria-label="${esc(inscRar(v.rar)+' '+e.n)}, ${counts[k]} available"
+   style="--ir:${INSC_COL[v.rar]}"><span class="craft-slot-art">${icon(v)}</span><span class="craft-slot-name">${esc(e.n)}</span><small class="insc-rar">${inscRar(v.rar)}</small><small>${esc(e.d(inscVal(v)))}</small><span class="craft-badge">×${counts[k]}</span></button>`;}).join('');
+ const sel=inscPick?kinds.find(v=>inscKey(v)===inscPick)||null:null;
+ const weapon=S.gear&&S.gear.weapon,held=weapon&&inscOk(weapon.insc)?weapon.insc:null;
+ const last=inscLast&&inscLast.owner===S.ench?inscLast.v:null;
+ const feedback=enchFeedback&&enchFeedback.owner===S.ench?enchFeedback:null;
+ const odds=inscOdds(enchSkill());
+ const pct=x=>{const p=x*100;return (p===0||p>=10?Math.round(p):Math.round(p*10)/10)+'%';};
+ const oddsBar=`<div class="insc-odds" aria-hidden="true">${INSC_RARS.map((r,k)=>odds[k]>0?`<i style="width:${(odds[k]*100).toFixed(2)}%;background:${INSC_COL[r]}"></i>`:'').join('')}</div>`;
+ const oddsTxt=INSC_RARS.map((r,k)=>`<span class="insc-odd${odds[k]>0?'':' none'}" style="--ir:${INSC_COL[r]}">${inscRar(r)} <b>${pct(odds[k])}</b></span>`).join('');
+ $('enchBody').innerHTML=tabs+`
+  <h3 class="craft-section-title">Read a Book of Knowledge</h3>
+  <div class="craft-pair">
+   <article class="craft-slot${books?' filled':''}"><span class="craft-slot-label">Material</span><span class="craft-slot-art">${uiIcon('it_book','📖','')}</span><strong class="craft-slot-name">Book of Knowledge</strong><span class="craft-slot-note">${books} in your bag</span></article>
+   <span class="craft-plus" aria-hidden="true">→</span>
+   <article class="craft-slot${last?' filled insc-slot':''}"${last?` style="--ir:${INSC_COL[last.rar]}"`:''}><span class="craft-slot-label">${last?'Last book read':'Mystery result'}</span><span class="craft-slot-art" aria-hidden="true">${last?icon(last):'?'}</span><strong class="craft-slot-name">${last?esc(inscById(last.id).n):'One random inscription'}</strong><span class="craft-slot-note">${last?esc(inscLine(last)):'Its rarity leans on your enchanting skill'}</span></article>
+  </div>
+  <div class="craft-actions"><button type="button" class="sbtn gold" id="enchReadBtn" ${books?'':'disabled'}>Read the book · 1 Book of Knowledge</button></div>
+  <div class="insc-oddsbox"><span class="craft-slot-label">Your odds at skill ${enchSkill()}</span>${oddsBar}<div class="insc-oddrow">${oddsTxt}</div></div>
+  <p class="craft-note">${books?'Each book gives one random inscription.':'Clear a Wasteland dungeon - both of its guardians - to carry a book home.'} Higher enchanting skill turns up rarer ones: a Journeyman can read an epic line, an Expert a legendary one. +${ENCH_PER_BOOK} enchanting skill per book.</p>
+  ${feedback&&feedback.kind==='read'?`<p class="craft-status" role="status">${esc(feedback.text)}</p>`:''}
+  <h3 class="craft-section-title">Inscribe your weapon</h3>
+  <div class="craft-pair">
+   <article class="craft-slot${weapon?' filled':''}"><span class="craft-slot-label">Equipped weapon</span><span class="craft-slot-art" aria-hidden="true">${weapon?uiIcon('it_weapon','⚔',''):'?'}</span><strong class="craft-slot-name">${weapon?esc(itemName(weapon)):'No weapon equipped'}</strong><span class="craft-slot-note">${held?'Inscribed: '+esc(inscLine(held)):weapon?'No inscription yet':'Equip a weapon to inscribe it'}</span></article>
+   <span class="craft-plus" aria-hidden="true">+</span>
+   <article class="craft-slot${sel?' filled insc-slot':''}"${sel?` style="--ir:${INSC_COL[sel.rar]}"`:''}><span class="craft-slot-label">Selected inscription</span><span class="craft-slot-art" aria-hidden="true">${sel?icon(sel):'?'}</span><strong class="craft-slot-name">${sel?esc(inscById(sel.id).n):'Choose an inscription below'}</strong><span class="craft-slot-note">${sel?esc(inscLine(sel)):'One inscription is used when written'}</span></article>
+  </div>
+  <h3 class="craft-section-title">Your inscriptions <span class="craft-badge">${list.length}</span></h3>
+  <div class="craft-picker">${cells||'<p class="craft-empty">You have no inscriptions yet. Read a Book of Knowledge above to find your first.</p>'}</div>
+  <div class="craft-result"><span class="craft-result-icon" aria-hidden="true">${sel?icon(sel):uiIcon('it_weapon','⚔','')}</span><div><h3 class="craft-result-title">${sel&&weapon?esc(inscById(sel.id).n)+' · '+esc(itemName(weapon)):'A lasting edge for your weapon'}</h3><p class="craft-result-meta">${sel&&weapon?'Write '+esc(inscLine(sel))+' onto your equipped weapon.':'Select an inscription and equip a weapon to preview it.'}</p>${held&&sel?`<p class="craft-note">Replaces ${esc(inscLine(held))}. The current inscription will be lost.</p>`:''}</div></div>
+  <div class="craft-actions"><button type="button" class="sbtn gold" id="enchInscBtn" ${sel&&weapon?'':'disabled'}>Inscribe weapon</button></div>
+  <p class="craft-note">The inscription stays with this weapon, in your hand or in your bag, and works while the weapon is equipped. Sell All and Scrap All leave inscribed weapons alone.</p>
+  ${feedback&&feedback.kind==='insc'?`<p class="craft-status" role="status">${esc(feedback.text)}</p>`:''}`;
+ const rb=$('enchReadBtn');if(rb)rb.onclick=enchReadBook;
+ document.querySelectorAll('#enchBody [data-ii]').forEach(b=>b.onclick=()=>{
+  inscPick=b.dataset.ii;enchRefresh();
+  document.querySelectorAll('#enchBody [data-ii]').forEach(next=>{if(next.dataset.ii===inscPick)next.focus({preventScroll:true});});
+ });
+ const ib=$('enchInscBtn');if(ib)ib.onclick=()=>enchInscribe(inscPick);
+}
+function openEnchantHall(){enchPick='';inscPick='';$('enchFx').style.display='flex';enchRefresh();sfx.buy();}
 /* ==================== 🔥 THE SMELTER ====================
    Two slots in and one out, laid out like the blacksmith: ore and coal on the left, the finished
    stone on the right. Three ore and one coal buy a single emerald - the ratio is what makes a rank
@@ -5824,7 +6008,7 @@ function bloodAt(x,y,n){
   
 /* ==================== COMBAT ==================== */
 function atkMul(){return hero.buff.atk&&hero.buff.atk.t>0?hero.buff.atk.mul:1;}
-function hasteMul(){return (hero.buff.haste&&hero.buff.haste.t>0?hero.buff.haste.mul:1)*swiftMul()*hasteBoostMul()*(1+gearSum('haste'))*(1+((activePet()||{}).haste||0));}
+function hasteMul(){return (hero.buff.haste&&hero.buff.haste.t>0?hero.buff.haste.mul:1)*swiftMul()*hasteBoostMul()*(1+gearSum('haste'))*(1+((activePet()||{}).haste||0))*(1+wornInsc('swift')/100);} /* 📖 Quickening */
 function healHero(amt,silent){
  if(hero.dead)return;
  amt=Math.round(amt);if(amt<=0)return;
@@ -5842,19 +6026,60 @@ function hurtHero(dmg,label){
  if(hero.hp<=0)heroDies();
  return dmg;
 }
+/* one swing's damage roll: the swing itself, and what a Book of Knowledge adds to it */
+function swingRoll(mul=1){
+ let dmg=heroAtk()*(0.9+Math.random()*0.2)*atkMul()*mul,crit=false;
+ if(Math.random()*100<heroCrit()){dmg*=1.7;crit=true;}
+ return {dmg:Math.round(dmg),crit};
+}
+function heroSwing(en,c,dmg,crit,label){
+ hero.swing=0.22;
+ mpAct('swing',{tx:Math.round(en.x),ty:Math.round(en.y),rg:c.ranged?1:0,ar:c.id==='hunter'?1:0,c:c.boltC});
+ if(c.ranged){sfx.bolt();bolts.push({x:hero.x,y:hero.y-10,tgt:en,sp:430,dmg,crit,c:c.boltC,basic:true,arrow:c.id==='hunter',label});}
+ else{sfx.swing();landHit(en,dmg,crit,label,true);}
+}
 function heroBasicAttack(en,dt){
  if(hero.deadWait)return; /* fallen raiders can't poke the lord through the sealed wall */
  const c=classOf();
  hero.cd-=dt*hasteMul();
  if(hero.cd>0)return;
  hero.cd=c.cd;
- let dmg=heroAtk()*(0.9+Math.random()*0.2)*atkMul(),crit=false;
- if(Math.random()*100<heroCrit()){dmg*=1.7;crit=true;}
- dmg=Math.round(dmg);
- hero.swing=0.22;
- mpAct('swing',{tx:Math.round(en.x),ty:Math.round(en.y),rg:c.ranged?1:0,ar:c.id==='hunter'?1:0,c:c.boltC});
- if(c.ranged){sfx.bolt();bolts.push({x:hero.x,y:hero.y-10,tgt:en,sp:430,dmg,crit,c:c.boltC,basic:true,arrow:c.id==='hunter'});}
- else{sfx.swing();landHit(en,dmg,crit,null,true);}
+ const {dmg,crit}=swingRoll();
+ heroSwing(en,c,dmg,crit,null);
+ inscProcs(en,c);
+}
+/* 📖 the worn weapon's inscription, riding on the swing that just left. Twin Strike is a whole second
+   swing - its own damage and crit roll, and the scrolls' on-hit effects fire again - a beat behind the
+   first, so the two hits read as two. Arcane Orb is a slower projectile that bursts on the target. */
+const TWIN_DELAY_MS=140,ORB_C='#b98cff';
+function inscProcs(en,c){
+ const twin=wornInsc('twin'),orb=wornInsc('orb');
+ if(twin&&Math.random()*100<twin){
+  const who=S;
+  setTimeout(()=>{   /* the fight may have moved on in 140 ms: the same hero, alive, and the foe still here */
+   if(!gameOn||S!==who||hero.dead||hero.deadWait||en.dead||en.hidden||!enemies.includes(en))return;
+   const r=swingRoll();
+   heroSwing(en,c,r.dmg,r.crit,'Twin');
+  },TWIN_DELAY_MS);
+ }
+ if(orb&&Math.random()*100<orb){
+  const r=swingRoll(INSC_ORB_MUL);
+  bolts.push({x:hero.x,y:hero.y-18,tgt:en,sp:300,dmg:r.dmg,crit:r.crit,c:ORB_C,orb:true});
+  mpAct('boltfx',{tx:Math.round(en.x),ty:Math.round(en.y),c:ORB_C,orb:1});
+  sfx.arcane();
+ }
+}
+/* the orb lands: its full roll on the target, half of it on every foe standing close beside */
+function orbBurst(b){
+ const t=b.tgt;
+ if(t.dead||t.hidden)return;
+ const splash=Math.max(1,Math.round(b.dmg*INSC_ORB_SPLASH));
+ const near=enemies.filter(e=>e!==t&&!e.dead&&!e.hidden&&dist(t,e)<=INSC_ORB_RAD);   /* chosen before the blast can kill anyone */
+ applyDmg(t,b.dmg,'Orb',b.crit);
+ near.forEach(e=>applyDmg(e,splash,'Orb'));
+ ring(t.x,t.y-10,INSC_ORB_RAD,ORB_C,0.4);
+ burst(t.x,t.y-10,'#d9c2ff',12,110);
+ sfx.hit();
 }
 function landHit(en,dmg,crit,label,basic){
  if(en.dead||en.hidden)return;
@@ -5884,7 +6109,7 @@ function landHit(en,dmg,crit,label,basic){
  applyDmg(en,dmg,label,crit);
  const w=S.gear.weapon;
  const tkR=S.gear&&S.gear.trinket;
- const lsAll=((w&&w.lifesteal)||0)+((tkR&&tkR.lifesteal)||0)+fkBonus()/100;
+ const lsAll=((w&&w.lifesteal)||0)+((tkR&&tkR.lifesteal)||0)+fkBonus()/100+wornInsc('leech')/100; /* 📖 Bloodthirst */
  if(lsAll>0)healHero(Math.max(1,dmg*lsAll),true);
  if(tkR&&tkR.manadrain)hero.mana=Math.max(0,hero.mana-manaMax()*tkR.manadrain); /* the Ring exacts its price on every strike */
  sfx.hit();
@@ -8121,13 +8346,19 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   if(b.tgt.dead||b.tgt.hidden){bolts.splice(i,1);continue;}
   const dx=b.tgt.x-b.x,dy=b.tgt.y-10-b.y,d=Math.hypot(dx,dy);
   if(d<12){
-   if(b.vis){burst(b.tgt.x,b.tgt.y-10,b.c||'#7fd0ff',5,60);bolts.splice(i,1);continue;} /* peer ghost projectile - pure visuals */
+   if(b.vis){ /* peer ghost projectile - pure visuals */
+    burst(b.tgt.x,b.tgt.y-10,b.c||'#7fd0ff',b.orb?12:5,b.orb?110:60);
+    if(b.orb)ring(b.tgt.x,b.tgt.y-10,INSC_ORB_RAD,b.c||ORB_C,0.4);
+    bolts.splice(i,1);continue;
+   }
    if(b.spell){dealSpell(b.tgt,b.spell);if(b.spell.heal)healHero(heroMax()*b.spell.heal);}
-   else landHit(b.tgt,b.dmg,b.crit,null,b.basic);
+   else if(b.orb)orbBurst(b);
+   else landHit(b.tgt,b.dmg,b.crit,b.label||null,b.basic);
    bolts.splice(i,1);continue;
   }
   b.x+=dx/d*b.sp*dt;b.y+=dy/d*b.sp*dt;
-  if(chance(0.5))parts.push({x:b.x,y:b.y,vx:0,vy:0,t:0,life:0.2,c:b.c,r:1.5,g:0});
+  if(b.orb){if(chance(0.8))parts.push({x:b.x+(Math.random()-0.5)*7,y:b.y+(Math.random()-0.5)*7,vx:(Math.random()-0.5)*24,vy:(Math.random()-0.5)*24,t:0,life:0.25+Math.random()*0.2,c:b.c,r:1.2+Math.random()*1.8,g:0});} /* 📖 the orb sheds sparks, not a dotted line */
+  else if(chance(0.5))parts.push({x:b.x,y:b.y,vx:0,vy:0,t:0,life:0.2,c:b.c,r:1.5,g:0});
  }
  // ----- enemy bolts (dodgeable) -----
  for(let i=ebolts.length-1;i>=0;i--){
@@ -8613,6 +8844,13 @@ function draw(){
    ctx.moveTo(-5.5,0);ctx.lineTo(-8.5,-3.4);ctx.moveTo(-5.5,0);ctx.lineTo(-8.5,3.4);
    ctx.stroke();
    ctx.restore();
+  }else if(b.orb){
+   /* 📖 Arcane Orb: a breathing halo around a bright core, bigger than any bolt so it reads as the inscription firing */
+   const pulse=1+0.18*Math.sin(now*14+b.x*0.05);
+   ctx.fillStyle='rgba(185,140,255,0.22)';ctx.beginPath();ctx.arc(b.x,b.y,13*pulse,0,7);ctx.fill();
+   ctx.fillStyle='rgba(201,160,255,0.45)';ctx.beginPath();ctx.arc(b.x,b.y,8.5*pulse,0,7);ctx.fill();
+   ctx.fillStyle=b.c||ORB_C;ctx.beginPath();ctx.arc(b.x,b.y,5.5,0,7);ctx.fill();
+   ctx.fillStyle='rgba(255,255,255,0.85)';ctx.beginPath();ctx.arc(b.x-1.6,b.y-1.6,2.3,0,7);ctx.fill();
   }else{
    ctx.fillStyle=b.c;ctx.beginPath();ctx.arc(b.x,b.y,b.spell?5:3.5,0,7);ctx.fill();
    ctx.fillStyle='rgba(255,255,255,0.5)';ctx.beginPath();ctx.arc(b.x,b.y,1.6,0,7);ctx.fill();
@@ -10720,7 +10958,7 @@ function renderHero(){
      title="${esc(w.n)}. ${esc(w.flavour)}">${uiIcon(w.icon,'✨')}</span>`;
   }
   return `<div class="slot">${mark}<div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div>`+
-   (g?`<div class="sn r-${g.rar}">${itemName(g)}</div><div class="ss">${itemStr(g)}</div>
+   (g?`<div class="sn r-${g.rar}">${itemName(g)}</div><div class="ss">${itemStr(g)}</div>${inscHtml(g)}
     ${(sl==='weapon'||ringEye?'<div class="petbtns">':'')+((g.up||0)>=capUp(g)
      ?`<button class="upbtn" disabled>MAX +${capUp(g)} ✦</button>`
      :`<button class="upbtn ${S.scraps>=upCost(g)?'can':''}" data-up="${sl}">Upgrade · ${upCost(g)} ⚙</button>`)
@@ -11054,13 +11292,14 @@ function cleanBagItem(it){
  if(!rarOrder.includes(it.rar))it.rar='common';
  it.sell=Number.isFinite(+it.sell)?Math.max(0,Math.round(+it.sell)):0;
  it.up=Number.isFinite(+it.up)?Math.max(0,Math.round(+it.up)):0;
+ if(it.insc!==undefined){const v=it.slot==='weapon'?inscClean(it.insc):null;if(v)it.insc=v;else delete it.insc;} /* 📖 weapons only, and only a well-formed one */
  calcPower(it);
  return it;
 }
 function scrapBagItems(match,label){
  if(cowLocked()){stageMsg('The herd allows no forging - survive or die first!',1800);sfx.warn();return false;}
  const keep=[],take=[];
- S.bag.forEach(it=>((match(it)&&!isLegendary(it)&&!inGearSet(it))?take:keep).push(it));
+ S.bag.forEach(it=>((match(it)&&bagSellable(it))?take:keep).push(it));
  if(!take.length){stageMsg('Nothing to scrap',1200);return false;}
  const total=take.reduce((t,it)=>t+scrapVal(it),0),n=take.length;
  S.bag=keep;
@@ -11074,7 +11313,7 @@ function scrapBagItems(match,label){
 function renderBag(){
  S.bag=(S.bag||[]).map(cleanBagItem).filter(Boolean);
  const books=S.bag.filter(isKnowledgeBook);
- const knowledgeHtml=books.length?`<div class="card item knowledge-book"><div><div class="sn" style="font-size:13px;font-weight:600">${uiIcon('it_book','📖','shopico')} Book of Knowledge <span style="color:var(--dim)">×${books.length}</span></div><div class="ss" style="color:var(--dim);font-size:11px">A relic recovered from the guardians of Wasteland. Its purpose has not yet been revealed.</div></div></div>`:'';
+ const knowledgeHtml=books.length?`<div class="card item knowledge-book"><div><div class="sn" style="font-size:13px;font-weight:600">${uiIcon('it_book','📖','shopico')} Book of Knowledge <span style="color:var(--dim)">×${books.length}</span></div><div class="ss" style="color:var(--dim);font-size:11px">A relic recovered from the guardians of Wasteland. Read it at the Enchanting Hall in the City to reveal one random inscription for your weapon${enchTrained()?'':' - the hall teaches enchanting first'}. The more enchanting skill you have, the rarer it tends to be.</div></div></div>`:'';
  $('bagWallet').innerHTML=walletStr();
  // 🍀 luck potions - always at the top
  let luckHtml='';
@@ -11414,7 +11653,7 @@ function renderBag(){
   if(!list.length)return;
   if(gearRarityOpen[rar]===undefined)gearRarityOpen[rar]=false;
   const open=gearRarityOpen[rar];
-  const sell=list.filter(x=>!isLegendary(x.it)&&!inGearSet(x.it)).reduce((t,x)=>t+(x.it.sell||0),0),scr=list.filter(x=>!isLegendary(x.it)&&!inGearSet(x.it)).reduce((t,x)=>t+scrapVal(x.it),0);
+  const sell=list.filter(x=>bagSellable(x.it)).reduce((t,x)=>t+(x.it.sell||0),0),scr=list.filter(x=>bagSellable(x.it)).reduce((t,x)=>t+scrapVal(x.it),0);
   gearHtml+=`<div class="tierhead" data-grar="${rar}" style="border-color:${rarColor[rar]}66">
     <span style="color:${rarColor[rar]}">${open?'▾':'▸'} ${rarName[rar]} Gear</span>
     <span class="tcount" style="display:flex;align-items:center;gap:6px;justify-content:flex-end">${rar==='legendary'
@@ -11429,7 +11668,7 @@ function renderBag(){
     gearHtml+=sub.map(({it,i})=>`
   <div class="card item">
    <div><div class="sn r-${it.rar}" style="font-size:13px;font-weight:600">${inGearSet(it)?'⭐ ':''}${itemName(it)}</div>
-   <div class="ss" style="color:var(--dim);font-size:11px">${it.slot} · ${itemStr(it)}${equipCompare(it)}</div></div>
+   <div class="ss" style="color:var(--dim);font-size:11px">${it.slot} · ${itemStr(it)}${equipCompare(it)}</div>${inscHtml(it)}</div>
    <div class="btns">
     <button class="sbtn gold" data-eq="${i}">Equip</button>
     ${isLegendary(it)
@@ -11452,7 +11691,7 @@ function renderBag(){
   const rar=b.dataset.scrrar;
   if(!b.dataset.armed){
    b.dataset.armed='1';b.textContent='Confirm?';b.style.color='#ff8a7a';b.style.borderColor='#a05a5a';
-   setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent='Scrap All +'+S.bag.filter(it=>it.rar===rar&&!isLegendary(it)&&!inGearSet(it)).reduce((t,it)=>t+scrapVal(it),0)+'⚙';b.style.color='';b.style.borderColor='';}},3000);
+   setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent='Scrap All +'+S.bag.filter(it=>it.rar===rar&&bagSellable(it)).reduce((t,it)=>t+scrapVal(it),0)+'⚙';b.style.color='';b.style.borderColor='';}},3000);
    return;
   }
   scrapBagItems(it=>it.rar===rar,rar+' gear');
@@ -11469,7 +11708,7 @@ function renderBag(){
   if(cowLocked()){stageMsg('No selling mid-herd - fill the bag or die first!',1600);sfx.warn();return;} /* the same lock as Sell All and Scrap */
   const i=+b.dataset.sell;if(isLegendary(S.bag[i])||inGearSet(S.bag[i]))return;
   const it=S.bag[i];if(!it)return;
-  confirmBox(`Are you sure you want to sell <b class="l${it.rar}">${itemName(it)}</b> for <b style="color:var(--brass)">${(it.sell||0).toLocaleString()}◉</b>?`,()=>{
+  confirmBox(`Are you sure you want to sell <b class="l${it.rar}">${itemName(it)}</b> for <b style="color:var(--brass)">${(it.sell||0).toLocaleString()}◉</b>?${it.insc?' Its inscription goes with it.':''}`,()=>{
    const idx=S.bag.indexOf(it);if(idx<0)return; /* bag may have shifted while the box was open */
    S.bag.splice(idx,1);
    addGoldOverflow(it.sell||0);sfx.loot();renderBag();renderHUD();save();
@@ -11478,10 +11717,16 @@ function renderBag(){
  document.querySelectorAll('[data-scr]').forEach(b=>b.onclick=()=>{
   if(cowLocked()){stageMsg('No scrapping mid-herd - die or leave first!',1600);sfx.warn();return;}
   const i=+b.dataset.scr;if(isLegendary(S.bag[i])||inGearSet(S.bag[i]))return;
-  const it=S.bag.splice(i,1)[0];
-  S.scraps=Math.min(SCRAP_CAP,S.scraps+scrapVal(it));sfx.forge();
-  log(`Scrapped <span class="l${it.rar}">${it.name}</span> - +${scrapVal(it)} ⚙.`);
-  renderBag();renderHUD();save();
+  const it=S.bag[i];if(!it)return;
+  const scrap=()=>{
+   const idx=S.bag.indexOf(it);if(idx<0)return; /* bag may have shifted while the box was open */
+   S.bag.splice(idx,1);
+   S.scraps=Math.min(SCRAP_CAP,S.scraps+scrapVal(it));sfx.forge();
+   log(`Scrapped <span class="l${it.rar}">${it.name}</span> - +${scrapVal(it)} ⚙.`);
+   renderBag();renderHUD();save();
+  };
+  if(it.insc)confirmBox(`Scrap <b class="l${it.rar}">${itemName(it)}</b> for <b>${scrapVal(it)}⚙</b>? Its inscription goes with it.`,scrap); /* 📖 a book's worth - worth one question */
+  else scrap();
  });
  document.querySelectorAll('[data-unstar]').forEach(b=>b.onclick=()=>{
   const it=S.bag[+b.dataset.unstar];
@@ -11498,7 +11743,7 @@ function renderBag(){
    sa.dataset.armed='1';
    sa.textContent='Confirm - scrap everything?';
    sa.style.color='#ff8a7a';sa.style.borderColor='#a05a5a';
-   setTimeout(()=>{if(sa.isConnected){delete sa.dataset.armed;sa.textContent=`⚙ Scrap All +${S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it)).reduce((t,it)=>t+scrapVal(it),0)}⚙`;sa.style.color='';sa.style.borderColor='';}},3000);
+   setTimeout(()=>{if(sa.isConnected){delete sa.dataset.armed;sa.textContent=`⚙ Scrap All +${S.bag.filter(bagSellable).reduce((t,it)=>t+scrapVal(it),0)}⚙`;sa.style.color='';sa.style.borderColor='';}},3000);
    return;
   }
   scrapBagItems(()=>true,'items'); /* legendaries auto-excluded by the guard */
@@ -11510,15 +11755,15 @@ function renderBag(){
    se.dataset.armed='1';
    se.textContent='Confirm - sell everything?';
    se.style.color='#ff8a7a';se.style.borderColor='#a05a5a';
-   setTimeout(()=>{if(se.isConnected){delete se.dataset.armed;se.textContent=`◉ Sell All +${S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it)).reduce((t,it)=>t+(it.sell||0),0).toLocaleString()}◉`;se.style.color='';se.style.borderColor='';}},3000);
+   setTimeout(()=>{if(se.isConnected){delete se.dataset.armed;se.textContent=`◉ Sell All +${S.bag.filter(bagSellable).reduce((t,it)=>t+(it.sell||0),0).toLocaleString()}◉`;se.style.color='';se.style.borderColor='';}},3000);
    return;
   }
-  const keep=S.bag.filter(it=>isLegendary(it)||inGearSet(it)),sold=S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it));
+  const keep=S.bag.filter(it=>it&&!bagSellable(it)),sold=S.bag.filter(bagSellable);
   const total=sold.reduce((t,it)=>t+(it.sell||0),0),n=sold.length;
   S.bag=keep;
   addGoldOverflow(total);
   sfx.loot();
-  log(`Sold ${n} items - +${total.toLocaleString()} ◉. Legendaries stay in the bag.`,'loot');
+  log(`Sold ${n} items - +${total.toLocaleString()} ◉. Legendaries${keep.some(it=>it.insc)?' and inscribed weapons':''} stay in the bag.`,'loot');
   stageMsg('◉ Sold '+n+' items for '+total.toLocaleString()+' gold',1800);
   renderBag();renderHUD();save();
  };
@@ -15172,7 +15417,7 @@ function smithWeapons(fg,star){
  const matches=it=>(fg?isFG(it):isFK(it))&&legendStar(it)===star,bag=(S.bag||[]).filter(matches),eq=S.gear.weapon,seen=new Set();
  return bag.filter(it=>!inGearSet(it)).concat(bag.filter(it=>inGearSet(it)),matches(eq)?[eq]:[]).filter(it=>{if(seen.has(it))return false;seen.add(it);return true;});
 }
-function smithWeaponNote(it){return (S.gear.weapon===it?'Equipped':inGearSet(it)?'In a gear set':'In bag')+' · Upgrade +'+(it.up||0)+' · '+Math.round(it.atk||0)+' attack';}
+function smithWeaponNote(it){return (S.gear.weapon===it?'Equipped':inGearSet(it)?'In a gear set':'In bag')+' · Upgrade +'+(it.up||0)+' · '+Math.round(it.atk||0)+' attack'+(inscOk(it.insc)?' · 📖 '+inscRar(it.insc.rar)+' '+inscById(it.insc.id).n:'');}
 function smithScrolls(){
  const seen=new Set();return (S.scrolls||[]).map((sc,i)=>({sc,k:'b'+i})).concat((S.activeScrolls||[]).map((sc,i)=>({sc,k:'e'+i}))).filter(o=>{if(!o.sc||o.sc.id2||o.sc.tier!==MAXTIER||!enchOf(o.sc.id)||seen.has(o.sc))return false;seen.add(o.sc);return true;});
 }
@@ -15255,15 +15500,16 @@ function smithRefresh(){
  }}
  const stats=fg?`+${out===3?20:15}% boss damage · +${out*2}% lifesteal`:`+${out*2}% crit · +${out*2}% lifesteal`;
  smithHTML($('fmSlotOut'),smithArt(smithSel));$('fmSlotOut').classList.toggle('filled',!!ready);
- smithHTML($('fmPreview'),`<div class="craft-result-title">${name} ★${out}</div><div class="craft-result-meta">${stats}</div><p class="craft-note">${!unlocked?'Requires blacksmith level '+(out===3?10:5)+' and Prestige '+(out===3?20:10)+'.':busy?'The forge is busy. Your current job continues above.':!inputs[0]||!inputs[1]?'Choose two different '+name+' ★'+src+' weapons ('+list.length+' available).':'Both selected weapons are consumed. Upgrades and attack reset; the +6 upgrade cap stays unchanged.'}<br>Click an input to choose its exact copy. Equipped weapons and gear-set references are removed when consumed.</p>`);
+ smithHTML($('fmPreview'),`<div class="craft-result-title">${name} ★${out}</div><div class="craft-result-meta">${stats}</div><p class="craft-note">${!unlocked?'Requires blacksmith level '+(out===3?10:5)+' and Prestige '+(out===3?20:10)+'.':busy?'The forge is busy. Your current job continues above.':!inputs[0]||!inputs[1]?'Choose two different '+name+' ★'+src+' weapons ('+list.length+' available).':'Both selected weapons are consumed. Upgrades and attack reset; the +6 upgrade cap stays unchanged.'+(inscOk(bestInsc(inputs))?' The new blade keeps the rarest inscription of the two: '+inscLine(bestInsc(inputs))+'.':'')}<br>Click an input to choose its exact copy. Equipped weapons and gear-set references are removed when consumed.</p>`);
  const btn=$('fmForgeBtn');btn.disabled=!ready;btn.textContent='Forge '+name+' ★'+out+' · 2 hours';
  btn.onclick=()=>{
   if(S!==owner||!S)return;
   const current=smithWeapons(fg,src),eligible=(S.smithLvl||0)>=(out===3?10:5)&&(S.prestige||0)>=(out===3?20:10),victims=inputs.slice();
   if(S!==owner||S.smithJob||!eligible||!victims[0]||!victims[1]||victims[0]===victims[1]||!victims.every(it=>current.includes(it))){stageMsg('Your ingredients changed. Choose two available weapons.',1800);sfx.warn();smithChosen=victims.map(it=>current.includes(it)?it:null);smithRefresh();return;}
   let unequipped=false;
+  const carry=bestInsc(victims);   /* 📖 read before the blades are gone - it waits in the job and comes out on the new one */
   victims.forEach(it=>{releaseFromSets(it);SLOTS.forEach(slot=>{if(S.gear[slot]===it){S.gear[slot]=null;unequipped=true;}});const index=(S.bag||[]).indexOf(it);if(index>=0)S.bag.splice(index,1);});
-  if(unequipped&&hero)hero.hp=Math.min(hero.hp,heroMax());cleanGsids();S.smithJob={kind:fg?'fg':'fk',to:out,endT:Date.now()+SMITH_HOUR};smithChosen=null;smithPickSlot=null;smithNotice=null;
+  if(unequipped&&hero)hero.hp=Math.min(hero.hp,heroMax());cleanGsids();S.smithJob={kind:fg?'fg':'fk',to:out,endT:Date.now()+SMITH_HOUR,...(carry?{insc:carry}:{})};smithChosen=null;smithPickSlot=null;smithNotice=null;
   stageMsg('The forge roars — '+name+' ★'+out+' in 2 hours.',2400);sfx.buy();save();smithRefresh();renderBag();renderHero();renderHUD();if(typeof publishLB==='function')publishLB(S,true);
  };
 }
@@ -16319,7 +16565,7 @@ function charStats(ch){
   hp:Math.round((c.hp+(ch.lvl||1)*14+sum('hp'))*(r.hp||1)),
   mana:Math.round(c.mana+(ch.lvl||1)*5),
   atk:Math.round((c.atk+(ch.lvl||1)*2.6+sum('atk'))*(1+(titan?tierVal('titan',titan.tier||1)/100:0))),
-  crit:c.crit+(r.crit||0)+sum('crit')
+  crit:c.crit+(r.crit||0)+sum('crit')+(ch.gear&&ch.gear.weapon&&ch.gear.weapon.insc&&ch.gear.weapon.insc.id==='keen'?inscVal(ch.gear.weapon.insc):0) /* 📖 Keen Edge */
  };
 }
 const lbScore=ch=>(ch.prestige||0)*1e6+(ch.lvl||1)*1e3+charGearScore(ch);
@@ -16328,7 +16574,8 @@ async function publishLB(ch,force){
  if(!ch||!ch.id||heroDeleted(ch.id))return;
  const now=Date.now();
  ch.tainted=false;ch.taintV=0;
- const slim=g=>g?{id:g.id||null,wench:g.wench||null,name:g.name,rar:g.rar,slot:g.slot,up:g.up||0,star:g.star||0,atk:g.atk||0,hp:g.hp||0,crit:g.crit||0,haste:g.haste||0,lifesteal:g.lifesteal||0,bossDmg:g.bossDmg||0,manadrain:g.manadrain||0,dmgMul:g.dmgMul||0,legend:g.legend||null,power:Math.round(g.power||0)}:null;
+ const slim=g=>g?{id:g.id||null,wench:g.wench||null,name:g.name,rar:g.rar,slot:g.slot,up:g.up||0,star:g.star||0,atk:g.atk||0,hp:g.hp||0,crit:g.crit||0,haste:g.haste||0,lifesteal:g.lifesteal||0,bossDmg:g.bossDmg||0,manadrain:g.manadrain||0,dmgMul:g.dmgMul||0,legend:g.legend||null,power:Math.round(g.power||0),
+  ...(g.insc&&g.insc.id?{insc:{id:String(g.insc.id),rar:String(g.insc.rar)}}:{})}:null;   /* 📖 only when there is one, so an uninscribed profile writes exactly what it always did */
  const entry={season:SEASON,name:(ch.name||'?').slice(0,14),lvl:ch.lvl,prestige:ch.prestige||0,gs:charGearScore(ch),score:lbScore(ch),cid:ch.id,t:now,tainted:false,taintV:0,
   hardcore:!!ch.hardcore,hcDead:!!ch.hcDead,gender:ch.gender||'m',
   title:characterTitle(ch),outfit:heroOutfit(ch),hideWeapon:!!ch.hideWeapon,hideRing:!!ch.hideRing,hidePet:!!ch.hidePet,
@@ -16398,7 +16645,8 @@ function renderInspect(e){
    <div class="sn" style="color:${RARCOL[g.rar]||'#fff'}">${esc(displayItemName(g.name))}${g.legend&&g.star?` <span style="color:#ffd76a">★${esc(g.star)}</span>`:''}</div>
    <div class="ss">${esc(s)}</div>
    ${wr?`<div class="en" style="color:${wr.glow}"><span class="glowdot" style="background:${wr.glow};box-shadow:0 0 6px ${wr.glow}"></span>${uiIcon(wr.icon,'✨','shopico')} ${esc(wr.n)}</div>
-    <div class="ss" style="font-style:italic">${esc(wr.flavour)}</div>`:''}</div>`;
+    <div class="ss" style="font-style:italic">${esc(wr.flavour)}</div>`:''}
+   ${sl==='weapon'?inscHtml(g):''}</div>`;   /* 📖 another player's row: inscHtml shows only a kind this build knows */
  };
  const scrolls=(e.scrolls&&e.scrolls.length?e.scrolls:e.scroll?[e.scroll]:[]);
  const scHtml=scrolls.length?scrolls.map(sc=>{

@@ -67,3 +67,15 @@ button.craft-slot{cursor:pointer}.craft-slot.filled,.craft-slot.ready{border-sty
 @media(max-width:600px){.craft-modal{padding:10px}.craft-modal .craft-box{padding:17px 14px;border-radius:15px}.craft-title{font-size:25px}.craft-header{gap:11px;margin-bottom:14px;padding-bottom:14px}.craft-venue-icon{width:51px;height:51px;padding:6px}.craft-subtitle{font-size:11px}.craft-pair{gap:6px;grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr)}.craft-slot{min-height:174px;padding:13px 8px}.craft-slot-art img,.craft-slot>img{width:62px;height:62px}.craft-slot-name{font-size:17px}.craft-slot-note{font-size:10px}.craft-result{padding:17px 13px;gap:12px}.craft-result-icon{flex-basis:62px}.craft-result-icon img{width:62px;height:62px}.craft-result-title{font-size:21px}.craft-footer{gap:8px;padding-top:13px;margin-top:14px}.craft-footer>span{font-size:10px;max-width:45%}.craft-footer .sbtn{padding:10px 13px}.craft-actions>.sbtn{width:100%;min-width:0}.craft-tabs{gap:6px}.craft-tab,.craft-tabs>.sbtn{flex-basis:40%;min-width:0}.craft-rank{font-size:11px}.craft-badge{font-size:10px}}
 @media(max-height:600px){.craft-modal{padding:8px}.craft-modal .craft-box{padding:12px 16px}.craft-header{padding-bottom:10px;margin-bottom:10px}.craft-venue-icon{width:46px;height:46px}.craft-title{font-size:24px}.craft-subtitle{margin-top:3px}.craft-footer{margin-top:10px;padding-top:10px}.craft-slot{min-height:150px}}
 @media(prefers-reduced-motion:reduce){.craft-progress>i,.craft-modal .sbtn{transition:none}.craft-result.is-complete,.craft-result.complete{animation:none}}
+/* 📖 Books of Knowledge: inscription cards wear their rarity (--ir) the way the bag's rarity headers do */
+.craft-tab .insc-tabcount{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:10px;border:1px solid var(--craft-accent);color:var(--craft-bright);font:600 10px/1.5 var(--body,sans-serif)}
+.insc-choice{border-color:color-mix(in srgb,var(--ir) 45%,var(--craft-line))}
+.insc-choice .craft-slot-name{font:15px/1.25 var(--display,serif);color:var(--ir)}
+.insc-choice small{display:block}.insc-choice .insc-rar{text-transform:uppercase;letter-spacing:1.2px;font:600 9.5px var(--body,sans-serif);color:var(--ir);opacity:.85}
+.insc-choice.on,.insc-choice[aria-pressed=true]{border-color:var(--ir);box-shadow:inset 0 0 22px color-mix(in srgb,var(--ir) 22%,transparent)}
+.craft-slot.insc-slot{border-color:color-mix(in srgb,var(--ir) 70%,var(--craft-line))}.craft-slot.insc-slot .craft-slot-name{color:var(--ir)}
+.insc-oddsbox{margin:4px auto 6px;max-width:520px;text-align:center}
+.insc-odds{display:flex;height:9px;border-radius:6px;overflow:hidden;border:1px solid var(--craft-line);background:#140f0c;margin:7px 0 8px}
+.insc-odds>i{display:block;height:100%}
+.insc-oddrow{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 12px;font:11px/1.5 var(--body,sans-serif)}.insc-odd{color:var(--ir)}
+.insc-oddrow b{font-weight:600}.insc-odd.none{opacity:.38}
