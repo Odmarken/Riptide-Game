@@ -150,9 +150,8 @@ test('🎁 the season bonus: a fifth of what the season made, once, from a treas
   const cash=s.treasury;s.treasury=-1;
   assert.equal(E.bonusView(s).black,false);assert.equal(E.bonusView(s).room,0);assert.equal(E.takeBonus(s,1e9).ok,false);
   s.treasury=cash;
-  /* a purse with no room takes nothing; a full purse takes the fifth, once, and trust is untouched */
-  assert.equal(E.takeBonus(s,0).ok,false);
-  const trust=s.trust,r=E.takeBonus(s,1e9);
+  /* the bonus goes to overflow, with no carried-gold capacity limit; trust is untouched */
+  const trust=s.trust,r=E.takeBonus(s);
   assert.ok(r.ok);assert.equal(r.gold,Math.min(v.max,Math.floor(cash)));assert.equal(s.treasury,cash-r.gold);assert.equal(s.trust,trust);
   assert.equal(s.seasons[0].bonusTaken,r.gold);assert.equal(E.bonusView(s).open,false);assert.equal(E.bonusView(s).why,'taken');
   assert.equal(E.takeBonus(s,1e9).ok,false,'once a season');

@@ -178,7 +178,7 @@
      crown is charged the cost, and a tenth of it - `pay`, in the hero's own coinage - reaches the hero's purse at every
      close (the rest keeps clerks, a carriage and a house in town). The city can count: the more you take, the less it
      thinks of you. trust is per close. Like every line it can be cut in the red, never raised. */
-  salary:{name:'Your salary',icon:'🪙',blurb:'What the Master of Coin draws from the treasury for keeping it. A tenth of the line reaches your own gold at every close; the rest keeps your clerks, your carriage and your house in town. Nobody will stop you. Everybody will notice.',levels:[
+  salary:{name:'Your salary',icon:'🪙',blurb:'What the Master of Coin draws from the treasury for keeping it. A tenth of the line reaches your overflow gold at every close; the rest keeps your clerks, your carriage and your house in town. Nobody will stop you. Everybody will notice.',levels:[
    {name:'Unpaid',cost:0,mood:0,trust:.1},
    {name:'A clerk’s wage',cost:100,mood:0,trust:0},
    {name:'Handsome',cost:300,mood:-2,trust:-.2},
@@ -681,8 +681,8 @@
    {id:'learn',name:'Schools & Learning',icon:'📚',amount:r(learn.cost*k*factor.learn),note:learn.name},
    {id:'food',name:'Markets & Provisions',icon:'🥩',amount:r(food.cost*k*factor.food),note:food.name},
    {id:'grain',name:'Grain shipments',icon:'🌾',amount:grain.ship.cost,note:grain.auto?grain.ship.sacks.toLocaleString()+' sacks at '+grain.autoPrice+' ◉ - the standing shipments'+(grain.ship.short?', as far as the strongroom can pay':''):'no standing shipments - the granary is stocked by hand'},
-   {id:'salary',name:'Your salary',icon:'🪙',amount:state.treasury<0?0:r(salary.cost*k),note:!salary.cost?'the office is unpaid':state.treasury<0?salary.name+' - suspended: a treasury in the red pays its master nothing':salary.name+' - '+salaryPay(salary).toLocaleString()+' ◉ of it reaches your own gold at every close'},
-   {id:'purse',name:crowned?'Your privy purse':'The King’s Purse',icon:'💎',amount:purseCost,note:purse.name+(crowned?' - a tenth of it reaches your own gold at every close; the rest keeps your household':K.raise?' - raised '+K.raise+' time'+(K.raise>1?'s':'')+' at his insistence':'')},
+   {id:'salary',name:'Your salary',icon:'🪙',amount:state.treasury<0?0:r(salary.cost*k),note:!salary.cost?'the office is unpaid':state.treasury<0?salary.name+' - suspended: a treasury in the red pays its master nothing':salary.name+' - '+salaryPay(salary).toLocaleString()+' ◉ of it reaches your overflow gold at every close'},
+   {id:'purse',name:crowned?'Your privy purse':'The King’s Purse',icon:'💎',amount:purseCost,note:purse.name+(crowned?' - a tenth of it reaches your overflow gold at every close; the rest keeps your household':K.raise?' - raised '+K.raise+' time'+(K.raise>1?'s':'')+' at his insistence':'')},
    {id:'upkeep',name:'Upkeep of the works',icon:'🏗',amount:r(W.upkeep*k*wage*dear),note:W.count?'lamplighters, librarians, harbour pilots':'nothing to keep up yet'},
    {id:'gaol',name:'The gaol',icon:'⛓',amount:r(held*12*k*dear),note:held?held+' prisoner'+(held>1?'s':'')+' in '+room+' cells':'the cells are empty'},
    {id:'interest',name:'Tides Bank interest',icon:'🏦',amount:r(state.loan*state.rate*num(cm.interest,1)),note:state.loan>0?+(state.rate*num(cm.interest,1)*100).toFixed(3)+'% of '+state.loan.toLocaleString()+' owed':'nothing owed'},
@@ -961,20 +961,27 @@
  function bonusView(state){
   const x=state.seasons.length?state.seasons[state.seasons.length-1]:null;
   if(!x||x.in===undefined)return null;   /* older saves: seasons graded before the bonus existed carry no in/out */
-  const profit=x.in-x.out,max=Math.max(0,Math.floor(profit*BONUS_SHARE)),taken=num(x.bonusTaken);
+  const profit=x.in-x.out,max=Math.max(0,Math.floor(profit*BONUS_SHARE)),taken=num(x.bonusTaken),declined=x.bonusDeclined===true;
   const black=state.treasury>0,room=black?Math.max(0,Math.min(max,Math.floor(state.treasury))):0;
-  return {n:x.n,grade:x.grade,income:x.in,expenses:x.out,profit,share:BONUS_SHARE,max,taken,black,room,
-   open:taken===0&&max>0,why:taken>0?'taken':max<=0?'loss':!black?'red':room<max?'short':''};
+  return {n:x.n,grade:x.grade,income:x.in,expenses:x.out,profit,share:BONUS_SHARE,max,taken,declined,black,room,
+   open:taken===0&&!declined&&max>0,why:taken>0?'taken':declined?'declined':max<=0?'loss':!black?'red':room<max?'short':''};
  }
- function takeBonus(state,room){
+ function takeBonus(state){
   const v=bonusView(state);if(!v)return {ok:false,text:'No season on the books yet.'};
   if(v.taken>0)return {ok:false,text:'Season '+v.n+'’s bonus was taken already.'};
+  if(v.declined)return {ok:false,text:'Season '+v.n+'’s bonus was declined.'};
   if(v.max<=0)return {ok:false,text:'Season '+v.n+' made no profit. There is no bonus in a loss.'};
   if(!v.black)return {ok:false,text:'The treasury is in the red. A bonus is paid out of a strongroom that has something in it.'};
-  const n=Math.min(v.room,Math.max(0,Math.floor(num(room))));
-  if(n<=0)return {ok:false,text:'Your vault is full - nothing more fits in your purse.'};
+  const n=v.room;
+  if(n<=0)return {ok:false,text:'The treasury cannot cover a single coin of the bonus.'};
   state.treasury-=n;state.seasons[state.seasons.length-1].bonusTaken=n;
-  return {ok:true,gold:n,text:'Season '+v.n+'’s bonus: '+n.toLocaleString()+' ◉ to your own gold, out of a profit of '+v.profit.toLocaleString()+' ◉. Your clerks wrote it in the book, in a fair hand.'};
+  return {ok:true,gold:n,text:'Season '+v.n+'’s bonus: '+n.toLocaleString()+' ◉ to your overflow gold, out of a profit of '+v.profit.toLocaleString()+' ◉. Your clerks wrote it in the book, in a fair hand.'};
+ }
+ function declineBonus(state){
+  const v=bonusView(state);
+  if(!v||!v.open)return {ok:false,text:'There is no pending season bonus to decline.'};
+  state.seasons[state.seasons.length-1].bonusDeclined=true;
+  return {ok:true,text:'Season '+v.n+'’s bonus declined. The gold stays in the treasury.'};
  }
  function charter(state,rng){
   if(state.chartered)return null;
@@ -1018,7 +1025,7 @@
   state.trust=clamp(round1(state.trust+G.trust),0,100);
   const summary={n:q.n,grade,verdict:G.verdict,startLoan:q.startLoan,endLoan:state.loan,target:q.target,reduced,paid,startTreasury:q.startTreasury,endTreasury:state.treasury,worthStart,worth,
    red:q.red,covered:q.covered,interest:q.interest,swept,limitWas,limit:state.limit,rateWas,rate:state.rate,series:q.series,
-   in:num(q.in),out:num(q.out),bonusTaken:0};   /* 🎁 what the season took in and paid out - the bonus is a share of the difference */
+   in:num(q.in),out:num(q.out),bonusTaken:0,bonusDeclined:false};   /* 🎁 what the season took in and paid out - the bonus is a share of the difference */
   state.seasons.push(summary);while(state.seasons.length>SEASONS_KEPT)state.seasons.shift();
   state.wage=Math.min(WAGE_MAX,Math.round(num(state.wage,1)*(1+WAGE_RISE)*1e4)/1e4);   /* the guard, the watch, the masons and the King all ask for their rise */
   summary.wage=state.wage;
@@ -1840,7 +1847,7 @@
   return {ok:true,spent:true,topic:t.id,text};
  }
  return Object.freeze({create,normalize,forecast,tick,advance,setBudget,borrow,repay,withdraw,deposit,settle,answer,councilView,PLAYER_SEAT,ALLIES,alliesView,allyInvest,alliesFx,talkView,openTalks,makeOffer,acceptCounter,haggleReasons,TALK_COOL_INSULT,TALK_COOL_WALK,ALLY_CLOSES,PARTNER_AT,BUY_AT,COURT_CLOSES,PARTNER_SHARE,meetHand,acceptOffice,nobleView,ennoble,fundContract,dealOffers,postBoard,NOBLE_RANKS,CONTRACTS,NOBLE_CLOSES,OFFER_CLOSES,PATENT_COST,TEST,HARBOUR_WORKS,HARBOUR_BASE,counsel,counselView,counselTopics,COUNSEL_EVERY,projection,
-  worksView,invest,upgrade,lvlOf,raising,UP_LEVEL,UP_FAVOUR,crownView,answerKing,claimCrown,canClaim,seasonsPlayed,COUP_SEASONS,COUP_FAVOUR,bonusView,takeBonus,BONUS_SHARE,gaolView,pardon,execute,fine,allyFear,MERCY,worksFx,has,cells,charter,charterView,bankView,rehire,frozen,attend,neglect,REMIND_AFTER,NEGLECT_AFTER,NEGLECT_HARD,TRUST_SLOPE,TRUST_DRAIN_MAX,SEAT_SLOPE,SEAT_DRAIN_MAX,MOOD_SLOPE,MOOD_DRAIN_MAX,DRAW_SLOPE,DRAW_DRAIN_MAX,
+  worksView,invest,upgrade,lvlOf,raising,UP_LEVEL,UP_FAVOUR,crownView,answerKing,claimCrown,canClaim,seasonsPlayed,COUP_SEASONS,COUP_FAVOUR,bonusView,takeBonus,declineBonus,BONUS_SHARE,gaolView,pardon,execute,fine,allyFear,MERCY,worksFx,has,cells,charter,charterView,bankView,rehire,frozen,attend,neglect,REMIND_AFTER,NEGLECT_AFTER,NEGLECT_HARD,TRUST_SLOPE,TRUST_DRAIN_MAX,SEAT_SLOPE,SEAT_DRAIN_MAX,MOOD_SLOPE,MOOD_DRAIN_MAX,DRAW_SLOPE,DRAW_DRAIN_MAX,
   POP_MAX,HOUSEHOLD,hearths,SEASON_CARDS,cardDef,dealCard,
   windName,WIND_KEYS,WIND_MAX,JITTER_IN,JITTER_OUT,WAGE_RISE,WAGE_MAX,HERO_EXPORTS_MAX,HERO_FARM_LEVELS,
   foodView,buyFood,setAutoFood,HUNGER_GAIN,HUNGER_EASE,FOOD_STORE,FOOD_START,FOOD_CAP,FOOD_PRICE,AUTO_PREMIUM,FOOD_RESERVE,HUNGER_MAX,FOOD_LOW,FOOD_LOTS,
