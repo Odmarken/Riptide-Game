@@ -54,14 +54,15 @@
     "flight": "HarborWorld.drawFlight with ODIN_RAVENS in game.js - two ellipses round the arena centre (1200,800), 74 px, the Harbour's gull animation."
   },
   "arena": {
-    "file": "assets/models/maps/odin_map.png",
-    "jobId": "9defee17-b896-4d3e-87fb-7af8be25dbd7",
-    "quality": "high",
+    "file": "assets/models/maps/odin_bosszone.png",
+    "sourceFile": "Odin_bossarena.png",
+    "providedBy": "user, 2026-09-23",
+    "size": [2400, 1600],
+    "sha256": "3e78beba51229b2f098867eb617add879de1b5b562108abe4cb04e055e7d9e05",
     "aspect": "3:2",
-    "reference": "assets/models/maps/tormap_zone.png - straight-down camera and level of detail",
-    "source": [1024, 688],
-    "post": "Higgsfield bytedance upscale to 2k failed twice, so LANCZOS 1.5x locally to 1536x1024 (the size of every other map)",
-    "alternate": "raven-emblem floor without the gate: 437a755d-416c-412b-912e-180f231992c3",
-    "replaces": "a football pitch placeholder (git 7e86356/cf94701)"
+    "render": "Native size: one image pixel per world pixel, no rescaling.",
+    "layout": "assets/boss/odin-arena.js",
+    "braziers": "Four hall_brazier props at the ring corners, with ThroneWorld animated fire and light.",
+    "adds": "Crow summons use odin_raven.png with animated flight instead of the primitive beast."
   }
 }

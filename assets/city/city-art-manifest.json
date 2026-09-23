@@ -163,9 +163,15 @@
     1141
    ],
    "size": [
-    608,
-    900
-   ]
+    1030,
+    1526
+   ],
+   "edit": {
+    "date": "2026-09-23",
+    "tool": "image_gen (built-in)",
+    "prompt": "Remove only the two painted smoke/steam plumes above the roof cupola and right chimney. Replace with transparent alpha. Preserve building proportions, framing, colors, details and BATHHOUSE lettering. No smoke or haze outside building.",
+    "animatedSmoke": true
+   }
   },
   "work_hospital.png": {
    "jobId": "880cd5f4-b694-49ed-8388-51677dfec952",
@@ -975,6 +981,18 @@
    "prompt": "Production sprite for Riptide RPG, a hand-painted medieval fantasy game. Chunky readable shapes, crisp dark brown ink contours, detailed painted iron/wood/stone textures, warm ochre highlights and muted earth tones. Slightly elevated frontal camera, shallow depth, not isometric, not photorealistic. Exactly ONE complete isolated object with genuine transparent RGBA background, tight composition with 6% clear padding. No scenery, floor, ground patch, cast shadow, text, watermark or checkerboard. Subject: a sturdy medieval wall-mounted torch in a decorative forged black iron sconce. Warm weathered wooden handle wrapped in dark leather, curved iron bracket, riveted small diamond-shaped backplate behind the handle. At the TOP an iron basket holds a compact orange-gold flame with pale warm heart. The flame occupies the upper 35 percent, its base at 38 percent from image top. Rich tactile materials, clearly recognizable at 70 pixels tall. Whole fixture upright and straight, viewed frontally. No wall behind it, no glow outside the silhouette.",
    "date": "2026-09-23",
    "processing": "Native transparent Higgsfield PNG, cropped to alpha >= 6 bounds; no repainting or rescaling."
+  },
+  "minehall.png": {
+   "size": [
+    1093,
+    1439
+   ],
+   "edit": {
+    "date": "2026-09-23",
+    "tool": "image_gen (built-in)",
+    "prompt": "Remove only painted grey smoke above left stone chimney and residual haze outside building. Replace with transparent alpha. Preserve mining hall proportions, framing, stone chimney, hoist tower, details and colors. No smoke or haze outside building.",
+    "animatedSmoke": true
+   }
   }
  }
 }

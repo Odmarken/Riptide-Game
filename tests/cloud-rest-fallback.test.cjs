@@ -31,7 +31,7 @@ function fakeSdk(server,mode){
  const merge=(into,data)=>{for(const [k,v] of Object.entries(data)){const segs=k.split('.');let cur=into;for(const sg of segs.slice(0,-1))cur=cur[sg]=cur[sg]||{};if(v===DELETE)delete cur[segs[segs.length-1]];else cur[segs[segs.length-1]]=v;}return into;};
  const docRef=p=>({
   get:()=>act('get '+p,()=>{const d=server.read(p);return {exists:!!d,data:()=>d};}),
-  set:(data,opt)=>act('set '+p,()=>{server.write(p,opt&&opt.merge?merge(server.read(p)||{},data):plain(data));}),
+  set:(data,opt)=>act('set '+p,()=>{const flatten=(v,prefix='',out={})=>{for(const [k,x] of Object.entries(v)){const key=prefix?prefix+'.'+k:k;if(x&&typeof x==='object'&&!Array.isArray(x)&&x!==DELETE)flatten(x,key,out);else out[key]=x;}return out;};server.write(p,opt&&opt.merge?merge(server.read(p)||{},flatten(data)):plain(data));}),
   update:data=>act('update '+p,()=>{const d=server.read(p);if(!d)throw Object.assign(new Error('No document to update'),{code:'not-found'});server.write(p,merge(d,data));}),
   onSnapshot:()=>{log.push('listen '+p);return ()=>log.push('unlisten '+p);},
   collection:name=>colRef(p+'/'+name)});
@@ -92,28 +92,29 @@ test('a channel that never answers: the heroes still come down, the hero that is
  g.api.stop();
 });
 
-test('in that mode a save is one request for one hero, and only the first of a session is read back',async()=>{
+test('a save checks deletion receipts, writes one hero, and only the first of a session is read back',async()=>{
  const g=boot({channel:'silent',memo:Date.now(),local:{a:hero('a',5),b:hero('b',9)}});
  g.server.write('players/u1',cloudDoc({a:hero('a',5),b:hero('b',9),c:hero('c',2)}));
  await g.api.enterAfterAuth();g.server.calls.length=0;
  assert.equal(await g.api.cloudPushChar(hero('a',6,{gold:150})),true);
  assert.equal(await g.api.cloudPushChar(hero('a',7,{gold:175})),true);
- assert.deepEqual(restCalls(g),['PATCH players/u1 ?updateMask.fieldPaths=chars.a&updateMask.fieldPaths=updatedAt&updateMask.fieldPaths=season&updateMask.fieldPaths=roster','GET players/u1',
-  'PATCH players/u1 ?updateMask.fieldPaths=chars.a&updateMask.fieldPaths=updatedAt']);
+ assert.deepEqual(restCalls(g),['GET players/u1','PATCH players/u1 ?updateMask.fieldPaths=chars.a&updateMask.fieldPaths=updatedAt&updateMask.fieldPaths=season&updateMask.fieldPaths=roster','GET players/u1',
+  'GET players/u1','PATCH players/u1 ?updateMask.fieldPaths=chars.a&updateMask.fieldPaths=updatedAt']);
  const cloud=g.server.read('players/u1');
  assert.equal(cloud.chars.a.gold,175);assert.deepEqual(cloud.chars.b,hero('b',9));assert.deepEqual(cloud.chars.c,hero('c',2));
  assert.ok(!g.errors.some(e=>/gone from the cloud|did not read back/.test(e)),g.errors.join(' | '));
  g.api.stop();
 });
 
-test('if the service ever dropped the other heroes on a save, the read-back says so and puts them back',async()=>{
- const g=boot({channel:'silent',memo:Date.now(),server:fakeFirestore({maskBug:true}),local:{a:hero('a',5)}});
+test('read-back never restores a hero removed on another device, including old clients without receipts',async()=>{
+ const g=boot({channel:'silent',memo:Date.now(),local:{a:hero('a',5)}});
  g.server.write('players/u1',cloudDoc({a:hero('a',5),b:hero('b',9,{gold:999}),c:hero('c',2)}));
  await g.api.enterAfterAuth();
+ g.server.write('players/u1',cloudDoc({a:hero('a',5),c:hero('c',2)}));
  assert.equal(await g.api.cloudPushChar(hero('a',6)),true);
  const cloud=g.server.read('players/u1');
- assert.deepEqual(Object.keys(cloud.chars).sort(),['a','b','c']);assert.deepEqual(cloud.chars.b,hero('b',9,{gold:999}));assert.equal(cloud.chars.a.rev,6);
- assert.ok(g.errors.some(e=>/2 hero\(es\) were gone from the cloud after a save - putting them back/.test(e)),g.errors.join(' | '));
+ assert.deepEqual(Object.keys(cloud.chars).sort(),['a','c']);assert.equal(cloud.chars.a.rev,6);
+ assert.ok(!g.errors.some(e=>/putting them back/.test(e)),g.errors.join(' | '));
  g.api.stop();
 });
 
@@ -138,7 +139,8 @@ test('a channel that dies in the middle of a session: the save still lands, the 
  assert.ok(g.sdk.log.includes('unlisten players/u1/meta/session'));
  g.server.calls.length=0;await sleep(110);
  assert.ok(restCalls(g).includes('GET players/u1/meta/session ?mask.fieldPaths=activeSession'),'the heartbeat: '+restCalls(g).join(', '));
- assert.equal(g.api.FB.sdkPending,1,'the SDK still holds the save it never sent');
+ assert.equal(g.api.FB.sdkPending,0,'the deletion check discovered the dead channel before queuing a write');
+ g.api.FB.sdkPending=1; /* a write from another feature can still be outstanding */
  assert.equal(await g.api.tryLive(),false);assert.ok(!g.sdk.log.includes('network on'),'so its network is NOT switched back on: that old copy would land on top of newer ones');
  /* opened on another device: noticed by the heartbeat */
  g.server.write('players/u1/meta/session',{activeSession:'sess_elsewhere',sessionAt:2});
@@ -192,6 +194,51 @@ test('deleting a hero and reading the leaderboard go by the second road too',asy
  assert.deepEqual(Object.keys(cloud.chars),['a']);assert.deepEqual(cloud.roster,['a']);assert.deepEqual(Object.keys(g.api.FB.cloudSeen.chars),['a'],'and the read-back will not put him back');
  assert.deepEqual(plain(await g.api.fetchLB()).map(e=>e.name),['y','z','x'],'ranked, this season only');
  g.api.stop();
+});
+
+for(const channel of ['healthy','silent'])test('deletion follows the account to another device ('+channel+')',async()=>{
+ const server=fakeFirestore(),a=hero('a',5),b=hero('b',9);
+ server.write('players/u1',cloudDoc({a,b}));
+ const exe=boot({channel,server,local:{a,b}}),web=boot({channel,server,local:{a,b:hero('b',99)}});
+ exe.ctx.S=b;
+ assert.equal(await exe.api.cloudDeleteChar('b'),true);
+ assert.equal(exe.ctx.S,null,'the deleted selection cannot autosave itself back');
+ assert.ok(server.read('players/u1').deletedChars.b);
+ assert.deepEqual(server.read('players/u1').chars,{a},'the other hero survives SDK merge and REST masks');
+ assert.equal(await web.api.cloudPullRoster(),true);
+ assert.deepEqual(web.roster(),['a']);assert.equal(web.localHero('b'),null);
+ assert.equal(await web.api.cloudPushChar(b),false);
+ assert.equal(server.read('players/u1').chars.b,undefined);
+ assert.equal(server.read('leaderboard/s1_u1_b').deleted,true);
+});
+
+test('an offline delete is durable, retried after restart, and beats a stale cloud copy',async()=>{
+ const server=fakeFirestore(),a=hero('a',5),b=hero('b',9);
+ server.write('players/u1',cloudDoc({a,b}));
+ const offline=boot({channel:'denied',server,local:{a,b}});
+ assert.equal(await offline.api.cloudDeleteChar('b'),false);
+ assert.deepEqual(offline.roster(),['a']);
+ const restarted=boot({channel:'healthy',server,local:{a}});
+ for(const [key,value] of offline.ls)restarted.ls.set(key,value);
+ await restarted.api.cloudPullRoster();
+ assert.deepEqual(restarted.roster(),['a']);assert.equal(restarted.localHero('b'),null);
+ assert.equal(server.read('players/u1').chars.b,undefined);
+ assert.equal(JSON.parse(restarted.ls.get('riptide-deleted::u1::s1')).b.pending,false);
+});
+
+test('a stale active hero is checked for remote deletion before being uploaded',async()=>{
+ const server=fakeFirestore(),b=hero('b',99),g=boot({channel:'healthy',server,local:{b}});
+ server.write('players/u1',{...cloudDoc({}),deletedChars:{b:123}});g.ctx.S=b;
+ assert.equal(await g.api.cloudPushChar(b),false);
+ assert.equal(g.ctx.S,null);assert.deepEqual(g.roster(),[]);
+ assert.equal(server.read('players/u1').chars.b,undefined);
+});
+
+test('unknown local-only heroes are kept, and deletion receipts are account scoped',async()=>{
+ const g=boot({channel:'healthy',local:{a:hero('a',2)}});
+ g.ls.set('riptide-deleted::another-account::s1',JSON.stringify({a:{at:1,pending:false}}));
+ g.server.write('players/u1',cloudDoc({}));
+ await g.api.cloudPullRoster();assert.deepEqual(g.roster(),['a']);assert.ok(g.localHero('a'));
 });
 
 test('both roads dead: the sign-in still ends, on the heroes of this device',async()=>{

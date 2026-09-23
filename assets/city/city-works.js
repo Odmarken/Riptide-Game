@@ -15,10 +15,10 @@
  * it runs headless in the tests. game.js adds the props to world.solids (type 'citywork'), hangs a
  * `work` on the houses that carry a sign, and calls the draw routines from its own passes. */
 (function(root,factory){
- const api=factory();
+ const api=factory(typeof module==='object'&&module.exports?require('./scenery-effects.js'):root.CityScenery,typeof module==='object'&&module.exports?require('./traffic-animation.js'):root.CityTrafficAnimation);
  if(typeof module==='object'&&module.exports)module.exports=api;
  root.CityWorks=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(){
+})(typeof globalThis!=='undefined'?globalThis:this,function(Scenery,TrafficAnimation){
  'use strict';
  const TAU=Math.PI*2;
  /* where each house-work wants to stand; the nearest free terrace house to the point wears its sign */
@@ -141,28 +141,20 @@
   for(let k=0;k<n;k++){
    const dir=k%2?-1:1,speed=62+((k*37)%23),s=((time*speed+k*span/Math.max(1,n)+k*211)%span+span)%span;
    const x=dir>0?x0+s:x1-s;
-   out.push({kind:'wagon',x,y:c.y+dir*-52+((k*13)%9-4),dir,cargo:k%4,seed:k,fade:clamp(Math.min(x-x0,x1-x)/160,0,1)});
+   out.push({kind:'wagon',x,y:c.y+dir*-52+((k*13)%9-4),dir,speed,cargo:k%4,seed:k,fade:clamp(Math.min(x-x0,x1-x)/160,0,1)});
   }
   for(let k=0;k<Math.abs(m);k++){
    const dir=m>0?1:-1,speed=34+((k*29)%11),s=((time*speed+k*span/Math.abs(m)+k*977)%span+span)%span;
    const x=dir>0?x0+s:x1-s;
-   out.push({kind:'handcart',x,y:c.y+dir*-96+((k*7)%11-5),dir,leaving:m<0,seed:k+20,fade:clamp(Math.min(x-x0,x1-x)/160,0,1)});
+   out.push({kind:'handcart',x,y:c.y+dir*-96+((k*7)%11-5),dir,speed,leaving:m<0,seed:k+20,fade:clamp(Math.min(x-x0,x1-x)/160,0,1)});
   }
   return out;
  }
 
  /* ---------- drawing: props sorted with the actors ---------- */
  function drawShadow(g,s){
-  if(s.kind==='fountain')ellipse(g,0,10,70,24,'rgba(0,0,0,.32)');
-  else if(s.kind==='statue')ellipse(g,4,8,40,14,'rgba(0,0,0,.35)');
-  else if(s.kind==='stall')ellipse(g,4,10,46,14,'rgba(0,0,0,.30)');
-  else if(s.kind==='lamp')ellipse(g,3,3,12,5,'rgba(0,0,0,.30)');
-  else if(s.kind==='site')ellipse(g,4,12,60,20,'rgba(0,0,0,.28)');
-  else if(s.kind==='tent')ellipse(g,8,14,130,36,'rgba(0,0,0,.30)');
-  else if(s.kind==='feast')ellipse(g,6,18,156,28,'rgba(0,0,0,.26)');
-  else if(s.kind==='barricade')ellipse(g,6,14,108,28,'rgba(0,0,0,.30)');
-  else if(s.kind==='maypole')ellipse(g,3,6,24,9,'rgba(0,0,0,.30)');
-  else if(s.kind==='noticeboard')ellipse(g,3,6,54,12,'rgba(0,0,0,.30)');
+  const footprints={fountain:[0,26,66,18],statue:[0,7,34,10],stall:[0,8,48,11],lamp:[0,4,10,4],site:[0,25,54,14],tent:[0,13,110,24],feast:[0,38,132,22],barricade:[0,14,88,18],maypole:[0,6,20,6],noticeboard:[0,6,46,8]};
+  const foot=footprints[s.kind];if(foot)Scenery.shadow(g,...foot,.24);
  }
  /* ---------- the people's own doing: small figures, and what they put out ---------- */
  const COATS=['#7a4a3a','#4f6a8c','#5a7a4a','#8a6a3a','#6a4a7a','#8c4a4a','#4a6a6a'];
@@ -486,8 +478,9 @@
  }
  /* 💨 Where the chimney pots are on each house painting, as fractions of the art (u across, v down), read off the
     pictures under a grid. A face with no chimney (the stair house, the Exchange, the Playhouse, the lists, the
-    hospital, the University) or with smoke already painted on it (the Bathhouse, the Schoolhouse) is not listed. */
+    hospital, the University) or with smoke already painted on it (the Schoolhouse) is not listed. */
  const CHIMNEYS=Object.freeze({
+  work_bathhouse:[[.486,.096,.8],[.777,.163,1.1]],minehall:[[.233,.212,1.1]],
   house_timber:[[.78,.02]],house_stone:[[.64,.01]],house_shop:[[.65,.01]],house_turret:[[.34,.2]],house_tenement:[[.70,.02],[.42,.04]],house_manor:[[.55,.01]],
   work_apprentice:[[.73,.01]],work_brothel:[[.72,.01]],work_caravanserai:[[.15,.01],[.84,.01]],work_carters:[[.17,.01],[.83,.01]],work_courthouse:[[.50,.01]],work_customs:[[.50,.01]],
   work_fleet:[[.73,.11]],work_library:[[.79,.01]],work_newquarter:[[.78,.01]],work_press:[[.76,.01]],work_quay:[[.22,.13]],work_tenements:[[.16,.01],[.50,.01],[.83,.01]],
@@ -500,17 +493,11 @@
     `cold` (a hard winter) stokes every fire. Drawn with whatever globalAlpha the house itself is drawn with. */
  function drawSmoke(g,key,W,H,top,time=0,seed=0,cold=false){
   const pots=CHIMNEYS[key];if(!pots)return 0;
-  const k0=Math.max(.6,Math.min(1.5,H/320)),n=cold?9:7;
+  const k0=Math.max(.6,Math.min(1.5,H/320));
   for(let c=0;c<pots.length;c++){
-   const k=k0*(pots[c][2]||1),rise=(cold?170:130)*k;
+   const k=k0*(pots[c][2]||1);
    const x0=-W/2+pots[c][0]*W,y0=top+pots[c][1]*H,ph=seed*.37+c*1.9;
-   for(let i=0;i<n;i++){
-    const p=(time*.09+i/n+ph)%1,sway=Math.sin(time*.7+i*1.3+ph)*7*k*p,r=(6+p*24)*k,a=Math.sin(Math.min(1,p*4)*Math.PI/2)*Math.pow(1-p,1.3)*(cold?.85:.72);
-    const x=x0+p*40*k+sway,y=y0-5*k-p*rise;
-    ellipse(g,x+r*.18,y+r*.2,r,r*.86,'rgba(70,66,62,'+(a*.35).toFixed(3)+')');        /* the shaded underside: without it a pale puff is lost on pale paving */
-    ellipse(g,x,y,r,r*.86,'rgba(244,241,235,'+a.toFixed(3)+')');
-    ellipse(g,x-r*.3,y-r*.28,r*.55,r*.48,'rgba(255,255,255,'+(a*.55).toFixed(3)+')');
-   }
+   Scenery.smoke(g,x0,y0,k,time,ph,cold);
   }
   return pots.length;
  }
@@ -537,15 +524,14 @@
   return out;
  }
  function drawLitter(g,world,view,dirt,time=0,images={}){
+  const im=images.street_dung;
+  if(!ready(im)||im.complete===false)return; /* Wait for the painting, never flash the old brown circles. */
   for(const p of litter(world,view,dirt)){
    const r=p.big?26:13+(p.h>>>9)%8;
-   ellipse(g,p.x,p.y+3,r*1.25,r*.5,'rgba(30,24,14,.35)');
-   if(ready(images.street_dung)){
-    const im=images.street_dung,w=r*2.3,h=w*im.naturalHeight/im.naturalWidth;
+   Scenery.shadow(g,p.x,p.y+2,r*1.13,r*.36,.2);
+   {
+    const w=r*2.3,h=w*(im.naturalHeight||im.height)/(im.naturalWidth||im.width);
     g.save();g.translate(p.x,p.y);g.scale(p.h&1?-1:1,1);g.drawImage(im,-w/2,-h*.7,w,h);g.restore();
-   }else{
-    ellipse(g,p.x,p.y,r,r*.52,'#4a3f2a');ellipse(g,p.x-r*.3,p.y-r*.2,r*.55,r*.34,'#5d5034');ellipse(g,p.x+r*.35,p.y-r*.12,r*.4,r*.26,'#3a3120');
-    rect(g,p.x-r*.1,p.y-r*.46,r*.34,r*.2,'#8a8270');ellipse(g,p.x+r*.2,p.y-r*.34,r*.12,r*.1,'#b09a6a');
    }
    if(dirt>=2)for(let i=0;i<(p.big?5:2);i++){const a=time*(3+i)+i*2.1+(p.h&255);ellipse(g,p.x+Math.cos(a)*r*.9,p.y-r*.6+Math.sin(a*1.3)*r*.4,1.3,1.3,'rgba(20,20,20,.8)');}
   }
@@ -576,12 +562,11 @@
  /* a wagon and its horse; a family and its handcart */
  function drawTraffic(g,t,time=0,img=null){
   g.save();g.translate(t.x,t.y);g.globalAlpha=clamp(t.fade,0,1);g.scale(t.dir,1);
-  const im=img&&img(t.kind==='wagon'?WAGON_ART[t.cargo%WAGON_ART.length]:'handcart');
+  const key=t.kind==='wagon'?WAGON_ART[t.cargo%WAGON_ART.length]:'handcart',im=img&&img(key);
   if(ready(im)){
-   /* painted, travelling right (the scale above turns it round): it rocks on its springs and dips at the cobbles */
-   const H=t.kind==='wagon'?112:88,W=H*im.naturalWidth/im.naturalHeight,roll=time*5+t.seed;
-   ellipse(g,0,8,W*.46,9,'rgba(0,0,0,.26)');
-   g.rotate(Math.sin(roll*.9)*.012);g.drawImage(im,-W/2,12-H+Math.abs(Math.sin(roll*1.3))*-1.6,W,H);
+   const H=t.kind==='wagon'?112:88,W=H*im.naturalWidth/im.naturalHeight;
+   Scenery.shadow(g,0,9,W*.46,8,.22);
+   TrafficAnimation.draw(g,key,im,H,time,t.speed??(t.kind==='wagon'?62+((t.seed*37)%23):34),t.seed);
    g.restore();return;
   }
   const roll=time*5+t.seed,bob=Math.sin(roll*1.3)*1.2;

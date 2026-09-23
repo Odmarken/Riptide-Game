@@ -14,10 +14,10 @@
  * Painted by Higgsfield gpt_image_2_5 (2026-09-22, assets/city/ground/ground-art-manifest.json). Drawn per frame
  * from tiles, camera-culled; the plan is made once per visit. Pure module: no DOM, no game - it runs headless. */
 (function(root,factory){
- const api=factory();
+ const api=factory(typeof module==='object'&&module.exports?require('./scenery-effects.js'):root.CityScenery);
  if(typeof module==='object'&&module.exports)module.exports=api;
  root.CityGround=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(){
+})(typeof globalThis!=='undefined'?globalThis:this,function(Scenery){
  'use strict';
  const TAU=Math.PI*2;
  const ready=im=>!!(im&&im.complete!==false&&(im.naturalWidth||im.width)>0&&(im.naturalHeight||im.height)>0);
@@ -137,7 +137,7 @@
  function drawShadow(g,s){
   const d=DECOR[s.kind];if(!d)return;
   const rx=s.kind==='linden'?96:s.kind==='apple'?64:s.kind==='laundry'?84:s.kind==='bush'?40:52;
-  g.fillStyle='rgba(0,0,0,.24)';g.beginPath();g.ellipse(rx*.10,5,rx,Math.max(8,rx*.26),0,0,TAU);g.fill();
+  Scenery.shadow(g,rx*.05,5,rx,Math.max(8,rx*.22),.24);
  }
  function drawProp(g,s,time=0,images={},options={}){
   const d=DECOR[s.kind],f=frame(s,images);if(!d)return;

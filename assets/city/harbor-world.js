@@ -31,7 +31,7 @@
  /* three piers, nothing alike */
  const PIER_A=Object.freeze({stem:Object.freeze({x:915,y:Q1-20,w:170,h:960}),head:Object.freeze({x:700,y:2940,w:820,h:170})});
  const MOLE=Object.freeze({stem:Object.freeze({x:XC-120,y:Q1-20,w:240,h:920}),head:Object.freeze({x:XC,y:2990,r:200})});
- const JETTY=Object.freeze({upper:Object.freeze({x:3390,y:Q1-20,w:120,h:420}),lower:Object.freeze({x:3440,y:2380,w:120,h:380})});
+ const JETTY=Object.freeze({upper:Object.freeze({x:3390,y:Q1-20,w:170,h:420}),lower:Object.freeze({x:3390,y:2380,w:170,h:380}),deck:Object.freeze({x:3390,y:Q1-20,w:170,h:760})});
  const LANES=Object.freeze([Q0+175,Q0+390,Q0+540]);               /* where the quay is walked: by the doors, down the middle, along the edge */
  const CROSS=Object.freeze([420,1000,1500,XC,2900,3450,3950]);     /* and where the lanes are crossed - kept clear of cargo */
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -69,7 +69,8 @@
   node('a1',1000,2480,22,20);node('a2',1000,3025,20,10);node('a3',790,3025,20,14);node('a4',1430,3025,20,14);link('q1_2','a1');link('a1','a2');link('a2','a3');link('a2','a4');
   node('m1',XC,2450,40,20);node('m2',XC,2830,30,8);node('m3',XC-135,2990,8,8);node('m4',XC,3125,8,8);node('m5',XC+135,2990,8,8);
   link('q3_2','m1');link('m1','m2');link('m2','m3');link('m3','m4');link('m4','m5');link('m5','m2');
-  node('j1',3450,2300,14,20);node('j2',3475,2400,5,4);node('j3',3500,2500,14,14);node('j4',3500,2715,14,8);link('q5_2','j1');link('j1','j2');link('j2','j3');link('j3','j4');
+  const jx=JETTY.deck.x+JETTY.deck.w/2;
+  node('j1',jx,2300,14,20);node('j2',jx,2400,5,4);node('j3',jx,2500,14,14);node('j4',jx,2715,14,8);link('q5_2','j1');link('j1','j2');link('j2','j3');link('j3','j4');
   return {nodes,edges};
  }
  function route(G,R,steps){
@@ -142,9 +143,7 @@
   }
   if(inRect(PIER_A.stem,x,y,r,0,0)||inRect(PIER_A.head,x,y,r,r,r))return true;
   if(inRect(MOLE.stem,x,y,r,0,0)||Math.hypot(x-MOLE.head.x,y-MOLE.head.y)<=MOLE.head.r-r)return true;
-  const u=JETTY.upper,l=JETTY.lower;
-  if(inRect(u,x,y,r,0,r)||inRect(l,x,y,r,r,r))return true;
-  if(x>=l.x+r&&x<=u.x+u.w-r&&y>=u.y&&y<=l.y+l.h-r)return true;   /* the dog-leg: the strip both lengths share */
+  if(inRect(JETTY.deck,x,y,r,0,r))return true;
   return false;
  }
 
@@ -302,12 +301,12 @@
   sky(g,v);sea(g,im,v,time);
   if(v.y1>Q1-40){
    foam(g,[[0,Q1+4,0,1],[W,Q1+4,0,1]],time,.4);
-   for(const [rc,seed] of [[PIER_A.stem,1.1],[PIER_A.head,2.3],[JETTY.upper,3.7],[JETTY.lower,4.9],[MOLE.stem,6.2]])foam(g,rectFoam(rc),time,seed);
+   for(const [rc,seed] of [[PIER_A.stem,1.1],[PIER_A.head,2.3],[JETTY.deck,3.7],[MOLE.stem,6.2]])foam(g,rectFoam(rc),time,seed);
    const hd=MOLE.head,ring=[];for(let a=-.7;a<=Math.PI+.71;a+=.2)ring.push([hd.x+Math.cos(a)*hd.r,hd.y+Math.sin(a)*hd.r+(Math.sin(a)>0?20:0),Math.cos(a),Math.sin(a)]);
    foam(g,ring,time,7.7);
   }
   timberPier(g,im,v,PIER_A.stem,time,1);timberPier(g,im,v,PIER_A.head,time,2,{turn:true});
-  timberPier(g,im,v,JETTY.upper,time,3,{old:true});timberPier(g,im,v,JETTY.lower,time,4,{old:true});
+  timberPier(g,im,v,JETTY.deck,time,3,{old:true});
   mole(g,im,v,time);quay(g,im,v);cliff(g,im,v);
   g.restore();
  }

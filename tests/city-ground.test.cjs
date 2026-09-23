@@ -124,7 +124,7 @@ test('every painting exists and is in the manifest; pigeons leave when you walk 
 });
 
 test('drawing never hands the canvas a non-finite number - loaded or not, zoomed in or out',()=>{
- const calls={},g=new Proxy({},{get(t,k){if(k in t)return t[k];return (...args)=>{calls[k]=(calls[k]||0)+1;for(const a of args)if(typeof a==='number')assert.ok(Number.isFinite(a),`${String(k)} got ${a}`);};},set(t,k,v){t[k]=v;return true;}});
+ const calls={},g=new Proxy({createRadialGradient(){return {addColorStop(){}};}},{get(t,k){if(k in t)return t[k];return (...args)=>{calls[k]=(calls[k]||0)+1;for(const a of args)if(typeof a==='number')assert.ok(Number.isFinite(a),`${String(k)} got ${a}`);};},set(t,k,v){t[k]=v;return true;}});
  const {w,d}=built(SEEDS[0]),p=CG.plan(w,{mosaics:[{key:'mosaic_compass',x:8400,y:2600,size:430},{key:'mosaic_anchor',x:8400,y:4300,size:186}],plazaStyles:{4:{soot:true}}});
  const images={};for(const k of CG.IMAGES)images[k]={complete:true,naturalWidth:768,naturalHeight:640};
  const flocks=[CG.flock(8400,1640,8,1)];CG.updateBirds(flocks,.1,{x:8400,y:1640});

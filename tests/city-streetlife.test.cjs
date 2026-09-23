@@ -86,7 +86,7 @@ test('with its paintings loaded every prop, wagon and house sign is one blit; wi
  assert.equal(blits,all.length,'one painting per prop');
  for(const n of ['lamp','fountain','statue_crowned','garden','site','stall_bread','stall_fish','stall_greens','stall_cloth','maypole','music','feast','tent_red','tent_blue','breadline','beggar','barricade'])assert.ok(asked.has(n),n);
  blits=0;for(const t of Works.traffic(w,{wagons:4,migrants:2,xMax:15500},12))Works.drawTraffic(paint,t,12,img);
- assert.equal(blits,6);for(const n of ['wagon_barrels','wagon_caravan','wagon_grain','handcart'])assert.ok(asked.has(n),n);
+ assert.ok(blits>6,'painted traffic draws independent wheels and legs');for(const n of ['wagon_barrels','wagon_caravan','wagon_grain','handcart'])assert.ok(asked.has(n),n);
  blits=0;Works.drawHouseWork(paint,{status:'building',sign:'LIBRARY',left:2,cat:'learn'},220,300,-290,1,img);Works.drawHouseWork(paint,{status:'seized',sign:'PLAYHOUSE',cat:'culture'},220,300,-290,1,img);
  Works.drawVacant(paint,220,300,-290,img);Works.drawDressing(paint,'flowers',220,300,-290,1,7,img);
  assert.equal(blits,5,'a scaffold, a seizure notice, a FOR RENT board and two tubs of flowers');
@@ -98,7 +98,7 @@ test('every painting the city asks for is on disk, and every finished work that 
  const fs=require('node:fs'),path=require('node:path'),dir=path.join(__dirname,'..','assets','city');
  const manifest=JSON.parse(fs.readFileSync(path.join(dir,'city-art-manifest.json'),'utf8'));
  for(const id of Object.keys(Works.ANCHORS))assert.ok(manifest.art['work_'+id+'.png']&&fs.existsSync(path.join(dir,'work_'+id+'.png')),'work_'+id);
- for(const file of Object.keys(manifest.art)){assert.ok(fs.existsSync(path.join(dir,file)),file);assert.match(manifest.art[file].jobId,/^[0-9a-f-]{36}$/);}
+ for(const file of Object.keys(manifest.art)){assert.ok(fs.existsSync(path.join(dir,file)),file);const art=manifest.art[file];if(art.jobId)assert.match(art.jobId,/^[0-9a-f-]{36}$/);else{assert.equal(art.edit.tool,'image_gen (built-in)');assert.ok(art.edit.prompt);}}
  assert.ok(Object.keys(manifest.art).length>=48);
 });
 
@@ -107,10 +107,10 @@ test('hearth smoke rises from every painted chimney pot, and from none where the
  for(const key of Object.keys(Works.CHIMNEYS)){
   const fs=require('node:fs'),path=require('node:path'),file=key==='training_lodge'?'training-lodge':key;
   assert.ok(['city','models','farm','wasteland'].some(dir=>fs.existsSync(path.join(__dirname,'..','assets',dir,file+'.png'))),key+' has a painting');
-  for(const [u,v,size=1] of Works.CHIMNEYS[key])assert.ok(u>0&&u<1&&v>=0&&v<.3&&size>=1&&size<=2,key+' pot off the roof: '+u+','+v);
+  for(const [u,v,size=1] of Works.CHIMNEYS[key])assert.ok(u>0&&u<1&&v>=0&&v<.3&&size>=.6&&size<=2,key+' pot off the roof: '+u+','+v);
   for(const t of [0,3.3,999])assert.equal(Works.drawSmoke(g,key,220,300,-290,t,41,t>100),Works.CHIMNEYS[key].length);
  }
  const before=count.calls;
- for(const key of ['house_stair','work_exchange','work_theatre','work_school','work_bathhouse','nothing'])assert.equal(Works.drawSmoke(g,key,220,300,-290,1,1),0,key);
+ for(const key of ['house_stair','work_exchange','work_theatre','work_school','nothing'])assert.equal(Works.drawSmoke(g,key,220,300,-290,1,1),0,key);
  assert.equal(count.calls,before);assert.ok(before>300);
 });

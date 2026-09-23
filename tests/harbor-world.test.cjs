@@ -24,9 +24,9 @@ test('three piers, nothing alike, all reachable on foot - and the sea is not',()
  const s=Hb.SPAWN;
  walk([[s.x,s.y],[s.x,1940],[1000,1940],[1000,3025],[760,3025],[1460,3025]]);                       /* the long timber pier and both ends of its T-head */
  walk([[s.x,1940],[Hb.XC,2830],[Hb.XC-135,2990],[Hb.XC,3125],[Hb.XC+135,2990],[Hb.XC,2830]]);       /* down the mole and round the beacon */
- walk([[3450,1940],[3450,2300],[3475,2400],[3500,2500],[3500,2715]]);                               /* the crooked jetty, through its dog-leg */
+ walk([[3475,1940],[3475,2300],[3475,2400],[3475,2500],[3475,2715]]);                               /* one straight fishing jetty */
  assert.ok(Hb.PIER_A.stem.w!==Hb.MOLE.stem.w&&Hb.MOLE.stem.w!==Hb.JETTY.upper.w&&Hb.PIER_A.stem.h!==Hb.JETTY.upper.h);
- for(const [x,y] of [[1600,2500],[2900,2600],[3900,2400],[500,3000],[2200,3300],[3420,2500],[3530,2300],[100,1700],[4300,1700],[2200,300]])assert.equal(Hb.contains(x,y,0),false,`${x},${y} is not ground`);
+ for(const [x,y] of [[1600,2500],[2900,2600],[3900,2400],[500,3000],[2200,3300],[3370,2500],[3580,2300],[100,1700],[4300,1700],[2200,300]])assert.equal(Hb.contains(x,y,0),false,`${x},${y} is not ground`);
  for(const [x,y] of [[NaN,1700],[2200,Infinity]])assert.equal(Hb.contains(x,y),false);assert.equal(Hb.contains(2200,1700,Infinity),false);
  /* an actor disk never hangs over an edge */
  for(let y=450;y<3300;y+=23)for(let x=100;x<4300;x+=29)if(Hb.contains(x,y,30))for(let i=0;i<24;i++)

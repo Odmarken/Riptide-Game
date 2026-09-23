@@ -11,10 +11,10 @@
  * its own; the two stair-heads hand the hero to each other. Who is in the cells is the ledger's
  * business - game.js stands the prisoners in them with prisoner(). */
 (function(root,factory){
- const api=factory();
+ const api=factory(typeof module==='object'&&module.exports?require('./scenery-effects.js'):root.CityScenery);
  if(typeof module==='object'&&module.exports)module.exports=api;
  root.ThroneWorld=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(){
+})(typeof globalThis!=='undefined'?globalThis:this,function(Scenery){
  'use strict';
  const TAU=Math.PI*2;
  const W=1800,HALL_H=3400,H=4900;                                  /* the hall's storey ends at HALL_H; the jail lies below it */
@@ -484,11 +484,8 @@
 
  /* ---------- props sorted with the actors: pillars, the throne, the council table, braziers ---------- */
  function drawShadow(g,s){
-  if(s.kind==='pillar')ellipse(g,10,12,64,22,'rgba(0,0,0,.45)');
-  else if(s.kind==='throne')ellipse(g,0,14,84,26,'rgba(0,0,0,.4)');
-  else if(s.kind==='table')ellipse(g,0,66,220,44,'rgba(0,0,0,.35)');
-  else if(s.kind==='brazier')ellipse(g,0,8,26,10,'rgba(0,0,0,.4)');
-  else if(s.kind==='gaoldesk')ellipse(g,0,10,86,20,'rgba(0,0,0,.4)');
+  const f={pillar:[-2,19,43,11],throne:[0,22,69,12],table:[0,116,194,31],brazier:[0,9,24,7],gaoldesk:[0,34,73,13]}[s.kind];
+  if(f)Scenery.shadow(g,...f,.28);
  }
  /* ⛓ the grille across a cell: a frame, nine bars, a lock plate. A cell the jail has not been given
     yet (s.walled - the New Jail Wing opens the last four) is bricked up to the arch instead. */

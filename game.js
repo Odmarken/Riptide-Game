@@ -43,7 +43,7 @@ const FG_ART={
 const fgArtFor=clsId=>{const a=FG_ART[clsId];return (a&&a.img.complete&&a.img.naturalWidth)?a:null;};
 /* 🏙 city art. CITY_HOUSES is indexed by a house's seed, so a terrace picks its faces
    deterministically and the same street looks the same every visit. */
-const CITY_ART_V=7; /* bump when a city asset is redrawn - the filenames stay put while the pictures
+const CITY_ART_V=8; /* bump when a city asset is redrawn - the filenames stay put while the pictures
                        behind them change, so without this a cached wall_gate_v.png survives a hard refresh */
 const cityImg=n=>{if(!cityImgs[n]){cityImgs[n]=new Image();cityImgs[n].src='assets/city/'+n+'.png?v='+CITY_ART_V;}return cityImgs[n];};
 const cityImgs={};
@@ -144,11 +144,11 @@ function cityShadow(name,W,H,top){
    served again - and repaint the ground if the player is still standing in that zone when it lands. */
 const MAP_DIR='assets/models/maps/';
 function mapImage(name){
- const img=new Image(),url=MAP_DIR+name+'.png';
+ const img=new Image(),url=MAP_DIR+name+'.png'+(name==='odin_bosszone'?'?v=2':'');
  img.onerror=()=>{
   const n=(img._tries=(img._tries||0)+1);
   if(n>3)return;                                   /* give up quietly - the procedural ground stands in */
-  setTimeout(()=>{img.src=url+'?retry='+n;},600*n);
+  setTimeout(()=>{img.src=url+(url.includes('?')?'&':'?')+'retry='+n;},600*n);
  };
  img.onload=()=>{
   if(!(world&&gameOn))return;
@@ -220,7 +220,7 @@ function charSprite(raceId,clsId,female){
   im.onload=()=>{ /* portraits render before sprites finish loading - repaint the open screens */
    try{
     if($('select').classList.contains('open'))renderSelect();
-    if($('lbFx').classList.contains('open'))showLeaderboard();
+    if($('lbFx').classList.contains('open'))paintLeaderboardPortraits();
    }catch(e){}
   };
  }
@@ -237,7 +237,7 @@ const maceImg=new Image();maceImg.src='assets/weapons/mace.png';
    serving it forever. Huginn and Muninn circle his arena on the Harbour's gull flight path. */
 const odinImg=new Image();odinImg.src='assets/boss/odin_boss.png?v=3';
 const odinRavenImg=new Image();odinRavenImg.src='assets/boss/odin_raven.png';
-const ODIN_RAVENS=Object.freeze([[1200,800,780,430,.11,0],[1200,800,560,330,-.09,2.6]]); /* [cx,cy,rx,ry,rad/s,phase] in the 2400x1600 arena */
+const ODIN_RAVENS=OdinArena.RAVENS;
 const odinSpearImg=new Image();odinSpearImg.src='assets/boss/odin_spear.png?v=2';
 const pickImg=new Image();pickImg.src='assets/weapons/pickaxe.png?v=2'; /* the miner's tool */
 /* the three lords of the Violet Halls - painted bodies + one shared blade, tinted per lord */
@@ -519,18 +519,20 @@ const OUTFITS=[
  {id:'ice',icon:'🧊',name:()=>'Ice Armor',desc:'The cursed plate the Altar gave you for a life. It never lets go - but it can be hidden.',how:'the Altar’s ritual'},
  {id:'royal',icon:'👑',name:()=>(S&&S.gender==='f'?'Queen':'King')+'’s robes',desc:'Crimson velvet, ermine and the crown of the City. The tailors of the palace have your measure.',how:'take the crown'},
 ];
-function outfitUnlocked(id){
- if(!S)return id==='default';
+function outfitUnlocked(id,ch=S){
+ if(!ch)return id==='default';
  if(id==='default')return true;
- if(id==='ice')return !!(S.ritualDone||(S.gear&&isIce(S.gear.armor))||(S.bag||[]).some(it=>it&&isIce(it)));
- if(id==='royal')return !!(S.city&&S.city.crowned);
+ if(id==='ice')return !!(ch.ritualDone||(ch.gear&&isIce(ch.gear.armor))||(ch.bag||[]).some(it=>it&&isIce(it)));
+ if(id==='royal')return !!(ch.city&&ch.city.crowned);
  return false;
 }
-function heroOutfit(){
- if(!S)return 'default';
- if(S.outfit===undefined)return S.gear&&isIce(S.gear.armor)?'ice':'default';   /* before the choice existed: the armor on your back */
- return outfitUnlocked(S.outfit)?S.outfit:'default';
+function heroOutfit(ch=S){
+ if(!ch)return 'default';
+ if(ch.outfit===undefined)return ch.gear&&isIce(ch.gear.armor)?'ice':'default';
+ return outfitUnlocked(ch.outfit,ch)?ch.outfit:'default';
 }
+const characterTitle=ch=>ch&&ch.city&&ch.city.crowned?(ch.gender==='f'?'Queen':'King'):
+ (ch&&ch.city&&ch.city.noble&&ch.city.noble.rank>0&&CityEconomy.NOBLE_RANKS[ch.city.noble.rank]||{}).title||'';
 const outfitArgOf=id=>id==='royal'?'royal':id==='ice';
 const outfitArg=()=>outfitArgOf(heroOutfit());
 const lookOutfit=look=>look&&look.outfit==='royal'?'royal':!!(look&&look.ice);   /* what a peer or a leaderboard entry sent */
@@ -893,7 +895,7 @@ const ZONES=[
   en:[['Keep Legionnaire','humanoid','#a04a3a'],['Ash Hound','beast','#c96a3a'],['Ember Warlock','humanoid','#8a3a5a']],
   q:[['Storm the Outworks','Cut down 12 legionnaires at the walls.',12],['The Kennels','Slay 12 ash hounds loosed on the yard.',12],['Break the Warlocks','Silence 14 warlocks fueling the pyres.',14]]},
  {name:'Emberdeep Keep',lvl:60,amb:'war',map:'levlingzone_boss',boss:['Warlord Krev','#d94a2a','krev'],ground:'#3a2a26',ground2:'#31231f',water:'#8a4a2a',tree:'#31231f',tree2:'#241a16',path:'#5a4030',rocky:true,final:true},
- {name:'Gates of the Viking',lvl:60,amb:'odin',valhalla:true,special:true,map:'odin_map',
+ {name:'Gates of the Viking',lvl:60,amb:'odin',valhalla:true,special:true,map:'odin_bosszone',
   boss:['ODIN','#c94a3a','odin'],
   ground:'#8a94a0',ground2:'#7d8794',water:'#5a7a9a',tree:'#4a5a66',tree2:'#39464f',path:'#a8b0ba',rocky:true},
  {name:'Halls of Valhalla',lvl:60,amb:'frost',valhalla:true,special:true,thor:true,map:'tormap_zone',
@@ -5126,7 +5128,9 @@ function buildZone(){
  world.spawn={x:120,y:world.h/2};
  world.portal={x:world.w-80,y:world.h/2};
  world.pathY=world.h/2;world.pathH=110;
- if(z.harbor){
+ if(z.amb==='odin'){
+  world=OdinArena.create();cityImg('hall_brazier');
+ }else if(z.harbor){
   world=HarborWorld.create();   /* ⚓ module-built, like the hall: quay, piers, ships and the people of the quay */
   HarborWorld.IMAGES.forEach(n=>cityImg('harbor/'+n));HarborWorld.CITY_IMAGES.forEach(cityImg);
  }else if(z.throne){
@@ -5224,6 +5228,7 @@ function buildZone(){
    zoneMapImg('farm_zone');
   }
   if(z.city){buildCity(R);cityGroundApply();cityApplyAll();} /* 👑 the crowd, the brawl and the size of the watch are there when you walk in, if the ledger says so */
+  if(z.city){cityImg('street_dung');cityGroundImages();} /* Start street art loading before the first paint. */
   if(z.finalb){ /* ☠ you walk in from the south, dead centre - the arena rises ahead of you */
    world.spawn={x:world.w/2,y:world.h-160};
    world.portal={x:-500,y:-500}; /* no exit swirl - win or leave by the map */
@@ -5368,7 +5373,7 @@ function buildZone(){
    if(!S.bossDead[S.zone]&&!S.forsakenDead)spawnEnemyAt(tmpls[0],R,{x:world.w/2,y:world.h*0.30}); /* slain once, slain forever - even across Prestige */
    else world.solids.push({x:world.w/2,y:world.h*0.46,r:60,type:'exitportal'}); /* the way out, opened by his death */
   }
-  else if(!S.bossDead[S.zone]&&!(zoneOf().thor&&thorLocked()))spawnEnemyAt(tmpls[0],R,{x:world.w-320,y:world.pathY});
+  else if(!S.bossDead[S.zone]&&!(zoneOf().thor&&thorLocked()))spawnEnemyAt(tmpls[0],R,z.amb==='odin'?OdinArena.BOSS:{x:world.w-320,y:world.pathY});
  }
  else if(tmpls.length){for(let i=0;i<24;i++)spawnEnemyAt(tmpls[i%tmpls.length],R);} /* denser maps */
  marker=null;portalMsgT=0;
@@ -5507,7 +5512,8 @@ function prerenderGround(z,R){
  if(mImg&&mImg.complete&&mImg.naturalWidth){
   /* painted ground map - same aspect as the world, so a plain stretch fits;
      buildings/trees/NPCs draw on top each frame as usual */
-  g.drawImage(mImg,0,0,world.w,world.h);
+  if(z.amb==='odin')g.drawImage(mImg,0,0); /* supplied 2400 x 1600 floor, one image pixel per world pixel */
+  else g.drawImage(mImg,0,0,world.w,world.h);
   g.strokeStyle='rgba(0,0,0,0.35)';g.lineWidth=26;g.strokeRect(0,0,world.w,world.h);
   return;
  }
@@ -6518,14 +6524,14 @@ function bossAI(en,dt){
    floatAt(en.x,en.y-en.r-30,'Mjölnir calls!','#dff4ff',true);
    sfx.arcane();shakeT=0.25;
   }
- }else if(B==='odin'){ /* ODIN: hellfire, hounds & ground shake */
+ }else if(B==='odin'){ /* ODIN: hellfire, ravens & ground shake */
   if(en.cds.a<=0){en.cds.a=7;sfx.warn();
    for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*120,hero.y+(Math.random()-0.5)*120,290,1.2,en.atk*1.4,'#ff5a3a');
    floatAt(en.x,en.y-en.r-30,'Hellfire!','#ff5a3a',true);
   }
   if(en.cds.c<=0){en.cds.c=14;
-   if(addsAlive()<3){spawnAdd('Crow','beast','#a03a2a');spawnAdd('Crow','beast','#a03a2a');
-    floatAt(en.x,en.y-en.r-30,'AWOOO!','#ff8a6a',true);}
+   if(addsAlive()<3){spawnAdd('Crow','beast','#252638',en);spawnAdd('Crow','beast','#252638',en);
+    floatAt(en.x,en.y-en.r-30,'RAVENS!','#aebce0',true);}
   }
   /* GROUND SHAKE - one unavoidable 5% max HP hit, every 20s (first at 14s) */
   if(en.cds.e===undefined)en.cds.e=14;
@@ -8827,8 +8833,10 @@ function drawPropShadow(s,z){
  }else if(s.type==='cityhouse'){
   const key=s.key||cityHouseKey(s.seed||0,false),im=cityImg(key);
   if(ready(im)){
-   const H=(CITY_HOUSE[key]||{h:s.r*7.8}).h,W=H*im.naturalWidth/im.naturalHeight;
-   cityShadow(key,W,H,s.r*.30-H);
+   let H=(CITY_HOUSE[key]||{h:s.r*7.8}).h,W=H*im.naturalWidth/im.naturalHeight;
+   const built=s.work&&s.work.status==='done'&&cityArt('work_'+s.work.id);
+   if(built){const ar=built.naturalWidth/built.naturalHeight,room=Math.max(W*1.3,250);H=Math.min(WORK_ART_H[s.work.id]||330,room/ar);W=H*ar;drawGroundShadow(0,s.r*.30-H*.055,W*.46,H*.07,.23);}
+   else cityShadow(key,W,H,s.r*.30-H);
   }else drawGroundShadow(0,s.r*1.25*.42,s.r*1.45*1.05,s.r*1.25*.22);
  }else if(['minehall','enchanthall','smelter','cathedral'].includes(s.type)){
   const im=cityImg(s.type);
@@ -9022,7 +9030,7 @@ function drawProp(s,z,withShadow=true){
    if(fade<1)ctx.globalAlpha*=fade;
    ctx.drawImage(mip(im,W),-W/2,s.r*0.30-H,W,H);
    ctx.restore();
-   if(s.type==='smelter'){if(fade<1)ctx.globalAlpha*=fade;CityWorks.drawSmoke(ctx,'smelter',W,H,s.r*0.30-H,performance.now()/1000,5);ctx.globalAlpha=1;}   /* 💨 the stack never goes out */
+   if(CityWorks.CHIMNEYS[s.type]){ctx.save();ctx.globalAlpha*=fade;CityWorks.drawSmoke(ctx,s.type,W,H,s.r*0.30-H,performance.now()/1000,5);ctx.restore();}
    /* no lettering floats over a roof in the City: the halls are known by their art and their glow, and the minimap names them */
   }
  }else if(s.type==='citydecor'){
@@ -9033,11 +9041,6 @@ function drawProp(s,z,withShadow=true){
   HarborWorld.drawProp(ctx,s,performance.now()/1000,im,{alpha:f&&f.H>140?seeThrough(s,f.W,f.H,f.top):1});
  }else if(s.type==='throneprop'){
   ThroneWorld.drawProp(ctx,s,performance.now()/1000,{...guildImages(),throne:cityImg('throne'),table:cityImg('council_table'),pillar:cityImg('hall_pillar'),brazier:cityImg('hall_brazier'),gaoldesk:cityImg('gaol_desk'),bars:cityImg('cell_bars'),bricked:cityImg('cell_bricked')});
-  if(s.kind==='throne'&&S&&S.city&&S.city.crowned){ /* 👑 yours now */
-   ctx.font='700 13px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
-   const txt='👑 '+cityTitle()+' '+(S.name||'Hero');
-   ctx.fillStyle='rgba(0,0,0,0.75)';ctx.fillText(txt,1,-331);ctx.fillStyle='#ffd76a';ctx.fillText(txt,0,-332);
-  }
   /* (the readout that used to float over the council table - people, council, draw, trust - was taken down 2026-09-22: the ledger's Overview says it all, and the hero panel opens it from anywhere) */
  }else if(s.type==='gallows'){ /* ⚖️ the scaffold on the square (assets/city/gallows.png): stands at s.y, its deck GALLOWS.deck of its height up; the rope runs from the beam to whoever hangs from it */
   const im=cityImg('gallows');
@@ -9949,7 +9952,7 @@ function drawEnemy(en){
  const skinKey=en.skin||en.bossId;
  const raidSkin=RAID_SKINS[skinKey]&&RAID_SKINS[skinKey].img.naturalWidth?RAID_SKINS[skinKey]:null; /* raid lords + ODIN + skinned leveling bosses + dungeon trolls + cow herd */
  const mobSkin=(!raidSkin&&!en.boss&&!en.cow&&en.name!=='Crow')?mobSkinFor(en):null; /* painted foes and boss adds - the Crow adds keep their own look */
- if(en.kind!=='undead'&&!RAID_SKINS[skinKey]&&!mobSkin)feet(en,en.r/13);
+ if(en.kind!=='undead'&&!RAID_SKINS[skinKey]&&!mobSkin&&en.name!=='Crow')feet(en,en.r/13);
  let mobExtra=0;
  const dark='rgba(0,0,0,0.28)';
  if(raidSkin){ /* a complete enemy sprite: body and feet share one transform */
@@ -10005,6 +10008,8 @@ function drawEnemy(en){
     ctx.restore();
    }
   }
+ }else if(en.name==='Crow'){
+  OdinArena.drawCrow(ctx,en,hero,now/1000,odinRavenImg);
  }else if(mobSkin){ /* 🎨 painted foe - grey art soaked in this enemy's own colour */
   const H=en.r*(MOB_SIZE[en.kind]||4.6),W=H*mobSkin.naturalWidth/mobSkin.naturalHeight;
   const whole=mobSkin===REVENANT_SKIN.img?EnemyFullbody.get(REVENANT_SKIN):null;
@@ -13497,13 +13502,14 @@ function cityClockLeft(){
 }
 function cityHudLine(){
  const c=S&&S.city;if(!c)return 'The capital.';
- if(!c.chartered)return (c.noble.rank?'🎩 '+nobleTitle()+' '+(S.name||'')+' · ':'')+(c.office>=3?'The strongroom is empty and the books are shut. The King’s Hand is waiting for you at the council table, behind the throne.'
+ const title=characterTitle(S),prefix=title?(c.crowned?'👑 ':'🎩 ')+title+' '+(S.name||'')+' · ':'';
+ if(!c.chartered)return prefix+(c.office>=3?'The strongroom is empty and the books are shut. The King’s Hand is waiting for you at the council table, behind the throne.'
   :c.office===2?'📜 The King’s Hand is waiting for you at the council table, behind the throne. He has a proposal.'
   :c.office===1?'📜 The King’s Hand wishes to speak with you. Present yourself at the Throne Hall, up the palace stair.'
   :c.noble.rank?'The city is slowly coming apart, and nobody keeps its books. The contracts on the notice board are open to you.'
   :'The city is slowly coming apart, and nobody keeps its books. The notice board on the great square is where a name is made.');
  const trouble=c.incidents.map(i=>CityEconomy.INCIDENTS.find(d=>d.id===i.id)).map(d=>d.icon+' '+d.name.toLowerCase());
- return (c.noble.rank?'🎩 '+nobleTitle()+' '+(S.name||'')+' · ':'')+'Treasury '+c.treasury.toLocaleString()+' ◉ · '+c.pop+' townsfolk, '+CityEconomy.moodName(c.mood).toLowerCase()+(c.protest?' and marching on the boulevard':'')
+ return prefix+'Treasury '+c.treasury.toLocaleString()+' ◉ · '+c.pop+' townsfolk, '+CityEconomy.moodName(c.mood).toLowerCase()+(c.protest?' and marching on the boulevard':'')
   +' · '+(c.crowned?'👑 the crown is yours':'trust '+Math.floor(c.trust)+'%')+' · season '+c.season.n+', close '+(c.season.closes+1)+'/'+CityEconomy.SEASON_CLOSES+(c.treasury<0?' · 🏦 IN THE RED':'')
   +(c.food.hunger>0?' · 🌾 THE CITY IS HUNGRY':CityEconomy.foodView(c,cityContext()).low?' · 🌾 bread for '+(n=>n+' more close'+(n===1?'':'s'))(CityEconomy.foodView(c,cityContext()).closes):'')+(c.unattended>=CityEconomy.REMIND_AFTER?' · 🔔 you have ledgers to attend':'')+(trouble.length?' · '+trouble.join(' · '):'')+(c.petition?' · 📜 a petition waits at the council table':'')+(c.king.demand?' · 👑 the King wants something':'')+' · the ledger closes in '+cityClockLeft();
 }
@@ -15377,7 +15383,7 @@ function saveSnapshot(){
 const saveSig=snap=>snap.id+'|'+JSON.stringify({...snap,rev:0,savedAt:0});
 let savedSig='';
 async function save(){
- if(!S||!S.id||FB.kicked)return;
+ if(!S||!S.id||FB.kicked||heroDeleted(S.id))return;
  /* The autosave comes round every 12 seconds whether or not anything happened. Saving an unchanged hero used to raise rev,
     rewrite the device copy and send the whole hero to the cloud again - all day long in an idle window. Now it is nothing
     at all. rev moves only when the hero did, so it can never run ahead of a cloud copy that was not sent. */
@@ -15396,7 +15402,7 @@ async function save(){
 /* ☁ force the cloud copy up NOW, throttle be damned - for moments too valuable to lose:
    raid clears, Thor kills, anything that hands out once-per-lockout loot. */
 async function saveNow(){
- if(!S||!S.id||FB.kicked)return;
+ if(!S||!S.id||FB.kicked||heroDeleted(S.id))return;
  S.rev=(S.rev|0)+1;S.savedAt=Date.now();
  savedSig=saveSig(saveSnapshot());
  memChars[S.id]=JSON.stringify(saveSnapshot());
@@ -15409,6 +15415,7 @@ async function saveNow(){
 }
 setInterval(()=>{ /* trailing flush - a dirty save never waits much longer than the throttle */
  if(FB.pushDirty&&Date.now()-(FB.lastPush||0)>FB_PUSH_MS)flushCloud();
+ if(Date.now()-(FB.lastDeleteRetry||0)>FB_PUSH_MS){FB.lastDeleteRetry=Date.now();retryHeroDeletions();}
 },5000);
 /* Tab going away: pagehide is the one iOS Safari reliably fires (visibilitychange can be
    skipped entirely when the app is swiped away), so listen for both. The local save is
@@ -15709,31 +15716,59 @@ async function cloudCall(what,viaSdk,viaRest,ms,isWrite){
 const cloudGetPlayer=uid=>cloudCall('the hero roster',
  async()=>{const doc=await FB.db.collection('players').doc(uid).get();return {exists:doc.exists,data:doc.exists?doc.data()||{}:null};},
  rest=>rest.get('players/'+uid),SDK_WAIT_MS);
-/* The first save a session sends by plain request is read back: the hero must be there as sent, and every hero the sign-in
-   saw must still be there. The update mask is what guarantees it - the tests hold that, and so did a trial against the real
-   database with copies of real heroes (2026-09-21). This is the check that would say so out loud, and put the others back,
-   if the service ever behaved differently. It never fails the save it follows. */
+/* Deletion is permanent for this character ID. Keep a durable receipt on both devices and the
+   server, so offline copies and delayed writes cannot bring a deliberately deleted hero back. */
+const deletionKey=uid=>'riptide-deleted::'+uid+'::s'+SEASON;
+function deletedHeroes(uid=FB.user&&FB.user.uid){
+ try{return JSON.parse(LS.get(deletionKey(uid))||'{}')||{};}catch(e){return {};}
+}
+const heroDeleted=id=>!!deletedHeroes()[id];
+function rememberDeletion(uid,id,at,pending){
+ const all=deletedHeroes(uid);all[id]={at:at||Date.now(),pending:!!pending};
+ LS.set(deletionKey(uid),JSON.stringify(all));
+}
+async function removeDeletedLocal(uid,id){
+ if(!FB.user||FB.user.uid!==uid)return;
+ if(S&&S.id===id){const playing=gameOn;S=null;FB.pushDirty=false;gameOn=false;if(playing)showSelect();}
+ await saveRoster((await loadRoster()).filter(x=>x!==id));
+ delete memChars[id];
+ await deviceDelete('riptide-char-'+id);await deviceDelete('eastvale-char-'+id);
+}
+async function retryHeroDeletions(){
+ if(!(FB.ready&&FB.user)||FB.deleting)return;
+ const uid=FB.user.uid;
+ for(const [id,d] of Object.entries(deletedHeroes(uid))){
+  if(!FB.user||FB.user.uid!==uid)return;
+  if(d.pending)await cloudDeleteChar(id);
+ }
+}
+/* Read back the first REST save for diagnostics. Missing peers may have been deleted on another device;
+   never repair them from a stale snapshot of the roster. */
 async function restReadBack(rest,uid,sent){
  try{
   const doc=await rest.get('players/'+uid),now=(doc.exists&&doc.data.chars)||{},back=now[sent.id];
-  const seen=FB.cloudSeen&&FB.cloudSeen.uid===uid?FB.cloudSeen.chars:{},lost=Object.keys(seen).filter(id=>!now[id]);
   if(!back||(+back.rev||0)!==(+sent.rev||0))console.error('cloud: the hero just saved did not read back as sent (rev '+(back&&back.rev)+', sent '+sent.rev+')');
-  if(!lost.length)return true;
-  console.error('cloud: '+lost.length+' hero(es) were gone from the cloud after a save - putting them back');
-  const all={...now};for(const id of lost)all[id]=seen[id];
-  await rest.patch('players/'+uid,{chars:all},[['chars']]);
+  /* Absence may be an intentional deletion on another device. Never restore an old roster snapshot. */
+  return !!back;
  }catch(e){FB.restChecked=null;console.warn('cloud read-back failed',e);} /* look again after the next save */
  return false;
 }
 async function cloudPushChar(ch){
- if(!(FB.ready&&FB.user)||FB.kicked)return false;
+ if(!(FB.ready&&FB.user)||FB.kicked||!ch||heroDeleted(ch.id))return false;
  /* the last push has not come back yet: the cloud is not answering, and queueing another whole copy of the hero behind it
     every fifteen seconds only builds a pile (it is how "write stream exhausted maximum allowed queued writes" was earned).
     The save on this device is the one that counts; the next push after it clears carries everything. */
  if(FB.pushing&&Date.now()-FB.pushing<120000)return false;
  FB.pushing=Date.now();
  try{
-  const uid=FB.user.uid,ids=await loadRoster();
+  const uid=FB.user.uid,remote=await cloudGetPlayer(uid);
+  if(!FB.user||FB.user.uid!==uid){FB.pushing=0;return false;}
+  const gone=remote.exists&&remote.data.deletedChars&&remote.data.deletedChars[ch.id];
+  if(gone||heroDeleted(ch.id)){
+   rememberDeletion(uid,ch.id,gone||Date.now(),false);await removeDeletedLocal(uid,ch.id);
+   FB.pushing=0;return false;
+  }
+  const ids=(await loadRoster()).filter(id=>!heroDeleted(id));
   const rosterJson=JSON.stringify(ids),copy=JSON.parse(JSON.stringify(ch));
   await cloudCall('the save of '+(ch.name||ch.id),async()=>{
    const ref=FB.db.collection('players').doc(uid);
@@ -15768,14 +15803,24 @@ async function cloudPushChar(ch){
  }
 }
 async function cloudDeleteChar(id){
- if(!(FB.ready&&FB.user))return;
+ if(!FB.user)return false;
+ const uid=FB.user.uid,prior=deletedHeroes(uid)[id],at=prior?prior.at:Date.now();
+ rememberDeletion(uid,id,at,true);
+ await removeDeletedLocal(uid,id);
+ if(!FB.ready)return false;
+ FB.deleting=true;
  try{
-  const ids=await loadRoster(),uid=FB.user.uid;
+  const ids=await loadRoster();
   if(FB.cloudSeen&&FB.cloudSeen.chars)delete FB.cloudSeen.chars[id]; /* gone on purpose: the read-back must not put him back */
   /* by plain request a masked path that is missing from the body is a delete - chars.<id> is named and not sent */
-  await cloudCall('the deleting of a hero',()=>FB.db.collection('players').doc(uid).update({season:SEASON,roster:ids,['chars.'+id]:firebase.firestore.FieldValue.delete(),updatedAt:Date.now()}),
-   rest=>rest.patch('players/'+uid,{season:SEASON,roster:ids,updatedAt:Date.now()},[['season'],['roster'],['chars',id],['updatedAt']]),SDK_WRITE_MS,true);
- }catch(e){console.warn('cloud delete failed',e);}
+  await cloudCall('the deleting of a hero',()=>FB.db.collection('players').doc(uid).set({season:SEASON,roster:ids,chars:{[id]:firebase.firestore.FieldValue.delete()},deletedChars:{[id]:at},updatedAt:Date.now()},{merge:true}),
+   rest=>rest.patch('players/'+uid,{season:SEASON,roster:ids,deletedChars:{[id]:at},updatedAt:Date.now()},[['season'],['roster'],['chars',id],['deletedChars',id],['updatedAt']]),SDK_WRITE_MS,true);
+  const lbid='s'+SEASON+'_'+uid+'_'+id,entry={season:SEASON,cid:id,deleted:true,score:-1};
+  await cloudCall('the deleted leaderboard entry',()=>FB.db.collection('leaderboard').doc(lbid).set(entry),rest=>rest.patch('leaderboard/'+lbid,entry),SDK_WAIT_MS,true);
+  rememberDeletion(uid,id,at,false);FB.lastRoster=null;
+  return true;
+ }catch(e){console.warn('cloud delete failed; queued for retry',e);return false;}
+ finally{FB.deleting=false;}
 }
 /* ☁ Characters made before signing in are stranded: FB.user is null while you play as a guest, so
    save() never pushes them, and the moment you sign in the roster key changes from 'riptide-roster'
@@ -15792,6 +15837,7 @@ async function adoptGuestChars(){
  const ids=await loadRoster();
  let moved=0,allOk=true;
  for(const id of guest){
+  if(heroDeleted(id))continue;
   const ch=await loadChar(id);
   if(!ch||!ch.id)continue;
   if(!ids.includes(ch.id))ids.push(ch.id);
@@ -15814,14 +15860,18 @@ async function cloudPullRoster(job){
  try{
   const uid=FB.user.uid,doc=await cloudGetPlayer(uid);
   pullJobs=pullJobs.filter(j=>j!==job);
-  if(job.abandoned){console.error('cloud: the hero roster answered after the wait was over - ignored until the next sign-in');return false;}
+  if(job.abandoned||!FB.user||FB.user.uid!==uid){console.error('cloud: the hero roster answered after the wait was over - ignored until the next sign-in');return false;}
   if(!doc.exists)return true;
   const data=doc.data||{};
   FB.cloudSeen={uid,chars:JSON.parse(JSON.stringify(data.chars||{}))}; /* what the cloud held at sign-in - see restReadBack */
   if(String(data.season||'')!==String(SEASON))return true; /* ignore pre-season/old-season cloud saves */
+  for(const [id,at] of Object.entries(data.deletedChars||{}))rememberDeletion(uid,id,at,!!(deletedHeroes(uid)[id]||{}).pending);
+  for(const id of Object.keys(deletedHeroes(uid)))await removeDeletedLocal(uid,id);
+  await retryHeroDeletions();
   const remoteChars=data.chars||{},ids=await loadRoster(),ahead=[];
   let changed=false;
   for(const [id,raw] of Object.entries(remoteChars)){
+   if(heroDeleted(id))continue;
    const rr=+((raw&&raw.rev)||0); /* read rev off the raw doc - migrate() would zero it */
    const ch=migrate(raw);if(!ch||!ch.id)continue;
    const local=await loadChar(ch.id);
@@ -15878,15 +15928,15 @@ function charStats(ch){
  };
 }
 const lbScore=ch=>(ch.prestige||0)*1e6+(ch.lvl||1)*1e3+charGearScore(ch);
+const lbPublished=new Map(),lbPublishing=new Map();
 async function publishLB(ch,force){
- if(!ch||!ch.id)return;
+ if(!ch||!ch.id||heroDeleted(ch.id))return;
  const now=Date.now();
- if(!force&&now-FB.lastPub<1800000)return; /* passive publishes at most every 30 min */
- FB.lastPub=now;
  ch.tainted=false;ch.taintV=0;
- const slim=g=>g?{wench:g.wench||null,name:g.name,rar:g.rar,slot:g.slot,up:g.up||0,star:g.star||0,atk:g.atk||0,hp:g.hp||0,crit:g.crit||0,haste:g.haste||0,lifesteal:g.lifesteal||0,bossDmg:g.bossDmg||0,manadrain:g.manadrain||0,dmgMul:g.dmgMul||0,legend:g.legend||null,power:Math.round(g.power||0)}:null;
+ const slim=g=>g?{id:g.id||null,wench:g.wench||null,name:g.name,rar:g.rar,slot:g.slot,up:g.up||0,star:g.star||0,atk:g.atk||0,hp:g.hp||0,crit:g.crit||0,haste:g.haste||0,lifesteal:g.lifesteal||0,bossDmg:g.bossDmg||0,manadrain:g.manadrain||0,dmgMul:g.dmgMul||0,legend:g.legend||null,power:Math.round(g.power||0)}:null;
  const entry={season:SEASON,name:(ch.name||'?').slice(0,14),lvl:ch.lvl,prestige:ch.prestige||0,gs:charGearScore(ch),score:lbScore(ch),cid:ch.id,t:now,tainted:false,taintV:0,
   hardcore:!!ch.hardcore,hcDead:!!ch.hcDead,gender:ch.gender||'m',
+  title:characterTitle(ch),outfit:heroOutfit(ch),hideWeapon:!!ch.hideWeapon,hideRing:!!ch.hideRing,hidePet:!!ch.hidePet,
   rating:ch.rating||0,
   race:ch.race||'human',cls:ch.cls||'warrior',zone:ch.zone||0,
   pet:ch.pet||null,
@@ -15895,19 +15945,28 @@ async function publishLB(ch,force){
   gear:{weapon:slim(ch.gear&&ch.gear.weapon),armor:slim(ch.gear&&ch.gear.armor),trinket:slim(ch.gear&&ch.gear.trinket)},
   stats:charStats(ch),
   boosts:ch.boosts||{speed:0,haste:0}};
+ const key=(FB.user&&FB.user.uid||'guest')+':'+SEASON+':'+ch.id,sig=JSON.stringify({...entry,t:0});
+ if(lbPublishing.has(key)){try{await lbPublishing.get(key);}catch(e){}return publishLB(ch,force);}
+ if(!force&&lbPublished.get(key)===sig)return;
+ const send=(async()=>{
  if(FB.ready&&FB.user){
   const id='s'+SEASON+'_'+FB.user.uid+'_'+ch.id; /* (showLeaderboard awaits this: a bare set() on a dead channel never opened the board) */
-  try{await cloudCall('the leaderboard entry',()=>FB.db.collection('leaderboard').doc(id).set(entry),rest=>rest.patch('leaderboard/'+id,entry),SDK_WAIT_MS);}catch(e){}
+  await cloudCall('the leaderboard entry',()=>FB.db.collection('leaderboard').doc(id).set(entry),rest=>rest.patch('leaderboard/'+id,entry),SDK_WAIT_MS);
  }else{
-  try{if(window.storage)await window.storage.set('lb:s'+SEASON+':'+ch.id,JSON.stringify(entry),true);}catch(e){}
+  if(!window.storage)return;
+  await window.storage.set('lb:s'+SEASON+':'+ch.id,JSON.stringify(entry),true);
  }
+ lbPublished.set(key,sig);
+ })();
+ lbPublishing.set(key,send);
+ try{await send;}catch(e){console.warn('leaderboard update failed; will retry',e);}finally{lbPublishing.delete(key);}
 }
 async function fetchLB(){
  if(FB.ready){
   try{
    const rows=await cloudCall('the leaderboard',async()=>(await FB.db.collection('leaderboard').orderBy('score','desc').limit(200).get()).docs.map(d=>d.data()),
     async rest=>(await rest.query('leaderboard',{orderBy:'score',descending:true,limit:200})).map(r=>r.data),SDK_WAIT_MS);
-   return rows.filter(e=>String(e.season||'')===String(SEASON)).slice(0,100);
+   return rows.filter(e=>!e.deleted&&String(e.season||'')===String(SEASON)).slice(0,100);
   }catch(e){}
  }
  try{
@@ -15918,7 +15977,7 @@ async function fetchLB(){
    for(const k of keys){
     try{const g=await window.storage.get(k,true);if(g&&g.value)out.push(JSON.parse(g.value));}catch(e){}
    }
-   return out.sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,100);
+   return out.filter(e=>!e.deleted).sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,100);
   }
  }catch(e){}
  return [];
@@ -15969,11 +16028,24 @@ function renderInspect(e){
   <div class="slotrow" style="margin-top:8px">${scHtml}${petHtml}</div>
  </div>`;
 }
-async function showLeaderboard(){
+let leaderboardRows=[],leaderboardRequest=0,leaderboardRefreshTimer=null;
+function paintLeaderboardPortraits(){
+ leaderboardRows.forEach((e,i)=>{
+  const cnv=document.querySelector(`[data-lbp="${i}"]`);
+  if(cnv)drawPortrait(cnv,{...e,race:e.race||'human',cls:e.cls||'warrior',activeScroll:e.scroll||null,gear:e.gear||{}});
+ });
+}
+async function showLeaderboard(refresh=false){
+ refresh=refresh===true;
+ const request=++leaderboardRequest;
+ clearTimeout(leaderboardRefreshTimer);
  $('lbFx').classList.add('open');
- $('lbList').innerHTML='<div class="cl">Consulting the heralds…</div>';
- if(S&&S.id)await publishLB(S,true);
+ if(!refresh)$('lbList').innerHTML='<div class="cl">Consulting the heralds…</div>';
+ const expanded=Array.from(document.querySelectorAll('[data-insp]')).find(b=>b.textContent==='▴ Close'),expandedCid=refresh&&expanded&&leaderboardRows[+expanded.dataset.insp]?.cid;
+ if(S&&S.id)await publishLB(S,!refresh);
  const rows=await fetchLB();
+ if(request!==leaderboardRequest||!$('lbFx').classList.contains('open'))return;
+ leaderboardRows=rows;
  $('lbList').innerHTML=rows.length?rows.map((e,i)=>{
   const r=RACES.find(x=>x.id===(RACE_ALIAS[e.race]||e.race)),c=CLASSES.find(x=>x.id===(CLASS_ALIAS[e.cls]||e.cls));
   const zn=ZONES[Math.max(0,Math.min(ZONES.length-1,e.zone||0))].name;
@@ -15981,7 +16053,7 @@ async function showLeaderboard(){
    <div class="lbrank big">${i+1}</div>
    <canvas class="portrait" width="64" height="76" data-lbp="${i}"></canvas>
    <div class="cinfo">
-    <div class="cn">${esc(e.name||'?')}${e.hardcore?` <span style="color:#ff5a5a;font-weight:700">💀 (HARDCORE${e.hcDead?' · FALLEN':''})</span>`:''}${e.rating?` <span style="color:var(--brass)">(${e.rating})</span>`:''}${e.prestige?` <span class="pstar">✦ Prestige ${e.prestige}</span>`:''}</div>
+    <div class="cn">${esc((e.title?e.title+' ':'')+(e.name||'?'))}${e.hardcore?` <span style="color:#ff5a5a;font-weight:700">💀 (HARDCORE${e.hcDead?' · FALLEN':''})</span>`:''}${e.rating?` <span style="color:var(--brass)">(${e.rating})</span>`:''}${e.prestige?` <span class="pstar">✦ Prestige ${e.prestige}</span>`:''}</div>
     <div class="cl">${r&&c?esc(r.name+' '+c.name)+' · ':''}Level ${e.lvl||1}</div>
     <div class="cl">⚔ ${fmtGS(e.gs)} gear score · ${esc(zn)}</div>
    </div>
@@ -15990,10 +16062,7 @@ async function showLeaderboard(){
   </div>`;
  }).join('')
   :'<div class="cl">No champions recorded yet - be the first to claim a place.</div>';
- rows.forEach((e,i)=>{
-  const cnv=document.querySelector(`[data-lbp="${i}"]`);
-  if(cnv)drawPortrait(cnv,{race:e.race||'human',cls:e.cls||'warrior',gender:e.gender||'m',prestige:e.prestige||0,activeScroll:e.scroll||null,gear:e.gear||{}});
- });
+ paintLeaderboardPortraits();
  document.querySelectorAll('[data-insp]').forEach(b=>b.onclick=()=>{
   const i=+b.dataset.insp,box=$('insp'+i),e=rows[i];
   if(box.style.display!=='none'){box.style.display='none';b.textContent='🔍 Inspect';return;}
@@ -16002,6 +16071,8 @@ async function showLeaderboard(){
   box.innerHTML=renderInspect(e);
   box.style.display='block';b.textContent='▴ Close';
  });
+ if(expandedCid){const i=rows.findIndex(e=>e.cid===expandedCid);document.querySelector(`[data-insp="${i}"]`)?.click();}
+ leaderboardRefreshTimer=setTimeout(()=>{if($('lbFx').classList.contains('open'))showLeaderboard(true);},15000);
 }
 
 /* ⛧ The sign at the Gate to the Final Hour. Everything else in Riptide you can walk back out of;
@@ -16053,16 +16124,18 @@ function drawPortrait(cnv,ch){
  const scA=(ch.activeScrolls||[ch.activeScroll]).filter(Boolean)[0];
  const sc=scA?enchOf(scA.id||scA):null;
  const wr=ch.hideWeapon?null:runeOf(ch.gear&&ch.gear.weapon);   /* hidden weapons carry no visible enchant */
- const character=paintedCharacterFrame(ch.race,c.id,ch.gender==='f',!!(ch.gear&&ch.gear.armor&&ch.gear.armor.legend==='icearmor'));
+ const look=outfitArgOf(ch.cid?ch.outfit||((ch.gear&&ch.gear.armor&&ch.gear.armor.legend==='icearmor')?'ice':'default'):heroOutfit(ch));
+ const character=paintedCharacterFrame(ch.race,c.id,ch.gender==='f',look);
  if(character){
   /* painted model portrait - smaller scale so the taller sprite + boots fit the frame */
   g.save();g.translate(W/2,H*0.684);g.scale(1.16,1.16);
   g.fillStyle='rgba(0,0,0,0.3)';g.beginPath();g.ellipse(0,character.groundY,13,5,0,0,7);g.fill();
   if(sc){g.strokeStyle=sc.glow;g.globalAlpha=0.55;g.lineWidth=1;g.beginPath();g.ellipse(0,character.groundY-1,15,6,0,0,7);g.stroke();g.globalAlpha=1;}
   bootFeet({...character.boots,moving:false,walk:0},g);
-  drawChampionSprite(g,ch.race,c.id,1,0,0,!!(ch.gear&&ch.gear.weapon&&isFKLegend(ch.gear.weapon.legend)),ch.hideWeapon?'hidden':ch.gear&&ch.gear.weapon&&(ch.gear.weapon.id||ch.gear.weapon.legend),ch.gender==='f',1,!!(ch.gear&&ch.gear.armor&&ch.gear.armor.legend==='icearmor'),wr);
+  drawChampionSprite(g,ch.race,c.id,1,0,0,!!(ch.gear&&ch.gear.weapon&&isFKLegend(ch.gear.weapon.legend)),ch.hideWeapon?'hidden':ch.gear&&ch.gear.weapon&&(ch.gear.weapon.id||ch.gear.weapon.legend),ch.gender==='f',1,look,wr);
+  if(!ch.hideRing)drawEquippedRing(g,ch.gear&&ch.gear.trinket,character.headY,0);
   g.restore();
- }else{
+ }else if(!CHAR_SPRITES[(RACE_ALIAS[ch.race]||ch.race)+(ch.gender==='f'?'female':'male')+'_'+(look==='royal'?'royal':look?'armor':c.id)]){
  g.save();g.translate(W/2,H*0.72);g.scale(2.1,2.1);
  g.fillStyle='rgba(0,0,0,0.3)';g.beginPath();g.ellipse(0,7,11,4.5,0,0,7);g.fill();
  if(sc){g.strokeStyle=sc.glow;g.globalAlpha=0.55;g.lineWidth=1;g.beginPath();g.ellipse(0,6,13,5.5,0,0,7);g.stroke();g.globalAlpha=1;}
@@ -16146,7 +16219,9 @@ async function renderSelect(){
    setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent='✕ Delete';b.style.color='';b.style.borderColor='';}},3000);
    return;
   }
+  if(FB.user)rememberDeletion(FB.user.uid,b.dataset.del,Date.now(),true);
   const ids=(await loadRoster()).filter(x=>x!==b.dataset.del);
+  if(S&&S.id===b.dataset.del){S=null;FB.pushDirty=false;}
   await saveRoster(ids);
   delete memChars[b.dataset.del];
   await deviceDelete('riptide-char-'+b.dataset.del);
@@ -16237,7 +16312,7 @@ $('fbSignup').onclick=()=>fbSignIn(true);
 $('fbForgot').onclick=fbForgotPass;
 $('fbOut').onclick=async()=>{if(sessUnsub){sessUnsub();sessUnsub=null;}if(FB.auth)await FB.auth.signOut();FB.user=null;showLogin();};
 $('lbBtn2').onclick=showLeaderboard;
-$('lbClose').onclick=()=>$('lbFx').classList.remove('open');
+$('lbClose').onclick=()=>{++leaderboardRequest;clearTimeout(leaderboardRefreshTimer);$('lbFx').classList.remove('open');};
 $('autoBtn').onclick=toggleCombatAuto;
 $('nextBtn').onclick=()=>{
  if(!portalIsOpen())return;

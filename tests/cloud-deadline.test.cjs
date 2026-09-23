@@ -47,11 +47,11 @@ test('signing in opens the character select at once and gives the cloud a deadli
 
 test('a late answer never lands on a hero who is being played, and leaving the game never hangs',()=>{
  const pull=between('async function cloudPullRoster(job){','\n}');
- assert.ok(pull.indexOf('if(job.abandoned)')>pull.indexOf('await cloudGetPlayer(uid)')&&pull.indexOf('await cloudGetPlayer(uid)')>0&&pull.indexOf('if(job.abandoned)')<pull.indexOf('migrate(raw)'),'an abandoned pull is dropped before it touches a save');
+ assert.ok(pull.indexOf('if(job.abandoned||')>pull.indexOf('await cloudGetPlayer(uid)')&&pull.indexOf('await cloudGetPlayer(uid)')>0&&pull.indexOf('if(job.abandoned||')<pull.indexOf('migrate(raw)'),'an abandoned pull is dropped before it touches a save');
  assert.match(between("$('exitBtn').onclick=async()=>{","\n};"),/await within\(saveNow\(\),\d+,/);
  const push=between('async function cloudPushChar(ch){','\n}');
  assert.match(push,/if\(FB\.pushing&&Date\.now\(\)-FB\.pushing<\d+\)return false;/,'pushes do not pile up behind one that never came back');
- assert.equal((push.match(/FB\.pushing=0/g)||[]).length,2,'and the guard is released on success and on failure');
+ assert.equal((push.match(/FB\.pushing=0/g)||[]).length,4,'the guard is released on success, failure, account switch and deleted hero');
 });
 
 test('the character select says what is happening instead of showing nothing',()=>{
