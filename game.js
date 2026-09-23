@@ -1794,6 +1794,9 @@ function progZone(ch=S){
    The real "gear up before you prestige" punishment lives in effective-level scaling. */
 const pMul=()=>1+(S.prestige||0)*0.10;
 const pRew=()=>Math.min(Math.pow(1.15,(S.prestige||0)),8);   /* XP/potion reward curve, capped at 8× (reached ~P15); combat scaling never touches gold */
+/* +20% then another +15% leveling XP (×1.38) while the prestige curve is still climbing. It runs into
+   the same 8× cap, so P0-P12 get the full ×1.38, P13 ×1.30, P14 ×1.13, and P15+ (already capped) level exactly as before. */
+const xpBoost=()=>Math.min(pRew()*1.2*1.15,8)/pRew();
 /* Gold economy: DO NOT use effectiveHeroLvl here.
    Mob gold is based on the real zone level + visible level + a soft +8% per prestige.
    This prevents high-prestige players from earning thousands per normal mob while keeping early players fair. */
@@ -6342,6 +6345,7 @@ const ZONE_LVL_CAP=5;
 const zoneLvlGained=()=>((S.zoneLvlGain||{})[S.zone])||0;
 function gainXP(amt){
  if(S.lvl>=MAXLVL)return;
+ amt=Math.round(amt*xpBoost()); /* ×1.38 below the prestige XP cap - mobs, bosses and quests alike */
  if(S.gamblerT>0)amt=Math.round(amt*1.20);
  if(S.restedT>0)amt=Math.round(amt*(1+(S.restedPct||0))); /* 😴 Rested - inn wheel buff */
  if(farmBonus()>0)amt=Math.round(amt*(1+farmBonus())); /* 🚜 farm blessing */
@@ -7756,11 +7760,10 @@ function nearestQuestEnemy(){
  return best;
 }
 let autoT=0;
-/* Dungeons and raid/boss arenas are fought manually. The two Valhalla gods remain
-   eligible; ordinary leveling fields and the Cow Level keep their existing AUTO. */
+/* Dungeons, the Crypts, the raid and the Final Hour are fought manually. Leveling fields,
+   the leveling bosses, the two Valhalla gods and the Cow Level keep AUTO. */
 function combatAutoAllowed(z=zoneOf()){
- const boss=z?.boss?.[2];
- return !!z&&(boss==='odin'||boss==='thor'||!(z.dungeon||z.crypts||z.raid||z.boss));
+ return !!z&&!(z.dungeon||z.crypts||z.raid||z.finalb);
 }
 function refreshCombatAutoControls(){
  const allowed=combatAutoAllowed();

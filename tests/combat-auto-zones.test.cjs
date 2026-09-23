@@ -29,10 +29,10 @@ function harness(){
  return c;
 }
 
-test('all authored dungeons, raids and boss arenas block AUTO except Odin and Thor',()=>{
+test('dungeons, the Crypts, the raid and the Final Hour block AUTO; leveling bosses, Odin and Thor keep it',()=>{
  const c=harness(),blocked=[...c.zones].filter(z=>!c.combatAutoAllowed(z)).map(z=>z.name);
- assert.deepEqual(blocked,['Hollowroot Den','Grimwater Cavern','The Sunken Crypt','Pyre of the Old Gate','Emberdeep Keep','Violet Halls','The Crypts','The Final Hour','Briarhollow','Cindervein','Frostveil']);
- for(const name of ['Gates of the Viking','Halls of Valhalla','Cow Level','Willowmere Fields','Wasteland','City','Farm','Moonshine']){
+ assert.deepEqual(blocked,['Violet Halls','The Crypts','The Final Hour','Briarhollow','Cindervein','Frostveil']);
+ for(const name of ['Hollowroot Den','Grimwater Cavern','The Sunken Crypt','Pyre of the Old Gate','Emberdeep Keep','Gates of the Viking','Halls of Valhalla','Cow Level','Willowmere Fields','Wasteland','City','Farm','Moonshine']){
   assert.equal(c.combatAutoAllowed(c.zones.find(z=>z.name===name)),true,name);
  }
 });
@@ -71,8 +71,8 @@ test('autoBrain cannot cast or spend potions in any blocked zone, even called di
  }
 });
 
-test('Odin, Thor and ordinary zones retain explicit AUTO toggles and automatic skills/potions',()=>{
- for(const name of ['Gates of the Viking','Halls of Valhalla','Cow Level','Willowmere Fields']){
+test('leveling bosses, Odin, Thor and ordinary zones retain explicit AUTO toggles and automatic skills/potions',()=>{
+ for(const name of ['Hollowroot Den','Emberdeep Keep','Gates of the Viking','Halls of Valhalla','Cow Level','Willowmere Fields']){
   const c=harness();c.S.zone=c.zones.findIndex(z=>z.name===name);c.S.auto=false;c.applyZoneUI();
   c.$('autoBtn').onclick();assert.equal(c.S.auto,true,name);assert.equal(c.$('autoBtn').hidden,false);assert.equal(c.$('skAutoCfg').disabled,false);
   c.autoBrain(1);assert.equal(c.casts,1,name);assert.equal(c.potions,2,name);
