@@ -111,7 +111,7 @@
  const HOUSEHOLD=5;               /* the crown counts, taxes, rents and feeds by the household: five heads to a hearth */
  const MIN_POP=30,HOUSING=500,LEAVE_MAX=0.05;      /* the last few never leave; roofs for 96 until more are built */
  const MAX_BUILDING=3;            /* the Master Builder has three crews */
- const CELLS=6,MAX_CELLS=10;      /* the gaol under the hall: six cells, ten with the new wing */
+ const CELLS=6,MAX_CELLS=10;      /* the jail under the hall: six cells, ten with the new wing */
  const COUP_TRUST=100;            /* the realm's trust in you at which the crown can be claimed */
  const COUP_SEASONS=1;            /* ...and not before the bank has graded this many full seasons of your books (asked for 2026-09-22: one season, whatever the trust says) */
  const COUP_FAVOUR=75;            /* ...and not without a devoted council: their favour at this or better (asked for 2026-09-22) */
@@ -283,8 +283,8 @@
   {id:'watchtowers',cat:'order',name:'Watchtowers',icon:'🗼',cost:4000,build:2,upkeep:55,fx:{order:.08,safety:.06},
    blurb:'Manned towers on the curtain wall with bells that carry to every ward. Trouble is seen before it starts.',done:'The tower bells were tested. The whole city jumped.'},
   {id:'courthouse',cat:'order',name:'Courthouse',icon:'⚖️',cost:6000,build:2,upkeep:70,fx:{mood:2,fines:1},site:'house',sign:'COURTHOUSE',once:{trust:3},
-   blurb:'Judges, juries and written law. Fines double, and the gaol pays a little of its own way.',done:'The first case was heard in open court.'},
-  {id:'gaolwing',cat:'order',name:'New Gaol Wing',icon:'⛓',cost:3200,build:1,upkeep:30,fx:{cells:4},
+   blurb:'Judges, juries and written law. Fines double, and the jail pays a little of its own way.',done:'The first case was heard in open court.'},
+  {id:'gaolwing',cat:'order',name:'New Jail Wing',icon:'⛓',cost:3200,build:1,upkeep:30,fx:{cells:4},
    blurb:'Four more cells under the hall. Nobody sleeps three to a bench any more.',done:'Four new cells were unlocked under the hall.'},
  ];
  /* What happens between closes. gold and mood are before the prestige scale; when() gates an
@@ -361,7 +361,7 @@
   {id:'bridge',seat:'stone',text:'The mill bridge is rotting through. Let me rebuild it in stone before it takes a wagon with it.',cost:1400,favour:14,mood:3},
   {id:'sewers',seat:'stone',text:'The lower streets flood with every rain. Dig me proper drains.',cost:1100,favour:12,mood:4},
   {id:'almshouse',seat:'bread',text:'An almshouse by the cathedral, for the winter. It will not be cheap and it will not be forgotten.',cost:1100,favour:14,mood:6},
-  {id:'amnesty',seat:'bread',text:'Free the debtors from the gaol. They cannot pay from a cell.',cost:0,favour:10,mood:5,amnesty:true},
+  {id:'amnesty',seat:'bread',text:'Free the debtors from the jail. They cannot pay from a cell.',cost:0,favour:10,mood:5,amnesty:true},
   {id:'tourney',seat:'revel',text:'A tourney in the King’s name. The whole realm will talk of it.',cost:1300,favour:14,mood:7,gold:500},
   {id:'fireworks',seat:'revel',text:'Fire-flowers from the east for midsummer night. Trust me.',cost:700,favour:10,mood:5},
   {id:'banquet',seat:'chamber',text:'A banquet for the envoys of three realms. We are judged by our table.',cost:1500,favour:14,mood:1,gold:700},
@@ -399,7 +399,7 @@
   {id:'pilgrimage',text:'I will walk barefoot to the shrine at the coast. Carried, part of the way. The household comes.',cost:1300,pleasure:11,mood:1,likes:['pious']},
   {id:'poet',text:'That poet who rhymed “Alarik” with “barbaric”. In irons. Tonight.',cost:0,pleasure:8,mood:-4,trust:-2,refuseTrust:2,arrest:{name:'Poeten Loke Rim',skin:'male',crime:'rhymed the King’s name with “barbaric”',term:6},likes:['warlike','melancholy','needy']},
  ];
- /* ⛓ The gaol. At every close the watch may bring somebody in - a real townsperson from the roster
+ /* ⛓ The jail. At every close the watch may bring somebody in - a real townsperson from the roster
     game.js hands over, who then is not on the streets until the term is served. when() makes the
     crime fit the city: taxes are dodged when they are high, bread is stolen when there is none. */
  const CRIMES=[
@@ -684,7 +684,7 @@
    {id:'salary',name:'Your salary',icon:'🪙',amount:state.treasury<0?0:r(salary.cost*k),note:!salary.cost?'the office is unpaid':state.treasury<0?salary.name+' - suspended: a treasury in the red pays its master nothing':salary.name+' - '+salaryPay(salary).toLocaleString()+' ◉ of it reaches your overflow gold at every close'},
    {id:'purse',name:crowned?'Your privy purse':'The King’s Purse',icon:'💎',amount:purseCost,note:purse.name+(crowned?' - a tenth of it reaches your overflow gold at every close; the rest keeps your household':K.raise?' - raised '+K.raise+' time'+(K.raise>1?'s':'')+' at his insistence':'')},
    {id:'upkeep',name:'Upkeep of the works',icon:'🏗',amount:r(W.upkeep*k*wage*dear),note:W.count?'lamplighters, librarians, harbour pilots':'nothing to keep up yet'},
-   {id:'gaol',name:'The gaol',icon:'⛓',amount:r(held*12*k*dear),note:held?held+' prisoner'+(held>1?'s':'')+' in '+room+' cells':'the cells are empty'},
+   {id:'gaol',name:'The jail',icon:'⛓',amount:r(held*12*k*dear),note:held?held+' prisoner'+(held>1?'s':'')+' in '+room+' cells':'the cells are empty'},
    {id:'interest',name:'Tides Bank interest',icon:'🏦',amount:r(state.loan*state.rate*num(cm.interest,1)),note:state.loan>0?+(state.rate*num(cm.interest,1)*100).toFixed(3)+'% of '+state.loan.toLocaleString()+' owed':'nothing owed'},
    {id:'overdraft',name:'Overdraft penalty',icon:'⚠️',amount:state.treasury<0?r(-state.treasury*OVERDRAFT_RATE):0,note:state.treasury<0?'the treasury is below zero':'the treasury is in credit'},
    {id:'unrest',name:'Unrest & damages',icon:'🥊',amount:incidents.reduce((t,i)=>t+i.gold,0),note:incidents.length?incidents.map(i=>i.name.toLowerCase()).join(', '):'the streets are quiet'},
@@ -713,7 +713,7 @@
    {name:'🪙 Your salary - '+salary.name,value:salary.mood},
    {name:'🤝 Cities under the crown',value:A.mood},
    {name:'Public works',value:W.mood},
-   {name:'The gaol is overcrowded',value:crowded?-3:0},
+   {name:'The jail is overcrowded',value:crowded?-3:0},
    {name:'🌾 Hunger - it builds while the granary is short',value:-Math.min(36,Math.round(hunger*6))||0},
    {name:'🔔 Nobody has seen the steward ('+away.closes+' close'+(away.closes===1?'':'s')+')',value:away.mood},
    {name:'The season - '+cardDef(card.id).name.toLowerCase(),value:num(cm.mood)},
@@ -739,7 +739,7 @@
    {name:'🎩 A noble patron ('+NOBLE_RANKS[state.noble.rank].title.toLowerCase()+')',value:state.noble.rank},
    {name:'Trouble in the streets',value:-4*incidents.length},
    {name:'The march on the boulevard',value:state.protest?-15:0},
-   {name:'An overcrowded gaol',value:crowded?-3:0},
+   {name:'An overcrowded jail',value:crowded?-3:0},
    {name:'The season - '+cardDef(card.id).name.toLowerCase(),value:num(cm.attract)},
    {name:'🌾 Hunger in the streets',value:-Math.min(18,Math.round(hunger*3))||0},
    {name:'🔔 A city nobody is seen to run ('+away.closes+' close'+(away.closes===1?'':'s')+')',value:away.attract},
@@ -899,7 +899,7 @@
   K.demand=null;
   return {ok:true,accepted:false,text:'Refused. The King’s face did a thing.'+(d.refuseTrust?' The city will hear of it, and like you for it.':'')};
  }
- /* ⛓ the Gaol tab, and the two things a steward can do for a prisoner */
+ /* ⛓ the Jail tab, and the two things a steward can do for a prisoner */
  function fineOf(state,ctx,p){return Math.round(90*(p.term-p.served)*scale(ctx)*(worksFx(state).fines?2:1));}
  function gaolView(state,ctx={}){
   const room=cells(state);
@@ -911,7 +911,7 @@
   const p=state.jail[i];state.jail.splice(i,1);
   if(p.life){   /* ⚖️ the old King walks: the people love a merciful crown, other courts smell a soft one */
    state.deposed='pardoned';state.mood=clamp(state.mood+Math.round(MERCY*100),0,100);
-   return {ok:true,text:p.name+' walked out of his own gaol a free man, and the square cheered him all the way to the palace stair - where he sat down, and has not moved since. The people +'+Math.round(MERCY*100)+'. Every foreign court will call it weakness.'};}
+   return {ok:true,text:p.name+' walked out of his own jail a free man, and the square cheered him all the way to the palace stair - where he sat down, and has not moved since. The people +'+Math.round(MERCY*100)+'. Every foreign court will call it weakness.'};}
   state.mood=clamp(state.mood+1,0,100);state.trust=clamp(round1(state.trust+.5),0,100);
   if(p.byKing&&!state.crowned)state.king.pleasure=clamp(state.king.pleasure-8,0,100);
   return {ok:true,text:p.name+' walks free. Word of it is round the tenements by nightfall.'+(p.byKing&&!state.crowned?' The King is not amused.':'')};
@@ -944,7 +944,7 @@
    state.jail=state.jail.filter(p=>!p.life);
    state.jail.unshift({name:'Alarik Tidvind',skin:'king',female:false,crime:'was King, and was found wanting',say:'Enjoy it. It pinches.',term:1,served:0,life:true,byKing:false});
   }
-  return {ok:true,text:state.deposed==='gaol'?'The guard stood aside. Alarik went down the stair to his own gaol, and the crown is yours.':'The guard stood aside. Alarik sailed on the evening tide, and the crown is yours.'};
+  return {ok:true,text:state.deposed==='gaol'?'The guard stood aside. Alarik went down the stair to his own jail, and the crown is yours.':'The guard stood aside. Alarik sailed on the evening tide, and the crown is yours.'};
  }
  /* 🏦 Signing the founding loan opens the books: 500 000 in the strongroom, the same owed, a line a
     little beyond it, and the first season's clock running. */
@@ -1089,7 +1089,7 @@
  /* One close: charge the ledger, roll the week's news, move the temper a third of the way to where
     the budget says it belongs, settle or spread the unrest, let the council make up its mind, and
     decide whether the crowd is on the boulevard. Then the long game: crews build, the King wants,
-    the people learn, the gaol turns over, the realm weighs you, and families come or go. Every new
+    the people learn, the jail turns over, the realm weighs you, and families come or go. Every new
     roll comes AFTER the old ones, so a scripted rng still means what it meant. */
  function tick(state,ctx={},rng=Math.random){
   if(!state.chartered){
@@ -1195,7 +1195,7 @@
     if(h){K.humour=h.id;K.humourAge=0;unrest.push('👑 The King’s humour has turned: '+h.name.toLowerCase()+'.');}
    }
   }
-  /* ⛓ the gaol: terms are served, and the watch - or a furious King - brings somebody new in */
+  /* ⛓ the jail: terms are served, and the watch - or a furious King - brings somebody new in */
   state.jail=state.jail.filter(p=>{
    if(p.life)return true;
    p.served+=1;if(p.served<p.term)return true;
@@ -1210,7 +1210,7 @@
    const crime=kings?{text:'displeased the King, who was already displeased',term:[3,5],say:'I bowed! I bowed TWICE!'}:pickWeighted(CRIMES.map(c=>({...c,w:c.w+(c.boost?c.boost(state):0)})).filter(c=>c.w>0),rng);
    const term=crime.term[0]+Math.floor(draw(rng)*(crime.term[1]-crime.term[0]+1));
    if(arrest(state,{name:who.name,skin:who.skin,female:!!who.female,crime:crime.text,say:crime.say,term,byKing:kings})){
-    unrest.push('⛓ '+who.name+' was taken to the gaol: '+crime.text+'.');
+    unrest.push('⛓ '+who.name+' was taken to the jail: '+crime.text+'.');
     if(kings)state.mood=clamp(state.mood-2,0,100);
    }
   }
@@ -1364,7 +1364,7 @@
    let freed=0;
    if(p.amnesty){freed=state.jail.filter(x=>/rent|bread|tax/.test(x.crime)&&!x.life).length;state.jail=state.jail.filter(x=>x.life||!/rent|bread|tax/.test(x.crime));}
    state.petition=null;
-   return {ok:true,accepted:true,text:'Granted. The '+seatDef(p.seat).title+' will remember it.'+(freed?' '+freed+' debtor'+(freed>1?'s':'')+' walked out of the gaol.':'')};
+   return {ok:true,accepted:true,text:'Granted. The '+seatDef(p.seat).title+' will remember it.'+(freed?' '+freed+' debtor'+(freed>1?'s':'')+' walked out of the jail.':'')};
   }
   bump(p.seat,-8);state.petition=null;
   return {ok:true,accepted:false,text:'Refused. The '+seatDef(p.seat).title+' bows, stiffly.'};
@@ -1826,7 +1826,7 @@
   if(state.attract>=55&&state.pop>=f.housing&&f.housing<POP_MAX)add('roofs',52,'Families are being turned away at the gate for want of a roof. Every household that walks on is poll tax and rent we never see. The Master Builder has drawings for that.');
   if(!state.crowned&&f.trustDelta<=0)add('trust',42,'The realm’s trust in you is not growing. It is made of three things: the temper of the people, the six at this table, and whether anyone wants to live here. Each of them earns for you above its middle and costs you below it. The Crown tab says which.');
   if(f.net>=0&&worksLine)add('works',40,worksLine);
-  if(f.crowded)add('gaol',38,'The gaol is fuller than it has cells, and the city minds. A man who pays his fine goes home; a man pardoned goes home singing your name. Or the Master Builder can dig.');
+  if(f.crowded)add('gaol',38,'The jail is fuller than it has cells, and the city minds. A man who pays his fine goes home; a man pardoned goes home singing your name. Or the Master Builder can dig.');
   if(f.net>0&&state.loan>0&&state.treasury>state.loan*.5&&!worksLine)add('debt',35,'We pay the bank for every coin we owe, at every close, and half of what we owe is lying in our own strongroom doing nothing. I leave the arithmetic to you.');
   if(CARD_COUNSEL[f.card.id])add('card',33,CARD_COUNSEL[f.card.id]);
   if(f.net>0&&b.learn<=1)add('learn',25,'Schooling is the slowest coin in the budget. It is also the only one that raises the taxes and the exports together without a single soul noticing that he pays more.');

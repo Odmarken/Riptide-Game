@@ -5,9 +5,9 @@
  * braziers are paintings (assets/city/throne.png, council_table.png, hall_pillar.png,
  * hall_brazier.png - Higgsfield gpt_image_2_5, 2026-09-19); the canvas versions below them are what
  * shows for the frame or two before a picture has loaded.
- * ⛓ Under the hall is the gaol: a stair goes down through the west wall just inside the doors (on
+ * ⛓ Under the hall is the jail: a stair goes down through the west wall just inside the doors (on
  * your left as you come in), and comes out in a vaulted cellar with ten barred cells along its north
- * wall and the gaoler at his desk. It is the same world further down the map, with a static layer of
+ * wall and the jailer at his desk. It is the same world further down the map, with a static layer of
  * its own; the two stair-heads hand the hero to each other. Who is in the cells is the ledger's
  * business - game.js stands the prisoners in them with prisoner(). */
 (function(root,factory){
@@ -17,7 +17,7 @@
 })(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const TAU=Math.PI*2;
- const W=1800,HALL_H=3400,H=4900;                                  /* the hall's storey ends at HALL_H; the gaol lies below it */
+ const W=1800,HALL_H=3400,H=4900;                                  /* the hall's storey ends at HALL_H; the jail lies below it */
  const HALL=Object.freeze({x:250,y:1150,w:1300,h:2100});          /* the great hall */
  const COUNCIL=Object.freeze({x:300,y:300,w:1200,h:700});          /* the chamber behind the throne */
  const DOORS=Object.freeze([{x:330,y:920,w:130,h:320},{x:1340,y:920,w:130,h:320}]); /* passages past the dais */
@@ -31,7 +31,7 @@
  const SPAWN=Object.freeze({x:900,y:3000});
  const PILLAR_X=Object.freeze([520,1280]),PILLAR_Y=Object.freeze([1560,1900,2240,2580,2920]);
  const WINDOW_Y=Object.freeze([1730,2070,2410,2750]);
- /* ⛓ the gaol. STAIR is the alcove in the hall's west wall, UPSTAIR the one in the gaol's east wall:
+ /* ⛓ the jail. STAIR is the alcove in the hall's west wall, UPSTAIR the one in the jail's east wall:
     you go down westward, so you arrive from the east. Both overlap their room by 60 so a disk can
     walk in without meeting a jamb. */
  const GAOL=Object.freeze({x:250,y:4150,w:1100,h:560});
@@ -41,7 +41,7 @@
  const STAIR_UP=Object.freeze({x:UPSTAIR.x+UPSTAIR.w-40,y:UPSTAIR.y+65,r:40}),GAOL_ARRIVE=Object.freeze({x:GAOL.x+GAOL.w-95,y:UPSTAIR.y+65});
  const CELL_COUNT=10,CELL_W=88,CELL_D=118;
  const CELLS=Object.freeze(Array.from({length:CELL_COUNT},(_,i)=>Object.freeze({x:GAOL.x+70+i*104,y:GAOL.y})));
- const GAOLER=Object.freeze({x:GAOL.x+GAOL.w-330,y:GAOL.y+372}),GAOLER_NAME='Fångvaktare Grim · Gaoler';
+ const GAOLER=Object.freeze({x:GAOL.x+GAOL.w-330,y:GAOL.y+372}),GAOLER_NAME='Fångvaktare Grim · Jailer';
  const GUARDS=Object.freeze(['Gardist Torvald','Gardist Ulf','Gardist Einar','Gardist Sten','Gardist Ragnar','Gardist Bo','Gardist Arne','Gardist Halvar']);
  /* 🏛 the seats of the council (ids match CityEconomy.COUNCIL): who sits there, in which of the
     townsfolk's clothes, and where he stands - three behind the far chairs, two before the near ones.
@@ -82,7 +82,7 @@
   solids.push({x:TABLE.x,y:TABLE.y,r:60,type:'throneprop',kind:'table',crx:236,cry:110,cyo:-22});
   solids.push({x:DAIS.x-40,y:DAIS.y+DAIS.h+26,r:20,type:'throneprop',kind:'brazier'});
   solids.push({x:DAIS.x+DAIS.w+40,y:DAIS.y+DAIS.h+26,r:20,type:'throneprop',kind:'brazier'});
-  /* ⛓ the gaol: a brazier to see by, the gaoler's desk, and a grille across every cell. The grilles
+  /* ⛓ the jail: a brazier to see by, the jailer's desk, and a grille across every cell. The grilles
      sort with the actors so a prisoner stands BEHIND his bars; they block nothing, the wall does. */
   solids.push({x:GAOL.x+430,y:GAOL.y+330,r:20,type:'throneprop',kind:'brazier'});
   solids.push({x:GAOLER.x,y:GAOLER.y+50,r:30,type:'throneprop',kind:'gaoldesk',crx:74,cry:22,cyo:-8});
@@ -105,7 +105,7 @@
   if(x>=UPSTAIR.x&&x<=UPSTAIR.x+UPSTAIR.w-r&&y>=UPSTAIR.y+r&&y<=UPSTAIR.y+UPSTAIR.h-r)return true;
   return false;
  }
- /* ⛓ a prisoner for cell i. Two to a cell stand shoulder to shoulder once the gaol is overcrowded. */
+ /* ⛓ a prisoner for cell i. Two to a cell stand shoulder to shoulder once the jail is overcrowded. */
  function prisoner(i,p,doubled=0){
   const c=CELLS[((i%CELL_COUNT)+CELL_COUNT)%CELL_COUNT],x=c.x+(doubled?(doubled%2?-20:20):0);
   return stand(p.name,p.skin||'male',x,c.y-40,i%2?-1:1,{big:p.skin==='king'?1.3:1.05,prisoner:true,cell:i,female:!!p.female,crime:p.crime,say:p.say});
@@ -357,10 +357,10 @@
   rect(g,door.x-10,door.y,10,door.h,'#9a9180');rect(g,door.x+door.w,door.y,10,door.h,'#9a9180');
   g.save();g.textAlign='center';g.textBaseline='middle';g.font='bold 19px Georgia, serif';
   g.strokeStyle='rgba(5,5,8,.9)';g.lineWidth=5;g.strokeText('↓ City',EXIT.x,HALL.y+HALL.h-26);g.fillStyle='#e6d6b0';g.fillText('↓ City',EXIT.x,HALL.y+HALL.h-26);g.restore();
-  /* ⛓ the gaol stair, down through the west wall just inside the doors */
-  stairFlight(g,STAIR,STAIR.x,HALL.x,-1,'⛓ Gaol');
+  /* ⛓ the jail stair, down through the west wall just inside the doors */
+  stairFlight(g,STAIR,STAIR.x,HALL.x,-1,'⛓ Jail');
  }
- /* ⛓ The gaol's own static layer, painted in world coordinates: a vaulted cellar of damp stone, ten
+ /* ⛓ The jail's own static layer, painted in world coordinates: a vaulted cellar of damp stone, ten
     cells let into its north wall (the grilles are props), straw, a drain, barrels, chains. */
  const GAOL_VIEW=Object.freeze({x:GAOL.x-200,y:GAOL.y-220,w:GAOL.w+460,h:GAOL.h+420});
  function paintGaol(g,images,options){
@@ -445,7 +445,7 @@
    if(!seen(x,wy,600))continue;
    light(g,x+side*180,wy+120,300,.35+Math.sin(time*.6+wy)*.05,[255,236,190]);
   }
-  /* ⛓ a torch over the gaol stair, and one on the wall between every second pair of cells below */
+  /* ⛓ a torch over the jail stair, and one on the wall between every second pair of cells below */
   if(seen(HALL.x,STAIR.y,260)){light(g,HALL.x+30,STAIR.y-30,190,.75+Math.sin(time*5.9)*.1);rect(g,HALL.x-8,STAIR.y-52,16,40,'#2c2320');flame(g,HALL.x,STAIR.y-54,.9,time,7.7);}
   for(let i=0;i<CELL_COUNT-1;i+=2){
    const tx=CELLS[i].x+52,ty=GAOL.y-84;
@@ -475,8 +475,8 @@
   else if(s.kind==='brazier')ellipse(g,0,8,26,10,'rgba(0,0,0,.4)');
   else if(s.kind==='gaoldesk')ellipse(g,0,10,86,20,'rgba(0,0,0,.4)');
  }
- /* ⛓ the grille across a cell: a frame, nine bars, a lock plate. A cell the gaol has not been given
-    yet (s.walled - the New Gaol Wing opens the last four) is bricked up to the arch instead. */
+ /* ⛓ the grille across a cell: a frame, nine bars, a lock plate. A cell the jail has not been given
+    yet (s.walled - the New Jail Wing opens the last four) is bricked up to the arch instead. */
  function cellBars(g,s){
   const w=CELL_W,h=CELL_D,art=rememberedImages[s.walled?'bricked':'bars'];
   if(ready(art)){
@@ -509,7 +509,7 @@
  function gaolDesk(g,time){
   rect(g,-78,-34,156,40,'#5a3a1e','#2a1a0c',2);rect(g,-78,4,156,14,'#3a2410','#2a1a0c',2);
   for(const x of [-70,62])rect(g,x,18,8,14,'#3a2410');
-  rect(g,-52,-30,46,30,'#e9dcb8','#6b5430',1.5);                                  /* the gaol book */
+  rect(g,-52,-30,46,30,'#e9dcb8','#6b5430',1.5);                                  /* the jail book */
   g.strokeStyle='rgba(60,40,20,.5)';g.lineWidth=1;for(let y=-24;y<-4;y+=5){g.beginPath();g.moveTo(-47,y);g.lineTo(-11,y);g.stroke();}
   ellipse(g,22,-14,12,12,null,'#8a8478',3);for(let i=0;i<4;i++)rect(g,18+i*5,-4,2.5,12+i%2*4,'#8a8478');   /* the ring of keys */
   rect(g,52,-40,10,22,'#f0e6c8','#a89a7a',1);light(g,57,-52,80,.7+Math.sin(time*6.3)*.15);flame(g,57,-40,.5,time,3.1);

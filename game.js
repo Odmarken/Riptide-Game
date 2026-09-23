@@ -1094,7 +1094,7 @@ function throneWorldClick(wx,wy){
   else if(exit&&Math.abs(wx-exit.x)<110&&wy>exit.y-40&&wy<exit.y+130){target=exit;open=leaveThroneHall;range=90;}
   else{const seat=world.npcs.find(n=>n.seat&&Math.abs(wx-n.x)<34&&wy>n.y-90&&wy<n.y+20); /* 🏛 a councillor: the Council tab */
    if(seat){target=seat;movePoint={x:seat.x+(seat.x<900?-60:60),y:seat.y+(seat.y<640?-10:60)};open=openCouncil;range=170;}}
-  if(!target){ /* ⛓ the gaol: the gaoler keeps the book, a prisoner has something to say, the stairs are a walk away */
+  if(!target){ /* ⛓ the jail: the jailer keeps the book, a prisoner has something to say, the stairs are a walk away */
    const T=ThroneWorld,gaoler=world.npcs.find(n=>n.game==='gaol'),throne=world.solids.find(s=>s.kind==='throne');
    const inmate=world.npcs.find(n=>n.prisoner&&Math.abs(wx-n.x)<30&&wy>n.y-90&&wy<n.y+30);
    if(gaoler&&Math.abs(wx-gaoler.x)<60&&wy>gaoler.y-100&&wy<gaoler.y+90){target=gaoler;movePoint={x:gaoler.x-10,y:gaoler.y+120};open=openGaol;range=170;}
@@ -6753,7 +6753,7 @@ function padInteract(){
   add(world.npcs.find(n=>n.game==='ledger'),'The Crown Ledger',openLedger,130);
   add(world.solids.find(s2=>s2.kind==='table'),'The Crown Ledger',openLedger,260);
   for(const n of world.npcs)if(n.seat)add(n,n.name,openCouncil,110);
-  add(world.npcs.find(n=>n.game==='gaol'),'The Gaol Book',openGaol,170);
+  add(world.npcs.find(n=>n.game==='gaol'),'The Jail Book',openGaol,170);
   for(const n of world.npcs)if(n.prisoner)add(n,n.name,()=>prisonerSpeak(n),130);
   if(S.city.crowned)add(world.solids.find(s2=>s2.kind==='throne'),'Your Throne',kingSpeak,190);
   add(world.exit,'City',leaveThroneHall,90);
@@ -7508,9 +7508,9 @@ function update(dt){
  if(hero&&!hero.dead&&world&&world.exit&&zoneOf().throne&&Math.hypot(hero.x-world.exit.x,hero.y-world.exit.y)<60&&leaveThroneHall())return;
  if(hero&&!hero.dead&&world&&world.harbor&&hero.y<HarborWorld.EXIT_Y&&leaveHarbor())return;   /* ⚓ far enough up the flight: back to the City */
  if(world&&world.harbor)harborTick(dt);
- if(hero&&!hero.dead&&world&&world.throne&&!TideUI.isBattling()){ /* ⛓ down the stair in the west wall to the gaol, and back up */
+ if(hero&&!hero.dead&&world&&world.throne&&!TideUI.isBattling()){ /* ⛓ down the stair in the west wall to the jail, and back up */
   const T=ThroneWorld;
-  if(Math.hypot(hero.x-T.STAIR_DOWN.x,hero.y-T.STAIR_DOWN.y)<T.STAIR_DOWN.r)hallStair(T.GAOL_ARRIVE,-1,'⛓ The gaol under the hall. '+gaolLine());
+  if(Math.hypot(hero.x-T.STAIR_DOWN.x,hero.y-T.STAIR_DOWN.y)<T.STAIR_DOWN.r)hallStair(T.GAOL_ARRIVE,-1,'⛓ The jail under the hall. '+gaolLine());
   else if(Math.hypot(hero.x-T.STAIR_UP.x,hero.y-T.STAIR_UP.y)<T.STAIR_UP.r)hallStair(T.HALL_ARRIVE,1,'');
  }
  if(zoneOf().city&&world&&world.npcs)cityCrierTick(dt);
@@ -13574,7 +13574,7 @@ function cityCouncilMarks(){
   else if(n.game==='king')n.mark=S.city.king.demand?'❗':S.city.king.pleasure<30?'💢':S.city.king.pleasure>=80?'😊':''; /* 👑 and the King wears his temper */
 }
 /* 🧳 The streets carry as many townsfolk as the ledger counts. Below the opening 72 the roster thins
-   from its end (and whoever is in the gaol is not on the street either); above it newcomers walk
+   from its end (and whoever is in the jail is not on the street either); above it newcomers walk
    the routes of the people they moved in next to, the other way round, under names of their own.
    The seeded builder never hears of any of it, so the city it builds - and its tests - are unchanged. */
 const NEWCOMER_FIRST=['Arvid','Berta','Claes','Dagmar','Edvin','Freja','Gustav','Hilda','Ingemar','Judit','Karl','Lisbet','Mats','Nora','Ossian','Paula','Ruben','Saga','Tore','Ursula'];
@@ -13653,7 +13653,7 @@ function cityCrierLines(){
  out.push('Hear ye! '+c.pop+' souls within the walls, and the city is '+E.attractName(c.attract).toLowerCase()+'.');
  const building=Object.keys(c.works).filter(id=>c.works[id].left>0).map(id=>E.WORKS.find(w=>w.id===id).name);
  if(building.length)out.push('By order of the crown: '+building.join(', ')+' - under construction. Mind the scaffolding!');
- if(c.jail.length)out.push(c.jail.length+' in the gaol under the hall this week. Let it be a lesson!');
+ if(c.jail.length)out.push(c.jail.length+' in the jail under the hall this week. Let it be a lesson!');
  if(c.chartered&&c.food.hunger>0)out.unshift('Hear ye! The granary is EMPTY! No bread today - and none tomorrow, unless the crown buys grain!');
  else if(c.chartered&&E.foodView(c,cityContext()).low)out.unshift('Hear ye! The granary is running low - bread for '+(n=>n+' more close'+(n===1?'':'s'))(CityEconomy.foodView(c,cityContext()).closes)+'!');
  const look=cityLook();
@@ -13888,7 +13888,7 @@ function kingSpeak(){
    "Take the crown" at the council table does not flip a flag (asked for 2026-09-22). The screen goes black and the
    eyes open - the Ice Armor ritual's blackout and blinks - on the hall: the hero before the dais, the King on it with
    his Hand at his side, the council at the foot of the steps, the guard drawn up behind the hero, townsfolk bouncing
-   at the back. The Hand speaks. The King rages. Two of the guard walk him to the gaol stair (or out through the doors,
+   at the back. The Hand speaks. The King rages. Two of the guard walk him to the jail stair (or out through the doors,
    into exile) and he is gone - THAT is the moment CityEconomy.claimCrown runs. The Hand bids the hero take the throne,
    the hero walks up to it, and everybody goes back where they came from: the council through the passages to their
    chairs, the guard to the pillars, the townsfolk out through the doors. The hero is not the player's until the last
@@ -13964,7 +13964,7 @@ function coronationTick(dt){
  }else if(sc.phase==='flank'){
   if(sc.escorts.every(g=>coronationRoute(g,210,dt))){next('escort');sc.focus=king;
    king.route=sc.fate==='exile'?[[T.KING.x,front],[T.EXIT.x,T.EXIT.y-30]]:[[T.KING.x,front],[T.HALL.x+130,front],[T.HALL.x+130,T.STAIR_DOWN.y],[T.HALL.x+40,T.STAIR_DOWN.y]];
-   log('⚔️ Two of the Royal Guard take the King by the arms'+(sc.fate==='exile'?' and walk him to the doors.':' and walk him toward the stair to his own gaol.'));}
+   log('⚔️ Two of the Royal Guard take the King by the arms'+(sc.fate==='exile'?' and walk him to the doors.':' and walk him toward the stair to his own jail.'));}
  }else if(sc.phase==='escort'){
   const done=king?coronationRoute(king,250,dt):true;
   if(king)sc.escorts.forEach((g,i)=>{g.x=king.x+(i?46:-46);g.y=king.y+8;g.fx=king.fx;g.moving=king.moving;g.walk=king.walk;});
@@ -14021,10 +14021,10 @@ function coronationTick(dt){
  }
 }
 /* ==================== ⚖️ THE GALLOWS ====================
-   "Hang him on the square" on the Gaol tab (asked for 2026-09-22). The screen goes black and the eyes open - the same
+   "Hang him on the square" on the Jail tab (asked for 2026-09-22). The screen goes black and the eyes open - the same
    blackout and blinks as the coronation - on the great square with everything on it gone, the well included: a
-   gallows stands where the well was, the old King on its deck with the gaoler beside him, the nearest townsfolk in
-   three rows before it and the hero in the front row, not moving. The gaoler tells the square what kind of King he
+   gallows stands where the well was, the old King on its deck with the jailer beside him, the nearest townsfolk in
+   three rows before it and the hero in the front row, not moving. The jailer tells the square what kind of King he
    was, the crowd boos, the trap drops, he hangs and swings - and the screen goes black. THAT is when
    CityEconomy.execute runs. The black lifts on wherever the hero was, and the square has its well and its stalls
    back as if nothing had happened. `execution` is the only state; nothing is saved mid-scene. */
@@ -14032,7 +14032,7 @@ const GALLOWS={w:380,deck:.46,beam:.92};   /* the painting's width on the square
 const squareHushed=s=>s.type!=='gallows'&&Math.hypot(s.x-world.w/2,s.y-world.h/2)<560;   /* everything in the plaza, the well included */
 const GALLOWS_LINES=name=>({
  one:'Alarik Tidvind. Twelve years a King of this city. He kept a purse the strongroom could not fill - and when it could not, he sent his chamberlain down with a key.',
- two:'He had a poet put in irons for a rhyme. He had honest folk taken for bowing wrong. The gaol under his hall was never once empty.',
+ two:'He had a poet put in irons for a rhyme. He had honest folk taken for bowing wrong. The jail under his hall was never once empty.',
  three:'By the will of the people, by the word of the council, and by the order of '+cityTitle()+' '+name+': he hangs.',
 });
 function startExecution(name){
@@ -14291,7 +14291,7 @@ function ledgerCrown(c,ctx){
   +'<tr class="ledger-sum"><td>Every close</td><td>'+(v.trustDelta>=0?'+':'−')+Math.abs(v.trustDelta).toFixed(1)+'</td></tr></table>'
   +'<p class="craft-note">Also: a finished work <b class="pos">+2</b> · trouble dealt with <b class="pos">+1</b> · a petition granted <b class="pos">+1</b> · a prisoner pardoned <b class="pos">+½</b>.</p>';
  if(v.crowned)return '<div class="ledger-tiles two">'
-   +'<div class="ledger-tile"><span>The crown</span><b>👑 '+title+' '+(S.name||'')+'</b><small>'+({exile:'Alarik sailed into exile.',pardoned:'Alarik begs at the foot of the palace stair, in what is left of his robes. You pardoned him.',executed:'Alarik was hanged on the great square. Every court abroad heard of it.'}[v.deposed]||'Alarik sits in cell I of his own gaol. You can visit him - and decide what becomes of him, on the Gaol tab.')+'</small></div>'
+   +'<div class="ledger-tile"><span>The crown</span><b>👑 '+title+' '+(S.name||'')+'</b><small>'+({exile:'Alarik sailed into exile.',pardoned:'Alarik begs at the foot of the palace stair, in what is left of his robes. You pardoned him.',executed:'Alarik was hanged on the great square. Every court abroad heard of it.'}[v.deposed]||'Alarik sits in cell I of his own jail. You can visit him - and decide what becomes of him, on the Jail tab.')+'</small></div>'
    +'<div class="ledger-tile"><span>Your privy purse</span><b class="pos">+'+fmtGold(Math.round(v.purse*E.HERO_COIN/E.COIN))+' ◉</b><small>what reaches your overflow gold at every close - a tenth of the line on the Budget tab; the rest keeps a royal household.</small></div></div>'
    +'<h3>Your legitimacy · '+Math.floor(v.trust)+'%</h3>'+ledgerGauge(Math.floor(v.trust),null,[{at:40,label:'royalists stir below 40'}],'#ffd76a')+trustRows;
  return '<div class="ledger-tiles two">'
@@ -14302,9 +14302,9 @@ function ledgerCrown(c,ctx){
   +'<div class="ledger-tile"><span>'+ThroneWorld.KING_NAME+'</span><b>'+v.humour.icon+' '+v.pleasureName+' · '+v.pleasure+'</b><small>'+v.humour.say+' His pleasure is heading for '+v.pleasureTarget+'.</small></div></div>'
   +ledgerGauge(Math.floor(v.trust),null,[{at:E.COUP_TRUST,label:'the crown'}],'#ffd76a')
   +(v.canClaim?'<div class="ledger-petition ledger-coup"><h3>👑 Take the crown</h3><p>The people sing your name, the council answers to you and the guard has let it be known where it stands. Walk up the dais and the hall will not stop you. You would rule as <b>'+title+' '+(S.name||'')+'</b>: no King to keep sweet, the privy purse paid into your overflow gold at every close - and every trouble in the city yours alone.</p>'
-    +'<div class="ledger-opts"><button class="sbtn gold" data-lact="coup" data-v="gaol">Take it · Alarik to the gaol<small>cell I, under his own hall</small></button><button class="sbtn gold" data-lact="coup" data-v="exile">Take it · Alarik into exile<small>a ship on the evening tide</small></button></div></div>':'')
+    +'<div class="ledger-opts"><button class="sbtn gold" data-lact="coup" data-v="gaol">Take it · Alarik to the jail<small>cell I, under his own hall</small></button><button class="sbtn gold" data-lact="coup" data-v="exile">Take it · Alarik into exile<small>a ship on the evening tide</small></button></div></div>':'')
   +(d?'<div class="ledger-petition"><h3>👑 The King wants something</h3><p>“'+d.text+'”</p>'
-    +'<div class="ledger-incident-cost"><span>'+(d.cost?'Costs <b>'+fmtGold(d.cost)+' ◉</b> · ':'Costs nothing · ')+'his pleasure <b class="pos">+'+d.pleasure+'</b>'+(d.mood?' · people <b class="'+(d.mood>=0?'pos':'neg')+'">'+fmtSigned(d.mood)+'</b>':'')+(d.raise?' · <b class="neg">his purse costs 15% more, for good</b>':'')+(d.arrest?' · <b class="neg">a poet goes to the gaol · trust '+d.trust+'</b>':'')
+    +'<div class="ledger-incident-cost"><span>'+(d.cost?'Costs <b>'+fmtGold(d.cost)+' ◉</b> · ':'Costs nothing · ')+'his pleasure <b class="pos">+'+d.pleasure+'</b>'+(d.mood?' · people <b class="'+(d.mood>=0?'pos':'neg')+'">'+fmtSigned(d.mood)+'</b>':'')+(d.raise?' · <b class="neg">his purse costs 15% more, for good</b>':'')+(d.arrest?' · <b class="neg">a poet goes to the jail · trust '+d.trust+'</b>':'')
     +' · lapses in '+d.left+' close'+(d.left===1?'':'s')+' (−12)</span></div>'
     +'<div class="ledger-opts"><button class="sbtn gold" data-lact="kingyes"'+(c.treasury<d.cost?' disabled':'')+'>Grant it<small>'+(c.treasury<d.cost?'the treasury cannot cover it':'as Your Majesty wishes')+'</small></button>'
     +'<button class="sbtn" data-lact="kingno">Refuse<small>his pleasure −10'+(d.refuseTrust?' · trust in you +'+d.refuseTrust:'')+'</small></button></div></div>'
@@ -14315,11 +14315,11 @@ function ledgerCrown(c,ctx){
   +'<tr><td>His pleasure<small>drifts a third of the way to '+v.pleasureTarget+' each close: the purse, the court, a singing city, no crowd under his windows</small></td><td>'+v.pleasure+'</td></tr>'
   +'<tr><td>Below 30 - furious<small>he sends his chamberlain to the strongroom every close, and has people arrested for nothing</small></td><td class="'+(v.whims?'neg':'')+'">'+(v.whims?'−'+fmtGold(v.whims)+' ◉':'-')+'</td></tr></table></section></div>';
 }
-/* ⛓ the Gaol tab */
+/* ⛓ the Jail tab */
 function ledgerGaol(c,ctx){
  const E=CityEconomy,v=E.gaolView(c,ctx);
  return '<div class="ledger-tiles">'
-  +'<div class="ledger-tile"><span>In the cells</span><b class="'+(v.crowded?'bad':'')+'">'+v.held+' / '+v.cells+'</b><small>'+(v.crowded?'overcrowded - the people do not like it (mood −3, attractiveness −3)':v.cells<E.MAX_CELLS?'four cells are bricked up until the New Gaol Wing is built':'every cell is open')+'</small></div>'
+  +'<div class="ledger-tile"><span>In the cells</span><b class="'+(v.crowded?'bad':'')+'">'+v.held+' / '+v.cells+'</b><small>'+(v.crowded?'overcrowded - the people do not like it (mood −3, attractiveness −3)':v.cells<E.MAX_CELLS?'four cells are bricked up until the New Jail Wing is built':'every cell is open')+'</small></div>'
   +'<div class="ledger-tile"><span>Costs the crown</span><b>◉ '+fmtGold(v.upkeep)+'</b><small>bread and straw, every close</small></div>'
   +'<div class="ledger-tile"><span>Who ends up here</span><b>The watch decides</b><small>a bigger watch arrests more; what for depends on the city - high taxes, no bread, dear rents</small></div></div>'
   +(v.prisoners.length?'<div class="ledger-works">'+v.prisoners.map(p=>'<div class="ledger-work"><h4>⛓ '+p.name+'<small>'+(p.life?'for life':p.left+' close'+(p.left===1?'':'s')+' left of '+p.term)+'</small></h4>'
@@ -14528,7 +14528,7 @@ function ledgerHelp(){
   +sec('🎩 Nobility and the notice board',['The <b>notice board</b> stands by the town crier on the great square. For <b>'+fmtGold(E.PATENT_COST)+' ◉ of your own gold</b> the heralds seal you a patent of nobility; it takes <b>a quarter of an hour of play</b>.','A noble can fund the <b>contracts</b> posted there - an orphanage wing, a merchant cog, a regiment. The whole sum leaves your purse at once, the contract clears a quarter of an hour later and does the city its good then. <b>Nothing ever comes back</b>: what you buy is the city’s good and <b>noble XP</b>.','XP raises your <b>rank</b> - Knight, Baron, Viscount, Count, Marquess, Duke. Each rank adds a point to the city’s draw and a tenth of a point of trust a close, and brings more and greater contracts: the board is re-posted <b>every hour of play</b>, with 1-3 contracts for a knight and up to 6 for a duke.'])
   +sec('🤝 The Hand’s counsel',['Once every <b>'+E.COUNSEL_EVERY+' closes</b> you can ask the King’s Hand, on the Overview, what he would do. He names <b>one thing</b> - whatever he thinks presses hardest - and he says where to look, not which button to press. His last counsel stays on the Overview until you ask again.','If he has nothing worth saying he says so, and the question is not used up.'])
   +sec('🔔 Ledgers to attend',['The ledger closes wherever you are - but a city is not run from a dungeon. After <b>'+E.REMIND_AFTER+' closes</b> without opening the ledger the chat reminds you: <b>you have ledgers to attend</b>.','There is no cliff, only a slope: from the <b>first close</b> you are away the realm’s trust in you drains by about a tenth of a point, and it deepens by as much again with <b>every close</b> you stay away - over a point a close after ten, four at the very worst. What each councillor thinks you deserve sinks a point and a half per close away (forty at the most), and their opinion follows it down. It is not only the council: the city’s temper sinks 0.6 a close away (to −18) and its draw 0.4 (to −12), so taxes thin, families stop coming and, left long enough, the crowd comes out. Opening the ledger at the council table stops the slide and starts the count again - what was lost has to be earned back.'])
-  +sec('⛓ The gaol',['Down the stair in the west wall of the hall, on your left as you come in. At every close the watch may bring in a townsperson - really: they vanish from the streets until they are out. You can talk to them through the bars, and at the gaoler’s desk pardon them or fine them.','The old King, if that is where he went, is yours to decide on the Gaol tab. <b>Pardon him</b>: the people <b class="pos">+'+Math.round(E.MERCY*100)+'</b>, but every court abroad prices you <b>'+Math.round(E.MERCY*100)+'% higher</b> and is harder to talk round - and he sits begging at the foot of the palace stair in what is left of his robes. <b>Hang him on the square</b>: the people <b class="neg">−'+Math.round(E.MERCY*100)+'</b>, but every court abroad is frightened into being <b>'+Math.round(E.MERCY*100)+'% cheaper</b> and easier. A public execution: the whole city turns out to watch.'])
+  +sec('⛓ The jail',['Down the stair in the west wall of the hall, on your left as you come in. At every close the watch may bring in a townsperson - really: they vanish from the streets until they are out. You can talk to them through the bars, and at the jailer’s desk pardon them or fine them.','The old King, if that is where he went, is yours to decide on the Jail tab. <b>Pardon him</b>: the people <b class="pos">+'+Math.round(E.MERCY*100)+'</b>, but every court abroad prices you <b>'+Math.round(E.MERCY*100)+'% higher</b> and is harder to talk round - and he sits begging at the foot of the palace stair in what is left of his robes. <b>Hang him on the square</b>: the people <b class="neg">−'+Math.round(E.MERCY*100)+'</b>, but every court abroad is frightened into being <b>'+Math.round(E.MERCY*100)+'% cheaper</b> and easier. A public execution: the whole city turns out to watch.'])
   +sec('🏦 The Tides Bank and its seasons',['The strongroom starts <b>empty</b>. The books open when you sign the <b>founding loan</b> of '+fmtGold(E.FOUNDING_LOAN)+' ◉; the bank keeps another '+fmtGold(E.RESERVE_LINE)+' ◉ on the line for later. What you owe costs '+(E.LOAN_RATE*100)+'% of itself at every close, to begin with.','Play runs in <b>seasons of '+E.SEASON_CLOSES+' closes</b>. For each the bank sets a target: the debt must be <b>a tenth smaller</b> at the last close than it was at the first. You may borrow more along the way - what counts is where the debt <b>ends</b>.','At the last close the bank <b>grades the books A to F</b>: is the debt at the target, was the strongroom ever dry, is the crown worth more than it was. An A widens the line by everything you repaid and 12% more, and cheapens the money; a D or an F narrows the line, makes the money dearer, and whatever debt stands above the target is <b>called in</b> from the strongroom on the spot.','If a close cannot be paid, the bank <b>covers the shortfall from your line</b> and adds '+(E.COVER_FEE*100)+'% to the debt for the favour. When the line is spent the treasury is <b>in the red</b>: it costs '+(E.OVERDRAFT_RATE*100)+'% a close, sours the mood by 18, no budget line can be raised and no work ordered.','After <b>one close of grace</b> the <b>bailiffs</b> come, and take one thing at every close you stay in the red: a building site (sold for half), a file of the watch, a finished work (sold for a third - its house in the City wears the bank\'s seal), two of the Royal Guard, the festivals, the court. What they sell is credited to the treasury. When nothing is left the bank cuts every budget line to the bone.','The Bank tab charts every season: the treasury, the debt, and the target.'])
   +'<button class="sbtn gold" data-lact="back">Back to the ledger</button></div>';
 }
