@@ -38,7 +38,7 @@ function harness(key='briarhollow',options={}){
  const calls=[],forbidden=name=>()=>{throw new Error('Ordinary reward/effect reached: '+name);};
  const S=options.state?plain(options.state):{zone:0,gold:123,scraps:47,xp:83,qProg:4,bag:[],scrolls:[],gear:{weapon:null,armor:null,trinket:null}};
  const clock=options.clock||{now:Date.now()},snapshots=[];
- const context={S,calls,clock,snapshots,Date:class extends Date{static now(){return clock.now;}},hero:{hp:400,dead:false,target:null},world:null,mp:{on:false,started:false},WastelandWorld:W,Mounts,TideUI,mountRide:Mounts.createRide(),$:()=>null,
+ const context={S,calls,clock,snapshots,Date:class extends Date{static now(){return clock.now;}},hero:{hp:400,dead:false,target:null},world:null,mp:{on:false,started:false},enemies:[],hazards:[],ebolts:[],WastelandWorld:W,Mounts,TideUI,mountRide:Mounts.createRide(),$:()=>null,
   MAXLVL:60,pMul:()=>1+.1*(S.prestige||0),pRew:()=>1,mobGold:()=>0,
   raceOf:()=>({leech:.03}),heroMax:()=>1000,hasEnch:id=>id==='reaper',scrollPct:id=>id==='reaper'?.02:0,
   inGearSet:()=>false,itemName:it=>it.name,inBossFight:forbidden('upgrade combat check'),capUp:forbidden('upgrade cap'),upCost:forbidden('upgrade cost'),

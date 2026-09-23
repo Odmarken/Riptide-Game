@@ -530,7 +530,7 @@
     }}
   }
   const names=new Set();
-  out.jail=(Array.isArray(s.jail)?s.jail:[]).filter(p=>p&&typeof p.name==='string'&&p.name&&!names.has(p.name)&&names.add(p.name)).slice(0,MAX_CELLS+2)
+  out.jail=(Array.isArray(s.jail)?s.jail:[]).filter(p=>p&&typeof p.name==='string'&&p.name&&!names.has(p.name)&&names.add(p.name)).slice(0,MAX_CELLS+3) /* +3: the old King can go down on top of a full jail - a reload used to set the last prisoner free without a word */
    .map(p=>({name:p.name.slice(0,60),skin:typeof p.skin==='string'?p.skin:'male',female:!!p.female,crime:String(p.crime||'disturbed the King’s peace').slice(0,160),
     say:String(p.say||'').slice(0,200),term:Math.max(1,Math.floor(num(p.term,2))),served:Math.max(0,Math.floor(num(p.served,0))),life:!!p.life,byKing:!!p.byKing}));
   for(const def of ALLIES){const a=s.allies&&s.allies[def.id];if(!a||typeof a!=='object')continue;
@@ -1083,7 +1083,9 @@
  /* 🏦 the Bank tab */
  function bankView(state,ctx={}){
   const limit=creditLimit(ctx,state),q=state.season;
-  return {chartered:state.chartered,loan:state.loan,limit,room:Math.max(0,limit-state.loan),rate:state.rate,interest:Math.round(state.loan*state.rate),
+  /* the season's card can make money dear: the tab shows what the next close will actually charge, as the Overview does */
+  const im=num(cardOf(state).mods.interest,1);
+  return {chartered:state.chartered,loan:state.loan,limit,room:Math.max(0,limit-state.loan),rate:state.rate,effRate:state.rate*im,interest:Math.round(state.loan*state.rate*im),
    frozen:frozen(state),arrears:state.arrears,bailiffs:frozen(state)&&state.arrears>=SEIZE_AFTER-1,guards:state.guards,fullGuard:ROYAL_GUARD,rehireCost:Math.round(400*scale(ctx)),
    seized:state.seized.map(id=>workDef(id).name),surplus:Math.max(0,state.treasury-state.loan),length:SEASON_CLOSES,
    season:q?{...q,left:SEASON_CLOSES-q.closes,toRepay:Math.max(0,state.loan-q.target),worthStart:q.startTreasury-q.startLoan,worth:state.treasury-state.loan}:null,

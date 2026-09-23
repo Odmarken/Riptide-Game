@@ -431,7 +431,7 @@ const TideUI=(()=>{
   if(w.expiresAt<=Math.max(now,exploration().lastNow||0)){closeHub();updateExploration();stageMsg('That Tide has wandered away.',1800);return;}
   if(!frameFor(w.speciesId)||!frameFor(p.speciesId)){el('tideHubMessage').textContent='Your Tides are arriving. Try again in a moment.';return;}
   const result=Tides.beginBattle(S.tides,w,{now});if(!result.ok){el('tideHubMessage').textContent=result.reason==='injured'?'Your Tide is still recovering. Choose a ready companion.':'This companion cannot battle yet.';return;}
-  TideExploration.take(exploration(),id,now);saveNow();closeHub();Mounts.reset(mountRide);updateMountButton();stopHero();
+  TideExploration.take(exploration(),id,now);save();closeHub();Mounts.reset(mountRide);updateMountButton();stopHero(); /* save(): the saveNow() at the end of begin() sends the whole start of the battle once - two forced pushes back to back only bounced off each other */
   session={owner:S.tides,battle:result.battle,oldZoom:zoom,oldCamX:camX,oldCamY:camY,time:0,animation:null,result:null,shownResult:false,logIndex:0};
   setZoom(Math.min(3,Math.max(2.1,zoom)));camX=(hero.x+w.x)/2-VW/zoom/2;camY=(hero.y+w.y)/2-VH/zoom/2;
   draw();const backdrop=document.createElement('canvas');backdrop.width=cv.width;backdrop.height=cv.height;backdrop.getContext('2d').drawImage(cv,0,0);session.backdrop=backdrop;

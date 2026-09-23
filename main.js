@@ -170,7 +170,18 @@ function createWindow() {
       ? a[1] : {level: a[1], message: a[2], lineNumber: a[3], sourceId: a[4]};
     if (d.level === 3 || d.level === 'error') logErr('page', `${d.message} (${d.sourceId}:${d.lineNumber})`);
   });
-  win.webContents.on('render-process-gone', (_e, d) => logErr('renderer', d && d.reason));
+  /* A crashed page used to leave the window blank until the player quit and started again. It is reloaded instead - the
+     saves are on disk - but only a few times in a row, so a page that dies at start cannot spin for ever. */
+  let crashes = [];
+  win.webContents.on('render-process-gone', (_e, d) => {
+    const reason = d && d.reason;
+    logErr('renderer', reason);
+    if (reason === 'clean-exit' || !win || win.isDestroyed()) return;
+    const now = Date.now();
+    crashes = crashes.filter(t => now - t < 300000).concat(now);
+    if (crashes.length > 3) { logErr('renderer', 'crashed ' + crashes.length + ' times in five minutes - not reloading again'); return; }
+    setTimeout(() => { try { if (win && !win.isDestroyed()) win.reload(); } catch (e) { logErr('renderer', 'reload failed: ' + e); } }, 1000);
+  });
 
   /* F11 fullscreen, the convention players expect from a desktop game. Everything else here is the
      browser showing through where it should not: DevTools, and a reload that throws away whatever
@@ -228,7 +239,18 @@ function createWindow() {
   });
 }
 
-app.whenReady().then(createWindow);
+/* One copy of the game at a time. Two share one profile - one localStorage, one set of heroes on this device - and each
+   would write its own idea of a hero over the other's. A second launch brings the running window forward instead. */
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (!win || win.isDestroyed()) return;
+    if (win.isMinimized()) win.restore();
+    win.show(); win.focus();
+  });
+  app.whenReady().then(createWindow);
+}
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow();

@@ -1201,7 +1201,15 @@ async function mpJoin(code){
  await mpEnter();
 }
 async function mpEnter(){
- mp.on=true;mp.ready=false;mp.started=false;mp.peers={};mp.dmgOut=0;mp.applied={};
+ mp.on=true;mp.ready=false;mp.started=false;mp.peers={};mp.dmgOut=0;mp.applied={};mp.dmgBy={};mp.appliedBy={};
+ {const rb=$('mpReadyBtn');if(rb)rb.textContent='✔ Ready';} /* a new lobby starts not-ready - and says so */
+ /* 💓 a heartbeat while waiting in the lobby: a player who closed the game there (no Leave) used to hold START back for
+    ever. Everyone's doc moves every 20 s; mpLobbyRender leaves out anybody silent for over 70 s. */
+ clearInterval(mp.lobbyBeat);
+ mp.lobbyBeat=setInterval(()=>{
+  if(!mp.on||mp.started){clearInterval(mp.lobbyBeat);mp.lobbyBeat=null;return;}
+  try{mpRoom().collection('players').doc(mp.pid).update({t:Date.now()}).catch(()=>{});}catch(e){}
+ },20000);
  await mpRoom().collection('players').doc(mp.pid).set({name:dispName?dispName(S):(S.name||'Hero'),x:0,y:0,hp:1,ready:false,dmg:0,t:Date.now(),look:mpLook()});
  mp.unsubRoom=mpRoom().onSnapshot(s=>{
   if(!s.exists||s.data().state==='closed'){mpKicked();return;}
@@ -1212,15 +1220,20 @@ async function mpEnter(){
   const seen={};
   qs.forEach(d=>{
    if(d.id===mp.pid)return;
-   const data=d.data(),prev=mp.peers[d.id];
+   const data=d.data(),prev=mp.peers[d.id],now=Date.now();
+   /* 't' is kept on THIS device's clock: a doc that changed means its writer is alive now. The writer's own Date.now()
+      used to be compared with ours, so a peer whose clock ran a few seconds behind was never targeted, and one ahead never timed out. */
+   const moved=!prev||data.t!==prev._remoteT;
    if(prev){
     /* MERGE into the existing object - replacing it wiped interpolation state and
        stomped fresh RTC coords with stale Firestore ones (periodic rubber-banding) */
     const live=prev._rtc&&(performance.now()-(prev._rt||0)<3000);
+    const lastSeen=prev.t;
     Object.assign(prev,data,live?{x:prev.x,y:prev.y,hp:prev.hp,f:prev.f,mv:prev.mv,dn:prev.dn,atk:prev.atk,t:prev.t}:{});
-    if(!live)prev._rtc=false; /* RTC went quiet - let Firestore drive again */
+    prev._remoteT=data.t;
+    if(!live){prev._rtc=false;prev.t=moved?now:lastSeen;} /* RTC went quiet - let Firestore drive again */
     seen[d.id]=prev;
-   }else seen[d.id]=data;
+   }else seen[d.id]={...data,_remoteT:data.t,t:now};
    if(!mp.rtc[d.id])rtcConnect(d.id).catch(e=>console.warn('[rtc] connect failed',d.id,e));
   });
   mp.peers=seen;
@@ -1236,13 +1249,19 @@ async function mpEnter(){
 function mpLobbyRender(){
  if(!mp.on||mp.started||!$('mpPlayers'))return;
  const rows=[['You'+(mp.host?' (host)':''),mp.ready]];
- for(const k in mp.peers)rows.push([mp.peers[k].name||'Hero',!!mp.peers[k].ready]);
+ for(const k in mp.peers){
+  if(Date.now()-(mp.peers[k].t||0)>70000)continue; /* gone quiet - closed the game in the lobby: not waited for */
+  rows.push([esc(mp.peers[k].name||'Hero'),!!mp.peers[k].ready]); /* another player's name is their own text - never markup */
+ }
  $('mpPlayers').innerHTML=rows.map(r=>`<div class="cl">${r[1]?'✅':'⏳'} ${r[0]}</div>`).join('');
  const all=rows.every(r=>r[1]),n=rows.length;
  $('mpStartBtn').style.display=(mp.host&&all&&n>=2)?'inline-block':'none';
 }
 function mpBegin(){
  mp.started=true;gamePaused=false;$('mpLobby').style.display='none';
+ /* +50% for the lords of an online raid, as their build rule says - the zone is built in the lobby, before 'started' is
+    true, so the rule never applied. The host's copy is what counts; the guests' copies follow its boss snapshots. */
+ for(const e of enemies)if(e.raid&&!e.dead&&!e._online){e._online=true;e.hp=Math.round(e.hp*1.5);e.max=Math.round((e.max||e.hp)*1.5);}
  if(!mp.host){
   if(mp.unsubBoss)mp.unsubBoss();
   mp.unsubBoss=mpRoom().collection('sync').doc('boss').onSnapshot(s=>{
@@ -1250,8 +1269,10 @@ function mpBegin(){
    (s.data().bs||[]).forEach(nb=>{
     const e=enemies.find(x=>x.raid&&x.bossId===nb.id);if(!e)return;
     e.netX=nb.x;e.netY=nb.y;e.hp=nb.hp;e.max=nb.max;
+    if(nb.cds)e.cds=Object.assign({},nb.cds);
+    e.target=nb.tgt; /* who the lord is after, as over WebRTC - without it a guest with no direct link saw every lord chase the host, and never took its swings */
     if(nb.awake&&!e.awake){e.awake=true;e.state='chase';}
-    if(nb.dead&&!e.dead){e.dead=true;e.deadT=0;e.hp=0;}
+    if(nb.dead&&!e.dead){e.netDead=true;killEnemy(e);} /* the same death as over WebRTC: chest, raid potion, lockout and the walk home - a guest without a direct link used to get none of it */
    });
   });
  }
@@ -1289,7 +1310,7 @@ function mpSyncTick(){
  const slowPeer=Object.keys(mp.peers).some(id=>!(mp.rtc[id]&&mp.rtc[id].ok));
  if(now-mp.lastSend>(slowPeer?450:1500)){
   mp.lastSend=now;
-  mpRoom().collection('players').doc(mp.pid).update({x:Math.round(hero.x),y:Math.round(hero.y),hp:hero.hp/heroMax(),dmg:Math.round(mp.dmgOut),t:Date.now(),look:mpLook()}).catch(()=>{});
+  mpRoom().collection('players').doc(mp.pid).update({x:Math.round(hero.x),y:Math.round(hero.y),hp:hero.hp/heroMax(),dmg:Math.round(mp.dmgOut),dmgBy:mp.dmgBy||{},t:Date.now(),look:mpLook()}).catch(()=>{});
  }
  if(mp.host&&now-(mp.lastBossRtc||0)>100){ /* 10Hz boss snapshots - was 4Hz, main cause of rubber-banding */
   mp.lastBossRtc=now;
@@ -1427,9 +1448,12 @@ function rtcOnMsg(pid,m){
   const p=mp.peers[pid];if(!p)return;
   mpPlayFx(m,p);
  }else if(m.k==='dmg'&&mp.host){
-  const d=Math.max(0,Math.round(m.d||0));
-  mp.applied[pid]=(mp.applied[pid]||0)+d;
-  mpPeerDamage(d,pid);
+  if(typeof m.id==='string'&&Number.isFinite(+m.tot))mpHostTotal(pid,m.id,+m.tot); /* this guest's running total for THAT lord */
+  else{ /* an older build sends each hit on its own */
+   const d=Math.max(0,Math.round(m.d||0));
+   mp.applied[pid]=(mp.applied[pid]||0)+d;
+   mpPeerDamage(d,pid);
+  }
  }else if(m.k==='boss'&&!mp.host){
   m.bs.forEach(nb=>{
    const e=enemies.find(x=>x.raid&&x.bossId===nb.id);
@@ -1441,6 +1465,30 @@ function rtcOnMsg(pid,m){
    if(nb.dead&&!e.dead){e.netDead=true;killEnemy(e);}
   });
  }
+}
+/* ⚔ A guest's damage to a raid lord is written as a running total per lord - over WebRTC and in the players doc alike -
+   and the host applies only what it has not counted yet for that guest and that lord. Each hit used to travel as a bare
+   number with no lord named: the host put it on the first awake lord (waking the wrong one), and a hit that came by both
+   roads was taken twice. */
+function mpGuestRaidHit(en,d){
+ if(!(mp.on&&mp.started&&!mp.host&&en&&en.raid))return false;
+ const rd=Math.max(0,Math.round(d)),id=en.bossId||'lord';
+ mp.dmgBy=mp.dmgBy||{};mp.dmgBy[id]=(mp.dmgBy[id]||0)+rd;mp.dmgOut+=rd;
+ rtcBroadcast({k:'dmg',id,tot:mp.dmgBy[id],d:rd},true); /* d: for a host on an older build */
+ return true;
+}
+function mpHostTotal(pid,id,tot){
+ mp.appliedBy=mp.appliedBy||{};
+ const seen=mp.appliedBy[pid]||(mp.appliedBy[pid]={}),prev=seen[id]||0;
+ if(!(tot>prev))return;
+ seen[id]=tot;
+ const b=enemies.find(e=>e.raid&&e.bossId===id&&!e.dead);
+ if(b)mpDamageBoss(b,tot-prev,pid);
+}
+function mpDamageBoss(b,d,pid){
+ b.hp-=d;b.threat=b.threat||{};const who=pid||'peer';b.threat[who]=(b.threat[who]||0)+d;
+ if(!b.awake){b.awake=true;b.state='chase';floatAt(b.x,b.y-b.r-30,'AWAKENED!','#ff8a6a',true);}
+ if(b.hp<=0)killEnemy(b);
 }
 function mpPeerDamage(d,pid){
  const b=enemies.find(e=>e.raid&&e.awake&&!e.dead)||enemies.find(e=>e.raid&&!e.dead);
@@ -1481,6 +1529,8 @@ function rtcCloseAll(){
 function mpHostApplyDamage(){
  if(!mp.host)return;
  for(const k in mp.peers){
+  const by=mp.peers[k].dmgBy;
+  if(by&&typeof by==='object'){for(const id in by)mpHostTotal(k,id,+by[id]||0);continue;} /* per-lord totals: see mpHostTotal */
   const tot=mp.peers[k].dmg||0,prev=mp.applied[k]||0;
   if(tot>prev){
    const d=tot-prev;mp.applied[k]=tot;
@@ -1594,8 +1644,11 @@ setTimeout(()=>{
   }
  });
  bind('raidJoin',async()=>{
+  const b=$('raidJoin');if(b&&b.disabled)return; /* a double-click joined twice and left a player who never readies - START never came */
+  if(b)b.disabled=true;
   try{await mpJoin(($('raidCode')||{}).value);}
   catch(e){console.error('mpJoin failed:',e);stageMsg('Join failed: '+(e.code||e.message||e),3000);sfx.warn();}
+  finally{if(b)b.disabled=false;}
  });
  bind('raidCancel',()=>{if($('raidModal'))$('raidModal').style.display='none';});
  bind('mpReadyBtn',async()=>{mp.ready=!mp.ready;$('mpReadyBtn').textContent=mp.ready?'✔ Ready!':'✔ Ready';await mpRoom().collection('players').doc(mp.pid).update({ready:mp.ready});mpLobbyRender();});
@@ -1819,7 +1872,13 @@ function migrate(s){ /* fills fields missing from older saves */
  s.tides=Tides.normalizeCollection(s.tides);
  s.tides.exploration=TideExploration.create(s.tides.exploration);
  s.wastelandBossReadyAt=WastelandDungeons.normalizeBossTimers(s.wastelandBossReadyAt);
- s.city=CityEconomy.normalize(s.city); /* 👑 the Crown Ledger */
+ /* 👑 the Crown Ledger. A city written by a NEWER build (a higher economy version) is not this build's to read, nor to
+    overwrite: it is set aside untouched and written back exactly as it was, while this build plays from an empty
+    strongroom - the newer build finds it again. It used to be taken for an old city and closed, and the next save
+    replaced the real one. (An OLDER city is still closed on purpose: that is how a new version starts everyone afresh.) */
+ if(s.cityNewer&&typeof s.cityNewer==='object'&&+s.cityNewer.v<=CityEconomy.VERSION){s.city=s.cityNewer;delete s.cityNewer;}
+ if(s.city&&typeof s.city==='object'&&+s.city.v>CityEconomy.VERSION){s.cityNewer=s.city;s.city=null;}
+ s.city=CityEconomy.normalize(s.city);
  /* A save written by a NEWER build can stand in a zone this build has never heard of - the zone table
     is append-only, so an older exe or an old browser tab simply has a shorter one. Such a hero wakes
     up in Moonshine instead of taking the character list down with him. */
@@ -1898,6 +1957,7 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.farm.r===undefined)s.farm.r=[]; /* 🛣 laid road segments */
  if(s.farm.baleN===undefined)s.farm.baleN=0;   /* ✂ harvest progress - 5 = one Hay placement */
  if(s.farm.cseedN===undefined)s.farm.cseedN=0; /* ✂ harvest progress - 5 = one Chicken Seeds placement */
+ if(Array.isArray(s.farm.b))for(const it of s.farm.b)if(it&&(isBovine(it.t)||isChicken(it.t))&&!it.fed)it.fed=Date.now(); /* bought before the checkout stamped it: start the clock now, or it never eats while you are away */
  if(s.farm.inv===undefined)s.farm.inv={};      /* 🎰 casino-won farm stock: cowfarm/chickenfarm/tjur/hay */
  /* a save written mid-Move can freeze _moving:true onto an item - it then never draws ("my cow vanished").
     Nothing is legitimately mid-move at load time, so strip the flag from everything. */
@@ -2016,10 +2076,29 @@ function migrate(s){ /* fills fields missing from older saves */
   /* old system enchanted gear directly - carry the first enchant into the new slot */
   if(g.ench){const i=s.activeScrolls[0]?1:0;if(!s.activeScrolls[i])s.activeScrolls[i]=g.ench;else s.scrolls.push(g.ench);g.ench=null;}
  }
- (s.bag||[]).forEach(it=>{if(it.up===undefined)it.up=0;ensureItemBase(it);if(it.ench){s.scrolls.push(it.ench);it.ench=null;}});
+ s.bag=(Array.isArray(s.bag)?s.bag:[]).filter(it=>it&&typeof it==='object'); /* a hole in the bag must not stop the hero loading */
+ s.bag.forEach(it=>{delete it._lid;if(it.up===undefined)it.up=0;ensureItemBase(it);if(it.ench){s.scrolls.push(it.ench);it.ench=null;}});
  /* legacy scrolls were plain id strings - convert to tier objects (grandfathered at Tier II) */
- s.scrolls=(s.scrolls||[]).map(x=>typeof x==='string'?{id:x,tier:2}:x);
- s.activeScrolls=(s.activeScrolls||[null,null]).map(x=>typeof x==='string'?{id:x,tier:2}:x);
+ s.scrolls=(Array.isArray(s.scrolls)?s.scrolls:[]).map(x=>typeof x==='string'?{id:x,tier:2}:x);
+ s.activeScrolls=(Array.isArray(s.activeScrolls)?s.activeScrolls:[null,null]).map(x=>typeof x==='string'?{id:x,tier:2}:x);
+ /* 🧊 the ritual used to hand its armor over only on "Take it", so a close in between left the Altar
+    satisfied, the hero without the armor and the Final Hour shut for good. Such a hero is owed one. */
+ if(s.ritualDone&&!s.iceArmorGiven){
+  const has=(s.gear&&isIce(s.gear.armor))||s.bag.some(it=>isIce(it));
+  if(!has)s.bag.push(makeIceArmor(s));
+  s.iceArmorGiven=true;
+ }
+ /* ⏰ a clock that ran ahead - another device's, or this one's before it was put right - left times in the future,
+    and the farm, the furnace and the ore inside it waited for them. No farm time may be later than now, and no
+    firing longer than one firing from now. */
+ {const now=Date.now();
+  if(s.farm){
+   if(+s.farm.lastSim>now)s.farm.lastSim=now;
+   for(const it of [...(Array.isArray(s.farm.b)?s.farm.b:[]),...(Array.isArray(s.farm.c)?s.farm.c:[])])
+    if(it)for(const k of ['fed','preg','at','egg'])if(+it[k]>now)it[k]=now;
+  }
+  if(s.smelt&&+s.smelt.done>now+SMELT_MS)s.smelt.done=now+SMELT_MS;
+ }
  return s;
 }
 /* the road east is open when this zone's quest chain (or boss) is done AND you meet the next zone's level */
@@ -2034,13 +2113,26 @@ function portalIsOpen(){
 /* ==================== LOOT & UPGRADES ==================== */
 const SLOTS=['weapon','armor','trinket'];
 const isKnowledgeBook=it=>!!it&&it.kind==='knowledge'&&it.id==='book-of-knowledge';
+/* 💍 The Ring is being forged: the recipe and the Broken Ring went into the fire, and ringForged is only set when it comes out */
+const ringInForge=()=>!!(S&&S.smithJob&&S.smithJob.kind==='ring');
 function knowledgeBook(boss,dungeon){
  return {id:'book-of-knowledge',kind:'knowledge',slot:'knowledge',name:'Book of Knowledge',rar:'legendary',sell:0,power:0,sourceBoss:String(boss||''),sourceDungeon:String(dungeon||'')};
 }
 const PREFIX={common:['Plain','Worn','Sturdy'],fine:['Keen','Hardened','Trusty'],rare:['Gleaming','Runed','Valiant'],epic:['Kingsforged','Stormbound','Emberwrought']};
 const BASE={weapon:['Blade','Spear','Warbow','Scepter'],armor:['Hauberk','Cuirass','Warcloak','Aegis'],trinket:['Signet','Talisman','Warhorn','Idol']};
 const RARMUL={common:1,fine:1.5,rare:2.3,epic:3.6};
-function rollItem(forceRar,lucky){
+/* ⚖ Where the hero stands on the gear ladder. A normal zone is a rung of the ladder itself, and the level-60
+   specials (Gates of the Viking, Valhalla, the Cow Level, Violet Halls, the Crypts, the Final Hour) keep the rung
+   their place in the table has always given them - their loot and the legendaries were tuned against it. Every
+   other special is a place, not a rung: Moonshine, the Altar, the Farm, the City and its halls, the Wasteland and
+   its caves are numbered 20-35 only because they were added last, yet a chest opened on the quay rolled gear as if
+   from zone 35, and a legendary's attack jumped whenever the hero walked through a door. There the hero's own
+   progress counts. */
+function gearRungHere(st=S){
+ const z=ZONES[st.zone];
+ return z&&(!z.special||(z.lvl||1)>=MAXLVL)?(st.zone||0):0;
+}
+function rollItem(forceRar,lucky,fromChest){ /* fromChest: a chest from the casino opens anywhere, so it rolls by the hero's progress, never by the room it is opened in */
  const r=Math.random();
  let rar=(forceRar===true?'epic':forceRar)||(r<.55?'common':r<.85?'fine':r<.97?'rare':'epic');
  if(lucky&&!forceRar&&Math.random()<0.20){
@@ -2048,7 +2140,7 @@ function rollItem(forceRar,lucky){
  }
  const mul=RARMUL[rar];
  const slot=SLOTS[Math.floor(Math.random()*3)];
- const zi=Math.max(S.zone,S.maxZone||0);
+ const zi=fromChest?(S.maxZone||0):Math.max(gearRungHere(S),S.maxZone||0);
  const z=(1+zi*0.9+S.lvl*0.18)*(1+(S.prestige||0)*0.25);
  /* WEAPONS keep pace with prestige (armor/trinkets stay on the visible-level curve).
     0.452 is calibrated so a top-roll epic at +12 lands ~15% under Rimfrost/Fel Glaives
@@ -2091,6 +2183,16 @@ const isFGLegend=v=>v==='felglaives'||v==='warglaives';
 const RENAMED_ITEMS={'Frostmourne':'Rimfrost','Frostkeen':'Rimfrost','Warglaives':'Fel Glaives','The One Ring':'The Ring'};
 const displayItemName=n=>RENAMED_ITEMS[n]||n;
 const isIce=it=>it&&it.legend==='icearmor';
+/* 🧊 the Altar's reward, sized to the hero who earned it (st = that hero's state) */
+function makeIceArmor(st){
+ const zi=Math.max(st.zone||0,st.maxZone||0);
+ const z=(1+zi*0.9+(st.lvl||1)*0.18)*(1+(st.prestige||0)*0.25);
+ const it={slot:'armor',rar:'legendary',legend:'icearmor',name:'Ice Armor',
+  atk:0,hp:Math.round(24*3.6*z*1.1),crit:0,haste:0.10,dmgMul:0.10,ench:null,up:0,maxUp:LEGEND_MAX_UP,sell:0}; /* +10% dmg · +10% atk speed · +6 upgrades like the other legendaries */
+ it.baseHp=it.hp;it.baseAtk=0;it.baseCrit=0;
+ calcPower(it);it.basePower=Math.round(it.power);
+ return it;
+}
 function syncIceArmor(it){
  if(!isIce(it)||!S)return it;
  it.slot='armor';it.rar='legendary';it.name='Ice Armor';
@@ -2127,7 +2229,7 @@ function bestNormalWeaponAtk(){
     Rimfrost mirrors that same top-end curve, but uses effectiveHeroLvl() so prestige
     does not make it reset to Lv 1 damage. */
  const L=Math.max(1,effectiveHeroLvl());
- const zi=Math.max(S.zone||0,progZone(S)||0);
+ const zi=Math.max(gearRungHere(S),progZone(S)||0); /* not the raw index of wherever the hero stands - see gearRungHere */
  const z=(1+zi*0.9+L*0.18)*(1+(S.prestige||0)*0.25);
  return Math.round(6*RARMUL.epic*z);
 }
@@ -2327,7 +2429,7 @@ function applyVolumes(){
  const gt=AC.ctx?AC.ctx.currentTime:0;
  try{if(AC.ambG){AC.ambG.gain.cancelScheduledValues(gt);AC.ambG.gain.setValueAtTime(ambVol(),gt);}}catch(e){}
  try{if(AC.sfxG){AC.sfxG.gain.cancelScheduledValues(gt);AC.sfxG.gain.setValueAtTime(sfxVol(),gt);}}catch(e){}
- if(AC.ctx&&AC.ctx.state==='suspended')AC.ctx.resume().catch(()=>{}); /* iOS parks the session when all media is muted - wake it so sfx stays alive */
+ if(AC.ctx&&AC.ctx.state==='suspended'&&!audioPaused)AC.ctx.resume().catch(()=>{}); /* iOS parks the session when all media is muted - wake it so sfx stays alive (never over the player's own pause) */
  /* .muted works on iOS where .volume writes are ignored - mute must win on phones */
  const av=ambVol(),m=av<=0;
  [ambAudio,cowAudio,odinAudio,cryptAudio,finalAudio,casinoAudio].forEach(a=>{if(a){try{a.volume=av;a.muted=m;}catch(e){}}});
@@ -2339,7 +2441,13 @@ function noiseBuf(){
  return AC.nb=b;
 }
 function initAudio(){
- if(AC.ctx){if(AC.ctx.state==='suspended')AC.ctx.resume().catch(()=>{});return;}
+ if(AC.ctx){
+  if(AC.ctx.state!=='running'&&!audioPaused)AC.ctx.resume().catch(()=>{}); /* a key or a click wakes the sound - but never through "Pause game and audio" */
+  /* the zone's music was lost to a device error: start it again - at most every 30 s (a file that cannot load must not be
+     fetched again on every key press), and never while a casino window has its own track playing */
+  if(gameOn&&!AC.prof&&!audioPaused&&S&&!(casinoAudio&&!casinoAudio.paused)&&Date.now()-(AC.lastRestart||0)>30000){AC.lastRestart=Date.now();startAmbience(zoneOf().amb);}
+  return;
+ }
  try{
   AC.ctx=new (window.AudioContext||window.webkitAudioContext)();
   AC.ambG=AC.ctx.createGain();AC.ambG.gain.value=ambVol();
@@ -2381,7 +2489,7 @@ function droneLayer(freqs,vol){
  });
 }
 function blip(freq0,freq1,dur,vol,type,dest){
- if(!AC.ctx)return;
+ if(!AC.ctx||AC.ctx.state!=='running')return; /* a suspended context freezes currentTime: sounds queued there all fire at once later */
  if(!dest&&S&&!S.sfx)return; /* ⚔️ muted - hard gate, even if a gain write was swallowed by WebKit */
  const t=AC.ctx.currentTime;
  const o=AC.ctx.createOscillator();o.type=type||'sine';
@@ -2390,7 +2498,7 @@ function blip(freq0,freq1,dur,vol,type,dest){
  o.connect(g);g.connect(dest||AC.sfxG);o.start(t);o.stop(t+dur+0.02);
 }
 function noiseHit(dur,vol,freq,dest){
- if(!AC.ctx)return;
+ if(!AC.ctx||AC.ctx.state!=='running')return; /* a suspended context freezes currentTime: sounds queued there all fire at once later */
  if(!dest&&S&&!S.sfx)return; /* ⚔️ muted */
  const t=AC.ctx.currentTime;
  const src=AC.ctx.createBufferSource();src.buffer=noiseBuf();
@@ -2400,7 +2508,7 @@ function noiseHit(dur,vol,freq,dest){
 }
 /* airy filtered-noise sweep - used for the new weapon swing */
 function noiseSweep(dur,vol,f0,f1,dest){
- if(!AC.ctx)return;
+ if(!AC.ctx||AC.ctx.state!=='running')return; /* a suspended context freezes currentTime: sounds queued there all fire at once later */
  if(!dest&&S&&!S.sfx)return; /* ⚔️ muted */
  const t=AC.ctx.currentTime;
  const src=AC.ctx.createBufferSource();src.buffer=noiseBuf();
@@ -2417,10 +2525,10 @@ function startAmbTrack(){
  if(!ambAudio){
   ambAudio=new Audio(AMBIENT_MUSIC_URL);
   ambAudio.loop=true;
-  ambAudio.onerror=()=>{ambAudio=null;};
+  ambAudio.onerror=()=>{ambAudio=null;if(AC.prof==='world')AC.prof=null;}; /* a device error kills the element: forget it, and the profile with it, or ordinary zones stayed silent */
  }
- ambAudio.volume=ambVol();
- ambAudio.play().catch(()=>{});
+ ambAudio.volume=ambVol();ambAudio.muted=ambVol()<=0;
+ if(!audioPaused)ambAudio.play().catch(()=>{}); /* "Pause game and audio" outlives the hero list: a track started meanwhile waits for the unpause */
  return true;
 }
 function stopAmbTrack(){if(ambAudio)ambAudio.pause();}
@@ -2432,11 +2540,11 @@ function startCowTrack(){
  if(!cowAudio){
   cowAudio=new Audio(COW_MUSIC_URL);
   cowAudio.loop=true;
-  cowAudio.onerror=()=>{cowAudio=null;startCowMusic();}; /* file missing → synth */
+  cowAudio.onerror=()=>{cowAudio=null;if(AC.prof==='cow')startCowMusic();}; /* file missing → synth - but only while we are still in the Cow Level */
  }
- cowAudio.volume=ambVol();
+ cowAudio.volume=ambVol();cowAudio.muted=ambVol()<=0; /* iOS ignores .volume - mute must be set here too */
  cowAudio.currentTime=0;
- cowAudio.play().catch(()=>{});
+ if(!audioPaused)cowAudio.play().catch(()=>{});
  return true;
 }
 function stopCowTrack(){if(cowAudio)cowAudio.pause();}
@@ -2531,7 +2639,7 @@ function odinKick(t,f0,f1,dur,g0){ /* pitch-dropping sine: the pulse under the w
  o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+dur*0.9);
  const g=AC.ctx.createGain();
  g.gain.setValueAtTime(g0,t);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
- o.connect(g);g.connect(AC.ambG);o.start(t);o.stop(t+dur+0.02);
+ o.connect(g);g.connect(odinOut());o.start(t);o.stop(t+dur+0.02);
 }
 function odinWarDrum(t,g0){
  /* A big skin drum is two things at once: a pitch that falls away, and the body of the hide it was
@@ -2548,7 +2656,7 @@ function odinWarDrum(t,g0){
  const lp=AC.ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=270;lp.Q.value=1.3;
  const g=AC.ctx.createGain();
  g.gain.setValueAtTime(g0*0.62,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.46);
- s.connect(lp);lp.connect(g);g.connect(AC.ambG);s.start(t);s.stop(t+0.46);
+ s.connect(lp);lp.connect(g);g.connect(odinOut());s.start(t);s.stop(t+0.46);
  /* and the crack of the stick on the rim, right at the front - the transient the ear reads as force */
  const cn=Math.floor(AC.ctx.sampleRate*0.05);
  const cb=AC.ctx.createBuffer(1,cn,AC.ctx.sampleRate),cd=cb.getChannelData(0);
@@ -2557,7 +2665,7 @@ function odinWarDrum(t,g0){
  const cf=AC.ctx.createBiquadFilter();cf.type='bandpass';cf.frequency.value=900;cf.Q.value=2.2;
  const cg=AC.ctx.createGain();
  cg.gain.setValueAtTime(g0*0.22,t);cg.gain.exponentialRampToValueAtTime(0.0001,t+0.05);
- cs.connect(cf);cf.connect(cg);cg.connect(AC.ambG);cs.start(t);cs.stop(t+0.05);
+ cs.connect(cf);cf.connect(cg);cg.connect(odinOut());cs.start(t);cs.stop(t+0.05);
 }
 function odinHit(t,dur,g0,cut,q){ /* filtered noise: the rim, and the crash on the turnaround */
  const n=Math.floor(AC.ctx.sampleRate*dur);
@@ -2570,7 +2678,7 @@ function odinHit(t,dur,g0,cut,q){ /* filtered noise: the rim, and the crash on t
  const lp=AC.ctx.createBiquadFilter();lp.type='lowpass';lp.frequency.value=cut*2.2; /* lid on the top end */
  const g=AC.ctx.createGain();
  g.gain.setValueAtTime(g0,t);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
- s.connect(f);f.connect(lp);lp.connect(g);g.connect(AC.ambG);s.start(t);s.stop(t+dur);
+ s.connect(f);f.connect(lp);lp.connect(g);g.connect(odinOut());s.start(t);s.stop(t+dur);
 }
 function odinPad(t,freqs,dur){ /* the choir behind it - three voices, each detuned a little apart */
  freqs.forEach((f,i)=>{
@@ -2582,7 +2690,7 @@ function odinPad(t,freqs,dur){ /* the choir behind it - three voices, each detun
    g.gain.linearRampToValueAtTime(0.019,t+dur*0.35);
    g.gain.setValueAtTime(0.019,t+dur*0.75);
    g.gain.linearRampToValueAtTime(0.0001,t+dur);
-   o.connect(fl);fl.connect(g);g.connect(AC.ambG);o.start(t);o.stop(t+dur+0.05);
+   o.connect(fl);fl.connect(g);g.connect(odinOut());o.start(t);o.stop(t+dur+0.05);
   });
  });
 }
@@ -2598,7 +2706,7 @@ function odinDrone(t,f,dur){
   g.gain.setValueAtTime(0.0001,t);
   g.gain.linearRampToValueAtTime(lvl,t+0.7);
   g.gain.linearRampToValueAtTime(0.0001,t+dur);
-  o.connect(fl);fl.connect(g);g.connect(AC.ambG);o.start(t);o.stop(t+dur+0.05);
+  o.connect(fl);fl.connect(g);g.connect(odinOut());o.start(t);o.stop(t+dur+0.05);
  });
 }
 function odinHorn(t,f,dur){ /* the melody: a war horn, slow to speak and slow to let go */
@@ -2618,8 +2726,8 @@ function odinHorn(t,f,dur){ /* the melody: a war horn, slow to speak and slow to
  g.gain.setValueAtTime(0.034,t+dur*0.72);
  g.gain.linearRampToValueAtTime(0.0001,t+dur);
  const g2=AC.ctx.createGain();g2.gain.setValueAtTime(0.015,t);g2.gain.linearRampToValueAtTime(0.0001,t+dur);
- o.connect(fl);fl.connect(g);g.connect(AC.ambG);
- o2.connect(g2);g2.connect(AC.ambG);
+ o.connect(fl);fl.connect(g);g.connect(odinOut());
+ o2.connect(g2);g2.connect(odinOut());
  o.start(t);o.stop(t+dur+0.05);o2.start(t);o2.stop(t+dur+0.05);
 }
 function odinFrame(t,g0){
@@ -2633,7 +2741,7 @@ function odinFrame(t,g0){
  const bp=AC.ctx.createBiquadFilter();bp.type='bandpass';bp.frequency.value=430;bp.Q.value=1.6;
  const g=AC.ctx.createGain();
  g.gain.setValueAtTime(g0,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.16);
- s.connect(bp);bp.connect(g);g.connect(AC.ambG);s.start(t);s.stop(t+0.16);
+ s.connect(bp);bp.connect(g);g.connect(odinOut());s.start(t);s.stop(t+0.16);
 }
 function odinChant(t,f){
  /* The shout. Not a word - a stack of the root, its fifth and its octave pushed through two narrow
@@ -2648,7 +2756,7 @@ function odinChant(t,f){
   g.gain.linearRampToValueAtTime(0.055*lvl,t+0.05);
   g.gain.setValueAtTime(0.055*lvl,t+0.30);
   g.gain.exponentialRampToValueAtTime(0.0001,t+0.62);
-  o.connect(f1);f1.connect(f2);f2.connect(g);g.connect(AC.ambG);
+  o.connect(f1);f1.connect(f2);f2.connect(g);g.connect(odinOut());
   o.start(t);o.stop(t+0.66);
  });
 }
@@ -2671,8 +2779,12 @@ function odinBar(t,i){
  if(i%4===3){odinWarDrum(t+ODIN_BEAT*3.5,0.12);odinWarDrum(t+ODIN_BEAT*3.75,0.17);}
  if(i%8===7)odinHit(t+ODIN_BEAT*3.5,0.45,0.030,800,1.8); /* one crash per eight bars */
 }
+/* the theme plays through its own bus, and the bus is in AC.amb: stopAmbience disconnects it, and with it every drum and
+   horn already queued two bars ahead - they used to sound on for seven seconds into the next zone */
+const odinOut=()=>AC.odinBus||AC.ambG;
 function startOdinTheme(){
  if(!AC.ctx)return;
+ AC.odinBus=AC.ctx.createGain();AC.odinBus.connect(AC.ambG);AC.amb.push(AC.odinBus);
  let bar=0, next=AC.ctx.currentTime+0.15;
  const pump=()=>{
   /* keep roughly two bars queued on the audio clock. Scheduling ahead like this is what stops the
@@ -2689,11 +2801,11 @@ function startFinalTrack(){
  if(!finalAudio){
   finalAudio=new Audio(FINAL_MUSIC_URL);
   finalAudio.loop=true;
-  finalAudio.onerror=()=>{finalAudio=null;startMusic(true);}; /* file missing → dark synth */
+  finalAudio.onerror=()=>{finalAudio=null;if(AC.prof==='final')startMusic(true);}; /* file missing → dark synth - only while the Final Hour is still the music */
  }
- finalAudio.volume=ambVol();
+ finalAudio.volume=ambVol();finalAudio.muted=ambVol()<=0;
  finalAudio.currentTime=0;
- finalAudio.play().catch(()=>{});
+ if(!audioPaused)finalAudio.play().catch(()=>{});
  return true;
 }
 function stopFinalTrack(){if(finalAudio)finalAudio.pause();}
@@ -2733,10 +2845,10 @@ function startCryptTrack(){
   }).catch(()=>{ /* decode failed: plain looping element beats silence */
    cryptAudio=new Audio(CRYPT_MUSIC_URL);
    cryptAudio.loop=true;cryptAudio.volume=ambVol();
-   if(AC.prof==='crypt')cryptAudio.play().catch(()=>{});
+   if(AC.prof==='crypt'&&!audioPaused)cryptAudio.play().catch(()=>{});
   });
  }
- if(cryptAudio){cryptAudio.volume=ambVol();cryptAudio.currentTime=0;cryptAudio.play().catch(()=>{});}
+ if(cryptAudio){cryptAudio.volume=ambVol();cryptAudio.muted=ambVol()<=0;cryptAudio.currentTime=0;if(!audioPaused)cryptAudio.play().catch(()=>{});}
  return true; /* a beat of silence while decoding - the growls cover it */
 }
 function stopCryptTrack(){cryptStopBuf();if(cryptAudio)cryptAudio.pause();}
@@ -2848,7 +2960,7 @@ const sfx={
     4. the mass - a low thud so the hit has weight under all that brightness
     Everything is nudged per swing so a run of them never turns into a machine. */
  pick:()=>{
-  if(!AC.ctx||(S&&!S.sfx))return;
+  if(!AC.ctx||AC.ctx.state!=='running'||(S&&!S.sfx))return; /* its ring oscillators are built here, so it needs the same running check as blip() */
   const j=0.92+Math.random()*0.18;
   noiseSweep(0.020,.040,2600*j,1100*j);            /* 1 - short and not too bright: the first pass
      put 78% of the energy above 2.5 kHz, which reads as hiss rather than as steel on rock */
@@ -3024,7 +3136,7 @@ $('fsClose').onclick=()=>exitBuildMode();
 /* ==================== THE RITUAL ====================
    Blackout ~3s, then the screen blinks three times like a waking eye,
    then the reveal: a life traded for the cursed Ice Armor. */
-let ritualSeen=false,ritualActive=false,gateMsgSeen=false;
+let ritualSeen=false,ritualActive=false,gateMsgSeen=false,finalGateAsked=false; /* finalGateAsked: the Gate asked on this approach - stepping out and back in asks again */
 $('gateMsgOk').onclick=()=>{$('gateMsg').style.display='none';};
 $('iceMsgOk').onclick=()=>{$('iceMsg').style.display='none';};
 $('iceReqOk').onclick=()=>{$('iceReqMsg').style.display='none';};
@@ -3032,6 +3144,7 @@ $('ritualBegin').onclick=()=>{
  if(ritualActive||S.ritualDone)return;
  if(!(S.theKnife&&(S.prestige||0)>=40&&(S.rating||0)>=3000))return;
  ritualActive=true;
+ const owner=S; /* the deed is this hero's, whoever is loaded when the eyes open */
  $('ritualBox').style.display='none';
  gamePaused=true;
  hero.moveTo=null;hero.target=null;
@@ -3052,17 +3165,18 @@ $('ritualBegin').onclick=()=>{
  t.forEach(([ms,fn])=>setTimeout(fn,ms));
  setTimeout(()=>{
   fx.style.display='none';
-  /* the deed is done */
+  if(S!==owner){ritualActive=false;gamePaused=false;return;} /* another hero was loaded in the dark: nothing happened to anyone */
+  /* the deed is done - and the armor is on in the same breath, so no close, crash or reload between
+     here and "Take it" can leave a finished ritual without its reward */
   S.theKnife=false;
   S.ritualDone=true;
+  const it=makeIceArmor(S);
+  if(S.gear.armor)S.bag.push(S.gear.armor); /* the old armor steps aside */
+  S.gear.armor=it;S.iceArmorGiven=true;
+  S.outfit='ice';   /* 👘 the plate is what you set out to wear - the Outfits page can take it off again */
+  if(hero)hero.hp=Math.min(hero.hp,heroMax());
+  ritualArmor=it; /* "Take it" only closes the reveal now */
   altarGateSync(); /* the Gate rises the moment the deed is done - no zone reload needed */
-  const zi=Math.max(S.zone,S.maxZone||0);
-  const z=(1+zi*0.9+S.lvl*0.18)*(1+(S.prestige||0)*0.25);
-  const it={slot:'armor',rar:'legendary',legend:'icearmor',name:'Ice Armor',
-   atk:0,hp:Math.round(24*3.6*z*1.1),crit:0,haste:0.10,dmgMul:0.10,ench:null,up:0,maxUp:LEGEND_MAX_UP,sell:0}; /* +10% dmg · +10% atk speed · +6 upgrades like the other legendaries */
-  it.baseHp=it.hp;it.baseAtk=0;it.baseCrit=0;
-  calcPower(it);it.basePower=Math.round(it.power);
-  ritualArmor=it; /* handed over - and equipped - on "Take it" */
   save();renderHUD();
   $('ritualDoneFx').style.display='flex';
   sfx.level();
@@ -3074,14 +3188,10 @@ $('ritualDoneOk').onclick=()=>{
  $('ritualDoneFx').style.display='none';
  gamePaused=false;
  ritualActive=false;
- if(ritualArmor){ /* straight onto your shoulders - the old armor steps aside */
-  if(S.gear.armor)S.bag.push(S.gear.armor);
-  S.gear.armor=ritualArmor;
+ if(ritualArmor){ /* already on your shoulders since the ritual ended - this only says so */
   ritualArmor=null;
-  S.outfit='ice';   /* 👘 the plate is what you set out to wear - the Outfits page can take it off again */
-  if(hero)hero.hp=Math.min(hero.hp,heroMax());
   stageMsg('🧊 The Ice Armor grips your body - it will never let go.',3000);
-  save();renderBag();renderHero();renderHUD();
+  renderBag();renderHero();renderHUD();
  }
  altarGateSync(); /* and again once the armor is on, in case the cutscene was cut short */
 };
@@ -3327,7 +3437,7 @@ function enterFarmBreeding(it){
 function farmBreedingBusy(it){return !!(it?.t===TideFarm.BUILDING_ID&&Tides.breedingStatus(S.tides,it.breedingStationId));}
 function farmBreedingRemoveWarning(){stageMsg('Reveal and collect the Tide before removing its incubator.',2400);sfx.warn();}
 function rebuildFarmItems(){ /* placed buildings become solids; crops draw with the ground */
- if(!world)return;
+ if(!world||!S||!zoneOf().farm)return; /* never into another zone's world - a cart paid for after travelling once built a barn in Moonshine */
  TideFarm.ensureStationIds(S?.farm);
  world._sg=null; /* moving/resizing can replace solids without changing their count */
  world.solids=world.solids.filter(s2=>!s2.farmItem);
@@ -3355,17 +3465,27 @@ function farmHitTest(wx,wy){
  /* ⤢ reach follows the piece's own size - a scaled-up tree is as easy to grab as it looks,
     and a shrunken one stops stealing clicks from its neighbours */
  const take=(d,reach,o)=>{if(d<=reach&&d<bd){bd=d;best=o;}};
- farmCart.forEach((g2,i)=>take(Math.hypot(g2.x-wx,g2.y-wy),95*scaleOf(g2),{kind:'g',i,t:g2.t}));
- S.farm.b.forEach((b2,i)=>take(Math.hypot(b2.x-wx,b2.y-wy),95*scaleOf(b2),{kind:'b',i,t:b2.t}));
+ farmCart.forEach((g2,i)=>take(Math.hypot(g2.x-wx,g2.y-wy),95*scaleOf(g2),{kind:'g',i,t:g2.t,ref:g2}));
+ S.farm.b.forEach((b2,i)=>take(Math.hypot(b2.x-wx,b2.y-wy),95*scaleOf(b2),{kind:'b',i,t:b2.t,ref:b2}));
  let cd=45;
- S.farm.c.forEach((c2,i)=>{const d=Math.hypot(c2.x-wx,c2.y-wy);if(d<cd){cd=d;best={kind:'c',i,t:c2.t};}});
+ S.farm.c.forEach((c2,i)=>{const d=Math.hypot(c2.x-wx,c2.y-wy);if(d<cd){cd=d;best={kind:'c',i,t:c2.t,ref:c2};}});
  if(!best){ /* the farmhouse itself - big target, but placed pieces on top of it win */
   const fh=(world&&world.solids)?world.solids.find(s2=>s2.type==='farmhouse'):null;
-  if(fh&&Math.hypot(fh.x-wx,fh.y-wy)<160)best={kind:'fh',i:0,t:'farmhouse'};
+  if(fh&&Math.hypot(fh.x-wx,fh.y-wy)<160)best={kind:'fh',i:0,t:'farmhouse',ref:fh};
  }
  return best;
 }
 function farmListOf(kind){return kind==='b'?S.farm.b:kind==='c'?S.farm.c:kind==='fh'?world.solids.filter(s2=>s2.type==='farmhouse'):farmCart;}
+/* 📌 a picked piece is held by reference. Live feeding splices eaten bales and seed piles out of the
+   same lists, so an index taken when the menu opened can point at a different piece by the time a
+   button is pressed - Pick up once refunded a Barn instead of the bull. farmPiece() finds the piece
+   itself and refreshes its index, or answers null when it is gone. */
+function farmPiece(h){
+ if(!h)return null;
+ const list=farmListOf(h.kind);
+ if(h.ref){const i=list.indexOf(h.ref);if(i<0)return null;h.i=i;return h.ref;}
+ return list[h.i]||null;
+}
 function showMovePopup(hit,cx,cy){
  const def=FARM_BUILD.find(x=>x.id===hit.t);
  $('farmMoveName').textContent=def?def.n:(hit.t==='hay'?'Hay':hit.t);
@@ -3384,7 +3504,7 @@ function showMovePopup(hit,cx,cy){
  $('farmMoveSize').style.display=(own&&canScaleDef(def))?'block':'none';
 }
 function cancelMove(){
- if(moveItem){const it=farmListOf(moveItem.kind)[moveItem.i];if(it)delete it._moving;}
+ if(moveItem){const it=farmPiece(moveItem);if(it)delete it._moving;}
  moveItem=null;movePicked=null;
  const b=$('farmMoveFx');if(b)b.style.display='none';
 }
@@ -3393,7 +3513,7 @@ function cancelMove(){
 function farmDeselect(){
  let held=null;
  if(sizeItem){ /* a cancelled resize goes back to the size it had when you armed it */
-  const it=farmListOf(sizeItem.kind)[sizeItem.i];
+  const it=farmPiece(sizeItem);
   if(it){if(Math.abs(sizeItem.sc0-1)<0.02)delete it.sc;else it.sc=sizeItem.sc0;}
   sizeItem=null;held='resize';
  }
@@ -3579,62 +3699,6 @@ function updateFarmAnimals(dt){
   sol.x=it.x;sol.y=it.y;
  }
 }
-/* 🕰 offline/away farm simulation - replays missed meals so the farm lives while you're
-   elsewhere (or logged out). Marches each animal's meal clock through the gap, consuming
-   real bites from placed food, growing the young and rolling breeding per meal.
-   Coarse on purpose: fences are ignored while away, and newborns start eating next visit. */
-function simFarmAway(){
- if(!S||!S.farm)return;
- const now=Date.now();
- const from=S.farm.simT||now;
- S.farm.simT=now;
- if(now-from<60000)return; /* live play covers small gaps */
- const b=S.farm.b;
- const hasBarn=b.some(x=>x.t==='lada'),hasCoop=b.some(x=>x.t==='chickenhouse');
- const bales=b.filter(x=>x.t==='hobal');
- const seeds=S.farm.c.filter(x=>x.t==='chickenseeds');
- const eatFrom=list=>{for(const f of list){const bt=f.bites===undefined?BITES:f.bites;if(bt>0){f.bites=bt-1;return true;}}return false;};
- let born=0,grown=0,meals=0;
- const newborns=[];
- for(const it of b.slice()){
-  const def0=FARM_BUILD.find(o=>o.id===it.t);
-  if(!def0||!def0.roam)continue;
-  if(isBovine(it.t)?!hasBarn:!hasCoop)continue; /* no housing → they refuse to eat, same as live */
-  const cowish=isBovine(it.t);
-  let ty=it.t;
-  let t=Math.max(from,(it.fed||0)+(def0.eatT||3600000));
-  let guard=0;
-  while(t<=now&&guard++<500){
-   if(!eatFrom(cowish?bales:seeds))break; /* food ran out mid-gap */
-   it.fed=t;meals++;
-   if(ty==='cowfarm'||ty==='chickenfarm'){
-    it.meals=(it.meals||0)+1;
-    if(it.meals>=3){ty=it.t=(ty==='cowfarm'?'cowfarm_big':'chickenfarm_big');delete it.meals;grown++;}
-   }else if(ty==='cowfarm_big'&&!it.preg){
-    const bulls=b.filter(b3=>b3.t==='tjur').length; /* on the same feeding schedule → sated while food lasts */
-    if(bulls>0&&barnRoom()>0&&Math.random()<Math.min(1,bulls*0.15))
-     newborns.push({t:'cowfarm',x:FarmLayout.clampAnimalX(it.x+24),y:FarmLayout.clampAnimalY(it.y+16),fed:t});
-   }else if(ty==='chickenfarm_big'&&coopRoom()>0&&Math.random()<0.15){
-    newborns.push({t:'chickenfarm',x:FarmLayout.clampAnimalX(it.x+16),y:FarmLayout.clampAnimalY(it.y+10),fed:t});
-   }
-   const d2=FARM_BUILD.find(o=>o.id===ty);
-   t+=(d2&&d2.eatT)||3600000;
-  }
- }
- S.farm.b=S.farm.b.filter(x=>!(x.t==='hobal'&&x.bites!==undefined&&x.bites<=0));
- S.farm.c=S.farm.c.filter(x=>!(x.t==='chickenseeds'&&x.bites!==undefined&&x.bites<=0));
- for(const nb of newborns){if((isBovine(nb.t)?barnRoom():coopRoom())>0){S.farm.b.push(nb);born++;}}
- if(meals||born||grown){
-  if(zoneOf().farm&&world)rebuildFarmItems();
-  save();
-  if(born||grown){
-   const parts=[];
-   if(grown)parts.push(grown+' grew up');
-   if(born)parts.push(born+' newborn'+(born>1?'s':''));
-   stageMsg('🚜 While you were away: '+parts.join(' · '),3200);
-  }
- }
-}
 /* 🕰 away-farm catch-up: the live loop owns the farm while you stand in it; this simulates
    everything between visits on the wall clock - offline included. Animals eat on schedule
    (while food and housing exist), calves/chicks grow, fed cows/hens keep breeding. */
@@ -3743,8 +3807,8 @@ function farmRefund(list){
   if(t==='cowfarm_big'||t==='cowfarm')inv.cowfarm=(inv.cowfarm||0)+1;
   else if(t==='chickenfarm_big'||t==='chickenfarm')inv.chickenfarm=(inv.chickenfarm||0)+1;
   else if(t==='tjur')inv.tjur=(inv.tjur||0)+1;
-  else if(t==='hobal')bale+=5;
-  else if(t==='chickenseeds')cseed+=5;
+  else if(t==='hobal')bale+=Math.max(0,Math.min(5,it.bites===undefined?5:it.bites|0)); /* what is left of it - a bale moved after four bites used to come back whole */
+  else if(t==='chickenseeds')cseed+=Math.max(0,Math.min(5,it.bites===undefined?5:it.bites|0));
   else if(isHay(t))inv.hay=(inv.hay||0)+1;
   else if(FARM_ROAD_RATE[t])gold+=Math.round(roadCost(it)*0.5);
   else{gold+=Math.round((FARM_PRICES[t]||0)*0.5);scr+=Math.round((FARM_SCRAPS[t]||0)*0.5);}
@@ -3753,7 +3817,7 @@ function farmRefund(list){
  for(const k in inv)S.farm.inv[k]=(S.farm.inv[k]||0)+inv[k];
  if(bale)S.farm.baleN=(S.farm.baleN||0)+bale;
  if(cseed)S.farm.cseedN=(S.farm.cseedN||0)+cseed;
- if(gold)S.gold=Math.min(goldCap(),(S.gold||0)+gold);
+ if(gold)addGoldOverflow(gold); /* a full vault parks the rest in overflow - never lost */
  if(scr)S.scraps=Math.min(SCRAP_CAP,(S.scraps||0)+scr);
  const parts=[];
  if(gold)parts.push('+'+gold.toLocaleString()+'◉');
@@ -3836,13 +3900,25 @@ function enterBuildMode(){
  updateCartUI();
  stageMsg('🔨 Build mode - pick an item and click to place it. 🗑 removes. Drag to pan, scroll to zoom.',3400);
 }
-function exitBuildMode(){
+function exitBuildMode(quiet){
+ if(sizeItem){ /* a half-dragged resize goes back to the size it had when it was armed, as a right-click does */
+  const it=farmPiece(sizeItem);
+  if(it){if(Math.abs(sizeItem.sc0-1)<0.02)delete it.sc;else it.sc=sizeItem.sc0;}
+  sizeItem=null;
+ }
  cancelMove();
- if(farmCart.length){farmCart=[];stageMsg('Pending items discarded',1400);}
- buildMode=false;buildSel=null;buildPan=null;removeDrag=null;harvestDrag=null;placeDrag=null;roadAnchor=null;sizeItem=null;
+ if(farmCart.length){farmCart=[];if(!quiet)stageMsg('Pending items discarded',1400);}
+ buildMode=false;buildSel=null;buildPan=null;removeDrag=null;harvestDrag=null;placeDrag=null;roadAnchor=null;
  $('farmStore').style.display='none';
+ const co=$('farmCheckoutFx');if(co)co.style.display='none';
  updateCartUI();
- setZoom(Math.max(1,zmin())); /* camera glides back down to the hero */
+ if(!quiet)setZoom(Math.max(1,zmin())); /* camera glides back down to the hero */
+ rebuildFarmItems(); /* collision follows the size the piece ended at (a no-op outside the farm) */
+}
+/* 🧹 anything the build tools are holding belongs to this hero and this farm: leaving the farm by
+   any road, or handing the game to another hero, puts it all down and empties the cart */
+function dropFarmBuild(){
+ if(buildMode||farmCart.length||sizeItem||moveItem||movePicked)exitBuildMode(true);
 }
 function farmCartTotal(){return farmCart.reduce((t,g2)=>t+(g2.road?roadCost(g2):(FARM_PRICES[g2.t]||0)),0);}
 function farmCartScraps(){return farmCart.reduce((t,g2)=>t+(FARM_SCRAPS[g2.t]||0),0);}
@@ -3943,7 +4019,7 @@ function placeFarmItem(id,x,y){
    confirmBox(`Selling <b>1</b> animal (1 ${kind})<br><b style="color:var(--brass)">+${pay.toLocaleString()}◉</b> · <b style="color:#8fe6a0">+${xp} farm XP</b>`,()=>{
     const idx=S.farm.b.indexOf(b2);if(idx<0)return; /* it may have been moved/removed while the box was open */
     S.farm.b.splice(idx,1);
-    S.gold=Math.min(goldCap(),(S.gold||0)+pay);
+    addGoldOverflow(pay);
     stageMsg('🔪 Sold - +'+pay.toLocaleString()+'◉ · +'+xp+' farm XP',1800);sfx.buy();sparkles(b2.x,b2.y-16,'#ff6a5a',12);
     gainFarmXP(xp); /* level-up toast wins over the sale one */
     rebuildFarmItems();renderFarmStore();save();renderHUD();
@@ -4166,6 +4242,7 @@ function toggleMining(){
  sfx.buy();save();
 }
 let mineTarget=null,mineSwingT=0,mineHits=0,mineNeed=0,mineSwingPh=1;
+const mineProg={t:null,best:0,T:0}; /* how close the walk to the current rock has come, and for how long it has not come closer */
 /* Anything the player does with his own hands puts the pick away: a tap on the ground, a key, a
    chosen target. Mining drives the hero's feet, so leaving it running while he tries to walk would
    be a tug of war he cannot win. */
@@ -4185,7 +4262,7 @@ function nearestRock(){
  if(!world||!world.solids)return null;
  let best=null,bd=1e9;
  for(const s of world.solids){
-  if(!rockLive(s))continue;
+  if(!rockLive(s)||(s._skipUntil||0)>Date.now())continue; /* a rock the hero could not reach is left alone for a minute */
   const d=Math.hypot(hero.x-s.x,hero.y-s.y);
   if(d<bd){bd=d;best=s;}
  }
@@ -4200,13 +4277,19 @@ function mineTick(dt){
   mineNeed=2+Math.floor(Math.random()*5);             /* 2-6 swings, rolled per rock */
   if(!mineTarget){
    S.mining.on=false;const b=$('mineBtn');if(b)b.classList.remove('on');
-   stageMsg('⛏ Every rock here is broken',1800);
+   stageMsg(world.solids.some(s=>rockLive(s))?'⛏ The rocks left here cannot be reached from where you stand':'⛏ Every rock here is broken',1800);
    return false;
   }
  }
  const d=Math.hypot(hero.x-mineTarget.x,hero.y-mineTarget.y);
  const reach=mineTarget.r+30;
- if(d>reach){moveToward(hero,mineTarget.x,mineTarget.y,dt);return true;}
+ if(d>reach){
+  /* four seconds without getting any closer means a wall or the water is in the way: try the next rock instead of
+     pushing into it for ever */
+  if(mineTarget!==mineProg.t||d<mineProg.best-8){mineProg.t=mineTarget;mineProg.best=d;mineProg.T=0;}
+  else if((mineProg.T+=dt)>4){mineTarget._skipUntil=Date.now()+60000;mineTarget=null;mineProg.t=null;return true;}
+  moveToward(hero,mineTarget.x,mineTarget.y,dt);return true;
+ }
  hero.moving=false;
  hero.fx=Math.sign(mineTarget.x-hero.x)||hero.fx;hero.fy=0;
  mineSwingT-=dt;
@@ -5115,6 +5198,7 @@ function drawCryptTorches(vx0,vy0,vx1,vy1){ /* 🔥 breadcrumb markers - flicker
 }
 function buildZone(){
  TideUI.leaveZone();
+ mineTarget=null; /* ⛏ a rock belongs to the world it stood in */
  Mounts.reset(mountRide);
  if($('stableFx'))$('stableFx').style.display='none';
  /* Delayed multishots can still hold a target from the room we are leaving. */
@@ -5378,7 +5462,7 @@ function buildZone(){
  else if(tmpls.length){for(let i=0;i<24;i++)spawnEnemyAt(tmpls[i%tmpls.length],R);} /* denser maps */
  marker=null;portalMsgT=0;
  setZoom(zoom);
- camX=hero.x-VW/2;camY=hero.y-VH/2;
+ camX=hero.x-VW/(2*zoom);camY=hero.y-VH/(2*zoom); /* the view is VW/zoom wide - centring on VW/2 put the hero off-centre and the camera swooped in */
  refreshWastelandChunks();
  startAmbience(z.amb);
 }
@@ -5775,7 +5859,7 @@ function heroBasicAttack(en,dt){
 function landHit(en,dmg,crit,label,basic){
  if(en.dead||en.hidden)return;
  if(basic){
-  if(hasEnch('flames')){const b=Math.max(1,Math.round(dmg*scrollPct('flames')));en.hp-=b;floatAt(en.x+10,en.y-en.r-24,'+'+b+'🔥','#ff9a4a');}
+  if(hasEnch('flames')){const b=Math.max(1,Math.round(dmg*scrollPct('flames')));if(!mpGuestRaidHit(en,b))en.hp-=b;floatAt(en.x+10,en.y-en.r-24,'+'+b+'🔥','#ff9a4a');}
   if(hasEnch('frostbite')&&(hero.frostT||0)<=0){
    en.slowT=Math.max(en.slowT,scrollRaw('frostbite'));
    hero.frostT=5;
@@ -5813,8 +5897,7 @@ function applyDmg(en,dmg,label,crit){
  if(en.boss&&(S.raidT||0)>0)dmg=Math.round(dmg*1.15); /* ⚗️ Potion of Raid */
  if(en.boss&&S.gear&&S.gear.trinket&&S.gear.trinket.bossDmg)dmg=Math.round(dmg*(1+S.gear.trinket.bossDmg/100)); /* 💍 */
  if(mp.on&&mp.started&&!mp.host&&en.raid){
-  const rd=Math.max(0,Math.round(dmg));
-  mp.dmgOut+=rd;rtcBroadcast({k:'dmg',d:rd},true);
+  mpGuestRaidHit(en,dmg);
   en.state='chase';en.hurt=0.22;
   bloodAt(en.x,en.y-en.r*0.4,crit?9:5);
   floatAt(en.x,en.y-en.r-14,(label?label+' ':'')+(crit?'✦':'')+Math.round(dmg),label?'#ffd76a':crit?'#ffb0a0':'#fff',!!label||crit);
@@ -5866,7 +5949,7 @@ function cast(i,manual){
   }else{
    const list=enemies.filter(e=>!e.dead&&!e.hidden&&dist(hero,e)<=rng).sort((a,b)=>dist(hero,a)-dist(hero,b)).slice(0,sp.hits);
    list.forEach((t,k)=>{
-    if(c.ranged)setTimeout(()=>{if(!t.dead&&!t.hidden){bolts.push({x:hero.x,y:hero.y-10,tgt:t,sp:470,dmg:0,spell:sp,arrow:c.id==='hunter',c:sp.vfx==='arrow'?'#cfe8a0':'#c9a0ff'});mpAct('boltfx',{tx:Math.round(t.x),ty:Math.round(t.y),ar:c.id==='hunter'?1:0,c:sp.vfx==='arrow'?'#cfe8a0':'#c9a0ff'});}},k*90);
+    if(c.ranged)setTimeout(()=>{if(!t.dead&&!t.hidden&&enemies.includes(t)){bolts.push({x:hero.x,y:hero.y-10,tgt:t,sp:470,dmg:0,spell:sp,arrow:c.id==='hunter',c:sp.vfx==='arrow'?'#cfe8a0':'#c9a0ff'});mpAct('boltfx',{tx:Math.round(t.x),ty:Math.round(t.y),ar:c.id==='hunter'?1:0,c:sp.vfx==='arrow'?'#cfe8a0':'#c9a0ff'});}},k*90);
     else dealSpell(t,sp);
    });
   }
@@ -5905,6 +5988,9 @@ function killEnemy(en){
  if(en.dead)return;
  if(mp.on&&mp.started&&!mp.host&&en.raid&&!en.netDead)return;
  en.dead=true;en.deadT=0;en.hidden=false;
+ /* the last boss standing is down: whatever it left burning on the floor or in the air goes with it. A fire patch
+    used to finish a hero AFTER the kill - permadeath in hardcore for winning, and at Thor a 'won' lock rewritten as 'died'. */
+ if(en.boss&&!enemies.some(e=>e!==en&&e.boss&&!e.dead)){hazards.length=0;ebolts.length=0;}
  if(S.tides?.lassoOwned)TideUI.awardKill(en);
  sfx.die();
  burst(en.x,en.y-10,en.c,12,90,true);
@@ -5926,7 +6012,7 @@ function killEnemy(en){
  }
  let gold=en.cow?0:addGold(Math.round(en.gold*(1+scrollPct('fortune'))));
  if(!en.cow&&!en.raid)floatAt(en.x,en.y-en.r-14,gold>0?'+'+gold+' ◉':'◉ CAP','#ffd76a');
- log(`Slew <span class="imp">${en.name}</span> - ${en.xp>0?'+'+en.xp+' xp':'no xp'}${(en.cow||en.raid)?'':', +'+gold+' gold'}.`);
+ log(`Slew <span class="imp">${en.name}</span> - ${(en.xp>0&&!en.cow)?'+'+en.xp+' xp':'no xp'}${(en.cow||en.raid)?'':', +'+gold+' gold'}.`); /* cows give no xp - the line no longer says they do */
  if(en.cow){
   /* chests are the main loot - but each cow has a 3% chance to shake loose one epic (3.6% with 🍀) */
   const cowLucky=S.luckT>0;
@@ -6073,7 +6159,7 @@ function heroDies(){
   log('<span class="imp">Slain in Valhalla.</span> The gates are sealed until Thor next appears.');
  }
  if(zoneOf().raid&&mp.on&&mp.started){
-  hero.deadWait=true;
+  hero.deadWait=true;hero.deadWaitDead=enemies.filter(e=>e.raid&&e.dead).length; /* how many lords were down when this raider fell */
   hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;
   sfx.die();
   stageMsg('💀 You fell - wait outside while your team finishes the lord.',3000);
@@ -6104,7 +6190,7 @@ function hcDeath(){
  hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;
  sfx.die();
  gameOn=false;
- save();publishLB(S,true);
+ saveNow();publishLB(S,true); /* forced, not throttled: a death that waits a minute can be walked away from */
  log('<span class="imp">💀 HARDCORE DEATH.</span> '+esc(S.name||'The hero')+' will not rise again.');
  const old=$('hcDeathOv');if(old)old.remove();
  const ov=document.createElement('div');
@@ -6135,7 +6221,7 @@ function completeQuest(){
   S.quest=0;
   const firstClear=!S.cleared[S.zone];
   S.cleared[S.zone]=true;
-  const nz=ZONES[S.zone+1];
+  const nz0=ZONES[S.zone+1],nz=nz0&&!nz0.special?nz0:null; /* the specials appended after Emberdeep Keep are not the next rung - Krev's fall is the end of the road */
   if(firstClear){
    if(nz){
     if(portalIsOpen()){
@@ -6160,6 +6246,7 @@ function travelNext(){
  log(`<span class="imp">Arrived: ${z.name}.</span>`);
 }
 function doPrestige(){
+ if(hcNoFlee()||sceneHoldsTravel())return; /* no prestiging out of a hardcore boss fight - the map and Home are shut too */
  if((S.prestige||0)>=PRESTIGE_CAP){stageMsg('✦ Prestige '+PRESTIGE_CAP+' is the summit - for now.',2200);return;}
  if(S.lvl<MAXLVL||!allBossesDead())return;
  const oldCap=goldCap();
@@ -6633,9 +6720,10 @@ function padStick(){
    if(c.rested[cand]&&c.rested[cand+1]&&(c.moved[cand]||c.moved[cand+1])){k=cand;break;}
   }
   if(k<0)continue;
-  padLeftPair=k;padPadIndex=p.index;
+  padLeftPair=k;
   const x=a[k]||0,y=a[k+1]||0,m=Math.hypot(x,y);
   if(m<PAD_DEAD)continue;
+  padPadIndex=p.index; /* the pad that is actually being used - an idle second device (Steam's virtual pad) no longer takes the buttons over */
   /* Rescale what is left of the travel back to 0..1. Without this the stick jumps straight to 22%
      of full pace the instant it leaves the deadzone, and fine movement is impossible. */
   return {x:x/m,y:y/m,mag:Math.min(1,(m-PAD_DEAD)/(1-PAD_DEAD))};
@@ -6656,8 +6744,11 @@ function padPollButtons(){
  padRZoom=0;
  if(!navigator.getGamepads)return;
  const pads=navigator.getGamepads();
- const p=padPadIndex>=0?pads[padPadIndex]:null;
- if(!p||!p.connected){padDown={};return;}
+ /* buttons are read with the standard layout, so only from a pad that reports it: the one last steered with, else the
+    first standard pad connected. A generic pad's raw button 9 used to open the settings, and raw 7 the side panel. */
+ let p=padPadIndex>=0?pads[padPadIndex]:null;
+ if(!p||!p.connected||p.mapping!=='standard'){p=null;for(const q of pads)if(q&&q.connected&&q.mapping==='standard'){p=q;break;}}
+ if(!p){padDown={};return;}
  for(const k in PAD_B){
   const b=p.buttons&&p.buttons[PAD_B[k]];
   const on=!!(b&&(b.pressed||b.value>0.5));
@@ -6681,7 +6772,8 @@ function padPollButtons(){
    Rather than teach every panel about the pad, walk whatever is on screen: the topmost open panel's
    own buttons, in document order, are the menu. That way a panel built later is navigable the day
    it is written, with nothing added to it. */
-const PAD_PANELS=['cfgBox','tideHub','tideBattleFx','finalGateFx','sebbeFx','gvbFx','rtbFx','rouFx','bjFx','seaFx','slotFx','casinoMenu',
+const PAD_PANELS=['confirmFx','outfitFx','iceReqMsg','iceMsg','gateMsg','cryptIntro', /* the small boxes that sit on top of everything come first - the pad answers the box on screen, not the panel under it */
+ 'cfgBox','tideHub','tideBattleFx','finalGateFx','sebbeFx','gvbFx','rtbFx','rouFx','bjFx','seaFx','slotFx','casinoMenu',
  'chestFx','seaBuyFx','sharkFx','ritualDoneFx','ritualFx','talentFx','smithFx','smithMenu','bankFx',
  'restFx','fishhutMenu','mineFx','smeltFx','enchFx','ledgerFx','boardFx','stableFx','farmCheckoutFx','farmBuyFx','farmDelFx'];
 const padPanelOpen=()=>{
@@ -6728,7 +6820,7 @@ function padAdjustRange(direction){
    The same doors the mouse can click, found by proximity instead of by pixel. Kept as one list so
    the prompt and the press can never disagree about what is in front of you. */
 function padInteract(){
- if(!gameOn||!world||!hero||hero.dead)return null;
+ if(!gameOn||!world||!hero||hero.dead||hallSceneHolds())return null; /* mid-scene A answers nothing - it used to open the notice board, or make the King say his lines again */
  const z=zoneOf(),out=[];
  const add=(s,label,open,rng)=>{if(s)out.push({s,label,open,rng:rng||150});};
  const find=t=>world.solids.find(s2=>s2.type===t);
@@ -6791,6 +6883,7 @@ function padInteract(){
    own; the handful that do not are listed here rather than guessed at, because a B press that
    silently does nothing is worse than no binding at all. */
 const PAD_BACK={sebbeFx:'sebbeClose',finalGateFx:'finalGateNo',casinoMenu:'casinoMenuClose',
+ confirmFx:'cfNo',outfitFx:'outfitOfferLater',iceReqMsg:'iceReqOk',iceMsg:'iceMsgOk',gateMsg:'gateMsgOk',cryptIntro:'cryptIntroOk',
  cfgBox:'cfgClose',slotFx:'slotClose',bjFx:'bjClose',rouFx:'rouClose',rtbFx:'rtbClose',
  seaFx:'seaClose',gvbFx:'gvbLeave'};   /* the duel calls its exit Leave, not Close */
 function padBack(host){
@@ -6806,6 +6899,7 @@ let padNear=null;   /* what the prompt is currently offering, so the draw and th
 
 function padTick(dt){
  padPollButtons();
+ for(const k in padHit)if(padHit[k]){initAudio();break;} /* a button press counts as a gesture, as a key or a click does - a pad-only player's sound woke up after a device error only when the keyboard was touched */
  if(typeof HeroGuide!=='undefined'&&HeroGuide.isOpen()){
   padNear=null;if(padHit.a)$('heroGuideReady')?.click();return;
  }
@@ -6831,6 +6925,7 @@ function padTick(dt){
   return;
  }
  if(padFocus)padMark(null);
+ if(gamePaused){padNear=null;return;} /* nothing in the world answers while the game is paused */
  padNear=inputMode==='pad'?padInteract():null;
  if(padHit.a&&padNear)padNear.open();
  /* 🎒 RT shows and hides the side panel, on any screen. What "hiding" means cannot be the same in
@@ -6863,6 +6958,9 @@ window.addEventListener('keydown',e=>{
  const k=e.key||'';
  const kl=k.toLowerCase();
  if(!kl)return;
+ /* Enter in the e-mail or password field signs in - the early return for text fields below used to swallow it, and the
+    password is typed at every launch */
+ if(kl==='enter'&&$('login').classList.contains('open')&&['fbEmail','fbPass'].includes(document.activeElement?.id)){e.preventDefault();if(!e.repeat)fbSignIn(false);return;}
  if((/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||'')||document.activeElement?.isContentEditable)&&kl!=='escape')return;
  if(gameOn&&S&&kl==='escape'&&TideUI.storageOpen()&&!TideUI.modalOpen()&&!$('cfgBox').classList.contains('open')){e.preventDefault();document.activeElement?.blur();TideUI.storageBack();return;}
  if(TideUI.modalOpen()&&!TideUI.isBattling()){if(kl==='escape'){e.preventDefault();TideUI.closeHub();}return;}
@@ -6882,6 +6980,7 @@ window.addEventListener('keydown',e=>{
     mining bypasses that whole branch, so a check inside it would never run. */
  if('wasd'.includes(kl)&&kl.length===1||kl.startsWith('arrow')){setInputMode('kb');stopMining(true);}
  if(kl==='escape'&&gameOn&&world&&zoneOf().farm&&buildMode){ /* ✋ same as right-click: put the tool down */
+  buildPan=null; /* a pan in progress ends here: the settings panel that Esc may open swallows the button's release, and the camera kept panning */
   const held=farmDeselect();
   if(held){e.preventDefault();sfx.warn();stageMsg('✋ Put down '+held,1100);return;}
  }
@@ -6997,7 +7096,7 @@ cv.addEventListener('pointerdown',e=>{
    if(sizeItem){ /* ⤢ press starts the drag - it must NOT commit here, or a phone (which
                        has no hover, so this is the very first event) would end the resize
                        before the finger has moved at all. Release commits instead. */
-    const it=farmListOf(sizeItem.kind)[sizeItem.i];
+    const it=farmPiece(sizeItem);
     if(!it){sizeItem=null;return;}
     sizeItem.drag=e.pointerId;
     sizeItem.sc0=scaleOf(it);
@@ -7006,7 +7105,7 @@ cv.addEventListener('pointerdown',e=>{
    }
    if(moveItem){ /* set it down here */
     if(FarmLayout.contains(wx,wy)){
-     const it=farmListOf(moveItem.kind)[moveItem.i];
+     const it=farmPiece(moveItem);
      const sp=it?snapPos(it.t,wx,wy):null;
      if(it&&!farmBuildPositionOk(it,Math.round(sp.x),Math.round(sp.y))){blip(300,180,0.1,.05);return;}
      if(it&&cropCellTaken(it.t,Math.round(sp.x),Math.round(sp.y))){stageMsg('🌾 Occupied - pick a free tile',1300);sfx.warn();return;}
@@ -7128,11 +7227,17 @@ cv.addEventListener('pointerdown',e=>{
 
 /* ---- hold-to-move: while a finger stays pressed on open ground, the hero keeps walking toward it ---- */
 let holdMove=null;
+/* 🪟 A key held while the window loses focus - Alt+Tab, the Windows key, a system popup - sends its keyup to another
+   window. The desktop build keeps running in the background, so the hero walked on alone, into enemies (and in hardcore,
+   to its death), and went on walking when you came back. Losing focus lets go of everything held. */
+function releaseHeldInput(){for(const k of Object.keys(keys))delete keys[k];holdMove=null;}
+window.addEventListener('blur',releaseHeldInput);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')releaseHeldInput();});
 window.addEventListener('pointermove',e=>{ /* window, not canvas - keeps steering even if the cursor drifts off the map */
  const r=cv.getBoundingClientRect();
  mouseWX=(e.clientX-r.left)/zoom+camX;mouseWY=(e.clientY-r.top)/zoom+camY;
  if(sizeItem){ /* ⤢ live resize: how far the cursor travels in or out drives the scale */
-  const it=farmListOf(sizeItem.kind)[sizeItem.i];
+  const it=farmPiece(sizeItem);
   if(!it){sizeItem=null;return;} /* it was removed underneath us */
   const d=Math.hypot(mouseWX-it.x,mouseWY-it.y);
   if(sizeItem.d0===null){sizeItem.d0=d;return;} /* first movement only anchors, never jumps */
@@ -7157,7 +7262,8 @@ window.addEventListener('pointermove',e=>{ /* window, not canvas - keeps steerin
 });
 window.addEventListener('pointerup',e=>{
  if(sizeItem&&sizeItem.drag===e.pointerId){ /* ⤢ lifting off sets the size - the same gesture on mouse and finger */
-  const it=farmListOf(sizeItem.kind)[sizeItem.i];
+  const it=farmPiece(sizeItem);
+  if(!it){sizeItem=null;return;} /* it was removed underneath us */
   const pct=Math.round(scaleOf(it)*100);
   sizeItem=null;
   rebuildFarmItems();save();sfx.buy(); /* collision catches up with the new footprint here */
@@ -7193,7 +7299,7 @@ window.addEventListener('pointerup',e=>{
     got+=slaughterPay(b2.t);gxp+=slaughterXp(b2.t,true);
     S.farm.b.splice(i,1);gone++;
    }
-   if(got>0)S.gold=Math.min(goldCap(),(S.gold||0)+got);
+   if(got>0)addGoldOverflow(got);
    if(gone>0)rebuildFarmItems();
    sfx.buy();
    stageMsg((hay.length?'✂ '+hay.length+' hay harvested':'')+(hay.length&&gone?' · ':'')+(gone?'🔪 '+gone+' sold +'+got.toLocaleString()+'◉ · +'+gxp+' farm XP':''),2200);
@@ -7217,27 +7323,26 @@ window.addEventListener('pointerup',e=>{
   farmCart=farmCart.filter(g2=>!(g2.x>=R.x0&&g2.x<=R.x1&&g2.y>=R.y0&&g2.y<=R.y1));
   if(farmCart.length!==preCart){updateCartUI();renderFarmStore();}
   const inR=(mx,my)=>mx>=R.x0&&mx<=R.x1&&my>=R.y0&&my<=R.y1;
-  const nb=S.farm.b.filter(b2=>inR(b2.x,b2.y)).length;
-  const nc=S.farm.c.filter(c2=>inR(c2.x,c2.y)).length;
-  const nr=((S.farm&&S.farm.r)||[]).filter(r2=>inR((r2.x0+r2.x1)/2,(r2.y0+r2.y1)/2)).length;
+  /* the selection is taken now and kept: animals wander while the box is open, and what is deleted must be what was counted */
+  const sel={b:S.farm.b.filter(b2=>inR(b2.x,b2.y)),c:S.farm.c.filter(c2=>inR(c2.x,c2.y)),r:((S.farm&&S.farm.r)||[]).filter(r2=>inR((r2.x0+r2.x1)/2,(r2.y0+r2.y1)/2))};
+  const nb=sel.b.length,nc=sel.c.length,nr=sel.r.length;
   if(nb+nc+nr===0){stageMsg('Nothing selected',900);return;}
-  pendingDelRect=R;
+  pendingDelRect=sel;
   $('farmDelTxt').textContent='Delete '+(nb+nc+nr)+' item'+(nb+nc+nr>1?'s':'')+' ('+nb+' building'+(nb!==1?'s':'')+', '+nc+' crop'+(nc!==1?'s':'')+', '+nr+' road'+(nr!==1?'s':'')+')?';
   $('farmDelFx').style.display='flex';
  }
 });
 $('farmDelYes').onclick=()=>{
- const R=pendingDelRect;pendingDelRect=null;
+ const sel=pendingDelRect;pendingDelRect=null;
  $('farmDelFx').style.display='none';
- if(!R)return;
- const inRct=(x,y)=>x>=R.x0&&x<=R.x1&&y>=R.y0&&y<=R.y1;
- const remB=S.farm.b.filter(b2=>inRct(b2.x,b2.y));
+ if(!sel)return;
+ const remB=sel.b.filter(x=>S.farm.b.includes(x));   /* exactly the pieces that were counted - and still here */
  if(remB.some(farmBreedingBusy)){farmBreedingRemoveWarning();return;}
- const remC=S.farm.c.filter(c2=>inRct(c2.x,c2.y));
- const remR=((S.farm&&S.farm.r)||[]).filter(r2=>inRct((r2.x0+r2.x1)/2,(r2.y0+r2.y1)/2));
- S.farm.b=S.farm.b.filter(b2=>!inRct(b2.x,b2.y));
- S.farm.c=S.farm.c.filter(c2=>!inRct(c2.x,c2.y));
- S.farm.r=((S.farm&&S.farm.r)||[]).filter(r2=>!inRct((r2.x0+r2.x1)/2,(r2.y0+r2.y1)/2));
+ const remC=sel.c.filter(x=>S.farm.c.includes(x));
+ const remR=sel.r.filter(x=>((S.farm&&S.farm.r)||[]).includes(x));
+ S.farm.b=S.farm.b.filter(x=>!remB.includes(x));
+ S.farm.c=S.farm.c.filter(x=>!remC.includes(x));
+ S.farm.r=((S.farm&&S.farm.r)||[]).filter(x=>!remR.includes(x));
  const rf=farmRefund([...remB,...remC,...remR]);
  rebuildFarmItems();renderFarmStore();
  sfx.forge();stageMsg('🗑 Cleared'+rf,1800);save();renderHUD();
@@ -7260,6 +7365,12 @@ $('farmCheckYes').onclick=()=>{
  if(!TideFarm.cartWithinLimit(S.farm,farmCart)){stageMsg('Max '+TideFarm.capacity(S.farm)+' incubators at this Farm Level. Remove an extra incubator from the pending items.',2400);sfx.warn();return;}
  const total=farmCartTotal(),scr=farmCartScraps();
  if(scr>0&&(S.scraps||0)<scr){stageMsg('Not enough Scraps - '+scr+'⚙ needed',1800);sfx.warn();return;}
+ /* won stock is spent, not conjured: a cart asking for more calves, bulls or bales than this farm
+    holds is refused rather than clamped to zero */
+ const need={};farmCart.forEach(g2=>{need[g2.t]=(need[g2.t]||0)+1;});
+ const short=[['hobal',(S.farm.baleN||0)/5],['chickenseeds',(S.farm.cseedN||0)/5],
+  ...['cowfarm','chickenfarm','tjur','hay'].map(t=>[t,(S.farm.inv&&S.farm.inv[t])||0])].find(([t,have])=>(need[t]||0)>Math.floor(have+1e-9));
+ if(short){const def=FARM_BUILD.find(o=>o.id===short[0]);stageMsg('Not enough in stock: '+((def&&def.n)||short[0])+' - remove some from the pending items.',2400);sfx.warn();return;}
  if(total>0&&!spendGold(total)){stageMsg('Not enough gold - '+total.toLocaleString()+'◉ needed',1800);sfx.warn();return;}
  if(scr>0)S.scraps-=scr;
  for(const g2 of farmCart){
@@ -7273,7 +7384,7 @@ $('farmCheckYes').onclick=()=>{
    if(flipOf(g2)<0)look.fl=-1;
    if(Math.abs(scaleOf(g2)-1)>=0.02)look.sc=scaleOf(g2);
    if(cd&&cd.crop)S.farm.c.push({t:g2.t,stage:1,x:g2.x,y:g2.y,at:Date.now(),...look});
-   else S.farm.b.push({t:g2.t,x:g2.x,y:g2.y,...look});
+   else S.farm.b.push({t:g2.t,x:g2.x,y:g2.y,...look,...((isBovine(g2.t)||isChicken(g2.t))?{fed:Date.now()}:{})}); /* 🐄 an animal's feeding clock starts on arrival - without it the away simulation never let it eat, so it never grew */
   }
  }
  const n=farmCart.length;
@@ -7291,16 +7402,16 @@ $('farmCheckNo').onclick=()=>$('farmCheckoutFx').style.display='none';
 $('farmMoveGo').onclick=()=>{
  if(!movePicked)return;
  moveItem=movePicked;movePicked=null;
- const it=farmListOf(moveItem.kind)[moveItem.i];
+ const it=farmPiece(moveItem);
  if(it)it._moving=true;
  $('farmMoveFx').style.display='none';
  stageMsg('↔ Click where it should stand',1700);
 };
 $('farmMoveInv').onclick=()=>{ /* 📦 pick the animal straight up - frees its Barn/Coop/Bull-cap slot immediately */
  if(!movePicked||movePicked.kind!=='b')return;
- const it=S.farm.b[movePicked.i];movePicked=null;
+ const it=farmPiece(movePicked);movePicked=null;
  $('farmMoveFx').style.display='none';
- if(!it)return;
+ if(!it||!(isBovine(it.t)||isChicken(it.t)))return; /* only an animal goes back into stock */
  S.farm.b.splice(S.farm.b.indexOf(it),1);
  const rf=farmRefund([it]);
  sfx.forge();stageMsg('📦 Picked up'+rf,1600);
@@ -7310,7 +7421,7 @@ $('farmMoveFlip').onclick=()=>{ /* ⇄ mirror in place - no cost, no pick-up, ju
  if(!movePicked)return;
  const pick=movePicked;movePicked=null;
  $('farmMoveFx').style.display='none';
- const it=farmListOf(pick.kind)[pick.i];
+ const it=farmPiece(pick);
  if(!it)return;
  if(flipOf(it)<0)delete it.fl;else it.fl=-1; /* default orientation is the absence of the flag */
  if(pick.kind!=='g'){rebuildFarmItems();save();}
@@ -7320,11 +7431,11 @@ $('farmMoveSize').onclick=()=>{ /* ⤢ arm the resize - the piece then tracks th
  if(!movePicked)return;
  const pick=movePicked;movePicked=null;
  $('farmMoveFx').style.display='none';
- const it=farmListOf(pick.kind)[pick.i];
+ const it=farmPiece(pick);
  if(!it)return;
  /* d0 stays null until the first move or touch anchors it - a phone has no hover, so
     arming must not bake in a stale cursor position */
- sizeItem={kind:pick.kind,i:pick.i,t:pick.t,sc0:scaleOf(it),d0:null,drag:null};
+ sizeItem={kind:pick.kind,i:pick.i,t:pick.t,ref:it,sc0:scaleOf(it),d0:null,drag:null};
  stageMsg(IS_TOUCH?'⤢ Drag on the field to resize, lift to set':'⤢ Drag out to grow, in to shrink - click to set',2400);
 };
 $('farmMoveX').onclick=()=>{movePicked=null;$('farmMoveFx').style.display='none';};
@@ -7366,6 +7477,7 @@ function dbgZoom(on){
 cv.addEventListener('wheel',e=>{
  if(!gameOn)return;
  e.preventDefault();
+ if(!e.deltaY)return; /* Shift+wheel or a sideways swipe has no up or down in it - it used to count as zooming out */
  if(buildMode){ /* build mode: dive toward the cursor */
   const r=cv.getBoundingClientRect();
   const px=e.clientX-r.left,py=e.clientY-r.top;
@@ -7374,22 +7486,26 @@ cv.addEventListener('wheel',e=>{
   camX=wx-px/zoom;camY=wy-py/zoom;
  }else setZoom(zoom*(e.deltaY<0?1.12:0.89)); /* normal play: plain centre zoom */
 },{passive:false});
+/* 🤏 a pinch is two fingers ON THE MAP: targetTouches, not touches. A thumb resting on a spell or a potion while the other
+   steers used to count as the second finger - the camera zoomed against the button, and a tap on the map was eaten. */
 cv.addEventListener('touchstart',e=>{
- if(e.touches.length===2){
+ const tt=e.targetTouches;
+ if(tt.length===2){
   pinching=true;
   holdMove=null; /* second finger means pinch-zoom, not walking */
   if(hero)hero.moveTo=null;
-  pinchD=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+  pinchD=Math.hypot(tt[0].clientX-tt[1].clientX,tt[0].clientY-tt[1].clientY);
  }
 },{passive:false});
 cv.addEventListener('touchmove',e=>{
- if(e.touches.length===2){
+ const tt=e.targetTouches;
+ if(tt.length===2){
   e.preventDefault();
-  const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+  const d=Math.hypot(tt[0].clientX-tt[1].clientX,tt[0].clientY-tt[1].clientY);
   if(buildMode){ /* build mode: dive into the pinch midpoint */
    const r=cv.getBoundingClientRect();
-   const mx=(e.touches[0].clientX+e.touches[1].clientX)/2-r.left;
-   const my=(e.touches[0].clientY+e.touches[1].clientY)/2-r.top;
+   const mx=(tt[0].clientX+tt[1].clientX)/2-r.left;
+   const my=(tt[0].clientY+tt[1].clientY)/2-r.top;
    const wx=mx/zoom+camX,wy=my/zoom+camY;
    if(pinchD>0)setZoom(zoom*d/pinchD);
    camX=wx-mx/zoom;camY=wy-my/zoom;
@@ -7397,9 +7513,9 @@ cv.addEventListener('touchmove',e=>{
   pinchD=d;
  }
 },{passive:false});
-cv.addEventListener('touchend',e=>{
- if(e.touches.length<2){pinchD=0;setTimeout(()=>pinching=false,150);}
-});
+const endPinch=e=>{if(e.targetTouches.length<2){pinchD=0;setTimeout(()=>pinching=false,150);}};
+cv.addEventListener('touchend',endPinch);
+cv.addEventListener('touchcancel',endPinch); /* a call, a system gesture or the notification shade cancels touches: a pinch cut short that way left every later tap ignored */
 cv.addEventListener('contextmenu',e=>e.preventDefault()); /* long-press/right-click menu would break hold-to-move */
  
 /* ==================== UPDATE ==================== */
@@ -7481,6 +7597,7 @@ function update(dt){
  TideUI.updateExploration(dt);
  if(hero&&!hero.dead){const door=expeditionDoors().find(s=>Math.hypot(hero.x-s.x,hero.y-s.y)<(s.type==='dungeonentrance'?65:45));if(door&&travelExpedition(door))return;}
  padNow=padStick(); /* one poll per frame, shared by the movement block below */
+ if(padNow&&padPanelOpen())padNow=null; /* a panel is up: the d-pad walks the panel, and the stick no longer walks the hero behind it */
  padTick(dt);       /* buttons, the right stick, the A prompt and menu walking */
  /* any of the three counts as the pad driving: the stick walking, a button, the camera stick */
  if(padNow||Object.keys(padHit).length||Math.abs(padRZoom)>0)padCursor(true);
@@ -7488,15 +7605,8 @@ function update(dt){
  mpSyncTick();
  updateFarmAnimals(dt);
  updateFarmCrops();
- simFarmAway();
- if(S&&S.farm){ /* 🕰 the farm eats even when you're not there */
-  if(!zoneOf().farm)simFarmAway(); /* away or in another zone: catch up in ≥60s chunks */
-  else{
-   if(Date.now()-(S.farm.simT||Date.now())>60000)simFarmAway(); /* just arrived after a gap - replay it first */
-   S.farm.simT=Date.now(); /* live systems own the clock while standing here */
-  }
- }
- if(S&&S.city){ /* 👑 the Crown Ledger closes every five minutes of play, wherever you happen to be */
+ simFarmAway(); /* 🕰 the farm eats even when you're not there - it keeps its own clock (lastSim) and catches up in ≥30s chunks */
+ if(S&&S.city&&!coronation&&!execution){ /* 👑 the Crown Ledger closes every five minutes of play, wherever you happen to be - and holds its breath while a scene plays */
   const closes=CityEconomy.advance(S.city,dt);
   for(let i=0;i<closes;i++)cityLedgerClose();
  }
@@ -7535,15 +7645,18 @@ function update(dt){
   const rp=world.solids.find(s2=>s2.type==='ritualportal');
   if(rp&&Math.hypot(hero.x-rp.x,hero.y-(rp.y-52))<70){
    if((S.prestige||0)>=50&&(S.lvl||1)>=MAXLVL){
-    if(!(S.gear&&isIce(S.gear.armor))){ /* ❄ turned away at the threshold */
-     if($('iceReqMsg').style.display!=='block'){$('iceReqMsg').style.display='block';sfx.warn();}
-    }else{
+    if(!(S.gear&&isIce(S.gear.armor))){ /* ❄ turned away at the threshold - once per approach: shown every frame, a pad could never walk back out (the stick waits while a box is up) */
+     if(!finalGateAsked){finalGateAsked=true;$('iceReqMsg').style.display='block';sfx.warn();}
+    }else if(!finalGateAsked){
+     /* the Gate asks, as a click on it does: there is no walking back out of the Final Hour (in hardcore, not even
+        by dying), so stepping onto it by accident must never be the whole decision */
+     finalGateAsked=true;
      $('gateMsg').style.display='none';gateMsgSeen=false;
-     goToZone(ZONES.findIndex(z2=>z2.finalb));
-     return;
+     hero.moveTo=null;holdMove=null;
+     openFinalGate();
     }
    }
-  }
+  }else finalGateAsked=false;
  }
  if(hero&&!hero.dead&&world&&world.solids&&zoneOf().finalb){ /* ❄ step into the blue gate and the Altar takes you back */
   const xp=world.solids.find(s2=>s2.type==='exitportal');
@@ -7572,6 +7685,10 @@ function update(dt){
  const c=classOf();
  if(portalMsgT>0)portalMsgT-=dt;
  if(shakeT>0)shakeT-=dt;
+ if(hero.deadWait&&zoneOf().raid){ /* the wait ends when the lord falls - or when nobody is fighting any more - whether or not this screen ever sealed a room */
+  const lords=enemies.filter(e=>e.raid);
+  if(lords.filter(e=>e.dead).length>(hero.deadWaitDead|0)||!lords.some(e=>e.awake&&!e.dead))hero.deadWait=false;
+ }
  if(hero.deadWait)hero.target=null; /* no targeting/chasing from outside the seal while dead-waiting */
  if(world.raidRooms)for(const rm of world.raidRooms){
   const b=enemies.find(e=>e.raid&&e.roomIdx===rm.idx);
@@ -7796,7 +7913,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
        stopFishing();
        $('sharkFx').style.display='flex';
        gamePaused=true;
-      }else if(r2<0.0025&&!S.brokenRing&&!S.ringForged){ /* 💍 0.10% - the Broken Ring surfaces */
+      }else if(r2<0.0025&&!S.brokenRing&&!S.ringForged&&!ringInForge()){ /* 💍 0.10% - the Broken Ring surfaces */
        S.brokenRing=true;save();
        fishToast('💍 <b>The Broken Ring</b> - dredged up!','#ffd76a');
        stageMsg('💍 THE BROKEN RING - half of something terrible. Check your Bag.',3500);
@@ -7909,7 +8026,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   if(en.dungeon){
    WastelandDungeons.updateEnemy(en,dt,hero,{moveToward,hurtHero:(amount,label,foe,melee)=>{
     const dmg=hurtHero(amount);sfx.hit();
-    if(melee&&hasEnch('thorns')&&!foe.dead){const n=Math.max(1,Math.round(dmg*scrollPct('thorns')));foe.hp-=n;floatAt(foe.x,foe.y-30,n+'','#9adf9a');if(foe.hp<=0)killEnemy(foe);}
+    if(melee&&hasEnch('thorns')&&!foe.dead){const n=Math.max(1,Math.round(dmg*scrollPct('thorns')));if(!mpGuestRaidHit(foe,n))foe.hp-=n;floatAt(foe.x,foe.y-30,n+'','#9adf9a');if(foe.hp<=0)killEnemy(foe);}
     return dmg;
    },
    onRespawn:foe=>{stageMsg(foe.name+' has returned.',2400,'#efd58a');renderHUD();save();}});
@@ -7948,7 +8065,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
       en.cd=1.15;en.swing=0.2;
       const dmg=hurtHero(en.atk*(0.85+Math.random()*0.3));
       sfx.hit();
-      if(hasEnch('thorns')&&!en.dead){const t=Math.max(1,Math.round(dmg*scrollPct('thorns')));en.hp-=t;floatAt(en.x,en.y-en.r-14,t+' 🌵','#9adf9a');if(en.hp<=0)killEnemy(en);}
+      if(hasEnch('thorns')&&!en.dead){const t=Math.max(1,Math.round(dmg*scrollPct('thorns')));if(!mpGuestRaidHit(en,t))en.hp-=t;floatAt(en.x,en.y-en.r-14,t+' 🌵','#9adf9a');if(en.hp<=0)killEnemy(en);}
      }
     }
     /* long-reach hunters (the Forsaken One) swing MID-STRIDE - strafing just out of
@@ -7959,16 +8076,19 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
       en.cd=en.atkCd||(en.boss?1.5:1.15);en.swing=0.2;
       const dmg=hurtHero(en.atk*(0.85+Math.random()*0.3)*(en.meleeMul||1));
       sfx.hit();
-      if(hasEnch('thorns')&&!en.dead){const t=Math.max(1,Math.round(dmg*scrollPct('thorns')));en.hp-=t;floatAt(en.x,en.y-en.r-14,t+' 🌵','#9adf9a');if(en.hp<=0&&!(mp.on&&mp.started&&!mp.host&&en.raid))killEnemy(en);}
+      if(hasEnch('thorns')&&!en.dead){const t=Math.max(1,Math.round(dmg*scrollPct('thorns')));if(!mpGuestRaidHit(en,t))en.hp-=t;floatAt(en.x,en.y-en.r-14,t+' 🌵','#9adf9a');if(en.hp<=0&&!(mp.on&&mp.started&&!mp.host&&en.raid))killEnemy(en);}
      }
     }
    }
    else{
     en.cd-=dt;
     if(en.cd<=0){en.cd=en.atkCd||(en.boss?1.5:1.15);en.swing=0.2; /* atkCd: custom cadence (the final boss strikes fast) */
+     /* a raid lord swinging at a teammate hits the teammate, on the teammate's screen: this hero is only hurt if it is the
+        target or stands within the swing. Every raider used to take every swing, wherever they stood. */
+     if(en.raid&&TMove!==hero&&Math.hypot(en.x-hero.x,en.y-hero.y)>30+en.r+14)continue;
      const dmg=hurtHero(en.atk*(0.85+Math.random()*0.3)*(en.meleeMul||1)); /* meleeMul: swings only, abilities keep their own scaling */
      sfx.hit();
-     if(hasEnch('thorns')&&!en.dead){const t=Math.max(1,Math.round(dmg*scrollPct('thorns')));en.hp-=t;floatAt(en.x,en.y-en.r-14,t+' 🌵','#9adf9a');if(en.hp<=0&&!(mp.on&&mp.started&&!mp.host&&en.raid))killEnemy(en);}
+     if(hasEnch('thorns')&&!en.dead){const t=Math.max(1,Math.round(dmg*scrollPct('thorns')));if(!mpGuestRaidHit(en,t))en.hp-=t;floatAt(en.x,en.y-en.r-14,t+' 🌵','#9adf9a');if(en.hp<=0&&!(mp.on&&mp.started&&!mp.host&&en.raid))killEnemy(en);}
     }
    }
   }else if(en.state==='return'){
@@ -8609,7 +8729,7 @@ function draw(){
   ctx.strokeStyle='rgba(255,255,255,0.30)';ctx.setLineDash([16,12]);ctx.lineWidth=3;
   ctx.strokeRect(FarmLayout.BUILD.x0,FarmLayout.BUILD.y0,FarmLayout.BUILD.x1-FarmLayout.BUILD.x0,FarmLayout.BUILD.y1-FarmLayout.BUILD.y0);ctx.setLineDash([]);
   if(sizeItem){ /* ⤢ live readout - a ring at the new footprint plus the percentage */
-   const it=farmListOf(sizeItem.kind)[sizeItem.i];
+   const it=farmPiece(sizeItem);
    if(it){
     const sd=FARM_BUILD.find(x=>x.id===it.t),sc4=scaleOf(it);
     const rr=Math.max(24,(sd?(sd.W||200):200)*sc4*0.5),lbl=Math.round(sc4*100)+'%';
@@ -8623,7 +8743,7 @@ function draw(){
   if(buildSel||moveItem){
    const gid=moveItem?moveItem.t:buildSel;
    const gp=gid&&gid!=='remove'?snapPos(gid,mouseWX,mouseWY):{x:mouseWX,y:mouseWY};
-   const carried=moveItem?farmListOf(moveItem.kind)[moveItem.i]:null;
+   const carried=moveItem?farmPiece(moveItem):null;
    const ok=farmBuildPositionOk(carried,Math.round(gp.x),Math.round(gp.y))&&!cropCellTaken(gid,Math.round(gp.x),Math.round(gp.y));
    ctx.globalAlpha=ok?0.55:0.25;
    const def=FARM_BUILD.find(x=>x.id===gid);
@@ -8636,7 +8756,7 @@ function draw(){
     const im=farmImg(def.img);
     if(im.complete&&im.naturalWidth){
      /* a carried piece keeps its mirror and size while it hovers - what you see is what lands */
-     const car=moveItem?farmListOf(moveItem.kind)[moveItem.i]:null;
+     const car=moveItem?farmPiece(moveItem):null;
      const sc=scaleOf(car),W=(def.W||200)*sc,H=W*im.naturalHeight/im.naturalWidth;
      const gyg=(def.gy!==undefined?def.gy:30)*sc;
      ctx.save();ctx.translate(gp.x,gp.y);
@@ -8763,7 +8883,7 @@ function mip(img,W){
  const tw=Math.min(img.naturalWidth,Math.max(64,Math.ceil(eff/64)*64));
  if(img.naturalWidth<=tw*2)return img;
  const m=img._mips||(img._mips={});
- if(m[tw])return m[tw];
+ if(m[tw])return scaledTouch(m[tw]);
  let src=img,sw=img.naturalWidth,sh=img.naturalHeight;
  while(sw>tw*2){
   const nw=Math.max(tw,Math.round(sw/2)),nh=Math.max(1,Math.round(sh*nw/sw));
@@ -8772,16 +8892,40 @@ function mip(img,W){
   cg.drawImage(src,0,0,nw,nh);
   src=c;sw=nw;sh=nh;
  }
- return m[tw]=src;
+ return scaledPut(m,tw,src);
+}
+/* 🧠 one memory budget for every scaled copy the draw keeps (mip and crisp). Zoom is nearly continuous -
+   wheel notches, a pinch, the right stick - and a cache keyed by size alone kept a new full-size canvas
+   for every step it ever visited: zooming about on the Farm reached 1.5 GB and never let go. Copies are
+   remembered in the order they were last drawn and the oldest go first once the total passes the
+   budget. A copy drawn in the last quarter second is never dropped, so one frame's working set cannot
+   thrash, and a dropped canvas is only forgotten, never resized, in case something still holds it. */
+const SCALED_BUDGET=((typeof IS_TOUCH!=='undefined'&&IS_TOUCH)?64:192)*1024*1024; /* phones have far less canvas memory to give */
+const scaledAll=new Map(); /* canvas -> {store,key,bytes,t}, least recently drawn first */
+let scaledBytes=0;
+function scaledTouch(c){const e=scaledAll.get(c);if(e){scaledAll.delete(c);e.t=Date.now();scaledAll.set(c,e);}return c;}
+function scaledPut(store,key,c){
+ const old=store[key];
+ if(old&&old!==c){const e=scaledAll.get(old);if(e){scaledAll.delete(old);scaledBytes-=e.bytes;}}
+ store[key]=c;
+ const bytes=(c.width||0)*(c.height||0)*4,now=Date.now();
+ scaledAll.set(c,{store,key,bytes,t:now});scaledBytes+=bytes;
+ for(const [c2,e] of scaledAll){
+  if(scaledBytes<=SCALED_BUDGET||now-e.t<250)break;
+  scaledAll.delete(c2);scaledBytes-=e.bytes;
+  if(e.store[e.key]===c2)delete e.store[e.key];
+ }
+ return c;
 }
 /* crisp(): the player's own sprite deserves better than power-of-2 mips. Downscale in
    high-quality halving steps, then ONE exact resize to the true device-pixel size
-   (zoom × DPR), cached per 4px bucket - the canvas then maps it 1:1, razor sharp. */
+   (zoom × DPR), cached per 2px bucket under the shared budget above - the canvas then maps it 1:1, razor sharp. */
 function crisp(img,W){
  if(!img.naturalWidth)return img;
  const dev=Math.max(8,Math.ceil(W*(zoom||1)*(DPR||1)/2)*2); /* ceil: the source is never smaller than the screen - upscaling is what blurs */
+ if(dev>=img.naturalWidth)return img; /* at or above the source's own width a copy adds no detail - it was only a bigger canvas (the farmhouse, 1061 px, cached at 1530) */
  const store=img._crisp||(img._crisp={});
- if(store[dev])return store[dev];
+ if(store[dev])return scaledTouch(store[dev]);
  let src=img,sw=img.naturalWidth,sh=img.naturalHeight;
  while(sw>dev*2){
   const nw=Math.round(sw/2),nh=Math.max(1,Math.round(sh*nw/sw));
@@ -8794,7 +8938,7 @@ function crisp(img,W){
  out.width=dev;out.height=Math.max(1,Math.round(sh*dev/sw));
  const g=out.getContext('2d');g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
  g.drawImage(src,0,0,out.width,out.height);
- return store[dev]=out;
+ return scaledPut(store,dev,out);
 }
 /* 🏙 a building the hero has walked behind fades out rather than swallowing him. Only buildings
    whose anchor is BELOW the hero can hide him (they draw later, on top), and the fade eases in
@@ -9892,6 +10036,7 @@ function updateNpcs(dt){
  if(!world.npcs)return;
  world.protestT=(world.protestT||0)+dt;
  for(const n of world.npcs){
+  if(n.scripted)continue;                    /* 📜 somebody else is walking him (a scene, the Hand) - a march or a brawl waits, or the crowd at the gallows kept marching through its own rows */
   if(n.protest){ /* ✊ the crowd marches the boulevard as one block, avenue to avenue and back */
    const span=2200,per=span*2/46,ph=(world.protestT%per)/per,tri=ph<.5?ph*2:2-ph*2;
    n.x=world.w/2-span/2+tri*span+n.protest.ox;n.y=world.h/2+n.protest.oy;
@@ -9904,7 +10049,6 @@ function updateNpcs(dt){
    n.fx=n.x<b.cx?1:-1;n.moving=true;n.walk+=dt*2.4;
    continue;
   }
-  if(n.scripted)continue;                    /* 📜 somebody else is walking him this frame (hallSceneTick) */
   if(n.pauseT>0){n.pauseT-=dt;n.moving=false;continue;}
   const t=n.pts[n.i];
   const dx=t.x-n.x,dy=t.y-n.y,d=Math.hypot(dx,dy);
@@ -10196,13 +10340,17 @@ function log(html,cls){
 }
 function applyZoneUI(){
  if($('stableFx'))$('stableFx').style.display='none';
+ /* 🧳 whatever belonged to the last place stays there: the full Crown Ledger is a table in the Throne
+    Hall, not something to carry down the road, and a raid that was left by any door is left for real */
+ for(const id of ['ledgerFx','boardFx']){const e=$(id);if(e&&e.style.display!=='none')e.style.display='none';}
+ if(mp.on&&mp.started&&!zoneOf().raid)mpLeave(false);
  refreshCombatAutoControls();
  updateMountButton();
  $('hZone').textContent=zoneOf().name+(zoneOf().boss||zoneOf().raid?' ☠':'');
  /* The crypts hide the quest text and Continue; the progress row doubles as the 0/3 chest counter. */
  const cr=!!zoneOf().crypts;
  if(!cr){const ci=$('cryptIntro');if(ci)ci.style.display='none';}
- if(!zoneOf().farm){buildMode=false;buildSel=null;buildPan=null;const fs2=$('farmStore');if(fs2)fs2.style.display='none';}
+ if(!zoneOf().farm){dropFarmBuild();const fs2=$('farmStore');if(fs2)fs2.style.display='none';}
  $('qName').parentElement.style.display=cr?'none':'';
  $('nextBtn').style.display=cr?'none':'';
 }
@@ -10233,7 +10381,7 @@ function renderHUD(){
  $('hScrap').textContent=S.scraps.toLocaleString();
  $('hLvl').textContent='Lv '+S.lvl+(S.prestige?' ✦'+S.prestige:'');
  $('hXP').style.width=(S.lvl>=MAXLVL?100:Math.min(100,100*S.xp/xpNeed(S.lvl)))+'%';
- const z=zoneOf(),q=questOf(),nz=ZONES[S.zone+1];
+ const z=zoneOf(),q=questOf(),nz0=ZONES[S.zone+1],nz=nz0&&!nz0.special?nz0:null; /* no "press Continue" toward a special - there is no road there */
  if(z.harbor){
   $('qName').textContent='⚓ The Harbour';$('qDesc').textContent='The quay under the City. The flight in the cliff takes you back up.';
   $('qBar').style.width='100%';$('qCount').textContent='⚓';$('nextBtn').style.display='none';
@@ -10382,15 +10530,15 @@ function buildSkillbar(){
  updateMountButton();
  c.spells.forEach((sp,i)=>$('sk'+i).onclick=()=>{
   if(autoCfgMode)toggleAutoUse('s'+i,$('au'+i));
-  else cast(i,true);
+  else if(!gamePaused)cast(i,true); /* the world is frozen while paused - so are spells, as the 1/2/3 keys already are */
  });
  if(mineTrained()){ /* to the right of the mana flask, at the end of the bar */
   $('potMp').insertAdjacentHTML('afterend',
    `<button class="skill pot mine${S.mining.on?' on':''}" id="mineBtn" title="Mine every rock in the zone">${uiIcon('ui_pick','⛏')}</button>`);
   $('mineBtn').onclick=()=>toggleMining();
  }
- $('potHp').onclick=()=>{if(autoCfgMode)toggleAutoUse('hp',$('auHp'));else usePot('hp',true);};
- $('potMp').onclick=()=>{if(autoCfgMode)toggleAutoUse('mp',$('auMp'));else usePot('mp',true);};
+ $('potHp').onclick=()=>{if(autoCfgMode)toggleAutoUse('hp',$('auHp'));else if(!gamePaused)usePot('hp',true);};
+ $('potMp').onclick=()=>{if(autoCfgMode)toggleAutoUse('mp',$('auMp'));else if(!gamePaused)usePot('mp',true);};
  $('skAutoCfg').onclick=()=>{
   if(!refreshCombatAutoControls())return;
   autoCfgMode=!autoCfgMode;
@@ -10435,9 +10583,9 @@ function openRename(){
  inp.value=S.name||'';
  inp.focus();inp.select();
  const doSave=()=>{
-  const n=inp.value.trim();
+  const n=cleanHeroName(inp.value);
   if(!n){inp.style.borderColor='#ff5a5a';inp.focus();return;}
-  S.name=n.slice(0,14);
+  S.name=n;
   ov.remove();
   renderHero();renderHUD();save();publishLB(S,true);
   stageMsg('✏️ Name changed to '+S.name,1800);
@@ -10483,9 +10631,15 @@ function gearSaveSet(i){
   setTimeout(()=>{fl.remove();},1500);
  }
 }
+/* 🔒 one rule for every way gear changes hands - gear sets, the bag's Equip, the pets: no swapping mid-boss-fight,
+   and none in the Cow Level. The bag and pet buttons used to skip it. */
+function gearLocked(){
+ if(inBossFight()){stageMsg('No swapping gear mid-boss-fight!',1600);sfx.warn();return true;}
+ if(cowLocked()){stageMsg('The herd allows no wardrobe changes - survive or die first!',1600);sfx.warn();return true;}
+ return false;
+}
 function gearSwapTo(i){
- if(inBossFight()){stageMsg('No swapping gear mid-boss-fight!',1600);sfx.warn();return;}
- if(cowLocked()){stageMsg('The herd allows no wardrobe changes - survive or die first!',1600);sfx.warn();return;}
+ if(gearLocked())return;
  S.gearSets=S.gearSets||[null,null];
  const tgt=S.gearSets[i];
  if(!tgt){gearSaveSet(i);return;} /* empty set: your gear follows you and is saved into it */
@@ -10582,7 +10736,7 @@ function renderHero(){
    :`<div class="ss">- no pet equipped -</div>`)+`</div>`;
  $('slotRow').innerHTML=slotsHtml;
  document.querySelectorAll('[data-unpet]').forEach(b=>b.onclick=()=>{
-  if(!S.pet)return;
+  if(!S.pet||gearLocked())return;
   S.pets.push(S.pet);S.pet=null;
   log('Your pet returns to the Bag.');
   renderHero();save();
@@ -10805,7 +10959,8 @@ function renderMap(){
   el.onclick=()=>{
    const i=+el.dataset.z,z=ZONES[i];
    if(i===S.zone)return;
-   if(hcNoFlee())return;
+   if(hcNoFlee()||sceneHoldsTravel())return;
+   if(hero&&hero.dead){stageMsg('You are between worlds - wait to wake in Moonshine.',1800);sfx.warn();return;}
    if(z.special){
     if(z.thor){
      if((S.prestige||0)<1){stageMsg('Reach Prestige 1 first',1600);sfx.warn();return;}
@@ -11142,7 +11297,7 @@ function renderBag(){
    const i=S.scrolls.findIndex(x=>x.id===id&&x.tier===tier&&!x.id2);
    if(i<0)return;
    S.scrolls.splice(i,1);
-   S.gold=Math.min(goldCap(),S.gold+TIER4_SCROLL_SELL);
+   addGoldOverflow(TIER4_SCROLL_SELL); /* sold into a full vault: the rest waits in overflow instead of vanishing */
    sfx.loot();
    log(`Sold <span class="lscroll">${enchOf(id).n} ${TIERN[tier-1]}</span> - +${TIER4_SCROLL_SELL.toLocaleString()} ◉.`,'loot');
    stageMsg('Sold '+enchOf(id).n+' '+TIERN[tier-1]+' - +'+TIER4_SCROLL_SELL.toLocaleString()+'◉',1800);
@@ -11165,6 +11320,7 @@ function renderBag(){
      </div></div>`;
    }).join(''));
   document.querySelectorAll('[data-peteq]').forEach(b=>b.onclick=()=>{
+   if(gearLocked())return;
    const id=b.dataset.peteq,i=S.pets.indexOf(id);
    if(i<0)return;
    S.pets.splice(i,1);
@@ -11179,7 +11335,7 @@ function renderBag(){
    const id=b.dataset.petsell,i=S.pets.indexOf(id);
    if(i<0)return;
    S.pets.splice(i,1);
-   S.gold=Math.min(goldCap(),S.gold+PET_SELL);
+   addGoldOverflow(PET_SELL);
    sfx.loot();
    log(`Sold a ${petGlyph(petOf(id))} companion - +${PET_SELL.toLocaleString()} ◉. Heartless.`,'loot');
    renderBag();renderHUD();save();
@@ -11302,6 +11458,7 @@ function renderBag(){
   scrapBagItems(it=>it.rar===rar,rar+' gear');
  });
  document.querySelectorAll('[data-eq]').forEach(b=>b.onclick=()=>{
+  if(gearLocked())return;
   const i=+b.dataset.eq;if(!S.bag[i]||!SLOTS.includes(S.bag[i].slot))return;
   const it=S.bag.splice(i,1)[0];
   const cur=S.gear[it.slot];if(cur)S.bag.push(cur);
@@ -11309,12 +11466,13 @@ function renderBag(){
   renderBag();renderHUD();save();
  });
  document.querySelectorAll('[data-sell]').forEach(b=>b.onclick=()=>{
+  if(cowLocked()){stageMsg('No selling mid-herd - fill the bag or die first!',1600);sfx.warn();return;} /* the same lock as Sell All and Scrap */
   const i=+b.dataset.sell;if(isLegendary(S.bag[i])||inGearSet(S.bag[i]))return;
   const it=S.bag[i];if(!it)return;
   confirmBox(`Are you sure you want to sell <b class="l${it.rar}">${itemName(it)}</b> for <b style="color:var(--brass)">${(it.sell||0).toLocaleString()}◉</b>?`,()=>{
    const idx=S.bag.indexOf(it);if(idx<0)return; /* bag may have shifted while the box was open */
    S.bag.splice(idx,1);
-   S.gold=Math.min(goldCap(),S.gold+(it.sell||0));sfx.loot();renderBag();renderHUD();save();
+   addGoldOverflow(it.sell||0);sfx.loot();renderBag();renderHUD();save();
   });
  });
  document.querySelectorAll('[data-scr]').forEach(b=>b.onclick=()=>{
@@ -11358,7 +11516,7 @@ function renderBag(){
   const keep=S.bag.filter(it=>isLegendary(it)||inGearSet(it)),sold=S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it));
   const total=sold.reduce((t,it)=>t+(it.sell||0),0),n=sold.length;
   S.bag=keep;
-  S.gold=Math.min(goldCap(),S.gold+total);
+  addGoldOverflow(total);
   sfx.loot();
   log(`Sold ${n} items - +${total.toLocaleString()} ◉. Legendaries stay in the bag.`,'loot');
   stageMsg('◉ Sold '+n+' items for '+total.toLocaleString()+' gold',1800);
@@ -11387,7 +11545,7 @@ let caseSpinning=false,caseRAF=0,curCase='gamba'; /* which chest is spinning */
 const chestQty={gamba:1,gold:1};
 let caseAuto=null,caseAutoTimer=0,caseAutoMessage='',casePaymentSource='gold';
 const CASE_AUTO_DELAY=1200;
-let lootUID=1,lastCaseLootIds=[];
+let lastCaseLoot=[]; /* the last chest's gear, held as the items themselves: a numbered id restarted at 1 every launch and matched gear kept from older chests */
 const caseCost=()=>curCase==='violethalls'?0:(curCase==='gold'?GOLD_COST:CASE_COST);
 function newCaseAuto(){
  return {owner:S,type:curCase,qty:chestQty[curCase]||1,
@@ -11477,8 +11635,7 @@ function prizeValue(type){
   if(r<0.002){
    const it=rollRimfrost();
    log(`LEGENDARY: <span class="llegendary">Rimfrost</span> hungers…`,'loot');
-   it._lid=lootUID++;
-   if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
+   if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLoot.push(it);}
    return {icon:lootIco('it_weapon','🗡️'),tier:'LEGENDARY',name:itemName(it),color:'#ffd100',sub:'weapon · '+itemStr(it),epic:true,big:true};
   }
   if(r<0.005){ /* 0.002–0.005 = 0.3% pet - Puffen, Ayla or Nellie, 33% each */
@@ -11500,10 +11657,9 @@ function prizeValue(type){
    return {icon:lootIco('it_scroll','📜'),tier:'Scroll · Tier II',name:e.n,color:e.glow,sub:tierDesc(e.id,2)+' Combine duplicates to forge higher tiers.',big:true};
   }
   const rar=r<0.6715?'rare':'epic';
-  const it=rollItem(rar),icon=SLOT_ICO[it.slot](),col={rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
+  const it=rollItem(rar,false,true),icon=SLOT_ICO[it.slot](),col={rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
   log(`GOLD GOLD GOLD: <span class="l${it.rar}">${itemName(it)}</span> ${itemStr(it)}.`,'loot');
-  it._lid=lootUID++;
-  if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
+  if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLoot.push(it);}
   return {icon,tier:rar,name:itemName(it),color:col,sub:it.slot+' · '+itemStr(it),epic:rar==='epic',big:rar==='rare'};
  }
  if(r<0.003){ /* 0.3% 🐄 Calf - farm stock */
@@ -11528,10 +11684,9 @@ function prizeValue(type){
   return {icon:lootIco('it_scroll','📜'),tier:'Scroll · Tier I',name:e.n,color:e.glow,sub:tierDesc(e.id,1)+' Combine duplicates to forge higher tiers.',big:true};
  }
  const rar=r<0.66?'common':r<0.90?'fine':r<0.98?'rare':'epic';
- const it=rollItem(rar),icon=SLOT_ICO[it.slot](),col={common:'#d8e4d6',fine:'#6dbb6d',rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
+ const it=rollItem(rar,false,true),icon=SLOT_ICO[it.slot](),col={common:'#d8e4d6',fine:'#6dbb6d',rare:'#5b9bd5',epic:'#c9a0ff'}[rar];
  log(`GAMBAAA!: <span class="l${it.rar}">${itemName(it)}</span> ${itemStr(it)}.`,'loot');
- it._lid=lootUID++;
- if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
+ if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLoot.push(it);}
  return {icon,tier:rar,name:itemName(it),color:col,sub:it.slot+' · '+itemStr(it),epic:rar==='epic',big:rar==='rare'};
 }
 
@@ -11560,8 +11715,8 @@ function btPrizeValue(){
  const total=BT_LOOT.reduce((a,b)=>a+b.w,0);let r=Math.random()*total,p=BT_LOOT[BT_LOOT.length-1];
  for(const x of BT_LOOT){r-=x.w;if(r<=0){p=x;break;}}
  if(p.kind==='felglaives'){
-  const it=rollFelGlaives();it._lid=lootUID++;
-  if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLootIds.push(it._lid);}
+  const it=rollFelGlaives();
+  if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLoot.push(it);}
   log(`VIOLET HALLS: <span class="llegendary">Fel Glaives</span>!`,'loot');
   return {icon:lootIco('it_weapon','🗡️'),tier:'LEGENDARY',name:itemName(it),color:'#39ff6a',sub:'weapon · '+itemStr(it),epic:true,big:true};
  }
@@ -11579,7 +11734,7 @@ function openVioletHallsChest(fromAuto=false){
  if(caseSpinning)return;
  if(fromAuto!==true)stopCaseAuto();
  if(!(S.chests&&S.chests.violethalls>0)){stageMsg('No Violet Halls Chest to open',1400);sfx.warn();return;}
- S.chests.violethalls--;curCase='violethalls';lastCaseLootIds=[];save();renderBag();renderHUD();
+ S.chests.violethalls--;curCase='violethalls';lastCaseLoot=[];save();renderBag();renderHUD();
  startCaseSpin(btPrizeValue());
 }
 function rollChestBatch(type,count){
@@ -11596,7 +11751,7 @@ function rollChestBatch(type,count){
   log(`Redeemed ${freeUsed} free case${freeUsed>1?'s':''} - ${S.freeGoldCases} left.`,'loot');
  }
  sfx.buy();
- lastCaseLootIds=[];
+ lastCaseLoot=[];
  const wins=[];
  for(let i=0;i<count;i++)wins.push(prizeValue(type));
  renderShop();renderHUD();save();
@@ -11677,7 +11832,7 @@ function finishCase(wins){
  else {updateCaseControls();queueCaseAuto();}
 }
 function updateCaseScrap(){
- const cs=$('caseScrapBtn'),chestGear=S.bag.filter(it=>lastCaseLootIds.includes(it._lid)&&!isLegendary(it));
+ const cs=$('caseScrapBtn'),chestGear=S.bag.filter(it=>lastCaseLoot.includes(it)&&!isLegendary(it));
  delete cs.dataset.armed;cs.style.color='';cs.style.borderColor='';
  if(chestGear.length){
   const total=chestGear.reduce((t,it)=>t+scrapVal(it),0);
@@ -11695,15 +11850,15 @@ function hideChestFx(){
 $('caseClose').onclick=hideChestFx;
 $('caseScrapBtn').onclick=()=>{
  if(caseSpinning||caseAuto)return;
- const b=$('caseScrapBtn'),items=S.bag.filter(it=>lastCaseLootIds.includes(it._lid)&&!isLegendary(it));
+ const b=$('caseScrapBtn'),items=S.bag.filter(it=>lastCaseLoot.includes(it)&&!isLegendary(it));
  if(!items.length){b.style.display='none';return;}
  if(!b.dataset.armed){
   b.dataset.armed='1';b.textContent='Confirm - scrap chest gear?';b.style.color='#ff8a7a';b.style.borderColor='#a05a5a';
-  setTimeout(()=>{if(b.isConnected&&b.dataset.armed){delete b.dataset.armed;const total=S.bag.filter(it=>lastCaseLootIds.includes(it._lid)&&!isLegendary(it)).reduce((t,it)=>t+scrapVal(it),0);b.textContent='⚙ Scrap Chest Gear +'+total+'⚙';b.style.color='';b.style.borderColor='';}},3000);
+  setTimeout(()=>{if(b.isConnected&&b.dataset.armed){delete b.dataset.armed;const total=S.bag.filter(it=>lastCaseLoot.includes(it)&&!isLegendary(it)).reduce((t,it)=>t+scrapVal(it),0);b.textContent='⚙ Scrap Chest Gear +'+total+'⚙';b.style.color='';b.style.borderColor='';}},3000);
   return;
  }
- scrapBagItems(it=>lastCaseLootIds.includes(it._lid),'chest items');
- lastCaseLootIds=[];b.style.display='none';
+ scrapBagItems(it=>lastCaseLoot.includes(it),'chest items');
+ lastCaseLoot=[];b.style.display='none';
 };
 $('respinBtn').onclick=()=>{
  if(caseSpinning)return;
@@ -11773,6 +11928,7 @@ function clearSlotCelebration(){
 function spinSlots(){
  if(slotSpinning||slotCelebrating)return;
  if(!spendGold(slotCost())){stopSlotAuto();stageMsg('Not enough gold - a spin costs '+slotCost().toLocaleString()+'◉',1400);sfx.warn();return;}
+ save(); /* a spin is paid when it starts */
  renderHUD();
  slotSpinning=true;
  $('slotRes').innerHTML='&nbsp;';
@@ -11950,6 +12106,9 @@ let seaFree=0,seaSession={spins:0,gold:0,scrap:0};
 const SEA_BONUSBUY_X=25; /* 10 free spins EV ≈ 24x bet - 25x keeps the game's 96% RTP */
 let seaForcedBonus=false;
 const seaBonusMode=()=>seaFree>0;
+/* 🎁 free spins are the hero's, with the stake they were won at: closing the machine, or the game, keeps them.
+   They used to live only while the machine was open - Close between two of them, reopen, and they were gone. */
+function seaKeepFree(){if(!S)return;if(seaFree>0){S.seaFree=seaFree;S.seaFreeBetIx=seaBetIx;}else{delete S.seaFree;delete S.seaFreeBetIx;}}
 function seaSymKey(){
  const W=seaBonusMode()?SEA_W_BONUS:SEA_W_BASE;
  const tot=W.reduce((t,w)=>t+w[1],0);
@@ -12112,13 +12271,14 @@ function spinSea(){
  const isFree=seaFree>0;
  const bet=seaCost();          /* vinster räknas alltid på insatsen */
  const cost=(isFree||seaForcedBonus)?0:bet; /* free spins och köpt bonus kostar inget extra */
- if(isFree)seaFree--;
+ if(isFree){seaFree--;seaKeepFree();}
  else if(!spendGold(cost)){
   stopSeaAuto();
   stageMsg('Not enough gold - a spin costs '+cost.toLocaleString()+'◉',1400);
   sfx.warn();
   return;
  }
+ save(); /* a paid spin, or one free spin fewer, is on the record before the reels move */
  renderHUD();
  seaSpinning=true;
  seaSession.spins++;
@@ -12254,9 +12414,10 @@ function seaPayout(grid,amount){
  seaSpinning=false;
  const res=$('seaRes');
  res.classList.remove('bigres');
- const awardBonus=()=>{
+ const awardBonus=(announce=true)=>{
   if(!grid._bonus)return false;
-  seaFree+=SEA_BONUS_SPINS;
+  if(!grid._bonusGranted){grid._bonusGranted=true;seaFree+=SEA_BONUS_SPINS;if(S)delete S.seaBonusPending;seaKeepFree();save();} /* granted once - a big win shows it after the celebration, but a Close meanwhile cannot take it back */
+  if(!announce)return true;
   dingDingDing(false);
   spawnPartsIn($('seaFx'),'#ffd100',20);
   res.style.color='#ffd100';
@@ -12295,6 +12456,7 @@ function seaPayout(grid,amount){
   dingDingDing(amount>=seaCost()*50);
   spawnPartsIn($('seaFx'),'#ffd100',22);
   log(`Slots: <span class="llegendary">+${paid.toLocaleString()} ◉</span> ${multTxt}!`,'loot');
+  awardBonus(false); /* the free spins are yours now; the fanfare waits for the celebration */
   seaCelebrateTimer=setTimeout(()=>{
    clearSeaCelebration();
    awardBonus();          /* bonus visas efter firandet */
@@ -12357,7 +12519,14 @@ function stopSeaAuto(msg){
  updateSeaUI();
 }
 function openSea(){
- seaFree=0;
+ seaFree=Math.max(0,(S&&S.seaFree)|0); /* free spins left from before are still yours, at the stake they were won at */
+ if(seaFree>0&&Number.isInteger(S.seaFreeBetIx)&&SEA_BETS[S.seaFreeBetIx]!==undefined){seaBetIx=S.seaFreeBetIx;seaBet=SEA_BETS[seaBetIx];}
+ if(S&&S.seaBonusPending&&!seaSpinning){ /* a bonus bought and paid for, whose spin never landed (the game closed): here it is */
+  const bi=S.seaBonusPending.betIx;delete S.seaBonusPending;
+  if(SEA_BETS[bi]!==undefined){seaBetIx=bi;seaBet=SEA_BETS[bi];}
+  seaFree+=SEA_BONUS_SPINS;seaKeepFree();save();
+  log(`Slots: <span class="llegendary">🎁 ${SEA_BONUS_SPINS} FREE SPINS</span> - the bonus you bought is waiting.`,'loot');
+ }
  /* mute ambient while casino music plays */
  if(AC.ambG){const t0=AC.ctx.currentTime;AC.ambG.gain.cancelScheduledValues(t0);AC.ambG.gain.setValueAtTime(0,t0);} /* iOS-safe duck */
  if(ambAudio)ambAudio.pause();
@@ -12392,11 +12561,12 @@ $('seaBonusBuyBtn').onclick=()=>{
  const price=seaBet*SEA_BONUSBUY_X;
  if(!spendGold(price)){stageMsg('Not enough gold - the bonus costs '+price.toLocaleString()+'◉',1600);sfx.warn();return;}
  seaSession.gold-=price;renderHUD();
+ S.seaBonusPending={betIx:seaBetIx}; /* paid for: if the game closes before the spin pays, the spins are handed over at the next open */
  seaForcedBonus=true; /* this spin plants the three boxes - 10 free spins incoming */
  spinSea();
 };
 $('seaClose').onclick=()=>{
- if(seaSpinning&&!seaAuto)return;
+ if(seaSpinning)return; /* not even with AUTO on: a spin still in the air paid out after Close - to whichever hero was loaded by then */
  stopSeaAuto();clearSeaCelebration();clearTimeout(seaAutoTimer);
  $('seaFx').classList.remove('open');
  casinoAmbApply(); /* restores zone ambience - or hands the room back to the casino track */
@@ -12516,6 +12686,7 @@ function bjDealerPlay(){
 function bjDeal(){
  if(bjLive||bjResolving)return;
  if(!spendGold(bjBet)){stageMsg('Not enough gold - a hand costs '+bjBet.toLocaleString()+'◉',1400);sfx.warn();return;}
+ save(); /* the hand is paid for: closing the game on a bad one no longer hands the stake back */
  renderHUD();sfx.buy();
  bjGen++; /* invalidate any stale dealer timers from the previous hand */
  bjWager=bjBet;bjLive=true;bjSettled=false;
@@ -12543,6 +12714,7 @@ function bjStand(){if(bjLive)bjDealerPlay();}
 function bjDouble(){
  if(!bjLive||bjP.length!==2)return;
  if(!spendGold(bjWager)){stageMsg('Not enough gold to double',1400);sfx.warn();return;}
+ save();
  renderHUD();sfx.buy();
  bjWager*=2;
  bjP.push(bjDraw());
@@ -12560,7 +12732,7 @@ function openBJ(){
  $('bjRes').innerHTML='&nbsp;';
  bjUI();
 }
-$('bjDeal').onclick=bjDeal;
+$('bjDeal').onclick=e=>{if(e&&e.detail>1)return;bjDeal();}; /* a double-click deals one hand: an instant blackjack settles inside the first click, and the second used to pay for a new hand over its result */
 $('bjHit').onclick=bjHit;
 $('bjStand').onclick=bjStand;
 $('bjDbl').onclick=bjDouble;
@@ -12730,7 +12902,7 @@ const CUP_BETS=[500,1000,2500,5000,10000,25000,50000];
 const CUP_N=3;                 /* three cups */
 const CUP_PAY=2.8;             /* a hit returns 2.8x the stake - one in three, so the house keeps ~6.7% */
 const CUP_SLOT=[6,96,186];     /* the three resting places, in px across the track */
-let cupBetI=3, cupState='idle', cupWin=-1, cupPos=[0,1,2], cupTimer=null;
+let cupBetI=3, cupState='idle', cupWin=-1, cupPos=[0,1,2], cupTimer=null, cupStake=0; /* cupStake: what was actually paid for the round on the table */
 
 const cupEl=i=>document.querySelector('#cupRow .cup[data-cup="'+i+'"]');
 function cupBuild(){
@@ -12751,7 +12923,7 @@ function cupLayout(anim){
 function cupUI(){
  const bn=$('sebbeBetN'),st=$('sebbeStart');
  if(bn)bn.textContent=CUP_BETS[cupBetI].toLocaleString();
- const busy=cupState==='shuffling'||cupState==='reveal';
+ const busy=cupState==='shuffling'||cupState==='reveal'||cupState==='picking'; /* the stake is paid once the ball goes down - it cannot move until the round is over */
  $('sebbeBetDn').disabled=busy||cupBetI<=0;
  $('sebbeBetUp').disabled=busy||cupBetI>=CUP_BETS.length-1;
  if(st){
@@ -12818,9 +12990,11 @@ function cupShuffle(){
  step();
 }
 function cupStart(){
- if(cupState==='shuffling'||cupState==='reveal')return;
+ if(cupState!=='idle')return; /* one round at a time: a stake is never taken twice for the same table */
  const bet=CUP_BETS[cupBetI];
  if(!spendGold(bet)){stageMsg('Not enough gold - '+bet.toLocaleString()+' ◉ needed',1700);sfx.warn();return;}
+ cupStake=bet; /* the pick pays on this, never on whatever the stake buttons say later */
+ save(); /* like the roulette: once the ball is down, a reload does not hand the stake back */
  cupState='shuffling';
  $('sebbeRes').innerHTML='&nbsp;';
  document.querySelectorAll('#cupRow .cupball').forEach(b=>b.classList.remove('show'));
@@ -12851,7 +13025,7 @@ function cupPick(i){
  if(shown){shown.style.left=(CUP_SLOT[slot]+31)+'px';shown.classList.add('show');}
  const winEl=cupEl(cupWin);
  if(winEl)winEl.classList.add('lift');
- const bet=CUP_BETS[cupBetI];
+ const bet=cupStake;
  const hit=i===cupWin;
  if(hit){
   const pay=Math.round(bet*CUP_PAY);
@@ -12879,12 +13053,13 @@ function openCupGame(){
  cupUI();
 }
 function closeCupGame(){
+ if(cupState==='shuffling'||cupState==='picking'){stageMsg('Finish the round first - your stake is on the table.',1700);sfx.warn();return;} /* like blackjack: the stake is already paid */
  if(cupTimer){clearTimeout(cupTimer);cupTimer=null;}
  cupState='idle';
  $('sebbeFx').classList.remove('open');
 }
-$('sebbeBetDn').onclick=()=>{if(cupBetI>0&&cupState!=='shuffling'&&cupState!=='reveal'){cupBetI--;cupUI();}};
-$('sebbeBetUp').onclick=()=>{if(cupBetI<CUP_BETS.length-1&&cupState!=='shuffling'&&cupState!=='reveal'){cupBetI++;cupUI();}};
+$('sebbeBetDn').onclick=()=>{if(cupBetI>0&&cupState==='idle'){cupBetI--;cupUI();}};
+$('sebbeBetUp').onclick=()=>{if(cupBetI<CUP_BETS.length-1&&cupState==='idle'){cupBetI++;cupUI();}};
 $('sebbeStart').onclick=cupStart;
 $('sebbeClose').onclick=closeCupGame;
 const RTB_BETS=[1000,2500,5000,10000,25000,50000];
@@ -12930,8 +13105,8 @@ function rtbRender(){
 /* one delegated listener on the container - immune to the buttons being rebuilt mid-click */
 $('rtbActs').addEventListener('click',e=>{
  const g=e.target.closest('[data-rg]');
- if(g){rtbGuess(g.dataset.rg);return;}
- if(e.target.closest('#rtbStart'))rtbStart();
+ if(g){if(e.detail>1)return;rtbGuess(g.dataset.rg);return;} /* the second click of a double-click lands on the NEXT round's freshly drawn button - it is not a guess */
+ if(e.target.closest('#rtbStart')){if(e.detail>1)return;rtbStart();} /* after a bust the second click of a double-click lands on the new "Board the Bus" and paid for a ride */
 });
 function rtbStart(){
  if(rtbLive)return;
@@ -12992,7 +13167,10 @@ function rtbGuess(g){
   rtbEnd(`🚌🎉 <b style="color:#ffd76a">FULL RIDE - +${win.toLocaleString()}◉</b>`);
   return;
  }
- $('rtbRes').innerHTML=`✅ <b>${c.r}${c.s}</b> - ${RTB_MULT[rtbStage-1]}x locked. ${['','Round 2 - higher or lower than '+rtbCards[0].r+'?','Round 3 - inside or outside '+rtbCards[0].r+' and '+rtbCards[1].r+'?','Round 4 - which suit?'][rtbStage]}`;
+ /* only the round being entered is described: the old array literal built every round's text at once and read the second
+   card after the first guess, when there was none - it threw, the table never redrew, and the 2x could not be cashed out */
+ const nextRound=rtbStage===1?'Round 2 - higher or lower than '+rtbCards[0].r+'?':rtbStage===2?'Round 3 - inside or outside '+rtbCards[0].r+' and '+rtbCards[1].r+'?':'Round 4 - which suit?';
+ $('rtbRes').innerHTML=`✅ <b>${c.r}${c.s}</b> - ${RTB_MULT[rtbStage-1]}x locked. ${nextRound}`;
  rtbRender();
 }
 function openRTB(){
@@ -13016,7 +13194,50 @@ $('rtbClose').onclick=()=>{
    Ties go to sudden death, one chest each until someone leads. */
 const GVB_SCORE={fk:20,pet:12,bull:10,scroll:7,epic:5,rare:3};
 const GVB_MAXP=10;
-const gvb={code:null,ref:null,unsub:null,pid:null,doc:null,shown:0,animating:false,paid:false,settled:false,lastChange:0,bet:0,closedByMe:false,sidesKey:'',rtc:{},rtcWaves:{},sigUnsub:null};
+const gvb={code:null,ref:null,unsub:null,pid:null,doc:null,shown:0,animating:false,paid:false,paidOk:false,settled:false,lastChange:0,bet:0,closedByMe:false,sidesKey:'',rtc:{},rtcWaves:{},sigUnsub:null};
+/* 🛡 Everything in a duel room was written by the other players' clients, so it is data, never markup:
+   ids must look like the 'p' + base36 this client makes, names are plain text, stakes are whole
+   numbers, and a chest can only be one of the chests this table knows. gvbClean() is the one door
+   a room comes in by - Firestore snapshots and WebRTC waves alike. */
+const GVB_PID=/^p[a-z0-9]{1,16}$/;
+const GVB_ICONS=['🗡️','🐾','🐂','📜','⚔️','🛡️','💍'];
+const GVB_SCORES=Object.values(GVB_SCORE);
+function gvbCard(c){
+ c=c&&typeof c==='object'?c:{};
+ return {ic:GVB_ICONS.includes(c.ic)?c.ic:'⚔️',cc:/^#[0-9a-f]{6}$/i.test(String(c.cc||''))?c.cc:'#5b9bd5',
+  sc:GVB_SCORES.includes(+c.sc)?+c.sc:GVB_SCORE.rare,n:typeof c.n==='string'?c.n.slice(0,20):''};
+}
+function gvbCleanWave(w){
+ if(!w||typeof w!=='object')return null;
+ const o={};
+ for(const p of Object.keys(w.o||{}))if(GVB_PID.test(p))o[p]=gvbCard(w.o[p]);
+ return {seed:Math.floor(+w.seed)||1,o};
+}
+const gvbFlags=m=>{const out={};if(m&&typeof m==='object')for(const p of Object.keys(m))if(GVB_PID.test(p)&&m[p])out[p]=true;return out;};
+function gvbClean(raw){
+ const d=raw&&typeof raw==='object'?raw:{};
+ const order=[...new Set((Array.isArray(d.order)?d.order:[]).filter(p=>typeof p==='string'&&GVB_PID.test(p)))];
+ const players={};
+ for(const p of Object.keys(d.players||{})){
+  const pl=d.players[p];
+  if(!GVB_PID.test(p)||!pl||typeof pl!=='object')continue;
+  players[p]={name:String(pl.name||'Hero').slice(0,24),ready:!!pl.ready,ok:!!pl.ok,bet:Math.max(0,Math.floor(+pl.bet||0)),v:Math.max(0,Math.floor(+pl.v||0))};
+ }
+ const waves={};
+ for(const k of Object.keys(d.waves||{})){const i=+k,w=gvbCleanWave(d.waves[k]);if(Number.isInteger(i)&&i>=0&&i<500&&w)waves[i]=w;}
+ return {gvb:!!d.gvb,state:['lobby','bet','roll','closed'].includes(d.state)?d.state:'closed',created:+d.created||0,
+  host:GVB_PID.test(String(d.host||''))?d.host:null,order,players,waves,
+  forfeits:gvbFlags(d.forfeits),paid:gvbFlags(d.paid),settled:gvbFlags(d.settled),
+  rounds:+d.rounds===5?5:10,bet:Math.max(0,Math.floor(+d.bet||0))};
+}
+/* the pot is what was actually collected: a seat whose client never paid (closed before the duel
+   started, or could not afford it) is still dealt chests, but it adds nothing to the pot. A seat from a build that
+   predates the paid flag (no v) pays the old way, so it counts unless it forfeited - its stake must not vanish either. */
+const gvbPaidCount=d=>((d&&d.order)||[]).filter(p=>{
+ if((d.paid&&d.paid[p])||(p===gvb.pid&&gvb.paidOk))return true;
+ const pl=(d.players||{})[p]||{};
+ return !(pl.v>=2)&&!(d.forfeits&&d.forfeits[p]);
+}).length;
 /* ⚡ zero-latency layer - the Violet Halls trick: spins ride WebRTC data channels the
    instant they happen; Firestore stays the source of truth and the phone fallback. */
 function gvbSig(to,type,payload){return gvb.ref.collection('signals').add({from:gvb.pid,to,type,payload:JSON.stringify(payload),t:Date.now()});}
@@ -13043,7 +13264,9 @@ async function gvbRtcSignalHandle(from,type,payload){
  else if(type==='ice'){try{await P.pc.addIceCandidate(payload);}catch(e){}}
 }
 function gvbRtcMsg(m){
- if(m.k==='wave'&&gvb.doc&&gvb.rtcWaves[m.i]===undefined){gvb.rtcWaves[m.i]=m.wave;gvbRender();}
+ if(!m||m.k!=='wave'||!gvb.doc||!Number.isInteger(m.i)||m.i<0||m.i>=500||gvb.rtcWaves[m.i]!==undefined)return;
+ const w=gvbCleanWave(m.wave);if(!w)return;
+ gvb.rtcWaves[m.i]=w;gvbRender();
 }
 function gvbRtcBroadcast(m){
  const s2=JSON.stringify(m);
@@ -13081,7 +13304,7 @@ const gvbTrigger=(d,waves)=>{const c=gvbContenders(d,waves);return c.length?c[(w
 const gvbScoreOf=(waves,p)=>waves.reduce((t,w)=>t+((w.o&&w.o[p])?w.o[p].sc:0),0);
 const gvbWinner=(d,waves)=>{ /* pid of the winner, or null while the duel is still on */
  const act=gvbActive(d);
- if((d.order||[]).length>=2&&act.length===1)return act[0]; /* everyone else forfeited */
+ if((d.order||[]).length>=1&&act.length===1)return act[0]; /* everyone else forfeited - or left the table as the duel began, so the last seat takes back what it staked */
  if(act.length<2)return null;
  const need=(d&&d.rounds)||10;
  if(waves.length<need)return null; /* full rounds first - then sudden-death waves until one leads */
@@ -13104,7 +13327,7 @@ async function gvbCreate(){
   gvb.code=MPCODE();gvb.pid='p'+Math.random().toString(36).slice(2,9);
   gvb.ref=gvbRef(gvb.code);
   await gvb.ref.set({gvb:true,state:'lobby',created:Date.now(),host:gvb.pid,order:[gvb.pid],rounds:10,
-   players:{[gvb.pid]:{name:dispName?dispName(S):(S.name||'Hero'),ready:false,bet:0,ok:false}},waves:{},forfeits:{}});
+   players:{[gvb.pid]:{name:dispName?dispName(S):(S.name||'Hero'),ready:false,bet:0,ok:false,v:2}},waves:{},forfeits:{}}); /* v:2 - this seat writes paid.<pid> when its stake is taken */
   gvbListen();
  }catch(e){console.warn('gvbCreate failed',e);stageMsg('Could not create room: '+(e.code||e.message||e),2600);sfx.warn();}
 }
@@ -13120,34 +13343,47 @@ async function gvbJoin(code){
   if(d.state!=='lobby'){stageMsg('That duel has already started',1600);sfx.warn();return;}
   if((d.order||[]).length>=GVB_MAXP){stageMsg('Room is full ('+GVB_MAXP+' players)',1600);sfx.warn();return;}
   gvb.code=code;gvb.pid='p'+Math.random().toString(36).slice(2,9);gvb.ref=ref;
-  await ref.update({['players.'+gvb.pid]:{name:dispName?dispName(S):(S.name||'Hero'),ready:false,bet:0,ok:false},order:[...(d.order||[]),gvb.pid]});
+  /* arrayUnion, not a copy of the order read a moment ago: two players joining at once must both end up seated */
+  await ref.update({['players.'+gvb.pid]:{name:dispName?dispName(S):(S.name||'Hero'),ready:false,bet:0,ok:false,v:2},order:firebase.firestore.FieldValue.arrayUnion(gvb.pid)});
   gvbListen();
  }catch(e){console.warn('gvbJoin failed',e);stageMsg('Could not join: '+(e.code||e.message||e),2600);sfx.warn();}
 }
 function gvbListen(){
- gvb.shown=0;gvb.animating=false;gvb.paid=false;gvb.settled=false;gvb.closedByMe=false;gvb.sidesKey='';
+ gvb.shown=0;gvb.animating=false;gvb.paid=false;gvb.paidOk=false;gvb.settled=false;gvb.closedByMe=false;gvb.sidesKey='';
  gvb.rtc={};gvb.rtcWaves={};
  gvb.unsub=gvb.ref.onSnapshot(s2=>{
-  if(!s2.exists||(s2.data()||{}).state==='closed'){if(!gvb.closedByMe){stageMsg('The room was closed',1600);}gvbCleanup();return;}
-  gvb.doc=s2.data();gvb.lastChange=Date.now();
-  (gvb.doc.order||[]).forEach(p=>{if(p!==gvb.pid)gvbRtcConnect(p).catch(()=>{});}); /* mesh up with everyone at the table */
+  if(!s2.exists||(s2.data()||{}).state==='closed'){
+   /* a room that closes under a duel this screen has not settled still owes its verdict: every wave
+      that decided it is already here, so pay out from what was seen instead of losing the pot */
+   let settledNow=false;
+   if(gvb.doc&&gvb.doc.state==='roll'&&gvb.paid&&!gvb.settled){
+    const w=gvbWaves(),win=gvbWinner(gvb.doc,w);
+    if(win){gvbSettle(w,win,gvbActive(gvb.doc).length===1);settledNow=true;}
+   }
+   if(!gvb.closedByMe&&!settledNow){stageMsg('The room was closed',1600);}
+   gvbCleanup(settledNow);return;
+  }
+  gvb.doc=gvbClean(s2.data());gvb.lastChange=Date.now();
+  gvb.doc.order.forEach(p=>{if(p!==gvb.pid)gvbRtcConnect(p).catch(()=>{});}); /* mesh up with everyone at the table */
   gvbRender();
  });
  gvb.sigUnsub=gvb.ref.collection('signals').onSnapshot(qs=>{
   qs.docChanges().forEach(ch=>{
    if(ch.type!=='added')return;
-   const m=ch.doc.data();
-   if(m.to!==gvb.pid)return;
-   gvbRtcSignalHandle(m.from,m.type,JSON.parse(m.payload)).catch(()=>{});
+   const m=ch.doc.data()||{};
+   if(m.to!==gvb.pid||!GVB_PID.test(String(m.from||'')))return;
+   let payload;try{payload=JSON.parse(m.payload);}catch(e){return;}
+   gvbRtcSignalHandle(m.from,m.type,payload).catch(()=>{});
   });
  });
 }
-function gvbCleanup(){
+function gvbCleanup(keepPanel){
  if(gvb.unsub){gvb.unsub();gvb.unsub=null;}
  if(gvb.sigUnsub){gvb.sigUnsub();gvb.sigUnsub=null;}
  for(const k in gvb.rtc){try{gvb.rtc[k].pc.close();}catch(e){}}
  gvb.rtc={};gvb.rtcWaves={};
  gvb.code=null;gvb.ref=null;gvb.doc=null;gvb.pid=null;
+ if(keepPanel===true)return; /* a verdict just landed: leave it on screen - Leave closes the panel */
  $('gvbFx').style.display='none';
  casinoAmbApply();
 }
@@ -13155,10 +13391,11 @@ function gvbRender(){
  const d=gvb.doc;if(!d)return;
  const me=gvb.pid,isHost=d.host===me,P=d.players||{},ord=d.order||[];
  const nameOf=p=>(P[p]&&P[p].name)||'Hero';
+ const nameH=p=>esc(nameOf(p)); /* for markup: another player's name is their own text */
  if(d.state==='lobby'){
   gvbShow('gvbLobby');
   $('gvbCodeTxt').textContent='Room code: '+gvb.code;
-  $('gvbPlayers').innerHTML=ord.map(p=>`<div class="cl">${P[p]&&P[p].ready?'✅':'⏳'} ${nameOf(p)}${p===d.host?' (host)':''}${p===me?' - you':''}</div>`).join('')
+  $('gvbPlayers').innerHTML=ord.map(p=>`<div class="cl">${P[p]&&P[p].ready?'✅':'⏳'} ${nameH(p)}${p===d.host?' (host)':''}${p===me?' - you':''}</div>`).join('')
    +(ord.length<GVB_MAXP?'<div class="cl" style="color:var(--dim)">… room open ('+ord.length+'/'+GVB_MAXP+')</div>':'');
   const mine=P[me];
   $('gvbReady').textContent=mine&&mine.ready?'✔ Ready!':'✔ Ready';
@@ -13174,9 +13411,12 @@ function gvbRender(){
   $('gvbR5').disabled=!isHost;$('gvbR10').disabled=!isHost;
   $('gvbBetStat').innerHTML=`<div class="cl" style="color:#ffd76a">${rds} rounds each${isHost?' (you choose)':''}</div>`+ord.map(p=>{
    const pl=P[p]||{};
-   return `<div class="cl">${pl.ok?'🔒':'⏳'} ${nameOf(p)}${p===me?' (you)':''}: ${pl.ok?'<b style="color:#ffd76a">'+(pl.bet||0).toLocaleString()+'◉</b>':'choosing…'}</div>`;
+   return `<div class="cl">${pl.ok?'🔒':'⏳'} ${nameH(p)}${p===me?' (you)':''}: ${pl.ok?'<b style="color:#ffd76a">'+(pl.bet||0).toLocaleString()+'◉</b>':'choosing…'}</div>`;
   }).join('');
-  $('gvbBetLock').disabled=!!mine.ok;
+  /* two different stakes locked at the same moment would stall the table for good: let a locked
+     player lock again to match the other side */
+  const lockedBets=new Set(ord.filter(p=>P[p]&&P[p].ok&&P[p].bet>0).map(p=>P[p].bet));
+  $('gvbBetLock').disabled=!!mine.ok&&lockedBets.size<2;
   /* host starts once every stake is locked and identical */
   if(isHost&&ord.length>=2&&ord.every(p=>P[p]&&P[p].ok)&&ord.every(p=>P[p].bet===P[ord[0]].bet)&&P[ord[0]].bet>0)
    gvb.ref.update({state:'roll',bet:P[ord[0]].bet});
@@ -13188,7 +13428,12 @@ function gvbRender(){
   gvb.bet=d.bet||0;
   if(!gvb.paid){ /* the stake leaves your pocket the moment the duel starts */
    gvb.paid=true;
-   if(!spendGold(gvb.bet)){gvb.ref.update({['forfeits.'+me]:true});}
+   if(!ord.includes(me)){ /* a join that lost a race for a seat: nothing is taken, nothing can be won */
+    stageMsg('You were not seated at this table - nothing was staked.',2600);sfx.warn();
+    gvb.closedByMe=true;gvbCleanup();return;
+   }
+   if(spendGold(gvb.bet)){gvb.paidOk=true;gvb.ref.update({['paid.'+me]:true}).catch(()=>{});} /* only a paid stake counts toward the pot */
+   else gvb.ref.update({['forfeits.'+me]:true});
    save();renderHUD();
   }
   /* one full-width reel row per player - everyone opens together (rebuilt only if the roster changes) */
@@ -13196,7 +13441,7 @@ function gvbRender(){
   if(gvb.sidesKey!==key){
    gvb.sidesKey=key;
    $('gvbSides').innerHTML=ord.map(p=>`<div class="gvbrow" id="gvbSide-${p}">
-    <div class="gvbrowinfo"><div class="gvbname">${nameOf(p)}${p===me?' (you)':''}</div><div class="gvbscore" id="gvbScore-${p}">0 ⚙</div></div>
+    <div class="gvbrowinfo"><div class="gvbname">${nameH(p)}${p===me?' (you)':''}</div><div class="gvbscore" id="gvbScore-${p}">0 ⚙</div></div>
     <div class="gvbbigwin sm" id="gvbWin-${p}"><div class="gvbbigstrip" id="gvbStrip-${p}"></div><div class="gvbbigmark"></div></div></div>`).join('');
   }
   const waves=gvbWaves();
@@ -13214,7 +13459,7 @@ function gvbRender(){
    if(win){gvbSettle(waves,win,gvbActive(d).length===1);return;}
    const trig=gvbTrigger(d,waves),round=waves.length+1,rds=d.rounds||10;
    const sudden=round>rds;
-   $('gvbRound').textContent=(sudden?'⚔ SUDDEN DEATH - '+cont.map(nameOf).join(' vs '):'Round '+round+' / '+rds)+' · pot '+(gvb.bet*ord.length).toLocaleString()+'◉';
+   $('gvbRound').textContent=(sudden?'⚔ SUDDEN DEATH - '+cont.map(nameOf).join(' vs '):'Round '+round+' / '+rds)+' · pot '+(gvb.bet*gvbPaidCount(d)).toLocaleString()+'◉';
    const myTrig=trig===me;
    $('gvbTurnTxt').textContent=myTrig?(sudden?'You open - only the tied leaders roll':'You open the chests for everyone'):nameOf(trig)+(sudden?' opens for the tied leaders…':' opens the chests for everyone…');
    $('gvbOpen').style.display=myTrig?'inline-block':'none';
@@ -13279,8 +13524,9 @@ function gvbSettle(waves,winner,forfeit){
  if(gvb.settled)return;
  gvb.settled=true;
  const d=gvb.doc,ord=d.order||[],me=gvb.pid;
- const pot=gvb.bet*ord.length;
- const board=ord.map(p=>((d.players[p]&&d.players[p].name)||'Hero')+' '+gvbScoreOf(waves,p)+'⚙').join(' · ');
+ const pot=gvb.bet*gvbPaidCount(d); /* only stakes that were actually taken - never a seat that did not pay */
+ if(gvb.ref)gvb.ref.update({['settled.'+me]:true}).catch(()=>{}); /* the room may close once every seat has its verdict */
+ const board=ord.map(p=>esc((d.players[p]&&d.players[p].name)||'Hero')+' '+gvbScoreOf(waves,p)+'⚙').join(' · ');
  const iWon=winner===me;
  if(iWon){ /* winner takes ALL stakes */
   const {over}=addGoldOverflow(pot);
@@ -13291,8 +13537,21 @@ function gvbSettle(waves,winner,forfeit){
  }
  save();renderHUD();
  gvbShow('gvbDone');
- const wName=(d.players[winner]&&d.players[winner].name)||'Winner';
+ const wName=esc((d.players[winner]&&d.players[winner].name)||'Winner');
  $('gvbDoneTxt').innerHTML=(iWon?'🏆 <b style="color:#ffd76a">YOU WIN THE POT':'💀 <b style="color:#ff8a7a">'+wName+' TAKES THE POT')+`</b><br><span style="font-size:14px">${board}${forfeit?' · by forfeit':''} · pot ${pot.toLocaleString()}◉</span>`;
+}
+/* the hero is being put away (the hero list): leave the duel the way the Leave button would, without asking */
+function gvbLeaveForSwitch(){
+ const d=gvb.doc,ref=gvb.ref,me=gvb.pid;
+ gvb.closedByMe=true;
+ try{
+  if(d&&d.state==='roll'&&!gvb.settled)ref.update({['forfeits.'+me]:true}).catch(()=>{});
+  else if(d&&(d.state==='lobby'||d.state==='bet')){
+   if(d.host===me)ref.update({state:'closed'}).catch(()=>{});
+   else ref.update({['players.'+me]:null,order:firebase.firestore.FieldValue.arrayRemove(me)}).catch(()=>{});
+  }
+ }catch(e){}
+ gvbCleanup();
 }
 $('gvbCreate').onclick=gvbCreate;
 $('gvbJoin').onclick=()=>gvbJoin($('gvbCode').value);
@@ -13317,7 +13576,7 @@ $('gvbBetLock').onclick=async()=>{
  if(!gvb.ref||!gvb.doc)return;
  const n=Math.floor(+$('gvbBetIn').value||0);
  const P=gvb.doc.players||{};
- const locked=(gvb.doc.order||[]).map(p=>P[p]).find(pl=>pl&&pl.ok&&pl.bet>0);
+ const locked=(gvb.doc.order||[]).filter(p=>p!==gvb.pid).map(p=>P[p]).find(pl=>pl&&pl.ok&&pl.bet>0); /* someone else's lock - re-locking my own must be able to move it */
  if(n<1000){stageMsg('Minimum stake 1,000◉',1400);sfx.warn();return;}
  if(locked&&n!==locked.bet){stageMsg('Must match the table stake: '+locked.bet.toLocaleString()+'◉',1800);sfx.warn();return;}
  if(totalGold()<n){stageMsg('You must carry the full stake - '+n.toLocaleString()+'◉',1800);sfx.warn();return;}
@@ -13356,8 +13615,12 @@ $('gvbLeave').onclick=()=>{
  gvb.closedByMe=true;
  (async()=>{
   try{
-   if(gvb.settled||d.host===gvb.pid)await gvb.ref.update({state:'closed'});
-   else await gvb.ref.update({['players.'+gvb.pid]:null,order:(d.order||[]).filter(p=>p!==gvb.pid)});
+   if(d.state==='roll'&&gvb.settled){
+    /* the verdict is in on this screen, perhaps not yet on a slower one: closing the room now would
+       tear the winner's client down before it pays out, so only the last seat to settle closes it */
+    if(gvbActive(d).every(p=>p===gvb.pid||(d.settled&&d.settled[p])))await gvb.ref.update({state:'closed'});
+   }else if(d.host===gvb.pid)await gvb.ref.update({state:'closed'});
+   else await gvb.ref.update({['players.'+gvb.pid]:null,order:firebase.firestore.FieldValue.arrayRemove(gvb.pid)});
   }catch(e){}
   gvbCleanup();
  })();
@@ -13653,6 +13916,7 @@ function cityApplyWorks(){
  world.solids=world.solids.filter(s2=>s2.type!=='citywork');
  for(const s2 of world.solids)if(s2.work)s2.work=null;
  world.solids.push(...CityWorks.props(world,look),CityWorks.noticeBoard(world));   /* 📌 the board stands by the crier whatever the ledger says */
+ world._sg=null;   /* the collision grid is rebuilt from the new props - a site becoming its finished work keeps the count the same, and the gardens stayed solid */
  for(const a of CityWorks.assignHouses(world,look)){
   const def=CityEconomy.WORKS.find(w=>w.id===a.id);
   a.house.work={id:a.id,status:a.status,left:a.left,sign:def.sign,icon:def.icon,cat:def.cat};
@@ -13831,7 +14095,8 @@ function boardAction(act,k){
  if(r.ok){sfx.buy();log('📌 '+r.text,'loot');}else sfx.warn();
  boardRefresh();renderHUD();save();
 }
-function openBoard(){if(!S||!S.city)return;boardNote='';if(CityEconomy.postBoard(S.city,Math.random))save();boardRefresh();$('boardFx').style.display='flex';}
+function openBoard(){
+ if(cityIsNewer())return;if(!S||!S.city)return;boardNote='';if(CityEconomy.postBoard(S.city,Math.random))save();boardRefresh();$('boardFx').style.display='flex';}
 $('boardClose').onclick=()=>$('boardFx').style.display='none';
 $('boardBody').addEventListener('click',e=>{const b=e.target.closest('[data-bact]');if(!b||b.disabled)return;boardAction(b.dataset.bact,b.dataset.k);});
 /* 📜 The Hand meets the Duke he sent for. The first time a summoned hero steps through the door the hero stops where
@@ -13863,6 +14128,36 @@ function hallSceneTick(dt){
 }
 let coronation=null,execution=null;   /* 👑⚖️ see THE CORONATION and THE GALLOWS below - declared here so hallSceneHolds can read them */
 const hallSceneHolds=()=>!!coronation||!!execution||(!!hallScene&&hallScene.phase!=='go');     /* the hero stands still while he is being spoken to - and for the whole of the coronation */
+/* ✋ a scene belongs to the hero, the zone and the moment it began. Handing the game to another hero,
+   or finding the world changed under it, ends it cleanly: the players it borrowed go back to their own
+   business, the black overlay lifts, and nothing half-done is written - the crown and the rope only
+   ever change the books at their one step. */
+function cancelHallScenes(){
+ const had=!!(coronation||execution);
+ if(coronation){
+  for(const n of coronation.cast||[]){n.scripted=false;n.moving=false;n.route=null;n.bubble=null;}
+  for(const n of coronation.extras||[])n.gone=true;
+  coronation=null;
+ }
+ if(execution){
+  const sc=execution;
+  for(const e of sc.extras||[])e.gone=true;
+  if(world&&sc.gallows&&world.solids){world.solids=world.solids.filter(x=>x!==sc.gallows);world._sg=null;}
+  for(const m of sc.crowd||[]){m.n.x=m.x;m.n.y=m.y;m.n.pauseT=m.pauseT;m.n.fx=m.fx;}
+  for(const f of sc.frozen||[]){f.n.scripted=f.scripted;f.n.moving=f.moving;f.n.hidden=f.hidden;}
+  if(world)world.hush=false;
+  execution=null;
+ }
+ hallScene=null;
+ if(world&&world.npcs)world.npcs=world.npcs.filter(n=>!n.gone);
+ if(had){const fx=$('ritualFx');if(fx){fx.style.transition='none';fx.style.opacity='0';fx.style.display='none';}}
+}
+/* the map, Home and the hero switch wait while a scene plays: it walks the hero, and it writes the books */
+function sceneHoldsTravel(){
+ if(!coronation&&!execution)return false;
+ stageMsg('Not now - the whole court is watching.',1600);sfx.warn();
+ return true;
+}
 function kingSpeak(){
  const c=S.city,f=CityEconomy.forecast(c,cityContext()),who=S.name||'friend',hot=f.incidents.find(i=>i.street)||f.incidents[0];
  if(c.crowned){
@@ -13957,8 +14252,10 @@ function coronationTick(dt){
  const sc=coronation,c=S&&S.city;
  if(!sc||!c||!hero){coronation=null;return;}
  sc.t+=dt;sc.pt+=dt;
+ if(sc.staged&&(!world||!world.throne||!world.npcs)){cancelHallScenes();return;} /* the hall went away under the scene (a trip on the map): end it - an exception here once stopped the whole game */
  const fx=$('ritualFx'),T=ThroneWorld,front=T.DAIS.y+T.DAIS.h+100,name=S.name||'Hero';
- const king=world.npcs.find(n=>n.game==='king'),hand=world.npcs.find(n=>n.game==='ledger');
+ const npcs=(world&&world.npcs)||[];
+ const king=npcs.find(n=>n.game==='king'),hand=npcs.find(n=>n.game==='ledger');
  for(const n of sc.cast)if(n.bubble&&(n.bubble.t-=dt)<=0)n.bubble=null;
  const say=(n,txt,secs)=>{if(!n)return;n.bubble={txt,t:secs,life:secs};};
  const next=p=>{sc.phase=p;sc.pt=0;};
@@ -13984,7 +14281,13 @@ function coronationTick(dt){
  }else if(sc.phase==='gone'){
   /* the King is out of the hall: now, and only now, the crown changes hands */
   const r=CityEconomy.claimCrown(c,sc.fate);
-  if(r.ok)log('👑 <b>'+cityTitle()+' '+name+'</b> - '+r.text,'loot');
+  if(!r.ok){ /* the books refused after all: the scene ends with the King kept, and nothing on screen claims otherwise */
+   log('👑 '+(r.text||'The council withholds the crown.'),'imp');
+   cancelHallScenes();buildZone();cityApplyAll();save();renderHUD(); /* buildZone: the King, the Hand, the council and the guard back in their places */
+   stageMsg('👑 The crown stays where it is - for now.',3200,'#ffd76a');
+   return;
+  }
+  log('👑 <b>'+cityTitle()+' '+name+'</b> - '+r.text,'loot');
   cityApplyAll();save();   /* hallApply: no King in the hall, Alarik in cell I if that is where he went */
   sc.escorts.forEach((g,i)=>{g.route=[[T.HALL.x+130,front],[g.home.x,front],[g.home.x,g.home.y]];if(sc.fate==='exile')g.route=[[T.EXIT.x,front],[g.home.x,front],[g.home.x,g.home.y]];});
   sc.focus=null;next('hand2');
@@ -14071,8 +14374,8 @@ function stageExecution(sc){
  sc.king=mk(ThroneWorld.KING_NAME,'king',cx+12,deckY,-1,{big:1.5,royal:true});
  sc.gaoler=mk(ThroneWorld.GAOLER_NAME,'guard',cx-92,deckY+4,1,{big:1.15,game:'gaolscene'});
  /* everybody in the city stands where they are for the duration; the nearest townsfolk are brought to the square */
- for(const n of W.npcs){if(n.extra)continue;sc.frozen.push({n,scripted:!!n.scripted,moving:!!n.moving,hidden:!!n.hidden});n.scripted=true;n.moving=false;}
- const folk=W.npcs.filter(n=>cityCommoner(n)&&!n.extra).sort((a,b)=>Math.hypot(a.x-cx,a.y-cy)-Math.hypot(b.x-cx,b.y-cy)).slice(0,20);
+ for(const n of W.npcs){if(n.extra)continue;sc.frozen.push({n,scripted:!!n.scripted,moving:!!n.moving,hidden:!!n.hidden});n.scripted=true;n.moving=false;if(n.protest||n.brawl)n.hidden=true;} /* a march or a brawl frozen mid-square stood in the cleared square and in the scaffold: they are off the square until it is over */
+ const folk=W.npcs.filter(n=>cityCommoner(n)&&!n.extra&&!n.protest&&!n.brawl).sort((a,b)=>Math.hypot(a.x-cx,a.y-cy)-Math.hypot(b.x-cx,b.y-cy)).slice(0,20);
  const spots=[];for(let row=0;row<3;row++)for(let i=0;i<7;i++){const x=cx-270+i*90+(row%2?45:0),y=cy+120+row*70;if(row===0&&Math.abs(x-cx)<40)continue;spots.push([x,y]);}
  folk.forEach((n,i)=>{const sp=spots[i];if(!sp)return;sc.crowd.push({n,x:n.x,y:n.y,pauseT:n.pauseT,fx:n.fx});n.x=sp[0];n.y=sp[1];n.fx=sp[0]<cx?1:-1;n.pauseT=1e9;n.moving=false;n.bubble=null;});
  const crier=W.npcs.find(n=>n.game==='crier');if(crier)crier.hidden=true;
@@ -14085,6 +14388,7 @@ function executionTick(dt){
  const sc=execution,c=S&&S.city;
  if(!sc||!c||!hero){execution=null;return;}
  sc.t+=dt;sc.pt+=dt;
+ if(sc.staged&&sc.phase!=='return'&&(!world||!zoneOf().city||!world.npcs)){cancelHallScenes();return;} /* left the square mid-scene: nothing is hanged, nothing is frozen */
  const fx=$('ritualFx'),name=S.name||'Hero',L=GALLOWS_LINES(name);
  for(const n of sc.extras)if(n.bubble&&(n.bubble.t-=dt)<=0)n.bubble=null;
  const say=(n,txt,secs)=>{if(n)n.bubble={txt,t:secs,life:secs};};
@@ -14501,7 +14805,7 @@ function ledgerBank(c,ctx){
   +(bonus&&bonus.n===x.n?ledgerBonus(bonus):'')+'</div>';
  return (v.frozen?'<div class="ledger-alert"><button class="sbtn" data-lact="goto" data-v="budget">🏦 IN THE RED by '+fmtGold(-c.treasury)+' ◉ and the line is spent. '+(v.bailiffs?'The bailiffs take something at every close until the treasury is in the black.':'One close of grace, then the bailiffs.')+' Cut the budget, raise a rate, or repay nothing until a close lands in the black.</button></div>':'')
   +'<div class="ledger-tiles">'
-  +'<div class="ledger-tile"><span>Owed to the Tides Bank</span><b class="'+(c.loan>0?'bad':'')+'">◉ '+fmtGold(v.loan)+'</b><small>'+(+(v.rate*100).toFixed(3))+'% a close · '+fmtGold(v.interest)+' ◉ in interest at the next</small></div>'
+  +'<div class="ledger-tile"><span>Owed to the Tides Bank</span><b class="'+(c.loan>0?'bad':'')+'">◉ '+fmtGold(v.loan)+'</b><small>'+(+((v.effRate!=null?v.effRate:v.rate)*100).toFixed(3))+'% a close · '+fmtGold(v.interest)+' ◉ in interest at the next</small></div>'
   +'<div class="ledger-tile"><span>The credit line</span><b>◉ '+fmtGold(v.limit)+'</b><small>room for '+fmtGold(v.room)+' ◉ more'+(f75(c)?' · a devoted council adds a tenth':'')+'</small></div>'
   +'<div class="ledger-tile"><span>Season '+q.n+' · close '+(q.closes+1)+' of '+v.length+'</span><b class="'+(q.toRepay>0?'':'pos')+'">'+(q.toRepay>0?'◉ '+fmtGold(q.toRepay)+' to repay':'✔ at the target')+'</b><small>the debt must stand at '+fmtGold(q.target)+' ◉ or less when the season closes, in '+q.left+' close'+(q.left===1?'':'s')+'</small></div></div>'
   +(picked?ledgerSeasonChart(picked,v.length,'Season '+picked.n+' · graded '+picked.grade):ledgerSeasonChart(q,v.length,'Season '+q.n+' · so far',E.projection(c,ctx)))
@@ -14743,7 +15047,10 @@ function ledgerAction(act,k,v){
  cityApplyAll();
  ledgerRefresh();renderHUD();save();
 }
+/* a newer build's city is set aside untouched (migrate): this build must not take gold for a city it will not keep */
+function cityIsNewer(){if(!(S&&S.cityNewer))return false;stageMsg('🏦 This city was saved by a newer version of Riptide - update the game to play it.',3200);sfx.warn();return true;}
 function openLedger(tab,peek=false){
+ if(cityIsNewer())return;
  if(!S||!S.city||coronation||execution)return;
  if(peek&&!(S.city.office>=3))return; /* 👁 the office first: a stranger gets no glance at the crown's books */
  ledgerPeek=!!peek;
@@ -14997,7 +15304,7 @@ let casinoAudio=null;
 function casinoAmbApply(){
  const anyOpen=['casinoMenu','slotFx','seaFx','bjFx','rouFx','rtbFx','sebbeFx','finalGateFx'].some(id=>{const e=$(id);return e&&e.classList.contains('open');})||($('gvbFx')&&$('gvbFx').style.display==='flex');
  if(anyOpen){
-  if(!casinoAudio){casinoAudio=new Audio('ambientsong/casino_ambient.mp3');casinoAudio.loop=true;}
+  if(!casinoAudio){casinoAudio=new Audio('ambientsong/casino_ambient.mp3');casinoAudio.loop=true;casinoAudio.onerror=()=>{casinoAudio=null;};} /* a dead element is dropped, so the next open makes a new one */
   const v=ambVol();casinoAudio.volume=v;casinoAudio.muted=v<=0;
   if(casinoAudio.paused)casinoAudio.play().catch(()=>{});
   if(AC.ambG&&AC.ctx){const t0=AC.ctx.currentTime;AC.ambG.gain.cancelScheduledValues(t0);AC.ambG.gain.setValueAtTime(0,t0);} /* duck the zone */
@@ -15006,7 +15313,7 @@ function casinoAmbApply(){
   if(casinoAudio)casinoAudio.pause();
   if(!anyOpen){ /* left the casino - the zone breathes again */
    applyVolumes();
-   if(gameOn){
+   if(gameOn&&!audioPaused){ /* ...unless the player paused the game and its sound */
     if(zoneOf().cow&&cowAudio)cowAudio.play().catch(()=>{});
     else if(zoneOf().amb==='odin'&&odinAudio)odinAudio.play().catch(()=>{});
     else if(zoneOf().amb==='final'&&finalAudio)finalAudio.play().catch(()=>{});
@@ -15061,7 +15368,7 @@ function renderShop(){
   <button class="sbtn gold" data-pot="mp" data-n="10" ${mpFull||totalGold()<mpC*10||inBossFight()?'disabled':''}>10x · ${(mpC*10).toLocaleString()}◉</button></div></div>`;
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Recipes</div>';
  {
-  const ringOwned=!!S.ringRecipe,ringDone=!!S.ringForged;
+  const ringOwned=!!S.ringRecipe,ringDone=!!S.ringForged||ringInForge(); /* in the fire counts as forged - the recipe was spent when it went in */
   const ringOk=!ringOwned&&!ringDone&&(S.prestige||0)>=20&&(S.rating||0)>=2500&&totalGold()>=500000;
   const ringLbl=ringDone?'💍 Forged ✦':ringOwned?'Purchased ✦':(S.rating||0)<2500?'🔒 2500 rating':(S.prestige||0)<20?'🔒 Prestige 20':'500,000◉';
   h+=`<div class="card item" style="border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.15)"><div><div class="sn" style="font-size:13px;font-weight:600;color:#ffd76a">${uiIcon('it_trinket','💍','shopico')} Recipe of the Ring</div>
@@ -15089,7 +15396,7 @@ function renderShop(){
  h+='<div class="ss" style="color:var(--dim);font-size:10.5px;margin-top:2px">Potions never drop from enemies. Potion price is fixed at 20◉ for now. Scrolls of Power are rare drops or gamble prizes.</div>';
  $('shopList').innerHTML=h;
  if($('ringRecipeBtn'))$('ringRecipeBtn').onclick=()=>{
-  if(S.ringRecipe||S.ringForged)return;
+  if(S.ringRecipe||S.ringForged||ringInForge())return;
   if((S.prestige||0)<20||(S.rating||0)<2500)return;
   if(!spendGold(500000)){stageMsg('Not enough gold - 500,000 ◉ needed',1800);sfx.warn();return;}
   S.ringRecipe=true;save();renderShop();renderHUD();
@@ -15214,6 +15521,15 @@ $('restSpinBtn').onclick=()=>{
  restSpinning=true;$('restSpinBtn').disabled=true;
  const n=REST_SEGS.length,seg=Math.PI*2/n;
  const t=Math.floor(Math.random()*n);
+ /* The result is decided now, so it is written now - the wheel only shows it. It used to be saved when the
+    spin stopped, and a reload during those 3.4 seconds threw away a poor roll along with its cooldown.
+    Rested REPLACES, it never accumulates: both fields are assigned, not added to, so a spin taken while an
+    hour is already running restarts that hour at the new percentage - exactly one hour of Rested, never more.
+    The 24h cooldown is the other half of it. */
+ const val=REST_SEGS[t],owner=S;
+ const had=S.restedT>0?Math.ceil(S.restedT/60):0, hadPct=Math.round((S.restedPct||0)*100);
+ S.restedPct=val/100;S.restedT=3600;S.restedSpinAt=Date.now();
+ save();
  const jitter=(Math.random()*0.7-0.35)*seg;
  let rotFinal=-Math.PI/2-(t*seg+seg/2)+jitter;
  while(rotFinal<restRot+Math.PI*2*4.5)rotFinal+=Math.PI*2; /* at least ~4.5 full spins */
@@ -15228,14 +15544,7 @@ $('restSpinBtn').onclick=()=>{
   if(p<1)requestAnimationFrame(tick);
   else{
    restSpinning=false;
-   const val=REST_SEGS[t];
-   /* Rested REPLACES, it never accumulates. Both fields are assigned, not added to, so a spin taken
-      while an hour is already running restarts that hour at the new percentage rather than banking
-      a second one - you can hold exactly one hour of Rested and never more. The 24h cooldown above
-      is the other half of it: without the assignment a player could log in daily and sit on a
-      growing pile of bonus XP. */
-   const had=S.restedT>0?Math.ceil(S.restedT/60):0, hadPct=Math.round((S.restedPct||0)*100);
-   S.restedPct=val/100;S.restedT=3600;S.restedSpinAt=Date.now();
+   if(S!==owner){updateRestUI();return;} /* another hero was loaded meanwhile - the roll already belongs to the one who spun */
    sfx.quest();
    stageMsg('😴 Rested - +'+val+'% XP for 1 hour!',3000);
    log(had
@@ -15253,11 +15562,11 @@ $('restSpinBtn').onclick=()=>{
 let homeTimer=null;
 function goHomeAfter(ms,msg){
  clearTimeout(homeTimer);
- const fromZone=S&&S.zone;
+ const fromZone=S&&S.zone,who=S;
  homeTimer=setTimeout(()=>{
   homeTimer=null;
   if(!gameOn||!S||!hero||hero.dead)return;   /* died on the way out - leave them be */
-  if(S.zone!==fromZone)return;               /* already travelled somewhere themselves */
+  if(S!==who||S.zone!==fromZone)return;      /* already travelled somewhere themselves - or another hero is being played now */
   if(msg)stageMsg(msg,2600);
   goHome();
  },ms);
@@ -15265,7 +15574,7 @@ function goHomeAfter(ms,msg){
 function goHome(){
  clearTimeout(homeTimer);homeTimer=null;
  if(!gameOn||!S||hero.dead)return;
- if(hcNoFlee())return;
+ if(hcNoFlee()||sceneHoldsTravel())return;
  if(mp.on)mpLeave(false);
  /* Home ALWAYS means Moonshine - a second tap never bounces you back out.
     Head back to the road via the Travel map instead. */
@@ -15377,7 +15686,9 @@ function flushCloud(){
    palace stair; buildZone reads the note. Any future interior should be stored the same way. */
 function saveSnapshot(){
  const z=ZONES[S.zone];
- return z&&z.throne?{...S,zone:CITY_ZONE,atPalace:true}:z&&z.harbor?{...S,zone:CITY_ZONE,atHarbor:true}:S;   /* ⚓ the Harbour is newer still: the same rule */
+ let snap=z&&z.throne?{...S,zone:CITY_ZONE,atPalace:true}:z&&z.harbor?{...S,zone:CITY_ZONE,atHarbor:true}:S;   /* ⚓ the Harbour is newer still: the same rule */
+ if(S.cityNewer){snap={...snap,city:S.cityNewer};delete snap.cityNewer;} /* a newer build's city goes back as it came - see migrate */
+ return snap;
 }
 /* the hero as he would be written, less the two fields every save touches: equal means nothing happened since the last save */
 const saveSig=snap=>snap.id+'|'+JSON.stringify({...snap,rev:0,savedAt:0});
@@ -15408,20 +15719,52 @@ async function saveNow(){
  memChars[S.id]=JSON.stringify(saveSnapshot());
  await deviceSet('riptide-char-'+S.id,memChars[S.id]);
  if(FB.ready&&FB.user){
+  FB.pushDirty=true; /* until it lands: a push that bounces or fails is retried by the trailing flush */
   FB.lastPush=Date.now();
   if(await cloudPushChar(saveSnapshot()))FB.pushDirty=false;
  }
  publishLB(S,true);
 }
+/* 🅿 a hero who is left with an unsent save - Change Character, a hardcore death, signing out - is
+   parked here with the account it belongs to. pushDirty is one flag for the hero being played, so
+   the next hero's first push used to clear it and the last minute of the one before never reached
+   the cloud: a phone could then carry on from the older copy and win on rev. Parked heroes go up from
+   the copy on this device, one at a time, as soon as the cloud answers. */
+function parkDirtyHero(){
+ if(S&&S.id&&FB.pushDirty&&FB.user)(FB.parked||(FB.parked={}))[S.id]=FB.user.uid;
+ FB.pushDirty=false;
+}
+async function flushParked(){
+ if(!(FB.parked&&FB.ready&&FB.user)||FB.kicked||FB.flushingParked)return;
+ FB.flushingParked=true;
+ try{
+  if(Date.now()<(FB.parkedRetryAt||0))return; /* the last try failed: wait a throttle, not a 5 s beat (each try reads the whole player doc) */
+  for(const [id,uid] of Object.entries(FB.parked)){
+   if(uid!==FB.user.uid)continue;                            /* another account's hero waits for that account */
+   if(S&&S.id===id&&gameOn){delete FB.parked[id];FB.pushDirty=true;continue;} /* back in play: its own saves carry it */
+   if(heroDeleted(id)||!memChars[id]){delete FB.parked[id];continue;}
+   let ch;try{ch=JSON.parse(memChars[id]);}catch(e){delete FB.parked[id];continue;}
+   if(await cloudPushChar(ch))delete FB.parked[id];
+   else{FB.parkedRetryAt=Date.now()+FB_PUSH_MS;break;}      /* busy, silent or refused - try again after the throttle */
+  }
+ }finally{FB.flushingParked=false;}
+}
 setInterval(()=>{ /* trailing flush - a dirty save never waits much longer than the throttle */
  if(FB.pushDirty&&Date.now()-(FB.lastPush||0)>FB_PUSH_MS)flushCloud();
+ if(FB.parked&&Object.keys(FB.parked).length)flushParked();
+ /* 🔒 a session claim that found the cloud silent at sign-in is asked again, or this device would never
+    notice being opened elsewhere - but a newer session that claimed in the meantime wins, not us */
+ if(FB.ready&&FB.user&&!sessUnsub&&!FB.kicked&&FB.claimedUid===FB.user.uid&&!FB.claiming&&Date.now()-(FB.lastClaimTry||0)>30000){
+  FB.lastClaimTry=Date.now();FB.claiming=true;
+  retrySessionClaim().finally(()=>{FB.claiming=false;});
+ }
  if(Date.now()-(FB.lastDeleteRetry||0)>FB_PUSH_MS){FB.lastDeleteRetry=Date.now();retryHeroDeletions();}
 },5000);
 /* Tab going away: pagehide is the one iOS Safari reliably fires (visibilitychange can be
    skipped entirely when the app is swiped away), so listen for both. The local save is
    already on disk and now outranks a stale cloud copy, so a missed push costs nothing but
    a delay - it goes up on the next launch. */
-const cloudBail=()=>{FB.lastPush=0;flushCloud();}; /* ignore the throttle on the way out */
+const cloudBail=async()=>{try{await save();}catch(e){}FB.lastPush=0;flushCloud();}; /* save first - the last seconds of play were only in memory, and a push of unsaved state went up under the old rev - then ignore the throttle on the way out */
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')cloudBail();});
 addEventListener('pagehide',cloudBail);
 async function loadRoster(){
@@ -15511,6 +15854,7 @@ const sessRef=()=>FB.db.collection('players').doc(FB.user.uid).collection('meta'
 async function claimSession(){
  if(!(FB.ready&&FB.user))return;
  if(FB.claimedUid===FB.user.uid&&sessUnsub)return; /* already holding it - no second write */
+ if(FB.claimedUid!==FB.user.uid)FB.claimTriedAt=Date.now(); /* when this device first asked - see retrySessionClaim */
  FB.claimedUid=FB.user.uid;
  FB.kicked=false;
  const uid=FB.user.uid,claim={activeSession:SESSION_ID,sessionAt:Date.now()};
@@ -15525,6 +15869,24 @@ async function claimSession(){
    watchSession(true);
   }catch(e2){console.warn('legacy session claim failed too',e2);}
  }
+}
+/* A claim that got no answer at sign-in is asked again from the trailing flush. A session that claimed the
+   account after this device first asked is the newer one, so this device steps aside instead of kicking it. */
+async function retrySessionClaim(){
+ if(!(FB.ready&&FB.user))return;
+ const uid=FB.user.uid;
+ let d;
+ try{
+  const doc=await cloudCall('the session check',async()=>{const x=await sessRef().get();return {exists:x.exists,data:x.exists?x.data()||{}:null};},
+   rest=>rest.get('players/'+uid+'/meta/session'),SDK_WAIT_MS);
+  d=(doc&&doc.exists&&doc.data)||{};
+ }catch(e){return;} /* still silent - the next beat asks again */
+ if(!FB.user||FB.user.uid!==uid||FB.kicked||sessUnsub)return;
+ /* another session holds it. Two devices' clocks can be minutes apart, so only a claim clearly older than this device's own
+    try (15 minutes before it: an earlier run of this very game that never let go) is taken over; anything later is the
+    newer session, and this one steps aside */
+ if(d.activeSession&&d.activeSession!==SESSION_ID&&(+d.sessionAt||0)>(FB.claimTriedAt||0)-900000){kickSession();return;}
+ await claimSession();
 }
 /* Without the live channel there is no listener, so the lock is asked for instead: one small field every 45 seconds (the read
    is masked down to activeSession, so even the legacy field on the big player document costs a few hundred bytes). Being
@@ -15565,7 +15927,9 @@ function kickSession(){
 }
 
 let seasonReady=false;
-function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('load failed '+src));document.head.appendChild(s);});}
+/* a script tag has no deadline of its own: a CDN request that hangs would hold the boot for ever. 15 s, then it counts as failed
+   (FB.tried is reset on failure, so the next Sign in tries the load again). */
+function loadScript(src,ms=15000){return new Promise((res,rej)=>{const s=document.createElement('script');const t=setTimeout(()=>rej(new Error('load timed out '+src)),ms);s.src=src;s.onload=()=>{clearTimeout(t);res();};s.onerror=()=>{clearTimeout(t);rej(new Error('load failed '+src));};document.head.appendChild(s);});}
 async function initFirebase(){
  if(FB.tried)return FB.ready;
  FB.tried=true;
@@ -15595,7 +15959,7 @@ async function initFirebase(){
     if(first){first=false;resolve();}
    },()=>{if(first){first=false;resolve();}});
   });
- }catch(e){console.warn('Firebase unavailable:',e);FB.ready=false;}
+ }catch(e){console.warn('Firebase unavailable:',e);FB.ready=false;FB.tried=false;} /* the next Sign in tries the load again */
  updateAcctUI();
  return FB.ready;
 }
@@ -15611,7 +15975,11 @@ async function fbForgotPass(){
   err.textContent='📧 Password reset sent to '+em+' - check your inbox (and spam).';
  }catch(e){err.textContent=((e&&e.message)||'Could not send reset email.').replace('Firebase: ','');}
 }
+let fbSigningIn=false; /* one sign-in at a time: a held Enter or a double click used to start several, each running the whole way in */
 async function fbSignIn(create){
+ if(fbSigningIn)return;
+ fbSigningIn=true;
+ try{
  const em=$('fbEmail').value.trim(),pw=$('fbPass').value;
  $('fbErr').style.color='#ff8a7a';$('fbErr').textContent='';
  if(!em||!pw){$('fbErr').textContent='Enter an email and password.';return;}
@@ -15630,6 +15998,7 @@ async function fbSignIn(create){
   if(!$('select').classList.contains('open')&&!gameOn)$('login').classList.add('open');
   $('fbErr').textContent=((e&&e.message)||'Sign-in failed.').replace('Firebase: ','');
  }finally{FB.formSignIn=false;}
+ }finally{fbSigningIn=false;}
 }
 /* A failed push used to vanish into console.warn, so a save that Firestore rejects outright
    (document over 1 MiB, or past the 40k index-entries-per-document ceiling) looked exactly
@@ -15708,6 +16077,9 @@ async function cloudCall(what,viaSdk,viaRest,ms,isWrite){
   if(r.ok)return r.value;
   const code=r.error&&r.error.code;
   if(r.failed&&code!=='unavailable'&&code!=='deadline-exceeded')throw r.error;
+  /* a raid or a duel is riding the live channel this very moment - its listeners are the proof that the channel works.
+     A slow save must not switch it off under them: this one call goes by plain request and the session stays live. */
+  if((typeof mp!=='undefined'&&mp.on)||(typeof gvb!=='undefined'&&gvb.ref)){const rc=restCloud();if(!rc)throw r.error||new Error('the cloud did not answer');return viaRest(rc);}
   if(!goRest(what))throw r.error||new Error('the cloud did not answer');
  }
  return viaRest(restCloud());
@@ -15762,7 +16134,11 @@ async function cloudPushChar(ch){
  FB.pushing=Date.now();
  try{
   const uid=FB.user.uid,remote=await cloudGetPlayer(uid);
-  if(!FB.user||FB.user.uid!==uid){FB.pushing=0;return false;}
+  const rd=(remote.exists&&remote.data)||{};
+  if(!FB.user||FB.user.uid!==uid||(remote.exists&&+rd.season>+SEASON)){FB.pushing=0;return false;} /* the account changed under us - or the doc is a newer build's season, which this build leaves alone */
+  /* an older season's doc that the pull could not fix: its heroes are retired in this very write */
+  const retire=(remote.exists&&String(rd.season||'')!==String(SEASON))?[...new Set([...(Array.isArray(rd.retired)?rd.retired:[]),...Object.keys(rd.chars||{}).filter(id=>id!==ch.id&&+(((rd.chars||{})[id]||{}).season||0)!==+SEASON)])]:null;
+  if(retire)FB.lastRoster=null; /* the season line must be written with it */
   const gone=remote.exists&&remote.data.deletedChars&&remote.data.deletedChars[ch.id];
   if(gone||heroDeleted(ch.id)){
    rememberDeletion(uid,ch.id,gone||Date.now(),false);await removeDeletedLocal(uid,ch.id);
@@ -15770,16 +16146,17 @@ async function cloudPushChar(ch){
   }
   const ids=(await loadRoster()).filter(id=>!heroDeleted(id));
   const rosterJson=JSON.stringify(ids),copy=JSON.parse(JSON.stringify(ch));
+  copy.season=SEASON; /* the hero says which season it belongs to - see the season change in cloudPullRoster */
   await cloudCall('the save of '+(ch.name||ch.id),async()=>{
    const ref=FB.db.collection('players').doc(uid);
    try{
     if(FB.lastRoster!==rosterJson){ /* the roster only changes on create/delete - skip the extra write otherwise */
-     await ref.set({season:SEASON,roster:ids,updatedAt:Date.now()},{merge:true});
+     await ref.set({season:SEASON,roster:ids,...(retire?{retired:retire}:{}),updatedAt:Date.now()},{merge:true});
      FB.lastRoster=rosterJson;
     }
     await ref.update({['chars.'+ch.id]:copy,updatedAt:Date.now()});
    }catch(inner){ /* first push ever - the doc may not exist yet */
-    await ref.set({season:SEASON,roster:ids,updatedAt:Date.now()},{merge:true});
+    await ref.set({season:SEASON,roster:ids,...(retire?{retired:retire}:{}),updatedAt:Date.now()},{merge:true});
     FB.lastRoster=rosterJson;
     await ref.update({['chars.'+ch.id]:copy,updatedAt:Date.now()});
    }
@@ -15788,7 +16165,8 @@ async function cloudPushChar(ch){
       masked paths of the document are touched, and a document that is not there yet is created. */
    const fresh=FB.lastRoster!==rosterJson,mask=[['chars',ch.id],['updatedAt']];
    if(fresh)mask.push(['season'],['roster']);
-   await rest.patch('players/'+uid,{...(fresh?{season:SEASON,roster:ids}:{}),chars:{[ch.id]:copy},updatedAt:Date.now()},mask);
+   if(retire)mask.push(['retired']);
+   await rest.patch('players/'+uid,{...(fresh?{season:SEASON,roster:ids}:{}),...(retire?{retired:retire}:{}),chars:{[ch.id]:copy},updatedAt:Date.now()},mask);
    FB.lastRoster=rosterJson;
    if(FB.restChecked!==uid){FB.restChecked=uid;await restReadBack(rest,uid,copy);}
   },SDK_WRITE_MS,true);
@@ -15813,8 +16191,10 @@ async function cloudDeleteChar(id){
   const ids=await loadRoster();
   if(FB.cloudSeen&&FB.cloudSeen.chars)delete FB.cloudSeen.chars[id]; /* gone on purpose: the read-back must not put him back */
   /* by plain request a masked path that is missing from the body is a delete - chars.<id> is named and not sent */
-  await cloudCall('the deleting of a hero',()=>FB.db.collection('players').doc(uid).set({season:SEASON,roster:ids,chars:{[id]:firebase.firestore.FieldValue.delete()},deletedChars:{[id]:at},updatedAt:Date.now()},{merge:true}),
-   rest=>rest.patch('players/'+uid,{season:SEASON,roster:ids,deletedChars:{[id]:at},updatedAt:Date.now()},[['season'],['roster'],['chars',id],['deletedChars',id],['updatedAt']]),SDK_WRITE_MS,true);
+  /* no season line here: this write does not read the doc, and relabelling an older season's doc is what brought its
+     heroes back - the pull and cloudPushChar take a doc into a new season, with its old heroes retired */
+  await cloudCall('the deleting of a hero',()=>FB.db.collection('players').doc(uid).set({roster:ids,chars:{[id]:firebase.firestore.FieldValue.delete()},deletedChars:{[id]:at},updatedAt:Date.now()},{merge:true}),
+   rest=>rest.patch('players/'+uid,{roster:ids,deletedChars:{[id]:at},updatedAt:Date.now()},[['roster'],['chars',id],['deletedChars',id],['updatedAt']]),SDK_WRITE_MS,true);
   const lbid='s'+SEASON+'_'+uid+'_'+id,entry={season:SEASON,cid:id,deleted:true,score:-1};
   await cloudCall('the deleted leaderboard entry',()=>FB.db.collection('leaderboard').doc(lbid).set(entry),rest=>rest.patch('leaderboard/'+lbid,entry),SDK_WAIT_MS,true);
   rememberDeletion(uid,id,at,false);FB.lastRoster=null;
@@ -15864,16 +16244,31 @@ async function cloudPullRoster(job){
   if(!doc.exists)return true;
   const data=doc.data||{};
   FB.cloudSeen={uid,chars:JSON.parse(JSON.stringify(data.chars||{}))}; /* what the cloud held at sign-in - see restReadBack */
-  if(String(data.season||'')!==String(SEASON))return true; /* ignore pre-season/old-season cloud saves */
+  if(String(data.season||'')!==String(SEASON)){ /* ignore pre-season/old-season cloud saves */
+   if(+data.season>+SEASON)return true;      /* a newer build's season: this build only reads it (cloudPushChar will not write) */
+   /* 🗓 an older season's document. Its heroes are over: write them down as retired - nothing is deleted - and take the
+      document into this season in the same write. The first save used to relabel it without a word, and the next pull
+      then took every old hero for this season's. */
+   /* only heroes that are not stamped with THIS season: a build from before the bump can relabel the doc back, and this
+      season's own heroes must not be retired with the old ones */
+   const retired=[...new Set([...(Array.isArray(data.retired)?data.retired:[]),...Object.keys(data.chars||{}).filter(id=>+(((data.chars||{})[id]||{}).season||0)!==+SEASON)])];
+   try{
+    await cloudCall('the season change',()=>FB.db.collection('players').doc(uid).set({season:SEASON,retired,updatedAt:Date.now()},{merge:true}),
+     rest=>rest.patch('players/'+uid,{season:SEASON,retired,updatedAt:Date.now()},[['season'],['retired'],['updatedAt']]),SDK_WRITE_MS,true);
+   }catch(e){console.warn('cloud: the season change was not written',e);}
+   return true;
+  }
+  const retired=new Set(Array.isArray(data.retired)?data.retired:[]); /* heroes of seasons gone by stay in the doc, unread - unless the hero itself says it is of this season */
   for(const [id,at] of Object.entries(data.deletedChars||{}))rememberDeletion(uid,id,at,!!(deletedHeroes(uid)[id]||{}).pending);
   for(const id of Object.keys(deletedHeroes(uid)))await removeDeletedLocal(uid,id);
   await retryHeroDeletions();
   const remoteChars=data.chars||{},ids=await loadRoster(),ahead=[];
   let changed=false;
   for(const [id,raw] of Object.entries(remoteChars)){
-   if(heroDeleted(id))continue;
+   if(heroDeleted(id)||(retired.has(id)&&+((raw&&raw.season)||0)!==+SEASON))continue;
    const rr=+((raw&&raw.rev)||0); /* read rev off the raw doc - migrate() would zero it */
-   const ch=migrate(raw);if(!ch||!ch.id)continue;
+   let ch;try{ch=migrate(raw);}catch(e){console.error('cloud: hero '+id+' could not be read - skipped',e);continue;} /* one damaged hero must not cost the others their pull */
+   if(!ch||!ch.id)continue;
    const local=await loadChar(ch.id);
    const lr=+((local&&local.rev)||0);
    /* Higher rev wins; on a tie this device keeps what it has and pushes it up instead.
@@ -15938,7 +16333,7 @@ async function publishLB(ch,force){
   hardcore:!!ch.hardcore,hcDead:!!ch.hcDead,gender:ch.gender||'m',
   title:characterTitle(ch),outfit:heroOutfit(ch),hideWeapon:!!ch.hideWeapon,hideRing:!!ch.hideRing,hidePet:!!ch.hidePet,
   rating:ch.rating||0,
-  race:ch.race||'human',cls:ch.cls||'warrior',zone:ch.zone||0,
+  race:ch.race||'human',cls:ch.cls||'warrior',zone:(ZONES[ch.zone]&&(ZONES[ch.zone].throne||ZONES[ch.zone].harbor))?CITY_ZONE:(ch.zone||0), /* the halls are rooms of the City - an older build's table stops before them */
   pet:ch.pet||null,
   scroll:(ch.activeScrolls||[]).filter(Boolean)[0]||null,
   scrolls:(ch.activeScrolls||[]).filter(Boolean).map(sc=>sc.id2?{id:sc.id,tier:sc.tier||1,id2:sc.id2,tier2:sc.tier2||1}:{id:sc.id,tier:sc.tier||1}),
@@ -15951,7 +16346,7 @@ async function publishLB(ch,force){
  const send=(async()=>{
  if(FB.ready&&FB.user){
   const id='s'+SEASON+'_'+FB.user.uid+'_'+ch.id; /* (showLeaderboard awaits this: a bare set() on a dead channel never opened the board) */
-  await cloudCall('the leaderboard entry',()=>FB.db.collection('leaderboard').doc(id).set(entry),rest=>rest.patch('leaderboard/'+id,entry),SDK_WAIT_MS);
+  await cloudCall('the leaderboard entry',()=>FB.db.collection('leaderboard').doc(id).set(entry),rest=>rest.patch('leaderboard/'+id,entry),SDK_WAIT_MS,true); /* a write: a queued older entry must not land after a newer one */
  }else{
   if(!window.storage)return;
   await window.storage.set('lb:s'+SEASON+':'+ch.id,JSON.stringify(entry),true);
@@ -15982,7 +16377,10 @@ async function fetchLB(){
  }catch(e){}
  return [];
 }
-const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const esc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+/* a hero's name travels to other players' screens, so it is kept to plain text: no markup characters,
+   no control characters, 14 at most - the input's maxlength is only a hint to an honest client */
+function cleanHeroName(s){return String(s||'').replace(/[<>&"'`\\\u0000-\u001f\u007f]/g,'').trim().slice(0,14);}
 const RARCOL={common:'#d8e4d6',fine:'#6dbb6d',rare:'#5b9bd5',epic:'#c9a0ff',legendary:'#ffd100'};
 function renderInspect(e){
  const st=e.stats||{};
@@ -15997,7 +16395,7 @@ function renderInspect(e){
   let s=`${g.up?'+'+g.up+' · ':''}${g.atk?'+'+g.atk+' ATK ':''}${g.hp?'+'+g.hp+' HP ':''}${cr?'+'+cr+'% CRIT ':''}${g.haste?'+'+Math.round(g.haste*100)+'% ATK SPEED ':''}${ls?'+'+Math.round(ls*1000)/10+'% LIFESTEAL ':''}${g.dmgMul?'+'+Math.round(g.dmgMul*100)+'% DAMAGE ':''}${g.bossDmg?'+'+g.bossDmg+'% BOSS DMG ':''}${g.armor?'+'+Math.round(g.armor*100)+'% ARMOR ':''}${g.manadrain?Math.round(g.manadrain*100)+'% MANA DRAIN ':''}`.trim();
   return `<div class="slot"${wr?` style="border-color:${wr.glow}66"`:''}>
    <div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div>
-   <div class="sn" style="color:${RARCOL[g.rar]||'#fff'}">${esc(displayItemName(g.name))}${g.legend&&g.star?` <span style="color:#ffd76a">★${g.star}</span>`:''}</div>
+   <div class="sn" style="color:${RARCOL[g.rar]||'#fff'}">${esc(displayItemName(g.name))}${g.legend&&g.star?` <span style="color:#ffd76a">★${esc(g.star)}</span>`:''}</div>
    <div class="ss">${esc(s)}</div>
    ${wr?`<div class="en" style="color:${wr.glow}"><span class="glowdot" style="background:${wr.glow};box-shadow:0 0 6px ${wr.glow}"></span>${uiIcon(wr.icon,'✨','shopico')} ${esc(wr.n)}</div>
     <div class="ss" style="font-style:italic">${esc(wr.flavour)}</div>`:''}</div>`;
@@ -16019,10 +16417,10 @@ function renderInspect(e){
  </div>`;
  return `<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--line)">
   <div class="statgrid" style="margin-bottom:8px">
-   <div class="stat"><b>${st.hp||'?'}</b><span>Max health</span></div>
-   <div class="stat"><b>${st.mana||'?'}</b><span>Max mana</span></div>
-   <div class="stat"><b>${st.atk||'?'}</b><span>Attack</span></div>
-   <div class="stat"><b>${st.crit!=null?st.crit+'%':'?'}</b><span>Crit chance</span></div>
+   <div class="stat"><b>${esc(st.hp||'?')}</b><span>Max health</span></div>
+   <div class="stat"><b>${esc(st.mana||'?')}</b><span>Max mana</span></div>
+   <div class="stat"><b>${esc(st.atk||'?')}</b><span>Attack</span></div>
+   <div class="stat"><b>${st.crit!=null?esc(st.crit)+'%':'?'}</b><span>Crit chance</span></div>
   </div>
   <div class="slotrow">${gearRow('weapon')}${gearRow('armor')}${gearRow('trinket')}</div>
   <div class="slotrow" style="margin-top:8px">${scHtml}${petHtml}</div>
@@ -16053,8 +16451,8 @@ async function showLeaderboard(refresh=false){
    <div class="lbrank big">${i+1}</div>
    <canvas class="portrait" width="64" height="76" data-lbp="${i}"></canvas>
    <div class="cinfo">
-    <div class="cn">${esc((e.title?e.title+' ':'')+(e.name||'?'))}${e.hardcore?` <span style="color:#ff5a5a;font-weight:700">💀 (HARDCORE${e.hcDead?' · FALLEN':''})</span>`:''}${e.rating?` <span style="color:var(--brass)">(${e.rating})</span>`:''}${e.prestige?` <span class="pstar">✦ Prestige ${e.prestige}</span>`:''}</div>
-    <div class="cl">${r&&c?esc(r.name+' '+c.name)+' · ':''}Level ${e.lvl||1}</div>
+    <div class="cn">${esc((e.title?e.title+' ':'')+(e.name||'?'))}${e.hardcore?` <span style="color:#ff5a5a;font-weight:700">💀 (HARDCORE${e.hcDead?' · FALLEN':''})</span>`:''}${e.rating?` <span style="color:var(--brass)">(${esc(e.rating)})</span>`:''}${e.prestige?` <span class="pstar">✦ Prestige ${esc(e.prestige)}</span>`:''}</div>
+    <div class="cl">${r&&c?esc(r.name+' '+c.name)+' · ':''}Level ${esc(e.lvl||1)}</div>
     <div class="cl">⚔ ${fmtGS(e.gs)} gear score · ${esc(zn)}</div>
    </div>
    <button class="sbtn gold" data-insp="${i}">🔍 Inspect</button>
@@ -16115,7 +16513,7 @@ function showLogin(msg=''){
 /* ==================== CHARACTER SELECT ==================== */
 function drawPortrait(cnv,ch){
  const g=cnv.getContext('2d'),W=cnv.width,H=cnv.height;
- const r=RACES.find(x=>x.id===(RACE_ALIAS[ch.race]||ch.race)),c=CLASSES.find(x=>x.id===(CLASS_ALIAS[ch.cls]||ch.cls));
+ const r=RACES.find(x=>x.id===(RACE_ALIAS[ch.race]||ch.race))||RACES[0],c=CLASSES.find(x=>x.id===(CLASS_ALIAS[ch.cls]||ch.cls))||CLASSES[0];
  const bg=g.createLinearGradient(0,0,0,H);
  bg.addColorStop(0,'#41301f');bg.addColorStop(1,'#1a120c');
  g.fillStyle=bg;g.fillRect(0,0,W,H);
@@ -16168,7 +16566,7 @@ async function renderSelect(){
   return;
  }
  const cardOf=ch=>{
-  const r=RACES.find(x=>x.id===(RACE_ALIAS[ch.race]||ch.race)),c=CLASSES.find(x=>x.id===(CLASS_ALIAS[ch.cls]||ch.cls));
+  const r=RACES.find(x=>x.id===(RACE_ALIAS[ch.race]||ch.race))||RACES[0],c=CLASSES.find(x=>x.id===(CLASS_ALIAS[ch.cls]||ch.cls))||CLASSES[0]; /* a race or class from a newer build must not empty the whole list - the 2026-09-19 zone crash had the same shape */
   const hcDead=ch.hardcore&&ch.hcDead;
   return `<div class="card charcard"${hcDead?' style="opacity:.5;filter:grayscale(.8)"':''}>
    <canvas class="portrait" width="64" height="76" data-pc="${ch.id}"></canvas>
@@ -16232,6 +16630,11 @@ async function renderSelect(){
  $('newCharBtn').style.display=chars.length>=8?'none':'block';
 }
 function showSelect(){
+ dropFarmBuild(); /* the cart and any held piece belong to the hero being left */
+ cancelHallScenes(); /* and so does any scene */
+ parkDirtyHero(); /* and its unsent save, which goes up on its own */
+ if(mp.on)mpLeave(false); /* and its raid room - left open, it went on writing and moving the next hero */
+ if(gvb.ref)gvbLeaveForSwitch(); /* and its duel: a stake on the table is forfeited, as Leave does */
  dismissHeroGuide();
  TideUI.leaveZone();
  gameOn=false;
@@ -16265,7 +16668,7 @@ renderPicks();
 $('cname').oninput=()=>{$('cname').classList.remove('nameerr');$('cnameErr').style.display='none';};
 async function createHero(hardcore){
  initAudio();
- const name=$('cname').value.trim();
+ const name=cleanHeroName($('cname').value);
  if(!name){
   /* no silent BYYYYL default - the player must actually pick a name */
   $('cname').classList.remove('nameerr');void $('cname').offsetWidth; /* restart the shake */
@@ -16306,7 +16709,13 @@ $('startHcBtn').onclick=()=>{
 };
 $('createBack').onclick=()=>{$('create').style.display='none';$('create').classList.remove('open');showSelect();};
 $('newCharBtn').onclick=()=>showCreate(false);
-$('charSelBtn').onclick=async()=>{if(hcNoFlee())return;await save();showSelect();};
+/* a round on a casino table belongs to the hero who paid for it: its payout (and a bought bonus) must not land on the next one */
+function casinoRoundOpen(){
+ const busy=seaSpinning||slotSpinning||bjLive||bjResolving||rouSpinning||rtbLive||cupState==='shuffling'||cupState==='picking';
+ if(busy){stageMsg('Finish the game on the table first.',1600);sfx.warn();}
+ return busy;
+}
+$('charSelBtn').onclick=async()=>{if(hcNoFlee()||sceneHoldsTravel()||casinoRoundOpen())return;dropFarmBuild();await save();showSelect();}; /* dropFarmBuild first: a half-dragged resize was saved into the hero being left */
 $('fbLogin').onclick=()=>fbSignIn(false);
 $('fbSignup').onclick=()=>fbSignIn(true);
 $('fbForgot').onclick=fbForgotPass;
@@ -16358,7 +16767,7 @@ let settingsReturnFocus=null;
 function closeSettings(){
  $('cfgBox').classList.remove('open');
  $('cfgBtn').setAttribute('aria-expanded','false');
- if(sizeItem){const it=farmListOf(sizeItem.kind)[sizeItem.i];if(it){sizeItem.sc0=scaleOf(it);sizeItem.d0=null;}}
+ if(sizeItem){const it=farmPiece(sizeItem);if(it){sizeItem.sc0=scaleOf(it);sizeItem.d0=null;}}
  if(settingsReturnFocus?.isConnected)settingsReturnFocus.focus({preventScroll:true});
  settingsReturnFocus=null;
 }
@@ -16524,7 +16933,9 @@ $('exitBtn').onclick=async()=>{
     window goes - the whole point of leaving from a menu rather than by closing it. */
  const b=$('exitBtn');
  b.disabled=true;b.textContent='Saving…';
- try{if(gameOn)await within(saveNow(),6000,'the last save before quitting');}catch(e){}   /* it is on this device either way (saveNow writes that first) */
+ dropFarmBuild(); /* the build tools are put down before the last save - an armed resize must not be saved half-dragged */
+ try{if(S&&S.id&&!heroDeleted(S.id))await within(saveNow(),6000,'the last save before quitting');}catch(e){}   /* it is on this device either way (saveNow writes that first) - even from a hardcore death screen */
+ try{await within(flushParked(),6000,'the saves of heroes left earlier');}catch(e){}   /* and any hero left earlier goes up too */
  if(window.desktop&&window.desktop.quit)window.desktop.quit().catch(()=>{});
  else location.reload();
 };
@@ -16532,7 +16943,7 @@ $('exitBtn').onclick=async()=>{
    In a browser tab there is nothing to quit either, so the button never shows there. */
 if(window.desktop&&window.desktop.quit){
  $('selExitBtn').style.display='block';
- $('selExitBtn').onclick=()=>window.desktop.quit().catch(()=>{});
+ $('selExitBtn').onclick=async()=>{try{await within(flushParked(),6000,'the last saves before quitting');}catch(e){}window.desktop.quit().catch(()=>{});};
 }
 /* ⏱ Vsync is desktop-only: it is switched off by command-line flags that must be set before Electron
    starts, so the box records the wish and the next launch honours it. Left on, frames are paced to
@@ -16602,6 +17013,7 @@ $('musBtn').onclick=()=>{
  if(odinAudio){if(audioPaused)odinAudio.pause();else if(gameOn&&zoneOf().amb==='odin')odinAudio.play().catch(()=>{});}
  if(cryptAudio){if(audioPaused)cryptAudio.pause();else if(gameOn&&zoneOf().crypts)cryptAudio.play().catch(()=>{});}
  if(finalAudio){if(audioPaused)finalAudio.pause();else if(gameOn&&zoneOf().amb==='final')finalAudio.play().catch(()=>{});}
+ if(ambAudio){if(audioPaused)ambAudio.pause();else if(gameOn&&AC.prof==='world')ambAudio.play().catch(()=>{});} /* the ordinary zones' track is an <audio> element too - suspending the context never touched it */
  const pauseButton=$('musBtn');pauseButton.dataset.paused=String(audioPaused);pauseButton.classList.toggle('off',audioPaused);
  pauseButton.title=audioPaused?'Resume game and audio':'Pause game and audio';pauseButton.setAttribute('aria-label',pauseButton.title);pauseButton.setAttribute('aria-pressed',String(audioPaused));
  stageMsg(audioPaused?'Game paused':'Game resumed',1200);
@@ -16703,6 +17115,8 @@ function bootPreload(){
 }
 bootPreload();
 function beginGame(isNew){
+ dropFarmBuild();cancelHallScenes();
+ ledgerSeasonPick=null;seasonChartData=null; /* the last hero's chosen season is not this hero's */
  dismissHeroGuide();
  if(isNew)S.introPending=true;
  const needsGuide=S.introPending===true;
@@ -16719,10 +17133,10 @@ function beginGame(isNew){
  bankTick();
  smithTick();
  if(isNew){
-  log(`<span class="imp">${S.name} the ${classOf().name}</span> arrives in ${zoneOf().name}.`);
+  log(`<span class="imp">${esc(S.name)} the ${classOf().name}</span> arrives in ${zoneOf().name}.`);
   stageMsg('Welcome to Riptide - spells are 1/2/3, potions 4/5.',3000);
   save();
- }else log(`<span class="imp">Welcome back, ${S.name}.</span> The march resumes.`);
+ }else log(`<span class="imp">Welcome back, ${esc(S.name)}.</span> The march resumes.`);
  if(needsGuide){showHeroGuide();saveNow();}
 }
 /* Effects were written as "X% chance this frame", which quietly ties their density to the frame
@@ -16739,6 +17153,11 @@ let lastT=0;
 let fpsN=0,fpsT=0;
 const cityMinimap=CityMinimap.create($('cityMinimap'));
 function frame(t){
+ /* The next frame is asked for FIRST, and the frame runs inside a try: requestAnimationFrame used to be the last line, so
+    one exception anywhere in update() or draw() stopped the game for good - a trip on the map mid-coronation did exactly
+    that. Now the loop survives it, and the first few faults are written down (error.log in the desktop build). */
+ requestAnimationFrame(frame);
+ try{
  const dt=Math.min(0.05,(t-lastT)/1000||0.016);lastT=t;
  frameDt=dt;
  fpsN++;fpsT+=dt;
@@ -16755,6 +17174,7 @@ function frame(t){
   TideUI.afterDraw();
  }else if(gameOn&&(gamePaused||guideOpen)){
   if(guideOpen){padNow=padStick();padTick(dt);}
+  else{padNow=null;padTick(dt);} /* paused: the pad can still close a box on screen and open the settings - Start used to do nothing */
   draw();
   if(!guideOpen){
   ctx.fillStyle='rgba(5,10,8,0.55)';ctx.fillRect(0,0,VW,VH);
@@ -16764,7 +17184,10 @@ function frame(t){
   }
  }
  cityMinimap.update(world,hero,gameOn&&S&&!ZONES[S.zone]?.dungeon&&!!(ZONES[S.zone]?.city||ZONES[S.zone]?.wasteland),t);
- requestAnimationFrame(frame);
+ }catch(e){
+  frame.faults=(frame.faults|0)+1;
+  if(frame.faults<=20)try{console.error('frame: '+String((e&&e.stack)||e));}catch(_){}
+ }
 }
 const sidebarResize=SidebarResize.create({handle:$('sideResize'),app:$('app'),
  onDragStart(){
@@ -16773,7 +17196,7 @@ const sidebarResize=SidebarResize.create({handle:$('sideResize'),app:$('app'),
  },
  onDragEnd(){
   /* Resume the farm size tool from the new viewport without resizing its item. */
-  if(sizeItem){const it=farmListOf(sizeItem.kind)[sizeItem.i];if(it){sizeItem.sc0=scaleOf(it);sizeItem.d0=null;}}
+  if(sizeItem){const it=farmPiece(sizeItem);if(it){sizeItem.sc0=scaleOf(it);sizeItem.d0=null;}}
  }
 });
 let stageResizeFrame=0;

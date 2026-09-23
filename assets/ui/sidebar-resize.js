@@ -38,6 +38,7 @@
    document.body.classList.remove('side-resizing');
    if(handle.hasPointerCapture(id))handle.releasePointerCapture(id);
    persist();onDragEnd();
+   if(document.activeElement===handle)handle.blur(); /* a mouse drag hands the keyboard back to the game - W, 1, E and Esc went nowhere until the map was clicked */
   }
   function sync(){
    if(!available())finish();
@@ -70,11 +71,11 @@
   handle.addEventListener('click',stop);
   handle.addEventListener('dblclick',e=>{e.stopPropagation();e.preventDefault();if(available())reset();});
   handle.addEventListener('keydown',e=>{
-   e.stopPropagation();
    if(!available())return;
    const step=e.shiftKey?60:20,{min,max}=limits(window.innerWidth);
    const next={ArrowLeft:width+step,ArrowRight:width-step,Home:min,End:max}[e.key];
-   if(next===undefined)return;
+   if(next===undefined)return; /* only the keys the handle uses stop here - every other key still reaches the game */
+   e.stopPropagation();
    e.preventDefault();preferred=fit(next,window.innerWidth);apply();persist();
   });
   window.addEventListener('resize',()=>{finish();sync();});

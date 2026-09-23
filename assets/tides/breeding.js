@@ -56,14 +56,22 @@
     }
     return result;
   }
-  function isParentLocked(c, id) { return jobs(c).some(job => job.parentAId === id || job.parentBId === id); }
+  // a clutch saved by a newer build (its offspring's species unknown here) is kept as written: its incubator stays taken
+  // and its parents stay busy, or this build could fill the station with a second clutch and the newer one would drop it
+  const foreignJobs = c => Array.isArray(c?.foreignJobs) ? c.foreignJobs.filter(job => job && typeof job === 'object') : [];
+  function isParentLocked(c, id) { return [...jobs(c), ...foreignJobs(c)].some(job => job && (job.parentAId === id || job.parentBId === id)); }
   function eligibleParents(c, options = {}) {
     const T = getTides(), now = nowOf(options);
     return (c?.pets || []).filter(pet => { const species = T.getSpecies(pet); return species && !species.hybrid && !T.remainingInjury(pet, now) && !isParentLocked(c, pet.id); });
   }
   function status(c, stationId, now = Date.now()) {
     const job = jobs(c).find(item => item.stationId === stationId);
-    if (!job) return null;
+    if (!job) {
+      const kept = foreignJobs(c).find(item => item.stationId === stationId);
+      return kept ? {id: kept.id, stationId, parentAId: kept.parentAId, parentBId: kept.parentBId, startedAt: +kept.startedAt || 0,
+        readyAt: +kept.readyAt || 0, remainingMs: Math.max(0, (+kept.readyAt || 0) - nowOf({now})), ready: false, revealed: false,
+        phase: 'incubating', offspring: null, foreign: true} : null;
+    }
     const remainingMs = Math.max(0, job.readyAt - nowOf({now})), ready = remainingMs === 0, revealed = ready && job.revealed === true;
     return {id: job.id, stationId: job.stationId, parentAId: job.parentAId, parentBId: job.parentBId,
       startedAt: job.startedAt, readyAt: job.readyAt, remainingMs, ready, revealed,
@@ -73,7 +81,7 @@
     const T = getTides(), now = nowOf(options);
     if (!c || !validId(stationId)) return {ok: false, reason: 'station'};
     if (c.activeBattle) return {ok: false, reason: 'battle'};
-    if (jobs(c).some(job => job.stationId === stationId)) return {ok: false, reason: 'busy'};
+    if ([...jobs(c), ...foreignJobs(c)].some(job => job.stationId === stationId)) return {ok: false, reason: 'busy'};
     if (parentAId === parentBId) return {ok: false, reason: 'same'};
     const a = c.pets?.find(p => p.id === parentAId), b = c.pets?.find(p => p.id === parentBId);
     if (!a || !b) return {ok: false, reason: 'unowned'};
@@ -91,7 +99,7 @@
     let nextId = Math.max(1, integer(c.nextId, 1)), petId;
     do { petId = 'tide-' + nextId++; } while (c.pets.some(p => p.id === petId) || jobs(c).some(j => j.offspring.id === petId));
     let nextBreedingId = Math.max(1, integer(c.nextBreedingId, 1)), id;
-    do { id = 'breed-' + nextBreedingId++; } while (jobs(c).some(j => j.id === id));
+    do { id = 'breed-' + nextBreedingId++; } while ([...jobs(c), ...foreignJobs(c)].some(j => j.id === id));
     const readyAt = now + duration;
     const offspring = {id: petId, speciesId: species.id, level: CONFIG.OFFSPRING_LEVEL, xp: 0,
       caughtAt: readyAt, injuredUntil: 0, favorite: false, mutations};

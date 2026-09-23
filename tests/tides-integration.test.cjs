@@ -138,7 +138,7 @@ test('a Tide battle continues polling the controller while stopping world simula
 });
 
 test('controller interaction offers a nearby wild animal through the same challenge UI',()=>{
- const h=harness(),c=h.context;c.zone={wasteland:true};c.world=W.create();h.hero.x=75200;h.hero.y=39000;
+ const h=harness(),c=h.context;c.zone={wasteland:true};c.world=W.create();h.hero.x=75200;h.hero.y=39000;c.hallSceneHolds=()=>false;
  scriptedWild(h,{id:'controller-rare',speciesId:'spectralpanther',level:30,x:75300,y:39000,expiresAt:Date.now()+300000});
  vm.runInContext(section('function padInteract(){','/* B backs out.'),c);
  const near=c.padInteract();assert.ok(near,'controller can select the nearby neutral animal');assert.equal(near.s.id,'controller-rare');

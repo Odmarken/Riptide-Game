@@ -21,7 +21,8 @@ function harness() {
   buildZone:()=>buildPauses.push(context.gamePaused),buildSkillbar:noop,renderHUD:noop,
   syncAudioUI:noop,applyVolumes:noop,setTimeout:noop,preloadMaps:noop,bankTick:noop,smithTick:noop,
   log:noop,stageMsg:noop,classOf:()=>({name:'Warrior'}),zoneOf:()=>({name:'Fields'}),
-  save:()=>saves.push({...context.S}),saveNow:()=>saves.push({...context.S})
+  save:()=>saves.push({...context.S}),saveNow:()=>saves.push({...context.S}),
+  dropFarmBuild:noop,cancelHallScenes:noop,esc:t=>String(t)
  });
  vm.runInContext(section('let heroGuideOwner=null;', '// The guide pauses all gameplay'), context);
  vm.runInContext(section('function beginGame(isNew){', '/* Effects were written as'), context);

@@ -42,11 +42,14 @@ test('unknown, unaffordable and unowned choices leave money and ownership unchan
 });
 
 test('old saves normalize safely and ownership survives JSON reload without inheriting a temporary ride',()=>{
- for(const value of [null,undefined,{},[],{owned:'horse'},{owned:['unknown'],equipped:'unknown'}])
+ for(const value of [null,undefined,{},[],{owned:'horse'}])
   assert.deepEqual(M.normalize(value),{owned:[],equipped:null});
+ /* a mount this build does not know is a newer build's: it is kept, unowned here, and saved back - never dropped */
+ assert.deepEqual(M.normalize({owned:['unknown'],equipped:'unknown'}),{owned:[],equipped:'unknown',foreign:['unknown']});
+ assert.equal(M.selected({mounts:M.normalize({owned:['unknown'],equipped:'unknown'})}),null,'a mount this build cannot draw is not ridden here');
  const raw={owned:['leopard','horse','horse','unknown'],equipped:'leopard',extra:123},before=JSON.stringify(raw);
  const state={mounts:M.normalize(raw)};assert.equal(JSON.stringify(raw),before);
- assert.deepEqual(state.mounts,{owned:['horse','leopard'],equipped:'leopard'});
+ assert.deepEqual(state.mounts,{owned:['horse','leopard'],equipped:'leopard',foreign:['unknown']});
  assert.equal(M.equip(state,'horse'),true);
  const restored={mounts:M.normalize(JSON.parse(JSON.stringify(state)).mounts)};
  assert.deepEqual(restored,state);assert.equal(M.selected(restored).id,'horse');

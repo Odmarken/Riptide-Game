@@ -20,8 +20,8 @@ function harness(gold=1000000){
   TideUI:{openBreeding:(id,options)=>calls.push({type:'open',id,options})},
   stageMsg:message=>calls.push({type:'message',message}),sfx:{warn:()=>calls.push({type:'warn'}),buy(){},forge(){},place(){}},
   save:()=>calls.push({type:'save'}),renderFarmStore(){},renderHUD(){},updateCartUI(){},expandFarmStore(){},blip(){},
-  snapPos:(id,x,y)=>({x,y}),cropCellTaken:()=>false,isHay:()=>false,isBull:()=>false,isCattle:()=>false,isChicken:()=>false,
-  goldCap:()=>1e12,SCRAP_CAP:1e9,totalGold:()=>c.S.gold+(c.S.overflow||0)};
+  snapPos:(id,x,y)=>({x,y}),cropCellTaken:()=>false,isHay:()=>false,isBull:()=>false,isCattle:()=>false,isChicken:()=>false,isBovine:()=>false,
+  goldCap:()=>1e12,SCRAP_CAP:1e9,totalGold:()=>c.S.gold+(c.S.overflow||0),addGoldOverflow:n=>{c.S.gold+=n;return {got:n,over:0};}};
  vm.createContext(c);
  vm.runInContext(section('const farmAssetUrl=','function farmImageSource('),c);
  vm.runInContext(section('const FARM_BUILD=','const FARM_PRESTIGE=')+';globalThis.catalogue=FARM_BUILD;',c);
@@ -264,7 +264,7 @@ test('single delete refuses incubating, ready and revealed stations without remo
 
 test('mass delete checks incubation again on confirmation and preserves every selected item without refunds',()=>{
  const h=harness(),it=buy(h);h.c.S.farm.b.push({t:'tree_farm',x:3200,y:2300});h.c.S.farm.c.push({t:'hay',x:3250,y:2300});h.c.S.farm.r.push({t:'dirt_road',x0:3000,y0:2200,x1:3300,y1:2400});
- h.c.pendingDelRect={x0:2900,y0:2100,x1:3500,y1:2500};
+ h.c.pendingDelRect={b:[...h.c.S.farm.b],c:[...h.c.S.farm.c],r:[...h.c.S.farm.r]}; /* the selection as the drag box takes it: the pieces themselves */
  breedingJob(h,it,Date.now());const before=clone(h.c.S);
  h.el('farmDelYes').onclick();assert.deepEqual(clone(h.c.S),before);assert.equal(h.c.pendingDelRect,null);
  assert.ok(h.calls.some(x=>x.type==='message'&&/collect the Tide/.test(x.message)));

@@ -131,8 +131,20 @@
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return c;
     const time = nowOf({now}), used = new Set();
     c.nextId = Math.max(1, integer(raw.nextId, 1));
-    for (const saved of Array.isArray(raw.pets) ? raw.pets : []) {
-      if (!saved || !getSpecies(saved.speciesId)) continue;
+    // A Tide of a species this build does not know - a newer build's, or a hybrid whose sheet did not load -
+    // is kept exactly as written and saved back, never dropped: the next build that knows it finds it again.
+    // Dropping it used to make the very next save delete it from the cloud.
+    const foreign = [];
+    for (const saved of [...(Array.isArray(raw.pets) ? raw.pets : []), ...(Array.isArray(raw.foreignPets) ? raw.foreignPets : [])]) {
+      if (!saved || typeof saved !== 'object') continue;
+      if (!getSpecies(saved.speciesId)) {
+        if (typeof saved.id === 'string' && saved.id.length <= 100 && !used.has(saved.id) && foreign.length < 500) {
+          used.add(saved.id); foreign.push(JSON.parse(JSON.stringify(saved)));
+          const sequence = /^tide-(\d+)$/.exec(saved.id);
+          if (sequence) c.nextId = Math.max(c.nextId, Number(sequence[1]) + 1);
+        }
+        continue;
+      }
       let id = typeof saved.id === 'string' && saved.id.length <= 100 ? saved.id : '';
       if (!id || used.has(id)) {
         do { id = 'tide-' + c.nextId++; } while (used.has(id));
@@ -144,12 +156,28 @@
       if (sequence) c.nextId = Math.max(c.nextId, Number(sequence[1]) + 1);
     }
     // Existing pets imply that this character has already bought the permanent lasso.
-    c.lassoOwned = raw.lassoOwned === true || c.pets.length > 0;
-    c.equippedId = c.pets.some(pet => pet.id === raw.equippedId) ? raw.equippedId : c.pets[0]?.id || null;
+    if (foreign.length) c.foreignPets = foreign;
+    c.lassoOwned = raw.lassoOwned === true || c.pets.length > 0 || foreign.length > 0;
+    // null is a choice (the equipped Tide went into training); only a save that never had the field falls back
+    c.equippedId = c.pets.some(pet => pet.id === raw.equippedId) ? raw.equippedId : raw.equippedId === null ? null : c.pets[0]?.id || null;
     c.visibleId = c.pets.some(pet => pet.id === raw.visibleId) ? raw.visibleId : null;
     c.nextBattleId = Math.max(1, integer(raw.nextBattleId, 1));
     c.nextBreedingId = Math.max(1, integer(raw.nextBreedingId, 1));
-    if (breeding) c.breedingJobs = breeding.normalizeJobs(raw.breedingJobs, c, time);
+    if (breeding) {
+      const rawJobs = [...(Array.isArray(raw.breedingJobs) ? raw.breedingJobs : []), ...(Array.isArray(raw.foreignJobs) ? raw.foreignJobs : [])];
+      c.breedingJobs = breeding.normalizeJobs(rawJobs, c, time);
+      // the same for a clutch whose offspring this build cannot name: kept as written, and its parents stay busy
+      const kept = new Set(c.breedingJobs.map(job => job.id));
+      const foreignJobs = rawJobs.filter(job => job && typeof job === 'object' && !kept.has(job.id) && job.offspring && !getSpecies(job.offspring.speciesId)).slice(0, 50);
+      if (foreignJobs.length) {
+        c.foreignJobs = JSON.parse(JSON.stringify(foreignJobs));
+        for (const job of c.foreignJobs) { // new ids must never collide with the kept clutch's
+          const ps = /^tide-(\d+)$/.exec(job.offspring?.id || ''), js = /^breed-(\d+)$/.exec(job.id || '');
+          if (ps) c.nextId = Math.max(c.nextId, Number(ps[1]) + 1);
+          if (js) c.nextBreedingId = Math.max(c.nextBreedingId, Number(js[1]) + 1);
+        }
+      }
+    }
     if (training) {
       c.training = training.normalize(raw.training, c, time);
       if (isTraining(c, c.equippedId)) c.equippedId = null;

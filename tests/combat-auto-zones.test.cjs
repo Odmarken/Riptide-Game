@@ -6,7 +6,8 @@ function harness(){
   hero:{hp:10,mana:1,potCd:{hp:0,mp:0},target:{boss:true}},enemies:[],
   Math,stageMsg(){},save(){c.saves++;},sfx:{warn(){c.warnings++;}},updateMountButton(){},
   classOf:()=>({spells:[{t:'st'}]}),heroMax:()=>100,spellManaCost:()=>10,autoOn:()=>true,
-  usePot:()=>c.potions++,cast:()=>c.casts++,TideUI:{tick(){throw new Error('simulation checkpoint');}}};
+  usePot:()=>c.potions++,cast:()=>c.casts++,TideUI:{tick(){throw new Error('simulation checkpoint');}},
+  mp:{on:false,started:false},mpLeave(){},dropFarmBuild(){}};
  const nodes=new Map();
  c.$=id=>{
   if(!nodes.has(id)){

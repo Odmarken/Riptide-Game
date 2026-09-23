@@ -233,6 +233,7 @@ test('moving and resizing a farm object refreshes collision without changing the
   h.context.TideFarm = require('../assets/tides/farm-breeding.js');
   h.context.FARM_BUILD = [{ id: 'barn', col: { r: 40, crx: 80, cry: 30, cyo: 0 } }];
   h.context.scaleOf = it => it.sc;
+  h.context.zoneOf = () => ({ farm: true });
   vm.runInContext(section('function rebuildFarmItems()', 'let buildMode='), h.context);
   h.context.rebuildFarmItems();
   assert.equal(h.context.collide({ r: 13 }, 400, 500), true);

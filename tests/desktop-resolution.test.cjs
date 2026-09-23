@@ -32,6 +32,7 @@ function shellHarness({settings = {}, displays = [display4k()], rawSettings} = {
     getPath: () => path.join(root, 'dist', '.resolution-test-profile'),
     commandLine: {appendSwitch() {}},
     whenReady: () => ({then(callback) { ready = callback; }}),
+    requestSingleInstanceLock: () => true,   /* the only copy running */
     quit() {},
   });
   const screen = new EventEmitter();

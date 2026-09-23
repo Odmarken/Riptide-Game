@@ -3,7 +3,7 @@ const src=fs.readFileSync(require('node:path').join(__dirname,'../game.js'),'utf
 const slice=(a,b)=>src.slice(src.indexOf(a),src.indexOf(b,src.indexOf(a)));
 function boot(){
  const writes=[],draws=[],state={fail:false},g=new Proxy({createLinearGradient:()=>({addColorStop(){}})},{get:(o,k)=>o[k]||(()=>{})});
- const ctx=vm.createContext({S:null,FB:{ready:true,user:{uid:'u1'}},SEASON:1,SDK_WAIT_MS:10,window:{},console:{warn(){}},
+ const ctx=vm.createContext({S:null,FB:{ready:true,user:{uid:'u1'}},SEASON:1,SDK_WAIT_MS:10,window:{},console:{warn(){}},ZONES:[],CITY_ZONE:26,
   isIce:g=>g?.legend==='icearmor',CityEconomy:{NOBLE_RANKS:[{title:'Commoner'},{title:'Duke'}]},
   charGearScore:()=>20,lbScore:()=>123,charStats:()=>({hp:500}),heroDeleted:()=>false,
   cloudCall:async(_,sdk,rest)=>{if(state.fail)throw Error('offline');return rest({patch:async(id,entry)=>writes.push({id,entry:JSON.parse(JSON.stringify(entry))})});},

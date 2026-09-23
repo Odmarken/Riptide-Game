@@ -8,8 +8,14 @@ const Mounts=(()=>{
  const byId=new Map(catalog.map(m=>[m.id,m]));
  const get=id=>byId.get(id)||null;
  function normalize(value){
-  const owned=catalog.filter(m=>Array.isArray(value?.owned)&&value.owned.includes(m.id)).map(m=>m.id);
-  return {owned,equipped:owned.includes(value?.equipped)?value.equipped:owned[0]||null};
+  const listed=[...(Array.isArray(value?.owned)?value.owned:[]),...(Array.isArray(value?.foreign)?value.foreign:[])].filter(id=>typeof id==='string');
+  const owned=catalog.filter(m=>listed.includes(m.id)).map(m=>m.id);
+  /* a mount this build does not know (sold by a newer build) is kept as written and saved back, never dropped -
+     and if it was the one ridden, it stays the one ridden (this build simply shows none) */
+  const foreign=[...new Set(listed.filter(id=>!byId.has(id)))].slice(0,32);
+  const out={owned,equipped:owned.includes(value?.equipped)||foreign.includes(value?.equipped)?value.equipped:owned[0]||null};
+  if(foreign.length)out.foreign=foreign;
+  return out;
  }
  const allowed=zone=>!!(zone&&!zone.dungeon&&(zone.wasteland||zone.city||zone.farm||zone.tavern));
  const selected=state=>{const m=state?.mounts;return m?.owned?.includes(m.equipped)?get(m.equipped):null;};
