@@ -135,10 +135,67 @@ test('game.js shows it: the takeover and the hand-back announced, the bank’s p
  const action=src.slice(src.indexOf('function ledgerAction(act,k,v){'),src.indexOf('\nfunction cityIsNewer('));
  assert.match(action,/if\(c\.bankRule&&act!=='goto'&&act!=='back'\)\{/);
  const hall=src.slice(src.indexOf('function hallApply(){'),src.indexOf('\nfunction hallStair('));
- assert.match(hall,/if\(!c\.crowned&&!world\.npcs\.some\(n=>n\.game==='king'\)\)/);
+ assert.match(hall,/if\(!c\.crowned&&!c\.regency&&!world\.npcs\.some\(n=>n\.game==='king'\)\)/,'the old King back on his throne - unless he was hanged');
+ assert.match(hall,/\(c\.crowned\|\|c\.regency\)&&n\.game==='king'/,'and no King on the dais of an empty throne');
  assert.match(src.slice(src.indexOf('function cityHudLine(){'),src.indexOf('\nconst cityCommoner=')),/The Tides Bank keeps the crown’s books - you are dismissed/);
  assert.match(src.slice(src.indexOf('function cityCrierLines(){'),src.indexOf('\nconst BEGGAR_LINES=')),/By order of the Tides Bank/);
  assert.match(src.slice(src.indexOf('function kingSpeak(){'),src.indexOf('\nfunction kingSpeak(){')+4000),/if\(c\.bankRule\)\{/);
  assert.match(src.slice(src.indexOf('function ledgerOffer(c){'),src.indexOf('\nfunction ledgerCharter(')),/if\(c\.dismissed>0\)/,'the Hand has other words for a Duke the bank sent back');
  assert.match(src,/closes in the red in a row<\/b> - an hour of play - and the council hands the crown’s books to the Tides Bank/,'the help says so');
+});
+
+/* 👑 the dead stay dead (asked for 2026-09-24): a King who was hanged is not on his throne when the bank hands the city back -
+   the throne stands empty and the King's Hand rules the realm in its name. A King who is alive is taken back. */
+const handBack=(fate)=>{const s=open();if(fate){s.crowned=true;s.deposed=fate;}let r;for(let i=0;i<E.BANK_TAKEOVER;i++)red(s);while(s.bankRule)r=E.tick(s,{},quiet);return {s,r};};
+
+test('a hanged King stays hanged: the city comes back with an empty throne and the Hand ruling it',()=>{
+ const {s,r}=handBack('executed');
+ assert.equal(s.regency,true);assert.equal(s.crowned,false);assert.equal(s.deposed,null);
+ assert.ok(r.unrest.some(u=>/the throne empty - Alarik was hanged, and the King’s Hand rules the realm in its name/.test(u)));
+ /* the office and a new loan as before - in a realm with nobody on the throne */
+ E.meetHand(s);E.acceptOffice(s);E.charter(s);assert.equal(s.regency,true);
+ s.king.pleasure=5;s.king.humour='pious';s.budget.purse=0;s.budget.tithe=1;
+ let wishes=0,taken=0;
+ for(let i=0;i<24;i++){s.treasury=Math.max(s.treasury,2e6);s.jail=[];E.tick(s,{},()=>.01);wishes+=s.king.demand?1:0;taken+=s.jail.filter(p=>p.byKing).length;}   /* a draw that would bring every wish */
+ assert.equal(wishes,0,'nobody on the throne to want anything');assert.equal(taken,0,'or to have anybody arrested');
+ const f=E.forecast(s,{});
+ assert.equal(f.expenses.find(l=>l.id==='whims').amount,0,'or to help himself');assert.match(f.expenses.find(l=>l.id==='whims').note,/throne stands empty/);
+ const plate=f.income.find(l=>l.id==='church').amount;s.regency=false;const pious=E.forecast(s,{}).income.find(l=>l.id==='church').amount;s.regency=true;
+ assert.ok(pious>plate,'and no pious King filling the plate');
+ assert.equal(E.crownView(s,{}).regency,true);
+ /* the crown is taken from nobody: the council sets it on your head, and Alarik stays where the gallows left him */
+ s.trust=100;for(const k of Object.keys(s.council))s.council[k]=100;
+ assert.equal(E.canClaim(s),true);
+ const jail=s.jail.length,crown=E.claimCrown(s,'gaol');
+ assert.equal(crown.ok,true);assert.match(crown.text,/stood empty since the gallows/);
+ assert.equal(s.crowned,true);assert.equal(s.regency,false);assert.equal(s.deposed,'executed');assert.equal(s.jail.length,jail,'nobody goes down to the jail');
+ assert.equal(s.royalMoodLeft,0,'the square does not mourn him twice');assert.equal(E.allyFear(s),1-E.MERCY,'and every court abroad remembers the gallows');
+});
+
+test('a King who is alive is taken back - off the palace stair, up from his cell, home from over the sea',()=>{
+ for(const [fate,how] of [['pardoned',/taken off the palace stair and set back on his throne/],['gaol',/brought up from his cell and set back on his throne/],['exile',/sent for over the sea and set back on his throne/],[null,/the old King on his throne/]]){
+  const {s,r}=handBack(fate);
+  assert.equal(s.regency,false,String(fate));assert.equal(s.crowned,false);assert.equal(s.deposed,null);assert.ok(r.unrest.some(u=>how.test(u)),String(fate));
+ }
+});
+
+test('an empty throne stays empty through another fall, and through a save',()=>{
+ const {s}=handBack('executed');
+ E.meetHand(s);E.acceptOffice(s);E.charter(s);
+ for(let i=0;i<E.BANK_TAKEOVER;i++)red(s);
+ assert.equal(s.regency,true,'still nobody on the throne while the bank has the books');
+ assert.deepEqual(E.normalize(JSON.parse(JSON.stringify(s))),JSON.parse(JSON.stringify(s)));
+ while(s.bankRule)E.tick(s,{},quiet);
+ assert.equal(s.regency,true,'the dead stay dead the second time too');assert.equal(s.dismissed,2);
+ const crowned=JSON.parse(JSON.stringify(s));crowned.crowned=true;assert.equal(E.normalize(crowned).regency,false,'a crowned head is nobody’s regent');
+});
+
+test('game.js: no King on the dais of an empty throne, a Crown tab for the regency, and a coronation that leads nobody away',()=>{
+ const src=fs.readFileSync(path.join(__dirname,'..','game.js'),'utf8');
+ assert.match(src.slice(src.indexOf('function ledgerCrown(c,ctx){'),src.indexOf('\n/* ⛓ the Jail tab */')),/if\(v\.regency\)return ledgerRegency\(/);
+ const tick=src.slice(src.indexOf('function coronationTick(dt){'),src.indexOf('function coronationTick(dt){')+9000);
+ assert.match(tick,/if\(sc\.pt>=9&&sc\.regency\)next\('gone'\);/,'nobody on the dais to rage or be led away');
+ assert.match(src,/coronation=\{fate:fate==='exile'\?'exile':'gaol',regency:!!S\.city\.regency,/);
+ assert.match(src,/else if\(S\.city\.regency\)add\(world\.solids\.find\(s2=>s2\.kind==='throne'\),'The Empty Throne',kingSpeak,190\);/);
+ assert.match(src.slice(src.indexOf('function cityCrierLines(){'),src.indexOf('\nconst BEGGAR_LINES=')),/if\(c\.regency\)out\.push\('The throne stands empty/);
 });

@@ -459,6 +459,7 @@
    allies:{},
    coupTold:false,
    bankRule:null,     /* 🏦 {left} while the Tides Bank keeps the books and the steward is dismissed; null otherwise */
+   regency:false,     /* 👑 the throne stands empty and the King's Hand rules in the realm's name: the King was hanged, and a city handed back by the bank does not raise the dead */
    dismissed:0,       /* how many times the council has handed the books to the bank */
    office:0,          /* 0 nobody · 1 a duke, sent for by the Hand · 2 the Hand has spoken to you in the hall · 3 Master of Coin */
    counsel:{at:null,text:'',topic:''},noble:{rank:0,xp:0,given:0,done:0,pending:[],offers:[],offerLeft:0,legacy:{mood:0,attract:0,skill:0,pleasure:0,food:0,seats:{}}},
@@ -553,6 +554,7 @@
    if(out.allies[def.id].owned)out.allies[def.id].stake=100;}
   out.coupTold=!!s.coupTold;
   out.dismissed=Math.max(0,Math.floor(num(s.dismissed)));
+  out.regency=!out.crowned&&!!s.regency;
   out.bankRule=out.chartered&&s.bankRule&&typeof s.bankRule==='object'?{left:clamp(Math.floor(num(s.bankRule.left,BANK_RULE_SEASONS*SEASON_CLOSES)),1,BANK_RULE_SEASONS*SEASON_CLOSES)}:null;
   out.office=out.chartered?3:clamp(Math.floor(num(s.office)),0,3);
   const nb=s.noble&&typeof s.noble==='object'?s.noble:{};
@@ -645,7 +647,7 @@
   const L={};for(const key of LINE_KEYS.concat(RATE_KEYS))L[key]=level(key,b[key]);
   const {watch,roads,relief,festival,court,clean,learn,food,purse,rent,fee,duty,tithe,salary}=L;
   const A=alliesFx(state);
-  const W=worksFx(state),K=state.king,crowned=!!state.crowned;
+  const W=worksFx(state),K=state.king,crowned=!!state.crowned,ruled=!crowned&&!state.regency;   /* ruled: Alarik on his throne */
   const fav=favour(state),backing=fav>=75?1.06:1;
   const card=cardOf(state),cm=card.mods,churchMod=num(cm.church,1);
   const wind={trade:num(state.winds&&state.winds.trade)+num(cm.trade),harvest:num(state.winds&&state.winds.harvest)+num(cm.harvest),prices:num(state.winds&&state.winds.prices)+num(cm.prices)};
@@ -681,7 +683,7 @@
    {id:'guilds',name:'Guild dues',icon:'⛏',amount:r(((ctx.miningTrained?30:0)+(ctx.enchTrained?30:0)+(ctx.smelter?20:0))*k),note:'the Mining Hall, the Enchanting Hall and the smelter'},
    {id:'farm',name:'Farm levy',icon:'🚜',amount:ctx.farmOwned?r(Math.min(HERO_FARM_LEVELS,farmLvl)*20*k):0,note:ctx.farmOwned?'your farm, level '+farmLvl:'no farm of your own yet'},
    {id:'licence',name:'Gaming licence',icon:'🎲',amount:r(250*k),note:'the Moonshine casino pays for the privilege'},
-   {id:'church',name:'Church intakes',icon:'⛪',amount:r(hearths(state)*2.5*churchMod*tithe.rate*k*(.6+state.mood/250)*(1+festival.cost/1200)*(!crowned&&K.humour==='pious'?1.25:1)*crop),note:tithe.rate?tithe.name.toLowerCase()+' of the tithes and the collections - fuller plates in a contented city, on feast days and under a pious King':'the Church keeps its own'},
+   {id:'church',name:'Church intakes',icon:'⛪',amount:r(hearths(state)*2.5*churchMod*tithe.rate*k*(.6+state.mood/250)*(1+festival.cost/1200)*(ruled&&K.humour==='pious'?1.25:1)*crop),note:tithe.rate?tithe.name.toLowerCase()+' of the tithes and the collections - fuller plates in a contented city, on feast days and under a pious King':'the Church keeps its own'},
    ...(A.income?[{id:'allies',name:'Allies & dominions',icon:'🤝',amount:r(A.income*(1+wind.trade*.5)),note:A.note}]:[]),
    ...(W.vice?[{id:'vice',name:'The Velvet Lantern',icon:'💋',amount:r(hearths(state)*W.vice*k*visit*(.7+state.mood/333)*(1+wind.trade*.5)),note:'the crown’s licence on the red lamps - it grows with the city, with its visitors and with trade on the roads'}]:[]),
    {id:'works',name:'Crown works',icon:'🏗',amount:r(W.income*k)+fines,note:!W.count?'nothing built yet - see the Works tab':W.income||fines?'fees, gate money'+(fines?' and court fines':'')+' from '+W.count+' public work'+(W.count>1?'s':''):W.count+' public work'+(W.count>1?'s':'')+' standing - what they earn shows in the lines above'},
@@ -705,7 +707,7 @@
    {id:'interest',name:'Tides Bank interest',icon:'🏦',amount:r(state.loan*state.rate*num(cm.interest,1)),note:state.loan>0?+(state.rate*num(cm.interest,1)*100).toFixed(3)+'% of '+state.loan.toLocaleString()+' owed':'nothing owed'},
    {id:'overdraft',name:'Overdraft penalty',icon:'⚠️',amount:state.treasury<0?r(-state.treasury*OVERDRAFT_RATE):0,note:state.treasury<0?'the treasury is below zero':'the treasury is in credit'},
    {id:'unrest',name:'Unrest & damages',icon:'🥊',amount:incidents.reduce((t,i)=>t+i.gold,0),note:incidents.length?incidents.map(i=>i.name.toLowerCase()).join(', '):'the streets are quiet'},
-   {id:'whims',name:'The King helps himself',icon:'🗝',amount:!crowned&&K.pleasure<30?r(260*k):0,note:!crowned&&K.pleasure<30?'a furious King sends his chamberlain to the strongroom':crowned?'there is no King but you':'the King keeps his hands out of the strongroom'},
+   {id:'whims',name:'The King helps himself',icon:'🗝',amount:ruled&&K.pleasure<30?r(260*k):0,note:ruled&&K.pleasure<30?'a furious King sends his chamberlain to the strongroom':crowned?'there is no King but you':state.regency?'the throne stands empty - there is no King to help himself':'the King keeps his hands out of the strongroom'},
   ];
   /* a council that has turned against you loses papers, delays wagons and pads every bill */
   const waste=fav<35?r(expenses.reduce((t,l)=>t+l.amount,0)*.06):0;
@@ -886,7 +888,7 @@
  /* 👑 the Crown tab */
  function crownView(state,ctx={}){
   const f=forecast(state,ctx),K=state.king,d=K.demand&&demandDef(K.demand.id),h=humourDef(K.humour);
-  return {crowned:state.crowned,deposed:state.deposed,trust:state.trust,trustName:trustName(state.trust),trustDelta:f.trustDelta,trustFactors:f.trustFactors,
+  return {crowned:state.crowned,deposed:state.deposed,regency:!!state.regency,trust:state.trust,trustName:trustName(state.trust),trustDelta:f.trustDelta,trustFactors:f.trustFactors,
    canClaim:canClaim(state),coupAt:COUP_TRUST,coupSeasons:COUP_SEASONS,seasonsPlayed:seasonsPlayed(state),coupFavour:COUP_FAVOUR,favour:favour(state),
    closesToSeason:seasonsPlayed(state)>=COUP_SEASONS||!state.season?0:(COUP_SEASONS-seasonsPlayed(state))*SEASON_CLOSES-num(state.season.closes),   /* closes until the bank has graded enough seasons */
    closesToCrown:state.crowned||state.trust>=COUP_TRUST?0:f.trustDelta>0?Math.ceil((COUP_TRUST-state.trust)/f.trustDelta):null,
@@ -955,6 +957,11 @@
     what becomes of the old King: a cell under his own hall, or a ship. */
  function claimCrown(state,fate){
   if(barred(state))return {ok:false,text:BARRED};
+  if(state.regency&&canClaim(state)){   /* 👑 nobody to depose: the council sets the crown on your head, and Alarik stays where the gallows left him */
+   state.crowned=true;state.regency=false;state.deposed='executed';state.royalMoodLeft=0;state.king.demand=null;
+   state.mood=clamp(state.mood+6,0,100);for(const seat of COUNCIL)state.council[seat.id]=clamp(state.council[seat.id]+5,0,100);
+   return {ok:true,text:'The throne had stood empty since the gallows. The council set the crown on your head, and the realm has a sovereign again.'};
+  }
   if(state.crowned||state.trust<COUP_TRUST)return {ok:false,text:'The realm does not trust you enough - yet.'};
   if(favour(state)<COUP_FAVOUR)return {ok:false,text:'The council is not behind you - their favour must stand at '+COUP_FAVOUR+' or better, and it is '+favour(state)+'.'};
   if(!canClaim(state))return {ok:false,text:'The realm wants to see a full season of your books first. The bank grades it at the season’s last close.'};
@@ -1108,12 +1115,16 @@
     the clerks' papers, what the board's contracts did for the city meanwhile (noble.legacy) - and the Hand, who sends for his
     Duke again. The object is kept (game.js holds it), its contents replaced. */
  function restore(state){
-  const keep={noble:state.noble,ticks:state.ticks,clock:state.clock,dismissed:num(state.dismissed)};
+  const keep={noble:state.noble,ticks:state.ticks,clock:state.clock,dismissed:num(state.dismissed),regency:!kingReturns(state)};
   for(const key of Object.keys(state))delete state[key];
   Object.assign(state,create(),keep);
   state.office=state.noble.rank>=NOBLE_RANKS.length-1?1:0;
   return state;
  }
+ /* 👑 ...all but one thing: the dead stay dead. A King who was hanged is not on his throne when the city comes back (nor is one
+    the city had already lost that way before) - the throne stands empty and the Hand rules the realm in its name. A King who
+    is alive - begging at the palace stair, in his cell, over the sea - is taken back. (asked for 2026-09-24) */
+ const kingReturns=state=>!(state.regency||(state.crowned&&state.deposed==='executed'));
  /* what the ledger shows of it: the bank's hold on the books, or how close the council is to handing them over */
  function bankRuleView(state){
   const b=state.bankRule;
@@ -1241,7 +1252,7 @@
   }
   /* 👑 the King: his pleasure drifts, his wishes lapse, a new one arrives, his humour turns */
   const K=state.king;
-  if(!state.crowned){
+  if(!state.crowned&&!state.regency){
    K.pleasure=clamp(Math.round(K.pleasure+(f.pleasureTarget-K.pleasure)*.3),0,100);
    if(K.demand){
     K.demand.age+=1;
@@ -1264,7 +1275,7 @@
   });
   const taken=new Set(state.jail.map(p=>p.name));
   const roster=(Array.isArray(ctx.roster)&&ctx.roster.length?ctx.roster:FALLBACK_ROSTER.map(([name,skin])=>({name,skin}))).filter(p=>p&&p.name&&!taken.has(p.name));
-  const byKing=!state.crowned&&K.pleasure<30;
+  const byKing=!state.crowned&&!state.regency&&K.pleasure<30;
   if(roster.length&&draw(rng)<clamp(.22+state.budget.watch*.12+state.incidents.length*.08+(byKing?.2:0),0,.85)){
    const who=roster[Math.floor(draw(rng)*roster.length)];
    const kings=byKing&&draw(rng)<.5;          /* half of a furious King's arrests are for nothing at all */
@@ -1353,7 +1364,8 @@
   let restored=false;
   if(state.bankRule&&!takeover){
    const left=state.bankRule.left=state.bankRule.left-1;
-   if(left<=0){restored=true;unrest.push('🏦 '+BANK_RULE_SEASONS+' seasons are up. The Tides Bank hands the city back as it was the day you first took the books: the strongroom empty, the old King on his throne, and not a stone of your works still standing.');}
+   if(left<=0){restored=true;const king=!kingReturns(state)?'the throne empty - Alarik was hanged, and the King’s Hand rules the realm in its name':state.deposed==='pardoned'?'Alarik taken off the palace stair and set back on his throne':state.deposed==='gaol'?'Alarik brought up from his cell and set back on his throne':state.deposed==='exile'?'Alarik sent for over the sea and set back on his throne':'the old King on his throne';
+    unrest.push('🏦 '+BANK_RULE_SEASONS+' seasons are up. The Tides Bank hands the city back as it was the day you first took the books: the strongroom empty, '+king+', and not a stone of your works still standing.');}
    else if(left%SEASON_CLOSES===0||left===5)unrest.push('🏦 The Tides Bank keeps the crown’s books. '+left+' more close'+(left===1?'':'s')+' before it hands the city back.');
   }
   const entry={n:state.ticks,covered,review:reviewed?{n:reviewed.n,grade:reviewed.grade}:null,in:gotIn,out:paidOut,expected:f.net,net,events:events.map(e=>e.text),unrest,mood:state.mood,favour:favour(state),
@@ -1899,7 +1911,7 @@
   if(q&&state.loan>q.target&&SEASON_CLOSES-q.closes<=5)add('season',65+(SEASON_CLOSES-q.closes<=2?20:0),
    state.treasury>=state.loan-q.target?'The bank reads the books at the last close of the season and not a day before. The gold to satisfy it is in the strongroom now. Whether it still is then is your affair - but what you repay yourself counts for you, and what the bank has to call in does not.'
    :'The season is nearly out and the debt stands above what the bank asked. What it calls in itself earns you no credit and no wider line. Anything that can be turned into gold before the last close - I would at least be asking the question.');
-  if(!state.crowned&&K.pleasure<45)add('king',K.pleasure<30?75:50,K.pleasure<30?'A furious King sends his chamberlain to the strongroom with a key, and has people arrested for bowing wrongly. It is cheaper to keep him sweet than to pay for his temper. Two lines of the budget are his.'
+  if(!state.crowned&&!state.regency&&K.pleasure<45)add('king',K.pleasure<30?75:50,K.pleasure<30?'A furious King sends his chamberlain to the strongroom with a key, and has people arrested for bowing wrongly. It is cheaper to keep him sweet than to pay for his temper. Two lines of the budget are his.'
    :'His Majesty sulks. Two lines of the budget are his - one is his purse and the other is his dinner - and his pleasure follows them more faithfully than it follows any gift.');
   if(!state.crowned&&K.demand)add('wish',K.demand.age>=1?58:36,'A wish refused costs you his smile. A wish ignored costs you more of it, and earns you nothing. And mark this: when the wish is a foolish, costly one, the city hears that you said no - and likes you the better.');
   if(state.petition)add('petition',state.petition.age>=1?45:28,'There is a petition on the table. A councillor forgives a paper that lapsed unread sooner than a no to his face - but neither is remembered the way a yes is. Weigh which seat you can least afford to have cold.');
