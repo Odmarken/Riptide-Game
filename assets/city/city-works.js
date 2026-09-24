@@ -1,7 +1,7 @@
 /* 🏗 What the Crown Ledger looks like from the street. The ledger (economy.js) decides; this module
  * shows it, so a steward can walk the boulevard and SEE how the city is doing without opening a book:
  *  - public works: scaffolding over a house while a crew is on it, then a signboard and a pennant;
- *    lamps down the boulevard, a fountain, a statue and gardens on the great square
+ *    lamps down the boulevard, a fountain and a statue on the great square, gardens in the yard beside it
  *  - the market: as many awnings on the square as the fees and the covered market allow
  *  - traffic on the boulevard: trade wagons (as many as the trade works have earned), and handcarts
  *    of families moving in from the gate - or out through it - as the city's name rises and falls
@@ -56,9 +56,10 @@
   const c=square(world),out=[[-205,215],[-310,262],[-395,196],[-250,300]].map(([dx,dy])=>({x:c.x+dx,y:c.y+dy}));
   for(let k=0;k<4;k++)for(const side of [-1,1])out.push({x:c.x+side*(660+k*170),y:c.y+(k%2?1:-1)*side*118});
   /* 🧺 a growing city fills its square: pitches round the rim, clear of the wagons' lane, the fountain, the statue,
-     the garden, the maypole, the board and the long tables - and then further out along the boulevard. Appended, so
-     the first twelve pitches never move. */
-  for(const [dx,dy] of [[-380,-160],[335,-165],[-255,-400],[452,192],[-140,-188]])out.push({x:c.x+dx,y:c.y+dy});
+     the maypole, the crier and the long tables - and then further out along the boulevard. Appended, so the first
+     twelve pitches never move. The third of these stood in the north-west yard until the gardens were laid there
+     (2026-09-24); it has the notice board's old place on the square now. */
+  for(const [dx,dy] of [[-380,-160],[335,-165],[-6,190],[452,192],[-140,-188]])out.push({x:c.x+dx,y:c.y+dy});
   for(let k=4;k<7;k++)for(const side of [-1,1])out.push({x:c.x+side*(660+k*170),y:c.y+(k%2?1:-1)*side*118});
   return out;
  }
@@ -81,7 +82,8 @@
   const going=id=>st(id)==='building';          /* a work the bank has sold leaves nothing on the square */
   if(st('aqueduct')==='done')add('fountain',c.x-270,c.y-250,46);else if(going('aqueduct'))site('aqueduct',c.x-270,c.y-250,'FOUNTAIN');
   if(st('statue')==='done')add('statue',c.x+270,c.y-250,26,{crowned:!!look.crowned,hero:look.hero||''});else if(going('statue'))site('statue',c.x+270,c.y-250,'STATUE');
-  if(st('gardens')==='done')add('garden',c.x+285,c.y+258,20,{noCol:true});else if(going('gardens'))site('gardens',c.x+285,c.y+258,'GARDENS');
+  /* 🌳 the gardens are laid in the yard beside the stone house at the square's north-west corner, off the square (2026-09-24) */
+  if(st('gardens')==='done')add('garden',c.x-350,c.y-445,20,{noCol:true});else if(going('gardens'))site('gardens',c.x-350,c.y-445,'GARDENS');
   if(st('coveredmarket')==='building')site('coveredmarket',c.x-300,c.y+330,'COVERED MARKET');
   if(st('lamps')==='done'||going('lamps'))for(const p of lampSpots(world,look.xMax))add('lamp',p.x,p.y,7,{lit:st('lamps')==='done',noCol:true});
   stallSlots(world).slice(0,clamp(Math.round(look.stalls||0),0,MAX_STALLS)).forEach((p,i)=>add('stall',p.x,p.y,24,{goods:i%5,covered:st('coveredmarket')==='done'}));
@@ -90,8 +92,8 @@
   if(S.maypole)soft('maypole',c.x,c.y-300);
   if(S.music)soft('music',c.x+150,c.y-250);
   if(S.feast)for(let i=0;i<clamp(S.feast|0,0,2);i++)soft('feast',c.x+20,c.y+318+i*112,{row:i});
-  if(S.tents){soft('tent',c.x+430,c.y-215,{stripe:0});soft('tent',c.x-455,c.y-300,{stripe:1});}
-  if(S.breadline)soft('breadline',c.x-700,c.y-168,{long:S.breadline>1});
+  if(S.tents){soft('tent',c.x+430,c.y-215,{stripe:0});soft('tent',c.x+295,c.y+260,{stripe:1});}   /* the blue one pitches where the gardens stood, now they have the yard it used */
+  if(S.breadline)soft('breadline',c.x-775,c.y-168,{long:S.breadline>1});                        /* the baker's hatch just short of the notice board */
   if(S.barricades)for(const side of [-1,1])for(const row of [-1,1])soft('barricade',c.x+side*(c.r+380),c.y+row*96,{flip:side*row});
   for(let k=0;k<clamp(S.beggars|0,0,8);k++){const x=1250+k*1490+(k%2)*380;if(x<(look.xMax||world.w-1300)&&Math.abs(x-c.x)>c.r+60)soft('beggar',x,c.y+(k%2?1:-1)*152,{face:k%2?-1:1});}
   return out;
@@ -294,7 +296,11 @@
   const glint=.25+.25*Math.sin(time*1.7);ellipse(g,-5,-100,3,9,'rgba(255,236,170,'+glint.toFixed(3)+')');
   if(s.hero)label(g,(s.crowned?'👑 ':'')+s.hero,0,-12,'#f0e2c4',9);
  }
+ /* the gardens were drawn at 128 high on the square and read as a toy there; in the yard by the stone house they are
+    laid out this much bigger (asked for 2026-09-24), painting and canvas stand-in alike */
+ const GARDEN_K=1.6;
  function garden(g,s,time){
+  g.save();g.scale(GARDEN_K,GARDEN_K);
   for(const [x,y,w] of [[-52,-6,44],[8,10,48],[-18,-34,40]]){
    ellipse(g,x+w/2,y,w/2+6,13,'#5a4a36','#2a2016',2);ellipse(g,x+w/2,y-2,w/2,9,'#3f6a34');
    for(let i=0;i<7;i++){const fx=x+6+i*(w-12)/6,sway=Math.sin(time*1.6+i+x)*1.2;ellipse(g,fx+sway,y-7-(i%2)*3,3.2,3.2,['#e8607a','#f0c84a','#f4f0e0','#b884e0'][(i+(x|0))&3]);}
@@ -304,6 +310,7 @@
    ellipse(g,x+sway,y-72,26,30,'#3f7a3a');ellipse(g,x-9+sway,y-62,15,17,'#4f8f46');ellipse(g,x+10+sway,y-82,13,15,'#5a9c4e');
   }
   rect(g,-14,14,28,5,'#6d4a28','#2a1a0c',1);rect(g,-12,19,3,8,'#4a2d17');rect(g,9,19,3,8,'#4a2d17');       /* a bench */
+  g.restore();
  }
  /* a fenced building plot: planks, a heap of stone, a crane that swings, a board that counts the closes */
  function site(g,s,time){
@@ -318,20 +325,21 @@
   g.restore();
   board(g,s.name||'WORKS',-14,-40,84,'#ffd27a');        /* nailed to the fence; how long it will take is in the ledger */
  }
- /* 📌 the notice board by the crier's pitch: two posts, a little roof, papers */
+ /* 📌 the notice board: two posts, a little roof, papers */
  function noticeboard(g){
   for(const x of [-42,38])rect(g,x,-92,6,96,'#4a2d17','#15100b',1);
   rect(g,-46,-84,92,60,'#6d4a28','#2a1a0c',2);
   g.beginPath();g.moveTo(-56,-88);g.lineTo(0,-108);g.lineTo(56,-88);g.closePath();g.fillStyle='#55504a';g.fill();g.strokeStyle='#15100b';g.lineWidth=1.5;g.stroke();
   for(const [x,y,w,h] of [[-38,-78,22,28],[-10,-80,26,20],[20,-76,18,30],[-12,-54,24,24]]){rect(g,x,y,w,h,'#e9dcb8','#6b5430',1);ellipse(g,x+w/2,y+3,1.6,1.6,'#8a1b1b');}
  }
- function noticeBoard(world){const c=square(world);return {type:'citywork',kind:'noticeboard',x:c.x-6,y:c.y+190,r:16,seed:7};}
+ /* it stands in the yard before the stone house, where the boulevard's north kerb meets the square's rim (moved off the square 2026-09-24) */
+ function noticeBoard(world){const c=square(world);return {type:'citywork',kind:'noticeboard',x:c.x-550,y:c.y-185,r:16,seed:7};}
  const FOLK={maypole,music,feast,tent,breadline,beggar,barricade},FOLK_SCALE=1.55;
  /* 🎨 Painted art (assets/city/*.png, Higgsfield 2026-09-21, see city-art-manifest.json). `img` is a
     lookup game.js hands in - name -> a loaded image, or nothing while it loads and in the headless
     tests - and every routine below falls back to its canvas drawing without it. h is the drawn height
     in world units, drop how far below the anchor the art's foot sits. */
- const ART={lamp:{h:138,drop:5},fountain:{h:146,drop:34},statue:{h:178,drop:10},garden:{h:128,drop:44},site:{h:150,drop:34},stall:{h:122,drop:10},
+ const ART={lamp:{h:138,drop:5},fountain:{h:146,drop:34},statue:{h:178,drop:10},garden:{h:128*GARDEN_K,drop:44*GARDEN_K},site:{h:150,drop:34},stall:{h:122,drop:10},
   noticeboard:{h:132,drop:8},maypole:{h:272,drop:8},music:{h:92,drop:8},feast:{h:176,drop:50},tent:{h:232,drop:16},breadline:{h:140,drop:10},beggar:{h:70,drop:8},barricade:{h:122,drop:18}};
  const STALL_ART=['stall_bread','stall_fish','stall_greens','stall_cloth'],WAGON_ART=['wagon_barrels','wagon_caravan','wagon_grain','wagon_caravan'];
  const artName=s=>s.kind==='stall'?STALL_ART[s.goods%STALL_ART.length]:s.kind==='tent'?(s.stripe?'tent_blue':'tent_red'):s.kind==='statue'?(s.crowned?'statue_crowned':'statue'):s.kind;
@@ -599,7 +607,7 @@
   }
   g.restore();
  }
- return Object.freeze({ANCHORS,TINT,props,assignHouses,stallSlots,lampSpots,stallCount,traffic,litter,bunting,vacant,onStreet,
+ return Object.freeze({ANCHORS,TINT,ART,props,assignHouses,stallSlots,lampSpots,stallCount,traffic,litter,bunting,vacant,onStreet,
   CHIMNEYS,drawSmoke,MAX_STALLS,noticeBoard,streetLife,fireLevel,dressing,drawDressing,drawSnow,drawFireworks,
   drawProp,drawShadow,drawHouseWork,drawVacant,drawLitter,drawBunting,drawTraffic});
 });

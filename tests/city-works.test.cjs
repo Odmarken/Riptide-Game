@@ -71,7 +71,7 @@ test('the market shrinks with the fee and grows with the covered market and the 
  /* the new pitches keep clear of each other, of the wagons' lane across the square and of what else stands on it */
  for(let i=12;i<slots.length;i++)for(let j=0;j<i;j++)assert.ok(Math.hypot(slots[i].x-slots[j].x,slots[i].y-slots[j].y)>=95,i+' crowds '+j);
  for(const p of slots.slice(12))assert.ok(Math.abs(p.y-2600)>=110,'a pitch in the wagons’ lane');
- for(const [dx,dy,r] of [[-270,-250,110],[270,-250,90],[285,258,150],[0,-300,120],[-6,190,110],[118,212,90]])for(const p of slots)assert.ok(Math.hypot(p.x-8400-dx,p.y-2600-dy)>=r,'a pitch on top of something at '+dx+','+dy);
+ for(const [dx,dy,r] of [[-270,-250,110],[270,-250,90],[-350,-445,200],[0,-300,120],[-550,-185,110],[118,212,90],[295,260,150]])for(const p of slots)assert.ok(Math.hypot(p.x-8400-dx,p.y-2600-dy)>=r,'a pitch on top of something at '+dx+','+dy);
 });
 
 test('traffic is a function of the clock: wagons by the trade, handcarts in or out by the city\'s draw',()=>{

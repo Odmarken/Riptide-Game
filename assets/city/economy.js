@@ -272,7 +272,7 @@
   {id:'lamps',cat:'culture',name:'Street Lamps',icon:'🏮',cost:3000,build:1,upkeep:45,fx:{order:.05,attract:4,mood:2},site:'lamps',
    blurb:'Oil lamps the length of the great boulevard, and lamplighters to tend them.',done:'The boulevard was lit from gate to palace.'},
   {id:'gardens',cat:'culture',name:'Royal Gardens',icon:'🌳',cost:4800,build:2,upkeep:55,fx:{attract:6,mood:3},site:'garden',
-   blurb:'Flower beds and young limes on the great square, open to all.',done:'The gardens on the square came into flower.'},
+   blurb:'Flower beds and young limes by the great square, open to all.',done:'The gardens by the square came into flower.'},
   {id:'theatre',cat:'culture',name:'Playhouse',icon:'🎭',cost:7000,build:2,upkeep:70,fx:{mood:5,attract:5,income:90},site:'house',sign:'PLAYHOUSE',
    blurb:'A wooden O with a thatched gallery. Tragedies on Mondays.',done:'The Playhouse opened with a comedy about a tax collector.'},
   {id:'arena',cat:'culture',name:'Tourney Grounds',icon:'🏇',cost:11000,build:3,upkeep:95,fx:{mood:4,attract:6,income:210},site:'house',sign:'TOURNEY LISTS',
@@ -1378,7 +1378,7 @@
   bump(p.seat,-8);state.petition=null;
   return {ok:true,accepted:false,text:'Refused. The '+seatDef(p.seat).title+' bows, stiffly.'};
  }
- /* 🎩 Nobility. At the notice board on the great square anyone with the gold can petition for a patent
+ /* 🎩 Nobility. At the notice board by the great square anyone with the gold can petition for a patent
     of nobility, and a noble can put their OWN gold into the contracts posted there. It is patronage,
     not banking: NOTHING comes back - no dividend, no refund. What it buys is the good it does the
     city (when the contract clears) and standing: every contract is worth noble XP, XP is rank, and
