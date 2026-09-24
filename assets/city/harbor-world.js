@@ -40,14 +40,14 @@
  let remembered={};
 
  /* ---------- who is here ---------- */
- const HARBOUR_MASTER='Hamnkapten Leopold Ankarstjärna';
+ const HARBOUR_MASTER='Harbourmaster Leopold Ankarstjaerna';
  const FOLK=Object.freeze([
-  ['Matros Olle','sailor'],['Matros Jöns','sailor'],['Styrman Ragnar','sailor'],['Båtsman Figge','sailor'],['Skeppar Hilding','sailor'],['Jungman Truls','sailor'],
-  ['Enögde Sixten','pirate'],['Krok-Lasse','pirate'],['Svarte Rurik','pirate'],['Tjär-Nisse','pirate'],['Sabel-Jocke','pirate'],
-  ['Sjåare Bror','dockhand'],['Sjåare Malte','dockhand'],['Bärar-Anton','dockhand'],['Sjåare Valdemar','dockhand'],
-  ['Sill-Maja','fishwife'],['Strömmings-Karin','fishwife'],['Ål-Britta','fishwife'],
-  ['Köpman Hansson','merchant'],['Handlare Viktor Saltlake','merchant'],['Kryddhandlare Melcher','merchant'],['Torg-Signe','market_woman'],
-  ['Brokk Saltskägg','dwarfmale_hunter'],['Grima Havstand','orcfemale_warrior'],['Broder Ansgar','monk'],['Vex Drunknad','undeadmale_hunter'],
+  ['Sailor Olle','sailor'],['Sailor Jons','sailor'],['Mate Ragnar','sailor'],['Boatswain Figge','sailor'],['Skipper Hilding','sailor'],['Deckhand Truls','sailor'],
+  ['One-Eyed Sixten','pirate'],['Hook Lasse','pirate'],['Black Rurik','pirate'],['Tar Nisse','pirate'],['Sabre Jocke','pirate'],
+  ['Stevedore Bror','dockhand'],['Stevedore Malte','dockhand'],['Porter Anton','dockhand'],['Stevedore Valdemar','dockhand'],
+  ['Herring Maja','fishwife'],['Sprat Karin','fishwife'],['Eel Britta','fishwife'],
+  ['Merchant Hansson','merchant'],['Trader Viktor Saltlake','merchant'],['Spice Trader Melcher','merchant'],['Stallholder Signe','market_woman'],
+  ['Brokk Saltskaegg','dwarfmale_hunter'],['Grima Havstand','orcfemale_warrior'],['Brother Ansgar','monk'],['Vex Drunknad','undeadmale_hunter'],
  ]);
  const TALK=Object.freeze({
   harbourmaster:['Every hull in this basin is written in my ledger. What they carry is written somewhere else.','Berth fees are due at the turn of the tide. The gentlemen with the black flag pay in advance - I insist.','Mind the mole at night: the beacon is lit, the cannon is loaded, and the gulls are worse than either.','Kraken’s Rest and Port Meridian both send ships here. One sends cargo. The other sends trouble with a manifest.'],
@@ -105,12 +105,12 @@
     speed:hauls?30+R()*14:24+R()*30,walk:R()*5,fx:1,pauseT:R()*3,moving:false});
   }
   npcs.push(stand(HARBOUR_MASTER,'harbour_master',2830,Q0+104,-1,{big:1.3,game:'harbourmaster',say:TALK.harbourmaster}));
-  npcs.push(stand('Kapten Svartskägg','pirate_captain',1335,3066,1,{big:1.3,game:'captain',say:TALK.captain}));
-  npcs.push(stand('Kapten Röde Ruben','pirate_captain',2276,2690,1,{big:1.26,game:'captain',say:TALK.captain}));
-  npcs.push(stand('Fiskar-Greta','fishwife',470,Q0+108,1,{big:1.15,game:'fishwife',say:TALK.fishwife}));
-  npcs.push(stand('Rom-Jerker','pirate',3180,Q0+112,1,{big:1.12,game:'drunk',say:TALK.drunk}));
-  npcs.push(stand('Utkik Sölve','sailor',2112,3108,-1,{big:1.12,game:'lookout',say:TALK.lookout}));
-  npcs.push(stand('Kranförare Ebbe','dockhand',1222,1888,1,{big:1.12}));
+  npcs.push(stand('Captain Blackbeard','pirate_captain',1335,3066,1,{big:1.3,game:'captain',say:TALK.captain}));
+  npcs.push(stand('Captain Red Ruben','pirate_captain',2276,2690,1,{big:1.26,game:'captain',say:TALK.captain}));
+  npcs.push(stand('Fishwife Greta','fishwife',470,Q0+108,1,{big:1.15,game:'fishwife',say:TALK.fishwife}));
+  npcs.push(stand('Rum Jerker','pirate',3180,Q0+112,1,{big:1.12,game:'drunk',say:TALK.drunk}));
+  npcs.push(stand('Lookout Solve','sailor',2112,3108,-1,{big:1.12,game:'lookout',say:TALK.lookout}));
+  npcs.push(stand('Craneman Ebbe','dockhand',1222,1888,1,{big:1.12}));
   const solids=[],prop=(kind,x,y,extra)=>solids.push({x,y,r:ART[kind].r||24,type:'harborprop',kind,...extra});
   for(const h of HOUSES){const a=ART[h.kind];prop(h.kind,h.x,Q0+44,{big:true,flip:!!h.flip,crx:a.crx,cry:46,cyo:-34,seed:h.x*.01});}
   prop('crane',1300,2000,{crx:60,cry:20,cyo:-14});

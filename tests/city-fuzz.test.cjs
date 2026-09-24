@@ -32,7 +32,7 @@ for(let seed=1;seed<=8;seed++){
  let gold=0,closes=0,duke=null,spent=0,windfall=false;
  try{
   /* ---------- the road to the office, with the books shut ---------- */
-  E.ennoble(s,1e9);spent+=E.PATENT_COST;
+  E.ennoble(s,1e9,{prestige:1});spent+=E.PATENT_COST;
   while(s.office<1&&closes<3000){
    for(const o of s.noble.offers)if(!o.taken&&s.noble.rank>=1&&rng()<.85){const r=E.fundContract(s,o.id,1e9);if(r.ok)spent+=r.cost;}
    const r=E.tick(s,ctx,rng);closes++;scan(r,'idleTick',seed);

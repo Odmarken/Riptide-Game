@@ -79,7 +79,10 @@ test('spacing remains deterministic and preserves City size, services, gate and 
  // reached that dead end (Gorm Hammarson, a waypoint at 8411,4651) now turns round at the head of the flight (y 4348).
  // Only that one waypoint moved - with the turn-round taken out, every route hashed as 9a57fe09...c0c2 did, and no
  // house stood where the gate went (276 before and after at seed 13; the same in seeds 1, 42 and 8675309).
- assert.equal(hash(w.npcs),'94732d8c5c680af27a60a9ec04e54e21b3d48a9bddd25273bda2d6d37d816e5d');
+ // Re-recorded 2026-09-24 when the names went English-friendly (å->a, ä->ae, ö->o, Swedish titles in English, e.g. Vakt ->
+ // Watchman, Tvätterskan Agda -> Washerwoman Agda): with the old names put back (game.js CITY_RENAMED and the watch) every
+ // route hashes as 94732d8c...6e5d did - only the names differ.
+ assert.equal(hash(w.npcs),'b662b118433003606053f6f8a15acda8973fe584f74d38521cc4fda29762a7d5');
  /* the south wall is two lengths now: the passage under the harbour gatehouse is 180 wide on the central avenue */
  assert.deepEqual(w.mwalls.map(s=>[s.x,s.y,s.w,s.h]),[[0,60,16800,140],[0,5000,8310,140],[8490,5000,8310,140],[60,0,140,2525],[60,2675,140,2525],[16600,0,140,5200]]);
 });

@@ -6,21 +6,22 @@ const assert=require('node:assert/strict');
 const E=require('../assets/city/economy.js');
 const open=()=>{const s=E.create();E.charter(s);s.food.stock=1e6;return s;};
 const quiet=()=>.95;
+const HERO={prestige:1};           /* 🎩 the heralds seal patents for heroes of prestige 1 or more */
 const closes=(s,n,rng=quiet)=>{let last;for(let i=0;i<n;i++){E.attend(s);last=E.tick(s,{},rng);}return last;};
 const seeded=seed=>{let x=seed;return()=>{x=(Math.imul(x,1664525)+1013904223)>>>0;return x/4294967296;};};
 
 test('a quarter of an hour and a hundred thousand of your own gold make a knight; nothing is sealed sooner',()=>{
  assert.equal(E.NOBLE_CLOSES*E.TICK_SECONDS,15*60);assert.equal(E.OFFER_CLOSES*E.TICK_SECONDS,60*60);
- const street=E.create();assert.equal(E.ennoble(street,1e9).ok,true,'a patent is the heralds’ business: the books need not be open');
+ const street=E.create();assert.equal(E.ennoble(street,1e9,HERO).ok,true,'a patent is the heralds’ business: the books need not be open');
  for(let i=0;i<3;i++)E.tick(street,{},quiet);assert.equal(street.noble.rank,1);assert.equal(street.treasury,0,'and with the books shut the fee reaches no treasury');
  const s=open();
- assert.equal(E.ennoble(s,E.PATENT_COST-1).ok,false);
- const r=E.ennoble(s,E.PATENT_COST);assert.equal(r.ok,true);assert.equal(r.cost,100000);
- assert.equal(E.ennoble(s,1e9).ok,false,'one petition at a time');
+ assert.equal(E.ennoble(s,E.PATENT_COST-1,HERO).ok,false);
+ const r=E.ennoble(s,E.PATENT_COST,HERO);assert.equal(r.ok,true);assert.equal(r.cost,100000);
+ assert.equal(E.ennoble(s,1e9,HERO).ok,false,'one petition at a time');
  assert.equal(E.nobleView(s).pending[0].seconds,15*60);
  closes(s,2);assert.equal(s.noble.rank,0);assert.equal(E.nobleView(s).pending[0].seconds,5*60);
  const last=closes(s,1);assert.equal(s.noble.rank,1);assert.equal(last.rankUp,1);assert.ok(last.unrest.some(u=>/patent of nobility is sealed/.test(u)));
- assert.equal(E.ennoble(s,1e9).ok,false,'and only once');
+ assert.equal(E.ennoble(s,1e9,HERO).ok,false,'and only once');
  const v=E.nobleView(s);assert.equal(v.def.title,'Knight');assert.equal(v.next.id,'baron');
 });
 
@@ -41,7 +42,7 @@ test('a contract takes the whole sum now, clears in a quarter of an hour, does t
  const s=open();closes(s,1,seeded(3));
  const o=s.noble.offers[0];
  assert.equal(E.fundContract(s,o.id,1e9).ok,false,'let to the nobility only');
- E.ennoble(s,1e9);closes(s,3);
+ E.ennoble(s,1e9,HERO);closes(s,3);
  const offer=s.noble.offers[0],def=E.CONTRACTS.find(c=>c.id===offer.id);
  assert.equal(E.fundContract(s,offer.id,offer.cost-1).ok,false);
  const r=E.fundContract(s,offer.id,offer.cost);assert.equal(r.ok,true);assert.equal(r.cost,offer.cost);
@@ -55,7 +56,7 @@ test('a contract takes the whole sum now, clears in a quarter of an hour, does t
 });
 
 test('XP is rank, and rank brings more contracts, dearer ones, a better name and a little of the city’s regard',()=>{
- const s=open();E.ennoble(s,1e9);closes(s,3);
+ const s=open();E.ennoble(s,1e9,HERO);closes(s,3);
  const base=E.forecast(s,{});
  for(const [xp,rank,title] of [[149,1,'Knight'],[150,2,'Baron'],[400,3,'Viscount'],[800,4,'Count'],[1400,5,'Marquess'],[2200,6,'Duke']]){
   s.noble.xp=xp;closes(s,1);assert.equal(s.noble.rank,rank,xp+' XP');assert.equal(E.nobleView(s).def.title,title);
@@ -71,7 +72,7 @@ test('XP is rank, and rank brings more contracts, dearer ones, a better name and
 });
 
 test('the papers survive a save, and a save from before the peerage opens as a commoner',()=>{
- const s=open();closes(s,1,seeded(5));E.ennoble(s,1e9);closes(s,3);E.fundContract(s,s.noble.offers[0].id,1e9);
+ const s=open();closes(s,1,seeded(5));E.ennoble(s,1e9,HERO);closes(s,3);E.fundContract(s,s.noble.offers[0].id,1e9);
  assert.deepEqual(E.normalize(JSON.parse(JSON.stringify(s))).noble,s.noble);
  assert.equal(E.normalize({v:E.VERSION,chartered:true}).office,3);assert.deepEqual(E.normalize({v:E.VERSION,chartered:true}).noble,{rank:0,xp:0,given:0,done:0,pending:[],offers:[],offerLeft:0,legacy:{mood:0,attract:0,skill:0,pleasure:0,food:0,seats:{}}});
  assert.deepEqual(E.normalize({v:E.VERSION,chartered:true,noble:{rank:99,xp:-4,pending:[{kind:'loan',amount:5},{kind:'contract',id:'ghost',amount:5}],offers:[{id:'ghost',cost:9}]}}).noble,{rank:6,xp:0,given:0,done:0,pending:[],offers:[],offerLeft:0,legacy:{mood:0,attract:0,skill:0,pleasure:0,food:0,seats:{}}});
@@ -80,7 +81,7 @@ test('the papers survive a save, and a save from before the peerage opens as a c
 test('the whole road: a commoner on the square becomes a duke with the books shut, is sent for, hears the Hand out and takes the office',()=>{
  const s=E.create(),rng=seeded(21);
  assert.equal(E.acceptOffice(s).ok,false,'the office is not offered to a stranger');assert.equal(E.meetHand(s),false);
- E.ennoble(s,1e9);let sent=null,closesRun=0;
+ E.ennoble(s,1e9,HERO);let sent=null,closesRun=0;
  while(s.office<1&&closesRun<4000){
   for(const o of s.noble.offers)if(!o.taken&&s.noble.rank>=1)E.fundContract(s,o.id,1e9);
   const r=E.tick(s,{},rng);closesRun++;assert.equal(r.idle,true);if(r.summoned)sent=r;
@@ -96,7 +97,7 @@ test('the whole road: a commoner on the square becomes a duke with the books shu
 });
 
 test('with the books shut the city stays neutral: a noble’s good works are remembered, and count from the day the office is taken',()=>{
- const s=E.create(),rng=seeded(9);E.ennoble(s,1e9);
+ const s=E.create(),rng=seeded(9);E.ennoble(s,1e9,HERO);
  for(let i=0;i<400;i++){for(const o of s.noble.offers)if(!o.taken&&s.noble.rank>=1)E.fundContract(s,o.id,1e9);E.tick(s,{},rng);}
  assert.ok(s.noble.done>20);
  const fresh=E.create();
@@ -118,7 +119,18 @@ test('the first posting goes up the moment somebody walks up to the board, and o
  assert.equal(E.postBoard(s,seeded(4)),true);const first=s.noble.offers.map(o=>o.id);
  assert.ok(first.length>=1&&first.length<=3);assert.equal(s.noble.offerLeft,E.OFFER_CLOSES);assert.equal(E.nobleView(s).repost,60*60);
  assert.equal(E.postBoard(s,seeded(5)),false,'walking up to it again re-rolls nothing');assert.deepEqual(s.noble.offers.map(o=>o.id),first);
- E.ennoble(s,1e9);closes(s,3);for(const o of s.noble.offers)E.fundContract(s,o.id,1e9);
+ E.ennoble(s,1e9,HERO);closes(s,3);for(const o of s.noble.offers)E.fundContract(s,o.id,1e9);
  assert.equal(E.postBoard(s,seeded(6)),false,'nor does taking everything on it');
  closes(s,E.OFFER_CLOSES-3);assert.notDeepEqual(s.noble.offers.map(o=>o.id),first);
+});
+
+test('the heralds seal a patent only for a hero the realm has heard of: prestige 1 or more',()=>{
+ const s=E.create();
+ for(const hero of [undefined,{},{prestige:0}]){const r=E.ennoble(s,1e9,hero);assert.equal(r.ok,false);assert.match(r.text,/prestige 1 or more/);}
+ assert.equal(s.noble.pending.length,0,'nothing was handed to the heralds');
+ assert.equal(E.PATENT_PRESTIGE,1);assert.equal(E.nobleView(s).patentPrestige,1);
+ assert.equal(E.ennoble(s,1e9,{prestige:1}).ok,true);
+ const fs=require('node:fs'),path=require('node:path'),src=fs.readFileSync(path.join(__dirname,'..','game.js'),'utf8');
+ assert.match(src,/E\.ennoble\(c,totalGold\(\),\{prestige:S\.prestige\|\|0\}\)/,'the board hands the rules the hero’s prestige');
+ assert.match(src,/data-bact="patent"'\+\(v\.petitioned\|\|unproven\|\|gold<v\.patentCost\?' disabled':''\)/,'and greys the petition out below it');
 });

@@ -354,8 +354,8 @@
     standing. Gottfrid Pung, thirty years a merchant, keeps the poor box as High Almoner. */
  const PLAYER_SEAT=Object.freeze({id:'coin',title:'Master of Coin',icon:'🪙'});
  const COUNCIL=[
-  {id:'sword',title:'Lord Commander',who:'Brynolf Järnhand',icon:'⚔️',line:'watch',cares:'men on the streets'},
-  {id:'stone',title:'Master Builder',who:'Hallvard Städ',icon:'🧱',line:'roads',cares:'roads, gates and walls - and anything you let him build'},
+  {id:'sword',title:'Lord Commander',who:'Brynolf Jaernhand',icon:'⚔️',line:'watch',cares:'men on the streets'},
+  {id:'stone',title:'Master Builder',who:'Hallvard Staed',icon:'🧱',line:'roads',cares:'roads, gates and walls - and anything you let him build'},
   {id:'bread',title:'High Almoner',who:'Gottfrid Pung',icon:'🍞',line:'relief',cares:'bread for the poor - and what every loaf of it costs'},
   {id:'revel',title:'Master of Revels',who:'Casimir Lilje',icon:'🎉',line:'festival',cares:'feast days and tourneys'},
   {id:'chamber',title:'Lord Chamberlain',who:'Ansgar Vidhem',icon:'👑',line:'court',cares:'the splendour of the court'},
@@ -405,7 +405,7 @@
   {id:'parade',text:'Parade the guard and the watch past my balcony. In new surcoats.',cost:1000,pleasure:10,favour:{sword:5},likes:['warlike']},
   {id:'musicians',text:'Send for the blind harper and his consort. Nothing else will lift this mood.',cost:650,pleasure:11,likes:['melancholy']},
   {id:'pilgrimage',text:'I will walk barefoot to the shrine at the coast. Carried, part of the way. The household comes.',cost:1300,pleasure:11,mood:1,likes:['pious']},
-  {id:'poet',text:'That poet who rhymed “Alarik” with “barbaric”. In irons. Tonight.',cost:0,pleasure:8,mood:-4,trust:-2,refuseTrust:2,arrest:{name:'Poeten Loke Rim',skin:'male',crime:'rhymed the King’s name with “barbaric”',term:6},likes:['warlike','melancholy','needy']},
+  {id:'poet',text:'That poet who rhymed “Alarik” with “barbaric”. In irons. Tonight.',cost:0,pleasure:8,mood:-4,trust:-2,refuseTrust:2,arrest:{name:'Poet Loke Rim',skin:'male',crime:'rhymed the King’s name with “barbaric”',term:6},likes:['warlike','melancholy','needy']},
  ];
  /* ⛓ The jail. At every close the watch may bring somebody in - a real townsperson from the roster
     game.js hands over, who then is not on the streets until the term is served. when() makes the
@@ -428,8 +428,8 @@
   {text:'slept in the fountain, drunk, with no breeches',term:[1,2],w:1.5,say:'I have no memory of the matter and no wish to acquire one.'},
   {text:'led the march on the boulevard',term:[3,5],w:0,say:'You can lock me up. You cannot lock up hunger.',boost:s=>s.protest?8:0},
  ];
- const FALLBACK_ROSTER=[['Nils Tång','male'],['Märit Sill','female'],['Olle Krok','male'],['Ragna Tjärn','market_woman'],['Pelle Lod','male'],['Stina Rev','baker'],
-  ['Jöns Skot','male'],['Britta Ask','female'],['Lars Bom','blacksmith'],['Ebba Nät','market_woman'],['Truls Köl','male'],['Malin Garn','female']];
+ const FALLBACK_ROSTER=[['Nils Tang','male'],['Maerit Sill','female'],['Olle Krok','male'],['Ragna Tjaern','market_woman'],['Pelle Lod','male'],['Stina Rev','baker'],
+  ['Jons Skot','male'],['Britta Ask','female'],['Lars Bom','blacksmith'],['Ebba Naet','market_woman'],['Truls Kol','male'],['Malin Garn','female']];
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const num=(v,d=0)=>Number.isFinite(Number(v))?Number(v):d;
  const round1=v=>Math.round(v*10)/10;
@@ -1474,6 +1474,7 @@
     clearing: mood/attract/trust/skill/pleasure are points, seat favours by id, food is sacks,
     wind nudges a wind, quiet ends one incident, crown is the share of the gold the treasury keeps. */
  const NOBLE_CLOSES=3,OFFER_CLOSES=12,PATENT_COST=100000;
+ const PATENT_PRESTIGE=1;          /* 🎩 the heralds seal a patent only for a hero the realm has heard of: prestige 1 or more (asked for 2026-09-24) */
  const NOBLE_RANKS=[
   {id:'commoner',title:'Commoner',titleF:'Commoner',xp:0},
   {id:'knight',title:'Knight',titleF:'Dame',style:'Knight of the Realm',xp:0},
@@ -1536,17 +1537,18 @@
  function nobleView(state){
   const N=state.noble,rank=N.rank,next=NOBLE_RANKS[rank+1]||null,[lo,hi]=offerRange(rank);
   const wait=left=>Math.max(0,(left-1)*TICK_SECONDS+(TICK_SECONDS-num(state.clock)));
-  return {legacy:N.legacy,office:num(state.office),summons:!state.chartered&&(state.office===1||state.office===2),rank,def:NOBLE_RANKS[rank],ranks:NOBLE_RANKS,xp:N.xp,given:N.given,done:N.done,patentCost:PATENT_COST,closes:NOBLE_CLOSES,minutes:NOBLE_CLOSES*TICK_SECONDS/60,
+  return {legacy:N.legacy,office:num(state.office),summons:!state.chartered&&(state.office===1||state.office===2),rank,def:NOBLE_RANKS[rank],ranks:NOBLE_RANKS,xp:N.xp,given:N.given,done:N.done,patentCost:PATENT_COST,patentPrestige:PATENT_PRESTIGE,closes:NOBLE_CLOSES,minutes:NOBLE_CLOSES*TICK_SECONDS/60,
    pending:N.pending.map(p=>({...p,name:p.kind==='patent'?'Patent of nobility':contractDef(p.id).name,icon:p.kind==='patent'?'🎩':contractDef(p.id).icon,seconds:wait(p.left)})),
    petitioned:N.pending.some(p=>p.kind==='patent'),
    offers:N.offers.map(o=>({...contractDef(o.id),...o,effects:contractFx(contractDef(o.id).fx)})),offerRange:[lo,hi],repost:N.offers.length||state.ticks?wait(Math.max(1,N.offerLeft)):null,
    next:next&&rank>=1?{...next,left:Math.max(0,next.xp-N.xp),from:NOBLE_RANKS[rank].xp}:null,perks:{attract:rank,trust:round1(rank*.1)}};
  }
  /* the petition: the fee is handed to the heralds now, the patent is sealed NOBLE_CLOSES closes later */
- function ennoble(state,purse){
+ function ennoble(state,purse,hero={}){
   const N=state.noble;
   if(N.rank>=1)return {ok:false,text:'You hold a patent already.'};
   if(N.pending.some(p=>p.kind==='patent'))return {ok:false,text:'Your petition is with the heralds. These things take the time they take.'};
+  if(num(hero&&hero.prestige)<PATENT_PRESTIGE)return {ok:false,text:'The heralds seal patents for heroes the realm has heard of - prestige '+PATENT_PRESTIGE+' or more.'};
   if(num(purse)<PATENT_COST)return {ok:false,text:'The heralds’ fee is '+PATENT_COST.toLocaleString()+' ◉ of your own gold.'};
   N.pending.push({kind:'patent',amount:PATENT_COST,left:NOBLE_CLOSES});
   return {ok:true,cost:PATENT_COST,text:'The heralds have your petition and your '+PATENT_COST.toLocaleString()+' ◉. The patent will be sealed in '+NOBLE_CLOSES+' closes - a quarter of an hour.'};
@@ -1941,7 +1943,7 @@
   state.counsel={at:state.ticks,text,topic:t.id};
   return {ok:true,spent:true,topic:t.id,text};
  }
- return Object.freeze({BANK_TAKEOVER,BANK_RULE_SEASONS,bankRuleView,create,normalize,forecast,tick,advance,setBudget,borrow,repay,withdraw,deposit,settle,answer,councilView,PLAYER_SEAT,ALLIES,alliesView,allyInvest,alliesFx,talkView,openTalks,makeOffer,acceptCounter,haggleReasons,TALK_COOL_INSULT,TALK_COOL_WALK,ALLY_CLOSES,PARTNER_AT,BUY_AT,COURT_CLOSES,PARTNER_SHARE,meetHand,acceptOffice,nobleView,ennoble,fundContract,dealOffers,postBoard,NOBLE_RANKS,CONTRACTS,NOBLE_CLOSES,OFFER_CLOSES,PATENT_COST,TEST,HARBOUR_WORKS,HARBOUR_BASE,counsel,counselView,counselTopics,COUNSEL_EVERY,projection,
+ return Object.freeze({BANK_TAKEOVER,BANK_RULE_SEASONS,bankRuleView,create,normalize,forecast,tick,advance,setBudget,borrow,repay,withdraw,deposit,settle,answer,councilView,PLAYER_SEAT,ALLIES,alliesView,allyInvest,alliesFx,talkView,openTalks,makeOffer,acceptCounter,haggleReasons,TALK_COOL_INSULT,TALK_COOL_WALK,ALLY_CLOSES,PARTNER_AT,BUY_AT,COURT_CLOSES,PARTNER_SHARE,meetHand,acceptOffice,nobleView,ennoble,fundContract,dealOffers,postBoard,NOBLE_RANKS,CONTRACTS,NOBLE_CLOSES,OFFER_CLOSES,PATENT_COST,PATENT_PRESTIGE,TEST,HARBOUR_WORKS,HARBOUR_BASE,counsel,counselView,counselTopics,COUNSEL_EVERY,projection,
   worksView,invest,upgrade,lvlOf,raising,UP_LEVEL,UP_FAVOUR,crownView,answerKing,claimCrown,canClaim,seasonsPlayed,COUP_SEASONS,COUP_FAVOUR,bonusView,takeBonus,declineBonus,BONUS_SHARE,gaolView,pardon,execute,fine,allyFear,MERCY,MERCY_SEASONS,worksFx,has,cells,charter,charterView,bankView,rehire,frozen,attend,neglect,REMIND_AFTER,NEGLECT_AFTER,NEGLECT_HARD,TRUST_SLOPE,TRUST_DRAIN_MAX,SEAT_SLOPE,SEAT_DRAIN_MAX,MOOD_SLOPE,MOOD_DRAIN_MAX,DRAW_SLOPE,DRAW_DRAIN_MAX,
   POP_MAX,HOUSEHOLD,hearths,SEASON_CARDS,cardDef,dealCard,
   windName,WIND_KEYS,WIND_MAX,JITTER_IN,JITTER_OUT,WAGE_RISE,WAGE_MAX,HERO_EXPORTS_MAX,HERO_FARM_LEVELS,

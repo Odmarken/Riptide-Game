@@ -13,7 +13,7 @@ function harness(zone='city'){
  const s=E.create();E.charter(s);s.food.stock=1e6;s.trust=100;s.season.n=2;for(const k of Object.keys(s.council))s.council[k]=E.COUP_FAVOUR;
  assert.ok(E.claimCrown(s,'gaol').ok);
  const folk=[];for(let i=0;i<30;i++)folk.push({name:'Townsman '+i,skin:'male',x:cx+(i-15)*300,y:cy+(i%5)*200-400,pts:[{x:0,y:0}],i:0,dir:1,speed:30,walk:0,fx:1,pauseT:i%3,moving:i%2===0});
- const crier={name:'Utropare Måns',skin:'merchant',game:'crier',x:cx+118,y:cy+212,pts:[],i:0,dir:1,speed:0,walk:0,fx:-1,pauseT:1e9,moving:false};
+ const crier={name:'Town Crier Mans',skin:'merchant',game:'crier',x:cx+118,y:cy+212,pts:[],i:0,dir:1,speed:0,walk:0,fx:-1,pauseT:1e9,moving:false};
  const well={x:cx,y:cy,r:26,type:'well'},fountain={x:cx-200,y:cy+120,r:20,type:'citywork',id:'fountain'},far={x:cx-2000,y:cy,r:20,type:'citywork'};
  const world={w:W,h:H,solids:[well,fountain,far],npcs:[...folk,crier]};
  const el={style:{}};

@@ -41,19 +41,19 @@
  const STAIR_UP=Object.freeze({x:UPSTAIR.x+UPSTAIR.w-40,y:UPSTAIR.y+65,r:40}),GAOL_ARRIVE=Object.freeze({x:GAOL.x+GAOL.w-95,y:UPSTAIR.y+65});
  const CELL_COUNT=10,CELL_W=88,CELL_D=118;
  const CELLS=Object.freeze(Array.from({length:CELL_COUNT},(_,i)=>Object.freeze({x:GAOL.x+70+i*104,y:GAOL.y})));
- const GAOLER=Object.freeze({x:GAOL.x+GAOL.w-330,y:GAOL.y+372}),GAOLER_NAME='Fångvaktare Grim · Jailer';
- const GUARDS=Object.freeze(['Gardist Torvald','Gardist Ulf','Gardist Einar','Gardist Sten','Gardist Ragnar','Gardist Bo','Gardist Arne','Gardist Halvar']);
+ const GAOLER=Object.freeze({x:GAOL.x+GAOL.w-330,y:GAOL.y+372}),GAOLER_NAME='Grim · Jailer';
+ const GUARDS=Object.freeze(['Guardsman Torvald','Guardsman Ulf','Guardsman Einar','Guardsman Sten','Guardsman Ragnar','Guardsman Bo','Guardsman Arne','Guardsman Halvar']);
  /* 🏛 the seats of the council (ids match CityEconomy.COUNCIL): who sits there, in which of the
     townsfolk's clothes, and where he stands - three behind the far chairs, two before the near ones.
     The near-left chair is the King's Hand's (HAND); the steward, as Master of Coin, sits where he likes. */
  const SEATS=Object.freeze([
-  {seat:'sword',name:'Brynolf Järnhand · Lord Commander',skin:'guard',x:900,y:472,fx:1},
-  {seat:'stone',name:'Hallvard Städ · Master Builder',skin:'blacksmith',x:1110,y:478,fx:-1},
+  {seat:'sword',name:'Brynolf Jaernhand · Lord Commander',skin:'guard',x:900,y:472,fx:1},
+  {seat:'stone',name:'Hallvard Staed · Master Builder',skin:'blacksmith',x:1110,y:478,fx:-1},
   {seat:'bread',name:'Gottfrid Pung · High Almoner',skin:'merchant',x:690,y:478,fx:1},   /* behind the far-left chair, where he always stood */
   {seat:'revel',name:'Casimir Lilje · Master of Revels',skin:'noble_dandy',x:900,y:812,fx:-1},
   {seat:'chamber',name:'Ansgar Vidhem · Lord Chamberlain',skin:'noble_elder',x:1100,y:806,fx:-1},
  ]);
- const KING_NAME='Kung Alarik Tidvind',HAND_NAME='Eskil Stormark · King’s Hand';
+ const KING_NAME='King Alarik Tidvind',HAND_NAME='Eskil Stormark · King’s Hand';
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const ready=im=>!!(im&&im.complete!==false&&(im.naturalWidth||im.width)>0&&(im.naturalHeight||im.height)>0);
  const imageTiles=new WeakMap(),contextPatterns=new WeakMap();

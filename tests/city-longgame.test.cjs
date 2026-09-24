@@ -169,9 +169,9 @@ test('the gaol: real townsfolk, terms served, fines and pardons, and nobody arre
  const gold=s.treasury,fine=E.fine(s,{},'Gorm Hammarson');
  assert.equal(fine.gold,90*K);assert.equal(s.treasury,gold+90*K);assert.deepEqual(s.jail,[]);assert.equal(E.fine(s,{},'Gorm Hammarson'),null);
  /* a pardon is remembered; pardoning the King's prisoner is remembered by the King */
- const t=open();t.jail.push({name:'Poeten Loke Rim',skin:'male',crime:'rhymed',say:'',term:6,served:0,byKing:true});
+ const t=open();t.jail.push({name:'Poet Loke Rim',skin:'male',crime:'rhymed',say:'',term:6,served:0,byKing:true});
  const trust=t.trust,pleasure=t.king.pleasure;
- assert.ok(E.pardon(t,'Poeten Loke Rim').ok);assert.equal(t.trust,trust+.5);assert.equal(t.king.pleasure,pleasure-8);assert.equal(E.pardon(t,'nobody'),null);
+ assert.ok(E.pardon(t,'Poet Loke Rim').ok);assert.equal(t.trust,trust+.5);assert.equal(t.king.pleasure,pleasure-8);assert.equal(E.pardon(t,'nobody'),null);
  /* a courthouse doubles the fines and makes the gaol pay */
  const c=open();c.works.courthouse={left:0};c.jail.push({name:'A',skin:'male',crime:'x',term:4,served:1});
  assert.equal(E.gaolView(c,{}).prisoners[0].fine,540*K);assert.ok(line(E.forecast(c,{}),'income','works')>0);

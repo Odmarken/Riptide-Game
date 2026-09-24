@@ -1869,6 +1869,9 @@ function ensureItemBase(it){
  if(it.basePower===undefined)it.basePower=Math.round((it.baseAtk||0)*3+(it.baseHp||0)*0.6+(it.baseCrit||0)*4);
  return it;
 }
+/* 🔤 the townsfolk went English-friendly on 2026-09-24 (å->a, ä->ae, ö->o; Swedish titles in English): a prisoner saved under
+   an old name keeps his cell under the new one. Defined above migrate, which reads it. */
+const CITY_RENAMED=Object.freeze({"Frida Tjära":"Frida Tjaera","Kettil Grå":"Kettil Gra","Åke Bredaxe":"Ake Bredaxe","Ödgar Dunkel":"Odgar Dunkel","Greve Ansgar Vidhem":"Count Ansgar Vidhem","Friherre Ulf Gyllenklo":"Baron Ulf Gyllenklo","Hertig Lodvig Ekeblad":"Duke Lodvig Ekeblad","Lagman Sixten Örnfot":"Lawspeaker Sixten Ornfot","Riddar Björn Rosenstam":"Sir Bjorn Rosenstam","Junker Casimir Lilje":"Squire Casimir Lilje","Grevinnan Adela Vidhem":"Countess Adela Vidhem","Baronessan Ingrid Silverlöv":"Baroness Ingrid Silverlov","Änkehertiginnan Hedvig":"Dowager Duchess Hedvig","Fru Märta Stjärnfält":"Lady Maerta Stjaernfaelt","Fröken Elvira Rosenstam":"Miss Elvira Rosenstam","Fröken Cecilia Gyllenklo":"Miss Cecilia Gyllenklo","Köpman Gottfrid Pung":"Merchant Gottfrid Pung","Handlare Isak Krona":"Trader Isak Krona","Broder Anselm":"Brother Anselm","Mäster Hallvard Städ":"Master Hallvard Staed","Bagar-Lovisa":"Baker Lovisa","Tvätterskan Agda":"Washerwoman Agda","Urzul Gråhud":"Urzul Grahud","Greve Torsten Ekeblad":"Count Torsten Ekeblad","Kammarherre Otto Lilje":"Chamberlain Otto Lilje","Junker Filip Silverlöv":"Squire Filip Silverlov","Friherrinnan Beata Örnfot":"Baroness Beata Ornfot","Fru Gunilla Ekeblad":"Lady Gunilla Ekeblad","Fröken Amalia Vidhem":"Miss Amalia Vidhem","Köpman Bertil Skilling":"Merchant Bertil Skilling","Handlare Melker Vikt":"Trader Melker Vikt","Broder Botolf":"Brother Botolf","Broder Kjell":"Brother Kjell","Mäster Ragnvald Ässja":"Master Ragnvald Aessja","Smedgesäll Hjalmar":"Journeyman Hjalmar","Bagar-Klara":"Baker Klara","Bagar-Stina":"Baker Stina","Torg-Gunhild":"Stallholder Gunhild","Torg-Elin":"Stallholder Elin","Syster Tyra":"Sister Tyra","Syster Ragnhild":"Sister Ragnhild","Fiskar-Ottar":"Fisherman Ottar","Dagny Järnhäl":"Dagny Jaernhael","Grash Benknäckare":"Grash Benknaeckare","Brynolf Järnhand":"Brynolf Jaernhand","Hallvard Städ":"Hallvard Staed","Poeten Loke Rim":"Poet Loke Rim","Nils Tång":"Nils Tang","Märit Sill":"Maerit Sill","Ragna Tjärn":"Ragna Tjaern","Jöns Skot":"Jons Skot","Ebba Nät":"Ebba Naet","Truls Köl":"Truls Kol"});
 function migrate(s){ /* fills fields missing from older saves */
  s.introPending=s.introPending===true; /* existing heroes never get the new-character guide */
  s.mounts=Mounts.normalize(s.mounts);
@@ -1882,6 +1885,7 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.cityNewer&&typeof s.cityNewer==='object'&&+s.cityNewer.v<=CityEconomy.VERSION){s.city=s.cityNewer;delete s.cityNewer;}
  if(s.city&&typeof s.city==='object'&&+s.city.v>CityEconomy.VERSION){s.cityNewer=s.city;s.city=null;}
  s.city=CityEconomy.normalize(s.city);
+ for(const p of s.city.jail)if(CITY_RENAMED[p.name])p.name=CITY_RENAMED[p.name];   /* 🔤 the townsfolk's new names */
  /* A save written by a NEWER build can stand in a zone this build has never heard of - the zone table
     is append-only, so an older exe or an old browser tab simply has a shorter one. Such a hero wakes
     up in Moonshine instead of taking the character list down with him. */
@@ -4784,10 +4788,10 @@ function openSmelter(){$('smeltFx').style.display='flex';smeltRefresh();sfx.buy(
    Streets live in world.streets purely as geometry - drawCityGround() paints them and the house
    placer uses them to keep doorways off the cobbles. */
 const CITY_NAMES=[
- 'Alrik Stenhand','Bodil Vass','Cederik Malm','Disa Kvarn','Emrik Sot','Frida Tjära',
- 'Gorm Hammarson','Halla Nystan','Ivar Bleke','Jorunn Salt','Kettil Grå','Linnea Spik',
+ 'Alrik Stenhand','Bodil Vass','Cederik Malm','Disa Kvarn','Emrik Sot','Frida Tjaera',
+ 'Gorm Hammarson','Halla Nystan','Ivar Bleke','Jorunn Salt','Kettil Gra','Linnea Spik',
  'Mose Krita','Nanna Rost','Orvar Lykta','Petronella Skarp','Rurik Tunna','Signe Vide',
- 'Torkel Nagel','Ulrika Bly','Valter Skorsten','Ylva Fnask','Åke Bredaxe','Ödgar Dunkel',
+ 'Torkel Nagel','Ulrika Bly','Valter Skorsten','Ylva Fnask','Ake Bredaxe','Odgar Dunkel',
 ];
 /* Who walks the streets, by name and skin. The 24 original townsfolk keep their names and get a
    face that suits them; the rest are the gentry the cathedral square deserved - counts, barons, a
@@ -4798,27 +4802,27 @@ const CITY_NAMES=[
    consumed in roster order, so the older routes are what they were. */
 const CITY_FOLK=[
  ['Alrik Stenhand','male'],['Bodil Vass','baker'],['Cederik Malm','blacksmith'],['Disa Kvarn','market_woman'],
- ['Emrik Sot','blacksmith'],['Frida Tjära','female'],['Gorm Hammarson','male'],['Halla Nystan','baker'],
- ['Ivar Bleke','monk'],['Jorunn Salt','market_woman'],['Kettil Grå','male'],['Linnea Spik','female'],
+ ['Emrik Sot','blacksmith'],['Frida Tjaera','female'],['Gorm Hammarson','male'],['Halla Nystan','baker'],
+ ['Ivar Bleke','monk'],['Jorunn Salt','market_woman'],['Kettil Gra','male'],['Linnea Spik','female'],
  ['Mose Krita','monk'],['Nanna Rost','baker'],['Orvar Lykta','male'],['Petronella Skarp','market_woman'],
  ['Rurik Tunna','merchant'],['Signe Vide','female'],['Torkel Nagel','male'],['Ulrika Bly','baker'],
- ['Valter Skorsten','male'],['Ylva Fnask','market_woman'],['Åke Bredaxe','dwarfmale_warrior'],['Ödgar Dunkel','undeadmale_priest'],
- ['Greve Ansgar Vidhem','noble_velvet'],['Friherre Ulf Gyllenklo','noble_velvet'],['Hertig Lodvig Ekeblad','noble_elder'],
- ['Lagman Sixten Örnfot','noble_elder'],['Riddar Björn Rosenstam','noble_dandy'],['Junker Casimir Lilje','noble_dandy'],
- ['Grevinnan Adela Vidhem','noble_lady'],['Baronessan Ingrid Silverlöv','noble_lady'],['Änkehertiginnan Hedvig','noble_dowager'],
- ['Fru Märta Stjärnfält','noble_dowager'],['Fröken Elvira Rosenstam','noble_maiden'],['Fröken Cecilia Gyllenklo','noble_maiden'],
- ['Köpman Gottfrid Pung','merchant'],['Handlare Isak Krona','merchant'],['Broder Anselm','monk'],['Mäster Hallvard Städ','blacksmith'],
- ['Bagar-Lovisa','baker'],['Tvätterskan Agda','female'],
+ ['Valter Skorsten','male'],['Ylva Fnask','market_woman'],['Ake Bredaxe','dwarfmale_warrior'],['Odgar Dunkel','undeadmale_priest'],
+ ['Count Ansgar Vidhem','noble_velvet'],['Baron Ulf Gyllenklo','noble_velvet'],['Duke Lodvig Ekeblad','noble_elder'],
+ ['Lawspeaker Sixten Ornfot','noble_elder'],['Sir Bjorn Rosenstam','noble_dandy'],['Squire Casimir Lilje','noble_dandy'],
+ ['Countess Adela Vidhem','noble_lady'],['Baroness Ingrid Silverlov','noble_lady'],['Dowager Duchess Hedvig','noble_dowager'],
+ ['Lady Maerta Stjaernfaelt','noble_dowager'],['Miss Elvira Rosenstam','noble_maiden'],['Miss Cecilia Gyllenklo','noble_maiden'],
+ ['Merchant Gottfrid Pung','merchant'],['Trader Isak Krona','merchant'],['Brother Anselm','monk'],['Master Hallvard Staed','blacksmith'],
+ ['Baker Lovisa','baker'],['Washerwoman Agda','female'],
  ['Brokk Malmhand','dwarfmale_hunter'],['Tova Bergsdotter','dwarffemale_priest'],['Zorga Blodtand','orcfemale_mage'],
- ['Urzul Gråhud','orcmale_hunter'],['Morwen Askvind','undeadfemale_mage'],['Eskil Pilfinger','humanmale_hunter'],
+ ['Urzul Grahud','orcmale_hunter'],['Morwen Askvind','undeadfemale_mage'],['Eskil Pilfinger','humanmale_hunter'],
  /* the second wave */
- ['Greve Torsten Ekeblad','noble_velvet'],['Kammarherre Otto Lilje','noble_elder'],['Junker Filip Silverlöv','noble_dandy'],
- ['Friherrinnan Beata Örnfot','noble_lady'],['Fru Gunilla Ekeblad','noble_dowager'],['Fröken Amalia Vidhem','noble_maiden'],
- ['Köpman Bertil Skilling','merchant'],['Handlare Melker Vikt','merchant'],['Broder Botolf','monk'],['Broder Kjell','monk'],
- ['Mäster Ragnvald Ässja','blacksmith'],['Smedgesäll Hjalmar','blacksmith'],['Bagar-Klara','baker'],['Bagar-Stina','baker'],
- ['Torg-Gunhild','market_woman'],['Torg-Elin','market_woman'],['Syster Tyra','female'],['Syster Ragnhild','female'],
- ['Sven Kolare','male'],['Knut Tegel','male'],['Fiskar-Ottar','male'],
- ['Dagny Järnhäl','dwarffemale_warrior'],['Grash Benknäckare','orcmale_warrior'],['Vex Gravkall','undeadmale_hunter'],
+ ['Count Torsten Ekeblad','noble_velvet'],['Chamberlain Otto Lilje','noble_elder'],['Squire Filip Silverlov','noble_dandy'],
+ ['Baroness Beata Ornfot','noble_lady'],['Lady Gunilla Ekeblad','noble_dowager'],['Miss Amalia Vidhem','noble_maiden'],
+ ['Merchant Bertil Skilling','merchant'],['Trader Melker Vikt','merchant'],['Brother Botolf','monk'],['Brother Kjell','monk'],
+ ['Master Ragnvald Aessja','blacksmith'],['Journeyman Hjalmar','blacksmith'],['Baker Klara','baker'],['Baker Stina','baker'],
+ ['Stallholder Gunhild','market_woman'],['Stallholder Elin','market_woman'],['Sister Tyra','female'],['Sister Ragnhild','female'],
+ ['Sven Kolare','male'],['Knut Tegel','male'],['Fisherman Ottar','male'],
+ ['Dagny Jaernhael','dwarffemale_warrior'],['Grash Benknaeckare','orcmale_warrior'],['Vex Gravkall','undeadmale_hunter'],
 ];
 /* what a skin says about its wearer: the gowns and the female hero costumes are women, and a hero
    costume key names the race whose boots it wears (defined here so the headless city builder has them) */
@@ -4829,8 +4833,8 @@ function npcSkinCostume(skin){return /^(human|dwarf|orc|undead)(male|female)_(wa
    kerb line, which clears the well in the square and walks them past the halls' doors, not through
    the halls. Names on the file, leader first. */
 const CITY_WATCH=[
- {id:'east',lane:52,names:['Vakt Brynolf','Vakt Sigurd','Vakt Håkan'],loop:[[5500,2600],[11300,2600],[11300,4020],[5500,4020]]},
- {id:'west',lane:52,names:['Vakt Ebbe','Vakt Gunne'],loop:[[2600,1180],[5500,1180],[5500,2600],[2600,2600]]},
+ {id:'east',lane:52,names:['Watchman Brynolf','Watchman Sigurd','Watchman Hakan'],loop:[[5500,2600],[11300,2600],[11300,4020],[5500,4020]]},
+ {id:'west',lane:52,names:['Watchman Ebbe','Watchman Gunne'],loop:[[2600,1180],[5500,1180],[5500,2600],[2600,2600]]},
 ];
 const WATCH_SPACING=38,WATCH_SPEED=58;
 /* distance from a point to the a-b stretch of an edge */
@@ -5451,12 +5455,12 @@ function buildZone(){
   const NPC_DEFS=[
    ['Sven-Ove','human','warrior',0,[[cx-330,cy-110],[cx-480,cy-20]],34],
    ['Gunnar Guldtand','dwarf','warrior',0,[[cx-480,cy-20],[cx-540,cy-10],[cx-360,cy+100]],28],
-   ['Barbro Bråttom','human','mage',1,[[cx-190,cy+270],[cx+190,cy+270],[cx,cy+440]],62],
-   ['Lilla Kjell','human','hunter',0,[[cx,cy-250],[cx-330,cy-110]],42],
+   ['Barbro Brattom','human','mage',1,[[cx-190,cy+270],[cx+190,cy+270],[cx,cy+440]],62],
+   ['Little Kjell','human','hunter',0,[[cx,cy-250],[cx-330,cy-110]],42],
    ['Ragnar Lagom','orc','warrior',0,[[cx+360,cy+100],[cx+460,cy-20]],24],
-   ['Fiskar-Frasse','human','hunter',0,[[cx-360,cy+100],[cx-190,cy+270]],32],
-   ['Tant Ulla','undead','priest',1,[[cx+190,cy+270],[cx+360,cy+100]],27],
-   ['Börje Junior','human','warrior',0,[[cx,cy-250],[cx+460,cy-20],[cx+40,cy+40]],38],
+   ['Fisherman Frasse','human','hunter',0,[[cx-360,cy+100],[cx-190,cy+270]],32],
+   ['Auntie Ulla','undead','priest',1,[[cx+190,cy+270],[cx+360,cy+100]],27],
+   ['Borje Junior','human','warrior',0,[[cx,cy-250],[cx+460,cy-20],[cx+40,cy+40]],38],
   ];
   world.npcs=NPC_DEFS.map(([name,race,cls,fem,pts,speed])=>({
    name,race,cls,female:!!fem,
@@ -6837,7 +6841,7 @@ function bossAI(en,dt){
   if(en.cds.c<=0){en.cds.c=15;
    zapLine(en.x,en.y-20,hero.x,hero.y-10);
    if(!hero.dead)hurtHero(en.atk*0.9,'⚡');
-   floatAt(en.x,en.y-en.r-30,'Mjölnir calls!','#dff4ff',true);
+   floatAt(en.x,en.y-en.r-30,'Mjolnir calls!','#dff4ff',true);
    sfx.arcane();shakeT=0.25;
   }
  }else if(B==='odin'){ /* ODIN: hellfire, ravens & ground shake */
@@ -13989,7 +13993,7 @@ const BRAWL_SHOUTS=['💢','POW!','Oof!','💥','Take that!','💢','Hold him!',
 /* 🥊 where the unrest you can see is staged: the brawl on the boulevard inside the west gate, where
    every visit to the City walks past it, the gang war on the avenue south of the well */
 const UNREST_SPOTS={brawl:{x:1750,y:2600,n:6},gang:{x:8400,y:3320,n:8}};
-const WATCH_RECRUITS=['Vakt Arvid','Vakt Birger','Vakt Dag','Vakt Egil','Vakt Folke','Vakt Grim','Vakt Hjalmar','Vakt Ingvar','Vakt Jorund','Vakt Kolbein'];
+const WATCH_RECRUITS=['Watchman Arvid','Watchman Birger','Watchman Dag','Watchman Egil','Watchman Folke','Watchman Grim','Watchman Hjalmar','Watchman Ingvar','Watchman Jorund','Watchman Kolbein'];
 /* ⛓ who the watch can bring in: the commoners of the roster, under the names they walk the streets by.
    The gentry buy their way out, the hero costumes are heroes, and three of the council share a name
    with a townsperson - nobody arrests the High Almoner. */
@@ -14104,7 +14108,7 @@ function cityCouncilMarks(){
    the routes of the people they moved in next to, the other way round, under names of their own.
    The seeded builder never hears of any of it, so the city it builds - and its tests - are unchanged. */
 const NEWCOMER_FIRST=['Arvid','Berta','Claes','Dagmar','Edvin','Freja','Gustav','Hilda','Ingemar','Judit','Karl','Lisbet','Mats','Nora','Ossian','Paula','Ruben','Saga','Tore','Ursula'];
-const NEWCOMER_LAST=['Åker','Björk','Dal','Ek','Fors','Gran','Holm','Lind','Mo','Näs','Rönn','Strand','Tall','Vik','Ås'];
+const NEWCOMER_LAST=['Aker','Bjork','Dal','Ek','Fors','Gran','Holm','Lind','Mo','Naes','Ronn','Strand','Tall','Vik','As'];
 const NEWCOMER_SKINS=['male','female','baker','market_woman','blacksmith','male','female','merchant','monk','male'];
 const NEWCOMER_MAX=60;
 function cityApplyPeople(){
@@ -14130,7 +14134,7 @@ function cityApplyPeople(){
    pts:[{x:p.x,y:p.y}],i:0,dir:1,x:p.x,y:p.y,speed:0,walk:0,fx:-1,pauseT:1e9,moving:false,say:BEGGAR_LINES});}}
  else if(beggar)world.npcs=world.npcs.filter(n=>n.game!=='beggarking');
  /* 📣 the crier has a pitch on the great square, south-east of the well */
- if(!world.npcs.some(n=>n.game==='crier'))world.npcs.push({name:'Utropare Måns',skin:'merchant',race:'human',cls:'warrior',female:false,big:1.28,game:'crier',
+ if(!world.npcs.some(n=>n.game==='crier'))world.npcs.push({name:'Town Crier Mans',skin:'merchant',race:'human',cls:'warrior',female:false,big:1.28,game:'crier',
   pts:[{x:world.w/2+118,y:world.h/2+212}],i:0,dir:1,x:world.w/2+118,y:world.h/2+212,speed:0,walk:0,fx:-1,pauseT:1e9,moving:false});
 }
 /* 🏗 What the ledger looks like from the street (assets/city/city-works.js): the props the works have
@@ -14218,7 +14222,7 @@ function cityCrierTick(dt){
 }
 function crierSpeak(){
  const lines=cityCrierLines();
- log('📣 <b>Utropare Måns:</b> '+lines.slice(0,5).join(' · '));
+ log('📣 <b>Town Crier Mans:</b> '+lines.slice(0,5).join(' · '));
  stageMsg('📣 '+lines[0],4200,'#ffd76a');
  const n=world.npcs.find(x=>x.game==='crier');if(n){n.bubble={txt:lines[0],t:6.5,life:6.5};world.crierT=10;}
 }
@@ -14333,8 +14337,10 @@ function boardHTML(){
   +'<div class="ledger-tile"><span>Given to the city</span><b>◉ '+fmtGold(v.given)+'</b><small>'+v.done+' contract'+(v.done===1?'':'s')+' done in your name · your own gold: ◉ '+fmtGold(gold)+'</small></div></div>'
   +(v.rank?'<div class="ledger-seatbar" role="img" aria-label="'+bar+'% of the way to the next rank"><i style="width:'+bar+'%"></i></div>'
    +'<p class="craft-note">🎩 A title is patronage: rank '+v.rank+' adds <b>+'+v.perks.attract+'</b> to the city’s draw and <b>+'+v.perks.trust.toFixed(1)+'</b> trust a close, and the board carries <b>'+v.offerRange[0]+'-'+v.offerRange[1]+' contracts</b> at every posting - more with every other rank.</p>':'');
+ const pres=S.prestige||0,unproven=pres<v.patentPrestige;   /* 🎩 a patent for a hero the realm has heard of */
  if(!v.rank)h+='<div class="ledger-petition"><h3>🎩 Petition for a patent of nobility</h3><p>The heralds will look into your ancestors, find some, and seal a patent that makes you a <b>Knight of the Realm</b>. The fee is <b>'+fmtGold(v.patentCost)+' ◉</b> of your own gold, paid today; the patent takes <b>'+v.minutes+' minutes</b> of play to seal. It opens the contracts on this board to you - and none of it ever comes back.</p>'
-   +'<div class="ledger-opts"><button class="sbtn gold" data-bact="patent"'+(v.petitioned||gold<v.patentCost?' disabled':'')+'>'+(v.petitioned?'Your petition is with the heralds':'Petition the heralds · '+fmtGold(v.patentCost)+' ◉')+'<small>'+(v.petitioned?'see below':gold<v.patentCost?'you carry '+fmtGold(gold)+' ◉':'sealed in '+v.minutes+' minutes')+'</small></button></div></div>';
+   +'<p class="craft-note">The heralds seal patents only for a hero the realm has heard of: <b>prestige '+v.patentPrestige+'</b> or more'+(unproven?' - you are prestige '+pres+'.':'.')+'</p>'
+   +'<div class="ledger-opts"><button class="sbtn gold" data-bact="patent"'+(v.petitioned||unproven||gold<v.patentCost?' disabled':'')+'>'+(v.petitioned?'Your petition is with the heralds':'Petition the heralds · '+fmtGold(v.patentCost)+' ◉')+'<small>'+(v.petitioned?'see below':unproven?'prestige '+v.patentPrestige+' needed':gold<v.patentCost?'you carry '+fmtGold(gold)+' ◉':'sealed in '+v.minutes+' minutes')+'</small></button></div></div>';
  if(!c.chartered&&v.done)h+='<p class="craft-note">🕊 Nobody runs the city yet, so the city stays as it is. What your contracts have done for it is remembered - the people <b>+'+v.legacy.mood+'</b>, the city’s draw <b>+'+v.legacy.attract+'</b>, learning <b>+'+v.legacy.skill+'</b>'+(v.legacy.food?', <b>'+fmtGold(v.legacy.food)+'</b> sacks of grain in a hired barn':'')+(Object.keys(v.legacy.seats).length?', '+Object.keys(v.legacy.seats).length+' councillors in your debt':'')+' - and counts from the day somebody takes the books.</p>';
  if(v.pending.length)h+='<h3 class="ledger-gap">📜 With the clerks</h3><table class="ledger-table">'+v.pending.map((p,i)=>'<tr><td>'+p.icon+' '+p.name+'<small>'+fmtGold(p.amount)+' ◉ handed over'+(p.xp?' · +'+p.xp+' XP when it clears':'')+'</small></td><td data-bwait="'+i+'">'+fmtWait(p.seconds)+'</td></tr>').join('')+'</table>';
  h+='<h3 class="ledger-gap">📌 Contracts on the board'+(v.repost!==null?' <small>· re-posted in <span id="boardRepost">'+fmtWait(v.repost)+'</span></small>':'')+'</h3>';
@@ -14349,7 +14355,7 @@ function boardHTML(){
 }
 function boardRefresh(){if(!S||!S.city)return;$('boardBody').innerHTML=boardHTML();$('boardMsg').textContent=boardNote;boardNote='';}
 function boardAction(act,k){
- const c=S.city,E=CityEconomy,r=act==='patent'?E.ennoble(c,totalGold()):act==='fund'?E.fundContract(c,k,totalGold()):null;
+ const c=S.city,E=CityEconomy,r=act==='patent'?E.ennoble(c,totalGold(),{prestige:S.prestige||0}):act==='fund'?E.fundContract(c,k,totalGold()):null;
  if(!r)return;
  if(r.ok&&!spendGold(r.cost)){   /* the rules only queue the paper; the purse is the hero's - and a paper that was not paid for comes off the desk again */
   c.noble.pending.pop();if(act==='fund'){const o=c.noble.offers.find(x=>x.id===k);if(o)o.taken=false;}
@@ -14513,7 +14519,7 @@ function stageCoronation(sc){
  rank.forEach(n=>{n.home={x:n.x,y:n.y,fx:n.fx};});
  spots.forEach(([x,y],i)=>{
   if(rank[i])place(rank[i],x,y,1);
-  else{const e={name:ThroneWorld.GUARDS[i%ThroneWorld.GUARDS.length].replace(/^Gardist/,'Gardist'),skin:'royal_guard',race:'human',cls:'warrior',female:false,big:1.1,pts:[{x,y}],i:0,dir:1,x,y,speed:0,walk:0,fx:1,pauseT:1e9,moving:false,extraGuard:true,scripted:true,extra:true};W.npcs.push(e);sc.extras.push(e);sc.cast.push(e);}
+  else{const e={name:ThroneWorld.GUARDS[i%ThroneWorld.GUARDS.length],skin:'royal_guard',race:'human',cls:'warrior',female:false,big:1.1,pts:[{x,y}],i:0,dir:1,x,y,speed:0,walk:0,fx:1,pauseT:1e9,moving:false,extraGuard:true,scripted:true,extra:true};W.npcs.push(e);sc.extras.push(e);sc.cast.push(e);}
  });
  /* townsfolk at the back on both flanks, on their toes */
  const folk=cityRoster().slice(0,8);
@@ -15141,7 +15147,7 @@ function ledgerHelp(){
   +sec('🌾 The granary',['The city eats <b>a sack a household at every close</b> (five heads to a hearth), out of the stores - and the books open on <b>three closes</b> of grain. Stores filled to the rafters feed the opening city for about eight; the Covered Market, the Stone Quay and the New Quarter each add room. The Overview shows how many closes of bread are left, and the HUD line and the town crier warn when it is fewer than '+E.FOOD_LOW+'.','<b>Buy grain by the shipment</b> at this table - the cheap way, if you are here to do it - or switch on the <b>standing shipments</b>: every close they bring what the city eats, and a quarter of the way to a reserve of '+E.FOOD_RESERVE+' closes, at a quarter over the price. They stop when the strongroom cannot pay.','Grain gets cheaper with transport - the Carters’ Yard, the Stone Quay, the Merchant Fleet, the Covered Market, a farm of your own - and the quay and the market make the stores bigger.','When the stores run short <b>hunger builds</b> slowly, by the share of the city that went without, close after close - ten closes with no bread at all to reach the worst of it: up to −36 on the temper, −18 on the city’s draw, −2 a close on the realm’s trust, and the hungriest leave. Once the bread is back it eases only <b>half a point a close</b>.'])
   +sec('🪙 Your salary',['The office of Master of Coin is <b>unpaid</b> unless you decide otherwise: <b>Your salary</b> on the Budget tab has four levels. The crown is charged the line; <b>a tenth of it reaches your overflow gold</b> at every close, and the rest keeps your clerks and your carriage.','The city can count. A clerk’s wage costs you nothing; Handsome and Shameless cost the people’s temper and the realm’s trust at every close. A treasury in the red pays you nothing.'])
   +sec('🤝 Allies',['The <b>Allies</b> tab lists three cities - '+E.ALLIES.filter(a=>a.kind==='city').map(a=>a.name).join(', ')+' - and two great ports, '+E.ALLIES.filter(a=>a.kind==='port').map(a=>a.name).join(' and ')+'. They deal with <b>crowned heads only</b> - a steward may read the page, a King or a Queen sends the envoys. You court them with the <b>treasury’s</b> gold: an envoy’s chest takes '+E.ALLY_CLOSES+' closes to arrive and raises the crown’s stake.','From a <b>'+E.PARTNER_AT+'%</b> stake a place is a trading partner and pays a return at every close. Hold <b>'+E.BUY_AT+'%</b> or more for <b>'+E.COURT_CLOSES+' closes</b> and whoever holds it will hear an offer: a <b>King</b> for each city, a <b>Trade Officer</b> for each port. You name a figure and they answer at once - accept, counter with their reasons, turn cold, or throw you out. Each looks at your city with different eyes (the soldier at your watch, the miser at your strongroom, the proud one at your name, the smuggler at the trade winds, the comptroller at your bank grade), a very low offer ends the talks and is remembered, and once bought the place pays its whole yield for ever.','The ports cost tens of millions, and will not receive an envoy from a city without a Stone Quay (Kraken’s Rest) or a Merchant Fleet (Port Meridian).'])
-  +sec('🎩 Nobility and the notice board',['The <b>notice board</b> stands at the north-west corner of the great square, where the boulevard comes in. For <b>'+fmtGold(E.PATENT_COST)+' ◉ of your own gold</b> the heralds seal you a patent of nobility; it takes <b>a quarter of an hour of play</b>.','A noble can fund the <b>contracts</b> posted there - an orphanage wing, a merchant cog, a regiment. The whole sum leaves your purse at once, the contract clears a quarter of an hour later and does the city its good then. <b>Nothing ever comes back</b>: what you buy is the city’s good and <b>noble XP</b>.','XP raises your <b>rank</b> - Knight, Baron, Viscount, Count, Marquess, Duke. Each rank adds a point to the city’s draw and a tenth of a point of trust a close, and brings more and greater contracts: the board is re-posted <b>every hour of play</b>, with 1-3 contracts for a knight and up to 6 for a duke.'])
+  +sec('🎩 Nobility and the notice board',['The <b>notice board</b> stands at the north-west corner of the great square, where the boulevard comes in. For <b>'+fmtGold(E.PATENT_COST)+' ◉ of your own gold</b> the heralds seal you a patent of nobility - once you are <b>prestige '+E.PATENT_PRESTIGE+'</b> or more; it takes <b>a quarter of an hour of play</b>.','A noble can fund the <b>contracts</b> posted there - an orphanage wing, a merchant cog, a regiment. The whole sum leaves your purse at once, the contract clears a quarter of an hour later and does the city its good then. <b>Nothing ever comes back</b>: what you buy is the city’s good and <b>noble XP</b>.','XP raises your <b>rank</b> - Knight, Baron, Viscount, Count, Marquess, Duke. Each rank adds a point to the city’s draw and a tenth of a point of trust a close, and brings more and greater contracts: the board is re-posted <b>every hour of play</b>, with 1-3 contracts for a knight and up to 6 for a duke.'])
   +sec('🤝 The Hand’s counsel',['Once every <b>'+E.COUNSEL_EVERY+' closes</b> you can ask the King’s Hand, on the Overview, what he would do. He names <b>one thing</b> - whatever he thinks presses hardest - and he says where to look, not which button to press. His last counsel stays on the Overview until you ask again.','If he has nothing worth saying he says so, and the question is not used up.'])
   +sec('🔔 Ledgers to attend',['The ledger closes wherever you are - but a city is not run from a dungeon. After <b>'+E.REMIND_AFTER+' closes</b> without opening the ledger the chat reminds you: <b>you have ledgers to attend</b>.','There is no cliff, only a slope: from the <b>first close</b> you are away the realm’s trust in you drains by about a tenth of a point, and it deepens by as much again with <b>every close</b> you stay away - over a point a close after ten, four at the very worst. What each councillor thinks you deserve sinks a point and a half per close away (forty at the most), and their opinion follows it down. It is not only the council: the city’s temper sinks 0.6 a close away (to −18) and its draw 0.4 (to −12), so taxes thin, families stop coming and, left long enough, the crowd comes out. Opening the ledger at the council table stops the slide and starts the count again - what was lost has to be earned back.'])
   +sec('⛓ The jail',['Down the stair in the west wall of the hall, on your left as you come in. At every close the watch may bring in a townsperson - really: they vanish from the streets until they are out. You can talk to them through the bars, and at the jailer’s desk pardon them or fine them.','The old King, if that is where he went, is yours to decide on the Jail tab. <b>Pardon him</b>: the people <b class="pos">+'+Math.round(E.MERCY*100)+'</b> for '+E.MERCY_SEASONS+' seasons, but every court abroad prices you <b>'+Math.round(E.MERCY*100)+'% higher</b> and is harder to talk round - and he sits begging at the foot of the palace stair in what is left of his robes. <b>Hang him on the square</b>: the people <b class="neg">−'+Math.round(E.MERCY*100)+'</b> for '+E.MERCY_SEASONS+' seasons, but every court abroad is frightened into being <b>'+Math.round(E.MERCY*100)+'% cheaper</b> and easier. A public execution: the whole city turns out to watch.'])
