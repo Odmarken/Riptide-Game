@@ -531,7 +531,9 @@ function heroOutfit(ch=S){
  if(ch.outfit===undefined)return ch.gear&&isIce(ch.gear.armor)?'ice':'default';
  return outfitUnlocked(ch.outfit,ch)?ch.outfit:'default';
 }
-const characterTitle=ch=>ch&&ch.city&&ch.city.crowned?(ch.gender==='f'?'Queen':'King'):
+/* 👑 a crowned head: Emperor or Empress with every city and both great ports under the crown, King or Queen with the crown alone */
+const monarchTitle=ch=>CityEconomy.isEmperor(ch.city)?(ch.gender==='f'?'Empress':'Emperor'):(ch.gender==='f'?'Queen':'King');
+const characterTitle=ch=>ch&&ch.city&&ch.city.crowned?monarchTitle(ch):
  (ch&&ch.city&&ch.city.noble&&ch.city.noble.rank>0&&CityEconomy.NOBLE_RANKS[ch.city.noble.rank]||{}).title||'';
 const outfitArgOf=id=>id==='royal'?'royal':id==='ice';
 const outfitArg=()=>outfitArgOf(heroOutfit());
@@ -10934,7 +10936,7 @@ function gearSwapTo(i){
 function renderHero(){
  TideUI.entry();ledgerEntry();outfitEntry();
  const c=classOf(),r=raceOf();
- /* 🎩 the style before the name: a crowned head is King or Queen, a peer wears the rank (one name to a rank, as everywhere else), a commoner nothing */
+ /* 🎩 the style before the name: a crowned head is King or Queen (Emperor or Empress with all five abroad), a peer wears the rank (one name to a rank, as everywhere else), a commoner nothing */
  const style=S.city&&S.city.crowned?cityTitle():S.city&&S.city.noble&&S.city.noble.rank>0?nobleTitle():'';
  $('heroTitle').innerHTML=(style?`<span class="herostyle">${style}</span> `:'')+`${esc(dispName(S))} - ${r.name} ${c.name}`+(S.prestige?` · Prestige ${S.prestige}`:'')+
   ` <button id="renameBtn" title="Rename hero">✏️</button>`+
@@ -13944,9 +13946,7 @@ $('talentClose').onclick=()=>$('talentFx').style.display='none';
 function bankRefresh(){
  $('bankGoldN').textContent=(S.bankGold||0).toLocaleString();
  const R=CityEconomy.NOBLE_RANKS,rank=bankRank(),rate=bankRate();
- $('bankRateLine').innerHTML=(rank?'<b style="color:#9adf9a">Your interest: '+bankPct(rate)+' an hour</b> - '+R[rank].title+'.':'<b style="color:#ff8a7a">No interest</b> - the bank pays the nobility only; a patent is sealed at the notice board in the City.')
-  +' '+R.slice(1).map((d,i)=>(i+1===rank?'<b>':'')+d.title+' '+bankPct(BANK_RATES[i+1])+(i+1===rank?'</b>':'')).join(' · ')+', every hour on the hour.'
-  +' The vault holds up to '+BANK_CAP.toLocaleString()+' ◉. Scraps sleep safely, interest-free.';
+ $('bankRateLine').innerHTML='<b style="color:'+(rank?'#9adf9a':'#ff8a7a')+'">Your interest: '+(rank?R[rank].title+' ':'')+bankPct(rate)+'</b>';   /* the rate and its title, nothing more */
  $('bankScrapN').textContent=(S.bankScrap||0).toLocaleString();
  $('bankEarnedN').textContent=(S.bankEarned||0).toLocaleString();
 
@@ -14017,7 +14017,7 @@ function cityRoster(){
  }
  return cityRosterCache;
 }
-const cityTitle=()=>S&&S.gender==='f'?'Queen':'King';
+const cityTitle=()=>S?monarchTitle(S):'King';
 function cityContext(){
  return {prestige:S.prestige||0,lvl:S.lvl||1,mining:(S.mining&&S.mining.skill)||0,miningTrained:!!(S.mining&&S.mining.trained),
   ench:(S.ench&&S.ench.skill)||0,enchTrained:!!(S.ench&&S.ench.trained),smith:S.smithLvl||0,smelter:!!S.smelt,
@@ -14208,7 +14208,8 @@ function cityCrierLines(){
  if(c.unattended>=E.NEGLECT_AFTER)out.push('Has anybody SEEN the steward? Anybody?');
  if(c.regency)out.push('The throne stands empty. The King’s Hand rules in the realm’s name - long may he sign things!');
  else if(!c.crowned)out.push('The King is '+E.pleasureName(c.king.pleasure).toLowerCase()+', and his humour is '+E.HUMOURS.find(h=>h.id===c.king.humour).name.toLowerCase()+'. God save him.');
- else out.push('God save '+cityTitle()+' '+(S.name||'')+'! Long may '+(S.gender==='f'?'she':'he')+' reign!');
+ else{if(E.isEmperor(c))out.push('Hear ye! Three cities and two great ports under one crown - the realm has an '+cityTitle()+'!');
+  out.push('God save '+cityTitle()+' '+(S.name||'')+'! Long may '+(S.gender==='f'?'she':'he')+' reign!');}
  if(c.budget.tax>=20)out.push('The poll tax stands at '+c.budget.tax+' in the hundred. Do not shoot the crier.');
  if(c.trust>=60&&!c.crowned)out.push('They are saying in the taverns that '+(S.name||'the steward')+' would wear a crown well.');
  return out;
@@ -14806,6 +14807,8 @@ function ledgerAllies(c){
   +(noCrown?'<div class="ledger-alert"><button class="sbtn ledger-coupbtn" data-lact="goto" data-v="crown">👑 Other cities and the great ports deal with crowned heads only. A steward may read this page; a King or a Queen sends the envoys.</button></div>':'')
   +(v.fear!==1?'<p class="craft-note">'+(v.fear>1?'⚖️ You pardoned a king. Every court abroad prices you <b class="neg">'+Math.round((v.fear-1)*100)+'% higher</b>: a full stake costs more, and they are harder to talk round.':'⚖️ They saw the gallows on your square. Every court abroad prices you <b class="pos">'+Math.round((1-v.fear)*100)+'% lower</b>: a full stake costs less, and they are easier to talk round.')+'</p>':'')
   +'<p class="craft-note">🤝 Send envoys with gold from the <b>treasury</b>; a chest takes '+v.closes+' closes to arrive and raises the crown’s <b>stake</b>. From <b>'+v.partnerAt+'%</b> the place is a trading partner and pays a return at every close. Hold <b>'+v.buyAt+'%</b> or more for <b>'+v.court+' closes</b> and whoever holds the place will <b>hear an offer</b> for the whole of it - a King for each city, a Trade Officer for each port. They bargain, and each of them looks at your city with different eyes.</p>'
+  +'<p class="craft-note">👑 '+(v.emperor?'All three cities and both great ports fly the crown’s colours: you are <b>'+cityTitle()+'</b>.'
+   :'Hold all three cities and both great ports, and the realm names you <b>'+(S.gender==='f'?'Empress':'Emperor')+'</b>.')+'</p>'
   +'<h3 class="ledger-gap">🏰 Cities</h3><div class="ledger-works">'+v.list.filter(a=>a.kind==='city').map(card).join('')+'</div>'
   +'<h3 class="ledger-gap">⚓ The great ports</h3><div class="ledger-works">'+v.list.filter(a=>a.kind==='port').map(card).join('')+'</div>';
 }
@@ -14825,6 +14828,7 @@ function ledgerTalk(c){
   +'<div class="talk-body">'
    +'<div class="talk-bubble"><p>“'+(v.owned&&L?L.text:L?L.text:v.greet)+'”</p>'+(L&&!v.owned?'<small>your offer was '+fmtGold(L.offer)+' ◉</small>':'')+'</div>'
    +(v.owned?'<p class="ledger-work-foot pos">'+v.place+' flies the crown’s colours: '+fmtGold(v.yield)+' ◉ a close, for ever · '+v.perkText+'.</p>'
+    +(CityEconomy.isEmperor(c)?'<p class="ledger-work-foot" style="color:#ffd76a">👑 All three cities and both great ports are under the crown: the realm names you <b>'+cityTitle()+'</b>.</p>':'')
     :!v.canOffer?'<p class="ledger-ask neg">'+v.why+'</p>'
     :'<div class="ledger-tiles two"><div class="ledger-tile"><span>'+(v.kind==='port'?'The Council asks':'He asks')+'</span><b>◉ '+fmtGold(v.ask)+'</b><small>the list price is '+fmtK(v.list)+' ◉ · as ours it pays '+fmtGold(v.yield)+' ◉ a close</small></div>'
       +'<div class="ledger-tile"><span>The treasury</span><b class="'+(c.treasury<talkOffer?'bad':'')+'">◉ '+fmtGold(c.treasury)+'</b><small>an offer is paid in full, at once, if it is taken</small></div></div>'
@@ -15153,7 +15157,7 @@ function ledgerHelp(){
   +sec('🎁 Your season bonus',['When the bank closes a season, the Bank tab adds up what it took in and paid out. If the season made a profit you may vote yourself <b>a bonus of up to '+Math.round(E.BONUS_SHARE*100)+'% of it</b>, once, to your overflow gold - the sum is shown line by line.','Two conditions: the treasury must be <b>in the black</b> when you take it, and it pays no more than the strongroom holds. A season that lost money pays nothing. No trust is lost - it is in the book.'])
   +sec('🌾 The granary',['The city eats <b>a sack a household at every close</b> (five heads to a hearth), out of the stores - and the books open on <b>three closes</b> of grain. Stores filled to the rafters feed the opening city for about eight; the Covered Market, the Stone Quay and the New Quarter each add room. The Overview shows how many closes of bread are left, and the HUD line and the town crier warn when it is fewer than '+E.FOOD_LOW+'.','<b>Buy grain by the shipment</b> at this table - the cheap way, if you are here to do it - or switch on the <b>standing shipments</b>: every close they bring what the city eats, and a quarter of the way to a reserve of '+E.FOOD_RESERVE+' closes, at a quarter over the price. They stop when the strongroom cannot pay.','Grain gets cheaper with transport - the Carters’ Yard, the Stone Quay, the Merchant Fleet, the Covered Market, a farm of your own - and the quay and the market make the stores bigger.','When the stores run short <b>hunger builds</b> slowly, by the share of the city that went without, close after close - ten closes with no bread at all to reach the worst of it: up to −36 on the temper, −18 on the city’s draw, −2 a close on the realm’s trust, and the hungriest leave. Once the bread is back it eases only <b>half a point a close</b>.'])
   +sec('🪙 Your salary',['The office of Master of Coin is <b>unpaid</b> unless you decide otherwise: <b>Your salary</b> on the Budget tab has four levels. The crown is charged the line; <b>a tenth of it reaches your overflow gold</b> at every close, and the rest keeps your clerks and your carriage.','The city can count. A clerk’s wage costs you nothing; Handsome and Shameless cost the people’s temper and the realm’s trust at every close. A treasury in the red pays you nothing.'])
-  +sec('🤝 Allies',['The <b>Allies</b> tab lists three cities - '+E.ALLIES.filter(a=>a.kind==='city').map(a=>a.name).join(', ')+' - and two great ports, '+E.ALLIES.filter(a=>a.kind==='port').map(a=>a.name).join(' and ')+'. They deal with <b>crowned heads only</b> - a steward may read the page, a King or a Queen sends the envoys. You court them with the <b>treasury’s</b> gold: an envoy’s chest takes '+E.ALLY_CLOSES+' closes to arrive and raises the crown’s stake.','From a <b>'+E.PARTNER_AT+'%</b> stake a place is a trading partner and pays a return at every close. Hold <b>'+E.BUY_AT+'%</b> or more for <b>'+E.COURT_CLOSES+' closes</b> and whoever holds it will hear an offer: a <b>King</b> for each city, a <b>Trade Officer</b> for each port. You name a figure and they answer at once - accept, counter with their reasons, turn cold, or throw you out. Each looks at your city with different eyes (the soldier at your watch, the miser at your strongroom, the proud one at your name, the smuggler at the trade winds, the comptroller at your bank grade), a very low offer ends the talks and is remembered, and once bought the place pays its whole yield for ever.','The ports cost tens of millions, and will not receive an envoy from a city without a Stone Quay (Kraken’s Rest) or a Merchant Fleet (Port Meridian).'])
+  +sec('🤝 Allies',['The <b>Allies</b> tab lists three cities - '+E.ALLIES.filter(a=>a.kind==='city').map(a=>a.name).join(', ')+' - and two great ports, '+E.ALLIES.filter(a=>a.kind==='port').map(a=>a.name).join(' and ')+'. They deal with <b>crowned heads only</b> - a steward may read the page, a King or a Queen sends the envoys. You court them with the <b>treasury’s</b> gold: an envoy’s chest takes '+E.ALLY_CLOSES+' closes to arrive and raises the crown’s stake.','From a <b>'+E.PARTNER_AT+'%</b> stake a place is a trading partner and pays a return at every close. Hold <b>'+E.BUY_AT+'%</b> or more for <b>'+E.COURT_CLOSES+' closes</b> and whoever holds it will hear an offer: a <b>King</b> for each city, a <b>Trade Officer</b> for each port. You name a figure and they answer at once - accept, counter with their reasons, turn cold, or throw you out. Each looks at your city with different eyes (the soldier at your watch, the miser at your strongroom, the proud one at your name, the smuggler at the trade winds, the comptroller at your bank grade), a very low offer ends the talks and is remembered, and once bought the place pays its whole yield for ever.','The ports cost tens of millions, and will not receive an envoy from a city without a Stone Quay (Kraken’s Rest) or a Merchant Fleet (Port Meridian).','Hold all five - the three cities and both ports - and the realm names you <b>Emperor</b>, or <b>Empress</b>: the title stands before your name in place of King or Queen.'])
   +sec('🎩 Nobility and the notice board',['The <b>notice board</b> stands at the north-west corner of the great square, where the boulevard comes in. For <b>'+fmtGold(E.PATENT_COST)+' ◉ of your own gold</b> the heralds seal you a patent of nobility - once you are <b>prestige '+E.PATENT_PRESTIGE+'</b> or more; it takes <b>a quarter of an hour of play</b>.','A noble can fund the <b>contracts</b> posted there - an orphanage wing, a merchant cog, a regiment. The whole sum leaves your purse at once, the contract clears a quarter of an hour later and does the city its good then. <b>Nothing ever comes back</b>: what you buy is the city’s good and <b>noble XP</b>.','XP raises your <b>rank</b> - Knight, Baron, Viscount, Count, Marquess, Duke. Each rank adds a point to the city’s draw and a tenth of a point of trust a close, and brings more and greater contracts: the board is re-posted <b>every hour of play</b>, with 1-3 contracts for a knight and up to 6 for a duke.'])
   +sec('🤝 The Hand’s counsel',['Once every <b>'+E.COUNSEL_EVERY+' closes</b> you can ask the King’s Hand, on the Overview, what he would do. He names <b>one thing</b> - whatever he thinks presses hardest - and he says where to look, not which button to press. His last counsel stays on the Overview until you ask again.','If he has nothing worth saying he says so, and the question is not used up.'])
   +sec('🔔 Ledgers to attend',['The ledger closes wherever you are - but a city is not run from a dungeon. After <b>'+E.REMIND_AFTER+' closes</b> without opening the ledger the chat reminds you: <b>you have ledgers to attend</b>.','There is no cliff, only a slope: from the <b>first close</b> you are away the realm’s trust in you drains by about a tenth of a point, and it deepens by as much again with <b>every close</b> you stay away - over a point a close after ten, four at the very worst. What each councillor thinks you deserve sinks a point and a half per close away (forty at the most), and their opinion follows it down. It is not only the council: the city’s temper sinks 0.6 a close away (to −18) and its draw 0.4 (to −12), so taxes thin, families stop coming and, left long enough, the crowd comes out. Opening the ledger at the council table stops the slide and starts the count again - what was lost has to be earned back.'])
@@ -15345,7 +15349,12 @@ function ledgerAction(act,k,v){
   const d=E.ALLIES.find(x=>x.id===talkId),r=act==='offer'?E.makeOffer(c,cityContext(),talkId,talkOffer,Math.random):E.acceptCounter(c,cityContext(),talkId);
   ok=r.ok&&r.outcome!=='insulted'&&r.outcome!=='walked';msg=r.ok?'':r.text;
   if(r.ok)log('👑 <b>'+d.ruler.name+':</b> “'+r.text+'”',r.deal?'loot':r.outcome==='insulted'||r.outcome==='walked'?'imp':'');
-  if(r.deal){stageMsg('🤝 '+d.name+' flies the crown’s colours - bought for '+fmtK(r.paid)+' ◉.',6000,'#ffd76a',true);sfx.quest();}
+  if(r.deal&&r.emperor){   /* 👑 the last of the five: the realm names an Emperor */
+   const who=cityTitle()+' '+(S.name||'');
+   log('👑 <b>'+who+'</b> - '+d.name+' was the last of them. Three cities and two great ports fly the crown’s colours, and the realm names you '+cityTitle()+'.','loot');
+   stageMsg('👑 '+d.name+' was the last of them - all hail '+who+'!',7000,'#ffd76a',true);sfx.quest();shakeT=.35;
+  }
+  else if(r.deal){stageMsg('🤝 '+d.name+' flies the crown’s colours - bought for '+fmtK(r.paid)+' ◉.',6000,'#ffd76a',true);sfx.quest();}
   else if(r.ok&&r.counter)talkOffer=Math.max(talkOffer,Math.round((talkOffer+r.counter)/2/E.talkView(c,cityContext(),talkId).step)*E.talkView(c,cityContext(),talkId).step);   /* the stepper meets him half way, ready for the next round */
  }
  else if(act==='rehire'){const r=E.rehire(c,cityContext());ok=r.ok;msg=r.text;}

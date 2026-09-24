@@ -39,8 +39,15 @@ test('a deposit stops at the cap, and the bank’s window says what it pays and 
  const deposit=section("if(op==='dg'){","}else if(op==='wg'){");
  assert.match(deposit,/const room=Math\.max\(0,BANK_CAP-\(S\.bankGold\|\|0\)\),want=amt\(totalGold\(\)\),n=Math\.min\(want,room\);/);
  assert.match(deposit,/if\(room<=0\)\{[^}]*holds '\+BANK_CAP\.toLocaleString\(\)\+' ◉ at most/);
- const refresh=section('function bankRefresh(){','\nfunction openBank(){');
- assert.match(refresh,/\$\('bankRateLine'\)\.innerHTML=/);assert.match(refresh,/the bank pays the nobility only/);
+ /* the window's line is the rate and the title it comes with, nothing more (asked for 2026-09-24) */
+ const line=rank=>{
+  const els={},ctx=vm.createContext({S:{city:{noble:{rank}}},$:id=>els[id]=els[id]||{},CityEconomy:require('../assets/city/economy.js'),
+   Date,log:()=>{},save:()=>{},setInterval:()=>{},gameOn:false,Math,Object});
+  vm.runInContext(section('/* ==================== BANK ==================== */','/* Spend overflow first')+section('function bankRefresh(){','\nfunction openBank(){')+'\nbankRefresh();',ctx);
+  return els.bankRateLine.innerHTML.replace(/<[^>]+>/g,'');
+ };
+ assert.equal(line(6),'Your interest: Duke 0.5%');assert.equal(line(1),'Your interest: Knight 0.05%');assert.equal(line(4),'Your interest: Count 0.32%');
+ assert.equal(line(0),'Your interest: 0%','no title: the rate alone');
  const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
- assert.ok(html.includes('id="bankRateLine"'));assert.ok(!html.includes('0.5% interest on gold'),'no flat rate promised any more');
+ assert.ok(html.includes('id="bankRateLine" style="margin-bottom:10px">Your interest: 0%</div>'));assert.ok(!html.includes('0.5% interest on gold'),'no flat rate promised any more');
 });

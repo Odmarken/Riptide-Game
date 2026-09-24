@@ -1635,6 +1635,10 @@
  const allyDef=id=>ALLIES.find(a=>a.id===id);
  const allyOf=(state,id)=>(state.allies&&state.allies[id])||{stake:0,held:0,owned:false,put:0,pending:[]};
  const allyTier=(a)=>a.owned?'Under the crown':a.stake>=BUY_AT?'Ally':a.stake>=PARTNER_AT?'Trading partner':a.stake>0?'Courted':'Strangers';
+ /* 👑 Emperor (asked for 2026-09-24): a crowned head who holds every city and both great ports. Only a crowned head sends
+    envoys, and the bank's hand-back clears the crown and the allies together, so the title lasts exactly as long as the five
+    do. It is a title and nothing more: no line of the books reads it. */
+ const isEmperor=state=>!!(state&&state.crowned)&&ALLIES.every(def=>allyOf(state,def.id).owned);
  const allyReturn=(def,a)=>a.owned?def.yield:a.stake>=PARTNER_AT?Math.round(def.yield*PARTNER_SHARE*a.stake/100):0;
  function alliesFx(state){
   const t={income:0,trade:0,attract:0,mood:0,note:'',owned:0,partners:0};
@@ -1645,7 +1649,7 @@
  }
  function alliesView(state){
   const wait=left=>Math.max(0,(left-1)*TICK_SECONDS+(TICK_SECONDS-num(state.clock)));
-  return {partnerAt:PARTNER_AT,buyAt:BUY_AT,court:COURT_CLOSES,closes:ALLY_CLOSES,fx:alliesFx(state),crowned:!!state.crowned,fear:allyFear(state),   /* 👑 no crown, no envoys; fear: what the old King's fate does to every price */
+  return {partnerAt:PARTNER_AT,buyAt:BUY_AT,court:COURT_CLOSES,closes:ALLY_CLOSES,fx:alliesFx(state),crowned:!!state.crowned,emperor:isEmperor(state),fear:allyFear(state),   /* 👑 no crown, no envoys; fear: what the old King's fate does to every price */
    list:ALLIES.map(def=>{const a=allyOf(state,def.id),locked=def.needs&&!has(state,def.needs)?workDef(def.needs).name:null,inFlight=a.pending.reduce((t,p)=>t+p.amount,0);
     const courting=!a.owned&&a.stake>=BUY_AT,worth=allyWorth(state,def);
     return {...def,...a,worth,locked,tier:allyTier(a),income:allyReturn(def,a),inFlight,pending:a.pending.map(p=>({...p,seconds:wait(p.left)})),
@@ -1759,7 +1763,7 @@
    outcome=X>=reserve*1.12?'delighted':'pleased';text=L[outcome]+(less&&outcome==='pleased'?' '+less.text:'');
    sealDeal(state,def,a,X);if(outcome==='delighted')state.trust=clamp(round1(state.trust+2),0,100);
    T.counter=0;T.last={offer:X,outcome,text,counter:0,reasons:[]};
-   return {ok:true,deal:true,outcome,text,paid:X};
+   return {ok:true,deal:true,outcome,text,paid:X,emperor:isEmperor(state)};   /* 👑 true only for the deal that bought the last of the five */
   }
   if(X<reserve*def.ruler.insultAt){
    outcome='insulted';text=L.insulted;T.grudge=num(T.grudge)+1;T.cooldown=TALK_COOL_INSULT;T.patience=def.ruler.patience;T.counter=0;
@@ -1782,7 +1786,7 @@
   if(state.treasury<T.counter)return {ok:false,text:'The treasury cannot cover '+T.counter.toLocaleString()+' ◉.'};
   const paid=T.counter,text='Then we are agreed. '+RULER_LINES[def.ruler.temper].pleased;
   sealDeal(state,def,a,paid);T.counter=0;T.last={offer:paid,outcome:'pleased',text,counter:0,reasons:[]};
-  return {ok:true,deal:true,outcome:'pleased',text,paid};
+  return {ok:true,deal:true,outcome:'pleased',text,paid,emperor:isEmperor(state)};
  }
  function alliesTick(state){
   const news=[];
@@ -1943,7 +1947,7 @@
   state.counsel={at:state.ticks,text,topic:t.id};
   return {ok:true,spent:true,topic:t.id,text};
  }
- return Object.freeze({BANK_TAKEOVER,BANK_RULE_SEASONS,bankRuleView,create,normalize,forecast,tick,advance,setBudget,borrow,repay,withdraw,deposit,settle,answer,councilView,PLAYER_SEAT,ALLIES,alliesView,allyInvest,alliesFx,talkView,openTalks,makeOffer,acceptCounter,haggleReasons,TALK_COOL_INSULT,TALK_COOL_WALK,ALLY_CLOSES,PARTNER_AT,BUY_AT,COURT_CLOSES,PARTNER_SHARE,meetHand,acceptOffice,nobleView,ennoble,fundContract,dealOffers,postBoard,NOBLE_RANKS,CONTRACTS,NOBLE_CLOSES,OFFER_CLOSES,PATENT_COST,PATENT_PRESTIGE,TEST,HARBOUR_WORKS,HARBOUR_BASE,counsel,counselView,counselTopics,COUNSEL_EVERY,projection,
+ return Object.freeze({BANK_TAKEOVER,BANK_RULE_SEASONS,bankRuleView,create,normalize,forecast,tick,advance,setBudget,borrow,repay,withdraw,deposit,settle,answer,councilView,PLAYER_SEAT,ALLIES,alliesView,allyInvest,isEmperor,alliesFx,talkView,openTalks,makeOffer,acceptCounter,haggleReasons,TALK_COOL_INSULT,TALK_COOL_WALK,ALLY_CLOSES,PARTNER_AT,BUY_AT,COURT_CLOSES,PARTNER_SHARE,meetHand,acceptOffice,nobleView,ennoble,fundContract,dealOffers,postBoard,NOBLE_RANKS,CONTRACTS,NOBLE_CLOSES,OFFER_CLOSES,PATENT_COST,PATENT_PRESTIGE,TEST,HARBOUR_WORKS,HARBOUR_BASE,counsel,counselView,counselTopics,COUNSEL_EVERY,projection,
   worksView,invest,upgrade,lvlOf,raising,UP_LEVEL,UP_FAVOUR,crownView,answerKing,claimCrown,canClaim,seasonsPlayed,COUP_SEASONS,COUP_FAVOUR,bonusView,takeBonus,declineBonus,BONUS_SHARE,gaolView,pardon,execute,fine,allyFear,MERCY,MERCY_SEASONS,worksFx,has,cells,charter,charterView,bankView,rehire,frozen,attend,neglect,REMIND_AFTER,NEGLECT_AFTER,NEGLECT_HARD,TRUST_SLOPE,TRUST_DRAIN_MAX,SEAT_SLOPE,SEAT_DRAIN_MAX,MOOD_SLOPE,MOOD_DRAIN_MAX,DRAW_SLOPE,DRAW_DRAIN_MAX,
   POP_MAX,HOUSEHOLD,hearths,SEASON_CARDS,cardDef,dealCard,
   windName,WIND_KEYS,WIND_MAX,JITTER_IN,JITTER_OUT,WAGE_RISE,WAGE_MAX,HERO_EXPORTS_MAX,HERO_FARM_LEVELS,
