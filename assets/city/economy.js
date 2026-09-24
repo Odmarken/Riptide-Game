@@ -119,6 +119,13 @@
  const MERCY_SEASONS=2;
  const BONUS_SHARE=0.2;           /* 🎁 the steward's season bonus: at most a fifth of the season's profit, from a treasury in the black (asked for 2026-09-22) */
  const ROYAL_GUARD=8;             /* the men at the pillars of the hall, paid before anyone */
+ /* 🏦 When the red lasts (asked for 2026-09-24): this many closes in the red in a row - the line spent, the bailiffs at work - and
+    the council hands the crown's books to the Tides Bank. The bank's clerk sits as Master of Coin, the steward is dismissed and
+    may not govern for BANK_RULE_SEASONS seasons, while the bank squeezes the city for every coin and pays for nothing. When they
+    are up the bank hands the city back as it was the day the books first opened - the old King on his throne, the strongroom
+    empty - and the Hand sends for the Duke again. Twelve closes is an hour of play: past the point where a steward who is paying
+    attention can still turn the red round (see scratchpad/sim, 2026-09-24), well before a city that nobody runs is past saving. */
+ const BANK_TAKEOVER=12,BANK_RULE_SEASONS=2;
  const PROTEST_START=25,PROTEST_END=40;   /* hysteresis, so the crowd does not flicker */
  const MAX_INCIDENTS=2;           /* the city never burns in more than two places at once */
  const TAX_RATES=[0,5,10,15,20,25,30];
@@ -451,6 +458,8 @@
    king:{pleasure:60,humour:'content',humourAge:0,demand:null,raise:0},works:{},jail:[],
    allies:{},
    coupTold:false,
+   bankRule:null,     /* 🏦 {left} while the Tides Bank keeps the books and the steward is dismissed; null otherwise */
+   dismissed:0,       /* how many times the council has handed the books to the bank */
    office:0,          /* 0 nobody · 1 a duke, sent for by the Hand · 2 the Hand has spoken to you in the hall · 3 Master of Coin */
    counsel:{at:null,text:'',topic:''},noble:{rank:0,xp:0,given:0,done:0,pending:[],offers:[],offerLeft:0,legacy:{mood:0,attract:0,skill:0,pleasure:0,food:0,seats:{}}},
    history:[],last:null};
@@ -543,6 +552,8 @@
    if(num(a.paid)>0)out.allies[def.id].paid=Math.round(num(a.paid));
    if(out.allies[def.id].owned)out.allies[def.id].stake=100;}
   out.coupTold=!!s.coupTold;
+  out.dismissed=Math.max(0,Math.floor(num(s.dismissed)));
+  out.bankRule=out.chartered&&s.bankRule&&typeof s.bankRule==='object'?{left:clamp(Math.floor(num(s.bankRule.left,BANK_RULE_SEASONS*SEASON_CLOSES)),1,BANK_RULE_SEASONS*SEASON_CLOSES)}:null;
   out.office=out.chartered?3:clamp(Math.floor(num(s.office)),0,3);
   const nb=s.noble&&typeof s.noble==='object'?s.noble:{};
   out.noble={rank:clamp(Math.floor(num(nb.rank)),0,NOBLE_RANKS.length-1),xp:Math.max(0,Math.round(num(nb.xp))),given:Math.max(0,Math.round(num(nb.given))),done:Math.max(0,Math.floor(num(nb.done))),
@@ -571,6 +582,9 @@
   return Math.round(num(state.limit)*(favour(state)>=75?1.1:1));
  }
  const frozen=state=>state.treasury<0;         /* in the red nothing may be raised and nothing ordered */
+ /* 🏦 while the bank keeps the books the dismissed steward may touch none of them - every order below refuses */
+ const barred=state=>!!(state&&state.bankRule);
+ const BARRED='The Tides Bank keeps the crown’s books now, and its clerk will not let you near them.';
  function moodName(m){return m<PROTEST_START?'Rioting':m<PROTEST_END?'Restless':m<55?'Uneasy':m<70?'Content':m<85?'Prosperous':'Jubilant';}
  function moodColor(m){return m<PROTEST_START?'#ff6f61':m<PROTEST_END?'#ff9f6b':m<55?'#e6c46a':m<70?'#bfe08a':'#8ee6a8';}
  function attractName(a){return a<15?'Shunned':a<35?'Emptying':a<55?'Ordinary':a<75?'Sought after':a<90?'Thriving':'The jewel of the realm';}
@@ -617,12 +631,13 @@
  }
  /* a shipment bought at the table: as many sacks as asked for, as the stores have room for, as the treasury can pay */
  function buyFood(state,ctx,sacks){
+  if(barred(state))return {ok:false,text:BARRED};
   const v=foodView(state,ctx),n=Math.min(Math.floor(num(sacks)),v.room,state.treasury>0?Math.floor(state.treasury/v.price):0);
   if(n<=0)return {ok:false,text:v.room<=0?'The stores are full to the rafters.':'The treasury cannot pay for a single sack.'};
   state.treasury-=n*v.price;state.spent+=n*v.price;state.food.stock+=n;
   return {ok:true,sacks:n,cost:n*v.price,text:n.toLocaleString()+' sacks of grain bought for '+(n*v.price).toLocaleString()+' ◉. The granary holds bread for '+Math.floor(state.food.stock/Math.max(1,Math.ceil(hearths(state)*eats(state))))+' closes.'};
  }
- function setAutoFood(state,on){state.food.auto=!!on;return state.food.auto;}
+ function setAutoFood(state,on){if(!barred(state))state.food.auto=!!on;return state.food.auto;}
  /* The whole ledger for one close, before it happens. Everything the panel shows comes from here -
     as the Hand's ESTIMATE: in a live game the close lands a few percent either side of it. */
  function forecast(state,ctx={}){
@@ -839,6 +854,7 @@
  }
  /* 🏗 raise a standing work to level 2: its price again, up front, from a treasury that has it */
  function upgrade(state,ctx,id){
+  if(barred(state))return {ok:false,text:BARRED};
   const v=worksView(state,ctx).list.find(w=>w.id===id);
   if(!v)return {ok:false,text:'No such work.'};
   if(v.status!=='done')return {ok:false,text:v.name+' must be standing first.'};
@@ -855,6 +871,7 @@
  }
  /* 🏗 order a work: the whole price up front, from a treasury that has it */
  function invest(state,ctx,id){
+  if(barred(state))return {ok:false,text:BARRED};
   const v=worksView(state,ctx).list.find(w=>w.id===id);
   if(!v)return {ok:false,text:'No such work.'};
   if(v.status==='done'||v.status==='building')return {ok:false,text:v.name+' is already '+(v.status==='done'?'standing':'being built')+'.'};
@@ -883,7 +900,7 @@
  }
  /* yes or no to what the King wants */
  function answerKing(state,ctx,accept){
-  const K=state.king,d=K.demand&&demandDef(K.demand.id);if(!d||state.crowned)return null;
+  const K=state.king,d=K.demand&&demandDef(K.demand.id);if(!d||state.crowned||barred(state))return null;
   const cost=Math.round(num(d.cost)*scale(ctx));
   if(accept){
    if(state.treasury<cost)return {ok:false,text:'The treasury cannot cover '+cost.toLocaleString()+' ◉.'};
@@ -910,7 +927,7 @@
    prisoners:state.jail.map(p=>({...p,left:p.life?null:Math.max(0,p.term-p.served),fine:p.life?0:fineOf(state,ctx,p)}))};
  }
  function pardon(state,name){
-  const i=state.jail.findIndex(p=>p.name===name);if(i<0)return null;
+  const i=state.jail.findIndex(p=>p.name===name);if(i<0||barred(state))return null;
   const p=state.jail[i];state.jail.splice(i,1);
   if(p.life){   /* ⚖️ the old King walks: the people love a merciful crown, other courts smell a soft one */
    state.deposed='pardoned';state.royalMoodLeft=MERCY_SEASONS*SEASON_CLOSES;state.mood=clamp(state.mood+Math.round(MERCY*100),0,100);
@@ -921,7 +938,7 @@
  }
  /* ⚖️ the gallows: only for the one prisoner who is in for life. The scene in game.js plays first; this runs at the drop. */
  function execute(state,name){
-  const i=state.jail.findIndex(p=>p.name===name);if(i<0||!state.jail[i].life)return null;
+  const i=state.jail.findIndex(p=>p.name===name);if(i<0||!state.jail[i].life||barred(state))return null;
   const p=state.jail[i];state.jail.splice(i,1);
   state.deposed='executed';state.royalMoodLeft=MERCY_SEASONS*SEASON_CLOSES;state.mood=clamp(state.mood-Math.round(MERCY*100),0,100);
   return {ok:true,text:p.name+' was hanged on the great square before the whole city. The people −'+Math.round(MERCY*100)+' for '+MERCY_SEASONS+' seasons. Every foreign court heard of it by the week’s end, and none of them sleeps as well as it did.'};
@@ -929,7 +946,7 @@
  const allyFear=state=>state.deposed==='pardoned'?1+MERCY:state.deposed==='executed'?1-MERCY:1;   /* what a king's fate does to every price abroad */
  const allyWorth=(state,def)=>Math.round(def.worth*allyFear(state));
  function fine(state,ctx,name){
-  const i=state.jail.findIndex(p=>p.name===name);if(i<0||state.jail[i].life)return null;
+  const i=state.jail.findIndex(p=>p.name===name);if(i<0||state.jail[i].life||barred(state))return null;
   const gold=fineOf(state,ctx,state.jail[i]);
   state.jail.splice(i,1);state.treasury+=gold;state.earned+=gold;
   return {ok:true,gold,text:name+' paid '+gold.toLocaleString()+' ◉ and went home.'};
@@ -937,6 +954,7 @@
  /* 👑 At a hundred the guard will not stop you and the council will not speak against you. fate is
     what becomes of the old King: a cell under his own hall, or a ship. */
  function claimCrown(state,fate){
+  if(barred(state))return {ok:false,text:BARRED};
   if(state.crowned||state.trust<COUP_TRUST)return {ok:false,text:'The realm does not trust you enough - yet.'};
   if(favour(state)<COUP_FAVOUR)return {ok:false,text:'The council is not behind you - their favour must stand at '+COUP_FAVOUR+' or better, and it is '+favour(state)+'.'};
   if(!canClaim(state))return {ok:false,text:'The realm wants to see a full season of your books first. The bank grades it at the season’s last close.'};
@@ -957,7 +975,7 @@
  /* 👑 the crown needs three things: the realm's trust at COUP_TRUST, the council's favour at COUP_FAVOUR, and a season on
     the books - the bank must have graded COUP_SEASONS of them */
  const seasonsPlayed=state=>state.season?Math.max(0,num(state.season.n,1)-1):0;
- const canClaim=state=>!state.crowned&&state.trust>=COUP_TRUST&&favour(state)>=COUP_FAVOUR&&seasonsPlayed(state)>=COUP_SEASONS;
+ const canClaim=state=>!barred(state)&&!state.crowned&&state.trust>=COUP_TRUST&&favour(state)>=COUP_FAVOUR&&seasonsPlayed(state)>=COUP_SEASONS;
  /* 🎁 The season bonus. When the bank closes a season the steward may vote themself a bonus out of
     what the season made: income less expenses, at most BONUS_SHARE of it, once per season - and only
     from a treasury in the black, never more than it holds. A season that lost money pays nothing. */
@@ -970,6 +988,7 @@
    open:taken===0&&!declined&&max>0,why:taken>0?'taken':declined?'declined':max<=0?'loss':!black?'red':room<max?'short':''};
  }
  function takeBonus(state){
+  if(barred(state))return {ok:false,text:BARRED};
   const v=bonusView(state);if(!v)return {ok:false,text:'No season on the books yet.'};
   if(v.taken>0)return {ok:false,text:'Season '+v.n+'’s bonus was taken already.'};
   if(v.declined)return {ok:false,text:'Season '+v.n+'’s bonus was declined.'};
@@ -981,6 +1000,7 @@
   return {ok:true,gold:n,text:'Season '+v.n+'’s bonus: '+n.toLocaleString()+' ◉ to your overflow gold, out of a profit of '+v.profit.toLocaleString()+' ◉. Your clerks wrote it in the book, in a fair hand.'};
  }
  function declineBonus(state){
+  if(barred(state))return {ok:false,text:BARRED};
   const v=bonusView(state);
   if(!v||!v.open)return {ok:false,text:'There is no pending season bonus to decline.'};
   state.seasons[state.seasons.length-1].bonusDeclined=true;
@@ -1072,8 +1092,38 @@
   state.mood=clamp(state.mood-3,0,100);
   return '🏦 The bank’s men carried the silver out of the hall. There is nothing left to take.';
  }
+ /* 🏦 BANK_TAKEOVER closes in the red: the council hands the crown's books to the Tides Bank. Its clerk pays for nothing it can
+    stop paying for, takes every coin a rate can take and buys no grain - so the city burns, starves and fills with refuse - and
+    the steward is dismissed for BANK_RULE_SEASONS seasons. */
+ function bankTakes(state){
+  state.bankRule={left:BANK_RULE_SEASONS*SEASON_CLOSES};state.dismissed=num(state.dismissed)+1;
+  for(const key of LINE_KEYS)state.budget[key]=0;
+  for(const key of RATE_KEYS)state.budget[key]=RATES[key].levels.length-1;
+  state.budget.tax=TAX_RATES[TAX_RATES.length-1];
+  state.food.auto=false;state.petition=null;state.king.demand=null;state.unattended=0;
+  return '🏦 '+BANK_TAKEOVER+' closes in the red. The council met without you and voted: the crown’s books go to the Tides Bank. The bank’s clerk sits as Master of Coin now - you are dismissed, and may not govern for '+BANK_RULE_SEASONS+' seasons. When they are up the bank hands the city back as it was the day you first took the books.';
+ }
+ /* ...and when they are up the city is handed back as it was the day the books first opened: everything the steward built,
+    borrowed, won and bought is gone, and the old King is on his throne again. What outlives it is the hero's own - the peerage,
+    the clerks' papers, what the board's contracts did for the city meanwhile (noble.legacy) - and the Hand, who sends for his
+    Duke again. The object is kept (game.js holds it), its contents replaced. */
+ function restore(state){
+  const keep={noble:state.noble,ticks:state.ticks,clock:state.clock,dismissed:num(state.dismissed)};
+  for(const key of Object.keys(state))delete state[key];
+  Object.assign(state,create(),keep);
+  state.office=state.noble.rank>=NOBLE_RANKS.length-1?1:0;
+  return state;
+ }
+ /* what the ledger shows of it: the bank's hold on the books, or how close the council is to handing them over */
+ function bankRuleView(state){
+  const b=state.bankRule;
+  return {on:!!b,left:b?b.left:0,closes:BANK_RULE_SEASONS*SEASON_CLOSES,seasons:BANK_RULE_SEASONS,takeoverAt:BANK_TAKEOVER,dismissed:num(state.dismissed),
+   toTakeover:state.chartered&&!b&&state.treasury<0?Math.max(0,BANK_TAKEOVER-num(state.arrears)):null,
+   wait:b?Math.max(0,(b.left-1)*TICK_SECONDS+(TICK_SECONDS-num(state.clock))):0};
+ }
  /* two of the guard can be hired back at a time, from a treasury in the black */
  function rehire(state,ctx){
+  if(barred(state))return {ok:false,text:BARRED};
   const cost=Math.round(400*scale(ctx));
   if(state.guards>=ROYAL_GUARD)return {ok:false,text:'The guard is at full strength.'};
   if(frozen(state)||state.treasury<cost)return {ok:false,text:'The treasury cannot cover '+cost.toLocaleString()+' ◉.'};
@@ -1101,7 +1151,7 @@
    /* 🏦 the books are shut: no ledger closes. The clerks at the notice board keep their own hours all the same. */
    const noble=nobleTick(state,ctx,rng);state.ticks+=1;
    return {n:state.ticks,idle:true,covered:0,review:null,in:0,out:0,net:0,events:[],unrest:noble.news,mood:state.mood,favour:favour(state),treasury:state.treasury,protest:false,
-    purse:0,rankUp:noble.rankUp,nobleXp:noble.xp,summoned:!!noble.summoned};
+    purse:0,salary:0,rankUp:noble.rankUp,nobleXp:noble.xp,summoned:!!noble.summoned};
   }
   const f=forecast(state,ctx),k=f.scale,unrest=[],card=cardOf(state);
   const rolled=rollEvents(state,ctx,rng,f.works.blocks);
@@ -1123,12 +1173,18 @@
     unrest.push('🏦 The Tides Bank covered a shortfall of '+covered.toLocaleString()+' ◉ from your line - and added '+fee.toLocaleString()+' ◉ to the debt for the favour.');
    }
   }
+  let takeover=false;
   if(state.chartered&&state.treasury<0){
    state.arrears+=1;state.season.red+=1;
    if(state.arrears>=SEIZE_AFTER)unrest.push(seize(state,k));
-   else unrest.push('🏦 The treasury is in the red and the line is spent. The bank’s clerk left a letter: one close to mend it, then the bailiffs.');
+   else unrest.push('🏦 The treasury is in the red and the line is spent. The bank’s clerk left a letter: one close to mend it, then the bailiffs - and after '+BANK_TAKEOVER+' closes in the red the council hands the crown’s books to the bank.');
    const floor=-Math.round(creditLimit(ctx,state)*RED_FLOOR);
    if(state.treasury<floor){state.treasury=floor;state.mood=clamp(state.mood-2,0,100);unrest.push('🏦 Nobody will take the crown’s paper any more: this close’s bills went unpaid, and the city knows it.');}
+   if(!state.bankRule){                                              /* 🏦 the council counts the closes in the red, and says so from half way */
+    const left=BANK_TAKEOVER-state.arrears;
+    if(left<=0){takeover=true;unrest.push(bankTakes(state));}
+    else if(left<=BANK_TAKEOVER/2)unrest.push('🏦 The council is counting: '+left+' more close'+(left===1?'':'s')+' in the red, and it hands the crown’s books to the Tides Bank.');
+   }
   }else state.arrears=0;
   /* unrest: what the budget now covers is dealt with, the rest bites and spreads */
   state.incidents=state.incidents.filter(i=>{
@@ -1161,7 +1217,7 @@
     unrest.push('📜 The '+seatDef(p.seat).title+'’s petition lapsed unanswered.');
     state.petition=null;
    }
-  }else if(draw(rng)<.35){
+  }else if(!state.bankRule&&draw(rng)<.35){
    const p=pickWeighted(PETITIONS.map(d=>({...d,w:1})),rng);
    if(p){state.petition={id:p.id,age:0};unrest.push('📜 The '+seatDef(p.seat).title+' brings a petition to the table.');}
   }
@@ -1190,7 +1246,7 @@
    if(K.demand){
     K.demand.age+=1;
     if(K.demand.age>=2){K.pleasure=clamp(K.pleasure-12,0,100);K.demand=null;unrest.push('👑 The King’s wish went unanswered. He noticed.');}
-   }else if(draw(rng)<Math.min(.9,humourDef(K.humour).chance*num(card.mods.wishes,1))){
+   }else if(!state.bankRule&&draw(rng)<Math.min(.9,humourDef(K.humour).chance*num(card.mods.wishes,1))){
     const d=pickWeighted(DEMANDS.filter(x=>!(x.raise&&K.raise>=4)).map(x=>({...x,w:x.likes.includes(K.humour)?4:1})),rng);
     if(d){K.demand={id:d.id,age:0};unrest.push('👑 The King wants something. He is waiting in the hall.');}
    }
@@ -1253,8 +1309,8 @@
   else if(moved<0)unrest.push('🎒 '+(-moved)+' townsfolk packed a cart and left the city.');
   else if(state.attract>=55&&state.pop>=f.housing)unrest.push(f.housing>=POP_MAX?'🏘 The city is as big as its walls will ever hold.':'🏘 Families are turned away at the gate - there is not a roof left. Build more quarters.');
   state.pop+=moved;
-  /* 🔔 another close the steward was not at the table for */
-  if(state.chartered){
+  /* 🔔 another close the steward was not at the table for - unless the bank has the table */
+  if(state.chartered&&!state.bankRule){
    state.unattended=num(state.unattended)+1;
    const n=state.unattended;
    if(n>=REMIND_AFTER&&(n-REMIND_AFTER)%3===0)unrest.push('🔔 You have ledgers to attend.'+(n>=NEGLECT_HARD?' The council meets without you now, and the city has stopped asking where you are.':n>=NEGLECT_AFTER?' The council has started to talk - and so has the city.':''));
@@ -1280,7 +1336,7 @@
     reviewed=review(state,ctx,live?rng:null);
     const dealt=cardDef(state.season.card.id);
     if(dealt.id!=='ordinary')unrest.push('🎲 Season '+state.season.n+' opens: '+dealt.icon+' '+dealt.name+'. '+dealt.text);
-    unrest.push('🏦 Season '+reviewed.n+' is closed. The Tides Bank grades your books '+reviewed.grade+': '+reviewed.verdict);
+    unrest.push('🏦 Season '+reviewed.n+' is closed. '+(state.bankRule?'The Tides Bank keeps these books itself, and grades them '+reviewed.grade+'.':'The Tides Bank grades your books '+reviewed.grade+': '+reviewed.verdict));
     unrest.push('🧾 A new season, and everybody on the crown’s payroll has asked for a rise: wages are up '+Math.round(WAGE_RISE*100)+'%.');
     if(reviewed.swept)unrest.push('🏦 The debt stood above the season’s target, so the bank called it in: '+reviewed.swept.toLocaleString()+' ◉ went from the strongroom straight to the debt.');
    }
@@ -1293,12 +1349,23 @@
    state.royalMoodLeft--;
    if(state.royalMoodLeft===0)unrest.push('📜 Two seasons have passed since the old King’s fate was decided. Its effect on the people’s mood has ended.');
   }
+  /* 🏦 the bank's seasons run down, and at the last close of them the city is handed back */
+  let restored=false;
+  if(state.bankRule&&!takeover){
+   const left=state.bankRule.left=state.bankRule.left-1;
+   if(left<=0){restored=true;unrest.push('🏦 '+BANK_RULE_SEASONS+' seasons are up. The Tides Bank hands the city back as it was the day you first took the books: the strongroom empty, the old King on his throne, and not a stone of your works still standing.');}
+   else if(left%SEASON_CLOSES===0||left===5)unrest.push('🏦 The Tides Bank keeps the crown’s books. '+left+' more close'+(left===1?'':'s')+' before it hands the city back.');
+  }
   const entry={n:state.ticks,covered,review:reviewed?{n:reviewed.n,grade:reviewed.grade}:null,in:gotIn,out:paidOut,expected:f.net,net,events:events.map(e=>e.text),unrest,mood:state.mood,favour:favour(state),
    treasury:state.treasury,protest:state.protest,was:before,unattended:num(state.unattended),food:state.food.stock,hunger:state.food.hunger,pop:state.pop,moved,attract:state.attract,trust:state.trust,finished,raised,
-   purse:state.crowned?Math.round(f.purse*HERO_COIN/COIN):0,salary:f.expenses.find(l=>l.id==='salary').amount>0?salaryPay(level('salary',state.budget.salary)):0,   /* paid when - and only when - the line was charged */rankUp:noble.rankUp,nobleXp:noble.xp,summoned:false};   /* 💎 a crowned head keeps a household: a tenth of the privy purse reaches the hero's own gold */
+   purse:state.crowned&&!state.bankRule?Math.round(f.purse*HERO_COIN/COIN):0,takeover,restored,salary:f.expenses.find(l=>l.id==='salary').amount>0?salaryPay(level('salary',state.budget.salary)):0,   /* paid when - and only when - the line was charged */rankUp:noble.rankUp,nobleXp:noble.xp,summoned:false};   /* 💎 a crowned head keeps a household: a tenth of the privy purse reaches the hero's own gold */
   state.history.push(entry);
   while(state.history.length>HISTORY)state.history.shift();
   state.last=entry;
+  if(restored){
+   restore(state);
+   if(state.office===1){entry.summoned=true;unrest.push('📜 A notice under the King’s own seal is pinned to the board: the King’s Hand wishes to speak with you. Present yourself at the Throne Hall.');}
+  }
   return entry;
  }
  /* 🔔 the steward is at the table: the count starts again. Returns how many closes had gone by. */
@@ -1311,6 +1378,7 @@
   return closes;
  }
  function setBudget(state,key,value){
+  if(barred(state))return false;                                   /* 🏦 the bank sets its own budget */
   if(key==='tax'){if(!TAX_RATES.includes(value))return false;state.budget.tax=value;return true;}
   const g=group(key);
   if(!g||!g.levels[value])return false;
@@ -1318,7 +1386,7 @@
   state.budget[key]=value;return true;
  }
  function borrow(state,ctx,amount){
-  if(!state.chartered)return 0;
+  if(!state.chartered||barred(state))return 0;
   const room=creditLimit(ctx,state)-state.loan,n=Math.min(Math.floor(num(amount)),room);
   if(n<=0)return 0;
   state.loan+=n;state.treasury+=n;state.borrowed+=n;
@@ -1326,6 +1394,7 @@
  }
  /* what counts with the bank is where the debt stands when the season closes, not how often gold went to and fro */
  function repay(state,amount){
+  if(barred(state))return 0;
   const n=Math.min(Math.floor(num(amount)),state.loan,Math.max(0,state.treasury));
   if(n<=0)return 0;
   state.loan-=n;state.treasury-=n;state.repaid=num(state.repaid)+n;
@@ -1338,6 +1407,7 @@
     takes what is its own. 🏦 And borrowed gold never leaves the strongroom: only what the treasury
     holds beyond what it owes the bank can be carried out, by a steward or a crowned head alike. */
  function withdraw(state,amount,room,ctx){
+  if(barred(state))return 0;
   const n=Math.min(Math.floor(num(amount)),Math.max(0,state.treasury-state.loan),Math.max(0,Math.floor(num(room))));
   if(n<=0)return 0;
   state.treasury-=n;
@@ -1345,6 +1415,7 @@
   return n;
  }
  function deposit(state,amount,purse,ctx){
+  if(barred(state))return 0;
   const n=Math.min(Math.floor(num(amount)),Math.max(0,Math.floor(num(purse))));
   if(n<=0)return 0;
   state.treasury+=n;
@@ -1353,7 +1424,7 @@
  }
  /* 🥊 pay sellswords, carters or bakers to make one incident go away now, from a treasury that has it */
  function settle(state,ctx,id){
-  const i=state.incidents.findIndex(x=>x.id===id);if(i<0)return 0;
+  const i=state.incidents.findIndex(x=>x.id===id);if(i<0||barred(state))return 0;
   const cost=settleCost(incidentDef(id),ctx);
   if(state.treasury<cost)return 0;
   state.treasury-=cost;state.spent+=cost;state.incidents.splice(i,1);
@@ -1362,7 +1433,7 @@
  }
  /* 📜 yes or no to the petition on the table */
  function answer(state,ctx,accept){
-  const p=state.petition&&petitionDef(state.petition.id);if(!p)return null;
+  const p=state.petition&&petitionDef(state.petition.id);if(!p||barred(state))return null;
   const k=scale(ctx),cost=Math.round(num(p.cost)*k),gold=Math.round(num(p.gold)*k),bump=(id,d)=>{state.council[id]=clamp(state.council[id]+d,0,100);};
   if(accept){
    if(state.treasury<cost)return {ok:false,text:'The treasury cannot cover '+cost.toLocaleString()+' ◉.'};
@@ -1499,7 +1570,7 @@
   return had;
  }
  function applyContract(state,ctx,fx,amount){
-  if(!state.chartered){bankLegacy(state,fx);if(fx.food)bankGrain(state,amount*fx.food);return;}
+  if(!state.chartered||barred(state)){bankLegacy(state,fx);if(fx.food)bankGrain(state,amount*fx.food);return;}
   const add=(key,v,max=100)=>{state[key]=clamp(key==='skill'||key==='trust'?round1(state[key]+v):Math.round(state[key]+v),0,max);};
   if(fx.mood)add('mood',fx.mood);if(fx.attract)add('attract',fx.attract);if(fx.trust)add('trust',fx.trust);if(fx.skill)add('skill',fx.skill);
   if(fx.pleasure&&!state.crowned)state.king.pleasure=clamp(state.king.pleasure+fx.pleasure,0,100);
@@ -1571,6 +1642,7 @@
  function allyInvest(state,id,amount){
   const def=allyDef(id);if(!def)return {ok:false,text:'No such place.'};
   if(!state.chartered)return {ok:false,text:'The crown’s books are shut.'};
+  if(barred(state))return {ok:false,text:BARRED};
   if(!state.crowned)return {ok:false,text:'Envoys ride under a crown. A steward keeps the books; a King - or a Queen - sends the realm’s gold abroad.'};   /* 👑 asked for 2026-09-22: other cities and the ports are the monarch's game */
   state.allies=state.allies||{};const a=state.allies[id]=state.allies[id]||{stake:0,held:0,owned:false,put:0,pending:[]};
   if(a.owned)return {ok:false,text:def.name+' is ours already.'};
@@ -1650,12 +1722,12 @@
  function talkView(state,ctx,id){
   const def=allyDef(id);if(!def)return null;
   const a=allyOf(state,def.id),T=a.talk||{whim:0,patience:def.ruler.patience,counter:0,cooldown:0,grudge:0,last:null},L=RULER_LINES[def.ruler.temper];
-  const ready=!a.owned&&a.stake>=BUY_AT&&a.held>=COURT_CLOSES&&!(def.needs&&!has(state,def.needs)),reserve=reserveOf(state,ctx,def,{...a,talk:T});
+  const ready=!barred(state)&&!a.owned&&a.stake>=BUY_AT&&a.held>=COURT_CLOSES&&!(def.needs&&!has(state,def.needs)),reserve=reserveOf(state,ctx,def,{...a,talk:T});
   const ask=roundTo(reserve*1.2,50000);
   return {id,place:def.name,kind:def.kind,icon:def.icon,ruler:def.ruler,owned:!!a.owned,ready,stake:a.stake,held:a.held,list:def.price,yield:def.yield,perkText:def.perkText,
    ask,counter:T.counter||0,patience:T.patience,maxPatience:def.ruler.patience,cooldown:T.cooldown||0,grudge:T.grudge||0,last:T.last,greet:L.greet,
    step:roundTo(def.price/40,50000),canOffer:ready&&!(T.cooldown>0),
-   why:!ready?(a.owned?'The place is ours.':a.stake<BUY_AT?def.ruler.name+' will not hear an offer until the crown holds '+BUY_AT+'% of '+def.name+'.':a.held<COURT_CLOSES?def.ruler.name+' wants to be courted a while longer: '+(COURT_CLOSES-a.held)+' more closes.':'Not yet.'):T.cooldown>0?def.ruler.name+' will not receive you for '+T.cooldown+' more close'+(T.cooldown===1?'':'s')+'.':''};
+   why:!ready?(barred(state)?BARRED:a.owned?'The place is ours.':a.stake<BUY_AT?def.ruler.name+' will not hear an offer until the crown holds '+BUY_AT+'% of '+def.name+'.':a.held<COURT_CLOSES?def.ruler.name+' wants to be courted a while longer: '+(COURT_CLOSES-a.held)+' more closes.':'Not yet.'):T.cooldown>0?def.ruler.name+' will not receive you for '+T.cooldown+' more close'+(T.cooldown===1?'':'s')+'.':''};
  }
  function sealDeal(state,def,a,amount){
   state.treasury-=amount;state.spent+=amount;a.owned=true;a.stake=100;a.pending=[];a.paid=amount;
@@ -1689,6 +1761,7 @@
   return {ok:true,deal:false,outcome,text,counter};
  }
  function acceptCounter(state,ctx,id){
+  if(barred(state))return {ok:false,text:BARRED};
   const def=allyDef(id),a=def&&state.allies&&state.allies[id],T=a&&a.talk;
   if(!T||!T.counter||a.owned)return {ok:false,text:'There is no offer of his on the table.'};
   if(T.cooldown>0)return {ok:false,text:'He is not receiving you.'};
@@ -1844,6 +1917,7 @@
  }
  function counsel(state,ctx={},rng=Math.random){
   if(!state.chartered)return null;
+  if(barred(state))return {ok:false,text:BARRED};
   const v=counselView(state);
   if(!v.ready)return {ok:false,text:'I gave you my counsel, steward. Act on it. Ask me again in '+v.left+' close'+(v.left===1?'':'s')+'.'};
   const topics=counselTopics(state,ctx,forecast(state,ctx));
@@ -1855,7 +1929,7 @@
   state.counsel={at:state.ticks,text,topic:t.id};
   return {ok:true,spent:true,topic:t.id,text};
  }
- return Object.freeze({create,normalize,forecast,tick,advance,setBudget,borrow,repay,withdraw,deposit,settle,answer,councilView,PLAYER_SEAT,ALLIES,alliesView,allyInvest,alliesFx,talkView,openTalks,makeOffer,acceptCounter,haggleReasons,TALK_COOL_INSULT,TALK_COOL_WALK,ALLY_CLOSES,PARTNER_AT,BUY_AT,COURT_CLOSES,PARTNER_SHARE,meetHand,acceptOffice,nobleView,ennoble,fundContract,dealOffers,postBoard,NOBLE_RANKS,CONTRACTS,NOBLE_CLOSES,OFFER_CLOSES,PATENT_COST,TEST,HARBOUR_WORKS,HARBOUR_BASE,counsel,counselView,counselTopics,COUNSEL_EVERY,projection,
+ return Object.freeze({BANK_TAKEOVER,BANK_RULE_SEASONS,bankRuleView,create,normalize,forecast,tick,advance,setBudget,borrow,repay,withdraw,deposit,settle,answer,councilView,PLAYER_SEAT,ALLIES,alliesView,allyInvest,alliesFx,talkView,openTalks,makeOffer,acceptCounter,haggleReasons,TALK_COOL_INSULT,TALK_COOL_WALK,ALLY_CLOSES,PARTNER_AT,BUY_AT,COURT_CLOSES,PARTNER_SHARE,meetHand,acceptOffice,nobleView,ennoble,fundContract,dealOffers,postBoard,NOBLE_RANKS,CONTRACTS,NOBLE_CLOSES,OFFER_CLOSES,PATENT_COST,TEST,HARBOUR_WORKS,HARBOUR_BASE,counsel,counselView,counselTopics,COUNSEL_EVERY,projection,
   worksView,invest,upgrade,lvlOf,raising,UP_LEVEL,UP_FAVOUR,crownView,answerKing,claimCrown,canClaim,seasonsPlayed,COUP_SEASONS,COUP_FAVOUR,bonusView,takeBonus,declineBonus,BONUS_SHARE,gaolView,pardon,execute,fine,allyFear,MERCY,MERCY_SEASONS,worksFx,has,cells,charter,charterView,bankView,rehire,frozen,attend,neglect,REMIND_AFTER,NEGLECT_AFTER,NEGLECT_HARD,TRUST_SLOPE,TRUST_DRAIN_MAX,SEAT_SLOPE,SEAT_DRAIN_MAX,MOOD_SLOPE,MOOD_DRAIN_MAX,DRAW_SLOPE,DRAW_DRAIN_MAX,
   POP_MAX,HOUSEHOLD,hearths,SEASON_CARDS,cardDef,dealCard,
   windName,WIND_KEYS,WIND_MAX,JITTER_IN,JITTER_OUT,WAGE_RISE,WAGE_MAX,HERO_EXPORTS_MAX,HERO_FARM_LEVELS,

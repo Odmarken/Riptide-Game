@@ -1,6 +1,7 @@
 /* The Tides Bank, headless: what the Hand lays out before the founding loan, seasons that end in a
  * graded review, a line and a rate that move with it, a shortfall covered from the line at a fee,
- * and - past the line - the red: a close of grace, then bailiffs who take one thing at a close.
+ * and - past the line - the red: a close of grace, then bailiffs who take one thing at a close, and at the twelfth close in
+ * a row the council hands the books to the bank (what follows that is tests/city-bank-takeover.test.cjs).
  * Run with node --test. */
 const test=require('node:test');
 const assert=require('node:assert/strict');
@@ -94,19 +95,23 @@ test('past the line the treasury is in the red: nothing may be raised or ordered
  const t=open();t.loan=t.limit;t.works={university:{left:4}};t.treasury=-10000;E.tick(t,{},quiet);t.treasury=-10000;
  const net=E.forecast(t,{}).net;E.tick(t,{},quiet);
  assert.equal(t.treasury,-10000+net+Math.round(E.WORKS.find(w=>w.id==='university').cost*K*.5));
- /* when there is nothing left the bank writes the budget itself, and the red has a floor */
- for(let i=0;i<12;i++)red();
- assert.equal(s.guards,E.MIN_GUARD,'the last two are never taken');
- assert.ok(E.LINE_KEYS.every(k=>s.budget[k]===0),'every line to the bone');
+ /* the guard down to the last two - and the council one close from the end of its patience */
+ for(let i=0;i<3;i++)red();
+ assert.equal(s.guards,E.MIN_GUARD,'the last two are never taken');assert.equal(s.arrears,E.BANK_TAKEOVER-1);
+ /* back in the black before the count runs out: the arrears are forgotten, the lines can be raised, the seized work rebuilt and the guard hired back */
+ const b=JSON.parse(JSON.stringify(s));
+ b.treasury=4000000;E.tick(b,{},quiet);
+ assert.equal(b.arrears,0);assert.equal(E.frozen(b),false);assert.ok(E.setBudget(b,'watch',1));
+ assert.ok(E.invest(b,{},'carters').ok);assert.deepEqual(b.seized,['quay']);
+ const cash=b.treasury,hire=E.rehire(b,{});
+ assert.ok(hire.ok);assert.equal(b.guards,E.MIN_GUARD+2);assert.equal(b.treasury,cash-400*K);
+ b.guards=E.ROYAL_GUARD;assert.equal(E.rehire(b,{}).ok,false);
+ /* one more close in the red: nothing is left to sell, so the budget goes to the bone, the red has a floor - and the council
+    hands the crown's books to the bank (what follows is tests/city-bank-takeover.test.cjs) */
  s.treasury=-9e6;const floor=E.tick(s,{},quiet);
  assert.equal(s.treasury,-Math.round(E.creditLimit({},s)*E.RED_FLOOR));assert.ok(floor.unrest.some(u=>/went unpaid/.test(u)));
- /* back in the black: the arrears are forgotten, the lines can be raised, the seized work rebuilt and the guard hired back */
- s.treasury=4000000;E.tick(s,{},quiet);
- assert.equal(s.arrears,0);assert.equal(E.frozen(s),false);assert.ok(E.setBudget(s,'watch',1));
- assert.ok(E.invest(s,{},'carters').ok);assert.deepEqual(s.seized,['quay']);
- const cash=s.treasury,hire=E.rehire(s,{});
- assert.ok(hire.ok);assert.equal(s.guards,E.MIN_GUARD+2);assert.equal(s.treasury,cash-400*K);
- s.guards=E.ROYAL_GUARD;assert.equal(E.rehire(s,{}).ok,false);
+ assert.ok(E.LINE_KEYS.every(k=>s.budget[k]===0),'every line to the bone');
+ assert.ok(floor.takeover&&s.bankRule,'the '+E.BANK_TAKEOVER+'th close in the red in a row hands the books to the bank');
  /* a season like that is an F: the line is cut, the rate jumps, and the bank wants more back next time */
  const f=open();f.loan=f.limit;season(f,st=>{st.treasury=-600000;});
  assert.equal(f.seasons[0].grade,'F');assert.ok(f.seasons[0].red>=N-1);assert.equal(f.rate,rate(E.LOAN_RATE+.001));

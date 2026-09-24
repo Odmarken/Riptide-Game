@@ -29,7 +29,7 @@ const stats=[];
 test('eight random playthroughs from the square to the great ports break neither the game nor the save',()=>{
 for(let seed=1;seed<=8;seed++){
  const rng=seeded(seed*7919),pick=a=>a[Math.floor(rng()*a.length)],s=E.create();
- let gold=0,closes=0,duke=null,spent=0;
+ let gold=0,closes=0,duke=null,spent=0,windfall=false;
  try{
   /* ---------- the road to the office, with the books shut ---------- */
   E.ennoble(s,1e9);spent+=E.PATENT_COST;
@@ -44,7 +44,8 @@ for(let seed=1;seed<=8;seed++){
   roundTrip(s,seed,'just chartered');
   /* ---------- running the city ---------- */
   for(let i=0;i<620;i++){
-   if(i>=300&&i<=320&&!s.crowned){s.trust=100;for(const k of Object.keys(s.council))s.council[k]=Math.max(s.council[k],E.COUP_FAVOUR);}   /* 👑 a realm that adores you for a while, so the crown - which the ports now need - is within reach in every run */
+   if(i>=300&&!s.crowned&&!s.bankRule){s.trust=100;for(const k of Object.keys(s.council))s.council[k]=Math.max(s.council[k],E.COUP_FAVOUR);}   /* 👑 a realm that adores you until you hold the crown (again, if the bank's seasons took it), so the crown - which the ports now need - is within reach in every run */
+   if(!s.chartered&&s.office===1){assert.equal(E.meetHand(s),true);assert.equal(E.acceptOffice(s).ok,true);assert.ok(E.charter(s).ok);roundTrip(s,seed,'chartered again after the bank');}   /* 🏦 handed back: the Duke answers the Hand's summons */
    const v=views(s,seed);
    if(rng()<.7)E.attend(s);
    if(rng()<.25){const k=pick(E.LINE_KEYS.concat(E.RATE_KEYS));E.setBudget(s,k,Math.floor(rng()*4));}
@@ -66,7 +67,7 @@ for(let seed=1;seed<=8;seed++){
    for(const o of s.noble.offers)if(!o.taken&&rng()<.3&&gold>=o.cost){const r=E.fundContract(s,o.id,gold);if(r.ok)gold-=r.cost;scan(r,'fund',seed);}
    /* allies: court them, then bargain */
    if(i>200&&rng()<.25){const a=pick(E.ALLIES);if(i>400||a.kind==='city')scan(E.allyInvest(s,a.id,pick([250000,1e6,5e6,1e12])),'allyInvest',seed);}
-   if(i===450){s.treasury+=6e8;}                                   /* a windfall, so the end game is reached in every run */
+   if(i>=450&&!windfall&&s.chartered&&!s.bankRule){s.treasury+=6e8;windfall=true;}   /* a windfall, so the end game is reached in every run - never into the bank's hands */
    for(const t of v.talks)if(t.canOffer&&rng()<.35){
     E.openTalks(s,t.id,rng);
     const tv=E.talkView(s,ctx,t.id),r=tv.counter&&rng()<.4?E.acceptCounter(s,ctx,t.id):E.makeOffer(s,ctx,t.id,Math.round(tv.ask*(.35+rng()*.8)),rng);
@@ -80,9 +81,10 @@ for(let seed=1;seed<=8;seed++){
   }
   views(s,seed);roundTrip(s,seed,'the end');
  }catch(e){note('EXCEPTION: '+String(e.message).split('\n')[0].slice(0,200),'seed '+seed+' close '+closes+'\n'+String(e.stack).split('\n').slice(1,5).join('\n'));}
- stats.push({seed,duke,spent,owned:Object.values(s.allies).filter(a=>a.owned).length,crowned:s.crowned,pop:s.pop,treasury:s.treasury,loan:s.loan,grades:s.seasons.map(x=>x.grade).join('')});
+ stats.push({seed,duke,spent,dismissed:s.dismissed,owned:Object.values(s.allies).filter(a=>a.owned).length,crowned:s.crowned,pop:s.pop,treasury:s.treasury,loan:s.loan,grades:s.seasons.map(x=>x.grade).join('')});
 }
 assert.deepEqual([...problems].map(([k,d])=>k+' :: '+d),[]);
 assert.ok(stats.every(x=>x.duke&&x.duke<400),'every run reaches Duke: '+stats.map(x=>x.duke).join(','));
+assert.ok(stats.some(x=>x.dismissed>0),'and some random steward runs the city into the red long enough for the bank to take the books, and gets the city back: '+stats.map(x=>x.dismissed).join(''));
 assert.ok(stats.some(x=>x.owned>=3)&&stats.some(x=>x.crowned),'and the end game is actually reached: owned '+stats.map(x=>x.owned).join('')+' crowned '+stats.filter(x=>x.crowned).length);
 });

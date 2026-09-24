@@ -14019,9 +14019,11 @@ function cityHudLine(){
   :c.office===1?'📜 The King’s Hand wishes to speak with you. Present yourself at the Throne Hall, up the palace stair.'
   :c.noble.rank?'The city is slowly coming apart, and nobody keeps its books. The contracts on the notice board are open to you.'
   :'The city is slowly coming apart, and nobody keeps its books. The notice board by the great square is where a name is made.');
+ const bv=CityEconomy.bankRuleView(c);
+ if(bv.on)return prefix+'🏦 The Tides Bank keeps the crown’s books - you are dismissed. The city is handed back in '+bv.left+' close'+(bv.left===1?'':'s')+' ('+fmtLongWait(bv.wait)+') · '+c.pop+' townsfolk, '+CityEconomy.moodName(c.mood).toLowerCase()+(c.protest?' and marching on the boulevard':'')+(c.food.hunger>0?' · 🌾 THE CITY IS HUNGRY':'');
  const trouble=c.incidents.map(i=>CityEconomy.INCIDENTS.find(d=>d.id===i.id)).map(d=>d.icon+' '+d.name.toLowerCase());
  return prefix+'Treasury '+c.treasury.toLocaleString()+' ◉ · '+c.pop+' townsfolk, '+CityEconomy.moodName(c.mood).toLowerCase()+(c.protest?' and marching on the boulevard':'')
-  +' · '+(c.crowned?'👑 the crown is yours':'trust '+Math.floor(c.trust)+'%')+' · season '+c.season.n+', close '+(c.season.closes+1)+'/'+CityEconomy.SEASON_CLOSES+(c.treasury<0?' · 🏦 IN THE RED':'')
+  +' · '+(c.crowned?'👑 the crown is yours':'trust '+Math.floor(c.trust)+'%')+' · season '+c.season.n+', close '+(c.season.closes+1)+'/'+CityEconomy.SEASON_CLOSES+(c.treasury<0?' · 🏦 IN THE RED'+(bv.toTakeover!==null&&bv.toTakeover<=CityEconomy.BANK_TAKEOVER/2?' - the council hands the books to the bank in '+bv.toTakeover+' close'+(bv.toTakeover===1?'':'s'):''):'')
   +(c.food.hunger>0?' · 🌾 THE CITY IS HUNGRY':CityEconomy.foodView(c,cityContext()).low?' · 🌾 bread for '+(n=>n+' more close'+(n===1?'':'s'))(CityEconomy.foodView(c,cityContext()).closes):'')+(c.unattended>=CityEconomy.REMIND_AFTER?' · 🔔 you have ledgers to attend':'')+(trouble.length?' · '+trouble.join(' · '):'')+(c.petition?' · 📜 a petition waits at the council table':'')+(c.king.demand?' · 👑 the King wants something':'')+' · the ledger closes in '+cityClockLeft();
 }
 /* a commoner who can be pulled off his stroll for a march or a fight, and put back afterwards */
@@ -14173,6 +14175,7 @@ function cityApplyWorks(){
 /* 📣 The crier shouts what the last close wrote, and what a steward should know, a line at a time */
 function cityCrierLines(){
  const c=S.city,E=CityEconomy,out=[],last=c.last;
+ if(c.bankRule){const v=E.bankRuleView(c);out.push('Hear ye! By order of the Tides Bank: the crown’s books are in the bank’s keeping, and every debt is called in!','Hear ye! The Master of Coin is DISMISSED. The bank hands the city back in '+v.left+' close'+(v.left===1?'':'s')+' - if there is a city left to hand.','No bread today. The bank does not buy bread.');}
  if(last)for(const t of last.events.concat((last.unrest||[]).map(u=>u.replace(/^[^A-Za-zÅÄÖåäö0-9]+/,''))))out.push('Hear ye! '+t);
  out.push('Hear ye! '+c.pop+' souls within the walls, and the city is '+E.attractName(c.attract).toLowerCase()+'.');
  const building=Object.keys(c.works).filter(id=>c.works[id].left>0).map(id=>E.WORKS.find(w=>w.id===id).name);
@@ -14223,6 +14226,7 @@ function hallApply(){
  if(!world||!world.throne||!S||!S.city)return;
  const c=S.city,cells=CityEconomy.cells(c);
  world.npcs=world.npcs.filter(n=>!n.prisoner&&!(c.crowned&&n.game==='king'));
+ if(!c.crowned&&!world.npcs.some(n=>n.game==='king')){const king=ThroneWorld.create().npcs.find(n=>n.game==='king');if(king)world.npcs.push(king);}   /* 🏦 the city handed back: the old King is on his throne again */
  c.jail.forEach((p,i)=>world.npcs.push(ThroneWorld.prisoner(i%cells,p,i>=cells?2:c.jail.length>cells&&i<c.jail.length-cells?1:0)));
  world.npcs.filter(n=>n.guard).forEach((n,i)=>{n.hidden=i<6&&i>=6-(CityEconomy.ROYAL_GUARD-c.guards);});
  for(const s2 of world.solids)if(s2.kind==='bars'){
@@ -14253,6 +14257,13 @@ function cityLedgerClose(){
  if(!S||!S.city)return;
  const was=S.city.protest,lookWas=cityLook();
  const r=CityEconomy.tick(S.city,cityContext(),Math.random);
+ if(r.restored){ /* 🏦 the bank hands the city back as it was the day the books first opened - and the Hand sends for the Duke again */
+  for(const u of r.unrest)log(u,/^📜/.test(u)?'loot':'imp');
+  stageMsg('🏦 '+CityEconomy.BANK_RULE_SEASONS+' seasons are up. The Tides Bank hands the city back - as it was the day you first took the books. The King’s Hand is sending for you.',8000,'#ffd76a',true);sfx.quest();
+  ledgerTab='overview';charterStep=0;
+  cityApplyAll();if($('ledgerFx').style.display==='flex')ledgerRefresh();if($('boardFx').style.display==='flex')boardRefresh();
+  renderHero();renderHUD();save();return;
+ }
  if(r.summoned){stageMsg('📜 The King’s Hand wishes to speak with you. Present yourself at the Throne Hall.',7000,'#ffd76a',true);sfx.quest();}
  if(r.idle){ /* 🏦 the books are shut: no ledger closed - only the heralds' and the counting houses' papers moved */
   for(const u of r.unrest)log(u,'loot');
@@ -14265,19 +14276,20 @@ function cityLedgerClose(){
  if(r.salary>0){S.overflow=(S.overflow||0)+r.salary;log('🪙 Your salary as Master of Coin: <span class="loot">+'+r.salary.toLocaleString()+' ◉</span> to your overflow gold.','loot');}
  if(r.purse>0){S.overflow=(S.overflow||0)+r.purse;log('💎 Your privy purse: <span class="loot">+'+r.purse.toLocaleString()+' ◉</span> to your overflow gold.','loot');}
  if(CityEconomy.canClaim(S.city)&&!S.city.coupTold){S.city.coupTold=true;stageMsg('👑 The realm trusts you more than its King. The crown is there to be taken.',5200,'#ffd76a',true);log('👑 <b>Your trust stands at 100%, and a season is on the books.</b> Go to the council table - the Crown tab - when you are ready.','loot');}
- if(r.review&&CityEconomy.bonusView(S.city)&&CityEconomy.bonusView(S.city).open){const b=CityEconomy.bonusView(S.city);log('🎁 <b>Season '+b.n+' made '+fmtGold(b.profit)+' ◉.</b> A fifth of it - '+fmtGold(b.max)+' ◉ - may be yours: the Bank tab, when the treasury is in the black.','loot');}
+ if(r.review&&!S.city.bankRule&&CityEconomy.bonusView(S.city)&&CityEconomy.bonusView(S.city).open){const b=CityEconomy.bonusView(S.city);log('🎁 <b>Season '+b.n+' made '+fmtGold(b.profit)+' ◉.</b> A fifth of it - '+fmtGold(b.max)+' ◉ - may be yours: the Bank tab, when the treasury is in the black.','loot');}
  const amt=(r.net>=0?'+':'−')+Math.abs(r.net).toLocaleString()+' ◉';
- log('📜 The ledger closed: <span class="'+(r.net>=0?'loot':'imp')+'">'+amt+'</span>'+(r.expected!==undefined&&Math.abs(r.net-r.expected)>=5000?' (the Hand expected '+fmtRough(r.expected)+')':'')+' · treasury '+r.treasury.toLocaleString()+' ◉ · the people are '+CityEconomy.moodName(r.mood).toLowerCase()+'.',r.net>=0?'loot':'imp');
+ log((S.city.bankRule&&!r.takeover?'🏦 The bank’s ledger closed: ':'📜 The ledger closed: ')+'<span class="'+(r.net>=0?'loot':'imp')+'">'+amt+'</span>'+(r.expected!==undefined&&Math.abs(r.net-r.expected)>=5000?' (the Hand expected '+fmtRough(r.expected)+')':'')+' · treasury '+r.treasury.toLocaleString()+' ◉ · the people are '+CityEconomy.moodName(r.mood).toLowerCase()+'.',r.net>=0?'loot':'imp');
  for(const e of r.events)log('🏙 '+e);
  for(const u of r.unrest)log(u,/^✔|^🛡|^🏗|^🧳|^🔓/.test(u)?'loot':/^⛓|^📜|^🌬|^🧾/.test(u)?'':'imp');
  const fresh=r.unrest.find(u=>!/^✔|^🛡|^📜|^🏗|^🔓|^⛓|^🧳|^🏦|^🌬|^🧾|^👑 The King’s humour/.test(u));
  const bank=r.unrest.find(u=>/^🏦 (The bank|The treasury is in the red|Nobody will|There was nothing)/.test(u))||r.unrest.find(u=>/^🌾 The granary is (EMPTY|empty)/.test(u));
- if(r.review){const g=r.review.grade;stageMsg('🏦 Season '+r.review.n+' is closed - the Tides Bank grades your books '+g+'.',5200,'AB'.includes(g)?'#9adf9a':g==='C'?'#ffd76a':'#ff8a7a',true);if('AB'.includes(g))sfx.quest();else sfx.warn();}
+ if(r.takeover){stageMsg('🏦 The council has handed the crown’s books to the Tides Bank. You are dismissed for '+CityEconomy.BANK_RULE_SEASONS+' seasons.',8000,'#ff8a7a',true);sfx.warn();}
+ else if(r.review){const g=r.review.grade;stageMsg('🏦 Season '+r.review.n+' is closed - the Tides Bank grades '+(S.city.bankRule?'its own books ':'your books ')+g+'.',5200,'AB'.includes(g)?'#9adf9a':g==='C'?'#ffd76a':'#ff8a7a',true);if('AB'.includes(g))sfx.quest();else sfx.warn();}
  else if(bank){stageMsg(bank,5200,'#ff8a7a',true);sfx.warn();}
  else if(r.protest&&!was){stageMsg('✊ The people are marching on the boulevard!',3600,'#ff8a7a',true);sfx.warn();}
  else if(!r.protest&&was){stageMsg('The crowds have gone home.',2800,'#9adf9a');sfx.quest();}
  else if(fresh){stageMsg(fresh,4200,'#ff8a7a',true);sfx.warn();}
- else stageMsg('📜 The ledger closed: '+amt,2400,r.net>=0?'#9adf9a':'#ff8a7a');
+ else stageMsg((S.city.bankRule?'🏦 The bank’s ledger closed: ':'📜 The ledger closed: ')+amt,2400,r.net>=0?'#9adf9a':'#ff8a7a');
  cityStreetNews(lookWas,cityLook());
  cityApplyAll();
  if($('ledgerFx').style.display==='flex')ledgerRefresh();
@@ -14301,6 +14313,7 @@ function cityStreetNews(a,b){
    CityEconomy keeps the rules (patent, contracts, XP, rank); this only reads the view and hands over the gold. */
 const nobleTitle=()=>CityEconomy.NOBLE_RANKS[(S.city&&S.city.noble.rank)||0].title;   /* one name to a rank: a Duke is a Duke */
 const fmtWait=sec=>{sec=Math.max(0,Math.ceil(sec));return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');};
+const fmtLongWait=sec=>sec>=3600?Math.floor(sec/3600)+' h '+String(Math.floor(sec%3600/60)).padStart(2,'0')+' min':fmtWait(sec);   /* 🏦 the bank's two seasons read as hours, not as two hundred minutes */
 let boardNote='';
 /* 🧪 TEST (asked for 2026-09-22): ONE contract from the notice board makes a Duke, so the Hand's summons, the scene at the
    hall door and the offer of the office can be tried without the long climb through the peerage. Delete this one line
@@ -14408,6 +14421,11 @@ function sceneHoldsTravel(){
 }
 function kingSpeak(){
  const c=S.city,f=CityEconomy.forecast(c,cityContext()),who=S.name||'friend',hot=f.incidents.find(i=>i.street)||f.incidents[0];
+ if(c.bankRule){ /* 🏦 dismissed: the throne is no help */
+  const line=c.crowned?'Your throne, '+cityTitle()+' '+who+' - and a clerk of the Tides Bank at your council table, charging you for the candles. Your seal buys nothing until the bank hands the city back.'
+   :'A clerk of the Tides Bank sits at MY council table and charges me for the candles, and my city burns under my windows. You did this, '+who+'. The bank will hand it back when it has squeezed it dry. Until then, stay out of my sight.';
+  stageMsg('👑 '+line,5600,'#ffd76a');log('👑 <b>'+(c.crowned?'The throne of the City':ThroneWorld.KING_NAME)+':</b> '+line);return;
+ }
  if(c.crowned){
   const mine=c.protest?'They are under YOUR windows now.':hot?hot.name+'. It is your city to mend.':c.trust<40?'The guard salutes a little slower than it did. Win them back.':'The hall is quiet. The guard stands straighter when you pass.';
   stageMsg('👑 Your throne, '+cityTitle()+' '+who+'. '+mine,4600,'#ffd76a');log('👑 <b>The throne of the City</b> is yours. '+mine);
@@ -14906,6 +14924,10 @@ function ledgerOffer(c){
  if(c.office<1)return '<div class="ledger-petition"><h3>📕 The book is shut</h3><p>'+hand+' puts his hand flat on the ledger before you can read a line of it.</p>'
   +'<p class="ledger-voice">“These are the crown’s books, and the crown has no Master of Coin - which is why they look the way they do. I will not hand them to a name I have never heard. When the whole city knows yours, I will know it too.”</p>'
   +'<p>The office goes to somebody the realm already trusts: a <b>'+top+'</b>. '+'</p></div>';
+ if(c.dismissed>0)return '<div class="ledger-petition ledger-coup"><h3>📜 The Hand’s proposal - again</h3>'
+  +'<p class="ledger-voice">“'+nobleTitle()+' '+(S.name||'')+'. The bank has given the city back. It is as empty as the day I first showed it to you - emptier: the bank took what little there was, and the old King has his throne back, and his opinions.”</p>'
+  +'<p class="ledger-voice">“I will not pretend the council was wrong to vote as it did. But the realm will lend to nobody else, and the city will not keep itself. The office is yours again, if you want it - and the bank will lend again, on the same terms. Mind the red this time.”</p>'
+  +'<div class="ledger-opts"><button class="sbtn gold" data-lact="office">I accept. Show me the books.<small>you become Master of Coin again - the strongroom and a new founding loan come next</small></button></div></div>';
  return '<div class="ledger-petition ledger-coup"><h3>📜 The Hand’s proposal</h3>'
   +'<p class="ledger-voice">“'+nobleTitle()+' '+(S.name||'')+'. Thank you for coming. I will be plain, because there is no time to be anything else.”</p>'
   +'<p class="ledger-voice">“The city is coming apart. The strongroom is empty, the last Master of Coin left by night, the bank will lend to nobody it cannot name, and the King believes gold is something that happens. I have watched what you have done from that board on the square - with your own purse, and asking nothing back. That is the only kind of person I can put in that chair.”</p>'
@@ -14943,6 +14965,7 @@ function ledgerCharter(c,ctx){
   +'<tr><td>🅰️ A good season<small>debt at the target, strongroom never dry, the crown worth more than it was</small></td><td class="pos">a wider line, cheaper money</td></tr>'
   +'<tr><td>🅵 A bad one<small>and whatever stands above the target is called in from the strongroom on the spot</small></td><td class="neg">a narrower line, dearer money</td></tr>'
   +'<tr><td>🧾 A close we cannot pay<small>the bank covers it from the line, and adds '+(v.coverFee*100)+'% to the debt for the favour</small></td><td>while the line lasts</td></tr>'
+  +'<tr><td>🏦 '+E.BANK_TAKEOVER+' closes in the red<small>the council hands the books to the bank. You are dismissed for '+E.BANK_RULE_SEASONS+' seasons while it squeezes the city - and then it hands the city back as it stands today, empty, to begin again</small></td><td class="neg">you are dismissed</td></tr>'
   +'<tr><td>⚖️ Past the line: the red<small>one close of grace. Then the bailiffs, one thing at every close: a building site, a file of the watch, a finished work, two of the Royal Guard, the festivals, the court</small></td><td class="neg">they sell what they take</td></tr></table>'
   +'<p class="craft-note">“It is a hard bargain. It is also the only one there is. Sign, and the books open: the first close falls five minutes after. And steward - <b>buy grain before you do anything else</b>. The granary holds bread for three closes, and not a crumb more.”</p>'
   +nav(true,'<button class="sbtn gold charter-sign" data-lact="charter">✒️ Approve the loan · '+fmtGold(v.loan)+' ◉<small>the crown will owe the Tides Bank every coin of it</small></button>');
@@ -15051,7 +15074,7 @@ function ledgerBank(c,ctx){
    +'<tr><td>The season’s outgoings<small>every close’s expenses, added up</small></td><td class="neg">−'+fmtGold(x.out)+'</td></tr>'
    +'<tr class="ledger-sum"><td>What the season made</td><td class="'+(x.in-x.out>=0?'pos':'neg')+'">'+fmtSigned(x.in-x.out)+'</td></tr>':'')+'</table>'
   +(bonus&&bonus.n===x.n?ledgerBonus(bonus):'')+'</div>';
- return (v.frozen?'<div class="ledger-alert"><button class="sbtn" data-lact="goto" data-v="budget">🏦 IN THE RED by '+fmtGold(-c.treasury)+' ◉ and the line is spent. '+(v.bailiffs?'The bailiffs take something at every close until the treasury is in the black.':'One close of grace, then the bailiffs.')+' Cut the budget, raise a rate, or repay nothing until a close lands in the black.</button></div>':'')
+ return (v.frozen?'<div class="ledger-alert"><button class="sbtn" data-lact="goto" data-v="budget">🏦 IN THE RED by '+fmtGold(-c.treasury)+' ◉ and the line is spent. '+(v.bailiffs?'The bailiffs take something at every close until the treasury is in the black.':'One close of grace, then the bailiffs.')+' Cut the budget, raise a rate, or repay nothing until a close lands in the black.'+(n=>n!==null?' In '+n+' more close'+(n===1?'':'s')+' in the red the council hands the books to the Tides Bank.':'')(CityEconomy.bankRuleView(c).toTakeover)+'</button></div>':'')
   +'<div class="ledger-tiles">'
   +'<div class="ledger-tile"><span>Owed to the Tides Bank</span><b class="'+(c.loan>0?'bad':'')+'">◉ '+fmtGold(v.loan)+'</b><small>'+(+((v.effRate!=null?v.effRate:v.rate)*100).toFixed(3))+'% a close · '+fmtGold(v.interest)+' ◉ in interest at the next</small></div>'
   +'<div class="ledger-tile"><span>The credit line</span><b>◉ '+fmtGold(v.limit)+'</b><small>room for '+fmtGold(v.room)+' ◉ more'+(f75(c)?' · a devoted council adds a tenth':'')+'</small></div>'
@@ -15094,19 +15117,33 @@ function ledgerHelp(){
   +sec('🤝 The Hand’s counsel',['Once every <b>'+E.COUNSEL_EVERY+' closes</b> you can ask the King’s Hand, on the Overview, what he would do. He names <b>one thing</b> - whatever he thinks presses hardest - and he says where to look, not which button to press. His last counsel stays on the Overview until you ask again.','If he has nothing worth saying he says so, and the question is not used up.'])
   +sec('🔔 Ledgers to attend',['The ledger closes wherever you are - but a city is not run from a dungeon. After <b>'+E.REMIND_AFTER+' closes</b> without opening the ledger the chat reminds you: <b>you have ledgers to attend</b>.','There is no cliff, only a slope: from the <b>first close</b> you are away the realm’s trust in you drains by about a tenth of a point, and it deepens by as much again with <b>every close</b> you stay away - over a point a close after ten, four at the very worst. What each councillor thinks you deserve sinks a point and a half per close away (forty at the most), and their opinion follows it down. It is not only the council: the city’s temper sinks 0.6 a close away (to −18) and its draw 0.4 (to −12), so taxes thin, families stop coming and, left long enough, the crowd comes out. Opening the ledger at the council table stops the slide and starts the count again - what was lost has to be earned back.'])
   +sec('⛓ The jail',['Down the stair in the west wall of the hall, on your left as you come in. At every close the watch may bring in a townsperson - really: they vanish from the streets until they are out. You can talk to them through the bars, and at the jailer’s desk pardon them or fine them.','The old King, if that is where he went, is yours to decide on the Jail tab. <b>Pardon him</b>: the people <b class="pos">+'+Math.round(E.MERCY*100)+'</b> for '+E.MERCY_SEASONS+' seasons, but every court abroad prices you <b>'+Math.round(E.MERCY*100)+'% higher</b> and is harder to talk round - and he sits begging at the foot of the palace stair in what is left of his robes. <b>Hang him on the square</b>: the people <b class="neg">−'+Math.round(E.MERCY*100)+'</b> for '+E.MERCY_SEASONS+' seasons, but every court abroad is frightened into being <b>'+Math.round(E.MERCY*100)+'% cheaper</b> and easier. A public execution: the whole city turns out to watch.'])
-  +sec('🏦 The Tides Bank and its seasons',['The strongroom starts <b>empty</b>. The books open when you sign the <b>founding loan</b> of '+fmtGold(E.FOUNDING_LOAN)+' ◉; the bank keeps another '+fmtGold(E.RESERVE_LINE)+' ◉ on the line for later. What you owe costs '+(E.LOAN_RATE*100)+'% of itself at every close, to begin with.','Play runs in <b>seasons of '+E.SEASON_CLOSES+' closes</b>. For each the bank sets a target: the debt must be <b>a tenth smaller</b> at the last close than it was at the first. You may borrow more along the way - what counts is where the debt <b>ends</b>.','At the last close the bank <b>grades the books A to F</b>: is the debt at the target, was the strongroom ever dry, is the crown worth more than it was. An A widens the line by everything you repaid and 12% more, and cheapens the money; a D or an F narrows the line, makes the money dearer, and whatever debt stands above the target is <b>called in</b> from the strongroom on the spot.','If a close cannot be paid, the bank <b>covers the shortfall from your line</b> and adds '+(E.COVER_FEE*100)+'% to the debt for the favour. When the line is spent the treasury is <b>in the red</b>: it costs '+(E.OVERDRAFT_RATE*100)+'% a close, sours the mood by 18, no budget line can be raised and no work ordered.','After <b>one close of grace</b> the <b>bailiffs</b> come, and take one thing at every close you stay in the red: a building site (sold for half), a file of the watch, a finished work (sold for a third - its house in the City wears the bank\'s seal), two of the Royal Guard, the festivals, the court. What they sell is credited to the treasury. When nothing is left the bank cuts every budget line to the bone.','The Bank tab charts every season: the treasury, the debt, and the target.'])
+  +sec('🏦 The Tides Bank and its seasons',['The strongroom starts <b>empty</b>. The books open when you sign the <b>founding loan</b> of '+fmtGold(E.FOUNDING_LOAN)+' ◉; the bank keeps another '+fmtGold(E.RESERVE_LINE)+' ◉ on the line for later. What you owe costs '+(E.LOAN_RATE*100)+'% of itself at every close, to begin with.','Play runs in <b>seasons of '+E.SEASON_CLOSES+' closes</b>. For each the bank sets a target: the debt must be <b>a tenth smaller</b> at the last close than it was at the first. You may borrow more along the way - what counts is where the debt <b>ends</b>.','At the last close the bank <b>grades the books A to F</b>: is the debt at the target, was the strongroom ever dry, is the crown worth more than it was. An A widens the line by everything you repaid and 12% more, and cheapens the money; a D or an F narrows the line, makes the money dearer, and whatever debt stands above the target is <b>called in</b> from the strongroom on the spot.','If a close cannot be paid, the bank <b>covers the shortfall from your line</b> and adds '+(E.COVER_FEE*100)+'% to the debt for the favour. When the line is spent the treasury is <b>in the red</b>: it costs '+(E.OVERDRAFT_RATE*100)+'% a close, sours the mood by 18, no budget line can be raised and no work ordered.','After <b>one close of grace</b> the <b>bailiffs</b> come, and take one thing at every close you stay in the red: a building site (sold for half), a file of the watch, a finished work (sold for a third - its house in the City wears the bank\'s seal), two of the Royal Guard, the festivals, the court. What they sell is credited to the treasury. When nothing is left the bank cuts every budget line to the bone.','<b>'+E.BANK_TAKEOVER+' closes in the red in a row</b> - an hour of play - and the council hands the crown’s books to the Tides Bank. You are <b>dismissed</b> and may not govern for <b>'+E.BANK_RULE_SEASONS+' seasons</b>, while the bank squeezes the city: the poll tax and every rate at the top, every line of the budget cut to nothing, no grain bought. The city burns, starves and fills with refuse. When the seasons are up the bank hands it back <b>as it was the day you first took the books</b> - the strongroom empty, the old King on his throne, none of your works, allies or crown - and the Hand sends for you again, with a new budget and a new loan. Your title and what you gave at the notice board are yours to keep.','The Bank tab charts every season: the treasury, the debt, and the target.'])
   +'<button class="sbtn gold" data-lact="back">Back to the ledger</button></div>';
+}
+/* 🏦 The Tides Bank keeps the books: what the dismissed steward is shown at the table - and from the road - until the city is handed back */
+function ledgerBankRule(c){
+ const E=CityEconomy,v=E.bankRuleView(c),hand=ThroneWorld.HAND_NAME.split(' · ')[0];
+ return '<div class="ledger-petition ledger-coup"><h3>🏦 The Tides Bank keeps the books</h3>'
+  +'<p>A clerk of the Tides Bank sits in your chair. He does not look up.</p>'
+  +'<p class="ledger-voice">“'+E.BANK_TAKEOVER+' closes in the red, and the council voted. The crown’s books are the bank’s until they are square - which, at this rate, they will not be. You are dismissed. Kindly do not touch the ledger.”</p>'
+  +'<p>'+hand+' catches your eye from the end of the table and shakes his head, very slightly.</p></div>'
+  +'<div class="ledger-tiles">'
+  +'<div class="ledger-tile"><span>Handed back in</span><b id="ledgerBankWait">'+fmtLongWait(v.wait)+'</b><small>'+v.left+' close'+(v.left===1?'':'s')+' left of '+v.closes+' · '+v.seasons+' seasons in the bank’s keeping</small></div>'
+  +'<div class="ledger-tile"><span>Treasury</span><b class="'+(c.treasury<0?'bad':'')+'">◉ '+fmtGold(c.treasury)+'</b><small>the bank pays for nothing it can stop paying for</small></div>'
+  +'<div class="ledger-tile"><span>The people</span><b style="color:'+E.moodColor(c.mood)+'">'+E.moodName(c.mood)+' · '+c.mood+'</b><small>'+c.pop+' townsfolk'+(c.protest?' · marching on the boulevard':'')+(c.food.hunger>0?' · hungry':'')+'</small></div></div>'
+  +'<p class="craft-note">The bank squeezes the city: the poll tax at '+c.budget.tax+'%, every rate at the top, every line of the budget cut to nothing, and not a sack of grain bought. Walk out on the boulevard and you will see it. When the '+v.seasons+' seasons are up the bank hands the city back <b>as it was the day you first took the books</b> - the strongroom empty, the old King on his throne, none of your works, allies or crown - and '+hand+' will send for you again, with a new budget and a new loan.</p>';
 }
 function ledgerHTML(){
  const c=S.city,ctx=cityContext(),E=CityEconomy,f=E.forecast(c,ctx);
  if(ledgerTab==='help')return ledgerHelp();
+ if(c.bankRule)return ledgerBankRule(c);
  if(ledgerPeek&&!c.chartered)return '<div class="craft-empty">The office is yours, Master of Coin - but the books are not open yet. '+ThroneWorld.HAND_NAME.split(' · ')[0]+' is waiting at the council table with the founding loan; sign it there and the Overview will show here.</div>'; /* 👁 nothing to glance at before the charter, and the charter is signed at the table */
  if(!c.chartered)return c.office>=3?ledgerCharter(c,ctx):ledgerOffer(c);
  if(ledgerTab==='overview'){
   const last=c.last;
   const coup=E.canClaim(c),bonus=E.bonusView(c);
   return (c.food.hunger>0||E.foodView(c,ctx).low?'<div class="ledger-alert"><button class="sbtn" data-lact="goto" data-v="overview">🌾 '+(c.food.hunger>0?'The granary is EMPTY and the city is going hungry - it gets worse with every close.':'The granary holds bread for '+(n=>n+' more close'+(n===1?'':'s'))(CityEconomy.foodView(c,cityContext()).closes)+'.')+' Buy grain below'+(c.food.auto?'.':', or set the standing shipments going.')+'</button></div>':'')
-   +(c.treasury<0?'<div class="ledger-alert"><button class="sbtn" data-lact="goto" data-v="bank">🏦 The treasury is in the red and the line is spent - '+(c.arrears>=E.SEIZE_AFTER-1?'the bailiffs take something at every close':'the bailiffs come after the next close')+'. Cut the budget, raise a rate.</button></div>':'')
+   +(c.treasury<0?'<div class="ledger-alert"><button class="sbtn" data-lact="goto" data-v="bank">🏦 The treasury is in the red and the line is spent - '+(c.arrears>=E.SEIZE_AFTER-1?'the bailiffs take something at every close':'the bailiffs come after the next close')+'. Cut the budget, raise a rate.'+(n=>n!==null?' In '+n+' more close'+(n===1?'':'s')+' in the red the council hands the books to the Tides Bank.':'')(E.bankRuleView(c).toTakeover)+'</button></div>':'')
    +(f.incidents.length||c.petition||c.king.demand||coup||(bonus&&bonus.open)?'<div class="ledger-alert">'+f.incidents.map(i=>'<button class="sbtn" data-lact="goto" data-v="people">'+i.icon+' '+i.name+' - '+i.fix.toLowerCase()+'</button>').join('')
     +(c.petition?'<button class="sbtn" data-lact="goto" data-v="council">📜 A petition waits for your answer</button>':'')
     +(c.king.demand?'<button class="sbtn" data-lact="goto" data-v="crown">👑 The King wants something</button>':'')
@@ -15215,8 +15252,8 @@ function ledgerRefresh(){
  const action=focused&&focused.dataset.lact?{...focused.dataset}:null;
  $('ledgerFx').classList.toggle('peek',ledgerPeek);
  {const k=document.querySelector('#ledgerFx .craft-kicker');if(k)k.textContent=ledgerPeek?'FROM THE ROAD':'THE COUNCIL CHAMBER';$('ledgerClose').textContent=ledgerPeek?'Close the book':'Leave the Chamber';}
- const dot=(id,on)=>{const b=document.querySelector('[data-ltab="'+id+'"]');if(b)b.classList.toggle('alert',on);};
- document.querySelectorAll('[data-ltab]').forEach(b=>{const on=b.dataset.ltab===ledgerTab||(ledgerTab==='talk'&&b.dataset.ltab==='allies');b.classList.toggle('active',on);b.setAttribute('aria-selected',on);b.disabled=!S.city.chartered;b.tabIndex=on?0:-1;b.id='ledger-tab-'+b.dataset.ltab;b.setAttribute('aria-controls','ledgerBody');});
+ const dot=(id,on)=>{const b=document.querySelector('[data-ltab="'+id+'"]');if(b)b.classList.toggle('alert',on&&!S.city.bankRule);};
+ document.querySelectorAll('[data-ltab]').forEach(b=>{const on=b.dataset.ltab===ledgerTab||(ledgerTab==='talk'&&b.dataset.ltab==='allies');b.classList.toggle('active',on);b.setAttribute('aria-selected',on);b.disabled=!S.city.chartered||!!S.city.bankRule;b.tabIndex=on?0:-1;b.id='ledger-tab-'+b.dataset.ltab;b.setAttribute('aria-controls','ledgerBody');});
  dot('bank',S.city.chartered&&(S.city.treasury<0||!S.city.reviewSeen)&&ledgerTab!=='bank');
  $('ledgerHelp').setAttribute('aria-pressed',ledgerTab==='help');
  dot('people',S.city.incidents.length>0||S.city.protest);dot('council',!!S.city.petition);
@@ -15225,7 +15262,7 @@ function ledgerRefresh(){
  dot('crown',!!S.city.king.demand||CityEconomy.canClaim(S.city));dot('gaol',S.city.jail.length>CityEconomy.cells(S.city));
  {const b=CityEconomy.bonusView(S.city);if(b&&b.open&&b.black&&ledgerTab!=='bank')dot('bank',true);} /* 🎁 a bonus waiting is a reason to open the Bank tab */
  const crownTab=document.querySelector('[data-ltab="crown"]');if(crownTab)crownTab.textContent=S.city.crowned?'👑 Your Crown':'👑 The King';
- {const sub=document.querySelector('#ledgerFx .craft-subtitle');if(sub)sub.textContent=ledgerPeek?'A glance at the books from the road. The Hand reads you the Overview and nothing else - the ledger is kept at the council table, and only there can anything be touched.':S.city.office>=3?'Taxes, rents and public works; a King to keep and a realm to win. You sit as Master of Coin: the King’s Hand keeps the books, you run the city.':'The crown’s books, kept by the King’s Hand at the council table - for the Master of Coin, when the city has one.';}
+ {const sub=document.querySelector('#ledgerFx .craft-subtitle');if(sub)sub.textContent=S.city.bankRule?'The crown’s books are in the Tides Bank’s keeping. You are dismissed until it hands the city back.':ledgerPeek?'A glance at the books from the road. The Hand reads you the Overview and nothing else - the ledger is kept at the council table, and only there can anything be touched.':S.city.office>=3?'Taxes, rents and public works; a King to keep and a realm to win. You sit as Master of Coin: the King’s Hand keeps the books, you run the city.':'The crown’s books, kept by the King’s Hand at the council table - for the Master of Coin, when the city has one.';}
  $('ledgerBody').innerHTML=ledgerHTML();
  const activeTab=document.querySelector('#ledgerTabs [aria-selected="true"]');
  body.setAttribute('aria-labelledby',ledgerTab==='help'?'ledgerHelp':activeTab&&!ledgerPeek?activeTab.id:'ledgerTitle');
@@ -15235,7 +15272,8 @@ function ledgerRefresh(){
 }
 function ledgerAction(act,k,v){
  const c=S.city,E=CityEconomy;let ok=true,msg='';
- if(c.chartered)E.attend(c);
+ if(c.bankRule&&act!=='goto'&&act!=='back'){ledgerNote='The bank’s clerk puts his hand flat on the ledger. You are dismissed.';sfx.warn();ledgerRefresh();return;}   /* 🏦 */
+ if(c.chartered&&!c.bankRule)E.attend(c);
  const amt=all=>v==='all'||v==='max'?all:parseInt(v,10);
  if(act==='goto'){ledgerTab=v;ledgerRefresh();return;}
  if(act==='office'){
@@ -15303,7 +15341,7 @@ function openLedger(tab,peek=false){
  if(peek&&!(S.city.office>=3))return; /* 👁 the office first: a stranger gets no glance at the crown's books */
  ledgerPeek=!!peek;
  ledgerTab=typeof tab==='string'&&S.city.chartered&&!ledgerPeek?tab:'overview';ledgerBack='overview';ledgerNote='';
- if(S.city.chartered&&!ledgerPeek){ /* 🔔 the steward is at the table again - a glance from afar is not that */
+ if(S.city.chartered&&!S.city.bankRule&&!ledgerPeek){ /* 🔔 the steward is at the table again - a glance from afar is not that */
   const away=CityEconomy.attend(S.city);
   if(away>=CityEconomy.NEGLECT_AFTER){const line=away>=CityEconomy.NEGLECT_HARD?'So you remember where the table is. '+away+' closes, steward. The council has been meeting without you - sit down and earn them back.':'You have been missed, steward. '+away+' closes of paper are waiting - and the council has noticed the empty chair.';
    log('📜 <b>'+ThroneWorld.HAND_NAME+':</b> '+line);ledgerNote=line;save();}
@@ -15402,6 +15440,7 @@ function ledgerEntry(){
 setInterval(()=>{ /* the countdown on the ledger and the HUD line tick once a second */
  if(!gameOn||!S||!S.city||!hero)return;
  const nx=$('ledgerNext');if(nx&&$('ledgerFx').style.display==='flex')nx.textContent=cityClockLeft();
+ const bw=$('ledgerBankWait');if(bw&&S.city.bankRule&&$('ledgerFx').style.display==='flex')bw.textContent=fmtLongWait(CityEconomy.bankRuleView(S.city).wait);
  if(ledgerTab==='allies'&&$('ledgerFx').style.display==='flex'){const av=CityEconomy.alliesView(S.city);
   document.querySelectorAll('[data-await]').forEach(el=>{const [id,i]=el.dataset.await.split(':'),a=av.list.find(x=>x.id===id),p=a&&a.pending[+i];if(p)el.textContent=fmtWait(p.seconds);});}
  if($('boardFx').style.display==='flex'){const v=CityEconomy.nobleView(S.city),rp=$('boardRepost');if(rp&&v.repost!==null)rp.textContent=fmtWait(v.repost);
