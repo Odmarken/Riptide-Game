@@ -709,15 +709,21 @@ function addGoldOverflow(n){
  return {got:a,over:rest};
 }
 /* ==================== BANK ==================== */
-const BANK_RATE=0.005,BANK_HOUR=3600000;
+/* 🏦 The Bank of Moonshine holds at most BANK_CAP, and pays interest by the depositor's standing in the peerage (asked for
+   2026-09-24): nothing to a commoner, 0.05% an hour to a Knight, rising evenly rank by rank to 0.5% an hour for a Duke. */
+const BANK_HOUR=3600000,BANK_CAP=10000000000,BANK_RATES=Object.freeze([0,.0005,.0014,.0023,.0032,.0041,.005]);
+const bankRank=(ch=S)=>Math.max(0,Math.min(BANK_RATES.length-1,(ch&&ch.city&&ch.city.noble&&ch.city.noble.rank)|0));
+const bankRate=(ch=S)=>BANK_RATES[bankRank(ch)];
+const bankPct=r=>+(r*100).toFixed(2)+'%';
 function bankTick(){
  if(!S)return;
  const now=Date.now();
  if(!S.bankLastT){S.bankLastT=now;return;}
  const hours=Math.floor((now-S.bankLastT)/BANK_HOUR);
  if(hours<=0)return;
+ const rate=bankRate();
  let earned=0,g=S.bankGold||0;
- for(let i=0;i<hours;i++){const e=Math.floor(g*BANK_RATE);g+=e;earned+=e;}
+ for(let i=0;i<hours&&g<BANK_CAP;i++){const e=Math.min(Math.floor(g*rate),BANK_CAP-g);if(e<=0)break;g+=e;earned+=e;}   /* a commoner's gold only sleeps; the vault stops at its cap */
  S.bankGold=g;
  S.bankEarned=(S.bankEarned||0)+earned;
  S.bankLastT+=hours*BANK_HOUR;
@@ -13937,6 +13943,10 @@ $('talentClose').onclick=()=>$('talentFx').style.display='none';
 /* ==================== CASINO BUILDING MENU ==================== */
 function bankRefresh(){
  $('bankGoldN').textContent=(S.bankGold||0).toLocaleString();
+ const R=CityEconomy.NOBLE_RANKS,rank=bankRank(),rate=bankRate();
+ $('bankRateLine').innerHTML=(rank?'<b style="color:#9adf9a">Your interest: '+bankPct(rate)+' an hour</b> - '+R[rank].title+'.':'<b style="color:#ff8a7a">No interest</b> - the bank pays the nobility only; a patent is sealed at the notice board in the City.')
+  +' '+R.slice(1).map((d,i)=>(i+1===rank?'<b>':'')+d.title+' '+bankPct(BANK_RATES[i+1])+(i+1===rank?'</b>':'')).join(' · ')+', every hour on the hour.'
+  +' The vault holds up to '+BANK_CAP.toLocaleString()+' ◉. Scraps sleep safely, interest-free.';
  $('bankScrapN').textContent=(S.bankScrap||0).toLocaleString();
  $('bankEarnedN').textContent=(S.bankEarned||0).toLocaleString();
 
@@ -13950,14 +13960,15 @@ document.querySelectorAll('[data-bank]').forEach(b=>b.onclick=()=>{
  const amt=n=>b.dataset.n==='all'?n:Math.min(n,parseInt(b.dataset.n,10));
  msg.style.color='#9adf9a';
  if(op==='dg'){
-  const n=amt(totalGold());
+  const room=Math.max(0,BANK_CAP-(S.bankGold||0)),want=amt(totalGold()),n=Math.min(want,room);
+  if(room<=0){msg.style.color='#ff8a7a';msg.textContent='The vault is full: the Bank of Moonshine holds '+BANK_CAP.toLocaleString()+' ◉ at most.';sfx.warn();return;}
   if(n<=0){msg.style.color='#ff8a7a';msg.textContent='No gold to deposit.';sfx.warn();return;}
   const fromOver=Math.min(S.overflow||0,n);
   S.overflow=(S.overflow||0)-fromOver;
   S.gold-=(n-fromOver);
   S.bankGold=(S.bankGold||0)+n;
   if(!S.bankLastT)S.bankLastT=Date.now();
-  msg.textContent='Deposited '+n.toLocaleString()+' ◉'+(fromOver?' ('+fromOver.toLocaleString()+' from overflow)':'')+'.';
+  msg.textContent='Deposited '+n.toLocaleString()+' ◉'+(fromOver?' ('+fromOver.toLocaleString()+' from overflow)':'')+(n<want?' - the vault is full at '+BANK_CAP.toLocaleString()+' ◉':'')+'.';
  }else if(op==='wg'){
   const room=goldRoom();
   if(room<=0){msg.style.color='#ff8a7a';msg.textContent='Your vault is full - spend some gold before withdrawing.';sfx.warn();return;}
@@ -14321,10 +14332,6 @@ const nobleTitle=()=>CityEconomy.NOBLE_RANKS[(S.city&&S.city.noble.rank)||0].tit
 const fmtWait=sec=>{sec=Math.max(0,Math.ceil(sec));return Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');};
 const fmtLongWait=sec=>sec>=3600?Math.floor(sec/3600)+' h '+String(Math.floor(sec%3600/60)).padStart(2,'0')+' min':fmtWait(sec);   /* 🏦 the bank's two seasons read as hours, not as two hundred minutes */
 let boardNote='';
-/* 🧪 TEST (asked for 2026-09-22): ONE contract from the notice board makes a Duke, so the Hand's summons, the scene at the
-   hall door and the offer of the office can be tried without the long climb through the peerage. Delete this one line
-   to put the peerage back exactly as it was - the rule itself is CityEconomy.TEST (off by default, and in every test). */
-CityEconomy.TEST.dukeAfterOne=true;
 function boardHTML(){
  const c=S.city,E=CityEconomy,v=E.nobleView(c),gold=totalGold(),t=d=>d.title;
  const bar=v.next?Math.round(100*(v.xp-v.next.from)/Math.max(1,v.next.xp-v.next.from)):100;

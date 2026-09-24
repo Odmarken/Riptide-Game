@@ -51,9 +51,8 @@ test('🧪 the test switch is OFF in the module - and ON it makes a Duke of whoe
   assert.equal(t.last.rankUp,top);assert.equal(t.last.summoned,true,'and the Hand sends for him at once');assert.equal(s.office,1);
   assert.equal(E.nobleView(s).summons,true);
  }finally{E.TEST.dukeAfterOne=false;}
- /* the game turns it on in exactly one marked line, and says so on the board */
+ /* the trial is over (2026-09-24): the game no longer turns it on, so a Duke is made the long way - contract by contract,
+    through Knight, Baron, Viscount, Count and Marquess */
  const game=fs.readFileSync(path.join(__dirname,'..','game.js'),'utf8');
- assert.equal((game.match(/CityEconomy\.TEST\.dukeAfterOne=true;/g)||[]).length,1);
- assert.match(game,/🧪 TEST \(asked for 2026-09-22\)[^]*?Delete this one line[^]*?CityEconomy\.TEST\.dukeAfterOne=true;/);
- assert.match(game,/E\.TEST\.dukeAfterOne&&v\.rank<v\.ranks\.length-1\?'<p class="craft-note">🧪 <b>Test is on:<\/b>/);
+ assert.equal((game.match(/TEST\.dukeAfterOne\s*=\s*true/g)||[]).length,0,'no line in game.js turns the switch on');
 });
