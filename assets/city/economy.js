@@ -285,9 +285,10 @@
   {id:'arena',cat:'culture',name:'Tourney Grounds',icon:'🏇',cost:11000,build:3,upkeep:95,fx:{mood:4,attract:6,income:210},site:'house',sign:'TOURNEY LISTS',
    blurb:'Permanent lists with stands for two thousand. Knights come for the prize; the crowd comes for the knights.',done:'The lists saw their first broken lance.'},
   {id:'brothel',cat:'culture',name:'The Velvet Lantern',icon:'💋',cost:17500,build:3,upkeep:110,fx:{vice:2.4,income:130,attract:3},site:'house',sign:'THE VELVET LANTERN',pious:6,
-   blurb:'A house of red lamps by the harbour, licensed, inspected and taxed by the crown. Every sailor, carter and visiting envoy finds it; the takings grow with the city, the way the collection plate does. The Tidekeeper will preach against it, and a pious King will sulk.',done:'The red lamps were lit by the harbour. The Tidekeeper has already written a sermon.'},
+   blurb:'A house of red lamps by the harbour, licensed, inspected and taxed by the crown. Every sailor, carter and visiting envoy finds it; the takings grow with the city, the way the collection plate does. The Tidekeeper will preach against it, and a pious King will sulk.',
+   kingless:'A house of red lamps by the harbour, licensed, inspected and taxed by the crown. Every sailor, carter and visiting envoy finds it; the takings grow with the city, the way the collection plate does. The Tidekeeper will preach against it.',done:'The red lamps were lit by the harbour. The Tidekeeper has already written a sermon.'},
   {id:'statue',cat:'culture',name:'Statue of the Steward',icon:'🗿',cost:3200,build:1,upkeep:0,fx:{attract:2},site:'statue',once:{trust:5,pleasure:-8},
-   blurb:'You, in bronze, on the great square. The people will like it. The King will not.',done:'Your statue was unveiled on the square.'},
+   blurb:'You, in bronze, on the great square. The people will like it. The King will not.',kingless:'You, in bronze, on the great square. The people will like it.',done:'Your statue was unveiled on the square.'},
   {id:'watchtowers',cat:'order',name:'Watchtowers',icon:'🗼',cost:4000,build:2,upkeep:55,fx:{order:.08,safety:.06},
    blurb:'Manned towers on the curtain wall with bells that carry to every ward. Trouble is seen before it starts.',done:'The tower bells were tested. The whole city jumped.'},
   {id:'courthouse',cat:'order',name:'Courthouse',icon:'⚖️',cost:6000,build:2,upkeep:70,fx:{mood:2,fines:1},site:'house',sign:'COURTHOUSE',once:{trust:3},
@@ -813,15 +814,19 @@
    seats:COUNCIL.map(s=>seatView(s,state,f)),
    petition:p?{...p,age:state.petition.age,cost:Math.round(num(p.cost)*f.scale),gold:Math.round(num(p.gold)*f.scale),seatDef:seatDef(p.seat),left:2-state.petition.age}:null};
  }
+ /* 👑 a King above you to please or to annoy: Alarik on his throne. Crowned yourself, or with the throne standing empty,
+    no work or contract moves a King's pleasure, and none of them says it does (asked for 2026-09-24). kingless is the
+    blurb a work shows then, when its own talks about the King. */
+ const kingAbove=state=>!state.crowned&&!state.regency;
  /* 🏗 the Works tab: every work with what it costs at this prestige, what it does and where it stands */
- function fxText(w,k,lvl=1){
+ function fxText(w,k,lvl=1,above=true){
   const fx0=w.fx||{},fx={};for(const key of Object.keys(fx0))fx[key]=fx0[key]*lvl;   /* 🏗 at level 2 every gift reads doubled */
   const out=[],g=v=>Math.round(v*k).toLocaleString();
   if(fx.exports)out.push('exports +'+g(fx.exports)+' ◉');
   if(fx.tolls)out.push('market tolls +'+g(fx.tolls)+' ◉');
   if(fx.income)out.push('income +'+g(fx.income)+' ◉');
   if(fx.vice)out.push('and '+g(fx.vice)+' ◉ more for every household in the city');
-  if(w.pious)out.push('a pious King’s pleasure −'+w.pious);
+  if(w.pious&&above)out.push('a pious King’s pleasure −'+w.pious);
   if(fx.trade)out.push('trade +'+Math.round(fx.trade*100)+'%');
   if(fx.duty)out.push('customs +'+Math.round(fx.duty*100)+'%');
   if(fx.order)out.push('order +'+Math.round(fx.order*100)+'%');
@@ -834,7 +839,7 @@
   if(fx.fines)out.push('court fines from every prisoner, and fines doubled');
   if(w.blocks&&w.blocks.length)out.push('ends '+w.blocks.map(t=>t==='smugglers'?'smuggling':t==='flood'?'the floods':'the flux').join(' and '));
   if(w.once&&w.once.trust)out.push('trust in you +'+w.once.trust);
-  if(w.once&&w.once.pleasure)out.push('the King’s pleasure '+w.once.pleasure);
+  if(w.once&&w.once.pleasure&&above)out.push('the King’s pleasure '+w.once.pleasure);
   return out;
  }
  function worksView(state,ctx={}){
@@ -848,7 +853,7 @@
    /* 🏗 the way to level 2, for a standing work: the price again, the same crew and closes, and the two conditions */
    const upWhy=lvl>=UP_LEVEL?'':upLeft?'':seasons<1?'a season on the books first - the bank grades it at the season’s last close':fav<UP_FAVOUR?'a devoted council - favour '+UP_FAVOUR+'+ (it is '+fav+')':'';
    const upStatus=status!=='done'?'':lvl>=UP_LEVEL?'done':upLeft?'building':upWhy?'locked':frozen(state)?'frozen':building>=MAX_BUILDING?'busy':state.treasury<cost?'poor':'ready';
-   return {...w,cost,upkeep:Math.round(num(w.upkeep)*k)*lvl,status,left:own?own.left:w.build,missing,effects:fxText(w,k,lvl),
+   return {...w,blurb:w.kingless&&!kingAbove(state)?w.kingless:w.blurb,cost,upkeep:Math.round(num(w.upkeep)*k)*lvl,status,left:own?own.left:w.build,missing,effects:fxText(w,k,lvl,kingAbove(state)),
     lvl,up:{level:UP_LEVEL,cost,build:w.build,left:upLeft,status:upStatus,why:upWhy,upkeep:Math.round(num(w.upkeep)*k)*UP_LEVEL,favour:UP_FAVOUR}};
   });
   return {list,cats:WORK_CATS.map(c=>({...c,works:list.filter(w=>w.cat===c.id)})),building,crews:MAX_BUILDING,done:list.filter(w=>w.status==='done').length,total:WORKS.length,
@@ -1247,7 +1252,7 @@
    w.left-=1;if(w.left>0)continue;
    const def=workDef(id);finished.push(id);trustShift+=2;
    state.council.stone=clamp(state.council.stone+2,0,100);
-   if(def.once){trustShift+=num(def.once.trust);if(!state.crowned)state.king.pleasure=clamp(state.king.pleasure+num(def.once.pleasure),0,100);}
+   if(def.once){trustShift+=num(def.once.trust);if(kingAbove(state))state.king.pleasure=clamp(state.king.pleasure+num(def.once.pleasure),0,100);}
    unrest.push('🏗 '+def.name+' - finished. '+def.done);
   }
   /* 👑 the King: his pleasure drifts, his wishes lapse, a new one arrives, his humour turns */
@@ -1525,10 +1530,10 @@
   const N=state.noble;if(N.offers.length||num(N.offerLeft)>0)return false;
   dealOffers(state,rng);return true;
  }
- function contractFx(fx){
+ function contractFx(fx,above=true){
   const out=[],seat=id=>COUNCIL.find(s=>s.id===id);
   if(fx.mood)out.push('people +'+fx.mood);if(fx.attract)out.push('the city’s draw +'+fx.attract);if(fx.trust)out.push('trust in you +'+fx.trust);
-  if(fx.skill)out.push('learning +'+fx.skill);if(fx.pleasure)out.push('the King’s pleasure +'+fx.pleasure);if(fx.food)out.push('grain for the granary');
+  if(fx.skill)out.push('learning +'+fx.skill);if(fx.pleasure&&above)out.push('the King’s pleasure +'+fx.pleasure);if(fx.food)out.push('grain for the granary');
   if(fx.wind)out.push('trade on the roads picks up');if(fx.quiet)out.push('ends one trouble in the streets');
   for(const id of Object.keys(fx.seats||{}))if(fx.seats[id]&&seat(id))out.push(seat(id).title+' +'+fx.seats[id]);
   if(fx.crown)out.push(Math.round(fx.crown*100)+'% of the gold reaches the treasury');
@@ -1540,7 +1545,7 @@
   return {legacy:N.legacy,office:num(state.office),summons:!state.chartered&&(state.office===1||state.office===2),rank,def:NOBLE_RANKS[rank],ranks:NOBLE_RANKS,xp:N.xp,given:N.given,done:N.done,patentCost:PATENT_COST,patentPrestige:PATENT_PRESTIGE,closes:NOBLE_CLOSES,minutes:NOBLE_CLOSES*TICK_SECONDS/60,
    pending:N.pending.map(p=>({...p,name:p.kind==='patent'?'Patent of nobility':contractDef(p.id).name,icon:p.kind==='patent'?'🎩':contractDef(p.id).icon,seconds:wait(p.left)})),
    petitioned:N.pending.some(p=>p.kind==='patent'),
-   offers:N.offers.map(o=>({...contractDef(o.id),...o,effects:contractFx(contractDef(o.id).fx)})),offerRange:[lo,hi],repost:N.offers.length||state.ticks?wait(Math.max(1,N.offerLeft)):null,
+   offers:N.offers.map(o=>({...contractDef(o.id),...o,effects:contractFx(contractDef(o.id).fx,kingAbove(state))})),offerRange:[lo,hi],repost:N.offers.length||state.ticks?wait(Math.max(1,N.offerLeft)):null,
    next:next&&rank>=1?{...next,left:Math.max(0,next.xp-N.xp),from:NOBLE_RANKS[rank].xp}:null,perks:{attract:rank,trust:round1(rank*.1)}};
  }
  /* the petition: the fee is handed to the heralds now, the patent is sealed NOBLE_CLOSES closes later */
@@ -1587,7 +1592,7 @@
   if(!state.chartered||barred(state)){bankLegacy(state,fx);if(fx.food)bankGrain(state,amount*fx.food);return;}
   const add=(key,v,max=100)=>{state[key]=clamp(key==='skill'||key==='trust'?round1(state[key]+v):Math.round(state[key]+v),0,max);};
   if(fx.mood)add('mood',fx.mood);if(fx.attract)add('attract',fx.attract);if(fx.trust)add('trust',fx.trust);if(fx.skill)add('skill',fx.skill);
-  if(fx.pleasure&&!state.crowned)state.king.pleasure=clamp(state.king.pleasure+fx.pleasure,0,100);
+  if(fx.pleasure&&kingAbove(state))state.king.pleasure=clamp(state.king.pleasure+fx.pleasure,0,100);
   for(const id of Object.keys(fx.seats||{}))if(id in state.council)state.council[id]=clamp(state.council[id]+fx.seats[id],0,100);
   if(fx.food)state.food.stock=Math.min(foodView(state,ctx).cap,state.food.stock+Math.round(amount*fx.food));
   if(fx.wind)state.winds[fx.wind[0]]=clamp(Math.round((state.winds[fx.wind[0]]+fx.wind[1])*1e3)/1e3,-WIND_MAX,WIND_MAX);
