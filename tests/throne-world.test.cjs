@@ -71,30 +71,28 @@ test('the court: eight named guards at the pillars, the king before his throne, 
  }
 });
 
-test('the gaol: a stair down through the west wall by the doors, ten barred cells and a gaoler at his desk',()=>{
- const w=World.create(),G=World.GAOL;
+test('the gaol: a stair arch on the hall floor by the doors, ten barred cells and a gaoler at his desk',()=>{
+ const w=World.create(),G=World.GAOL,H=World.HALL,A=World.ARCH_DOWN,U=World.ARCH_UP;
  assert.ok(G.y>World.HALL_H,'the gaol lies below the storey of the hall');assert.ok(w.h>=G.y+G.h+150);
- /* on your left as you come in: the stair is in the WEST wall, between the last pillar and the doors */
- assert.ok(World.STAIR_DOWN.x<World.HALL.x&&World.STAIR_DOWN.y>World.PILLAR_Y[World.PILLAR_Y.length-1]&&World.STAIR_DOWN.y<World.EXIT.y);
- /* a disk walks from the spawn to the stair-head, and from where it lands below to the gaoler and back up */
- for(let x=w.spawn.x;x>=World.HALL_ARRIVE.x;x-=4)assert.ok(World.contains(x,w.spawn.y+(World.HALL_ARRIVE.y-w.spawn.y)*(w.spawn.x-x)/(w.spawn.x-World.HALL_ARRIVE.x),13));
- for(let x=World.HALL_ARRIVE.x;x>=World.STAIR_DOWN.x;x-=2)assert.ok(World.contains(x,World.STAIR_DOWN.y,13),'the way down is blocked at '+x);
- for(let x=World.GAOL_ARRIVE.x;x<=World.STAIR_UP.x;x+=2)assert.ok(World.contains(x,World.STAIR_UP.y,13),'the way up is blocked at '+x);
+ /* on your left as you come in: the arch stands on the floor in the south-west corner, between the last pillar and the doors */
+ assert.ok(A.x<World.PILLAR_X[0]&&A.x-110>=H.x&&A.y>World.PILLAR_Y[World.PILLAR_Y.length-1]&&A.y<World.EXIT.y);
+ assert.ok(U.x+110<=G.x+G.w&&U.x-110>=G.x&&U.y<=G.y+G.h&&U.y-290>=G.y-150,'the way up stands at the jail\'s east end');
+ for(const [kind,at] of [['stairdown',A],['stairup',U]]){const s=w.solids.find(s=>s.kind===kind);assert.ok(s&&s.noCol&&s.x===at.x&&s.y===at.y,kind+' is painted where it works');}
+ /* a disk walks from the spawn to where it lands coming up and on into the arch's mouth; below, from the landing into the way up */
+ const line=(a,b)=>{const L=Math.hypot(b.x-a.x,b.y-a.y);for(let d=0;d<=L;d+=3)assert.ok(World.contains(a.x+(b.x-a.x)*d/L,a.y+(b.y-a.y)*d/L,13),'blocked on the way to '+b.x+','+b.y);};
+ line(w.spawn,World.HALL_ARRIVE);line(World.HALL_ARRIVE,World.STAIR_DOWN);line(World.GAOL_ARRIVE,World.STAIR_UP);
  assert.ok(Math.hypot(World.HALL_ARRIVE.x-World.STAIR_DOWN.x,World.HALL_ARRIVE.y-World.STAIR_DOWN.y)>World.STAIR_DOWN.r+40,'arriving upstairs does not send you straight back down');
  assert.ok(Math.hypot(World.GAOL_ARRIVE.x-World.STAIR_UP.x,World.GAOL_ARRIVE.y-World.STAIR_UP.y)>World.STAIR_UP.r+40);
  assert.ok(World.contains(World.GAOL_ARRIVE.x,World.GAOL_ARRIVE.y,13)&&World.contains(World.HALL_ARRIVE.x,World.HALL_ARRIVE.y,13));
- /* the alcoves hold a disk: nothing the routine accepts sticks through a wall */
- for(const a of [World.STAIR,World.UPSTAIR])for(let y=a.y-40;y<a.y+a.h+40;y+=7)for(let x=a.x-40;x<a.x+a.w+40;x+=7)if(World.contains(x,y,13)){
-  for(let i=0;i<16;i++)assert.ok(World.contains(x+Math.cos(i*Math.PI/8)*12.99,y+Math.sin(i*Math.PI/8)*12.99),'disk escaped at '+x+','+y);
- }
- assert.equal(World.contains(100,World.STAIR_DOWN.y,13),false);assert.equal(World.contains(World.STAIR.x+40,World.STAIR.y-20,13),false);
+ /* the old alcoves in the west wall of the hall and the east wall of the jail are walled up */
+ assert.equal(World.contains(190,3125,13),false);assert.equal(World.contains(1410,4435,13),false);assert.equal(World.contains(100,A.y,13),false);
  /* ten cells along the north wall, inside the room's width, none of them walkable */
  assert.equal(World.CELLS.length,10);
  const bars=w.solids.filter(s=>s.kind==='bars');
  assert.deepEqual(bars.map(s=>s.cell),[0,1,2,3,4,5,6,7,8,9]);assert.ok(bars.every(s=>s.noCol&&!s.walled));
  for(const c of World.CELLS){assert.ok(c.x-44>=G.x&&c.x+44<=G.x+G.w);assert.equal(World.contains(c.x,c.y-40,5),false,'a cell is not floor');}
  const gaoler=w.npcs.find(n=>n.game==='gaol'),desk=w.solids.find(s=>s.kind==='gaoldesk');
- assert.equal(gaoler.name,World.GAOLER_NAME);assert.ok(desk.y>gaoler.y,'he stands behind his desk');assert.ok(!gaoler.guard,'he is not one of the eight');
+ assert.equal(gaoler.name,World.GAOLER_NAME);assert.ok(gaoler.y>desk.y&&Math.abs(gaoler.x-desk.x)<60,'he stands in front of his desk (since 2026-09-25), not hidden behind it');assert.ok(!gaoler.guard,'he is not one of the eight');
  /* a prisoner stands behind his grille, so the bars are drawn over him */
  const p=World.prisoner(3,{name:'Bodil Vass',skin:'baker',female:true,crime:'stole a ham',say:'It fell into my coat.'});
  assert.equal(p.prisoner,true);assert.equal(p.female,true);assert.equal(p.x,World.CELLS[3].x);assert.ok(p.y<bars[3].y);assert.equal(p.speed,0);
@@ -148,7 +146,7 @@ test('the ground paints once into a static layer, then blits the visible slice a
 
 test('props draw with finite geometry as paintings, and as canvas scenery until the paintings load',()=>{
  const count={calls:0,draws:0,patterns:0},g=fakeContext(count),w=World.create();
- const art={throne:image,table:image,pillar:image,brazier:image,gaoldesk:image};   /* not the grilles: the module remembers every painting it is handed, and the gaol test below wants their canvas stand-ins */
+ const art={throne:image,table:image,pillar:image,brazier:image,gaoldesk:image,barrels:image,stairdown:image,stairup:image,canopy:image,candelabra:image,globe:image,chest:image};   /* not the grilles: the module remembers every painting it is handed, and the gaol test below wants their canvas stand-ins */
  for(const s of w.solids){World.drawShadow(g,s);World.drawProp(g,s,1.2,{raidwall:image,raidfloor:image});}
  assert.equal(count.draws,0,'no painting loaded: canvas scenery only');
  const before=count.calls;

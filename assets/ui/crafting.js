@@ -1,7 +1,7 @@
 /* Keep keyboard focus and held movement inside the three workshop dialogs. */
 (() => {
   'use strict';
-  const closeIds = {smithFx: 'smithClose', enchFx: 'enchClose', smeltFx: 'smeltClose', ledgerFx: 'ledgerClose'};
+  const closeIds = {smithFx: 'smithClose', enchFx: 'enchClose', smeltFx: 'smeltClose', ledgerFx: 'ledgerClose', voyageFx: 'voyageClose', mercFx: 'mercClose'};
   for (const [id, closeId] of Object.entries(closeIds)) {
     const panel = document.getElementById(id), box = panel?.querySelector('.craft-box');
     if (!panel || !box) continue;

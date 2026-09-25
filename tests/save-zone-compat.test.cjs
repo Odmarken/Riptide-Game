@@ -42,9 +42,28 @@ test('an unknown zone index never reaches the character list or the world builde
  assert.match(source,/if\(!ZONES\[s\.zone\|0\]\)s\.zone=TAVERN_ZONE;/,'migrate sends the hero to Moonshine');
  assert.doesNotMatch(source,/\$\{ZONES\[ch\.zone\]\.name\}/,'the character card has a fallback zone name');
  assert.match(source,/\(ZONES\[ch\.zone\]\|\|ZONES\[TAVERN_ZONE\]\)\.name/);
- /* the zone table is append-only: the Throne Hall came after the guild, the Harbour after the Throne Hall - and is the last entry */
+ /* the zone table is append-only: the Throne Hall came after the guild, the Harbour after the Throne Hall, and Blackbeard's
+    ports of call after the Harbour - the last of them is the last entry */
  const zones=section('const ZONES=[','const TAVERN_ZONE=');
  assert.ok(zones.lastIndexOf('throne:true')>zones.lastIndexOf('tideguild:true'));
  assert.ok(zones.lastIndexOf('harbor:true')>zones.lastIndexOf('throne:true'));
- assert.match(zones,/harbor:true[^\n]*\n[^\n]*\},\n\];\n$/,'nothing may be inserted before it');
+ assert.ok(zones.indexOf("town:'")>zones.lastIndexOf('harbor:true'),'the towns come after the Harbour');
+ assert.match(zones,/town:'sf_palace'[^\n]*\n[^\n]*\},\n\];\n$/,'nothing may be inserted before the last port');
+});
+
+test('a hero in a port of call is written down as standing in the City, with notes for the flight and for the town',()=>{
+ const c=vm.createContext({ZONES:[{name:'Moonshine',tavern:true},{name:'City',city:true},{name:'Throne Hall',throne:true},{name:'The Harbour',harbor:true},{name:'Silverfjord',town:'silverfjord'}],CITY_ZONE:1,S:null});
+ vm.runInContext(section('function saveSnapshot(){','async function save(){'),c);
+ c.S={id:'a',zone:4,gold:5};
+ const snap=vm.runInContext('saveSnapshot()',c);
+ assert.equal(snap.zone,1);assert.equal(snap.atHarbor,true,'an older build wakes the hero on the harbour flight');assert.equal(snap.atTown,'silverfjord');
+ assert.equal(c.S.zone,4,'the live state is untouched');assert.equal(c.S.atTown,undefined);
+ /* and migrate reads the note back: this build wakes the hero in the town again; an unknown town falls back to the flight */
+ const rule=(source.match(/ if\(s\.atTown\)\{[^\n]*/)||[''])[0].replace(/\/\*.*$/,'');
+ assert.ok(rule,'migrate reads atTown');
+ const run=sv=>{c.__s=sv;vm.runInContext('(function(s){'+rule+'})(__s)',c);return sv;};
+ assert.deepEqual(run({zone:1,atHarbor:true,atTown:'silverfjord'}),{zone:4});
+ assert.deepEqual(run({zone:1,atHarbor:true,atTown:'atlantis'}),{zone:1,atHarbor:true});
+ assert.deepEqual(run({zone:0,atTown:'silverfjord'}),{zone:0},'a note on a hero somewhere else is only dropped');
+ assert.equal((source.match(/ZONES\[ch\.zone\]\.town\)\)\?CITY_ZONE/g)||[]).length,1,'the leaderboard writes a port of call as the City too');
 });

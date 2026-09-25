@@ -5,10 +5,10 @@
  * braziers are paintings (assets/city/throne.png, council_table.png, hall_pillar.png,
  * hall_brazier.png - Higgsfield gpt_image_2_5, 2026-09-19); the canvas versions below them are what
  * shows for the frame or two before a picture has loaded.
- * ⛓ Under the hall is the jail: a stair goes down through the west wall just inside the doors (on
- * your left as you come in), and comes out in a vaulted cellar with ten barred cells along its north
- * wall and the jailer at his desk. It is the same world further down the map, with a static layer of
- * its own; the two stair-heads hand the hero to each other. Who is in the cells is the ledger's
+ * ⛓ Under the hall is the jail: the stair down is a free-standing arch on the hall floor just inside the
+ * doors (on your left as you come in), and it comes out by the arch of the stair up at the east end of a
+ * vaulted cellar with ten barred cells along its north wall and the jailer at his desk. It is the same
+ * world further down the map, with a static layer of its own; the two arches hand the hero to each other. Who is in the cells is the ledger's
  * business - game.js stands the prisoners in them with prisoner(). */
 (function(root,factory){
  const api=factory(typeof module==='object'&&module.exports?require('./scenery-effects.js'):root.CityScenery);
@@ -20,7 +20,7 @@
  const W=1800,HALL_H=3400,H=4900;                                  /* the hall's storey ends at HALL_H; the jail lies below it */
  const HALL=Object.freeze({x:250,y:1150,w:1300,h:2100});          /* the great hall */
  const COUNCIL=Object.freeze({x:300,y:300,w:1200,h:700});          /* the chamber behind the throne */
- const DOORS=Object.freeze([{x:330,y:920,w:130,h:320},{x:1340,y:920,w:130,h:320}]); /* passages past the dais */
+ const DOORS=Object.freeze([{x:360,y:920,w:70,h:320},{x:1370,y:920,w:70,h:320}]); /* passages past the dais, as wide as their painted arches */
  const DAIS=Object.freeze({x:640,y:1160,w:520,h:210});             /* three steps up to the throne */
  const CARPET=Object.freeze({x:790,w:220,y0:1370,y1:3250});
  const THRONE=Object.freeze({x:900,y:1228});
@@ -28,20 +28,41 @@
  const TABLE=Object.freeze({x:900,y:640});
  const HAND=Object.freeze({x:700,y:806});   /* the King's Hand keeps the books from the near-left chair, at the table with the council */
  const EXIT=Object.freeze({x:900,y:3225,r:70});
+ /* the painting of the great door (assets/city/hall_door.png, seen from above): its width in the world, and where across
+    its height (bandV, 0 top - 1 bottom) the middle of its wall band lies, set on the middle of the hall's south wall */
+ const DOOR_FIRES=Object.freeze([[.352,.4928],[.6473,.4927]]);   /* the great door's fire baskets, as fractions of its painting */
+ const HALL_DOOR=Object.freeze({w:992,band:46,bandV:.504});   /* set from the painting (2048 px, its carpet 454 px): its carpet the hall's 220, its wall band on the top of the south wall */
  const SPAWN=Object.freeze({x:900,y:3000});
  const PILLAR_X=Object.freeze([520,1280]),PILLAR_Y=Object.freeze([1560,1900,2240,2580,2920]);
  const WINDOW_Y=Object.freeze([1730,2070,2410,2750]);
- /* ⛓ the jail. STAIR is the alcove in the hall's west wall, UPSTAIR the one in the jail's east wall:
-    you go down westward, so you arrive from the east. Both overlap their room by 60 so a disk can
-    walk in without meeting a jamb. */
+ /* 🎨 The painted hall (asked for 2026-09-25, after the Silverfjord palace): paintings laid every frame straight from their
+    pictures, over the static layer's stone, so they stay sharp however close the camera is (the static layer is one pixel
+    to the unit and a wide screen sees this 1800-wide hall at nearly twice that). Each lies over its procedural stand-in and
+    only once its picture has loaded. flip: drawn mirrored (the east copy of a west piece). */
+ const HALL_WIN_X=Object.freeze([178,1622]),COUNCIL_WIN=Object.freeze([[228,520],[228,800],[1572,520],[1572,800]]);
+ const DECOR=Object.freeze([
+  {key:'council_rug',x:548,y:420,w:705,h:440},
+  {key:'throne_dais',x:640,y:1160,w:520,h:223},
+  {key:'council_wall_window',x:300,y:0,w:250,h:300,slices:[[0,590,0,256],[590,720,256,300]]},{key:'council_wall_centre',x:550,y:0,w:700,h:300},
+  {key:'council_wall_window',x:1250,y:0,w:250,h:300,flip:true,slices:[[0,590,0,256],[590,720,256,300]]},
+  {key:'hall_wall_bay',x:1004,y:996,w:267,h:158,flip:true},{key:'hall_wall_bay',x:486,y:996,w:267,h:158},{key:'hall_wall_bay',x:753,y:996,w:267,h:158},
+  {key:'hall_wall_bay',x:1047,y:996,w:267,h:158,flip:true},{key:'hall_wall_passage',x:262,y:996,w:267,h:158},{key:'hall_wall_passage',x:1271,y:996,w:267,h:158,flip:true},
+  ...WINDOW_Y.flatMap(wy=>HALL_WIN_X.map((x,i)=>({key:'hall_window',x:x-60,y:wy-125,w:120,h:250,flip:i>0}))),
+  ...COUNCIL_WIN.map(([x,y])=>({key:'hall_window',x:x-48,y:y-100,w:96,h:200,flip:x>900})),
+ ].map(Object.freeze));
+ /* ⛓ the jail. Its stairs are two painted arches standing on the floor and facing the camera (asked for 2026-09-25: the
+    old alcoves in the walls read as a closet and a black hole): the way down in the hall's south-west corner, between
+    the last pillar and the doors, the way up at the jail's east end. ARCH_* is an arch's foot; walking into its mouth
+    (STAIR_*) takes you to the other storey, where you land in front of the other arch (*_ARRIVE), clear of its mouth. */
  const GAOL=Object.freeze({x:250,y:4150,w:1100,h:560});
- const STAIR=Object.freeze({x:150,y:3060,w:160,h:130});
- const UPSTAIR=Object.freeze({x:GAOL.x+GAOL.w-60,y:GAOL.y+220,w:160,h:130});
- const STAIR_DOWN=Object.freeze({x:190,y:STAIR.y+65,r:40}),HALL_ARRIVE=Object.freeze({x:HALL.x+95,y:STAIR.y+65});
- const STAIR_UP=Object.freeze({x:UPSTAIR.x+UPSTAIR.w-40,y:UPSTAIR.y+65,r:40}),GAOL_ARRIVE=Object.freeze({x:GAOL.x+GAOL.w-95,y:UPSTAIR.y+65});
+ const ARCH_DOWN=Object.freeze({x:375,y:3110}),ARCH_UP=Object.freeze({x:1235,y:4640});
+ const STAIR_DOWN=Object.freeze({x:ARCH_DOWN.x,y:ARCH_DOWN.y-14,r:44}),HALL_ARRIVE=Object.freeze({x:ARCH_DOWN.x+150,y:ARCH_DOWN.y+60});
+ const STAIR_UP=Object.freeze({x:ARCH_UP.x,y:ARCH_UP.y-14,r:44}),GAOL_ARRIVE=Object.freeze({x:ARCH_UP.x-140,y:ARCH_UP.y+30});
  const CELL_COUNT=10,CELL_W=88,CELL_D=118;
  const CELLS=Object.freeze(Array.from({length:CELL_COUNT},(_,i)=>Object.freeze({x:GAOL.x+70+i*104,y:GAOL.y})));
- const GAOLER=Object.freeze({x:GAOL.x+GAOL.w-330,y:GAOL.y+372}),GAOLER_NAME='Grim · Jailer';
+ const GAOL_DESK=Object.freeze({x:GAOL.x+GAOL.w-330,y:GAOL.y+422});                    /* the jailer's desk, where it always stood */
+ const GAOLER=Object.freeze({x:GAOL_DESK.x-8,y:GAOL_DESK.y+48}),GAOLER_NAME='Grim · Jailer';   /* in front of it (asked for 2026-09-25), not hidden behind it */
+ const JAIL_BARRELS=Object.freeze({x:GAOL.x+100,y:GAOL.y+GAOL.h-38});                   /* the barrels' foot, in the south-west corner */
  const GUARDS=Object.freeze(['Guardsman Torvald','Guardsman Ulf','Guardsman Einar','Guardsman Sten','Guardsman Ragnar','Guardsman Bo','Guardsman Arne','Guardsman Halvar']);
  /* 🏛 the seats of the council (ids match CityEconomy.COUNCIL): who sits there, in which of the
     townsfolk's clothes, and where he stands - three behind the far chairs, two before the near ones.
@@ -85,8 +106,17 @@
   /* ⛓ the jail: a brazier to see by, the jailer's desk, and a grille across every cell. The grilles
      sort with the actors so a prisoner stands BEHIND his bars; they block nothing, the wall does. */
   solids.push({x:GAOL.x+430,y:GAOL.y+330,r:20,type:'throneprop',kind:'brazier'});
-  solids.push({x:GAOLER.x,y:GAOLER.y+50,r:30,type:'throneprop',kind:'gaoldesk',crx:74,cry:22,cyo:-8});
+  solids.push({x:GAOL_DESK.x,y:GAOL_DESK.y,r:30,type:'throneprop',kind:'gaoldesk',crx:74,cry:22,cyo:-8});
+  solids.push({x:JAIL_BARRELS.x,y:JAIL_BARRELS.y,r:44,type:'throneprop',kind:'barrels',crx:62,cry:22,cyo:-10});
   CELLS.forEach((c,i)=>solids.push({x:c.x,y:c.y+4,r:6,type:'throneprop',kind:'bars',cell:i,noCol:true,walled:false}));
+  solids.push({x:ARCH_DOWN.x,y:ARCH_DOWN.y,r:6,type:'throneprop',kind:'stairdown',noCol:true});   /* you walk into an arch, not round it */
+  /* 🎨 the cloth of estate on the wall behind the throne (sorted before it), and the council chamber's furniture: two
+     candelabra in the far corners, a globe and a map chest by the side walls - clear of the passages and the councillors' walks */
+  solids.push({x:THRONE.x,y:DAIS.y+4,r:6,type:'throneprop',kind:'canopy',noCol:true});
+  solids.push({x:COUNCIL.x+50,y:COUNCIL.y+220,r:16,type:'throneprop',kind:'candelabra'});solids.push({x:COUNCIL.x+COUNCIL.w-50,y:COUNCIL.y+220,r:16,type:'throneprop',kind:'candelabra',side:1});
+  solids.push({x:COUNCIL.x+80,y:COUNCIL.y+420,r:26,type:'throneprop',kind:'globe'});
+  solids.push({x:COUNCIL.x+COUNCIL.w-80,y:COUNCIL.y+420,r:30,type:'throneprop',kind:'chest'});
+  solids.push({x:ARCH_UP.x,y:ARCH_UP.y,r:6,type:'throneprop',kind:'stairup',noCol:true});
   return {key:'thronehall',kind:'thronehall',throne:true,w:W,h:H,
    hall:{...HALL},council:{...COUNCIL},gaol:{...GAOL},dais:{...DAIS},carpet:{...CARPET},spawn:{...SPAWN},exit:{...EXIT,id:'city'},
    stairDown:{...STAIR_DOWN},stairUp:{...STAIR_UP},
@@ -98,11 +128,9 @@
  function contains(x,y,r=0){
   if(!Number.isFinite(x)||!Number.isFinite(y)||!Number.isFinite(r))return false;
   r=Math.max(0,r);
+  if(x+r>760&&x-r<1040&&y+r>885&&y-r<1000)return false;   /* behind the top of the cloth of estate, where the hall's wall hides you */
   if(inside(HALL,x,y,r,r)||inside(COUNCIL,x,y,r,r)||inside(GAOL,x,y,r,r))return true;
   for(const d of DOORS)if(inside(d,x,y,r,0))return true;
-  /* the two stair alcoves run east-west: a margin at the closed end and the side walls, none where they open into their room */
-  if(x>=STAIR.x+r&&x<=STAIR.x+STAIR.w&&y>=STAIR.y+r&&y<=STAIR.y+STAIR.h-r)return true;
-  if(x>=UPSTAIR.x&&x<=UPSTAIR.x+UPSTAIR.w-r&&y>=UPSTAIR.y+r&&y<=UPSTAIR.y+UPSTAIR.h-r)return true;
   return false;
  }
  /* ⛓ a prisoner for cell i. Two to a cell stand shoulder to shoulder once the jail is overcrowded. */
@@ -255,35 +283,25 @@
   crest(g,x+w*.52,y+h*.55,.9,'#7a1b1b');
   g.restore();
  }
- function floorPath(g){
+ function floorPath(g,doors=true){   /* doors=false: the rooms alone, for the outline, so the passages are not boxed in */
   g.beginPath();
   g.rect(HALL.x,HALL.y,HALL.w,HALL.h);g.rect(COUNCIL.x,COUNCIL.y,COUNCIL.w,COUNCIL.h);
-  for(const d of DOORS)g.rect(d.x,d.y,d.w,d.h);
-  g.rect(STAIR.x,STAIR.y,HALL.x-STAIR.x,STAIR.h);
+  if(doors)for(const d of DOORS)g.rect(d.x,d.y,d.w,d.h);
  }
- /* ⛓ a flight seen from above: treads across the passage, sinking into the dark toward deep (-1 west, 1 east) */
- function stairFlight(g,a,x0,x1,deep,label){
-  const n=7,w=(x1-x0)/n;
-  for(let i=0;i<n;i++){
-   const t=deep<0?1-i/(n-1):i/(n-1),v=Math.round(96-t*74);
-   rect(g,x0+i*w,a.y,w+1,a.h,'rgb('+v+','+Math.round(v*.94)+','+Math.round(v*.86)+')');
-   rect(g,deep<0?x0+i*w:x0+(i+1)*w-3,a.y,3,a.h,'rgba(0,0,0,.45)');
-  }
-  const dark=g.createLinearGradient(x0,0,x1,0);dark.addColorStop(deep<0?0:1,'rgba(0,0,0,.82)');dark.addColorStop(deep<0?1:0,'rgba(0,0,0,0)');
-  g.fillStyle=dark;g.fillRect(x0,a.y,x1-x0,a.h);
-  rect(g,x0,a.y-8,x1-x0,8,'#9a9180');rect(g,x0,a.y+a.h,x1-x0,8,'#9a9180');
-  g.save();g.textAlign='center';g.textBaseline='middle';g.font='bold 17px Georgia, serif';
-  g.strokeStyle='rgba(5,5,8,.9)';g.lineWidth=5;
-  const lx=deep<0?x1+74:x0-70;
-  g.strokeText(label,lx,a.y-24);g.fillStyle='#e6d6b0';g.fillText(label,lx,a.y-24);g.restore();
+ /* ⛓ an arch's stand-in for the frame or two before its painting has loaded: granite jambs and lintel, and the stair
+    going into the dark (down) or up into the light */
+ function arch(g,s){
+  const up=s.kind==='stairup';
+  rect(g,-70,-230,140,226,up?'#6a5a40':'#0d0b0a');
+  for(let i=0;i<6;i++)rect(g,-58+i*4,-40-i*30,116-i*8,8,up?'rgba(255,220,150,'+(.25+i*.1).toFixed(2)+')':'rgba(120,110,96,'+(.5-i*.07).toFixed(2)+')');
+  rect(g,-100,-250,40,250,'#3b3632','#15120f',3);rect(g,60,-250,40,250,'#3b3632','#15120f',3);rect(g,-104,-270,208,34,'#46403a','#15120f',3);
  }
-
  /* ---------- the static layer: walls, floors, carpet, dais, tapestries, windows ---------- */
  let staticLayer=null,gaolLayer=null,staticKey='';
  function paintStatic(g,images,options){
   rect(g,0,0,W,HALL_H,'#0a0909');
   /* the wall mass, then the floors cut out of it */
-  const wallRect={x:HALL.x-150,y:COUNCIL.y-150,w:HALL.w+300,h:HALL.y+HALL.h+150-(COUNCIL.y-150)};
+  const wallRect={x:HALL.x-150,y:0,w:HALL.w+300,h:HALL.y+HALL.h+150};   /* from the top of the map: the council's side walls reach its painted back wall */
   rect(g,wallRect.x,wallRect.y,wallRect.w,wallRect.h,'#2a2724');
   if(!texture(g,images.raidwall||images.cryptwall,wallRect,.7,options))stoneFace(g,wallRect.x,wallRect.y,wallRect.w,wallRect.h,'#2e2a26');
   rect(g,wallRect.x,wallRect.y,wallRect.w,wallRect.h,'rgba(10,8,6,.42)');
@@ -303,7 +321,7 @@
   for(let x=HALL.x;x<=HALL.x+HALL.w;x+=100){g.beginPath();g.moveTo(x,HALL.y);g.lineTo(x,HALL.y+HALL.h);g.stroke();}
   /* the council chamber: darker boards and a rug under the table */
   rect(g,COUNCIL.x,COUNCIL.y,COUNCIL.w,COUNCIL.h,'rgba(20,12,6,.28)');
-  ellipse(g,TABLE.x,TABLE.y+14,330,190,'#233a2c','#c2a052',6);ellipse(g,TABLE.x,TABLE.y+14,296,162,null,'rgba(214,180,100,.45)',3);
+  if(!ready(images.council_rug)){ellipse(g,TABLE.x,TABLE.y+14,330,190,'#233a2c','#c2a052',6);ellipse(g,TABLE.x,TABLE.y+14,296,162,null,'rgba(214,180,100,.45)',3);}
   /* window light on the hall floor */
   for(const wy of WINDOW_Y){
    for(const side of [-1,1]){
@@ -312,12 +330,15 @@
     g.fillStyle=shaft;g.beginPath();g.moveTo(x0,wy-70);g.lineTo(x0+side*520,wy+60);g.lineTo(x0+side*520,wy+330);g.lineTo(x0,wy+90);g.closePath();g.fill();
    }
   }
-  /* the carpet from the doors to the dais, gold-edged, and up the steps */
-  const cg=g.createLinearGradient(CARPET.x,0,CARPET.x+CARPET.w,0);cg.addColorStop(0,'#5e1417');cg.addColorStop(.5,'#8a1f27');cg.addColorStop(1,'#5e1417');
-  rect(g,CARPET.x,CARPET.y0,CARPET.w,CARPET.y1-CARPET.y0,cg);
-  rect(g,CARPET.x+6,CARPET.y0,4,CARPET.y1-CARPET.y0,'#d3ad55');rect(g,CARPET.x+CARPET.w-10,CARPET.y0,4,CARPET.y1-CARPET.y0,'#d3ad55');
+  /* the carpet from the doors to the dais: the painted runner laid border to border (hall_runner.png, 2026-09-25), or
+     until it has loaded a gold-edged crimson strip; and up the steps */
+  {
+   const cg=g.createLinearGradient(CARPET.x,0,CARPET.x+CARPET.w,0);cg.addColorStop(0,'#5e1417');cg.addColorStop(.5,'#8a1f27');cg.addColorStop(1,'#5e1417');
+   rect(g,CARPET.x,CARPET.y0,CARPET.w,CARPET.y1-CARPET.y0,cg);
+   rect(g,CARPET.x+6,CARPET.y0,4,CARPET.y1-CARPET.y0,'#d3ad55');rect(g,CARPET.x+CARPET.w-10,CARPET.y0,4,CARPET.y1-CARPET.y0,'#d3ad55');
+  }
   /* the dais: three steps, each riser in shadow, each tread catching the light */
-  const steps=[[DAIS.x,DAIS.y+140,DAIS.w,70],[DAIS.x+30,DAIS.y+70,DAIS.w-60,70],[DAIS.x+60,DAIS.y,DAIS.w-120,70]];
+  const steps=ready(images.throne_dais)?[]:[[DAIS.x,DAIS.y+140,DAIS.w,70],[DAIS.x+30,DAIS.y+70,DAIS.w-60,70],[DAIS.x+60,DAIS.y,DAIS.w-120,70]];
   for(const [sx,sy,sw,sh] of steps){
    const tg=g.createLinearGradient(0,sy,0,sy+sh);tg.addColorStop(0,'#8c8375');tg.addColorStop(.75,'#6d665b');tg.addColorStop(1,'#3d3832');
    rect(g,sx,sy,sw,sh,tg);rect(g,sx,sy,sw,4,'rgba(255,245,220,.35)');rect(g,sx,sy+sh-8,sw,8,'rgba(0,0,0,.45)');
@@ -326,27 +347,34 @@
   }
   g.restore();
   /* an inner shadow all the way round the floor, so the walls have weight */
-  g.save();floorPath(g);g.clip();floorPath(g);g.strokeStyle='rgba(0,0,0,.55)';g.lineWidth=70;g.stroke();g.restore();
-  floorPath(g);g.strokeStyle='#8a8272';g.lineWidth=6;g.stroke();
+  g.save();floorPath(g);g.clip();floorPath(g,false);g.strokeStyle='rgba(0,0,0,.55)';g.lineWidth=70;g.stroke();g.restore();
+  floorPath(g,false);g.strokeStyle='#8a8272';g.lineWidth=6;g.stroke();
   /* the north wall of the hall, seen face on: stone, pilasters, the great tapestry and two banners */
   const face={x:HALL.x,y:COUNCIL.y+COUNCIL.h,w:HALL.w,h:HALL.y-(COUNCIL.y+COUNCIL.h)};
   stoneFace(g,face.x,face.y,face.w,face.h,'#3b3531');
-  for(const d of DOORS){
+  for(const d of DOORS){   /* the passage's floor through the wall; the painted arch over it once it has loaded, drawn arch before then */
    rect(g,d.x,face.y,d.w,face.h,'#2b2724');
-   g.save();g.beginPath();g.rect(d.x,face.y,d.w,face.h);g.clip();rect(g,d.x,d.y,d.w,d.h,'#433e39');texture(g,images.raidfloor||images.crypt,{x:d.x,y:d.y,w:d.w,h:d.h},.95,options);g.restore();
+   g.save();g.beginPath();g.rect(d.x,face.y,d.w,face.h);g.clip();rect(g,d.x,d.y,d.w,d.h,'#433e39');g.globalAlpha=.55;texture(g,images.raidfloor||images.crypt,{x:d.x,y:d.y,w:d.w,h:d.h},.95,options);g.globalAlpha=1;rect(g,d.x,d.y,d.w,d.h,'rgba(20,12,6,.28)');g.restore();
+   if(ready(images.hall_wall_passage))continue;
    g.beginPath();g.moveTo(d.x-8,face.y+face.h);g.lineTo(d.x-8,face.y+40);g.arc(d.x+d.w/2,face.y+40,d.w/2+8,Math.PI,0);g.lineTo(d.x+d.w+8,face.y+face.h);
    g.strokeStyle='#9a9180';g.lineWidth=10;g.stroke();
   }
   for(const px of [560,700,1100,1240]){rect(g,px-14,face.y,28,face.h,'#4a443f','#221e1b',2);rect(g,px-18,face.y,36,10,'#5c554e');}
   rect(g,face.x,face.y+face.h-10,face.w,10,'#5a534b');rect(g,face.x,face.y+face.h-3,face.w,3,'rgba(255,245,220,.35)');
+  /* through the passages the floor runs on unbroken: over the wall's foot and the hall's outline, where the painted arch is open */
+  if(ready(images.hall_wall_passage))for(const d of DOORS){
+   g.save();g.beginPath();g.rect(d.x,face.y+face.h-14,d.w,18);g.clip();rect(g,d.x,d.y,d.w,d.h,'#433e39');g.globalAlpha=.55;texture(g,images.raidfloor||images.crypt,{x:d.x,y:d.y,w:d.w,h:d.h},.95,options);g.globalAlpha=1;rect(g,d.x,d.y,d.w,d.h,'rgba(20,12,6,.28)');g.restore();
+  }
   banner(g,630,face.y+6,64,130,1);banner(g,1170,face.y+6,64,130,1);
-  /* the tapestry behind the throne hangs a little over the top step */
+  /* the tapestry behind the throne hangs a little over the top step - until the painted cloth of estate hangs there */
   const tap={x:760,y:face.y+4,w:280,h:face.h+60};
+  if(!ready(images.canopy)){
   const tg2=g.createLinearGradient(tap.x,0,tap.x+tap.w,0);tg2.addColorStop(0,'#4d0f13');tg2.addColorStop(.5,'#8f1d26');tg2.addColorStop(1,'#4d0f13');
   rect(g,tap.x,tap.y,tap.w,tap.h,tg2,'#d9b45e',5);rect(g,tap.x+14,tap.y+14,tap.w-28,tap.h-28,null,'rgba(232,198,106,.6)',2);
   for(let x=tap.x;x<tap.x+tap.w;x+=12)rect(g,x+2,tap.y+tap.h,8,14,'#c9a24a');
   crest(g,tap.x+tap.w/2,tap.y+tap.h*.5,3.2,'#f0cf6e');
   rect(g,tap.x-10,tap.y-8,tap.w+20,10,'#6a5130');
+  }
   /* the council chamber's north wall: the realm's map between two banners */
   const cface={x:COUNCIL.x,y:COUNCIL.y-150,w:COUNCIL.w,h:150};
   stoneFace(g,cface.x,cface.y,cface.w,cface.h,'#3b3531');
@@ -354,8 +382,9 @@
   banner(g,560,cface.y+8,60,122,1);banner(g,1240,cface.y+8,60,122,1);
   wallMap(g,740,cface.y+16,320,cface.h-30);
   /* windows in the side walls of the hall */
-  for(const wy of WINDOW_Y){archWindow(g,HALL.x-72,wy-120,66,220);archWindow(g,HALL.x+HALL.w+72,wy-120,66,220);}
-  /* the way out: open doors onto the City stair */
+  if(!ready(images.hall_window))for(const wy of WINDOW_Y){archWindow(g,HALL.x-72,wy-120,66,220);archWindow(g,HALL.x+HALL.w+72,wy-120,66,220);}
+  /* the way out: open doors onto the City stair - the painting of the great door, seen from above, once it has loaded */
+  if(ready(images.hall_door))return;   /* the painting is laid every frame (renderGround): its stair runs on below this layer's foot */
   const door={x:EXIT.x-95,y:HALL.y+HALL.h,w:190,h:90};
   const sky=g.createLinearGradient(0,door.y,0,door.y+door.h);sky.addColorStop(0,'#9cc6e6');sky.addColorStop(.6,'#e9d9b0');sky.addColorStop(1,'#a58d64');
   rect(g,door.x,door.y,door.w,door.h,sky);
@@ -368,8 +397,6 @@
   rect(g,door.x-10,door.y,10,door.h,'#9a9180');rect(g,door.x+door.w,door.y,10,door.h,'#9a9180');
   g.save();g.textAlign='center';g.textBaseline='middle';g.font='bold 19px Georgia, serif';
   g.strokeStyle='rgba(5,5,8,.9)';g.lineWidth=5;g.strokeText('↓ City',EXIT.x,HALL.y+HALL.h-26);g.fillStyle='#e6d6b0';g.fillText('↓ City',EXIT.x,HALL.y+HALL.h-26);g.restore();
-  /* ⛓ the jail stair, down through the west wall just inside the doors */
-  stairFlight(g,STAIR,STAIR.x,HALL.x,-1,'⛓ Jail');
  }
  /* ⛓ The jail's own static layer, painted in world coordinates: a vaulted cellar of damp stone, ten
     cells let into its north wall (the grilles are props), straw, a drain, barrels, chains. */
@@ -380,7 +407,7 @@
   rect(g,wallRect.x,wallRect.y,wallRect.w,wallRect.h,'#211f1d');
   if(!texture(g,images.cryptwall||images.raidwall,wallRect,.7,options))stoneFace(g,wallRect.x,wallRect.y,wallRect.w,wallRect.h,'#25221f');
   rect(g,wallRect.x,wallRect.y,wallRect.w,wallRect.h,'rgba(6,5,4,.55)');
-  const floor=()=>{g.beginPath();g.rect(GAOL.x,GAOL.y,GAOL.w,GAOL.h);g.rect(GAOL.x+GAOL.w,UPSTAIR.y,UPSTAIR.x+UPSTAIR.w-GAOL.x-GAOL.w,UPSTAIR.h);};
+  const floor=()=>{g.beginPath();g.rect(GAOL.x,GAOL.y,GAOL.w,GAOL.h);};
   g.save();floor();g.clip();
   rect(g,GAOL.x,GAOL.y,GAOL.w+200,GAOL.h,'#34302c');
   for(let y=GAOL.y;y<GAOL.y+GAOL.h;y+=80)for(let x=GAOL.x;x<GAOL.x+GAOL.w;x+=80)rect(g,x,y,80,80,((x-GAOL.x)/80+(y-GAOL.y)/80)%2?'rgba(255,240,215,.04)':'rgba(0,0,0,.14)');
@@ -396,7 +423,6 @@
   }
   g.strokeStyle='rgba(196,168,96,.5)';g.lineWidth=1.6;
   for(let i=0;i<90;i++){const hx=GAOL.x+30+((i*7919)%(GAOL.w-60)),hy=GAOL.y+8+((i*104729)%70),a=(i*2.399)%3.14;g.beginPath();g.moveTo(hx,hy);g.lineTo(hx+Math.cos(a)*13,hy+Math.sin(a)*5);g.stroke();}
-  stairFlight(g,UPSTAIR,GAOL.x+GAOL.w,UPSTAIR.x+UPSTAIR.w,1,'↑ Hall');
   g.restore();
   g.save();floor();g.clip();floor();g.strokeStyle='rgba(0,0,0,.6)';g.lineWidth=64;g.stroke();g.restore();
   floor();g.strokeStyle='#6f695f';g.lineWidth=6;g.stroke();
@@ -422,7 +448,7 @@
    ellipse(g,cx,GAOL.y-96,6,6,null,'#7a7468',3);g.strokeStyle='#5d584f';g.lineWidth=3;
    for(let k=0;k<6;k++){g.beginPath();g.moveTo(cx+(k%2?2:-2),GAOL.y-90+k*10);g.lineTo(cx+(k%2?-2:2),GAOL.y-82+k*10);g.stroke();}
   }
-  for(const [bx,by] of [[GAOL.x+70,GAOL.y+GAOL.h-70],[GAOL.x+128,GAOL.y+GAOL.h-52],[GAOL.x+92,GAOL.y+GAOL.h-120]]){
+  for(const [bx,by] of ready(images.barrels)?[]:[[GAOL.x+70,GAOL.y+GAOL.h-70],[GAOL.x+128,GAOL.y+GAOL.h-52],[GAOL.x+92,GAOL.y+GAOL.h-120]]){   /* until the painted barrels have loaded */
    ellipse(g,bx,by+16,26,10,'rgba(0,0,0,.4)');rect(g,bx-22,by-34,44,50,'#5a3c20','#22150a',2);ellipse(g,bx,by-34,22,8,'#6d4a28','#22150a',2);
    rect(g,bx-22,by-22,44,4,'#2f2a26');rect(g,bx-22,by+2,44,4,'#2f2a26');
   }
@@ -432,7 +458,7 @@
   rememberedImages={...rememberedImages,...images};images=rememberedImages;
   const vx=view?.x||0,vy=view?.y||0,vw=view?.w||W,vh=view?.h||H;
   g.save();g.fillStyle='#0a0909';g.fillRect(vx,vy,vw,vh);
-  const key=(ready(images.raidwall)?'w':'-')+(ready(images.raidfloor)?'f':'-')+(ready(images.cryptwall)?'c':'-')+(ready(images.crypt)?'g':'-')+(ready(images.drain_cover)?'d':'-');
+  const key=(ready(images.raidwall)?'w':'-')+(ready(images.raidfloor)?'f':'-')+(ready(images.cryptwall)?'c':'-')+(ready(images.crypt)?'g':'-')+(ready(images.drain_cover)?'d':'-')+(ready(images.hall_door)?'h':'-')+(ready(images.council_rug)?'r':'-')+(ready(images.throne_dais)?'s':'-')+(ready(images.canopy)?'t':'-')+(ready(images.hall_wall_passage)?'p':'-')+(ready(images.hall_window)?'v':'-')+(ready(images.barrels)?'b':'-');
   if(!staticLayer||staticKey!==key){
    const c=canvas(W,HALL_H,options),d=canvas(GAOL_VIEW.w,GAOL_VIEW.h,options);
    if(c&&d){
@@ -447,6 +473,39 @@
    if(sw>0&&sh>0)g.drawImage(layer,x0-ox,y0-oy,sw,sh,x0,y0,sw,sh);
   };
   if(staticLayer){blit(staticLayer,0,0,W,HALL_H);blit(gaolLayer,GAOL_VIEW.x,GAOL_VIEW.y,GAOL_VIEW.w,GAOL_VIEW.h);}
+  /* 🎨 the painted hall: the runner, then every painting in DECOR that is in view, then the great door over the runner's end */
+  const run=images.hall_runner;
+  if(ready(run)&&vx<CARPET.x+CARPET.w&&vx+vw>CARPET.x){
+   const len=CARPET.w*(run.naturalHeight||run.height)/(run.naturalWidth||run.width);
+   g.save();g.beginPath();g.rect(CARPET.x,CARPET.y0,CARPET.w,CARPET.y1-CARPET.y0);g.clip();
+   for(let y=CARPET.y0;y<CARPET.y1;y+=len)if(y+len>=vy&&y<=vy+vh)g.drawImage(run,CARPET.x,y-.5,CARPET.w,len+1);
+   g.restore();
+  }
+  for(const d of DECOR){
+   const im=images[d.key];if(!ready(im)||d.x>vx+vw||d.x+d.w<vx||d.y>vy+vh||d.y+d.h<vy)continue;
+   g.save();g.translate(d.flip?d.x+d.w:d.x,d.y);if(d.flip)g.scale(-1,1);
+   if(d.slices){const iw=im.naturalWidth||im.width;for(const [s0,s1,y0,y1] of d.slices)g.drawImage(im,0,s0,iw,s1-s0,0,y0,d.w,y1-y0);}   /* slices: source rows onto world rows */
+   else g.drawImage(im,0,0,d.w,d.h);
+   g.restore();
+  }
+  /* the great door out to the City, seen from above, and its stair going on down below the hall */
+  const di=images.hall_door;
+  if(ready(di)&&vx<EXIT.x+HALL_DOOR.w&&vx+vw>EXIT.x-HALL_DOOR.w&&vy<HALL.y+HALL.h+HALL_DOOR.w&&vy+vh>HALL.y+HALL.h-HALL_DOOR.w){
+   const D=HALL_DOOR,h=D.w*(di.naturalHeight||di.height)/(di.naturalWidth||di.width);
+   const dtop=HALL.y+HALL.h+D.band-h*D.bandV;
+   g.drawImage(di,EXIT.x-D.w/2,dtop,D.w,h);
+   /* the two fire baskets on the door's jambs (measured on the painting) burn */
+   for(const [u,v] of DOOR_FIRES){const fx=EXIT.x-D.w/2+u*D.w,fy=dtop+v*h;light(g,fx,fy,170,.85+Math.sin(time*5.7+u*9)*.15);fire(g,fx,fy+8,1.05,time,u*7);}
+   /* the rest of the south wall: two of the door's own blocks (source x 289-576, rows 640-880) laid on along it to the corners */
+   const k=D.w/(di.naturalWidth||di.width),by=HALL.y+HALL.h-10;
+   for(const [x0,x1,xs] of [[HALL.x,EXIT.x-D.w/2+142*k,[334,195]],[EXIT.x-D.w/2+1836*k,HALL.x+HALL.w,[1293,1432]]]){
+    g.save();g.beginPath();g.rect(x0,by-4,x1-x0,140);g.clip();
+    for(const x of xs)g.drawImage(di,289,640,287,240,x,by,287*k,240*k);
+    g.restore();
+   }
+   g.save();g.textAlign='center';g.textBaseline='middle';g.font='bold 19px Georgia, serif';
+   g.strokeStyle='rgba(5,5,8,.9)';g.lineWidth=5;g.strokeText('↓ City',EXIT.x,HALL.y+HALL.h-54);g.fillStyle='#e6d6b0';g.fillText('↓ City',EXIT.x,HALL.y+HALL.h-54);g.restore();
+  }
   /* the living light: wall sconces between the windows and the pillars, the braziers by the dais,
      candles in the chamber. Pools on the floor breathe with the flames. */
   const seen=(x,y,r)=>x+r>=vx&&x-r<=vx+vw&&y+r>=vy&&y-r<=vy+vh;
@@ -460,8 +519,7 @@
    if(!seen(x,wy,600))continue;
    light(g,x+side*180,wy+120,300,.35+Math.sin(time*.6+wy)*.05,[255,236,190]);
   }
-  /* ⛓ a torch over the jail stair, and one on the wall between every second pair of cells below */
-  if(seen(HALL.x,STAIR.y,260)){light(g,HALL.x+30,STAIR.y-30,190,.75+Math.sin(time*5.9)*.1);wallTorch(g,HALL.x,STAIR.y-54,time,7.7,images.wall_torch);}
+  /* ⛓ a torch on the wall between every second pair of cells below (the stair arches carry their own) */
   for(let i=0;i<CELL_COUNT-1;i+=2){
    const tx=CELLS[i].x+52,ty=GAOL.y-84;
    if(!seen(tx,ty,240))continue;
@@ -484,7 +542,7 @@
 
  /* ---------- props sorted with the actors: pillars, the throne, the council table, braziers ---------- */
  function drawShadow(g,s){
-  const f={pillar:[-2,19,43,11],throne:[0,22,69,12],table:[0,116,194,31],brazier:[0,9,24,7],gaoldesk:[0,34,73,13]}[s.kind];
+  const f={pillar:[-2,19,43,11],throne:[0,22,69,12],table:[0,116,194,31],brazier:[0,9,24,7],gaoldesk:[0,34,73,13],candelabra:[0,6,26,8],globe:[0,6,42,11],chest:[0,6,52,12],barrels:[0,4,66,14]}[s.kind];
   if(f)Scenery.shadow(g,...f,.28);
  }
  /* ⛓ the grille across a cell: a frame, nine bars, a lock plate. A cell the jail has not been given
@@ -602,6 +660,13 @@
   table:{key:'table',h:286,drop:143,glow:[.47,.30,200]},
   brazier:{key:'brazier',h:104,drop:12,glow:[.5,.20,190],fire:[.5,.30,1]},
   gaoldesk:{key:'gaoldesk',h:132,drop:40,glow:[.68,.10,90]},      /* 🎨 Higgsfield 2026-09-21 (assets/city/city-art-manifest.json) */
+  stairdown:{key:'stairdown',h:280,drop:6,glow:[.5,.62,150],fires:[[.084,.375,.5],[.911,.375,.5]]},   /* ⛓ the jail's arches (Higgsfield 2026-09-25): fires where */
+  stairup:{key:'stairup',h:280,drop:6,glow:[.49,.48,170],fires:[[.098,.41,.5],[.901,.41,.5]]},           /* their painted torches burn, measured on the pictures */
+  canopy:{key:'canopy',h:307,drop:0,glow:[.5,.14,70]},                                           /* 🎨 2026-09-25: the cloth of estate behind the throne */
+  candelabra:{key:'candelabra',h:210,drop:6,glow:[.5,.12,150],fires:[[.116,.172,.28],[.309,.122,.28],[.5,.046,.28],[.691,.12,.28],[.879,.172,.28]]},
+  globe:{key:'globe',h:130,drop:6,glow:[.5,.4,8]},
+  chest:{key:'chest',h:95,drop:6,glow:[.5,.4,8]},
+  barrels:{key:'barrels',h:110,drop:6,glow:[.5,.4,8]},                                            /* 🎨 the jail's barrels (2026-09-25) */
  };
  function drawArt(g,s,time,images){
   const a=ART[s.kind],im=a&&images[a.key];
@@ -614,6 +679,7 @@
   const [u,v,r]=a.glow,flick=.85+Math.sin(time*5.7+s.x*.01+s.y*.013)*.15;
   light(g,-W/2+u*W,a.drop-H+v*H,r,flick*(s.kind==='throne'?.55:.9),s.kind==='throne'?[255,214,130]:undefined);
   if(a.fire)fire(g,-W/2+a.fire[0]*W,a.drop-H+a.fire[1]*H,a.fire[2],time,s.x*.013+s.y*.007);
+  for(const [u,v,k] of a.fires||[]){light(g,-W/2+u*W,a.drop-H+v*H,110,flick*.8);fire(g,-W/2+u*W,a.drop-H+v*H,k,time,s.x*.013+u*5);}
   g.restore();
   return true;
  }
@@ -626,9 +692,10 @@
   else if(s.kind==='brazier')brazier(g,time,s.x*.01);
   else if(s.kind==='bars')cellBars(g,s);
   else if(s.kind==='gaoldesk')gaolDesk(g,time);
+  else if(s.kind==='stairdown'||s.kind==='stairup')arch(g,s);
  }
 
  return Object.freeze({create,contains,renderGround,drawProp,drawShadow,
-  prisoner,W,H,HALL_H,HALL,COUNCIL,GAOL,STAIR,UPSTAIR,STAIR_DOWN,STAIR_UP,HALL_ARRIVE,GAOL_ARRIVE,CELLS,GAOLER,GAOLER_NAME,
+  prisoner,W,H,HALL_H,HALL,COUNCIL,GAOL,ARCH_DOWN,ARCH_UP,STAIR_DOWN,STAIR_UP,HALL_ARRIVE,GAOL_ARRIVE,CELLS,GAOLER,GAOLER_NAME,GAOL_DESK,JAIL_BARRELS,HALL_DOOR,DECOR,
   DOORS,DAIS,THRONE,KING,TABLE,HAND,EXIT,SPAWN,PILLAR_X,PILLAR_Y,GUARDS,SEATS,KING_NAME,HAND_NAME,ART});
 });

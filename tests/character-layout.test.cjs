@@ -19,7 +19,9 @@ const heroes = races.flatMap(race => ['male', 'female'].flatMap(gender =>
 const townsfolk = ['guard', 'noble_velvet', 'noble_elder', 'noble_dandy', 'merchant', 'monk', 'blacksmith',
   'noble_lady', 'noble_dowager', 'noble_maiden', 'baker', 'market_woman',
   'king', 'king_beggar', 'kings_hand', 'royal_guard',
-  'sailor', 'pirate', 'pirate_captain', 'dockhand', 'harbour_master', 'fishwife'].map(k => `npc/npc_${k}`);
+  'sailor', 'pirate', 'pirate_captain', 'dockhand', 'harbour_master', 'fishwife',
+  'silver_guard', 'raven_soldier', 'foundry_worker', 'mercenary', 'mercenary_b', 'merc_recruiter', 'spice_merchant',
+  'ruler_sigvald', 'ruler_roderic', 'ruler_aldric', 'ruler_isaura'].map(k => `npc/npc_${k}`);
 const names = [...heroes, 'npc/npc_male', 'npc/npc_female', 'npc/npc_sebbe', ...townsfolk];
 const art = new Map();
 
@@ -130,7 +132,7 @@ test('hidden weapons draw only the body, with no default fallback or rune, for e
   }
 });
 
-test('all 44 reviewed body bounds match the shipped PNG alpha above 128 exactly', () => {
+test('all 55 reviewed body bounds match the shipped PNG alpha above 128 exactly', () => {
   const { context } = harness();
   assert.equal(heroes.length, 40);
   assert.deepEqual(Object.keys(context.bounds).sort(), [...names].sort());

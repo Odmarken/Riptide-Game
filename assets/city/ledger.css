@@ -235,3 +235,7 @@
 }
 @media(max-width:420px){#ledgerFx .ledger-tiles{grid-template-columns:1fr}#ledgerFx .ledger-seal{display:none}#ledgerFx .craft-title{font-size:24px}}
 @media(max-height:600px){#ledgerFx .craft-ledger{padding:14px 18px}#ledgerFx .craft-header{margin-bottom:10px;padding-bottom:10px}#ledgerFx .craft-title{font-size:26px}#ledgerFx .craft-subtitle{display:none}#ledgerFx .ledger-seal{height:42px;width:42px;flex-basis:42px;font-size:24px}#ledgerFx .craft-footer{margin-top:8px;padding-top:8px}}
+/* 🚨 the council's favour under 35 (councilAlarm in game.js): the Crown Ledger card and the Council tab pulse red */
+@keyframes ledger-danger{0%,100%{box-shadow:0 0 0 0 rgba(255,64,40,0);border-color:#a0533f}50%{box-shadow:0 0 16px 4px rgba(255,64,40,.8);border-color:#ff4a2e}}
+.ledger-danger{animation:ledger-danger 1s ease-in-out infinite;border-color:#ff4a2e!important;color:#ffd0c4!important;background:#3a1d16!important}
+@media (prefers-reduced-motion:reduce){.ledger-danger{animation:none;box-shadow:0 0 12px 3px rgba(255,64,40,.7)}}

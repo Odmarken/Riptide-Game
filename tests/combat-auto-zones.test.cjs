@@ -79,3 +79,15 @@ test('leveling bosses, Odin, Thor and ordinary zones retain explicit AUTO toggle
   c.$('autoBtn').onclick();assert.equal(c.S.auto,false,name);c.autoBrain(1);assert.equal(c.casts,1);
  }
 });
+
+test('AUTO casts the AoE spell on a lone boss inside its radius, and still waits for two ordinary foes',()=>{
+ const c=harness();
+ c.dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+ c.classOf=()=>({spells:[{t:'aoe',rad:100}]});
+ Object.assign(c.hero,{x:0,y:0,hp:100,mana:100});
+ c.enemies.push({x:60,y:0,boss:true});
+ c.autoBrain(1);assert.equal(c.casts,1,'boss inside the radius');
+ c.enemies[0].x=160;c.autoBrain(1);assert.equal(c.casts,1,'boss outside the radius');
+ c.enemies.length=0;c.enemies.push({x:40,y:0});c.autoBrain(1);assert.equal(c.casts,1,'one ordinary foe');
+ c.enemies.push({x:0,y:50});c.autoBrain(1);assert.equal(c.casts,2,'two ordinary foes');
+});

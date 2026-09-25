@@ -339,3 +339,21 @@ test('the actual frame hook updates visibility in City, pause, other zones and c
   context.S = null; context.frame(80); assert.equal(!!calls.at(-1)[2], false);
   assert.equal(calls.length, 7, 'Visibility updates even when the game draw is not running');
 });
+
+test('the ports of call and the Harbour have a minimap: Blackbeard, the King, the recruiter, the doors and the way home',()=>{
+ const TW=require('../assets/city/town-world.js');
+ for(const f of fs.readdirSync(path.join(root,'assets/city/towns')).filter(f=>f.endsWith('.js')))require('../assets/city/towns/'+f);
+ const HW=require('../assets/city/harbor-world.js'),{api}=harness();
+ for(const id of ['silverfjord','ravenholt','emberfall','meridian']){
+  const w=TW.create(id),m=api.markers(w,w.arrival);
+  assert.ok(m.some(p=>p.type==='voyage'&&/Blackbeard/.test(p.name)),id+': Blackbeard');
+  assert.ok(m.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)&&p.name),id+': every marker placed and named');
+ }
+ assert.ok(api.markers(TW.create('silverfjord'),{x:9200,y:2300}).some(p=>p.type==='door'&&p.name==='The Palace'),'the palace door');
+ const pm=TW.create('meridian');assert.ok(api.markers(pm,pm.arrival).some(p=>p.type==='recruiter'&&/Free Company/.test(p.name)),'the recruiter');
+ const hw=HW.create(),hm=api.markers(hw,hw.spawn);
+ assert.ok(hm.some(p=>p.type==='altarportal'&&p.name==='The City'),'the gate up to the City');
+ assert.ok(hm.some(p=>p.type==='voyage')&&hm.some(p=>p.type==='harbourmaster'),'Blackbeard and the harbourmaster');
+ assert.equal(api.markers(TW.create('sf_palace'),{x:1500,y:3000}).length,0,'no minimap marks inside a palace');
+ assert.ok(game.includes('z?.city||z?.wasteland||z?.harbor||(z?.town&&!z?.interior)'),'shown in the Harbour and the ports, not in a palace');
+});

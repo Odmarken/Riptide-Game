@@ -24,7 +24,7 @@ test('complete City house art stays separated from neighbouring roofs and all se
   const {world:w,faces,palace}=city(seed),homes=houses(w),drawn=[...services(w),...homes].map(s=>({s,...frame(s,faces)}));
   /* 👑 the palace stair is ground art with its own box, not an r*9 facade */
   for(const h of homes)assert.equal(overlaps(frame(h,faces),palace,15),false,`seed${seed}: a house stands on the palace stair`);
-  assert.ok(homes.length>260,'the existing city remains populated');
+  assert.ok(homes.length>230,'the existing city remains populated');   /* the faces grew 15 % on 2026-09-25: about 245 fit where 280 did */
   assert.equal(new Set(homes.map(s=>s.key)).size,7,'all original house faces remain in the city');
   for(let i=0;i<drawn.length;i++)for(let j=i+1;j<drawn.length;j++)
    assert.equal(overlaps(drawn[i],drawn[j],15),false,`seed${seed}: ${drawn[i].s.key||drawn[i].s.type} at${drawn[i].s.x},${drawn[i].s.y} overlaps ${drawn[j].s.key||drawn[j].s.type}`);

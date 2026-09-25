@@ -209,6 +209,346 @@
     598,
     1104
    ]
+  },
+  "hall_door.png": {
+   "jobId": "3fba160b-c00f-4b9b-ac8a-9ddbcb593710",
+   "kind": "cutout",
+   "date": "2026-09-25",
+   "source": [
+    2048,
+    2048
+   ],
+   "crop": [
+    0,
+    0,
+    2048,
+    1500
+   ],
+   "size": [
+    2048,
+    1500
+   ],
+   "note": "the great door seen from above, regenerated at 2k and drawn 992 wide (2 px a unit) so its carpet is the hall's 220; its own carpet cut away above the band (the runner runs on through), its band cut on block joints and carried on along the south wall from its own blocks, the stair fading into the dark"
+  },
+  "jail_stair_down.png": {
+   "jobId": "69f7e963-ecdd-42bb-bdfa-e4e3e3240562",
+   "kind": "prop",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    51,
+    3,
+    825,
+    1144
+   ],
+   "size": [
+    434,
+    640
+   ],
+   "date": "2026-09-25",
+   "note": "the Throne Hall jail arch, down; its tan sandstone darkened (x0.63) and desaturated (35 %) to the granite of the arch up, the torch flames and the gold crown left as painted"
+  },
+  "jail_stair_up.png": {
+   "jobId": "dd79f381-f2ef-4d4e-8530-c1543b635a6c",
+   "kind": "prop",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    45,
+    19,
+    828,
+    1146
+   ],
+   "size": [
+    445,
+    640
+   ],
+   "date": "2026-09-25",
+   "note": "the Throne Hall jail arch, up"
+  },
+  "hall_runner.png": {
+   "jobId": "d7bce6f5-5464-42c3-9d40-4222b699f9be",
+   "kind": "runner",
+   "date": "2026-09-25",
+   "source": [
+    1520,
+    2688
+   ],
+   "crop": [
+    0,
+    482,
+    1520,
+    2442
+   ],
+   "size": [
+    760,
+    980
+   ],
+   "note": "the Throne Hall carpet: a crimson runner with gold borders and the City arms (a crown riding the waves), cut to one period of its pattern so it repeats without a seam, halved"
+  },
+  "throne_dais.png": {
+   "jobId": "74b5abde-7ffd-4a92-ae9b-8e7f9f3747d7",
+   "kind": "cutout",
+   "date": "2026-09-25",
+   "source": [
+    2688,
+    1152
+   ],
+   "crop": [
+    141,
+    64,
+    2547,
+    1105
+   ],
+   "size": [
+    1250,
+    541
+   ],
+   "note": "the dais: three sandstone steps with the runner going up them (darkened to 80 % to sit in the dark hall)"
+  },
+  "throne_canopy.png": {
+   "jobId": "1b5982f0-787c-4a90-9901-428dca8b71f9",
+   "kind": "cutout",
+   "date": "2026-09-25",
+   "source": [
+    2240,
+    1792
+   ],
+   "crop": [
+    291,
+    14,
+    1950,
+    1756
+   ],
+   "size": [
+    705,
+    740
+   ],
+   "note": "the cloth of estate behind the throne"
+  },
+  "hall_wall_bay.png": {
+   "jobId": "84ad190c-bc56-42fa-bd37-76d421039561",
+   "kind": "opaque",
+   "date": "2026-09-25",
+   "source": [
+    2688,
+    1520
+   ],
+   "crop": [
+    0,
+    0,
+    2688,
+    1520
+   ],
+   "size": [
+    800,
+    452
+   ],
+   "note": "one bay of the hall's north wall, face on"
+  },
+  "hall_wall_passage.png": {
+   "jobId": "fdfb381d-967e-4897-9a52-ae1ea5a71424",
+   "kind": "cutout",
+   "date": "2026-09-25",
+   "source": [
+    2688,
+    1520
+   ],
+   "crop": [
+    0,
+    0,
+    2688,
+    1520
+   ],
+   "size": [
+    800,
+    452
+   ],
+   "note": "the north wall round a passage to the council; everything inside the arch's inner ring (the painted vault in one-point perspective, which read as a long tunnel) cut away down to the floor joint, so the passage's own floor shows through; keystone and front floor strip kept"
+  },
+  "council_wall_centre.png": {
+   "jobId": "2f511ec7-b9b3-4fd2-8a6a-ead51854c75e",
+   "kind": "opaque",
+   "date": "2026-09-25",
+   "source": [
+    2688,
+    1152
+   ],
+   "crop": [
+    0,
+    0,
+    2688,
+    1152
+   ],
+   "size": [
+    1680,
+    720
+   ],
+   "note": "the council's back wall: the tapestry map between bookcases"
+  },
+  "hall_window.png": {
+   "jobId": "fb614fec-41bf-459c-a8b3-5f25aa0ecf64",
+   "kind": "cutout",
+   "date": "2026-09-25",
+   "source": [
+    1520,
+    2688
+   ],
+   "crop": [
+    134,
+    25,
+    1388,
+    2640
+   ],
+   "size": [
+    300,
+    625
+   ],
+   "note": "a side-wall window with the sky and the City below"
+  },
+  "council_rug.png": {
+   "jobId": "a6050696-055b-4fae-966f-a8fbaf47daf4",
+   "kind": "cutout",
+   "date": "2026-09-25",
+   "source": [
+    2048,
+    1360
+   ],
+   "crop": [
+    40,
+    58,
+    2010,
+    1288
+   ],
+   "size": [
+    1600,
+    999
+   ],
+   "note": "the rug under the council table"
+  },
+  "council_candelabra.png": {
+   "jobId": "6290f424-3ce2-4445-ade4-76396feb8063",
+   "kind": "cutout",
+   "date": "2026-09-25",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    157,
+    11,
+    595,
+    1329
+   ],
+   "size": [
+    166,
+    500
+   ],
+   "note": "a standing candelabrum"
+  },
+  "council_globe.png": {
+   "jobId": "a06f9645-6771-408f-99e8-82afb9697e11",
+   "kind": "cutout",
+   "date": "2026-09-25",
+   "source": [
+    896,
+    1120
+   ],
+   "crop": [
+    124,
+    9,
+    771,
+    1105
+   ],
+   "size": [
+    189,
+    320
+   ],
+   "note": "a globe on its stand"
+  },
+  "council_chest.png": {
+   "jobId": "24e5332d-7213-489e-a244-68229e40eb02",
+   "kind": "cutout",
+   "date": "2026-09-25",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    173,
+    4,
+    996,
+    867
+   ],
+   "size": [
+    229,
+    240
+   ],
+   "note": "an open map chest"
+  },
+  "council_wall_window.png": {
+   "jobId": "df118cc4-817a-442d-96cf-a4bb62105bcb",
+   "kind": "opaque",
+   "date": "2026-09-25",
+   "source": [
+    2048,
+    2048
+   ],
+   "crop": [
+    0,
+    0,
+    2048,
+    2048
+   ],
+   "size": [
+    600,
+    720
+   ],
+   "note": "the council's back wall: a window over the City (its right sixth cut away)"
+  },
+  "jail_barrels.png": {
+   "jobId": "b7804731-a313-49d2-83cc-5d85b591ec13",
+   "kind": "cutout",
+   "date": "2026-09-25",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    77,
+    31,
+    1089,
+    852
+   ],
+   "size": [
+    370,
+    300
+   ],
+   "note": "three old barrels in the south-west corner of the jail"
+  },
+  "city_banner.png": {
+   "jobId": "e656c8d0-1a2c-44a6-8c76-29ef857434d0",
+   "kind": "cutout",
+   "date": "2026-09-25",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    214,
+    13,
+    537,
+    1327
+   ],
+   "size": [
+    157,
+    640
+   ],
+   "note": "the Royal Banner of the City: crimson silk with the crown riding the waves (Works)"
   }
  }
 }

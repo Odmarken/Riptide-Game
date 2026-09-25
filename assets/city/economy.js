@@ -280,6 +280,8 @@
    blurb:'Oil lamps the length of the great boulevard, and lamplighters to tend them.',done:'The boulevard was lit from gate to palace.'},
   {id:'gardens',cat:'culture',name:'Royal Gardens',icon:'🌳',cost:4800,build:2,upkeep:55,fx:{attract:6,mood:3},site:'garden',
    blurb:'Flower beds and young limes by the great square, open to all.',done:'The gardens by the square came into flower.'},
+  {id:'banners',cat:'culture',name:'Royal Banners',icon:'🚩',cost:2400,build:1,upkeep:20,fx:{attract:2,mood:1},site:'banners',   /* asked for 2026-09-25: waving banners like Silverfjord's, in the City's crimson with the crown riding the waves */
+   blurb:'Silk banners on tall poles down the great boulevard, the royal arms on every one, lifting in the wind.',done:'The banners went up along the boulevard, and the wind took them.'},
   {id:'theatre',cat:'culture',name:'Playhouse',icon:'🎭',cost:7000,build:2,upkeep:70,fx:{mood:5,attract:5,income:90},site:'house',sign:'PLAYHOUSE',
    blurb:'A wooden O with a thatched gallery. Tragedies on Mondays.',done:'The Playhouse opened with a comedy about a tax collector.'},
   {id:'arena',cat:'culture',name:'Tourney Grounds',icon:'🏇',cost:11000,build:3,upkeep:95,fx:{mood:4,attract:6,income:210},site:'house',sign:'TOURNEY LISTS',
@@ -458,6 +460,7 @@
    pop:POPULATION,attract:50,skill:20,trust:10,crowned:false,deposed:null,royalMoodLeft:0,
    king:{pleasure:60,humour:'content',humourAge:0,demand:null,raise:0},works:{},jail:[],
    allies:{},
+   mercs:0,           /* ⚔ the Free Company's sellswords on the City's streets and walls, hired in Port Meridian */
    coupTold:false,
    bankRule:null,     /* 🏦 {left} while the Tides Bank keeps the books and the steward is dismissed; null otherwise */
    regency:false,     /* 👑 the throne stands empty and the King's Hand rules in the realm's name: the King was hanged, and a city handed back by the bank does not raise the dead */
@@ -553,6 +556,7 @@
      last:L?{offer:Math.max(0,Math.round(num(L.offer))),outcome:String(L.outcome||'').slice(0,12),text:String(L.text||'').slice(0,900),counter:Math.max(0,Math.round(num(L.counter))),reasons:(Array.isArray(L.reasons)?L.reasons:[]).slice(0,2).map(x=>String(x).slice(0,300))}:null};}
    if(num(a.paid)>0)out.allies[def.id].paid=Math.round(num(a.paid));
    if(out.allies[def.id].owned)out.allies[def.id].stake=100;}
+  out.mercs=clamp(Math.floor(num(s.mercs)),0,MERC_MAX);
   out.coupTold=!!s.coupTold;
   out.dismissed=Math.max(0,Math.floor(num(s.dismissed)));
   out.regency=!out.crowned&&!!s.regency;
@@ -1146,6 +1150,24 @@
   state.treasury-=cost;state.spent+=cost;state.guards=Math.min(ROYAL_GUARD,state.guards+2);
   return {ok:true,text:'Two men took the crown’s coin. '+state.guards+' stand at the pillars.'};
  }
+ /* ⚔ The Free Company's sellswords (asked for 2026-09-25): Captain Hakon Stormgaard hires them out in Port Meridian by the
+    score, and the realm pays - the TREASURY, never the hero's purse. Twenty blades a contract, MERC_MAX at the most; they walk
+    the City's gates, walls and squares from the day they are paid, and a city the bank hands back has hired nobody. */
+ const MERC_BATCH=20,MERC_PRICE=5000000,MERC_MAX=100;
+ function mercView(state){
+  const count=clamp(Math.floor(num(state&&state.mercs)),0,MERC_MAX),treasury=num(state&&state.treasury);
+  const why=!state||!state.chartered?'The crown’s books are shut: only a Master of Coin signs for the realm.'
+   :barred(state)?BARRED
+   :count>=MERC_MAX?'The company has no more blades to spare.'
+   :frozen(state)||treasury<MERC_PRICE?'The treasury cannot cover '+MERC_PRICE.toLocaleString()+' ◉.':'';
+  return {count,max:MERC_MAX,batch:MERC_BATCH,price:MERC_PRICE,treasury,full:count>=MERC_MAX,can:!why,why};
+ }
+ function hireMercs(state){
+  const v=mercView(state);
+  if(!v.can)return {ok:false,text:v.why};
+  state.treasury-=MERC_PRICE;state.spent+=MERC_PRICE;state.mercs=Math.min(MERC_MAX,v.count+MERC_BATCH);
+  return {ok:true,count:state.mercs,text:MERC_BATCH+' sellswords signed on for '+MERC_PRICE.toLocaleString()+' ◉ from the treasury. '+state.mercs+' walk the City.'};
+ }
  /* 🏦 the Bank tab */
  function bankView(state,ctx={}){
   const limit=creditLimit(ctx,state),q=state.season;
@@ -1630,8 +1652,8 @@
    ruler:{name:'King Roderic Varn',style:'the Iron Margrave',temper:'soldier',portrait:'ruler_roderic',patience:4,insultAt:.6}},
   {id:'emberfall',kind:'city',icon:'🔥',name:'Emberfall',lord:'King Aldric Cindermane',text:'Seven hundred chimneys under a red sky. Everything the realm makes out of metal was made here first.',worth:5000000,price:40000000,yield:700000,perk:{trade:.05,attract:1},perkText:'trade +5% · the city’s draw +1',
    ruler:{name:'King Aldric Cindermane',style:'Lord of the Seven Hundred Chimneys',temper:'greedy',portrait:'ruler_aldric',patience:5,insultAt:.55}},
-  {id:'silverfjord',kind:'city',icon:'🏔',name:'Silverfjord',lord:'King Sigvald Deepwater',text:'A mining town at the head of a fjord so deep the silver barges float over nothing. Proud, cold and very rich.',worth:8000000,price:65000000,yield:1100000,perk:{trade:.04,attract:2,mood:2},perkText:'trade +4% · the city’s draw +2 · the people +2',
-   ruler:{name:'King Sigvald Deepwater',style:'Jarl of the Deep Water',temper:'proud',portrait:'ruler_sigvald',patience:3,insultAt:.72}},
+  {id:'silverfjord',kind:'city',icon:'🏔',name:'Silverfjord',lord:'King Sigvald Silverfjord',text:'A mining town at the head of a fjord so deep the silver barges float over nothing. Proud, cold and very rich.',worth:8000000,price:65000000,yield:1100000,perk:{trade:.04,attract:2,mood:2},perkText:'trade +4% · the city’s draw +2 · the people +2',
+   ruler:{name:'King Sigvald Silverfjord',style:'Jarl of the Deep Water',temper:'proud',portrait:'ruler_sigvald',patience:3,insultAt:.72}},
   {id:'krakensrest',kind:'port',icon:'🐙',name:'Kraken’s Rest',lord:'Trade Officer Corvin Saltmarsh',text:'A free port built on the wrecks of the fleets that tried to take it. Every cargo between the southern seas and the realm pays a toll here.',worth:24000000,price:200000000,yield:3500000,needs:'quay',perk:{trade:.1,attract:3},perkText:'trade +10% · the city’s draw +3',
    ruler:{name:'Trade Officer Corvin Saltmarsh',style:'Voice of the Drowned Council',temper:'smuggler',portrait:'ruler_corvin',patience:5,insultAt:.5}},
   {id:'meridian',kind:'port',icon:'🧭',name:'Port Meridian',lord:'Trade Officer Isaura Venn',text:'The great harbour at the centre of the chart, where four oceans trade. Whoever holds Meridian sets the price of everything.',worth:40000000,price:340000000,yield:6500000,needs:'fleet',perk:{trade:.14,attract:4,mood:3},perkText:'trade +14% · the city’s draw +4 · the people +3',
@@ -1953,7 +1975,7 @@
   return {ok:true,spent:true,topic:t.id,text};
  }
  return Object.freeze({BANK_TAKEOVER,BANK_RULE_SEASONS,bankRuleView,create,normalize,forecast,tick,advance,setBudget,borrow,repay,withdraw,deposit,settle,answer,councilView,PLAYER_SEAT,ALLIES,alliesView,allyInvest,isEmperor,alliesFx,talkView,openTalks,makeOffer,acceptCounter,haggleReasons,TALK_COOL_INSULT,TALK_COOL_WALK,ALLY_CLOSES,PARTNER_AT,BUY_AT,COURT_CLOSES,PARTNER_SHARE,meetHand,acceptOffice,nobleView,ennoble,fundContract,dealOffers,postBoard,NOBLE_RANKS,CONTRACTS,NOBLE_CLOSES,OFFER_CLOSES,PATENT_COST,PATENT_PRESTIGE,TEST,HARBOUR_WORKS,HARBOUR_BASE,counsel,counselView,counselTopics,COUNSEL_EVERY,projection,
-  worksView,invest,upgrade,lvlOf,raising,UP_LEVEL,UP_FAVOUR,crownView,answerKing,claimCrown,canClaim,seasonsPlayed,COUP_SEASONS,COUP_FAVOUR,bonusView,takeBonus,declineBonus,BONUS_SHARE,gaolView,pardon,execute,fine,allyFear,MERCY,MERCY_SEASONS,worksFx,has,cells,charter,charterView,bankView,rehire,frozen,attend,neglect,REMIND_AFTER,NEGLECT_AFTER,NEGLECT_HARD,TRUST_SLOPE,TRUST_DRAIN_MAX,SEAT_SLOPE,SEAT_DRAIN_MAX,MOOD_SLOPE,MOOD_DRAIN_MAX,DRAW_SLOPE,DRAW_DRAIN_MAX,
+  worksView,invest,upgrade,lvlOf,raising,UP_LEVEL,UP_FAVOUR,crownView,answerKing,claimCrown,canClaim,seasonsPlayed,COUP_SEASONS,COUP_FAVOUR,bonusView,takeBonus,declineBonus,BONUS_SHARE,gaolView,pardon,execute,fine,allyFear,MERCY,MERCY_SEASONS,worksFx,has,cells,charter,charterView,bankView,rehire,frozen,mercView,hireMercs,MERC_BATCH,MERC_PRICE,MERC_MAX,attend,neglect,REMIND_AFTER,NEGLECT_AFTER,NEGLECT_HARD,TRUST_SLOPE,TRUST_DRAIN_MAX,SEAT_SLOPE,SEAT_DRAIN_MAX,MOOD_SLOPE,MOOD_DRAIN_MAX,DRAW_SLOPE,DRAW_DRAIN_MAX,
   POP_MAX,HOUSEHOLD,hearths,SEASON_CARDS,cardDef,dealCard,
   windName,WIND_KEYS,WIND_MAX,JITTER_IN,JITTER_OUT,WAGE_RISE,WAGE_MAX,HERO_EXPORTS_MAX,HERO_FARM_LEVELS,
   foodView,buyFood,setAutoFood,HUNGER_GAIN,HUNGER_EASE,FOOD_STORE,FOOD_START,FOOD_CAP,FOOD_PRICE,AUTO_PREMIUM,FOOD_RESERVE,HUNGER_MAX,FOOD_LOW,FOOD_LOTS,

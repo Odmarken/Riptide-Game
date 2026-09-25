@@ -70,7 +70,19 @@ const CHARACTER_BOUNDS={
  "npc/npc_pirate_captain":[541,700,1,1,539,698],
  "npc/npc_dockhand":[559,700,0,1,557,698],
  "npc/npc_harbour_master":[500,700,1,4,498,695],
- "npc/npc_fishwife":[410,820,0,1,410,819]
+ "npc/npc_fishwife":[410,820,0,1,410,819],
+ /* ⛵ Blackbeard's ports of call and the Free Company, 2026-09-25 (the four rulers are their ledger portraits, resized): busts cut at the hips. */
+ "npc/npc_silver_guard":[505,700,0,0,504,700],
+ "npc/npc_raven_soldier":[515,700,0,0,514,699],
+ "npc/npc_foundry_worker":[530,700,2,0,526,700],
+ "npc/npc_mercenary":[494,700,1,1,492,699],
+ "npc/npc_mercenary_b":[537,700,1,1,535,699],
+ "npc/npc_spice_merchant":[528,700,2,0,526,700],
+ "npc/npc_merc_recruiter":[519,700,1,2,518,697],
+ "npc/npc_ruler_sigvald":[533,700,0,1,532,698],
+ "npc/npc_ruler_roderic":[530,700,1,1,527,698],
+ "npc/npc_ruler_aldric":[532,700,1,0,530,698],
+ "npc/npc_ruler_isaura":[504,700,1,2,502,697]
 };
 /* Reviewed grip centres in the native (left-facing) Ice Armor PNGs. Broad
  * gauntlets do not share the ordinary costume's fixed weapon attachment. */

@@ -14,6 +14,14 @@
  const CITY_LABEL='City minimap. North is up; the white arrow is you. Symbols show the Church, Well, Furnace, Mining Hall, Enchanting, Throne Hall, Harbour and City gate. Distant places appear along the rim.';
  const WASTELAND_LABEL='Wasteland minimap. North is up; the white arrow is you. Roads, the Home portal, Torsten Tygel’s mounts and the Tide Training Grounds are shown. Distant places appear along the rim.';
  const wasteland=world=>!!BIOMES[world.key]&&!world.dungeon;
+ /* ⛵ the Harbour and Blackbeard's ports of call (not the palace inside one): their own painters draw the atlas */
+ const port=world=>!!world&&((world.kind==='town'&&!world.interior)||world.kind==='harbor');
+ const VOYAGE={name:'Captain Blackbeard · Voyages',color:'#f0c374',path:'M-9 3H9L6 8H-6ZM0 3V-9L7-1H0M-1-7L-6-1H-1'};
+ const RULER={name:'The King',color:'#ffd27a',path:'M-8 6H8L9-3L4 0L0-7L-4 0L-9-3ZM-6 3H6'};
+ const RECRUIT={name:'Free Company',color:'#ec9f80',path:'M-7-7L6 6M7-7L-6 6M-8 3L-3 8M8 3L3 8'};
+ const DOOR={name:'Door',color:'#eadbb6',path:'M-6 8V-3Q-6-9 0-9Q6-9 6-3V8ZM-9 8H9M2 1H3'};
+ const MASTER={name:'Harbourmaster',color:'#8fd0ea',path:'M0-9A2 2 0 1 0 0-5A2 2 0 1 0 0-9M0-5V8M-4-2H4M-8 2C-7 7-3 8 0 8C3 8 7 7 8 2'};
+ const PORT_LABEL=name=>name+' minimap. North is up; the white arrow is you. Symbols show Captain Blackbeard, the King, the Free Company, the harbourmaster and the doors and gates. Distant places appear along the rim.';
  const biome=world=>BIOMES[world.key]||BIOMES.wasteland;
  const point=p=>!!p&&Number.isFinite(p.x)&&Number.isFinite(p.y);
  const PLACES={
@@ -26,12 +34,28 @@
   palacestair:{name:'Throne Hall',color:'#ffd27a',path:'M-8 6H8L9-3L4 0L0-7L-4 0L-9-3ZM-6 3H6'},
   harborstair:{name:'Harbour',color:'#8fd0ea',path:'M0-9A2 2 0 1 0 0-5A2 2 0 1 0 0-9M0-5V8M-4-2H4M-8 2C-7 7-3 8 0 8C3 8 7 7 8 2M-8 2L-10 5M8 2L10 5'}
  };
+ const ICONS={...PLACES,homeportal:HOME,stable:STABLE,training:TRAINING,voyage:VOYAGE,ruler:RULER,recruiter:RECRUIT,door:DOOR,harbourmaster:MASTER};
  function project(point,hero){return {x:CENTER+(point.x-hero.x)*SCALE,y:CENTER+(point.y-hero.y)*SCALE};}
+ /* a port's landmarks are its people and its doors: Blackbeard, the King, the recruiter, the harbourmaster, a palace door,
+    and in the Harbour the gate up to the City */
+ function portPlaces(world){
+  const out=[];
+  for(const n of world.npcs||[]){
+   if(!point(n))continue;
+   if(n.voyage)out.push({x:n.x,y:n.y,type:'voyage'});
+   else if(n.game==='ruler')out.push({x:n.x,y:n.y,type:'ruler',label:n.name});
+   else if(n.game==='recruiter')out.push({x:n.x,y:n.y,type:'recruiter',label:n.name+' · Free Company'});
+   else if(n.game==='harbourmaster')out.push({x:n.x,y:n.y,type:'harbourmaster',label:n.name});
+  }
+  for(const l of world.links||[])if(l.to&&point(l))out.push({x:l.x,y:l.y,type:'door',label:l.label||'Door'});
+  if(world.kind==='harbor'&&point(world.exit))out.push({x:world.exit.x,y:world.exit.y,type:'altarportal',label:'The City'});
+  return out;
+ }
  function markers(world,hero){
   if(world.dungeon)return [];
   // Only named public services belong on this map. Never enumerate entrances,
   // enemies or generic travel doors: dungeons must still be discovered on foot.
-  const landmarks=wasteland(world)?[
+  const landmarks=port(world)?portPlaces(world):wasteland(world)?[
    point(world.exit)?{...world.exit,type:'homeportal'}:null,
    point(world.stable?.vendor)?{...world.stable.vendor,type:'stable'}:null,
    point(world.training?.vendor||world.training?.building)?{...(world.training.vendor||world.training.building),type:'training'}:null
@@ -39,7 +63,7 @@
    (world.solids||[]).filter(s=>PLACES[s.type]&&point(s));
   const result=landmarks.map(s=>{
    const p=project(s,hero),dx=p.x-CENTER,dy=p.y-CENTER,distance=Math.hypot(dx,dy);
-   return {...(s.type==='homeportal'?HOME:s.type==='stable'?STABLE:s.type==='training'?TRAINING:PLACES[s.type]),type:s.type,x:p.x,y:p.y,angle:Math.atan2(dy,dx),far:distance>72,
+   return {...ICONS[s.type],...(s.label?{name:s.label}:{}),type:s.type,x:p.x,y:p.y,angle:Math.atan2(dy,dx),far:distance>72,
     distance:Math.hypot(s.x-hero.x,s.y-hero.y)};
   });
   const placed=result.filter(p=>!p.far);
@@ -59,6 +83,14 @@
   return result;
  }
  function terrain(world){
+  if(port(world)){
+   const atlas=document.createElement('canvas'),scale=Math.min(1,2048/Math.max(world.w,world.h));
+   atlas.width=Math.ceil(world.w*scale);atlas.height=Math.ceil(world.h*scale);
+   const g=atlas.getContext('2d'),painter=world.kind==='harbor'?root.HarborWorld&&root.HarborWorld.paintMap:root.TownWorld&&root.TownWorld.paintMap;
+   g.scale(scale,scale);
+   if(!painter||painter(g,world)===false){g.fillStyle='#424632';g.fillRect(0,0,world.w,world.h);}
+   return {canvas:atlas,scale};
+  }
   if(wasteland(world)){
    // Cache only this visit's finite path geometry. A local vector pass avoids a
    // low-resolution atlas of the 50,400-unit world and needs no growing tile cache.
@@ -139,7 +171,7 @@
  }
  function create(el){
   const canvas=el.querySelector('canvas'),g=canvas.getContext('2d'),tip=el.querySelector('.minimap-tip'),title=el.querySelector('.minimap-title');
-  const paths=Object.fromEntries(Object.entries({...PLACES,homeportal:HOME,stable:STABLE,training:TRAINING}).map(([key,p])=>[key,new Path2D(p.path)]));
+  const paths=Object.fromEntries(Object.entries(ICONS).map(([key,p])=>[key,new Path2D(p.path)]));
   let cachedWorld=null,atlas=null,lastTime=-Infinity,lastX=null,lastY=null,heading=0,places=[];
   let pointer=null;
   function tooltip(){
@@ -162,8 +194,9 @@
    if(world!==cachedWorld){
     cachedWorld=world;atlas=terrain(world);lastTime=-Infinity;lastX=lastY=null;heading=hero.fx<0?Math.PI:0;
     const landscape=biome(world),name=world.name||landscape.name;
-    el.setAttribute('aria-label',wasteland(world)?WASTELAND_LABEL:CITY_LABEL);
-    title.textContent=wasteland(world)?name.toUpperCase():'CITY';
+    const portName=port(world)?(world.kind==='harbor'?'Harbour':world.name||'Port'):'';
+    el.setAttribute('aria-label',portName?PORT_LABEL(portName):wasteland(world)?WASTELAND_LABEL:CITY_LABEL);
+    title.textContent=portName?portName.toUpperCase():wasteland(world)?name.toUpperCase():'CITY';
    }
    if(time-lastTime<50)return;
    lastTime=time;
@@ -198,5 +231,5 @@
    g.restore();tooltip();
   }};
  }
- root.CityMinimap=Object.freeze({create,project,markers});
+ root.CityMinimap=Object.freeze({create,project,markers,portPlaces});
 })(typeof window==='undefined'?globalThis:window);

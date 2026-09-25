@@ -105,7 +105,7 @@
     speed:hauls?30+R()*14:24+R()*30,walk:R()*5,fx:1,pauseT:R()*3,moving:false});
   }
   npcs.push(stand(HARBOUR_MASTER,'harbour_master',2830,Q0+104,-1,{big:1.3,game:'harbourmaster',say:TALK.harbourmaster}));
-  npcs.push(stand('Captain Blackbeard','pirate_captain',1335,3066,1,{big:1.3,game:'captain',say:TALK.captain}));
+  npcs.push(stand('Captain Blackbeard','pirate_captain',1335,3066,1,{big:1.3,game:'captain',voyage:true,say:TALK.captain}));   /* ⛵ voyage: he sails you to the ports of call */
   npcs.push(stand('Captain Red Ruben','pirate_captain',2276,2690,1,{big:1.26,game:'captain',say:TALK.captain}));
   npcs.push(stand('Fishwife Greta','fishwife',470,Q0+108,1,{big:1.15,game:'fishwife',say:TALK.fishwife}));
   npcs.push(stand('Rum Jerker','pirate',3180,Q0+112,1,{big:1.12,game:'drunk',say:TALK.drunk}));
@@ -397,6 +397,25 @@
  const IMAGES=Object.freeze([...new Set(Object.values(ART).map(a=>a.key).filter(k=>!['lamp','stall_fish','stall_cloth'].includes(k))),'harbor_arrival','harbor_cliff','sea_tile','quay_paving','planks','seagull']);
  const CITY_IMAGES=Object.freeze(['lamp','stall_fish','stall_cloth']);   /* these three are the City's own paintings */
 
- return Object.freeze({create,contains,renderGround,drawProp,drawShadow,drawSky,drawFlight,frame,
+ /* the minimap's picture of the Harbour (assets/ui/city-minimap.js), in world units: the sea, the cliff with the City's
+    wall along its top and the blue-carpeted flight up to the gate, the quay with its houses, the three piers and the hulls */
+ function paintMap(g){
+  g.fillStyle='#1d4d63';g.fillRect(0,0,W,H);
+  g.fillStyle='#2e3329';g.fillRect(0,0,W,CLIFF.top-CLIFF.wallH);
+  g.fillStyle='#8c8970';g.fillRect(0,CLIFF.top-CLIFF.wallH,W,CLIFF.wallH);
+  g.fillStyle='#55504a';g.fillRect(0,CLIFF.top,W,Q0-CLIFF.top);
+  g.fillStyle='#b3a994';g.beginPath();g.moveTo(FLIGHT.cx-FLIGHT.half0,CLIFF.top-CLIFF.wallH);g.lineTo(FLIGHT.cx+FLIGHT.half0,CLIFF.top-CLIFF.wallH);
+  g.lineTo(FLIGHT.cx+FLIGHT.half1,Q0+24);g.lineTo(FLIGHT.cx-FLIGHT.half1,Q0+24);g.closePath();g.fill();
+  g.fillStyle='#22345a';g.fillRect(FLIGHT.cx-34,CLIFF.top-CLIFF.wallH,68,Q0+24-(CLIFF.top-CLIFF.wallH));
+  g.fillStyle='#b3a994';g.fillRect(QUAY.x,QUAY.y,QUAY.w,QUAY.h);
+  const rect=rc=>g.fillRect(rc.x,rc.y,rc.w,rc.h);
+  g.fillStyle='#7a5a3a';rect(PIER_A.stem);rect(PIER_A.head);rect(JETTY.deck);rect(JETTY.lower);
+  g.fillStyle='#a39b88';rect(MOLE.stem);g.beginPath();g.arc(MOLE.head.x,MOLE.head.y,MOLE.head.r,0,TAU);g.fill();
+  for(const h of HOUSES){const w=ART[h.kind].crx*2.1,hh=Math.min(ART[h.kind].h*.5,w*.62),x=h.x-w/2,y=Q0+44-hh-12;
+   g.fillStyle='rgba(16,14,10,.5)';g.fillRect(x+26,y+22,w,hh);g.fillStyle='#7a644c';g.fillRect(x,y,w,hh);g.fillStyle='rgba(255,255,255,.16)';g.fillRect(x,y,w,hh*.28);}
+  for(const s of SHIPS){const a=ART[s.kind];if(!a||(a.w||0)<300)continue;g.fillStyle='#5b4029';g.beginPath();g.ellipse(s.x,s.y-24,a.w*.42,a.w*.1,0,0,TAU);g.fill();}
+  return true;
+ }
+ return Object.freeze({create,contains,renderGround,drawProp,drawShadow,drawSky,drawFlight,frame,paintMap,
   W,H,XC,Q0,Q1,QUAY,ARRIVAL,FLIGHT,EXIT,EXIT_Y,SPAWN,CLIFF,PIER_A,MOLE,JETTY,LANES,CROSS,HOUSES,SHIPS,FOLK,TALK,HARBOUR_MASTER,ART,IMAGES,CITY_IMAGES});
 });

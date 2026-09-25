@@ -11,25 +11,25 @@ const root=path.join(__dirname,'..'),source=fs.readFileSync(path.join(root,'game
 function section(start,end){const a=source.indexOf(start),b=source.indexOf(end,a);assert.ok(a>=0&&b>a,start);return source.slice(a,b);}
 function city(seed){
  const context=vm.createContext({world:{w:16800,h:5200,solids:[]},npcSebbeImg:{}});
- vm.runInContext(section('const CATH_ART=','const CITY_FOOT=')+section('const CITY_NAMES=','/* 🧱 The floor of the City')+source.match(/^function mulberry32\(.*$/m)[0]+`;buildCity(mulberry32(${seed}));`,context);
- return JSON.parse(JSON.stringify(context.world));
+ vm.runInContext(section('const CATH_ART=','const CITY_FOOT=')+section('const CITY_NAMES=','/* 🧱 The floor of the City')+source.match(/^function mulberry32\(.*$/m)[0]+`;buildCity(mulberry32(${seed}));globalThis.faces=CITY_HOUSE;`,context);
+ return {world:JSON.parse(JSON.stringify(context.world)),faces:context.faces};
 }
-const w=city(26*7919+13),sq=w.plazas[0];                 /* the seed the game builds the City from (zone 26) */
+const {world:w,faces:HOUSE}=city(26*7919+13),sq=w.plazas[0];   /* the game's own faces, drawn sizes and all */                 /* the seed the game builds the City from (zone 26) */
 /* where a painting lands: ART's height and foot, the picture's own width to height */
 const aspect=name=>{const b=fs.readFileSync(path.join(root,'assets','city',name+'.png'));return b.readUInt32BE(16)/b.readUInt32BE(20);};
 const STALLS=['stall_bread','stall_fish','stall_greens','stall_cloth'];
 const artName=s=>s.kind==='stall'?STALLS[s.goods%STALLS.length]:s.kind==='tent'?(s.stripe?'tent_blue':'tent_red'):s.kind==='statue'?(s.crowned?'statue_crowned':'statue'):s.kind;
 const painted=s=>{const a=CW.ART[s.kind],W=a.h*aspect(artName(s));return {x0:s.x-W/2,x1:s.x+W/2,y0:s.y+a.drop-a.h,y1:s.y+a.drop};};
 const overlap=(a,b)=>Math.min(a.x1,b.x1)>Math.max(a.x0,b.x0)&&Math.min(a.y1,b.y1)>Math.max(a.y0,b.y0);
-const HOUSE={house_timber:[245,.616],house_stair:[265,.768],house_stone:[305,.530],house_shop:[285,.914],house_turret:[340,.743],house_tenement:[375,.556],house_manor:[405,.676]};
-const facades=w.solids.filter(s=>s.type==='cityhouse').map(s=>{const [h,ar]=HOUSE[s.key],hw=h*ar/2;return {s,x0:s.x-hw,x1:s.x+hw,y0:s.y+s.r*.3-h,y1:s.y+s.r*.3};});
+const facades=w.solids.filter(s=>s.type==='cityhouse').map(s=>{const {h,ar}=HOUSE[s.key],hw=h*ar/2;return {s,x0:s.x-hw,x1:s.x+hw,y0:s.y+s.r*.3-h,y1:s.y+s.r*.3};});
 const onSquare=(x,y)=>((x-sq.x)/sq.r)**2+((y-sq.y)/(sq.r*.82))**2<1;   /* the square's floor, as CityGround lays it */
 /* everything the ledger has, all at once - in a riot, in a famine, at the fair, jubilant */
 const EVERYTHING={works:{aqueduct:'done',statue:'done',gardens:'done',lamps:'done'},stalls:CW.MAX_STALLS,xMax:15500,crowned:true,hero:'Birgitta',
  street:{maypole:true,music:true,feast:2,tents:true,breadline:2,barricades:true,beggars:8}};
 const ledger=[...CW.props(w,EVERYTHING),CW.noticeBoard(w)];
 const garden=ledger.find(p=>p.kind==='garden'),board=ledger.find(p=>p.kind==='noticeboard');
-const stone=facades.filter(f=>f.s.key==='house_stone').sort((a,b)=>Math.hypot(a.s.x-garden.x,a.s.y-garden.y)-Math.hypot(b.s.x-garden.x,b.s.y-garden.y))[0];
+/* the house at the corner: the nearest one standing west of the gardens on the same ground (a stone house until the houses grew 15 % on 2026-09-25) */
+const stone=facades.filter(f=>f.x1<=garden.x&&Math.abs(f.y1-(garden.y+CW.ART.garden.drop))<120).sort((a,b)=>(garden.x-a.x1)-(garden.x-b.x1))[0];
 
 test('the gardens stand in the yard beside the stone house at the square\'s north-west corner, bigger than they were',()=>{
  assert.ok(garden&&stone);

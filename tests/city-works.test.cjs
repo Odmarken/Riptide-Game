@@ -51,7 +51,7 @@ test('an untouched city shows only its market; every work that has a site shows 
 test('every work with a house site has an anchor and a signboard, and keeps its house whatever else is built',()=>{
  const housed=E.WORKS.filter(w=>w.site==='house').map(w=>w.id).sort();
  assert.deepEqual(Object.keys(Works.ANCHORS).sort(),housed);
- for(const w of E.WORKS)if(w.site&&w.site!=='house')assert.ok(['fountain','statue','garden','stalls','lamps'].includes(w.site),w.id);
+ for(const w of E.WORKS)if(w.site&&w.site!=='house')assert.ok(['fountain','statue','garden','stalls','lamps','banners'].includes(w.site),w.id);
  for(const c of E.WORK_CATS)assert.ok(Works.TINT[c.id],c.id+' has a pennant colour');
  const w=city();
  const one=Works.assignHouses(w,{works:{school:'building'},left:{school:1}});
@@ -141,4 +141,15 @@ test('game.js hands the streets to the ledger: the look, the props, the people, 
  assert.ok(/function cityApplyAll\(\)\{cityApplyPeople\(\);cityApplyProtest\(\);cityApplyUnrest\(\);cityApplyWatch\(\);cityApplyWorks\(\);/.test(src));
  for(const tab of ['works','crown','gaol'])assert.ok(html.includes('data-ltab="'+tab+'"'),tab+' tab');
  assert.ok(html.indexOf('assets/city/city-works.js')>html.indexOf('assets/city/economy.js')&&html.indexOf('assets/city/city-works.js')<html.indexOf('game.js?'),'city-works loads between the economy and the game');
+});
+
+test('the Royal Banners fly down the boulevard opposite the lamps, once they are up',()=>{
+ const w=city();
+ assert.equal(E.WORKS.find(x=>x.id==='banners').site,'banners');
+ assert.equal(Works.props(w,{works:{banners:'building'},stalls:0}).filter(p=>p.kind==='banner').length,0,'nothing flies before they are up');
+ const done=Works.props(w,{works:{banners:'done',lamps:'done'},stalls:12,xMax:15500}),banners=done.filter(p=>p.kind==='banner'),lamps=done.filter(p=>p.kind==='lamp');
+ assert.ok(banners.length>20,'the length of the boulevard');
+ for(const b of banners){assert.ok(b.noCol&&b.x<=15500+260);assert.ok(lamps.every(l=>Math.hypot(l.x-b.x,l.y-b.y)>=120),'a pole is never on a lamp-post');}
+ for(const a of done)for(const b of done)if(a!==b)assert.ok(Math.hypot(a.x-b.x,a.y-b.y)>=30,a.kind+' on top of '+b.kind);
+ assert.ok(Works.ART.banner.h>0);
 });

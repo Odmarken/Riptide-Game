@@ -1,0 +1,2742 @@
+{
+ "generator": "Higgsfield",
+ "model": "gpt_image_2_5",
+ "variant": "flare",
+ "quality": "medium (landmarks high)",
+ "resolution": "1k",
+ "background": "transparent (tiles: opaque)",
+ "date": "2026-09-25",
+ "style": "Blackbeard's ports of call: Silverfjord (white granite, deep-blue slate, silver), Ravenholt (grey granite fortress, red raven banners, snow), Emberfall (soot-dark brick, copper and a thousand chimneys under a red sky) and Port Meridian (sandstone, terracotta and the awnings of four oceans), plus the Free Company's sellswords.",
+ "references": {
+  "palace (sf_palace, its own job) for the rest of Silverfjord": "e918ead9-51fc-4654-9c5f-ed5b4c0f999e",
+  "house_stone_flat": "460df33b-4cc3-45be-b649-e5621f3c29fa",
+  "house_shop_flat": "787c3519-f89a-4f5d-8c72-15b97f1ed27d",
+  "wall_strip_h_flat": "55773a17-a86c-40b0-84b8-a60d62f43e44",
+  "cathedral_flat": "7e1012c9-d4b9-4eeb-90c0-b1703ce7447a",
+  "npc_male": "f43b7229-e2c5-4ed5-b33a-0b07d78d87e7",
+  "npc_sebbe": "c94149b8-a81c-41e2-9b3f-d5e63640c074",
+  "and": "the City's and the Harbour's own jobs (work_exchange, fountain, statue, lamp, stall_cloth, ship_galleon, harbor_warehouse, harbor_beacon, npc_guard ...) for their counterparts"
+ },
+ "camera": "Buildings: straight-on front elevation, roof sloping back as if seen from slightly above. Props: from the front and slightly above, foot at the bottom edge. Ships: exact broadside, bow to the right, hull cut flat at the waterline. Tiles: from straight above. Backdrops: a wide band, foot flat at the bottom.",
+ "processing": "Native transparent output: alpha scaled from its 254 cap to 255, haze below 6 dropped, tight crop at alpha>0. Buildings LANCZOS-resized to 900 px tall, props to at most 640 px, busts to 700 px (full figures 820), ships and backdrops at native size; tiles 768 px opaque. No repainting.",
+ "art": {
+  "sf_palace.png": {
+   "jobId": "e918ead9-51fc-4654-9c5f-ed5b4c0f999e",
+   "kind": "building",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    10,
+    7,
+    1334,
+    743
+   ],
+   "size": [
+    1619,
+    900
+   ]
+  },
+  "sf_temple.png": {
+   "jobId": "81b742d7-5335-4e85-92ed-e19d097c8a82",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    8,
+    1,
+    872,
+    1153
+   ],
+   "size": [
+    675,
+    900
+   ]
+  },
+  "sf_townhouse_a.png": {
+   "jobId": "e78acacc-557a-415e-9a7a-8695e184f4bd",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    102,
+    14,
+    778,
+    1156
+   ],
+   "size": [
+    533,
+    900
+   ]
+  },
+  "sf_townhouse_b.png": {
+   "jobId": "6e9e0fe6-9256-4904-9e4f-a064f747b562",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    211,
+    9,
+    669,
+    1155
+   ],
+   "size": [
+    360,
+    900
+   ]
+  },
+  "sf_townhouse_c.png": {
+   "jobId": "b4c3b0c3-df36-489d-a375-b7e694533f6f",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    74,
+    16,
+    1156,
+    863
+   ],
+   "size": [
+    1150,
+    900
+   ]
+  },
+  "sf_manor.png": {
+   "jobId": "33afaffa-70a7-4502-a0f7-5f402127fd3f",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    38,
+    4,
+    1126,
+    862
+   ],
+   "size": [
+    1141,
+    900
+   ]
+  },
+  "sf_exchange.png": {
+   "jobId": "c0a4e824-1f18-4aa9-86d1-3f920a25d9f4",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    9,
+    9,
+    870,
+    1154
+   ],
+   "size": [
+    677,
+    900
+   ]
+  },
+  "sf_admiralty.png": {
+   "jobId": "5c2a338f-e9ff-4e08-8ac0-e4264a8be937",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    5,
+    10,
+    877,
+    1140
+   ],
+   "size": [
+    695,
+    900
+   ]
+  },
+  "sf_warehouse.png": {
+   "jobId": "936f21c5-5043-4e22-9a66-d7f854a5c6f3",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    30,
+    0,
+    1136,
+    868
+   ],
+   "size": [
+    1147,
+    900
+   ]
+  },
+  "sf_lighthouse.png": {
+   "jobId": "d0ca613b-49bf-4fa4-8833-1d1bce4f7b89",
+   "kind": "building",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    207,
+    6,
+    545,
+    1322
+   ],
+   "size": [
+    231,
+    900
+   ]
+  },
+  "sf_pavilion.png": {
+   "jobId": "9eaa03a9-1492-46eb-a185-9870f5feb56e",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    14,
+    26,
+    1154,
+    832
+   ],
+   "size": [
+    1273,
+    900
+   ]
+  },
+  "sf_fountain.png": {
+   "jobId": "4d0e5be5-4b27-4f3d-9faf-16c242541469",
+   "kind": "prop",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    30,
+    8,
+    993,
+    1012
+   ],
+   "size": [
+    614,
+    640
+   ]
+  },
+  "sf_statue.png": {
+   "jobId": "806ef5fa-bfe0-43f8-8f43-09fd27b3cd80",
+   "kind": "prop",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    155,
+    10,
+    597,
+    1326
+   ],
+   "size": [
+    215,
+    640
+   ]
+  },
+  "sf_banner.png": {
+   "jobId": "4bf009d4-5ecc-44aa-9480-bb12e758343f",
+   "kind": "prop",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    217,
+    11,
+    534,
+    1332
+   ],
+   "size": [
+    154,
+    640
+   ]
+  },
+  "sf_lamp.png": {
+   "jobId": "6ebd91fc-2d40-4a3e-a6e1-2c289396d9b9",
+   "kind": "prop",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    241,
+    11,
+    502,
+    1331
+   ],
+   "size": [
+    127,
+    640
+   ]
+  },
+  "sf_stall_silk.png": {
+   "jobId": "a18eddb8-3ad4-49bc-af8a-64418405b365",
+   "kind": "prop",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    26,
+    15,
+    996,
+    991
+   ],
+   "size": [
+    636,
+    640
+   ]
+  },
+  "sf_stall_silver.png": {
+   "jobId": "839daf7f-23fd-4933-9dd7-0f9000ec2d5b",
+   "kind": "prop",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    9,
+    6,
+    1014,
+    1009
+   ],
+   "size": [
+    640,
+    639
+   ]
+  },
+  "rh_keep.png": {
+   "jobId": "0bdafd81-9e0f-45d8-8b01-0503f8cfbc15",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    33,
+    19,
+    1134,
+    861
+   ],
+   "size": [
+    1177,
+    900
+   ]
+  },
+  "rh_gatehouse.png": {
+   "jobId": "5aecb2ac-1474-4563-82a3-914bb68c851b",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    17,
+    7,
+    1151,
+    863
+   ],
+   "size": [
+    1192,
+    900
+   ]
+  },
+  "rh_armory.png": {
+   "jobId": "d3f99f01-c008-4f15-9b14-f275d397e422",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    55,
+    0,
+    1115,
+    852
+   ],
+   "size": [
+    1120,
+    900
+   ]
+  },
+  "rh_house_a.png": {
+   "jobId": "75273fff-fe97-4eb9-b63b-6a5871a292b8",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    19,
+    0,
+    861,
+    1133
+   ],
+   "size": [
+    669,
+    900
+   ]
+  },
+  "rh_hall.png": {
+   "jobId": "6e9db273-fdcd-41b8-8d20-887397771824",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    18,
+    50,
+    1151,
+    863
+   ],
+   "size": [
+    1254,
+    900
+   ]
+  },
+  "rh_chapel.png": {
+   "jobId": "9a75ab26-ba8b-4aa1-8a4e-a04bc0d08c41",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    68,
+    2,
+    813,
+    1149
+   ],
+   "size": [
+    585,
+    900
+   ]
+  },
+  "rh_dummy.png": {
+   "jobId": "a2f34928-582a-4d55-a536-425056bdcb8c",
+   "kind": "prop",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    14,
+    21,
+    866,
+    1149
+   ],
+   "size": [
+    483,
+    640
+   ]
+  },
+  "rh_barracks.png": {
+   "jobId": "dc9dd310-91b8-419f-8b2f-8ab9542b44c9",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    13,
+    17,
+    1153,
+    859
+   ],
+   "size": [
+    1219,
+    900
+   ]
+  },
+  "rh_banner.png": {
+   "jobId": "35463afc-0ad2-47ca-9077-02220c2e3d97",
+   "kind": "prop",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    189,
+    10,
+    562,
+    1332
+   ],
+   "size": [
+    181,
+    640
+   ]
+  },
+  "rh_house_b.png": {
+   "jobId": "4cf8abb3-2589-496d-80de-b645d59e49b7",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    137,
+    0,
+    744,
+    1154
+   ],
+   "size": [
+    473,
+    900
+   ]
+  },
+  "rh_tower.png": {
+   "jobId": "57045e5f-e76c-4c9c-80a0-a35a4e09a422",
+   "kind": "building",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    129,
+    1,
+    623,
+    1333
+   ],
+   "size": [
+    334,
+    900
+   ]
+  },
+  "rh_brazier.png": {
+   "jobId": "730f546b-541d-4be7-8559-a015ab38eb4d",
+   "kind": "prop",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    81,
+    8,
+    943,
+    1016
+   ],
+   "size": [
+    547,
+    640
+   ]
+  },
+  "rh_target.png": {
+   "jobId": "02b7cd57-6cd7-40d9-b8d1-48ed6b091950",
+   "kind": "prop",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    115,
+    8,
+    897,
+    1009
+   ],
+   "size": [
+    500,
+    640
+   ]
+  },
+  "rh_catapult.png": {
+   "jobId": "69a4a625-ab11-49e9-9d1d-e0d8f63db933",
+   "kind": "prop",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    15,
+    22,
+    1146,
+    829
+   ],
+   "size": [
+    640,
+    457
+   ]
+  },
+  "rh_weapon_rack.png": {
+   "jobId": "85c2c545-1aff-4194-bcf8-0ed9299074f8",
+   "kind": "prop",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    139,
+    15,
+    1032,
+    863
+   ],
+   "size": [
+    640,
+    608
+   ]
+  },
+  "rh_pine.png": {
+   "jobId": "16dd0a6f-b3e0-44b0-8deb-4c801590ba8d",
+   "kind": "prop",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    96,
+    16,
+    656,
+    1328
+   ],
+   "size": [
+    273,
+    640
+   ]
+  },
+  "rh_longship.png": {
+   "jobId": "c42afa3b-1b96-4007-a29a-25cd312ad26b",
+   "kind": "ship",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    12,
+    17,
+    1334,
+    703
+   ],
+   "size": [
+    1322,
+    686
+   ]
+  },
+  "rh_raven_statue.png": {
+   "jobId": "54d59610-00ed-4736-b7cd-79bb9d30ba52",
+   "kind": "prop",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    199,
+    19,
+    681,
+    1147
+   ],
+   "size": [
+    273,
+    640
+   ]
+  },
+  "ef_foundry.png": {
+   "jobId": "b8f6d561-e9dd-43ae-beb5-b2f5d479f2e3",
+   "kind": "building",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    31,
+    7,
+    1313,
+    734
+   ],
+   "size": [
+    1587,
+    900
+   ]
+  },
+  "pm_exchange.png": {
+   "jobId": "b2d80a78-e5b6-4e77-85fd-b6760a85c423",
+   "kind": "building",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    25,
+    0,
+    1319,
+    737
+   ],
+   "size": [
+    1580,
+    900
+   ]
+  },
+  "rh_well.png": {
+   "jobId": "4196574c-8e57-4686-b26c-8531c41fb9b0",
+   "kind": "prop",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    92,
+    12,
+    928,
+    1012
+   ],
+   "size": [
+    535,
+    640
+   ]
+  },
+  "rh_flagstone.png": {
+   "jobId": "534ba985-0298-4afd-b318-049e1293cdfd",
+   "source": [
+    1024,
+    1024
+   ],
+   "size": [
+    768,
+    768
+   ],
+   "note": "opaque tile, mirror-tiled by the game"
+  },
+  "sf_birch.png": {
+   "jobId": "ff1496bb-7748-4cbb-a02e-96aff438c3bd",
+   "kind": "prop",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    32,
+    10,
+    846,
+    1157
+   ],
+   "size": [
+    454,
+    640
+   ]
+  },
+  "sf_planter.png": {
+   "jobId": "c6f76841-0c75-4f3a-93d6-c42c535ee6ff",
+   "kind": "prop",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    241,
+    20,
+    783,
+    1009
+   ],
+   "size": [
+    351,
+    640
+   ]
+  },
+  "sf_warship.png": {
+   "jobId": "e13e5172-0f4a-413c-919a-e08ffb814422",
+   "kind": "ship",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    13,
+    6,
+    1009,
+    989
+   ],
+   "size": [
+    996,
+    983
+   ]
+  },
+  "sf_bench.png": {
+   "jobId": "e45e7556-7ac5-4dfd-8783-e737be46c11c",
+   "kind": "prop",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    21,
+    30,
+    1148,
+    860
+   ],
+   "size": [
+    640,
+    471
+   ]
+  },
+  "sf_paving.png": {
+   "jobId": "56b6782b-b3df-4f3d-a0af-0cff76191ecd",
+   "source": [
+    1024,
+    1024
+   ],
+   "size": [
+    768,
+    768
+   ],
+   "note": "opaque tile, mirror-tiled by the game"
+  },
+  "sf_plaza.png": {
+   "jobId": "d18c11d8-8faa-4a5a-8c27-52484a489736",
+   "source": [
+    1024,
+    1024
+   ],
+   "size": [
+    768,
+    768
+   ],
+   "note": "opaque tile, mirror-tiled by the game"
+  },
+  "rh_snow.png": {
+   "jobId": "9a922023-3e0c-47f3-9b2d-a37e3e59d852",
+   "source": [
+    1024,
+    1024
+   ],
+   "size": [
+    768,
+    768
+   ],
+   "note": "opaque tile, made seamless by a wrapped cross-fade"
+  },
+  "sf_mountains.png": {
+   "jobId": "20740d4a-b5a1-448a-86a9-613d838db6e3",
+   "kind": "backdrop",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    0,
+    99,
+    1344,
+    732
+   ],
+   "size": [
+    1344,
+    633
+   ]
+  },
+  "rh_mountains.png": {
+   "jobId": "1d10f764-8fb7-4d38-8bc7-0ee17316225a",
+   "kind": "backdrop",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    0,
+    193,
+    1344,
+    689
+   ],
+   "size": [
+    1344,
+    496
+   ]
+  },
+  "npc_raven_soldier.png": {
+   "jobId": "80e3a959-e38e-45b8-afc1-7a3327db84d8",
+   "kind": "bust",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    15,
+    6,
+    865,
+    1161
+   ],
+   "size": [
+    515,
+    700
+   ]
+  },
+  "sf_lawn.png": {
+   "jobId": "766a2b97-0190-4320-861e-4cc6dce22140",
+   "source": [
+    1024,
+    1024
+   ],
+   "size": [
+    768,
+    768
+   ],
+   "note": "opaque tile, made seamless by a wrapped cross-fade"
+  },
+  "npc_silver_guard.png": {
+   "jobId": "a9033aea-7ad3-4820-8503-0bfe59311b6e",
+   "kind": "bust",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    15,
+    0,
+    858,
+    1168
+   ],
+   "size": [
+    505,
+    700
+   ]
+  },
+  "ef_forge.png": {
+   "jobId": "d59f7adb-31b8-41b5-adf3-5efaa8c736ed",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    3,
+    0,
+    1117,
+    862
+   ],
+   "size": [
+    1163,
+    900
+   ]
+  },
+  "ef_house_a.png": {
+   "jobId": "019a250f-9335-4ef6-91bc-21b00c00b10a",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    113,
+    10,
+    767,
+    1150
+   ],
+   "size": [
+    516,
+    900
+   ]
+  },
+  "ef_house_b.png": {
+   "jobId": "beaade82-0134-4d73-99b0-10e54a872e91",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    17,
+    10,
+    863,
+    1138
+   ],
+   "size": [
+    675,
+    900
+   ]
+  },
+  "ef_guildhall.png": {
+   "jobId": "7ce0fe3d-ee4f-431b-b76e-8c46502779be",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    17,
+    17,
+    1150,
+    856
+   ],
+   "size": [
+    1215,
+    900
+   ]
+  },
+  "ef_chapel.png": {
+   "jobId": "cd6f80a0-a3ea-4f46-b9b9-b73e2bf9b10a",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    64,
+    4,
+    816,
+    1143
+   ],
+   "size": [
+    594,
+    900
+   ]
+  },
+  "ef_house_c.png": {
+   "jobId": "9f3fc5bd-9eba-4066-bfb1-38c305168d59",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    52,
+    10,
+    1117,
+    849
+   ],
+   "size": [
+    1142,
+    900
+   ]
+  },
+  "ef_market.png": {
+   "jobId": "dbaecea3-a170-4e14-b0b6-181bd31a5f6e",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    30,
+    67,
+    1137,
+    805
+   ],
+   "size": [
+    1350,
+    900
+   ]
+  },
+  "ef_smokestack.png": {
+   "jobId": "fef838af-d80d-4903-beaf-8783f7641160",
+   "kind": "building",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    201,
+    6,
+    548,
+    1328
+   ],
+   "size": [
+    236,
+    900
+   ]
+  },
+  "ef_warehouse.png": {
+   "jobId": "e86fc677-7b61-494d-a3e0-4427104314c3",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    42,
+    13,
+    1127,
+    852
+   ],
+   "size": [
+    1164,
+    900
+   ]
+  },
+  "ef_ore_cart.png": {
+   "jobId": "29c59e87-4b5c-4035-83c9-510b673f5ee4",
+   "kind": "prop",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    62,
+    47,
+    1106,
+    835
+   ],
+   "size": [
+    640,
+    483
+   ]
+  },
+  "ef_anvil.png": {
+   "jobId": "69a282d9-c5c0-4cca-ba3c-27f3ae4782a0",
+   "kind": "prop",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    12,
+    98,
+    1014,
+    975
+   ],
+   "size": [
+    640,
+    560
+   ]
+  },
+  "sf_house_d.png": {
+   "jobId": "59eb0b29-d6b0-4828-9453-827cb17fcadc",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    113,
+    9,
+    767,
+    1151
+   ],
+   "size": [
+    515,
+    900
+   ]
+  },
+  "sf_house_f.png": {
+   "jobId": "09d1fe23-5d83-4884-951d-732513f0a1da",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    89,
+    17,
+    785,
+    1155
+   ],
+   "size": [
+    550,
+    900
+   ]
+  },
+  "sf_minersguild.png": {
+   "jobId": "386a6dd2-9942-456f-a306-d42e23ee725e",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    28,
+    5,
+    1138,
+    867
+   ],
+   "size": [
+    1159,
+    900
+   ]
+  },
+  "sf_wintergarden.png": {
+   "jobId": "5e12c5f8-fdc7-4e2c-8096-e7038e29010d",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    23,
+    6,
+    1146,
+    856
+   ],
+   "size": [
+    1189,
+    900
+   ]
+  },
+  "ef_stall_tools.png": {
+   "jobId": "d90877bb-c919-4908-a339-67f9daa80787",
+   "kind": "prop",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    20,
+    11,
+    1006,
+    1012
+   ],
+   "size": [
+    630,
+    640
+   ]
+  },
+  "pm_bazaar_a.png": {
+   "jobId": "be8b02dd-6a87-45d7-9ac1-aeca0e03f79a",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    4,
+    42,
+    1163,
+    838
+   ],
+   "size": [
+    1310,
+    900
+   ]
+  },
+  "pm_bazaar_b.png": {
+   "jobId": "278f4fdb-cc5e-43b1-8bfe-03883697f0bb",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    51,
+    8,
+    1114,
+    865
+   ],
+   "size": [
+    1116,
+    900
+   ]
+  },
+  "pm_charthouse.png": {
+   "jobId": "ca1fd2e2-7083-4cf2-a988-eae97f254c12",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    1,
+    5,
+    876,
+    1145
+   ],
+   "size": [
+    691,
+    900
+   ]
+  },
+  "pm_merc_hall.png": {
+   "jobId": "0e0ce828-9a8d-436a-b511-592d15fc5a4f",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    10,
+    116,
+    1158,
+    845
+   ],
+   "size": [
+    1417,
+    900
+   ]
+  },
+  "pm_customs.png": {
+   "jobId": "7c5a95a7-f989-4a2a-8d44-226f1cbee59e",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    0,
+    89,
+    876,
+    1120
+   ],
+   "size": [
+    765,
+    900
+   ]
+  },
+  "ef_brick.png": {
+   "jobId": "591884f7-e664-4ef6-964c-abb25472d47b",
+   "source": [
+    1024,
+    1024
+   ],
+   "size": [
+    768,
+    768
+   ],
+   "note": "opaque tile, mirror-tiled by the game"
+  },
+  "ef_lamp.png": {
+   "jobId": "0058f299-99cf-4776-8940-c32d4af5d0f4",
+   "kind": "prop",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    227,
+    7,
+    516,
+    1334
+   ],
+   "size": [
+    139,
+    640
+   ]
+  },
+  "ef_crucible.png": {
+   "jobId": "2150b189-4660-44d4-b0b7-9643f5c362c9",
+   "kind": "prop",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    80,
+    81,
+    918,
+    965
+   ],
+   "size": [
+    607,
+    640
+   ]
+  },
+  "ef_barge.png": {
+   "jobId": "9df794d2-57cd-4b29-83c0-3f3bb552ad0f",
+   "kind": "ship",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    22,
+    17,
+    1323,
+    705
+   ],
+   "size": [
+    1301,
+    688
+   ]
+  },
+  "ef_coal_heap.png": {
+   "jobId": "566507a1-820b-4fed-9b2c-2fefbf2406fb",
+   "kind": "prop",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    26,
+    10,
+    1133,
+    867
+   ],
+   "size": [
+    640,
+    495
+   ]
+  },
+  "ef_statue.png": {
+   "jobId": "27a0c875-75fb-49d6-8068-d4e89a8ac098",
+   "kind": "prop",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    187,
+    0,
+    685,
+    1155
+   ],
+   "size": [
+    276,
+    640
+   ]
+  },
+  "ef_cinder.png": {
+   "jobId": "5abec224-5ef3-41e5-bb97-682f7931fb42",
+   "source": [
+    1024,
+    1024
+   ],
+   "size": [
+    768,
+    768
+   ],
+   "note": "opaque tile, made seamless by a wrapped cross-fade"
+  },
+  "ef_skyline.png": {
+   "jobId": "927edc82-366d-44d0-90ea-e1f8eef4dbd6",
+   "kind": "backdrop",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    0,
+    226,
+    1344,
+    692
+   ],
+   "size": [
+    1344,
+    466
+   ]
+  },
+  "npc_foundry_worker.png": {
+   "jobId": "d84b7065-a62f-48f2-9779-922b0e49a346",
+   "kind": "bust",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    2,
+    0,
+    878,
+    1156
+   ],
+   "size": [
+    530,
+    700
+   ]
+  },
+  "pm_warehouse.png": {
+   "jobId": "aa1129af-def0-484b-a551-c81b14bcd6c9",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    4,
+    38,
+    1165,
+    847
+   ],
+   "size": [
+    1292,
+    900
+   ]
+  },
+  "pm_tavern.png": {
+   "jobId": "eb9c8f50-f00c-4364-ab86-6c8f5cbff270",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    22,
+    12,
+    867,
+    1135
+   ],
+   "size": [
+    677,
+    900
+   ]
+  },
+  "pm_flagpole.png": {
+   "jobId": "ab3394ad-8b33-43d9-bdbf-51916005794e",
+   "kind": "prop",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    144,
+    7,
+    685,
+    1336
+   ],
+   "size": [
+    261,
+    640
+   ]
+  },
+  "pm_stall_lanterns.png": {
+   "jobId": "99cd4170-9c50-403d-96f9-e76a818a7e2b",
+   "kind": "prop",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    8,
+    7,
+    1013,
+    999
+   ],
+   "size": [
+    640,
+    632
+   ]
+  },
+  "pm_sacks.png": {
+   "jobId": "eb5b2d5e-c554-44e2-8cb8-b6bfa00578ea",
+   "kind": "prop",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    66,
+    17,
+    1105,
+    861
+   ],
+   "size": [
+    640,
+    520
+   ]
+  },
+  "pm_merc_tent.png": {
+   "jobId": "42c73852-4be1-4a31-ad4a-fbb5a9bc1fe5",
+   "kind": "prop",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    8,
+    5,
+    1013,
+    998
+   ],
+   "size": [
+    640,
+    632
+   ]
+  },
+  "pm_palm.png": {
+   "jobId": "ca4bfb45-a886-46fd-bb1e-a582ab143355",
+   "kind": "prop",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    17,
+    15,
+    737,
+    1333
+   ],
+   "size": [
+    350,
+    640
+   ]
+  },
+  "pm_stall_spice.png": {
+   "jobId": "918cb6a2-7a06-4e36-831c-9a6b758b176e",
+   "kind": "prop",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    21,
+    19,
+    1004,
+    999
+   ],
+   "size": [
+    640,
+    638
+   ]
+  },
+  "pm_merchantman.png": {
+   "jobId": "b1de3b88-4104-4bfa-b638-45072bb1e5a2",
+   "kind": "ship",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    12,
+    16,
+    1017,
+    982
+   ],
+   "size": [
+    1005,
+    966
+   ]
+  },
+  "pm_dhow.png": {
+   "jobId": "3acb0617-1cd3-4a64-a3ea-3d9c20801915",
+   "kind": "ship",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    16,
+    10,
+    1157,
+    839
+   ],
+   "size": [
+    1141,
+    829
+   ]
+  },
+  "pm_paving.png": {
+   "jobId": "63ef7a56-2c84-4c5a-aae7-5f608a5febd9",
+   "source": [
+    1024,
+    1024
+   ],
+   "size": [
+    768,
+    768
+   ],
+   "note": "opaque tile, mirror-tiled by the game"
+  },
+  "pm_sand.png": {
+   "jobId": "be3e008e-2749-4864-9737-293b556673d6",
+   "source": [
+    1024,
+    1024
+   ],
+   "size": [
+    768,
+    768
+   ],
+   "note": "opaque tile, made seamless by a wrapped cross-fade"
+  },
+  "sf_flowerbed.png": {
+   "jobId": "93dcfa53-ecc4-479a-8c59-c7920b5deb48",
+   "kind": "prop",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    92,
+    75,
+    1076,
+    804
+   ],
+   "size": [
+    640,
+    474
+   ]
+  },
+  "sf_barge.png": {
+   "jobId": "54bd1c0a-ef11-4579-83f9-5380f0ae254c",
+   "kind": "ship",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    18,
+    35,
+    1329,
+    702
+   ],
+   "size": [
+    1311,
+    667
+   ]
+  },
+  "rh_wall.png": {
+   "jobId": "93aa1a02-13c9-497a-bc55-44dc5249ceee",
+   "kind": "strip",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    0,
+    168,
+    1344,
+    643
+   ],
+   "size": [
+    1344,
+    475
+   ]
+  },
+  "rh_house_c.png": {
+   "jobId": "35f4e7fc-b600-4790-a105-a624ccdeff83",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    12,
+    49,
+    1156,
+    846
+   ],
+   "size": [
+    1292,
+    900
+   ]
+  },
+  "rh_house_d.png": {
+   "jobId": "1dc61acd-8dfd-44ef-b90b-c127e54dabeb",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    20,
+    9,
+    849,
+    1148
+   ],
+   "size": [
+    655,
+    900
+   ]
+  },
+  "rh_inn.png": {
+   "jobId": "6f775c79-c29b-4436-a705-bf17051945e3",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    45,
+    10,
+    1167,
+    849
+   ],
+   "size": [
+    1204,
+    900
+   ]
+  },
+  "rh_stall_furs.png": {
+   "jobId": "6b44f1f8-1628-4702-a1b8-799aa95449af",
+   "kind": "prop",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    16,
+    17,
+    1007,
+    1009
+   ],
+   "size": [
+    639,
+    640
+   ]
+  },
+  "rh_stall_iron.png": {
+   "jobId": "67f2e11e-e971-4324-bc96-9f6b79b965ec",
+   "kind": "prop",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    23,
+    15,
+    998,
+    1004
+   ],
+   "size": [
+    631,
+    640
+   ]
+  },
+  "npc_mercenary.png": {
+   "jobId": "ab4d02b1-b980-4961-91ae-0319fba1856f",
+   "kind": "bust",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    31,
+    5,
+    841,
+    1153
+   ],
+   "size": [
+    494,
+    700
+   ]
+  },
+  "npc_mercenary_b.png": {
+   "jobId": "26cc0e18-5668-4aad-b893-b5821b0e795a",
+   "kind": "bust",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    4,
+    23,
+    876,
+    1160
+   ],
+   "size": [
+    537,
+    700
+   ]
+  },
+  "npc_merc_recruiter.png": {
+   "jobId": "69c70828-8a83-4cf9-876a-25d0bc1e4dd5",
+   "kind": "bust",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    12,
+    1,
+    870,
+    1159
+   ],
+   "size": [
+    519,
+    700
+   ]
+  },
+  "pm_hills.png": {
+   "jobId": "2e2e2854-b439-4ee2-a530-6f6071eb9afe",
+   "kind": "backdrop",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    0,
+    240,
+    1344,
+    733
+   ],
+   "size": [
+    1344,
+    493
+   ]
+  },
+  "pm_house_a.png": {
+   "jobId": "f157060a-40d1-417f-81b9-6cf3add005be",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    11,
+    35,
+    870,
+    1133
+   ],
+   "size": [
+    704,
+    900
+   ]
+  },
+  "pm_house_c.png": {
+   "jobId": "138c8de7-8b2b-437c-8ac7-8aa690a146af",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    1,
+    11,
+    1167,
+    865
+   ],
+   "size": [
+    1229,
+    900
+   ]
+  },
+  "pm_house_b.png": {
+   "jobId": "208c7eb7-bfae-4ac2-992e-d75d6b1e9f62",
+   "kind": "building",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    72,
+    23,
+    683,
+    1320
+   ],
+   "size": [
+    424,
+    900
+   ]
+  },
+  "npc_spice_merchant.png": {
+   "jobId": "1fabe7e6-186c-48a8-852b-dcfd59ce3f47",
+   "kind": "bust",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    3,
+    7,
+    871,
+    1157
+   ],
+   "size": [
+    528,
+    700
+   ]
+  },
+  "sf_house_e.png": {
+   "jobId": "ffdd4fe2-f379-4a50-b923-3acdce9ed767",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    64,
+    7,
+    1104,
+    862
+   ],
+   "size": [
+    1095,
+    900
+   ]
+  },
+  "pm_lighthouse.png": {
+   "jobId": "5b1a5718-6e3e-4a1b-b893-cc6e00a5089e",
+   "kind": "building",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    122,
+    0,
+    628,
+    1331
+   ],
+   "size": [
+    342,
+    900
+   ]
+  },
+  "sf_hedge.png": {
+   "jobId": "bdaaa156-7641-4170-99ac-034865b52799",
+   "kind": "prop",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    29,
+    222,
+    1315,
+    591
+   ],
+   "size": [
+    640,
+    184
+   ]
+  },
+  "pm_stall_rugs.png": {
+   "jobId": "251c4727-6934-4fe8-987a-0147307282b6",
+   "kind": "prop",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    15,
+    6,
+    1010,
+    1005
+   ],
+   "size": [
+    637,
+    640
+   ]
+  },
+  "pm_stall_fruit.png": {
+   "jobId": "f0b1a747-21ff-41ff-a6cf-465f509912e5",
+   "kind": "prop",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    13,
+    17,
+    1007,
+    1001
+   ],
+   "size": [
+    640,
+    634
+   ]
+  },
+  "pm_rope_coil.png": {
+   "jobId": "908dea98-a9be-45e7-a29d-aa4e4704ad54",
+   "kind": "prop",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    19,
+    101,
+    1006,
+    993
+   ],
+   "size": [
+    640,
+    578
+   ]
+  },
+  "pm_campfire.png": {
+   "jobId": "f4644476-8024-48f4-a3b7-0e75ae7c8ea1",
+   "kind": "prop",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    50,
+    10,
+    991,
+    985
+   ],
+   "size": [
+    618,
+    640
+   ]
+  },
+  "sf_wall.png": {
+   "jobId": "6c165be6-a69b-4384-8aea-d46f51d9d4cd",
+   "kind": "strip",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    0,
+    143,
+    1344,
+    675
+   ],
+   "size": [
+    1344,
+    532
+   ]
+  },
+  "sf_tower.png": {
+   "jobId": "8bd8ffcb-69ad-4cd4-865f-a7f7eb3327dc",
+   "kind": "building",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    161,
+    6,
+    595,
+    1328
+   ],
+   "size": [
+    295,
+    900
+   ]
+  },
+  "sf_gatehouse.png": {
+   "jobId": "49e603e9-0840-4ca3-98bc-3bc2ac92061b",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    60,
+    5,
+    1108,
+    869
+   ],
+   "size": [
+    1092,
+    900
+   ]
+  },
+  "sf_gate_v.png": {
+   "jobId": "d3327ab9-a740-49f3-9287-d1dc55b583ec",
+   "kind": "native",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    207,
+    0,
+    545,
+    1344
+   ],
+   "size": [
+    338,
+    1344
+   ]
+  },
+  "sf_throne.png": {
+   "jobId": "2ee0478b-6255-411d-8f56-93a70ebe5f7a",
+   "kind": "prop",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    38,
+    6,
+    714,
+    1344
+   ],
+   "size": [
+    323,
+    640
+   ]
+  },
+  "sf_council_table.png": {
+   "jobId": "b193aa6b-f2b1-4458-b963-b6a273a34f34",
+   "kind": "prop",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    6,
+    14,
+    1164,
+    858
+   ],
+   "size": [
+    640,
+    466
+   ]
+  },
+  "sf_hall_pillar.png": {
+   "jobId": "0306c9b4-e0d6-4bad-b289-655a4dd7f873",
+   "kind": "prop",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    182,
+    8,
+    570,
+    1336
+   ],
+   "size": [
+    187,
+    640
+   ]
+  },
+  "sf_jail_wall.png": {
+   "jobId": "d0a2e55e-061a-4b3d-a4ca-fd39392b488b",
+   "kind": "strip",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    0,
+    0,
+    1344,
+    752
+   ],
+   "size": [
+    1344,
+    752
+   ]
+  },
+  "sf_carpet.png": {
+   "jobId": "18e3bb7d-0485-4aa6-90a1-338dff3271d6",
+   "source": [
+    1024,
+    1024
+   ],
+   "size": [
+    768,
+    768
+   ],
+   "note": "opaque tile, mirror-tiled by the game"
+  },
+  "sf_house_g.png": {
+   "jobId": "5bb1bedb-4543-420b-b3d1-28b7e149dd86",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    170,
+    12,
+    711,
+    1154
+   ],
+   "size": [
+    426,
+    900
+   ]
+  },
+  "sf_wall_v.png": {
+   "jobId": "687bbb25-33eb-4703-978a-f3f36c519187",
+   "kind": "vstrip",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    212,
+    0,
+    540,
+    1344
+   ],
+   "size": [
+    328,
+    1344
+   ]
+  },
+  "sf_hall_brazier.png": {
+   "jobId": "b04e03c5-466c-4394-a1a8-bdd19204668d",
+   "kind": "prop",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    123,
+    7,
+    757,
+    1159
+   ],
+   "size": [
+    352,
+    640
+   ]
+  },
+  "sf_house_h.png": {
+   "jobId": "e848a11f-dbf8-4793-bc13-5fe4e23a09ad",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    22,
+    11,
+    1146,
+    863
+   ],
+   "size": [
+    1187,
+    900
+   ]
+  },
+  "sf_house_i.png": {
+   "jobId": "6fe91a81-4c12-458c-a01a-bef217f30978",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    21,
+    14,
+    837,
+    1136
+   ],
+   "size": [
+    655,
+    900
+   ]
+  },
+  "sf_house_j.png": {
+   "jobId": "3d81a630-0ce5-4745-88ad-579c4abdcd8d",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    13,
+    10,
+    866,
+    1129
+   ],
+   "size": [
+    686,
+    900
+   ]
+  },
+  "sf_row.png": {
+   "jobId": "cce352c4-494c-4f64-a709-403636ef92b6",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    69,
+    6,
+    1123,
+    847
+   ],
+   "size": [
+    1128,
+    900
+   ]
+  },
+  "sf_house_k.png": {
+   "jobId": "91e23b5c-1d83-4742-b69b-1031da000233",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    202,
+    5,
+    678,
+    1157
+   ],
+   "size": [
+    372,
+    900
+   ]
+  },
+  "sf_opera.png": {
+   "jobId": "2d445ca2-acec-418d-9a95-5fef74d1754c",
+   "kind": "building",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    15,
+    3,
+    1329,
+    744
+   ],
+   "size": [
+    1596,
+    900
+   ]
+  },
+  "sf_library.png": {
+   "jobId": "f8863167-bee6-4eb8-88c3-354a10e29b55",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    15,
+    1,
+    1151,
+    861
+   ],
+   "size": [
+    1189,
+    900
+   ]
+  },
+  "sf_inn.png": {
+   "jobId": "a2daca6e-c412-4bfa-ac1d-76a01996317c",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    10,
+    16,
+    834,
+    1144
+   ],
+   "size": [
+    657,
+    900
+   ]
+  },
+  "sf_mint.png": {
+   "jobId": "c5c80469-e0da-4b18-8e91-0e72a03779b1",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    26,
+    6,
+    1141,
+    866
+   ],
+   "size": [
+    1167,
+    900
+   ]
+  },
+  "sf_market_hall.png": {
+   "jobId": "1d3fe634-b11f-4f10-a64d-b6141a775dd2",
+   "kind": "building",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    7,
+    6,
+    1338,
+    718
+   ],
+   "size": [
+    1682,
+    900
+   ]
+  },
+  "sf_bathhouse.png": {
+   "jobId": "e58ed316-d6d8-4cc6-80cd-e681943bcc93",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    8,
+    9,
+    1162,
+    859
+   ],
+   "size": [
+    1222,
+    900
+   ]
+  },
+  "sf_barracks.png": {
+   "jobId": "6dbc4403-ac3e-4365-bb57-53a0571f4f90",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    9,
+    10,
+    1159,
+    854
+   ],
+   "size": [
+    1226,
+    900
+   ]
+  },
+  "sf_obelisk.png": {
+   "jobId": "93d308ff-33f0-4ed8-bcdd-eaaad8026257",
+   "kind": "prop",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    138,
+    15,
+    614,
+    1318
+   ],
+   "size": [
+    234,
+    640
+   ]
+  },
+  "sf_parquet.png": {
+   "jobId": "f447484a-caaf-4107-8a35-4da24d7ae859",
+   "source": [
+    1024,
+    1024
+   ],
+   "size": [
+    768,
+    768
+   ],
+   "note": "opaque tile, mirror-tiled by the game"
+  },
+  "sf_candelabra.png": {
+   "jobId": "b176700b-d9b2-49ac-be1f-c4aae775fdca",
+   "kind": "prop",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    20,
+    7,
+    732,
+    1332
+   ],
+   "size": [
+    344,
+    640
+   ]
+  },
+  "sf_stair_down.png": {
+   "jobId": "5bbea78c-ac7b-47f8-963b-f812719022a2",
+   "kind": "prop",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    25,
+    19,
+    837,
+    1128
+   ],
+   "size": [
+    469,
+    640
+   ]
+  },
+  "sf_house_l.png": {
+   "jobId": "d63e8b07-4d77-41f6-8fe3-1c4b40d89abf",
+   "kind": "building",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    18,
+    10,
+    1151,
+    860
+   ],
+   "size": [
+    1200,
+    900
+   ]
+  },
+  "sf_chapel.png": {
+   "jobId": "8fb71b94-fcbb-45f0-b656-dbf16c709add",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    74,
+    6,
+    803,
+    1150
+   ],
+   "size": [
+    574,
+    900
+   ]
+  },
+  "sf_gazebo.png": {
+   "jobId": "98e8a603-5717-44be-a57d-f19c92ba73b0",
+   "kind": "prop",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    195,
+    8,
+    826,
+    1007
+   ],
+   "size": [
+    404,
+    640
+   ]
+  },
+  "sf_house_m.png": {
+   "jobId": "6c44e10c-335d-491d-88b9-70c9b6a795ab",
+   "kind": "building",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    76,
+    7,
+    863,
+    1150
+   ],
+   "size": [
+    620,
+    900
+   ]
+  },
+  "sf_carpet_runner.png": {
+   "jobId": "f1a1bfbd-a6f5-447c-bd4c-43bcc313226c",
+   "kind": "runner",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    0,
+    0,
+    752,
+    1344
+   ],
+   "size": [
+    752,
+    978
+   ],
+   "note": "three melted crowns patched with a clean one from the same row, then cut to one period of the pattern (rows 147-1125) so it repeats without a cross-fade"
+  },
+  "sf_throne_backdrop.png": {
+   "jobId": "7b61f620-722a-4f3e-959e-db7fd4fffb73",
+   "kind": "native",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    75,
+    8,
+    949,
+    1024
+   ],
+   "size": [
+    874,
+    1016
+   ]
+  },
+  "sf_council_wall.png": {
+   "jobId": "6135133f-d0fe-41b0-9f8b-dab1a45660b1",
+   "kind": "native",
+   "source": [
+    2688,
+    1152
+   ],
+   "crop": [
+    0,
+    0,
+    2688,
+    1152
+   ],
+   "size": [
+    1600,
+    686
+   ]
+  },
+  "sf_council_rug.png": {
+   "jobId": "da5fbecc-b496-453c-b5d6-018625677ae5",
+   "kind": "native",
+   "source": [
+    1024,
+    688
+   ],
+   "crop": [
+    283,
+    6,
+    742,
+    671
+   ],
+   "size": [
+    665,
+    459
+   ],
+   "note": "turned a quarter to lie east-west under the table"
+  },
+  "sf_hall_door.png": {
+   "jobId": "3c3d1d2f-baab-4a94-8ecc-464a6ea11cef",
+   "kind": "native",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    380,
+    157,
+    964,
+    631
+   ],
+   "size": [
+    584,
+    474
+   ],
+   "note": "redone top-down; the opening with 176 px of wall either side, the wall band faded out over 70 px at each end into the plain wall top"
+  },
+  "sf_stair_up.png": {
+   "jobId": "7ac92a20-5499-4c4c-a04d-4187b25cd53f",
+   "kind": "prop",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    21,
+    9,
+    836,
+    1161
+   ],
+   "size": [
+    453,
+    640
+   ]
+  },
+  "sf_hall_bay.png": {
+   "jobId": "0213797e-817f-4633-b1a6-944e8c361d72",
+   "kind": "strip",
+   "size": [
+    384,
+    716
+   ],
+   "note": "one bay cut out of sf_hall_wall.png, pillar centre to pillar centre (px 118-502, rows 18-734 without the cream margins), 6 px blended at each edge so the bays join; replaces the cross-faded strip whose middle had ghost windows"
+  }
+ }
+}

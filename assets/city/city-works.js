@@ -73,6 +73,16 @@
   const pitches=stallSlots(world);        /* a post never stands in a market pitch, taken or not */
   return out.filter(p=>!pitches.some(q=>Math.hypot(p.x-q.x,p.y-q.y)<70));
  }
+ /* 🚩 the Royal Banners: one opposite every lamp-post down the boulevard, so posts and poles take turns on each kerb */
+ function bannerSpots(world,xMax){
+  const c=square(world),out=[];
+  for(let x=900;x<=Math.min(xMax||world.w-1300,world.w-600);x+=520){
+   if(Math.abs(x-c.x)<c.r+60)continue;
+   out.push({x:x+260,y:c.y-136},{x,y:c.y+136});
+  }
+  const pitches=stallSlots(world);
+  return out.filter(p=>!pitches.some(q=>Math.hypot(p.x-q.x,p.y-q.y)<70)&&Math.abs(p.x-c.x)>=c.r+60);
+ }
  /* the props a look asks for, as solids ready for world.solids. Small collision circles: you walk
     round a fountain, you brush past a lamp-post. */
  function props(world,look){
@@ -83,9 +93,10 @@
   if(st('aqueduct')==='done')add('fountain',c.x-270,c.y-250,46);else if(going('aqueduct'))site('aqueduct',c.x-270,c.y-250,'FOUNTAIN');
   if(st('statue')==='done')add('statue',c.x+270,c.y-250,26,{crowned:!!look.crowned,hero:look.hero||''});else if(going('statue'))site('statue',c.x+270,c.y-250,'STATUE');
   /* 🌳 the gardens are laid in the yard beside the stone house at the square's north-west corner, off the square (2026-09-24) */
-  if(st('gardens')==='done')add('garden',c.x-350,c.y-445,20,{noCol:true});else if(going('gardens'))site('gardens',c.x-350,c.y-445,'GARDENS');
+  if(st('gardens')==='done')add('garden',c.x-265,c.y-460,20,{noCol:true});else if(going('gardens'))site('gardens',c.x-265,c.y-460,'GARDENS');   /* beside the corner house as it stands since the houses grew (2026-09-25) */
   if(st('coveredmarket')==='building')site('coveredmarket',c.x-300,c.y+330,'COVERED MARKET');
   if(st('lamps')==='done'||going('lamps'))for(const p of lampSpots(world,look.xMax))add('lamp',p.x,p.y,7,{lit:st('lamps')==='done',noCol:true});
+  if(st('banners')==='done')for(const p of bannerSpots(world,look.xMax))add('banner',p.x,p.y,7,{noCol:true});
   stallSlots(world).slice(0,clamp(Math.round(look.stalls||0),0,MAX_STALLS)).forEach((p,i)=>add('stall',p.x,p.y,24,{goods:i%5,covered:st('coveredmarket')==='done'}));
   /* 🎭 what the temper of the people puts out on the street. None of it is in anybody's way (noCol). */
   const S=look.street||{},soft=(kind,x,y,extra)=>add(kind,x,y,18,{noCol:true,...extra});
@@ -233,6 +244,13 @@
   const f=.7+Math.sin(time*9+s.seed)*.3;rect(g,2,-64,3,26,'#3a2410');ellipse(g,3.5,-68,5*f,8*f,'rgba(255,170,60,.9)');ellipse(g,3.5,-66,2.5,4,'#ffe9a8');   /* a torch */
   g.save();g.translate(8,-52);const sw=Math.sin(time*2+s.seed)*.12;g.rotate(sw);rect(g,0,0,30,16,'#7a1b1b','#2a0a0a',1);g.restore();
  }
+ /* the banner's stand-in while its painting loads (and in the headless tests): a pole and a swallow-tailed crimson silk */
+ function banner(g,s,time){
+  rect(g,-6,-6,12,7,'#2b2622','#0d0b0a',1.5);rect(g,-2,-236,4,232,'#5a4630');ellipse(g,0,-238,5,5,'#d9b24a');
+  const k=Math.sin(time*1.7+s.seed*.02)*10;
+  g.beginPath();g.moveTo(2,-226);g.lineTo(58+k*.4,-222);g.lineTo(60+k,-150);g.lineTo(31+k*.7,-164);g.lineTo(2,-150);g.closePath();
+  g.fillStyle='#8a1f27';g.fill();g.strokeStyle='#d3ad55';g.lineWidth=2;g.stroke();
+ }
  function lamp(g,s,time){
   rect(g,-7,-6,14,8,'#2b2622','#0d0b0a',1.5);rect(g,-2.5,-92,5,88,'#33302c');rect(g,-2.5,-92,1.6,88,'rgba(255,255,255,.18)');
   rect(g,-16,-96,32,4,'#33302c');
@@ -339,16 +357,18 @@
     lookup game.js hands in - name -> a loaded image, or nothing while it loads and in the headless
     tests - and every routine below falls back to its canvas drawing without it. h is the drawn height
     in world units, drop how far below the anchor the art's foot sits. */
- const ART={lamp:{h:138,drop:5},fountain:{h:146,drop:34},statue:{h:178,drop:10},garden:{h:128*GARDEN_K,drop:44*GARDEN_K},site:{h:150,drop:34},stall:{h:122,drop:10},
+ const ART={lamp:{h:138,drop:5},banner:{h:250,drop:8},fountain:{h:146,drop:34},statue:{h:178,drop:10},garden:{h:128*GARDEN_K,drop:44*GARDEN_K},site:{h:150,drop:34},stall:{h:122,drop:10},
   noticeboard:{h:132,drop:8},maypole:{h:272,drop:8},music:{h:92,drop:8},feast:{h:176,drop:50},tent:{h:232,drop:16},breadline:{h:140,drop:10},beggar:{h:70,drop:8},barricade:{h:122,drop:18}};
  const STALL_ART=['stall_bread','stall_fish','stall_greens','stall_cloth'],WAGON_ART=['wagon_barrels','wagon_caravan','wagon_grain','wagon_caravan'];
- const artName=s=>s.kind==='stall'?STALL_ART[s.goods%STALL_ART.length]:s.kind==='tent'?(s.stripe?'tent_blue':'tent_red'):s.kind==='statue'?(s.crowned?'statue_crowned':'statue'):s.kind;
+ const artName=s=>s.kind==='banner'?'city_banner':s.kind==='stall'?STALL_ART[s.goods%STALL_ART.length]:s.kind==='tent'?(s.stripe?'tent_blue':'tent_red'):s.kind==='statue'?(s.crowned?'statue_crowned':'statue'):s.kind;
  const ready=im=>!!(im&&(im.naturalWidth||im.width));
  function drawArt(g,s,time,img){
   const a=ART[s.kind],im=a&&img&&img(artName(s));
   if(!ready(im))return false;
   const H=a.h,W=H*(im.naturalWidth||im.width)/(im.naturalHeight||im.height),flip=(s.kind==='barricade'&&s.flip<0)||(s.kind==='beggar'&&s.face<0)?-1:1;
-  g.save();g.scale(flip,1);g.drawImage(im,-W/2,a.drop-H,W,H);g.restore();
+  g.save();g.scale(flip,1);
+  if(s.kind==='banner'){const k=Math.sin(time*1.7+s.seed*.02)*.018+Math.sin(time*4.3+s.seed*.05)*.006;g.transform(1,0,k,1,-k*a.drop,0);}   /* 🚩 the wind in it, as in Silverfjord */
+  g.drawImage(im,-W/2,a.drop-H,W,H);g.restore();
   if(s.kind==='lamp'&&s.lit){
    const f=.85+Math.sin(time*5.1+s.seed)*.15,glow=g.createRadialGradient(0,-118,0,0,-118,96);
    glow.addColorStop(0,'rgba(255,206,120,'+(.34*f).toFixed(3)+')');glow.addColorStop(.5,'rgba(255,170,80,'+(.10*f).toFixed(3)+')');glow.addColorStop(1,'rgba(255,150,60,0)');
@@ -366,6 +386,7 @@
   else if(s.kind==='fountain')fountain(g,s,time);
   else if(s.kind==='statue')statue(g,s,time);
   else if(s.kind==='garden')garden(g,s,time);
+  else if(s.kind==='banner')banner(g,s,time);
   else if(s.kind==='site')site(g,s,time);
   else if(s.kind==='noticeboard')noticeboard(g);
   else if(FOLK[s.kind]){g.save();g.scale(FOLK_SCALE,FOLK_SCALE);FOLK[s.kind](g,s,time);g.restore();}   /* drawn at handcart size, shown at the size of the townsfolk they stand among */
@@ -607,7 +628,7 @@
   }
   g.restore();
  }
- return Object.freeze({ANCHORS,TINT,ART,props,assignHouses,stallSlots,lampSpots,stallCount,traffic,litter,bunting,vacant,onStreet,
+ return Object.freeze({ANCHORS,TINT,ART,props,assignHouses,stallSlots,lampSpots,bannerSpots,stallCount,traffic,litter,bunting,vacant,onStreet,
   CHIMNEYS,drawSmoke,MAX_STALLS,noticeBoard,streetLife,fireLevel,dressing,drawDressing,drawSnow,drawFireworks,
   drawProp,drawShadow,drawHouseWork,drawVacant,drawLitter,drawBunting,drawTraffic});
 });

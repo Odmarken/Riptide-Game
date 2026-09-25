@@ -43,7 +43,7 @@ const FG_ART={
 const fgArtFor=clsId=>{const a=FG_ART[clsId];return (a&&a.img.complete&&a.img.naturalWidth)?a:null;};
 /* 🏙 city art. CITY_HOUSES is indexed by a house's seed, so a terrace picks its faces
    deterministically and the same street looks the same every visit. */
-const CITY_ART_V=8; /* bump when a city asset is redrawn - the filenames stay put while the pictures
+const CITY_ART_V=10; /* bump when a city asset is redrawn - the filenames stay put while the pictures
                        behind them change, so without this a cached wall_gate_v.png survives a hard refresh */
 const cityImg=n=>{if(!cityImgs[n]){cityImgs[n]=new Image();cityImgs[n].src='assets/city/'+n+'.png?v='+CITY_ART_V;}return cityImgs[n];};
 const cityImgs={};
@@ -51,18 +51,22 @@ const cityArt=n=>{const im=cityImg(n);return im.complete&&im.naturalWidth?im:nul
 /* 🏛 A finished public work IS its own building: a front-on painting with its name carved on its sign
    (assets/city/work_<id>.png). h is the height it would like; the frontage of the terrace house it
    replaces caps it, so a university never shoulders its neighbours off the street. */
-const WORK_ART_H={exchange:400,university:410,hospital:370,arena:370,theatre:350,caravanserai:380,courthouse:370,customs:350,fleet:370,tenements:400,newquarter:400,brothel:370,library:360};
+const WORK_ART_H=Object.fromEntries(Object.entries({exchange:400,university:410,hospital:370,arena:370,theatre:350,caravanserai:380,courthouse:370,customs:350,fleet:370,tenements:400,newquarter:400,brothel:370,library:360}).map(([k,h])=>[k,Math.round(h*1.15)]));   /* 15 % bigger with the houses they stand in (2026-09-25) */
 /* Every house of a given face is drawn at exactly ONE size - a street of timber houses is a row of
    the same building, not siblings at random ages. h is that drawn height in world px; ar is the
    art's own aspect, hardcoded so placement can reserve the true frontage while the picture is still
    loading. lane marks the small faces narrow enough to line the back alleys. */
 const CATH_ART=8.0, CATH_FOOT=0.30;  /* cathedral art height and footprint offset, both as multiples of its r */
-const CITY_HOUSE={
+/* 🏠 2026-09-25: every face drawn 15 % bigger (HOUSE_GROW). lh is the height the terrace candidates are still laid out with,
+   so they draw exactly the same seeded numbers and the townsfolk are not rerolled; the spacing pass then reserves the
+   bigger painting (h) and moves or drops whatever no longer fits. */
+const HOUSE_GROW=1.15;
+const CITY_HOUSE=Object.fromEntries(Object.entries({
  house_timber  :{h:245,ar:0.616,lane:1}, house_stair   :{h:265,ar:0.768,lane:1},
  house_stone   :{h:305,ar:0.530,lane:1}, house_shop    :{h:285,ar:0.914},
  house_turret  :{h:340,ar:0.743},        house_tenement:{h:375,ar:0.556},
  house_manor   :{h:405,ar:0.676},
-};
+}).map(([k,f])=>[k,{...f,lh:f.h,h:Math.round(f.h*HOUSE_GROW)}]));
 /* 👑 The palace stair at the far east end of the great boulevard - the way up to the Throne Hall. The
    painting (assets/city/palacestair.png, Higgsfield gpt_image_2_5 2026-09-19, second take) is drawn in
    the same flat top-down projection and the same grey-brown stone as the curtain wall: a straight
@@ -195,7 +199,11 @@ const NPC_SKINS={male:'npc_male',female:'npc_female',sebbe:'npc_sebbe',guard:'np
  /* 👑 the court of the Throne Hall, drawn 2026-09-19 the same way */
  king:'npc_king',king_beggar:'npc_king_beggar',kings_hand:'npc_kings_hand',royal_guard:'npc_royal_guard',
  /* ⚓ the people of the Harbour, drawn 2026-09-21 the same way */
- sailor:'npc_sailor',pirate:'npc_pirate',pirate_captain:'npc_pirate_captain',dockhand:'npc_dockhand',harbour_master:'npc_harbour_master',fishwife:'npc_fishwife'};
+ sailor:'npc_sailor',pirate:'npc_pirate',pirate_captain:'npc_pirate_captain',dockhand:'npc_dockhand',harbour_master:'npc_harbour_master',fishwife:'npc_fishwife',
+ /* ⛵ the people of Blackbeard's ports of call and the Free Company, drawn 2026-09-25 the same way; the four rulers are their ledger portraits */
+ silver_guard:'npc_silver_guard',raven_soldier:'npc_raven_soldier',foundry_worker:'npc_foundry_worker',spice_merchant:'npc_spice_merchant',
+ mercenary:'npc_mercenary',mercenary_b:'npc_mercenary_b',merc_recruiter:'npc_merc_recruiter',
+ ruler_sigvald:'npc_ruler_sigvald',ruler_roderic:'npc_ruler_roderic',ruler_aldric:'npc_ruler_aldric',ruler_isaura:'npc_ruler_isaura'};
 const npcSkinCache={};
 function npcSkinImage(skin){
  if(!skin)return null;
@@ -753,14 +761,16 @@ const RACES=[
 /* legacy race/class ids from old saves and multiplayer peers → the new plain names */
 const RACE_ALIAS={stoneborn:'dwarf',sylvan:'orc',gravekin:'undead'};
 const CLASS_ALIAS={cleric:'priest'};
+/* Every class swings on the same 0.72 s basic-attack cooldown. The haste boost speeds up basic attacks only, so the
+   old .95/1.0 swings left warrior, mage and priest ~40% behind the hunter at high prestige. */
 const CLASSES=[
- {id:'warrior',name:'Warrior',desc:'Heavy blade up close. Cleaving strikes and war-shouts.',hp:125,atk:12,crit:5,armor:0.05,range:40,cd:.95,mana:55,
+ {id:'warrior',name:'Warrior',desc:'Heavy blade up close. Cleaving strikes and war-shouts.',hp:125,atk:12,crit:5,armor:0.05,range:40,cd:.72,mana:55,
   spells:[
    {n:'Heroic Strike',g:'⚔️',cost:12,cd:4,t:'st',mul:2.1,d:'A crushing blow for 210% damage.',vfx:'slash'},
    {n:'Whirlwind',g:'🌀',cost:22,cd:8,t:'aoe',mul:1.5,rad:100,d:'Spin, hitting all nearby foes for 150%.',vfx:'whirl'},
    {n:'Battle Shout',g:'📯',cost:18,cd:28,t:'buff',buff:'atk',val:1.35,dur:10,d:'+35% attack for 10s.',vfx:'shout'},
   ]},
- {id:'mage',name:'Mage',desc:'Ranged bolts of flame and frost. Fragile but ferocious.',hp:85,atk:15,crit:6,armor:0.04,range:175,cd:1.0,ranged:true,boltC:'#ff9a4a',mana:90,
+ {id:'mage',name:'Mage',desc:'Ranged bolts of flame and frost. Fragile but ferocious.',hp:85,atk:15,crit:6,armor:0.04,range:175,cd:.72,ranged:true,boltC:'#ff9a4a',mana:90,
   spells:[
    {n:'Fireball',g:'🔥',cost:14,cd:4,t:'st',mul:2.6,d:'Hurl fire for 260% damage.',vfx:'fire'},
    {n:'Frost Nova',g:'❄️',cost:24,cd:9,t:'aoe',mul:1.3,rad:115,slow:3,d:'130% frost damage and slows foes 3s.',vfx:'frost'},
@@ -772,7 +782,7 @@ const CLASSES=[
    {n:'Multi-Shot',g:'🏹',cost:22,cd:8,t:'multi',mul:1.4,hits:3,d:'Arrows at up to 3 foes, 140% each.',vfx:'arrow'},
    {n:'Rapid Fire',g:'💨',cost:20,cd:28,t:'buff',buff:'haste',val:1.6,dur:6,d:'+60% attack speed for 6s.',vfx:'shout'},
   ]},
- {id:'priest',name:'Priest',desc:'Holy smiting and healing light.',hp:112,atk:11,crit:8,armor:0.02,range:40,cd:.95,mana:85,
+ {id:'priest',name:'Priest',desc:'Holy smiting and healing light.',hp:112,atk:11,crit:8,armor:0.02,range:40,cd:.72,mana:85,
   spells:[
    {n:'Smite',g:'☀️',cost:12,cd:4,t:'st',mul:2.0,heal:.06,d:'200% holy damage, heals you 6%.',vfx:'holy'},
    {n:'Holy Nova',g:'✴️',cost:24,cd:9,t:'aoe',mul:1.3,rad:115,heal:.15,d:'130% to nearby foes, heals you 15%.',vfx:'holy'},
@@ -952,6 +962,20 @@ const ZONES=[
  /* ⚓ The Harbour under the City - through the gatehouse at the south end of the central avenue and down the cliff. */
  {name:'The Harbour',lvl:1,amb:'tavern',special:true,harbor:true,noBerg:true,noTrees:true,en:[],
   ground:'#0f4f66',ground2:'#0c4258',water:'#0f4f66',tree:'#51483a',tree2:'#3c342a',path:'#7d7563'},
+ /* ⛵ Blackbeard's ports of call (2026-09-25): whole towns built by TownWorld (assets/city/town-world.js, one file each in
+    assets/city/towns/), reached only on the Black Tide. Like the Harbour they are special, level-free and enemy-free, and a
+    save made in one is written down as the City with a note (saveSnapshot) - an older build knows none of them. */
+ {name:'Silverfjord',lvl:1,amb:'tavern',special:true,town:'silverfjord',noBerg:true,noTrees:true,en:[],
+  ground:'#5f8a4c',ground2:'#557d44',water:'#0c4a66',tree:'#51483a',tree2:'#3c342a',path:'#d9dde2'},
+ {name:'Ravenholt',lvl:1,amb:'tavern',special:true,town:'ravenholt',noBerg:true,noTrees:true,en:[],
+  ground:'#b9bec2',ground2:'#a6acb1',water:'#1f4452',tree:'#51483a',tree2:'#3c342a',path:'#6c7178'},
+ {name:'Emberfall',lvl:1,amb:'tavern',special:true,town:'emberfall',noBerg:true,noTrees:true,en:[],
+  ground:'#3a3230',ground2:'#2e2826',water:'#2a3438',tree:'#51483a',tree2:'#3c342a',path:'#7a3a28'},
+ {name:'Port Meridian',lvl:1,amb:'tavern',special:true,town:'meridian',noBerg:true,noTrees:true,en:[],
+  ground:'#d6b98a',ground2:'#c9aa78',water:'#11607a',tree:'#51483a',tree2:'#3c342a',path:'#e7cf9f'},
+ /* 👑 inside King Sigvald's palace in Silverfjord: the throne hall, the council chamber and the jail (towns/sf_palace.js) */
+ {name:'Palace of Silverfjord',lvl:1,amb:'tavern',special:true,town:'sf_palace',interior:true,noBerg:true,noTrees:true,en:[],
+  ground:'#e8e4dc',ground2:'#d8d4cc',water:'#120e0a',tree:'#51483a',tree2:'#3c342a',path:'#d9dde2'},
 ];
 const TAVERN_ZONE=ZONES.findIndex(z=>z.tavern);
 const ALTAR_ZONE=ZONES.findIndex(z=>z.altar);
@@ -961,6 +985,7 @@ const WASTELAND_ZONE=ZONES.findIndex(z=>z.wasteland);
 const TIDE_GUILD_ZONE=ZONES.findIndex(z=>z.tideguild);
 const THRONE_ZONE=ZONES.findIndex(z=>z.throne);
 const HARBOR_ZONE=ZONES.findIndex(z=>z.harbor);
+const townZone=id=>ZONES.findIndex(z=>z.town===id);   /* ⛵ a port of call is found by its TownWorld id */
 /* ⚓ the Harbour's paintings, by the names HarborWorld asks for (three of them are the City's own) */
 let harborImageSet=null;
 function harborImages(){
@@ -1061,6 +1086,163 @@ function harborGateFade(){
  const ex=1-Math.max(0,(dx-G.w*.32)/(G.w*.18+30)),ey=Math.min(1,dy/120);
  return 1-.56*Math.max(0,Math.min(1,ex))*ey;
 }
+/* ==================== ⛵ BLACKBEARD'S PORTS OF CALL ==================== */
+/* Captain Blackbeard takes the Black Tide from the Harbour under the City to the towns of assets/city/towns/ - Silverfjord,
+   Ravenholt, Emberfall and Port Meridian - and home again. Each town is a zone of its own ({town:id} in ZONES) built by
+   TownWorld; you land on its pier beside him and his ship. The destinations are read off TownWorld's register and the zone
+   table, so a new port is one more town file and one more zone line. The crossing is free. */
+let townImageSets={};
+function townImages(id){
+ id=id||(zoneOf()&&zoneOf().town);
+ if(!id)return {};
+ if(!townImageSets[id]){const set={};for(const k of TownWorld.imagesFor(id))set[k]=cityImg(k);townImageSets[id]=set;}
+ return townImageSets[id];
+}
+const HOME_PORT=Object.freeze({x:1180,y:3050});   /* the Harbour: on the head of Pier A, beside Blackbeard and the Black Tide */
+function voyageList(){
+ const here=zoneOf()||{};
+ const list=[{id:'home',name:'The Harbour',icon:'⚓',blurb:'Home: the quay under the City, and the flight up to its streets.',zone:HARBOR_ZONE,here:!!here.harbor}];
+ for(const t of TownWorld.list()){if(t.interior)continue;const i=townZone(t.id);if(i>=0)list.push({id:t.id,name:t.name,icon:t.icon||'⛵',blurb:t.blurb||'',zone:i,here:here.town===t.id});}   /* a palace is not a port */
+ return list;
+}
+const BLACKBEARD_ASKS=['Where to, then?','The tide is with us. Name the port.','Pick a harbour - any harbour but the bottom of the sea.'];
+function openVoyage(){
+ if(!gameOn||!S||!hero||hero.dead||TideUI.isBattling())return;
+ const n=world&&world.npcs&&world.npcs.find(n=>n.voyage);
+ if(n){n.fx=hero.x>n.x?1:-1;n.bubble={txt:BLACKBEARD_ASKS[Math.floor(Math.random()*BLACKBEARD_ASKS.length)],t:5,life:5};}
+ renderVoyage();$('voyageFx').style.display='flex';sfx.buy();
+}
+function renderVoyage(){
+ const box=$('voyageList');if(!box)return;
+ box.innerHTML=voyageList().map(d=>`<button type="button" class="voyage-dest${d.here?' here':''}" data-voyage="${d.id}"${d.here?' disabled':''}><span class="voyage-icon" aria-hidden="true">${d.icon}</span><span class="voyage-text"><b>${d.name}</b><small>${d.blurb}</small></span><span class="voyage-tag">${d.here?'You are here':'Set sail'}</span></button>`).join('');
+ for(const b of box.querySelectorAll('[data-voyage]'))b.onclick=()=>setSail(b.dataset.voyage);
+}
+function setSail(id){
+ const d=voyageList().find(d=>d.id===id);
+ if(!d||d.here||d.zone<0||!gameOn||!hero||hero.dead||TideUI.isBattling())return;
+ $('voyageFx').style.display='none';
+ if(mp.on)mpLeave(false);
+ const at=id==='home'?HOME_PORT:TownWorld.town(id).arrival;
+ expeditionSpawn={zone:d.zone,x:at.x,y:at.y};
+ voyageVeil(d.name);
+ goToZone(d.zone);
+ stageMsg('⛵ The Black Tide makes port: '+d.name,2600);
+ log('⛵ Captain Blackbeard brings the Black Tide into '+d.name+'.');
+}
+/* a curtain of sea over the crossing: it is up before the new port is built and lifts off it */
+function voyageVeil(name){
+ let v=$('voyageVeil');
+ if(!v){v=document.createElement('div');v.id='voyageVeil';v.setAttribute('aria-hidden','true');document.body.appendChild(v);}
+ v.textContent='⛵ The Black Tide sails for '+name+'…';
+ clearTimeout(v._lift);clearTimeout(v._gone);
+ v.classList.remove('lift');v.classList.add('up');void v.offsetWidth;
+ v._lift=setTimeout(()=>{v.classList.add('lift');v._gone=setTimeout(()=>v.classList.remove('up','lift'),1300);},650);
+}
+/* the towns talk like the quay does: bubbles run their time, and now and then somebody near you says his piece */
+const TOWN_CRIES={...HARBOR_CRIES,
+ silver_guard:['Move along, citizen.','Silverfjord watches.','Mind the fountain - it is older than you.'],
+ raven_soldier:['For the Margrave!','Keep moving.','Cold enough for you?'],
+ foundry_worker:['Coal! More coal!','Hot metal - make way!','Mind your eyebrows.'],
+ mercenary:['Coin first, questions never.','Twenty blades a contract.','The Company fights for whoever pays.'],
+ mercenary_b:['Four wars. Won three of them.','Sharp steel, fair price.','Stand aside, friend.'],
+ spice_merchant:['Saffron! Cinnamon! Cardamom!','Smell that? That is money.','A pinch for luck!'],
+ blacksmith:['Hammer, heat, hammer.','Iron does not lie.'],market_woman:['Fresh today!','Two for one, just this once!'],
+ noble_lady:['Have you seen the new silks?','Charming. Truly.'],noble_dandy:['Splendid weather for a stroll.','One must be seen.'],
+ monk:['Peace be on your road.','The tide gives, the tide takes.'],guard:['Keep the peace.','Move along.']};
+function townTick(dt){
+ if(!world||!world.town||!world.npcs)return;
+ for(const n of world.npcs)if(n.bubble&&(n.bubble.t-=dt)<=0)n.bubble=null;
+ world.cryT=(world.cryT===undefined?5:world.cryT)-dt;
+ if(world.cryT>0||!hero)return;
+ world.cryT=8+Math.random()*8;
+ const near=world.npcs.filter(n=>!n.say&&!n.bubble&&!n.voyage&&TOWN_CRIES[n.skin]&&Math.hypot(n.x-hero.x,n.y-hero.y)<620);
+ if(!near.length)return;
+ const n=near[Math.floor(Math.random()*near.length)],lines=TOWN_CRIES[n.skin];
+ n.bubble={txt:lines[Math.floor(Math.random()*lines.length)],t:4.5,life:4.5};
+}
+/* a click on Blackbeard opens the voyage (in the Harbour too); in a town, on the recruiter the Free Company's book, and on
+   anybody with something to say a word from them - walking over first when they are out of reach */
+function townWorldClick(wx,wy){
+ const z=zoneOf();
+ if(!world||!world.npcs||!hero||!(z.town||z.harbor))return false;
+ const pick=z.town?n=>n.voyage||n.game==='recruiter'||n.say:n=>n.voyage;
+ const n=world.npcs.find(n=>pick(n)&&Math.abs(wx-n.x)<38&&wy>n.y-100&&wy<n.y+22);
+ if(!n)return z.town?townLinkClick(wx,wy):false;
+ const open=n.voyage?openVoyage:n.game==='recruiter'?openMercs:()=>harborSpeak(n);
+ if(dist(hero,n)<130){open();return true;}
+ const ok=(x,y)=>z.town?TownWorld.contains(world,x,y,14):HarborWorld.contains(x,y,14);
+ const beside=[1,-1].map(k=>({x:n.x+k*56*(n.fx>0?1:-1),y:n.y+26})).find(q=>ok(q.x,q.y))||{x:n.x,y:n.y+30};
+ hero.target=null;hero.goPortal=false;hero.moveTo=beside;marker={...beside,t:0};hero.pendingDoor={s:n,open,rng:130};
+ return true;
+}
+function townHudLine(z){const t=TownWorld.town(z.town);return (t&&t.blurb)||'A port of call of the Black Tide.';}
+/* 🚪 the doors and stairs of a port (TownWorld links): walking onto one takes you through - to another town's zone (the
+   palace and back) or further along this map (a stair down to the jail) - and clicking its painting walks you to it */
+function townLinkTick(dt){
+ if(!world||!world.links||!hero||hero.dead||TideUI.isBattling())return;
+ if(world.linkCd>0){world.linkCd-=dt;return;}
+ for(const l of world.links)if(Math.hypot(hero.x-l.x,hero.y-l.y)<l.r){useTownLink(l);return;}
+}
+function useTownLink(l){
+ if(!gameOn||!hero||hero.dead)return;
+ if(l.to){
+  const z=townZone(l.to);if(z<0)return;
+  if(mp.on)mpLeave(false);
+  expeditionSpawn={zone:z,x:l.at.x,y:l.at.y};
+  goToZone(z);
+  if(world)world.linkCd=.8;
+  stageMsg((ZONES[z].interior?'👑 ':'⛵ ')+ZONES[z].name,1800);
+ }else{
+  hallStair(l.at,l.at.x<l.x?-1:1,'');
+  world.linkCd=.8;
+  stageMsg(l.label,1500,'#d8d2c4');
+ }
+}
+function townLinkClick(wx,wy){
+ if(!world||!world.links||!hero)return false;
+ const l=world.links.find(l=>(l.click&&wx>=l.click.x0&&wx<=l.click.x1&&wy>=l.click.y0&&wy<=l.click.y1)||Math.hypot(wx-l.x,wy-l.y)<l.r+30);
+ if(!l)return false;
+ hero.target=null;hero.goPortal=false;hero.pendingDoor=null;hero.moveTo={x:l.x,y:l.y};marker={x:l.x,y:l.y,t:0};   /* walking onto it is what opens it */
+ return true;
+}
+/* ⚔ The Free Company's book: Captain Hakon Stormgaard's terms, paid from the realm's treasury (CityEconomy.hireMercs) */
+let mercNote='';
+function openMercs(){
+ if(cityIsNewer())return;
+ if(!gameOn||!S||!S.city||!hero||hero.dead||TideUI.isBattling())return;
+ const n=world&&world.npcs&&world.npcs.find(n=>n.game==='recruiter');
+ if(n)n.fx=hero.x>n.x?1:-1;
+ mercNote='';renderMercs();$('mercFx').style.display='flex';sfx.buy();
+}
+function renderMercs(){
+ const box=$('mercBody');if(!box||!S||!S.city)return;
+ const v=CityEconomy.mercView(S.city),fmt=x=>Math.round(x).toLocaleString();
+ box.innerHTML=`<div class="merc-stats">
+  <div class="merc-stat"><small>Current mercenaries</small><b>${v.count}</b></div>
+  <div class="merc-stat"><small>Maximum mercenaries</small><b>${v.max}</b></div>
+  <div class="merc-stat"><small>Price</small><b>${fmt(v.price)} ◉ / ${v.batch}</b></div>
+  <div class="merc-stat"><small>Treasury</small><b class="${v.treasury<v.price?'short':''}">${fmt(v.treasury)} ◉</b></div>
+ </div>
+ <div class="merc-bar" role="img" aria-label="${v.count} of ${v.max} hired"><i style="width:${Math.round(100*v.count/v.max)}%"></i></div>
+ <button type="button" class="sbtn gold merc-hire" id="mercHire"${v.can?'':' disabled'}>Recruit ${v.batch} · ${fmt(v.price)} ◉</button>
+ ${v.can?'':`<p class="merc-why">${v.why}</p>`}`;
+ $('mercMsg').textContent=mercNote;
+ $('mercHire').onclick=()=>{
+  const w=CityEconomy.mercView(S.city);
+  if(!w.can){mercNote='';renderMercs();sfx.warn();return;}
+  confirmBox(`Hire <b>${w.batch} sellswords</b> of the Free Company for <b>${fmt(w.price)} ◉</b>?<br><small>Paid from the realm’s treasury - not your purse.</small>`,()=>{
+   if(!S||!S.city)return;
+   const r=CityEconomy.hireMercs(S.city);
+   if(r.ok){
+    mercNote='Mercenaries: '+r.count+' / '+CityEconomy.MERC_MAX;
+    log('⚔ '+r.text,'loot');sfx.buy();save();
+    const n=world&&world.npcs&&world.npcs.find(n=>n.game==='recruiter');
+    if(n)n.bubble={txt:'Signed and sealed. They sail for your City on the next tide.',t:5,life:5};
+   }else{mercNote='';sfx.warn();}
+   renderMercs();renderHUD();
+  });
+ };
+}
 /* ==================== 👑 THE THRONE HALL ==================== */
 /* Up the palace stair from the boulevard; back down through the doors at the foot of the hall.
    Coming home you land below the stair so the walk-in trigger does not fire again at once. */
@@ -1108,10 +1290,10 @@ function throneWorldClick(wx,wy){
   if(!target){ /* ⛓ the jail: the jailer keeps the book, a prisoner has something to say, the stairs are a walk away */
    const T=ThroneWorld,gaoler=world.npcs.find(n=>n.game==='gaol'),throne=world.solids.find(s=>s.kind==='throne');
    const inmate=world.npcs.find(n=>n.prisoner&&Math.abs(wx-n.x)<30&&wy>n.y-90&&wy<n.y+30);
-   if(gaoler&&Math.abs(wx-gaoler.x)<60&&wy>gaoler.y-100&&wy<gaoler.y+90){target=gaoler;movePoint={x:gaoler.x-10,y:gaoler.y+120};open=openGaol;range=170;}
+   if(gaoler&&Math.abs(wx-gaoler.x)<60&&wy>gaoler.y-100&&wy<gaoler.y+90){target=gaoler;movePoint={x:gaoler.x-80,y:Math.min(gaoler.y+60,T.GAOL.y+T.GAOL.h-20)};open=openGaol;range=170;}   /* he stands before his desk: walk up beside him */
    else if(inmate){target=inmate;movePoint={x:inmate.x,y:T.GAOL.y+50};open=()=>prisonerSpeak(inmate);range=150;}
-   else if(Math.abs(wx-T.STAIR.x-60)<90&&Math.abs(wy-T.STAIR_DOWN.y)<90){target=T.STAIR_DOWN;movePoint={...T.STAIR_DOWN};open=()=>{};range=1;}
-   else if(wx>T.GAOL.x+T.GAOL.w-20&&Math.abs(wy-T.STAIR_UP.y)<90&&wy>T.GAOL.y){target=T.STAIR_UP;movePoint={...T.STAIR_UP};open=()=>{};range=1;}
+   else if(Math.abs(wx-T.ARCH_DOWN.x)<110&&wy>T.ARCH_DOWN.y-290&&wy<T.ARCH_DOWN.y+40){target=T.STAIR_DOWN;movePoint={...T.STAIR_DOWN};open=()=>{};range=1;}   /* ⛓ a click on an arch walks you into it */
+   else if(Math.abs(wx-T.ARCH_UP.x)<110&&wy>T.ARCH_UP.y-290&&wy<T.ARCH_UP.y+40){target=T.STAIR_UP;movePoint={...T.STAIR_UP};open=()=>{};range=1;}
    else if((S.city.crowned||S.city.regency)&&throne&&Math.abs(wx-throne.x)<70&&wy>throne.y-260&&wy<throne.y+40){target=throne;movePoint={x:throne.x,y:throne.y+130};open=kingSpeak;range=190;}
   }
  }
@@ -1720,6 +1902,7 @@ function zoneTemplates(z){
   xp:Math.round(eHP(XL)/2.6*pr),gold:mobGold(z,1+i*0.10)}));
 }
 function zoneQuests(z){
+ if(z.town)return [{name:(z.interior?'👑 ':'⛵ ')+z.name,desc:townHudLine(z),need:999999}];
  if(z.harbor)return [{name:'⚓ The Harbour',desc:'The quay under the City. Two old pirate ships and a sloop lie at the piers; everybody here is a trader, to hear them tell it.',need:999999}];
  if(z.throne)return [{name:'👑 Throne Hall',desc:'The King holds court. His Hand keeps the crown’s books at the council table behind the throne - for the Master of Coin, when there is one.',need:999999}];
  if(z.tideguild)return [{name:'Tides Guild',desc:'Meet the guild beneath the City. Speak to the Battle keeper for a best-of-three Tide duel.',need:999999}];
@@ -1897,6 +2080,7 @@ function migrate(s){ /* fills fields missing from older saves */
  /* A save written by a NEWER build can stand in a zone this build has never heard of - the zone table
     is append-only, so an older exe or an old browser tab simply has a shorter one. Such a hero wakes
     up in Moonshine instead of taking the character list down with him. */
+ if(s.atTown){const t=ZONES.findIndex(z=>z.town===s.atTown);if(t>=0&&(s.zone|0)===CITY_ZONE){s.zone=t;delete s.atHarbor;}delete s.atTown;}   /* ⛵ written down as the City: wake in the port you sailed to */
  if(!ZONES[s.zone|0])s.zone=TAVERN_ZONE;
  s.tainted=false;
  s.taintV=0;
@@ -4834,7 +5018,7 @@ const CITY_FOLK=[
 ];
 /* what a skin says about its wearer: the gowns and the female hero costumes are women, and a hero
    costume key names the race whose boots it wears (defined here so the headless city builder has them) */
-function npcSkinFemale(skin){return /^(female|baker|market_woman|fishwife|noble_lady|noble_dowager|noble_maiden)$|female_/.test(skin||'');}
+function npcSkinFemale(skin){return /^(female|baker|market_woman|fishwife|noble_lady|noble_dowager|noble_maiden|ruler_isaura)$|female_/.test(skin||'');}
 function npcSkinCostume(skin){return /^(human|dwarf|orc|undead)(male|female)_(warrior|mage|hunter|priest)$/.exec(skin||'');}
 /* 🛡 the city watch: five guards in two patrols, each marching a closed round of the main streets in
    single file. The loops are corners of the grid; the lane keeps them on the south/east side of the
@@ -4950,8 +5134,9 @@ function spaceCityHouses(candidates,wallInset){
    const s=h.street,dx=s.x1-s.x0,dy=s.y1-s.y0,length=Math.hypot(dx,dy),ux=dx/length,uy=dy/length;
    const def=CITY_HOUSE[h.key],bottom=h.r*.30;
    // A south-facing row must allow the whole roof to rise behind its doorway.
-   const off=s.w/2+24+(dx?(h.side>0?def.h-bottom:h.r+16):h.hw);
-   const extent=Math.abs(ux)*h.hw+Math.abs(uy)*def.h/2;
+   const hwNow=def.h*def.ar/2;   /* the frontage of the painting as drawn now */
+   const off=s.w/2+24+(dx?(h.side>0?def.h-bottom:h.r+16):hwNow);
+   const extent=Math.abs(ux)*hwNow+Math.abs(uy)*def.h/2;
    for(let n=0;n<=32&&!next;n++){
     const shift=n===0?0:Math.ceil(n/2)*36*(n%2?1:-1),d=h.d+shift;
     if(d<extent+24||d>length-extent-24)continue;
@@ -5044,8 +5229,8 @@ function buildCity(R){
    while(d<L-150){
     const key=cityHouseKey(R()*100,alley);     /* cottages down the lanes, townhouses on the streets */
     const hd=CITY_HOUSE[key];
-    const hw=hd.h*hd.ar/2;                     /* the frontage this face really occupies */
-    const r=hd.h/7.8;                          /* collision circle, kept on the old r↔height relation */
+    const hw=hd.lh*hd.ar/2;                    /* the frontage this face occupied before it grew: candidates are laid out as they always were */
+    const r=hd.lh/7.8;                         /* collision circle, kept on the old r↔height relation */
     const off=s.w/2+24+hw;
     const x=s.x0+ux*d+nx*side*off, y=s.y0+uy*d+ny*side*off;
     if(R()>=0.15&&fits(x,y,r,hw))              /* the odd gap: a yard, a gate, a burnt-out plot */
@@ -5416,6 +5601,9 @@ function buildZone(){
  }else if(z.harbor){
   world=HarborWorld.create();   /* ⚓ module-built, like the hall: quay, piers, ships and the people of the quay */
   HarborWorld.IMAGES.forEach(n=>cityImg('harbor/'+n));HarborWorld.CITY_IMAGES.forEach(cityImg);
+ }else if(z.town){
+  world=TownWorld.create(z.town);   /* ⛵ a port of call: coast, streets, houses, ships and townsfolk, all from its town file */
+  townImages(z.town);
  }else if(z.throne){
   world=ThroneWorld.create();   /* 👑 the hall is a module-built interior like the guild */
   guildImages();['throne','council_table','hall_pillar','hall_brazier','wall_torch','ground/drain_cover'].forEach(cityImg);
@@ -5570,7 +5758,7 @@ function buildZone(){
    world.solids.push({x,y,r:rock?14+R()*8:12+R()*6,type:rock?'rock':'tree',s:0.5+R()*1.6,seed:R()*100}); /* same wide size spread as Moonshine */
   }
  }
- if(!expeditionZone(z)&&!z.tideguild&&!z.throne&&!z.harbor)for(let i=0;i<160;i++)world.deco.push({x:R()*world.w,y:R()*world.h,k:R()});
+ if(!expeditionZone(z)&&!z.tideguild&&!z.throne&&!z.harbor&&!z.town)for(let i=0;i<160;i++)world.deco.push({x:R()*world.w,y:R()*world.h,k:R()});
  if(expeditionSpawn&&expeditionSpawn.zone===S.zone){world.spawn={x:expeditionSpawn.x,y:expeditionSpawn.y};expeditionSpawn=null;}
  else if(z.city&&S.atPalace)world.spawn={...PALACE_FOOT}; /* 👑 logged out in the Throne Hall: wake up at the foot of its stair */
  else if(z.city&&S.atHarbor)world.spawn={...HARBOR_FOOT}; /* ⚓ logged out in the Harbour: wake up on the flight down to it */
@@ -5775,7 +5963,7 @@ function collectCowChest(){
 }
 function prerenderGround(z,R){
  groundCv=document.createElement('canvas');
- if(z.crypts||z.farm||z.city||z.tideguild||z.throne||z.harbor||expeditionZone(z)){groundCv.width=groundCv.height=16;return;} /* floor draws per frame - giant canvases sink phones */
+ if(z.crypts||z.farm||z.city||z.tideguild||z.throne||z.harbor||z.town||expeditionZone(z)){groundCv.width=groundCv.height=16;return;} /* floor draws per frame - giant canvases sink phones */
  groundCv.width=world.w;groundCv.height=world.h;
  const g=groundCv.getContext('2d');
  if(z.raid){ /* the Violet Halls floor - tiled at near-native scale, mirrored to hide seams */
@@ -5888,6 +6076,7 @@ function collide(e,nx,ny){
  if(world.guild&&!TideGuildWorld.contains(nx,ny,e.r||12))return true;
  if(world.throne&&!ThroneWorld.contains(nx,ny,e.r||12))return true;
  if(world.harbor&&!HarborWorld.contains(nx,ny,e.r||12))return true;
+ if(world.town&&!TownWorld.contains(world,nx,ny,e.r||12))return true;   /* ⛵ the coastline and the piers of a port of call */
  /* Bosses and cows ignore trees/rocks - the herd tramples straight through. */
  if((!e.boss||e.raid)&&!e.cow){
   for(const s of solidCell(nx,ny)){
@@ -7016,7 +7205,7 @@ function padPollButtons(){
 const PAD_PANELS=['confirmFx','outfitFx','iceReqMsg','iceMsg','gateMsg','cryptIntro', /* the small boxes that sit on top of everything come first - the pad answers the box on screen, not the panel under it */
  'cfgBox','tideHub','tideBattleFx','finalGateFx','sebbeFx','gvbFx','rtbFx','rouFx','bjFx','seaFx','slotFx','casinoMenu',
  'chestFx','seaBuyFx','sharkFx','ritualDoneFx','ritualFx','talentFx','smithFx','smithMenu','bankFx',
- 'restFx','fishhutMenu','mineFx','smeltFx','enchFx','ledgerFx','boardFx','stableFx','farmCheckoutFx','farmBuyFx','farmDelFx'];
+ 'restFx','fishhutMenu','mineFx','smeltFx','enchFx','ledgerFx','boardFx','voyageFx','mercFx','stableFx','farmCheckoutFx','farmBuyFx','farmDelFx'];
 const padPanelOpen=()=>{
  for(const id of PAD_PANELS){
   const e=$(id);
@@ -7086,8 +7275,16 @@ function padInteract(){
   add(PALACE_STEP,'Throne Hall',enterThroneHall,150);
   add(HARBOR_STEP,'The Harbour',enterHarbor,190);
  }else if(z.harbor){
-  for(const n of world.npcs)if(n.say)add(n,n.name,()=>harborSpeak(n),120);
+  for(const n of world.npcs)if(n.say&&!n.voyage)add(n,n.name,()=>harborSpeak(n),120);
+  add(world.npcs.find(n=>n.voyage),'Sail with Blackbeard',openVoyage,150);
   add({x:HarborWorld.FLIGHT.cx,y:HarborWorld.EXIT_Y+40},'City',leaveHarbor,130);
+ }else if(z.town){
+  for(const n of world.npcs){
+   if(n.voyage)add(n,'Sail with Blackbeard',openVoyage,150);
+   else if(n.game==='recruiter')add(n,'The Free Company',openMercs,150);
+   else if(n.say)add(n,n.name,()=>harborSpeak(n),120);
+  }
+  for(const l of world.links||[])add(l,l.label,()=>useTownLink(l),l.r+90);   /* 🚪 doors and stairs */
  }else if(z.throne){
   add(world.npcs.find(n=>n.game==='king'),'The King',kingSpeak,150);
   add(world.npcs.find(n=>n.game==='ledger'),'The Crown Ledger',openLedger,130);
@@ -7284,7 +7481,9 @@ cv.addEventListener('pointerdown',e=>{
  hero.pendingDoor=null; /* any new click cancels a pending walk-to-building */
  if(guildWorldClick(wx,wy))return;
  if(throneWorldClick(wx,wy))return;
+ if(townWorldClick(wx,wy))return;
  if(harborWorldClick(wx,wy))return;
+ mercWorldClick(wx,wy);   /* ⚔ a sellsword answers, and the click still walks you where you pointed */
  if(TideUI.wildClick(wx,wy))return;
  const training=world.training;
  if(training){
@@ -7811,10 +8010,11 @@ function autoBrain(dt){
   if(!autoOn('s'+i))return;
   if(sp.t==='hot'&&hero.hp<heroMax()*0.65)cast(i);
  });
- // aoe when surrounded
+ // aoe when surrounded - or when a boss stands inside it (a lone boss used to get no Whirlwind, Frost Nova or Holy Nova)
  c.spells.forEach((sp,i)=>{
-  if(!autoOn('s'+i))return;
-  if(sp.t==='aoe'&&enemies.filter(e=>!e.dead&&!e.hidden&&dist(hero,e)<=sp.rad).length>=2)cast(i);
+  if(!autoOn('s'+i)||sp.t!=='aoe')return;
+  const near=enemies.filter(e=>!e.dead&&!e.hidden&&dist(hero,e)<=sp.rad);
+  if(near.length>=2||near.some(e=>e.boss))cast(i);
  });
  // buffs vs boss or packs
  c.spells.forEach((sp,i)=>{
@@ -7866,6 +8066,8 @@ function update(dt){
  if(hero&&!hero.dead&&world&&world.exit&&zoneOf().throne&&Math.hypot(hero.x-world.exit.x,hero.y-world.exit.y)<60&&leaveThroneHall())return;
  if(hero&&!hero.dead&&world&&world.harbor&&hero.y<HarborWorld.EXIT_Y&&leaveHarbor())return;   /* ⚓ far enough up the flight: back to the City */
  if(world&&world.harbor)harborTick(dt);
+ if(world&&world.town){townTick(dt);townLinkTick(dt);}
+ if(world&&world.mercs)mercTick(dt);
  if(hero&&!hero.dead&&world&&world.throne&&!TideUI.isBattling()){ /* ⛓ down the stair in the west wall to the jail, and back up */
   const T=ThroneWorld;
   if(Math.hypot(hero.x-T.STAIR_DOWN.x,hero.y-T.STAIR_DOWN.y)<T.STAIR_DOWN.r)hallStair(T.GAOL_ARRIVE,-1,'⛓ The jail under the hall. '+gaolLine());
@@ -8016,7 +8218,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    }
    return;
   }
- }else if(!hallSceneHolds()&&!mountRide.casting&&!TideUI.modalOpen()&&$('stableFx').style.display!=='flex'&&!mineTick(dt)){ /* a word from the Hand, mounting, venue menus and mining keep the hero still */
+ }else if(!hallSceneHolds()&&!mountRide.casting&&!TideUI.modalOpen()&&$('stableFx').style.display!=='flex'&&$('voyageFx').style.display!=='flex'&&$('mercFx').style.display!=='flex'&&!mineTick(dt)){ /* a word from the Hand, mounting, venue menus and mining keep the hero still */
   if(holdMove){ /* finger still pressed - refresh the walk target to wherever it is now */
    const hr=cv.getBoundingClientRect();
    const hx=(holdMove.cx-hr.left)/zoom+camX,hy=(holdMove.cy-hr.top)/zoom+camY;
@@ -8238,7 +8440,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   }else pet.tideMotion=0;
  }
  mpHostRaidThreatTick(dt);
- if(zoneOf().tavern||zoneOf().city||zoneOf().throne||zoneOf().harbor)updateNpcs(dt); /* 🏙 the city has townsfolk too - without this they draw but never walk */
+ if(zoneOf().tavern||zoneOf().city||zoneOf().throne||zoneOf().harbor||zoneOf().town)updateNpcs(dt); /* 🏙 the city has townsfolk too - without this they draw but never walk */
  // ----- enemies -----
  for(const en of enemies){
   /* 🚶 walk-cycle state, identical to the farm animals: phase from distance actually
@@ -8667,7 +8869,10 @@ function draw(){
  ctx.drawImage(groundCv,0,0);
  const z=zoneOf();
  if(z.harbor)HarborWorld.renderGround(ctx,world,{x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom},{images:harborImages(),time:now});
- else if(z.throne)ThroneWorld.renderGround(ctx,world,{x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom},{images:{...guildImages(),wall_torch:cityImg('wall_torch'),drain_cover:cityImg('ground/drain_cover')},time:now});
+ else if(z.town)TownWorld.renderGround(ctx,world,{x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom},{images:townImages(z.town),time:now});
+ else if(z.throne)ThroneWorld.renderGround(ctx,world,{x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom},{images:{...guildImages(),wall_torch:cityImg('wall_torch'),drain_cover:cityImg('ground/drain_cover'),hall_door:cityImg('hall_door'),hall_runner:cityImg('hall_runner'),canopy:cityImg('throne_canopy'),
+  council_rug:cityImg('council_rug'),throne_dais:cityImg('throne_dais'),hall_wall_bay:cityImg('hall_wall_bay'),hall_wall_passage:cityImg('hall_wall_passage'),
+  council_wall_centre:cityImg('council_wall_centre'),council_wall_window:cityImg('council_wall_window'),hall_window:cityImg('hall_window'),barrels:cityImg('jail_barrels')},time:now});
  else if(z.tideguild)TideGuildWorld.renderGround(ctx,world,{x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom},{images:guildImages(),time:now});
  else if(expeditionZone(z)){
   const view={x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom};
@@ -8769,7 +8974,7 @@ function draw(){
  for(const s of world.travelDoors?world.solids.concat(world.travelDoors):world.solids){
   if(TideUI.isBattling())continue; /* the staged Tide duel uses a clear patch of the current terrain */
   if(s.type==='water'||s.type==='palacestair'||s.type==='harborstair')continue; /* 👑⚓ the palace stair and the harbour flight are ground, painted with the walls - their solids are only landmarks */
-  if(s.x<cx0-(s.floats?520:0)||s.x>cx1+(s.floats?520:0)||s.y<cy0||s.y>cy1+(s.floats?60:0))continue; /* off screen - the city has hundreds of these (a ship is judged by its length, not its anchor) */
+  if(s.x<cx0-(s.floats?520:s.half||0)||s.x>cx1+(s.floats?520:s.half||0)||s.y<cy0||s.y>cy1+(s.floats?60:0))continue; /* off screen - the city has hundreds of these (a ship is judged by its length, not its anchor) */
   if(s.mined)continue;   /* rubble now; the rock returns when the zone is rebuilt */
   if(world.hush&&squareHushed(s))continue;   /* ⚖️ the great square is cleared for the gallows - the well and all */
   drawPropShadow(s,z);
@@ -8798,6 +9003,11 @@ function draw(){
    }});
   }
  }
+ /* ⚔ the sellswords on the City's beats: only the ones on screen are queued */
+ if(world.mercs&&!TideUI.isBattling())for(const m of world.mercs){
+  if(m.x<cx0||m.x>cx1||m.y<cy0||m.y>cy1||(world.hush&&m.beat==='square'))continue;
+  drawables.push({y:m.y,f:()=>drawNpc(m)});
+ }
  if(world.stable&&!TideUI.isBattling())world.stable.paddock.displaySpots.forEach((spot,i)=>{
   if(spot.x<cx0||spot.x>cx1||spot.y<cy0||spot.y>cy1)return;
   const id=i?'leopard':'horse';
@@ -8822,6 +9032,7 @@ function draw(){
  for(const d of drawables)d.f();
  if(z.city&&world.flocks&&!TideUI.isBattling())CityGround.drawBirds(ctx,world.flocks,{x:cx0,y:cy0,w:cx1-cx0,h:cy1-cy0},cityGroundImages(),now,true);   /* 🕊 the pigeons you startled */
  if(z.harbor&&!TideUI.isBattling())HarborWorld.drawSky(ctx,world,{x:cx0,y:cy0,w:cx1-cx0,h:cy1-cy0},now,harborImages());   /* 🕊 gulls over the masts */
+ if(z.town&&!TideUI.isBattling())TownWorld.drawSky(ctx,world,{x:cx0,y:cy0,w:cx1-cx0,h:cy1-cy0},now,townImages(z.town));   /* ⛵ the port's own weather: snow, embers, gulls */
  if(z.amb==='odin'&&!TideUI.isBattling())HarborWorld.drawFlight(ctx,ODIN_RAVENS,{x:cx0,y:cy0,w:cx1-cx0,h:cy1-cy0},now,odinRavenImg,74,'#1c1c26');   /* 🐦‍⬛ Huginn and Muninn circle the gates */
  /* 🎆 the sky over the city: fireworks over a jubilant square, snow in a hard winter */
  if(z.city&&world.look&&!TideUI.isBattling()){
@@ -9246,6 +9457,8 @@ function drawPropShadow(s,z){
   CityGround.drawShadow(ctx,s);
  }else if(s.type==='harborprop'){
   HarborWorld.drawShadow(ctx,s);
+ }else if(s.type==='townprop'){
+  TownWorld.drawShadow(ctx,s);
  }else if(s.type==='throneprop'){
   ThroneWorld.drawShadow(ctx,s);
  }else if(s.type==='citywork'){
@@ -9434,11 +9647,14 @@ function drawProp(s,z,withShadow=true){
  }else if(s.type==='citydecor'){
   const im=cityGroundImages(),f=CityGround.frame(s,im);   /* 🌳 a tree fades like a house when the hero walks behind it */
   CityGround.drawProp(ctx,s,performance.now()/1000,im,{alpha:f&&f.tall?seeThrough(s,f.W,f.H,f.top):1});
+ }else if(s.type==='townprop'){
+  const im=townImages(),f=TownWorld.frame(s,im);   /* ⛵ a house, a ship or a wall of a port of call fades when the hero is behind it */
+  TownWorld.drawProp(ctx,s,performance.now()/1000,im,{alpha:f&&f.H>140&&!/stair/.test(s.kind)?seeThrough(s,f.W,f.H,f.top):1,mip});   /* a stair arch is walked into, never seen through */
  }else if(s.type==='harborprop'){
   const im=harborImages(),f=HarborWorld.frame(s,im);   /* ⚓ a ship, a house or the crane fades like any building the hero has walked behind */
   HarborWorld.drawProp(ctx,s,performance.now()/1000,im,{alpha:f&&f.H>140?seeThrough(s,f.W,f.H,f.top):1});
  }else if(s.type==='throneprop'){
-  ThroneWorld.drawProp(ctx,s,performance.now()/1000,{...guildImages(),throne:cityImg('throne'),table:cityImg('council_table'),pillar:cityImg('hall_pillar'),brazier:cityImg('hall_brazier'),gaoldesk:cityImg('gaol_desk'),bars:cityImg('cell_bars'),bricked:cityImg('cell_bricked')});
+  ThroneWorld.drawProp(ctx,s,performance.now()/1000,{...guildImages(),throne:cityImg('throne'),table:cityImg('council_table'),pillar:cityImg('hall_pillar'),brazier:cityImg('hall_brazier'),gaoldesk:cityImg('gaol_desk'),barrels:cityImg('jail_barrels'),bars:cityImg('cell_bars'),bricked:cityImg('cell_bricked'),stairdown:cityImg('jail_stair_down'),stairup:cityImg('jail_stair_up'),canopy:cityImg('throne_canopy'),candelabra:cityImg('council_candelabra'),globe:cityImg('council_globe'),chest:cityImg('council_chest')});
   /* (the readout that used to float over the council table - people, council, draw, trust - was taken down 2026-09-22: the ledger's Overview says it all, and the hero panel opens it from anywhere) */
  }else if(s.type==='gallows'){ /* ⚖️ the scaffold on the square (assets/city/gallows.png): stands at s.y, its deck GALLOWS.deck of its height up; the rope runs from the beam to whoever hangs from it */
   const im=cityImg('gallows');
@@ -10238,7 +10454,7 @@ function drawNpc(n){
  }
  ctx.restore();
  if(n.protest&&n.protest.sign)drawProtestSign(n,body,by,size);
- if(n.guildRole!=='member'&&!n.protest&&!n.brawl&&!n.prisoner){ /* ✊ a marching block wears its placards, not two dozen overlapping names; ⛓ a prisoner's name hangs on his grille */
+ if(n.guildRole!=='member'&&!n.protest&&!n.brawl&&!n.prisoner&&!(n.nameNear&&(!hero||Math.hypot(hero.x-n.x,hero.y-n.y)>n.nameNear))){   /* ⚔ a sellsword's name only when you are close */ /* ✊ a marching block wears its placards, not two dozen overlapping names; ⛓ a prisoner's name hangs on his grille */
   const ny=((body?body.headY:-37)-3+by)*size;
   ctx.font='700 '+(n.game?11:10)+'px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(n.name,1,ny+1);
@@ -10596,7 +10812,7 @@ function applyZoneUI(){
  if($('stableFx'))$('stableFx').style.display='none';
  /* 🧳 whatever belonged to the last place stays there: the full Crown Ledger is a table in the Throne
     Hall, not something to carry down the road, and a raid that was left by any door is left for real */
- for(const id of ['ledgerFx','boardFx']){const e=$(id);if(e&&e.style.display!=='none')e.style.display='none';}
+ for(const id of ['ledgerFx','boardFx','voyageFx','mercFx']){const e=$(id);if(e&&e.style.display!=='none')e.style.display='none';}
  if(mp.on&&mp.started&&!zoneOf().raid)mpLeave(false);
  refreshCombatAutoControls();
  updateMountButton();
@@ -10639,6 +10855,11 @@ function renderHUD(){
  if(z.harbor){
   $('qName').textContent='⚓ The Harbour';$('qDesc').textContent='The quay under the City. The flight in the cliff takes you back up.';
   $('qBar').style.width='100%';$('qCount').textContent='⚓';$('nextBtn').style.display='none';
+  $('autoBtn').classList.toggle('on',S.auto);$('autoBtn').textContent=S.auto?'AUTO ✓':'AUTO';refreshOpenPanel();return;
+ }
+ if(z.town){
+  $('qName').textContent=(z.interior?'👑 ':'⛵ ')+z.name;$('qDesc').textContent=townHudLine(z);
+  $('qBar').style.width='100%';$('qCount').textContent=z.interior?'👑':'⛵';$('nextBtn').style.display='none';
   $('autoBtn').classList.toggle('on',S.auto);$('autoBtn').textContent=S.auto?'AUTO ✓':'AUTO';refreshOpenPanel();return;
  }
  if(z.throne){
@@ -11139,7 +11360,7 @@ function renderMap(){
   if(mapContinent==='raid'&&!z.raidc)return '';
   if(z.tavern)return '';
   if(z.special){
-   if(z.altar||z.farm||z.city||z.tideguild||z.throne||z.harbor||z.finalb||expeditionZone(z))return ''; /* portal-only zones */
+   if(z.altar||z.farm||z.city||z.tideguild||z.throne||z.harbor||z.town||z.finalb||expeditionZone(z))return ''; /* portal-only zones (⛵ the ports of call: by ship only) */
    if(z.crypts){
     const p20=(S.prestige||0)>=20;
     return `<div class="card zonecard ${p20?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${p20?'#a66bd0':''}">
@@ -14270,7 +14491,82 @@ function prisonerSpeak(n){
  log('⛓ <b>'+n.name+'</b> - '+n.crime+': “'+line+'”');
 }
 const openGaol=()=>openLedger('gaol');
-function cityApplyAll(){cityApplyPeople();cityApplyProtest();cityApplyUnrest();cityApplyWatch();cityApplyWorks();cityCouncilMarks();hallApply();}
+function cityApplyAll(){cityApplyPeople();cityApplyProtest();cityApplyUnrest();cityApplyWatch();cityApplyWorks();cityCouncilMarks();hallApply();cityApplyMercs();}
+/* ⚔ The sellswords in the City (2026-09-25): every one the treasury has paid for walks a beat of his own - posts at the west
+   gate, the palace, the harbour gate, the cathedral and the foot of the walls, rounds of the boulevard, the great square, the
+   streets and the avenues. The first contract already covers the gates and the main roads; the rest fill in. They are not
+   townsfolk: they live in world.mercs, where each one is is worked out from one clock (nothing is simulated per man), and
+   only the ones on screen are drawn. Their number is S.city.mercs, so they are saved with the realm's books. */
+const MERC_NAMES=['Aldo','Bram','Corin','Dario','Egon','Falk','Garrit','Hugo','Ivar','Jory','Kasimir','Lukas','Marek','Nils','Osric','Pavel','Quinn','Rurik','Stellan','Tobin','Ulf','Vidar','Wendel','Yorick','Zeno','Anselm','Berto','Cato','Dagfinn','Emrys'];
+const MERC_SAY=['The gate is shut to trouble.','Paid and on the wall.','Nothing gets past the Company.','Quiet night. I like quiet nights.','Your treasury pays well. We remember that.'];
+let mercSlots=null;
+function mercBeats(){   /* built on first use: the City's own constants are ready by then */
+ const ring=[];for(let i=0;i<16;i++){const a=i/16*Math.PI*2;ring.push([Math.round(8400+Math.cos(a)*470),Math.round(2600+Math.sin(a)*470)]);}
+ const box=(x0,y0,x1,y1)=>[[x0,y0],[x1,y0],[x1,y1],[x0,y1]];
+ return [
+  {id:'gate',posts:[[440,2462],[440,2738]]},
+  {id:'palace',posts:[[16300,2468],[16300,2732]]},
+  {id:'harbour',posts:[[HARBOR_MOUTH.x-70,HARBOR_MOUTH.y-80],[HARBOR_MOUTH.x+70,HARBOR_MOUTH.y-80]]},
+  {id:'square',loop:ring,n:8},
+  {id:'boulevard-w',loop:box(900,2500,7700,2700),n:8},
+  {id:'boulevard-e',loop:box(9100,2500,15700,2700),n:10},
+  {id:'cathedral',posts:[[8320,1700],[8480,1700]]},
+  {id:'north-w',loop:box(2700,1216,7900,1256),n:6},
+  {id:'north-e',loop:box(8900,1216,14100,1256),n:6},
+  {id:'south',loop:box(2700,4060,14100,4100),n:12},
+  {id:'walls',posts:[[2600,640],[5500,640],[11300,640],[14200,640],[2600,4560],[5500,4560],[11300,4560],[14200,4560],[500,1180],[16300,1180]]},
+  {id:'av-2600',loop:box(2548,640,2652,4560),n:8},
+  {id:'av-5500',loop:box(5448,640,5552,4560),n:8},
+  {id:'av-11300',loop:box(11248,640,11352,4560),n:8},
+  {id:'av-14200',loop:box(14148,640,14252,4560),n:8},
+ ];
+}
+function mercSlotList(){   /* round by round over the beats: the first twenty cover every gate and the main roads */
+ if(mercSlots)return mercSlots;
+ const beats=mercBeats(),out=[];
+ for(let round=0;round<40&&out.length<CityEconomy.MERC_MAX;round++)for(const b of beats)if(round<(b.posts?b.posts.length:b.n))out.push({beat:b,k:round});
+ return mercSlots=out.slice(0,CityEconomy.MERC_MAX);
+}
+function cityApplyMercs(){
+ if(!world||!zoneOf().city||!S||!S.city)return;
+ const n=CityEconomy.mercView(S.city).count;
+ if(world.mercs&&world.mercs.length===n)return;
+ const slots=mercSlotList();world.mercs=[];
+ for(let i=0;i<n&&i<slots.length;i++){
+  const {beat,k}=slots[i];
+  const m={name:'Sellsword '+MERC_NAMES[i%MERC_NAMES.length],skin:i%3===2?'mercenary_b':'mercenary',race:'human',cls:'warrior',female:false,big:1.08,
+   guard:true,merc:true,nameNear:320,beat:beat.id,x:0,y:0,fx:1,walk:i*.7,moving:false,i:0,pts:[]};
+  if(beat.posts){const [px,py]=beat.posts[k];Object.assign(m,{x:px,y:py,fx:k%2?-1:1,post:true});}
+  else{
+   const pts=beat.loop.map(([x,y])=>({x,y})),seg=[];let len=0;
+   for(let j=0;j<pts.length;j++){const a=pts[j],b=pts[(j+1)%pts.length],l=Math.hypot(b.x-a.x,b.y-a.y);seg.push({a,b,l,at:len});len+=l;}
+   Object.assign(m,{seg,len,ph:len*k/beat.n,sp:42+((i*37)%17)});
+  }
+  world.mercs.push(m);
+ }
+ mercTick(0);
+}
+function mercTick(dt){
+ if(!world||!world.mercs||!world.mercs.length)return;
+ const t=world.mercClock=(world.mercClock||0)+dt;
+ for(const m of world.mercs){
+  if(m.bubble&&(m.bubble.t-=dt)<=0)m.bubble=null;
+  if(m.post)continue;
+  const d=(m.ph+t*m.sp)%m.len;let s=m.seg[0];
+  for(const q of m.seg)if(d>=q.at)s=q;
+  const u=(d-s.at)/(s.l||1),x=s.a.x+(s.b.x-s.a.x)*u,y=s.a.y+(s.b.y-s.a.y)*u;
+  if(Math.abs(x-m.x)>.05)m.fx=x>m.x?1:-1;
+  m.x=x;m.y=y;m.moving=dt>0;m.walk+=dt*m.sp*.06;
+ }
+}
+function mercWorldClick(wx,wy){
+ if(!world||!world.mercs||!zoneOf().city||!hero)return false;
+ const m=world.mercs.find(m=>Math.abs(wx-m.x)<32&&wy>m.y-92&&wy<m.y+20&&Math.hypot(hero.x-m.x,hero.y-m.y)<420);
+ if(!m)return false;
+ m.bubble={txt:MERC_SAY[Math.floor(Math.random()*MERC_SAY.length)],t:4.5,life:4.5};
+ if(m.post)m.fx=hero.x>m.x?1:-1;
+ return true;
+}
 function cityLedgerClose(){
  if(!S||!S.city)return;
  const was=S.city.protest,lookWas=cityLook();
@@ -14375,6 +14671,8 @@ function boardAction(act,k){
 function openBoard(){
  if(cityIsNewer())return;if(!S||!S.city)return;boardNote='';if(CityEconomy.postBoard(S.city,Math.random))save();boardRefresh();$('boardFx').style.display='flex';}
 $('boardClose').onclick=()=>$('boardFx').style.display='none';
+$('voyageClose').onclick=()=>$('voyageFx').style.display='none';   /* ⛵ */
+$('mercClose').onclick=()=>$('mercFx').style.display='none';       /* ⚔ */
 $('boardBody').addEventListener('click',e=>{const b=e.target.closest('[data-bact]');if(!b||b.disabled)return;boardAction(b.dataset.bact,b.dataset.k);});
 /* 📜 The Hand meets the Duke he sent for. The first time a summoned hero steps through the door the hero stops where
    they stand, the Hand - who has been waiting half way down the carpet, not at his table - walks up to them, says his
@@ -14563,7 +14861,7 @@ function coronationTick(dt){
   else if(sc.pt>=6)next('gone');
  }else if(sc.phase==='flank'){
   if(sc.escorts.every(g=>coronationRoute(g,210,dt))){next('escort');sc.focus=king;
-   king.route=sc.fate==='exile'?[[T.KING.x,front],[T.EXIT.x,T.EXIT.y-30]]:[[T.KING.x,front],[T.HALL.x+130,front],[T.HALL.x+130,T.STAIR_DOWN.y],[T.HALL.x+40,T.STAIR_DOWN.y]];
+   king.route=sc.fate==='exile'?[[T.KING.x,front],[T.EXIT.x,T.EXIT.y-30]]:[[T.KING.x,front],[700,front],[700,T.ARCH_DOWN.y+70],[T.ARCH_DOWN.x,T.ARCH_DOWN.y+70],[T.STAIR_DOWN.x,T.STAIR_DOWN.y]];   /* down the aisle inside the pillars, round to the jail arch's mouth */
    log('⚔️ Two of the Royal Guard take the King by the arms'+(sc.fate==='exile'?' and walk him to the doors.':' and walk him toward the stair to his own jail.'));}
  }else if(sc.phase==='escort'){
   const done=king?coronationRoute(king,250,dt):true;
@@ -15301,7 +15599,7 @@ function ledgerRefresh(){
  document.querySelectorAll('[data-ltab]').forEach(b=>{const on=b.dataset.ltab===ledgerTab||(ledgerTab==='talk'&&b.dataset.ltab==='allies');b.classList.toggle('active',on);b.setAttribute('aria-selected',on);b.disabled=!S.city.chartered||!!S.city.bankRule;b.tabIndex=on?0:-1;b.id='ledger-tab-'+b.dataset.ltab;b.setAttribute('aria-controls','ledgerBody');});
  dot('bank',S.city.chartered&&(S.city.treasury<0||!S.city.reviewSeen)&&ledgerTab!=='bank');
  $('ledgerHelp').setAttribute('aria-pressed',ledgerTab==='help');
- dot('people',S.city.incidents.length>0||S.city.protest);dot('council',!!S.city.petition);
+ dot('people',S.city.incidents.length>0||S.city.protest);dot('council',!!S.city.petition);councilAlarm();
  dot('allies',S.city.chartered&&CityEconomy.alliesView(S.city).list.some(a=>a.canBuy));
  {const at=document.querySelector('[data-ltab="allies"]');if(at&&ledgerTab==='talk'){at.classList.add('active');at.setAttribute('aria-selected',true);}}
  dot('crown',!!S.city.king.demand||CityEconomy.canClaim(S.city));dot('gaol',S.city.jail.length>CityEconomy.cells(S.city));
@@ -15486,9 +15784,20 @@ function ledgerEntry(){
  if(!S.city||!(S.city.office>=3)){host.innerHTML='';return;}
  host.innerHTML='<button class="card tide-entry" id="ledgerPeekButton" title="Read the Overview of the Crown Ledger from here. To run the city, sit at the council table."><span class="tide-entry-icon ledger-entry-icon" aria-hidden="true">👑</span><span>Crown Ledger <small>· overview</small></span></button>';
  $('ledgerPeekButton').onclick=()=>openLedger('overview',true);
+ councilAlarm();
+}
+/* 🚨 the council's favour under 35: the Crown Ledger card and the Council tab blink red until it is won back */
+const COUNCIL_ALARM=35;
+function councilAlarm(){
+ if(!S||!S.city)return;
+ const c=S.city,on=!!c.chartered&&!c.bankRule&&CityEconomy.favour(c)<COUNCIL_ALARM,note=on?'Council favour '+CityEconomy.favour(c):'';
+ const pb=$('ledgerPeekButton');
+ if(pb&&pb.classList.contains('ledger-danger')!==on){pb.classList.toggle('ledger-danger',on);pb.setAttribute('aria-label','Crown Ledger'+(on?' - '+note:''));}
+ const ct=document.querySelector('[data-ltab="council"]');if(ct&&ct.classList.contains('ledger-danger')!==on)ct.classList.toggle('ledger-danger',on);
 }
 setInterval(()=>{ /* the countdown on the ledger and the HUD line tick once a second */
  if(!gameOn||!S||!S.city||!hero)return;
+ councilAlarm();
  const nx=$('ledgerNext');if(nx&&$('ledgerFx').style.display==='flex')nx.textContent=cityClockLeft();
  const bw=$('ledgerBankWait');if(bw&&S.city.bankRule&&$('ledgerFx').style.display==='flex')bw.textContent=fmtLongWait(CityEconomy.bankRuleView(S.city).wait);
  if(ledgerTab==='allies'&&$('ledgerFx').style.display==='flex'){const av=CityEconomy.alliesView(S.city);
@@ -16024,7 +16333,7 @@ function flushCloud(){
    palace stair; buildZone reads the note. Any future interior should be stored the same way. */
 function saveSnapshot(){
  const z=ZONES[S.zone];
- let snap=z&&z.throne?{...S,zone:CITY_ZONE,atPalace:true}:z&&z.harbor?{...S,zone:CITY_ZONE,atHarbor:true}:S;   /* ⚓ the Harbour is newer still: the same rule */
+ let snap=z&&z.throne?{...S,zone:CITY_ZONE,atPalace:true}:z&&z.harbor?{...S,zone:CITY_ZONE,atHarbor:true}:z&&z.town?{...S,zone:CITY_ZONE,atHarbor:true,atTown:z.town}:S;   /* ⛵ a port of call too: an older build wakes the hero on the harbour flight */   /* ⚓ the Harbour is newer still: the same rule */
  if(S.cityNewer){snap={...snap,city:S.cityNewer};delete snap.cityNewer;} /* a newer build's city goes back as it came - see migrate */
  return snap;
 }
@@ -16672,7 +16981,7 @@ async function publishLB(ch,force){
   hardcore:!!ch.hardcore,hcDead:!!ch.hcDead,gender:ch.gender||'m',
   title:characterTitle(ch),outfit:heroOutfit(ch),hideWeapon:!!ch.hideWeapon,hideRing:!!ch.hideRing,hidePet:!!ch.hidePet,
   rating:ch.rating||0,
-  race:ch.race||'human',cls:ch.cls||'warrior',zone:(ZONES[ch.zone]&&(ZONES[ch.zone].throne||ZONES[ch.zone].harbor))?CITY_ZONE:(ch.zone||0), /* the halls are rooms of the City - an older build's table stops before them */
+  race:ch.race||'human',cls:ch.cls||'warrior',zone:(ZONES[ch.zone]&&(ZONES[ch.zone].throne||ZONES[ch.zone].harbor||ZONES[ch.zone].town))?CITY_ZONE:(ch.zone||0), /* the halls are rooms of the City - an older build's table stops before them */
   pet:ch.pet||null,
   scroll:(ch.activeScrolls||[]).filter(Boolean)[0]||null,
   scrolls:(ch.activeScrolls||[]).filter(Boolean).map(sc=>sc.id2?{id:sc.id,tier:sc.tier||1,id2:sc.id2,tier2:sc.tier2||1}:{id:sc.id,tier:sc.tier||1}),
@@ -17523,7 +17832,8 @@ function frame(t){
   ctx.fillStyle='#efe3c2';ctx.fillText('⏸ PAUSED',VW/2,VH/2);
   }
  }
- cityMinimap.update(world,hero,gameOn&&S&&!ZONES[S.zone]?.dungeon&&!!(ZONES[S.zone]?.city||ZONES[S.zone]?.wasteland),t);
+ {const z=ZONES[S&&S.zone];   /* 🗺 the City, the Wasteland, the Harbour and the ports of call (not the palace inside one) */
+  cityMinimap.update(world,hero,gameOn&&S&&!z?.dungeon&&!!(z?.city||z?.wasteland||z?.harbor||(z?.town&&!z?.interior)),t);}
  }catch(e){
   frame.faults=(frame.faults|0)+1;
   if(frame.faults<=20)try{console.error('frame: '+String((e&&e.stack)||e));}catch(_){}

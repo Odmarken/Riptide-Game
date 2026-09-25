@@ -28,7 +28,7 @@ test('three cities and two ports: the ports are the end game and want a quay and
  assert.deepEqual(E.ALLIES.map(a=>a.kind),['city','city','city','port','port']);
  assert.deepEqual(E.ALLIES.map(a=>a.name),['Ravenholt','Emberfall','Silverfjord','Kraken’s Rest','Port Meridian']);
  for(const a of E.ALLIES){assert.ok(a.price>=a.worth*8&&a.yield>0&&a.text&&a.perkText&&a.ruler.portrait&&a.ruler.patience>=3&&a.ruler.insultAt<.85);assert.ok(a.price/a.yield>=45&&a.price/a.yield<=65,'pays for itself in fifty or sixty closes: '+a.id);}
- assert.deepEqual(E.ALLIES.map(a=>a.ruler.name),['King Roderic Varn','King Aldric Cindermane','King Sigvald Deepwater','Trade Officer Corvin Saltmarsh','Trade Officer Isaura Venn'],'a king for each city, a trade officer for each port');
+ assert.deepEqual(E.ALLIES.map(a=>a.ruler.name),['King Roderic Varn','King Aldric Cindermane','King Sigvald Silverfjord','Trade Officer Corvin Saltmarsh','Trade Officer Isaura Venn'],'a king for each city, a trade officer for each port');
  assert.equal(new Set(E.ALLIES.map(a=>a.ruler.temper)).size,5,'and no two of them bargain alike');
  /* courting must not be a money printer: a full stake pays for itself slower than the public works do (about twenty closes),
     and owning the place has to be worth more than merely holding all of its paper */
