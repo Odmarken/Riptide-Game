@@ -1220,7 +1220,7 @@ function drawVoyage(nowMs){
  ctx.save();ctx.translate(sx,wy);ctx.rotate(tilt);
  if(ship.complete&&ship.naturalWidth)ctx.drawImage(ship,-shipW/2,-shipH,shipW,shipH);
  else{ctx.fillStyle='#3a2616';ctx.fillRect(-shipW/2,-shipH*.25,shipW,shipH*.25);}
- const deckLine=-shipH*.15,k=shipW/430;   /* the deck behind the waist rail (its cap at -.195 of her height); the masts stand at -.22, -.085 and +.175 of her width */
+ const k=shipW/741,deckLine=-shipH*.203+16*k;   /* 42 % smaller than they were (2026-09-26); the rail cap hides their boots and shins, whatever their size */   /* the deck behind the waist rail (its cap at -.195 of her height); the masts stand at -.22, -.085 and +.175 of her width */
  const bb=characterBootFrame(npcSkinRace('pirate_captain'),false,bootImg,7),soleB=(bb&&bb.groundY||13)*1.3;
  const hc=paintedCharacterFrame(V.look.race||'human',V.look.cls||'warrior',!!V.look.fem,lookOutfit(V.look)),soleH=hc?hc.groundY:8;
  ctx.save();ctx.translate(-shipW*.14,deckLine-soleB*k);ctx.scale(k,k);
