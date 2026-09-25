@@ -480,54 +480,56 @@
    "date": "2026-09-25"
   },
   "npc_mercenary.png": {
-   "jobId": "ab4d02b1-b980-4961-91ae-0319fba1856f",
+   "jobId": "e8f96d21-b294-4096-b7ce-0c8a6658fc56",
    "kind": "bust",
    "source": [
     880,
     1168
    ],
    "crop": [
-    31,
-    5,
-    841,
-    1153
+    32,
+    3,
+    831,
+    1134
    ],
    "size": [
-    494,
+    495,
     700
    ],
    "bounds128": [
     1,
     1,
-    492,
-    699
+    495,
+    700
    ],
-   "date": "2026-09-25"
+   "date": "2026-09-25",
+   "note": "the gold sellsword: the original redrawn with gold armour and a skull badge instead of the wolf, hands empty - the pike and the shield are their own pictures (assets/weapons/merc_pike.png, merc_shield.png)"
   },
   "npc_mercenary_b.png": {
-   "jobId": "26cc0e18-5668-4aad-b893-b5821b0e795a",
+   "jobId": "d63fae6e-6690-4182-83a8-737bb7f2e135",
    "kind": "bust",
    "source": [
     880,
     1168
    ],
    "crop": [
-    4,
-    23,
-    876,
-    1160
+    8,
+    14,
+    866,
+    1123
    ],
    "size": [
-    537,
+    542,
     700
    ],
    "bounds128": [
     1,
     1,
-    535,
+    542,
     699
    ],
-   "date": "2026-09-25"
+   "date": "2026-09-25",
+   "note": "the gold sellsword: the original redrawn with gold armour and a skull badge instead of the wolf, hands empty - the pike and the shield are their own pictures (assets/weapons/merc_pike.png, merc_shield.png)"
   },
   "npc_merc_recruiter.png": {
    "jobId": "69c70828-8a83-4cf9-876a-25d0bc1e4dd5",

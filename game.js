@@ -205,11 +205,12 @@ const NPC_SKINS={male:'npc_male',female:'npc_female',sebbe:'npc_sebbe',guard:'np
  mercenary:'npc_mercenary',mercenary_b:'npc_mercenary_b',merc_recruiter:'npc_merc_recruiter',
  ruler_sigvald:'npc_ruler_sigvald',ruler_roderic:'npc_ruler_roderic',ruler_aldric:'npc_ruler_aldric',ruler_isaura:'npc_ruler_isaura'};
 const npcSkinCache={};
+const NPC_ART_V=2;   /* bump when a townsfolk picture is redrawn under the same name (the sellswords went gold on 2026-09-25) */
 function npcSkinImage(skin){
  if(!skin)return null;
  if(skin in npcSkinCache)return npcSkinCache[skin];
  let im=null;
- if(NPC_SKINS[skin]){im=new Image();im.src='assets/characters/npc/'+NPC_SKINS[skin]+'.png';}
+ if(NPC_SKINS[skin]){im=new Image();im.src='assets/characters/npc/'+NPC_SKINS[skin]+'.png?v='+NPC_ART_V;}
  else{const m=npcSkinCostume(skin);if(m)im=charSprite(m[1],m[3],m[2]==='female');}
  return npcSkinCache[skin]=im;
 }
@@ -1119,24 +1120,139 @@ function renderVoyage(){
 }
 function setSail(id){
  const d=voyageList().find(d=>d.id===id);
- if(!d||d.here||d.zone<0||!gameOn||!hero||hero.dead||TideUI.isBattling())return;
+ if(!d||d.here||d.zone<0||!gameOn||!hero||hero.dead||TideUI.isBattling()||voyage)return;
  $('voyageFx').style.display='none';
  if(mp.on)mpLeave(false);
  const at=id==='home'?HOME_PORT:TownWorld.town(id).arrival;
- expeditionSpawn={zone:d.zone,x:at.x,y:at.y};
- voyageVeil(d.name);
- goToZone(d.zone);
- stageMsg('⛵ The Black Tide makes port: '+d.name,2600);
- log('⛵ Captain Blackbeard brings the Black Tide into '+d.name+'.');
+ voyage={d,at,t0:performance.now(),load:voyagePreload(d),phase:'sail',exitT:0,arriveT:0,look:mpLook(),name:S.name||'Hero'};
+ log('⛵ Captain Blackbeard casts off for '+d.name+'.');
 }
-/* a curtain of sea over the crossing: it is up before the new port is built and lifts off it */
-function voyageVeil(name){
- let v=$('voyageVeil');
- if(!v){v=document.createElement('div');v.id='voyageVeil';v.setAttribute('aria-hidden','true');document.body.appendChild(v);}
- v.textContent='⛵ The Black Tide sails for '+name+'…';
- clearTimeout(v._lift);clearTimeout(v._gone);
- v.classList.remove('lift');v.classList.add('up');void v.offsetWidth;
- v._lift=setTimeout(()=>{v.classList.add('lift');v._gone=setTimeout(()=>v.classList.remove('up','lift'),1300);},650);
+/* ⛵ The crossing (asked for 2026-09-26): not a curtain but a short scene - the Black Tide sails across the screen from
+   left to right, Captain Blackbeard and you on her deck, over a sea that runs past, while every picture of the port you are
+   sailing for is loaded AND decoded, so a slow machine arrives to a port that is ready. It lasts 7 to 15 seconds: never less
+   than 7, longer only while pictures are still coming in, and 15 at the most. The world stands still meanwhile; the new
+   port is built behind a short dark as the ship sails off the right edge, and the dark lifts off it. */
+const VOYAGE_MIN=7,VOYAGE_MAX=15,VOYAGE_EXIT=1.6,VOYAGE_DARK=.45,VOYAGE_LIFT=.7;
+let voyage=null;
+function voyagePreload(d){
+ const ims=new Set(),skin=k=>ims.add(npcSkinImage(k));
+ if(d.id==='home'){
+  for(const im of Object.values(harborImages()))ims.add(im);
+  for(const f of HarborWorld.FOLK)skin(f[1]);
+  ['harbour_master','pirate_captain','pirate','fishwife','sailor','dockhand'].forEach(skin);
+ }else{
+  for(const im of Object.values(townImages(d.id)))ims.add(im);
+  const t=TownWorld.town(d.id)||{},skins=[...(t.stands||[]).map(s=>s.skin),...(t.folk||[]).map(f=>f[1]),'pirate_captain'];
+  skins.forEach(skin);
+  if(skins.some(k=>MERC_ARMED.has(k))){ims.add(mercPikeImg);ims.add(mercShieldImg);}
+ }
+ ims.delete(null);ims.delete(undefined);
+ const list=[...ims],state={total:list.length,done:0};
+ for(const im of list){
+  const settle=()=>{state.done++;};
+  (im.decode?im.decode():new Promise(r=>{if(im.complete)r();else{im.addEventListener('load',r,{once:true});im.addEventListener('error',r,{once:true});}})).then(settle,settle);
+ }
+ return state;
+}
+function voyageTick(now){
+ const V=voyage;if(!V)return;
+ const t=(now-V.t0)/1000;
+ if(V.phase==='sail'){
+  if(t>=VOYAGE_MAX-VOYAGE_EXIT||(t>=VOYAGE_MIN-VOYAGE_EXIT&&V.load.done>=V.load.total)){V.phase='exit';V.exitT=now;}
+ }else if(V.phase==='exit'){
+  if((now-V.exitT)/1000>=VOYAGE_EXIT){
+   expeditionSpawn={zone:V.d.zone,x:V.at.x,y:V.at.y};
+   goToZone(V.d.zone);
+   V.phase='arrive';V.arriveT=performance.now();
+   stageMsg('⛵ The Black Tide makes port: '+V.d.name,2600);
+   log('⛵ Captain Blackbeard brings the Black Tide into '+V.d.name+'.');
+  }
+ }else if((now-V.arriveT)/1000>=VOYAGE_LIFT)voyage=null;
+}
+const voyagePort=nowSec=>{   /* the ship's x over the voyage: in from off the left, then drifting on while the pictures come */
+ const V=voyage,W=VW,t=(nowSec*1000-V.t0)/1000,shipW=Math.min(960,W*.69,VH*.92);   /* about half as big again as she first was (2026-09-26), flag and all on screen */
+ const e=1-(1-Math.min(1,t/1.5))**3,cruise=Math.max(W*.30,shipW*.54)+W*.10*Math.min(1,t/VOYAGE_MAX);   /* her stern on screen once she is in */
+ let x=-shipW*.6+(cruise+shipW*.6)*e;
+ if(V.phase!=='sail'){const k=Math.min(1,(nowSec*1000-V.exitT)/1000/VOYAGE_EXIT);x+=(W+shipW*.75-x)*k*k;}
+ return {x,shipW,t};
+};
+function drawVoyage(nowMs){
+ const V=voyage,W=VW,H=VH,now=nowMs/1000,{x:sx,shipW,t}=voyagePort(now),run=t*90;   /* run: how far the sea has gone by */
+ ctx.setTransform(DPR,0,0,DPR,0,0);ctx.clearRect(0,0,W,H);
+ const horizon=H*.44,waterY=H*.87;   /* low on the screen: she is big now, and her topmasts may run off the top */
+ /* the sky, a low sun ahead, clouds going by */
+ const sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,'#27466e');sky.addColorStop(.55,'#6f9fc4');sky.addColorStop(1,'#f0d4a2');
+ ctx.fillStyle=sky;ctx.fillRect(0,0,W,horizon+2);
+ const sun=ctx.createRadialGradient(W*.8,horizon-8,0,W*.8,horizon-8,H*.36);sun.addColorStop(0,'rgba(255,236,190,.85)');sun.addColorStop(.25,'rgba(255,214,150,.25)');sun.addColorStop(1,'rgba(255,214,150,0)');
+ ctx.fillStyle=sun;ctx.fillRect(0,0,W,horizon+2);
+ for(let i=0;i<7;i++){
+  const cw=160+(i*53)%140,cx=((i*311-run*.18)%(W+cw*2)+W+cw*2)%(W+cw*2)-cw,cy=H*.08+(i*47)%(horizon*.55);
+  ctx.fillStyle='rgba(255,255,255,'+(.22+(i%3)*.08)+')';ctx.beginPath();
+  for(let k=0;k<4;k++){const ex=cx+k*cw*.22,ey=cy+(k%2)*6;ctx.moveTo(ex+cw*.2,ey);ctx.ellipse(ex,ey,cw*.2,cw*.09,0,0,Math.PI*2);}
+  ctx.fill();
+ }
+ /* far islands, sliding past slower than the sea */
+ ctx.fillStyle='#3d5f77';
+ for(let i=0;i<5;i++){
+  const iw=220+(i*97)%260,span=W+iw*2,ix=((i*457-run*.35)%span+span)%span-iw,ih=24+(i*29)%40;
+  ctx.beginPath();ctx.moveTo(ix,horizon+1);ctx.quadraticCurveTo(ix+iw*.3,horizon-ih,ix+iw*.55,horizon-ih*.6);ctx.quadraticCurveTo(ix+iw*.8,horizon-ih*.9,ix+iw,horizon+1);ctx.closePath();ctx.fill();
+ }
+ /* the sea: the Harbour's own tile running past, darker toward the viewer */
+ const sea=cityImg('harbor/sea_tile');
+ ctx.fillStyle='#16506a';ctx.fillRect(0,horizon,W,H-horizon);
+ if(sea.complete&&sea.naturalWidth){
+  ctx.save();ctx.beginPath();ctx.rect(0,horizon,W,H-horizon);ctx.clip();
+  const ts=260,ox=-((run%ts)+ts)%ts;
+  for(let y=horizon;y<H;y+=ts*.5)for(let x=ox-ts;x<W+ts;x+=ts)ctx.drawImage(sea,x,y,ts,ts*.5+1);
+  ctx.restore();
+ }
+ const deep=ctx.createLinearGradient(0,horizon,0,H);deep.addColorStop(0,'rgba(240,212,162,.30)');deep.addColorStop(.3,'rgba(10,40,60,0)');deep.addColorStop(1,'rgba(2,12,26,.45)');
+ ctx.fillStyle=deep;ctx.fillRect(0,horizon,W,H-horizon);
+ ctx.fillStyle='#fff8e8';
+ for(let i=0;i<40;i++){const gx=((i*173-run*1.1)%(W+40)+W+40)%(W+40)-20,gy=horizon+8+((i*67)%Math.max(1,H-horizon-16)),a=Math.sin(now*2.2+i*1.7);if(a<.55)continue;ctx.globalAlpha=(a-.55)*1.6;ctx.fillRect(gx,gy,10+(i%3)*6,1.6);}
+ ctx.globalAlpha=1;
+ /* the Black Tide, her wake, and the two of you on her deck */
+ const ship=cityImg('harbor/ship_galleon'),shipH=ship.naturalWidth?shipW*ship.naturalHeight/ship.naturalWidth:shipW*.93;
+ const bob=Math.sin(now*1.5)*4,tilt=Math.sin(now*1.1)*.012,wy=waterY+bob;
+ ctx.strokeStyle='rgba(236,248,255,.7)';ctx.lineWidth=4;ctx.lineCap='round';
+ for(let k=0;k<6;k++){const wx=sx-shipW*.40-k*38-((now*90)%38);ctx.globalAlpha=.8-k*.1;ctx.beginPath();ctx.moveTo(wx,wy-2+k*1.5);ctx.quadraticCurveTo(wx-20,wy+6+k*2,wx-40,wy+2+k*2);ctx.stroke();}
+ ctx.globalAlpha=1;
+ ctx.save();ctx.translate(sx,wy);ctx.rotate(tilt);
+ if(ship.complete&&ship.naturalWidth)ctx.drawImage(ship,-shipW/2,-shipH,shipW,shipH);
+ else{ctx.fillStyle='#3a2616';ctx.fillRect(-shipW/2,-shipH*.25,shipW,shipH*.25);}
+ const deckLine=-shipH*.15,k=shipW/430;   /* the deck behind the waist rail (its cap at -.195 of her height); the masts stand at -.22, -.085 and +.175 of her width */
+ const bb=characterBootFrame(npcSkinRace('pirate_captain'),false,bootImg,7),soleB=(bb&&bb.groundY||13)*1.3;
+ const hc=paintedCharacterFrame(V.look.race||'human',V.look.cls||'warrior',!!V.look.fem,lookOutfit(V.look)),soleH=hc?hc.groundY:8;
+ ctx.save();ctx.translate(-shipW*.14,deckLine-soleB*k);ctx.scale(k,k);
+ drawNpc({x:0,y:0,skin:'pirate_captain',race:'human',cls:'warrior',name:'Captain Blackbeard',game:'captain',fx:1,big:1.3,moving:false,walk:0});
+ ctx.restore();
+ ctx.save();ctx.translate(shipW*.10,deckLine-soleH*k);ctx.scale(k,k);
+ drawHeroLike(0,0,V.look,1,{moving:false,facing:1},V.name);
+ ctx.restore();
+ /* and her hull again, up to the rail cap, over their feet and legs: they stand behind the rail, the rigging behind them */
+ if(ship.complete&&ship.naturalWidth){ctx.save();ctx.beginPath();ctx.rect(-shipW/2,-shipH*.203,shipW,shipH*.203);ctx.clip();ctx.drawImage(ship,-shipW/2,-shipH,shipW,shipH);ctx.restore();}
+ ctx.restore();
+ ctx.strokeStyle='rgba(236,248,255,.45)';ctx.lineWidth=2.5;
+ ctx.beginPath();ctx.ellipse(sx-shipW*.058,wy-1,shipW*.35,4,0,0,Math.PI);ctx.stroke();
+ /* gulls wheeling over her */
+ const gull=cityImg('harbor/seagull');
+ for(let i=0;i<3;i++){
+  const a=now*(.7+i*.2)+i*2.1,gx=sx+Math.cos(a)*shipW*(.35+i*.1),gy=wy-shipH*(.80+i*.06)+Math.sin(a*1.3)*20,gw=34-i*6;
+  if(gull.complete&&gull.naturalWidth){ctx.save();ctx.translate(gx,gy);ctx.scale(Math.cos(a)>0?-1:1,1);ctx.drawImage(gull,-gw/2,-gw*.4,gw,gw*gull.naturalHeight/gull.naturalWidth);ctx.restore();}
+ }
+ /* where she is bound, and how much of it is ready */
+ const p=V.load.total?Math.min(1,V.load.done/V.load.total):1,bw=Math.min(360,W*.5),bx=W-bw-80,by=64;   /* top right, over open sky: the ship fills the bottom of the screen and her flag the top left */
+ ctx.fillStyle='rgba(6,14,22,.55)';ctx.fillRect(bx-14,by-34,bw+28,58);
+ ctx.font='700 18px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
+ ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillText(V.d.icon+' '+V.d.name,bx+bw/2+1,by-11);ctx.fillStyle='#f3e4c9';ctx.fillText(V.d.icon+' '+V.d.name,bx+bw/2,by-12);
+ ctx.fillStyle='rgba(255,255,255,.15)';ctx.fillRect(bx,by,bw,6);ctx.fillStyle='#e8c66a';ctx.fillRect(bx,by,bw*p,6);
+ /* the dark the new port is built behind */
+ if(V.phase==='exit'){const d=Math.max(0,((nowMs-V.exitT)/1000-(VOYAGE_EXIT-VOYAGE_DARK))/VOYAGE_DARK);if(d>0){ctx.fillStyle='rgba(4,8,12,'+Math.min(1,d).toFixed(3)+')';ctx.fillRect(0,0,W,H);}}
+}
+function voyageLift(nowMs){   /* the dark lifting off the new port */
+ const V=voyage;if(!V||V.phase!=='arrive')return;
+ const a=1-Math.min(1,(nowMs-V.arriveT)/1000/VOYAGE_LIFT);
+ if(a>0){ctx.fillStyle='rgba(4,8,12,'+a.toFixed(3)+')';ctx.fillRect(0,0,VW,VH);}
 }
 /* the towns talk like the quay does: bubbles run their time, and now and then somebody near you says his piece */
 const TOWN_CRIES={...HARBOR_CRIES,
@@ -7473,7 +7589,7 @@ cv.addEventListener('contextmenu',()=>{
  if(held){sfx.warn();stageMsg('✋ Put down '+held,1100);}
 });
 cv.addEventListener('pointerdown',e=>{
- if(!gameOn||gamePaused||hero.dead||pinching||coronation||execution)return; /* 👑⚖️ a scene plays itself out - no clicks land */
+ if(!gameOn||gamePaused||hero.dead||pinching||coronation||execution||voyage)return; /* 👑⚖️⛵ a scene plays itself out - no clicks land */
  if(e.button===2)return; /* the right button is the deselect gesture - contextmenu owns it */
  if($('p-tides')?.contains(document.activeElement))document.activeElement.blur();
  const r=cv.getBoundingClientRect();
@@ -10431,6 +10547,38 @@ function drawHero(){
  }
  ctx.restore();
 }
+/* ⚔️ The Free Company's arms (2026-09-25): the gold sellswords carry a pike with a blue blade and a gold skull shield,
+   drawn as their own pictures in the sellsword's hands - not painted on him - so that he can strike with the pike.
+   Standing still, each one drills a thrust now and then, out of step with the next; mercStrike(n) asks for one now. */
+const MERC_ARMED=new Set(['mercenary','mercenary_b']);
+const mercPikeImg=new Image();mercPikeImg.src='assets/weapons/merc_pike.png?v=1';
+const mercShieldImg=new Image();mercShieldImg.src='assets/weapons/merc_shield.png?v=1';
+const MERC_THRUST_MS=750;
+function mercPhase(n,now){   /* 0 at rest; through a thrust, 0 to 1: lower the pike, jab, raise it again */
+ if(n.moving||n.dead)return 0;
+ if(n.strikeT&&now>=n.strikeT&&now<n.strikeT+MERC_THRUST_MS)return (now-n.strikeT)/MERC_THRUST_MS;
+ let h=7;for(const c of String(n.name||''))h=(h*31+c.charCodeAt(0))|0;h=Math.abs(h);
+ const period=7000+h%4000,t=(now+h*13)%period;
+ return t<MERC_THRUST_MS?t/MERC_THRUST_MS:0;
+}
+function mercPose(p){   /* how far the pike is lowered (0 upright - 1 level) and how far it is driven through the hand */
+ return {lower:Math.max(0,Math.min(1,p/.3,(1-p)/.3)),jab:p>.3&&p<.7?Math.sin((p-.3)/.4*Math.PI):0};
+}
+function mercStrike(n){n.strikeT=performance.now();}
+function drawMercArms(n,body,by,now){   /* in the sellsword's own frame: the art looks left, so forward is -x */
+ const ok=im=>im.complete&&im.naturalWidth>0;
+ const {lower,jab}=mercPose(mercPhase(n,now)),vw=body.visibleWidth,bottom=body.bodyBottom,tall=bottom-body.headY;
+ if(ok(mercShieldImg)){   /* on the other hand's fist: its foot at the hem, the fist behind it, the badge left in sight */
+  const D=tall*.42,h=D*mercShieldImg.naturalHeight/mercShieldImg.naturalWidth;
+  ctx.drawImage(mip(mercShieldImg,D),vw*.40-3*lower-D/2,bottom-9-h/2+by,D,h);
+ }
+ if(ok(mercPikeImg)){   /* gripped in the forward fist; a thrust levels it and drives it through the hand, never out of it */
+  const L=tall*1.55,w=L*mercPikeImg.naturalWidth/mercPikeImg.naturalHeight;
+  ctx.save();ctx.translate(-vw*.40,bottom-3.5+by);ctx.rotate(-1.35*lower);ctx.translate(0,-9*jab);
+  ctx.drawImage(mip(mercPikeImg,w),-w/2,-L*.84,w,L);
+  ctx.restore();
+ }
+}
 function drawNpc(n){
  const now=performance.now();
  const by=n.hop?-Math.abs(Math.sin(now/1000*n.hop.rate+n.hop.phase))*n.hop.h:n.moving?Math.sin(n.walk*7)*1.8:Math.sin(now/600+n.x)*0.8; /* 👑 hop: a townsman bouncing at the coronation */
@@ -10447,6 +10595,7 @@ function drawNpc(n){
   if(n.fx>0)ctx.scale(-1,1); /* art faces left natively - mirror when walking right */
   ctx.rotate(by*0.02);
   ctx.drawImage(mip(pImg,body.width*size),body.x,body.y+by,body.width,body.height);
+  if(MERC_ARMED.has(n.skin))drawMercArms(n,body,by,now);
   ctx.restore();
  }else{
   feet({walk:n.walk*1.8},n.moving?1:0.15);
@@ -10455,7 +10604,7 @@ function drawNpc(n){
  ctx.restore();
  if(n.protest&&n.protest.sign)drawProtestSign(n,body,by,size);
  if(n.guildRole!=='member'&&!n.protest&&!n.brawl&&!n.prisoner&&!(n.nameNear&&(!hero||Math.hypot(hero.x-n.x,hero.y-n.y)>n.nameNear))){   /* ⚔ a sellsword's name only when you are close */ /* ✊ a marching block wears its placards, not two dozen overlapping names; ⛓ a prisoner's name hangs on his grille */
-  const ny=((body?body.headY:-37)-3+by)*size;
+  const ny=((body?body.headY:-37)-3+by-(body&&MERC_ARMED.has(n.skin)?17:0))*size;   /* ⚔ over a sellsword's pike blade, not through it */
   ctx.font='700 '+(n.game?11:10)+'px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(n.name,1,ny+1);
   ctx.fillStyle=n.game||n.royal?'#ffd76a':n.watch||n.guard||n.extraGuard?'#bcd0ee':n.protest?'#ffb3a3':'#cfe6c2';   /* the ones with something to sell stand out; the watch and the guard in steel; the crowd flushed */
@@ -14534,7 +14683,7 @@ function cityApplyMercs(){
  const slots=mercSlotList();world.mercs=[];
  for(let i=0;i<n&&i<slots.length;i++){
   const {beat,k}=slots[i];
-  const m={name:'Sellsword '+MERC_NAMES[i%MERC_NAMES.length],skin:i%3===2?'mercenary_b':'mercenary',race:'human',cls:'warrior',female:false,big:1.08,
+  const m={name:'Sellsword '+MERC_NAMES[i%MERC_NAMES.length],skin:i%2?'mercenary_b':'mercenary',race:'human',cls:'warrior',female:false,big:1.08,
    guard:true,merc:true,nameNear:320,beat:beat.id,x:0,y:0,fx:1,walk:i*.7,moving:false,i:0,pts:[]};
   if(beat.posts){const [px,py]=beat.posts[k];Object.assign(m,{x:px,y:py,fx:k%2?-1:1,post:true});}
   else{
@@ -14729,6 +14878,7 @@ function cancelHallScenes(){
 }
 /* the map, Home and the hero switch wait while a scene plays: it walks the hero, and it writes the books */
 function sceneHoldsTravel(){
+ if(voyage){stageMsg('Not now - the Black Tide is at sea.',1600);sfx.warn();return true;}   /* ⛵ nobody steps off a ship halfway across */
  if(!coronation&&!execution)return false;
  stageMsg('Not now - the whole court is watching.',1600);sfx.warn();
  return true;
@@ -17817,10 +17967,14 @@ function frame(t){
  }
  const guideOpen=HeroGuide.isOpen();
  if(gameOn&&!gamePaused&&!guideOpen){
-  update(dt);renderVitals(dt);
-  saveT+=dt;if(saveT>12){saveT=0;save();}
-  draw();
-  TideUI.afterDraw();
+  if(voyage)voyageTick(t);   /* ⛵ the crossing plays instead of the world while the Black Tide sails */
+  if(voyage&&voyage.phase!=='arrive')drawVoyage(t);
+  else{
+   update(dt);renderVitals(dt);
+   saveT+=dt;if(saveT>12){saveT=0;save();}
+   draw();voyageLift(t);
+   TideUI.afterDraw();
+  }
  }else if(gameOn&&(gamePaused||guideOpen)){
   if(guideOpen){padNow=padStick();padTick(dt);}
   else{padNow=null;padTick(dt);} /* paused: the pad can still close a box on screen and open the settings - Start used to do nothing */
@@ -17833,9 +17987,10 @@ function frame(t){
   }
  }
  {const z=ZONES[S&&S.zone];   /* 🗺 the City, the Wasteland, the Harbour and the ports of call (not the palace inside one) */
-  cityMinimap.update(world,hero,gameOn&&S&&!z?.dungeon&&!!(z?.city||z?.wasteland||z?.harbor||(z?.town&&!z?.interior)),t);}
+  cityMinimap.update(world,hero,gameOn&&S&&!(voyage&&voyage.phase!=='arrive')&&!z?.dungeon&&!!(z?.city||z?.wasteland||z?.harbor||(z?.town&&!z?.interior)),t);}
  }catch(e){
   frame.faults=(frame.faults|0)+1;
+  try{ctx.setTransform(DPR,0,0,DPR,0,0);}catch(_){}   /* a throw between save() and restore() would otherwise leave every later frame scaled */
   if(frame.faults<=20)try{console.error('frame: '+String((e&&e.stack)||e));}catch(_){}
  }
 }

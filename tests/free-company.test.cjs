@@ -88,3 +88,22 @@ test('the sellswords join the City with the rest of its people, and only the one
  const tick=section('function mercTick(dt){','function mercWorldClick(');
  assert.match(tick,/const d=\(m\.ph\+t\*m\.sp\)%m\.len/);
 });
+
+test('the gold sellswords carry a pike and a shield of their own, and drill a thrust now and then - but never on the march',()=>{
+ /* the arms are their own pictures, not painted on the man (asked for 2026-09-25), so he can strike with them */
+ for(const f of ['assets/weapons/merc_pike.png','assets/weapons/merc_shield.png'])assert.ok(fs.existsSync(path.join(root,f)),f);
+ assert.ok(game.includes("const MERC_ARMED=new Set(['mercenary','mercenary_b']);"),'both looks are armed');
+ const draw=section('function drawNpc(n){','function drawNpcBubble');
+ assert.ok(draw.includes('if(MERC_ARMED.has(n.skin))drawMercArms(n,body,by,now);'),'drawn in the same mirrored frame as the body');
+ const ctx=vm.createContext({performance:{now:()=>0}});
+ vm.runInContext(section('const MERC_THRUST_MS=','function drawMercArms('),ctx);
+ const n={name:'Sellsword Aldo',moving:false},pose=t=>ctx.mercPose(ctx.mercPhase(n,t));
+ let seen=0;for(let t=0;t<30000;t+=25){const {lower,jab}=pose(t);assert.ok(lower>=0&&lower<=1&&jab>=0&&jab<=1);if(jab>.5)seen++;}
+ assert.ok(seen>0,'a man at his post drills a thrust within half a minute');
+ assert.equal(ctx.mercPhase({...n,moving:true},12345),0,'nobody thrusts on the march');
+ const T=vm.runInContext('MERC_THRUST_MS',ctx),m={name:'Sellsword Bram',moving:false,strikeT:1000},mid=ctx.mercPose(ctx.mercPhase(m,1000+T/2));
+ assert.ok(mid.lower===1&&mid.jab>.99,'mercStrike: lowered level and driven home halfway through');
+ assert.equal(ctx.mercPose(0).lower+ctx.mercPose(0).jab,0,'upright at rest');
+ /* the City's company: the two looks half and half - twenty is ten and ten */
+ assert.ok(game.includes("skin:i%2?'mercenary_b':'mercenary'"));
+});
