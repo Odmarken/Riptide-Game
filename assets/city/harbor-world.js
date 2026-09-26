@@ -10,10 +10,10 @@
  * laps every edge; whatever floats bobs on its own phase. Pure module: no DOM, no game - it runs headless in the
  * tests. game.js hands it images and a clock. */
 (function(root,factory){
- const api=factory();
+ const api=factory(root.CityScenery||(typeof require==='function'?require('./scenery-effects.js'):null));
  if(typeof module==='object'&&module.exports)module.exports=api;
  root.HarborWorld=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(){
+})(typeof globalThis!=='undefined'?globalThis:this,function(Scenery){
  'use strict';
  const TAU=Math.PI*2;
  const W=4400,H=3600,XC=2200;
@@ -149,27 +149,9 @@
 
  /* ---------- painting helpers ---------- */
  function ellipse(g,x,y,rx,ry,fill){g.beginPath();g.ellipse(x,y,Math.max(.1,rx),Math.max(.1,ry),0,0,TAU);g.fillStyle=fill;g.fill();}
- function light(g,x,y,r,strength=1,tint=[255,190,100]){
-  const grad=g.createRadialGradient(x,y,0,x,y,r),c=tint.join(',');
-  grad.addColorStop(0,'rgba('+c+','+(.34*strength).toFixed(3)+')');grad.addColorStop(1,'rgba('+c+',0)');
-  g.save();g.globalCompositeOperation='lighter';g.fillStyle=grad;g.fillRect(x-r,y-r,r*2,r*2);g.restore();
- }
- function fire(g,x,y,size,time,seed){
-  g.save();g.globalCompositeOperation='lighter';
-  for(let i=0;i<5;i++){
-   const p=(time*1.6+i/5+seed)%1,sway=Math.sin(time*6+i*2.1+seed*3)*5*size,r=(1-p)*15*size+3;
-   g.fillStyle='rgba(255,'+Math.round(150+80*(1-p))+',60,'+((1-p)*.5).toFixed(3)+')';
-   g.beginPath();g.ellipse(x+sway*p,y-p*34*size,r*.7,r,0,0,TAU);g.fill();
-  }
-  g.restore();
- }
- function smoke(g,x,y,size,time,seed){
-  for(let i=0;i<6;i++){
-   const p=(time*.11+i/6+seed*.37)%1,r=(7+p*24)*size;
-   g.fillStyle='rgba(222,226,228,'+((1-p)*(1-p)*.36).toFixed(3)+')';
-   g.beginPath();g.ellipse(x+(p*46+Math.sin(time*.7+i*1.9+seed)*7)*size,y-p*96*size,r,r*.8,0,0,TAU);g.fill();
-  }
- }
+ function light(g,x,y,r,strength=1,tint=[255,194,112]){Scenery.glow(g,x,y,r,strength,tint);}
+ function fire(g,x,y,size,time,seed){Scenery.fire(g,x,y,size,time,seed);}
+ function smoke(g,x,y,size,time,seed,dark=false){Scenery.smoke(g,x,y,size,time,seed*.37,false,dark);}
  /* one texture over a rect, mirrored tile to tile so every seam meets its own reflection; quarter turns lay planks the other way */
  function mirrorTiles(g,im,rc,size,view,turn=false){
   const x0=Math.max(rc.x,view.x0),y0=Math.max(rc.y,view.y0),x1=Math.min(rc.x+rc.w,view.x1),y1=Math.min(rc.y+rc.h,view.y1);
@@ -370,8 +352,9 @@
   }
   g.globalAlpha*=alpha;g.drawImage(im,-Ww/2,a.drop-Hh,Ww,Hh);g.globalAlpha=1;
   if(a.smoke){g.globalAlpha=alpha;for(const [u,vv,k] of a.smoke)smoke(g,-Ww/2+u*Ww,a.drop-Hh+vv*Hh,k,time,seed+u*7);g.globalAlpha=1;}
+  if((s.kind==='lamp'||s.kind.endsWith('_lamp'))&&a.glow)for(const [u,vv] of a.glow)Scenery.flame(g,-Ww/2+u*Ww,a.drop-Hh+vv*Hh+3,.23,time,seed);
   if(a.fire)fire(g,-Ww/2+a.fire[0]*Ww,a.drop-Hh+a.fire[1]*Hh,a.fire[2],time,seed);
-  if(a.glow)for(const [u,vv,r] of a.glow)light(g,-Ww/2+u*Ww,a.drop-Hh+vv*Hh,r,(.8+Math.sin(time*5.1+seed*3)*.2)*alpha);
+  if(a.glow)for(const [u,vv,r] of a.glow)light(g,-Ww/2+u*Ww,a.drop-Hh+vv*Hh,r,Scenery.flicker(time,seed)*alpha);
   g.restore();
   if(a.float||a.wash)waterline(g,Ww*(a.wash?.8:.94),time,seed,a.float?0:2);
  }

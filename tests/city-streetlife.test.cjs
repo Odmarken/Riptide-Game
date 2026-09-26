@@ -12,7 +12,7 @@ function city(){
  return {w,h,streets:[{x0:300,y0:2600,x1:16500,y1:2600,w:280}],plazas:[{x:8400,y:2600,r:520}],solids};
 }
 function fakeContext(count){
- return new Proxy({createRadialGradient(){return{addColorStop(){}};},measureText:t=>({width:String(t).length*6}),fillStyle:'',strokeStyle:'',lineWidth:1,font:'',textAlign:'',lineCap:'',globalAlpha:1},
+ return new Proxy({createLinearGradient(){return{addColorStop(){}};},createRadialGradient(){return{addColorStop(){}};},measureText:t=>({width:String(t).length*6}),fillStyle:'',strokeStyle:'',lineWidth:1,font:'',textAlign:'',lineCap:'',globalAlpha:1},
  {get(o,k){if(k in o)return o[k];return(...args)=>{count.calls++;for(const a of args)if(typeof a==='number')assert.ok(Number.isFinite(a),k+' got '+a);};},set(o,k,v){o[k]=v;return true;}});
 }
 const kinds=(w,street)=>Works.props(w,{works:{},stalls:0,street}).map(p=>p.kind);

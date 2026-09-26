@@ -9,10 +9,10 @@
  * edge. Nothing here allocates a world-sized canvas. Pure module: no DOM, no game - it runs headless in the tests;
  * game.js hands it images and a clock. */
 (function(root,factory){
- const api=factory();
+ const api=factory(root.CityScenery||(typeof require==='function'?require('./scenery-effects.js'):null));
  if(typeof module==='object'&&module.exports)module.exports=api;
  root.TownWorld=api;
-})(typeof globalThis!=='undefined'?globalThis:this,function(){
+})(typeof globalThis!=='undefined'?globalThis:this,function(Scenery){
  'use strict';
  const TAU=Math.PI*2;
  const ready=im=>!!(im&&im.complete!==false&&(im.naturalWidth||im.width)>0&&(im.naturalHeight||im.height)>0);
@@ -208,40 +208,9 @@
 
  /* ---------- painting helpers (the Harbour's, so the two seas are one sea) ---------- */
  function ellipse(g,x,y,rx,ry,fill){g.beginPath();g.ellipse(x,y,Math.max(.1,rx),Math.max(.1,ry),0,0,TAU);g.fillStyle=fill;g.fill();}
- /* a glow is one radial gradient per tint, painted once into a small canvas and stretched - a gradient made afresh for
-    every lamp in every frame cost Emberfall a tenth of its frame rate. Headless (no document) it is made the old way. */
- const glowCache={};
- function glowSprite(c){
-  if(glowCache[c]!==undefined)return glowCache[c];
-  let cv=null;
-  try{if(typeof document!=='undefined'&&document.createElement){cv=document.createElement('canvas');cv.width=cv.height=64;const g=cv.getContext('2d'),grad=g.createRadialGradient(32,32,0,32,32,32);
-   grad.addColorStop(0,'rgba('+c+',1)');grad.addColorStop(1,'rgba('+c+',0)');g.fillStyle=grad;g.fillRect(0,0,64,64);}}catch(e){cv=null;}
-  return glowCache[c]=cv;
- }
- function light(g,x,y,r,strength=1,tint=[255,190,100]){
-  if(!(strength>.02))return;
-  const c=tint.join(','),sp=glowSprite(c);
-  g.save();g.globalCompositeOperation='lighter';
-  if(sp){g.globalAlpha*=Math.min(1,.34*strength);g.drawImage(sp,x-r,y-r,r*2,r*2);}
-  else{const grad=g.createRadialGradient(x,y,0,x,y,r);grad.addColorStop(0,'rgba('+c+','+(.34*strength).toFixed(3)+')');grad.addColorStop(1,'rgba('+c+',0)');g.fillStyle=grad;g.fillRect(x-r,y-r,r*2,r*2);}
-  g.restore();
- }
- function fire(g,x,y,size,time,seed){
-  g.save();g.globalCompositeOperation='lighter';
-  for(let i=0;i<5;i++){
-   const p=(time*1.6+i/5+seed)%1,sway=Math.sin(time*6+i*2.1+seed*3)*5*size,r=(1-p)*15*size+3;
-   g.fillStyle='rgba(255,'+Math.round(150+80*(1-p))+',60,'+((1-p)*.5).toFixed(3)+')';
-   g.beginPath();g.ellipse(x+sway*p,y-p*34*size,r*.7,r,0,0,TAU);g.fill();
-  }
-  g.restore();
- }
- function smoke(g,x,y,size,time,seed,dark=false){
-  for(let i=0;i<6;i++){
-   const p=(time*.11+i/6+seed*.37)%1,r=(7+p*24)*size;
-   g.fillStyle=(dark?'rgba(58,52,50,':'rgba(222,226,228,')+((1-p)*(1-p)*(dark?.42:.36)).toFixed(3)+')';
-   g.beginPath();g.ellipse(x+(p*46+Math.sin(time*.7+i*1.9+seed)*7)*size,y-p*96*size,r,r*.8,0,0,TAU);g.fill();
-  }
- }
+ function light(g,x,y,r,strength=1,tint=[255,194,112]){Scenery.glow(g,x,y,r,strength,tint);}
+ function fire(g,x,y,size,time,seed){Scenery.fire(g,x,y,size,time,seed);}
+ function smoke(g,x,y,size,time,seed,dark=false){Scenery.smoke(g,x,y,size,time,seed*.37,false,dark);}
  function tiles(g,im,rc,size,v,mirror,turn){
   const x0=Math.max(rc.x,v.x0),y0=Math.max(rc.y,v.y0),x1=Math.min(rc.x+rc.w,v.x1),y1=Math.min(rc.y+rc.h,v.y1);
   if(x1<=x0||y1<=y0||!ready(im))return false;
@@ -763,9 +732,11 @@
   g.globalAlpha*=alpha;g.drawImage(pic,-Ww/2,drop-Hh,Ww,Hh);g.globalAlpha=1;
   if(a.spray)spray(g,a,Ww,Hh,time,seed);
   if(a.smoke){g.globalAlpha=alpha;for(const [u,vv,k] of a.smoke)smoke(g,-Ww/2+u*Ww,drop-Hh+vv*Hh,k,time,seed+u*7,!!a.soot);g.globalAlpha=1;}
+  if((s.kind==='lamp'||s.kind.endsWith('_lamp'))&&a.glow)for(const [u,vv] of a.glow)Scenery.flame(g,-Ww/2+u*Ww,drop-Hh+vv*Hh+3,.23,time,seed);
+  if(a.candles)for(const [u,vv,k] of a.candles)Scenery.flame(g,-Ww/2+u*Ww,drop-Hh+vv*Hh,k,time,seed+u*7);
   if(a.fire)fire(g,-Ww/2+a.fire[0]*Ww,drop-Hh+a.fire[1]*Hh,a.fire[2],time,seed);
   if(a.fires)for(const fr of a.fires)fire(g,-Ww/2+fr[0]*Ww,drop-Hh+fr[1]*Hh,fr[2],time,seed+fr[0]*3);
-  if(a.glow)for(const [u,vv,r,c] of a.glow)light(g,-Ww/2+u*Ww,drop-Hh+vv*Hh,r,(.8+Math.sin(time*5.1+seed*3)*.2)*alpha*(s.glowK===undefined?1:s.glowK),c);   /* glowK: a town in broad daylight dims its lamps */
+  if(a.glow)for(const [u,vv,r,c] of a.glow)light(g,-Ww/2+u*Ww,drop-Hh+vv*Hh,r,Scenery.flicker(time,seed)*alpha*(s.glowK===undefined?1:s.glowK),c);   /* glowK: a town in broad daylight dims its lamps */
   g.restore();
   if(a.float||a.wash)waterline(g,Ww*(a.wash?.8:.94),time,seed,a.float?0:2);
  }

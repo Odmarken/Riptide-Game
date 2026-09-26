@@ -13,10 +13,10 @@
  const art={
   sf_throne_backdrop:{src:'towns/sf_throne_backdrop',h:520,drop:6,r:0,noShadow:true},   /* the canopy, the blue curtains and the crest on the wall behind the throne */
   sf_throne:{src:'towns/sf_throne',h:360,drop:12,r:0,crx:110,cry:36,cyo:-20,glow:[[.5,.35,120,[190,215,255]]]},
-  sf_hall_pillar:{src:'towns/sf_hall_pillar',h:560,drop:10,r:36,glow:[[.83,.39,90]]},
+  sf_hall_pillar:{src:'towns/sf_hall_pillar',h:560,drop:10,r:36,glow:[[.83,.39,90]],candles:[[.83,.41,.45]]},
   sf_hall_brazier:{src:'towns/sf_hall_brazier',h:220,drop:10,r:34,glow:[[.5,.28,170]],fire:[.5,.26,1]},
   sf_council_table:{src:'towns/sf_council_table',h:300,drop:12,r:0,crx:200,cry:70,cyo:-60,glow:[[.25,.15,110]]},
-  sf_candelabra:{src:'towns/sf_candelabra',h:210,drop:8,r:18,glow:[[.5,.12,130]]},
+  sf_candelabra:{src:'towns/sf_candelabra',h:210,drop:8,r:18,glow:[[.5,.12,130]],candles:[[.073,.218,.25],[.209,.176,.25],[.354,.148,.25],[.502,.072,.27],[.654,.148,.25],[.80,.176,.25],[.932,.218,.25]]},
   sf_stair_down:{src:'towns/sf_stair_down',h:200,drop:10,r:0,noShadow:true},
   sf_hall_bay:{src:'towns/sf_hall_bay',h:520,drop:4,fit:true,mirrorHalf:true},   /* mirrorHalf: the east half is the west half reflected, so the throne sits in a symmetric wall */   /* one clean bay of the hall wall, pillar to pillar, a whole number of them to a wall */
   sf_council_wall:{src:'towns/sf_council_wall',h:514,drop:4,fit:true},   /* the council's own wall: the map of the realm between bookcases */

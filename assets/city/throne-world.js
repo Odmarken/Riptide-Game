@@ -172,11 +172,7 @@
  function ellipse(g,x,y,rx,ry,fill,stroke,width=1){
   g.beginPath();g.ellipse(x,y,Math.max(0,rx),Math.max(0,ry),0,0,TAU);if(fill){g.fillStyle=fill;g.fill();}if(stroke){g.strokeStyle=stroke;g.lineWidth=width;g.stroke();}
  }
- function light(g,x,y,r,strength=1,tint=[255,194,102]){
-  const glow=g.createRadialGradient(x,y,0,x,y,r);
-  glow.addColorStop(0,`rgba(${tint[0]},${tint[1]},${tint[2]},${.26*strength})`);glow.addColorStop(.4,`rgba(${tint[0]},${tint[1]-50},${tint[2]-40},${.12*strength})`);glow.addColorStop(1,`rgba(${tint[0]},${tint[1]-80},${tint[2]-60},0)`);
-  g.fillStyle=glow;g.fillRect(x-r,y-r,r*2,r*2);
- }
+ function light(g,x,y,r,strength=1,tint=[255,194,112]){Scenery.glow(g,x,y,r,strength,tint);}
  function wallTorch(g,x,y,time,seed,im){
   if(!ready(im)){rect(g,x-7,y+3,14,40,'#2c2320');flame(g,x,y,.8,time,seed);return;}
   const h=92,sw=im.naturalWidth||im.width,sh=im.naturalHeight||im.height,w=h*sw/sh,top=y-h*.23,cut=.22;
@@ -188,42 +184,12 @@
   }
   fire(g,x,y,.35,time,seed);
  }
- function flame(g,x,y,size,time,seed){
-  const sway=Math.sin(time*4.3+seed)*2.4*size,flick=.9+Math.sin(time*7.1+seed*1.7)*.1;
-  g.beginPath();g.moveTo(x-9*size,y);g.bezierCurveTo(x-16*size,y-14*size,x-3*size,y-18*size,x+sway,y-34*size*flick);
-  g.bezierCurveTo(x+4*size,y-16*size,x+16*size,y-12*size,x+9*size,y);g.closePath();g.fillStyle='#ea8034';g.fill();
-  g.beginPath();g.moveTo(x-5*size,y);g.quadraticCurveTo(x-7*size,y-11*size,x+sway*.6,y-22*size*flick);g.quadraticCurveTo(x+3*size,y-10*size,x+5*size,y);g.closePath();g.fillStyle='#ffd27a';g.fill();
-  ellipse(g,x,y-4*size,3*size,5*size,'#fff3c8');
- }
+ function flame(g,x,y,size,time,seed){Scenery.flame(g,x,y,size,time,seed);}
  /* 🔥 A living fire over a painted one. Everything is a pure function of time and a per-prop seed -
     no particle state to keep, so a brazier that scrolls off screen and back is mid-flicker, not
     restarting. Additive tongues and embers of flame, sparks that wander up and die, and a breath of
     smoke above them in the normal blend so it darkens instead of glowing. size 1 is a brazier. */
- function fire(g,x,y,size,time,seed){
-  g.save();g.globalCompositeOperation='lighter';
-  g.globalAlpha=.34;                       /* over a painted fire: enough to move it, not enough to bleach it */
-  flame(g,x-6*size,y,size*.85,time*1.07,seed);
-  flame(g,x+7*size,y-1.5*size,size*.75,time*1.19,seed+2.3);
-  flame(g,x,y-2*size,size*1.2,time*.93,seed+4.1);
-  g.globalAlpha=1;
-  for(let i=0;i<11;i++){
-   const p=(time*(.62+.06*(i%4))+i*.137+seed*.31)%1,q=1-p;
-   const wob=Math.sin(time*3.1+i*2.4+seed)*(3+p*9)*size;
-   const px=x+wob+(i%2?-1:1)*q*6*size,py=y-6*size-p*66*size,r=q*q*6.5*size+.6;
-   const c=p<.3?'255,196,96':p<.65?'255,132,40':'214,66,26';
-   ellipse(g,px,py,r,r*1.7,`rgba(${c},${(q*q*.34).toFixed(3)})`);
-  }
-  for(let i=0;i<7;i++){
-   const p=(time*(.30+.045*i)+i*.211+seed*.17)%1,q=1-p;
-   const px=x+Math.sin(time*2.2+i*5.1+seed*3)*(7+p*24)*size,py=y-18*size-p*128*size,r=1.2*size+.5;
-   ellipse(g,px,py,r,r,`rgba(255,${Math.round(150+q*80)},${Math.round(60+q*60)},${(q*.95).toFixed(3)})`);
-  }
-  g.restore();
-  for(let i=0;i<4;i++){
-   const p=(time*.21+i*.25+seed*.13)%1,r=(7+p*18)*size;
-   ellipse(g,x+Math.sin(time*.9+i*1.7+seed)*(5+p*14)*size,y-52*size-p*96*size,r,r*.85,`rgba(52,44,40,${((1-p)*p*.34).toFixed(3)})`);
-  }
- }
+ function fire(g,x,y,size,time,seed){Scenery.fire(g,x,y,size,time,seed);}
  function crown(g,x,y,size,color='#e5c05a',line='#6d4d12'){
   g.save();g.translate(x,y);g.scale(size,size);
   g.beginPath();g.moveTo(-12,8);g.lineTo(-14,-6);g.lineTo(-7,0);g.lineTo(0,-11);g.lineTo(7,0);g.lineTo(14,-6);g.lineTo(12,8);g.closePath();
@@ -676,10 +642,10 @@
   const flip=s.kind==='pillar'&&s.side>0?-1:1;
   g.save();g.scale(flip,1);
   g.drawImage(im,-W/2,a.drop-H,W,H);
-  const [u,v,r]=a.glow,flick=.85+Math.sin(time*5.7+s.x*.01+s.y*.013)*.15;
+  const [u,v,r]=a.glow,flick=Scenery.flicker(time,s.x*.01+s.y*.013);
   light(g,-W/2+u*W,a.drop-H+v*H,r,flick*(s.kind==='throne'?.55:.9),s.kind==='throne'?[255,214,130]:undefined);
   if(a.fire)fire(g,-W/2+a.fire[0]*W,a.drop-H+a.fire[1]*H,a.fire[2],time,s.x*.013+s.y*.007);
-  for(const [u,v,k] of a.fires||[]){light(g,-W/2+u*W,a.drop-H+v*H,110,flick*.8);fire(g,-W/2+u*W,a.drop-H+v*H,k,time,s.x*.013+u*5);}
+  for(const [u,v,k] of a.fires||[]){light(g,-W/2+u*W,a.drop-H+v*H,110,flick*.8);(s.kind==='candelabra'?flame:fire)(g,-W/2+u*W,a.drop-H+v*H,k,time,s.x*.013+u*5);}
   g.restore();
   return true;
  }
