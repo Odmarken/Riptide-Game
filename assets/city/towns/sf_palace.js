@@ -13,8 +13,8 @@
  const art={
   sf_throne_backdrop:{src:'towns/sf_throne_backdrop',h:520,drop:6,r:0,noShadow:true},   /* the canopy, the blue curtains and the crest on the wall behind the throne */
   sf_throne:{src:'towns/sf_throne',h:360,drop:12,r:0,crx:110,cry:36,cyo:-20,glow:[[.5,.35,120,[190,215,255]]]},
-  sf_hall_pillar:{src:'towns/sf_hall_pillar',h:560,drop:10,r:36,glow:[[.83,.39,90]],candles:[[.83,.41,.45]]},
-  sf_hall_brazier:{src:'towns/sf_hall_brazier',h:220,drop:10,r:34,glow:[[.5,.28,170]],fire:[.5,.26,1]},
+  sf_hall_pillar:{src:'towns/sf_hall_pillar',h:560,drop:10,r:36,glow:[[.88,.415,100]],paintedFlame:[.805,.35,1,.45],fire:[.9,.44,.55]},
+  sf_hall_brazier:{src:'towns/sf_hall_brazier',h:220,drop:10,r:34,glow:[[.5,.24,150]],fire:[.5,.26,1],paintedFlame:[0,0,1,.265]},
   sf_council_table:{src:'towns/sf_council_table',h:300,drop:12,r:0,crx:200,cry:70,cyo:-60,glow:[[.25,.15,110]]},
   sf_candelabra:{src:'towns/sf_candelabra',h:210,drop:8,r:18,glow:[[.5,.12,130]],candles:[[.073,.218,.25],[.209,.176,.25],[.354,.148,.25],[.502,.072,.27],[.654,.148,.25],[.80,.176,.25],[.932,.218,.25]]},
   sf_stair_down:{src:'towns/sf_stair_down',h:200,drop:10,r:0,noShadow:true},

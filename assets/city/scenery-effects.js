@@ -146,5 +146,37 @@
   }
   g.restore();
  }
- return Object.freeze({shadow,smoke,glow,flame,fire,flicker});
+ /* Animate the original painted fire, with its fuel bed and metal kept fixed.
+    Removing the original patch first prevents a second, stationary flame. */
+ function paintedFlame(g,im,W,H,top,patch,time=0,seed=0){
+  const sw=im.naturalWidth||im.width,sh=im.naturalHeight||im.height;
+  const [u0,v0,u1,v1]=patch,x=-W/2+u0*W,y=top+v0*H,w=(u1-u0)*W,h=(v1-v0)*H;
+  if(!(sw>0&&sh>0&&w>0&&h>0))return;
+  g.save();g.beginPath();g.rect(-W/2,top,W,H);g.rect(x,y,w,h);g.clip('evenodd');
+  g.drawImage(im,-W/2,top,W,H);g.restore();
+  g.save();g.beginPath();g.rect(x,y-h*.12,w,h*1.12);g.clip();
+  const t=time+seed*.37,bands=24,stretch=1+.045*Math.sin(t*3.7)+.025*Math.sin(t*7.3);
+  const row=p=>y+h-h*(1-p)*stretch+h*.014*Math.sin(Math.PI*p)*Math.sin(t*6.1-p*8);
+  for(let i=0;i<bands;i++){
+   const p=i/bands,q=(i+1)/bands,k=(1-p)*(1-p),dy=row(p),dh=row(q)-dy;
+   const dx=w*.055*k*(Math.sin(t*4.3-p*8)+.4*Math.sin(t*9.1-p*13));
+   const width=w*(1+.04*k*Math.sin(t*5.9-p*10));
+   g.drawImage(im,u0*sw,(v0+p*(v1-v0))*sh,(u1-u0)*sw,(v1-v0)*sh/bands,x+dx+(w-width)*.5,dy,width,dh+.12);
+  }
+  g.restore();
+ }
+ /* A few cooling embers and faint smoke above an existing flame, never another fire. */
+ function fireAir(g,x,tip,size,time=0,seed=0){
+  if(!(size>0))return;
+  g.save();g.globalAlpha*=.2;smoke(g,x,tip-2,size*.3,time,seed,false,true);g.restore();
+  g.save();g.globalCompositeOperation='screen';
+  for(let i=0;i<4;i++){
+   const p=fract(time*(.28+i*.031)+seed*.17+i*.237),a=Math.sin(Math.PI*p)*Math.pow(1-p,1.8)*.65;
+   const px=x+size*(Math.sin(seed+i*3+p*7)*(3+p*8)+p*p*12),py=tip+size*(9-p*67);
+   g.fillStyle='rgba(255,190,92,'+a+')';g.beginPath();
+   g.ellipse(px,py,size*(.45+.35*(1-p)),size*(.7+.6*(1-p)),.2,0,Math.PI*2);g.fill();
+  }
+  g.restore();
+ }
+ return Object.freeze({shadow,smoke,glow,flame,fire,flicker,paintedFlame,fireAir});
 });

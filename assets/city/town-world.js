@@ -729,14 +729,18 @@
   }
   if(a.sway){const k=Math.sin(time*.9+seed)*.012;g.transform(1,0,k,1,-k*drop,0);}
   if(a.flag){const k=Math.sin(time*1.7+seed*2)*.018;g.transform(1,0,k,1,-k*drop,0);}
-  g.globalAlpha*=alpha;g.drawImage(pic,-Ww/2,drop-Hh,Ww,Hh);g.globalAlpha=1;
+  g.globalAlpha*=alpha;
+  if(a.paintedFlame)Scenery.paintedFlame(g,pic,Ww,Hh,drop-Hh,a.paintedFlame,time,seed);
+  else g.drawImage(pic,-Ww/2,drop-Hh,Ww,Hh);
+  g.globalAlpha=1;
   if(a.spray)spray(g,a,Ww,Hh,time,seed);
   if(a.smoke){g.globalAlpha=alpha;for(const [u,vv,k] of a.smoke)smoke(g,-Ww/2+u*Ww,drop-Hh+vv*Hh,k,time,seed+u*7,!!a.soot);g.globalAlpha=1;}
   if((s.kind==='lamp'||s.kind.endsWith('_lamp'))&&a.glow)for(const [u,vv] of a.glow)Scenery.flame(g,-Ww/2+u*Ww,drop-Hh+vv*Hh+3,.23,time,seed);
   if(a.candles)for(const [u,vv,k] of a.candles)Scenery.flame(g,-Ww/2+u*Ww,drop-Hh+vv*Hh,k,time,seed+u*7);
-  if(a.fire)fire(g,-Ww/2+a.fire[0]*Ww,drop-Hh+a.fire[1]*Hh,a.fire[2],time,seed);
+  if(a.paintedFlame){g.save();g.globalAlpha*=alpha;Scenery.fireAir(g,-Ww/2+a.fire[0]*Ww,drop-Hh+a.paintedFlame[1]*Hh,a.fire[2],time,seed);g.restore();}
+  else if(a.fire)fire(g,-Ww/2+a.fire[0]*Ww,drop-Hh+a.fire[1]*Hh,a.fire[2],time,seed);
   if(a.fires)for(const fr of a.fires)fire(g,-Ww/2+fr[0]*Ww,drop-Hh+fr[1]*Hh,fr[2],time,seed+fr[0]*3);
-  if(a.glow)for(const [u,vv,r,c] of a.glow)light(g,-Ww/2+u*Ww,drop-Hh+vv*Hh,r,Scenery.flicker(time,seed)*alpha*(s.glowK===undefined?1:s.glowK),c);   /* glowK: a town in broad daylight dims its lamps */
+  if(a.glow)for(const [u,vv,r,c] of a.glow)light(g,-Ww/2+u*Ww,drop-Hh+vv*Hh,r,Scenery.flicker(time,seed)*alpha*(a.paintedFlame?.6:1)*(s.glowK===undefined?1:s.glowK),c);   /* glowK: a town in broad daylight dims its lamps */
   g.restore();
   if(a.float||a.wash)waterline(g,Ww*(a.wash?.8:.94),time,seed,a.float?0:2);
  }

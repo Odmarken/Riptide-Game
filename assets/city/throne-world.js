@@ -182,7 +182,8 @@
    const v=i/16*cut,dh=cut/16,k=1-(v+dh)/cut,dx=Math.sin(time*5.2+seed-v*20)*1.5*k*k;
    g.drawImage(im,0,sh*v,sw,sh*dh,x-w/2+dx,top+h*v,w,h*dh+.3);
   }
-  fire(g,x,y,.35,time,seed);
+  /* The painting already contains the fire. Only a faint plume above its tip. */
+  g.save();g.globalAlpha*=.24;Scenery.smoke(g,x,top-2,.2,time,seed,false,true);g.restore();
  }
  function flame(g,x,y,size,time,seed){Scenery.flame(g,x,y,size,time,seed);}
  /* 🔥 A living fire over a painted one. Everything is a pure function of time and a per-prop seed -
@@ -621,10 +622,10 @@
     lands, where its light pools (u, v of the picture, radius) and, for the ones that burn, where the
     living fire stands on the painted one (u, v of the coals or the torch cup, size). */
  const ART={
-  pillar:{key:'pillar',h:330,drop:22,glow:[.87,.43,150],fire:[.875,.455,.5]},
+  pillar:{key:'pillar',h:330,drop:22,glow:[.87,.402,120],fire:[.875,.455,.5],paintedFlame:[.79,.34,1,.442]},
   throne:{key:'throne',h:320,drop:26,glow:[.5,.30,200]},
   table:{key:'table',h:286,drop:143,glow:[.47,.30,200]},
-  brazier:{key:'brazier',h:104,drop:12,glow:[.5,.20,190],fire:[.5,.30,1]},
+  brazier:{key:'brazier',h:104,drop:12,glow:[.5,.20,145],fire:[.5,.30,1],paintedFlame:[0,0,1,.31]},
   gaoldesk:{key:'gaoldesk',h:132,drop:40,glow:[.68,.10,90]},      /* 🎨 Higgsfield 2026-09-21 (assets/city/city-art-manifest.json) */
   stairdown:{key:'stairdown',h:280,drop:6,glow:[.5,.62,150],fires:[[.084,.375,.5],[.911,.375,.5]]},   /* ⛓ the jail's arches (Higgsfield 2026-09-25): fires where */
   stairup:{key:'stairup',h:280,drop:6,glow:[.49,.48,170],fires:[[.098,.41,.5],[.901,.41,.5]]},           /* their painted torches burn, measured on the pictures */
@@ -641,10 +642,13 @@
   /* the pillar's torch is painted on its right: the east row is mirrored so every torch faces the carpet */
   const flip=s.kind==='pillar'&&s.side>0?-1:1;
   g.save();g.scale(flip,1);
-  g.drawImage(im,-W/2,a.drop-H,W,H);
+  if(a.paintedFlame)Scenery.paintedFlame(g,im,W,H,a.drop-H,a.paintedFlame,time,s.x*.013+s.y*.007);
+  else g.drawImage(im,-W/2,a.drop-H,W,H);
   const [u,v,r]=a.glow,flick=Scenery.flicker(time,s.x*.01+s.y*.013);
-  light(g,-W/2+u*W,a.drop-H+v*H,r,flick*(s.kind==='throne'?.55:.9),s.kind==='throne'?[255,214,130]:undefined);
-  if(a.fire)fire(g,-W/2+a.fire[0]*W,a.drop-H+a.fire[1]*H,a.fire[2],time,s.x*.013+s.y*.007);
+  light(g,-W/2+u*W,a.drop-H+v*H,r,flick*(a.paintedFlame?.45:s.kind==='throne'?.55:.9),s.kind==='throne'?[255,214,130]:undefined);
+  if(a.paintedFlame){
+   Scenery.fireAir(g,-W/2+a.fire[0]*W,a.drop-H+a.paintedFlame[1]*H,s.kind==='pillar'?.5:.7,time,s.x*.013+s.y*.007);
+  }else if(a.fire)fire(g,-W/2+a.fire[0]*W,a.drop-H+a.fire[1]*H,a.fire[2],time,s.x*.013+s.y*.007);
   for(const [u,v,k] of a.fires||[]){light(g,-W/2+u*W,a.drop-H+v*H,110,flick*.8);(s.kind==='candelabra'?flame:fire)(g,-W/2+u*W,a.drop-H+v*H,k,time,s.x*.013+u*5);}
   g.restore();
   return true;

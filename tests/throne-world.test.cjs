@@ -151,7 +151,7 @@ test('props draw with finite geometry as paintings, and as canvas scenery until 
  assert.equal(count.draws,0,'no painting loaded: canvas scenery only');
  const before=count.calls;
  for(const s of w.solids)World.drawProp(g,s,1.2,art);
- assert.equal(count.draws,w.solids.filter(s=>World.ART[s.kind]).length,'one blit per painted prop once its painting is in');
+ assert.equal(count.draws,w.solids.reduce((n,s)=>n+(World.ART[s.kind]?(World.ART[s.kind].paintedFlame?25:1):0),0),'painted flames replace their original patch with moving strips; other props stay one blit');
  assert.ok(before>200);
  for(const kind of ['pillar','throne','table','brazier'])assert.ok(World.ART[kind].h>0&&World.ART[kind].drop>=0,kind);
  /* every flame sits inside its picture */
@@ -163,7 +163,7 @@ test('props draw with finite geometry as paintings, and as canvas scenery until 
  const brazier=w.solids.find(s=>s.kind==='brazier'),c0=count.calls;
  World.drawProp(g,brazier,3.2,art);const one=count.calls-c0;
  World.drawProp(g,brazier,97.45,art);assert.equal(count.calls-c0-one,one);
- assert.ok(one>60,'flames, embers, sparks and smoke');
+ assert.ok(one>60,'the existing flame moves and smoke rises above it');
 });
 
 /* runs last: the layers are cached per set of loaded images, and this is the first call that has the crypt stone */

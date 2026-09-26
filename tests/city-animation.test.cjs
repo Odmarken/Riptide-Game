@@ -33,6 +33,18 @@ test('smoke and contact shadows preserve a faded building and fade to transparen
  assert.ok(a.calls.some(c=>c[0]==='stop'&&c[1]===1&&/0\)$/.test(c[2])));
 });
 
+test('painted hall fire moves its original pixels once while the stand stays fixed',()=>{
+ const im={naturalWidth:352,naturalHeight:640},a=context(),b=context();
+ Scenery.paintedFlame(a.g,im,121,220,-210,[0,0,1,.265],2,7);
+ Scenery.paintedFlame(b.g,im,121,220,-210,[0,0,1,.265],2.3,7);
+ const draws=c=>c.calls.filter(x=>x[0]==='drawImage'),one=draws(a),two=draws(b);
+ assert.deepEqual(one[0],two[0],'the metal and coals never move');
+ assert.notDeepEqual(one.slice(1),two.slice(1),'the painted flame stretches and curls');
+ assert.ok(one.every(x=>x[1]===im),'no generated flame on top of the original');
+ assert.ok(a.calls.some(x=>x[0]==='clip'&&x[1]==='evenodd'),'the old static flame is excluded');
+ assert.equal(a.g.globalAlpha,.6);assert.equal(a.stack.length,0);
+});
+
 test('fire and soot remain deterministic across skipped frames, including negative seeds',()=>{
  for(const seed of [-47,0,91])for(const t of [0,3.7,10000]){
   const a=context(),b=context();
