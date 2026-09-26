@@ -54,7 +54,7 @@ test('in an enemy port the seat, the holy places and the walls are never burned;
   vm.runInContext(section('const RAID_SPARE=', 'const raidAlly=') + ';this.raidTargetable=raidTargetable;this.raidWeight=raidWeight;this.raidKey=raidKey;this.raidName=raidName;', box);
   const b = (kind, extra = {}) => ({ type: 'townprop', big: true, kind, x: 930.4, y: 2366.6, ...extra });
   for (const k of ['rh_house_a', 'rh_inn', 'h_warehouse', 'rh_barracks', 'ef_market', 'sf_house_b']) assert.equal(box.raidTargetable(b(k)), true, k);
-  for (const k of ['rh_keep', 'sf_palace', 'rh_chapel', 'rh_gatehouse', 'rh_tower', 'rh_wall', 'harbor_beacon']) assert.equal(box.raidTargetable(b(k)), false, k + ' is spared');
+  for (const k of ['rh_keep', 'sf_palace', 'ef_foundry', 'rh_chapel', 'rh_gatehouse', 'rh_tower', 'rh_wall', 'harbor_beacon']) assert.equal(box.raidTargetable(b(k)), false, k + ' is spared');
   assert.equal(box.raidTargetable(b('galleon', { floats: true })), false, 'nor the ships');
   assert.equal(box.raidTargetable(b('crates', { big: false })), false, 'nor a pile of crates');
   assert.deepEqual(['rh_barracks', 'rh_armory', 'ef_market', 'h_warehouse', 'rh_inn', 'rh_house_a'].map(k => box.raidWeight(b(k))), [2, 2, 1.5, 1.5, 1.5, 1]);

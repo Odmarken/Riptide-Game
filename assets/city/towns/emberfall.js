@@ -115,7 +115,7 @@
  ];
  const ALDRIC=['Seven hundred chimneys, and every one of them pays me.','Everything the realm makes out of metal was made here first. Remember that when you sign.','Gold is only yellow iron with ambitions.','Mind the soot. It costs extra to wash off.'];
  const stands=[
-  {name:'King Aldric Cindermane',skin:'ruler_aldric',x:2076,y:2765,fx:1,big:1.34,game:'ruler',say:ALDRIC,extra:{royal:true}},
+  {name:'King Aldric Cindermane',skin:'ruler_aldric',x:2500,y:1500,fx:1,big:1.34,game:'ruler',say:ALDRIC,extra:{royal:true}},   /* at the Great Foundry, between the anvils before the middle furnace */
   {name:'Guild Warden',skin:'guard',x:1880,y:2760,fx:1,big:1.2,extra:{guard:true}},
   {name:'Foreman Halvor',skin:'foundry_worker',x:2500,y:1620,fx:1,say:['Stand clear of the crucibles!','Fourteen hundred degrees and it still wants more coal.','The Foundry never sleeps. Neither do I, apparently.']},
   {name:'Ironmonger Wren',skin:'market_woman',x:SQ.x-340,y:SQ.y+200,fx:1,say:['Nails, hinges, horseshoes - forged this morning.','Emberfall iron. It bends before it breaks.','Buy two, the third is still two.']},

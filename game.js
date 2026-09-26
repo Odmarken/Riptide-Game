@@ -1739,7 +1739,7 @@ function townLinkClick(wx,wy){
    in the port until they rebuild it, a building a close in peace. The garrison you see is the books' garrison, thinned as the place
    loses strength: the fighting is played out, the outcome is the books'. The seat of the ruler, the holy places and the walls are
    never burned; a barracks or an armoury counts double, a market, a hall or a warehouse half again. */
-const RAID_SPARE=/keep|palace|gatehouse|tower|wall|chapel|temple|cathedral|beacon|crane|statue|lighthouse/;
+const RAID_SPARE=/keep|palace|foundry|gatehouse|tower|wall|chapel|temple|cathedral|beacon|crane|statue|lighthouse/;   /* foundry: King Aldric holds court at Emberfall's */
 const RAID_DRAWN=90,RAID_FOES=40,RAID_FIGHT=5,RAID_BURN=7;
 const raidKey=s=>s.kind+'@'+Math.round(s.x)+','+Math.round(s.y);
 const raidTargetable=s=>s.type==='townprop'&&s.big&&!s.floats&&!RAID_SPARE.test(s.kind);
@@ -15554,15 +15554,16 @@ function drawCharred(s,art,W,H,top){   /* 🔥 what the Forsaken burned: the hou
  for(let i=0;i<3;i++)CityScenery.smoke(ctx,(i-1)*W*.22,top+H*.35,.72,t,(s.seed||0)*.13+i/3,false,true);
  ctx.restore();
 }
+/* 🛡 how the guards stand against an attack - a word, not a forecast (asked for 2026-09-27: no big hints) */
+function guardVerdict(b){const D=b.defence;return !(D.watch+D.cadets+b.called)?['Nobody to fight them','bad']:b.harm<.05?['Strong enough','pos']:b.harm<.4?['Not quite strong enough','bad']:['Not strong enough','bad'];}
 function ledgerForsaken(c){   /* 🟣 in the Ledger: what the guards are worth against them, the attack under way, and the ruins to rebuild */
- const E=CityEconomy,v=E.forsakenView(c,cityContext()),d=v.defence,guards=d.watch+d.cadets+d.mercs;
- const odds=v.harm<.05?'cut down at their portals':v.houses+' house'+(v.houses===1?'':'s')+' burn · '+v.fled+' flee';
+ const E=CityEconomy,v=E.forsakenView(c,cityContext()),d=v.defence,guards=d.watch+d.cadets+d.mercs,vd=guardVerdict(v);
  let h='';
  if(c.raid){const d=E.ALLIES.find(a=>a.id===c.raid.ally),B=E.WAR_BOOK[c.raid.ally],b=E.battleOf(c,c.raid.n,B.q);   /* ⚔ an enemy's soldiers in the streets this close */
-  h+='<div class="ledger-incident"><h3>⚔ '+c.raid.n+' of '+B.men+' of '+d.name+' <small>· in the streets now</small></h3><p>'+(b.harm<.05?'The guards will cut them down':'The guards cannot hold them all: '+b.houses+' house'+(b.houses===1?'':'s')+' will burn and '+b.fled+' townsfolk flee')+(b.called?' - '+b.called+' sellswords are called in':'')+'. It is fought out at the next close.</p></div>';}
+  h+='<div class="ledger-incident"><h3>⚔ '+c.raid.n+' of '+B.men+' of '+d.name+' <small>· in the streets now</small></h3><p>Your guards: <b class="'+guardVerdict(b)[1]+'">'+guardVerdict(b)[0]+'</b>. It is fought out at the next close.</p></div>';}
  h+='<h3 class="ledger-gap">🟣 The Forsaken</h3><div class="ledger-tiles">'
-  +'<div class="ledger-tile"><span>'+(v.active?'In the streets now':'If they came today')+'</span><b class="'+(v.harm<.05?'':'bad')+'">'+v.n+' Forsaken · '+odds+'</b><small>'+(d.watch+d.cadets+v.called?(v.injured.total?'≈'+v.injured.total+' guard'+(v.injured.total===1?'':'s')+' hurt':'no guard hurt')+(v.called?' · '+v.called+' sellsword'+(v.called===1?'':'s')+' called in':''):'nobody to fight them')+'</small></div>'
-  +'<div class="ledger-tile"><span>Guards</span><b>'+guards+' · power '+d.power+' of '+v.attack+'</b><small>'+d.watch+' watch · '+d.cadets+' cadets · '+d.mercs+' sellswords'+(d.drill?' · drilled ×'+v.drillPower:'')+(d.hurt?' · '+d.hurt+' hurt':'')+'</small></div>'
+  +'<div class="ledger-tile"><span>Strength against the Forsaken</span><b class="'+vd[1]+'">'+vd[0]+'</b><small>'+(v.active?'they are in the streets now':'if they came today')+'</small></div>'
+  +'<div class="ledger-tile"><span>Guards</span><b>'+guards+' · power '+d.power+'</b><small>'+d.watch+' watch · '+d.cadets+' cadets · '+d.mercs+' sellswords'+(d.drill?' · drilled ×'+v.drillPower:'')+(d.hurt?' · '+d.hurt+' hurt':'')+'</small></div>'
   +'<div class="ledger-tile"><span>Stronger guards</span><b>'+(d.drill?'Training Ground '+d.drill+' / 3':'No Training Ground')+'</b><small>the City Watch line, the Guards’ Training Ground (Works) and the Free Company in Port Meridian</small></div></div>';
  if(v.scars)h+='<div class="ledger-incident"><h3>🔥 Burned in the attacks <small>· '+v.scars.houses+' house'+(v.scars.houses===1?'':'s')+'</small></h3>'
   +'<p>'+v.scars.roofs+' roofs lost and '+v.scars.fled+' townsfolk gone. Rebuild, and they come home.</p>'
@@ -16105,7 +16106,7 @@ function allyWar(c,a,W){
  const opts=[['mercs','The Free Company',H.mercs>0],['watch','The watch and the cadets',H.watch+H.cadets>0],['all','Every man',H.mercs>0&&H.watch+H.cadets>0]].filter(o=>o[2]);
  let h='<div class="ally-war"><h5>⚔ '+(w.by==='us'?'Your war':a.ruler.name+'’s war')+' <small>since close '+w.since+'</small></h5>'
   +'<div class="ally-strength"><span>'+a.name+'’s strength</span><div class="ledger-seatbar war" role="img" aria-label="'+a.name+'’s strength '+str+'%"><i style="width:'+str+'%"></i></div><small>'+str+'%</small></div>'
-  +'<p class="ledger-fx"><span>their next raid ≈'+next+' men · power '+Math.round(next*B.q)+'</span><span>your guards at home · power '+H.power+'</span><span>raids '+w.raids+(w.beaten?' · '+w.beaten+' beaten off':'')+'</span><span>razed in '+a.name+' '+w.burned+'</span>'+(w.plunder?'<span class="bad">carried off '+fmtK(w.plunder)+' ◉</span>':'')+'</p>';
+  +'<p class="ledger-fx"><span class="'+(guardVerdict(E.battleOf(c,next,B.q))[1]==='bad'?'bad':'good')+'">your guards against their raids: '+guardVerdict(E.battleOf(c,next,B.q))[0].toLowerCase()+'</span><span>raids '+w.raids+(w.beaten?' · '+w.beaten+' beaten off':'')+'</span><span>razed in '+a.name+' '+w.burned+'</span>'+(w.plunder?'<span class="bad">carried off '+fmtK(w.plunder)+' ◉</span>':'')+'</p>';
  if(x)h+='<p class="ledger-work-foot">⛵ '+(x.watch+x.cadets+x.mercs)+' men are at '+a.name+(x.auto?' - the books will tell at the next close how they did.':': '+fmtNum(x.used)+' of '+x.cap+' razed. Give them their orders in the port.')+'</p>';
  else{
   h+='<div class="ledger-opts">'+opts.map(([k,label])=>{const r=E.raidOf(c,a.id,force[k]),no=!!w.sail||!r.cap||c.treasury<r.cost;
