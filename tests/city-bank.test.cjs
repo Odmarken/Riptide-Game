@@ -48,9 +48,15 @@ test('a season that ends with the debt down, the strongroom never dry and the cr
  /* in the black but no richer: a B, and a smaller reward */
  const b=open();season(b,(st,i)=>{if(i===N-1)E.repay(st,500000);});
  assert.equal(b.seasons[0].grade,'B');assert.equal(b.limit,Math.round(6500000*1.06+500000*.75));
- /* it is where the debt ENDS that counts: gold sent to and fro earns nothing */
+ /* money borrowed in the season is due a tenth at a time, like the old debt (asked for 2026-09-26): the rest rolls into the next season */
+ const k=open();season(k,(st,i)=>{if(i===0)E.borrow(st,{},1500000);if(i===N-1)E.repay(st,st.loan-st.season.target);});
+ assert.equal(k.seasons[0].target,4500000+1350000);assert.equal(k.seasons[0].endLoan,5850000);assert.equal(k.seasons[0].paid,true);
+ assert.equal(k.season.startLoan,5850000,'and the next season starts from the debt as it stands');assert.equal(k.season.target,Math.round(5850000*.9));
+ /* gold sent to and fro raises the target once, by the most the season ever drew - never once a trip */
  const c=open();season(c,st=>{E.borrow(st,{},1000000);E.repay(st,1000000);});
- assert.equal(c.seasons[0].grade,'D');assert.equal(c.seasons[0].reduced,0);
+ assert.equal(c.seasons[0].target,4500000+900000);assert.equal(c.seasons[0].reduced,0);
+ const r=open();E.repay(r,500000);E.borrow(r,{},1500000);E.repay(r,1500000);E.borrow(r,{},1500000);
+ assert.equal(r.season.target,4500000+1350000,'repaid first, then drawn: the draw is what counts');assert.equal(r.season.peak,1500000);
  /* and drawing the reserve is fine, as long as it is back by the end */
  const d=open();season(d,(st,i)=>{if(i===0)E.borrow(st,{},1500000);if(i===N-1)E.repay(st,2000000);});
  assert.equal(d.seasons[0].paid,true);assert.ok('AB'.includes(d.seasons[0].grade));
@@ -122,7 +128,7 @@ test('the Bank tab has everything it shows, and the season survives a save',()=>
  const s=open();E.borrow(s,{},500000);for(let i=0;i<5;i++)E.tick(s,{},quiet);
  const v=E.bankView(s,{});
  assert.equal(v.chartered,true);assert.equal(v.loan,5500000);assert.equal(v.limit,6500000);assert.equal(v.room,1000000);assert.equal(v.interest,Math.round(5500000*s.rate));
- assert.equal(v.length,N);assert.equal(v.season.n,1);assert.equal(v.season.closes,5);assert.equal(v.season.left,N-5);assert.equal(v.season.toRepay,1000000);
+ assert.equal(v.length,N);assert.equal(v.season.n,1);assert.equal(v.season.closes,5);assert.equal(v.season.left,N-5);assert.equal(v.season.toRepay,500000+50000,'a tenth of the old debt and a tenth of the new loan');
  assert.equal(v.season.series.length,5);assert.ok(v.season.series.every(p=>Number.isInteger(p.t)&&p.d===5500000&&Number.isInteger(p.n)));
  assert.equal(v.surplus,0);assert.equal(v.frozen,false);assert.equal(v.bailiffs,false);assert.deepEqual(v.seasons,[]);
  assert.deepEqual(Object.keys(v.grades),['A','B','C','D','F']);

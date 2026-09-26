@@ -511,7 +511,7 @@
    const q=s.season&&typeof s.season==='object'?s.season:{};
    const cm={};if(q.card&&typeof q.card==='object'&&q.card.mods&&typeof q.card.mods==='object')for(const key of Object.keys(q.card.mods))if(Number.isFinite(Number(q.card.mods[key])))cm[key]=Number(q.card.mods[key]);
    out.season={n:Math.max(1,Math.floor(num(q.n,1))),card:{id:cardDef(q.card&&q.card.id).id,mods:cardDef(q.card&&q.card.id).id==='ordinary'?{}:cm},closes:0,startLoan:Math.max(0,Math.round(num(q.startLoan,num(s.loan)))),startTreasury:Math.round(num(q.startTreasury,num(s.treasury))),
-    target:Math.max(0,Math.round(num(q.target,0))),red:Math.max(0,Math.floor(num(q.red,0))),covered:Math.max(0,Math.floor(num(q.covered,0))),interest:Math.max(0,Math.round(num(q.interest,0))),in:Math.max(0,Math.round(num(q.in,0))),out:Math.max(0,Math.round(num(q.out,0))),series:series(q.series)};
+    target:Math.max(0,Math.round(num(q.target,0))),drawn:Math.max(0,Math.round(num(q.drawn,0))),peak:Math.max(0,Math.round(num(q.peak,0))),red:Math.max(0,Math.floor(num(q.red,0))),covered:Math.max(0,Math.floor(num(q.covered,0))),interest:Math.max(0,Math.round(num(q.interest,0))),in:Math.max(0,Math.round(num(q.in,0))),out:Math.max(0,Math.round(num(q.out,0))),series:series(q.series)};
    out.season.closes=out.season.series.length;
    out.seasons=(Array.isArray(s.seasons)?s.seasons:[]).filter(x=>x&&typeof x==='object'&&'ABCDF'.includes(x.grade)).slice(-SEASONS_KEPT)
     .map(x=>({...x,series:series(x.series)}));
@@ -1029,7 +1029,7 @@
  /* 🏦 Signing the founding loan opens the books: 500 000 in the strongroom, the same owed, a line a
     little beyond it, and the first season's clock running. */
  function newSeason(state,n,share,rng){
-  return {n,card:dealCard(rng,state.season&&state.season.card&&state.season.card.id),closes:0,startLoan:state.loan,startTreasury:state.treasury,target:Math.max(0,Math.round(state.loan*(1-share))),red:0,covered:0,interest:0,in:0,out:0,series:[]};
+  return {n,card:dealCard(rng,state.season&&state.season.card&&state.season.card.id),closes:0,startLoan:state.loan,startTreasury:state.treasury,target:Math.max(0,Math.round(state.loan*(1-share))),drawn:0,peak:0,red:0,covered:0,interest:0,in:0,out:0,series:[]};
  }
  /* 👑 the crown needs three things: the realm's trust at COUP_TRUST, the council's favour at COUP_FAVOUR, and a season on
     the books - the bank must have graded COUP_SEASONS of them */
@@ -1595,6 +1595,11 @@
   const room=creditLimit(ctx,state)-state.loan,n=Math.min(Math.floor(num(amount)),room);
   if(n<=0)return 0;
   state.loan+=n;state.treasury+=n;state.borrowed+=n;
+  /* 🏦 money borrowed in a season follows the old debt's rule (asked for 2026-09-26): a tenth of it is due by the season's end, the rest rolls
+     into the next season's debt - which must come down a tenth in its turn. What counts is the most the season has DRAWN (borrowed less repaid, at
+     its peak), so gold sent to and fro raises the target once, never once a trip. A cover from the line (a close that could not be paid) does not */
+  const q=state.season;
+  if(q){q.drawn=num(q.drawn)+n;if(q.drawn>num(q.peak)){q.target+=Math.round((q.drawn-num(q.peak))*(1-DUE_SHARE));q.peak=q.drawn;}}
   return n;
  }
  /* what counts with the bank is where the debt stands when the season closes, not how often gold went to and fro */
@@ -1603,6 +1608,7 @@
   const n=Math.min(Math.floor(num(amount)),state.loan,Math.max(0,state.treasury));
   if(n<=0)return 0;
   state.loan-=n;state.treasury-=n;state.repaid=num(state.repaid)+n;
+  if(state.season)state.season.drawn=Math.max(0,num(state.season.drawn)-n);   /* 🏦 what this season has drawn comes down first - its peak stays */
   return n;
  }
  /* Moving gold between the treasury and the hero's purse. room is what the purse can still hold.
