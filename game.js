@@ -496,32 +496,50 @@ function drawMist(now){   /* in the world's frame, over everything that stands: 
  }
  ctx.restore();
 }
-function drawWeather(now){   /* in the screen's frame, over the lit world: the rain and its splashes, or the snow */
- const w=VW,h=VH,dim=1-.45*SUN.dark;
+const WX_TILE=512;   /* the rain, its splashes and the snow are laid on the world in tiles this big, each tile a pattern of its own */
+function wxTiles(padX,padY,f){   /* every tile the view touches, and padX/padY world units round it: f(tile x, tile y, a number of the tile's own) */
+ const T=WX_TILE,x0=Math.floor((camX-padX)/T),x1=Math.floor((camX+VW/zoom+padX)/T),y0=Math.floor((camY-padY)/T),y1=Math.floor((camY+VH/zoom+padY)/T);
+ for(let ty=y0;ty<=y1;ty++)for(let tx=x0;tx<=x1;tx++)f(tx,ty,(Math.imul(tx,73856093)^Math.imul(ty,19349663))>>>0);
+}
+function drawWeather(now){   /* over the lit world, in the screen's frame: the rain and its splashes, or the snow. Every drop, splash and
+                                flake has its place on the world, not on the screen, so as you walk they stay where they are and the rain
+                                slides by with the ground (it followed the hero about while it was laid on the screen) */
+ const w=VW,h=VH,z=zoom,T=WX_TILE,dim=1-.45*SUN.dark,sx=x=>(x-camX)*z,sy=y=>(y-camY)*z;
  ctx.save();
  if(WEATHER.rain>0){
-  const n=Math.round(WEATHER.rain*w*h/2400),slant=.16+WEATHER.wind*.2;
+  const per=Math.round(WEATHER.rain*T*T/2960),slant=.16+WEATHER.wind*.2;   /* drops to a tile: as thick on the screen as before, at the usual zoom */
   ctx.strokeStyle='rgba(205,218,238,'+(.42*dim).toFixed(3)+')';ctx.lineWidth=1.1;ctx.lineCap='round';ctx.beginPath();
-  for(let i=0;i<n;i++){   /* each drop its own speed, length and place, from its number and the clock - nothing kept */
-   const r1=wxHash(i*3+1),r2=wxHash(i*3+2),r3=wxHash(i*3+3),sp=950+500*r1,L=16+16*r2,span=h+L+40;
-   const y=(now*sp+r3*span)%span-L-20,x=((r2*1.7+r1*.31)%1)*(w+240)-120+slant*y;
-   ctx.moveTo(x,y);ctx.lineTo(x+slant*L,y+L);
-  }
+  wxTiles(200,60,(tx,ty,k)=>{   /* wide enough to the sides that a drop slanting in from the next tile is not missed */
+   for(let i=0;i<per;i++){   /* each drop its own speed, length and place in its tile, from its number and the clock - nothing kept */
+    const r1=wxHash(k+i*3+1),r2=wxHash(k+i*3+2),r3=wxHash(k+i*3+3),sp=1100+550*r1,L=18+18*r2,fall=(now*sp+r3*T)%T;
+    const x=sx(tx*T+((r2*1.7+r1*.31)%1)*T+slant*fall),y=sy(ty*T+fall-L);
+    if(x<-40||x>w+40||y<-60||y>h+20)continue;
+    ctx.moveTo(x,y);ctx.lineTo(x+slant*L*z,y+L*z);
+   }
+  });
   ctx.stroke();
   ctx.strokeStyle='rgba(215,228,245,1)';ctx.lineWidth=1;
-  for(let j=0,m=Math.round(WEATHER.rain*70);j<m;j++){   /* splashes: a ring that opens and fades, then somewhere else */
-   const q=now/.5+wxHash(j*7+11),slot=Math.floor(q),ph=q-slot,x=wxHash(j*131+slot*7919)*w,y=wxHash(j*197+slot*104729)*h,rr=2+ph*7;
-   ctx.globalAlpha=(1-ph)*.35*dim;ctx.beginPath();ctx.ellipse(x,y,rr,rr*.4,0,0,Math.PI*2);ctx.stroke();
-  }
+  const splashes=Math.round(WEATHER.rain*10);   /* to a tile */
+  wxTiles(20,20,(tx,ty,k)=>{
+   for(let j=0;j<splashes;j++){   /* a ring on the ground that opens and fades, then somewhere else in its tile */
+    const q=now/.5+wxHash(k+j*7+11),slot=Math.floor(q),ph=q-slot;
+    const x=sx(tx*T+wxHash(k+j*131+slot*7919)*T),y=sy(ty*T+wxHash(k+j*197+slot*104729)*T),rr=(2.5+ph*8)*z;
+    if(x<-12||x>w+12||y<-12||y>h+12)continue;
+    ctx.globalAlpha=(1-ph)*.35*dim;ctx.beginPath();ctx.ellipse(x,y,rr,rr*.4,0,0,Math.PI*2);ctx.stroke();
+   }
+  });
  }
  if(WEATHER.snow>0){
-  const n=Math.round(WEATHER.snow*w*h/4500),drift=WEATHER.wind*30,span=w+60;
+  const per=Math.round(WEATHER.snow*T*T/5600),drift=WEATHER.wind*30;
   ctx.globalAlpha=1;ctx.fillStyle='rgba(255,255,255,'+(.85*(1-.4*SUN.dark)).toFixed(3)+')';ctx.beginPath();
-  for(let i=0;i<n;i++){
-   const r1=wxHash(i*5+1),r2=wxHash(i*5+2),r3=wxHash(i*5+3),y=(now*(45+55*r1)+r3*(h+20))%(h+20)-10;
-   const x=((r2*span+now*drift*(.5+r1)+Math.sin(now*.8+i)*14)%span+span)%span-30,rad=1+1.8*r2;
-   ctx.moveTo(x+rad,y);ctx.arc(x,y,rad,0,Math.PI*2);
-  }
+  wxTiles(30,30,(tx,ty,k)=>{
+   for(let i=0;i<per;i++){   /* drifting on the wind, but round and round inside its own tile */
+    const r1=wxHash(k+i*5+1),r2=wxHash(k+i*5+2),r3=wxHash(k+i*5+3),fall=(now*(50+60*r1)+r3*T)%T;
+    const x=sx(tx*T+((r2*T+now*drift*(.5+r1)+Math.sin(now*.8+i)*14)%T+T)%T),y=sy(ty*T+fall),rad=1+1.8*r2;
+    if(x<-4||x>w+4||y<-4||y>h+4)continue;
+    ctx.moveTo(x+rad,y);ctx.arc(x,y,rad,0,Math.PI*2);
+   }
+  });
   ctx.fill();
  }
  ctx.restore();

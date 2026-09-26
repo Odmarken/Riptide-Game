@@ -490,3 +490,28 @@ test('the weather: a cycle rains one time in five, for ten minutes, in Moonshine
   const light = section('function drawSunLight(now){', '/* 🏮 The lights of the night');
   assert.ok(light.indexOf('drawOvercast();') > 0 && light.indexOf('drawOvercast();') < light.indexOf('if(dark>0){'), 'the grey of a rainy day goes down before the night');
 });
+
+test('the rain, its splashes and the snow keep their places on the world, so they do not follow the hero about', () => {
+  const marks = { drops: [], splashes: [], flakes: [] };
+  const ctx = { save() {}, restore() {}, beginPath() {}, stroke() {}, fill() {}, lineTo() {}, strokeStyle: '', fillStyle: '', lineWidth: 1, lineCap: '', globalAlpha: 1,
+    moveTo(x, y) { marks.drops.push([x, y]); }, ellipse(x, y) { marks.splashes.push([x, y]); }, arc(x, y) { marks.flakes.push([x, y]); } };
+  const box = vm.createContext({ Math, WeakMap, Date, world: { look: null }, ctx, VW: 1500, VH: 950, zoom: .9, camX: 5000, camY: 2000 });
+  vm.runInContext(section('const SUN=', '/* the flares:'), box);
+  vm.runInContext(section('/* 🌧 The weather', '/* Zone maps are the biggest files'), box);
+  const shot = (camX, kind) => {
+    for (const k in marks) marks[k].length = 0;
+    vm.runInContext(`camX=${camX};SUN.dark=0;WEATHER.rain=${kind === 'snow' ? 0 : 1};WEATHER.snow=${kind === 'snow' ? 1 : 0};WEATHER.wind=.3;drawWeather(1234.5);`, box);
+    return { drops: marks.drops.slice(), splashes: marks.splashes.slice(), flakes: marks.flakes.slice() };
+  };
+  const matchShift = (a, b, dx) => {   /* every point of b well inside the screen is a point of a moved by dx (b = a + dx) */
+    const inner = b.filter(([x, y]) => x > 150 && x < 1350 && y > 60 && y < 890);
+    assert.ok(inner.length > 20, 'something to compare: ' + inner.length);
+    for (const [x, y] of inner) assert.ok(a.some(([u, v]) => Math.abs(u + dx - x) < 1e-6 && Math.abs(v - y) < 1e-6), 'moved with the ground: ' + x + ',' + y);
+  };
+  const a = shot(5000, 'rain'), b = shot(5100, 'rain');
+  assert.ok(a.drops.length > 300 && a.drops.length < 1200, 'as thick as it was: ' + a.drops.length + ' drops on the screen');
+  matchShift(a.drops, b.drops, -100 * .9);
+  matchShift(a.splashes, b.splashes, -100 * .9);
+  const c = shot(5000, 'snow'), d = shot(5100, 'snow');
+  matchShift(c.flakes, d.flakes, -100 * .9);
+});
