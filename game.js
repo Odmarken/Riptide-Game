@@ -232,7 +232,7 @@ function sunPersonShadow(y,tall){   /* a person's shadow in their own frame: sof
  drawGroundShadow(Math.cos(a)*L*.5,y+Math.sin(a)*L*.5,L*.55,6,.3*SUN.cast,a);
 }
 /* the flares: [how far along the line from the sun through the middle, radius at 1080 high, colour, strength, a hexagon] */
-const SUN_FLARES=[[.30,30,'255,236,190',.25,0],[.48,15,'190,255,215',.22,1],[.64,48,'205,185,255',.12,0],[.86,22,'255,214,170',.10,1],[1.2,78,'255,246,226',.05,0],[1.45,13,'170,220,255',.20,1]];   /* the two by the hero, mid-screen, kept faint */
+const SUN_FLARES=[[.30,34,'255,228,187',.16,0],[.48,17,'204,224,203',.10,1],[.64,52,'212,202,225',.045,0],[.86,24,'255,218,181',.035,1],[1.2,85,'255,236,212',.025,0],[1.45,15,'188,210,225',.075,1]];
 /* the light through the day: gold at sunrise, noon and sunset, the glow's heart low and high, the shade low and high, the rose of
    the twilight as the sun touches the edge, and the blue of the night */
 const SUN_TINT={dawn:[255,160,84],noon:[255,212,128],dusk:[255,126,60],glowLow:[255,206,150],glowHigh:[255,244,214],shadeLow:[208,214,232],shadeHigh:[228,231,240],twilight:[228,206,222],night:[136,152,214]};
@@ -244,11 +244,11 @@ function sunFlares(){   /* each flare painted once per view height, its strength
   const r=Math.max(1,r0*u),c=document.createElement('canvas');c.width=c.height=Math.ceil(r*2)+6;
   const g=c.getContext('2d'),m=c.width/2;
   if(hex){
-   g.filter='blur(1.2px)';g.fillStyle='rgba('+rgb+','+al+')';g.beginPath();
+   g.filter='blur(2px)';g.fillStyle='rgba('+rgb+','+al+')';g.beginPath();
    for(let i=0;i<6;i++){const an=i/6*Math.PI*2+.3;i?g.lineTo(m+Math.cos(an)*r,m+Math.sin(an)*r):g.moveTo(m+Math.cos(an)*r,m+Math.sin(an)*r);}
    g.closePath();g.fill();
   }else{
-   const gr=g.createRadialGradient(m,m,0,m,m,r);gr.addColorStop(0,'rgba('+rgb+','+al+')');gr.addColorStop(.7,'rgba('+rgb+','+al*.5+')');gr.addColorStop(1,'rgba('+rgb+',0)');
+   const gr=g.createRadialGradient(m,m,0,m,m,r);gr.addColorStop(0,'rgba('+rgb+','+al*.18+')');gr.addColorStop(.65,'rgba('+rgb+','+al*.35+')');gr.addColorStop(.84,'rgba('+rgb+','+al+')');gr.addColorStop(1,'rgba('+rgb+',0)');
    g.fillStyle=gr;g.fillRect(0,0,c.width,c.height);
   }
   return {t,c};
@@ -280,9 +280,11 @@ function drawSunLight(now){   /* over the whole view, under the vignette: a cool
   if(!(SUN.light&&nightLights(night,now))){ctx.globalCompositeOperation='multiply';ctx.fillStyle='rgb('+night+')';ctx.fillRect(0,0,w,h);}
  }
  if(SUN.flare&&lit>0){
-  ctx.globalCompositeOperation='screen';ctx.globalAlpha=lit*(.96+.04*Math.sin(now*.6));
+  const outside=Math.hypot(Math.max(0,-sx,sx-w),Math.max(0,-sy,sy-h));
+  const visibility=1-sunStep(0,h*.3,outside);
+  ctx.globalCompositeOperation='screen';ctx.globalAlpha=lit*visibility;
   const R=Math.max(w,h)*.4,core=sunRGB(sunMix(T.glowLow,T.glowHigh,hi)),gr=ctx.createRadialGradient(sx,sy,0,sx,sy,R);
-  gr.addColorStop(0,'rgba('+core+',.35)');gr.addColorStop(.25,'rgba(255,222,165,.09)');gr.addColorStop(1,'rgba(255,222,165,0)');
+  gr.addColorStop(0,'rgba('+core+',.85)');gr.addColorStop(.018,'rgba('+core+',.62)');gr.addColorStop(.055,'rgba('+core+',.24)');gr.addColorStop(.22,'rgba(255,222,165,.06)');gr.addColorStop(1,'rgba(255,222,165,0)');
   ctx.fillStyle=gr;ctx.fillRect(sx-R,sy-R,R*2,R*2);
   for(const f of sunFlares())ctx.drawImage(f.c,sx+(w*.5-sx)*f.t-f.c.width/2,sy+(h*.5-sy)*f.t-f.c.height/2);
  }
@@ -336,9 +338,10 @@ function propLights(s,z,out){   /* the lights a prop gives at night, into out */
   if(!ok(im))return;
   const sc=scaleOf(s.it),fl=flipOf(s.it),W=(def.W||200)*sc,H=W*im.naturalHeight/im.naturalWidth,gy=(def.gy!==undefined?def.gy:30)*sc;
   const x=s.x+(fl<0?-1:1)*(def.glow.fx*W-W/2),fy=s.y+gy-H+def.glow.fy*H,y=s.y+gy+W*((def.sh&&def.sh.dy)||0),h=Math.max(30,y-fy);
-  out.push({x,y,fy,h,reach:Math.min(420,Math.max(180,h*3)),head:Math.min(240,Math.max(110,h*1.66)),colour:LAMP.colour,on:.12+.04*(Math.round(s.x)%7)/7,seed:Math.round(s.x)%97});
+  out.push({x,y,fy,h,reach:Math.min(420,Math.max(180,h*3)),head:Math.min(240,Math.max(110,h*1.66)),colour:def.glow.tint?def.glow.tint.join(','):LAMP.colour,on:.12+.04*(Math.round(s.x)%7)/7,seed:Math.round(s.x)%97});
   return;
  }
+ if(s.type==='lantern'){out.push({x:s.x,y:s.y+4,fy:s.y-28,h:32,reach:110,head:65,colour:LAMP.colour,on:.1,seed:s.x});return;}
  const f=homeBuildingFrame(s);
  if(f&&f.ready){const d=homeBuildingDoor(s),seed=Math.round(s.x)%97;out.push({x:d.x,y:d.y,fy:d.y-55,h:60,reach:260,head:150,colour:LAMP.colour,
   on:.15+.03*(seed%7)/7,seed});}   /* a door on a lit room */
@@ -348,7 +351,7 @@ function lightLevel(L,now){   /* how far a light is lit, 0-1: on as the dusk dee
  if(!on)return 0;
  if(L.pulse)return on*L.pulse(now);
  const t=now+L.seed*.37;
- return on*(.93+.045*Math.sin(t*2.7)+.025*Math.sin(t*6.3));
+ return on*(.91+.045*Math.sin(t*2.7)+.025*Math.sin(t*6.3)+.02*Math.sin(t*11.9+Math.sin(t*1.7)));
 }
 function lightFalloff(g,R,h,colour){   /* light from a flame h above the middle, brought to nothing at R */
  const gr=g.createRadialGradient(0,0,0,0,0,R);
@@ -362,8 +365,8 @@ function lightSprites(colour){   /* the pool, the light round the flame, the haz
  const glow=stops=>(g,R)=>{const gr=g.createRadialGradient(0,0,0,0,0,R);for(const [t,c] of stops)gr.addColorStop(t,c);return gr;};
  S={pool:mk(128,(g,R)=>lightFalloff(g,R,R*LAMP.h/LAMP.reach,colour)),   /* the ground round the foot */
   head:mk(96,(g,R)=>lightFalloff(g,R,R*LAMP.h*.55/LAMP.head,colour)),   /* the post, the wall behind, anyone near */
-  haze:mk(64,glow([[0,'rgba('+colour+',.2)'],[.35,'rgba('+colour+',.07)'],[1,'rgba('+colour+',0)']])),
-  bloom:mk(32,glow([[0,'rgba(255,244,214,.75)'],[.5,'rgba(255,214,150,.3)'],[1,'rgba(255,200,120,0)']]))};
+  haze:mk(64,glow([[0,'rgba('+colour+',.2)'],[.25,'rgba('+colour+',.035)'],[1,'rgba('+colour+',0)']])),
+  bloom:mk(32,glow([[0,'rgba(255,244,214,.75)'],[.18,'rgba(255,214,150,.22)'],[.5,'rgba(255,200,120,.035)'],[1,'rgba(255,200,120,0)']]))};
  lightSprite.set(colour,S);return S;
 }
 function nightLights(night,now){   /* the night as a light map with the lights in it, multiplied over the view - false while none burns */
@@ -410,7 +413,7 @@ function nightGlow(now){   /* after the night is laid down: a little haze round 
   if(!L.bloom)continue;
   ctx.drawImage(S.bloom,L.x-30,L.fy-30,60,60);   /* the bloom */
   const g=L.glass,glass=g&&lampGlassOf(g.im);
-  if(glass){ctx.globalCompositeOperation='lighter';ctx.drawImage(glass,g.x,g.y,g.W,g.H);}   /* the panes */
+  if(glass){ctx.globalCompositeOperation='screen';ctx.globalAlpha=v*.72;ctx.drawImage(glass,g.x,g.y,g.W,g.H);}   /* the panes */
  }
  ctx.restore();
 }
@@ -789,7 +792,7 @@ const FARM_BUILD=[
  {id:'gargoyle_guardian',n:'Gargoyle Guardian',img:'gargoyle_guardian_farm',tab:'d',W:116,gy:14,col:{r:25,crx:38,cry:18,cyo:-2},sh:{rx:0.36,ry:0.12,dy:-0.07}},
  {id:'dread_armor_stand',n:'Dread Armor Display',img:'dread_armor_stand_farm',tab:'d',W:96,gy:12,col:{r:21,crx:29,cry:14,cyo:-1},sh:{rx:0.33,ry:0.11,dy:-0.065}},
  {id:'raven_war_banner',n:'Raven War Banner',img:'raven_war_banner_farm',tab:'d',W:76,gy:9,col:{r:14,crx:32,cry:11,cyo:0},sh:{rx:0.48,ry:0.12,dy:-0.075}},
- {id:'soulfire_brazier',n:'Soulfire Brazier',img:'soulfire_brazier_farm',tab:'d',W:80,gy:12,col:{r:21,crx:33,cry:15,cyo:-1},sh:{rx:0.48,ry:0.12,dy:-0.065}},
+ {id:'soulfire_brazier',n:'Soulfire Brazier',img:'soulfire_brazier_farm',tab:'d',W:80,gy:12,glow:{fx:.5,fy:.24,r:1.3,tint:[110,210,255],flame:false},col:{r:21,crx:33,cry:15,cyo:-1},sh:{rx:0.48,ry:0.12,dy:-0.065}},
  {id:'void_runestone',n:'Void Runestone',img:'void_runestone_farm',tab:'d',W:92,gy:12,col:{r:24,crx:40,cry:16,cyo:-2},sh:{rx:0.48,ry:0.115,dy:-0.075}},
  {id:'remove',n:'Remove',emoji:'🗑',tab:'*'} /* removes anything except the farmhouse */
 ];
@@ -1686,6 +1689,7 @@ function townTick(dt){
 function townWorldClick(wx,wy){
  const z=zoneOf();
  if(!world||!world.npcs||!hero||!(z.town||z.harbor))return false;
+ if(z.town&&raidClick(wx,wy))return true;   /* ⚔ an order to the crown's men */
  const pick=z.town?n=>n.voyage||n.game==='recruiter'||n.say:n=>n.voyage;
  const n=world.npcs.find(n=>pick(n)&&Math.abs(wx-n.x)<38&&wy>n.y-100&&wy<n.y+22);
  if(!n)return z.town?townLinkClick(wx,wy):false;
@@ -1725,6 +1729,165 @@ function townLinkClick(wx,wy){
  if(!l)return false;
  hero.target=null;hero.goPortal=false;hero.pendingDoor=null;hero.moveTo={x:l.x,y:l.y};marker={x:l.x,y:l.y,t:0};   /* walking onto it is what opens it */
  return true;
+}
+/* ==================== ⚔ THE RAID ==================== */
+/* A war with a court abroad (CityEconomy's war, asked for 2026-09-26) is taken to its port: the crown's guards sail with you on the
+   Black Tide (the Allies page), land on the pier and wait for orders. You do not fight - you command. Click a building and the men
+   march on it, fight whatever the garrison sends to stop them, and set it burning; when it has burned the books raze it
+   (CityEconomy.raze) and the place is that much weaker. An expedition razes what its odds allow (its cap), then the men are spent.
+   Sound the retreat - or sail home - and they come aboard, and the hurt are booked (CityEconomy.endRaid). What burned lies in ashes
+   in the port until they rebuild it, a building a close in peace. The garrison you see is the books' garrison, thinned as the place
+   loses strength: the fighting is played out, the outcome is the books'. The seat of the ruler, the holy places and the walls are
+   never burned; a barracks or an armoury counts double, a market, a hall or a warehouse half again. */
+const RAID_SPARE=/keep|palace|gatehouse|tower|wall|chapel|temple|cathedral|beacon|crane|statue|lighthouse/;
+const RAID_DRAWN=90,RAID_FOES=40,RAID_FIGHT=5,RAID_BURN=7;
+const raidKey=s=>s.kind+'@'+Math.round(s.x)+','+Math.round(s.y);
+const raidTargetable=s=>s.type==='townprop'&&s.big&&!s.floats&&!RAID_SPARE.test(s.kind);
+const raidWeight=s=>/barracks|armou?ry/.test(s.kind)?2:/market|warehouse|guildhall|foundry|exchange|forge|hall|inn|tavern|chandlery|office|smith/.test(s.kind)?1.5:1;
+const raidName=s=>s.kind.replace(/^[a-z]+_/,'').replace(/_[a-z]$/,'').replace(/_/g,' ');
+const raidAlly=id=>CityEconomy.ALLIES.find(a=>a.id===id);
+/* the port as the books have it: its ashes drawn burned, and - if the crown's men have just landed - the raid */
+function townRaidApply(){
+ if(!world||!world.town||!S||!S.city)return;
+ const id=world.town,a=S.city.allies&&S.city.allies[id],ash=new Set((a&&a.ashes)||[]);
+ for(const s of world.solids)if(s.type==='townprop'&&s.big){s.razed=ash.has(raidKey(s));s.raidFire=false;}
+ const e=S.city.expedition;
+ if(!e||e.ally!==id||e.auto||!(a&&a.war)){if(world.raid)raidRelease();world.raid=null;raidHud();return;}
+ if(world.raid)return;
+ const B=CityEconomy.WAR_BOOK[id],spot=world.arrival||{x:world.w/2,y:world.h/2},troops=[],foes=[],stage=raidStage(spot),L=Math.hypot(stage.x-spot.x,stage.y-spot.y)||1,dx=(stage.x-spot.x)/L,dy=(stage.y-spot.y)/L;
+ let i=0;
+ for(const [skin,n,big,title] of [['guard',e.watch,1.06,'Watchman'],['guard',e.cadets,.98,'Cadet'],['mercenary',e.mercs,1.08,'Sellsword']])
+  for(let k=0;k<n&&troops.length<RAID_DRAWN;k++,i++){const row=Math.floor(i/4),col=(i%4)-1.5,along=Math.min(L+60,30+row*30);   /* a column four wide up the pier toward its head */
+   troops.push({name:title,skin:skin==='mercenary'&&k%2?'mercenary_b':skin,race:'human',cls:'warrior',female:false,big,x:spot.x+dx*along-dy*col*34,y:spot.y+dy*along+dx*col*34,
+    fx:dx>=0?1:-1,walk:i*.7,moving:false,held:true,merc:skin==='mercenary',cadet:title==='Cadet',speed:skin==='mercenary'?90:96,trooper:true,ashore:along>=L-10});}
+ const G=Math.round(B.garrison*(.4+.6*a.war.str/100)),posts=world.solids.filter(s=>s.type==='townprop'&&/keep|palace|barracks|hall|gatehouse|exchange|foundry/.test(s.kind)),home=posts.length?posts:[{x:world.w/2,y:world.h/2,r:40}];
+ for(let k=0;k<Math.min(G,RAID_FOES);k++){const p=home[k%home.length],ang=k*2.4,x=p.x+Math.cos(ang)*(90+k*5),y=p.y+(p.r||40)*.3+60+Math.abs(Math.sin(ang))*50;
+  foes.push({name:'',skin:B.skin,race:'human',cls:'warrior',female:false,big:1.04,x,y,fx:-1,walk:k*.9,moving:false,held:true,raider:true,ring:B.ring,dead:false,deadT:0,post:{x,y}});}
+ for(const n of world.npcs)if(/soldier|guard/.test(n.skin)&&!n.royal&&!n.voyage&&!n.hidden){n.hidden=true;n.raidHidden=true;}   /* the town's own soldiers are the garrison above */
+ world.raid={ally:id,troops,foes,stage,target:null,phase:'idle',t:0,spent:e.used>=e.cap-.25,over:false,won:false};
+ raidHud();
+ log('⚔ <b>'+(e.watch+e.cadets+e.mercs)+' of the crown’s guards</b> land in '+raidAlly(id).name+'. Click a building to send them against it - the '+raidAlly(id).ruler.name.split(' ').pop()+' seat, the holy places and the walls excepted.','imp');
+}
+function raidStage(from){   /* the pier head: along the town's walks from where the Black Tide lands, the first point off the piers - the men march there
+    before they go anywhere, and back that way, so none of them walks on the water */
+ const def=TownWorld.town(world.town);if(!def)return {x:from.x,y:from.y-200};
+ const G=TownWorld.graph(def),onPier=(x,y)=>(def.piers||[]).some(p=>p.r?Math.hypot(x-p.x,y-p.y)<p.r:x>=p.x&&x<=p.x+p.w&&y>=p.y&&y<=p.y+p.h);
+ let start=null,bd=Infinity;for(const n of G.nodes.values()){const d=Math.hypot(n.x-from.x,n.y-from.y);if(d<bd){bd=d;start=n;}}
+ if(!start)return {x:from.x,y:from.y-200};
+ const seen=new Set([start.id]),queue=[start.id];
+ while(queue.length){const k=queue.shift(),n=G.nodes.get(k);if(!onPier(n.x,n.y))return {x:n.x,y:n.y};for(const m of G.edges.get(k)||[])if(!seen.has(m)){seen.add(m);queue.push(m);}}
+ return {x:start.x,y:start.y};
+}
+function raidRelease(){for(const n of (world&&world.npcs)||[])if(n.raidHidden||n.raidFled){if(n.raidHidden)n.hidden=false;n.held=false;n.fleeTo=null;delete n.raidHidden;delete n.raidFled;}}
+/* a click on a building: the order to take it */
+function raidClick(wx,wy){
+ const R=world&&world.raid;if(!R||R.over)return false;
+ const im=townImages();let hit=null;
+ for(const s of world.solids){if(!raidTargetable(s))continue;const f=TownWorld.frame(s,im);if(!f)continue;
+  if(Math.abs(wx-s.x)<=f.W*.45&&wy>=s.y+f.top+f.H*.12&&wy<=s.y+f.top+f.H+8&&(!hit||s.y>hit.y))hit=s;}   /* the frontmost under the pointer */
+ if(!hit)return false;
+ const e=S.city.expedition,left=e?e.cap-e.used:0;
+ if(hit.razed){stageMsg('That is ashes already.',1600);return true;}
+ if(R.phase==='fight'||R.phase==='burn'){stageMsg('Your men are at the '+raidName(R.target)+' - let them finish.',1800);return true;}
+ if(R.spent||left<.5){R.spent=true;raidHud();stageMsg('Your men are spent. Sound the retreat.',2200,'#ff8a7a');sfx.warn();return true;}
+ if(raidWeight(hit)>left+1e-9){stageMsg('Your men have strength left for a smaller building - a house.',2400,'#ff8a7a');sfx.warn();return true;}
+ R.target=hit;R.phase='march';R.t=0;R.defenders=null;R.hurtPlan=null;
+ marker={x:hit.x,y:hit.y+(hit.r||40)*.3+40,t:0};
+ stageMsg('⚔ Your men march on the '+raidName(hit)+'.',1800,'#ffd76a');sfx.buy();
+ return true;
+}
+function raidTick(dt){
+ const R=world&&world.raid;if(!R)return;
+ const t=performance.now()/1000,step=(o,x,y,sp)=>{const dx=x-o.x,dy=y-o.y,d=Math.hypot(dx,dy);if(d<2){o.moving=false;return d;}const k=Math.min(d,sp*dt)/d;o.x+=dx*k;o.y+=dy*k;o.moving=true;if(Math.abs(dx)>1)o.fx=dx>0?1:-1;o.walk=(o.walk||0)+dt*sp/45;return d;};
+ R.t+=dt;
+ const T=R.target,front=T?{x:T.x,y:T.y+(T.r||40)*.3+44}:null,A=world.arrival;
+ if(T&&!R.defenders){const alive=R.foes.filter(f=>!f.dead),want=Math.max(1,Math.round(alive.length*.3));
+  R.defenders=alive.sort((a,b)=>Math.hypot(a.x-T.x,a.y-T.y)-Math.hypot(b.x-T.x,b.y-T.y)).slice(0,want);}   /* the garrison sends the nearest to stop them */
+ for(const f of R.foes){
+  if(f.dead){f.deadT+=dt;f.down=Math.min(1,f.deadT*3);f.fade=Math.max(0,1-Math.max(0,f.deadT-1.8)/1.2);continue;}
+  const k=R.defenders&&T?R.defenders.indexOf(f):-1;
+  if(k>=0){const a=k*2.4+.6;step(f,front.x+Math.cos(a)*46,front.y+Math.sin(a)*20,84);}else step(f,f.post.x,f.post.y,46);
+ }
+ let at=0,up=0;
+ R.troops.forEach((g,i)=>{
+  if(g.hurtS){   /* 🩹 knocked down, up again, and helped back to the ship */
+   g.hurtT+=dt;
+   if(g.hurtS==='down'){g.moving=false;g.down=g.hurtT<2.4?Math.min(1,g.hurtT*6):Math.max(0,1-(g.hurtT-2.4)*2.5);if(g.hurtT>=2.8){g.hurtS='limp';g.hurtT=0;g.down=0;g.hurtMark=true;}}
+   else if(g.hurtS==='limp'){const to=g.ashore?R.stage:A;if(step(g,to.x,to.y-(g.ashore?0:30),32)<14&&g.ashore)g.ashore=false;g.fade=Math.max(0,Math.min(1,(7-g.hurtT)/1.5));if(g.hurtT>=7){g.hurtS='gone';g.fade=null;g.hurtMark=false;}}   /* by the pier head, like the rest */
+   return;
+  }
+  up++;
+  if(R.over){if(g.ashore){if(step(g,R.stage.x+((i%4)-1.5)*30,R.stage.y,110)<12)g.ashore=false;return;}const d=step(g,A.x+((i%4)-1.5)*26,A.y-20,110);if(d<14){g.boarded=(g.boarded||0)+dt;g.fade=Math.max(0,1-g.boarded/1.2);}return;}   /* back by the pier head, and aboard */
+  if(!T){g.moving=false;return;}
+  if(!g.ashore){if(step(g,R.stage.x+((i%4)-1.5)*30,R.stage.y-10,g.speed)<16)g.ashore=true;return;}   /* up the pier to its head first */
+  const a=Math.PI*(.08+.84*((i*.61803)%1)),rr=70+10*Math.sqrt(i),sx=front.x+Math.cos(a)*rr*1.3,sy=front.y+Math.sin(a)*rr*.45+10;   /* a half-ring before the door */
+  const d=step(g,sx,sy,g.speed);if(d<14)at++;
+  if(d<14&&R.phase==='fight'){const foe=(R.defenders||[]).find(f=>!f.dead);g.fx=(foe?foe.x:T.x)>g.x?1:-1;
+   if(g.merc){if(!g.jab||t>g.jab){g.jab=t+1.1+((i*37)%9)/10;mercStrike(g);}}else g.x=sx+g.fx*Math.max(0,Math.sin(t*7+i*1.7)*4);
+   if(Math.random()<dt*.25)sparkles(g.x+g.fx*16,g.y-28,Math.random()<.5?'#ffd08a':'#ffe9c0',2);}
+ });
+ if(R.phase==='march'&&at>=Math.max(1,Math.floor(up*.55))){R.phase='fight';R.t=0;}
+ if(R.phase==='fight'){
+  const ds=R.defenders||[],fell=Math.floor(ds.length*Math.min(1,R.t/RAID_FIGHT));
+  ds.slice(0,fell).forEach(f=>{if(!f.dead){f.dead=true;f.deadT=0;burst(f.x,f.y-26,'#c8402e',10,90,true);}});
+  if(R.hurtPlan==null){const e=S.city.expedition;R.hurtPlan=e?Math.round(up*e.rate*raidWeight(T)/Math.max(1,e.cap)):0;}   /* the books' share of hurt, spread over the buildings */
+  if(R.hurtPlan>0&&Math.random()<dt*1.4){const g=R.troops.find(g=>!g.hurtS&&Math.hypot(g.x-front.x,g.y-front.y)<180);if(g){g.hurtS='down';g.hurtT=0;R.hurtPlan--;burst(g.x,g.y-24,'#e0413a',10,90,true);}}
+  if(R.t>=RAID_FIGHT){R.phase='burn';R.t=0;T.raidFire=true;R.defenders=null;}
+ }
+ if(R.phase==='burn'&&R.t>=RAID_BURN){
+  const r=CityEconomy.raze(S.city,R.ally,raidKey(T),raidWeight(T)),d=raidAlly(R.ally);
+  T.raidFire=false;R.target=null;R.phase='idle';R.t=0;
+  if(r.ok){T.razed=true;log('🔥 The '+raidName(T)+' is razed. '+d.name+(r.conquered?' has fallen.':' stands at '+Math.round(r.str)+'% of its strength.'),'imp');}
+  if(r.conquered){R.won=true;stageMsg(r.text,8000,'#ffd76a',true);sfx.quest();log(r.text,'loot');raidEnd();}
+  else if(!r.ok||r.left<.5){R.spent=true;stageMsg('Your men are spent. Sound the retreat.',3200,'#ff8a7a');}
+  raidHud();save();
+ }
+ /* the townsfolk near the fighting run for it */
+ if(T)for(const n of world.npcs){if(n.held||n.hidden||n.voyage||n.game||n.royal||!n.pts||Math.hypot(n.x-T.x,n.y-T.y)>800)continue;
+  let far=n.pts[0],fd=-1;for(const q of n.pts){const dd=Math.hypot(q.x-T.x,q.y-T.y);if(dd>fd){fd=dd;far=q;}}n.held=true;n.raidFled=true;n.fleeTo={x:far.x,y:far.y};}
+ for(const n of world.npcs)if(n.raidFled&&n.fleeTo)step(n,n.fleeTo.x,n.fleeTo.y,(n.speed||40)*2.2);
+ if(R.over&&R.troops.every(g=>g.hurtS==='gone'||g.boarded>1.2)){raidRelease();world.raid=null;raidHud();}
+}
+/* the men come home: the books count the hurt, and they walk back to the ship */
+function raidEnd(){
+ const R=world&&world.raid;if(!R||R.over)return;
+ R.over=true;R.target=null;R.phase='idle';
+ const r=CityEconomy.endRaid(S.city);if(r.ok){log(r.text,R.won?'loot':'imp');if(!R.won)stageMsg('🏳 The retreat is sounded: '+fmtNum(r.burned)+' razed'+(r.hurt?', '+r.hurt+' hurt':'')+'.',3200,'#ffd76a');}
+ raidHud();save();
+}
+function raidRetreat(){const R=world&&world.raid;if(!R||R.over)return;if(R.phase==='burn'&&R.target){R.target.raidFire=false;}raidEnd();}
+/* sailing home, or a save loaded elsewhere, brings the men home too */
+function raidWatch(){
+ const e=S&&S.city&&S.city.expedition;
+ if(!(world&&world.raid)&&$('raidHud'))raidHud();
+ if(!e||e.auto||voyage)return;
+ if(zoneOf().town===e.ally&&world&&world.raid)return;
+ const r=CityEconomy.endRaid(S.city);if(r.ok){log(r.text,'imp');save();}
+}
+function raidHud(){
+ let el=$('raidHud');const R=world&&world.raid;
+ if(!R){if(el)el.remove();return;}
+ if(!el){el=document.createElement('div');el.id='raidHud';el.className='raid-hud';el.setAttribute('role','status');document.body.appendChild(el);
+  el.addEventListener('click',ev=>{if(ev.target.closest('[data-raid="retreat"]'))raidRetreat();});}
+ const e=S.city.expedition,d=raidAlly(R.ally),a=S.city.allies[R.ally],str=a&&a.war?Math.round(a.war.str):0;
+ el.innerHTML='<b>⚔ Raid on '+d.name+'</b><span>'+(e?fmtNum(e.used)+' of '+e.cap+' razed · ':'')+(a&&a.war?d.name+' '+str+'%':a&&a.owned?d.name+' is ours':'')+'</span>'
+  +(R.over?'<small>'+(R.won?'The town is the crown’s. ':'')+'The men are going aboard. Captain Blackbeard will take you home.</small>'
+   :'<small>'+(R.spent?'Your men are spent.':'Click a building to send your men against it.')+'</small><button type="button" class="sbtn" data-raid="retreat">🏳 Sound the retreat</button>');
+}
+const fmtNum=v=>(Math.round(v*10)/10).toString();
+function drawTownFoe(n){   /* a soldier of the garrison: his town's colours on the stones under him */
+ ctx.save();ctx.globalAlpha*=(n.fade==null?1:n.fade)*.7;ctx.fillStyle='rgba('+n.ring+',.55)';ctx.beginPath();ctx.ellipse(n.x,n.y+3,26,9,0,0,7);ctx.fill();ctx.restore();
+ drawNpc(n);
+}
+/* a building of an enemy port burning - the City's own fire - or burned out: gone dark to the eaves, a thin smoke off it */
+function drawTownRuin(s,f,alpha=1){
+ if(!f)return;const t=performance.now()/1000,W=f.W,H=f.H,top=f.top;
+ ctx.save();ctx.globalAlpha*=alpha;   /* it fades with the building when the hero walks behind it */
+ if(s.razed){const sil=sunSilhouette(f.im);
+  if(sil){ctx.save();ctx.globalAlpha*=.8;if(f.flip)ctx.scale(-1,1);ctx.drawImage(sil,0,0,sil.width,sil.height,-W/2-sil.pad*W/sil.cw,top-sil.pad*H/sil.ch,W+2*sil.pad*W/sil.cw,H+2*sil.pad*H/sil.ch);ctx.restore();}
+  ctx.save();ctx.globalAlpha*=.5;for(let i=0;i<3;i++)CityScenery.smoke(ctx,(i-1)*W*.22,top+H*.35,.8,t,(s.seed||0)*.13+i/3,false,true);ctx.restore();}
+ if(s.raidFire)CityWorks.drawDressing(ctx,'fire',W,H,top,t,Math.round((s.seed||0)*97)%97,cityArt);
+ ctx.restore();
 }
 /* ⚔ The Free Company's book: Captain Hakon Stormgaard's terms, paid from the realm's treasury (CityEconomy.hireMercs) */
 let mercNote='';
@@ -6092,13 +6255,11 @@ function drawCryptGround(){
 function drawCryptTorches(vx0,vy0,vx1,vy1){ /* 🔥 breadcrumb markers - flickering flames on the maze floor */
  for(const tc of (world.torches||[])){
   if(tc.x<vx0-60||tc.x>vx1+60||tc.y<vy0-60||tc.y>vy1+60)continue;
-  const fl=0.75+0.25*Math.sin(performance.now()/90+tc.x);
-  ctx.fillStyle='rgba(255,170,60,'+(0.10*fl).toFixed(3)+')';
-  ctx.beginPath();ctx.arc(tc.x,tc.y-10,46,0,7);ctx.fill(); /* warm light pool */
+  const t=performance.now()/1000;
+  CityScenery.glow(ctx,tc.x,tc.y-20,60,CityScenery.flicker(t,tc.x));
   ctx.strokeStyle='#6a4a2a';ctx.lineWidth=3;ctx.lineCap='round';
   ctx.beginPath();ctx.moveTo(tc.x,tc.y);ctx.lineTo(tc.x,tc.y-16);ctx.stroke();
-  ctx.fillStyle='#ff9a3a';ctx.beginPath();ctx.ellipse(tc.x,tc.y-20,3.5,6*fl+2,0,0,7);ctx.fill();
-  ctx.fillStyle='#ffe9a0';ctx.beginPath();ctx.ellipse(tc.x,tc.y-19,1.8,3*fl+1,0,0,7);ctx.fill();
+  CityScenery.flame(ctx,tc.x,tc.y-16,.34,t,tc.x);
  }
 }
 function buildZone(){
@@ -6125,6 +6286,7 @@ function buildZone(){
  }else if(z.town){
   world=TownWorld.create(z.town);   /* ⛵ a port of call: coast, streets, houses, ships and townsfolk, all from its town file */
   townImages(z.town);
+  townRaidApply();   /* ⚔ what the crown's raids burned, and a raid if its men have just landed */
  }else if(z.throne){
   world=ThroneWorld.create();   /* 👑 the hall is a module-built interior like the guild */
   guildImages();['throne','council_table','hall_pillar','hall_brazier','wall_torch','ground/drain_cover'].forEach(cityImg);
@@ -8587,8 +8749,10 @@ function update(dt){
  if(hero&&!hero.dead&&world&&world.exit&&zoneOf().throne&&Math.hypot(hero.x-world.exit.x,hero.y-world.exit.y)<60&&leaveThroneHall())return;
  if(hero&&!hero.dead&&world&&world.harbor&&hero.y<HarborWorld.EXIT_Y&&leaveHarbor())return;   /* ⚓ far enough up the flight: back to the City */
  if(world&&world.harbor)harborTick(dt);
- if(world&&world.town){townTick(dt);townLinkTick(dt);}
+ if(world&&world.town){townTick(dt);townLinkTick(dt);if(world.raid)raidTick(dt);}
+ raidWatch();   /* ⚔ the men come home with the ship */
  if(world&&world.mercs)mercTick(dt);
+ if(world&&world.forsaken)forsakenTick(dt);   /* 🟣 */
  if(hero&&!hero.dead&&world&&world.throne&&!TideUI.isBattling()){ /* ⛓ down the stair in the west wall to the jail, and back up */
   const T=ThroneWorld;
   if(Math.hypot(hero.x-T.STAIR_DOWN.x,hero.y-T.STAIR_DOWN.y)<T.STAIR_DOWN.r)hallStair(T.GAOL_ARRIVE,-1,'⛓ The jail under the hall. '+gaolLine());
@@ -9512,6 +9676,7 @@ function draw(){
   drawables.push({y:s.sortY!==undefined?s.sortY:s.y,f:()=>drawProp(s,z,false)});   /* sortY: a prop that must stand behind whoever is on it */
  }
  if(sunCast)sunEnd();   /* ☀ every cast shadow at once, under everything that stands */
+ if(sunFrame&&SUN.light&&SUN.dark>0&&(z.city||z.town))for(const L of forsakenLights())sunLights.push(L);   /* 🟣🔥 the portals and the fires light the night */
  /* 🐴 the boulevard's traffic - trade wagons, and families moving in or out - and 🎉 the festival bunting strung over it */
  if(z.city&&world.look&&!TideUI.isBattling()){
   for(const t of CityWorks.traffic(world,world.look,now)){
@@ -9537,8 +9702,20 @@ function draw(){
  }
  /* ⚔ the sellswords on the City's beats: only the ones on screen are queued */
  if(world.mercs&&!TideUI.isBattling())for(const m of world.mercs){
-  if(m.x<cx0||m.x>cx1||m.y<cy0||m.y>cy1||(world.hush&&m.beat==='square'))continue;
+  if(m.x<cx0||m.x>cx1||m.y<cy0||m.y>cy1||(world.hush&&m.beat==='square')||m.hurtS==='gone')continue;
   drawables.push({y:m.y,f:()=>drawNpc(m)});
+ }
+ if(world.raid&&!TideUI.isBattling()){   /* ⚔ the crown's men and the garrison in an enemy port */
+  const R=world.raid,seen=(x,y)=>x>=cx0&&x<=cx1&&y>=cy0&&y<=cy1;
+  for(const g of R.troops)if(g.hurtS!=='gone'&&!(g.boarded>1.2)&&seen(g.x,g.y))drawables.push({y:g.y,f:()=>drawNpc(g)});
+  for(const f of R.foes)if(!(f.dead&&f.deadT>3)&&seen(f.x,f.y))drawables.push({y:f.y,f:()=>drawTownFoe(f)});
+ }
+ if(world.forsaken&&!TideUI.isBattling()&&!execution){   /* 🟣 the Forsaken in the streets */
+  const F=world.forsaken,seen=(x,y)=>x>=cx0&&x<=cx1&&y>=cy0&&y<=cy1;
+  const raid=F.kind==='raid';   /* ⚔ an army has no portals; its fallen lie a while */
+  if(!raid)for(const P of F.portals)if(seen(P.x,P.y))drawables.push({y:P.y-4,f:()=>drawForsakenPortal(P,now)});
+  for(const f of F.foes)if(f.appear>0&&!(f.en.dead&&f.en.deadT>(raid?3:.8))&&seen(f.en.x,f.en.y))drawables.push({y:f.en.y,f:()=>raid?drawRaider(f):drawForsaken(f)});
+  for(const d of F.cadets)if(d.hurtS!=='gone'&&seen(d.x,d.y))drawables.push({y:d.y,f:()=>drawNpc(d)});
  }
  if(world.stable&&!TideUI.isBattling())world.stable.paddock.displaySpots.forEach((spot,i)=>{
   if(spot.x<cx0||spot.x>cx1||spot.y<cy0||spot.y>cy1)return;
@@ -10157,9 +10334,10 @@ function drawProp(s,z,withShadow=true){
    const fade=seeThrough(s,W,H,s.r*0.30-H);
    if(fade<1)ctx.globalAlpha*=fade;
    ctx.drawImage(mip(art,W),-W/2,s.r*0.30-H,W,H); /* footprint on the shadow, art rising off it */
-   const wears=world.look&&CityWorks.dressing(s,world.look); /* 🔥 on fire in a riot · ☠️ a cross on the door in the sickness · 🌸 flowers and garlands when the people are glad */
+   if(s.charred&&!s.forsakenFire)drawCharred(s,art,W,H,s.r*0.30-H);   /* 🔥 burned by the Forsaken, not yet rebuilt */
+   const wears=s.forsakenFire?'fire':s.charred?null:world.look&&CityWorks.dressing(s,world.look); /* 🟣 set alight by the Forsaken · 🔥 on fire in a riot · ☠️ a cross on the door in the sickness · 🌸 flowers and garlands when the people are glad */
    /* 💨 a lived-in house has a fire in its hearth: not an empty one, not one the bank has chained, not one that is burning down */
-   if(wears!=='fire'&&!(s.work&&s.work.status==='seized')&&!(world.look&&world.look.vacancy>0&&!s.work&&CityWorks.vacant(s,world.look.vacancy)))
+   if(wears!=='fire'&&!s.charred&&!(s.work&&s.work.status==='seized')&&!(world.look&&world.look.vacancy>0&&!s.work&&CityWorks.vacant(s,world.look.vacancy)))
     CityWorks.drawSmoke(ctx,built?'work_'+s.work.id:key,W,H,s.r*0.30-H,performance.now()/1000,(s.seed||0)%97,!!(world.look&&world.look.snow));
    ctx.globalAlpha=1;
    /* 🏗 a public work: scaffolding while a crew is on it, a signboard after. 🏚 nobody home: planks and a FOR RENT board */
@@ -10197,7 +10375,9 @@ function drawProp(s,z,withShadow=true){
   CityGround.drawProp(ctx,s,performance.now()/1000,im,{alpha:f&&f.tall?seeThrough(s,f.W,f.H,f.top):1});
  }else if(s.type==='townprop'){
   const im=townImages(),f=TownWorld.frame(s,im);   /* ⛵ a house, a ship or a wall of a port of call fades when the hero is behind it */
-  TownWorld.drawProp(ctx,s,performance.now()/1000,im,{alpha:f&&f.H>140&&!/stair/.test(s.kind)?seeThrough(s,f.W,f.H,f.top):1,mip});   /* a stair arch is walked into, never seen through */
+  const al=f&&f.H>140&&!/stair/.test(s.kind)?seeThrough(s,f.W,f.H,f.top):1;   /* a stair arch is walked into, never seen through */
+  TownWorld.drawProp(ctx,s,performance.now()/1000,im,{alpha:al,mip});
+  if(s.raidFire||s.razed)drawTownRuin(s,f,al);   /* ⚔ burning, or burned by the crown's men */
  }else if(s.type==='harborprop'){
   const im=harborImages(),f=HarborWorld.frame(s,im);   /* ⚓ a ship, a house or the crane fades like any building the hero has walked behind */
   HarborWorld.drawProp(ctx,s,performance.now()/1000,im,{alpha:f&&f.H>140?seeThrough(s,f.W,f.H,f.top):1});
@@ -10311,21 +10491,10 @@ function drawProp(s,z,withShadow=true){
    if(CityWorks.CHIMNEYS[def.img])CityWorks.drawSmoke(ctx,def.img,W,H,gy-H,performance.now()/1000,Math.round(s.x)%97);   /* 💨 a farmhouse with a chimney has a fire under it (inside the mirror, so the smoke follows a flipped house) */
    ctx.restore();
    if(def.glow){
-    /* 🔥 a lit lantern: a warm pool over the flame that breathes. Two sine rates rather than one -
-       a single sine reads as a mechanical pulse, two beat against each other and look like flame.
-       Drawn outside the flip save, so the position mirrors by hand when the piece is flipped.
-       Phase comes from the piece's x, so a row of lamps does not flicker in unison. */
-    const gt=performance.now()/1000+s.x*0.07;
-    const fk=0.84+0.11*Math.sin(gt*2.1)+0.05*Math.sin(gt*3.7);
-    const gx=(fl<0?-1:1)*(def.glow.fx*W-W/2),gyy=(gy-H)+def.glow.fy*H,gr=def.glow.r*W*fk;
-    const grd=ctx.createRadialGradient(gx,gyy,0,gx,gyy,gr);
-    grd.addColorStop(0,'rgba(255,232,158,'+(0.80*fk).toFixed(3)+')');
-    grd.addColorStop(0.35,'rgba(255,200,96,'+(0.40*fk).toFixed(3)+')');
-    grd.addColorStop(0.7,'rgba(255,180,70,'+(0.14*fk).toFixed(3)+')');
-    grd.addColorStop(1,'rgba(255,170,60,0)');
-    ctx.save();ctx.globalCompositeOperation='lighter';
-    ctx.fillStyle=grd;ctx.beginPath();ctx.arc(gx,gyy,gr,0,7);ctx.fill();
-    ctx.restore();
+    const gt=performance.now()/1000,seed=s.x*.07;
+    const gx=(fl<0?-1:1)*(def.glow.fx*W-W/2),gyy=gy-H+def.glow.fy*H;
+    CityScenery.glow(ctx,gx,gyy,def.glow.r*W,CityScenery.flicker(gt,seed),def.glow.tint);
+    if(def.glow.flame!==false)CityScenery.flame(ctx,gx,gyy+3*sc,.18*sc,gt,seed);
    }
    if(def.id===TideFarm.BUILDING_ID){
     const job=Tides.breedingStatus(S.tides,s.it.breedingStationId);
@@ -10448,12 +10617,11 @@ function drawProp(s,z,withShadow=true){
   ctx.beginPath();ctx.moveTo(-18,-24);ctx.lineTo(0,-34);ctx.lineTo(18,-24);ctx.closePath();ctx.fill();
   }
  }else if(s.type==='lantern'){
-  const gl=0.5+0.3*Math.sin(performance.now()/260+s.x);
+  const t=performance.now()/1000;
   ctx.strokeStyle='#4a3826';ctx.lineWidth=3;ctx.lineCap='round';
   ctx.beginPath();ctx.moveTo(0,4);ctx.lineTo(0,-26);ctx.stroke();
-  ctx.fillStyle='rgba(255,214,120,'+(0.25*gl)+')';
-  ctx.beginPath();ctx.arc(0,-28,10,0,7);ctx.fill();
-  ctx.fillStyle='#ffd76a';ctx.beginPath();ctx.arc(0,-28,3.5,0,7);ctx.fill();
+  CityScenery.glow(ctx,0,-28,48,CityScenery.flicker(t,s.x));
+  CityScenery.flame(ctx,0,-25,.26,t,s.x);
  }else if(s.type==='gate'){
   if(world.raidRooms&&world.raidRooms[s.room]&&world.raidRooms[s.room].sealed){
    const gl=0.5+0.3*Math.sin(performance.now()/180+s.x*0.05);
@@ -11016,6 +11184,7 @@ function drawNpc(n){
  const now=performance.now();
  const by=n.hop?-Math.abs(Math.sin(now/1000*n.hop.rate+n.hop.phase))*n.hop.h:n.moving?Math.sin(n.walk*7)*1.8:Math.sin(now/600+n.x)*0.8; /* 👑 hop: a townsman bouncing at the coronation */
  ctx.save();ctx.translate(n.x,n.y);
+ if(n.fade!=null)ctx.globalAlpha*=n.fade;   /* 🩹 a hurt guard fading out as he is helped away */
  const pImg=n.art||npcSkinImage(n.skin)||(n.female?npcFemaleImg:npcMaleImg); /* Sebbe's own art, a named skin, or the two originals */
  const body=characterBodyFrame(pImg,n.sit?36:44,n.sit?9:7),size=n.big||1;   /* 🪙 a sitter (the pardoned King) is drawn whole - feet in the art - and lower */
  const boots=characterBootFrame(npcSkinRace(n.skin),!!n.female,bootImg,7);
@@ -11023,6 +11192,7 @@ function drawNpc(n){
  if(n.hang){const top=body?body.headY-4:-40;ctx.translate(0,top);ctx.rotate(Math.sin(now/1000*1.6+n.hang)*.06);ctx.translate(0,-top);}   /* ⚖️ swinging from the rope, about the head */
  ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,body?(n.sit?9:boots.groundY):8,n.sit?16:13,5.5,0,0,7);ctx.fill();
  if(!n.hang){const gy=body?(n.sit?9:boots.groundY):8,tall=n.sit?30:52;sunPersonShadow(gy,tall);lightPersonShadow(n.x,n.y,gy,tall*size,size);}   /* ☀🏮 */
+ if(n.down){const gy=body?boots.groundY:8;ctx.translate(0,gy);ctx.rotate((n.fx>0?-1:1)*1.45*n.down);ctx.translate(0,-gy);}   /* 🩹 knocked down by the Forsaken: laid out on the stones, about his feet */
  if(body){
   if(!n.sit)bootFeet({...boots,moving:n.moving,walk:n.walk*1.8,bob:by});
   ctx.save();
@@ -11036,8 +11206,9 @@ function drawNpc(n){
   drawChampionSprite(ctx,n.race,n.cls,n.fx,by,0,false,null,n.female);
  }
  ctx.restore();
+ if(n.hurtMark){const hy=((body?body.headY:-37)-12+by)*size;ctx.fillStyle='rgba(255,255,255,.92)';ctx.fillRect(-7,hy-7,14,14);ctx.fillStyle='#d83a32';ctx.fillRect(-2,hy-5.5,4,11);ctx.fillRect(-5.5,hy-2,11,4);}   /* 🩹 hurt, off to be patched up */
  if(n.protest&&n.protest.sign)drawProtestSign(n,body,by,size);
- if(n.guildRole!=='member'&&!n.protest&&!n.brawl&&!n.prisoner&&!(n.nameNear&&(!hero||Math.hypot(hero.x-n.x,hero.y-n.y)>n.nameNear))){   /* ⚔ a sellsword's name only when you are close */ /* ✊ a marching block wears its placards, not two dozen overlapping names; ⛓ a prisoner's name hangs on his grille */
+ if(n.guildRole!=='member'&&!n.protest&&!n.brawl&&!n.prisoner&&!n.held&&!(n.nameNear&&(!hero||Math.hypot(hero.x-n.x,hero.y-n.y)>n.nameNear))){   /* ⚔ a sellsword's name only when you are close */ /* ✊ a marching block wears its placards, not two dozen overlapping names; ⛓ a prisoner's name hangs on his grille */
   const ny=((body?body.headY:-37)-3+by-(body&&MERC_ARMED.has(n.skin)?17:0))*size;   /* ⚔ over a sellsword's pike blade, not through it */
   ctx.font='700 '+(n.game?11:10)+'px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(n.name,1,ny+1);
@@ -11089,7 +11260,7 @@ function updateNpcs(dt){
  if(!world.npcs)return;
  world.protestT=(world.protestT||0)+dt;
  for(const n of world.npcs){
-  if(n.scripted)continue;                    /* 📜 somebody else is walking him (a scene, the Hand) - a march or a brawl waits, or the crowd at the gallows kept marching through its own rows */
+  if(n.scripted||n.held)continue;            /* 📜 somebody else is walking him (a scene, the Hand, 🟣 the Forsaken's attack) - a march or a brawl waits, or the crowd at the gallows kept marching through its own rows */
   if(n.protest){ /* ✊ the crowd marches the boulevard as one block, avenue to avenue and back */
    const span=2200,per=span*2/46,ph=(world.protestT%per)/per,tri=ph<.5?ph*2:2-ph*2;
    n.x=world.w/2-span/2+tri*span+n.protest.ox;n.y=world.h/2+n.protest.oy;
@@ -11134,7 +11305,7 @@ function drawEnemy(en){
   return;
  }
  ctx.save();ctx.translate(en.x,en.y);
- ctx.globalAlpha=en.dead?Math.max(0,1-en.deadT*1.4):1;
+ ctx.globalAlpha=(en.dead?Math.max(0,1-en.deadT*1.4):1)*(en.alpha===undefined?1:en.alpha);   /* alpha: a staged Forsaken coming out of his portal */
  if(en.dead)ctx.rotate(Math.min(1.5,en.deadT*3));
  if(en.cow&&en.age>10){
   const heat=Math.min(0.85,(en.age-10)*0.03);
@@ -11183,13 +11354,13 @@ function drawEnemy(en){
   const bl=raidBlade(raidSkin.glow,raidSkin.wpn?raidSkin.wpn():null,raidSkin.soak!==false);
   if(bl){
    const AH=H*(raidSkin.ws||0.6),AW=AH*bl.width/bl.height;
-   const bfx=(hero&&hero.x<en.x)?-1:1; /* held on the side it strikes */
+   const bfx=en.face||((hero&&hero.x<en.x)?-1:1); /* held on the side it strikes (face: a staged Forsaken strikes at the guard he fights) */
    if(raidSkin.zap&&!en.dead&&Math.random()<0.07){ /* the hammer crackles */
     const zx=en.x+bfx*W*raidSkin.wx,zy=en.y+H*raidSkin.wy;
     zapLine(zx+(Math.random()-0.5)*36,zy-40-Math.random()*40,zx+(Math.random()-0.5)*50,zy+30*Math.random());
    }
    /* dual wielders swing BOTH arms - the far scythe trails half a beat behind */
-   const arms=raidSkin.dual
+   const arms=raidSkin.dual&&!en.oneBlade   /* oneBlade: the Forsaken One's lesser kin carry one scythe */
     ?[{s:1,lag:0,wx:raidSkin.wxr!==undefined?raidSkin.wxr:raidSkin.wx},{s:-1,lag:0.06,wx:raidSkin.wx}] /* wxr: the mirrored art needs its own grip offset */
     :[{s:bfx,lag:0,wx:raidSkin.wx}];
    for(const arm of arms){
@@ -15075,7 +15246,7 @@ function prisonerSpeak(n){
  log('⛓ <b>'+n.name+'</b> - '+n.crime+': “'+line+'”');
 }
 const openGaol=()=>openLedger('gaol');
-function cityApplyAll(){cityApplyPeople();cityApplyProtest();cityApplyUnrest();cityApplyWatch();cityApplyWorks();cityCouncilMarks();hallApply();cityApplyMercs();}
+function cityApplyAll(){cityApplyPeople();cityApplyProtest();cityApplyUnrest();cityApplyWatch();cityApplyWorks();cityCouncilMarks();hallApply();cityApplyForsaken();cityApplyMercs();}
 /* ⚔ The sellswords in the City (2026-09-25): every one the treasury has paid for walks a beat of his own - posts at the west
    gate, the palace, the harbour gate, the cathedral and the foot of the walls, rounds of the boulevard, the great square, the
    streets and the avenues. The first contract already covers the gates and the main roads; the rest fill in. They are not
@@ -15113,7 +15284,7 @@ function mercSlotList(){   /* round by round over the beats: the first twenty co
 }
 function cityApplyMercs(){
  if(!world||!zoneOf().city||!S||!S.city)return;
- const n=CityEconomy.mercView(S.city).count;
+ const h=S.city.hurt,x=S.city.expedition,n=Math.max(0,CityEconomy.mercView(S.city).count-(h?h.mercs:0)-(x?x.mercs:0));   /* 🩹 the hurt are in their beds, ⚔ an expedition abroad - neither walks a beat */
  if(world.mercs&&world.mercs.length===n)return;
  const slots=mercSlotList();world.mercs=[];
  for(let i=0;i<n&&i<slots.length;i++){
@@ -15135,7 +15306,7 @@ function mercTick(dt){
  const t=world.mercClock=(world.mercClock||0)+dt;
  for(const m of world.mercs){
   if(m.bubble&&(m.bubble.t-=dt)<=0)m.bubble=null;
-  if(m.post)continue;
+  if(m.held||m.post)continue;   /* 🟣 off his beat to fight the Forsaken */
   const d=(m.ph+t*m.sp)%m.len;let s=m.seg[0];
   for(const q of m.seg)if(d>=q.at)s=q;
   const u=(d-s.at)/(s.l||1),x=s.a.x+(s.b.x-s.a.x)*u,y=s.a.y+(s.b.y-s.a.y)*u;
@@ -15145,11 +15316,260 @@ function mercTick(dt){
 }
 function mercWorldClick(wx,wy){
  if(!world||!world.mercs||!zoneOf().city||!hero)return false;
- const m=world.mercs.find(m=>Math.abs(wx-m.x)<32&&wy>m.y-92&&wy<m.y+20&&Math.hypot(hero.x-m.x,hero.y-m.y)<420);
+ const m=world.mercs.find(m=>m.hurtS!=='gone'&&Math.abs(wx-m.x)<32&&wy>m.y-92&&wy<m.y+20&&Math.hypot(hero.x-m.x,hero.y-m.y)<420);
  if(!m)return false;
  m.bubble={txt:MERC_SAY[Math.floor(Math.random()*MERC_SAY.length)],t:4.5,life:4.5};
  if(m.post)m.fx=hero.x>m.x?1:-1;
  return true;
+}
+/* 🟣 THE FORSAKEN IN THE STREETS (asked for 2026-09-26). While the ledger says the Forsaken are in the City (S.city.forsaken - one
+   close), purple portals stand open at street corners picked by the attack's seed and the Forsaken One's lesser kin come out of
+   them: his own painting, a third of his height, one scythe. The watch runs to meet them, and the Training Ground's cadets out of
+   the west gate; when the books say that is not enough, the sellswords they call leave their beats and follow (FORSAKEN_CALL_AT).
+   The men the books send home hurt go down in the fight, get up and are helped away - to the Hospital of St Agnes if it stands -
+   and stay off their rounds until S.city.hurt heals (forsakenHurtWatch; cityApplyMercs lays out the rest). The ledger has already decided how it goes
+   (CityEconomy.battleOf): over the close the street plays it out. The ones the guards can take fall one by one where they are
+   fought; the rest go for the houses nearest their portals and set them burning, and townsfolk near a portal run. The hero cannot
+   touch them - they are not foes; only the guards fight them. What burned stays burned (S.city.scars, drawn charred) until the
+   steward rebuilds from the Ledger. Nothing plays while the square is cleared for the gallows. */
+const FORSAKEN_R=10;    /* the reaper painted at this radius stands ~73 high: over the heads of the guards, well under the Forsaken One's 190 */
+const FORSAKEN_AVOID=Object.freeze([[520,2600,560],[16578,2600,640],[8400,5062,560],[8400,4378,320],[8400,2600,170]]);   /* the gates, the stairs, the well */
+function forsakenProgress(){return S&&S.city?Math.max(0,Math.min(1,S.city.clock/CityEconomy.TICK_SECONDS)):0;}   /* how far into the close of the attack */
+function forsakenPortals(seed){   /* the corners they come through: main-street spots from the attack's seed, apart from each other and from the gates - three or four, so each is a crowd */
+ const R=mulberry32((seed|0)^0x2f6b),streets=(world.streets||[]).filter(s=>s.w>=180),want=3+(seed>>>0)%2,out=[];
+ for(let tries=0;tries<600&&out.length<want&&streets.length;tries++){
+  const s=streets[Math.floor(R()*streets.length)],u=.06+R()*.88,off=(R()*2-1)*Math.max(0,s.w/2-44),hor=Math.abs(s.x1-s.x0)>=Math.abs(s.y1-s.y0);
+  const x=Math.round(s.x0+(s.x1-s.x0)*u+(hor?0:off)),y=Math.round(s.y0+(s.y1-s.y0)*u+(hor?off:0));
+  if(x<420||x>16380||y<420||y>4780||FORSAKEN_AVOID.some(([ax,ay,r])=>Math.hypot(x-ax,y-ay)<r)||out.some(p=>Math.hypot(p.x-x,p.y-y)<1100))continue;
+  out.push({x,y});
+ }
+ return out;
+}
+function forsakenHouses(seed,count,portals=forsakenPortals(seed)){   /* the houses nearest their portals (or an army's gates), dealt round them so every corner burns a little */
+ const free=(world.solids||[]).filter(s=>s.type==='cityhouse'&&!s.work),out=[];
+ for(let i=0;i<count&&free.length&&portals.length;i++){
+  const p=portals[i%portals.length];let best=0,bd=Infinity;
+  for(let j=0;j<free.length;j++){const d=Math.hypot(free[j].x-p.x,free[j].y-p.y);if(d<bd){bd=d;best=j;}}
+  out.push(free.splice(best,1)[0]);
+ }
+ return out;
+}
+function forsakenFoe(x,y,seed){   /* one of them, as drawEnemy wants him: the reaper's painting, small, one scythe - and never a foe the hero can touch */
+ return {x,y,r:FORSAKEN_R,skin:'reaper',kind:'undead',c:'#a06bd0',name:'',hp:1,max:1,home:{x,y},state:'idle',pause:false,walk:seed%7,wt:seed%5,mv:0,swing:0,
+  dead:false,deadT:0,face:1,oneBlade:true,alpha:1};
+}
+/* ⚔ an enemy's soldiers (asked for 2026-09-26) come the way an army comes: over the land through the west gate and down the avenues
+   from the north wall, from the sea up the harbour stair. They gather inside, then do what the Forsaken do - fall where the guards
+   catch them, or burn the houses nearest their gates. Each wears his city's colours on the stones under his feet. */
+const RAID_ENTRIES=Object.freeze({
+ land:[{x:820,y:2600,sx:250,sy:2600},{x:2600,y:760,sx:2600,sy:520},{x:5500,y:760,sx:5500,sy:520}],
+ sea:[{x:HARBOR_MOUTH.x,y:HARBOR_MOUTH.y-60,sx:HARBOR_MOUTH.x,sy:HARBOR_MOUTH.y+230},{x:7700,y:4080,sx:HARBOR_MOUTH.x-40,sy:HARBOR_MOUTH.y+230},{x:9100,y:4080,sx:HARBOR_MOUTH.x+40,sy:HARBOR_MOUTH.y+230}]});
+function raidEntries(by,seed){const L=RAID_ENTRIES[by]||RAID_ENTRIES.land,k=(seed>>>0)%L.length;return L.slice(k).concat(L.slice(0,k)).map(e=>({...e}));}
+function scarredHouses(b){return forsakenHouses(b.seed,b.n,b.by?raidEntries(b.by,b.seed):undefined);}   /* what a burn on the books burned: by a portal, or by an army's gates */
+function raidSoldier(B,x,y,i){return {name:'',skin:B.skin,race:'human',cls:'warrior',female:false,big:1.04,x,y,fx:1,walk:i*.7,moving:false,held:true,raider:true,ring:B.ring,r:10,dead:false,deadT:0,alpha:0};}
+/* after every close and every ledger order: the attack as the books have it now - who is where, who will fall and what will burn */
+function cityApplyForsaken(){
+ if(!world||!zoneOf().city||!world.solids)return;
+ const c=S.city,attack=!c||!c.chartered?null:c.forsaken?{kind:'forsaken',n:c.forsaken.n,seed:c.forsaken.seed}:c.raid?{kind:'raid',ally:c.raid.ally,n:c.raid.n,seed:c.raid.seed}:null;
+ for(const s of world.solids)if(s.type==='cityhouse'){s.forsakenFire=false;s.charred=false;}
+ if(c&&c.scars)for(const b of c.scars.burns)for(const h of scarredHouses(b))h.charred=true;
+ forsakenHurtWatch(c);   /* the books' hurt, on the men laid out in the fight first - before the stand-down forgets who they were */
+ const was=world.forsaken;
+ if(!attack){if(was){forsakenStandDown(was);forsakenHurtWatch(c);}world.forsaken=null;return;}
+ if(!was||was.seed!==attack.seed||was.kind!==attack.kind){
+  if(was){forsakenStandDown(was);forsakenHurtWatch(c);}
+  const B=attack.kind==='raid'?CityEconomy.WAR_BOOK[attack.ally]:null;
+  const portals=B?raidEntries(B.entry,attack.seed):forsakenPortals(attack.seed);if(!portals.length){world.forsaken=null;return;}
+  const R=mulberry32((attack.seed^0x5bd1e995)>>>0),foes=[];
+  for(let i=0;i<attack.n;i++){
+   const j=i%portals.length,p=portals[j],a=R()*Math.PI*2,rr=30+R()*70;
+   foes.push({portal:j,at:.004+(i/attack.n)*.05,ox:Math.cos(a)*rr,oy:Math.sin(a)*rr*.55,order:R(),houses:[],hi:0,burnT:0,engaged:0,appear:0,
+    en:B?raidSoldier(B,p.sx+(R()-.5)*90,p.sy+(R()-.5)*50,i):forsakenFoe(p.x,p.y,i*37+7)});
+  }
+  const cadets=[],n=CityEconomy.defenders(c).cadets;
+  for(let i=0;i<n;i++)cadets.push({name:'Cadet '+WATCH_RECRUITS[(i*5+2)%WATCH_RECRUITS.length].split(' ').pop(),skin:'guard',race:'human',cls:'warrior',female:false,big:.98,cadet:true,
+   x:640+(i%6)*26,y:2560+Math.floor(i/6)*30,speed:92,walk:i*.7,fx:1,pts:[{x:640,y:2600}],i:0,dir:1,pauseT:0,moving:false,held:true,nameNear:320});
+  const p=forsakenProgress();
+  world.forsaken={kind:attack.kind,ally:attack.ally||null,per:B?B.q:CityEconomy.FORSAKEN_POWER,seed:attack.seed,n:attack.n,portals,foes,cadets,lit:new Set(),callAt:FORSAKEN_CALL_AT,calledTold:p>FORSAKEN_CALL_AT+.02};
+  cityApplyMercs();   /* the sellswords on their beats first - the ones called are picked from them */
+  forsakenRoles(world.forsaken,c);
+  for(const f of foes)if(f.role==='fall'&&p>=f.dieAt+.15){f.en.dead=true;f.en.deadT=1;}   /* walking in half way through: the fallen are already gone, quietly */
+  for(const g of forsakenDefenders(world.forsaken))if(g.hurtAt!=null&&p>=g.hurtAt+.15){g.hurtS='gone';g.held=true;if(g.watch)g.hidden=true;}   /* and so are the hurt */
+  return;
+ }
+ cityApplyMercs();
+ forsakenRoles(world.forsaken,c);
+ for(const h of world.forsaken.lit)if(world.forsaken.doomed.includes(h))h.forsakenFire=true;   /* what they have set burning keeps burning through a ledger order */
+}
+const FORSAKEN_CALL_AT=.045;   /* the watch has had ~15 s at them before the Free Company is sent in behind it */
+function forsakenRoles(F,c){   /* the books' forecast, dealt out: the first K (in the attack's own order) fall, the rest burn the doomed houses; the sellswords
+    the books call follow the watch; and the ones the books send home hurt are picked by name, so a ledger order picks the same men */
+ const b=CityEconomy.battleOf(c,F.n,F.per),K=Math.round(F.n*(1-b.harm)),order=F.foes.slice().sort((a,b2)=>a.order-b2.order);
+ const doomed=forsakenHouses(F.seed,b.houses,F.portals);
+ order.forEach((f,i)=>{f.role=i<K?'fall':'burn';f.houses=[];if(f.role==='fall')f.dieAt=.2+.7*(i+1)/(K+1);});
+ const burners=order.filter(f=>f.role==='burn');
+ doomed.forEach((h,i)=>{const P=F.portals.length,mine=burners.filter(f=>f.portal===i%P),pool=mine.length?mine:burners;if(pool.length)pool[Math.floor(i/P)%pool.length].houses.push(h);});
+ F.harm=b.harm;F.K=K;F.doomed=doomed;F.called=b.called;
+ forsakenCalled(F);
+ const M=world.mercs||[];
+ forsakenDealHurt(F,(world.npcs||[]).filter(n=>n.watch&&(!n.hidden||n.hurtS)),b.injured.watch);
+ forsakenDealHurt(F,F.cadets,b.injured.cadets);
+ forsakenDealHurt(F,F.calledIdx.map(i=>M[i]).filter(Boolean),b.injured.mercs);
+}
+function forsakenCalled(F){   /* 🗡 the sellswords sent in behind the watch: the ones already fighting, then the nearest to a portal - slots, so a rebuilt list keeps them */
+ const M=world.mercs||[],busy=m=>m.held||m.hurtS;
+ if(!F.called||!M.length){F.calledIdx=[];for(const m of M)if(m.held&&!m.hurtS)m.held=false;return;}
+ const near=m=>Math.min(...F.portals.map(P=>Math.hypot(P.x-m.x,P.y-m.y))),idx=M.map((m,i)=>i);
+ F.calledIdx=idx.filter(i=>busy(M[i])).concat(idx.filter(i=>!busy(M[i])).sort((a,b)=>near(M[a])-near(M[b]))).slice(0,F.called);
+ for(const i of idx)if(M[i].held&&!M[i].hurtS&&!F.calledIdx.includes(i))M[i].held=false;   /* no longer wanted: back to his beat */
+}
+function forsakenDealHurt(F,list,k){   /* 🩹 who comes home hurt: the ones already laid out count, the rest are picked by name and hurt at times spread over the close */
+ const down=list.filter(g=>g.hurtS),up=list.filter(g=>!g.hurtS),want=Math.max(0,k-down.length);
+ const key=g=>{let h=F.seed|0;for(const ch of String(g.name)+'|'+list.indexOf(g))h=Math.imul(h^ch.charCodeAt(0),16777619);return h>>>0;};
+ for(const g of up)g.hurtAt=null;
+ up.sort((a,b)=>key(a)-key(b)).slice(0,want).forEach((g,j)=>{g.hurtAt=.14+.72*(j+1)/(want+1);});
+}
+/* 🩹 the watchmen the books say are hurt stay off their rounds until they heal - the ones laid out in the fight, then from the end of the file.
+   Healed, a man is back on his round where he left it. Runs after cityApplyWatch, which sets `hidden` by the budget line alone */
+function forsakenHurtWatch(c){
+ if(!c)return;
+ const file=(world.npcs||[]).filter(n=>n.watch),want=c.chartered?(c.hurt?c.hurt.watch:0)+(c.expedition?c.expedition.watch:0):0;   /* ⚔ and the men abroad with an expedition */
+ const keep=new Set(file.filter(n=>n.injured).concat(file.filter(n=>!n.injured&&n.hurtS),file.filter(n=>!n.injured&&!n.hurtS&&!n.hidden).reverse()).slice(0,want));
+ for(const n of file){
+  const hurt=keep.has(n);
+  if(n.injured&&!hurt&&n.pts&&n.pts.length){const q=n.pts[(n.i||0)%n.pts.length];n.x=q.x;n.y=q.y;}
+  n.injured=hurt;
+  n.hidden=(!n.recruit&&c.budget.watch===0)||hurt||n.hurtS==='gone';
+ }
+}
+function forsakenInfirmary(){   /* where the hurt are taken: the Hospital of St Agnes, if the city has built it - the barracks by the west gate if not */
+ const h=(world.solids||[]).find(s=>s.type==='cityhouse'&&s.work&&s.work.id==='hospital');
+ return h?{x:h.x,y:h.y+h.r*.3+26}:{x:640,y:2600};
+}
+function forsakenStandDown(F){   /* the close is over: the guards go back to their rounds, the townsfolk come out, the cadets march home */
+ for(const n of world.npcs||[])if(n.held||n.hurtS){n.held=false;n.fleeTo=null;n.pauseT=Math.random()*2;n.hurtS=null;n.hurtAt=null;n.down=0;n.fade=null;n.hurtMark=false;n.atFight=false;}
+ world.mercs=null;   /* the sellswords are laid out on their beats and posts again by cityApplyMercs, less the hurt - a post used to stay where he fought */
+}
+function forsakenDefenders(F){   /* the watch and the cadets from the first moment; the sellswords the books call once the watch has had its go */
+ const M=world.mercs||[],late=forsakenProgress()>=F.callAt?(F.calledIdx||[]).map(i=>M[i]).filter(Boolean):[];
+ return (world.npcs||[]).filter(n=>n.watch&&!n.hidden).concat(F.cadets,late);
+}
+function forsakenTick(dt){
+ const F=world&&world.forsaken;if(!F||execution||coronation||TideUI.isBattling())return;
+ const p=forsakenProgress(),t=performance.now()/1000,step=(o,x,y,sp)=>{const dx=x-o.x,dy=y-o.y,d=Math.hypot(dx,dy);if(d<2){o.moving=false;return d;}const k=Math.min(d,sp*dt)/d;o.x+=dx*k;o.y+=dy*k;o.moving=true;if(Math.abs(dx)>1)o.fx=dx>0?1:-1;o.walk=(o.walk||0)+dt*sp/45;return d;};
+ for(const f of F.foes){
+  const en=f.en,P=F.portals[f.portal];
+  if(en.dead){en.deadT+=dt;continue;}
+  f.appear=Math.max(0,Math.min(1,(p-f.at)/.02));en.alpha=f.appear;
+  if(f.appear<=0){if(F.kind!=='raid'){en.x=P.x;en.y=P.y;}continue;}   /* a Forsaken waits in his portal; a soldier waits outside the walls */
+  let tx=P.x+f.ox,ty=P.y+f.oy,sp=62;
+  if(f.role==='fall'&&p>=f.dieAt&&(f.engaged>0||p>=f.dieAt+.15)){en.dead=true;en.deadT=0;if(F.kind==='raid')burst(en.x,en.y-26,'#c8402e',12,100,true);else{burst(en.x,en.y-30,'#a06bd0',14,120,true);ring(en.x,en.y,54,'#c9a0ff',.45);}continue;}
+  if(f.role==='burn'){
+   const h=f.houses[f.hi];
+   if(h){tx=h.x+(f.order-.5)*40;ty=h.y+h.r*.3+22;sp=74;
+    if(Math.hypot(en.x-tx,en.y-ty)<24){h.forsakenFire=true;F.lit.add(h);f.burnT+=dt;if(f.burnT>16){f.hi++;f.burnT=0;}}}
+  }
+  const d=step(en,tx,ty,sp);
+  en.mv=Math.max(0,Math.min(1,(en.mv||0)+(en.moving?dt*3:-dt*3)));if(en.moving)en.wt+=dt*sp*(0.7/Math.max(8,en.r));
+  en.state=en.moving?'chase':'idle';en.swing=Math.max(0,(en.swing||0)-dt);
+  if(f.engaged&&en.swing<=0&&Math.random()<dt*.9)en.swing=.2;
+  f.engaged=0;
+ }
+ const alive=F.foes.filter(f=>!f.en.dead&&f.appear>=1),load=new Map();
+ let home=null;
+ forsakenDefenders(F).forEach((g,i)=>{
+  g.held=true;
+  if(g.hurtS){   /* 🩹 down for a breath, up again and off to be patched up - out of the fight until the books say he has healed */
+   g.hurtT+=dt;
+   if(g.hurtS==='down'){g.moving=false;g.down=g.hurtT<2.4?Math.min(1,g.hurtT*6):Math.max(0,1-(g.hurtT-2.4)*2.5);if(g.hurtT>=2.8){g.hurtS='limp';g.hurtT=0;g.down=0;g.hurtMark=true;}}
+   else if(g.hurtS==='limp'){home=home||forsakenInfirmary();step(g,home.x,home.y,30);g.fade=Math.max(0,Math.min(1,(6-g.hurtT)/1.5));
+    if(g.hurtT>=6){g.hurtS='gone';g.fade=null;g.hurtMark=false;g.moving=false;if(g.watch)g.hidden=true;}}
+   return;
+  }
+  if(g.hurtAt!=null&&p>=g.hurtAt&&(g.atFight||p>=g.hurtAt+.12)){g.hurtS='down';g.hurtT=0;g.down=0;g.moving=false;g.atFight=false;burst(g.x,g.y-24,'#e0413a',10,90,true);return;}   /* a scythe gets through */
+  if(!alive.length){g.moving=false;g.atFight=false;return;}
+  let best=null,bd=Infinity;
+  for(const f of alive){const n=load.get(f)||0,d=Math.hypot(f.en.x-g.x,f.en.y-g.y)+n*140;if(d<bd){bd=d;best=f;}}   /* the nearest - but spread across them */
+  const k=load.get(best)||0;load.set(best,k+1);
+  const a=k*2.39996+best.order*6.28,rr=36+12*Math.sqrt(k),sx=best.en.x+Math.cos(a)*rr,sy=best.en.y+Math.sin(a)*rr*.5,run=g.merc?(g.sp||48)*1.9:g.cadet?92:(g.speed||58)*1.7;   /* a ring round him that widens as more come, not a heap on one spot */
+  const d=step(g,sx,sy,run);g.atFight=d<10;
+  if(d<10){   /* at the fight: face him and strike - a merc thrusts his pike, a watchman lunges */
+   best.engaged++;g.moving=false;g.fx=best.en.x>g.x?1:-1;best.en.face=g.x<best.en.x?-1:1;
+   if(g.merc){if(!g.jab||t>g.jab){g.jab=t+1.1+((i*37)%9)/10;mercStrike(g);}}
+   else{const l=Math.sin(t*7+i*1.7)*4;g.x=sx+g.fx*Math.max(0,l);}
+   if(Math.random()<dt*.35)sparkles(best.en.x+(g.x-best.en.x)*.5,best.en.y-26,Math.random()<.5?'#c9a0ff':'#ffe9c0',2);
+  }
+ });
+ if(F.called&&!F.calledTold&&p>=F.callAt){F.calledTold=true;log('⚔ The watch cannot hold '+(F.kind==='raid'?'the soldiers of '+CityEconomy.ALLIES.find(a=>a.id===F.ally).name:'the Forsaken')+' alone - '+F.called+' sellsword'+(F.called===1?' of the Free Company is':'s of the Free Company are')+' sent in behind it.','imp');}
+ /* the townsfolk near a portal run for it - to the far end of their own route, and they wait there until it is over */
+ if(p>.01)for(const n of world.npcs||[]){
+  if(n.held||!cityCommoner(n)||n.protest||n.brawl||n.scripted||!n.pts)continue;
+  let near=null,nd=950;for(const P of F.portals){const d=Math.hypot(P.x-n.x,P.y-n.y);if(d<nd){nd=d;near=P;}}
+  if(!near)continue;
+  let far=n.pts[0],fd=-1;for(const q of n.pts){const d=Math.hypot(q.x-near.x,q.y-near.y);if(d>fd){fd=d;far=q;}}
+  n.held=true;n.fleeTo={x:far.x,y:far.y};
+ }
+ for(const n of world.npcs||[])if(n.held&&n.fleeTo)step(n,n.fleeTo.x,n.fleeTo.y,(n.speed||40)*2.5);
+}
+function drawForsakenPortal(P,now){   /* a torn purple ring, taller than a man, motes wheeling in it and a stain of light on the stones */
+ const t=now*1.4+P.x*.01,open=Math.min(1,forsakenProgress()/.012);
+ ctx.save();ctx.translate(P.x,P.y);
+ const g=ctx.createRadialGradient(0,0,0,0,0,70);g.addColorStop(0,'rgba(160,107,208,.42)');g.addColorStop(1,'rgba(160,107,208,0)');
+ ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(0,0,70,26,0,0,7);ctx.fill();
+ ctx.scale(open,open);
+ ctx.shadowColor='#c9a0ff';ctx.shadowBlur=24;
+ ctx.strokeStyle='rgba(201,160,255,'+(0.62+0.3*Math.sin(t*2)).toFixed(3)+')';ctx.lineWidth=8;
+ ctx.beginPath();ctx.ellipse(0,-64,50,82,0,0,7);ctx.stroke();
+ ctx.fillStyle='rgba(60,20,90,0.55)';ctx.beginPath();ctx.ellipse(0,-64,42,72,0,0,7);ctx.fill();
+ ctx.shadowBlur=0;ctx.fillStyle='rgba(236,214,255,0.9)';
+ for(let i=0;i<7;i++){const a=t+i*0.8976;ctx.beginPath();ctx.arc(Math.cos(a)*32,-64+Math.sin(a)*58,2.8,0,7);ctx.fill();}
+ ctx.restore();
+}
+function drawForsaken(f){   /* on a stain of their own light, a little see-through - they came from somewhere else */
+ const en=f.en;
+ ctx.save();ctx.globalAlpha=f.appear*(en.dead?Math.max(0,1-en.deadT*1.4):1)*.9;
+ const g=ctx.createRadialGradient(en.x,en.y+2,0,en.x,en.y+2,42);g.addColorStop(0,'rgba(190,130,255,.6)');g.addColorStop(1,'rgba(160,107,208,0)');
+ ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(en.x,en.y+2,42,15,0,0,7);ctx.fill();
+ ctx.restore();
+ en.alpha=f.appear*.92;drawEnemy(en);
+}
+function drawRaider(f){   /* ⚔ a soldier of the enemy: his city's colours on the stones under him; struck down he falls, lies a moment, and is gone */
+ const en=f.en;
+ if(en.dead){en.down=Math.min(1,en.deadT*3);en.fade=Math.max(0,1-Math.max(0,en.deadT-1.8)/1.2);}else en.fade=f.appear<1?f.appear:null;
+ ctx.save();ctx.globalAlpha*=(en.fade==null?1:en.fade)*.7;ctx.fillStyle='rgba('+en.ring+',.55)';ctx.beginPath();ctx.ellipse(en.x,en.y+3,26,9,0,0,7);ctx.fill();ctx.restore();
+ drawNpc(en);
+}
+function forsakenLights(){   /* 🏮 at night the portals light the street purple, and a burning house lights it red */
+ const F=world&&world.forsaken,out=[];
+ if(F&&F.kind!=='raid'&&!execution){for(const P of F.portals)out.push({x:P.x,y:P.y,fy:P.y-64,h:70,reach:300,head:170,colour:'201,160,255',on:0,ramp:.4,pulse:now=>.85+.15*Math.sin(now*2.2+P.x)});}
+ for(const s of world.solids||[])if(s.type==='townprop'&&s.raidFire)out.push({x:s.x,y:s.y+(s.r||40)*.3,fy:s.y-160,h:130,reach:360,head:210,colour:'255,150,60',on:0,ramp:.4,pulse:now=>.8+.2*Math.sin(now*9+s.x)*Math.sin(now*5.3)});   /* ⚔ a building of an enemy port burning */
+ for(const s of world.solids||[])if(s.type==='cityhouse'&&(s.forsakenFire||(!s.charred&&world.look&&CityWorks.dressing(s,world.look)==='fire')))out.push({x:s.x,y:s.y+s.r*.3,fy:s.y-120,h:110,reach:320,head:190,colour:'255,150,60',on:0,ramp:.4,pulse:now=>.8+.2*Math.sin(now*9+s.x)*Math.sin(now*5.3)});
+ return out;
+}
+function drawCharred(s,art,W,H,top){   /* 🔥 what the Forsaken burned: the house gone dark to the eaves, and a thin smoke still off it */
+ const sil=sunSilhouette(art);
+ if(sil){ctx.save();ctx.globalAlpha*=.62;ctx.drawImage(sil,0,0,sil.width,sil.height,-W/2-sil.pad*W/sil.cw,top-sil.pad*H/sil.ch,W+2*sil.pad*W/sil.cw,H+2*sil.pad*H/sil.ch);ctx.restore();}
+ const t=performance.now()/1000;
+ ctx.save();ctx.globalAlpha*=.48;
+ for(let i=0;i<3;i++)CityScenery.smoke(ctx,(i-1)*W*.22,top+H*.35,.72,t,(s.seed||0)*.13+i/3,false,true);
+ ctx.restore();
+}
+function ledgerForsaken(c){   /* 🟣 in the Ledger: what the guards are worth against them, the attack under way, and the ruins to rebuild */
+ const E=CityEconomy,v=E.forsakenView(c,cityContext()),d=v.defence,guards=d.watch+d.cadets+d.mercs;
+ const odds=v.harm<.05?'cut down at their portals':v.houses+' house'+(v.houses===1?'':'s')+' burn · '+v.fled+' flee';
+ let h='';
+ if(c.raid){const d=E.ALLIES.find(a=>a.id===c.raid.ally),B=E.WAR_BOOK[c.raid.ally],b=E.battleOf(c,c.raid.n,B.q);   /* ⚔ an enemy's soldiers in the streets this close */
+  h+='<div class="ledger-incident"><h3>⚔ '+c.raid.n+' of '+B.men+' of '+d.name+' <small>· in the streets now</small></h3><p>'+(b.harm<.05?'The guards will cut them down':'The guards cannot hold them all: '+b.houses+' house'+(b.houses===1?'':'s')+' will burn and '+b.fled+' townsfolk flee')+(b.called?' - '+b.called+' sellswords are called in':'')+'. It is fought out at the next close.</p></div>';}
+ h+='<h3 class="ledger-gap">🟣 The Forsaken</h3><div class="ledger-tiles">'
+  +'<div class="ledger-tile"><span>'+(v.active?'In the streets now':'If they came today')+'</span><b class="'+(v.harm<.05?'':'bad')+'">'+v.n+' Forsaken · '+odds+'</b><small>'+(d.watch+d.cadets+v.called?(v.injured.total?'≈'+v.injured.total+' guard'+(v.injured.total===1?'':'s')+' hurt':'no guard hurt')+(v.called?' · '+v.called+' sellsword'+(v.called===1?'':'s')+' called in':''):'nobody to fight them')+'</small></div>'
+  +'<div class="ledger-tile"><span>Guards</span><b>'+guards+' · power '+d.power+' of '+v.attack+'</b><small>'+d.watch+' watch · '+d.cadets+' cadets · '+d.mercs+' sellswords'+(d.drill?' · drilled ×'+v.drillPower:'')+(d.hurt?' · '+d.hurt+' hurt':'')+'</small></div>'
+  +'<div class="ledger-tile"><span>Stronger guards</span><b>'+(d.drill?'Training Ground '+d.drill+' / 3':'No Training Ground')+'</b><small>the City Watch line, the Guards’ Training Ground (Works) and the Free Company in Port Meridian</small></div></div>';
+ if(v.scars)h+='<div class="ledger-incident"><h3>🔥 Burned in the attacks <small>· '+v.scars.houses+' house'+(v.scars.houses===1?'':'s')+'</small></h3>'
+  +'<p>'+v.scars.roofs+' roofs lost and '+v.scars.fled+' townsfolk gone. Rebuild, and they come home.</p>'
+  +'<div class="ledger-opts"><button class="sbtn gold" data-lact="rebuild"'+(v.scars.can?'':' disabled')+'>Rebuild · '+fmtGold(v.scars.cost)+' ◉<small>'+(v.scars.can?'from the treasury, once':v.scars.why)+'</small></button></div></div>';
+ if(v.hurt){const x=v.hurt,who=[x.watch?x.watch+' watch':'',x.cadets?x.cadets+' cadet'+(x.cadets===1?'':'s'):'',x.mercs?x.mercs+' sellsword'+(x.mercs===1?'':'s'):''].filter(Boolean).join(' · ');
+  h+='<div class="ledger-incident"><h3>🩹 Hurt in the fighting <small>· '+x.total+'</small></h3><p>'+who+' - back on duty in '+x.left+' close'+(x.left===1?'':'s')+'.</p></div>';}
+ return h;
 }
 function cityLedgerClose(){
  if(!S||!S.city)return;
@@ -15184,6 +15604,11 @@ function cityLedgerClose(){
  if(r.takeover){stageMsg('🏦 The council has handed the crown’s books to the Tides Bank. You are dismissed for '+CityEconomy.BANK_RULE_SEASONS+' seasons.',8000,'#ff8a7a',true);sfx.warn();}
  else if(r.review){const g=r.review.grade;stageMsg('🏦 Season '+r.review.n+' is closed - the Tides Bank grades '+(S.city.bankRule?'its own books ':'your books ')+g+'.',5200,'AB'.includes(g)?'#9adf9a':g==='C'?'#ffd76a':'#ff8a7a',true);if('AB'.includes(g))sfx.quest();else sfx.warn();}
  else if(bank){stageMsg(bank,5200,'#ff8a7a',true);sfx.warn();}
+ else if(r.attack){stageMsg('🟣 Purple portals across the city - the Forsaken are in the streets! The guards turn out to meet them.',6500,'#c9a0ff',true);sfx.warn();}
+ else if(r.raiders){const d=CityEconomy.ALLIES.find(a=>a.id===r.raiders);stageMsg('⚔ Soldiers of '+d.name+' are in your streets! The guards turn out to meet them.',6500,'#ff8a7a',true);sfx.warn();}
+ else if(r.raid){const x=r.raid,d=CityEconomy.ALLIES.find(a=>a.id===x.ally),hurt=x.injured?' '+x.injured+' guard'+(x.injured===1?'':'s')+' hurt.':'';if(x.harm<.05){stageMsg('🛡 The guards cut down '+d.name+'’s soldiers - not a roof lost!'+hurt,5200,'#9adf9a',true);sfx.quest();}else{stageMsg('🔥 '+d.name+'’s soldiers burned '+x.houses+' house'+(x.houses===1?'':'s')+(x.plunder?' and carried off '+fmtGold(x.plunder)+' ◉':'')+'.'+hurt+' Rebuild from the Ledger.',6500,'#ff8a7a',true);sfx.warn();}}
+ else if(r.surrendered){const d=CityEconomy.ALLIES.find(a=>a.id===r.surrendered);stageMsg('🏳 '+d.name+' has surrendered to the crown!',7000,'#ffd76a',true);sfx.quest();}
+ else if(r.forsaken){const x=r.forsaken,hurt=x.injured?' '+x.injured+' guard'+(x.injured===1?'':'s')+' hurt.':'';if(x.harm<.05){stageMsg('🛡 The guards cut the Forsaken down at their portals - not a roof lost!'+hurt,5200,'#9adf9a',true);sfx.quest();}else{stageMsg('🔥 The Forsaken burned '+x.houses+' house'+(x.houses===1?'':'s')+' and drove '+x.fled+' townsfolk out.'+hurt+' Rebuild from the Ledger.',6500,'#ff8a7a',true);sfx.warn();}}
  else if(r.protest&&!was){stageMsg('✊ The people are marching on the boulevard!',3600,'#ff8a7a',true);sfx.warn();}
  else if(!r.protest&&was){stageMsg('The crowds have gone home.',2800,'#9adf9a');sfx.quest();}
  else if(fresh){stageMsg(fresh,4200,'#ff8a7a',true);sfx.warn();}
@@ -15664,16 +16089,45 @@ function ledgerIncidents(f,c){
 /* 🎲 What kind of season this is, and what the card does - sizes and all, since they are rolled afresh every time */
 /* 🤝 The Hand's counsel: one hint, once every few closes - where to look, never which button to press */
 /* 🤝 Allies: three cities and two ports the crown courts with the treasury's gold, and in the end buys. */
+/* ⚔ a ruler's goodwill toward the crown, where it is heading, and why - in his own words (CityEconomy.warView) */
+function allyGoodwill(W){
+ if(W.war)W={...W,target:W.rel};   /* at war goodwill stands still: no arrow */
+ const col=W.rel>=45?'#8fc98a':W.rel>=30?'#e0bd6f':W.rel>=W.warAt?'#f08b47':'#e0413a';
+ const rs=W.reasons.filter(r=>r.v<0).slice(0,2).concat(W.reasons.filter(r=>r.v>0).slice(-1));
+ return '<div class="ally-goodwill"><span>Goodwill</span><div class="ally-gwbar" role="img" aria-label="goodwill '+W.rel+' of 100, heading for '+W.target+'"><i style="width:'+W.rel+'%;background:'+col+'"></i><b style="left:'+W.warAt+'%"></b>'+(W.target!==W.rel?'<em style="left:'+W.target+'%"></em>':'')+'</div><small>'+W.rel+' · '+W.mood+(W.target!==W.rel?' → '+W.target:'')+'</small></div>'
+  +(rs.length?'<ul class="ally-reasons">'+rs.map(r=>'<li class="'+(r.v<0?'neg':'pos')+'"><b>'+(r.v>0?'+':'−')+Math.abs(r.v)+'</b>“'+r.text+'”</li>').join('')+'</ul>':'')
+  +(W.truce?'<p class="ally-truce">🕊 A truce holds for '+W.truce+' more close'+(W.truce===1?'':'s')+'.</p>':'');
+}
+/* ⚔ the war with one of them: his strength, what his raids have cost, the expedition abroad or the ones that could sail, and the peace */
+function allyWar(c,a,W){
+ const E=CityEconomy,w=W.war,x=W.expedition,H=w.home,B=W.book,str=Math.round(w.str),next=Math.max(4,Math.round(B.army*(.5+.5*w.str/100)));
+ const force={mercs:{mercs:H.mercs},watch:{watch:H.watch,cadets:H.cadets},all:{watch:H.watch,cadets:H.cadets,mercs:H.mercs}};
+ const opts=[['mercs','The Free Company',H.mercs>0],['watch','The watch and the cadets',H.watch+H.cadets>0],['all','Every man',H.mercs>0&&H.watch+H.cadets>0]].filter(o=>o[2]);
+ let h='<div class="ally-war"><h5>⚔ '+(w.by==='us'?'Your war':a.ruler.name+'’s war')+' <small>since close '+w.since+'</small></h5>'
+  +'<div class="ally-strength"><span>'+a.name+'’s strength</span><div class="ledger-seatbar war" role="img" aria-label="'+a.name+'’s strength '+str+'%"><i style="width:'+str+'%"></i></div><small>'+str+'%</small></div>'
+  +'<p class="ledger-fx"><span>their next raid ≈'+next+' men · power '+Math.round(next*B.q)+'</span><span>your guards at home · power '+H.power+'</span><span>raids '+w.raids+(w.beaten?' · '+w.beaten+' beaten off':'')+'</span><span>razed in '+a.name+' '+w.burned+'</span>'+(w.plunder?'<span class="bad">carried off '+fmtK(w.plunder)+' ◉</span>':'')+'</p>';
+ if(x)h+='<p class="ledger-work-foot">⛵ '+(x.watch+x.cadets+x.mercs)+' men are at '+a.name+(x.auto?' - the books will tell at the next close how they did.':': '+fmtNum(x.used)+' of '+x.cap+' razed. Give them their orders in the port.')+'</p>';
+ else{
+  h+='<div class="ledger-opts">'+opts.map(([k,label])=>{const r=E.raidOf(c,a.id,force[k]),no=!!w.sail||!r.cap||c.treasury<r.cost;
+   return '<button class="sbtn gold" data-lact="sail" data-k="'+a.id+'" data-v="'+k+'"'+(no?' disabled':'')+'>⛵ '+label+'<small>'+r.men+' men · '+(r.cap?'can raze '+r.cap:'too few to burn a roof')+' · '+fmtK(r.cost)+' ◉</small></button>';}).join('')+'</div>'
+   +(w.sail?'<p class="ledger-work-foot">'+w.sail+'</p>':!opts.length?'<p class="ledger-work-foot">No guard is at home and on his feet to sail.</p>':'');
+ }
+ const pv=w.peace;
+ return h+'<div class="ledger-opts"><button class="sbtn" data-lact="peace" data-k="'+a.id+'"'+(pv.can?'':' disabled')+'>🕊 '+(pv.cost?'Sue for peace · '+fmtK(pv.cost)+' ◉':'Make peace - he asks for it')+'<small>'+(pv.can?'a truce of '+E.WAR_TRUCE+' closes follows':pv.why)+'</small></button></div></div>';
+}
 function ledgerAllies(c){
  const E=CityEconomy,v=E.alliesView(c),frozen=E.frozen(c),noCrown=!v.crowned; /* 👑 a steward may look; only a King or Queen sends an envoy */
  const card=a=>{
-  const pct=Math.round(a.stake),lots=[250000,1000000,5000000].filter(n=>n<=Math.max(250000,a.toFull));
-  return '<div class="ledger-work '+(a.owned?'done':a.locked?'locked':'')+'"><div class="ally-intro"><div class="ally-description"><h4>'+a.icon+' '+a.name+'<small>'+(a.owned?'UNDER THE CROWN':a.tier.toUpperCase())+'</small></h4><p>'+a.text+' <i>Held by '+a.lord+'.</i></p></div>'
+  const pct=Math.round(a.stake),lots=[250000,1000000,5000000].filter(n=>n<=Math.max(250000,a.toFull)),W=E.warView(c,a.id),w=W.war;
+  const sword=a.owned?'':w?'<span class="ally-atwar">⚔ At war</span>':'<button type="button" class="ally-sword" data-lact="war" data-k="'+a.id+'"'+(W.declare?' disabled title="'+esc(W.declare)+'"':' title="Declare war on '+esc(a.name)+'"')+' aria-label="Declare war on '+esc(a.name)+'">⚔</button>';   /* ⚔ the sword beside them */
+  return '<div class="ledger-work '+(a.owned?'done':a.locked?'locked':'')+(w?' at-war':'')+'"><div class="ally-intro"><div class="ally-description"><h4>'+a.icon+' '+a.name+sword+'<small>'+(a.owned?(W.conquered?'TAKEN BY THE SWORD':'UNDER THE CROWN'):w?'AT WAR':a.tier.toUpperCase())+'</small></h4><p>'+a.text+' <i>Held by '+a.lord+'.</i></p></div>'
    +'<img class="ally-portrait" src="assets/city/'+a.ruler.portrait+'.png?v='+CITY_ART_V+'" alt="'+esc(a.ruler.name)+'" width="108" height="144" draggable="false"></div>'
    +'<div class="ledger-seatbar" role="img" aria-label="the crown holds '+pct+'% of '+a.name+'"><i style="width:'+pct+'%"></i></div>'
+   +(a.owned?'':allyGoodwill(W))+(w?allyWar(c,a,W):'')
    +'<p class="ledger-fx"><span>the crown’s stake '+pct+'%</span><span>'+(a.owned?'pays':'pays now')+' '+fmtGold(a.income)+' ◉ a close</span><span>'+(a.owned?a.perkText:'as ours: '+fmtGold(a.yield)+' ◉ a close · '+a.perkText)+'</span></p>'
    +(a.pending.length?'<p class="ledger-work-foot">🐎 '+a.pending.map((p,i)=>'an envoy with '+fmtGold(p.amount)+' ◉ arrives in <span data-await="'+a.id+':'+i+'">'+fmtWait(p.seconds)+'</span>').join(' · ')+'</p>':'')
-   +(a.owned?'<p class="ledger-work-foot pos">Ours. '+a.lord+' kept the title and lost the treasury.</p>'
+   +(a.owned?'<p class="ledger-work-foot pos">'+(W.conquered?'🏳 Ours by the sword. '+(W.ruin?'Its streets are rebuilding: it pays '+(100-W.ruin)+'% of its yield.':'Rebuilt, and paying its whole yield.'):'Ours. '+a.lord+' kept the title and lost the treasury.')+'</p>'
+    :w?''
     :noCrown?'<p class="ledger-work-foot">👑 '+a.lord+' receives envoys from crowned heads. Take the crown (the Crown tab), and the road is open.</p>'
     :a.locked?'<p class="ledger-work-foot">🔒 '+a.lord+' will not receive an envoy from a city without a <b>'+a.locked+'</b> (Works).</p>'
     :'<div class="ledger-opts">'
@@ -16028,6 +16482,8 @@ function ledgerHelp(){
   +sec('⚖️ The budget',['The <b>poll tax</b> is the biggest income and the biggest grievance. High taxes are also dodged more when the people are angry.','The five lines - Watch, Roads, Granary, Festivals, Court - each have four levels. Higher levels cost more every close, lift the mood, and some lift trade (roads, court) or order (watch), which feed the tolls and customs.','Changes take effect at the next close.'])
   +sec('👥 The people',['The mood runs 0-100 and moves <b>a third of the way</b> toward its target at each close. The People tab lists everything that pushes the target up or down.','Below <b>'+E.PROTEST_START+'</b> the people march on the boulevard with placards. They go home once the mood is back above <b>'+E.PROTEST_END+'</b>.','An unhappy city pays less tax and trades less.'])
   +sec('🥊 Unrest',['At every close there is a chance of trouble: a brawl, a gang war, cutpurses, bread queues, broken roads, an insulted envoy, a joyless city. Which one is <b>random</b>; a thin watch, no bread or a sour mood makes trouble likelier.','Each incident names the budget line that ends it - a brawl needs the <b>City Watch doubled</b>. Raise the line and it is dealt with at the next close, or <b>pay once</b> to end it on the spot.','Left alone it costs mood and gold every close, and <b>spreads</b>: up to twice as bad after four closes. Brawls and gang wars can be seen in the City - and so can the watch: disbanded, doubled and royal change how many guards patrol.','If a line is already strong enough when trouble is rolled, it is nipped in the bud and the people notice.'])
+  +sec('🟣 The Forsaken',['Now and then, at a close, purple portals tear open in the streets and the Forsaken come through - <b>8 to 28</b> of them, more the bigger the city. They stay for <b>one close</b>. The first can come after close '+E.FORSAKEN_FROM+', and never within '+E.FORSAKEN_COOL+' closes of the last. Like every close, it only happens while you play.','You cannot fight them - <b>only the guards can</b>. The City Watch and the cadets of the Guards’ Training Ground go first; when they are not enough, the Free Company’s sellswords are sent in behind them, as many as it takes. The Training Ground drills them all: ×'+E.DRILL_POWER.slice(1).join(', ×')+' by its level.','Some of those who fight come home <b>hurt</b> - more of them the harder the fight - and are off duty for <b>'+E.HURT_CLOSES+' closes</b>. While they heal the watch keeps less order and the next defence is thinner.','If the guards fall short, the Forsaken set houses burning near their portals and townsfolk flee the city. Burned houses hold nobody and weigh on the mood until you <b>Rebuild</b> them from the People tab ('+fmtGold(Math.round(E.SCAR_REPAIR*E.scale(cityContext())))+' ◉ a house) - then the families come home. Left alone, the townsfolk put one back up every '+E.SCAR_HEAL+' closes.'])
+  +sec('⚔ War',['Every court abroad has a <b>goodwill</b> toward the crown - the Allies page shows it, and why, in the ruler’s own words. A trade stake softens it; <b>import duties and market fees</b> grate on it - the smiths of Emberfall and the traders of the ports worst, the Iron Margrave least, though he despises a rich city with a thin watch. Let it lie under '+E.WAR_AT+' for a while and a ruler may <b>declare war</b>; his envoys complain first. Only a crowned head is ever at war.','The <b>sword</b> beside a ruler’s name declares war yourself - to take the place without buying it. Trade with it stops, the envoys’ chests on the road are lost, and every other court trusts you less.','At war, the enemy’s soldiers come into the City every few closes, a close at a time, and your guards fight them just as they fight the Forsaken: the watch first, the sellswords when needed. If they win, houses burn, families flee and gold is carried off.','Strike back from the Allies page: <b>sail</b> with the Free Company, the watch, or every man. In their port you command and they fight - click a building and they burn it. Each razed building weakens the place; a raid razes '+E.RAID_CAP+' at the most (fewer against a strong garrison), so a city takes three raids or more and a great port five or more. At nought it surrenders to the crown, in ruins for a while. Provisions and ships cost '+fmtGold(E.SAIL_COST)+' ◉ a man, the men who fight come home hurt, and the ships refit for '+E.RAID_REFIT+' closes.','<b>Peace</b> can be bought at any time - '+Math.round(E.PEACE_SHARE*100)+'% of the list price at full strength, less as they weaken - and a truce of '+E.WAR_TRUCE+' closes follows. A ruler whose men keep dying in your streets asks for peace himself, for nothing.'])
   +sec('🏛 The council',['Six chairs stand at this table, and one of them is yours: <b>you sit as Master of Coin</b>, and the balance and the debt are yours to answer for - to the bank, not to the table. The other five each watch one budget line; Gottfrid Pung, thirty years a merchant, keeps the poor box as High Almoner. Their approval drifts toward what that line deserves; an incident on their line drags it down.','Now and then one of them brings a <b>petition</b>: grant it (usually for gold) and they remember it, refuse and they remember that too. A petition lapses after two closes.','Favour of <b>75+</b>: trade +6% and the Tides Bank lends a tenth more. Below <b>35</b>: the council pads every bill by 6%.'])
   +sec('⚖️ Rents, fees and duties',['Three more rates sit under the poll tax on the Budget tab. <b>Crown rents</b> are paid per head; <b>market fees</b> multiply the tolls but drive stallholders off the square (count the awnings in the City); <b>import duties</b> multiply the customs but keep the wagons off the boulevard.','Every rate pulls on the mood AND on how attractive the city is.'])
   +sec('🎲 Seasons',['<b>No two seasons are alike.</b> When a season opens a card is dealt for it - a trade boom, a slump, a bumper harvest, drought, a hard winter, the sweating sickness, war on the border, a royal wedding, a year of pilgrimage, a restless season, refugees on the roads, the great fair, dear money - and the size of everything on the card is rolled afresh, so two hard winters are never the same winter. The same kind never comes twice running, and the first season is an ordinary one.','The Overview shows the card and what it does for the rest of the season. Plan for it: stock grain before a winter, build the hospital before the sickness comes back, pay the debt down when money is dear.'])
@@ -16129,7 +16585,7 @@ function ledgerHTML(){
    +factors.map((x,i)=>'<tr><td>'+x.name+'</td><td class="'+(i===0?'':x.value>0?'pos':'neg')+'">'+(i===0?x.value:fmtSigned(x.value))+'</td></tr>').join('')
    +'<tr class="ledger-sum"><td>Where the mood is heading</td><td>'+f.moodTarget+'</td></tr></table></section>'
    +'<section><h3>The last hour</h3>'+ledgerMoodLine(c.history,c.mood)+'<h3 class="ledger-gap">Heard in the streets</h3>'+ledgerVoices(c,f).map(v=>'<p class="ledger-voice">'+v+'</p>').join('')+'</section></div>'
-   +'<h3 class="ledger-gap">Unrest</h3>'+ledgerIncidents(f,c)
+   +'<h3 class="ledger-gap">Unrest</h3>'+ledgerIncidents(f,c)+ledgerForsaken(c)
    +'<h3 class="ledger-gap">🧲 How attractive the city is</h3><div class="ledger-tiles">'
    +'<div class="ledger-tile"><span>Attractiveness</span><b>'+E.attractName(c.attract)+' · '+c.attract+'</b><small>heading for '+f.attractTarget+' · moves a third of the way at every close</small></div>'
    +'<div class="ledger-tile"><span>Population</span><b>'+c.pop+' / '+f.housing+' roofs</b><small>'+(c.last&&c.last.moved?(c.last.moved>0?'🧳 '+c.last.moved+' moved in':'🎒 '+(-c.last.moved)+' left')+' at the last close':'nobody came or went at the last close')+'</small></div>'
@@ -16185,7 +16641,7 @@ function ledgerRefresh(){
  dot('bank',S.city.chartered&&(S.city.treasury<0||!S.city.reviewSeen)&&ledgerTab!=='bank');
  $('ledgerHelp').setAttribute('aria-pressed',ledgerTab==='help');
  dot('people',S.city.incidents.length>0||S.city.protest);dot('council',!!S.city.petition);councilAlarm();
- dot('allies',S.city.chartered&&CityEconomy.alliesView(S.city).list.some(a=>a.canBuy));
+ dot('allies',S.city.chartered&&(CityEconomy.alliesView(S.city).list.some(a=>a.canBuy)||CityEconomy.ALLIES.some(d=>{const x=S.city.allies&&S.city.allies[d.id];return x&&!x.owned&&((x.war&&x.war.offer)||(!x.war&&x.rel!==undefined&&x.rel<30));})));   /* ⚔ an angry court, or a peace offered */
  {const at=document.querySelector('[data-ltab="allies"]');if(at&&ledgerTab==='talk'){at.classList.add('active');at.setAttribute('aria-selected',true);}}
  dot('crown',!!S.city.king.demand||CityEconomy.canClaim(S.city));dot('gaol',S.city.jail.length>CityEconomy.cells(S.city));
  {const b=CityEconomy.bonusView(S.city);if(b&&b.open&&b.black&&ledgerTab!=='bank')dot('bank',true);} /* 🎁 a bonus waiting is a reason to open the Bank tab */
@@ -16255,6 +16711,26 @@ function ledgerAction(act,k,v){
   else{ok=false;msg='Not now.';}
  }
  else if(act==='fix'){const want=Math.max(c.budget[k],parseInt(v,10));ok=E.setBudget(c,k,want);msg=ok?E.LINES[k].name+' raised to '+E.LINES[k].levels[want].name+' - the trouble ends at the next close.':'';}
+ else if(act==='rebuild'){const r=E.rebuild(c,cityContext());ok=r.ok;msg=r.text;if(ok)log(r.text,'loot');}   /* 🔨 what the Forsaken burned */
+ else if(act==='war'){   /* ⚔ the sword on a card: are you sure? */
+  const d=E.ALLIES.find(x=>x.id===k),B=E.WAR_BOOK[k],a=c.allies&&c.allies[k],chests=a?a.pending.reduce((t,p)=>t+p.amount,0):0;
+  confirmBox('⚔ <b>Sure you want to go to war with '+d.name+'?</b><br><br>'+d.ruler.name+' will send '+B.men+' into your streets every few closes - see that your guards are ready. Trade with '+d.name+' stops'+(chests?', the envoys’ '+fmtK(chests)+' ◉ on the road are lost':'')+', and every other court will trust you less.<br><br>Sail your guards to '+d.name+' and burn it down, building by building: three raids or more break a city, five or more a great port. Or buy peace.',
+   ()=>{const r=E.declareWar(c,k);ledgerNote=r.text;if(r.ok){log(r.text,'imp');stageMsg('⚔ War with '+d.name+'!',5200,'#ff8a7a',true);sfx.warn();}else sfx.warn();cityApplyAll();ledgerRefresh();renderHUD();save();});
+  return;
+ }
+ else if(act==='sail'){   /* ⛵ the men board, and - where the Black Tide puts in - you with them */
+  const W=E.warView(c,k),H=W.war?W.war.home:{watch:0,cadets:0,mercs:0},force=v==='mercs'?{mercs:H.mercs}:v==='watch'?{watch:H.watch,cadets:H.cadets}:{watch:H.watch,cadets:H.cadets,mercs:H.mercs};
+  const port=townZone(k)>=0,canGo=!port||(gameOn&&hero&&!hero.dead&&!TideUI.isBattling()&&!voyage);
+  if(!canGo){ok=false;msg='Not now - the Black Tide cannot sail this moment.';}
+  else{const r=E.sail(c,k,force,{auto:!port});ok=r.ok;msg=r.text;
+   if(ok){log(r.text,'imp');if(port){$('ledgerFx').style.display='none';cityApplyAll();renderHUD();save();setSail(k);return;}}}
+ }
+ else if(act==='peace'){
+  const d=E.ALLIES.find(x=>x.id===k),pv=E.peaceView(c,k);if(!pv)return;
+  confirmBox('🕊 <b>Make peace with '+d.name+(pv.cost?' for '+fmtGold(pv.cost)+' ◉':'')+'?</b><br><br>A truce of '+E.WAR_TRUCE+' closes follows, and the caravans come back.',
+   ()=>{const r=E.makePeace(c,k);ledgerNote=r.text;if(r.ok){log(r.text,'loot');stageMsg('🕊 Peace with '+d.name+'.',5200,'#9adf9a',true);sfx.quest();}else sfx.warn();cityApplyAll();ledgerRefresh();renderHUD();save();});
+  return;
+ }
  else if(act==='settle'){const n=E.settle(c,cityContext(),k);ok=n>0;msg=ok?'Paid '+n.toLocaleString()+' ◉. It is over - for now.':'The treasury cannot cover it.';}
  else if(act==='grant'||act==='refuse'){const r=E.answer(c,cityContext(),act==='grant');ok=!!(r&&r.ok);msg=r?r.text:'';}
  else if(act==='bonus'){const r=E.takeBonus(c);ok=r.ok;msg=r.text;if(ok){S.overflow=(S.overflow||0)+r.gold;log('🎁 <b>Your season bonus:</b> <span class="loot">+'+r.gold.toLocaleString()+' ◉</span> to your overflow gold.','loot');}} /* 🎁 no trust lost - it is not light fingers, it is the book */

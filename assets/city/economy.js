@@ -297,6 +297,9 @@
    blurb:'Judges, juries and written law. Fines double, and the jail pays a little of its own way.',done:'The first case was heard in open court.'},
   {id:'gaolwing',cat:'order',name:'New Jail Wing',icon:'⛓',cost:3200,build:1,upkeep:30,fx:{cells:4},
    blurb:'Four more cells under the hall. Nobody sleeps three to a bench any more.',done:'Four new cells were unlocked under the hall.'},
+  {id:'drillyard',cat:'order',name:'Guards’ Training Ground',icon:'⚔️',cost:5200,build:2,upkeep:60,maxLvl:3,fx:{drill:1,order:.02},
+   blurb:'A drill yard, archery butts and a sergeant who never sleeps. The watch and the sellswords learn to fight as one, and when the Forsaken come the yard sends its own cadets out with them. It can be raised twice, and each time it drills them harder.',
+   done:'The first cadets marched out of the Guards’ Training Ground.'},
  ];
  /* What happens between closes. gold and mood are before the prestige scale; when() gates an
     event on the budget, so a disbanded watch is what lets the smugglers in. tag is what a finished
@@ -306,7 +309,8 @@
     to keep, twice over - for its price again, by a crew, over the closes it took to build. Only after the bank has
     graded a season, and only for a steward the council is devoted to (UP_FAVOUR). Blocks and one-off gifts stay single. */
  const UP_LEVEL=2,UP_FAVOUR=75;
- const lvlOf=(s,id)=>has(s,id)&&s.works[id].lvl===UP_LEVEL?UP_LEVEL:1;
+ const capOf=id=>{const d=WORKS.find(w=>w.id===id);return d&&d.maxLvl||UP_LEVEL;};   /* ⚔ the level a work goes up to: 2 for all but the Guards' Training Ground, which rises twice (2026-09-26) */
+ const lvlOf=(s,id)=>{if(!has(s,id))return 1;const l=s.works[id].lvl;return Number.isInteger(l)&&l>=UP_LEVEL&&l<=capOf(id)?l:1;};
  const raising=(s,id)=>!!(s&&s.works&&s.works[id]&&num(s.works[id].up)>0);
  const EVENTS=[
   {text:'A trade caravan from Moonshine paid its tolls at the west gate.',gold:260,w:3},
@@ -461,6 +465,12 @@
    king:{pleasure:60,humour:'content',humourAge:0,demand:null,raise:0},works:{},jail:[],
    allies:{},
    mercs:0,           /* ⚔ the Free Company's sellswords on the City's streets and walls, hired in Port Meridian */
+   forsaken:null,     /* 🟣 {n,seed} while the Forsaken are in the streets - one close */
+   scars:null,        /* 🔥 {burns:[{seed,n}],fled} what they burned and who fled, until the steward rebuilds */
+   forsakenAt:0,      /* the close the last attack was fought out */
+   hurt:null,         /* 🩹 {watch,cadets,mercs,left} guards hurt fighting them - off duty until left runs out */
+   raid:null,         /* ⚔ {ally,n,seed} while an enemy's soldiers are in the streets - one close, like the Forsaken */
+   expedition:null,   /* ⚔ {ally,watch,cadets,mercs,cap,used,rate,at,auto} the guards the crown has sent abroad to raze an enemy's port */
    coupTold:false,
    bankRule:null,     /* 🏦 {left} while the Tides Bank keeps the books and the steward is dismissed; null otherwise */
    regency:false,     /* 👑 the throne stands empty and the King's Hand rules in the realm's name: the King was hanged, and a city handed back by the bank does not raise the dead */
@@ -538,9 +548,10 @@
   for(const id of Object.keys(s.works&&typeof s.works==='object'?s.works:{})){
    const def=workDef(id),w=s.works[id];
    if(def&&w){out.works[id]={left:clamp(Math.floor(num(w.left,0)),0,def.build)};
-    if(out.works[id].left===0){   /* 🏗 level 2, or a crew on the way to it - only a standing work carries either */
-     if(w.lvl===UP_LEVEL)out.works[id].lvl=UP_LEVEL;
-     else if(num(w.up)>0)out.works[id].up=clamp(Math.floor(num(w.up)),1,def.build);
+    if(out.works[id].left===0){   /* 🏗 a level above the first, or a crew on the way to the next - only a standing work carries either */
+     const cap=def.maxLvl||UP_LEVEL;
+     if(Number.isInteger(w.lvl)&&w.lvl>=UP_LEVEL&&w.lvl<=cap)out.works[id].lvl=w.lvl;
+     if(num(w.up)>0&&(out.works[id].lvl||1)<cap)out.works[id].up=clamp(Math.floor(num(w.up)),1,def.build);
     }}
   }
   const names=new Set();
@@ -555,8 +566,31 @@
     out.allies[def.id].talk={whim:clamp(Math.round(num(T.whim)*1000)/1000,-.06,.06),patience:clamp(Math.floor(num(T.patience,def.ruler.patience)),0,def.ruler.patience),counter:Math.max(0,Math.round(num(T.counter))),cooldown:clamp(Math.floor(num(T.cooldown)),0,TALK_COOL_INSULT),grudge:clamp(Math.floor(num(T.grudge)),0,6),
      last:L?{offer:Math.max(0,Math.round(num(L.offer))),outcome:String(L.outcome||'').slice(0,12),text:String(L.text||'').slice(0,900),counter:Math.max(0,Math.round(num(L.counter))),reasons:(Array.isArray(L.reasons)?L.reasons:[]).slice(0,2).map(x=>String(x).slice(0,300))}:null};}
    if(num(a.paid)>0)out.allies[def.id].paid=Math.round(num(a.paid));
-   if(out.allies[def.id].owned)out.allies[def.id].stake=100;}
+   if(out.allies[def.id].owned)out.allies[def.id].stake=100;
+   /* ⚔ goodwill and war: each kept only when the save has it, so a city that never looked abroad reloads exactly as it was */
+   const o=out.allies[def.id],w=a.war&&typeof a.war==='object'&&!o.owned?a.war:null,int=(v,lo,hi)=>clamp(Math.floor(num(v)),lo,hi);
+   if(a.rel!==undefined)o.rel=clamp(round1(num(a.rel,REL_BASE)),0,100);
+   if(num(a.angry)>0&&!w)o.angry=int(a.angry,1,WAR_CAUSE);
+   if(num(a.truce)>0&&!w)o.truce=int(a.truce,1,WAR_TRUCE);
+   if(num(a.peaceAt)>0)o.peaceAt=int(a.peaceAt,1,out.ticks);
+   if(o.owned&&a.conquered!==undefined)o.conquered=int(a.conquered,0,out.ticks);
+   if(o.owned&&num(a.ruin)>0)o.ruin=int(a.ruin,1,RUIN);
+   if(Array.isArray(a.ashes)){const ash=a.ashes.filter(k=>typeof k==='string'&&k).slice(-160).map(k=>k.slice(0,60));if(ash.length)o.ashes=ash;}
+   if(w)o.war={by:w.by==='us'?'us':'them',since:int(w.since,0,out.ticks),str:clamp(round1(num(w.str,100)),0,100),cool:int(w.cool,0,RAID_COOL),refit:int(w.refit,0,RAID_REFIT),
+    raids:int(w.raids,0,1e6),beaten:int(w.beaten,0,1e6),burned:int(w.burned,0,1e6),plunder:Math.max(0,Math.round(num(w.plunder))),hits:int(w.hits,0,1e6),...(w.offer?{offer:true}:{})};}
   out.mercs=clamp(Math.floor(num(s.mercs)),0,MERC_MAX);
+  out.forsaken=out.chartered&&s.forsaken&&typeof s.forsaken==='object'?{n:clamp(Math.floor(num(s.forsaken.n,8)),1,40),seed:Math.floor(num(s.forsaken.seed))>>>0}:null;
+  const burns=(s.scars&&Array.isArray(s.scars.burns)?s.scars.burns:[]).filter(b=>b&&num(b.n)>=1).slice(-8).map(b=>({seed:Math.floor(num(b.seed))>>>0,n:clamp(Math.floor(num(b.n)),1,SCAR_MAX),...(b.by==='land'||b.by==='sea'?{by:b.by}:{})}));
+  out.scars=burns.length?{burns,fled:clamp(Math.floor(num(s.scars.fled)),0,POP_MAX)}:null;
+  out.forsakenAt=clamp(Math.floor(num(s.forsakenAt)),0,out.ticks);
+  const hw=s.hurt&&typeof s.hurt==='object'?s.hurt:null,hurt=hw?{watch:clamp(Math.floor(num(hw.watch)),0,WATCH_MEN_MAX),cadets:clamp(Math.floor(num(hw.cadets)),0,CADETS[CADETS.length-1]),mercs:clamp(Math.floor(num(hw.mercs)),0,MERC_MAX),left:clamp(Math.floor(num(hw.left,HURT_CLOSES)),1,HURT_CLOSES)}:null;
+  out.hurt=out.chartered&&hurt&&hurt.watch+hurt.cadets+hurt.mercs>0?hurt:null;
+  const atWar=id=>ALLIES.some(d=>d.id===id)&&out.allies[id]&&(out.allies[id].war||out.allies[id].owned);   /* owned: taken in the middle of a raid, the men not yet home */
+  const R=s.raid&&typeof s.raid==='object'?s.raid:null,X=s.expedition&&typeof s.expedition==='object'?s.expedition:null;
+  out.raid=out.chartered&&R&&atWar(String(R.ally))&&out.allies[String(R.ally)].war?{ally:String(R.ally),n:clamp(Math.floor(num(R.n,8)),1,60),seed:Math.floor(num(R.seed))>>>0}:null;
+  if(out.chartered&&X&&atWar(String(X.ally))){const cap=clamp(Math.floor(num(X.cap)),0,RAID_CAP);
+   out.expedition={ally:String(X.ally),watch:clamp(Math.floor(num(X.watch)),0,WATCH_MEN_MAX),cadets:clamp(Math.floor(num(X.cadets)),0,CADETS[CADETS.length-1]),mercs:clamp(Math.floor(num(X.mercs)),0,MERC_MAX),
+    cap,used:clamp(round1(num(X.used)),0,cap),rate:clamp(Math.round(num(X.rate,.25)*1000)/1000,.06,.6),at:clamp(Math.floor(num(X.at)),0,out.ticks),auto:!!X.auto};}
   out.coupTold=!!s.coupTold;
   out.dismissed=Math.max(0,Math.floor(num(s.dismissed)));
   out.regency=!out.crowned&&!!s.regency;
@@ -600,7 +634,7 @@
  function settleCost(def,ctx){return Math.round((600+def.level*500)*scale(ctx));}
  /* everything the finished works add up to */
  function worksFx(state){
-  const t={exports:0,tolls:0,income:0,vice:0,pious:0,trade:0,order:0,duty:0,mood:0,attract:0,skill:0,housing:0,cells:0,safety:0,fines:0,clean:0,upkeep:0,count:0,blocks:new Set()};
+  const t={exports:0,tolls:0,income:0,vice:0,pious:0,trade:0,order:0,duty:0,mood:0,attract:0,skill:0,housing:0,cells:0,safety:0,fines:0,clean:0,drill:0,upkeep:0,count:0,blocks:new Set()};
   for(const w of WORKS){
    if(!has(state,w.id))continue;
    const lvl=lvlOf(state,w.id);   /* 🏗 level 2: the work twice over - its gifts and its upkeep, not its sins or its one-offs */
@@ -651,7 +685,7 @@
   const k=scale(ctx),b=state.budget,r=v=>Math.round(v);
   const L={};for(const key of LINE_KEYS.concat(RATE_KEYS))L[key]=level(key,b[key]);
   const {watch,roads,relief,festival,court,clean,learn,food,purse,rent,fee,duty,tithe,salary}=L;
-  const A=alliesFx(state);
+  const A=alliesFx(state),wars=ALLIES.filter(d=>allyOf(state,d.id).war);
   const W=worksFx(state),K=state.king,crowned=!!state.crowned,ruled=!crowned&&!state.regency;   /* ruled: Alarik on his throne */
   const fav=favour(state),backing=fav>=75?1.06:1;
   const card=cardOf(state),cm=card.mods,churchMod=num(cm.church,1);
@@ -661,7 +695,7 @@
      in step - there are economies in size), and a King of five thousand expects more than a King of 350 */
   const heads=Math.max(state.pop,POPULATION/2)/POPULATION,big=Math.pow(heads,.8),grand=Math.pow(heads,.5);
   const factor={watch:wage*big,roads:wage*big,learn:wage*big,clean:wage*dear*big,relief:dear*big,festival:dear*big,food:dear*big,court:dear*grand*num(cm.court,1),purse:wage*grand*(1+.15*num(K.raise))};
-  const order=watch.order+W.order,trade=roads.trade*court.trade*backing*duty.vol*(1+W.trade+A.trade)*(1+wind.trade);
+  const order=watchOrder(state,watch)+W.order,trade=roads.trade*court.trade*backing*duty.vol*(1+W.trade+A.trade)*(1+wind.trade);
   const temper=.7+state.mood/333;             /* the restless dodge the tax man: 0.7 at 0, 1.0 at 100 */
   const craft=1+(state.skill-20)*.004;        /* 📚 learned hands earn more: 1.0 at 20, 1.32 at 100 */
   const visit=.85+state.attract*.003;         /* a city worth visiting fills its market: 1.0 at 50 */
@@ -696,7 +730,7 @@
   const purseCost=r(purse.cost*k*factor.purse);
   const expenses=[
    {id:'guard',name:'Royal Guard',icon:'⚔️',amount:r(state.guards*GUARD_WAGE*k*wage),note:state.guards+' men at the pillars of the hall'+(state.guards<ROYAL_GUARD?' - the bank dismissed '+(ROYAL_GUARD-state.guards):'')},
-   {id:'watch',name:'City Watch',icon:'🛡',amount:r(watch.cost*k*factor.watch),note:watch.men+' men - '+watch.name},
+   {id:'watch',name:'City Watch',icon:'🛡',amount:r(watch.cost*k*factor.watch),note:watch.men+' men - '+watch.name+(state.hurt&&state.hurt.watch&&watch.men?' · '+Math.min(watch.men,state.hurt.watch)+' injured':'')+(state.expedition&&state.expedition.watch?' · '+state.expedition.watch+' abroad':'')},
    {id:'roads',name:'Roads & Walls',icon:'🧱',amount:r(roads.cost*k*factor.roads),note:roads.name},
    {id:'relief',name:'Granary & Poor Relief',icon:'🍞',amount:r(relief.cost*k*factor.relief),note:relief.name},
    {id:'festival',name:'Festivals',icon:'🎉',amount:r(festival.cost*k*factor.festival),note:festival.name},
@@ -745,6 +779,10 @@
    {name:'A treasury below zero',value:state.treasury<0?-18:0},
    {name:'The crown is at the end of its credit',value:limit>0&&state.loan>limit*.9?-4:0},
    {name:'Half the Royal Guard dismissed by the bank',value:state.guards<=ROYAL_GUARD/2?-3:0},
+   ...(state.forsaken?[{name:'🟣 The Forsaken in the streets',value:-4}]:[]),
+   ...(state.raid?[{name:'⚔ '+allyDef(state.raid.ally).name+'’s soldiers in the streets',value:-4}]:[]),
+   ...(wars.length?[{name:'⚔ At war with '+wars.map(d=>d.name).join(' and '),value:-2*wars.length}]:[]),
+   ...(scarHouses(state.scars)?[{name:'🔥 Houses burned in the attacks, not yet rebuilt ('+scarHouses(state.scars)+')',value:-Math.min(6,Math.ceil(scarHouses(state.scars)/3))}]:[]),
    ...incidents.map(i=>({name:i.icon+' '+i.name,value:i.mood})),
   ];
   const moodTarget=clamp(moodFactors.reduce((t,f)=>t+f.value,0),0,100);
@@ -769,9 +807,13 @@
    {name:'🌾 Hunger in the streets',value:-Math.min(18,Math.round(hunger*3))||0},
    {name:'🔔 A city nobody is seen to run ('+away.closes+' close'+(away.closes===1?'':'s')+')',value:away.attract},
    {name:'A crown that cannot pay its bills',value:state.treasury<0?-5:0},
+   ...(state.forsaken?[{name:'🟣 The Forsaken in the streets',value:-6}]:[]),
+   ...(state.raid?[{name:'⚔ Soldiers in the streets',value:-6}]:[]),
+   ...(wars.length?[{name:'⚔ A city at war',value:-2*wars.length}]:[]),
+   ...(scarHouses(state.scars)?[{name:'🔥 Burned-out houses ('+scarHouses(state.scars)+')',value:-Math.min(8,Math.ceil(scarHouses(state.scars)/2))}]:[]),
   ];
   const attractTarget=clamp(attractFactors.reduce((t,f)=>t+f.value,0),0,100);
-  const housing=Math.min(POP_MAX,HOUSING+W.housing);   /* the walls hold five thousand, whatever level the quarters reach */
+  const housing=Math.max(0,Math.min(POP_MAX,HOUSING+W.housing)-scarRoofs(state,Math.min(POP_MAX,HOUSING+W.housing)));   /* the walls hold five thousand, whatever level the quarters reach - less the roofs the Forsaken burned */
   const skillTarget=clamp(20+learn.skill+W.skill,0,100);
   /* 🤝 what the realm makes of you, per close. It adds up - trust is earned, not settled into. */
   const trustFactors=[
@@ -841,6 +883,7 @@
   if(fx.housing)out.push('roofs for '+fx.housing+' more');
   if(fx.cells)out.push(fx.cells+' more cells');
   if(fx.fines)out.push('court fines from every prisoner, and fines doubled');
+  if(fx.drill){const d=clamp(Math.round(fx.drill),1,DRILL_POWER.length-1);out.push('guards '+Math.round((DRILL_POWER[d]-1)*100)+'% stronger against the Forsaken');out.push(CADETS[d]+' cadets turn out with them');}
   if(w.blocks&&w.blocks.length)out.push('ends '+w.blocks.map(t=>t==='smugglers'?'smuggling':t==='flood'?'the floods':'the flux').join(' and '));
   if(w.once&&w.once.trust)out.push('trust in you +'+w.once.trust);
   if(w.once&&w.once.pleasure&&above)out.push('the King’s pleasure '+w.once.pleasure);
@@ -853,12 +896,12 @@
    const own=state.works[w.id],cost=Math.round(w.cost*k),missing=(w.needs||[]).filter(id=>!has(state,id)).map(id=>workDef(id).name);
    if(w.pop&&state.pop<w.pop)missing.push('a city of '+w.pop+' souls - it holds '+state.pop);   /* 🏘 a roof gate: the work waits for the people, not for another work */
    const status=own?(own.left>0?'building':'done'):missing.length?'locked':frozen(state)?'frozen':building>=MAX_BUILDING?'busy':state.treasury<cost?'poor':'ready';
-   const lvl=lvlOf(state,w.id),upLeft=raising(state,w.id)?own.up:0;
+   const cap=w.maxLvl||UP_LEVEL,lvl=lvlOf(state,w.id),upLeft=raising(state,w.id)?own.up:0,next=Math.min(cap,lvl+1);
    /* 🏗 the way to level 2, for a standing work: the price again, the same crew and closes, and the two conditions */
-   const upWhy=lvl>=UP_LEVEL?'':upLeft?'':seasons<1?'a season on the books first - the bank grades it at the season’s last close':fav<UP_FAVOUR?'a devoted council - favour '+UP_FAVOUR+'+ (it is '+fav+')':'';
-   const upStatus=status!=='done'?'':lvl>=UP_LEVEL?'done':upLeft?'building':upWhy?'locked':frozen(state)?'frozen':building>=MAX_BUILDING?'busy':state.treasury<cost?'poor':'ready';
+   const upWhy=lvl>=cap?'':upLeft?'':seasons<1?'a season on the books first - the bank grades it at the season’s last close':fav<UP_FAVOUR?'a devoted council - favour '+UP_FAVOUR+'+ (it is '+fav+')':'';
+   const upStatus=status!=='done'?'':lvl>=cap?'done':upLeft?'building':upWhy?'locked':frozen(state)?'frozen':building>=MAX_BUILDING?'busy':state.treasury<cost?'poor':'ready';
    return {...w,blurb:w.kingless&&!kingAbove(state)?w.kingless:w.blurb,cost,upkeep:Math.round(num(w.upkeep)*k)*lvl,status,left:own?own.left:w.build,missing,effects:fxText(w,k,lvl,kingAbove(state)),
-    lvl,up:{level:UP_LEVEL,cost,build:w.build,left:upLeft,status:upStatus,why:upWhy,upkeep:Math.round(num(w.upkeep)*k)*UP_LEVEL,favour:UP_FAVOUR}};
+    lvl,up:{level:next,cap,cost,build:w.build,left:upLeft,status:upStatus,why:upWhy,upkeep:Math.round(num(w.upkeep)*k)*next,favour:UP_FAVOUR}};
   });
   return {list,cats:WORK_CATS.map(c=>({...c,works:list.filter(w=>w.cat===c.id)})),building,crews:MAX_BUILDING,done:list.filter(w=>w.status==='done').length,total:WORKS.length,
    raised:list.filter(w=>w.lvl>=UP_LEVEL).length,upFavour:UP_FAVOUR,upOpen:seasons>=1&&fav>=UP_FAVOUR};
@@ -870,7 +913,7 @@
   if(!v)return {ok:false,text:'No such work.'};
   if(v.status!=='done')return {ok:false,text:v.name+' must be standing first.'};
   const u=v.up;
-  if(u.status==='done')return {ok:false,text:v.name+' is at level '+UP_LEVEL+' already.'};
+  if(u.status==='done')return {ok:false,text:v.name+' is at level '+v.lvl+' already.'};
   if(u.status==='building')return {ok:false,text:'A crew is raising '+v.name+' already.'};
   if(u.status==='locked')return {ok:false,text:'Not yet: '+u.why+'.'};
   if(u.status==='frozen')return {ok:false,text:'The treasury is in the red. The bank will not see a stone laid until it is not.'};
@@ -878,7 +921,7 @@
   if(u.status==='poor')return {ok:false,text:'The treasury cannot cover '+u.cost.toLocaleString()+' ◉. The Tides Bank lends against a plan like this.'};
   state.treasury-=u.cost;state.spent+=u.cost;state.works[id].up=u.build;
   state.council.stone=clamp(state.council.stone+3,0,100);
-  return {ok:true,cost:u.cost,text:v.name+' to level '+UP_LEVEL+' - ordered for '+u.cost.toLocaleString()+' ◉, ready in '+u.build+' close'+(u.build>1?'s':'')+'. It keeps working meanwhile.'};
+  return {ok:true,cost:u.cost,text:v.name+' to level '+u.level+' - ordered for '+u.cost.toLocaleString()+' ◉, ready in '+u.build+' close'+(u.build>1?'s':'')+'. It keeps working meanwhile.'};
  }
  /* 🏗 order a work: the whole price up front, from a treasury that has it */
  function invest(state,ctx,id){
@@ -1168,6 +1211,127 @@
   state.treasury-=MERC_PRICE;state.spent+=MERC_PRICE;state.mercs=Math.min(MERC_MAX,v.count+MERC_BATCH);
   return {ok:true,count:state.mercs,text:MERC_BATCH+' sellswords signed on for '+MERC_PRICE.toLocaleString()+' ◉ from the treasury. '+state.mercs+' walk the City.'};
  }
+ /* 🟣 The Forsaken (asked for 2026-09-26). Now and then purple portals tear open across the City and the Forsaken One's lesser
+    kin come through - hooded, cloaked, a scythe apiece, and more of them the bigger the city. The attack is fought out over one
+    close by the guards alone (the hero cannot touch them): the watch on its budget line and the cadets of the Guards' Training
+    Ground go first, and the Free Company's sellswords are sent in only when they are not enough - all drilled harder the higher
+    the Training Ground stands. Hold them and not a roof is lost; fall short and they set houses burning and drive families out.
+    Either way some of those who fought come home hurt and are off duty for HURT_CLOSES closes. The damage stays - burned-out
+    houses hold nobody and weigh on the people - until the steward pays to rebuild, and then the families come home. The roll is
+    a hash of the books, not a draw from the close's rng, and only a live city is attacked, so every scripted test still means
+    what it meant. */
+ const FORSAKEN_CHANCE=.1,FORSAKEN_COOL=8,FORSAKEN_FROM=16,FORSAKEN_POWER=3;   /* a close's chance once the cool-down is over; the closes
+    a city rests after an attack, and before the first; what one of them is worth in guards */
+ const DRILL_POWER=Object.freeze([1,1.4,1.85,2.4]),CADETS=Object.freeze([0,6,12,18]),MERC_POWER=1.2;   /* by the Training Ground's level (0: none) */
+ const SCAR_ROOFS=8,SCAR_REPAIR=700,SCAR_MAX=60,SCAR_CAP=.25,SCAR_HEAL=4;   /* the roofs a burned house held; ◉ before the scale to rebuild one; at most this many on the
+    books; and never more than a quarter of the city's roofs lost, however often they come - a struggling city must not be burned out of its walls.
+    SCAR_HEAL: every that many closes the townsfolk put one roof back up themselves, and some of those who fled come with it */
+ const HURT_CLOSES=2,HURT_RATE=.18,HURT_MIN=.04,HURT_MAX=.5;   /* 🩹 the closes a hurt guard is off duty; of those who fought, the share who come home
+    hurt is HURT_RATE over the odds they fought at - a handful when the Forsaken are routed, half of them when the fight is lost */
+ const WATCH_MEN_MAX=LINES.watch.levels.reduce((m,l)=>Math.max(m,l.men||0),0);
+ const forsakenCount=state=>clamp(Math.round(8+state.pop/200),8,28);
+ const drillOf=state=>has(state,'drillyard')?lvlOf(state,'drillyard'):0;
+ const hurtOf=state=>{const h=state.hurt;return h?{watch:h.watch,cadets:h.cadets,mercs:h.mercs,left:h.left}:{watch:0,cadets:0,mercs:0,left:0};};
+ function defenders(state){   /* who can turn out against them - the hurt are still in their beds, an expedition is abroad - and what they are worth together */
+  const d=drillOf(state),h=hurtOf(state),x=awayOf(state),men=level('watch',state.budget.watch).men||0,paid=clamp(Math.floor(num(state.mercs)),0,MERC_MAX);
+  const watch=Math.max(0,men-h.watch-x.watch),cadets=Math.max(0,CADETS[d]-h.cadets-x.cadets),mercs=Math.max(0,paid-h.mercs-x.mercs);
+  return {watch,cadets,mercs,drill:d,hurt:Math.min(men,h.watch)+Math.min(CADETS[d],h.cadets)+Math.min(paid,h.mercs),away:x.watch+x.cadets+x.mercs,power:round1((watch+cadets+mercs*MERC_POWER)*DRILL_POWER[d])};
+ }
+ const awayOf=state=>{const e=state.expedition;return e?{watch:e.watch,cadets:e.cadets,mercs:e.mercs}:{watch:0,cadets:0,mercs:0};};
+ function share(total,parts){   /* total dealt over parts in proportion, in whole men - the largest remainders first */
+  const sum=parts.reduce((t,p)=>t+p,0);if(!sum||!total)return parts.map(()=>0);
+  const raw=parts.map(p=>total*p/sum),out=raw.map(Math.floor);let left=total-out.reduce((t,p)=>t+p,0);
+  raw.map((r,i)=>({i,f:r-out[i]})).sort((a,b)=>b.f-a.f||a.i-b.i).forEach(x=>{if(left>0&&out[x.i]<parts[x.i]){out[x.i]++;left--;}});
+  return out;
+ }
+ function battleOf(state,n,per=FORSAKEN_POWER){   /* how n of them fare (per: what one is worth - a Forsaken 3, a soldier by his city): the watch and the cadets go first,
+     and the Free Company is sent in only as far as they fall short - enough is enough, so the harm is what it would be with every man in the fight.
+     Who fought, and at what odds, decides who comes home hurt */
+  const D=defenders(state),dp=DRILL_POWER[D.drill],A=round1(n*per),need=A*1.5,first=(D.watch+D.cadets)*dp;
+  const called=first>=need?0:Math.min(D.mercs,Math.ceil((need-first)/(MERC_POWER*dp)-1e-9));
+  const used=called===D.mercs?D.power:first+called*MERC_POWER*dp,odds=used/A,harm=Math.pow(Math.max(0,1-odds/1.5),1.3);   /* all of them: the very sum it always was */
+  const houses=Math.min(SCAR_MAX,Math.round(harm*n*.8)),fled=Math.max(0,Math.min(state.pop-MIN_POP,Math.round(harm*state.pop*.06)));
+  const fighters=D.watch+D.cadets+called,hurt=fighters?Math.min(fighters,Math.round(fighters*clamp(HURT_RATE/Math.max(odds,.01),HURT_MIN,HURT_MAX))):0;
+  const [hw,hc,hm]=share(hurt,[D.watch,D.cadets,called]);
+  return {n,attack:A,defence:D,called,used:round1(used),odds:Math.round(odds*100)/100,harm:Math.round(harm*1000)/1000,houses,fled,injured:{watch:hw,cadets:hc,mercs:hm,total:hurt}};
+ }
+ /* 🩹 the watch keeps order with the men on their feet: with some of them hurt it is worth what a smaller watch is worth */
+ function watchOrder(state,watch=level('watch',state.budget.watch)){
+  const off=hurtOf(state).watch+awayOf(state).watch;if(!off||!watch.men)return watch.order;   /* the hurt, and the men abroad with an expedition */
+  const L=LINES.watch.levels,on=Math.max(0,watch.men-off);
+  for(let i=1;i<L.length;i++)if(on<=L[i].men){const a=L[i-1],b=L[i];return Math.round((a.order+(b.order-a.order)*(on-a.men)/(b.men-a.men))*1000)/1000;}
+  return watch.order;
+ }
+ const scarHouses=s=>s&&Array.isArray(s.burns)?s.burns.reduce((t,b)=>t+b.n,0):0;
+ const scarRoofs=(state,base=Math.min(POP_MAX,HOUSING+worksFx(state).housing))=>Math.min(scarHouses(state.scars)*SCAR_ROOFS,Math.round(base*SCAR_CAP));
+ function omen(state,salt){   /* a number 0-1 from the books alone - the close's rng is left as it was */
+  let n=(Math.imul(num(state.ticks)+1,2654435761)^Math.imul(num(state.pop)|0,40503)^Math.imul(salt|0,69069))>>>0;
+  n=Math.imul(n^(n>>>16),0x45d9f3b);n=Math.imul(n^(n>>>16),0x45d9f3b);
+  return ((n^(n>>>16))>>>0)/4294967296;
+ }
+ /* the Ledger's reckoning: the attack under way, or what one would do today, and the damage waiting to be rebuilt */
+ function forsakenView(state,ctx={}){
+  const k=scale(ctx),f=state.forsaken,n=f?f.n:forsakenCount(state),b=battleOf(state,n),houses=scarHouses(state.scars),cost=Math.round(houses*SCAR_REPAIR*k);
+  const why=!houses?'':barred(state)?BARRED:frozen(state)||state.treasury<cost?'The treasury cannot cover '+cost.toLocaleString()+' ◉.':'';
+  const rest=Math.max(0,FORSAKEN_COOL-(num(state.ticks)-num(state.forsakenAt))),first=Math.max(0,FORSAKEN_FROM-num(state.ticks));
+  const h=state.hurt;
+  return {active:!!f,...b,drillPower:DRILL_POWER[b.defence.drill],chance:FORSAKEN_CHANCE,calm:Math.max(rest,first),
+   scars:houses?{houses,fled:state.scars.fled,roofs:scarRoofs(state),cost,can:!why,why}:null,
+   hurt:h?{watch:h.watch,cadets:h.cadets,mercs:h.mercs,left:h.left,total:h.watch+h.cadets+h.mercs}:null};
+ }
+ /* 🔨 pay for every roof they burned: the houses stand again and the families who fled come home, as many as have a roof */
+ function rebuild(state,ctx={}){
+  const v=forsakenView(state,ctx);
+  if(!v.scars)return {ok:false,text:'Nothing the Forsaken burned is left in ruins.'};
+  if(!v.scars.can)return {ok:false,text:v.scars.why};
+  state.treasury-=v.scars.cost;state.spent+=v.scars.cost;state.scars=null;
+  const back=Math.max(0,Math.min(v.scars.fled,forecast(state,ctx).housing-state.pop));state.pop+=back;
+  return {ok:true,cost:v.scars.cost,back,text:'🔨 '+v.scars.houses+' burned house'+(v.scars.houses===1?'':'s')+' rebuilt for '+v.scars.cost.toLocaleString()+' ◉'+(back?' - and '+back+' of the townsfolk who fled came home.':'.')};
+ }
+ /* at the close: an attack begun at the last one is fought out now, or a new one may tear open */
+ function forsakenTick(state,ctx){
+  const news=[];let fought=null;
+  if(state.hurt&&!state.forsaken&&--state.hurt.left<=0){state.hurt=null;news.push('✔ The guards hurt fighting the Forsaken are back on duty.');}   /* 🩹 */
+  if(state.scars&&!state.forsaken&&state.ticks%SCAR_HEAL===0){   /* 🔨 slowly, the townsfolk rebuild what nobody paid to rebuild */
+   const sc=state.scars,houses=scarHouses(sc),b0=sc.burns[0],back=Math.min(sc.fled,Math.round(sc.fled/Math.max(1,houses)));
+   if(b0.n>1)sc.burns[0]={...b0,n:b0.n-1};else sc.burns.shift();
+   sc.fled-=back;
+   if(!sc.burns.length)state.scars=null;
+   state.pop=Math.min(POP_MAX,state.pop+Math.max(0,Math.min(back,forecast(state,ctx).housing-state.pop)));
+  }
+  if(state.forsaken){
+   const b=battleOf(state,state.forsaken.n),who=b.defence,side=[who.watch?'the watch':'',who.cadets?'the cadets':'',b.called?b.called+' sellswords of the Free Company':''].filter(Boolean);
+   const guards=side.length?side.length>1?side.slice(0,-1).join(', ')+' and '+side[side.length-1]:side[0]:'nobody';
+   fought={n:b.n,harm:b.harm,houses:b.houses,fled:b.fled,odds:b.odds,called:b.called,injured:b.injured.total};
+   if(b.houses>0||b.fled>0){
+    const burns=state.scars?state.scars.burns.slice():[];
+    if(b.houses>0)burns.push({seed:state.forsaken.seed,n:b.houses});
+    while(burns.length>8){const a=burns.shift();burns[0]={...burns[0],n:Math.min(SCAR_MAX,burns[0].n+a.n)};}   /* the oldest fires run together */
+    const fled=Math.min(POP_MAX,(state.scars?state.scars.fled:0)+b.fled);
+    state.scars=burns.length?{burns,fled}:null;
+    state.pop=Math.max(MIN_POP,state.pop-b.fled);
+   }
+   if(b.harm<.05){
+    state.mood=clamp(state.mood+2,0,100);state.trust=clamp(round1(state.trust+1),0,100);
+    news.push('🛡 The Forsaken were cut down at their portals - '+guards+' held every street. Not a roof was lost, and the city cheers its guards.');
+   }else{
+    state.mood=clamp(state.mood-Math.round(2+b.harm*6),0,100);   /* the fires and the flight are the price - the realm does not blame the steward for them (a trust cost buried struggling cities in the simulations) */
+    news.push('🔥 The Forsaken are gone back through their portals, but '+guards+' could not hold them: '+b.houses+' house'+(b.houses===1?'':'s')+' burned and '+b.fled+' townsfolk fled the city. Rebuild from the Ledger and they will come home.');
+   }
+   const I=b.injured;
+   if(I.total){   /* 🩹 off duty until they heal: the watch's order and the next defence are the poorer for them */
+    const h=hurtOf(state),who2=[I.watch?I.watch+' of the watch':'',I.cadets?I.cadets+' cadet'+(I.cadets===1?'':'s'):'',I.mercs?I.mercs+' sellsword'+(I.mercs===1?'':'s'):''].filter(Boolean);
+    state.hurt={watch:h.watch+I.watch,cadets:h.cadets+I.cadets,mercs:h.mercs+I.mercs,left:HURT_CLOSES};
+    news.push('🩹 '+I.total+' hurt in the fighting ('+who2.join(', ')+') - off duty for '+HURT_CLOSES+' closes while they heal.');
+   }
+   state.forsakenAt=state.ticks;state.forsaken=null;
+  }else if(ctx.live&&state.chartered&&!state.bankRule&&!state.raid&&state.ticks>=FORSAKEN_FROM&&state.ticks-num(state.forsakenAt)>=FORSAKEN_COOL&&omen(state,1)<FORSAKEN_CHANCE){   /* ⚔ not while an enemy's soldiers hold the streets */
+   const n=forsakenCount(state),b=battleOf(state,n);
+   state.forsaken={n,seed:Math.floor(omen(state,2)*1e9)};
+   news.push('🟣 Purple portals have torn open across the city and '+n+' of the Forsaken are in the streets - the Forsaken One’s own kin. '+(b.defence.power>0?b.defence.power>=b.attack*1.5?'The guards turn out to meet them, and they are ready.':'The guards turn out to meet them. Whether they are enough, the close will tell.':'There is nobody to meet them.')+(b.called?' The watch goes first, and '+b.called+' sellswords of the Free Company are sent in behind it.':''));
+  }
+  return {news,fought};
+ }
  /* 🏦 the Bank tab */
  function bankView(state,ctx={}){
   const limit=creditLimit(ctx,state),q=state.season;
@@ -1265,10 +1429,10 @@
   const finished=[],raised=[];
   for(const id of Object.keys(state.works)){
    const w=state.works[id];
-   if(w.left<=0&&num(w.up)>0){   /* 🏗 a crew raising a standing work to level 2 - it kept working all the while */
+   if(w.left<=0&&num(w.up)>0){   /* 🏗 a crew raising a standing work a level - it kept working all the while */
     w.up-=1;if(w.up>0)continue;
-    delete w.up;w.lvl=UP_LEVEL;raised.push(id);trustShift+=1;state.council.stone=clamp(state.council.stone+2,0,100);
-    unrest.push('🏗 '+workDef(id).name+' - raised to level '+UP_LEVEL+'. Everything it does, it does twice over now - and it costs twice as much to keep.');continue;
+    delete w.up;w.lvl=lvlOf(state,id)+1;raised.push(id);trustShift+=1;state.council.stone=clamp(state.council.stone+2,0,100);
+    unrest.push('🏗 '+workDef(id).name+' - raised to level '+w.lvl+'. '+(w.lvl===UP_LEVEL?'Everything it does, it does twice over now - and it costs twice as much to keep.':'Everything it does, it does '+w.lvl+' times over now - and it costs as much more to keep.'));continue;
    }
    if(w.left<=0)continue;
    w.left-=1;if(w.left>0)continue;
@@ -1345,7 +1509,7 @@
   moved=clamp(moved,MIN_POP-state.pop,Math.max(0,f.housing-state.pop));
   if(moved>0)unrest.push('🧳 '+moved+' new townsfolk came through the west gate to stay.');
   else if(moved<0)unrest.push('🎒 '+(-moved)+' townsfolk packed a cart and left the city.');
-  else if(state.attract>=55&&state.pop>=f.housing)unrest.push(f.housing>=POP_MAX?'🏘 The city is as big as its walls will ever hold.':'🏘 Families are turned away at the gate - there is not a roof left. Build more quarters.');
+  else if(state.attract>=55&&state.pop>=f.housing)unrest.push(f.housing>=POP_MAX?'🏘 The city is as big as its walls will ever hold.':scarHouses(state.scars)?'🏘 Families are turned away at the gate - the houses the Forsaken burned still stand in ruins. Rebuild them from the Ledger.':'🏘 Families are turned away at the gate - there is not a roof left. Build more quarters.');
   state.pop+=moved;
   /* 🔔 another close the steward was not at the table for - unless the bank has the table */
   if(state.chartered&&!state.bankRule){
@@ -1383,6 +1547,8 @@
   /* 🎩 the noble's papers and the notice board - rolled last of all, so a scripted rng still means what it meant */
   const noble=state.chartered?nobleTick(state,ctx,rng):{news:[],rankUp:null,xp:0};
   for(const line of noble.news)unrest.push(line);
+  const fz=forsakenTick(state,ctx);for(const line of fz.news)unrest.push(line);   /* 🟣 no rng of the close is drawn */
+  const wz=warTick(state,ctx);for(const line of wz.news)unrest.push(line);        /* ⚔ nor here */
   if(state.royalMoodLeft>0){
    state.royalMoodLeft--;
    if(state.royalMoodLeft===0)unrest.push('📜 Two seasons have passed since the old King’s fate was decided. Its effect on the people’s mood has ended.');
@@ -1396,7 +1562,7 @@
    else if(left%SEASON_CLOSES===0||left===5)unrest.push('🏦 The Tides Bank keeps the crown’s books. '+left+' more close'+(left===1?'':'s')+' before it hands the city back.');
   }
   const entry={n:state.ticks,covered,review:reviewed?{n:reviewed.n,grade:reviewed.grade}:null,in:gotIn,out:paidOut,expected:f.net,net,events:events.map(e=>e.text),unrest,mood:state.mood,favour:favour(state),
-   treasury:state.treasury,protest:state.protest,was:before,unattended:num(state.unattended),food:state.food.stock,hunger:state.food.hunger,pop:state.pop,moved,attract:state.attract,trust:state.trust,finished,raised,
+   forsaken:fz.fought,attack:state.forsaken?state.forsaken.n:0,raid:wz.fought,raiders:state.raid?state.raid.ally:null,surrendered:wz.surrendered,treasury:state.treasury,protest:state.protest,was:before,unattended:num(state.unattended),food:state.food.stock,hunger:state.food.hunger,pop:state.pop,moved,attract:state.attract,trust:state.trust,finished,raised,
    purse:state.crowned&&!state.bankRule?Math.round(f.purse*HERO_COIN/COIN):0,takeover,restored,salary:f.expenses.find(l=>l.id==='salary').amount>0?salaryPay(level('salary',state.budget.salary)):0,   /* paid when - and only when - the line was charged */rankUp:noble.rankUp,nobleXp:noble.xp,summoned:false};   /* 💎 a crowned head keeps a household: a tenth of the privy purse reaches the hero's own gold */
   state.history.push(entry);
   while(state.history.length>HISTORY)state.history.shift();
@@ -1666,12 +1832,14 @@
     envoys, and the bank's hand-back clears the crown and the allies together, so the title lasts exactly as long as the five
     do. It is a title and nothing more: no line of the books reads it. */
  const isEmperor=state=>!!(state&&state.crowned)&&ALLIES.every(def=>allyOf(state,def.id).owned);
- const allyReturn=(def,a)=>a.owned?def.yield:a.stake>=PARTNER_AT?Math.round(def.yield*PARTNER_SHARE*a.stake/100):0;
+ /* ⚔ a place at war pays nothing, and one taken by the sword pays what its ruins can (RUIN heals by RUIN_HEAL a close) */
+ const allyReturn=(def,a)=>a.war?0:a.owned?Math.round(def.yield*(1-num(a.ruin)/100)):a.stake>=PARTNER_AT?Math.round(def.yield*PARTNER_SHARE*a.stake/100):0;
  function alliesFx(state){
-  const t={income:0,trade:0,attract:0,mood:0,note:'',owned:0,partners:0};
+  const t={income:0,trade:0,attract:0,mood:0,note:'',owned:0,partners:0,wars:0};
   for(const def of ALLIES){const a=allyOf(state,def.id),inc=allyReturn(def,a);t.income+=inc;
-   if(a.owned){t.owned++;t.trade+=num(def.perk.trade);t.attract+=num(def.perk.attract);t.mood+=num(def.perk.mood);}else if(inc>0)t.partners++;}
-  t.note=(t.owned?t.owned+' under the crown':'')+(t.owned&&t.partners?' · ':'')+(t.partners?t.partners+' trading partner'+(t.partners>1?'s':''):'')||'none yet';
+   if(a.war){t.wars++;t.trade-=WAR_TRADE;}   /* the caravans from an enemy stop */
+   else if(a.owned){t.owned++;t.trade+=num(def.perk.trade);t.attract+=num(def.perk.attract);t.mood+=num(def.perk.mood);}else if(inc>0)t.partners++;}
+  t.note=[t.owned?t.owned+' under the crown':'',t.partners?t.partners+' trading partner'+(t.partners>1?'s':''):'',t.wars?t.wars+' at war':''].filter(Boolean).join(' · ')||'none yet';
   return t;
  }
  function alliesView(state){
@@ -1681,7 +1849,7 @@
     const courting=!a.owned&&a.stake>=BUY_AT,worth=allyWorth(state,def);
     return {...def,...a,worth,locked,tier:allyTier(a),income:allyReturn(def,a),inFlight,pending:a.pending.map(p=>({...p,seconds:wait(p.left)})),
      toFull:Math.max(0,Math.round(worth*(100-a.stake)/100)-inFlight),courtLeft:courting?Math.max(0,COURT_CLOSES-a.held):null,
-     canBuy:courting&&a.held>=COURT_CLOSES&&!locked&&!(a.talk&&a.talk.cooldown>0),cooldown:num(a.talk&&a.talk.cooldown),partnerIncome:Math.round(def.yield*PARTNER_SHARE*Math.max(a.stake,PARTNER_AT)/100)};})};
+     canBuy:courting&&a.held>=COURT_CLOSES&&!locked&&!a.war&&!(a.talk&&a.talk.cooldown>0),cooldown:num(a.talk&&a.talk.cooldown),partnerIncome:Math.round(def.yield*PARTNER_SHARE*Math.max(a.stake,PARTNER_AT)/100)};})};
  }
  /* send an envoy with a chest from the treasury: never borrowed gold into the red, never more than the place is worth */
  function allyInvest(state,id,amount){
@@ -1691,6 +1859,7 @@
   if(!state.crowned)return {ok:false,text:'Envoys ride under a crown. A steward keeps the books; a King - or a Queen - sends the realm’s gold abroad.'};   /* 👑 asked for 2026-09-22: other cities and the ports are the monarch's game */
   state.allies=state.allies||{};const a=state.allies[id]=state.allies[id]||{stake:0,held:0,owned:false,put:0,pending:[]};
   if(a.owned)return {ok:false,text:def.name+' is ours already.'};
+  if(a.war)return {ok:false,text:'No envoy rides to a place at war with the crown.'};   /* ⚔ */
   if(def.needs&&!has(state,def.needs))return {ok:false,text:def.name+' will not receive an envoy from a city without a '+workDef(def.needs).name+'.'};
   if(frozen(state))return {ok:false,text:'The treasury is in the red. No envoy rides on the bank’s patience.'};
   const room=Math.max(0,Math.round(allyWorth(state,def)*(100-a.stake)/100)-a.pending.reduce((t,p)=>t+p.amount,0)),n=Math.min(Math.floor(num(amount)),room,Math.max(0,state.treasury));
@@ -1767,12 +1936,12 @@
  function talkView(state,ctx,id){
   const def=allyDef(id);if(!def)return null;
   const a=allyOf(state,def.id),T=a.talk||{whim:0,patience:def.ruler.patience,counter:0,cooldown:0,grudge:0,last:null},L=RULER_LINES[def.ruler.temper];
-  const ready=!barred(state)&&!a.owned&&a.stake>=BUY_AT&&a.held>=COURT_CLOSES&&!(def.needs&&!has(state,def.needs)),reserve=reserveOf(state,ctx,def,{...a,talk:T});
+  const ready=!barred(state)&&!a.owned&&!a.war&&a.stake>=BUY_AT&&a.held>=COURT_CLOSES&&!(def.needs&&!has(state,def.needs)),reserve=reserveOf(state,ctx,def,{...a,talk:T});
   const ask=roundTo(reserve*1.2,50000);
   return {id,place:def.name,kind:def.kind,icon:def.icon,ruler:def.ruler,owned:!!a.owned,ready,stake:a.stake,held:a.held,list:def.price,yield:def.yield,perkText:def.perkText,
    ask,counter:T.counter||0,patience:T.patience,maxPatience:def.ruler.patience,cooldown:T.cooldown||0,grudge:T.grudge||0,last:T.last,greet:L.greet,
    step:roundTo(def.price/40,50000),canOffer:ready&&!(T.cooldown>0),
-   why:!ready?(barred(state)?BARRED:a.owned?'The place is ours.':a.stake<BUY_AT?def.ruler.name+' will not hear an offer until the crown holds '+BUY_AT+'% of '+def.name+'.':a.held<COURT_CLOSES?def.ruler.name+' wants to be courted a while longer: '+(COURT_CLOSES-a.held)+' more closes.':'Not yet.'):T.cooldown>0?def.ruler.name+' will not receive you for '+T.cooldown+' more close'+(T.cooldown===1?'':'s')+'.':''};
+   why:!ready?(barred(state)?BARRED:a.owned?'The place is ours.':a.war?def.ruler.name+' is at war with the crown. Make peace first - or take the place.':a.stake<BUY_AT?def.ruler.name+' will not hear an offer until the crown holds '+BUY_AT+'% of '+def.name+'.':a.held<COURT_CLOSES?def.ruler.name+' wants to be courted a while longer: '+(COURT_CLOSES-a.held)+' more closes.':'Not yet.'):T.cooldown>0?def.ruler.name+' will not receive you for '+T.cooldown+' more close'+(T.cooldown===1?'':'s')+'.':''};
  }
  function sealDeal(state,def,a,amount){
   state.treasury-=amount;state.spent+=amount;a.owned=true;a.stake=100;a.pending=[];a.paid=amount;
@@ -1817,7 +1986,7 @@
  }
  function alliesTick(state){
   const news=[];
-  for(const def of ALLIES){const a=state.allies&&state.allies[def.id];if(!a||a.owned)continue;
+  for(const def of ALLIES){const a=state.allies&&state.allies[def.id];if(!a||a.owned||a.war)continue;   /* ⚔ nobody courts an enemy */
    const was=allyTier(a);
    a.pending=a.pending.filter(p=>{p.left-=1;if(p.left>0)return true;a.put+=p.amount;a.stake=Math.min(100,Math.round((a.stake+p.amount/allyWorth(state,def)*100)*100)/100);return false;});
    if(a.talk&&a.talk.cooldown>0){a.talk.cooldown-=1;if(a.talk.cooldown===0)news.push('🤝 Word from '+def.name+': '+def.ruler.name+' might - might - receive you again.');}
@@ -1825,6 +1994,230 @@
    const now=allyTier(a);if(now!==was)news.push('🤝 '+def.name+': '+(now==='Trading partner'?'the first caravans under a treaty are on the road - a trading partner.':now==='Ally'?'an alliance is sworn. Court them for a while, and the place can be bought.':'the envoy was received.'));
   }
   return news;
+ }
+ /* ⚔ WAR WITH THE ALLIES (asked for 2026-09-26). Every place abroad has a GOODWILL toward the crown, 0-100, that moves a sixth of the
+    way a close toward what it sees (goodwillOf): a trade stake softens it, the crown's tariffs and market fees grate on it - each
+    ruler minds them differently, the smiths of Emberfall worst - and a grudge from the bargaining table, a king pardoned or hanged,
+    a neighbour taken by the sword and a city left unguarded all count. Let it lie under WAR_AT for WAR_CAUSE closes and the ruler
+    may declare war (on a crowned head only: the old King kept the peace himself), and a crowned head may declare war on any of
+    them - the sword on their card. At war: trade with them stops, envoys' chests on the road are seized, and every few closes
+    their soldiers come into the City for a close, fought in the streets by the guards just as the Forsaken are (burned houses,
+    families fled, the hurt - and gold carried off). Strike back by sailing with your guards to their port: there the men raze
+    buildings, each one worth a share of the place's STRENGTH, and one expedition razes RAID_CAP at the most - three raids or more
+    break a city, five or more a great port, and they rebuild WAR_REGEN a close between. At a strength of nought the place gives
+    itself up to the crown, its yield in ruins for a while. Peace can be bought at any time - dearer the stronger they still stand -
+    and a truce follows. Like the Forsaken, every roll is a hash of the books and only a live city goes to war. */
+ const WAR_AT=20,REL_BASE=60,REL_PULL=1/6,REL_STEP=4,WAR_CAUSE=3,WAR_TRUCE=12,WAR_TRADE=.02;
+ const RAID_FIRST=2,RAID_COOL=4,RAID_CHANCE=.45,RAID_CAP=10,RAID_REFIT=2,RAID_FLOOR=30,WAR_REGEN=1.5,PEACE_SHARE=.15,RUIN=70,RUIN_HEAL=3,PLUNDER=.08,SAIL_COST=20000;   /* SAIL_COST: provisions and ships, a man */
+ /* army: soldiers in a raid at full strength; q: what one is worth against a guard (a Forsaken is 3); garrison: the men holding the
+    place; resolve: buildings razed to break it; duty/fee: goodwill by the crown's import duty and market fee levels; hot: the chance
+    a close that an angry ruler marches; skin/ring: how his men look in the City; entry: over the land or from the sea */
+ const WAR_BOOK=Object.freeze({
+  ravenholt:{army:14,q:3.5,garrison:30,resolve:28,duty:[2,0,-6,-14],fee:[0,0,-2,-4],hot:.3,skin:'raven_soldier',ring:'178,58,48',entry:'land',men:'the Margrave’s soldiers'},
+  emberfall:{army:12,q:3,garrison:26,resolve:32,duty:[8,0,-20,-40],fee:[2,0,-4,-8],hot:.18,skin:'foundry_worker',ring:'232,120,40',entry:'land',men:'the forge militia'},
+  silverfjord:{army:16,q:3.2,garrison:40,resolve:42,duty:[3,0,-9,-20],fee:[1,0,-2,-5],hot:.22,skin:'silver_guard',ring:'150,190,230',entry:'land',men:'the Jarl’s huscarls'},
+  krakensrest:{army:20,q:3,garrison:36,resolve:36,duty:[6,0,-15,-32],fee:[2,0,-5,-10],hot:.2,skin:'pirate',ring:'60,150,120',entry:'sea',men:'the Drowned Council’s corsairs'},
+  meridian:{army:24,q:3.3,garrison:50,resolve:50,duty:[5,0,-12,-28],fee:[2,0,-4,-8],hot:.12,skin:'sailor',ring:'40,120,200',entry:'sea',men:'the Comptroller’s marines'},
+ });
+ const DUTY_SAYS={soldier:'Your tariffs on iron insult the men who forge your swords.',greedy:'Your tariffs are ruining my smiths - every ingot we send you pays twice.',proud:'You tax our silver at your gate as if we were beggars.',smuggler:'Your customs line strangles honest trade. The Council has noticed.',actuary:'Your tariffs cost my merchants dearly. I have the figures, and so does the Council.'};
+ const goodwillName=v=>v>=70?'Friendly':v>=45?'Cordial':v>=30?'Cool':v>=WAR_AT?'Angry':'Hostile';
+ /* what a ruler sees when he looks at the crown: the pulls on his goodwill, in his own voice, and where they lead */
+ function goodwillOf(state,def,a=allyOf(state,def.id)){
+  const B=WAR_BOOK[def.id],b=state.budget,t=def.ruler.temper,out=[],add=(v,text)=>{v=Math.round(v);if(v)out.push({v,text});};
+  if(a.stake>0)add(Math.min(12,a.stake/5),'You have put gold into our walls. That buys patience.');
+  add(B.duty[b.duty],B.duty[b.duty]<0?DUTY_SAYS[t]:'Your gates are open to our wagons. That is remembered.');
+  add(B.fee[b.fee],B.fee[b.fee]<0?'Your market fees fleece every trader we send you.':'Our traders pitch in your square for next to nothing.');
+  if(t==='smuggler'&&has(state,'customs'))add(-8,'And that Customs House of yours has hanged friends of mine.');
+  if(num(a.talk&&a.talk.grudge))add(-6*a.talk.grudge,'You insulted me at the table, and I have not forgotten it.');
+  if(state.deposed==='pardoned')add(-4,'You let the king you threw down walk free. A soft hand invites a hard one.');
+  if(state.deposed==='executed')add(4,'You hanged your own king. I would rather be your friend.');
+  if(t==='soldier'){const p=defenders(state).power;
+   if(b.watch===0)add(-25,'You disbanded your watch. A soldier despises an open door.');else if(p<20)add(-14,'Your streets are thinly guarded. That tempts a soldier.');
+   if(p<30&&state.treasury>def.price)add(-12,'A fat strongroom behind a thin watch. My men have noticed.');   /* the iron king is the one who comes for a rich, soft city */
+   if(p>=60)add(8,'Your streets are well manned. I respect a city that can hold a line.');}
+  if(t==='proud'){if(state.mood<45)add(-6,'Your own people are unhappy with you. Why should I be pleased?');if(state.trust>=80)add(4,'The realm trusts you. So will I - a little.');}
+  if(t==='actuary'){const g=state.seasons.length?state.seasons[state.seasons.length-1].grade:null;if(g==='A'||g==='B')add(5,'The Tides Bank grades your books '+g+'. You pay on time.');if(g==='D'||g==='F')add(-8,'The Tides Bank grades your books '+g+'. I do not trust a debtor.');}
+  const took=ALLIES.find(d=>d.id!==def.id&&allyOf(state,d.id).conquered&&state.ticks-allyOf(state,d.id).conquered<40);
+  if(took)add(-12,'You took '+took.name+' by the sword. Every court is counting its walls.');
+  if(num(a.peaceAt)&&state.ticks-a.peaceAt<24)add(-10,'The last war between us is not forgotten.');
+  const target=clamp(REL_BASE+out.reduce((s,r)=>s+r.v,0),0,100);
+  return {target,reasons:out.sort((x,y)=>x.v-y.v)};
+ }
+ const relOf=a=>a.rel===undefined?REL_BASE:a.rel;
+ const allySlot=(state,id)=>{state.allies=state.allies||{};return state.allies[id]=state.allies[id]||{stake:0,held:0,owned:false,put:0,pending:[]};};
+ /* the war begins: trade stops, the talks close, the chests on the road are seized, and a crown that starts it is a warmonger abroad */
+ function startWar(state,def,by){
+  const a=allySlot(state,def.id),seized=a.pending.reduce((t,p)=>t+p.amount,0);
+  a.pending=[];delete a.angry;if(a.talk)a.talk.counter=0;
+  a.rel=Math.min(relOf(a),WAR_AT-1);
+  a.war={by,since:state.ticks,str:100,cool:RAID_FIRST,refit:0,raids:0,beaten:0,burned:0,plunder:0,hits:0};
+  if(by==='us'){state.mood=clamp(state.mood-3,0,100);for(const d of ALLIES){const o=state.allies[d.id];if(d.id!==def.id&&o&&!o.owned&&!o.war)o.rel=clamp(round1(relOf(o)-8),0,100);}}
+  return seized;
+ }
+ function declareWar(state,id){
+  const def=allyDef(id);if(!def)return {ok:false,text:'No such place.'};
+  const why=warBar(state,def);if(why)return {ok:false,text:why};
+  const seized=startWar(state,def,'us');
+  return {ok:true,seized,text:'⚔ The crown has declared war on '+def.name+'. '+def.ruler.name+' will send '+WAR_BOOK[id].men+' against your streets - see that the guards are ready.'+(seized?' The envoys’ chests on the road, '+seized.toLocaleString()+' ◉, are lost.':'')};
+ }
+ function warBar(state,def){   /* why the sword cannot be drawn, or '' */
+  const a=allyOf(state,def.id);
+  if(!state.chartered)return 'The crown’s books are shut.';
+  if(barred(state))return BARRED;
+  if(!state.crowned)return 'Only a crowned head declares war.';
+  if(a.owned)return def.name+' is under the crown already.';
+  if(a.war)return 'The crown is at war with '+def.name+' already.';
+  if(num(a.truce)>0)return 'A truce holds with '+def.name+' for '+a.truce+' more close'+(a.truce===1?'':'s')+'.';
+  return '';
+ }
+ /* what an expedition of `force` would find at their port: your men drilled by the Training Ground against their garrison, which
+    their losses have thinned; how many buildings it could raze (none at odds of a half or less, RAID_CAP at two to one) and how hard */
+ function raidOf(state,id,force={}){
+  const def=allyDef(id),B=WAR_BOOK[id],a=allyOf(state,id),w=a.war,dp=DRILL_POWER[drillOf(state)];
+  const f={watch:Math.max(0,Math.floor(num(force.watch))),cadets:Math.max(0,Math.floor(num(force.cadets))),mercs:Math.max(0,Math.floor(num(force.mercs)))};
+  const power=round1((f.watch+f.cadets+f.mercs*MERC_POWER)*dp),str=w?w.str:100,garrison=round1(B.garrison*B.q*(.4+.6*str/100));
+  const odds=garrison?power/garrison:0,cap=clamp(Math.floor(RAID_CAP*(odds-.5)/1.5+1e-9),0,RAID_CAP);
+  const men=f.watch+f.cadets+f.mercs;
+  return {...f,men,power,garrison,odds:Math.round(odds*100)/100,cap,rate:Math.round(clamp(.25/Math.max(odds,.01),.06,.6)*1000)/1000,
+   str,worth:round1(cap*100/B.resolve),cost:men*SAIL_COST,name:def.name};
+ }
+ /* the guards the crown can send: the men at home and on their feet */
+ function sailBar(state,id){
+  const def=allyDef(id),a=allyOf(state,id);
+  if(!def)return 'No such place.';
+  if(!state.chartered)return 'The crown’s books are shut.';
+  if(barred(state))return BARRED;
+  if(!a.war)return 'The crown is not at war with '+def.name+'.';
+  if(state.expedition)return 'An expedition is abroad already.';
+  if(a.war.refit>0)return 'The ships are refitting and the men resting: '+a.war.refit+' more close'+(a.war.refit===1?'':'s')+'.';
+  return '';
+ }
+ function sail(state,id,force={},opts={}){
+  const why=sailBar(state,id);if(why)return {ok:false,text:why};
+  const D=defenders(state),r=raidOf(state,id,force);
+  if(r.watch>D.watch||r.cadets>D.cadets||r.mercs>D.mercs)return {ok:false,text:'The crown has not that many men at home and on their feet.'};
+  if(!r.men)return {ok:false,text:'Choose the men who sail.'};
+  if(frozen(state)||state.treasury<r.cost)return {ok:false,text:'Provisions and ships for '+r.men+' men cost '+r.cost.toLocaleString()+' ◉, and the treasury cannot cover it.'};
+  state.treasury-=r.cost;state.spent+=r.cost;
+  state.expedition={ally:id,watch:r.watch,cadets:r.cadets,mercs:r.mercs,cap:r.cap,used:0,rate:r.rate,at:state.ticks,auto:!!opts.auto};
+  return {ok:true,...r,text:'⚔ '+r.men+' of the crown’s guards sail for '+r.name+' - '+r.cost.toLocaleString()+' ◉ for provisions and ships'+(r.cap?'. They can raze '+r.cap+' building'+(r.cap===1?'':'s')+' before they are spent.':' - but against that garrison they will not burn a single roof.')};
+ }
+ /* one building razed in their port (the scene tells the books as it happens): a house counts 1, a barracks or a market up to 2 */
+ function raze(state,id,key,weight=1){
+  const e=state.expedition,def=allyDef(id),a=allyOf(state,id),w=a.war;
+  if(!e||e.ally!==id||!w)return {ok:false,text:'No expedition of the crown is at '+(def?def.name:'that place')+'.'};
+  const wt=clamp(Math.round(num(weight,1)*2)/2,.5,2),k=String(key||'').slice(0,60);
+  if((a.ashes||[]).includes(k))return {ok:false,text:'That is ashes already.'};
+  if(e.used+wt>e.cap+1e-9)return {ok:false,spent:true,text:'Your men are spent.'};
+  e.used=round1(e.used+wt);a.ashes=a.ashes||[];a.ashes.push(k);if(a.ashes.length>160)a.ashes.shift();w.burned+=1;   /* ashes: what lies burned in their port, rebuilt one a close in peace */
+  w.str=Math.max(0,round1(w.str-wt*100/WAR_BOOK[id].resolve));
+  if(w.str<=0)return {ok:true,conquered:true,str:0,left:round1(e.cap-e.used),text:conquer(state,def)};
+  return {ok:true,str:w.str,left:round1(e.cap-e.used)};
+ }
+ /* 🏳 the place gives itself up: the crown's, for nothing, its yield in ruins for a while - and every other court takes note */
+ function conquer(state,def){
+  const a=allySlot(state,def.id);
+  a.owned=true;a.stake=100;a.pending=[];delete a.war;delete a.angry;a.conquered=state.ticks;a.ruin=RUIN;a.rel=Math.min(relOf(a),30);
+  if(state.raid&&state.raid.ally===def.id)state.raid=null;   /* their men in your streets lay down their arms */
+  state.mood=clamp(state.mood+4,0,100);state.trust=clamp(round1(state.trust+2),0,100);
+  return '🏳 '+def.ruler.name+' has surrendered '+def.name+' to the crown! It is ours without a coin paid - but its streets are in ruins, and it will pay '+(100-RUIN)+'% of its yield to begin with.';
+ }
+ /* the men come home: the hurt are off duty for HURT_CLOSES closes - more of them the harder they fought and the more they burned */
+ function endRaid(state){
+  const e=state.expedition;if(!e)return {ok:false,text:'No expedition is abroad.'};
+  const def=allyDef(e.ally),a=allyOf(state,e.ally),w=a.war,men=e.watch+e.cadets+e.mercs,frac=e.cap>0?Math.min(1,e.used/e.cap):1;
+  const hurt=Math.min(men,Math.round(men*e.rate*(.35+.65*frac))),[hw,hc,hm]=share(hurt,[e.watch,e.cadets,e.mercs]);
+  if(hurt){const h=hurtOf(state);state.hurt={watch:h.watch+hw,cadets:h.cadets+hc,mercs:h.mercs+hm,left:HURT_CLOSES};}
+  if(w){w.refit=RAID_REFIT;w.hits+=1;}
+  state.expedition=null;
+  const burned=Math.round(e.used*10)/10;
+  return {ok:true,hurt,burned,text:'⚔ The expedition is home from '+def.name+': '+(burned?burned+' building'+(burned===1?'':'s')+'’ worth razed':'nothing burned')+(hurt?', '+hurt+' hurt':'')+'.'+(w?' '+def.name+' stands at '+Math.round(w.str)+'% of its strength.':a.owned?' '+def.name+' is the crown’s.':'')};
+ }
+ function peaceView(state,id){
+  const def=allyDef(id),a=allyOf(state,id),w=a.war;if(!def||!w)return null;
+  const cost=w.offer?0:Math.max(0,roundTo(def.price*PEACE_SHARE*allyFear(state)*w.str/100,10000));   /* they asked for it: free */
+  const why=barred(state)?BARRED:state.expedition&&state.expedition.ally===id?'Not while your men are in '+def.name+'.':cost>0&&(frozen(state)||state.treasury<cost)?'The treasury cannot cover '+cost.toLocaleString()+' ◉.':'';
+  return {cost,can:!why,why};
+ }
+ function makePeace(state,id){
+  const def=allyDef(id),v=peaceView(state,id);if(!v)return {ok:false,text:'The crown is not at war with that place.'};
+  if(!v.can)return {ok:false,text:v.why};
+  const a=allySlot(state,id);state.treasury-=v.cost;state.spent+=v.cost;
+  delete a.war;a.truce=WAR_TRUCE;a.peaceAt=state.ticks;a.rel=Math.max(relOf(a),35);
+  if(state.raid&&state.raid.ally===id)state.raid=null;
+  return {ok:true,cost:v.cost,text:'🕊 Peace with '+def.name+(v.cost?' for '+v.cost.toLocaleString()+' ◉':', for nothing - they had nothing left to fight with')+'. A truce of '+WAR_TRUCE+' closes, and the caravans are back on the road.'};
+ }
+ /* the Allies page: each ruler's goodwill and why, the war if there is one, the peace price and what an expedition could do */
+ function warView(state,id){
+  const def=allyDef(id),a=allyOf(state,id),g=goodwillOf(state,def,a),D=defenders(state),w=a.war;
+  const all=raidOf(state,id,{watch:D.watch,cadets:D.cadets,mercs:D.mercs});
+  return {rel:Math.round(relOf(a)),target:g.target,mood:goodwillName(relOf(a)),reasons:g.reasons,warAt:WAR_AT,truce:num(a.truce),ruin:num(a.ruin),conquered:!!a.conquered,
+   book:WAR_BOOK[id],declare:warBar(state,def),ashes:(a.ashes||[]).slice(),war:w?{...w,peace:peaceView(state,id),sail:sailBar(state,id),all,home:D,resolve:WAR_BOOK[id].resolve}:null,
+   expedition:state.expedition&&state.expedition.ally===id?{...state.expedition}:null};
+ }
+ /* at every close: goodwill drifts, angry rulers march, raids come and are fought out, an expedition with no port to land in is
+    reckoned by the books, and the conquered rebuild */
+ function warTick(state,ctx){
+  const news=[];let fought=null,surrendered=null;
+  if(state.raid){   /* ⚔ fought out: the same street battle as the Forsaken */
+   const R=state.raid,def=allyDef(R.ally),B=WAR_BOOK[R.ally],a=allyOf(state,R.ally),w=a.war,b=battleOf(state,R.n,B.q),I=b.injured;
+   fought={ally:R.ally,n:b.n,harm:b.harm,houses:b.houses,fled:b.fled,odds:b.odds,called:b.called,injured:I.total,plunder:0};
+   if(b.houses>0||b.fled>0){
+    const burns=state.scars?state.scars.burns.slice():[];
+    if(b.houses>0)burns.push({seed:R.seed,n:b.houses,by:B.entry});   /* by: the houses nearest the gates (land) or the harbour stair (sea), not a portal's */
+    while(burns.length>8){const x=burns.shift();burns[0]={...burns[0],n:Math.min(SCAR_MAX,burns[0].n+x.n)};}
+    state.scars=burns.length?{burns,fled:Math.min(POP_MAX,(state.scars?state.scars.fled:0)+b.fled)}:null;
+    state.pop=Math.max(MIN_POP,state.pop-b.fled);
+   }
+   if(I.total){const h=hurtOf(state);state.hurt={watch:h.watch+I.watch,cadets:h.cadets+I.cadets,mercs:h.mercs+I.mercs,left:HURT_CLOSES};}
+   if(b.harm<.05){
+    state.mood=clamp(state.mood+2,0,100);
+    if(w){w.beaten+=1;w.str=Math.max(Math.min(w.str,RAID_FLOOR),round1(w.str-4));}   /* the men they lose - though no war is won in your own streets alone */
+    news.push('🛡 '+def.name+'’s soldiers were cut down in your streets. Not a roof was lost'+(I.total?' - '+I.total+' of the guards are hurt':'')+'.');
+   }else{
+    const plunder=Math.max(0,Math.round(b.harm*Math.min(Math.max(0,state.treasury)*PLUNDER,def.yield*3)));
+    state.treasury-=plunder;fought.plunder=plunder;if(w)w.plunder+=plunder;
+    state.mood=clamp(state.mood-Math.round(2+b.harm*6),0,100);
+    news.push('🔥 '+def.name+'’s soldiers have gone: '+b.houses+' house'+(b.houses===1?'':'s')+' burned, '+b.fled+' townsfolk fled'+(plunder?' and '+plunder.toLocaleString()+' ◉ carried off from the strongroom':'')+'.'+(I.total?' '+I.total+' of the guards are hurt.':''));
+   }
+   state.raid=null;
+  }
+  const live=!!ctx.live&&state.chartered&&!state.bankRule;
+  ALLIES.forEach((def,i)=>{
+   const a=allyOf(state,def.id),B=WAR_BOOK[def.id];
+   if(a.ashes&&!(state.expedition&&state.expedition.ally===def.id)){for(let k=a.war?2:1;k>0&&a.ashes.length;k--)a.ashes.shift();if(!a.ashes.length)delete a.ashes;}   /* they rebuild - two buildings a close at war, patching up between raids (a small port would run out of roofs to burn), one in peace; never under the crown's men */
+   if(a.owned){if(num(a.ruin)>0){const s=allySlot(state,def.id);s.ruin=Math.max(0,s.ruin-RUIN_HEAL);if(!s.ruin){delete s.ruin;news.push('🏰 '+def.name+' has rebuilt: it pays the crown its whole yield again.');}}return;}
+   if(num(a.truce)>0){allySlot(state,def.id).truce-=1;if(!state.allies[def.id].truce)delete state.allies[def.id].truce;}
+   const w=a.war;
+   if(w){
+    if(w.refit>0)w.refit-=1;
+    if(!w.offer&&w.beaten>=3&&w.str<=RAID_FLOOR+10){w.offer=true;news.push('🕊 '+def.ruler.name+' sues for peace: his men keep dying in your streets. Peace with '+def.name+' can be had for nothing - the Allies page.');}
+    if(!(state.expedition&&state.expedition.ally===def.id))w.str=Math.min(100,round1(w.str+WAR_REGEN));   /* they rebuild while nobody is burning them */
+    if(w.cool>0)w.cool-=1;
+    else if(live&&!w.offer&&!state.forsaken&&!state.raid&&omen(state,31+i)<RAID_CHANCE){   /* a ruler who has sued for peace sends nobody */
+     const n=Math.max(4,Math.round(B.army*(.5+.5*w.str/100)));
+     state.raid={ally:def.id,n,seed:Math.floor(omen(state,41+i)*1e9)>>>0};w.cool=RAID_COOL;w.raids+=1;
+     const b=battleOf(state,n,B.q);
+     news.push('⚔ '+n+' of '+B.men+' of '+def.name+' are in your streets!'+(b.harm<.05?' The guards turn out, and they are ready.':' The guards turn out - whether they are enough, the close will tell.'));
+    }
+    return;
+   }
+   if(!state.crowned||!state.chartered||state.bankRule)return;   /* the old King and the bank keep the realm's peace */
+   const s=allySlot(state,def.id),was=relOf(s),g=goodwillOf(state,def,s);
+   s.rel=clamp(round1(was+clamp((g.target-was)*REL_PULL,-REL_STEP,REL_STEP)),0,100);
+   const worst=g.reasons[0]&&g.reasons[0].v<0?g.reasons[0].text:'';
+   if(was>=40&&s.rel<40)news.push('🤝 '+def.name+'’s envoy has complained at the palace. “'+(worst||'We are not pleased.')+'”');
+   if(was>=30&&s.rel<30)news.push('⚔ Word from '+def.name+': '+def.ruler.name+' is counting his men. “'+(worst||'Mend your ways.')+'”');
+   if(s.rel<WAR_AT){s.angry=Math.min(WAR_CAUSE,num(s.angry)+1);
+    if(live&&!num(s.truce)&&s.angry>=WAR_CAUSE&&omen(state,21+i)<B.hot){const seized=startWar(state,def,'them');
+     news.push('⚔ '+def.ruler.name+' has declared war on the crown! “'+(worst||'Enough.')+'” '+B.men.charAt(0).toUpperCase()+B.men.slice(1)+' will come for your streets.'+(seized?' The envoys’ chests on the road, '+seized.toLocaleString()+' ◉, are seized.':''));}}
+   else if(s.angry)delete s.angry;
+  });
+  const e=state.expedition;   /* 🗺 a port the Black Tide does not put in at: the books reckon the raid at the next close */
+  if(e&&e.auto&&e.at<state.ticks){const def=allyDef(e.ally),wt=Math.floor(e.cap*.75);
+   for(let k=0;k<wt;k++){const r=raze(state,e.ally,'fleet-'+state.ticks+'-'+k,1);if(r.conquered){surrendered=def.id;news.push(r.text);break;}if(!r.ok)break;}
+   news.push(endRaid(state).text);}
+  return {news,fought,surrendered};
  }
  /* 📜 The office. meetHand: he has crossed the hall and said his piece. acceptOffice: yes, at the council table. */
  function meetHand(state){if(state.office===1){state.office=2;return true;}return false;}
@@ -1975,7 +2368,7 @@
   return {ok:true,spent:true,topic:t.id,text};
  }
  return Object.freeze({BANK_TAKEOVER,BANK_RULE_SEASONS,bankRuleView,create,normalize,forecast,tick,advance,setBudget,borrow,repay,withdraw,deposit,settle,answer,councilView,PLAYER_SEAT,ALLIES,alliesView,allyInvest,isEmperor,alliesFx,talkView,openTalks,makeOffer,acceptCounter,haggleReasons,TALK_COOL_INSULT,TALK_COOL_WALK,ALLY_CLOSES,PARTNER_AT,BUY_AT,COURT_CLOSES,PARTNER_SHARE,meetHand,acceptOffice,nobleView,ennoble,fundContract,dealOffers,postBoard,NOBLE_RANKS,CONTRACTS,NOBLE_CLOSES,OFFER_CLOSES,PATENT_COST,PATENT_PRESTIGE,TEST,HARBOUR_WORKS,HARBOUR_BASE,counsel,counselView,counselTopics,COUNSEL_EVERY,projection,
-  worksView,invest,upgrade,lvlOf,raising,UP_LEVEL,UP_FAVOUR,crownView,answerKing,claimCrown,canClaim,seasonsPlayed,COUP_SEASONS,COUP_FAVOUR,bonusView,takeBonus,declineBonus,BONUS_SHARE,gaolView,pardon,execute,fine,allyFear,MERCY,MERCY_SEASONS,worksFx,has,cells,charter,charterView,bankView,rehire,frozen,mercView,hireMercs,MERC_BATCH,MERC_PRICE,MERC_MAX,attend,neglect,REMIND_AFTER,NEGLECT_AFTER,NEGLECT_HARD,TRUST_SLOPE,TRUST_DRAIN_MAX,SEAT_SLOPE,SEAT_DRAIN_MAX,MOOD_SLOPE,MOOD_DRAIN_MAX,DRAW_SLOPE,DRAW_DRAIN_MAX,
+  worksView,invest,upgrade,lvlOf,raising,UP_LEVEL,UP_FAVOUR,capOf,forsakenView,rebuild,defenders,battleOf,watchOrder,WAR_BOOK,goodwillOf,goodwillName,declareWar,warBar,raidOf,sail,sailBar,raze,endRaid,peaceView,makePeace,warView,WAR_AT,REL_BASE,WAR_CAUSE,WAR_TRUCE,WAR_TRADE,RAID_CAP,RAID_REFIT,RAID_COOL,RAID_FIRST,RAID_CHANCE,RAID_FLOOR,WAR_REGEN,PEACE_SHARE,RUIN,RUIN_HEAL,PLUNDER,SAIL_COST,forsakenCount,drillOf,omen,HURT_CLOSES,HURT_RATE,HURT_MIN,HURT_MAX,FORSAKEN_CHANCE,FORSAKEN_COOL,FORSAKEN_FROM,FORSAKEN_POWER,DRILL_POWER,CADETS,MERC_POWER,SCAR_ROOFS,SCAR_REPAIR,SCAR_CAP,SCAR_HEAL,crownView,answerKing,claimCrown,canClaim,seasonsPlayed,COUP_SEASONS,COUP_FAVOUR,bonusView,takeBonus,declineBonus,BONUS_SHARE,gaolView,pardon,execute,fine,allyFear,MERCY,MERCY_SEASONS,worksFx,has,cells,charter,charterView,bankView,rehire,frozen,mercView,hireMercs,MERC_BATCH,MERC_PRICE,MERC_MAX,attend,neglect,REMIND_AFTER,NEGLECT_AFTER,NEGLECT_HARD,TRUST_SLOPE,TRUST_DRAIN_MAX,SEAT_SLOPE,SEAT_DRAIN_MAX,MOOD_SLOPE,MOOD_DRAIN_MAX,DRAW_SLOPE,DRAW_DRAIN_MAX,
   POP_MAX,HOUSEHOLD,hearths,SEASON_CARDS,cardDef,dealCard,
   windName,WIND_KEYS,WIND_MAX,JITTER_IN,JITTER_OUT,WAGE_RISE,WAGE_MAX,HERO_EXPORTS_MAX,HERO_FARM_LEVELS,
   foodView,buyFood,setAutoFood,HUNGER_GAIN,HUNGER_EASE,FOOD_STORE,FOOD_START,FOOD_CAP,FOOD_PRICE,AUTO_PREMIUM,FOOD_RESERVE,HUNGER_MAX,FOOD_LOW,FOOD_LOTS,

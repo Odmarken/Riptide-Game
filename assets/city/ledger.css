@@ -239,3 +239,25 @@
 @keyframes ledger-danger{0%,100%{box-shadow:0 0 0 0 rgba(255,64,40,0);border-color:#a0533f}50%{box-shadow:0 0 16px 4px rgba(255,64,40,.8);border-color:#ff4a2e}}
 .ledger-danger{animation:ledger-danger 1s ease-in-out infinite;border-color:#ff4a2e!important;color:#ffd0c4!important;background:#3a1d16!important}
 @media (prefers-reduced-motion:reduce){.ledger-danger{animation:none;box-shadow:0 0 12px 3px rgba(255,64,40,.7)}}
+/* ⚔ war with the allies (2026-09-26): the sword beside a ruler's name, his goodwill toward the crown and why, and the war box */
+.ally-sword{margin-left:6px;width:26px;height:26px;padding:0;border-radius:7px;border:1px solid #8f4a3a;background:linear-gradient(#4a2419,#2c140e);color:#ffc7b8;font-size:14px;line-height:1;cursor:pointer;vertical-align:middle}
+.ally-sword:hover:not(:disabled){border-color:#ff7a5c;color:#fff0ea;box-shadow:0 0 8px rgba(255,90,60,.45)}
+.ally-sword:focus-visible{outline:2px solid #ffd76a;outline-offset:2px}
+.ally-sword:disabled{opacity:.38;cursor:not-allowed}
+.ally-atwar{margin-left:6px;padding:1px 7px;border-radius:999px;border:1px solid #c0503a;background:#3a1710;color:#ffb3a3;font:600 10.5px/1.6 var(--body,sans-serif);vertical-align:middle}
+.ledger-work.at-war{border-color:#a0533f;box-shadow:inset 0 0 0 1px #5a2418}
+.ally-goodwill{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;font:11px var(--body,sans-serif);color:#cdbb9c}
+.ally-goodwill small{font-size:10.5px;color:#d9c9a8;white-space:nowrap}
+.ally-gwbar{position:relative;height:8px;border-radius:4px;background:#15100b;border:1px solid #3a2d1c}
+.ally-gwbar i{display:block;height:100%;border-radius:3px 0 0 3px}
+.ally-gwbar b{position:absolute;top:-3px;bottom:-3px;width:2px;background:#e0413a;transform:translateX(-1px)}
+.ally-gwbar em{position:absolute;top:-4px;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:5px solid #f3e6c8;transform:translateX(-4px)}
+.ally-reasons{list-style:none;margin:0;padding:0;display:grid;gap:3px}
+.ally-reasons li{font:italic 11px/1.45 var(--body,sans-serif);color:#d9c9a8;display:grid;grid-template-columns:30px minmax(0,1fr);gap:4px}
+.ally-reasons li b{font-style:normal;font-weight:700;text-align:right}
+.ally-reasons li.neg b{color:#ff9f8a}.ally-reasons li.pos b{color:#9fd49a}
+.ally-truce{margin:0;font:600 11px var(--body,sans-serif);color:#bfe0b8}
+.ally-war{border:1px solid #7a3a2c;border-radius:10px;padding:9px 10px;background:#241310;display:flex;flex-direction:column;gap:7px}
+.ally-war h5{margin:0;font:700 13px var(--body,sans-serif);color:#ffcfbf}.ally-war h5 small{font-weight:400;color:#c9a592;margin-left:4px}
+.ally-strength{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;font:11px var(--body,sans-serif);color:#e0c2b4}
+.ledger-seatbar.war i{background:#c8402e}

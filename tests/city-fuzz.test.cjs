@@ -17,7 +17,7 @@ function scan(v,path,seed){
 }
 function views(s,seed){
  const all={forecast:E.forecast(s,ctx),council:E.councilView(s,ctx),works:E.worksView(s,ctx),crown:E.crownView(s,ctx),gaol:E.gaolView(s,ctx),bank:E.bankView(s,ctx),charter:E.charterView(s,ctx),food:E.foodView(s,ctx),
-  noble:E.nobleView(s),allies:E.alliesView(s),counselView:E.counselView(s),projection:E.projection(s,ctx),talks:E.ALLIES.map(a=>E.talkView(s,ctx,a.id))};
+  noble:E.nobleView(s),allies:E.alliesView(s),counselView:E.counselView(s),projection:E.projection(s,ctx),talks:E.ALLIES.map(a=>E.talkView(s,ctx,a.id)),forsaken:E.forsakenView(s,ctx),wars:E.ALLIES.map(a=>E.warView(s,a.id))};
  if(s.chartered)all.topics=E.counselTopics(s,ctx,all.forecast);
  scan(all,'view',seed);return all;
 }
@@ -53,6 +53,15 @@ for(let seed=1;seed<=8;seed++){
    if(rng()<.3&&v.food.low)E.buyFood(s,ctx,pick([100,200,400,1e9]));
    if(rng()<.05)E.setAutoFood(s,rng()<.7);
    if(rng()<.2){const w=pick(v.works.list);scan(E.invest(s,ctx,w.id),'invest',seed);}
+   /* 🟣 the Forsaken (2026-09-26): on a rhythm of the close count, so the seeded rng - and every playthrough - stays as it was */
+   if(s.ticks%7===3)scan(E.upgrade(s,ctx,'drillyard'),'upgrade',seed);
+   if(s.scars&&s.ticks%4===1)scan(E.rebuild(s,ctx),'rebuild',seed);
+   /* ⚔ war (2026-09-26): on the close count as well - a declaration now and then, expeditions that raze and come home, peace when it drags on */
+   if(s.crowned&&s.ticks%53===17)scan(E.declareWar(s,E.ALLIES[s.ticks%5].id),'declareWar',seed);
+   for(const [j,d] of E.ALLIES.entries()){const wv=v.wars[j];
+    if(wv.war&&!wv.war.sail&&s.ticks%3===0){const D=E.defenders(s);scan(E.sail(s,d.id,{watch:D.watch>>1,cadets:D.cadets,mercs:D.mercs},{auto:d.id==='krakensrest'}),'sail',seed);}
+    if(s.expedition&&s.expedition.ally===d.id&&!s.expedition.auto){for(let k=0;k<4;k++)scan(E.raze(s,d.id,d.id+'@'+s.ticks+'-'+k,1+(k%3)/2),'raze',seed);if(s.ticks%2===0)scan(E.endRaid(s),'endRaid',seed);}
+    if(wv.war&&(wv.war.offer||s.ticks-wv.war.since>40))scan(E.makePeace(s,d.id),'peace',seed);}
    if(rng()<.1)E.borrow(s,ctx,pick([1e5,5e5,1e6,1e12]));
    if(rng()<.15)E.repay(s,pick([1e5,5e5,1e12]));
    if(s.petition&&rng()<.7)scan(E.answer(s,ctx,rng()<.6),'answer',seed);
