@@ -362,11 +362,19 @@
  const STALL_ART=['stall_bread','stall_fish','stall_greens','stall_cloth'],WAGON_ART=['wagon_barrels','wagon_caravan','wagon_grain','wagon_caravan'];
  const artName=s=>s.kind==='banner'?'city_banner':s.kind==='stall'?STALL_ART[s.goods%STALL_ART.length]:s.kind==='tent'?(s.stripe?'tent_blue':'tent_red'):s.kind==='statue'?(s.crowned?'statue_crowned':'statue'):s.kind;
  const ready=im=>!!(im&&(im.naturalWidth||im.width));
- function drawArt(g,s,time,img){
+ /* where a work's painting stands in its own frame: the picture, its size, its top and its foot, and whether it is mirrored.
+    flat: a thing that lies on the ground (a garden, a feast) and throws no long shadow */
+ function artFrame(s,img){
   const a=ART[s.kind],im=a&&img&&img(artName(s));
-  if(!ready(im))return false;
-  const H=a.h,W=H*(im.naturalWidth||im.width)/(im.naturalHeight||im.height),flip=(s.kind==='barricade'&&s.flip<0)||(s.kind==='beggar'&&s.face<0)?-1:1;
-  g.save();g.scale(flip,1);
+  if(!ready(im))return null;
+  const H=a.h,W=H*(im.naturalWidth||im.width)/(im.naturalHeight||im.height);
+  return {im,W,H,top:a.drop-H,foot:a.drop,flip:(s.kind==='barricade'&&s.flip<0)||(s.kind==='beggar'&&s.face<0),flat:s.kind==='garden'||s.kind==='feast'};
+ }
+ function drawArt(g,s,time,img){
+  const f=artFrame(s,img);
+  if(!f)return false;
+  const a=ART[s.kind],{im,W,H}=f;
+  g.save();g.scale(f.flip?-1:1,1);
   if(s.kind==='banner'){const k=Math.sin(time*1.7+s.seed*.02)*.018+Math.sin(time*4.3+s.seed*.05)*.006;g.transform(1,0,k,1,-k*a.drop,0);}   /* 🚩 the wind in it, as in Silverfjord */
   g.drawImage(im,-W/2,a.drop-H,W,H);g.restore();
   if(s.kind==='lamp'&&s.lit){
@@ -630,5 +638,5 @@
  }
  return Object.freeze({ANCHORS,TINT,ART,props,assignHouses,stallSlots,lampSpots,bannerSpots,stallCount,traffic,litter,bunting,vacant,onStreet,
   CHIMNEYS,drawSmoke,MAX_STALLS,noticeBoard,streetLife,fireLevel,dressing,drawDressing,drawSnow,drawFireworks,
-  drawProp,drawShadow,drawHouseWork,drawVacant,drawLitter,drawBunting,drawTraffic});
+  drawProp,drawShadow,artFrame,drawHouseWork,drawVacant,drawLitter,drawBunting,drawTraffic});
 });

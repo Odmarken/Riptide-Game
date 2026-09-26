@@ -139,6 +139,81 @@ function drawGroundShadow(x,y,rx,ry,alpha=.27,rot=0){
 function cityShadow(name,W,H,top){
  const f=CITY_FOOT[name];if(f)drawGroundShadow(W*f.cx,top+H*f.cy,W*f.rx,H*f.ry);
 }
+/* ☀ The sun over the City (2026-09-26). An unseen sun stands low off the left edge of the screen: every house, hall, tree
+   and work lays its own silhouette down as a shadow reaching right and a little toward you, the townsfolk and the hero
+   long soft ones the same way, a warm light comes in from the left, a cool shade lies to the right, and a few lens flares
+   hang off the sun. The silhouettes go into one layer at half resolution (softer edges), laid down at a single strength,
+   so two shadows that overlap never darken each other. Settings -> Video -> Lighting turns it off (a device preference,
+   like the FPS counter); sunTest() in the console flips it for a screenshot without saving. */
+const SUN={on:true,k:.9,s:.3,alpha:.28,res:.5};   /* k: how far right a shadow reaches per unit of height, s: how far toward you */
+let sunFrame=false,sunLayer=null,sunG=null,sunLit=null;
+function sunTest(on=!SUN.on){SUN.on=!!on;return 'sun '+(SUN.on?'on':'off');}
+const sunSilhouettes=new WeakMap();
+function sunSilhouette(im){   /* the picture in black, its alpha kept, at most 160 px (a shadow wants no detail) - made once per picture */
+ if(!(im&&im.complete&&im.naturalWidth))return null;
+ let c=sunSilhouettes.get(im);if(c)return c;
+ const k=Math.min(1,160/Math.max(im.naturalWidth,im.naturalHeight));
+ c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.naturalWidth*k));c.height=Math.max(1,Math.round(im.naturalHeight*k));
+ const g=c.getContext('2d');g.drawImage(im,0,0,c.width,c.height);g.globalCompositeOperation='source-in';g.fillStyle='#000';g.fillRect(0,0,c.width,c.height);
+ sunSilhouettes.set(im,c);return c;
+}
+function sunBegin(){   /* a clear layer before the ground pass */
+ if(!sunLayer){sunLayer=document.createElement('canvas');sunG=sunLayer.getContext('2d');}
+ const w=Math.max(1,Math.round(cv.width*SUN.res)),h=Math.max(1,Math.round(cv.height*SUN.res));
+ if(sunLayer.width!==w||sunLayer.height!==h){sunLayer.width=w;sunLayer.height=h;}
+ else{sunG.setTransform(1,0,0,1,0,0);sunG.clearRect(0,0,w,h);}
+ sunLayer.used=false;
+}
+function sunShadow(im,x0,top,W,H,foot,flip=false){   /* in the prop's own frame on ctx: its picture spans x0..x0+W and top..top+H, standing on y=foot */
+ if(!sunFrame||!sunG)return;
+ const sil=sunSilhouette(im);if(!sil)return;
+ const m=ctx.getTransform(),r=SUN.res;
+ sunG.setTransform(m.a*r,m.b*r,m.c*r,m.d*r,m.e*r,m.f*r);
+ sunG.translate(0,foot);sunG.transform(1,0,-SUN.k,-SUN.s,0,0);   /* the higher a point of the picture, the further right - and nearer - its shadow falls */
+ if(flip)sunG.scale(-1,1);
+ sunG.drawImage(sil,flip?-x0-W:x0,top-foot,W,H);sunLayer.used=true;
+}
+function sunEnd(){   /* the whole layer down at one strength */
+ if(!sunLayer||!sunLayer.used)return;
+ ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=SUN.alpha;ctx.drawImage(sunLayer,0,0,cv.width,cv.height);ctx.restore();
+}
+function sunPersonShadow(y,tall){   /* a person's shadow in their own frame: soft and long, from the feet along the line the sun draws */
+ if(!sunFrame)return;
+ const L=tall*Math.hypot(SUN.k,SUN.s)*.9,a=Math.atan2(SUN.s,SUN.k);
+ drawGroundShadow(Math.cos(a)*L*.5,y+Math.sin(a)*L*.5,L*.55,4.5,.2,a);
+}
+/* the flares: [how far along the line from the sun through the middle, radius at 1080 high, colour, strength, a hexagon] */
+const SUN_FLARES=[[.30,30,'255,236,190',.10,0],[.48,15,'190,255,215',.09,1],[.64,48,'205,185,255',.05,0],[.86,22,'255,214,170',.08,1],[1.2,78,'255,246,226',.04,0],[1.45,13,'170,220,255',.08,1]];
+function sunLight(){   /* the light over the view, made once per view size: what is screened on, and what is multiplied in */
+ if(sunLit&&sunLit.w===VW&&sunLit.h===VH)return sunLit;
+ const w=Math.max(2,Math.round(VW)),h=Math.max(2,Math.round(VH)),mk=()=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
+ const warm=mk(),cool=mk(),g=warm.getContext('2d'),q=cool.getContext('2d'),u=h/1080;
+ const a=Math.atan2(SUN.s,SUN.k),sx=w*.5-Math.cos(a)*w*.56,sy=h*.5-Math.sin(a)*w*.56;   /* just off the left edge, on the line the shadows run along */
+ let gr=g.createLinearGradient(0,0,w,0);gr.addColorStop(0,'rgba(255,206,140,.26)');gr.addColorStop(.55,'rgba(255,206,140,0)');g.fillStyle=gr;g.fillRect(0,0,w,h);
+ gr=g.createRadialGradient(sx,sy,0,sx,sy,Math.max(w,h)*.6);gr.addColorStop(0,'rgba(255,246,218,.55)');gr.addColorStop(.22,'rgba(255,222,165,.18)');gr.addColorStop(1,'rgba(255,222,165,0)');
+ g.fillStyle=gr;g.fillRect(0,0,w,h);
+ g.globalCompositeOperation='lighter';
+ for(const [f,r0,rgb,al,hex] of SUN_FLARES){
+  const x=sx+(w*.5-sx)*f,y=sy+(h*.5-sy)*f,r=r0*u;
+  if(hex){
+   g.fillStyle='rgba('+rgb+','+al+')';g.beginPath();
+   for(let i=0;i<6;i++){const t=i/6*Math.PI*2+.3;i?g.lineTo(x+Math.cos(t)*r,y+Math.sin(t)*r):g.moveTo(x+Math.cos(t)*r,y+Math.sin(t)*r);}
+   g.closePath();g.fill();
+  }else{
+   gr=g.createRadialGradient(x,y,0,x,y,r);gr.addColorStop(0,'rgba('+rgb+','+al+')');gr.addColorStop(.7,'rgba('+rgb+','+al*.5+')');gr.addColorStop(1,'rgba('+rgb+',0)');
+   g.fillStyle=gr;g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.fill();
+  }
+ }
+ gr=q.createLinearGradient(0,0,w,0);gr.addColorStop(.35,'#ffffff');gr.addColorStop(1,'#d0d6e8');q.fillStyle=gr;q.fillRect(0,0,w,h);
+ return sunLit={w:VW,h:VH,warm,cool};
+}
+function drawSunLight(now){   /* over the whole view, under the vignette: the cool shade to the right, then the warm light, the glow and the flares */
+ const L=sunLight();
+ ctx.save();
+ ctx.globalCompositeOperation='multiply';ctx.drawImage(L.cool,0,0,VW,VH);
+ ctx.globalCompositeOperation='screen';ctx.globalAlpha=.9+.1*Math.sin(now*.6);ctx.drawImage(L.warm,0,0,VW,VH);
+ ctx.restore();
+}
 /* Zone maps are the biggest files the game fetches - 2.5 to 3.8 MB each - and on a phone they are
    the ones that fail. A dropped request leaves an Image with complete true and naturalWidth 0, which
    passes NEITHER test in prerenderGround: not "ready to draw", not "still loading". The zone then
@@ -8984,6 +9059,7 @@ function draw(){
  ctx.save();ctx.scale(zoom,zoom);ctx.translate(-camX+shX,-camY+shY);
  ctx.drawImage(groundCv,0,0);
  const z=zoneOf();
+ sunFrame=SUN.on&&!!z.city;   /* ☀ the test sun shines on the City only */
  if(z.harbor)HarborWorld.renderGround(ctx,world,{x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom},{images:harborImages(),time:now});
  else if(z.town)TownWorld.renderGround(ctx,world,{x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom},{images:townImages(z.town),time:now});
  else if(z.throne)ThroneWorld.renderGround(ctx,world,{x:camX,y:camY,w:VW/zoom,h:VH/zoom,zoom},{images:{...guildImages(),wall_torch:cityImg('wall_torch'),drain_cover:cityImg('ground/drain_cover'),hall_door:cityImg('hall_door'),hall_runner:cityImg('hall_runner'),canopy:cityImg('throne_canopy'),
@@ -9087,6 +9163,7 @@ function draw(){
  const drawables=[];
  const cx0=camX-320,cx1=camX+VW/zoom+320,cy0=camY-820,cy1=camY+VH/zoom+320; /* tall art rises far above its anchor */
  TideUI.addWildDrawables(drawables,{x0:cx0,x1:cx1,y0:cy0,y1:cy1});
+ if(sunFrame)sunBegin();
  for(const s of world.travelDoors?world.solids.concat(world.travelDoors):world.solids){
   if(TideUI.isBattling())continue; /* the staged Tide duel uses a clear patch of the current terrain */
   if(s.type==='water'||s.type==='palacestair'||s.type==='harborstair')continue; /* 👑⚓ the palace stair and the harbour flight are ground, painted with the walls - their solids are only landmarks */
@@ -9096,6 +9173,7 @@ function draw(){
   drawPropShadow(s,z);
   drawables.push({y:s.sortY!==undefined?s.sortY:s.y,f:()=>drawProp(s,z,false)});   /* sortY: a prop that must stand behind whoever is on it */
  }
+ if(sunFrame)sunEnd();   /* ☀ every cast shadow at once, under everything that stands */
  /* 🐴 the boulevard's traffic - trade wagons, and families moving in or out - and 🎉 the festival bunting strung over it */
  if(z.city&&world.look&&!TideUI.isBattling()){
   for(const t of CityWorks.traffic(world,world.look,now)){
@@ -9422,6 +9500,7 @@ function draw(){
    ctx.fillStyle='rgba(143,227,201,0.85)';ctx.fillText('ALL CHESTS FOUND',VW/2,68);
   }
  }
+ if(sunFrame)drawSunLight(now);   /* ☀ */
  if(vigCv)ctx.drawImage(vigCv,0,0,VW,VH);
 }
 function drawPortal(){
@@ -9554,6 +9633,7 @@ function drawPropShadow(s,z){
   if(ready(im)){
    const H=s.r*(2.6+s.s*2.2)*im._pad,W=H*im.naturalWidth/im.naturalHeight;
    drawGroundShadow(0,4-W*.025,W*((s.snowy||z.snowTrees)?.22:.20),W*((s.snowy||z.snowTrees)?.070:.065));
+   sunShadow(im,-W/2,4-H*(im._anchor||1),W,H,4);   /* ☀ */
   }else drawGroundShadow(0,4,s.r*1.15,s.r*.5);
  }else if(s.type==='cityhouse'){
   const key=s.key||cityHouseKey(s.seed||0,false),im=cityImg(key);
@@ -9562,15 +9642,18 @@ function drawPropShadow(s,z){
    const built=s.work&&s.work.status==='done'&&cityArt('work_'+s.work.id);
    if(built){const ar=built.naturalWidth/built.naturalHeight,room=Math.max(W*1.3,250);H=Math.min(WORK_ART_H[s.work.id]||330,room/ar);W=H*ar;drawGroundShadow(0,s.r*.30-H*.055,W*.46,H*.07,.23);}
    else cityShadow(key,W,H,s.r*.30-H);
+   sunShadow(built||im,-W/2,s.r*.30-H,W,H,s.r*.30);   /* ☀ */
   }else drawGroundShadow(0,s.r*1.25*.42,s.r*1.45*1.05,s.r*1.25*.22);
  }else if(['minehall','enchanthall','smelter','cathedral'].includes(s.type)){
   const im=cityImg(s.type);
   if(ready(im)){
    const H=s.r*(s.type==='cathedral'?CATH_ART:9),W=H*im.naturalWidth/im.naturalHeight;
    cityShadow(s.type,W,H,s.r*CATH_FOOT-H);
+   sunShadow(im,-W/2,s.r*CATH_FOOT-H,W,H,s.r*CATH_FOOT);   /* ☀ */
   }
  }else if(s.type==='citydecor'){
   CityGround.drawShadow(ctx,s);
+  if(sunFrame){const gi=cityGroundImages(),f=CityGround.frame(s,gi);if(f)sunShadow(gi[CityGround.DECOR[s.kind].key],-f.W/2,f.top,f.W,f.H,f.top+f.H,!!s.flip);}   /* ☀ */
  }else if(s.type==='harborprop'){
   HarborWorld.drawShadow(ctx,s);
  }else if(s.type==='townprop'){
@@ -9579,6 +9662,9 @@ function drawPropShadow(s,z){
   ThroneWorld.drawShadow(ctx,s);
  }else if(s.type==='citywork'){
   CityWorks.drawShadow(ctx,s);
+  if(sunFrame){const f=CityWorks.artFrame(s,cityArt);if(f&&!f.flat)sunShadow(f.im,-f.W/2,f.top,f.W,f.H,f.foot,f.flip);}   /* ☀ */
+ }else if(s.type==='gallows'){
+  if(sunFrame){const im=cityImg('gallows');if(ready(im)){const w=s.w,h=w*im.naturalHeight/im.naturalWidth;sunShadow(im,-w/2,-h,w,h,0);}}   /* ☀ */
  }else if(s.type==='farmitem'||s.type==='farmhouse'){
   const def=FARM_BUILD.find(d=>d.id===(s.type==='farmhouse'?'farmhouse':s.ftype));
   if(def&&def.sh&&ready(farmImg(def.img))){
@@ -9594,7 +9680,7 @@ function drawPropShadow(s,z){
  else if(s.type==='casino')drawGroundShadow(0,s.r*1.35*.45,s.r*1.8,s.r*1.35*.4);
  else if(s.type==='fishhut')drawGroundShadow(0,6,27,9);
  else if(s.type==='well'){
-  if(ready(brunnImg))drawGroundShadow(0,8-75*.109,75*.47,75*.105);
+  if(ready(brunnImg)){drawGroundShadow(0,8-75*.109,75*.47,75*.105);const H=75*brunnImg.naturalHeight/brunnImg.naturalWidth;sunShadow(brunnImg,-37.5,8-H,75,H,8-75*.109);}   /* ☀ */
   else drawGroundShadow(0,6,22,9);
  }else if(s.type==='armoraltar'){
   if(ready(armorAltarImg))drawGroundShadow(0,14-215*.13,215*.44,215*.05);
@@ -10483,7 +10569,7 @@ function drawHero(){
  /* painted heroes stand taller with hovering boots - ground fx sits at their boots' level */
  const character=paintedCharacterFrame(S.race,c.id,S.gender==='f',outfitArg());   /* 👘 the chosen outfit, not the armor slot */
  const gY=riding?8:character?character.groundY-8:0;
- if(!riding){ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,8+gY,12+gY*0.3,5,0,0,7);ctx.fill();}
+ if(!riding){ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,8+gY,12+gY*0.3,5,0,0,7);ctx.fill();if(!h.dead)sunPersonShadow(8+gY,56);}   /* ☀ */
  /* scroll auras - one soft colored ring per active enchant */
  activeEnchs().forEach((e,i)=>{
   const a=0.20+0.09*Math.sin(now*1.8+i*2.1);
@@ -10589,6 +10675,7 @@ function drawNpc(n){
  ctx.save();ctx.scale(size,size);
  if(n.hang){const top=body?body.headY-4:-40;ctx.translate(0,top);ctx.rotate(Math.sin(now/1000*1.6+n.hang)*.06);ctx.translate(0,-top);}   /* ⚖️ swinging from the rope, about the head */
  ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,body?(n.sit?9:boots.groundY):8,n.sit?16:13,5.5,0,0,7);ctx.fill();
+ if(!n.hang)sunPersonShadow(body?(n.sit?9:boots.groundY):8,n.sit?30:52);   /* ☀ */
  if(body){
   if(!n.sit)bootFeet({...boots,moving:n.moving,walk:n.walk*1.8,bob:by});
   ctx.save();
@@ -17528,7 +17615,7 @@ $('nextBtn').onclick=()=>{
  stageMsg('Marching to the portal…',1600);
 };
 $('autoEquipBtn').onclick=()=>{S.autoEquip=!S.autoEquip;renderHero();save();};
-const displaySettings=DisplaySettings.create();
+const displaySettings=DisplaySettings.create({onChange:v=>{SUN.on=v.lighting;}});   /* ☀ Settings -> Video -> Lighting */
 /* 🔊 is now a plain mute for everything. The sliders moved into the ⚙ panel, so leaving this button
    as a slider flyout would have put the music level in two places that could disagree. */
 $('sndBtn').onclick=()=>{

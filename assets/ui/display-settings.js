@@ -3,12 +3,12 @@
  'use strict';
  const STORAGE_KEY='riptide.displaySettings',MIN=60,MAX=140;
  function normalize(raw){
-  const result={brightness:100,contrast:100,showFps:true};
+  const result={brightness:100,contrast:100,showFps:true,lighting:true};
   if(!raw||typeof raw!=='object'||Array.isArray(raw))return result;
   for(const key of ['brightness','contrast']){
    if(typeof raw[key]==='number'&&Number.isFinite(raw[key]))result[key]=Math.round(Math.max(MIN,Math.min(MAX,raw[key])));
   }
-  if(typeof raw.showFps==='boolean')result.showFps=raw.showFps;
+  for(const key of ['showFps','lighting'])if(typeof raw[key]==='boolean')result[key]=raw[key];
   return result;
  }
  function filter(value){
@@ -21,7 +21,7 @@
   const fraction=max>min?Math.max(0,Math.min(1,(value-min)/(max-min))):0;
   input.style.setProperty('--range-fill',Math.round(fraction*100)+'%');
  }
- function create({doc=root.document,storage}={}){
+ function create({doc=root.document,storage,onChange}={}){   /* onChange: told the settings whenever they are applied (the game's sun reads Lighting) */
   let store=storage,value=normalize(null);
   if(store===undefined){try{store=root.localStorage;}catch(_){store=null;}}
   function read(){try{return normalize(JSON.parse(store?.getItem(STORAGE_KEY)||'null'));}catch(_){return normalize(null);}}
@@ -35,13 +35,16 @@
    const fps=doc.getElementById('fps'),fpsToggle=doc.getElementById('fpsChk');
    if(fps)fps.hidden=!value.showFps;
    if(fpsToggle)fpsToggle.checked=value.showFps;
+   const lightToggle=doc.getElementById('lightingChk');
+   if(lightToggle)lightToggle.checked=value.lighting;
    for(const key of ['brightness','contrast']){
     const input=doc.getElementById(key+'Sl'),output=doc.getElementById(key+'N');
     if(input){input.value=value[key];input.setAttribute('aria-valuetext',value[key]+'%');paintRange(input);}
     if(output)output.textContent=value[key];
    }
+   onChange?.({...value});
   }
-  function reset(){value=normalize({showFps:value.showFps});sync();save();}
+  function reset(){value=normalize({showFps:value.showFps,lighting:value.lighting});sync();save();}
   for(const key of ['brightness','contrast']){
    doc.getElementById(key+'Sl')?.addEventListener('input',e=>{
     value=normalize({...value,[key]:Number(e.target.value)});sync();save();
@@ -49,6 +52,9 @@
   }
   doc.getElementById('fpsChk')?.addEventListener('change',e=>{
    value={...value,showFps:e.target.checked};sync();save();
+  });
+  doc.getElementById('lightingChk')?.addEventListener('change',e=>{
+   value={...value,lighting:e.target.checked};sync();save();
   });
   doc.getElementById('videoReset')?.addEventListener('click',reset);
   root.addEventListener?.('storage',e=>{if(e.key===STORAGE_KEY||e.key===null){value=read();sync();}});
