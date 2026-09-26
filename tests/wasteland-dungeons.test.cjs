@@ -79,7 +79,7 @@ function bossRenderer(){
  },{get:(o,k)=>k in o?o[k]:(...args)=>{for(const a of args)if(typeof a==='number')assert.ok(Number.isFinite(a),`${String(k)} finite`);}});
  const context={ctx,hero:{x:1000,y:1000},performance:{now:()=>700},document:{body:{}},getComputedStyle:()=>({fontFamily:'serif'}),
   mip:im=>im,EnemyFootMotion:{frame:im=>im,amount:()=>0},EnemyFootProfiles:{},zoom:1,DPR:1,
-  feet:()=>calls.feet++,bootFeet:()=>calls.feet++,mobSkinFor:()=>null,shade:c=>c,parts:[],zapLine(){},
+  feet:()=>calls.feet++,bootFeet:()=>calls.feet++,mobSkinFor:()=>null,shade:c=>c,parts:[],zapLine(){},sunPersonShadow(){},lightPersonShadow(){},
   raidBlade(glow,img){calls.blade++;img=img||context.cowWeaponImg;return {src:'separate weapon',glow,art:img.src,width:512,height:Math.round(512*img.naturalHeight/img.naturalWidth)};},drawMiniBar(){}};
  // Geometry-only equivalent of the fullbody cache. Actual alpha/masking/cache
  // behavior is covered by the dedicated EnemyFullbody tests.

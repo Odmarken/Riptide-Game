@@ -364,10 +364,11 @@ const TideUI=(()=>{
    isValidPosition:(x,y)=>!collide(hero,x,y)&&!expeditionDoors().some(d=>Math.hypot(d.x-x,d.y-y)<220)&&![...(world.stable?.clearZones||[]),...(world.training?.clearZones||[])].some(r=>x>r.x-50&&x<r.x+r.w+50&&y>r.y-50&&y<r.y+r.h+50)});
  }
  function wildList(){return outdoors()&&S.tides?.lassoOwned&&!session?explorationWild():[];}
- function addWildDrawables(list,bounds){
+ function addWildDrawables(list,bounds,shade){   /* shade(x,y,height): the game lays a creature's shadow under it (the sun, a lamp) */
   for(const w of wildList()){
    const box=wildBounds(w);if(box.right<bounds.x0||box.left>bounds.x1||box.bottom<bounds.y0||box.top-26>bounds.y1)continue;
    list.push({y:w.y,f:()=>{const s=species(w.speciesId),near=Math.hypot(hero.x-w.x,hero.y-w.y)<160,H=box.height;
+    if(shade)shade(w.x,w.y+6,H);
     drawAnimal(ctx,s.id,w.x,w.y+6,H,w.fx||1,w.motion||0,w.walkphase||0,s.spectral?.93:1,motionClock+(w.homeX||w.x)*.01);
     ctx.save();ctx.textAlign='center';ctx.font='700 9px Georgia,serif';ctx.fillStyle=s.spectral?'#8ed8ff':'#dcc78e';ctx.shadowColor='#000';ctx.shadowBlur=3;ctx.fillText('★'.repeat(s.stars),w.x,w.y-H-8);if(near){ctx.font='700 10px Georgia,serif';ctx.fillStyle='#efe6ca';ctx.fillText(s.name+' · Lv '+w.level,w.x,w.y-H-21);}ctx.restore();}});
   }

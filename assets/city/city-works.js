@@ -1,7 +1,7 @@
 /* 🏗 What the Crown Ledger looks like from the street. The ledger (economy.js) decides; this module
  * shows it, so a steward can walk the boulevard and SEE how the city is doing without opening a book:
  *  - public works: scaffolding over a house while a crew is on it, then a signboard and a pennant;
- *    lamps down the boulevard, a fountain and a statue on the great square, gardens in the yard beside it
+ *    lamps down the boulevard, a fountain on the great square and a statue just off its north-east rim, gardens in the yard beside it
  *  - the market: as many awnings on the square as the fees and the covered market allow
  *  - traffic on the boulevard: trade wagons (as many as the trade works have earned), and handcarts
  *    of families moving in from the gate - or out through it - as the city's name rises and falls
@@ -51,6 +51,8 @@
  /* ---------- the plan: what stands where for a given look ---------- */
  /* look = {works:{id:'building'|'done'},left:{id:n},stalls:n,clean:0-3,festival:0-3,wagons:n,migrants:-3..3,
             vacancy:0-1,crowned:bool,hero:'name',xMax:n}. geometry comes from the world itself. */
+ const STATUE_AT={dx:335,dy:-440},STATUE_K=1.5;   /* 🗿 the statue: off the square, on the paving past its north-east rim, and half as big
+                                                     again as it was (2026-09-26) */
  function square(world){const p=(world.plazas&&world.plazas[0])||{x:world.w/2,y:world.h/2,r:520};return {x:p.x,y:p.y,r:p.r};}
  function stallSlots(world){
   const c=square(world),out=[[-205,215],[-310,262],[-395,196],[-250,300]].map(([dx,dy])=>({x:c.x+dx,y:c.y+dy}));
@@ -91,7 +93,7 @@
   const site=(id,x,y,name)=>add('site',x,y,34,{work:id,name,left:(look.left||{})[id]||1});
   const going=id=>st(id)==='building';          /* a work the bank has sold leaves nothing on the square */
   if(st('aqueduct')==='done')add('fountain',c.x-270,c.y-250,46);else if(going('aqueduct'))site('aqueduct',c.x-270,c.y-250,'FOUNTAIN');
-  if(st('statue')==='done')add('statue',c.x+270,c.y-250,26,{crowned:!!look.crowned,hero:look.hero||''});else if(going('statue'))site('statue',c.x+270,c.y-250,'STATUE');
+  if(st('statue')==='done')add('statue',c.x+STATUE_AT.dx,c.y+STATUE_AT.dy,26*STATUE_K,{crowned:!!look.crowned,hero:look.hero||''});else if(going('statue'))site('statue',c.x+STATUE_AT.dx,c.y+STATUE_AT.dy,'STATUE');
   /* 🌳 the gardens are laid in the yard beside the stone house at the square's north-west corner, off the square (2026-09-24) */
   if(st('gardens')==='done')add('garden',c.x-265,c.y-460,20,{noCol:true});else if(going('gardens'))site('gardens',c.x-265,c.y-460,'GARDENS');   /* beside the corner house as it stands since the houses grew (2026-09-25) */
   if(st('coveredmarket')==='building')site('coveredmarket',c.x-300,c.y+330,'COVERED MARKET');
@@ -166,7 +168,7 @@
 
  /* ---------- drawing: props sorted with the actors ---------- */
  function drawShadow(g,s){
-  const footprints={fountain:[0,26,66,18],statue:[0,7,34,10],stall:[0,8,48,11],lamp:[0,4,10,4],site:[0,25,54,14],tent:[0,13,110,24],feast:[0,38,132,22],barricade:[0,14,88,18],maypole:[0,6,20,6],noticeboard:[0,6,46,8]};
+  const footprints={fountain:[0,26,66,18],statue:[0,7*STATUE_K,34*STATUE_K,10*STATUE_K],stall:[0,8,48,11],lamp:[0,4,10,4],site:[0,25,54,14],tent:[0,13,110,24],feast:[0,38,132,22],barricade:[0,14,88,18],maypole:[0,6,20,6],noticeboard:[0,6,46,8]};
   const foot=footprints[s.kind];if(foot)Scenery.shadow(g,...foot,.24);
  }
  /* ---------- the people's own doing: small figures, and what they put out ---------- */
@@ -312,7 +314,6 @@
   ellipse(g,0,-124,10,11,br);rect(g,-4,-118,3,22,hi);
   if(s.crowned){g.beginPath();g.moveTo(-10,-132);g.lineTo(-11,-142);g.lineTo(-5,-137);g.lineTo(0,-145);g.lineTo(5,-137);g.lineTo(11,-142);g.lineTo(10,-132);g.closePath();g.fillStyle='#e5c05a';g.fill();g.strokeStyle='#6d4d12';g.lineWidth=1.2;g.stroke();}
   const glint=.25+.25*Math.sin(time*1.7);ellipse(g,-5,-100,3,9,'rgba(255,236,170,'+glint.toFixed(3)+')');
-  if(s.hero)label(g,(s.crowned?'👑 ':'')+s.hero,0,-12,'#f0e2c4',9);
  }
  /* the gardens were drawn at 128 high on the square and read as a toy there; in the yard by the stone house they are
     laid out this much bigger (asked for 2026-09-24), painting and canvas stand-in alike */
@@ -357,7 +358,7 @@
     lookup game.js hands in - name -> a loaded image, or nothing while it loads and in the headless
     tests - and every routine below falls back to its canvas drawing without it. h is the drawn height
     in world units, drop how far below the anchor the art's foot sits. */
- const ART={lamp:{h:138,drop:5},banner:{h:250,drop:8},fountain:{h:146,drop:34},statue:{h:178,drop:10},garden:{h:128*GARDEN_K,drop:44*GARDEN_K},site:{h:150,drop:34},stall:{h:122,drop:10},
+ const ART={lamp:{h:138,drop:5},banner:{h:250,drop:8},fountain:{h:146,drop:34},statue:{h:178*STATUE_K,drop:10*STATUE_K},garden:{h:128*GARDEN_K,drop:44*GARDEN_K},site:{h:150,drop:34},stall:{h:122,drop:10},
   noticeboard:{h:132,drop:8},maypole:{h:272,drop:8},music:{h:92,drop:8},feast:{h:176,drop:50},tent:{h:232,drop:16},breadline:{h:140,drop:10},beggar:{h:70,drop:8},barricade:{h:122,drop:18}};
  const STALL_ART=['stall_bread','stall_fish','stall_greens','stall_cloth'],WAGON_ART=['wagon_barrels','wagon_caravan','wagon_grain','wagon_caravan'];
  const artName=s=>s.kind==='banner'?'city_banner':s.kind==='stall'?STALL_ART[s.goods%STALL_ART.length]:s.kind==='tent'?(s.stripe?'tent_blue':'tent_red'):s.kind==='statue'?(s.crowned?'statue_crowned':'statue'):s.kind;
@@ -383,7 +384,6 @@
    g.fillStyle=glow;g.fillRect(-96,-214,192,192);ellipse(g,0,4,58,20,'rgba(255,196,110,'+(.10*f).toFixed(3)+')');
   }
   if(s.kind==='music')for(let i=0;i<3;i++){const p=(time*.45+i/3)%1;label(g,i%2?'♪':'♫',-30+i*30+Math.sin(time*2+i)*6,-96-p*44,'rgba(255,236,170,'+(1-p).toFixed(3)+')',15);}
-  if(s.kind==='statue'&&s.hero){g.save();g.font='700 7px Georgia, serif';g.textAlign='center';g.fillStyle='#2a1e0c';g.fillText(s.hero.slice(0,12),0,-27);g.restore();}   /* the name, cut into the plaque */
   if(s.kind==='site'&&s.name)board(g,s.name,-8,-30,84,'#ffd27a');
   return true;
  }
@@ -392,7 +392,7 @@
   if(s.kind==='lamp')lamp(g,s,time);
   else if(s.kind==='stall')stall(g,s,time);
   else if(s.kind==='fountain')fountain(g,s,time);
-  else if(s.kind==='statue')statue(g,s,time);
+  else if(s.kind==='statue'){g.save();g.scale(STATUE_K,STATUE_K);statue(g,s,time);g.restore();}
   else if(s.kind==='garden')garden(g,s,time);
   else if(s.kind==='banner')banner(g,s,time);
   else if(s.kind==='site')site(g,s,time);

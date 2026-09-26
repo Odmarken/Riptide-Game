@@ -335,11 +335,12 @@
   buoy:{key:'buoy',h:120,drop:6,float:{amp:5,rot:.10,speed:1.15},glow:[[.5,.10,70]]},
   rocks:{key:'sea_rocks',h:210,drop:8,wash:true},wreck:{key:'wreck_mast',h:330,drop:8,wash:true},
  };
- /* the drawn frame of a prop, for the game's walk-behind fade: {W,H,top} or null while its picture is loading */
+ /* the drawn frame of a prop, for the game's walk-behind fade and its sun: {W,H,top} or null while its picture is loading, with the
+    picture, where it stands (foot), whether it is mirrored, whether the sea carries it (wet: it throws no shadow) and its glows */
  function frame(s,images){
   const a=ART[s.kind],im=a&&(images||remembered)[a.key];if(!ready(im))return null;
   const Hh=a.h||a.w*ih(im)/iw(im),Ww=a.w||a.h*iw(im)/ih(im);
-  return {W:Ww,H:Hh,top:a.drop-Hh};
+  return {W:Ww,H:Hh,top:a.drop-Hh,im,foot:a.drop,flip:!!s.flip,wet:!!(a.float||a.wash||s.kind==='post'),glow:a.glow||null};
  }
  function drawShadow(g,s){
   const a=ART[s.kind];if(!a||a.float||a.wash||s.kind==='post')return;

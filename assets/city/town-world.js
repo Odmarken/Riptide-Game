@@ -684,11 +684,15 @@
  }
 
  /* ---------- props sorted with the actors ---------- */
+ /* the drawn frame of a prop, for the game's walk-behind fade and its sun: {W,H,top} or null while its picture is loading, with the
+    picture, where it stands (foot), whether it is mirrored, whether it throws no shadow (wet: the sea carries it, or it lies flat), a
+    wall's run (span) and its glows */
  function frame(s,images){
   const a=ART[s.kind],im=a&&(images||remembered)[a.src];if(!ready(im))return null;
-  if(s.span)return {W:s.span,H:a.h,top:(a.drop||0)-a.h};
+  const more={im,foot:a.drop||0,flip:!!s.flip,wet:!!(a.float||a.wash||a.noShadow||s.kind==='post'),glow:s.span?null:a.glow||null};
+  if(s.span)return {W:s.span,H:a.h,top:(a.drop||0)-a.h,span:true,...more};
   const Hh=a.h||a.w*ih(im)/iw(im),Ww=a.w||a.h*iw(im)/ih(im);
-  return {W:Ww,H:Hh,top:(a.drop||0)-Hh};
+  return {W:Ww,H:Hh,top:(a.drop||0)-Hh,...more};
  }
  function drawShadow(g,s){
   const a=ART[s.kind];if(!a||a.float||a.wash||a.noShadow||s.kind==='post')return;

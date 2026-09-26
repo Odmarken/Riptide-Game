@@ -153,3 +153,20 @@ test('the Royal Banners fly down the boulevard opposite the lamps, once they are
  for(const a of done)for(const b of done)if(a!==b)assert.ok(Math.hypot(a.x-b.x,a.y-b.y)>=30,a.kind+' on top of '+b.kind);
  assert.ok(Works.ART.banner.h>0);
 });
+
+test('the statue stands off the square past its north-east rim, half as big again, and carries no name (2026-09-26)',()=>{
+ const w=city(),c=w.plazas[0];
+ const st=Works.props(w,{works:{statue:'done'},stalls:0,crowned:true,hero:'Birgitta',xMax:15500}).find(p=>p.kind==='statue');
+ assert.deepEqual([st.x-c.x,st.y-c.y],[335,-440],'where the hero stood in the screenshot');
+ assert.ok(Math.hypot(st.x-c.x,st.y-c.y)>c.r,'on the paving outside the square');
+ assert.equal(st.r,39,'its footing half as big again');
+ assert.equal(Works.ART.statue.h,178*1.5,'and the painting');
+ const site=Works.props(w,{works:{statue:'building'},left:{statue:2},stalls:0}).find(p=>p.kind==='site');
+ assert.deepEqual([site.x-c.x,site.y-c.y],[335,-440],'it is built where it will stand');
+ const texts=[],count={calls:0},g=fakeContext(count);
+ const writing=new Proxy(g,{get(o,k){return k==='fillText'?(t)=>texts.push(t):o[k];},set(o,k,v){o[k]=v;return true;}});
+ Works.drawProp(writing,st,1,null);
+ assert.ok(!texts.some(t=>/Birgitta/.test(String(t))),'no name on the stand-in');
+ const src=fs.readFileSync(path.join(__dirname,'../assets/city/city-works.js'),'utf8');
+ assert.ok(!src.includes('s.hero.slice(0,12)'),'and none cut into the painted plaque');
+});

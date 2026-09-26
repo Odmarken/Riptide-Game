@@ -4,7 +4,7 @@ const follow=source.slice(source.indexOf(' if(pet&&(activePet()||TideUI.visibleC
 const draw=source.slice(source.indexOf('function drawPet(){'),source.indexOf('function drawEquippedRing('));
 function harness(){
  const c={pet:{x:-26,y:12,fx:1,walk:0,moving:false},hero:{x:0,y:0,fx:1,dead:false},visible:{id:'tide-1'},legacy:null,dt:1/60,calls:[],battling:false,
-  dist:(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),activePet:()=>c.legacy,TideUI:{animalVisual:()=>({width:36,height:36}),visibleCompanion:()=>c.visible,isBattling:()=>c.battling,drawCompanion:(g,x,y,options)=>c.calls.push(['tide',x,y,options])},ctx:{},
+  dist:(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),activePet:()=>c.legacy,TideUI:{animalVisual:()=>({width:36,height:36}),visibleCompanion:()=>c.visible,isBattling:()=>c.battling,drawCompanion:(g,x,y,options)=>c.calls.push(['tide',x,y,options])},ctx:{},sunFootShadow(){},sunPersonShadow(){},lightPersonShadow(){},
   moveToward(p,x,y,dt){const d=Math.hypot(x-p.x,y-p.y),step=Math.min(d,175*dt);p.x+=(x-p.x)/d*step;p.y+=(y-p.y)/d*step;p.moving=true;},performance:{now:()=>1000}};
  vm.createContext(c);vm.runInContext('function follow(){'+follow+'}\n'+draw,c);return c;
 }
