@@ -24,13 +24,13 @@
 .craft-modal button:disabled{opacity:.45;cursor:not-allowed;filter:saturate(.5)}
 .craft-modal :is(button,select,input):focus-visible{outline:2px solid var(--craft-bright);outline-offset:3px}
 .craft-tabs{display:flex;gap:7px;margin:0 0 16px;flex-wrap:wrap}
-.craft-tab,.craft-tabs>.sbtn{flex:1;min-width:90px;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 8px;border:1px solid var(--craft-line);border-radius:10px;background:#241b13;color:#c4b393;cursor:pointer;font:12px/1.4 var(--body,sans-serif)}
+.craft-tab,.craft-tabs>.sbtn{flex:1;min-width:90px;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 8px;border:1px solid var(--craft-line);border-radius:10px;background:#241b13;color:#c4b393;cursor:var(--hand);font:12px/1.4 var(--body,sans-serif)}
 .craft-tab.on,.craft-tab.active,.craft-tab[aria-selected=true],.craft-tab[aria-pressed=true]{border-color:var(--craft-accent);color:var(--craft-bright);background:linear-gradient(180deg,#4d3923,#2d2117)}
 .craft-tab img{width:28px;height:28px;object-fit:contain}.craft-tab.locked{color:#a39179}
 .craft-pair{display:grid;grid-template-columns:minmax(0,1fr) 30px minmax(0,1fr);align-items:stretch;gap:12px;margin:16px 0}
 .craft-join,.craft-plus{display:grid;place-items:center;align-self:center;font:30px var(--display,serif);color:var(--craft-accent)}
 .craft-slot{min-width:0;min-height:190px;box-sizing:border-box;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:18px 14px;border:1px dashed var(--craft-line);border-radius:13px;background:linear-gradient(180deg,#3a2c1de8,#21180fe8);color:#e8d8bb;font:13px/1.5 var(--body,sans-serif);overflow-wrap:anywhere}
-button.craft-slot{cursor:pointer}.craft-slot.filled,.craft-slot.ready{border-style:solid}.craft-slot.selected,.craft-slot.on{border-color:var(--craft-accent);box-shadow:inset 0 0 30px var(--craft-soft)}
+button.craft-slot{cursor:var(--hand)}.craft-slot.filled,.craft-slot.ready{border-style:solid}.craft-slot.selected,.craft-slot.on{border-color:var(--craft-accent);box-shadow:inset 0 0 30px var(--craft-soft)}
 .craft-enchant .craft-slot{background:linear-gradient(180deg,#302635e8,#1c1720ed)}
 .craft-slot-label{display:block;text-transform:uppercase;letter-spacing:1.4px;font:600 10px var(--body,sans-serif);color:var(--craft-accent)}
 .craft-slot-art{display:flex;align-items:center;justify-content:center;min-height:66px;font:50px var(--display,serif);color:var(--craft-accent)}
@@ -54,7 +54,7 @@ button.craft-slot{cursor:pointer}.craft-slot.filled,.craft-slot.ready{border-sty
 .craft-enchant .craft-progress>i{background:linear-gradient(90deg,#665077,var(--craft-accent))}.craft-rank-progress{width:100%;margin:0 0 20px;height:6px;box-sizing:border-box}
 .craft-picker{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:13px 0}.craft-picker:empty{display:none}
 .craft-picker>.craft-section-title,.craft-picker>.craft-note,.craft-picker>.craft-empty{grid-column:1/-1}
-.craft-choice{min-width:0;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:14px 10px;min-height:116px;border:1px solid var(--craft-line);border-radius:11px;background:linear-gradient(180deg,#35291ee8,#21190fe8);color:#dfcbaa;cursor:pointer;font:12px/1.45 var(--body,sans-serif);text-align:center;overflow-wrap:anywhere}
+.craft-choice{min-width:0;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:14px 10px;min-height:116px;border:1px solid var(--craft-line);border-radius:11px;background:linear-gradient(180deg,#35291ee8,#21190fe8);color:#dfcbaa;cursor:var(--hand);font:12px/1.45 var(--body,sans-serif);text-align:center;overflow-wrap:anywhere}
 .craft-choice img{width:48px;height:48px;object-fit:contain;margin:0;border-radius:7px}.craft-choice.selected,.craft-choice.on,.craft-choice[aria-pressed=true]{border-color:var(--craft-accent);background:linear-gradient(180deg,#4b3825,#2a2118);box-shadow:inset 0 0 20px var(--craft-soft)}
 .craft-choice small{color:#bda78c;font-size:10px}.craft-empty{padding:24px 16px;border:1px dashed var(--craft-line);border-radius:12px;background:#20181099;text-align:center;font:12px/1.75 var(--body,sans-serif);color:#bfa98a}
 .craft-upgrade{padding:15px 17px;margin:14px 0;border:1px solid var(--craft-line);border-radius:12px;background:#21190fd9;font:12px/1.6 var(--body,sans-serif);color:#cdb899}
@@ -82,9 +82,9 @@ button.craft-slot{cursor:pointer}.craft-slot.filled,.craft-slot.ready{border-sty
 /* ⛵ Blackbeard's voyage: one card per port of call */
 .voyage-box{width:min(100%,640px)}
 .voyage-list{display:flex;flex-direction:column;gap:10px;padding:2px}
-.voyage-dest{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:12px 14px;border-radius:14px;border:1px solid var(--craft-line);background:linear-gradient(145deg,#44311dcc,#18110fcc);color:#e7dac2;cursor:pointer;font:inherit;box-shadow:inset 0 1px 0 #fff1;transition:border-color .15s,transform .15s}
+.voyage-dest{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:12px 14px;border-radius:14px;border:1px solid var(--craft-line);background:linear-gradient(145deg,#44311dcc,#18110fcc);color:#e7dac2;cursor:var(--hand);font:inherit;box-shadow:inset 0 1px 0 #fff1;transition:border-color .15s,transform .15s}
 .voyage-dest:hover:not(:disabled),.voyage-dest:focus-visible{border-color:var(--craft-accent);transform:translateY(-1px)}
-.voyage-dest.here{opacity:.6;cursor:default}
+.voyage-dest.here{opacity:.6;cursor:var(--arrow)}
 .voyage-icon{flex:none;width:46px;font-size:30px;text-align:center}
 .voyage-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
 .voyage-text b{font:17px/1.2 var(--display,serif);color:#f3e4c9}

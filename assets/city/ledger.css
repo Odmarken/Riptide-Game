@@ -39,12 +39,12 @@
 @media(max-width:640px){.ledger-tiles,.ledger-cols,.ledger-transfer{grid-template-columns:1fr}.ledger-opts .sbtn{min-width:80px}}
 /* the ? in the header, the People and Council tabs */
 .craft-ledger .craft-header{position:relative}
-.ledger-helpbtn{flex:0 0 38px;width:38px;height:38px;margin-left:auto;align-self:flex-start;border-radius:50%;border:1px solid var(--craft-line);background:#241b13;color:var(--craft-bright);font:700 19px/1 var(--display,serif);cursor:pointer}
+.ledger-helpbtn{flex:0 0 38px;width:38px;height:38px;margin-left:auto;align-self:flex-start;border-radius:50%;border:1px solid var(--craft-line);background:#241b13;color:var(--craft-bright);font:700 19px/1 var(--display,serif);cursor:var(--hand)}
 .ledger-helpbtn:hover,.ledger-helpbtn[aria-pressed=true]{border-color:var(--craft-accent);background:linear-gradient(180deg,#4d3923,#2d2117)}
 /* 👁 a glance from the road (the hero panel's Crown Ledger card): the Overview alone, read-only. The tab strip goes,
    every button is inert - the alerts stay bright because they are news, the transfers and the granary dim because they are levers */
 #ledgerFx.peek #ledgerTabs{display:none}
-#ledgerFx.peek #ledgerBody [data-lact]:not([data-lact="back"]){pointer-events:none;cursor:default}
+#ledgerFx.peek #ledgerBody [data-lact]:not([data-lact="back"]){pointer-events:none;cursor:var(--arrow)}
 #ledgerFx.peek #ledgerBody .sbtn[data-lact]:not([data-lact="back"]){opacity:.45}
 #ledgerFx.peek #ledgerBody .ledger-alert .sbtn[data-lact]{opacity:1} /* ties the rule above on specificity and comes later, so the news stays lit */
 .ledger-entry-icon{display:grid;place-items:center;font-size:22px;background:linear-gradient(145deg,#44311d,#18110f)} /* the crown in the hero panel card wears the seal's colours */
@@ -124,7 +124,7 @@
 .charter-nav{margin-top:14px}.charter-nav .sbtn{min-height:44px}
 .charter-sign{flex:2!important;font-size:13px!important}
 .charter-dots{display:flex;gap:6px;justify-content:center;margin-top:12px}.charter-dots i{width:8px;height:8px;border-radius:50%;background:#4a3a26}.charter-dots i.on{background:var(--craft-accent)}
-.craft-ledger .craft-tab:disabled{opacity:.38;cursor:default}
+.craft-ledger .craft-tab:disabled{opacity:.38;cursor:var(--arrow)}
 /* 🏦 the season chart: two lines on one axis, a recessive grid, a crosshair and one tooltip */
 .season-wrap{margin:4px 0 14px;padding:12px 14px 8px;border:1px solid var(--craft-line);border-radius:12px;background:#1d160f}
 .season-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:4px}.season-head h3{margin:0}
@@ -142,7 +142,7 @@
 .sc-cross{stroke:#bda78c;stroke-width:1}
 .season-tip{position:absolute;top:8px;width:214px;white-space:nowrap;padding:8px 10px;border:1px solid var(--craft-line);border-radius:8px;background:#120d08f2;font:11px/1.55 var(--body,sans-serif);color:#bda78c;pointer-events:none}
 .season-tip b{color:#f3e4c9;font-weight:700}.season-tip-head{font-weight:600;color:var(--craft-accent);letter-spacing:.6px;margin-bottom:3px}
-.season-table{margin-top:4px;font:11px var(--body,sans-serif);color:#a89372}.season-table summary{cursor:pointer;padding:4px 0}.season-table table{margin-top:6px}
+.season-table{margin-top:4px;font:11px var(--body,sans-serif);color:#a89372}.season-table summary{cursor:var(--hand);padding:4px 0}.season-table table{margin-top:6px}
 .season-table td{text-align:right}.season-table td:first-child{text-align:left}
 .season-pick{margin-bottom:12px}.season-pick .sbtn{flex:0 1 110px;min-width:90px}
 /* 🌾 the granary panel on the Overview */
@@ -240,7 +240,7 @@
 .ledger-danger{animation:ledger-danger 1s ease-in-out infinite;border-color:#ff4a2e!important;color:#ffd0c4!important;background:#3a1d16!important}
 @media (prefers-reduced-motion:reduce){.ledger-danger{animation:none;box-shadow:0 0 12px 3px rgba(255,64,40,.7)}}
 /* ⚔ war with the allies (2026-09-26): the sword beside a ruler's name, his goodwill toward the crown and why, and the war box */
-.ally-sword{margin-left:6px;width:26px;height:26px;padding:0;border-radius:7px;border:1px solid #8f4a3a;background:linear-gradient(#4a2419,#2c140e);color:#ffc7b8;font-size:14px;line-height:1;cursor:pointer;vertical-align:middle}
+.ally-sword{margin-left:6px;width:26px;height:26px;padding:0;border-radius:7px;border:1px solid #8f4a3a;background:linear-gradient(#4a2419,#2c140e);color:#ffc7b8;font-size:14px;line-height:1;cursor:var(--hand);vertical-align:middle}
 .ally-sword:hover:not(:disabled){border-color:#ff7a5c;color:#fff0ea;box-shadow:0 0 8px rgba(255,90,60,.45)}
 .ally-sword:focus-visible{outline:2px solid #ffd76a;outline-offset:2px}
 .ally-sword:disabled{opacity:.38;cursor:not-allowed}

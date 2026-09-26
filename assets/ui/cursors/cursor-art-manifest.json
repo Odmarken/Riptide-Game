@@ -1,0 +1,73 @@
+{
+ "generator": "Higgsfield",
+ "model": "gpt_image_2_5",
+ "variant": "flare",
+ "quality": "medium",
+ "resolution": "1k",
+ "background": "transparent",
+ "aspect_ratio": "3:2",
+ "date": "2026-09-26",
+ "style": "Bronze mouse cursors: an ornate arrow with filigree for pointing and a sculpted bronze hand gripping for anything that can be clicked. Both came from one 3:2 sheet (pointer left, grab right) so the pair matches. The hand's hot spot is the middle of the hand without the cuff. Used through assets/ui/cursors.js (--arrow / --hand).",
+ "files": {
+  "bronze_a_point.png": {
+   "jobId": "3106e28a-09c2-476e-b410-802848031d04",
+   "source": [
+    1024,
+    688
+   ],
+   "master": [
+    268,
+    454
+   ],
+   "sizes": {
+    "32": {
+     "file": "bronze_a_point_32.png",
+     "hotspot": [
+      0,
+      0
+     ]
+    },
+    "64": {
+     "file": "bronze_a_point_64.png",
+     "hotspot": [
+      1,
+      0
+     ]
+    }
+   }
+  },
+  "bronze_a_grab.png": {
+   "jobId": "3106e28a-09c2-476e-b410-802848031d04",
+   "source": [
+    1024,
+    688
+   ],
+   "master": [
+    341,
+    447
+   ],
+   "sizes": {
+    "32": {
+     "file": "bronze_a_grab_32.png",
+     "hotspot": [
+      16,
+      12
+     ]
+    },
+    "64": {
+     "file": "bronze_a_grab_64.png",
+     "hotspot": [
+      32,
+      25
+     ]
+    }
+   }
+  }
+ },
+ "rejected": {
+  "b": {
+   "jobId": "1a042c6a-8b59-4e38-85bc-ce9410125aef",
+   "what": "knight look: plate gauntlet pointing with the index finger + the same gauntlet gripping - the user took the ornate pair"
+  }
+ }
+}

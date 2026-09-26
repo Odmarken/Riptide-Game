@@ -32,7 +32,7 @@
 .hero-guide-controls kbd{display:inline-block;padding:2px 4px;border:1px solid #785d3a;border-bottom-width:2px;border-radius:4px;font:10px/1.25 var(--body,sans-serif);color:#e6d0a9;background:#211910}
 .hero-guide-footer{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:19px;padding-top:18px;border-top:1px solid #745a3580;flex-shrink:0}
 .hero-guide-footer>span{font-size:11px;line-height:1.5;color:#b49e7b}
-#heroGuideReady{display:inline-flex;align-items:center;justify-content:center;gap:24px;min-height:45px;padding:12px 21px;border:1px solid #c19a5d;border-radius:9px;background:linear-gradient(180deg,#77562d,#4b351f);box-shadow:inset 0 1px #ffe5ac26,0 4px 13px #0003;color:#ffe2af;font:17px/1.2 var(--display,serif);cursor:pointer;white-space:nowrap}
+#heroGuideReady{display:inline-flex;align-items:center;justify-content:center;gap:24px;min-height:45px;padding:12px 21px;border:1px solid #c19a5d;border-radius:9px;background:linear-gradient(180deg,#77562d,#4b351f);box-shadow:inset 0 1px #ffe5ac26,0 4px 13px #0003;color:#ffe2af;font:17px/1.2 var(--display,serif);cursor:var(--hand);white-space:nowrap}
 #heroGuideReady:hover{background:linear-gradient(180deg,#8a6537,#594125);border-color:#e2bd7c}
 #heroGuide :focus-visible{outline:2px solid #ffe1a4;outline-offset:3px}
 .hero-guide-content:focus-visible{outline-offset:-2px}

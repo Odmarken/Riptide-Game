@@ -7317,7 +7317,7 @@ function hcDeath(){
   <div style="font-size:42px">💀</div>
   <div style="font-family:var(--display);font-size:19px;color:#ff8a7a;margin:8px 0 6px">HARDCORE DEATH</div>
   <div style="font-size:12.5px;color:var(--dim);line-height:1.6;margin-bottom:18px">You were not fit for this, but you can always improve.</div>
-  <button id="hcBackBtn" style="width:100%;padding:12px;border-radius:10px;border:1px solid #c75146;background:linear-gradient(180deg,#c75146,#7a2a22);color:#ffe0da;font-family:var(--display);font-size:14px;cursor:pointer">⚰ Back to your champions</button>
+  <button id="hcBackBtn" style="width:100%;padding:12px;border-radius:10px;border:1px solid #c75146;background:linear-gradient(180deg,#c75146,#7a2a22);color:#ffe0da;font-family:var(--display);font-size:14px;cursor:var(--hand)">⚰ Back to your champions</button>
  </div>`;
  $('app').appendChild(ov);
  $('hcBackBtn').onclick=()=>{ov.remove();showSelect();};
@@ -11809,8 +11809,8 @@ function openRename(){
   <div style="font-family:var(--display);font-size:16px;color:var(--brass);margin-bottom:10px">✏️ Rename hero</div>
   <input id="renameIn" maxlength="14" autocomplete="off" style="width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--line);background:rgba(28,43,36,.85);color:var(--parch);font-size:15px;font-family:var(--display)">
   <div style="display:flex;gap:8px;margin-top:12px">
-   <button id="renameOk" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;font-family:var(--display);font-size:14px;cursor:pointer">Save</button>
-   <button id="renameNo" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--display);font-size:14px;cursor:pointer">Cancel</button>
+   <button id="renameOk" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;font-family:var(--display);font-size:14px;cursor:var(--hand)">Save</button>
+   <button id="renameNo" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--display);font-size:14px;cursor:var(--hand)">Cancel</button>
   </div></div>`;
  $('app').appendChild(ov);
  const inp=$('renameIn');
@@ -12036,8 +12036,8 @@ function renderHero(){
      <div style="font-size:12.5px;color:var(--parch);margin:10px 0 6px;line-height:1.5;font-weight:600">Are you sure your gear is ready?</div>
      <div style="font-size:12px;color:#ff8a7a;margin:0 0 16px;line-height:1.5">Recommended: have your epic items upgraded to at least <b style="color:#ff5a5a">+8 to +12</b> to make the next prestige easier.</div>
      <div style="display:flex;gap:8px;justify-content:center">
-      <button id="prNo" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--display);font-size:14px;cursor:pointer">NO</button>
-      <button id="prYes" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;font-family:var(--display);font-size:14px;cursor:pointer">YES</button>
+      <button id="prNo" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--display);font-size:14px;cursor:var(--hand)">NO</button>
+      <button id="prYes" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;font-family:var(--display);font-size:14px;cursor:var(--hand)">YES</button>
      </div></div>`;
     $('app').appendChild(ov);
     $('prYes').onclick=()=>{ov.remove();doPrestige();};
@@ -12095,13 +12095,13 @@ function renderMap(){
  $('valhallaTab').classList.toggle('cur',mapContinent==='valhalla');
  $('raidTab').classList.toggle('cur',mapContinent==='raid');
  $('raidTab').textContent=p15?'⚔ Raid':'🔒 Raid';
- $('raidTab').style.cursor='pointer';
+ $('raidTab').style.cursor='var(--hand)';
  $('raidTab').onclick=()=>{mapContinent='raid';renderMap();};
  $('westTab').textContent=p1?'Western Realm':'🔒 Western Realm · Prestige 1';
  $('valhallaTab').textContent=p1?'⚡ Valhalla':'🔒 Valhalla · Prestige 1';
- $('westTab').style.cursor=p1?'pointer':'default';
- $('valhallaTab').style.cursor=p1?'pointer':'default';
- $('eastTab').style.cursor='pointer';
+ $('westTab').style.cursor=p1?'var(--hand)':'var(--arrow)';
+ $('valhallaTab').style.cursor=p1?'var(--hand)':'var(--arrow)';
+ $('eastTab').style.cursor='var(--hand)';
  $('eastTab').onclick=()=>{mapContinent='east';renderMap();};
  $('westTab').onclick=()=>{
   if(!p1){stageMsg('Reach Prestige 1 to cross the western sea',1600);sfx.warn();return;}
@@ -18291,7 +18291,7 @@ async function renderSelect(){
     <div class="cl">⚔ ${fmtGS(charGearScore(ch))} gear score · ${(ZONES[ch.zone]||ZONES[TAVERN_ZONE]).name}</div>
    </div>
    <div class="cbtns">
-    ${hcDead?'<button class="playbtn" disabled style="opacity:.55;cursor:default">💀 Fallen</button>':`<button class="playbtn" data-play="${ch.id}">Enter World</button>`}
+    ${hcDead?'<button class="playbtn" disabled style="opacity:.55;cursor:var(--arrow)">💀 Fallen</button>':`<button class="playbtn" data-play="${ch.id}">Enter World</button>`}
     <button class="delbtn" data-del="${ch.id}">✕ Delete</button>
    </div>
   </div>`;
@@ -18415,8 +18415,8 @@ $('startHcBtn').onclick=()=>{
   <div style="font-family:var(--display);font-size:18px;color:#ff8a7a;margin:6px 0">HARDCORE</div>
   <div style="font-size:12.5px;color:var(--parch);margin:0 0 16px;line-height:1.5;font-weight:600">Are you sure? You only have 1 life.</div>
   <div style="display:flex;gap:8px;justify-content:center">
-   <button id="hcNo" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--display);font-size:14px;cursor:pointer">NO</button>
-   <button id="hcYes" style="flex:1;padding:11px;border-radius:10px;border:1px solid #c75146;background:linear-gradient(180deg,#c75146,#7a2a22);color:#ffe0da;font-family:var(--display);font-size:14px;cursor:pointer">YES</button>
+   <button id="hcNo" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--display);font-size:14px;cursor:var(--hand)">NO</button>
+   <button id="hcYes" style="flex:1;padding:11px;border-radius:10px;border:1px solid #c75146;background:linear-gradient(180deg,#c75146,#7a2a22);color:#ffe0da;font-family:var(--display);font-size:14px;cursor:var(--hand)">YES</button>
   </div></div>`;
  $('app').appendChild(ov);
  $('hcYes').onclick=()=>{ov.remove();createHero(true);};
