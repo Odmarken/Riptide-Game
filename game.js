@@ -2674,8 +2674,9 @@ function progZone(ch=S){
 const pMul=()=>1+(S.prestige||0)*0.10;
 const pRew=()=>Math.min(Math.pow(1.15,(S.prestige||0)),8);   /* XP/potion reward curve, capped at 8× (reached ~P15); combat scaling never touches gold */
 /* +20% then another +15% leveling XP (×1.38) while the prestige curve is still climbing. It runs into
-   the same 8× cap, so P0-P12 get the full ×1.38, P13 ×1.30, P14 ×1.13, and P15+ (already capped) level exactly as before. */
-const xpBoost=()=>Math.min(pRew()*1.2*1.15,8)/pRew();
+   the same 8× cap, so P0-P12 get the full ×1.38, P13 ×1.30, P14 ×1.13, and P15+ (already capped) level exactly as before.
+   P0-P5 get a further +15% (×1.587): mob XP follows the zone's level, so the early climb - Willowmere's L2-L4 above all - dragged. */
+const xpBoost=()=>Math.min(pRew()*1.2*1.15,8)/pRew()*((S.prestige||0)<=5?1.15:1);
 /* Gold economy: DO NOT use effectiveHeroLvl here.
    Mob gold is based on the real zone level + visible level + a soft +8% per prestige.
    This prevents high-prestige players from earning thousands per normal mob while keeping early players fair. */
@@ -7233,7 +7234,7 @@ const ZONE_LVL_CAP=5;
 const zoneLvlGained=()=>((S.zoneLvlGain||{})[S.zone])||0;
 function gainXP(amt){
  if(S.lvl>=MAXLVL)return;
- amt=Math.round(amt*xpBoost()); /* ×1.38 below the prestige XP cap - mobs, bosses and quests alike */
+ amt=Math.round(amt*xpBoost()); /* ×1.38 below the prestige XP cap (×1.587 through P5) - mobs, bosses and quests alike */
  if(S.gamblerT>0)amt=Math.round(amt*1.20);
  if(S.restedT>0)amt=Math.round(amt*(1+(S.restedPct||0))); /* 😴 Rested - inn wheel buff */
  if(farmBonus()>0)amt=Math.round(amt*(1+farmBonus())); /* 🚜 farm blessing */
