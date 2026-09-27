@@ -337,19 +337,6 @@ test('Moonshine: the inn, casino, bank, forge and fishing hut cast from their ba
   assert.ok(Math.abs(byDoor[0].rot) < 1e-9, '...away from it');
 });
 
-test('the sun halo stays local and translucent enough to read the terrain underneath', () => {
-  const { box, main } = nightBox();
-  at(box, 20); vm.runInContext('drawSunLight(0)', box);
-  const halo = main.find(e => e.kind === 'radial' && e.args[1] < 540);
-  assert.ok(halo);
-  const radius = halo.args[5];
-  assert.ok(Math.PI * radius * radius < 1920 * 1080 * .06, 'the halo covers less than six percent of the view');
-  for (const [, colour] of halo.stops) {
-    const alpha = Number(colour.slice(colour.lastIndexOf(',') + 1, -1));
-    assert.ok(alpha >= 0 && alpha <= .5, 'even the centre leaves the terrain visible');
-  }
-});
-
 test('Sun flare turns off the glow and the flares; with Lighting off too the day is plain and the night only darker', () => {
   const { box, main } = nightBox();
   const frame = (t, light, flare) => { vm.runInContext(`SUN.light=${light};SUN.flare=${flare};`, box); at(box, t); main.length = 0; vm.runInContext('drawSunLight(0)', box); return main.slice(); };

@@ -232,7 +232,7 @@ function sunPersonShadow(y,tall){   /* a person's shadow in their own frame: sof
  drawGroundShadow(Math.cos(a)*L*.5,y+Math.sin(a)*L*.5,L*.55,6,.3*SUN.cast,a);
 }
 /* the flares: [how far along the line from the sun through the middle, radius at 1080 high, colour, strength, a hexagon] */
-const SUN_FLARES=[[.30,22,'255,238,211',.07,0],[.48,12,'212,224,218',.045,1],[.64,35,'222,216,230',.023,0],[.86,16,'255,232,205',.016,1],[1.2,52,'255,243,228',.013,0],[1.45,10,'204,219,232',.032,1]];
+const SUN_FLARES=[[.30,34,'255,228,187',.16,0],[.48,17,'204,224,203',.10,1],[.64,52,'212,202,225',.045,0],[.86,24,'255,218,181',.035,1],[1.2,85,'255,236,212',.025,0],[1.45,15,'188,210,225',.075,1]];
 /* the light through the day: gold at sunrise, noon and sunset, the glow's heart low and high, the shade low and high, the rose of
    the twilight as the sun touches the edge, and the blue of the night */
 const SUN_TINT={dawn:[255,160,84],noon:[255,212,128],dusk:[255,126,60],glowLow:[255,206,150],glowHigh:[255,244,214],shadeLow:[208,214,232],shadeHigh:[228,231,240],twilight:[228,206,222],night:[136,152,214]};
@@ -248,7 +248,7 @@ function sunFlares(){   /* each flare painted once per view height, its strength
    for(let i=0;i<6;i++){const an=i/6*Math.PI*2+.3;i?g.lineTo(m+Math.cos(an)*r,m+Math.sin(an)*r):g.moveTo(m+Math.cos(an)*r,m+Math.sin(an)*r);}
    g.closePath();g.fill();
   }else{
-   const gr=g.createRadialGradient(m,m,0,m,m,r);gr.addColorStop(0,'rgba('+rgb+','+al*.18+')');gr.addColorStop(.55,'rgba('+rgb+','+al*.3+')');gr.addColorStop(.8,'rgba('+rgb+','+al*.55+')');gr.addColorStop(1,'rgba('+rgb+',0)');
+   const gr=g.createRadialGradient(m,m,0,m,m,r);gr.addColorStop(0,'rgba('+rgb+','+al*.18+')');gr.addColorStop(.65,'rgba('+rgb+','+al*.35+')');gr.addColorStop(.84,'rgba('+rgb+','+al+')');gr.addColorStop(1,'rgba('+rgb+',0)');
    g.fillStyle=gr;g.fillRect(0,0,c.width,c.height);
   }
   return {t,c};
@@ -281,16 +281,11 @@ function drawSunLight(now){   /* over the whole view, under the vignette: a cool
  }
  if(SUN.flare&&lit>0){
   const outside=Math.hypot(Math.max(0,-sx,sx-w),Math.max(0,-sy,sy-h));
-  const visibility=1-sunStep(0,h*.2,outside);
+  const visibility=1-sunStep(0,h*.3,outside);
   ctx.globalCompositeOperation='screen';ctx.globalAlpha=lit*visibility;
-  const R=Math.min(w,h)*.17,core=sunRGB(sunMix([255,231,204],[255,248,232],hi)),warm=sunRGB(sunMix([255,200,137],[255,230,185],hi)),gr=ctx.createRadialGradient(sx,sy,0,sx,sy,R);
-  /* A pearly centre and a warmer, soft shoulder give the flare shape without washing out the scene. */
-  gr.addColorStop(0,'rgba('+core+',.5)');gr.addColorStop(.04,'rgba('+core+',.34)');gr.addColorStop(.14,'rgba('+warm+',.13)');gr.addColorStop(.4,'rgba('+warm+',.033)');gr.addColorStop(1,'rgba('+warm+',0)');
+  const R=Math.max(w,h)*.4,core=sunRGB(sunMix(T.glowLow,T.glowHigh,hi)),gr=ctx.createRadialGradient(sx,sy,0,sx,sy,R);
+  gr.addColorStop(0,'rgba('+core+',.85)');gr.addColorStop(.018,'rgba('+core+',.62)');gr.addColorStop(.055,'rgba('+core+',.24)');gr.addColorStop(.22,'rgba(255,222,165,.06)');gr.addColorStop(1,'rgba(255,222,165,0)');
   ctx.fillStyle=gr;ctx.fillRect(sx-R,sy-R,R*2,R*2);
-  /* A short, faint aperture streak; keep the surrounding terrain readable. */
-  const streak=ctx.createLinearGradient(sx-R*.55,sy,sx+R*.55,sy);
-  streak.addColorStop(0,'rgba('+core+',0)');streak.addColorStop(.5,'rgba('+core+',.15)');streak.addColorStop(1,'rgba('+core+',0)');
-  ctx.fillStyle=streak;ctx.fillRect(sx-R*.55,sy-h/1800,R*1.1,h/900);
   for(const f of sunFlares())ctx.drawImage(f.c,sx+(w*.5-sx)*f.t-f.c.width/2,sy+(h*.5-sy)*f.t-f.c.height/2);
  }
  if(SUN.light)nightGlow(now);   /* 🏮 */
