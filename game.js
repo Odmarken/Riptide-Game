@@ -6331,22 +6331,11 @@ function buildZone(){
   world.solids.push({x:cx+760,y:cy-350,r:30,type:'fishhut',crx:80,cry:32,cyo:-38});
   /* Use the painted foundation for collision as well as the contact shadow. */
   world.solids.forEach(syncHomeBuildingFootprint);
-  /* friendly townsfolk roaming their own little routes between the buildings */
-  const NPC_DEFS=[
-   ['Sven-Ove','human','warrior',0,[[cx-330,cy-110],[cx-480,cy-20]],34],
-   ['Gunnar Guldtand','dwarf','warrior',0,[[cx-480,cy-20],[cx-540,cy-10],[cx-360,cy+100]],28],
-   ['Barbro Brattom','human','mage',1,[[cx-190,cy+270],[cx+190,cy+270],[cx,cy+440]],62],
-   ['Little Kjell','human','hunter',0,[[cx,cy-250],[cx-330,cy-110]],42],
-   ['Ragnar Lagom','orc','warrior',0,[[cx+360,cy+100],[cx+460,cy-20]],24],
-   ['Fisherman Frasse','human','hunter',0,[[cx-360,cy+100],[cx-190,cy+270]],32],
-   ['Auntie Ulla','undead','priest',1,[[cx+190,cy+270],[cx+360,cy+100]],27],
-   ['Borje Junior','human','warrior',0,[[cx,cy-250],[cx+460,cy-20],[cx+40,cy+40]],38],
-  ];
-  world.npcs=NPC_DEFS.map(([name,race,cls,fem,pts,speed])=>({
-   name,race,cls,female:!!fem,
-   pts:pts.map(p=>({x:p[0]+(Math.random()-0.5)*26,y:p[1]+(Math.random()-0.5)*26})),
-   i:0,dir:1,x:pts[0][0],y:pts[0][1],speed,walk:Math.random()*5,fx:1,pauseT:Math.random()*2,moving:false
-  }));
+  /* 🍺 the folk of Moonshine: fifteen faces from the painted townsfolk (an orc and an undead in hero costume), each with places
+     they like to be - the inn, the forge, the well, the lake - and the painted roads to walk there (assets/models/moonshine-folk.js;
+     updateNpcs hands them to MoonshineFolk.step). The skin says the race and the gender, as in the City. */
+  world.npcs=MoonshineFolk.create().map(n=>{const costume=npcSkinCostume(n.skin);return Object.assign(n,{race:costume?costume[1]:'human',cls:costume?costume[3]:'warrior',female:npcSkinFemale(n.skin)});});
+  world.folk=true;
   /* trees + rocks in the grass patches - hand-tuned keep-outs for the painted map:
      off the 8 radial roads, out of the pond (top right) and clear of the central plaza */
   const TR=mulberry32(99);
@@ -11210,7 +11199,7 @@ function drawNpc(n){
  if(n.hurtMark){const hy=((body?body.headY:-37)-12+by)*size;ctx.fillStyle='rgba(255,255,255,.92)';ctx.fillRect(-7,hy-7,14,14);ctx.fillStyle='#d83a32';ctx.fillRect(-2,hy-5.5,4,11);ctx.fillRect(-5.5,hy-2,11,4);}   /* 🩹 hurt, off to be patched up */
  if(n.protest&&n.protest.sign)drawProtestSign(n,body,by,size);
  if(n.guildRole!=='member'&&!n.protest&&!n.brawl&&!n.prisoner&&!n.held&&!(n.nameNear&&(!hero||Math.hypot(hero.x-n.x,hero.y-n.y)>n.nameNear))){   /* ⚔ a sellsword's name only when you are close */ /* ✊ a marching block wears its placards, not two dozen overlapping names; ⛓ a prisoner's name hangs on his grille */
-  const ny=((body?body.headY:-37)-3+by-(body&&MERC_ARMED.has(n.skin)?17:0))*size;   /* ⚔ over a sellsword's pike blade, not through it */
+  const ny=((body?body.headY:-37)-3+by-(body&&MERC_ARMED.has(n.skin)?17:0)-(n.nameLift||0))*size;   /* ⚔ over a sellsword's pike blade, not through it; 🍺 a line up when a neighbour's name is in the way */
   ctx.font='700 '+(n.game?11:10)+'px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(n.name,1,ny+1);
   ctx.fillStyle=n.game||n.royal?'#ffd76a':n.watch||n.guard||n.extraGuard?'#bcd0ee':n.protest?'#ffb3a3':'#cfe6c2';   /* the ones with something to sell stand out; the watch and the guard in steel; the crowd flushed */
@@ -11259,9 +11248,11 @@ function drawProtestSign(n,body,by,size){
 }
 function updateNpcs(dt){
  if(!world.npcs)return;
+ if(world.folk)MoonshineFolk.step(world.npcs,dt,Math.random,{night:SUN.dark>.5});   /* 🍺 Moonshine's people go where they like - the inn draws them at night */
  world.protestT=(world.protestT||0)+dt;
  for(const n of world.npcs){
   if(n.scripted||n.held)continue;            /* 📜 somebody else is walking him (a scene, the Hand, 🟣 the Forsaken's attack) - a march or a brawl waits, or the crowd at the gallows kept marching through its own rows */
+  if(n.roam)continue;                        /* 🍺 MoonshineFolk walked him above */
   if(n.protest){ /* ✊ the crowd marches the boulevard as one block, avenue to avenue and back */
    const span=2200,per=span*2/46,ph=(world.protestT%per)/per,tri=ph<.5?ph*2:2-ph*2;
    n.x=world.w/2-span/2+tri*span+n.protest.ox;n.y=world.h/2+n.protest.oy;
