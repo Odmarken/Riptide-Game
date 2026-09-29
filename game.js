@@ -610,9 +610,22 @@ const NPC_SKINS={male:'npc_male',female:'npc_female',sebbe:'npc_sebbe',guard:'np
  sailor:'npc_sailor',pirate:'npc_pirate',pirate_captain:'npc_pirate_captain',dockhand:'npc_dockhand',harbour_master:'npc_harbour_master',fishwife:'npc_fishwife',
  /* ⛵ the people of Blackbeard's ports of call and the Free Company, drawn 2026-09-25 the same way; the four rulers are their ledger portraits */
  silver_guard:'npc_silver_guard',raven_soldier:'npc_raven_soldier',foundry_worker:'npc_foundry_worker',spice_merchant:'npc_spice_merchant',
- mercenary:'npc_mercenary',mercenary_b:'npc_mercenary_b',merc_recruiter:'npc_merc_recruiter',
+ mercenary:'npc_mercenary',mercenary_b:'npc_mercenary_b',merc_recruiter:'npc_merc_recruiter',dragon_rider:'npc_dragon_rider',
+ /* 💋 the Velvet Lantern's girls (2026-09-29), walking the streets once the house is built */
+ courtesan_blonde:'npc_courtesan_blonde',courtesan_dark:'npc_courtesan_dark',
  ruler_sigvald:'npc_ruler_sigvald',ruler_roderic:'npc_ruler_roderic',ruler_aldric:'npc_ruler_aldric',ruler_isaura:'npc_ruler_isaura'};
 const npcSkinCache={};
+/* 💋 a painted piece that moves on its own (2026-09-29): cut out of the picture - base is the picture without it, its hole
+   filled with what lies behind - and turned a little about pivot (px in the picture), never past where it was painted.
+   Vivienne's fan wafts toward her face and back. */
+const NPC_PARTS={courtesan_dark:{base:'npc_courtesan_dark_base',part:'npc_courtesan_dark_fan',box:[0,159,153,322],pivot:[76.7,310.7],amp:.07,rate:4}};
+const npcPartCache={};
+function npcPart(skin){
+ const d=NPC_PARTS[skin];if(!d)return null;
+ const load=n=>Object.assign(new Image(),{src:'assets/characters/npc/'+n+'.png?v='+NPC_ART_V});
+ const c=npcPartCache[skin]||(npcPartCache[skin]={...d,baseImg:load(d.base),img:load(d.part)});
+ return c.baseImg.complete&&c.baseImg.naturalWidth&&c.img.complete&&c.img.naturalWidth?c:null;
+}
 const NPC_ART_V=2;   /* bump when a townsfolk picture is redrawn under the same name (the sellswords went gold on 2026-09-25) */
 function npcSkinImage(skin){
  if(!skin)return null;
@@ -1133,6 +1146,7 @@ function addGoldOverflow(n){
 /* 🏦 The Bank of Moonshine holds at most BANK_CAP, and pays interest by the depositor's standing in the peerage (asked for
    2026-09-24): nothing to a commoner, 0.05% an hour to a Knight, rising evenly rank by rank to 0.5% an hour for a Duke. */
 const BANK_HOUR=3600000,BANK_CAP=10000000000,BANK_RATES=Object.freeze([0,.0005,.0014,.0023,.0032,.0041,.005]);
+const DRAGON_EGG_PRICE=BANK_CAP;   /* 🐉 what Kaelen in Port Meridian asks for his dragon egg: the bank's whole cap */
 const bankRank=(ch=S)=>Math.max(0,Math.min(BANK_RATES.length-1,(ch&&ch.city&&ch.city.noble&&ch.city.noble.rank)|0));
 const bankRate=(ch=S)=>BANK_RATES[bankRank(ch)];
 const bankPct=r=>+(r*100).toFixed(2)+'%';
@@ -1696,10 +1710,10 @@ function townWorldClick(wx,wy){
  const z=zoneOf();
  if(!world||!world.npcs||!hero||!(z.town||z.harbor))return false;
  if(z.town&&raidClick(wx,wy))return true;   /* ⚔ an order to the crown's men */
- const pick=z.town?n=>n.voyage||n.game==='recruiter'||n.say:n=>n.voyage;
+ const pick=z.town?n=>n.voyage||n.game==='recruiter'||n.game==='dragonrider'||n.say:n=>n.voyage;
  const n=world.npcs.find(n=>pick(n)&&Math.abs(wx-n.x)<38&&wy>n.y-100&&wy<n.y+22);
  if(!n)return z.town?townLinkClick(wx,wy):false;
- const open=n.voyage?openVoyage:n.game==='recruiter'?openMercs:()=>harborSpeak(n);
+ const open=n.voyage?openVoyage:n.game==='recruiter'?openMercs:n.game==='dragonrider'?openDragonShop:()=>harborSpeak(n);
  if(dist(hero,n)<130){open();return true;}
  const ok=(x,y)=>z.town?TownWorld.contains(world,x,y,14):HarborWorld.contains(x,y,14);
  const beside=[1,-1].map(k=>({x:n.x+k*56*(n.fx>0?1:-1),y:n.y+26})).find(q=>ok(q.x,q.y))||{x:n.x,y:n.y+30};
@@ -1903,6 +1917,56 @@ function openMercs(){
  const n=world&&world.npcs&&world.npcs.find(n=>n.game==='recruiter');
  if(n)n.fx=hero.x>n.x?1:-1;
  mercNote='';renderMercs();$('mercFx').style.display='flex';sfx.buy();
+}
+/* 🐉 THE DRAGON'S EGG - the Dragon Rider in Port Meridian sells one for the bank's whole cap, paid from the vault and never
+   from the purse. It lies in the bag and hatches DRAGON_HATCH_MS after it was bought (by the wall clock, so it hatches while
+   you are away too); Torsten keeps what comes out of it. One egg, one dragon. */
+const DRAGON_HATCH_MS=60000;
+const dragonEggLeft=()=>S&&S.dragonEgg?Math.max(0,Math.min(DRAGON_HATCH_MS,S.dragonEgg.at+DRAGON_HATCH_MS-Date.now())):0;
+const dragonHeld=()=>!!(S&&(S.dragonEgg||(S.mounts&&((S.mounts.owned||[]).includes('dragon')||(S.mounts.foreign||[]).includes('dragon')))));
+const eggLine=()=>{const left=dragonEggLeft();return left>0?'Hatches in '+Math.ceil(left/1000)+' s':'Hatching…';};
+function dragonEggTick(){
+ if(!S||!S.dragonEgg)return;
+ const el=$('eggLeft');if(el)el.textContent=eggLine();
+ if(dragonEggLeft()>0)return;
+ S.dragonEgg=null;Mounts.grant(S,'dragon');
+ stageMsg('🐉 Your dragon egg hatches! Torsten keeps the Stormcrown Dragon at the Wasteland stable.',4500,'#8fd0ff');
+ log(`🐉 <span class="imp">The egg hatches.</span> A <span class="loot">Stormcrown Dragon</span> waits at Torsten's Stables in the Wasteland.`,'loot');
+ sfx.level();save();renderBag();updateMountButton();
+}
+/* 🐉 the Dragon Rider's egg: one, for the bank's whole cap */
+let dragonNote='';
+function openDragonShop(){
+ if(!gameOn||!S||!hero||hero.dead||TideUI.isBattling())return;
+ const n=world&&world.npcs&&world.npcs.find(n=>n.game==='dragonrider');
+ if(n)n.fx=hero.x>n.x?1:-1;
+ dragonNote='';renderDragonShop();$('dragonFx').style.display='flex';sfx.buy();
+}
+function renderDragonShop(){
+ const box=$('dragonBody');if(!box||!S)return;
+ const bank=S.bankGold||0,fmt=x=>Math.round(x).toLocaleString(),hatched=(S.mounts?.owned||[]).includes('dragon');
+ const why=hatched?'Your dragon has hatched. Torsten keeps it at the Wasteland stable.':S.dragonEgg?'Your egg is in your bag. '+eggLine()+'.'
+  :dragonHeld()?'You already have a dragon.':bank<DRAGON_EGG_PRICE?'Paid from your bank account, which must hold the full price.':'';
+ box.innerHTML=`<div class="dragon-egg"><img src="assets/mounts/dragon-egg.png?v=1" alt="A dragon egg"></div>
+ <div class="merc-stats">
+  <div class="merc-stat"><small>Price</small><b>${fmt(DRAGON_EGG_PRICE)} ◉</b></div>
+  <div class="merc-stat"><small>Bank</small><b class="${bank<DRAGON_EGG_PRICE?'short':''}">${fmt(bank)} ◉</b></div>
+ </div>
+ <button type="button" class="sbtn gold merc-hire" id="dragonBuy"${why?' disabled':''}>Buy the egg · ${fmt(DRAGON_EGG_PRICE)} ◉</button>
+ ${why?`<p class="merc-why">${why}</p>`:''}`;
+ $('dragonMsg').textContent=dragonNote;
+ $('dragonBuy').onclick=()=>{
+  if(dragonHeld()||(S.bankGold||0)<DRAGON_EGG_PRICE){renderDragonShop();sfx.warn();return;}
+  confirmBox(`Buy the <b>dragon egg</b> for <b>${fmt(DRAGON_EGG_PRICE)} ◉</b>?<br><small>Paid from your bank account. It hatches a minute after it is yours.</small>`,()=>{
+   if(!S||dragonHeld()||(S.bankGold||0)<DRAGON_EGG_PRICE){renderDragonShop();return;}
+   S.bankGold-=DRAGON_EGG_PRICE;S.dragonEgg={at:Date.now()};
+   dragonNote='The egg is in your bag.';
+   log(`🥚 You buy a <span class="loot">dragon egg</span> for ${fmt(DRAGON_EGG_PRICE)} ◉ from your bank account. It hatches in a minute.`,'loot');
+   const n=world&&world.npcs&&world.npcs.find(n=>n.game==='dragonrider');
+   if(n)n.bubble={txt:'Keep it warm. In a minute it will not need you to.',t:5,life:5};
+   sfx.buy();save();renderHUD();renderBag();renderDragonShop();
+  });
+ };
 }
 function renderMercs(){
  const box=$('mercBody');if(!box||!S||!S.city)return;
@@ -2728,7 +2792,7 @@ const speedBoostMul=()=>1+boostBonus(S.boosts?S.boosts.speed:0,'speed');
 const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0,'haste');
 function freshState(name,race,cls){
  return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,lastZone:0,maxZone:0,quest:0,qProg:0,hardcore:false,hcDead:false,gender:'m',
-  rating:0,odinKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',bankGold:0,bankScrap:0,bankEarned:0,bankLastT:0,smithLvl:0,smithJob:null,luckPots:0,luckT:0,gamblerPots:0,gamblerT:0,restedT:0,restedPct:0,restedSpinAt:0,freeGoldCases:0,chests:{violethalls:0},mining:{trained:false,skill:0,on:false},ench:{trained:false,skill:0,bag:[]},ore:{coal:0,ore:0,gem:0},cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
+  rating:0,odinKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',bankGold:0,bankScrap:0,bankEarned:0,bankLastT:0,dragonEgg:null,smithLvl:0,smithJob:null,luckPots:0,luckT:0,gamblerPots:0,gamblerT:0,restedT:0,restedPct:0,restedSpinAt:0,freeGoldCases:0,chests:{violethalls:0},mining:{trained:false,skill:0,on:false},ench:{trained:false,skill:0,bag:[]},ore:{coal:0,ore:0,gem:0},cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
   gear:{weapon:null,armor:null,trinket:null},bag:[],scrolls:[],pots:{hp:5,mp:5},activeScrolls:[null,null],pet:null,pets:[],mounts:Mounts.normalize(null),tides:Tides.createCollection(),city:CityEconomy.create(),
   farm:FarmLayout.migrate({owned:false,b:[],c:[],r:[],lvl:1,xp:0,baleN:0,cseedN:0,inv:{}}),
   boosts:{speed:0,haste:0},autoUse:{},tainted:false,
@@ -2778,6 +2842,7 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.scraps===undefined)s.scraps=0;
  if(s.overflow===undefined)s.overflow=0;
  if(s.bankGold===undefined)s.bankGold=0;
+ if(!(s.dragonEgg&&typeof s.dragonEgg==='object'&&Number.isFinite(s.dragonEgg.at)))s.dragonEgg=null;   /* 🐉 {at}: when the egg was bought */
  if(s.bankScrap===undefined)s.bankScrap=0;
  if(s.bankEarned===undefined)s.bankEarned=0;
  if(s.bankLastT===undefined)s.bankLastT=0;
@@ -5712,7 +5777,7 @@ const CITY_FOLK=[
 ];
 /* what a skin says about its wearer: the gowns and the female hero costumes are women, and a hero
    costume key names the race whose boots it wears (defined here so the headless city builder has them) */
-function npcSkinFemale(skin){return /^(female|baker|market_woman|fishwife|noble_lady|noble_dowager|noble_maiden|ruler_isaura)$|female_/.test(skin||'');}
+function npcSkinFemale(skin){return /^(female|baker|market_woman|fishwife|noble_lady|noble_dowager|noble_maiden|ruler_isaura|courtesan_blonde|courtesan_dark)$|female_/.test(skin||'');}
 function npcSkinCostume(skin){return /^(human|dwarf|orc|undead)(male|female)_(warrior|mage|hunter|priest)$/.exec(skin||'');}
 /* 🛡 the city watch: five guards in two patrols, each marching a closed round of the main streets in
    single file. The loops are corners of the grid; the lane keeps them on the south/east side of the
@@ -7887,7 +7952,7 @@ function padPollButtons(){
 const PAD_PANELS=['confirmFx','outfitFx','iceReqMsg','iceMsg','gateMsg','cryptIntro', /* the small boxes that sit on top of everything come first - the pad answers the box on screen, not the panel under it */
  'cfgBox','tideHub','tideBattleFx','finalGateFx','sebbeFx','gvbFx','rtbFx','rouFx','bjFx','seaFx','slotFx','casinoMenu',
  'chestFx','seaBuyFx','sharkFx','ritualDoneFx','ritualFx','talentFx','smithFx','smithMenu','bankFx',
- 'restFx','fishhutMenu','mineFx','smeltFx','enchFx','ledgerFx','boardFx','voyageFx','mercFx','stableFx','farmCheckoutFx','farmBuyFx','farmDelFx'];
+ 'restFx','fishhutMenu','mineFx','smeltFx','enchFx','ledgerFx','boardFx','voyageFx','mercFx','dragonFx','stableFx','farmCheckoutFx','farmBuyFx','farmDelFx'];
 const padPanelOpen=()=>{
  for(const id of PAD_PANELS){
   const e=$(id);
@@ -7963,6 +8028,7 @@ function padInteract(){
   for(const n of world.npcs){
    if(n.voyage)add(n,'Sail with Blackbeard',openVoyage,150);
    else if(n.game==='recruiter')add(n,'The Free Company',openMercs,150);
+   else if(n.game==='dragonrider')add(n,'Dragon Egg',openDragonShop,150);
    else if(n.say)add(n,n.name,()=>harborSpeak(n),120);
   }
   for(const l of world.links||[])add(l,l.label,()=>useTownLink(l),l.r+90);   /* 🚪 doors and stairs */
@@ -8896,7 +8962,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    }
    return;
   }
- }else if(!hallSceneHolds()&&!mountRide.casting&&!TideUI.modalOpen()&&$('stableFx').style.display!=='flex'&&$('voyageFx').style.display!=='flex'&&$('mercFx').style.display!=='flex'&&!mineTick(dt)){ /* a word from the Hand, mounting, venue menus and mining keep the hero still */
+ }else if(!hallSceneHolds()&&!mountRide.casting&&!TideUI.modalOpen()&&$('stableFx').style.display!=='flex'&&$('voyageFx').style.display!=='flex'&&$('mercFx').style.display!=='flex'&&$('dragonFx').style.display!=='flex'&&!mineTick(dt)){ /* a word from the Hand, mounting, venue menus and mining keep the hero still */
   if(holdMove){ /* finger still pressed - refresh the walk target to wherever it is now */
    const hr=cv.getBoundingClientRect();
    const hx=(holdMove.cx-hr.left)/zoom+camX,hy=(holdMove.cy-hr.top)/zoom+camY;
@@ -11191,7 +11257,15 @@ function drawNpc(n){
   ctx.save();
   if(n.fx>0)ctx.scale(-1,1); /* art faces left natively - mirror when walking right */
   ctx.rotate(by*0.02);
-  ctx.drawImage(mip(pImg,body.width*size),body.x,body.y+by,body.width,body.height);
+  const part=!n.art&&npcPart(n.skin);
+  if(part){
+   ctx.drawImage(mip(part.baseImg,body.width*size),body.x,body.y+by,body.width,body.height);
+   const k=body.width/(pImg.naturalWidth||part.baseImg.naturalWidth),[bx0,by0,bx1,by1]=part.box;
+   ctx.save();ctx.translate(body.x+part.pivot[0]*k,body.y+by+part.pivot[1]*k);
+   ctx.rotate(part.amp*(.5-.5*Math.cos(now/1000*part.rate+n.walk)));
+   ctx.drawImage(mip(part.img,(bx1-bx0)*k*size),(bx0-part.pivot[0])*k,(by0-part.pivot[1])*k,(bx1-bx0)*k,(by1-by0)*k);
+   ctx.restore();
+  }else ctx.drawImage(mip(pImg,body.width*size),body.x,body.y+by,body.width,body.height);
   if(MERC_ARMED.has(n.skin))drawMercArms(n,body,by,now);
   ctx.restore();
  }else{
@@ -11562,7 +11636,7 @@ function applyZoneUI(){
  if($('stableFx'))$('stableFx').style.display='none';
  /* 🧳 whatever belonged to the last place stays there: the full Crown Ledger is a table in the Throne
     Hall, not something to carry down the road, and a raid that was left by any door is left for real */
- for(const id of ['ledgerFx','boardFx','voyageFx','mercFx']){const e=$(id);if(e&&e.style.display!=='none')e.style.display='none';}
+ for(const id of ['ledgerFx','boardFx','voyageFx','mercFx','dragonFx']){const e=$(id);if(e&&e.style.display!=='none')e.style.display='none';}
  if(mp.on&&mp.started&&!zoneOf().raid)mpLeave(false);
  refreshCombatAutoControls();
  updateMountButton();
@@ -11713,6 +11787,7 @@ function stableRefresh(message=''){
  $('stableSlot').innerHTML=`<div class="fmslot">${selected?`<img src="${mountImages[selected.id].src}" alt="${selected.name}">`:'—'}</div><div><small>EQUIPPED MOUNT</small>${selected?selected.name:'Choose your first companion'}</div>`;
  $('stableStock').innerHTML=Mounts.catalog.map(m=>{
   const owned=S.mounts.owned.includes(m.id),equipped=selected?.id===m.id,locked=!owned&&!Mounts.unlocked(m,standing);
+  if(m.egg&&!owned)return `<div class="stable-card stable-mystery" aria-label="Unknown"><div class="stable-q">?</div></div>`;   /* 🐉 nothing more about it */
   return `<div class="stable-card${equipped?' equipped':''}"><img src="${mountImages[m.id].src}" alt="${m.kind}"><h3>${m.name}</h3><p class="cl">${m.description}</p><span class="stable-speed">+${Math.round((m.speed-1)*100)}% riding speed</span>${owned?'<span class="stable-owned">Bought</span>':locked?`<span class="stable-need">🔒 ${Mounts.requirement(m)}</span>`:''}<button class="sbtn${owned?'':' gold'}" data-mount="${m.id}" ${equipped||locked?'disabled':''}>${equipped?'Equipped':owned?'Equip':`Buy · ${m.price.toLocaleString()} gold`}</button></div>`;
  }).join('');
  $('stableWallet').textContent=totalGold().toLocaleString()+' gold available';
@@ -12397,12 +12472,13 @@ function renderBag(){
     flasks you can drink, then what is already running on you, then what you are only carrying.
     Gear and Scrolls bring their own headings further down. A heading is written only when its
     section has something in it, so an empty bag stays empty rather than becoming four labels. */
+ const eggHtml=S.dragonEgg?`<div class="card item dragon-egg-card"><div><div class="sn" style="font-size:13px;font-weight:600">${uiIcon('it_dragon_egg','🥚','shopico')} Dragon Egg</div><div class="ss" id="eggLeft" style="color:#8fd0ff;font-size:11px">${eggLine()}</div></div></div>`:'';   /* 🐉 */
  const bagCat=(title,body)=>body?`<div class="ptitle bagcat">${title}</div>`+body:'';
  $('scrollSec').innerHTML=
    bagCat('Chests', vhHtml)
   +bagCat('Flasks', luckHtml+raidHtml+armorHtml+gamblerHtml)
   +bagCat('Buffs',  restedHtml)
-  +bagCat('Items',  connHtml+ringHtml+oreHtml+knowledgeHtml+TideUI.bagItem());
+  +bagCat('Items',  eggHtml+connHtml+ringHtml+oreHtml+knowledgeHtml+TideUI.bagItem());
  TideUI.bindBag();
 
 
@@ -15097,10 +15173,11 @@ const NEWCOMER_FIRST=['Arvid','Berta','Claes','Dagmar','Edvin','Freja','Gustav',
 const NEWCOMER_LAST=['Aker','Bjork','Dal','Ek','Fors','Gran','Holm','Lind','Mo','Naes','Ronn','Strand','Tall','Vik','As'];
 const NEWCOMER_SKINS=['male','female','baker','market_woman','blacksmith','male','female','merchant','monk','male'];
 const NEWCOMER_MAX=60;
+const VELVET_GIRLS=[['Scarlett','courtesan_blonde'],['Vivienne','courtesan_dark'],['Ruby','courtesan_blonde'],['Colette','courtesan_dark'],['Lola','courtesan_blonde'],['Mirabel','courtesan_dark']];
 function cityApplyPeople(){
  if(!world||!zoneOf().city||!world.npcs||!S.city)return;
  const c=S.city,jailed=new Set(c.jail.map(p=>p.name));
- const folk=world.npcs.filter(n=>!n.patrol&&!n.game&&!n.newcomer&&!n.recruit);
+ const folk=world.npcs.filter(n=>!n.patrol&&!n.game&&!n.newcomer&&!n.recruit&&!n.velvet);
  const crowd=Math.max(4,Math.round(c.pop*folk.length/CityEconomy.POPULATION));   /* one walker for every five souls or so: nobody draws five thousand */
  const gone=Math.max(0,folk.length-crowd);
  folk.forEach((n,i)=>{n.hidden=i>=folk.length-gone||jailed.has(n.name);});
@@ -15119,6 +15196,18 @@ function cityApplyPeople(){
  if(c.deposed==='pardoned'){if(!beggar){const p=palacePoint(-130,250);world.npcs.push({name:'Alarik · once a King',skin:'king_beggar',race:'human',cls:'warrior',female:false,big:1.35,game:'beggarking',sit:true,royal:true,
    pts:[{x:p.x,y:p.y}],i:0,dir:1,x:p.x,y:p.y,speed:0,walk:0,fx:-1,pauseT:1e9,moving:false,say:BEGGAR_LINES});}}
  else if(beggar)world.npcs=world.npcs.filter(n=>n.game!=='beggarking');
+ /* 💋 once the Velvet Lantern stands, its girls walk the streets - blonde and black-haired, mixed - and when the house is gone, so are they */
+ const velvetOpen=!!(c.works&&c.works.brothel&&c.works.brothel.left===0),girls=world.npcs.filter(n=>n.velvet);
+ if(!velvetOpen){if(girls.length)world.npcs=world.npcs.filter(n=>!n.velvet);}
+ else if(!girls.length){
+  const walks=folk.filter(n=>!/^noble_/.test(n.skin||'')&&n.pts&&n.pts.length>1);
+  VELVET_GIRLS.forEach(([name,skin],k)=>{
+   if(!walks.length)return;
+   const host=walks[(k*11+5)%walks.length],i=(k*5+2)%host.pts.length;
+   world.npcs.push({name,skin,race:'human',cls:'warrior',female:true,pts:host.pts,i,dir:k%2?1:-1,x:host.pts[i].x,y:host.pts[i].y,
+    speed:22+(k*9)%16,walk:k*1.1,fx:1,pauseT:1+(k%3)*1.4,moving:false,velvet:true});
+  });
+ }
  /* 📣 the crier has a pitch on the great square, south-east of the well */
  if(!world.npcs.some(n=>n.game==='crier'))world.npcs.push({name:'Town Crier Mans',skin:'merchant',race:'human',cls:'warrior',female:false,big:1.28,game:'crier',
   pts:[{x:world.w/2+118,y:world.h/2+212}],i:0,dir:1,x:world.w/2+118,y:world.h/2+212,speed:0,walk:0,fx:-1,pauseT:1e9,moving:false});
@@ -15682,6 +15771,7 @@ function openBoard(){
 $('boardClose').onclick=()=>$('boardFx').style.display='none';
 $('voyageClose').onclick=()=>$('voyageFx').style.display='none';   /* ⛵ */
 $('mercClose').onclick=()=>$('mercFx').style.display='none';       /* ⚔ */
+$('dragonClose').onclick=()=>$('dragonFx').style.display='none';   /* 🐉 */
 $('boardBody').addEventListener('click',e=>{const b=e.target.closest('[data-bact]');if(!b||b.disabled)return;boardAction(b.dataset.bact,b.dataset.k);});
 /* 📜 The Hand meets the Duke he sent for. The first time a summoned hero steps through the door the hero stops where
    they stand, the Hand - who has been waiting half way down the carpet, not at his table - walks up to them, says his
@@ -17001,6 +17091,7 @@ $('smeltGo').onclick=()=>{
  log('<span class="imp">🔥 The furnace is lit.</span> An emerald in five minutes.','loot');
 };
 setInterval(()=>{if($('smithFx').style.display==='flex')smithRefresh();},1000);
+setInterval(()=>{if(gameOn)dragonEggTick();},1000);   /* 🐉 the egg counts down in the bag and hatches on time */
 setInterval(()=>{
  const done=smeltTick();
  if($('smeltFx').style.display==='flex'&&(done||smeltLeft()>0))smeltRefresh();

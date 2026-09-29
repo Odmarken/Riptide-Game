@@ -948,7 +948,8 @@
    demand:d?{...d,age:K.demand.age,left:2-K.demand.age,cost:Math.round(num(d.cost)*f.scale)}:null};
  }
  function arrest(state,p){
-  if(state.jail.length>=MAX_CELLS+2||state.jail.some(x=>x.name===p.name))return false;
+  /* two to a cell at most - the hall shows them shoulder to shoulder - so twelve in the old jail, twenty with the new wing */
+  if(state.jail.length>=Math.max(MAX_CELLS+2,cells(state)*2)||state.jail.some(x=>x.name===p.name))return false;
   state.jail.push({name:p.name,skin:p.skin||'male',female:!!p.female,crime:p.crime,say:p.say||'',term:Math.max(1,Math.floor(num(p.term,2))),served:0,life:!!p.life,byKing:!!p.byKing});
   return true;
  }
@@ -1467,8 +1468,11 @@
   const taken=new Set(state.jail.map(p=>p.name));
   const roster=(Array.isArray(ctx.roster)&&ctx.roster.length?ctx.roster:FALLBACK_ROSTER.map(([name,skin])=>({name,skin}))).filter(p=>p&&p.name&&!taken.has(p.name));
   const byKing=!state.crowned&&!state.regency&&K.pleasure<30;
-  if(roster.length&&draw(rng)<clamp(.22+state.budget.watch*.12+state.incidents.length*.08+(byKing?.2:0),0,.85)){
-   const who=roster[Math.floor(draw(rng)*roster.length)];
+  /* busier since 2026-09-29 (asked for: more in the jail): the watch brings somebody in two closes in five, and a close that
+     brought one in may bring a second */
+  const odds=clamp(.4+state.budget.watch*.12+state.incidents.length*.08+(byKing?.2:0),0,.9);
+  for(let n=0;n<2&&roster.length&&draw(rng)<odds*(n?.5:1);n++){
+   const at=Math.floor(draw(rng)*roster.length),who=roster[at];roster.splice(at,1);
    const kings=byKing&&draw(rng)<.5;          /* half of a furious King's arrests are for nothing at all */
    const crime=kings?{text:'displeased the King, who was already displeased',term:[3,5],say:'I bowed! I bowed TWICE!'}:pickWeighted(CRIMES.map(c=>({...c,w:c.w+(c.boost?c.boost(state):0)})).filter(c=>c.w>0),rng);
    const term=crime.term[0]+Math.floor(draw(rng)*(crime.term[1]-crime.term[0]+1));

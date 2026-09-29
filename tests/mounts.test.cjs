@@ -19,7 +19,8 @@ function mounted(id='horse'){
 test('buying charges the listed price once, preserves the selected mount, and duplicates cannot debit gold',()=>{
  const state={},spending=[];let gold=1000000;
  const spend=amount=>{spending.push(amount);if(gold<amount)return false;gold-=amount;return true;};
- for(const item of M.catalog){
+ const sold=M.catalog.filter(m=>!m.egg);
+ for(const item of sold){
   const before=gold;assert.equal(M.buy(state,item.id,spend,earned).ok,true);
   assert.equal(before-gold,item.price);assert.ok(state.mounts.owned.includes(item.id));
   const paid=spending.length,saved=JSON.stringify(state);
@@ -27,7 +28,7 @@ test('buying charges the listed price once, preserves the selected mount, and du
   assert.equal(spending.length,paid);assert.equal(JSON.stringify(state),saved);
  }
  assert.equal(state.mounts.equipped,M.catalog[0].id,'later purchases do not silently replace the equipped horse');
- assert.deepEqual(spending,M.catalog.map(m=>m.price));
+ assert.deepEqual(spending,sold.map(m=>m.price));
 });
 
 test('unknown, unaffordable and unowned choices leave money and ownership unchanged',()=>{
@@ -203,8 +204,9 @@ test('all mounts keep the same stride at different frame rates and breathe while
 });
 
 test('Torsten sells the courser from Prestige 4, the leopard to a Duke and the tiger once the Forsaken One is slain',()=>{
- assert.deepEqual(Object.fromEntries(M.catalog.map(m=>[m.id,{...m.need}])),{horse:{prestige:4},leopard:{duke:true},'spectral-tiger':{forsaken:true}});
- assert.deepEqual(M.catalog.map(M.requirement),['Prestige 4','Duke','Slay the Forsaken One']);
+ const sold=M.catalog.filter(m=>!m.egg);
+ assert.deepEqual(Object.fromEntries(sold.map(m=>[m.id,{...m.need}])),{horse:{prestige:4},leopard:{duke:true},'spectral-tiger':{forsaken:true}});
+ assert.deepEqual(sold.map(M.requirement),['Prestige 4','Duke','Slay the Forsaken One']);
  const attempt=(id,standing)=>{let charged=0;const state={};const result=M.buy(state,id,price=>{charged+=price;return true;},standing);return {result,charged,state};};
  for(const id of ['horse','leopard','spectral-tiger']){
   const none=attempt(id);assert.deepEqual(none.result,{ok:false,reason:'locked'},'no standing, nothing with a need is for sale');
@@ -269,4 +271,30 @@ test('buildZone hands the ride to Mounts.carry with the new zone and the current
  assert.doesNotMatch(body,/Mounts\.reset\(mountRide\)/,'no unconditional dismount on every zone change');
  const enter=source.slice(source.indexOf(' hero=null; /* fresh character entering the world'),source.indexOf('syncAudioUI(); /* button glyph'));
  assert.ok(enter.indexOf('hero=null')<enter.indexOf('buildZone()'),'a fresh character is null by the time buildZone asks, so it starts on foot');
+});
+
+test('the dragon is never sold at the stable: it hatches from the egg, flies at +250% and beats its wings while hovering',()=>{
+ const dragon=M.get('dragon');
+ assert.equal(dragon.egg,true);assert.equal(dragon.fly,true);
+ close(dragon.speed,3.5);assert.ok(dragon.speed>M.get('spectral-tiger').speed*1.5,'still well over half again the tiger');
+ let charged=0;const state={};
+ assert.deepEqual(M.buy(state,'dragon',p=>{charged+=p;return true;},earned),{ok:false,reason:'egg'});
+ assert.equal(charged,0);assert.deepEqual(state,{},'no gold, no ownership');
+ assert.equal(M.unlocked(dragon,earned),false);
+ /* what the egg hatches into */
+ const hero={mounts:{owned:['horse'],equipped:'horse'}};
+ assert.equal(M.grant(hero,'dragon'),true);assert.deepEqual(hero.mounts,{owned:['horse','dragon'],equipped:'horse'},'the chosen mount stays chosen');
+ assert.equal(M.grant(hero,'dragon'),true);assert.equal(hero.mounts.owned.filter(id=>id==='dragon').length,1,'one dragon');
+ const fresh={};M.grant(fresh,'dragon');assert.equal(fresh.mounts.equipped,'dragon','a hero with no mount rides it at once');
+ assert.equal(M.grant(fresh,'no-such-mount'),false);
+ assert.equal(M.equip(hero,'dragon'),true);
+ /* airborne: standing still, the wings keep beating - at the same pace at any frame rate */
+ const a=mounted('dragon'),b=mounted('dragon');
+ const p0=a.ride.phase;
+ for(let n=0;n<30;n++)M.tick(a.ride,a.state,a.context,1/30);
+ for(let n=0;n<120;n++)M.tick(b.ride,b.state,b.context,1/120);
+ assert.ok(a.ride.phase!==p0,'hovering flaps');close(a.ride.phase,b.ride.phase);assert.equal(a.ride.moving,0);
+ const still=a.ride.phase;a.hero.x+=40;M.tick(a.ride,a.state,a.context,1/30);
+ assert.ok(a.ride.phase-still>40*.006,'flying forward beats faster than hovering');
+ assert.equal(M.multiplier(a.ride,a.state,outdoor),3.5);
 });

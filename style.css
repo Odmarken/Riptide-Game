@@ -256,6 +256,8 @@
   .stable-owned{font-size:12px;color:#9adf9a}
   .stable-speed{font-size:12px;color:#d9bf8d}
   .stable-need{font-size:12px;color:#e8a06a}
+  .stable-mystery{justify-content:center;min-height:240px}
+  .stable-q{width:100%;flex:1;display:flex;align-items:center;justify-content:center;font:700 86px/1 var(--display);color:#8a7552;border:1px dashed var(--brass-deep);border-radius:10px;background:rgba(0,0,0,.25)}
   .stable-slot{display:flex;gap:12px;align-items:center;justify-content:center;border:1px solid var(--brass-deep);border-radius:10px;padding:9px;background:rgba(12,8,4,.3);text-align:left;font-size:13px}
   .stable-slot .fmslot{width:48px;height:48px;flex-shrink:0}
   .stable-slot img{width:100%;height:100%;object-fit:contain}

@@ -21,7 +21,8 @@ function harness(){
    clip(p,rule){clips.push({path:p,rule});record('clip',[p,rule]);},
    drawImage(...args){record('draw',args);},clearRect(...args){record('clear',args);},
    getImageData(x,y,w,h){const data=new Uint8ClampedArray(w*h*4);for(let y=20;y<h-20;y++)for(let x=20;x<w-20;x++)data[(y*w+x)*4+3]=220;return {data};},
-   beginPath(){},ellipse(){},fill(){},arc(){},stroke(){}
+   beginPath(){},ellipse(){},fill(){},arc(){},stroke(){},
+   createRadialGradient(...args){record('gradient',args);return {addColorStop(){}};}
   };return g;
  }
  const document={createElement(tag){assert.equal(tag,'canvas');const c={width:0,height:0,ops:[]};c.getContext=()=>c.g||(c.g=context(c));canvases.push(c);return c;}};
@@ -236,4 +237,50 @@ test('the painted gallop waits for its sheet and a real run',()=>{
  for(let n=0;n<11;n++)renderer.draw(context({ops:[]}),{id:'spectral-tiger',img,runImg,moving:1,phase:(n+.5)/11*Math.PI*2},(seat,ride)=>{seat.save();ride.clipBody(seat);seat.restore();});
  assert.equal(canvases.length,made,'one read of the sheet built the masks of every frame');
  renderer.clear();assert.notEqual(renderer.getLayout({id:'spectral-tiger',img,runImg,moving:1,phase:1}).run.sheet,first.run.sheet);
+});
+
+test('the dragon flies: its wings beat from the painted sheet even while it hovers, held in the air over its shadow',()=>{
+ const {renderer,context}=harness();
+ const img=sprite('dragon'),run=renderer.getLayout({id:'dragon',img,moving:0}).art.profile.run;
+ const runImg=sprite('dragon-fly',run.cols*run.cell[0],Math.ceil(run.frames/run.cols)*run.cell[1]);
+ assert.equal(run.frames,20);
+ const seen=new Set();
+ for(const moving of [0,1])for(const fx of [-1,1])for(let step=0;step<run.frames*2;step++){
+  const phase=(step+.5)/(run.frames*2)*Math.PI*2,painted={ops:[]};
+  const l=renderer.draw(context(painted),{id:'dragon',img,runImg,fx,moving,phase});
+  assert.ok(l.run,'a flyer never falls back to the still while its sheet is loaded');seen.add(l.run.index);
+  const p=l.art.profile,air=-(p.lift-p.heave*Math.cos(phase));close(l.air,air,'height over the shadow');
+  assert.ok(l.air<=-(p.lift-p.heave)+1e-9,'always well off the ground');
+  const cell=painted.ops.find(o=>o.kind==='draw'&&o.args[0]===runImg);assert.ok(cell);
+  close(point(cell.matrix,...l.art.ground)[1],l.groundY+l.air,'the painted frame is lifted with the rider');
+  const [x,y]=run.seats[l.run.index];
+  close(l.riderX,fx*(x-l.art.ground[0])*l.px,'hip x on the saddle');
+  close(l.riderY+l.hipY,l.groundY+air+(y-l.art.ground[1])*l.px,'hip y on the saddle, up in the air');
+ }
+ assert.equal(seen.size,20,'every wing position shows');
+ const high=renderer.getLayout({id:'dragon',img,runImg,moving:1,phase:Math.PI}),low=renderer.getLayout({id:'dragon',img,runImg,moving:1,phase:0});
+ assert.ok(high.air<low.air,'the downstroke lifts it');
+ assert.ok(high.height>200,'a huge beast next to a 48-unit hero');
+});
+
+test('the boot on show is the rider\'s near leg: behind the facing, while the forward boot hides behind the mount',()=>{
+ const {renderer}=harness();
+ for(const id of ['horse','leopard','spectral-tiger','dragon'])for(const fx of [-1,1])for(const moving of [0,1]){
+  const l=renderer.getLayout({id,img:sprite(id),fx,moving,phase:1});
+  assert.ok(l.boots.near.x*fx<0,`${id} fx ${fx}: the visible boot hangs on the side away from the facing`);
+  assert.ok(l.boots.far.x*fx>0,`${id} fx ${fx}: the hidden boot is the forward one`);
+ }
+});
+
+test('the dragon\'s downstroke puffs air under its wings and rings the ground, then the air settles',()=>{
+ const {renderer,context}=harness();
+ const img=sprite('dragon'),run=renderer.getLayout({id:'dragon',img,moving:0}).art.profile.run;
+ const runImg=sprite('dragon-fly',run.cols*run.cell[0],Math.ceil(run.frames/run.cols)*run.cell[1]);
+ const gust=renderer.getLayout({id:'dragon',img,moving:0}).art.profile.gust;
+ const puffs=(id,phase,moving=0,image=img,sheet=runImg)=>{const painted={ops:[]};renderer.draw(context(painted),{id,img:image,runImg:sheet,phase,moving});return painted.ops.filter(o=>o.kind==='gradient').length;};
+ assert.equal(puffs('dragon',gust.at+.3),6,'three clouds under each wing just after the downstroke');
+ assert.equal(puffs('dragon',gust.at+.3,1),6,'flying or hovering');
+ assert.equal(puffs('dragon',gust.at-.3),0,'still air while the wings rise');
+ assert.equal(puffs('dragon',gust.at+Math.PI*2*.6),0,'the puff has settled before the next beat');
+ for(const id of ['horse','leopard','spectral-tiger'])assert.equal(puffs(id,gust.at+.3,1,sprite(id),null),0,'only a flyer moves air');
 });

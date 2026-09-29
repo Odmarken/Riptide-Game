@@ -5,7 +5,7 @@
   "resolution": "1k",
   "background": "transparent",
   "aspect_ratio": "1:1",
-  "referenceHandling": "Original stable and leopard were generated from text descriptions. Replacement horse uses its original Higgsfield generation as the edit target and the approved Tide Training lodge as a painted style reference; see per-asset params. Spectral tiger generation provenance is retained below. Each mount's gallop sheet (<id>-run) is a Kling image-to-video of its own still.",
+  "referenceHandling": "Original stable and leopard were generated from text descriptions. Replacement horse uses its original Higgsfield generation as the edit target and the approved Tide Training lodge as a painted style reference; see per-asset params. Spectral tiger generation provenance is retained below. Each mount's gallop sheet (<id>-run) is a Kling image-to-video of its own still. The dragon (2026-09-29) references the spectral tiger's generation for the mount style; its wingbeat is a Kling image-to-video of its own still.",
   "assets": {
     "stable": {
       "file": "assets/mounts/stable.png",
@@ -595,6 +595,241 @@
         ]
       },
       "sha256": "71e99169c943e039c8e050590861ff8463235b8238135beb5d3a2c96761fad4c"
+    },
+    "dragon": {
+      "file": "assets/mounts/dragon.png",
+      "jobId": "207cd2d5-7888-43a9-925e-a805a68f0690",
+      "status": "completed",
+      "model": "gpt_image_2_5",
+      "variant": "flare",
+      "quality": "medium",
+      "references": {
+        "spectral-tiger (its generation)": "817463af-0237-4fc4-ae81-7e74285247eb"
+      },
+      "prompt": "One complete isolated production game sprite in EXACTLY the same hand-painted chibi fantasy RPG style as the reference riding mount: bold clean dark ink contours, dimensional painterly shading, broad readable highlights, compact powerful shapes, NOT photorealistic, not smooth 3D. An ORIGINAL majestic DRAGON RIDING MOUNT IN FLIGHT: glossy midnight-black scales, deep sapphire-blue belly plates, wing membranes and glowing blue accents, and a crown of curved GOLD horns, gold spikes along the spine and gold claws. Fierce but handsome face with a closed mouth, narrowed glowing blue eyes. Horizontal body FACING RIGHT in near-SIDE VIEW, airborne and gliding: both large bat-like wings raised UP high and spread above its back, front and hind legs tucked under the belly, long tail trailing out to the LEFT with a gold spade tip. A low black-and-gold leather riding saddle with blue trim sits on the back just behind the shoulders near horizontal centre, with open empty space above the saddle for a separate humanoid rider; no rider, no reins across the body. Full body including both wings, all four legs, head, horns and tail tip fully inside the frame with about 5% transparent padding. TRUE transparent RGBA background, no ground, no cast shadow, no clouds, no fire, no magic particles, no text or watermark.",
+      "size": [
+        1024,
+        1024
+      ],
+      "bounds128": [
+        14,
+        38,
+        1000,
+        866
+      ],
+      "seat": [
+        600,
+        570
+      ],
+      "front": [
+        0.645,
+        0.37,
+        0.98,
+        0.74
+      ],
+      "facing": 1,
+      "processing": "native 1024 px kept (the renderer measures in the still's own pixels); alpha scaled from its 254 cap to 255, haze below 6 dropped. No crop, no repainting.",
+      "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260929_150107_207cd2d5-7888-43a9-925e-a805a68f0690.png",
+      "sha256": "4bb1a26aa79b767dbdf72b624e221b284b1ef95f5fd350af2619cf25ec32ee61",
+      "date": "2026-09-29"
+    },
+    "dragon-fly": {
+      "file": "assets/mounts/dragon-fly.png",
+      "kind": "wingbeat sheet",
+      "generator": "Higgsfield",
+      "model": "kling3_0",
+      "params": {
+        "mode": "std",
+        "sound": "off",
+        "duration": 5,
+        "aspect_ratio": "16:9"
+      },
+      "jobId": "92427801-cba2-4e97-baad-23a37c53c2f8",
+      "sourceUrl": "https://d8j0ntlcm91z4.cloudfront.net/user_3GNnDrzILI0j0V9mCBK2urpwKOu/hf_20260929_150302_92427801-cba2-4e97-baad-23a37c53c2f8.mp4",
+      "inputs": {
+        "start_image": "the still dragon.png cropped at (12, 36)-(1015, 905), scaled to 739x640 and placed at (590, 220) on a flat 1920x1080 magenta canvas; media b203ae97-12f8-4a3e-b4fd-4ae0f2e5d3fa",
+        "end_image": "the same start image"
+      },
+      "prompt": "Side-view 2D video game sprite animation. The black, blue and gold dragon with the saddle FLIES IN PLACE, hovering in the air: a continuous, repeating flight cycle of big powerful wingbeats - both wings sweep down hard below the belly, then rise high above the back again, over and over; the body rises slightly on each downstroke and sinks a little on each upstroke, the neck and head stay steady looking forward, the legs stay tucked under the belly, the long tail sways gently behind. The dragon stays at the exact same spot in the centre of the frame and keeps facing right the whole time, in side view; it never travels forward, never turns toward the camera, never leaves the frame. Locked static camera: no zoom, no pan, no camera shake. The flat solid magenta background stays perfectly uniform and unchanged - no sky, no clouds, no ground, no shadow, no dust, no wind lines, no fire, no particles, no glow effects. Keep the exact hand-painted chibi fantasy art style, the same midnight-black scales, sapphire-blue wings and belly, gold horns, spikes and claws, and the same saddle. Mouth closed. No rider, no text.",
+      "clip": "1280x720, 24 fps, 121 frames, clean magenta. One wingbeat is 56 frames (2.3 s) with a short glide at the top; frames 58-113 are the loop (114 matches 58: difference 0.2 against 2.0 between neighbours) and 20 of them, evenly spaced, are the sheet.",
+      "keying": "scratchpad keyd.py: alpha from magenta keyness min(R,B)-G against each frame's own backdrop, colours unmixed, leftover magenta taken out of the rim only (gold is red-heavy, so no channel clamp on the body); then gold tips the backdrop had tinted pink (R>120, R-G>45, B>G-20) set back to gold (B<=0.45G, G>=0.62R). No colour grading: the lighting holds, the medians move only as the wings cover the body.",
+      "seatTracking": "the saddle matched against a fixed template from frame 58 (rotation search +-6 deg); the near wing hides it in frames 83-95, which are filled in between the frames that see it. It moves under a world unit and tilts up to 5 degrees; the rider takes half. The renderer adds the flight: lift 28 units over the shadow, heave 3 on the downstroke.",
+      "cost": "7.5 credits",
+      "sheet": {
+        "frames": 20,
+        "cols": 5,
+        "cell": [
+          671,
+          550
+        ],
+        "size": [
+          3355,
+          2200
+        ],
+        "videoCrop": [
+          344,
+          128,
+          1015,
+          678
+        ],
+        "origin": [
+          -88.44,
+          -2.0
+        ],
+        "scale": [
+          2.03586,
+          2.03586
+        ],
+        "seats": [
+          [
+            600.1,
+            570.1,
+            -0.0
+          ],
+          [
+            600.1,
+            570.1,
+            -0.0
+          ],
+          [
+            600.1,
+            570.1,
+            -0.0
+          ],
+          [
+            600.2,
+            572.1,
+            0.0175
+          ],
+          [
+            602.2,
+            574.2,
+            0.0349
+          ],
+          [
+            604.2,
+            576.5,
+            0.0698
+          ],
+          [
+            606.2,
+            576.7,
+            0.0873
+          ],
+          [
+            606.2,
+            576.7,
+            0.0873
+          ],
+          [
+            606.2,
+            576.7,
+            0.0873
+          ],
+          [
+            606.0,
+            574.3,
+            0.0838
+          ],
+          [
+            604.8,
+            572.9,
+            0.0733
+          ],
+          [
+            603.6,
+            571.6,
+            0.0628
+          ],
+          [
+            602.4,
+            570.3,
+            0.0524
+          ],
+          [
+            601.6,
+            569.4,
+            0.0454
+          ],
+          [
+            600.4,
+            568.1,
+            0.0349
+          ],
+          [
+            600.2,
+            568.0,
+            0.0175
+          ],
+          [
+            600.2,
+            568.0,
+            0.0175
+          ],
+          [
+            600.1,
+            570.1,
+            -0.0
+          ],
+          [
+            600.1,
+            570.1,
+            -0.0
+          ],
+          [
+            600.1,
+            570.1,
+            -0.0
+          ]
+        ],
+        "sourceFrames": [
+          58,
+          61,
+          64,
+          66,
+          69,
+          72,
+          75,
+          78,
+          80,
+          83,
+          86,
+          89,
+          92,
+          94,
+          97,
+          100,
+          103,
+          106,
+          108,
+          111
+        ]
+      },
+      "sha256": "74872167e4e81ccbe5dce2ad42daa7952980cf3711d724559f8d684fb711fe85"
+    },
+    "dragon-egg": {
+      "file": "assets/mounts/dragon-egg.png",
+      "alsoIcon": "assets/icons/it_dragon_egg.png (128 px, fitted in 116)",
+      "jobId": "516db9fe-92c0-4484-a4dd-79fd21e635cf",
+      "model": "gpt_image_2_5",
+      "variant": "flare",
+      "quality": "medium",
+      "references": {
+        "spectral-tiger (its generation)": "817463af-0237-4fc4-ae81-7e74285247eb"
+      },
+      "prompt": "One isolated game item sprite in the same hand-painted chibi fantasy RPG style as the reference: bold dark ink outlines, painterly shading. A large DRAGON EGG standing upright: glossy midnight-black shell covered in overlapping scale-like plates, thin veins of GOLD running between them, and a few fine cracks glowing with bright sapphire-blue light from inside, a soft blue rim light. Straight front view, the whole egg inside the frame with padding. Transparent background, no nest, no ground, no cast shadow, no text.",
+      "crop": [
+        180,
+        42,
+        845,
+        990
+      ],
+      "size": [
+        359,
+        512
+      ],
+      "processing": "alpha 254->255, haze <6 dropped, tight crop, LANCZOS to 512 px tall",
+      "sha256": "6064369a3c7edac81440fecacef8734b4cc6fbac5e0d5c146e18a767d93088b1"
     }
   },
   "geometryNotes": {

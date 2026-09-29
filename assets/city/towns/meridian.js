@@ -135,10 +135,13 @@
   ['Spice trader Ezra','spice_merchant',UP],['Guard Fabio','guard',QUAY],['Sellsword Gunnar','mercenary',UP],['Market wife Hana','market_woman',UP],
  ];
  const ISAURA=['Everything has a price. I keep the ledger that says what it is.','Four oceans, one Exchange, one tariff. Mine.','The Free Company hires out swords at the west end. Their price is fair. I checked.','Your treasury pays. Your treasury always pays.'];
+ const KAELEN=['One egg. Blue fire under black scales. It costs everything your bank can hold.','I raised three of them. The sky is smaller than you think.','Torsten keeps what hatches. He is the only man I trust with a dragon.'];
  const HAKON=['Twenty blades a contract, five million from your treasury, a hundred at the most.','We fight for whoever pays - and we stay paid.','My lads walk your walls and your squares. Nobody climbs them after.'];
  const stands=[
   {name:'Trade Officer Isaura Venn',skin:'ruler_isaura',x:AXM,y:1335,fx:1,big:1.32,game:'ruler',say:ISAURA,extra:{royal:true}},
   {name:'Captain Hakon Stormgaard',skin:'merc_recruiter',x:1300,y:along(MKT,1300)-40,fx:1,big:1.3,game:'recruiter',say:HAKON},
+  /* 🐉 on the east hill street, by the blue-shuttered house: he sells the dragon egg */
+  {name:'Kaelen',skin:'dragon_rider',x:6030,y:along(HILLE,6030)-28,fx:-1,big:1.32,game:'dragonrider',say:KAELEN},
   {name:'Free Company Sentry',skin:'mercenary',x:1040,y:along(MKT,1040)-40,fx:1,big:1.2,extra:{guard:true}},
   {name:'Free Company Sentry',skin:'mercenary_b',x:1560,y:along(MKT,1560)-40,fx:-1,big:1.2,extra:{guard:true}},
   {name:'Harbour Clerk Nel',skin:'harbour_master',x:2600,y:2600,fx:1,say:['Customs is that way. Everything is taxed. Even the gulls.','Four oceans meet here, and every one of them owes something.','Mind the cranes.']},

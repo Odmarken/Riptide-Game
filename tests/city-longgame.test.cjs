@@ -545,3 +545,18 @@ test('every city from before the office had to be earned is closed: it starts ag
  assert.equal(E.create().office,0);assert.equal(E.create().chartered,false);
  assert.equal(E.recoin({v:2,treasury:5,loan:7},10).treasury,50,'the re-striking tool is still there for the next coinage');
 });
+
+test('the watch is busier (2026-09-29): more in the jail, a second arrest on a busy close, two to a cell at most',()=>{
+ const roster=Array.from({length:60},(_,i)=>({name:'Townsman '+i,skin:'male'}));
+ /* a seeded year of closes: the jail holds a good many more than the old one-in-five watch ever brought in */
+ let seed=7;const rng=()=>(seed=(seed*16807)%2147483647)/2147483647;
+ const s=open();let held=0,arrests=0,doubles=0;
+ for(let i=0;i<200;i++){const r=E.tick(s,{roster},rng);held+=s.jail.length;const n=r.unrest.filter(u=>/was taken to the jail/.test(u)).length;arrests+=n;if(n>1)doubles++;}
+ assert.ok(arrests/200>.4,'arrests a close: '+arrests/200);assert.ok(held/200>1.2,'held on average: '+held/200);assert.ok(doubles>0,'some closes bring in two');
+ /* the cap: two to a cell - twelve under the old hall */
+ const full=open();E.forecast(full,{});
+ for(let i=0;i<40;i++)E.tick(full,{roster},()=>.001);
+ const cells=E.forecast(full,{}).cells;
+ assert.ok(full.jail.length<=Math.max(E.MAX_CELLS+2,cells*2),'never more than two to a cell: '+full.jail.length+' in '+cells);
+ assert.equal(new Set(full.jail.map(p=>p.name)).size,full.jail.length,'nobody is in twice');
+});

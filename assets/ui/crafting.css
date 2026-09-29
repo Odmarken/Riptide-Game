@@ -104,4 +104,6 @@ button.craft-slot{cursor:var(--hand)}.craft-slot.filled,.craft-slot.ready{border
 .merc-bar{height:10px;margin-bottom:14px;border:1px solid var(--craft-line);border-radius:6px;background:#1a130b;overflow:hidden}
 .merc-bar i{display:block;height:100%;background:linear-gradient(90deg,#8e1f1f,#d04a3c)}
 .merc-hire{width:100%;padding:12px;font-size:15px}
+.dragon-egg{display:flex;justify-content:center;margin:0 0 10px}
+.dragon-egg img{height:170px;max-width:60%;object-fit:contain;filter:drop-shadow(0 0 18px rgba(80,160,255,.35))}
 .merc-why{margin:10px 0 0;font:12.5px/1.5 var(--body,sans-serif);color:#e6b48a;text-align:center}

@@ -580,6 +580,106 @@
     700
    ],
    "date": "2026-09-25"
+  },
+  "npc_dragon_rider.png": {
+   "jobId": "b3408c59-1031-48b9-a1e4-d4a9affa14dc",
+   "kind": "bust",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    16,
+    9,
+    864,
+    1153
+   ],
+   "size": [
+    519,
+    700
+   ],
+   "bounds128": [
+    1,
+    1,
+    518,
+    699
+   ],
+   "date": "2026-09-29",
+   "references": {
+    "npc_male": "f43b7229-e2c5-4ed5-b33a-0b07d78d87e7",
+    "npc_sebbe": "c94149b8-a81c-41e2-9b3f-d5e63640c074",
+    "npc_merc_recruiter (its job)": "69c70828-8a83-4cf9-876a-25d0bc1e4dd5"
+   },
+   "prompt": "One chibi fantasy RPG townsperson in EXACTLY the same hand-painted style, head-to-body proportions, bold dark ink outlines and framing as the reference characters: a BUST crop that ends flat at the hips exactly like the references - no legs, no feet. Kaelen, a veteran DRAGON RIDER: a lean weathered man in his forties with a short dark beard, a thin scar across one cheek, sharp confident eyes and windswept black hair tied back. He wears fitted black leather flying armour with sapphire-blue dragon-scale pauldrons and gold trim, a high collar, riding gloves, a pair of brass flight goggles pushed up on his forehead, and a short midnight-blue cloak with a gold dragon clasp. One hand rests on his belt beside a coiled riding whip; a small gold dragon emblem on the chest. Facing three-quarters toward the viewer like the references, calm proud expression. Colours: black, deep sapphire blue and gold. Isolated character, transparent background, no ground, no cast shadow, no text.",
+   "note": "Kaelen the dragon rider, Port Meridian east hill street; sells the dragon egg"
+  },
+  "npc_courtesan_blonde.png": {
+   "jobId": "8ff94002-fb5d-4dcf-8bf0-5dc0791d89b7",
+   "kind": "full",
+   "model": "gpt_image_2 (medium; gpt_image_2_5 flare was no longer offered 2026-09-29)",
+   "design": "96ae9414-a3dd-4648-9e36-7b692bd928e1",
+   "backgroundRemoval": "68d9c9a8-adbf-4335-89e8-4f542e52e880",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    157,
+    77,
+    593,
+    1273
+   ],
+   "size": [
+    299,
+    820
+   ],
+   "bounds128": [
+    1,
+    1,
+    298,
+    818
+   ],
+   "date": "2026-09-29",
+   "look": "golden blonde, crimson velvet off-the-shoulder gown, black lace corset and gloves, ruby choker, a rose in her hair",
+   "references": {
+    "npc_female": "08f56778-6a5d-4f40-b578-18ca4d0ae1d6",
+    "npc_noble_lady (its job)": "b069a154-aeaf-48d8-a621-eb0effdd2081"
+   },
+   "note": "A Velvet Lantern girl. First drawn tall and slim (design job); redrawn from it in the chibi proportions of npc_noble_lady, then Higgsfield background removal, haze <6 dropped, tight crop, LANCZOS to 820 px."
+  },
+  "npc_courtesan_dark.png": {
+   "jobId": "8f0165b3-0129-463e-98db-b3d4c163793b",
+   "kind": "full",
+   "model": "gpt_image_2 (medium; gpt_image_2_5 flare was no longer offered 2026-09-29)",
+   "design": "58bc3760-8690-41e6-9956-c08d58c38c59",
+   "backgroundRemoval": "53c88d50-6deb-42a5-9bed-bd2ccbcd57a1",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    93,
+    89,
+    652,
+    1271
+   ],
+   "size": [
+    388,
+    820
+   ],
+   "bounds128": [
+    0,
+    1,
+    387,
+    818
+   ],
+   "date": "2026-09-29",
+   "look": "jet-black hair with a fringe, black velvet gown, plum corset laced in gold, plum shawl, lace fan",
+   "references": {
+    "npc_female": "08f56778-6a5d-4f40-b578-18ca4d0ae1d6",
+    "npc_noble_lady (its job)": "b069a154-aeaf-48d8-a621-eb0effdd2081"
+   },
+   "note": "A Velvet Lantern girl. First drawn tall and slim (design job); redrawn from it in the chibi proportions of npc_noble_lady, then Higgsfield background removal, haze <6 dropped, tight crop, LANCZOS to 820 px."
   }
  }
 }

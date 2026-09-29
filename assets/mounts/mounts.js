@@ -3,7 +3,10 @@ const Mounts=(()=>{
  const catalog=Object.freeze([
   Object.freeze({id:'horse',name:'Chestnut Courser',kind:'Horse',price:25000,speed:1.65,art:'assets/mounts/horse.png',artVersion:2,run:'assets/mounts/horse-run.png',need:Object.freeze({prestige:4}),description:'A goofy, good-hearted companion with a tongue-out grin and a rolling stride.'}),
   Object.freeze({id:'leopard',name:'Amberfang Leopard',kind:'Leopard',price:150000,speed:1.9,art:'assets/mounts/leopard.png',run:'assets/mounts/leopard-run.png',need:Object.freeze({duke:true}),description:'A sure-footed spotted hunter with a swift, rolling stride.'}),
-  Object.freeze({id:'spectral-tiger',name:'Azure Spectral Tiger',kind:'Spectral tiger',price:750000,speed:2.1,art:'assets/mounts/spectral-tiger.png',artVersion:2,run:'assets/mounts/spectral-tiger-run.png',need:Object.freeze({forsaken:true}),description:'Blue spirit-fire shimmers beneath its ancient silver armour.'})
+  Object.freeze({id:'spectral-tiger',name:'Azure Spectral Tiger',kind:'Spectral tiger',price:750000,speed:2.1,art:'assets/mounts/spectral-tiger.png',artVersion:2,run:'assets/mounts/spectral-tiger-run.png',need:Object.freeze({forsaken:true}),description:'Blue spirit-fire shimmers beneath its ancient silver armour.'}),
+  /* 🐉 never sold at the stable: the Dragon Rider in Port Meridian sells its egg (the bank's whole cap), and what hatches
+     from it is kept by Torsten. fly: it is always airborne, its wings beat even while it hovers. +250% riding speed (asked for 2026-09-29). */
+  Object.freeze({id:'dragon',name:'Stormcrown Dragon',kind:'Dragon',price:10000000000,speed:3.5,art:'assets/mounts/dragon.png',run:'assets/mounts/dragon-fly.png',egg:true,fly:true,description:'Midnight scales, sapphire wings and a crown of gold horns. It was an egg once; now the sky is its road.'})
  ]);
  const byId=new Map(catalog.map(m=>[m.id,m]));
  const get=id=>byId.get(id)||null;
@@ -23,6 +26,7 @@ const Mounts=(()=>{
     the leopard, the Forsaken One slain for the tiger. standing = {prestige, duke, forsaken}, read from the save by
     the game; none given, nothing with a need is for sale. A mount already bought stays bought. */
  function unlocked(item,standing){
+  if(item?.egg)return false;
   const need=item?.need;if(!need)return !!item;
   return !((need.prestige&&!((standing?.prestige|0)>=need.prestige))||(need.duke&&!standing?.duke)||(need.forsaken&&!standing?.forsaken));
  }
@@ -31,17 +35,27 @@ const Mounts=(()=>{
   const item=get(id);if(!state||!item)return {ok:false,reason:'unknown'};
   const collection=normalize(state.mounts);
   if(collection.owned.includes(id))return {ok:false,reason:'bought'};
+  if(item.egg)return {ok:false,reason:'egg'};
   if(!unlocked(item,standing))return {ok:false,reason:'locked'};
   if(typeof spend!=='function'||!spend(item.price))return {ok:false,reason:'gold'};
   collection.owned.push(id);if(!collection.equipped)collection.equipped=id;
   state.mounts=collection;return {ok:true,item};
+ }
+ /* what an egg hatches into: owned from now on, and ridden at once only if nothing else was chosen */
+ function grant(state,id){
+  if(!state||!get(id))return false;
+  const collection=normalize(state.mounts);
+  if(!collection.owned.includes(id))collection.owned.push(id);
+  if(!collection.equipped)collection.equipped=id;
+  state.mounts=collection;return true;
  }
  function equip(state,id){
   if(!state||!get(id))return false;
   const collection=normalize(state.mounts);if(!collection.owned.includes(id))return false;
   collection.equipped=id;state.mounts=collection;return true;
  }
- const stride={horse:.042,leopard:.037,'spectral-tiger':.034};
+ const stride={horse:.042,leopard:.037,'spectral-tiger':.034,dragon:.006};
+ const HOVER=4.5;   /* 🐉 a flyer's wings keep beating in the air: radians a second on top of the distance flown */
  const createRide=()=>({id:null,casting:null,remaining:0,castTravel:0,phase:0,time:0,moving:0,lastX:null,lastY:null});
  function reset(ride){Object.assign(ride,createRide());}
  /* a zone change keeps a seated rider in the saddle when the new zone allows riding too; a saddling still under way,
@@ -76,10 +90,11 @@ const Mounts=(()=>{
    ride.time=(ride.time+dt)%(Math.PI*2/2.15);
    // Teleports do not create a stride or a huge phase jump.
    if(travel<160)ride.phase=(ride.phase+travel*stride[ride.id])%(Math.PI*2);
+   if(get(ride.id)?.fly)ride.phase=(ride.phase+dt*HOVER)%(Math.PI*2);
    ride.moving=Math.max(0,Math.min(1,ride.moving+(travel>dt*2&&travel<160?dt*10:-dt*8)));
   }
  }
  const multiplier=(ride,state,zone)=>allowed(zone)&&ride.id===selected(state)?.id?get(ride.id).speed:1;
- return {catalog,get,normalize,allowed,selected,unlocked,requirement,buy,equip,createRide,reset,carry,toggle,tick,multiplier};
+ return {catalog,get,normalize,allowed,selected,unlocked,requirement,buy,grant,equip,createRide,reset,carry,toggle,tick,multiplier};
 })();
 if(typeof module!=='undefined'&&module.exports)module.exports=Mounts;

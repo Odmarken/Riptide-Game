@@ -18,7 +18,12 @@ const MountRenderer=(()=>{
     seats:[[514.1,421,.4342],[516,408.8,.457],[514.1,387,.3586],[507.8,371.8,.2184],[495.7,377.4,.0989],[481.3,400.7,-.0093],[472.9,424.2,-.1111],[474.1,434.7,-.1547],[480.1,432.3,-.1048],[485.3,424.1,-.0068],[490.3,417.4,.0817],[498,416.7,.175],[507.4,420.8,.3082]]}},
   'spectral-tiger':{height:65,seat:[470/1024,426/1024],front:[.55,.21,.88,.70],stride:.028,lift:.03,rise:2.45,pitch:.034,surge:.7,stretch:.018,lean:.048,legs:legs([[23,258,785,880,0],[308,550,818,873,Math.PI],[550,794,780,878,Math.PI],[800,1024,788,875,0]]),spectral:true,
    run:{frames:11,cols:4,cell:[1016,422],origin:[-402.54,181.06],scale:[1.9379,1.93828],
-    seats:[[477.5,373.1,.0055],[489.9,358.4,.12],[497.3,351.9,.2361],[495.9,351.1,.3293],[488.1,348.5,.3833],[474.7,339.2,.3625],[455.6,337.9,.2695],[440.1,361.5,.1581],[439.1,395.6,.0616],[450.6,408.8,-.0179],[464.7,394.7,-.0491]]}}
+    seats:[[477.5,373.1,.0055],[489.9,358.4,.12],[497.3,351.9,.2361],[495.9,351.1,.3293],[488.1,348.5,.3833],[474.7,339.2,.3625],[455.6,337.9,.2695],[440.1,361.5,.1581],[439.1,395.6,.0616],[450.6,408.8,-.0179],[464.7,394.7,-.0491]]}},
+  /* 🐉 a flyer: no legs to swing, a painted wingbeat instead (20 frames from a Kling clip of the still). lift is how high
+     its lowest claw hangs over its shadow, heave how far each downstroke lifts it. Drawn huge on request (2026-09-29). */
+  dragon:{height:235,seat:[600/1024,570/1024],front:[.72,.37,.98,.74],stride:.02,lift:56,heave:5.6,rise:0,pitch:0,surge:0,stretch:0,lean:.03,legs:[],fly:true,gust:{at:3.3,puffs:[[520,1010,-1],[880,1010,1]]},
+   run:{frames:20,cols:5,cell:[671,550],origin:[-88.44,-2],scale:[2.03586,2.03586],
+    seats:[[600.1,570.1,0],[600.1,570.1,0],[600.1,570.1,0],[600.2,572.1,.0175],[602.2,574.2,.0349],[604.2,576.5,.0698],[606.2,576.7,.0873],[606.2,576.7,.0873],[606.2,576.7,.0873],[606,574.3,.0838],[604.8,572.9,.0733],[603.6,571.6,.0628],[602.4,570.3,.0524],[601.6,569.4,.0454],[600.4,568.1,.0349],[600.2,568,.0175],[600.2,568,.0175],[600.1,570.1,0],[600.1,570.1,0],[600.1,570.1,0]]}}
  };
  const TAU=Math.PI*2,RUN_FROM=.35,RUN_TILT=.5,STILL=Object.freeze({bob:0,bodyX:0,angle:0,bodyScaleX:1,bodyScaleY:1});
  let runCache=new WeakMap();
@@ -88,7 +93,7 @@ const MountRenderer=(()=>{
    dest:[run.origin[0]*ux,run.origin[1]*uy,cw*run.scale[0]*ux,ch*run.scale[1]*uy]};
  }
  function runFrame(art,img,phase,moving){
-  if(moving<RUN_FROM)return null;
+  if(moving<RUN_FROM&&!art.profile.fly)return null;   /* a flyer is always in the air: its wings beat standing still too */
   const sheet=readRun(art,img);if(!sheet)return null;
   const frames=art.profile.run.frames;
   return runCell(art,sheet,Math.floor((phase%TAU+TAU)%TAU/TAU*frames)%frames);
@@ -199,20 +204,24 @@ const MountRenderer=(()=>{
   const seat=run?run.seat:[art.profile.seat[0]*art.iw,art.profile.seat[1]*art.ih];
   const seatX=(seat[0]-art.ground[0])*px*bodyScaleX;
   const seatY=(seat[1]-art.ground[1])*px*bodyScaleY;
+  /* 🐉 how high a flyer holds its lowest claw over its shadow; it rises on the downstroke (phase π: wings low) and sinks as they lift */
+  const air=art.profile.fly?-((art.profile.lift||0)-(art.profile.heave||0)*Math.cos(phase))*size:0;
   const cosine=Math.cos(angle),sine=Math.sin(angle);
   const hipY=-3; // The belt/hip of the 48px painted player, above its knee hem.
   const riderX=fx*(bodyX+seatX*cosine-seatY*sine);
-  const riderY=groundY+bob+seatX*sine+seatY*cosine-hipY;
+  const riderY=groundY+bob+air+seatX*sine+seatY*cosine-hipY;
   const width=clamp(Number.isFinite(options.bootWidth)?options.bootWidth:10,8,13);
   const stirrup=Math.sin(phase*2-.4)*moving;
   const riderAngle=fx*(art.profile.lean*moving+(run?run.tilt*RUN_TILT:angle*.55)+Math.sin(phase*2-.8)*.014*moving);
+  /* The rider faces the camera, turned toward fx: the leg on the mount's near flank is the rider's own right leg when
+     riding right, and it shows on the side behind the rider's facing (-fx). The other boot sits forward, behind the body. */
   const boots={
-   far:{x:-fx*3.5,y:1.8,width:width*.78,angle:fx*.12,fx,alpha:.83},
-   near:{x:fx*(3.5+stirrup*.55),y:3.5+stirrup*.4,width:width*.87,angle:-fx*(.14+stirrup*.045),fx,alpha:1}
+   far:{x:fx*3.5,y:1.8,width:width*.78,angle:fx*.12,fx,alpha:.83},
+   near:{x:fx*(-3.5+stirrup*.55),y:3.5+stirrup*.4,width:width*.87,angle:-fx*(.14+stirrup*.045),fx,alpha:1}
   };
-  return {art,run,x:Number.isFinite(options.x)?options.x:0,y:Number.isFinite(options.y)?options.y:0,fx,phase,moving,size,px,bob,bodyX,angle,bodyScaleX,bodyScaleY,riderAngle,groundY,riderX,riderY,hipY,by:0,boots,width:art.bounds[2]*px,height:art.bounds[3]*px};
+  return {art,run,air,x:Number.isFinite(options.x)?options.x:0,y:Number.isFinite(options.y)?options.y:0,fx,phase,moving,size,px,bob,bodyX,angle,bodyScaleX,bodyScaleY,riderAngle,groundY,riderX,riderY,hipY,by:0,boots,width:art.bounds[2]*px,height:art.bounds[3]*px};
  }
- function mountTransform(g,l){g.translate(l.fx*l.bodyX,l.groundY+l.bob);g.scale(l.fx,1);g.rotate(l.angle);g.scale(l.px*l.bodyScaleX,l.px*l.bodyScaleY);g.translate(-l.art.ground[0],-l.art.ground[1]);}
+ function mountTransform(g,l){g.translate(l.fx*l.bodyX,l.groundY+l.bob+(l.air||0));g.scale(l.fx,1);g.rotate(l.angle);g.scale(l.px*l.bodyScaleX,l.px*l.bodyScaleY);g.translate(-l.art.ground[0],-l.art.ground[1]);}
  function riderTransform(g,l){g.translate(l.riderX,l.riderY+l.hipY);g.rotate(l.riderAngle);g.translate(0,-l.hipY);}
  function riderPoint(l,x,y){const c=Math.cos(l.riderAngle),s=Math.sin(l.riderAngle);return {x:l.riderX+c*x-s*(y-l.hipY),y:l.riderY+l.hipY+s*x+c*(y-l.hipY)};}
  function drawRiderBoots(g,img,ride,layer){
@@ -225,13 +234,43 @@ const MountRenderer=(()=>{
    g.drawImage(typeof mip==='function'?mip(img,b.width):img,-b.width/2,-2,b.width,h);g.restore();
   }
  }
+ /* 💨 a flyer's downstroke pushes air: soft puffs curl out from under both wing tips, whooshes sweep past them and a ring
+    of wind runs over the ground round the shadow. All of it is a function of the wingbeat phase, so nothing is kept
+    between frames and a hovering dragon puffs as steadily as a flying one. at: the phase where the downstroke ends. */
+ function drawGust(g,l){
+  const p=l.art.profile,gust=p.gust;if(!gust)return;
+  const age=((l.phase-gust.at)%TAU+TAU)%TAU/TAU;if(age>=.55)return;
+  const t=age/.55,fade=Math.pow(1-t,1.5)*Math.min(1,t*6),k=p.height/120*l.size;
+  g.save();
+  for(const [u,v,dir] of gust.puffs){
+   const x0=l.fx*(l.bodyX+(u-l.art.ground[0])*l.px)-l.fx*t*22*k*l.moving,y0=l.groundY+l.bob+l.air+(v-l.art.ground[1])*l.px;
+   for(let i=0;i<3;i++){   /* three soft clouds rolling apart and sinking */
+    const spread=(i-1)*9*k+l.fx*dir*t*14*k,x=x0+spread,y=y0+t*16*k+i%2*4*k,r=(5+t*14)*k*(1-.18*Math.abs(i-1));
+    const puff=g.createRadialGradient(x,y,0,x,y,r);
+    puff.addColorStop(0,'rgba(240,247,255,'+(.52*fade)+')');puff.addColorStop(.6,'rgba(222,236,252,'+(.26*fade)+')');puff.addColorStop(1,'rgba(220,234,250,0)');
+    g.fillStyle=puff;g.beginPath();g.ellipse(x,y,r,r*.62,0,0,TAU);g.fill();
+   }
+   g.strokeStyle='rgba(245,250,255,'+(.55*fade)+')';g.lineWidth=Math.max(.8,1.3*k);g.lineCap='round';
+   for(let i=0;i<2;i++){   /* whooshes: two arcs sweeping down and out */
+    const r=(8+t*18+i*6)*k,y=y0+t*6*k+i*5*k,start=l.fx*dir>0?-.1:Math.PI*.55,len=Math.PI*.45*(1-t*.3);
+    g.beginPath();g.ellipse(x0+l.fx*dir*(3+i*5)*k,y,r,r*.45,0,start,start+len);g.stroke();
+   }
+  }
+  /* the wind reaches the ground: a ring opens round the shadow and fades */
+  const ring=(20+t*48)*k;
+  g.strokeStyle='rgba(235,242,250,'+(.3*fade)+')';g.lineWidth=Math.max(.8,1.6*k*(1-t*.5));
+  g.beginPath();g.ellipse(0,l.groundY,ring,ring*.22,0,0,TAU);g.stroke();
+  g.restore();
+ }
  function draw(g,options,drawRider){
   const l=getLayout(options);if(!l)return null;
   const device=Number.isFinite(options.deviceScale)&&options.deviceScale>0?options.deviceScale:1;
   const run=l.run,masks=run?runMasks(l):l.art,pose=run?null:poseFrame(l,device);
   g.save();g.translate(l.x,l.y);
-  g.fillStyle='rgba(0,0,0,.24)';g.beginPath();g.ellipse(0,l.groundY,l.width*.34,6*l.size,0,0,Math.PI*2);g.fill();
+  if(l.art.profile.fly){g.fillStyle='rgba(0,0,0,.16)';g.beginPath();g.ellipse(0,l.groundY,l.width*.26,5*l.size,0,0,Math.PI*2);g.fill();}
+  else{g.fillStyle='rgba(0,0,0,.24)';g.beginPath();g.ellipse(0,l.groundY,l.width*.34,6*l.size,0,0,Math.PI*2);g.fill();}
   if(l.art.profile.spectral){g.fillStyle='rgba(76,157,238,.085)';g.beginPath();g.ellipse(0,l.groundY,l.width*.39,8*l.size,0,0,Math.PI*2);g.fill();}
+  drawGust(g,l);
   g.save();mountTransform(g,l);const clipTransform=g.getTransform();g.restore();
   const clip=path=>bodyContext=>{const transform=bodyContext.getTransform();bodyContext.setTransform(clipTransform);bodyContext.clip(path,'evenodd');bodyContext.setTransform(transform);};
   if(typeof drawRider==='function'&&ready(options.bootImg)){
