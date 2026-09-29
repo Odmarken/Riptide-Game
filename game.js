@@ -435,11 +435,15 @@ function lightPersonShadow(wx,wy,y,tall,k=1){   /* in a person's own frame (k it
    (15%) a mist lies for a quarter of an hour. While it rains the sun is
    behind the clouds: the shadows go soft, the gold and the flares go out and the day turns grey. Moonshine, the City and the
    Wasteland share one sky - when it rains in one it rains in all of them (asked for 2026-09-26) - and every leveling zone has one
-   of its own; all on the clock like the sun, so it is the same weather whenever you come back. Settings -> Video -> Weather turns it
+   of its own; all on the clock like the sun, so it is the same weather whenever you come back. Since 2026-09-29 the Harbour (under
+   the City's sky) and every port of call (each its own sky; Ravenholt's showers are snow) have it too, and a mist comes in off the
+   sea there as often as the Wasteland's, on a roll of its own. Settings -> Video -> Weather turns it
    off; weatherTest('rain'|'snow'|'fog',amount) in the console holds it for a screenshot, weatherTest() lets it go. */
 const WEATHER={on:true,pin:null,rainChance:.2,rainLen:600,fogChance:.15,fogLen:900,rain:0,snow:0,fog:0,wind:0};   /* the chance of rain, or of mist, in a
    cycle and how many seconds it lasts; this frame's rain, snow and fog 0-1, wind -1 (to the left) to 1 */
-function weatherZone(z){return sunZone(z)&&!!(z.tavern||z.city||z.wasteland||!z.special);}   /* Moonshine, the City, the Wasteland, the leveling zones */
+function weatherZone(z){return sunZone(z)&&!!(z.tavern||z.city||z.wasteland||z.harbor||(z.town&&!z.interior)||!z.special);}   /* Moonshine, the City and its Harbour, the Wasteland, the leveling zones, and (2026-09-29) the ports of call */
+const seaMist=z=>!!(z&&(z.harbor||(z.town&&!z.interior)));   /* 🌫 a mist in off the sea: the Harbour and the ports, on a roll of their own */
+const townSnows=z=>!!(z&&z.town&&typeof TownWorld!=='undefined'&&(TownWorld.town(z.town)||{}).weather==='snow');   /* Ravenholt's showers are snow */
 function weatherTest(kind=null,amount=1){WEATHER.pin=kind?{[kind]:amount}:null;return kind?'weather '+kind+' '+amount:'weather free';}
 const wxHash=n=>{n=Math.imul(n^(n>>>16),0x45d9f3b);n=Math.imul(n^(n>>>16),0x45d9f3b);return ((n^(n>>>16))>>>0)/4294967296;};
 function wxNoise(x,seed){   /* a smooth wander between 0 and 1: a fresh value every whole x, eased between */
@@ -450,7 +454,7 @@ function weatherUpdate(z,zone,ms=Date.now()){   /* this zone's sky now */
  WEATHER.rain=WEATHER.snow=WEATHER.fog=0;
  if(!WEATHER.on||!z)return WEATHER;
  const cyc=SUN.day+SUN.night,t=(ms-sunAnchor())/1000,k=Math.floor(t/cyc),tc=t-k*cyc;   /* the cycle, and how far into it */
- const seed=z.tavern||z.city||z.wasteland?1000:(zone|0)+1,snowy=!!(z.snowTrees||(z.city&&world&&world.look&&world.look.snow));
+ const seed=z.tavern||z.city||z.wasteland||z.harbor?1000:(zone|0)+1,snowy=!!(z.snowTrees||(z.city&&world&&world.look&&world.look.snow)||townSnows(z));   /* the Harbour is under the City's sky; each port has its own */
  WEATHER.wind=wxNoise(t/40,seed*3+2)*2-1;
  if(WEATHER.pin){for(const k of ['rain','snow','fog'])WEATHER[k]=Math.max(0,Math.min(1,+WEATHER.pin[k]||0));return WEATHER;}
  const spell=(chance,len,salt,fade)=>{   /* a spell of weather this cycle: it comes at all by `chance`, lasts `len` seconds, starts anywhere in the cycle */
@@ -460,6 +464,7 @@ function weatherUpdate(z,zone,ms=Date.now()){   /* this zone's sky now */
  };
  if(weatherZone(z))WEATHER[snowy?'snow':'rain']=spell(WEATHER.rainChance,WEATHER.rainLen,1,30);   /* 20% a cycle, ten minutes */
  if(z.wasteland)WEATHER.fog=spell(WEATHER.fogChance,WEATHER.fogLen,2,60);   /* 15% a cycle, a quarter of an hour */
+ else if(seaMist(z))WEATHER.fog=spell(WEATHER.fogChance,WEATHER.fogLen,3,60);   /* the sea's own: not the Wasteland's hour */
  return WEATHER;
 }
 function weatherDim(){   /* clouds over the sun: soft shadows, no gold, no flares */
@@ -1414,6 +1419,36 @@ const TIDE_GUILD_ZONE=ZONES.findIndex(z=>z.tideguild);
 const THRONE_ZONE=ZONES.findIndex(z=>z.throne);
 const HARBOR_ZONE=ZONES.findIndex(z=>z.harbor);
 const townZone=id=>ZONES.findIndex(z=>z.town===id);   /* ⛵ a port of call is found by its TownWorld id */
+/* 🧭 an instance: a place you fight your way through and leave - a dungeon, a raid, a boss's arena, Valhalla, the Cow Level,
+   the Crypts, the Final Hour. Logging out in one does not wake you there (migrate); anywhere else, you wake where you stood. */
+const instanceZone=z=>!!(z&&(z.dungeon||z.raid||z.boss||z.valhalla||z.cow||z.crypts||z.finalb));
+/* the exact spot a hero logged out on: kept on this device only (no cloud traffic, no new rev), written when the hero has
+   walked a little way or changed zone and when the game is left, and read back when that hero next enters the same zone -
+   if the spot is still free (the Crown Ledger may have built on it) */
+const spotKey=id=>'riptide-spot-'+id;
+let spotLast=null,wakeSpot=null;
+function spotStamp(force){
+ if(!gameOn||!S||!S.id||!hero||hero.dead||!world)return;
+ const x=Math.round(hero.x),y=Math.round(hero.y);
+ if(!force&&spotLast&&spotLast.id===S.id&&spotLast.z===S.zone&&Math.hypot(x-spotLast.x,y-spotLast.y)<48)return;
+ spotLast={id:S.id,z:S.zone,x,y};
+ deviceSet(spotKey(S.id),JSON.stringify({z:S.zone,name:(ZONES[S.zone]||{}).name,x,y})).catch(()=>{});
+}
+async function loadSpot(id){
+ try{const sp=JSON.parse(await deviceGet(spotKey(id))||'null');return sp&&Number.isFinite(sp.x)&&Number.isFinite(sp.y)&&ZONES[sp.z]&&ZONES[sp.z].name===sp.name?sp:null;}catch(e){return null;}
+}
+/* after the world is built: stand the hero on the spot, unless it is another zone, off the map or built over */
+function wakeAt(){
+ const sp=wakeSpot;wakeSpot=null;
+ if(!sp||!hero||!world||sp.z!==S.zone||instanceZone(zoneOf()))return false;
+ const x0=hero.x,y0=hero.y,r=hero.r||13;
+ if(sp.x<r+16||sp.y<r+16||sp.x>world.w-r-16||sp.y>world.h-r-16)return false;
+ hero.x=sp.x;hero.y=sp.y;refreshWastelandChunks();
+ if(collide(hero,sp.x,sp.y)){hero.x=x0;hero.y=y0;refreshWastelandChunks();return false;}
+ pet.x=hero.x-30;pet.y=hero.y+14;
+ camX=hero.x-VW/(2*zoom);camY=hero.y-VH/(2*zoom);
+ return true;
+}
 /* ⚓ the Harbour's paintings, by the names HarborWorld asks for (three of them are the City's own) */
 let harborImageSet=null;
 function harborImages(){
@@ -1544,10 +1579,43 @@ function openVoyage(){
  if(n){n.fx=hero.x>n.x?1:-1;n.bubble={txt:BLACKBEARD_ASKS[Math.floor(Math.random()*BLACKBEARD_ASKS.length)],t:5,life:5};}
  renderVoyage();$('voyageFx').style.display='flex';sfx.buy();
 }
+/* 🗺 Blackbeard's chart (assets/ui/sea-chart.jpg, painted from the user's own sketch, 2026-09-29): every place of the realm
+   where it lies on the painting, in per cent of its width and height. A place with a port (a voyage id) is a place he sails
+   to - once that port exists; the rest are only named. A red ring marks where you stand. */
+const SEA_CHART=Object.freeze([
+ {name:'The City',x:29,y:12},
+ {name:'Moonshine',x:15,y:22},
+ {name:'Wasteland',x:10,y:33},
+ {name:'The Farm',x:4,y:57},
+ {port:'home',name:'The Harbour',x:34,y:37},
+ {port:'ravenholt',name:'Ravenholt',x:91,y:9},
+ {port:'meridian',name:'Port Meridian',x:61,y:38},
+ {port:'krakensrest',name:'Kraken’s Rest',x:41,y:69},
+ {port:'silverfjord',name:'Silverfjord',x:54,y:80},
+ {port:'emberfall',name:'Emberfall',x:84,y:74}
+].map(Object.freeze));
+const VOYAGE_HINT='Pick a port on the chart and the Black Tide casts off.';
 function renderVoyage(){
  const box=$('voyageList');if(!box)return;
- box.innerHTML=voyageList().map(d=>`<button type="button" class="voyage-dest${d.here?' here':''}" data-voyage="${d.id}"${d.here?' disabled':''}><span class="voyage-icon" aria-hidden="true">${d.icon}</span><span class="voyage-text"><b>${d.name}</b><small>${d.blurb}</small></span><span class="voyage-tag">${d.here?'You are here':'Set sail'}</span></button>`).join('');
- for(const b of box.querySelectorAll('[data-voyage]'))b.onclick=()=>setSail(b.dataset.voyage);
+ const list=voyageList(),by=new Map(list.map(d=>[d.id,d])),here=list.find(d=>d.here),mark=here&&SEA_CHART.find(p=>p.port===here.id);
+ const at=p=>`left:${p.x}%;top:${p.y}%`;
+ const places=SEA_CHART.map(p=>{
+  const d=p.port&&by.get(p.port);
+  if(d&&!d.here)return `<button type="button" class="chart-place port" data-voyage="${d.id}" style="${at(p)}" aria-label="Set sail for ${d.name}">${d.name}</button>`;
+  return p===mark?'':`<span class="chart-place" style="${at(p)}">${p.name}</span>`;   /* where you stand is named under the ring */
+ }).join('');
+ const off=list.filter(d=>!d.here&&!SEA_CHART.some(p=>p.port===d.id));   /* a port not painted on the chart yet still sails */
+ box.innerHTML=`<div class="chart"><img class="chart-map" src="assets/ui/sea-chart.jpg?v=1" alt="Captain Blackbeard's chart of the realm" draggable="false">${places}`
+  +(mark?`<span class="chart-you" style="${at(mark)}" aria-label="You are here: ${mark.name}"><b>You</b><i>${mark.name}</i></span>`:'')+`</div>`
+  +(off.length?`<div class="chart-more">${off.map(d=>`<button type="button" class="sbtn" data-voyage="${d.id}">${d.icon} ${d.name}</button>`).join('')}</div>`:'')
+  +`<p class="chart-hint" id="voyageHint">${VOYAGE_HINT}</p>`;
+ const hint=$('voyageHint');
+ for(const b of box.querySelectorAll('[data-voyage]')){
+  const d=by.get(b.dataset.voyage);
+  b.onclick=()=>setSail(b.dataset.voyage);
+  b.onmouseenter=b.onfocus=()=>{if(hint&&d)hint.textContent='⛵ '+d.name+' - '+(d.blurb||'Set sail.');};
+  b.onmouseleave=b.onblur=()=>{if(hint)hint.textContent=VOYAGE_HINT;};
+ }
 }
 function setSail(id){
  const d=voyageList().find(d=>d.id===id);
@@ -2840,6 +2908,14 @@ function migrate(s){ /* fills fields missing from older saves */
     is append-only, so an older exe or an old browser tab simply has a shorter one. Such a hero wakes
     up in Moonshine instead of taking the character list down with him. */
  if(s.atTown){const t=ZONES.findIndex(z=>z.town===s.atTown);if(t>=0&&(s.zone|0)===CITY_ZONE){s.zone=t;delete s.atHarbor;}delete s.atTown;}   /* ⛵ written down as the City: wake in the port you sailed to */
+ /* 🧭 where you logged out is where you wake (asked for 2026-09-29): the Throne Hall and the Harbour are written down as
+    the City for older builds - read the note back - and an instance (a dungeon, a raid, a boss's arena) is no place to wake
+    up in: a Wasteland dungeon puts you back at its door, the rest carry you home to Moonshine */
+ if((s.zone|0)===CITY_ZONE&&s.atPalace&&THRONE_ZONE>=0){s.zone=THRONE_ZONE;delete s.atPalace;}
+ else if((s.zone|0)===CITY_ZONE&&s.atHarbor&&HARBOR_ZONE>=0){s.zone=HARBOR_ZONE;delete s.atHarbor;}
+ const woke=ZONES[s.zone|0];
+ if(woke&&woke.dungeon){s.zone=WASTELAND_ZONE;s.atDungeon=woke.dungeon;}
+ else if(instanceZone(woke))s.zone=TAVERN_ZONE;
  if(!ZONES[s.zone|0])s.zone=TAVERN_ZONE;
  s.tainted=false;
  s.taintV=0;
@@ -6513,7 +6589,8 @@ function buildZone(){
  if(expeditionSpawn&&expeditionSpawn.zone===S.zone){world.spawn={x:expeditionSpawn.x,y:expeditionSpawn.y};expeditionSpawn=null;}
  else if(z.city&&S.atPalace)world.spawn={...PALACE_FOOT}; /* 👑 logged out in the Throne Hall: wake up at the foot of its stair */
  else if(z.city&&S.atHarbor)world.spawn={...HARBOR_FOOT}; /* ⚓ logged out in the Harbour: wake up on the flight down to it */
- delete S.atPalace;delete S.atHarbor;
+ else if(S.zone===WASTELAND_ZONE&&S.atDungeon){const e=WastelandWorld.ENTRANCES.find(e=>e.id===S.atDungeon);if(e)world.spawn={x:e.x,y:e.y+180};}   /* 🧭 logged out in a dungeon: wake at its door */
+ delete S.atPalace;delete S.atHarbor;delete S.atDungeon;
  prerenderGround(z,R);
  const cd0=classOf().spells.map(()=>0);
  /* no zone-hop cheesing: hp/mana/cooldowns travel with you between zones
@@ -17139,7 +17216,8 @@ $('smeltGo').onclick=()=>{
  log('<span class="imp">🔥 The furnace is lit.</span> An emerald in five minutes.','loot');
 };
 setInterval(()=>{if($('smithFx').style.display==='flex')smithRefresh();},1000);
-setInterval(()=>{if(gameOn)dragonEggTick();},1000);   /* 🐉 the egg counts down in the bag and hatches on time */
+setInterval(()=>{if(gameOn)dragonEggTick();},1000);
+setInterval(()=>spotStamp(false),4000);   /* 🧭 the spot to wake on, kept up to date on this device */   /* 🐉 the egg counts down in the bag and hatches on time */
 setInterval(()=>{
  const done=smeltTick();
  if($('smeltFx').style.display==='flex'&&(done||smeltLeft()>0))smeltRefresh();
@@ -17612,7 +17690,7 @@ setInterval(()=>{ /* trailing flush - a dirty save never waits much longer than 
    skipped entirely when the app is swiped away), so listen for both. The local save is
    already on disk and now outranks a stale cloud copy, so a missed push costs nothing but
    a delay - it goes up on the next launch. */
-const cloudBail=async()=>{try{await save();}catch(e){}FB.lastPush=0;flushCloud();}; /* save first - the last seconds of play were only in memory, and a push of unsaved state went up under the old rev - then ignore the throttle on the way out */
+const cloudBail=async()=>{spotStamp(true);try{await save();}catch(e){}FB.lastPush=0;flushCloud();}; /* save first - the last seconds of play were only in memory, and a push of unsaved state went up under the old rev - then ignore the throttle on the way out */
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')cloudBail();});
 addEventListener('pagehide',cloudBail);
 async function loadRoster(){
@@ -18350,6 +18428,7 @@ function updateAcctUI(){
  }
 }
 function showLogin(msg=''){
+ spotStamp(true); /* 🧭 where this hero is being left */
  dismissHeroGuide();
  TideUI.leaveZone();
  gameOn=false;
@@ -18451,6 +18530,7 @@ async function renderSelect(){
   if(!ch)return;
   if(ch.hardcore&&ch.hcDead)return; /* fallen hardcore heroes never rise */
   S=ch;
+  wakeSpot=await loadSpot(ch.id);   /* 🧭 the spot this hero logged out on */
   /* cloudPullRoster has already reconciled by the time anyone can press Enter World, so
      claiming the lead here is safe - and it stops a device that was rolled back earlier
      from sitting level with a stale cloud copy and trading writes with it. */
@@ -18474,12 +18554,14 @@ async function renderSelect(){
   delete memChars[b.dataset.del];
   await deviceDelete('riptide-char-'+b.dataset.del);
   await deviceDelete('eastvale-char-'+b.dataset.del);
+  await deviceDelete(spotKey(b.dataset.del));
   await cloudDeleteChar(b.dataset.del);
   renderSelect();
  });
  $('newCharBtn').style.display=chars.length>=8?'none':'block';
 }
 function showSelect(){
+ spotStamp(true); /* 🧭 where this hero is being left */
  dropFarmBuild(); /* the cart and any held piece belong to the hero being left */
  cancelHallScenes(); /* and so does any scene */
  parkDirtyHero(); /* and its unsent save, which goes up on its own */
@@ -18975,7 +19057,7 @@ function beginGame(isNew){
  $('select').classList.remove('open');
  openTab('battle');
  hero=null; /* fresh character entering the world - never inherit the previous character's vitals */
- resize();setZoom(zmin());applyZoneUI();buildZone();buildSkillbar();renderHUD();
+ resize();setZoom(zmin());applyZoneUI();buildZone();wakeAt();buildSkillbar();renderHUD();
  syncAudioUI(); /* button glyph, both sliders and their numbers, in one place */
  applyVolumes();
  gameOn=true;

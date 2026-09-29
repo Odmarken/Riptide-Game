@@ -1,0 +1,17 @@
+{
+ "sea-chart.jpg": {
+  "jobId": "f5cd5cf6-d58f-4b4c-a86c-2b18e58f44cb",
+  "model": "gpt_image_2_5",
+  "date": "2026-09-29",
+  "use": "Captain Blackbeard's voyage window (#voyageFx): the realm as a pirate chart; the names, the ports to click and the red ring round 'You' are laid over it by renderVoyage (SEA_CHART in game.js)",
+  "reference": "the user's own sketch of the realm (uploaded as Higgsfield media ae60804b-00bd-49f2-bfaa-57ab6d9cf8fc): City, Harbour and Home top left, the Wasteland, the Farm on the far left, Ravenholt top right, Port Meridian mid-sea, Kraken's Rest, Silverfjord and Emberfall along the bottom",
+  "prompt": "an old pirate treasure map on stained parchment, lands in ink and watercolour following the sketch, no text",
+  "alternative": "75fd764c-35f2-4d85-887e-e21dde214a88 (the same layout as a painted sea chart on a dark teal sea - not used: black names would not read on it)",
+  "source": [1344, 752],
+  "processing": "saved as JPEG q90, native size"
+ },
+ "fonts/PirataOne-Regular.ttf": {
+  "source": "Google Fonts (github.com/google/fonts, ofl/pirataone), SIL Open Font License 1.1 - see assets/fonts/PirataOne-OFL.txt",
+  "use": "the black pirate lettering of the names on the chart"
+ }
+}

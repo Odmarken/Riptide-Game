@@ -18,7 +18,7 @@ function harness() {
   $: () => ({style:{},classList:{remove:noop}}),
   HeroGuide: {isOpen:()=>active,open(options){active=true;callback=options.onReady;},close(){active=false;}},
   openTab:noop,resize:noop,setZoom:noop,zmin:()=>1,applyZoneUI:noop,
-  buildZone:()=>buildPauses.push(context.gamePaused),buildSkillbar:noop,renderHUD:noop,
+  buildZone:()=>buildPauses.push(context.gamePaused),wakeAt:noop,buildSkillbar:noop,renderHUD:noop,
   syncAudioUI:noop,applyVolumes:noop,setTimeout:noop,preloadMaps:noop,bankTick:noop,smithTick:noop,
   log:noop,stageMsg:noop,classOf:()=>({name:'Warrior'}),zoneOf:()=>({name:'Fields'}),
   save:()=>saves.push({...context.S}),saveNow:()=>saves.push({...context.S}),

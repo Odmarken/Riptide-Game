@@ -412,7 +412,7 @@ test('the whole world casts: mountains, farm pieces, the Wasteland\'s buildings,
 });
 
 test('the weather: a cycle rains one time in five, for ten minutes, in Moonshine, the City, the Wasteland and the leveling zones - snow where it is snowy - and one in seven brings the Wasteland a quarter hour of mist', () => {
-  const box = vm.createContext({ Math, WeakMap, Date, world: { look: null } });
+  const box = vm.createContext({ Math, WeakMap, Date, world: { look: null }, TownWorld: { town: id => id === 'ravenholt' ? { weather: 'snow' } : {} } });
   vm.runInContext(section('const SUN=', '/* the flares:'), box);
   vm.runInContext(section('/* 🌧 The weather', 'let mistTex=null;'), box);
   const a0 = game.indexOf('const ZONES=['), i0 = game.indexOf('[', a0);
@@ -421,7 +421,8 @@ test('the weather: a cycle rains one time in five, for ten minutes, in Moonshine
   box.ZONES = vm.runInContext('(' + game.slice(i0, j0 + 1) + ')', box);
   const wet = [...vm.runInContext('ZONES.filter(weatherZone).map(z=>z.name)', box)];
   assert.deepEqual(wet, ['Willowmere Fields', 'Thornwood Glade', 'Ironcrag Pass', 'Mistfen Marsh', 'Ashen Moor', 'Duskhollow Barrens', 'Frostspire Heights', 'Shatterstone Vale',
-    'Cinderwaste', 'Stormreach Coast', 'Blackwind Steppe', 'Emberdeep Approach', 'Moonshine', 'City', 'Wasteland', 'Frostwild Reach', 'Sunscar Sands'], 'where it can rain');
+    'Cinderwaste', 'Stormreach Coast', 'Blackwind Steppe', 'Emberdeep Approach', 'Moonshine', 'City', 'Wasteland', 'Frostwild Reach', 'Sunscar Sands',
+    'The Harbour', 'Silverfjord', 'Ravenholt', 'Emberfall', 'Port Meridian', 'Kraken’s Rest'], 'where it can rain - the Harbour and the ports too since 2026-09-29, not the palace');
 
   const wu = vm.runInContext('weatherUpdate', box), pin = p => vm.runInContext('WEATHER.pin=' + JSON.stringify(p), box);
   const zoneNamed = name => { const i = box.ZONES.findIndex(z => z.name === name); return [box.ZONES[i], i]; };
@@ -452,6 +453,7 @@ test('the weather: a cycle rains one time in five, for ten minutes, in Moonshine
     const home = sky('Moonshine', t).rain;
     if (home > .5) showers++;
     assert.equal(sky('City', t).rain, home, 'when it rains at home it rains in the City');
+    assert.equal(sky('The Harbour', t).rain, home, '...and in the Harbour under it');
     assert.equal(sky('Wasteland', t).rain, home, '...and in the Wasteland');
     assert.equal(sky('Sunscar Sands', t).rain, home);
     assert.equal(sky('Frostwild Reach', t).snow, home, 'where it snows instead, at the same time');
@@ -460,9 +462,24 @@ test('the weather: a cycle rains one time in five, for ten minutes, in Moonshine
   assert.ok(showers > 0, 'and it does rain in those hours');
   for (let t = T0; t < T0 + 40 * HOUR; t += 120) {
     assert.equal(sky('Frostspire Heights', t).rain, 0, 'on the snowy heights it snows instead');
-    assert.equal(sky('Farm', t).rain + sky('The Harbour', t).rain + sky('Silverfjord', t).rain + sky('Throne Hall', t).rain, 0, 'the Farm, the ports and indoors stay as they are');
-    assert.equal(sky('City', t).fog + sky('Moonshine', t).fog, 0, 'the mist is the Wasteland\'s');
+    assert.equal(sky('Farm', t).rain + sky('Throne Hall', t).rain + sky('Palace of Silverfjord', t).rain, 0, 'the Farm and indoors stay as they are');
+    assert.equal(sky('City', t).fog + sky('Moonshine', t).fog, 0, 'the City and Moonshine get no mist');
+    assert.equal(sky('Ravenholt', t).rain, 0, 'in Ravenholt it snows instead');
   }
+  /* every port of call: a sky of its own, its showers, and a sea mist on a roll that is not the Wasteland's */
+  for (const port of ['Silverfjord', 'Ravenholt', 'Emberfall', 'Port Meridian', 'Kraken’s Rest']) {
+    const wet = cycles(port, 200, 'rain').filter(s => s > 0).length / 200, misty = cycles(port, 200, 'fog').filter(s => s > 0).length / 200;
+    assert.ok(wet > .1 && wet < .3, port + ' has its showers: ' + wet.toFixed(2));
+    assert.ok(misty > .06 && misty < .25, port + ' has its sea mist: ' + misty.toFixed(2));
+  }
+  let portOwn = false, harbourMist = 0, mistApart = false;
+  for (let t = T0; t < T0 + 60 * HOUR; t += 300) {
+    if ((sky('Silverfjord', t).rain > .5) !== (sky('Emberfall', t).rain > .5)) portOwn = true;
+    const hm = sky('The Harbour', t).fog; if (hm > .5) harbourMist++;
+    if ((hm > .5) !== (sky('Wasteland', t).fog > .5)) mistApart = true;
+  }
+  assert.ok(portOwn, 'each port has a sky of its own');
+  assert.ok(harbourMist > 0 && mistApart, 'the Harbour gets a sea mist, not the Wasteland\'s');
   pin({ rain: .7 });
   assert.equal(sky('Willowmere Fields', T0).rain, .7, 'weatherTest holds it');
   vm.runInContext('WEATHER.on=false', box);

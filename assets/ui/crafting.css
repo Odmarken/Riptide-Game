@@ -79,18 +79,23 @@ button.craft-slot{cursor:var(--hand)}.craft-slot.filled,.craft-slot.ready{border
 .insc-odds>i{display:block;height:100%}
 .insc-oddrow{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 12px;font:11px/1.5 var(--body,sans-serif)}.insc-odd{color:var(--ir)}
 .insc-oddrow b{font-weight:600}.insc-odd.none{opacity:.38}
-/* ⛵ Blackbeard's voyage: one card per port of call */
-.voyage-box{width:min(100%,640px)}
-.voyage-list{display:flex;flex-direction:column;gap:10px;padding:2px}
-.voyage-dest{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:12px 14px;border-radius:14px;border:1px solid var(--craft-line);background:linear-gradient(145deg,#44311dcc,#18110fcc);color:#e7dac2;cursor:var(--hand);font:inherit;box-shadow:inset 0 1px 0 #fff1;transition:border-color .15s,transform .15s}
-.voyage-dest:hover:not(:disabled),.voyage-dest:focus-visible{border-color:var(--craft-accent);transform:translateY(-1px)}
-.voyage-dest.here{opacity:.6;cursor:var(--arrow)}
-.voyage-icon{flex:none;width:46px;font-size:30px;text-align:center}
-.voyage-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
-.voyage-text b{font:17px/1.2 var(--display,serif);color:#f3e4c9}
-.voyage-text small{font:12px/1.45 var(--body,sans-serif);color:#c1ad91}
-.voyage-tag{flex:none;font:600 10px var(--body,sans-serif);letter-spacing:1.5px;text-transform:uppercase;color:var(--craft-accent)}
-.voyage-dest.here .voyage-tag{color:#9a8a70}
+/* ⛵ Blackbeard's voyage: his chart of the realm, names in black pirate lettering, the ports to click, a red ring round you */
+@font-face{font-family:'Pirata One';src:url('../fonts/PirataOne-Regular.ttf') format('truetype');font-display:swap}
+#voyageFx .voyage-box{width:min(100%,1100px,calc((100vh - 330px)*1.787 + 58px))}   /* the chart as big as the screen's height allows (an id: .craft-ledger sets 880 in ledger.css, loaded later) */
+.voyage-list{padding:2px}
+.chart{position:relative;width:100%;aspect-ratio:1344/752;border-radius:10px;overflow:hidden;background:#cdb88c;box-shadow:0 8px 26px #000b,0 0 0 1px var(--craft-line);user-select:none}
+.chart-map{display:block;width:100%;height:100%;object-fit:cover;pointer-events:none}
+.chart-place{position:absolute;transform:translate(-50%,-50%);padding:1px 6px;border:0;background:none;white-space:nowrap;font:400 clamp(11px,1.4vw,18px)/1.05 'Pirata One',var(--display,serif);letter-spacing:.4px;color:#150d06;text-shadow:0 0 2px #f4e3bb,0 0 4px #f4e3bb,0 0 8px #ecd7a8;pointer-events:none}
+.chart-place.port{pointer-events:auto;cursor:var(--hand);font-size:clamp(12px,1.7vw,22px);border-radius:10px;transition:transform .15s,color .15s,background .15s}
+.chart-place.port::before{content:'⚓\FE0E';margin-right:3px;font-size:.8em}
+.chart-place.port:hover,.chart-place.port:focus-visible{outline:none;color:#6a120a;transform:translate(-50%,-50%) scale(1.14);background:radial-gradient(ellipse at 50% 55%,#f6e7c2e6 35%,#f6e7c200 74%)}
+.chart-you{position:absolute;width:clamp(46px,7.5%,92px);aspect-ratio:1;transform:translate(-50%,-50%);border:3px solid #c3141b;border-radius:50%;box-shadow:0 0 0 2px #f4e3bb99,0 0 14px #c3141bb3,inset 0 0 10px #c3141b66;pointer-events:none;animation:chartYou 1.8s ease-in-out infinite}
+.chart-you b{position:absolute;left:50%;bottom:100%;transform:translate(-50%,-3px);font:400 clamp(13px,1.6vw,20px)/1 'Pirata One',var(--display,serif);letter-spacing:.6px;color:#c3141b;text-shadow:0 0 2px #f4e3bb,0 0 5px #f4e3bb,0 0 9px #f4e3bb}
+.chart-you i{position:absolute;left:50%;top:100%;transform:translate(-50%,3px);white-space:nowrap;font:400 clamp(11px,1.4vw,18px)/1.05 'Pirata One',var(--display,serif);font-style:normal;letter-spacing:.4px;color:#150d06;text-shadow:0 0 2px #f4e3bb,0 0 4px #f4e3bb,0 0 8px #ecd7a8}
+@keyframes chartYou{50%{box-shadow:0 0 0 2px #f4e3bb99,0 0 22px #e0262dd9,inset 0 0 14px #c3141b8c}}
+@media (prefers-reduced-motion:reduce){.chart-you{animation:none}}
+.chart-more{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chart-hint{margin:9px 2px 0;min-height:1.45em;font:13px/1.45 var(--body,sans-serif);color:#c1ad91}
 #voyageVeil{position:fixed;inset:0;z-index:115;display:none;align-items:center;justify-content:center;padding:24px;text-align:center;background:radial-gradient(ellipse at 50% 60%,#1d5a73 0%,#0b2533 58%,#050d14 100%);color:#f3e4c9;font:22px/1.3 var(--display,serif);letter-spacing:.5px;text-shadow:0 2px 8px #000;pointer-events:none;opacity:1}
 #voyageVeil.up{display:flex}
 #voyageVeil.lift{opacity:0;transition:opacity 1.2s ease}
