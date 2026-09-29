@@ -6,7 +6,7 @@ const path = require('node:path');
 const T = require('../assets/tides/core.js');
 const clone = value => JSON.parse(JSON.stringify(value));
 function duel(player = 'meadowmouse', foe = player, rules = T) {
-  const c = rules.createCollection();
+  const c = rules.createCollection(); c.trainer.xp = 1600;
   rules.purchaseLasso(c, 10000, {rng: () => 0, now: 1000});
   c.pets[0].speciesId = player; c.pets[0].level = 10;
   const battle = rules.beginBattle(c, {speciesId: foe, level: 10}, {rng: () => .25, now: 2000}).battle;

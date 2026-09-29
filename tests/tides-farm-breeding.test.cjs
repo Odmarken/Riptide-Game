@@ -22,6 +22,7 @@ function harness(gold=1000000){
   save:()=>calls.push({type:'save'}),renderFarmStore(){},renderHUD(){},updateCartUI(){},expandFarmStore(){},blip(){},
   snapPos:(id,x,y)=>({x,y}),cropCellTaken:()=>false,isHay:()=>false,isBull:()=>false,isCattle:()=>false,isChicken:()=>false,isBovine:()=>false,
   goldCap:()=>1e12,SCRAP_CAP:1e9,totalGold:()=>c.S.gold+(c.S.overflow||0),addGoldOverflow:n=>{c.S.gold+=n;return {got:n,over:0};}};
+ c.S.tides.trainer.xp=1600;
  vm.createContext(c);
  vm.runInContext(section('const farmAssetUrl=','function farmImageSource('),c);
  vm.runInContext(section('const FARM_BUILD=','const FARM_PRESTIGE=')+';globalThis.catalogue=FARM_BUILD;',c);
@@ -51,6 +52,24 @@ function breedingJob(h,it,now=1000){
  const r=Tides.startBreeding(c,{stationId:it.breedingStationId,parentAId:c.pets[0].id,parentBId:c.pets[1].id,now,rng:()=>0});
  assert.equal(r.ok,true);return r.job;
 }
+
+test('Trainer level gates Farm purchases, stale checkout carts and existing incubators',()=>{
+ const h=harness();h.c.S.tides.trainer.xp=799;
+ const before=clone(h.c.S);
+ h.c.placeFarmItem(TideFarm.BUILDING_ID,3100,2300);
+ assert.equal(h.c.farmCart.length,0);assert.deepEqual(clone(h.c.S),before);
+ h.c.S.tides.trainer.xp=800;h.c.placeFarmItem(TideFarm.BUILDING_ID,3100,2300);
+ assert.equal(h.c.farmCart.length,1);h.c.S.tides.trainer.xp=799;
+ const queued=clone(h.c.S);h.el('farmCheckYes').onclick();
+ assert.deepEqual(clone(h.c.S),queued);assert.equal(h.c.farmCart.length,1);
+ h.c.S.tides.trainer.xp=800;h.el('farmCheckYes').onclick();
+ const it=h.c.S.farm.b[0],door=h.c.farmBreedingDoor(it);
+ h.c.hero.x=door.x;h.c.hero.y=door.y;h.c.S.tides.trainer.xp=799;
+ h.c.openFarmBreeding(it.breedingStationId);assert.equal(h.calls.some(c=>c.type==='open'),false);
+ assert.ok(h.calls.some(c=>c.message?.includes('Level 4')));
+ h.c.S.tides.trainer.xp=800;h.c.openFarmBreeding(it.breedingStationId);
+ assert.equal(h.calls.filter(c=>c.type==='open').length,1);
+});
 
 test('the real Farm checkout charges500000gold per incubator, commits only paid ghosts and assigns persistent IDs',()=>{
  const h=harness(700000);h.c.S.overflow=400000;h.c.S.farm.lvl=2;

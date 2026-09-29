@@ -2,17 +2,18 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const W=require('../assets/wasteland/world.js'),T=require('../assets/tides/core.js'),E=require('../assets/tides/exploration.js'),Mounts=require('../assets/mounts/mounts.js');
+const TideGuildWorld=require('../assets/tides/guild-world.js');
 const game=fs.readFileSync(path.join(__dirname,'../game.js'),'utf8'),uiSource=fs.readFileSync(path.join(__dirname,'../assets/tides/ui.js'),'utf8');
 function section(start,end){const a=game.indexOf(start),b=game.indexOf(end,a+start.length);assert.ok(a>=0&&b>a,start);return game.slice(a,b);}
 function harness(){
  const elements=new Map(),calls=[];
  const el=id=>{if(!elements.has(id))elements.set(id,{id,hidden:true,innerHTML:'',textContent:'',scrollTop:0,style:{},classList:{contains:()=>false,toggle(){},add(){},remove(){}},querySelectorAll:()=>[],getClientRects:()=>[]});return elements.get(id);};
  const S={tides:T.createCollection()};T.purchaseLasso(S.tides,10000,{now:1000,rng:()=>0});S.tides.exploration=E.create(null,{seed:487});
- const context={S,Tides:T,TideExploration:E,WastelandWorld:W,Mounts,mountRide:Mounts.createRide(),calls,
+ const context={S,TideGuildWorld,Tides:T,TideExploration:E,WastelandWorld:W,Mounts,mountRide:Mounts.createRide(),calls,
   gameOn:true,gamePaused:false,zone:{city:true},world:{w:16800,h:5200,solids:[],npcs:[]},
   hero:{x:8400,y:2000,r:13,walk:0,dead:false,moveTo:null,pendingDoor:null},keys:{},holdMove:null,marker:null,
   document:{getElementById:el,querySelectorAll:()=>[],activeElement:null},Image:class {complete=false;naturalWidth=0;},
-  stopMining(){},totalGold:()=>10000,npcSebbeImg:{},speedOf:()=>175,
+  dist:(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),stopMining(){},totalGold:()=>10000,npcSebbeImg:{},speedOf:()=>175,
   openCupGame:()=>calls.push('Sebbe'),openMiningHall(){},openEnchantHall(){},openSmelter(){},openStable(){},
   openTalents(){},farmhouseClick(){},travelExpedition(){},
   setInputMode(){},initAudio(){},toggleMount(){},toggleSide(){},usePot:kind=>calls.push('potion:'+kind),cast:slot=>calls.push('cast:'+slot),
@@ -35,30 +36,30 @@ function scriptedWild(h,w){
  h.ui.updateExploration();return E.visible(h.S.tides.exploration).find(p=>p.id===w.id);
 }
 
-test('the actual church click route walks to a reachable door and opens the Tidekeeper from every side',()=>{
- for(const offset of [[0,380],[380,0],[-380,0],[0,-380]]){
-  const h=harness(),c=h.context;c.buildCity(c.mulberry32(13));
-  const church=c.world.solids.find(s=>s.type==='cathedral');h.hero.x=church.x+offset[0];h.hero.y=church.y+offset[1];
-  assert.equal(c.collide(h.hero,h.hero.x,h.hero.y),false,'start is on walkable ground');
-  c.cityClick(church.x,church.y-80);assert.ok(h.hero.pendingDoor);assert.equal(h.hero.pendingDoor.s,church);
-  assert.equal(c.collide(h.hero,h.hero.moveTo.x,h.hero.moveTo.y),false,'the requested church door is walkable');
-  for(let i=0;i<1800&&h.hero.pendingDoor;i++){
+test('the Trainer click route walks to the guild NPC and opens the lasso shop',()=>{
+ for(const [dx,dy] of [[-180,0],[180,0],[0,-180]]){
+  const h=harness(),c=h.context;c.zone={tideguild:true};c.world=TideGuildWorld.create({catalog:T.allSpecies()});
+  vm.runInContext(section('function guildWorldClick(','/* ====================',),c);
+  const trainer=c.world.npcs.find(n=>n.game==='tidetrainer');h.hero.x=trainer.x+dx;h.hero.y=trainer.y+dy;
+  assert.equal(c.guildWorldClick(trainer.x,trainer.y-30),true);assert.equal(h.hero.pendingDoor.s,trainer);
+  for(let i=0;i<400&&h.hero.pendingDoor;i++){
    const p=h.hero.pendingDoor;c.moveToward(h.hero,h.hero.moveTo.x,h.hero.moveTo.y,1/60);
-   assert.equal(c.collide(h.hero,h.hero.x,h.hero.y),false);
+   assert.equal(TideGuildWorld.contains(h.hero.x,h.hero.y,h.hero.r),true);
    if(Math.hypot(h.hero.x-p.s.x,h.hero.y-p.s.y)<p.rng)p.open();
   }
-  assert.equal(h.el('tideHub').hidden,false,'church reached from '+offset);
-  assert.equal(h.el('tideHubTitle').textContent,'The Tidekeeper');assert.equal(h.hero.pendingDoor,null);
+  assert.equal(h.el('tideHub').hidden,false);assert.equal(h.el('tideHubTitle').textContent,'Trainer');
+  assert.match(h.el('tideHubBody').innerHTML,/Trainer XP/);assert.match(h.el('tideHubBody').innerHTML,/Tidekeeper's Lasso/);
  }
 });
 
-test('church access is City-only and cannot overlap Sebbe or open while dead',()=>{
+test('Trainer is guild-only and proximity guarded; church has no shop or interaction',()=>{
  const h=harness(),c=h.context;c.buildCity(c.mulberry32(13));const church=c.world.solids.find(s=>s.type==='cathedral');
- const sebbe=c.world.npcs.find(n=>n.game==='cups');h.hero.x=sebbe.x;h.hero.y=sebbe.y+25;
- c.cityClick(sebbe.x,sebbe.y-25);assert.deepEqual(h.calls,['Sebbe']);assert.equal(h.el('tideHub').hidden,true);
- h.hero.x=church.x;h.hero.y=church.y+70;assert.equal(h.ui.churchInReach(),true);
- for(const zone of [{},{wasteland:true},{dungeon:'briarhollow'}]){c.zone=zone;assert.equal(h.ui.churchInReach(),false);}
- c.zone={city:true};h.hero.dead=true;assert.equal(h.ui.churchInReach(),false);h.ui.openChurch();assert.equal(h.el('tideHub').hidden,true);
+ h.hero.x=church.x;h.hero.y=church.y+70;c.cityClick(church.x,church.y-80);
+ assert.equal(h.el('tideHub').hidden,true);assert.equal(h.ui.trainerInReach(),false);assert.equal(h.ui.openChurch,undefined);
+ c.zone={tideguild:true};c.world=TideGuildWorld.create({catalog:T.allSpecies()});const n=c.world.npcs.find(n=>n.game==='tidetrainer');
+ h.hero.x=n.x;h.hero.y=n.y;assert.equal(h.ui.trainerInReach(),true);
+ h.hero.dead=true;assert.equal(h.ui.trainerInReach(),false);h.ui.openTrainer();assert.equal(h.el('tideHub').hidden,true);
+ h.hero.dead=false;h.hero.x+=140;assert.equal(h.ui.trainerInReach(),false);
 });
 
 test('the production unified Wasteland callback excludes props, both vendor grounds, all portals and off-map positions',()=>{
@@ -109,6 +110,17 @@ test('clicking even a spectral Tide opens the neutral challenge route without ta
  h.hero.x=2380;h.hero.pendingDoor.open();assert.equal(h.el('tideHub').hidden,false);assert.match(h.el('tideHubBody').innerHTML,/Spectral|spectral/);
  assert.equal(E.visible(h.S.tides.exploration).filter(w=>w.id==='rare').length,1,'previewing never consumes the rare encounter');
  c.zone={dungeon:'frostveil'};assert.equal(h.ui.wildClick(2500,49580),false);
+});
+
+test('the live challenge refresh keeps higher-star captures locked until the required Trainer level',()=>{
+ const h=harness(),c=h.context;c.zone={wasteland:true};c.world=W.create();Object.assign(h.hero,c.world.spawn);
+ const w={id:'locked-preview',speciesId:'mossfox',level:5,x:h.hero.x+50,y:h.hero.y,expiresAt:Date.now()+300000};
+ scriptedWild(h,w);h.ui.openWild(w.id);
+ assert.match(h.el('tideHubBody').innerHTML,/Requires Trainer level 2/);
+ h.ui.tick(1.1);assert.equal(h.el('tideChallenge').disabled,true);
+ h.S.tides.trainer.xp=100;h.ui.openWild(w.id);h.ui.tick(1.1);
+ assert.equal(h.el('tideChallenge').disabled,false);
+ assert.match(h.el('tideHubBody').innerHTML,/>Tide battle</);
 });
 
 test('an encounter that expires in its open challenge cannot start a battle or reserve the companion',()=>{

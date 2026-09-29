@@ -1423,8 +1423,8 @@ function guildWorldClick(wx,wy){
   const s=world.solids.find(s=>s.type==='well'),height=brunnImg.naturalWidth?75*brunnImg.naturalHeight/brunnImg.naturalWidth:72;
   if(s&&Math.abs(wx-s.x)<43&&wy>s.y+8-height&&wy<s.y+16){target=s;movePoint={x:s.x,y:s.y+58};open=enterTideGuild;range=100;}
  }else if(zoneOf().tideguild){
-  const n=world.npcs.find(n=>n.game==='tideguild'),exit=world.exit;
-  if(n&&Math.abs(wx-n.x)<40&&wy>n.y-95&&wy<n.y+22){target=n;open=TideUI.openGuild;range=110;}
+  const n=world.npcs.find(n=>['tideguild','tidetrainer'].includes(n.game)&&Math.abs(wx-n.x)<40&&wy>n.y-95&&wy<n.y+22),exit=world.exit;
+  if(n){target=n;open=n.game==='tidetrainer'?TideUI.openTrainer:TideUI.openGuild;range=110;}
   else if(exit&&Math.abs(wx-exit.x)<70&&wy>exit.y-120&&wy<exit.y+32){target=exit;open=leaveTideGuild;range=100;}
  }
  if(!target)return false;
@@ -4315,6 +4315,7 @@ function farmBreedingInReach(id){
 }
 function openFarmBreeding(id){
  if(!farmBreedingInReach(id))return;
+ if(!Tides.canBreed(S.tides)){stageMsg('Tide Incubator locked: reach Tides Guild Level 4 by capturing Tides.',2600);sfx.warn();return;}
  hero.moveTo=null;hero.pendingDoor=null;hero.target=null;holdMove=null;
  TideUI.openBreeding(id,{canInteract:()=>farmBreedingInReach(id)});
 }
@@ -4850,6 +4851,7 @@ function renderFarmStore(){
   const fl=(S.farm&&S.farm.lvl)||1;
   if(id==='medium'&&fl<2)return 'Farm Level 2 required';
   if(id==='mansion'&&fl<3)return 'Farm Level 3 required';
+  if(id===TideFarm.BUILDING_ID&&!Tides.canBreed(S.tides))return 'Tides Guild Level 4 required';
   if(id===TideFarm.BUILDING_ID&&!TideFarm.canPlace(S.farm,farmCart))return 'Max '+TideFarm.capacity(S.farm)+' at Farm Level '+fl;
   if((id==='lada'||id==='chickenhouse')&&countFarm(t=>t===id,true)>=houseMax())return 'Max '+houseMax()+' at Level '+fl;
   if(isHay(id)&&hayCount()>=hayMax())return 'Max '+hayMax()+' hay at Level '+fl;
@@ -4946,6 +4948,7 @@ function placeFarmItem(id,x,y){
  const fLvl=(S.farm.lvl||1);
  if(id==='medium'&&fLvl<2){stageMsg('🔒 Farm Level 2 required',1600);sfx.warn();return;}
  if(id==='mansion'&&fLvl<3){stageMsg('🔒 Farm Level 3 required',1600);sfx.warn();return;}
+ if(id===TideFarm.BUILDING_ID&&!Tides.canBreed(S.tides)){stageMsg('Tides Guild Level 4 required',1800);sfx.warn();return;}
  if(id===TideFarm.BUILDING_ID&&!TideFarm.canPlace(S.farm,farmCart)){stageMsg('Max '+TideFarm.capacity(S.farm)+' incubators at Farm Level '+fLvl,1800);sfx.warn();return;}
  if((id==='lada'||id==='chickenhouse')&&countFarm(t=>t===id,true)>=houseMax()){stageMsg('🔒 Max '+houseMax()+' at Farm Level '+fLvl,1600);sfx.warn();return;}
  if(isHay(id)&&hayCount()>=hayMax()){stageMsg('🌾 Max '+hayMax()+' hay patches at Farm Level '+fLvl,1600);sfx.warn();return;}
@@ -7937,7 +7940,6 @@ function padInteract(){
   }
  }else if(z.city){
   add(find('well'),'Tides Guild',enterTideGuild,100);
-  add(find('cathedral'),'The Tidekeeper',TideUI.openChurch,210);
   const sb=(world.npcs||[]).find(n=>n.game==='cups');
   if(sb)out.push({s:sb,label:'Sebbe',open:openCupGame,rng:120});
   add((world.npcs||[]).find(n=>n.game==='crier'),'The Town Crier',crierSpeak,130);
@@ -7970,6 +7972,7 @@ function padInteract(){
   add(world.exit,'City',leaveThroneHall,90);
  }else if(z.tideguild){
   add(world.npcs.find(n=>n.game==='tideguild'),'Battle',TideUI.openGuild,120);
+  add(world.npcs.find(n=>n.game==='tidetrainer'),'Trainer',TideUI.openTrainer,120);
   add(world.exit,'City',leaveTideGuild,115);
  }else if(z.altar){
   add(find('ritualportal'),'The Final Hour',()=>{
@@ -8286,13 +8289,6 @@ cv.addEventListener('pointerdown',e=>{
   }
  }
  if(zoneOf().city){
-  const church=world.solids.find(s=>s.type==='cathedral');
-  if(church&&Math.abs(wx-church.x)<church.r*2.7&&wy>church.y-church.r*5.5&&wy<church.y+church.r*.5){
-   const open=TideUI.openChurch;
-   if(TideUI.churchInReach())open();
-   else{hero.target=null;hero.goPortal=false;hero.moveTo={x:church.x,y:church.y+70};marker={...hero.moveTo,t:0};hero.pendingDoor={s:church,open,rng:210};}
-   return;
-  }
   /* 🥤 Sebbe first: he is small next to a cathedral, so he gets the click if it lands on him. */
   const sb=(world.npcs||[]).find(n=>n.game==='cups');
   if(sb&&Math.abs(wx-sb.x)<34&&wy>sb.y-64&&wy<sb.y+16){
@@ -8476,6 +8472,7 @@ $('farmHarvBtn').onclick=()=>{
  stageMsg(buildSel==='harvest'?'✂ Harvest mode - click hay that is ready':'✂ Harvest mode off',1400);
 };
 $('farmCheckYes').onclick=()=>{
+ if(farmCart.some(it=>it.t===TideFarm.BUILDING_ID)&&!Tides.canBreed(S.tides)){stageMsg('Tides Guild Level 4 required to buy an incubator.',2400);sfx.warn();return;}
  if(!TideFarm.cartWithinLimit(S.farm,farmCart)){stageMsg('Max '+TideFarm.capacity(S.farm)+' incubators at this Farm Level. Remove an extra incubator from the pending items.',2400);sfx.warn();return;}
  const total=farmCartTotal(),scr=farmCartScraps();
  if(scr>0&&(S.scraps||0)<scr){stageMsg('Not enough Scraps - '+scr+'⚙ needed',1800);sfx.warn();return;}
@@ -11615,8 +11612,9 @@ function renderHUD(){
   $('autoBtn').classList.toggle('on',S.auto);$('autoBtn').textContent=S.auto?'AUTO ✓':'AUTO';refreshOpenPanel();return;
  }
  if(z.tideguild){
-  $('qName').textContent='Tides Guild';$('qDesc').textContent='Speak to the Battle keeper. Best of three — first to two wins.';
-  $('qBar').style.width='100%';$('qCount').textContent='Battle';$('nextBtn').style.display='none';
+  const rank=Tides.trainerView(S.tides);
+  $('qName').textContent='Tides Guild · Trainer Level '+rank.level;$('qDesc').textContent=rank.next?rank.xp+' XP · '+rank.remaining+' to level '+rank.next.level:'Tide Master · All captures and breeding unlocked';
+  $('qBar').style.width=(rank.progress*100)+'%';$('qCount').textContent=rank.level+' / 5';$('nextBtn').style.display='none';
   $('autoBtn').classList.toggle('on',S.auto);$('autoBtn').textContent=S.auto?'AUTO ✓':'AUTO';refreshOpenPanel();return;
  }
  if(expeditionZone(z)){

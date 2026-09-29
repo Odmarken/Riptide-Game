@@ -7,7 +7,7 @@ const T = require('../assets/tides/core.js');
 const B = require('../assets/tides/breeding.js');
 const clone = value => JSON.parse(JSON.stringify(value));
 function collection(ids = ['bramblebunny', 'pebbletoad']) {
-  const c = T.createCollection();
+  const c = T.createCollection(); c.trainer.xp = 1600;
   T.purchaseLasso(c, 10000, {now: 100, rng: () => 0});
   c.pets = ids.map((speciesId, i) => ({...clone(c.pets[0]), speciesId, id: 'tide-' + (i + 1), level: 20}));
   c.nextId = ids.length + 1; c.equippedId = c.pets[0].id;
@@ -15,7 +15,7 @@ function collection(ids = ['bramblebunny', 'pebbletoad']) {
 }
 function start(c, options = {}) {
   const result = T.startBreeding(c, {stationId: 'farm-house-1', parentAId: c.pets[0].id, parentBId: c.pets[1].id,
-    now: 1000, rng: () => 0, ...options});
+    now: 1000, rng: mutationTickets(0), ...options});
   assert.equal(result.ok, true, JSON.stringify(result)); return result.job;
 }
 function battle(pet, foe = 'obsidianbear') {
@@ -113,9 +113,9 @@ test('reveal and claim are battle guarded; stale job IDs cannot claim a later of
 });
 
 test('weighted mutation rolls range0–8, guarantee1–8 for either spectral parent, and six-star is an ultra-rare counted mutation', () => {
-  assert.equal(B.mutationSummary(B.rollMutations(false, () => 0)).count, 0);
-  assert.equal(B.mutationSummary(B.rollMutations(true, () => 0)).count, 1);
-  const maximum = B.rollMutations(false, () => .999999999);
+  assert.equal(B.mutationSummary(B.rollMutations(false, mutationTickets(0))).count, 0);
+  assert.equal(B.mutationSummary(B.rollMutations(true, mutationTickets(0))).count, 1);
+  const maximum = B.rollMutations(false, mutationTickets(.999999999, .999999999, 0));
   assert.equal(B.mutationSummary(maximum).count, 8); assert.equal(maximum.sixStar, true); assert.equal(maximum.power, 7);
   for (const ids of [['spectralpanther', 'meadowmouse'], ['meadowmouse', 'spectralwyrm'], ['spectralpanther', 'spectralwyrm']]) {
     const c = collection(ids); start(c); assert.equal(T.mutationSummary(c.breedingJobs[0].offspring).count, 1);
@@ -131,11 +131,13 @@ test('weighted mutation rolls range0–8, guarantee1–8 for either spectral par
   assert.ok(six < 40, 'six-star is much rarer than ordinary mutations');
 });
 
-// Supply the count ticket once, then choose HP for every mutation type.
+// First roll is the independent six-star check, then count, then stat type.
+function mutationTickets(count, type = 0, six = .5) {
+  let roll = 0;
+  return () => roll++ === 0 ? six : roll === 2 ? count : type;
+}
 function countRoll(spectral, ticket, stars) {
-  let first = true;
-  const rng = () => first ? (first = false, ticket) : 0;
-  return B.mutationSummary(stars === undefined ? B.rollMutations(spectral, rng) : B.rollMutations(spectral, rng, stars)).count;
+  return B.mutationSummary(B.rollMutations(spectral, mutationTickets(ticket), stars)).count;
 }
 
 test('the two-argument mutation API and explicit five stars retain the original count boundaries', () => {
@@ -199,7 +201,7 @@ test('all300 actual breeding pairs use original species stars and produce identi
         c.pets[0].level = 30; c.pets[1].level = 1;
         let first = true;
         start(c, {parentAId: c.pets[reverse ? 1 : 0].id, parentBId: c.pets[reverse ? 0 : 1].id,
-          rng: () => first ? (first = false, ticket) : 0});
+          rng: mutationTickets(ticket)});
         assert.equal(T.mutationSummary(c.breedingJobs[0].offspring).count, expected, `${a.id}+${b.id}, ticket ${ticket}, reverse=${reverse}`);
       }
     }
@@ -210,24 +212,23 @@ test('all300 actual breeding pairs use original species stars and produce identi
 
 test('five-plus-two has better mutation odds than five-plus-three despite both hybrids rounding to four stars', () => {
   const two = collection(['dawnphoenix', 'mossfox']), three = collection(['dawnphoenix', 'moonowl']);
-  for (const c of [two, three]) { let first = true; start(c, {rng: () => first ? (first = false, .575) : 0}); }
+  for (const c of [two, three]) { let first = true; start(c, {rng: mutationTickets(.575)}); }
   assert.equal(T.getSpecies(two.breedingJobs[0].offspring).stars, 4);
   assert.equal(T.getSpecies(three.breedingJobs[0].offspring).stars, 4);
   assert.equal(T.mutationSummary(two.breedingJobs[0].offspring).count, 1);
   assert.equal(T.mutationSummary(three.breedingJobs[0].offspring).count, 0);
 });
 
-test('mutation types and the single six-star limit remain unchanged across every parental mean', () => {
-  assert.deepEqual(B.CONFIG.TYPE_WEIGHTS, {hp: 3333, attack: 3333, power: 3333, sixStar: 1});
+test('normal mutation types stay equally weighted and six-star reserves one of eight slots', () => {
+  assert.deepEqual(B.CONFIG.TYPE_WEIGHTS, {hp: 1, attack: 1, power: 1});
   for (const stars of [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]) for (const spectral of [false, true]) {
-    const firstTicket = spectral ? 0 : .70 - (5 - stars) * .10 + 1e-8;
-    for (const [ticket, type] of [[0, 'hp'], [.33329, 'hp'], [.33331, 'attack'], [.66659, 'attack'], [.66661, 'power'], [.99989, 'power'], [.99991, 'sixStar']]) {
-      let first = true;
-      const rolled = B.rollMutations(spectral, () => first ? (first = false, firstTicket) : ticket, stars);
+    const countTicket = spectral ? 0 : .70 - (5 - stars) * .10 + 1e-8;
+    for (const [ticket, type] of [[0, 'hp'], [.33333, 'hp'], [.33334, 'attack'], [.66666, 'attack'], [.66667, 'power'], [.99999, 'power']]) {
+      const rolled = B.rollMutations(spectral, mutationTickets(countTicket, ticket), stars);
       assert.equal(B.mutationSummary(rolled).count, 1);
-      assert.equal(rolled[type], type === 'sixStar' ? true : 1);
+      assert.equal(rolled[type], 1); assert.equal(rolled.sixStar, false);
     }
-    const maximum = B.rollMutations(spectral, () => .999999999, stars);
+    const maximum = B.rollMutations(spectral, mutationTickets(.999999999, .999999999, 0), stars);
     assert.deepEqual(maximum, {hp: 0, attack: 0, power: 7, sixStar: true});
   }
 });
@@ -258,8 +259,8 @@ test('only the six-star mutation grants6stars; HP/Atk/Power stack independently 
   const normal = {...collection().pets[0], speciesId, level: 30}, mutated = {...normal, mutations: {hp: 2, attack: 2, power: 3, sixStar: true}};
   const base = T.stats(normal), result = T.stats(mutated);
   assert.equal(base.stars, 5); assert.equal(result.stars, 6); assert.equal(result.mutationCount, 8);
-  assert.equal(result.maxHp, Math.round(base.maxHp * 1.1 * 1.1));
-  assert.equal(result.atk, Math.round(base.atk * 1.1 * 1.1)); assert.equal(result.powerMultiplier, 1.15);
+  assert.equal(result.maxHp, Math.round(result.baseMaxHp * 1.1 * 1.1));
+  assert.equal(result.atk, Math.round(result.baseAtk * 1.1 * 1.1)); assert.equal(result.powerMultiplier, 1.15 * 1.4 * 1.1);
   const unit = battle(mutated).player;
   assert.deepEqual(unit.mutations, mutated.mutations); assert.equal(unit.maxHp, result.maxHp); assert.equal(unit.atk, result.atk); assert.equal(unit.stars, 6);
   assert.equal(T.stats({...mutated, mutations: {hp: 8}}).stars, 5);

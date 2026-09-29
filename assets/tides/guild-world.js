@@ -29,6 +29,8 @@
   });
   npcs.push({id:'tides-guild-host',name:'Battle',x:HALL.x,y:HALL.y-20,r:20,big:1.5,
    race:'human',cls:'warrior',female:false,artKey:'sebbe',guildRole:'host',game:'tideguild',fx:1,fy:0,walk:0,moving:false});
+  npcs.push({id:'tides-guild-trainer',name:'Trainer',x:900,y:1540,r:20,big:1.5,
+   race:'human',cls:'warrior',female:false,artKey:'sebbe',guildRole:'trainer',game:'tidetrainer',fx:1,fy:0,walk:0,moving:false});
   return {key:'tidesguild',kind:'tidesguild',guild:true,w:2200,h:2600,
    hall:{...HALL},corridor:{...CORRIDOR},spawn:{x:1100,y:2360},exit:{x:1100,y:2460,r:70,id:'city'},
    portal:{x:-500,y:-500},npcs,solids:[],mwalls:[],deco:[],waters:[],paths:[],floors:[],enemySpawns:[],bossRooms:[],entrances:[],pathY:-500,pathH:0};

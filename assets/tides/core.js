@@ -101,10 +101,35 @@
   const getSkill = pet => getSpecies(pet)?.skill || null;
   const xpToNext = level => level >= MAX_LEVEL ? 0 : 24 + clamp(integer(level, 1), 1, MAX_LEVEL) * 12;
 
+  // Cumulative standing, separate from a companion's combat level.
+  const TRAINER_RANKS = Object.freeze([
+    {level: 1, xp: 0, title: 'Novice'}, {level: 2, xp: 100, title: 'Tracker'},
+    {level: 3, xp: 350, title: 'Tamer'}, {level: 4, xp: 800, title: 'Breeder'},
+    {level: 5, xp: 1600, title: 'Tide Master'}
+  ].map(Object.freeze));
+  const TRAINER_CAPTURE_XP = 10, TRAINER_DISCOVERY_XP = 20, BREEDING_TRAINER_LEVEL = 4;
+  function trainerView(c) {
+    const xp = clamp(integer(c?.trainer?.xp), 0, TRAINER_RANKS[4].xp);
+    const rank = TRAINER_RANKS.filter(r => xp >= r.xp).at(-1), next = TRAINER_RANKS[rank.level] || null;
+    return {...rank, xp, next, remaining: next ? next.xp - xp : 0,
+      progress: next ? (xp - rank.xp) / (next.xp - rank.xp) : 1};
+  }
+  const canCapture = (c, species) => !!getSpecies(species) && !getSpecies(species).hybrid && getSpecies(species).stars <= trainerView(c).level;
+  const canBreed = c => trainerView(c).level >= BREEDING_TRAINER_LEVEL;
+  function awardCaptureXp(c, speciesId) {
+    const s = getSpecies(speciesId), before = trainerView(c);
+    const seen = new Set(c.trainer?.discovered || []), discovery = !seen.has(speciesId);
+    const earned = s.stars * (TRAINER_CAPTURE_XP + (discovery ? TRAINER_DISCOVERY_XP : 0));
+    seen.add(speciesId);
+    c.trainer = {xp: Math.min(TRAINER_RANKS[4].xp, before.xp + earned), discovered: [...seen]};
+    const after = trainerView(c);
+    return {xp: after.xp - before.xp, discovery, level: after.level, levels: after.level - before.level};
+  }
+
   function createCollection() {
     return {version: 2, lassoOwned: false, pets: [], equippedId: null, visibleId: null, nextId: 1, nextBattleId: 1,
       activeBattle: null, guildSeries: null, recentWorldEvents: [], breedingJobs: [], nextBreedingId: 1,
-      training: {version: 1, lastNow: 0, jobs: []}};
+      training: {version: 1, lastNow: 0, jobs: []}, trainer: {xp: 0, discovered: []}};
   }
 
   function normalizePet(saved, now = Date.now()) {
@@ -156,6 +181,11 @@
       if (sequence) c.nextId = Math.max(c.nextId, Number(sequence[1]) + 1);
     }
     // Existing pets imply that this character has already bought the permanent lasso.
+    c.trainer = {xp: trainerView(raw).xp, discovered: [...new Set(
+      Array.isArray(raw.trainer?.discovered)
+        ? raw.trainer.discovered.filter(id => typeof id === 'string' && getSpecies(id) && !getSpecies(id).hybrid)
+        : c.pets.filter(p => !getSpecies(p).hybrid).map(p => p.speciesId)
+    )]};
     if (foreign.length) c.foreignPets = foreign;
     c.lassoOwned = raw.lassoOwned === true || c.pets.length > 0 || foreign.length > 0;
     // null is a choice (the equipped Tide went into training); only a save that never had the field falls back
@@ -208,13 +238,18 @@
     const lvl = clamp(integer(level, 1), 1, MAX_LEVEL), rarity = 1 + (species.stars - 1) * 0.02;
     const mutations = mutationSummary(typeof speciesOrId === 'object' ? speciesOrId : null), step = breeding?.CONFIG.STAT_PER_STACK || 0;
     const sixStar = mutations.sixStar ? breeding.CONFIG.SIX_STAR_MULTIPLIER : 1;
-    const baseMaxHp = Math.round((100 + (lvl - 1) * 11) * species.hpScale * rarity);
-    const baseAtk = Math.round((17 + (lvl - 1) * 1.8) * species.attackScale * rarity);
+    // A six-star's baseline exceeds even an eight-stack ordinary Tide at the same level.
+    // Parent rarity can never turn this rare reward into a weaker stat tier.
+    const elite = 1 + (breeding?.CONFIG.MAX_MUTATIONS || 0) * step;
+    const hpScale = mutations.sixStar ? Math.max(...catalog.map(s => s.hpScale * (1 + (s.stars - 1) * .02))) * elite : species.hpScale * rarity;
+    const atkScale = mutations.sixStar ? Math.max(...catalog.map(s => s.attackScale * (1 + (s.stars - 1) * .02))) * elite : species.attackScale * rarity;
+    const baseMaxHp = Math.round((100 + (lvl - 1) * 11) * hpScale);
+    const baseAtk = Math.round((17 + (lvl - 1) * 1.8) * atkScale);
     const maxHp = Math.round(baseMaxHp * (1 + mutations.hp * step) * sixStar);
     const atk = Math.round(baseAtk * (1 + mutations.attack * step) * sixStar);
     return {level: lvl, maxHp, hp: maxHp, atk, attack: atk, stars: mutations.sixStar ? 6 : species.stars, spectral: species.spectral,
       baseMaxHp, baseAtk, mutationCount: mutations.count, hpMutation: mutations.hp, attackMutation: mutations.attack,
-      powerMutation: mutations.power, powerMultiplier: 1 + mutations.power * step};
+      powerMutation: mutations.power, powerMultiplier: (1 + mutations.power * step) * (mutations.sixStar ? elite * sixStar : 1)};
   }
 
   function equipped(c) { return c?.pets?.find(pet => pet.id === c.equippedId) || null; }
@@ -301,6 +336,7 @@
     if (isBreedingParent(c, pet.id)) return {ok: false, reason: 'breeding'};
     if (remainingInjury(pet, now)) return {ok: false, reason: 'injured'};
     if (!getSpecies(wild?.speciesId)) return {ok: false, reason: 'unknown'};
+    if (!training && !canCapture(c, wild.speciesId)) return {ok: false, reason: 'trainer-level', requiredLevel: getSpecies(wild.speciesId).stars};
     const enemy = {speciesId: wild.speciesId, level: clamp(integer(wild.level, 1), 1, MAX_LEVEL)};
     const battle = {id: 'battle-' + c.nextBattleId++, ownedId: pet.id, enemy, startedAt: now, turn: 1,
       player: combatant(pet, pet.level), foe: combatant(enemy, enemy.level),
@@ -421,21 +457,23 @@
     if (!['win', 'loss', 'draw'].includes(battle.outcome)) return {ok: false, reason: 'unfinished'};
     const pet = c.pets.find(item => item.id === active.ownedId), now = nowOf(options);
     if (!pet) return {ok: false, reason: 'unowned'};
-    let captured = null, xp = 0, levels = 0;
+    let captured = null, xp = 0, levels = 0, trainer = null;
     if (active.training === true) {
       // The saved encounter is authoritative, even if a caller omitted the
       // training flag on its animation copy of the battle.
     } else if (battle.outcome === 'draw') {
       pet.injuredUntil = 0;
     } else if (battle.outcome === 'win') {
+      if (!canCapture(c, active.enemy.speciesId)) return {ok: false, reason: 'trainer-level'};
       // Use the original encounter, so UI state cannot swap the captured species.
+      trainer = awardCaptureXp(c, active.enemy.speciesId);
       captured = newPet(c, active.enemy.speciesId, active.enemy.level, now);
       pet.injuredUntil = 0;
       xp = Math.round(30 + active.enemy.level * 8 + getSpecies(active.enemy.speciesId).stars * 3);
       levels = addXp(pet, xp);
     } else pet.injuredUntil = INJURY_MS > 0 ? now + INJURY_MS : 0;
     battle.committed = true; c.activeBattle = null;
-    return {ok: true, outcome: battle.outcome, pet, captured, xp, levels, training: active.training === true};
+    return {ok: true, outcome: battle.outcome, pet, captured, xp, levels, trainer, training: active.training === true};
   }
 
   function abandonBattle(c, battle, options = {}) {
@@ -449,6 +487,7 @@
     : isTraining(c, options.parentAId) || isTraining(c, options.parentBId) ? {ok: false, reason: 'training'}
     : breeding.start(c, options.stationId, options.parentAId, options.parentBId, options);
   return Object.freeze({catalog, MAX_LEVEL, SPECTRAL_MIN_LEVEL, LASSO_PRICE, INJURY_MS, createCollection, normalizeCollection, normalizePet,
+    TRAINER_RANKS, TRAINER_CAPTURE_XP, TRAINER_DISCOVERY_XP, BREEDING_TRAINER_LEVEL, trainerView, canCapture, canBreed,
     registerHybrids, allSpecies: () => [...byId.values()], getHybrid, getSkill, mutationSummary, normalizeMutations,
     visible, setVisible, toggleVisible, toggleFavorite, isBreedingParent, BREEDING_CONFIG: breeding?.CONFIG,
     addXp, isTraining, TRAINING_CONFIG: training?.CONFIG,

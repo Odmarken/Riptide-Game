@@ -9,7 +9,8 @@
     MAX_MUTATIONS: 8, STAT_PER_STACK: 0.05, SIX_STAR_MULTIPLIER: 1.10,
     COUNT_WEIGHTS: Object.freeze([7000, 1800, 700, 280, 130, 60, 22, 7, 1]),
     MUTATION_CHANCE_PER_STAR: 0.10, MULTI_MUTATION_WEIGHT_PER_STAR: 0.25,
-    TYPE_WEIGHTS: Object.freeze({hp: 3333, attack: 3333, power: 3333, sixStar: 1}),
+    SIX_STAR_CHANCE: 0.0001,
+    TYPE_WEIGHTS: Object.freeze({hp: 1, attack: 1, power: 1}),
     OFFSPRING_LEVEL: 1, ALLOW_HYBRID_PARENTS: false});
   const finite = (x, fallback = 0) => typeof x === 'number' && Number.isFinite(x) ? x : fallback;
   const integer = (x, fallback = 0) => Math.floor(finite(x, fallback));
@@ -35,6 +36,8 @@
     return {...m, count: m.hp + m.attack + m.power + (m.sixStar ? 1 : 0)};
   }
   function rollMutations(spectralParent, rng, parentStars = 5) {
+    // One independent roll per offspring, identical for every pair and Spectral status.
+    const sixStar = random(rng) < CONFIG.SIX_STAR_CHANCE;
     // Use the parents' unrounded average: 5+2 must have better odds than 5+3,
     // even though both hybrids round to four stars. Five-star pairs keep the old rolls.
     const missingStars = 5 - clamp(finite(parentStars, 5), 1, 5);
@@ -48,11 +51,11 @@
       weights[0][1] = positive * (1 - chance) / chance;
     }
     // Spectral removes zero, while the same count weighting still rewards lower-star partners.
-    const count = choose(weights, rng);
-    const result = {hp: 0, attack: 0, power: 0, sixStar: false};
+    const count = Math.min(choose(weights, rng), CONFIG.MAX_MUTATIONS - (sixStar ? 1 : 0));
+    const result = {hp: 0, attack: 0, power: 0, sixStar};
     for (let i = 0; i < count; i++) {
-      const type = choose(Object.entries(CONFIG.TYPE_WEIGHTS).map(([type, weight]) => [type, type === 'sixStar' && result.sixStar ? 0 : weight]), rng);
-      if (type === 'sixStar') result.sixStar = true; else result[type]++;
+      const type = choose(Object.entries(CONFIG.TYPE_WEIGHTS), rng);
+      result[type]++;
     }
     return result;
   }
@@ -80,6 +83,7 @@
   function start(c, stationId, parentAId, parentBId, options = {}) {
     const T = getTides(), now = nowOf(options);
     if (!c || !validId(stationId)) return {ok: false, reason: 'station'};
+    if (!T.canBreed(c)) return {ok: false, reason: 'trainer-level'};
     if (c.activeBattle) return {ok: false, reason: 'battle'};
     if ([...jobs(c), ...foreignJobs(c)].some(job => job.stationId === stationId)) return {ok: false, reason: 'busy'};
     if (parentAId === parentBId) return {ok: false, reason: 'same'};
@@ -109,6 +113,7 @@
     return {ok: true, job: status(c, stationId, now)};
   }
   function actionable(c, stationId, options) {
+    if (!getTides().canBreed(c)) return {ok: false, reason: 'trainer-level'};
     if (c?.activeBattle) return {ok: false, reason: 'battle'};
     const job = jobs(c).find(item => item.stationId === stationId);
     if (!job) return {ok: false, reason: 'missing'};

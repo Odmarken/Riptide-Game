@@ -1,6 +1,6 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const T=require('../assets/tides/core.js'),Training=require('../assets/tides/training.js');
-function collection(){const c=T.createCollection();c.lassoOwned=true;c.pets=T.catalog.slice(0,6).map((s,i)=>({id:'tide-'+(i+1),speciesId:s.id,level:1,xp:0,caughtAt:0,injuredUntil:0}));c.nextId=7;c.equippedId=c.visibleId=c.pets[0].id;return c;}
+function collection(){const c=T.createCollection();c.trainer.xp=1600;c.lassoOwned=true;c.pets=T.catalog.slice(0,6).map((s,i)=>({id:'tide-'+(i+1),speciesId:s.id,level:1,xp:0,caughtAt:0,injuredUntil:0}));c.nextId=7;c.equippedId=c.visibleId=c.pets[0].id;return c;}
 test('three unique training places accept owned originals and hybrids, and safely unequip/hide only the deposited Tide',()=>{
  const c=collection(),p=c.pets[0];c.pets[2].speciesId=T.getHybrid(c.pets[0].speciesId,c.pets[1].speciesId).id;
  assert.equal(T.startTraining(c,p.id,{slot:0,now:1000}).ok,true);assert.equal(c.equippedId,null);assert.equal(c.visibleId,null);assert.equal(c.pets.length,6);

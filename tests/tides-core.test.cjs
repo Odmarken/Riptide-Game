@@ -7,7 +7,7 @@ const T = require('../assets/tides/core.js');
 const clone = value => JSON.parse(JSON.stringify(value));
 
 function collection(speciesId = 'meadowmouse', level = 1) {
-  const c = T.createCollection();
+  const c = T.createCollection(); c.trainer.xp = 1600;
   T.purchaseLasso(c, 10000, {now: 1000, rng: () => 0});
   c.pets[0].speciesId = speciesId; c.pets[0].level = level;
   return c;
