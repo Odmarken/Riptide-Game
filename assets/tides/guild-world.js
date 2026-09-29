@@ -1,5 +1,7 @@
-/* The underground Tides Guild. Existing painted stone art supplies the surfaces;
- * the guild's masonry, inlays and torch light are canvas scenery, not a map-sized bitmap. */
+/* The underground Tides Guild. Existing painted stone art supplies the surfaces; the pillars, torches,
+ * banners, the floor seal, the corridor markers and the stair are paintings (assets/tides/guild/,
+ * Higgsfield 2026-09-29, art-manifest.json). The canvas pieces below them are what shows until a
+ * picture has loaded, so the hall is never empty. Nothing here is a map-sized bitmap. */
 (function(root,factory){
  const api=factory();
  if(typeof module==='object'&&module.exports)module.exports=api;
@@ -13,6 +15,17 @@
  const imageTiles=new WeakMap(),contextPatterns=new WeakMap();
  let rememberedImages={};
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+ const scenery=()=>globalThis.CityScenery||(typeof require==='function'?require('../city/scenery-effects.js'):null);
+ /* Where each painting sits: drawn height, how far below its anchor the bottom lands, and for the ones that
+    burn the patch of painted fire that flickers (u0,v0,u1,v1) and where its light and embers rise (u,v). */
+ const ART=Object.freeze({
+  pillar:{key:'guild_pillar',h:200,drop:8,paintedFlame:[.76,.33,.99,.425],fire:[.875,.425],glow:[.875,.39,130]},
+  torch:{key:'guild_torch',h:92,cut:.225},
+  banner:{key:'guild_banner',h:210},
+  seal:{key:'guild_seal'},marker:{key:'guild_marker'},stairs:{key:'guild_stairs'}
+ });
+ const art=(images,kind)=>{const im=images[ART[kind].key];return ready(im)?im:null;};
+ const dims=im=>[im.naturalWidth||im.width,im.naturalHeight||im.height];
  const ready=im=>!!(im&&im.complete!==false&&(im.naturalWidth||im.width)>0&&(im.naturalHeight||im.height)>0);
  function create({catalog=[],rng=Math.random,maxLevel=30}={}){
   const pick=list=>list[Math.min(list.length-1,Math.floor(clamp(Number(rng())||0,0,.999999)*list.length))];
@@ -148,8 +161,9 @@
   }
   crest(g,0,-9,r/90,'rgba(162,166,126,.25)');g.restore();
  }
- function doorwayStairs(g){
-  for(let i=0;i<5;i++){
+ function doorwayStairs(g,im){
+  if(im){const [iw,ih]=dims(im),H=164*ih/iw;g.drawImage(im,1018,2422,164,H);}
+  else for(let i=0;i<5;i++){
    const y=2424+i*14;g.fillStyle=i%2?'#6a6556':'#766b57';g.fillRect(1018,y,164,13);
    g.fillStyle='rgba(0,0,0,.48)';g.fillRect(1018,y+10,164,3);g.fillStyle='rgba(205,187,135,.24)';g.fillRect(1018,y,164,2);
   }
@@ -158,6 +172,30 @@
   g.strokeStyle='rgba(5,13,15,.88)';g.lineWidth=5;g.strokeText('↑ City',1100,2406);
   g.fillStyle='#c7ddd0';g.fillText('↑ City',1100,2406);g.restore();
  }
+ /* the painted pillar carries its own wall torch on its right; mirror it (flip -1) so the fire faces the hall */
+ function paintedPillar(g,x,y,im,time,size=1,flip=1){
+  const a=ART.pillar,[iw,ih]=dims(im),H=a.h*size,W=H*iw/ih,S=scenery(),seed=x*.013+y*.007;
+  g.save();g.translate(x,y);ellipse(g,4*size,a.drop*size,W*.62,W*.2,'rgba(0,0,0,.45)');g.scale(flip,1);
+  const top=a.drop*size-H;
+  if(S)S.paintedFlame(g,im,W,H,top,a.paintedFlame,time,seed);else g.drawImage(im,-W/2,top,W,H);
+  const [u,v,r]=a.glow;light(g,-W/2+u*W,top+v*H,r*size,(S?S.flicker(time,seed):1)*.55);
+  if(S)S.fireAir(g,-W/2+a.fire[0]*W,top+a.paintedFlame[1]*H,.5*size,time,seed);
+  g.restore();
+ }
+ /* the wall torch: only its painted fire sways, the cage and the handle stay still (as the Throne Hall's) */
+ function paintedTorch(g,x,y,im,time,size=1){
+  const a=ART.torch,[sw,sh]=dims(im),h=a.h*size,w=h*sw/sh,top=y-h*.23,cut=a.cut,seed=x*.035+y*.021,S=scenery();
+  light(g,x,top+h*.12,150*size,.92+Math.sin(time*7+y*.021)*.08);
+  g.drawImage(im,0,sh*cut,sw,sh*(1-cut),x-w/2,top+h*cut,w,h*(1-cut));
+  for(let i=0;i<16;i++){
+   const v=i/16*cut,dh=cut/16,k=1-(v+dh)/cut,dx=Math.sin(time*5.2+seed-v*20)*1.5*size*k*k;
+   g.drawImage(im,0,sh*v,sw,sh*dh,x-w/2+dx,top+h*v,w,h*dh+.3);
+  }
+  if(S){g.save();g.globalAlpha*=.24;S.smoke(g,x,top-2,.2*size,time,seed,false,true);g.restore();}
+ }
+ function paintedBanner(g,x,y,im,size=1){const [iw,ih]=dims(im),H=ART.banner.h*size,W=H*iw/ih;g.drawImage(im,x-W/2,y-10*size,W,H);}
+ /* round floor pieces, seen from above: the seal's painted ring stands where the canvas inlay's outer band was */
+ function paintedRound(g,x,y,im,r,sy=1){const [iw,ih]=dims(im),W=r*2,H=W*ih/iw;g.save();g.translate(x,y);g.scale(1,sy);g.drawImage(im,-W/2,-H/2,W,H);g.restore();}
  function renderGround(g,world,view,{images={},time=0,...options}={}){
   rememberedImages={...rememberedImages,...images};images=rememberedImages;
   const v={x:Math.max(-120,view?.x||0),y:Math.max(-180,view?.y||0),w:Math.min(2440,view?.w||2200),h:Math.min(2960,view?.h||2600)};
@@ -171,9 +209,16 @@
   const pool=g.createRadialGradient(HALL.x,HALL.y,30,HALL.x,HALL.y,HALL.r);pool.addColorStop(0,'rgba(128,169,151,.15)');pool.addColorStop(.7,'rgba(37,54,48,.06)');pool.addColorStop(1,'rgba(3,11,15,.68)');g.fillStyle=pool;g.fillRect(300,100,1600,1600);
   // A restrained gilt route leads the player up from the City well.
   for(const x of [996,1204]){g.fillStyle='#605f4a';g.fillRect(x,JOIN_Y,3,2500-JOIN_Y);}
-  for(let y=1730;y<2380;y+=160){ellipse(g,1100,y,14,14,'rgba(120,129,100,.2)','#727259',2);crest(g,1100,y,.31,'#929c7f');}
-  inlay(g,HALL.x,HALL.y,290);ellipse(g,HALL.x,HALL.y,654,654,null,'rgba(130,138,107,.30)',4);
-  doorwayStairs(g);g.restore();
+  const marker=art(images,'marker'),seal=art(images,'seal'),stairs=art(images,'stairs');
+  for(let y=1730;y<2380;y+=160){if(marker)paintedRound(g,1100,y,marker,21);else{ellipse(g,1100,y,14,14,'rgba(120,129,100,.2)','#727259',2);crest(g,1100,y,.31,'#929c7f');}}
+  if(seal){
+   paintedRound(g,HALL.x,HALL.y,seal,322);
+   /* settle the bright painting into the dim hall: the same falloff as the floor's own pool of light */
+   const settle=g.createRadialGradient(HALL.x,HALL.y,90,HALL.x,HALL.y,326);settle.addColorStop(0,'rgba(6,14,16,.12)');settle.addColorStop(1,'rgba(6,14,16,.42)');
+   g.save();g.beginPath();g.arc(HALL.x,HALL.y,323,0,TAU);g.clip();g.fillStyle=settle;g.fillRect(HALL.x-326,HALL.y-326,652,652);g.restore();
+  }else inlay(g,HALL.x,HALL.y,290);
+  ellipse(g,HALL.x,HALL.y,654,654,null,'rgba(130,138,107,.30)',4);
+  doorwayStairs(g,stairs);g.restore();
   // Individual capstones break up the border, rather than a featureless outline.
   floorPath(g);g.lineWidth=10;g.strokeStyle='#a09574';g.stroke();
   for(let i=0;i<68;i++){
@@ -182,16 +227,17 @@
    g.beginPath();g.moveTo(HALL.x+cs*784,HALL.y+sn*784);g.lineTo(HALL.x+cs*825,HALL.y+sn*825);g.strokeStyle='#242c2a';g.lineWidth=4;g.stroke();
   }
   for(const x of [CORRIDOR.x,CORRIDOR.x+CORRIDOR.w])for(let y=JOIN_Y+30;y<2500;y+=76){g.fillStyle='#252d2a';g.fillRect(x-46,y,92,4);}
+  const pillarArt=art(images,'pillar'),torchArt=art(images,'torch'),bannerArt=art(images,'banner');
   for(const a of [-Math.PI*.94,-Math.PI*.72,-Math.PI*.5,-Math.PI*.28,-Math.PI*.06,Math.PI*.22,Math.PI*.78]){
    const x=HALL.x+Math.cos(a)*807,y=HALL.y+Math.sin(a)*807;
-   if(x+100<v.x||x-100>v.x+v.w||y+60<v.y||y-170>v.y+v.h)continue;
-   pillar(g,x,y,images,1,options);torch(g,x,y-42,time,.95);
+   if(x+100<v.x||x-100>v.x+v.w||y+60<v.y||y-230>v.y+v.h)continue;
+   if(pillarArt)paintedPillar(g,x,y,pillarArt,time,1,x>HALL.x+1?-1:1);else{pillar(g,x,y,images,1,options);torch(g,x,y-42,time,.95);}
   }
   for(const y of [1790,2080,2380])for(const x of [947,1253]){
    if(y+180<v.y||y-180>v.y+v.h)continue;
-   torch(g,x,y,time,.75);
+   if(torchArt)paintedTorch(g,x,y,torchArt,time,1);else torch(g,x,y,time,.75);
   }
-  banner(g,790,220,1.3);banner(g,1410,220,1.3);
+  for(const x of [790,1410])if(bannerArt)paintedBanner(g,x,220,bannerArt,1);else banner(g,x,220,1.3);
   // Fixed wall lights give resting members their own warm gathering spots.
   for(const n of world.npcs||[])if(n.guildRole==='member')light(g,n.x,n.y+15,150,.45);
   g.restore();
@@ -207,11 +253,16 @@
   g.fillStyle='#39413b';g.fillRect(0,wallH,w,h-wallH);texture(g,images.raidfloor||images.crypt,{x:0,y:wallH,w,h:h-wallH},1.2,options);
   g.fillStyle='rgba(91,108,83,.15)';g.fillRect(0,wallH,w,h-wallH);
   const floorShade=g.createLinearGradient(0,wallH,0,h);floorShade.addColorStop(0,'rgba(0,9,13,.55)');floorShade.addColorStop(.45,'rgba(14,30,29,.02)');floorShade.addColorStop(1,'rgba(5,11,16,.63)');g.fillStyle=floorShade;g.fillRect(0,wallH,w,h-wallH);
-  inlay(g,w*.50,h*.69,w*.415,Math.min(.5,h/w*.64));g.restore();
+  const seal=art(images,'seal'),sy=Math.min(.5,h/w*.64);
+  if(seal)paintedRound(g,w*.50,h*.69,seal,w*.415+32,sy);else inlay(g,w*.50,h*.69,w*.415,sy);g.restore();
   // Actors occupy y=.60-.72h; the hanging standards and braziers stay behind them.
   const unit=clamp(h/730,.65,1.8);
-  for(const x of [w*.055,w*.27,w*.73,w*.945]){pillar(g,x,wallH+19*unit,images,1.45*unit,options);torch(g,x,wallH-54*unit,time,1.05*unit);}
-  banner(g,w*.38,wallH-204*unit,.94*unit);banner(g,w*.62,wallH-204*unit,.94*unit);
+  const pillarArt=art(images,'pillar'),bannerArt=art(images,'banner');
+  for(const x of [w*.055,w*.27,w*.73,w*.945]){
+   if(pillarArt)paintedPillar(g,x,wallH+19*unit,pillarArt,time,1.45*unit,x>w/2?-1:1);
+   else{pillar(g,x,wallH+19*unit,images,1.45*unit,options);torch(g,x,wallH-54*unit,time,1.05*unit);}
+  }
+  for(const x of [w*.38,w*.62])if(bannerArt)paintedBanner(g,x,wallH-204*unit,bannerArt,.94/1.3*unit);else banner(g,x,wallH-204*unit,.94*unit);
   const glow=g.createRadialGradient(w*.5,h*.63,0,w*.5,h*.63,w*.51);glow.addColorStop(0,'rgba(114,186,172,.10)');glow.addColorStop(.65,'rgba(61,96,91,.02)');glow.addColorStop(1,'rgba(3,9,13,.38)');g.fillStyle=glow;g.fillRect(0,0,w,h);
   // A few slow motes belong to the torch-lit air, independent of battle effects.
   g.fillStyle='rgba(255,215,145,.28)';for(let i=0;i<16;i++){
@@ -220,5 +271,5 @@
   }
   g.restore();
  }
- return Object.freeze({create,contains,renderGround,renderBattle,HALL,CORRIDOR});
+ return Object.freeze({create,contains,renderGround,renderBattle,HALL,CORRIDOR,ART});
 });

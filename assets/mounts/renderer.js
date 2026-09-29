@@ -6,11 +6,22 @@ const MountRenderer=(()=>{
  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
  const legs=rows=>rows.map(([x0,x1,root,ankle,phase])=>({x0:x0/1024,x1:x1/1024,root:root/1024,ankle:ankle/1024,phase}));
  // Reviewed saddle and leg coordinates in the complete 1024px source images.
+ // run: a painted gallop, one stride keyed from a Kling clip of the still. Cells sit in the still's own
+ // source pixels (origin + cell pixel * scale), so size and ground line match; seats are the tracked hip
+ // point [x,y] and the saddle's canvas tilt per frame.
  const profiles={
-  horse:{height:65,seat:[482/1024,437/1024],front:[.59,.18,.84,.67],stride:.023,lift:.026,rise:2.2,pitch:.033,surge:.55,stretch:.016,lean:.043,legs:legs([[174,335,802,918,0],[345,552,780,914,Math.PI],[562,736,777,925,Math.PI],[739,912,783,920,0]])},
-  leopard:{height:65,seat:[513/1024,438/1024],front:[.59,.25,.88,.69],stride:.027,lift:.031,rise:2.65,pitch:.038,surge:.8,stretch:.021,lean:.051,legs:legs([[158,322,751,847,0],[365,565,758,838,Math.PI],[631,816,744,854,Math.PI],[816,1005,770,844,0]])},
-  'spectral-tiger':{height:65,seat:[470/1024,426/1024],front:[.55,.21,.88,.70],stride:.028,lift:.03,rise:2.45,pitch:.034,surge:.7,stretch:.018,lean:.048,legs:legs([[23,258,785,880,0],[308,550,818,873,Math.PI],[550,794,780,878,Math.PI],[800,1024,788,875,0]]),spectral:true}
+  horse:{height:65,seat:[482/1024,437/1024],front:[.59,.18,.84,.67],stride:.023,lift:.026,rise:2.2,pitch:.033,surge:.55,stretch:.016,lean:.043,legs:legs([[174,335,802,918,0],[345,552,780,914,Math.PI],[562,736,777,925,Math.PI],[739,912,783,920,0]]),
+   run:{frames:10,cols:5,cell:[648,462],origin:[-195.37,2.61],scale:[2.24415,2.24297],
+    seats:[[481.1,377.5,.1542],[482.7,389.4,.1717],[481.8,413.7,.1965],[470.6,418.3,.139],[453,409.4,.0084],[443.7,404.4,-.0727],[449.2,387.9,-.0465],[463.1,366.9,.0394],[475.1,369.1,.1216],[480.1,378.9,.1568]]}},
+  leopard:{height:65,seat:[513/1024,438/1024],front:[.59,.25,.88,.69],stride:.027,lift:.031,rise:2.65,pitch:.038,surge:.8,stretch:.021,lean:.051,legs:legs([[158,322,751,847,0],[365,565,758,838,Math.PI],[631,816,744,854,Math.PI],[816,1005,770,844,0]]),
+   run:{frames:13,cols:5,cell:[790,462],origin:[-314.91,79.89],scale:[1.90909,1.91016],
+    seats:[[514.1,421,.4342],[516,408.8,.457],[514.1,387,.3586],[507.8,371.8,.2184],[495.7,377.4,.0989],[481.3,400.7,-.0093],[472.9,424.2,-.1111],[474.1,434.7,-.1547],[480.1,432.3,-.1048],[485.3,424.1,-.0068],[490.3,417.4,.0817],[498,416.7,.175],[507.4,420.8,.3082]]}},
+  'spectral-tiger':{height:65,seat:[470/1024,426/1024],front:[.55,.21,.88,.70],stride:.028,lift:.03,rise:2.45,pitch:.034,surge:.7,stretch:.018,lean:.048,legs:legs([[23,258,785,880,0],[308,550,818,873,Math.PI],[550,794,780,878,Math.PI],[800,1024,788,875,0]]),spectral:true,
+   run:{frames:11,cols:4,cell:[1016,422],origin:[-402.54,181.06],scale:[1.9379,1.93828],
+    seats:[[477.5,373.1,.0055],[489.9,358.4,.12],[497.3,351.9,.2361],[495.9,351.1,.3293],[488.1,348.5,.3833],[474.7,339.2,.3625],[455.6,337.9,.2695],[440.1,361.5,.1581],[439.1,395.6,.0616],[450.6,408.8,-.0179],[464.7,394.7,-.0491]]}}
  };
+ const TAU=Math.PI*2,RUN_FROM=.35,RUN_TILT=.5,STILL=Object.freeze({bob:0,bodyX:0,angle:0,bodyScaleX:1,bodyScaleY:1});
+ let runCache=new WeakMap();
  function ready(img){return !!(img&&img.complete!==false&&(img.naturalWidth||img.width)>0&&(img.naturalHeight||img.height)>0);}
  function readArt(id,img){
   const profile=profiles[id];if(!profile||!ready(img))return null;
@@ -60,6 +71,62 @@ const MountRenderer=(()=>{
   });
   const result={id,img,iw,ih,source,serial:nextArt++,profile,bounds:[left,top,right-left+1,bottom-top+1],ground:[(left+right)/2,bottom+1],front,outside,contacts};
   artCache.set(img,result);return result;
+ }
+ function readRun(art,img){
+  if(!art.profile.run||!ready(img))return null;
+  const iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height,source=img.currentSrc||img.src||'',previous=runCache.get(img);
+  if(previous&&previous.art===art&&previous.iw===iw&&previous.ih===ih&&previous.source===source)return previous;
+  // A sheet served at another size than it was measured at scales every cell with it.
+  const result={art,img,iw,ih,source,k:iw/(art.profile.run.cols*art.profile.run.cell[0]),masks:null};
+  runCache.set(img,result);return result;
+ }
+ // The painted gallop replaces the bent-leg pose while really running; standing keeps the still.
+ function runCell(art,sheet,index){
+  const run=art.profile.run,ux=art.iw/1024,uy=art.ih/1024,[cw,ch]=run.cell,[x,y,tilt]=run.seats[index];
+  return {sheet,index,seat:[x*ux,y*uy],tilt,
+   src:[(index%run.cols)*cw*sheet.k,Math.floor(index/run.cols)*ch*sheet.k,cw*sheet.k,ch*sheet.k],
+   dest:[run.origin[0]*ux,run.origin[1]*uy,cw*run.scale[0]*ux,ch*run.scale[1]*uy]};
+ }
+ function runFrame(art,img,phase,moving){
+  if(moving<RUN_FROM)return null;
+  const sheet=readRun(art,img);if(!sheet)return null;
+  const frames=art.profile.run.frames;
+  return runCell(art,sheet,Math.floor((phase%TAU+TAU)%TAU/TAU*frames)%frames);
+ }
+ // Each frame's own silhouette hides the far boot, and its own neck covers the rider, like the still's.
+ // One half-size read of the sheet builds every frame's masks; the pixels are not kept.
+ function runMasks(l){
+  const sheet=l.run.sheet,a=l.art,p=a.profile;
+  if(sheet.masks)return sheet.masks[l.run.index];
+  const w=Math.max(1,Math.round(sheet.iw/2)),h=Math.max(1,Math.round(sheet.ih/2));
+  const c=document.createElement('canvas');c.width=w;c.height=h;
+  const g=c.getContext('2d',{willReadFrequently:true});g.drawImage(sheet.img,0,0,w,h);
+  let data=null;try{data=g.getImageData(0,0,w,h).data;}catch(_e){}
+  sheet.masks=Array.from({length:p.run.frames},(_,index)=>{
+   if(!data)return a;
+   const r=runCell(a,sheet,index),kx=w/sheet.iw,ky=h/sheet.ih,[sx,sy,sw,sh]=r.src,[dx,dy,dw,dh]=r.dest;
+   const px=dw/sw/kx,py=dh/sh/ky,toX=x=>dx+(x/kx-sx)*dw/sw,toY=y=>dy+(y/ky-sy)*dh/sh;
+   const x0=Math.max(0,Math.floor(sx*kx)),x1=Math.min(w,Math.ceil((sx+sw)*kx)),y0=Math.max(0,Math.floor(sy*ky)),y1=Math.min(h,Math.ceil((sy+sh)*ky));
+   const front=new Path2D();front.rect(-100000,-100000,200000,200000);
+   const outside=new Path2D();outside.rect(-100000,-100000,200000,200000);
+   const spans=(path,y,from,to,alpha)=>{
+    let start=-1;
+    for(let x=from;x<=to;x++){
+     const solid=x<to&&data[(y*w+x)*4+3]>=alpha;
+     if(solid&&start<0)start=x;
+     if(!solid&&start>=0){path.rect(toX(start),toY(y),(x-start)*px,py);start=-1;}
+    }
+   };
+   for(let y=y0;y<y1;y++)spans(outside,y,x0,x1,32);
+   // The still's neck box, carried along with this frame's saddle.
+   const nx0=r.seat[0]+(p.front[0]-p.seat[0])*a.iw,nx1=r.seat[0]+(p.front[2]-p.seat[0])*a.iw;
+   const ny0=r.seat[1]+(p.front[1]-p.seat[1])*a.ih,ny1=r.seat[1]+(p.front[3]-p.seat[1])*a.ih;
+   const fromX=x=>Math.round((sx+(x-dx)*sw/dw)*kx),fromY=y=>Math.round((sy+(y-dy)*sh/dh)*ky);
+   const fx0=Math.max(x0,fromX(nx0)),fx1=Math.min(x1,fromX(nx1)),fy0=Math.max(y0,fromY(ny0)),fy1=Math.min(y1,fromY(ny1));
+   for(let y=fy0;y<fy1;y++)spans(front,y,fx0,fx1,192);
+   return {front,outside};
+  });
+  return sheet.masks[l.run.index];
  }
  function canvas(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;c.naturalWidth=w;c.naturalHeight=h;c.complete=true;return c;}
  function take(key){const e=poseCache.get(key);if(!e)return null;poseCache.delete(key);poseCache.set(key,e);return e.image;}
@@ -126,21 +193,24 @@ const MountRenderer=(()=>{
   const fx=options.fx<0?-1:1,groundY=16*size;
   const px=art.profile.height*size/art.bounds[3];
   const time=Number.isFinite(options.time)?options.time:0;
-  const {bob,bodyX,angle,bodyScaleX,bodyScaleY}=gait(art.profile,phase,moving,size,time);
-  const seatX=(art.profile.seat[0]*art.iw-art.ground[0])*px*bodyScaleX;
-  const seatY=(art.profile.seat[1]*art.ih-art.ground[1])*px*bodyScaleY;
+  // A painted frame already carries its own rise and pitch; only the rider's seat follows it.
+  const run=runFrame(art,options.runImg,phase,moving);
+  const {bob,bodyX,angle,bodyScaleX,bodyScaleY}=run?STILL:gait(art.profile,phase,moving,size,time);
+  const seat=run?run.seat:[art.profile.seat[0]*art.iw,art.profile.seat[1]*art.ih];
+  const seatX=(seat[0]-art.ground[0])*px*bodyScaleX;
+  const seatY=(seat[1]-art.ground[1])*px*bodyScaleY;
   const cosine=Math.cos(angle),sine=Math.sin(angle);
   const hipY=-3; // The belt/hip of the 48px painted player, above its knee hem.
   const riderX=fx*(bodyX+seatX*cosine-seatY*sine);
   const riderY=groundY+bob+seatX*sine+seatY*cosine-hipY;
   const width=clamp(Number.isFinite(options.bootWidth)?options.bootWidth:10,8,13);
   const stirrup=Math.sin(phase*2-.4)*moving;
-  const riderAngle=fx*(art.profile.lean*moving+angle*.55+Math.sin(phase*2-.8)*.014*moving);
+  const riderAngle=fx*(art.profile.lean*moving+(run?run.tilt*RUN_TILT:angle*.55)+Math.sin(phase*2-.8)*.014*moving);
   const boots={
    far:{x:-fx*3.5,y:1.8,width:width*.78,angle:fx*.12,fx,alpha:.83},
    near:{x:fx*(3.5+stirrup*.55),y:3.5+stirrup*.4,width:width*.87,angle:-fx*(.14+stirrup*.045),fx,alpha:1}
   };
-  return {art,x:Number.isFinite(options.x)?options.x:0,y:Number.isFinite(options.y)?options.y:0,fx,phase,moving,size,px,bob,bodyX,angle,bodyScaleX,bodyScaleY,riderAngle,groundY,riderX,riderY,hipY,by:0,boots,width:art.bounds[2]*px,height:art.bounds[3]*px};
+  return {art,run,x:Number.isFinite(options.x)?options.x:0,y:Number.isFinite(options.y)?options.y:0,fx,phase,moving,size,px,bob,bodyX,angle,bodyScaleX,bodyScaleY,riderAngle,groundY,riderX,riderY,hipY,by:0,boots,width:art.bounds[2]*px,height:art.bounds[3]*px};
  }
  function mountTransform(g,l){g.translate(l.fx*l.bodyX,l.groundY+l.bob);g.scale(l.fx,1);g.rotate(l.angle);g.scale(l.px*l.bodyScaleX,l.px*l.bodyScaleY);g.translate(-l.art.ground[0],-l.art.ground[1]);}
  function riderTransform(g,l){g.translate(l.riderX,l.riderY+l.hipY);g.rotate(l.riderAngle);g.translate(0,-l.hipY);}
@@ -158,22 +228,29 @@ const MountRenderer=(()=>{
  function draw(g,options,drawRider){
   const l=getLayout(options);if(!l)return null;
   const device=Number.isFinite(options.deviceScale)&&options.deviceScale>0?options.deviceScale:1;
-  const pose=poseFrame(l,device);
+  const run=l.run,masks=run?runMasks(l):l.art,pose=run?null:poseFrame(l,device);
   g.save();g.translate(l.x,l.y);
   g.fillStyle='rgba(0,0,0,.24)';g.beginPath();g.ellipse(0,l.groundY,l.width*.34,6*l.size,0,0,Math.PI*2);g.fill();
   if(l.art.profile.spectral){g.fillStyle='rgba(76,157,238,.085)';g.beginPath();g.ellipse(0,l.groundY,l.width*.39,8*l.size,0,0,Math.PI*2);g.fill();}
   g.save();mountTransform(g,l);const clipTransform=g.getTransform();g.restore();
   const clip=path=>bodyContext=>{const transform=bodyContext.getTransform();bodyContext.setTransform(clipTransform);bodyContext.clip(path,'evenodd');bodyContext.setTransform(transform);};
   if(typeof drawRider==='function'&&ready(options.bootImg)){
-   g.save();clip(l.art.outside)(g);riderTransform(g,l);drawRiderBoots(g,options.bootImg,l,'far');g.restore();
+   g.save();clip(masks.outside)(g);riderTransform(g,l);drawRiderBoots(g,options.bootImg,l,'far');g.restore();
   }
   g.save();if(l.art.profile.spectral)g.globalAlpha*=.88;mountTransform(g,l);
-  const inset=pose.mountInset||0,top=pose.mountTop||0,paintWidth=l.art.iw+inset*2;
-  g.drawImage(typeof mip==='function'?mip(pose,paintWidth*l.px):pose,-inset,-top,paintWidth,l.art.ih+top*2);g.restore();
+  if(run){
+   const [sx,sy,sw,sh]=run.src,[dx,dy,dw,dh]=run.dest,sheet=run.sheet;
+   const image=typeof mip==='function'?mip(sheet.img,sheet.iw*dw/sw*l.px):sheet.img,m=(image.naturalWidth||image.width)/sheet.iw;
+   g.drawImage(image,sx*m,sy*m,sw*m,sh*m,dx,dy,dw,dh);
+  }else{
+   const inset=pose.mountInset||0,top=pose.mountTop||0,paintWidth=l.art.iw+inset*2;
+   g.drawImage(typeof mip==='function'?mip(pose,paintWidth*l.px):pose,-inset,-top,paintWidth,l.art.ih+top*2);
+  }
+  g.restore();
   if(typeof drawRider==='function'){
    // Used inside the player's body save/restore only. Held weapons remain in
    // front of the neck; clipping the complete callback would swallow a sword.
-   l.clipBody=clip(l.art.front);
+   l.clipBody=clip(masks.front);
    g.save();riderTransform(g,l);l.riderResult=drawRider(g,l);g.restore();
   }
   g.restore();return l;
@@ -186,7 +263,7 @@ const MountRenderer=(()=>{
   for(let i=0;i<4;i++){const a=phase+i*Math.PI/2;g.fillStyle=color;g.beginPath();g.arc(Math.cos(a)*22,Math.sin(a)*7-p*11,1.1,0,Math.PI*2);g.fill();}
   g.restore();
  }
- function clear(){artCache=new WeakMap();poseCache.clear();bytes=0;}
+ function clear(){artCache=new WeakMap();runCache=new WeakMap();poseCache.clear();bytes=0;}
  return Object.freeze({draw,getLayout,drawRiderBoots,drawCast,riderTransform,riderPoint,clear,stats:()=>({entries:poseCache.size,bytes,limit:LIMIT})});
 })();
 if(typeof module!=='undefined'&&module.exports)module.exports=MountRenderer;

@@ -1,4 +1,5 @@
 const test=require('node:test'),assert=require('node:assert/strict');
+const close=(a,b,m)=>assert.ok(Math.abs(a-b)<1e-9,m+': '+a+' vs '+b);
 const Traffic=require('../assets/city/traffic-animation.js'),Works=require('../assets/city/city-works.js'),Scenery=require('../assets/city/scenery-effects.js');
 function context(){const calls=[],stack=[],g=new Proxy({globalAlpha:.6,
  save(){stack.push(this.globalAlpha);},restore(){assert.ok(stack.length);this.globalAlpha=stack.pop();},
@@ -19,6 +20,23 @@ test('painted traffic separates the moving parts and restores the canvas state',
   assert.notDeepEqual(a.calls,b.calls);assert.equal(a.stack.length,0);assert.equal(a.g.globalAlpha,.6);
   assert.ok(a.calls.some(c=>c[0]==='clip'&&c[1]==='evenodd'),'old spokes and hooves are cut out');
  }
+});
+test('the handcart family walks: each leg swings about its own joint only while the cart travels',()=>{
+ const p=Traffic.PROFILES.handcart,walkers=p.legs;
+ assert.equal(walkers.length,6,'the father\'s two legs, the mother\'s and the girl\'s two feet');
+ const inside=(pts,x,y)=>{let c=false;for(let i=0,j=pts.length-1;i<pts.length;j=i++){const [xi,yi]=pts[i],[xj,yj]=pts[j];if((yi>y)!==(yj>y)&&x<(xj-xi)*(y-yi)/(yj-yi)+xi)c=!c;}return c;};
+ for(let y=200.37;y<313;y+=.5)for(let x=.61;x<640;x+=.5){
+  const cuts=walkers.filter(w=>inside(w.cut,x,y));
+  assert.ok(cuts.length<2,`cuts overlap at ${x},${y} - evenodd would paint the still leg back in`);
+  for(const w of cuts)assert.ok(inside(w.pts,x,y)||walkers.some(o=>o!==w&&inside(o.pts,x,y)),`the removed still at ${x},${y} is repainted by a swinging piece`);
+  for(const [cx,cy,rx,ry] of p.wheels)assert.ok(!cuts.length||((x-cx)/rx)**2+((y-cy)/ry)**2>1,'no cut reaches the wheel');
+ }
+ const angles=(time,speed)=>{const calls=[];const g=new Proxy({save(){},restore(){}},{get(o,k){if(k in o)return o[k];return(...a)=>calls.push([k,...a]);}});
+  Traffic.draw(g,'handcart',{naturalWidth:640,naturalHeight:313},88,time,speed,20);return calls.filter(c=>c[0]==='rotate').slice(0,walkers.length).map(c=>c[1]);};
+ assert.ok(angles(3,0).every(a=>a===0),'a halted cart stands still');
+ const a=angles(1,34),b=angles(1.4,34);assert.notDeepEqual(a,b);
+ a.forEach((v,i)=>assert.ok(Math.abs(v)<=walkers[i].swing+1e-12,'a little swing, never more'));
+ const t=.9,man=angles(t,34);close(man[0],-man[1],'the father\'s legs swing in opposite phase');
 });
 test('litter waits for its PNG instead of drawing the old brown placeholder',()=>{
  const world={streets:[{x0:0,y0:100,x1:1200,y1:100,w:240}]},view={x:0,y:0,w:1200,h:200},a=context();

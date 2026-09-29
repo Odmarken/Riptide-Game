@@ -625,6 +625,8 @@ function npcSkinImage(skin){
 /* the boots are sized per race for the hero costumes; the painted villagers share the 'npc' pair */
 function npcSkinRace(skin){const m=npcSkinCostume(skin);return m?m[1]:'npc';}
 const mountImages=Object.fromEntries(Mounts.catalog.map(m=>{const im=new Image();im.src=m.art+(m.artVersion?'?v='+m.artVersion:'');return [m.id,im];}));
+/* painted gallop sheets, for the mounts that have one */
+const mountRunImages=Object.fromEntries(Mounts.catalog.filter(m=>m.run).map(m=>{const im=new Image();im.src=m.run;return [m.id,im];}));
 const stableImg=new Image();stableImg.src='assets/mounts/stable.png';
 const trainingLodgeImg=new Image();trainingLodgeImg.src='assets/wasteland/training-lodge.png?v=2';
 const charSpriteCache={};
@@ -1401,7 +1403,11 @@ function harborImages(){
  if(!harborImageSet){harborImageSet={};for(const n of HarborWorld.IMAGES)harborImageSet[n]=cityImg('harbor/'+n);for(const n of HarborWorld.CITY_IMAGES)harborImageSet[n]=cityImg(n);}
  return harborImageSet;
 }
-function guildImages(){return {raidfloor:zoneMapImg('raidfloor'),raidwall:zoneMapImg('raidwall'),cryptwall:zoneMapImg('cryptwall'),crypt:zoneMapImg('cryptmap')};}
+/* 🎨 the guild's paintings (assets/tides/guild, Higgsfield 2026-09-29); TideGuildWorld keeps its canvas pieces until each loads */
+const GUILD_ART_V=1,guildArt={};
+const guildArtImg=n=>guildArt[n]||(guildArt[n]=Object.assign(new Image(),{src:'assets/tides/guild/'+n+'.png?v='+GUILD_ART_V}));
+function guildImages(){return {raidfloor:zoneMapImg('raidfloor'),raidwall:zoneMapImg('raidwall'),cryptwall:zoneMapImg('cryptwall'),crypt:zoneMapImg('cryptmap'),
+ ...Object.fromEntries(Object.values(TideGuildWorld.ART).map(a=>[a.key,guildArtImg(a.key)]))};}
 function guildInReach(){
  const n=world?.npcs?.find(n=>n.game==='tideguild');
  return !!(gameOn&&S&&hero&&!hero.dead&&zoneOf().tideguild&&n&&Math.hypot(hero.x-n.x,hero.y-n.y)<120);
@@ -6269,7 +6275,7 @@ function drawCryptTorches(vx0,vy0,vx1,vy1){ /* 🔥 breadcrumb markers - flicker
 function buildZone(){
  TideUI.leaveZone();
  mineTarget=null; /* ⛏ a rock belongs to the world it stood in */
- Mounts.reset(mountRide);
+ Mounts.carry(mountRide,zoneOf(),hero); /* 🐎 still in the saddle if the new zone is ridden too (Wasteland, City, Farm, Home) */
  if($('stableFx'))$('stableFx').style.display='none';
  /* Delayed multishots can still hold a target from the room we are leaving. */
  if(world&&world.encounter)for(const en of world.encounter.enemies){en.dead=true;en.dungeonRetired=true;en.dungeonCast=null;}
@@ -11091,7 +11097,7 @@ function drawHero(){
  let rideLayout=null,emission;
  if(riding){
   by=0;
-  rideLayout=MountRenderer.draw(ctx,{id:mountRide.id,img:mountImages[mountRide.id],fx,phase:mountRide.phase,time:mountRide.time,moving:mountRide.moving,deviceScale:zoom*DPR,bootImg,bootWidth:character?.boots.bw},(g,ride)=>{
+  rideLayout=MountRenderer.draw(ctx,{id:mountRide.id,img:mountImages[mountRide.id],runImg:mountRunImages[mountRide.id],fx,phase:mountRide.phase,time:mountRide.time,moving:mountRide.moving,deviceScale:zoom*DPR,bootImg,bootWidth:character?.boots.bw},(g,ride)=>{
    MountRenderer.drawRiderBoots(g,bootImg,ride,'near');
    return drawChampionSprite(g,S.race,c.id,fx,0,0,heroWeaponArgs().fm,heroWeaponArgs().id,S.gender==='f',1,outfitArg(),wRune,ride);
   });
@@ -11699,12 +11705,15 @@ function openStable(){
  Mounts.reset(mountRide);stopMining();hero.moveTo=null;hero.pendingDoor=null;hero.target=null;hero.goPortal=false;holdMove=null;
  $('stableFx').style.display='flex';stableRefresh();updateMountButton();sfx.buy();
 }
+/* 🐎 what Torsten asks of a buyer (Mounts.unlocked): Prestige 4, a Duke's patent (a crowned King outranks it), the Forsaken One slain */
+const mountStanding=()=>({prestige:S.prestige|0,forsaken:!!S.forsakenDead,
+ duke:!!(S.city&&(S.city.crowned||(S.city.noble&&S.city.noble.rank>=CityEconomy.NOBLE_RANKS.findIndex(r=>r.id==='duke'))))});
 function stableRefresh(message=''){
- const selected=Mounts.selected(S);
+ const selected=Mounts.selected(S),standing=mountStanding();
  $('stableSlot').innerHTML=`<div class="fmslot">${selected?`<img src="${mountImages[selected.id].src}" alt="${selected.name}">`:'—'}</div><div><small>EQUIPPED MOUNT</small>${selected?selected.name:'Choose your first companion'}</div>`;
  $('stableStock').innerHTML=Mounts.catalog.map(m=>{
-  const owned=S.mounts.owned.includes(m.id),equipped=selected?.id===m.id;
-  return `<div class="stable-card${equipped?' equipped':''}"><img src="${mountImages[m.id].src}" alt="${m.kind}"><h3>${m.name}</h3><p class="cl">${m.description}</p><span class="stable-speed">+${Math.round((m.speed-1)*100)}% riding speed</span>${owned?'<span class="stable-owned">Bought</span>':''}<button class="sbtn${owned?'':' gold'}" data-mount="${m.id}" ${equipped?'disabled':''}>${equipped?'Equipped':owned?'Equip':`Buy · ${m.price.toLocaleString()} gold`}</button></div>`;
+  const owned=S.mounts.owned.includes(m.id),equipped=selected?.id===m.id,locked=!owned&&!Mounts.unlocked(m,standing);
+  return `<div class="stable-card${equipped?' equipped':''}"><img src="${mountImages[m.id].src}" alt="${m.kind}"><h3>${m.name}</h3><p class="cl">${m.description}</p><span class="stable-speed">+${Math.round((m.speed-1)*100)}% riding speed</span>${owned?'<span class="stable-owned">Bought</span>':locked?`<span class="stable-need">🔒 ${Mounts.requirement(m)}</span>`:''}<button class="sbtn${owned?'':' gold'}" data-mount="${m.id}" ${equipped||locked?'disabled':''}>${equipped?'Equipped':owned?'Equip':`Buy · ${m.price.toLocaleString()} gold`}</button></div>`;
  }).join('');
  $('stableWallet').textContent=totalGold().toLocaleString()+' gold available';
  $('stableMessage').textContent=message;
@@ -11712,7 +11721,7 @@ function stableRefresh(message=''){
   if(!stableInReach()||$('stableFx').style.display!=='flex')return;
   const id=btn.dataset.mount,item=Mounts.get(id),owned=S.mounts.owned.includes(id);
   if(owned){if(!Mounts.equip(S,id))return;Mounts.reset(mountRide);}
-  else{const result=Mounts.buy(S,id,spendGold);if(!result.ok){stableRefresh(result.reason==='gold'?'You need more gold for this companion.':'Already bought.');return;}}
+  else{const result=Mounts.buy(S,id,spendGold,mountStanding());if(!result.ok){stableRefresh(result.reason==='gold'?'You need more gold for this companion.':result.reason==='locked'?'Needs: '+Mounts.requirement(item):'Already bought.');return;}}
   save();renderHUD();buildSkillbar();sfx.buy();stableRefresh(owned?item.name+' equipped.':item.name+' is yours.');
  });
 }

@@ -78,3 +78,21 @@ test('battle arena renders at desktop and narrow sizes without requiring a guild
  const before=count.calls;World.renderBattle(g,0,0);assert.equal(count.calls,before);
  assert.ok(count.calls>200);
 });
+
+test('the guild\'s paintings replace their canvas stand-ins once loaded, and every picture exists',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const keys=Object.values(World.ART).map(a=>a.key);
+ assert.deepEqual(keys,['guild_pillar','guild_torch','guild_banner','guild_seal','guild_marker','guild_stairs']);
+ for(const k of keys)assert.ok(fs.existsSync(path.join(__dirname,'../assets/tides/guild',k+'.png')),k+'.png is in the repo');
+ const capture=()=>{const drawn=[],g=new Proxy({createRadialGradient(){return{addColorStop(){}};},createLinearGradient(){return{addColorStop(){}};},createPattern(){return{};},
+  drawImage(im){if(im&&im.key)drawn.push(im.key);}},{get(o,k){if(k in o)return o[k];return()=>{};},set(o,k,v){o[k]=v;return true;}});return {g,drawn};};
+ const pic=(key,loaded=true)=>({key,naturalWidth:200,naturalHeight:400,width:200,height:400,complete:loaded});
+ const world=World.create(),all={x:-120,y:-180,w:2440,h:2960};
+ const painted=capture();World.renderGround(painted.g,world,all,{images:Object.fromEntries(keys.map(k=>[k,pic(k)])),time:2});
+ for(const k of keys)assert.ok(painted.drawn.includes(k),k+' is drawn in the hall');
+ assert.equal(painted.drawn.filter(k=>k==='guild_marker').length,5,'one marker per corridor step');
+ const loading=capture();World.renderGround(loading.g,World.create(),all,{images:Object.fromEntries(keys.map(k=>[k,pic(k,false)])),time:2});
+ assert.deepEqual(loading.drawn,[],'nothing half-loaded is drawn; the canvas pieces stand in');
+ const arena=capture();World.renderBattle(arena.g,1280,720,3,{images:Object.fromEntries(keys.map(k=>[k,pic(k)]))});
+ for(const k of ['guild_pillar','guild_banner','guild_seal'])assert.ok(arena.drawn.includes(k),k+' dresses the battle arena');
+});

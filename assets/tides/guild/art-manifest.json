@@ -1,0 +1,159 @@
+{
+ "generator": "Higgsfield",
+ "model": "gpt_image_2_5",
+ "variant": "flare",
+ "resolution": "1k",
+ "background": "transparent (stairs opaque)",
+ "date": "2026-09-29",
+ "style": "The Tides Guild beneath the City: dark slate stone with a sea-green tint, aged brass, deep teal cloth, and the guild emblem - a golden trident rising above two waves. Props follow the Throne Hall paintings (hall_pillar, wall_torch, city_banner) for the ink-and-painterly look; floor pieces follow the guild floor (raidfloor).",
+ "references": {
+  "ref_hall_pillar": "a4302dd7-b41a-45ac-96b8-74b6079327eb",
+  "ref_wall_torch": "f442f2da-3bd4-4d9c-8730-47184101acb8",
+  "ref_city_banner": "ab9d8ac8-f479-4526-9da9-54e7f322f334",
+  "ref_floor": "2f6660e3-b2a6-46ca-b00e-691bc8cf84c5"
+ },
+ "referenceNote": "Props flattened onto #d6d2ca with a 40 px margin (the cutouts carry colour under zero alpha); ref_floor is the centre of assets/models/maps/raidfloor.png.",
+ "processing": "Alpha scaled from its 254 cap to 255, haze below 6 dropped, tight crop at alpha>0. The marker was LANCZOS-resized to 256 px wide and the stairs to 672 px wide (they are drawn 42 and 164 units wide); the rest keep their native pixels. No repainting.",
+ "cost": "4 credits: 5 x 0.5 (medium) + 1.5 for the seal (high)",
+ "art": {
+  "guild_pillar.png": {
+   "jobId": "84ee6728-de33-41a2-a948-a6a60c5cf1d5",
+   "quality": "medium",
+   "aspect": "9:16",
+   "references": [
+    "ref_hall_pillar"
+   ],
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    194,
+    26,
+    559,
+    1313
+   ],
+   "size": [
+    365,
+    1287
+   ],
+   "use": "7 around the hall rim (east half mirrored so the torch faces the hall) and 4 in the battle arena; its painted torch flickers through CityScenery.paintedFlame on patch [.76,.33,.99,.425]"
+  },
+  "guild_torch.png": {
+   "jobId": "0cb1241f-7166-4b75-9a32-0bd19af68368",
+   "quality": "medium",
+   "aspect": "9:16",
+   "references": [
+    "ref_wall_torch"
+   ],
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    213,
+    16,
+    540,
+    1304
+   ],
+   "size": [
+    327,
+    1288
+   ],
+   "use": "6 on the corridor walls; the top 22.5% (the fire) sways like the Throne Hall wall torch"
+  },
+  "guild_banner.png": {
+   "jobId": "9e2b8c63-e352-49c0-8967-c9277df26753",
+   "quality": "medium",
+   "aspect": "9:16",
+   "references": [
+    "ref_city_banner"
+   ],
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    131,
+    83,
+    621,
+    1255
+   ],
+   "size": [
+    490,
+    1172
+   ],
+   "use": "2 on the north wall and 2 in the battle arena"
+  },
+  "guild_seal.png": {
+   "jobId": "d1dc609c-0249-435d-9a8f-cb4b998f5004",
+   "quality": "high",
+   "aspect": "1:1",
+   "references": [
+    "ref_floor",
+    "ref_hall_pillar"
+   ],
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    15,
+    0,
+    994,
+    990
+   ],
+   "size": [
+    979,
+    990
+   ],
+   "use": "the hall floor centre (radius 322) and the battle arena floor (squashed to perspective); a radial shade settles it into the dim hall"
+  },
+  "guild_marker.png": {
+   "jobId": "e89283d2-d965-4e63-962a-e62ab3e44566",
+   "quality": "medium",
+   "aspect": "1:1",
+   "references": [
+    "ref_floor"
+   ],
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    13,
+    0,
+    1007,
+    1003
+   ],
+   "size": [
+    256,
+    258
+   ],
+   "use": "5 down the corridor (radius 21)"
+  },
+  "guild_stairs.png": {
+   "jobId": "2d279e38-92b7-4ac6-bf55-00edc81d8fdf",
+   "quality": "medium",
+   "aspect": "21:9",
+   "references": [
+    "ref_floor"
+   ],
+   "source": [
+    1344,
+    576
+   ],
+   "crop": [
+    0,
+    0,
+    1344,
+    576
+   ],
+   "size": [
+    672,
+    288
+   ],
+   "use": "the stair up to the City at the corridor foot (164 wide at x 1018, y 2422); opaque"
+  }
+ }
+}

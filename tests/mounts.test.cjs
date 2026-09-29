@@ -5,6 +5,7 @@ const M=require('../assets/mounts/mounts.js');
 const outdoor={wasteland:true};
 const ridingZones=[outdoor,{city:true},{farm:true},{tavern:true}];
 const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-9,a+' vs '+b);
+const earned={prestige:50,duke:true,forsaken:true};
 function setup(id='horse'){
  const state={mounts:M.normalize({owned:[id],equipped:id})};
  const ride=M.createRide(),hero={x:100,y:200,dead:false},context={hero,zone:outdoor};
@@ -19,10 +20,10 @@ test('buying charges the listed price once, preserves the selected mount, and du
  const state={},spending=[];let gold=1000000;
  const spend=amount=>{spending.push(amount);if(gold<amount)return false;gold-=amount;return true;};
  for(const item of M.catalog){
-  const before=gold;assert.equal(M.buy(state,item.id,spend).ok,true);
+  const before=gold;assert.equal(M.buy(state,item.id,spend,earned).ok,true);
   assert.equal(before-gold,item.price);assert.ok(state.mounts.owned.includes(item.id));
   const paid=spending.length,saved=JSON.stringify(state);
-  assert.deepEqual(M.buy(state,item.id,spend),{ok:false,reason:'bought'});
+  assert.deepEqual(M.buy(state,item.id,spend,earned),{ok:false,reason:'bought'});
   assert.equal(spending.length,paid);assert.equal(JSON.stringify(state),saved);
  }
  assert.equal(state.mounts.equipped,M.catalog[0].id,'later purchases do not silently replace the equipped horse');
@@ -33,8 +34,8 @@ test('unknown, unaffordable and unowned choices leave money and ownership unchan
  const state={mounts:{owned:['horse'],equipped:'horse'}},before=JSON.stringify(state);let calls=0;
  const fail=()=>{calls++;return false;};
  assert.deepEqual(M.buy(state,'unknown',fail),{ok:false,reason:'unknown'});assert.equal(calls,0);
- assert.deepEqual(M.buy(state,'leopard',fail),{ok:false,reason:'gold'});assert.equal(calls,1);
- assert.deepEqual(M.buy(state,'leopard'),{ok:false,reason:'gold'});
+ assert.deepEqual(M.buy(state,'leopard',fail,earned),{ok:false,reason:'gold'});assert.equal(calls,1);
+ assert.deepEqual(M.buy(state,'leopard',undefined,earned),{ok:false,reason:'gold'});
  assert.equal(M.equip(state,'unknown'),false);assert.equal(M.equip(state,'leopard'),false);
  assert.equal(JSON.stringify(state),before);
  assert.equal(M.selected({mounts:{owned:['horse'],equipped:'leopard'}}),null);
@@ -199,4 +200,73 @@ test('all mounts keep the same stride at different frame rates and breathe while
   const resting=JSON.stringify(a.ride);M.tick(a.ride,a.state,{...a.context,paused:true},.5);
   assert.equal(JSON.stringify(a.ride),resting,'pausing freezes breathing as well as strides');
  }
+});
+
+test('Torsten sells the courser from Prestige 4, the leopard to a Duke and the tiger once the Forsaken One is slain',()=>{
+ assert.deepEqual(Object.fromEntries(M.catalog.map(m=>[m.id,{...m.need}])),{horse:{prestige:4},leopard:{duke:true},'spectral-tiger':{forsaken:true}});
+ assert.deepEqual(M.catalog.map(M.requirement),['Prestige 4','Duke','Slay the Forsaken One']);
+ const attempt=(id,standing)=>{let charged=0;const state={};const result=M.buy(state,id,price=>{charged+=price;return true;},standing);return {result,charged,state};};
+ for(const id of ['horse','leopard','spectral-tiger']){
+  const none=attempt(id);assert.deepEqual(none.result,{ok:false,reason:'locked'},'no standing, nothing with a need is for sale');
+  assert.equal(none.charged,0);assert.deepEqual(none.state,{},'a refused sale writes nothing');
+ }
+ assert.equal(attempt('horse',{prestige:3,duke:true,forsaken:true}).result.reason,'locked','a Duke at Prestige 3 still waits for the courser');
+ assert.equal(attempt('horse',{prestige:4}).result.ok,true);assert.equal(attempt('horse',{prestige:4}).charged,25000);
+ assert.equal(attempt('leopard',{prestige:50,forsaken:true}).result.reason,'locked','prestige is not a patent');
+ assert.equal(attempt('leopard',{duke:true}).result.ok,true);
+ assert.equal(attempt('spectral-tiger',{prestige:50,duke:true}).result.reason,'locked','only the Forsaken One\'s death opens the tiger');
+ assert.equal(attempt('spectral-tiger',{forsaken:true}).result.ok,true);
+ assert.equal(M.unlocked(null,earned),false);assert.equal(M.unlocked(M.get('horse'),{prestige:'4'}),true,'a prestige read as text still counts');
+ /* bought before the rule: kept, ridden and re-equipped without meeting it */
+ const old={mounts:{owned:['horse','spectral-tiger'],equipped:'horse'}};
+ assert.equal(M.equip(old,'spectral-tiger'),true);assert.equal(M.selected(old).id,'spectral-tiger');
+ assert.deepEqual(M.buy(old,'spectral-tiger',()=>true),{ok:false,reason:'bought'});
+});
+
+test('the stable reads the hero\'s standing from the save and locks what is not earned',()=>{
+ const source=fs.readFileSync(path.join(__dirname,'../game.js'),'utf8');
+ const line=source.match(/^const mountStanding=[\s\S]*?\}\)\;$/m);assert.ok(line,'mountStanding found');
+ const CityEconomy=require('../assets/city/economy.js');
+ const standing=S=>vm.runInNewContext(line[0]+';mountStanding()',{S,CityEconomy});
+ const duke=CityEconomy.NOBLE_RANKS.findIndex(r=>r.id==='duke');assert.ok(duke>0);
+ assert.deepEqual({...standing({prestige:0})},{prestige:0,forsaken:false,duke:false});
+ assert.equal(standing({prestige:4,city:{noble:{rank:duke-1}}}).duke,false,'a Marquess is not yet a Duke');
+ assert.equal(standing({city:{noble:{rank:duke}}}).duke,true);
+ assert.equal(standing({city:{crowned:true,noble:{rank:0}}}).duke,true,'a King outranks every Duke');
+ assert.equal(standing({forsakenDead:true}).forsaken,true);assert.equal(standing({prestige:7}).prestige,7);
+ const refresh=source.slice(source.indexOf('function stableRefresh('),source.indexOf('function toggleMount('));
+ assert.match(refresh,/Mounts\.buy\(S,id,spendGold,mountStanding\(\)\)/,'the purchase passes the same standing');
+ assert.match(refresh,/equipped\|\|locked\?'disabled':''/,'a locked companion has no live Buy button');
+});
+
+test('a rider keeps the saddle from one riding zone to the next, and only then',()=>{
+ for(const from of ridingZones)for(const to of ridingZones){
+  const a=mounted('leopard');a.context.zone=from;M.tick(a.ride,a.state,a.context,.1);
+  a.hero.x+=3;M.tick(a.ride,a.state,a.context,.1);const phase=a.ride.phase;
+  assert.equal(M.carry(a.ride,to,a.hero),true);assert.equal(a.ride.id,'leopard');assert.equal(a.ride.phase,phase);
+  /* the new world puts the hero somewhere else entirely: no giant stride, no dismount */
+  a.hero.x=9000;a.hero.y=-400;a.context.zone=to;M.tick(a.ride,a.state,a.context,.1);
+  assert.equal(a.ride.id,'leopard');assert.equal(a.ride.phase,phase,'the jump is not a stride');
+  a.hero.x+=3;M.tick(a.ride,a.state,a.context,.1);assert.ok(a.ride.phase>phase,'and the next step rides on');
+  assert.equal(M.multiplier(a.ride,a.state,to),M.get('leopard').speed);
+ }
+ const into=(zone,prep=f=>f)=>{const f=prep(mounted('horse'));const kept=M.carry(f.ride,zone,f.hero);return {kept,ride:f.ride};};
+ for(const zone of [{dungeon:true,wasteland:true},{harbor:true},{interior:true},{boss:true},{},null]){
+  const r=into(zone);assert.equal(r.kept,false);assert.deepEqual(r.ride,M.createRide(),'a zone without riding dismounts');
+ }
+ assert.equal(into(outdoor,f=>{f.hero.dead=true;return f;}).kept,false);
+ const fresh=mounted('horse');assert.equal(M.carry(fresh.ride,outdoor,null),false,'a character entering the world starts on foot');
+ assert.deepEqual(fresh.ride,M.createRide());
+ const saddling=setup('horse');M.toggle(saddling.ride,saddling.state,saddling.context);
+ assert.equal(M.carry(saddling.ride,{city:true},saddling.hero),false,'half a saddling does not travel');assert.equal(saddling.ride.casting,null);
+ const walking=setup('horse');assert.equal(M.carry(walking.ride,{city:true},walking.hero),false);
+});
+
+test('buildZone hands the ride to Mounts.carry with the new zone and the current hero',()=>{
+ const source=fs.readFileSync(path.join(__dirname,'../game.js'),'utf8');
+ const body=source.slice(source.indexOf('function buildZone(){'),source.indexOf(' const legacyWastelandBiome='));
+ assert.match(body,/Mounts\.carry\(mountRide,zoneOf\(\),hero\);/);
+ assert.doesNotMatch(body,/Mounts\.reset\(mountRide\)/,'no unconditional dismount on every zone change');
+ const enter=source.slice(source.indexOf(' hero=null; /* fresh character entering the world'),source.indexOf('syncAudioUI(); /* button glyph'));
+ assert.ok(enter.indexOf('hero=null')<enter.indexOf('buildZone()'),'a fresh character is null by the time buildZone asks, so it starts on foot');
 });

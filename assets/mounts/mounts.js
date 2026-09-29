@@ -1,9 +1,9 @@
 /* Per-character stable ownership and a disposable, distance-driven riding state. */
 const Mounts=(()=>{
  const catalog=Object.freeze([
-  Object.freeze({id:'horse',name:'Chestnut Courser',kind:'Horse',price:25000,speed:1.65,art:'assets/mounts/horse.png',artVersion:2,description:'A goofy, good-hearted companion with a tongue-out grin and a rolling stride.'}),
-  Object.freeze({id:'leopard',name:'Amberfang Leopard',kind:'Leopard',price:150000,speed:1.9,art:'assets/mounts/leopard.png',description:'A sure-footed spotted hunter with a swift, rolling stride.'}),
-  Object.freeze({id:'spectral-tiger',name:'Azure Spectral Tiger',kind:'Spectral tiger',price:750000,speed:2.1,art:'assets/mounts/spectral-tiger.png',artVersion:2,description:'Blue spirit-fire shimmers beneath its ancient silver armour.'})
+  Object.freeze({id:'horse',name:'Chestnut Courser',kind:'Horse',price:25000,speed:1.65,art:'assets/mounts/horse.png',artVersion:2,run:'assets/mounts/horse-run.png',need:Object.freeze({prestige:4}),description:'A goofy, good-hearted companion with a tongue-out grin and a rolling stride.'}),
+  Object.freeze({id:'leopard',name:'Amberfang Leopard',kind:'Leopard',price:150000,speed:1.9,art:'assets/mounts/leopard.png',run:'assets/mounts/leopard-run.png',need:Object.freeze({duke:true}),description:'A sure-footed spotted hunter with a swift, rolling stride.'}),
+  Object.freeze({id:'spectral-tiger',name:'Azure Spectral Tiger',kind:'Spectral tiger',price:750000,speed:2.1,art:'assets/mounts/spectral-tiger.png',artVersion:2,run:'assets/mounts/spectral-tiger-run.png',need:Object.freeze({forsaken:true}),description:'Blue spirit-fire shimmers beneath its ancient silver armour.'})
  ]);
  const byId=new Map(catalog.map(m=>[m.id,m]));
  const get=id=>byId.get(id)||null;
@@ -19,10 +19,19 @@ const Mounts=(()=>{
  }
  const allowed=zone=>!!(zone&&!zone.dungeon&&(zone.wasteland||zone.city||zone.farm||zone.tavern));
  const selected=state=>{const m=state?.mounts;return m?.owned?.includes(m.equipped)?get(m.equipped):null;};
- function buy(state,id,spend){
+ /* Torsten sells each companion only to a hero who has earned it: Prestige 4 for the courser, a Duke's patent for
+    the leopard, the Forsaken One slain for the tiger. standing = {prestige, duke, forsaken}, read from the save by
+    the game; none given, nothing with a need is for sale. A mount already bought stays bought. */
+ function unlocked(item,standing){
+  const need=item?.need;if(!need)return !!item;
+  return !((need.prestige&&!((standing?.prestige|0)>=need.prestige))||(need.duke&&!standing?.duke)||(need.forsaken&&!standing?.forsaken));
+ }
+ const requirement=item=>item?.need?.forsaken?'Slay the Forsaken One':item?.need?.duke?'Duke':item?.need?.prestige?'Prestige '+item.need.prestige:'';
+ function buy(state,id,spend,standing){
   const item=get(id);if(!state||!item)return {ok:false,reason:'unknown'};
   const collection=normalize(state.mounts);
   if(collection.owned.includes(id))return {ok:false,reason:'bought'};
+  if(!unlocked(item,standing))return {ok:false,reason:'locked'};
   if(typeof spend!=='function'||!spend(item.price))return {ok:false,reason:'gold'};
   collection.owned.push(id);if(!collection.equipped)collection.equipped=id;
   state.mounts=collection;return {ok:true,item};
@@ -35,6 +44,13 @@ const Mounts=(()=>{
  const stride={horse:.042,leopard:.037,'spectral-tiger':.034};
  const createRide=()=>({id:null,casting:null,remaining:0,castTravel:0,phase:0,time:0,moving:0,lastX:null,lastY:null});
  function reset(ride){Object.assign(ride,createRide());}
+ /* a zone change keeps a seated rider in the saddle when the new zone allows riding too; a saddling still under way,
+    a zone without riding, or no living hero (a character just entering the world) ends the ride. The old position
+    means nothing in the new world, so the next step starts a fresh stride instead of a giant one. */
+ function carry(ride,zone,hero){
+  if(!hero||hero.dead||!ride.id||ride.casting||!allowed(zone)){reset(ride);return false;}
+  ride.lastX=null;ride.lastY=null;return true;
+ }
  function toggle(ride,state,{zone,hero,paused=false,busy=false}){
   if(!hero||hero.dead||paused||busy)return {ok:false,reason:'busy'};
   if(ride.id||ride.casting){reset(ride);return {ok:true,action:'down'};}
@@ -64,6 +80,6 @@ const Mounts=(()=>{
   }
  }
  const multiplier=(ride,state,zone)=>allowed(zone)&&ride.id===selected(state)?.id?get(ride.id).speed:1;
- return {catalog,get,normalize,allowed,selected,buy,equip,createRide,reset,toggle,tick,multiplier};
+ return {catalog,get,normalize,allowed,selected,unlocked,requirement,buy,equip,createRide,reset,carry,toggle,tick,multiplier};
 })();
 if(typeof module!=='undefined'&&module.exports)module.exports=Mounts;

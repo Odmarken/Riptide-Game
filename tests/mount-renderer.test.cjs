@@ -183,3 +183,57 @@ test('pose caching is bounded, distinguishes image replacements and reuses match
  const resting=draw({...options,moving:0});assert.equal(resting,img,'resting mount uses its complete original image');
  assert.equal(renderer.stats().bytes,0,'idle breathing creates no pose frames');
 });
+
+test('every mount gallops through its painted sheet, with the rider on each frame\'s own saddle',()=>{
+ const {renderer,context}=harness(),boot=sprite('rider boot',578,677);
+ for(const id of ['horse','leopard','spectral-tiger']){
+ const img=sprite(id),run=renderer.getLayout({id,img,moving:0}).art.profile.run;
+ const runImg=sprite(id+'-run',run.cols*run.cell[0],Math.ceil(run.frames/run.cols)*run.cell[1]);
+ const seen=new Set(),steps=run.frames*4;
+ for(const fx of [-1,1])for(let step=0;step<steps;step++){
+  const phase=(step+.5)/steps*Math.PI*2,painted={ops:[]};
+  const l=renderer.draw(context(painted),{id,img,runImg,fx,moving:1,phase,bootImg:boot},(seat,ride)=>{
+   seat.save();ride.clipBody(seat);seat.drawImage('hero body',0,0);seat.restore();
+  });
+  const index=Math.floor(phase/(Math.PI*2)*run.frames);seen.add(index);
+  assert.equal(l.run.index,index);
+  const cell=painted.ops.filter(o=>o.kind==='draw'&&o.args[0]===runImg);
+  assert.equal(cell.length,1,'one painted frame, no bent-leg pose');
+  const [,sx,sy,sw,sh,dx,dy,dw,dh]=cell[0].args;
+  assert.deepEqual([sx,sy,sw,sh],[(index%run.cols)*run.cell[0],Math.floor(index/run.cols)*run.cell[1],...run.cell]);
+  close(dx,run.origin[0]);close(dy,run.origin[1]);close(dw,run.cell[0]*run.scale[0]);close(dh,run.cell[1]*run.scale[1]);
+  const m=cell[0].matrix;close(m[1],0,'the frame carries its own pitch');close(m[2],0);close(m[0],fx*l.px);close(m[3],l.px);
+  const [x,y,tilt]=run.seats[index];
+  close(l.riderX,fx*(x-l.art.ground[0])*l.px,'hip x on this frame\'s saddle');
+  close(l.riderY+l.hipY,l.groundY+(y-l.art.ground[1])*l.px,'hip y on this frame\'s saddle');
+  assert.ok(Math.abs(l.riderAngle)<.3,'the rider leans with the saddle, never tips over');
+  close(l.riderAngle,fx*(l.art.profile.lean+tilt*.5+Math.sin(phase*2-.8)*.014),'the rider takes half the saddle tilt');
+  const far=painted.ops.find(o=>o.kind==='draw'&&o.args[0]===boot),body=painted.ops.find(o=>o.args[0]==='hero body');
+  assert.notEqual(far.clips[0].path,l.art.outside,'the far boot hides behind this frame\'s silhouette');
+  assert.notEqual(body.clips[0].path,l.art.front,'the rider tucks behind this frame\'s neck');
+  assert.ok(far.clips[0].path.rectangles.length>1&&body.clips[0].path.rectangles.length>1);
+ }
+ assert.equal(seen.size,run.frames,'every painted frame shows once per stride');
+ const a=renderer.getLayout({id,img,runImg,moving:1,phase:0}),b=renderer.getLayout({id,img,runImg,moving:1,phase:Math.PI*2});
+ assert.equal(a.run.index,b.run.index);close(a.riderY,b.riderY,'the stride wraps');
+ }
+});
+
+test('the painted gallop waits for its sheet and a real run',()=>{
+ const {renderer,context,canvases}=harness();
+ const img=sprite('spectral-tiger'),runImg=sprite('spectral-tiger-run',4064,1266);
+ const mount=opts=>{const painted={ops:[]};const l=renderer.draw(context(painted),{id:'spectral-tiger',img,phase:1,deviceScale:2,...opts});return {l,art:painted.ops.find(o=>o.kind==='draw').args[0]};};
+ assert.equal(mount({runImg,moving:0}).art,img,'standing keeps the still');
+ assert.equal(mount({runImg,moving:0}).l.run,null);
+ const easing=mount({runImg,moving:.2});assert.equal(easing.l.run,null);assert.ok(easing.art!==img&&easing.art!==runImg,'setting off bends the still');
+ assert.equal(mount({runImg:{...runImg,complete:false},moving:1}).l.run,null,'an unloaded sheet falls back to the bent-leg pose');
+ assert.equal(mount({moving:1}).l.run,null);
+ assert.equal(mount({runImg,moving:1}).art,runImg);
+ const first=renderer.draw(context({ops:[]}),{id:'spectral-tiger',img,runImg,moving:1,phase:1});
+ const again=renderer.draw(context({ops:[]}),{id:'spectral-tiger',img,runImg,moving:1,phase:1});
+ assert.equal(first.run.sheet,again.run.sheet,'the sheet is read once');
+ const made=canvases.length;
+ for(let n=0;n<11;n++)renderer.draw(context({ops:[]}),{id:'spectral-tiger',img,runImg,moving:1,phase:(n+.5)/11*Math.PI*2},(seat,ride)=>{seat.save();ride.clipBody(seat);seat.restore();});
+ assert.equal(canvases.length,made,'one read of the sheet built the masks of every frame');
+ renderer.clear();assert.notEqual(renderer.getLayout({id:'spectral-tiger',img,runImg,moving:1,phase:1}).run.sheet,first.run.sheet);
+});
