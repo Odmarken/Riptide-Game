@@ -9,7 +9,7 @@ const shop=section("/* 🐉 the Dragon Rider's egg",'function renderMercs(){');
 
 function harness(S,now=1e12){
  const calls=[],els={},el=id=>els[id]||(els[id]={id,textContent:'',innerHTML:'',style:{},onclick:null});
- const c={S,Mounts,BANK_CAP:10000000000,DRAGON_EGG_PRICE:10000000000,Date:{now:()=>c.clock},clock:now,gameOn:true,calls,els,
+ const c={S,Mounts,BANK_CAP:10000000000,DRAGON_EGG_PRICE:5000000000,Date:{now:()=>c.clock},clock:now,gameOn:true,calls,els,
   $:el,setInterval:()=>0,stageMsg:m=>calls.push(['stage',m]),log:m=>calls.push(['log',m]),sfx:{level(){},buy(){},warn(){}},
   save:()=>calls.push(['save']),renderBag:()=>calls.push(['bag']),renderHUD(){},updateMountButton(){},
   hero:{x:6000,y:1400,dead:false},world:{npcs:[{game:'dragonrider',x:6030,y:1385,fx:-1}]},TideUI:{isBattling:()=>false},
@@ -19,13 +19,13 @@ function harness(S,now=1e12){
 }
 const rich=()=>({gold:1234,overflow:0,bankGold:10000000000,mounts:{owned:['horse'],equipped:'horse'},dragonEgg:null});
 
-test('the egg costs the bank its whole cap, from the vault and never the purse, and only once',()=>{
+test('the egg costs five billion, from the vault and never the purse, and only once',()=>{
  const S=rich(),h=harness(S),api=h.api;
- assert.equal(api.DRAGON_EGG_PRICE,10000000000);assert.equal(api.DRAGON_HATCH_MS,60000);
+ assert.equal(api.DRAGON_EGG_PRICE,5000000000);assert.equal(api.DRAGON_HATCH_MS,5*3600000);
  api.openDragonShop();assert.equal(h.els.dragonFx.style.display,'flex');
  assert.doesNotMatch(h.els.dragonBody.innerHTML,/disabled/,'a full bank may buy');
  h.els.dragonBuy.onclick();
- assert.equal(S.bankGold,0,'the bank pays');assert.equal(S.gold,1234,'the purse is untouched');
+ assert.equal(S.bankGold,5000000000,'the bank pays');assert.equal(S.gold,1234,'the purse is untouched');
  assert.equal(S.dragonEgg.at,h.clock);assert.equal(api.dragonHeld(),true);
  assert.ok(h.calls.some(c=>c[0]==='save'));
  /* a second egg: refused, nothing more taken */
@@ -33,16 +33,20 @@ test('the egg costs the bank its whole cap, from the vault and never the purse, 
  assert.match(h.els.dragonBody.innerHTML,/disabled/);
 });
 
-test('a bank short of the cap cannot buy, however much gold is carried',()=>{
- const S={...rich(),bankGold:9999999999,gold:2000000},h=harness(S);
+test('a bank short of the price cannot buy, however much gold is carried',()=>{
+ const S={...rich(),bankGold:4999999999,gold:2000000},h=harness(S);
  h.api.renderDragonShop();assert.match(h.els.dragonBody.innerHTML,/disabled/);
- h.els.dragonBuy.onclick();assert.equal(S.bankGold,9999999999);assert.equal(S.dragonEgg,null);assert.equal(S.gold,2000000);
+ h.els.dragonBuy.onclick();assert.equal(S.bankGold,4999999999);assert.equal(S.dragonEgg,null);assert.equal(S.gold,2000000);
 });
 
-test('the egg hatches a minute after it was bought, into the dragon Torsten keeps, exactly once',()=>{
+test('the egg hatches five hours after it was bought, into the dragon Torsten keeps, exactly once',()=>{
  const S=rich(),h=harness(S),api=h.api;
  h.els.dragonBuy=null;api.renderDragonShop();h.els.dragonBuy.onclick();
- h.clock+=30000;assert.equal(api.dragonEggLeft(),30000);api.dragonEggTick();
+ assert.match(h.calls.find(c=>c[0]==='confirm')[1],/five hours/);
+ api.dragonEggTick();assert.equal(h.els.eggLeft.textContent,'Hatches in 5 h 0 min');
+ h.clock+=2*3600000+30*60000+15000;api.dragonEggTick();assert.equal(h.els.eggLeft.textContent,'Hatches in 2 h 29 min');
+ h.clock+=2*3600000+28*60000+15000;api.dragonEggTick();assert.equal(h.els.eggLeft.textContent,'Hatches in 1 min 30 s');
+ h.clock+=60000;assert.equal(api.dragonEggLeft(),30000);api.dragonEggTick();
  assert.ok(S.dragonEgg,'still an egg at 30 s');assert.equal(h.els.eggLeft.textContent,'Hatches in 30 s');
  h.clock+=30000;api.dragonEggTick();
  assert.equal(S.dragonEgg,null);assert.equal(JSON.stringify(S.mounts),JSON.stringify({owned:["horse","dragon"],equipped:"horse"}));
@@ -52,15 +56,15 @@ test('the egg hatches a minute after it was bought, into the dragon Torsten keep
  S.bankGold=10000000000;api.renderDragonShop();h.els.dragonBuy.onclick();assert.equal(S.bankGold,10000000000,'one egg, one dragon');
 });
 
-test('a clock set back never stretches the wait past a minute, and an egg bought while away hatches on return',()=>{
- const S={...rich(),dragonEgg:{at:1e12+5*3600000}},h=harness(S);
- assert.equal(h.api.dragonEggLeft(),60000);
- const away={...rich(),dragonEgg:{at:1e12-3600000}},g=harness(away);g.api.dragonEggTick();
+test('a clock set back never stretches the wait past five hours, and an egg bought while away hatches on return',()=>{
+ const S={...rich(),dragonEgg:{at:1e12+9*3600000}},h=harness(S);
+ assert.equal(h.api.dragonEggLeft(),5*3600000);
+ const away={...rich(),dragonEgg:{at:1e12-5*3600000-1}},g=harness(away);g.api.dragonEggTick();
  assert.equal(away.dragonEgg,null);assert.ok(away.mounts.owned.includes('dragon'));
 });
 
 test('the save knows the egg, and the town, the bag and the stable wire it up',()=>{
- assert.match(source,/const DRAGON_EGG_PRICE=BANK_CAP;/,'the egg costs exactly the bank cap');
+ assert.match(source,/const DRAGON_EGG_PRICE=5000000000;/,'the egg costs five billion');
  assert.match(source,/setInterval\(\(\)=>\{if\(gameOn\)dragonEggTick\(\);\},1000\);/,'a once-a-second tick hatches it');
  assert.doesNotMatch(rules,/setInterval|BANK_CAP/,'the rules evaluate on their own: other tests cut this stretch of game.js out');
  assert.match(source,/bankLastT:0,dragonEgg:null,/);

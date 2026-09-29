@@ -422,9 +422,119 @@
    ellipse(g,m.x,m.y+3,half+5,hh+5,'rgba(0,0,0,.18)');g.drawImage(mi,m.x-half,m.y-hh,m.size,hh*2);
   }
  }
+ /* a sandy shore: the land's own painted floor runs on under the water and fades smoothly out over the shallows (laid
+    once per shore into a small picture of its own), the sand darkens where the waves wet it, and a wash of surf runs up
+    the beach and back. Runs of sand edges are laid as one chain, under the quays and rocks the chain may end against. */
+ const SHALLOWS=110,WET=46,beachCache=new WeakMap(),shallowCache=new WeakMap();
+ function beachChains(def){
+  const out=[];
+  for(const L of def.lands){
+   const n=L.length,sand=i=>(L[i%n][2]||'edge')==='sand',ring=L.every((p,k)=>sand(k));
+   for(let i=0;i<n;i++){
+    if(!sand(i)||(ring?i>0:sand(i+n-1)))continue;   /* start each run where the edge before it is not sand */
+    const pts=[L[i]],nor=[];let k=i;
+    do{const a=L[k%n],b=L[(k+1)%n];nor.push(edgeNormal(L,a,b));pts.push(b);k++;}while(sand(k)&&k<i+n);
+    out.push({pts,nor});
+   }
+  }
+  return out;
+ }
+ /* a band w wide along a chain, on the water's side (1) or the land's (-1), shaded from the waterline outward: one
+    gradient per stretch, and at each bend a slice of a round one between the two stretches */
+ function beachFade(g,c,w,side,stops){
+  for(let j=0;j<c.nor.length;j++){
+   const a=c.pts[j],b=c.pts[j+1],[nx,ny]=c.nor[j],dx=nx*w*side,dy=ny*w*side;
+   const lin=g.createLinearGradient(a[0],a[1],a[0]+dx,a[1]+dy);for(const [t,col] of stops)lin.addColorStop(t,col);
+   g.fillStyle=lin;g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.lineTo(b[0]+dx,b[1]+dy);g.lineTo(a[0]+dx,a[1]+dy);g.closePath();g.fill();
+   if(!j)continue;
+   const [px,py]=c.nor[j-1],a0=Math.atan2(py*side,px*side);let d=Math.atan2(ny*side,nx*side)-a0;d=Math.atan2(Math.sin(d),Math.cos(d));
+   if(Math.abs(d)<1e-3)continue;
+   const rad=g.createRadialGradient(a[0],a[1],0,a[0],a[1],w);for(const [t,col] of stops)rad.addColorStop(t,col);
+   g.fillStyle=rad;g.beginPath();g.moveTo(a[0],a[1]);g.arc(a[0],a[1],w,a0,a0+d,d<0);g.closePath();g.fill();
+  }
+ }
+ /* the floor seen through the shallows: its tiles, faded out by a mask of the same bands (none headless) */
+ function shallows(c,floor,F){
+  if(!ready(floor)||typeof document==='undefined'||!document.createElement)return null;
+  const had=shallowCache.get(c);if(had&&had.floor===floor)return had;
+  const b=bbox(c.pts),x=b.x-SHALLOWS,y=b.y-SHALLOWS,w=b.w+SHALLOWS*2,h=b.h+SHALLOWS*2,k=1.5;
+  try{
+   const pic=document.createElement('canvas'),mask=document.createElement('canvas');
+   pic.width=mask.width=Math.ceil(w*k);pic.height=mask.height=Math.ceil(h*k);
+   const t=pic.getContext('2d'),m=mask.getContext('2d');
+   t.setTransform(k,0,0,k,-x*k,-y*k);m.setTransform(k,0,0,k,-x*k,-y*k);
+   tiles(t,floor,{x,y,w,h,ox:0,oy:0},F.size||330,{x0:x,y0:y,x1:x+w,y1:y+h},F.mirror!==false,false);
+   beachFade(m,c,SHALLOWS,1,[[0,'rgba(0,0,0,.8)'],[.4,'rgba(0,0,0,.34)'],[1,'rgba(0,0,0,0)']]);
+   t.setTransform(1,0,0,1,0,0);t.globalCompositeOperation='destination-in';t.drawImage(mask,0,0);
+   const out={floor,pic,x,y,w,h};shallowCache.set(c,out);return out;
+  }catch(e){return null;}
+ }
+ /* the surf's wash: a sheet of water running up the sand and back, its front a bright uneven line */
+ function swash(g,c,time,seed){
+  const u=(Math.sin(time*.75+seed)+1)/2,front=[],edge=[];
+  for(let j=0;j<c.nor.length;j++){
+   const a=c.pts[j],b=c.pts[j+1],[nx,ny]=c.nor[j],len=Math.hypot(b[0]-a[0],b[1]-a[1]);
+   for(let d=0;d<=len;d+=Math.min(20,len-d)||20){
+    const x=a[0]+(b[0]-a[0])*d/len,y=a[1]+(b[1]-a[1])*d/len,sAlong=x*.7+y*.7;
+    const o=18-u*32+4*Math.sin(sAlong*.045+time*.6+seed)+2.5*Math.sin(sAlong*.11-time*1.1);
+    front.push([x+nx*o,y+ny*o]);edge.push([x,y]);   /* the sheet lies between the waterline and its front */
+    if(d>=len)break;
+   }
+  }
+  if(front.length<2)return;
+  g.save();g.lineCap='round';g.lineJoin='round';
+  g.beginPath();front.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));for(let i=edge.length-1;i>=0;i--)g.lineTo(edge[i][0],edge[i][1]);g.closePath();
+  g.fillStyle='rgba(176,220,214,'+(.10+.12*u)+')';g.fill();   /* the thin sheet behind the front */
+  for(let i=1;i<front.length;i++){   /* foam, not a wire: thick and bright in places, thin or gone in others */
+   const f=(Math.sin(i*1.37+seed*3.1+time*.35)+Math.sin(i*.53-time*.21))/4+.5,[ax,ay]=front[i-1],[bx,by]=front[i];
+   g.beginPath();g.moveTo(ax,ay);g.lineTo(bx,by);
+   g.strokeStyle='rgba(240,250,248,'+(.05+.09*u)*f+')';g.lineWidth=6+8*f;g.stroke();
+   if(f<.3)continue;
+   g.strokeStyle='rgba(246,252,250,'+(.18+.42*u)*f+')';g.lineWidth=1.4+2.6*f;g.stroke();
+  }
+  g.restore();
+ }
+ function beaches(g,im,v,def,time){
+  let chains=beachCache.get(def);if(!chains){chains=beachChains(def);beachCache.set(def,chains);}
+  if(!chains.length)return;
+  const F=def.floor||{},floor=(F.shade&&tinted(im[F.tile],F.shade))||im[F.tile];
+  chains.forEach((c,i)=>{
+   const b=bbox(c.pts);if(!onView(b.x,b.y,b.x+b.w,b.y+b.h,v,SHALLOWS+30))return;
+   g.save();landPath(g,def);g.rect(v.x0-SHALLOWS,v.y0-SHALLOWS,v.x1-v.x0+SHALLOWS*2,v.y1-v.y0+SHALLOWS*2);g.clip('evenodd');   /* the water side */
+   const pic=shallows(c,floor,F);if(pic)g.drawImage(pic.pic,pic.x,pic.y,pic.w,pic.h);
+   beachFade(g,c,SHALLOWS,1,[[0,'rgba(150,200,186,.26)'],[.5,'rgba(40,132,142,.16)'],[1,'rgba(20,100,120,0)']]);   /* the shallows' paler green */
+   g.restore();
+   g.save();landPath(g,def);g.clip('evenodd');   /* the land side: dark and glossy where the waves reach */
+   beachFade(g,c,WET,-1,[[0,'rgba(30,22,12,.36)'],[.55,'rgba(30,22,12,.12)'],[1,'rgba(30,22,12,0)']]);
+   g.restore();
+   swash(g,c,time,i*2.1);
+   c.nor.forEach(([nx,ny],j)=>{const a=c.pts[j],e=c.pts[j+1];
+    foamLine(g,[[a[0]+nx*44,a[1]+ny*44,nx,ny],[e[0]+nx*44,e[1]+ny*44,nx,ny]],time,j*1.7+.9);
+    foamLine(g,[[a[0]+nx*80,a[1]+ny*80,nx,ny],[e[0]+nx*80,e[1]+ny*80,nx,ny]],time,j*2.3+4.1);});
+  });
+ }
+ /* a painted quay (def.quayArt = {key, kerb}: kerb is the share of the picture's height that is the coping's top) laid
+    along an edge in the edge's own frame: the coping inside the land, the wall's face out over the water - all of it
+    where the water lies below, only its upper rows along the sides - mirrored tile to tile, and only the tiles in view */
+ const QUAY_KERB=22,QUAY_FACE=38;
+ function quayWall(g,im,Q,a,b,nx,ny,len,face,v){
+  const W=iw(im),H=ih(im),kr=Math.round(H*(Q.kerb||.35)),rows=(H-kr)*Math.min(1,face/QUAY_FACE),T=W*(QUAY_KERB+QUAY_FACE)/H;
+  const ux=(b[0]-a[0])/len,uy=(b[1]-a[1])/len,along=[[v.x0,v.y0],[v.x1,v.y0],[v.x0,v.y1],[v.x1,v.y1]].map(([x,y])=>(x-a[0])*ux+(y-a[1])*uy);
+  const k0=Math.max(0,Math.floor((Math.min(...along)-QUAY_FACE)/T)),k1=Math.min(Math.ceil(len/T),Math.ceil((Math.max(...along)+QUAY_FACE)/T));
+  g.save();g.transform(ux,uy,nx,ny,a[0],a[1]);
+  g.beginPath();g.rect(0,-QUAY_KERB,len,QUAY_KERB+face);g.clip();
+  for(let k=k0;k<k1;k++){
+   g.save();g.translate(k*T+T/2,0);if(k%2&&Q.mirror!==false)g.scale(-1,1);
+   g.drawImage(im,0,0,W,kr,-T/2-.4,-QUAY_KERB,T+.8,QUAY_KERB);
+   g.drawImage(im,0,kr,W,rows,-T/2-.4,0,T+.8,face);
+   g.restore();
+  }
+  g.restore();
+ }
  /* where the land meets the water: a quay (dressed kerb, the wall's face below it, mooring rings) or a rocky shore,
     and foam on the water either way */
  function shore(g,im,v,def,time){
+  beaches(g,im,v,def,time);
   for(const L of def.lands)for(let i=0;i<L.length;i++){
    const a=L[i],b=L[(i+1)%L.length],style=a[2]||'edge';
    if(style==='edge')continue;
@@ -450,13 +560,16 @@
     continue;
    }
    if(style==='quay'){
-    const face=Math.max(0,ny)*30+8;                                    /* a wall seen over its edge only where the water lies below */
+    const face=Math.max(0,ny)*30+8,len=Math.hypot(b[0]-a[0],b[1]-a[1]);   /* a wall seen over its edge only where the water lies below */
+    const Q=def.quayArt,qi=Q&&im[Q.key];
     g.save();g.lineCap='butt';
-    g.strokeStyle=def.quayFace||'#4d463b';g.lineWidth=face;g.beginPath();g.moveTo(a[0]+nx*face/2,a[1]+ny*face/2);g.lineTo(b[0]+nx*face/2,b[1]+ny*face/2);g.stroke();
-    g.strokeStyle=def.quayKerb||'#b7ac93';g.lineWidth=22;g.beginPath();g.moveTo(a[0]-nx*11,a[1]-ny*11);g.lineTo(b[0]-nx*11,b[1]-ny*11);g.stroke();
-    g.strokeStyle='rgba(255,255,255,.16)';g.lineWidth=3;g.beginPath();g.moveTo(a[0]-nx*21,a[1]-ny*21);g.lineTo(b[0]-nx*21,b[1]-ny*21);g.stroke();
-    g.strokeStyle='rgba(40,32,22,.55)';g.lineWidth=2;g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke();
-    const len=Math.hypot(b[0]-a[0],b[1]-a[1]);
+    if(ready(qi)&&len>0)quayWall(g,qi,Q,a,b,nx,ny,len,face,v);
+    else{   /* the plain kerb and face, while the painting loads (or for a town without one) */
+     g.strokeStyle=def.quayFace||'#4d463b';g.lineWidth=face;g.beginPath();g.moveTo(a[0]+nx*face/2,a[1]+ny*face/2);g.lineTo(b[0]+nx*face/2,b[1]+ny*face/2);g.stroke();
+     g.strokeStyle=def.quayKerb||'#b7ac93';g.lineWidth=QUAY_KERB;g.beginPath();g.moveTo(a[0]-nx*11,a[1]-ny*11);g.lineTo(b[0]-nx*11,b[1]-ny*11);g.stroke();
+     g.strokeStyle='rgba(255,255,255,.16)';g.lineWidth=3;g.beginPath();g.moveTo(a[0]-nx*21,a[1]-ny*21);g.lineTo(b[0]-nx*21,b[1]-ny*21);g.stroke();
+     g.strokeStyle='rgba(40,32,22,.55)';g.lineWidth=2;g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke();
+    }
     g.strokeStyle='rgba(20,16,10,.8)';g.lineWidth=3;
     for(let d=150;d<len-60;d+=300){const t=d/len,x=a[0]+(b[0]-a[0])*t-nx*12,y=a[1]+(b[1]-a[1])*t-ny*12;g.beginPath();g.ellipse(x,y,7,4.5,0,0,TAU);g.stroke();}
     g.restore();
@@ -466,9 +579,7 @@
     g.strokeStyle=def.bank||'rgba(62,53,42,.92)';g.lineWidth=face;g.beginPath();g.moveTo(a[0]+nx*face/2,a[1]+ny*face/2);g.lineTo(b[0]+nx*face/2,b[1]+ny*face/2);g.stroke();
     g.strokeStyle='rgba(255,255,255,.10)';g.lineWidth=2;g.beginPath();g.moveTo(a[0]-nx*2,a[1]-ny*2);g.lineTo(b[0]-nx*2,b[1]-ny*2);g.stroke();
     g.restore();
-   }else if(style==='sand'){
-    g.save();g.lineCap='round';g.strokeStyle='rgba(214,196,150,.85)';g.lineWidth=34;g.beginPath();g.moveTo(a[0]+nx*6,a[1]+ny*6);g.lineTo(b[0]+nx*6,b[1]+ny*6);g.stroke();g.restore();
-   }
+   }else if(style==='sand')continue;   /* laid first, by beaches() */
    const fo=style==='quay'?Math.max(0,ny)*30+10:style==='rock'?Math.max(0,ny)*10+12:12;
    foamLine(g,[[a[0]+nx*fo,a[1]+ny*fo,nx,ny],[b[0]+nx*fo,b[1]+ny*fo,nx,ny]],time,i*1.7);
   }
@@ -793,7 +904,7 @@
   const def=TOWNS[id];if(!def)return [];
   const out=new Set([SHARED_TILES.sea,SHARED_TILES.quay,SHARED_TILES.planks,SHARED_TILES.gull,'ground/tuft_1','ground/tuft_2','ground/tuft_3','ground/tuft_4']);
   const add=k=>{if(k)out.add(k);};
-  add(def.floor&&def.floor.tile);add(def.sea&&def.sea.tile);add(def.pierTile);add(def.backdrop&&def.backdrop.key);add(def.wallTile);
+  add(def.floor&&def.floor.tile);add(def.sea&&def.sea.tile);add(def.pierTile);add(def.backdrop&&def.backdrop.key);add(def.wallTile);add(def.quayArt&&def.quayArt.key);
   for(const d of def.decals||[])add(d.key);
   for(const s of Object.values(def.roadStyles||{}))add(s.tile);for(const s of Object.values(def.plazaStyles||{}))add(s.tile);
   for(const p of def.patches||[])add(p.tile);for(const m of def.mosaics||[])add(m.key);for(const p of def.piers||[])add(p.tile);

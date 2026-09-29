@@ -408,6 +408,7 @@
   nav button{flex:0 1 auto;padding:0 16px;background:none;border:none;color:var(--dim);cursor:var(--hand);font-size:11px;letter-spacing:.5px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-family:var(--body)}
   nav button svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
   nav button.cur{color:var(--brass)}
+  nav button.abroad{color:#2a241c;background:rgba(0,0,0,.62);border-radius:10px;cursor:var(--arrow)}   /* ⛵ in a port: home is a voyage away */
   /* Belt and braces with the blur() in the click handler: the tab already shows which one is
      current in brass, so the browser's ring adds nothing but a white box over the artwork. */
   nav button:focus{outline:none}

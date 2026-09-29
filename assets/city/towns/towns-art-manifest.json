@@ -6,7 +6,7 @@
  "resolution": "1k",
  "background": "transparent (tiles: opaque)",
  "date": "2026-09-25",
- "style": "Blackbeard's ports of call: Silverfjord (white granite, deep-blue slate, silver), Ravenholt (grey granite fortress, red raven banners, snow), Emberfall (soot-dark brick, copper and a thousand chimneys under a red sky) and Port Meridian (sandstone, terracotta and the awnings of four oceans), plus the Free Company's sellswords.",
+ "style": "Blackbeard's ports of call: Silverfjord (white granite, deep-blue slate, silver), Ravenholt (grey granite fortress, red raven banners, snow), Emberfall (soot-dark brick, copper and a thousand chimneys under a red sky) and Port Meridian (sandstone, terracotta and the awnings of four oceans), plus the Free Company's sellswords. Kraken's Rest (2026-09-29): a pirate free port built from wrecks - upturned hulls for roofs, tarred driftwood, verdigris, teal sailcloth and green-teal lanterns, a kraken on every flag; gpt_image_2 on flat magenta with the Meridian pictures (pm_tavern, pm_warehouse, pm_lighthouse, pm_stall_spice, pm_paving, pm_hills jobs) as style references.",
  "references": {
   "palace (sf_palace, its own job) for the rest of Silverfjord": "e918ead9-51fc-4654-9c5f-ed5b4c0f999e",
   "house_stone_flat": "460df33b-4cc3-45be-b649-e5621f3c29fa",
@@ -2737,6 +2737,508 @@
     716
    ],
    "note": "one bay cut out of sf_hall_wall.png, pillar centre to pillar centre (px 118-502, rows 18-734 without the cream margins), 6 px blended at each edge so the bays join; replaces the cross-faded strip whose middle had ghost windows"
+  },
+  "kr_council.png": {
+   "jobId": "48a947c3-c880-4bab-9ec1-23dfdf133ffa",
+   "kind": "building",
+   "model": "gpt_image_2 (medium)",
+   "date": "2026-09-29",
+   "town": "Kraken's Rest",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    83,
+    35,
+    875,
+    1130
+   ],
+   "size": [
+    651,
+    900
+   ],
+   "processing": "drawn on flat magenta; keyed on min(R,B)-G against its own backdrop, rim despilled, tight crop, LANCZOS to 900 tall"
+  },
+  "kr_tavern.png": {
+   "jobId": "bd02dd09-7148-4112-8a75-e3062bdd4c9d",
+   "kind": "building",
+   "model": "gpt_image_2 (medium)",
+   "date": "2026-09-29",
+   "town": "Kraken's Rest",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    60,
+    15,
+    1145,
+    844
+   ],
+   "size": [
+    1178,
+    900
+   ],
+   "processing": "drawn on flat magenta; keyed on min(R,B)-G against its own backdrop, rim despilled, tight crop, LANCZOS to 900 tall"
+  },
+  "kr_hull_a.png": {
+   "jobId": "c79b858b-eb16-4e0b-ba0d-42e887071993",
+   "kind": "building",
+   "model": "gpt_image_2 (medium)",
+   "date": "2026-09-29",
+   "town": "Kraken's Rest",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    65,
+    75,
+    958,
+    923
+   ],
+   "size": [
+    948,
+    900
+   ],
+   "processing": "drawn on flat magenta; keyed on min(R,B)-G against its own backdrop, rim despilled, tight crop, LANCZOS to 900 tall"
+  },
+  "kr_hull_b.png": {
+   "jobId": "1837211e-3397-4d92-a15f-7c57f55906a9",
+   "kind": "building",
+   "model": "gpt_image_2 (medium)",
+   "date": "2026-09-29",
+   "town": "Kraken's Rest",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    136,
+    17,
+    734,
+    1118
+   ],
+   "size": [
+    489,
+    900
+   ],
+   "processing": "drawn on flat magenta; keyed on min(R,B)-G against its own backdrop, rim despilled, tight crop, LANCZOS to 900 tall"
+  },
+  "kr_hull_c.png": {
+   "jobId": "969c47d5-63b2-41b1-8add-92c8826d0067",
+   "kind": "building",
+   "model": "gpt_image_2 (medium)",
+   "date": "2026-09-29",
+   "town": "Kraken's Rest",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    86,
+    42,
+    961,
+    951
+   ],
+   "size": [
+    866,
+    900
+   ],
+   "processing": "drawn on flat magenta; keyed on min(R,B)-G against its own backdrop, rim despilled, tight crop, LANCZOS to 900 tall"
+  },
+  "kr_warehouse.png": {
+   "jobId": "c09e0a1f-1fdf-4669-906a-2d380117e9a1",
+   "kind": "building",
+   "model": "gpt_image_2 (medium)",
+   "date": "2026-09-29",
+   "town": "Kraken's Rest",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    15,
+    146,
+    1156,
+    741
+   ],
+   "size": [
+    1726,
+    900
+   ],
+   "processing": "drawn on flat magenta; keyed on min(R,B)-G against its own backdrop, rim despilled, tight crop, LANCZOS to 900 tall"
+  },
+  "kr_tollhouse.png": {
+   "jobId": "f3e8bb03-a788-4e6b-b487-7dd5fa81b7ad",
+   "kind": "building",
+   "model": "gpt_image_2 (medium)",
+   "date": "2026-09-29",
+   "town": "Kraken's Rest",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    74,
+    40,
+    807,
+    1109
+   ],
+   "size": [
+    617,
+    900
+   ],
+   "processing": "drawn on flat magenta; keyed on min(R,B)-G against its own backdrop, rim despilled, tight crop, LANCZOS to 900 tall"
+  },
+  "kr_lighthouse.png": {
+   "jobId": "fb82835e-51e2-4983-8444-b4c92fa64e80",
+   "kind": "building",
+   "model": "gpt_image_2 (medium)",
+   "date": "2026-09-29",
+   "town": "Kraken's Rest",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    115,
+    18,
+    628,
+    1325
+   ],
+   "size": [
+    353,
+    900
+   ],
+   "processing": "drawn on flat magenta; keyed on min(R,B)-G against its own backdrop, rim despilled, tight crop, LANCZOS to 900 tall"
+  },
+  "kr_shipwright.png": {
+   "jobId": "610c0db9-3b4c-4d69-b1e1-d8bdb3fb4ba5",
+   "kind": "building",
+   "model": "gpt_image_2 (medium)",
+   "date": "2026-09-29",
+   "town": "Kraken's Rest",
+   "source": [
+    1168,
+    880
+   ],
+   "crop": [
+    127,
+    45,
+    1039,
+    830
+   ],
+   "size": [
+    1046,
+    900
+   ],
+   "processing": "drawn on flat magenta; keyed on min(R,B)-G against its own backdrop, rim despilled, tight crop, LANCZOS to 900 tall"
+  },
+  "kr_kraken_bones.png": {
+   "jobId": "f919c393-843e-44e8-af6c-f092e6f9b63d",
+   "kind": "prop",
+   "model": "gpt_image_2 (medium)",
+   "date": "2026-09-29",
+   "town": "Kraken's Rest",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    60,
+    68,
+    956,
+    947
+   ],
+   "size": [
+    640,
+    628
+   ],
+   "processing": "drawn on flat magenta; keyed on min(R,B)-G against its own backdrop, rim despilled, tight crop, LANCZOS to at most 640"
+  },
+  "kr_stall_salvage.png": {
+   "jobId": "e94f8c7e-d12b-4e9c-8011-4b7a79cf139a",
+   "kind": "prop",
+   "model": "gpt_image_2 (medium)",
+   "date": "2026-09-29",
+   "town": "Kraken's Rest",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    48,
+    29,
+    974,
+    967
+   ],
+   "size": [
+    632,
+    640
+   ],
+   "processing": "drawn on flat magenta; keyed on min(R,B)-G against its own backdrop, rim despilled, tight crop, LANCZOS to at most 640"
+  },
+  "kr_stall_rum.png": {
+   "jobId": "455c3017-c3f5-4023-a5dd-77f2d2b8b84f",
+   "kind": "prop",
+   "model": "gpt_image_2 (medium)",
+   "date": "2026-09-29",
+   "town": "Kraken's Rest",
+   "source": [
+    1024,
+    1024
+   ],
+   "crop": [
+    21,
+    20,
+    1003,
+    999
+   ],
+   "size": [
+    640,
+    638
+   ],
+   "processing": "drawn on flat magenta; keyed on min(R,B)-G against its own backdrop, rim despilled, tight crop, LANCZOS to at most 640"
+  },
+  "kr_lantern.png": {
+   "jobId": "c9080afb-4417-4ad7-855a-e048410aedc6",
+   "kind": "prop",
+   "model": "gpt_image_2 (medium)",
+   "date": "2026-09-29",
+   "town": "Kraken's Rest",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    153,
+    118,
+    555,
+    1187
+   ],
+   "size": [
+    241,
+    640
+   ],
+   "processing": "drawn on flat magenta; keyed on min(R,B)-G against its own backdrop, rim despilled, tight crop, LANCZOS to at most 640"
+  },
+  "kr_flag.png": {
+   "jobId": "b465cdd1-cd12-4519-8a18-eca71ee3b6ab",
+   "kind": "prop",
+   "model": "gpt_image_2 (medium)",
+   "date": "2026-09-29",
+   "town": "Kraken's Rest",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    76,
+    53,
+    698,
+    1278
+   ],
+   "size": [
+    325,
+    640
+   ],
+   "processing": "drawn on flat magenta; keyed on min(R,B)-G against its own backdrop, rim despilled, tight crop, LANCZOS to at most 640"
+  },
+  "kr_figurehead.png": {
+   "jobId": "f7ba8277-1a86-490a-9baf-3d98e3199d9b",
+   "kind": "prop",
+   "model": "gpt_image_2 (medium)",
+   "date": "2026-09-29",
+   "town": "Kraken's Rest",
+   "source": [
+    880,
+    1168
+   ],
+   "crop": [
+    79,
+    25,
+    800,
+    1145
+   ],
+   "size": [
+    412,
+    640
+   ],
+   "processing": "drawn on flat magenta; keyed on min(R,B)-G against its own backdrop, rim despilled, tight crop, LANCZOS to at most 640"
+  },
+  "kr_mast_wreck.png": {
+   "jobId": "550071ab-a9e1-4003-92e7-b60dfcc383bc",
+   "kind": "prop",
+   "model": "gpt_image_2 (medium)",
+   "date": "2026-09-29",
+   "town": "Kraken's Rest",
+   "source": [
+    752,
+    1344
+   ],
+   "crop": [
+    41,
+    71,
+    728,
+    1237
+   ],
+   "size": [
+    377,
+    640
+   ],
+   "processing": "drawn on flat magenta; keyed on min(R,B)-G against its own backdrop, rim despilled, tight crop, LANCZOS to at most 640"
+  },
+  "kr_wreck.png": {
+   "jobId": "54ff9d01-46f2-48dd-a93c-f12ae68254de",
+   "kind": "backdrop",
+   "model": "gpt_image_2 (medium)",
+   "date": "2026-09-29",
+   "town": "Kraken's Rest",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    36,
+    75,
+    1292,
+    636
+   ],
+   "size": [
+    1256,
+    561
+   ],
+   "processing": "drawn on flat magenta; keyed on min(R,B)-G against its own backdrop, rim despilled, tight crop, native size"
+  },
+  "kr_shingle.png": {
+   "jobId": "c4d2ea0d-87c7-4020-ac23-c3645f44bfa7",
+   "kind": "tile",
+   "model": "gpt_image_2 (medium)",
+   "date": "2026-09-29",
+   "town": "Kraken's Rest",
+   "source": [
+    1024,
+    1024
+   ],
+   "size": [
+    768,
+    768
+   ],
+   "processing": "opaque tile, mirror-tiled by the game"
+  },
+  "kr_cliffs.png": {
+   "jobId": "005308ba-921b-4763-bcc8-d6645bcac57d",
+   "kind": "backdrop",
+   "model": "gpt_image_2 (medium)",
+   "date": "2026-09-29",
+   "town": "Kraken's Rest",
+   "source": [
+    1344,
+    752
+   ],
+   "crop": [
+    0,
+    0,
+    1344,
+    684
+   ],
+   "size": [
+    1344,
+    684
+   ],
+   "processing": "drawn on flat magenta; keyed on min(R,B)-G against its own backdrop, rim despilled, tight crop, native size"
+  },
+  "kr_quay.png": {
+   "jobId": "08582814-d2eb-483f-ad10-2a8c3f7be942",
+   "kind": "quay",
+   "model": "gpt_image_2_5",
+   "date": "2026-09-29",
+   "town": "Kraken's Rest",
+   "reference": "c4d2ea0d-87c7-4020-ac23-c3645f44bfa7 (kr_shingle)",
+   "source": [
+    1344,
+    576
+   ],
+   "size": [
+    896,
+    384
+   ],
+   "kerb": 0.4,
+   "processing": "opaque 21:9 strip resized to 896x384; laid along the town's quay edges by TownWorld.quayWall (rows above kerb = the coping, inside the land; the rest = the wall's face over the water), mirrored tile to tile"
+  },
+  "pm_quay.png": {
+   "jobId": "4958704d-b376-4212-bb2c-40c08079dca2",
+   "kind": "quay",
+   "model": "gpt_image_2_5",
+   "date": "2026-09-29",
+   "town": "Port Meridian",
+   "reference": "63ef7a56-2c84-4c5a-aae7-5f608a5febd9 (pm_paving)",
+   "source": [
+    1344,
+    576
+   ],
+   "size": [
+    896,
+    384
+   ],
+   "kerb": 0.316,
+   "processing": "opaque 21:9 strip resized to 896x384; laid along the town's quay edges by TownWorld.quayWall (rows above kerb = the coping, inside the land; the rest = the wall's face over the water), mirrored tile to tile"
+  },
+  "sf_quay.png": {
+   "jobId": "962d1197-053a-41f3-9a0a-7b24cc09064c",
+   "kind": "quay",
+   "model": "gpt_image_2_5",
+   "date": "2026-09-29",
+   "town": "Silverfjord",
+   "reference": "56b6782b-b3df-4f3d-a0af-0cff76191ecd (sf_paving)",
+   "source": [
+    1344,
+    576
+   ],
+   "size": [
+    896,
+    384
+   ],
+   "kerb": 0.31,
+   "processing": "opaque 21:9 strip resized to 896x384; laid along the town's quay edges by TownWorld.quayWall (rows above kerb = the coping, inside the land; the rest = the wall's face over the water), mirrored tile to tile"
+  },
+  "rh_quay.png": {
+   "jobId": "7ac10fd3-c008-4bdc-b658-a4f7d4629a47",
+   "kind": "quay",
+   "model": "gpt_image_2_5",
+   "date": "2026-09-29",
+   "town": "Ravenholt",
+   "reference": "534ba985-0298-4afd-b318-049e1293cdfd (rh_flagstone)",
+   "source": [
+    1344,
+    576
+   ],
+   "size": [
+    896,
+    384
+   ],
+   "kerb": 0.333,
+   "processing": "opaque 21:9 strip resized to 896x384; laid along the town's quay edges by TownWorld.quayWall (rows above kerb = the coping, inside the land; the rest = the wall's face over the water), mirrored tile to tile"
+  },
+  "ef_quay.png": {
+   "jobId": "f60b7d57-cf65-49eb-a1c7-2d0564989408",
+   "kind": "quay",
+   "model": "gpt_image_2_5",
+   "date": "2026-09-29",
+   "town": "Emberfall",
+   "reference": "591884f7-e664-4ef6-964c-abb25472d47b (ef_brick)",
+   "source": [
+    1344,
+    576
+   ],
+   "size": [
+    896,
+    384
+   ],
+   "kerb": 0.387,
+   "processing": "opaque 21:9 strip resized to 896x384; laid along the town's quay edges by TownWorld.quayWall (rows above kerb = the coping, inside the land; the rest = the wall's face over the water), mirrored tile to tile"
   }
  }
 }

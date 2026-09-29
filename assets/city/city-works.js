@@ -356,7 +356,7 @@
     tests - and every routine below falls back to its canvas drawing without it. h is the drawn height
     in world units, drop how far below the anchor the art's foot sits. */
  const ART={lamp:{h:138,drop:5},banner:{h:250,drop:8},fountain:{h:146,drop:34},statue:{h:178*STATUE_K,drop:10*STATUE_K},garden:{h:128*GARDEN_K,drop:44*GARDEN_K},site:{h:150,drop:34},stall:{h:122,drop:10},
-  noticeboard:{h:132,drop:8},maypole:{h:272,drop:8},music:{h:92,drop:8},feast:{h:176,drop:50},tent:{h:232,drop:16},breadline:{h:140,drop:10},beggar:{h:70,drop:8},barricade:{h:122,drop:18}};
+  noticeboard:{h:132,drop:8},maypole:{h:272,drop:8},music:{h:92,drop:8},feast:{h:106,drop:48},tent:{h:232,drop:16},breadline:{h:140,drop:10},beggar:{h:70,drop:8},barricade:{h:122,drop:18}};
  const STALL_ART=['stall_bread','stall_fish','stall_greens','stall_cloth'],WAGON_ART=['wagon_barrels','wagon_caravan','wagon_grain','wagon_caravan'];
  const artName=s=>s.kind==='banner'?'city_banner':s.kind==='stall'?STALL_ART[s.goods%STALL_ART.length]:s.kind==='tent'?(s.stripe?'tent_blue':'tent_red'):s.kind==='statue'?(s.crowned?'statue_crowned':'statue'):s.kind;
  const ready=im=>!!(im&&(im.naturalWidth||im.width));

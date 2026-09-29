@@ -188,11 +188,15 @@
   g.fillStyle=grad;g.fillRect(v.x0,v.y0,v.x1-v.x0,Math.min(v.y1,CLIFF.top)-v.y0);
  }
  function sea(g,im,v,time){
-  const top=Q1-40;if(v.y1<=top)return;
-  const y0=Math.max(v.y0,top);
+  /* the open sea below the quay, and the two basins beside its ends, which reach up to the cliff's foot */
+  const rects=[[0,Q1-40,W,H],[0,Q0,QUAY.x,Q1],[QUAY.x+QUAY.w,Q0,W,Q1]]
+   .map(([x0,y0,x1,y1])=>[Math.max(v.x0,x0),Math.max(v.y0,y0),Math.min(v.x1,x1),Math.min(v.y1,y1)]).filter(r=>r[2]>r[0]&&r[3]>r[1]);
+  if(!rects.length)return;
+  const y0=Math.min(...rects.map(r=>r[1]));
+  g.save();g.beginPath();for(const r of rects)g.rect(r[0],r[1],r[2]-r[0],r[3]-r[1]);g.clip();
   g.fillStyle='#0f4f66';g.fillRect(v.x0,y0,v.x1-v.x0,v.y1-y0);
   if(ready(im.sea_tile)){
-   g.save();g.beginPath();g.rect(v.x0,y0,v.x1-v.x0,v.y1-y0);g.clip();
+   g.save();
    for(const [size,dx,dy,alpha] of [[640,time*7,time*3,1],[1040,-time*5,time*6.5,.36]]){
     const ox=((dx%size)+size)%size,oy=((dy%size)+size)%size;
     g.globalAlpha=alpha;
@@ -210,7 +214,7 @@
    const x=(i+f)*cell,y=(j+f2)*cell,s=(a-.55)*16;if(y<y0+20)continue;
    g.globalAlpha=(a-.55)*1.7;g.beginPath();g.moveTo(x-s,y);g.lineTo(x,y-s*.45);g.lineTo(x+s,y);g.lineTo(x,y+s*.45);g.closePath();g.fill();
   }
-  g.globalAlpha=1;
+  g.globalAlpha=1;g.restore();
  }
  function timberPier(g,im,v,rc,time,seed,{turn=false,old=false}={}){
   if(rc.x+rc.w+40<v.x0||rc.x-40>v.x1||rc.y+rc.h+60<v.y0||rc.y-20>v.y1)return;
@@ -286,6 +290,11 @@
    for(const [rc,seed] of [[PIER_A.stem,1.1],[PIER_A.head,2.3],[JETTY.deck,3.7],[MOLE.stem,6.2]])foam(g,rectFoam(rc),time,seed);
    const hd=MOLE.head,ring=[];for(let a=-.7;a<=Math.PI+.71;a+=.2)ring.push([hd.x+Math.cos(a)*hd.r,hd.y+Math.sin(a)*hd.r+(Math.sin(a)>0?20:0),Math.cos(a),Math.sin(a)]);
    foam(g,ring,time,7.7);
+  }
+  if(v.y1>Q0&&v.y0<Q1&&(v.x0<QUAY.x+40||v.x1>QUAY.x+QUAY.w-40)){   /* the basins beside the quay's ends: its shadow, and foam along its sides and the cliff's foot */
+   const e=QUAY.x+QUAY.w;g.fillStyle='rgba(2,14,26,.34)';g.fillRect(e,Q0+6,12,Q1-Q0+24);
+   foam(g,[[0,Q0+6,0,1],[QUAY.x,Q0+6,0,1]],time,8.3);foam(g,[[QUAY.x,Q0+6,-1,0],[QUAY.x,Q1,-1,0]],time,9.1);
+   foam(g,[[e,Q1,1,0],[e,Q0+6,1,0]],time,9.9);foam(g,[[e,Q0+6,0,1],[W,Q0+6,0,1]],time,10.7);
   }
   timberPier(g,im,v,PIER_A.stem,time,1);timberPier(g,im,v,PIER_A.head,time,2,{turn:true});
   timberPier(g,im,v,JETTY.deck,time,3,{old:true});

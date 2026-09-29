@@ -137,7 +137,7 @@
   plazas:[{...SQ,kind:'square'}],
   plazaStyles:{square:{tile:'towns/ef_brick',size:260,rim:'#8a5a3a',ring:'rgba(184,115,51,.45)'}},
   patches:[{x:2500,y:1480,rx:760,ry:150,tile:'towns/ef_brick',size:220,shade:'rgba(20,10,5,.30)',rim:'#5b4b42'}],
-  quayKerb:'#7c7068',quayFace:'#3a302c',pierTile:'harbor/quay_paving',
+  quayKerb:'#7c7068',quayFace:'#3a302c',quayArt:{key:'towns/ef_quay',kerb:0.387},pierTile:'harbor/quay_paving',
   backdrop:{key:'towns/ef_skyline',y:0,h:720,sky:[[0,'#3a0d08'],[.55,'#8e2a12'],[1,'#d8642a']]},
   weather:'embers',light:1,
   tint:'rgba(120,40,10,.06)',

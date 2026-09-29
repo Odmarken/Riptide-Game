@@ -174,7 +174,7 @@
   plazas:[{x:GX,y:1520,rx:520,ry:140,kind:'court'},{...SQ,kind:'square'}],
   plazaStyles:{square:{tile:'towns/rh_flagstone',size:300,rim:'#9aa0a6',ring:'rgba(120,20,20,.35)'},court:{tile:'towns/rh_flagstone',size:260,rim:'#9aa0a6'}},
   patches:[{x:1300,y:1900,rx:600,ry:200,tile:'towns/rh_flagstone',size:240,shade:'rgba(60,50,40,.25)',rim:'#8d939a'},{x:3350,y:1880,rx:430,ry:150,tile:'towns/rh_flagstone',size:240,shade:'rgba(60,50,40,.25)',rim:'#8d939a'}],
-  quayKerb:'#9ea4aa',quayFace:'#3f4247',pierTile:'towns/rh_flagstone',
+  quayKerb:'#9ea4aa',quayFace:'#3f4247',quayArt:{key:'towns/rh_quay',kerb:0.333},pierTile:'towns/rh_flagstone',
   backdrop:{key:'towns/rh_mountains',y:0,h:800,sky:[[0,'#8e9aa6'],[.7,'#c3cbd2'],[1,'#dde2e6']]},
   weather:'snow',light:.7,
   birds:[{path:[[1200,2600,700,240,.13,0],[3400,3400,800,300,-.1,2]],src:'harbor/seagull',size:54}],

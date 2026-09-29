@@ -270,7 +270,7 @@
    {x:4600,y:C(4600),rx:700,ry:250,kind:'square'},{x:13800,y:C(13800),rx:700,ry:250,kind:'square'},
    {x:13800,y:Q(13800)+60,rx:650,ry:230,kind:'court'},{x:16000,y:U(16000),rx:520,ry:170,kind:'court'},{x:6900,y:U(6900),rx:460,ry:150,kind:'court'}],
   plazaStyles:{square:{tile:'towns/sf_plaza',size:340,rim:'#f2f4f6',ring:'rgba(40,80,150,.35)'},court:{tile:'towns/sf_plaza',size:260,rim:'#eef1f4'}},
-  quayKerb:'#e3e7ea',quayFace:'#6c7a86',pierTile:'towns/sf_paving',
+  quayKerb:'#e3e7ea',quayFace:'#6c7a86',quayArt:{key:'towns/sf_quay',kerb:0.31},pierTile:'towns/sf_paving',
   backdrop:{key:'towns/sf_mountains',y:0,h:900,sky:[[0,'#9fc4e6'],[.6,'#d9ebf7'],[1,'#eef6fb']]},
   birds:[{path:[[5000,4600,1200,300,.14,0],[11000,3800,1500,400,-.11,2],[AX,5800,900,260,.19,4],[15000,4300,1100,300,-.13,1]]}],
   haze:[[0,'rgba(210,230,250,.10)'],[1,'rgba(210,230,250,0)']],

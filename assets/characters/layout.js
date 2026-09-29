@@ -85,7 +85,8 @@ const CHARACTER_BOUNDS={
  "npc/npc_ruler_sigvald":[533,700,0,1,532,698],
  "npc/npc_ruler_roderic":[530,700,1,1,527,698],
  "npc/npc_ruler_aldric":[532,700,1,0,530,698],
- "npc/npc_ruler_isaura":[504,700,1,2,502,697]
+ "npc/npc_ruler_isaura":[504,700,1,2,502,697],
+ "npc/npc_ruler_corvin":[527,700,2,3,524,696]
 };
 /* Reviewed grip centres in the native (left-facing) Ice Armor PNGs. Broad
  * gauntlets do not share the ordinary costume's fixed weapon attachment. */

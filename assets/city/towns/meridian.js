@@ -135,7 +135,7 @@
   ['Spice trader Ezra','spice_merchant',UP],['Guard Fabio','guard',QUAY],['Sellsword Gunnar','mercenary',UP],['Market wife Hana','market_woman',UP],
  ];
  const ISAURA=['Everything has a price. I keep the ledger that says what it is.','Four oceans, one Exchange, one tariff. Mine.','The Free Company hires out swords at the west end. Their price is fair. I checked.','Your treasury pays. Your treasury always pays.'];
- const KAELEN=['One egg. Blue fire under black scales. It costs everything your bank can hold.','I raised three of them. The sky is smaller than you think.','Torsten keeps what hatches. He is the only man I trust with a dragon.'];
+ const KAELEN=['One egg. Blue fire under black scales. Five billion from your bank, and it is yours.','I raised three of them. The sky is smaller than you think.','Torsten keeps what hatches. He is the only man I trust with a dragon.'];
  const HAKON=['Twenty blades a contract, five million from your treasury, a hundred at the most.','We fight for whoever pays - and we stay paid.','My lads walk your walls and your squares. Nobody climbs them after.'];
  const stands=[
   {name:'Trade Officer Isaura Venn',skin:'ruler_isaura',x:AXM,y:1335,fx:1,big:1.32,game:'ruler',say:ISAURA,extra:{royal:true}},
@@ -165,7 +165,7 @@
   plazas:[{...BZ,kind:'square'},{x:AXM,y:1360,rx:520,ry:110,kind:'court'}],
   plazaStyles:{square:{tile:'towns/pm_paving',size:320,rim:'#f0dcae',ring:'rgba(20,130,140,.45)'},court:{tile:'towns/pm_paving',size:260,rim:'#f0dcae'}},
   patches:[{...CAMP,tile:'towns/pm_sand',size:220,shade:'rgba(120,70,30,.20)',rim:'#b88a55'}],
-  quayKerb:'#e2c794',quayFace:'#8a6a44',pierTile:'towns/pm_paving',
+  quayKerb:'#e2c794',quayFace:'#8a6a44',quayArt:{key:'towns/pm_quay',kerb:0.316},pierTile:'towns/pm_paving',
   backdrop:{key:'towns/pm_hills',y:0,h:660,sky:[[0,'#5fa8d8'],[.7,'#bfe0f0'],[1,'#f3e7c8']]},
   light:.35,
   birds:[{path:[[1600,3200,800,260,.15,0],[4200,2400,900,300,-.12,2],[3000,3900,700,240,.2,4],[5400,3300,500,200,-.17,1]]}],

@@ -514,21 +514,29 @@
    ]
   },
   "feast.png": {
-   "jobId": "fd153979-57b2-4f23-963d-2f63d16aad82",
+   "jobId": "81a8a745-1b82-442b-8e79-b654c7299d88",
+   "editOf": "fd153979-57b2-4f23-963d-2f63d16aad82",
+   "model": "gpt_image_2 (medium)",
+   "date": "2026-09-29",
+   "note": "the feast table with every dish and both benches, the people taken out (townsfolk NPCs stand round it now); flat grey keyed out locally (the Higgsfield remover sat in its queue), tight crop, LANCZOS to 640 wide",
    "source": [
     1344,
     752
    ],
    "crop": [
-    294,
-    8,
-    1052,
-    736
+    280,
+    91,
+    1075,
+    727
    ],
    "size": [
     640,
-    615
-   ]
+    512
+   ],
+   "previous": {
+    "jobId": "fd153979-57b2-4f23-963d-2f63d16aad82",
+    "note": "the first feast, with the townsfolk painted seated at it"
+   }
   },
   "tent_red.png": {
    "jobId": "41df817f-7765-4a90-97ea-bc1711efdab8",

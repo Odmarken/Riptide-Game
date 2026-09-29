@@ -48,7 +48,8 @@ test('an unknown zone index never reaches the character list or the world builde
  assert.ok(zones.lastIndexOf('throne:true')>zones.lastIndexOf('tideguild:true'));
  assert.ok(zones.lastIndexOf('harbor:true')>zones.lastIndexOf('throne:true'));
  assert.ok(zones.indexOf("town:'")>zones.lastIndexOf('harbor:true'),'the towns come after the Harbour');
- assert.match(zones,/town:'sf_palace'[^\n]*\n[^\n]*\},\n\];\n$/,'nothing may be inserted before the last port');
+ assert.match(zones,/town:'[a-z_]+'[^\n]*\n[^\n]*\},\n\];\n$/,'nothing may be inserted before the last port');
+ assert.ok(zones.indexOf("town:'krakensrest'")>zones.indexOf("town:'sf_palace'"),"Kraken's Rest (2026-09-29) came after the palace");
 });
 
 test('a hero in a port of call is written down as standing in the City, with notes for the flight and for the town',()=>{

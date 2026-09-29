@@ -345,7 +345,7 @@ test('the ports of call and the Harbour have a minimap: Blackbeard, the King, th
  const TW=require('../assets/city/town-world.js');
  for(const f of fs.readdirSync(path.join(root,'assets/city/towns')).filter(f=>f.endsWith('.js')))require('../assets/city/towns/'+f);
  const HW=require('../assets/city/harbor-world.js'),{api}=harness();
- for(const id of ['silverfjord','ravenholt','emberfall','meridian']){
+ for(const id of ['silverfjord','ravenholt','emberfall','meridian','krakensrest']){
   const w=TW.create(id),m=api.markers(w,w.arrival);
   assert.ok(m.some(p=>p.type==='voyage'&&/Blackbeard/.test(p.name)),id+': Blackbeard');
   assert.ok(m.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)&&p.name),id+': every marker placed and named');

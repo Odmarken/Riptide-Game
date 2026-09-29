@@ -17,9 +17,9 @@ function mounted(id='horse'){
 }
 
 test('buying charges the listed price once, preserves the selected mount, and duplicates cannot debit gold',()=>{
- const state={},spending=[];let gold=1000000;
+ const state={},spending=[];let gold=20000000;
  const spend=amount=>{spending.push(amount);if(gold<amount)return false;gold-=amount;return true;};
- const sold=M.catalog.filter(m=>!m.egg);
+ const sold=M.catalog.filter(m=>!m.egg&&!m.reward);
  for(const item of sold){
   const before=gold;assert.equal(M.buy(state,item.id,spend,earned).ok,true);
   assert.equal(before-gold,item.price);assert.ok(state.mounts.owned.includes(item.id));
@@ -203,21 +203,32 @@ test('all mounts keep the same stride at different frame rates and breathe while
  }
 });
 
-test('Torsten sells the courser from Prestige 4, the leopard to a Duke and the tiger once the Forsaken One is slain',()=>{
+test('Torsten sells the courser from Prestige 4 and the leopard to a Duke; the tiger is the Forsaken One\'s gift',()=>{
  const sold=M.catalog.filter(m=>!m.egg);
  assert.deepEqual(Object.fromEntries(sold.map(m=>[m.id,{...m.need}])),{horse:{prestige:4},leopard:{duke:true},'spectral-tiger':{forsaken:true}});
  assert.deepEqual(sold.map(M.requirement),['Prestige 4','Duke','Slay the Forsaken One']);
+ assert.deepEqual(sold.map(m=>m.price),[2500000,10000000,0],'2.5 million, 10 million, free (2026-09-29)');
  const attempt=(id,standing)=>{let charged=0;const state={};const result=M.buy(state,id,price=>{charged+=price;return true;},standing);return {result,charged,state};};
- for(const id of ['horse','leopard','spectral-tiger']){
+ for(const id of ['horse','leopard']){
   const none=attempt(id);assert.deepEqual(none.result,{ok:false,reason:'locked'},'no standing, nothing with a need is for sale');
   assert.equal(none.charged,0);assert.deepEqual(none.state,{},'a refused sale writes nothing');
  }
  assert.equal(attempt('horse',{prestige:3,duke:true,forsaken:true}).result.reason,'locked','a Duke at Prestige 3 still waits for the courser');
- assert.equal(attempt('horse',{prestige:4}).result.ok,true);assert.equal(attempt('horse',{prestige:4}).charged,25000);
+ assert.equal(attempt('horse',{prestige:4}).result.ok,true);assert.equal(attempt('horse',{prestige:4}).charged,2500000);
  assert.equal(attempt('leopard',{prestige:50,forsaken:true}).result.reason,'locked','prestige is not a patent');
- assert.equal(attempt('leopard',{duke:true}).result.ok,true);
- assert.equal(attempt('spectral-tiger',{prestige:50,duke:true}).result.reason,'locked','only the Forsaken One\'s death opens the tiger');
- assert.equal(attempt('spectral-tiger',{forsaken:true}).result.ok,true);
+ assert.equal(attempt('leopard',{duke:true}).result.ok,true);assert.equal(attempt('leopard',{duke:true}).charged,10000000);
+ /* the tiger is never sold, not even to the hero who slew the Forsaken One: it is given */
+ for(const standing of [undefined,earned]){
+  const t=attempt('spectral-tiger',standing);assert.deepEqual(t.result,{ok:false,reason:'reward'});assert.equal(t.charged,0);assert.deepEqual(t.state,{});
+ }
+ assert.equal(M.unlocked(M.get('spectral-tiger'),earned),false,'no live Buy button for the gift');
+ const hero={mounts:{owned:['horse'],equipped:'horse'}};
+ assert.deepEqual(M.rewards(hero,{prestige:50,duke:true}),[],'nothing given before the Forsaken One falls');
+ assert.deepEqual(hero.mounts.owned,['horse']);
+ assert.deepEqual(M.rewards(hero,{forsaken:true}).map(m=>m.id),['spectral-tiger']);
+ assert.deepEqual(hero.mounts,{owned:['horse','spectral-tiger'],equipped:'horse'},'given, not saddled over the chosen mount');
+ assert.deepEqual(M.rewards(hero,{forsaken:true}),[],'given once');
+ const fresh={};M.rewards(fresh,{forsaken:true});assert.equal(M.selected(fresh).id,'spectral-tiger','a first mount is ridden at once');
  assert.equal(M.unlocked(null,earned),false);assert.equal(M.unlocked(M.get('horse'),{prestige:'4'}),true,'a prestige read as text still counts');
  /* bought before the rule: kept, ridden and re-equipped without meeting it */
  const old={mounts:{owned:['horse','spectral-tiger'],equipped:'horse'}};
@@ -237,7 +248,13 @@ test('the stable reads the hero\'s standing from the save and locks what is not 
  assert.equal(standing({city:{crowned:true,noble:{rank:0}}}).duke,true,'a King outranks every Duke');
  assert.equal(standing({forsakenDead:true}).forsaken,true);assert.equal(standing({prestige:7}).prestige,7);
  const refresh=source.slice(source.indexOf('function stableRefresh('),source.indexOf('function toggleMount('));
- assert.match(refresh,/Mounts\.buy\(S,id,spendGold,mountStanding\(\)\)/,'the purchase passes the same standing');
+ assert.match(refresh,/Mounts\.buy\(S,id,spendBank,mountStanding\(\)\)/,'the purchase passes the same standing, and the bank pays');
+ const spendLine=source.match(/^const spendBank=.*$/m);assert.ok(spendLine,'spendBank found');
+ const S={gold:50000000,bankGold:3000000};const spendBank=vm.runInNewContext(spendLine[0]+';spendBank',{S});
+ assert.equal(spendBank(10000000),false);assert.equal(S.bankGold,3000000,'a short bank is not touched');
+ assert.equal(spendBank(2500000),true);assert.equal(S.bankGold,500000);assert.equal(S.gold,50000000,'the purse never pays Torsten');
+ assert.match(source,/<span class="imp">The Forsaken One is slain\.<\/span>[^\n]*\n\s*mountRewards\(\);/,'the kill gives the tiger');
+ assert.match(source,/s\.mounts=Mounts\.normalize\(s\.mounts\);if\(s\.forsakenDead\)Mounts\.rewards\(s,\{forsaken:true\}\);/,'a hero who slew it before gets it on loading');
  assert.match(refresh,/equipped\|\|locked\?'disabled':''/,'a locked companion has no live Buy button');
 });
 

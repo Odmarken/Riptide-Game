@@ -7,7 +7,7 @@ const fs=require('node:fs'),path=require('node:path');
 const TW=require('../assets/city/town-world.js');
 for(const f of fs.readdirSync(path.join(__dirname,'../assets/city/towns')).filter(f=>f.endsWith('.js')))require('../assets/city/towns/'+f);
 const root=path.join(__dirname,'..'),game=fs.readFileSync(path.join(root,'game.js'),'utf8');
-const TOWNS=['silverfjord','ravenholt','emberfall','meridian'];   /* the ports; the palace of Silverfjord is an interior */
+const TOWNS=['silverfjord','ravenholt','emberfall','meridian','krakensrest'];   /* the ports; the palace of Silverfjord is an interior */
 const ALL=[...TOWNS,'sf_palace'];
 
 /* what the game's collide() does in a town, for a hero of radius r */
@@ -22,7 +22,7 @@ function blocked(w,x,y,r=13){
  return null;
 }
 
-test('the four ports of call and the palace are registered, each with a zone of its own after the Harbour',()=>{
+test('the five ports of call and the palace are registered, each with a zone of its own after the Harbour',()=>{
  assert.deepEqual(TW.list().map(t=>t.id).sort(),[...ALL].sort());
  assert.deepEqual(TW.list().filter(t=>!t.interior).map(t=>t.id).sort(),[...TOWNS].sort(),'only the palace is an interior');
  const zones=game.slice(game.indexOf('const ZONES=['),game.indexOf('const TAVERN_ZONE='));

@@ -43,7 +43,7 @@ const FG_ART={
 const fgArtFor=clsId=>{const a=FG_ART[clsId];return (a&&a.img.complete&&a.img.naturalWidth)?a:null;};
 /* 🏙 city art. CITY_HOUSES is indexed by a house's seed, so a terrace picks its faces
    deterministically and the same street looks the same every visit. */
-const CITY_ART_V=10; /* bump when a city asset is redrawn - the filenames stay put while the pictures
+const CITY_ART_V=11; /* bump when a city asset is redrawn - the filenames stay put while the pictures
                        behind them change, so without this a cached wall_gate_v.png survives a hard refresh */
 const cityImg=n=>{if(!cityImgs[n]){cityImgs[n]=new Image();cityImgs[n].src='assets/city/'+n+'.png?v='+CITY_ART_V;}return cityImgs[n];};
 const cityImgs={};
@@ -613,7 +613,7 @@ const NPC_SKINS={male:'npc_male',female:'npc_female',sebbe:'npc_sebbe',guard:'np
  mercenary:'npc_mercenary',mercenary_b:'npc_mercenary_b',merc_recruiter:'npc_merc_recruiter',dragon_rider:'npc_dragon_rider',
  /* 💋 the Velvet Lantern's girls (2026-09-29), walking the streets once the house is built */
  courtesan_blonde:'npc_courtesan_blonde',courtesan_dark:'npc_courtesan_dark',
- ruler_sigvald:'npc_ruler_sigvald',ruler_roderic:'npc_ruler_roderic',ruler_aldric:'npc_ruler_aldric',ruler_isaura:'npc_ruler_isaura'};
+ ruler_sigvald:'npc_ruler_sigvald',ruler_roderic:'npc_ruler_roderic',ruler_aldric:'npc_ruler_aldric',ruler_isaura:'npc_ruler_isaura',ruler_corvin:'npc_ruler_corvin'};
 const npcSkinCache={};
 /* 💋 a painted piece that moves on its own (2026-09-29): cut out of the picture - base is the picture without it, its hole
    filled with what lies behind - and turned a little about pivot (px in the picture), never past where it was painted.
@@ -1146,7 +1146,7 @@ function addGoldOverflow(n){
 /* 🏦 The Bank of Moonshine holds at most BANK_CAP, and pays interest by the depositor's standing in the peerage (asked for
    2026-09-24): nothing to a commoner, 0.05% an hour to a Knight, rising evenly rank by rank to 0.5% an hour for a Duke. */
 const BANK_HOUR=3600000,BANK_CAP=10000000000,BANK_RATES=Object.freeze([0,.0005,.0014,.0023,.0032,.0041,.005]);
-const DRAGON_EGG_PRICE=BANK_CAP;   /* 🐉 what Kaelen in Port Meridian asks for his dragon egg: the bank's whole cap */
+const DRAGON_EGG_PRICE=5000000000;   /* 🐉 what Kaelen in Port Meridian asks for his dragon egg: half the bank's cap (the whole cap until 2026-09-29) */
 const bankRank=(ch=S)=>Math.max(0,Math.min(BANK_RATES.length-1,(ch&&ch.city&&ch.city.noble&&ch.city.noble.rank)|0));
 const bankRate=(ch=S)=>BANK_RATES[bankRank(ch)];
 const bankPct=r=>+(r*100).toFixed(2)+'%';
@@ -1401,6 +1401,9 @@ const ZONES=[
  /* 👑 inside King Sigvald's palace in Silverfjord: the throne hall, the council chamber and the jail (towns/sf_palace.js) */
  {name:'Palace of Silverfjord',lvl:1,amb:'tavern',special:true,town:'sf_palace',interior:true,noBerg:true,noTrees:true,en:[],
   ground:'#e8e4dc',ground2:'#d8d4cc',water:'#120e0a',tree:'#51483a',tree2:'#3c342a',path:'#d9dde2'},
+ /* 🐙 the free port on the wrecks (towns/krakensrest.js, 2026-09-29) - appended LAST so every saved zone index stays put */
+ {name:'Kraken’s Rest',lvl:1,amb:'tavern',special:true,town:'krakensrest',noBerg:true,noTrees:true,en:[],
+  ground:'#6f6658',ground2:'#62594c',water:'#0f4d55',tree:'#3f5a4a',tree2:'#2e4438',path:'#a88a62'},
 ];
 const TAVERN_ZONE=ZONES.findIndex(z=>z.tavern);
 const ALTAR_ZONE=ZONES.findIndex(z=>z.altar);
@@ -1759,7 +1762,7 @@ function townLinkClick(wx,wy){
    in the port until they rebuild it, a building a close in peace. The garrison you see is the books' garrison, thinned as the place
    loses strength: the fighting is played out, the outcome is the books'. The seat of the ruler, the holy places and the walls are
    never burned; a barracks or an armoury counts double, a market, a hall or a warehouse half again. */
-const RAID_SPARE=/keep|palace|foundry|gatehouse|tower|wall|chapel|temple|cathedral|beacon|crane|statue|lighthouse/;   /* foundry: King Aldric holds court at Emberfall's */
+const RAID_SPARE=/keep|palace|foundry|council|gatehouse|tower|wall|chapel|temple|cathedral|beacon|crane|statue|lighthouse/;   /* foundry: King Aldric holds court at Emberfall's; council: the Drowned Council's hall at Kraken's Rest */
 const RAID_DRAWN=90,RAID_FOES=40,RAID_FIGHT=5,RAID_BURN=7;
 const raidKey=s=>s.kind+'@'+Math.round(s.x)+','+Math.round(s.y);
 const raidTargetable=s=>s.type==='townprop'&&s.big&&!s.floats&&!RAID_SPARE.test(s.kind);
@@ -1918,13 +1921,14 @@ function openMercs(){
  if(n)n.fx=hero.x>n.x?1:-1;
  mercNote='';renderMercs();$('mercFx').style.display='flex';sfx.buy();
 }
-/* 🐉 THE DRAGON'S EGG - the Dragon Rider in Port Meridian sells one for the bank's whole cap, paid from the vault and never
+/* 🐉 THE DRAGON'S EGG - the Dragon Rider in Port Meridian sells one for five billion, paid from the vault and never
    from the purse. It lies in the bag and hatches DRAGON_HATCH_MS after it was bought (by the wall clock, so it hatches while
    you are away too); Torsten keeps what comes out of it. One egg, one dragon. */
-const DRAGON_HATCH_MS=60000;
+const DRAGON_HATCH_MS=5*3600000;   /* five hours */
 const dragonEggLeft=()=>S&&S.dragonEgg?Math.max(0,Math.min(DRAGON_HATCH_MS,S.dragonEgg.at+DRAGON_HATCH_MS-Date.now())):0;
 const dragonHeld=()=>!!(S&&(S.dragonEgg||(S.mounts&&((S.mounts.owned||[]).includes('dragon')||(S.mounts.foreign||[]).includes('dragon')))));
-const eggLine=()=>{const left=dragonEggLeft();return left>0?'Hatches in '+Math.ceil(left/1000)+' s':'Hatching…';};
+const eggLine=()=>{const s=Math.ceil(dragonEggLeft()/1000),h=Math.floor(s/3600),m=Math.floor(s%3600/60);
+ return s<=0?'Hatching…':'Hatches in '+(h?h+' h '+m+' min':m?m+' min '+s%60+' s':s+' s');};
 function dragonEggTick(){
  if(!S||!S.dragonEgg)return;
  const el=$('eggLeft');if(el)el.textContent=eggLine();
@@ -1934,7 +1938,7 @@ function dragonEggTick(){
  log(`🐉 <span class="imp">The egg hatches.</span> A <span class="loot">Stormcrown Dragon</span> waits at Torsten's Stables in the Wasteland.`,'loot');
  sfx.level();save();renderBag();updateMountButton();
 }
-/* 🐉 the Dragon Rider's egg: one, for the bank's whole cap */
+/* 🐉 the Dragon Rider's egg: one, for five billion from the bank */
 let dragonNote='';
 function openDragonShop(){
  if(!gameOn||!S||!hero||hero.dead||TideUI.isBattling())return;
@@ -1957,13 +1961,13 @@ function renderDragonShop(){
  $('dragonMsg').textContent=dragonNote;
  $('dragonBuy').onclick=()=>{
   if(dragonHeld()||(S.bankGold||0)<DRAGON_EGG_PRICE){renderDragonShop();sfx.warn();return;}
-  confirmBox(`Buy the <b>dragon egg</b> for <b>${fmt(DRAGON_EGG_PRICE)} ◉</b>?<br><small>Paid from your bank account. It hatches a minute after it is yours.</small>`,()=>{
+  confirmBox(`Buy the <b>dragon egg</b> for <b>${fmt(DRAGON_EGG_PRICE)} ◉</b>?<br><small>Paid from your bank account. It hatches five hours after it is yours.</small>`,()=>{
    if(!S||dragonHeld()||(S.bankGold||0)<DRAGON_EGG_PRICE){renderDragonShop();return;}
    S.bankGold-=DRAGON_EGG_PRICE;S.dragonEgg={at:Date.now()};
    dragonNote='The egg is in your bag.';
-   log(`🥚 You buy a <span class="loot">dragon egg</span> for ${fmt(DRAGON_EGG_PRICE)} ◉ from your bank account. It hatches in a minute.`,'loot');
+   log(`🥚 You buy a <span class="loot">dragon egg</span> for ${fmt(DRAGON_EGG_PRICE)} ◉ from your bank account. It hatches in five hours.`,'loot');
    const n=world&&world.npcs&&world.npcs.find(n=>n.game==='dragonrider');
-   if(n)n.bubble={txt:'Keep it warm. In a minute it will not need you to.',t:5,life:5};
+   if(n)n.bubble={txt:'Keep it warm. In five hours it will not need you to.',t:5,life:5};
    sfx.buy();save();renderHUD();renderBag();renderDragonShop();
   });
  };
@@ -2820,7 +2824,7 @@ function ensureItemBase(it){
 const CITY_RENAMED=Object.freeze({"Frida Tjära":"Frida Tjaera","Kettil Grå":"Kettil Gra","Åke Bredaxe":"Ake Bredaxe","Ödgar Dunkel":"Odgar Dunkel","Greve Ansgar Vidhem":"Count Ansgar Vidhem","Friherre Ulf Gyllenklo":"Baron Ulf Gyllenklo","Hertig Lodvig Ekeblad":"Duke Lodvig Ekeblad","Lagman Sixten Örnfot":"Lawspeaker Sixten Ornfot","Riddar Björn Rosenstam":"Sir Bjorn Rosenstam","Junker Casimir Lilje":"Squire Casimir Lilje","Grevinnan Adela Vidhem":"Countess Adela Vidhem","Baronessan Ingrid Silverlöv":"Baroness Ingrid Silverlov","Änkehertiginnan Hedvig":"Dowager Duchess Hedvig","Fru Märta Stjärnfält":"Lady Maerta Stjaernfaelt","Fröken Elvira Rosenstam":"Miss Elvira Rosenstam","Fröken Cecilia Gyllenklo":"Miss Cecilia Gyllenklo","Köpman Gottfrid Pung":"Merchant Gottfrid Pung","Handlare Isak Krona":"Trader Isak Krona","Broder Anselm":"Brother Anselm","Mäster Hallvard Städ":"Master Hallvard Staed","Bagar-Lovisa":"Baker Lovisa","Tvätterskan Agda":"Washerwoman Agda","Urzul Gråhud":"Urzul Grahud","Greve Torsten Ekeblad":"Count Torsten Ekeblad","Kammarherre Otto Lilje":"Chamberlain Otto Lilje","Junker Filip Silverlöv":"Squire Filip Silverlov","Friherrinnan Beata Örnfot":"Baroness Beata Ornfot","Fru Gunilla Ekeblad":"Lady Gunilla Ekeblad","Fröken Amalia Vidhem":"Miss Amalia Vidhem","Köpman Bertil Skilling":"Merchant Bertil Skilling","Handlare Melker Vikt":"Trader Melker Vikt","Broder Botolf":"Brother Botolf","Broder Kjell":"Brother Kjell","Mäster Ragnvald Ässja":"Master Ragnvald Aessja","Smedgesäll Hjalmar":"Journeyman Hjalmar","Bagar-Klara":"Baker Klara","Bagar-Stina":"Baker Stina","Torg-Gunhild":"Stallholder Gunhild","Torg-Elin":"Stallholder Elin","Syster Tyra":"Sister Tyra","Syster Ragnhild":"Sister Ragnhild","Fiskar-Ottar":"Fisherman Ottar","Dagny Järnhäl":"Dagny Jaernhael","Grash Benknäckare":"Grash Benknaeckare","Brynolf Järnhand":"Brynolf Jaernhand","Hallvard Städ":"Hallvard Staed","Poeten Loke Rim":"Poet Loke Rim","Nils Tång":"Nils Tang","Märit Sill":"Maerit Sill","Ragna Tjärn":"Ragna Tjaern","Jöns Skot":"Jons Skot","Ebba Nät":"Ebba Naet","Truls Köl":"Truls Kol"});
 function migrate(s){ /* fills fields missing from older saves */
  s.introPending=s.introPending===true; /* existing heroes never get the new-character guide */
- s.mounts=Mounts.normalize(s.mounts);
+ s.mounts=Mounts.normalize(s.mounts);if(s.forsakenDead)Mounts.rewards(s,{forsaken:true});   /* 🐯 slain before the tiger became its gift */
  s.tides=Tides.normalizeCollection(s.tides);
  s.tides.exploration=TideExploration.create(s.tides.exploration);
  s.wastelandBossReadyAt=WastelandDungeons.normalizeBossTimers(s.wastelandBossReadyAt);
@@ -7252,6 +7256,7 @@ function killEnemy(en){
    floatAt(en.x,en.y-en.r-44,'❄ TALENT POINT','#9fd4ff');
    stageMsg('☠ The Forsaken One falls! ❄ A talent point is yours - spend it at the Armor Altar.',4000,'#9fd4ff');
    log(`<span class="imp">The Forsaken One is slain.</span> <span class="lscroll">❄ +1 Ice Armor talent point</span> - spend it at the Armor Altar in The Altar.`,'loot');
+   mountRewards();
    sfx.level();publishLB(S,true);
   }else if(en.raid){
    const left=enemies.filter(e=>e.boss&&!e.dead&&e!==en).length;
@@ -11275,7 +11280,7 @@ function drawNpc(n){
  ctx.restore();
  if(n.hurtMark){const hy=((body?body.headY:-37)-12+by)*size;ctx.fillStyle='rgba(255,255,255,.92)';ctx.fillRect(-7,hy-7,14,14);ctx.fillStyle='#d83a32';ctx.fillRect(-2,hy-5.5,4,11);ctx.fillRect(-5.5,hy-2,11,4);}   /* 🩹 hurt, off to be patched up */
  if(n.protest&&n.protest.sign)drawProtestSign(n,body,by,size);
- if(n.guildRole!=='member'&&!n.protest&&!n.brawl&&!n.prisoner&&!n.held&&!(n.nameNear&&(!hero||Math.hypot(hero.x-n.x,hero.y-n.y)>n.nameNear))){   /* ⚔ a sellsword's name only when you are close */ /* ✊ a marching block wears its placards, not two dozen overlapping names; ⛓ a prisoner's name hangs on his grille */
+ if(n.guildRole!=='member'&&!n.protest&&!n.brawl&&!n.prisoner&&!n.held&&!n.feaster&&!(n.nameNear&&(!hero||Math.hypot(hero.x-n.x,hero.y-n.y)>n.nameNear))){   /* ⚔ a sellsword's name only when you are close */ /* ✊ a marching block wears its placards, not two dozen overlapping names; ⛓ a prisoner's name hangs on his grille */
   const ny=((body?body.headY:-37)-3+by-(body&&MERC_ARMED.has(n.skin)?17:0)-(n.nameLift||0))*size;   /* ⚔ over a sellsword's pike blade, not through it; 🍺 a line up when a neighbour's name is in the way */
   ctx.font='700 '+(n.game?11:10)+'px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(n.name,1,ny+1);
@@ -11639,7 +11644,7 @@ function applyZoneUI(){
  for(const id of ['ledgerFx','boardFx','voyageFx','mercFx','dragonFx']){const e=$(id);if(e&&e.style.display!=='none')e.style.display='none';}
  if(mp.on&&mp.started&&!zoneOf().raid)mpLeave(false);
  refreshCombatAutoControls();
- updateMountButton();
+ updateMountButton();homeButtonState();
  $('hZone').textContent=zoneOf().name+(zoneOf().boss||zoneOf().raid?' ☠':'');
  /* The crypts hide the quest text and Continue; the progress row doubles as the 0/3 chest counter. */
  const cr=!!zoneOf().crypts;
@@ -11779,24 +11784,36 @@ function openStable(){
  Mounts.reset(mountRide);stopMining();hero.moveTo=null;hero.pendingDoor=null;hero.target=null;hero.goPortal=false;holdMove=null;
  $('stableFx').style.display='flex';stableRefresh();updateMountButton();sfx.buy();
 }
-/* 🐎 what Torsten asks of a buyer (Mounts.unlocked): Prestige 4, a Duke's patent (a crowned King outranks it), the Forsaken One slain */
+/* 🐎 what Torsten asks of a buyer (Mounts.unlocked): Prestige 4, a Duke's patent (a crowned King outranks it); the Forsaken One slain gives the tiger */
 const mountStanding=()=>({prestige:S.prestige|0,forsaken:!!S.forsakenDead,
  duke:!!(S.city&&(S.city.crowned||(S.city.noble&&S.city.noble.rank>=CityEconomy.NOBLE_RANKS.findIndex(r=>r.id==='duke'))))});
+/* Torsten is paid from the bank account, never the purse */
+const spendBank=price=>{if(!(price>=0)||(S.bankGold||0)<price)return false;S.bankGold-=price;return true;};
+/* 🐯 the tiger is given, not sold: at the Forsaken One's death, and to a hero who slew it before the gift existed */
+function mountRewards(quiet=false){
+ if(!S)return;
+ for(const m of Mounts.rewards(S,mountStanding())){
+  if(quiet)continue;
+  stageMsg('🐯 The '+m.name+' is yours! Torsten keeps it at the Wasteland stable.',4500,'#8fd0ff');
+  log(`🐯 <span class="loot">${m.name}</span> - a gift for slaying the Forsaken One. It waits at Torsten's Stables in the Wasteland.`,'loot');
+ }
+ updateMountButton();
+}
 function stableRefresh(message=''){
  const selected=Mounts.selected(S),standing=mountStanding();
  $('stableSlot').innerHTML=`<div class="fmslot">${selected?`<img src="${mountImages[selected.id].src}" alt="${selected.name}">`:'—'}</div><div><small>EQUIPPED MOUNT</small>${selected?selected.name:'Choose your first companion'}</div>`;
  $('stableStock').innerHTML=Mounts.catalog.map(m=>{
   const owned=S.mounts.owned.includes(m.id),equipped=selected?.id===m.id,locked=!owned&&!Mounts.unlocked(m,standing);
   if(m.egg&&!owned)return `<div class="stable-card stable-mystery" aria-label="Unknown"><div class="stable-q">?</div></div>`;   /* 🐉 nothing more about it */
-  return `<div class="stable-card${equipped?' equipped':''}"><img src="${mountImages[m.id].src}" alt="${m.kind}"><h3>${m.name}</h3><p class="cl">${m.description}</p><span class="stable-speed">+${Math.round((m.speed-1)*100)}% riding speed</span>${owned?'<span class="stable-owned">Bought</span>':locked?`<span class="stable-need">🔒 ${Mounts.requirement(m)}</span>`:''}<button class="sbtn${owned?'':' gold'}" data-mount="${m.id}" ${equipped||locked?'disabled':''}>${equipped?'Equipped':owned?'Equip':`Buy · ${m.price.toLocaleString()} gold`}</button></div>`;
+  return `<div class="stable-card${equipped?' equipped':''}"><img src="${mountImages[m.id].src}" alt="${m.kind}"><h3>${m.name}</h3><p class="cl">${m.description}</p><span class="stable-speed">+${Math.round((m.speed-1)*100)}% riding speed</span>${owned?`<span class="stable-owned">${m.reward?'Earned':'Bought'}</span>`:locked?`<span class="stable-need">🔒 ${Mounts.requirement(m)}</span>`:''}<button class="sbtn${owned||m.reward?'':' gold'}" data-mount="${m.id}" ${equipped||locked?'disabled':''}>${equipped?'Equipped':owned?'Equip':m.reward?'Free reward':`Buy · ${m.price.toLocaleString()}`}</button></div>`;
  }).join('');
- $('stableWallet').textContent=totalGold().toLocaleString()+' gold available';
+ $('stableWallet').textContent='Bank: '+Math.floor(S.bankGold||0).toLocaleString()+' ◉';
  $('stableMessage').textContent=message;
  $('stableStock').querySelectorAll('[data-mount]').forEach(btn=>btn.onclick=()=>{
   if(!stableInReach()||$('stableFx').style.display!=='flex')return;
   const id=btn.dataset.mount,item=Mounts.get(id),owned=S.mounts.owned.includes(id);
   if(owned){if(!Mounts.equip(S,id))return;Mounts.reset(mountRide);}
-  else{const result=Mounts.buy(S,id,spendGold,mountStanding());if(!result.ok){stableRefresh(result.reason==='gold'?'You need more gold for this companion.':result.reason==='locked'?'Needs: '+Mounts.requirement(item):'Already bought.');return;}}
+  else{const result=Mounts.buy(S,id,spendBank,mountStanding());if(!result.ok){stableRefresh(result.reason==='gold'?'Your bank account must hold the full price.':result.reason==='locked'?'Needs: '+Mounts.requirement(item):'Already bought.');return;}}
   save();renderHUD();buildSkillbar();sfx.buy();stableRefresh(owned?item.name+' equipped.':item.name+' is yours.');
  });
 }
@@ -12263,7 +12280,7 @@ function renderMap(){
   el.onclick=()=>{
    const i=+el.dataset.z,z=ZONES[i];
    if(i===S.zone)return;
-   if(hcNoFlee()||sceneHoldsTravel())return;
+   if(hcNoFlee()||sceneHoldsTravel()||abroadNoTravel())return;
    if(hero&&hero.dead){stageMsg('You are between worlds - wait to wake in Moonshine.',1800);sfx.warn();return;}
    if(z.special){
     if(z.thor){
@@ -15094,7 +15111,7 @@ function cityHudLine(){
   +(c.food.hunger>0?' · 🌾 THE CITY IS HUNGRY':CityEconomy.foodView(c,cityContext()).low?' · 🌾 bread for '+(n=>n+' more close'+(n===1?'':'s'))(CityEconomy.foodView(c,cityContext()).closes):'')+(c.unattended>=CityEconomy.REMIND_AFTER?' · 🔔 you have ledgers to attend':'')+(trouble.length?' · '+trouble.join(' · '):'')+(c.petition?' · 📜 a petition waits at the council table':'')+(c.king.demand?' · 👑 the King wants something':'')+' · the ledger closes in '+cityClockLeft();
 }
 /* a commoner who can be pulled off his stroll for a march or a fight, and put back afterwards */
-const cityCommoner=n=>!n.patrol&&!n.game&&!n.hidden&&!/^noble_/.test(n.skin||'');
+const cityCommoner=n=>!n.patrol&&!n.game&&!n.hidden&&!n.feaster&&!/^noble_/.test(n.skin||'');
 function citySendHome(n){
  n.pts=n.homePts||n.pts;n.i=Math.min(n.homeI||0,n.pts.length-1);n.protest=null;n.brawl=null;
  n.x=n.pts[n.i].x;n.y=n.pts[n.i].y;n.pauseT=Math.random()*2;n.moving=false;
@@ -15177,7 +15194,7 @@ const VELVET_GIRLS=[['Scarlett','courtesan_blonde'],['Vivienne','courtesan_dark'
 function cityApplyPeople(){
  if(!world||!zoneOf().city||!world.npcs||!S.city)return;
  const c=S.city,jailed=new Set(c.jail.map(p=>p.name));
- const folk=world.npcs.filter(n=>!n.patrol&&!n.game&&!n.newcomer&&!n.recruit&&!n.velvet);
+ const folk=world.npcs.filter(n=>!n.patrol&&!n.game&&!n.newcomer&&!n.recruit&&!n.velvet&&!n.feaster);
  const crowd=Math.max(4,Math.round(c.pop*folk.length/CityEconomy.POPULATION));   /* one walker for every five souls or so: nobody draws five thousand */
  const gone=Math.max(0,folk.length-crowd);
  folk.forEach((n,i)=>{n.hidden=i>=folk.length-gone||jailed.has(n.name);});
@@ -15208,9 +15225,9 @@ function cityApplyPeople(){
     speed:22+(k*9)%16,walk:k*1.1,fx:1,pauseT:1+(k%3)*1.4,moving:false,velvet:true});
   });
  }
- /* 📣 the crier has a pitch on the great square, south-east of the well */
+ /* 📣 the crier has a pitch on the great square, north-west of the well, facing it (moved 2026-09-29 to where the steward stood) */
  if(!world.npcs.some(n=>n.game==='crier'))world.npcs.push({name:'Town Crier Mans',skin:'merchant',race:'human',cls:'warrior',female:false,big:1.28,game:'crier',
-  pts:[{x:world.w/2+118,y:world.h/2+212}],i:0,dir:1,x:world.w/2+118,y:world.h/2+212,speed:0,walk:0,fx:-1,pauseT:1e9,moving:false});
+  pts:[{x:world.w/2-315,y:world.h/2-268}],i:0,dir:1,x:world.w/2-315,y:world.h/2-268,speed:0,walk:0,fx:1,pauseT:1e9,moving:false});
 }
 /* 🏗 What the ledger looks like from the street (assets/city/city-works.js): the props the works have
    earned, the houses that wear a sign or a scaffold, and the look the draw passes read every frame. */
@@ -15251,6 +15268,25 @@ function cityApplyWorks(){
   const def=CityEconomy.WORKS.find(w=>w.id===a.id);
   a.house.work={id:a.id,status:a.status,left:a.left,sign:def.sign,icon:def.icon,cat:def.cat};
  }
+ cityApplyFeast();
+}
+/* 🍖 A feast on the great square (2026-09-29): the long table is laid with food and nobody painted at it; the townsfolk
+   stand round it, five a side facing the table, hopping for joy each in their own time. They come and go with the tables
+   (look.street.feast) and are not the walking townsfolk: nobody counts them, marches them off to protest or jails them. */
+const FEAST_SKINS=['male','baker','female','blacksmith','market_woman','merchant','dwarfmale_warrior','female','monk','male','orcfemale_mage','baker'];
+function cityApplyFeast(){
+ if(!world||!world.npcs)return;
+ world.npcs=world.npcs.filter(n=>!n.feaster);
+ const tables=(world.solids||[]).filter(s2=>s2.type==='citywork'&&s2.kind==='feast');
+ tables.forEach((t,ti)=>{
+  for(let k=0;k<10;k++){
+   const side=k<5?-1:1,j=k%5,n=ti*10+k,x=t.x+side*(80+(j%2)*12),y=t.y-50+j*23;   /* just outside the benches, the length of the table */
+   const skin=FEAST_SKINS[(n*7+ti)%FEAST_SKINS.length],costume=npcSkinCostume(skin);
+   world.npcs.push({name:NEWCOMER_FIRST[(n*5+3)%NEWCOMER_FIRST.length]+' '+NEWCOMER_LAST[(n*11+1)%NEWCOMER_LAST.length],skin,
+    race:costume?costume[1]:'human',cls:costume?costume[3]:'warrior',female:npcSkinFemale(skin),pts:[{x,y}],i:0,dir:1,x,y,speed:0,walk:n*.7,
+    fx:-side,pauseT:1e9,moving:false,feaster:true,hop:{h:7+(n%3)*3,rate:4.1+(n%4)*.55,phase:n*1.7}});
+  }
+ });
 }
 /* 📣 The crier shouts what the last close wrote, and what a steward should know, a line at a time */
 function cityCrierLines(){
@@ -15827,6 +15863,18 @@ function cancelHallScenes(){
  if(had){const fx=$('ritualFx');if(fx){fx.style.transition='none';fx.style.opacity='0';fx.style.display='none';}}
 }
 /* the map, Home and the hero switch wait while a scene plays: it walks the hero, and it writes the books */
+/* ⛵ a port of call is left only the way it was reached: by sea, with Captain Blackbeard - no Home button, no map */
+const abroad=()=>!!(S&&ZONES[S.zone]&&ZONES[S.zone].town);
+function abroadNoTravel(){
+ if(!abroad())return false;
+ stageMsg('⛵ You are far from home - sail back with Captain Blackbeard.',2200);sfx.warn();
+ return true;
+}
+function homeButtonState(){
+ const b=document.querySelector('nav button[data-tab="home"]');if(!b)return;
+ const away=abroad();b.classList.toggle('abroad',away);b.setAttribute('aria-disabled',String(away));
+ b.title=away?'Sail home with Captain Blackbeard':'';
+}
 function sceneHoldsTravel(){
  if(voyage){stageMsg('Not now - the Black Tide is at sea.',1600);sfx.warn();return true;}   /* ⛵ nobody steps off a ship halfway across */
  if(!coronation&&!execution)return false;
@@ -17374,6 +17422,7 @@ function goHome(){
  clearTimeout(homeTimer);homeTimer=null;
  if(!gameOn||!S||hero.dead)return;
  if(hcNoFlee()||sceneHoldsTravel())return;
+ if(abroadNoTravel())return;
  if(mp.on)mpLeave(false);
  /* Home ALWAYS means Moonshine - a second tap never bounces you back out.
     Head back to the road via the Travel map instead. */

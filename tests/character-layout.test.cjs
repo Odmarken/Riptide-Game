@@ -21,7 +21,7 @@ const townsfolk = ['guard', 'noble_velvet', 'noble_elder', 'noble_dandy', 'merch
   'king', 'king_beggar', 'kings_hand', 'royal_guard',
   'sailor', 'pirate', 'pirate_captain', 'dockhand', 'harbour_master', 'fishwife',
   'silver_guard', 'raven_soldier', 'foundry_worker', 'mercenary', 'mercenary_b', 'merc_recruiter', 'dragon_rider', 'courtesan_blonde', 'courtesan_dark', 'spice_merchant',
-  'ruler_sigvald', 'ruler_roderic', 'ruler_aldric', 'ruler_isaura'].map(k => `npc/npc_${k}`);
+  'ruler_sigvald', 'ruler_roderic', 'ruler_aldric', 'ruler_isaura', 'ruler_corvin'].map(k => `npc/npc_${k}`);
 const names = [...heroes, 'npc/npc_male', 'npc/npc_female', 'npc/npc_sebbe', ...townsfolk];
 const art = new Map();
 

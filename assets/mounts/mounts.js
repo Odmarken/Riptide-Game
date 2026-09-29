@@ -1,12 +1,12 @@
 /* Per-character stable ownership and a disposable, distance-driven riding state. */
 const Mounts=(()=>{
  const catalog=Object.freeze([
-  Object.freeze({id:'horse',name:'Chestnut Courser',kind:'Horse',price:25000,speed:1.65,art:'assets/mounts/horse.png',artVersion:2,run:'assets/mounts/horse-run.png',need:Object.freeze({prestige:4}),description:'A goofy, good-hearted companion with a tongue-out grin and a rolling stride.'}),
-  Object.freeze({id:'leopard',name:'Amberfang Leopard',kind:'Leopard',price:150000,speed:1.9,art:'assets/mounts/leopard.png',run:'assets/mounts/leopard-run.png',need:Object.freeze({duke:true}),description:'A sure-footed spotted hunter with a swift, rolling stride.'}),
-  Object.freeze({id:'spectral-tiger',name:'Azure Spectral Tiger',kind:'Spectral tiger',price:750000,speed:2.1,art:'assets/mounts/spectral-tiger.png',artVersion:2,run:'assets/mounts/spectral-tiger-run.png',need:Object.freeze({forsaken:true}),description:'Blue spirit-fire shimmers beneath its ancient silver armour.'}),
-  /* 🐉 never sold at the stable: the Dragon Rider in Port Meridian sells its egg (the bank's whole cap), and what hatches
+  Object.freeze({id:'horse',name:'Chestnut Courser',kind:'Horse',price:2500000,speed:1.65,art:'assets/mounts/horse.png',artVersion:2,run:'assets/mounts/horse-run.png',need:Object.freeze({prestige:4}),description:'A goofy, good-hearted companion with a tongue-out grin and a rolling stride.'}),
+  Object.freeze({id:'leopard',name:'Amberfang Leopard',kind:'Leopard',price:10000000,speed:1.9,art:'assets/mounts/leopard.png',run:'assets/mounts/leopard-run.png',need:Object.freeze({duke:true}),description:'A sure-footed spotted hunter with a swift, rolling stride.'}),
+  Object.freeze({id:'spectral-tiger',name:'Azure Spectral Tiger',kind:'Spectral tiger',price:0,reward:true,speed:2.1,art:'assets/mounts/spectral-tiger.png',artVersion:2,run:'assets/mounts/spectral-tiger-run.png',need:Object.freeze({forsaken:true}),description:'Blue spirit-fire shimmers beneath its ancient silver armour.'}),
+  /* 🐉 never sold at the stable: the Dragon Rider in Port Meridian sells its egg (five billion from the bank), and what hatches
      from it is kept by Torsten. fly: it is always airborne, its wings beat even while it hovers. +250% riding speed (asked for 2026-09-29). */
-  Object.freeze({id:'dragon',name:'Stormcrown Dragon',kind:'Dragon',price:10000000000,speed:3.5,art:'assets/mounts/dragon.png',run:'assets/mounts/dragon-fly.png',egg:true,fly:true,description:'Midnight scales, sapphire wings and a crown of gold horns. It was an egg once; now the sky is its road.'})
+  Object.freeze({id:'dragon',name:'Stormcrown Dragon',kind:'Dragon',price:5000000000,speed:3.5,art:'assets/mounts/dragon.png',run:'assets/mounts/dragon-fly.png',egg:true,fly:true,description:'Midnight scales, sapphire wings and a crown of gold horns. It was an egg once; now the sky is its road.'})
  ]);
  const byId=new Map(catalog.map(m=>[m.id,m]));
  const get=id=>byId.get(id)||null;
@@ -22,20 +22,20 @@ const Mounts=(()=>{
  }
  const allowed=zone=>!!(zone&&!zone.dungeon&&(zone.wasteland||zone.city||zone.farm||zone.tavern));
  const selected=state=>{const m=state?.mounts;return m?.owned?.includes(m.equipped)?get(m.equipped):null;};
- /* Torsten sells each companion only to a hero who has earned it: Prestige 4 for the courser, a Duke's patent for
-    the leopard, the Forsaken One slain for the tiger. standing = {prestige, duke, forsaken}, read from the save by
-    the game; none given, nothing with a need is for sale. A mount already bought stays bought. */
- function unlocked(item,standing){
-  if(item?.egg)return false;
-  const need=item?.need;if(!need)return !!item;
-  return !((need.prestige&&!((standing?.prestige|0)>=need.prestige))||(need.duke&&!standing?.duke)||(need.forsaken&&!standing?.forsaken));
- }
+ /* Torsten sells each companion only to a hero who has earned it, for gold from the bank: Prestige 4 for the courser,
+    a Duke's patent for the leopard. The tiger is never sold: it is given, free, once the Forsaken One is slain (rewards).
+    standing = {prestige, duke, forsaken}, read from the save by the game; none given, nothing with a need is for sale.
+    A mount already bought stays bought. */
+ const earned=(item,standing)=>{const need=item?.need;if(!need)return !!item;
+  return !((need.prestige&&!((standing?.prestige|0)>=need.prestige))||(need.duke&&!standing?.duke)||(need.forsaken&&!standing?.forsaken));};
+ const unlocked=(item,standing)=>!item?.egg&&!item?.reward&&earned(item,standing);
  const requirement=item=>item?.need?.forsaken?'Slay the Forsaken One':item?.need?.duke?'Duke':item?.need?.prestige?'Prestige '+item.need.prestige:'';
  function buy(state,id,spend,standing){
   const item=get(id);if(!state||!item)return {ok:false,reason:'unknown'};
   const collection=normalize(state.mounts);
   if(collection.owned.includes(id))return {ok:false,reason:'bought'};
   if(item.egg)return {ok:false,reason:'egg'};
+  if(item.reward)return {ok:false,reason:'reward'};
   if(!unlocked(item,standing))return {ok:false,reason:'locked'};
   if(typeof spend!=='function'||!spend(item.price))return {ok:false,reason:'gold'};
   collection.owned.push(id);if(!collection.equipped)collection.equipped=id;
@@ -48,6 +48,13 @@ const Mounts=(()=>{
   if(!collection.owned.includes(id))collection.owned.push(id);
   if(!collection.equipped)collection.equipped=id;
   state.mounts=collection;return true;
+ }
+ /* the gifts a hero's standing has earned and the stable does not hold yet: given now, and returned for the news */
+ function rewards(state,standing){
+  if(!state)return [];
+  const owned=normalize(state.mounts).owned,due=catalog.filter(m=>m.reward&&!owned.includes(m.id)&&earned(m,standing));
+  for(const m of due)grant(state,m.id);
+  return due;
  }
  function equip(state,id){
   if(!state||!get(id))return false;
@@ -95,6 +102,6 @@ const Mounts=(()=>{
   }
  }
  const multiplier=(ride,state,zone)=>allowed(zone)&&ride.id===selected(state)?.id?get(ride.id).speed:1;
- return {catalog,get,normalize,allowed,selected,unlocked,requirement,buy,grant,equip,createRide,reset,carry,toggle,tick,multiplier};
+ return {catalog,get,normalize,allowed,selected,unlocked,requirement,buy,grant,rewards,equip,createRide,reset,carry,toggle,tick,multiplier};
 })();
 if(typeof module!=='undefined'&&module.exports)module.exports=Mounts;
