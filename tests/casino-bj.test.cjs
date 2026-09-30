@@ -61,6 +61,7 @@ function table({gold=100000,overflow=0,bet}={}){
  c.v=expr=>vm.runInContext(expr,c);
  if(bet)c.v(`bjBet=${bet}`);
  c.v('openBJ()');
+ c.advance(400); /* the press that opened the table is not a Deal (openBJ starts the bounce): the player's next press comes later */
  c.tap=(id,detail=1)=>c.$(id).onclick({detail}); /* a mouse click; detail 0 is a key or the pad */
  c.text=id=>String(c.$(id).textContent);
  c.open=()=>fx.classList.contains('open');

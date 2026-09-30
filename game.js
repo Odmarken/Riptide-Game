@@ -7186,7 +7186,7 @@ function nearestEnemyWithin(rng){
 }
 function cast(i,manual){
  if(TideUI.isBattling())return false;
- if(mountRide.id||mountRide.casting){if(manual)stageMsg('Dismount with X before casting.',1000);return false;}
+ if(mountRide.id||mountRide.casting){if(manual)stageMsg(inputMode==='pad'?'Dismount with D-pad → before casting.':'Dismount with X before casting.',1000);return false;}   /* the pad's X is a spell */
  const c=classOf(),sp=c.spells[i];
  if(hero.dead)return false;
  if(hero.deadWait){if(manual)stageMsg('💀 You are fallen - the seal blocks your magic until the lord dies',1400);return false;}
@@ -7893,14 +7893,17 @@ function bossAI(en,dt){
  
 /* ==================== INPUT ==================== */
 /* ==================== 🎮 GAMEPAD ====================
-   Left stick walks. Nothing else is bound yet - spells and potions stay on the keyboard and the
-   skillbar.
+   The whole game plays from a pad (asked for 2026-09-30: "handkontroll för allt"). In the world the left stick walks, A talks
+   and opens doors, X/Y/LT cast the three spells, the d-pad drinks (up health, down mana), targets (left) and mounts (right),
+   B lets go of the target, RT folds the side panel, View or LB/RB step into it, the right stick zooms and Start is Settings.
+   In any menu - a window, a box, the side panel, the hero list - the d-pad moves the highlight in the direction pressed, A
+   presses it, B backs out, LB/RB turn the tabs and the right stick scrolls. The Controls tab in Settings lists the same.
    Two things about the Gamepad API worth knowing: it is poll-only, so this is called from the frame
    loop rather than wired to an event, and getGamepads() hands back a fresh snapshot every call, so
    the object must never be cached. */
 const PAD_DEAD=0.22;   /* sticks rest off-centre once worn; below this is drift, not intent */
 let padNow=null;   /* this frame's stick reading, or null */
-let padLeftPair=-1,padPadIndex=-1;   /* which axis pair walked, and on which pad - the right stick is found relative to it */
+let padLeftPair=-1,padPadIndex=-1;   /* which axis pair walked, and on which pad - the one whose buttons are read */
 /* While the pad was being brought up this corner printed raw axis values so "nothing happens" was
    diagnosable. The pad works now, so all that is left is a badge saying which device is steering -
    and it is only drawn while the pad IS steering, so touching the keyboard clears it. */
@@ -7929,9 +7932,9 @@ function padCursor(off){
 }
 window.addEventListener('mousemove',e=>{
  const q=padLastPtr;padLastPtr={x:e.clientX,y:e.clientY};
- if(q&&(Math.abs(e.clientX-q.x)>1||Math.abs(e.clientY-q.y)>1))padCursor(false);
+ if(q&&(Math.abs(e.clientX-q.x)>1||Math.abs(e.clientY-q.y)>1)){padCursor(false);setInputMode('kb');}   /* the mouse is steering: the pad's hints go too */
 },true);
-window.addEventListener('mousedown',()=>padCursor(false),true);
+window.addEventListener('mousedown',()=>{padCursor(false);setInputMode('kb');},true);
 window.addEventListener('wheel',()=>padCursor(false),{capture:true,passive:true});
 const padCal={};                /* per-pad resting offsets and which axis pair has actually moved */
 /* Controllers do not agree on any of this, and two opposite symptoms from the same pad made that
@@ -7974,7 +7977,10 @@ function padStick(){
      qualifies the instant it is released, while a permanently stuck axis never does, which is the
      asymmetry that matters: the first costs a moment, the second walked into a wall for ever. */
   let k=-1;
-  for(const cand of [0,2]){
+  /* a standard pad says where its sticks are - 0/1 walks, 2/3 is the right stick - so only the resting is asked of it. Found,
+     a right stick pushed first was taken for the walking one: it walked the hero, and zoom and scroll stayed dead */
+  if(p.mapping==='standard'){if(c.rested[0]&&c.rested[1])k=0;}
+  else for(const cand of [0,2]){
    if(cand+1>=n)continue;
    if(c.rested[cand]&&c.rested[cand+1]&&(c.moved[cand]||c.moved[cand+1])){k=cand;break;}
   }
@@ -7995,11 +8001,15 @@ function padStick(){
    guessed, so the rest quietly does nothing rather than firing the wrong thing.
    Everything here reads EDGES, not held state: a menu that advanced once per frame while A was down
    would run the whole panel in a tenth of a second. */
-const PAD_B={a:0,b:1,x:2,y:3,lt:6,rt:7,start:9,r3:11,up:12,down:13,left:14,right:15};
+const PAD_B={a:0,b:1,x:2,y:3,lb:4,rb:5,lt:6,rt:7,back:8,start:9,l3:10,r3:11,up:12,down:13,left:14,right:15};
 let padDown={},padHit={};        /* held now / pressed this frame */
 let padRZoom=0;                  /* right stick Y, deadzoned - drives the camera */
+/* a d-pad held in a menu walks on by itself - after a beat, then briskly - so a long list is not forty presses. Those repeats
+   are marked, and the world ignores them: a held arrow drinks one potion, not one every tenth of a second */
+const PAD_REPEAT_WAIT=380,PAD_REPEAT_EVERY=95;
+let padRep={},padHeldAt={};
 function padPollButtons(){
- padHit={};
+ padHit={};padRep={};
  padRZoom=0;
  if(!navigator.getGamepads)return;
  const pads=navigator.getGamepads();
@@ -8014,16 +8024,20 @@ function padPollButtons(){
   if(on&&!padDown[k])padHit[k]=true;
   padDown[k]=on;
  }
- /* the right stick is the next usable pair after the one that walks */
- const a=p.axes||[];
- for(const cand of [0,2,4]){
-  if(cand===padLeftPair||cand+1>=a.length)continue;
-  const c=padCal[p.index];
-  if(!c||!c.rested[cand]||!c.rested[cand+1])continue;
-  const y=a[cand+1]||0;
-  if(Math.abs(y)>PAD_DEAD)padRZoom=-(y>0?y-PAD_DEAD:y+PAD_DEAD)/(1-PAD_DEAD);  /* push up to zoom in */
-  break;
+ const now=performance.now();
+ for(const k of ['up','down','left','right']){
+  if(padHit[k])padHeldAt[k]=now;   /* the press itself starts the clock for its repeats */
+  else if(padDown[k]&&now-(padHeldAt[k]??now)>=PAD_REPEAT_WAIT){padHit[k]=true;padRep[k]=true;padHeldAt[k]=now-PAD_REPEAT_WAIT+PAD_REPEAT_EVERY;}
  }
+ /* the right stick: axes 2/3, as every pad read here is a standard one. It too must have been seen at rest, and it is watched
+    here as well as in padStick - which only runs in the world, so on the hero list the right stick scrolled nothing */
+ const a=p.axes||[],c=padCal[p.index]||(padCal[p.index]={rested:[],moved:[]});
+ for(let i=0;i<Math.min(4,a.length);i++){if(Math.abs(a[i]||0)<PAD_DEAD)c.rested[i]=true;else c.moved[i]=true;}
+ if(a.length>=4&&c.rested[2]&&c.rested[3]){
+  const y=a[3]||0;
+  if(Math.abs(y)>PAD_DEAD)padRZoom=-(y>0?y-PAD_DEAD:y+PAD_DEAD)/(1-PAD_DEAD);  /* push up to zoom in */
+ }
+ if(padRZoom)padHit.rs=padRZoom;   /* in a menu the same stick scrolls the page (rs: + is up) */
  if(Object.keys(padHit).length||Math.abs(padRZoom)>0)setInputMode('pad');
 }
 
@@ -8031,10 +8045,24 @@ function padPollButtons(){
    Rather than teach every panel about the pad, walk whatever is on screen: the topmost open panel's
    own buttons, in document order, are the menu. That way a panel built later is navigable the day
    it is written, with nothing added to it. */
-const PAD_PANELS=['confirmFx','outfitFx','cfgBox','iceReqMsg','iceMsg','gateMsg','cryptIntro', /* the small boxes that sit on top of everything come first - the pad answers the box on screen, not the panel under it. Settings is drawn above the tables and the boxes after it (z 78) */
- 'tideHub','tideBattleFx','finalGateFx','sebbeFx','gvbFx','rtbFx','rouFx','bjFx','seaFx','slotFx','casinoMenu',
- 'chestFx','seaBuyFx','sharkFx','ritualDoneFx','ritualFx','talentFx','smithFx','smithMenu','bankFx',
- 'restFx','fishhutMenu','mineFx','smeltFx','enchFx','ledgerFx','boardFx','voyageFx','mercFx','dragonFx','stableFx','farmCheckoutFx','farmBuyFx','farmDelFx'];
+const PAD_PANELS=['confirmFx','enchCraftFx','outfitFx', /* the small boxes that sit on top of everything come first - the pad answers the box on screen, not the panel under it */
+ 'hcDeathOv','renameOv','prestigeConfirm','hcConfirm', /* the boxes built in script (80-85): unlisted, the d-pad walked the page hidden behind them and A pressed it */
+ 'cfgBox','iceReqMsg','iceMsg','gateMsg','cryptIntro','ritualBox','altarMsg','raidModal','mpLobby', /* Settings is drawn above the tables and the boxes after it (z 78) */
+ 'tideHub','tideBattleFx','finalGateFx','sebbeFx','gvbFx','rtbFx','rouFx','bjFx','seaBuyFx','seaFx','slotFx','casinoMenu', /* the Extra Spin box before its machine: while it asks, the d-pad reaches its YES and NO, not Auto under it */
+ 'chestFx','sharkFx','ritualDoneFx','ritualFx','talentFx','smithFx','smithMenu','bankFx',
+ 'restFx','fishhutMenu','mineFx','smeltFx','enchFx','ledgerFx','boardFx','voyageFx','mercFx','dragonFx','stableFx','farmCheckoutFx','farmBuyFx','farmDelFx',
+ 'lbFx','create','select','login'];   /* the screens around the game last: nothing else is up while they are */
+/* 🎒 the side panel is a menu too, once the pad has stepped into it (View, or LB/RB): it answers after every window and box,
+   and only while the pad is in it, so walking the world never gets caught in a page left open beside it */
+let padSide=false;
+let padSideWorld=null;   /* the world it was stepped into from: after the hero list, a new hero or a journey from the Map the pad
+                            is back in the world, not stuck on a page the stick cannot walk out of */
+function padSideLayer(){
+ if(!padSide)return null;
+ const p=gameOn&&world===padSideWorld?document.querySelector('.panel.open'):null;
+ if(!p||!p.getClientRects().length){padSide=false;return null;}
+ return p;
+}
 const padPanelOpen=()=>{
  for(const id of PAD_PANELS){
   const e=$(id);
@@ -8047,27 +8075,204 @@ const padPanelOpen=()=>{
   if(getComputedStyle(e).visibility==='hidden')continue;
   return e;
  }
- return null;
+ return padSideLayer();
 };
 let padFocus=null;
-const padItems=host=>[...host.querySelectorAll('button,select,input[type="range"],.casinopick,.enchcell,.cup,[data-fs],[data-rb]')]
- .filter(e=>!e.disabled&&e.offsetParent!==null&&e.getClientRects().length);
+/* What the pad can land on: every control, and whatever a mouse player is told can be clicked - the bronze hand
+   (var(--hand)) set on it, not merely inherited from the card around it. A card that holds buttons of its own gives way to
+   them, so the d-pad stops on Sell and Equip rather than on the card around them - but a heading that folds does not (a Bag
+   rarity carries its own Scrap All): it is pressed itself, and without it the gear under it could never be opened. The
+   Talent tree's nodes are all walkable, taken and locked ones too: the highlight reads each out, as the mouse's hover does. */
+const PAD_SEL='button,select,textarea,summary,a[href],input:not([type="hidden"]),[role="button"],[role="tab"],.casinopick,.enchcell,.cup,[data-fs],[data-rb],[data-tal]';
+const padHand=c=>/bronze_a_grab|pointer/.test(c||'');
+function padItems(host){
+ const list=[...host.querySelectorAll(PAD_SEL)];
+ if(typeof getComputedStyle==='function'){
+  /* the hand is read with the pad's hidden pointer lifted: body.padcursor sets every cursor to none, and the Map's zones, the
+     Talent tree and a new hero's picks dropped out of the walk the moment the pad was touched. Back on before anything paints. */
+  const body=document.body,hid=!!(body&&body.classList.contains('padcursor'));
+  if(hid)body.classList.remove('padcursor');
+  try{
+   const seen=new Set(list),cur=new Map(),cursorOf=el=>{if(!cur.has(el))cur.set(el,getComputedStyle(el).cursor);return cur.get(el);};
+   const extra=[];
+   for(const el of host.querySelectorAll('*')){
+    if(seen.has(el)||!padHand(cursorOf(el)))continue;
+    const up=el.parentElement;
+    if(up&&host.contains(up)&&padHand(cursorOf(up)))continue;   /* inherited from the card around it */
+    extra.push(el);
+   }
+   const all=list.concat(extra);
+   for(const el of extra)if(el.classList.contains('tierhead')||!all.some(x=>x!==el&&el.contains(x)))list.push(el);
+   if(list.length>seen.size)list.sort((a,b)=>a.compareDocumentPosition(b)&4?-1:1);   /* back in reading order */
+  }finally{if(hid)body.classList.add('padcursor');}
+ }
+ return list.filter(e=>!e.disabled&&e.offsetParent!==null&&e.getClientRects().length
+  &&(typeof getComputedStyle!=='function'||getComputedStyle(e).visibility!=='hidden'));
+}
+/* the pad has no pointer to hover with, so the highlight hovers for it: the Talent tree's text and the chart's port names
+   follow it the way they follow the mouse */
+function padHover(el,on){
+ if(!el||typeof el.dispatchEvent!=='function'||typeof MouseEvent==='undefined')return;
+ const r=el.getBoundingClientRect(),at={bubbles:true,clientX:r.left+r.width/2,clientY:r.top+r.height/2};
+ try{el.dispatchEvent(new MouseEvent(on?'mouseover':'mouseout',at));el.dispatchEvent(new MouseEvent(on?'mouseenter':'mouseleave',{...at,bubbles:false}));}catch(e){}
+}
+let padLastAt=null;   /* where the highlight stood, so a page drawn again under it can put it back */
 function padMark(el){
+ const was=padFocus;
  document.querySelectorAll('.padfocus').forEach(e=>e.classList.remove('padfocus'));
  padFocus=el||null;
- if(el){el.classList.add('padfocus');if(el.scrollIntoView)el.scrollIntoView({block:'nearest'});}
+ if(was&&was!==el)padHover(was,false);
+ if(el){
+  el.classList.add('padfocus');if(el.scrollIntoView)el.scrollIntoView({block:'nearest'});
+  if(typeof el.getBoundingClientRect==='function'){const r=el.getBoundingClientRect();padLastAt={x:r.left+r.width/2,y:r.top+r.height/2};}
+  padHover(el,true);
+  if(el.tagName==='INPUT'&&/^(text|email|password|number|search|tel)$/i.test(el.type||'')&&el.focus)el.focus({preventScroll:true});   /* a field to type in takes the keys too */
+ }
 }
-function padMenuStep(host,d){
+/* The next control in the direction pressed. Up and down go to the next line - whatever stands level with the nearest control
+   past the highlight - and on it to the one under the highlight: the first of those it spans (a wide field over two buttons, a
+   Bag rarity over Equip, Sell and Scrap), else the one it overlaps most, else the nearest across. Left and right stay on the
+   row. So grids - the Bag, the roulette table, the Talent tree - walk as they look, and a neighbour a few pixels lower is on
+   the same row, not below it: counted as below, down skipped a checkbox and right hopped to a button a card further on.
+   Nothing ahead (the end of a row, the foot of a list): null, and the walk goes on in reading order, which wraps. */
+function padNearest(items,from,dir){
+ if(!from||typeof from.getBoundingClientRect!=='function')return null;
+ const a=from.getBoundingClientRect();if(!a.width&&!a.height)return null;
+ const v=dir==='up'||dir==='down',s=dir==='down'||dir==='right'?1:-1;
+ const lo=r=>v?r.top:r.left,hi=r=>v?r.bottom:r.right,xlo=r=>v?r.left:r.top,xhi=r=>v?r.right:r.bottom;
+ const share=(p,q,l,h)=>Math.min(h(p),h(q))-Math.max(l(p),l(q));   /* how much of a span two boxes have in common, along the way or across it */
+ const ahead=[];
+ for(const el of items){
+  if(el===from||typeof el.getBoundingClientRect!=='function')continue;
+  const b=el.getBoundingClientRect();if(!b.width&&!b.height)continue;
+  const gap=s>0?lo(b)-hi(a):lo(a)-hi(b);
+  if((lo(b)+hi(b)-lo(a)-hi(a))/2*s<=1||gap<=-Math.min(hi(a)-lo(a),hi(b)-lo(b))/2)continue;   /* beside it, not past it */
+  ahead.push({el,b,gap,x:share(a,b,xlo,xhi)});
+ }
+ let pool;
+ if(v){
+  if(!ahead.length)return null;
+  const near=ahead.reduce((m,c)=>c.gap<m.gap?c:m);
+  pool=ahead.filter(c=>share(c.b,near.b,lo,hi)>0);
+ }else{
+  pool=ahead.filter(c=>c.x>0);
+  if(!pool.length)return null;
+  const g=Math.min(...pool.map(c=>c.gap));
+  pool=pool.filter(c=>c.gap<=g+4);
+ }
+ const lined=pool.find(c=>c.x>=Math.min(xhi(a)-xlo(a),xhi(c.b)-xlo(c.b))/2);   /* items come in reading order */
+ if(lined)return lined.el;
+ let best=null,bd=Infinity;
+ for(const c of pool){const d=c.x>0?-c.x:Math.max(xlo(c.b)-xhi(a),xlo(a)-xhi(c.b));if(d<bd){bd=d;best=c.el;}}
+ return best;
+}
+function padMenuStep(host,d,dir){
  const items=padItems(host);
- if(!items.length)return;
- let i=items.indexOf(padFocus);
- i=i<0?(d>0?0:items.length-1):(i+d+items.length)%items.length;
- padMark(items[i]);
+ const i=items.indexOf(padFocus);
+ if(i>=0){padMark((dir&&padNearest(items,padFocus,dir))||items[(i+d+items.length)%items.length]);return;}
+ /* standing on a greyed control (a chest's Close while its reel turns): on from it in the direction pressed */
+ const on=dir&&padFocus&&padFocus.getClientRects&&padFocus.getClientRects().length?padNearest(items,padFocus,dir):null;
+ /* nothing highlighted yet: the box's own safe choice first (data-pad-first: Cancel, NO, Close - never a paid YES), even while
+    it is greyed, so A waits on it: a chest's first control shown while its reel turns is Auto spin. Then what the keyboard
+    already stands on, then the first control or the last */
+ const safe=[...host.querySelectorAll('[data-pad-first]')].find(e=>e!==padFocus&&e.dataset&&e.dataset.padFirst!==undefined&&e.getClientRects().length);
+ const first=on||safe||(typeof document!=='undefined'&&items.includes(document.activeElement)?document.activeElement:null)||items[d>0?0:items.length-1];
+ if(first)padMark(first);
+}
+/* the page was drawn again under the highlight (the Bag after a sale, the Shop after a buy): it moves to what now stands where
+   it stood - a control of the same kind first, so after a sale it is on the next Sell, not on the Scrap All of the heading that
+   moved up into its place - not back to the top of the page */
+function padRehome(host,like){
+ const items=padItems(host),kind=el=>el&&el.dataset?(Object.keys(el.dataset).find(k=>k!=='padFirst')||el.id||''):'',want=kind(like);
+ let best=null,bd=Infinity;
+ if(padLastAt)for(const el of items){const r=el.getBoundingClientRect(),d=Math.hypot(r.left+r.width/2-padLastAt.x,r.top+r.height/2-padLastAt.y)+(want&&kind(el)!==want?150:0);if(d<bd){bd=d;best=el;}}
+ padMark(best);
+}
+/* 🪟 the window the highlight was in last frame, and where it stood in each window still open under the one on top. A box that
+   opens over the highlight starts clean, on its own safe choice; when it closes, the highlight is back where it was, or on what
+   stands there now (the Bag's next item after Sell - Yes). It used to be re-homed INTO the new window by position: a chest
+   bought from the Shop with A put it on Auto spin, and the next A spent the purse. */
+let padHostWas=null,padUnder=[];
+function padHostSwitch(host){
+ const was=padHostWas;
+ if(host===was)return;
+ padHostWas=host;
+ if(!host){padUnder=[];return;}   /* back in the world: nothing under anything */
+ if(was&&padFocus&&was.isConnected!==false&&was.getClientRects().length)padUnder.push({host:was,el:padFocus,at:padLastAt});
+ const mine=el=>el&&el.isConnected!==false&&host.contains(el);
+ const k=padUnder.map(u=>u.host).lastIndexOf(host);
+ if(k>=0&&!mine(padFocus)){
+  const u=padUnder[k];padUnder=padUnder.slice(0,k);
+  if(mine(u.el)&&u.el.getClientRects().length)padMark(u.el);
+  else{padLastAt=u.at;padRehome(host,u.el);}
+  return;
+ }
+ if(padFocus&&!mine(padFocus))padMark(null);
+}
+/* LB/RB turn a window's tabs (Settings, the Crown Ledger, any role=tab strip) - or, in the side panel, its pages */
+function padTabStep(host,d){
+ if(host.classList&&host.classList.contains('panel')){padSideOpen(d);return;}
+ const tabs=[...host.querySelectorAll('[role="tab"],.cfgtab,.craft-tab')].filter(t=>!t.disabled&&t.getClientRects().length);
+ if(tabs.length<2)return;
+ const i=tabs.findIndex(t=>t.getAttribute('aria-selected')==='true'||['on','active','cur','sel'].some(c=>t.classList.contains(c)));
+ const next=tabs[((i<0?0:i)+d+tabs.length)%tabs.length];
+ next.click();padMark(next);
+}
+/* the right stick scrolls the page under the highlight: the nearest box that scrolls, else the first one in the window. The
+   highlight comes along: scrolled out of sight, it moves to the control nearest it still in view (a few times a second, not
+   every frame - the walk is a full look at the page), so A never presses something the player cannot see */
+let padScrollLook=0;
+function padScroll(host,rs,dt){
+ const can=el=>{const st=getComputedStyle(el);return /(auto|scroll)/.test(st.overflowY)&&el.scrollHeight>el.clientHeight+1;};
+ let box=null;
+ for(let el=padFocus&&host.contains(padFocus)?padFocus:host;el;el=el===host?null:el.parentElement)if(can(el)){box=el;break;}
+ if(!box)box=[...host.querySelectorAll('*')].find(can)||null;
+ if(!box)return;
+ box.scrollTop-=rs*900*dt;
+ if(!padFocus||!box.contains(padFocus)||Date.now()-padScrollLook<150)return;
+ const v=box.getBoundingClientRect(),r=padFocus.getBoundingClientRect();
+ if(r.bottom>v.top&&r.top<v.bottom)return;
+ padScrollLook=Date.now();
+ let best=null,bd=Infinity;
+ for(const el of padItems(host)){
+  if(!box.contains(el))continue;
+  const q=el.getBoundingClientRect();
+  if(q.top<v.top||q.bottom>v.bottom)continue;
+  const d=Math.abs(q.top+q.bottom-r.top-r.bottom);
+  if(d<bd){bd=d;best=el;}
+ }
+ if(best)padMark(best);
+}
+const PAD_SIDE_TABS=['hero','map','bag','shop'];
+/* step into the side panel (View), or turn its page (LB/RB, which also step in): the page it shows, or the one before/after */
+function padSideOpen(step){
+ if(!gameOn||!S)return;
+ if(isDesktopLayout()&&sideHidden)toggleSide(false);
+ const at=PAD_SIDE_TABS.indexOf(desktopSideTab==='tides'||desktopSideTab==='outfits'?'hero':desktopSideTab);
+ if(step||!document.querySelector('.panel.open'))openTab(PAD_SIDE_TABS[((at<0?0:at)+(step||0)+PAD_SIDE_TABS.length)%PAD_SIDE_TABS.length]);
+ padSide=true;padSideWorld=world;padMark(null);
+ const p=padSideLayer();if(p)padMenuStep(p,1);
+}
+function padSideClose(){
+ padSide=false;padMark(null);
+ if(gameOn&&!isDesktopLayout())openTab('battle');   /* narrow, the page covers the world: stepping out shows the world again */
 }
 function padAdjustRange(direction){
- const el=padFocus;if(!el||el.tagName!=='INPUT'||el.type!=='range'||el.disabled)return false;
+ const el=padFocus;
+ /* a drop-down (the resolution, the Settings choices) turns through its options the same way - its own list is the
+    system's, which a pad cannot drive */
+ if(el&&el.tagName==='SELECT'&&!el.disabled&&el.getClientRects().length&&el.options&&el.options.length){
+  const n=el.options.length,before=el.selectedIndex;
+  el.selectedIndex=Math.max(0,Math.min(n-1,before+direction));
+  if(el.selectedIndex!==before)el.dispatchEvent(new Event('change',{bubbles:true}));
+  return true;
+ }
+ if(!el||el.tagName!=='INPUT'||el.type!=='range'||el.disabled)return false;
+ if(!el.getClientRects().length)return false;   /* a slider on a Settings tab the mouse turned away from is not on screen: left/right walk instead */
  const min=el.min===''?0:Number(el.min),max=el.max===''?100:Number(el.max),step=Number(el.step),before=el.value;
- const amount=Number.isFinite(step)&&step>0?step:1;
+ const base=Number.isFinite(step)&&step>0?step:1;
+ /* held, it hurries: a repeat moves a fortieth of the way, so the volume crosses 0-100 in about three seconds, not ten */
+ const amount=typeof padRep==='object'&&(padRep.left||padRep.right)?Math.max(base,Math.round((max-min)/40/base)*base):base;
  el.value=String(Math.max(min,Math.min(max,Number(el.value)+direction*amount)));
  if(el.value!==before){
   el.dispatchEvent(new Event('input',{bubbles:true}));
@@ -8154,14 +8359,22 @@ function padInteract(){
 const PAD_BACK={sebbeFx:'sebbeClose',finalGateFx:'finalGateNo',casinoMenu:'casinoMenuClose',
  confirmFx:'cfNo',outfitFx:'outfitOfferLater',iceReqMsg:'iceReqOk',iceMsg:'iceMsgOk',gateMsg:'gateMsgOk',cryptIntro:'cryptIntroOk',
  cfgBox:'cfgClose',slotFx:'slotClose',bjFx:'bjClose',rouFx:'rouClose',rtbFx:'rtbClose',
- seaFx:'seaClose',gvbFx:'gvbLeave'};   /* the duel calls its exit Leave, not Close */
+ seaFx:'seaClose',gvbFx:'gvbLeave',   /* the duel calls its exit Leave, not Close */
+ seaBuyFx:'seaBuyNo',altarMsg:'altarMsgOk',create:'createBack',
+ renameOv:'renameNo',prestigeConfirm:'prNo',hcConfirm:'hcNo',hcDeathOv:'hcBackBtn',raidModal:'raidCancel',mpLobby:'mpLeaveBtn'};
+/* ...and a few where B must do nothing at all: the last button there is not a way back - it exits the game from the hero
+   list, signs in, or begins the ritual */
+const PAD_NOBACK=['select','login','ritualBox'];
 function padBack(host){
+ if(host.classList&&host.classList.contains('panel')){padSideClose();return true;}   /* the side panel: step back out to the world */
+ if(PAD_NOBACK.includes(host.id))return false;
  const named=PAD_BACK[host.id]&&$(PAD_BACK[host.id]);
  const close=named||host.querySelector('[id$=Close]')||host.querySelector('[id$=close]');
  if(close){close.click();return true;}
  /* nothing named: fall back to the last button in the panel, which is where Close always sits */
  const items=padItems(host);
  if(items.length){items[items.length-1].click();return true;}
+ if(host.onclick){host.click();return true;}   /* a window that is one big button (the rune ceremony): B ends it as a click does */
  return false;
 }
 /* 🎰 the casino's windows: the menu, its tables and Sebbe's cups (.open), and the duel (by its display). With chest
@@ -8198,10 +8411,12 @@ function padTick(dt){
  if(host){
   /* a panel is up: the d-pad walks it and A presses what is highlighted */
   padNear=null;
+  padHostSwitch(host);   /* a window opened over the highlight starts clean, and one closed puts it back */
+  if(padFocus&&padFocus.isConnected===false)padRehome(host,padFocus);   /* the page was drawn again under the highlight */
   if(padFocus&&!host.contains(padFocus))padMark(null);
   const horizontal=padHit.left?-1:padHit.right?1:0,adjusted=horizontal&&padAdjustRange(horizontal);
-  if(padHit.up||(!adjusted&&padHit.left))padMenuStep(host,-1);
-  if(padHit.down||(!adjusted&&padHit.right))padMenuStep(host,1);
+  if(padHit.up||(!adjusted&&padHit.left))padMenuStep(host,-1,padHit.up?'up':'left');
+  if(padHit.down||(!adjusted&&padHit.right))padMenuStep(host,1,padHit.down?'down':'right');
   if(padHit.a){
    /* A presses only what is drawn. A panel that hides part of itself (the duel's screens and its Open while the chests turn,
       the Extra Spin box, a scrapped chest's Scrap) left the highlight on a button gone from the screen, and A pressed it
@@ -8213,39 +8428,82 @@ function padTick(dt){
    else if(padFocus.getClientRects().length)padFocus.click();
   }
   if(padHit.b)padBack(host);
+  else if((padHit.back||padHit.rt)&&host.classList.contains('panel')){   /* View steps back out of the side panel, as it stepped in; RT folds it away as well */
+   padSideClose();
+   if(padHit.rt&&isDesktopLayout())toggleSide(true);
+  }
+  if(padHit.lb||padHit.rb)padTabStep(host,padHit.rb?1:-1);
+  if(padHit.rs)padScroll(host,padHit.rs,dt);
   return;
  }
  if(padFocus)padMark(null);
+ padHostSwitch(null);
  if(gamePaused){padNear=null;return;} /* nothing in the world answers while the game is paused */
  padNear=inputMode==='pad'?padInteract():null;
  if(padHit.a&&padNear)padNear.open();
+ /* ⚔ the fight from the pad - what 1-5, E, X and a right-click do: X, Y and LT the three spells, the d-pad up a health potion
+    and down a mana potion, left the nearest foe and right the mount, B lets go of the target. A held d-pad does it once. */
+ if(gameOn&&!gamePaused&&S&&hero&&!hero.dead){
+  if(padHit.x)cast(0,true);
+  if(padHit.y)cast(1,true);
+  if(padHit.lt)cast(2,true);
+  if(padHit.up&&!padRep.up)usePot('hp',true);
+  if(padHit.down&&!padRep.down)usePot('mp',true);
+  if(padHit.left&&!padRep.left){
+   const t=nearestEnemyWithin(400);
+   if(t){hero.target=t;ring(t.x,t.y-4,t.r+12,'#ffd76a',0.4);sfx.bolt();}else stageMsg('No foe nearby',700);
+  }
+  if(padHit.right&&!padRep.right)toggleMount();
+  if(padHit.b&&hero.target)hero.target=null;
+ }
+ /* 🎒 View steps into the side panel on the page it shows; LB/RB step in on the page before or after it */
+ if(gameOn&&(padHit.back||padHit.lb||padHit.rb))padSideOpen(padHit.rb?1:padHit.lb?-1:0);
  /* 🎒 RT shows and hides the side panel, on any screen. What "hiding" means cannot be the same in
     both layouts: wide, the panel is a column beside the game and folds away to give the world the
     whole window; narrow, it is an overlay ON the game, so folding it away means going back to the
     battle view. Same button, same intent, whichever screen you are on. */
  if(padHit.rt&&gameOn){
   if(isDesktopLayout())toggleSide();
-  else{
-   const open=document.querySelector('.panel.open');
-   openTab(open?'battle':(desktopSideTab||'hero'));
-  }
+  else if(document.querySelector('.panel.open'))openTab('battle');
+  else padSideOpen(0);   /* the page it shows is stepped into, as View does - opened alone, the d-pad drank potions under it */
  }
  /* ⛏ R3 puts the pick out, for anyone who has been taught to use one */
  if(padHit.r3&&gameOn&&mineTrained())toggleMining();
  if(Math.abs(padRZoom)>0.01&&gameOn)setZoom(zoom*(1+padRZoom*1.6*dt));
+}
+/* 🎮 what the buttons do in the menu on screen, shown only while the pad is steering: A and B always, the tabs or the pages
+   when there are any. The world keeps its own A prompt on the canvas, and the Controls tab in Settings has the rest. */
+let padHintKey='';
+function padHintsTick(){
+ const el=$('padHints');if(!el)return;
+ let key='';
+ if(inputMode==='pad'){
+  const host=padPanelOpen();
+  if(host){
+   /* tabs only where two or more can be turned (a Ledger not yet chartered greys every one), and no B where B does nothing */
+   const side=host.classList.contains('panel'),tabs=side||[...host.querySelectorAll('[role="tab"],.cfgtab,.craft-tab')].filter(t=>!t.disabled).length>1;
+   key=(side?'side':tabs?'tabs':'menu')+(PAD_NOBACK.includes(host.id)?' noback':'');
+  }
+ }
+ if(key===padHintKey)return;
+ padHintKey=key;
+ const kind=key.split(' ')[0],back=!key.includes('noback');
+ el.innerHTML=!key?'':'<b>A</b>Select'+(back?'<b>B</b>'+(kind==='side'?'Close':'Back'):'')+(kind==='side'?'<b>LB</b><b>RB</b>Pages':kind==='tabs'?'<b>LB</b><b>RB</b>Tabs':'')+'<b>RS</b>Scroll';
+ el.classList.toggle('on',!!key);
 }
 window.addEventListener('gamepaddisconnected',e=>{if(e.gamepad)delete padCal[e.gamepad.index];});
 /* The pad's own id is not worth showing: on Windows almost everything speaks XInput, so a third-party
    pad announces itself as an Xbox 360 Controller regardless of what is actually in your hands. A
    name that is usually wrong tells the player less than no name at all. */
 window.addEventListener('gamepadconnected',()=>{
- if(gameOn)fishToast('🎮 <b>Controller</b> connected - left stick walks','#8fc3ef',2600);
+ if(gameOn)fishToast('🎮 <b>Controller</b> connected - View opens the menu, Start the settings','#8fc3ef',2600);
 });
 window.addEventListener('gamepaddisconnected',()=>{if(gameOn)fishToast('🎮 Controller disconnected','#8fa898',2200);});
 const keys={};
 window.addEventListener('keydown',e=>{
  if(typeof HeroGuide!=='undefined'&&HeroGuide.isOpen())return;
  initAudio();
+ setInputMode('kb');   /* any key, not only a walking one: the keyboard is steering, and the pad's hints go - over a casino table they stayed */
  const k=e.key||'';
  const kl=k.toLowerCase();
  if(!kl)return;
@@ -11935,7 +12193,11 @@ function toggleMount(){
  const selected=Mounts.selected(S);
  if(!mountRide.id&&!mountRide.casting&&selected&&(!mountImages[selected.id].complete||!mountImages[selected.id].naturalWidth)){stageMsg('Your mount is arriving. Try again in a moment.',1600);return;}
  const result=Mounts.toggle(mountRide,S,{zone:zoneOf(),hero,paused:gamePaused,busy:!!padPanelOpen()});
- if(!result.ok){if(result.reason==='zone')stageMsg('Mounts can be ridden in Wasteland, City, Farm and Home.',2000);return;}
+ if(!result.ok){
+  if(result.reason==='zone')stageMsg('Mounts can be ridden in Wasteland, City, Farm and Home.',2000);
+  else if(result.reason==='empty'&&inputMode==='pad')stageMsg('No mount yet',1200);   /* the d-pad's right does nothing else: silence read as a dead button */
+  return;
+ }
  if(result.action==='casting'){stopMining();hero.moveTo=null;hero.pendingDoor=null;hero.target=null;hero.goPortal=false;hero.dance=0;holdMove=null;}
  updateMountButton();
 }
@@ -12236,7 +12498,7 @@ function renderHero(){
      <div style="font-size:12.5px;color:var(--parch);margin:10px 0 6px;line-height:1.5;font-weight:600">Are you sure your gear is ready?</div>
      <div style="font-size:12px;color:#ff8a7a;margin:0 0 16px;line-height:1.5">Recommended: have your epic items upgraded to at least <b style="color:#ff5a5a">+8 to +12</b> to make the next prestige easier.</div>
      <div style="display:flex;gap:8px;justify-content:center">
-      <button id="prNo" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--display);font-size:14px;cursor:var(--hand)">NO</button>
+      <button id="prNo" data-pad-first style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--display);font-size:14px;cursor:var(--hand)">NO</button>
       <button id="prYes" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--brass);background:linear-gradient(180deg,var(--brass),var(--brass-deep));color:#20180a;font-family:var(--display);font-size:14px;cursor:var(--hand)">YES</button>
      </div></div>`;
     $('app').appendChild(ov);
@@ -13339,7 +13601,7 @@ function updateCaseScrap(){
  const cs=$('caseScrapBtn'),chestGear=caseGear();
  delete cs.dataset.armed;cs.style.color='';cs.style.borderColor='';
  if(chestGear.length){cs.style.display='inline-block';cs.textContent=caseScrapLabel(chestGear);}
- else cs.style.display='none';
+ else{cs.style.display='none';if(padFocus===cs)padMark($('caseClose'));}   /* the pad stood on Scrap: it goes to Close, never to Respin or Auto */
 }
 function hideChestFx(){
  if(S&&caseSpinning){stopCaseAuto();return;} /* the spin cannot be skipped - Close unlocks when it lands; Auto stops now */
@@ -14384,6 +14646,7 @@ function openBJ(){
  $('bjHandC').innerHTML='';$('bjDealerC').innerHTML='';
  $('bjPTot').textContent='';$('bjDTot').textContent='';
  $('bjRes').innerHTML='&nbsp;';
+ bjTurnAt=performance.now();   /* the press that opened the table (a doubled Enter or A on the casino menu) must not deal a hand too */
  bjFitBet();bjUI();bjFocus('bjDeal',true);
 }
 /* the hero is put away (the hero list, logout, a kick, entering the world): a hand on the table is forfeited - its stake was saved
@@ -18085,7 +18348,7 @@ function confirmBox(msg,onYes){ /* small in-style "are you sure" overlay */
   <div style="font-size:13.5px;color:#e8dcc8;line-height:1.5;margin-bottom:14px">${msg}</div>
   <div style="display:flex;gap:10px">
    <button class="sbtn gold" id="cfYes" style="flex:1;padding:10px">Yes</button>
-   <button class="sbtn" id="cfNo" style="flex:1;padding:10px">Cancel</button>
+   <button class="sbtn" id="cfNo" data-pad-first style="flex:1;padding:10px">Cancel</button>
   </div></div>`;
  document.body.appendChild(ov);
  $('cfYes').onclick=()=>{ov.remove();onYes();};
@@ -19259,6 +19522,7 @@ async function renderSelect(){
   if(fallenOpen)html+='<div class="tierbody">'+fallen.map(cardOf).join('')+'</div>';
  }
  $('charList').innerHTML=html;
+ const firstPlay=document.querySelector('#charList [data-play]');if(firstPlay)firstPlay.dataset.padFirst='';   /* 🎮 the pad starts on the first hero's Enter World, as Enter does - not on Settings */
  const fh=$('fallenHead');
  if(fh)fh.onclick=()=>{fallenOpen=!fallenOpen;renderSelect();};
  chars.forEach(ch=>{const cnv=document.querySelector(`[data-pc="${ch.id}"]`);if(cnv)drawPortrait(cnv,ch);});
@@ -19370,7 +19634,7 @@ $('startHcBtn').onclick=()=>{
   <div style="font-family:var(--display);font-size:18px;color:#ff8a7a;margin:6px 0">HARDCORE</div>
   <div style="font-size:12.5px;color:var(--parch);margin:0 0 16px;line-height:1.5;font-weight:600">Are you sure? You only have 1 life.</div>
   <div style="display:flex;gap:8px;justify-content:center">
-   <button id="hcNo" style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--display);font-size:14px;cursor:var(--hand)">NO</button>
+   <button id="hcNo" data-pad-first style="flex:1;padding:11px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-family:var(--display);font-size:14px;cursor:var(--hand)">NO</button>
    <button id="hcYes" style="flex:1;padding:11px;border-radius:10px;border:1px solid #c75146;background:linear-gradient(180deg,#c75146,#7a2a22);color:#ffe0da;font-family:var(--display);font-size:14px;cursor:var(--hand)">YES</button>
   </div></div>`;
  $('app').appendChild(ov);
@@ -19541,6 +19805,22 @@ function renderControls(){
   ['B','Hide or show the side panel for a wider view'],
   ['F11','Fullscreen on and off'],
   ['Mouse wheel','Zoom the camera in and out'],
+  ['head','Controller'],
+  ['Left stick','Walk'],
+  ['A','Talk, open doors and shops. In a menu: choose'],
+  ['B','Let go of the target. In a menu: back'],
+  ['X',sp[0]?sp[0].n:'First spell'],
+  ['Y',sp[1]?sp[1].n:'Second spell'],
+  ['LT',sp[2]?sp[2].n:'Third spell'],
+  ['D-pad ↑ ↓','Health / mana potion. In a menu: move'],
+  ['D-pad ←','Target the nearest foe'],
+  ['D-pad →','Ride your mount'],
+  ['View','Step into the side panel - Hero, Map, Bag, Shop'],
+  ['LB / RB','Turn the side panel\'s pages, or a window\'s tabs'],
+  ['RT','Hide or show the side panel'],
+  ['Right stick','Zoom the camera. In a menu: scroll'],
+  ['Start','Settings. At a casino table: leave it'],
+  ['R3','Put the pick out or away, once you are trained'],
  ];
  $('kbdList').innerHTML=rows.map(([k,v])=>k==='head'
   ? `<div class="kbdhead">${v}</div>`
@@ -19633,7 +19913,16 @@ if(window.desktop&&window.desktop.onWindowedChanged)
 /* 🚪 Exit. Saves first rather than asking "are you sure" - the autosave runs every 12 seconds, so
    quitting cold could cost the last dozen seconds of play. In a browser tab there is nothing to
    quit, so it drops back to the character select instead of a dead button. */
+/* 🎮 Exit asks first when the pad pressed it: from the Controls tab it is one d-pad step down, and on the hero list the walk
+   wraps onto it - and it quits the app. A mouse click is aimed, so it is not asked. */
+let exitSure=false;
+const padAskExit=btn=>{
+ if(inputMode!=='pad'||exitSure){exitSure=false;return false;}
+ confirmBox('Exit the game?',()=>{exitSure=true;btn.click();});
+ return true;
+};
 $('exitBtn').onclick=async()=>{
+ if(padAskExit($('exitBtn')))return;
  /* saveNow(), not save(): the ordinary save throttles the cloud push, so quitting right after it
     can leave the last minutes on the floor. This forces the write and WAITS for it before the
     window goes - the whole point of leaving from a menu rather than by closing it. */
@@ -19649,7 +19938,7 @@ $('exitBtn').onclick=async()=>{
    In a browser tab there is nothing to quit either, so the button never shows there. */
 if(window.desktop&&window.desktop.quit){
  $('selExitBtn').style.display='block';
- $('selExitBtn').onclick=async()=>{try{await within(flushParked(),6000,'the last saves before quitting');}catch(e){}window.desktop.quit().catch(()=>{});};
+ $('selExitBtn').onclick=async()=>{if(padAskExit($('selExitBtn')))return;try{await within(flushParked(),6000,'the last saves before quitting');}catch(e){}window.desktop.quit().catch(()=>{});};
 }
 /* ⏱ Vsync is desktop-only: it is switched off by command-line flags that must be set before Electron
    starts, so the box records the wish and the next launch honours it. Left on, frames are paced to
@@ -19893,7 +20182,8 @@ function frame(t){
   ctx.textAlign='center';
   ctx.fillStyle='#efe3c2';ctx.fillText('⏸ PAUSED',VW/2,VH/2);
   }
- }
+ }else if(!gameOn){padNow=null;padTick(dt);}   /* 🎮 the hero list, a new hero and the sign-in answer the pad too */
+ padHintsTick();
  {const z=ZONES[S&&S.zone];   /* 🗺 the City, the Wasteland, the Harbour and the ports of call (not the palace inside one) */
   cityMinimap.update(world,hero,gameOn&&S&&!(voyage&&voyage.phase!=='arrive')&&!z?.dungeon&&!!(z?.city||z?.wasteland||z?.harbor||(z?.town&&!z?.interior)),t);}
  }catch(e){

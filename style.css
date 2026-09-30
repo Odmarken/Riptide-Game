@@ -1119,6 +1119,15 @@
 #padBadge{position:absolute;left:8px;top:30px;z-index:30;display:none;font-size:17px;line-height:1;
  filter:drop-shadow(0 1px 2px rgba(0,0,0,.8));pointer-events:none}
 #padBadge.on{display:block}
+/* 🎮 what the buttons do in the menu on screen - above every window and box (the confirm is 120), never in the way of a click */
+#padHints{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:140;display:none;
+ padding:6px 14px;border:1px solid #8a6d34;border-radius:999px;background:rgba(20,14,8,.9);box-shadow:0 4px 16px rgba(0,0,0,.5);
+ color:#e7dac2;font:600 12.5px/1.5 var(--body,sans-serif);white-space:nowrap;pointer-events:none}
+#padHints.on{display:block}
+@media (max-width:899px){#padHints{bottom:calc(80px + env(safe-area-inset-bottom,0px))}}   /* a phone: above its 68px nav bar, not over World, Bag and Shop */
+#padHints b{display:inline-block;min-width:20px;margin:0 5px 0 14px;padding:0 6px;border-radius:10px;background:#d9a441;color:#1b120a;text-align:center;font-weight:800}
+#padHints b:first-child{margin-left:0}
+#padHints b+b{margin-left:0}
 /* what the d-pad is standing on inside a panel */
 .padfocus{outline:2px solid #ffd76a !important;outline-offset:2px;
  box-shadow:0 0 14px rgba(255,215,106,.55) !important;border-radius:8px}
