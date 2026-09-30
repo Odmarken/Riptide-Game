@@ -15,4 +15,6 @@ contextBridge.exposeInMainWorld('desktop', {
   onDisplayChanged: fn => ipcRenderer.on('display-changed', (_e, value) => fn(value)),
   setResolution: (w,h) => ipcRenderer.invoke('res:set', w, h),
   quit: () => ipcRenderer.invoke('app:quit'),
+  /* writes the saves waiting in localStorage to disk now - a hard kill must not take back a paid stake (see main.js) */
+  flushStorage: () => ipcRenderer.invoke('storage:flush'),
 });

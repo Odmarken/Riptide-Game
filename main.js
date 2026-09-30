@@ -102,6 +102,15 @@ ipcMain.handle('res:set', (_e,w,h) => {
  return {w:Math.round(s.w*d.scaleFactor),h:Math.round(s.h*d.scaleFactor),fullscreen:!!(win&&!win.isDestroyed()&&win.isFullScreen())};
 });
 ipcMain.handle('app:quit', () => app.quit());
+/* The saves live in localStorage, and Chromium's storage process writes that to disk on its own schedule: a minute behind for
+   a small hero, several for a big one. A hard kill (Task Manager's End task) takes that process with it, and a casino stake
+   paid in the meantime came back on the next launch. The page asks after its saves, at most once a second; this writes what
+   is waiting now. A failure is logged once - the save is still in memory, as it always was. */
+let flushFailed = false;
+ipcMain.handle('storage:flush', e => {
+  try { e.sender.session.flushStorageData(); return true; }
+  catch (err) { if (!flushFailed) { flushFailed = true; logErr('storage flush', (err && err.stack) || err); } return false; }
+});
 ipcMain.handle('settings:get', () => readCfg());
 ipcMain.handle('settings:vsync', (_e, v) => writeCfg({vsync: !!v}));
 ipcMain.handle('settings:windowed', (_e, v) => {
@@ -148,6 +157,8 @@ function createWindow() {
          Keep that loop alive after Alt+Tab or minimize; only the game's own pause should stop it. */
       backgroundThrottling: false,
       devTools: DEV,
+      spellcheck: false,          /* nothing in the game wants it, and a launch without APPDATA made the Windows spellchecker
+                                     leave empty Microsoft/Spelling folders with garbage names in the working folder */
       preload: path.join(__dirname, 'preload.js'),
     },
   });

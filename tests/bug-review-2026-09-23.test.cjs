@@ -36,14 +36,14 @@ test('a duel room is cleaned on the way in, and the pot holds only what was paid
  assert.equal(d.players.pabc.bet,5000);
  assert.deepEqual({...d.waves[0].o.pabc},{ic:'⚔️',cc:'#5b9bd5',sc:3,n:''},'a chest can only be a chest this table knows');
  assert.equal(d.waves[0].o.pdef.sc,10);
- /* the pot: a v2 seat counts when it has paid; a seat from an older build (no v) counts unless it forfeited */
+ /* the pot: a seat counts when it has paid - an older build's seat (no v) without a paid flag no longer counts: such seats are never seated now (gvb-4) */
  c.gvb.pid='pzzz';c.gvb.paidOk=false;
- assert.equal(c.gvbPaidCount({order:['pabc','pdef'],players:d.players,paid:{pabc:true},forfeits:{}}),2);
+ assert.equal(c.gvbPaidCount({order:['pabc','pdef'],players:d.players,paid:{pabc:true},forfeits:{}}),1,'an old seat without a paid flag adds nothing');
  assert.equal(c.gvbPaidCount({order:['pabc','pdef'],players:{pabc:{v:2},pdef:{v:2}},paid:{pabc:true},forfeits:{}}),1,'an unpaid v2 seat adds nothing');
  assert.equal(c.gvbPaidCount({order:['pabc','pdef'],players:{pabc:{v:2},pdef:{}},paid:{pabc:true},forfeits:{pdef:true}}),1,'an old seat that forfeited adds nothing');
  /* the settle and the pot display use it; joins go through arrayUnion; a settled loser does not close a room others still settle in */
- assert.match(between('function gvbSettle(','\n}'),/const pot=gvb\.bet\*gvbPaidCount\(d\)/);
- assert.match(game,/order:firebase\.firestore\.FieldValue\.arrayUnion\(gvb\.pid\)/);
+ assert.match(between('function gvbSettle(','\n}'),/const pot=paidMine\?Math\.min\(res\.pot,stake\*Math\.min\(gvbPaidCount\(d\),gvb\.seats\)\):res\.pot/);
+ assert.match(game,/order:firebase\.firestore\.FieldValue\.arrayUnion\(pid\)/);
  assert.match(game,/gvbActive\(d\)\.every\(p=>p===gvb\.pid\|\|\(d\.settled&&d\.settled\[p\]\)\)/);
 });
 

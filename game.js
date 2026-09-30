@@ -3067,7 +3067,7 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.restedSpinAt===undefined)s.restedSpinAt=0;
  s.restedT=Math.max(0,Math.min(3600,s.restedT||0));            /* one hour, never more */
  s.restedPct=Math.max(0,Math.min(0.20,s.restedPct||0));        /* the wheel's best segment is 20% */
- if(s.restedSpinAt>Date.now())s.restedSpinAt=0;                /* a clock skewed into the future would lock the wheel forever */
+ if(s.restedSpinAt>Date.now())s.restedSpinAt=Date.now();       /* a spin "in the future" is a clock set back: the wait starts again from now. Reset to 0, it gave a free spin at every reload - a re-roll to 20% as often as wanted */
  if(s.freeGoldCases===undefined)s.freeGoldCases=0;
  /* the mining trade and what it digs up. Both default in rather than being written on train,
     so a save from before mining existed reads as an untrained miner with an empty satchel. */
@@ -5006,9 +5006,9 @@ function renderFarmStore(){
   if(id===TideFarm.BUILDING_ID&&!TideFarm.canPlace(S.farm,farmCart))return 'Max '+TideFarm.capacity(S.farm)+' at Farm Level '+fl;
   if((id==='lada'||id==='chickenhouse')&&countFarm(t=>t===id,true)>=houseMax())return 'Max '+houseMax()+' at Level '+fl;
   if(isHay(id)&&hayCount()>=hayMax())return 'Max '+hayMax()+' hay at Level '+fl;
-  if(id==='cowfarm'||id==='chickenfarm'||id==='tjur'||id==='hay'){ /* 🎰 needs won stock */
+  if(id==='cowfarm'||id==='chickenfarm'||id==='tjur'||id==='hay'){ /* 🎰 needs won stock - the Trader's Gamble chests are its only source */
    const have=(((S.farm&&S.farm.inv)||{})[id]||0)-farmCart.filter(g2=>g2.t===id).length;
-   if(have<1)return 'Win one in the casino';
+   if(have<1)return 'Win one in '+(id==='tjur'?'GOLD GOLD GOLD':'GAMBAAA!');
   }
   if(isBull(id))return countFarm(t=>t==='lada',true)===0?'Barn required':bullRoom(true)<=0?'Max '+bullCap()+' Bulls at Level '+fl:null;
   if(isCattle(id))return countFarm(t=>t==='lada',true)===0?'Barn required':barnRoom(true)<=0?'Barn full ('+BARN_CAP+'/barn)':null;
@@ -5103,9 +5103,9 @@ function placeFarmItem(id,x,y){
  if(id===TideFarm.BUILDING_ID&&!TideFarm.canPlace(S.farm,farmCart)){stageMsg('Max '+TideFarm.capacity(S.farm)+' incubators at Farm Level '+fLvl,1800);sfx.warn();return;}
  if((id==='lada'||id==='chickenhouse')&&countFarm(t=>t===id,true)>=houseMax()){stageMsg('🔒 Max '+houseMax()+' at Farm Level '+fLvl,1600);sfx.warn();return;}
  if(isHay(id)&&hayCount()>=hayMax()){stageMsg('🌾 Max '+hayMax()+' hay patches at Farm Level '+fLvl,1600);sfx.warn();return;}
- if(id==='cowfarm'||id==='chickenfarm'||id==='tjur'||id==='hay'){ /* 🎰 stock-gated: casino wins only */
+ if(id==='cowfarm'||id==='chickenfarm'||id==='tjur'||id==='hay'){ /* 🎰 stock-gated: Gamble chest wins only (the Shop) */
   const pend=farmCart.filter(g2=>g2.t===id).length;
-  if((((S.farm.inv||{})[id])||0)-pend<1){stageMsg('🔒 None owned - win one in the casino',1700);sfx.warn();return;}
+  if((((S.farm.inv||{})[id])||0)-pend<1){stageMsg('🔒 None owned - win one in '+(id==='tjur'?'GOLD GOLD GOLD':'GAMBAAA!')+' (Shop)',1700);sfx.warn();return;}
  }
  if(isBull(id)){ /* bulls need a Barn to live in, but their headcount is capped by farm level, not barn space */
   if(countFarm(t=>t==='lada',true)===0){stageMsg('🔒 Barn required',1600);sfx.warn();return;}
@@ -8031,8 +8031,8 @@ function padPollButtons(){
    Rather than teach every panel about the pad, walk whatever is on screen: the topmost open panel's
    own buttons, in document order, are the menu. That way a panel built later is navigable the day
    it is written, with nothing added to it. */
-const PAD_PANELS=['confirmFx','outfitFx','iceReqMsg','iceMsg','gateMsg','cryptIntro', /* the small boxes that sit on top of everything come first - the pad answers the box on screen, not the panel under it */
- 'cfgBox','tideHub','tideBattleFx','finalGateFx','sebbeFx','gvbFx','rtbFx','rouFx','bjFx','seaFx','slotFx','casinoMenu',
+const PAD_PANELS=['confirmFx','outfitFx','cfgBox','iceReqMsg','iceMsg','gateMsg','cryptIntro', /* the small boxes that sit on top of everything come first - the pad answers the box on screen, not the panel under it. Settings is drawn above the tables and the boxes after it (z 78) */
+ 'tideHub','tideBattleFx','finalGateFx','sebbeFx','gvbFx','rtbFx','rouFx','bjFx','seaFx','slotFx','casinoMenu',
  'chestFx','seaBuyFx','sharkFx','ritualDoneFx','ritualFx','talentFx','smithFx','smithMenu','bankFx',
  'restFx','fishhutMenu','mineFx','smeltFx','enchFx','ledgerFx','boardFx','voyageFx','mercFx','dragonFx','stableFx','farmCheckoutFx','farmBuyFx','farmDelFx'];
 const padPanelOpen=()=>{
@@ -8164,6 +8164,22 @@ function padBack(host){
  if(items.length){items[items.length-1].click();return true;}
  return false;
 }
+/* 🎰 the casino's windows: the menu, its tables and Sebbe's cups (.open), and the duel (by its display). With chest
+   set, a gamble chest's reel counts too: it covers the world the same way, though it opens anywhere. */
+function casinoWinOpen(chest){
+ for(const id of ['casinoMenu','slotFx','seaFx','bjFx','rouFx','rtbFx','sebbeFx']){const e=$(id);if(e&&e.classList.contains('open'))return e;}
+ const d=$('gvbFx');if(d&&d.style.display==='flex')return d;
+ const c=chest&&$('chestFx');return c&&c.classList.contains('open')?c:null;
+}
+/* Esc and the pad's Start over a casino window are its Back, as B is: its own exit (PAD_BACK), which refuses mid-round
+   and says why - or the box on top of it (a confirm, Settings). They opened Settings instead, drawn under the table,
+   and the pad and the keys went on driving it unseen: Start, Up, A pressed Exit game mid-hand. */
+function casinoBack(){
+ const w=casinoWinOpen();
+ if(!w)return false;
+ padBack(padPanelOpen()||w);
+ return true;
+}
 let padNear=null;   /* what the prompt is currently offering, so the draw and the press agree */
 
 function padTick(dt){
@@ -8173,9 +8189,9 @@ function padTick(dt){
   padNear=null;if(padHit.a)$('heroGuideReady')?.click();return;
  }
  /* ⚙ the pad's own Settings/Menu button, same as clicking the gear. Handled before the panel
-    branch so it can close the settings panel it just opened. */
+    branch so it can close the settings panel it just opened. Over a casino window it is Back. */
  if(padHit.start){
-  openSettings();
+  if(!casinoBack())openSettings();
   return;
  }
  const host=padPanelOpen();
@@ -8187,8 +8203,14 @@ function padTick(dt){
   if(padHit.up||(!adjusted&&padHit.left))padMenuStep(host,-1);
   if(padHit.down||(!adjusted&&padHit.right))padMenuStep(host,1);
   if(padHit.a){
+   /* A presses only what is drawn. A panel that hides part of itself (the duel's screens and its Open while the chests turn,
+      the Extra Spin box, a scrapped chest's Scrap) left the highlight on a button gone from the screen, and A pressed it
+      unseen: a second room, a hidden START. That A now does nothing, and the highlight stays put. Moved to the first
+      control shown instead, the next A pressed that: Auto spin at a chest, Leave and then a forfeit in the duel. The d-pad
+      walks on from it, and a button that shows again (Open, on your next turn) is pressed by the next A. A disabled one
+      keeps it as well: its click is nothing, and moving off it put the next A on Auto in Lucky 7 mid-spin. */
    if(!padFocus)padMenuStep(host,1);
-   else{const f=padFocus;f.click();}
+   else if(padFocus.getClientRects().length)padFocus.click();
   }
   if(padHit.b)padBack(host);
   return;
@@ -8231,6 +8253,19 @@ window.addEventListener('keydown',e=>{
     password is typed at every launch */
  if(kl==='enter'&&$('login').classList.contains('open')&&['fbEmail','fbPass'].includes(document.activeElement?.id)){e.preventDefault();if(!e.repeat)fbSignIn(false);return;}
  if((/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||'')||document.activeElement?.isContentEditable)&&kl!=='escape')return;
+ /* 🎰 a casino window, the duel or a chest reel covers the world: nothing under it walks, drinks, casts or hides the panel
+    (the pad stops there already), and Esc is the window's Back, as B is. Settings opens from the world only - and over a
+    chest reel, which it is drawn above. */
+ if(gameOn&&casinoWinOpen(true)){
+  if(kl==='escape'){e.preventDefault();if(!e.repeat&&!casinoBack())openSettings();}
+  else if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(kl)){
+   /* no page scroll - but Space presses the focused button of the window, or of the box drawn on it, as the browser does:
+      on release, once however long it is held. Stopped here too, it left a keyboard player Enter alone */
+   const a=document.activeElement,w=casinoWinOpen(true);
+   if(!(kl===' '&&a&&a.tagName==='BUTTON'&&a.getClientRects().length&&(w.contains(a)||padPanelOpen()?.contains(a))))e.preventDefault();
+  }
+  return;
+ }
  if(gameOn&&S&&kl==='escape'&&TideUI.storageOpen()&&!TideUI.modalOpen()&&!$('cfgBox').classList.contains('open')){e.preventDefault();document.activeElement?.blur();TideUI.storageBack();return;}
  if(TideUI.modalOpen()&&!TideUI.isBattling()){if(kl==='escape'){e.preventDefault();TideUI.closeHub();}return;}
  if(TideUI.isBattling()){
@@ -8256,7 +8291,7 @@ window.addEventListener('keydown',e=>{
  if(kl==='escape'&&gameOn){ /* ⚙ Esc is the settings key. Checked after the build-mode case above, so
                                putting a held piece down still wins - that is the more urgent undo. */
   e.preventDefault();
-  openSettings();
+  if(!e.repeat)openSettings(); /* a held Esc that just closed a table (or Settings) opens nothing */
   return;
  }
  if(kl==='enter'){
@@ -9044,7 +9079,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    }
    return;
   }
- }else if(!hallSceneHolds()&&!mountRide.casting&&!TideUI.modalOpen()&&$('stableFx').style.display!=='flex'&&$('voyageFx').style.display!=='flex'&&$('mercFx').style.display!=='flex'&&$('dragonFx').style.display!=='flex'&&!mineTick(dt)){ /* a word from the Hand, mounting, venue menus and mining keep the hero still */
+ }else if(!hallSceneHolds()&&!mountRide.casting&&!TideUI.modalOpen()&&!casinoWinOpen()&&$('stableFx').style.display!=='flex'&&$('voyageFx').style.display!=='flex'&&$('mercFx').style.display!=='flex'&&$('dragonFx').style.display!=='flex'&&!mineTick(dt)){ /* a word from the Hand, mounting, venue menus, a casino window and mining keep the hero still - keys held under a table walked him into the Altar portal unseen */
   if(holdMove){ /* finger still pressed - refresh the walk target to wherever it is now */
    const hr=cv.getBoundingClientRect();
    const hx=(holdMove.cx-hr.left)/zoom+camX,hy=(holdMove.cy-hr.top)/zoom+camY;
@@ -9052,6 +9087,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   }
   let kx=(keys['d']||keys['arrowright']?1:0)-(keys['a']||keys['arrowleft']?1:0);
   let ky=(keys['s']||keys['arrowdown']?1:0)-(keys['w']||keys['arrowup']?1:0);
+  if($('chestFx').classList.contains('open')){kx=0;ky=0;} /* nor does a key held under a chest reel walk him, as the stick does not. The fight goes on (a chest opens anywhere), but the keys, 1-5 too, wait for the reel to close, as the pad's buttons do */
   /* 🎮 the left stick walks. Gamepads fire no movement events - the API is a snapshot you poll - so
      this is read once per frame, right where the keyboard is read.
      Whichever device was touched LAST is the one that steers. Letting the keyboard always win meant
@@ -12458,17 +12494,35 @@ function cleanBagItem(it){
 }
 function scrapBagItems(match,label){
  if(cowLocked()){stageMsg('The herd allows no forging - survive or die first!',1800);sfx.warn();return false;}
- const keep=[],take=[];
- S.bag.forEach(it=>((match(it)&&bagSellable(it))?take:keep).push(it));
- if(!take.length){stageMsg('Nothing to scrap',1200);return false;}
- const total=take.reduce((t,it)=>t+scrapVal(it),0),n=take.length;
- S.bag=keep;
- S.scraps=Math.min(SCRAP_CAP,S.scraps+total);
+ const all=S.bag.filter(it=>match(it)&&bagSellable(it));
+ if(!all.length){stageMsg('Nothing to scrap',1200);return false;}
+ const {take,total}=scrapFit(all),n=take.length,kept=all.length-n;
+ if(!n){stageMsg(scrapNoRoom(),1800);sfx.warn();return false;}
+ const gone=new Set(take),what=n===1?String(label||'items').replace(/items$/,'item'):label||'items'; /* 'Scrapped 1 item', not '1 items' */
+ S.bag=S.bag.filter(it=>!gone.has(it));
+ addScraps(total);
  sfx.forge();
- log(`Scrapped ${n} ${label||'items'} - +${total} ⚙.`,'loot');
- stageMsg('⚙ Scrapped '+n+' '+(label||'items')+' for '+total+' Scraps',1800);
+ const why=kept?(S.scraps>=SCRAP_CAP?'scrap pouch full':'no room in the scrap pouch ('+S.scraps+'/'+SCRAP_CAP+'⚙)'):''; /* 'full' only when it is */
+ log(`Scrapped ${n} ${what} - +${total} ⚙.${kept?` ${kept} kept - ${why}.`:''}`,'loot');
+ stageMsg('⚙ Scrapped '+n+' '+what+' for '+total+' Scraps'+(kept?' · '+kept+' kept, '+why:''),1800);
  renderBag();renderHUD();save();
  return true;
+}
+/* ⚙ Only what the pouch can hold is scrapped, in bag order; the rest stays in the bag. The clamp to SCRAP_CAP used to
+   destroy the overflow for nothing - a full pouch ate the whole lot while the log still counted it. */
+function scrapFit(items){
+ let room=scrapRoom(),total=0;const take=[];
+ for(const it of items){const v=scrapVal(it);if(v<=room){take.push(it);room-=v;total+=v;}}
+ return {take,total};
+}
+/* ⚙ why nothing goes in: a full pouch, or room left that the gear does not fit - 797/800 used to be called 'full' */
+const scrapNoRoom=()=>S.scraps>=SCRAP_CAP?'Scrap pouch full ('+S.scraps+'/'+SCRAP_CAP+'⚙) - spend some first':'No room in the scrap pouch ('+S.scraps+'/'+SCRAP_CAP+'⚙)';
+/* ⚙ a Scrap button promises only what the pouch can take (scrapFit): all of it, k of n, or no room - never the full total */
+function scrapLabel(items,all,ico='⚙ '){
+ if(!items.length)return ico+all+' +0⚙';
+ const fit=scrapFit(items);
+ if(!fit.take.length)return ico+(S.scraps>=SCRAP_CAP?'Scrap pouch full':'No room in the scrap pouch ('+S.scraps+'/'+SCRAP_CAP+'⚙)');
+ return ico+(fit.take.length<items.length?'Scrap '+fit.take.length+' of '+items.length:all)+' +'+fit.total+'⚙';
 }
 function renderBag(){
  S.bag=(S.bag||[]).map(cleanBagItem).filter(Boolean);
@@ -12790,7 +12844,6 @@ function renderBag(){
  if(S.bag.length&&S.bag.every(isKnowledgeBook)){$('bagList').innerHTML='';return;}
  if(!S.bag.length){$('bagList').innerHTML='<div class="card" style="color:var(--dim);font-size:12px">The bag is empty. Gear, potions and scrolls drop from foes - bosses always drop. Sell spares for gold, or scrap them for ⚙ Scraps to upgrade your gear.</div>';return;}
  const sellable=S.bag.filter(bagSellable); /* same rule the gold cap uses - they must never drift apart */
- const totalScrap=sellable.reduce((t,it)=>t+scrapVal(it),0);
  const totalSell=sellable.reduce((t,it)=>t+(it.sell||0),0);
  const rarOrder=['legendary','epic','rare','fine','common'];
  const rarName={legendary:'Legendary',epic:'Epic',rare:'Rare',fine:'Fine',common:'Common'};
@@ -12806,7 +12859,7 @@ function renderBag(){
    <div class="ptitle" style="font-size:14px;margin:0">Gear</div>
    <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
     <button class="sbtn gold" id="sellAll">◉ Sell All +${totalSell.toLocaleString()}◉</button>
-    <button class="sbtn scrapb" id="scrapAll">⚙ Scrap All +${totalScrap}⚙</button>
+    <button class="sbtn scrapb" id="scrapAll">${scrapLabel(sellable,'Scrap All')}</button>
    </div>
   </div>`;
  rarOrder.forEach(rar=>{
@@ -12819,7 +12872,7 @@ function renderBag(){
     <span style="color:${rarColor[rar]}">${open?'▾':'▸'} ${rarName[rar]} Gear</span>
     <span class="tcount" style="display:flex;align-items:center;gap:6px;justify-content:flex-end">${rar==='legendary'
      ?list.length+' item'+(list.length>1?'s':'')+' · 🔒 protected'
-     :`${list.length} item${list.length>1?'s':''} · ${sell.toLocaleString()}◉ · ${scr}⚙ <button class="sbtn scrapb" data-scrrar="${rar}" style="padding:4px 7px;font-size:10px">Scrap All +${scr}⚙</button>`}</span></div>`;
+     :`${list.length} item${list.length>1?'s':''} · ${sell.toLocaleString()}◉ · ${scr}⚙ <button class="sbtn scrapb" data-scrrar="${rar}" style="padding:4px 7px;font-size:10px">${scrapLabel(S.bag.filter(it=>it.rar===rar&&bagSellable(it)),'Scrap All','')}</button>`}</span></div>`;
   if(open){
    gearHtml+='<div class="tierbody">';
    [['weapon','⚔ Weapons'],['armor','🛡 Armor'],['trinket','💠 Trinkets']].forEach(g2=>{
@@ -12849,10 +12902,10 @@ function renderBag(){
  });
  document.querySelectorAll('[data-scrrar]').forEach(b=>b.onclick=e=>{
   e.stopPropagation();
-  const rar=b.dataset.scrrar;
-  if(!b.dataset.armed){
+  const rar=b.dataset.scrrar,mine=()=>S.bag.filter(it=>it.rar===rar&&bagSellable(it)); /* in bag order, as scrapBagItems takes them */
+  if(!b.dataset.armed&&scrapFit(mine()).take.length){ /* a pouch with no room is not armed - scrapBagItems says why */
    b.dataset.armed='1';b.textContent='Confirm?';b.style.color='#ff8a7a';b.style.borderColor='#a05a5a';
-   setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent='Scrap All +'+S.bag.filter(it=>it.rar===rar&&bagSellable(it)).reduce((t,it)=>t+scrapVal(it),0)+'⚙';b.style.color='';b.style.borderColor='';}},3000);
+   setTimeout(()=>{if(S&&b.isConnected){delete b.dataset.armed;b.textContent=scrapLabel(mine(),'Scrap All','');b.style.color='';b.style.borderColor='';}},3000);
    return;
   }
   scrapBagItems(it=>it.rar===rar,rar+' gear');
@@ -12879,11 +12932,13 @@ function renderBag(){
   if(cowLocked()){stageMsg('No scrapping mid-herd - die or leave first!',1600);sfx.warn();return;}
   const i=+b.dataset.scr;if(isLegendary(S.bag[i])||inGearSet(S.bag[i]))return;
   const it=S.bag[i];if(!it)return;
+  const noRoom=()=>{if(scrapVal(it)<=scrapRoom())return false;stageMsg(scrapNoRoom(),1800);sfx.warn();return true;}; /* it stays in the bag: the clamp to SCRAP_CAP destroyed it for nothing and still logged the scraps */
+  if(noRoom())return;
   const scrap=()=>{
-   const idx=S.bag.indexOf(it);if(idx<0)return; /* bag may have shifted while the box was open */
+   const idx=S.bag.indexOf(it);if(idx<0||noRoom())return; /* bag may have shifted while the box was open - or the pouch filled */
    S.bag.splice(idx,1);
-   S.scraps=Math.min(SCRAP_CAP,S.scraps+scrapVal(it));sfx.forge();
-   log(`Scrapped <span class="l${it.rar}">${it.name}</span> - +${scrapVal(it)} ⚙.`);
+   const got=addScraps(scrapVal(it));sfx.forge();
+   log(`Scrapped <span class="l${it.rar}">${it.name}</span> - +${got} ⚙.`);
    renderBag();renderHUD();save();
   };
   if(it.insc)confirmBox(`Scrap <b class="l${it.rar}">${itemName(it)}</b> for <b>${scrapVal(it)}⚙</b>? Its inscription goes with it.`,scrap); /* 📖 a book's worth - worth one question */
@@ -12900,11 +12955,12 @@ function renderBag(){
  const sa=$('scrapAll');
  if(sa)sa.onclick=()=>{
   if(cowLocked()){stageMsg('No scrapping mid-herd - die or leave first!',1600);sfx.warn();return;}
-  if(!sa.dataset.armed){
+  const items=S.bag.filter(bagSellable),fit=scrapFit(items);
+  if(!sa.dataset.armed&&fit.take.length){ /* a pouch with no room is not armed - scrapBagItems says why */
    sa.dataset.armed='1';
-   sa.textContent='Confirm - scrap everything?';
+   sa.textContent=fit.take.length<items.length?'Confirm - scrap '+fit.take.length+' of '+items.length+'?':'Confirm - scrap everything?';
    sa.style.color='#ff8a7a';sa.style.borderColor='#a05a5a';
-   setTimeout(()=>{if(sa.isConnected){delete sa.dataset.armed;sa.textContent=`⚙ Scrap All +${S.bag.filter(bagSellable).reduce((t,it)=>t+scrapVal(it),0)}⚙`;sa.style.color='';sa.style.borderColor='';}},3000);
+   setTimeout(()=>{if(S&&sa.isConnected){delete sa.dataset.armed;sa.textContent=scrapLabel(S.bag.filter(bagSellable),'Scrap All');sa.style.color='';sa.style.borderColor='';}},3000);
    return;
   }
   scrapBagItems(()=>true,'items'); /* legendaries auto-excluded by the guard */
@@ -12948,11 +13004,28 @@ function spawnChestParts(color,n){
    Respin and Close unlock after landing. Auto can be stopped during the spin. --- */
 const CASE_COST=5000,GOLD_COST=20000;
 let caseSpinning=false,caseRAF=0,curCase='gamba'; /* which chest is spinning */
+let caseGen=0,caseOwner=null; /* caseGen: a reel frame from before caseTeardown draws nothing; caseOwner: the hero who paid for the reel on screen */
 const chestQty={gamba:1,gold:1};
+/* 🔒 The chests keep the gear lock (gearLocked: a boss fight - the whole Final Hour - and the herd): a prize can put
+   itself on the hero, and the reel would cover a live fight. Returns why, after saying it. */
+const caseLockOn=()=>inBossFight()||cowLocked();
+function caseLocked(){
+ if(!caseLockOn())return '';
+ const boss=inBossFight();
+ stageMsg(boss?'No chests mid-boss-fight!':'The herd allows no chests - survive or die first!',1600);sfx.warn();
+ return boss?'Boss fight':'The herd';
+}
+/* 🎁 What a batch of qty really opens. Free cases go first; when the paid rest is out of reach the free ones still
+   open, with as many paid ones as the wallet covers. A batch without free cases is all or nothing. */
+function caseBatch(type,qty){
+ const cost=type==='gold'?GOLD_COST:CASE_COST,free=type==='gold'?Math.min(Math.max(0,S.freeGoldCases||0),qty):0;
+ const paid=free&&cost*(qty-free)>totalGold()?Math.floor(totalGold()/cost):qty-free;
+ return {n:free+paid,free,cost:cost*paid};
+}
 let caseAuto=null,caseAutoTimer=0,caseAutoMessage='',casePaymentSource='gold';
 const CASE_AUTO_DELAY=1200;
 let lastCaseLoot=[]; /* the last chest's gear, held as the items themselves: a numbered id restarted at 1 every launch and matched gear kept from older chests */
-const caseCost=()=>curCase==='violethalls'?0:(curCase==='gold'?GOLD_COST:CASE_COST);
+const caseGear=()=>S.bag.filter(it=>lastCaseLoot.includes(it)&&!isLegendary(it));
 function newCaseAuto(){
  return {owner:S,type:curCase,qty:chestQty[curCase]||1,
   source:curCase==='violethalls'?'chests':curCase==='gold'&&((S.freeGoldCases||0)>0||casePaymentSource==='free')?'free':'gold'};
@@ -12962,24 +13035,34 @@ function caseAutoCount(auto){
  const available=auto.source==='chests'?(S.chests?.violethalls||0):auto.source==='free'?(S.freeGoldCases||0):Math.floor(totalGold()/(auto.type==='gold'?GOLD_COST:CASE_COST));
  return Math.max(0,Math.min(auto.qty,Math.floor(available)));
 }
+let caseLockShown=false,caseLockRAF=0,caseLockAt=0; /* the lock the buttons were last drawn with, and the frame that keeps them honest */
 function updateCaseControls(){
- const rb=$('respinBtn'),qty=chestQty[curCase]||1;
+ if(!S)return; /* no hero behind the window (a logout, a kick) - caseTeardown takes it down */
+ const rb=$('respinBtn'),qty=chestQty[curCase]||1,lock=caseLockShown=caseLockOn(); /* 🔒 no buying: Respin and Auto are greyed, not only refused on press */
  if(curCase==='violethalls'){
   const available=(S.chests?.violethalls||0)>0;
-  rb.disabled=caseSpinning||!!caseAuto||!available;
+  rb.disabled=caseSpinning||!!caseAuto||!available||lock;
   rb.textContent=available?'🟩 Open another Violet Halls Chest':'🟩 No Violet Halls Chests left';
  }else{
-  const cost=caseCost()*(qty-(curCase==='gold'?Math.min(S.freeGoldCases||0,qty):0));
-  rb.disabled=caseSpinning||!!caseAuto||totalGold()<cost;
-  rb.textContent=cost<=0?'🎁 Respin '+qty+'x · FREE':'🎁 Respin '+qty+'x · '+cost.toLocaleString()+'◉'+(totalGold()<cost?' - broke!':'');
+  const b=caseBatch(curCase,qty),cost=b.cost;
+  rb.disabled=caseSpinning||!!caseAuto||totalGold()<cost||lock;
+  rb.textContent=cost<=0?'🎁 Respin '+b.n+'x · FREE':'🎁 Respin '+b.n+'x · '+cost.toLocaleString()+'◉'+(totalGold()<cost?' - broke!':'');
  }
  const ab=$('caseAutoBtn');
  ab.textContent=caseAuto?'■ Stop':'▶ Auto spin';ab.classList.toggle('on',!!caseAuto);ab.setAttribute('aria-pressed',String(!!caseAuto));
- ab.disabled=!caseAuto&&!caseAutoCount(newCaseAuto());
+ ab.disabled=!caseAuto&&(lock||!caseAutoCount(newCaseAuto())); /* a running Auto can always be stopped */
  ab.title='Automatically open this chest. Pauses on legendary weapons, pets and farm animals.';
  $('caseClose').disabled=caseSpinning;
  $('caseScrapBtn').disabled=caseSpinning||!!caseAuto;
- $('caseAutoStatus').textContent=caseAutoMessage||'\u00a0';
+ $('caseAutoStatus').textContent=caseAutoMessage||(lock?'No chests · '+(inBossFight()?'Boss fight':'The herd'):'\u00a0');
+}
+/* 🔒 the hero fights on under the window: a boss that engages (or the herd) greys Respin and Auto, and they come back when
+   it is over - a few checks a second, only while the window is open */
+function caseLockWatch(now){
+ caseLockRAF=0;
+ if(!S||!$('chestFx').classList.contains('open'))return;
+ if(!(now-caseLockAt<250)){caseLockAt=now;if(caseLockOn()!==caseLockShown)updateCaseControls();}
+ caseLockRAF=requestAnimationFrame(caseLockWatch);
 }
 function stopCaseAuto(message=''){
  clearTimeout(caseAutoTimer);caseAutoTimer=0;caseAuto=null;caseAutoMessage=message;updateCaseControls();
@@ -12990,12 +13073,16 @@ function caseAutoExhausted(auto){
 function queueCaseAuto(){
  clearTimeout(caseAutoTimer);caseAutoTimer=0;
  const auto=caseAuto;if(!auto||caseSpinning)return;
+ if(auto.owner!==S){caseTeardown();return;} /* another hero now, or none: the window and its Auto were the last hero's */
  if(!caseAutoCount(auto)){stopCaseAuto(caseAutoExhausted(auto));return;}
  caseAutoTimer=setTimeout(()=>{
   caseAutoTimer=0;
   if(caseAuto!==auto||caseSpinning)return;
+  if(auto.owner!==S){caseTeardown();return;} /* a hero change between two spins that skipped closeCasinoWindows: it used to stop with 'Not enough gold' and leave the window on the next hero */
   const count=caseAutoCount(auto);
   if(!count){stopCaseAuto(caseAutoExhausted(auto));return;}
+  const lock=caseLocked(); /* the hero fights on under the window - a boss may have engaged since the last reveal */
+  if(lock){stopCaseAuto('Auto spin stopped · '+lock+'.');return;}
   if(auto.type==='violethalls'){openVioletHallsChest(true);return;}
   // Free-case auto sessions never spill into gold. The last batch can be smaller.
   const wins=rollChestBatch(auto.type,count);
@@ -13137,20 +13224,19 @@ function btPrizeValue(){
  return {icon:lootIco('it_chest','🎁'),tier:'Free cases',name:p.n+' GOLD GOLD GOLD',color:'#8fc3ef',sub:'Added to your free gold-chest counter.',big:p.n>=6};
 }
 function openVioletHallsChest(fromAuto=false){
- if(caseSpinning)return;
+ if(!S||caseSpinning)return;
  if(fromAuto!==true)stopCaseAuto();
+ if(caseLocked())return;
  if(!(S.chests&&S.chests.violethalls>0)){stageMsg('No Violet Halls Chest to open',1400);sfx.warn();return;}
- S.chests.violethalls--;curCase='violethalls';lastCaseLoot=[];save();renderBag();renderHUD();
- startCaseSpin(btPrizeValue());
+ S.chests.violethalls--;curCase='violethalls';lastCaseLoot=[];
+ const win=btPrizeValue(); /* the prize before the save - a crash under the 10.4 s reel kept the spent chest and lost its prize */
+ save();renderBag();renderHUD();
+ startCaseSpin(win);
 }
 function rollChestBatch(type,count){
- const cost=type==='gold'?GOLD_COST:CASE_COST;
- let freeUsed=0,total=cost*count;
- if(type==='gold'&&(S.freeGoldCases||0)>0){
-  freeUsed=Math.min(S.freeGoldCases,count);
-  total=cost*(count-freeUsed);
- }
+ const b=caseBatch(type,count),freeUsed=b.free,total=b.cost;
  if(!spendGold(total)){stageMsg('Not enough gold - costs '+total.toLocaleString()+' ◉',1500);return null;}
+ if(b.n<count){stageMsg('Opening '+b.n+' of '+count+' - not enough gold for the rest',1800);count=b.n;}
  casePaymentSource=freeUsed===count?'free':'gold';
  if(freeUsed){
   S.freeGoldCases-=freeUsed;
@@ -13163,13 +13249,20 @@ function rollChestBatch(type,count){
  renderShop();renderHUD();save();
  return wins;
 }
+/* 🎞 The reel moves in card units and the stylesheet turns them into pixels: --cw and --cgap on .casewrap size the
+   cards, and the reel hangs from the marker (left:50%). JS used to guess the card size from innerWidth<600 while the
+   CSS switched at 600 itself, and measured the wrap once - so 600 px wide, or a phone turned mid-spin, stopped the
+   reel beside the prize or on empty strip. Now every width, at every moment, keeps the prize under the marker. */
 function makeReel(reel,win){
- const mob=window.innerWidth<600;
- const N=56,WIN=48,CW=mob?56:84,GAP=mob?6:8,STEP=CW+GAP,cards=[];
+ const N=56,WIN=48,cards=[];
  for(let i=0;i<N;i++)cards.push(i===WIN?{icon:win.icon,cc:win.color,t:win.tier}:fillerCard());
  reel.innerHTML=cards.map((c,i)=>`<div class="casecard${i===WIN?' winc':''}${c.gbar?' gbar':''}" style="--cc:${c.cc}"><div class="ci">${c.icon}</div><div class="cr">${c.t}</div></div>`).join('');
- const wrapW=reel.parentElement.getBoundingClientRect().width||360,center=wrapW/2,jitter=(Math.random()-0.5)*CW*0.55;
- return {reel,win,CW,GAP,STEP,center,startX:center-CW/2+STEP*1.5,endX:center-(WIN*STEP+CW/2)-jitter,lastIdx:-1};
+ return {reel,win,s0:-1.5,s1:WIN,jf:(Math.random()-0.5)*0.55,lastIdx:-1}; /* jf: where in the prize card the marker stops, up to 27.5% off its middle */
+}
+function placeReel(info,e){ /* e 0: the first card just past the marker, e 1: the marker in the prize card. Returns the card under the marker */
+ const s=info.s0+(info.s1-info.s0)*e,f=0.5+info.jf*e;
+ info.reel.style.transform=`translateX(calc(${(-s).toFixed(4)} * (var(--cw) + var(--cgap)) - ${f.toFixed(4)} * var(--cw)))`;
+ return Math.floor(s+f*0.91);
 }
 function startCaseSpin(wins){
  wins=Array.isArray(wins)?wins:[wins];
@@ -13180,9 +13273,11 @@ function startCaseSpin(wins){
  rev.classList.remove('show');rev.setAttribute('aria-hidden','true');prepareCaseReveal(wins);
  rays.style.opacity=0;rays.classList.toggle('epic',wins.some(w=>w.epic));
  caseSpinning=true;fx.classList.add('spinning');cancelAnimationFrame(caseRAF);
+ const gen=++caseGen;caseOwner=S;
  clearTimeout(caseAutoTimer);caseAutoTimer=0;
  updateCaseScrap();
  updateCaseControls();
+ if(!caseLockRAF)caseLockRAF=requestAnimationFrame(caseLockWatch); /* the buttons follow the lock while the window is open */
  const baseWrap=reel.parentElement,wraps=[baseWrap];
  for(let i=1;i<wins.length;i++){
   const w=document.createElement('div');w.className='casewrap caseextra';
@@ -13190,14 +13285,14 @@ function startCaseSpin(wins){
   wraps[wraps.length-1].after(w);wraps.push(w);
  }
  const reels=wins.map((w,i)=>makeReel(wraps[i].querySelector('.casereel'),w));
+ reels.forEach(info=>{info.lastIdx=placeReel(info,0);}); /* in place before the first frame */
  const dur=curCase==='violethalls'?10400:5200,t0=performance.now();
  blip(140,90,0.4,.07,'sawtooth');
  const tick=now=>{
+  if(gen!==caseGen)return; /* torn down (caseTeardown): the prizes were granted at purchase, only this picture is dropped */
   const p=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-p,4);
   reels.forEach(info=>{
-   const x=info.startX+(info.endX-info.startX)*e;
-   info.reel.style.transform=`translateX(${x}px)`;
-   const idx=Math.floor((info.center-x)/info.STEP);
+   const idx=placeReel(info,e);
    if(idx!==info.lastIdx){info.lastIdx=idx;blip(1400+Math.random()*400,850,0.035,.04,'square');}
   });
   if(p<1)caseRAF=requestAnimationFrame(tick);
@@ -13221,6 +13316,7 @@ function prepareCaseReveal(wins){
 function finishCase(wins){
  wins=Array.isArray(wins)?wins:[wins];
  caseSpinning=false;
+ if(!S||S!==caseOwner){caseTeardown();return;} /* another hero now, or none: the reveal and the chest gear were the payer's */
  const fx=$('chestFx'),rev=$('chestReveal'),rays=$('chestRays');
  fx.classList.remove('spinning');
  document.querySelectorAll('.casecard.winc').forEach(wc=>wc.classList.add('win'));
@@ -13237,58 +13333,70 @@ function finishCase(wins){
  if(caseAuto&&special)stopCaseAuto('Auto spin paused · '+special.name+'!');
  else {updateCaseControls();queueCaseAuto();}
 }
+/* ⚙ the label promises only what the pouch can take (scrapLabel, as the Bag's) - the rest stays in the bag */
+const caseScrapLabel=items=>scrapLabel(items,'Scrap Chest Gear');
 function updateCaseScrap(){
- const cs=$('caseScrapBtn'),chestGear=S.bag.filter(it=>lastCaseLoot.includes(it)&&!isLegendary(it));
+ const cs=$('caseScrapBtn'),chestGear=caseGear();
  delete cs.dataset.armed;cs.style.color='';cs.style.borderColor='';
- if(chestGear.length){
-  const total=chestGear.reduce((t,it)=>t+scrapVal(it),0);
-  cs.style.display='inline-block';cs.textContent='⚙ Scrap Chest Gear +'+total+'⚙';delete cs.dataset.armed;
- }else cs.style.display='none';
+ if(chestGear.length){cs.style.display='inline-block';cs.textContent=caseScrapLabel(chestGear);}
+ else cs.style.display='none';
 }
 function hideChestFx(){
- stopCaseAuto();
- if(caseSpinning)return;
- cancelAnimationFrame(caseRAF);
- $('chestFx').classList.remove('open','multi','spinning');
- $('caseScrapBtn').style.display='none';
- document.querySelectorAll('.caseextra').forEach(x=>x.remove());
+ if(S&&caseSpinning){stopCaseAuto();return;} /* the spin cannot be skipped - Close unlocks when it lands; Auto stops now */
+ caseTeardown();
 }
 $('caseClose').onclick=hideChestFx;
 $('caseScrapBtn').onclick=()=>{
- if(caseSpinning||caseAuto)return;
- const b=$('caseScrapBtn'),items=S.bag.filter(it=>lastCaseLoot.includes(it)&&!isLegendary(it));
+ if(!S||caseSpinning||caseAuto)return;
+ const b=$('caseScrapBtn'),items=caseGear(),n=scrapFit(items).take.length;
  if(!items.length){b.style.display='none';return;}
- if(!b.dataset.armed){
-  b.dataset.armed='1';b.textContent='Confirm - scrap chest gear?';b.style.color='#ff8a7a';b.style.borderColor='#a05a5a';
-  setTimeout(()=>{if(b.isConnected&&b.dataset.armed){delete b.dataset.armed;const total=S.bag.filter(it=>lastCaseLoot.includes(it)&&!isLegendary(it)).reduce((t,it)=>t+scrapVal(it),0);b.textContent='⚙ Scrap Chest Gear +'+total+'⚙';b.style.color='';b.style.borderColor='';}},3000);
+ if(!b.dataset.armed&&n){ /* a pouch with no room is not armed - scrapBagItems says why */
+  b.dataset.armed='1';b.textContent=n<items.length?'Confirm - scrap '+n+' of '+items.length+'?':'Confirm - scrap chest gear?';b.style.color='#ff8a7a';b.style.borderColor='#a05a5a'; /* k of n when only some fit, as the Bag's Scrap All asks */
+  setTimeout(()=>{if(S&&b.isConnected&&b.dataset.armed){delete b.dataset.armed;b.textContent=caseScrapLabel(caseGear());b.style.color='';b.style.borderColor='';}},3000);
   return;
  }
- scrapBagItems(it=>lastCaseLoot.includes(it),'chest items');
- lastCaseLoot=[];b.style.display='none';
+ if(scrapBagItems(it=>items.includes(it),'chest items'))lastCaseLoot=lastCaseLoot.filter(it=>S.bag.includes(it)); /* what did not fit is still chest gear */
+ updateCaseScrap();
 };
 $('respinBtn').onclick=()=>{
- if(caseSpinning)return;
+ if(!S||caseSpinning)return;
  stopCaseAuto();
+ if(caseLocked())return;
  if(curCase==='violethalls'){openVioletHallsChest();return;}
  const wins=rollChestBatch(curCase,chestQty[curCase]);
  if(wins)startCaseSpin(wins);
 };
 $('caseAutoBtn').onclick=()=>{
  if(caseAuto){stopCaseAuto('Auto spin stopped.');return;}
+ if(!S||caseLocked())return;
  const auto=newCaseAuto();if(!caseAutoCount(auto))return;
  caseAuto=auto;caseAutoMessage=auto.source==='free'?'Auto spin · Free chests only.':auto.source==='chests'?'Auto spin · Remaining chests.':'Auto spin · Until gold runs out.';
  updateCaseControls();queueCaseAuto();
 };
+/* 🚪 The hero is put away (the hero list, a logout or a kick, entering the world) - and Close. The prizes were granted
+   and saved at purchase, so a reel still turning is only a picture: Auto stops, the frame chain draws nothing more,
+   the window closes and the next hero starts clean. Touches no hero, so it never throws with S null. */
+function caseTeardown(){
+ clearTimeout(caseAutoTimer);caseAutoTimer=0;caseAuto=null;caseAutoMessage='';
+ caseGen++;cancelAnimationFrame(caseRAF);caseRAF=0;caseSpinning=false;caseOwner=null;
+ cancelAnimationFrame(caseLockRAF);caseLockRAF=0;
+ lastCaseLoot=[];casePaymentSource='gold';
+ $('chestFx').classList.remove('open','multi','spinning','flash');
+ const cs=$('caseScrapBtn');delete cs.dataset.armed;cs.style.display='none';
+ document.querySelectorAll('.caseextra').forEach(x=>x.remove());
+}
 function openChest(){
- if(caseSpinning)return;
+ if(!S||caseSpinning)return;
  stopCaseAuto();
+ if(caseLocked())return;
  curCase='gamba';
  const wins=rollChestBatch('gamba',chestQty.gamba);
  if(wins)startCaseSpin(wins);
 }
 function openGoldChest(){
- if(caseSpinning)return;
+ if(!S||caseSpinning)return;
  stopCaseAuto();
+ if(caseLocked())return;
  curCase='gold';
  const wins=rollChestBatch('gold',chestQty.gold);
  if(wins)startCaseSpin(wins);
@@ -13301,19 +13409,21 @@ const slotCost=()=>SLOT_BASE*slotBet;
 const SLOT_SYMS=['🍒','🍋','🍇','🔔','⚙','💎','7️⃣'];
 let slotSpinning=false,slotAuto=false,slotAutoTimer=0,slotCelebrating=false,slotCelebrateTimer=0;
 let slotSession={spins:0,gold:0,scrap:0};
+let slotGen=0; /* bumped by slotTeardown: a spin still landing for a hero who was put away never settles */
+/* 96% back in gold (owner's call, 2026-09-30): 0.2% x100 + 3.6% x10 + 8% x5 = 0.96 of the stake. It was 75%.
+   The 12% gears pay scraps on top, 1-2 per bet step, so a 5x bet wins as many scraps per gold as 1x. */
 function slotOutcome(){
  const r=Math.random();
  if(r<0.002)return {kind:'gold',mul:100,sym:'7️⃣',msg:'JACKPOT! 100x',color:'#ffd100'};
- if(r<0.032)return {kind:'gold',mul:10,sym:'💎',msg:'BIG WIN! 10x',color:'#c9a0ff'};
- if(r<0.082)return {kind:'gold',mul:5,sym:'🔔',msg:'Winner! 5x',color:'#6dbb6d'};
- if(r<0.202){const cap=slotBet*2,n=1+Math.floor(Math.random()*cap);return {kind:'scrap',n,sym:'⚙',msg:'+'+n+' ⚙ Scraps',color:'#a8bcb0'};}
+ if(r<0.038)return {kind:'gold',mul:10,sym:'💎',msg:'BIG WIN! 10x',color:'#c9a0ff'};
+ if(r<0.118)return {kind:'gold',mul:5,sym:'🔔',msg:'Winner! 5x',color:'#6dbb6d'};
+ if(r<0.238){const n=slotBet*(1+Math.floor(Math.random()*2));return {kind:'scrap',n,sym:'⚙',msg:'+'+n+' ⚙ Scraps',color:'#a8bcb0'};}
  return {kind:'none',sym:null,msg:'Nothing… spin again?',color:'#8fa898'};
 }
 function slotFinalRow(out){
  if(out.sym)return [out.sym,out.sym,out.sym];
  const a=SLOT_SYMS[Math.floor(Math.random()*SLOT_SYMS.length)];
- let b=SLOT_SYMS[Math.floor(Math.random()*SLOT_SYMS.length)];
- while(b===a)b=SLOT_SYMS[Math.floor(Math.random()*SLOT_SYMS.length)];
+ const b=SLOT_SYMS.filter(s=>s!==a)[Math.floor(Math.random()*(SLOT_SYMS.length-1))]; /* never the first symbol again, so a losing row never shows a line - one draw, no reroll loop */
  const c=SLOT_SYMS[Math.floor(Math.random()*SLOT_SYMS.length)];
  return [a,b,c];
 }
@@ -13332,9 +13442,10 @@ function clearSlotCelebration(){
  if(res)res.classList.remove('bigres');
 }
 function spinSlots(){
- if(slotSpinning||slotCelebrating)return;
+ if(!S||slotSpinning||slotCelebrating)return;
  if(!spendGold(slotCost())){stopSlotAuto();stageMsg('Not enough gold - a spin costs '+slotCost().toLocaleString()+'◉',1400);sfx.warn();return;}
  save(); /* a spin is paid when it starts */
+ const paidBy=S,gen=slotGen; /* the prize belongs to the hero who paid, at this sitting */
  renderHUD();
  slotSpinning=true;
  $('slotRes').innerHTML='&nbsp;';
@@ -13343,34 +13454,37 @@ function spinSlots(){
  sfx.buy();
  const out=slotOutcome();
  const row=slotFinalRow(out);
- const CH=window.innerWidth>=900?150:window.innerWidth<600?66:92;
+ /* the reels travel in % of their own height, never in px: the cell is 66/92/150 px by CSS breakpoints that JS
+    used to guess from innerWidth - wrong at exactly 600 px, and stale after any resize across 600 or 900 px */
  const reels=[0,1,2].map(i=>{
   const el=$('sr'+i);
-  const cells=18+i*6;
-  const n=buildSlotReel(el,row[i],cells);
-  return {el,dist:(n-1)*CH,dur:1400+i*550,done:false};
+  const n=buildSlotReel(el,row[i],18+i*6);
+  return {el,n,dur:1400+i*550,done:false};
  });
  const t0=performance.now();
  let lastTickCell=[-1,-1,-1];
  const tick=now=>{
+  if(gen!==slotGen)return; /* torn down: the stake went with its hero, nothing lands */
   let allDone=true;
   reels.forEach((r,i)=>{
    const p=Math.min(1,(now-t0)/r.dur);
    const e=1-Math.pow(1-p,3);
-   const y=-r.dist*e;
-   r.el.style.transform=`translateY(${y}px)`;
-   const cell=Math.floor(-y/CH);
+   const pos=(r.n-1)*e; /* cells travelled - the last cell parks in the window at any cell size */
+   r.el.style.transform=`translateY(${-pos/r.n*100}%)`;
+   const cell=Math.floor(pos);
    if(cell!==lastTickCell[i]){lastTickCell[i]=cell;blip(900+Math.random()*300,600,0.03,.035,'square');}
    if(p<1)allDone=false;
    else if(!r.done){r.done=true;noiseHit(0.06,.08,800);}
   });
   if(!allDone)requestAnimationFrame(tick);
-  else slotSettle(out);
+  else slotSettle(out,paidBy);
  };
  requestAnimationFrame(tick);
 }
-function slotSettle(out){
+function slotSettle(out,paidBy){
  slotSpinning=false;
+ if(!S||S!==paidBy){slotAuto=false;clearTimeout(slotAutoTimer);updateSlotUI();return;} /* the hero who paid was put away mid-spin: the stake went with them (saved when paid), the prize goes nowhere */
+ const gen=slotGen;
  const res=$('slotRes');
  res.style.color=out.color;
  res.classList.remove('bigres');
@@ -13390,16 +13504,17 @@ function slotSettle(out){
    if(jackpot)$('slotFx').classList.add('flash');
    dingDingDing(jackpot);
    spawnSlotParts(jackpot?'#ffd100':out.color,jackpot?30:16);
-   if(jackpot)setTimeout(()=>spawnSlotParts('#ffd100',20),600);
+   if(jackpot)setTimeout(()=>{if(gen===slotGen)spawnSlotParts('#ffd100',20);},600);
    log(`Lucky 7: <span class="llegendary">${out.mul}x - +${paid.toLocaleString()} ◉</span>${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}!`,'loot');
    if(jackpot){
     S.gamblerPots=(S.gamblerPots||0)+1;
     log(`Max win! <span class="llegendary">🎲 Potion of Gambler</span> - +20% XP & +2% crit for 30 min, now in your Bag.`,'loot');
    }
    slotCelebrateTimer=setTimeout(()=>{
+    if(gen!==slotGen)return;
     clearSlotCelebration();
     updateSlotUI();
-    resumeAutoIfOn();
+    resumeAutoIfOn(paidBy);
    },jackpot?6000:4000);
   }else{
    res.textContent='Winner! '+out.mul+'x - +'+paid.toLocaleString()+'◉'+(over?' ('+over.toLocaleString()+' to overflow)':'');
@@ -13409,18 +13524,19 @@ function slotSettle(out){
  }else if(out.kind==='scrap'){
   const got=addScraps(out.n);
   slotSession.scrap+=got;
-  res.textContent=out.msg;
+  res.textContent='+'+got+' ⚙ Scraps'+(got<out.n?' (pouch full)':''); /* what reached the pouch, not what was rolled */
   sfx.forge();
-  log(`Lucky 7: +${got} ⚙ Scraps${got<out.n?' (scrap cap!)':''}.`,'loot');
+  log(`Lucky 7: +${got} ⚙ Scraps${got<out.n?' (pouch full)':''}.`,'loot');
  }else{
   res.textContent=out.msg;
   blip(300,180,0.25,.05,'sawtooth');
  }
  renderHUD();save();
  updateSlotUI();
- if(!slotCelebrating)resumeAutoIfOn();
+ if(!slotCelebrating)resumeAutoIfOn(paidBy);
 }
 function updateSlotUI(){
+ if(!S)return; /* no hero (kicked, logged out): nothing to price a spin against */
  const b=$('slotSpinBtn'),cost=slotCost();
  if(b){
   b.disabled=slotSpinning||slotCelebrating||totalGold()<cost;
@@ -13437,13 +13553,14 @@ function updateSlotUI(){
  if(bd)bd.disabled=slotBet<=1||slotSpinning||slotAuto;
  if(bu)bu.disabled=slotBet>=SLOT_BET_MAX||slotSpinning||slotAuto;
  const st=$('slotStats'),s=slotSession;
- if(st)st.textContent=s.spins?`Session: ${s.spins} spins · ${s.gold>=0?'+':''}${s.gold.toLocaleString()}◉ · +${s.scrap}⚙`:'';
+ if(st)st.textContent=s.spins?`Session: ${s.spins} spin${s.spins===1?'':'s'} · ${s.gold>=0?'+':''}${s.gold.toLocaleString()}◉ · +${s.scrap}⚙`:''; /* '1 spin', as Blackjack says '1 hand' */
 }
-function resumeAutoIfOn(){
+/* a full gold vault does not stop Auto: every prize goes through addGoldOverflow, and scraps stop at the pouch's cap */
+function resumeAutoIfOn(by){
  if(!slotAuto)return;
+ if(!S||S!==by){stopSlotAuto();return;} /* Auto spins on only for the hero whose spin just landed */
  if(totalGold()<slotCost()){stopSlotAuto('Out of gold - auto stopped.');return;}
- if(lootBlocked()){stopSlotAuto('Gold and scrap both full - auto stopped.');return;}
- slotAutoTimer=setTimeout(()=>{if(slotAuto&&!slotCelebrating&&$('slotFx').classList.contains('open'))spinSlots();},700);
+ slotAutoTimer=setTimeout(()=>{if(slotAuto&&!slotCelebrating&&S===by&&$('slotFx').classList.contains('open'))spinSlots();},700);
 }
 function stopSlotAuto(msg){
  slotAuto=false;clearTimeout(slotAutoTimer);
@@ -13465,28 +13582,39 @@ function spawnSlotParts(color,n){
  }
 }
 function openSlots(){
+ if(!S)return;
  $('slotFx').classList.add('open');
+ if(slotSpinning){updateSlotUI();return;} /* a spin closed on Auto is still landing: its reels and its session stay as they are */
  clearSlotCelebration();
  slotSession={spins:0,gold:0,scrap:0};
- [0,1,2].forEach(i=>{buildSlotReel($('sr'+i),SLOT_SYMS[Math.floor(Math.random()*SLOT_SYMS.length)],1);$('sr'+i).style.transform='translateY(0)';});
+ const row=slotFinalRow({sym:null}); /* the idle face is a losing row: never three of a kind that pays nothing */
+ [0,1,2].forEach(i=>{buildSlotReel($('sr'+i),row[i],1);$('sr'+i).style.transform='translateY(0)';});
  $('slotRes').innerHTML='&nbsp;';
  updateSlotUI();
 }
-$('slotSpinBtn').onclick=()=>{if(!slotAuto)spinSlots();};
+/* the hero is put away (hero list, logout, kick, entering the world): nothing of this sitting reaches the next one.
+   A spin still landing never settles - its stake was saved with the hero who paid it. Never throws, S may be null. */
+function slotTeardown(){
+ slotGen++;slotAuto=false;slotSpinning=false;slotCelebrating=false;
+ clearTimeout(slotAutoTimer);clearTimeout(slotCelebrateTimer);
+ slotSession={spins:0,gold:0,scrap:0};
+ try{$('slotFx').classList.remove('open');clearSlotCelebration();}catch(e){}
+}
+$('slotSpinBtn').onclick=()=>{if(S&&!slotAuto)spinSlots();};
 $('slotAutoBtn').onclick=()=>{
  if(slotAuto){stopSlotAuto();return;}
+ if(!S)return;
  if(totalGold()<slotCost()){stageMsg('Not enough gold to start auto-spin',1400);sfx.warn();return;}
- slotAuto=true;
- slotSession={spins:0,gold:0,scrap:0};
+ slotAuto=true; /* the session line keeps counting: switching Auto on is not a new sitting */
  updateSlotUI();
  if(!slotSpinning&&!slotCelebrating)spinSlots();
 };
-$('slotBetDn').onclick=()=>{if(slotBet>1&&!slotSpinning&&!slotAuto){slotBet--;updateSlotUI();}};
-$('slotBetUp').onclick=()=>{if(slotBet<SLOT_BET_MAX&&!slotSpinning&&!slotAuto){slotBet++;updateSlotUI();}};
+$('slotBetDn').onclick=()=>{if(S&&slotBet>1&&!slotSpinning&&!slotAuto){slotBet--;updateSlotUI();}};
+$('slotBetUp').onclick=()=>{if(S&&slotBet<SLOT_BET_MAX&&!slotSpinning&&!slotAuto){slotBet++;updateSlotUI();}};
 $('slotClose').onclick=()=>{
- if(slotSpinning&&!slotAuto)return;
+ if(S&&slotSpinning&&!slotAuto){stageMsg('The reels are spinning - wait for them to stop',1500);sfx.warn();return;} /* on Auto, Close stops Auto and the spin lands by itself */
+ $('slotFx').classList.remove('open'); /* hidden first, so nothing below can keep it on screen */
  stopSlotAuto();clearSlotCelebration();
- $('slotFx').classList.remove('open');
  casinoAmbApply();
 };
 
@@ -13509,12 +13637,18 @@ const SEA_W_BASE=[['joker',28],['hook',28],['wave',22],['fine',9],['rare',6],['e
 const SEA_W_BONUS=[['joker',20],['hook',20],['wave',16],['fine',12],['rare',9],['epic',6],['skull',5]];
 let seaSpinning=false,seaAuto=false,seaAutoTimer=0,seaCelebrating=false,seaCelebrateTimer=0;
 let seaFree=0,seaSession={spins:0,gold:0,scrap:0};
-const SEA_BONUSBUY_X=25; /* 10 free spins EV ≈ 24x bet - 25x keeps the game's 96% RTP */
+const SEA_BONUSBUY_X=25; /* the bought spin only plants the three boxes: 10 free spins are worth 24.015x the stake, so 25x returns 96.06%. It used to pay a base-game roll of its own on top (99.18%) */
 let seaForcedBonus=false;
-const seaBonusMode=()=>seaFree>0;
+let seaGen=0,seaHero=null,seaDrawFree=false,seaDrawBonus=false,seaAutoFree=false; /* round generation (a teardown moves it on and everything still in flight stops), the hero seaFree was read from, a free spin drawing its reels, a spin in the air that brings free spins (a bought one, or a natural one once its boxes show), Auto started on free spins */
+const seaBonusMode=()=>seaFree>0||seaDrawFree; /* the last free spin draws free-spin reels too */
 /* 🎁 free spins are the hero's, with the stake they were won at: closing the machine, or the game, keeps them.
    They used to live only while the machine was open - Close between two of them, reopen, and they were gone. */
-function seaKeepFree(){if(!S)return;if(seaFree>0){S.seaFree=seaFree;S.seaFreeBetIx=seaBetIx;}else{delete S.seaFree;delete S.seaFreeBetIx;}}
+const seaHeroFree=()=>Math.max(0,(S&&S.seaFree)|0);
+function seaKeepFree(){if(!S||S!==seaHero)return;if(seaFree>0){S.seaFree=seaFree;S.seaFreeBetIx=seaBetIx;}else{delete S.seaFree;delete S.seaFreeBetIx;}} /* written back only to the hero they were read from */
+/* the machine reads the hero, never the other way round: seaFree and a free spin's stake only mirror S. A machine left open
+   across a hero change (a keyboard hero switch) used to spin the last hero's free spins for the next one, and keep them on both */
+function seaSync(){seaHero=S;seaFree=seaHeroFree();if(seaFree>0&&Number.isInteger(S.seaFreeBetIx)&&SEA_BETS[S.seaFreeBetIx]!==undefined){seaBetIx=S.seaFreeBetIx;seaBet=SEA_BETS[seaBetIx];}}
+const seaReady=()=>{if(!S)return false;if(S!==seaHero){seaSync();stopSeaAuto();return false;}return true;}; /* every button: no hero, no action - and a machine that outlived its hero stops the last hero's Auto and only redraws for the one now loaded: the press was aimed at the last hero's labels ('FREE SPIN' charged the new hero a paid spin) */
 function seaSymKey(){
  const W=seaBonusMode()?SEA_W_BONUS:SEA_W_BASE;
  const tot=W.reduce((t,w)=>t+w[1],0);
@@ -13522,15 +13656,11 @@ function seaSymKey(){
  for(const [k,w] of W){if((r-=w)<0)return k;}
  return 'joker';
 }
-function seaMult(){
- const r=Math.random(),b=seaBonusMode();
- return r<(b?0.03:0.01)?5:r<(b?0.09:0.04)?3:r<(b?0.22:0.13)?2:1;
-}
-function seaCell(){
+function seaCell(){ /* no xN on a cell: the prize is drawn from the table, and random badges (doubled on every respin) promised pay that never came. Only an Extra Spin hit shows one - x2, the win really doubled */
  const k=seaSymKey(),d=SEA_SYMDEF[k];
- const low=k==='joker'||k==='hook'||k==='wave'||k==='bonus';
- return {k,icon:d.icons[Math.floor(Math.random()*d.icons.length)],cc:d.cc,m:low?1:seaMult()};
+ return {k,icon:d.icons[Math.floor(Math.random()*d.icons.length)],cc:d.cc,m:1};
 }
+const seaLow=()=>seaForced(['joker','hook','wave'][Math.floor(Math.random()*3)]); /* a blank - what the tidy-up puts where a cell promised more than the spin pays */
 function spawnPartsIn(fx,color,n){
  for(let i=0;i<n;i++){
   const p=document.createElement('span');
@@ -13546,15 +13676,7 @@ function spawnPartsIn(fx,color,n){
 }
 const seaCellHtml=c=>`<div class="seacell${c.cc?' prize':''}${c.lock?' lockd':''}"${c.cc?` style="--cc:${c.cc}"`:''}><span class="ic">${c.icon}</span>${c.m>1?`<span class="m">x${c.m}</span>`:''}</div>`;
 function seaRunOf(grid,key){let r=0;while(r<SEA_COLS&&grid[r].some(x=>x.k===key))r++;return r;}
-function seaBest(grid){
- let bk=null,br=0;
- for(const k of ['skull','epic','rare','fine']){
-  const r=seaRunOf(grid,k);
-  if(r>br){br=r;bk=k;}
- }
- return {bk,br};
-}
-function seaMark(grid,key,run){
+function seaMark(grid,key,run){ /* the paying cells light up at the payout */
  for(let c=0;c<run;c++){
   const strip=$('sc'+c),off=strip.children.length-SEA_ROWSBY[c];
   grid[c].forEach((x,r)=>{if(x.k===key&&strip.children[off+r])strip.children[off+r].classList.add('hit');});
@@ -13575,6 +13697,7 @@ function seaAnimateCols(cols,grid,done){
  });
  const t0=performance.now(),last=cols.map(()=>-1);
  const tick=now=>{
+  if(grid._gen!==seaGen)return; /* the machine was put away mid-spin: the reels stop where they are */
   let all=true;
   reels.forEach((r,i)=>{
    const p=Math.min(1,(now-t0)/r.dur),e=1-Math.pow(1-p,3),y=-r.dist*e;
@@ -13582,7 +13705,7 @@ function seaAnimateCols(cols,grid,done){
    const cell=Math.floor(-y/CH);
    if(cell!==last[i]){last[i]=cell;blip(700+Math.random()*300,450,0.025,.03,'square');}
    if(p<1)all=false;
-   else if(!r.fin){r.fin=true;noiseHit(0.06,.08,800);}
+   else if(!r.fin){r.fin=true;noiseHit(0.06,.08,800);if(r.c===2&&grid._bonus)seaDrawBonus=true;} /* the third box has landed: Auto pressed from here on is Auto for the free spins */
   });
   if(!all)requestAnimationFrame(tick);
   else{
@@ -13598,14 +13721,15 @@ function seaAnimateCols(cols,grid,done){
 }
 function seaAnimateCells(grid,cols,done){
  /* respin: unlocked cells ROLL in the same direction as the main reels
-    (a mini-strip scrolls up inside the cell); locked cells stand still */
+    (a mini-strip scrolls up inside the cell); cells held from before stand still - a cell locked in this step (a plant,
+    or the colour landing) rolls in like the rest, where skipping every locked cell left the old picture in its place */
  const firstEl=$('sc0').firstElementChild;
  const CH=(firstEl&&firstEl.getBoundingClientRect().height)||62;
  let pending=0;
  cols.forEach(c=>{
   const strip=$('sc'+c),off=strip.children.length-SEA_ROWSBY[c];
   grid[c].forEach((x,r)=>{
-   if(x.lock)return;
+   if(x._held)return;
    const el=strip.children[off+r];if(!el)return;
    pending++;
    const flips=6+Math.floor(Math.random()*4);
@@ -13618,6 +13742,7 @@ function seaAnimateCells(grid,cols,done){
    const dist=flips*CH,dur=(seaFast?45:75)*(flips+2)+r*55,t0=performance.now();
    let lastIdx=-1;
    const tick=now=>{
+    if(grid._gen!==seaGen)return;
     const p=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-p,3),y=-dist*e;
     rollEl.style.transform='translateY('+y+'px)';
     const idx=Math.floor(-y/CH);
@@ -13673,10 +13798,12 @@ function seaGridFor(mult){
  return grid;
 }
 function spinSea(){
- if(seaSpinning||seaCelebrating)return;
- const isFree=seaFree>0;
+ if(!S||seaSpinning||seaCelebrating)return;
+ seaSync(); /* the hero's own free spins, at the stake they were won at - never the machine's copy of the last hero's */
+ const isFree=seaFree>0,bought=seaForcedBonus&&!isFree;
+ seaForcedBonus=false;
  const bet=seaCost();          /* vinster räknas alltid på insatsen */
- const cost=(isFree||seaForcedBonus)?0:bet; /* free spins och köpt bonus kostar inget extra */
+ const cost=(isFree||bought)?0:bet; /* free spins och köpt bonus kostar inget extra */
  if(isFree){seaFree--;seaKeepFree();}
  else if(!spendGold(cost)){
   stopSeaAuto();
@@ -13684,9 +13811,13 @@ function spinSea(){
   sfx.warn();
   return;
  }
+ /* 🎁 bonus-trigger - aldrig under pågående free spins, ingen retrigger. Rolled before the reels move and kept on the hero
+    like a bought bonus: a game closed during the respins that followed lost the boxes it had just shown */
+ const bonus=!isFree&&(bought||Math.random()<SEA_BONUS_CHANCE);
+ if(bonus&&!bought)S.seaBonusPending={betIx:seaBetIx};
  save(); /* a paid spin, or one free spin fewer, is on the record before the reels move */
  renderHUD();
- seaSpinning=true;
+ seaSpinning=true;seaDrawFree=isFree;seaDrawBonus=bought;
  seaSession.spins++;
  seaSession.gold-=cost;
  const res=$('seaRes');
@@ -13695,20 +13826,18 @@ function spinSea(){
  res.textContent=isFree?'🎁 FREE SPIN - '+seaFree+' left after this':' ';
  updateSeaUI();
  sfx.buy();
- const mult=seaRollOutcome(isFree);
+ const mult=bought?0:seaRollOutcome(isFree); /* the bought spin only plants the boxes: 25x buys the free spins and nothing else */
  const target=Math.round(mult*bet);
  const grid=seaGridFor(mult);
+ grid._gen=seaGen;grid._who=S;grid._bet=bet;grid._betIx=seaBetIx;grid._credited=0; /* the round belongs to the hero who paid for it, at this stake */
  grid._target=target;
  grid._mult=mult;
  grid._bk=mult>0?seaBandOf(mult):null;
  grid._free=isFree;
- /* 🎁 bonus-trigger - aldrig under pågående free spins, ingen retrigger */
- if(!isFree&&(seaForcedBonus||Math.random()<SEA_BONUS_CHANCE)){
-  seaForcedBonus=false;
+ if(bonus){
   grid._bonus=true;
   [0,1,2].forEach(c=>{
-   const open=grid[c].map((x,i)=>(!['skull','epic','rare','fine'].includes(x.k))?i:-1).filter(i=>i>=0);
-   const i=open.length?open[Math.floor(Math.random()*open.length)]:Math.floor(Math.random()*grid[c].length);
+   const i=seaBoxSpot(grid,c);
    grid[c][i]={k:'bonus',icon:'🎁',cc:'#ffd100',m:1,_plant:true};
   });
  }else if(!isFree&&Math.random()<0.10){
@@ -13716,27 +13845,35 @@ function spinSea(){
   const nT=Math.random()<0.3?2:1;
   const teaseCols=[0,1,2].sort(()=>Math.random()-0.5).slice(0,nT);
   teaseCols.forEach(c=>{
-   const open=grid[c].map((x,i)=>(!['skull','epic','rare','fine'].includes(x.k))?i:-1).filter(i=>i>=0);
-   const i=open.length?open[Math.floor(Math.random()*open.length)]:Math.floor(Math.random()*grid[c].length);
+   const i=seaBoxSpot(grid,c);
    grid[c][i]={k:'bonus',icon:'🎁',cc:'#ffd100',m:1,_plant:true};
   });
  }
- seaCapBonusTease(grid,(isFree||grid._bonus)?0:2); /* naturals never fake a bonus */
- grid._steps=mult>=2000?4:mult>=100?3:mult>=10?2:mult>0?1:0;
+ grid._steps=mult>=2000?4:mult>=100?3:mult>=10?2:mult>=1?1:0; /* less than the stake back gets no lock-and-respin drama */
+ seaTidy(grid,grid._steps?2:SEA_COLS); /* the stop shows what this spin pays: a respin win's pair on reels 1-2, no other line, no fake bonus */
  seaAnimateCols([0,1,2,3],grid,()=>seaScript(grid));
 }
-function seaCapBonusTease(grid,allow){ /* keep at most `allow` columns showing unplanted 🎁 */
- const cols=[];
- for(let c=0;c<SEA_COLS;c++)if(grid[c].some(x=>x.k==='bonus'&&!x._plant&&!x.lock))cols.push(c);
- while(cols.length>allow){
-  const c=cols.splice(Math.floor(Math.random()*cols.length),1)[0];
-  grid[c].forEach((x,i)=>{
-   if(x.k==='bonus'&&!x._plant&&!x.lock){
-    let n;do{n=seaCell();}while(n.k==='bonus');
-    grid[c][i]=n;
-   }
-  });
+/* where a 🎁 lands: on a blank if the reel has one, else on a colour that does not pay - a reel of colours used to lose the only cell of the line to it */
+function seaBoxSpot(grid,c){const col=grid[c];let open=col.map((x,i)=>['skull','epic','rare','fine'].includes(x.k)?-1:i).filter(i=>i>=0);if(!open.length)open=col.map((x,i)=>x.k===grid._bk?-1:i).filter(i=>i>=0);if(!open.length)open=col.map((x,i)=>i);return open[Math.floor(Math.random()*open.length)];}
+/* after every draw the reels show what the spin pays and nothing more (the respins used to be free re-rolls that showed second
+   lines, a colour past where the win reaches, and 🎁 on reels 1-3 with no bonus behind it - 1 spin in 220) */
+function seaTidy(grid,reach){
+ const bk=grid._bk,box=x=>x.k==='bonus'&&!x.lock;
+ /* 🎁 loose boxes: at most two reels of them, none beside a real bonus or in free spins */
+ const allow=(grid._free||grid._bonus)?0:2,cols=[];
+ for(let c=0;c<SEA_COLS;c++)if(grid[c].some(x=>box(x)&&!x._plant))cols.push(c);
+ while(cols.length>allow){const c=cols.splice(Math.floor(Math.random()*cols.length),1)[0];grid[c].forEach((x,i)=>{if(box(x)&&!x._plant)grid[c][i]=seaLow();});}
+ /* ...and never one on each of reels 1-3 without a bonus: tease plants count too */
+ while(!grid._bonus&&[0,1,2].every(c=>grid[c].some(x=>x.k==='bonus'))){
+  const loose=[0,1,2].filter(c=>grid[c].some(x=>box(x)&&!x._plant)),any=[0,1,2].filter(c=>grid[c].some(box)),from=loose.length?loose:any;
+  if(!from.length)break;
+  const c=from[Math.floor(Math.random()*from.length)],nat=loose.includes(c);
+  grid[c].forEach((x,i)=>{if(box(x)&&(!nat||!x._plant))grid[c][i]=seaLow();});
  }
+ /* no second colour pairs up on reels 1-2 - a line that paid nothing */
+ for(const k of ['skull','epic','rare','fine'])if(k!==bk)while(grid[0].some(x=>x.k===k)&&grid[1].some(x=>x.k===k))grid[1][grid[1].findIndex(x=>x.k===k)]=seaLow();
+ /* the paying colour only as far as the line has reached: the respins grow it there */
+ if(bk)for(let c=reach;c<SEA_COLS;c++)grid[c].forEach((x,i)=>{if(x.k===bk&&!x.lock)grid[c][i]=seaLow();});
 }
 function seaMarkLocked(grid){
  for(let c=0;c<SEA_COLS;c++){
@@ -13752,77 +13889,118 @@ function seaMarkLocked(grid){
  }
 }
 function seaScript(grid){
+ if(grid._gen!==seaGen)return; /* the machine was put away (hero list, logout): this round stops where it is */
  const bk=grid._bk;
- if(!bk){seaPayout(grid,0);return;}
- grid.forEach(col=>col.forEach(x=>{if(x.k===bk)x.lock=true;}));
+ if(!bk||grid._steps<=0){seaPayout(grid);return;} /* nothing won, or less than the stake back: no lock, no respin */
+ grid.forEach(col=>col.forEach(x=>{if(x.k===bk||(grid._bonus&&x.k==='bonus'))x.lock=true;})); /* the line holds - and so do a real bonus's boxes, which the respins used to roll away before the bonus was announced */
  seaMarkLocked(grid);
- if(grid._steps<=0){seaPayout(grid,grid._target);return;}
  $('seaRes').style.color='#8fc3ef';
  $('seaRes').textContent='🔒 Locked - respinning!';
  setTimeout(()=>seaScriptStep(grid,grid._steps),seaFast?350:700);
 }
 function seaScriptStep(grid,left){
- const bk=grid._bk,plant=1+(left>2?1:0);
- let planted=0;
- for(let c=1;c<SEA_COLS&&planted<plant;c++){
-  const open=grid[c].map((x,i)=>x.lock?-1:i).filter(i=>i>=0);
-  if(open.length){
-   const i=open[Math.floor(Math.random()*open.length)];
-   const cell=seaForced(bk);cell.m=[2,3,5][Math.floor(Math.random()*3)];
-   grid[c][i]=cell;planted++;
-  }
- }
- grid.forEach(col=>col.forEach(x=>{if(!x.lock)Object.assign(x,seaCell());}));
- seaCapBonusTease(grid,2);
+ if(grid._gen!==seaGen)return;
+ const bk=grid._bk,reach=grid._steps>=2?SEA_COLS:3; /* every win reaches reel 3, 10x and up reel 4 */
+ seaReroll(grid);
+ seaTidy(grid,reach);
  grid.forEach(col=>col.forEach(x=>{if(x.k===bk)x.lock=true;}));
+ const got=seaPlant(grid,bk,1+(left>2?1:0),reach); /* the line grows where it ends - the plant used to go in unlocked and was rolled away in the same step */
  seaAnimateCells(grid,[0,1,2,3],()=>{
-  grid.forEach(col=>col.forEach(x=>{if(x.lock&&x.m>1)x.m=Math.min(x.m*2,64);}));
+  if(grid._gen!==seaGen)return;
   seaMarkLocked(grid);
   blip(980,1500,0.2,.08);
-  $('seaRes').textContent='🔥 CONNECTION - MULTIPLIERS DOUBLED!';
+  $('seaRes').textContent=got?'🔥 CONNECTION!':'🔒 Locked - respinning!';
   if(left>1)setTimeout(()=>seaScriptStep(grid,left-1),seaFast?400:800);
   else setTimeout(()=>seaOfferBuy2(grid),seaFast?400:800);
  });
 }
-function seaOfferBuy2(grid){
- if(grid._free||seaFree>0||grid._bonus){seaPayout(grid,grid._target);return;}
- const win=grid._target;
- if(win<seaCost()||win>=seaCost()*10000){seaPayout(grid,win);return;}
- const price=Math.round(win*0.5);
- if(totalGold()<price){seaPayout(grid,win);return;}
- $('seaBuyPrice').textContent=price.toLocaleString()+'◉';
- $('seaBuyFx').style.display='flex';
- $('seaBuyYes').onclick=()=>{
-  $('seaBuyFx').style.display='none';
-  if(!spendGold(price)){seaPayout(grid,win);return;}
-  seaSession.gold-=price;renderHUD();sfx.buy();
-  const hit=Math.random()<0.48;
-  grid.forEach(col=>col.forEach(x=>{if(!x.lock)Object.assign(x,seaCell());}));
-  if(hit){
-   const c=1+Math.floor(Math.random()*3);
-   const open=grid[c].map((x,i)=>x.lock?-1:i).filter(i=>i>=0);
-   if(open.length){const cell=seaForced(grid._bk);cell.m=2;cell.lock=true;grid[c][open[0]]=cell;}
-  }
-  seaAnimateCells(grid,[0,1,2,3],()=>{
-   if(hit){
-    grid._target=Math.min(grid._target*2,seaCost()*20000);
-    grid.forEach(col=>col.forEach(x=>{if(x.lock&&x.m>1)x.m=Math.min(x.m*2,64);}));
-    seaMarkLocked(grid);
-    $('seaRes').textContent='🔥 CONNECTION - WIN DOUBLED!';
-    setTimeout(()=>seaOfferBuy2(grid),seaFast?450:900);
-   }else{$('seaRes').textContent='The sea claims your coin…';seaPayout(grid,grid._target);}
-  });
- };
- $('seaBuyNo').onclick=()=>{$('seaBuyFx').style.display='none';seaPayout(grid,grid._target);};
+function seaReroll(grid){grid.forEach(col=>col.forEach((x,i)=>{x._held=!!x.lock;if(!x.lock)col[i]=seaCell();}));} /* what is locked is held still; the rest gets a fresh cell, not the old one repainted - a tease box kept its plant mark and slipped past the cap */
+/* n locked cells of the paying colour: where the line ends, or - once it spans `reach` reels - one more way in the reel with the most room */
+function seaPlant(grid,bk,n,reach,m=1){
+ let k=0;
+ for(;k<n;k++){
+  let c=-1;
+  for(let j=0;j<reach;j++)if(!grid[j].some(x=>x.lock&&x.k===bk)){c=j;break;}
+  if(c<0){let room=0;for(let j=1;j<reach;j++){const r=grid[j].filter(x=>!x.lock).length;if(r>room){room=r;c=j;}}}
+  const open=c<0?[]:grid[c].map((x,i)=>x.lock?-1:i).filter(i=>i>=0);
+  if(!open.length)break;
+  const cell=seaForced(bk);cell.lock=true;cell.m=m;
+  grid[c][open[Math.floor(Math.random()*open.length)]]=cell;
+ }
+ return k;
 }
+/* 💸 Buy Extra Spin. The win is paid and saved BEFORE the question, so a game closed on the box loses nothing. YES is a new
+   wager of half the win, paid and saved at once, for a fair 50% chance to add the win again - the machine returns 96% whatever
+   the answer; a miss adds nothing more. NO only finishes the round. Not offered on a push, in free spins, beside a bonus or to
+   Auto, and unanswered it is NO after 10 s. It used to hold the unpaid win hostage (no timeout, Auto stalled), hit 48% (always
+   YES took the machine to 87%), and its buttons stayed live after the answer - a pad's A on the hidden NO paid the win again. */
+let seaBuyGrid=null,seaBuyTimer=0;
+const seaBuyOpen=()=>!!seaBuyGrid;
+function seaCredit(grid){ /* whatever of the win is not on the hero yet goes on now - the caller saves */
+ const due=grid._target-grid._credited;
+ if(due<=0||!S||S!==grid._who)return;
+ addGoldOverflow(due);grid._credited=grid._target;seaSession.gold+=due;
+}
+function seaOfferBuy2(grid){
+ if(grid._gen!==seaGen)return;
+ if(!S||S!==grid._who){seaPayout(grid);return;} /* the hero who paid is gone: seaPayout voids the round */
+ seaCredit(grid);save();renderHUD();
+ const win=grid._target,bet=grid._bet;
+ if(grid._free||grid._bonus||seaAuto||win<=bet||win>=bet*10000){seaPayout(grid);return;}
+ const price=Math.round(win*0.5);
+ if(totalGold()<price){seaPayout(grid);return;}
+ seaBuyGrid=grid;
+ $('seaBuyPrice').textContent=price.toLocaleString()+'◉';
+ $('seaBuyOdds').textContent='50% to double your '+win.toLocaleString()+'◉';
+ let left=10;
+ const no=$('seaBuyNo'),tick=()=>{if(seaBuyGrid!==grid)return;if(--left<=0)seaBuyAnswer(false);else{no.textContent='NO · '+left;seaBuyTimer=setTimeout(tick,1000);}};
+ no.textContent='NO · '+left;clearTimeout(seaBuyTimer);seaBuyTimer=setTimeout(tick,1000);
+ $('seaBuyFx').style.display='flex';
+ if(padFocus)padMark(no); /* a pad player lands on NO: A keeps the win, YES is a step away */
+ seaFocus('seaBuyNo'); /* ...and so does the keyboard */
+ updateSeaUI();
+}
+function seaBuyHide(){seaBuyGrid=null;clearTimeout(seaBuyTimer);$('seaBuyFx').style.display='none';}
+function seaBuyAnswer(yes){ /* one answer per question: a second press - mouse, key, or a pad's A on the hidden button - finds none */
+ const grid=seaBuyGrid;if(!grid)return;
+ seaBuyHide();seaTurnAt=performance.now(); /* NO leaves Spin live under the key: the same press again is no spin */
+ if(padFocus===$('seaBuyYes')||padFocus===$('seaBuyNo'))padMark($('seaSpinBtn')); /* the pad leaves the hidden box: A pressed it again and again, and nothing answered until the d-pad moved */
+ if(grid._gen!==seaGen)return;
+ const price=Math.round(grid._target*0.5);
+ if(!yes||!S||S!==grid._who||!spendGold(price)){seaPayout(grid);return;} /* NO: the win is already paid - only the messages are left */
+ seaSession.gold-=price;sfx.buy();
+ const hit=Math.random()<0.5; /* a fair double */
+ if(hit)grid._target=Math.min(grid._target*2,grid._bet*20000);
+ seaCredit(grid);save(); /* the price, and a hit, are on the record before the cells roll - the price used to go unsaved */
+ seaReroll(grid);
+ seaTidy(grid,0); /* no stray piece of the colour: only a hit adds one... */
+ if(hit)seaPlant(grid,grid._bk,1,grid._steps>=2?SEA_COLS:3,2); /* ...marked x2, because the win really doubled */
+ seaAnimateCells(grid,[0,1,2,3],()=>{
+  if(grid._gen!==seaGen)return;
+  if(S===grid._who)renderHUD();
+  if(hit){
+   seaMarkLocked(grid);
+   $('seaRes').textContent='🔥 CONNECTION - WIN DOUBLED!';
+   setTimeout(()=>seaOfferBuy2(grid),seaFast?450:900);
+  }else{grid._missed=true;seaPayout(grid);}
+ });
+}
+$('seaBuyYes').onclick=()=>seaBuyAnswer(true);
+$('seaBuyNo').onclick=()=>seaBuyAnswer(false);
 $('seaInfoBtn').onclick=()=>{const p=$('seaPay');if(p)p.style.display=p.style.display==='none'?'grid':'none';};
-function seaPayout(grid,amount){
- seaSpinning=false;
+function seaPayout(grid){
+ if(grid._paid||grid._gen!==seaGen)return; /* once per round: a stale answer from the box cannot pay a round twice */
+ grid._paid=true;
+ seaSpinning=false;seaDrawFree=false;seaDrawBonus=false; /* a bonus is on the hero from here (awardBonus below) - seaFree tells Auto */
  const res=$('seaRes');
  res.classList.remove('bigres');
+ if(!S||S!==grid._who){stopSeaAuto();return;} /* the hero who paid for this round is gone (logout, kick): nothing lands on the next one - a bonus waits on the payer's own save */
+ seaCredit(grid); /* all of the win the box never asked about */
+ const amount=grid._target,bet=grid._bet;
  const awardBonus=(announce=true)=>{
   if(!grid._bonus)return false;
-  if(!grid._bonusGranted){grid._bonusGranted=true;seaFree+=SEA_BONUS_SPINS;if(S)delete S.seaBonusPending;seaKeepFree();save();} /* granted once - a big win shows it after the celebration, but a Close meanwhile cannot take it back */
+  if(!grid._bonusGranted){grid._bonusGranted=true;if(S.seaBonusPending){delete S.seaBonusPending;S.seaFree=seaHeroFree()+SEA_BONUS_SPINS;S.seaFreeBetIx=grid._betIx;seaSync();grid._bonusGot=true;}save();} /* granted once, off the pending record the spin wrote - a big win shows it after the celebration, but a Close meanwhile cannot take it back */
+  if(!grid._bonusGot)return false; /* no record to grant from (handed out already): no fanfare for spins that are not coming */
   if(!announce)return true;
   dingDingDing(false);
   spawnPartsIn($('seaFx'),'#ffd100',20);
@@ -13842,46 +14020,51 @@ function seaPayout(grid,amount){
   resumeSeaAuto();
   return;
  }
- const paidObj=addGoldOverflow(amount);
- const paid=paidObj.got+paidObj.over;
- seaSession.gold+=paid;
- if(grid._bk==='rare'){
-  const scraps=amount>=seaCost()*4?12:6;
-  const gotScrap=addScraps(scraps);
-  seaSession.scrap+=gotScrap;
-  if(gotScrap>0)log(`Slots: <span class="lfine">+${gotScrap} scraps</span>.`,'loot');
+ let scrapTxt='';
+ if(grid._bk==='rare'&&!grid._free){ /* scraps on paid spins only, by the stake: 1/3/6/12 at 100/500/1,000/2,000, x2 at 4x or more - a flat 6 made the 100 stake, and bonus buys, the cheapest scraps in the game */
+  const want=Math.max(1,Math.round(6*bet/1000))*(amount>=bet*4?2:1),got=addScraps(want);
+  seaSession.scrap+=got;
+  scrapTxt=got>0?' · +'+got+'⚙'+(got<want?' · pouch full':''):' · scrap pouch full'; /* a full pouch used to swallow them without a word */
+  log(got>0?`Slots: <span class="lfine">+${got} scraps</span>${got<want?' - scrap pouch full':''}.`:`Slots: scrap pouch full (${SCRAP_CAP}) - bank some scraps.`,'loot');
  }
- const multTxt='x'+parseFloat((amount/seaCost()).toFixed(2));
- const big=amount>=seaCost()*10;
+ const multTxt='x'+parseFloat((amount/bet).toFixed(2));
+ const big=amount>=bet*10,back=amount<bet&&!grid._free; /* less than the stake back is a return, not a win */
+ if(!back)seaMark(grid,grid._bk,seaRunOf(grid,grid._bk));
  res.style.color=big?'#ffd100':'#8fc3ef';
- if(big){
+ if(grid._missed){ /* the Extra Spin missed: the win stays what it was, and the line says so - it used to be overwritten in the same tick */
+  res.textContent='No connection - you keep '+amount.toLocaleString()+'◉'+scrapTxt;
+  log(`Slots: <span class="loot">+${amount.toLocaleString()} ◉</span> ${multTxt}.`,'loot');
+ }else if(back){ /* no fanfare, no win sound: 18% of paid spins used to be 'Winner!' while losing 50-90% of the stake */
+  res.style.color='#8fa898';
+  res.textContent='Returned '+amount.toLocaleString()+'◉ · '+multTxt;
+  awardBonus();
+ }else if(big){
   seaCelebrating=true;
   res.classList.add('bigres');
-  res.textContent='🌊 BIG CATCH - '+paid.toLocaleString()+'◉ · '+multTxt;
+  res.textContent='🌊 BIG CATCH - '+amount.toLocaleString()+'◉ · '+multTxt+scrapTxt;
   $('seaFx').querySelector('.slotmach').classList.add('bigwin');
-  dingDingDing(amount>=seaCost()*50);
+  dingDingDing(amount>=bet*50);
   spawnPartsIn($('seaFx'),'#ffd100',22);
-  log(`Slots: <span class="llegendary">+${paid.toLocaleString()} ◉</span> ${multTxt}!`,'loot');
+  log(`Slots: <span class="llegendary">+${amount.toLocaleString()} ◉</span> ${multTxt}!`,'loot');
   awardBonus(false); /* the free spins are yours now; the fanfare waits for the celebration */
+  const gen=seaGen;
   seaCelebrateTimer=setTimeout(()=>{
+   if(gen!==seaGen)return;
    clearSeaCelebration();
+   if(S!==grid._who)return;
    awardBonus();          /* bonus visas efter firandet */
    updateSeaUI();
    resumeSeaAuto();
   },4500);
  }else{
-  res.textContent='Winner! '+paid.toLocaleString()+'◉ · '+multTxt;
+  res.textContent='Winner! '+amount.toLocaleString()+'◉ · '+multTxt+scrapTxt;
   sfx.loot();
   spawnPartsIn($('seaFx'),'#8fc3ef',10);
-  log(`Slots: <span class="loot">+${paid.toLocaleString()} ◉</span> ${multTxt}.`,'loot');
+  log(`Slots: <span class="loot">+${amount.toLocaleString()} ◉</span> ${multTxt}.`,'loot');
   awardBonus();           /* bonus + vinst samtidigt: bonustexten vinner */
  }
  renderHUD();save();updateSeaUI();
  if(!seaCelebrating)resumeSeaAuto();
-}
-function seaNext(){
- if(seaCelebrating)return;
- resumeSeaAuto();
 }
 function clearSeaCelebration(){
  seaCelebrating=false;clearTimeout(seaCelebrateTimer);
@@ -13890,6 +14073,8 @@ function clearSeaCelebration(){
  if(res)res.classList.remove('bigres');
 }
 function updateSeaUI(){
+ if(!S)return; /* no hero behind the machine (logged out, kicked): nothing to show - totalGold() threw, and took Close with it */
+ if(S!==seaHero)seaSync();
  const b=$('seaSpinBtn'),cost=seaCost();
  if(b){
   b.disabled=seaSpinning||seaCelebrating||(seaFree<=0&&totalGold()<cost);
@@ -13898,7 +14083,7 @@ function updateSeaUI(){
    :'🦈 Spin · '+cost.toLocaleString()+'◉';
  }
  const a=$('seaAutoBtn');
- if(a){a.classList.toggle('on',seaAuto);a.textContent=seaAuto?'■ Stop':'▶ Auto';}
+ if(a){a.classList.toggle('on',seaAuto);a.textContent=seaAuto?'■ Stop':'▶ Auto';a.disabled=seaBuyOpen();} /* the Extra Spin box is answered first: Auto never gambles */
  const bc=$('seaBetCost');
  if(bc)bc.textContent=cost.toLocaleString()+'◉ / spin';
  const bn=$('seaBetN');
@@ -13912,26 +14097,46 @@ function updateSeaUI(){
   bb.disabled=seaSpinning||seaCelebrating||seaAuto||seaFree>0||totalGold()<seaBet*SEA_BONUSBUY_X;
  }
  const st=$('seaStats'),s=seaSession;
- if(st)st.textContent=s.spins?`Session: ${s.spins} spins · ${s.gold>=0?'+':''}${s.gold.toLocaleString()}◉ · +${s.scrap}⚙`:'';
+ if(st)st.textContent=s.spins?`Session: ${s.spins} spin${s.spins===1?'':'s'} · ${s.gold>=0?'+':''}${s.gold.toLocaleString()}◉ · +${s.scrap}⚙`:''; /* '1 spin', as Blackjack says '1 hand' */
+ if(!seaBuyOpen())seaFocus('seaSpinBtn');
 }
+/* keyboard focus follows the play, as bjFocus does at the Blackjack table: the answered Extra Spin box hides under YES or NO
+   (and a spin disables Spin under the key, the casino menu hides under its pick) - Chromium then drops focus to the page, and
+   Enter did nothing until Tab. So it lands on Spin once Spin is live again, and on NO when the box asks. Focus that is still
+   somewhere real - Close, the bet, the page's own - stays where the player put it. A held Enter still presses only once:
+   #seaFx cancels its repeats (next to the Spin handler), and a doubled one too: see seaTurnAt. */
+function seaFocus(id){
+ const fx=$('seaFx'),el=$(id);
+ if(!fx.classList.contains('open')||el.disabled)return;
+ const a=document.activeElement;
+ if(!a||a===document.body||!a.getClientRects().length||(fx.contains(a)&&a.disabled))el.focus({preventScroll:true});
+}
+/* the press that opened the machine (the casino menu's pick) or answered the Extra Spin box leaves Spin focused and live under
+   the key: a key or pad press on Spin this soon after (a doubled Enter, a quick second A) is that press again, not a paid spin -
+   as Blackjack's BJ_BOUNCE_MS. A mouse click carries a detail and is never held back */
+let seaTurnAt=-1e9;const SEA_BOUNCE_MS=350;
 function resumeSeaAuto(){
  if(!seaAuto)return;
- if(seaFree<=0&&totalGold()<seaCost()){stopSeaAuto('Out of gold - auto stopped.');return;}
- seaAutoTimer=setTimeout(()=>{if(seaAuto&&!seaCelebrating&&!seaSpinning&&$('seaFx').classList.contains('open'))spinSea();},seaFast?400:800);
+ if(!S){stopSeaAuto();return;}
+ const free=seaHeroFree();
+ if(seaAutoFree&&free<=0){stopSeaAuto();stageMsg('Free spins over - Auto stopped',1600);return;} /* started on free spins, it ends with them: it used to roll on into paid spins */
+ if(free<=0&&totalGold()<seaCost()){stopSeaAuto('Out of gold - Auto stopped');return;}
+ const gen=seaGen,who=S;
+ seaAutoTimer=setTimeout(()=>{if(gen===seaGen&&seaAuto&&!seaCelebrating&&!seaSpinning&&$('seaFx').classList.contains('open')){if(S!==who){stopSeaAuto();return;}spinSea();}},seaFast?400:800); /* Auto never runs on into another hero's gold */
 }
 function stopSeaAuto(msg){
- seaAuto=false;clearTimeout(seaAutoTimer);
+ seaAuto=false;seaAutoFree=false;clearTimeout(seaAutoTimer);
  if(msg){$('seaRes').style.color='#ff8a7a';$('seaRes').textContent=msg;$('seaRes').classList.remove('bigres');sfx.warn();}
  updateSeaUI();
 }
 function openSea(){
- seaFree=Math.max(0,(S&&S.seaFree)|0); /* free spins left from before are still yours, at the stake they were won at */
- if(seaFree>0&&Number.isInteger(S.seaFreeBetIx)&&SEA_BETS[S.seaFreeBetIx]!==undefined){seaBetIx=S.seaFreeBetIx;seaBet=SEA_BETS[seaBetIx];}
- if(S&&S.seaBonusPending&&!seaSpinning){ /* a bonus bought and paid for, whose spin never landed (the game closed): here it is */
+ if(!S)return;
+ seaSync(); /* free spins left from before are still yours, at the stake they were won at */
+ if(S.seaBonusPending&&!seaSpinning){ /* a bonus bought - or landed - whose spin never finished (the game closed): here it is */
   const bi=S.seaBonusPending.betIx;delete S.seaBonusPending;
-  if(SEA_BETS[bi]!==undefined){seaBetIx=bi;seaBet=SEA_BETS[bi];}
-  seaFree+=SEA_BONUS_SPINS;seaKeepFree();save();
-  log(`Slots: <span class="llegendary">🎁 ${SEA_BONUS_SPINS} FREE SPINS</span> - the bonus you bought is waiting.`,'loot');
+  S.seaFree=seaHeroFree()+SEA_BONUS_SPINS;S.seaFreeBetIx=Number.isInteger(bi)&&SEA_BETS[bi]!==undefined?bi:seaBetIx;
+  seaSync();save();
+  log(`Slots: <span class="llegendary">🎁 ${SEA_BONUS_SPINS} FREE SPINS</span> - your bonus is waiting.`,'loot');
  }
  /* mute ambient while casino music plays */
  if(AC.ambG){const t0=AC.ctx.currentTime;AC.ambG.gain.cancelScheduledValues(t0);AC.ambG.gain.setValueAtTime(0,t0);} /* iOS-safe duck */
@@ -13940,7 +14145,7 @@ function openSea(){
  if(odinAudio)odinAudio.pause();
  if(cryptAudio)cryptAudio.pause();
  if(finalAudio)finalAudio.pause();
- $('seaFx').classList.add('open');
+ $('seaFx').classList.add('open');seaTurnAt=performance.now(); /* the press that opened it may come again - a doubled Enter on the menu's pick */
  clearSeaCelebration();
  seaSession={spins:0,gold:0,scrap:0};
  for(let c=0;c<SEA_COLS;c++){
@@ -13951,19 +14156,37 @@ function openSea(){
  $('seaRes').innerHTML='&nbsp;';
  updateSeaUI();
 }
-$('seaSpinBtn').onclick=()=>{if(!seaAuto)spinSea();};
+/* 🧹 the hero is put away (hero list, logout, kick, entering the world) and the machine lets go. Free spins are the hero's and
+   already on the hero - seaKeepFree only ever writes back to the hero they were read from, so a teardown run with the next
+   hero loaded cannot hand them over (or wipe that hero's own). Everything still in flight - reels, respins, the Extra Spin
+   box, a celebration, Auto - stops where it is. A stake already paid stays paid (it was saved when taken); a bonus that
+   landed waits on the payer's save. Safe with no hero at all. */
+function seaTeardown(){
+ seaGen++;
+ seaKeepFree();
+ seaFree=0;seaForcedBonus=false;seaDrawFree=false;seaDrawBonus=false;seaHero=null;
+ seaAuto=false;seaAutoFree=false;clearTimeout(seaAutoTimer);
+ seaSpinning=false;
+ $('seaFx').classList.remove('open');
+ seaBuyHide();clearSeaCelebration();
+}
+$('seaSpinBtn').onclick=e=>{if(e&&e.detail===0&&performance.now()-seaTurnAt<SEA_BOUNCE_MS)return;if(seaReady()&&!seaAuto)spinSea();}; /* detail 0: a key or the pad (seaTurnAt) */
+$('seaFx').addEventListener('keydown',e=>{if(e.repeat&&e.key==='Enter')e.preventDefault();}); /* a held Enter presses once, as at the Blackjack table: focus follows the play back to Spin and NO (seaFocus), and the key's repeats spun paid spin after spin and answered the Extra Spin box unseen */
 $('seaFastBtn').onclick=()=>{seaFast=!seaFast;$('seaFastBtn').classList.toggle('on',seaFast);};
 $('seaAutoBtn').onclick=()=>{
+ if(!seaReady())return;
  if(seaAuto){stopSeaAuto();return;}
- if(seaFree<=0&&totalGold()<seaCost()){stageMsg('Not enough gold to start auto-spin',1400);sfx.warn();return;}
- seaAuto=true;seaSession={spins:0,gold:0,scrap:0};
- updateSeaUI();
+ if(seaBuyOpen())return; /* the box is answered first */
+ const free=seaFree>0||(seaSpinning&&(seaDrawFree||seaDrawBonus)); /* free spins on the hero, the last one in the air, or a bonus on its way */
+ if(!free&&totalGold()<seaCost()){stageMsg('Not enough gold to start auto-spin',1400);sfx.warn();return;} /* a buy that took the last gold still gets its Auto */
+ seaAuto=true;seaAutoFree=free; /* started on free spins, it ends with them - pressed during the bought spin it rolled on into paid ones */
+ updateSeaUI(); /* the session line runs on - Auto used to wipe it */
  if(!seaSpinning&&!seaCelebrating)spinSea();
 };
-$('seaBetDn').onclick=()=>{if(seaBetIx>0&&!seaSpinning&&!seaAuto&&seaFree<=0){seaBetIx--;seaBet=SEA_BETS[seaBetIx];updateSeaUI();}};
-$('seaBetUp').onclick=()=>{if(seaBetIx<SEA_BETS.length-1&&!seaSpinning&&!seaAuto&&seaFree<=0){seaBetIx++;seaBet=SEA_BETS[seaBetIx];updateSeaUI();}};
+$('seaBetDn').onclick=()=>{if(seaReady()&&seaBetIx>0&&!seaSpinning&&!seaAuto&&seaFree<=0){seaBetIx--;seaBet=SEA_BETS[seaBetIx];updateSeaUI();}};
+$('seaBetUp').onclick=()=>{if(seaReady()&&seaBetIx<SEA_BETS.length-1&&!seaSpinning&&!seaAuto&&seaFree<=0){seaBetIx++;seaBet=SEA_BETS[seaBetIx];updateSeaUI();}};
 $('seaBonusBuyBtn').onclick=()=>{
- if(seaSpinning||seaCelebrating||seaAuto||seaFree>0)return;
+ if(!seaReady()||seaSpinning||seaCelebrating||seaAuto||seaFree>0)return;
  const price=seaBet*SEA_BONUSBUY_X;
  if(!spendGold(price)){stageMsg('Not enough gold - the bonus costs '+price.toLocaleString()+'◉',1600);sfx.warn();return;}
  seaSession.gold-=price;renderHUD();
@@ -13972,65 +14195,85 @@ $('seaBonusBuyBtn').onclick=()=>{
  spinSea();
 };
 $('seaClose').onclick=()=>{
- if(seaSpinning)return; /* not even with AUTO on: a spin still in the air paid out after Close - to whichever hero was loaded by then */
- stopSeaAuto();clearSeaCelebration();clearTimeout(seaAutoTimer);
+ if(!S){seaTeardown();casinoAmbApply();return;} /* no hero behind the machine (logged out, kicked): nothing left to guard - it closes */
+ if(seaBuyOpen()){seaBuyAnswer(false);return;} /* on the Extra Spin box, Close (a pad's B) is NO - the win is already paid */
+ if(seaSpinning){const auto=seaAuto;if(auto)stopSeaAuto();stageMsg(auto?'Auto stopped - wait for the reels':'Wait for the reels to stop',1200);sfx.warn();return;} /* not even with AUTO on: a spin still in the air paid out after Close - to whichever hero was loaded by then. Auto stops here, so the next Close closes: it used to spin on and refuse every time */
  $('seaFx').classList.remove('open');
+ stopSeaAuto();clearSeaCelebration();clearTimeout(seaAutoTimer);
  casinoAmbApply(); /* restores zone ambience - or hands the room back to the casino track */
 };
 
 /* ==================== BLACKJACK ==================== */
 const BJ_MIN=1000,BJ_MAX=15000,BJ_STEP=1000;
 let bjBet=1000,bjP=[],bjD=[],bjLive=false,bjWager=0;
-let bjSeen=0,bjHoleHidden=false,bjSettled=false;
+let bjSeenP=0,bjSeenD=0,bjHoleHidden=false,bjSettled=false; /* cards already on the table, counted per hand */
 let bjGen=0,bjResolving=false; /* generation guard: kills stale dealer timers so a new hand can never inherit them */
+let bjOwner=null,bjTurnAt=-1e9; /* the hero who paid for the hand on the table, and when the hand last turned over */
+const BJ_BOUNCE_MS=350; /* a table button pressed this soon after the hand turned over (dealt live, or settled) is the same press again - a doubled Enter, a quick second A - not a new decision */
 let bjSession={hands:0,gold:0};
 const BJ_RANKS=[['A',11],['2',2],['3',3],['4',4],['5',5],['6',6],['7',7],['8',8],['9',9],['10',10],['J',10],['Q',10],['K',10]];
 const BJ_SUITS=['♠','♥','♦','♣'];
 const bjDraw=()=>{const r=BJ_RANKS[Math.floor(Math.random()*13)],s=BJ_SUITS[Math.floor(Math.random()*4)];return{r:r[0],v:r[1],s};};
 function bjVal(h){let t=0,a=0;h.forEach(c=>{t+=c.v;if(c.r==='A')a++;});while(t>21&&a>0){t-=10;a--;}return t;}
-const bjCardHtml=(c,hide)=>hide?'<div class="bjcard back">?</div>':`<div class="bjcard${(c.s==='♥'||c.s==='♦')?' red':''}"><span>${c.r}</span><span>${c.s}</span></div>`;
+const bjCardEl=(c,hide)=>{const el=document.createElement('div');el.className='bjcard'+(hide?' back':(c.s==='♥'||c.s==='♦')?' red':'');el.innerHTML=hide?'?':`<span>${c.r}</span><span>${c.s}</span>`;return el;};
 function bjRender(hideHole){
- const total=bjP.length+bjD.length;
- const revealHole=bjHoleHidden&&!hideHole;
- $('bjHandC').innerHTML=bjP.map(c=>bjCardHtml(c)).join('');
- $('bjDealerC').innerHTML=bjD.map((c,i)=>bjCardHtml(c,hideHole&&i===1)).join('');
- const newN=total-bjSeen;
- if(newN>0){
-  const dc=[...$('bjDealerC').children],pc=[...$('bjHandC').children];
-  const tail=[];let need=newN;
-  for(let i=dc.length-1;i>=0&&need>0;i--){tail.unshift(dc[i]);need--;}
-  for(let i=pc.length-1;i>=0&&need>0;i--){tail.unshift(pc[i]);need--;}
-  tail.forEach((el,i)=>{
-   el.classList.add('deal');
-   el.style.animationDelay=(i*0.16)+'s';
-   setTimeout(()=>blip(1100,700,0.05,.05,'square'),i*160+60);
-  });
+ const pc=$('bjHandC'),dc=$('bjDealerC');
+ /* cards are appended, never rebuilt, and counted per hand: a Hit flies in the new card (it used to re-deal the hole card), and a
+    second render in the same tick (a bust, the dealer's turn) leaves the cards still in flight alone */
+ if(pc.children.length!==bjSeenP||dc.children.length!==bjSeenD){pc.innerHTML='';dc.innerHTML='';bjSeenP=bjSeenD=0;}
+ let n=0;
+ const deal=(box,el)=>{
+  el.classList.add('deal');
+  el.style.animationDelay=(n*0.16)+'s';
+  setTimeout(()=>blip(1100,700,0.05,.05,'square'),n*160+60);
+  box.appendChild(el);n++;
+ };
+ for(;bjSeenP<bjP.length;bjSeenP++)deal(pc,bjCardEl(bjP[bjSeenP]));
+ for(;bjSeenD<bjD.length;bjSeenD++)deal(dc,bjCardEl(bjD[bjSeenD],hideHole&&bjSeenD===1));
+ if(bjHoleHidden&&!hideHole&&dc.children[1]){ /* the reveal turns the hole card over where it lies */
+  const hole=dc.children[1],up=bjCardEl(bjD[1]);
+  hole.className=up.className+' flip';hole.innerHTML=up.innerHTML;hole.style.animationDelay='';
+  noiseSweep(0.25,.07,600,2200);
  }
- if(revealHole){
-  const hole=$('bjDealerC').children[1];
-  if(hole){hole.classList.add('flip');noiseSweep(0.25,.07,600,2200);}
- }
- bjSeen=total;bjHoleHidden=hideHole;
+ bjHoleHidden=hideHole;
  $('bjPTot').textContent=bjP.length?bjVal(bjP):'';
  $('bjDTot').textContent=bjD.length?(hideHole?bjVal([bjD[0]])+' + ?':bjVal(bjD)):'';
 }
 function bjUI(){
- const d=$('bjDeal');
- d.disabled=bjLive||bjResolving||totalGold()<bjBet;
- d.textContent=totalGold()<bjBet&&!bjLive?'Deal · '+bjBet.toLocaleString()+'◉ - broke!':'Deal · '+bjBet.toLocaleString()+'◉';
+ if(!S)return; /* the hero is gone (a kick, a delete): nothing left to count - Close still works */
+ const d=$('bjDeal'),g=totalGold(),idle=!bjLive&&!bjResolving;
+ d.disabled=!idle||g<bjBet;
+ /* 'broke!' only when not even the smallest hand can be paid - never while the dealer still draws a hand that may pay */
+ d.textContent='Deal · '+bjBet.toLocaleString()+'◉'+(idle&&g<bjBet?(g<BJ_MIN?' - broke!':' - lower the bet'):'');
  $('bjHit').disabled=!bjLive;
  $('bjStand').disabled=!bjLive;
- $('bjDbl').disabled=!bjLive||bjP.length!==2||totalGold()<bjWager;
+ $('bjDbl').disabled=!bjLive||bjP.length!==2||g<bjWager;
  $('bjBetDn').disabled=bjLive||bjBet<=BJ_MIN;
  $('bjBetUp').disabled=bjLive||bjBet>=BJ_MAX;
  $('bjBetN').textContent=bjBet.toLocaleString();
  const ss=bjSession;
- $('bjStats').textContent=ss.hands?`Session: ${ss.hands} hands · ${ss.gold>=0?'+':''}${ss.gold.toLocaleString()}◉`:'';
+ $('bjStats').textContent=ss.hands?`Session: ${ss.hands} hand${ss.hands===1?'':'s'} · ${ss.gold>=0?'+':''}${ss.gold.toLocaleString()}◉`:'';
 }
+/* a bet the purse cannot pay drops to the largest step it can (the table minimum at worst) - at the open and after each hand */
+function bjFitBet(){const g=totalGold();if(g<bjBet)bjBet=Math.max(BJ_MIN,Math.floor(g/BJ_STEP)*BJ_STEP);}
+/* keyboard and pad focus follow the play: a Deal that leaves a hand live disables the button under them (Chromium then drops
+   focus to the page), so they move on to Hit; a settled hand hands them back to Deal. A player who went to Close or the bet keeps it. */
+function bjFocus(id,always){
+ const fx=$('bjFx'),el=$(id);
+ if(!fx.classList.contains('open')||el.disabled)return;
+ const a=document.activeElement;
+ if(always||!a||a===document.body||(fx.contains(a)&&a.disabled))el.focus({preventScroll:true});
+ if(padFocus&&fx.contains(padFocus)&&padFocus.disabled)padMark(el);
+}
+const bjBounce=()=>performance.now()-bjTurnAt<BJ_BOUNCE_MS;
+/* the hand belongs to the hero who paid for it: with that hero gone (a kick, a switch the table outlived) it is void - it never
+   pays, draws for or charges whoever is loaded now, and the table closes on it. Its stake was saved when it was paid. */
+function bjMine(){if(S&&S===bjOwner)return true;bjTeardown();casinoAmbApply();return false;}
 function bjSettle(kind){
- if(bjSettled)return;
+ if(bjSettled||!bjMine())return;
  bjSettled=true;
  bjLive=false;bjResolving=false;
+ bjTurnAt=performance.now();
  bjRender(false);
  const res=$('bjRes');
  res.classList.remove('bigres');
@@ -14042,31 +14285,32 @@ function bjSettle(kind){
  if(paid>0){
   const r=addGoldOverflow(paid);
   paid=r.got+r.over;
-  bjSession.gold+=paid-bjWager;
- }else bjSession.gold-=bjWager;
+ }
+ const net=paid-bjWager; /* what the hand changed: the result line, the log and the session line all show this (the stake came back inside paid) */
+ bjSession.gold+=net;
  if(kind==='bj'){
   res.style.color='#ffd100';res.classList.add('bigres');
-  res.textContent='🃏 BLACKJACK! +'+paid.toLocaleString()+'◉ · pays 3:2';
+  res.textContent='🃏 BLACKJACK! +'+net.toLocaleString()+'◉ · pays 3:2';
   dingDingDing(false);spawnPartsIn($('bjFx'),'#ffd100',18);
-  log(`Blackjack: <span class="llegendary">BLACKJACK - +${paid.toLocaleString()} ◉</span>!`,'loot');
+  log(`Blackjack: <span class="llegendary">BLACKJACK - +${net.toLocaleString()} ◉</span>!`,'loot');
  }else if(kind==='win'){
   res.style.color='#9adf9a';
-  res.textContent='Winner! +'+paid.toLocaleString()+'◉';
+  res.textContent='Winner! +'+net.toLocaleString()+'◉';
   sfx.loot();spawnPartsIn($('bjFx'),'#9adf9a',10);
-  log(`Blackjack: <span class="loot">+${paid.toLocaleString()} ◉</span>.`,'loot');
+  log(`Blackjack: <span class="loot">+${net.toLocaleString()} ◉</span>.`,'loot');
  }else if(kind==='push'){
   res.style.color='#8fa898';
   res.textContent='Push - bet returned.';
   blip(600,600,0.12,.05);
  }else{
   res.style.color='#ff8a7a';
-  res.textContent=kind==='bust'?'Bust! The house takes your coin.':'Dealer wins.';
+  res.textContent=kind==='bust'?'Bust! The house takes your coin.':kind==='dbj'?'Dealer blackjack.':'Dealer wins.';
   blip(300,180,0.25,.05,'sawtooth');
  }
- renderHUD();save();bjUI();
+ bjFitBet();renderHUD();save();bjUI();bjFocus('bjDeal');
 }
 function bjDealerPlay(){
- if(bjSettled)return;
+ if(bjSettled||!bjMine())return;
  const gen=bjGen; /* if a new hand starts, this chain dies silently */
  bjLive=false;bjResolving=true;bjUI();
  bjRender(false); /* flips the hole card */
@@ -14090,25 +14334,28 @@ function bjDealerPlay(){
  setTimeout(step,560); /* pause after the flip so the reveal lands */
 }
 function bjDeal(){
- if(bjLive||bjResolving)return;
+ if(!S||bjLive||bjResolving)return;
+ if(bjBounce())return; /* the press that just ended a hand, again (a doubled Enter, a quick second A): it must not pay for a new hand over the result */
  if(!spendGold(bjBet)){stageMsg('Not enough gold - a hand costs '+bjBet.toLocaleString()+'◉',1400);sfx.warn();return;}
+ bjOwner=S; /* the hand is this hero's: its payout never lands on another */
  save(); /* the hand is paid for: closing the game on a bad one no longer hands the stake back */
  renderHUD();sfx.buy();
  bjGen++; /* invalidate any stale dealer timers from the previous hand */
  bjWager=bjBet;bjLive=true;bjSettled=false;
- bjSeen=0;bjHoleHidden=false;
+ bjSeenP=bjSeenD=0;bjHoleHidden=false;
+ $('bjHandC').innerHTML='';$('bjDealerC').innerHTML='';
  bjP=[bjDraw(),bjDraw()];bjD=[bjDraw(),bjDraw()];
  $('bjRes').innerHTML='&nbsp;';$('bjRes').classList.remove('bigres');
- bjRender(true);bjUI();
  const p21=bjVal(bjP)===21,d21=bjVal(bjD)===21;
- if(p21||d21){
-  if(p21&&d21)bjSettle('push');
-  else if(p21)bjSettle('bj');
-  else bjSettle('lose');
- }
+ bjTurnAt=performance.now();
+ bjRender(!(p21||d21));bjUI(); /* a natural settles at once, so its cards come in face up - the hole card used to flip before it had landed */
+ if(p21&&d21)bjSettle('push');
+ else if(p21)bjSettle('bj');
+ else if(d21)bjSettle('dbj');
+ else bjFocus('bjHit');
 }
 function bjHit(){
- if(!bjLive)return;
+ if(!bjLive||bjBounce()||!bjMine())return;
  bjP.push(bjDraw());
  blip(900,600,0.05,.05,'square');
  bjRender(true);bjUI();
@@ -14116,9 +14363,9 @@ function bjHit(){
  if(v>21)bjSettle('bust');
  else if(v===21)bjDealerPlay();
 }
-function bjStand(){if(bjLive)bjDealerPlay();}
+function bjStand(){if(bjLive&&!bjBounce()&&bjMine())bjDealerPlay();}
 function bjDouble(){
- if(!bjLive||bjP.length!==2)return;
+ if(!bjLive||bjP.length!==2||bjBounce()||!bjMine())return;
  if(!spendGold(bjWager)){stageMsg('Not enough gold to double',1400);sfx.warn();return;}
  save();
  renderHUD();sfx.buy();
@@ -14129,23 +14376,34 @@ function bjDouble(){
  else bjDealerPlay();
 }
 function openBJ(){
+ if(!S)return;
  $('bjFx').classList.add('open');
  bjSession={hands:0,gold:0};
  bjGen++;bjResolving=false; /* kill any dealer timers left over from a previous table */
- bjP=[];bjD=[];bjLive=false;bjSeen=0;bjHoleHidden=false;bjSettled=false;
+ bjP=[];bjD=[];bjLive=false;bjSeenP=bjSeenD=0;bjHoleHidden=false;bjSettled=false;bjOwner=null;
  $('bjHandC').innerHTML='';$('bjDealerC').innerHTML='';
  $('bjPTot').textContent='';$('bjDTot').textContent='';
  $('bjRes').innerHTML='&nbsp;';
- bjUI();
+ bjFitBet();bjUI();bjFocus('bjDeal',true);
+}
+/* the hero is put away (the hero list, logout, a kick, entering the world): a hand on the table is forfeited - its stake was saved
+   when it was paid - the dealer's timers die with it, and the next hero finds a clean table. Touches no S, so it never throws. */
+function bjTeardown(){
+ bjGen++;bjLive=false;bjResolving=false;bjSettled=true;bjOwner=null;bjWager=0;
+ bjP=[];bjD=[];bjSeenP=bjSeenD=0;bjHoleHidden=false;bjSession={hands:0,gold:0};
+ $('bjHandC').innerHTML='';$('bjDealerC').innerHTML='';
+ $('bjFx').classList.remove('open');
 }
 $('bjDeal').onclick=e=>{if(e&&e.detail>1)return;bjDeal();}; /* a double-click deals one hand: an instant blackjack settles inside the first click, and the second used to pay for a new hand over its result */
 $('bjHit').onclick=bjHit;
 $('bjStand').onclick=bjStand;
 $('bjDbl').onclick=bjDouble;
-$('bjBetDn').onclick=()=>{if(!bjLive&&bjBet>BJ_MIN){bjBet-=BJ_STEP;bjUI();}};
-$('bjBetUp').onclick=()=>{if(!bjLive&&bjBet<BJ_MAX){bjBet+=BJ_STEP;bjUI();}};
+$('bjBetDn').onclick=()=>{if(S&&!bjLive&&bjBet>BJ_MIN){bjBet-=BJ_STEP;bjUI();}};
+$('bjBetUp').onclick=()=>{if(S&&!bjLive&&bjBet<BJ_MAX){bjBet+=BJ_STEP;bjUI();}};
+$('bjFx').addEventListener('keydown',e=>{if(e.repeat&&e.key==='Enter')e.preventDefault();}); /* a held Enter presses a table button once: its repeats dealt hand after hand, and would now hit after hit. A listener, not onkeydown: another keydown on the window cannot replace it */
 $('bjClose').onclick=()=>{
- if(bjLive||bjResolving)return; /* no rage-quitting mid-hand - the wager is already spent */
+ if(S&&S===bjOwner&&(bjLive||bjResolving)){stageMsg('Finish the hand first - your stake is on the table.',1600);sfx.warn();return;} /* no rage-quitting mid-hand - the wager is already spent */
+ if(bjLive||bjResolving)bjTeardown(); /* the hero who paid is gone (a kick, a switch): the void hand leaves with the table */
  $('bjFx').classList.remove('open');
  casinoAmbApply();
 };
@@ -14155,6 +14413,7 @@ const ROU_RED=new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
 const ROU_CHIPS=[1000,5000,10000,25000,50000,100000,300000];
 const ROU_MAX=300000; /* max total stake per spin */
 let rouBets={},rouChipI=1,rouSpinning=false,rouAngle=0;
+let rouGen=0; /* bumped by rouTeardown: a wheel still turning for a hero who was put away never settles */
 const rouTotal=()=>Object.values(rouBets).reduce((a,b)=>a+b,0);
 function rouDrawWheel(){
  const cvw=$('rouWheel');if(!cvw)return;
@@ -14192,9 +14451,12 @@ function rouRender(){
  $('rouStat').textContent='Staked '+rouTotal().toLocaleString()+'◉ / '+ROU_MAX.toLocaleString()+'◉ max';
  $('rouSpin').disabled=rouSpinning||rouTotal()<=0;
  $('rouClear').disabled=rouSpinning||rouTotal()<=0;
+ $('rouChipDn').disabled=rouChipI<=0;
+ $('rouChipUp').disabled=rouChipI>=ROU_CHIPS.length-1;
+ const mx=$('rouMax');if(mx)mx.textContent='◉ / chip · max '+ROU_MAX.toLocaleString()+'◉ total'; /* from JS like every other number here: one format in the window */
 }
 function rouAdd(key){
- if(rouSpinning)return;
+ if(!S||rouSpinning)return;
  const chip=ROU_CHIPS[rouChipI];
  if(rouTotal()+chip>ROU_MAX){stageMsg('Max '+ROU_MAX.toLocaleString()+'◉ total per spin',1400);sfx.warn();return;}
  if(totalGold()<rouTotal()+chip){stageMsg('Not enough gold',1200);sfx.warn();return;}
@@ -14207,16 +14469,19 @@ function rouBuildGrid(){
  let h='<button class="roucell g" data-rn="0">0</button>';
  for(let row=0;row<3;row++)for(let col=0;col<12;col++){
   const n=(col+1)*3-row; /* classic table: top row 3,6..36 · middle 2,5..35 · bottom 1,4..34 */
-  h+=`<button class="roucell ${ROU_RED.has(n)?'r':'b'}" data-rn="${n}">${n}</button>`;
+  const pc=(col>=6?3:0)+3-row,pr=col%6+2; /* on a phone the table stands upright in two halves, 1-18 | 19-36 (style.css) */
+  h+=`<button class="roucell ${ROU_RED.has(n)?'r':'b'}" data-rn="${n}" style="--pc:${pc};--pr:${pr}">${n}</button>`;
  }
  g.innerHTML=h;
  g.querySelectorAll('.roucell').forEach(el=>el.onclick=()=>rouAdd('n'+el.dataset.rn));
 }
-function rouSettle(res,total){
+function rouSettle(res,total,bets,paidBy){
  rouSpinning=false;
+ rouAngle=((rouAngle%(2*Math.PI))+2*Math.PI)%(2*Math.PI); /* wrapped where it lands: arc() loses precision at huge angles and the wedges crept off their numbers after ~50,000 spins */
+ if(!S||S!==paidBy){rouBets={};rouRender();$('rouRes').innerHTML='&nbsp;';return;} /* the hero who paid was put away mid-spin: the stake went with them (saved when paid), the payout goes nowhere - and the table clears its chips, 'Staked X' and 'No more bets' */
  let win=0;
- for(const k in rouBets){
-  const amt=rouBets[k];
+ for(const k in bets){ /* the bets as they stood when the stake was paid, not whatever the table holds now */
+  const amt=bets[k];
   if(k[0]==='n'){if(+k.slice(1)===res)win+=amt*36;}
   else if(k==='red'){if(ROU_RED.has(res))win+=amt*2;}
   else if(k==='black'){if(res!==0&&!ROU_RED.has(res))win+=amt*2;}
@@ -14225,16 +14490,21 @@ function rouSettle(res,total){
  }
  const col=res===0?'GREEN':ROU_RED.has(res)?'RED':'BLACK';
  const cc=res===0?'#4dff6a':ROU_RED.has(res)?'#ff6a5a':'#e8e8e8';
- if(win>0){
+ const net=win-total; /* announced by what the spin gained or lost, never by the gross it paid back */
+ if(win>0&&net<=0){ /* a bet paid, but no more than the stake: said plainly and quietly - no fanfare and no loss sound, as Slots' 'Returned' */
   const {over}=addGoldOverflow(win);
-  $('rouRes').innerHTML=`<b style="color:${cc}">${res} ${col}</b> - <b style="color:#ffd76a">+${win.toLocaleString()}◉</b>`;
+  $('rouRes').innerHTML=`<b style="color:${cc}">${res} ${col}</b> - returned ${win.toLocaleString()}◉ · ${net<0?'lost '+(-net).toLocaleString()+'◉':'broke even'}${over?' ('+over.toLocaleString()+' to overflow)':''}`;
+  log(`Roulette: ${res} ${col} - returned ${win.toLocaleString()} ◉, ${net<0?'lost '+(-net).toLocaleString()+' ◉':'broke even'}${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}.`);
+ }else if(win>0){
+  const {over}=addGoldOverflow(win);
+  $('rouRes').innerHTML=`<b style="color:${cc}">${res} ${col}</b> - <b style="color:#ffd76a">+${net.toLocaleString()}◉</b>${over?' ('+over.toLocaleString()+' to overflow)':''}`; /* the overflow on the line too, as Lucky 7 says it */
   sfx.buy();
   if(win>=total*10){
    const mach=$('rouFx').querySelector('.slotmach');mach.classList.add('bigwin');
    dingDingDing(win>=total*30);spawnPartsIn($('rouFx'),'#ffd76a',18);
    setTimeout(()=>mach.classList.remove('bigwin'),1800);
   }
-  log(`Roulette: <span class="loot">${res} ${col}</span> - +${win.toLocaleString()} ◉${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}!`,'loot');
+  log(`Roulette: <span class="loot">${res} ${col}</span> - +${net.toLocaleString()} ◉${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}!`,'loot');
  }else{
   $('rouRes').innerHTML=`<b style="color:${cc}">${res} ${col}</b> - the house takes ${total.toLocaleString()}◉`;
   sfx.warn();
@@ -14243,11 +14513,12 @@ function rouSettle(res,total){
  rouBets={};rouRender();save();renderHUD();
 }
 function rouSpinNow(){
- if(rouSpinning)return;
+ if(!S||rouSpinning)return;
  const total=rouTotal();
  if(!total){stageMsg('Place a bet first',1200);sfx.warn();return;}
  if(!spendGold(total)){stageMsg('Not enough gold',1400);sfx.warn();return;}
  save(); /* stake is committed the moment the wheel turns - reloading mid-spin forfeits it */
+ const bets={...rouBets},paidBy=S,gen=rouGen; /* the spin settles what was paid for, for whoever paid, at this sitting */
  rouSpinning=true;rouRender();renderHUD();
  const res=Math.floor(Math.random()*37);
  const seg=2*Math.PI/37,idx=ROU_ORDER.indexOf(res);
@@ -14264,6 +14535,7 @@ function rouSpinNow(){
  noiseSweep(1.2,.05,300,900); /* launch whoosh */
  let lastPocket=-1;
  (function anim(){
+  if(gen!==rouGen)return; /* torn down: the stake went with its hero, the wheel stops here */
   const p=Math.min(1,(performance.now()-t0)/dur);
   rouAngle=from+(to-from)*(1-Math.pow(1-p,3)); /* cubic ease-out - the wheel coasts to a stop */
   const pk=Math.floor(((((-Math.PI/2-rouAngle)/seg)%37)+37)%37); /* pocket under the pointer */
@@ -14273,42 +14545,53 @@ function rouSpinNow(){
   }
   rouDrawWheel();
   if(p<1)requestAnimationFrame(anim);
-  else rouSettle(res,total);
+  else rouSettle(res,total,bets,paidBy);
  })();
 }
 function openRoulette(){
+ if(!S)return;
  $('rouFx').classList.add('open');
  rouBuildGrid();
- rouBets={};rouSpinning=false;
+ if(rouSpinning){rouRender();return;} /* a wheel still turning keeps its chips, its line and its landing, as a Lucky 7 spin does */
+ rouBets={};
  $('rouRes').innerHTML='&nbsp;';
  rouRender();rouDrawWheel();
 }
+/* the hero is put away (hero list, logout, kick, entering the world): a wheel still turning never settles - its stake
+   was saved with the hero who paid it - and the chips on the cloth go back. Never throws, S may be null. */
+function rouTeardown(){
+ rouGen++;rouSpinning=false;rouBets={};
+ rouAngle=((rouAngle%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
+ try{$('rouFx').classList.remove('open');}catch(e){}
+}
 document.querySelectorAll('.roucolors [data-rb]').forEach(b=>b.onclick=()=>rouAdd(b.dataset.rb));
-$('rouChipDn').onclick=()=>{if(rouChipI>0){rouChipI--;rouRender();}};
-$('rouChipUp').onclick=()=>{if(rouChipI<ROU_CHIPS.length-1){rouChipI++;rouRender();}};
-$('rouClear').onclick=()=>{if(!rouSpinning){rouBets={};rouRender();}};
+$('rouChipDn').onclick=()=>{if(S&&rouChipI>0){rouChipI--;rouRender();}};
+$('rouChipUp').onclick=()=>{if(S&&rouChipI<ROU_CHIPS.length-1){rouChipI++;rouRender();}};
+$('rouClear').onclick=()=>{if(S&&!rouSpinning){rouBets={};rouRender();}};
 $('rouSpin').onclick=rouSpinNow;
 $('rouClose').onclick=()=>{
- if(rouSpinning){stageMsg('The wheel is spinning - no leaving the table now',1500);sfx.warn();return;}
+ if(S&&rouSpinning){stageMsg('The wheel is spinning - no leaving the table now',1500);sfx.warn();return;}
  $('rouFx').classList.remove('open');
  casinoAmbApply();
 };
 /* ==================== 🚌 RIDE THE BUS ====================
    Four guesses in a row: colour → higher/lower (ace low, ties lose) →
-   inside/outside (on the boundary loses) → exact suit. Cash out between
-   rounds or ride on: 2× → 3× → 4× → 20×. */
+   inside/outside (on the boundary loses) → exact suit. Every guess pays its
+   odds; cash out after any win or ride on, up to 250×. */
 /* ==================== 🥤 SEBBE'S CUP GAME ====================
    Three cups, one ball, a stake between 500 and 50,000.
    The shuffle is PURELY DECORATION. Nothing is tracked through it and nothing needs to be: the
    winning cup is drawn at random the moment you commit, so watching Sebbe's hands buys you exactly
    the one-in-three you started with. That is the honest way to build this - a shuffle that really
    did move a tracked ball would either be followable (and free money) or unfollowable (and a lie
-   about being followable). This way the animation is theatre and the odds are stated. */
+   about being followable). This way the animation is theatre and the odds are stated - and the
+   table never invites you to track it: the title says FIND, and the last pass is a blur. */
 const CUP_BETS=[500,1000,2500,5000,10000,25000,50000];
 const CUP_N=3;                 /* three cups */
 const CUP_PAY=2.8;             /* a hit returns 2.8x the stake - one in three, so the house keeps ~6.7% */
 const CUP_SLOT=[6,96,186];     /* the three resting places, in px across the track */
 let cupBetI=3, cupState='idle', cupWin=-1, cupPos=[0,1,2], cupTimer=null, cupStake=0; /* cupStake: what was actually paid for the round on the table */
+let cupGen=0, cupPaidBy=null;  /* cupGen: bumped whenever the table is cleared, so no timer of an old round acts; cupPaidBy: the hero whose stake is on it */
 
 const cupEl=i=>document.querySelector('#cupRow .cup[data-cup="'+i+'"]');
 function cupBuild(){
@@ -14343,22 +14626,24 @@ function cupUI(){
  const say=$('sebbeSay');
  if(say)say.innerHTML=cupState==='picking'
   ? 'Choose the right cup. <b style="color:var(--brass)">'+CUP_PAY+'×</b> if you find the ball.'
-  : cupState==='shuffling' ? 'Keep your eye on it…'
-  : `Bet ${CUP_BETS[0].toLocaleString()}–${CUP_BETS[CUP_BETS.length-1].toLocaleString()} ◉. One cup in ${CUP_N} hides the ball; find it and Sebbe pays <b style="color:var(--brass)">${CUP_PAY}×</b>.`;
+  : cupState==='shuffling' ? 'Sebbe\'s hands blur - it could be under any of them now…'
+  : `Bet ${CUP_BETS[0].toLocaleString()}–${CUP_BETS[CUP_BETS.length-1].toLocaleString()} ◉. Find the ball and Sebbe pays <b style="color:var(--brass)">${CUP_PAY}×</b>. Whatever you think you saw, it is one cup in three.`;
 }
-/* The shuffle, in three passes. Decoration, as above - but the SHAPE of it matters, because the
-   whole point is that you start out able to follow the cup and end up unable to. He opens slow
-   enough to tempt you into tracking one, settles into a working rhythm, and finishes with a burst
-   fast enough that nobody keeps up. */
+/* The shuffle, in three passes - theatre, as above. He opens slow, settles into a working rhythm, and
+   the last pass is a blur (.blur on #cupRow) that nobody follows. It used to end on a hand you could
+   still follow, so a player who tracked the cup saw the ball "jump" two rounds in three. */
 const CUP_PASSES=[
- {n:5, ms:450},   /* slow - here, watch, it is easy */
+ {n:5, ms:450},   /* slow */
  {n:8, ms:350},   /* the working rhythm */
- {n:9, ms:260},   /* quicker, but still a hand you can follow rather than a blur */
+ {n:9, ms:260},   /* the blur */
 ];
-function cupShuffle(){
+function cupBlur(on){const row=$('cupRow');if(row)row.classList.toggle('blur',!!on);}
+function cupShuffle(gen){
  let pass=0,k=0,done=0;
  const step=()=>{
+  if(gen!==cupGen)return; /* the table was cleared (Leave, another hero): this round's shuffle is over */
   if(pass>=CUP_PASSES.length){
+   cupBlur(false);
    cupState='picking';cupUI();
    return;
   }
@@ -14368,6 +14653,8 @@ function cupShuffle(){
      reach a state the player can act on. */
   try{
   const P=CUP_PASSES[pass];
+  const blur=pass===CUP_PASSES.length-1;
+  if(blur)cupBlur(true); /* Sebbe's hands blur for the last pass */
   const a=Math.floor(Math.random()*CUP_N);
   let b=Math.floor(Math.random()*CUP_N);
   if(b===a)b=(a+1)%CUP_N;
@@ -14377,7 +14664,7 @@ function cupShuffle(){
   const nxt=CUP_PASSES[pass+1];
   const t=P.n>1?k/(P.n-1):1;
   const ms=Math.round(P.ms+(nxt?(nxt.ms-P.ms):0)*t*0.5);
-  cupLayout(ms);
+  cupLayout(blur?0:ms); /* under the blur a swap is a jump: two identical cups trading places leave nothing to follow */
   if(done%4===0)sfx.swing();          /* a light pass of the hands, not every single swap */
   done++;k++;
   if(k>=P.n){pass++;k=0;}
@@ -14389,17 +14676,18 @@ function cupShuffle(){
       fails, unlock the cups by hand: the stake is spent, so a pick must always be possible. */
    console.error('cup shuffle step failed - handing the round to the player anyway',e);
    cupState='picking';
-   try{cupPos=[0,1,2];cupLayout(0);cupUI();}
+   try{cupPos=[0,1,2];cupLayout(0);cupBlur(false);cupUI();}
    catch(e2){document.querySelectorAll('#cupRow .cup').forEach(b=>{b.disabled=false;});}
   }
  };
  step();
 }
 function cupStart(){
- if(cupState!=='idle')return; /* one round at a time: a stake is never taken twice for the same table */
+ if(!S||cupState!=='idle')return; /* one round at a time: a stake is never taken twice for the same table */
  const bet=CUP_BETS[cupBetI];
  if(!spendGold(bet)){stageMsg('Not enough gold - '+bet.toLocaleString()+' ◉ needed',1700);sfx.warn();return;}
  cupStake=bet; /* the pick pays on this, never on whatever the stake buttons say later */
+ cupPaidBy=S;  /* ...and only to the hero who paid it */
  save(); /* like the roulette: once the ball is down, a reload does not hand the stake back */
  cupState='shuffling';
  $('sebbeRes').innerHTML='&nbsp;';
@@ -14412,14 +14700,17 @@ function cupStart(){
  if(ball){ball.style.left=(CUP_SLOT[cupPos[1]]+31)+'px';ball.classList.add('show');}
  if(midCup)midCup.classList.add('lift');
  sfx.buy();
+ const gen=cupGen;
  cupTimer=setTimeout(()=>{
+  if(gen!==cupGen)return;
   if(midCup)midCup.classList.remove('lift');
   if(ball)ball.classList.remove('show');
-  cupTimer=setTimeout(cupShuffle,220);
+  cupTimer=setTimeout(()=>cupShuffle(gen),220);
  },780);
 }
 function cupPick(i){
  if(cupState!=='picking')return;
+ if(!S||S!==cupPaidBy){cupReset();cupUI();return;} /* the hero who paid was put away: the stake went with them (saved when paid), a pick now pays nothing */
  cupState='reveal';
  /* HERE is where the ball actually goes: one cup in three, chosen now, uniformly. */
  cupWin=Math.floor(Math.random()*CUP_N);
@@ -14442,36 +14733,65 @@ function cupPick(i){
   sfx.quest();
  }else{
   $('sebbeRes').innerHTML=`<span style="color:#e0806a">Wrong cup. −${bet.toLocaleString()} ◉</span>`;
+  log(`🥤 Wrong cup - Sebbe keeps ${bet.toLocaleString()} ◉.`);
   sfx.warn();
  }
  renderHUD();save();cupUI();
+ const gen=cupGen;
  cupTimer=setTimeout(()=>{
+  if(gen!==cupGen)return;
   document.querySelectorAll('#cupRow .cup').forEach(b=>b.classList.remove('lift','pick'));
   document.querySelectorAll('#cupRow .cupball').forEach(b=>b.classList.remove('show'));
   cupState='idle';cupUI();
  },1900);
 }
+/* an empty table: no timer of the old round left to act, no ball, no lifted cup, no blur */
+function cupReset(){
+ cupGen++;if(cupTimer){clearTimeout(cupTimer);cupTimer=null;}
+ cupState='idle';cupWin=-1;cupPaidBy=null;
+ document.querySelectorAll('#cupRow .cup').forEach(b=>b.classList.remove('lift','pick'));
+ document.querySelectorAll('#cupRow .cupball').forEach(b=>b.classList.remove('show'));
+ cupBlur(false);
+}
 function openCupGame(){
+ if(!S)return;
  $('sebbeFx').classList.add('open');
  initAudio();
+ if(cupState==='shuffling'||cupState==='picking'){cupUI();return;} /* a round on the table stays on the table: only the window comes back */
+ cupReset(); /* ...otherwise a timer of the old round could fire into the next one */
  cupBuild();cupLayout(0);
- cupState='idle';$('sebbeRes').innerHTML='&nbsp;';
+ $('sebbeRes').innerHTML='&nbsp;';
  cupUI();
 }
-function closeCupGame(){
- if(cupState==='shuffling'||cupState==='picking'){stageMsg('Finish the round first - your stake is on the table.',1700);sfx.warn();return;} /* like blackjack: the stake is already paid */
- if(cupTimer){clearTimeout(cupTimer);cupTimer=null;}
- cupState='idle';
- $('sebbeFx').classList.remove('open');
+/* the hero is put away (hero list, logout, kick, entering the world): a round on the table is forfeited with its
+   stake, which was saved with the hero who paid it. Never throws, S may be null. */
+function cupTeardown(){
+ cupGen++;clearTimeout(cupTimer);cupTimer=null;
+ cupState='idle';cupWin=-1;cupStake=0;cupPaidBy=null;
+ try{$('sebbeFx').classList.remove('open');cupReset();}catch(e){}
 }
-$('sebbeBetDn').onclick=()=>{if(cupBetI>0&&cupState==='idle'){cupBetI--;cupUI();}};
-$('sebbeBetUp').onclick=()=>{if(cupBetI<CUP_BETS.length-1&&cupState==='idle'){cupBetI++;cupUI();}};
+function closeCupGame(){
+ if(!S){cupTeardown();return;} /* no hero (kicked, logged out): the table just closes */
+ if(cupState==='shuffling'||cupState==='picking'){stageMsg('Finish the round first - your stake is on the table.',1700);sfx.warn();return;} /* like blackjack: the stake is already paid */
+ $('sebbeFx').classList.remove('open');
+ cupReset();
+}
+$('sebbeBetDn').onclick=()=>{if(S&&cupBetI>0&&cupState==='idle'){cupBetI--;cupUI();}};
+$('sebbeBetUp').onclick=()=>{if(S&&cupBetI<CUP_BETS.length-1&&cupState==='idle'){cupBetI++;cupUI();}};
 $('sebbeStart').onclick=cupStart;
 $('sebbeClose').onclick=closeCupGame;
 const RTB_BETS=[1000,2500,5000,10000,25000,50000];
-const RTB_MULT=[2,3,4,20];
+/* Every guess pays its odds (2026-09-30). The old 2x/3x/4x/20x ladder priced each rung for an average card, but the player
+   sees the cards and chooses both the guess and when to stop: played well it paid back 131% of every fare. Now Red and Black
+   pay 1.92x - the house's whole cut, taken once (1.92 x 1/2 = 96%) - and every later button pays floor(100n/k)/100, where
+   n = the cards left in the deck and k = the ones that win it, so riding on is never worth more than what is already locked. */
+const RTB_COLOUR=192;   /* Red and Black, in hundredths of the stake */
+const RTB_CAP=250;      /* max win: the moment the ride reaches 250x it cashes out by itself (only long shots get there) */
 const RTB_SUITS=['♠','♥','♦','♣'];
+const RTB_GUESSES=[['red','black'],['hi','lo'],['in','out'],RTB_SUITS.map(s=>'s'+s)]; /* each round's buttons - nothing else is a guess */
+const RTB_NAMES={red:'Red',black:'Black',hi:'⬆ Higher',lo:'⬇ Lower',in:'↔ Inside',out:'↕ Outside'};
 let rtbBetI=2,rtbDeck=[],rtbCards=[],rtbStage=0,rtbLive=false,rtbBet=0;
+let rtbWon=[],rtbOut=null,rtbHero=null,rtbGlowT=0; /* the prices won this ride (hundredths), how the last ride ended {at:rung,bust}, the hero who paid the fare */
 let rtbFlip=-1,rtbFlipOk=true,rtbFresh=false; /* reveal animation state */
 const rtbVal=r=>r==='A'?1:r==='J'?11:r==='Q'?12:r==='K'?13:+r; /* ace counts low */
 function rtbShuffle(){
@@ -14479,6 +14799,25 @@ function rtbShuffle(){
  for(const s of RTB_SUITS)for(const r of ['A','2','3','4','5','6','7','8','9','10','J','Q','K'])rtbDeck.push({r,s,v:rtbVal(r)});
  for(let i=rtbDeck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[rtbDeck[i],rtbDeck[j]]=[rtbDeck[j],rtbDeck[i]];}
 }
+/* does card c win guess g in round `stage`, with `table` the cards already face up? The same rule prices a button and settles it */
+function rtbWins(stage,g,c,table){
+ if(stage===0)return (g==='red')===(c.s==='♥'||c.s==='♦');
+ if(stage===1)return c.v!==table[0].v&&(g==='hi')===(c.v>table[0].v); /* aces low, a tie loses */
+ if(stage===2){const lo=Math.min(table[0].v,table[1].v),hi=Math.max(table[0].v,table[1].v);return c.v!==lo&&c.v!==hi&&(g==='in')===(c.v>lo&&c.v<hi);} /* a card on the line loses */
+ return g==='s'+c.s;
+}
+/* a button's price in hundredths, counted over the deck before its card is drawn; 0 = no card left can win it */
+function rtbPrice(stage,g,table,deck){
+ if(stage===0)return RTB_COLOUR;
+ const k=deck.filter(c=>rtbWins(stage,g,c,table)).length;
+ return k?Math.floor(100*deck.length/k):0;
+}
+/* the multiplier won so far = product of whole hundredths, kept as integers (far below 2^53), so what Cash Out shows is what it pays */
+const rtbMulN=()=>rtbWon.reduce((m,p)=>m*p,1),rtbMulD=()=>100**rtbWon.length;
+const rtbTop=()=>rtbMulN()>=RTB_CAP*rtbMulD();   /* reached the max win */
+const rtbCashVal=()=>Math.min(Math.floor(rtbBet*rtbMulN()/rtbMulD()),rtbBet*RTB_CAP);
+const rtbX=p=>(p/100).toFixed(2)+'x';   /* hundredths as shown: 212 → 2.12x */
+const rtbMulX=()=>rtbX(Math.min(Math.floor(100*rtbMulN()/rtbMulD()),100*RTB_CAP)); /* the running total, rounded down like the payout */
 function rtbRender(){
  $('rtbBetN').textContent=RTB_BETS[rtbBetI].toLocaleString();
  $('rtbBetDn').disabled=rtbLive||rtbBetI<=0;
@@ -14493,19 +14832,23 @@ function rtbRender(){
  }
  $('rtbCards').innerHTML=ch;
  rtbFresh=false;rtbFlip=-1;
- $('rtbLadder').innerHTML=RTB_MULT.map((m,i)=>`<span class="rtbstep${rtbLive&&i===rtbStage?' cur':i<rtbStage?' won':''}">${['Colour','Hi/Lo','In/Out','Suit'][i]} ${m}x</span>`).join('');
- $('rtbCash').disabled=!(rtbLive&&rtbStage>0);
+ /* each rung shows what it paid and the last chip the running total; a bust marks the rung lost, a cash-out the rung it was taken on */
+ $('rtbLadder').innerHTML=['Colour','Hi/Lo','In/Out','Suit'].map((nm,i)=>{
+  const cls=rtbOut&&rtbOut.at===i?(rtbOut.bust?' bust':' cash'):i<rtbWon.length?' won':rtbLive&&i===rtbStage?' cur':'';
+  const px=i<rtbWon.length?rtbWon[i]:i===0&&!rtbOut?RTB_COLOUR:0; /* the colour's one fixed price shows before the fare is paid; the others depend on the cards */
+  return `<span class="rtbstep${cls}">${nm}${px?' '+rtbX(px):''}</span>`;
+ }).join('')+(rtbWon.length?`<span class="rtbstep tot${rtbOut&&rtbOut.bust?' lost':''}">= ${rtbMulX()}</span>`:'');
+ const paid=rtbLive&&rtbWon.length>0;
+ $('rtbCash').disabled=!paid;
+ $('rtbCash').textContent=paid?'Cash Out '+rtbCashVal().toLocaleString()+'◉':'Cash Out';
  const acts=$('rtbActs');
  if(!rtbLive){
   acts.innerHTML='<button class="bjact" id="rtbStart">Board the Bus</button>';
- }else if(rtbStage===0){
-  acts.innerHTML='<button class="bjact rtbred" data-rg="red">Red</button><button class="bjact rtbblack" data-rg="black">Black</button>';
- }else if(rtbStage===1){
-  acts.innerHTML='<button class="bjact" data-rg="hi">⬆ Higher</button><button class="bjact" data-rg="lo">⬇ Lower</button>';
- }else if(rtbStage===2){
-  acts.innerHTML='<button class="bjact" data-rg="in">↔ Inside</button><button class="bjact" data-rg="out">↕ Outside</button>';
- }else{
-  acts.innerHTML=RTB_SUITS.map(s=>`<button class="bjact ${(s==='♥'||s==='♦')?'rtbred':'rtbblack'}" data-rg="s${s}">${s}</button>`).join('');
+ }else{ /* every button wears its price; one that no card left can win is disabled and shows a dash */
+  acts.innerHTML=RTB_GUESSES[rtbStage].map(g=>{
+   const p=rtbPrice(rtbStage,g,rtbCards,rtbDeck),col=/^(red|s♥|s♦)$/.test(g)?' rtbred':/^(black|s♠|s♣)$/.test(g)?' rtbblack':'';
+   return `<button class="bjact${col}" data-rg="${g}"${p?'':' disabled'}>${RTB_NAMES[g]||g.slice(1)} <span class="rtbpx">${p?rtbX(p):'—'}</span></button>`;
+  }).join('');
  }
 }
 /* one delegated listener on the container - immune to the buttons being rebuilt mid-click */
@@ -14515,11 +14858,12 @@ $('rtbActs').addEventListener('click',e=>{
  if(e.target.closest('#rtbStart')){if(e.detail>1)return;rtbStart();} /* after a bust the second click of a double-click lands on the new "Board the Bus" and paid for a ride */
 });
 function rtbStart(){
- if(rtbLive)return;
+ if(!S||rtbLive)return;
  rtbBet=RTB_BETS[rtbBetI];
  if(!spendGold(rtbBet)){stageMsg('Not enough gold - '+rtbBet.toLocaleString()+'◉ needed',1600);sfx.warn();return;}
+ rtbHero=S; /* the ride belongs to the hero who paid its fare - its payout lands on nobody else */
  save(); /* fare paid on boarding - reloading mid-ride forfeits it */
- rtbShuffle();rtbCards=[];rtbStage=0;rtbLive=true;rtbFresh=true;
+ rtbShuffle();rtbCards=[];rtbStage=0;rtbWon=[];rtbOut=null;rtbLive=true;rtbFresh=true;
  $('rtbRes').textContent='Round 1 - red or black?';
  renderHUD();rtbRender();
 }
@@ -14528,79 +14872,95 @@ function rtbEnd(msg){
  $('rtbRes').innerHTML=msg;
  rtbRender();save();renderHUD();
 }
+/* pays the ride out - Cash Out, a full ride or the max win - to the hero who paid the fare; with that hero gone the ride is void */
+function rtbPay(how){
+ if(S!==rtbHero){rtbTeardown();return;}
+ const win=rtbCashVal(),x=rtbMulX(),over=addGoldOverflow(win).over,ov=over?' ('+over.toLocaleString()+' overflow)':'';
+ rtbLive=false; /* paid: the ride is over now - a sound or a log line that threw below could leave it live, to be cashed out again */
+ rtbOut={at:rtbWon.length-1,bust:false};
+ const what=how==='max'?'MAX WIN':'FULL RIDE';
+ rtbEnd(how==='cash'?`🚌 Cashed out - <b style="color:#ffd76a">+${win.toLocaleString()}◉</b>`:`🚌🎉 <b style="color:#ffd76a">${what} - +${win.toLocaleString()}◉</b>`); /* ...and drawn and saved as over before the effects: one that threw left Cash Out drawn live, paying nothing */
+ if(how==='cash'){
+  sfx.buy();
+  log(`Ride the Bus: cashed out at ${x} - <span class="loot">+${win.toLocaleString()} ◉</span>${ov}.`,'loot');
+  return;
+ }
+ const mach=$('rtbFx').querySelector('.slotmach');mach.classList.add('bigwin');
+ clearTimeout(rtbGlowT);rtbGlowT=setTimeout(()=>mach.classList.remove('bigwin'),1800); /* timed before the fanfare: the glow always ends */
+ dingDingDing(true);spawnPartsIn($('rtbFx'),'#ffd76a',22);
+ log(`Ride the Bus: <span class="llegendary">${what} - ${x}, +${win.toLocaleString()} ◉</span>${ov}!`,'loot');
+}
 function rtbCashOut(){
- if(!(rtbLive&&rtbStage>0))return;
- const win=rtbBet*RTB_MULT[rtbStage-1];
- const {over}=addGoldOverflow(win);
- sfx.buy();
- log(`Ride the Bus: cashed out at ${RTB_MULT[rtbStage-1]}x - <span class="loot">+${win.toLocaleString()} ◉</span>${over?' ('+over.toLocaleString()+' overflow)':''}.`,'loot');
- rtbEnd(`🚌 Cashed out - <b style="color:#ffd76a">+${win.toLocaleString()}◉</b>`);
+ if(!S||!rtbLive||!rtbWon.length)return;
+ rtbPay('cash');
 }
 function rtbGuess(g){
- if(!rtbLive||rtbCards.length>=4)return;
- let c=rtbDeck.pop();
- if(!c){rtbShuffle();c=rtbDeck.pop();} /* belt & braces - the deck can never be empty */
+ if(!S||!rtbLive||!(RTB_GUESSES[rtbStage]||[]).includes(g))return; /* a guess from another round is no guess - Black once counted as Lower */
+ if(S!==rtbHero){rtbTeardown();return;} /* another hero's ride is not played on */
+ const price=rtbPrice(rtbStage,g,rtbCards,rtbDeck);
+ if(!price)return; /* no card left can win it - its button is disabled */
+ const c=rtbDeck.pop(),ok=rtbWins(rtbStage,g,c,rtbCards); /* a fresh 52-card deck every ride: four cards never empty it */
  rtbCards.push(c);
- const v=c.v,red=(c.s==='♥'||c.s==='♦');
  try{noiseSweep(0.25,.05,900,2200);}catch(e){} /* card whips off the deck - audio may never block the reveal */
- let ok=false,why='';
- if(rtbStage===0)ok=(g==='red')===red;
- else if(rtbStage===1){
-  const v1=rtbCards[0].v;
-  if(v===v1){ok=false;why=' - tie loses';}
-  else ok=(g==='hi')===(v>v1);
- }else if(rtbStage===2){
-  const lo=Math.min(rtbCards[0].v,rtbCards[1].v),hi=Math.max(rtbCards[0].v,rtbCards[1].v);
-  if(v===lo||v===hi){ok=false;why=' - on the line loses';}
-  else ok=(g==='in')===(v>lo&&v<hi);
- }else ok=g==='s'+c.s;
  rtbFlip=rtbCards.length-1;rtbFlipOk=ok; /* the fresh card flips over, glowing green or red */
  if(!ok){
+  const why=rtbStage===1&&c.v===rtbCards[0].v?' - tie loses':rtbStage===2&&(c.v===rtbCards[0].v||c.v===rtbCards[1].v)?' - on the line loses':'';
   sfx.warn();
   log(`Ride the Bus: bust on round ${rtbStage+1} - lost ${rtbBet.toLocaleString()} ◉.`);
+  rtbOut={at:rtbStage,bust:true};
   rtbEnd(`💥 <b style="color:#ff8a7a">${c.r}${c.s}</b> - bust${why}! The bus drives off with ${rtbBet.toLocaleString()}◉`);
   return;
  }
- rtbStage++;
+ rtbWon.push(price);rtbStage++;
  blip(900,1400,0.08,.05);
- if(rtbStage>=4){ /* rode the whole bus */
-  const win=rtbBet*RTB_MULT[3];
-  const {over}=addGoldOverflow(win);
-  const mach=$('rtbFx').querySelector('.slotmach');mach.classList.add('bigwin');
-  dingDingDing(true);spawnPartsIn($('rtbFx'),'#ffd76a',22);
-  setTimeout(()=>mach.classList.remove('bigwin'),1800);
-  log(`Ride the Bus: <span class="llegendary">FULL RIDE - 20x, +${win.toLocaleString()} ◉</span>${over?' ('+over.toLocaleString()+' overflow)':''}!`,'loot');
-  rtbEnd(`🚌🎉 <b style="color:#ffd76a">FULL RIDE - +${win.toLocaleString()}◉</b>`);
-  return;
- }
+ if(rtbTop()){rtbPay('max');return;} /* the max win cashes itself out the moment it is reached */
+ if(rtbStage>=4){rtbPay('full');return;} /* rode the whole bus */
  /* only the round being entered is described: the old array literal built every round's text at once and read the second
    card after the first guess, when there was none - it threw, the table never redrew, and the 2x could not be cashed out */
- const nextRound=rtbStage===1?'Round 2 - higher or lower than '+rtbCards[0].r+'?':rtbStage===2?'Round 3 - inside or outside '+rtbCards[0].r+' and '+rtbCards[1].r+'?':'Round 4 - which suit?';
- $('rtbRes').innerHTML=`✅ <b>${c.r}${c.s}</b> - ${RTB_MULT[rtbStage-1]}x locked. ${nextRound}`;
+ const cd=x=>x.r+x.s;
+ const nextRound=rtbStage===1?'Round 2 - higher or lower than '+cd(rtbCards[0])+'? Aces low, a tie loses.':rtbStage===2?'Round 3 - inside or outside '+cd(rtbCards[0])+' and '+cd(rtbCards[1])+'? A card on the line loses.':'Round 4 - which suit?';
+ $('rtbRes').innerHTML=`✅ <b>${c.r}${c.s}</b> - ${rtbMulX()} locked. ${nextRound}`;
  rtbRender();
 }
 function openRTB(){
+ if(!S)return;
  $('rtbFx').classList.add('open');
- rtbLive=false;rtbCards=[];rtbStage=0;rtbFresh=true;rtbFlip=-1;
- $('rtbRes').innerHTML='Guess all four to ride to 20x - cash out any time.';
+ rtbLive=false;rtbCards=[];rtbStage=0;rtbWon=[];rtbOut=null;rtbFresh=true;rtbFlip=-1;
+ $('rtbRes').innerHTML='Every guess pays its odds - cash out after any win.';
  rtbRender();
 }
-$('rtbBetDn').onclick=()=>{if(!rtbLive&&rtbBetI>0){rtbBetI--;rtbRender();}};
-$('rtbBetUp').onclick=()=>{if(!rtbLive&&rtbBetI<RTB_BETS.length-1){rtbBetI++;rtbRender();}};
+/* the hero is put away (hero list, logout, a kick, entering the world): a ride on the table is forfeited - its fare was saved
+   when it was paid - and nothing of it reaches the next hero. Never throws, and S may already be null. */
+function rtbTeardown(){
+ rtbLive=false;rtbHero=null;rtbDeck=[];rtbCards=[];rtbStage=0;rtbWon=[];rtbOut=null;rtbFlip=-1;
+ clearTimeout(rtbGlowT);rtbGlowT=0;
+ try{const fx=$('rtbFx');fx.classList.remove('open');fx.querySelector('.slotmach').classList.remove('bigwin');}catch(e){}
+}
+$('rtbBetDn').onclick=()=>{if(S&&!rtbLive&&rtbBetI>0){rtbBetI--;rtbRender();}};
+$('rtbBetUp').onclick=()=>{if(S&&!rtbLive&&rtbBetI<RTB_BETS.length-1){rtbBetI++;rtbRender();}};
 $('rtbCash').onclick=rtbCashOut;
 $('rtbClose').onclick=()=>{
- if(rtbLive){stageMsg('Cash out or ride it to the end first',1400);sfx.warn();return;}
+ if(rtbLive&&S){stageMsg('Cash out or ride it to the end first',1400);sfx.warn();return;}
+ if(!S)rtbTeardown(); /* no hero to ride for (a kick mid-ride): the table goes, and the ride with it */
  $('rtbFx').classList.remove('open');
  casinoAmbApply();
 };
 /* ==================== 🎲 GAMBLE AGAINST FRIEND ====================
-   Two players, same Firestore room pattern as the raid: create/join → ready check →
-   both lock an identical stake → 10 chests each, opened alternately (host first) at
-   Violet Halls pace. Chests score symbolic scraps; most scraps takes the whole pot.
-   Ties go to sudden death, one chest each until someone leads. */
+   2-10 players, same Firestore room pattern as the raid: create/join → ready check →
+   everyone locks an identical stake → 5 or 10 rounds of one chest each, opened together by a
+   rotating opener (host first) at Violet Halls pace. Chests score symbolic scraps; most scraps
+   takes the whole pot. Ties go to sudden death, one chest each until someone leads.
+   The room is the referee: a seat, the roll, a paid stake, a round, a forfeit and the verdict are each
+   written in a transaction checked against the room's own copy, and a screen pays only the verdict
+   the room holds - screens that judged the duel on their own paid two winners, or none. */
 const GVB_SCORE={fk:20,pet:12,bull:10,scroll:7,epic:5,rare:3};
 const GVB_MAXP=10;
-const gvb={code:null,ref:null,unsub:null,pid:null,doc:null,shown:0,animating:false,paid:false,paidOk:false,settled:false,lastChange:0,bet:0,closedByMe:false,sidesKey:'',rtc:{},rtcWaves:{},sigUnsub:null};
+const GVB_V=3; /* this build's seat. A table starts only when every seat has it: older exes paid themselves stakes nobody had paid */
+const GVB_PAY_MS=30000; /* the pay window: a seat that has neither paid nor forfeited this long after the last stake came in sits the duel out */
+const GVB_IDLE_MS=120000; /* an opener silent this long may be skipped */
+const GVB_QUIT_TRIES=12,GVB_QUIT_MS=600000; /* a seat that left asks its room this often and this long at most: it asked every 30 s for the whole session - 98 asks and 98 error.log lines an hour offline */
+const gvb={code:null,ref:null,unsub:null,pid:null,doc:null,shown:0,animating:false,paid:false,paidOk:false,settled:false,lastChange:0,bet:0,closedByMe:false,sidesKey:'',rtc:{},rtcWaves:{},sigUnsub:null,
+ gen:0,op:null,made:false,seated:false,lock:null,stake:0,seats:0,take:null,out:'',rollAt:0,rollTry:0,payK:-1,payAt:0,busy:{},payP:null,opening:false,claimFor:null,claimN:-1,finAt:0,skipAt:0};
 /* 🛡 Everything in a duel room was written by the other players' clients, so it is data, never markup:
    ids must look like the 'p' + base36 this client makes, names are plain text, stakes are whole
    numbers, and a chest can only be one of the chests this table knows. gvbClean() is the one door
@@ -14627,26 +14987,23 @@ function gvbClean(raw){
  for(const p of Object.keys(d.players||{})){
   const pl=d.players[p];
   if(!GVB_PID.test(p)||!pl||typeof pl!=='object')continue;
-  players[p]={name:String(pl.name||'Hero').slice(0,24),ready:!!pl.ready,ok:!!pl.ok,bet:Math.max(0,Math.floor(+pl.bet||0)),v:Math.max(0,Math.floor(+pl.v||0))};
+  players[p]={name:String(pl.name||'Hero').slice(0,24),ready:!!pl.ready,ok:!!pl.ok,bet:Math.max(0,Math.floor(+pl.bet||0)),v:Math.max(0,Math.floor(+pl.v||0)),r:[5,10].includes(+pl.r)?+pl.r:0};
  }
  const waves={};
  for(const k of Object.keys(d.waves||{})){const i=+k,w=gvbCleanWave(d.waves[k]);if(Number.isInteger(i)&&i>=0&&i<500&&w)waves[i]=w;}
+ const rs=d.result&&typeof d.result==='object'?d.result:null; /* the recorded verdict: a seat of this table (or nobody) and a whole-number pot */
  return {gvb:!!d.gvb,state:['lobby','bet','roll','closed'].includes(d.state)?d.state:'closed',created:+d.created||0,
   host:GVB_PID.test(String(d.host||''))?d.host:null,order,players,waves,
   forfeits:gvbFlags(d.forfeits),paid:gvbFlags(d.paid),settled:gvbFlags(d.settled),
-  rounds:+d.rounds===5?5:10,bet:Math.max(0,Math.floor(+d.bet||0))};
+  rounds:+d.rounds===5?5:10,bet:Math.max(0,Math.floor(+d.bet||0)),
+  result:rs&&(rs.w===null||order.includes(rs.w))?{w:rs.w===null?null:rs.w,pot:Math.max(0,Math.floor(+rs.pot||0)),f:!!rs.f,n:Math.max(0,Math.floor(+rs.n||0))}:null};
 }
-/* the pot is what was actually collected: a seat whose client never paid (closed before the duel
-   started, or could not afford it) is still dealt chests, but it adds nothing to the pot. A seat from a build that
-   predates the paid flag (no v) pays the old way, so it counts unless it forfeited - its stake must not vanish either. */
-const gvbPaidCount=d=>((d&&d.order)||[]).filter(p=>{
- if((d.paid&&d.paid[p])||(p===gvb.pid&&gvb.paidOk))return true;
- const pl=(d.players||{})[p]||{};
- return !(pl.v>=2)&&!(d.forfeits&&d.forfeits[p]);
-}).length;
+/* the pot is what was actually collected: only a seat with a paid flag counts. (A seat of an older build that paid
+   the old way is never seated any more - see GVB_V - so there is no stake to count without the flag.) */
+const gvbPaidCount=d=>((d&&d.order)||[]).filter(p=>(d.paid&&d.paid[p])||(p===gvb.pid&&gvb.paidOk)).length;
 /* ⚡ zero-latency layer - the Violet Halls trick: spins ride WebRTC data channels the
    instant they happen; Firestore stays the source of truth and the phone fallback. */
-function gvbSig(to,type,payload){return gvb.ref.collection('signals').add({from:gvb.pid,to,type,payload:JSON.stringify(payload),t:Date.now()});}
+function gvbSig(to,type,payload){if(!gvb.ref)return Promise.resolve();return gvb.ref.collection('signals').add({from:gvb.pid,to,type,payload:JSON.stringify(payload),t:Date.now()});}
 async function gvbRtcConnect(pid){
  if(gvb.rtc[pid])return;
  const P={pc:new RTCPeerConnection(RTC_CFG),ch:null,ok:false};
@@ -14672,7 +15029,8 @@ async function gvbRtcSignalHandle(from,type,payload){
 function gvbRtcMsg(m){
  if(!m||m.k!=='wave'||!gvb.doc||!Number.isInteger(m.i)||m.i<0||m.i>=500||gvb.rtcWaves[m.i]!==undefined)return;
  const w=gvbCleanWave(m.wave);if(!w)return;
- gvb.rtcWaves[m.i]=w;gvbRender();
+ gvb.rtcWaves[m.i]=w;gvb.lastChange=Date.now(); /* a round is news: the silent-opener clock starts again */
+ gvbRender();
 }
 function gvbRtcBroadcast(m){
  const s2=JSON.stringify(m);
@@ -14696,7 +15054,10 @@ function gvbFiller(){ /* reel dressing only - tease-heavy like the real chests, 
  const epic=r>=0.6;
  return {ic:['⚔️','🛡️','💍'][Math.floor(Math.random()*3)],cc:epic?'#c9a0ff':'#5b9bd5',sc:epic?GVB_SCORE.epic:GVB_SCORE.rare};
 }
-const gvbWaves=()=>{const w=Object.assign({},(gvb.doc&&gvb.doc.waves)||{},gvb.rtcWaves||{});return Object.keys(w).map(Number).sort((a,b)=>a-b).map(k=>w[k]);}; /* RTC-early waves merge in ahead of Firestore */
+/* rounds in order, and only as far as they run unbroken: the room's copy of a round wins, a WebRTC copy only fills a round the
+   room does not hold yet. A round that reached some screens by WebRTC alone used to shift every later round on the others */
+const gvbWavesOf=(...src)=>{const out=[];for(let i=0;i<500;i++){const s=src.find(x=>x&&x[i]);if(!s)break;out.push(s[i]);}return out;};
+const gvbWaves=()=>gvbWavesOf(gvb.doc&&gvb.doc.waves,gvb.rtcWaves);
 const gvbActive=d=>((d&&d.order)||[]).filter(p=>!(d.forfeits&&d.forfeits[p]));
 const gvbContenders=(d,waves)=>{ /* everyone during regulation - only the tied leaders once sudden death begins */
  const act=gvbActive(d);
@@ -14719,61 +15080,222 @@ const gvbWinner=(d,waves)=>{ /* pid of the winner, or null while the duel is sti
  const lead=act.filter((p,i)=>scores[i]===mx);
  return lead.length===1?lead[0]:null;
 };
+const gvbStakesIn=d=>!!d&&d.order.every(p=>d.paid[p]||d.forfeits[p]); /* the pay window is shut: every seat has paid, or is out */
+/* the verdict the room's own record gives - its rounds only, and only once every stake is in: {w,pot,f,n}, or null while the
+   duel is on (w null: nobody is left in it) */
+function gvbDecide(d){
+ if(!d||d.state!=='roll'||!gvbStakesIn(d))return null;
+ const W=gvbWavesOf(d.waves),act=gvbActive(d),w=act.length?gvbWinner(d,W):null;
+ if(act.length&&!w)return null;
+ return {w,pot:d.bet*d.order.filter(p=>d.paid[p]).length,f:act.length<2,n:W.length};
+}
+/* one read-check-write on the room, where every screen reads it. A screen that cannot reach the room cannot claim, forfeit or
+   settle on its own guess - two screens cut apart both paid themselves. Never throws: {ok,value} | {failed} | {late}, as within() */
+function gvbTx(ref,fn,quiet){
+ let p;
+ try{p=mpDB().runTransaction(async tx=>{const s=await tx.get(ref);return fn(s.exists?gvbClean(s.data()):null,tx);});}catch(e){p=Promise.reject(e);}
+ const w=quiet?gvbHush(p):within(p,CLOUD_WAIT_MS,'the duel table');w.raw=p; /* the SDK may still answer after within() stopped waiting */
+ return w;
+}
+/* within() without its line in error.log: a seat that left asks its room in the background and writes one line of its own, if it gives up */
+function gvbHush(p){
+ let t;
+ const late=new Promise(res=>{t=setTimeout(()=>res({late:true}),CLOUD_WAIT_MS);});
+ return Promise.race([Promise.resolve(p).then(value=>({ok:true,value}),error=>({failed:true,error})),late]).finally(()=>clearTimeout(t));
+}
+/* a seat leaves its table, read where the room lives: a Leave guarded by an old snapshot shut a room that had begun to roll, stakes and
+   all. Before the duel the host's leaving shuts the room and a guest's takes the seat away. In a duel that is on, an undecided duel is
+   forfeited and a decided one only gets its verdict written down - a forfeit written after the deciding round named a second winner, or
+   none. Value: {res,forfeit,paid,np,open}. paid: this seat's stake is on the room's record - after this answer it never can be if it is
+   not. open: no verdict yet and a stake is still to come in, so every seat may yet leave - and a verdict with nobody to win gives the
+   stakes back. Once every stake is in with a seat still in the duel, someone wins it */
+function gvbQuitTx(ref,me,quiet){
+ return gvbTx(ref,(d,tx)=>{
+  if(!d||!d.order.includes(me))return {res:null,forfeit:false,paid:false,np:0,open:false};
+  const paid=!!d.paid[me],np=d.order.filter(p=>d.paid[p]).length,o=(res,forfeit,open)=>({res,forfeit,paid,np,open:!!open});
+  if(d.state==='lobby'||d.state==='bet'){
+   if(d.host===me)tx.update(ref,{state:'closed'});
+   else tx.update(ref,{['players.'+me]:null,order:firebase.firestore.FieldValue.arrayRemove(me)});
+   return o(null,false);
+  }
+  if(d.state!=='roll'||d.result)return o(d.result,false); /* shut, or decided: the verdict it holds, which may name this seat */
+  const now=gvbDecide(d);
+  if(now){tx.update(ref,{result:now});return o(now,false);}
+  const out=Object.assign({},d,{forfeits:Object.assign({},d.forfeits,{[me]:true})}),open=!gvbStakesIn(out);
+  if(d.forfeits[me])return o(null,true,open);
+  const res=gvbDecide(out);
+  tx.update(ref,Object.assign({['forfeits.'+me]:true},res?{result:res}:{}));
+  return o(res,true,!res&&open);
+ },quiet);
+}
+/* gold for a hero who may have been put away meanwhile (the hero list): saved, and parked with him once he is out of play */
+function gvbKeep(hero){
+ Promise.resolve(save()).then(()=>{if(!gameOn&&S===hero)parkDirtyHero();}).catch(()=>{});
+ renderHUD();
+}
+/* the hero a stake belongs to, by his id: loadChar makes a new object, so a hero picked again from the hero list before the room answered
+   was paid nothing (S===hero). A different hero loaded on this screen is never paid */
+const gvbMine=tk=>!!(tk&&S)&&(S===tk.hero||(!!tk.id&&S.id===tk.id));
+/* a stake the room never recorded - and after its answer never can - goes back once, and only to the hero that paid it */
+function gvbBack(tk){
+ if(!tk||tk.kept||tk.back)return false;
+ tk.back=true;
+ if(!gvbMine(tk))return false;
+ addGoldOverflow(tk.n);gvbKeep(S);return true;
+}
+/* what the room's verdict gives a stake it holds - the pot, or the stake itself when nobody is left to win: once per stake, however many
+   screens, answers and snapshots bring the verdict, and only to the hero that paid it. {got,over}, or null */
+function gvbDue(tk,n){
+ if(!tk||!tk.kept||tk.done)return null;
+ tk.done=true;
+ if(!gvbMine(tk)||!(n>0))return null;
+ const r=addGoldOverflow(n);gvbKeep(S);return r;
+}
+/* what the room owes a seat that has left, by its own answer: the pot its verdict names this seat for (capped as gvbSettle caps it), the
+   stake back when the verdict names nobody, or a stake it never recorded. True once nothing more can be owed */
+function gvbOwed(v,me,tk){
+ if(!tk)return true; /* nothing staked: telling the room was all */
+ if(!v.paid){if(gvbBack(tk))stageMsg('Your stake never reached the table - it came back',2600);return true;}
+ tk.kept=true;
+ if(!v.res)return !v.open; /* no verdict yet: while a stake is still to come in, every seat may yet leave */
+ if(v.res.w===null){ /* nobody is left to win: every stake goes back to the seat that paid it (it stayed in the pot for a winner) */
+  if(gvbDue(tk,tk.n)){log(`Gamble against friend: nobody was left to win - your ${tk.n.toLocaleString()} ◉ stake comes back.`);stageMsg('Nobody was left to win - your stake came back',2600);}
+  return true;
+ }
+ if(v.res.w!==me)return true;
+ const pot=Math.min(v.res.pot,tk.n*Math.min(v.np,tk.seats)),r=gvbDue(tk,pot);
+ if(!r)return true;
+ if(pot<=tk.n){log(`Gamble against friend: nobody else could pay - your ${pot.toLocaleString()} ◉ stake comes back.`);stageMsg('Nobody else could pay - your stake came back',2600);}
+ else{log(`Gamble against friend: <span class="llegendary">VICTORY - the whole ${pot.toLocaleString()} ◉ pot is yours</span> (the table named you as you left)${r.over?' ('+r.over.toLocaleString()+' overflow)':''}!`,'loot');stageMsg('🏆 The duel was yours - '+pot.toLocaleString()+'◉',2600);}
+ return true;
+}
+/* a seat that has left its table: the room is told, and asked again until it answers - and while its stake may still come back, until
+   the verdict. Late answers still count; the take token pays each stake once. A Leave or a teardown that got no answer used to drop the
+   question (a stake the room never saw was lost, a pot it named this seat for went to no one); then it asked every 30 s for good. Now
+   GVB_QUIT_TRIES asks in GVB_QUIT_MS at most, none after a refusal, and one line in the log when it stops unanswered: what the room
+   never answered for stays as it is - a stake is only given back on the room's word */
+function gvbQuitBg(ref,me,tk,wait){
+ const t0=Date.now();let n=0,fin=false,off=false,timer=0;
+ const no=e=>/^(permission-denied|unauthenticated|invalid-argument)$/.test(String(e&&e.code||'')); /* refused, and refused again if asked again */
+ const stop=why=>{if(fin||off)return;off=true;clearTimeout(timer);console.error(`cloud: the duel table did not settle with a seat that left (${why}; ${n} ask${n===1?'':'s'} in ${Math.round((Date.now()-t0)/1000)} s) - giving up`);};
+ const hear=v=>{if(fin||!v)return;let end=true;try{end=gvbOwed(v,me,tk);}catch(e){console.warn('duel leave failed',e);}if(end){fin=true;clearTimeout(timer);}else next('still collecting stakes');};
+ const next=why=>{
+  if(fin||off||timer)return;
+  if(n>=GVB_QUIT_TRIES||Date.now()-t0>=GVB_QUIT_MS){stop(why);return;}
+  timer=setTimeout(()=>{timer=0;ask();},Math.min(60000,2000*Math.pow(2,n-1)));
+ };
+ const ask=()=>{
+  if(fin||off)return;
+  if(!S&&!FB.user){stop('signed out');return;} /* the room refuses a signed-out screen for ever - even with the hero gone, a signed-in one's forfeit lets the table go on */
+  n++;
+  const q=gvbQuitTx(ref,me,true);
+  q.then(r=>{
+   if(r.ok){hear(r.value);return;}
+   if(r.failed&&no(r.error)){stop('refused: '+r.error.code);return;}
+   if(r.late)q.raw.then(hear,e=>{if(no(e))stop('refused: '+e.code);});
+   next(r.late?'no answer':'failed: '+(r.error&&(r.error.code||r.error.message)||r.error));
+  });
+ };
+ Promise.resolve(wait).then(ask,ask); /* a stake on its way to the room gets there first: it is in the pot, as a stake on the table is */
+}
 function gvbShow(panel){
  ['gvbEntry','gvbLobby','gvbBet','gvbDuel','gvbDone'].forEach(id=>{const e=$(id);if(e)e.style.display=id===panel?'block':'none';});
+ gvbPadHome();
+}
+/* 🎮 a pad highlight the screen hid (Create for the lobby, START for the stakes, Lock for the duel, a ✕ drawn anew): A did nothing until
+   the d-pad moved. It goes where the screen asks the next A to go - Ready, Lock, the seat's own Open (hidden until its turn, so A waits
+   for it), or Leave once leaving costs nothing. Never Leave while a stake is in play: A, A, A there was Leave, Yes and a forfeit. A mouse
+   player has no highlight, and a box on top of the table keeps its own */
+function gvbPadHome(){
+ const f=typeof padFocus!=='undefined'?padFocus:null,fx=$('gvbFx');
+ if(!f||!fx||fx.style.display!=='flex'||f.getClientRects().length)return;
+ const kick=f.dataset&&f.dataset.gvbkick,same=kick&&GVB_PID.test(kick)?fx.querySelector(`[data-gvbkick="${kick}"]`):null;
+ if(!fx.contains(f)&&!kick)return;
+ const d=gvb.doc,staked=!!d&&d.state==='roll'&&!gvb.settled&&!d.result&&(!gvb.paid||gvb.stake>0&&!d.forfeits[gvb.pid]); /* not paid yet: the stake is taken on this very render */
+ const to=same&&same.getClientRects().length?same:$(!d?($('gvbEntry').style.display!=='none'?'gvbCreate':'gvbLeave'):d.state==='lobby'?'gvbReady':d.state==='bet'?'gvbBetLock':staked?'gvbOpen':'gvbLeave');
+ if(to&&to!==f)padMark(to);
 }
 function openGVB(){
+ if(!S)return;
  $('gvbFx').style.display='flex';
- gvbShow('gvbEntry');
+ if(gvb.doc){gvbRender();return;}
+ gvbShow('gvbEntry');gvbBusyUI(!!gvb.op);
+}
+function gvbBusyUI(on,msg){ /* Create and Join wait for their answer - a double click made two rooms, or two seats */
+ $('gvbCreate').disabled=on;$('gvbJoin').disabled=on;
+ $('gvbEntryMsg').textContent=on?'Connecting…':(msg||''); /* the answer stays in the window too */
 }
 const gvbRef=code=>mpDB().collection('rooms').doc('GVB-'+code); /* lives in the raid-approved collection - 'GVB-' ids can never collide with 5-letter raid codes */
+const gvbSeat=()=>({name:dispName?dispName(S):(S.name||'Hero'),ready:false,bet:0,ok:false,v:GVB_V}); /* v3: this seat pays through the room's own record */
+const gvbAtDoor=()=>!gvb.op&&!gvb.ref&&$('gvbEntry').style.display!=='none'; /* Create and Join belong to the entry screen: a hidden one pressed after the verdict opened a new room over it */
 async function gvbCreate(){
+ if(!S||!gvbAtDoor())return; /* one request at a time - a double click wrote two rooms and left a listener behind */
+ gvbReset();
+ const hero=S,seat=gvbSeat(),gen=++gvb.gen,op=gvb.op={gen};
+ const live=()=>gen===gvb.gen&&S===hero; /* still this request's screen, and its hero */
+ let msg='';
+ gvbBusyUI(true);
  try{
-  const ok=await mpEnsureFirebase();if(!ok){stageMsg(mpNotReady('Firebase is not ready - sign in first.'),FB.rest?5200:2200);sfx.warn();return;}
-  gvb.code=MPCODE();gvb.pid='p'+Math.random().toString(36).slice(2,9);
-  gvb.ref=gvbRef(gvb.code);
-  await gvb.ref.set({gvb:true,state:'lobby',created:Date.now(),host:gvb.pid,order:[gvb.pid],rounds:10,
-   players:{[gvb.pid]:{name:dispName?dispName(S):(S.name||'Hero'),ready:false,bet:0,ok:false,v:2}},waves:{},forfeits:{}}); /* v:2 - this seat writes paid.<pid> when its stake is taken */
+  const ok=await mpEnsureFirebase();
+  if(!live()){if(gen===gvb.gen)gvbCleanup();return;}
+  if(!ok){stageMsg(mpNotReady('Firebase is not ready - sign in first.'),FB.rest?5200:2200);sfx.warn();msg=FB.rest?'The live cloud channel is not answering':'Sign in first';return;}
+  const code=MPCODE(),pid='p'+Math.random().toString(36).slice(2,9),ref=gvbRef(code);
+  gvb.code=code;gvb.pid=pid;gvb.ref=ref;gvb.made=true;
+  const slow=setTimeout(()=>{if(live())$('gvbEntryMsg').textContent='The cloud is not answering - Leave to give up';},6000);
+  try{await ref.set({gvb:true,state:'lobby',created:Date.now(),host:pid,order:[pid],rounds:10,players:{[pid]:seat},waves:{},forfeits:{}});}
+  finally{clearTimeout(slow);}
+  if(!live()){ref.update({state:'closed'}).catch(()=>{});if(gen===gvb.gen)gvbCleanup();return;} /* Leave (or a hero switch) came first: the room that landed is shut, not sat in */
   gvbListen();
- }catch(e){console.warn('gvbCreate failed',e);stageMsg('Could not create room: '+(e.code||e.message||e),2600);sfx.warn();}
+ }catch(e){if(live()){console.warn('gvbCreate failed',e);gvbForget();msg='Could not create room: '+(e.code||e.message||e);stageMsg(msg,2600);sfx.warn();}}
+ finally{if(gvb.op===op){gvb.op=null;gvbBusyUI(false,msg);}}
 }
 async function gvbJoin(code){
+ if(!S||!gvbAtDoor())return;
+ code=(code||'').toUpperCase().trim();
+ if(code.length<5){stageMsg('Enter a 5-letter code',1400);sfx.warn();return;}
+ gvbReset();
+ const hero=S,seat=gvbSeat(),gen=++gvb.gen,op=gvb.op={gen};
+ const live=()=>gen===gvb.gen&&S===hero;
+ let msg='';
+ gvbBusyUI(true);
  try{
-  const ok=await mpEnsureFirebase();if(!ok){stageMsg(mpNotReady('Firebase is not ready - sign in first.'),FB.rest?5200:2200);sfx.warn();return;}
-  code=(code||'').toUpperCase().trim();
-  if(code.length<5){stageMsg('Enter a 5-letter code',1400);sfx.warn();return;}
-  const ref=gvbRef(code);
-  const snap=await ref.get();
-  if(!snap.exists||snap.data().state==='closed'){stageMsg('Room not found',1600);sfx.warn();return;}
-  const d=snap.data();
-  if(d.state!=='lobby'){stageMsg('That duel has already started',1600);sfx.warn();return;}
-  if((d.order||[]).length>=GVB_MAXP){stageMsg('Room is full ('+GVB_MAXP+' players)',1600);sfx.warn();return;}
-  gvb.code=code;gvb.pid='p'+Math.random().toString(36).slice(2,9);gvb.ref=ref;
-  /* arrayUnion, not a copy of the order read a moment ago: two players joining at once must both end up seated */
-  await ref.update({['players.'+gvb.pid]:{name:dispName?dispName(S):(S.name||'Hero'),ready:false,bet:0,ok:false,v:2},order:firebase.firestore.FieldValue.arrayUnion(gvb.pid)});
+  const ok=await mpEnsureFirebase();
+  if(!live()){if(gen===gvb.gen)gvbCleanup();return;}
+  if(!ok){stageMsg(mpNotReady('Firebase is not ready - sign in first.'),FB.rest?5200:2200);sfx.warn();msg=FB.rest?'The live cloud channel is not answering':'Sign in first';return;}
+  const ref=gvbRef(code),pid='p'+Math.random().toString(36).slice(2,9);
+  gvb.code=code;gvb.pid=pid;gvb.ref=ref;
+  const slow=setTimeout(()=>{if(live())$('gvbEntryMsg').textContent='The cloud is not answering - Leave to give up';},6000);
+  let r;
+  /* the seat is taken where the room is read: a join that landed late sat a hero in a duel it never saw, and two at once made 11 of 10 */
+  try{r=await mpDB().runTransaction(async tx=>{
+   const s=await tx.get(ref);
+   const d=s.exists?gvbClean(s.data()):null;
+   if(!d||d.state==='closed')return 'gone';
+   if(d.state!=='lobby')return 'started';
+   if(gvbOld(d.players[d.host]))return 'old';
+   if(d.order.length>=GVB_MAXP)return 'full';
+   tx.update(ref,{['players.'+pid]:seat,order:firebase.firestore.FieldValue.arrayUnion(pid)}); /* arrayUnion: two players joining at once both end up seated */
+   return 'ok';
+  });}finally{clearTimeout(slow);}
+  if(!live()){if(r==='ok')ref.update({['players.'+pid]:null,order:firebase.firestore.FieldValue.arrayRemove(pid)}).catch(()=>{});if(gen===gvb.gen)gvbCleanup();return;}
+  if(r!=='ok'){gvbForget();msg={gone:'Room not found',started:'That duel has already started',old:'The host must update the game to duel',full:'Room is full ('+GVB_MAXP+' players)'}[r]||'Could not join';stageMsg(msg,1800);sfx.warn();return;}
   gvbListen();
- }catch(e){console.warn('gvbJoin failed',e);stageMsg('Could not join: '+(e.code||e.message||e),2600);sfx.warn();}
+ }catch(e){if(live()){console.warn('gvbJoin failed',e);gvbForget();msg='Could not join: '+(e.code||e.message||e);stageMsg(msg,2600);sfx.warn();}}
+ finally{if(gvb.op===op){gvb.op=null;gvbBusyUI(false,msg);}}
 }
 function gvbListen(){
- gvb.shown=0;gvb.animating=false;gvb.paid=false;gvb.paidOk=false;gvb.settled=false;gvb.closedByMe=false;gvb.sidesKey='';
- gvb.rtc={};gvb.rtcWaves={};
- gvb.unsub=gvb.ref.onSnapshot(s2=>{
-  if(!s2.exists||(s2.data()||{}).state==='closed'){
-   /* a room that closes under a duel this screen has not settled still owes its verdict: every wave
-      that decided it is already here, so pay out from what was seen instead of losing the pot */
-   let settledNow=false;
-   if(gvb.doc&&gvb.doc.state==='roll'&&gvb.paid&&!gvb.settled){
-    const w=gvbWaves(),win=gvbWinner(gvb.doc,w);
-    if(win){gvbSettle(w,win,gvbActive(gvb.doc).length===1);settledNow=true;}
-   }
-   if(!gvb.closedByMe&&!settledNow){stageMsg('The room was closed',1600);}
-   gvbCleanup(settledNow);return;
-  }
-  gvb.doc=gvbClean(s2.data());gvb.lastChange=Date.now();
+ gvbUnlisten(); /* one listener per screen - a second one from a double click kept a finished room alive inside the next duel */
+ const gen=gvb.gen,ref=gvb.ref;
+ gvb.unsub=ref.onSnapshot(s2=>{
+  if(gen!==gvb.gen)return; /* a room this screen has left */
+  const d2=s2.exists?gvbClean(s2.data()):null; /* a state this table does not know counts as closed */
+  if(!d2||d2.state==='closed'){gvbClosed(d2);return;}
+  gvb.doc=d2;gvb.lastChange=Date.now();
   gvb.doc.order.forEach(p=>{if(p!==gvb.pid)gvbRtcConnect(p).catch(()=>{});}); /* mesh up with everyone at the table */
   gvbRender();
  });
- gvb.sigUnsub=gvb.ref.collection('signals').onSnapshot(qs=>{
+ gvb.sigUnsub=ref.collection('signals').onSnapshot(qs=>{
+  if(gen!==gvb.gen)return;
   qs.docChanges().forEach(ch=>{
    if(ch.type!=='added')return;
    const m=ch.doc.data()||{};
@@ -14783,65 +15305,96 @@ function gvbListen(){
   });
  });
 }
-function gvbCleanup(keepPanel){
- if(gvb.unsub){gvb.unsub();gvb.unsub=null;}
- if(gvb.sigUnsub){gvb.sigUnsub();gvb.sigUnsub=null;}
+/* the room is shut, or gone. Its closing record may still hold a verdict this screen has not shown - it is read from that
+   record, not the snapshot before it. Without a recorded verdict nothing is paid: no screen pays on its own guess */
+function gvbClosed(d2){
+ const res=(d2&&d2.result)||(gvb.doc&&gvb.doc.result);
+ if(!gvb.settled&&res&&gvb.doc&&gvb.doc.state==='roll'){
+  if(d2)gvb.doc=Object.assign(d2,{state:'roll'});
+  gvbSettle(res);
+ }
+ if(gvb.settled){gvbCleanup(true);return;} /* the verdict stays up until Leave - the other player leaving first used to wipe it */
+ if(!gvb.closedByMe)stageMsg('The room was closed',1600);
+ if(gvb.take&&!gvb.take.kept&&!gvb.take.back)gvbQuitBg(gvb.ref,gvb.pid,gvb.take,gvb.payP); /* a stake the room may never have taken: the room answers for it */
+ gvbCleanup();
+}
+function gvbUnlisten(){
+ if(gvb.unsub){try{gvb.unsub();}catch(e){}gvb.unsub=null;}
+ if(gvb.sigUnsub){try{gvb.sigUnsub();}catch(e){}gvb.sigUnsub=null;}
  for(const k in gvb.rtc){try{gvb.rtc[k].pc.close();}catch(e){}}
  gvb.rtc={};gvb.rtcWaves={};
- gvb.code=null;gvb.ref=null;gvb.doc=null;gvb.pid=null;
+}
+function gvbReset(){ /* a fresh seat: nothing of the last room's round leaks into the next one - or into the next hero */
+ Object.assign(gvb,{shown:0,animating:false,paid:false,paidOk:false,settled:false,closedByMe:false,sidesKey:'',bet:0,
+  made:false,seated:false,lock:null,stake:0,seats:0,take:null,out:'',rollAt:0,rollTry:0,payK:-1,payAt:0,busy:{},payP:null,opening:false,claimFor:null,claimN:-1,finAt:0,skipAt:0});
+}
+function gvbForget(){gvbUnlisten();gvb.code=null;gvb.ref=null;gvb.doc=null;gvb.pid=null;gvbReset();}
+function gvbCleanup(keepPanel){
+ gvb.gen++;gvb.op=null; /* whatever is still in flight for this room - a create, a join, a transaction, a reel - is a stranger now */
+ gvbForget();
  if(keepPanel===true)return; /* a verdict just landed: leave it on screen - Leave closes the panel */
  $('gvbFx').style.display='none';
  casinoAmbApply();
 }
+const gvbOld=pl=>!(pl&&pl.v>=GVB_V);
+const gvbKickBtn=p=>` <button class="sbtn gvbkick" data-gvbkick="${p}">✕</button>`; /* p passed GVB_PID */
+/* every seat locked the same stake, for this round count, on a build that pays through the room */
+const gvbAllLocked=d=>{
+ const P=d.players,o=d.order,b=o.length&&P[o[0]]?P[o[0]].bet:0;
+ return o.length>=2&&b>=1000&&!(o.length>5&&d.rounds===5)&&o.every(p=>P[p]&&P[p].ok&&P[p].bet===b&&P[p].r===d.rounds&&!gvbOld(P[p]));
+};
 function gvbRender(){
- const d=gvb.doc;if(!d)return;
+ const d=gvb.doc;if(!d||!S)return;
  const me=gvb.pid,isHost=d.host===me,P=d.players||{},ord=d.order||[];
  const nameOf=p=>(P[p]&&P[p].name)||'Hero';
  const nameH=p=>esc(nameOf(p)); /* for markup: another player's name is their own text */
+ if(d.state==='lobby'||d.state==='bet'){
+  if(!ord.includes(me)){ /* the host cleared this seat */
+   if(gvb.seated){gvb.closedByMe=true;stageMsg('You were removed from the table',1800);gvbCleanup();}
+   return;
+  }
+  gvb.seated=true;
+ }
  if(d.state==='lobby'){
   gvbShow('gvbLobby');
   $('gvbCodeTxt').textContent='Room code: '+gvb.code;
-  $('gvbPlayers').innerHTML=ord.map(p=>`<div class="cl">${P[p]&&P[p].ready?'✅':'⏳'} ${nameH(p)}${p===d.host?' (host)':''}${p===me?' - you':''}</div>`).join('')
+  $('gvbPlayers').innerHTML=ord.map(p=>`<div class="cl">${P[p]&&P[p].ready?'✅':'⏳'} ${nameH(p)}${p===d.host?' (host)':''}${p===me?' - you':''}${gvbOld(P[p])?' <span style="color:#ff8a7a">- update the game</span>':''}${isHost&&p!==me?gvbKickBtn(p):''}</div>`).join('')
    +(ord.length<GVB_MAXP?'<div class="cl" style="color:var(--dim)">… room open ('+ord.length+'/'+GVB_MAXP+')</div>':'');
   const mine=P[me];
   $('gvbReady').textContent=mine&&mine.ready?'✔ Ready!':'✔ Ready';
   const allReady=ord.length>=2&&ord.every(p=>P[p]&&P[p].ready);
-  $('gvbStart').style.display=(isHost&&allReady)?'inline-block':'none'; /* host fires the duel, just like the raid */
+  $('gvbStart').style.display=(isHost&&allReady&&!ord.some(p=>gvbOld(P[p])))?'inline-block':'none'; /* host fires the duel, just like the raid */
+  gvbPadHome(); /* the seats were drawn anew, or START went, under the highlight */
   return;
  }
  if(d.state==='bet'){
   gvbShow('gvbBet');
-  const mine=P[me]||{};
-  const rds=d.rounds||10;
+  const rds=d.rounds||10,big=ord.length>5;
+  const lk=p=>!!(P[p]&&P[p].ok&&P[p].r===rds&&P[p].bet>0); /* a lock counts for the round count it was made under */
   $('gvbR5').classList.toggle('gold',rds===5);$('gvbR10').classList.toggle('gold',rds===10);
-  $('gvbR5').disabled=!isHost;$('gvbR10').disabled=!isHost;
-  $('gvbBetStat').innerHTML=`<div class="cl" style="color:#ffd76a">${rds} rounds each${isHost?' (you choose)':''}</div>`+ord.map(p=>{
+  $('gvbR5').disabled=!isHost||big;$('gvbR10').disabled=!isHost; /* 6+ seats play 10 rounds, so every seat opens at least once */
+  $('gvbBetStat').innerHTML=`<div class="cl" style="color:#ffd76a">${rds} rounds each${isHost?(big?'':' (you choose)'):''}</div>`+ord.map(p=>{
    const pl=P[p]||{};
-   return `<div class="cl">${pl.ok?'🔒':'⏳'} ${nameH(p)}${p===me?' (you)':''}: ${pl.ok?'<b style="color:#ffd76a">'+(pl.bet||0).toLocaleString()+'◉</b>':'choosing…'}</div>`;
+   return `<div class="cl">${lk(p)?'🔒':'⏳'} ${nameH(p)}${p===me?' (you)':''}: ${lk(p)?'<b style="color:#ffd76a">'+(pl.bet||0).toLocaleString()+'◉</b>':'choosing…'}${isHost&&p!==me?gvbKickBtn(p):''}</div>`;
   }).join('');
   /* two different stakes locked at the same moment would stall the table for good: let a locked
      player lock again to match the other side */
-  const lockedBets=new Set(ord.filter(p=>P[p]&&P[p].ok&&P[p].bet>0).map(p=>P[p].bet));
-  $('gvbBetLock').disabled=!!mine.ok&&lockedBets.size<2;
-  /* host starts once every stake is locked and identical */
-  if(isHost&&ord.length>=2&&ord.every(p=>P[p]&&P[p].ok)&&ord.every(p=>P[p].bet===P[ord[0]].bet)&&P[ord[0]].bet>0)
-   gvb.ref.update({state:'roll',bet:P[ord[0]].bet});
+  const lockedBets=new Set(ord.filter(lk).map(p=>P[p].bet));
+  $('gvbBetLock').disabled=lk(me)&&lockedBets.size<2;
+  gvbPadHome(); /* the seats were drawn anew under the highlight */
+  if(isHost&&gvbAllLocked(d))gvbStartRoll(); /* host starts once every stake is locked and identical */
   return;
  }
  if(d.state==='roll'){
   if(gvb.settled){gvbShow('gvbDone');return;} /* the verdict stands - no snapshot may drag us back to the table */
+  if(!ord.includes(me)){ /* not seated at this table: nothing is taken, nothing can be won */
+   if(!gvb.paid){gvb.paid=true;stageMsg('You were not seated at this table - nothing was staked.',2600);sfx.warn();gvb.closedByMe=true;gvbCleanup();}
+   return;
+  }
   gvbShow('gvbDuel');
   gvb.bet=d.bet||0;
-  if(!gvb.paid){ /* the stake leaves your pocket the moment the duel starts */
-   gvb.paid=true;
-   if(!ord.includes(me)){ /* a join that lost a race for a seat: nothing is taken, nothing can be won */
-    stageMsg('You were not seated at this table - nothing was staked.',2600);sfx.warn();
-    gvb.closedByMe=true;gvbCleanup();return;
-   }
-   if(spendGold(gvb.bet)){gvb.paidOk=true;gvb.ref.update({['paid.'+me]:true}).catch(()=>{});} /* only a paid stake counts toward the pot */
-   else gvb.ref.update({['forfeits.'+me]:true});
-   save();renderHUD();
-  }
+  if(!gvb.paid)gvbPay(d);
+  else if(gvb.stake>0&&!gvb.paidOk&&!d.paid[me]&&!gvb.busy.pay)gvbPayTx(); /* a stake taken but not on the room's record yet: ask again */
   /* one full-width reel row per player - everyone opens together (rebuilt only if the roster changes) */
   const key=ord.join(',');
   if(gvb.sidesKey!==key){
@@ -14851,33 +15404,115 @@ function gvbRender(){
     <div class="gvbbigwin sm" id="gvbWin-${p}"><div class="gvbbigstrip" id="gvbStrip-${p}"></div><div class="gvbbigmark"></div></div></div>`).join('');
   }
   const waves=gvbWaves();
+  if(d.result&&waves.length-gvb.shown>1)gvb.shown=waves.length-1; /* the verdict is in: only the deciding round is still played out */
   /* animate any wave we have not shown yet, one at a time */
   if(gvb.shown<waves.length&&!gvb.animating){gvbAnimateWave(waves[gvb.shown]);return;}
-  if(!gvb.animating){
-   const seen=waves.slice(0,gvb.shown);
-   const cont=gvbContenders(d,waves);
-   ord.forEach(p=>{
-    const el=$('gvbScore-'+p);if(el)el.textContent=gvbScoreOf(seen,p)+' ⚙';
-    const side=$('gvbSide-'+p);
-    if(side)side.style.opacity=((d.forfeits&&d.forfeits[p])||!cont.includes(p))?0.35:1; /* out of the running - watch quietly */
-   });
-   const win=gvbWinner(d,waves);
-   if(win){gvbSettle(waves,win,gvbActive(d).length===1);return;}
-   const trig=gvbTrigger(d,waves),round=waves.length+1,rds=d.rounds||10;
-   const sudden=round>rds;
-   $('gvbRound').textContent=(sudden?'⚔ SUDDEN DEATH - '+cont.map(nameOf).join(' vs '):'Round '+round+' / '+rds)+' · pot '+(gvb.bet*gvbPaidCount(d)).toLocaleString()+'◉';
-   const myTrig=trig===me;
-   $('gvbTurnTxt').textContent=myTrig?(sudden?'You open - only the tied leaders roll':'You open the chests for everyone'):nameOf(trig)+(sudden?' opens for the tied leaders…':' opens the chests for everyone…');
-   $('gvbOpen').style.display=myTrig?'inline-block':'none';
-   $('gvbOpen').textContent='🎁 Open round '+round;
-   $('gvbClaim').style.display=(!myTrig&&Date.now()-gvb.lastChange>120000)?'inline-block':'none';
+  if(gvb.animating)return;
+  const seen=waves.slice(0,gvb.shown);
+  const cont=gvbContenders(d,waves);
+  ord.forEach(p=>{
+   const el=$('gvbScore-'+p);if(el)el.textContent=gvbScoreOf(seen,p)+' ⚙';
+   const side=$('gvbSide-'+p);
+   if(side)side.style.opacity=((d.forfeits&&d.forfeits[p])||!cont.includes(p))?0.35:1; /* out of the running - watch quietly */
+  });
+  if(d.result){gvbSettle(d.result);return;} /* the room's verdict - the only one any screen pays by */
+  $('gvbOpen').style.display='none';$('gvbClaim').style.display='none';
+  if(!gvbStakesIn(d)){ /* the pay window: no chest opens before every stake is in - a seat that never paid used to play, and win */
+   const k=ord.filter(p=>d.paid[p]||d.forfeits[p]).length;
+   if(k!==gvb.payK){gvb.payK=k;gvb.payAt=Date.now();} /* a stake came in: the table is still paying. Ten seats on slow links took 28 s, and one still asking at a fixed 30 s sat out */
+   $('gvbRound').textContent='Collecting stakes '+k+'/'+ord.length;
+   $('gvbTurnTxt').textContent=gvb.out||(d.paid[me]||gvb.paidOk?'Waiting for the other stakes…':'Paying your stake…');
+   if(Date.now()-Math.max(gvb.rollAt,gvb.payAt)>GVB_PAY_MS)gvbSkipUnpaid();
+   return;
   }
+  if(gvbWinner(d,waves)||!gvbActive(d).length){$('gvbTurnTxt').textContent='Waiting for the verdict…';gvbFinalize();return;} /* decided here, not yet in the room's record */
+  const trig=gvbTrigger(d,waves),round=waves.length+1,rds=d.rounds||10;
+  const sudden=round>rds;
+  $('gvbRound').textContent=(sudden?'⚔ SUDDEN DEATH - '+cont.map(nameOf).join(' vs '):'Round '+round+' / '+rds)+' · pot '+(gvb.bet*gvbPaidCount(d)).toLocaleString()+'◉';
+  const myTrig=trig===me,idle=Date.now()-gvb.lastChange,left=GVB_IDLE_MS-idle;
+  $('gvbTurnTxt').textContent=gvb.opening?'Opening…':myTrig?(sudden?'You open - only the tied leaders roll':'You open the chests for everyone')+(left>0?' · '+fmtMS(left)+' left':' · the table may skip you now'):nameOf(trig)+(sudden?' opens for the tied leaders…':' opens the chests for everyone…');
+  $('gvbOpen').style.display=myTrig&&!gvb.opening?'inline-block':'none';
+  $('gvbOpen').textContent='🎁 Open round '+round;
+  const claim=!myTrig&&!!trig&&idle>GVB_IDLE_MS&&!gvb.busy.claim;
+  if(claim){ /* remembered: a click is only good for the opener and the round it was offered for */
+   gvb.claimFor=trig;gvb.claimN=waves.length;
+   const act=gvbActive(d); /* the pot is only claimed by a seat still in the duel - one that sat out gave it to the other seat */
+   $('gvbClaim').textContent='⏱ '+nameOf(trig)+' is gone - '+(act.length<=2&&act.includes(me)?'claim the pot':'skip them (they forfeit)');
+  }
+  $('gvbClaim').style.display=claim?'inline-block':'none';
  }
+}
+function gvbStartRoll(){ /* the locks are read where they live: two re-locks at once started a duel on a stake one seat had just replaced */
+ if(gvb.busy.roll||Date.now()-gvb.rollTry<2000)return;
+ gvb.busy.roll=true;gvb.rollTry=Date.now();
+ const ref=gvb.ref,gen=gvb.gen;
+ gvbTx(ref,(d,tx)=>{
+  if(!d||d.state!=='bet'||!gvbAllLocked(d))return false;
+  tx.update(ref,{state:'roll',bet:d.players[d.order[0]].bet});return true;
+ }).then(()=>{if(gen===gvb.gen)gvb.busy.roll=false;});
+}
+function gvbPay(d){ /* the stake leaves your pocket the moment the duel starts - and only the stake this screen locked itself */
+ gvb.paid=true;gvb.rollAt=Date.now();
+ const me=gvb.pid,mine=d.players[me]||{},lk=gvb.lock;
+ if(d.forfeits[me]||d.result){gvb.out='The duel went on without you - nothing was taken';stageMsg(gvb.out,2600);sfx.warn();return;} /* back after the table moved on */
+ const why=!lk||!mine.ok||lk.bet!==d.bet||lk.r!==d.rounds?'The stake changed - you sit this one out (nothing was taken)'
+  :totalGold()<d.bet?'You no longer carry the stake - you sit this one out (nothing was taken)':'';
+ if(why){gvb.out=why;stageMsg(why,2600);sfx.warn();gvbQuitTx(gvb.ref,me);return;}
+ spendGold(d.bet);gvb.stake=d.bet;gvb.seats=d.order.length;
+ gvb.take={n:d.bet,id:S.id||null,hero:S,seats:d.order.length,kept:false,back:false,done:false}; /* the stake's own account, and whose it is: kept once the room holds it (then done once its verdict is paid), else back once */
+ save();renderHUD();
+ gvbPayTx();
+}
+function gvbPayTx(){ /* the stake goes on the room's record - unless the table has gone on without this seat: then it comes back */
+ const ref=gvb.ref,me=gvb.pid,gen=gvb.gen,stake=gvb.stake,tk=gvb.take;
+ if(!ref||!stake||gvb.busy.pay)return;
+ gvb.busy.pay=true;
+ gvb.payP=gvbTx(ref,(d,tx)=>{
+  if(!d)return 'no';
+  if(d.paid[me])return 'paid';
+  if(d.state!=='roll'||d.forfeits[me]||d.result||d.bet!==stake||!d.order.includes(me))return 'no';
+  const res=gvbDecide(Object.assign({},d,{paid:Object.assign({},d.paid,{[me]:true})}));
+  tx.update(ref,Object.assign({['paid.'+me]:true},res?{result:res}:{}));
+  return 'paid';
+ }).then(r=>{
+  const here=gen===gvb.gen;
+  if(here)gvb.busy.pay=false;
+  if(r.ok&&r.value==='no'){ /* the room said no - nothing of it went on the record, so it goes back to the hero that paid it */
+   const back=gvbBack(tk); /* once: a Leave's own answer may have given it back already */
+   if(here){gvb.stake=0;gvb.out='The duel went on without you - your stake came back';stageMsg(gvb.out,2600);gvbRender();}
+   else if(back)stageMsg('Your stake never reached the table - it came back',2600); /* the table was left meanwhile */
+  }else if(r.ok&&r.value==='paid'){if(tk)tk.kept=true;if(here){gvb.paidOk=true;gvbRender();}}
+  return r; /* no answer: the stake stays taken, as a stake on the table does, and the room is asked again */
+ });
+}
+function gvbSkipUnpaid(){ /* the pay window has shut: a seat that neither paid nor forfeited staked nothing, and sits the duel out */
+ const d0=gvb.doc,me=gvb.pid;
+ if(gvb.busy.skip||Date.now()-gvb.skipAt<3000||!d0||!(d0.paid[me]||d0.forfeits[me]||gvb.paidOk))return;
+ gvb.busy.skip=true;gvb.skipAt=Date.now();
+ const ref=gvb.ref,gen=gvb.gen;
+ gvbTx(ref,(d,tx)=>{
+  if(!d||d.state!=='roll'||d.result)return false;
+  const late=d.order.filter(p=>p!==me&&!d.paid[p]&&!d.forfeits[p]);if(!late.length)return false;
+  const f=Object.assign({},d.forfeits),upd={};late.forEach(p=>{f[p]=true;upd['forfeits.'+p]=true;});
+  const res=gvbDecide(Object.assign({},d,{forfeits:f}));if(res)upd.result=res;
+  tx.update(ref,upd);return true;
+ }).then(()=>{if(gen===gvb.gen)gvb.busy.skip=false;});
+}
+function gvbFinalize(){ /* this screen sees the duel decided and the room holds no verdict yet: the room writes down its own */
+ if(gvb.busy.fin||Date.now()-gvb.finAt<3000)return;
+ gvb.busy.fin=true;gvb.finAt=Date.now();
+ const ref=gvb.ref,gen=gvb.gen;
+ gvbTx(ref,(d,tx)=>{
+  if(!d||d.state!=='roll'||d.result)return false;
+  const res=gvbDecide(d);if(!res)return false;
+  tx.update(ref,{result:res});return true;
+ }).then(()=>{if(gen===gvb.gen)gvb.busy.fin=false;});
 }
 function gvbAnimateWave(w){
  gvb.animating=true;
+ const gen=gvb.gen;
  $('gvbTurnTxt').textContent='No more bets - the chests are opening…';
- $('gvbOpen').style.display='none';
+ $('gvbOpen').style.display='none';$('gvbClaim').style.display='none'; /* a claim pressed now would name the next opener, who is here */
  const d=gvb.doc,ord=(d&&d.order)||[];
  const pids=ord.filter(p=>w.o&&w.o[p]);
  const CARD=58,N=46,TARGET=40,dur=10400; /* every reel rides the same clock - Violet Halls pace */
@@ -14911,6 +15546,7 @@ function gvbAnimateWave(w){
  });
  const t0=performance.now();let lastTick=-1;
  (function anim(){
+  if(gen!==gvb.gen)return; /* the room was left mid-reel: this reel belongs to nobody now */
   const p2=Math.min(1,(performance.now()-t0)/dur);
   const e=1-Math.pow(1-p2,3);
   strips.forEach(s2=>{s2.strip.style.transform='translateX('+(s2.endX*e)+'px)';});
@@ -14926,110 +15562,188 @@ function gvbAnimateWave(w){
   gvbRender();
  })();
 }
-function gvbSettle(waves,winner,forfeit){
- if(gvb.settled)return;
+/* shows the room's verdict - and pays this screen when the room names it */
+function gvbSettle(res){
+ if(gvb.settled||!S||!gvb.doc||!res)return; /* no hero loaded (the account was opened elsewhere): nothing may be paid into nobody */
+ const d=gvb.doc,ord=d.order||[],me=gvb.pid,waves=gvbWaves(),stake=gvb.stake,tk=gvb.take;
+ if(stake>0&&!gvb.paidOk&&!d.paid[me]){gvbPayTx();return;} /* this seat's stake is not on the room's record yet: the room answers for it first (it comes back if the table went on without it) */
  gvb.settled=true;
- const d=gvb.doc,ord=d.order||[],me=gvb.pid;
- const pot=gvb.bet*gvbPaidCount(d); /* only stakes that were actually taken - never a seat that did not pay */
+ if(stake>0&&tk)tk.kept=true; /* on the room's record: the verdict's to give from here, never a pay's 'no' */
+ const paidMine=stake>0&&gvbMine(tk); /* only the hero that paid is paid - by his id */
+ const pot=paidMine?Math.min(res.pot,stake*Math.min(gvbPaidCount(d),gvb.seats)):res.pot; /* never more than this screen's own stake for each seat that paid and sat here when it paid - a rewritten stake once minted gold */
  if(gvb.ref)gvb.ref.update({['settled.'+me]:true}).catch(()=>{}); /* the room may close once every seat has its verdict */
  const board=ord.map(p=>esc((d.players[p]&&d.players[p].name)||'Hero')+' '+gvbScoreOf(waves,p)+'⚙').join(' · ');
- const iWon=winner===me;
- if(iWon){ /* winner takes ALL stakes */
-  const {over}=addGoldOverflow(pot);
-  dingDingDing(true);spawnPartsIn($('gvbFx'),'#ffd76a',24);
-  log(`Gamble against friend: <span class="llegendary">VICTORY - the whole ${pot.toLocaleString()} ◉ pot is yours</span> (${board})${over?' ('+over.toLocaleString()+' overflow)':''}!`,'loot');
- }else{
-  log(`Gamble against friend: lost the duel (${board}) - ${gvb.bet.toLocaleString()} ◉ gone.`);
- }
- save();renderHUD();
+ const iWon=res.w===me&&paidMine,back=iWon&&pot<=stake,none=!res.w&&paidMine; /* back: nobody else paid, so it is only your own stake returning. none: nobody was left to win - each stake goes back */
+ if(iWon||none){ /* winner takes ALL stakes - through the stake's token, so it is paid once */
+  const r=gvbDue(tk,iWon?pot:stake);
+  if(r&&none)log(`Gamble against friend: nobody was left to win - your ${stake.toLocaleString()} ◉ stake comes back.`);
+  else if(r&&back)log(`Gamble against friend: nobody else could pay - your ${pot.toLocaleString()} ◉ stake comes back.`);
+  else if(r){
+   dingDingDing(true);spawnPartsIn($('gvbFx'),'#ffd76a',24);
+   log(`Gamble against friend: <span class="llegendary">VICTORY - the whole ${pot.toLocaleString()} ◉ pot is yours</span> (${board})${r.over?' ('+r.over.toLocaleString()+' overflow)':''}!`,'loot');
+  }
+ }else if(stake>0)log(`Gamble against friend: lost the duel (${board}) - ${stake.toLocaleString()} ◉ gone.`);
+ else log(`Gamble against friend: sat out the duel (${board}) - nothing was staked.`);
+ gvbKeep(S); /* a teardown pays here too, as its hero is put away */
  gvbShow('gvbDone');
- const wName=esc((d.players[winner]&&d.players[winner].name)||'Winner');
- $('gvbDoneTxt').innerHTML=(iWon?'🏆 <b style="color:#ffd76a">YOU WIN THE POT':'💀 <b style="color:#ff8a7a">'+wName+' TAKES THE POT')+`</b><br><span style="font-size:14px">${board}${forfeit?' · by forfeit':''} · pot ${pot.toLocaleString()}◉</span>`;
+ const wName=esc((d.players[res.w]&&d.players[res.w].name)||'Winner');
+ $('gvbDoneTxt').innerHTML=(back?'↩ <b style="color:#ffd76a">YOUR STAKE COMES BACK':iWon?'🏆 <b style="color:#ffd76a">YOU WIN THE POT':res.w?'💀 <b style="color:#ff8a7a">'+wName+' TAKES THE POT':'⚖ <b style="color:#ff8a7a">NOBODY WINS')
+  +`</b><br><span style="font-size:14px">${board}${back?' · nobody else could pay':res.f&&res.w?' · by forfeit':''}${res.w?' · pot '+pot.toLocaleString()+'◉':' · every stake goes back'}</span>`;
 }
-/* the hero is being put away (the hero list): leave the duel the way the Leave button would, without asking */
-function gvbLeaveForSwitch(){
- const d=gvb.doc,ref=gvb.ref,me=gvb.pid;
+function gvbQuit(){ /* Leave mid-duel, confirmed: the window goes at once, and the room settles with this seat in the background. It
+   used to wait on the cloud with Open still up - 12 s, 24 s with a stake on its way - and a second Leave did nothing */
+ const ref=gvb.ref,me=gvb.pid,tk=gvb.take,pay=gvb.payP;
+ if(!ref)return;
  gvb.closedByMe=true;
+ gvbCleanup();
+ gvbQuitBg(ref,me,tk,pay);
+}
+/* the hero is being put away (the hero list, a logout, the account opened elsewhere, entering the world): leave the duel the way
+   Leave would, without asking. It runs before S is dropped (or after), must never throw, and a Create or Join still in flight
+   is called off - what lands is shut or unseated there */
+function gvbLeaveForSwitch(){
+ try{$('gvbFx').style.display='none';}catch(e){} /* the window goes first, whatever the room still owes */
  try{
-  if(d&&d.state==='roll'&&!gvb.settled)ref.update({['forfeits.'+me]:true}).catch(()=>{});
-  else if(d&&(d.state==='lobby'||d.state==='bet')){
-   if(d.host===me)ref.update({state:'closed'}).catch(()=>{});
-   else ref.update({['players.'+me]:null,order:firebase.firestore.FieldValue.arrayRemove(me)}).catch(()=>{});
+  const d=gvb.doc,ref=gvb.ref,me=gvb.pid;
+  gvb.closedByMe=true;
+  if(ref&&me&&!gvb.op){
+   if(gvb.settled){if(d&&gvbActive(d).every(p=>p===me||(d.settled&&d.settled[p])))ref.update({state:'closed'}).catch(()=>{});}
+   else{
+    if(d&&d.state==='roll'&&d.result&&(d.result.w===me||d.result.w===null))gvbSettle(d.result); /* the room already named this hero, or nobody: paid (or the stake given back) now, while it is still the hero */
+    if(!gvb.settled)gvbQuitBg(ref,me,gvb.take,gvb.payP); /* the rest is the room's answer: a seat leaves as Leave leaves, and a verdict this
+      screen has not seen yet - or a stake the room never took - still reaches the hero that paid, if he is the one in play when it comes
+      (by his id: the hero list loads him anew) */
+   }
   }
  }catch(e){}
- gvbCleanup();
+ try{gvbCleanup();}catch(e){}
 }
+function gvbKick(p){ /* the host clears a seat nobody answers for - a closed game, or the ghost of a double click, held the table for good */
+ const ref=gvb.ref,me=gvb.pid;
+ if(!S||!ref||!gvb.doc||gvb.doc.host!==me||p===me||!GVB_PID.test(String(p)))return;
+ gvbTx(ref,(d,tx)=>{
+  if(!d||d.host!==me||(d.state!=='lobby'&&d.state!=='bet')||!d.order.includes(p))return false;
+  tx.update(ref,{['players.'+p]:null,order:firebase.firestore.FieldValue.arrayRemove(p)});return true;
+ });
+}
+['gvbPlayers','gvbBetStat'].forEach(id=>{$(id).onclick=e=>{const b=e&&e.target&&e.target.closest&&e.target.closest('[data-gvbkick]');if(b)gvbKick(b.dataset.gvbkick);};});
 $('gvbCreate').onclick=gvbCreate;
 $('gvbJoin').onclick=()=>gvbJoin($('gvbCode').value);
+/* every button answers only in its own part of the duel: a hidden one could still be pressed (the pad's focus stayed on it, or the
+   keyboard's) - Ready un-readied a seat in the middle of a duel */
 $('gvbReady').onclick=async()=>{
- if(!gvb.ref||!gvb.doc)return;
+ if(!S||!gvb.ref||!gvb.doc||gvb.doc.state!=='lobby')return;
  const mine=(gvb.doc.players||{})[gvb.pid]||{};
- await gvb.ref.update({['players.'+gvb.pid+'.ready']:!mine.ready});
+ await gvb.ref.update({['players.'+gvb.pid+'.ready']:!mine.ready}).catch(()=>{});
 };
 $('gvbStart').onclick=async()=>{
  const d=gvb.doc;
- if(!d||d.host!==gvb.pid)return;
- const ord=d.order||[],P=d.players||{};
- if(ord.length<2||!ord.every(p=>P[p]&&P[p].ready))return;
- await gvb.ref.update({state:'bet'});
+ if(!S||!d||d.state!=='lobby'||d.host!==gvb.pid||gvb.busy.start)return;
+ const ref=gvb.ref,me=gvb.pid,gen=gvb.gen;
+ gvb.busy.start=true;
+ await gvbTx(ref,(d2,tx)=>{ /* the seats as the room has them: every one here, ready, and on this build */
+  if(!d2||d2.state!=='lobby'||d2.host!==me||d2.order.length<2||!d2.order.every(p=>d2.players[p]&&d2.players[p].ready&&!gvbOld(d2.players[p])))return false;
+  tx.update(ref,{state:'bet',rounds:d2.order.length>5?10:d2.rounds});return true;
+ });
+ if(gen===gvb.gen)gvb.busy.start=false;
 };
-document.querySelectorAll('[data-gvbbet]').forEach(b=>b.onclick=()=>{$('gvbBetIn').value=+b.dataset.gvbbet;});
-document.querySelectorAll('[data-gvbr]').forEach(b=>b.onclick=async()=>{
- if(!gvb.ref||!gvb.doc||gvb.doc.host!==gvb.pid||gvb.doc.state!=='bet')return;
- await gvb.ref.update({rounds:+b.dataset.gvbr});
+document.querySelectorAll('[data-gvbbet]').forEach(b=>b.onclick=()=>{if(S)$('gvbBetIn').value=+b.dataset.gvbbet;});
+document.querySelectorAll('[data-gvbr]').forEach(b=>b.onclick=()=>{
+ const d=gvb.doc,r=+b.dataset.gvbr;
+ if(!S||!gvb.ref||!d||d.host!==gvb.pid||d.state!=='bet'||r===d.rounds||gvb.busy.rounds)return;
+ if(r===5&&d.order.length>5){stageMsg('6+ players play 10 rounds',1600);sfx.warn();return;}
+ const ref=gvb.ref,me=gvb.pid,gen=gvb.gen;
+ gvb.busy.rounds=true;
+ gvbTx(ref,(d2,tx)=>{ /* read where the room lives: a switch that landed on a room already rolling cleared every lock under the stakes */
+  if(!d2||d2.state!=='bet'||d2.host!==me||d2.rounds===r||(r===5&&d2.order.length>5))return false;
+  const upd={rounds:r};d2.order.forEach(p=>{if(d2.players[p])upd['players.'+p+'.ok']=false;}); /* the locks were made for the old count: everyone locks again */
+  tx.update(ref,upd);return true;
+ }).then(()=>{if(gen===gvb.gen)gvb.busy.rounds=false;});
 });
 $('gvbBetLock').onclick=async()=>{
- if(!gvb.ref||!gvb.doc)return;
- const n=Math.floor(+$('gvbBetIn').value||0);
- const P=gvb.doc.players||{};
- const locked=(gvb.doc.order||[]).filter(p=>p!==gvb.pid).map(p=>P[p]).find(pl=>pl&&pl.ok&&pl.bet>0); /* someone else's lock - re-locking my own must be able to move it */
+ const d=gvb.doc;
+ if(!S||!gvb.ref||!d||d.state!=='bet')return;
+ const n=Math.floor(+$('gvbBetIn').value||0),rds=d.rounds;
+ const P=d.players||{};
+ const locked=(d.order||[]).filter(p=>p!==gvb.pid).map(p=>P[p]).find(pl=>pl&&pl.ok&&pl.r===rds&&pl.bet>0); /* someone else's lock - re-locking my own must be able to move it */
  if(n<1000){stageMsg('Minimum stake 1,000◉',1400);sfx.warn();return;}
  if(locked&&n!==locked.bet){stageMsg('Must match the table stake: '+locked.bet.toLocaleString()+'◉',1800);sfx.warn();return;}
  if(totalGold()<n){stageMsg('You must carry the full stake - '+n.toLocaleString()+'◉',1800);sfx.warn();return;}
- await gvb.ref.update({['players.'+gvb.pid+'.bet']:n,['players.'+gvb.pid+'.ok']:true});
+ gvb.lock={bet:n,r:rds}; /* what this screen agreed to - the only stake it will ever pay */
+ await gvb.ref.update({['players.'+gvb.pid+'.bet']:n,['players.'+gvb.pid+'.ok']:true,['players.'+gvb.pid+'.r']:rds}).catch(()=>{});
 };
 $('gvbOpen').onclick=async()=>{
- if(!gvb.ref||!gvb.doc||gvb.animating)return;
  const d=gvb.doc;
- const waves=gvbWaves();
- if(gvbTrigger(d,waves)!==gvb.pid)return;
- const o={};gvbContenders(d,waves).forEach(p=>{o[p]=gvbOutcome();}); /* one chest per contender, all at once - spectators just watch */
- const w={seed:Math.floor(Math.random()*1e9),o};
- $('gvbOpen').style.display='none';
- gvb.rtcWaves[waves.length]=w;             /* my reels start this frame */
- gvbRtcBroadcast({k:'wave',i:waves.length,wave:w}); /* everyone else's start within milliseconds */
+ if(!S||!gvb.ref||!d||d.state!=='roll'||gvb.settled||gvb.animating||gvb.opening)return;
+ const waves=gvbWaves(),ref=gvb.ref,me=gvb.pid,gen=gvb.gen,i=waves.length;
+ if(d.result||!gvbStakesIn(d)||gvbTrigger(d,waves)!==me)return;
+ gvb.opening=true;$('gvbOpen').style.display='none';$('gvbTurnTxt').textContent='Opening…';
+ /* the round is dealt where the room is read: only the opener the room names, only the next round, never twice, never after the
+    verdict. The verdict, if this round decides it, is written with it */
+ const r=await gvbTx(ref,(d2,tx)=>{
+  if(!d2||d2.state!=='roll'||d2.result||!gvbStakesIn(d2))return null;
+  const W=gvbWavesOf(d2.waves);
+  if(W.length!==i||gvbTrigger(d2,W)!==me||gvbWinner(d2,W))return null;
+  const o={};gvbContenders(d2,W).forEach(p=>{o[p]=gvbOutcome();}); /* one chest per contender, all at once - spectators just watch */
+  const w={seed:Math.floor(Math.random()*1e9),o};
+  const res=gvbDecide(Object.assign({},d2,{waves:Object.assign({},d2.waves,{[i]:w})}));
+  tx.update(ref,Object.assign({['waves.'+i]:w},res?{result:res}:{}));
+  return w;
+ });
+ if(gen!==gvb.gen)return;
+ gvb.opening=false;
+ if(r.ok&&r.value){
+  gvb.rtcWaves[i]=r.value;                     /* my reels start this frame */
+  gvbRtcBroadcast({k:'wave',i,wave:r.value}); /* everyone else's start within milliseconds - only a round the room holds is ever sent */
+ }else if(!r.ok){stageMsg('No answer from the table - try again',1800);sfx.warn();}
  gvbRender();
- gvb.ref.update({['waves.'+waves.length]:w}).catch(()=>{}); /* Firestore trails behind as the record */
 };
 $('gvbClaim').onclick=async()=>{
- if(!gvb.ref||!gvb.doc)return;
- const trig=gvbTrigger(gvb.doc,gvbWaves());
- if(!trig||trig===gvb.pid||Date.now()-gvb.lastChange<120000)return;
- await gvb.ref.update({['forfeits.'+trig]:true}); /* the absent opener forfeits - the rotation moves on */
+ const d=gvb.doc;
+ if(!S||!gvb.ref||!d||d.state!=='roll'||gvb.settled||gvb.busy.claim||gvb.animating||d.result)return;
+ const W=gvbWaves(),trig=gvbTrigger(d,W),ref=gvb.ref,gen=gvb.gen,n=W.length;
+ if(!trig||trig===gvb.pid||trig!==gvb.claimFor||n!==gvb.claimN||Date.now()-gvb.lastChange<GVB_IDLE_MS)return; /* the button was offered for another moment */
+ gvb.busy.claim=true;$('gvbClaim').style.display='none';
+ /* checked where the room lives: the same opener, the same round, no verdict yet. A screen cut off from the room cannot claim */
+ const r=await gvbTx(ref,(d2,tx)=>{
+  if(!d2||d2.state!=='roll')return false;
+  if(d2.forfeits[trig])return 'had'; /* skipped already - perhaps by this very click, run again after its answer was lost */
+  if(d2.result||!gvbStakesIn(d2))return false;
+  const W2=gvbWavesOf(d2.waves);
+  if(W2.length!==n||gvbTrigger(d2,W2)!==trig||gvbWinner(d2,W2))return false;
+  const res=gvbDecide(Object.assign({},d2,{forfeits:Object.assign({},d2.forfeits,{[trig]:true})}));
+  tx.update(ref,Object.assign({['forfeits.'+trig]:true},res?{result:res}:{})); /* the absent opener forfeits - the rotation moves on */
+  return true;
+ });
+ if(gen!==gvb.gen)return;
+ gvb.busy.claim=false;
+ if(!r.ok){stageMsg('No answer from the table yet',2000);sfx.warn();} /* the cloud may still carry it: the next snapshot tells */
+ else if(!r.value)stageMsg('The table moved on - nothing was claimed',1800);
+ gvbRender();
 };
 $('gvbLeave').onclick=()=>{
  const d=gvb.doc;
- if(!d){$('gvbFx').style.display='none';casinoAmbApply();return;}
+ if(!S||!d||!gvb.ref){gvbLeaveForSwitch();return;} /* no room yet (a create or join in flight is called off), or no hero: the window closes all the same */
  if(d.state==='roll'&&!gvb.settled){
-  confirmBox('Leave mid-duel? You forfeit - your stake stays in the pot for the winner.',async()=>{
-   gvb.closedByMe=true;
-   try{await gvb.ref.update({['forfeits.'+gvb.pid]:true});}catch(e){}
-   gvbCleanup();
+  if(d.result){gvbSettle(d.result);if(!gvb.settled)gvbQuit();return;} /* the verdict is already in: shown at once, and Leave again closes - unless this seat's stake is still unanswered: then it leaves, and the room answers for it (Leave did nothing until the room had answered) */
+  if(!(gvb.stake>0&&!d.forfeits[gvb.pid])){gvbQuit();return;} /* nothing staked, or out of the duel already: nothing to lose, nothing to ask */
+  const gen=gvb.gen;
+  confirmBox('Leave mid-duel? You forfeit - your stake stays in the pot for the winner.',()=>{
+   if(gen!==gvb.gen||!gvb.ref)return; /* the confirm outlived its room */
+   if(gvb.settled||(gvb.doc&&gvb.doc.result)){$('gvbLeave').onclick();return;} /* the verdict landed under the confirm: shown, or left as a settled seat - a forfeit now made a second winner */
+   gvbQuit();
   });
   return;
  }
  gvb.closedByMe=true;
- (async()=>{
-  try{
-   if(d.state==='roll'&&gvb.settled){
-    /* the verdict is in on this screen, perhaps not yet on a slower one: closing the room now would
-       tear the winner's client down before it pays out, so only the last seat to settle closes it */
-    if(gvbActive(d).every(p=>p===gvb.pid||(d.settled&&d.settled[p])))await gvb.ref.update({state:'closed'});
-   }else if(d.host===gvb.pid)await gvb.ref.update({state:'closed'});
-   else await gvb.ref.update({['players.'+gvb.pid]:null,order:firebase.firestore.FieldValue.arrayRemove(gvb.pid)});
-  }catch(e){}
-  gvbCleanup();
- })();
+ try{
+  if(d.state==='roll'){
+   /* the verdict is in on this screen, perhaps not yet on a slower one: closing the room now would
+      tear the winner's client down before it pays out, so only the last seat to settle closes it */
+   if(gvbActive(d).every(p=>p===gvb.pid||(d.settled&&d.settled[p])))gvb.ref.update({state:'closed'}).catch(()=>{});
+  }else gvbQuitBg(gvb.ref,gvb.pid,gvb.take,gvb.payP); /* before the duel, read where the room lives: a room this screen still saw in 'bet' may be rolling, stakes and all - then this seat leaves as a seat of the duel */
+ }catch(e){}
+ gvbCleanup(); /* never waits on the cloud: a silent one left the window stuck open */
 };
 /* ==================== ❄ ICE ARMOR TALENT TREE ====================
    Opened from the Armor Altar. Points come from felling the Forsaken One.
@@ -17224,10 +17938,11 @@ setInterval(()=>{
 },1000);
 /* 🎵 casino ambience - one track for every casino window, Slots included: it used to run its
    own song there, which meant walking between two rooms of the same building changed the music.
-   Zone ambience ducks under it, and comes back when you leave. */
+   Zone ambience ducks under it, and comes back when you leave. Sebbe's table is a street game and
+   keeps the City's sound; the Final Gate's box is no casino at all. */
 let casinoAudio=null;
 function casinoAmbApply(){
- const anyOpen=['casinoMenu','slotFx','seaFx','bjFx','rouFx','rtbFx','sebbeFx','finalGateFx'].some(id=>{const e=$(id);return e&&e.classList.contains('open');})||($('gvbFx')&&$('gvbFx').style.display==='flex');
+ const anyOpen=['casinoMenu','slotFx','seaFx','bjFx','rouFx','rtbFx'].some(id=>{const e=$(id);return e&&e.classList.contains('open');})||($('gvbFx')&&$('gvbFx').style.display==='flex');
  if(anyOpen){
   if(!casinoAudio){casinoAudio=new Audio('ambientsong/casino_ambient.mp3');casinoAudio.loop=true;casinoAudio.onerror=()=>{casinoAudio=null;};} /* a dead element is dropped, so the next open makes a new one */
   const v=ambVol();casinoAudio.volume=v;casinoAudio.muted=v<=0;
@@ -17261,23 +17976,23 @@ document.querySelectorAll('.casinopick').forEach(b=>b.onclick=()=>{
  else if(g==='gvb')openGVB();
  casinoAmbApply();
 });
-setInterval(()=>{if(gvb.doc&&gvb.doc.state==='roll'&&!gvb.animating&&!gvb.settled)gvbRender();},5000); /* keeps the forfeit-claim timer alive when the opponent stops sending snapshots */
+setInterval(()=>{if(gvb.doc&&gvb.doc.state==='roll'&&!gvb.animating&&!gvb.settled)gvbRender();else if(S&&gvb.doc&&gvb.doc.state==='bet'&&gvb.doc.host===gvb.pid&&gvbAllLocked(gvb.doc))gvbStartRoll();},1000); /* the silent-opener clock, the opener's countdown and the pay window run on it when the table sends no snapshots - and a roll start the room did not answer is asked again */
 
 function renderShop(){
  $('shopWallet').innerHTML=walletStr();
  let h='<div class="ptitle" style="font-size:14px;margin-bottom:8px">Gamble</div>';
- const gQty=chestQty.gamba,gTot=CASE_COST*gQty;
+ const gQty=chestQty.gamba,gTot=CASE_COST*gQty,lock=caseLockOn(); /* 🔒 no chests where gear is locked, like the potions in a boss fight */
  const goQty=chestQty.gold;
  const free=S.freeGoldCases||0;
- const goFree=Math.min(free,goQty),goPaid=goQty-goFree,goTot=GOLD_COST*goPaid;
+ const gb=caseBatch('gold',goQty),goFree=gb.free,goTot=gb.cost; /* free cases open even when the paid rest is out of reach */
  h+=`<div class="card item gcard-chest" style="border-color:var(--brass-deep)"><div><div class="sn" style="font-size:13px;font-weight:600;color:var(--brass)">${uiIcon('it_chest','🎁','shopico')} GAMBAAA!</div>
-  <div class="ss" style="color:var(--dim);font-size:11px">A sealed chest of unknown origin. Holds a random weapon, armor piece or scroll - most are humble, but legends whisper of epic prizes within.</div></div>
-  <div class="btns"><button class="sbtn gold" id="chestBtn" ${totalGold()<gTot?'disabled':''}>${gTot.toLocaleString()}◉</button>
+  <div class="ss" style="color:var(--dim);font-size:11px">A sealed chest of unknown origin. Holds a random weapon, armor piece or scroll - most are humble, but legends whisper of epic prizes within. Now and then, farm stock: 🌾 hay seeds, a 🐔 chicken or a 🐄 calf.</div></div>
+  <div class="btns"><button class="sbtn gold" id="chestBtn" ${totalGold()<gTot||lock?'disabled':''}>${gTot.toLocaleString()}◉</button>
   <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gamba" data-d="-1" ${gQty<=1?'disabled':''}>−</button><span class="qtynum">${gQty}x</span><button class="qtybtn" data-case="gamba" data-d="1" ${gQty>=5?'disabled':''}>+</button></div><div class="qtytotal">Total: ${gTot.toLocaleString()}◉</div></div></div></div>`;
  h+=`<div class="card item gcard-chest" style="border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.15)"><div><div class="sn" style="font-size:13px;font-weight:600;color:#ffd76a">${uiIcon('it_gold','💰','shopico')} GOLD GOLD GOLD${free?` <span style="color:#9adf9a;font-size:11px">· ${free} FREE</span>`:''}</div>
- <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common or fine junk - only rare and epic gear, a slim chance at a Tier II scroll, a tiny chance at Rimfrost, and whispers of a 🐾 loyal companion within.${free?' <b style="color:#9adf9a">ODIN\u2019s hoard covers your next '+free+' case'+(free>1?'s':'')+'.</b>':''}</div></div>
- <div class="btns"><button class="sbtn gold" id="goldChestBtn" ${totalGold()<goTot?'disabled':''}>${goTot>0?goTot.toLocaleString()+'◉':'FREE'}</button>
- <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gold" data-d="-1" ${goQty<=1?'disabled':''}>−</button><span class="qtynum">${goQty}x</span><button class="qtybtn" data-case="gold" data-d="1" ${goQty>=5?'disabled':''}>+</button></div><div class="qtytotal">${goFree?goFree+' free · ':''}Total: ${goTot.toLocaleString()}◉</div></div></div></div>`;
+ <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common or fine junk - only rare and epic gear, a slim chance at a Tier II scroll or a 🐂 bull for the farm, a tiny chance at Rimfrost, and whispers of a 🐾 loyal companion within.${free?' <b style="color:#9adf9a">Your next '+free+' case'+(free>1?'s are':' is')+' free.</b>':''}</div></div>
+ <div class="btns"><button class="sbtn gold" id="goldChestBtn" ${totalGold()<goTot||lock?'disabled':''}>${goTot>0?goTot.toLocaleString()+'◉':'FREE'}</button>
+ <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gold" data-d="-1" ${goQty<=1?'disabled':''}>−</button><span class="qtynum">${goQty}x</span><button class="qtybtn" data-case="gold" data-d="1" ${goQty>=5?'disabled':''}>+</button></div><div class="qtytotal">${gb.n<goQty?gb.n+' of '+goQty+' · ':''}${goFree?goFree+' free · ':''}Total: ${goTot.toLocaleString()}◉</div></div></div></div>`;
 
  
  h+='<div class="ptitle" style="font-size:14px;margin:14px 0 8px">Supplies</div>';
@@ -17397,7 +18112,12 @@ const REST_SEGS=[10,15,20,10,15,20]; /* equal odds - 10/15/20% ×2 each */
 const REST_COLS={10:'#6dbb6d',15:'#5b9bd5',20:'#ffd76a'};
 const REST_CD=86400; /* seconds between spins */
 let restSpinning=false,restRot=-Math.PI/2;
-const restCdLeft=()=>Math.max(0,REST_CD-((Date.now()-(S.restedSpinAt||0))/1000));
+/* never more than REST_CD, shown or enforced: a clock set back mid-session put the spin "in the future" and the lock read
+   "Next Rested in 48h". The wait starts again from now, as migrate does for a loaded save */
+const restCdLeft=()=>{
+ if(S.restedSpinAt>Date.now())S.restedSpinAt=Date.now();
+ return Math.min(REST_CD,Math.max(0,REST_CD-((Date.now()-(S.restedSpinAt||0))/1000)));
+};
 function drawRestWheel(rot){
  const c=$('restWheel'),g=c.getContext('2d'),W=c.width,cx=W/2,cy=W/2,R=cx-14;
  g.clearRect(0,0,W,W);
@@ -17601,9 +18321,23 @@ const FB_PUSH_MS=60000;
    gets frozen mid-push must retry on the next run, not forget it ever had work to do. */
 function flushCloud(){
  if(!(FB.pushDirty&&FB.ready&&FB.user&&S&&S.id)||FB.kicked)return;
- const at=Date.now();
+ const at=Date.now(),id=S.id,rev=S.rev,snap=JSON.parse(JSON.stringify(saveSnapshot())); /* the hero as of this push, and its rev - cloudPushChar makes its own copy only after its reads */
  FB.lastPush=at;
- cloudPushChar(saveSnapshot()).then(ok=>{if(ok&&FB.lastPush===at)FB.pushDirty=false;}); /* a newer push owns the flag */
+ /* a newer push owns the flag - and so does a save made while this one was on its way: it is not in this copy, and a stake
+    saved in that second was marked sent and never went up, not even on close */
+ cloudPushChar(snap).then(ok=>{if(ok&&FB.lastPush===at&&S&&S.id===id&&S.rev===rev)FB.pushDirty=false;});
+}
+/* 💾 localStorage reaches the disk when Chromium gets round to it - a minute behind for a small hero, minutes for a big one -
+   and a hard kill (End task) loses what it had not written: a paid stake came back on the next launch. The desktop shell
+   writes it down when asked. At most once a second: the first save of a quiet second goes down at once, the rest at the end
+   of that second. The web build has no shell to ask. */
+let diskFlushAt=-1e9,diskFlushT=0;
+function flushDisk(){
+ const d=window.desktop;
+ if(!d||typeof d.flushStorage!=='function'||diskFlushT)return; /* one already booked for the end of this second carries this save too */
+ const go=()=>{diskFlushT=0;diskFlushAt=performance.now();try{Promise.resolve(d.flushStorage()).catch(()=>{});}catch(e){}}; /* a shell that cannot must never fail the save */
+ const wait=diskFlushAt+1000-performance.now(); /* performance.now: a clock set back must not hold the next flush */
+ if(wait<=0)go();else diskFlushT=setTimeout(go,wait);
 }
 /* 👑 What is written down. The Throne Hall is a room of the City, and it is the newest index in the
    zone table - an older build (the packaged exe of two days ago, a stale browser tab) has no such
@@ -17630,6 +18364,7 @@ async function save(){
  S.rev=(S.rev|0)+1;S.savedAt=Date.now(); /* rev decides merges; savedAt is only for support */
  memChars[S.id]=JSON.stringify(saveSnapshot());
  await deviceSet('riptide-char-'+S.id,memChars[S.id]);
+ flushDisk();
  if(FB.ready&&FB.user){
   FB.pushDirty=true;
   if(Date.now()-(FB.lastPush||0)>FB_PUSH_MS)flushCloud();
@@ -17642,12 +18377,13 @@ async function saveNow(){
  if(!S||!S.id||FB.kicked||heroDeleted(S.id))return;
  S.rev=(S.rev|0)+1;S.savedAt=Date.now();
  savedSig=saveSig(saveSnapshot());
- memChars[S.id]=JSON.stringify(saveSnapshot());
- await deviceSet('riptide-char-'+S.id,memChars[S.id]);
+ const id=S.id,rev=S.rev,json=memChars[S.id]=JSON.stringify(saveSnapshot());
+ await deviceSet('riptide-char-'+id,json);
+ flushDisk();
  if(FB.ready&&FB.user){
   FB.pushDirty=true; /* until it lands: a push that bounces or fails is retried by the trailing flush */
   FB.lastPush=Date.now();
-  if(await cloudPushChar(saveSnapshot()))FB.pushDirty=false;
+  if(await cloudPushChar(JSON.parse(json))&&S&&S.id===id&&S.rev===rev)FB.pushDirty=false; /* this save goes up as saved; one made while it was on its way keeps the flag */
  }
  publishLB(S,true);
 }
@@ -18428,6 +19164,7 @@ function updateAcctUI(){
  }
 }
 function showLogin(msg=''){
+ closeCasinoWindows(); /* 🎰 signed out or kicked by another device: the tables go with the hero, while S is still his */
  spotStamp(true); /* 🧭 where this hero is being left */
  dismissHeroGuide();
  TideUI.leaveZone();
@@ -18561,6 +19298,7 @@ async function renderSelect(){
  $('newCharBtn').style.display=chars.length>=8?'none':'block';
 }
 function showSelect(){
+ closeCasinoWindows(); /* 🎰 first, while S is still the hero: a table hands back what is his (free spins), and a save it makes is parked with him below */
  spotStamp(true); /* 🧭 where this hero is being left */
  dropFarmBuild(); /* the cart and any held piece belong to the hero being left */
  cancelHallScenes(); /* and so does any scene */
@@ -18641,17 +19379,52 @@ $('startHcBtn').onclick=()=>{
 };
 $('createBack').onclick=()=>{$('create').style.display='none';$('create').classList.remove('open');showSelect();};
 $('newCharBtn').onclick=()=>showCreate(false);
-/* a round on a casino table belongs to the hero who paid for it: its payout (and a bought bonus) must not land on the next one */
+/* a round on a casino table belongs to the hero who paid for it: its payout (and a bought bonus) must not land on the next one.
+   Nor may an idle window stay open: it outlived the hero list with its free spins and its next round, and paid the next hero */
 function casinoRoundOpen(){
  const busy=seaSpinning||slotSpinning||bjLive||bjResolving||rouSpinning||rtbLive||cupState==='shuffling'||cupState==='picking';
- if(busy){stageMsg('Finish the game on the table first.',1600);sfx.warn();}
- return busy;
+ const open=casinoWinOpen(true);
+ if(busy||open){stageMsg(busy?'Finish the game on the table first.':open.id==='chestFx'?'Close the chest first.':'Close the game first.',1600);sfx.warn();}
+ return busy||!!open;
 }
+/* 🎰 the hero is put away - the hero list, signing out, a kick from another device - and every casino window goes with him.
+   None of them is a .panel, so nothing closed them: a table stayed up over the hero list and the login screen, its free
+   spins and its round still in memory. Each game puts its own table away (<game>Teardown, next to its open function) and
+   must not throw, even with S gone; one this build lacks is skipped, and one that fails does not stop the rest. */
+function closeCasinoWindows(){
+ const down=f=>{try{f();}catch(e){console.warn('casino teardown failed',e);}};
+ if(typeof slotTeardown==='function')down(slotTeardown);
+ if(typeof seaTeardown==='function')down(seaTeardown);
+ if(typeof bjTeardown==='function')down(bjTeardown);
+ if(typeof rouTeardown==='function')down(rouTeardown);
+ if(typeof rtbTeardown==='function')down(rtbTeardown);
+ if(typeof cupTeardown==='function')down(cupTeardown);
+ if(typeof caseTeardown==='function')down(caseTeardown);
+ if(gvb.ref||gvb.op)down(gvbLeaveForSwitch); /* a stake on the duel's table is forfeited, as Leave does; a Create or Join still in flight (gvb.op) is called off */
+ const duel=$('gvbFx');if(duel&&duel.style.display==='flex')duel.style.display='none'; /* its entry screen or a verdict: nothing on the table */
+ $('casinoMenu').classList.remove('open');
+ down(casinoAmbApply);
+}
+/* 🎰 while a casino window, the duel or a chest reel is up, the page behind it is inert, so Tab stays in the window: it
+   walked out onto the hidden side panel, Change Character too, and Enter pressed it unseen. One observer on the windows'
+   class and style sees them open and close, whoever does it. Settings lives in #stageWrap and may stand above a table,
+   so it stays live; only what this made inert is let go again. body.casinoup lifts the stage's messages above the window
+   (style.css), and only while one is up: the narrow layout's side panel still covers them, as it always did. */
+let casinoInert=[];
+function casinoInertSync(){
+ const up=!!casinoWinOpen(true);
+ document.body.classList.toggle('casinoup',up);
+ if(!up){for(const el of casinoInert)el.inert=false;casinoInert=[];return;}
+ const behind=[...document.querySelectorAll('#app>header,#questcard,#app>.panel,#app>nav'),...[...$('stageWrap').children].filter(el=>el.id!=='cfgBox')];
+ for(const el of behind)if(!el.inert){el.inert=true;casinoInert.push(el);}
+}
+{const watch=new MutationObserver(casinoInertSync);
+ for(const id of ['casinoMenu','slotFx','seaFx','bjFx','rouFx','rtbFx','sebbeFx','gvbFx','chestFx'])if($(id))watch.observe($(id),{attributes:true,attributeFilter:['class','style']});}
 $('charSelBtn').onclick=async()=>{if(hcNoFlee()||sceneHoldsTravel()||casinoRoundOpen())return;dropFarmBuild();await save();showSelect();}; /* dropFarmBuild first: a half-dragged resize was saved into the hero being left */
 $('fbLogin').onclick=()=>fbSignIn(false);
 $('fbSignup').onclick=()=>fbSignIn(true);
 $('fbForgot').onclick=fbForgotPass;
-$('fbOut').onclick=async()=>{if(sessUnsub){sessUnsub();sessUnsub=null;}if(FB.auth)await FB.auth.signOut();FB.user=null;showLogin();};
+$('fbOut').onclick=async()=>{closeCasinoWindows();if(sessUnsub){sessUnsub();sessUnsub=null;}if(FB.auth)await FB.auth.signOut();FB.user=null;showLogin();}; /* 🎰 the tables first, while S is the hero and the cloud still takes the duel's writes - signed out, it refuses them */
 $('lbBtn2').onclick=showLeaderboard;
 $('lbClose').onclick=()=>{++leaderboardRequest;clearTimeout(leaderboardRefreshTimer);$('lbFx').classList.remove('open');};
 $('autoBtn').onclick=toggleCombatAuto;
@@ -18705,6 +19478,7 @@ function closeSettings(){
 }
 const openSettings=()=>{
  if($('cfgBox').classList.contains('open')){closeSettings();return;}
+ if(casinoWinOpen())return; /* 🎰 from the world only: over a casino window Esc and Start are its Back (casinoBack) */
  settingsReturnFocus=document.activeElement;
  initAudio();syncAudioUI();displaySettings.sync();renderControls();
  holdMove=null;for(const key of Object.keys(keys))delete keys[key];
@@ -18808,7 +19582,7 @@ $('cfgBox').addEventListener('pointerdown',e=>{e.stopPropagation();if(e.target==
 for(const type of ['pointermove','pointerup','pointercancel'])$('cfgBox').addEventListener(type,e=>e.stopPropagation());
 $('cfgBox').addEventListener('keydown',e=>{
  e.stopPropagation();
- if(e.key==='Escape'){e.preventDefault();closeSettings();return;}
+ if(e.key==='Escape'){e.preventDefault();if(!e.repeat)closeSettings();return;} /* a held Esc opens or closes it once, and no more */
  if(e.key!=='Tab')return;
  const focusable=[...$('cfgBox').querySelectorAll('button,input,select,[tabindex]')]
   .filter(el=>!el.disabled&&el.tabIndex>=0&&el.getClientRects().length);
@@ -19047,6 +19821,7 @@ function bootPreload(){
 }
 bootPreload();
 function beginGame(isNew){
+ if(casinoWinOpen(true))closeCasinoWindows(); /* 🎰 the hero list and the login put every table away already; one still up is not the new hero's */
  dropFarmBuild();cancelHallScenes();
  ledgerSeasonPick=null;seasonChartData=null; /* the last hero's chosen season is not this hero's */
  dismissHeroGuide();

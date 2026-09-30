@@ -42,7 +42,9 @@ function harness(type='gamba',qty=1,state={}){
   lootIco:id=>id,SLOT_ICO:{weapon:()=>'⚔',armor:()=>'◇',trinket:()=>'○'},
   petOf:id=>({id,n:{cat:'Puffen',dog:'Ayla',blackdog:'Nellie'}[id],cc:'#fff',d:'Companion.'}),petGlyph:p=>p.id,
   ENCHS:[{id:'flame',n:'Flame',glow:'#f80'}],ENCH_COST:2,tierDesc:()=>'+1 fire',
-  addGoldOverflow:n=>{c.S.gold+=n;return {got:n,over:0};},scrapBagItems(){},
+  addGoldOverflow:n=>{c.S.gold+=n;return {got:n,over:0};},scrapBagItems(){},scrapFit:items=>({take:[...items],total:items.length}),
+  scrapLabel:(items,all)=>'⚙ '+all+' +'+items.length+'⚙', /* the Bag's label (casino-chests.test.cjs runs the real one) */
+  inBossFight:()=>false,cowLocked:()=>false, /* the gear lock the chests keep (caseLocked) - pinned in casino-chests.test.cjs */
   recordSpin:wins=>c.spins.push(Array.isArray(wins)?[...wins]:[wins]),
  });
  vm.createContext(c);

@@ -247,6 +247,7 @@ function bag(){
  vm.runInContext(section('const bagSellable=','const bagGoldVal='),c);
  vm.runInContext(section('function upgradeItem(it){','function statBaseStr('),c);
  vm.runInContext(section('function cleanBagItem(it){','function scrapBagItems('),c);
+ vm.runInContext(section('const scrapRoom=','/* total spendable'),c); /* scrapBagItems scraps only what the pouch can hold */
  vm.runInContext(section('function scrapBagItems(','function renderBag(){'),c);
  vm.runInContext('globalThis.bagSellable=bagSellable;',c);
  return c;

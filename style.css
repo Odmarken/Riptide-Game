@@ -80,6 +80,11 @@
   #stagemsg.bigblink{font-size:26px;letter-spacing:1.5px;animation:msgblink .55s ease-in-out infinite}
   @keyframes msgblink{50%{opacity:.5}}
   #stagemsg.show{opacity:1}
+  /* 🎰 above the casino windows, the duel and a chest reel (70-76), under Settings (78), while one is up (casinoInertSync sets
+     body.casinoup): a table's refusal was said behind it, unseen. Otherwise nothing changes - the narrow layout's side
+     panel and the menu screens still cover it, as they always did. */
+  body.casinoup #stagemsg{z-index:77}
+  body:has(#login.open) #stagemsg,body:has(#select.open) #stagemsg,body:has(#create.open) #stagemsg{z-index:auto}
   .stgbtn{position:absolute;right:8px;width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;
     border-radius:9px;border:1px solid #9e7845;background:linear-gradient(135deg,#6b4b2d,#3d291c 55%,#251a13);
     color:#e4c48a;box-shadow:0 2px 6px #0006,inset 0 1px 0 #e3bc6e35,inset 0 0 0 2px #21170e80;
@@ -128,8 +133,9 @@
   body.sidehidden #sideResize,body:has(#login.open) #sideResize,body:has(#select.open) #sideResize,body:has(#create.open) #sideResize,body:has(#tideBattleFx:not([hidden])) #sideResize{display:none}
   .stgbtn.off{color:#bea078}
   /* Settings stays centered on the viewport, including when opened from character selection.
-     Keep the existing painted interior; controls use the same brass and wood as the side grip. */
-  #cfgBox{position:fixed;inset:0;z-index:72;display:none;align-items:center;justify-content:center;
+     Keep the existing painted interior; controls use the same brass and wood as the side grip.
+     Above every casino window and the duel (70-76): at 72 it opened hidden under a table. confirmFx (120) stays above it. */
+  #cfgBox{position:fixed;inset:0;z-index:78;display:none;align-items:center;justify-content:center;
     padding:16px;box-sizing:border-box}
   #cfgBox.open{display:flex}
   #cfgBox .casinobox{width:min(100%,520px);max-height:calc(100dvh - 32px);padding:24px;border:1px solid #b18a52;border-radius:19px;
@@ -505,9 +511,11 @@
   #chestFx{position:absolute;inset:0;z-index:70;display:none;align-items:center;justify-content:flex-start;flex-direction:column;overflow-y:auto;background:rgba(10,7,4,.84);cursor:var(--arrow);padding:calc(14px + env(safe-area-inset-top,0px)) 0 calc(14px + env(safe-area-inset-bottom,0px));box-sizing:border-box}
   #chestFx.open{display:flex}
   /* --- CS:GO-style case reel --- */
-  .casewrap{position:relative;flex:0 0 auto;width:min(92vw,560px);height:116px;border:1px solid var(--brass-deep);border-radius:12px;background:linear-gradient(180deg,#101a15,#0a120e);overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.6),inset 0 0 30px rgba(0,0,0,.5)}
-  .casereel{position:absolute;top:12px;left:0;height:92px;display:flex;gap:8px;will-change:transform}
-  .casecard{flex:0 0 84px;height:92px;border-radius:9px;border:1px solid var(--cc,#54402a);background:linear-gradient(180deg,#241a12,#150e08);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+  /* --cw/--cgap are the card width and gap; the reel hangs from the marker (left:50%) and game.js moves it in those
+     units (placeReel), so it stops on the prize at any width - 600 px, a turned phone - with no size guessed in JS */
+  .casewrap{position:relative;flex:0 0 auto;width:min(92vw,560px);height:116px;border:1px solid var(--brass-deep);border-radius:12px;background:linear-gradient(180deg,#101a15,#0a120e);overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.6),inset 0 0 30px rgba(0,0,0,.5);--cw:84px;--cgap:8px}
+  .casereel{position:absolute;top:12px;left:50%;height:92px;display:flex;gap:var(--cgap);will-change:transform}
+  .casecard{flex:0 0 var(--cw);height:92px;border-radius:9px;border:1px solid var(--cc,#54402a);background:linear-gradient(180deg,#241a12,#150e08);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
   .casecard .ci{font-size:26px;filter:drop-shadow(0 0 6px var(--cc))}
   .casecard .cr{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--cc)}
 
@@ -570,9 +578,9 @@
 
   @media (max-width:600px){
     /* reels: compact */
-    .casewrap,.caseextra{height:78px}
-    .casereel{top:8px;height:62px;gap:6px}
-    .casecard{flex:0 0 56px;height:62px;border-radius:7px;gap:2px}
+    .casewrap,.caseextra{height:78px;--cw:56px;--cgap:6px}
+    .casereel{top:8px;height:62px}
+    .casecard{height:62px;border-radius:7px;gap:2px}
     .casecard .ci{font-size:17px}
     .casecard .cr{font-size:6.5px;letter-spacing:.8px}
     /* result mini-cards: much smaller */
@@ -646,6 +654,13 @@
     .slotwin{width:66px;height:66px}
     .slotcell{flex-basis:66px;font-size:30px}
     .slottop{font-size:17px}
+  }
+  /* the stake − and + of every casino game: 23 px was a hard target for a thumb, so a phone - upright, or on its side (a short
+     touch screen) - gets 44 px, and a stake line that runs out of room puts its price under them instead of past the machine's
+     edge. Not every touch screen: the desktop build on a touch laptop reports a coarse pointer too, and keeps its 30 px */
+  @media (max-width:600px),(pointer:coarse) and (max-height:500px){
+    .slotbet{flex-wrap:wrap;justify-content:center}
+    :is(#slotFx,#seaFx,#bjFx,#sebbeFx,#rtbFx,#rouFx) .slotbet :is(.qtybtn,.sbtn){width:44px;height:44px;padding:0;font-size:20px;border-radius:10px}
   }
 
   /* --- Bag: scroll tier categories --- */
@@ -786,13 +801,15 @@
 .seacell.hit::after{content:'';position:absolute;inset:3px;border:2px solid #ffd76a;border-radius:8px;box-shadow:0 0 10px rgba(255,180,80,.7),inset 0 0 8px rgba(255,180,80,.25);animation:winPulse 1s infinite}
 .seacell.lockd{outline:3px solid #4da3ff;outline-offset:-3px;box-shadow:0 0 16px rgba(77,163,255,.55);animation:lockpulse 1.2s ease-in-out infinite}
 @keyframes lockpulse{50%{box-shadow:0 0 22px rgba(77,163,255,.85)}}
-.seapay{margin-top:9px;font-size:10px;color:var(--dim);display:grid;grid-template-columns:auto auto;gap:2px 16px;text-align:left}
+.seapay{margin-top:9px;font-size:10px;color:var(--dim);display:grid;grid-template-columns:1fr;gap:2px;text-align:left;width:0;min-width:100%} /* one rule a line; width:0+min-width:100% wraps a long one instead of widening the machine */
 .seapay b{color:#d8e4d6;font-weight:600}
 #seaSpinBtn{font-family:var(--display);font-size:16px;letter-spacing:.5px;padding:14px 28px;border-radius:12px;border:1px solid #5b9bd5;background:linear-gradient(180deg,#5b9bd5,#2f5f8a);color:#0a1420;cursor:var(--hand);box-shadow:0 0 16px rgba(91,155,213,.3)}
 #seaSpinBtn:disabled{opacity:.45;cursor:var(--arrow);box-shadow:none}
 #seaAutoBtn{font-family:var(--display);font-size:14px;padding:14px 20px;border-radius:12px;border:1px solid #6dbb6d;background:var(--panel2);color:#9adf9a;cursor:var(--hand)}
 #seaAutoBtn.on{background:linear-gradient(180deg,#c75146,#8a3a32);border-color:#e88a7a;color:#fff;box-shadow:0 0 14px rgba(199,81,70,.4)}
+#seaAutoBtn:disabled{opacity:.45;cursor:var(--arrow)}
 #seaFastBtn.on{border-color:#ffd76a;color:#ffd76a;box-shadow:0 0 12px rgba(255,215,106,.25)}
+#seaBetDn,#seaBetUp{width:34px} /* here, not inline: an inline width beat the stake line's phone size (with the Lucky 7 rules) */
 @media (min-width:900px){
  .seacolwin{border-radius:12px}
  .seapay{font-size:12px}
@@ -836,9 +853,29 @@
  background:radial-gradient(circle at 34% 30%,#fff6d0,#e8c45a 45%,#a2761f);
  box-shadow:0 0 12px rgba(255,215,106,.85);opacity:0;transition:opacity .12s linear}
 .cupball.show{opacity:1}
+/* the last pass of the shuffle: Sebbe's hands blur, the cups shake out of step and trade places in jumps (cupShuffle) -
+   nobody follows it, and the ball is drawn at the pick anyway */
+.cuprow.blur{filter:blur(10px);transition:filter .25s ease-in}
+.cuprow.blur .cup{animation:cupBlur .11s linear infinite alternate}
+.cuprow.blur .cup[data-cup="1"]{animation-duration:.13s;animation-direction:alternate-reverse}
+.cuprow.blur .cup[data-cup="2"]{animation-duration:.09s}
+@keyframes cupBlur{from{transform:translateX(-9px)}to{transform:translateX(9px)}}
+@media(prefers-reduced-motion:reduce){.cuprow.blur .cup{animation:none}}
+/* the table's line wraps inside the machine instead of widening it, and keeps two lines so the round does not jump */
+#sebbeSay{width:0;min-width:100%;min-height:3em;text-align:center}
 .rtbladder{display:flex;gap:6px;justify-content:center;margin:2px 0 8px}
 .rtbstep{padding:5px 10px;border-radius:8px;border:1px solid #4a4436;background:#241c12;color:var(--dim);font-size:11px;font-weight:700}
 .rtbstep.won{border-color:#9adf9a;color:#9adf9a}
+@media (max-width:359px){#rtbActs .bjact[data-rg]{padding:12px 6px}.rtbstep{padding:5px 6px}} /* below 360 px the four priced suits still wrapped 3+1, and 'Colour 1.92x' put the idle ladder's Suit on a row of its own */
+/* the rungs carry their prices, so on a phone the ladder wraps; a bust marks its rung red, a cash-out its rung gold, and the
+   last chip is the running total (struck through once the bus drove off with it) */
+.rtbladder{flex-wrap:wrap}
+.rtbstep.bust{border-color:#c05050;background:linear-gradient(180deg,#a03636,#6a1a1a);color:#ffe0e0}
+.rtbstep.cash{border-color:#ffd76a;background:linear-gradient(180deg,#ffd76a,#c9a05a);color:#20180a;box-shadow:0 0 10px rgba(255,215,106,.45)}
+.rtbstep.tot{border-color:transparent;background:none;color:#ffd76a}
+.rtbstep.tot.lost{color:#ff8a7a;text-decoration:line-through}
+#rtbFx .rtbpx{font-size:.8em;opacity:.9}
+@media (max-width:600px){#rtbFx .slotmach{max-width:calc(100% - 16px)}#rtbFx .bjact{padding:12px}} /* four priced suits on one row */
 .rtbstep.cur{border-color:var(--brass);color:#ffd76a;box-shadow:0 0 8px rgba(217,164,65,.35)}
 .gvbside{display:flex;flex-direction:column;align-items:center;gap:5px}
 .gvbname{font-size:12px;font-weight:700;color:#e8dcc8}
@@ -915,6 +952,7 @@
 .gvbbigwin.sm.rolling{border-color:#fff;box-shadow:0 0 10px rgba(255,255,255,.3) inset}
 .gvbbigcard.sm{width:58px;flex:0 0 58px;font-size:21px}
 .gvbbigcard.sm .gl{font-size:8.5px}
+.gvbkick{padding:1px 7px;margin-left:6px;font-size:10px;line-height:1.4;vertical-align:1px} /* the host clears a seat nobody answers for */
 .slotmach.rou{max-height:96%;overflow-y:auto}
 #rouWheel{display:block;margin:4px auto 2px;width:300px;height:300px} /* canvas renders at 420 - crisp on desktop, downscaled on phones */
 .roucolors{display:flex;gap:5px;margin:6px 0 5px}
@@ -930,6 +968,21 @@
 .roucell.sel{outline:2px solid #ffd76a}
 .rchip{position:absolute;top:-6px;right:-4px;background:#ffd76a;color:#1a1206;font-size:8px;font-weight:800;border-radius:8px;padding:1px 4px;pointer-events:none;box-shadow:0 1px 3px rgba(0,0,0,.6)}
 .roustat{font-size:11px;color:var(--dim);text-align:center;margin:6px 0 2px}
+/* phones: one 13-wide strip gave 14 px cells, so the table stands upright in two halves (1-18 | 19-36, three
+   across, 0 over both), each cell placed by the --pc/--pr that rouBuildGrid gives it; the wheel gives up 40 px for it */
+@media (max-width:600px){
+ #rouWheel{width:260px;height:260px}
+ .rougrid{grid-template-columns:repeat(6,1fr);width:100%}
+ .roucell{grid-column:var(--pc);grid-row:var(--pr);padding:6px 0;font-size:13px}
+ .roucell.g{grid-column:1/-1;grid-row:1}
+ .roucolors{width:100%}
+}
+/* 601-899 px (a tablet, a narrow window, a phone on its side) kept the strip's 14 px cells at 10.5 px: there the strip spans
+   a wider machine instead - three rows still, so a short screen keeps its height - at the phone's 13 px */
+@media (min-width:601px) and (max-width:899px){
+ .rougrid,.roucolors{width:min(520px,calc(100vw - 72px))}
+ .roucell{font-size:13px}
+}
 .slotmach.bj{border-color:#6dbb6d;background:linear-gradient(180deg,#1d3a2a,#0d1a12);box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 24px rgba(109,187,109,.2)}
 .slotmach.bj .slottop{color:#9adf9a;text-shadow:0 0 14px rgba(109,187,109,.5)}
 .bjrow{display:flex;flex-direction:column;gap:4px;align-items:center;min-height:70px}
@@ -1032,6 +1085,33 @@
 #mineFx .casinobox{background:linear-gradient(180deg,rgba(30,22,14,.78),rgba(14,10,6,.90)),url('assets/ui/modal_mine.png') center/cover no-repeat}
 #smeltFx .casinobox{background:linear-gradient(180deg,rgba(30,22,14,.78),rgba(14,10,6,.90)),url('assets/ui/modal_smelter.png') center/cover no-repeat}
 #enchFx .casinobox{background:linear-gradient(180deg,rgba(22,18,34,.80),rgba(10,8,16,.92)),url('assets/ui/modal_ench.png') center/cover no-repeat}
+/* 🖼 the windows that had no painting of their own (2026-09-30): Higgsfield gpt_image_2_5 with the venue pictures above as
+   style references - job ids and prompts in assets/ui/modal-art-manifest.json. Each wash keeps its window's old colour, and
+   the big ledger-style windows get a slightly lighter one because their tiles already carry their own dark cards. The small
+   boxes styled inline in index.html need !important to take a picture at all. */
+#boardFx .craft-ledger{background:linear-gradient(180deg,rgba(30,22,14,.74),rgba(14,10,6,.88)),url('assets/ui/modal_board.jpg') center/cover no-repeat #342011}
+#ledgerFx.craft-modal .craft-ledger{background:linear-gradient(180deg,rgba(30,22,14,.74),rgba(14,10,6,.88)),url('assets/ui/modal_ledger.jpg') center/cover no-repeat #342011} /* one class more than ledger.css's own #ledgerFx rule, which loads later */
+#voyageFx .craft-ledger{background:linear-gradient(180deg,rgba(30,22,14,.74),rgba(14,10,6,.88)),url('assets/ui/modal_voyage.jpg') center/cover no-repeat #342011}
+#mercFx .craft-ledger{background:linear-gradient(180deg,rgba(30,22,14,.74),rgba(14,10,6,.88)),url('assets/ui/modal_merc.jpg') center/cover no-repeat #342011}
+#dragonFx .craft-ledger{background:linear-gradient(180deg,rgba(30,22,14,.74),rgba(14,10,6,.88)),url('assets/ui/modal_dragon.jpg') center/cover no-repeat #342011}
+#stableFx .stable-box{background:linear-gradient(180deg,rgba(30,22,14,.78),rgba(14,10,6,.90)),url('assets/ui/modal_stable.jpg') center/cover no-repeat}
+#tideHub .tide-hub-box{background:linear-gradient(180deg,rgba(16,30,34,.80),rgba(7,14,16,.92)),url('assets/ui/modal_tides.jpg') center/cover no-repeat}
+#raidModal .casinobox,#mpLobby .casinobox{background:linear-gradient(180deg,rgba(28,18,40,.80),rgba(12,8,18,.92)),url('assets/ui/modal_raid.jpg') center/cover no-repeat}
+#talentFx .talentbox{background:linear-gradient(180deg,rgba(16,26,42,.80),rgba(8,13,22,.92)),url('assets/ui/modal_ice.jpg') center/cover no-repeat}
+#ritualDoneFx .casinobox{background:linear-gradient(180deg,rgba(16,26,42,.80),rgba(8,13,22,.92)),url('assets/ui/modal_ice.jpg') center/cover no-repeat}
+#outfitFx .casinobox{background:linear-gradient(180deg,rgba(30,22,14,.78),rgba(14,10,6,.90)),url('assets/ui/modal_robes.jpg') center/cover no-repeat}
+#sharkFx .casinobox{background:linear-gradient(180deg,rgba(14,24,36,.78),rgba(6,10,16,.90)),url('assets/ui/modal_catch.jpg') center/cover no-repeat}
+#farmBuyFx .casinobox,#farmCheckoutFx .casinobox,#farmDelFx .casinobox{background:linear-gradient(180deg,rgba(30,22,14,.78),rgba(14,10,6,.90)),url('assets/ui/modal_farm.jpg') center/cover no-repeat}
+#slotFx .slotmach{background:linear-gradient(180deg,rgba(30,22,14,.78),rgba(14,10,6,.90)),url('assets/ui/modal_lucky7.jpg') center/cover no-repeat}
+#seaFx .slotmach{background:linear-gradient(180deg,rgba(29,51,69,.78),rgba(13,22,32,.90)),url('assets/ui/modal_sea.jpg') center/cover no-repeat}
+#bjFx .slotmach{background:linear-gradient(180deg,rgba(29,58,42,.78),rgba(13,26,18,.90)),url('assets/ui/modal_blackjack.jpg') center/cover no-repeat}
+#rouFx .slotmach{background:linear-gradient(180deg,rgba(30,22,14,.78),rgba(14,10,6,.90)),url('assets/ui/modal_roulette.jpg') center/cover no-repeat}
+#rtbFx .slotmach{background:linear-gradient(180deg,rgba(30,22,14,.78),rgba(14,10,6,.90)),url('assets/ui/modal_bus.jpg') center/cover no-repeat}
+#gvbFx .casinobox{background:linear-gradient(180deg,rgba(30,22,14,.78),rgba(14,10,6,.90)),url('assets/ui/modal_duel.jpg') center/cover no-repeat}
+#lbFx{background:linear-gradient(180deg,rgba(18,11,7,.84),rgba(18,11,7,.94)),url('assets/ui/modal_champions.jpg') center/cover no-repeat #120b07}
+#cryptIntro{background:linear-gradient(180deg,rgba(22,20,32,.78),rgba(10,9,16,.92)),url('assets/ui/modal_crypt.jpg') center/cover no-repeat #161420 !important}
+#gateMsg{background:linear-gradient(180deg,rgba(10,18,28,.70),rgba(4,8,14,.88)),url('assets/ui/modal_final.png') center/cover no-repeat #160e1f !important}
+#ritualBox,#altarMsg,#iceReqMsg,#iceMsg{background:linear-gradient(180deg,rgba(16,26,42,.78),rgba(8,13,22,.92)),url('assets/ui/modal_ice.jpg') center/cover no-repeat #10131f !important}
 /* ⛧ the last door. Same treatment as the other painted modals: the art carries the mood, a dark
    wash over it carries the text. */
 /* 🎮 the controller badge. Shown only while the pad is steering: touch the keyboard and it goes.
