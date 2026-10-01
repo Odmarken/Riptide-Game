@@ -5,7 +5,8 @@ const draw=source.slice(source.indexOf('function drawPet(){'),source.indexOf('fu
 function harness(){
  const c={pet:{x:-26,y:12,fx:1,walk:0,moving:false},hero:{x:0,y:0,fx:1,dead:false},visible:{id:'tide-1'},legacy:null,dt:1/60,calls:[],battling:false,
   dist:(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),activePet:()=>c.legacy,TideUI:{animalVisual:()=>({width:36,height:36}),visibleCompanion:()=>c.visible,isBattling:()=>c.battling,drawCompanion:(g,x,y,options)=>c.calls.push(['tide',x,y,options])},ctx:{},sunFootShadow(){},sunPersonShadow(){},lightPersonShadow(){},
-  moveToward(p,x,y,dt){const d=Math.hypot(x-p.x,y-p.y),step=Math.min(d,175*dt);p.x+=(x-p.x)/d*step;p.y+=(y-p.y)/d*step;p.moving=true;},performance:{now:()=>1000}};
+  moveToward(p,x,y,dt){const d=Math.hypot(x-p.x,y-p.y),step=Math.min(d,175*dt);p.x+=(x-p.x)/d*step;p.y+=(y-p.y)/d*step;p.moving=true;},performance:{now:()=>1000},
+  collide:()=>false};
  vm.createContext(c);vm.runInContext('function follow(){'+follow+'}\n'+draw,c);return c;
 }
 test('a visible Tide follows without a legacy pet and steps clear of the hero when first selected',()=>{
@@ -31,6 +32,12 @@ test('large visible Tides leave room beside the hero and do not teleport at thei
 test('the normal pet keeps its original follow radius and teleport offset when no Tide is visible',()=>{
  const c=harness();c.visible=null;c.legacy={atkMul:.1};c.pet.x=-201;c.pet.y=0;c.follow();assert.equal(c.pet.x,-24);assert.equal(c.pet.y,12);
  const pos=[c.pet.x,c.pet.y];c.follow();assert.deepEqual([c.pet.x,c.pet.y],pos);assert.deepEqual(c.legacy,{atkMul:.1});
+});
+test('a follower put down behind the hero on blocked ground - the Altar\'s sky, a wall - lands at the hero\'s feet instead',()=>{
+ const c=harness();c.visible=null;c.legacy={atkMul:.1};c.hero.x=500;c.hero.y=300;c.pet.x=0;c.pet.y=0;
+ const asked=[];c.collide=(e,x,y)=>{asked.push([e===c.pet,x,y]);return x===476&&y===312;};   /* 24 behind and 12 below is off the ground */
+ c.follow();
+ assert.deepEqual(asked,[[true,476,312]]);assert.deepEqual([c.pet.x,c.pet.y],[500,300]);
 });
 
 test('follower feet advance with actual ground travel and settle on collision or relocation',()=>{

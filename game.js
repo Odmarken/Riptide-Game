@@ -552,6 +552,76 @@ function drawWeather(now){   /* over the lit world, in the screen's frame: the r
  }
  ctx.restore();
 }
+/* 🌬 The Altar's wind (asked for 2026-10-01: "vindar som väder i altar som blåser för man är högt uppe"). Up above the clouds it
+   never drops: it blows from the east across the bridge and the ring, swells into a gust every few seconds and eases off again.
+   Cloud wisps race by over everything, streaks of air run west and ice dust is carried along on it. Like the rain, nothing is
+   kept but how far the wind has blown so far (so a gust speeds things up without a jump); Settings -> Video -> Weather turns it
+   off with the rest, and altarWindTest(g) holds the gust at g (0 calm .. 1 a full gust) for a screenshot. */
+const ALTAR_WIND={x:0,last:0,gust:0,pin:null};
+function altarWindTest(g=null){ALTAR_WIND.pin=g==null?null:Math.max(0,Math.min(1,+g||0));return g==null?'wind free':'wind '+ALTAR_WIND.pin;}
+function altarWindUpdate(now){
+ const dt=ALTAR_WIND.last?Math.min(.1,Math.max(0,now-ALTAR_WIND.last)):0;ALTAR_WIND.last=now;
+ const g=ALTAR_WIND.pin!=null?ALTAR_WIND.pin:Math.min(1,Math.pow(wxNoise(now/6,77),1.6)*1.05+wxNoise(now/1.7,78)*.2);   /* a slow swell, a quick flutter on it */
+ ALTAR_WIND.gust=g;
+ ALTAR_WIND.x+=(90+270*g)*dt;   /* world units the wind has carried things, ever onward */
+ return g;
+}
+let wispTex=null;
+function wispTexture(){   /* a tile of thin cloud bands drawn out along the wind, with clear sky between them, seamless both ways */
+ if(wispTex)return wispTex;
+ const N=512,c=document.createElement('canvas');c.width=c.height=N;const g=c.getContext('2d');
+ for(let i=0;i<22;i++){
+  const x=wxHash(i*5+101)*N,y=wxHash(i*5+102)*N,rx=90+wxHash(i*5+103)*200,ry=7+wxHash(i*5+104)*22,al=(.18+wxHash(i*5+105)*.4).toFixed(3);
+  for(const ox of [-N,0,N])for(const oy of [-N,0,N]){   /* wrapped round, so the tile has no seam */
+   g.save();g.translate(x+ox,y+oy);g.scale(rx/ry,1);
+   const gr=g.createRadialGradient(0,0,0,0,0,ry);gr.addColorStop(0,'rgba(240,245,252,'+al+')');gr.addColorStop(.55,'rgba(240,245,252,'+(al*.45).toFixed(3)+')');gr.addColorStop(1,'rgba(240,245,252,0)');
+   g.fillStyle=gr;g.fillRect(-ry,-ry,ry*2,ry*2);g.restore();
+  }
+ }
+ return wispTex=c;
+}
+function drawAltarClouds(){   /* in the world's frame, over everything that stands: two layers of cloud bands racing west at their own pace */
+ const g=ALTAR_WIND.gust,T=wispTexture(),vx=camX,vy=camY,vw=VW/zoom,vh=VH/zoom;
+ ctx.save();
+ for(const [kx,ky,mul,dy,al] of [[2.6,1.6,1,5,.55],[1.5,1,1.9,-3,.4]]){   /* the tile's size across and down, its speed against the wind's, a drift, its strength */
+  const NX=512*kx,NY=512*ky,ox=((-ALTAR_WIND.x*mul)%NX+NX)%NX,oy=((ALTAR_WIND.last*dy)%NY+NY)%NY;
+  ctx.globalAlpha=Math.min(1,al*(.45+.8*g));
+  for(let x=Math.floor((vx-ox)/NX)*NX+ox;x<vx+vw;x+=NX)for(let y=Math.floor((vy-oy)/NY)*NY+oy;y<vy+vh;y+=NY)ctx.drawImage(T,x,y,NX,NY);
+ }
+ ctx.restore();
+}
+function drawAltarWind(now){   /* over the world, in the screen's frame like the rain: the streaks of air and the ice dust, each placed on the world */
+ const g=ALTAR_WIND.gust,w=VW,h=VH,z=zoom,T=WX_TILE,sx=x=>(x-camX)*z,sy=y=>(y-camY)*z;
+ ctx.save();ctx.lineCap='round';
+ const per=2+Math.round(5*g);   /* streaks to a tile: two or three in the lull, seven in a gust */
+ wxTiles(720,40,(tx,ty,k)=>{   /* wide to the east: a streak runs up to 700 units west of where it starts */
+  for(let i=0;i<per;i++){   /* each runs west for a second or two and fades, then starts again somewhere else in its tile */
+   const P=1.3+wxHash(k+i*13+1)*1.2,q=now/P+wxHash(k+i*13+2),c=Math.floor(q),ph=q-c;
+   const h1=wxHash(k*31+i*977+c*7919),h2=wxHash(k*17+i*733+c*104729),h3=wxHash(k*7+i*313+c*15485863);
+   const al=Math.pow(Math.sin(Math.PI*ph),1.2)*(.22+.38*g);
+   if(al<.01)continue;
+   const len=(120+220*h1)*(.65+.6*g)*z,X=sx(tx*T+h1*T-(380+320*h3)*ph),Y=sy(ty*T+h2*T),wave=(2.5+5*h3)*z;
+   if(X>w+20||X+len<-20||Y<-20||Y>h+20)continue;
+   const grd=ctx.createLinearGradient(X,Y,X+len,Y);   /* bright at its head, gone at its tail */
+   grd.addColorStop(0,'rgba(242,248,255,'+al.toFixed(3)+')');grd.addColorStop(1,'rgba(242,248,255,0)');
+   ctx.strokeStyle=grd;ctx.lineWidth=(.9+1.1*h2)*Math.min(1.6,z);ctx.beginPath();
+   for(let s=0;s<=8;s++){const u=s/8,px=X+u*len,py=Y+Math.sin(u*3.2+c+ph*5)*wave;if(s)ctx.lineTo(px,py);else ctx.moveTo(px,py);}
+   ctx.stroke();
+  }
+ });
+ const dust=Math.round(16+32*g),dl=(2+5*g)*z;   /* ice dust to a tile, and how long the wind smears each grain */
+ ctx.strokeStyle='rgba(236,246,255,.62)';ctx.lineWidth=Math.max(1,1.3*Math.min(1.5,z));ctx.beginPath();
+ wxTiles(40,20,(tx,ty,k)=>{
+  for(let i=0;i<dust;i++){   /* blown west through its own tile and round again, bobbing as it goes */
+   const r1=wxHash(k+i*7+3),r2=wxHash(k+i*7+4),r3=wxHash(k+i*7+5);
+   const x=sx(tx*T+((r1*T-ALTAR_WIND.x*(1.15+r2))%T+T)%T),y=sy(ty*T+r3*T+Math.sin(now*(1.3+r1)+i*1.7)*9);
+   if(x<-8||x>w+8||y<-8||y>h+8)continue;
+   ctx.moveTo(x,y);ctx.lineTo(x+dl*(.5+r2),y-dl*.12);
+  }
+ });
+ ctx.stroke();
+ ctx.restore();
+}
 /* Zone maps are the biggest files the game fetches - 2.5 to 3.8 MB each - and on a phone they are
    the ones that fail. A dropped request leaves an Image with complete true and naturalWidth 0, which
    passes NEITHER test in prerenderGround: not "ready to draw", not "still loading". The zone then
@@ -6537,6 +6607,7 @@ function buildZone(){
    zoneMapImg('finalboss_zone');
   }
   if(z.altar){
+   world.altarGround=true;   /* ⛧ only the bridge and the great ring are ground - the sky around them is not (AltarGround) */
    /* the way home - standing on the walkway just ahead of the spawn */
    world.solids.push({x:110,y:995,r:38,type:'altarportal'}); /* far left on the walkway */
    altarGateSync();
@@ -6905,6 +6976,7 @@ function collide(e,nx,ny){
  if(world.throne&&!ThroneWorld.contains(nx,ny,e.r||12))return true;
  if(world.harbor&&!HarborWorld.contains(nx,ny,e.r||12))return true;
  if(world.town&&!TownWorld.contains(world,nx,ny,e.r||12))return true;   /* ⛵ the coastline and the piers of a port of call */
+ if(world.altarGround&&!AltarGround.contains(nx,ny,(e.r||12)*0.6))return true;   /* ⛧ the Altar's bridge and great ring - feet, not shoulders, at the gold rim */
  /* Bosses and cows ignore trees/rocks - the herd tramples straight through. */
  if((!e.boss||e.raid)&&!e.cow){
   for(const s of solidCell(nx,ny)){
@@ -6978,6 +7050,17 @@ function moveToward(e,tx,ty,dt,mul){
  e.fx=ux;e.fy=uy;e.walk+=dt*11;e.moving=true;
  let nx=e.x+ux*sp,ny=e.y+uy*sp;
  if(!collide(e,nx,ny)){e.x=nx;e.y=ny;e.avoid=null;return false;}
+ /* ⛧ at the Altar's rim the walker slides along it by the part of the step that runs with the edge, and stands when
+    pushed straight into it. The side-steps below are for walking round a rock - along a rim they ran him to and fro. */
+ if(world.altarGround&&!AltarGround.contains(nx,ny,(e.r||12)*0.6)){
+  const w=AltarGround.edgeAt(e.x,e.y),along=ux*w.tx+uy*w.ty;
+  if(Math.abs(along)>0.12)for(const inset of [0,0.5,1.5]){   /* a hair onto the ground if the rim curves in */
+   const sx=e.x+w.tx*along*sp+w.nx*inset,sy=e.y+w.ty*along*sp+w.ny*inset;
+   if(!collide(e,sx,sy)){e.x=sx;e.y=sy;e.avoid=null;return false;}
+  }
+  for(const f of [.5,.25,.125]){const ax=e.x+ux*sp*f,ay=e.y+uy*sp*f;if(!collide(e,ax,ay)){e.x=ax;e.y=ay;break;}}   /* the last bit up to the rim */
+  e.moving=false;e.avoid=null;return false;
+ }
  if(e.avoid&&e.avoid.t>0)e.avoid.t-=dt;else e.avoid=null;
  const px=-uy,py=ux;
  let side;
@@ -8598,6 +8681,13 @@ cv.addEventListener('contextmenu',()=>{
  const held=farmDeselect();
  if(held){sfx.warn();stageMsg('✋ Put down '+held,1100);}
 });
+/* where a tap on the ground walks the hero: inside the world's edge - and in the Altar onto its stone, so a tap on the
+   sky walks to the gold rim and stops there instead of pressing against it */
+function walkTarget(wx,wy){
+ const p={x:Math.max(30,Math.min(world.w-30,wx)),y:Math.max(30,Math.min(world.h-30,wy))};
+ if(world.altarGround){const q=AltarGround.nearest(p.x,p.y,(hero.r||13)*0.6+1.5);if(q)return q;}
+ return p;
+}
 cv.addEventListener('pointerdown',e=>{
  if(!gameOn||gamePaused||hero.dead||pinching||coronation||execution||voyage)return; /* 👑⚖️⛵ a scene plays itself out - no clicks land */
  if(e.button===2)return; /* the right button is the deselect gesture - contextmenu owns it */
@@ -8779,7 +8869,7 @@ cv.addEventListener('pointerdown',e=>{
  hero.goPortal=false;
  if(best){hero.target=best;hero.moveTo=null;stopMining(true);}
  else{
-  hero.moveTo={x:Math.max(30,Math.min(world.w-30,wx)),y:Math.max(30,Math.min(world.h-30,wy))};hero.target=null;marker={x:hero.moveTo.x,y:hero.moveTo.y,t:0};
+  hero.moveTo=walkTarget(wx,wy);hero.target=null;marker={x:hero.moveTo.x,y:hero.moveTo.y,t:0};
   stopMining(true); /* a tap on the ground is the player taking the wheel */
   holdMove={id:e.pointerId,cx:e.clientX,cy:e.clientY}; /* keep the finger/mouse button down and the hero follows it */
  }
@@ -9344,7 +9434,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   if(holdMove){ /* finger still pressed - refresh the walk target to wherever it is now */
    const hr=cv.getBoundingClientRect();
    const hx=(holdMove.cx-hr.left)/zoom+camX,hy=(holdMove.cy-hr.top)/zoom+camY;
-   hero.moveTo={x:Math.max(30,Math.min(world.w-30,hx)),y:Math.max(30,Math.min(world.h-30,hy))};
+   hero.moveTo=walkTarget(hx,hy);
   }
   let kx=(keys['d']||keys['arrowright']?1:0)-(keys['a']||keys['arrowleft']?1:0);
   let ky=(keys['s']||keys['arrowdown']?1:0)-(keys['w']||keys['arrowup']?1:0);
@@ -9551,7 +9641,10 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   const oldX=pet.x,oldY=pet.y;let relocated=false;
   pet.moving=false;
   const followY=followingTide?18:12;
-  if(d>(followingTide?Math.max(240,gap+100):200)){pet.x=hero.x-hero.fx*(followingTide?gap:24);pet.y=hero.y+followY;relocated=true;}
+  if(d>(followingTide?Math.max(240,gap+100):200)){
+   pet.x=hero.x-hero.fx*(followingTide?gap:24);pet.y=hero.y+followY;relocated=true;
+   if(collide(pet,pet.x,pet.y)){pet.x=hero.x;pet.y=hero.y;}   /* the spot behind is off the ground (the Altar's sky) or in a wall: at the hero's feet */
+  }
   else if(d>gap+16||(followingTide&&d<gap-8))moveToward(pet,hero.x-hero.fx*gap,hero.y+followY,dt);
   else pet.walk+=dt*3;
   if(followingTide){
@@ -10413,10 +10506,12 @@ function draw(){
  if((z.crypts||z.dungeon)&&world.mwalls)drawCryptFog(); /* the dark closes in - last world-space layer */
  else if(z.raid&&!hero.dead)drawRaidFog(); /* the temple keeps its secrets behind the walls */
  if(sunFrame&&WEATHER.fog>0)drawMist(now);   /* 🌫 the Wasteland's mist, over all that stands */
+ if(z.altar&&WEATHER.on){altarWindUpdate(now);drawAltarClouds();}   /* 🌬 the Altar's clouds racing by on the wind */
  drawEdgeFog(); /* last thing in world space - it must cover the fence on the border too */
  ctx.restore();
  if(sunFrame)drawSunLight(now);   /* ☀ over the world, under what the canvas writes on top of it */
  if(sunFrame&&(WEATHER.rain>0||WEATHER.snow>0))drawWeather(now);   /* 🌧 the rain, or the snow */
+ if(z.altar&&WEATHER.on)drawAltarWind(now);   /* 🌬 and the Altar's streaks of air and ice dust */
  if(cowRunning||(zoneOf().cow&&hero.dead)){
   const t=cowT,fmt=x=>Math.floor(x/60)+':'+String(Math.floor(x%60)).padStart(2,'0');
   ctx.font='700 30px '+getComputedStyle(document.body).fontFamily;
@@ -12088,6 +12183,14 @@ function renderHUD(){
   $('qName').textContent='🍺 Moonshine';
   $('qDesc').textContent='Safe haven - health and mana return swiftly here.';
   $('qBar').style.width='100%';$('qCount').textContent='☕';
+  $('nextBtn').style.display='none';
+  $('autoBtn').classList.toggle('on',S.auto);$('autoBtn').textContent=S.auto?'AUTO ✓':'AUTO';
+  refreshOpenPanel();return;
+ }
+ if(z.altar){ /* ⛧ no quest up here either - the generic branch showed 0 / 999999 */
+  $('qName').textContent='⛧ The Altar';
+  $('qDesc').textContent=q.desc;
+  $('qBar').style.width='100%';$('qCount').textContent='❄';
   $('nextBtn').style.display='none';
   $('autoBtn').classList.toggle('on',S.auto);$('autoBtn').textContent=S.auto?'AUTO ✓':'AUTO';
   refreshOpenPanel();return;
