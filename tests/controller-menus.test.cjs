@@ -234,8 +234,10 @@ test('the pad works on the hero list, a new hero and the sign-in; the Controls t
  const frame=section('function frame(t){','\nconst sidebarResize=');
  assert.match(frame,/\}else if\(!gameOn\)\{padNow=null;padTick\(dt\);\}/);
  assert.match(frame,/padHintsTick\(\);/);
- const controls=section('function renderControls(){','$(\'kbdList\').innerHTML=');
- for(const k of ["['head','Controller']","['Left stick','Walk']","['View',","['LB / RB',","['D-pad ←','Target the nearest foe']","['Start',"])assert.ok(controls.includes(k),k);
+ /* since 2026-10-01 the pad has its own Gamepad tab beside Keyboard & Mouse (tests/controls-tabs.test.cjs draws it) */
+ const controls=section('function renderControls(){','selectTab(controlsTabs,');
+ for(const k of ["['LS','Walk','Left stick']","[['View','Side panel']]","[['LB','Previous page']]","[['RB','Next page']]","['←','Target foe','D-pad ←']","[['Start','Settings']]","['head','In menus']"])assert.ok(controls.includes(k),k);
+ assert.doesNotMatch(section('function renderControls(){','$(\'kbdList\').innerHTML='),/Left stick|'Controller'/,'the keyboard\'s list is the keyboard\'s');
  assert.match(section('function openBJ(){','function bjTeardown(){'),/bjTurnAt=performance\.now\(\);/,'the press that opened the table must not deal a hand too');
  assert.match(section('function updateCaseScrap(){','function hideChestFx(){'),/if\(padFocus===cs\)padMark\(\$\('caseClose'\)\)/,'from a hidden Scrap the pad goes to Close, never Respin or Auto');
  assert.match(game,/const PAD_B=\{a:0,b:1,x:2,y:3,lb:4,rb:5,lt:6,rt:7,back:8,start:9,l3:10,r3:11,up:12,down:13,left:14,right:15\}/);

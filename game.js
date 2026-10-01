@@ -8209,10 +8209,13 @@ function padHostSwitch(host){
  }
  if(padFocus&&!mine(padFocus))padMark(null);
 }
-/* LB/RB turn a window's tabs (Settings, the Crown Ledger, any role=tab strip) - or, in the side panel, its pages */
+/* LB/RB turn a window's tabs (Settings, the Crown Ledger, any role=tab strip) - or, in the side panel, its pages. The
+   Keyboard & Mouse / Gamepad pair inside Settings' Controls is not one of them: in the same list, the "Controls" ahead of
+   it was always the selected tab found first, and RB stuck there. The d-pad and A reach the pair like any button.
+   padHintsTick counts the tabs with the same selector. */
 function padTabStep(host,d){
  if(host.classList&&host.classList.contains('panel')){padSideOpen(d);return;}
- const tabs=[...host.querySelectorAll('[role="tab"],.cfgtab,.craft-tab')].filter(t=>!t.disabled&&t.getClientRects().length);
+ const tabs=[...host.querySelectorAll('[role="tab"]:not(.ctrltab),.cfgtab,.craft-tab')].filter(t=>!t.disabled&&t.getClientRects().length);
  if(tabs.length<2)return;
  const i=tabs.findIndex(t=>t.getAttribute('aria-selected')==='true'||['on','active','cur','sel'].some(c=>t.classList.contains(c)));
  const next=tabs[((i<0?0:i)+d+tabs.length)%tabs.length];
@@ -8481,7 +8484,7 @@ function padHintsTick(){
   const host=padPanelOpen();
   if(host){
    /* tabs only where two or more can be turned (a Ledger not yet chartered greys every one), and no B where B does nothing */
-   const side=host.classList.contains('panel'),tabs=side||[...host.querySelectorAll('[role="tab"],.cfgtab,.craft-tab')].filter(t=>!t.disabled).length>1;
+   const side=host.classList.contains('panel'),tabs=side||[...host.querySelectorAll('[role="tab"]:not(.ctrltab),.cfgtab,.craft-tab')].filter(t=>!t.disabled).length>1;
    key=(side?'side':tabs?'tabs':'menu')+(PAD_NOBACK.includes(host.id)?' noback':'');
   }
  }
@@ -19751,33 +19754,42 @@ const openSettings=()=>{
 };
 $('cfgBtn').onclick=openSettings;
 $('selCfgBtn').onclick=openSettings;
-/* Audio / Video tabs. One pane in the flow at a time, so the panel does not stand at the height of
-   its tallest tab while showing its shortest. */
-const settingsTabs=[...document.querySelectorAll('.cfgtab')];
-function selectSettingsTab(tab){
- settingsTabs.forEach(t=>{
+/* Audio / Video / Controls tabs, and inside Controls the Keyboard & Mouse / Gamepad pair. One pane in the flow at a time,
+   so the panel does not stand at the height of its tallest tab while showing its shortest. */
+function selectTab(tabs,tab){
+ tabs.forEach(t=>{
   const on=t===tab,pane=$(t.getAttribute('aria-controls'));
   t.classList.toggle('on',on);t.setAttribute('aria-selected',String(on));t.tabIndex=on?0:-1;
   if(pane){pane.classList.toggle('on',on);pane.hidden=!on;}
  });
 }
-settingsTabs.forEach((tab,i)=>{
- tab.onclick=()=>selectSettingsTab(tab);
- tab.addEventListener('keydown',e=>{
-  let next;
-  if(e.key==='ArrowRight')next=(i+1)%settingsTabs.length;
-  if(e.key==='ArrowLeft')next=(i+settingsTabs.length-1)%settingsTabs.length;
-  if(e.key==='Home')next=0;
-  if(e.key==='End')next=settingsTabs.length-1;
-  if(next===undefined)return;
-  e.preventDefault();selectSettingsTab(settingsTabs[next]);settingsTabs[next].focus();
+function wireTabs(tabs){
+ tabs.forEach((tab,i)=>{
+  tab.onclick=()=>selectTab(tabs,tab);
+  tab.addEventListener('keydown',e=>{
+   let next;
+   if(e.key==='ArrowRight')next=(i+1)%tabs.length;
+   if(e.key==='ArrowLeft')next=(i+tabs.length-1)%tabs.length;
+   if(e.key==='Home')next=0;
+   if(e.key==='End')next=tabs.length-1;
+   if(next===undefined)return;
+   e.preventDefault();selectTab(tabs,tabs[next]);tabs[next].focus();
+  });
  });
-});
-selectSettingsTab(document.querySelector('.cfgtab.on')||settingsTabs[0]);
-/* ⌨ Controls. Written out from the bindings that actually exist in the keydown handler rather than
-   from memory, and rendered as text rather than baked into the picture - a controls screen that is
+ selectTab(tabs,tabs.find(t=>t.classList.contains('on'))||tabs[0]);
+}
+const settingsTabs=[...document.querySelectorAll('.cfgtab')],controlsTabs=[...document.querySelectorAll('.ctrltab')];
+wireTabs(settingsTabs);wireTabs(controlsTabs);
+/* ⌨ Controls. Written out from the bindings that actually exist in the keydown handler and padTick rather
+   than from memory, and rendered as text rather than baked into the pictures - a controls screen that is
    out of step with the game is worse than no controls screen. The spell rows read their names from
-   the class, so a Warrior sees Heroic Strike where a Mage sees Fireball. */
+   the class, so a Warrior sees Heroic Strike where a Mage sees Fireball. Settings opens on the tab of
+   whatever is steering: the pad's Start shows the Gamepad tab, the gear clicked shows the keyboard's. */
+/* 🎮 The Gamepad tab's map: the painted controller (gamepad_controls.png - only its face buttons are lettered) with a
+   line from each button out to a label. The map is 1000 units wide and h tall, the painting set into it at art;
+   a button is placed in percent of the painting, measured on the art (assets/ui/gamepad-art-manifest.json). */
+const PAD_MAP={h:440,art:{x:230,y:64,w:540,h:540*515/760}};   /* the painting is 760 x 515 */
+let padMapKey='';
 function renderControls(){
  const sp=((classOf()||{}).spells||[]);   /* no hero yet: the spell rows fall back to their own text */
  const spell=(i,fb)=>sp[i]
@@ -19805,26 +19817,58 @@ function renderControls(){
   ['B','Hide or show the side panel for a wider view'],
   ['F11','Fullscreen on and off'],
   ['Mouse wheel','Zoom the camera in and out'],
-  ['head','Controller'],
-  ['Left stick','Walk'],
-  ['A','Talk, open doors and shops. In a menu: choose'],
-  ['B','Let go of the target. In a menu: back'],
-  ['X',sp[0]?sp[0].n:'First spell'],
-  ['Y',sp[1]?sp[1].n:'Second spell'],
-  ['LT',sp[2]?sp[2].n:'Third spell'],
-  ['D-pad ↑ ↓','Health / mana potion. In a menu: move'],
-  ['D-pad ←','Target the nearest foe'],
-  ['D-pad →','Ride your mount'],
-  ['View','Step into the side panel - Hero, Map, Bag, Shop'],
-  ['LB / RB','Turn the side panel\'s pages, or a window\'s tabs'],
-  ['RT','Hide or show the side panel'],
-  ['Right stick','Zoom the camera. In a menu: scroll'],
-  ['Start','Settings. At a casino table: leave it'],
-  ['R3','Put the pick out or away, once you are trained'],
  ];
- $('kbdList').innerHTML=rows.map(([k,v])=>k==='head'
+ const list=rs=>rs.map(([k,v])=>k==='head'
   ? `<div class="kbdhead">${v}</div>`
   : `<kbd>${k}</kbd><span>${esc(v)}</span>`).join('');
+ $('kbdList').innerHTML=list(rows);
+ /* 🎮 the pad in the world, as [side, label y, button x %, button y %, rows of [badge, what it does, name in the list]].
+    l and r labels stand in the columns either side of the controller, their line leaving at y; t labels stand above
+    it with their foot at y. The face buttons share one line, into the notch between B and A. */
+ const name=(i,fb)=>sp[i]?sp[i].n:fb;
+ const pad=[
+  ['l',174,25.7,31.3,[['LS','Walk','Left stick']]],
+  ['l',295,37.6,55,[['↑','Health potion','D-pad ↑'],['↓','Mana potion','D-pad ↓'],['←','Target foe','D-pad ←'],['→','Ride mount','D-pad →']]],
+  ['r',272,78.65,39.45,[['Y',name(1,'Second spell')],['X',name(0,'First spell')],['B','Drop target'],['A','Talk, open']]],
+  ['l',40,23.5,3,[['LT',name(2,'Third spell')]]],
+  ['l',100,19.5,7.5,[['LB','Previous page']]],
+  ['r',100,80.5,7.5,[['RB','Next page']]],
+  ['r',40,76.5,3,[['RT','Hide panel']]],
+  ['r',390,62.2,55.9,[['RS','Zoom','Right stick'],['R3','Mining pick']]],
+  ['t',46,44.1,37.5,[['View','Side panel']]],
+  ['t',46,55.8,37.5,[['Start','Settings']]],
+ ];
+ const menus=[
+  ['head','In menus'],
+  ['D-pad','Move'],
+  ['A','Choose'],
+  ['B','Back'],
+  ['LB / RB','Tabs, or the side panel\'s pages'],
+  ['Right stick','Scroll'],
+  ['View / RT','Leave the side panel'],
+  ['Start','Settings. At a casino table: leave it'],
+ ];
+ const key=pad.map(c=>c[4].map(r=>r[1]).join()).join();
+ if(key!==padMapKey){   /* drawn again only when a spell name changed - not the picture on every open */
+  padMapKey=key;
+  const {h:H,art:A}=PAD_MAP,f=n=>+n.toFixed(1);
+  let lines='',calls='';
+  for(const [side,y,bx,by,rs] of pad){
+   const tx=f(A.x+A.w*bx/100),ty=f(A.y+A.h*by/100),sx=side==='l'?220:side==='r'?780:tx;
+   lines+=`<line x1="${sx}" y1="${y}" x2="${tx}" y2="${ty}"/><circle cx="${tx}" cy="${ty}" r="5"/>`;
+   const at=side==='l'?'right:78%':side==='r'?'left:78%':tx<500?'right:51%':'left:51%';
+   calls+=`<div class="padcall ${side}" style="${at};top:${f(y/H*100)}%">`
+    +rs.map(([k,v])=>`<div><kbd>${k}</kbd><span>${esc(v)}</span></div>`).join('')+'</div>';
+  }
+  const m=$('padMap');
+  m.style.cssText=`--ar:1000/${H};--ax:${A.x/10}%;--ay:${f(A.y/H*100)}%;--aw:${A.w/10}%`;
+  m.innerHTML='<img class="padart" src="assets/ui/gamepad_controls.png" alt="" draggable="false">'
+   +`<svg class="padlines" viewBox="0 0 1000 ${H}" aria-hidden="true">${lines}</svg>`+calls;
+ }
+ /* a phone is too narrow for the labels: the same rows as a list under the picture (style.css shows one or the other) */
+ $('padWorld').innerHTML=list([['head','Playing'],...pad.flatMap(c=>c[4].map(([k,v,n])=>[n||k,v]))]);
+ $('padMenus').innerHTML=list(menus);
+ selectTab(controlsTabs,$(inputMode==='pad'?'ctrlTabPad':'ctrlTabKb'));
 }
 /* 🖵 Resolution is desktop-only - a browser tab cannot resize its own window, so the row stays hidden
    there rather than offering something that would do nothing. The first entry matches the display and

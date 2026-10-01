@@ -212,10 +212,52 @@
     #cfgBox .cfgback,#cfgBox .cfgexit{padding:11px 12px;font-size:12px}
   }
   @media(max-height:600px){#cfgBox .casinobox{padding:18px}.cfgheading{margin-bottom:14px}.cfgtabs{margin-bottom:14px}.cfgsection{padding:12px 15px;gap:11px}.cfgfooter{margin-top:14px;padding-top:13px}}
-  /* Controls: the keyboard is illustration, the list below it is the truth. Generated art cannot be
-     trusted to letter a dozen keycaps correctly, and a controls screen that lies is worse than none -
-     so the caps are blank in the picture and every binding is written out in real text. */
+  /* Controls: the pictures are illustration, the words are the truth. Generated art cannot be trusted to
+     letter a dozen keycaps correctly, and a controls screen that lies is worse than none - so the keyboard's
+     caps are blank, only the controller's four face buttons carry letters, and every binding is real text. */
+  .ctrltabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;padding:4px;border:1px solid #7456345c;
+    border-radius:9px;background:#120d0966}
+  .ctrltab{min-width:0;display:flex;align-items:center;justify-content:center;gap:6px;padding:7px 6px;border-radius:6px;
+    border:1px solid transparent;background:transparent;color:#bda787;font:600 12px var(--body);cursor:var(--hand);
+    transition:background .15s,border-color .15s,color .15s}
+  .ctrltab::before{content:"";display:block;width:16px;height:16px;flex:none;background:currentColor;pointer-events:none;
+    -webkit-mask:var(--control-icon) center/contain no-repeat;mask:var(--control-icon) center/contain no-repeat}
+  .ctrltab[data-ctrl="kb"]{--control-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='1.5' y='7' width='14' height='10' rx='1.5'/%3E%3Cpath d='M4.5 10h.1M8.5 10h.1M12.5 10h.1M6 14h5'/%3E%3Crect x='17.5' y='7' width='5' height='10' rx='2.5'/%3E%3Cpath d='M20 7v3'/%3E%3C/svg%3E")}
+  .ctrltab[data-ctrl="pad"]{--control-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 6.5h10a5 5 0 0 1 4.9 4l.9 4.8a2.5 2.5 0 0 1-4.5 1.9L16 15H8l-2.3 2.2a2.5 2.5 0 0 1-4.5-1.9l.9-4.8A5 5 0 0 1 7 6.5z'/%3E%3Cpath d='M7.5 9.5v3.5M5.75 11.25h3.5M15.5 10.5h.1M17.5 12.5h.1'/%3E%3C/svg%3E")}
+  .ctrltab:hover{color:#f5dfb3;background:#533a2366}
+  .ctrltab.on{border-color:#ac834980;background:linear-gradient(135deg,#5f4128,#3b2a1c);color:#ffe1a3;box-shadow:inset 0 1px 0 #f5d18d26,0 1px 3px #0005}
+  .ctrlpane{display:none;flex-direction:column}
+  .ctrlpane.on{display:flex}
   .kbdart{width:100%;border-radius:9px;border:1px solid var(--line);margin-bottom:10px;display:block}
+  /* 🎮 the Gamepad map: the painting on the keyboard picture's own near-black, a label column either side and
+     the lines drawn in the map's units (renderControls). The words scale with the panel; under 420 px they
+     cannot fit beside the controller, so the picture stands alone and the same rows show as a list. */
+  #ctrlPad{container-type:inline-size}
+  .padmap{position:relative;aspect-ratio:var(--ar,1000/440);margin-bottom:10px;border-radius:9px;border:1px solid var(--line);
+    background:#151015;overflow:hidden;font-size:clamp(9px,2.2cqw,12px);line-height:1.25}
+  .padart{position:absolute;left:var(--ax);top:var(--ay);width:var(--aw);display:block;pointer-events:none;user-select:none}
+  .padlines{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;
+    filter:drop-shadow(0 0 1px #000) drop-shadow(0 1px 1px #000)}
+  .padlines line{stroke:#dcb47c;stroke-width:1.2;vector-effect:non-scaling-stroke}
+  .padlines circle{fill:#f3cf8f;stroke:#2a1c10;stroke-width:1;vector-effect:non-scaling-stroke}
+  .padcall{position:absolute;display:flex;flex-direction:column;gap:.25em;max-width:21.5%;transform:translateY(-50%);
+    color:var(--parch);text-shadow:0 1px 2px #000}
+  .padcall>div{display:flex;align-items:center;gap:.4em}
+  .padcall span{min-width:0}
+  .padcall.l{align-items:flex-end;text-align:right;padding-right:.5em;border-right:1px solid #dcb47c99}
+  .padcall.l>div{flex-direction:row-reverse}
+  .padcall.r{align-items:flex-start;padding-left:.5em;border-left:1px solid #dcb47c99}
+  .padcall.t{max-width:24%;transform:translateY(-100%);padding-bottom:.3em;border-bottom:1px solid #dcb47c99}
+  .padcall kbd{flex:none;min-width:1.6em;padding:.05em .35em;border-radius:4px;border:1px solid var(--brass-deep);text-align:center;
+    background:linear-gradient(180deg,#3a2a1c,#221610);color:var(--brass);font:600 .92em/1.35 ui-monospace,Consolas,monospace;
+    text-shadow:none;box-shadow:0 1px 0 rgba(0,0,0,.6)}
+  .kbdlist.padworld{display:none;margin-bottom:10px}
+  @container (max-width:420px){
+    .padmap{aspect-ratio:auto;border:0;background:none}
+    .padart{position:static;width:100%}
+    .padlines,.padcall{display:none}
+    .kbdlist.padworld{display:grid}
+  }
   .kbdlist{display:grid;grid-template-columns:auto 1fr;gap:5px 10px;align-items:center;
            max-height:38vh;overflow-y:auto}
   .kbdlist kbd{justify-self:start;padding:3px 7px;border-radius:5px;border:1px solid var(--brass-deep);

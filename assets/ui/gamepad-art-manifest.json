@@ -1,0 +1,26 @@
+{
+ "about": "The controller painted for Settings > Controls > Gamepad (2026-10-01). Higgsfield gpt_image_2_5, variant flare, quality medium, 1k, aspect 3:2, background transparent, 0.5 credit each. Style reference: assets/ui/keyboard_controls.png uploaded as image_references (media a3ca2cb8-97a9-4f93-9b05-8feccd96aa62). Prompt: 'Paint a game controller (gamepad) in exactly the art style of the reference image: the same hand-painted dark-fantasy game UI illustration with thick black ink outlines, rough grey brush-stroked stone texture with white dry-brush highlights and ragged chipped edges, and dark charcoal buttons with thin warm copper-bronze rims ... classic Xbox-style layout ... The four face buttons carry engraved bronze capital letters: Y on the top button, B on the right button, A on the bottom button, X on the left button. No other text ... straight-on front view from above ... Isolated on a fully transparent background'. Game copy: alpha 254 rescaled to 255, haze under 6 dropped, tight crop, LANCZOS to 760 px wide, 256-colour palette PNG (122 KB, the full-colour one was 664 KB and looked the same). Only the face buttons are lettered; every word on the tab is real text drawn by renderControls in game.js.",
+ "file": "gamepad_controls.png",
+ "size": [760, 515],
+ "job": "35ee2226-809d-4b6d-b68c-750accff04a9",
+ "alternatives": [
+  {"job": "e611967b-c190-4db9-a29b-faf705bfc0b6", "note": "the same controller with every button blank"},
+  {"job": "a5de26da-11ae-487f-a7be-e23f5bfda3ee", "note": "lettered, seen from the front and slightly from above"}
+ ],
+ "buttons_about": "Measured on gamepad_controls.png from the copper rims and the dark button faces: [x %, y %] of the painting, and for the round controls a radius in % of the painting's width. renderControls points its lines at these; tests/controls-tabs.test.cjs checks that every line ends on its button and crosses no other.",
+ "buttons": {
+  "LT": [23.5, 3.0],
+  "RT": [76.5, 3.0],
+  "LB": [19.5, 7.5],
+  "RB": [80.5, 7.5],
+  "LS": [25.7, 31.3, 8.1],
+  "RS": [62.2, 55.9, 8.1],
+  "D-pad": [37.6, 55.0, 7.9],
+  "Y": [75.1, 23.1, 4.3],
+  "X": [68.0, 33.9, 4.3],
+  "B": [82.2, 33.9, 4.3],
+  "A": [75.1, 45.0, 4.3],
+  "View": [44.1, 37.5, 2.8],
+  "Start": [55.8, 37.5, 2.8]
+ }
+}

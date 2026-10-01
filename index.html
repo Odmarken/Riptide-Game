@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="favicon_256.png">
 <!-- ?v= is not decoration: without it iOS Safari serves a cached stylesheet for days, so two
      phones end up running two different builds of the layout. Bump on every visual change. -->
-<link rel="stylesheet" href="style.css?v=65">
+<link rel="stylesheet" href="style.css?v=66">
 <link rel="stylesheet" href="assets/tides/ui.css?v=11">
 <link rel="stylesheet" href="assets/ui/crafting.css?v=8">
 <link rel="stylesheet" href="assets/city/ledger.css?v=14">
@@ -161,9 +161,20 @@
           </div>
         </div>
         <div class="cfgpane" id="paneControls" role="tabpanel" aria-labelledby="cfgTabControls" tabindex="0">
-          <img class="kbdart" src="assets/ui/keyboard_controls.png" alt="" draggable="false"
-               onerror="this.style.display='none'">
-          <div class="kbdlist" id="kbdList"></div>
+          <div class="ctrltabs" role="tablist" aria-label="Controls for">
+            <button class="ctrltab on" id="ctrlTabKb" data-ctrl="kb" role="tab" aria-selected="true" aria-controls="ctrlKb">Keyboard &amp; Mouse</button>
+            <button class="ctrltab" id="ctrlTabPad" data-ctrl="pad" role="tab" aria-selected="false" aria-controls="ctrlPad" tabindex="-1">Gamepad</button>
+          </div>
+          <div class="ctrlpane on" id="ctrlKb" role="tabpanel" aria-labelledby="ctrlTabKb">
+            <img class="kbdart" src="assets/ui/keyboard_controls.png" alt="" draggable="false"
+                 onerror="this.style.display='none'">
+            <div class="kbdlist" id="kbdList"></div>
+          </div>
+          <div class="ctrlpane" id="ctrlPad" role="tabpanel" aria-labelledby="ctrlTabPad" hidden>
+            <div class="padmap" id="padMap"></div>
+            <div class="kbdlist padworld" id="padWorld"></div>
+            <div class="kbdlist" id="padMenus"></div>
+          </div>
         </div>
         <div class="cfgfooter">
           <button id="cfgClose" class="sbtn cfgback">Back to the game</button>
@@ -950,7 +961,7 @@
 <script src="assets/cloud/firestore-rest.js?v=1"></script>
 <script src="assets/boss/odin-arena.js?v=1"></script>
 <script src="assets/models/moonshine-folk.js?v=1"></script>
-<script src="game.js?v=210"></script>
+<script src="game.js?v=211"></script>
 <script src="assets/ui/crafting.js?v=4"></script>
 </body>
 </html>
