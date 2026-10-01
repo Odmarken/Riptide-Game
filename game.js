@@ -6627,9 +6627,9 @@ function buildZone(){
    world.solids.push({x,y,r:14+TR()*8,type:'rock',s:0.8+TR()*0.7,seed:TR()*100});
    rocks++;
   }
-  /* City street lamps along the Farm-to-City road, alternating kerbs and leaving the square open. */
-  [-1000,-760,-520,-280,280,520,760,1000].forEach((dx,i)=>{
-   world.solids.push({x:cx+dx,y:cy+(i%2?95:-40),r:7,type:'citywork',kind:'lamp',lit:true,noCol:true,seed:100+i});
+  /* Six City street lamps along the road, clear of the square; collision follows each stone base. */
+  [-1000,-760,-520,520,760,1000].forEach((dx,i)=>{
+   world.solids.push({x:cx+dx,y:cy+(i%2?95:-40),r:12,crx:13,cry:6,type:'citywork',kind:'lamp',lit:true,seed:100+i});
   });
  }else{
   if(z.crypts)buildCryptMaze();
