@@ -287,7 +287,8 @@
        text-shadow:0 1px 3px rgba(0,0,0,.85);pointer-events:none}
  
 
-  #skillbar{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:7px;align-items:flex-end;z-index:6}
+  #skillbar{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:7px;align-items:flex-end;z-index:6;transition:opacity .4s}
+  body.cinematic #skillbar,body.cinematic #padHints{opacity:0;pointer-events:none}   /* 🎬 the Forsaken One's scene: the bars and his words have the screen */
   .skill.mount{width:32px;height:32px;flex-shrink:0;border-radius:8px;padding:0}
   .skill.mount .btnico{width:100%;height:100%;object-fit:contain}
   .skill.mount.on{border-color:#d9a441;box-shadow:0 0 10px rgba(217,164,65,.45)}

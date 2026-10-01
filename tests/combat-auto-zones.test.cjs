@@ -29,10 +29,10 @@ function harness(){
  return c;
 }
 
-test('dungeons, the Crypts, the raid and the Final Hour block AUTO; leveling bosses, Odin and Thor keep it',()=>{
+test('dungeons, the Crypts and the raid block AUTO; leveling bosses, Odin, Thor and (since 2026-10-01) the Final Hour keep it',()=>{
  const c=harness(),blocked=[...c.zones].filter(z=>!c.combatAutoAllowed(z)).map(z=>z.name);
- assert.deepEqual(blocked,['Violet Halls','The Crypts','The Final Hour','Briarhollow','Cindervein','Frostveil']);
- for(const name of ['Hollowroot Den','Grimwater Cavern','The Sunken Crypt','Pyre of the Old Gate','Emberdeep Keep','Gates of the Viking','Halls of Valhalla','Cow Level','Willowmere Fields','Wasteland','City','Farm','Moonshine']){
+ assert.deepEqual(blocked,['Violet Halls','The Crypts','Briarhollow','Cindervein','Frostveil']);
+ for(const name of ['Hollowroot Den','Grimwater Cavern','The Sunken Crypt','Pyre of the Old Gate','Emberdeep Keep','Gates of the Viking','Halls of Valhalla','The Final Hour','Cow Level','Willowmere Fields','Wasteland','City','Farm','Moonshine']){
   assert.equal(c.combatAutoAllowed(c.zones.find(z=>z.name===name)),true,name);
  }
 });

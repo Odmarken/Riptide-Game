@@ -55,7 +55,7 @@ test('the edges are the outer gold line as measured on the painting, and both en
 
 /* the real movement: collide() and moveToward() cut from game.js, the Altar's world, a hero of radius 13 */
 function walker(){
- const c=vm.createContext({AltarGround:A,world:{w:3000,h:2000,solids:[],altarGround:true},mountRide:{id:null},Mounts:{allowed:()=>false},
+ const c=vm.createContext({world:{w:3000,h:2000,solids:[],ground:A},mountRide:{id:null},Mounts:{allowed:()=>false},
   TideUI:{visibleCompanion:()=>null},zoneOf:()=>({altar:true}),speedOf:()=>175,pet:{x:0,y:0,r:8},
   hero:{x:430,y:990,r:13,walk:0,fx:1,fy:0,moving:false,avoid:null}});
  vm.runInContext(section('const SGRID=320;','function speedOf(')+section('function moveToward(','/* ==================== FX'),c);
@@ -125,11 +125,11 @@ test('a tap on the sky walks to the rim and stops there, and every part of the g
   assert.ok(!A.contains(p.x+(x-p.x)/u*16,p.y+(y-p.y)/u*16,0),'right at the rim, not short of it ('+x+','+y+')');
  }
  assert.deepEqual(A.nearest(700,1000,FEET),{x:700,y:1000},'a tap on the ground is where you go');
- /* game.js: the Altar marks its world, collide asks the module, taps and a held finger go through walkTarget */
- assert.match(section('  if(z.altar){','  if(!isBoss&&!z.raid&&!z.noBerg){'),/world\.altarGround=true;/);
- assert.match(section('function collide(e,nx,ny){','function speedOf('),/if\(world\.altarGround&&!AltarGround\.contains\(nx,ny,\(e\.r\|\|12\)\*0\.6\)\)return true;/);
- assert.match(game,/function walkTarget\(wx,wy\)\{\n const p=\{x:Math\.max\(30,Math\.min\(world\.w-30,wx\)\),y:Math\.max\(30,Math\.min\(world\.h-30,wy\)\)\};\n if\(world\.altarGround\)\{const q=AltarGround\.nearest\(p\.x,p\.y,\(hero\.r\|\|13\)\*0\.6\+1\.5\);if\(q\)return q;\}/);
- assert.match(game,/hero\.moveTo=walkTarget\(wx,wy\);hero\.target=null;marker=\{x:hero\.moveTo\.x,y:hero\.moveTo\.y,t:0\};/);
+ /* game.js: the Altar hands its world this ground, collide asks it, taps and a held finger go through walkTarget */
+ assert.match(section('  if(z.altar){','  if(!isBoss&&!z.raid&&!z.noBerg){'),/world\.ground=AltarGround;/);
+ assert.match(section('function collide(e,nx,ny){','function speedOf('),/if\(world\.ground&&!world\.ground\.contains\(nx,ny,\(e\.r\|\|12\)\*0\.6\)\)return true;/);
+ assert.match(game,/function walkTarget\(wx,wy\)\{\n const p=\{x:Math\.max\(30,Math\.min\(world\.w-30,wx\)\),y:Math\.max\(30,Math\.min\(world\.h-30,wy\)\)\};\n if\(!world\.ground\)return p;\n const q=world\.ground\.nearest\(p\.x,p\.y,\(hero\.r\|\|13\)\*0\.6\+1\.5\)\|\|p;/);
+ assert.match(game,/hero\.moveTo=walkTarget\(wx,wy\);hero\.target=null;marker=\{x:walkEnd\(hero\.moveTo\)\.x,y:walkEnd\(hero\.moveTo\)\.y,t:0\};/);
  assert.match(game,/hero\.moveTo=walkTarget\(hx,hy\);/);
  assert.doesNotMatch(game,/hero\.moveTo=\{x:Math\.max\(30,Math\.min\(world\.w-30/,'no tap walks around walkTarget');
  /* a pet that fell behind is put down on the ground, not in the sky behind the hero */

@@ -1,0 +1,9 @@
+{
+ "about": "The Final Hour's standing torches (2026-10-01, asked: \"ställ ut några facklor i det rummet där bossen är\"). Higgsfield gpt_image_2_5, variant flare, quality medium, 1k, aspect 9:16, background transparent, 0.5 credit each. Style references: assets/city/wall_torch.png and assets/city/hall_brazier.png, flattened onto light grey and uploaded as image_references. Prompt: 'A standing torch for a dark fantasy RPG, painted in exactly the same style as the two reference images ... a torch exactly like the reference torch - wooden shaft wrapped in leather and iron bands, caged iron basket at the top, burning with a lively flame - standing upright, its foot set into a squat square block of dark grey carved stone with an iron collar holding the shaft ... front view, slightly from above ... isolated on a fully transparent background'. Game copy: alpha 254 rescaled to 255, haze under 6 dropped, tight crop, LANCZOS to 560 px tall. The flame is the top fifth of the picture; game.js sways it in slices and lays a glow round it and a pool of light on the floor.",
+ "file": "final_torch.png",
+ "size": [126, 560],
+ "job": "a30933d4-3808-444b-8fb1-a6bc446ea27d",
+ "alternatives": [
+  {"job": "bb35ff33-324f-4b95-bb29-4147f6516e5e", "note": "a slim iron torch stand on a three-legged clawed base"}
+ ]
+}

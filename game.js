@@ -622,6 +622,47 @@ function drawAltarWind(now){   /* over the world, in the screen's frame like the
  ctx.stroke();
  ctx.restore();
 }
+/* 🟣 The Final Hour's violet wind (asked for 2026-10-01: "lite lila vind puffar där inne i rummet"). The whole room turns slowly
+   round the Forsaken One's platform: puffs of violet mist well up off the stone, are drawn out along the turn as they swell,
+   and thin away, while fine curls of violet air run round with it. All of it lies on the floor - under the hero, under him
+   and under every warning he paints, so nothing in the fight is hidden. Settings -> Video -> Weather turns it off. */
+let puffTex=null;
+function puffTexture(){   /* one soft violet puff, painted once */
+ if(puffTex)return puffTex;
+ const N=128,c=document.createElement('canvas');c.width=c.height=N;const g=c.getContext('2d');
+ const gr=g.createRadialGradient(N/2,N/2,0,N/2,N/2,N/2);
+ gr.addColorStop(0,'rgba(190,128,255,.5)');gr.addColorStop(.45,'rgba(152,88,232,.24)');gr.addColorStop(1,'rgba(118,58,198,0)');
+ g.fillStyle=gr;g.fillRect(0,0,N,N);
+ return puffTex=c;
+}
+function drawFinalPuffs(now){   /* in the world's frame, on the floor of the arena */
+ const A=world.arena;if(!A)return;
+ const T=puffTexture(),vx=camX,vy=camY,vw=VW/zoom,vh=VH/zoom,turn=now*.05;   /* the room's slow turn, clockwise */
+ ctx.save();
+ for(let i=0;i<30;i++){   /* each wells up, swells and drifts on the turn, thins away, then rises again somewhere else */
+  const P=4+wxHash(i*11+1)*4,q=now/P+wxHash(i*11+2),c=Math.floor(q),ph=q-c;
+  const h1=wxHash(i*97+c*7919+3),h2=wxHash(i*61+c*104729+5),h3=wxHash(i*29+c*15485863+7);
+  const ang=h1*Math.PI*2+turn+ph*.3,rad=Math.sqrt(h2)*.93;   /* spread evenly over the platform */
+  const x=A.x+Math.cos(ang)*A.rx*rad,y=A.y+Math.sin(ang)*A.ry*rad,s=(60+80*h3)*(.55+.75*ph);
+  if(x+s*1.4<vx||x-s*1.4>vx+vw||y+s<vy||y-s>vy+vh)continue;
+  ctx.globalAlpha=Math.pow(Math.sin(Math.PI*ph),1.3)*.6;
+  ctx.save();ctx.translate(x,y);ctx.rotate(Math.atan2(A.ry*Math.cos(ang),-A.rx*Math.sin(ang)));   /* drawn out along the turn */
+  ctx.drawImage(T,-s*1.4,-s*.5,s*2.8,s);ctx.restore();
+ }
+ ctx.globalAlpha=1;ctx.lineCap='round';
+ for(let i=0;i<10;i++){   /* curls of violet air: a stretch of the turn, bright at its head, gone at its tail */
+  const P=2.2+wxHash(i*13+21)*1.6,q=now/P+wxHash(i*13+22),c=Math.floor(q),ph=q-c;
+  const h1=wxHash(i*31+c*7919+23),h2=wxHash(i*17+c*104729+24),len=.28+.28*wxHash(i*7+c*313+25);
+  const rad=.22+.7*h2,head=h1*Math.PI*2+turn+ph*.9,al=Math.pow(Math.sin(Math.PI*ph),1.4)*.55;
+  ctx.lineWidth=2.1;
+  for(let s=0;s<10;s++){
+   const a0=head-len*s/10,a1=head-len*(s+1)/10,w=1+Math.sin(s*.8+c)*.015;
+   ctx.strokeStyle='rgba(210,166,255,'+(al*(1-s/10)).toFixed(3)+')';ctx.beginPath();
+   ctx.moveTo(A.x+Math.cos(a0)*A.rx*rad*w,A.y+Math.sin(a0)*A.ry*rad*w);ctx.lineTo(A.x+Math.cos(a1)*A.rx*rad*w,A.y+Math.sin(a1)*A.ry*rad*w);ctx.stroke();
+  }
+ }
+ ctx.restore();
+}
 /* Zone maps are the biggest files the game fetches - 2.5 to 3.8 MB each - and on a phone they are
    the ones that fail. A dropped request leaves an Image with complete true and naturalWidth 0, which
    passes NEITHER test in prerenderGround: not "ready to draw", not "still loading". The zone then
@@ -758,6 +799,7 @@ const cowWeaponImg=new Image();cowWeaponImg.src='assets/boss/cow_weapon.png?v=2'
 const cowmobImg=new Image();cowmobImg.src='assets/boss/Cowlevel_boss.png?v=3';
 const armorAltarImg=new Image();armorAltarImg.src='assets/models/armor_altar.png';
 const finalBossImg=new Image();finalBossImg.src='assets/boss/finalboss.png?v=3';
+const finalTorchImg=new Image();finalTorchImg.src='assets/models/final_torch.png';   /* 🔥 the Final Hour's standing torches (assets/models/final-torch-manifest.json) */
 const finalBossFootImg=new Image();finalBossFootImg.src='assets/boss/finalboss_foot.png?v=2';
 const finalBossWeaponImg=new Image();finalBossWeaponImg.src='assets/boss/finasboss_weapon.png?v=2';
 const raidSwordImg=new Image();raidSwordImg.src='assets/boss/raidboss_sword.png?v=2';
@@ -1378,21 +1420,21 @@ const ZONES=[
  {name:'Thornwood Glade',lvl:5,amb:'forest',map:'levlingzone_green',ground:'#557d47',ground2:'#4b7040',water:'#3f7086',tree:'#37592c',tree2:'#274420',path:'#9a8a62',
   en:[['Thorn Wolf','beast','#6b6f76'],['Web Matron','beast','#5a4a6b'],['Poacher Chief','humanoid','#7a5a3a']],
   q:[['Howls in the Glade','Hunt 8 wolves stalking the woodcutters.',8],['Silk and Venom','Burn out 9 broodmothers.',9],['The Poachers\u2019 Camp','Break the poacher ring - 12 foes.',12]]},
- {name:'Hollowroot Den',lvl:8,amb:'cave',map:'levlingzone_boss',boss:['Gorehusk the Rootfiend','#7a9a3a','gorehusk'],ground:'#4a3f33',ground2:'#40362b',water:'#3a4a3a',tree:'#3a3128',tree2:'#2c251e',path:'#6a5a44',rocky:true},
+ {name:'Hollowroot Den',lvl:10,amb:'cave',map:'levlingzone_boss',boss:['Gorehusk the Rootfiend','#7a9a3a','gorehusk'],ground:'#4a3f33',ground2:'#40362b',water:'#3a4a3a',tree:'#3a3128',tree2:'#2c251e',path:'#6a5a44',rocky:true},
  {name:'Ironcrag Pass',lvl:10,amb:'mountain',snowTrees:true,noBerg:true,map:'levlingzone_snow',ground:'#8b8a78',ground2:'#7e7d6c',water:'#6f9ab0',tree:'#5a6b52',tree2:'#46543f',path:'#a89a80',rocky:true,
   en:[['Crag Raider','humanoid','#8a5a4a'],['Rock Wyrmling','beast','#9a8a5a'],['Frost Harpy','beast','#7fa8c0']],
   q:[['Hold the Pass','Repel 10 raiders from the mountain road.',10],['Nests in the Cliffs','Clear 10 harpy nests.',10],['Wyrm Tithe','Slay 14 creatures hoarding the ore carts.',14]]},
  {name:'Mistfen Marsh',lvl:15,amb:'marsh',map:'levlingzone_green',ground:'#5a7a58',ground2:'#507050',water:'#3f6a5a',tree:'#3f5a3a',tree2:'#2f4630',path:'#8a8a62',
   en:[['Fen Lurker','beast','#5a7a6a'],['Mire Stalker','beast','#4a5a44'],['Swampwitch Adept','humanoid','#7a5a8a']],
   q:[['Lights in the Fog','Slay 9 lurkers dragging travelers under.',9],['The Witch\u2019s Brew','Scatter 10 adepts of the swampwitch coven.',10],['Drain the Mire','Clear 13 horrors from the drowned road.',13]]},
- {name:'Grimwater Cavern',lvl:18,amb:'cave',map:'levlingzone_boss',boss:['Maw of the Deep','#4a90a8','maw'],ground:'#3a4450',ground2:'#333d48',water:'#2f4a5a',tree:'#333d48',tree2:'#262e38',path:'#5a6470',rocky:true},
+ {name:'Grimwater Cavern',lvl:20,amb:'cave',map:'levlingzone_boss',boss:['Maw of the Deep','#4a90a8','maw'],ground:'#3a4450',ground2:'#333d48',water:'#2f4a5a',tree:'#333d48',tree2:'#262e38',path:'#5a6470',rocky:true},
  {name:'Ashen Moor',lvl:20,amb:'moor',dot:'#ffffff',snowTrees:true,noBerg:true,map:'levlingzone_snow',ground:'#5f5a66',ground2:'#555060',water:'#46506b',tree:'#4a4456',tree2:'#383244',path:'#7a7268',
   en:[['Moor Wraith','undead','#8fb0c9'],['Bog Revenant','undead','#6b8a7a'],['Cult Torchbearer','humanoid','#a05a4a']],
   q:[['Lights on the Moor','Put 10 restless spirits to rest.',10],['The Torchbearers','Scatter 12 cultists raising the dead.',12],['Silence the Bog','Destroy 14 horrors before the rite completes.',14]]},
  {name:'Duskhollow Barrens',lvl:25,amb:'dry',map:'levlingzone_desert',noTrees:true,ground:'#8a7a5a',ground2:'#7e6f50',water:'#6a8a7a',tree:'#6a5a3a',tree2:'#544628',path:'#a08a5a',rocky:true,
   en:[['Dust Prowler','beast','#a08a5a'],['Barrens Marauder','humanoid','#8a5a3a'],['Carrion Screecher','beast','#7a6a7a']],
   q:[['Bones in the Dust','Hunt 10 prowlers circling the caravans.',10],['Marauder Toll','Break 12 marauders holding the dry road.',12],['Sky of Carrion','Bring down 14 screechers.',14]]},
- {name:'The Sunken Crypt',lvl:28,amb:'cave',map:'levlingzone_boss',boss:['Ossric, King Below','#b0c0d0','ossric'],ground:'#3a3a46',ground2:'#33333e',water:'#2f3a4a',tree:'#33333e',tree2:'#262630',path:'#55556a',rocky:true},
+ {name:'The Sunken Crypt',lvl:30,amb:'cave',map:'levlingzone_boss',boss:['Ossric, King Below','#b0c0d0','ossric'],ground:'#3a3a46',ground2:'#33333e',water:'#2f3a4a',tree:'#33333e',tree2:'#262630',path:'#55556a',rocky:true},
  {name:'Frostspire Heights',lvl:30,amb:'frost',snowTrees:true,noBerg:true,map:'levlingzone_snow',ground:'#b8c4cc',ground2:'#a8b6c0',water:'#7fb0d0',tree:'#5a7a6a',tree2:'#44604f',path:'#cad4da',rocky:true,
   en:[['Frost Wolf','beast','#8fa8b8'],['Rime Shade','undead','#a0d0e0'],['Spire Raider','humanoid','#6a7a9a']],
   q:[['Wolves of the Spire','Hunt 10 frost wolves above the treeline.',10],['Shades of Rime','Banish 12 shades haunting the pass.',12],['The High Camp','Rout 14 raiders from the summit camp.',14]]},
@@ -1402,7 +1444,7 @@ const ZONES=[
  {name:'Cinderwaste',lvl:40,amb:'ember',map:'levlingzone_desert',noTrees:true,ground:'#6a4436',ground2:'#5f3d30',water:'#a04a20',tree:'#503426',tree2:'#3c2419',path:'#8a5a3a',rocky:true,
   en:[['Cinder Imp','humanoid','#c05a2a'],['Magma Crawler','beast','#b04a1a'],['Ash Revenant','undead','#906a5a']],
   q:[['Sparks in the Ash','Stamp out 10 cinder imps.',10],['Things Below the Crust','Slay 12 crawlers breaking the surface.',12],['The Grey March','Destroy 14 horrors of the waste.',14]]},
- {name:'Pyre of the Old Gate',lvl:43,amb:'ember',map:'levlingzone_boss',boss:['Ashmaw the Rekindled','#e05a1a','ashmaw'],ground:'#4a2e26',ground2:'#3f271f',water:'#a04a20',tree:'#3c2419',tree2:'#2c1a12',path:'#6a4430',rocky:true},
+ {name:'Pyre of the Old Gate',lvl:45,amb:'ember',map:'levlingzone_boss',boss:['Ashmaw the Rekindled','#e05a1a','ashmaw'],ground:'#4a2e26',ground2:'#3f271f',water:'#a04a20',tree:'#3c2419',tree2:'#2c1a12',path:'#6a4430',rocky:true},
  {name:'Stormreach Coast',lvl:45,amb:'coast',map:'levlingzone_green',ground:'#6a8a5a',ground2:'#5f7d50',water:'#3a6a8a',tree:'#4a7a4a',tree2:'#386038',path:'#c0aa7a',
   en:[['Tide Serpent','beast','#4a8a9a'],['Wreck Raider','humanoid','#7a5a4a'],['Storm-Drowned','undead','#5a7a8a']],
   q:[['Teeth of the Tide','Slay 10 serpents in the shallows.',10],['Wreckers\u2019 Cove','Break 12 raiders looting the wrecks.',12],['The Drowned Return','Put 14 drowned souls to rest.',14]]},
@@ -6585,6 +6627,10 @@ function buildZone(){
    world.solids.push({x,y,r:14+TR()*8,type:'rock',s:0.8+TR()*0.7,seed:TR()*100});
    rocks++;
   }
+  /* City street lamps along the Farm-to-City road, alternating kerbs and leaving the square open. */
+  [-1000,-760,-520,-280,280,520,760,1000].forEach((dx,i)=>{
+   world.solids.push({x:cx+dx,y:cy+(i%2?95:-40),r:7,type:'citywork',kind:'lamp',lit:true,noCol:true,seed:100+i});
+  });
  }else{
   if(z.crypts)buildCryptMaze();
   if(z.farm){ /* 🚜 the Farm - the little farmhouse guards the fields */
@@ -6600,14 +6646,19 @@ function buildZone(){
   if(z.finalb){ /* ☠ you walk in from the south, dead centre - the arena rises ahead of you */
    world.spawn={x:world.w/2,y:world.h-160};
    world.portal={x:-500,y:-500}; /* no exit swirl - win or leave by the map */
-   /* invisible bounds traced from the painted ring: the arena ellipse plus the stair
-      that runs south to the entrance. Everything else is scenery you cannot reach. */
-   world.arena={x:world.w/2,y:world.h*0.455,rx:world.w*0.226,ry:world.h*0.272, /* the stone floor only - the moat outside the rim is off limits */
-    gx0:world.w*0.478,gx1:world.w*0.522,gy0:world.h*0.60,gy1:world.h};
+   /* the platform out to its bronze rim, and the stair and landing you come in by - traced from the painting
+      (FinalGround); the chasm, the bridges, the north stair and the terraces are scenery. The arena's ellipse goes to
+      the Forsaken One's kit as well: where his runes may bloom, and the four points he blinks to. */
+   world.ground=FinalGround;
+   world.arena={...FinalGround.ARENA};
+   /* 🔥 eight torches in their stone feet round the platform's outer ring, between the bridges and the stairs (asked for
+      2026-10-01: "ställ ut några facklor i det rummet") - they stop the hero as a pillar would; he strides through them */
+   for(let i=0;i<8;i++){const a=(22.5+45*i)*Math.PI/180,A=world.arena;
+    world.solids.push({x:Math.round(A.x+Math.cos(a)*A.rx*.93),y:Math.round(A.y-Math.sin(a)*A.ry*.93),r:12,type:'finaltorch',seed:i*1.7});}
    zoneMapImg('finalboss_zone');
   }
   if(z.altar){
-   world.altarGround=true;   /* ⛧ only the bridge and the great ring are ground - the sky around them is not (AltarGround) */
+   world.ground=AltarGround;   /* ⛧ only the bridge and the great ring are ground - the sky around them is not */
    /* the way home - standing on the walkway just ahead of the spawn */
    world.solids.push({x:110,y:995,r:38,type:'altarportal'}); /* far left on the walkway */
    altarGateSync();
@@ -6740,7 +6791,10 @@ function buildZone(){
  }else if(isBoss){
   /* ☠ the final arena: you arrive centre-bottom, the Forsaken One waits centre-north */
   if(z.finalb){
-   if(!S.bossDead[S.zone]&&!S.forsakenDead)spawnEnemyAt(tmpls[0],R,{x:world.w/2,y:world.h*0.30}); /* slain once, slain forever - even across Prestige */
+   if(!S.bossDead[S.zone]&&!S.forsakenDead){   /* slain once, slain forever - even across Prestige */
+    spawnEnemyAt(tmpls[0],R,{x:world.w/2,y:world.h*0.30});
+    startFinalIntro(enemies[enemies.length-1]);   /* 🎬 and every time you come up, he has his say first */
+   }
    else world.solids.push({x:world.w/2,y:world.h*0.46,r:60,type:'exitportal'}); /* the way out, opened by his death */
   }
   else if(!S.bossDead[S.zone]&&!(zoneOf().thor&&thorLocked()))spawnEnemyAt(tmpls[0],R,z.amb==='odin'?OdinArena.BOSS:{x:world.w-320,y:world.pathY});
@@ -6976,7 +7030,7 @@ function collide(e,nx,ny){
  if(world.throne&&!ThroneWorld.contains(nx,ny,e.r||12))return true;
  if(world.harbor&&!HarborWorld.contains(nx,ny,e.r||12))return true;
  if(world.town&&!TownWorld.contains(world,nx,ny,e.r||12))return true;   /* ⛵ the coastline and the piers of a port of call */
- if(world.altarGround&&!AltarGround.contains(nx,ny,(e.r||12)*0.6))return true;   /* ⛧ the Altar's bridge and great ring - feet, not shoulders, at the gold rim */
+ if(world.ground&&!world.ground.contains(nx,ny,(e.r||12)*0.6))return true;   /* ⛧☠ a painted zone's own ground (the Altar's bridge and ring, the Final Hour's platform and stair) - feet, not shoulders, at its rim */
  /* Bosses and cows ignore trees/rocks - the herd tramples straight through. */
  if((!e.boss||e.raid)&&!e.cow){
   for(const s of solidCell(nx,ny)){
@@ -6999,13 +7053,6 @@ function collide(e,nx,ny){
  if(world.rails)for(const w of world.rails){ /* 👑 balustrades and plinths of the palace stair - feet, not shoulders */
   const rr=(e.r||12)*.6;
   if(nx>w.x-rr&&nx<w.x+w.w+rr&&ny>w.y-rr&&ny<w.y+w.h+rr)return true;
- }
- if(world.arena){ /* ☠ final arena: the ring and its stair are the only solid ground */
-  const a=world.arena,rr=(e.r||12)*0.6; /* feet, not shoulders, decide the edge */
-  const kx=(nx-a.x)/Math.max(1,a.rx-rr),ky=(ny-a.y)/Math.max(1,a.ry-rr);
-  const inRing=kx*kx+ky*ky<=1;
-  const inGate=nx>a.gx0+rr&&nx<a.gx1-rr&&ny>a.gy0&&ny<a.gy1;
-  if(!inRing&&!inGate)return true;
  }
  return nx<e.r+16||ny<e.r+16||nx>world.w-e.r-16||ny>world.h-e.r-16;
 }
@@ -7050,10 +7097,10 @@ function moveToward(e,tx,ty,dt,mul){
  e.fx=ux;e.fy=uy;e.walk+=dt*11;e.moving=true;
  let nx=e.x+ux*sp,ny=e.y+uy*sp;
  if(!collide(e,nx,ny)){e.x=nx;e.y=ny;e.avoid=null;return false;}
- /* ⛧ at the Altar's rim the walker slides along it by the part of the step that runs with the edge, and stands when
+ /* ⛧☠ at a painted zone's rim the walker slides along it by the part of the step that runs with the edge, and stands when
     pushed straight into it. The side-steps below are for walking round a rock - along a rim they ran him to and fro. */
- if(world.altarGround&&!AltarGround.contains(nx,ny,(e.r||12)*0.6)){
-  const w=AltarGround.edgeAt(e.x,e.y),along=ux*w.tx+uy*w.ty;
+ if(world.ground&&!world.ground.contains(nx,ny,(e.r||12)*0.6)){
+  const w=world.ground.edgeAt(e.x,e.y,(e.r||12)*0.6),along=w?ux*w.tx+uy*w.ty:0;
   if(Math.abs(along)>0.12)for(const inset of [0,0.5,1.5]){   /* a hair onto the ground if the rim curves in */
    const sx=e.x+w.tx*along*sp+w.nx*inset,sy=e.y+w.ty*along*sp+w.ny*inset;
    if(!collide(e,sx,sy)){e.x=sx;e.y=sy;e.avoid=null;return false;}
@@ -7269,6 +7316,7 @@ function nearestEnemyWithin(rng){
 }
 function cast(i,manual){
  if(TideUI.isBattling())return false;
+ if(finalIntroHolds())return false;   /* 🎬 not while the Forsaken One is speaking */
  if(mountRide.id||mountRide.casting){if(manual)stageMsg(inputMode==='pad'?'Dismount with D-pad → before casting.':'Dismount with X before casting.',1000);return false;}   /* the pad's X is a spell */
  const c=classOf(),sp=c.spells[i];
  if(hero.dead)return false;
@@ -8597,6 +8645,10 @@ window.addEventListener('keydown',e=>{
     password is typed at every launch */
  if(kl==='enter'&&$('login').classList.contains('open')&&['fbEmail','fbPass'].includes(document.activeElement?.id)){e.preventDefault();if(!e.repeat)fbSignIn(false);return;}
  if((/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||'')||document.activeElement?.isContentEditable)&&kl!=='escape')return;
+ if(gameOn&&world&&world.intro&&world.intro.phase!=='end'){   /* 🎬 the Forsaken One is speaking: Space or Enter hurries him along, Esc skips him */
+  if(kl==='escape'){e.preventDefault();if(!e.repeat)finalIntroSkip();return;}
+  if(kl===' '||kl==='enter'){e.preventDefault();if(!e.repeat)finalIntroNext();return;}
+ }
  /* 🎰 a casino window, the duel or a chest reel covers the world: nothing under it walks, drinks, casts or hides the panel
     (the pad stops there already), and Esc is the window's Back, as B is. Settings opens from the world only - and over a
     chest reel, which it is drawn above. */
@@ -8681,15 +8733,20 @@ cv.addEventListener('contextmenu',()=>{
  const held=farmDeselect();
  if(held){sfx.warn();stageMsg('✋ Put down '+held,1100);}
 });
-/* where a tap on the ground walks the hero: inside the world's edge - and in the Altar onto its stone, so a tap on the
-   sky walks to the gold rim and stops there instead of pressing against it */
+/* where a tap on the ground walks the hero: inside the world's edge - and where a zone has painted ground of its own (the
+   Altar, the Final Hour), onto it, so a tap on the sky or the chasm walks to the rim and stops there. Where the ground
+   knows a way round (the Final Hour's stair), the walk goes by it: the first stop, and the rest in `then` */
 function walkTarget(wx,wy){
  const p={x:Math.max(30,Math.min(world.w-30,wx)),y:Math.max(30,Math.min(world.h-30,wy))};
- if(world.altarGround){const q=AltarGround.nearest(p.x,p.y,(hero.r||13)*0.6+1.5);if(q)return q;}
- return p;
+ if(!world.ground)return p;
+ const q=world.ground.nearest(p.x,p.y,(hero.r||13)*0.6+1.5)||p;
+ const via=world.ground.route?world.ground.route(hero.x,hero.y,q.x,q.y):[];
+ return via.length?{x:via[0].x,y:via[0].y,then:[...via.slice(1),{x:q.x,y:q.y}]}:q;
 }
+const walkEnd=m=>(m.then&&m.then.length&&m.then[m.then.length-1])||m;   /* where a walk ends, past its stops */
 cv.addEventListener('pointerdown',e=>{
  if(!gameOn||gamePaused||hero.dead||pinching||coronation||execution||voyage)return; /* 👑⚖️⛵ a scene plays itself out - no clicks land */
+ if(finalIntroHolds()){finalIntroNext();return;}   /* 🎬 a click while he speaks hurries him along */
  if(e.button===2)return; /* the right button is the deselect gesture - contextmenu owns it */
  if($('p-tides')?.contains(document.activeElement))document.activeElement.blur();
  const r=cv.getBoundingClientRect();
@@ -8869,7 +8926,7 @@ cv.addEventListener('pointerdown',e=>{
  hero.goPortal=false;
  if(best){hero.target=best;hero.moveTo=null;stopMining(true);}
  else{
-  hero.moveTo=walkTarget(wx,wy);hero.target=null;marker={x:hero.moveTo.x,y:hero.moveTo.y,t:0};
+  hero.moveTo=walkTarget(wx,wy);hero.target=null;marker={x:walkEnd(hero.moveTo).x,y:walkEnd(hero.moveTo).y,t:0};
   stopMining(true); /* a tap on the ground is the player taking the wheel */
   holdMove={id:e.pointerId,cx:e.clientX,cy:e.clientY}; /* keep the finger/mouse button down and the hero follows it */
  }
@@ -9182,10 +9239,10 @@ function nearestQuestEnemy(){
  return best;
 }
 let autoT=0;
-/* Dungeons, the Crypts, the raid and the Final Hour are fought manually. Leveling fields,
-   the leveling bosses, the two Valhalla gods and the Cow Level keep AUTO. */
+/* Dungeons, the Crypts and the raid are fought manually. Leveling fields, the leveling bosses, the two Valhalla gods,
+   the Cow Level and (asked for 2026-10-01) the Final Hour keep AUTO - there it switches itself on as the fight begins. */
 function combatAutoAllowed(z=zoneOf()){
- return !!z&&!(z.dungeon||z.crypts||z.raid||z.finalb);
+ return !!z&&!(z.dungeon||z.crypts||z.raid);
 }
 function refreshCombatAutoControls(){
  const allowed=combatAutoAllowed();
@@ -9253,6 +9310,8 @@ function update(dt){
  /* any of the three counts as the pad driving: the stick walking, a button, the camera stick */
  if(padNow||Object.keys(padHit).length||Math.abs(padRZoom)>0)padCursor(true);
  if(padNow&&!keyMoveHeld())stopMining(true); /* reaching for the stick puts the pick away */
+ if(cinematicOn&&!finalIntroHolds())setCinematic(false);   /* 🎬 a zone left mid-scene takes the bars with it */
+ if(world&&world.intro)finalIntroTick(dt);
  mpSyncTick();
  updateFarmAnimals(dt);
  updateFarmCrops();
@@ -9467,7 +9526,9 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
     if(hero.target&&(hero.target.dead||hero.target.hidden))hero.target=null;
    }
   }else if(hero.moveTo){
-   if(moveToward(hero,hero.moveTo.x,hero.moveTo.y,dt)||dist(hero,hero.moveTo)<6)hero.moveTo=null;
+   if(moveToward(hero,hero.moveTo.x,hero.moveTo.y,dt)||dist(hero,hero.moveTo)<6){
+    const then=hero.moveTo.then;hero.moveTo=then&&then.length?{...then[0],then:then.slice(1)}:null;   /* on to the next stop of a walk that goes round (the Final Hour's stair) */
+   }
   }else if(hero.goPortal){
    moveToward(hero,world.portal.x,world.portal.y,dt);
   }else if(S.auto){
@@ -9671,6 +9732,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    en.mv=Math.max(0,Math.min(1,(en.mv||0)+(md>Math.max(.002,dt*2)?dt*10:-dt*6)));
   }
   en._nd=!!(mp.on&&mp.started&&!mp.host&&en.raid&&en.netX!==undefined); /* net-driven: host owns this boss's position */
+  if(world.intro&&world.intro.phase!=='end')continue;   /* 🎬 he waits for his last word */
   if(en._nd){
    const kk=1-Math.exp(-10*dt); /* time-based smoothing toward the 10Hz snapshots */
    if(Math.hypot(en.netX-en.x,en.netY-en.y)>220){en.x=en.netX;en.y=en.netY;} /* teleport snap */
@@ -9829,7 +9891,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
  for(let i=zaps.length-1;i>=0;i--){zaps[i].t+=dt;if(zaps[i].t>zaps[i].life)zaps.splice(i,1);}
  if(marker){marker.t+=dt;if(marker.t>0.8)marker=null;}
  if(!buildMode){ /* build mode frees the camera - pan and zoom where you like */
-  const cf=(coronation&&coronation.focus)||(execution&&execution.focus)||hero;   /* 👑⚖️ a scene may take the camera elsewhere for a while */
+  const cf=(coronation&&coronation.focus)||(execution&&execution.focus)||(world.intro&&world.intro.focus)||hero;   /* 👑⚖️🎬 a scene may take the camera elsewhere for a while */
   camX+=(cf.x-VW/(2*zoom)-camX)*Math.min(1,dt*6);
   camY+=(cf.y-VH/(2*zoom)-camY)*Math.min(1,dt*6);
  }
@@ -10122,6 +10184,8 @@ function draw(){
   ctx.beginPath();ctx.ellipse(b.x,b.y,b.r*(1+f*0.25),b.r*0.45,b.k,0,7);ctx.fill();
   ctx.beginPath();ctx.ellipse(b.x+b.r*0.8,b.y+2,b.r*0.4,b.r*0.2,b.k*0.5,0,7);ctx.fill();
  }
+ if(z.finalb&&WEATHER.on)drawFinalPuffs(now);   /* 🟣 the violet wind, on the floor - under everyone and every warning */
+ if(z.finalb)drawFinalTorchLight(now);   /* 🔥 and the torches' light on the stone */
  drawPortal();
  if(marker){
   ctx.strokeStyle='rgba(255,255,255,'+(0.9-marker.t)+')';ctx.lineWidth=2;
@@ -10512,6 +10576,7 @@ function draw(){
  if(sunFrame)drawSunLight(now);   /* ☀ over the world, under what the canvas writes on top of it */
  if(sunFrame&&(WEATHER.rain>0||WEATHER.snow>0))drawWeather(now);   /* 🌧 the rain, or the snow */
  if(z.altar&&WEATHER.on)drawAltarWind(now);   /* 🌬 and the Altar's streaks of air and ice dust */
+ if(world.intro)drawFinalIntro();   /* 🎬 the black bars and his words, over everything in the world */
  if(cowRunning||(zoneOf().cow&&hero.dead)){
   const t=cowT,fmt=x=>Math.floor(x/60)+':'+String(Math.floor(x%60)).padStart(2,'0');
   ctx.font='700 30px '+getComputedStyle(document.body).fontFamily;
@@ -10748,11 +10813,38 @@ function drawPropShadow(s,z){
  }else if(s.type==='dungeonentrance'){drawGroundShadow(0,-8,160,32,.20);if(sunCast){const im=expeditionEntranceImage(s.destination);if(ready(im))sunShadow(im,-210,28-420,420,420,0);}}   /* ☀ */
  else if(s.type==='lantern')drawGroundShadow(0,4,7,3);
  else if(s.type==='wall')drawGroundShadow(0,8,s.r*1.15,s.r*.5);
+ else if(s.type==='finaltorch')drawGroundShadow(0,2,18,6);
  ctx.restore();
+}
+/* 🔥 a Final Hour torch, drawn at its foot: the painting with its flame swaying in thin slices (the iron and the stone stay
+   still, as the Throne Hall's torches do) and a halo round the fire that breathes with it */
+function drawFinalTorch(s,t){
+ const H=150,top=-H+4;
+ if(!(finalTorchImg.complete&&finalTorchImg.naturalWidth)){ctx.fillStyle='#3a3433';ctx.fillRect(-6,top+30,12,H-30);CityScenery.flame(ctx,0,top+30,.6,t,s.seed||0);return;}
+ const im=finalTorchImg,sw=im.naturalWidth,sh=im.naturalHeight,W=H*sw/sh,cut=.2;
+ ctx.drawImage(im,0,sh*cut,sw,sh*(1-cut),-W/2,top+H*cut,W,H*(1-cut));
+ for(let i=0;i<16;i++){
+  const v=i/16*cut,dh=cut/16,k=1-(v+dh)/cut,dx=Math.sin(t*5.2+(s.seed||0)-v*20)*1.7*k*k;
+  ctx.drawImage(im,0,sh*v,sw,sh*dh,-W/2+dx,top+H*v,W,H*dh+.3);
+ }
+ const fl=CityScenery.flicker(t,s.seed||0);
+ CityScenery.glow(ctx,0,top+H*.1,96*fl,fl,[255,176,92]);
+}
+function drawFinalTorchLight(now){   /* the warm pool each torch throws on the floor - under everyone, like the violet wind */
+ const vx=camX,vy=camY,vw=VW/zoom,vh=VH/zoom;
+ for(const s of world.solids){
+  if(s.type!=='finaltorch'||s.x<vx-260||s.x>vx+vw+260||s.y<vy-200||s.y>vy+vh+200)continue;
+  const fl=CityScenery.flicker(now,s.seed||0);
+  ctx.save();ctx.translate(s.x,s.y-10);ctx.scale(1,.6);
+  CityScenery.glow(ctx,0,0,270*fl,fl,[255,150,70]);   /* the wide warm pool */
+  CityScenery.glow(ctx,0,0,120*fl,.9*fl,[255,186,110]);   /* and its brighter heart at the torch's foot */
+  ctx.restore();
+ }
 }
 function drawProp(s,z,withShadow=true){
  if(withShadow)drawPropShadow(s,z);
  ctx.save();ctx.translate(s.x,s.y);
+ if(s.type==='finaltorch'){drawFinalTorch(s,performance.now()/1000);ctx.restore();return;}
  if(s.type==='tidetraining'){
   if(trainingLodgeImg.complete&&trainingLodgeImg.naturalWidth){
    const b=world.training.building,W=b.w,H=W*trainingLodgeImg.naturalHeight/trainingLodgeImg.naturalWidth,top=-H*b.footRatio;
@@ -16997,7 +17089,96 @@ function hallSceneTick(dt){
  else if(sc.phase==='go'){const p=sc.route[0];if(!p||walk(p[0],p[1],230)){sc.route.shift();if(!sc.route.length){hand.x=ThroneWorld.HAND.x;hand.y=ThroneWorld.HAND.y;hand.fx=1;hand.moving=false;hand.scripted=false;hallScene=null;}}}
 }
 let coronation=null,execution=null;   /* 👑⚖️ see THE CORONATION and THE GALLOWS below - declared here so hallSceneHolds can read them */
-const hallSceneHolds=()=>!!coronation||!!execution||(!!hallScene&&hallScene.phase!=='go');     /* the hero stands still while he is being spoken to - and for the whole of the coronation */
+const hallSceneHolds=()=>!!coronation||!!execution||(!!hallScene&&hallScene.phase!=='go')||finalIntroHolds();     /* the hero stands still while he is being spoken to - for the whole of the coronation, and while the Forsaken One has his say */
+/* 🎬 THE FORSAKEN ONE SPEAKS (asked for 2026-10-01: "gör en film sekvens när man kommer in varje gång - gubben stannar upp,
+   kamera panerar till bossen, han pratar ... sen startar fighten"). Every time you come up into the Final Hour while he still
+   stands: black bars close in, you stop, the camera glides up the platform to him, he says his piece - and the fight is on.
+   world.intro holds it, so it ends with the zone; while it plays the hero, the boss and the spell keys wait (hallSceneHolds,
+   the enemy loop, cast). Space, Enter, A or a click hurries a line along; Esc or B skips the rest. */
+const FINAL_LINES=[
+ 'So it is time. You come to me wrapped in the Ice Armor, thinking it will help you.',
+ 'That cold was paid for with a life at my Altar. Did you think the price ended there?',
+ 'Kings, coin, crowns... every road you ever walked has led you here, to the Final Hour.',
+ 'The frost has always been mine. Come then, little hero. Let us see how long you burn.'];
+let cinematicOn=false;
+function setCinematic(on){if(cinematicOn===on)return;cinematicOn=on;document.body.classList.toggle('cinematic',on);}   /* the skill bar steps out of the picture */
+function finalIntroHolds(){return !!(world&&world.intro&&world.intro.phase!=='end');}
+function startFinalIntro(boss){
+ if(!boss||!hero)return;
+ hero.moveTo=null;hero.target=null;hero.goPortal=false;holdMove=null;marker=null;
+ world.intro={boss,phase:'hold',t:0,line:0,shown:0,hold:0,bars:0,focus:{x:hero.x,y:hero.y-40}};
+ setCinematic(true);
+}
+const introEase=u=>u<.5?4*u*u*u:1-Math.pow(-2*u+2,3)/2;
+function finalIntroLine(I){   /* a line begins: the floor answers him in violet */
+ const b=I.boss;I.shown=0;I.hold=0;
+ ring(b.x,b.y,150,'#a06bd0',.8);burst(b.x,b.y-100,'#c9a0ff',12,110,true);
+ noiseSweep(1.1,.05,280,90);blip(96,58,.7,.045,'sawtooth');
+}
+function finalIntroFight(I){   /* his last word - and the hour begins */
+ const b=I.boss;I.phase='end';I.t=0;I.focus=null;
+ setCinematic(false);
+ b.state='chase';
+ if(S&&combatAutoAllowed()){S.auto=true;refreshCombatAutoControls();renderHUD();save();}   /* AUTO takes the fight from here (asked for 2026-10-01) - the button turns it off */
+ stageMsg('☠ THE FINAL HOUR',2600,'#c9a0ff');
+ ring(b.x,b.y,200,'#a06bd0',.9);ring(b.x,b.y,330,'#c9a0ff',1.1);burst(b.x,b.y-b.r,'#c9a0ff',26,200,true);
+ shakeT=.5;sfx.shout();
+}
+function finalIntroNext(){   /* Space, Enter, A or a click: on to what he says next */
+ const I=world&&world.intro;if(!I||I.phase==='end')return;
+ if(I.phase==='hold'||I.phase==='pan'){I.phase='speak';I.t=0;I.line=0;finalIntroLine(I);return;}
+ if(I.phase==='speak'){
+  if(I.shown<FINAL_LINES[I.line].length){I.shown=FINAL_LINES[I.line].length;return;}   /* the whole line at once, first */
+  if(++I.line<FINAL_LINES.length){finalIntroLine(I);return;}
+  I.phase='back';I.t=0;return;
+ }
+ if(I.phase==='back')finalIntroFight(I);
+}
+function finalIntroSkip(){const I=world&&world.intro;if(I&&I.phase!=='end')finalIntroFight(I);}   /* Esc or B: straight to the fight */
+function finalIntroTick(dt){
+ const I=world.intro,b=I.boss;
+ if(!b||b.dead||!hero||hero.dead){world.intro=null;setCinematic(false);return;}
+ I.t+=dt;
+ if(I.phase==='end'){I.bars=Math.max(0,I.bars-dt/.5);if(I.bars<=0)world.intro=null;return;}
+ I.bars=Math.min(1,I.bars+dt/.6);
+ hero.moveTo=null;   /* he stops where he stands */
+ const hx=hero.x,hy=hero.y-40,bx=b.x,by=b.y-100;   /* the middle of each of them */
+ if(I.phase==='hold'){I.focus={x:hx,y:hy};if(I.t>=.9){I.phase='pan';I.t=0;sfx.arcane();}}
+ else if(I.phase==='pan'){const u=introEase(Math.min(1,I.t/2.6));I.focus={x:hx+(bx-hx)*u,y:hy+(by-hy)*u};if(I.t>=2.6){I.phase='speak';I.t=0;I.line=0;finalIntroLine(I);}}
+ else if(I.phase==='speak'){
+  I.focus={x:bx,y:by};
+  const L=FINAL_LINES[I.line];
+  if(I.shown<L.length)I.shown=Math.min(L.length,I.shown+dt*46);
+  else if((I.hold+=dt)>=1.4+L.length*.026)finalIntroNext();
+ }
+ else if(I.phase==='back'){const u=introEase(Math.min(1,I.t/1.4));I.focus={x:bx+(hx-bx)*u,y:by+(hy-by)*u};if(I.t>=1.4)finalIntroFight(I);}
+ if(padHit.a)finalIntroNext();
+ if(padHit.b)finalIntroSkip();
+}
+function drawFinalIntro(){   /* the black bars, his name and his words - over the world, in the screen's frame */
+ const I=world.intro,bh=Math.round(Math.min(VH*.13,118)*introEase(Math.max(0,Math.min(1,I.bars))));
+ if(bh<=0)return;
+ ctx.save();
+ ctx.fillStyle='#000';ctx.fillRect(0,0,VW,bh);ctx.fillRect(0,VH-bh,VW,bh);
+ const serif="'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif",top=VH-bh;
+ if(I.phase==='speak'&&bh>40){
+  const L=FINAL_LINES[I.line],fs=Math.max(14,Math.min(20,Math.round(VW*.0155))),maxW=Math.min(VW*.74,880),y0=top+Math.round(bh*.27);
+  ctx.textAlign='center';
+  ctx.font='600 '+Math.round(fs*.78)+'px '+serif;ctx.fillStyle='#c9a0ff';ctx.fillText('The Forsaken One',VW/2,y0);
+  ctx.font='italic '+fs+'px '+serif;ctx.fillStyle='#efe2c6';
+  const lines=[];let line='';   /* wrapped on the whole line, so a word never jumps down as it is typed */
+  for(const w of L.split(' ')){const t=line?line+' '+w:w;if(ctx.measureText(t).width>maxW&&line){lines.push(line);line=w;}else line=t;}
+  if(line)lines.push(line);
+  let left=Math.floor(I.shown);
+  lines.slice(0,2).forEach((l,i)=>{const part=l.slice(0,Math.max(0,left));left-=l.length+1;
+   const w=ctx.measureText(l).width;ctx.textAlign='left';ctx.fillText(part,VW/2-w/2,y0+Math.round(fs*1.4)*(i+1));});
+ }
+ if(I.phase!=='end'){
+  ctx.textAlign='right';ctx.font='11px '+getComputedStyle(document.body).fontFamily;ctx.fillStyle='rgba(222,204,176,.55)';
+  ctx.fillText(inputMode==='pad'?'A  next   ·   B  skip':IS_TOUCH?'Tap  next':'Space  next   ·   Esc  skip',VW-16,VH-Math.max(8,Math.round(bh*.1)));
+ }
+ ctx.restore();
+}
 /* ✋ a scene belongs to the hero, the zone and the moment it began. Handing the game to another hero,
    or finding the world changed under it, ends it cleanly: the players it borrowed go back to their own
    business, the black overlay lifts, and nothing half-done is written - the crown and the rope only
