@@ -1,0 +1,14 @@
+{
+  "note": "The warrior's lion shield (2026-10-02), from the shield in loading concept 5 (concepts/loading-screen). Higgsfield gpt_image_2_5 flare, medium, 1k, 4:5, background transparent, 0.5 credit each; variant 1 of 3 picked (boldest lion at small size). Post-processing mechanical only: alpha 254->255, haze under 6 dropped, tight crop, LANCZOS to 400 px tall. Drawn by drawWarriorShield in game.js: on the other arm with the standard sword in every outfit; a legendary (Rimfrost, Fel Glaives), a hidden weapon or a fishing rod drops it.",
+  "file": "warrior_shield.png",
+  "job": "ef8f2846-11bb-4555-93bc-6c90a0f0e08c",
+  "alternatives": [
+    "b1453163-22e2-42bd-a39b-d7479a922c5f",
+    "e6ce39e9-68ee-4f7a-a5b6-f82727cf0cef"
+  ],
+  "references": {
+    "lion_shield_crop_from_loading_concept5": "48318291-cc22-4fcb-9390-22f0b7f9fbf5",
+    "merc_shield_flattened": "11cd68c8-4fd9-4d0f-ad38-299b3907fa35",
+    "humanmale_warrior_flattened": "1b92af41-305e-4a98-a222-686589e94853"
+  }
+}

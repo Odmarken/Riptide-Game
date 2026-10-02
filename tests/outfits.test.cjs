@@ -85,6 +85,15 @@ test('royal offer waits for cold art and then draws the selected race, gender an
  }
 });
 
+test('🛡 the outfit portrait holds the weapon really in the hand, so a legendary shows and the warrior\'s shield goes',()=>{
+ for(const [weapon,fm,id] of [[null,false,null],[{legend:'rimfrost'},true,'rimfrost'],[{legend:'felglaives'},false,'felglaives']]){
+  const h=offerHarness({gear:{weapon,armor:null,trinket:null}});h.load();h.c.openOutfitOffer('royal');
+  assert.equal(h.draws.length,1);assert.equal(h.draws[0][6],fm);assert.equal(h.draws[0][7],id);
+ }
+ const hid=offerHarness({hideWeapon:true,gear:{weapon:{legend:'rimfrost'},armor:null,trinket:null}});hid.load();hid.c.openOutfitOffer('royal');
+ assert.equal(hid.draws[0][7],'hidden');
+});
+
 test('closing or reopening the offer cancels pending paints and switching heroes stops them',()=>{
  const h=offerHarness();h.c.openOutfitOffer('royal');h.c.openOutfitOffer('royal');
  assert.equal(h.timers.size,1);

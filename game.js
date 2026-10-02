@@ -1056,6 +1056,7 @@ const theRingImg=new Image();theRingImg.src='assets/models/thering.png';
 const altarFenceImg=new Image();altarFenceImg.src='assets/models/maps/altarasset.png';
 const staffImg=new Image();staffImg.src='assets/weapons/staff.png';
 const swordImg=new Image();swordImg.src='assets/weapons/sword.png';
+const warriorShieldImg=new Image();warriorShieldImg.src='assets/weapons/warrior_shield.png?v=1';   /* 🛡 the warrior's lion shield, see drawWarriorShield */
 function femBootW(raceId,clsId){
  return characterBootFrame(RACE_ALIAS[raceId]||raceId,true,bootImg).bw;
 }
@@ -11639,7 +11640,26 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g.restore();
  }
  g.restore();
+ if(frame&&warriorShieldOn(clsId,fm,weaponId))drawWarriorShield(g,frame,sgn,by,riding);   /* after the weapon, which stays the second thing painted */
  return runeEmission; /* local to this draw; portraits and unloaded art cannot leave stale emitters */
+}
+/* 🛡 The warrior's lion shield (asked for 2026-10-02): the class's own kit is sword and board. The shield rides on the
+   other arm with the standard sword, in every outfit, and goes the moment a legendary is in the hand - Rimfrost or the
+   Fel Glaives - and never shows with the weapon hidden or a fishing rod in the hand.
+   It is drawn in the body's own frame (the mirror and the running rock), on the weapon hand mirrored across the body. */
+function warriorShieldOn(clsId,fm,weaponId){
+ return clsId==='warrior'&&weaponId!=='hidden'&&weaponId!=='fishingrod'&&!fm&&!isFGLegend(weaponId);
+}
+function drawWarriorShield(g,frame,sgn,by,riding){
+ if(!warriorShieldImg.complete||!warriorShieldImg.naturalWidth)return;
+ const fist=frame.hand?{x:-frame.hand.x,y:frame.hand.y}:{x:11,y:-1};   /* native art looks left: the off arm is +x */
+ const H=22,W=H*warriorShieldImg.naturalWidth/warriorShieldImg.naturalHeight;
+ g.save();
+ if(riding?.clipBody)riding.clipBody(g);
+ if(sgn>0)g.scale(-1,1);
+ g.rotate(by*0.025);
+ g.drawImage(mip(warriorShieldImg,W),fist.x-W/2,fist.y-H*0.55+by,W,H);   /* the fist just above the middle of the back */
+ g.restore();
 }
 /* 🎮 the Ⓐ prompt. Anchored on the HERO, not on the building. Sitting it over the target looked
    right for an NPC and useless for a guild hall: the anchor is the footprint, the art is eight
@@ -18272,7 +18292,8 @@ function paintOutfitPortrait(cv,id){
  g.save();g.translate(cv.width/2,cv.height*.8);g.scale(2.3,2.3);
  g.fillStyle='rgba(0,0,0,.3)';g.beginPath();g.ellipse(0,f.groundY,14,5,0,0,Math.PI*2);g.fill();
  bootFeet({...f.boots,moving:false,walk:0,bob:0},g);
- drawChampionSprite(g,S.race,c.id,-1,0,0,false,S.hideWeapon?'hidden':null,S.gender==='f',1,arg,null,null,performance.now()/1000);
+ const w=heroWeaponArgs();   /* the weapon really in the hand: a legendary shows, and the warrior's shield goes with it */
+ drawChampionSprite(g,S.race,c.id,-1,0,0,w.fm,w.id,S.gender==='f',1,arg,null,null,performance.now()/1000);
  g.restore();
  return true;
 }

@@ -92,6 +92,7 @@ function harness(overrides = {}) {
     mip: img => img, crisp: img => img, isFGLegend: () => false,
     swordImg: weaponImage('sword'), maceImg: weaponImage('mace'),
     staffImg: weaponImage('staff'), bowImg: weaponImage('bow'),
+    warriorShieldImg: weaponImage('warrior_shield'),
     runeMarks() {},
     runeTint(g, rune, sp, ...rect) { g.drawImage(sp.image, ...rect); },
   });
@@ -255,7 +256,8 @@ test('a loaded armor body keeps the painted hand and weapon size even before nor
   h.context.drawChampionSprite(h.context.ctx, 'human', 'warrior', 1, 0, 0,
     false, null, true, 1, true, null);
   assert.deepEqual(h.lookups, ['humanfemale_armor'], 'Unrelated class art must not choose weapon geometry');
-  assert.equal(h.draws.length, 2);
+  assert.equal(h.draws.length, 3, 'body, standard sword and the warrior\'s shield');
+  assert.equal(h.draws[2].img.src, 'assets/weapons/warrior_shield.png');
   assert.equal(h.draws[0].img, armor);
   assert.deepEqual(h.draws[0].rect, [frame.x, frame.y, frame.width, frame.height]);
   const hand = h.context.characterHandPoint(frame, 1, 0);
@@ -311,7 +313,7 @@ test('armor and female costume weapon origins follow the painted hand through fa
     for (const fx of [-1, -.001, 0, .001, 1]) for (const by of [-6, -1.8, 0, 1.8]) {
       h.draws.length = 0;
       h.context.drawChampionSprite(h.context.ctx, race, cls, fx, by, .18, false, null, female, 2, armor, null);
-      assert.equal(h.draws.length, 2);
+      assert.equal(h.draws.length, cls === 'warrior' ? 3 : 2, 'the warrior also carries the shield');
       const [body, weapon] = h.draws, [x, y, width, height] = body.rect;
       const expected = pointAt(body.matrix,
         x + sx / body.img.naturalWidth * width, y + sy / body.img.naturalHeight * height);
@@ -365,5 +367,34 @@ test('the actual rune emitter follows the armor-attached weapon through swing an
       assert.deepEqual(h.context.ctx.getTransform(), outer);
       assert.equal(h.stack.length, 0);
     }
+  }
+});
+
+test('the warrior carries the lion shield on the other arm with the standard sword, and drops it for a legendary', () => {
+  const h = harness();
+  // [fm, weaponId, shield?] - the standard sword keeps it; Rimfrost, the Fel Glaives, a hidden weapon or a rod do not
+  const weapons = [[false, null, true], [false, 'w-17', true], [true, 'rimfrost', false], [false, 'felglaives', false],
+    [false, 'hidden', false], [false, 'fishingrod', false]];
+  h.context.isFGLegend = id => id === 'felglaives';
+  for (const cls of classes) for (const [fm, id, shield] of weapons)
+    assert.equal(h.context.warriorShieldOn(cls, fm, id), cls === 'warrior' && shield, `${cls}/${id}`);
+  h.context.isFGLegend = () => false;
+  for (const race of races) for (const female of [false, true]) for (const armor of [false, true])
+    for (const fx of [-1, 1]) for (const by of [-1.8, 0, 1.8]) {
+      h.draws.length = 0;
+      h.context.drawChampionSprite(h.context.ctx, race, 'warrior', fx, by, 0, false, null, female, 1, armor, null);
+      assert.equal(h.draws.length, 3);
+      const [body, weapon, shield] = h.draws, [x, y, width, height] = shield.rect;
+      assert.equal(shield.img.src, 'assets/weapons/warrior_shield.png');
+      assert.deepEqual(shield.matrix, body.matrix, 'mirrored and rocked with the body');
+      const centre = pointAt(shield.matrix, x + width / 2, y + height / 2), grip = pointAt(weapon.matrix, 0, 0);
+      assert.equal(Math.sign(centre.x), -Math.sign(grip.x), `${race}/${female}/${armor}/${fx}: the other arm`);
+      close(height, 22, 'shield height');
+      assert.equal(h.stack.length, 0);
+    }
+  for (const cls of ['mage', 'hunter', 'priest']) {
+    h.draws.length = 0;
+    h.context.drawChampionSprite(h.context.ctx, 'human', cls, 1, 0, 0, false, null, false, 1, false, null);
+    assert.equal(h.draws.length, 2, `${cls}: no shield`);
   }
 });
