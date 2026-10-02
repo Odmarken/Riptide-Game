@@ -1,0 +1,23 @@
+{
+  "note": "Loading screen concepts, 2026-10-02. NOT installed - the game still uses assets/ui/loading_desktop.jpg / loading_phone.jpg. Higgsfield gpt_image_2_5 flare, medium, 2k, 16:9 (2688x1520). Masters re-download from the job ids. The boot bar is drawn by the game at ~69-73% height, centre 430 px of 1920 (style.css #boot). Never name the bar in a prompt: the model then paints its own.",
+  "references": {
+    "current_loading": "4a7fd86f-9350-4d58-87cd-5963325763b5",
+    "kings_and_blackbeard": "f7058a61-adb0-4e4a-93a5-f1a08dae2304",
+    "ships": "10cf091d-5f5e-43ab-a0a4-4ed01660e4e9",
+    "heroes": "06fd1411-a0c0-45e3-bf26-7da781f77ca2",
+    "dragon_odin_raven_thor_troll": "09bb4ded-cd0f-4df4-996f-7a1efa2d60e9",
+    "sea_chart": "dfe2d41d-8b39-4224-9ff8-72506de9148a"
+  },
+  "concepts": [
+    {"file": "loading_concept1_realm_parchment.jpg", "job": "78a35e4f-a845-4f0f-a42c-a38b34673996", "edit": "271cf6d7-9340-4758-82a4-42e02efb9823",
+     "what": "today's four heroes kept; background = castle with the four kings, harbour with Blackbeard's galleon, warship, longship, dragon, ravens, storm"},
+    {"file": "loading_concept2_realm_golden_hour.jpg", "job": "eb6cc612-e1ab-4720-8632-0d3746b81708", "edit": "a874f5a6-a04b-4186-9f25-3013d81e581f",
+     "what": "the game's own heroes (human warrior, dwarf hunter, undead mage, orc priest); full-colour capital + harbour at golden hour"},
+    {"file": "loading_concept3_hall_of_kings.jpg", "job": "878582e2-54e2-41d9-939c-76d9e3d5c1da", "edit": "22e279fc-1b17-45c6-82a4-a4bc9cfd8c98",
+     "what": "throne hall: High King on the throne, Sigvald, Roderic, Aldric, Blackbeard, ships through the windows; faint painted bar left on the carpet"},
+    {"file": "loading_concept4_sea_chart.jpg", "job": "2a9ed9f9-a7ac-4b33-aaa1-4b6010a20503", "edit": "832b4264-5eaa-4610-a98a-250fe53260bc",
+     "what": "Blackbeard's chart: ports, ships, sea serpent, king medallions; faint painted bar left on the sea"},
+    {"file": "loading_concept5_riptide_wave.jpg", "job": "b87d6bd2-4815-4881-bd2c-ca489ea36939", "edit": "c2418a99-8498-405f-84c0-77d4b6022045",
+     "what": "the riptide: giant wave, Blackbeard's galleon on the crest, Thor's lightning, kings on the cliffs; faint painted bar left on the shore"}
+  ]
+}
