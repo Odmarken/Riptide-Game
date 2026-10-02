@@ -938,25 +938,23 @@
 /* landscape screens get the wide art; portrait phones get the tall one (rule below).
    cover on the matching aspect fills edge to edge with almost nothing cropped. */
 #boot{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
-  background:url('assets/ui/loading_desktop.jpg') center/cover no-repeat #0b0906;transition:opacity .5s ease}
+  background:url('assets/ui/loading_desktop.jpg?v=2') center/cover no-repeat #0b0906;transition:opacity .5s ease}
 #boot.gone{opacity:0;pointer-events:none}
 .bootinner{position:relative;text-align:center;width:min(60%,430px);margin-top:42vh} /* well below the crest, low on the parchment */
-.bootbar{height:13px;border-radius:8px;border:1px solid #6b4a22;background:rgba(60,42,22,.55);overflow:hidden;
-  box-shadow:inset 0 1px 4px rgba(0,0,0,.5),0 1px 0 rgba(255,240,200,.25)}
-.bootbar i{display:block;height:100%;width:0%;border-radius:7px;
-  background:linear-gradient(90deg,#8a6a2a,#e0b45a 55%,#ffe9a8);
-  box-shadow:0 0 10px rgba(180,130,50,.6);transition:width .25s ease}
+.bootbar{height:13px;border-radius:8px;border:1px solid #1f4a78;background:rgba(10,28,52,.6);overflow:hidden;
+  box-shadow:inset 0 1px 4px rgba(0,0,0,.5),0 1px 0 rgba(190,225,255,.22)}
+.bootbar i{display:block;height:100%;width:0%;border-radius:7px;   /* blue, to match the riptide art (2026-10-02) */
+  background:linear-gradient(90deg,#1b4f9c,#3f8fe8 55%,#b5e6ff);
+  box-shadow:0 0 10px rgba(70,150,255,.65);transition:width .25s ease}
 .boottip{margin-top:11px;font-family:var(--display);font-size:14px;color:#fff;
   text-shadow:0 0 8px #000,0 0 3px #000,0 2px 4px rgba(0,0,0,.9);min-height:1.3em;letter-spacing:.4px}
-/* 📱 portrait: the tall artwork, centred bar, and the art has to fill the whole
-   screen even while iOS Safari's chrome slides in and out (dvh alone leaves a strip) */
+/* 📱 portrait: the riptide art painted tall (9:16, 2026-10-02), shown whole - on a tall phone it fits the width and
+   the frame's dark bronze fills above and below it - and the bar rides the calm sea at ~63% of the picture's height.
+   100dvh keeps the boot screen covering the glass while iOS Safari's chrome slides in and out */
 @media (max-aspect-ratio:1/1){
-  #boot{background-image:url('assets/ui/loading_phone.jpg');align-items:center;padding-bottom:0;
-    height:100dvh;
-    /* bottom-anchored and slightly overscaled: crops the black margin baked into the top
-       of the artwork so the gilded frame starts right under the status bar */
-    background-size:auto 103%;background-position:center bottom}
-  .bootinner{margin-top:0;width:min(82%,420px)}
+  #boot{background-image:url('assets/ui/loading_phone.jpg?v=2');background-color:#1a1007;align-items:center;padding-bottom:0;
+    height:100dvh;background-size:contain;background-position:center}
+  .bootinner{margin-top:calc(22vh + 42px);margin-top:calc(22dvh + 42px);width:min(82%,420px)}
   /* same trick for the tavern art behind login / select / create */
   html:has(#login.open),html:has(#select.open),html:has(#create.open),
   body:has(#login.open),body:has(#select.open),body:has(#create.open),

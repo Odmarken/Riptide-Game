@@ -20381,7 +20381,7 @@ const BOOT_MIN=5000,BOOT_MAX=13000;
    outside the page so no background image can reach them. Keep the tint matched to the
    top edge of whatever artwork is on screen (values sampled from the images) so the
    clock and battery read as sitting on the same backdrop. */
-const THEME_BOOT='#523616',THEME_MENU='#401a11',THEME_GAME='#342011';
+const THEME_BOOT='#1a1007',THEME_MENU='#401a11',THEME_GAME='#342011';   /* boot: the dark bronze around the tall riptide art */
 /* Installed on the home screen the page owns the whole screen, status bar included, and the
    artwork is what should show there. A theme-color - from this meta OR from the manifest -
    makes iOS paint a solid band over it instead, so drop the meta entirely in that mode. */
@@ -20404,7 +20404,7 @@ function bootPreload(){
  const urls=[];
  const push=u=>{if(u&&urls.indexOf(u)<0)urls.push(u);};
  /* UI frames and the login art */
- push(innerWidth<innerHeight?'assets/ui/loading_phone.jpg':'assets/ui/loading_desktop.jpg'); /* only the variant this screen shows */
+ push(innerWidth<innerHeight?'assets/ui/loading_phone.jpg?v=2':'assets/ui/loading_desktop.jpg?v=2'); /* only the variant this screen shows - the same URLs as style.css */
  ['bakground_signin','ui_background','ui_allt','ui_ram','ui_buttons','ui_buttonrak','ui_buttonsstone','ui_buttonshardcore']
   .forEach(n=>push('assets/ui/'+n+'.png'));
  /* painted icons - spells, potions, loot */
