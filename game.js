@@ -1541,7 +1541,7 @@ const instanceZone=z=>!!(z&&(z.dungeon||z.raid||z.boss||z.valhalla||z.cow||z.cry
 const spotKey=id=>'riptide-spot-'+id;
 let spotLast=null,wakeSpot=null;
 function spotStamp(force){
- if(!gameOn||!S||!S.id||!hero||hero.dead||!world)return;
+ if(!gameOn||!S||!S.id||S.test||!hero||hero.dead||!world)return;
  const x=Math.round(hero.x),y=Math.round(hero.y);
  if(!force&&spotLast&&spotLast.id===S.id&&spotLast.z===S.zone&&Math.hypot(x-spotLast.x,y-spotLast.y)<48)return;
  spotLast={id:S.id,z:S.zone,x,y};
@@ -1936,15 +1936,28 @@ function townLinkClick(wx,wy){
 }
 /* ==================== ⚔ THE RAID ==================== */
 /* A war with a court abroad (CityEconomy's war, asked for 2026-09-26) is taken to its port: the crown's guards sail with you on the
-   Black Tide (the Allies page), land on the pier and wait for orders. You do not fight - you command. Click a building and the men
-   march on it, fight whatever the garrison sends to stop them, and set it burning; when it has burned the books raze it
-   (CityEconomy.raze) and the place is that much weaker. An expedition razes what its odds allow (its cap), then the men are spent.
-   Sound the retreat - or sail home - and they come aboard, and the hurt are booked (CityEconomy.endRaid). What burned lies in ashes
-   in the port until they rebuild it, a building a close in peace. The garrison you see is the books' garrison, thinned as the place
-   loses strength: the fighting is played out, the outcome is the books'. The seat of the ruler, the holy places and the walls are
-   never burned; a barracks or an armoury counts double, a market, a hall or a warehouse half again. */
+   Black Tide (the Allies page) and land on the pier. You do not fight - you command, from above (2026-10-03: "jag vill göra hela delen
+   mer interaktiv och coolare"): the camera lifts off the hero as in the farm's build mode, a drag rings men in, a click sends them -
+   onto open ground in ranks, at a soldier, or to fire a house. RaidBattle (assets/city/raid-battle.js) plays it out: both sides have
+   health, and the garrison stands in ranks where the streets leave the pier head, its archers behind the shields where the town has
+   trained them; it meets the men as a body, goes for the wounded and the lone, pulls its own wounded back behind the line and comes to
+   a house that is being fired. A house burns while enough men stand at its door with none of the garrison near; when it has burned
+   the books raze it (CityEconomy.raze) and the place is that much weaker. An expedition razes what its odds allow (its cap), then the
+   men are spent. Sound the retreat - or sail home - and they come aboard, and the men who went down in the fighting are the hurt the
+   books keep (CityEconomy.endRaid). The seat of the ruler, the holy places and the walls are never burned; a barracks or an armoury
+   counts double, a market, a hall or a warehouse half again. */
 const RAID_SPARE=/keep|palace|foundry|council|gatehouse|tower|wall|chapel|temple|cathedral|beacon|crane|statue|lighthouse/;   /* foundry: King Aldric holds court at Emberfall's; council: the Drowned Council's hall at Kraken's Rest */
-const RAID_DRAWN=90,RAID_FOES=40,RAID_FIGHT=5,RAID_BURN=7;
+const RAID_DRAWN=90,RAID_FOES=40,RAID_STAND=560,RAID_FAR=1500,RAID_BEAT=1800;
+const RAID_ARCHERS=Object.freeze({silverfjord:.3,ravenholt:.3,meridian:.25,krakensrest:.25,emberfall:0});   /* the share of a garrison trained to the bow - Emberfall's forge militia never was */
+/* 👑 THE SIEGE (asked for 2026-10-03: "ta över hela staden i ett svep, men man måste bränna ner en viss del av staden först ... proceed to
+   the main courts ... i silverfjord ska man sen slå sönder dörrarna ... in i tronsalen där vakter väntar sen bränna ner tronen ... dom andra
+   städerna så ska man bara bränna ner huvud huset, inga kungar är synliga"): once the town is burned down to CityEconomy.STORM_AT its seat
+   can be stormed - the keep, foundry, exchange or council hall burned (RAID_SEAT_BURN), and the place is the crown's (CityEconomy.storm).
+   Silverfjord's seat is a palace: its doors are broken in (RAID_BREACH), and the men who are still on their feet go in with you, into
+   the throne hall, where the palace guard waits before the throne; burn the throne and Silverfjord is yours. No ruler is seen meanwhile. */
+const RAID_COURT=Object.freeze({silverfjord:{hall:'sf_palace',throne:'sf_throne'}});
+const RAID_SEAT_BURN=14,RAID_BREACH=25,RAID_THRONE_BURN=12;
+let raidSiege=null;   /* the men carried into a court's hall: {ally,zone,men:[their looks],downs,per,drawn,garrison} */
 const raidKey=s=>s.kind+'@'+Math.round(s.x)+','+Math.round(s.y);
 const raidTargetable=s=>s.type==='townprop'&&s.big&&!s.floats&&!RAID_SPARE.test(s.kind);
 const raidWeight=s=>/barracks|armou?ry/.test(s.kind)?2:/market|warehouse|guildhall|foundry|exchange|forge|hall|inn|tavern|chandlery|office|smith/.test(s.kind)?1.5:1;
@@ -1955,22 +1968,74 @@ function townRaidApply(){
  if(!world||!world.town||!S||!S.city)return;
  const id=world.town,a=S.city.allies&&S.city.allies[id],ash=new Set((a&&a.ashes)||[]);
  for(const s of world.solids)if(s.type==='townprop'&&s.big){s.razed=ash.has(raidKey(s));s.raidFire=false;}
+ if(raidSiege&&raidSiege.zone===id){if(!world.raid)raidHallApply();return;}   /* 👑 the men broke into the seat: the throne hall */
  const e=S.city.expedition;
  if(!e||e.ally!==id||e.auto||!(a&&a.war)){if(world.raid)raidRelease();world.raid=null;raidHud();return;}
  if(world.raid)return;
- const B=CityEconomy.WAR_BOOK[id],spot=world.arrival||{x:world.w/2,y:world.h/2},troops=[],foes=[],stage=raidStage(spot),L=Math.hypot(stage.x-spot.x,stage.y-spot.y)||1,dx=(stage.x-spot.x)/L,dy=(stage.y-spot.y)/L;
+ const B=CityEconomy.WAR_BOOK[id],spot=world.arrival||{x:world.w/2,y:world.h/2},stage=raidStage(spot),L=Math.hypot(stage.x-spot.x,stage.y-spot.y)||1,dx=(stage.x-spot.x)/L,dy=(stage.y-spot.y)/L;
+ /* the crown's men: as many figures as the screen carries, each standing for his share of the men and as strong as they are drilled */
+ const men=e.watch+e.cadets+e.mercs,drawn=Math.max(1,Math.min(RAID_DRAWN,men)),per=men/drawn,dp=CityEconomy.DRILL_POWER[CityEconomy.drillOf(S.city)]||1,troops=[];
  let i=0;
- for(const [skin,n,big,title] of [['guard',e.watch,1.06,'Watchman'],['guard',e.cadets,.98,'Cadet'],['mercenary',e.mercs,1.08,'Sellsword']])
-  for(let k=0;k<n&&troops.length<RAID_DRAWN;k++,i++){const row=Math.floor(i/4),col=(i%4)-1.5,along=Math.min(L+60,30+row*30);   /* a column four wide up the pier toward its head */
+ for(const [skin,n,big,title,kind] of [['guard',e.watch,1.06,'Watchman','watch'],['guard',e.cadets,.98,'Cadet','cadet'],['mercenary',e.mercs,1.08,'Sellsword','merc']])
+  for(let k=0;k<n&&troops.length<drawn;k++,i++){const row=Math.floor(i/4),col=(i%4)-1.5,along=Math.min(L+60,30+row*30);   /* a column four wide up the pier toward its head */
    troops.push({name:title,skin:skin==='mercenary'&&k%2?'mercenary_b':skin,race:'human',cls:'warrior',female:false,big,x:spot.x+dx*along-dy*col*34,y:spot.y+dy*along+dx*col*34,
-    fx:dx>=0?1:-1,walk:i*.7,moving:false,held:true,merc:skin==='mercenary',cadet:title==='Cadet',speed:skin==='mercenary'?90:96,trooper:true,ashore:along>=L-10});}
- const G=Math.round(B.garrison*(.4+.6*a.war.str/100)),posts=world.solids.filter(s=>s.type==='townprop'&&/keep|palace|barracks|hall|gatehouse|exchange|foundry/.test(s.kind)),home=posts.length?posts:[{x:world.w/2,y:world.h/2,r:40}];
- for(let k=0;k<Math.min(G,RAID_FOES);k++){const p=home[k%home.length],ang=k*2.4,x=p.x+Math.cos(ang)*(90+k*5),y=p.y+(p.r||40)*.3+60+Math.abs(Math.sin(ang))*50;
-  foes.push({name:'',skin:B.skin,race:'human',cls:'warrior',female:false,big:1.04,x,y,fx:-1,walk:k*.9,moving:false,held:true,raider:true,ring:B.ring,dead:false,deadT:0,post:{x,y}});}
- for(const n of world.npcs)if(/soldier|guard/.test(n.skin)&&!n.royal&&!n.voyage&&!n.hidden){n.hidden=true;n.raidHidden=true;}   /* the town's own soldiers are the garrison above */
- world.raid={ally:id,troops,foes,stage,target:null,phase:'idle',t:0,spent:e.used>=e.cap-.25,over:false,won:false};
+    fx:dx>=0?1:-1,walk:i*.7,moving:false,held:true,merc:kind==='merc',cadet:kind==='cadet',trooper:true,kind,p:per*dp*(kind==='merc'?CityEconomy.MERC_POWER:1)});}
+ /* the garrison - the books' garrison, thinned as the place loses strength - musters at the harbour (2026-10-03, "kom inga vakter"):
+    the town's soldiers on their beats near it join where they stand, the rest come down the streets, and they form up in squads, one to
+    a street leaving the pier head, facing the pier. Every soldier on a beat leaves it. */
+ const G=Math.min(RAID_FOES,Math.round(B.garrison*(.4+.6*a.war.str/100))),M=raidMuster(stage);
+ const beat=world.npcs.filter(n=>/soldier|guard/.test(n.skin)&&!n.royal&&!n.voyage&&!n.hidden);
+ const near=M?beat.filter(n=>Math.hypot(n.x-stage.x,n.y-stage.y)<RAID_BEAT).slice(0,G):[];
+ for(const n of beat){n.hidden=true;n.raidHidden=true;}
+ for(const n of world.npcs)if(n.royal&&!n.hidden){n.hidden=true;n.raidHidden=true;}   /* 👑 no king - nor his court - stands in the street while the town is fought for */
+ const anchors=M?raidSpread(M.stands,Math.max(1,Math.min(4,Math.round(G/10))),stage):[{x:stage.x,y:Math.max(60,stage.y-500)}];
+ const squads=anchors.map(p=>({x:p.x,y:p.y,fx:stage.x-p.x,fy:stage.y-p.y})),room=Math.ceil(G/squads.length),filled=squads.map(()=>[]),foes=[];
+ for(let k=0;k<G;k++){
+  const n=near[k],from=n?{x:n.x,y:n.y}:M?M.spawn(k):{x:anchors[0].x,y:Math.max(60,anchors[0].y-300)};
+  const sq=squads.map((q,j)=>j).filter(j=>filled[j].length<room).sort((p,q)=>Math.hypot(squads[p].x-from.x,squads[p].y-from.y)-Math.hypot(squads[q].x-from.x,squads[q].y-from.y))[0];
+  const f={name:'',skin:n?n.skin:B.skin,race:n&&n.race||'human',cls:n&&n.cls||'warrior',female:!!(n&&n.female),big:1.04,x:from.x,y:from.y,fx:-1,walk:k*.9,moving:false,held:true,raider:true,ring:B.ring,kind:'melee',p:B.q,squad:sq};
+  filled[sq].push(f);foes.push(f);}
+ const bows=Math.round(G*(RAID_ARCHERS[id]||0));   /* the archers: dealt evenly, the last men of each squad */
+ filled.forEach(list=>{const k=Math.round(bows*list.length/Math.max(1,G));list.slice(list.length-k).forEach(f=>{f.kind='archer';});});
+ const targets=world.solids.filter(s=>raidTargetable(s)&&!s.razed).map(s=>({key:raidKey(s),x:s.x,y:s.y,r:s.r||40,front:{x:s.x,y:s.y+(s.r||40)*.3+44},weight:raidWeight(s),prop:s}));
+ const seatProp=world.solids.find(s=>s.type==='townprop'&&/palace|keep|council/.test(s.kind))||world.solids.find(s=>s.type==='townprop'&&/foundry|exchange/.test(s.kind)),court=RAID_COURT[id]||null;
+ if(seatProp)targets.push({key:raidKey(seatProp),x:seatProp.x,y:seatProp.y,r:seatProp.r||40,front:{x:seatProp.x,y:seatProp.y+(seatProp.r||40)*.3+44},weight:0,prop:seatProp,seat:true,breach:!!court,time:court?RAID_BREACH:RAID_SEAT_BURN});
+ const battle=RaidBattle.create({w:world.w,h:world.h,blocked:(x,y,r)=>collide({r},x,y),stage,arrival:spot,ours:troops,theirs:foes,squads,buildings:targets});
+ /* two groups for quick orders (asked for 2026-10-03: "dela upp dom så man får snabb kommandon"): the left and the right of the ranks
+    they form up in at the pier head - 1 and 2 on the keys and on the hero's spell buttons, 3 is everybody */
+ const side=u=>(u.slot?u.slot.x:u.x)*-dy+(u.slot?u.slot.y:u.y)*dx,byside=battle.ours.slice().sort((p,q)=>side(p)-side(q)),half=Math.ceil(byside.length/2);
+ /* the ruler's seat: when the garrison at the harbour is beaten, more come out of it - twice - and run down to the pier head */
+ const seat=seatProp;
+ world.raid={ally:id,battle,troops:battle.ours,foes:battle.theirs,stage,men,drawn,per,downs:0,spent:e.used>=e.cap,over:false,won:false,goHome:false,
+  camSet:false,ptr:null,boxMode:false,hudT:0,sfxHit:0,sfxBow:0,mark:null,groups:[byside.slice(0,half),byside.slice(half)],
+  seat:seat?{x:seat.x,y:seat.y+(seat.r||40)*.3+70,name:raidName(seat)}:null,reserve:seat?B.garrison:0,backupOn:false,waveT:null,waveNo:0,waveOf:foes.filter(f=>f.kind!=='archer').length,bows:RAID_ARCHERS[id]||0,
+  seatProp,court,canStorm:a.war.str<=CityEconomy.STORM_AT,garrison:G};
  raidHud();
- log('⚔ <b>'+(e.watch+e.cadets+e.mercs)+' of the crown’s guards</b> land in '+raidAlly(id).name+'. Click a building to send them against it - the '+raidAlly(id).ruler.name.split(' ').pop()+' seat, the holy places and the walls excepted.','imp');
+ log('⚔ <b>'+men+' of the crown’s guards</b> land in '+raidAlly(id).name+', and '+B.men+' form up to meet them'+(bows?' - with archers behind their shields':'')+'. Drag to ring your men in, click where they go: open ground, a soldier, or a house to fire it - the '+raidAlly(id).ruler.name.split(' ').pop()+' seat, the holy places and the walls excepted.','imp');
+}
+/* the garrison's way to the harbour: the town's streets as walks from the pier head (Dijkstra on its street graph - a hundred-odd
+   corners, a sorted list is plenty). spawn(k) is a man up one of the streets RAID_FAR along, out of sight; stands are where the
+   streets cross RAID_STAND from the pier head - the squads form up there. */
+function raidMuster(stage){
+ const def=TownWorld.town(world.town);if(!def)return null;
+ const G=TownWorld.graph(def);let root=null,bd=Infinity;
+ for(const n of G.nodes.values()){const d=Math.hypot(n.x-stage.x,n.y-stage.y);if(d<bd){bd=d;root=n;}}
+ if(!root)return null;
+ const dist=new Map([[root.id,0]]),up=new Map(),open=[root.id];
+ while(open.length){open.sort((a,b)=>dist.get(a)-dist.get(b));const k=open.shift(),n=G.nodes.get(k);
+  for(const m of G.edges.get(k)||[]){const o=G.nodes.get(m),d=dist.get(k)+Math.hypot(o.x-n.x,o.y-n.y);if(d<(dist.has(m)?dist.get(m):Infinity)){dist.set(m,d);up.set(m,k);open.push(m);}}}
+ const far=Math.min(RAID_FAR,Math.max(...dist.values())*.8),stand=Math.min(RAID_STAND,far*.45);
+ const at=s=>{const out=[];for(const [k,p] of up){const a=dist.get(p),b=dist.get(k);   /* every street a walk of s crosses */
+  if(a<s&&b>=s){const A=G.nodes.get(p),B=G.nodes.get(k),f=(s-a)/(b-a);out.push({x:A.x+(B.x-A.x)*f,y:A.y+(B.y-A.y)*f,p,s});}}return out;};
+ const ways=at(far),stands=at(stand);
+ if(!ways.length||!stands.length)return null;
+ return {stands,spawn:k=>{const w=ways[k%ways.length],o=at(far+((k*97)%300)-150).find(q=>q.p===w.p)||w;return {x:o.x,y:o.y};}};
+}
+/* n stands as far apart as they go, the first the nearest the pier head - one squad to a street, not all of them in one */
+function raidSpread(list,n,stage){
+ const left=list.slice().sort((a,b)=>Math.hypot(a.x-stage.x,a.y-stage.y)-Math.hypot(b.x-stage.x,b.y-stage.y)),out=[left.shift()];
+ while(out.length<n&&left.length){left.sort((a,b)=>Math.min(...out.map(o=>Math.hypot(o.x-b.x,o.y-b.y)))-Math.min(...out.map(o=>Math.hypot(o.x-a.x,o.y-a.y))));out.push(left.shift());}
+ return out;
 }
 function raidStage(from){   /* the pier head: along the town's walks from where the Black Tide lands, the first point off the piers - the men march there
     before they go anywhere, and back that way, so none of them walks on the water */
@@ -1983,100 +2048,416 @@ function raidStage(from){   /* the pier head: along the town's walks from where 
  return {x:start.x,y:start.y};
 }
 function raidRelease(){for(const n of (world&&world.npcs)||[])if(n.raidHidden||n.raidFled){if(n.raidHidden)n.hidden=false;n.held=false;n.fleeTo=null;delete n.raidHidden;delete n.raidFled;}}
-/* a click on a building: the order to take it */
-function raidClick(wx,wy){
- const R=world&&world.raid;if(!R||R.over)return false;
- const im=townImages();let hit=null;
- for(const s of world.solids){if(!raidTargetable(s))continue;const f=TownWorld.frame(s,im);if(!f)continue;
-  if(Math.abs(wx-s.x)<=f.W*.45&&wy>=s.y+f.top+f.H*.12&&wy<=s.y+f.top+f.H+8&&(!hit||s.y>hit.y))hit=s;}   /* the frontmost under the pointer */
- if(!hit)return false;
- const e=S.city.expedition,left=e?e.cap-e.used:0;
- if(hit.razed){stageMsg('That is ashes already.',1600);return true;}
- if(R.phase==='fight'||R.phase==='burn'){stageMsg('Your men are at the '+raidName(R.target)+' - let them finish.',1800);return true;}
- if(R.spent||left<.5){R.spent=true;raidHud();stageMsg('Your men are spent. Sound the retreat.',2200,'#ff8a7a');sfx.warn();return true;}
- if(raidWeight(hit)>left+1e-9){stageMsg('Your men have strength left for a smaller building - a house.',2400,'#ff8a7a');sfx.warn();return true;}
- R.target=hit;R.phase='march';R.t=0;R.defenders=null;R.hurtPlan=null;
- marker={x:hit.x,y:hit.y+(hit.r||40)*.3+40,t:0};
- stageMsg('⚔ Your men march on the '+raidName(hit)+'.',1800,'#ffd76a');sfx.buy();
+/* 🎥 command from above: while the men are ashore the camera is off the hero and up, panned by WASD, the arrows, the screen's edges or a
+   drag with the middle button (a finger on a phone), zoomed with the wheel - the farm's build mode, over a battle */
+const raidCam=()=>!!(world&&world.raid&&zoneOf().town);
+const raidCommanding=()=>!!(gameOn&&raidCam()&&!world.raid.over&&!voyage);
+function raidCamera(at){
+ const R=world.raid;if(!R)return;
+ if(!at){setZoom(Math.max(zmin(),Math.min(.75,VW/2700)));at={x:R.stage.x,y:R.stage.y-180};}
+ camX=at.x-VW/(2*zoom);camY=at.y-VH/(2*zoom);
+}
+let raidPtrAt=null;   /* where the pointer last was over the page - the screen's edges scroll the view */
+function raidPan(kx,ky,dt){
+ let x=kx,y=ky;
+ if(!IS_TOUCH&&raidPtrAt&&!world.raid.ptr&&document.hasFocus()){const r=cv.getBoundingClientRect(),E=14,p=raidPtrAt;
+  if(p.x>=r.left&&p.x<=r.right&&p.y>=r.top&&p.y<=r.bottom){if(p.x<r.left+E)x-=1;else if(p.x>r.right-E)x+=1;if(p.y<r.top+E)y-=1;else if(p.y>r.bottom-E)y+=1;}}
+ const l=Math.hypot(x,y);if(!l)return;
+ const sp=950*Math.min(1,l)*dt/zoom;camX+=x/l*sp;camY+=y/l*sp;
+}
+/* 🖱 a press on the map: left drags a box round men (a finger pans, unless ▭ Select is on), the middle button - or the right with nobody
+   ringed in - pans; a press that does not travel is a click */
+function raidPointerDown(e){
+ const R=world.raid;if(!R||R.over)return false;
+ const touch=e.pointerType==='touch',pan=e.button===1||e.button===2||(touch&&!R.boxMode);   /* the right button only ever drags the view */
+ R.ptr={id:e.pointerId,button:e.button,x0:e.clientX,y0:e.clientY,x:e.clientX,y:e.clientY,lx:e.clientX,ly:e.clientY,pan,moved:false,add:e.shiftKey||e.ctrlKey,touch};
  return true;
+}
+function raidPointerMove(e){
+ raidPtrAt={x:e.clientX,y:e.clientY};
+ const R=world&&world.raid,P=R&&R.ptr;if(!P||P.id!==e.pointerId)return false;
+ P.x=e.clientX;P.y=e.clientY;if(Math.hypot(P.x-P.x0,P.y-P.y0)>7)P.moved=true;
+ if(P.pan){camX-=(P.x-P.lx)/zoom;camY-=(P.y-P.ly)/zoom;}
+ P.lx=P.x;P.ly=P.y;return true;
+}
+function raidPointerUp(e){
+ const R=world&&world.raid,P=R&&R.ptr;if(!P||P.id!==e.pointerId)return false;
+ R.ptr=null;if(R.over)return true;
+ const r=cv.getBoundingClientRect(),W=(cx,cy)=>({x:(cx-r.left)/zoom+camX,y:(cy-r.top)/zoom+camY});
+ if(P.pan){if(!P.moved&&P.touch)raidTap(W(P.x,P.y),P);return true;}   /* a finger's tap still orders; a right or middle click is only ever a pan */
+ if(P.moved&&P.button===0){   /* a box: the men in it are ringed in (shift or ctrl adds them to those already) */
+  const a=W(P.x0,P.y0),b=W(P.x,P.y),us=RaidBattle.inBox(R.battle,a.x,a.y,b.x,b.y);
+  RaidBattle.select(R.battle,us,P.add);R.boxMode=false;
+  const n=RaidBattle.selected(R.battle).length;if(n){sfx.buy();stageMsg('⚔ '+n+' men ready - click where they go.',1500,'#9fe39f');}
+  raidHud();return true;
+ }
+ raidTap(W(P.x,P.y),P);return true;
+}
+function raidTap(w,P){
+ const R=world.raid,Bt=R.battle;
+ const mine=RaidBattle.unitAt(Bt,w.x,w.y,'us');
+ if(mine&&!RaidBattle.unitAt(Bt,w.x,w.y,'them')){   /* one of yours: him alone, or shift to add or take him off */
+  if(P.add)mine.sel=!mine.sel;else RaidBattle.select(Bt,[mine],false);
+  raidHud();return;}
+ raidClick(w.x,w.y);
+}
+function raidBuildingAt(wx,wy,test=raidTargetable){   /* the frontmost building under the pointer */
+ const im=townImages();let hit=null;
+ for(const s of world.solids){if(!test(s))continue;const f=TownWorld.frame(s,im);if(!f)continue;
+  if(Math.abs(wx-s.x)<=f.W*.45&&wy>=s.y+f.top+f.H*.12&&wy<=s.y+f.top+f.H+8&&(!hit||s.y>hit.y))hit=s;}
+ return hit;
+}
+/* a click with men ringed in: at a soldier - go at him; at a house - fire it; anywhere else - go there, in ranks */
+function raidClick(wx,wy){
+ const R=world&&world.raid;if(!R)return false;
+ if(R.over)return true;
+ const Bt=R.battle,sel=RaidBattle.selected(Bt);
+ if(!sel.length){stageMsg('Ring your men in first: drag a box round them'+(IS_TOUCH?' (▭ Select)':'')+' - or pick All.',2400,'#ffd76a');return true;}
+ const foe=RaidBattle.unitAt(Bt,wx,wy,'them');
+ if(foe){RaidBattle.order(Bt,sel,{type:'attack',target:foe});R.mark={x:foe.x,y:foe.y,t:0,c:'255,106,90',on:foe};stageMsg('⚔ '+sel.length+' men go at him.',1200,'#ffb3a3');sfx.shout();return true;}
+ const seatHit=R.seatProp&&raidBuildingAt(wx,wy,s=>s===R.seatProp);
+ if(seatHit){   /* 👑 the main court */
+  const d=raidAlly(R.ally),a=S.city.allies[R.ally];
+  if(!R.canStorm){stageMsg(d.name+' stands at '+Math.round(a&&a.war?a.war.str:100)+'% - burn it down to '+CityEconomy.STORM_AT+'% first.',2400,'#ff8a7a');sfx.warn();return true;}
+  const b=Bt.buildings.find(b=>b.prop===seatHit);
+  if(b&&RaidBattle.order(Bt,sel,{type:'burn',building:b})){R.mark={x:b.front.x,y:b.front.y,t:0,c:'255,215,106'};stageMsg(R.court?'👑 '+sel.length+' men go to break down the palace doors.':'👑 '+sel.length+' men go to fire the '+raidName(seatHit)+'!',2000,'#ffd76a');sfx.shout();}
+  else stageMsg('They cannot get to it.',1400,'#ff8a7a');
+  return true;
+ }
+ const hit=R.hall?null:raidBuildingAt(wx,wy);   /* in the throne hall only the throne burns */
+ if(hit){
+  if(hit.razed){stageMsg('That is ashes already.',1600);return true;}
+  const e=S.city.expedition,left=e?e.cap-e.used:0,busy=Bt.buildings.filter(b=>!b.razed&&b.prop!==hit&&b.sent>0).reduce((t,b)=>t+b.weight,0);
+  if(R.spent||left<=0){R.spent=true;raidHud();stageMsg('Your men have burned all they can - sail home.',2200,'#ffd76a');sfx.warn();return true;}
+  if(busy&&busy>=left-1e-9){stageMsg('Your men have their hands full with the fires already set.',2400,'#ff8a7a');sfx.warn();return true;}   /* the last fire counts for what they have left */
+  const b=Bt.buildings.find(b=>b.prop===hit);
+  if(b&&RaidBattle.order(Bt,sel,{type:'burn',building:b})){R.mark={x:b.front.x,y:b.front.y,t:0,c:'255,160,64'};stageMsg('🔥 '+sel.length+' men go to fire the '+raidName(hit)+'.',1800,'#ffd76a');sfx.buy();}
+  else stageMsg('They cannot get to it.',1400,'#ff8a7a');
+  return true;
+ }
+ const spared=raidBuildingAt(wx,wy,s=>s.type==='townprop'&&s.big&&!s.floats&&RAID_SPARE.test(s.kind));
+ if(spared)stageMsg('The '+raidName(spared)+' is spared - the seat, the holy places and the walls are never burned.',2200);
+ if(RaidBattle.order(Bt,sel,{type:'move',x:wx,y:wy}))R.mark={x:wx,y:wy,t:0,c:'159,227,159'};
+ else stageMsg('They cannot get there.',1400,'#ff8a7a');
+ return true;
+}
+/* 👥 a group: 0 and 1 the two, 2 everybody - ringed in, the camera to them if they are off the screen */
+function raidGroup(i){
+ const R=world.raid,Bt=R.battle,us=i>1?RaidBattle.alive(Bt,'us'):R.groups[i].filter(u=>u.alive);
+ RaidBattle.select(Bt,us,false);raidHud();
+ if(!us.length){stageMsg(i>1?'None of your men left on their feet.':'Group '+(i+1)+' is empty - ring men in and press Ctrl+'+(i+1)+'.',1600,'#ffd76a');return;}
+ const c={x:us.reduce((t,u)=>t+u.x,0)/us.length,y:us.reduce((t,u)=>t+u.y,0)/us.length},vx=c.x-camX,vy=c.y-camY;
+ if(vx<0||vy<0||vx>VW/zoom||vy>VH/zoom)raidCamera(c);
+ stageMsg('⚔ '+(i>1?'All':'Group '+(i+1))+': '+us.length+' men ready.',1100,'#9fe39f');
+}
+/* ⚔ every man of the company at the foe nearest him - the hero's health flask, 4 (asked for 2026-10-03: "hp potten blir attack closest
+   enemy ... för alla trupperna") */
+function raidAttackNearest(){
+ const R=world.raid,Bt=R.battle,men=RaidBattle.alive(Bt,'us');if(!men.length||R.over)return;
+ if(!RaidBattle.alive(Bt,'them').length){stageMsg('No enemy left standing.',1400,'#ffd76a');return;}
+ RaidBattle.select(Bt,men,false);RaidBattle.order(Bt,men,{type:'hunt'});raidHud();
+ stageMsg('⚔ Every man at the nearest enemy!',1400,'#ffb3a3');sfx.shout();
+}
+/* 🔥 the whole company to fire the house nearest them that they still have the strength for - the mana flask, 5 */
+function raidBurnNearest(){
+ const R=world.raid,Bt=R.battle,men=RaidBattle.alive(Bt,'us');if(!men.length||R.over)return;
+ const e=S.city.expedition,left=e?e.cap-e.used:0;
+ if(R.spent||left<=0){R.spent=true;raidHud();stageMsg('Your men have burned all they can - sail home.',2200,'#ffd76a');sfx.warn();return;}
+ const c={x:men.reduce((t,u)=>t+u.x,0)/men.length,y:men.reduce((t,u)=>t+u.y,0)/men.length};
+ const b=Bt.buildings.filter(b=>!b.razed&&!b.seat&&b.prop&&!b.prop.razed).sort((p,q)=>Math.hypot(p.front.x-c.x,p.front.y-c.y)-Math.hypot(q.front.x-c.x,q.front.y-c.y))[0];
+ if(!b){stageMsg('Nothing left they have the strength to burn.',2000,'#ff8a7a');return;}
+ RaidBattle.select(Bt,men,false);
+ if(RaidBattle.order(Bt,men,{type:'burn',building:b})){R.mark={x:b.front.x,y:b.front.y,t:0,c:'255,160,64'};stageMsg('🔥 Every man to fire the '+raidName(b.prop)+'!',1600,'#ffd76a');sfx.buy();}
+ else stageMsg('They cannot get to it.',1400,'#ff8a7a');
+ raidHud();
+}
+function raidSetGroup(i){   /* the men ringed in are group i now - and no longer in the other */
+ const R=world.raid,sel=RaidBattle.selected(R.battle);
+ if(!sel.length){stageMsg('Ring men in first, then Ctrl+'+(i+1)+' makes them group '+(i+1)+'.',1800,'#ffd76a');return;}
+ R.groups[i]=sel.slice();R.groups[1-i]=R.groups[1-i].filter(u=>!sel.includes(u));
+ raidHud();sfx.buy();stageMsg('👥 Group '+(i+1)+': '+sel.length+' men.',1300,'#9fe39f');
+}
+function raidSelect(kind){   /* everybody, or one kind: the watch, the cadets, the sellswords */
+ const Bt=world.raid.battle,us=RaidBattle.alive(Bt,'us').filter(u=>!kind||u.kind===kind);
+ RaidBattle.select(Bt,us,false);raidHud();
+ stageMsg(us.length?'⚔ '+us.length+' '+(kind==='watch'?'watchmen':kind==='cadet'?'cadets':kind==='merc'?'sellswords':'men')+' ready.':'None of those left on their feet.',1300,'#9fe39f');
+}
+function raidKeyDown(kl,e){   /* 1 and 2 the groups (Ctrl to make one), 3, Q or Ctrl+A everybody, Esc lets go, Space or H to the men */
+ const R=world.raid,Bt=R.battle;
+ if(kl==='escape'&&RaidBattle.selected(Bt).length){e.preventDefault();RaidBattle.select(Bt,[],false);raidHud();return true;}
+ if(kl==='q'||kl==='a'&&(e.ctrlKey||e.metaKey)){e.preventDefault();if(!e.repeat)raidSelect(null);return true;}
+ if(kl==='1'||kl==='2'||kl==='3'){e.preventDefault();if(!e.repeat){const i=+kl-1;if(i<2&&(e.ctrlKey||e.metaKey))raidSetGroup(i);else raidGroup(i);}return true;}
+ if(kl==='4'){e.preventDefault();if(!e.repeat)raidAttackNearest();return true;}   /* the flasks' keys: every man at the nearest foe */
+ if(kl==='5'){e.preventDefault();if(!e.repeat)raidBurnNearest();return true;}   /* and to the nearest house */
+ if(kl===' '||kl==='h'){e.preventDefault();const s=RaidBattle.selected(Bt),al=s.length?s:RaidBattle.alive(Bt,'us');
+  if(al.length)raidCamera({x:al.reduce((t,u)=>t+u.x,0)/al.length,y:al.reduce((t,u)=>t+u.y,0)/al.length});return true;}
+ return false;
+}
+/* 🎮 on a pad: the left stick pans, A orders at the cross in the middle of the screen (or picks the man under it), X and Y the two
+   groups and LT everybody - the spell buttons, as on the keys - the d-pad up and down the flasks' orders (every man at the nearest
+   foe, to the nearest house), left rings in every man near the cross, B lets go */
+function raidPad(){
+ const Bt=world.raid.battle,c={x:camX+VW/(2*zoom),y:camY+VH/(2*zoom)};
+ if(padHit.a){const mine=RaidBattle.unitAt(Bt,c.x,c.y,'us');if(mine&&!RaidBattle.selected(Bt).length){RaidBattle.select(Bt,[mine],false);raidHud();}else raidClick(c.x,c.y);}
+ if(padHit.x)raidGroup(0);
+ if(padHit.y)raidGroup(1);
+ if(padHit.lt)raidGroup(2);
+ if(padHit.up&&!padRep.up)raidAttackNearest();   /* the d-pad's flasks: every man at the nearest foe, and to the nearest house */
+ if(padHit.down&&!padRep.down)raidBurnNearest();
+ if(padHit.left&&!padRep.left){const us=RaidBattle.alive(Bt,'us').filter(u=>Math.hypot(u.x-c.x,u.y-22-c.y)<240);RaidBattle.select(Bt,us,false);raidHud();
+  stageMsg(us.length?'⚔ '+us.length+' men ready - A where they go.':'No men of yours under the cross.',1400,'#9fe39f');}
+ if(padHit.b&&RaidBattle.selected(Bt).length){RaidBattle.select(Bt,[],false);raidHud();}
 }
 function raidTick(dt){
  const R=world&&world.raid;if(!R)return;
- const t=performance.now()/1000,step=(o,x,y,sp)=>{const dx=x-o.x,dy=y-o.y,d=Math.hypot(dx,dy);if(d<2){o.moving=false;return d;}const k=Math.min(d,sp*dt)/d;o.x+=dx*k;o.y+=dy*k;o.moving=true;if(Math.abs(dx)>1)o.fx=dx>0?1:-1;o.walk=(o.walk||0)+dt*sp/45;return d;};
- R.t+=dt;
- const T=R.target,front=T?{x:T.x,y:T.y+(T.r||40)*.3+44}:null,A=world.arrival;
- if(T&&!R.defenders){const alive=R.foes.filter(f=>!f.dead),want=Math.max(1,Math.round(alive.length*.3));
-  R.defenders=alive.sort((a,b)=>Math.hypot(a.x-T.x,a.y-T.y)-Math.hypot(b.x-T.x,b.y-T.y)).slice(0,want);}   /* the garrison sends the nearest to stop them */
- for(const f of R.foes){
-  if(f.dead){f.deadT+=dt;f.down=Math.min(1,f.deadT*3);f.fade=Math.max(0,1-Math.max(0,f.deadT-1.8)/1.2);continue;}
-  const k=R.defenders&&T?R.defenders.indexOf(f):-1;
-  if(k>=0){const a=k*2.4+.6;step(f,front.x+Math.cos(a)*46,front.y+Math.sin(a)*20,84);}else step(f,f.post.x,f.post.y,46);
+ if(!R.camSet&&!voyage){R.camSet=true;raidCamera();buildSkillbar();}   /* up and over the pier once the ship is in; the spells become the groups */
+ const Bt=R.battle,A=world.arrival;
+ RaidBattle.tick(Bt,dt);
+ for(const ev of Bt.events.splice(0))raidEvent(R,ev);
+ if(!world.raid)return;   /* a town that fell ends it */
+ for(const g of R.troops){   /* 🩹 ours knocked down: laid out, up again, and helped back to the ship */
+  if(g.alive){if(g.boarded)g.fade=Math.max(0,1-g.boarded/1.2);continue;}
+  if(g.hurtS==='gone')continue;
+  if(!g.hurtS){g.hurtS='down';g.hurtT=0;}
+  g.hurtT+=dt;
+  if(g.hurtS==='down'){g.down=g.hurtT<2.4?Math.min(1,g.hurtT*6):Math.max(0,1-(g.hurtT-2.4)*2.5);if(g.hurtT>=2.8){g.hurtS='limp';g.hurtT=0;g.down=0;g.hurtMark=true;g.limp=RaidBattle.findPath(Bt,g.x,g.y,A.x,A.y)||[{x:A.x,y:A.y}];g.li=0;}}
+  else{const p=g.limp[Math.min(g.li,g.limp.length-1)],d=Math.hypot(p.x-g.x,p.y-g.y);
+   if(d<10)g.li++;else{const s=Math.min(d,34*dt);g.x+=(p.x-g.x)/d*s;g.y+=(p.y-g.y)/d*s;g.moving=true;g.walk+=dt*.8;if(Math.abs(p.x-g.x)>1)g.fx=p.x>g.x?1:-1;}
+   g.fade=Math.max(0,Math.min(1,(9-g.hurtT)/1.5));if(g.hurtT>=9){g.hurtS='gone';g.fade=null;g.hurtMark=false;}}
  }
- let at=0,up=0;
- R.troops.forEach((g,i)=>{
-  if(g.hurtS){   /* 🩹 knocked down, up again, and helped back to the ship */
-   g.hurtT+=dt;
-   if(g.hurtS==='down'){g.moving=false;g.down=g.hurtT<2.4?Math.min(1,g.hurtT*6):Math.max(0,1-(g.hurtT-2.4)*2.5);if(g.hurtT>=2.8){g.hurtS='limp';g.hurtT=0;g.down=0;g.hurtMark=true;}}
-   else if(g.hurtS==='limp'){const to=g.ashore?R.stage:A;if(step(g,to.x,to.y-(g.ashore?0:30),32)<14&&g.ashore)g.ashore=false;g.fade=Math.max(0,Math.min(1,(7-g.hurtT)/1.5));if(g.hurtT>=7){g.hurtS='gone';g.fade=null;g.hurtMark=false;}}   /* by the pier head, like the rest */
-   return;
-  }
-  up++;
-  if(R.over){if(g.ashore){if(step(g,R.stage.x+((i%4)-1.5)*30,R.stage.y,110)<12)g.ashore=false;return;}const d=step(g,A.x+((i%4)-1.5)*26,A.y-20,110);if(d<14){g.boarded=(g.boarded||0)+dt;g.fade=Math.max(0,1-g.boarded/1.2);}return;}   /* back by the pier head, and aboard */
-  if(!T){g.moving=false;return;}
-  if(!g.ashore){if(step(g,R.stage.x+((i%4)-1.5)*30,R.stage.y-10,g.speed)<16)g.ashore=true;return;}   /* up the pier to its head first */
-  const a=Math.PI*(.08+.84*((i*.61803)%1)),rr=70+10*Math.sqrt(i),sx=front.x+Math.cos(a)*rr*1.3,sy=front.y+Math.sin(a)*rr*.45+10;   /* a half-ring before the door */
-  const d=step(g,sx,sy,g.speed);if(d<14)at++;
-  if(d<14&&R.phase==='fight'){const foe=(R.defenders||[]).find(f=>!f.dead);g.fx=(foe?foe.x:T.x)>g.x?1:-1;
-   if(g.merc){if(!g.jab||t>g.jab){g.jab=t+1.1+((i*37)%9)/10;mercStrike(g);}}else g.x=sx+g.fx*Math.max(0,Math.sin(t*7+i*1.7)*4);
-   if(Math.random()<dt*.25)sparkles(g.x+g.fx*16,g.y-28,Math.random()<.5?'#ffd08a':'#ffe9c0',2);}
- });
- if(R.phase==='march'&&at>=Math.max(1,Math.floor(up*.55))){R.phase='fight';R.t=0;}
- if(R.phase==='fight'){
-  const ds=R.defenders||[],fell=Math.floor(ds.length*Math.min(1,R.t/RAID_FIGHT));
-  ds.slice(0,fell).forEach(f=>{if(!f.dead){f.dead=true;f.deadT=0;burst(f.x,f.y-26,'#c8402e',10,90,true);}});
-  if(R.hurtPlan==null){const e=S.city.expedition;R.hurtPlan=e?Math.round(up*e.rate*raidWeight(T)/Math.max(1,e.cap)):0;}   /* the books' share of hurt, spread over the buildings */
-  if(R.hurtPlan>0&&Math.random()<dt*1.4){const g=R.troops.find(g=>!g.hurtS&&Math.hypot(g.x-front.x,g.y-front.y)<180);if(g){g.hurtS='down';g.hurtT=0;R.hurtPlan--;burst(g.x,g.y-24,'#e0413a',10,90,true);}}
-  if(R.t>=RAID_FIGHT){R.phase='burn';R.t=0;T.raidFire=true;R.defenders=null;}
+ if(R.mark){R.mark.t+=dt;if(R.mark.on){R.mark.x=R.mark.on.x;R.mark.y=R.mark.on.y;}if(R.mark.t>1.4)R.mark=null;}
+ if(!R.over&&!RaidBattle.alive(Bt,'us').length){stageMsg('⚔ Your men are beaten - the hurt are carried aboard.',4200,'#ff8a7a');sfx.warn();raidEnd();}
+ /* the townsfolk near a fire or a fight run for it */
+ const hot=Bt.buildings.filter(b=>b.fire||b.sent>0).map(b=>b.front);
+ for(const n of world.npcs){if(n.held||n.hidden||n.voyage||n.game||n.royal||!n.pts)continue;const T=hot.find(p=>Math.hypot(n.x-p.x,n.y-p.y)<800);if(!T)continue;
+  let far=n.pts[0],fd=-1;for(const q of n.pts){const dd=Math.hypot(q.x-T.x,q.y-T.y);if(dd>fd){fd=dd;far=q;}}n.held=true;n.raidFled=true;n.fleeTo={x:far.x,y:far.y};}
+ for(const n of world.npcs)if(n.raidFled&&n.fleeTo){const dx=n.fleeTo.x-n.x,dy=n.fleeTo.y-n.y,d=Math.hypot(dx,dy);if(d>2){const s=Math.min(d,(n.speed||40)*2.2*dt);n.x+=dx/d*s;n.y+=dy/d*s;n.moving=true;n.fx=dx>0?1:-1;n.walk=(n.walk||0)+dt;}else n.moving=false;}
+ R.hudT-=dt;if(R.hudT<=0){R.hudT=.4;raidHud();}
+ raidWaves(R,dt);
+ if(R.over&&R.troops.every(g=>g.alive?g.boarded>1.2:g.hurtS==='gone')){raidRelease();world.raid=null;raidHud();buildSkillbar();if(R.goHome)setSail('home');}
+}
+/* ⏳ backup (asked for 2026-10-03: "en timer på backup efter dom första är döda ... fler vakter sen från huvud huset ner springandes ...
+   även om det bara är 1 defender kvar så ska timern på backup fortsätta"): once the shield line at the harbour is broken, a clock starts,
+   and every time it runs out more of the garrison pour out of the ruler's seat and run down to the pier head - on and on, whoever is
+   still standing, until the seat's reserve (a garrison's worth again) is spent. Burn the barracks and half of it is gone. */
+const RAID_WAVE_FIRST=40,RAID_WAVE_EVERY=45;
+function raidWaves(R,dt){
+ if(R.over||!R.seat||R.reserve<=0)return;
+ const Bt=R.battle,B=CityEconomy.WAR_BOOK[R.ally];
+ if(!R.backupOn){
+  const up=RaidBattle.alive(Bt,'them').filter(u=>u.kind!=='archer').length;   /* the shields: archers who linger do not hold back the backup */
+  if(up>Math.max(2,Math.round(R.waveOf*.15)))return;
+  R.backupOn=true;R.waveT=RAID_WAVE_FIRST;
+  stageMsg('⏳ The '+B.men+' are beaten - but more are coming from the '+R.seat.name+'!',3200,'#ffb3a3');sfx.warn();raidHud();return;
  }
- if(R.phase==='burn'&&R.t>=RAID_BURN){
+ if(R.waveT==null)R.waveT=RAID_WAVE_EVERY;
+ R.waveT-=dt;if(R.waveT>0)return;
+ const n=Math.min(R.reserve,Math.max(6,Math.round(R.garrison*.35))),k=Math.round(n*R.bows),list=[];
+ R.reserve-=n;R.waveNo++;
+ for(let i=0;i<n;i++)list.push({name:'',skin:B.skin,race:'human',cls:'warrior',female:false,big:1.04,fx:-1,walk:i*.9,moving:false,held:true,raider:true,ring:B.ring,kind:i>=n-k?'archer':'melee',p:B.q});
+ RaidBattle.reinforce(Bt,list,R.seat,R.seat,{x:R.stage.x-R.seat.x,y:R.stage.y-R.seat.y},true);   /* straight down at the men, wherever they are in the town */
+ R.waveT=R.reserve>0?RAID_WAVE_EVERY:null;
+ stageMsg('⚔ The '+R.seat.name+' gates open - '+n+' more come running down!',3600,'#ff8a7a');sfx.shout();
+ log('⚔ <b>'+n+' more of '+B.men+'</b> pour out of the '+R.seat.name+' and run for the harbour.','imp');raidHud();
+}
+/* what the battle says happened: sparks and steel, arrows, the fallen - and a house burned is a house the books raze */
+function raidEvent(R,ev){
+ const now=performance.now()/1000,seen=(x,y)=>x>camX-40&&x<camX+VW/zoom+40&&y>camY-60&&y<camY+VH/zoom+60;
+ if(ev.type==='hit'){if(ev.by&&ev.by.merc)mercStrike(ev.by);if(seen(ev.x,ev.y)){if(Math.random()<.35)sparkles(ev.x,ev.y,Math.random()<.5?'#ffd08a':'#ffe9c0',2);if(now-R.sfxHit>.16){R.sfxHit=now;sfx.swing();}}}
+ else if(ev.type==='shoot'){if(seen(ev.x,ev.y)&&now-R.sfxBow>.35){R.sfxBow=now;sfx.bolt();}}
+ else if(ev.type==='arrowHit'){if(seen(ev.x,ev.y))burst(ev.x,ev.y,'#e0413a',6,70,true);}
+ else if(ev.type==='down'){R.downs++;burst(ev.x,ev.y-24,'#e0413a',10,90,true);raidHud();}
+ else if(ev.type==='dead'){burst(ev.x,ev.y-26,'#c8402e',10,90,true);raidHud();}
+ else if(ev.type==='burnStart'){if(ev.b.prop&&!ev.b.breach)ev.b.prop.raidFire=true;}   /* doors are broken, not burned */
+ else if(ev.type==='assault'){R.mark={x:ev.x,y:ev.y,t:0,c:'255,90,70'};stageMsg('⚔ The garrison comes at your men - '+ev.n+' of them!',2400,'#ff8a7a');sfx.shout();}
+ else if(ev.type==='burned'&&ev.b.seat){raidSeatFallen(R,ev.b);}
+ else if(ev.type==='burned'){
+  const T=ev.b.prop;if(!T)return;
   const r=CityEconomy.raze(S.city,R.ally,raidKey(T),raidWeight(T)),d=raidAlly(R.ally);
-  T.raidFire=false;R.target=null;R.phase='idle';R.t=0;
-  if(r.ok){T.razed=true;log('🔥 The '+raidName(T)+' is razed. '+d.name+(r.conquered?' has fallen.':' stands at '+Math.round(r.str)+'% of its strength.'),'imp');}
-  if(r.conquered){R.won=true;stageMsg(r.text,8000,'#ffd76a',true);sfx.quest();log(r.text,'loot');raidEnd();}
-  else if(!r.ok||r.left<.5){R.spent=true;stageMsg('Your men are spent. Sound the retreat.',3200,'#ff8a7a');}
+  T.raidFire=false;
+  if(r.ok){T.razed=true;log('🔥 The '+raidName(T)+' is razed. '+d.name+(r.conquered?' has fallen.':' stands at '+Math.round(r.str)+'% of its strength.'),'imp');
+   if(/barracks|armou?ry/.test(T.kind)&&R.reserve>0){R.reserve=Math.floor(R.reserve/2);stageMsg('🔥 The '+raidName(T)+' burns - half the men who would have come are gone with it.',3200,'#ffd76a');}
+   if(!r.conquered&&!R.canStorm&&r.str<=CityEconomy.STORM_AT&&R.seatProp){R.canStorm=true;stageMsg('👑 '+d.name+' is burning - proceed to the main courts: '+(R.court?'break down the palace doors!':'the '+raidName(R.seatProp)+'!'),4200,'#ffd76a',true);sfx.quest();}}
+  if(r.conquered){raidCityWon(R,r.text);return;}
+  if(!r.ok||r.left<=0){R.spent=true;if(!R.canStorm)stageMsg('Your men have burned all they can - sail home.',3200,'#ffd76a');}
   raidHud();save();
  }
- /* the townsfolk near the fighting run for it */
- if(T)for(const n of world.npcs){if(n.held||n.hidden||n.voyage||n.game||n.royal||!n.pts||Math.hypot(n.x-T.x,n.y-T.y)>800)continue;
-  let far=n.pts[0],fd=-1;for(const q of n.pts){const dd=Math.hypot(q.x-T.x,q.y-T.y);if(dd>fd){fd=dd;far=q;}}n.held=true;n.raidFled=true;n.fleeTo={x:far.x,y:far.y};}
- for(const n of world.npcs)if(n.raidFled&&n.fleeTo)step(n,n.fleeTo.x,n.fleeTo.y,(n.speed||40)*2.2);
- if(R.over&&R.troops.every(g=>g.hurtS==='gone'||g.boarded>1.2)){raidRelease();world.raid=null;raidHud();}
 }
-/* the men come home: the books count the hurt, and they walk back to the ship */
-function raidEnd(){
+/* 👑 the seat falls: Silverfjord's doors give way and the men go in with you, into the throne hall; the throne burned, or the seat of any
+   other town, and the town is the crown's */
+function raidSeatFallen(R,b){
+ const d=raidAlly(R.ally);
+ if(b.breach){
+  stageMsg('👑 The palace doors are down - into the throne hall!',3200,'#ffd76a',true);sfx.shout();
+  const men=R.troops.filter(g=>g.alive&&!g.boarded).map(g=>({name:g.name,skin:g.skin,race:g.race,cls:g.cls,female:g.female,big:g.big,fx:-1,walk:g.walk,moving:false,held:true,merc:g.merc,cadet:g.cadet,trooper:true,kind:g.kind,p:g.p}));
+  raidSiege={ally:R.ally,zone:R.court.hall,men,downs:R.downs,per:R.per,drawn:R.drawn,garrison:R.garrison,groups:R.groups.map(gr=>gr.filter(g=>g.alive).length)};
+  log('👑 <b>The doors of the palace give way.</b> '+men.length+' of the crown’s men go in after them.','imp');
+  const z=townZone(R.court.hall),hall=TownWorld.town(R.court.hall);
+  if(z<0||!hall){raidSiege=null;return;}
+  setTimeout(()=>{if(!(gameOn&&raidSiege&&world&&world.raid===R))return;if(mp.on)mpLeave(false);raidRelease();expeditionSpawn={zone:z,x:hall.arrival.x,y:hall.arrival.y};goToZone(z);},1400);
+  return;
+ }
+ const r=CityEconomy.storm(S.city,R.ally);
+ if(b.prop){b.prop.raidFire=false;b.prop.razed=true;}
+ if(r.ok)raidCityWon(R,r.text);else{stageMsg(r.text,2400,'#ff8a7a');log(r.text,'imp');}
+}
+/* the throne hall of a court broken into: the men who went in, at the doors; the palace guard in two ranks before the throne, archers
+   behind them; the throne the only thing to burn. The guard waits - it does not come out to meet them */
+function raidHallApply(){
+ const G=raidSiege,id=G.ally,B=CityEconomy.WAR_BOOK[id],e=S.city.expedition,a=S.city.allies[id];
+ if(!e||e.ally!==id||!a||!a.war){raidSiege=null;return;}
+ for(const n of world.npcs)if((n.royal||/soldier|guard/.test(n.skin))&&!n.hidden){n.hidden=true;n.raidHidden=true;}   /* no king on the throne, and his guard is the one drawn up below */
+ const spot=world.arrival,throne=world.solids.find(s=>s.type==='townprop'&&s.kind===RAID_COURT[id].throne);
+ if(!throne){raidSiege=null;return;}
+ const troops=G.men.map((m,i)=>({...m,x:spot.x+((i%6)-2.5)*30,y:spot.y-30-Math.floor(i/6)*26}));
+ const n=Math.max(8,Math.round(G.garrison*.4)),bows=Math.round(n*(RAID_ARCHERS[id]||0)),foes=[];
+ const anchors=[{x:throne.x-260,y:throne.y+520},{x:throne.x+260,y:throne.y+520}],squads=anchors.map(p=>({x:p.x,y:p.y,fx:0,fy:1}));
+ for(let k=0;k<n;k++){const sq=k%2,p=anchors[sq];foes.push({name:'',skin:B.skin,race:'human',cls:'warrior',female:false,big:1.1,x:p.x+((k>>1)%4-1.5)*34,y:p.y-Math.floor((k>>1)/4)*30,fx:-1,walk:k*.9,moving:false,held:true,raider:true,ring:B.ring,kind:k>=n-bows?'archer':'melee',p:B.q*1.2,squad:sq});}
+ const targets=[{key:raidKey(throne),x:throne.x,y:throne.y,r:60,front:{x:throne.x,y:throne.y+130},weight:0,prop:throne,seat:true,time:RAID_THRONE_BURN}];
+ const battle=RaidBattle.create({w:world.w,h:world.h,blocked:(x,y,r)=>collide({r},x,y),stage:{x:spot.x,y:spot.y-260},arrival:spot,ours:troops,theirs:foes,squads,buildings:targets,lastStand:true});
+ battle.assaultCool=1e9;   /* the palace guard waits before the throne - and dies before it lets it burn */
+ const half=Math.min(G.groups[0],battle.ours.length);
+ world.raid={ally:id,battle,troops:battle.ours,foes:battle.theirs,stage:{x:spot.x,y:spot.y-260},men:G.men.length,drawn:G.drawn,per:G.per,downs:G.downs,spent:false,over:false,won:false,goHome:false,
+  camSet:false,ptr:null,boxMode:false,hudT:0,sfxHit:0,sfxBow:0,mark:null,groups:[battle.ours.slice(0,half),battle.ours.slice(half)],seat:null,reserve:0,backupOn:false,waveT:null,waveNo:0,waveOf:0,bows:0,
+  seatProp:throne,court:null,canStorm:true,garrison:n,hall:true};
+ raidHud();
+ log('👑 <b>The throne hall.</b> '+n+' of the palace guard stand before the throne. Burn it, and '+raidAlly(id).name+' is yours.','imp');
+}
+/* 👑 the town is the crown's: the men stand down and go aboard, and a box says so - with what it costs to make the place pay again */
+function raidCityWon(R,text){
+ R.won=true;raidSiege=null;
+ sfx.quest();log(text,'loot');
+ raidEnd();
+ const d=raidAlly(R.ally),v=CityEconomy.restoreAllyView(S.city,R.ally);
+ const old=$('cityWonFx');if(old)old.remove();
+ const ov=document.createElement('div');ov.id='cityWonFx';ov.className='city-won';
+ ov.innerHTML='<div class="city-won-box"><div class="city-won-crown">👑</div><h2>The city is yours</h2><p>'+d.icon+' <b>'+d.name+'</b> has fallen to the crown.</p>'
+  +(v?'<p class="city-won-cost">Its streets are sacked: it pays nothing until it is restored - <b>'+fmtGold(v.cost)+' ◉</b> from the treasury.</p>':'')
+  +'<div class="city-won-btns">'+(v&&v.can?'<button type="button" class="sbtn gold" id="cwRestore">🔨 Restore it now</button>':'')+'<button type="button" class="sbtn" id="cwOk" data-pad-first>'+(v&&v.can?'Later':'Onward')+'</button></div>'
+  +(v&&!v.can?'<small>'+esc(v.why)+' Restore it from the Allies page when the treasury can.</small>':'<small>Restore it later from the Allies page of the Crown Ledger.</small>')+'</div>';
+ document.body.appendChild(ov);
+ const btn=$('cwRestore');
+ if(btn)btn.onclick=()=>{const r=CityEconomy.restoreAlly(S.city,R.ally);if(r.ok){log(r.text,'loot');stageMsg('🔨 '+d.name+' is restored - it pays the crown in full.',3200,'#9fe39f');sfx.buy();save();}else stageMsg(r.text,2400,'#ff8a7a');ov.remove();};
+ $('cwOk').onclick=()=>ov.remove();
+}
+/* the men come home: the books count the hurt - the men who went down - and they walk back to the ship */
+function raidEnd(home){
  const R=world&&world.raid;if(!R||R.over)return;
- R.over=true;R.target=null;R.phase='idle';
- const r=CityEconomy.endRaid(S.city);if(r.ok){log(r.text,R.won?'loot':'imp');if(!R.won)stageMsg('🏳 The retreat is sounded: '+fmtNum(r.burned)+' razed'+(r.hurt?', '+r.hurt+' hurt':'')+'.',3200,'#ffd76a');}
- raidHud();save();
+ R.over=true;R.ptr=null;RaidBattle.sound(R.battle);
+ for(const b of R.battle.buildings)if(b.prop&&!b.razed)b.prop.raidFire=false;   /* a fire not burned through goes out */
+ const r=CityEconomy.endRaid(S.city,{hurt:Math.round(R.downs*R.per)});if(r.ok){log(r.text,R.won?'loot':'imp');if(!R.won)stageMsg((home?'⚓ The men go aboard: ':'🏳 The retreat is sounded: ')+fmtNum(r.burned)+' razed'+(r.hurt?', '+r.hurt+' hurt':'')+'.',3200,'#ffd76a');}
+ raidHud();buildSkillbar();save();   /* the hero's own spells again */
 }
-function raidRetreat(){const R=world&&world.raid;if(!R||R.over)return;if(R.phase==='burn'&&R.target){R.target.raidFire=false;}raidEnd();}
+function raidRetreat(){const R=world&&world.raid;if(!R||R.over)return;raidEnd();}
+/* ⚓ the raid is done - burned all it could, or the town has fallen - or the men are aboard after a retreat: home with the ship once they are */
+function raidSailHome(){const R=world&&world.raid;if(!R||R.goHome)return;if(!R.over)raidEnd(true);R.goHome=true;raidHud();}
 /* sailing home, or a save loaded elsewhere, brings the men home too */
 function raidWatch(){
  const e=S&&S.city&&S.city.expedition;
  if(!(world&&world.raid)&&$('raidHud'))raidHud();
  if(!e||e.auto||voyage)return;
- if(zoneOf().town===e.ally&&world&&world.raid)return;
+ const here=zoneOf().town;
+ if((here===e.ally||raidSiege&&raidSiege.ally===e.ally&&here===raidSiege.zone)&&world&&world.raid)return;   /* 👑 the throne hall is the town too */
  const r=CityEconomy.endRaid(S.city);if(r.ok){log(r.text,'imp');save();}
 }
 function raidHud(){
  let el=$('raidHud');const R=world&&world.raid;
- if(!R){if(el)el.remove();return;}
+ if(!R){if(el)el.remove();raidMsgBelow(null);return;}
  if(!el){el=document.createElement('div');el.id='raidHud';el.className='raid-hud';el.setAttribute('role','status');document.body.appendChild(el);
-  el.addEventListener('click',ev=>{if(ev.target.closest('[data-raid="retreat"]'))raidRetreat();});}
- const e=S.city.expedition,d=raidAlly(R.ally),a=S.city.allies[R.ally],str=a&&a.war?Math.round(a.war.str):0;
- el.innerHTML='<b>⚔ Raid on '+d.name+'</b><span>'+(e?fmtNum(e.used)+' of '+e.cap+' razed · ':'')+(a&&a.war?d.name+' '+str+'%':a&&a.owned?d.name+' is ours':'')+'</span>'
-  +(R.over?'<small>'+(R.won?'The town is the crown’s. ':'')+'The men are going aboard. Captain Blackbeard will take you home.</small>'
-   :'<small>'+(R.spent?'Your men are spent.':'Click a building to send your men against it.')+'</small><button type="button" class="sbtn" data-raid="retreat">🏳 Sound the retreat</button>');
+  el.addEventListener('click',ev=>{const b=ev.target.closest('[data-raid]');if(!b)return;const k=b.dataset.raid;
+   if(k==='home')raidSailHome();else if(k==='retreat')raidRetreat();else if(k==='all')raidSelect(null);
+   else if(k==='box'){const R2=world&&world.raid;if(R2){R2.boxMode=!R2.boxMode;raidHud();}}});}
+ /* what stands between the men and the town (asked for 2026-10-03): the garrison still on its feet, its archers, what the men can
+    still burn - and the men themselves */
+ const e=S.city.expedition,d=raidAlly(R.ally),a=S.city.allies[R.ally],str=a&&a.war?Math.round(a.war.str):0,Bt=R.battle;
+ const them=RaidBattle.alive(Bt,'them'),bows=them.filter(u=>u.kind==='archer').length,ours=RaidBattle.alive(Bt,'us').length,ready=RaidBattle.selected(Bt).length;
+ const done=R.over||R.spent||R.won;
+ const tl=R.waveT!=null?Math.max(0,Math.ceil(R.waveT)):0,wave=R.waveT!=null&&!R.over&&R.reserve>0?' · ⏳ backup from the '+R.seat.name+' in '+Math.floor(tl/60)+':'+String(tl%60).padStart(2,'0')+' ('+R.reserve+' more)':'';
+ for(let i=0;i<3;i++){const n=$('rgN'+i);if(n)n.textContent=i>1?ours:R.groups[i].filter(u=>u.alive).length;}
+ const siege=R.won||R.over||!R.seatProp?'':R.hall?'<span class="raid-siege">👑 Burn the throne - the palace guard stands before it</span>'
+  :R.canStorm?'<span class="raid-siege">👑 Proceed to the main courts: '+(R.court?'break down the palace doors':'burn the '+raidName(R.seatProp))+'</span>'
+  :'<span class="raid-siege dim">🔥 '+d.name+' '+str+'% → '+CityEconomy.STORM_AT+'%: burn it down that far to storm its main courts</span>';
+ el.innerHTML='<b>⚔ '+(R.hall?'The throne hall of ':'Raid on ')+d.name+'</b><span>🛡 '+them.length+' defender'+(them.length===1?'':'s')+' left'+wave+(bows?' · 🏹 '+bows+' archer'+(bows===1?'':'s'):'')+(e&&!done&&!R.hall?' · 🔥 '+fmtNum(Math.max(0,e.cap-e.used))+' to burn':'')+' · '+(a&&a.owned?d.name+' is ours':d.name+' '+str+'%')+'</span>'
+  +'<span class="raid-ours">⚔ '+ours+' of your '+R.drawn+' standing'+(ready&&!R.over?' · '+ready+' ready':'')+'</span>'+siege
+  +'<small>'+(R.won?'The town is the crown’s. ':'')+(R.goHome?'The men are going aboard - the Black Tide sails when they are.':R.over?'The men are going aboard.':R.spent?'Your men have burned all they can.'
+   :IS_TOUCH?'Tap a group or ▭ Select and drag round your men, then tap where they go - a house to fire it, a soldier to attack him.':'Drag round your men, then click where they go - a house to fire it, a soldier to attack him. 1 · 2 groups · 3 all · 4 attack · 5 burn · Ctrl+1/2 makes a group · right-drag, WASD or the edges pan.')+'</small>'
+  +(R.over?'':'<button type="button" class="sbtn" data-raid="all">⚔ All</button>'+(IS_TOUCH?'<button type="button" class="sbtn'+(R.boxMode?' on':'')+'" data-raid="box">▭ Select</button>':''))
+  +(R.goHome?'':done?'<button type="button" class="sbtn" data-raid="home">⚓ Sail home</button>':'<button type="button" class="sbtn" data-raid="retreat">🏳 Sound the retreat</button>');
+ raidMsgBelow(el);
+}
+/* the stage's messages under the raid's board, not behind it: the garrison coming, the gates opening, the courts to storm */
+function raidMsgBelow(el){
+ const m=$('stagemsg');if(!m)return;
+ if(!el){m.style.top='';return;}
+ const p=m.offsetParent,top=p?p.getBoundingClientRect().top:0,b=el.getBoundingClientRect().bottom;
+ m.style.top=Math.max(24,Math.round(b-top+8))+'px';
+}
+/* 🎨 over the men: a ring under each one ringed in, health over the hurt, the archers' bows, and in the air the arrows; on the houses
+   the fire's progress; where an order went, its mark */
+function raidDrawMan(u){
+ if(u.sel&&u.alive){ctx.save();ctx.strokeStyle='rgba(140,235,140,.9)';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(u.x,u.y+4,17,6.5,0,0,7);ctx.stroke();ctx.restore();}
+ if(u.side==='us')drawNpc(u);else drawTownFoe(u);
+ if(u.alive&&u.kind==='archer'){ctx.save();ctx.translate(u.x+(u.fx>0?13:-13),u.y-30);ctx.scale(u.fx>0?1:-1,1);ctx.strokeStyle='#6b4423';ctx.lineWidth=2.4;ctx.beginPath();ctx.arc(-6,0,15,-1.2,1.2);ctx.stroke();
+  ctx.strokeStyle='rgba(235,230,215,.85)';ctx.lineWidth=.8;ctx.beginPath();ctx.moveTo(-6+15*Math.cos(-1.2),15*Math.sin(-1.2));ctx.lineTo(-6+15*Math.cos(1.2),15*Math.sin(1.2));ctx.stroke();ctx.restore();}
+ if(u.alive&&u.hp<u.max){const w=26,f=Math.max(0,u.hp/u.max),y=u.y-62*(u.big||1);ctx.fillStyle='rgba(0,0,0,.55)';ctx.fillRect(u.x-w/2-1,y-1,w+2,5);
+  ctx.fillStyle=u.side==='us'?(f>.5?'#79d06a':f>.25?'#e8c04a':'#e0553a'):'rgba('+(u.ring||'200,80,60')+',1)';ctx.fillRect(u.x-w/2,y,w*f,3);}
+}
+function raidDrawOverlay(){
+ const R=world.raid;if(!R)return;
+ const Bt=R.battle,im=townImages();
+ for(const b of Bt.buildings){if(b.razed||!(b.fire||b.sent>0)||!b.prop)continue;   /* the fire's progress over the roof, red while the garrison holds it off */
+  const f=TownWorld.frame(b.prop,im);if(!f)continue;const y=b.prop.y+f.top-16,w=96;
+  ctx.fillStyle='rgba(0,0,0,.6)';ctx.fillRect(b.x-w/2-2,y-2,w+4,9);ctx.fillStyle=b.contested?'#d05040':b.breach?'#9ec8ff':'#ff9a30';ctx.fillRect(b.x-w/2,y,w*b.burn,5);
+  const label=b.contested?'held off':b.breach?'breaking the doors':b.seat?(b.prop&&/throne/.test(b.prop.kind)?'the throne burns':'the seat burns'):'';
+  if(label){ctx.font='700 11px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';ctx.fillStyle=b.contested?'#ffd0c8':'#fff0d0';ctx.fillText(label,b.x,y-6);}}
+ for(const a of Bt.arrows){   /* an arrow on its arc: the shaft along the flight, fletched */
+  const k=Math.min(1,a.t/a.dur),x=a.x0+(a.x1-a.x0)*k,yl=a.y0+(a.y1-a.y0)*k,lift=Math.sin(Math.PI*k)*Math.min(120,Math.hypot(a.x1-a.x0,a.y1-a.y0)*.22),y=yl-lift;
+  const k2=Math.min(1,k+.02),x2=a.x0+(a.x1-a.x0)*k2,y2=a.y0+(a.y1-a.y0)*k2-Math.sin(Math.PI*k2)*Math.min(120,Math.hypot(a.x1-a.x0,a.y1-a.y0)*.22),ang=Math.atan2(y2-y,x2-x);
+  ctx.save();ctx.translate(x,y);ctx.rotate(ang);ctx.strokeStyle='#b8935a';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-9,0);ctx.lineTo(6,0);ctx.stroke();
+  ctx.fillStyle='#e8ece8';ctx.beginPath();ctx.moveTo(11,0);ctx.lineTo(4.5,-3);ctx.lineTo(4.5,3);ctx.closePath();ctx.fill();
+  ctx.strokeStyle='#ddd';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(-9,0);ctx.lineTo(-12,-3);ctx.moveTo(-9,0);ctx.lineTo(-12,3);ctx.stroke();ctx.restore();}
+ if(R.mark){const m=R.mark,al=Math.max(0,1-m.t/1.4);ctx.save();ctx.strokeStyle='rgba('+m.c+','+al.toFixed(3)+')';ctx.lineWidth=2.5;
+  for(let i=0;i<2;i++){const rr=(16+m.t*26)*(1-i*.35);ctx.beginPath();ctx.ellipse(m.x,m.y+4,rr,rr*.38,0,0,7);ctx.stroke();}ctx.restore();}
+}
+function raidDrawScreen(){   /* the box being dragged, and the pad's cross */
+ const R=world.raid;if(!R)return;
+ const P=R.ptr;
+ if(P&&!P.pan&&P.moved&&P.button===0){const r=cv.getBoundingClientRect(),x0=P.x0-r.left,y0=P.y0-r.top,x1=P.x-r.left,y1=P.y-r.top;
+  ctx.save();ctx.fillStyle='rgba(120,220,120,.12)';ctx.strokeStyle='rgba(150,240,150,.9)';ctx.lineWidth=1.5;ctx.setLineDash([6,4]);
+  ctx.fillRect(Math.min(x0,x1),Math.min(y0,y1),Math.abs(x1-x0),Math.abs(y1-y0));ctx.strokeRect(Math.min(x0,x1)+.5,Math.min(y0,y1)+.5,Math.abs(x1-x0),Math.abs(y1-y0));ctx.restore();}
+ if(inputMode==='pad'&&!R.over){const cx=VW/2,cy=VH/2;ctx.save();ctx.strokeStyle='rgba(255,240,200,.85)';ctx.lineWidth=2;ctx.beginPath();
+  ctx.moveTo(cx-14,cy);ctx.lineTo(cx-5,cy);ctx.moveTo(cx+5,cy);ctx.lineTo(cx+14,cy);ctx.moveTo(cx,cy-14);ctx.lineTo(cx,cy-5);ctx.moveTo(cx,cy+5);ctx.lineTo(cx,cy+14);ctx.stroke();
+  ctx.beginPath();ctx.arc(cx,cy,240*zoom,0,7);ctx.strokeStyle='rgba(255,240,200,.18)';ctx.stroke();ctx.restore();}
+}
+/* 🧪 THE RAID TEST (asked for 2026-10-03: "ett speltest med en gubbe random som attackerar Silverfjord med sin trupp"). A throwaway
+   man of a random race and class who already wears the crown, is at war with the port and sails with every guard the realm has:
+   he wakes on the Harbour's pier beside Captain Blackbeard, the Black Tide casts off as soon as the loading screen is gone, and
+   the men land in the port to wait for orders - the raid as a player meets it, without the hours of play before it. S.test keeps
+   him out of every save, the cloud and the leaderboard. The desktop shell starts it (--riptide-test=raid, in a profile of its own
+   that never signs in); raidTest() in a console does the same from the sign-in or the hero list. */
+const TEST_NAMES=['Bjorn','Harald','Gunnar','Ulf','Sigurd','Erik','Ragnar','Torvald','Leif','Arne','Halvar','Sven'];
+function raidTest(town='silverfjord'){
+ if(gameOn&&S&&!S.test)return 'Change Character first - the test must not take over a hero in play.';
+ const def=raidAlly(town);if(!def||townZone(town)<0)return 'No port called '+town+'.';
+ const pick=a=>a[Math.floor(Math.random()*a.length)],race=pick(RACES),cls=pick(CLASSES);
+ S=migrate(freshState(pick(TEST_NAMES),race.id,cls.id));
+ Object.assign(S,{id:'test-'+Date.now().toString(36),test:true,gender:'m',introPending:false,outfit:'royal',zone:HARBOR_ZONE});
+ const c=S.city;CityEconomy.charter(c);   /* a full watch, a Training Ground at its last level and a hundred sellswords */
+ Object.assign(c,{crowned:true,deposed:'gaol',treasury:5e8,pop:1500,ticks:30,mercs:100});
+ c.food.stock=1e6;c.budget.watch=3;c.works.drillyard={left:0,lvl:3};
+ const w=CityEconomy.declareWar(c,town);if(!w.ok)return w.text;
+ expeditionSpawn={zone:HARBOR_ZONE,x:HOME_PORT.x,y:HOME_PORT.y};
+ $('login').classList.remove('open');
+ beginGame(false);
+ log('🧪 <span class="imp">Raid test</span> - '+esc(S.name)+', '+race.name+' '+cls.name+' and King of the City, is at war with '+def.name+'. Nothing in this test is saved.','imp');
+ const sailOff=()=>{   /* once the loading screen is gone the men board and the Black Tide casts off, as the Allies page's Sail does */
+  if(!(gameOn&&S&&S.test&&S.city===c)||voyage)return;
+  const b=$('boot');if(b&&!b.classList.contains('gone')){setTimeout(sailOff,250);return;}
+  const H=CityEconomy.warView(c,town).war.home,r=CityEconomy.sail(c,town,{watch:H.watch,cadets:H.cadets,mercs:H.mercs});
+  log(r.text,'imp');if(r.ok){renderHUD();setSail(town);}
+ };
+ setTimeout(sailOff,900);
+ return 'raid test: '+S.name+' the '+race.name+' '+cls.name+' sails for '+def.name;
 }
 const fmtNum=v=>(Math.round(v*10)/10).toString();
 function drawTownFoe(n){   /* a soldier of the garrison: his town's colours on the stones under him */
@@ -8177,7 +8558,7 @@ function padPollButtons(){
    Rather than teach every panel about the pad, walk whatever is on screen: the topmost open panel's
    own buttons, in document order, are the menu. That way a panel built later is navigable the day
    it is written, with nothing added to it. */
-const PAD_PANELS=['confirmFx','enchCraftFx','outfitFx', /* the small boxes that sit on top of everything come first - the pad answers the box on screen, not the panel under it */
+const PAD_PANELS=['confirmFx','cityWonFx','enchCraftFx','outfitFx', /* the small boxes that sit on top of everything come first - the pad answers the box on screen, not the panel under it */
  'hcDeathOv','renameOv','prestigeConfirm','hcConfirm', /* the boxes built in script (80-85): unlisted, the d-pad walked the page hidden behind them and A pressed it */
  'cfgBox','iceReqMsg','iceMsg','gateMsg','cryptIntro','ritualBox','altarMsg','raidModal','mpLobby', /* Settings is drawn above the tables and the boxes after it (z 78) */
  'tideHub','tideBattleFx','finalGateFx','sebbeFx','gvbFx','rtbFx','rouFx','bjFx','seaBuyFx','seaFx','slotFx','casinoMenu', /* the Extra Spin box before its machine: while it asks, the d-pad reaches its YES and NO, not Auto under it */
@@ -8574,6 +8955,7 @@ function padTick(dt){
  if(padFocus)padMark(null);
  padHostSwitch(null);
  if(gamePaused){padNear=null;return;} /* nothing in the world answers while the game is paused */
+ if(gameOn&&raidCommanding()){padNear=null;raidPad();return;}   /* ⚔ the stick pans, A orders at the cross, X rings in, Y all, B lets go */
  padNear=inputMode==='pad'?padInteract():null;
  if(padHit.a&&padNear)padNear.open();
  /* ⚔ the fight from the pad - what 1-5, E, X and a right-click do: X, Y and LT the three spells, the d-pad up a health potion
@@ -8673,6 +9055,7 @@ window.addEventListener('keydown',e=>{
   }
   return;
  }
+ if(gameOn&&!gamePaused&&raidCommanding()&&raidKeyDown(kl,e))return;   /* ⚔ Q all, 1-3 a kind, Esc lets go, Space to the men */
  if(kl==='x'){
   if(!e.repeat&&gameOn&&!gamePaused&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||'')&&!document.activeElement?.isContentEditable){e.preventDefault();toggleMount();}
   return;
@@ -8748,6 +9131,7 @@ const walkEnd=m=>(m.then&&m.then.length&&m.then[m.then.length-1])||m;   /* where
 cv.addEventListener('pointerdown',e=>{
  if(!gameOn||gamePaused||hero.dead||pinching||coronation||execution||voyage)return; /* 👑⚖️⛵ a scene plays itself out - no clicks land */
  if(finalIntroHolds()){finalIntroNext();return;}   /* 🎬 a click while he speaks hurries him along */
+ if(raidCommanding()&&raidPointerDown(e))return;   /* ⚔ a box round the men, an order, or a pan */
  if(e.button===2)return; /* the right button is the deselect gesture - contextmenu owns it */
  if($('p-tides')?.contains(document.activeElement))document.activeElement.blur();
  const r=cv.getBoundingClientRect();
@@ -8944,6 +9328,7 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 window.addEventListener('pointermove',e=>{ /* window, not canvas - keeps steering even if the cursor drifts off the map */
  const r=cv.getBoundingClientRect();
  mouseWX=(e.clientX-r.left)/zoom+camX;mouseWY=(e.clientY-r.top)/zoom+camY;
+ if(raidPointerMove(e))return;   /* ⚔ dragging a box, or panning the raid */
  if(sizeItem){ /* ⤢ live resize: how far the cursor travels in or out drives the scale */
   const it=farmPiece(sizeItem);
   if(!it){sizeItem=null;return;} /* it was removed underneath us */
@@ -8969,6 +9354,7 @@ window.addEventListener('pointermove',e=>{ /* window, not canvas - keeps steerin
  if(holdMove&&e.pointerId===holdMove.id){holdMove.cx=e.clientX;holdMove.cy=e.clientY;}
 });
 window.addEventListener('pointerup',e=>{
+ if(raidPointerUp(e))return;   /* ⚔ the box closes on the men in it, or the click lands */
  if(sizeItem&&sizeItem.drag===e.pointerId){ /* ⤢ lifting off sets the size - the same gesture on mouse and finger */
   const it=farmPiece(sizeItem);
   if(!it){sizeItem=null;return;} /* it was removed underneath us */
@@ -9171,6 +9557,7 @@ let debugZoom=false;
 const zmin=()=>{
  if(debugZoom)return 1/20;                           /* the whole zone, however big */
  if(buildMode)return Math.min(1/3,VW/(FarmLayout.BUILD.x1-FarmLayout.BUILD.x0+240),VH/(FarmLayout.HEIGHT+200)); /* fit the complete buildable field */
+ if(world&&world.raid&&zoneOf().town)return Math.max(VW/5200,VH/3400,VW/world.w,VH/world.h);   /* ⚔ commanding a raid: well back over the port */
  const base=(IS_TOUCH&&Math.min(VW,VH)<820)?0.5:0.9; /* phones may pull back further than desktop */
  if(!world||!world.w||!world.h)return base;
  return Math.max(base,VW/world.w,VH/world.h);
@@ -9513,6 +9900,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    setInputMode('pad');
    kx=padNow.x;ky=padNow.y;pace=padNow.mag;
   }
+  if(raidCam()){raidPan(kx,ky,dt);kx=0;ky=0;hero.moveTo=null;}   /* ⚔ the commander's: they pan the view over the raid */
   if(buildMode){kx=0;ky=0;} /* the architect's hands are full */
   if(kx||ky){
    const l=Math.hypot(kx,ky);
@@ -9891,7 +10279,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
  for(let i=bloods.length-1;i>=0;i--){bloods[i].t+=dt;if(bloods[i].t>bloods[i].life)bloods.splice(i,1);}
  for(let i=zaps.length-1;i>=0;i--){zaps[i].t+=dt;if(zaps[i].t>zaps[i].life)zaps.splice(i,1);}
  if(marker){marker.t+=dt;if(marker.t>0.8)marker=null;}
- if(!buildMode){ /* build mode frees the camera - pan and zoom where you like */
+ if(!buildMode&&!raidCam()){ /* build mode frees the camera - pan and zoom where you like - and so does commanding a raid */
   const cf=(coronation&&coronation.focus)||(execution&&execution.focus)||(world.intro&&world.intro.focus)||hero;   /* 👑⚖️🎬 a scene may take the camera elsewhere for a while */
   camX+=(cf.x-VW/(2*zoom)-camX)*Math.min(1,dt*6);
   camY+=(cf.y-VH/(2*zoom)-camY)*Math.min(1,dt*6);
@@ -10303,8 +10691,8 @@ function draw(){
  }
  if(world.raid&&!TideUI.isBattling()){   /* ⚔ the crown's men and the garrison in an enemy port */
   const R=world.raid,seen=(x,y)=>x>=cx0&&x<=cx1&&y>=cy0&&y<=cy1;
-  for(const g of R.troops)if(g.hurtS!=='gone'&&!(g.boarded>1.2)&&seen(g.x,g.y))drawables.push({y:g.y,f:()=>drawNpc(g)});
-  for(const f of R.foes)if(!(f.dead&&f.deadT>3)&&seen(f.x,f.y))drawables.push({y:f.y,f:()=>drawTownFoe(f)});
+  for(const g of R.troops)if(g.hurtS!=='gone'&&!(g.boarded>1.2)&&seen(g.x,g.y))drawables.push({y:g.y,f:()=>raidDrawMan(g)});
+  for(const f of R.foes)if(!(!f.alive&&f.deadT>3)&&seen(f.x,f.y))drawables.push({y:f.y,f:()=>raidDrawMan(f)});
  }
  if(world.forsaken&&!TideUI.isBattling()&&!execution){   /* 🟣 the Forsaken in the streets */
   const F=world.forsaken,seen=(x,y)=>x>=cx0&&x<=cx1&&y>=cy0&&y<=cy1;
@@ -10572,6 +10960,7 @@ function draw(){
  else if(z.raid&&!hero.dead)drawRaidFog(); /* the temple keeps its secrets behind the walls */
  if(sunFrame&&WEATHER.fog>0)drawMist(now);   /* 🌫 the Wasteland's mist, over all that stands */
  if(z.altar&&WEATHER.on){altarWindUpdate(now);drawAltarClouds();}   /* 🌬 the Altar's clouds racing by on the wind */
+ if(world.raid&&!TideUI.isBattling())raidDrawOverlay();   /* ⚔ arrows in the air, fires on the roofs, the marks of orders */
  drawEdgeFog(); /* last thing in world space - it must cover the fence on the border too */
  ctx.restore();
  if(sunFrame)drawSunLight(now);   /* ☀ over the world, under what the canvas writes on top of it */
@@ -10617,6 +11006,7 @@ function draw(){
    ctx.fillStyle='rgba(143,227,201,0.85)';ctx.fillText('ALL CHESTS FOUND',VW/2,68);
   }
  }
+ if(world.raid&&!TideUI.isBattling())raidDrawScreen();   /* ⚔ the box being dragged round the men */
  if(vigCv)ctx.drawImage(vigCv,0,0,VW,VH);
 }
 function drawPortal(){
@@ -12203,7 +12593,7 @@ function drawMiniBar(x,y,w,pct,c){
 /* ==================== HUD ==================== */
 function stageMsg(t,ms=1600,color,big){
  const m=$('stagemsg');m.textContent=t;
- m.style.color=color||'';m.style.textShadow=color?'0 0 14px '+color:''; /* e.g. blue glow for chest spawns */
+ m.style.color=color||'';m.style.textShadow=color?'0 1px 3px rgba(0,0,0,.95),0 0 14px '+color:''; /* e.g. blue glow for chest spawns - over a dark edge, readable on sand and snow too */
  m.classList.toggle('bigblink',!!big);
  m.classList.add('show');
  clearTimeout(m._t);m._t=setTimeout(()=>{m.classList.remove('show');m.classList.remove('bigblink');},ms);
@@ -12433,26 +12823,35 @@ function buildSkillbar(){
  let h='';
  const equippedMount=Mounts.selected(S);
  if(equippedMount)h+=`<button class="skill pot mount" id="mountBtn" title="Mount / dismount (X)"><img class="btnico" src="${mountImages[equippedMount.id].src}" alt="${equippedMount.name}"><div class="cdm" id="mountCastFill"></div><span class="mount-key">X</span></button>`;
+ const cmd=raidCommanding();   /* ⚔ commanding a raid: the three spells are the two groups and everybody */
  c.spells.forEach((sp,i)=>{
-  h+=`<button class="skill" id="sk${i}" title="${sp.n}">${spellGlyph(sp)}<div class="cdm" id="skcd${i}"></div><span class="cost">${spellManaCost(sp)}</span><span class="au" id="au${i}"></span></button>`;
+  if(cmd)h+=`<button class="skill raidgrp" id="sk${i}" title="${i>1?'All your men (3)':'Group '+(i+1)+' ('+(i+1)+') - Ctrl+'+(i+1)+' or Shift+click makes it the men ringed in'}"><span class="rg-ico">${i>1?'⚔':'👥'}</span><span class="rg-lbl">${i>1?'All':'Group '+(i+1)}</span><div class="cdm" id="skcd${i}"></div><span class="cnt" id="rgN${i}"></span><span class="au" id="au${i}"></span></button>`;
+  else h+=`<button class="skill" id="sk${i}" title="${sp.n}">${spellGlyph(sp)}<div class="cdm" id="skcd${i}"></div><span class="cost">${spellManaCost(sp)}</span><span class="au" id="au${i}"></span></button>`;
  });
  h+=`<button class="autocfg-btn" id="skAutoCfg" title="Choose what AUTO may use">${uiIcon('ui_auto','Ⓐ','btnico')}</button>`;
+ if(cmd){   /* ⚔ the flasks are the company's orders while he commands: every man at the nearest foe (4), to the nearest house (5) */
+  h+=`<button class="skill pot raidgrp" id="potHp" title="Every man at the nearest enemy (4)"><span class="rg-ico">⚔</span><span class="rg-lbl">Attack</span><div class="cdm" id="potHpCd"></div><span class="cnt" id="potHpN"></span><span class="au" id="auHp"></span></button>`;
+  h+=`<button class="skill pot raidgrp" id="potMp" title="Every man to burn the nearest house (5)"><span class="rg-ico">🔥</span><span class="rg-lbl">Burn</span><div class="cdm" id="potMpCd"></div><span class="cnt" id="potMpN"></span><span class="au" id="auMp"></span></button>`;
+ }else{
  h+=`<button class="skill pot" id="potHp">${uiIcon('pot_hp','🧪')}<div class="cdm" id="potHpCd"></div><span class="cnt" id="potHpN">0</span><span class="au" id="auHp"></span></button>`;
  h+=`<button class="skill pot" id="potMp">${uiIcon('pot_mp','🔮')}<div class="cdm" id="potMpCd"></div><span class="cnt" id="potMpN">0</span><span class="au" id="auMp"></span></button>`;
+ }
  $('skillbar').innerHTML=h;
  if($('mountBtn'))$('mountBtn').onclick=toggleMount;
  updateMountButton();
- c.spells.forEach((sp,i)=>$('sk'+i).onclick=()=>{
+ c.spells.forEach((sp,i)=>$('sk'+i).onclick=e=>{
+  if(cmd){if(!gamePaused){if(i<2&&(e.shiftKey||e.ctrlKey))raidSetGroup(i);else raidGroup(i);}return;}   /* ⚔ a group: pick it, or Shift+click to make it */
   if(autoCfgMode)toggleAutoUse('s'+i,$('au'+i));
   else if(!gamePaused)cast(i,true); /* the world is frozen while paused - so are spells, as the 1/2/3 keys already are */
  });
+ if(cmd&&world.raid)raidHud();
  if(mineTrained()){ /* to the right of the mana flask, at the end of the bar */
   $('potMp').insertAdjacentHTML('afterend',
    `<button class="skill pot mine${S.mining.on?' on':''}" id="mineBtn" title="Mine every rock in the zone">${uiIcon('ui_pick','⛏')}</button>`);
   $('mineBtn').onclick=()=>toggleMining();
  }
- $('potHp').onclick=()=>{if(autoCfgMode)toggleAutoUse('hp',$('auHp'));else if(!gamePaused)usePot('hp',true);};
- $('potMp').onclick=()=>{if(autoCfgMode)toggleAutoUse('mp',$('auMp'));else if(!gamePaused)usePot('mp',true);};
+ $('potHp').onclick=()=>{if(cmd){if(!gamePaused)raidAttackNearest();return;}if(autoCfgMode)toggleAutoUse('hp',$('auHp'));else if(!gamePaused)usePot('hp',true);};
+ $('potMp').onclick=()=>{if(cmd){if(!gamePaused)raidBurnNearest();return;}if(autoCfgMode)toggleAutoUse('mp',$('auMp'));else if(!gamePaused)usePot('mp',true);};
  $('skAutoCfg').onclick=()=>{
   if(!refreshCombatAutoControls())return;
   autoCfgMode=!autoCfgMode;
@@ -12470,10 +12869,11 @@ function renderVitals(dt){
  $('hHP').style.width=Math.max(0,100*hero.hp/heroMax())+'%';
  $('hMP').style.width=Math.max(0,100*hero.mana/manaMax())+'%';
  const c=classOf();
- c.spells.forEach((sp,i)=>{
+ if(!raidCommanding())c.spells.forEach((sp,i)=>{   /* ⚔ the group buttons have no cooldown and cost no mana */
   $('skcd'+i).style.height=(100*hero.spellCd[i]/sp.cd)+'%';
   $('sk'+i).classList.toggle('nomana',hero.mana<spellManaCost(sp));
  });
+ if(raidCommanding())return;   /* ⚔ the flask buttons are orders while he commands */
  $('potHpCd').style.height=(100*hero.potCd.hp/8)+'%';
  $('potMpCd').style.height=(100*hero.potCd.mp/8)+'%';
  $('potHpN').textContent=S.pots.hp;
@@ -17625,7 +18025,8 @@ function ledgerAllies(c){
    +(a.owned?'':allyGoodwill(W))+(w?allyWar(c,a,W):'')
    +'<p class="ledger-fx"><span>the crown’s stake '+pct+'%</span><span>'+(a.owned?'pays':'pays now')+' '+fmtGold(a.income)+' ◉ a close</span><span>'+(a.owned?a.perkText:'as ours: '+fmtGold(a.yield)+' ◉ a close · '+a.perkText)+'</span></p>'
    +(a.pending.length?'<p class="ledger-work-foot">🐎 '+a.pending.map((p,i)=>'an envoy with '+fmtGold(p.amount)+' ◉ arrives in <span data-await="'+a.id+':'+i+'">'+fmtWait(p.seconds)+'</span>').join(' · ')+'</p>':'')
-   +(a.owned?'<p class="ledger-work-foot pos">'+(W.conquered?'🏳 Ours by the sword. '+(W.ruin?'Its streets are rebuilding: it pays '+(100-W.ruin)+'% of its yield.':'Rebuilt, and paying its whole yield.'):'Ours. '+a.lord+' kept the title and lost the treasury.')+'</p>'
+   +(a.owned?'<p class="ledger-work-foot pos">'+(W.conquered?'🏳 Ours by the sword. '+(W.sacked?'Its streets are sacked: it pays nothing until it is restored.':W.ruin?'Its streets are rebuilding: it pays '+(100-W.ruin)+'% of its yield.':'Rebuilt, and paying its whole yield.'):'Ours. '+a.lord+' kept the title and lost the treasury.')+'</p>'
+    +(W.sacked&&W.restore?'<p class="ledger-work-foot"><button type="button" class="sbtn gold" data-lact="restore" data-k="'+a.id+'"'+(W.restore.can?'':' disabled title="'+esc(W.restore.why)+'"')+'>🔨 Restore '+a.name+' - '+fmtGold(W.restore.cost)+' ◉</button></p>':'')   /* 👑 a town taken in a siege pays again only when restored */
     :w?''
     :noCrown?'<p class="ledger-work-foot">👑 '+a.lord+' receives envoys from crowned heads. Take the crown (the Crown tab), and the road is open.</p>'
     :a.locked?'<p class="ledger-work-foot">🔒 '+a.lord+' will not receive an envoy from a city without a <b>'+a.locked+'</b> (Works).</p>'
@@ -18224,6 +18625,7 @@ function ledgerAction(act,k,v){
   else{const r=E.sail(c,k,force,{auto:!port});ok=r.ok;msg=r.text;
    if(ok){log(r.text,'imp');if(port){$('ledgerFx').style.display='none';cityApplyAll();renderHUD();save();setSail(k);return;}}}
  }
+ else if(act==='restore'){const r=E.restoreAlly(c,k);ok=r.ok;msg=r.text;if(ok){log(r.text,'loot');stageMsg('🔨 '+r.text.replace(/^🔨 /,''),3600,'#9fe39f');}}   /* 👑 a sacked town set going again */
  else if(act==='peace'){
   const d=E.ALLIES.find(x=>x.id===k),pv=E.peaceView(c,k);if(!pv)return;
   confirmBox('🕊 <b>Make peace with '+d.name+(pv.cost?' for '+fmtGold(pv.cost)+' ◉':'')+'?</b><br><br>A truce of '+E.WAR_TRUCE+' closes follows, and the caravans come back.',
@@ -18891,7 +19293,7 @@ const FB_PUSH_MS=60000;
 /* ☁ one flush attempt. pushDirty is cleared ONLY once the write actually lands - a tab that
    gets frozen mid-push must retry on the next run, not forget it ever had work to do. */
 function flushCloud(){
- if(!(FB.pushDirty&&FB.ready&&FB.user&&S&&S.id)||FB.kicked)return;
+ if(!(FB.pushDirty&&FB.ready&&FB.user&&S&&S.id)||S.test||FB.kicked)return;
  const at=Date.now(),id=S.id,rev=S.rev,snap=JSON.parse(JSON.stringify(saveSnapshot())); /* the hero as of this push, and its rev - cloudPushChar makes its own copy only after its reads */
  FB.lastPush=at;
  /* a newer push owns the flag - and so does a save made while this one was on its way: it is not in this copy, and a stake
@@ -18925,7 +19327,7 @@ function saveSnapshot(){
 const saveSig=snap=>snap.id+'|'+JSON.stringify({...snap,rev:0,savedAt:0});
 let savedSig='';
 async function save(){
- if(!S||!S.id||FB.kicked||heroDeleted(S.id))return;
+ if(!S||!S.id||S.test||FB.kicked||heroDeleted(S.id))return;   /* 🧪 a test hero (raidTest) is never written anywhere */
  /* The autosave comes round every 12 seconds whether or not anything happened. Saving an unchanged hero used to raise rev,
     rewrite the device copy and send the whole hero to the cloud again - all day long in an idle window. Now it is nothing
     at all. rev moves only when the hero did, so it can never run ahead of a cloud copy that was not sent. */
@@ -18945,7 +19347,7 @@ async function save(){
 /* ☁ force the cloud copy up NOW, throttle be damned - for moments too valuable to lose:
    raid clears, Thor kills, anything that hands out once-per-lockout loot. */
 async function saveNow(){
- if(!S||!S.id||FB.kicked||heroDeleted(S.id))return;
+ if(!S||!S.id||S.test||FB.kicked||heroDeleted(S.id))return;
  S.rev=(S.rev|0)+1;S.savedAt=Date.now();
  savedSig=saveSig(saveSnapshot());
  const id=S.id,rev=S.rev,json=memChars[S.id]=JSON.stringify(saveSnapshot());
@@ -19558,7 +19960,7 @@ function charStats(ch){
 const lbScore=ch=>(ch.prestige||0)*1e6+(ch.lvl||1)*1e3+charGearScore(ch);
 const lbPublished=new Map(),lbPublishing=new Map();
 async function publishLB(ch,force){
- if(!ch||!ch.id||heroDeleted(ch.id))return;
+ if(!ch||!ch.id||ch.test||heroDeleted(ch.id))return;
  const now=Date.now();
  ch.tainted=false;ch.taintV=0;
  const slim=g=>g?{id:g.id||null,wench:g.wench||null,name:g.name,rar:g.rar,slot:g.slot,up:g.up||0,star:g.star||0,atk:g.atk||0,hp:g.hp||0,crit:g.crit||0,haste:g.haste||0,lifesteal:g.lifesteal||0,bossDmg:g.bossDmg||0,manadrain:g.manadrain||0,dmgMul:g.dmgMul||0,legend:g.legend||null,power:Math.round(g.power||0),
@@ -20565,6 +20967,9 @@ stageResizeObserver.observe($('stageWrap'));
 resize();
 requestAnimationFrame(frame);
 (async()=>{
+ /* 🧪 the desktop shell's test profile: no cloud and no sign-in, straight into the scenario */
+ const test=window.desktop&&typeof window.desktop.testScenario==='function'?await window.desktop.testScenario().catch(()=>null):null;
+ if(test&&test.split(':')[0]==='raid'){seasonReady=true;document.title+=' - Raid test';raidTest(test.split(':')[1]||undefined);return;}   /* raid:<port> for another town */
  await initFirebase();
  await seasonWipeIfNeeded();
  seasonReady=true;

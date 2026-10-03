@@ -124,7 +124,7 @@ test('an expedition: the odds against their garrison decide how much it can raze
   const garrison = 30 * 3.5;
   assert.equal(E.raidOf(s, 'ravenholt', { watch: 15 }).cap, 0, 'no war, full strength: 15 men drilled x2.4 are 36 against 105');
   assert.equal(E.raidOf(s, 'ravenholt', { mercs: 60 }).garrison, garrison);
-  const odds = (p, g) => Math.floor(10 * (p / g - .5) / 1.5 + 1e-9);
+  const odds = (p, g) => Math.floor(E.RAID_CAP * (p / g - .5) / 1.5 + 1e-9);
   assert.equal(E.raidOf(s, 'ravenholt', { mercs: 60 }).cap, odds(60 * 1.2 * 2.4, garrison), 'the sellswords alone');
   assert.equal(E.raidOf(s, 'ravenholt', { watch: 15, cadets: 18, mercs: 60 }).cap, E.RAID_CAP, 'two to one or better: the most one raid can do');
   assert.match(E.sail(s, 'ravenholt', { mercs: 20 }).text, /not at war/);
@@ -133,7 +133,7 @@ test('an expedition: the odds against their garrison decide how much it can raze
   assert.match(E.sail(s, 'ravenholt', {}).text, /Choose the men/);
   const home = E.defenders(s), order = E.watchOrder(s);
   const r = E.sail(s, 'ravenholt', { watch: 15, cadets: 18, mercs: 60 });
-  assert.ok(r.ok && r.cap === 10, r.text);
+  assert.ok(r.ok && r.cap === E.RAID_CAP, r.text);
   assert.match(E.sail(s, 'ravenholt', { mercs: 1 }).text, /abroad already/);
   const D = E.defenders(s);
   assert.deepEqual([D.watch, D.cadets, D.mercs, D.away], [0, 0, 0, 93], 'the men abroad defend nothing at home');
@@ -144,21 +144,22 @@ test('an expedition: the odds against their garrison decide how much it can raze
   assert.ok(b1.ok); assert.equal(s.allies.ravenholt.war.str, Math.round(str * 10) / 10);
   assert.equal(E.raze(s, 'ravenholt', 'rh_house_a@930,2366', 1).text, 'That is ashes already.');
   E.raze(s, 'ravenholt', 'rh_barracks@3330,1570', 2);
-  for (let k = 0; k < 7; k++) E.raze(s, 'ravenholt', 'h' + k, 1);
-  assert.equal(s.expedition.used, 10);
+  for (let k = 0; k < E.RAID_CAP - 3; k++) E.raze(s, 'ravenholt', 'h' + k, 1);
+  assert.equal(s.expedition.used, E.RAID_CAP);
   const spent = E.raze(s, 'ravenholt', 'one more', 1);
   assert.equal(spent.ok, false); assert.equal(spent.spent, true);
-  assert.equal(s.allies.ravenholt.ashes.length, 9, 'what they burned lies in ashes in the port');
-  assert.ok(s.allies.ravenholt.war.str > 60 && s.allies.ravenholt.war, 'one raid does not take a city');
+  assert.equal(s.allies.ravenholt.ashes.length, E.RAID_CAP - 1, 'what they burned lies in ashes in the port');
+  assert.ok(s.allies.ravenholt.war.str > 0 && s.allies.ravenholt.war, 'one raid does not burn a city to the ground (the siege takes it sooner, by its seat)');
   const back = E.endRaid(s);
   assert.equal(back.hurt, Math.round(93 * r.rate * (.35 + .65)), 'the harder they fought, the more are hurt');
   assert.deepEqual(Object.values(s.hurt).reduce((t, v) => t + v, 0) - s.hurt.left, back.hurt);
   assert.equal(s.hurt.left, 2); assert.equal(s.expedition, null); assert.equal(s.allies.ravenholt.war.refit, E.RAID_REFIT);
   assert.match(E.sail(s, 'ravenholt', { mercs: 10 }).text, /refitting/);
-  assert.match(back.text, /^⚔ The expedition is home from Ravenholt: 10 buildings’ worth razed, \d+ hurt\. Ravenholt stands at \d+% of its strength\.$/);
+  assert.ok(back.text.startsWith('⚔ The expedition is home from Ravenholt: ' + E.RAID_CAP + ' buildings’ worth razed, '), back.text);
+  assert.match(back.text, /, \d+ hurt\. Ravenholt stands at \d+% of its strength\.$/);
 });
 
-test('three raids or more break a city and five a great port; the place surrenders for nothing, in ruins, and every other court takes note', () => {
+test('two raids or more burn a city to the ground and three a great port; the place surrenders for nothing, sacked, and every other court takes note', () => {
   const s = strong(crowned()); s.mercs = 100;
   E.tick(s, live, quiet);
   E.declareWar(s, 'ravenholt');
@@ -170,22 +171,27 @@ test('three raids or more break a city and five a great port; the place surrende
     for (let k = 0; k < 20 && s.expedition.used < s.expedition.cap; k++) { const z = E.raze(s, 'ravenholt', 'r' + raids + '-' + k, 1); if (z.conquered) { taken = z; break; } }
     E.endRaid(s);
   }
-  assert.ok(taken, 'taken'); assert.ok(raids >= 3, 'in ' + raids + ' raids');
+  assert.ok(taken, 'taken'); assert.ok(raids >= 2, 'in ' + raids + ' raids');
   assert.match(taken.text, /^🏳 King Roderic Varn has surrendered Ravenholt to the crown! It is ours without a coin paid/);
   const a = s.allies.ravenholt;
-  assert.equal(a.owned, true); assert.equal(a.war, undefined); assert.equal(a.ruin, E.RUIN); assert.equal(a.paid, undefined);
-  assert.equal(E.alliesFx(s).income, Math.round(def('ravenholt').yield * (1 - E.RUIN / 100)), 'its ruins pay what they can');
+  assert.equal(a.owned, true); assert.equal(a.war, undefined); assert.equal(a.sacked, true); assert.equal(a.paid, undefined);
+  assert.ok(taken.text.endsWith('its streets are sacked: it pays nothing until the crown restores it, for ' + (9600000).toLocaleString() + ' ◉ from the treasury.'), taken.text);
+  assert.equal(E.alliesFx(s).income, 0, 'sacked (2026-10-03): it pays nothing');
   assert.ok(E.goodwillOf(s, def('emberfall')).reasons.some(r => r.text === 'You took Ravenholt by the sword. Every court is counting its walls.' && r.v === -12));
-  const ticks = Math.ceil(E.RUIN / E.RUIN_HEAL);
-  const said = [];
-  for (let i = 0; i < ticks; i++) said.push(...E.tick(s, {}, quiet).unrest);
-  assert.equal(a.ruin, undefined); assert.equal(E.alliesFx(s).income >= def('ravenholt').yield, true);
-  assert.ok(said.some(t => t === '🏰 Ravenholt has rebuilt: it pays the crown its whole yield again.'));
-  /* a great port wants five raids at the least, and a far bigger force */
+  for (let i = 0; i < 30; i++) E.tick(s, {}, quiet);
+  assert.equal(a.sacked, true, 'nothing mends itself while it lies sacked'); assert.equal(E.alliesFx(s).income, 0);
+  assert.deepEqual(E.normalize(JSON.parse(JSON.stringify(s))).allies.ravenholt.sacked, true, 'through a save');
+  const v = E.restoreAllyView(s, 'ravenholt');
+  assert.equal(v.cost, 9600000, 'two fifths of what it would have cost to buy');
+  const t0 = s.treasury, r = E.restoreAlly(s, 'ravenholt');
+  assert.ok(r.ok, r.text); assert.equal(t0 - s.treasury, v.cost);
+  assert.equal(a.sacked, undefined); assert.equal(a.ruin, undefined); assert.ok(E.alliesFx(s).income >= def('ravenholt').yield, 'restored, it pays in full');
+  assert.equal(E.restoreAllyView(s, 'ravenholt'), null);
+  /* a great port wants three raids at the least to burn to the ground, and a far bigger force */
   const p = strong(crowned()); p.mercs = 100; E.declareWar(p, 'meridian');
   const all = E.raidOf(p, 'meridian', E.defenders(p));
   assert.ok(all.cap >= 9, 'the whole war machine: ' + JSON.stringify(all));
-  assert.ok(Math.ceil(100 / (all.cap * 100 / 50)) >= 5);
+  assert.ok(Math.ceil(100 / (all.cap * 100 / 50)) >= 3);
   assert.equal(E.raidOf(p, 'meridian', { watch: 15, cadets: 18 }).cap, 0, 'the watch and the cadets alone could not touch Meridian');
 });
 
@@ -219,6 +225,25 @@ test('peace can be bought - dearer the stronger they still stand - a truce follo
   assert.ok(c.unrest.some(x => x.startsWith('🕊 King Roderic Varn sues for peace')), c.unrest.join(' | '));
   assert.equal(E.peaceView(t, 'ravenholt').cost, 0);
   const gold = t.treasury; assert.ok(E.makePeace(t, 'ravenholt').ok); assert.equal(t.treasury, gold);
+});
+
+test('the siege (2026-10-03): burned down to STORM_AT, its seat stormed, the whole place is the crown’s at once - and not a moment before', () => {
+  const s = strong(crowned()); s.mercs = 100; E.tick(s, live, quiet);
+  E.declareWar(s, 'silverfjord');
+  const D = E.defenders(s);
+  assert.ok(E.sail(s, 'silverfjord', { watch: D.watch, cadets: D.cadets, mercs: D.mercs }).ok);
+  const early = E.storm(s, 'silverfjord');
+  assert.equal(early.ok, false); assert.match(early.text, /stands at 100% of its strength - burn it down to 60% before its seat can be stormed/);
+  for (let k = 0; s.allies.silverfjord.war.str > E.STORM_AT && k < 20; k++) E.raze(s, 'silverfjord', 'h' + k, 1);
+  assert.ok(s.allies.silverfjord.war.str <= E.STORM_AT);
+  const r = E.storm(s, 'silverfjord');
+  assert.ok(r.ok && r.conquered, r.text);
+  const a = s.allies.silverfjord;
+  assert.equal(a.owned, true); assert.equal(a.sacked, true); assert.equal(a.war, undefined);
+  assert.equal(E.storm(s, 'silverfjord').ok, false, 'once is enough');
+  const end = E.endRaid(s, { hurt: 4 });
+  assert.ok(end.ok); assert.equal(end.hurt, 4, 'the men who went down in the battle are the hurt');
+  assert.equal(E.restoreAllyView(s, 'silverfjord').cost, 26000000);
 });
 
 test('the books keep every war, truce, ruin and expedition through a save - and a city that never looked abroad reloads exactly as it was', () => {

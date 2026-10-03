@@ -1291,3 +1291,21 @@ body.padcursor, body.padcursor *{cursor:none!important}
 .raid-hud span{color:#e8c9a8}
 .raid-hud small{flex-basis:100%;text-align:center;color:#cdb49a;font-size:11.5px}
 .raid-hud .sbtn{padding:6px 12px;font-size:12px;border-color:#c0503a;color:#ffe0d6;background:linear-gradient(#5a281d,#361711)}
+.raid-hud .raid-ours{flex-basis:100%;text-align:center;color:#c4e6b4}   /* ⚔ your own men (2026-10-03, the raid commanded from above) */
+.raid-hud .sbtn.on{border-color:#7fd07f;color:#e6ffe0;background:linear-gradient(#2c5a28,#183617)}
+/* ⚔ the hero's spell buttons while he commands a raid: group 1, group 2, everybody (2026-10-03) */
+/* 👑 the siege's next step under the raid's numbers, and the box that says the city is yours (2026-10-03) */
+.raid-hud .raid-siege{flex-basis:100%;text-align:center;color:#ffd76a;font-weight:700}
+.raid-hud .raid-siege.dim{color:#e8b48a;font-weight:600}
+.city-won{position:fixed;inset:0;z-index:121;display:flex;align-items:center;justify-content:center;background:rgba(8,5,2,.72)}
+.city-won-box{background:linear-gradient(#2c1f10,#1c130a);border:2px solid #d4aa4a;border-radius:16px;padding:22px 26px 18px;max-width:380px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.7),0 0 30px rgba(255,200,90,.18)}
+.city-won-crown{font-size:44px;line-height:1;margin-bottom:6px;filter:drop-shadow(0 0 10px rgba(255,210,100,.6))}
+.city-won-box h2{margin:0 0 8px;font-family:var(--display);font-size:26px;color:#ffd76a;letter-spacing:.5px}
+.city-won-box p{margin:6px 0;color:#eadcc4;font-size:13.5px;line-height:1.5}
+.city-won-cost{color:#e8c9a8!important}
+.city-won-btns{display:flex;gap:10px;margin:14px 0 8px}
+.city-won-btns .sbtn{flex:1;padding:10px}
+.city-won-box small{color:#bfa889;font-size:11.5px}
+.skill.raidgrp{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:1;border-color:#7fb06f}
+.skill.raidgrp .rg-ico{font-size:17px}
+.skill.raidgrp .rg-lbl{font-size:9.5px;font-weight:800;color:#e6f3d8;margin-top:2px;white-space:nowrap}

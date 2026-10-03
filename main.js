@@ -15,6 +15,16 @@ const fs = require('fs');
 const DEV = !app.isPackaged || process.argv.includes('--riptide-dev');
 if (!DEV) Menu.setApplicationMenu(null);
 
+/* Test scenarios (2026-10-03): `--riptide-test=raid` opens the game straight into a throwaway hero's raid on Silverfjord
+   (raidTest in game.js). It runs in a profile of its own beside the real one - its own storage, settings and error.log,
+   never signed in - so nothing it does can reach the player's heroes or the cloud, and it can be open next to the game. */
+const TEST = ((process.argv.find(a => a.startsWith('--riptide-test=')) || '').split('=')[1] || '').replace(/[^a-z:]/g, '') || null;   /* raid, or raid:<port> */
+if (TEST) {
+  const dir = path.join(app.getPath('userData'), 'Test profile');
+  app.setPath('userData', dir);
+  app.setPath('sessionData', dir);
+}
+
 /* With the console shut, a player who hits a bug has no way to read the error and no way to tell us
    what it said. So errors go to a file next to the settings instead - both the shell's own and the
    ones the page throws. Trimmed when it gets long, because nobody should acquire a log file that
@@ -102,6 +112,7 @@ ipcMain.handle('res:set', (_e,w,h) => {
  return {w:Math.round(s.w*d.scaleFactor),h:Math.round(s.h*d.scaleFactor),fullscreen:!!(win&&!win.isDestroyed()&&win.isFullScreen())};
 });
 ipcMain.handle('app:quit', () => app.quit());
+ipcMain.handle('test:scenario', () => TEST);
 /* The saves live in localStorage, and Chromium's storage process writes that to disk on its own schedule: a minute behind for
    a small hero, several for a big one. A hard kill (Task Manager's End task) takes that process with it, and a casino stake
    paid in the meantime came back on the next launch. The page asks after its saves, at most once a second; this writes what

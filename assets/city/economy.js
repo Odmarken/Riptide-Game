@@ -575,6 +575,7 @@
    if(num(a.peaceAt)>0)o.peaceAt=int(a.peaceAt,1,out.ticks);
    if(o.owned&&a.conquered!==undefined)o.conquered=int(a.conquered,0,out.ticks);
    if(o.owned&&num(a.ruin)>0)o.ruin=int(a.ruin,1,RUIN);
+   if(o.owned&&a.sacked===true)o.sacked=true;
    if(Array.isArray(a.ashes)){const ash=a.ashes.filter(k=>typeof k==='string'&&k).slice(-160).map(k=>k.slice(0,60));if(ash.length)o.ashes=ash;}
    if(w)o.war={by:w.by==='us'?'us':'them',since:int(w.since,0,out.ticks),str:clamp(round1(num(w.str,100)),0,100),cool:int(w.cool,0,RAID_COOL),refit:int(w.refit,0,RAID_REFIT),
     raids:int(w.raids,0,1e6),beaten:int(w.beaten,0,1e6),burned:int(w.burned,0,1e6),plunder:Math.max(0,Math.round(num(w.plunder))),hits:int(w.hits,0,1e6),...(w.offer?{offer:true}:{})};}
@@ -1843,7 +1844,7 @@
     do. It is a title and nothing more: no line of the books reads it. */
  const isEmperor=state=>!!(state&&state.crowned)&&ALLIES.every(def=>allyOf(state,def.id).owned);
  /* ⚔ a place at war pays nothing, and one taken by the sword pays what its ruins can (RUIN heals by RUIN_HEAL a close) */
- const allyReturn=(def,a)=>a.war?0:a.owned?Math.round(def.yield*(1-num(a.ruin)/100)):a.stake>=PARTNER_AT?Math.round(def.yield*PARTNER_SHARE*a.stake/100):0;
+ const allyReturn=(def,a)=>a.war||a.sacked?0:a.owned?Math.round(def.yield*(1-num(a.ruin)/100)):a.stake>=PARTNER_AT?Math.round(def.yield*PARTNER_SHARE*a.stake/100):0;   /* sacked: nothing until restored */
  function alliesFx(state){
   const t={income:0,trade:0,attract:0,mood:0,note:'',owned:0,partners:0,wars:0};
   for(const def of ALLIES){const a=allyOf(state,def.id),inc=allyReturn(def,a);t.income+=inc;
@@ -2018,7 +2019,12 @@
     itself up to the crown, its yield in ruins for a while. Peace can be bought at any time - dearer the stronger they still stand -
     and a truce follows. Like the Forsaken, every roll is a hash of the books and only a live city goes to war. */
  const WAR_AT=20,REL_BASE=60,REL_PULL=1/6,REL_STEP=4,WAR_CAUSE=3,WAR_TRUCE=12,WAR_TRADE=.02;
- const RAID_FIRST=2,RAID_COOL=4,RAID_CHANCE=.45,RAID_CAP=10,RAID_REFIT=2,RAID_FLOOR=30,WAR_REGEN=1.5,PEACE_SHARE=.15,RUIN=70,RUIN_HEAL=3,PLUNDER=.08,SAIL_COST=20000;   /* SAIL_COST: provisions and ships, a man */
+ const RAID_FIRST=2,RAID_COOL=4,RAID_CHANCE=.45,RAID_CAP=20,RAID_REFIT=2,RAID_FLOOR=30,WAR_REGEN=1.5,PEACE_SHARE=.15,RUIN=70,RUIN_HEAL=3,PLUNDER=.08,SAIL_COST=20000;   /* SAIL_COST: provisions and ships, a man */
+ /* 👑 the siege (2026-10-03: "ta över hela staden i ett svep, men man måste bränna ner en viss del av staden först"): burned down to
+    STORM_AT of its strength, the place can be taken whole by storming its seat - the throne of Silverfjord, the keep or hall of the
+    rest. A place taken by the sword is SACKED: it pays nothing until the crown restores it, at SACK_COST of what it would have cost to
+    buy ("måste man betala för kostanderna för att få staden att rulla igång igen ... vilket kan vara dyrt"), and then pays in full. */
+ const STORM_AT=60,SACK_COST=.4;   /* 60: two fifths burned - a whole war machine (two to one, RAID_CAP) does it in one sweep, Meridian exactly; half that takes two or three */
  /* army: soldiers in a raid at full strength; q: what one is worth against a guard (a Forsaken is 3); garrison: the men holding the
     place; resolve: buildings razed to break it; duty/fee: goodwill by the crown's import duty and market fee levels; hot: the chance
     a close that an angry ruler marches; skin/ring: how his men look in the City; entry: over the land or from the sea */
@@ -2112,13 +2118,15 @@
   state.expedition={ally:id,watch:r.watch,cadets:r.cadets,mercs:r.mercs,cap:r.cap,used:0,rate:r.rate,at:state.ticks,auto:!!opts.auto};
   return {ok:true,...r,text:'⚔ '+r.men+' of the crown’s guards sail for '+r.name+' - '+r.cost.toLocaleString()+' ◉ for provisions and ships'+(r.cap?'. They can raze '+r.cap+' building'+(r.cap===1?'':'s')+' before they are spent.':' - but against that garrison they will not burn a single roof.')};
  }
- /* one building razed in their port (the scene tells the books as it happens): a house counts 1, a barracks or a market up to 2 */
+ /* one building razed in their port (the scene tells the books as it happens): a house counts 1, a barracks or a market up to 2 -
+    the last fire as much as the men have left in them, so a raid never ends half a house short of STORM_AT (Meridian, 2026-10-03) */
  function raze(state,id,key,weight=1){
   const e=state.expedition,def=allyDef(id),a=allyOf(state,id),w=a.war;
   if(!e||e.ally!==id||!w)return {ok:false,text:'No expedition of the crown is at '+(def?def.name:'that place')+'.'};
-  const wt=clamp(Math.round(num(weight,1)*2)/2,.5,2),k=String(key||'').slice(0,60);
+  const k=String(key||'').slice(0,60);
   if((a.ashes||[]).includes(k))return {ok:false,text:'That is ashes already.'};
-  if(e.used+wt>e.cap+1e-9)return {ok:false,spent:true,text:'Your men are spent.'};
+  if(e.used>=e.cap-1e-9)return {ok:false,spent:true,text:'Your men are spent.'};
+  const wt=Math.min(clamp(Math.round(num(weight,1)*2)/2,.5,2),round1(e.cap-e.used));
   e.used=round1(e.used+wt);a.ashes=a.ashes||[];a.ashes.push(k);if(a.ashes.length>160)a.ashes.shift();w.burned+=1;   /* ashes: what lies burned in their port, rebuilt one a close in peace */
   w.str=Math.max(0,round1(w.str-wt*100/WAR_BOOK[id].resolve));
   if(w.str<=0)return {ok:true,conquered:true,str:0,left:round1(e.cap-e.used),text:conquer(state,def)};
@@ -2127,16 +2135,40 @@
  /* 🏳 the place gives itself up: the crown's, for nothing, its yield in ruins for a while - and every other court takes note */
  function conquer(state,def){
   const a=allySlot(state,def.id);
-  a.owned=true;a.stake=100;a.pending=[];delete a.war;delete a.angry;a.conquered=state.ticks;a.ruin=RUIN;a.rel=Math.min(relOf(a),30);
+  a.owned=true;a.stake=100;a.pending=[];delete a.war;delete a.angry;a.conquered=state.ticks;a.ruin=RUIN;a.sacked=true;a.rel=Math.min(relOf(a),30);
   if(state.raid&&state.raid.ally===def.id)state.raid=null;   /* their men in your streets lay down their arms */
   state.mood=clamp(state.mood+4,0,100);state.trust=clamp(round1(state.trust+2),0,100);
-  return '🏳 '+def.ruler.name+' has surrendered '+def.name+' to the crown! It is ours without a coin paid - but its streets are in ruins, and it will pay '+(100-RUIN)+'% of its yield to begin with.';
+  return '🏳 '+def.ruler.name+' has surrendered '+def.name+' to the crown! It is ours without a coin paid - but its streets are sacked: it pays nothing until the crown restores it, for '+restoreCost(def).toLocaleString()+' ◉ from the treasury.';
+ }
+ /* 👑 the seat stormed: the place is the crown's - if it has been burned down to STORM_AT first, and the crown's men are there */
+ const stormBar=(state,id)=>{const def=allyDef(id),e=state.expedition,a=allyOf(state,id),w=a.war;
+  if(!def||!w)return 'The crown is not at war with that place.';
+  if(!e||e.ally!==id||e.auto)return 'No expedition of the crown is at '+def.name+'.';
+  if(w.str>STORM_AT)return def.name+' stands at '+Math.round(w.str)+'% of its strength - burn it down to '+STORM_AT+'% before its seat can be stormed.';
+  return '';};
+ function storm(state,id){
+  const why=stormBar(state,id);if(why)return {ok:false,text:why};
+  const def=allyDef(id);allyOf(state,id).war.str=0;
+  return {ok:true,conquered:true,text:conquer(state,def)};
+ }
+ const restoreCost=def=>roundTo(def.price*SACK_COST,10000);
+ function restoreAllyView(state,id){
+  const def=allyDef(id),a=allyOf(state,id);if(!def||!a.owned||!a.sacked)return null;
+  const cost=restoreCost(def),why=barred(state)?BARRED:frozen(state)||state.treasury<cost?'The treasury cannot cover '+cost.toLocaleString()+' ◉.':'';
+  return {cost,can:!why,why};
+ }
+ function restoreAlly(state,id){   /* the streets cleared, the mills and the market running again: it pays its whole yield from the next close */
+  const v=restoreAllyView(state,id),def=allyDef(id);
+  if(!v)return {ok:false,text:'There is nothing of that to restore.'};
+  if(!v.can)return {ok:false,text:v.why};
+  const a=allySlot(state,id);state.treasury-=v.cost;state.spent+=v.cost;delete a.sacked;delete a.ruin;
+  return {ok:true,cost:v.cost,text:'🔨 '+def.name+' is restored for '+v.cost.toLocaleString()+' ◉: its streets are cleared and it pays the crown its whole yield again.'};
  }
  /* the men come home: the hurt are off duty for HURT_CLOSES closes - more of them the harder they fought and the more they burned */
- function endRaid(state){
+ function endRaid(state,fought){   /* fought.hurt: the men who went down in a battle played out (2026-10-03); without it the odds decide */
   const e=state.expedition;if(!e)return {ok:false,text:'No expedition is abroad.'};
   const def=allyDef(e.ally),a=allyOf(state,e.ally),w=a.war,men=e.watch+e.cadets+e.mercs,frac=e.cap>0?Math.min(1,e.used/e.cap):1;
-  const hurt=Math.min(men,Math.round(men*e.rate*(.35+.65*frac))),[hw,hc,hm]=share(hurt,[e.watch,e.cadets,e.mercs]);
+  const hurt=fought&&Number.isFinite(fought.hurt)?clamp(Math.round(fought.hurt),0,men):Math.min(men,Math.round(men*e.rate*(.35+.65*frac))),[hw,hc,hm]=share(hurt,[e.watch,e.cadets,e.mercs]);
   if(hurt){const h=hurtOf(state);state.hurt={watch:h.watch+hw,cadets:h.cadets+hc,mercs:h.mercs+hm,left:HURT_CLOSES};}
   if(w){w.refit=RAID_REFIT;w.hits+=1;}
   state.expedition=null;
@@ -2161,7 +2193,7 @@
  function warView(state,id){
   const def=allyDef(id),a=allyOf(state,id),g=goodwillOf(state,def,a),D=defenders(state),w=a.war;
   const all=raidOf(state,id,{watch:D.watch,cadets:D.cadets,mercs:D.mercs});
-  return {rel:Math.round(relOf(a)),target:g.target,mood:goodwillName(relOf(a)),reasons:g.reasons,warAt:WAR_AT,truce:num(a.truce),ruin:num(a.ruin),conquered:!!a.conquered,
+  return {rel:Math.round(relOf(a)),target:g.target,mood:goodwillName(relOf(a)),reasons:g.reasons,warAt:WAR_AT,truce:num(a.truce),ruin:num(a.ruin),conquered:!!a.conquered,sacked:!!a.sacked,restore:restoreAllyView(state,id),storm:a.war?{at:STORM_AT,why:stormBar(state,id)}:null,
    book:WAR_BOOK[id],declare:warBar(state,def),ashes:(a.ashes||[]).slice(),war:w?{...w,peace:peaceView(state,id),sail:sailBar(state,id),all,home:D,resolve:WAR_BOOK[id].resolve}:null,
    expedition:state.expedition&&state.expedition.ally===id?{...state.expedition}:null};
  }
@@ -2196,7 +2228,7 @@
   ALLIES.forEach((def,i)=>{
    const a=allyOf(state,def.id),B=WAR_BOOK[def.id];
    if(a.ashes&&!(state.expedition&&state.expedition.ally===def.id)){for(let k=a.war?2:1;k>0&&a.ashes.length;k--)a.ashes.shift();if(!a.ashes.length)delete a.ashes;}   /* they rebuild - two buildings a close at war, patching up between raids (a small port would run out of roofs to burn), one in peace; never under the crown's men */
-   if(a.owned){if(num(a.ruin)>0){const s=allySlot(state,def.id);s.ruin=Math.max(0,s.ruin-RUIN_HEAL);if(!s.ruin){delete s.ruin;news.push('🏰 '+def.name+' has rebuilt: it pays the crown its whole yield again.');}}return;}
+   if(a.owned){if(num(a.ruin)>0&&!a.sacked){const s=allySlot(state,def.id);s.ruin=Math.max(0,s.ruin-RUIN_HEAL);if(!s.ruin){delete s.ruin;news.push('🏰 '+def.name+' has rebuilt: it pays the crown its whole yield again.');}}return;}
    if(num(a.truce)>0){allySlot(state,def.id).truce-=1;if(!state.allies[def.id].truce)delete state.allies[def.id].truce;}
    const w=a.war;
    if(w){
@@ -2378,7 +2410,7 @@
   return {ok:true,spent:true,topic:t.id,text};
  }
  return Object.freeze({BANK_TAKEOVER,BANK_RULE_SEASONS,bankRuleView,create,normalize,forecast,tick,advance,setBudget,borrow,repay,withdraw,deposit,settle,answer,councilView,PLAYER_SEAT,ALLIES,alliesView,allyInvest,isEmperor,alliesFx,talkView,openTalks,makeOffer,acceptCounter,haggleReasons,TALK_COOL_INSULT,TALK_COOL_WALK,ALLY_CLOSES,PARTNER_AT,BUY_AT,COURT_CLOSES,PARTNER_SHARE,meetHand,acceptOffice,nobleView,ennoble,fundContract,dealOffers,postBoard,NOBLE_RANKS,CONTRACTS,NOBLE_CLOSES,OFFER_CLOSES,PATENT_COST,PATENT_PRESTIGE,TEST,HARBOUR_WORKS,HARBOUR_BASE,counsel,counselView,counselTopics,COUNSEL_EVERY,projection,
-  worksView,invest,upgrade,lvlOf,raising,UP_LEVEL,UP_FAVOUR,capOf,forsakenView,rebuild,defenders,battleOf,watchOrder,WAR_BOOK,goodwillOf,goodwillName,declareWar,warBar,raidOf,sail,sailBar,raze,endRaid,peaceView,makePeace,warView,WAR_AT,REL_BASE,WAR_CAUSE,WAR_TRUCE,WAR_TRADE,RAID_CAP,RAID_REFIT,RAID_COOL,RAID_FIRST,RAID_CHANCE,RAID_FLOOR,WAR_REGEN,PEACE_SHARE,RUIN,RUIN_HEAL,PLUNDER,SAIL_COST,forsakenCount,drillOf,omen,HURT_CLOSES,HURT_RATE,HURT_MIN,HURT_MAX,FORSAKEN_CHANCE,FORSAKEN_COOL,FORSAKEN_FROM,FORSAKEN_POWER,DRILL_POWER,CADETS,MERC_POWER,SCAR_ROOFS,SCAR_REPAIR,SCAR_CAP,SCAR_HEAL,crownView,answerKing,claimCrown,canClaim,seasonsPlayed,COUP_SEASONS,COUP_FAVOUR,bonusView,takeBonus,declineBonus,BONUS_SHARE,gaolView,pardon,execute,fine,allyFear,MERCY,MERCY_SEASONS,worksFx,has,cells,charter,charterView,bankView,rehire,frozen,mercView,hireMercs,MERC_BATCH,MERC_PRICE,MERC_MAX,attend,neglect,REMIND_AFTER,NEGLECT_AFTER,NEGLECT_HARD,TRUST_SLOPE,TRUST_DRAIN_MAX,SEAT_SLOPE,SEAT_DRAIN_MAX,MOOD_SLOPE,MOOD_DRAIN_MAX,DRAW_SLOPE,DRAW_DRAIN_MAX,
+  worksView,invest,upgrade,lvlOf,raising,UP_LEVEL,UP_FAVOUR,capOf,forsakenView,rebuild,defenders,battleOf,watchOrder,WAR_BOOK,goodwillOf,goodwillName,declareWar,warBar,raidOf,sail,sailBar,raze,endRaid,storm,stormBar,restoreAllyView,restoreAlly,restoreCost,STORM_AT,SACK_COST,peaceView,makePeace,warView,WAR_AT,REL_BASE,WAR_CAUSE,WAR_TRUCE,WAR_TRADE,RAID_CAP,RAID_REFIT,RAID_COOL,RAID_FIRST,RAID_CHANCE,RAID_FLOOR,WAR_REGEN,PEACE_SHARE,RUIN,RUIN_HEAL,PLUNDER,SAIL_COST,forsakenCount,drillOf,omen,HURT_CLOSES,HURT_RATE,HURT_MIN,HURT_MAX,FORSAKEN_CHANCE,FORSAKEN_COOL,FORSAKEN_FROM,FORSAKEN_POWER,DRILL_POWER,CADETS,MERC_POWER,SCAR_ROOFS,SCAR_REPAIR,SCAR_CAP,SCAR_HEAL,crownView,answerKing,claimCrown,canClaim,seasonsPlayed,COUP_SEASONS,COUP_FAVOUR,bonusView,takeBonus,declineBonus,BONUS_SHARE,gaolView,pardon,execute,fine,allyFear,MERCY,MERCY_SEASONS,worksFx,has,cells,charter,charterView,bankView,rehire,frozen,mercView,hireMercs,MERC_BATCH,MERC_PRICE,MERC_MAX,attend,neglect,REMIND_AFTER,NEGLECT_AFTER,NEGLECT_HARD,TRUST_SLOPE,TRUST_DRAIN_MAX,SEAT_SLOPE,SEAT_DRAIN_MAX,MOOD_SLOPE,MOOD_DRAIN_MAX,DRAW_SLOPE,DRAW_DRAIN_MAX,
   POP_MAX,HOUSEHOLD,hearths,SEASON_CARDS,cardDef,dealCard,
   windName,WIND_KEYS,WIND_MAX,JITTER_IN,JITTER_OUT,WAGE_RISE,WAGE_MAX,HERO_EXPORTS_MAX,HERO_FARM_LEVELS,
   foodView,buyFood,setAutoFood,HUNGER_GAIN,HUNGER_EASE,FOOD_STORE,FOOD_START,FOOD_CAP,FOOD_PRICE,AUTO_PREMIUM,FOOD_RESERVE,HUNGER_MAX,FOOD_LOW,FOOD_LOTS,

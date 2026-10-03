@@ -68,9 +68,9 @@ test('the raid: the men land with you, take their orders by a click, burn and ra
   assert.ok(game.includes('if(world.raid)raidTick(dt);') && game.includes(' raidWatch();   /* ⚔ the men come home with the ship */'));
   const watch = section('function raidWatch(){', 'function raidHud(){');
   assert.ok(watch.includes('if(!e||e.auto||voyage)return;') && watch.includes('CityEconomy.endRaid(S.city)'), 'sailing away - or loading a save elsewhere - brings the men home');
-  const tick = section('function raidTick(dt){', 'function raidEnd(){');
+  const tick = section('function raidTick(dt){', 'function raidEnd(home){');
   assert.ok(tick.includes('CityEconomy.raze(S.city,R.ally,raidKey(T),raidWeight(T))'), 'the books raze what burned');
-  assert.ok(tick.includes('R.t>=RAID_FIGHT') && tick.includes('R.t>=RAID_BURN'), 'a fight, then the fire');
+  assert.ok(tick.includes('RaidBattle.tick(Bt,dt)') && tick.includes("ev.type==='burned'"), 'the battle is fought out (RaidBattle, 2026-10-03), and a house that burned is razed');
   assert.ok(!/enemies\.push|hero\.target|dmgEnemy/.test(section('/* ==================== ⚔ THE RAID', '/* ⚔ The Free Company')), 'the hero commands - he does not fight');
   assert.ok(game.includes("if(s.raidFire||s.razed)drawTownRuin(s,f,al);"), 'burning and burned buildings are drawn, and fade with the building');
   const sail = section("else if(act==='sail'){", "else if(act==='peace'){");

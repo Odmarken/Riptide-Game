@@ -17,4 +17,6 @@ contextBridge.exposeInMainWorld('desktop', {
   quit: () => ipcRenderer.invoke('app:quit'),
   /* writes the saves waiting in localStorage to disk now - a hard kill must not take back a paid stake (see main.js) */
   flushStorage: () => ipcRenderer.invoke('storage:flush'),
+  /* the test scenario this window was started for ('raid'), or null - see TEST in main.js */
+  testScenario: () => ipcRenderer.invoke('test:scenario'),
 });

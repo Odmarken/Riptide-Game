@@ -155,7 +155,7 @@ function keyboard(){
   TideUI:{storageOpen:()=>false,modalOpen:()=>false,isBattling:()=>false},
   openSettings:()=>calls.push('openSettings'),toggleMount:()=>calls.push('toggleMount'),toggleSide:()=>calls.push('toggleSide'),
   usePot:k=>calls.push('usePot '+k),cast:i=>calls.push('cast '+i),nearestEnemyWithin:()=>null,stageMsg:m=>calls.push('msg '+m),
-  setInputMode(){},stopMining(){},zoneOf:()=>({}),buildMode:false,fbSignIn(){}});
+  setInputMode(){},stopMining(){},zoneOf:()=>({}),buildMode:false,fbSignIn(){},raidCommanding:()=>false});
  vm.runInContext(section("window.addEventListener('keydown',e=>{","window.addEventListener('keyup',e=>{"),c);
  const press=(key,repeat=false)=>listeners.keydown({key,repeat,preventDefault:()=>prevented.push(key)});
  return {c,d,calls,prevented,press};

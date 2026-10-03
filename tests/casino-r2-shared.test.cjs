@@ -133,7 +133,7 @@ function keyboard(){
   TideUI:{storageOpen:()=>false,modalOpen:()=>false,isBattling:()=>false},casinoBack:()=>{calls.push('back');return true;},
   openSettings:()=>calls.push('openSettings'),toggleMount:()=>calls.push('toggleMount'),toggleSide:()=>calls.push('toggleSide'),
   usePot:k=>calls.push('usePot '+k),cast:i=>calls.push('cast '+i),nearestEnemyWithin:()=>null,stageMsg:m=>calls.push('msg '+m),
-  setInputMode(){},stopMining(){},zoneOf:()=>({}),buildMode:false,fbSignIn(){}});
+  setInputMode(){},stopMining(){},zoneOf:()=>({}),buildMode:false,fbSignIn(){},raidCommanding:()=>false});   /* ⚔ no raid being commanded */
  vm.runInContext(section('const PAD_PANELS=','let padFocus=null;')+section('function casinoWinOpen(chest){','/* Esc and the pad')
   +section("window.addEventListener('keydown',e=>{","window.addEventListener('keyup',e=>{"),c);
  const press=(key,repeat=false)=>listeners.keydown({key,repeat,preventDefault:()=>prevented.push(key)});

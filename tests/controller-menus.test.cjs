@@ -160,7 +160,7 @@ function world(hit,rep={},extra={}){
   gameOn:true,S:{},hero:{dead:false,target:{id:'wolf'}},cast:(i,m)=>calls.push('cast '+i+(m?' manual':'')),usePot:(k,m)=>calls.push('pot '+k+(m?' manual':'')),
   nearestEnemyWithin:()=>({x:1,y:2,r:3}),ring(){},sfx:{bolt(){}},stageMsg:m=>calls.push('msg '+m),toggleMount:()=>calls.push('mount'),
   padSideOpen:s=>calls.push('side '+s),isDesktopLayout:()=>true,toggleSide:()=>calls.push('toggleSide'),openTab(){},mineTrained:()=>false,
-  toggleMining(){},padRZoom:0,setZoom(){},zoom:1,document:{querySelector:()=>null},padHostSwitch(){},...extra});
+  toggleMining(){},padRZoom:0,setZoom(){},zoom:1,document:{querySelector:()=>null},padHostSwitch(){},raidCommanding:()=>false,...extra});   /* ⚔ no raid being commanded */
  vm.runInContext(section('function padTick(dt){','/* 🎮 what the buttons do in the menu on screen'),c);
  c.padTick(0.016);
  return {calls,c};
