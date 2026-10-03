@@ -5804,7 +5804,7 @@ function stopMining(why){
 /* Rocks are plain scenery solids, so a mined one is simply marked and skipped from then on. It
    comes back next time the zone is built, which is what the player expects from a field of stone -
    and it means none of this has to survive a save. */
-const MOB_RESPAWN=12;  /* seconds before a slain foe gets back up - doubled from 6 */
+const MOB_RESPAWN=15.6;  /* seconds before a slain foe in a leveling zone gets back up - doubled from 6, then 30% slower (2026-10-04) */
 const rockLive=s=>s&&s.type==='rock'&&!s.mined;
 function nearestRock(){
  if(!world||!world.solids)return null;
