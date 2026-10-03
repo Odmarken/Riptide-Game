@@ -20404,7 +20404,9 @@ function bootPreload(){
  const urls=[];
  const push=u=>{if(u&&urls.indexOf(u)<0)urls.push(u);};
  /* UI frames and the login art */
- push(innerWidth<innerHeight?'assets/ui/loading_phone.jpg?v=2':'assets/ui/loading_desktop.jpg?v=2'); /* only the variant this screen shows - the same URLs as style.css */
+ /* only the variant this screen shows - the same URLs and media queries as the #boot rules in style.css */
+ push(matchMedia('(max-aspect-ratio:51/100)').matches?'assets/ui/loading_phone_tall.jpg?v=1':
+  matchMedia('(max-aspect-ratio:1/1)').matches?'assets/ui/loading_phone.jpg?v=2':'assets/ui/loading_desktop.jpg?v=2');
  ['bakground_signin','ui_background','ui_allt','ui_ram','ui_buttons','ui_buttonrak','ui_buttonsstone','ui_buttonshardcore']
   .forEach(n=>push('assets/ui/'+n+'.png'));
  /* painted icons - spells, potions, loot */

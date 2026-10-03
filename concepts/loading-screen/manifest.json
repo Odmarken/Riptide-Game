@@ -54,7 +54,12 @@
       "file": "loading_concept5_riptide_wave_phone.jpg",
       "job": "5b785dc1-0c04-4200-97a9-844edbe0084c",
       "reference_media": "3cb08d0b-ab4b-4994-94e2-f1f8b72e14b0",
-      "what": "concept 5 recomposed tall for phones (9:16, 1520x2688, gpt_image_2_5 medium 2k from the final desktop art); calm sea at 60-66% of the height where the phone bar sits"
+      "what": "concept 5 recomposed tall for phones (9:16, 1520x2688, gpt_image_2_5 medium 2k from the final desktop art); calm sea at 60-66% of the height where the phone bar sits",
+      "tall": {
+        "file": "assets/ui/loading_phone_tall.jpg",
+        "made": "2026-10-03, no AI: 692 rows of open sea quilted into this phone master at row 1645 (Efros-Freeman patches 64x224 from its own deep water, rows 1590-1700, taken within 250 px of where they go, light levelled to row 1645, 10-40 px light band smoothed afterwards; the frame's side bands continued from band segments on the same columns, seed 7). Outside the insert and the 32 rows of seam on each side every pixel is the master's. 1520x3380, q88 progressive.",
+        "shown": "screens of width/height 0.51 or less (home-screen installs and tall phones): style.css lays it as a three-slice border-image - rows 0-1592 and the last 990 keep their shape at 100vw, only the open sea between them flexes. Phones in a browser tab get loading_phone.jpg stretched to the screen; tablets see it whole (contain)."
+      }
     }
   ]
 }

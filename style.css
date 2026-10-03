@@ -948,18 +948,30 @@
   box-shadow:0 0 10px rgba(70,150,255,.65);transition:width .25s ease}
 .boottip{margin-top:11px;font-family:var(--display);font-size:14px;color:#fff;
   text-shadow:0 0 8px #000,0 0 3px #000,0 2px 4px rgba(0,0,0,.9);min-height:1.3em;letter-spacing:.4px}
-/* 📱 portrait: the riptide art painted tall (9:16, 2026-10-02), shown whole - on a tall phone it fits the width and
-   the frame's dark bronze fills above and below it - and the bar rides the calm sea at ~63% of the picture's height.
+/* 📱 portrait: the riptide art painted tall (9:16, 2026-10-02). On phones it reaches the glass at every edge (the two
+   rules after this block); tablets still see it whole on the frame's dark bronze. The bar rides the calm sea at 63%.
    100dvh keeps the boot screen covering the glass while iOS Safari's chrome slides in and out */
 @media (max-aspect-ratio:1/1){
   #boot{background-image:url('assets/ui/loading_phone.jpg?v=2');background-color:#1a1007;align-items:center;padding-bottom:0;
     height:100dvh;background-size:contain;background-position:center}
-  .bootinner{margin-top:calc(22vh + 42px);margin-top:calc(22dvh + 42px);width:min(82%,420px)}
+  .bootinner{margin-top:calc(26vh + 29px);margin-top:calc(26dvh + 29px);width:min(82%,420px)}
   /* same trick for the tavern art behind login / select / create */
   html:has(#login.open),html:has(#select.open),html:has(#create.open),
   body:has(#login.open),body:has(#select.open),body:has(#create.open),
   body:has(#login.open) #app,body:has(#select.open) #app,body:has(#create.open) #app,
   #select,#login,#create{background-size:auto 112%;background-position:center bottom}
+}
+/* phones in a browser tab: the 9:16 art stretched to the glass - a few % in most browsers, ~18% on the smallest iPhones */
+@media (max-aspect-ratio:65/100),(max-width:540px) and (max-aspect-ratio:1/1){
+  #boot{background-size:100% 100%}
+}
+/* installed and tall phones: the same painting with 692 more rows of its own open sea, laid as three slices - the top
+   1592 rows and the bottom 990 keep their shape at 100vw (rows/1520), only the open sea between them flexes to the
+   height, so nothing is cropped or squashed. The bar sits mid-sea. bootPreload() in game.js uses the same query. */
+@media (max-aspect-ratio:51/100){
+  #boot{background:#25465a;border:0 solid transparent;
+    border-image:url('assets/ui/loading_phone_tall.jpg?v=1') 1592 0 990 0 fill/104.7368vw 0 65.1316vw 0 stretch}
+  .bootinner{margin-top:39.6vw}
 }
 /* ❄ Ice Armor talent tree */
 .talentbox{background:linear-gradient(180deg,#101a2a,#080d16);border:2px solid #5b9bd5;border-radius:18px;padding:20px 24px 18px;max-width:560px;width:94%;max-height:94%;overflow-y:auto;text-align:center;box-shadow:0 14px 50px rgba(0,0,0,.7),0 0 30px rgba(91,155,213,.22)}
