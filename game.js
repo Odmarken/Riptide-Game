@@ -1545,15 +1545,17 @@ function spotStamp(force){
  const x=Math.round(hero.x),y=Math.round(hero.y);
  if(!force&&spotLast&&spotLast.id===S.id&&spotLast.z===S.zone&&Math.hypot(x-spotLast.x,y-spotLast.y)<48)return;
  spotLast={id:S.id,z:S.zone,x,y};
- deviceSet(spotKey(S.id),JSON.stringify({z:S.zone,name:(ZONES[S.zone]||{}).name,x,y})).catch(()=>{});
+ const zd=ZONES[S.zone]||{};
+ deviceSet(spotKey(S.id),JSON.stringify({z:S.zone,name:zd.name,x,y,...(zd.farm?{fl:FarmLayout.LAYOUT_VERSION}:{})})).catch(()=>{}); /* 🚜 a Farm spot names the field's layout */
 }
 async function loadSpot(id){
  try{const sp=JSON.parse(await deviceGet(spotKey(id))||'null');return sp&&Number.isFinite(sp.x)&&Number.isFinite(sp.y)&&ZONES[sp.z]&&ZONES[sp.z].name===sp.name?sp:null;}catch(e){return null;}
 }
 /* after the world is built: stand the hero on the spot, unless it is another zone, off the map or built over */
 function wakeAt(){
- const sp=wakeSpot;wakeSpot=null;
+ let sp=wakeSpot;wakeSpot=null;
  if(!sp||!hero||!world||sp.z!==S.zone||instanceZone(zoneOf()))return false;
+ if(zoneOf().farm){const d=FarmLayout.shiftFrom(sp.fl??1);sp={...sp,x:sp.x+d.dx,y:sp.y+d.dy};} /* 🚜 a spot from the centred field (no layout on it) moves west with the field */
  const x0=hero.x,y0=hero.y,r=hero.r||13;
  if(sp.x<r+16||sp.y<r+16||sp.x>world.w-r-16||sp.y>world.h-r-16)return false;
  hero.x=sp.x;hero.y=sp.y;refreshWastelandChunks();
@@ -3480,7 +3482,7 @@ function migrate(s){ /* fills fields missing from older saves */
  if(!s.knifeAwarded&&(s.rating||0)>=3000){s.knifeAwarded=true;s.theKnife=true;} /* already past 3000 - the knife finds them */
  if(s.gearSets===undefined){s.gearSets=[null,null];s.gearSetSel=-1;} /* two swappable loadouts */
  if(s.farm===undefined)s.farm={owned:false,b:[],c:[]}; /* 🚜 the farm: buildings + crops */
- FarmLayout.migrate(s.farm); /* keep the complete saved layout together in the expanded central field */
+ FarmLayout.migrate(s.farm); /* keep the complete saved layout together on the field's west side, wherever an older build put it */
  if(s.farm.lvl===undefined)s.farm.lvl=1; /* 🚜 farm level - levels via farm XP (slaughter) */
  if(s.farm.xp===undefined)s.farm.xp=0;
  if(s.farm.r===undefined)s.farm.r=[]; /* 🛣 laid road segments */
@@ -4668,12 +4670,27 @@ $('farmBuyYes').onclick=()=>{
 };
 $('farmBuyNo').onclick=()=>$('farmBuyFx').style.display='none';
 $('fsCat').onchange=()=>{buildTab=$('fsCat').value;buildSel=null;renderFarmStore();};
+/* 🔨 the Farm Store covers the left of the screen, and the buildable field runs along the farm's west edge - so in build
+   mode the camera keeps that edge clear of the store (the clamp in update). farmStoreW is the store with its ❮ tab
+   sticking out of it, farmTabW the tab alone, which is all that is left on screen while the store is tucked away. Both
+   are read once, as build mode opens: reading them every frame would force a layout. */
+let farmStoreW=0,farmTabW=0;
+function farmStoreCover(){ /* screen px the store, or its tab, hides on the left */
+ const st=$('farmStore');
+ return buildMode&&st?(st.classList.contains('collapsed')?farmTabW:farmStoreW):0;
+}
+function farmStoreClear(){ /* the store slides back out: a farm edge in view moves out from under it. Tucking it away needs
+                              nothing - the clamp lets the edge follow, and anything else the store covered is uncovered */
+ if(buildMode&&camX<=0)camX-=(farmStoreW-farmTabW)/zoom;
+}
 $('fsCollapse').onclick=()=>{ /* 📱 tuck the build list away while placing - the arrow tab stays reachable */
  const c=$('farmStore').classList.toggle('collapsed');
  $('fsCollapse').textContent=c?'❯':'❮';
+ if(!c)farmStoreClear();
 };
 function expandFarmStore(){ /* slide the list back out when the player is done placing */
  const st=$('farmStore');if(!st)return;
+ if(st.classList.contains('collapsed'))farmStoreClear();
  st.classList.remove('collapsed');
  const fc=$('fsCollapse');if(fc)fc.textContent='❮';
 }
@@ -5436,12 +5453,14 @@ function farmhouseClick(){
 function enterBuildMode(){
  buildMode=true;buildSel=null;buildTab='b';
  hero.moveTo=null;hero.target=null;hero.pendingDoor=null;
- /* bird's-eye: fit the whole buildable field on screen */
+ const st=$('farmStore'),fc=$('fsCollapse');
+ st.style.display='flex';
+ st.classList.remove('collapsed');
+ if(fc)fc.textContent='❮';
+ farmStoreW=Math.max(st.offsetWidth,fc?fc.offsetLeft+fc.offsetWidth:0);farmTabW=farmStoreW-st.offsetWidth;
+ /* bird's-eye: the whole buildable field from north to south, the farm's west edge against the store */
  setZoom(Math.min(VW/(FarmLayout.BUILD.x1-FarmLayout.BUILD.x0+240),VH/(FarmLayout.HEIGHT+200)));
- camX=FarmLayout.WIDTH/2-VW/(2*zoom);camY=FarmLayout.HEIGHT/2-VH/(2*zoom);
- $('farmStore').style.display='flex';
- $('farmStore').classList.remove('collapsed');
- const fc=$('fsCollapse');if(fc)fc.textContent='❮';
+ camX=-farmStoreW/zoom;camY=(FarmLayout.BUILD.y0+FarmLayout.BUILD.y1)/2-VH/(2*zoom);
  renderFarmStore();
  updateCartUI();
  stageMsg('🔨 Build mode - pick an item and click to place it. 🗑 removes. Drag to pan, scroll to zoom.',3400);
@@ -10285,9 +10304,12 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   camY+=(cf.y-VH/(2*zoom)-camY)*Math.min(1,dt*6);
  }
  /* Once the view is wider than the world there is nothing left to pan, and clamping to 0 shoved the
-    whole zone into the top-left corner - which read as "zooming out is broken". Centre it instead. */
- const vw=VW/zoom,vh=VH/zoom;
- camX=world.w>vw?Math.max(0,Math.min(world.w-vw,camX)):(world.w-vw)/2;
+    whole zone into the top-left corner - which read as "zooming out is broken". Centre it instead.
+    🔨 In build mode the Farm Store (or, tucked away, its tab) hides the left of the screen, so the clamp works in the
+    part it leaves free: the farm's west edge can come out from under the store, and a farm narrower than that part
+    lies against it instead of in the middle - the buildable field is the farm's west side, so it opens on the left. */
+ const vw=VW/zoom,vh=VH/zoom,cover=buildMode?farmStoreCover()/zoom:0,fw=vw-cover;
+ camX=(world.w>fw?Math.max(0,Math.min(world.w-fw,camX+cover)):buildMode?0:(world.w-fw)/2)-cover;
  camY=world.h>vh?Math.max(0,Math.min(world.h-vh,camY)):(world.h-vh)/2;
 }
  
