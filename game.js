@@ -20829,8 +20829,14 @@ function bootPreload(){
  const push=u=>{if(u&&urls.indexOf(u)<0)urls.push(u);};
  /* UI frames and the login art */
  /* only the variant this screen shows - the same URLs and media queries as the #boot rules in style.css */
- push(matchMedia('(max-aspect-ratio:51/100)').matches?'assets/ui/loading_phone_tall.jpg?v=1':
-  matchMedia('(max-aspect-ratio:1/1)').matches?'assets/ui/loading_phone.jpg?v=2':'assets/ui/loading_desktop.jpg?v=2');
+ const mq=q=>matchMedia(q).matches;
+ if(mq('(max-aspect-ratio:51/100)'))push('assets/ui/loading_phone_tall.jpg?v=3');
+ else if(mq('(max-aspect-ratio:1/1)'))push('assets/ui/loading_phone.jpg?v=4');
+ else if(mq('(max-aspect-ratio:87/50)')||mq('(min-aspect-ratio:91/50)')){   /* not 16:9: wider/taller art + the frame on top */
+  push(mq('(max-aspect-ratio:87/50)')?'assets/ui/loading_desktop_tall.jpg?v=2':
+   mq('(min-aspect-ratio:49/20)')?'assets/ui/loading_desktop_ultra.jpg?v=2':'assets/ui/loading_desktop_wide.jpg?v=2');
+  ['loading_frame','loading_medallion_top','loading_medallion_bottom'].forEach(n=>push('assets/ui/'+n+'.png?v=1'));
+ }else push('assets/ui/loading_desktop.jpg?v=4');
  ['bakground_signin','ui_background','ui_allt','ui_ram','ui_buttons','ui_buttonrak','ui_buttonsstone','ui_buttonshardcore']
   .forEach(n=>push('assets/ui/'+n+'.png'));
  /* painted icons - spells, potions, loot */

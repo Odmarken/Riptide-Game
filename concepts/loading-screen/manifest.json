@@ -1,5 +1,5 @@
 {
-  "note": "Loading screen concepts, 2026-10-02. Concept 5 is INSTALLED (2026-10-02): assets/ui/loading_desktop.jpg (2560x1440 of the 4K) and assets/ui/loading_phone.jpg (the tall version). Higgsfield gpt_image_2_5 flare, medium, 2k, 16:9 (2688x1520). Masters re-download from the job ids. The boot bar is drawn by the game at ~69-73% height, centre 430 px of 1920 (style.css #boot). Never name the bar in a prompt: the model then paints its own.",
+  "note": "Loading screen concepts. INSTALLED since 2026-10-07: the black-and-parchment concept 5 (loading_concept5_riptide_wave_4k_parchment_clean.jpg) on every screen - see 'installed_2026_10_07'. Earlier: concept 5 in colour (2026-10-02). Masters re-download from the job ids. Never name the boot bar in a prompt: the model then paints its own.",
   "references": {
     "current_loading": "4a7fd86f-9350-4d58-87cd-5963325763b5",
     "kings_and_blackbeard": "f7058a61-adb0-4e4a-93a5-f1a08dae2304",
@@ -60,6 +60,135 @@
         "made": "2026-10-03, no AI: 692 rows of open sea quilted into this phone master at row 1645 (Efros-Freeman patches 64x224 from its own deep water, rows 1590-1700, taken within 250 px of where they go, light levelled to row 1645, 10-40 px light band smoothed afterwards; the frame's side bands continued from band segments on the same columns, seed 7). Outside the insert and the 32 rows of seam on each side every pixel is the master's. 1520x3380, q88 progressive.",
         "shown": "screens of width/height 0.51 or less (home-screen installs and tall phones): style.css lays it as a three-slice border-image - rows 0-1592 and the last 990 keep their shape at 100vw, only the open sea between them flexes. Phones in a browser tab get loading_phone.jpg stretched to the screen; tablets see it whole (contain)."
       }
+    },
+    {
+      "file": "loading_concept5_riptide_wave_4k_parchment_clean.jpg",
+      "job": "0fae7379-0961-4ef8-aea6-6bae6dc69016",
+      "what": "2026-10-07, CHOSEN: the strict sepia version with the white specks gone, Thor holding his rune hammer, the orc priest with a proper fist; 3840x2160",
+      "how": "nano_banana_2_1, 4k, thinking high, 16:9 (3 credits), the gpt strict job a86fcdd4 as the only image_reference: \"re-render it exactly as it is ... remove every tiny white or light speck, fleck, dot, grain and glint ... smooth, even, matte colour\". Output 5504x3072 RGBA (alpha all 255), resized to 3840x2160. Why: the user saw \"small white glossy specks all over\" in the gpt_image_2_5 versions and wanted another model.",
+      "fixes": {
+        "how": "crops of this 3840x2160 picture edited with nano_banana_2_1 1k (thinking high, 1.5 credits each), scaled back to the crop, aligned by phase correlation (offset 0,0), colour-matched on a ring and feathered in through an ellipse that fades to zero before the crop border; every pixel outside the ellipses is the NB clean render",
+        "thor_hammer": {
+          "job": "744f3b0d-4ca5-4715-bc14-bfea587ac13c",
+          "crop": [
+            2560,
+            0,
+            768
+          ],
+          "ellipse": [
+            300,
+            265,
+            290,
+            200
+          ],
+          "feather": 14,
+          "refs": {
+            "crop_media": "3812cb3c-946d-4b2f-b2ca-0aecd5a29153",
+            "hammer_media": "bb1ac568-c4ef-45b5-a89e-389984f0c993 (assets/boss/tor_weapon.png flattened on light grey)"
+          }
+        },
+        "orc_fist": {
+          "job": "0c4feae1-0478-42b4-b715-f5144ca332e5",
+          "crop": [
+            2984,
+            1244,
+            512
+          ],
+          "ellipse": [
+            245,
+            253,
+            112,
+            88
+          ],
+          "feather": 9,
+          "crop_media": "8db323d6-b699-41b1-b9e2-d810d1463e61",
+          "alternative": "96198a04-ce19-47ac-92dc-41b7244cb50e = open palm holding a small pale orb (not used)"
+        },
+        "unused": "f02d680c-27d8-4938-894f-d185d039b15a = second hammer try (smaller, paler head)"
+      }
     }
-  ]
+  ],
+  "rejected": [
+    {
+      "file": "loading_concept5_riptide_wave_4k_parchment_strict.jpg",
+      "job": "a86fcdd4-0c3c-4510-a206-ac3dfd3d1fb3",
+      "what": "2026-10-07: concept 5 (4K, hands fixed) repainted matte in black and paper-brown only - sepia ink on parchment, no colour left; 3840x2160",
+      "how": "gpt_image_2_5 flare, high, 4k, 16:9 (4.25 credits); image 1 = the 4K master (media 95a631b9-fe75-4af9-87ac-8e270bf5a519), image 2 = the colour swatch (media eba54d08-a66e-4ae7-a0f5-ecfbf4b1a22a, a screenshot of a parchment world map: khaki/olive-tan sea, umber, muted ochre-gold) with \"copy nothing drawn in it\"; palette given as hex codes (#0f0d0a #3b2a17 #6e542f #856331 #878166 #998e64 #a39864 #d6c9a0 #bfad55), \"matte, dry gouache and ink on aged paper, no gloss, no glow\"",
+      "deleted": "2026-10-07, not chosen (the clean version was); re-download from the job id"
+    },
+    {
+      "file": "loading_concept5_riptide_wave_4k_parchment_muted.jpg",
+      "job": "167873ab-6cc0-407c-a4c8-9c31d6778c0e",
+      "what": "2026-10-07: the same repaint, but every figure keeps a faded trace of its own colour (dull olive orc, plum-brown mage, rust dwarf beard, slate dragon, red and blue banners) under the black and paper-brown; 3840x2160",
+      "how": "same call as the strict one, last paragraph swapped for the faded-colour list",
+      "deleted": "2026-10-07, not chosen (the clean version was); re-download from the job id"
+    },
+    {
+      "file": "loading_concept5_riptide_wave_4k_parchment_dark.jpg",
+      "job": "30b39a39-8b14-4ed8-9499-d0503d86a236",
+      "what": "2026-10-07: a fresh Nano Banana repaint of the colour 4K master - darker and higher contrast, the orc keeps an olive skin, a little glow left on the mace and the lightning; 3840x2160",
+      "how": "nano_banana_2_1, 4k, thinking high, 16:9 (3 credits), the 4K master + the colour swatch as image_references, the strict palette prompt with \"no grain, no noise, no speckles, no tiny white dots\" instead of \"paper grain\". Seedream 4.5 (high, 1 credit) was tried on the same two prompts and dropped: it ignored the layout from the master and turned the clean-up into glossy toy-like 3D figures with their colours back. nano_banana_pro needs the Plus plan (submission refused, no charge).",
+      "deleted": "2026-10-07, not chosen (the clean version was); re-download from the job id"
+    }
+  ],
+  "installed_2026_10_07": {
+    "desktop_16x9": "assets/ui/loading_desktop.jpg = the parchment_clean 4K art at 2560x1440 (q88 progressive); shown on landscape screens of aspect 1.74-1.82, stretched 100% 100% (at most 2%)",
+    "desktop_tall": {
+      "file": "assets/ui/loading_desktop_tall.jpg",
+      "size": "2560x1920 (4:3)",
+      "job": "f2732d79-3242-496c-9128-3712a1b24177",
+      "how": "the 2560 art centred at y 240 on a 4:3 canvas, the gaps AND the frame zones (bands, 250 px corners, medallions) flat magenta, nano_banana_2_1 4k 4:3 \"fill only the magenta\" (thinking high kept the layout here: 0-2 px drift); then the original pasted back outside the frame zones with a 24 px feather",
+      "shown": "landscape aspect 1.0-1.74 (16:10, 3:2, 4:3): background-size max(100vw,133.334vh) auto"
+    },
+    "desktop_wide": {
+      "file": "assets/ui/loading_desktop_wide.jpg",
+      "size": "3360x1440 (21:9)",
+      "job": "cf5cdf08-80f0-4159-96ca-59b7280791f0",
+      "canvas_media": "3f9c0666-c65b-4ccc-97d2-e72ae9fc9f97",
+      "how": "same recipe at 21:9 with thinking_level minimal (1-6 px drift); thinking high (21ccf52c) moved everything 35-60 px and a one-step 4:1 fill (7c418114) recomposed the middle - both dropped",
+      "shown": "aspect 1.82-2.45 (windows, browser tabs, 21:9 monitors): background-size auto max(100vh,42.857vw)"
+    },
+    "desktop_ultra": {
+      "file": "assets/ui/loading_desktop_ultra.jpg",
+      "size": "5760x1440 (4:1)",
+      "job": "e8b9a11c-5f45-4eac-9f6e-fe132ff53fd2",
+      "canvas_media": "0cab46e2-15d3-4126-899b-62010916bb94",
+      "how": "the 21:9 art centred on a 4:1 canvas, sides magenta, NB 2.1 minimal; it still rescaled the middle, so its sides were joined to the 21:9 art along min-cost vertical cuts inside the 21:9 art's own painted-out strips (never the original), 4 px feather",
+      "shown": "aspect 2.45 and up: background-size auto max(100vh,25vw)"
+    },
+    "frame": {
+      "files": [
+        "assets/ui/loading_frame.png (9-slice, 1114x1040, 4K scale, slice 360)",
+        "assets/ui/loading_medallion_top.png",
+        "assets/ui/loading_medallion_bottom.png (440x134)"
+      ],
+      "job": "25b0e0be-76f8-408d-93c0-9161481c59f2",
+      "how": "nano_banana_2_1 4k \"keep only the frame, everything else flat magenta\" (it also kept the logo and the heroes, tinted); soft magenta key + purple despill + 1 px erosion; TL corner (360 px) mirrored into the other three; edge tiles are 394 (top) and 320 (left) px runs of the band, band rows only, whose last 72 px fade into the band just before the corner so tile->tile and corner->tile joins are continuous; medallion cut at y 134 above the title plaque, its band part fading at the sides; 256-colour PNGs",
+      "css": "border-image ... 360/calc(min(100vh,56.25vw)*.16667) round; medallions in #boot::before/::after; only on the non-16:9 desktop ranges"
+    },
+    "phone": {
+      "file": "assets/ui/loading_phone.jpg (1520x2688)",
+      "master": "loading_concept5_riptide_wave_phone_parchment.jpg",
+      "job": "27d778de-83d3-404e-bc1a-fbad1584d6c1",
+      "how": "nano_banana_2_1 4k 9:16: image 1 the old colour phone master (layout), image 2 the parchment desktop art (look, Thor's hammer, the orc's fist); open sea still at rows 1575-1775. The other variant f4568c50 came out darker and greyer."
+    },
+    "phone_tall": {
+      "file": "assets/ui/loading_phone_tall.jpg (1520x3380)",
+      "how": "extend_sea.py (scratchpad 15b0823e) with XL, XR = 63, 1463 (the parchment master's frame lines; the colour one had 71, 1452), args 7 0.5 250 224 0.8; same 3-slice CSS rows 1592 / 990"
+    },
+    "fixes_eyes_legs": {
+      "asked": "Blackbeard and Thor eyes on both pictures, the dragon with only four legs",
+      "how": "crops edited with nano_banana_2_1 1k (1.5 credits each), pasted back with scratchpad 7dbc8363 fix/paste.py (offsets 0,0), then copied into every derived file (2560 desktop, 4:3, 21:9 at x+400, 4:1 at x+1600; phone tall rows < 1613)",
+      "desktop": {
+        "blackbeard": "cf91f445-6f33-434e-a076-f5624f5f4c34 (crop 1298,608,384)",
+        "thor": "a084b38c-199e-4557-8023-81669cfffd4a (crop 2774,23,384; the first try 10062de1 was flagged nsfw)",
+        "dragon": "454bbd85-53b7-4bdb-b18e-150e4327a93a (crop 2490,400,640; v2 kept the pale crest, v1 16878731 lost it)"
+      },
+      "phone": {
+        "blackbeard": "c42ccffd-a201-46ec-af5a-e51e81c5acd5 (crop 699,867,256)",
+        "thor": "183f9a83-30d4-40e6-a72a-d7ce4f4cfc62 (crop 757,372,256; white glowing eyes made normal)",
+        "dragon": "3322ce34-0b33-4e63-9c57-85f76e735b56 (crop 690,470,512; three tries flagged nsfw until the prompt called it a storybook illustration for a family game)"
+      }
+    }
+  }
 }
