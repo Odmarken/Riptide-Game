@@ -13,7 +13,7 @@ const root = path.resolve(__dirname, '..');
 const context = vm.createContext({});
 vm.runInContext(fs.readFileSync(path.join(root, 'assets/weapons/rune-profiles.js'), 'utf8') + '\nglobalThis.profiles = WEAPON_RUNE_PROFILES;', context);
 const profiles = context.profiles;
-const names = ['sword', 'mace', 'staff', 'bow', 'rimfrost', 'rimfrost_mace', 'rimfrost_staff', 'rimfrost_bow', 'felglaive', 'felglaive_mace', 'felglaive_staff', 'felglaive_bow'];
+const names = ['sword', 'mace', 'staff', 'bow', 'frostseeker', 'frostseeker_mace', 'frostseeker_staff', 'frostseeker_bow', 'felglaive', 'felglaive_mace', 'felglaive_staff', 'felglaive_bow'];
 const images = Object.fromEntries(names.map(name => [name, readRgbaPng(path.join(root, 'assets', names.indexOf(name) < 4 ? 'weapons' : 'models', `${name}.png`))]));
 
 function validUv(point, label) {
@@ -82,7 +82,7 @@ test('grip bands are excluded by entire paths, including centrally held staves a
 });
 
 test('bows retain separate upper and lower limbs and both glaive lobes survive half-image cropping', () => {
-  for (const name of ['bow', 'rimfrost_bow', 'felglaive_bow']) {
+  for (const name of ['bow', 'frostseeker_bow', 'felglaive_bow']) {
     const profile = profiles[name], [middle, half] = profile.grip;
     assert.ok(profile.paths.some(curve => curve.every(point => point[1] < middle - half)), `${name}: missing upper limb`);
     assert.ok(profile.paths.some(curve => curve.every(point => point[1] > middle + half)), `${name}: missing lower limb`);

@@ -40,12 +40,12 @@ test('Guild entry/exit reject a dead hero or an ongoing Tide battle',()=>{
 test('Random guild trainers span all supported playable looks without changing player equipment',()=>{
  const races=['human','orc','dwarf','undead'],classes=['warrior','mage','hunter','priest'],enchants=['emberbite','frostgrip','veinseeker','stormetch','goldrune'];
  let seed=317;const rng=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};
- const c=vm.createContext({RACES:races.map(id=>({id})),CLASSES:classes.map(id=>({id})),WENCH:enchants.map(id=>({id})),rng,S:{gear:{weapon:{legend:'rimfrost'}}}});
+ const c=vm.createContext({RACES:races.map(id=>({id})),CLASSES:classes.map(id=>({id})),WENCH:enchants.map(id=>({id})),rng,S:{gear:{weapon:{legend:'frostseeker'}}}});
  vm.runInContext(section('function createGuildTrainer(','function drawGuildTrainer('),c);
  const before=JSON.stringify(c.S),seen={race:new Set(),cls:new Set(),fem:new Set(),w:new Set(),wench:new Set(),ice:new Set(),ring:new Set()};
  for(let i=0;i<1000;i++){
   const look=vm.runInContext('createGuildTrainer(rng)',c);
-  assert(races.includes(look.race));assert(classes.includes(look.cls));assert([null,'rimfrost','felglaives'].includes(look.w));
+  assert(races.includes(look.race));assert(classes.includes(look.cls));assert([null,'frostseeker','felglaives'].includes(look.w));
   assert([null,...enchants].includes(look.wench));assert(look.name.length>4);
   for(const k of Object.keys(seen))seen[k].add(look[k]);
  }

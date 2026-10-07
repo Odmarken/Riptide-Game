@@ -37,7 +37,7 @@ function harness(type='gamba',qty=1,state={}){
   requestAnimationFrame(fn){const id=++serial;frames.set(id,fn);return id;},cancelAnimationFrame:id=>frames.delete(id),
   save:()=>c.saves++,renderShop(){},renderBag(){},renderHUD(){},stageMsg(){},log(){},blip(){},noiseSweep(){},spawnChestParts(){},
   sfx:{buy(){},warn(){},loot(){},quest(){},level(){}},
-  rollItem:rar=>item('Test '+rar,rar),rollRimfrost:()=>item('Rimfrost','legendary'),rollFelGlaives:()=>item('Fel Glaives','legendary'),
+  rollItem:rar=>item('Test '+rar,rar),rollFrostseeker:()=>item('Frostseeker','legendary'),rollFelGlaives:()=>item('Fel Glaives','legendary'),
   itemName:it=>it.name,itemStr:()=>'+10 attack',isLegendary:it=>it.rar==='legendary',scrapVal:()=>1,tryAutoEquip:()=>false,
   lootIco:id=>id,SLOT_ICO:{weapon:()=>'⚔',armor:()=>'◇',trinket:()=>'○'},
   petOf:id=>({id,n:{cat:'Puffen',dog:'Ayla',blackdog:'Nellie'}[id],cc:'#fff',d:'Companion.'}),petGlyph:p=>p.id,
@@ -118,9 +118,9 @@ test('Violet Halls auto opens only the owned chest count and does not charge gol
  assert.equal(c.$('caseAutoBtn').disabled,true);assert.equal(c.$('respinBtn').disabled,true);assert.match(c.$('caseAutoStatus').textContent,/No chests left/);
 });
 
-test('actual Rimfrost, companion, Bull, Calf, Chicken and Fel Glaives rewards stop auto after the reveal',()=>{
+test('actual Frostseeker, companion, Bull, Calf, Chicken and Fel Glaives rewards stop auto after the reveal',()=>{
  const cases=[
-  ['gold',[.001],'Rimfrost'],['gold',[.003,0],'Puffen'],['gold',[.006],'Bull'],
+  ['gold',[.001],'Frostseeker'],['gold',[.003,0],'Puffen'],['gold',[.006],'Bull'],
   ['gamba',[.001],'Calf'],['gamba',[.005],'Chicken'],['violethalls',[.5,.01],'Fel Glaives'],
  ];
  for(const [type,rolls,name]of cases){
@@ -134,7 +134,7 @@ test('actual Rimfrost, companion, Bull, Calf, Chicken and Fel Glaives rewards st
 
 test('a special prize anywhere in a multi-opening stops the session; ordinary epics and farm seeds continue',()=>{
  const c=harness('gold',3,{gold:1000000});c.rolls=[.5,.001,.5];
- c.$('caseAutoBtn').onclick();c.advance(1200);assert.deepEqual(c.spins[0].map(w=>w.name),['Test rare','Rimfrost','Test rare']);
+ c.$('caseAutoBtn').onclick();c.advance(1200);assert.deepEqual(c.spins[0].map(w=>w.name),['Test rare','Frostseeker','Test rare']);
  c.completeSpin();assert.equal(c.read('caseAuto'),null);assert.equal(c.S.bag.length,3);assert.equal(c.S.gold,940000);assert.equal(c.pending(),0);
  for(const [roll,tier]of [[.99,'epic'],[.02,'FARM']]){
   const ordinary=harness('gamba',1,{gold:10000});ordinary.roll=roll;

@@ -9,7 +9,7 @@
   "private": true,
   "scripts": {
     "start": "electron .",
-    "dist": "electron-packager . \"Riptide RPG\" --platform=win32 --arch=x64 --out=dist --overwrite --icon=build/icon.ico --app-version=0.1.0 --ignore=\"^/(dist|build|node_modules|\\.claude|\\.git|tests|concepts|_junk|BUG_REVIEW\\.md)\"",
+    "dist": "electron-packager . \"Riptide RPG\" --platform=win32 --arch=x64 --out=dist --overwrite --icon=build/icon.ico --app-version=0.1.0 --ignore=\"^/(dist|build|node_modules|\\.claude|\\.git|tests|concepts|_junk|Screenshoots.steam|BUG_REVIEW\\.md|STEAM_RELEASE\\.md)\"",
     "installer": "electron-builder --win nsis"
   },
   "devDependencies": {

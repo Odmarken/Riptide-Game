@@ -177,7 +177,7 @@ P1 betyder säkerhetshål, fusk som skapar guld eller föremål, förlorad sparn
     Åtgärd: börja `doPrestige` med `if(hcNoFlee())return;`.
 
 22. **P3 – Legendariska vapens attack beror på vilken zon man står i.** [game.js:2130](game.js#L2130)
-    `bestNormalWeaponAtk()` använder `Math.max(S.zone,progZone(S))`, och specialzonerna har index 17 till 35. En P0-hjälte på nivå 12 har Rimfrost 133 i zon 3, 480 i Moonshine och 644 i Briarhollow. Bekräftat.
+    `bestNormalWeaponAtk()` använder `Math.max(S.zone,progZone(S))`, och specialzonerna har index 17 till 35. En P0-hjälte på nivå 12 har Frostseeker 133 i zon 3, 480 i Moonshine och 644 i Briarhollow. Bekräftat.
     Åtgärd: använd bara `progZone(S)`.
 
 23. **P3 – Segern över Warlord Krev utlöses aldrig, och HUD säger "Press Continue" utan knapp.** [game.js:6138](game.js#L6138)

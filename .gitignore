@@ -2,3 +2,7 @@ node_modules/
 dist/
 package-lock.json
 _junk/
+# the Steam release checklist lists the game's secrets - never in the public repo
+STEAM_RELEASE.md
+# the Steam store screenshots and capsule art (~150 MB) - uploaded to Steam, not kept in git
+Screenshoots steam/

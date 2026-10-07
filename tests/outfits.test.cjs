@@ -5,7 +5,7 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const source=fs.readFileSync(path.join(__dirname,'../game.js'),'utf8');
 const slice=source.slice(source.indexOf('const OUTFITS=['),source.indexOf('function bootFeet('));
 function harness(S){
- const c={S,classOf:()=>({name:'Warrior'}),isIce:it=>!!(it&&it.legend==='icearmor'),isFK:it=>!!(it&&it.legend==='rimfrost'),isFG:it=>!!(it&&it.legend==='felglaives'),
+ const c={S,classOf:()=>({name:'Warrior'}),isIce:it=>!!(it&&it.legend==='icearmor'),isFK:it=>!!(it&&it.legend==='frostseeker'),isFG:it=>!!(it&&it.legend==='felglaives'),
   RACE_ALIAS:{},CLASS_ALIAS:{},keys:[],charSprite:(r,cls,f)=>{c.keys.push(r+(f?'female':'male')+'_'+cls);return {};},
   characterBodyFrame:(img,h=48,b=5)=>({bodyBottom:b,bodyHeight:h,headY:b-h,bootTop:null,x:0,y:0,width:10,height:h}),characterBootFrame:()=>({groundY:10}),bootImg:{}};
  vm.createContext(c);vm.runInContext(slice,c);
@@ -44,10 +44,10 @@ test('👘 what is drawn: the choice when it is unlocked, the class colours when
 });
 
 test('👁 the weapon eye: sheathed, the hand is empty and the rune is out - the numbers do not know',()=>{
- const rim=harness(hero({gear:{weapon:{legend:'rimfrost'}}}));assert.deepEqual({...rim.heroWeaponArgs()},{fm:true,id:'rimfrost'});
+ const rim=harness(hero({gear:{weapon:{legend:'frostseeker'}}}));assert.deepEqual({...rim.heroWeaponArgs()},{fm:true,id:'frostseeker'});
  const fel=harness(hero({gear:{weapon:{legend:'felglaives'}}}));assert.deepEqual({...fel.heroWeaponArgs()},{fm:false,id:'felglaives'});
  const plain=harness(hero({gear:{weapon:{id:'sword'}}}));assert.deepEqual({...plain.heroWeaponArgs()},{fm:false,id:null});
- const hid=harness(hero({gear:{weapon:{legend:'rimfrost'}},hideWeapon:true}));assert.deepEqual({...hid.heroWeaponArgs()},{fm:false,id:'hidden'});
+ const hid=harness(hero({gear:{weapon:{legend:'frostseeker'}},hideWeapon:true}));assert.deepEqual({...hid.heroWeaponArgs()},{fm:false,id:'hidden'});
 });
 
 function offerHarness(extra={}){
@@ -86,11 +86,11 @@ test('royal offer waits for cold art and then draws the selected race, gender an
 });
 
 test('🛡 the outfit portrait holds the weapon really in the hand, so a legendary shows and the warrior\'s shield goes',()=>{
- for(const [weapon,fm,id] of [[null,false,null],[{legend:'rimfrost'},true,'rimfrost'],[{legend:'felglaives'},false,'felglaives']]){
+ for(const [weapon,fm,id] of [[null,false,null],[{legend:'frostseeker'},true,'frostseeker'],[{legend:'felglaives'},false,'felglaives']]){
   const h=offerHarness({gear:{weapon,armor:null,trinket:null}});h.load();h.c.openOutfitOffer('royal');
   assert.equal(h.draws.length,1);assert.equal(h.draws[0][6],fm);assert.equal(h.draws[0][7],id);
  }
- const hid=offerHarness({hideWeapon:true,gear:{weapon:{legend:'rimfrost'},armor:null,trinket:null}});hid.load();hid.c.openOutfitOffer('royal');
+ const hid=offerHarness({hideWeapon:true,gear:{weapon:{legend:'frostseeker'},armor:null,trinket:null}});hid.load();hid.c.openOutfitOffer('royal');
  assert.equal(hid.draws[0][7],'hidden');
 });
 

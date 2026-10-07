@@ -372,8 +372,8 @@ test('the actual rune emitter follows the armor-attached weapon through swing an
 
 test('the warrior carries the lion shield on the other arm with the standard sword, and drops it for a legendary', () => {
   const h = harness();
-  // [fm, weaponId, shield?] - the standard sword keeps it; Rimfrost, the Fel Glaives, a hidden weapon or a rod do not
-  const weapons = [[false, null, true], [false, 'w-17', true], [true, 'rimfrost', false], [false, 'felglaives', false],
+  // [fm, weaponId, shield?] - the standard sword keeps it; Frostseeker, the Fel Glaives, a hidden weapon or a rod do not
+  const weapons = [[false, null, true], [false, 'w-17', true], [true, 'frostseeker', false], [false, 'felglaives', false],
     [false, 'hidden', false], [false, 'fishingrod', false]];
   h.context.isFGLegend = id => id === 'felglaives';
   for (const cls of classes) for (const [fm, id, shield] of weapons)

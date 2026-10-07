@@ -109,7 +109,7 @@ test('actual buildZone retirement prefix prevents stale multishot targets from y
  assert.equal(h.S.bag.length,0);assert.equal(h.hero.hp,400);assert.deepEqual(h.calls,[]);
 });
 test('cleanBagItem retains a book but removes fabricated stats and normalizes its inert identity',()=>{
- const h=harness(),incoming={...h.api.knowledgeBook('Elder Thornroot','briarhollow'),slot:'weapon',name:'Altered',rar:'common',sell:999999,power:9999,atk:888,hp:777,crit:66,up:12,wench:'frostgrip',legend:'rimfrost'};
+ const h=harness(),incoming={...h.api.knowledgeBook('Elder Thornroot','briarhollow'),slot:'weapon',name:'Altered',rar:'common',sell:999999,power:9999,atk:888,hp:777,crit:66,up:12,wench:'frostgrip',legend:'frostseeker'};
  const book=h.api.cleanBagItem(incoming);
  assert.deepEqual(plain(book),plain(h.api.knowledgeBook('Elder Thornroot','briarhollow')));
  assert.equal(book.slot,'knowledge');assert.equal(book.rar,'legendary');assert.equal(book.sell,0);assert.equal(book.power,0);

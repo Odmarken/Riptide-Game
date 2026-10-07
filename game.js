@@ -4,16 +4,16 @@ const treeImg=new Image();treeImg.src='assets/models/träd.png';
 treeImg._pad=1.2;treeImg._anchor=0.89; /* per-art calibration: padding compensation + trunk-bottom fraction */
 const treeSnowImg=new Image();treeSnowImg.src='assets/models/trädsnow.png';
 treeSnowImg._pad=1.33;treeSnowImg._anchor=0.865;
-const fkImg=new Image();fkImg.src='assets/models/rimfrost.png'; /* the original blade - warrior */
-/* ❄ one legendary, four faces: Rimfrost takes the shape its bearer can actually wield.
+const fkImg=new Image();fkImg.src='assets/models/frostseeker.png'; /* the original blade - warrior */
+/* ❄ one legendary, four faces: Frostseeker takes the shape its bearer can actually wield.
    The item is the same in very way that matters - same name, same key, same stats - only
    the art changes with the class. h nudges the height so a staff reads taller than a mace. */
-const fkImgMace =new Image();fkImgMace.src ='assets/models/rimfrost_mace.png';
-const fkImgStaff=new Image();fkImgStaff.src='assets/models/rimfrost_staff.png';
-const fkImgBow  =new Image();fkImgBow.src  ='assets/models/rimfrost_bow.png';
+const fkImgMace =new Image();fkImgMace.src ='assets/models/frostseeker_mace.png';
+const fkImgStaff=new Image();fkImgStaff.src='assets/models/frostseeker_staff.png';
+const fkImgBow  =new Image();fkImgBow.src  ='assets/models/frostseeker_bow.png';
 /* std: the plain weapon this legendary stands in for - sizes copied from that weapon's own draw
    below, plus the grip it hangs from. Where std is set, h scales against the ordinary weapon
-   instead of the Rimfrost base, so the legendary lands in the same spot but reads bigger. */
+   instead of the Frostseeker base, so the legendary lands in the same spot but reads bigger. */
 const FK_ART={
  warrior:{img:fkImg,      h:1.38,std:{pw:38,pl:27,grip:H=>4-H}},        /* Warrior - heavy blade, grip in the hand */
  priest: {img:fkImgMace,  h:1.38,std:{pw:38,pl:27,grip:H=>4-H}},        /* Priest - healing mace, butt in the hand */
@@ -32,12 +32,12 @@ const wgImg=new Image();wgImg.src='assets/models/felglaive.png';
 const fgImgMace =new Image();fgImgMace.src ='assets/models/felglaive_mace.png';
 const fgImgStaff=new Image();fgImgStaff.src='assets/models/felglaive_staff.png';
 const fgImgBow  =new Image();fgImgBow.src  ='assets/models/felglaive_bow.png';
-/* 🟢 the Fel Glaives reshape themselves the same way Rimfrost does - see FK_ART for the std/h
+/* 🟢 the Fel Glaives reshape themselves the same way Frostseeker does - see FK_ART for the std/h
    contract. Only the warrior is left out: he keeps the matched pair, which is the whole point
    of the weapon, so a missing class here quietly falls back to the glaives. */
 const FG_ART={
  priest:{img:fgImgMace, h:1.38,std:{pw:38,pl:27,grip:H=>4-H}},
- mage:  {img:fgImgStaff,h:1.59,std:{pw:42,pl:30,grip:H=>5-H}}, /* +15%, matching Rimfrost's staff */
+ mage:  {img:fgImgStaff,h:1.59,std:{pw:42,pl:30,grip:H=>5-H}}, /* +15%, matching Frostseeker's staff */
  hunter:{img:fgImgBow,  h:1.38,std:{pw:44,pl:31,grip:H=>-4-H/2},mirror:true},
 };
 const fgArtFor=clsId=>{const a=FG_ART[clsId];return (a&&a.img.complete&&a.img.naturalWidth)?a:null;};
@@ -1089,7 +1089,7 @@ const outfitArgOf=id=>id==='royal'?'royal':id==='ice';
 const outfitArg=()=>outfitArgOf(heroOutfit());
 const lookOutfit=look=>look&&look.outfit==='royal'?'royal':!!(look&&look.ice);   /* what a peer or a leaderboard entry sent */
 /* 👁 the weapon eye in the hero panel: hidden in the hand, still counted in the numbers */
-const heroWeaponArgs=()=>S&&S.hideWeapon?{fm:false,id:'hidden'}:{fm:isFK(S.gear.weapon),id:isFG(S.gear.weapon)?'felglaives':isFK(S.gear.weapon)?'rimfrost':null};
+const heroWeaponArgs=()=>S&&S.hideWeapon?{fm:false,id:'hidden'}:{fm:isFK(S.gear.weapon),id:isFG(S.gear.weapon)?'felglaives':isFK(S.gear.weapon)?'frostseeker':null};
 const heroRing=()=>S&&!S.hideRing&&isRing(S.gear&&S.gear.trinket)?S.gear.trinket:null;
 const ROYAL_BODY_H=56;   /* the crown rides above the head: the royal frame is this tall for the same body as a 48-unit class frame */
 function paintedCharacterFrame(raceId,clsId,female,iceArm){
@@ -1241,7 +1241,7 @@ const fmtMS=ms=>{
 };
 /* effective wealth = what you carry + what your bag would sell/scrap for.
    ONLY items the Bag will actually let you sell may count. Legendaries (the sell button
-   refuses them - and syncRimfrost/syncFelGlaives keep stamping a fat baseAtk*4 price
+   refuses them - and syncFrostseeker/syncFelGlaives keep stamping a fat baseAtk*4 price
    on spare blades) and gear-set (⭐) items are excluded, or they freeze high-prestige
    players hundreds of thousands below the cap with a "nothing to sell" bag. */
 const bagSellable=it=>!!it&&!isLegendary(it)&&!inGearSet(it)&&!it.insc; /* 📖 an inscribed weapon only goes one at a time, by hand */
@@ -2691,7 +2691,7 @@ const mpNotReady=otherwise=>FB&&FB.rest?'Raids and duels need the live cloud cha
 function mpLook(){
  const g=(S&&S.gear)||{},w=g.weapon||null;
  return {race:S&&S.race?S.race:'human',cls:S&&S.cls?S.cls:'warrior',
-  w:w&&!(S&&S.hideWeapon)?(isFG(w)?'felglaives':(isFK(w)?'rimfrost':(w.id||w.legend||null))):null,ws:w?(w.star||w.up||1):1,wench:w&&!(S&&S.hideWeapon)&&w.wench||null,   /* 👁 a hidden weapon is hidden for peers too */
+  w:w&&!(S&&S.hideWeapon)?(isFG(w)?'felglaives':(isFK(w)?'frostseeker':(w.id||w.legend||null))):null,ws:w?(w.star||w.up||1):1,wench:w&&!(S&&S.hideWeapon)&&w.wench||null,   /* 👁 a hidden weapon is hidden for peers too */
   a:g.armor?(g.armor.id||null):null,pet:S&&S.pet&&!S.hidePet?S.pet:null, /* 👁 a hidden pet is hidden for raid-mates too - peers only ever draw it, never count it */
   ice:!!S&&outfitArg()===true,outfit:S?heroOutfit():'default',hw:!!(S&&S.hideWeapon),fk:!!(w&&isFK(w)&&!(S&&S.hideWeapon)),wg:!!(w&&isFG(w)&&!(S&&S.hideWeapon)),fem:!!(S&&S.gender==='f')};   /* 👘 the outfit travels with the look */
 }
@@ -3090,7 +3090,7 @@ function createGuildTrainer(rng=Math.random){
  const pick=values=>values[Math.floor(roll()*values.length)],fem=roll()<.5;
  const names=fem?['Alva','Disa','Freja','Hilda','Liv','Mira','Signe','Ylva']:['Alrik','Bosse','Einar','Gunnar','Ivar','Nils','Torsten','Vidar'];
  return {name:pick(names)+' '+pick(['Mossheart','Emberhand','Tideborn','Stonebrook','Dawnwhisper','Frostvale','Thornwatch','Brightpaw']),
-  race:pick(RACES).id,cls:pick(CLASSES).id,fem,w:pick([null,'rimfrost','felglaives']),
+  race:pick(RACES).id,cls:pick(CLASSES).id,fem,w:pick([null,'frostseeker','felglaives']),
   ice:roll()<.4,wench:pick([null,...WENCH.map(r=>r.id)]),ring:roll()<.4};
 }
 function drawGuildTrainer(g,x,y,look,scale=1,fx=-1,time=performance.now()/1000,effects=null){
@@ -3250,7 +3250,7 @@ const $=id=>document.getElementById(id);
 const dispName=ch=>(ch.name||'?')+((ch.rating||0)>0?' ('+(ch.rating||0)+')':'');
 const raceOf=()=>RACES.find(r=>r.id===S.race);
 const classOf=()=>S?CLASSES.find(c=>c.id===S.cls):null; /* null before a hero is picked - the settings panel opens there too */
-const gearSum=k=>{if(isFK(S.gear.weapon))syncRimfrost(S.gear.weapon);if(isFG(S.gear.weapon))syncFelGlaives(S.gear.weapon);if(isRing(S.gear.trinket))syncTheRing(S.gear.trinket);if(isIce(S.gear.armor))syncIceArmor(S.gear.armor);let t=0;for(const sl in S.gear){const g=S.gear[sl];if(g&&g[k])t+=g[k]}return t};
+const gearSum=k=>{if(isFK(S.gear.weapon))syncFrostseeker(S.gear.weapon);if(isFG(S.gear.weapon))syncFelGlaives(S.gear.weapon);if(isRing(S.gear.trinket))syncTheRing(S.gear.trinket);if(isIce(S.gear.armor))syncIceArmor(S.gear.armor);let t=0;for(const sl in S.gear){const g=S.gear[sl];if(g&&g[k])t+=g[k]}return t};
 /* two Active Scroll slots - same scroll type cannot stack */
 /* fused scrolls (forged with 🔗 connectors) carry a second enchant in id2/tier2 -
    every effect lookup below honours both halves; same-id effects never stack (first hit wins) */
@@ -3282,7 +3282,7 @@ function consumeScrolls(id,tier,n){
  return fromSlot;
 }
 
-const gearScore=()=>{if(isFK(S.gear.weapon))syncRimfrost(S.gear.weapon);if(isFG(S.gear.weapon))syncFelGlaives(S.gear.weapon);if(isRing(S.gear.trinket))syncTheRing(S.gear.trinket);if(isIce(S.gear.armor))syncIceArmor(S.gear.armor);return Math.round(Object.values(S.gear).reduce((t,g)=>t+(g?g.power:0),0));};
+const gearScore=()=>{if(isFK(S.gear.weapon))syncFrostseeker(S.gear.weapon);if(isFG(S.gear.weapon))syncFelGlaives(S.gear.weapon);if(isRing(S.gear.trinket))syncTheRing(S.gear.trinket);if(isIce(S.gear.armor))syncIceArmor(S.gear.armor);return Math.round(Object.values(S.gear).reduce((t,g)=>t+(g?g.power:0),0));};
 /* Prestige has no cap - but it only unlocks at max level once every boss is dead. */
 const allBossesDead=()=>ZONES.every((z,i)=>z.special||!z.boss||!!S.bossDead[i]);
 /* true when every boss zone before index i has had its boss slain */
@@ -3508,8 +3508,9 @@ function migrate(s){ /* fills fields missing from older saves */
     so they follow along. `id` matters too - isFG() also matches on it. */
  {
   const RENAMED=[ /* old legend/id, new legend/id, old display name, new display name */
-   ['frostmourne','rimfrost','Frostmourne','Rimfrost'], /* two renames ago */
-   ['frostkeen','rimfrost','Frostkeen','Rimfrost'],     /* one rename ago - saves from that build still say this */
+   ['frostmourne','frostseeker','Frostmourne','Frostseeker'], /* three renames ago */
+   ['frostkeen','frostseeker','Frostkeen','Frostseeker'],     /* two renames ago */
+   ['rimfrost','frostseeker','Rimfrost','Frostseeker'],       /* one rename ago (2026-10-07, the Steam store name) - saves from before still say this */
    ['warglaives','felglaives','Warglaives','Fel Glaives'],
    ['onering','thering','The One Ring','The Ring'],
   ];
@@ -3678,7 +3679,7 @@ function rollItem(forceRar,lucky,fromChest){ /* fromChest: a chest from the casi
  const zi=fromChest?(S.maxZone||0):Math.max(gearRungHere(S),S.maxZone||0);
  const z=(1+zi*0.9+S.lvl*0.18)*(1+(S.prestige||0)*0.25);
  /* WEAPONS keep pace with prestige (armor/trinkets stay on the visible-level curve).
-    0.452 is calibrated so a top-roll epic at +12 lands ~15% under Rimfrost/Fel Glaives
+    0.452 is calibrated so a top-roll epic at +12 lands ~15% under Frostseeker/Fel Glaives
     at +6 - legendaries stay best, but you can survive without one. */
  const zEff=(1+zi*0.9+Math.max(1,effectiveHeroLvl())*0.18)*(1+(S.prestige||0)*0.25);
  const zw=Math.max(z,0.452*zEff);
@@ -3692,18 +3693,18 @@ function rollItem(forceRar,lucky,fromChest){ /* fromChest: a chest from the casi
  return it;
 }
 function calcPower(it){it.power=it.atk*3+it.hp*0.6+it.crit*4;}
-/* --- Rimfrost: legendary, live-scales, but only slightly above normal gear --- */
-const FK_BONUS=1.05;     /* Rimfrost baseline = ~5% above the best normal weapon for your effective level */
+/* --- Frostseeker: legendary, live-scales, but only slightly above normal gear --- */
+const FK_BONUS=1.05;     /* Frostseeker baseline = ~5% above the best normal weapon for your effective level */
 const LEGEND_MAX_UP=6;       /* legendary cap: max +6 upgrades */
-const GEAR_MAX_UP=12;      /* normal gear cap; Rimfrost uses LEGEND_MAX_UP */
+const GEAR_MAX_UP=12;      /* normal gear cap; Frostseeker uses LEGEND_MAX_UP */
 /* ❄ Deep Frost (talent): Ice Armor alone may be pushed from +6 to +12 */
 const capUp=it=>isIce(it)?(talRank('root')?12:LEGEND_MAX_UP):(isLegendaryW(it)?LEGEND_MAX_UP:GEAR_MAX_UP);
-const isFK=it=>it&&it.legend==='rimfrost';
-/* ❄ the blade was called Frostmourne until the rename, and migrate() rewrites the key in
+const isFK=it=>it&&isFKLegend(it.legend); /* any spelling the blade has had - syncFrostseeker stamps the new one */
+/* ❄ the blade was called Frostmourne, then Frostkeen, then Rimfrost (until 2026-10-07), and migrate() rewrites the key in
    every local save. Two sources can never be migrated, because they are not ours: peer
    look packets from a player still on the old build, and leaderboard rows written by
    other accounts. Anything reading those must accept the old spelling forever. */
-const isFKLegend=v=>v==='rimfrost'||v==='frostkeen'||v==='frostmourne'; /* every name the blade has ever had */
+const isFKLegend=v=>v==='frostseeker'||v==='rimfrost'||v==='frostkeen'||v==='frostmourne'; /* every name the blade has ever had */
 const isFG=it=>it&&(it.legend==='felglaives'||it.id==='felglaives'||it.felglaives===true); /* supports old/equipped objects marked felglaives:true */
 const isRing=it=>it&&it.legend==='thering';
 /* ⚔ same story as the blade: local saves are rewritten by migrate(), but peer look packets
@@ -3715,7 +3716,7 @@ const isFGLegend=v=>v==='felglaives'||v==='warglaives';
    published. We cannot rewrite their document - but we choose what to draw, so a row still
    saying "Frostmourne" is shown under the new name. Rows fix themselves anyway the next
    time that player logs in and republishes; this just covers the ones who have not. */
-const RENAMED_ITEMS={'Frostmourne':'Rimfrost','Frostkeen':'Rimfrost','Warglaives':'Fel Glaives','The One Ring':'The Ring'};
+const RENAMED_ITEMS={'Frostmourne':'Frostseeker','Frostkeen':'Frostseeker','Rimfrost':'Frostseeker','Warglaives':'Fel Glaives','The One Ring':'The Ring'};
 const displayItemName=n=>RENAMED_ITEMS[n]||n;
 const isIce=it=>it&&it.legend==='icearmor';
 /* 🧊 the Altar's reward, sized to the hero who earned it (st = that hero's state) */
@@ -3761,7 +3762,7 @@ function rollTheRing(){
 }
 function bestNormalWeaponAtk(){
  /* Normal epic weapons roll up to (3+3) * epic rarity * gear scale.
-    Rimfrost mirrors that same top-end curve, but uses effectiveHeroLvl() so prestige
+    Frostseeker mirrors that same top-end curve, but uses effectiveHeroLvl() so prestige
     does not make it reset to Lv 1 damage. */
  const L=Math.max(1,effectiveHeroLvl());
  const zi=Math.max(gearRungHere(S),progZone(S)||0); /* not the raw index of wherever the hero stands - see gearRungHere */
@@ -3769,8 +3770,9 @@ function bestNormalWeaponAtk(){
  return Math.round(6*RARMUL.epic*z);
 }
 function fkBaseAtk(){return Math.max(1,Math.round(bestNormalWeaponAtk()*FK_BONUS));}
-function syncRimfrost(it){
+function syncFrostseeker(it){
  if(!isFK(it)||!S)return it;
+ it.legend='frostseeker';it.name='Frostseeker'; /* a blade that slipped past migrate() (an old gear set) takes the new key and name here */
  it.up=Math.min(it.up||0,LEGEND_MAX_UP);
  it.baseAtk=fkBaseAtk();
  it.atk=Math.round(it.baseAtk*Math.pow(1.12,it.up||0));
@@ -3779,10 +3781,10 @@ function syncRimfrost(it){
  it.sell=Math.round(it.baseAtk*4);
  return it;
 }
-function rollRimfrost(){
- const it={slot:'weapon',rar:'legendary',legend:'rimfrost',name:'Rimfrost',
+function rollFrostseeker(){
+ const it={slot:'weapon',rar:'legendary',legend:'frostseeker',name:'Frostseeker',
   atk:0,hp:0,crit:4,lifesteal:0.02,ench:null,up:0,sell:0};
- return syncRimfrost(it);
+ return syncFrostseeker(it);
 }
 function syncFelGlaives(it){
  if(!isFG(it)||!S)return it;
@@ -3828,7 +3830,7 @@ function smithTick(){
   if(S.gear.trinket)S.bag.push(S.gear.trinket); /* the old trinket steps aside */
   S.gear.trinket=ring;S.ringForged=true;
   log(`⚒️ The forge cools - <span class="llegendary">${uiIcon('it_trinket','💍','shopico')} The Ring</span> binds to your trinket slot! +10% crit, and it drinks 1% of your mana with every strike.`,'loot');
-  stageMsg('💍 THE ONE RING IS FORGED!',3800);sfx.level();
+  stageMsg('💍 THE RING IS FORGED!',3800);sfx.level();
   if(typeof publishLB==='function')publishLB(S,true);
  }else if(j.kind==='fg'){
   const it=syncFelGlaives({id:'felglaives',slot:'weapon',rar:'legendary',legend:'felglaives',name:'Fel Glaives',star:j.to,atk:0,hp:0,crit:0,haste:0.10,ench:null,up:0,sell:0,maxUp:LEGEND_MAX_UP});
@@ -3837,11 +3839,11 @@ function smithTick(){
   log(`⚒️ The forge cools - <span class="llegendary">Fel Glaives ★${j.to}</span> scream anew!`,'loot');
   stageMsg('⚒️ Fel Glaives ★'+j.to+' complete!',2600);sfx.level();
  }else{
-  const it=syncRimfrost({slot:'weapon',rar:'legendary',legend:'rimfrost',name:'Rimfrost',star:j.to,atk:0,hp:0,crit:4,lifesteal:0.02,ench:null,up:0,sell:0});
+  const it=syncFrostseeker({slot:'weapon',rar:'legendary',legend:'frostseeker',name:'Frostseeker',star:j.to,atk:0,hp:0,crit:4,lifesteal:0.02,ench:null,up:0,sell:0});
   if(inscClean(j.insc))it.insc=inscClean(j.insc);
   S.bag.push(it);
-  log(`⚒️ The forge cools - <span class="llegendary">Rimfrost ★${j.to}</span> is reborn!`,'loot');
-  stageMsg('⚒️ Rimfrost ★'+j.to+' complete!',2600);sfx.level();
+  log(`⚒️ The forge cools - <span class="llegendary">Frostseeker ★${j.to}</span> is reborn!`,'loot');
+  stageMsg('⚒️ Frostseeker ★'+j.to+' complete!',2600);sfx.level();
  }
  smithCompleted(j);save();if($('smithFx')&&$('smithFx').style.display==='flex')smithRefresh();
 }
@@ -3865,7 +3867,7 @@ function upgradeItem(it){
  if(S.scraps<cost){stageMsg('Not enough Scraps ('+cost+'⚙ needed)',1400);return false;}
  ensureItemBase(it);
  S.scraps-=cost;it.up++;
- if(isFK(it))syncRimfrost(it);
+ if(isFK(it))syncFrostseeker(it);
  else if(isFG(it))syncFelGlaives(it);
  else{
   if(it.atk)it.atk=Math.round(it.atk*1.12)+1;
@@ -3905,7 +3907,7 @@ function statBaseStr(it,k,label,suffix=''){
 const inscHtml=it=>it&&inscOk(it.insc)?`<div class="ss insc-line" style="color:${INSC_COL[it.insc.rar]}">${uiIcon(inscById(it.insc.id).icon,inscById(it.insc.id).fb,'shopico')}${esc(inscLine(it.insc))}</div>`:'';
 function itemStr(it){
  if(isKnowledgeBook(it))return 'Read it at the Enchanting Hall to reveal an inscription for your weapon.';
- if(isFK(it))syncRimfrost(it);
+ if(isFK(it))syncFrostseeker(it);
  else if(isFG(it))syncFelGlaives(it);
  else if(isRing(it))syncTheRing(it);
  else if(isIce(it))syncIceArmor(it);
@@ -3930,7 +3932,7 @@ function itemStr(it){
 /* compact stat line for the currently equipped item, for bag comparison */
 function shortStats(it){
  if(!it)return '-';
- if(isFK(it))syncRimfrost(it);else if(isFG(it))syncFelGlaives(it);else if(isRing(it))syncTheRing(it);else if(isIce(it))syncIceArmor(it);else ensureItemBase(it);
+ if(isFK(it))syncFrostseeker(it);else if(isFG(it))syncFelGlaives(it);else if(isRing(it))syncTheRing(it);else if(isIce(it))syncIceArmor(it);else ensureItemBase(it);
  const parts=[];
  const baseAtk=Math.round(it.baseAtk||it.atk||0);
  const baseHp=Math.round(it.baseHp||it.hp||0);
@@ -3945,7 +3947,7 @@ function shortStats(it){
 }
 function compareVal(it){
  if(!it)return 0;
- if(isFK(it))syncRimfrost(it);else if(isFG(it))syncFelGlaives(it);else if(isRing(it))syncTheRing(it);else ensureItemBase(it);
+ if(isFK(it))syncFrostseeker(it);else if(isFG(it))syncFelGlaives(it);else if(isRing(it))syncTheRing(it);else ensureItemBase(it);
  if(it.slot==='weapon')return Math.round(it.baseAtk||it.atk||0);
  if(it.slot==='armor')return Math.round(it.baseHp||it.hp||0);
  return Math.round(it.basePower||it.power||0);
@@ -11977,7 +11979,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g.shadowColor='#6fd0ff';g.shadowBlur=rune?0:10+Math.sin(tt*3)*3;
   const art=fkArtFor(clsId); /* blade · mace · staff · bow, by what this class can wield */
   if(art.img.complete&&art.img.naturalWidth){
-   /* painted Rimfrost (assets/models/rimfrost*.png) - the pulsing canvas glow hugs the cutout.
+   /* painted Frostseeker (assets/models/frostseeker*.png) - the pulsing canvas glow hugs the cutout.
       Arts with a std borrow that plain weapon's size and grip so they land in the same place;
       the rest hang from the grip at the bottom of their art. */
    const st=art.std;
@@ -12056,7 +12058,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
  return runeEmission; /* local to this draw; portraits and unloaded art cannot leave stale emitters */
 }
 /* 🛡 The warrior's lion shield (asked for 2026-10-02): the class's own kit is sword and board. The shield rides on the
-   other arm with the standard sword, in every outfit, and goes the moment a legendary is in the hand - Rimfrost or the
+   other arm with the standard sword, in every outfit, and goes the moment a legendary is in the hand - Frostseeker or the
    Fel Glaives - and never shows with the weapon hidden or a fishing rod in the hand.
    It is drawn in the body's own frame (the mirror and the running rock), on the weapon hand mirrored across the body. */
 function warriorShieldOn(clsId,fm,weaponId){
@@ -14001,7 +14003,7 @@ const CASE_RARS_GOLD=[
  {r:.66,cc:'#5b9bd5',t:'rare'},{r:1,cc:'#c9a0ff',t:'epic'}
 ];
 function fillerCard(){
- /* GOLD GOLD GOLD uses Rimfrost and pets as rare teases instead of coin clutter. */
+ /* GOLD GOLD GOLD uses Frostseeker and pets as rare teases instead of coin clutter. */
  if(curCase==='violethalls'){
   const rr=Math.random();
   if(rr<0.14)return {icon:lootIco('it_weapon','🗡️'),cc:'#39ff6a',t:'legendary'};
@@ -14028,8 +14030,8 @@ function prizeValue(type){
  const r=Math.random();
  if(type==='gold'){
   if(r<0.002){
-   const it=rollRimfrost();
-   log(`LEGENDARY: <span class="llegendary">Rimfrost</span> hungers…`,'loot');
+   const it=rollFrostseeker();
+   log(`LEGENDARY: <span class="llegendary">Frostseeker</span> hungers…`,'loot');
    if(!(S.autoEquip&&tryAutoEquip(it))){S.bag.push(it);lastCaseLoot.push(it);}
    return {icon:lootIco('it_weapon','🗡️'),tier:'LEGENDARY',name:itemName(it),color:'#ffd100',sub:'weapon · '+itemStr(it),epic:true,big:true};
   }
@@ -15941,7 +15943,7 @@ function gvbRtcBroadcast(m){
 }
 function gvbOutcome(){
  const r=Math.random();
- if(r<0.002)return {ic:'🗡️',cc:'#ffd100',sc:GVB_SCORE.fk,n:'RIMFROST'};
+ if(r<0.002)return {ic:'🗡️',cc:'#ffd100',sc:GVB_SCORE.fk,n:'FROSTSEEKER'};
  if(r<0.005)return {ic:'🐾',cc:'#8fe3c9',sc:GVB_SCORE.pet,n:'COMPANION'};
  if(r<0.0125)return {ic:'🐂',cc:'#ffd100',sc:GVB_SCORE.bull,n:'BULL'};
  if(r<0.0715)return {ic:'📜',cc:'#e8c9ef',sc:GVB_SCORE.scroll,n:'SCROLL II'};
@@ -18796,9 +18798,9 @@ let smithFkSel=0,smithOwner=null,smithInputKey='',smithChosen=null,smithPickSlot
 const smithItemIds=new WeakMap();let smithItemSerial=0;
 function smithIdentity(it){if(!smithItemIds.has(it))smithItemIds.set(it,++smithItemSerial);return smithItemIds.get(it);}
 function smithHTML(node,html,key=html){if(!node||node._smithKey===key)return false;node.innerHTML=html;node._smithKey=key;return true;}
-function smithArt(kind){const paths={fm:'models/rimfrost',fk:'models/rimfrost',fg:'models/felglaive',ring:'models/thering',recipe:'icons/it_scroll',broken:'icons/it_brokenring',fuse:'icons/it_scroll',lvl:'icons/venue_smith'};return `<img src="assets/${paths[kind]||paths.lvl}.png" alt="" draggable="false">`;}
+function smithArt(kind){const paths={fm:'models/frostseeker',fk:'models/frostseeker',fg:'models/felglaive',ring:'models/thering',recipe:'icons/it_scroll',broken:'icons/it_brokenring',fuse:'icons/it_scroll',lvl:'icons/venue_smith'};return `<img src="assets/${paths[kind]||paths.lvl}.png" alt="" draggable="false">`;}
 function smithResult(kind,title,meta){return `<div class="craft-result"><span class="craft-result-icon">${smithArt(kind)}</span><div><div class="craft-result-title">${title}</div><div class="craft-result-meta">${meta}</div></div></div>`;}
-function smithCompleted(j){smithNotice={owner:S,kind:j.kind,title:j.kind==='lvl'?'Blacksmith level '+j.to:j.kind==='ring'?'The Ring is complete':(j.kind==='fg'?'Fel Glaives':'Rimfrost')+' ★'+j.to+' is complete',meta:j.kind==='lvl'?'Your blacksmith is ready for the next craft.':j.kind==='ring'?'Equipped in your trinket slot.':'Your new weapon is waiting in the bag.'};}
+function smithCompleted(j){smithNotice={owner:S,kind:j.kind,title:j.kind==='lvl'?'Blacksmith level '+j.to:j.kind==='ring'?'The Ring is complete':(j.kind==='fg'?'Fel Glaives':'Frostseeker')+' ★'+j.to+' is complete',meta:j.kind==='lvl'?'Your blacksmith is ready for the next craft.':j.kind==='ring'?'Equipped in your trinket slot.':'Your new weapon is waiting in the bag.'};}
 function smithWeapons(fg,star){
  const matches=it=>(fg?isFG(it):isFK(it))&&legendStar(it)===star,bag=(S.bag||[]).filter(matches),eq=S.gear.weapon,seen=new Set();
  return bag.filter(it=>!inGearSet(it)).concat(bag.filter(it=>inGearSet(it)),matches(eq)?[eq]:[]).filter(it=>{if(seen.has(it))return false;seen.add(it);return true;});
@@ -18812,7 +18814,7 @@ function smithRefresh(){
  if(smithOwner!==S){smithOwner=S;smithInputKey='';smithChosen=null;smithPickSlot=null;smithFuseChosen=null;if(smithNotice?.owner!==S)smithNotice=null;}
  const owner=S,lv=S.smithLvl||0,p=S.prestige||0,j=S.smithJob,busy=!!j,canT2=lv>=5&&p>=10,canT3=lv>=10&&p>=20;
  $('smithLvlTxt').textContent='Blacksmith level '+lv+' / 10';
- const title=j?(j.kind==='lvl'?'Training to level '+j.to:j.kind==='ring'?'Forging The Ring':'Forging '+(j.kind==='fg'?'Fel Glaives':'Rimfrost')+' ★'+j.to):'';
+ const title=j?(j.kind==='lvl'?'Training to level '+j.to:j.kind==='ring'?'Forging The Ring':'Forging '+(j.kind==='fg'?'Fel Glaives':'Frostseeker')+' ★'+j.to):'';
  $('smithJobTxt').textContent=j?title+' · '+fmtMS(Math.max(0,j.endT-Date.now()))+' remaining':'Choose a station, prepare the ingredients, then forge.';
  const jp=$('smithJobPanel');
  if(jp){
@@ -18821,7 +18823,7 @@ function smithRefresh(){
   if(j){const left=Math.max(0,j.endT-Date.now()),progress=Math.max(0,Math.min(100,(1-left/SMITH_HOUR)*100));jp.querySelector('[data-smith-countdown]').textContent=fmtMS(left)+' remaining';jp.querySelector('[data-smith-progress]').style.width=progress+'%';jp.querySelector('[role="progressbar"]').setAttribute('aria-valuenow',String(Math.floor(progress)));}
  }
  if(!smithSel)smithSel='fm';
- const stations=[['fm','Rimfrost',canT2],['fg','Fel Glaives',canT2],['ring','The Ring',lv>=10],['fuse','Scroll fusion',lv>=10]];
+ const stations=[['fm','Frostseeker',canT2],['fg','Fel Glaives',canT2],['ring','The Ring',lv>=10],['fuse','Scroll fusion',lv>=10]];
  const mn=$('smithMenu');
  smithHTML(mn,'<div class="craft-tabs" aria-label="Blacksmith stations">'+stations.map(([id,name,ready])=>`<button type="button" class="craft-tab${smithSel===id?' active':''}" data-smsel="${id}" aria-pressed="${smithSel===id}">${smithArt(id)}<span>${name}${ready?'':'<small>Locked</small>'}</span></button>`).join('')+'</div>');
  mn.querySelectorAll('[data-smsel]').forEach(b=>b.onclick=()=>{smithSel=b.dataset.smsel;smithPickSlot=null;smithRefresh();});
@@ -18864,7 +18866,7 @@ function smithRefresh(){
   };
  }
  const forge=$('smithForge'),leg=smithSel==='fm'||smithSel==='fg';forge.style.display=leg?'block':'none';if(!leg)return;
- const fg=smithSel==='fg',name=fg?'Fel Glaives':'Rimfrost';
+ const fg=smithSel==='fg',name=fg?'Fel Glaives':'Frostseeker';
  if(!canT3)smithFkSel=2;else if(!smithFkSel)smithFkSel=smithWeapons(fg,2).length>=2?3:2;
  const src=smithFkSel-1,out=smithFkSel,key=smithSel+':'+out;
  if(smithInputKey!==key){smithInputKey=key;smithChosen=null;smithPickSlot=null;}
@@ -18985,7 +18987,7 @@ function renderShop(){
   <div class="btns"><button class="sbtn gold" id="chestBtn" ${totalGold()<gTot||lock?'disabled':''}>${gTot.toLocaleString()}◉</button>
   <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gamba" data-d="-1" ${gQty<=1?'disabled':''}>−</button><span class="qtynum">${gQty}x</span><button class="qtybtn" data-case="gamba" data-d="1" ${gQty>=5?'disabled':''}>+</button></div><div class="qtytotal">Total: ${gTot.toLocaleString()}◉</div></div></div></div>`;
  h+=`<div class="card item gcard-chest" style="border-color:#ffd76a;box-shadow:0 0 10px rgba(255,215,106,.15)"><div><div class="sn" style="font-size:13px;font-weight:600;color:#ffd76a">${uiIcon('it_gold','💰','shopico')} GOLD GOLD GOLD${free?` <span style="color:#9adf9a;font-size:11px">· ${free} FREE</span>`:''}</div>
- <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common or fine junk - only rare and epic gear, a slim chance at a Tier II scroll or a 🐂 bull for the farm, a tiny chance at Rimfrost, and whispers of a 🐾 loyal companion within.${free?' <b style="color:#9adf9a">Your next '+free+' case'+(free>1?'s are':' is')+' free.</b>':''}</div></div>
+ <div class="ss" style="color:var(--dim);font-size:11px">A gilded chest for high rollers. No common or fine junk - only rare and epic gear, a slim chance at a Tier II scroll or a 🐂 bull for the farm, a tiny chance at Frostseeker, and whispers of a 🐾 loyal companion within.${free?' <b style="color:#9adf9a">Your next '+free+' case'+(free>1?'s are':' is')+' free.</b>':''}</div></div>
  <div class="btns"><button class="sbtn gold" id="goldChestBtn" ${totalGold()<goTot||lock?'disabled':''}>${goTot>0?goTot.toLocaleString()+'◉':'FREE'}</button>
  <div class="caseqty"><div class="qtyrow"><button class="qtybtn" data-case="gold" data-d="-1" ${goQty<=1?'disabled':''}>−</button><span class="qtynum">${goQty}x</span><button class="qtybtn" data-case="gold" data-d="1" ${goQty>=5?'disabled':''}>+</button></div><div class="qtytotal">${gb.n<goQty?gb.n+' of '+goQty+' · ':''}${goFree?goFree+' free · ':''}Total: ${goTot.toLocaleString()}◉</div></div></div></div>`;
 
@@ -19290,7 +19292,7 @@ function maxItemBaseStat(ch,kind){
 }
 function itemConsistent(it,ch){
  if(!it)return true;
- if(isLegendaryW(it))return true; /* Legendary weapons are recomputed by syncRimfrost/syncFelGlaives every read - self-healing */
+ if(isLegendaryW(it))return true; /* Legendary weapons are recomputed by syncFrostseeker/syncFelGlaives every read - self-healing */
  ensureItemBase(it);
  const up=it.up||0;
  const tol=up>0?up+2:0; /* rounding slack for legacy saves whose base was reverse-estimated */
@@ -20851,7 +20853,7 @@ function bootPreload(){
  /* mob sprites */
  Object.values(MOB_SET).forEach(a=>a.forEach(n=>push('assets/mobs/'+n+'.png')));
  /* world props and the hero's own gear art */
- ['casino','tavern','bank','blacksmith','fishinghut','brunn','berg','sten','träd','trädsnow','armor_altar','rimfrost','rimfrost_mace','rimfrost_staff','rimfrost_bow','felglaive','thering']
+ ['casino','tavern','bank','blacksmith','fishinghut','brunn','berg','sten','träd','trädsnow','armor_altar','frostseeker','frostseeker_mace','frostseeker_staff','frostseeker_bow','felglaive','thering']
   .forEach(n=>push('assets/models/'+n+'.png'));
  /* the first zones you will actually walk through */
  ['levlingzone_green','levlingzone_boss','farm_zone','cowlevel_zone'].forEach(n=>push('assets/models/maps/'+n+'.png'));

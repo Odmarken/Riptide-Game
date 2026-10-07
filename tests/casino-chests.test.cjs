@@ -44,7 +44,7 @@ function chests(state={}){
   stageMsg:m=>c.msgs.push(m),log:m=>c.logs.push(m),sfx:{buy(){},warn(){},loot(){},quest(){},level(){},forge(){}},
   inBossFight:()=>c.boss,cowLocked:()=>c.herd,inGearSet:()=>false,padFocus:null,padMark(){}, /* the pad (Scrap hands its highlight to Close) */
   scrapVal:it=>({common:1,fine:2,rare:4,epic:8,legendary:20})[it.rar],isLegendary:it=>!!it&&it.rar==='legendary',
-  rollItem:rar=>item('Test '+rar,rar,'armor'),rollRimfrost:()=>item('Rimfrost','legendary'),rollFelGlaives:()=>item('Fel Glaives','legendary'),
+  rollItem:rar=>item('Test '+rar,rar,'armor'),rollFrostseeker:()=>item('Frostseeker','legendary'),rollFelGlaives:()=>item('Fel Glaives','legendary'),
   tryAutoEquip:it=>{const cur=c.S.gear[it.slot];if(!cur||it.power>cur.power){if(cur)c.S.bag.push(cur);c.S.gear[it.slot]=it;return true;}return false;},
   itemName:it=>it.name,itemStr:()=>'+10 attack',lootIco:id=>id,SLOT_ICO:{weapon:()=>'W',armor:()=>'A',trinket:()=>'T'},
   petOf:id=>({id,n:id,cc:'#fff',d:'Companion.'}),petGlyph:p=>p.id,ENCHS:[{id:'flame',n:'Flame',glow:'#f80'}],ENCH_COST:2,tierDesc:()=>'+1 fire',

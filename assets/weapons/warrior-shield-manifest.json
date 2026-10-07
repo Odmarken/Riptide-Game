@@ -1,5 +1,5 @@
 {
-  "note": "The warrior's lion shield (2026-10-02), from the shield in loading concept 5 (concepts/loading-screen). Higgsfield gpt_image_2_5 flare, medium, 1k, 4:5, background transparent, 0.5 credit each; variant 1 of 3 picked (boldest lion at small size). Post-processing mechanical only: alpha 254->255, haze under 6 dropped, tight crop, LANCZOS to 400 px tall. Drawn by drawWarriorShield in game.js: on the other arm with the standard sword in every outfit; a legendary (Rimfrost, Fel Glaives), a hidden weapon or a fishing rod drops it.",
+  "note": "The warrior's lion shield (2026-10-02), from the shield in loading concept 5 (concepts/loading-screen). Higgsfield gpt_image_2_5 flare, medium, 1k, 4:5, background transparent, 0.5 credit each; variant 1 of 3 picked (boldest lion at small size). Post-processing mechanical only: alpha 254->255, haze under 6 dropped, tight crop, LANCZOS to 400 px tall. Drawn by drawWarriorShield in game.js: on the other arm with the standard sword in every outfit; a legendary (Frostseeker, Fel Glaives), a hidden weapon or a fishing rod drops it.",
   "file": "warrior_shield.png",
   "job": "ef8f2846-11bb-4555-93bc-6c90a0f0e08c",
   "alternatives": [

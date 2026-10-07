@@ -73,7 +73,7 @@ test('the star forge carries the rarest inscription, and a known kind beats one 
 test('a finished star forge writes the inscription it carried onto the new blade, and none when it carried none',()=>{
  for(const kind of ['fk','fg'])for(const carried of [{id:'twin',rar:'epic'},undefined,{id:'thunder',rar:'epic'},'junk']){
   const bag=[],c={S:{smithJob:{kind,to:2,endT:0,...(carried?{insc:carried}:{})},bag,gear:{}},Math,Date,LEGEND_MAX_UP:6,
-   syncFelGlaives:it=>it,syncRimfrost:it=>it,log(){},stageMsg(){},sfx:{level(){}},smithCompleted(){},save(){},$:()=>null,publishLB(){}};
+   syncFelGlaives:it=>it,syncFrostseeker:it=>it,log(){},stageMsg(){},sfx:{level(){}},smithCompleted(){},save(){},$:()=>null,publishLB(){}};
   vm.createContext(c);vm.runInContext(HELPERS+'\n'+section('function smithTick(){','setInterval(()=>{if(gameOn)smithTick();},5000);'),c);
   c.smithTick();
   assert.equal(c.S.smithJob,null);assert.equal(bag.length,1);assert.equal(bag[0].star,2);
