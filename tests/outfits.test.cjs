@@ -1,4 +1,4 @@
-/* 👘 Outfits, headless: what the hero is drawn in - the class colours, the Ice Armor or the crown's robes - chosen on the
+/* 👘 Outfits, headless: what the hero is drawn in - the class colours, the Ice Armor, the crown's robes or the Emperor's regalia - chosen on the
  * Outfits page and independent of what is worn for numbers; the weapon eye; and what a peer's look says. The rules are
  * sliced out of game.js and run against stubs. Run with node --test. */
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
@@ -6,17 +6,18 @@ const source=fs.readFileSync(path.join(__dirname,'../game.js'),'utf8');
 const slice=source.slice(source.indexOf('const OUTFITS=['),source.indexOf('function bootFeet('));
 function harness(S){
  const c={S,classOf:()=>({name:'Warrior'}),isIce:it=>!!(it&&it.legend==='icearmor'),isFK:it=>!!(it&&it.legend==='frostseeker'),isFG:it=>!!(it&&it.legend==='felglaives'),
+  CityEconomy:{isEmperor:city=>!!(city&&city.crowned&&city.allFive)},   /* 🎭 all three cities and both ports, stubbed as one flag */
   RACE_ALIAS:{},CLASS_ALIAS:{},keys:[],charSprite:(r,cls,f)=>{c.keys.push(r+(f?'female':'male')+'_'+cls);return {};},
   characterBodyFrame:(img,h=48,b=5)=>({bodyBottom:b,bodyHeight:h,headY:b-h,bootTop:null,x:0,y:0,width:10,height:h}),characterBootFrame:()=>({groundY:10}),bootImg:{}};
  vm.createContext(c);vm.runInContext(slice,c);
- for(const k of ['OUTFITS','outfitArgOf','outfitArg','lookOutfit','heroWeaponArgs','ROYAL_BODY_H'])c[k]=vm.runInContext(k,c);
+ for(const k of ['OUTFITS','outfitArgOf','outfitArg','lookOutfit','heroWeaponArgs','ROYAL_BODY_H','EMPEROR_BODY_H'])c[k]=vm.runInContext(k,c);
  return c;
 }
 const hero=(extra={})=>({race:'human',cls:'warrior',gender:'m',gear:{weapon:null,armor:null,trinket:null},bag:[],...extra});
 
-test('👘 three outfits, unlocked by what you have done: the class colours always, the Ice Armor by the ritual or the plate, the robes by the crown',()=>{
+test('👘 four outfits, unlocked by what you have done: the class colours always, the Ice Armor by the ritual or the plate, the robes by the crown, the regalia by the empire',()=>{
  const c=harness(hero());
- assert.deepEqual(Array.from(c.OUTFITS.map(o=>o.id)),['default','ice','royal']);   /* Array.from / spread: values made in the vm realm */
+ assert.deepEqual(Array.from(c.OUTFITS.map(o=>o.id)),['default','ice','royal','emperor']);   /* Array.from / spread: values made in the vm realm */
  assert.equal(c.outfitUnlocked('default'),true);assert.equal(c.outfitUnlocked('ice'),false);assert.equal(c.outfitUnlocked('royal'),false);assert.equal(c.outfitUnlocked('nope'),false);
  assert.equal(harness(hero({ritualDone:true})).outfitUnlocked('ice'),true,'the ritual');
  assert.equal(harness(hero({gear:{armor:{legend:'icearmor'}}})).outfitUnlocked('ice'),true,'the plate on your back');
@@ -24,6 +25,10 @@ test('👘 three outfits, unlocked by what you have done: the class colours alwa
  assert.equal(harness(hero({city:{crowned:false}})).outfitUnlocked('royal'),false);assert.equal(harness(hero({city:{crowned:true}})).outfitUnlocked('royal'),true,'the crown');
  assert.ok(c.OUTFITS.every(o=>o.name()&&o.desc&&o.how&&o.icon));
  assert.equal(harness(hero({gender:'f',city:{crowned:true}})).OUTFITS[2].name(),'Queen’s robes');assert.equal(c.OUTFITS[2].name(),'King’s robes');
+ /* 🎭 the regalia: only the Emperor or Empress - a crown alone is not enough */
+ assert.equal(c.outfitUnlocked('emperor'),false);assert.equal(harness(hero({city:{crowned:true}})).outfitUnlocked('emperor'),false,'a King with fewer than five');
+ assert.equal(harness(hero({city:{crowned:true,allFive:true}})).outfitUnlocked('emperor'),true,'all five under the crown');
+ assert.equal(harness(hero({gender:'f',city:{crowned:true,allFive:true}})).OUTFITS[3].name(),'Empress’s regalia');assert.equal(c.OUTFITS[3].name(),'Emperor’s regalia');
 });
 
 test('👘 what is drawn: the choice when it is unlocked, the class colours when it is not, and the old rule for a save without a choice',()=>{
@@ -39,8 +44,12 @@ test('👘 what is drawn: the choice when it is unlocked, the class colours when
  const f=k.paintedCharacterFrame('human','warrior',false,'royal');assert.deepEqual([...k.keys],['humanmale_royal']);assert.equal(f.bodyHeight,k.ROYAL_BODY_H);assert.ok(k.ROYAL_BODY_H>48);
  k.keys.length=0;assert.equal(k.paintedCharacterFrame('orc','mage',true,true).bodyHeight,48);assert.deepEqual([...k.keys],['orcfemale_armor']);
  k.keys.length=0;k.paintedCharacterFrame('dwarf','priest',false,false);assert.deepEqual([...k.keys],['dwarfmale_priest']);
+ /* 🎭 the regalia: one male picture for every race (charSprite maps the key to emperor_male), the frame sized for the hood */
+ const e=harness(hero({outfit:'emperor',city:{crowned:true,allFive:true}}));assert.equal(e.heroOutfit(),'emperor');assert.equal(e.outfitArg(),'emperor');
+ const ef=e.paintedCharacterFrame('dwarf','mage',false,'emperor');assert.deepEqual([...e.keys],['dwarfmale_emperor']);assert.equal(ef.bodyHeight,e.EMPEROR_BODY_H);assert.ok(e.EMPEROR_BODY_H>48&&e.EMPEROR_BODY_H<e.ROYAL_BODY_H);
+ assert.equal(harness(hero({outfit:'emperor',city:{crowned:true}})).heroOutfit(),'default','the empire lost: the regalia go back in the chest');
  /* what a peer sent */
- assert.equal(k.lookOutfit({outfit:'royal',ice:false}),'royal');assert.equal(k.lookOutfit({ice:true}),true);assert.equal(k.lookOutfit({}),false);assert.equal(k.lookOutfit(null),false);
+ assert.equal(k.lookOutfit({outfit:'emperor'}),'emperor');assert.equal(k.lookOutfit({outfit:'royal',ice:false}),'royal');assert.equal(k.lookOutfit({ice:true}),true);assert.equal(k.lookOutfit({}),false);assert.equal(k.lookOutfit(null),false);
 });
 
 test('👁 the weapon eye: sheathed, the hand is empty and the rune is out - the numbers do not know',()=>{
@@ -83,6 +92,23 @@ test('royal offer waits for cold art and then draws the selected race, gender an
   assert.equal(draw[1],race);assert.equal(draw[2],cls);assert.equal(draw[8],gender==='f');assert.equal(draw[10],'royal');
   assert.match(h.c.$('outfitOfferTitle').textContent,gender==='f'?/QUEEN/:/KING/);
  }
+});
+
+test('🎭 the regalia offer: every race and gender drawn in the masked robes - one male picture, a female picture per race',()=>{
+ for(const race of ['human','dwarf','orc','undead'])for(const gender of ['m','f']){
+  const h=offerHarness({race,gender,cls:'priest',city:{crowned:true,allFive:true}});
+  const file=gender==='f'?race+'female_emperor':'emperor_male';
+  assert.ok(fs.existsSync(path.join(__dirname,'../assets/characters',file+'.png')),file);
+  h.c.openOutfitOffer('emperor');
+  assert.equal(h.c.$('outfitFx').style.display,'flex');
+  h.load();h.tick();
+  assert.equal(h.draws.length,1);assert.equal(h.draws[0][10],'emperor');
+  assert.ok(h.c.keys.every(k=>k===race+(gender==='f'?'female':'male')+'_emperor'));
+  assert.match(h.c.$('outfitOfferTitle').textContent,gender==='f'?/EMPRESS/:/EMPEROR/);
+  h.c.$('outfitOfferWear').onclick();assert.equal(h.c.S.outfit,'emperor');
+ }
+ const king=offerHarness({city:{crowned:true}});king.c.openOutfitOffer('emperor');
+ assert.equal(king.c.$('outfitFx').style.display,'none','a King with fewer than five is not offered the regalia');
 });
 
 test('🛡 the outfit portrait holds the weapon really in the hand, so a legendary shows and the warrior\'s shield goes',()=>{

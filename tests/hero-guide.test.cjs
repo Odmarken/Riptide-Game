@@ -23,7 +23,8 @@ function harness() {
   log:noop,stageMsg:noop,classOf:()=>({name:'Warrior'}),zoneOf:()=>({name:'Fields'}),
   save:()=>saves.push({...context.S}),saveNow:()=>saves.push({...context.S}),
   dropFarmBuild:noop,cancelHallScenes:noop,esc:t=>String(t),
-  casinoWinOpen:()=>null,closeCasinoWindows:noop /* 🎰 no casino window is up when a hero enters */
+  casinoWinOpen:()=>null,closeCasinoWindows:noop, /* 🎰 no casino window is up when a hero enters */
+  offerEmperorOutfit:noop /* 🎭 the regalia's one-time offer for a returning Emperor has its own test (outfits) */
  });
  vm.runInContext(section('let heroGuideOwner=null;', '// The guide pauses all gameplay'), context);
  vm.runInContext(section('function beginGame(isNew){', '/* Effects were written as'), context);

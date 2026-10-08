@@ -1,0 +1,31 @@
+{
+ "generator": "Higgsfield",
+ "model": "nano_banana_pro (Nano Banana Pro; the jobs report nano_banana_2)",
+ "resolution": "2k",
+ "aspect_ratio": "3:4",
+ "date": "2026-10-09",
+ "description": "The Emperor's / Empress's regalia (outfit 'emperor', unlocked by holding all three cities and both great ports). Inspired by the user's photo of a masked figure in white embroidered robes - no crosses or religious signs, only arabesques, laurel and stars. Painted on flat #FF00FF (the robes are white, so the white-paper cutout could not be used): keyed with the colour distance to the painted magenta, the soft edge unmixed, the background RGB filled with the nearest figure colour, cropped tight, LANCZOS to 900 px tall like the royal robes. Drawn at body height EMPEROR_BODY_H = 52 (game.js).",
+ "references": {
+  "humanmale_royal.png (flattened on #E8E6E2)": "framing, chibi proportions, pose (bust cut at the hips, hands at the hips)",
+  "user's inspiration photo": "costume inspiration only",
+  "humanfemale_royal.png (flattened)": "the female body, pose and the low neckline"
+ },
+ "sprites": {
+  "emperor_male.png": {
+   "jobId": "ffc44208-428a-4854-83d9-177a93184dff",
+   "picked_over": "f63e8ee7-451b-4fe9-b8d9-9352c6e07579 (plainer embroidery, bigger hood)",
+   "note": "ONE picture for every male race: no skin shows (hood, mask, gloves). charSprite maps {race}male_emperor to this file.",
+   "crop": [145, 143, 1648, 2235],
+   "size": [647, 900]
+  },
+  "{race}female_emperor.png": {
+   "jobId": "8669b2c8-8fc8-4b10-85bb-74414ea02925",
+   "picked_over": "a271aadf-a4f0-4b91-86a7-cade35d40d7d (closer to the male stole, but only a small V neckline)",
+   "references": ["the male job above", "humanfemale_royal.png"],
+   "crop": [145, 143, 1650, 2232],
+   "size": [648, 900],
+   "skin": "Only the neckline is skin. It was masked (hue 6-28, saturation >= 0.38 in the chest, grown into the darker cleavage line, 0.8 px soft edge) and recoloured by luminance from the painted (203,127,93) to each race's face colour on its Queen's robes sprite.",
+   "tones": {"human": [244, 138, 62], "dwarf": [244, 175, 135], "orc": [133, 111, 19], "undead": [163, 160, 148]}
+  }
+ }
+}

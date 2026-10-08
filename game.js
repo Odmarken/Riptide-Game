@@ -704,7 +704,10 @@ const CHAR_SPRITES={ /* all 16 male race+class combos have art in assets/charact
  undeadfemale_warrior:1,undeadfemale_mage:1,undeadfemale_hunter:1,undeadfemale_priest:1,
  humanmale_armor:1,dwarfmale_armor:1,orcmale_armor:1,undeadmale_armor:1,
  humanfemale_armor:1,dwarffemale_armor:1,orcfemale_armor:1,undeadfemale_armor:1, /* _armor = 🧊 Ice Armor skins */
- humanmale_royal:1,dwarfmale_royal:1,orcmale_royal:1,undeadmale_royal:1,humanfemale_royal:1,dwarffemale_royal:1,orcfemale_royal:1,undeadfemale_royal:1}; /* _royal = 👑 the crown's robes (2026-09-22, Higgsfield gpt_image_2_5 flare off the class sprites - every class of a race shares its face, so one per race+gender) */
+humanmale_royal:1,dwarfmale_royal:1,orcmale_royal:1,undeadmale_royal:1,humanfemale_royal:1,dwarffemale_royal:1,orcfemale_royal:1,undeadfemale_royal:1,
+ /* _emperor = 🎭 the Emperor's / Empress's regalia (2026-10-09, Higgsfield Nano Banana Pro): one masked male figure shared by every
+    race - no skin shows - and one Empress whose low neckline is recoloured to each race's skin (see charSprite) */
+ humanmale_emperor:1,dwarfmale_emperor:1,orcmale_emperor:1,undeadmale_emperor:1,humanfemale_emperor:1,dwarffemale_emperor:1,orcfemale_emperor:1,undeadfemale_emperor:1}; /* _royal = 👑 the crown's robes (2026-09-22, Higgsfield gpt_image_2_5 flare off the class sprites - every class of a race shares its face, so one per race+gender) */
 const npcMaleImg=new Image();npcMaleImg.src='assets/characters/npc/npc_male.png';
 /* Sebbe wears the same face as the townsmen - the art is npc_male repainted in a flat cap and a
    turn-of-the-century overcoat, at the same size and framing, so he drops into the same slot. */
@@ -762,9 +765,10 @@ const charSpriteCache={};
 function charSprite(raceId,clsId,female){
  const key=raceId+(female?'female':'male')+'_'+clsId;
  if(!CHAR_SPRITES[key])return null;
- let im=charSpriteCache[key];
+ const file=clsId==='emperor'&&!female?'emperor_male':key;   /* 🎭 the masked Emperor is one picture for every race */
+ let im=charSpriteCache[file];
  if(!im){
-  im=new Image();im.src='assets/characters/'+key+'.png?v='+(key==='humanfemale_mage'?4:3);charSpriteCache[key]=im;
+  im=new Image();im.src='assets/characters/'+file+'.png?v='+(key==='humanfemale_mage'?4:3);charSpriteCache[file]=im;
   im.onload=()=>{ /* portraits render before sprites finish loading - repaint the open screens */
    try{
     if($('select').classList.contains('open'))renderSelect();
@@ -1068,12 +1072,15 @@ const OUTFITS=[
  {id:'default',icon:'🧵',name:()=>classOf()?classOf().name+"'s colours":'Your colours',desc:'What you set out in. The class, as it always looked.',how:'always yours'},
  {id:'ice',icon:'🧊',name:()=>'Ice Armor',desc:'The cursed plate the Altar gave you for a life. It never lets go - but it can be hidden.',how:'the Altar’s ritual'},
  {id:'royal',icon:'👑',name:()=>(S&&S.gender==='f'?'Queen':'King')+'’s robes',desc:'Crimson velvet, ermine and the crown of the City. The tailors of the palace have your measure.',how:'take the crown'},
+ /* 🎭 asked for 2026-10-09: the regalia of the realm's Emperor or Empress - white silk, gold thread and a bronze mask */
+ {id:'emperor',icon:'🎭',name:()=>(S&&S.gender==='f'?'Empress':'Emperor')+'’s regalia',desc:'White silk, gold thread and the bronze mask of the realm: behind it you are the face of every city and both great ports.',how:'hold all three cities and both great ports'},
 ];
 function outfitUnlocked(id,ch=S){
  if(!ch)return id==='default';
  if(id==='default')return true;
  if(id==='ice')return !!(ch.ritualDone||(ch.gear&&isIce(ch.gear.armor))||(ch.bag||[]).some(it=>it&&isIce(it)));
  if(id==='royal')return !!(ch.city&&ch.city.crowned);
+ if(id==='emperor')return !!(ch.city&&CityEconomy.isEmperor(ch.city));
  return false;
 }
 function heroOutfit(ch=S){
@@ -1085,17 +1092,19 @@ function heroOutfit(ch=S){
 const monarchTitle=ch=>CityEconomy.isEmperor(ch.city)?(ch.gender==='f'?'Empress':'Emperor'):(ch.gender==='f'?'Queen':'King');
 const characterTitle=ch=>ch&&ch.city&&ch.city.crowned?monarchTitle(ch):
  (ch&&ch.city&&ch.city.noble&&ch.city.noble.rank>0&&CityEconomy.NOBLE_RANKS[ch.city.noble.rank]||{}).title||'';
-const outfitArgOf=id=>id==='royal'?'royal':id==='ice';
+const outfitArgOf=id=>id==='royal'||id==='emperor'?id:id==='ice';
 const outfitArg=()=>outfitArgOf(heroOutfit());
-const lookOutfit=look=>look&&look.outfit==='royal'?'royal':!!(look&&look.ice);   /* what a peer or a leaderboard entry sent */
+const lookOutfit=look=>look&&(look.outfit==='royal'||look.outfit==='emperor')?look.outfit:!!(look&&look.ice);   /* what a peer or a leaderboard entry sent */
 /* 👁 the weapon eye in the hero panel: hidden in the hand, still counted in the numbers */
 const heroWeaponArgs=()=>S&&S.hideWeapon?{fm:false,id:'hidden'}:{fm:isFK(S.gear.weapon),id:isFG(S.gear.weapon)?'felglaives':isFK(S.gear.weapon)?'frostseeker':null};
 const heroRing=()=>S&&!S.hideRing&&isRing(S.gear&&S.gear.trinket)?S.gear.trinket:null;
 const ROYAL_BODY_H=56;   /* the crown rides above the head: the royal frame is this tall for the same body as a 48-unit class frame */
+const EMPEROR_BODY_H=52;   /* 🎭 the hood stands a little above the hair: the body comes out as wide as a class body */
 function paintedCharacterFrame(raceId,clsId,female,iceArm){
  raceId=RACE_ALIAS[raceId]||raceId;clsId=CLASS_ALIAS[clsId]||clsId;
- const royal=iceArm==='royal';
- const image=charSprite(raceId,royal?'royal':iceArm?'armor':clsId,female),body=characterBodyFrame(image,royal?ROYAL_BODY_H:48);
+ const robes=iceArm==='royal'||iceArm==='emperor'?iceArm:null;
+ const image=charSprite(raceId,robes||(iceArm?'armor':clsId),female),
+  body=characterBodyFrame(image,robes==='royal'?ROYAL_BODY_H:robes==='emperor'?EMPEROR_BODY_H:48);
  if(!body)return null;
  const boots=characterBootFrame(raceId,female,bootImg,body.bodyBottom,body.bootTop);
  return {image,...body,boots,groundY:boots.groundY};
@@ -2339,8 +2348,8 @@ function raidCityWon(R,text){
   +(v&&!v.can?'<small>'+esc(v.why)+' Restore it from the Allies page when the treasury can.</small>':'<small>Restore it later from the Allies page of the Crown Ledger.</small>')+'</div>';
  document.body.appendChild(ov);
  const btn=$('cwRestore');
- if(btn)btn.onclick=()=>{const r=CityEconomy.restoreAlly(S.city,R.ally);if(r.ok){log(r.text,'loot');stageMsg('🔨 '+d.name+' is restored - it pays the crown in full.',3200,'#9fe39f');sfx.buy();save();}else stageMsg(r.text,2400,'#ff8a7a');ov.remove();};
- $('cwOk').onclick=()=>ov.remove();
+ if(btn)btn.onclick=()=>{const r=CityEconomy.restoreAlly(S.city,R.ally);if(r.ok){log(r.text,'loot');stageMsg('🔨 '+d.name+' is restored - it pays the crown in full.',3200,'#9fe39f');sfx.buy();save();}else stageMsg(r.text,2400,'#ff8a7a');ov.remove();offerEmperorOutfit(800);};
+ $('cwOk').onclick=()=>{ov.remove();offerEmperorOutfit(800);};   /* 🎭 the last city taken by the sword makes an Emperor too */
 }
 /* the men come home: the books count the hurt - the men who went down - and they walk back to the ship */
 function raidEnd(home){
@@ -11832,9 +11841,9 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   }
   g.restore();
  }
- const royal=painted&&iceArm==='royal',armored=painted&&!!iceArm&&!royal; /* 🧊 Ice Armor reskin, 👑 or the crown's robes - only when THIS character wears it */
- const eCls=royal?'royal':armored?'armor':clsId;
- const frame=painted?paintedCharacterFrame(raceId,clsId,female,royal?'royal':armored):null;
+ const robes=painted&&(iceArm==='royal'||iceArm==='emperor')?iceArm:null,armored=painted&&!!iceArm&&!robes; /* 🧊 Ice Armor reskin, 👑 the crown's robes or 🎭 the Emperor's regalia - only when THIS character wears it */
+ const eCls=robes||(armored?'armor':clsId);
+ const frame=painted?paintedCharacterFrame(raceId,clsId,female,robes||armored):null;
  const rImg=frame&&frame.image;
  if(frame){
   /* painted character - mirrored when facing left, bobbing + rocking while running */
@@ -18616,6 +18625,7 @@ function ledgerAction(act,k,v){
    const who=cityTitle()+' '+(S.name||'');
    log('👑 <b>'+who+'</b> - '+d.name+' was the last of them. Three cities and two great ports fly the crown’s colours, and the realm names you '+cityTitle()+'.','loot');
    stageMsg('👑 '+d.name+' was the last of them - all hail '+who+'!',7000,'#ffd76a',true);sfx.quest();shakeT=.35;
+   offerEmperorOutfit(3500);   /* 🎭 and the regalia, once the hail has sunk in */
   }
   else if(r.deal){stageMsg('🤝 '+d.name+' flies the crown’s colours - bought for '+fmtK(r.paid)+' ◉.',6000,'#ffd76a',true);sfx.quest();}
   else if(r.ok&&r.counter)talkOffer=Math.max(talkOffer,Math.round((talkOffer+r.counter)/2/E.talkView(c,cityContext(),talkId).step)*E.talkView(c,cityContext(),talkId).step);   /* the stepper meets him half way, ready for the next round */
@@ -18753,7 +18763,9 @@ function openOutfitOffer(id){
  if(!S||!outfitUnlocked(id))return;
  const o=OUTFITS.find(x=>x.id===id);if(!o)return;
  $('outfitOfferTitle').textContent=o.icon+' '+o.name().toUpperCase();
- $('outfitOfferText').textContent=id==='royal'?'The tailors of the palace have your measure. Crimson, ermine and the crown - the City wants to see it worn.':o.desc;
+ $('outfitOfferText').textContent=id==='royal'?'The tailors of the palace have your measure. Crimson, ermine and the crown - the City wants to see it worn.'
+  :id==='emperor'?'Three cities and two great ports kneel to one crown. White silk, gold thread and the bronze mask of the realm - the empire wants to see its face.'
+  :o.desc;
  clearTimeout(outfitOfferPaintTimer);
  const cv=$('outfitOfferPortrait'),owner=S;
  const paint=()=>{
@@ -18764,6 +18776,18 @@ function openOutfitOffer(id){
  $('outfitOfferLater').onclick=()=>{clearTimeout(outfitOfferPaintTimer);$('outfitFx').style.display='none';stageMsg('Outfits are in the hero panel whenever you want them.',2400);};
  $('outfitFx').style.display='flex';
  paint();
+}
+/* 🎭 the regalia's offer comes once, the first time the hero is Emperor or Empress: after the deal that buys the last of the
+   five, after the "The city is yours" box of the conquest that takes it, or - for a hero who was Emperor before the regalia
+   existed - a few seconds after coming back into the world. Another box on screen makes it wait its turn. */
+function offerEmperorOutfit(delay=0){
+ const owner=S;
+ setTimeout(()=>{
+  if(!S||S!==owner||S.emperorRegaliaOffered||!outfitUnlocked('emperor'))return;
+  if($('cityWonFx')||$('outfitFx').style.display==='flex'||coronation){offerEmperorOutfit(1500);return;}
+  S.emperorRegaliaOffered=true;save();
+  openOutfitOffer('emperor');
+ },delay);
 }
 /* 👁 the hero panel's way in: the Overview alone, from wherever the hero stands. Appears the moment you are Master of Coin (office 3) - nobody else sees it. */
 function ledgerEntry(){
@@ -20196,7 +20220,7 @@ function drawPortrait(cnv,ch){
   drawChampionSprite(g,ch.race,c.id,1,0,0,!!(ch.gear&&ch.gear.weapon&&isFKLegend(ch.gear.weapon.legend)),ch.hideWeapon?'hidden':ch.gear&&ch.gear.weapon&&(ch.gear.weapon.id||ch.gear.weapon.legend),ch.gender==='f',1,look,wr);
   if(!ch.hideRing)drawEquippedRing(g,ch.gear&&ch.gear.trinket,character.headY,0);
   g.restore();
- }else if(!CHAR_SPRITES[(RACE_ALIAS[ch.race]||ch.race)+(ch.gender==='f'?'female':'male')+'_'+(look==='royal'?'royal':look?'armor':c.id)]){
+ }else if(!CHAR_SPRITES[(RACE_ALIAS[ch.race]||ch.race)+(ch.gender==='f'?'female':'male')+'_'+(look==='royal'||look==='emperor'?look:look?'armor':c.id)]){
  g.save();g.translate(W/2,H*0.72);g.scale(2.1,2.1);
  g.fillStyle='rgba(0,0,0,0.3)';g.beginPath();g.ellipse(0,7,11,4.5,0,0,7);g.fill();
  if(sc){g.strokeStyle=sc.glow;g.globalAlpha=0.55;g.lineWidth=1;g.beginPath();g.ellipse(0,6,13,5.5,0,0,7);g.stroke();g.globalAlpha=1;}
@@ -20915,7 +20939,7 @@ function beginGame(isNew){
   log(`<span class="imp">${esc(S.name)} the ${classOf().name}</span> arrives in ${zoneOf().name}.`);
   stageMsg('Welcome to Riptide - spells are 1/2/3, potions 4/5.',3000);
   save();
- }else log(`<span class="imp">Welcome back, ${esc(S.name)}.</span> The march resumes.`);
+ }else{log(`<span class="imp">Welcome back, ${esc(S.name)}.</span> The march resumes.`);offerEmperorOutfit(4000);}   /* 🎭 an Emperor from before the regalia existed gets them once */
  if(needsGuide){showHeroGuide();saveNow();}
 }
 /* Effects were written as "X% chance this frame", which quietly ties their density to the frame
