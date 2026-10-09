@@ -257,6 +257,135 @@ void main(){
 }`;
 const ADV_MODES={'soft-light':1,'overlay':2,'hard-light':3,'darken':4,'lighten':5,'color-dodge':6,'color-burn':7,'difference':8,'exclusion':9,'hue':10,'saturation':11,'color':12,'luminosity':13};
 
+/* ---- post-pass shaders (2026-10-09): full-screen quads over 0..1, textures the GL way up (row 0 at the bottom) */
+const PP_VS=`#version 300 es
+layout(location=0) in vec2 a_p;
+out vec2 v_uv;
+void main(){v_uv=a_p;gl_Position=vec4(a_p*2.0-1.0,0.0,1.0);}`;
+/* one instance per light; the quad covers its pool on the ground and the light round its flame */
+const LIGHT_VS=`#version 300 es
+layout(location=0) in vec2 a_p;
+layout(location=1) in vec4 i0;
+layout(location=2) in vec4 i1;
+layout(location=3) in vec4 i2;
+layout(location=4) in vec4 i3;
+uniform vec2 u_res;
+out vec2 v_p;flat out vec4 v0;flat out vec4 v1;flat out vec4 v2;flat out vec4 v3;
+void main(){
+ float R=i1.x,Q=i1.y,fl=i1.z;
+ vec2 lo=min(vec2(i0.x-R,i0.y-R*fl),vec2(i0.z-Q,i0.w-Q)),hi=max(vec2(i0.x+R,i0.y+R*fl),vec2(i0.z+Q,i0.w+Q));
+ vec2 p=mix(lo,hi,a_p);
+ v_p=p;v0=i0;v1=i1;v2=i2;v3=i3;
+ gl_Position=vec4(p.x/u_res.x*2.0-1.0,1.0-p.y/u_res.y*2.0,0.0,1.0);
+}`;
+const LIGHT_FS=`#version 300 es
+precision highp float;
+in vec2 v_p;flat in vec4 v0;flat in vec4 v1;flat in vec4 v2;flat in vec4 v3;
+out vec4 o;
+float fall(float t,float hr){if(t>=1.0)return 0.0;float q=t/hr;return pow(1.0+q*q,-1.5)*(1.0-t*t);}
+void main(){
+ vec2 d=v_p-v0.xy;d.y/=v1.z;
+ float pool=fall(length(d)/v1.x,v2.w);
+ float head=fall(length(v_p-v0.zw)/v1.y,v3.x)*0.8;
+ float f=(pool+head)*v1.w;
+ o=vec4(v2.rgb*f,f);
+}`;
+/* the scene times the light: the ambient gives way to the lights' colour as far as they cover (as the 2D lamps laid their pools over
+   the night), and where they cover more than once - near a flame, where lights overlap - a little more, under a soft shoulder */
+const LMIX_FS=`#version 300 es
+precision highp float;
+in vec2 v_uv;uniform sampler2D u_scene;uniform sampler2D u_light;uniform vec3 u_amb;uniform float u_over;uniform float u_knee;uniform float u_max;
+out vec4 o;
+void main(){
+ vec4 s=texelFetch(u_scene,ivec2(gl_FragCoord.xy),0),l=texture(u_light,v_uv);
+ float a=l.a,cov=min(a,1.0);vec3 col=a>1e-4?l.rgb/a:vec3(1.0);
+ vec3 L=u_amb*(1.0-cov)+col*cov+col*max(a-1.0,0.0)*u_over,x=max(L-1.0,0.0);
+ L=min(L,1.0)+(u_max-1.0)*(1.0-exp(-x*u_knee));
+ o=vec4(min(s.rgb*L,vec3(s.a)),s.a);
+}`;
+/* bloom: a 4-tap downsample of what is over the threshold (soft knee), a 13-tap chain down, a tent back up */
+const BRIGHT_FS=`#version 300 es
+precision highp float;
+in vec2 v_uv;uniform sampler2D u_src;uniform vec2 u_px;uniform float u_thr;uniform float u_knee;uniform float u_white;
+out vec4 o;
+void main(){
+ vec3 c=(texture(u_src,v_uv+u_px*vec2(-.5,-.5)).rgb+texture(u_src,v_uv+u_px*vec2(.5,-.5)).rgb+texture(u_src,v_uv+u_px*vec2(-.5,.5)).rgb+texture(u_src,v_uv+u_px*vec2(.5,.5)).rgb)*.25;
+ float br=max(c.r,max(c.g,c.b)),mn=min(c.r,min(c.g,c.b)),sat=br>0.0?(br-mn)/br:0.0;
+ float soft=clamp(br-u_thr+u_knee,0.0,2.0*u_knee);soft=soft*soft/(4.0*u_knee+1e-5);
+ o=vec4(c*max(soft,br-u_thr)/max(br,1e-5)*mix(u_white,1.0,sat),1.0);
+}`;
+/* emitters: soft round glows (a flame's heart, a lamp's glass) added straight into the bloom */
+const EMIT_VS=`#version 300 es
+layout(location=0) in vec2 a_p;
+layout(location=1) in vec4 i0;
+layout(location=2) in vec4 i1;
+uniform vec2 u_res;
+out vec2 v_d;flat out vec4 v1;
+void main(){vec2 p=i0.xy+(a_p*2.0-1.0)*i0.z*2.2;v_d=(p-i0.xy)/i0.z;v1=i1;gl_Position=vec4(p.x/u_res.x*2.0-1.0,1.0-p.y/u_res.y*2.0,0.0,1.0);}`;
+const EMIT_FS=`#version 300 es
+precision highp float;
+in vec2 v_d;flat in vec4 v1;
+out vec4 o;
+void main(){float r2=dot(v_d,v_d);o=vec4(v1.rgb*v1.a*exp(-r2*1.6),1.0);}`;
+const DOWN_FS=`#version 300 es
+precision highp float;
+in vec2 v_uv;uniform sampler2D u_src;uniform vec2 u_px;
+out vec4 o;
+vec3 s(vec2 d){return texture(u_src,v_uv+d*u_px).rgb;}
+void main(){
+ vec3 a=s(vec2(-2,2)),b=s(vec2(0,2)),c=s(vec2(2,2)),d=s(vec2(-2,0)),e=s(vec2(0,0)),f=s(vec2(2,0)),g=s(vec2(-2,-2)),h=s(vec2(0,-2)),i=s(vec2(2,-2)),j=s(vec2(-1,1)),k=s(vec2(1,1)),l=s(vec2(-1,-1)),m=s(vec2(1,-1));
+ o=vec4(e*.125+(a+c+g+i)*.03125+(b+d+f+h)*.0625+(j+k+l+m)*.125,1.0);
+}`;
+const UP_FS=`#version 300 es
+precision highp float;
+in vec2 v_uv;uniform sampler2D u_src;uniform vec2 u_px;uniform float u_k;
+out vec4 o;
+vec3 s(vec2 d){return texture(u_src,v_uv+d*u_px*u_k).rgb;}
+void main(){
+ vec3 r=s(vec2(0,0))*4.0+(s(vec2(-1,0))+s(vec2(1,0))+s(vec2(0,-1))+s(vec2(0,1)))*2.0+s(vec2(-1,-1))+s(vec2(1,-1))+s(vec2(-1,1))+s(vec2(1,1));
+ o=vec4(r/16.0,1.0);
+}`;
+/* a texture laid over the target in a colour; with u_px a tent upsample; u_flip for a canvas texture (top row first) */
+const ADD_FS=`#version 300 es
+precision highp float;
+in vec2 v_uv;uniform sampler2D u_src;uniform vec4 u_color;uniform vec2 u_px;uniform float u_flip;
+out vec4 o;
+void main(){
+ vec2 uv=u_flip>.5?vec2(v_uv.x,1.0-v_uv.y):v_uv;
+ vec4 t;
+ if(u_px.x>0.0)t=(texture(u_src,uv)*4.0+(texture(u_src,uv+vec2(u_px.x,0))+texture(u_src,uv-vec2(u_px.x,0))+texture(u_src,uv+vec2(0,u_px.y))+texture(u_src,uv-vec2(0,u_px.y)))*2.0
+  +texture(u_src,uv+u_px)+texture(u_src,uv-u_px)+texture(u_src,uv+vec2(u_px.x,-u_px.y))+texture(u_src,uv+vec2(-u_px.x,u_px.y)))/16.0;
+ else t=texture(u_src,uv);
+ o=vec4(t.rgb*u_color.rgb,t.a*u_color.a);
+}`;
+const BLUR1_FS=`#version 300 es
+precision highp float;
+in vec2 v_uv;uniform sampler2D u_src;uniform vec2 u_dir;uniform float u_sigma;uniform float u_flip;
+out vec4 o;
+void main(){
+ vec2 uv=u_flip>.5?vec2(v_uv.x,1.0-v_uv.y):v_uv,dir=u_flip>.5?vec2(u_dir.x,-u_dir.y):u_dir;
+ int r=int(ceil(u_sigma*3.0));vec4 acc=vec4(0.0);float ws=0.0;
+ for(int i=-24;i<=24;i++){if(i<-r||i>r)continue;float w=exp(-float(i*i)/(2.0*u_sigma*u_sigma));acc+=texture(u_src,uv+dir*float(i))*w;ws+=w;}
+ o=acc/ws;
+}`;
+/* light shafts: soft fans of beams out from the sun (slowly drifting), fading with distance, and dimmed where the line back to the
+   sun crosses the shadow layer - so the town's houses and trees cut the beams */
+const RAYS_FS=`#version 300 es
+precision highp float;
+in vec2 v_uv;uniform sampler2D u_shadow;uniform float u_hasShadow;uniform vec2 u_pos;uniform vec2 u_res;uniform float u_time;uniform float u_reach;uniform float u_block;
+out vec4 o;
+float hash(float n){return fract(sin(n)*43758.5453);}
+float noise(float x){float i=floor(x),f=fract(x);return mix(hash(i),hash(i+1.0),f*f*(3.0-2.0*f));}
+void main(){
+ vec2 d=(v_uv-u_pos)*u_res;float dist=length(d),ang=atan(d.y,d.x);
+ float b=noise(ang*11.0+u_time*.035)*.62+noise(ang*29.0-u_time*.06)*.38;
+ b=smoothstep(.38,.95,b);
+ float fall=exp(-dist/(u_res.y*u_reach));
+ float T=1.0;
+ if(u_hasShadow>.5){float acc=0.0;for(int i=1;i<=28;i++){vec2 q=mix(v_uv,u_pos,float(i)/28.0*.55);if(q.x<0.0||q.y<0.0||q.x>1.0||q.y>1.0)break;acc+=texture(u_shadow,vec2(q.x,1.0-q.y)).a;}T=exp(-acc*u_block);}
+ o=vec4(vec3(b*fall*T),1.0);
+}`;
+
 /* ================================================================== geometry helpers (pure; also run headless in the tests) */
 const TAU=Math.PI*2;
 /* arc sweep as the 2D canvas defines it */
@@ -448,7 +577,7 @@ function create(canvas,opts={}){
  const gl=canvas.getContext('webgl2',{alpha:true,antialias:false,depth:false,stencil:false,premultipliedAlpha:true,preserveDrawingBuffer:false,powerPreference:'high-performance'});
  if(!gl)return null;
  const R={gl,canvas,lost:false,warned:new Set(),lodBias:opts.lodBias==null?-0.5:opts.lodBias};   /* lodBias: a sharper mip level when pictures shrink; -0.5 measured closest to the game's own downscaling (Silverfjord: mean difference 5.3 -> 2.6) */
- const warn=m=>{if(R.warned.has(m))return;R.warned.add(m);try{console.warn('GL2D: '+m);}catch(e){}};
+ const warn=m=>{if(opts.quiet||R.warned.has(m))return;R.warned.add(m);try{console.warn('GL2D: '+m);}catch(e){}};
  const E=n=>gl[n];
  for(const k in COMPOSITE)COMPOSITE[k]=COMPOSITE[k].map(v=>typeof v==='string'?gl[v]:v);
  const maxUnits=gl.getParameter(gl.MAX_TEXTURE_IMAGE_UNITS);
@@ -907,7 +1036,7 @@ function create(canvas,opts={}){
  function init(){
   buildPrograms();buildBuffers();buildSamplers();buildGradTex();
   for(const k in T)T[k]=null;W=H=0;sizeDirty=true;cur.target=cur.blend=cur.stencilKey=cur.program=null;cur.scissor=undefined;depthOn=false;
-  vcount=icount=0;nslot=0;live.clear();textAtlas=null;
+  vcount=icount=0;nslot=0;live.clear();textAtlas=null;lightVao=null;emitVao=null;
  }
 
  /* ---- a web font that finishes loading: text cached in the fallback font is drawn again */
@@ -1168,6 +1297,155 @@ function create(canvas,opts={}){
   try{prim(z=>emitFan(p,0,4,{col:0,info:0,map:null},z),bb);}finally{S.comp=keepComp;S.shColor=keepSh;}
  }
 
+ /* ================================================================ post passes: light, bloom, rays, soft layers (2026-10-09)
+    Each pass flushes, copies the scene so far into a texture, works in targets of its own and writes back into the scene, so the
+    game keeps drawing on top of the result (the HUD, the weather and the vignette stay out of the light). Light and bloom work in
+    half floats where the GPU can render them, so a lamp may light a wall past white before the soft shoulder brings it back. */
+ const FLOATRT=!!gl.getExtension('EXT_color_buffer_float');
+ const PP={};
+ function ppTarget(name,w,h,hdr){
+  w=Math.max(1,Math.round(w));h=Math.max(1,Math.round(h));
+  let t=PP[name];
+  const hd=!!(hdr&&FLOATRT);
+  if(t&&t.w===w&&t.h===h&&t.gen===gen&&t.hdr===hd)return t;
+  if(t&&t.gen===gen){gl.deleteFramebuffer(t.fbo);gl.deleteTexture(t.tex);}
+  const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);
+  gl.texImage2D(gl.TEXTURE_2D,0,hd?gl.RGBA16F:gl.RGBA8,w,h,0,gl.RGBA,hd?gl.HALF_FLOAT:gl.UNSIGNED_BYTE,null);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  const fbo=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,fbo);gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,tex,0);
+  t=PP[name]={fbo,tex,w,h,gen,hdr:hd};cur.target=null;return t;
+ }
+ function ppProgram(name,fs,vs){
+  if(P[name]&&P[name].gen===gen)return P[name];
+  const p=program(vs||PP_VS,fs);p.gen=gen;P[name]=p;return p;
+ }
+ function into(t){gl.bindFramebuffer(gl.FRAMEBUFFER,t?t.fbo:T.scene);gl.viewport(0,0,t?t.w:W,t?t.h:H);cur.target=null;}
+ function texUnit(i,tex){gl.activeTexture(gl.TEXTURE0+i);gl.bindTexture(gl.TEXTURE_2D,tex);gl.bindSampler(i,null);}
+ function fullQuad(p){if(cur.program!==p){gl.useProgram(P[p].p);cur.program=p;}gl.bindVertexArray(quadVao);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);stats.draws++;gl.bindVertexArray(vao);}
+ /* begin: the batch drawn, the scene resolved into T.resTex, no depth, stencil or scissor in the way */
+ function postBegin(resolve=true){
+  flush('post');ensureSize();ensureLayer();
+  if(resolve)blitRegion('scene','res',[0,0,W,H]);
+  gl.disable(gl.DEPTH_TEST);gl.disable(gl.STENCIL_TEST);gl.disable(gl.SCISSOR_TEST);gl.colorMask(true,true,true,true);
+  depthOn=false;cur.stencilKey=null;cur.scissor=undefined;cur.blend=null;stats.isolated++;
+ }
+ function postEnd(){gl.activeTexture(gl.TEXTURE0);cur.target=null;cur.blend=null;cur.program=null;dirty=true;if(!presentQueued){presentQueued=true;queueMicrotask(present);}}
+ function blendAdd(){gl.enable(gl.BLEND);gl.blendEquation(gl.FUNC_ADD);gl.blendFunc(gl.ONE,gl.ONE);}
+ function blendOver(){gl.enable(gl.BLEND);gl.blendEquation(gl.FUNC_ADD);gl.blendFunc(gl.ONE,gl.ONE_MINUS_SRC_ALPHA);}
+
+ /* ---- the light map: ambient everywhere, every light added in, then the scene multiplied by it.
+    A light (device px): x,y the ground under it, fx,fy its flame, reach/head the radii of the pool on the ground and of the light
+    round the flame, color rgb 0-1, level 0-1. Falloff as the 2D lamps have it: (1+(r/h)^2)^-1.5 brought to nothing at the edge. */
+ let lightVao=null,lightBuf=null,lightData=new Float32Array(16*64),emitVao=null,emitBuf=null,emitData=new Float32Array(8*64);
+ function lightMap(o){
+  if(R.lost)return;
+  postBegin();
+  const s=o.scale||.5,lt=ppTarget('light',W*s,H*s,true);
+  ppProgram('light',LIGHT_FS,LIGHT_VS);ppProgram('lmix',LMIX_FS);
+  into(lt);gl.disable(gl.BLEND);
+  const a=o.ambient||[1,1,1];gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);
+  const L=o.lights||[],n=L.length;
+  if(n){
+   if(lightData.length<n*16)lightData=new Float32Array(n*32);
+   const inten=o.intensity==null?1:o.intensity;
+   for(let i=0;i<n;i++){const l=L[i],j=i*16,c=l.color||[1,.84,.61],v=(l.level==null?1:l.level)*inten;
+    lightData[j]=l.x;lightData[j+1]=l.y;lightData[j+2]=l.fx==null?l.x:l.fx;lightData[j+3]=l.fy==null?l.y:l.fy;
+    lightData[j+4]=l.reach;lightData[j+5]=l.head||l.reach*.55;lightData[j+6]=o.flat||.8;lightData[j+7]=v;
+    lightData[j+8]=c[0];lightData[j+9]=c[1];lightData[j+10]=c[2];lightData[j+11]=o.poolH||.335;
+    lightData[j+12]=o.headH||.33;lightData[j+13]=0;lightData[j+14]=0;lightData[j+15]=0;}
+   if(!lightVao){
+    lightVao=gl.createVertexArray();gl.bindVertexArray(lightVao);
+    gl.bindBuffer(gl.ARRAY_BUFFER,quadVbo);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,8,0);
+    lightBuf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,lightBuf);
+    for(let k=0;k<4;k++){gl.enableVertexAttribArray(1+k);gl.vertexAttribPointer(1+k,4,gl.FLOAT,false,64,k*16);gl.vertexAttribDivisor(1+k,1);}
+   }
+   gl.bindVertexArray(lightVao);gl.bindBuffer(gl.ARRAY_BUFFER,lightBuf);gl.bufferData(gl.ARRAY_BUFFER,lightData.subarray(0,n*16),gl.STREAM_DRAW);
+   gl.useProgram(P.light.p);cur.program='light';gl.uniform2f(P.light.u.u_res,W,H);
+   blendAdd();gl.drawArraysInstanced(gl.TRIANGLE_STRIP,0,4,n);stats.draws++;
+   gl.bindVertexArray(vao);
+  }
+  /* the scene times the light, with a soft shoulder above white */
+  into(null);gl.disable(gl.BLEND);
+  gl.useProgram(P.lmix.p);cur.program='lmix';texUnit(0,T.resTex);texUnit(1,lt.tex);
+  gl.uniform1i(P.lmix.u.u_scene,0);gl.uniform1i(P.lmix.u.u_light,1);gl.uniform3f(P.lmix.u.u_amb,a[0],a[1],a[2]);gl.uniform1f(P.lmix.u.u_over,o.over==null?.15:o.over);
+  gl.uniform1f(P.lmix.u.u_knee,o.knee==null?1.5:o.knee);gl.uniform1f(P.lmix.u.u_max,o.max==null?1.15:o.max);
+  fullQuad('lmix');
+  postEnd();
+ }
+
+ /* ---- bloom: what is brighter than the threshold, blurred down a chain of halving targets and back up, added onto the scene */
+ function bloom(o){
+  if(R.lost)return;
+  postBegin();
+  const levels=Math.max(1,Math.min(7,o.levels||5)),s0=o.scale||.5;
+  ppProgram('bright',BRIGHT_FS);ppProgram('down',DOWN_FS);ppProgram('up',UP_FS);ppProgram('addmix',ADD_FS);
+  const B=[];for(let i=0;i<levels;i++)B.push(ppTarget('bloom'+i,W*s0/(1<<i),H*s0/(1<<i),true));
+  gl.disable(gl.BLEND);
+  into(B[0]);gl.useProgram(P.bright.p);cur.program='bright';texUnit(0,T.resTex);
+  gl.uniform1i(P.bright.u.u_src,0);gl.uniform2f(P.bright.u.u_px,1/W,1/H);gl.uniform1f(P.bright.u.u_thr,o.threshold==null?.8:o.threshold);gl.uniform1f(P.bright.u.u_knee,o.knee==null?.25:o.knee);
+  gl.uniform1f(P.bright.u.u_white,o.white==null?.25:o.white);
+  fullQuad('bright');
+  const E=o.emit||[],ne=E.length;
+  if(ne){   /* the emitters straight into the bright level */
+   ppProgram('emit',EMIT_FS,EMIT_VS);
+   if(emitData.length<ne*8)emitData=new Float32Array(ne*16);
+   for(let i=0;i<ne;i++){const e=E[i],j=i*8,c=e.color||[1,1,1];emitData[j]=e.x;emitData[j+1]=e.y;emitData[j+2]=Math.max(1,e.r);emitData[j+3]=0;emitData[j+4]=c[0];emitData[j+5]=c[1];emitData[j+6]=c[2];emitData[j+7]=e.k==null?1:e.k;}
+   if(!emitVao){emitVao=gl.createVertexArray();gl.bindVertexArray(emitVao);
+    gl.bindBuffer(gl.ARRAY_BUFFER,quadVbo);gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,8,0);
+    emitBuf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,emitBuf);
+    for(let k=0;k<2;k++){gl.enableVertexAttribArray(1+k);gl.vertexAttribPointer(1+k,4,gl.FLOAT,false,32,k*16);gl.vertexAttribDivisor(1+k,1);}}
+   gl.bindVertexArray(emitVao);gl.bindBuffer(gl.ARRAY_BUFFER,emitBuf);gl.bufferData(gl.ARRAY_BUFFER,emitData.subarray(0,ne*8),gl.STREAM_DRAW);
+   gl.useProgram(P.emit.p);cur.program='emit';gl.uniform2f(P.emit.u.u_res,W,H);blendAdd();
+   gl.drawArraysInstanced(gl.TRIANGLE_STRIP,0,4,ne);stats.draws++;gl.bindVertexArray(vao);gl.disable(gl.BLEND);
+  }
+  for(let i=1;i<levels;i++){into(B[i]);gl.useProgram(P.down.p);cur.program='down';texUnit(0,B[i-1].tex);gl.uniform1i(P.down.u.u_src,0);gl.uniform2f(P.down.u.u_px,1/B[i-1].w,1/B[i-1].h);fullQuad('down');}
+  blendAdd();
+  for(let i=levels-1;i>0;i--){into(B[i-1]);gl.useProgram(P.up.p);cur.program='up';texUnit(0,B[i].tex);gl.uniform1i(P.up.u.u_src,0);gl.uniform2f(P.up.u.u_px,1/B[i].w,1/B[i].h);gl.uniform1f(P.up.u.u_k,o.spread==null?1:o.spread);fullQuad('up');}
+  into(null);gl.useProgram(P.addmix.p);cur.program='addmix';texUnit(0,B[0].tex);gl.uniform1i(P.addmix.u.u_src,0);
+  const c=o.tint||[1,1,1],k=o.strength==null?.6:o.strength;gl.uniform4f(P.addmix.u.u_color,c[0]*k,c[1]*k,c[2]*k,0);gl.uniform2f(P.addmix.u.u_px,1/B[0].w,1/B[0].h);gl.uniform1f(P.addmix.u.u_flip,0);
+  fullQuad('addmix');
+  postEnd();
+ }
+
+ /* ---- light shafts: beams out of the sun at (x,y) device px - on or off the screen - in a colour, cut by a shadow layer if given */
+ function rays(o){
+  if(R.lost)return;
+  postBegin(false);
+  const s=o.scale||.5,A=ppTarget('raysA',W*s,H*s,true);
+  ppProgram('rays',RAYS_FS);ppProgram('addmix',ADD_FS);
+  let shadowTex=null;
+  if(o.shadow){const sz=sourceSize(o.shadow);const e=sz&&texFor(o.shadow,sz[0],sz[1]);shadowTex=e&&e.tex;}
+  gl.disable(gl.BLEND);
+  into(A);gl.useProgram(P.rays.p);cur.program='rays';texUnit(0,shadowTex||T.resTex);
+  gl.uniform1i(P.rays.u.u_shadow,0);gl.uniform1f(P.rays.u.u_hasShadow,shadowTex?1:0);gl.uniform2f(P.rays.u.u_pos,o.x/W,1-o.y/H);gl.uniform2f(P.rays.u.u_res,W,H);
+  gl.uniform1f(P.rays.u.u_time,o.time||0);gl.uniform1f(P.rays.u.u_reach,o.reach==null?.9:o.reach);gl.uniform1f(P.rays.u.u_block,o.block==null?.22:o.block);
+  fullQuad('rays');
+  into(null);blendAdd();gl.useProgram(P.addmix.p);cur.program='addmix';texUnit(0,A.tex);gl.uniform1i(P.addmix.u.u_src,0);
+  const c=o.color||[1,.85,.6],k=o.strength==null?.3:o.strength;gl.uniform4f(P.addmix.u.u_color,c[0]*k,c[1]*k,c[2]*k,0);gl.uniform2f(P.addmix.u.u_px,1/A.w,1/A.h);gl.uniform1f(P.addmix.u.u_flip,0);
+  fullQuad('addmix');
+  postEnd();
+ }
+
+ /* ---- a screen-sized layer (a 2D canvas, any resolution) laid over the whole view, gaussian-blurred first: the sun's shadows */
+ function drawBlurred(src,alpha,sigma){
+  if(R.lost||!src)return;
+  const sz=sourceSize(src);if(!sz)return;
+  postBegin(false);
+  const e=texFor(src,sz[0],sz[1]);if(!e||!e.tex){postEnd();return;}
+  ppProgram('blur1',BLUR1_FS);ppProgram('addmix',ADD_FS);
+  const A=ppTarget('sbA',sz[0],sz[1],false),Bt=ppTarget('sbB',sz[0],sz[1],false);
+  gl.disable(gl.BLEND);
+  const pass=(dst,tex,dx,dy,flip)=>{into(dst);gl.useProgram(P.blur1.p);cur.program='blur1';texUnit(0,tex);gl.uniform1i(P.blur1.u.u_src,0);
+   gl.uniform2f(P.blur1.u.u_dir,dx/sz[0],dy/sz[1]);gl.uniform1f(P.blur1.u.u_sigma,Math.max(.01,sigma));gl.uniform1f(P.blur1.u.u_flip,flip?1:0);fullQuad('blur1');};
+  pass(A,e.tex,1,0,true);   /* the canvas texture has its top row first: turn it the GL way up here */
+  pass(Bt,A.tex,0,1,false);
+  into(null);blendOver();gl.useProgram(P.addmix.p);cur.program='addmix';texUnit(0,Bt.tex);gl.uniform1i(P.addmix.u.u_src,0);
+  gl.uniform4f(P.addmix.u.u_color,alpha,alpha,alpha,alpha);gl.uniform2f(P.addmix.u.u_px,0,0);gl.uniform1f(P.addmix.u.u_flip,0);
+  fullQuad('addmix');
+  postEnd();
+ }
+
  init();
 
  /* ================================================================ the object the game holds as ctx */
@@ -1292,6 +1570,9 @@ function create(canvas,opts={}){
   resetStats(){stats.frames=stats.draws=stats.flushes=stats.uploads=stats.uploadPx=stats.textMiss=stats.stencilFills=stats.isolated=stats.verts=0;stats.reasons={};stats.upBy={};},
   sceneTexture(){ensureLayer();blitRegion('scene','res',[0,0,W,H]);return T.resTex;},
   set lodBias(v){flush('bias');R.lodBias=+v||0;},get lodBias(){return R.lodBias;},
+  /* the post passes (light, bloom, light shafts, a blurred screen layer) and whether light can go past white */
+  lightMap(o){lightMap(o);},bloom(o){bloom(o);},rays(o){rays(o);},drawBlurred(src,alpha,sigma){drawBlurred(src,alpha,sigma);},
+  get hdr(){return FLOATRT;},
   gl
  };
  /* properties with the 2D API's validation */
@@ -1329,7 +1610,7 @@ function probe(){
  let c=null,g=null;
  try{
   c=document.createElement('canvas');c.width=64;c.height=32;
-  g=create(c,{samples:4});if(!g)return false;
+  g=create(c,{samples:4,quiet:true});if(!g)return false;
   g.fillStyle='#ff0000';g.fillRect(0,0,32,32);
   g.fillStyle='rgba(0,0,255,0.5)';g.beginPath();g.arc(48,16,12,0,Math.PI*2);g.fill();
   const lg=g.createLinearGradient(0,0,32,0);lg.addColorStop(0,'#000000');lg.addColorStop(1,'#ffffff');
@@ -1345,6 +1626,6 @@ function probe(){
 return {create,supported,probe,parseColor,debug:GL2D_DEBUG,_track:installTracking,
  _test:{arcSweep,arcSegments,convexity,signedArea,winding,dashPolyline,strokePolyline,fanCircle,TriBuf,rampTexels,pack,parseColorRaw:s=>parseColorRaw(s,1)}};
 })();
-/* record gradients and patterns from the start (the screen may be handed to WebGL later in the load), unless the player chose Canvas */
-if(typeof window!=='undefined'&&typeof document!=='undefined'){let on=true;try{const v=JSON.parse(localStorage.getItem('riptide.displaySettings')||'null');on=!(v&&v.webgl===false);}catch(e){}if(on)GL2D._track();}
+/* record gradients and patterns from the start: the screen is handed to WebGL later in the load */
+if(typeof window!=='undefined'&&typeof document!=='undefined')GL2D._track();
 if(typeof module!=='undefined'&&module.exports)module.exports=GL2D;

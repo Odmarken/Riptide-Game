@@ -80,13 +80,13 @@ test('gradient ramps: stops interpolated unpremultiplied, then premultiplied; eq
  assert.equal(px[126*4],0);assert.equal(px[130*4],255);
 });
 
-test('the game hands its screen to WebGL only after the probe, and can always fall back to the 2D canvas',()=>{
+test('the game always hands its screen to WebGL, after the probe, and falls back to the 2D canvas only when the machine cannot',()=>{
  const html=read('index.html'),game=read('game.js');
  const gl=html.indexOf('<script src="assets/gl/gl2d.js'),first=html.indexOf('<script src="assets/ui/desktop-frames.js'),main=html.indexOf('<script src="game.js');
  assert.ok(gl>0&&gl<first&&gl<main,'loaded before the game\'s other scripts, so every gradient made later is recorded');
  const pick=game.slice(game.indexOf('function screenSurface(el){'),game.indexOf("const [cv,ctx]=screenSurface($('game'));"));
  assert.ok(pick.includes('GL2D.probe()')&&pick.includes('GL2D.create(el)'),'probe first, then the real canvas');
- assert.ok(pick.includes(".webgl")&&pick.includes('DisplaySettings.normalize'),'the Settings > Video switch decides');
+ assert.ok(!pick.includes('localStorage')&&!pick.includes('.webgl'),'no setting decides it (the switch was taken out 2026-10-09)');
  assert.ok(/el\.getContext\('2d'\)===null\)\{const fresh=el\.cloneNode\(false\);el\.replaceWith\(fresh\);el=fresh;\}/.test(pick),'a canvas WebGL already took is swapped for a fresh one');
  assert.ok(pick.trim().endsWith("return [el,el.getContext('2d')];\n}")||pick.includes("return [el,el.getContext('2d')];"),'and the plain canvas is the fallback');
  /* the game's scaled copies point back at their source, which WebGL mip-maps itself */
@@ -96,8 +96,23 @@ test('the game hands its screen to WebGL only after the probe, and can always fa
  assert.ok(crisp.includes('out.__glSrc=img;'));
 });
 
-test('Settings > Video: WebGL on by default, only a real boolean turns it off',()=>{
+test('Settings > Video has no WebGL switch: the screen is always WebGL ("ska alltid vara webGL")',()=>{
  const D=require('../assets/ui/display-settings.js');
- assert.equal(D.normalize(null).webgl,true);assert.equal(D.normalize({webgl:false}).webgl,false);assert.equal(D.normalize({webgl:'no'}).webgl,true);
- const html=read('index.html');assert.ok(html.includes('id="webglChk"')&&html.includes('takes effect on restart'));
+ assert.equal('webgl' in D.normalize(null),false);assert.equal('webgl' in D.normalize({webgl:false}),false,'an old saved choice is dropped');
+ const html=read('index.html');assert.ok(!html.includes('id="webglChk"')&&!html.includes('WebGL renderer'));
+});
+
+test('💡 the GPU light: Settings > Video > Lighting quality (ultra by default, only the three names), and the game asks for it where the 2D light was',()=>{
+ const D=require('../assets/ui/display-settings.js');
+ assert.equal(D.normalize(null).lightQuality,'ultra');assert.equal(D.normalize({lightQuality:'low'}).lightQuality,'low');assert.equal(D.normalize({lightQuality:'max'}).lightQuality,'ultra');
+ assert.deepEqual(D.QUALITIES,['ultra','medium','low']);
+ const html=read('index.html');assert.ok(/<select id="lightQSel"><option value="ultra">Ultra<\/option><option value="medium">Medium<\/option><option value="low">Low<\/option><\/select>/.test(html));
+ const game=read('game.js');
+ assert.ok(game.includes('SUN.q=v.lightQuality'),'the setting reaches the sun');
+ assert.ok(/const glFx=\(\)=>ctx\.isGL&&SUN\.light&&ctx\.lightMap\?/.test(game),'only on the WebGL screen with Lighting on');
+ assert.ok(game.includes('(q?nightLightsGL(night,now,q):nightLights(night,now))'),'the night through the GPU light map, the 2D light map otherwise');
+ assert.ok(/function sunEnd\(\)\{[^]*?ctx\.drawBlurred\(sunLayer/.test(game),'soft shadows on medium and ultra');
+ assert.ok(game.includes('if(q)sunPostFX(now,q);'),'bloom and light shafts after the sun');
+ const gl=read('assets/gl/gl2d.js');
+ for(const f of ['lightMap(o){lightMap(o);}','bloom(o){bloom(o);}','rays(o){rays(o);}','drawBlurred(src,alpha,sigma)'])assert.ok(gl.includes(f),f);
 });

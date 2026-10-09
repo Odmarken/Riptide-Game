@@ -319,17 +319,18 @@ test('Torsten and training markers use exact global service positions and stay r
 });
 
 test('the actual frame hook updates visibility in City, pause, other zones and character menus', () => {
-  const calls = [];
+  const calls = [], bars = [];
   const context = vm.createContext({ lastT: 0, fpsN: 0, fpsT: 0, frameDt: 0, saveT: 0,
     gameOn: true, gamePaused: false, S: { zone: 1 }, ZONES: [{ city: false }, { city: true }, { wasteland: true }, { wasteland: true, dungeon: 'briarhollow' }],
     world: city, hero: city.spawn, cityMinimap: { update(...args) { calls.push(args); } },
+    dayBar: { update(...args) { bars.push(args); } }, SUN: { t: 1350 },   /* ☀ the day-and-night bar rides the same hook (2026-10-09) */
     update() {}, renderVitals() {}, draw() {}, save() {}, requestAnimationFrame() {}, $: () => null, padTick() {}, padHintsTick() {},
     voyage: null, voyageTick() {}, drawVoyage() {}, voyageLift() {},   /* ⛵ no crossing under way */
     TideUI: { afterDraw() {} }, HeroGuide: { isOpen: () => false },
     ctx: { fillRect() {}, fillText() {} }, VW: 800, VH: 600,
     document: { body: {} }, getComputedStyle: () => ({ fontFamily: 'serif' }),
   });
-  vm.runInContext(section('function frame(t){', '\nconst sidebarResize='), context);
+  vm.runInContext(section('function sunZone(z){', '\nconst sunStep=') + section('function frame(t){', '\nconst sidebarResize='), context);
   context.frame(0); assert.equal(calls.at(-1)[2], true);
   context.gamePaused = true; context.frame(20); assert.equal(calls.at(-1)[2], true);
   context.S.zone = 0; context.frame(40); assert.equal(!!calls.at(-1)[2], false);
@@ -339,6 +340,10 @@ test('the actual frame hook updates visibility in City, pause, other zones and c
   assert.equal(!!calls.at(-1)[2], false, 'Character menus must hide a leftover City map');
   context.S = null; context.frame(80); assert.equal(!!calls.at(-1)[2], false);
   assert.equal(calls.length, 7, 'Visibility updates even when the game draw is not running');
+  assert.deepEqual(bars.map(b => b[0]), [true, true, true, true, false, false, false],
+    'the day bar: out of doors - the City, paused, any outdoor zone, the Wasteland - never in a dungeon, a character menu or with no hero');
+  assert.equal(bars[0][1], 1350, 'it reads the sun\'s own seconds into the day');
+  assert.equal(context.frame.faults | 0, 0, 'the hook throws nothing');
 });
 
 test('the ports of call and the Harbour have a minimap: Blackbeard, the King, the recruiter, the doors and the way home',()=>{

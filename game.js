@@ -168,14 +168,18 @@ const sunStep=(a,b,x)=>{const u=Math.max(0,Math.min(1,(x-a)/(b-a)));return u*u*(
 function sunAnchor(){   /* the bank's hour: it pays every full hour from S.bankLastT, and the day starts on the same beat */
  return (typeof S!=='undefined'&&S&&S.bankLastT)||0;
 }
-function sunUpdate(ms=Date.now()){   /* where the sun stands now, and what that makes of the shadows and the light */
- const cyc=SUN.day+SUN.night,t=((SUN.pin!=null?SUN.pin:(ms-sunAnchor())/1000)%cyc+cyc)%cyc;   /* seconds into the day: the sun is up for the first SUN.day of them */
+function sunDarkAt(t){   /* how dark it is t seconds into the day: dusk, fifteen minutes of night, dawn - a few minutes of twilight each way */
  const up=t<SUN.day,p=up?t/SUN.day:1,dusk=t-SUN.day;
- SUN.p=p;
+ return up?.4*(1-sunStep(0,.1,p))+.4*sunStep(.9,1,p):.4+.6*sunStep(0,SUN.night*.13,dusk)-.6*sunStep(SUN.night*.87,SUN.night,dusk);
+}
+function sunUpdate(ms=Date.now()){   /* where the sun stands now, and what that makes of the shadows and the light */
+ const cyc=SUN.day+SUN.night,t=((SUN.pin!=null?SUN.pin:SUN.lapse?SUN.lapseAt+(ms-SUN.lapseFrom)/1000*SUN.lapse:(ms-sunAnchor())/1000)%cyc+cyc)%cyc;   /* lapse: the light test's fast day */   /* seconds into the day: the sun is up for the first SUN.day of them */
+ const up=t<SUN.day,p=up?t/SUN.day:1,dusk=t-SUN.day;
+ SUN.p=p;SUN.t=t;   /* t: the seconds themselves, for the day-and-night bar over the minimap */
  SUN.k=SUN.reach*Math.tan(SUN.rise)/Math.tan(SUN.rise+(Math.PI-2*SUN.rise)*p);   /* as long as the sun is low: long at both ends of the day, short at noon */
  SUN.cast=up?sunStep(0,.09,p)*(1-sunStep(.91,1,p)):0;   /* the shadows come as the sun clears the left edge and go as it sinks at the right */
  SUN.lit=up?sunStep(0,.06,p)*(1-sunStep(.94,1,p)):0;
- SUN.dark=up?.4*(1-sunStep(0,.1,p))+.4*sunStep(.9,1,p):.4+.6*sunStep(0,SUN.night*.13,dusk)-.6*sunStep(SUN.night*.87,SUN.night,dusk);   /* dusk, fifteen minutes of night, dawn - a few minutes of twilight each way */
+ SUN.dark=sunDarkAt(t);   /* the day-and-night bar paints the sky ahead and behind with the same */
  return SUN;
 }
 const sunSilhouettes=new WeakMap();
@@ -220,6 +224,7 @@ function sunShadowBox(x0,top,W,H,foot){   /* a plain block - a town wall's run -
 }
 function sunEnd(){   /* the whole layer down at one strength */
  if(!sunLayer||!sunLayer.used)return;
+ {const q=glFx();if(q&&q!=='low'){ctx.drawBlurred(sunLayer,SUN.alpha*SUN.cast,q==='ultra'?2.4:1.3);return;}}   /* 🎮 softer on the GPU */
  ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=SUN.alpha*SUN.cast;ctx.drawImage(sunLayer,0,0,cv.width,cv.height);ctx.restore();
 }
 function sunFootShadow(x,y,tall){   /* the sun's shadow and the lights' at someone's feet, from the world's frame - a mount, a creature */
@@ -277,7 +282,8 @@ function drawSunLight(now){   /* over the whole view, under the vignette: a cool
  drawOvercast();   /* 🌧 */
  if(dark>0){   /* rose while the sun is at the edge (dark .4), deepening to the blue of the night - with the lamps' light in it once they burn */
   const night=sunRGB(dark<.4?sunMix(white,T.twilight,dark/.4):sunMix(T.twilight,T.night,(dark-.4)/.6));
-  if(!(SUN.light&&nightLights(night,now))){ctx.globalCompositeOperation='multiply';ctx.fillStyle='rgb('+night+')';ctx.fillRect(0,0,w,h);}
+  const q=glFx();
+  if(!(SUN.light&&(q?nightLightsGL(night,now,q):nightLights(night,now)))){ctx.globalCompositeOperation='multiply';ctx.fillStyle='rgb('+night+')';ctx.fillRect(0,0,w,h);}
  }
  if(SUN.flare&&lit>0){
   const outside=Math.hypot(Math.max(0,-sx,sx-w),Math.max(0,-sy,sy-h));
@@ -290,6 +296,7 @@ function drawSunLight(now){   /* over the whole view, under the vignette: a cool
  }
  if(SUN.light)nightGlow(now);   /* 🏮 */
  ctx.restore();
+ {const q=glFx();if(q)sunPostFX(now,q);}   /* 🎮 bloom, and light shafts at dawn and dusk */
 }
 /* 🏮 The lights of the night (2026-09-26). In the City the street lamps: as the dusk comes on, the lamplighters go down the
    boulevard from the west gate and the lamps come on one after another, and at dawn they go out again. In Moonshine the light
@@ -416,6 +423,43 @@ function nightGlow(now){   /* after the night is laid down: a little haze round 
   if(glass){ctx.globalCompositeOperation='screen';ctx.globalAlpha=v*.72;ctx.drawImage(glass,g.x,g.y,g.W,g.H);}   /* the panes */
  }
  ctx.restore();
+}
+/* 🎮 LIGHT ON THE GPU (2026-10-09, "dags och dra lite shaders för lighting"; Settings -> Video -> Lighting quality, asked for "om det
+   skulle lagga för folk"). With the screen on WebGL (assets/gl/gl2d.js) the night's light map is worked out per pixel on the GPU: every
+   lit lamp, window, brazier, portal, fire and spell adds its pool on the ground and its light round the flame onto the night, and the
+   town is multiplied by that - where lights overlap, or near a flame, the light goes a little past white before a soft shoulder
+   stops it. Low: the light map at a quarter of the screen. Medium: half, a halo round every flame in mist and rain, softer sun
+   shadows, and bloom - what is bright glows. Ultra: the light map at full size, the softest shadows, a wider bloom, and at dawn and
+   dusk shafts of sunlight across the town, blocked by whatever casts a shadow. The Canvas renderer keeps the 2D light. */
+const glFx=()=>ctx.isGL&&SUN.light&&ctx.lightMap?(SUN.q||'ultra'):null;
+const lightRGBs=new Map();
+const lightRGB=c=>{let v=lightRGBs.get(c);if(!v){v=c.split(',').map(x=>x/255);lightRGBs.set(c,v);}return v;};
+function nightLightsGL(night,now,q){   /* the night's light map on the GPU - the 2D nightLights' lights, per pixel */
+ const m=sunWorld;if(!m)return false;
+ const k=Math.hypot(m.a,m.b),lights=[];
+ for(const L of sunLights){
+  const v=lightLevel(L,now);if(!(v>0))continue;
+  lights.push({x:m.a*L.x+m.c*L.y+m.e,y:m.b*L.x+m.d*L.y+m.f,fx:m.a*L.x+m.c*L.fy+m.e,fy:m.b*L.x+m.d*L.fy+m.f,reach:L.reach*k,head:L.head*k,color:lightRGB(L.colour),level:v});
+ }
+ ctx.lightMap({ambient:lightRGB(night),lights,scale:q==='ultra'?1:q==='medium'?.5:.25,flat:LAMP.flat,poolH:LAMP.h/LAMP.reach,headH:LAMP.h*.55/LAMP.head,
+  over:q==='low'?0:q==='medium'?.12:.2,max:q==='low'?1:1.12});
+ glFlames=lights;
+ return true;
+}
+let glFlames=null;   /* this frame's lit lights in device px, for the bloom's emitters */
+function sunPostFX(now,q){   /* over the lit view: shafts of sunlight while the sun is low (ultra), then bloom (medium, ultra) */
+ const {lit,dark}=SUN;
+ if(q==='ultra'&&lit>0&&SUN.flare){   /* the low sun's beams across the town, morning and evening */
+  const {x,y,hi}=sunSpot(VW,VH),k=lit*Math.pow(1-hi,2)*(1-WEATHER.rain)*(1-WEATHER.fog*.5)*.45;
+  if(k>.015)ctx.rays({x:x*DPR,y:y*DPR,time:now,color:lightRGB(sunRGB(sunMix(SUN.p<.5?SUN_TINT.dawn:SUN_TINT.dusk,SUN_TINT.noon,hi))),strength:k,
+   shadow:sunCast&&sunLayer&&sunLayer.used?sunLayer:null,reach:1.1,block:.2,scale:.5});
+ }
+ if(q!=='low'){
+  const night=sunStep(.25,.6,dark),mist=Math.min(1,WEATHER.fog+WEATHER.rain*.6),emit=[];
+  if(glFlames&&night>0)for(const L of glFlames)emit.push({x:L.fx,y:L.fy,r:L.head*(.14+.1*mist),color:L.color,k:L.level*night*(.27+.13*mist)});   /* each flame's heart, a little wider in mist and rain (softer since 2026-10-09: "ljuskällorna är lite för starka") */
+  ctx.bloom({threshold:.95-.05*night,knee:.12,white:.2,strength:(.26+.16*night)*(q==='ultra'?1:.8),levels:q==='ultra'?6:4,scale:q==='ultra'?.5:.25,emit});
+ }
+ glFlames=null;
 }
 function lightPersonShadow(wx,wy,y,tall,k=1){   /* in a person's own frame (k its scale): a shadow away from every light near enough to throw one */
  if(!sunFrame||!SUN.light||!sunLights.length||!SUN.dark)return;
@@ -704,7 +748,7 @@ const CHAR_SPRITES={ /* all 16 male race+class combos have art in assets/charact
  undeadfemale_warrior:1,undeadfemale_mage:1,undeadfemale_hunter:1,undeadfemale_priest:1,
  humanmale_armor:1,dwarfmale_armor:1,orcmale_armor:1,undeadmale_armor:1,
  humanfemale_armor:1,dwarffemale_armor:1,orcfemale_armor:1,undeadfemale_armor:1, /* _armor = 🧊 Ice Armor skins */
-humanmale_royal:1,dwarfmale_royal:1,orcmale_royal:1,undeadmale_royal:1,humanfemale_royal:1,dwarffemale_royal:1,orcfemale_royal:1,undeadfemale_royal:1,
+ humanmale_royal:1,dwarfmale_royal:1,orcmale_royal:1,undeadmale_royal:1,humanfemale_royal:1,dwarffemale_royal:1,orcfemale_royal:1,undeadfemale_royal:1,
  /* _emperor = 🎭 the Emperor's / Empress's regalia (2026-10-09, Higgsfield Nano Banana Pro): one masked male figure shared by every
     race - no skin shows - and one Empress whose low neckline is recoloured to each race's skin (see charSprite) */
  humanmale_emperor:1,dwarfmale_emperor:1,orcmale_emperor:1,undeadmale_emperor:1,humanfemale_emperor:1,dwarffemale_emperor:1,orcfemale_emperor:1,undeadfemale_emperor:1}; /* _royal = 👑 the crown's robes (2026-09-22, Higgsfield gpt_image_2_5 flare off the class sprites - every class of a race shares its face, so one per race+gender) */
@@ -2498,6 +2542,22 @@ function outfitTest(){
  };
  setTimeout(showOutfits,900);
  return 'outfit test: '+S.name+' the Human '+cls.name+', Empress, every outfit';
+}
+/* 🧪 THE LIGHT TEST (2026-10-09, with the GPU light): the outfit test's Empress on Silverfjord's square while the day runs thirty
+   times as fast - the evening, the lamps of the night, the dawn's shafts, noon - a whole day in two minutes, starting a little
+   before dusk. Settings -> Video -> Lighting quality can be switched while it runs. --riptide-test=lights, in the test profile. */
+function lightTest(){
+ const r=outfitTest();if(!(S&&S.test))return r;
+ Object.assign(SUN,{lapse:30,lapseFrom:Date.now(),lapseAt:2350});
+ const go=()=>{
+  if(!(gameOn&&S&&S.test))return;
+  const b=$('boot');if(b&&!b.classList.contains('gone')){setTimeout(go,250);return;}
+  const i=townZone('silverfjord');if(i<0)return;
+  try{voyagePreload({id:'silverfjord'});}catch(e){}
+  goToZone(i);hero.x=9640;hero.y=3170;openTab('hero');
+ };
+ setTimeout(go,1200);
+ return 'light test: '+r;
 }
 const fmtNum=v=>(Math.round(v*10)/10).toString();
 function drawTownFoe(n){   /* a soldier of the garrison: his town's colours on the stones under him */
@@ -4603,13 +4663,13 @@ function dingDingDing(big){
  if(big)setTimeout(()=>{[523,659,784,1046,1318].forEach((f,k)=>setTimeout(()=>blip(f,f,0.3,.1),k*90));},hits*160);
 }
 
-/* 🎮 The screen (2026-10-09, "vi kör WebGL igenom allt"): drawn through WebGL by assets/gl/gl2d.js - the same 2D calls as ever,
-   batched for the graphics card - unless Settings > Video has WebGL off, WebGL2 is missing, or the probe (the whole pipeline on a
-   scratch canvas, read back) fails. A canvas that once had a WebGL context can never give a 2D one, so if WebGL fails AFTER taking
-   it the element is swapped for a fresh copy before anything listens to it. */
+/* 🎮 The screen (2026-10-09, "vi kör WebGL igenom allt"): always drawn through WebGL by assets/gl/gl2d.js - the same 2D calls as
+   ever, batched for the graphics card (the Settings switch was taken out the same day: "ska alltid vara webGL"). Only a machine
+   without WebGL2, or one where the probe (the whole pipeline on a scratch canvas, read back) fails, gets the 2D canvas. A canvas
+   that once had a WebGL context can never give a 2D one, so if WebGL fails AFTER taking it the element is swapped for a fresh
+   copy before anything listens to it. */
 function screenSurface(el){
- let want=true;try{want=DisplaySettings.normalize(JSON.parse(localStorage.getItem(DisplaySettings.STORAGE_KEY)||'null')).webgl;}catch(e){}
- if(want&&typeof GL2D!=='undefined'){
+ if(typeof GL2D!=='undefined'){
   try{if(GL2D.probe()){const g=GL2D.create(el);if(g)return [el,g];}}
   catch(e){
    try{console.error('GL2D: '+String((e&&e.stack)||e));}catch(_){}
@@ -11041,6 +11101,7 @@ function draw(){
  drawEdgeFog(); /* last thing in world space - it must cover the fence on the border too */
  ctx.restore();
  if(sunFrame)drawSunLight(now);   /* ☀ over the world, under what the canvas writes on top of it */
+ else{const q=glFx();if(q&&q!=='low')ctx.bloom({threshold:.72,knee:.22,strength:q==='ultra'?.55:.45,levels:q==='ultra'?6:4,scale:q==='ultra'?.5:.25});}   /* 🎮 indoors and under ground: what is bright glows */
  if(sunFrame&&(WEATHER.rain>0||WEATHER.snow>0))drawWeather(now);   /* 🌧 the rain, or the snow */
  if(z.altar&&WEATHER.on)drawAltarWind(now);   /* 🌬 and the Altar's streaks of air and ice dust */
  if(world.intro)drawFinalIntro();   /* 🎬 the black bars and his words, over everything in the world */
@@ -20502,7 +20563,7 @@ $('nextBtn').onclick=()=>{
  stageMsg('Marching to the portal…',1600);
 };
 $('autoEquipBtn').onclick=()=>{S.autoEquip=!S.autoEquip;renderHero();save();};
-const displaySettings=DisplaySettings.create({onChange:v=>{SUN.light=v.lighting;SUN.flare=v.sunFlare;WEATHER.on=v.weather;}});   /* ☀🌧 Settings -> Video -> Lighting, Sun flare, Weather */
+const displaySettings=DisplaySettings.create({onChange:v=>{SUN.light=v.lighting;SUN.flare=v.sunFlare;WEATHER.on=v.weather;SUN.q=v.lightQuality;}});   /* ☀🌧 Settings -> Video -> Lighting, Sun flare, Weather */
 /* 🔊 is now a plain mute for everything. The sliders moved into the ⚙ panel, so leaving this button
    as a slider flyout would have put the music level in two places that could disagree. */
 $('sndBtn').onclick=()=>{
@@ -21001,6 +21062,7 @@ let lastT=0;
    diagnostic. Written to the DOM twice a second; touching textContent every frame is its own cost. */
 let fpsN=0,fpsT=0;
 const cityMinimap=CityMinimap.create($('cityMinimap'));
+const dayBar=DayBar.create($('dayBar'),{day:SUN.day,night:SUN.night,dark:sunDarkAt});
 function frame(t){
  /* The next frame is asked for FIRST, and the frame runs inside a try: requestAnimationFrame used to be the last line, so
     one exception anywhere in update() or draw() stopped the game for good - a trip on the map mid-coronation did exactly
@@ -21038,7 +21100,8 @@ function frame(t){
  }else if(!gameOn){padNow=null;padTick(dt);}   /* 🎮 the hero list, a new hero and the sign-in answer the pad too */
  padHintsTick();
  {const z=ZONES[S&&S.zone];   /* 🗺 the City, the Wasteland, the Harbour and the ports of call (not the palace inside one) */
-  cityMinimap.update(world,hero,gameOn&&S&&!(voyage&&voyage.phase!=='arrive')&&!z?.dungeon&&!!(z?.city||z?.wasteland||z?.harbor||(z?.town&&!z?.interior)),t);}
+  cityMinimap.update(world,hero,gameOn&&S&&!(voyage&&voyage.phase!=='arrive')&&!z?.dungeon&&!!(z?.city||z?.wasteland||z?.harbor||(z?.town&&!z?.interior)),t);
+  dayBar.update(!!(gameOn&&S&&!(voyage&&voyage.phase!=='arrive')&&sunZone(z)),SUN.t,t);}   /* ☀ the day-and-night bar above it: wherever the day comes and goes */
  }catch(e){
   frame.faults=(frame.faults|0)+1;
   try{ctx.setTransform(DPR,0,0,DPR,0,0);}catch(_){}   /* a throw between save() and restore() would otherwise leave every later frame scaled */
@@ -21071,6 +21134,7 @@ requestAnimationFrame(frame);
  const test=window.desktop&&typeof window.desktop.testScenario==='function'?await window.desktop.testScenario().catch(()=>null):null;
  if(test&&test.split(':')[0]==='raid'){seasonReady=true;document.title+=' - Raid test';raidTest(test.split(':')[1]||undefined);return;}   /* raid:<port> for another town */
  if(test==='outfits'){seasonReady=true;document.title+=' - Outfit test';outfitTest();return;}
+ if(test==='lights'){seasonReady=true;document.title+=' - Light test';lightTest();return;}
  await initFirebase();
  await seasonWipeIfNeeded();
  seasonReady=true;

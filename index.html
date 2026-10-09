@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="favicon_256.png">
 <!-- ?v= is not decoration: without it iOS Safari serves a cached stylesheet for days, so two
      phones end up running two different builds of the layout. Bump on every visual change. -->
-<link rel="stylesheet" href="style.css?v=73">
+<link rel="stylesheet" href="style.css?v=74">
 <link rel="stylesheet" href="assets/tides/ui.css?v=11">
 <link rel="stylesheet" href="assets/ui/crafting.css?v=8">
 <link rel="stylesheet" href="assets/city/ledger.css?v=14">
@@ -108,6 +108,10 @@
  
   <div id="stageWrap">
     <canvas id="game"></canvas>
+    <div id="dayBar" hidden role="img" aria-label="Day and night">
+      <canvas aria-hidden="true"></canvas>
+      <span class="daybar-tip" aria-hidden="true">Day</span>
+    </div>
     <div id="cityMinimap" hidden tabindex="0" role="img" aria-label="City minimap. North is up; the white arrow is you. Symbols show the Church, Well, Furnace, Mining Hall, Enchanting, Throne Hall and City gate. Distant places appear along the rim.">
       <canvas aria-hidden="true"></canvas>
       <span class="minimap-north" aria-hidden="true">N</span>
@@ -145,8 +149,6 @@
             <h3 class="cfgsectiontitle">Display</h3>
             <label class="cfgrow cfgchk"><input type="checkbox" id="windowChk"><span>Windowed mode</span></label>
             <label class="cfgrow cfgchk"><input type="checkbox" id="fpsChk" checked><span>Show FPS counter</span></label>
-            <label class="cfgrow cfgchk"><input type="checkbox" id="webglChk" checked><span>WebGL renderer</span></label>
-            <div class="cfgnote" id="webglNote">Draws the world on the graphics card · takes effect on restart</div>
             <label class="cfgrow cfgchk" id="vsyncRow" style="display:none"><input type="checkbox" id="vsyncChk" checked><span>Vsync</span></label>
             <div class="cfgnote" id="vsyncNote" style="display:none">Matches your monitor · takes effect on restart</div>
             <label class="cfgrow cfgresolution" id="resRow" style="display:none"><span>Resolution</span><select id="resSel"></select></label>
@@ -157,6 +159,8 @@
             <label class="cfgrow cfgchk"><input type="checkbox" id="lightingChk" checked><span>Lighting</span></label>
             <label class="cfgrow cfgchk"><input type="checkbox" id="sunFlareChk" checked><span>Sun flare</span></label>
             <label class="cfgrow cfgchk"><input type="checkbox" id="weatherChk" checked><span>Weather</span></label>
+            <label class="cfgrow cfgresolution" id="lightQRow"><span>Lighting quality</span><select id="lightQSel"><option value="ultra">Ultra</option><option value="medium">Medium</option><option value="low">Low</option></select></label>
+            <div class="cfgnote cfgresolutionnote" id="lightQNote">Light, glow and soft shadows on the graphics card · lower it if the game stutters</div>
             <label class="cfgrow cfgslider"><span>Brightness</span><b class="cfgvalue" id="brightnessN">100</b><input type="range" id="brightnessSl" min="60" max="140" step="1" value="100" aria-label="Game brightness"></label>
             <label class="cfgrow cfgslider"><span>Contrast</span><b class="cfgvalue" id="contrastN">100</b><input type="range" id="contrastSl" min="60" max="140" step="1" value="100" aria-label="Game contrast"></label>
             <button id="videoReset" class="cfgreset">Reset brightness &amp; contrast</button>
@@ -909,7 +913,7 @@
   </nav>
 </div>
  
-<script src="assets/gl/gl2d.js?v=1"></script>
+<script src="assets/gl/gl2d.js?v=2"></script>
 <script src="assets/ui/desktop-frames.js?v=1"></script>
 <script src="assets/models/home-hit-masks.js?v=1"></script>
 <script src="assets/sprite-cutout-masks.js?v=2"></script>
@@ -922,8 +926,9 @@
 <script src="assets/weapons/rune-particles.js?v=1"></script>
 <script src="assets/weapons/rune-effects.js?v=4"></script>
 <script src="assets/ui/sidebar-resize.js?v=1"></script>
-<script src="assets/ui/display-settings.js?v=6"></script>
+<script src="assets/ui/display-settings.js?v=7"></script>
 <script src="assets/ui/city-minimap.js?v=9"></script>
+<script src="assets/ui/day-bar.js?v=1"></script>
 <script src="assets/city/economy.js?v=29"></script>
 <script src="assets/city/scenery-effects.js?v=4"></script>
 <script src="assets/city/traffic-animation.js?v=2"></script>
@@ -967,7 +972,7 @@
 <script src="assets/cloud/firestore-rest.js?v=1"></script>
 <script src="assets/boss/odin-arena.js?v=1"></script>
 <script src="assets/models/moonshine-folk.js?v=1"></script>
-<script src="game.js?v=231"></script>
+<script src="game.js?v=232"></script>
 <script src="assets/ui/crafting.js?v=4"></script>
 </body>
 </html>
