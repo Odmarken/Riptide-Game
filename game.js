@@ -768,7 +768,7 @@ function charSprite(raceId,clsId,female){
  const file=clsId==='emperor'&&!female?'emperor_male':key;   /* 🎭 the masked Emperor is one picture for every race */
  let im=charSpriteCache[file];
  if(!im){
-  im=new Image();im.src='assets/characters/'+file+'.png?v='+(key==='humanfemale_mage'?4:3);charSpriteCache[file]=im;
+  im=new Image();im.src='assets/characters/'+file+'.png?v='+(key==='humanfemale_mage'||/female_emperor$/.test(key)?4:3);charSpriteCache[file]=im;   /* v4: the Empress reshaped 2026-10-09 */
   im.onload=()=>{ /* portraits render before sprites finish loading - repaint the open screens */
    try{
     if($('select').classList.contains('open'))renderSelect();
@@ -1069,11 +1069,11 @@ function femBootW(raceId,clsId){
    robes (unlocked by taking the crown). S.outfit holds the choice; a save from before the choice existed keeps the old
    rule - Ice Armor on the back shows Ice Armor. The draw functions take it as `iceArm`: false, true (ice) or 'royal'. */
 const OUTFITS=[
- {id:'default',icon:'🧵',name:()=>classOf()?classOf().name+"'s colours":'Your colours',desc:'What you set out in. The class, as it always looked.',how:'always yours'},
- {id:'ice',icon:'🧊',name:()=>'Ice Armor',desc:'The cursed plate the Altar gave you for a life. It never lets go - but it can be hidden.',how:'the Altar’s ritual'},
- {id:'royal',icon:'👑',name:()=>(S&&S.gender==='f'?'Queen':'King')+'’s robes',desc:'Crimson velvet, ermine and the crown of the City. The tailors of the palace have your measure.',how:'take the crown'},
+ {id:'default',name:()=>classOf()?classOf().name+"'s colours":'Your colours',desc:'What you set out in. The class, as it always looked.',how:'always yours'},
+ {id:'ice',name:()=>'Ice Armor',desc:'The cursed plate the Altar gave you for a life. It never lets go - but it can be hidden.',how:'the Altar’s ritual'},
+ {id:'royal',name:()=>(S&&S.gender==='f'?'Queen':'King')+'’s robes',desc:'Crimson velvet, ermine and the crown of the City. The tailors of the palace have your measure.',how:'take the crown'},
  /* 🎭 asked for 2026-10-09: the regalia of the realm's Emperor or Empress - white silk, gold thread and a bronze mask */
- {id:'emperor',icon:'🎭',name:()=>(S&&S.gender==='f'?'Empress':'Emperor')+'’s regalia',desc:'White silk, gold thread and the bronze mask of the realm: behind it you are the face of every city and both great ports.',how:'hold all three cities and both great ports'},
+ {id:'emperor',name:()=>(S&&S.gender==='f'?'Empress':'Emperor')+'’s regalia',desc:'White silk, gold thread and the bronze mask of the realm: behind it you are the face of every city and both great ports.',how:'hold all three cities and both great ports'},
 ];
 function outfitUnlocked(id,ch=S){
  if(!ch)return id==='default';
@@ -1100,11 +1100,12 @@ const heroWeaponArgs=()=>S&&S.hideWeapon?{fm:false,id:'hidden'}:{fm:isFK(S.gear.
 const heroRing=()=>S&&!S.hideRing&&isRing(S.gear&&S.gear.trinket)?S.gear.trinket:null;
 const ROYAL_BODY_H=56;   /* the crown rides above the head: the royal frame is this tall for the same body as a 48-unit class frame */
 const EMPEROR_BODY_H=52;   /* 🎭 the hood stands a little above the hair: the body comes out as wide as a class body */
+const EMPRESS_BODY_H=EMPEROR_BODY_H*960/900;   /* 🎭 her gown is 60 px longer than his 900-px picture (narrower waist, longer dress, 2026-10-09): same scale, same mask */
 function paintedCharacterFrame(raceId,clsId,female,iceArm){
  raceId=RACE_ALIAS[raceId]||raceId;clsId=CLASS_ALIAS[clsId]||clsId;
  const robes=iceArm==='royal'||iceArm==='emperor'?iceArm:null;
  const image=charSprite(raceId,robes||(iceArm?'armor':clsId),female),
-  body=characterBodyFrame(image,robes==='royal'?ROYAL_BODY_H:robes==='emperor'?EMPEROR_BODY_H:48);
+  body=characterBodyFrame(image,robes==='royal'?ROYAL_BODY_H:robes==='emperor'?(female?EMPRESS_BODY_H:EMPEROR_BODY_H):48);
  if(!body)return null;
  const boots=characterBootFrame(raceId,female,bootImg,body.bodyBottom,body.bootTop);
  return {image,...body,boots,groundY:boots.groundY};
@@ -2469,6 +2470,34 @@ function raidTest(town='silverfjord'){
  };
  setTimeout(sailOff,900);
  return 'raid test: '+S.name+' the '+race.name+' '+cls.name+' sails for '+def.name;
+}
+/* 🧪 THE OUTFIT TEST (asked for 2026-10-09: "en test exe med en human female som har alla outfits i spelet"). A throwaway human
+   woman of a random class who has every outfit there is: the class colours, the Ice Armor (the Altar's ritual done, the plate in
+   her bag), the Queen's robes (the crown) and the Empress's regalia (all three cities and both great ports bought). She wakes in
+   the City in the regalia and the Outfits page opens once the loading screen is gone. S.test keeps her out of every save, the
+   cloud and the leaderboard (--riptide-test=outfits, the raid test's profile of its own); outfitTest() in a console does the same. */
+const TEST_NAMES_F=['Astrid','Freja','Ingrid','Sigrid','Solveig','Ylva','Tove','Ragnhild','Liv','Gudrun','Saga','Runa'];
+function outfitTest(){
+ if(gameOn&&S&&!S.test)return 'Change Character first - the test must not take over a hero in play.';
+ const pick=a=>a[Math.floor(Math.random()*a.length)],cls=pick(CLASSES);
+ S=migrate(freshState(pick(TEST_NAMES_F),'human',cls.id));
+ Object.assign(S,{id:'test-'+Date.now().toString(36),test:true,gender:'f',introPending:false,outfit:'emperor',emperorRegaliaOffered:true,
+  zone:CITY_ZONE,ritualDone:true,iceArmorGiven:true});
+ S.bag.push(makeIceArmor(S));   /* what the ritual hands over */
+ const c=S.city;CityEconomy.charter(c);
+ Object.assign(c,{crowned:true,deposed:'gaol',treasury:5e8});
+ c.allies=c.allies||{};
+ for(const d of CityEconomy.ALLIES)c.allies[d.id]={...(c.allies[d.id]||{}),stake:100,owned:true,pending:[],paid:d.price};   /* bought, as sealDeal does */
+ $('login').classList.remove('open');
+ beginGame(false);
+ log('🧪 <span class="imp">Outfit test</span> - '+esc(S.name)+', Human '+cls.name+' and Empress, has every outfit. Nothing in this test is saved.','imp');
+ const showOutfits=()=>{
+  if(!(gameOn&&S&&S.test))return;
+  const b=$('boot');if(b&&!b.classList.contains('gone')){setTimeout(showOutfits,250);return;}
+  openTab('outfits');
+ };
+ setTimeout(showOutfits,900);
+ return 'outfit test: '+S.name+' the Human '+cls.name+', Empress, every outfit';
 }
 const fmtNum=v=>(Math.round(v*10)/10).toString();
 function drawTownFoe(n){   /* a soldier of the garrison: his town's colours on the stones under him */
@@ -18739,7 +18768,7 @@ function renderOutfits(){
  if(!S)return;
  const cur=heroOutfit(),list=OUTFITS.filter(o=>outfitUnlocked(o.id));
  $('outfitIntro').textContent=(list.length===1?'One outfit':list.length+' outfits')+'. Cosmetic only: the numbers come from what you wear, the look from what you choose here.';
- $('outfitBody').innerHTML='<div class="outfit-grid">'+list.map(o=>'<div class="card outfit-card'+(o.id===cur?' worn':'')+'"><canvas width="150" height="190" data-outfit-portrait="'+o.id+'" aria-label="'+esc(o.name())+'"></canvas><h3>'+o.icon+' '+esc(o.name())+'</h3><p class="cl">'+esc(o.desc)+'</p>'
+ $('outfitBody').innerHTML='<div class="outfit-grid">'+list.map(o=>'<div class="card outfit-card'+(o.id===cur?' worn':'')+'"><canvas width="150" height="190" data-outfit-portrait="'+o.id+'" aria-label="'+esc(o.name())+'"></canvas><h3>'+esc(o.name())+'</h3><p class="cl">'+esc(o.desc)+'</p>'
   +'<button class="sbtn'+(o.id===cur?'':' gold')+'" data-outfit-wear="'+o.id+'"'+(o.id===cur?' disabled':'')+'>'+(o.id===cur?'Worn':'Wear it')+'</button></div>').join('')+'</div>'
   ;   /* a locked outfit is not listed, not even as a hint (asked for 2026-09-22): you learn of it when it is yours */
  const owner=S;
@@ -18753,7 +18782,7 @@ function renderOutfits(){
  $('outfitBody').querySelectorAll('[data-outfit-wear]').forEach(b=>b.onclick=()=>{
   const id=b.dataset.outfitWear;if(!outfitUnlocked(id))return;
   S.outfit=id;save();renderOutfits();renderHero();sfx.loot&&sfx.loot();
-  const o=OUTFITS.find(x=>x.id===id);stageMsg(o.icon+' '+o.name()+' - worn.',1800);
+  const o=OUTFITS.find(x=>x.id===id);stageMsg(o.name()+' - worn.',1800);
  });
  $('outfitBack').onclick=()=>{clearTimeout(outfitPortraitTimer);openTab('hero');};
 }
@@ -18762,7 +18791,7 @@ let outfitOfferPaintTimer=null;
 function openOutfitOffer(id){
  if(!S||!outfitUnlocked(id))return;
  const o=OUTFITS.find(x=>x.id===id);if(!o)return;
- $('outfitOfferTitle').textContent=o.icon+' '+o.name().toUpperCase();
+ $('outfitOfferTitle').textContent=o.name().toUpperCase();   /* no emoji on the outfits (asked for 2026-10-09) */
  $('outfitOfferText').textContent=id==='royal'?'The tailors of the palace have your measure. Crimson, ermine and the crown - the City wants to see it worn.'
   :id==='emperor'?'Three cities and two great ports kneel to one crown. White silk, gold thread and the bronze mask of the realm - the empire wants to see its face.'
   :o.desc;
@@ -18772,7 +18801,7 @@ function openOutfitOffer(id){
   if(S!==owner||$('outfitFx').style.display!=='flex')return;
   if(!paintOutfitPortrait(cv,id))outfitOfferPaintTimer=setTimeout(paint,400);
  };
- $('outfitOfferWear').onclick=()=>{clearTimeout(outfitOfferPaintTimer);S.outfit=id;save();renderHero();$('outfitFx').style.display='none';stageMsg(o.icon+' '+o.name()+' - worn.',2400,'#ffd76a');sfx.loot&&sfx.loot();};
+ $('outfitOfferWear').onclick=()=>{clearTimeout(outfitOfferPaintTimer);S.outfit=id;save();renderHero();$('outfitFx').style.display='none';stageMsg(o.name()+' - worn.',2400,'#ffd76a');sfx.loot&&sfx.loot();};
  $('outfitOfferLater').onclick=()=>{clearTimeout(outfitOfferPaintTimer);$('outfitFx').style.display='none';stageMsg('Outfits are in the hero panel whenever you want them.',2400);};
  $('outfitFx').style.display='flex';
  paint();
@@ -21024,6 +21053,7 @@ requestAnimationFrame(frame);
  /* 🧪 the desktop shell's test profile: no cloud and no sign-in, straight into the scenario */
  const test=window.desktop&&typeof window.desktop.testScenario==='function'?await window.desktop.testScenario().catch(()=>null):null;
  if(test&&test.split(':')[0]==='raid'){seasonReady=true;document.title+=' - Raid test';raidTest(test.split(':')[1]||undefined);return;}   /* raid:<port> for another town */
+ if(test==='outfits'){seasonReady=true;document.title+=' - Outfit test';outfitTest();return;}
  await initFirebase();
  await seasonWipeIfNeeded();
  seasonReady=true;

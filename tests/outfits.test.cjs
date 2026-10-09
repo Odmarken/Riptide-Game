@@ -10,7 +10,7 @@ function harness(S){
   RACE_ALIAS:{},CLASS_ALIAS:{},keys:[],charSprite:(r,cls,f)=>{c.keys.push(r+(f?'female':'male')+'_'+cls);return {};},
   characterBodyFrame:(img,h=48,b=5)=>({bodyBottom:b,bodyHeight:h,headY:b-h,bootTop:null,x:0,y:0,width:10,height:h}),characterBootFrame:()=>({groundY:10}),bootImg:{}};
  vm.createContext(c);vm.runInContext(slice,c);
- for(const k of ['OUTFITS','outfitArgOf','outfitArg','lookOutfit','heroWeaponArgs','ROYAL_BODY_H','EMPEROR_BODY_H'])c[k]=vm.runInContext(k,c);
+ for(const k of ['OUTFITS','outfitArgOf','outfitArg','lookOutfit','heroWeaponArgs','ROYAL_BODY_H','EMPEROR_BODY_H','EMPRESS_BODY_H'])c[k]=vm.runInContext(k,c);
  return c;
 }
 const hero=(extra={})=>({race:'human',cls:'warrior',gender:'m',gear:{weapon:null,armor:null,trinket:null},bag:[],...extra});
@@ -23,7 +23,7 @@ test('👘 four outfits, unlocked by what you have done: the class colours alway
  assert.equal(harness(hero({gear:{armor:{legend:'icearmor'}}})).outfitUnlocked('ice'),true,'the plate on your back');
  assert.equal(harness(hero({bag:[{legend:'icearmor'}]})).outfitUnlocked('ice'),true,'the plate in the bag');
  assert.equal(harness(hero({city:{crowned:false}})).outfitUnlocked('royal'),false);assert.equal(harness(hero({city:{crowned:true}})).outfitUnlocked('royal'),true,'the crown');
- assert.ok(c.OUTFITS.every(o=>o.name()&&o.desc&&o.how&&o.icon));
+ assert.ok(c.OUTFITS.every(o=>o.name()&&o.desc&&o.how&&!o.icon),'no emoji on the outfits (asked for 2026-10-09)');
  assert.equal(harness(hero({gender:'f',city:{crowned:true}})).OUTFITS[2].name(),'Queen’s robes');assert.equal(c.OUTFITS[2].name(),'King’s robes');
  /* 🎭 the regalia: only the Emperor or Empress - a crown alone is not enough */
  assert.equal(c.outfitUnlocked('emperor'),false);assert.equal(harness(hero({city:{crowned:true}})).outfitUnlocked('emperor'),false,'a King with fewer than five');
@@ -47,6 +47,10 @@ test('👘 what is drawn: the choice when it is unlocked, the class colours when
  /* 🎭 the regalia: one male picture for every race (charSprite maps the key to emperor_male), the frame sized for the hood */
  const e=harness(hero({outfit:'emperor',city:{crowned:true,allFive:true}}));assert.equal(e.heroOutfit(),'emperor');assert.equal(e.outfitArg(),'emperor');
  const ef=e.paintedCharacterFrame('dwarf','mage',false,'emperor');assert.deepEqual([...e.keys],['dwarfmale_emperor']);assert.equal(ef.bodyHeight,e.EMPEROR_BODY_H);assert.ok(e.EMPEROR_BODY_H>48&&e.EMPEROR_BODY_H<e.ROYAL_BODY_H);
+ /* the Empress's longer gown is a taller picture drawn at the Emperor's scale, so the masks stay the same size */
+ e.keys.length=0;assert.equal(e.paintedCharacterFrame('orc','priest',true,'emperor').bodyHeight,e.EMPRESS_BODY_H);assert.deepEqual([...e.keys],['orcfemale_emperor']);
+ const pngH=f=>fs.readFileSync(path.join(__dirname,'../assets/characters',f+'.png')).readUInt32BE(20);
+ for(const race of ['human','dwarf','orc','undead'])assert.ok(Math.abs(e.EMPRESS_BODY_H/pngH(race+'female_emperor')-e.EMPEROR_BODY_H/pngH('emperor_male'))<1e-9,race+': the same px per unit as the Emperor');
  assert.equal(harness(hero({outfit:'emperor',city:{crowned:true}})).heroOutfit(),'default','the empire lost: the regalia go back in the chest');
  /* what a peer sent */
  assert.equal(k.lookOutfit({outfit:'emperor'}),'emperor');assert.equal(k.lookOutfit({outfit:'royal',ice:false}),'royal');assert.equal(k.lookOutfit({ice:true}),true);assert.equal(k.lookOutfit({}),false);assert.equal(k.lookOutfit(null),false);
@@ -90,7 +94,7 @@ test('royal offer waits for cold art and then draws the selected race, gender an
   assert.equal(h.draws.length,1);
   const draw=h.draws[0];
   assert.equal(draw[1],race);assert.equal(draw[2],cls);assert.equal(draw[8],gender==='f');assert.equal(draw[10],'royal');
-  assert.match(h.c.$('outfitOfferTitle').textContent,gender==='f'?/QUEEN/:/KING/);
+  assert.match(h.c.$('outfitOfferTitle').textContent,gender==='f'?/QUEEN/:/KING/);assert.doesNotMatch(h.c.$('outfitOfferTitle').textContent,/\p{Extended_Pictographic}/u);
  }
 });
 
@@ -134,13 +138,14 @@ test('closing or reopening the offer cancels pending paints and switching heroes
 test('Outfits waits for PNGs without fallback figures or rebuilding the cards, including on reopen',()=>{
  const h=offerHarness({ritualDone:true}),c=h.c,body=c.$('outfitBody');
  const portraits=['default','ice','royal'].map(id=>({width:150,height:190,dataset:{outfitPortrait:id},getContext:c.$('outfitOfferPortrait').getContext}));
- let builds=0,open=true;
- Object.defineProperty(body,'innerHTML',{set(){builds++;}});
+ let builds=0,open=true,html='';
+ Object.defineProperty(body,'innerHTML',{set(v){builds++;html=v;}});
  body.querySelectorAll=selector=>selector==='[data-outfit-portrait]'?portraits:[];
  c.$('p-outfits').classList={contains:()=>open};c.esc=s=>s;c.openTab=()=>{open=false;};
  vm.runInContext(source.slice(source.indexOf('let outfitPortraitTimer='),source.indexOf('let outfitOfferPaintTimer=')),c);
  c.renderOutfits();
  assert.equal(builds,1);assert.equal(h.draws.length,0);assert.equal(h.timers.size,1);
+ assert.doesNotMatch(html,/\p{Extended_Pictographic}/u,'the cards carry the names alone, no emoji');
  h.tick();assert.equal(builds,1);assert.equal(h.draws.length,0);
  h.load();h.tick();
  assert.equal(builds,1,'loading does not replace the cards');

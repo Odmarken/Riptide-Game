@@ -4,7 +4,7 @@
  "resolution": "2k",
  "aspect_ratio": "3:4",
  "date": "2026-10-09",
- "description": "The Emperor's / Empress's regalia (outfit 'emperor', unlocked by holding all three cities and both great ports). Inspired by the user's photo of a masked figure in white embroidered robes - no crosses or religious signs, only arabesques, laurel and stars. Painted on flat #FF00FF (the robes are white, so the white-paper cutout could not be used): keyed with the colour distance to the painted magenta, the soft edge unmixed, the background RGB filled with the nearest figure colour, cropped tight, LANCZOS to 900 px tall like the royal robes. Drawn at body height EMPEROR_BODY_H = 52 (game.js).",
+ "description": "The Emperor's / Empress's regalia (outfit 'emperor', unlocked by holding all three cities and both great ports). Inspired by the user's photo of a masked figure in white embroidered robes - no crosses or religious signs, only arabesques, laurel and stars. Painted on flat #FF00FF (the robes are white, so the white-paper cutout could not be used): keyed with the colour distance to the painted magenta, the soft edge unmixed, the background RGB filled with the nearest figure colour, cropped tight, LANCZOS to 900 px tall like the royal robes. Drawn at body height EMPEROR_BODY_H = 52 (game.js); the reshaped Empress is 960 px tall and drawn at EMPRESS_BODY_H = 52*960/900, the same scale, so both masks are the same size.",
  "references": {
   "humanmale_royal.png (flattened on #E8E6E2)": "framing, chibi proportions, pose (bust cut at the hips, hands at the hips)",
   "user's inspiration photo": "costume inspiration only",
@@ -23,7 +23,8 @@
    "picked_over": "a271aadf-a4f0-4b91-86a7-cade35d40d7d (closer to the male stole, but only a small V neckline)",
    "references": ["the male job above", "humanfemale_royal.png"],
    "crop": [145, 143, 1650, 2232],
-   "size": [648, 900],
+   "size": [584, 960],
+   "reshape": "2026-10-09, user: a narrower waist like the Queen's robes and a little longer, nothing else changed. A mechanical warp of the installed 648x900 pictures (no repainting), the same for all four races: the body (bodice, belt, skirt) squeezed toward the centre line x=323.5, the belt end moving in 32 px per side (belt 290 -> 226 px); sleeves, gloves and cape shifted in as one piece with the body edge (the gloves keep their shape, the cape hangs straighter); 24 px added in the midriff (under the bust, above the belt) and the upper sleeves, then 36 px more in the skirt below the belt and 16 px in the lining below the gloves. Then, the same day (user: the bust a little less wide, just a little), the bust a little narrower: up to 18 px in at each side of the bodice from just under the stole's edge (the top of the neckline skin), handing over to the waist squeeze as it grows; the sleeves widen inward to fill, the stole and cape do not move. Inverse map by Newton iterations, cubic sampling at 2x, premultiplied; cropped symmetric to 584x960. The pre-reshape set is 648x900 (7020c5e).",
    "skin": "Only the neckline is skin. It was masked (hue 6-28, saturation >= 0.38 in the chest, grown into the darker cleavage line, 0.8 px soft edge) and recoloured by luminance from the painted (203,127,93) to each race's face colour on its Queen's robes sprite.",
    "tones": {"human": [244, 138, 62], "dwarf": [244, 175, 135], "orc": [133, 111, 19], "undead": [163, 160, 148]}
   }
