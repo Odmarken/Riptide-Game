@@ -37,19 +37,15 @@
   }
   puffs.set(key,c);return c;
  }
- /* 📱 how many puffs a plume is drawn with (1 = all; game.js gives phones half, 2026-10-10 - a port's smoke was a thirtieth of a
-    phone's frame); the fewer are a little denser, so a plume reads the same */
- let detail=1;
- function setDetail(k){detail=Math.max(.25,Math.min(1,+k||1));}
  function smoke(g,x0,y0,k,time=0,phase=0,cold=false,dark=false){
   if(!(k>0))return;
-  const n=Math.max(4,Math.round((dark?18:cold?15:12)*detail)),thick=detail<1?Math.min(1.6,1/Math.sqrt(detail)):1,rise=(dark?220:cold?165:135)*k,speed=dark?.14:.105;
+  const n=dark?18:cold?15:12,rise=(dark?220:cold?165:135)*k,speed=dark?.14:.105;
   g.save();g.globalCompositeOperation='source-over';
   for(let i=0;i<n;i++){
    const im=smokePuff(dark,i%3);
    const p=fract(time*speed+i/n+phase),birth=(time-p/speed)*.24+phase;
    const wind=30+Math.sin(birth*.7)*12,x=x0+(p*p*wind+Math.sin(p*7+birth)*p*10)*k,y=y0-rise*(p*.8+p*p*.2);
-   const r=(dark?16:7)+(p*30+p*p*12),radius=r*k,alpha=Math.min(1,Math.min(1,p*16)*Math.pow(1-p,dark?1.05:1.5)*(dark?1:cold?.90:.72)*thick);
+   const r=(dark?16:7)+(p*30+p*p*12),radius=r*k,alpha=Math.min(1,p*16)*Math.pow(1-p,dark?1.05:1.5)*(dark?1:cold?.90:.72);
    g.save();g.globalAlpha*=alpha;g.translate(x,y);g.rotate(Math.sin(birth+p*2)*.35);g.scale(1+.18*p,.86+.16*p);
    if(im)g.drawImage(im,-radius,-radius,radius*2,radius*2);
    else{const rgb=dark?'38,35,32':'218,220,216',grad=g.createRadialGradient(0,0,0,0,0,radius);grad.addColorStop(0,'rgba('+rgb+',.7)');grad.addColorStop(1,'rgba('+rgb+',0)');g.fillStyle=grad;g.fillRect(-radius,-radius,radius*2,radius*2);}
@@ -193,5 +189,5 @@
   }
   g.restore();
  }
- return Object.freeze({shadow,smoke,glow,flame,fire,flicker,paintedFlame,fireAir,heatBegin,heatTake,setDetail});
+ return Object.freeze({shadow,smoke,glow,flame,fire,flicker,paintedFlame,fireAir,heatBegin,heatTake});
 });

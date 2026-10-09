@@ -370,10 +370,10 @@ void main(){
 /* a texture laid over the target in a colour; with u_px a tent upsample; u_flip for a canvas texture (top row first) */
 const ADD_FS=`#version 300 es
 precision highp float;
-in vec2 v_uv;uniform sampler2D u_src;uniform vec4 u_color;uniform vec2 u_px;uniform float u_flip;uniform vec2 u_shift;
+in vec2 v_uv;uniform sampler2D u_src;uniform vec4 u_color;uniform vec2 u_px;uniform float u_flip;
 out vec4 o;
 void main(){
- vec2 uv=(u_flip>.5?vec2(v_uv.x,1.0-v_uv.y):v_uv)+u_shift;
+ vec2 uv=u_flip>.5?vec2(v_uv.x,1.0-v_uv.y):v_uv;
  vec4 t;
  if(u_px.x>0.0)t=(texture(u_src,uv)*4.0+(texture(u_src,uv+vec2(u_px.x,0))+texture(u_src,uv-vec2(u_px.x,0))+texture(u_src,uv+vec2(0,u_px.y))+texture(u_src,uv-vec2(0,u_px.y)))*2.0
   +texture(u_src,uv+u_px)+texture(u_src,uv-u_px)+texture(u_src,uv+vec2(u_px.x,-u_px.y))+texture(u_src,uv+vec2(-u_px.x,u_px.y)))/16.0;
@@ -1525,7 +1525,7 @@ function create(canvas,opts={}){
   blendAdd();
   for(let i=levels-1;i>0;i--){into(B[i-1]);gl.useProgram(P.up.p);cur.program='up';texUnit(0,B[i].tex);gl.uniform1i(P.up.u.u_src,0);gl.uniform2f(P.up.u.u_px,1/B[i].w,1/B[i].h);gl.uniform1f(P.up.u.u_k,o.spread==null?1:o.spread);fullQuad('up');}
   into(null);gl.useProgram(P.addmix.p);cur.program='addmix';texUnit(0,B[0].tex);gl.uniform1i(P.addmix.u.u_src,0);
-  const c=o.tint||[1,1,1],k=o.strength==null?.6:o.strength;gl.uniform4f(P.addmix.u.u_color,c[0]*k,c[1]*k,c[2]*k,0);gl.uniform2f(P.addmix.u.u_px,1/B[0].w,1/B[0].h);gl.uniform2f(P.addmix.u.u_shift,0,0);gl.uniform1f(P.addmix.u.u_flip,0);
+  const c=o.tint||[1,1,1],k=o.strength==null?.6:o.strength;gl.uniform4f(P.addmix.u.u_color,c[0]*k,c[1]*k,c[2]*k,0);gl.uniform2f(P.addmix.u.u_px,1/B[0].w,1/B[0].h);gl.uniform1f(P.addmix.u.u_flip,0);
   fullQuad('addmix');
   postEnd();
  }
@@ -1546,7 +1546,7 @@ function create(canvas,opts={}){
   gl.uniform1f(P.rays.u.u_time,o.time||0);gl.uniform1f(P.rays.u.u_reach,o.reach==null?.9:o.reach);gl.uniform1f(P.rays.u.u_block,o.block==null?.22:o.block);
   fullQuad('rays');
   into(null);blendAdd();gl.useProgram(P.addmix.p);cur.program='addmix';texUnit(0,A.tex);gl.uniform1i(P.addmix.u.u_src,0);
-  const c=o.color||[1,.85,.6],k=o.strength==null?.3:o.strength;gl.uniform4f(P.addmix.u.u_color,c[0]*k,c[1]*k,c[2]*k,0);gl.uniform2f(P.addmix.u.u_px,1/A.w,1/A.h);gl.uniform2f(P.addmix.u.u_shift,0,0);gl.uniform1f(P.addmix.u.u_flip,0);
+  const c=o.color||[1,.85,.6],k=o.strength==null?.3:o.strength;gl.uniform4f(P.addmix.u.u_color,c[0]*k,c[1]*k,c[2]*k,0);gl.uniform2f(P.addmix.u.u_px,1/A.w,1/A.h);gl.uniform1f(P.addmix.u.u_flip,0);
   fullQuad('addmix');
   postEnd();
  }
@@ -1572,7 +1572,7 @@ function create(canvas,opts={}){
  }
 
  /* ---- a screen-sized layer (a 2D canvas, any resolution) laid over the whole view, gaussian-blurred first: the sun's shadows */
- function drawBlurred(src,alpha,sigma,dx=0,dy=0){   /* dx,dy: the layer laid that many device px over (a phone's kept shadows following the camera) */
+ function drawBlurred(src,alpha,sigma){
   if(R.lost||!src)return;
   const sz=sourceSize(src);if(!sz)return;
   postBegin(false);
@@ -1585,7 +1585,7 @@ function create(canvas,opts={}){
   pass(A,e.tex,1,0,true);   /* the canvas texture has its top row first: turn it the GL way up here */
   pass(Bt,A.tex,0,1,false);
   into(null);blendOver();gl.useProgram(P.addmix.p);cur.program='addmix';texUnit(0,Bt.tex);gl.uniform1i(P.addmix.u.u_src,0);
-  gl.uniform4f(P.addmix.u.u_color,alpha,alpha,alpha,alpha);gl.uniform2f(P.addmix.u.u_px,0,0);gl.uniform1f(P.addmix.u.u_flip,0);gl.uniform2f(P.addmix.u.u_shift,-(+dx||0)/W,(+dy||0)/H);
+  gl.uniform4f(P.addmix.u.u_color,alpha,alpha,alpha,alpha);gl.uniform2f(P.addmix.u.u_px,0,0);gl.uniform1f(P.addmix.u.u_flip,0);
   fullQuad('addmix');
   postEnd();
  }
@@ -1699,7 +1699,7 @@ function create(canvas,opts={}){
   sceneTexture(){ensureLayer();blitRegion('scene','res',[0,0,W,H]);return T.resTex;},
   set lodBias(v){flush('bias');R.lodBias=+v||0;},get lodBias(){return R.lodBias;},
   /* the post passes (light, bloom, light shafts, a blurred screen layer) and whether light can go past white */
-  lightMap(o){lightMap(o);},bloom(o){bloom(o);},rays(o){rays(o);},heatHaze(o){heatHaze(o);},drawBlurred(src,alpha,sigma,dx,dy){drawBlurred(src,alpha,sigma,dx,dy);},
+  lightMap(o){lightMap(o);},bloom(o){bloom(o);},rays(o){rays(o);},heatHaze(o){heatHaze(o);},drawBlurred(src,alpha,sigma){drawBlurred(src,alpha,sigma);},
   get hdr(){return FLOATRT;},
   gl
  };
@@ -1714,12 +1714,7 @@ function create(canvas,opts={}){
  prop('lineJoin',()=>S.join,v=>{if(v==='miter'||v==='round'||v==='bevel')S.join=v;});
  prop('miterLimit',()=>S.miter,v=>{v=+v;if(Number.isFinite(v)&&v>0)S.miter=v;});
  prop('lineDashOffset',()=>S.dashOff,v=>{v=+v;if(Number.isFinite(v))S.dashOff=v;});
- /* a font is parsed once (the measuring canvas does it) and remembered: the game sets one per label every frame, and the
-    parse was a twentieth of a phone's frame (2026-10-10). A sentinel tells a refused font from one already set */
- const fontNorm=new Map();
- prop('font',()=>S.font,v=>{v=String(v);let n=fontNorm.get(v);
-  if(n===undefined){const g=textCtx();g.font='1px __gl2d__';g.font=v;n=g.font==='1px __gl2d__'?null:g.font;if(fontNorm.size>512)fontNorm.clear();fontNorm.set(v,n);}
-  if(n)S.font=n;});
+ prop('font',()=>S.font,v=>{const g=textCtx();const before=g.font;g.font=String(v);if(g.font!==before||String(v)===before)S.font=g.font;});
  prop('textAlign',()=>S.align,v=>{if(['start','end','left','right','center'].includes(v))S.align=v;});
  prop('textBaseline',()=>S.baseline,v=>{if(['top','hanging','middle','alphabetic','ideographic','bottom'].includes(v))S.baseline=v;});
  prop('direction',()=>S.direction,v=>{if(['ltr','rtl','inherit'].includes(v))S.direction=v;});

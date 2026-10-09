@@ -117,7 +117,15 @@ test('💡 the GPU light: Settings > Video > Lighting quality (ultra by default,
  assert.ok(/function sunEnd\(\)\{[^]*?ctx\.drawBlurred\(sunLayer/.test(game),'soft shadows on medium and ultra');
  assert.ok(game.includes('if(q)sunPostFX(now,q);'),'bloom and light shafts after the sun');
  const gl=read('assets/gl/gl2d.js');
- for(const f of ['lightMap(o){lightMap(o);}','bloom(o){bloom(o);}','rays(o){rays(o);}','drawBlurred(src,alpha,sigma,dx,dy){drawBlurred(src,alpha,sigma,dx,dy);}'])   /* dx,dy: a phone's kept shadow layer moved with the camera (2026-10-10) */assert.ok(gl.includes(f),f);
+ for(const f of ['lightMap(o){lightMap(o);}','bloom(o){bloom(o);}','rays(o){rays(o);}','drawBlurred(src,alpha,sigma)'])assert.ok(gl.includes(f),f);
+});
+
+test('📱 a phone whose Lighting quality was moved to Low on 2026-10-10 (taken back the same day) goes back to Ultra; a Low picked later stays',()=>{
+ const D=require('../assets/ui/display-settings.js');
+ assert.equal(D.normalize({lightQuality:'low',phoneRev:1}).lightQuality,'ultra');
+ assert.equal(D.normalize({lightQuality:'medium',phoneRev:1}).lightQuality,'medium','a quality picked after the move stays');
+ assert.equal(D.normalize({lightQuality:'low'}).lightQuality,'low','saved again (no phoneRev): Low is what the player chose');
+ assert.equal('phoneRev' in D.normalize({lightQuality:'low',phoneRev:1}),false,'the mark is not saved again');
 });
 
 test('a Path2D is written down as it is built, so the GL screen can clip with it - the mounts\' rider masks ("min gubbe har försvunnit från mitt mount")',()=>{

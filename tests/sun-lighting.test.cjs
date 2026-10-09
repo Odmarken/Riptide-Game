@@ -65,7 +65,7 @@ test('Settings -> Video -> Lighting and Sun flare are on by default, remembered 
   assert.equal(JSON.parse(kept[DisplaySettings.STORAGE_KEY]).sunFlare, false, 'saved on the device');
   third.reset();
   assert.equal(third.value.sunFlare, false, 'the reset button leaves it alone');
-  assert.ok(game.includes('const displaySettings=DisplaySettings.create({onChange:v=>{SUN.light=v.lighting;SUN.flare=v.sunFlare;WEATHER.on=v.weather;SUN.q=v.lightQuality;},phone:PHONE});'), 'the switches drive the sun and the sky - and (2026-10-09) the quality of the GPU light');
+  assert.ok(game.includes('const displaySettings=DisplaySettings.create({onChange:v=>{SUN.light=v.lighting;SUN.flare=v.sunFlare;WEATHER.on=v.weather;SUN.q=v.lightQuality;}});'), 'the switches drive the sun and the sky - and (2026-10-09) the quality of the GPU light');
 });
 
 test('the sun shines out of doors all over the world, and every cast shadow goes down at once under all that stands', () => {

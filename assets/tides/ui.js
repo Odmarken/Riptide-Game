@@ -568,7 +568,7 @@ const TideUI=(()=>{
  function paintBattle(){
   if(!session||el('tideBattleFx').hidden)return;
   const c=el('tideArena'),r=c.getBoundingClientRect(),w=r.width,h=r.height;if(!w||!h)return;
-  const d=Math.min(2,devicePixelRatio||1)*(typeof PHONE!=='undefined'&&PHONE?.75:1);if(c.width!==Math.round(w*d)||c.height!==Math.round(h*d)){c.width=Math.round(w*d);c.height=Math.round(h*d);}   /* 📱 a phone's arena at 1.5 to the point */
+  const d=Math.min(2,devicePixelRatio||1);if(c.width!==Math.round(w*d)||c.height!==Math.round(h*d)){c.width=Math.round(w*d);c.height=Math.round(h*d);}
   const g=c.getContext('2d');g.setTransform(d,0,0,d,0,0);g.clearRect(0,0,w,h);
   if(session.guild)TideGuildWorld.renderBattle(g,w,h,session.time,{images:guildImages()});
   else if(session.backdrop){const k=Math.max(w/session.backdrop.width,h/session.backdrop.height)*(1.035-Math.min(1,session.time/.65)*.035),bw=session.backdrop.width*k,bh=session.backdrop.height*k;g.drawImage(session.backdrop,(w-bw)/2,(h-bh)/2,bw,bh);}

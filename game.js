@@ -160,7 +160,6 @@ const SUN={light:true,flare:true,day:2700,night:900,s:.24,reach:1.25,rise:.6,alp
    right a shadow reaches per unit of height (negative after noon); cast, lit and dark, how strong the shadows, the sunlight
    and the night are, 0-1 */
 let sunFrame=false,sunCast=false,sunLayer=null,sunG=null,sunLit=null;
-let sunReuse=false,sunBuilt=null,sunParity=false;   /* 📱 a phone draws the props' shadows every other frame - see sunBegin */
 function sunTest(on=!SUN.light,at=null){SUN.light=!!on;SUN.pin=at;return 'sun '+(SUN.light?'on':'off')+(at==null?'':' at '+at+' s');}
 function sunZone(z){   /* where the sun shines: out of doors - not the Altar, a boss's arena, a raid, a dungeon or indoors */
  return !!z&&!(z.altar||z.boss||z.valhalla||z.finalb||z.raid||z.crypts||z.dungeon||z.throne||z.tideguild||z.interior);
@@ -217,20 +216,13 @@ function sunFigureShadow(im,frame,ground,flip,alpha=1){
 }
 function sunBegin(){   /* a clear layer before the ground pass */
  if(!sunLayer){sunLayer=document.createElement('canvas');sunG=sunLayer.getContext('2d');}
- const w=Math.max(1,Math.round(cv.width*SUN.res)),h=Math.max(1,Math.round(cv.height*SUN.res)),m=heatWorld;
- /* 📱 (2026-10-10) on a phone every other frame keeps the layer it has - the props stand still, so last frame's shadows moved
-    with the camera (sunEnd) are this frame's - unless the view was resized, zoomed, jumped or changed zones */
- sunParity=!sunParity;
- sunReuse=!!(typeof PHONE!=='undefined'&&PHONE&&sunParity&&sunBuilt&&m&&sunBuilt.w===w&&sunBuilt.h===h&&sunBuilt.a===m.a&&sunBuilt.d===m.d
-  &&Math.abs(m.e-sunBuilt.e)<48&&Math.abs(m.f-sunBuilt.f)<48&&sunBuilt.zone===(S&&S.zone));
- if(sunReuse)return;
+ const w=Math.max(1,Math.round(cv.width*SUN.res)),h=Math.max(1,Math.round(cv.height*SUN.res));
  if(sunLayer.width!==w||sunLayer.height!==h){sunLayer.width=w;sunLayer.height=h;}
  else{sunG.setTransform(1,0,0,1,0,0);sunG.clearRect(0,0,w,h);}
  sunLayer.used=false;
- sunBuilt=m?{w,h,a:m.a,d:m.d,e:m.e,f:m.f,zone:S&&S.zone}:null;
 }
 function sunShadow(im,x0,top,W,H,foot,flip=false){   /* in the prop's own frame on ctx: its picture spans x0..x0+W and top..top+H, standing on y=foot */
- if(!sunCast||!sunG||sunReuse)return;
+ if(!sunCast||!sunG)return;
  const sil=sunSilhouette(im);if(!sil)return;
  const m=ctx.getTransform(),r=SUN.res;
  sunG.setTransform(m.a*r,m.b*r,m.c*r,m.d*r,m.e*r,m.f*r);
@@ -243,7 +235,7 @@ function sunShadow(im,x0,top,W,H,foot,flip=false){   /* in the prop's own frame 
  sunLayer.used=true;
 }
 function sunShadowBox(x0,top,W,H,foot){   /* a plain block - a town wall's run - cast the way sunShadow casts a picture, fading toward its far end */
- if(!sunCast||!sunG||sunReuse)return;
+ if(!sunCast||!sunG)return;
  const m=ctx.getTransform(),r=SUN.res;
  sunG.setTransform(m.a*r,m.b*r,m.c*r,m.d*r,m.e*r,m.f*r);
  sunG.translate(0,foot);sunG.transform(1,0,-SUN.k,-SUN.s,0,0);
@@ -252,9 +244,8 @@ function sunShadowBox(x0,top,W,H,foot){   /* a plain block - a town wall's run -
 }
 function sunEnd(){   /* the whole layer down at one strength */
  if(!sunLayer||!sunLayer.used)return;
- const m=heatWorld,dx=sunReuse&&m&&sunBuilt?m.e-sunBuilt.e:0,dy=sunReuse&&m&&sunBuilt?m.f-sunBuilt.f:0;   /* 📱 a kept layer follows the camera */
- {const q=glFx();if(q&&q!=='low'){ctx.drawBlurred(sunLayer,SUN.alpha*SUN.cast*1.35,q==='ultra'?1.4:1,dx,dy);return;}}   /* 🎮 softer on the GPU - a light touch since the silhouettes soften toward their far end themselves */
- ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=SUN.alpha*SUN.cast*1.35;ctx.drawImage(sunLayer,dx,dy,cv.width,cv.height);ctx.restore();   /* *1.35: a deeper shade since 2026-10-09 ("bättre skuggor"), blue rather than black */
+ {const q=glFx();if(q&&q!=='low'){ctx.drawBlurred(sunLayer,SUN.alpha*SUN.cast*1.35,q==='ultra'?1.4:1);return;}}   /* 🎮 softer on the GPU - a light touch since the silhouettes soften toward their far end themselves */
+ ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=SUN.alpha*SUN.cast*1.35;ctx.drawImage(sunLayer,0,0,cv.width,cv.height);ctx.restore();   /* *1.35: a deeper shade since 2026-10-09 ("bättre skuggor"), blue rather than black */
 }
 function sunFootShadow(x,y,tall){   /* the sun's shadow and the lights' at someone's feet, from the world's frame - a mount, a creature */
  if(!sunFrame)return;
@@ -4119,8 +4110,6 @@ const AC={ctx:null,ambG:null,sfxG:null,amb:[],timers:[],prof:null,mIdx:0};
 const IS_TOUCH=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
  ||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1); /* iPadOS pretends to be a Mac */
 SpellFx.quality=IS_TOUCH?.65:1;   /* ✨ phones shed fewer sparks per spell */
-const PHONE=IS_TOUCH&&!window.desktop;   /* 📱 the web game on a phone or tablet - see phoneSkip */
-if(PHONE)CityScenery.setDetail(.5);   /* 📱 half the puffs in a plume of smoke */
 const ambVol=()=>(!S||S.sound)?(S?S.volAmb:0.5):0;
 const sfxVol=()=>(!S||S.sfx)?(S?S.volSfx:0.55):0;
 function applyVolumes(){
@@ -4733,40 +4722,10 @@ function screenSurface(el){
 }
 const [cv,ctx]=screenSurface($('game'));
 let VW=0,VH=0,DPR=1,vigCv=null;
-/* 📱 PHONES (2026-10-10, "gör något separat åt telefonerna ... strugglar lite med fps"): the web game on a phone or tablet,
-   never the desktop build. Lighting quality starts on Low there (assets/ui/display-settings.js), a 120 Hz screen is drawn at
-   60, and the picture's sharpness follows the frame rate: it starts at 1.5 pixels to the point (the desktop's web 2), and
-   every few seconds it steps down while the phone cannot hold 48 frames a second and the time goes to the graphics rather
-   than to the game's own work (a sharper picture cannot help that), and back up while it holds 57 - a step that failed is
-   not tried again that session. Measured headless as a phone (scratchpad 7f048ed2 daybar/phoneperf.mjs). */
-const PHONE_SCALES=[.625,.75,.875,1];   /* of the phone's own pixels, at most 2 to the point: 1.25 .. 2 on a 2x phone */
-const phoneRes={i:1,ceil:3,probe:-1,cool:4,acc:0,n:0,js:0,last:0,drawn:0,iv:16.7,skip:false};
-let frameSeq=-1,frameCount=0;   /* the frame being drawn, -1 between frames: what is asked many times a frame is looked up once */
-function frameGate(t){   /* first thing in every frame: true leaves this one out (a phone's 120 Hz screen) */
- frameSeq=++frameCount;queueMicrotask(()=>{frameSeq=-1;});
- return phoneSkip(t);
-}
-function phoneSkip(t){   /* first thing in every frame: true leaves this one out */
- if(!PHONE)return false;
- const R=phoneRes,iv=R.last?t-R.last:16.7;R.last=t;
- if(iv>0&&iv<60)R.iv+=(iv-R.iv)*.08;
- if(R.iv<9.5){R.skip=!R.skip;if(R.skip)return true;}   /* a 120 Hz screen: every other frame */
- const di=R.drawn?t-R.drawn:0;R.drawn=t;
- if(!(gameOn&&!gamePaused&&!document.hidden&&di>0&&di<250)){R.acc=0;R.n=0;R.js=0;return false;}
- const t0=performance.now();queueMicrotask(()=>{R.js+=performance.now()-t0;});   /* this frame's own work, once it is done */
- R.acc+=di;R.n++;R.cool-=di/1000;
- if(R.acc<3000)return false;
- const fps=R.n*1000/R.acc,js=R.js/R.n,frameMs=1000/fps;R.acc=0;R.n=0;R.js=0;
- if(R.cool>0)return false;
- if(R.probe===R.i&&fps>=48)R.probe=-1;   /* the sharper step held: a heavy scene later does not count against it */
- if(fps<48&&js<frameMs*.65&&R.i>0){if(R.probe===R.i)R.ceil=R.i-1;R.probe=-1;R.i--;R.cool=6;resize();}   /* a sharper step just tried and failed is not tried again */
- else if(fps>=57&&R.i<R.ceil){R.i++;R.probe=R.i;R.cool=8;resize();}
- return false;
-}
 function resize(){
  const r=$('stageWrap').getBoundingClientRect();
  /* The desktop canvas follows the display even above 200% Windows scaling. */
- const nextDPR=window.desktop?(window.devicePixelRatio||1):Math.min(2,window.devicePixelRatio||1)*(PHONE?PHONE_SCALES[phoneRes.i]:1);
+ const nextDPR=window.desktop?(window.devicePixelRatio||1):Math.min(2,window.devicePixelRatio||1);
  if(VW===r.width&&VH===r.height&&DPR===nextDPR&&vigCv)return;
  DPR=nextDPR;
  VW=r.width;VH=r.height;
@@ -8881,13 +8840,7 @@ function padSideLayer(){
  if(!p||!p.getClientRects().length){padSide=false;return null;}
  return p;
 }
-/* asked several times a frame, and each look asks some seventy windows for their place on the page (a fortieth of a phone's
-   frame, 2026-10-10): inside one frame the first answer stands (frameSeq, -1 between frames, so a key or a click looks afresh) */
-let padPanelSeen=null,padPanelAt=0;
 const padPanelOpen=()=>{
- const memo=typeof frameSeq==='number'&&frameSeq>0;
- if(memo&&padPanelAt===frameSeq)return padPanelSeen;
- let found=null;
  for(const id of PAD_PANELS){
   const e=$(id);
   /* Ask whether it is RENDERED, not what its own display says. Several of these are inner boxes
@@ -8897,11 +8850,9 @@ const padPanelOpen=()=>{
      client rects, which is the only test that survives that. */
   if(!e||!e.getClientRects().length)continue;
   if(getComputedStyle(e).visibility==='hidden')continue;
-  found=e;break;
+  return e;
  }
- if(!found)found=padSideLayer();
- if(memo){padPanelAt=frameSeq;padPanelSeen=found;}
- return found;
+ return padSideLayer();
 };
 let padFocus=null;
 /* What the pad can land on: every control, and whatever a mouse player is told can be clicked - the bronze hand
@@ -20852,7 +20803,7 @@ $('nextBtn').onclick=()=>{
  stageMsg('Marching to the portal…',1600);
 };
 $('autoEquipBtn').onclick=()=>{S.autoEquip=!S.autoEquip;renderHero();save();};
-const displaySettings=DisplaySettings.create({onChange:v=>{SUN.light=v.lighting;SUN.flare=v.sunFlare;WEATHER.on=v.weather;SUN.q=v.lightQuality;},phone:PHONE});   /* ☀🌧 Settings -> Video -> Lighting, Sun flare, Weather */
+const displaySettings=DisplaySettings.create({onChange:v=>{SUN.light=v.lighting;SUN.flare=v.sunFlare;WEATHER.on=v.weather;SUN.q=v.lightQuality;}});   /* ☀🌧 Settings -> Video -> Lighting, Sun flare, Weather */
 /* 🔊 is now a plain mute for everything. The sliders moved into the ⚙ panel, so leaving this button
    as a slider flyout would have put the music level in two places that could disagree. */
 $('sndBtn').onclick=()=>{
@@ -21359,7 +21310,6 @@ function frame(t){
     one exception anywhere in update() or draw() stopped the game for good - a trip on the map mid-coronation did exactly
     that. Now the loop survives it, and the first few faults are written down (error.log in the desktop build). */
  requestAnimationFrame(frame);
- if(typeof frameGate==='function'&&frameGate(t))return;   /* 📱 a phone's 120 Hz screen gets 60 */
  try{
  const dt=Math.min(0.05,(t-lastT)/1000||0.016);lastT=t;
  frameDt=dt;
