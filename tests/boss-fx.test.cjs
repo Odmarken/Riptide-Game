@@ -94,7 +94,8 @@ test("every boss's own blow has a look - the bladed ones slash, the rest smash, 
  assert.equal((game.match(/sfx\.hit\(\);bossSlam\(en\);/g)||[]).length,2,'both ways a boss swings: at reach and up close');
  assert.ok(game.includes("const BOSS_SLASH=new Set(['reaper','krev','betrayer','frostking','firelord']);"));
  assert.ok(game.includes("const DUNGEON_FX_C={briarhollow:'159,189,104',cindervein:'233,150,87',frostveil:'166,200,218'};"));
- assert.ok(game.includes("const dg=en.bossId==='wasteland'?en.dungeon:null;"),'a guardian is known by its dungeon');
+ assert.ok(game.includes("const dg=en.dungeon||null;"),'a guardian is known by its dungeon');
+ assert.ok(game.includes("const dmg=hurtHero(amount);sfx.hit();if(melee)bossSlam(foe);"),'and its club lands with that look');
 });
 
 test('game.js only changed the look: reach, timing and damage of every blow as before, the plain look kept as a fallback',()=>{
@@ -107,4 +108,20 @@ test('game.js only changed the look: reach, timing and damage of every blow as b
  assert.ok(game.includes("if(perp<40){hurtHero(en.atk*3.5,'⚡');en.stormTick=0.5;sfx.arcane();}")&&game.includes("half:40,n:3},now)"),'Thor\'s lanes drawn as wide as they hurt');
  assert.ok(game.includes("SpellFx.drawSpecial('boss:soulbeam',ctx,{...en.beamFx,half:BEAM_HALF},now)"),'the Soulbeam drawn as wide as it hurts');
  assert.ok(/<script src="assets\/fx\/boss-fx\.js\?v=\d+"><\/script>/.test(fs.readFileSync(path.join(root,'index.html'),'utf8')));
+});
+
+test('the dungeon guardians: all eighteen moves warn and land in their dungeon\'s look, throws fly the whole warning, and the roar',()=>{
+ const {FX,g,stats}=load();
+ require('../assets/wasteland/dungeons.js');const D=globalThis.WastelandDungeons,moves=[];
+ for(const [key,d] of Object.entries(D.definitions))for(const b of d.bosses)for(const m of b.moves)moves.push([key,m]);
+ assert.equal(moves.length,18,'six guardians, three moves each');
+ for(const [key,m] of moves){
+  const cast={...m,x:400,y:300,angle:.7,elapsed:0,color:'#abc',damage:10,...(m.thrown?{fromX:250,fromY:240}:{})};
+  for(let i=0;i<=10;i++){cast.elapsed=m.warn*i/10;assert.equal(FX.drawSpecial('boss:dgcast',g,{cast,dungeon:key,p:i/10},i/10),true,m.name);}
+  FX.clear();assert.equal(FX.cast('boss:dgstrike',{cast,dungeon:key}),true,m.name);run(FX,g,3.5);assert.equal(FX.count().effects,0,m.name+' fades');
+ }
+ for(const key of Object.keys(D.definitions)){FX.clear();assert.equal(FX.cast('boss:dgroar',{x:0,y:0,dungeon:key,r:170}),true);run(FX,g,1.5);assert.equal(FX.count().effects,0);}
+ assert.equal(FX.faults,0);assert.equal(stats.nonFinite,0);
+ assert.ok(game.includes("onStrike:(cast,foe)=>{if(foe.boss)SpellFx.cast('boss:dgstrike',{cast,dungeon:foe.dungeon});}"));
+ assert.ok(game.includes("onRoar:foe=>{SpellFx.cast('boss:dgroar'")&&game.includes("SpellFx.drawSpecial('boss:dgcast',ctx,"));
 });

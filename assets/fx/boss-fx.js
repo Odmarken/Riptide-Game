@@ -489,6 +489,115 @@
   },
  });
 
+ /* ================= the Wasteland dungeon guardians (assets/wasteland/dungeons.js) ================= */
+ /* each guardian's three moves - a cone, a circle and a throw - in its dungeon's look: stone and moss in Briarhollow, embers
+    and slag in Cindervein, ghosts and ice in Frostveil. The cast is the module's own: x, y, angle, range, halfAngle (cone),
+    radius (circle), fromX/fromY (a throw), warn, elapsed */
+ const DG={briarhollow:{body:'58,46,30',lit:'206,184,132',acc:'159,189,104'},cindervein:{body:DEEPRED,lit:FIRE,acc:GOLD},frostveil:{body:'34,44,92',lit:'190,214,255',acc:ICE}};
+ const DGMOVE={'Stonebreaker':'fissure','Falling Rubble':'rubble','Boulder Toss':'boulder','Briar Sweep':'vines','Grasping Roots':'roots','Thornburst Pod':'pod',
+  'Cinder Cleave':'cleave','Emberfall':'emberfall','Slag Hurl':'slag','Furnace Breath':'breath','Molten Seal':'seal','Magma Orb':'magma',
+  'Soul Rend':'rend','Grave Echo':'echo','Wailing Skull':'skull','Rime Cleave':'rime','Frozen Tomb':'tomb','Glacial Shard':'glacial'};
+ const sector=(g,c,R,a0,a1)=>{g.beginPath();g.moveTo(c.x,c.y);g.arc(c.x,c.y,R,a0,a1);g.closePath();};
+ /* what a guardian throws, drawn at (x,y): a boulder, a thorn pod, slag, a magma orb, a wailing skull, an ice shard */
+ function missile(g,H,st,x,y,s,now){
+  if(st==='boulder'||st==='pod'){
+   g.save();g.translate(x,y);g.rotate(now*5);g.fillStyle=st==='pod'?'rgb(86,120,40)':'rgb(112,100,84)';g.beginPath();
+   for(let i=0;i<9;i++){const a=i/9*TAU,r=s*(.82+.18*hash(i,st.length));i?g.lineTo(Math.cos(a)*r,Math.sin(a)*r):g.moveTo(Math.cos(a)*r,Math.sin(a)*r);}
+   g.closePath();g.fill();g.fillStyle=st==='pod'?'rgba(200,240,140,.6)':'rgba(220,210,190,.55)';g.beginPath();g.arc(-s*.3,-s*.3,s*.35,0,TAU);g.fill();
+   if(st==='pod'){g.strokeStyle='rgb(220,240,170)';g.lineWidth=1.2;g.beginPath();for(let i=0;i<8;i++){const a=i/8*TAU;g.moveTo(Math.cos(a)*s*.8,Math.sin(a)*s*.8);g.lineTo(Math.cos(a)*s*1.35,Math.sin(a)*s*1.35);}g.stroke();}
+   g.restore();return;
+  }
+  if(st==='slag'||st==='magma'){H.glow(g,x,y,s*2.4,FIRE,.9);g.save();g.fillStyle=st==='magma'?'rgb(150,30,6)':'rgb(90,40,20)';g.beginPath();g.arc(x,y,s,0,TAU);g.fill();g.restore();
+   H.glow(g,x,y,s*1.1,GOLD,.9);H.glow(g,x,y,s*.45,'255,250,220',1);return;}
+  if(st==='skull'){H.glow(g,x,y,s*2.6,'150,150,255',.8);g.save();g.translate(x,y);g.fillStyle='rgba(225,230,255,.92)';g.beginPath();g.arc(0,-s*.15,s*.8,0,TAU);g.fill();g.fillRect(-s*.45,s*.3,s*.9,s*.45);
+   g.fillStyle='rgba(30,30,70,.95)';g.beginPath();g.arc(-s*.3,-s*.15,s*.22,0,TAU);g.arc(s*.3,-s*.15,s*.22,0,TAU);g.fill();g.restore();H.glow(g,x-s*.3,y-s*.15,s*.3,'160,200,255',1);H.glow(g,x+s*.3,y-s*.15,s*.3,'160,200,255',1);return;}
+  /* glacial */
+  g.save();g.translate(x,y);g.rotate(now*3);g.fillStyle='rgba(200,236,255,.95)';g.beginPath();g.moveTo(0,-s*1.5);g.lineTo(s*.55,0);g.lineTo(0,s*1.5);g.lineTo(-s*.55,0);g.closePath();g.fill();
+  g.globalCompositeOperation='lighter';g.fillStyle='rgba(255,255,255,.9)';g.beginPath();g.moveTo(0,-s*1.3);g.lineTo(s*.2,0);g.lineTo(0,s*.5);g.closePath();g.fill();g.restore();H.glow(g,x,y,s*2,ICE,.7);
+ }
+ FX.recipe('boss:dgcast',{
+  draw(g,o,now,H){
+   const c=o.cast,T=DG[o.dungeon]||DG.briarhollow,st=DGMOVE[c.name]||'',p=clamp01(o.p),seed=(c._seed??=Math.random()*99);
+   if(c.shape==='cone'){
+    const a0=c.angle-c.halfAngle,a1=c.angle+c.halfAngle,R=c.range;
+    g.save();g.globalAlpha=.3+.3*p;g.fillStyle='rgb('+T.body+')';sector(g,c,R,a0,a1);g.fill();g.restore();
+    g.save();g.globalCompositeOperation='lighter';g.globalAlpha=.32*p;g.fillStyle='rgb('+T.lit+')';sector(g,c,R*p,a0,a1);g.fill();g.restore();
+    const arc=[];for(let i=0;i<=24;i++){const t=a0+(a1-a0)*i/24;arc.push([c.x+Math.cos(t)*R,c.y+Math.sin(t)*R]);}
+    H.line(g,arc,2.2,T.lit,.6+.4*p);H.line(g,[[c.x,c.y],[c.x+Math.cos(a0)*R,c.y+Math.sin(a0)*R]],1.6,T.lit,.6+.3*p);H.line(g,[[c.x,c.y],[c.x+Math.cos(a1)*R,c.y+Math.sin(a1)*R]],1.6,T.lit,.6+.3*p);
+    const along=(u,w)=>[c.x+Math.cos(c.angle+w*c.halfAngle)*R*u,c.y+Math.sin(c.angle+w*c.halfAngle)*R*u];
+    if(st==='fissure'||st==='rime'){for(let k=0;k<3;k++){const w=(k-1)*.55,e=along(.95*E.out(Math.min(1,p*1.3)),w);H.line(g,H.jag(c.x,c.y,e[0],e[1],7,7,H.rng((seed*911+k*7)>>>0)),st==='rime'?1.6:2,st==='rime'?ICE:'40,30,20',.5+.5*p);}
+     if(st==='rime')for(let i=0;i<5;i++){const q=along(.25+.15*i,(hash(i,seed)-.5)*1.4);H.flare(g,q[0],q[1],5+6*p,FROST,.4+.5*p,i);}}
+    else if(st==='vines'){for(let k=0;k<4;k++){const pts=[];for(let i=0;i<=12;i++){const u=i/12*p,w=Math.sin(u*9+k*1.7+now*2)*.35+(k-1.5)*.3;pts.push(along(u,w));}H.line(g,pts,1.8,T.acc,.75);}}
+    else if(st==='cleave'){const t=c.angle+Math.sin(now*6)*c.halfAngle*.8;H.line(g,[[c.x,c.y],[c.x+Math.cos(t)*R,c.y+Math.sin(t)*R]],3,FIRE,.6*p);}
+    else if(st==='breath'){for(let i=0;i<10;i++){const u=.15+.85*((now*.9+i/10)%1),w=(hash(i,seed)-.5)*1.6,q=along(u*p,w);flame(g,q[0],q[1],-PI/2,(8+10*u)*p,6,.7*(1-u*.5));}}
+    else if(st==='rend'){for(let k=0;k<3;k++){const w=(k-1)*.45,q0=along(.15,w-.15),q1=along(.9*p,w+.15);H.streak(g,q0[0],q0[1],q1[0],q1[1],4,'180,185,237',.7*p);}}
+    if(p>.82){g.save();g.globalCompositeOperation='lighter';g.globalAlpha=(p-.82)/.18*.3;g.fillStyle='#fff';sector(g,c,R,a0,a1);g.fill();g.restore();}
+    return;
+   }
+   const h={x:c.x,y:c.y,rad:c.radius};
+   zone(g,H,h,p,T.body,T.lit,{fill:.32});
+   if(st==='rubble'){for(let i=0;i<6;i++){const th=hash(i,seed)*TAU,d=c.radius*.6*hash(i+2,seed);H.haze(g,c.x+Math.cos(th)*d,c.y+Math.sin(th)*d*FLAT,(6+8*p)*(.7+.6*hash(i+4,seed)),'20,16,10',.5*p,FLAT,false);}
+    if(p>.6)for(let i=0;i<4;i++){const th=hash(i+9,seed)*TAU,d=c.radius*.5*hash(i+11,seed),fall=(1-(p-.6)/.4)*220;H.glow(g,c.x+Math.cos(th)*d,c.y+Math.sin(th)*d*FLAT-fall,3,T.lit,.8);}}
+   else if(st==='roots'){for(let i=0;i<6;i++){const th=(i+hash(i,seed)*.6)/6*TAU,L=c.radius*.9*E.out(Math.min(1,p*1.25));H.line(g,H.jag(c.x,c.y,c.x+Math.cos(th)*L,c.y+Math.sin(th)*L*FLAT,4,5,H.rng((seed*997+i)>>>0)),1.4,T.acc,.4+.5*p);}}
+   else if(st==='emberfall'){for(let i=0;i<6;i++){const th=hash(i,seed)*TAU,d=c.radius*.7*hash(i+5,seed),fall=((now*1.4+i/6)%1)*200;H.streak(g,c.x+Math.cos(th)*d+30,c.y+Math.sin(th)*d*FLAT-fall-40,c.x+Math.cos(th)*d,c.y+Math.sin(th)*d*FLAT-fall,4,FIRE,.7*p);}}
+   else if(st==='seal'){H.runes(g,c.x,c.y,c.radius*.78,GOLD,.4+.55*p,{flat:FLAT,rot:now*1.3,star:5,ticks:16,w:1.6,inner:.6});H.glow(g,c.x,c.y-4,c.radius*.4*p,FIRE,.6*p,FLAT);}
+   else if(st==='echo'){for(let i=0;i<3;i++){const u=(now*1.2+i/3)%1;H.ring(g,c.x,c.y,c.radius*(1-u),1.6,'180,185,237',.6*u*(.4+.6*p),FLAT);}}
+   else if(st==='tomb'){const s0=seed;for(let i=0;i<6;i++){const th=hash(i,s0)*TAU,d=c.radius*(.4+.5*hash(i+2,s0));H.flare(g,c.x+Math.cos(th)*d,c.y+Math.sin(th)*d*FLAT,5+7*p,FROST,(.3+.6*p)*(.6+.4*Math.sin(now*8+i*2)),th);}}
+   if(c.thrown){   /* the throw in the air the whole warning: its arc from his hand, its shadow on the ground running to the mark */
+    const fx0=c.fromX??c.x,fy0=c.fromY??c.y,e=E.inOut(p),x=fx0+(c.x-fx0)*e,y=fy0+(c.y-fy0)*e-Math.sin(PI*p)*Math.max(90,Math.hypot(c.x-fx0,c.y-fy0)*.45);
+    const gy0=fy0+40;H.haze(g,fx0+(c.x-fx0)*e,gy0+(c.y-gy0)*e,12+8*p,'0,0,0',.35,FLAT,false);   /* its shadow, from his feet to the mark */
+    missile(g,H,st,x,y,st==='magma'?13:10,now);
+   }
+  },
+ });
+ FX.recipe('boss:dgstrike',{
+  cast(o,fx){
+   const c=o.cast,T=DG[o.dungeon]||DG.briarhollow,st=DGMOVE[c.name]||'',seed=Math.random()*TAU;
+   if(c.shape==='cone'){
+    const a0=c.angle-c.halfAngle,a1=c.angle+c.halfAngle,R=c.range,at=(u,w)=>({x:c.x+Math.cos(c.angle+w*c.halfAngle)*R*u,y:c.y+Math.sin(c.angle+w*c.halfAngle)*R*u});
+    fx.spawn({life:.38,layer:'glow',reach:R+40,draw(g,e,p,H){const lead=E.out(Math.min(1,p/.4)),fade=1-E.in(p);
+     H.crescent(g,c.x,c.y-6,R*.6,a0,a1,R*.32,T.lit,fade*.55,{lead,flat:1});H.crescent(g,c.x,c.y-6,R*.78,a0,a1,R*.06,'255,255,255',fade*.45,{lead,flat:1});}},{x:c.x,y:c.y});
+    if(st==='breath'){fx.spawn({life:.6,layer:'glow',reach:R+40,light:{colour:'255,150,60',reach:R*1.4,head:160,h:30,peak:1,env:p=>Math.pow(1-p,1.4)},draw(g,e,p,H){
+      for(let i=0;i<16;i++){const u=clamp01(p*1.6-hash(i,seed)*.5),w=(hash(i+3,seed)-.5)*1.7,q=at(u,w);flame(g,q.x,q.y,c.angle+(hash(i+7,seed)-.5)*.6,(18+26*u)*(1-p*.6),12*(1-p*.5),1-p);}}},{x:c.x,y:c.y});
+     fx.emit({x:c.x+Math.cos(c.angle)*40,y:c.y+Math.sin(c.angle)*40,n:14,kind:'ember',speed:[120,280],angle:[a0,a1],life:[.4,.8],size:[1.8,3],c:GOLD,drag:2,grav:-30});}
+    else if(st==='rime'){for(let i=0;i<4;i++){const q=at(.3+.18*i,(hash(i,seed)-.5)*1.2);spikes(fx,q.x,q.y,40,3,['rgb(206,236,255)','rgb(70,130,210)','rgba(255,255,255,1)'],{tall:1.1,life:.8});}}
+    else if(st==='fissure'){const e=at(.95,0);fx.spawn({life:1.4,layer:'ground',reach:R,draw(g,ef,p,H){H.line(g,H.jag(c.x,c.y,e.x,e.y,9,9,H.rng((seed*911)>>>0)),3*(1-p*.5),'40,30,20',1-E.in(p));}},{x:c.x,y:c.y});
+     for(let i=0;i<5;i++){const q=at(.2+.18*i,(hash(i,seed)-.5)*.6);fx.emit({x:q.x,y:q.y,n:3,kind:'shard',speed:[60,150],life:[.4,.7],size:[2,3.4],c:'150,130,100',grav:420,up:110,drag:1,spin:[-8,8],layer:'air'});fx.emit({x:q.x,y:q.y,n:1,kind:'dust',speed:[30,70],flat:.45,life:[.5,.8],size:[10,14],layer:'air'});}}
+    else{const col=st==='vines'?T.acc:st==='rend'?'180,185,237':T.lit,kind=st==='cleave'?'ember':st==='rend'?'mote':'spark';
+     for(let i=0;i<10;i++){const q=at(.3+.6*hash(i,seed),(hash(i+4,seed)-.5)*1.8);fx.emit({x:q.x,y:q.y-8,n:1,kind,speed:[40,120],life:[.3,.6],size:[1.4,2.4],c:col,up:30,grav:kind==='ember'?-30:0,drag:2});}}
+    if(!o.peer)fx.shake(.06);
+    return;
+   }
+   const x=c.x,y=c.y,R=c.radius;
+   if(st==='boulder'||st==='rubble'){fx.spawn({life:.7,layer:'ground',reach:R+40,draw(g,e,p,H){const run=E.out(Math.min(1,p/.4));H.haze(g,x,y,R*(.4+.7*run),DUST,.55*(1-p),FLAT,false);H.ring(g,x,y,R*(.3+.8*run),3*(1-p),T.lit,(1-p)*.9,FLAT);}},{x,y});
+    fx.emit({x,y:y-6,n:st==='boulder'?14:10,kind:'shard',speed:[90,220],life:[.4,.7],size:[2.4,4],c:'140,124,104',grav:420,up:130,drag:1,spin:[-8,8],layer:'air'});
+    fx.emit({x,y,n:8,kind:'dust',speed:[80,180],flat:.45,life:[.6,.9],size:[10,16],layer:'air'});}
+   else if(st==='roots'||st==='pod'){spikes(fx,x,y,R,st==='pod'?7:9,['rgb(86,62,34)','rgb(48,34,20)','rgba(190,240,120,.9)'],{tall:1.1});fx.emit({x,y:y-8,n:10,kind:'spark',speed:[80,180],life:[.25,.45],size:[1.3,2.2],c:T.acc,drag:3});}
+   else if(st==='emberfall'||st==='slag'){for(let i=0;i<(st==='slag'?1:4);i++){const th=Math.random()*TAU,d=st==='slag'?0:R*.55*Math.random();blast(fx,x+Math.cos(th)*d,y+Math.sin(th)*d*FLAT,st==='slag'?R*.8:R*.45);}}
+   else if(st==='seal'||st==='magma'){pillar(fx,x,y,R,EMBER,FIRE,{top:240,light:'255,150,60',motes:6});blast(fx,x,y,R*.8);}
+   else if(st==='echo'||st==='skull'){const v='180,185,237';fx.spawn({life:.8,layer:'glow',reach:R+50,light:{colour:'170,180,255',reach:R*2,head:R+60,h:40,peak:1,env:p=>Math.pow(1-p,1.5)},draw(g,e,p,H){
+     for(let i=0;i<3;i++){const q=clamp01(p*1.5-i*.18);H.ring(g,x,y,R*(.2+.95*E.out(q)),3*(1-q),v,(1-q),FLAT);}H.glow(g,x,y-14,R*.6*(1-p),v,1-p);H.flare(g,x,y-14,R,v,(1-p)*.8,0);}},{x,y});
+    fx.emit({x,y:y-10,n:12,kind:'mote',speed:[30,100],life:[.6,1],size:[1.5,2.6],c:v,up:60,grav:-40,drag:1.6});}
+   else{spikes(fx,x,y,R,st==='glacial'?6:8,['rgb(206,236,255)','rgb(70,130,210)','rgba(255,255,255,1)'],{tall:1.25,life:.9});fx.emit({x,y:y-10,n:10,kind:'shard',speed:[80,200],life:[.3,.6],size:[2,3.4],c:ICE,drag:2,grav:200,up:40,layer:'glow'});
+    fx.emit({x,y,n:3,kind:'smoke',c:'210,236,250',speed:[30,60],flat:.45,life:[.6,.9],size:[10,14],grow:1.4,layer:'air',alpha:.6});}
+   if(!o.peer)fx.shake(st==='magma'||st==='boulder'?.1:.06);
+  },
+ });
+ /* the roar at half health: the air shaking out from him in rings, the ground's dust thrown up, his dungeon's light round him */
+ FX.recipe('boss:dgroar',{
+  cast(o,fx){
+   const T=DG[o.dungeon]||DG.briarhollow,x=o.x,y=o.y,R=o.r||160;
+   fx.spawn({life:1,layer:'glow',reach:R*2,light:{colour:T.lit,reach:R*2,head:R,h:40,peak:1,env:p=>Math.pow(1-p,1.4)},draw(g,e,p,H){
+    for(let i=0;i<3;i++){const q=clamp01(p*1.5-i*.2);H.ring(g,x,y-30,R*(.2+1.2*E.out(q)),4*(1-q),T.lit,(1-q)*.9,.8);}
+    H.glow(g,x,y-30,R*.5*(1-p),T.acc,(1-p));
+   }},{x,y});
+   fx.spawn({life:1,layer:'ground',reach:R*2,draw(g,e,p,H){const run=E.out(Math.min(1,p/.5));H.haze(g,x,y,R*(.4+1.1*run),DUST,.5*(1-p),FLAT,false);}},{x,y});
+   fx.emit({x,y,n:14,kind:'dust',speed:[120,240],flat:.45,life:[.6,1],size:[12,18],layer:'air'});
+   fx.emit({x,y:y-30,n:14,kind:o.dungeon==='cindervein'?'ember':o.dungeon==='frostveil'?'mote':'spark',speed:[80,200],life:[.4,.8],size:[1.6,2.8],c:T.acc,drag:2});
+   fx.shake(.22);
+  },
+ });
+
  /* ================= every boss's own blow (2026-10-09, "gör det på alla bossar ... dungeon osv") ================= */
  /* a boss's swing landing on you: a SLASH (a blade's arc of light across you, from where it came) or a SMASH (the ground
     cracking under you, a shock and what it throws up - stone, thorns, cinders or ice by the boss) - in the boss's colours.

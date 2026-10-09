@@ -370,10 +370,10 @@ void main(){
 /* a texture laid over the target in a colour; with u_px a tent upsample; u_flip for a canvas texture (top row first) */
 const ADD_FS=`#version 300 es
 precision highp float;
-in vec2 v_uv;uniform sampler2D u_src;uniform vec4 u_color;uniform vec2 u_px;uniform float u_flip;
+in vec2 v_uv;uniform sampler2D u_src;uniform vec4 u_color;uniform vec2 u_px;uniform float u_flip;uniform vec2 u_shift;
 out vec4 o;
 void main(){
- vec2 uv=u_flip>.5?vec2(v_uv.x,1.0-v_uv.y):v_uv;
+ vec2 uv=(u_flip>.5?vec2(v_uv.x,1.0-v_uv.y):v_uv)+u_shift;
  vec4 t;
  if(u_px.x>0.0)t=(texture(u_src,uv)*4.0+(texture(u_src,uv+vec2(u_px.x,0))+texture(u_src,uv-vec2(u_px.x,0))+texture(u_src,uv+vec2(0,u_px.y))+texture(u_src,uv-vec2(0,u_px.y)))*2.0
   +texture(u_src,uv+u_px)+texture(u_src,uv-u_px)+texture(u_src,uv+vec2(u_px.x,-u_px.y))+texture(u_src,uv+vec2(-u_px.x,u_px.y)))/16.0;
@@ -410,6 +410,29 @@ void main(){
  float T=1.0;
  if(u_hasShadow>.5){float acc=0.0;vec2 q=v_uv,st=vec2(-u_dir.x,u_dir.y)*(u_res.y*.4/28.0)/u_res;for(int i=1;i<=28;i++){q+=st;if(q.x<0.0||q.y<0.0||q.x>1.0||q.y>1.0)break;acc+=texture(u_shadow,vec2(q.x,1.0-q.y)).a;}T=exp(-acc*u_block);}
  o=vec4(vec3(b*fall*T),1.0);
+}`;
+
+/* heat haze (2026-10-09, "värmedis över eld och lava"): the scene fetched again through a slow shimmer wherever it is hot - a
+   plume above each flame (u_src: x,y in device px, its size, its strength) and, in a hot land, drifting patches of hot air
+   (u_global). The ripples are tied to the ground (u_org: where the world's 0,0 is on the screen, u_sc: device px a world
+   unit), so they rise off the fire and do not slide along with the camera */
+const HAZE_FS=`#version 300 es
+precision highp float;
+in vec2 v_uv;uniform sampler2D u_scene;uniform vec2 u_res;uniform float u_time;uniform float u_amp;uniform float u_global;uniform vec2 u_org;uniform float u_sc;uniform int u_n;uniform vec4 u_src[24];
+out vec4 o;
+float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float vnoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.0-2.0*f);return mix(mix(hash(i),hash(i+vec2(1.0,0.0)),f.x),mix(hash(i+vec2(0.0,1.0)),hash(i+vec2(1.0,1.0)),f.x),f.y);}
+void main(){
+ vec2 fc=gl_FragCoord.xy,p=vec2(fc.x,u_res.y-fc.y),wp=(p-u_org)/max(u_sc,.001);
+ float w=0.0;
+ if(u_global>0.0)w=u_global*1.8*smoothstep(.36,.84,vnoise(wp*.0042+vec2(u_time*.05,u_time*.09)));
+ for(int i=0;i<24;i++){if(i>=u_n)break;vec4 s=u_src[i];vec2 d=p-s.xy;d.y+=s.z*.75;
+  w+=s.w*exp(-(d.x*d.x)/(s.z*s.z*.3)-(d.y*d.y)/(s.z*s.z*1.6));}
+ w=min(w,1.0);
+ if(w<.004){o=texelFetch(u_scene,ivec2(fc),0);return;}
+ vec2 q=wp*.035;
+ vec2 off=vec2(vnoise(q+vec2(0.0,u_time*1.9))-.5,vnoise(q*1.3+vec2(9.7,u_time*2.6))-.5)*2.0*u_amp*w;
+ o=texture(u_scene,(fc+off)/u_res);
 }`;
 
 /* ================================================================== geometry helpers (pure; also run headless in the tests) */
@@ -1502,7 +1525,7 @@ function create(canvas,opts={}){
   blendAdd();
   for(let i=levels-1;i>0;i--){into(B[i-1]);gl.useProgram(P.up.p);cur.program='up';texUnit(0,B[i].tex);gl.uniform1i(P.up.u.u_src,0);gl.uniform2f(P.up.u.u_px,1/B[i].w,1/B[i].h);gl.uniform1f(P.up.u.u_k,o.spread==null?1:o.spread);fullQuad('up');}
   into(null);gl.useProgram(P.addmix.p);cur.program='addmix';texUnit(0,B[0].tex);gl.uniform1i(P.addmix.u.u_src,0);
-  const c=o.tint||[1,1,1],k=o.strength==null?.6:o.strength;gl.uniform4f(P.addmix.u.u_color,c[0]*k,c[1]*k,c[2]*k,0);gl.uniform2f(P.addmix.u.u_px,1/B[0].w,1/B[0].h);gl.uniform1f(P.addmix.u.u_flip,0);
+  const c=o.tint||[1,1,1],k=o.strength==null?.6:o.strength;gl.uniform4f(P.addmix.u.u_color,c[0]*k,c[1]*k,c[2]*k,0);gl.uniform2f(P.addmix.u.u_px,1/B[0].w,1/B[0].h);gl.uniform2f(P.addmix.u.u_shift,0,0);gl.uniform1f(P.addmix.u.u_flip,0);
   fullQuad('addmix');
   postEnd();
  }
@@ -1523,13 +1546,33 @@ function create(canvas,opts={}){
   gl.uniform1f(P.rays.u.u_time,o.time||0);gl.uniform1f(P.rays.u.u_reach,o.reach==null?.9:o.reach);gl.uniform1f(P.rays.u.u_block,o.block==null?.22:o.block);
   fullQuad('rays');
   into(null);blendAdd();gl.useProgram(P.addmix.p);cur.program='addmix';texUnit(0,A.tex);gl.uniform1i(P.addmix.u.u_src,0);
-  const c=o.color||[1,.85,.6],k=o.strength==null?.3:o.strength;gl.uniform4f(P.addmix.u.u_color,c[0]*k,c[1]*k,c[2]*k,0);gl.uniform2f(P.addmix.u.u_px,1/A.w,1/A.h);gl.uniform1f(P.addmix.u.u_flip,0);
+  const c=o.color||[1,.85,.6],k=o.strength==null?.3:o.strength;gl.uniform4f(P.addmix.u.u_color,c[0]*k,c[1]*k,c[2]*k,0);gl.uniform2f(P.addmix.u.u_px,1/A.w,1/A.h);gl.uniform2f(P.addmix.u.u_shift,0,0);gl.uniform1f(P.addmix.u.u_flip,0);
   fullQuad('addmix');
   postEnd();
  }
 
+ /* ---- heat haze: the scene redrawn through HAZE_FS - sources {x,y (device px), r, k}, up to 24; global: a hot land's own shimmer;
+    world {x,y,s}: the world's 0,0 on the screen and its scale, so the ripples stay on the ground */
+ const hazeData=new Float32Array(96);
+ function heatHaze(o){
+  if(R.lost)return;
+  const src=o.sources||[],n=Math.min(24,src.length),g0=Math.max(0,Math.min(1,o.global||0));
+  if(!n&&!(g0>0))return;
+  postBegin();
+  ppProgram('haze',HAZE_FS);
+  into(null);gl.disable(gl.BLEND);
+  hazeData.fill(0);
+  for(let i=0;i<n;i++){const q=src[i];hazeData[i*4]=q.x;hazeData[i*4+1]=q.y;hazeData[i*4+2]=Math.max(4,q.r||0);hazeData[i*4+3]=q.k??1;}
+  gl.useProgram(P.haze.p);cur.program='haze';texUnit(0,T.resTex);
+  gl.uniform1i(P.haze.u.u_scene,0);gl.uniform2f(P.haze.u.u_res,W,H);gl.uniform1f(P.haze.u.u_time,o.time||0);gl.uniform1f(P.haze.u.u_amp,o.amp||2.2);
+  const wo=o.world||{};gl.uniform2f(P.haze.u.u_org,wo.x||0,wo.y||0);gl.uniform1f(P.haze.u.u_sc,wo.s||1);
+  gl.uniform1f(P.haze.u.u_global,g0);gl.uniform1i(P.haze.u.u_n,n);gl.uniform4fv(P.haze.u.u_src,hazeData);
+  fullQuad('haze');
+  postEnd();
+ }
+
  /* ---- a screen-sized layer (a 2D canvas, any resolution) laid over the whole view, gaussian-blurred first: the sun's shadows */
- function drawBlurred(src,alpha,sigma){
+ function drawBlurred(src,alpha,sigma,dx=0,dy=0){   /* dx,dy: the layer laid that many device px over (a phone's kept shadows following the camera) */
   if(R.lost||!src)return;
   const sz=sourceSize(src);if(!sz)return;
   postBegin(false);
@@ -1542,7 +1585,7 @@ function create(canvas,opts={}){
   pass(A,e.tex,1,0,true);   /* the canvas texture has its top row first: turn it the GL way up here */
   pass(Bt,A.tex,0,1,false);
   into(null);blendOver();gl.useProgram(P.addmix.p);cur.program='addmix';texUnit(0,Bt.tex);gl.uniform1i(P.addmix.u.u_src,0);
-  gl.uniform4f(P.addmix.u.u_color,alpha,alpha,alpha,alpha);gl.uniform2f(P.addmix.u.u_px,0,0);gl.uniform1f(P.addmix.u.u_flip,0);
+  gl.uniform4f(P.addmix.u.u_color,alpha,alpha,alpha,alpha);gl.uniform2f(P.addmix.u.u_px,0,0);gl.uniform1f(P.addmix.u.u_flip,0);gl.uniform2f(P.addmix.u.u_shift,-(+dx||0)/W,(+dy||0)/H);
   fullQuad('addmix');
   postEnd();
  }
@@ -1656,7 +1699,7 @@ function create(canvas,opts={}){
   sceneTexture(){ensureLayer();blitRegion('scene','res',[0,0,W,H]);return T.resTex;},
   set lodBias(v){flush('bias');R.lodBias=+v||0;},get lodBias(){return R.lodBias;},
   /* the post passes (light, bloom, light shafts, a blurred screen layer) and whether light can go past white */
-  lightMap(o){lightMap(o);},bloom(o){bloom(o);},rays(o){rays(o);},drawBlurred(src,alpha,sigma){drawBlurred(src,alpha,sigma);},
+  lightMap(o){lightMap(o);},bloom(o){bloom(o);},rays(o){rays(o);},heatHaze(o){heatHaze(o);},drawBlurred(src,alpha,sigma,dx,dy){drawBlurred(src,alpha,sigma,dx,dy);},
   get hdr(){return FLOATRT;},
   gl
  };
@@ -1671,7 +1714,12 @@ function create(canvas,opts={}){
  prop('lineJoin',()=>S.join,v=>{if(v==='miter'||v==='round'||v==='bevel')S.join=v;});
  prop('miterLimit',()=>S.miter,v=>{v=+v;if(Number.isFinite(v)&&v>0)S.miter=v;});
  prop('lineDashOffset',()=>S.dashOff,v=>{v=+v;if(Number.isFinite(v))S.dashOff=v;});
- prop('font',()=>S.font,v=>{const g=textCtx();const before=g.font;g.font=String(v);if(g.font!==before||String(v)===before)S.font=g.font;});
+ /* a font is parsed once (the measuring canvas does it) and remembered: the game sets one per label every frame, and the
+    parse was a twentieth of a phone's frame (2026-10-10). A sentinel tells a refused font from one already set */
+ const fontNorm=new Map();
+ prop('font',()=>S.font,v=>{v=String(v);let n=fontNorm.get(v);
+  if(n===undefined){const g=textCtx();g.font='1px __gl2d__';g.font=v;n=g.font==='1px __gl2d__'?null:g.font;if(fontNorm.size>512)fontNorm.clear();fontNorm.set(v,n);}
+  if(n)S.font=n;});
  prop('textAlign',()=>S.align,v=>{if(['start','end','left','right','center'].includes(v))S.align=v;});
  prop('textBaseline',()=>S.baseline,v=>{if(['top','hanging','middle','alphabetic','ideographic','bottom'].includes(v))S.baseline=v;});
  prop('direction',()=>S.direction,v=>{if(['ltr','rtl','inherit'].includes(v))S.direction=v;});

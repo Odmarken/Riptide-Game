@@ -179,7 +179,7 @@ function fight(weaponInsc,cls={id:'warrior',cd:1,ranged:false}){
   sfx:{bolt(){},swing(){},hit(){},arcane(){},shout(){}},hasEnch:()=>false,scrollPct:()=>0,scrollRaw:()=>0,mpGuestRaidHit:()=>false,
   floatAt:(x,y,t)=>floats.push(t),burst(){},ring(){},zapLine(){},bloodAt(){},killEnemy:en=>{en.dead=true;},
   dist:(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),fkBonus:()=>0,healHero:n=>heals.push(n),manaMax:()=>100,isFG:()=>false,activePet:()=>null,
-  drawWeapons(){}};   /* 🗡 a swing takes a holstered weapon out (game.js setHolster) */
+  drawWeapons(){},runeOf:()=>null};   /* 🗡 a swing takes a holstered weapon out (game.js setHolster); ✨ a weapon with no rune shows none */
  vm.createContext(c);
  vm.runInContext(HELPERS,c);
  vm.runInContext(section("/* one swing's damage roll","function dealSpell(en,sp){"),c);

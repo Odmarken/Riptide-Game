@@ -43,9 +43,10 @@ test('all actual dungeon layouts create 15 themed foes and two distinct bosses w
    assert.ok(en.hp===en.max&&en.hp>0&&Number.isFinite(en.atk));
    assert.equal(en.xp,0);assert.equal(en.gold,0);assert.equal(en.raid,false);
    if(en.boss){
-    bosses.push(en);assert.equal(en.dungeonMoves.length,2);
+    bosses.push(en);assert.equal(en.dungeonMoves.length,3,'a cone, a circle and a throw (2026-10-09)');
     assert.equal(en.skin,'cave_troll_'+key);
-    assert.deepEqual(Array.from(en.dungeonMoves,m=>m.shape).sort(),['circle','cone']);
+    assert.deepEqual(Array.from(en.dungeonMoves,m=>m.shape).sort(),['circle','circle','cone']);
+    assert.deepEqual(Array.from(en.dungeonMoves,m=>!!m.thrown),[false,false,true],'the third is thrown');
     for(const m of en.dungeonMoves){assert.ok(m.warn>=1.35);assert.ok(m.damage>=1.2&&m.damage<=1.44);}
    }else assert.ok(fs.existsSync(path.join(root,'assets/mobs',en.mobSprite+'.png')),en.mobSprite);
   }
@@ -459,5 +460,32 @@ test('partial clears stay isolated between the three dungeons and stale boss obj
   assert.equal(D.defeat(a),null,'persisted cooldown independently rejects a duplicate death');
   assert.equal(D.defeat(b).books,1);assert.equal(state[keys[i]].clearProgress,undefined);
   for(let n=i+1;n<runs.length;n++)assert.equal(state[keys[n]].clearProgress,1,'another clear must not consume this dungeon credit');
+ }
+});
+
+test('each guardian also throws (a boulder, slag, a skull...) where the hero stood, and roars once a life at half health - its casts then come quicker',()=>{
+ for(const key of keys)for(const en of encounter(key).enemies.filter(e=>e.boss)){
+  const hero=heroNear(en),hits=[],roars=[];
+  const hooks={hurtHero:(...v)=>hits.push(v),onRoar:e=>roars.push(e.name)};
+  for(let n=0;n<3;n++){
+   tickUntil(en,hero,()=>!!en.dungeonCast,hooks);
+   const cast=en.dungeonCast;
+   if(n<2){assert.ok(!cast.thrown);resolve(en,hero,hooks);continue;}
+   assert.equal(cast.thrown,true);assert.equal(cast.shape,'circle');
+   assert.ok(Number.isFinite(cast.fromX)&&Number.isFinite(cast.fromY),'it leaves his hand');
+   assert.deepEqual({x:cast.x,y:cast.y},{x:hero.x,y:hero.y},'it lands where the hero stood');
+   assert.equal(D.pointInTelegraph(cast,hero),true);
+   resolve(en,hero,hooks);assert.equal(hits.at(-1)[0],cast.damage);assert.equal(hits.at(-1)[3],false);
+   assert.ok(cast.damage<=en.atk*1.45,'a throw stays within the other moves\' multipliers');
+  }
+  assert.equal(roars.length,0,'no roar at full health');
+  en.hp=Math.floor(en.max*.49);
+  D.updateEnemy(en,.05,hero,hooks);assert.equal(roars.length,1);
+  for(let i=0;i<40;i++)D.updateEnemy(en,.05,hero,hooks);
+  assert.equal(roars.length,1,'once a life');
+  tickUntil(en,hero,()=>!!en.dungeonCast,hooks);resolve(en,hero,hooks);
+  assert.ok(Math.abs(en.dungeonCooldown-2.4)<1e-9||en.dungeonCooldown<2.4,'after the roar the casts come every 2.4 s');
+  hero.x=en.home.x+800;for(let i=0;i<60;i++)D.updateEnemy(en,.1,hero,hooks);
+  assert.equal(en.dungeonRoared,false,'leashed home, healed whole: it can roar again next fight');
  }
 });

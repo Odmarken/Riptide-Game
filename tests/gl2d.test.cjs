@@ -117,7 +117,7 @@ test('💡 the GPU light: Settings > Video > Lighting quality (ultra by default,
  assert.ok(/function sunEnd\(\)\{[^]*?ctx\.drawBlurred\(sunLayer/.test(game),'soft shadows on medium and ultra');
  assert.ok(game.includes('if(q)sunPostFX(now,q);'),'bloom and light shafts after the sun');
  const gl=read('assets/gl/gl2d.js');
- for(const f of ['lightMap(o){lightMap(o);}','bloom(o){bloom(o);}','rays(o){rays(o);}','drawBlurred(src,alpha,sigma)'])assert.ok(gl.includes(f),f);
+ for(const f of ['lightMap(o){lightMap(o);}','bloom(o){bloom(o);}','rays(o){rays(o);}','drawBlurred(src,alpha,sigma,dx,dy){drawBlurred(src,alpha,sigma,dx,dy);}'])   /* dx,dy: a phone's kept shadow layer moved with the camera (2026-10-10) */assert.ok(gl.includes(f),f);
 });
 
 test('a Path2D is written down as it is built, so the GL screen can clip with it - the mounts\' rider masks ("min gubbe har försvunnit från mitt mount")',()=>{

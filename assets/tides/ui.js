@@ -40,9 +40,12 @@ const TideUI=(()=>{
  function paintIcons(){
   document.querySelectorAll('[data-tide-art]').forEach(c=>{const f=frameFor(c.dataset.tideArt);if(!f)return;const g=c.getContext('2d'),k=Math.min((c.width-12)/f.w,(c.height-12)/f.h);g.clearRect(0,0,c.width,c.height);g.drawImage(f.image,f.x,f.y,f.w,f.h,(c.width-f.w*k)/2,(c.height-f.h*k)/2,f.w*k,f.h*k);});
  }
- function drawAnimal(g,id,x,y,height,fx=1,motion=0,phase=0,alpha=1,time=motionClock,alive=true,stride=1){
+ function drawAnimal(g,id,x,y,height,fx=1,motion=0,phase=0,alpha=1,time=motionClock,alive=true,stride=1,flash=0){
   const f=frameFor(id);if(!f)return false;
-  TideMotion.draw(g,f,id,x,y,height,fx,motion,phase,alpha,time,alive,stride);return true;
+  if(flash>0){g.save();g.filter='brightness('+(1+flash*1.5).toFixed(2)+')';}   /* ✨ a struck Tide flashes white (battle-fx.js) */
+  TideMotion.draw(g,f,id,x,y,height,fx,motion,phase,alpha,time,alive,stride);
+  if(flash>0)g.restore();
+  return true;
  }
  function animalVisual(id,base=36){
   const s=species(id),f=frameFor(id),bounds=s?.art?.rect||(typeof TideArtLayout==='object'?TideArtLayout[id]?.bounds:null);
@@ -512,6 +515,20 @@ const TideUI=(()=>{
   else if(power&&!move.damage)sfx.tidePower();
   else sfx.tideCast(move.style,power);
  }
+ /* ✨ the move behind an event, as the battle's effects read it: its names (a hybrid's plain strike borrows its parents'), colour, style */
+ function battleLook(e,a){
+  const action=e.type==='attack'||e.type==='power'?e:a.moves.find(m=>m.side===e.actionSide&&m.actionIndex===e.actionIndex)||a.moves.find(m=>m.side===e.actionSide);
+  if(!action)return {};
+  const unit=a.display[action.side],s=species(unit.speciesId),power=action.type==='power',move=power?petSkill(unit):s.attack,names=[move.name];
+  if(power&&move.parentNames)names.push(...move.parentNames);
+  if(!power&&s.hybrid)for(const id of [s.parentA,s.parentB]){const p=species(id);if(p)names.push(p.attack.name);}
+  return {names,name:move.name,color:move.color,style:move.style,power};
+ }
+ function battleFx(e,a){
+  if(!session?.bfx||typeof TideBattleFx!=='object')return;
+  if(e.type==='result'){for(const side of ['player','foe'])if(session.battle[side].hp<=0)TideBattleFx.event(session.bfx,{type:'ko',side,targetSide:side},{});return;}
+  TideBattleFx.event(session.bfx,e,battleLook(e,a));
+ }
  function retreat(){
   if(!session||session.animation||session.result||gamePaused)return;
   if(session.guild){
@@ -551,7 +568,7 @@ const TideUI=(()=>{
  function paintBattle(){
   if(!session||el('tideBattleFx').hidden)return;
   const c=el('tideArena'),r=c.getBoundingClientRect(),w=r.width,h=r.height;if(!w||!h)return;
-  const d=Math.min(2,devicePixelRatio||1);if(c.width!==Math.round(w*d)||c.height!==Math.round(h*d)){c.width=Math.round(w*d);c.height=Math.round(h*d);}
+  const d=Math.min(2,devicePixelRatio||1)*(typeof PHONE!=='undefined'&&PHONE?.75:1);if(c.width!==Math.round(w*d)||c.height!==Math.round(h*d)){c.width=Math.round(w*d);c.height=Math.round(h*d);}   /* 📱 a phone's arena at 1.5 to the point */
   const g=c.getContext('2d');g.setTransform(d,0,0,d,0,0);g.clearRect(0,0,w,h);
   if(session.guild)TideGuildWorld.renderBattle(g,w,h,session.time,{images:guildImages()});
   else if(session.backdrop){const k=Math.max(w/session.backdrop.width,h/session.backdrop.height)*(1.035-Math.min(1,session.time/.65)*.035),bw=session.backdrop.width*k,bh=session.backdrop.height*k;g.drawImage(session.backdrop,(w-bw)/2,(h-bh)/2,bw,bh);}
@@ -561,9 +578,16 @@ const TideUI=(()=>{
   const controlsTop=el('tideActions').parentElement.getBoundingClientRect().top-r.top;
   const trainer=session.guild?.trainer,trainerFrame=trainer?paintedCharacterFrame(trainer.race,trainer.cls,trainer.fem,trainer.ice):null;
   const b=session.animation?.display||session.battle,anim=session.animation,layout=battleLayout(w,h,b.player.speciesId,b.foe.speciesId,hudBottom,controlsTop,paintedCharacterFrame(S.race,S.cls,S.gender==='f',isIce(S.gear.armor)),{guild:!!session.guild,trainerFrame}),{floor,left,right}=layout,ps=layout.player,fs=layout.foe;
-  let lx=left,rx=right,ly=floor,ry=floor,actor=null,progress=0,style='melee',color='#ddd',hit=0;
-  if(anim){({actor,progress}=animationMove(anim));if(actor){const unit=b[actor.side],s=species(unit.speciesId),move=actor.type==='power'?petSkill(unit):s.attack;style=move.style;color=move.color;hit=Math.sin(Math.PI*Math.max(0,(progress-.45)/.55));if(style==='melee'){const p=Math.sin(Math.PI*progress),travel=layout.travel*p;if(actor.side==='player'){lx+=travel;ly-=Math.sin(progress*Math.PI*3)*9*p;}else{rx-=travel;ry-=Math.sin(progress*Math.PI*3)*9*p;}}}}
+  let lx=left,rx=right,ly=floor,ry=floor,actor=null,progress=0,style='melee';
+  if(anim){({actor,progress}=animationMove(anim));if(actor){const unit=b[actor.side],s=species(unit.speciesId),move=actor.type==='power'?petSkill(unit):s.attack;style=move.style;if(style==='melee'){const p=Math.sin(Math.PI*progress),travel=layout.travel*p;if(actor.side==='player'){lx+=travel;ly-=Math.sin(progress*Math.PI*3)*9*p;}else{rx-=travel;ry-=Math.sin(progress*Math.PI*3)*9*p;}}}}
+  // ✨ The battle's own effects (assets/tides/battle-fx.js): the move in flight, what it does where it lands, what lasts.
+  const bfx=session.bfx||(session.bfx=TideBattleFx.create({font:getComputedStyle(document.body).fontFamily}));
+  TideBattleFx.anchors(bfx,{player:{x:lx,y:ly,hx:left,hy:floor,w:ps.width,h:ps.height,dir:1},foe:{x:rx,y:ry,hx:right,hy:floor,w:fs.width,h:fs.height,dir:-1},top:hudBottom,bottom:controlsTop});
+  const flight=actor?{side:actor.side,target:actor.side==='player'?'foe':'player',progress,look:battleLook(actor,anim),self:actor.type==='power'&&!petSkill(b[actor.side]).damage}:null;
+  TideBattleFx.frame(bfx,session.time,{move:flight,units:b,animating:!!anim});
+  const shake=TideBattleFx.shakeOffset(bfx);g.save();g.translate(shake.x,shake.y);
   if(trainer)drawGuildTrainer(g,layout.foeHeroX,floor-5,trainer,layout.heroScale,-1,session.time,session.trainerEffects);
+  TideBattleFx.drawUnder(g,bfx,{units:b});
   // Use the same equipped cosmetics as the world hero, with battle-local particles.
   g.save();g.translate(layout.heroX,floor-5);g.scale(layout.heroScale,layout.heroScale);
   const f=paintedCharacterFrame(S.race,S.cls,S.gender==='f',isIce(S.gear.armor)),wRune=S.hideWeapon?null:runeOf(S.gear.weapon),heroScene=g.getTransform().inverse();
@@ -577,16 +601,11 @@ const TideUI=(()=>{
   if(fxDt>0)for(let i=fx.parts.length-1;i>=0;i--)if(stepRuneParticle(fx.parts[i],fxDt))fx.parts.splice(i,1);
   runeSpark(wRune,emission?{...emission,points:emission.points.map(p=>runePointTransform(heroScene,p))}:null,fxDt,f?f.groundY:8,fx);
   fx.parts.forEach(p=>drawRuneParticle(g,p));g.restore();
-  drawAnimal(g,b.player.speciesId,lx,ly,ps.height,1,actor?.side==='player'&&style==='melee'?Math.sin(progress*Math.PI):0,progress*Math.PI*8,b.player.hp<=0&&session.shownResult?.6:1,session.time,b.player.hp>0||actor?.side==='player');
-  drawAnimal(g,b.foe.speciesId,rx,ry,fs.height,-1,actor?.side==='foe'&&style==='melee'?Math.sin(progress*Math.PI):0,progress*Math.PI*8,b.foe.hp<=0&&session.shownResult?.5:1,session.time+1.7,b.foe.hp>0||actor?.side==='foe');
-  if(actor&&style==='magic'){
-   const friendly=actor.side==='player',self=actor.type==='power'&&!petSkill(b[actor.side]).damage,ownSize=friendly?ps:fs,targetSize=self?ownSize:friendly?fs:ps,ownX=friendly?left:right;
-   const from=self?ownX:ownX+(friendly?1:-1)*ownSize.width*.28,to=self?from:(friendly?right-fs.width*.25:left+ps.width*.25),fromY=floor-ownSize.height*.58,toY=floor-targetSize.height*.5;
-   const p=Math.min(1,progress*1.55),px=from+(to-from)*p,py=fromY+(toY-fromY)*p-Math.sin(p*Math.PI)*Math.min(ownSize.height,targetSize.height)*.28;
-   g.save();g.strokeStyle=color;g.fillStyle=color;g.shadowColor=color;g.shadowBlur=15;g.globalAlpha=Math.sin(progress*Math.PI);g.lineWidth=3;
-   if(self){g.beginPath();g.ellipse(from,floor-ownSize.height*.42,ownSize.width*.48,ownSize.height*.55,0,0,Math.PI*2);g.stroke();}else{g.beginPath();g.arc(px,py,8+Math.sin(progress*20)*2,0,Math.PI*2);g.fill();for(let i=1;i<5;i++){g.globalAlpha*=.72;g.beginPath();g.arc(px-(to-from)*.022*i,py+i*2,6-i,0,Math.PI*2);g.fill();}}g.restore();
-  }
-  if(actor&&progress>.5&&progress<.8&&(actor.type==='attack'||petSkill(b[actor.side]).damage)){const target=actor.side==='player'?fs:ps,x=actor.side==='player'?right-fs.width*.25:left+ps.width*.25,size=Math.min(target.height,target.width);g.save();g.strokeStyle=color;g.lineWidth=2;g.globalAlpha=hit*.7;for(let i=0;i<6;i++){const a=i*Math.PI/3;g.beginPath();g.moveTo(x+Math.cos(a)*size*.12,floor-target.height*.5+Math.sin(a)*size*.12);g.lineTo(x+Math.cos(a)*size*.3,floor-target.height*.5+Math.sin(a)*size*.3);g.stroke();}g.restore();}
+  drawAnimal(g,b.player.speciesId,lx,ly,ps.height,1,actor?.side==='player'&&style==='melee'?Math.sin(progress*Math.PI):0,progress*Math.PI*8,b.player.hp<=0&&session.shownResult?.6:1,session.time,b.player.hp>0||actor?.side==='player',1,TideBattleFx.flash(bfx,'player'));
+  drawAnimal(g,b.foe.speciesId,rx,ry,fs.height,-1,actor?.side==='foe'&&style==='melee'?Math.sin(progress*Math.PI):0,progress*Math.PI*8,b.foe.hp<=0&&session.shownResult?.5:1,session.time+1.7,b.foe.hp>0||actor?.side==='foe',1,TideBattleFx.flash(bfx,'foe'));
+  TideBattleFx.drawMove(g,bfx,flight);
+  TideBattleFx.drawOver(g,bfx,{units:b});
+  g.restore();
  }
  function tick(dt){
   clockTick+=dt;motionClock+=dt;
@@ -597,7 +616,7 @@ const TideUI=(()=>{
   const a=session.animation;if(a){
    a.elapsed+=dt;
    while(a.shown<a.events.length&&a.events[a.shown].at<=a.elapsed){
-    const e=a.events[a.shown++];appendLog(e.text);battleSound(e,a);
+    const e=a.events[a.shown++];appendLog(e.text);battleSound(e,a);battleFx(e,a);
     // Both actions resolve together. Keep the starting bars while they animate;
     // replaying clipped event amounts would misrepresent simultaneous healing.
     // Clearing animation below commits both authoritative combatants at once.

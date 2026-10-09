@@ -6,7 +6,9 @@
  * now is a wall-clock function in milliseconds, default Date.now; timers survive reset.
  * updateEnemy returns true for dungeon foes: skip ALL ordinary AI/respawn then.
  * Hooks: moveToward(enemy,x,y,dt), hurtHero(damage,label,enemy,isMelee),
- *        onWarn(cast,enemy), onStrike(cast,enemy,hit) (last two are optional VFX).
+ *        onWarn(cast,enemy), onStrike(cast,enemy,hit), onRoar(enemy) (the last three are optional VFX).
+ * Each guardian has three moves - a cone, a circle and a throw (a circle with thrown:true and fromX/fromY) - and roars
+ * once a life at half health, after which its casts come every 2.4 s instead of 3.2 s.
  * defeat(enemy) owns its once-per-life guard, including if killEnemy set dead first.
  * Its {books:0|1} result rewards BOTH guardians once per clear, never each boss.
  * reset(encounter) replaces enemies and retires old references. The caller must
@@ -16,6 +18,9 @@
  'use strict';
  const cone=(name,range,halfAngle,warn,damage)=>({name,shape:'cone',range,halfAngle,warn,damage});
  const circle=(name,radius,warn,damage)=>({name,shape:'circle',radius,warn,damage});
+ /* a throw (2026-10-09, "riktiga attacker" for the guardians): a circle marked under the hero, the thing in the air the
+    whole warning - a boulder, slag, a skull - landing when it ends. The same circle to the hit test */
+ const toss=(name,radius,warn,damage)=>({name,shape:'circle',thrown:true,radius,warn,damage});
  const definitions={
   briarhollow:{key:'briarhollow',name:'Briarhollow',theme:'overgrown cave',color:'#9fbd68',
    mobs:[
@@ -25,9 +30,9 @@
    ],
    bosses:[
     {name:'Brackenstone',kind:'beast',skin:'cave_troll_briarhollow',color:'#bda077',speed:80,
-     moves:[cone('Stonebreaker',235,.60,1.35,1.20),circle('Falling Rubble',92,1.65,1.20)]},
+     moves:[cone('Stonebreaker',235,.60,1.35,1.20),circle('Falling Rubble',92,1.65,1.20),toss('Boulder Toss',88,1.45,1.25)]},
     {name:'Elder Thornroot',kind:'beast',skin:'cave_troll_briarhollow',color:'#9cc668',speed:76,
-     moves:[cone('Briar Sweep',270,.75,1.50,1.32),circle('Grasping Roots',105,1.70,1.20)]}
+     moves:[cone('Briar Sweep',270,.75,1.50,1.32),circle('Grasping Roots',105,1.70,1.20),toss('Thornburst Pod',96,1.45,1.25)]}
    ]},
   cindervein:{key:'cindervein',name:'Cindervein',theme:'ember mine',color:'#e99657',
    mobs:[
@@ -37,9 +42,9 @@
    ],
    bosses:[
     {name:'Ashbound Sentinel',kind:'humanoid',skin:'cave_troll_cindervein',color:'#f6a463',speed:82,
-     moves:[cone('Cinder Cleave',250,.55,1.35,1.32),circle('Emberfall',105,1.60,1.32)]},
+     moves:[cone('Cinder Cleave',250,.55,1.35,1.32),circle('Emberfall',105,1.60,1.32),toss('Slag Hurl',92,1.40,1.30)]},
     {name:'Lord Cindervein',kind:'humanoid',skin:'cave_troll_cindervein',color:'#ffc06f',speed:78,
-     moves:[cone('Furnace Breath',285,.55,1.60,1.44),circle('Molten Seal',118,1.80,1.38)]}
+     moves:[cone('Furnace Breath',285,.55,1.60,1.44),circle('Molten Seal',118,1.80,1.38),toss('Magma Orb',104,1.50,1.36)]}
    ]},
   frostveil:{key:'frostveil',name:'Frostveil',theme:'haunted ice crypt',color:'#a6c8da',
    mobs:[
@@ -49,9 +54,9 @@
    ],
    bosses:[
     {name:'Veilbound Revenant',kind:'undead',skin:'cave_troll_frostveil',color:'#b4b9ed',speed:84,
-     moves:[cone('Soul Rend',255,.60,1.40,1.26),circle('Grave Echo',100,1.70,1.32)]},
+     moves:[cone('Soul Rend',255,.60,1.40,1.26),circle('Grave Echo',100,1.70,1.32),toss('Wailing Skull',90,1.45,1.30)]},
     {name:'Lord Rimeveil',kind:'undead',skin:'cave_troll_frostveil',color:'#bbe4f3',speed:76,
-     moves:[cone('Rime Cleave',275,.68,1.50,1.38),circle('Frozen Tomb',112,1.80,1.44)]}
+     moves:[cone('Rime Cleave',275,.68,1.50,1.38),circle('Frozen Tomb',112,1.80,1.44),toss('Glacial Shard',100,1.50,1.36)]}
    ]}
  };
  function freeze(value){
@@ -119,7 +124,7 @@
    dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,cds:{a:2,b:5,c:8},lockT:0,
    hidden:false,trailT:0,avoid:null,pause:true,
    dungeonCast:null,dungeonRecovery:0,dungeonMove:0,dungeonCooldown:2.2,
-   dungeonMoves:t.moves||[],bossReadyAt:0,dungeonDefeated:false,dungeonRetired:false};
+   dungeonMoves:t.moves||[],bossReadyAt:0,dungeonDefeated:false,dungeonRetired:false,dungeonRoared:false};
   const deadline=encounter.bossReadyAt[index];
   if(boss&&Number.isFinite(deadline)&&deadline>encounter.now()){
    en.bossReadyAt=deadline;en.dead=true;en.deadT=1;en.hp=0;en.state='dead';en.dungeonDefeated=true;
@@ -190,11 +195,12 @@
   en.dungeonCast={...move,x:move.shape==='circle'?hero.x:en.x,y:move.shape==='circle'?hero.y:en.y,
    angle:Math.atan2(hero.y-en.y,hero.x-en.x),elapsed:0,color:en.c,
    damage:Math.max(1,Math.round(en.atk*move.damage))};
+  if(move.thrown){en.dungeonCast.fromX=en.x;en.dungeonCast.fromY=en.y-(en.r||26)*1.6;}   /* where the throw leaves his hand */
   en.pause=true;en.moving=false;
   if(hooks.onWarn)hooks.onWarn(en.dungeonCast,en);
  }
  function returnHome(en,dt,hooks){
-  en.state='return';en.dungeonCast=null;en.dungeonRecovery=0;en.dungeonCooldown=2.2;en.dungeonMove=0;
+  en.state='return';en.dungeonCast=null;en.dungeonRecovery=0;en.dungeonCooldown=2.2;en.dungeonMove=0;en.dungeonRoared=false;
   en.cd=en.boss?1.2:.7;en.slowT=0;en.hurt=0;en.swing=0;en.awake=false;
   en.hp=en.max;
   if(distance(en,en.home)<3){en.x=en.home.x;en.y=en.home.y;en.state='idle';en.pause=true;return;}
@@ -234,12 +240,14 @@
   const d=distance(en,hero);
   if(en.state!=='chase'&&en.hp>=en.max&&d>(en.boss?310:200)){en.state='idle';en.pause=true;return true;}
   en.state='chase';en.awake=true;
+  /* the roar: once a life, at half health, between casts - from then on the next cast comes sooner (2026-10-09) */
+  if(en.boss&&!en.dungeonRoared&&!en.dungeonCast&&en.hp<en.max*.5){en.dungeonRoared=true;en.dungeonCooldown=Math.min(en.dungeonCooldown,.8);if(hooks.onRoar)hooks.onRoar(en);}
   if(en.dungeonCast){
    const cast=en.dungeonCast;
    cast.elapsed+=dt;en.pause=true;
    if(cast.elapsed+1e-9>=cast.warn){
     const hit=pointInTelegraph(cast,hero);
-    en.dungeonCast=null;en.dungeonRecovery=1.15;en.dungeonCooldown=3.2;en.cd=en.atkCd;en.swing=.3;
+    en.dungeonCast=null;en.dungeonRecovery=1.15;en.dungeonCooldown=en.dungeonRoared?2.4:3.2;en.cd=en.atkCd;en.swing=.3;
     if(hit&&hooks.hurtHero)hooks.hurtHero(cast.damage,cast.name,en,false);
     if(hooks.onStrike)hooks.onStrike(cast,en,hit);
    }

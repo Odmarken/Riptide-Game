@@ -56,6 +56,9 @@ test('on the back like the spare Fel Glaive, nothing in the hand; the warrior\'s
   assert.match(back, /warriorShieldOn\(clsId,fm,weaponId\)/, 'the shield goes on the back with the sword');
   const art = section('function backWeaponArt(', '\nfunction drawHolstered(');
   for (const img of ['staffImg', 'maceImg', 'bowImg', 'swordImg', 'fkArtFor', 'fgArtFor']) assert.ok(art.includes(img), img);
+  /* 2026-10-10 "stringen inåt": every hunter's bow - plain, Frostseeker, Fel Glaive - lies with its string against the back */
+  for (const flag of ['bow:fa===FG_ART.hunter', 'bow:a===FK_ART.hunter', 'bow:own[0]===bowImg']) assert.ok(art.includes(flag), flag);
+  assert.ok(back.includes("if(art.up==='hilt')g.rotate(Math.PI);   /* the spare glaive's shoulder, leaning further out: the head hides the rest */\n  if(art.bow)g.scale(-1,1);"), 'mirrored across its length, after the lean');
 });
 
 test('raid-mates see it: the position message carries hl and the ghost draws it', () => {

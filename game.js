@@ -160,6 +160,7 @@ const SUN={light:true,flare:true,day:2700,night:900,s:.24,reach:1.25,rise:.6,alp
    right a shadow reaches per unit of height (negative after noon); cast, lit and dark, how strong the shadows, the sunlight
    and the night are, 0-1 */
 let sunFrame=false,sunCast=false,sunLayer=null,sunG=null,sunLit=null;
+let sunReuse=false,sunBuilt=null,sunParity=false;   /* 📱 a phone draws the props' shadows every other frame - see sunBegin */
 function sunTest(on=!SUN.light,at=null){SUN.light=!!on;SUN.pin=at;return 'sun '+(SUN.light?'on':'off')+(at==null?'':' at '+at+' s');}
 function sunZone(z){   /* where the sun shines: out of doors - not the Altar, a boss's arena, a raid, a dungeon or indoors */
  return !!z&&!(z.altar||z.boss||z.valhalla||z.finalb||z.raid||z.crypts||z.dungeon||z.throne||z.tideguild||z.interior);
@@ -216,13 +217,20 @@ function sunFigureShadow(im,frame,ground,flip,alpha=1){
 }
 function sunBegin(){   /* a clear layer before the ground pass */
  if(!sunLayer){sunLayer=document.createElement('canvas');sunG=sunLayer.getContext('2d');}
- const w=Math.max(1,Math.round(cv.width*SUN.res)),h=Math.max(1,Math.round(cv.height*SUN.res));
+ const w=Math.max(1,Math.round(cv.width*SUN.res)),h=Math.max(1,Math.round(cv.height*SUN.res)),m=heatWorld;
+ /* 📱 (2026-10-10) on a phone every other frame keeps the layer it has - the props stand still, so last frame's shadows moved
+    with the camera (sunEnd) are this frame's - unless the view was resized, zoomed, jumped or changed zones */
+ sunParity=!sunParity;
+ sunReuse=!!(typeof PHONE!=='undefined'&&PHONE&&sunParity&&sunBuilt&&m&&sunBuilt.w===w&&sunBuilt.h===h&&sunBuilt.a===m.a&&sunBuilt.d===m.d
+  &&Math.abs(m.e-sunBuilt.e)<48&&Math.abs(m.f-sunBuilt.f)<48&&sunBuilt.zone===(S&&S.zone));
+ if(sunReuse)return;
  if(sunLayer.width!==w||sunLayer.height!==h){sunLayer.width=w;sunLayer.height=h;}
  else{sunG.setTransform(1,0,0,1,0,0);sunG.clearRect(0,0,w,h);}
  sunLayer.used=false;
+ sunBuilt=m?{w,h,a:m.a,d:m.d,e:m.e,f:m.f,zone:S&&S.zone}:null;
 }
 function sunShadow(im,x0,top,W,H,foot,flip=false){   /* in the prop's own frame on ctx: its picture spans x0..x0+W and top..top+H, standing on y=foot */
- if(!sunCast||!sunG)return;
+ if(!sunCast||!sunG||sunReuse)return;
  const sil=sunSilhouette(im);if(!sil)return;
  const m=ctx.getTransform(),r=SUN.res;
  sunG.setTransform(m.a*r,m.b*r,m.c*r,m.d*r,m.e*r,m.f*r);
@@ -235,7 +243,7 @@ function sunShadow(im,x0,top,W,H,foot,flip=false){   /* in the prop's own frame 
  sunLayer.used=true;
 }
 function sunShadowBox(x0,top,W,H,foot){   /* a plain block - a town wall's run - cast the way sunShadow casts a picture, fading toward its far end */
- if(!sunCast||!sunG)return;
+ if(!sunCast||!sunG||sunReuse)return;
  const m=ctx.getTransform(),r=SUN.res;
  sunG.setTransform(m.a*r,m.b*r,m.c*r,m.d*r,m.e*r,m.f*r);
  sunG.translate(0,foot);sunG.transform(1,0,-SUN.k,-SUN.s,0,0);
@@ -244,8 +252,9 @@ function sunShadowBox(x0,top,W,H,foot){   /* a plain block - a town wall's run -
 }
 function sunEnd(){   /* the whole layer down at one strength */
  if(!sunLayer||!sunLayer.used)return;
- {const q=glFx();if(q&&q!=='low'){ctx.drawBlurred(sunLayer,SUN.alpha*SUN.cast*1.35,q==='ultra'?1.4:1);return;}}   /* 🎮 softer on the GPU - a light touch since the silhouettes soften toward their far end themselves */
- ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=SUN.alpha*SUN.cast*1.35;ctx.drawImage(sunLayer,0,0,cv.width,cv.height);ctx.restore();   /* *1.35: a deeper shade since 2026-10-09 ("bättre skuggor"), blue rather than black */
+ const m=heatWorld,dx=sunReuse&&m&&sunBuilt?m.e-sunBuilt.e:0,dy=sunReuse&&m&&sunBuilt?m.f-sunBuilt.f:0;   /* 📱 a kept layer follows the camera */
+ {const q=glFx();if(q&&q!=='low'){ctx.drawBlurred(sunLayer,SUN.alpha*SUN.cast*1.35,q==='ultra'?1.4:1,dx,dy);return;}}   /* 🎮 softer on the GPU - a light touch since the silhouettes soften toward their far end themselves */
+ ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=SUN.alpha*SUN.cast*1.35;ctx.drawImage(sunLayer,dx,dy,cv.width,cv.height);ctx.restore();   /* *1.35: a deeper shade since 2026-10-09 ("bättre skuggor"), blue rather than black */
 }
 function sunFootShadow(x,y,tall){   /* the sun's shadow and the lights' at someone's feet, from the world's frame - a mount, a creature */
  if(!sunFrame)return;
@@ -2956,9 +2965,11 @@ function mpPlayFx(m,p){
  const x=m.px||p.x||0,y=m.py||p.y||0;
  if(m.a==='swing'){
   p.atk=true;p._atkT=performance.now()+240;
+  const wr=typeof m.wr==='string'&&RUNE_LIGHT[m.wr]?m.wr:null;   /* ✨ their weapon's rune (an older peer sends none) */
   if(m.rg&&m.tx!=null){ /* ranged classes: a real projectile - hunters loose actual arrows */
-   bolts.push({x,y:y-10,tgt:{x:m.tx,y:m.ty},sp:430,vis:1,c:m.c||'#cfe8a0',arrow:!!m.ar});
-  }else if(m.tx!=null&&m.ty!=null){zapLine(x,y-8,m.tx,m.ty-10,'rgba(255,255,255,.35)');bloodAt(m.tx,m.ty-10,4);}
+   bolts.push({x,y:y-10,tgt:{x:m.tx,y:m.ty},sp:430,vis:1,c:m.c||'#cfe8a0',arrow:!!m.ar,...(wr?{rune:wr}:{})});
+  }else if(m.tx!=null&&m.ty!=null){zapLine(x,y-8,m.tx,m.ty-10,'rgba(255,255,255,.35)');bloodAt(m.tx,m.ty-10,4);
+   if(wr){SpellFx.cast('rune:swing',{x,y,gy:8,fx:m.tx>=x?1:-1,tx:m.tx,ty:m.ty,id:wr});SpellFx.hit('rune:'+wr,{x:m.tx,y:m.ty,r:16,sx:x,sy:y,to:()=>({x:p.x,y:p.y-22})});}}
   burst(x,y-10,'#ffffff',3,38);
  }else if(m.a==='boltfx'){ /* peer spell projectile - visual only */
   p.atk=true;p._atkT=performance.now()+240;
@@ -4108,6 +4119,8 @@ const AC={ctx:null,ambG:null,sfxG:null,amb:[],timers:[],prof:null,mIdx:0};
 const IS_TOUCH=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
  ||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1); /* iPadOS pretends to be a Mac */
 SpellFx.quality=IS_TOUCH?.65:1;   /* ✨ phones shed fewer sparks per spell */
+const PHONE=IS_TOUCH&&!window.desktop;   /* 📱 the web game on a phone or tablet - see phoneSkip */
+if(PHONE)CityScenery.setDetail(.5);   /* 📱 half the puffs in a plume of smoke */
 const ambVol=()=>(!S||S.sound)?(S?S.volAmb:0.5):0;
 const sfxVol=()=>(!S||S.sfx)?(S?S.volSfx:0.55):0;
 function applyVolumes(){
@@ -4720,10 +4733,40 @@ function screenSurface(el){
 }
 const [cv,ctx]=screenSurface($('game'));
 let VW=0,VH=0,DPR=1,vigCv=null;
+/* 📱 PHONES (2026-10-10, "gör något separat åt telefonerna ... strugglar lite med fps"): the web game on a phone or tablet,
+   never the desktop build. Lighting quality starts on Low there (assets/ui/display-settings.js), a 120 Hz screen is drawn at
+   60, and the picture's sharpness follows the frame rate: it starts at 1.5 pixels to the point (the desktop's web 2), and
+   every few seconds it steps down while the phone cannot hold 48 frames a second and the time goes to the graphics rather
+   than to the game's own work (a sharper picture cannot help that), and back up while it holds 57 - a step that failed is
+   not tried again that session. Measured headless as a phone (scratchpad 7f048ed2 daybar/phoneperf.mjs). */
+const PHONE_SCALES=[.625,.75,.875,1];   /* of the phone's own pixels, at most 2 to the point: 1.25 .. 2 on a 2x phone */
+const phoneRes={i:1,ceil:3,probe:-1,cool:4,acc:0,n:0,js:0,last:0,drawn:0,iv:16.7,skip:false};
+let frameSeq=-1,frameCount=0;   /* the frame being drawn, -1 between frames: what is asked many times a frame is looked up once */
+function frameGate(t){   /* first thing in every frame: true leaves this one out (a phone's 120 Hz screen) */
+ frameSeq=++frameCount;queueMicrotask(()=>{frameSeq=-1;});
+ return phoneSkip(t);
+}
+function phoneSkip(t){   /* first thing in every frame: true leaves this one out */
+ if(!PHONE)return false;
+ const R=phoneRes,iv=R.last?t-R.last:16.7;R.last=t;
+ if(iv>0&&iv<60)R.iv+=(iv-R.iv)*.08;
+ if(R.iv<9.5){R.skip=!R.skip;if(R.skip)return true;}   /* a 120 Hz screen: every other frame */
+ const di=R.drawn?t-R.drawn:0;R.drawn=t;
+ if(!(gameOn&&!gamePaused&&!document.hidden&&di>0&&di<250)){R.acc=0;R.n=0;R.js=0;return false;}
+ const t0=performance.now();queueMicrotask(()=>{R.js+=performance.now()-t0;});   /* this frame's own work, once it is done */
+ R.acc+=di;R.n++;R.cool-=di/1000;
+ if(R.acc<3000)return false;
+ const fps=R.n*1000/R.acc,js=R.js/R.n,frameMs=1000/fps;R.acc=0;R.n=0;R.js=0;
+ if(R.cool>0)return false;
+ if(R.probe===R.i&&fps>=48)R.probe=-1;   /* the sharper step held: a heavy scene later does not count against it */
+ if(fps<48&&js<frameMs*.65&&R.i>0){if(R.probe===R.i)R.ceil=R.i-1;R.probe=-1;R.i--;R.cool=6;resize();}   /* a sharper step just tried and failed is not tried again */
+ else if(fps>=57&&R.i<R.ceil){R.i++;R.probe=R.i;R.cool=8;resize();}
+ return false;
+}
 function resize(){
  const r=$('stageWrap').getBoundingClientRect();
  /* The desktop canvas follows the display even above 200% Windows scaling. */
- const nextDPR=window.desktop?(window.devicePixelRatio||1):Math.min(2,window.devicePixelRatio||1);
+ const nextDPR=window.desktop?(window.devicePixelRatio||1):Math.min(2,window.devicePixelRatio||1)*(PHONE?PHONE_SCALES[phoneRes.i]:1);
  if(VW===r.width&&VH===r.height&&DPR===nextDPR&&vigCv)return;
  DPR=nextDPR;
  VW=r.width;VH=r.height;
@@ -7076,6 +7119,41 @@ function drawCryptGround(){
  }
  drawCryptTorches(vx0,vy0,vx1,vy1);
 }
+/* 🔥 HEAT HAZE (2026-10-09, "lägg in värmedis över eld och lava"): on the GPU (Lighting quality Medium and Ultra) the air shimmers over
+   every fire on the screen - the braziers, forges, beacons and torches CityScenery draws (they note where), the crypt torches,
+   the spells and boss blasts that burn (their warm lights), fireballs in flight, the bosses' burning ground and falling fire
+   while it is marked, the Cindervein guardians' fire while they wind it up, the Final Hour's torches - and drifting patches of
+   hot air in the ember lands (Cinderwaste, the Pyre) and the Cindervein mine. There is no lava terrain to shimmer over: the
+   painted maps carry none. assets/gl/gl2d.js heatHaze does the shimmer. */
+let heatWorld=null;
+const HEAT_FX=new Set(['boss:embertrail','boss:meteor','boss:eruption','boss:hellfire']);
+const HEAT_BOLTS=new Set(['fireball','fire','firebolt','boss:firebolt','boss:soulember']);
+const heatWarm=c=>{const m=/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i.exec(String(c||''));return !m||(parseInt(m[1],16)>200&&parseInt(m[3],16)<140);};   /* a bolt drawn in a cold colour is not fire */
+const heatWanted=()=>{const q=glFx();return !!(q&&q!=='low'&&ctx.heatHaze);};
+function heatPass(z,now){
+ const src=CityScenery.heatTake().slice(0,24),m=heatWorld;
+ if(m){
+  const sc=Math.hypot(m.a,m.b),dev=(x,y)=>({x:m.a*x+m.c*y+m.e,y:m.b*x+m.d*y+m.f});
+  const on=(d,pad)=>d.x>-pad&&d.y>-pad&&d.x<cv.width+pad&&d.y<cv.height+pad;
+  const add=(x,y,r,k)=>{if(src.length>=24)return;const d=dev(x,y);if(on(d,r*sc*2.5))src.push({x:d.x,y:d.y,r:r*sc,k});};
+  for(const L of SpellFx.lights()){
+   const c=String(L.colour).split(',').map(Number);if(!(c[0]>200&&c[1]<195&&c[2]<170&&c[0]>c[2]+80&&c[1]>c[2]))continue;   /* fire (orange), not frost, holy light or blood */
+   add(L.x,L.fy??L.y,Math.min(70,(L.head||100)*.4),.9*Math.min(1,L.pulse?L.pulse():1));
+  }
+  for(const b of bolts)if(HEAT_BOLTS.has(b.fx)&&heatWarm(b.c))add(b.x,b.y,24,.75);
+  for(const b of ebolts)if(HEAT_BOLTS.has(b.fx)&&heatWarm(b.c))add(b.x,b.y,24,.75);
+  for(const h of hazards)if(HEAT_FX.has(h.fx))add(h.x,h.y,Math.max(14,h.rad*.6),.35+.55*Math.min(1,h.t/h.warn));
+  if(z.dungeon==='cindervein')for(const en of enemies){   /* 🔥 a fire guardian's breath, seal and orb heat the air they will fall on */
+   const c=en.dungeonCast;if(!c||en.dead||en.dungeonRetired)continue;
+   const p=Math.min(1,c.elapsed/c.warn),cone=c.shape==='cone',R=(cone?c.range:c.radius)||100;
+   add(cone?c.x+Math.cos(c.angle)*R*.55:c.x,cone?c.y+Math.sin(c.angle)*R*.55:c.y,R*.55,.3+.6*p);
+  }
+  for(const tc of (world.torches||[]))add(tc.x,tc.y-22,14,.8);
+  if(z.finalb)for(const s of world.solids)if(s.type==='finaltorch')add(s.x,s.y-131,18,.8);
+ }
+ const q=glFx(),global=(z.amb==='ember'||z.dungeon==='cindervein')?.22:0;
+ if(src.length||global)ctx.heatHaze({sources:src,time:now,amp:2.4*DPR*(q==='ultra'?1:.8),global,world:m?{x:m.e,y:m.f,s:Math.hypot(m.a,m.b)}:null});
+}
 function drawCryptTorches(vx0,vy0,vx1,vy1){ /* 🔥 breadcrumb markers - flickering flames on the maze floor */
  for(const tc of (world.torches||[])){
   if(tc.x<vx0-60||tc.x>vx1+60||tc.y<vy0-60||tc.y>vy1+60)continue;
@@ -7414,7 +7492,7 @@ const BOSS_SLASH=new Set(['reaper','krev','betrayer','frostking','firelord']);
 const DUNGEON_FX_C={briarhollow:'159,189,104',cindervein:'233,150,87',frostveil:'166,200,218'};
 function bossSlam(en){
  if(!en||!en.boss||hero.dead)return;
- const dg=en.bossId==='wasteland'?en.dungeon:null;
+ const dg=en.dungeon||null;   /* a guardian: bossId wasteland_<dungeon>_<n>, known by its dungeon */
  SpellFx.cast('boss:slam',{x:hero.x,y:hero.y,sx:en.x,sy:en.y,c:dg?DUNGEON_FX_C[dg]:BOSS_FX_C[en.bossId],style:BOSS_SLASH.has(en.bossId)?'slash':'smash',dungeon:dg});
 }
 const addsAlive=()=>enemies.filter(e=>e.add&&!e.dead).length;
@@ -7768,9 +7846,24 @@ function swingRoll(mul=1){
 function heroSwing(en,c,dmg,crit,label){
  drawWeapons();   /* 🗡 */
  hero.swing=0.22;
- mpAct('swing',{tx:Math.round(en.x),ty:Math.round(en.y),rg:c.ranged?1:0,ar:c.id==='hunter'?1:0,c:c.boltC});
- if(c.ranged){sfx.bolt();bolts.push({x:hero.x,y:hero.y-10,tgt:en,sp:430,dmg,crit,c:c.boltC,basic:true,arrow:c.id==='hunter',label,fx:c.id==='hunter'?'shot':'firebolt'});}   /* ✨ fx: the shot's own look (assets/fx) */
- else{sfx.swing();landHit(en,dmg,crit,label,true);}
+ const wr=heroRune();   /* ✨ the weapon's rune swings with it (assets/fx/rune-fx.js) */
+ mpAct('swing',{tx:Math.round(en.x),ty:Math.round(en.y),rg:c.ranged?1:0,ar:c.id==='hunter'?1:0,c:c.boltC,...(wr?{wr:wr.id}:{})});
+ if(c.ranged){sfx.bolt();bolts.push({x:hero.x,y:hero.y-10,tgt:en,sp:430,dmg,crit,c:c.boltC,basic:true,arrow:c.id==='hunter',label,fx:c.id==='hunter'?'shot':'firebolt',...(wr?{rune:wr.id}:{})});}   /* ✨ fx: the shot's own look (assets/fx) */
+ else{sfx.swing();if(wr)SpellFx.cast('rune:swing',{x:hero.x,y:hero.y,gy:heroGroundY(),fx:hero.fx||1,tx:en.x,ty:en.y,id:wr.id});landHit(en,dmg,crit,label,true);}
+}
+/* ✨ WEAPON RUNES IN ACTION (2026-10-09, "gör så alla vapen enchants har bättre effekt nu när vi har renare effekts"): the rune on
+   the worn weapon, unless the weapon is hidden. Its swing, where its blows land, a shot's trail and its light at night come from
+   assets/fx/rune-fx.js - a look only: the five runes still change no number */
+const heroRune=()=>S&&!S.hideWeapon&&S.gear?runeOf(S.gear.weapon):null;
+function runeHitFx(en,crit){
+ const wr=heroRune();if(!wr)return;
+ const near=wr.id==='stormetch'?enemies.filter(e2=>e2!==en&&!e2.dead&&!e2.hidden&&dist(en,e2)<=140).slice(0,2).map(e2=>({x:e2.x,y:e2.y,r:e2.r||16})):[];
+ SpellFx.hit('rune:'+wr.id,{x:en.x,y:en.y,r:en.r||16,crit,sx:hero.x,sy:hero.y,near,to:()=>hero.dead?null:{x:hero.x,y:hero.y-22}});
+}
+const RUNE_LIGHT={emberbite:'255,150,60',frostgrip:'150,215,255',veinseeker:'220,60,80',stormetch:'185,150,255',goldrune:'255,214,120'};
+function runeLight(wr,now){   /* the runed weapon lights the ground round the hero at night */
+ const f=hero.fx||1,beat=wr.id==='emberbite'?.84+.1*Math.sin(now*7.3)+.06*Math.sin(now*17.1):wr.id==='stormetch'?.8+.2*(Math.sin(now*23)>.6?1:0):.86+.08*Math.sin(now*2.1);
+ return {x:hero.x+f*10,y:hero.y+heroGroundY(),fy:hero.y-18,h:24,reach:120,head:58,colour:RUNE_LIGHT[wr.id]||'255,214,156',on:.05,ramp:.15,pulse:()=>beat*.6};
 }
 function heroBasicAttack(en,dt){
  if(hero.deadWait)return; /* fallen raiders can't poke the lord through the sealed wall */
@@ -7818,6 +7911,7 @@ function orbBurst(b){
 function landHit(en,dmg,crit,label,basic){
  if(en.dead||en.hidden)return;
  if(basic){
+  runeHitFx(en,crit);   /* ✨ */
   if(hasEnch('flames')){const b=Math.max(1,Math.round(dmg*scrollPct('flames')));if(!mpGuestRaidHit(en,b))en.hp-=b;floatAt(en.x+10,en.y-en.r-24,'+'+b+'🔥','#ff9a4a');}
   if(hasEnch('frostbite')&&(hero.frostT||0)<=0){
    en.slowT=Math.max(en.slowT,scrollRaw('frostbite'));
@@ -8787,7 +8881,13 @@ function padSideLayer(){
  if(!p||!p.getClientRects().length){padSide=false;return null;}
  return p;
 }
+/* asked several times a frame, and each look asks some seventy windows for their place on the page (a fortieth of a phone's
+   frame, 2026-10-10): inside one frame the first answer stands (frameSeq, -1 between frames, so a key or a click looks afresh) */
+let padPanelSeen=null,padPanelAt=0;
 const padPanelOpen=()=>{
+ const memo=typeof frameSeq==='number'&&frameSeq>0;
+ if(memo&&padPanelAt===frameSeq)return padPanelSeen;
+ let found=null;
  for(const id of PAD_PANELS){
   const e=$(id);
   /* Ask whether it is RENDERED, not what its own display says. Several of these are inner boxes
@@ -8797,9 +8897,11 @@ const padPanelOpen=()=>{
      client rects, which is the only test that survives that. */
   if(!e||!e.getClientRects().length)continue;
   if(getComputedStyle(e).visibility==='hidden')continue;
-  return e;
+  found=e;break;
  }
- return padSideLayer();
+ if(!found)found=padSideLayer();
+ if(memo){padPanelAt=frameSeq;padPanelSeen=found;}
+ return found;
 };
 let padFocus=null;
 /* What the pad can land on: every control, and whatever a mouse player is told can be clicked - the bronze hand
@@ -10361,11 +10463,15 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   }
   if(en.dungeon){
    WastelandDungeons.updateEnemy(en,dt,hero,{moveToward,hurtHero:(amount,label,foe,melee)=>{
-    const dmg=hurtHero(amount);sfx.hit();
+    const dmg=hurtHero(amount);sfx.hit();if(melee)bossSlam(foe);   /* 🐉 a guardian's club lands with its dungeon's look */
     if(melee&&hasEnch('thorns')&&!foe.dead){const n=Math.max(1,Math.round(dmg*scrollPct('thorns')));if(!mpGuestRaidHit(foe,n))foe.hp-=n;floatAt(foe.x,foe.y-30,n+'','#9adf9a');if(foe.hp<=0)killEnemy(foe);}
     return dmg;
    },
-   onRespawn:foe=>{stageMsg(foe.name+' has returned.',2400,'#efd58a');renderHUD();save();}});
+   onRespawn:foe=>{stageMsg(foe.name+' has returned.',2400,'#efd58a');renderHUD();save();},
+   /* 🐉 a guardian's moves (2026-10-09): its name over it as it winds up, its look where it lands, and the roar at half health */
+   onWarn:(cast,foe)=>{if(foe.boss){floatAt(foe.x,foe.y-foe.r-34,cast.name+'!',foe.c||'#efd58a',true);sfx.warn();}},
+   onStrike:(cast,foe)=>{if(foe.boss)SpellFx.cast('boss:dgstrike',{cast,dungeon:foe.dungeon});},
+   onRoar:foe=>{SpellFx.cast('boss:dgroar',{x:foe.x,y:foe.y,dungeon:foe.dungeon,r:170});floatAt(foe.x,foe.y-foe.r-34,'ROAR!',foe.c||'#ff8a6a',true);sfx.shout();}});
    continue;
   }
   if(en.dead){
@@ -10458,6 +10564,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   const dx=b.tgt.x-b.x,dy=b.tgt.y-10-b.y,d=Math.hypot(dx,dy);
   if(d<12){
    if(b.vis){ /* peer ghost projectile - pure visuals */
+    if(b.rune)SpellFx.hit('rune:'+b.rune,{x:b.tgt.x,y:b.tgt.y,r:16,sx:b.x,sy:b.y});   /* ✨ a peer's runed shot lands with its rune */
     if(!(b.fx&&SpellFx.has(b.fx))){   /* ✨ a spell's own landing comes with the peer's 'spell' message */
      burst(b.tgt.x,b.tgt.y-10,b.c||'#7fd0ff',b.orb?12:5,b.orb?110:60);
      if(b.orb)ring(b.tgt.x,b.tgt.y-10,INSC_ORB_RAD,b.c||ORB_C,0.4);
@@ -10473,6 +10580,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   if(b.orb){if(chance(0.8))parts.push({x:b.x+(Math.random()-0.5)*7,y:b.y+(Math.random()-0.5)*7,vx:(Math.random()-0.5)*24,vy:(Math.random()-0.5)*24,t:0,life:0.25+Math.random()*0.2,c:b.c,r:1.2+Math.random()*1.8,g:0});} /* 📖 the orb sheds sparks, not a dotted line */
   else if(b.fx&&SpellFx.has(b.fx))SpellFx.boltTick(b,dt);   /* ✨ a spell's projectile trails what its recipe gives it */
   else if(chance(0.5))parts.push({x:b.x,y:b.y,vx:0,vy:0,t:0,life:0.2,c:b.c,r:1.5,g:0});
+  if(b.rune)SpellFx.boltTick({x:b.x,y:b.y,tgt:b.tgt,fx:'rune:'+b.rune},dt);   /* ✨ a runed bow's or staff's shot trails its rune */
  }
  // ----- enemy bolts (dodgeable) -----
  for(let i=ebolts.length-1;i>=0;i--){
@@ -10768,6 +10876,7 @@ function draw(){
  ctx.clearRect(0,0,VW,VH);
  const shX=shakeT>0?(Math.random()-0.5)*shakeT*26:0,shY=shakeT>0?(Math.random()-0.5)*shakeT*26:0;
  ctx.save();ctx.scale(zoom,zoom);ctx.translate(-camX+shX,-camY+shY);
+ heatWorld=ctx.getTransform();const heatOn=heatWanted();if(heatOn)CityScenery.heatBegin();   /* 🔥 the fires note where they burn */
  ctx.drawImage(groundCv,0,0);
  const z=zoneOf();
  sunFrame=sunZone(z);   /* ☀ out of doors the day comes and goes whatever the switches say - Lighting and Sun flare only dress it */
@@ -10822,7 +10931,11 @@ function draw(){
   drawLootChest(cc.x,cc.y,1.4);
  }
  if(z.crypts&&world.ratboss)drawRatBoss();
- if(z.dungeon)WastelandDungeons.drawTelegraphs(ctx,enemies);
+ if(z.dungeon){   /* 🐉 the guardians' warnings in their dungeon's look (assets/fx/boss-fx.js) - the module's plain ones if that fails */
+  let plain=false;
+  for(const en of enemies){const c=en.dungeonCast;if(!c||en.dead||en.dungeonRetired)continue;if(!SpellFx.drawSpecial('boss:dgcast',ctx,{cast:c,dungeon:en.dungeon,p:Math.min(1,c.elapsed/c.warn)},now))plain=true;}
+  if(plain)WastelandDungeons.drawTelegraphs(ctx,enemies);
+ }
  /* telegraphed boss hazards */
  for(const h of hazards){
   if(h.fx&&SpellFx.drawHazard(ctx,h,now))continue;   /* 🐉 its own warning: roots, runes, a meteor coming down... - still the whole reach */
@@ -10908,6 +11021,7 @@ function draw(){
  if(sunCast)sunEnd();   /* ☀ every cast shadow at once, under everything that stands */
  if(sunFrame&&SUN.light&&SUN.dark>0&&(z.city||z.town))for(const L of forsakenLights())sunLights.push(L);   /* 🟣🔥 the portals and the fires light the night */
  if(sunFrame&&SUN.light&&SUN.dark>0)for(const L of SpellFx.lights())sunLights.push(L);   /* ✨ and a spell lights what is round it */
+ if(sunFrame&&SUN.light&&SUN.dark>0&&!hero.dead&&!fish.on&&!TideUI.isBattling()){const wr=heroRune();if(wr)sunLights.push(runeLight(wr,now));}   /* ✨ and a runed weapon its bearer */
  /* 🐴 the boulevard's traffic - trade wagons, and families moving in or out - and 🎉 the festival bunting strung over it */
  if(z.city&&world.look&&!TideUI.isBattling()){
   for(const t of CityWorks.traffic(world,world.look,now)){
@@ -11220,6 +11334,7 @@ function draw(){
  SpellFx.draw(ctx,'glow',fxView);
  if(!hero.dead&&!TideUI.isBattling()){ctx.translate(hero.x,hero.y);SpellFx.auras(ctx,heroAuraState(hero,heroGroundY()),'glow',now);}
  ctx.restore();
+ if(heatOn)heatPass(z,now);   /* 🔥 the air shimmering over the fires */
  if(sunFrame&&(WEATHER.rain>0||WEATHER.snow>0))drawWeather(now);   /* 🌧 the rain, or the snow */
  if(z.altar&&WEATHER.on)drawAltarWind(now);   /* 🌬 and the Altar's streaks of air and ice dust */
  if(world.intro)drawFinalIntro();   /* 🎬 the black bars and his words, over everything in the world */
@@ -12041,11 +12156,11 @@ function drawHourglassBody(g,cx,cy,by,c2,c1,w){
    with his sword. With the Fel Glaives the glaive from the hand takes the other shoulder, mirrored ("det andra vapnet ... på
    andra sidan och speglas"). Drawn before the body; nothing is held then. H puts it away and takes it out, saddling up puts it
    away by itself, and a fight takes it out (setHolster). */
-function backWeaponArt(clsId,fm,weaponId){   /* the picture, its length on the back, and which end goes up */
- if(isFGLegend(weaponId)){const fa=fgArtFor(clsId);return fa?{img:fa.img,H:fa.std.pw*fa.h,up:'head'}:null;}   /* the warrior's pair is drawn as glaives */
- if(fm){const a=fkArtFor(clsId),k=a===FK_ART.warrior?'warrior':clsId;return {img:a.img,H:(a.std?a.std.pw:50)*a.h,up:k==='warrior'?'hilt':'head'};}
+function backWeaponArt(clsId,fm,weaponId){   /* the picture, its length on the back, which end goes up, and whether it is a bow */
+ if(isFGLegend(weaponId)){const fa=fgArtFor(clsId);return fa?{img:fa.img,H:fa.std.pw*fa.h,up:'head',bow:fa===FG_ART.hunter}:null;}   /* the warrior's pair is drawn as glaives */
+ if(fm){const a=fkArtFor(clsId),k=a===FK_ART.warrior?'warrior':clsId;return {img:a.img,H:(a.std?a.std.pw:50)*a.h,up:k==='warrior'?'hilt':'head',bow:a===FK_ART.hunter};}
  const own=clsId==='mage'?[staffImg,42,'head']:clsId==='priest'?[maceImg,38,'head']:clsId==='hunter'?[bowImg,44,'head']:[swordImg,38,'hilt'];
- return own[0].complete&&own[0].naturalWidth?{img:own[0],H:own[1],up:own[2]}:null;
+ return own[0].complete&&own[0].naturalWidth?{img:own[0],H:own[1],up:own[2],bow:own[0]===bowImg}:null;
 }
 function drawHolstered(g,clsId,fm,weaponId,by,rune,riding,effectTime){
  g.save();
@@ -12063,6 +12178,7 @@ function drawHolstered(g,clsId,fm,weaponId,by,rune,riding,effectTime){
  if(art){
   const H=art.H,W=H*art.img.naturalWidth/art.img.naturalHeight;
   g.save();g.translate(-10,-27+by);g.rotate(-.62);if(art.up==='hilt')g.rotate(Math.PI);   /* the spare glaive's shoulder, leaning further out: the head hides the rest */
+  if(art.bow)g.scale(-1,1);   /* a bow's string lies against the back and its wood faces out (2026-10-10: "stringen inåt") */
   if(fm){g.shadowColor='#6fd0ff';g.shadowBlur=rune?0:7;}else if(isFGLegend(weaponId)){g.shadowColor='#4dff9a';g.shadowBlur=rune?0:7;}
   runeOnSpare(g,rune,art.img,-W/2,-H/2,W,H,.5,undefined,undefined,()=>g.drawImage(mip(art.img,W),-W/2,-H/2,W,H),effectTime);
   g.restore();
@@ -20736,7 +20852,7 @@ $('nextBtn').onclick=()=>{
  stageMsg('Marching to the portal…',1600);
 };
 $('autoEquipBtn').onclick=()=>{S.autoEquip=!S.autoEquip;renderHero();save();};
-const displaySettings=DisplaySettings.create({onChange:v=>{SUN.light=v.lighting;SUN.flare=v.sunFlare;WEATHER.on=v.weather;SUN.q=v.lightQuality;}});   /* ☀🌧 Settings -> Video -> Lighting, Sun flare, Weather */
+const displaySettings=DisplaySettings.create({onChange:v=>{SUN.light=v.lighting;SUN.flare=v.sunFlare;WEATHER.on=v.weather;SUN.q=v.lightQuality;},phone:PHONE});   /* ☀🌧 Settings -> Video -> Lighting, Sun flare, Weather */
 /* 🔊 is now a plain mute for everything. The sliders moved into the ⚙ panel, so leaving this button
    as a slider flyout would have put the music level in two places that could disagree. */
 $('sndBtn').onclick=()=>{
@@ -21243,6 +21359,7 @@ function frame(t){
     one exception anywhere in update() or draw() stopped the game for good - a trip on the map mid-coronation did exactly
     that. Now the loop survives it, and the first few faults are written down (error.log in the desktop build). */
  requestAnimationFrame(frame);
+ if(typeof frameGate==='function'&&frameGate(t))return;   /* 📱 a phone's 120 Hz screen gets 60 */
  try{
  const dt=Math.min(0.05,(t-lastT)/1000||0.016);lastT=t;
  frameDt=dt;

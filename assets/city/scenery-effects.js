@@ -37,15 +37,19 @@
   }
   puffs.set(key,c);return c;
  }
+ /* 📱 how many puffs a plume is drawn with (1 = all; game.js gives phones half, 2026-10-10 - a port's smoke was a thirtieth of a
+    phone's frame); the fewer are a little denser, so a plume reads the same */
+ let detail=1;
+ function setDetail(k){detail=Math.max(.25,Math.min(1,+k||1));}
  function smoke(g,x0,y0,k,time=0,phase=0,cold=false,dark=false){
   if(!(k>0))return;
-  const n=dark?18:cold?15:12,rise=(dark?220:cold?165:135)*k,speed=dark?.14:.105;
+  const n=Math.max(4,Math.round((dark?18:cold?15:12)*detail)),thick=detail<1?Math.min(1.6,1/Math.sqrt(detail)):1,rise=(dark?220:cold?165:135)*k,speed=dark?.14:.105;
   g.save();g.globalCompositeOperation='source-over';
   for(let i=0;i<n;i++){
    const im=smokePuff(dark,i%3);
    const p=fract(time*speed+i/n+phase),birth=(time-p/speed)*.24+phase;
    const wind=30+Math.sin(birth*.7)*12,x=x0+(p*p*wind+Math.sin(p*7+birth)*p*10)*k,y=y0-rise*(p*.8+p*p*.2);
-   const r=(dark?16:7)+(p*30+p*p*12),radius=r*k,alpha=Math.min(1,p*16)*Math.pow(1-p,dark?1.05:1.5)*(dark?1:cold?.90:.72);
+   const r=(dark?16:7)+(p*30+p*p*12),radius=r*k,alpha=Math.min(1,Math.min(1,p*16)*Math.pow(1-p,dark?1.05:1.5)*(dark?1:cold?.90:.72)*thick);
    g.save();g.globalAlpha*=alpha;g.translate(x,y);g.rotate(Math.sin(birth+p*2)*.35);g.scale(1+.18*p,.86+.16*p);
    if(im)g.drawImage(im,-radius,-radius,radius*2,radius*2);
    else{const rgb=dark?'38,35,32':'218,220,216',grad=g.createRadialGradient(0,0,0,0,0,radius);grad.addColorStop(0,'rgba('+rgb+',.7)');grad.addColorStop(1,'rgba('+rgb+',0)');g.fillStyle=grad;g.fillRect(-radius,-radius,radius*2,radius*2);}
@@ -130,8 +134,18 @@
   tongue(0,2.5,18*f,lean*.32,true);
   g.restore();
  }
+ /* 🔥 heat (2026-10-09, "värmedis över eld"): where each fire is drawn on the screen this frame, in device px - the GPU's heat
+    haze shimmers above them (game.js heatBegin/heatTake round the world pass). Only the screen's own canvas counts */
+ const heat=[];let heatOn=false;
+ function noteHeat(g,x,y,size){
+  if(!heatOn||heat.length>=32||!g||!g.canvas||g.canvas.id!=='game'||typeof g.getTransform!=='function')return;
+  const m=g.getTransform();heat.push({x:m.a*x+m.c*y+m.e,y:m.b*x+m.d*y+m.f,r:size*34*Math.hypot(m.a,m.b),k:1});
+ }
+ function heatBegin(){heat.length=0;heatOn=true;}
+ function heatTake(){heatOn=false;return heat;}
  function fire(g,x,y,size,time=0,seed=0){
   if(!(size>0))return;
+  noteHeat(g,x,y-12*size,size);
   smoke(g,x,y-26*size,size*.42,time,seed*.13,false,true);
   glow(g,x,y-8*size,60*size,.65*flicker(time,seed));
   flame(g,x-5*size,y,size*.75,time,seed+1.7);
@@ -152,6 +166,7 @@
   const sw=im.naturalWidth||im.width,sh=im.naturalHeight||im.height;
   const [u0,v0,u1,v1]=patch,x=-W/2+u0*W,y=top+v0*H,w=(u1-u0)*W,h=(v1-v0)*H;
   if(!(sw>0&&sh>0&&w>0&&h>0))return;
+  noteHeat(g,x+w/2,y+h*.35,Math.max(w,h)/36);
   g.save();g.beginPath();g.rect(-W/2,top,W,H);g.rect(x,y,w,h);g.clip('evenodd');
   g.drawImage(im,-W/2,top,W,H);g.restore();
   g.save();g.beginPath();g.rect(x,y-h*.12,w,h*1.12);g.clip();
@@ -178,5 +193,5 @@
   }
   g.restore();
  }
- return Object.freeze({shadow,smoke,glow,flame,fire,flicker,paintedFlame,fireAir});
+ return Object.freeze({shadow,smoke,glow,flame,fire,flicker,paintedFlame,fireAir,heatBegin,heatTake,setDetail});
 });
