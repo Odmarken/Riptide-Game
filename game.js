@@ -4603,7 +4603,22 @@ function dingDingDing(big){
  if(big)setTimeout(()=>{[523,659,784,1046,1318].forEach((f,k)=>setTimeout(()=>blip(f,f,0.3,.1),k*90));},hits*160);
 }
 
-const cv=$('game'),ctx=cv.getContext('2d');
+/* 🎮 The screen (2026-10-09, "vi kör WebGL igenom allt"): drawn through WebGL by assets/gl/gl2d.js - the same 2D calls as ever,
+   batched for the graphics card - unless Settings > Video has WebGL off, WebGL2 is missing, or the probe (the whole pipeline on a
+   scratch canvas, read back) fails. A canvas that once had a WebGL context can never give a 2D one, so if WebGL fails AFTER taking
+   it the element is swapped for a fresh copy before anything listens to it. */
+function screenSurface(el){
+ let want=true;try{want=DisplaySettings.normalize(JSON.parse(localStorage.getItem(DisplaySettings.STORAGE_KEY)||'null')).webgl;}catch(e){}
+ if(want&&typeof GL2D!=='undefined'){
+  try{if(GL2D.probe()){const g=GL2D.create(el);if(g)return [el,g];}}
+  catch(e){
+   try{console.error('GL2D: '+String((e&&e.stack)||e));}catch(_){}
+   if(el.getContext('2d')===null){const fresh=el.cloneNode(false);el.replaceWith(fresh);el=fresh;}
+  }
+ }
+ return [el,el.getContext('2d')];
+}
+const [cv,ctx]=screenSurface($('game'));
 let VW=0,VH=0,DPR=1,vigCv=null;
 function resize(){
  const r=$('stageWrap').getBoundingClientRect();
@@ -11120,6 +11135,7 @@ function mip(img,W){
   cg.drawImage(src,0,0,nw,nh);
   src=c;sw=nw;sh=nh;
  }
+ src.__glSrc=img;   /* 🎮 WebGL draws the source instead, mip-mapped on the GPU (assets/gl/gl2d.js) */
  return scaledPut(m,tw,src);
 }
 /* 🧠 one memory budget for every scaled copy the draw keeps (mip and crisp). Zoom is nearly continuous -
@@ -11166,6 +11182,7 @@ function crisp(img,W){
  out.width=dev;out.height=Math.max(1,Math.round(sh*dev/sw));
  const g=out.getContext('2d');g.imageSmoothingEnabled=true;g.imageSmoothingQuality='high';
  g.drawImage(src,0,0,out.width,out.height);
+ out.__glSrc=img;   /* 🎮 WebGL draws the source instead, mip-mapped on the GPU */
  return scaledPut(store,dev,out);
 }
 /* 🏙 a building the hero has walked behind fades out rather than swallowing him. Only buildings

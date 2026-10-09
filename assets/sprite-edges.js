@@ -26,10 +26,17 @@ const SPRITE_EDGE_PROFILES={
  'weapons/pickaxe.png':{mask:'pickaxe'},
  'boss/rat_boss.png':{minimum:180,chroma:24}
 };
-const spriteEdgeCache=new WeakMap();
+const spriteEdgeCache=new WeakMap(),spriteEdgeProfiles=new WeakMap();
+/* asked for every picture on every draw (mip() starts here), so the answer is kept per picture (2026-10-09: the string work
+   alone was 6.5% of a raid's main thread, and even reading img.src back each time cost 2%). A picture whose src is swapped
+   (spriteEdgeThumbnail) is forgotten there. */
 function spriteEdgeProfile(img){
- const path=decodeURIComponent((img.src||'').split(/[?#]/)[0]).replace(/\\/g,'/');
- return SPRITE_EDGE_PROFILES[path.split('/assets/').pop().replace(/^assets\//,'')]||null;
+ const hit=spriteEdgeProfiles.get(img);
+ if(hit)return hit.profile;
+ const src=img.src||'';
+ const path=decodeURIComponent(src.split(/[?#]/)[0]).replace(/\\/g,'/');
+ const profile=SPRITE_EDGE_PROFILES[path.split('/assets/').pop().replace(/^assets\//,'')]||null;
+ spriteEdgeProfiles.set(img,{src,profile});return profile;
 }
 function cleanSpriteEdgePixels(pixels,width,height,profile){
  if(profile.edge===false)return 0;
@@ -140,5 +147,5 @@ function spriteEdgeSource(img){
 }
 function spriteEdgeThumbnail(img){
  const source=spriteEdgeSource(img);if(source===img)return;
- img.onload=null;img.src=source.toDataURL('image/png');
+ img.onload=null;spriteEdgeProfiles.delete(img);img.src=source.toDataURL('image/png');
 }

@@ -114,10 +114,17 @@ const ICE_ARMOR_BOOT_TOP={
  humanfemale_armor:1.5,dwarffemale_armor:0,
  orcfemale_armor:1.5,undeadfemale_armor:1
 };
+const characterFrameNames=new WeakMap();   /* the sprite's name from its src, worked out once per picture: it is asked on every draw */
+function characterFrameName(img){
+ const src=img.src,hit=characterFrameNames.get(img);
+ if(hit&&hit.src===src)return hit.name;
+ const name=decodeURIComponent(src.split(/[?#]/)[0]).replace(/\\/g,'/').split('/characters/').pop().replace(/\.png$/,'');
+ characterFrameNames.set(img,{src,name});return name;
+}
 function characterBodyFrame(img,bodyHeight=48,bodyBottom=5){
  if(!img||img.complete===false||!img.naturalWidth||!img.naturalHeight)return null;
  const iw=img.naturalWidth,ih=img.naturalHeight;
- const name=decodeURIComponent(img.src.split(/[?#]/)[0]).replace(/\\/g,'/').split('/characters/').pop().replace(/\.png$/,'');
+ const name=characterFrameName(img);
  const reviewed=CHARACTER_BOUNDS[name];
  // A replaced or unknown image uses its full frame until its bounds are reviewed.
  const matched=reviewed&&reviewed[0]===iw&&reviewed[1]===ih;

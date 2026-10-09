@@ -3,12 +3,12 @@
  'use strict';
  const STORAGE_KEY='riptide.displaySettings',MIN=60,MAX=140;
  function normalize(raw){
-  const result={brightness:100,contrast:100,showFps:true,lighting:true,sunFlare:true,weather:true};
+  const result={brightness:100,contrast:100,showFps:true,lighting:true,sunFlare:true,weather:true,webgl:true};   /* webgl: the screen through assets/gl/gl2d.js (2026-10-09), read once at start */
   if(!raw||typeof raw!=='object'||Array.isArray(raw))return result;
   for(const key of ['brightness','contrast']){
    if(typeof raw[key]==='number'&&Number.isFinite(raw[key]))result[key]=Math.round(Math.max(MIN,Math.min(MAX,raw[key])));
   }
-  for(const key of ['showFps','lighting','sunFlare','weather'])if(typeof raw[key]==='boolean')result[key]=raw[key];
+  for(const key of ['showFps','lighting','sunFlare','weather','webgl'])if(typeof raw[key]==='boolean')result[key]=raw[key];
   return result;
  }
  function filter(value){
@@ -41,6 +41,8 @@
    if(flareToggle)flareToggle.checked=value.sunFlare;
    const weatherToggle=doc.getElementById('weatherChk');
    if(weatherToggle)weatherToggle.checked=value.weather;
+   const webglToggle=doc.getElementById('webglChk');
+   if(webglToggle)webglToggle.checked=value.webgl;
    for(const key of ['brightness','contrast']){
     const input=doc.getElementById(key+'Sl'),output=doc.getElementById(key+'N');
     if(input){input.value=value[key];input.setAttribute('aria-valuetext',value[key]+'%');paintRange(input);}
@@ -48,7 +50,7 @@
    }
    onChange?.({...value});
   }
-  function reset(){value=normalize({showFps:value.showFps,lighting:value.lighting,sunFlare:value.sunFlare,weather:value.weather});sync();save();}
+  function reset(){value=normalize({showFps:value.showFps,lighting:value.lighting,sunFlare:value.sunFlare,weather:value.weather,webgl:value.webgl});sync();save();}
   for(const key of ['brightness','contrast']){
    doc.getElementById(key+'Sl')?.addEventListener('input',e=>{
     value=normalize({...value,[key]:Number(e.target.value)});sync();save();
@@ -65,6 +67,9 @@
   });
   doc.getElementById('weatherChk')?.addEventListener('change',e=>{
    value={...value,weather:e.target.checked};sync();save();
+  });
+  doc.getElementById('webglChk')?.addEventListener('change',e=>{
+   value={...value,webgl:e.target.checked};sync();save();
   });
   doc.getElementById('videoReset')?.addEventListener('click',reset);
   root.addEventListener?.('storage',e=>{if(e.key===STORAGE_KEY||e.key===null){value=read();sync();}});
