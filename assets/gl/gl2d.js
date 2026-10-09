@@ -18,7 +18,8 @@
    - fillStyle / strokeStyle: colours, any CanvasGradient (its geometry and stops are recorded when a 2D context makes it) and
      patterns; gradients run in the shader from a table of geometry and a strip of colour ramps
    - text: rasterised once by a 2D canvas into an atlas, then drawn as a picture
-   - clip: rectangles by scissor, any other path by the stencil's top bit; save/restore puts the stencil back
+   - clip: rectangles by scissor, any other path by the stencil's top bit; save/restore puts the stencil back. A Path2D (the
+     mounts clip their riders with one) is met through what was built into it, recorded as it was built - see installTracking
    - composite: source-over, lighter, screen, multiply and friends are blend functions; soft-light and the other non-separable
      modes draw the shape alone and blend it against a copy of the scene in a shader
    - shadowBlur: the shape is drawn alone, blurred on the GPU and laid under itself in the shadow colour
@@ -123,6 +124,7 @@ function packGray(a){   /* white at alpha a, premultiplied: what a picture is mu
 
 /* ================================================================== the 2D API's own objects, recorded where they are made */
 const gradInfo=new WeakMap(),patInfo=new WeakMap();
+const pathOps=new WeakMap();   /* Path2D -> [op, args, op, args, ...] as it was built: the GL context lays it out from these */
 let tracking=false;
 function installTracking(){
  if(tracking||typeof window==='undefined')return;tracking=true;
@@ -148,6 +150,26 @@ function installTracking(){
  for(const C of [window.HTMLCanvasElement,window.OffscreenCanvas].filter(Boolean))for(const p of ['width','height']){
   const d=Object.getOwnPropertyDescriptor(C.prototype,p);if(!d||!d.set)continue;
   Object.defineProperty(C.prototype,p,{configurable:true,enumerable:d.enumerable,get:d.get,set(v){d.set.call(this,v);this.__glv=(this.__glv|0)+1;}});
+ }
+ /* Path2D: a browser path keeps its points to itself, so what goes into one is written down as it is built (pathOps), and
+    clip/fill/stroke(path) on the GL context lay it out from that. The mounts clip their riders with Path2D masks - without
+    this the rider vanished from every mount (2026-10-09, "min gubbe har försvunnit från mitt mount"). Paths are made through
+    a subclass, so a path built from another or from SVG text is known too (SVG text itself is not laid out). */
+ if(window.Path2D&&!pathOps.native){
+  const Native=window.Path2D,P2=Native.prototype;pathOps.native=Native;
+  for(const m of ['moveTo','lineTo','quadraticCurveTo','bezierCurveTo','arc','arcTo','ellipse','rect','roundRect','closePath']){
+   const f=P2[m];if(typeof f!=='function')continue;
+   P2[m]=function(){const r=f.apply(this,arguments);const ops=pathOps.get(this);if(ops)ops.push(m,Array.prototype.slice.call(arguments));return r;};
+  }
+  const add=P2.addPath;
+  if(typeof add==='function')P2.addPath=function(p,m){
+   add.apply(this,arguments);const ops=pathOps.get(this);
+   if(ops){const o=pathOps.get(p);ops.push('addPath',[o?o.slice():null,m?{a:m.a??1,b:m.b??0,c:m.c??0,d:m.d??1,e:m.e??0,f:m.f??0}:null]);}
+  };
+  window.Path2D=class Path2D extends Native{constructor(){
+   super(...arguments);const a=arguments[0];
+   pathOps.set(this,a===undefined?[]:typeof a==='string'?['svg',[a]]:pathOps.has(a)?['addPath',[pathOps.get(a).slice(),null]]:['svg',[null]]);
+  }};
  }
 }
 
@@ -372,26 +394,30 @@ void main(){
    sun crosses the shadow layer - so the town's houses and trees cut the beams */
 const RAYS_FS=`#version 300 es
 precision highp float;
-in vec2 v_uv;uniform sampler2D u_shadow;uniform float u_hasShadow;uniform vec2 u_pos;uniform vec2 u_res;uniform float u_time;uniform float u_reach;uniform float u_block;
+in vec2 v_uv;uniform sampler2D u_shadow;uniform float u_hasShadow;uniform vec2 u_pos;uniform vec2 u_dir;uniform vec3 u_world;uniform vec2 u_res;uniform float u_time;uniform float u_reach;uniform float u_block;
 out vec4 o;
 float hash(float n){return fract(sin(n)*43758.5453);}
 float noise(float x){float i=floor(x),f=fract(x);return mix(hash(i),hash(i+1.0),f*f*(3.0-2.0*f));}
+/* shafts of a low sun: bands along the way the light runs (u_dir, the shadows' own direction), laid on the WORLD - so they stay on
+   the ground as the view moves, not on the glass (2026-10-09: the first fan round a point on the screen "följer med skärmen
+   konstigt") - strongest on the sun's side (u_pos), and cut where something casts a shadow toward the sun */
 void main(){
- vec2 d=(v_uv-u_pos)*u_res;float dist=length(d),ang=atan(d.y,d.x);
- float b=noise(ang*11.0+u_time*.035)*.62+noise(ang*29.0-u_time*.06)*.38;
- b=smoothstep(.38,.95,b);
- float fall=exp(-dist/(u_res.y*u_reach));
+ vec2 p=vec2(v_uv.x,1.0-v_uv.y)*u_res,w=(p-u_world.yz)/u_world.x,n=vec2(-u_dir.y,u_dir.x);
+ float across=dot(w,n);
+ float b=noise(across/70.0+u_time*.05)*.6+noise(across/29.0-u_time*.08)*.4;
+ b=smoothstep(.36,.92,b)*(.55+.45*noise(dot(w,u_dir)/260.0+floor(across/70.0)*3.7));   /* each beam waxes and wanes along its length */
+ float along=max(0.0,dot(p-u_pos,u_dir)),fall=exp(-along/(u_res.y*u_reach))*exp(-length(p-u_pos)/(u_res.y*u_reach*1.6));
  float T=1.0;
- if(u_hasShadow>.5){float acc=0.0;for(int i=1;i<=28;i++){vec2 q=mix(v_uv,u_pos,float(i)/28.0*.55);if(q.x<0.0||q.y<0.0||q.x>1.0||q.y>1.0)break;acc+=texture(u_shadow,vec2(q.x,1.0-q.y)).a;}T=exp(-acc*u_block);}
+ if(u_hasShadow>.5){float acc=0.0;vec2 q=v_uv,st=vec2(-u_dir.x,u_dir.y)*(u_res.y*.4/28.0)/u_res;for(int i=1;i<=28;i++){q+=st;if(q.x<0.0||q.y<0.0||q.x>1.0||q.y>1.0)break;acc+=texture(u_shadow,vec2(q.x,1.0-q.y)).a;}T=exp(-acc*u_block);}
  o=vec4(vec3(b*fall*T),1.0);
 }`;
 
 /* ================================================================== geometry helpers (pure; also run headless in the tests) */
 const TAU=Math.PI*2;
 /* arc sweep as the 2D canvas defines it */
-function arcSweep(a0,a1,ccw){
- if(!ccw){if(a1-a0>=TAU)return TAU;let s=(a1-a0)%TAU;if(s<0)s+=TAU;return s;}
- if(a0-a1>=TAU)return -TAU;let s=(a1-a0)%TAU;if(s>0)s-=TAU;return s;
+function arcSweep(a0,a1,ccw){   /* the browser's own rule (Blink's adjustEndAngle): arc(x,y,r,0,2π,true) is a whole circle backwards, not nothing */
+ if(!ccw){if(a1-a0>=TAU)return TAU;if(a0>a1)return TAU-(a0-a1)%TAU;return a1-a0;}
+ if(a0-a1>=TAU)return -TAU;if(a0<a1)return -(TAU-(a1-a0)%TAU);return a1-a0;
 }
 /* segments to keep a flattened circle of radius r (device px) within ~0.3 px */
 function arcSegments(rDev,sweep){
@@ -1079,6 +1105,79 @@ function create(canvas,opts={}){
   return {tris,bb};
  }
  function bboxOf(arr){const bb=[Infinity,Infinity,-Infinity,-Infinity];for(let i=0;i<arr.length;i+=2){const x=arr[i],y=arr[i+1];if(x<bb[0])bb[0]=x;if(y<bb[1])bb[1]=y;if(x>bb[2])bb[2]=x;if(y>bb[3])bb[3]=y;}return bb;}
+ /* a Path2D: what was built into it (pathOps) laid into the current path under the transform of the moment, as the canvas
+    does - false when it cannot be (made from SVG text, or before tracking) */
+ function replayPath(ops){
+  for(let i=0;i<ops.length;i+=2){
+   const op=ops[i],a=ops[i+1];
+   if(op==='svg')return false;
+   if(op==='addPath'){
+    if(!a[0])return false;
+    if(!a[1]){if(!replayPath(a[0]))return false;continue;}
+    const keep=[S.a,S.b,S.c,S.d,S.e,S.f],m=a[1];C.transform(m.a,m.b,m.c,m.d,m.e,m.f);
+    const ok=replayPath(a[0]);[S.a,S.b,S.c,S.d,S.e,S.f]=keep;if(!ok)return false;continue;
+   }
+   C[op].apply(C,a);
+  }
+  return true;
+ }
+ function withPath(p,fn){   /* clip/fill/stroke/isPointInPath(path): p's own path for the call, the current path kept as it was */
+  const ops=pathOps.get(p);
+  if(!ops){warn('a Path2D made before tracking is not laid out');return false;}
+  const keepNp=np,keepPts=pts.slice(0,np*2),keepSubs=subs.slice(),keepSub=sub;
+  resetPath();
+  const ok=replayPath(ops);
+  if(ok)fn();else warn('a Path2D made from SVG text is not laid out');
+  np=keepNp;pts.set(keepPts);subs.length=0;for(const s of keepSubs)subs.push(s);sub=keepSub;
+  return ok;
+ }
+ /* a clip path that comes back every frame - the riders' masks are thousands of one-pixel-high spans - is laid out once into
+    triangles of its own units; each clip then only moves them through the transform. Straight edges only: curves are
+    flattened for the scale they are drawn at, so a path with any goes through withPath every time. */
+ const fanCache=new WeakMap(),STRAIGHT=new Set(['moveTo','lineTo','rect','closePath']);
+ function localFan(p,ops){
+  let c=fanCache.get(p);
+  if(c&&c.n===ops.length)return c;
+  c={n:ops.length,tris:null};
+  let plain=true;for(let i=0;i<ops.length;i+=2)if(!STRAIGHT.has(ops[i])){plain=false;break;}
+  if(plain){
+   const keep=[S.a,S.b,S.c,S.d,S.e,S.f];S.a=1;S.b=0;S.c=0;S.d=1;S.e=0;S.f=0;
+   withPath(p,()=>{c.tris=Float64Array.from(pathFan().tris);});
+   [S.a,S.b,S.c,S.d,S.e,S.f]=keep;
+  }
+  fanCache.set(p,c);return c;
+ }
+ function clipCurrent(rule){
+  const usable=subs.filter(s=>s.n>=3);
+  if(!usable.length){S.clipRect=[0,0,0,0];return;}
+  /* an axis-aligned rectangle on screen is a scissor */
+  if(usable.length===1&&usable[0].n>=4&&usable[0].n<=5){
+   const o=usable[0].start*2,xs=[],ys=[];for(let i=0;i<4;i++){xs.push(pts[o+2*i]);ys.push(pts[o+2*i+1]);}
+   const axis=(xs[0]===xs[1]&&ys[1]===ys[2]&&xs[2]===xs[3]&&ys[3]===ys[0])||(ys[0]===ys[1]&&xs[1]===xs[2]&&ys[2]===ys[3]&&xs[3]===xs[0]);
+   if(axis&&(usable[0].n===4||(pts[o+8]===pts[o]&&pts[o+9]===pts[o+1]))){
+    const r=[Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)];
+    const c=S.clipRect;S.clipRect=c?[Math.max(c[0],r[0]),Math.max(c[1],r[1]),Math.min(c[2],r[2]),Math.min(c[3],r[3])]:r;
+    if(S.clipRect[2]<S.clipRect[0])S.clipRect[2]=S.clipRect[0];if(S.clipRect[3]<S.clipRect[1])S.clipRect[3]=S.clipRect[1];
+    return;
+   }
+  }
+  const {tris,bb}=pathFan();
+  S.clipPaths=(S.clipPaths||[]).concat([{tris,rule,bbox:bb}]);
+ }
+ function clipWith(p,rule){   /* clip(path, rule) */
+  const ops=pathOps.get(p);
+  if(!ops){warn('a Path2D made before tracking is not laid out');return;}   /* unclipped rather than gone */
+  const c=localFan(p,ops);
+  if(!c.tris){withPath(p,()=>clipCurrent(rule));return;}
+  const t=c.tris,n=t.length;
+  if(!n){S.clipRect=[0,0,0,0];return;}
+  const out=new Float64Array(n),bb=[Infinity,Infinity,-Infinity,-Infinity],A=S.a,B=S.b,Cc=S.c,D=S.d,E=S.e,Fv=S.f;
+  for(let i=0;i<n;i+=2){
+   const x=t[i],y=t[i+1],X=A*x+Cc*y+E,Y=B*x+D*y+Fv;out[i]=X;out[i+1]=Y;
+   if(X<bb[0])bb[0]=X;if(Y<bb[1])bb[1]=Y;if(X>bb[2])bb[2]=X;if(Y>bb[3])bb[3]=Y;
+  }
+  S.clipPaths=(S.clipPaths||[]).concat([{tris:out,rule,bbox:bb}]);
+ }
 
  function fillPath(rule){
   const usable=subs.filter(s=>s.n>=3);
@@ -1418,7 +1517,9 @@ function create(canvas,opts={}){
   if(o.shadow){const sz=sourceSize(o.shadow);const e=sz&&texFor(o.shadow,sz[0],sz[1]);shadowTex=e&&e.tex;}
   gl.disable(gl.BLEND);
   into(A);gl.useProgram(P.rays.p);cur.program='rays';texUnit(0,shadowTex||T.resTex);
-  gl.uniform1i(P.rays.u.u_shadow,0);gl.uniform1f(P.rays.u.u_hasShadow,shadowTex?1:0);gl.uniform2f(P.rays.u.u_pos,o.x/W,1-o.y/H);gl.uniform2f(P.rays.u.u_res,W,H);
+  const dir=o.dir||[1,0],dl=Math.hypot(dir[0],dir[1])||1,wm=o.world||{a:1,e:0,f:0};   /* the light's way, and world -> device px */
+  gl.uniform1i(P.rays.u.u_shadow,0);gl.uniform1f(P.rays.u.u_hasShadow,shadowTex?1:0);gl.uniform2f(P.rays.u.u_pos,o.x,o.y);gl.uniform2f(P.rays.u.u_res,W,H);
+  gl.uniform2f(P.rays.u.u_dir,dir[0]/dl,dir[1]/dl);gl.uniform3f(P.rays.u.u_world,wm.a||1,wm.e||0,wm.f||0);
   gl.uniform1f(P.rays.u.u_time,o.time||0);gl.uniform1f(P.rays.u.u_reach,o.reach==null?.9:o.reach);gl.uniform1f(P.rays.u.u_block,o.block==null?.22:o.block);
   fullQuad('rays');
   into(null);blendAdd();gl.useProgram(P.addmix.p);cur.program='addmix';texUnit(0,A.tex);gl.uniform1i(P.addmix.u.u_src,0);
@@ -1509,28 +1610,12 @@ function create(canvas,opts={}){
    arcPoints(x+R3*sx,y+h-R3*sy,R3,R3,0,Math.PI/2,Math.PI/2*sx*sy,true);
    arcPoints(x+R0*sx,y+R0*sy,R0,R0,0,Math.PI,Math.PI/2*sx*sy,true);
    sub.closed=true;newSub(tx(x,y),ty(x,y));},
-  fill(a,b){fillPath(typeof a==='string'?a:typeof b==='string'?b:'nonzero');if(a&&typeof a==='object')warn('Path2D fill is not supported');},
-  stroke(a){if(a&&typeof a==='object'){warn('Path2D stroke is not supported');return;}strokePath();},
-  clip(a,b){
-   const rule=typeof a==='string'?a:typeof b==='string'?b:'nonzero';
-   const usable=subs.filter(s=>s.n>=3);
-   if(!usable.length){S.clipRect=[0,0,0,0];return;}
-   /* an axis-aligned rectangle on screen is a scissor */
-   if(usable.length===1&&usable[0].n>=4&&usable[0].n<=5){
-    const o=usable[0].start*2,xs=[],ys=[];for(let i=0;i<4;i++){xs.push(pts[o+2*i]);ys.push(pts[o+2*i+1]);}
-    const axis=(xs[0]===xs[1]&&ys[1]===ys[2]&&xs[2]===xs[3]&&ys[3]===ys[0])||(ys[0]===ys[1]&&xs[1]===xs[2]&&ys[2]===ys[3]&&xs[3]===xs[0]);
-    if(axis&&(usable[0].n===4||(pts[o+8]===pts[o]&&pts[o+9]===pts[o+1]))){
-     const r=[Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)];
-     const c=S.clipRect;S.clipRect=c?[Math.max(c[0],r[0]),Math.max(c[1],r[1]),Math.min(c[2],r[2]),Math.min(c[3],r[3])]:r;
-     if(S.clipRect[2]<S.clipRect[0])S.clipRect[2]=S.clipRect[0];if(S.clipRect[3]<S.clipRect[1])S.clipRect[3]=S.clipRect[1];
-     return;
-    }
-   }
-   const {tris,bb}=pathFan();
-   S.clipPaths=(S.clipPaths||[]).concat([{tris,rule,bbox:bb}]);
-  },
-  isPointInPath(a,b,c){let x=a,y=b,rule=c;if(typeof a==='object'){x=b;y=c;rule=arguments[3];}
-   const X=x,Y=y;let w=0,odd=0;for(const s of subs){if(s.n<3)continue;const n=winding(pts,s.start*2,s.n,X,Y);w+=n;odd+=Math.abs(n)%2;}
+  fill(a,b){if(a&&typeof a==='object'){withPath(a,()=>fillPath(typeof b==='string'?b:'nonzero'));return;}fillPath(typeof a==='string'?a:'nonzero');},
+  stroke(a){if(a&&typeof a==='object'){withPath(a,strokePath);return;}strokePath();},
+  clip(a,b){if(a&&typeof a==='object'){clipWith(a,typeof b==='string'?b:'nonzero');return;}clipCurrent(typeof a==='string'?a:'nonzero');},
+  isPointInPath(a,b,c){
+   if(a&&typeof a==='object'){let r=false;const rule=arguments[3];withPath(a,()=>{r=C.isPointInPath(b,c,rule);});return r;}
+   const X=a,Y=b,rule=c;let w=0,odd=0;for(const s of subs){if(s.n<3)continue;const n=winding(pts,s.start*2,s.n,X,Y);w+=n;odd+=Math.abs(n)%2;}
    return rule==='evenodd'?odd%2===1:w!==0;},
   isPointInStroke(){return false;},
   /* drawing */
@@ -1623,7 +1708,7 @@ function probe(){
  finally{try{const gl=g&&g.gl;const ext=gl&&gl.getExtension('WEBGL_lose_context');if(ext)ext.loseContext();}catch(e){}}
 }
 
-return {create,supported,probe,parseColor,debug:GL2D_DEBUG,_track:installTracking,
+return {create,supported,probe,parseColor,debug:GL2D_DEBUG,_track:installTracking,_pathOps:p=>pathOps.get(p),
  _test:{arcSweep,arcSegments,convexity,signedArea,winding,dashPolyline,strokePolyline,fanCircle,TriBuf,rampTexels,pack,parseColorRaw:s=>parseColorRaw(s,1)}};
 })();
 /* record gradients and patterns from the start: the screen is handed to WebGL later in the load */

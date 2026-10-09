@@ -183,16 +183,36 @@ function sunUpdate(ms=Date.now()){   /* where the sun stands now, and what that 
  return SUN;
 }
 const sunSilhouettes=new WeakMap();
-function sunSilhouette(im){   /* the picture in black at most 160 px (a shadow wants no detail), blurred, fading toward its top - the far end
-                                  of the shadow - with a margin round it for the blur (pad, cw x ch the picture inside). Made once per picture */
+const SUN_SHADE='16,22,50';   /* the colour of a shadow: the deep blue of a sky-lit shade, not black (2026-10-09, "bättre skuggor") */
+function sunSilhouette(im){   /* the picture as a shadow at most 160 px (a shadow wants no detail), fading toward its top - the far end of the shadow
+                                  - with a margin round it for the blur (pad, cw x ch the picture inside). Made once per picture. Since 2026-10-09
+                                  sharp at the foot and soft toward its far end, as a real shadow's edge widens away from what casts it */
  if(!(im&&im.complete&&im.naturalWidth))return null;
  let c=sunSilhouettes.get(im);if(c)return c;
- const k=Math.min(1,160/Math.max(im.naturalWidth,im.naturalHeight)),cw=Math.max(1,Math.round(im.naturalWidth*k)),ch=Math.max(1,Math.round(im.naturalHeight*k)),pad=5;
+ const k=Math.min(1,160/Math.max(im.naturalWidth,im.naturalHeight)),cw=Math.max(1,Math.round(im.naturalWidth*k)),ch=Math.max(1,Math.round(im.naturalHeight*k)),pad=7;
  c=document.createElement('canvas');c.width=cw+pad*2;c.height=ch+pad*2;c.cw=cw;c.ch=ch;c.pad=pad;
- const g=c.getContext('2d');g.filter='blur(1.5px)';g.drawImage(im,pad,pad,cw,ch);g.filter='none';
- const fade=g.createLinearGradient(0,pad,0,pad+ch);fade.addColorStop(0,'rgba(0,0,0,.4)');fade.addColorStop(1,'#000');
+ const g=c.getContext('2d');g.filter='blur(3.2px)';g.drawImage(im,pad,pad,cw,ch);g.filter='none';   /* the far end: soft */
+ const sh=document.createElement('canvas');sh.width=c.width;sh.height=c.height;
+ const sg=sh.getContext('2d');sg.filter='blur(.7px)';sg.drawImage(im,pad,pad,cw,ch);sg.filter='none';   /* the foot: sharp */
+ const foot=gc=>{const f=gc.createLinearGradient(0,pad,0,pad+ch);f.addColorStop(0,'rgba(0,0,0,0)');f.addColorStop(.4,'rgba(0,0,0,0)');f.addColorStop(.9,'#000');return f;};
+ sg.globalCompositeOperation='destination-in';sg.fillStyle=foot(sg);sg.fillRect(0,0,sh.width,sh.height);
+ g.globalCompositeOperation='destination-out';g.fillStyle=foot(g);g.fillRect(0,0,c.width,c.height);   /* the one gives way to the other */
+ g.globalCompositeOperation='source-over';g.drawImage(sh,0,0);
+ const fade=g.createLinearGradient(0,pad,0,pad+ch);fade.addColorStop(0,'rgba('+SUN_SHADE+',.4)');fade.addColorStop(1,'rgb('+SUN_SHADE+')');
  g.globalCompositeOperation='source-in';g.fillStyle=fade;g.fillRect(0,0,c.width,c.height);
  sunSilhouettes.set(im,c);return c;
+}
+/* ☀ a figure's own shape as its sun shadow (2026-10-09, "bättre skuggor"): a painted body's silhouette laid along the sun's line
+   from its feet, the way the props cast theirs - drawn in the figure's own frame before it, straight onto the view (the props'
+   layer is down by then). frame: the art's rect (native, looking left); ground: where the feet stand; flip: looking right */
+function sunFigureShadow(im,frame,ground,flip,alpha=1){
+ if(!sunCast||!frame)return false;
+ const sil=sunSilhouette(im);if(!sil)return false;
+ const W=frame.width,H=frame.height,bottom=frame.y+H,px=sil.pad*W/sil.cw,py=sil.pad*H/sil.ch;
+ ctx.save();ctx.translate(0,ground);ctx.transform(1,0,-SUN.k,-SUN.s,0,0);if(flip)ctx.scale(-1,1);
+ ctx.globalAlpha*=Math.min(1,SUN.alpha*SUN.cast*1.6*alpha);   /* a little darker than a house's: a small shape needs it to read */
+ ctx.drawImage(sil,frame.x-px,frame.y-bottom-py,W+px*2,H+py*2);   /* the art's foot on the ground */
+ ctx.restore();return true;
 }
 function sunBegin(){   /* a clear layer before the ground pass */
  if(!sunLayer){sunLayer=document.createElement('canvas');sunG=sunLayer.getContext('2d');}
@@ -224,8 +244,8 @@ function sunShadowBox(x0,top,W,H,foot){   /* a plain block - a town wall's run -
 }
 function sunEnd(){   /* the whole layer down at one strength */
  if(!sunLayer||!sunLayer.used)return;
- {const q=glFx();if(q&&q!=='low'){ctx.drawBlurred(sunLayer,SUN.alpha*SUN.cast,q==='ultra'?2.4:1.3);return;}}   /* 🎮 softer on the GPU */
- ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=SUN.alpha*SUN.cast;ctx.drawImage(sunLayer,0,0,cv.width,cv.height);ctx.restore();
+ {const q=glFx();if(q&&q!=='low'){ctx.drawBlurred(sunLayer,SUN.alpha*SUN.cast*1.35,q==='ultra'?1.4:1);return;}}   /* 🎮 softer on the GPU - a light touch since the silhouettes soften toward their far end themselves */
+ ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=SUN.alpha*SUN.cast*1.35;ctx.drawImage(sunLayer,0,0,cv.width,cv.height);ctx.restore();   /* *1.35: a deeper shade since 2026-10-09 ("bättre skuggor"), blue rather than black */
 }
 function sunFootShadow(x,y,tall){   /* the sun's shadow and the lights' at someone's feet, from the world's frame - a mount, a creature */
  if(!sunFrame)return;
@@ -449,9 +469,9 @@ function nightLightsGL(night,now,q){   /* the night's light map on the GPU - the
 let glFlames=null;   /* this frame's lit lights in device px, for the bloom's emitters */
 function sunPostFX(now,q){   /* over the lit view: shafts of sunlight while the sun is low (ultra), then bloom (medium, ultra) */
  const {lit,dark}=SUN;
- if(q==='ultra'&&lit>0&&SUN.flare){   /* the low sun's beams across the town, morning and evening */
-  const {x,y,hi}=sunSpot(VW,VH),k=lit*Math.pow(1-hi,2)*(1-WEATHER.rain)*(1-WEATHER.fog*.5)*.45;
-  if(k>.015)ctx.rays({x:x*DPR,y:y*DPR,time:now,color:lightRGB(sunRGB(sunMix(SUN.p<.5?SUN_TINT.dawn:SUN_TINT.dusk,SUN_TINT.noon,hi))),strength:k,
+ if(q==='ultra'&&lit>0&&SUN.flare&&sunWorld){   /* the low sun's shafts across the town, morning and evening - laid on the world along the shadows' way, so they stay on the ground as the view moves (a fan round a point on the screen "följer med skärmen konstigt") */
+  const {x,y,hi}=sunSpot(VW,VH),k=lit*Math.pow(1-hi,2)*(1-WEATHER.rain)*(1-WEATHER.fog*.5)*.42;   /* the fan round a point on the screen had .45 and harder beams: "lite mindre flarig" (2026-10-09) */
+  if(k>.015)ctx.rays({x:x*DPR,y:y*DPR,dir:[SUN.k,SUN.s],world:sunWorld,time:now,color:lightRGB(sunRGB(sunMix(SUN.p<.5?SUN_TINT.dawn:SUN_TINT.dusk,SUN_TINT.noon,hi))),strength:k,
    shadow:sunCast&&sunLayer&&sunLayer.used?sunLayer:null,reach:1.1,block:.2,scale:.5});
  }
  if(q!=='low'){
@@ -1363,27 +1383,27 @@ const CLASS_ALIAS={cleric:'priest'};
 const CLASSES=[
  {id:'warrior',name:'Warrior',desc:'Heavy blade up close. Cleaving strikes and war-shouts.',hp:125,atk:12,crit:5,armor:0.05,range:40,cd:.72,mana:55,
   spells:[
-   {n:'Heroic Strike',g:'⚔️',cost:12,cd:4,t:'st',mul:2.1,d:'A crushing blow for 210% damage.',vfx:'slash'},
-   {n:'Whirlwind',g:'🌀',cost:22,cd:8,t:'aoe',mul:1.5,rad:100,d:'Spin, hitting all nearby foes for 150%.',vfx:'whirl'},
-   {n:'Battle Shout',g:'📯',cost:18,cd:28,t:'buff',buff:'atk',val:1.35,dur:10,d:'+35% attack for 10s.',vfx:'shout'},
+   {n:'Heroic Strike',g:'⚔️',cost:12,cd:4,t:'st',mul:2.1,d:'A crushing blow for 210% damage.',vfx:'slash',fx:'heroic'},
+   {n:'Whirlwind',g:'🌀',cost:22,cd:8,t:'aoe',mul:1.5,rad:100,d:'Spin, hitting all nearby foes for 150%.',vfx:'whirl',fx:'whirlwind'},
+   {n:'Battle Shout',g:'📯',cost:18,cd:28,t:'buff',buff:'atk',val:1.35,dur:10,d:'+35% attack for 10s.',vfx:'shout',fx:'battleshout'},
   ]},
  {id:'mage',name:'Mage',desc:'Ranged bolts of flame and frost. Fragile but ferocious.',hp:85,atk:15,crit:6,armor:0.04,range:175,cd:.72,ranged:true,boltC:'#ff9a4a',mana:90,
   spells:[
-   {n:'Fireball',g:'🔥',cost:14,cd:4,t:'st',mul:2.6,d:'Hurl fire for 260% damage.',vfx:'fire'},
-   {n:'Frost Nova',g:'❄️',cost:24,cd:9,t:'aoe',mul:1.3,rad:115,slow:3,d:'130% frost damage and slows foes 3s.',vfx:'frost'},
-   {n:'Arcane Barrage',g:'✨',cost:30,cd:24,t:'multi',mul:1.3,hits:3,d:'3 arcane bolts at nearby foes, 130% each.',vfx:'arcane'},
+   {n:'Fireball',g:'🔥',cost:14,cd:4,t:'st',mul:2.6,d:'Hurl fire for 260% damage.',vfx:'fire',fx:'fireball'},
+   {n:'Frost Nova',g:'❄️',cost:24,cd:9,t:'aoe',mul:1.3,rad:115,slow:3,d:'130% frost damage and slows foes 3s.',vfx:'frost',fx:'frostnova'},
+   {n:'Arcane Barrage',g:'✨',cost:30,cd:24,t:'multi',mul:1.3,hits:3,d:'3 arcane bolts at nearby foes, 130% each.',vfx:'arcane',fx:'barrage'},
   ]},
  {id:'hunter',name:'Hunter',desc:'Swift ranged shots and deadly precision.',hp:100,atk:11,crit:10,range:185,cd:.72,ranged:true,boltC:'#cfe8a0',mana:70,
   spells:[
-   {n:'Aimed Shot',g:'🎯',cost:12,cd:4,t:'st',mul:2.4,d:'A perfect shot for 240% damage.',vfx:'arrow'},
-   {n:'Multi-Shot',g:'🏹',cost:22,cd:8,t:'multi',mul:1.4,hits:3,d:'Arrows at up to 3 foes, 140% each.',vfx:'arrow'},
-   {n:'Rapid Fire',g:'💨',cost:20,cd:28,t:'buff',buff:'haste',val:1.6,dur:6,d:'+60% attack speed for 6s.',vfx:'shout'},
+   {n:'Aimed Shot',g:'🎯',cost:12,cd:4,t:'st',mul:2.4,d:'A perfect shot for 240% damage.',vfx:'arrow',fx:'aimed'},
+   {n:'Multi-Shot',g:'🏹',cost:22,cd:8,t:'multi',mul:1.4,hits:3,d:'Arrows at up to 3 foes, 140% each.',vfx:'arrow',fx:'multishot'},
+   {n:'Rapid Fire',g:'💨',cost:20,cd:28,t:'buff',buff:'haste',val:1.6,dur:6,d:'+60% attack speed for 6s.',vfx:'shout',fx:'rapidfire'},
   ]},
  {id:'priest',name:'Priest',desc:'Holy smiting and healing light.',hp:112,atk:11,crit:8,armor:0.02,range:40,cd:.72,mana:85,
   spells:[
-   {n:'Smite',g:'☀️',cost:12,cd:4,t:'st',mul:2.0,heal:.06,d:'200% holy damage, heals you 6%.',vfx:'holy'},
-   {n:'Holy Nova',g:'✴️',cost:24,cd:9,t:'aoe',mul:1.3,rad:115,heal:.15,d:'130% to nearby foes, heals you 15%.',vfx:'holy'},
-   {n:'Renew',g:'💚',cost:20,cd:24,t:'hot',hot:.05,dur:6,d:'Heal 5% of max health per second for 6s.',vfx:'renew'},
+   {n:'Smite',g:'☀️',cost:12,cd:4,t:'st',mul:2.0,heal:.06,d:'200% holy damage, heals you 6%.',vfx:'holy',fx:'smite'},
+   {n:'Holy Nova',g:'✴️',cost:24,cd:9,t:'aoe',mul:1.3,rad:115,heal:.15,d:'130% to nearby foes, heals you 15%.',vfx:'holy',fx:'holynova'},
+   {n:'Renew',g:'💚',cost:20,cd:24,t:'hot',hot:.05,dur:6,d:'Heal 5% of max health per second for 6s.',vfx:'renew',fx:'renew'},
   ]},
 ];
 /* 10 scrolls - tiered. Base effects are weak; combine two identical scrolls to
@@ -2839,7 +2859,7 @@ async function mpEnter(){
        stomped fresh RTC coords with stale Firestore ones (periodic rubber-banding) */
     const live=prev._rtc&&(performance.now()-(prev._rt||0)<3000);
     const lastSeen=prev.t;
-    Object.assign(prev,data,live?{x:prev.x,y:prev.y,hp:prev.hp,f:prev.f,mv:prev.mv,dn:prev.dn,atk:prev.atk,t:prev.t}:{});
+    Object.assign(prev,data,live?{x:prev.x,y:prev.y,hp:prev.hp,f:prev.f,mv:prev.mv,dn:prev.dn,atk:prev.atk,hl:prev.hl,t:prev.t}:{});
     prev._remoteT=data.t;
     if(!live){prev._rtc=false;prev.t=moved?now:lastSeen;} /* RTC went quiet - let Firestore drive again */
     seen[d.id]=prev;
@@ -2913,7 +2933,7 @@ function mpSyncTick(){
   const dx=hero.x-(mp._lhx==null?hero.x:mp._lhx),dy=hero.y-(mp._lhy==null?hero.y:mp._lhy);
   mp._lhx=hero.x;mp._lhy=hero.y;
   const mv=(Math.abs(hero.vx||0)+Math.abs(hero.vy||0))>5||Math.hypot(dx,dy)>1?1:0;
-  rtcBroadcast({k:'pos',x:Math.round(hero.x),y:Math.round(hero.y),hp:hero.hp/heroMax(),f:hero.fx||hero.facing||1,mv,atk:(hero.swing||0)>0,dn:(hero.dance||hero.danceT||0)>0?1:0},false);
+  rtcBroadcast({k:'pos',x:Math.round(hero.x),y:Math.round(hero.y),hp:hero.hp/heroMax(),f:hero.fx||hero.facing||1,mv,atk:(hero.swing||0)>0,dn:(hero.dance||hero.danceT||0)>0?1:0,hl:hero.holster?1:0},false);   /* 🗡 hl: the weapon on the back */
  }
  /* when a peer has no live RTC link (phone on mobile data behind CGNAT), Firestore IS their
     transport - speed the writes up so the fallback is playable instead of 0.7Hz */
@@ -2942,10 +2962,11 @@ function mpPlayFx(m,p){
   burst(x,y-10,'#ffffff',3,38);
  }else if(m.a==='boltfx'){ /* peer spell projectile - visual only */
   p.atk=true;p._atkT=performance.now()+240;
-  if(m.tx!=null)bolts.push({x,y:y-10,tgt:{x:m.tx,y:m.ty},sp:m.orb?300:470,vis:1,c:m.c||'#c9a0ff',arrow:!!m.ar,orb:!!m.orb}); /* 📖 an older peer ignores orb and sees a bolt */
+  if(m.tx!=null)bolts.push({x,y:y-10,tgt:{x:m.tx,y:m.ty},sp:m.orb?300:470,vis:1,c:m.c||'#c9a0ff',arrow:!!m.ar,orb:!!m.orb,fx:m.f}); /* 📖 an older peer ignores orb and sees a bolt */
  }else if(m.a==='bolt'||m.a==='spell'){
   p.atk=true;p._atkT=performance.now()+240;
   const v=m.v;
+  if(m.f&&m.tx!=null&&m.ty!=null&&SpellFx.hit(m.f,{x:m.tx,y:m.ty,r:16,sx:x,sy:y}))return;   /* ✨ the spell's own landing */
   if(m.tx!=null&&m.ty!=null){
    if(!v){zapLine(x,y-10,m.tx,m.ty-10,m.c||'#7fd0ff');bloodAt(m.tx,m.ty-10,3);}
    if(v==='fire')burst(m.tx,m.ty-10,'#ff7a2a',14,110,true);
@@ -2955,6 +2976,12 @@ function mpPlayFx(m,p){
    else if(v)burst(m.tx,m.ty-10,m.c||'#7fd0ff',6,70);
   }
   burst(x,y-10,m.c||'#7fd0ff',4,55);
+ }else if(m.a==='cast'){ /* ✨ a peer's spell going off round them - and the aura it leaves on them for a while */
+  p.atk=true;p._atkT=performance.now()+240;
+  SpellFx.cast(m.f,{x,y,gy:m.gy||8,fx:m.fx||1,rad:m.rad||0,dur:m.d||0,peer:true,tx:m.tx,ty:m.ty,
+   targets:(Array.isArray(m.tg)?m.tg:[]).map(t=>({x:t[0],y:t[1],r:16})),follow:()=>({x:p._x??p.x,y:p._y??p.y})});
+  if(m.k&&m.d>0)(p.fxAura||(p.fxAura={}))[m.k]={until:performance.now()/1000+m.d,dur:m.d};
+  if(m.gy)p._gy=m.gy;
  }else if(m.a==='nova'){
   ring(x,y,70,'#a0e0ff');burst(x,y,'#a0e0ff',10,80);
  }else if(m.a==='potion'){
@@ -3053,7 +3080,7 @@ function rtcOnMsg(pid,m){
   const p=mp.peers[pid];if(!p)return;
   const now=performance.now(),dtp=(now-(p._rt||now))/1000;p._rt=now;
   if(dtp>0.01&&dtp<0.5){p._vx=(m.x-(p.x||m.x))/dtp;p._vy=(m.y-(p.y||m.y))/dtp;}
-  p.x=m.x;p.y=m.y;p.hp=m.hp;p.f=m.f||p.f||1;p.mv=m.mv?1:0;p.dn=m.dn?1:0;p.atk=!!m.atk;p.t=Date.now();p._rtc=true;
+  p.x=m.x;p.y=m.y;p.hp=m.hp;p.f=m.f||p.f||1;p.mv=m.mv?1:0;p.dn=m.dn?1:0;p.atk=!!m.atk;p.hl=m.hl?1:0;p.t=Date.now();p._rtc=true;   /* 🗡 hl: an older peer sends none - weapon in hand */
  }else if(m.k==='act'){
   const p=mp.peers[pid];if(!p)return;
   mpPlayFx(m,p);
@@ -3168,12 +3195,16 @@ function drawHeroLike(x,y,look,alpha,anim,name,hp){
  const character=paintedCharacterFrame(race,cls,!!look.fem,lookOutfit(look));
  const groundY=character?character.groundY:8;
  ctx.save();ctx.translate(x,y);ctx.globalAlpha=alpha==null?1:alpha;
+ const fxAura=anim.fxAura?{...anim.fxAura,gy:groundY}:null,fxNow=now/1000;
+ if(fxAura){SpellFx.auras(ctx,fxAura,'back',fxNow);ctx.globalAlpha=alpha==null?1:alpha;}
  /* same grounding as local hero: full opacity + real floor shadow */
  ctx.fillStyle='rgba(0,0,0,0.28)';ctx.beginPath();ctx.ellipse(0,groundY,character?12+(groundY-8)*0.3:14,5,0,0,7);ctx.fill();
+ if(character)sunFigureShadow(character.image,character,groundY,fx>0);   /* ☀ their own shape, as the hero's */
  if(dancing)ctx.rotate(Math.sin(phase*6)*0.25);
  if(character)bootFeet({...character.boots,moving:moving||dancing,walk:phase*1.8,bob:by});
  else feet({walk:phase*1.8},(moving||dancing)?1:0.15);
- drawChampionSprite(ctx,race,cls,fx,by,swing,!!look.fk||!!look.fm||isFKLegend(look.w),look.hw?'hidden':look.w,!!look.fem,(moving||dancing)?2:1,lookOutfit(look),look.hw?null:wenchById(look.wench)); /* older peers without a rune field still render normally */
+ drawChampionSprite(ctx,race,cls,fx,by,swing,!!look.fk||!!look.fm||isFKLegend(look.w),look.hw?'hidden':look.w,!!look.fem,(moving||dancing)?2:1,lookOutfit(look),look.hw?null:wenchById(look.wench),null,undefined,!!anim.holster); /* older peers without a rune field still render normally; 🗡 holstered, on the back */
+ if(fxAura){SpellFx.auras(ctx,fxAura,'front',fxNow);ctx.globalAlpha=alpha==null?1:alpha;}   /* ✨ the aura's near side */
  if(look.pet){ctx.font='13px sans-serif';ctx.textAlign='center';const pp=petOf(look.pet);if(pp)petGlyphCanvas(ctx,pp,-18,10);else ctx.fillText('🐾',-18,10);}
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
  const headY=character?character.headY:-30,nameY=headY-(hp!==undefined?10:3);
@@ -3231,7 +3262,15 @@ function drawMpGhost(k,p){
  let base=175;
  try{base=(typeof speedOf==='function'&&hero)?speedOf(hero):175;}catch(e){}
  p._animT=(p._animT||0)+(p.dn?pdt:p.mv?pdt*Math.min(spd/base,1.6):0);
- drawHeroLike(p._x,p._y,Object.assign({},p.look||{},{f:p.f||1,atk:!!p.atk}),1,{facing:p.f||1,moving:!!p.mv,dancing:!!p.dn,animT:p._animT,attacking:!!p.atk},p.name||'Hero',p.hp);
+ const fxAura=peerAuraState(p);   /* ✨ a Battle Shout, Rapid Fire or Renew the peer cast, for as long as it lasts */
+ if(fxAura)SpellFx.auraTick({...fxAura,x:p._x,y:p._y},pdt);
+ drawHeroLike(p._x,p._y,Object.assign({},p.look||{},{f:p.f||1,atk:!!p.atk}),1,{facing:p.f||1,moving:!!p.mv,dancing:!!p.dn,animT:p._animT,attacking:!!p.atk,fxAura,holster:!!p.hl},p.name||'Hero',p.hp);
+}
+function peerAuraState(p){
+ const A=p.fxAura;if(!A)return null;
+ const t=performance.now()/1000,s=k=>A[k]&&A[k].until>t?{left:A[k].until-t,dur:A[k].dur}:null;
+ const a={gy:p._gy||8,fx:p.f||1,moving:!!p.mv,atk:s('atk'),haste:s('haste'),hot:s('hot')};
+ return a.atk||a.haste||a.hot?a:null;
 }
 function drawMpGhosts(){
  if(!(mp.on&&mp.started))return;
@@ -4068,6 +4107,7 @@ const AC={ctx:null,ambG:null,sfxG:null,amb:[],timers:[],prof:null,mIdx:0};
    Detect by OS, not by pointer media queries: touchscreen Windows laptops must keep their sliders. */
 const IS_TOUCH=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
  ||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1); /* iPadOS pretends to be a Mac */
+SpellFx.quality=IS_TOUCH?.65:1;   /* ✨ phones shed fewer sparks per spell */
 const ambVol=()=>(!S||S.sound)?(S?S.volAmb:0.5):0;
 const sfxVol=()=>(!S||S.sfx)?(S?S.volSfx:0.55):0;
 function applyVolumes(){
@@ -4928,6 +4968,7 @@ const hcNoFlee=()=>{
 };
 let camX=0,camY=0,gameOn=false,marker=null,portalMsgT=0;
 let shakeT=0;
+SpellFx.onShake=v=>{shakeT=Math.max(shakeT,Math.min(.45,v));};   /* ✨ a heavy blow may shake the view a little */
  
 /* ==================== THE CRYPTS ==================== */
 /* A fresh labyrinth every descent - plain Math.random, never the zone seed.
@@ -7047,6 +7088,7 @@ function drawCryptTorches(vx0,vy0,vx1,vy1){ /* 🔥 breadcrumb markers - flicker
 }
 function buildZone(){
  TideUI.leaveZone();
+ SpellFx.clear();   /* ✨ no spell follows the hero into another world */
  mineTarget=null; /* ⛏ a rock belongs to the world it stood in */
  Mounts.carry(mountRide,zoneOf(),hero); /* 🐎 still in the saddle if the new zone is ridden too (Wasteland, City, Farm, Home) */
  if($('stableFx'))$('stableFx').style.display='none';
@@ -7695,6 +7737,7 @@ function healHero(amt,silent){
 }
 function hurtHero(dmg,label){
  if(hero.dead)return;
+ drawWeapons();   /* 🗡 a blow taken: the weapon comes out */
  /* hidden passive: melee classes (Warrior/Priest) shrug off 60% in the Cow Level - never shown in any UI */
  const cowMelee=zoneOf().cow&&(S.cls==='warrior'||S.cls==='priest')?0.40:1;
  dmg=Math.round(dmg*(1-scrollPct('warding'))*(1-(classOf().armor||0))*(1-(raceOf().armor||0))*(1-((activePet()||{}).armor||0))*(1-Math.min(0.5,gearSum('armor')))*(((S.armorT||0)>0&&zoneOf().amb==='odin')?0.5:1)*cowMelee); /* 🛡 potion: -50% only in the ODIN fight · gear armor capped at 50% */
@@ -7711,9 +7754,10 @@ function swingRoll(mul=1){
  return {dmg:Math.round(dmg),crit};
 }
 function heroSwing(en,c,dmg,crit,label){
+ drawWeapons();   /* 🗡 */
  hero.swing=0.22;
  mpAct('swing',{tx:Math.round(en.x),ty:Math.round(en.y),rg:c.ranged?1:0,ar:c.id==='hunter'?1:0,c:c.boltC});
- if(c.ranged){sfx.bolt();bolts.push({x:hero.x,y:hero.y-10,tgt:en,sp:430,dmg,crit,c:c.boltC,basic:true,arrow:c.id==='hunter',label});}
+ if(c.ranged){sfx.bolt();bolts.push({x:hero.x,y:hero.y-10,tgt:en,sp:430,dmg,crit,c:c.boltC,basic:true,arrow:c.id==='hunter',label,fx:c.id==='hunter'?'shot':'firebolt'});}   /* ✨ fx: the shot's own look (assets/fx) */
  else{sfx.swing();landHit(en,dmg,crit,label,true);}
 }
 function heroBasicAttack(en,dt){
@@ -7814,16 +7858,33 @@ function applyDmg(en,dmg,label,crit){
  if(en.hp<=0)killEnemy(en);
 }
 function dealSpell(en,sp){
- mpAct('spell',{tx:Math.round(en.x),ty:Math.round(en.y),c:sp.c||'#7fd0ff',v:sp.vfx||null});
+ mpAct('spell',{tx:Math.round(en.x),ty:Math.round(en.y),c:sp.c||'#7fd0ff',v:sp.vfx||null,f:sp.fx});
  let dmg=heroAtk()*sp.mul*(0.95+Math.random()*0.1)*atkMul(),crit=false;
  if(Math.random()*100<heroCrit()){dmg*=1.7;crit=true;}
+ const ex=en.x,ey=en.y,er=en.r||16;   /* where it stands as the spell lands - a kill can take it out of the world */
  landHit(en,Math.round(dmg),crit,sp.n);
+ if(SpellFx.hit(sp.fx,{x:ex,y:ey,r:er,crit,sx:hero.x,sy:hero.y}))return;
  const v=sp.vfx;
- if(v==='fire')burst(en.x,en.y-10,'#ff7a2a',14,110,true);
- else if(v==='frost')burst(en.x,en.y-10,'#a0e0ff',10,80);
- else if(v==='holy')sparkles(en.x,en.y-14,'#ffe9a0',8);
- else if(v==='arcane')burst(en.x,en.y-10,'#c9a0ff',10,90);
- else burst(en.x,en.y-10,'#fff',6,70);
+ if(v==='fire')burst(ex,ey-10,'#ff7a2a',14,110,true);
+ else if(v==='frost')burst(ex,ey-10,'#a0e0ff',10,80);
+ else if(v==='holy')sparkles(ex,ey-14,'#ffe9a0',8);
+ else if(v==='arcane')burst(ex,ey-10,'#c9a0ff',10,90);
+ else burst(ex,ey-10,'#fff',6,70);
+}
+/* ✨ where the hero's feet are below his anchor: painted heroes stand taller, on hovering boots */
+function heroGroundY(){const ch=paintedCharacterFrame(S.race,classOf().id,S.gender==='f',outfitArg());return 8+(ch?ch.groundY-8:0);}
+/* the spell going off round the hero (assets/fx), and the same to everyone in the party */
+function spellCastFx(sp,tgt,list){
+ const targets=(list||(tgt?[tgt]:[])).map(e=>({x:e.x,y:e.y,r:e.r||16}));
+ const o={x:hero.x,y:hero.y,gy:heroGroundY(),fx:hero.fx||1,rad:sp.rad||0,dur:sp.dur||0,cls:classOf().id,tx:tgt?tgt.x:undefined,ty:tgt?tgt.y:undefined,targets};
+ SpellFx.cast(sp.fx,{...o,follow:()=>hero.dead?null:{x:hero.x,y:hero.y}});
+ mpAct('cast',{f:sp.fx,fx:o.fx,gy:Math.round(o.gy),rad:o.rad,d:o.dur,k:sp.t==='buff'?sp.buff:sp.t==='hot'?'hot':undefined,
+  tx:tgt?Math.round(tgt.x):undefined,ty:tgt?Math.round(tgt.y):undefined,tg:targets.slice(0,6).map(t=>[Math.round(t.x),Math.round(t.y)])});
+}
+/* the buffs a hero's aura shows (SpellFx.auras): what is left of each and how long it was cast for */
+function heroAuraState(h,gy){
+ const b=h.buff||{},s=(v,dur)=>v&&v.t>0?{left:v.t,dur:v.dur||dur}:null;
+ return {gy,fx:h.fx||1,moving:!!h.moving,atk:s(b.atk,10),haste:s(b.haste,6),hot:h.hotT>0?{left:h.hotT,dur:h.hotDur||6}:null};
 }
 function nearestEnemyWithin(rng){
  let best=null,bd=rng||1e9;
@@ -7840,41 +7901,45 @@ function cast(i,manual){
  if(hero.moving){if(manual)stageMsg('Stand still to cast',700);return false;}
  if(hero.spellCd[i]>0){if(manual)stageMsg('Not ready',700);return false;}
  if(hero.mana<spellManaCost(sp)){if(manual)stageMsg('Not enough mana',700);return false;}
- const rng=c.range+55;
+ const rng=c.range+55,ownFx=SpellFx.has(sp.fx);   /* ✨ the spell's own look (assets/fx); the old rings only stand in without one */
+ let fxTgt=null,fxList=null;
  if(sp.t==='st'||sp.t==='multi'){
   let tgt=hero.target&&!hero.target.dead&&!hero.target.hidden?hero.target:nearestEnemyWithin(260);
   if(!tgt){if(manual)stageMsg('No target nearby',800);return false;}
   if(dist(hero,tgt)>rng){if(manual){hero.target=tgt;stageMsg('Closing in…',700);}return false;}
-  hero.target=tgt;hero.mana-=spellManaCost(sp);hero.spellCd[i]=sp.cd;hero.swing=0.24;
+  hero.target=tgt;hero.mana-=spellManaCost(sp);hero.spellCd[i]=sp.cd;hero.swing=0.24;fxTgt=tgt;
   if(sp.t==='st'){
-   if(c.ranged){const bc=sp.vfx==='fire'?'#ff7a2a':sp.vfx==='holy'?'#ffe9a0':'#c9a0ff';bolts.push({x:hero.x,y:hero.y-10,tgt,sp:470,dmg:0,spell:sp,arrow:c.id==='hunter',c:bc});mpAct('boltfx',{tx:Math.round(tgt.x),ty:Math.round(tgt.y),ar:c.id==='hunter'?1:0,c:bc});}
+   if(c.ranged){const bc=sp.vfx==='fire'?'#ff7a2a':sp.vfx==='holy'?'#ffe9a0':'#c9a0ff';bolts.push({x:hero.x,y:hero.y-10,tgt,sp:470,dmg:0,spell:sp,arrow:c.id==='hunter',c:bc,fx:sp.fx});mpAct('boltfx',{tx:Math.round(tgt.x),ty:Math.round(tgt.y),ar:c.id==='hunter'?1:0,c:bc,f:sp.fx});}
    else dealSpell(tgt,sp);
    if(sp.heal)healHero(heroMax()*sp.heal);
   }else{
    const list=enemies.filter(e=>!e.dead&&!e.hidden&&dist(hero,e)<=rng).sort((a,b)=>dist(hero,a)-dist(hero,b)).slice(0,sp.hits);
+   fxList=list;
    list.forEach((t,k)=>{
-    if(c.ranged)setTimeout(()=>{if(!t.dead&&!t.hidden&&enemies.includes(t)){bolts.push({x:hero.x,y:hero.y-10,tgt:t,sp:470,dmg:0,spell:sp,arrow:c.id==='hunter',c:sp.vfx==='arrow'?'#cfe8a0':'#c9a0ff'});mpAct('boltfx',{tx:Math.round(t.x),ty:Math.round(t.y),ar:c.id==='hunter'?1:0,c:sp.vfx==='arrow'?'#cfe8a0':'#c9a0ff'});}},k*90);
+    if(c.ranged)setTimeout(()=>{if(!t.dead&&!t.hidden&&enemies.includes(t)){bolts.push({x:hero.x,y:hero.y-10,tgt:t,sp:470,dmg:0,spell:sp,arrow:c.id==='hunter',c:sp.vfx==='arrow'?'#cfe8a0':'#c9a0ff',fx:sp.fx,k});mpAct('boltfx',{tx:Math.round(t.x),ty:Math.round(t.y),ar:c.id==='hunter'?1:0,c:sp.vfx==='arrow'?'#cfe8a0':'#c9a0ff',f:sp.fx});}},k*90);
     else dealSpell(t,sp);
    });
   }
  }else if(sp.t==='aoe'){
   const list=enemies.filter(e=>!e.dead&&!e.hidden&&dist(hero,e)<=sp.rad);
   if(!list.length){if(manual)stageMsg('No foes in range',800);return false;}
-  hero.mana-=spellManaCost(sp);hero.spellCd[i]=sp.cd;hero.swing=0.28;
-  ring(hero.x,hero.y-6,sp.rad,sp.vfx==='frost'?'#a0e0ff':sp.vfx==='holy'?'#ffe9a0':'#ffd76a',0.5);
+  hero.mana-=spellManaCost(sp);hero.spellCd[i]=sp.cd;hero.swing=0.28;fxList=list;
+  if(!ownFx)ring(hero.x,hero.y-6,sp.rad,sp.vfx==='frost'?'#a0e0ff':sp.vfx==='holy'?'#ffe9a0':'#ffd76a',0.5);
   list.forEach(t=>{dealSpell(t,sp);if(sp.slow)t.slowT=Math.max(t.slowT,sp.slow);});
   if(sp.heal)healHero(heroMax()*sp.heal);
  }else if(sp.t==='buff'){
   hero.mana-=spellManaCost(sp);hero.spellCd[i]=sp.cd;
-  hero.buff[sp.buff]={mul:sp.val,t:sp.dur};
-  ring(hero.x,hero.y-6,60,'#ffd76a',0.6);
+  hero.buff[sp.buff]={mul:sp.val,t:sp.dur,dur:sp.dur};
+  if(!ownFx)ring(hero.x,hero.y-6,60,'#ffd76a',0.6);
   floatAt(hero.x,hero.y-32,sp.n+'!','#ffd76a',true);
  }else if(sp.t==='hot'){
   hero.mana-=spellManaCost(sp);hero.spellCd[i]=sp.cd;
-  hero.hotT=sp.dur;hero.hotAmt=sp.hot;
-  sparkles(hero.x,hero.y-14,'#8ae08a',10);
+  hero.hotT=sp.dur;hero.hotDur=sp.dur;hero.hotAmt=sp.hot;
+  if(!ownFx)sparkles(hero.x,hero.y-14,'#8ae08a',10);
   floatAt(hero.x,hero.y-32,'Renew','#8ae08a',true);
  }
+ drawWeapons();   /* 🗡 */
+ spellCastFx(sp,fxTgt,fxList);
  (sfx[sp.vfx]||sfx.arcane)();
  return true;
 }
@@ -9223,6 +9288,17 @@ window.addEventListener('keydown',e=>{
   e.preventDefault();
   return;
  }
+ if(kl===' '&&gameOn&&S&&!$('cfgBox')?.classList.contains('open')){   /* ⏸ a TAP on Space pauses the game and starts it again - the pause button's
+                                                                             own work, on the release (2026-10-09); HELD, it is still the dance */
+  e.preventDefault();
+  if(!e.repeat){keys.spaceAt=Date.now();if(!gamePaused)keys[' ']=true;}
+  return;
+ }
+ if(kl==='h'&&gameOn&&S){   /* 🗡 H: the weapon onto the back, or out again */
+  e.preventDefault();
+  if(!e.repeat&&!gamePaused)toggleHolster();
+  return;
+ }
  keys[kl]=true;
  if(gameOn&&!gamePaused&&kl==='e'&&hero&&!hero.dead){
   const t=nearestEnemyWithin(400);
@@ -9241,6 +9317,10 @@ window.addEventListener('keydown',e=>{
 window.addEventListener('keyup',e=>{
  const k=e.key||'',kl=k.toLowerCase();
  if(kl)keys[kl]=false;
+ if(kl===' '&&keys.spaceAt){   /* ⏸ a tap and not a dance: pause - or, paused, go on however long it was held */
+  const held=Date.now()-keys.spaceAt;keys.spaceAt=0;
+  if(gameOn&&S&&(gamePaused||held<260)&&!$('cfgBox').classList.contains('open'))$('musBtn').click();
+ }
 });
 window.addEventListener('pointerdown',initAudio,{once:false});
 /* 🖱 right-click on the farm field = put down what you are holding. The browser menu is
@@ -9990,7 +10070,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
     each other and the motes read as bubbles stuck to his armour. The feet rings still mark the
     active scrolls. To bring them back, emit one part per activeEnchs() entry on hero.glowT. */
  hero.moving=false;
- Mounts.tick(mountRide,S,{zone:zoneOf(),hero,paused:gamePaused},dt);
+ {const was=mountRide.id;Mounts.tick(mountRide,S,{zone:zoneOf(),hero,paused:gamePaused},dt);if(!was&&mountRide.id)setHolster(true,true);}   /* 🗡 in the saddle the weapon goes on the back */
  updateMountButton();
  // ----- hero -----
  if(hero.dead){
@@ -10192,8 +10272,8 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
     else heroBasicAttack(hero.target,dt);
    }
   }else hero.cd=Math.max(0,hero.cd-dt);
-  /* 🕺 hold SPACE to bust a move */
-  if(keys[' ']&&!hero.moving){
+  /* 🕺 hold SPACE to bust a move - from a quarter of a second in, so a tap (the pause) does not flicker into one */
+  if(keys[' ']&&!hero.moving&&Date.now()-(keys.spaceAt||0)>=260){
    hero.dance+=dt;
    hero.danceFx-=dt;
    if(hero.danceFx<=0){
@@ -10366,17 +10446,20 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   const dx=b.tgt.x-b.x,dy=b.tgt.y-10-b.y,d=Math.hypot(dx,dy);
   if(d<12){
    if(b.vis){ /* peer ghost projectile - pure visuals */
-    burst(b.tgt.x,b.tgt.y-10,b.c||'#7fd0ff',b.orb?12:5,b.orb?110:60);
-    if(b.orb)ring(b.tgt.x,b.tgt.y-10,INSC_ORB_RAD,b.c||ORB_C,0.4);
+    if(!(b.fx&&SpellFx.has(b.fx))){   /* ✨ a spell's own landing comes with the peer's 'spell' message */
+     burst(b.tgt.x,b.tgt.y-10,b.c||'#7fd0ff',b.orb?12:5,b.orb?110:60);
+     if(b.orb)ring(b.tgt.x,b.tgt.y-10,INSC_ORB_RAD,b.c||ORB_C,0.4);
+    }
     bolts.splice(i,1);continue;
    }
    if(b.spell){dealSpell(b.tgt,b.spell);if(b.spell.heal)healHero(heroMax()*b.spell.heal);}
    else if(b.orb)orbBurst(b);
-   else landHit(b.tgt,b.dmg,b.crit,b.label||null,b.basic);
+   else{const t=b.tgt,o={x:t.x,y:t.y,r:t.r||16,crit:b.crit,sx:hero.x,sy:hero.y};landHit(t,b.dmg,b.crit,b.label||null,b.basic);if(b.fx)SpellFx.hit(b.fx,o);}   /* ✨ where it bites */
    bolts.splice(i,1);continue;
   }
   b.x+=dx/d*b.sp*dt;b.y+=dy/d*b.sp*dt;
   if(b.orb){if(chance(0.8))parts.push({x:b.x+(Math.random()-0.5)*7,y:b.y+(Math.random()-0.5)*7,vx:(Math.random()-0.5)*24,vy:(Math.random()-0.5)*24,t:0,life:0.25+Math.random()*0.2,c:b.c,r:1.2+Math.random()*1.8,g:0});} /* 📖 the orb sheds sparks, not a dotted line */
+  else if(b.fx&&SpellFx.has(b.fx))SpellFx.boltTick(b,dt);   /* ✨ a spell's projectile trails what its recipe gives it */
   else if(chance(0.5))parts.push({x:b.x,y:b.y,vx:0,vy:0,t:0,life:0.2,c:b.c,r:1.5,g:0});
  }
  // ----- enemy bolts (dodgeable) -----
@@ -10410,6 +10493,8 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   p.t+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=p.g*dt;if(p.t>p.life)parts.splice(i,1);
  }
  for(let i=rings.length-1;i>=0;i--){rings[i].t+=dt;if(rings[i].t>rings[i].dur)rings.splice(i,1);}
+ SpellFx.update(dt);   /* ✨ spell effects age with the world (and stand still when it does) */
+ if(!hero.dead)SpellFx.auraTick({...heroAuraState(hero,heroGroundY()),x:hero.x,y:hero.y},dt);
  for(let i=bloods.length-1;i>=0;i--){bloods[i].t+=dt;if(bloods[i].t>bloods[i].life)bloods.splice(i,1);}
  for(let i=zaps.length-1;i>=0;i--){zaps[i].t+=dt;if(zaps[i].t>zaps[i].life)zaps.splice(i,1);}
  if(marker){marker.t+=dt;if(marker.t>0.8)marker=null;}
@@ -10778,6 +10863,8 @@ function draw(){
   ctx.beginPath();ctx.ellipse(r.x,r.y,r.rad*p+8,(r.rad*p+8)*0.7,0,0,7);ctx.stroke();
   ctx.globalAlpha=1;
  }
+ const fxView={x:camX,y:camY,w:VW/zoom,h:VH/zoom};
+ SpellFx.draw(ctx,'ground',fxView);   /* ✨ rune circles, novas and scorches on the ground, under everyone */
  const drawables=[];
  const cx0=camX-320,cx1=camX+VW/zoom+320,cy0=camY-820,cy1=camY+VH/zoom+320; /* tall art rises far above its anchor */
  TideUI.addWildDrawables(drawables,{x0:cx0,x1:cx1,y0:cy0,y1:cy1},sunFootShadow);   /* ☀ the wild Tides' shadows */
@@ -10798,6 +10885,7 @@ function draw(){
  }
  if(sunCast)sunEnd();   /* ☀ every cast shadow at once, under everything that stands */
  if(sunFrame&&SUN.light&&SUN.dark>0&&(z.city||z.town))for(const L of forsakenLights())sunLights.push(L);   /* 🟣🔥 the portals and the fires light the night */
+ if(sunFrame&&SUN.light&&SUN.dark>0)for(const L of SpellFx.lights())sunLights.push(L);   /* ✨ and a spell lights what is round it */
  /* 🐴 the boulevard's traffic - trade wagons, and families moving in or out - and 🎉 the festival bunting strung over it */
  if(z.city&&world.look&&!TideUI.isBattling()){
   for(const t of CityWorks.traffic(world,world.look,now)){
@@ -10887,6 +10975,7 @@ function draw(){
   ctx.fillStyle='#c75146';ctx.beginPath();ctx.arc(bx,bobY,3.2,3.14,6.28);ctx.fill();
  }
  for(const b of bolts){
+  if(b.fx&&SpellFx.drawBolt(ctx,b,now))continue;   /* ✨ a spell's projectile, drawn by its recipe */
   if(b.arrow){
    /* hunter shots are arrows: shaft, steel head and fletching, rotated along the flight path */
    const a=Math.atan2((b.tgt.y-10)-b.y,b.tgt.x-b.x);
@@ -10956,6 +11045,7 @@ function draw(){
   }else{ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill();}
   ctx.globalAlpha=1;
  }
+ SpellFx.draw(ctx,'air',fxView);   /* ✨ slashes, smoke and shards over everyone (what shines waits for the glow pass) */
  if(z.city)drawCityWalls(true); /* the raised south facade also covers mounts, companions and particles */
  for(const f of TideUI.isBattling()?[]:floats){
   ctx.font=(f.big?'700 15px':'700 12.5px')+' '+getComputedStyle(document.body).fontFamily;
@@ -11102,6 +11192,11 @@ function draw(){
  ctx.restore();
  if(sunFrame)drawSunLight(now);   /* ☀ over the world, under what the canvas writes on top of it */
  else{const q=glFx();if(q&&q!=='low')ctx.bloom({threshold:.72,knee:.22,strength:q==='ultra'?.55:.45,levels:q==='ultra'?6:4,scale:q==='ultra'?.5:.25});}   /* 🎮 indoors and under ground: what is bright glows */
+ /* ✨ what a spell lights - fire, frost, holy light - is laid over the night, so it burns as bright in the dark as by day */
+ ctx.save();ctx.scale(zoom,zoom);ctx.translate(-camX+shX,-camY+shY);
+ SpellFx.draw(ctx,'glow',fxView);
+ if(!hero.dead&&!TideUI.isBattling()){ctx.translate(hero.x,hero.y);SpellFx.auras(ctx,heroAuraState(hero,heroGroundY()),'glow',now);}
+ ctx.restore();
  if(sunFrame&&(WEATHER.rain>0||WEATHER.snow>0))drawWeather(now);   /* 🌧 the rain, or the snow */
  if(z.altar&&WEATHER.on)drawAltarWind(now);   /* 🌬 and the Altar's streaks of air and ice dust */
  if(world.intro)drawFinalIntro();   /* 🎬 the black bars and his words, over everything in the world */
@@ -11917,12 +12012,51 @@ function drawHourglassBody(g,cx,cy,by,c2,c1,w){
  g.fillStyle=c1;shape(1.8);
 }
 /* Weapon rune profiles, materials and emission live in assets/weapons/rune-*.js. */
-function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painted,iceArm,rune,riding,effectTime){
+/* 🗡 HOLSTERED (2026-10-09: "hölstra vapen på H knappen, alla vapen ska kunna sitta på ryggen, som ena glaiven på warrior i
+   felglaive ska dom sitta"): the weapon rides on the back the way the warrior's spare Fel Glaive does - upright behind the left
+   shoulder, leaning in, behind the body - a blade hilt up, a staff, mace or bow head up, and the warrior's shield on the back
+   with his sword. With the Fel Glaives the glaive from the hand takes the other shoulder, mirrored ("det andra vapnet ... på
+   andra sidan och speglas"). Drawn before the body; nothing is held then. H puts it away and takes it out, saddling up puts it
+   away by itself, and a fight takes it out (setHolster). */
+function backWeaponArt(clsId,fm,weaponId){   /* the picture, its length on the back, and which end goes up */
+ if(isFGLegend(weaponId)){const fa=fgArtFor(clsId);return fa?{img:fa.img,H:fa.std.pw*fa.h,up:'head'}:null;}   /* the warrior's pair is drawn as glaives */
+ if(fm){const a=fkArtFor(clsId),k=a===FK_ART.warrior?'warrior':clsId;return {img:a.img,H:(a.std?a.std.pw:50)*a.h,up:k==='warrior'?'hilt':'head'};}
+ const own=clsId==='mage'?[staffImg,42,'head']:clsId==='priest'?[maceImg,38,'head']:clsId==='hunter'?[bowImg,44,'head']:[swordImg,38,'hilt'];
+ return own[0].complete&&own[0].naturalWidth?{img:own[0],H:own[1],up:own[2]}:null;
+}
+function drawHolstered(g,clsId,fm,weaponId,by,rune,riding,effectTime){
+ g.save();
+ if(riding?.clipBody)riding.clipBody(g);   /* the mount's neck stays in front of it, as of the rider */
+ if(isFGLegend(weaponId)&&!fgArtFor(clsId)){   /* the second glaive: the spare's mirror on the right shoulder */
+  if(wgImg.complete&&wgImg.naturalWidth){
+   const wgm=mip(wgImg,96),hw=(wgm.naturalWidth||wgm.width)/2,hh2=wgm.naturalHeight||wgm.height,GH=42,GW=GH*hh2/hw;
+   g.translate(7,-34+by);g.scale(-1,1);g.rotate(1.22);
+   g.globalAlpha*=0.9;g.shadowColor='#4dff9a';g.shadowBlur=rune?0:7;
+   runeOnSpare(g,rune,wgm,-GH/2,-GW/2,GH,GW,0,0,hw,()=>g.drawImage(wgm,0,0,hw,hh2,-GH/2,-GW/2,GH,GW),effectTime);
+  }
+  g.restore();return;
+ }
+ const art=backWeaponArt(clsId,fm,weaponId);
+ if(art){
+  const H=art.H,W=H*art.img.naturalWidth/art.img.naturalHeight;
+  g.save();g.translate(-10,-27+by);g.rotate(-.62);if(art.up==='hilt')g.rotate(Math.PI);   /* the spare glaive's shoulder, leaning further out: the head hides the rest */
+  if(fm){g.shadowColor='#6fd0ff';g.shadowBlur=rune?0:7;}else if(isFGLegend(weaponId)){g.shadowColor='#4dff9a';g.shadowBlur=rune?0:7;}
+  runeOnSpare(g,rune,art.img,-W/2,-H/2,W,H,.5,undefined,undefined,()=>g.drawImage(mip(art.img,W),-W/2,-H/2,W,H),effectTime);
+  g.restore();
+ }
+ if(warriorShieldOn(clsId,fm,weaponId)&&warriorShieldImg.complete&&warriorShieldImg.naturalWidth){   /* the shield over the sword, between the shoulders */
+  const H=24,W=H*warriorShieldImg.naturalWidth/warriorShieldImg.naturalHeight;
+  g.translate(9,-19+by);g.rotate(.22);g.drawImage(mip(warriorShieldImg,W),-W/2,-H/2,W,H);   /* its rim out past the right side */
+ }
+ g.restore();
+}
+function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painted,iceArm,rune,riding,effectTime,holster){
  let runePaint=null,runeEmission=null;
  raceId=RACE_ALIAS[raceId]||raceId; /* peers/leaderboard entries may still send legacy ids */
  clsId=CLASS_ALIAS[clsId]||clsId;
  const r=RACES.find(x=>x.id===raceId);
  const sgn=fx<0?-1:1;
+ const holstered=!!holster&&weaponId!=='hidden'&&weaponId!=='fishingrod';   /* 🗡 on the back: drawn behind the body, nothing in the hand */
  /* back glaive: behind the body, tilted opposite the front one - WoW dual-wield look. Only for the
     classes that actually wield the pair; a priest holding the fel mace has nothing to strap on. */
  if(isFGLegend(weaponId)&&!fgArtFor(clsId)){
@@ -11948,6 +12082,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   }
   g.restore();
  }
+ if(holstered)drawHolstered(g,clsId,fm,weaponId,by,rune,riding,effectTime);
  const robes=painted&&(iceArm==='royal'||iceArm==='emperor')?iceArm:null,armored=painted&&!!iceArm&&!robes; /* 🧊 Ice Armor reskin, 👑 the crown's robes or 🎭 the Emperor's regalia - only when THIS character wears it */
  const eCls=robes||(armored?'armor':clsId);
  const frame=painted?paintedCharacterFrame(raceId,clsId,female,robes||armored):null;
@@ -12037,8 +12172,8 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g.beginPath();g.arc(bcx+2.9,bcy-1.1,1,0,7);g.fill();
  }
  } /* end procedural body (skipped when a painted race sprite exists) */
- /* null selects the class's standard weapon; hidden means no weapon or weapon effects at all. */
- if(weaponId==='hidden')return null;
+ /* null selects the class's standard weapon; hidden means no weapon or weapon effects at all; holstered, it is on the back. */
+ if(weaponId==='hidden'||holstered)return null;
  /* Reviewed grips follow the painted hand, including the body's running rock. */
  const pw=!!frame;
  const hand=pw?characterHandPoint(frame,fx,by):{x:fx*9,y:-6+by};
@@ -12258,7 +12393,7 @@ function drawHero(){
  /* painted heroes stand taller with hovering boots - ground fx sits at their boots' level */
  const character=paintedCharacterFrame(S.race,c.id,S.gender==='f',outfitArg());   /* 👘 the chosen outfit, not the armor slot */
  const gY=riding?8:character?character.groundY-8:0;
- if(!riding){ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,8+gY,12+gY*0.3,5,0,0,7);ctx.fill();if(!h.dead){sunPersonShadow(8+gY,56);lightPersonShadow(h.x,h.y,8+gY,56);}}
+ if(!riding){ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,8+gY,12+gY*0.3,5,0,0,7);ctx.fill();if(!h.dead){if(!(character&&sunFigureShadow(character.image,character,8+gY,fx>0)))sunPersonShadow(8+gY,56);lightPersonShadow(h.x,h.y,8+gY,56);}}   /* ☀ his own shape */
  else if(!h.dead){sunPersonShadow(10,84);lightPersonShadow(h.x,h.y,10,84);}   /* ☀🏮 on horseback, the mount and the rider */
  /* scroll auras - one soft colored ring per active enchant */
  activeEnchs().forEach((e,i)=>{
@@ -12269,9 +12404,9 @@ function drawHero(){
   ctx.beginPath();ctx.ellipse(0,7+gY,14+i*3.5,6+i*1.6,0,0,7);ctx.stroke();
   ctx.globalAlpha=h.dead?Math.max(0,1-h.deadT*1.6):1;
  });
- // spell buff aura
- if(h.buff.atk&&h.buff.atk.t>0){ctx.strokeStyle='rgba(255,200,90,'+(0.4+0.2*Math.sin(performance.now()/120))+')';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(0,6+gY,15,7,0,0,7);ctx.stroke();}
- if(h.buff.haste&&h.buff.haste.t>0){ctx.strokeStyle='rgba(200,240,255,0.5)';ctx.lineWidth=1.5;ctx.beginPath();ctx.ellipse(0,6+gY,18,8,0,0,7);ctx.stroke();}
+ // spell buff aura - ✨ Battle Shout, Rapid Fire and Renew, behind him here and in front of him after the sprite (assets/fx)
+ const aura=h.dead?null:heroAuraState(h,8+gY);
+ if(aura){const a0=ctx.globalAlpha;SpellFx.auras(ctx,aura,'back',now);ctx.globalAlpha=a0;}
  if(dancing)ctx.rotate(Math.sin(h.dance*6)*0.25);
  if(!riding){if(character)bootFeet({...character.boots,moving:h.moving,walk:h.walk,bob:by});else feet(h,1);}
  /* ✨ the weapon's rune - not while fishing, since the rod is not the enchanted thing in his hand */
@@ -12281,10 +12416,11 @@ function drawHero(){
   by=0;
   rideLayout=MountRenderer.draw(ctx,{id:mountRide.id,img:mountImages[mountRide.id],runImg:mountRunImages[mountRide.id],fx,phase:mountRide.phase,time:mountRide.time,moving:mountRide.moving,deviceScale:zoom*DPR,bootImg,bootWidth:character?.boots.bw},(g,ride)=>{
    MountRenderer.drawRiderBoots(g,bootImg,ride,'near');
-   return drawChampionSprite(g,S.race,c.id,fx,0,0,heroWeaponArgs().fm,heroWeaponArgs().id,S.gender==='f',1,outfitArg(),wRune,ride);
+   return drawChampionSprite(g,S.race,c.id,fx,0,0,heroWeaponArgs().fm,heroWeaponArgs().id,S.gender==='f',1,outfitArg(),wRune,ride,undefined,!!h.holster);
   });
   emission=rideLayout?.riderResult;
- }else emission=drawChampionSprite(ctx,S.race,c.id,fx,by,danceSwing,fish.on?false:heroWeaponArgs().fm,fish.on?'fishingrod':heroWeaponArgs().id,S.gender==='f',h.moving&&!h.dead?2:1,outfitArg(),wRune);
+ }else emission=drawChampionSprite(ctx,S.race,c.id,fx,by,danceSwing,fish.on?false:heroWeaponArgs().fm,fish.on?'fishingrod':heroWeaponArgs().id,S.gender==='f',h.moving&&!h.dead?2:1,outfitArg(),wRune,null,undefined,!!h.holster);   /* 🗡 on the back when holstered */
+ if(aura){const a0=ctx.globalAlpha;SpellFx.auras(ctx,aura,'front',now);ctx.globalAlpha=a0;}   /* ✨ the aura's near side, over him */
  if(mountRide.casting)MountRenderer.drawCast(ctx,{progress:1-mountRide.remaining,id:mountRide.casting,phase:now*2});
  if(wRune&&emission&&!gamePaused)runeSpark(wRune,{...emission,points:emission.points.map(p=>runePointTransform(runeScene,p))},fxDt,h.y+gY+8);
  else resetRuneEmission();
@@ -12366,7 +12502,7 @@ function drawNpc(n){
  ctx.save();ctx.scale(size,size);
  if(n.hang){const top=body?body.headY-4:-40;ctx.translate(0,top);ctx.rotate(Math.sin(now/1000*1.6+n.hang)*.06);ctx.translate(0,-top);}   /* ⚖️ swinging from the rope, about the head */
  ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,body?(n.sit?9:boots.groundY):8,n.sit?16:13,5.5,0,0,7);ctx.fill();
- if(!n.hang){const gy=body?(n.sit?9:boots.groundY):8,tall=n.sit?30:52;sunPersonShadow(gy,tall);lightPersonShadow(n.x,n.y,gy,tall*size,size);}   /* ☀🏮 */
+ if(!n.hang){const gy=body?(n.sit?9:boots.groundY):8,tall=n.sit?30:52;if(!(body&&!n.sit&&!n.down&&sunFigureShadow(pImg,body,gy,n.fx>0)))sunPersonShadow(gy,tall);lightPersonShadow(n.x,n.y,gy,tall*size,size);}   /* ☀🏮 their own shape */
  if(n.down){const gy=body?boots.groundY:8;ctx.translate(0,gy);ctx.rotate((n.fx>0?-1:1)*1.45*n.down);ctx.translate(0,-gy);}   /* 🩹 knocked down by the Forsaken: laid out on the stones, about his feet */
  if(body){
   if(!n.sit)bootFeet({...boots,moving:n.moving,walk:n.walk*1.8,bob:by});
@@ -12936,6 +13072,20 @@ function stableRefresh(message=''){
   save();renderHUD();buildSkillbar();sfx.buy();stableRefresh(owned?item.name+' equipped.':item.name+' is yours.');
  });
 }
+/* 🗡 the weapon on the back (drawHolstered): H puts it away and takes it out, saddling up puts it away, and a fight - a swing,
+   a spell, a blow taken - takes it out by itself ("när man mountar ska man hölstra automatiskt, och går man i combat med
+   hölstrat vapen ska man ta fram dom automatiskt"). Not saved: a hero comes into the world with the weapon in hand. */
+function setHolster(on,quiet){
+ if(!hero||!!hero.holster===!!on)return;
+ hero.holster=!!on;
+ if(!quiet)stageMsg(on?'Weapon on your back':'Weapon drawn',900);
+}
+function toggleHolster(){
+ if(!gameOn||!S||!hero||hero.dead||fish.on)return;
+ if(S.hideWeapon){stageMsg('Your weapon is hidden',900);return;}
+ setHolster(!hero.holster);
+}
+const drawWeapons=()=>{if(hero&&hero.holster)setHolster(false,true);};
 function toggleMount(){
  if(!gameOn||!S||!hero)return;
  const selected=Mounts.selected(S);
@@ -20671,11 +20821,13 @@ function renderControls(){
   ['E','Target the nearest foe within about a screen'],
   ['Click a foe','Attack it, and keep attacking while it lives'],
   ['Right-click','Let go of the target'],
+  ['H','Put your weapon on your back, or take it out. Riding puts it away, a fight takes it out'],
   ['head','Items'],
   ['4','Drink a health potion - 8s before the next one'],
   ['5','Drink a mana potion - 8s before the next one'],
   ['head','Screen'],
   ['Esc','Open these settings. On the farm it first puts down a held piece'],
+  ['Space','Tap: pause the game, tap again to go on. Hold: dance'],
   ['B','Hide or show the side panel for a wider view'],
   ['F11','Fullscreen on and off'],
   ['Mouse wheel','Zoom the camera in and out'],

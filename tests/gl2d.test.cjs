@@ -33,6 +33,9 @@ test('arcs sweep as the 2D canvas defines them, and get enough segments for thei
  assert.ok(close(T.arcSweep(0,TAU,false),TAU));assert.ok(close(T.arcSweep(0,7,false),TAU),'more than a turn is a whole circle');
  assert.ok(close(T.arcSweep(0,Math.PI/2,false),Math.PI/2));assert.ok(close(T.arcSweep(0,Math.PI/2,true),Math.PI/2-TAU),'anticlockwise goes the long way');
  assert.ok(close(T.arcSweep(1,1,false),0));
+ assert.ok(close(T.arcSweep(0,TAU,true),-TAU),'a whole circle backwards (a ring\'s hole) is a whole circle, as the browser draws it');
+ assert.ok(close(T.arcSweep(TAU,0,false),TAU),'and forwards from 2π to 0 too');
+ assert.ok(close(T.arcSweep(Math.PI,0,true),-Math.PI)&&close(T.arcSweep(0,-TAU,true),-TAU)&&close(T.arcSweep(Math.PI,0,false),Math.PI));
  assert.ok(T.arcSegments(100,TAU)>=30&&T.arcSegments(100,TAU)<=80,'a 100 px circle: tens of segments');
  assert.ok(T.arcSegments(2,TAU)<T.arcSegments(200,TAU),'small arcs are cheap');
  assert.equal(T.arcSegments(0,TAU),1);
@@ -115,4 +118,26 @@ test('💡 the GPU light: Settings > Video > Lighting quality (ultra by default,
  assert.ok(game.includes('if(q)sunPostFX(now,q);'),'bloom and light shafts after the sun');
  const gl=read('assets/gl/gl2d.js');
  for(const f of ['lightMap(o){lightMap(o);}','bloom(o){bloom(o);}','rays(o){rays(o);}','drawBlurred(src,alpha,sigma)'])assert.ok(gl.includes(f),f);
+});
+
+test('a Path2D is written down as it is built, so the GL screen can clip with it - the mounts\' rider masks ("min gubbe har försvunnit från mitt mount")',()=>{
+ const vm=require('node:vm');
+ class Native{constructor(a){this.a=a;}rect(){}moveTo(){}lineTo(){}closePath(){}arc(){}addPath(){}}
+ const box=vm.createContext({window:{Path2D:Native},document:{}});
+ vm.runInContext(read('assets/gl/gl2d.js')+'\n;globalThis.G=GL2D;',box);
+ const P=box.window.Path2D,ops=p=>JSON.stringify(box.G._pathOps(p));
+ assert.notEqual(P,Native,'paths are made through the recording subclass');
+ const p=new P();p.rect(-100000,-100000,200000,200000);p.rect(3,7,12,1);
+ assert.ok(p instanceof Native,'still a real Path2D for the 2D canvases');
+ assert.equal(ops(p),JSON.stringify(['rect',[-100000,-100000,200000,200000],'rect',[3,7,12,1]]));
+ const q=new P(p);q.moveTo(1,2);p.rect(0,0,1,1);
+ assert.equal(ops(q),JSON.stringify(['addPath',[['rect',[-100000,-100000,200000,200000],'rect',[3,7,12,1]],null],'moveTo',[1,2]]),'a copy keeps what its source had then');
+ assert.equal(ops(new P('M0 0L1 1')),JSON.stringify(['svg',['M0 0L1 1']]),'SVG text is known as such (and not laid out)');
+ const r=new P();r.addPath(q,{a:2,b:0,c:0,d:2,e:5,f:6});
+ assert.equal(JSON.parse(ops(r))[1][1].e,5,'addPath keeps its transform');
+ const n=new Native();n.rect(0,0,1,1);assert.equal(box.G._pathOps(n),undefined,'a path made around the subclass is unknown: the GL context then leaves it unclipped');
+ const gl=read('assets/gl/gl2d.js');
+ assert.ok(gl.includes("clip(a,b){if(a&&typeof a==='object'){clipWith(a,typeof b==='string'?b:'nonzero');return;}"),'clip(path, rule) lays the path out');
+ assert.ok(gl.includes("fill(a,b){if(a&&typeof a==='object'){withPath(a,"),'and so does fill(path)');
+ assert.ok(read('assets/mounts/renderer.js').includes("bodyContext.clip(path,'evenodd')"),'the riders are clipped this way');
 });
