@@ -288,6 +288,16 @@
    const r=recipes.get(b.fx);if(!(r&&r.bolt))return false;
    g.save();let drawn=true;try{drawn=r.bolt(g,b,now,H)!==false;}catch(err){api.faults++;drawn=false;}g.restore();return drawn;
   },
+  /* 🐉 the bosses (assets/fx/boss-fx.js): a hazard's warning drawn by its recipe while it charges (telegraph(g,h,p,now,H),
+     p 0 -> 1), and the shapes a boss keeps in its own state - a beam, a cone, a storm (draw(g,o,now,H)). false: draw it plainly */
+  drawHazard(g,h,now){
+   const r=recipes.get(h.fx);if(!(r&&r.telegraph))return false;
+   g.save();let ok=true;try{ok=r.telegraph(g,h,Math.min(1,h.t/h.warn),now,H)!==false;}catch(err){api.faults++;ok=false;}g.restore();return ok;
+  },
+  drawSpecial(id,g,o,now){
+   const r=recipes.get(id);if(!(r&&r.draw))return false;
+   g.save();let ok=true;try{ok=r.draw(g,o,now,H)!==false;}catch(err){api.faults++;ok=false;}g.restore();return ok;
+  },
   /* a: {gy, fx, moving, x, y (world, for tick), atk|haste|hot: {left, dur}} */
   auras(g,a,layer,now){
    for(const r of recipes.values()){

@@ -7403,7 +7403,19 @@ function spawnAdd(name,kind,c,src){
   atk:Math.round(eATK(L)*0.8*pMul()),xp:0,gold:mobGold(z,0.45), /* boss adds give NO xp - no leveling off add farming */
   speed:120,state:'chase',dir:0,wT:0,cd:0,dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,
   cds:{},lockT:0,hidden:false,trailT:0,avoid:null});
- burst(bx+Math.cos(a)*60,by+Math.sin(a)*60,c,10,80);
+ if(!SpellFx.cast('boss:summon',{x:bx+Math.cos(a)*60,y:by+Math.sin(a)*60,c:BOSS_FX_C[boss&&boss.bossId]}))burst(bx+Math.cos(a)*60,by+Math.sin(a)*60,c,10,80);   /* 🐉 called up out of a circle */
+}
+/* 🐉 each boss's own light, for what it calls up (assets/fx/boss-fx.js) */
+const BOSS_FX_C={reaper:'201,160,255',betrayer:'182,255,122',firelord:'255,134,36',ashmaw:'255,134,36',frostking:'160,224,255',odin:'174,188,224',
+ gorehusk:'154,223,58',ossric:'214,220,232',maw:'106,192,224',krev:'232,106,74',thor:'127,208,255'};
+/* 🐉 a boss's swing landing on the hero: a slash for the bladed ones, a smash for the rest - the dungeon guardians, who only
+   fight with their clubs, in their dungeon's colours with its thorns, cinders or ice ("gör det på alla bossar ... dungeon osv") */
+const BOSS_SLASH=new Set(['reaper','krev','betrayer','frostking','firelord']);
+const DUNGEON_FX_C={briarhollow:'159,189,104',cindervein:'233,150,87',frostveil:'166,200,218'};
+function bossSlam(en){
+ if(!en||!en.boss||hero.dead)return;
+ const dg=en.bossId==='wasteland'?en.dungeon:null;
+ SpellFx.cast('boss:slam',{x:hero.x,y:hero.y,sx:en.x,sy:en.y,c:dg?DUNGEON_FX_C[dg]:BOSS_FX_C[en.bossId],style:BOSS_SLASH.has(en.bossId)?'slash':'smash',dungeon:dg});
 }
 const addsAlive=()=>enemies.filter(e=>e.add&&!e.dead).length;
 function cowTemplate(){
@@ -7715,7 +7727,7 @@ function zapLine(x1,y1,x2,y2){
 function sparkles(x,y,c,n){
  for(let i=0;i<n;i++)parts.push({x:x+(Math.random()-0.5)*24,y:y+(Math.random()-0.5)*10,vx:(Math.random()-0.5)*20,vy:-40-Math.random()*40,t:0,life:0.6,c,r:1.5+Math.random()*1.5,g:0});
 }
-function hazardAt(x,y,rad,warn,dmg,c){hazards.push({x,y,rad,warn,t:0,dmg,c:c||'#e88a5a'});}
+function hazardAt(x,y,rad,warn,dmg,c,fx){hazards.push({x,y,rad,warn,t:0,dmg,c:c||'#e88a5a',fx});}   /* 🐉 fx: its look (assets/fx/boss-fx.js) - the reach, the timing and the blow stay these */
 const BLOOD_C=['#a01818','#7d1010','#c22525'];
 function bloodAt(x,y,n){
  for(let i=0;i<n;i++){ /* droplets sprayed up, pulled back down by gravity */
@@ -8260,7 +8272,7 @@ function bossAI(en,dt){
      }
     }while(!inArena(x,y)&&++tries<14);
     if(!inArena(x,y)){x=hero.x;y=hero.y;} /* cornered against the wall: drop it on the spot */
-    hazardAt(x,y,190,1.25+Math.random()*0.5,en.atk*2.6,'#a06bd0');
+    hazardAt(x,y,190,1.25+Math.random()*0.5,en.atk*2.6,'#a06bd0','boss:runes');
    }
   }
   /* --- 2. SOULBEAM: a sweeping laser that carves the arena - stay out of the line --- */
@@ -8302,8 +8314,8 @@ function bossAI(en,dt){
    en.reapFx={a:en.reapA,p:1-Math.max(0,en.reapT)/REAP_CAST}; /* drawn in the world layer */
    if(en.reapT<=0){
     en.reapT=0;en.lockT=0;en.swing=0.2;
-    ring(en.x,en.y,REAP_RANGE*0.8,'#a06bd0',0.6);
-    burst(en.x+Math.cos(en.reapA)*200,en.y+Math.sin(en.reapA)*200,'#c9a0ff',22,170,true);
+    if(!SpellFx.cast('boss:reaping',{x:en.x,y:en.y,a:en.reapA,range:REAP_RANGE,half:REAP_HALF})){   /* 🐉 the scythe of light */
+     ring(en.x,en.y,REAP_RANGE*0.8,'#a06bd0',0.6);burst(en.x+Math.cos(en.reapA)*200,en.y+Math.sin(en.reapA)*200,'#c9a0ff',22,170,true);}
     sfx.slash();
     if(!hero.dead){ /* inside the cone = death, no matter the armour */
      const hx=hero.x-en.x,hy=hero.y-en.y,d=Math.hypot(hx,hy);
@@ -8334,10 +8346,10 @@ function bossAI(en,dt){
     while(en.tpUsed.indexOf(pick)>=0&&guard++<12)pick=Math.floor(Math.random()*4);
     en.tpUsed.push(pick);
     const ang=corners[pick];
-    burst(en.x,en.y-en.r,'#a06bd0',16,140,true);ring(en.x,en.y,90,'#c9a0ff',0.5); /* he leaves */
+    if(!SpellFx.cast('boss:blink',{x:en.x,y:en.y,r:en.r*1.4})){burst(en.x,en.y-en.r,'#a06bd0',16,140,true);ring(en.x,en.y,90,'#c9a0ff',0.5);} /* he leaves */
     en.x=(A?A.x:en.x)+Math.cos(ang)*(A?A.rx:400)*0.80;
     en.y=(A?A.y:en.y)+Math.sin(ang)*(A?A.ry:340)*0.80;
-    burst(en.x,en.y-en.r,'#c9a0ff',18,150,true);ring(en.x,en.y,110,'#a06bd0',0.5); /* and arrives */
+    if(!SpellFx.cast('boss:blink',{x:en.x,y:en.y,r:en.r*1.4})){burst(en.x,en.y-en.r,'#c9a0ff',18,150,true);ring(en.x,en.y,110,'#a06bd0',0.5);} /* and arrives */
     sfx.bolt();
     /* the lance lands BESIDE you and sweeps your way - you get a breath to start running */
     const toHero=Math.atan2(hero.y-(en.y-en.r*0.6),hero.x-en.x);
@@ -8358,14 +8370,14 @@ function bossAI(en,dt){
    en.cds.a=2.5;en.cds.b=5;en.cds.c=6;en.cds.d=9; /* the kit comes at you almost at once */
    floatAt(en.x,en.y-en.r-34,'THE HOUR IS HERE!','#a06bd0',true);
    stageMsg('☠ THE HOUR IS HERE - he stops holding back',2600,'#c9a0ff');
-   ring(en.x,en.y,140,'#a06bd0',0.9);ring(en.x,en.y,260,'#c9a0ff',1.1);
-   burst(en.x,en.y-en.r,'#c9a0ff',30,220,true);
+   if(!SpellFx.cast('boss:enrage',{x:en.x,y:en.y,r:150,c:'160,107,208',lit:'201,160,255',kind:'mote'})){ring(en.x,en.y,140,'#a06bd0',0.9);ring(en.x,en.y,260,'#c9a0ff',1.1);
+   burst(en.x,en.y-en.r,'#c9a0ff',30,220,true);}
    shakeT=0.9;sfx.shout();
    /* an opening statement: runes bloom around you the instant he turns */
    for(let i=0;i<6;i++){
     const a=i/6*6.283,rr=120+Math.random()*170;
     const rx=hero.x+Math.cos(a)*rr,ry=hero.y+Math.sin(a)*rr;
-    if(inArena(rx,ry))hazardAt(rx,ry,190,1.1,en.atk*2.6,'#a06bd0');
+    if(inArena(rx,ry))hazardAt(rx,ry,190,1.1,en.atk*2.6,'#a06bd0','boss:runes');
    }
   }
   if(en.enraged){ /* ☠ enraged only: soul embers drift off him and hunt you down */
@@ -8375,7 +8387,7 @@ function bossAI(en,dt){
     const d=Math.max(1,dist(en,hero));
     for(let i=0;i<2;i++){
      const sp=250+i*45;
-     ebolts.push({x:en.x+(i-0.5)*20,y:en.y-en.r*0.8,vx:(hero.x-en.x)/d*sp,vy:(hero.y-en.y)/d*sp,t:0,dmg:en.atk*1.1,c:'#c9a0ff'});
+     ebolts.push({x:en.x+(i-0.5)*20,y:en.y-en.r*0.8,vx:(hero.x-en.x)/d*sp,vy:(hero.y-en.y)/d*sp,t:0,dmg:en.atk*1.1,c:'#c9a0ff',fx:'boss:soulember'});
     }
     sfx.bolt();
    }
@@ -8384,7 +8396,7 @@ function bossAI(en,dt){
  else if(B==='gorehusk'){ /* Rootfiend: root spikes under your feet + summons rootlings */
   if(en.cds.a<=0){en.cds.a=6;
    sfx.warn();
-   for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*90,hero.y+(Math.random()-0.5)*90,131,1.15,en.atk*1.2,'#9adf3a');
+   for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*90,hero.y+(Math.random()-0.5)*90,131,1.15,en.atk*1.2,'#9adf3a','boss:roots');
    floatAt(en.x,en.y-en.r-30,'Roots!','#9adf3a',true);
   }
   /* (rootling summons removed - the painted fiend fights alone) */
@@ -8394,8 +8406,8 @@ function bossAI(en,dt){
    if(en.subT<=0){
     en.subT=0;en.hidden=false;
     en.x=en.emX;en.y=en.emY;
-    hazardAt(en.x,en.y,95,0.35,en.atk*1.3,'#6ac0e0');
-    burst(en.x,en.y,'#8ad0f0',16,120,true);
+    hazardAt(en.x,en.y,95,0.35,en.atk*1.3,'#6ac0e0','boss:splash');
+    if(!SpellFx.cast('boss:dive',{x:en.x,y:en.y}))burst(en.x,en.y,'#8ad0f0',16,120,true);
     sfx.frost();
    }
    return;
@@ -8405,38 +8417,38 @@ function bossAI(en,dt){
    const a=Math.random()*6.28;
    en.emX=Math.max(120,Math.min(world.w-120,hero.x+Math.cos(a)*110));
    en.emY=Math.max(100,Math.min(world.h-100,hero.y+Math.sin(a)*110));
-   burst(en.x,en.y,'#6ac0e0',12,90);
+   if(!SpellFx.cast('boss:dive',{x:en.x,y:en.y}))burst(en.x,en.y,'#6ac0e0',12,90);
    floatAt(en.x,en.y-en.r-30,'*dives*','#8ad0f0',true);
    if(hero.target===en)hero.target=null;
    return;
   }
   if(en.cds.b<=0&&dist(en,T)>50){en.cds.b=3.5;
    const d=dist(en,hero);
-   ebolts.push({x:en.x,y:en.y-14,vx:(hero.x-en.x)/d*230,vy:(hero.y-en.y)/d*230,t:0,dmg:en.atk*0.9,c:'#6ac0e0'});
+   ebolts.push({x:en.x,y:en.y-14,vx:(hero.x-en.x)/d*230,vy:(hero.y-en.y)/d*230,t:0,dmg:en.atk*0.9,c:'#6ac0e0',fx:'boss:waterbolt'});
    sfx.bolt();
   }
  }else if(B==='ossric'){ /* King Below: raises skeletons, unleashes a bone nova around himself */
   /* (skeleton summons removed - the King Below stands alone) */
   if(en.cds.b<=0){en.cds.b=7.5;
    sfx.warn();
-   hazardAt(en.x,en.y,290,1.4,en.atk*1.4,'#d0d8e8');
+   hazardAt(en.x,en.y,290,1.4,en.atk*1.4,'#d0d8e8','boss:bonenova');
    floatAt(en.x,en.y-en.r-30,'Bone Nova!','#d0d8e8',true);
    en.lockT=1.4;
   }
  }else if(B==='ashmaw'){ /* the Rekindled: burning trail, meteor rain, enrages below 30% */
   en.trailT-=dt;
   if(en.trailT<=0&&en.state==='chase'){en.trailT=0.45;
-   hazardAt(en.x,en.y,24,0.55,en.atk*0.5,'#ff7a2a');
+   hazardAt(en.x,en.y,24,0.55,en.atk*0.5,'#ff7a2a','boss:embertrail');
   }
   if(en.cds.a<=0){en.cds.a=9;
    sfx.warn();
-   for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*110,hero.y+(Math.random()-0.5)*110,144,1.5,en.atk*1.5,'#ff9a3a');
+   for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*110,hero.y+(Math.random()-0.5)*110,144,1.5,en.atk*1.5,'#ff9a3a','boss:meteor');
    floatAt(en.x,en.y-en.r-30,'Meteors!','#ff9a3a',true);
   }
   if(!en.enraged&&en.hp<en.max*0.3){
    en.enraged=true;en.atk=Math.round(en.atk*1.35);en.speed*=1.3;
    floatAt(en.x,en.y-en.r-30,'REKINDLED!','#ff5a1a',true);
-   ring(en.x,en.y,90,'#ff5a1a',0.8);sfx.fire();
+   if(!SpellFx.cast('boss:enrage',{x:en.x,y:en.y,r:110,c:'222,70,18',lit:'255,134,36'}))ring(en.x,en.y,90,'#ff5a1a',0.8);sfx.fire();
   }
  }else if(B==='krev'){ /* Warlord: telegraphed charge, whirlwind, calls legionnaires; phase 2 at 50% */
   const cdm=en.hp<en.max*0.5?0.7:1;
@@ -8456,6 +8468,7 @@ function bossAI(en,dt){
     en.tele=0;
     const d=dist(en,hero)||1;
     en.dash={dx:(hero.x-en.x)/d,dy:(hero.y-en.y)/d,t:0.55,hit:false};
+    SpellFx.cast('boss:chargelane',{x:en.x,y:en.y,dx:en.dash.dx,dy:en.dash.dy,follow:()=>en.dead?null:{x:en.x,y:en.y}});   /* 🐉 the dust of the run */
     sfx.shout();
    }
    return;
@@ -8467,7 +8480,7 @@ function bossAI(en,dt){
   }
   if(en.cds.b<=0){en.cds.b=12*cdm;
    sfx.warn();
-   hazardAt(en.x,en.y,227,0.95,en.atk*1.3,'#e86a4a');
+   hazardAt(en.x,en.y,227,0.95,en.atk*1.3,'#e86a4a','boss:whirlwind');
    floatAt(en.x,en.y-en.r-30,'Whirlwind!','#e86a4a',true);
    en.lockT=0.95;
   }
@@ -8475,7 +8488,7 @@ function bossAI(en,dt){
  }else if(B==='betrayer'){ /* wide glaive fan, fel adds, twin eye beams, metamorphosis */
   if(en.cds.a<=0){en.cds.a=5;
    const base=Math.atan2(T.y-en.y,T.x-en.x);
-   for(const off of[-0.26,0,0.26])ebolts.push({x:en.x,y:en.y-14,vx:Math.cos(base+off)*275,vy:Math.sin(base+off)*275,t:0,dmg:en.atk*0.9,c:'#7adf9a'});
+   for(const off of[-0.26,0,0.26])ebolts.push({x:en.x,y:en.y-14,vx:Math.cos(base+off)*275,vy:Math.sin(base+off)*275,t:0,dmg:en.atk*0.9,c:'#7adf9a',fx:'boss:felglaive'});
    floatAt(en.x,en.y-en.r-30,'Fel Glaives!','#7adf9a',true);
    sfx.arrow();
   }
@@ -8484,25 +8497,25 @@ function bossAI(en,dt){
     floatAt(en.x,en.y-en.r-30,'You are not prepared!','#9adf9a',true);}
   }
   if(en.cds.c<=0){en.cds.c=9;sfx.warn();
-   hazardAt(T.x,T.y,190,1.15,en.atk*2.1,'#b6ff7a');
-   hazardAt(T.x+(Math.random()-0.5)*180,T.y+(Math.random()-0.5)*180,190,1.15,en.atk*2.1,'#b6ff7a');
+   hazardAt(T.x,T.y,190,1.15,en.atk*2.1,'#b6ff7a','boss:eyebeam');
+   hazardAt(T.x+(Math.random()-0.5)*180,T.y+(Math.random()-0.5)*180,190,1.15,en.atk*2.1,'#b6ff7a','boss:eyebeam');
    floatAt(en.x,en.y-en.r-30,'Eye Beam!','#b6ff7a',true);
   }
   if(!en.enraged&&en.hp<en.max*0.3){
    en.enraged=true;en.atk=Math.round(en.atk*1.25);
    floatAt(en.x,en.y-en.r-30,'METAMORPHOSIS!','#c9a0ff',true);
-   ring(en.x,en.y,110,'#c9a0ff',0.8);sfx.shout();
+   if(!SpellFx.cast('boss:enrage',{x:en.x,y:en.y,r:120,c:'40,110,34',lit:'182,255,122',kind:'mote'}))ring(en.x,en.y,110,'#c9a0ff',0.8);sfx.shout();
   }
  }else if(B==='firelord'){ /* wide burning trail, huge eruptions, sons of flame */
   en.trailT-=dt;
-  if(en.trailT<=0&&en.state==='chase'){en.trailT=0.4;hazardAt(en.x,en.y,72,0.5,en.atk*0.7,'#ff7a2a');}
+  if(en.trailT<=0&&en.state==='chase'){en.trailT=0.4;hazardAt(en.x,en.y,72,0.5,en.atk*0.7,'#ff7a2a','boss:embertrail');}
   if(en.cds.a<=0){en.cds.a=8;sfx.warn();
-   for(let i=0;i<5;i++)hazardAt(T.x+(Math.random()-0.5)*240,T.y+(Math.random()-0.5)*240,140,1.35,en.atk*2.1,'#ff9a3a');
+   for(let i=0;i<5;i++)hazardAt(T.x+(Math.random()-0.5)*240,T.y+(Math.random()-0.5)*240,140,1.35,en.atk*2.1,'#ff9a3a','boss:eruption');
    floatAt(en.x,en.y-en.r-30,'ERUPTION!','#ff9a3a',true);
   }
   if(en.cds.b<=0&&dist(en,T)>55){en.cds.b=4;
    const d=dist(en,T)||1;
-   for(let i=0;i<3;i++)ebolts.push({x:en.x+(i-1)*14,y:en.y-16,vx:(T.x-en.x)/d*(215+i*35),vy:(T.y-en.y)/d*(215+i*35),t:0,dmg:en.atk*0.85,c:'#ff7a3a'});
+   for(let i=0;i<3;i++)ebolts.push({x:en.x+(i-1)*14,y:en.y-16,vx:(T.x-en.x)/d*(215+i*35),vy:(T.y-en.y)/d*(215+i*35),t:0,dmg:en.atk*0.85,c:'#ff7a3a',fx:'boss:firebolt'});
    sfx.fire();
   }
   if(en.cds.c<=0){en.cds.c=18;
@@ -8512,18 +8525,18 @@ function bossAI(en,dt){
   if(!en.enraged&&en.hp<en.max*0.3){
    en.enraged=true;en.atk=Math.round(en.atk*1.3);
    floatAt(en.x,en.y-en.r-30,'TOO SOON!','#ff5a1a',true);
-   ring(en.x,en.y,110,'#ff5a1a',0.8);sfx.fire();
+   if(!SpellFx.cast('boss:enrage',{x:en.x,y:en.y,r:130,c:'222,70,18',lit:'255,134,36'}))ring(en.x,en.y,110,'#ff5a1a',0.8);sfx.fire();
   }
  }else if(B==='frostking'){ /* massive ice rings, frost volleys, risen ghouls */
   if(en.cds.a<=0){en.cds.a=10;sfx.warn();
    const n=12,rad=240;
-   for(let i=0;i<n;i++){const a=i/n*6.283;hazardAt(en.x+Math.cos(a)*rad,en.y+Math.sin(a)*rad*0.85,116,1.5,en.atk*1.96,'#a0e0ff');}
+   for(let i=0;i<n;i++){const a=i/n*6.283;hazardAt(en.x+Math.cos(a)*rad,en.y+Math.sin(a)*rad*0.85,116,1.5,en.atk*1.96,'#a0e0ff','boss:frostring');}
    floatAt(en.x,en.y-en.r-30,'Ring of Frost!','#a0e0ff',true);
    en.lockT=1.1;
   }
   if(en.cds.b<=0&&dist(en,T)>50){en.cds.b=3.6;
    const d=dist(en,T)||1;
-   for(let i=0;i<3;i++)ebolts.push({x:en.x+(i-1)*12,y:en.y-16,vx:(T.x-en.x)/d*(230+i*30),vy:(T.y-en.y)/d*(230+i*30),t:0,dmg:en.atk*0.8,c:'#a0e0ff'});
+   for(let i=0;i<3;i++)ebolts.push({x:en.x+(i-1)*12,y:en.y-16,vx:(T.x-en.x)/d*(230+i*30),vy:(T.y-en.y)/d*(230+i*30),t:0,dmg:en.atk*0.8,c:'#a0e0ff',fx:'boss:frostbolt'});
    sfx.frost();
   }
   if(en.cds.c<=0){en.cds.c=15;
@@ -8548,7 +8561,7 @@ function bossAI(en,dt){
    const a=en.stormA+i*2.094;
    const ux=Math.cos(a),uy=Math.sin(a);
    /* crackle along the full beam */
-   if(chance(0.35))zapLine(cx,cy-10,cx+ux*LEN,cy+uy*LEN);
+   /* (the beam itself is drawn whole now - boss:thorstorm) */
    if(chance(0.5)){
     const d=60+Math.random()*(LEN-60);
     zapLine(cx+ux*d+(Math.random()-0.5)*24,cy+uy*d-70,cx+ux*d,cy+uy*d-4);
@@ -8568,23 +8581,23 @@ function bossAI(en,dt){
    }
   }
   if(en.cds.a<=0){en.cds.a=7;sfx.warn();
-   for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*110,hero.y+(Math.random()-0.5)*110,137,1.1,en.atk*1.5,'#7fd0ff');
+   for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*110,hero.y+(Math.random()-0.5)*110,137,1.1,en.atk*1.5,'#7fd0ff','boss:thunder');
    floatAt(en.x,en.y-en.r-30,'THUNDERSTRIKE!','#7fd0ff',true);
   }
   if(en.cds.b<=0&&dist(en,T)>55){en.cds.b=4;
    const d=dist(en,hero)||1;
-   for(let i=0;i<2;i++)ebolts.push({x:en.x+(i-0.5)*14,y:en.y-16,vx:(hero.x-en.x)/d*(240+i*40),vy:(hero.y-en.y)/d*(240+i*40),t:0,dmg:en.atk*0.85,c:'#7fd0ff'});
+   for(let i=0;i<2;i++)ebolts.push({x:en.x+(i-0.5)*14,y:en.y-16,vx:(hero.x-en.x)/d*(240+i*40),vy:(hero.y-en.y)/d*(240+i*40),t:0,dmg:en.atk*0.85,c:'#7fd0ff',fx:'boss:stormbolt'});
    sfx.bolt();
   }
   if(en.cds.c<=0){en.cds.c=15;
-   zapLine(en.x,en.y-20,hero.x,hero.y-10);
+   if(!SpellFx.cast('boss:mjolnir',{x:en.x,y:en.y-20,tx:hero.x,ty:hero.y-10,target:()=>hero}))zapLine(en.x,en.y-20,hero.x,hero.y-10);
    if(!hero.dead)hurtHero(en.atk*0.9,'⚡');
    floatAt(en.x,en.y-en.r-30,'Mjolnir calls!','#dff4ff',true);
    sfx.arcane();shakeT=0.25;
   }
  }else if(B==='odin'){ /* ODIN: hellfire, ravens & ground shake */
   if(en.cds.a<=0){en.cds.a=7;sfx.warn();
-   for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*120,hero.y+(Math.random()-0.5)*120,290,1.2,en.atk*1.4,'#ff5a3a');
+   for(let i=0;i<3;i++)hazardAt(hero.x+(Math.random()-0.5)*120,hero.y+(Math.random()-0.5)*120,290,1.2,en.atk*1.4,'#ff5a3a','boss:hellfire');
    floatAt(en.x,en.y-en.r-30,'Hellfire!','#ff5a3a',true);
   }
   if(en.cds.c<=0){en.cds.c=14;
@@ -8594,8 +8607,7 @@ function bossAI(en,dt){
   /* GROUND SHAKE - one unavoidable 5% max HP hit, every 20s (first at 14s) */
   if(en.cds.e===undefined)en.cds.e=14;
   if(en.cds.e<=0){en.cds.e=20;
-   ring(en.x,en.y,220,'#f2d98a',0.7);
-   burst(en.x,en.y+4,'#b09a6a',18,140,true);
+   if(!SpellFx.cast('boss:groundshake',{x:en.x,y:en.y,r:220})){ring(en.x,en.y,220,'#f2d98a',0.7);burst(en.x,en.y+4,'#b09a6a',18,140,true);}   /* 🐉 the earth heaving */
    noiseHit(0.35,.12,300);
    if(!hero.dead)hurtHero(heroMax()*0.05,'💢');
    floatAt(en.x,en.y-en.r-30,'GROUND SHAKE!','#f2d98a',true);
@@ -10399,7 +10411,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
      if(en.cd<=0){
       en.cd=en.atkCd||(en.boss?1.5:1.15);en.swing=0.2;
       const dmg=hurtHero(en.atk*(0.85+Math.random()*0.3)*(en.meleeMul||1));
-      sfx.hit();
+      sfx.hit();bossSlam(en);   /* 🐉 */
       if(hasEnch('thorns')&&!en.dead){const t=Math.max(1,Math.round(dmg*scrollPct('thorns')));if(!mpGuestRaidHit(en,t))en.hp-=t;floatAt(en.x,en.y-en.r-14,t+' 🌵','#9adf9a');if(en.hp<=0&&!(mp.on&&mp.started&&!mp.host&&en.raid))killEnemy(en);}
      }
     }
@@ -10411,7 +10423,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
         target or stands within the swing. Every raider used to take every swing, wherever they stood. */
      if(en.raid&&TMove!==hero&&Math.hypot(en.x-hero.x,en.y-hero.y)>30+en.r+14)continue;
      const dmg=hurtHero(en.atk*(0.85+Math.random()*0.3)*(en.meleeMul||1)); /* meleeMul: swings only, abilities keep their own scaling */
-     sfx.hit();
+     sfx.hit();bossSlam(en);   /* 🐉 a boss's blow lands with its own look */
      if(hasEnch('thorns')&&!en.dead){const t=Math.max(1,Math.round(dmg*scrollPct('thorns')));if(!mpGuestRaidHit(en,t))en.hp-=t;floatAt(en.x,en.y-en.r-14,t+' 🌵','#9adf9a');if(en.hp<=0&&!(mp.on&&mp.started&&!mp.host&&en.raid))killEnemy(en);}
     }
    }
@@ -10466,8 +10478,10 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
  for(let i=ebolts.length-1;i>=0;i--){
   const b=ebolts[i];
   b.t+=dt;b.x+=b.vx*dt;b.y+=b.vy*dt;
-  if(chance(0.4))parts.push({x:b.x,y:b.y,vx:0,vy:0,t:0,life:0.2,c:b.c,r:1.6,g:0});
+  if(b.fx&&SpellFx.has(b.fx))SpellFx.boltTick(b,dt);   /* 🐉 a boss's missile trails what its recipe gives it */
+  else if(chance(0.4))parts.push({x:b.x,y:b.y,vx:0,vy:0,t:0,life:0.2,c:b.c,r:1.6,g:0});
   if(!hero.dead&&Math.hypot(hero.x-b.x,(hero.y-10)-b.y)<(b.ball?18:15)){
+   if(b.fx)SpellFx.hit(b.fx,{x:b.x,y:b.y,r:10});
    hurtHero(b.pct?heroMax()*b.pct:b.dmg,b.ball?'⚽':undefined);
    ebolts.splice(i,1);continue;
   }
@@ -10479,8 +10493,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   h.t+=dt;
   if(h.t>=h.warn){
    if(!hero.dead&&Math.hypot(hero.x-h.x,hero.y-h.y)<h.rad)hurtHero(h.dmg);
-   burst(h.x,h.y,h.c,10,90,true);
-   ring(h.x,h.y,h.rad*0.7,h.c,0.35);
+   if(!(h.fx&&SpellFx.hit(h.fx,{x:h.x,y:h.y,r:h.rad}))){burst(h.x,h.y,h.c,10,90,true);ring(h.x,h.y,h.rad*0.7,h.c,0.35);}   /* 🐉 what bursts there */
    noiseHit(0.1,.07,700);
    hazards.splice(i,1);
   }
@@ -10812,6 +10825,7 @@ function draw(){
  if(z.dungeon)WastelandDungeons.drawTelegraphs(ctx,enemies);
  /* telegraphed boss hazards */
  for(const h of hazards){
+  if(h.fx&&SpellFx.drawHazard(ctx,h,now))continue;   /* 🐉 its own warning: roots, runes, a meteor coming down... - still the whole reach */
   const p=Math.min(1,h.t/h.warn);
   const solid=h.c==='#a06bd0'; /* the Forsaken One's runes read as solid purple pools */
   ctx.globalAlpha=solid?0.42+p*0.30:0.16+p*0.14;
@@ -10823,9 +10837,16 @@ function draw(){
   ctx.beginPath();ctx.ellipse(h.x,h.y,h.rad*p,h.rad*0.72*p,0,0,7);ctx.stroke();
   ctx.globalAlpha=1;
  }
+ /* 🐉 Thor's storm - three lanes of lightning turning round the hall - and the lane the Warlord is about to charge down */
+ for(const en of enemies){
+  if(en.dead||!en.bossId)continue;
+  if(en.bossId==='thor'&&en.stormA!==undefined)SpellFx.drawSpecial('boss:thorstorm',ctx,{cx:world.w/2,cy:world.h/2,a:en.stormA,len:Math.hypot(world.w,world.h)/2,half:40,n:3},now);
+  else if(en.bossId==='krev'&&en.tele>0){const d=dist(en,hero)||1;SpellFx.drawSpecial('boss:chargelane',ctx,{x:en.x,y:en.y,dx:(hero.x-en.x)/d,dy:(hero.y-en.y)/d,len:236,half:en.r+16,p:1-en.tele/.75},now);}
+ }
  /* ☄ SOULBEAM - a fat sweeping lance of soulfire; its width IS the hitbox */
  for(const en of enemies){
   if(!en.beamFx||en.dead)continue;
+  if(SpellFx.drawSpecial('boss:soulbeam',ctx,{...en.beamFx,half:BEAM_HALF},now))continue;   /* 🐉 */
   const b=en.beamFx,pw=2.6+0.5*Math.sin(performance.now()/60);
   ctx.save();
   ctx.translate(b.x,b.y);ctx.rotate(Math.atan2(b.uy,b.ux));
@@ -10844,6 +10865,7 @@ function draw(){
  /* ☠ THE REAPING - the killing cone fills up as the swing lands. Stand in it and you die. */
  for(const en of enemies){
   if(!en.reapFx||en.dead)continue;
+  if(SpellFx.drawSpecial('boss:reaping',ctx,{x:en.x,y:en.y,a:en.reapFx.a,p:en.reapFx.p,range:REAP_RANGE,half:REAP_HALF},now))continue;   /* 🐉 */
   const f=en.reapFx,a0=f.a-REAP_HALF,a1=f.a+REAP_HALF;
   ctx.save();
   ctx.globalAlpha=0.30+f.p*0.40;
@@ -11013,6 +11035,7 @@ function draw(){
   ctx.globalAlpha=1;
  }
  for(const b of ebolts){
+  if(b.fx&&SpellFx.drawBolt(ctx,b,now))continue;   /* 🐉 */
   if(b.ball){
    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(b.x,b.y,6,0,7);ctx.fill();
    ctx.strokeStyle='#222';ctx.lineWidth=1;
