@@ -4110,6 +4110,7 @@ const AC={ctx:null,ambG:null,sfxG:null,amb:[],timers:[],prof:null,mIdx:0};
 const IS_TOUCH=/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
  ||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1); /* iPadOS pretends to be a Mac */
 SpellFx.quality=IS_TOUCH?.65:1;   /* ✨ phones shed fewer sparks per spell */
+const PHONE=IS_TOUCH&&!window.desktop;   /* 📱 the web game on a phone or tablet: its Settings > Video has Spell effects */
 const ambVol=()=>(!S||S.sound)?(S?S.volAmb:0.5):0;
 const sfxVol=()=>(!S||S.sfx)?(S?S.volSfx:0.55):0;
 function applyVolumes(){
@@ -8614,7 +8615,8 @@ function bossAI(en,dt){
    const a=en.stormA+i*2.094;
    const ux=Math.cos(a),uy=Math.sin(a);
    /* crackle along the full beam */
-   /* (the beam itself is drawn whole now - boss:thorstorm) */
+   /* (the beam itself is drawn whole now - boss:thorstorm; with the effects off it crackles along its length, as it did) */
+   if(!SpellFx.effects&&chance(0.35))zapLine(cx,cy-10,cx+ux*LEN,cy+uy*LEN);
    if(chance(0.5)){
     const d=60+Math.random()*(LEN-60);
     zapLine(cx+ux*d+(Math.random()-0.5)*24,cy+uy*d-70,cx+ux*d,cy+uy*d-4);
@@ -20803,7 +20805,8 @@ $('nextBtn').onclick=()=>{
  stageMsg('Marching to the portal…',1600);
 };
 $('autoEquipBtn').onclick=()=>{S.autoEquip=!S.autoEquip;renderHero();save();};
-const displaySettings=DisplaySettings.create({onChange:v=>{SUN.light=v.lighting;SUN.flare=v.sunFlare;WEATHER.on=v.weather;SUN.q=v.lightQuality;}});   /* ☀🌧 Settings -> Video -> Lighting, Sun flare, Weather */
+const displaySettings=DisplaySettings.create({onChange:v=>{SUN.light=v.lighting;SUN.flare=v.sunFlare;WEATHER.on=v.weather;SUN.q=v.lightQuality;SpellFx.effects=!PHONE||v.spellFx;}});   /* ☀🌧 Settings -> Video -> Lighting, Sun flare, Weather */
+$('spellFxRow').hidden=!PHONE;   /* 📱 Spell effects is a phone's row: off, the spells and the bosses in their plain looks (a boss's attacks still marked) */
 /* 🔊 is now a plain mute for everything. The sliders moved into the ⚙ panel, so leaving this button
    as a slider flyout would have put the music level in two places that could disagree. */
 $('sndBtn').onclick=()=>{

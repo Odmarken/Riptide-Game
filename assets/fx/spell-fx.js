@@ -275,37 +275,50 @@
 
  /* ---------- what game.js calls ---------- */
  function call(fn,o){try{fn(o,fx);return true;}catch(err){api.faults++;return false;}}
+ /* 📱 effects (2026-10-10, "gör så alla telefoner kan klicka av dom här nya effekterna ... alltså effekterna för spells ... man
+    fortfarande ser bossens attacker men inte effekt mässigt"): Settings > Video > Spell effects, on phones. Off, every call
+    for a spell's or a boss's look answers as if its recipe were not there, so the game draws its plain look instead - a boss's
+    attacks are still marked where they land. The weapon runes ('rune:*') are not part of it */
+ let effects=true;
+ const muted=id=>!effects&&!String(id||'').startsWith('rune:');
  const api={
   quality:1,faults:0,onShake:null,
+  get effects(){return effects;},
+  set effects(v){v=v!==false;if(v===effects)return;effects=v;if(!v){L.length=0;P.length=0;}},   /* switched off: what is on screen goes at once */
   setCanvasFactory(f){makeCanvas=f;sprites.clear();},
   recipe(id,def){recipes.set(id,def);return def;},
-  has(id){return recipes.has(id);},
+  has(id){return recipes.has(id)&&!muted(id);},
   ids(){return [...recipes.keys()];},
-  cast(id,o){const r=recipes.get(id);return !!(r&&r.cast&&call(r.cast,o));},
-  hit(id,o){const r=recipes.get(id);return !!(r&&r.hit&&call(r.hit,o));},
-  boltTick(b,dt){const r=recipes.get(b.fx);if(r&&r.boltTick)try{r.boltTick(b,dt,fx);}catch(err){api.faults++;}},
+  cast(id,o){if(muted(id))return false;const r=recipes.get(id);return !!(r&&r.cast&&call(r.cast,o));},
+  hit(id,o){if(muted(id))return false;const r=recipes.get(id);return !!(r&&r.hit&&call(r.hit,o));},
+  boltTick(b,dt){if(muted(b.fx))return;const r=recipes.get(b.fx);if(r&&r.boltTick)try{r.boltTick(b,dt,fx);}catch(err){api.faults++;}},
   drawBolt(g,b,now){
+   if(muted(b.fx))return false;
    const r=recipes.get(b.fx);if(!(r&&r.bolt))return false;
    g.save();let drawn=true;try{drawn=r.bolt(g,b,now,H)!==false;}catch(err){api.faults++;drawn=false;}g.restore();return drawn;
   },
   /* 🐉 the bosses (assets/fx/boss-fx.js): a hazard's warning drawn by its recipe while it charges (telegraph(g,h,p,now,H),
      p 0 -> 1), and the shapes a boss keeps in its own state - a beam, a cone, a storm (draw(g,o,now,H)). false: draw it plainly */
   drawHazard(g,h,now){
+   if(muted(h.fx))return false;
    const r=recipes.get(h.fx);if(!(r&&r.telegraph))return false;
    g.save();let ok=true;try{ok=r.telegraph(g,h,Math.min(1,h.t/h.warn),now,H)!==false;}catch(err){api.faults++;ok=false;}g.restore();return ok;
   },
   drawSpecial(id,g,o,now){
+   if(muted(id))return false;
    const r=recipes.get(id);if(!(r&&r.draw))return false;
    g.save();let ok=true;try{ok=r.draw(g,o,now,H)!==false;}catch(err){api.faults++;ok=false;}g.restore();return ok;
   },
   /* a: {gy, fx, moving, x, y (world, for tick), atk|haste|hot: {left, dur}} */
   auras(g,a,layer,now){
+   if(!effects)return;
    for(const r of recipes.values()){
     const au=r.aura,s=au&&a[au.key];if(!s||!(s.left>0)||!au[layer])continue;
     g.save();try{au[layer](g,{...a,left:s.left,dur:s.dur||s.left},now,H);}catch(err){api.faults++;}g.restore();
    }
   },
   auraTick(a,dt){
+   if(!effects)return;
    for(const r of recipes.values()){
     const au=r.aura,s=au&&a[au.key];if(!s||!(s.left>0)||!au.tick)continue;
     try{au.tick({...a,left:s.left,dur:s.dur||s.left},dt,fx);}catch(err){api.faults++;}

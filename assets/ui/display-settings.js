@@ -3,12 +3,12 @@
  'use strict';
  const STORAGE_KEY='riptide.displaySettings',MIN=60,MAX=140,QUALITIES=['ultra','medium','low'];
  function normalize(raw){
-  const result={brightness:100,contrast:100,showFps:true,lighting:true,sunFlare:true,weather:true,lightQuality:'ultra'};   /* lightQuality: what the GPU's light does (ultra|medium|low) - the screen itself is always WebGL (2026-10-09) */
+  const result={brightness:100,contrast:100,showFps:true,lighting:true,sunFlare:true,weather:true,spellFx:true,lightQuality:'ultra'};   /* spellFx: the spells' and bosses' effects (phones only, game.js) */   /* lightQuality: what the GPU's light does (ultra|medium|low) - the screen itself is always WebGL (2026-10-09) */
   if(!raw||typeof raw!=='object'||Array.isArray(raw))return result;
   for(const key of ['brightness','contrast']){
    if(typeof raw[key]==='number'&&Number.isFinite(raw[key]))result[key]=Math.round(Math.max(MIN,Math.min(MAX,raw[key])));
   }
-  for(const key of ['showFps','lighting','sunFlare','weather'])if(typeof raw[key]==='boolean')result[key]=raw[key];
+  for(const key of ['showFps','lighting','sunFlare','weather','spellFx'])if(typeof raw[key]==='boolean')result[key]=raw[key];
   if(QUALITIES.includes(raw.lightQuality))result.lightQuality=raw.lightQuality;
   /* 📱 on 2026-10-10 a phone's Lighting quality was moved to Low (saved with phoneRev 1) and that was taken back the same day:
      such a phone goes back to Ultra. Saved again it carries no phoneRev, so a Low picked after that stays */
@@ -45,6 +45,8 @@
    if(flareToggle)flareToggle.checked=value.sunFlare;
    const weatherToggle=doc.getElementById('weatherChk');
    if(weatherToggle)weatherToggle.checked=value.weather;
+   const fxToggle=doc.getElementById('spellFxChk');
+   if(fxToggle)fxToggle.checked=value.spellFx;
    const quality=doc.getElementById('lightQSel');
    if(quality)quality.value=value.lightQuality;
    for(const key of ['brightness','contrast']){
@@ -54,7 +56,7 @@
    }
    onChange?.({...value});
   }
-  function reset(){value=normalize({showFps:value.showFps,lighting:value.lighting,sunFlare:value.sunFlare,weather:value.weather,lightQuality:value.lightQuality});sync();save();}
+  function reset(){value=normalize({showFps:value.showFps,lighting:value.lighting,sunFlare:value.sunFlare,weather:value.weather,spellFx:value.spellFx,lightQuality:value.lightQuality});sync();save();}
   for(const key of ['brightness','contrast']){
    doc.getElementById(key+'Sl')?.addEventListener('input',e=>{
     value=normalize({...value,[key]:Number(e.target.value)});sync();save();
@@ -71,6 +73,9 @@
   });
   doc.getElementById('weatherChk')?.addEventListener('change',e=>{
    value={...value,weather:e.target.checked};sync();save();
+  });
+  doc.getElementById('spellFxChk')?.addEventListener('change',e=>{
+   value={...value,spellFx:e.target.checked};sync();save();
   });
   doc.getElementById('lightQSel')?.addEventListener('change',e=>{
    value=normalize({...value,lightQuality:e.target.value});sync();save();
