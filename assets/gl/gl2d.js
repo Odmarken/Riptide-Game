@@ -798,7 +798,14 @@ function create(canvas,opts={}){
   /* a canvas that keeps changing is not worth mip levels; pictures and caches drawn once are */
   const wantMip=!isCanvas||e.ups<=2;
   try{
-   if(fresh||e.mip!==wantMip){gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,src);}
+   if(fresh||e.mip!==wantMip){
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,src);
+    /* its own filter and edges, for the passes that read it with no sampler (the shadows' blur, the light shafts): a mipmap
+       filter on a canvas no longer given mip levels left it incomplete - read as opaque black, the whole view darkened by the
+       shadows' strength - once a resize (Resolution, the side panel, a phone's address bar) had left the old levels behind */
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,wantMip?gl.LINEAR_MIPMAP_LINEAR:gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+   }
    else gl.texSubImage2D(gl.TEXTURE_2D,0,0,0,gl.RGBA,gl.UNSIGNED_BYTE,src);
    if(wantMip)gl.generateMipmap(gl.TEXTURE_2D);
   }catch(err){warn('upload failed: '+err.message);return null;}

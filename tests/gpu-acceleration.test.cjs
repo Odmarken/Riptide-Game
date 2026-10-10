@@ -31,7 +31,7 @@ test('the row: GPU acceleration under Weather, above Lighting quality, hidden un
  assert.match(read('style.css'),/\.cfgrow\[hidden\]\{display:none\}/,'a hidden row stays hidden although rows are flex boxes');
  assert.match(game,/const PHONE=IS_TOUCH&&!window\.desktop;/,'a phone or tablet in the browser, never the desktop build');
  assert.ok(game.includes("$('gpuRow').hidden=!PHONE;"));
- assert.ok(game.includes('SUN.q=v.lightQuality;screenGpu(!PHONE||v.gpu);}});'),'on a computer the wish is always WebGL');
+ assert.ok(game.includes('SUN.q=v.lightQuality;screenGpu(!PHONE||v.gpu);screenRes(v.res);}});'),'on a computer the wish is always WebGL');
  assert.ok(game.includes("let gpuWish=!PHONE||DisplaySettings.load().gpu;"),'the screen is made the way the device last asked');
  assert.ok(game.indexOf('screenEars(cv);')<game.indexOf("cv.addEventListener('pointerdown',e=>{"),'the screen\'s listeners are written down from the first');
  assert.ok(game.indexOf('screenRows();',game.indexOf("$('gpuRow').hidden=!PHONE;"))>0,'Lighting quality shows only while the screen is WebGL');
@@ -49,7 +49,7 @@ function boot({phone=true,gpu=true,probe=true,throwOnCreate=false}={}){
  }
  const log={made:0,lost:0,resized:[],msgs:[]};
  const GL2D={probe:()=>probe,create(el){if(el.kind)return null;el.kind='gl';if(throwOnCreate)throw new Error('shader');log.made++;return {isGL:true,canvas:el,release(){log.lost++;}};}};
- const rows={lightQRow:{hidden:false},lightQNote:{hidden:false}},first=new Canvas(0);
+ const rows={lightQRow:{hidden:false}},first=new Canvas(0);
  const box=vm.createContext({EventTarget:Target,GL2D,PHONE:phone,DisplaySettings:{load:()=>({gpu})},console:{error(){}},
   $:id=>id==='game'?first:rows[id],resize(){log.resized.push(box.vigCvSeen());},stageMsg(t){log.msgs.push(t);}});
  const code=game.slice(game.indexOf('function screenSurface(el,gpu=true){'),game.indexOf('let VW=0,VH=0,DPR=1,vigCv=null;'));
@@ -71,7 +71,7 @@ test('a phone switching it off and on again: a fresh screen each time, every lis
  assert.deepEqual(cv.heard.map(([t,f,o])=>[t,f,o]),[['pointerdown',down,undefined],['touchstart',touch,{passive:false}],['wheel',wheel,{passive:false}]],'the same listeners, the same options');
  assert.equal(P.log.lost,1,'the WebGL context is lost at once');
  assert.deepEqual(P.log.resized,[null],'sized again from scratch (the cached vignette dropped)');
- assert.equal(P.rows.lightQRow.hidden,true);assert.equal(P.rows.lightQNote.hidden,true,'Lighting quality hidden on the 2D screen');
+ assert.equal(P.rows.lightQRow.hidden,true,'Lighting quality hidden on the 2D screen');
  P.swap(false);assert.equal(P.now().cv,cv,'asked again for the same: nothing happens');
  const later=()=>{};cv.addEventListener('click',later);
  P.swap(true);

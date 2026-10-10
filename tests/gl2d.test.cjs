@@ -153,3 +153,12 @@ test('a Path2D is written down as it is built, so the GL screen can clip with it
  assert.ok(gl.includes("fill(a,b){if(a&&typeof a==='object'){withPath(a,"),'and so does fill(path)');
  assert.ok(read('assets/mounts/renderer.js').includes("bodyContext.clip(path,'evenodd')"),'the riders are clipped this way');
 });
+
+test('a canvas re-made at a new size can still be read with no sampler: its own filter follows its mip levels (the view went dark after a resize, 2026-10-10)',()=>{
+ const gl=read('assets/gl/gl2d.js');
+ const tf=gl.slice(gl.indexOf('function texFor(src,w,h){'),gl.indexOf('function tileFor('));
+ assert.ok(/gl\.texImage2D\(gl\.TEXTURE_2D,0,gl\.RGBA,gl\.RGBA,gl\.UNSIGNED_BYTE,src\);[^}]*gl\.texParameteri\(gl\.TEXTURE_2D,gl\.TEXTURE_MIN_FILTER,wantMip\?gl\.LINEAR_MIPMAP_LINEAR:gl\.LINEAR\);/.test(tf),'set every time the picture is laid down anew');
+ assert.ok(tf.includes('gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);'),'and its edges do not wrap round into a blur');
+ assert.ok(tf.includes('const wantMip=!isCanvas||e.ups<=2;'),'a canvas that keeps changing stops getting mip levels - which is what left the old ones behind');
+ assert.ok(gl.includes('function texUnit(i,tex){gl.activeTexture(gl.TEXTURE0+i);gl.bindTexture(gl.TEXTURE_2D,tex);gl.bindSampler(i,null);}'),'the post passes read with the texture\'s own filter');
+});

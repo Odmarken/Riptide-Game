@@ -4745,12 +4745,23 @@ function screenGpu(on){
  screenRows();
  if(on&&!ctx.isGL)stageMsg('🎮 No WebGL on this device',2200);
 }
-function screenRows(){const off=!ctx.isGL;$('lightQRow').hidden=off;$('lightQNote').hidden=off;}
+function screenRows(){$('lightQRow').hidden=!ctx.isGL;}
 let VW=0,VH=0,DPR=1,vigCv=null;
+/* 🖵 Resolution (2026-10-10, "gör att resolution faktiskt gör något ... för att spara fps", "fler resolution alternativ"): the
+   most pixels the game draws, {w,h} in screen pixels, or null for every pixel the window has. Below the window's own the canvas
+   is drawn smaller and the browser stretches it over the window - fewer pixels, more frames, a softer picture. Desktop only. */
+let renderRes=null;
+function renderScale(base){return renderRes?Math.min(1,renderRes.w/(innerWidth*base),renderRes.h/(innerHeight*base)):1;}
+function screenRes(v){   /* the setting ('WxH', or '' for the window's own) reaches the screen */
+ const m=window.desktop&&/^(\d+)x(\d+)$/.exec(v||'');
+ renderRes=m?{w:+m[1],h:+m[2]}:null;
+ resize();
+}
 function resize(){
  const r=$('stageWrap').getBoundingClientRect();
  /* The desktop canvas follows the display even above 200% Windows scaling. */
- const nextDPR=window.desktop?(window.devicePixelRatio||1):Math.min(2,window.devicePixelRatio||1);
+ const base=window.desktop?(window.devicePixelRatio||1):Math.min(2,window.devicePixelRatio||1);
+ const nextDPR=base*renderScale(base);
  if(VW===r.width&&VH===r.height&&DPR===nextDPR&&vigCv)return;
  DPR=nextDPR;
  VW=r.width;VH=r.height;
@@ -20829,7 +20840,7 @@ $('nextBtn').onclick=()=>{
  stageMsg('Marching to the portal…',1600);
 };
 $('autoEquipBtn').onclick=()=>{S.autoEquip=!S.autoEquip;renderHero();save();};
-const displaySettings=DisplaySettings.create({onChange:v=>{SUN.light=v.lighting;SUN.flare=v.sunFlare;WEATHER.on=v.weather;SUN.q=v.lightQuality;screenGpu(!PHONE||v.gpu);}});   /* ☀🌧 Settings -> Video -> Lighting, Sun flare, Weather - and a phone's GPU acceleration */
+const displaySettings=DisplaySettings.create({onChange:v=>{SUN.light=v.lighting;SUN.flare=v.sunFlare;WEATHER.on=v.weather;SUN.q=v.lightQuality;screenGpu(!PHONE||v.gpu);screenRes(v.res);}});   /* ☀🌧 Settings -> Video -> Lighting, Sun flare, Weather - a phone's GPU acceleration, a computer's Resolution */
 $('gpuRow').hidden=!PHONE;   /* 📱 GPU acceleration is a phone's row (it took the place of Spell effects): off, the 2D screen - the effects all there, but no bloom, heat haze or light shafts */
 screenRows();
 /* 🔊 is now a plain mute for everything. The sliders moved into the ⚙ panel, so leaving this button
@@ -21004,28 +21015,29 @@ function renderControls(){
 }
 /* 🖵 Resolution is desktop-only - a browser tab cannot resize its own window, so the row stays hidden
    there rather than offering something that would do nothing. The first entry matches the display and
-   is what a fresh install uses; a stored size only ever exists because the player picked one. */
+   is what a fresh install uses. Since 2026-10-10 the choice is how many pixels the game draws (renderRes, kept on the device
+   as DisplaySettings res), in fullscreen too, from the display's own size down to 640 x 360 in its shape. In a window a choice
+   that fits as a window also sizes it, as it always did (the shell keeps that size); one too small for a window is drawn at that
+   size inside it. */
+const RES_HEIGHTS=[2160,1800,1620,1440,1296,1080,900,810,768,720,648,576,540,480,360];
+function resOptions(d,kept){   /* d: the display in screen pixels; kept: the choice on the device, listed even if it is not one of these */
+ const out=[{v:'',label:'Match screen ('+d.w+' x '+d.h+')'}];
+ for(const h of RES_HEIGHTS)if(h<d.h){const w=Math.round(h*d.w/d.h/2)*2;out.push({v:w+'x'+h,label:w+' x '+h});}
+ if(kept&&!out.some(o=>o.v===kept)){const [w,h]=kept.split('x');out.push({v:kept,label:w+' x '+h});}
+ return out;
+}
 if(window.desktop&&window.desktop.getResolutions){
  const showResolutions=r=>{
-  if(!r||!r.list||!r.list.length)return;
+  if(!r||!r.display)return;
   $('resRow').style.display='flex';
-  $('resNote').style.display='block';
-  const sel=$('resSel');
-  sel.innerHTML=r.list.map((o,i)=>`<option value="${o.native?'':o.w+'x'+o.h}">${o.label}</option>`).join('');
-  $('resNote').textContent=r.display
-   ? 'Fullscreen: '+r.display.w+' x '+r.display.h+' · Windowed choices fit the desktop'
-   : 'Applies to the window · fullscreen follows the display';
-  if(r.chosen){
-   const want=r.chosen.w+'x'+r.chosen.h;
-   if([...sel.options].some(o=>o.value===want))sel.value=want;
-  }
-  sel.onchange=()=>{
-   const v=sel.value;
-   const [w,h]=v?v.split('x').map(Number):[0,0];
-   window.desktop.setResolution(w,h).then(res=>{
-    if(res&&res.fullscreen)stageMsg('🖵 '+res.w+' × '+res.h+' - takes effect when windowed',2600);
-    else if(res)stageMsg('🖵 '+res.w+' × '+res.h,1800);
-   }).catch(()=>{});
+  const sel=$('resSel'),opts=resOptions(r.display,displaySettings.value.res);
+  const fits=new Map((r.list||[]).filter(o=>!o.native).map(o=>[o.label.replace(/ \(window\)$/,''),o]));   /* 'W x H' -> the shell's window size */
+  sel.innerHTML=opts.map(o=>`<option value="${o.v}">${o.label}</option>`).join('');
+  displaySettings.sync();   /* the kept choice shows now the list is there */
+  sel.onchange=()=>{   /* after DisplaySettings has taken the choice and the screen has followed it */
+   const o=opts[sel.selectedIndex]||opts[0],fit=o.v?fits.get(o.label):null;
+   if(!o.v||fit)window.desktop.setResolution(fit?fit.w:0,fit?fit.h:0).catch(()=>{});
+   stageMsg('🖵 '+(o.v?o.label:'Match screen'),1800);
   };
  };
  window.desktop.getResolutions().then(showResolutions).catch(()=>{});

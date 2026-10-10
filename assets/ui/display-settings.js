@@ -3,13 +3,14 @@
  'use strict';
  const STORAGE_KEY='riptide.displaySettings',MIN=60,MAX=140,QUALITIES=['ultra','medium','low'];
  function normalize(raw){
-  const result={brightness:100,contrast:100,showFps:true,lighting:true,sunFlare:true,weather:true,gpu:true,lightQuality:'ultra'};   /* gpu: GPU acceleration, the screen on WebGL - a phone's or tablet's choice (2026-10-10, game.js); a computer's screen is always WebGL */   /* lightQuality: what the GPU's light does (ultra|medium|low) */
+  const result={brightness:100,contrast:100,showFps:true,lighting:true,sunFlare:true,weather:true,gpu:true,lightQuality:'ultra',res:''};   /* gpu: GPU acceleration, the screen on WebGL - a phone's or tablet's choice (2026-10-10, game.js); a computer's screen is always WebGL */   /* lightQuality: what the GPU's light does (ultra|medium|low) */   /* res: Resolution, the most pixels the game draws ('WxH' in screen pixels, '' the window's own; desktop, game.js) */
   if(!raw||typeof raw!=='object'||Array.isArray(raw))return result;
   for(const key of ['brightness','contrast']){
    if(typeof raw[key]==='number'&&Number.isFinite(raw[key]))result[key]=Math.round(Math.max(MIN,Math.min(MAX,raw[key])));
   }
   for(const key of ['showFps','lighting','sunFlare','weather','gpu'])if(typeof raw[key]==='boolean')result[key]=raw[key];
   if(QUALITIES.includes(raw.lightQuality))result.lightQuality=raw.lightQuality;
+  if(typeof raw.res==='string'&&/^\d{3,5}x\d{3,5}$/.test(raw.res))result.res=raw.res;
   /* 📱 on 2026-10-10 a phone's Lighting quality was moved to Low (saved with phoneRev 1) and that was taken back the same day:
      such a phone goes back to Ultra. Saved again it carries no phoneRev, so a Low picked after that stays */
   if(raw.phoneRev===1&&result.lightQuality==='low')result.lightQuality='ultra';
@@ -53,6 +54,8 @@
    if(gpuToggle)gpuToggle.checked=value.gpu;
    const quality=doc.getElementById('lightQSel');
    if(quality)quality.value=value.lightQuality;
+   const res=doc.getElementById('resSel');   /* its list is built by the game once the shell has told it the display */
+   if(res&&res.options&&[...res.options].some(o=>o.value===value.res))res.value=value.res;
    for(const key of ['brightness','contrast']){
     const input=doc.getElementById(key+'Sl'),output=doc.getElementById(key+'N');
     if(input){input.value=value[key];input.setAttribute('aria-valuetext',value[key]+'%');paintRange(input);}
@@ -60,7 +63,7 @@
    }
    onChange?.({...value});
   }
-  function reset(){value=normalize({showFps:value.showFps,lighting:value.lighting,sunFlare:value.sunFlare,weather:value.weather,gpu:value.gpu,lightQuality:value.lightQuality});sync();save();}
+  function reset(){value=normalize({showFps:value.showFps,lighting:value.lighting,sunFlare:value.sunFlare,weather:value.weather,gpu:value.gpu,lightQuality:value.lightQuality,res:value.res});sync();save();}
   for(const key of ['brightness','contrast']){
    doc.getElementById(key+'Sl')?.addEventListener('input',e=>{
     value=normalize({...value,[key]:Number(e.target.value)});sync();save();
@@ -80,6 +83,9 @@
   });
   doc.getElementById('gpuChk')?.addEventListener('change',e=>{
    value={...value,gpu:e.target.checked};sync();save();
+  });
+  doc.getElementById('resSel')?.addEventListener('change',e=>{
+   value=normalize({...value,res:e.target.value});sync();save();
   });
   doc.getElementById('lightQSel')?.addEventListener('change',e=>{
    value=normalize({...value,lightQuality:e.target.value});sync();save();
