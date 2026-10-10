@@ -133,7 +133,7 @@
     "lite mer episka": a bigger comet, a long burning wake, smoke and sparks thrown off it) */
  const FIRE_BODY=[[1.5,.38,C('150,34,10'),1],[1,.62,C(EMBER),.85],[.55,.7,C(FIRE),.6]];
  function drawFireball(g,H,b,t){
-  const s=1.3*Math.min(1,.35+(b._age||0)/.07),a=b._ra||0,tr=b._tr||[],x=b._dx??b.x,y=b._dy??b.y;
+  const s=1.3*Math.min(1,.35+(b._age||0)/.07)*(b.big||1),a=b._ra||0,tr=b._tr||[],x=b._dx??b.x,y=b._dy??b.y;   /* big: 🌳 Searing Fire, Pyroblast */
   ribbon(g,tr,22*s,FIRE_BODY,.85,14,true);   /* the burning wake, as paint */
   ribbon(g,tr,17*s,FIRE3,.8,14);             /* and as light */
   H.haze(g,x,y,22*s,'170,40,12',.55,1,false); /* the fire's own red under its light */
@@ -180,7 +180,7 @@
   },
   bolt(g,b,now,H){if(!riding(b))drawFireball(g,H,b,now);return true;},
   hit(o,fx){
-   const r=o.r||16,k=(o.crit?1.3:1)*1.25,x=o.x,cy=o.y-r*.6,gy=o.y+r*.55,seed=Math.random()*TAU;
+   const r=o.r||16,k=(o.crit?1.3:1)*1.25*(o.k||1),x=o.x,cy=o.y-r*.6,gy=o.y+r*.55,seed=Math.random()*TAU;   /* o.k: 🌳 as big as the talents make it */
    /* the body of the blast laid on as paint - red and orange billows rolling out and up - so it reads as fire by day */
    fx.spawn({life:.75,layer:'air',reach:130,draw(g,e,p,H){
     const bl=E.out(Math.min(1,p/.45)),fade=Math.pow(1-p,1.6);

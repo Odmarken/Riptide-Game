@@ -1,0 +1,276 @@
+{
+ "about": "Skill Tree art (2026-10-10), Higgsfield gpt_image_2_5 flare medium. Icons: 3x3 sheets on magenta (2k, 1 credit each), cut by the magenta gaps, saved as 128 px JPEG in assets/tree/icons. Backdrops: 16:9 2k, 1600 px JPEG in assets/tree/backdrops (under the window CSS dark wash). Capstone spirits: 1k transparent, cropped and alpha 254->255, assets/tree/fx. References: six spell icons (assets/icons) on one sheet for the icons and spirits; assets/ui/modal_ice.jpg for the backdrops.",
+ "reference_media": {
+  "icon_style": "afd30c11-d502-4b00-bd79-be01a7d6efa7",
+  "backdrop_style": "9b67d3aa-49e2-4c55-aea3-2c342e7fba12"
+ },
+ "sheets": {
+  "shared": {
+   "job": "41d8a7a1-f954-4830-83f2-88865289e3ed",
+   "icons": [
+    "vitality",
+    "wisdom",
+    "fortune",
+    "toughness",
+    "focus",
+    "reach",
+    "tree",
+    "reset",
+    "capstone"
+   ],
+   "theme": "the common talents every hero can learn - warm gold, bronze and deep blue tones"
+  },
+  "w_def1": {
+   "job": "35ae7097-a6c4-45b1-b8af-22c68c95848a",
+   "icons": [
+    "w_block",
+    "shieldslam",
+    "revenge",
+    "w_ironwill",
+    "shieldwall",
+    "taunt",
+    "w_fortify",
+    "w_secondwind",
+    "laststand"
+   ],
+   "theme": "a Warrior on the Guardian path - steel, gold, a golden lion-crested shield, deep blue and gold tones"
+  },
+  "w_def2": {
+   "job": "2033181f-6e7e-4e93-b0e0-da41a4c2012b",
+   "icons": [
+    "unbowed",
+    "w_rally",
+    "w_thorns",
+    "w_bulwark",
+    "spinguard",
+    "earthshaker",
+    "w_stalwart",
+    "w_unyielding",
+    "guardian"
+   ],
+   "theme": "a Warrior on the Guardian path - steel, gold, a golden lion-crested shield, deep blue and gold tones"
+  },
+  "w_off1": {
+   "job": "ce59e0b4-9f95-4851-8979-61a45f994978",
+   "icons": [
+    "w_mighty",
+    "w_trance",
+    "doublestrike",
+    "execute",
+    "w_wounds",
+    "w_rampage",
+    "bloodthirst",
+    "brutality",
+    "w_fury"
+   ],
+   "theme": "a Warrior on the Berserker path - blood red, orange fire, steel, crimson tones"
+  },
+  "w_off2": {
+   "job": "1314678c-b554-443d-bddb-9b6aeeabb7c8",
+   "icons": [
+    "enrage",
+    "cleave",
+    "w_warcry",
+    "w_storm",
+    "thunderclap",
+    "bloodrage",
+    "w_presence",
+    "w_avatar",
+    "berserker"
+   ],
+   "theme": "a Warrior on the Berserker path - blood red, orange fire, steel, crimson tones"
+  },
+  "m_def1": {
+   "job": "84f5dc85-64be-4ef0-8db4-89fe5ac65db6",
+   "icons": [
+    "m_core",
+    "m_snap",
+    "deepfreeze",
+    "glacialspike",
+    "m_shatter",
+    "m_barrier",
+    "manashield",
+    "frostarmor",
+    "m_skin"
+   ],
+   "theme": "a Mage on the Frostwarden path - ice, frost, pale blue and silver tones"
+  },
+  "m_def2": {
+   "job": "2659fe94-6870-4603-9b9d-9df3cf549b00",
+   "icons": [
+    "evocation",
+    "coldblood",
+    "m_frostbolt",
+    "m_intellect",
+    "blizzard",
+    "icelances",
+    "m_hypo",
+    "m_iceblock",
+    "frostwarden"
+   ],
+   "theme": "a Mage on the Frostwarden path - ice, frost, pale blue and silver tones"
+  },
+  "m_off1": {
+   "job": "c9dc7931-be3f-44b9-8e3f-ac843666043b",
+   "icons": [
+    "m_searing",
+    "m_kindling",
+    "twinflames",
+    "pyroblast",
+    "m_ignite",
+    "m_critmass",
+    "combustion",
+    "hotstreak",
+    "m_burning"
+   ],
+   "theme": "a Mage on the Pyromancer path - fire, embers, orange and deep red tones, and violet arcane magic"
+  },
+  "m_off2": {
+   "job": "621102e5-ed25-4ece-bc73-9d174c984f0a",
+   "icons": [
+    "livingbomb",
+    "firestarter",
+    "m_surge",
+    "m_power",
+    "arcanebeam",
+    "arcaneecho",
+    "m_mastery",
+    "m_meteor",
+    "pyromancer"
+   ],
+   "theme": "a Mage on the Pyromancer path - fire, embers, orange and deep red tones, and violet arcane magic"
+  },
+  "h_def1": {
+   "job": "d12d1d31-3fec-431b-80c2-00835a260a92",
+   "icons": [
+    "h_evasion",
+    "h_fleet",
+    "deterrence",
+    "survival",
+    "h_armor",
+    "h_survivalist",
+    "herbalist",
+    "spiritbond",
+    "h_hardy"
+   ],
+   "theme": "a Hunter on the Warden path - forest green, earth brown, silver moonlight tones"
+  },
+  "h_def2": {
+   "job": "d8a9978a-afba-4b8b-bc41-dd0462ca9f05",
+   "icons": [
+    "bearspirit",
+    "owlspirit",
+    "h_pin",
+    "frosttrap",
+    "concussive",
+    "h_hobble",
+    "h_long",
+    "h_hawk",
+    "warden"
+   ],
+   "theme": "a Hunter on the Warden path - forest green, earth brown, silver moonlight tones"
+  },
+  "h_off1": {
+   "job": "5f11c557-148b-44ca-8136-f1cfac39a119",
+   "icons": [
+    "h_steady",
+    "h_draw",
+    "piercingshot",
+    "doubleshot",
+    "h_careful",
+    "h_deadeye",
+    "lethalshots",
+    "sniper",
+    "h_hawkeye"
+   ],
+   "theme": "a Hunter on the Marksman path - gold, green and steel, sharp focused light"
+  },
+  "h_off2": {
+   "job": "755113a9-ef90-4108-8b16-8aa909867333",
+   "icons": [
+    "killer",
+    "huntersmark",
+    "h_barrage",
+    "h_trigger",
+    "explosive",
+    "ricochet",
+    "h_volley",
+    "h_rain",
+    "marksman"
+   ],
+   "theme": "a Hunter on the Marksman path - gold, green and steel, sharp focused light"
+  },
+  "p_def1": {
+   "job": "4bd43cf8-fb90-4358-9281-109ba3d1ba9c",
+   "icons": [
+    "p_shield",
+    "p_favor",
+    "guardianspirit",
+    "mending",
+    "p_serenity",
+    "p_blessed",
+    "p_innerfire",
+    "sanctified",
+    "embrace"
+   ],
+   "theme": "a Priest on the Sanctuary path - white, ivory, gold and soft blue holy light"
+  },
+  "p_def2": {
+   "job": "922846fd-53ab-4587-b9ec-ef26a7b9a3ac",
+   "icons": [
+    "p_devotion",
+    "p_ward",
+    "spiritwell",
+    "blinding",
+    "p_bene",
+    "aegis",
+    "martyr",
+    "p_archangel",
+    "sanctuary"
+   ],
+   "theme": "a Priest on the Sanctuary path - white, ivory, gold and soft blue holy light"
+  },
+  "p_off1": {
+   "job": "d7fee4d8-f7bd-41fa-9d2e-03f1e2dc356a",
+   "icons": [
+    "p_holyfire",
+    "p_judge",
+    "holybeam",
+    "penance",
+    "p_searing",
+    "p_fury",
+    "p_zeal",
+    "crusader",
+    "purpose"
+   ],
+   "theme": "a Priest on the Zealot path - blazing gold, white fire and deep amber tones"
+  },
+  "p_off2": {
+   "job": "89dd4216-51c1-4cde-a621-41c4224bb004",
+   "icons": [
+    "wrathful",
+    "vengeance",
+    "p_radiance",
+    "p_might",
+    "consecration",
+    "divinestorm",
+    "p_purge",
+    "p_wrath",
+    "zealot"
+   ],
+   "theme": "a Priest on the Zealot path - blazing gold, white fire and deep amber tones"
+  }
+ },
+ "backdrops": {
+  "warrior": "1828e3a6-7735-4b0c-aaac-22ccb0dbf7b1",
+  "mage": "e31023cb-eccb-4f42-9632-9c52aa68798d",
+  "hunter": "4e6d1582-0f27-4fc7-acb9-5e0032799664",
+  "priest": "a708048c-ea59-4de4-9f34-388edf53ecac"
+ },
+ "fx": {
+  "hawk": "457a16e9-cc6c-458c-b2d8-a47087337aef",
+  "lion": "8b48d95e-6e6e-473c-b8aa-88a127010940",
+  "wings": "46b563dc-16e4-4646-829a-63683134555f",
+  "iceblock": "14bfd9fd-2837-426f-aafd-f609a69680a6"
+ }
+}

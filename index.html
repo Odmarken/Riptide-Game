@@ -23,6 +23,7 @@
 <link rel="stylesheet" href="assets/ui/crafting.css?v=8">
 <link rel="stylesheet" href="assets/city/ledger.css?v=14">
 <link rel="stylesheet" href="assets/ui/hero-guide.css?v=2">
+<link rel="stylesheet" href="assets/tree/tree.css?v=1">
 <script src="assets/ui/cursors.js?v=1"></script>
 </head>
 <body>
@@ -246,9 +247,14 @@
     <div id="spellList"></div>
     <div class="ptitle" id="profTitle" style="font-size:15px;display:none">Professions</div>
     <div id="profList"></div>
+    <div class="ptitle" id="tidesTitle" style="font-size:15px;display:none">Tides</div>
     <div id="tideStorageEntry"></div>
+    <div class="ptitle" id="ledgerGroupTitle" style="font-size:15px;display:none">Ledger</div>
     <div id="ledgerEntry"></div>
+    <div class="ptitle" id="wardrobeTitle" style="font-size:15px;display:none">Wardrobe</div>
     <div id="outfitEntry"></div>
+    <div class="ptitle" id="skillsTitle" style="font-size:15px;display:none">Skills</div>
+    <div id="treeEntry"></div>
     <div id="prestigeSec"></div>
     <div class="card toggle-row"><span>Auto-equip stronger gear</span><button class="sbtn gold" id="autoEquipBtn">On</button></div>
     <div class="card toggle-row"><span>Play a different hero</span><button class="sbtn gold" id="charSelBtn">⇄ Change Character</button></div>
@@ -702,6 +708,18 @@
    <button id="iceMsgOk" style="width:100%;padding:12px;border-radius:10px;border:1px solid #3a6a9a;background:linear-gradient(180deg,#8fd0ff,#4a8ec9);color:#08131c;font-family:var(--display);font-weight:800;font-size:15px;letter-spacing:.06em;cursor:var(--hand);box-shadow:0 3px 10px rgba(0,0,0,.4)">OK</button>
   </div>
 
+  <!-- 🌳 the Skill Tree window (assets/tree/tree-ui.js draws it) -->
+  <div id="treeFx" class="craft-modal" role="dialog" aria-modal="true" aria-labelledby="treeTitle" style="display:none">
+   <div class="casinobox craft-box craft-tree">
+    <header class="craft-header tree-header"><img class="tree-seal" src="assets/tree/icons/tree.jpg" alt="" aria-hidden="true" draggable="false"><div><div class="craft-kicker" id="treeClass">CLASS</div><h2 id="treeTitle" class="craft-title">Skill Tree</h2></div>
+     <div class="tree-pts" id="treePts" role="status"></div><button class="sbtn" id="treeReset">Reset</button><button class="sbtn tree-close" id="treeClose" aria-label="Close">✕</button></header>
+    <div class="tree-body">
+     <div class="tree-scroll"><div class="tree-canvas"><svg id="treeLines" class="tree-lines" aria-hidden="true"></svg><div class="tree-grid" id="treeGrid"></div></div></div>
+     <aside class="tree-info" id="treeInfo" aria-live="polite"></aside>
+    </div>
+   </div>
+  </div>
+
   <div id="talentFx" style="position:absolute;inset:0;z-index:73;display:none;align-items:center;justify-content:center;background:rgba(4,8,14,.90)">
    <div class="talentbox">
     <div class="ttop">❄ ICE ARMOR TALENT TREE</div>
@@ -973,13 +991,16 @@
 <script src="assets/boss/odin-arena.js?v=1"></script>
 <script src="assets/models/moonshine-folk.js?v=1"></script>
 <script src="assets/fx/spell-fx.js?v=3"></script>
-<script src="assets/fx/spells-warrior.js?v=1"></script>
-<script src="assets/fx/spells-mage.js?v=1"></script>
-<script src="assets/fx/spells-hunter.js?v=1"></script>
-<script src="assets/fx/spells-priest.js?v=1"></script>
+<script src="assets/fx/spells-warrior.js?v=2"></script>
+<script src="assets/fx/spells-mage.js?v=2"></script>
+<script src="assets/fx/spells-hunter.js?v=2"></script>
+<script src="assets/fx/spells-priest.js?v=2"></script>
 <script src="assets/fx/boss-fx.js?v=2"></script>
 <script src="assets/fx/rune-fx.js?v=1"></script>
-<script src="game.js?v=239"></script>
+<script src="assets/fx/tree-fx.js?v=1"></script>
+<script src="assets/tree/skill-tree.js?v=1"></script>
+<script src="assets/tree/tree-ui.js?v=1"></script>
+<script src="game.js?v=240"></script>
 <script src="assets/ui/crafting.js?v=4"></script>
 </body>
 </html>

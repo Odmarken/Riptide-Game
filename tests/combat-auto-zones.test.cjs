@@ -5,7 +5,7 @@ function harness(){
  const c={S:{auto:true,zone:0,pots:{hp:1,mp:1}},saves:0,warnings:0,casts:0,potions:0,gameOn:true,
   hero:{hp:10,mana:1,potCd:{hp:0,mp:0},target:{boss:true}},enemies:[],
   Math,stageMsg(){},save(){c.saves++;},sfx:{warn(){c.warnings++;}},updateMountButton(){},homeButtonState(){},
-  classOf:()=>({spells:[{t:'st'}]}),heroMax:()=>100,spellManaCost:()=>10,autoOn:()=>true,
+  classOf:()=>({spells:[{t:'st'}]}),heroMax:()=>100,spellManaCost:()=>10,autoOn:()=>true,treeSpell:sp=>sp,   /* 🌳 no talents */
   usePot:()=>c.potions++,cast:()=>c.casts++,TideUI:{tick(){throw new Error('simulation checkpoint');}},
   mp:{on:false,started:false},mpLeave(){},dropFarmBuild(){}};
  const nodes=new Map();

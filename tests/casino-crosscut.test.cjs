@@ -152,7 +152,7 @@ function keyboard(){
  const listeners={};
  const {c,d}=padPieces({window:{addEventListener:(ev,fn)=>{listeners[ev]=fn;}},document:{activeElement:{tagName:'BODY',blur(){}}},
   HeroGuide:{isOpen:()=>false},initAudio(){},gameOn:true,gamePaused:false,S:{name:'Alpha'},hero:{dead:false},world:{},keys:{},
-  TideUI:{storageOpen:()=>false,modalOpen:()=>false,isBattling:()=>false},
+  TideUI:{storageOpen:()=>false,modalOpen:()=>false,isBattling:()=>false},treeUI:{isOpen:()=>false},   /* 🌳 the Skill Tree window, closed */
   openSettings:()=>calls.push('openSettings'),toggleMount:()=>calls.push('toggleMount'),toggleSide:()=>calls.push('toggleSide'),
   usePot:k=>calls.push('usePot '+k),cast:i=>calls.push('cast '+i),nearestEnemyWithin:()=>null,stageMsg:m=>calls.push('msg '+m),
   setInputMode(){},stopMining(){},zoneOf:()=>({}),buildMode:false,fbSignIn(){},raidCommanding:()=>false});

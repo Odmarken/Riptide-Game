@@ -95,7 +95,7 @@ test("every boss's own blow has a look - the bladed ones slash, the rest smash, 
  assert.ok(game.includes("const BOSS_SLASH=new Set(['reaper','krev','betrayer','frostking','firelord']);"));
  assert.ok(game.includes("const DUNGEON_FX_C={briarhollow:'159,189,104',cindervein:'233,150,87',frostveil:'166,200,218'};"));
  assert.ok(game.includes("const dg=en.dungeon||null;"),'a guardian is known by its dungeon');
- assert.ok(game.includes("const dmg=hurtHero(amount);sfx.hit();if(melee)bossSlam(foe);"),'and its club lands with that look');
+ assert.ok(game.includes("const dmg=hurtHero(amount,undefined,melee?foe:null);sfx.hit();if(melee)bossSlam(foe);"),'and its club lands with that look');   /* 🌳 the club's swinger answers the tree's thorns */
 });
 
 test('game.js only changed the look: reach, timing and damage of every blow as before, the plain look kept as a fallback',()=>{

@@ -2980,7 +2980,7 @@ function mpPlayFx(m,p){
   burst(x,y-10,m.c||'#7fd0ff',4,55);
  }else if(m.a==='cast'){ /* ✨ a peer's spell going off round them - and the aura it leaves on them for a while */
   p.atk=true;p._atkT=performance.now()+240;
-  SpellFx.cast(m.f,{x,y,gy:m.gy||8,fx:m.fx||1,rad:m.rad||0,dur:m.d||0,peer:true,tx:m.tx,ty:m.ty,
+  SpellFx.cast(m.f,{x,y,gy:m.gy||8,fx:m.fx||1,rad:m.rad||0,dur:m.d||0,peer:true,tx:m.tx,ty:m.ty,k:m.sz||1,
    targets:(Array.isArray(m.tg)?m.tg:[]).map(t=>({x:t[0],y:t[1],r:16})),follow:()=>({x:p._x??p.x,y:p._y??p.y})});
   if(m.k&&m.d>0)(p.fxAura||(p.fxAura={}))[m.k]={until:performance.now()/1000+m.d,dur:m.d};
   if(m.gy)p._gy=m.gy;
@@ -3272,7 +3272,9 @@ function peerAuraState(p){
  const A=p.fxAura;if(!A)return null;
  const t=performance.now()/1000,s=k=>A[k]&&A[k].until>t?{left:A[k].until-t,dur:A[k].dur}:null;
  const a={gy:p._gy||8,fx:p.f||1,moving:!!p.mv,atk:s('atk'),haste:s('haste'),hot:s('hot')};
- return a.atk||a.haste||a.hot?a:null;
+ let any=a.atk||a.haste||a.hot;
+ for(const k of TREE_AURAS){a[k]=s(k);if(a[k])any=true;}   /* 🌳 a peer's wings, avatar, lion, walls and spirits */
+ return any?a:null;
 }
 function drawMpGhosts(){
  if(!(mp.on&&mp.started))return;
@@ -3458,20 +3460,27 @@ const goldPrestigeMul=()=>1+(S.prestige||0)*0.08;
 const farmBonus=()=>{if(!(S&&S.farm&&S.farm.owned))return 0;const l=S.farm.lvl||1;return l>=3?0.15:l===2?0.10:0.05;};
 const goldZoneMul=z=>1+((z&&z.lvl)||1)/60*1.25;
 const goldLvlMul=()=>1+(((S&&S.lvl)||1)-1)*0.012;
-const mobGold=(z,mul=1)=>Math.max(1,Math.round((8+((z&&z.lvl)||1)*3.2)*goldZoneMul(z)*goldLvlMul()*goldPrestigeMul()*(1+farmBonus())*mul));
+const mobGold=(z,mul=1)=>Math.max(1,Math.round((8+((z&&z.lvl)||1)*3.2)*goldZoneMul(z)*goldLvlMul()*goldPrestigeMul()*(1+farmBonus())*(1+tstat('gold')/100)*mul));   /* 🌳 Fortune */
 /* potion prices are fixed for now - no level/prestige scaling */
 const potCost=k=>20;
 const POT_CAP=250; /* max potions of each kind you can carry */
 /* ❄ Ice Armor tree - declared here because the gear caps lean on it */
 const talRank=id=>((S&&S.talents)||{})[id]||0;
-const heroMax=()=>Math.round((classOf().hp+S.lvl*14+gearSum('hp'))*(raceOf().hp||1));
-const manaMax=()=>Math.round(classOf().mana+S.lvl*5);
+/* 🌳 THE SKILL TREE's sums for the hero playing (assets/tree/skill-tree.js): worked out again whenever the hero, the saved tree or
+   a learned talent changes (treeVer) - the stats below and the fight read them through these */
+let treeVer=0,treeC=null,treeS=null,treeR=null,treeW=-1;
+function tv(){if(treeS!==S||treeR!==(S&&S.tree)||treeW!==treeVer){treeS=S;treeR=S&&S.tree;treeW=treeVer;treeC=SkillTree.effects(S&&S.tree,S&&S.cls);}return treeC;}
+const tstat=k=>tv().stat[k]||0;           /* a total the tree adds up: 'hp' in %, 'crit' in points... */
+const ton=k=>tv().on[k]||null;            /* a choice or capstone taken: its numbers, or null */
+const tsp=(i,k)=>(tv().sp[i]||{})[k]||0;  /* what the tree adds to the class's spell i */
+const heroMax=()=>Math.round((classOf().hp+S.lvl*14+gearSum('hp'))*(raceOf().hp||1)*(1+tstat('hp')/100));
+const manaMax=()=>Math.round((classOf().mana+S.lvl*5)*(1+tstat('mana')/100));
 const heroAtk=()=>Math.round((classOf().atk+S.lvl*2.6+gearSum('atk'))*(1+scrollPct('titan'))*(1+((activePet()||{}).atkMul||0))*(1+gearSum('dmgMul')));
 const fkBonus=()=>{const w=S&&S.gear?S.gear.weapon:null;return (isFK(w)&&legendStar(w)>1)?legendStar(w)*2:0;};
 /* Not a fallback: syncFelGlaives sets it.crit to 0, so this +3% is the ONLY crit the glaives
    ever grant - and it lives outside the item, which is why the tooltip never showed it. */
 const fgCrit=()=>{const w=S&&S.gear?S.gear.weapon:null;return isFG(w)&&!(w.crit)?3:0;};
-const heroCrit=()=>classOf().crit+(raceOf().crit||0)+gearSum('crit')+fkBonus()+fgCrit()+((S&&S.gamblerT>0)?2:0)+wornInsc('keen'); /* 📖 Keen Edge */
+const heroCrit=()=>classOf().crit+(raceOf().crit||0)+gearSum('crit')+fkBonus()+fgCrit()+((S&&S.gamblerT>0)?2:0)+wornInsc('keen')+tstat('crit'); /* 📖 Keen Edge · 🌳 the tree's crit */
 /* Every legendary bonus that is applied outside the item's own fields, in one place, so the
    tooltips and the real stats can never drift apart. Returns what to ADD to the printed
    number - see itemStr and renderInspect, which both fold these in rather than trailing a
@@ -3484,7 +3493,7 @@ const zoneOf=()=>ZONES[S.zone];
 const questsOf=()=>zoneQuests(zoneOf());
 const questOf=()=>questsOf()[Math.min(S.quest,questsOf().length-1)];
 const swiftMul=()=>1+scrollPct('swiftness');
-const spellManaCost=sp=>Math.ceil(sp.cost*2); /* spells cost double their base mana */
+const spellManaCost=sp=>treeFreeCast()?0:Math.ceil(sp.cost*2); /* spells cost double their base mana · 🌳 nothing under Archangel's wings */
 const BOOST_BASE_MAX=6;
 const BOOST_PCT_CAP=1.6; /* +160% ceiling for speed */
 const HASTE_PCT_CAP=2.0; /* haste gets one extra level at Prestige 10 → +200% */
@@ -3495,8 +3504,8 @@ const boostBonus=(n,kind)=>n>0?Math.min(boostCap(kind),0.025*Math.pow(2,n-1)):0;
 const boostCost=n=>Math.min(2500*Math.pow(2,n),BOOST_COST_CAP);
 const boostPct=(n,kind)=>(Math.round(boostBonus(n,kind)*1000)/10).toLocaleString();
 const boostAtHardCap=(n,kind)=>boostBonus(n,kind)>=boostCap(kind);
-const speedBoostMul=()=>1+boostBonus(S.boosts?S.boosts.speed:0,'speed');
-const hasteBoostMul=()=>1+boostBonus(S.boosts?S.boosts.haste:0,'haste');
+const speedBoostMul=()=>(1+boostBonus(S.boosts?S.boosts.speed:0,'speed'))*(1+tstat('move')/100);   /* 🌳 Fleet Foot */
+const hasteBoostMul=()=>(1+boostBonus(S.boosts?S.boosts.haste:0,'haste'))*treeHaste();   /* 🌳 Fury, Zeal, Bloodrage */
 function freshState(name,race,cls){
  return {id:null,name,race,cls,lvl:1,xp:0,gold:0,overflow:0,scraps:0,prestige:0,zone:0,lastZone:0,maxZone:0,quest:0,qProg:0,hardcore:false,hcDead:false,gender:'m',
   rating:0,odinKills:0,thorKills:0,thorLock:-1,thorLockWhy:'',bankGold:0,bankScrap:0,bankEarned:0,bankLastT:0,dragonEgg:null,smithLvl:0,smithJob:null,luckPots:0,luckT:0,gamblerPots:0,gamblerT:0,restedT:0,restedPct:0,restedSpinAt:0,freeGoldCases:0,chests:{violethalls:0},mining:{trained:false,skill:0,on:false},ench:{trained:false,skill:0,bag:[]},ore:{coal:0,ore:0,gem:0},cowBest:0,cowLast:0,cowBestItems:0,cowLastItems:0,
@@ -3687,6 +3696,7 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.armorT===undefined)s.armorT=0;
  if(RACE_ALIAS[s.race])s.race=RACE_ALIAS[s.race]; /* old saves used stoneborn/sylvan/gravekin */
  if(CLASS_ALIAS[s.cls])s.cls=CLASS_ALIAS[s.cls]; /* old saves used cleric for Priest */
+ s.tree=SkillTree.normalize(s.tree,s.cls,SkillTree.points(s.prestige));   /* 🌳 the Skill Tree: only talents it knows, each standing on what it needs, within the hero's points */
  if(s.thorLock===undefined)s.thorLock=-1;
  if(s.thorKills===undefined)s.thorKills=0;
  if(s.thorLockWhy===undefined)s.thorLockWhy='';
@@ -7820,22 +7830,24 @@ function healHero(amt,silent){
  hero.hp=Math.min(heroMax(),hero.hp+amt);
  if(!silent)floatAt(hero.x,hero.y-30,'+'+amt,'#7ae08a');
 }
-function hurtHero(dmg,label){
+function hurtHero(dmg,label,foe){   /* foe: who struck, when it is a foe's own blow (the tree's thorns and frost answer it) */
  if(hero.dead)return;
  drawWeapons();   /* 🗡 a blow taken: the weapon comes out */
  /* hidden passive: melee classes (Warrior/Priest) shrug off 60% in the Cow Level - never shown in any UI */
  const cowMelee=zoneOf().cow&&(S.cls==='warrior'||S.cls==='priest')?0.40:1;
  dmg=Math.round(dmg*(1-scrollPct('warding'))*(1-(classOf().armor||0))*(1-(raceOf().armor||0))*(1-((activePet()||{}).armor||0))*(1-Math.min(0.5,gearSum('armor')))*(((S.armorT||0)>0&&zoneOf().amb==='odin')?0.5:1)*cowMelee); /* 🛡 potion: -50% only in the ODIN fight · gear armor capped at 50% */
+ dmg=treeHurt(dmg,foe);if(!(dmg>0))return 0;   /* 🌳 a block or a dodge, a shield, the walls of the tree */
  hero.hp-=dmg;hero.hurt=0.2;
  floatAt(hero.x,hero.y-26,'-'+dmg+(label?' '+label:''),'#ff8a7a');
  bloodAt(hero.x,hero.y-12,6);
- if(hero.hp<=0)heroDies();
+ if(hero.hp<=0&&!treeCheatDeath())heroDies();   /* 🌳 Unyielding, Ice Block, Guardian Spirit */
+ treeAfterHurt(dmg,foe);
  return dmg;
 }
 /* one swing's damage roll: the swing itself, and what a Book of Knowledge adds to it */
 function swingRoll(mul=1){
  let dmg=heroAtk()*(0.9+Math.random()*0.2)*atkMul()*mul,crit=false;
- if(Math.random()*100<heroCrit()){dmg*=1.7;crit=true;}
+ if(Math.random()*100<heroCrit()){dmg*=treeCritMul(null);crit=true;}   /* 🌳 Brutality, Lethal Shots... raise the x1.7 */
  return {dmg:Math.round(dmg),crit};
 }
 function heroSwing(en,c,dmg,crit,label){
@@ -7843,7 +7855,7 @@ function heroSwing(en,c,dmg,crit,label){
  hero.swing=0.22;
  const wr=heroRune();   /* ✨ the weapon's rune swings with it (assets/fx/rune-fx.js) */
  mpAct('swing',{tx:Math.round(en.x),ty:Math.round(en.y),rg:c.ranged?1:0,ar:c.id==='hunter'?1:0,c:c.boltC,...(wr?{wr:wr.id}:{})});
- if(c.ranged){sfx.bolt();bolts.push({x:hero.x,y:hero.y-10,tgt:en,sp:430,dmg,crit,c:c.boltC,basic:true,arrow:c.id==='hunter',label,fx:c.id==='hunter'?'shot':'firebolt',...(wr?{rune:wr.id}:{})});}   /* ✨ fx: the shot's own look (assets/fx) */
+ if(c.ranged){sfx.bolt();const frost=c.id==='mage'&&tstat('boltSlow')>0;bolts.push({x:hero.x,y:hero.y-10,tgt:en,sp:430,dmg,crit,c:frost?'#9fd8ff':c.boltC,basic:true,arrow:c.id==='hunter',label,fx:c.id==='hunter'?'shot':frost?'tree:frostbolt':'firebolt',...(wr?{rune:wr.id}:{})});}   /* 🌳 Frostbolt: the bolt turns to frost */   /* ✨ fx: the shot's own look (assets/fx) */
  else{sfx.swing();if(wr)SpellFx.cast('rune:swing',{x:hero.x,y:hero.y,gy:heroGroundY(),fx:hero.fx||1,tx:en.x,ty:en.y,id:wr.id});landHit(en,dmg,crit,label,true);}
 }
 /* ✨ WEAPON RUNES IN ACTION (2026-10-09, "gör så alla vapen enchants har bättre effekt nu när vi har renare effekts"): the rune on
@@ -7930,6 +7942,7 @@ function landHit(en,dmg,crit,label,basic){
   }
  }
  applyDmg(en,dmg,label,crit);
+ treeOnHit(en,dmg,crit,basic);   /* 🌳 */
  const w=S.gear.weapon;
  const tkR=S.gear&&S.gear.trinket;
  const lsAll=((w&&w.lifesteal)||0)+((tkR&&tkR.lifesteal)||0)+fkBonus()/100+wornInsc('leech')/100; /* 📖 Bloodthirst */
@@ -7940,6 +7953,7 @@ function landHit(en,dmg,crit,label,basic){
 }
 function applyDmg(en,dmg,label,crit){
  if(en.dead||en.hidden)return;
+ dmg=Math.round(dmg*treeFoeMul(en));   /* 🌳 bosses, the wounded, the slowed, a mark... */
  if(S.gear&&isFG(S.gear.weapon)&&en.boss)dmg=Math.round(dmg*(1+(syncFelGlaives(S.gear.weapon).bossDmg||10)/100));
  if(en.boss&&(activePet()||{}).bossDmg)dmg=Math.round(dmg*(1+activePet().bossDmg));
  if(en.boss&&(S.raidT||0)>0)dmg=Math.round(dmg*1.15); /* ⚗️ Potion of Raid */
@@ -7960,11 +7974,12 @@ function applyDmg(en,dmg,label,crit){
 }
 function dealSpell(en,sp){
  mpAct('spell',{tx:Math.round(en.x),ty:Math.round(en.y),c:sp.c||'#7fd0ff',v:sp.vfx||null,f:sp.fx});
- let dmg=heroAtk()*sp.mul*(0.95+Math.random()*0.1)*atkMul(),crit=false;
- if(Math.random()*100<heroCrit()){dmg*=1.7;crit=true;}
+ let dmg=heroAtk()*sp.mul*(0.95+Math.random()*0.1)*atkMul()*treeSpellMul(en,sp),crit=false;   /* 🌳 Execute, Firestarter, Revenge... */
+ if(Math.random()*100<heroCrit()){dmg*=treeCritMul(sp);crit=true;}
  const ex=en.x,ey=en.y,er=en.r||16;   /* where it stands as the spell lands - a kill can take it out of the world */
  landHit(en,Math.round(dmg),crit,sp.n);
- if(SpellFx.hit(sp.fx,{x:ex,y:ey,r:er,crit,sx:hero.x,sy:hero.y}))return;
+ treeSpellHit(en,sp,Math.round(dmg),crit,ex,ey);   /* 🌳 burns, stuns, splashes, a meteor... */
+ if(SpellFx.hit(sp.fx,{x:ex,y:ey,r:er,crit,sx:hero.x,sy:hero.y,k:sp.size||1}))return;
  const v=sp.vfx;
  if(v==='fire')burst(ex,ey-10,'#ff7a2a',14,110,true);
  else if(v==='frost')burst(ex,ey-10,'#a0e0ff',10,80);
@@ -7977,15 +7992,15 @@ function heroGroundY(){const ch=paintedCharacterFrame(S.race,classOf().id,S.gend
 /* the spell going off round the hero (assets/fx), and the same to everyone in the party */
 function spellCastFx(sp,tgt,list){
  const targets=(list||(tgt?[tgt]:[])).map(e=>({x:e.x,y:e.y,r:e.r||16}));
- const o={x:hero.x,y:hero.y,gy:heroGroundY(),fx:hero.fx||1,rad:sp.rad||0,dur:sp.dur||0,cls:classOf().id,tx:tgt?tgt.x:undefined,ty:tgt?tgt.y:undefined,targets};
+ const o={x:hero.x,y:hero.y,gy:heroGroundY(),fx:hero.fx||1,rad:sp.rad||0,dur:sp.dur||0,cls:classOf().id,tx:tgt?tgt.x:undefined,ty:tgt?tgt.y:undefined,targets,k:sp.size||1};   /* k: 🌳 how big the talents make its look */
  SpellFx.cast(sp.fx,{...o,follow:()=>hero.dead?null:{x:hero.x,y:hero.y}});
  mpAct('cast',{f:sp.fx,fx:o.fx,gy:Math.round(o.gy),rad:o.rad,d:o.dur,k:sp.t==='buff'?sp.buff:sp.t==='hot'?'hot':undefined,
-  tx:tgt?Math.round(tgt.x):undefined,ty:tgt?Math.round(tgt.y):undefined,tg:targets.slice(0,6).map(t=>[Math.round(t.x),Math.round(t.y)])});
+  tx:tgt?Math.round(tgt.x):undefined,ty:tgt?Math.round(tgt.y):undefined,tg:targets.slice(0,6).map(t=>[Math.round(t.x),Math.round(t.y)]),sz:o.k>1.01?+o.k.toFixed(2):undefined});
 }
 /* the buffs a hero's aura shows (SpellFx.auras): what is left of each and how long it was cast for */
 function heroAuraState(h,gy){
  const b=h.buff||{},s=(v,dur)=>v&&v.t>0?{left:v.t,dur:v.dur||dur}:null;
- return {gy,fx:h.fx||1,moving:!!h.moving,atk:s(b.atk,10),haste:s(b.haste,6),hot:h.hotT>0?{left:h.hotT,dur:h.hotDur||6}:null};
+ return treeAuraState({gy,fx:h.fx||1,moving:!!h.moving,atk:s(b.atk,10),haste:s(b.haste,6),hot:h.hotT>0?{left:h.hotT,dur:h.hotDur||6}:null});   /* 🌳 and the tree's */
 }
 function nearestEnemyWithin(rng){
  let best=null,bd=rng||1e9;
@@ -7996,13 +8011,14 @@ function cast(i,manual){
  if(TideUI.isBattling())return false;
  if(finalIntroHolds())return false;   /* 🎬 not while the Forsaken One is speaking */
  if(mountRide.id||mountRide.casting){if(manual)stageMsg(inputMode==='pad'?'Dismount with D-pad → before casting.':'Dismount with X before casting.',1000);return false;}   /* the pad's X is a spell */
- const c=classOf(),sp=c.spells[i];
+ const c=classOf(),sp=treeSpell(c.spells[i],i);   /* 🌳 the spell as the hero's talents make it */
  if(hero.dead)return false;
+ if(treeIced()){if(manual)stageMsg('❄ Frozen in the ice',700);return false;}   /* 🌳 Ice Block */
  if(hero.deadWait){if(manual)stageMsg('💀 You are fallen - the seal blocks your magic until the lord dies',1400);return false;}
  if(hero.moving){if(manual)stageMsg('Stand still to cast',700);return false;}
  if(hero.spellCd[i]>0){if(manual)stageMsg('Not ready',700);return false;}
  if(hero.mana<spellManaCost(sp)){if(manual)stageMsg('Not enough mana',700);return false;}
- const rng=c.range+55,ownFx=SpellFx.has(sp.fx);   /* ✨ the spell's own look (assets/fx); the old rings only stand in without one */
+ const rng=heroRange()+55,ownFx=SpellFx.has(sp.fx);   /* ✨ the spell's own look (assets/fx); the old rings only stand in without one · 🌳 Reach */
  let fxTgt=null,fxList=null;
  if(sp.t==='st'||sp.t==='multi'){
   let tgt=hero.target&&!hero.target.dead&&!hero.target.hidden?hero.target:nearestEnemyWithin(260);
@@ -8010,13 +8026,14 @@ function cast(i,manual){
   if(dist(hero,tgt)>rng){if(manual){hero.target=tgt;stageMsg('Closing in…',700);}return false;}
   hero.target=tgt;hero.mana-=spellManaCost(sp);hero.spellCd[i]=sp.cd;hero.swing=0.24;fxTgt=tgt;
   if(sp.t==='st'){
-   if(c.ranged){const bc=sp.vfx==='fire'?'#ff7a2a':sp.vfx==='holy'?'#ffe9a0':'#c9a0ff';bolts.push({x:hero.x,y:hero.y-10,tgt,sp:470,dmg:0,spell:sp,arrow:c.id==='hunter',c:bc,fx:sp.fx});mpAct('boltfx',{tx:Math.round(tgt.x),ty:Math.round(tgt.y),ar:c.id==='hunter'?1:0,c:bc,f:sp.fx});}
+   if(treeCastSt(sp,tgt,c)){}   /* 🌳 a beam, Penance or Double Strike: the talent cast it */
+   else if(c.ranged){const bc=sp.vfx==='fire'?'#ff7a2a':sp.vfx==='holy'?'#ffe9a0':'#c9a0ff';bolts.push({x:hero.x,y:hero.y-10,tgt,sp:sp.pyro?330:470,dmg:0,spell:sp,arrow:c.id==='hunter',c:bc,fx:sp.fx,big:sp.size});mpAct('boltfx',{tx:Math.round(tgt.x),ty:Math.round(tgt.y),ar:c.id==='hunter'?1:0,c:bc,f:sp.fx});treeTwinBolt(sp,tgt,c,bc);}
    else dealSpell(tgt,sp);
    if(sp.heal)healHero(heroMax()*sp.heal);
   }else{
    const list=enemies.filter(e=>!e.dead&&!e.hidden&&dist(hero,e)<=rng).sort((a,b)=>dist(hero,a)-dist(hero,b)).slice(0,sp.hits);
    fxList=list;
-   list.forEach((t,k)=>{
+   if(!treeCastMulti(sp,tgt,list,c))list.forEach((t,k)=>{   /* 🌳 a blizzard, ice lances or a beam take the place of the missiles */
     if(c.ranged)setTimeout(()=>{if(!t.dead&&!t.hidden&&enemies.includes(t)){bolts.push({x:hero.x,y:hero.y-10,tgt:t,sp:470,dmg:0,spell:sp,arrow:c.id==='hunter',c:sp.vfx==='arrow'?'#cfe8a0':'#c9a0ff',fx:sp.fx,k});mpAct('boltfx',{tx:Math.round(t.x),ty:Math.round(t.y),ar:c.id==='hunter'?1:0,c:sp.vfx==='arrow'?'#cfe8a0':'#c9a0ff',f:sp.fx});}},k*90);
     else dealSpell(t,sp);
    });
@@ -8028,16 +8045,19 @@ function cast(i,manual){
   if(!ownFx)ring(hero.x,hero.y-6,sp.rad,sp.vfx==='frost'?'#a0e0ff':sp.vfx==='holy'?'#ffe9a0':'#ffd76a',0.5);
   list.forEach(t=>{dealSpell(t,sp);if(sp.slow)t.slowT=Math.max(t.slowT,sp.slow);});
   if(sp.heal)healHero(heroMax()*sp.heal);
+  treeCastAoe(sp,list);   /* 🌳 */
  }else if(sp.t==='buff'){
   hero.mana-=spellManaCost(sp);hero.spellCd[i]=sp.cd;
   hero.buff[sp.buff]={mul:sp.val,t:sp.dur,dur:sp.dur};
   if(!ownFx)ring(hero.x,hero.y-6,60,'#ffd76a',0.6);
   floatAt(hero.x,hero.y-32,sp.n+'!','#ffd76a',true);
+  treeCastBuff(sp);   /* 🌳 */
  }else if(sp.t==='hot'){
   hero.mana-=spellManaCost(sp);hero.spellCd[i]=sp.cd;
   hero.hotT=sp.dur;hero.hotDur=sp.dur;hero.hotAmt=sp.hot;
   if(!ownFx)sparkles(hero.x,hero.y-14,'#8ae08a',10);
   floatAt(hero.x,hero.y-32,'Renew','#8ae08a',true);
+  treeCastBuff(sp);   /* 🌳 */
  }
  drawWeapons();   /* 🗡 */
  spellCastFx(sp,fxTgt,fxList);
@@ -8050,7 +8070,7 @@ function usePot(kind,manual){
  if(hero.potCd[kind]>0){if(manual)stageMsg('Not ready',700);return;}
  S.pots[kind]--;hero.potCd[kind]=8;
  sfx.potion();mpAct('potion',{c:kind==='hp'?'#ff8a8a':'#8fa8ef'});
- if(kind==='hp'){healHero(heroMax()*0.45);sparkles(hero.x,hero.y-10,'#ff8a8a',8);}
+ if(kind==='hp'){healHero(heroMax()*0.45*(1+((ton('herbalist')||{}).potion||0)));   /* 🌳 Herbalist */sparkles(hero.x,hero.y-10,'#ff8a8a',8);}
  else{hero.mana=Math.min(manaMax(),hero.mana+manaMax()*0.6);floatAt(hero.x,hero.y-30,'+Mana','#8fa8ef');sparkles(hero.x,hero.y-10,'#8fa8ef',8);}
  save();
 }
@@ -8067,6 +8087,7 @@ function killEnemy(en){
  const r=raceOf();
  if(r.leech)healHero(heroMax()*r.leech,true);
  if(hasEnch('reaper'))healHero(heroMax()*scrollPct('reaper'),true);
+ if(tstat('killHeal'))healHero(heroMax()*tstat('killHeal')/100,true);   /* 🌳 Survivalist */
  if(en.dungeon){
   const reward=WastelandDungeons.defeat(en);
   if(hero.target===en)hero.target=null;
@@ -8863,7 +8884,7 @@ const PAD_PANELS=['confirmFx','cityWonFx','enchCraftFx','outfitFx', /* the small
  'hcDeathOv','renameOv','prestigeConfirm','hcConfirm', /* the boxes built in script (80-85): unlisted, the d-pad walked the page hidden behind them and A pressed it */
  'cfgBox','iceReqMsg','iceMsg','gateMsg','cryptIntro','ritualBox','altarMsg','raidModal','mpLobby', /* Settings is drawn above the tables and the boxes after it (z 78) */
  'tideHub','tideBattleFx','finalGateFx','sebbeFx','gvbFx','rtbFx','rouFx','bjFx','seaBuyFx','seaFx','slotFx','casinoMenu', /* the Extra Spin box before its machine: while it asks, the d-pad reaches its YES and NO, not Auto under it */
- 'chestFx','sharkFx','ritualDoneFx','ritualFx','talentFx','smithFx','smithMenu','bankFx',
+ 'chestFx','sharkFx','ritualDoneFx','ritualFx','talentFx','treeFx','smithFx','smithMenu','bankFx',
  'restFx','fishhutMenu','mineFx','smeltFx','enchFx','ledgerFx','boardFx','voyageFx','mercFx','dragonFx','stableFx','farmCheckoutFx','farmBuyFx','farmDelFx',
  'lbFx','create','select','login'];   /* the screens around the game last: nothing else is up while they are */
 /* 🎒 the side panel is a menu too, once the pad has stepped into it (View, or LB/RB): it answers after every window and box,
@@ -9173,7 +9194,7 @@ function padInteract(){
 /* B backs out. Nearly every panel names its own close button <id>Close, which is enough on its
    own; the handful that do not are listed here rather than guessed at, because a B press that
    silently does nothing is worse than no binding at all. */
-const PAD_BACK={sebbeFx:'sebbeClose',finalGateFx:'finalGateNo',casinoMenu:'casinoMenuClose',
+const PAD_BACK={treeFx:'treeClose',sebbeFx:'sebbeClose',finalGateFx:'finalGateNo',casinoMenu:'casinoMenuClose',
  confirmFx:'cfNo',outfitFx:'outfitOfferLater',iceReqMsg:'iceReqOk',iceMsg:'iceMsgOk',gateMsg:'gateMsgOk',cryptIntro:'cryptIntroOk',
  cfgBox:'cfgClose',slotFx:'slotClose',bjFx:'bjClose',rouFx:'rouClose',rtbFx:'rtbClose',
  seaFx:'seaClose',gvbFx:'gvbLeave',   /* the duel calls its exit Leave, not Close */
@@ -9346,6 +9367,7 @@ window.addEventListener('keydown',e=>{
   }
   return;
  }
+ if(gameOn&&S&&kl==='escape'&&treeUI.isOpen()&&!$('cfgBox').classList.contains('open')&&!$('confirmFx')?.getClientRects().length){e.preventDefault();treeUI.close();return;}   /* 🌳 */
  if(gameOn&&S&&kl==='escape'&&TideUI.storageOpen()&&!TideUI.modalOpen()&&!$('cfgBox').classList.contains('open')){e.preventDefault();document.activeElement?.blur();TideUI.storageBack();return;}
  if(TideUI.modalOpen()&&!TideUI.isBattling()){if(kl==='escape'){e.preventDefault();TideUI.closeHub();}return;}
  if(TideUI.isBattling()){
@@ -9984,7 +10006,7 @@ function autoBrain(dt){
  // aoe when surrounded - or when a boss stands inside it (a lone boss used to get no Whirlwind, Frost Nova or Holy Nova)
  c.spells.forEach((sp,i)=>{
   if(!autoOn('s'+i)||sp.t!=='aoe')return;
-  const near=enemies.filter(e=>!e.dead&&!e.hidden&&dist(hero,e)<=sp.rad);
+  const near=enemies.filter(e=>!e.dead&&!e.hidden&&dist(hero,e)<=treeSpell(sp,i).rad);   /* 🌳 as wide as the talents make it */
   if(near.length>=2||near.some(e=>e.boss))cast(i);
  });
  // buffs vs boss or packs
@@ -10154,7 +10176,7 @@ function update(dt){
 for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
  // mana regen (faster out of combat)
  const inCombat=hero.target||enemies.some(e=>!e.dead&&e.state==='chase');
- hero.mana=Math.min(manaMax(),hero.mana+(2+S.lvl*0.15)*(1+scrollPct('clarity'))*(inCombat?1:2.4)*dt);
+ hero.mana=Math.min(manaMax(),hero.mana+(2+S.lvl*0.15)*(1+scrollPct('clarity'))*(1+tstat('regen')/100)*(inCombat?1:2.4)*dt);   /* 🌳 Wisdom */
  if(zoneOf().tavern&&!hero.dead){
   hero.hp=Math.min(heroMax(),hero.hp+heroMax()*0.08*dt);
   hero.mana=Math.min(manaMax(),hero.mana+manaMax()*0.12*dt);
@@ -10175,6 +10197,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
  {const was=mountRide.id;Mounts.tick(mountRide,S,{zone:zoneOf(),hero,paused:gamePaused},dt);if(!was&&mountRide.id)setHolster(true,true);}   /* 🗡 in the saddle the weapon goes on the back */
  updateMountButton();
  // ----- hero -----
+ if(!hero.dead)treeTick(dt);   /* 🌳 shields, heals over time, the zones, the hawk, the rain of arrows - and Ice Block's three seconds */
  if(hero.dead){
   hero.deadT+=dt;
   if(hero.deadT>3){
@@ -10193,7 +10216,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    }
    return;
   }
- }else if(!hallSceneHolds()&&!mountRide.casting&&!TideUI.modalOpen()&&!casinoWinOpen()&&$('stableFx').style.display!=='flex'&&$('voyageFx').style.display!=='flex'&&$('mercFx').style.display!=='flex'&&$('dragonFx').style.display!=='flex'&&!mineTick(dt)){ /* a word from the Hand, mounting, venue menus, a casino window and mining keep the hero still - keys held under a table walked him into the Altar portal unseen */
+ }else if(!hallSceneHolds()&&!mountRide.casting&&!TideUI.modalOpen()&&!casinoWinOpen()&&$('stableFx').style.display!=='flex'&&$('voyageFx').style.display!=='flex'&&$('mercFx').style.display!=='flex'&&$('dragonFx').style.display!=='flex'&&!treeIced()&&!mineTick(dt)){ /* a word from the Hand, mounting, venue menus, a casino window and mining keep the hero still - keys held under a table walked him into the Altar portal unseen */
   if(holdMove){ /* finger still pressed - refresh the walk target to wherever it is now */
    const hr=cv.getBoundingClientRect();
    const hx=(holdMove.cx-hr.left)/zoom+camX,hy=(holdMove.cy-hr.top)/zoom+camY;
@@ -10367,7 +10390,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   }
   if(hero.target&&!hero.target.dead&&!hero.target.hidden){
    const d=dist(hero,hero.target);
-   if(d>c.range){if(!(kx||ky)&&!hero.moveTo&&!hero.goPortal)moveToward(hero,hero.target.x,hero.target.y,dt);}
+   if(d>heroRange()){if(!(kx||ky)&&!hero.moveTo&&!hero.goPortal)moveToward(hero,hero.target.x,hero.target.y,dt);}   /* 🌳 Reach */
    else{
     hero.fx=(hero.target.x-hero.x)/d||1;hero.fy=(hero.target.y-hero.y)/d||0;
     if(hero.moving)hero.cd=Math.max(0,hero.cd-dt*hasteMul()); /* strafing: cooldown ticks, no shots */
@@ -10444,6 +10467,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    else{en.x+=(en.netX-en.x)*kk;en.y+=(en.netY-en.y)*kk;}
   }
   if(en.slowT>0)en.slowT-=dt;
+  if(treeFoe(en,dt))continue;   /* 🌳 frozen or stunned: it stands; a burn, a mark, a bomb tick on */
   if(en.cow&&!en.dead){
    en.age+=dt;
    en.flankT-=dt; /* re-roll the flank point now and then so the herd weaves */
@@ -10451,7 +10475,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   }
   if(en.dungeon){
    WastelandDungeons.updateEnemy(en,dt,hero,{moveToward,hurtHero:(amount,label,foe,melee)=>{
-    const dmg=hurtHero(amount);sfx.hit();if(melee)bossSlam(foe);   /* 🐉 a guardian's club lands with its dungeon's look */
+    const dmg=hurtHero(amount,undefined,melee?foe:null);sfx.hit();if(melee)bossSlam(foe);   /* 🐉 a guardian's club lands with its dungeon's look */
     if(melee&&hasEnch('thorns')&&!foe.dead){const n=Math.max(1,Math.round(dmg*scrollPct('thorns')));if(!mpGuestRaidHit(foe,n))foe.hp-=n;floatAt(foe.x,foe.y-30,n+'','#9adf9a');if(foe.hp<=0)killEnemy(foe);}
     return dmg;
    },
@@ -10493,7 +10517,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
      en.cd-=dt;
      if(en.cd<=0){
       en.cd=1.15;en.swing=0.2;
-      const dmg=hurtHero(en.atk*(0.85+Math.random()*0.3));
+      const dmg=hurtHero(en.atk*(0.85+Math.random()*0.3),undefined,en);
       sfx.hit();
       if(hasEnch('thorns')&&!en.dead){const t=Math.max(1,Math.round(dmg*scrollPct('thorns')));if(!mpGuestRaidHit(en,t))en.hp-=t;floatAt(en.x,en.y-en.r-14,t+' 🌵','#9adf9a');if(en.hp<=0)killEnemy(en);}
      }
@@ -10504,7 +10528,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
      en.cd-=dt;
      if(en.cd<=0){
       en.cd=en.atkCd||(en.boss?1.5:1.15);en.swing=0.2;
-      const dmg=hurtHero(en.atk*(0.85+Math.random()*0.3)*(en.meleeMul||1));
+      const dmg=hurtHero(en.atk*(0.85+Math.random()*0.3)*(en.meleeMul||1),undefined,en);
       sfx.hit();bossSlam(en);   /* 🐉 */
       if(hasEnch('thorns')&&!en.dead){const t=Math.max(1,Math.round(dmg*scrollPct('thorns')));if(!mpGuestRaidHit(en,t))en.hp-=t;floatAt(en.x,en.y-en.r-14,t+' 🌵','#9adf9a');if(en.hp<=0&&!(mp.on&&mp.started&&!mp.host&&en.raid))killEnemy(en);}
      }
@@ -10516,7 +10540,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
      /* a raid lord swinging at a teammate hits the teammate, on the teammate's screen: this hero is only hurt if it is the
         target or stands within the swing. Every raider used to take every swing, wherever they stood. */
      if(en.raid&&TMove!==hero&&Math.hypot(en.x-hero.x,en.y-hero.y)>30+en.r+14)continue;
-     const dmg=hurtHero(en.atk*(0.85+Math.random()*0.3)*(en.meleeMul||1)); /* meleeMul: swings only, abilities keep their own scaling */
+     const dmg=hurtHero(en.atk*(0.85+Math.random()*0.3)*(en.meleeMul||1),undefined,en); /* meleeMul: swings only, abilities keep their own scaling */
      sfx.hit();bossSlam(en);   /* 🐉 a boss's blow lands with its own look */
      if(hasEnch('thorns')&&!en.dead){const t=Math.max(1,Math.round(dmg*scrollPct('thorns')));if(!mpGuestRaidHit(en,t))en.hp-=t;floatAt(en.x,en.y-en.r-14,t+' 🌵','#9adf9a');if(en.hp<=0&&!(mp.on&&mp.started&&!mp.host&&en.raid))killEnemy(en);}
     }
@@ -11067,6 +11091,7 @@ function draw(){
  }
  for(const en of enemies)drawables.push({y:en.y,f:()=>drawEnemy(en)});
  if(hero)drawables.push({y:hero.y,f:drawHero});
+ if(hero&&!hero.dead&&ton('hawk'))drawables.push({y:hero.y+1,f:drawTreeHawk});   /* 🦅 */
  if(padNear)drawables.push({y:hero.y+1,f:()=>drawPadPrompt(padNear)});
  if(mp.on&&mp.started)for(const k in mp.peers){const p=mp.peers[k];if(p&&Date.now()-(p.t||0)<=6000)drawables.push({y:(p._y!==undefined?p._y:(p.y||hero.y)),f:()=>drawMpGhost(k,p)});}
  if(pet&&(activePet()||TideUI.visibleCompanion()))drawables.push({y:pet.y,f:drawPet});
@@ -12506,6 +12531,7 @@ function drawHero(){
  const h=hero;if(h.dead&&h.deadT>0.7)return;
  const r=raceOf(),c=classOf(),now=performance.now()/1000;
  ctx.save();ctx.translate(h.x,h.y);
+ {const ava=h.dead?1:treeAvatarScale();if(ava!==1){ctx.translate(0,8);ctx.scale(ava,ava);ctx.translate(0,-8);}}   /* 🌳 Avatar of War: he grows from his feet */
  ctx.globalAlpha=h.dead?Math.max(0,1-h.deadT*1.6):1;
  if(h.dead)ctx.rotate(Math.min(1.5,h.deadT*3));
  const riding=!h.dead&&mountRide.id&&Mounts.allowed(zoneOf());
@@ -12986,6 +13012,7 @@ function drawEnemy(en){
   ctx.strokeStyle='rgba(255,215,106,0.9)';ctx.lineWidth=1.5;
   ctx.beginPath();ctx.arc(0,-2,en.r+7,0,7);ctx.stroke();
  }
+ if(!en.dead)treeDrawFoe(en,lblY+by,now);   /* 🌳 */
  ctx.restore();
 }
 function drawMiniBar(x,y,w,pct,c){
@@ -13410,8 +13437,12 @@ function gearSwapTo(i){
  stageMsg('⚔ Set '+(i+1)+' equipped!',1600);
  sfx.loot();renderHero();renderBag();renderHUD();save();
 }
+/* 🗂 the Hero panel's cards under headings of their own, as Professions has one (2026-10-10, "kategorisera alla dom här ... Tides,
+   sen ledger, sen wardrobe och Skills"): a heading only stands over a card that is there - no lasso, no Tides; no office, no Ledger */
+const HERO_GROUPS=[['tidesTitle','tideStorageEntry'],['ledgerGroupTitle','ledgerEntry'],['wardrobeTitle','outfitEntry'],['skillsTitle','treeEntry']];
+function heroGroups(){for(const [t,e] of HERO_GROUPS){const h=$(t),c=$(e);if(h&&c)h.style.display=c.children.length?'':'none';}}
 function renderHero(){
- TideUI.entry();ledgerEntry();outfitEntry();
+ TideUI.entry();ledgerEntry();treeEntry();outfitEntry();heroGroups();
  const c=classOf(),r=raceOf();
  /* 🎩 the style before the name: a crowned head is King or Queen (Emperor or Empress with all five abroad), a peer wears the rank (one name to a rank, as everywhere else), a commoner nothing */
  const style=S.city&&S.city.crowned?cityTitle():S.city&&S.city.noble&&S.city.noble.rank>0?nobleTitle():'';
@@ -13549,10 +13580,10 @@ function renderHero(){
    </div>`;
   }
  }else $('prestigeSec').innerHTML='';
- $('spellList').innerHTML=c.spells.map(sp=>`
+ $('spellList').innerHTML=c.spells.map((sp0,i)=>{const sp=treeSpell(sp0,i),note=treeSpellNote(sp0,i);return `
   <div class="card spellcard"><div class="spellg">${spellGlyph(sp)}</div>
-  <div><div class="sn" style="color:var(--parch);font-size:13px">${sp.n} <span style="color:var(--mp);font-size:10px">${spellManaCost(sp)} mana · ${sp.cd}s</span></div>
-  <div class="ss" style="color:var(--dim);font-size:11px">${sp.d}</div></div></div>`).join('');
+  <div><div class="sn" style="color:var(--parch);font-size:13px">${sp.n} <span style="color:var(--mp);font-size:10px">${spellManaCost(sp)} mana · ${+sp.cd.toFixed(2)}s</span></div>
+  <div class="ss" style="color:var(--dim);font-size:11px">${sp.d}</div>${note?`<div class="ss" style="color:#ffd76a;font-size:11px">🌳 ${note}</div>`:''}</div></div>`;}).join('');   /* 🌳 */
  /* Professions get their own heading under the spellbook. Written as a list rather than as one
     hard-coded Mining block so Enchanting drops in beside it with a single entry once the Enchanting
     Hall teaches anything - the heading, the empty case and the row markup are already handled.
@@ -17099,6 +17130,623 @@ function renderTalents(){
 }
 function openTalents(){$('talentFx').style.display='flex';renderTalents();$('talentInfo').innerHTML='Hover a talent to read it.';}
 $('talentClose').onclick=()=>$('talentFx').style.display='none';
+/* ==================== 🌳 SKILL TREE ====================
+   One point per prestige up to P40, spent in the class's own tree (assets/tree/skill-tree.js holds the trees and their rules,
+   assets/tree/tree-ui.js draws the window). The Hero panel's card above Outfits opens it. The fight reads what the tree adds up
+   to through tstat / ton / tsp (by the stats), treeSpell (a spell as its talents make it) and the tree hooks of the fight.
+   Nothing is learned or reset in a boss fight. The Ice Armor tree above is another thing: its point comes from the Forsaken One. */
+const TREE_ICON=id=>'assets/tree/icons/'+id+'.jpg';   /* painted squares, edge to edge: no alpha, so JPEG */
+const TREE_EMBLEM={warrior:{def:'guardian',off:'berserker'},mage:{def:'frostwarden',off:'pyromancer'},hunter:{def:'warden',off:'marksman'},priest:{def:'sanctuary',off:'zealot'}};
+const treeLocked=()=>inBossFight()?SkillTree.RESET_LOCK:'';
+const treeUI=SkillTreeUI.create({tree:SkillTree,iconUrl:TREE_ICON,
+ get:()=>{
+  if(!S||!SkillTree.TREES[S.cls])return null;
+  const t=SkillTree.TREES[S.cls],em=TREE_EMBLEM[S.cls];
+  return {state:S.tree||(S.tree={}),cls:S.cls,className:classOf().name.toUpperCase(),prestige:S.prestige||0,locked:treeLocked(),touch:IS_TOUCH,
+   sides:{def:{...t.sides.def,emblem:em.def},off:{...t.sides.off,emblem:em.off}}};
+ },
+ onLearn:(id,opt)=>treeLearn(id,opt),
+ onReset:done=>confirmBox('Reset the skill tree? Every point comes back.',()=>{treeReset();done();}),
+ say:t=>{stageMsg(t,1500);sfx.warn();}});
+function treeLearn(id,opt){
+ if(!S)return;
+ const r=SkillTree.learn(S.tree||(S.tree={}),S.cls,id,opt,SkillTree.points(S.prestige));
+ if(!r.ok){stageMsg(r.why,1500);sfx.warn();return;}
+ treeVer++;treeAfter();
+ const n=SkillTree.node(S.cls,id),name=n.opts?n.opts.find(o=>o.id===opt).n:n.n,max=SkillTree.maxOf(n);
+ sfx.level();stageMsg('🌳 '+name+(max>1?' '+SkillTree.rank(S.tree,id)+'/'+max:'')+' learned',1500,'#ffd76a');
+ save();
+}
+function treeReset(){
+ if(!S)return;
+ if(treeLocked()){stageMsg(treeLocked(),1500);sfx.warn();return;}
+ SkillTree.reset(S.tree||(S.tree={}));treeVer++;treeAfter();treeTimersReset();
+ stageMsg('🌳 The tree is reset - every point is back',1800,'#ffd76a');save();
+}
+function treeAfter(){   /* what a learned or returned talent changes at once: health and mana over a new max, the card, the bars */
+ if(hero){hero.hp=Math.min(hero.hp,heroMax());hero.mana=Math.min(hero.mana,manaMax());}
+ treeEntry();renderHUD();
+ if($('p-hero').classList.contains('open'))renderHero();
+}
+function treeEntry(){
+ const host=$('treeEntry');if(!host||!S)return;
+ const pts=SkillTree.points(S.prestige),spent=SkillTree.spent(S.tree),left=pts-spent;
+ host.innerHTML='<button class="card tide-entry" id="treeButton" title="One point for every prestige, up to 40"><img class="tide-entry-icon" src="'+TREE_ICON('tree')+'" alt="" aria-hidden="true" draggable="false"><span>Skill Tree <small>· '
+  +(!pts?'from Prestige 1':left>0?'<b class="tree-entry-pts">'+left+' to spend</b>':spent+' / '+pts+' points')+'</small></span></button>';
+ $('treeButton').onclick=()=>openTree();
+}
+function openTree(){if(S)treeUI.open();}
+function treeHaste(){   /* 🌳 Fury and Zeal, and Bloodrage while Battle Shout lasts */
+ let m=1+tstat('haste')/100;
+ const br=ton('bloodrage');
+ if(br&&typeof hero!=='undefined'&&hero&&hero.buff&&hero.buff.atk&&hero.buff.atk.t>0)m*=1+br.haste;
+ return m;
+}
+/* ---- 🌳 THE TREE IN THE FIGHT ----
+   The tree's running state for the hero playing - shields, what a talent leaves on, its cooldowns - lives with the hero's state, not
+   with a zone's hero, so a portal resets none of it. Every number is the tree's (assets/tree/skill-tree.js; ton(...) holds a
+   choice's or a capstone's). Hardcore keeps the same cooldowns as normal (asked 2026-10-10). */
+let treeTS=null,treeTT=null;
+function TT(){
+ if(treeTS!==S){treeTS=S;treeTT={shield:0,shieldT:0,wallT:0,spinT:0,embraceT:0,undyingT:0,undyingDur:0,iceT:0,deterT:0,survT:0,survRate:0,wingsT:0,
+  enrageT:0,revenge:false,vengeance:false,critRow:0,fireballs:0,smites:0,cd:{},hawk:{t:1.5,a:0,dive:null},rainT:0,zones:[],heal:0,mendAt:0};}
+ return treeTT;
+}
+function treeTimersReset(){treeTS=null;}
+const treeClock=()=>performance.now()/1000;
+const treeReady=k=>(TT().cd[k]||0)<=treeClock();
+const treeUse=(k,s)=>{TT().cd[k]=treeClock()+s;};
+const treeShoutOn=()=>!!(hero&&hero.buff&&hero.buff.atk&&hero.buff.atk.t>0);
+const treeRapidOn=()=>!!(hero&&hero.buff&&hero.buff.haste&&hero.buff.haste.t>0);
+const treeRenewOn=()=>!!(hero&&hero.hotT>0);
+/* a class spell as the hero's talents make it: its numbers (damage bonuses add up; the spell's own cooldown cut and Focus add up and
+   stop at -30%), how big its look is, and what it has become. cast() and AUTO read this; a projectile carries it to its landing */
+function treeSpell(sp,i){
+ if(!S||!sp)return sp;
+ const t=tv(),s=t.sp[i]||{},c=classOf(),on=t.on,o={...sp,_i:i};
+ if(sp.mul!==undefined)o.mul=sp.mul*(1+(s.dmg||0)/100);
+ if(sp.cd){const cut=Math.min(SkillTree.CD_CUT_MAX,(s.cd||0)/sp.cd+tstat('cdr')/100);o.cd=sp.cd*(1-cut);}
+ if(sp.rad)o.rad=sp.rad*(1+((s.rad||0)+(c.ranged?0:tstat('reach')))/100);
+ if(sp.slow)o.slow=sp.slow+(s.slow||0);
+ if(sp.hits)o.hits=sp.hits+(s.hits||0);
+ if(sp.dur)o.dur=sp.dur+(s.dur||0);
+ if(sp.val)o.val=sp.val+(s.val||0)/100;
+ if(sp.heal)o.heal=sp.heal*(1+(s.heal||0)/100);
+ o.size=1+(s.size||0)/100;
+ o.dot=(s.dot||0)/100;
+ if(c.id==='mage'&&i===0&&on.pyroblast){const p=on.pyroblast;o.mul*=p.mul;o.cd+=p.cd;o.size*=p.size;o.pyro=p;}
+ return o;
+}
+/* the reach of the hero's attacks and spells: Reach, Long Shots and Hawkeye, and Owl Spirit while Rapid Fire lasts */
+function heroRange(){
+ const c=classOf();let pct=tstat('reach');
+ const owl=ton('owlspirit');if(owl&&treeRapidOn())pct+=owl.range*100;
+ return c.range*(1+pct/100);
+}
+/* what the talents add when a spell lands on en, as one more multiplier: the bonuses that hang on the spell itself */
+function treeSpellMul(en,sp){
+ if(!S||!sp||sp._i===undefined)return 1;
+ const on=tv().on,T=TT(),c=classOf().id,i=sp._i,hp=en.hp/Math.max(1,en.max||en.hp);
+ let add=0;
+ if(c==='warrior'&&i===0){
+  if(on.execute&&hp<on.execute.at)add+=on.execute.mul;
+  if(on.revenge&&T.revenge&&!sp._twin){add+=on.revenge.mul;T.revenge=false;}
+ }
+ if(c==='mage'&&i===0&&on.firestarter&&hp>on.firestarter.at)add+=on.firestarter.mul;
+ if(c==='hunter'&&i===0&&hp>.7)add+=tstat('carefulAim')/100;
+ if(c==='priest'&&i===0&&on.vengeance&&T.vengeance&&!sp._pen){add+=on.vengeance.mul;T.vengeance=false;}
+ return 1+add;
+}
+/* what the talents add to every blow the hero lands on en (by applyDmg): bosses, distance, wounded or slowed or burning foes, a mark,
+   Enrage and the Avatar */
+function treeFoeMul(en){
+ if(!S||!en)return 1;
+ const on=tv().on,T=TT();let add=0;
+ if(on.killer&&en.boss)add+=on.killer.mul;
+ if(on.sniper&&hero&&dist(hero,en)>on.sniper.at)add+=on.sniper.mul;
+ if(on.wrathful&&en.hp<(en.max||en.hp)*on.wrathful.at)add+=on.wrathful.mul;
+ if(en.slowT>0||en.frozenT>0)add+=tstat('vsSlowed')/100;
+ if(en.burnT>0)add+=tstat('vsBurning')/100;
+ if(on.enrage&&T.enrageT>0)add+=on.enrage.mul;
+ if(on.avatar&&treeShoutOn())add+=on.avatar.mul;
+ if(en.markT>0)add+=en.markMul||0;
+ return 1+add;
+}
+/* the crit's x1.7, raised by Brutality, Combustion (fire only), Lethal Shots and Divine Purpose. sp null: a basic attack */
+function treeCritMul(sp){
+ const on=tv().on;let add=0;
+ if(on.brutality)add+=on.brutality.critDmg;
+ if(on.lethalshots)add+=on.lethalshots.critDmg;
+ if(on.purpose)add+=on.purpose.critDmg;
+ if(on.combustion&&(sp?sp.vfx==='fire':classOf().id==='mage'&&!tstat('boltSlow')))add+=on.combustion.critDmg;
+ return 1.7+add/100;
+}
+/* healing that comes in drips (regeneration, wings, a heal over time) is gathered until a whole point is there */
+function treeHeal(v){const T=TT();T.heal+=v;if(T.heal>=1){const n=Math.floor(T.heal);T.heal-=n;healHero(n,true);}}
+function treeShield(amount,dur){const T=TT();T.shield=Math.max(T.shield,Math.round(amount));T.shieldT=Math.max(T.shieldT,dur);}
+/* damage a talent itself deals (a meteor, a zone, the hawk): a spell's roll with the hero's crit, as a blow of the hero's */
+function treeHitFoe(e,raw,label){
+ if(!e||e.dead||e.hidden)return 0;
+ let d=raw*(0.95+Math.random()*0.1)*atkMul(),crit=false;
+ if(Math.random()*100<heroCrit()){d*=treeCritMul(null);crit=true;}
+ d=Math.round(d);
+ if(mpGuestRaidHit(e,d))return d;
+ applyDmg(e,d,label,crit);
+ return d;
+}
+const treeNear=(x,y,r,not)=>enemies.filter(e=>e!==not&&!e.dead&&!e.hidden&&Math.hypot(e.x-x,e.y-y)<=r);
+/* the foes along a line from the hero: within half a width of it, out to len, nearest first */
+function treeLine(x,y,ux,uy,len,w){
+ const out=[];
+ for(const e of enemies){
+  if(e.dead||e.hidden)continue;
+  const dx=e.x-x,dy=(e.y-10)-y,along=dx*ux+dy*uy;
+  if(along<-10||along>len)continue;
+  if(Math.abs(dx*uy-dy*ux)<=w/2+(e.r||14))out.push([along,e]);
+ }
+ return out.sort((a,b)=>a[0]-b[0]).map(p=>p[1]);
+}
+/* --- the damage the hero takes: avoided, deflected, made smaller, soaked by a shield or by mana --- */
+function treeDr(foe){   /* always-on reduction and what hangs on a buff or a foe: together at most -25% */
+ const T=TT();let dr=tstat('dr')/100;
+ if(treeShoutOn())dr+=tstat('shoutDr')/100;
+ if(treeRenewOn())dr+=tstat('renewDr')/100;
+ if(foe){if(foe.slowT>0||foe.frozenT>0)dr+=tstat('slowedWeak')/100;if(foe.weakT>0)dr+=foe.weak||0;}
+ return Math.min(SkillTree.DR_MAX,dr);
+}
+function treeBuffDr(){   /* the short walls on top: Shield Wall, Spinning Guard, Light's Embrace, Unbowed, Bear Spirit, Archangel - at most -40% */
+ const on=tv().on,T=TT();let dr=0;
+ if(T.wallT>0&&on.shieldwall)dr+=on.shieldwall.dr;
+ if(T.spinT>0&&on.spinguard)dr+=on.spinguard.dr;
+ if(T.embraceT>0&&on.embrace)dr+=on.embrace.dr;
+ if(on.unbowed&&hero.hp<heroMax()*on.unbowed.at)dr+=on.unbowed.dr;
+ if(on.bearspirit&&treeRapidOn())dr+=on.bearspirit.dr;
+ if(on.archangel&&T.wingsT>0)dr+=on.archangel.dr;
+ return Math.min(.4,dr);
+}
+function treeHurt(dmg,foe){
+ if(!S||!(dmg>0))return dmg;
+ const on=tv().on,T=TT(),cls=classOf().id;
+ if(T.iceT>0){floatAt(hero.x,hero.y-34,'Immune','#bfe8ff');return 0;}
+ if(T.deterT>0){floatAt(hero.x,hero.y-34,'Deflect','#ffe9a0');return 0;}
+ const avoid=Math.min(SkillTree.AVOID_MAX,tstat('avoid')/100);
+ if(avoid>0&&Math.random()<avoid){
+  floatAt(hero.x,hero.y-34,cls==='warrior'?'Block':'Dodge','#ffe9a0');
+  if(cls==='warrior'){if(on.revenge)T.revenge=true;SpellFx.cast('tree:block',{x:hero.x,y:hero.y,gy:heroGroundY(),fx:hero.fx||1});mpAct('cast',{f:'tree:block',fx:hero.fx||1});}
+  else{SpellFx.cast('tree:dodge',{x:hero.x,y:hero.y,gy:heroGroundY(),fx:hero.fx||1});mpAct('cast',{f:'tree:dodge',fx:hero.fx||1});}
+  return 0;
+ }
+ if(T.undyingT>0){healHero(dmg,true);floatAt(hero.x,hero.y-34,'+'+Math.round(dmg),'#ffd76a');return 0;}
+ dmg=dmg*(1-treeDr(foe))*(1-treeBuffDr());
+ if(T.shield>0){const a=Math.min(T.shield,dmg);T.shield-=a;dmg-=a;if(dmg<=0){floatAt(hero.x,hero.y-34,'Absorbed','#bfe8ff');return 0;}}
+ if(on.manashield&&hero.mana>manaMax()*.1){const m=Math.min(hero.mana-manaMax()*.1,dmg*on.manashield.share);hero.mana-=m;dmg-=m;}
+ return Math.max(0,Math.round(dmg));
+}
+function treeAfterHurt(dmg,foe){   /* what a blow taken sets off: thorns, a frosted attacker, a prayer's heal */
+ if(!S||hero.dead)return;
+ const on=tv().on,T=TT(),now=treeClock();
+ if(foe&&!foe.dead&&foe!==hero){
+  const th=tstat('thorns')/100;
+  if(th>0&&dmg>0){const n=Math.max(1,Math.round(dmg*th));if(!mpGuestRaidHit(foe,n))foe.hp-=n;floatAt(foe.x,foe.y-(foe.r||16)-14,n+'','#d7c08f');if(foe.hp<=0&&!(mp.on&&mp.started&&!mp.host&&foe.raid))killEnemy(foe);}
+  if(on.frostarmor&&!foe.dead)foe.slowT=Math.max(foe.slowT||0,on.frostarmor.slow);
+ }
+ if(on.mending&&dmg>0&&now>=T.mendAt){T.mendAt=now+on.mending.cd;healHero(heroMax()*on.mending.heal,true);}
+ if(on.martyr&&dmg>heroMax()*on.martyr.at&&treeReady('martyr')){treeUse('martyr',on.martyr.cd);healHero(heroMax()*on.martyr.heal);}
+}
+/* a killing blow that a capstone or a choice turns aside: true when the hero is still standing */
+function treeCheatDeath(){
+ if(!S)return false;
+ const on=tv().on,T=TT(),follow=()=>hero.dead?null:{x:hero.x,y:hero.y};
+ if(on.unyielding&&treeReady('unyielding')){
+  treeUse('unyielding',on.unyielding.cd);hero.hp=1;T.undyingT=on.unyielding.dur;T.undyingDur=on.unyielding.dur;
+  floatAt(hero.x,hero.y-44,'UNYIELDING!','#ffd76a',true);sfx.shout();shakeT=Math.max(shakeT,.25);
+  SpellFx.cast('tree:lion',{x:hero.x,y:hero.y,gy:heroGroundY(),dur:on.unyielding.dur,follow});mpAct('cast',{f:'tree:lion',d:on.unyielding.dur,k:'undying'});
+  return true;
+ }
+ if(on.iceblock&&treeReady('iceblock')){
+  treeUse('iceblock',on.iceblock.cd);hero.hp=1;T.iceT=on.iceblock.dur;
+  floatAt(hero.x,hero.y-44,'ICE BLOCK!','#bfe8ff',true);sfx.frost?.();
+  SpellFx.cast('tree:iceblock',{x:hero.x,y:hero.y,gy:heroGroundY(),dur:on.iceblock.dur,follow});mpAct('cast',{f:'tree:iceblock',d:on.iceblock.dur,k:'ice'});
+  return true;
+ }
+ if(on.guardianspirit&&treeReady('guardianspirit')){
+  treeUse('guardianspirit',on.guardianspirit.cd);hero.hp=Math.round(heroMax()*on.guardianspirit.heal);
+  floatAt(hero.x,hero.y-44,'GUARDIAN SPIRIT!','#fff3c4',true);sfx.level();
+  SpellFx.cast('tree:angel',{x:hero.x,y:hero.y,gy:heroGroundY(),follow});mpAct('cast',{f:'tree:angel'});
+  return true;
+ }
+ return false;
+}
+function treeIceBurst(p){   /* the ice block shatters: the hero heals, and the cold bursts out as a Frost Nova */
+ healHero(heroMax()*p.heal);
+ for(const e of treeNear(hero.x,hero.y,p.r)){treeHitFoe(e,heroAtk()*p.mul,'Shatter');if(!e.boss)e.frozenT=Math.max(e.frozenT||0,1);else e.slowT=Math.max(e.slowT,2);}
+ SpellFx.cast('frostnova',{x:hero.x,y:hero.y,gy:heroGroundY(),fx:hero.fx||1,rad:p.r,k:1.4});mpAct('cast',{f:'frostnova',rad:p.r});
+}
+/* --- what the hero's landed blows set off --- */
+function treeOnHit(en,dmg,crit,basic){
+ if(!S||!en)return;
+ const on=tv().on,T=TT(),c=classOf();
+ if(crit){if(on.bloodthirst)healHero(heroMax()*on.bloodthirst.heal,true);if(on.enrage)T.enrageT=on.enrage.dur;}
+ if(basic&&!en.dead){
+  const sl=tstat('boltSlow');
+  if(sl>0&&Math.random()*100<sl)en.slowT=Math.max(en.slowT,2);
+  if(on.crusader&&Math.random()<on.crusader.chance){
+   const ex=en.x,ey=en.y;
+   setTimeout(()=>{if(!gameOn||hero.dead||en.dead||!enemies.includes(en))return;treeHitFoe(en,heroAtk()*on.crusader.mul,'Crusader');SpellFx.hit('tree:crusader',{x:en.x,y:en.y,r:en.r||16});mpAct('spell',{tx:Math.round(ex),ty:Math.round(ey),f:'tree:crusader'});},120);
+  }
+ }
+ if(on.avatar&&treeShoutOn()&&dmg>0&&!treeOnHit.cleaving){
+  treeOnHit.cleaving=true;
+  for(const o of treeNear(en.x,en.y,on.avatar.r,en))if(!mpGuestRaidHit(o,Math.round(dmg*on.avatar.cleave)))applyDmg(o,Math.max(1,Math.round(dmg*on.avatar.cleave)),'');
+  treeOnHit.cleaving=false;
+ }
+}
+/* what a talent does when one of the class's spells lands on en (dmg: what it dealt) */
+function treeSpellHit(en,sp,dmg,crit,ex,ey){
+ if(!S||!sp||sp._i===undefined)return;
+ const on=tv().on,T=TT(),c=classOf().id,i=sp._i;
+ if(sp.dot>0&&!en.dead)treeDot(en,dmg*sp.dot,3,c==='warrior'?'bleed':c==='priest'?'holy':'fire');
+ if(c==='mage'&&!sp._echo){
+  if(crit){if(++T.critRow>=2&&on.hotstreak){T.critRow=0;hero.spellCd[0]=0;floatAt(hero.x,hero.y-40,'Hot Streak!','#ffb35a',true);}}
+  else T.critRow=0;
+ }
+ if(c==='warrior'&&i===0){
+  if(on.shieldslam&&!en.boss&&!en.dead){en.stunT=Math.max(en.stunT||0,on.shieldslam.stun);SpellFx.cast('tree:stun',{x:ex,y:ey,r:en.r||16});}
+  if(on.cleave&&!sp._cleave){const o=treeNear(ex,ey,on.cleave.r,en)[0];if(o)dealSpell(o,{...sp,mul:sp.mul*on.cleave.share,_cleave:true,dot:0,size:sp.size*.8});}
+ }
+ if(c==='warrior'&&i===1){
+  if(on.earthshaker&&!en.dead)en.slowT=Math.max(en.slowT,on.earthshaker.slow);
+ }
+ if(c==='mage'&&i===0){
+  if(sp.pyro)for(const o of treeNear(ex,ey,sp.pyro.r,en))if(!mpGuestRaidHit(o,Math.round(dmg*sp.pyro.splash)))applyDmg(o,Math.max(1,Math.round(dmg*sp.pyro.splash)),'');
+  if(sp._meteor)treeMeteor(ex,ey,on.meteor);
+  if(on.livingbomb&&!sp._twin&&!en.dead&&treeReady('livingbomb')){treeUse('livingbomb',on.livingbomb.cd);en.bombT=on.livingbomb.delay;en.bombP=on.livingbomb;
+   SpellFx.cast('tree:bomb',{x:en.x,y:en.y,r:en.r||16,dur:on.livingbomb.delay,follow:()=>en.dead?null:{x:en.x,y:en.y}});}
+ }
+ if(c==='mage'&&i===1){
+  if(on.deepfreeze&&!en.dead){if(en.boss)en.slowT=Math.max(en.slowT,2);else en.frozenT=Math.max(en.frozenT||0,on.deepfreeze.dur);}
+ }
+ if(c==='mage'&&i===2&&on.arcaneecho&&!sp._echo){
+  const near=treeNear(ex,ey,on.arcaneecho.r,en).slice(0,on.arcaneecho.n);
+  near.forEach((t,k)=>bolts.push({x:ex,y:ey-10,tgt:t,sp:520,dmg:0,spell:{...sp,mul:sp.mul*on.arcaneecho.mul,_echo:true,size:.6,dot:0},c:'#c9a0ff',fx:sp.fx,k}));
+ }
+ if(c==='hunter'&&i===0){
+  if(on.concussive&&!en.dead)en.slowT=Math.max(en.slowT,on.concussive.slow);
+  if(on.huntersmark&&!en.dead){en.markT=on.huntersmark.dur;en.markMul=Math.max(en.markMul||0,on.huntersmark.mark);}
+ }
+ if(c==='hunter'&&i===1&&!sp._ric){
+  if(on.explosive){for(const o of treeNear(ex,ey,on.explosive.r,en))if(!mpGuestRaidHit(o,Math.round(dmg*on.explosive.splash)))applyDmg(o,Math.max(1,Math.round(dmg*on.explosive.splash)),'');
+   SpellFx.hit('tree:explode',{x:ex,y:ey,r:on.explosive.r});mpAct('spell',{tx:Math.round(ex),ty:Math.round(ey),f:'tree:explode'});}
+  if(on.ricochet){const o=treeNear(ex,ey,on.ricochet.r,en)[0];if(o)bolts.push({x:ex,y:ey-10,tgt:o,sp:560,dmg:0,spell:{...sp,mul:sp.mul*on.ricochet.mul,_ric:true,dot:0},arrow:true,c:'#cfe8a0',fx:sp.fx});}
+ }
+ if(c==='priest'&&i===0&&sp._pillar)treePillar(ex,ey,on.wrath);
+}
+/* a burn, a bleed or holy fire: total spread over secs, in half-second bites */
+function treeDot(en,total,secs,kind){
+ if(!(total>0))return;
+ const d=en.tdots||(en.tdots=[]);
+ d.push({left:total,rate:total/secs,t:secs,acc:0,kind});
+ if(d.length>6)d.shift();
+ if(kind==='fire')en.burnT=Math.max(en.burnT||0,secs);
+}
+/* the foe's side of the tree, every frame: frozen or stunned (true: it does nothing this frame), burning, marked, about to blow */
+function treeFoe(en,dt){
+ if(en.dead)return false;
+ if(en.burnT>0)en.burnT-=dt;
+ if(en.markT>0){en.markT-=dt;if(en.markT<=0)en.markMul=0;}
+ if(en.weakT>0)en.weakT-=dt;
+ if(en.tdots&&en.tdots.length){
+  for(let i=en.tdots.length-1;i>=0;i--){
+   const d=en.tdots[i];d.t-=dt;d.acc+=d.rate*dt;
+   if(d.acc>=Math.max(1,d.rate*.5)||d.t<=0){
+    const n=Math.min(d.left,Math.round(d.acc));d.acc=0;d.left-=n;
+    if(n>0&&!mpGuestRaidHit(en,n))applyDmg(en,n,d.kind==='bleed'?'🩸':d.kind==='holy'?'✨':'🔥');
+    if(en.dead)return false;
+   }
+   if(d.t<=0||d.left<=0)en.tdots.splice(i,1);
+  }
+ }
+ if(en.bombT>0){
+  en.bombT-=dt;
+  if(en.bombT<=0){const p=en.bombP||{mul:1.2,r:110};for(const o of treeNear(en.x,en.y,p.r))treeHitFoe(o,heroAtk()*p.mul,'Bomb');SpellFx.hit('tree:explode',{x:en.x,y:en.y,r:p.r,big:1});mpAct('spell',{tx:Math.round(en.x),ty:Math.round(en.y),f:'tree:explode'});shakeT=Math.max(shakeT,.12);}
+ }
+ if(en.frozenT>0){en.frozenT-=dt;if(!en.boss)return true;}
+ if(en.stunT>0){en.stunT-=dt;if(!en.boss)return true;}
+ return false;
+}
+/* --- the hero's side, every frame: the timers, heals over time, low-health saves, zones, the hawk and the rain of arrows --- */
+function treeTick(dt){
+ if(!S||!hero||hero.dead)return;
+ const on=tv().on,T=TT(),hm=heroMax();
+ for(const k of ['shieldT','wallT','spinT','embraceT','undyingT','deterT','wingsT','enrageT'])if(T[k]>0)T[k]=Math.max(0,T[k]-dt);
+ if(T.shieldT<=0)T.shield=0;
+ if(T.iceT>0){T.iceT-=dt;if(T.iceT<=0){T.iceT=0;if(on.iceblock)treeIceBurst(on.iceblock);}}
+ if(T.survT>0){T.survT=Math.max(0,T.survT-dt);treeHeal(T.survRate*dt);}
+ if(on.archangel&&T.wingsT>0)treeHeal(hm*on.archangel.heal*dt);
+ if(on.spiritbond&&(hero.target&&!hero.target.dead||enemies.some(e=>!e.dead&&e.state==='chase')))treeHeal(hm*on.spiritbond.regen*dt);
+ if(hero.hp<hm*.3){
+  const say=(t,c)=>floatAt(hero.x,hero.y-44,t,c,true);
+  if(on.laststand&&treeReady('laststand')){treeUse('laststand',on.laststand.cd);treeShield(hm*on.laststand.shield,10);say('Last Stand!','#ffd76a');}
+  if(on.deterrence&&treeReady('deterrence')){treeUse('deterrence',on.deterrence.cd);T.deterT=on.deterrence.dur;say('Deterrence!','#ffe9a0');mpAct('cast',{f:'tree:deter',d:on.deterrence.dur,k:'deter'});}
+  if(on.survival&&treeReady('survival')){treeUse('survival',on.survival.cd);T.survT=on.survival.dur;T.survRate=hm*on.survival.heal/on.survival.dur;say('Survival Instincts','#9adf9a');}
+  if(on.coldblood&&treeReady('coldblood')&&hero.spellCd[1]>0){treeUse('coldblood',on.coldblood.cd);hero.spellCd[1]=0;say('Cold Blood','#bfe8ff');}
+ }
+ if(on.evocation&&hero.mana<manaMax()*on.evocation.at&&treeReady('evocation')){treeUse('evocation',on.evocation.cd);hero.mana=Math.min(manaMax(),hero.mana+manaMax()*on.evocation.mana);floatAt(hero.x,hero.y-36,'Evocation','#8fa8ef');}
+ for(let i=T.zones.length-1;i>=0;i--){const z=T.zones[i];z.t-=dt;z.tick-=dt;while(z.tick<=0&&z.n>0){z.tick+=z.every;z.n--;treeZoneTick(z);}if(z.t<=0||z.n<=0)T.zones.splice(i,1);}
+ if(on.hawk)treeHawk(dt,on.hawk);
+ if(on.rain&&treeRapidOn()){T.rainT-=dt;if(T.rainT<=0){T.rainT=on.rain.every;treeRain(on.rain);}}
+}
+/* a patch of ground a talent leaves: blizzard, frost trap, consecration, sanctified ground, a meteor's burning crater */
+function treeZone(kind,x,y,r,dur,ticks,data){TT().zones.push({kind,x,y,r,t:dur,every:dur/ticks,tick:0,n:ticks,...data});}
+function treeZoneTick(z){
+ const inside=treeNear(z.x,z.y,z.r);
+ if(z.kind==='sanctified'){if(Math.hypot(hero.x-z.x,hero.y-z.y)<=z.r)treeHeal(heroMax()*z.heal*z.every);return;}
+ for(const e of inside){
+  if(z.mul)treeHitFoe(e,heroAtk()*z.mul,z.label||'');
+  if(z.slow)e.slowT=Math.max(e.slowT,z.slow);
+  if(z.burn)e.burnT=Math.max(e.burnT||0,z.every+.1);
+ }
+}
+function treeMeteor(x,y,p){
+ SpellFx.cast('tree:meteor',{x,y,r:p.r});mpAct('cast',{f:'tree:meteor',tx:Math.round(x),ty:Math.round(y),rad:p.r});
+ setTimeout(()=>{
+  if(!gameOn||!hero||hero.dead)return;
+  for(const e of treeNear(x,y,p.r))treeHitFoe(e,heroAtk()*p.mul,'Meteor');
+  shakeT=Math.max(shakeT,.35);sfx.fire?.();
+  treeZone('burning',x,y,p.r*.8,p.burn,6,{mul:.1,burn:true,label:'🔥'});
+  SpellFx.cast('tree:burning',{x,y,r:p.r*.8,dur:p.burn});
+ },520);
+}
+function treePillar(x,y,p){
+ SpellFx.cast('tree:pillar',{x,y,r:p.r});mpAct('cast',{f:'tree:pillar',tx:Math.round(x),ty:Math.round(y),rad:p.r});
+ setTimeout(()=>{if(!gameOn||!hero||hero.dead)return;for(const e of treeNear(x,y,p.r))treeHitFoe(e,heroAtk()*p.mul,'Wrath');shakeT=Math.max(shakeT,.2);},300);
+}
+/* 🦅 Spirit Hawk: it circles the hero and every few seconds dives at the foe he fights (or the nearest), striking and marking it */
+function treeHawk(dt,p){
+ const H=TT().hawk;H.a+=dt*1.6;
+ if(H.dive){
+  const d=H.dive;d.t+=dt;
+  if(d.t>=.38){
+   const e=d.tgt;H.dive=null;
+   if(e&&!e.dead&&!e.hidden&&enemies.includes(e)){treeHitFoe(e,heroAtk()*p.mul,'Hawk');e.markT=p.markDur;e.markMul=Math.max(e.markMul||0,p.mark);SpellFx.hit('tree:hawkstrike',{x:e.x,y:e.y,r:e.r||16});}
+  }
+  return;
+ }
+ H.t-=dt;if(H.t>0)return;
+ const tgt=hero.target&&!hero.target.dead&&!hero.target.hidden&&dist(hero,hero.target)<=p.r?hero.target:nearestEnemyWithin(p.r);
+ if(!tgt){H.t=.4;return;}
+ H.t=p.every;H.dive={tgt,t:0,x0:hero.x+Math.cos(H.a)*46,y0:hero.y-70+Math.sin(H.a)*16};
+ mpAct('spell',{tx:Math.round(tgt.x),ty:Math.round(tgt.y),f:'tree:hawkstrike'});
+}
+function treeHawkPos(){   /* where the hawk is drawn: circling over the hero, or on its dive */
+ const H=TT().hawk,ox=hero.x+Math.cos(H.a)*46,oy=hero.y-70+Math.sin(H.a)*16;
+ if(H.dive&&H.dive.tgt){const k=Math.min(1,H.dive.t/.38),e=H.dive.tgt,ease=k*k;return {x:H.dive.x0+(e.x-H.dive.x0)*ease,y:H.dive.y0+((e.y-20)-H.dive.y0)*ease,dive:k,a:Math.atan2((e.y-20)-H.dive.y0,e.x-H.dive.x0)};}
+ return {x:ox,y:oy,dive:0,a:-Math.sin(H.a)>0?0:Math.PI};
+}
+function treeRain(p){
+ const list=treeNear(hero.x,hero.y,p.r).slice(0,10);
+ for(const e of list){treeHitFoe(e,heroAtk()*p.mul,'');}
+ SpellFx.cast('tree:rain',{x:hero.x,y:hero.y,r:p.r,targets:list.map(e=>({x:e.x,y:e.y,r:e.r||16}))});
+ mpAct('cast',{f:'tree:rain',rad:p.r,tg:list.slice(0,6).map(t=>[Math.round(t.x),Math.round(t.y)])});
+}
+/* --- the spells as the talents change them, at the moment they go off --- */
+/* a beam (Piercing Shot, Holy Beam) or a lance (Ice Lances): every foe on the line, the first in full and the rest at rest */
+function treeBeam(sp,tgt,p,style,mulEach){
+ const x=hero.x,y=hero.y-10,a=Math.atan2((tgt.y-10)-y,tgt.x-x),ux=Math.cos(a),uy=Math.sin(a);
+ const hit=treeLine(x,y,ux,uy,p.len,p.w);
+ hit.forEach((e,k)=>dealSpell(e,{...sp,mul:sp.mul*(mulEach!=null?mulEach:(k?p.rest:1)),_beam:1}));
+ const tx=x+ux*p.len,ty=y+uy*p.len;
+ SpellFx.cast('tree:beam:'+style,{x,y,tx,ty,w:p.w,k:sp.size||1});mpAct('cast',{f:'tree:beam:'+style,tx:Math.round(tx),ty:Math.round(ty)});
+ return hit.length;
+}
+/* the single-target spells: true when the talent took the cast over (the plain bolt or blow is not sent) */
+function treeCastSt(sp,tgt,c){
+ const on=tv().on,T=TT(),i=sp._i;
+ if(c.id==='mage'&&i===0){T.fireballs++;if(on.meteor&&T.fireballs%on.meteor.every===0)sp._meteor=true;}
+ if(c.id==='priest'&&i===0){T.smites++;if(on.wrath&&T.smites%on.wrath.every===0)sp._pillar=true;}
+ if(c.id==='hunter'&&i===0&&on.piercingshot){treeBeam(sp,tgt,on.piercingshot,'nature');return true;}
+ if(c.id==='priest'&&i===0&&on.holybeam){treeBeam(sp,tgt,on.holybeam,'holy');return true;}
+ if(c.id==='priest'&&i===0&&on.penance){
+  const p=on.penance;
+  for(let k=0;k<p.n;k++)setTimeout(()=>{if(!gameOn||hero.dead||tgt.dead||tgt.hidden||!enemies.includes(tgt))return;dealSpell(tgt,{...sp,mul:sp.mul*p.mul,_pen:k,_pillar:k===p.n-1&&sp._pillar});},k*170);
+  return true;
+ }
+ if(c.id==='warrior'&&i===0&&on.doublestrike){
+  dealSpell(tgt,sp);
+  setTimeout(()=>{if(!gameOn||hero.dead||tgt.dead||tgt.hidden||!enemies.includes(tgt))return;dealSpell(tgt,{...sp,mul:sp.mul*on.doublestrike.second,_twin:1});SpellFx.cast(sp.fx,{x:hero.x,y:hero.y,gy:heroGroundY(),fx:-(hero.fx||1),tx:tgt.x,ty:tgt.y,targets:[{x:tgt.x,y:tgt.y,r:tgt.r||16}],k:sp.size});},180);
+  return true;
+ }
+ return false;
+}
+/* the second projectile of Twin Flames and Double Shot, a beat behind the first */
+function treeTwinBolt(sp,tgt,c,bc){
+ const on=tv().on,p=c.id==='mage'?on.twinflames:c.id==='hunter'?on.doubleshot:null;
+ if(!p||sp._i!==0)return;
+ setTimeout(()=>{
+  if(!gameOn||hero.dead||tgt.dead||tgt.hidden||!enemies.includes(tgt))return;
+  bolts.push({x:hero.x,y:hero.y-16,tgt,sp:470,dmg:0,spell:{...sp,mul:sp.mul*p.second,_twin:1,_meteor:false},arrow:c.id==='hunter',c:bc,fx:sp.fx,k:1,big:sp.size});
+  mpAct('boltfx',{tx:Math.round(tgt.x),ty:Math.round(tgt.y),ar:c.id==='hunter'?1:0,c:bc,f:sp.fx});
+ },120);
+}
+/* the multi-target spells (Arcane Barrage, Multi-Shot): true when the talent took the cast over */
+function treeCastMulti(sp,tgt,list,c){
+ const on=tv().on,i=sp._i;
+ if(c.id==='mage'&&i===2&&on.blizzard){
+  const p=on.blizzard;
+  treeZone('blizzard',tgt.x,tgt.y,p.r,p.dur,p.ticks,{mul:sp.mul/1.3*p.mul,slow:1.2,label:'❄'});
+  SpellFx.cast('tree:blizzard',{x:tgt.x,y:tgt.y,r:p.r,dur:p.dur});mpAct('cast',{f:'tree:blizzard',tx:Math.round(tgt.x),ty:Math.round(tgt.y),rad:p.r,d:p.dur});
+  return true;
+ }
+ if(c.id==='mage'&&i===2&&on.icelances){
+  const p=on.icelances,x=hero.x,y=hero.y-10,a0=Math.atan2((tgt.y-10)-y,tgt.x-x);
+  for(let k=0;k<p.n;k++){
+   const a=a0+(k-(p.n-1)/2)*.11,ux=Math.cos(a),uy=Math.sin(a);
+   for(const e of treeLine(x,y,ux,uy,300,p.w))dealSpell(e,{...sp,mul:sp.mul/1.3*p.mul,vfx:'frost',_beam:1});
+   SpellFx.cast('tree:beam:ice',{x,y,tx:x+ux*300,ty:y+uy*300,w:p.w*.5,delay:k*.05});
+  }
+  mpAct('cast',{f:'tree:beam:ice',tx:Math.round(tgt.x),ty:Math.round(tgt.y)});
+  return true;
+ }
+ if(c.id==='mage'&&i===2&&on.arcanebeam){
+  const p=on.arcanebeam,a0=Math.atan2(tgt.y-hero.y,tgt.x-hero.x)-p.arc/2;
+  for(let k=0;k<p.ticks;k++)setTimeout(()=>{
+   if(!gameOn||hero.dead)return;
+   const a=a0+p.arc*k/(p.ticks-1),ux=Math.cos(a),uy=Math.sin(a);
+   for(const e of treeLine(hero.x,hero.y-10,ux,uy,p.len,p.w))dealSpell(e,{...sp,mul:sp.mul/1.3*p.mul,_beam:1});
+  },k*p.dur*1000/p.ticks);
+  SpellFx.cast('tree:sweep',{x:hero.x,y:hero.y-10,a0,a1:a0+p.arc,len:p.len,w:p.w,dur:p.dur,follow:()=>hero.dead?null:{x:hero.x,y:hero.y-10}});
+  mpAct('cast',{f:'tree:sweep',tx:Math.round(tgt.x),ty:Math.round(tgt.y),d:p.dur});
+  return true;
+ }
+ if(c.id==='hunter'&&i===1&&on.frosttrap){
+  const p=on.frosttrap;
+  for(const t of list){treeZone('frosttrap',t.x,t.y,p.r,p.dur,6,{slow:1});SpellFx.cast('tree:frosttrap',{x:t.x,y:t.y,r:p.r,dur:p.dur});}
+  mpAct('cast',{f:'tree:frosttrap',tg:list.slice(0,6).map(t=>[Math.round(t.x),Math.round(t.y)]),d:p.dur});
+ }
+ return false;
+}
+/* the area spells (Whirlwind, Frost Nova, Holy Nova) after they went off on list */
+function treeCastAoe(sp,list){
+ const on=tv().on,T=TT(),c=classOf().id,i=sp._i,hm=heroMax();
+ if(c==='warrior'&&i===1){
+  const sw=tstat('wwHeal');if(sw>0)healHero(hm*sw/100*Math.min(5,list.length));
+  if(on.spinguard)T.spinT=on.spinguard.dur;
+ }
+ if(c==='mage'&&i===1){
+  const sh=tstat('novaShield');if(sh>0)treeShield(hm*sh/100,6);
+  if(on.glacialspike){
+   const tgt=enemies.filter(e=>!e.dead&&!e.hidden&&dist(hero,e)<=320).sort((a,b)=>b.hp-a.hp)[0];
+   if(tgt)bolts.push({x:hero.x,y:hero.y-12,tgt,sp:540,dmg:0,spell:{...sp,n:'Glacial Spike',t:'st',mul:on.glacialspike.mul*(1+tsp(1,'dmg')/100),fx:'tree:icespike',vfx:'frost',_spike:1},c:'#bfe8ff',fx:'tree:icespike'});
+  }
+ }
+ if(c==='priest'&&i===1){
+  if(on.sanctified){const p=on.sanctified;treeZone('sanctified',hero.x,hero.y,p.r,p.dur,10,{heal:p.heal});SpellFx.cast('tree:sanctified',{x:hero.x,y:hero.y,r:p.r,dur:p.dur});mpAct('cast',{f:'tree:sanctified',rad:p.r,d:p.dur});}
+  if(on.embrace)T.embraceT=on.embrace.dur;
+  if(on.spiritwell)hero.mana=Math.min(manaMax(),hero.mana+manaMax()*on.spiritwell.mana*list.length);
+  if(on.blinding)for(const e of list)if(!e.dead)e.slowT=Math.max(e.slowT,on.blinding.slow);
+  if(on.vengeance)T.vengeance=true;
+  if(on.consecration){const p=on.consecration;treeZone('consecration',hero.x,hero.y,p.r,p.dur,p.dur*2,{mul:p.mul/2,burn:true,label:'✨'});SpellFx.cast('tree:consecration',{x:hero.x,y:hero.y,r:p.r,dur:p.dur});mpAct('cast',{f:'tree:consecration',rad:p.r,d:p.dur});}
+  if(on.divinestorm&&!sp._storm){
+   const p=on.divinestorm;
+   setTimeout(()=>{
+    if(!gameOn||hero.dead)return;
+    const two={...sp,mul:sp.mul*p.second,_storm:1,heal:0};
+    const l2=enemies.filter(e=>!e.dead&&!e.hidden&&dist(hero,e)<=sp.rad);
+    l2.forEach(t=>dealSpell(t,two));
+    SpellFx.cast(sp.fx,{x:hero.x,y:hero.y,gy:heroGroundY(),fx:hero.fx||1,rad:sp.rad,k:1.15});mpAct('cast',{f:sp.fx,rad:sp.rad});
+   },p.delay*1000);
+  }
+ }
+}
+/* the buffs (Battle Shout, Rapid Fire) and Renew as the talents grow them, as they go off */
+function treeCastBuff(sp){
+ const on=tv().on,T=TT(),c=classOf().id,hm=heroMax();
+ if(c==='warrior'){
+  const rc=tstat('shoutHeal');if(rc>0)healHero(hm*rc/100);
+  if(on.shieldwall){T.wallT=on.shieldwall.dur;mpAct('cast',{f:'tree:wall',d:on.shieldwall.dur,k:'wall'});}
+  if(on.taunt){
+   const p=on.taunt;
+   for(const e of treeNear(hero.x,hero.y,p.r)){
+    if(!e.boss){const d=dist(hero,e)||1,k=Math.max(0,(d-36)/d)*.7;e.x-=(e.x-hero.x)*k;e.y-=(e.y-hero.y)*k;}
+    e.state='chase';e.weakT=p.dur;e.weak=p.weak;
+   }
+   SpellFx.cast('tree:roar',{x:hero.x,y:hero.y,r:p.r});mpAct('cast',{f:'tree:roar',rad:p.r});
+  }
+  if(on.thunderclap){
+   const p=on.thunderclap;
+   for(const e of treeNear(hero.x,hero.y,p.r)){treeHitFoe(e,heroAtk()*p.mul,'Thunderclap');e.slowT=Math.max(e.slowT,p.slow);}
+   SpellFx.cast('tree:shock',{x:hero.x,y:hero.y,r:p.r,style:'thunder'});mpAct('cast',{f:'tree:shock',rad:p.r});shakeT=Math.max(shakeT,.18);
+  }
+  if(on.avatar)mpAct('cast',{f:'tree:avatar',d:sp.dur,k:'avatar'});
+ }
+ if(c==='hunter'){
+  if(on.bearspirit)mpAct('cast',{f:'tree:bear',d:sp.dur,k:'bear'});
+  if(on.owlspirit)mpAct('cast',{f:'tree:owl',d:sp.dur,k:'owl'});
+  TT().rainT=0;
+ }
+ if(c==='priest'){
+  const ps=tstat('renewShield');if(ps>0)treeShield(hm*ps/100,sp.dur);
+  if(on.archangel){T.wingsT=on.archangel.dur;floatAt(hero.x,hero.y-46,'Archangel!','#fff3c4',true);mpAct('cast',{f:'tree:wings',d:on.archangel.dur,k:'wings'});}
+ }
+}
+/* the tree's auras a peer can carry too (mpPlayFx stores them under these keys, peerAuraState hands them on) */
+const TREE_AURAS=['shield','wall','spin','embrace','wings','deter','undying','ice','enrage','avatar','bear','owl'];
+/* 🦅 the hawk of light, in the world over the hero: circling, or stooping on its dive. Painted (assets/tree/fx/hawk.png), or drawn in
+   light while the picture is not there */
+const treeHawkImg=new Image();treeHawkImg.src='assets/tree/fx/hawk.png';
+function drawTreeHawk(){
+ const p=treeHawkPos(),t=performance.now()/1000,H=SpellFx.H,face=Math.cos(p.a)<0?-1:1,flap=p.dive?.55:.8+.2*Math.sin(t*9);
+ ctx.save();ctx.translate(p.x,p.y);
+ H.glow(ctx,0,0,30,'255,236,180',.45);
+ if(treeHawkImg.complete&&treeHawkImg.naturalWidth){
+  const w=58,h=w*treeHawkImg.naturalHeight/treeHawkImg.naturalWidth;
+  ctx.save();if(p.dive)ctx.rotate(p.a+(face<0?Math.PI:0));ctx.scale(face,flap);ctx.globalAlpha*=.92;ctx.drawImage(treeHawkImg,-w/2,-h/2,w,h);ctx.restore();
+ }else{
+  ctx.save();ctx.globalCompositeOperation='lighter';ctx.scale(face,1);
+  for(const sd of [-1,1]){ctx.beginPath();ctx.moveTo(0,0);ctx.quadraticCurveTo(sd*16,-14*flap,sd*30,-4*flap);ctx.quadraticCurveTo(sd*16,-2,0,4);ctx.closePath();ctx.fillStyle='rgba(255,238,190,.75)';ctx.fill();}
+  ctx.restore();
+ }
+ if(p.dive)H.streak(ctx,-Math.cos(p.a)*40,-Math.sin(p.a)*40,0,0,5,'255,236,180',.7*p.dive);
+ ctx.restore();
+}
+/* what the tree leaves on a foe, drawn over it (its own frame, lblY the top of its name): a crust of ice, stars, flames, a mark, a bomb */
+function treeDrawFoe(en,topY,now){
+ const H=SpellFx.H,r=en.r||14;
+ if(en.frozenT>0&&!en.boss){
+  const h=r*3.6,a=Math.min(1,en.frozenT*3);
+  ctx.save();ctx.globalAlpha*=.6*a;
+  const g=ctx.createLinearGradient(0,-h,0,r*.6);g.addColorStop(0,'rgba(225,246,255,.9)');g.addColorStop(1,'rgba(120,190,240,.55)');
+  ctx.fillStyle=g;ctx.strokeStyle='rgba(240,252,255,.95)';ctx.lineWidth=1.3;
+  ctx.beginPath();ctx.moveTo(-r*1.15,r*.5);ctx.lineTo(-r*1.3,-h*.5);ctx.lineTo(-r*.55,-h);ctx.lineTo(r*.35,-h*.9);ctx.lineTo(r*1.25,-h*.48);ctx.lineTo(r*1.1,r*.5);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.globalAlpha*=.8;ctx.beginPath();ctx.moveTo(-r*.6,-h*.7);ctx.lineTo(-r*.2,-h*.2);ctx.moveTo(r*.5,-h*.65);ctx.lineTo(r*.2,-h*.35);ctx.stroke();
+  ctx.restore();
+ }
+ if(en.stunT>0&&!en.boss)for(let i=0;i<3;i++){const a=now*5+i*2.1;H.glow(ctx,Math.cos(a)*r*.9,topY-6+Math.sin(a)*3,5,'255,226,130',.85);}
+ if(en.burnT>0){const f=.6+.4*Math.sin(now*17+en.x);H.glow(ctx,0,-r*.9,r*1.2,'255,120,40',.35*f);H.glow(ctx,(Math.sin(now*11)*r*.4),-r*1.4,r*.55,'255,190,90',.5*f);}
+ if(en.markT>0){ctx.save();ctx.translate(0,topY-10);ctx.rotate(now*1.8);ctx.globalCompositeOperation='lighter';ctx.strokeStyle='rgba(255,90,70,.9)';ctx.lineWidth=1.6;
+  ctx.beginPath();ctx.moveTo(0,-6);ctx.lineTo(6,0);ctx.lineTo(0,6);ctx.lineTo(-6,0);ctx.closePath();ctx.stroke();ctx.restore();}
+ if(en.bombT>0){const k=1+Math.sin(now*(10+8*(1-en.bombT/2)))*.25;H.glow(ctx,0,-r*.8,r*1.1*k,'255,150,50',.55);}
+}
+/* Ice Block: frozen solid for its seconds - the hero stands, strikes nothing and casts nothing */
+const treeIced=()=>!!(S&&treeTS===S&&treeTT&&treeTT.iceT>0);
+/* Archangel: while the wings are open no spell costs mana */
+const treeFreeCast=()=>!!(S&&ton('archangel')&&TT().wingsT>0);
+/* how big the hero is drawn: the Avatar of War grows him while Battle Shout lasts, easing in and out */
+function treeAvatarScale(){
+ const p=ton('avatar');if(!p||!treeShoutOn())return 1;
+ const b=hero.buff.atk,dur=b.dur||10,inT=dur-b.t,k=Math.min(1,inT/.35,b.t/.35);
+ return 1+(p.scale-1)*Math.max(0,k);
+}
+/* the tree's auras round the hero, for SpellFx.auras ('tree:*' recipes in assets/fx/tree-fx.js) */
+function treeAuraState(a){
+ if(!S)return a;
+ const on=tv().on,T=TT(),s=(t,d)=>t>0?{left:t,dur:d}:null,b=hero.buff||{};
+ a.shield=T.shield>0?{left:T.shieldT,dur:6,amt:T.shield}:null;
+ a.wall=s(T.wallT,(on.shieldwall||{}).dur||6);a.spin=s(T.spinT,(on.spinguard||{}).dur||4);a.embrace=s(T.embraceT,(on.embrace||{}).dur||4);
+ a.wings=s(T.wingsT,(on.archangel||{}).dur||8);a.deter=s(T.deterT,(on.deterrence||{}).dur||3);a.undying=s(T.undyingT,T.undyingDur||6);a.ice=s(T.iceT,(on.iceblock||{}).dur||3);
+ a.enrage=on.enrage?s(T.enrageT,on.enrage.dur):null;
+ a.avatar=on.avatar&&b.atk&&b.atk.t>0?{left:b.atk.t,dur:b.atk.dur||10}:null;
+ a.bear=on.bearspirit&&b.haste&&b.haste.t>0?{left:b.haste.t,dur:b.haste.dur||6}:null;
+ a.owl=on.owlspirit&&b.haste&&b.haste.t>0?{left:b.haste.t,dur:b.haste.dur||6}:null;
+ return a;
+}
+/* the Spellbook's line for a spell the talents changed: what it has become and its numbers now */
+function treeSpellNote(sp,i){
+ if(!S)return '';
+ const t=tv(),s=t.sp[i]||{},on=t.on,c=classOf().id,bits=[];
+ const opts=SkillTree.nodes(c).filter(n=>n.opts).flatMap(n=>n.opts).filter(o=>on[o.id]);
+ const SPELL_OF={twinflames:0,pyroblast:0,livingbomb:0,firestarter:0,deepfreeze:1,glacialspike:1,blizzard:2,icelances:2,arcanebeam:2,arcaneecho:2,
+  shieldslam:0,revenge:0,doublestrike:0,execute:0,cleave:0,spinguard:1,earthshaker:1,shieldwall:2,taunt:2,thunderclap:2,bloodrage:2,
+  piercingshot:0,doubleshot:0,concussive:0,huntersmark:0,frosttrap:1,explosive:1,ricochet:1,bearspirit:2,owlspirit:2,
+  holybeam:0,penance:0,vengeance:1,sanctified:1,embrace:1,spiritwell:1,blinding:1,consecration:1,divinestorm:1};
+ for(const o of opts)if(SPELL_OF[o.id]===i)bits.push(o.n);
+ if(s.dmg)bits.push('+'+Math.round(s.dmg)+'% damage');
+ if(s.hits&&!(on.arcanebeam||on.blizzard||on.icelances)||s.hits&&c!=='mage')bits.push('+'+s.hits+(c==='mage'?' missiles':' arrows'));   /* a beam or a storm has no missiles to add to */
+ if(s.dur)bits.push('+'+s.dur+'s');
+ if(s.val)bits.push('+'+Math.round(s.val)+'% attack');
+ if(s.rad)bits.push('+'+Math.round(s.rad)+'% reach');
+ return bits.join(' · ');
+}
 /* ==================== CASINO BUILDING MENU ==================== */
 function bankRefresh(){
  $('bankGoldN').textContent=(S.bankGold||0).toLocaleString();

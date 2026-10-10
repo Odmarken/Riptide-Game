@@ -179,7 +179,8 @@ function fight(weaponInsc,cls={id:'warrior',cd:1,ranged:false}){
   sfx:{bolt(){},swing(){},hit(){},arcane(){},shout(){}},hasEnch:()=>false,scrollPct:()=>0,scrollRaw:()=>0,mpGuestRaidHit:()=>false,
   floatAt:(x,y,t)=>floats.push(t),burst(){},ring(){},zapLine(){},bloodAt(){},killEnemy:en=>{en.dead=true;},
   dist:(a,b)=>Math.hypot(a.x-b.x,a.y-b.y),fkBonus:()=>0,healHero:n=>heals.push(n),manaMax:()=>100,isFG:()=>false,activePet:()=>null,
-  drawWeapons(){},runeOf:()=>null};   /* 🗡 a swing takes a holstered weapon out (game.js setHolster); ✨ a weapon with no rune shows none */
+  drawWeapons(){},runeOf:()=>null,   /* 🗡 */
+  tstat:()=>0,treeCritMul:()=>1.7,treeFoeMul:()=>1,treeOnHit(){}};   /* 🌳 a hero with an empty Skill Tree */   /* 🗡 a swing takes a holstered weapon out (game.js setHolster); ✨ a weapon with no rune shows none */
  vm.createContext(c);
  vm.runInContext(HELPERS,c);
  vm.runInContext(section("/* one swing's damage roll","function dealSpell(en,sp){"),c);
@@ -231,7 +232,7 @@ test('Bloodthirst adds to the lifesteal of every landed hit',()=>{
 });
 test('Keen Edge reaches the crit chance and Quickening the attack speed',()=>{
  const c={S:{gamblerT:0,gear:{weapon:{insc:{id:'keen',rar:'epic'}}}},hero:{buff:{}},Math,classOf:()=>({crit:5}),raceOf:()=>({crit:6}),gearSum:()=>0,fkBonus:()=>0,fgCrit:()=>0,
-  swiftMul:()=>1,hasteBoostMul:()=>1,activePet:()=>null};
+  swiftMul:()=>1,hasteBoostMul:()=>1,activePet:()=>null,tstat:()=>0};   /* 🌳 no talents */
  vm.createContext(c);vm.runInContext(HELPERS,c);
  vm.runInContext(section('const heroCrit=','/* Every legendary bonus')+'\nglobalThis.heroCrit=heroCrit;',c);vm.runInContext(section('function hasteMul(){','function healHero('),c);
  assert.equal(c.heroCrit(),5+6+0+3);

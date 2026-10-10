@@ -97,7 +97,7 @@
   cast(o,fx){
    const f=o.fx<0?-1:1,F=o.y+o.gy,t0=(o.targets&&o.targets[0])||{r:18};
    const cx=o.x+f*6,cy=F-26,tx=o.tx??o.x+f*44,ty=(o.ty??o.y)-(t0.r||18)*.6;
-   const dx=Math.max(16,(tx-cx)*f),dy=Math.max(-40,Math.min(40,ty-cy)),aR=Math.atan2(dy,dx),R=Math.max(40,Math.min(54,Math.hypot(dx,dy)));
+   const dx=Math.max(16,(tx-cx)*f),dy=Math.max(-40,Math.min(40,ty-cy)),aR=Math.atan2(dy,dx),R=Math.max(40,Math.min(54,Math.hypot(dx,dy)))*(o.k||1);   /* o.k: 🌳 Mighty Blows cut wider */
    const m=a=>f>0?a:PI-a,a0=m(aR-2.1),a1=m(aR+1);
    fx.spawn({life:.36,layer:'glow',reach:160,draw(g,e,p,H){
     const t=e.t,sw=a1-a0,head=a0+sw*E.out(t/.12),tail=a0+sw*.95*E.inOut((t-.025)/.27),al=t<.18?1:1-(t-.18)/.18,rr=R*(1+.05*E.out(p));
@@ -166,7 +166,7 @@
  function behind(g,cx,cy,R){g.beginPath();g.rect(cx-R*2,cy-R*2,R*4,R*4);g.rect(cx-15,cy-62,30,62);g.clip('evenodd');}
  FX.recipe('whirlwind',{
   cast(o,fx){
-   const f=o.fx<0?-1:1,R=o.rad||100,gy=o.gy,flat=.56,rb=Math.min(R*.55,60),r2=rb*.68,a0=f>0?-.75:PI+.75;
+   const f=o.fx<0?-1:1,R=o.rad||100,gy=o.gy,flat=.56,rb=Math.min(R*.55,60)*(o.k||1),r2=rb*.68,a0=f>0?-.75:PI+.75;   /* o.k: 🌳 Bladestorm spins taller */
    const W=fx.spawn({life:.62,layer:'glow',reach:R+60,light:{colour:'255,186,130',reach:R*2.2,head:R*1.2,h:18,peak:.8,env:p=>E.fade(p,.05,.6)},
     update(e,dt,fx){   /* the blades fling sparks and dust off their path as they go */
      e.acc=(e.acc||0)+dt;

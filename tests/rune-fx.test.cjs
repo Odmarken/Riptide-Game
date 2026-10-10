@@ -61,7 +61,7 @@ test('game.js: the swing, the landed blow and the shot carry the worn rune; a hi
  assert.match(game,/const heroRune=\(\)=>S&&!S\.hideWeapon&&S\.gear\?runeOf\(S\.gear\.weapon\):null;/);
  const swing=section('function heroSwing(en,c,dmg,crit,label){','\n}\n');
  assert.match(swing,/else\{sfx\.swing\(\);if\(wr\)SpellFx\.cast\('rune:swing',\{x:hero\.x,y:hero\.y,gy:heroGroundY\(\),fx:hero\.fx\|\|1,tx:en\.x,ty:en\.y,id:wr\.id\}\);landHit/,'a melee swing sweeps the rune');
- assert.match(swing,/fx:c\.id==='hunter'\?'shot':'firebolt',\.\.\.\(wr\?\{rune:wr\.id\}:\{\}\)\}\);/,'a shot carries it');
+ assert.match(swing,/fx:c\.id==='hunter'\?'shot':frost\?'tree:frostbolt':'firebolt',\.\.\.\(wr\?\{rune:wr\.id\}:\{\}\)\}\);/,'a shot carries it');   /* 🌳 Frostbolt turns a mage's bolt to frost */
  assert.match(swing,/c:c\.boltC,\.\.\.\(wr\?\{wr:wr\.id\}:\{\}\)\}\);/,'the party is told, and a weapon with no rune sends what it always sent');
  const land=section('function landHit(en,dmg,crit,label,basic){','function applyDmg(');
  assert.ok(land.indexOf('runeHitFx(en,crit);')>land.indexOf('if(basic){')&&land.indexOf('runeHitFx(en,crit);')<land.indexOf("hasEnch('flames')"),'only a weapon\'s own blow, not a spell');

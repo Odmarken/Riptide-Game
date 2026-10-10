@@ -92,7 +92,7 @@
    fx.emit({x:hx,y:hy,n:4,kind:'spark',speed:[120,200],angle:[-Math.PI/2-.35,-Math.PI/2+.35],life:[.15,.3],size:[1.1,1.8],c:WHITE,drag:4});
   },
   hit(o,fx){
-   const foot=o.y+4+o.r*.1,cy=o.y-o.r*.6,k=o.crit?1.25:1,D=.07,SY=foot-92-o.r*1.2;   /* the sun stands clear over any foe */
+   const foot=o.y+4+o.r*.1,cy=o.y-o.r*.6,k=(o.crit?1.25:1)*(o.k||1),D=.07,SY=foot-92-o.r*1.2;   /* the sun stands clear over any foe · o.k: 🌳 Holy Fire */
    /* a small sun opens over the foe - a gold disc, its ring and its rays - then strikes: a lance of light, white down its heart */
    fx.spawn({life:.58,layer:'glow',reach:160,light:{colour:HOLY_LIGHT,reach:240*k,head:160,h:60,peak:1,env:p=>p<.12?p/.12:Math.pow(1-(p-.12)/.88,1.5)},draw(g,e,p,H){
     const t=e.t,after=cl((t-D)/(e.life-D)),sa=t<D?H.E.out(t/D):1-H.E.in(after),q=t<D?H.E.back(t/D):1;

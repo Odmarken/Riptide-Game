@@ -1,0 +1,118 @@
+/* 🌳 The Skill Tree window (assets/tree/tree-ui.js). Bronze and dark like the other windows (assets/ui/crafting.css's craft-modal),
+   over the class's painted backdrop under a dark wash. Cursors are the game's bronze ones: var(--hand) / var(--arrow), never the
+   browser's (tests/cursors.test.cjs). */
+#treeFx{z-index:74}
+#treeFx .craft-tree{--craft-accent:#e2b866;--craft-bright:#ffe3a6;--craft-line:#7d6038;--craft-soft:rgba(226,184,102,.12);--tn:54px;--tgap:20px;
+ width:min(100%,1120px);height:min(100%,880px);max-height:100%;padding:22px 24px;display:flex;flex-direction:column;
+ background:linear-gradient(180deg,rgba(14,10,7,.80),rgba(8,6,4,.93)),var(--tree-bg,none) center/cover no-repeat #1a120c}
+#treeFx[data-cls="warrior"] .craft-tree{--tree-bg:url('backdrops/warrior.jpg')}
+#treeFx[data-cls="mage"] .craft-tree{--tree-bg:url('backdrops/mage.jpg')}
+#treeFx[data-cls="hunter"] .craft-tree{--tree-bg:url('backdrops/hunter.jpg')}
+#treeFx[data-cls="priest"] .craft-tree{--tree-bg:url('backdrops/priest.jpg')}
+#treeFx .tree-header{gap:14px;margin-bottom:14px;padding-bottom:14px}
+#treeFx .tree-seal{width:54px;height:54px;border-radius:12px;box-shadow:0 0 0 1px var(--craft-line),0 4px 16px #000a;flex-shrink:0}
+#treeFx .tree-pts{margin-left:auto;font:600 13px var(--body,sans-serif);color:#e8d6b0;white-space:nowrap}
+#treeFx .tree-pts b{color:#ffd76a;font-size:17px}
+#treeFx .tree-close{min-width:42px;padding:9px 12px}
+#treeFx .tree-body{flex:1;min-height:0;display:flex;gap:18px}
+#treeFx .tree-scroll{flex:1;min-width:0;overflow:auto;display:flex;justify-content:center;align-items:flex-start;padding:4px 6px 14px}
+#treeFx .tree-canvas{position:relative;margin:auto 0}
+#treeFx .tree-lines{position:absolute;left:0;top:0;pointer-events:none;overflow:visible;z-index:0}
+#treeFx .tree-lines line{stroke-width:3;stroke-linecap:round}
+#treeFx .tl-off{stroke:rgba(140,124,100,.32)}
+#treeFx .tl-lit{stroke:rgba(236,196,116,.6)}
+#treeFx .tl-on{stroke:#ffd76a;filter:drop-shadow(0 0 4px rgba(255,200,90,.85))}
+#treeFx .tree-grid{position:relative;z-index:1;display:grid;grid-template-columns:repeat(7,var(--tn));
+ grid-template-rows:var(--tn) var(--tn) 24px auto var(--tn) var(--tn) 24px var(--tn) var(--tn) 24px calc(var(--tn)*1.25);
+ column-gap:var(--tgap);row-gap:14px;align-items:center;justify-items:center}
+/* a talent */
+#treeFx .tn{position:relative;width:var(--tn);height:var(--tn);padding:0;margin:0;border:2px solid #5d4a33;background:#120d09;cursor:var(--hand);
+ box-shadow:0 3px 10px #000b;transition:box-shadow .15s,border-color .15s,transform .12s;min-height:0;border-radius:9px}
+#treeFx .tn:hover{transform:translateY(-1px)}
+#treeFx .tn-face{position:absolute;inset:0;overflow:hidden;border-radius:inherit;display:flex}
+#treeFx .tn-face img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+#treeFx .tn-round{border-radius:50%}
+#treeFx .tn-square{border-radius:9px}
+/* the octagon: the frame is the button's own colour, the picture an octagon set in it */
+#treeFx .tn-oct{border:none;border-radius:0;background:#5d4a33;clip-path:polygon(29% 0,71% 0,100% 29%,100% 71%,71% 100%,29% 100%,0 71%,0 29%);box-shadow:none}
+#treeFx .tn-oct .tn-face{inset:3px;border-radius:0;clip-path:polygon(29% 0,71% 0,100% 29%,100% 71%,71% 100%,29% 100%,0 71%,0 29%)}
+#treeFx .tn-half{flex:1;min-width:0;overflow:hidden;position:relative}
+#treeFx .tn-half+.tn-half{border-left:2px solid #0008}
+#treeFx .tn-half img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#treeFx .tn-oct .tn-rank{display:none}
+#treeFx .tn-star{width:calc(var(--tn)*1.25);height:calc(var(--tn)*1.25);border-radius:14px;border-color:#a9873f;box-shadow:0 0 0 1px #00000080,0 5px 18px #000c}
+#treeFx .tn-badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);font-size:18px;line-height:1;color:#ffd76a;
+ text-shadow:0 0 8px #ffb84d,0 1px 2px #000;pointer-events:none}
+#treeFx .tn-rank{position:absolute;right:-7px;bottom:-7px;min-width:24px;padding:0 4px;font:700 10px/16px var(--body,sans-serif);color:#e8dcc8;
+ background:#120d09;border:1px solid #5d4a33;border-radius:7px;text-align:center;pointer-events:none}
+/* what can be done with it */
+#treeFx .tn-locked .tn-face,#treeFx .tn-sealed .tn-face{filter:grayscale(1) brightness(.42)}
+#treeFx .tn-locked,#treeFx .tn-sealed{cursor:var(--arrow)}
+#treeFx .tn-oct.tn-locked,#treeFx .tn-oct.tn-sealed{background:#3a2f24}
+#treeFx .tn-wait .tn-face{filter:saturate(.7) brightness(.78)}
+#treeFx .tn-open{border-color:#e7b54d;box-shadow:0 0 0 1px #e7b54d55,0 0 14px #e7b54d88;animation:tnPulse 1.9s ease-in-out infinite}
+#treeFx .tn-oct.tn-open{background:#e7b54d}
+#treeFx .tn-part{border-color:#9fdc6c;box-shadow:0 0 12px #9fdc6c66}
+#treeFx .tn-full{border-color:#ffd76a;box-shadow:0 0 16px #ffd76a90}
+#treeFx .tn-oct.tn-full,#treeFx .tn-oct.tn-part{background:#ffd76a}
+#treeFx .tn-part .tn-rank{color:#c9f2a6;border-color:#7fb757}
+#treeFx .tn-full .tn-rank{color:#ffd76a;border-color:#c99a3a}
+#treeFx .tn-sel{outline:2px solid #fff3c4;outline-offset:4px}
+#treeFx .tn-oct.tn-sel{outline:none;filter:drop-shadow(0 0 5px #fff3c4)}
+@keyframes tnPulse{50%{box-shadow:0 0 0 1px #e7b54d66,0 0 22px #e7b54dcc}}
+/* the gates: a dashed line across the tree, its count at the right */
+#treeFx .tg{width:100%;height:0;border-top:1px dashed rgba(206,172,112,.32);position:relative;align-self:center}
+#treeFx .tg span{position:absolute;right:0;top:-8px;padding:0 0 0 8px;font:600 10px var(--body,sans-serif);letter-spacing:.4px;color:#a48d6c;text-transform:uppercase}
+#treeFx .tg-met{border-top-color:rgba(255,215,106,.55)}
+#treeFx .tg-met span{color:#ffd76a}
+/* the two sides' names */
+#treeFx .ts{display:flex;align-items:center;gap:9px;justify-self:stretch;padding:7px 9px;border-radius:11px;background:rgba(0,0,0,.42);border:1px solid rgba(206,172,112,.22);min-width:0}
+#treeFx .ts img{width:34px;height:34px;border-radius:8px;flex-shrink:0}
+#treeFx .ts b{display:block;font:600 15px/1.2 var(--display,serif);color:#f3e4c9}
+#treeFx .ts small{display:block;font:11px/1.35 var(--body,sans-serif);color:#bfa987}
+#treeFx .ts-def b{color:#a9d8ff}
+#treeFx .ts-off b{color:#ffb592}
+/* the panel that reads a talent */
+#treeFx .tree-info{width:300px;flex-shrink:0;align-self:stretch;overflow:auto;padding:14px 15px;border:1px solid var(--craft-line);border-radius:14px;background:rgba(10,7,5,.74)}
+#treeFx .ti-hint{font:13px/1.55 var(--body,sans-serif);color:#bfa987;margin:4px 0}
+#treeFx .ti-head{display:flex;gap:11px;align-items:center;margin-bottom:10px}
+#treeFx .ti-head img{width:58px;height:58px;border-radius:11px;box-shadow:0 0 0 1px var(--craft-line)}
+#treeFx .ti-head b{display:block;font:600 17px/1.2 var(--display,serif);color:#f3e4c9}
+#treeFx .ti-head span{font:12px var(--body,sans-serif);color:#c1ad91}
+#treeFx .ti-now{font:13px/1.55 var(--body,sans-serif);color:#efe1c6;margin:6px 0}
+#treeFx .ti-next{font:12px/1.5 var(--body,sans-serif);color:#bfa987;margin:6px 0}
+#treeFx .ti-note{font:12px var(--body,sans-serif);color:#bfa987;margin:4px 0 2px}
+#treeFx .ti-why{font:12px/1.45 var(--body,sans-serif);color:#ffa492;margin:8px 0}
+#treeFx .tree-info .sbtn{width:100%;margin-top:8px}
+#treeFx .ti-opt{display:flex;gap:10px;padding:10px;border:1px solid rgba(206,172,112,.24);border-radius:11px;margin:9px 0;background:rgba(0,0,0,.25)}
+#treeFx .ti-opt img{width:46px;height:46px;border-radius:9px;flex-shrink:0}
+#treeFx .ti-opt b{font:600 13px var(--body,sans-serif);color:#f3e4c9}
+#treeFx .ti-opt p{margin:3px 0 0;font:12px/1.45 var(--body,sans-serif);color:#d6c4a4}
+#treeFx .ti-opt .sbtn{margin-top:8px}
+#treeFx .ti-mine{border-color:#ffd76a;background:rgba(255,215,106,.08)}
+#treeFx .tree-empty .tn{cursor:var(--arrow)}
+/* a shorter screen: smaller talents and tighter rows, so the whole tree - capstones too - fits without scrolling */
+@media (max-height:980px){
+ #treeFx .craft-tree{--tn:46px;--tgap:18px;padding:16px 20px}
+ #treeFx .tree-grid{row-gap:9px;grid-template-rows:var(--tn) var(--tn) 18px auto var(--tn) var(--tn) 18px var(--tn) var(--tn) 18px calc(var(--tn)*1.25)}
+ #treeFx .tree-header{margin-bottom:8px;padding-bottom:9px}#treeFx .tree-seal{width:44px;height:44px}
+ #treeFx .ts{padding:5px 8px}#treeFx .ts img{width:28px;height:28px}
+}
+@media (max-height:780px){#treeFx .craft-tree{--tn:40px;--tgap:14px}#treeFx .tree-grid{row-gap:7px}}
+/* narrower windows: the panel under the tree; phones: smaller talents, the sides' lines of text dropped */
+@media (max-width:980px){#treeFx .tree-body{flex-direction:column}#treeFx .tree-info{width:auto;max-height:34%;flex-shrink:0}}
+@media (max-width:640px){
+ #treeFx .craft-tree{padding:12px 10px;--tn:40px;--tgap:7px;border-radius:14px}
+ #treeFx .tree-grid{row-gap:10px}
+ #treeFx .tree-seal{display:none}
+ #treeFx .tree-header{gap:7px;margin-bottom:8px;padding-bottom:9px}
+ #treeFx .tree-header .sbtn{padding:8px 10px;min-height:34px}
+ #treeFx .tree-header .craft-title{font-size:22px}
+ #treeFx .tree-pts{font-size:12px}
+ #treeFx .ts{padding:5px 6px;gap:6px}#treeFx .ts img{width:24px;height:24px}#treeFx .ts small{display:none}#treeFx .ts b{font-size:12px}
+ #treeFx .tn-badge{top:-11px;font-size:14px}
+ #treeFx .tn-rank{font-size:9px;line-height:14px;min-width:20px;right:-6px;bottom:-6px}
+ #treeFx .tree-info{max-height:40%;padding:10px 11px}
+}
+/* the Hero panel's way in */
+.tree-entry-pts{color:#ffd76a}

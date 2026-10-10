@@ -109,7 +109,7 @@ test('game.js hands every spell to its effect: going off, in flight, landing, as
  assert.equal((cast.match(/f:sp\.fx/g)||[]).length,2,'and tell the party which');
  assert.match(cast,/hero\.buff\[sp\.buff\]=\{mul:sp\.val,t:sp\.dur,dur:sp\.dur\};/);
  assert.match(cast,/hero\.hotT=sp\.dur;hero\.hotDur=sp\.dur;/);
- assert.match(section('function dealSpell(en,sp){','function heroGroundY('),/if\(SpellFx\.hit\(sp\.fx,\{x:ex,y:ey,r:er,crit,sx:hero\.x,sy:hero\.y\}\)\)return;/);
+ assert.match(section('function dealSpell(en,sp){','function heroGroundY('),/if\(SpellFx\.hit\(sp\.fx,\{x:ex,y:ey,r:er,crit,sx:hero\.x,sy:hero\.y,k:sp\.size\|\|1\}\)\)return;/);   /* k: 🌳 as big as the talents make it */
  assert.match(section('function spellCastFx(sp,tgt,list){','function heroAuraState('),/mpAct\('cast',\{f:sp\.fx,/);
  assert.match(game,/if\(b\.fx&&SpellFx\.drawBolt\(ctx,b,now\)\)continue;/);
  assert.match(game,/else if\(b\.fx&&SpellFx\.has\(b\.fx\)\)SpellFx\.boltTick\(b,dt\);/);
@@ -148,6 +148,6 @@ test('the basic shots have a look of their own (2026-10-09, "alla spells som skj
  const trailAt=fps=>{const b={x:0,y:-10,tgt:{x:2000,y:0},sp:470,fx:'fireball'};for(let i=0;i<fps*.5;i++){b.x+=470/fps;FX.boltTick(b,1/fps);}const t=b._tr;return Math.hypot(t[0][0]-t[t.length-1][0],t[0][1]-t[t.length-1][1]);};
  const at60=trailAt(60),at240=trailAt(240);
  assert.ok(at60>80&&Math.abs(at240-at60)<10,`the Fireball's wake: ${at60.toFixed(0)} units at 60 fps, ${at240.toFixed(0)} at 240`);
- assert.ok(game.includes("fx:c.id==='hunter'?'shot':'firebolt'"),'the hero\'s own shots carry it');
+ assert.ok(game.includes("fx:c.id==='hunter'?'shot':frost?'tree:frostbolt':'firebolt'"),'the hero\'s own shots carry it');   /* 🌳 or frost, with Frostbolt */
  assert.ok(game.includes('landHit(t,b.dmg,b.crit,b.label||null,b.basic);if(b.fx)SpellFx.hit(b.fx,o);'),'and land with it');
 });

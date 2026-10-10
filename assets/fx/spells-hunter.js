@@ -106,7 +106,7 @@
    e.seen=b._n;
    const dx=b.x-e.hx,dy=b.y-e.hy,d=Math.hypot(dx,dy);
    if(d>.5){e.run+=d;e.ang=Math.atan2(dy,dx);}
-   e.hx=b.x;e.hy=b.y;e.len=Math.min(S.len,e.run+8);
+   e.hx=b.x;e.hy=b.y;e.len=Math.min(S.len*(b.big||1),e.run+8);   /* big: 🌳 Steady Aim flies longer */
    const R=S.rings;
    while(e.rings.length<R.length&&e.run>=R[e.rings.length]){
     const back=e.run-R[e.rings.length];e.rings.push([e.hx-Math.cos(e.ang)*back,e.hy-Math.sin(e.ang)*back,e.t,e.ang]);
