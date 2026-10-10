@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="favicon_256.png">
 <!-- ?v= is not decoration: without it iOS Safari serves a cached stylesheet for days, so two
      phones end up running two different builds of the layout. Bump on every visual change. -->
-<link rel="stylesheet" href="style.css?v=75">
+<link rel="stylesheet" href="style.css?v=76">
 <link rel="stylesheet" href="assets/tides/ui.css?v=11">
 <link rel="stylesheet" href="assets/ui/crafting.css?v=8">
 <link rel="stylesheet" href="assets/city/ledger.css?v=14">
@@ -159,7 +159,7 @@
             <label class="cfgrow cfgchk"><input type="checkbox" id="lightingChk" checked><span>Lighting</span></label>
             <label class="cfgrow cfgchk"><input type="checkbox" id="sunFlareChk" checked><span>Sun flare</span></label>
             <label class="cfgrow cfgchk"><input type="checkbox" id="weatherChk" checked><span>Weather</span></label>
-            <label class="cfgrow cfgchk" id="spellFxRow" hidden><input type="checkbox" id="spellFxChk" checked><span>Spell effects</span></label>
+            <label class="cfgrow cfgchk" id="gpuRow" hidden><input type="checkbox" id="gpuChk" checked><span>GPU acceleration</span></label>
             <label class="cfgrow cfgresolution" id="lightQRow"><span>Lighting quality</span><select id="lightQSel"><option value="ultra">Ultra</option><option value="medium">Medium</option><option value="low">Low</option></select></label>
             <div class="cfgnote cfgresolutionnote" id="lightQNote">Light, glow and soft shadows on the graphics card · lower it if the game stutters</div>
             <label class="cfgrow cfgslider"><span>Brightness</span><b class="cfgvalue" id="brightnessN">100</b><input type="range" id="brightnessSl" min="60" max="140" step="1" value="100" aria-label="Game brightness"></label>
@@ -914,7 +914,7 @@
   </nav>
 </div>
  
-<script src="assets/gl/gl2d.js?v=5"></script>
+<script src="assets/gl/gl2d.js?v=6"></script>
 <script src="assets/ui/desktop-frames.js?v=1"></script>
 <script src="assets/models/home-hit-masks.js?v=1"></script>
 <script src="assets/sprite-cutout-masks.js?v=2"></script>
@@ -927,7 +927,7 @@
 <script src="assets/weapons/rune-particles.js?v=1"></script>
 <script src="assets/weapons/rune-effects.js?v=4"></script>
 <script src="assets/ui/sidebar-resize.js?v=1"></script>
-<script src="assets/ui/display-settings.js?v=10"></script>
+<script src="assets/ui/display-settings.js?v=11"></script>
 <script src="assets/ui/city-minimap.js?v=9"></script>
 <script src="assets/ui/day-bar.js?v=1"></script>
 <script src="assets/city/economy.js?v=29"></script>
@@ -981,7 +981,7 @@
 <script src="assets/fx/spells-priest.js?v=1"></script>
 <script src="assets/fx/boss-fx.js?v=2"></script>
 <script src="assets/fx/rune-fx.js?v=1"></script>
-<script src="game.js?v=237"></script>
+<script src="game.js?v=238"></script>
 <script src="assets/ui/crafting.js?v=4"></script>
 </body>
 </html>

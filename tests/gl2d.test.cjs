@@ -2,7 +2,8 @@
  * 🎮 The WebGL screen (asked for 2026-10-09: "vi kör WebGL igenom allt"). assets/gl/gl2d.js draws the screen canvas with WebGL2 behind
  * the 2D API the game already speaks; its geometry and colour work is plain JavaScript and runs here, the GPU half is checked in the
  * browser (the probe the game runs at start, and the conformance page in that day's scratchpad). Also pinned: the game picks it
- * safely and can fall back to the plain canvas, and the switch in Settings > Video.
+ * safely and can fall back to the plain canvas, and a computer has no switch for it in Settings > Video (a phone's GPU
+ * acceleration is in tests/gpu-acceleration.test.cjs).
  */
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const G=require('../assets/gl/gl2d.js'),T=G._test;
@@ -83,13 +84,14 @@ test('gradient ramps: stops interpolated unpremultiplied, then premultiplied; eq
  assert.equal(px[126*4],0);assert.equal(px[130*4],255);
 });
 
-test('the game always hands its screen to WebGL, after the probe, and falls back to the 2D canvas only when the machine cannot',()=>{
+test('the game hands its screen to WebGL, after the probe, and falls back to the 2D canvas when the machine cannot (or a phone says no)',()=>{
  const html=read('index.html'),game=read('game.js');
  const gl=html.indexOf('<script src="assets/gl/gl2d.js'),first=html.indexOf('<script src="assets/ui/desktop-frames.js'),main=html.indexOf('<script src="game.js');
  assert.ok(gl>0&&gl<first&&gl<main,'loaded before the game\'s other scripts, so every gradient made later is recorded');
- const pick=game.slice(game.indexOf('function screenSurface(el){'),game.indexOf("const [cv,ctx]=screenSurface($('game'));"));
- assert.ok(pick.includes('GL2D.probe()')&&pick.includes('GL2D.create(el)'),'probe first, then the real canvas');
- assert.ok(!pick.includes('localStorage')&&!pick.includes('.webgl'),'no setting decides it (the switch was taken out 2026-10-09)');
+ const pick=game.slice(game.indexOf('function screenSurface(el,gpu=true){'),game.indexOf('let gpuWish='));
+ assert.ok(pick.includes('if(gpu&&typeof GL2D!==\'undefined\')')&&pick.includes('GL2D.probe()')&&pick.includes('GL2D.create(el)'),'probe first, then the real canvas');
+ assert.ok(!pick.includes('localStorage')&&!pick.includes('.webgl')&&!pick.includes('DisplaySettings'),'the surface itself reads no setting');
+ assert.ok(game.includes("let gpuWish=!PHONE||DisplaySettings.load().gpu;   /* what the player asked for - not always what the device could give */\nlet [cv,ctx]=screenSurface($('game'),gpuWish);"),'a computer always asks for WebGL (its switch was taken out 2026-10-09); only a phone\'s GPU acceleration can say no');
  assert.ok(/el\.getContext\('2d'\)===null\)\{const fresh=el\.cloneNode\(false\);el\.replaceWith\(fresh\);el=fresh;\}/.test(pick),'a canvas WebGL already took is swapped for a fresh one');
  assert.ok(pick.trim().endsWith("return [el,el.getContext('2d')];\n}")||pick.includes("return [el,el.getContext('2d')];"),'and the plain canvas is the fallback');
  /* the game's scaled copies point back at their source, which WebGL mip-maps itself */
@@ -99,10 +101,12 @@ test('the game always hands its screen to WebGL, after the probe, and falls back
  assert.ok(crisp.includes('out.__glSrc=img;'));
 });
 
-test('Settings > Video has no WebGL switch: the screen is always WebGL ("ska alltid vara webGL")',()=>{
+test('Settings > Video has no WebGL switch on a computer: its screen is always WebGL ("ska alltid vara webGL")',()=>{
  const D=require('../assets/ui/display-settings.js');
  assert.equal('webgl' in D.normalize(null),false);assert.equal('webgl' in D.normalize({webgl:false}),false,'an old saved choice is dropped');
+ assert.equal(D.normalize({webgl:false}).gpu,true,'and does not turn into the phone\'s GPU acceleration');
  const html=read('index.html');assert.ok(!html.includes('id="webglChk"')&&!html.includes('WebGL renderer'));
+ assert.ok(html.includes('id="gpuRow" hidden'),'GPU acceleration is hidden until the game finds a phone (tests/gpu-acceleration.test.cjs)');
 });
 
 test('💡 the GPU light: Settings > Video > Lighting quality (ultra by default, only the three names), and the game asks for it where the 2D light was',()=>{

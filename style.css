@@ -280,7 +280,7 @@
                     text-transform:uppercase;margin-top:6px}
   .kbdlist .kbdhead:first-child{margin-top:0}
   .cfgrow{display:flex;align-items:center;gap:9px;color:#e9e0cf;font-size:12px;cursor:var(--hand);user-select:none}
-  .cfgrow[hidden]{display:none}   /* 📱 Spell effects: a phone's row only */
+  .cfgrow[hidden]{display:none}   /* 📱 GPU acceleration: a phone's row only (and Lighting quality off WebGL) */
   .cfgrow>span{min-width:52px}      /* the two labels line their sliders up with each other */
   .cfgrow input[type=range]{width:118px;accent-color:var(--brass)}
   .cfgrow b{min-width:24px;text-align:right;font-weight:600;color:var(--brass);font-variant-numeric:tabular-nums}

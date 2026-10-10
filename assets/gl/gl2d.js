@@ -1089,7 +1089,8 @@ function create(canvas,opts={}){
  }
 
  /* ---- a web font that finishes loading: text cached in the fallback font is drawn again */
- try{document.fonts&&document.fonts.addEventListener('loadingdone',()=>{if(textAtlas){flush('fonts');textAtlas.map.clear();textAtlas.shelves=[];textAtlas.y=0;}});}catch(e){}
+ const fontsLoaded=()=>{if(textAtlas){flush('fonts');textAtlas.map.clear();textAtlas.shelves=[];textAtlas.y=0;}};
+ try{document.fonts&&document.fonts.addEventListener('loadingdone',fontsLoaded);}catch(e){}
 
  /* ---- canvas resizes reset the 2D state, as they do for a 2D context */
  for(const p of ['width','height']){
@@ -1692,6 +1693,12 @@ function create(canvas,opts={}){
   getLineDash(){return S.dash.slice();},
   drawFocusIfNeeded(){},
   /* GL2D's own */
+  release(){   /* done with (the probe's scratch canvas, a phone switching GPU acceleration off): the GPU context goes at once, and with
+                  the font listener gone nothing outside holds the rest - its buffers and the pictures it uploaded - in memory */
+   try{document.fonts&&document.fonts.removeEventListener('loadingdone',fontsLoaded);}catch(e){}
+   R.warned.add('context lost');
+   try{const ext=gl.getExtension('WEBGL_lose_context');if(ext)ext.loseContext();}catch(e){}
+  },
   flush(){present();},
   present,
   stats(){return {...stats,reasons:{...stats.reasons},textures:live.size,slots:NSLOT,samples:SAMPLES,maxTexture:MAXTEX,size:[W,H]};},
@@ -1748,7 +1755,7 @@ function probe(){
   const ok=red[0]>240&&red[1]<10&&red[3]>240 && blue[2]>240&&blue[0]<10&&blue[3]>110&&blue[3]<145 && grad[0]>200&&Math.abs(grad[0]-grad[1])<3 && top[0]>240&&top[1]<10;
   return ok;
  }catch(e){try{console.warn('GL2D probe: '+(e&&e.message||e));}catch(_){}return false;}
- finally{try{const gl=g&&g.gl;const ext=gl&&gl.getExtension('WEBGL_lose_context');if(ext)ext.loseContext();}catch(e){}}
+ finally{try{if(g)g.release();}catch(e){}}
 }
 
 return {create,supported,probe,parseColor,debug:GL2D_DEBUG,_track:installTracking,_pathOps:p=>pathOps.get(p),

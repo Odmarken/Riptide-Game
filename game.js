@@ -4706,13 +4706,13 @@ function dingDingDing(big){
  if(big)setTimeout(()=>{[523,659,784,1046,1318].forEach((f,k)=>setTimeout(()=>blip(f,f,0.3,.1),k*90));},hits*160);
 }
 
-/* 🎮 The screen (2026-10-09, "vi kör WebGL igenom allt"): always drawn through WebGL by assets/gl/gl2d.js - the same 2D calls as
-   ever, batched for the graphics card (the Settings switch was taken out the same day: "ska alltid vara webGL"). Only a machine
-   without WebGL2, or one where the probe (the whole pipeline on a scratch canvas, read back) fails, gets the 2D canvas. A canvas
-   that once had a WebGL context can never give a 2D one, so if WebGL fails AFTER taking it the element is swapped for a fresh
-   copy before anything listens to it. */
-function screenSurface(el){
- if(typeof GL2D!=='undefined'){
+/* 🎮 The screen (2026-10-09, "vi kör WebGL igenom allt"): drawn through WebGL by assets/gl/gl2d.js - the same 2D calls as ever,
+   batched for the graphics card (a computer's Settings switch was taken out the same day: "ska alltid vara webGL"). A machine
+   without WebGL2, or one where the probe (the whole pipeline on a scratch canvas, read back) fails, gets the 2D canvas - and so
+   does a phone or tablet with Settings > Video > GPU acceleration off (gpu false). A canvas that once had a WebGL context can
+   never give a 2D one, so if WebGL fails AFTER taking it the element is swapped for a fresh copy before anything listens to it. */
+function screenSurface(el,gpu=true){
+ if(gpu&&typeof GL2D!=='undefined'){
   try{if(GL2D.probe()){const g=GL2D.create(el);if(g)return [el,g];}}
   catch(e){
    try{console.error('GL2D: '+String((e&&e.stack)||e));}catch(_){}
@@ -4721,7 +4721,31 @@ function screenSurface(el){
  }
  return [el,el.getContext('2d')];
 }
-const [cv,ctx]=screenSurface($('game'));
+let gpuWish=!PHONE||DisplaySettings.load().gpu;   /* what the player asked for - not always what the device could give */
+let [cv,ctx]=screenSurface($('game'),gpuWish);
+/* 📱 GPU acceleration (2026-10-10, "kan man göra att effekt knappen ... stänger av webGL ... döp den till GPU acceleration"): a
+   phone or tablet takes the screen off WebGL, or back, while it plays. A canvas keeps the first kind of context it gave, so a
+   fresh copy of the element takes its place and everything that listened to the old one listens to the new one (screenEars
+   keeps the list); the old GPU context is let go at once (a phone allows only a few), and the next frame draws on the new
+   screen. Lighting quality only means something on WebGL, so its row is hidden while the screen is not. */
+const screenHeard=[];
+function screenEars(el){const add=el.addEventListener;el.addEventListener=function(type,fn,opt){screenHeard.push([type,fn,opt]);return add.call(this,type,fn,opt);};}
+screenEars(cv);
+function screenGpu(on){
+ if(on===gpuWish)return;
+ gpuWish=on;
+ const was=ctx,fresh=cv.cloneNode(false);
+ cv.replaceWith(fresh);
+ const [el,next]=screenSurface(fresh,on);
+ for(const [type,fn,opt] of screenHeard)EventTarget.prototype.addEventListener.call(el,type,fn,opt);
+ screenEars(el);
+ cv=el;ctx=next;
+ try{if(was.release)was.release();}catch(_){}
+ vigCv=null;resize();   /* the new element's size and the DPR transform */
+ screenRows();
+ if(on&&!ctx.isGL)stageMsg('🎮 No WebGL on this device',2200);
+}
+function screenRows(){const off=!ctx.isGL;$('lightQRow').hidden=off;$('lightQNote').hidden=off;}
 let VW=0,VH=0,DPR=1,vigCv=null;
 function resize(){
  const r=$('stageWrap').getBoundingClientRect();
@@ -20805,8 +20829,9 @@ $('nextBtn').onclick=()=>{
  stageMsg('Marching to the portal…',1600);
 };
 $('autoEquipBtn').onclick=()=>{S.autoEquip=!S.autoEquip;renderHero();save();};
-const displaySettings=DisplaySettings.create({onChange:v=>{SUN.light=v.lighting;SUN.flare=v.sunFlare;WEATHER.on=v.weather;SUN.q=v.lightQuality;SpellFx.effects=!PHONE||v.spellFx;}});   /* ☀🌧 Settings -> Video -> Lighting, Sun flare, Weather */
-$('spellFxRow').hidden=!PHONE;   /* 📱 Spell effects is a phone's row: off, the spells and the bosses in their plain looks (a boss's attacks still marked) */
+const displaySettings=DisplaySettings.create({onChange:v=>{SUN.light=v.lighting;SUN.flare=v.sunFlare;WEATHER.on=v.weather;SUN.q=v.lightQuality;screenGpu(!PHONE||v.gpu);}});   /* ☀🌧 Settings -> Video -> Lighting, Sun flare, Weather - and a phone's GPU acceleration */
+$('gpuRow').hidden=!PHONE;   /* 📱 GPU acceleration is a phone's row (it took the place of Spell effects): off, the 2D screen - the effects all there, but no bloom, heat haze or light shafts */
+screenRows();
 /* 🔊 is now a plain mute for everything. The sliders moved into the ⚙ panel, so leaving this button
    as a slider flyout would have put the music level in two places that could disagree. */
 $('sndBtn').onclick=()=>{

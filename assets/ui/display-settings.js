@@ -3,12 +3,12 @@
  'use strict';
  const STORAGE_KEY='riptide.displaySettings',MIN=60,MAX=140,QUALITIES=['ultra','medium','low'];
  function normalize(raw){
-  const result={brightness:100,contrast:100,showFps:true,lighting:true,sunFlare:true,weather:true,spellFx:true,lightQuality:'ultra'};   /* spellFx: the spells' and bosses' effects (phones only, game.js) */   /* lightQuality: what the GPU's light does (ultra|medium|low) - the screen itself is always WebGL (2026-10-09) */
+  const result={brightness:100,contrast:100,showFps:true,lighting:true,sunFlare:true,weather:true,gpu:true,lightQuality:'ultra'};   /* gpu: GPU acceleration, the screen on WebGL - a phone's or tablet's choice (2026-10-10, game.js); a computer's screen is always WebGL */   /* lightQuality: what the GPU's light does (ultra|medium|low) */
   if(!raw||typeof raw!=='object'||Array.isArray(raw))return result;
   for(const key of ['brightness','contrast']){
    if(typeof raw[key]==='number'&&Number.isFinite(raw[key]))result[key]=Math.round(Math.max(MIN,Math.min(MAX,raw[key])));
   }
-  for(const key of ['showFps','lighting','sunFlare','weather','spellFx'])if(typeof raw[key]==='boolean')result[key]=raw[key];
+  for(const key of ['showFps','lighting','sunFlare','weather','gpu'])if(typeof raw[key]==='boolean')result[key]=raw[key];
   if(QUALITIES.includes(raw.lightQuality))result.lightQuality=raw.lightQuality;
   /* 📱 on 2026-10-10 a phone's Lighting quality was moved to Low (saved with phoneRev 1) and that was taken back the same day:
      such a phone goes back to Ultra. Saved again it carries no phoneRev, so a Low picked after that stays */
@@ -25,10 +25,14 @@
   const fraction=max>min?Math.max(0,Math.min(1,(value-min)/(max-min))):0;
   input.style.setProperty('--range-fill',Math.round(fraction*100)+'%');
  }
+ function load(store){   /* what the device keeps - read before the screen is made too (game.js: GPU acceleration picks the renderer) */
+  if(store===undefined){try{store=root.localStorage;}catch(_){store=null;}}
+  try{return normalize(JSON.parse(store?.getItem(STORAGE_KEY)||'null'));}catch(_){return normalize(null);}
+ }
  function create({doc=root.document,storage,onChange}={}){   /* onChange: told the settings whenever they are applied (the game's sun reads Lighting and Sun flare, its sky Weather) */
   let store=storage,value=normalize(null);
   if(store===undefined){try{store=root.localStorage;}catch(_){store=null;}}
-  function read(){try{return normalize(JSON.parse(store?.getItem(STORAGE_KEY)||'null'));}catch(_){return normalize(null);}}
+  function read(){return load(store);}
   function save(){try{store?.setItem(STORAGE_KEY,JSON.stringify(value));}catch(_){}}
   function sync(){
    /* Filtering the canvases leaves HUD/menu text clear and avoids changing the
@@ -45,8 +49,8 @@
    if(flareToggle)flareToggle.checked=value.sunFlare;
    const weatherToggle=doc.getElementById('weatherChk');
    if(weatherToggle)weatherToggle.checked=value.weather;
-   const fxToggle=doc.getElementById('spellFxChk');
-   if(fxToggle)fxToggle.checked=value.spellFx;
+   const gpuToggle=doc.getElementById('gpuChk');
+   if(gpuToggle)gpuToggle.checked=value.gpu;
    const quality=doc.getElementById('lightQSel');
    if(quality)quality.value=value.lightQuality;
    for(const key of ['brightness','contrast']){
@@ -56,7 +60,7 @@
    }
    onChange?.({...value});
   }
-  function reset(){value=normalize({showFps:value.showFps,lighting:value.lighting,sunFlare:value.sunFlare,weather:value.weather,spellFx:value.spellFx,lightQuality:value.lightQuality});sync();save();}
+  function reset(){value=normalize({showFps:value.showFps,lighting:value.lighting,sunFlare:value.sunFlare,weather:value.weather,gpu:value.gpu,lightQuality:value.lightQuality});sync();save();}
   for(const key of ['brightness','contrast']){
    doc.getElementById(key+'Sl')?.addEventListener('input',e=>{
     value=normalize({...value,[key]:Number(e.target.value)});sync();save();
@@ -74,8 +78,8 @@
   doc.getElementById('weatherChk')?.addEventListener('change',e=>{
    value={...value,weather:e.target.checked};sync();save();
   });
-  doc.getElementById('spellFxChk')?.addEventListener('change',e=>{
-   value={...value,spellFx:e.target.checked};sync();save();
+  doc.getElementById('gpuChk')?.addEventListener('change',e=>{
+   value={...value,gpu:e.target.checked};sync();save();
   });
   doc.getElementById('lightQSel')?.addEventListener('change',e=>{
    value=normalize({...value,lightQuality:e.target.value});sync();save();
@@ -85,7 +89,7 @@
   value=read();sync();
   return {sync,reset,get value(){return {...value};}};
  }
- const api={create,normalize,filter,paintRange,STORAGE_KEY,QUALITIES};
+ const api={create,load,normalize,filter,paintRange,STORAGE_KEY,QUALITIES};
  if(typeof module!=='undefined'&&module.exports)module.exports=api;
  root.DisplaySettings=api;
 })(typeof window!=='undefined'?window:globalThis);

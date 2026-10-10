@@ -4,6 +4,9 @@
  * Settings > Video > Spell effects, shown on phones only (the web game on a phone or tablet). Off: the spells' and the bosses'
  * own looks (assets/fx) are left out and the game draws its plain ones - the old rings, bursts, bolts and warnings, so a boss's
  * attacks are still marked. The weapon runes, the Tide battles and the heat haze are not part of it.
+ * The same day the row became GPU acceleration ("kan man göra att effekt knappen i settings idag att den stänger av webGL ...
+ * döp den till GPU acceleration", tests/gpu-acceleration.test.cjs): the effects are on for everyone again. SpellFx can still
+ * mute itself (SpellFx.effects) and the game keeps the plain looks it would fall back to, but nothing switches it now.
  */
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.join(__dirname,'..'),read=f=>fs.readFileSync(path.join(root,f),'utf8');
@@ -18,16 +21,10 @@ function load(){
  return box.SpellFx;
 }
 
-test('the setting: on unless switched off, a real true/false only, kept on the device and through Reset',()=>{
+test('the setting is gone: a phone that switched the effects off has them back, and the box is no more',()=>{
  const D=require('../assets/ui/display-settings.js');
- assert.equal(D.normalize(null).spellFx,true);assert.equal(D.normalize({spellFx:false}).spellFx,false);assert.equal(D.normalize({spellFx:'no'}).spellFx,true);
- const kept={},els={},doc={getElementById:id=>els[id]||(els[id]={checked:false,value:100,min:60,max:140,style:{setProperty(){}},setAttribute(){},addEventListener(t,f){this.on=f;}})};
- const storage={getItem:k=>kept[k]??null,setItem:(k,v)=>{kept[k]=v;}},told=[];
- D.create({doc,storage,onChange:v=>told.push(v.spellFx)});
- assert.equal(els.spellFxChk.checked,true,'the box shows it');
- els.spellFxChk.on({target:{checked:false}});
- assert.equal(told.at(-1),false,'the game is told');assert.equal(JSON.parse(kept[D.STORAGE_KEY]).spellFx,false,'saved on the device');
- els.videoReset.on();assert.equal(told.at(-1),false,'Reset (brightness and contrast) leaves it');
+ assert.equal('spellFx' in D.normalize(null),false);assert.equal('spellFx' in D.normalize({spellFx:false}),false,'an old saved choice is dropped');
+ const html=read('index.html');assert.ok(!html.includes('spellFxRow')&&!html.includes('spellFxChk')&&!html.includes('>Spell effects<'));
 });
 
 test('off: every spell\'s and boss\'s look answers as if it were not there, so the plain one is drawn; the runes keep theirs',()=>{
@@ -49,14 +46,9 @@ test('off: every spell\'s and boss\'s look answers as if it were not there, so t
  FX.effects=true;assert.equal(FX.cast('fireball',{x:0,y:0,gy:16,fx:1,tx:100,ty:0,targets:[]}),true,'and on again');
 });
 
-test('the game: the row on phones only, the switch only on phones, and the plain looks it falls back to',()=>{
- assert.match(game,/const PHONE=IS_TOUCH&&!window\.desktop;/,'a phone or tablet in the browser, never the desktop build');
- assert.ok(game.includes('SUN.q=v.lightQuality;SpellFx.effects=!PHONE||v.spellFx;}});'),'on a computer the effects are always on');
- assert.ok(game.includes("$('spellFxRow').hidden=!PHONE;"));
- const html=read('index.html'),css=read('style.css');
- assert.ok(html.includes('<label class="cfgrow cfgchk" id="spellFxRow" hidden><input type="checkbox" id="spellFxChk" checked><span>Spell effects</span></label>'));
- assert.ok(html.indexOf('id="spellFxRow"')>html.indexOf('id="weatherChk"')&&html.indexOf('id="spellFxRow"')<html.indexOf('id="lightQRow"'),'under Weather');
- assert.match(css,/\.cfgrow\[hidden\]\{display:none\}/,'a hidden row stays hidden although rows are flex boxes');
+test('the game never switches the effects off, and keeps the plain looks they would fall back to',()=>{
+ assert.ok(!/SpellFx\.effects\s*=/.test(game),'nothing in the game mutes them');
+ assert.ok(!game.includes("$('spellFxRow')"));
  assert.ok(game.includes('ownFx=SpellFx.has(sp.fx)'),'a spell without its look draws the old rings');
  assert.ok(game.includes('if(!SpellFx.effects&&chance(0.35))zapLine(cx,cy-10,cx+ux*LEN,cy+uy*LEN);'),'Thor\'s storm crackles its whole length again when the effects are off');
  assert.match(game,/if\(h\.fx&&SpellFx\.drawHazard\(ctx,h,now\)\)continue;/,'a boss\'s warning falls through to the plain ring');
