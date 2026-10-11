@@ -1,0 +1,175 @@
+/* 🎰 The slot machines' show (2026-10-11): painted symbols, glass, lights, the lever and the banners - the moving parts are in
+   assets/casino/slot-fx.js. Lucky 7 is #slotFx, Slots is #seaFx. */
+
+/* the painted symbols in their cells */
+.slotcell img{width:86%;height:86%;object-fit:contain;pointer-events:none;user-select:none;-webkit-user-drag:none;
+ filter:drop-shadow(0 3px 4px rgba(0,0,0,.55))}
+#seaFx .seacell .ic,#seaFx .seaminicell .ic{display:flex;align-items:center;justify-content:center;width:82%;height:82%}
+#seaFx .seacell .ic img,#seaFx .seaminicell .ic img{width:100%;height:100%;object-fit:contain;pointer-events:none;user-select:none;-webkit-user-drag:none}
+#seaFx .seacell:not(.prize) .ic{opacity:.78;filter:grayscale(.25) brightness(.88) drop-shadow(0 2px 3px rgba(0,0,0,.6))}
+#seaFx .seacell.prize .ic{filter:drop-shadow(0 0 6px var(--cc)) drop-shadow(0 2px 3px rgba(0,0,0,.55))}
+
+/* the layers the show draws on: rays behind the cabinet, bulbs and coins in front, the banner and the flash over everything */
+.sfxcv{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.sfxcv.back{z-index:0}
+.sfxcv.front{z-index:2}
+#slotFx .slotmach,#seaFx .slotmach{position:relative;z-index:1}
+.sfxban{position:absolute;left:50%;top:42%;z-index:3;pointer-events:none;text-align:center;white-space:nowrap;opacity:0;isolation:isolate;
+ transform:translate(-50%,-50%);font-family:var(--display)}
+/* a dark plate behind the words, so they read over the reels and the coins */
+.sfxban::before{content:'';position:absolute;left:50%;top:50%;width:160%;height:210%;transform:translate(-50%,-50%);z-index:-2;
+ background:radial-gradient(closest-side,rgba(10,6,2,.8),rgba(10,6,2,.52) 55%,rgba(10,6,2,0))}
+.sfxban.on{animation:sfxBanIn .75s cubic-bezier(.2,1.6,.4,1) forwards}
+.sfxban.off{animation:sfxBanOut .45s ease-in forwards}
+/* the title is gold paint clipped to the letters with a gleam running across; its outline and glow are a copy of the words
+   behind it (::before) - a filter on clipped text drops the fill in Chromium, the words went invisible */
+.sfxban-t{position:relative;font-size:clamp(26px,7.4vw,104px);font-weight:700;letter-spacing:.05em;line-height:1.05;color:transparent;
+ background-image:linear-gradient(100deg,rgba(255,255,255,0) 42%,rgba(255,255,255,.95) 50%,rgba(255,255,255,0) 58%),
+  linear-gradient(180deg,#fffbe0 0%,#ffe08a 34%,#f4a51c 60%,#ffeaa0 82%,#c27a10 100%);
+ background-size:300% 100%,100% 100%;background-repeat:no-repeat;background-position:120% 0,0 0;
+ -webkit-background-clip:text;background-clip:text;animation:sfxGleam 1.9s ease-in-out .45s infinite}
+.sfxban-t::before{content:attr(data-t);position:absolute;inset:0;z-index:-1;color:#4a2a04;-webkit-text-stroke:.13em #4a2a04;
+ text-shadow:0 .05em 0 #2e1902,0 0 .32em rgba(255,186,60,.9),0 0 .7em rgba(255,150,40,.5),0 .12em .26em rgba(0,0,0,.85)}
+@keyframes sfxGleam{0%{background-position:120% 0,0 0}55%,100%{background-position:-20% 0,0 0}}
+.sfxban-n{margin-top:.14em;font-size:clamp(20px,4.2vw,58px);font-weight:700;color:#fff3c4;font-variant-numeric:tabular-nums;
+ text-shadow:0 2px 0 #5a3305,0 0 18px rgba(255,200,90,.85),0 5px 14px rgba(0,0,0,.85)}
+.sfxban.t-jackpot .sfxban-t{font-size:clamp(32px,9vw,128px);animation-duration:1.15s}
+.sfxban.t-jackpot .sfxban-t::before{text-shadow:0 .05em 0 #2e1902,0 0 .32em rgba(255,140,50,.95),0 0 .8em rgba(255,90,40,.6),0 .12em .26em rgba(0,0,0,.85)}
+.sfxban.t-catch .sfxban-t{background-image:linear-gradient(100deg,rgba(255,255,255,0) 42%,rgba(255,255,255,.95) 50%,rgba(255,255,255,0) 58%),
+  linear-gradient(180deg,#f2fdff 0%,#9feaff 34%,#2f9bdc 62%,#d9f7ff 84%,#1b5f93 100%)}
+.sfxban.t-catch .sfxban-t::before{color:#082a47;-webkit-text-stroke-color:#082a47;
+ text-shadow:0 .05em 0 #041a2e,0 0 .32em rgba(110,215,255,.9),0 0 .7em rgba(60,170,255,.5),0 .12em .26em rgba(0,0,0,.85)}
+.sfxban.t-catch .sfxban-n{color:#e6fbff;text-shadow:0 2px 0 #0b2f4f,0 0 18px rgba(120,220,255,.85),0 5px 14px rgba(0,0,0,.85)}
+@keyframes sfxBanIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.2) rotate(-7deg)}60%{opacity:1;transform:translate(-50%,-50%) scale(1.14) rotate(1.5deg)}
+ 100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes sfxBanOut{from{opacity:1;transform:translate(-50%,-50%) scale(1)}to{opacity:0;transform:translate(-50%,-50%) scale(1.3)}}
+.sfxflash{position:absolute;inset:0;z-index:4;pointer-events:none;opacity:0;
+ background:radial-gradient(circle at 50% 44%,var(--fc,rgba(255,235,170,.9)),transparent 72%)}
+.sfxflash.go{animation:sfxFlash .75s ease-out}
+@keyframes sfxFlash{0%{opacity:var(--fo,.5)}100%{opacity:0}}
+
+/* light that follows the hand across the cabinet, and the glass over every reel */
+.sfxsheen{position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:4;opacity:0;transition:opacity .5s;mix-blend-mode:screen;
+ background:radial-gradient(circle at var(--lx,50%) var(--ly,30%),rgba(255,238,200,.16),rgba(255,238,200,.05) 22%,rgba(255,238,200,0) 42%)}
+.sfxmach.sfxlit .sfxsheen{opacity:1}
+#seaFx .sfxsheen{background:radial-gradient(circle at var(--lx,50%) var(--ly,30%),rgba(190,240,255,.17),rgba(190,240,255,.05) 22%,rgba(190,240,255,0) 42%)}
+.sfxglass{position:absolute;inset:0;z-index:3;pointer-events:none;border-radius:inherit;mix-blend-mode:screen;
+ background:linear-gradient(112deg,rgba(255,255,255,0) calc(var(--gx,46%) - 20%),rgba(255,255,255,.15) var(--gx,46%),rgba(255,255,255,.03) calc(var(--gx,46%) + 7%),rgba(255,255,255,0) calc(var(--gx,46%) + 22%)),
+  linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,0) 32%,rgba(255,255,255,0) 82%,rgba(255,255,255,.05))}
+.slotwin:hover .sfxglass,.seacolwin:hover .sfxglass{filter:brightness(1.6)}
+
+/* Lucky 7: warm lamp light behind the reels, brighter while they turn and when they pay */
+#slotFx .slotreels{position:relative}
+.sfxlamp{position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:inherit;opacity:.45;transition:opacity .5s;
+ background:radial-gradient(ellipse 60% 42% at 50% 44%,rgba(255,196,110,.34),rgba(255,170,80,.1) 55%,rgba(255,170,80,0) 75%)}
+.sfxmach.sfx-spinning .sfxlamp{opacity:.8}
+.sfxmach.bigwin .sfxlamp{opacity:1;animation:sfxLamp .5s ease-in-out infinite alternate}
+@keyframes sfxLamp{to{filter:brightness(1.5)}}
+
+/* Slots: water light dancing over the wreck, and shafts of sun from above. Gold while free spins run */
+.sfxwater{position:absolute;inset:0;z-index:-1;overflow:hidden;border-radius:inherit;pointer-events:none}
+.sfxcaus{position:absolute;inset:-180px;background-repeat:repeat;mix-blend-mode:screen;will-change:transform}
+.sfxcaus.a{background-size:190px 190px;opacity:.13;animation:sfxCausA 17s linear infinite}
+.sfxcaus.b{background-size:128px 128px;opacity:.08;animation:sfxCausB 13s linear infinite}
+@keyframes sfxCausA{from{transform:translate(0,0)}to{transform:translate(-190px,-95px)}}
+@keyframes sfxCausB{from{transform:translate(-128px,0)}to{transform:translate(0,-128px)}}
+.sfxray{position:absolute;top:-12%;width:22%;height:120%;mix-blend-mode:screen;transform-origin:50% 0;opacity:.0;
+ background:linear-gradient(180deg,rgba(190,240,255,.34),rgba(190,240,255,.08) 55%,rgba(190,240,255,0) 85%);filter:blur(6px);animation:sfxRay 9s ease-in-out infinite}
+.sfxray.r0{left:8%;transform:rotate(14deg);animation-delay:-2s}
+.sfxray.r1{left:40%;width:16%;transform:rotate(8deg);animation-delay:-5s;animation-duration:11s}
+.sfxray.r2{left:68%;transform:rotate(18deg);animation-delay:-8s;animation-duration:7.5s}
+@keyframes sfxRay{0%,100%{opacity:.15}50%{opacity:.75}}
+.sfxmach.sfx-free{border-color:#ffd76a;box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 30px rgba(255,209,0,.45)}
+.sfxmach.sfx-free .sfxwater{filter:sepia(1) saturate(2.6) hue-rotate(-8deg) brightness(1.1)}
+.sfxmach.sfx-free .seacolwin{border-color:#c9a34a}
+.sfxmach.sfx-free .slottop{color:#ffd76a;text-shadow:0 0 16px rgba(255,200,80,.7)}
+
+/* the reels: spinning, stopping with a thunk, landing with a bounce, teasing, winning */
+.slotwin.sfx-spin,.seacolwin.sfx-spin{box-shadow:inset 0 0 22px rgba(0,0,0,.75)}
+.slotwin.sfx-thunk{animation:sfxThunk .45s ease-out}
+.seacolwin.sfx-thunk{animation:sfxThunkSea .45s ease-out}
+@keyframes sfxThunk{0%{transform:none}18%{transform:translateY(2px);box-shadow:0 0 24px rgba(255,214,130,.6),inset 0 0 26px rgba(255,236,190,.4)}100%{transform:none;box-shadow:0 0 0 rgba(255,214,130,0)}}
+@keyframes sfxThunkSea{0%{transform:none}18%{transform:translateY(2px);box-shadow:0 0 22px rgba(120,210,255,.55),inset 0 0 24px rgba(170,230,255,.35)}100%{transform:none;box-shadow:0 0 0 rgba(120,210,255,0)}}
+.sfx-land{animation:sfxLand .4s cubic-bezier(.3,1.6,.5,1)}
+@keyframes sfxLand{0%{transform:translateY(-16%) scale(1.08,.88)}55%{transform:translateY(3%) scale(.95,1.06)}100%{transform:none}}
+.slotwin.sfx-tease,.seacolwin.sfx-tease{border-color:#ffd76a;animation:sfxTease .4s ease-in-out infinite alternate}
+@keyframes sfxTease{from{box-shadow:0 0 10px rgba(255,200,80,.45),inset 0 0 10px rgba(255,200,80,.2)}to{box-shadow:0 0 36px rgba(255,200,80,1),inset 0 0 24px rgba(255,200,80,.5)}}
+.slotwin.sfx-hold .slotcell:last-child img,.seacell.sfx-hold .ic img{animation:sfxHold .4s ease-in-out infinite alternate}
+@keyframes sfxHold{to{transform:scale(1.09);filter:drop-shadow(0 0 12px rgba(255,210,110,.95)) brightness(1.2)}}
+.slotwin.sfx-win{border-color:#ffd76a;box-shadow:0 0 18px rgba(255,209,0,.55),inset 0 0 16px rgba(255,209,0,.2)}
+.slotwin.sfx-win .slotcell:last-child img,#seaFx .seacell.hit .ic img{animation:sfxSymWin .85s ease-in-out infinite}
+@keyframes sfxSymWin{0%,100%{transform:scale(1);filter:brightness(1)}50%{transform:scale(1.13);filter:brightness(1.28) drop-shadow(0 0 10px rgba(255,214,120,.95))}}
+.slotmach.sfx-shake{animation:sfxShake .55s cubic-bezier(.36,.07,.19,.97)}
+.slotmach.sfx-shake.hard{animation:sfxShakeHard .8s cubic-bezier(.36,.07,.19,.97)}
+.slotmach.bigwin.sfx-shake{animation:sfxShake .55s cubic-bezier(.36,.07,.19,.97),slotGlow .8s ease-in-out infinite}
+.slotmach.bigwin.sfx-shake.hard{animation:sfxShakeHard .8s cubic-bezier(.36,.07,.19,.97),slotGlow .8s ease-in-out infinite}
+@keyframes sfxShake{10%,90%{transform:translate(-1px,1px)}20%,80%{transform:translate(3px,-2px)}30%,50%,70%{transform:translate(-4px,2px)}40%,60%{transform:translate(4px,-1px)}}
+@keyframes sfxShakeHard{10%,90%{transform:translate(-2px,2px) rotate(-.3deg)}20%,80%{transform:translate(6px,-3px) rotate(.4deg)}30%,50%,70%{transform:translate(-8px,4px) rotate(-.5deg)}40%,60%{transform:translate(8px,-2px) rotate(.4deg)}}
+
+/* 🕹 Lucky 7's lever on the cabinet's right side: pull the red knob down to spin */
+.l7lever{position:absolute;left:100%;top:50%;width:0;height:0;margin-left:var(--lvx,24px);z-index:2;--lvl:74px}
+.l7lever .lv-base{position:absolute;left:-11px;top:-21px;width:22px;height:42px;border-radius:9px;pointer-events:none;
+ background:linear-gradient(90deg,#4a2e0c,#b07a24 18%,#ffe3a0 46%,#d9a441 62%,#5a3a12);box-shadow:0 3px 8px rgba(0,0,0,.65),inset 0 0 0 1px rgba(255,230,170,.35)}
+.l7lever .lv-slot{position:absolute;left:-3px;top:-15px;width:6px;height:30px;border-radius:3px;background:#120a04;box-shadow:inset 0 1px 3px #000;pointer-events:none}
+.l7lever .lv-rod{position:absolute;left:-4px;bottom:0;width:8px;height:var(--lvl);border-radius:4px;transform-origin:50% 100%;cursor:var(--hand);touch-action:none;
+ background:linear-gradient(90deg,#5d5d5d,#f6f6f6 38%,#a8a8a8 62%,#3f3f3f);box-shadow:0 0 4px rgba(0,0,0,.55)}
+.l7lever .lv-knob{position:absolute;left:-14px;top:-14px;width:28px;height:28px;border-radius:50%;cursor:var(--hand);touch-action:none;
+ background:radial-gradient(circle at 34% 30%,#fff 0 7%,#ff9b8a 18%,#d8261f 46%,#6b0b08 100%);
+ box-shadow:0 4px 9px rgba(0,0,0,.6),0 0 14px rgba(255,80,60,.4);transition:box-shadow .2s}
+.l7lever .lv-knob:hover{box-shadow:0 4px 9px rgba(0,0,0,.6),0 0 22px rgba(255,120,90,.85)}
+.l7lever.low .lv-rod{background:linear-gradient(90deg,#3f3f3f,#c8c8c8 38%,#8a8a8a 62%,#2c2c2c)}
+@media (min-width:900px){.l7lever{--lvx:44px;--lvl:104px}.l7lever .lv-knob{left:-18px;top:-18px;width:36px;height:36px}
+ .l7lever .lv-base{left:-14px;top:-28px;width:28px;height:56px}.l7lever .lv-rod{left:-5px;width:10px}}
+@media (max-width:600px){.l7lever{--lvx:22px;--lvl:52px}.l7lever .lv-knob{left:-12px;top:-12px;width:24px;height:24px}}
+
+@media (prefers-reduced-motion:reduce){.sfxcaus,.sfxray{animation:none}}
+
+/* ===================== the tables (2026-10-11, "gör liknande på resten av alla casino spel") ===================== */
+#bjFx .slotmach,#rouFx .slotmach,#rtbFx .slotmach,#sebbeFx .slotmach,#gvbFx .casinobox,#casinoMenu .casinobox{position:relative;z-index:1}
+/* a warm light hanging over the cloth, and Sebbe's lantern flickering by his table */
+.sfxspot{position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:inherit;
+ background:radial-gradient(ellipse 72% 46% at 50% 4%,rgba(255,222,160,.24),rgba(255,200,120,.07) 55%,rgba(255,200,120,0) 75%);animation:sfxSpot 6s ease-in-out infinite}
+@keyframes sfxSpot{0%,100%{opacity:.85}50%{opacity:1}}
+.sfxlantern{position:absolute;inset:0;z-index:-1;pointer-events:none;border-radius:inherit;
+ background:radial-gradient(circle at 14% 10%,rgba(255,180,80,.34),rgba(255,150,60,.08) 38%,rgba(255,150,60,0) 60%);animation:sfxFlicker 2.3s steps(1,end) infinite}
+@keyframes sfxFlicker{0%{opacity:1}11%{opacity:.82}17%{opacity:.95}34%{opacity:.78}41%{opacity:1}63%{opacity:.88}70%{opacity:.97}86%{opacity:.8}}
+
+/* the cards: cream paper in a gold frame, a big suit, and the house's painted back */
+.bjcard{width:46px;height:66px;border-radius:7px;position:relative;font-family:var(--display);font-size:17px;line-height:1.05;
+ background:radial-gradient(circle at 30% 18%,#fffdf6,#f4ebd8 58%,#e3d4b4);
+ box-shadow:0 3px 8px rgba(0,0,0,.5),inset 0 0 0 1px rgba(150,110,40,.6),inset 0 0 0 3px #fbf6ea,inset 0 0 0 4px rgba(190,150,70,.55)}
+.bjcard span:last-child{font-size:23px;line-height:1;filter:drop-shadow(0 1px 0 rgba(255,255,255,.7))}
+.bjcard.red{color:#b3201a}
+.bjcard.back{background:url('card_back.jpg') center/cover no-repeat,#7a1414;color:transparent;
+ box-shadow:0 3px 8px rgba(0,0,0,.5),inset 0 0 0 1px rgba(255,215,106,.7)}
+.bjcards{min-height:68px}
+.bjcard.okc{box-shadow:0 0 16px rgba(109,220,109,.95),0 3px 8px rgba(0,0,0,.5),inset 0 0 0 1px rgba(150,110,40,.6),inset 0 0 0 3px #fbf6ea}
+.bjcard.badc{box-shadow:0 0 16px rgba(255,90,70,.95),0 3px 8px rgba(0,0,0,.5),inset 0 0 0 1px rgba(150,110,40,.6),inset 0 0 0 3px #fbf6ea}
+@media (min-width:900px){.bjcard{width:56px;height:80px;font-size:21px}.bjcard span:last-child{font-size:28px}.bjcards{min-height:82px}}
+@media (max-width:600px){.bjcard{width:40px;height:58px;font-size:15px}.bjcard span:last-child{font-size:20px}.bjcards{min-height:60px}}
+
+/* a loss shudders where it happened; a hard one (a bust) burns red */
+.sfx-hit{animation:sfxHit .6s cubic-bezier(.36,.07,.19,.97)}
+.sfx-hit.sfx-hard{animation:sfxHitHard .6s cubic-bezier(.36,.07,.19,.97)}
+@keyframes sfxHit{15%,85%{transform:translateX(-2px)}30%,70%{transform:translateX(4px)}45%,55%{transform:translateX(-4px)}}
+@keyframes sfxHitHard{0%{filter:none}15%,85%{transform:translateX(-3px)}30%,70%{transform:translateX(6px);filter:drop-shadow(0 0 10px rgba(255,70,50,.95))}45%,55%{transform:translateX(-6px)}100%{filter:none}}
+
+/* roulette: chips that look like chips, and the winning number lit on the cloth */
+.rchip{top:-8px;right:-6px;min-width:18px;height:18px;padding:0 3px;border-radius:9px;display:flex;align-items:center;justify-content:center;
+ font-size:8px;font-weight:800;color:#2a1a04;border:2px dashed rgba(255,255,255,.85);
+ background:radial-gradient(circle,#ffe9a0 0 48%,#d9a441 50% 100%);box-shadow:0 2px 4px rgba(0,0,0,.6),0 0 0 1px #6a4608}
+.roucell.sfx-won,.roubet.sfx-won{animation:sfxWon .5s ease-in-out 6 alternate;z-index:2}
+@keyframes sfxWon{from{box-shadow:0 0 0 rgba(255,215,106,0)}to{box-shadow:0 0 16px 3px rgba(255,215,106,.95),inset 0 0 8px rgba(255,240,190,.6);filter:brightness(1.35)}}
+#rouWheel{filter:drop-shadow(0 8px 14px rgba(0,0,0,.6))}
+
+/* the casino's menu: painted games that lift and catch the light under the hand */
+.casinopick .cg{width:46px;height:46px;display:flex;align-items:center;justify-content:center}
+.casinopick .cg img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 3px 4px rgba(0,0,0,.55));transition:transform .2s cubic-bezier(.3,1.6,.5,1),filter .2s}
+.casinopick{position:relative;overflow:hidden}
+.casinopick::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .2s;
+ background:linear-gradient(105deg,rgba(255,236,190,0) 30%,rgba(255,236,190,.16) 46%,rgba(255,236,190,0) 62%) -120% 0/250% 100% no-repeat}
+.casinopick:hover::after,.casinopick:focus-visible::after{opacity:1;animation:sfxPickSweep 1.1s ease-out}
+@keyframes sfxPickSweep{from{background-position:-120% 0}to{background-position:220% 0}}
+.casinopick:hover .cg img,.casinopick:focus-visible .cg img{transform:scale(1.14) rotate(-4deg);filter:drop-shadow(0 4px 6px rgba(0,0,0,.6)) drop-shadow(0 0 10px rgba(255,210,110,.7))}
+.casinopick:hover{box-shadow:0 0 14px rgba(255,200,90,.28),inset 0 0 12px rgba(255,200,90,.08)}
+@media (prefers-reduced-motion:reduce){.sfxspot,.sfxlantern{animation:none}}

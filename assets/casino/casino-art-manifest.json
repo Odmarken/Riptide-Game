@@ -1,0 +1,163 @@
+{
+ "about": "Painted reel symbols for Lucky 7 (l7_*) and Slots (sea_*), the casino menu's game icons (menu_*) and the house card back, 2026-10-11. Higgsfield gpt_image_2_5 flare, medium, 1k, 1:1, background transparent, 0.5 credit each, no reference images. Post: alpha 254->255, haze <6 dropped, tight crop, centred at 94% of a square (Lucky 7 320 px, Slots 256 px), premultiplied LANCZOS; <name>_b.png is the same symbol at half size with a vertical box blur of +-16% of its height (the cells racing past while a reel spins). Both quantised to a 256-colour palette (FASTOCTREE + Floyd-Steinberg). Raw 1024 px renders: download again from the job ids.",
+ "style": {
+  "l7": "Slot-machine reel symbol for the royal casino of a painted fantasy RPG. SUBJECT: <subject>. Style: polished hand-painted game icon, chunky readable silhouette, deep saturated jewel colours, glossy specular highlights, a warm golden rim light, a crisp dark outline and a soft magical glow around the edges. Centred and filling about 80% of a square canvas, seen straight from the front. Isolated on a fully transparent background: no backdrop, no frame, no tile, no reel, no floor or cast shadow, no text, no letters, no numbers.",
+  "sea": "Slot-machine reel symbol for a sunken-treasure sea slot machine in a painted fantasy RPG casino. SUBJECT: <subject>. Style: polished hand-painted game icon, chunky readable silhouette, glossy specular highlights, a cool aqua-teal rim light from the sea, a crisp dark outline and a soft glow around the edges. (Low symbols: 'Low-value ... Muted, weathered colours'.) Isolated on a fully transparent background: no backdrop, no water, no frame, no tile, no reel, no floor or cast shadow, no text."
+ },
+ "symbols": [
+  {
+   "file": "l7_seven",
+   "key": "7️⃣",
+   "job": "b602bcf9-45a0-4a35-901e-6c086f0a825d",
+   "subject": "a big bold lucky number seven of ruby-red lacquer inside a thick polished gold bevelled rim, gold sparkle stars, small golden flames on its top bar"
+  },
+  {
+   "file": "l7_diamond",
+   "key": "💎",
+   "job": "c4028dbe-e437-4aee-830b-f1be7ff6d4c8",
+   "subject": "a large brilliant-cut diamond, ice-blue and violet facets, a four-point sparkle on its crown"
+  },
+  {
+   "file": "l7_bell",
+   "key": "🔔",
+   "job": "8c464ae1-f320-4dc9-ae04-4ea9cd7daba8",
+   "subject": "a gleaming golden casino bell with an engraved band, a red ribbon bow and a round clapper"
+  },
+  {
+   "file": "l7_gear",
+   "key": "⚙",
+   "job": "52b700ab-f8f5-4cda-a3f0-5896d6cd15c9",
+   "subject": "a heavy bronze and brass cogwheel with eight teeth, rivets and a glowing amber gem in its hub"
+  },
+  {
+   "file": "l7_cherry",
+   "key": "🍒",
+   "job": "c1d50845-4cb1-48e7-a58c-f193202cd440",
+   "subject": "a pair of glossy dark-red cherries on joined green stems with one leaf"
+  },
+  {
+   "file": "l7_lemon",
+   "key": "🍋",
+   "job": "17deea28-1ba9-4ad8-aeef-83eaa9cc3731",
+   "subject": "a plump glossy bright-yellow lemon with a small green leaf"
+  },
+  {
+   "file": "l7_grapes",
+   "key": "🍇",
+   "job": "6cf2df30-7adf-4c40-a2bf-941387c3041f",
+   "subject": "a compact bunch of glossy deep-purple grapes with a vine leaf and a tendril"
+  },
+  {
+   "file": "sea_anchor",
+   "key": "joker",
+   "job": "53384dab-4a22-4d87-8176-e53727b28f24",
+   "subject": "low symbol: an old black-iron ship's anchor with a loop of hemp rope and a few barnacles"
+  },
+  {
+   "file": "sea_hook",
+   "key": "hook",
+   "job": "ebf0e10a-5aff-456a-9863-c5aeaeab36b9",
+   "subject": "low symbol: a big barbed steel fishing hook on a short frayed rope with a pearl bead"
+  },
+  {
+   "file": "sea_wave",
+   "key": "wave",
+   "job": "e1df4256-32f8-4b37-890d-258dd249065c",
+   "subject": "low symbol: a single curling ocean wave crest with white foam, deep teal and slate blue"
+  },
+  {
+   "file": "sea_sword_fine",
+   "key": "fine ⚔️",
+   "job": "bd175ec0-4144-44b3-922d-02cf709ac8d6",
+   "subject": "a pirate cutlass, polished silver-steel blade, brass basket hilt, 45 degrees up-right, white shine"
+  },
+  {
+   "file": "sea_sword_rare",
+   "key": "rare ⚔️",
+   "job": "16667dd3-589e-4a43-8536-b435ea11d2d5",
+   "subject": "a pirate cutlass of glowing sapphire-blue enchanted steel with blue runes, silver basket hilt"
+  },
+  {
+   "file": "sea_sword_epic",
+   "key": "epic ⚔️",
+   "job": "f6fc5964-99d7-43aa-8408-3a7cd8769f73",
+   "subject": "a pirate cutlass of dark amethyst crystal in violet arcane light, purple runes, gold hilt with a violet gem"
+  },
+  {
+   "file": "sea_shield_fine",
+   "key": "fine 🛡️",
+   "job": "e9622681-3477-4a86-8a6a-c8f3765c08d1",
+   "subject": "a round oak-plank buckler with a polished steel rim, rivets and a domed boss"
+  },
+  {
+   "file": "sea_shield_rare",
+   "key": "rare 🛡️",
+   "job": "71702623-e1b6-437a-84ca-95bece03671b",
+   "subject": "a round buckler with a silver rim and a sapphire-blue enamel face bearing a silver anchor"
+  },
+  {
+   "file": "sea_shield_epic",
+   "key": "epic 🛡️",
+   "job": "0c1084f4-8ac1-4eaf-9f2f-41ac509cadeb",
+   "subject": "a round buckler with a gold rim and a dark violet face bearing a golden kraken, purple arcane light"
+  },
+  {
+   "file": "sea_doubloon",
+   "key": "skull (🪙)",
+   "job": "13d2825d-05a9-4287-ade8-30298f487337",
+   "subject": "a thick gold pirate doubloon stamped with a skull and crossbones, tilted toward the viewer"
+  },
+  {
+   "file": "sea_chest",
+   "key": "bonus (🎁)",
+   "job": "dabe6472-6c7a-4697-92ab-5a76cdea0205",
+   "subject": "a pirate treasure chest bursting open with gold coins, pearls and jewels, golden light pouring out"
+  }
+ ],
+ "menu": {
+  "about": "gpt_image_2_5 flare medium 1k 1:1 transparent, the l7 style block with 'Casino game icon for the royal casino of a painted fantasy RPG' and 'filling about 85%'; tight crop, centred at 96% of 160 px, 256-colour palette.",
+  "icons": [
+   {
+    "file": "menu_lucky7",
+    "game": "slots (Lucky 7)",
+    "job": "0bea2519-597c-4bbd-bd7a-961b060c523e",
+    "subject": "a golden one-armed-bandit slot machine, red ball lever, bulbs along its top, three red 7s"
+   },
+   {
+    "file": "menu_slots",
+    "game": "sea (Slots)",
+    "job": "a822599a-4410-486c-bcba-65d391632a84",
+    "subject": "a cartoonish shark leaping out of a teal wave with a gold skull doubloon in its jaws"
+   },
+   {
+    "file": "menu_blackjack",
+    "game": "bj",
+    "job": "6319abbb-b59d-4a40-8124-40b50a57f5a5",
+    "subject": "an ace of spades and a king of hearts fanned on a stack of red and gold chips"
+   },
+   {
+    "file": "menu_roulette",
+    "game": "rou",
+    "job": "d1b494f2-dbaa-4696-86bb-b1cc8237ab97",
+    "subject": "a roulette wheel from slightly above, gold turret and spokes, wooden rim, ivory ball"
+   },
+   {
+    "file": "menu_ridebus",
+    "game": "rtb",
+    "job": "b4f62643-64f8-444a-8419-05b9ab041201",
+    "subject": "a crimson and gold fantasy stagecoach with four playing cards fanned above its roof"
+   },
+   {
+    "file": "menu_duel",
+    "game": "gvb",
+    "job": "aadb7c58-f36a-435b-b3c7-ce662d98d93c",
+    "subject": "two treasure chests facing each other, crossed swords and a burst of gold sparks"
+   }
+  ]
+ },
+ "card_back": {
+  "file": "card_back.jpg",
+  "job": "77732ec2-1241-4b80-87cf-41b898086837",
+  "about": "gpt_image_2_5 flare medium 1k 2:3 opaque: crimson lacquer, diamond lattice, gold filigree border, a gold wave under a crown; centre crop to 2:3, 240x360 jpg q88. The back of every face-down card in Blackjack and Ride the Bus (.bjcard.back)."
+ }
+}

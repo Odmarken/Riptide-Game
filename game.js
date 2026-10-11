@@ -14735,6 +14735,14 @@ const SLOT_BASE=1000,SLOT_BET_MAX=5;
 let slotBet=1;
 const slotCost=()=>SLOT_BASE*slotBet;
 const SLOT_SYMS=['🍒','🍋','🍇','🔔','⚙','💎','7️⃣'];
+/* 🎨 painted symbols (assets/casino, 2026-10-11): the emoji stays the symbol - the key, the row, the alt text - and l7_<art>.png is
+   its look; <art>_b.png is the same picture smeared for a cell racing past. Two 7s or two 💎 on reels 1-2 make reel 3 take its time */
+const SLOT_ART={'🍒':'cherry','🍋':'lemon','🍇':'grapes','🔔':'bell','⚙':'gear','💎':'diamond','7️⃣':'seven'};
+const SLOT_TEASE=['7️⃣','💎'];
+const slotCellHtml=(s,blur)=>`<div class="slotcell" data-sym="${s}"><img src="assets/casino/l7_${SLOT_ART[s]}${blur?'_b':''}.png" alt="${s}" draggable="false"></div>`;
+/* the machine's lights, lever, coins and banners live in assets/casino/casino-fx.js: told what happened, they decide nothing, and a
+   failure there never reaches a spin */
+function l7Look(name,...a){try{if(typeof CasinoFX!=='undefined'&&CasinoFX[name])return CasinoFX[name]('slotFx',...a);}catch(e){try{console.warn('slot fx',e);}catch(_){}}}
 let slotSpinning=false,slotAuto=false,slotAutoTimer=0,slotCelebrating=false,slotCelebrateTimer=0;
 let slotSession={spins:0,gold:0,scrap:0};
 let slotGen=0; /* bumped by slotTeardown: a spin still landing for a hero who was put away never settles */
@@ -14750,16 +14758,18 @@ function slotOutcome(){
 }
 function slotFinalRow(out){
  if(out.sym)return [out.sym,out.sym,out.sym];
+ /* a losing row is three reels that never line up all three. Reels 1-2 pair up about as often as three loose reels would (1 row in
+    7) - two 7s there are the third reel teasing, and missing. One draw a reel, no reroll loop */
  const a=SLOT_SYMS[Math.floor(Math.random()*SLOT_SYMS.length)];
- const b=SLOT_SYMS.filter(s=>s!==a)[Math.floor(Math.random()*(SLOT_SYMS.length-1))]; /* never the first symbol again, so a losing row never shows a line - one draw, no reroll loop */
- const c=SLOT_SYMS[Math.floor(Math.random()*SLOT_SYMS.length)];
+ const b=SLOT_SYMS[Math.floor(Math.random()*SLOT_SYMS.length)];
+ const c=a===b?SLOT_SYMS.filter(s=>s!==a)[Math.floor(Math.random()*(SLOT_SYMS.length-1))]:SLOT_SYMS[Math.floor(Math.random()*SLOT_SYMS.length)];
  return [a,b,c];
 }
 function buildSlotReel(el,finalSym,cells){
  const arr=[];
  for(let i=0;i<cells-1;i++)arr.push(SLOT_SYMS[Math.floor(Math.random()*SLOT_SYMS.length)]);
  arr.push(finalSym);
- el.innerHTML=arr.map(s=>`<div class="slotcell">${s}</div>`).join('');
+ el.innerHTML=arr.map((s,i)=>slotCellHtml(s,i<arr.length-3)).join(''); /* the last three cells, where the reel slows into the window, sharp */
  return arr.length;
 }
 function clearSlotCelebration(){
@@ -14768,6 +14778,7 @@ function clearSlotCelebration(){
  if(mach)mach.classList.remove('bigwin');
  if(fx)fx.classList.remove('flash');
  if(res)res.classList.remove('bigres');
+ l7Look('calm');
 }
 function spinSlots(){
  if(!S||slotSpinning||slotCelebrating)return;
@@ -14782,13 +14793,15 @@ function spinSlots(){
  sfx.buy();
  const out=slotOutcome();
  const row=slotFinalRow(out);
+ const tease=row[0]===row[1]&&SLOT_TEASE.includes(row[0]); /* reel 3 runs longer and slower: the third 7 - or the near miss */
  /* the reels travel in % of their own height, never in px: the cell is 66/92/150 px by CSS breakpoints that JS
     used to guess from innerWidth - wrong at exactly 600 px, and stale after any resize across 600 or 900 px */
  const reels=[0,1,2].map(i=>{
-  const el=$('sr'+i);
-  const n=buildSlotReel(el,row[i],18+i*6);
-  return {el,n,dur:1400+i*550,done:false};
+  const el=$('sr'+i),slow=tease&&i===2;
+  const n=buildSlotReel(el,row[i],18+i*6+(slow?16:0));
+  return {el,n,dur:1400+i*550+(slow?1800:0),done:false};
  });
+ l7Look('spin',{row,tease});
  const t0=performance.now();
  let lastTickCell=[-1,-1,-1];
  const tick=now=>{
@@ -14802,7 +14815,7 @@ function spinSlots(){
    const cell=Math.floor(pos);
    if(cell!==lastTickCell[i]){lastTickCell[i]=cell;blip(900+Math.random()*300,600,0.03,.035,'square');}
    if(p<1)allDone=false;
-   else if(!r.done){r.done=true;noiseHit(0.06,.08,800);}
+   else if(!r.done){r.done=true;noiseHit(0.06,.08,800);l7Look('stop',i,row[i],tease&&i===1);}
   });
   if(!allDone)requestAnimationFrame(tick);
   else slotSettle(out,paidBy);
@@ -14831,8 +14844,10 @@ function slotSettle(out,paidBy){
    $('slotFx').querySelector('.slotmach').classList.add('bigwin');
    if(jackpot)$('slotFx').classList.add('flash');
    dingDingDing(jackpot);
-   spawnSlotParts(jackpot?'#ffd100':out.color,jackpot?30:16);
-   if(jackpot)setTimeout(()=>{if(gen===slotGen)spawnSlotParts('#ffd100',20);},600);
+   if(!l7Look('win',{mul:out.mul,amount:paid,ms:jackpot?6000:4000})){ /* the show: coins, rays, a banner counting the win up */
+    spawnSlotParts(jackpot?'#ffd100':out.color,jackpot?30:16);
+    if(jackpot)setTimeout(()=>{if(gen===slotGen)spawnSlotParts('#ffd100',20);},600);
+   }
    log(`Lucky 7: <span class="llegendary">${out.mul}x - +${paid.toLocaleString()} ◉</span>${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}!`,'loot');
    if(jackpot){
     S.gamblerPots=(S.gamblerPots||0)+1;
@@ -14846,18 +14861,18 @@ function slotSettle(out,paidBy){
    },jackpot?6000:4000);
   }else{
    res.textContent='Winner! '+out.mul+'x - +'+paid.toLocaleString()+'◉'+(over?' ('+over.toLocaleString()+' to overflow)':'');
-   sfx.loot();spawnSlotParts(out.color,8);
+   sfx.loot();if(!l7Look('win',{mul:out.mul,amount:paid,ms:2400}))spawnSlotParts(out.color,8);
    log(`Lucky 7: <span class="loot">${out.mul}x</span> - +${paid.toLocaleString()} ◉${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}.`,'loot');
   }
  }else if(out.kind==='scrap'){
   const got=addScraps(out.n);
   slotSession.scrap+=got;
   res.textContent='+'+got+' ⚙ Scraps'+(got<out.n?' (pouch full)':''); /* what reached the pouch, not what was rolled */
-  sfx.forge();
+  sfx.forge();l7Look('scrap',got);
   log(`Lucky 7: +${got} ⚙ Scraps${got<out.n?' (pouch full)':''}.`,'loot');
  }else{
   res.textContent=out.msg;
-  blip(300,180,0.25,.05,'sawtooth');
+  blip(300,180,0.25,.05,'sawtooth');l7Look('miss');
  }
  renderHUD();save();
  updateSlotUI();
@@ -14912,6 +14927,7 @@ function spawnSlotParts(color,n){
 function openSlots(){
  if(!S)return;
  $('slotFx').classList.add('open');
+ l7Look('open');
  if(slotSpinning){updateSlotUI();return;} /* a spin closed on Auto is still landing: its reels and its session stay as they are */
  clearSlotCelebration();
  slotSession={spins:0,gold:0,scrap:0};
@@ -14927,6 +14943,7 @@ function slotTeardown(){
  clearTimeout(slotAutoTimer);clearTimeout(slotCelebrateTimer);
  slotSession={spins:0,gold:0,scrap:0};
  try{$('slotFx').classList.remove('open');clearSlotCelebration();}catch(e){}
+ l7Look('reset');
 }
 $('slotSpinBtn').onclick=()=>{if(S&&!slotAuto)spinSlots();};
 $('slotAutoBtn').onclick=()=>{
@@ -14942,7 +14959,7 @@ $('slotBetUp').onclick=()=>{if(S&&slotBet<SLOT_BET_MAX&&!slotSpinning&&!slotAuto
 $('slotClose').onclick=()=>{
  if(S&&slotSpinning&&!slotAuto){stageMsg('The reels are spinning - wait for them to stop',1500);sfx.warn();return;} /* on Auto, Close stops Auto and the spin lands by itself */
  $('slotFx').classList.remove('open'); /* hidden first, so nothing below can keep it on screen */
- stopSlotAuto();clearSlotCelebration();
+ stopSlotAuto();clearSlotCelebration();l7Look('reset');
  casinoAmbApply();
 };
 
@@ -14961,6 +14978,12 @@ const SEA_SYMDEF={
  skull:{icons:['🪙'],cc:'#ffd76a'},
  bonus:{icons:['🎁'],cc:'#ffd100'}
 };
+/* 🎨 painted symbols (assets/casino, 2026-10-11): the key and the emoji stay the cell's identity (and its alt text), sea_<art>.png is
+   its look - the blanks are an anchor, a hook and a wave, a colour is a cutlass or a buckler of that tier, 🪙 a doubloon, 🎁 a chest */
+const SEA_ART={joker:'anchor',hook:'hook',wave:'wave',skull:'doubloon',bonus:'chest'};
+const seaImg=(c,blur)=>`<img src="assets/casino/sea_${SEA_ART[c.k]||(c.icon==='🛡️'?'shield_':'sword_')+c.k}${blur?'_b':''}.png" alt="${c.icon}" draggable="false">`;
+/* the machine's water light, bubbles, coins and banners live in assets/casino/casino-fx.js: told what happened, they decide nothing */
+function seaLook(name,...a){try{if(typeof CasinoFX!=='undefined'&&CasinoFX[name])return CasinoFX[name]('seaFx',...a);}catch(e){try{console.warn('slot fx',e);}catch(_){}}}
 const SEA_W_BASE=[['joker',28],['hook',28],['wave',22],['fine',9],['rare',6],['epic',4],['skull',3],['bonus',3]]; /* 🎁 rolls by as a natural tease */
 const SEA_W_BONUS=[['joker',20],['hook',20],['wave',16],['fine',12],['rare',9],['epic',6],['skull',5]];
 let seaSpinning=false,seaAuto=false,seaAutoTimer=0,seaCelebrating=false,seaCelebrateTimer=0;
@@ -15002,7 +15025,7 @@ function spawnPartsIn(fx,color,n){
   setTimeout(()=>p.remove(),1100);
  }
 }
-const seaCellHtml=c=>`<div class="seacell${c.cc?' prize':''}${c.lock?' lockd':''}"${c.cc?` style="--cc:${c.cc}"`:''}><span class="ic">${c.icon}</span>${c.m>1?`<span class="m">x${c.m}</span>`:''}</div>`;
+const seaCellHtml=(c,blur)=>`<div class="seacell${c.cc?' prize':''}${c.lock?' lockd':''}"${c.cc?` style="--cc:${c.cc}"`:''}><span class="ic">${seaImg(c,blur)}</span>${c.m>1?`<span class="m">x${c.m}</span>`:''}</div>`;
 function seaRunOf(grid,key){let r=0;while(r<SEA_COLS&&grid[r].some(x=>x.k===key))r++;return r;}
 function seaMark(grid,key,run){ /* the paying cells light up at the payout */
  for(let c=0;c<run;c++){
@@ -15014,14 +15037,15 @@ function seaAnimateCols(cols,grid,done){
  /* measure the real rendered cell size - CSS scales it to fit the viewport */
  const first=$('sc0').firstElementChild;
  const CH=(first&&first.getBoundingClientRect().height)||62;
+ const tease=cols.length===SEA_COLS&&[0,1].every(c=>grid[c].some(x=>x.k==='bonus')); /* a chest on reels 1 and 2: reels 3-4 take their time - the third chest, or not */
  const reels=cols.map((c,j)=>{
-  const filler=10+j*4,cells=[];
+  const slow=tease&&c>=2,filler=10+j*4+(slow?12:0),cells=[];
   for(let i=0;i<filler;i++)cells.push(seaCell());
   cells.push(...grid[c]);
   const el=$('sc'+c);
-  el.innerHTML=cells.map(seaCellHtml).join('');
+  el.innerHTML=cells.map((x,i)=>seaCellHtml(x,i<filler-2)).join(''); /* the racing cells smeared; the last of them and the stop sharp */
   el.style.transform='translateY(0)';
-  return {el,c,dist:filler*CH,dur:(1200+j*420)/(seaFast?2:1),fin:false};
+  return {el,c,dist:filler*CH,dur:(1200+j*420+(slow?1700:0))/(seaFast?2:1),fin:false};
  });
  const t0=performance.now(),last=cols.map(()=>-1);
  const tick=now=>{
@@ -15033,13 +15057,13 @@ function seaAnimateCols(cols,grid,done){
    const cell=Math.floor(-y/CH);
    if(cell!==last[i]){last[i]=cell;blip(700+Math.random()*300,450,0.025,.03,'square');}
    if(p<1)all=false;
-   else if(!r.fin){r.fin=true;noiseHit(0.06,.08,800);if(r.c===2&&grid._bonus)seaDrawBonus=true;} /* the third box has landed: Auto pressed from here on is Auto for the free spins */
+   else if(!r.fin){r.fin=true;noiseHit(0.06,.08,800);if(r.c===2&&grid._bonus)seaDrawBonus=true;seaLook('stop',r.c,tease&&r.c===1);} /* the third box has landed: Auto pressed from here on is Auto for the free spins */
   });
   if(!all)requestAnimationFrame(tick);
   else{
    /* Normalize strips after the spin so locked cells never flicker on respins. */
    reels.forEach(r=>{
-    r.el.innerHTML=grid[r.c].map(seaCellHtml).join('');
+    r.el.innerHTML=grid[r.c].map(x=>seaCellHtml(x)).join('');
     r.el.style.transform='translateY(0)';
    });
    done();
@@ -15065,7 +15089,7 @@ function seaAnimateCells(grid,cols,done){
    for(let i=0;i<flips;i++)roll.push(seaCell());
    roll.push(x); /* the real cell arrives last, rolling in from below */
    el.className='seacell rolling';el.style.removeProperty('--cc');
-   el.innerHTML='<div class="seaminiroll">'+roll.map(t=>'<div class="seaminicell"><span class="ic">'+t.icon+'</span>'+(t.m>1?'<span class="m">x'+t.m+'</span>':'')+'</div>').join('')+'</div>';
+   el.innerHTML='<div class="seaminiroll">'+roll.map((t,i)=>'<div class="seaminicell"><span class="ic">'+seaImg(t,i<roll.length-2)+'</span>'+(t.m>1?'<span class="m">x'+t.m+'</span>':'')+'</div>').join('')+'</div>';
    const rollEl=el.firstElementChild;
    const dist=flips*CH,dur=(seaFast?45:75)*(flips+2)+r*55,t0=performance.now();
    let lastIdx=-1;
@@ -15079,7 +15103,7 @@ function seaAnimateCells(grid,cols,done){
     else{
      el.className='seacell'+(x.cc?' prize':'');
      if(x.cc)el.style.setProperty('--cc',x.cc);
-     el.innerHTML='<span class="ic">'+x.icon+'</span>'+(x.m>1?'<span class="m">x'+x.m+'</span>':'');
+     el.innerHTML='<span class="ic">'+seaImg(x)+'</span>'+(x.m>1?'<span class="m">x'+x.m+'</span>':'');
      pending--;if(pending===0)done();
     }
    };
@@ -15153,7 +15177,7 @@ function spinSea(){
  res.style.color=isFree?'#ffd100':'#8fa898';
  res.textContent=isFree?'🎁 FREE SPIN - '+seaFree+' left after this':' ';
  updateSeaUI();
- sfx.buy();
+ sfx.buy();seaLook('spin',{free:isFree});
  const mult=bought?0:seaRollOutcome(isFree); /* the bought spin only plants the boxes: 25x buys the free spins and nothing else */
  const target=Math.round(mult*bet);
  const grid=seaGridFor(mult);
@@ -15221,7 +15245,7 @@ function seaScript(grid){
  const bk=grid._bk;
  if(!bk||grid._steps<=0){seaPayout(grid);return;} /* nothing won, or less than the stake back: no lock, no respin */
  grid.forEach(col=>col.forEach(x=>{if(x.k===bk||(grid._bonus&&x.k==='bonus'))x.lock=true;})); /* the line holds - and so do a real bonus's boxes, which the respins used to roll away before the bonus was announced */
- seaMarkLocked(grid);
+ seaMarkLocked(grid);seaLook('lock');
  $('seaRes').style.color='#8fc3ef';
  $('seaRes').textContent='🔒 Locked - respinning!';
  setTimeout(()=>seaScriptStep(grid,grid._steps),seaFast?350:700);
@@ -15236,7 +15260,7 @@ function seaScriptStep(grid,left){
  seaAnimateCells(grid,[0,1,2,3],()=>{
   if(grid._gen!==seaGen)return;
   seaMarkLocked(grid);
-  blip(980,1500,0.2,.08);
+  blip(980,1500,0.2,.08);seaLook('respun',got);
   $('seaRes').textContent=got?'🔥 CONNECTION!':'🔒 Locked - respinning!';
   if(left>1)setTimeout(()=>seaScriptStep(grid,left-1),seaFast?400:800);
   else setTimeout(()=>seaOfferBuy2(grid),seaFast?400:800);
@@ -15307,7 +15331,7 @@ function seaBuyAnswer(yes){ /* one answer per question: a second press - mouse, 
   if(grid._gen!==seaGen)return;
   if(S===grid._who)renderHUD();
   if(hit){
-   seaMarkLocked(grid);
+   seaMarkLocked(grid);seaLook('double');
    $('seaRes').textContent='🔥 CONNECTION - WIN DOUBLED!';
    setTimeout(()=>seaOfferBuy2(grid),seaFast?450:900);
   }else{grid._missed=true;seaPayout(grid);}
@@ -15331,7 +15355,7 @@ function seaPayout(grid){
   if(!grid._bonusGot)return false; /* no record to grant from (handed out already): no fanfare for spins that are not coming */
   if(!announce)return true;
   dingDingDing(false);
-  spawnPartsIn($('seaFx'),'#ffd100',20);
+  if(!seaLook('bonus',SEA_BONUS_SPINS))spawnPartsIn($('seaFx'),'#ffd100',20); /* the chests burst open: FREE SPINS */
   res.style.color='#ffd100';
   res.classList.add('bigres');
   res.textContent='🎁 BONUS - '+SEA_BONUS_SPINS+' FREE SPINS!';
@@ -15341,7 +15365,7 @@ function seaPayout(grid){
  if(amount<=0){
   if(!awardBonus()){
    res.style.color='#8fa898';
-   res.textContent='The sea is quiet…';
+   res.textContent='The sea is quiet…';seaLook('miss');
   }
   updateSeaUI();
   save();
@@ -15372,7 +15396,7 @@ function seaPayout(grid){
   res.textContent='🌊 BIG CATCH - '+amount.toLocaleString()+'◉ · '+multTxt+scrapTxt;
   $('seaFx').querySelector('.slotmach').classList.add('bigwin');
   dingDingDing(amount>=bet*50);
-  spawnPartsIn($('seaFx'),'#ffd100',22);
+  if(!seaLook('win',{amount,mult:amount/bet,ms:4500}))spawnPartsIn($('seaFx'),'#ffd100',22); /* a wave, coins, a banner counting the catch up */
   log(`Slots: <span class="llegendary">+${amount.toLocaleString()} ◉</span> ${multTxt}!`,'loot');
   awardBonus(false); /* the free spins are yours now; the fanfare waits for the celebration */
   const gen=seaGen;
@@ -15387,7 +15411,7 @@ function seaPayout(grid){
  }else{
   res.textContent='Winner! '+amount.toLocaleString()+'◉ · '+multTxt+scrapTxt;
   sfx.loot();
-  spawnPartsIn($('seaFx'),'#8fc3ef',10);
+  if(!seaLook('win',{amount,mult:amount/bet,ms:2200}))spawnPartsIn($('seaFx'),'#8fc3ef',10);
   log(`Slots: <span class="loot">+${amount.toLocaleString()} ◉</span> ${multTxt}.`,'loot');
   awardBonus();           /* bonus + vinst samtidigt: bonustexten vinner */
  }
@@ -15399,6 +15423,7 @@ function clearSeaCelebration(){
  const fx=$('seaFx'),mach=fx&&fx.querySelector('.slotmach'),res=$('seaRes');
  if(mach)mach.classList.remove('bigwin');
  if(res)res.classList.remove('bigres');
+ seaLook('calm');
 }
 function updateSeaUI(){
  if(!S)return; /* no hero behind the machine (logged out, kicked): nothing to show - totalGold() threw, and took Close with it */
@@ -15426,6 +15451,7 @@ function updateSeaUI(){
  }
  const st=$('seaStats'),s=seaSession;
  if(st)st.textContent=s.spins?`Session: ${s.spins} spin${s.spins===1?'':'s'} · ${s.gold>=0?'+':''}${s.gold.toLocaleString()}◉ · +${s.scrap}⚙`:''; /* '1 spin', as Blackjack says '1 hand' */
+ seaLook('mode',seaFree>0||seaDrawFree); /* the golden tide while free spins run */
  if(!seaBuyOpen())seaFocus('seaSpinBtn');
 }
 /* keyboard focus follows the play, as bjFocus does at the Blackjack table: the answered Extra Spin box hides under YES or NO
@@ -15474,11 +15500,12 @@ function openSea(){
  if(cryptAudio)cryptAudio.pause();
  if(finalAudio)finalAudio.pause();
  $('seaFx').classList.add('open');seaTurnAt=performance.now(); /* the press that opened it may come again - a doubled Enter on the menu's pick */
+ seaLook('open');
  clearSeaCelebration();
  seaSession={spins:0,gold:0,scrap:0};
  for(let c=0;c<SEA_COLS;c++){
   const cells=[];for(let r=0;r<SEA_ROWSBY[c];r++)cells.push(seaCell());
-  $('sc'+c).innerHTML=cells.map(seaCellHtml).join('');
+  $('sc'+c).innerHTML=cells.map(x=>seaCellHtml(x)).join('');
   $('sc'+c).style.transform='translateY(0)';
  }
  $('seaRes').innerHTML='&nbsp;';
@@ -15497,6 +15524,7 @@ function seaTeardown(){
  seaSpinning=false;
  $('seaFx').classList.remove('open');
  seaBuyHide();clearSeaCelebration();
+ seaLook('reset');
 }
 $('seaSpinBtn').onclick=e=>{if(e&&e.detail===0&&performance.now()-seaTurnAt<SEA_BOUNCE_MS)return;if(seaReady()&&!seaAuto)spinSea();}; /* detail 0: a key or the pad (seaTurnAt) */
 $('seaFx').addEventListener('keydown',e=>{if(e.repeat&&e.key==='Enter')e.preventDefault();}); /* a held Enter presses once, as at the Blackjack table: focus follows the play back to Spin and NO (seaFocus), and the key's repeats spun paid spin after spin and answered the Extra Spin box unseen */
@@ -15527,11 +15555,13 @@ $('seaClose').onclick=()=>{
  if(seaBuyOpen()){seaBuyAnswer(false);return;} /* on the Extra Spin box, Close (a pad's B) is NO - the win is already paid */
  if(seaSpinning){const auto=seaAuto;if(auto)stopSeaAuto();stageMsg(auto?'Auto stopped - wait for the reels':'Wait for the reels to stop',1200);sfx.warn();return;} /* not even with AUTO on: a spin still in the air paid out after Close - to whichever hero was loaded by then. Auto stops here, so the next Close closes: it used to spin on and refuse every time */
  $('seaFx').classList.remove('open');
- stopSeaAuto();clearSeaCelebration();clearTimeout(seaAutoTimer);
+ stopSeaAuto();clearSeaCelebration();clearTimeout(seaAutoTimer);seaLook('reset');
  casinoAmbApply(); /* restores zone ambience - or hands the room back to the casino track */
 };
 
 /* ==================== BLACKJACK ==================== */
+/* the table's lights, the cards' flash as they land, coins and the BLACKJACK banner live in assets/casino/casino-fx.js: told what happened, they decide nothing */
+function bjLook(name,...a){try{if(typeof CasinoFX!=='undefined'&&CasinoFX[name])return CasinoFX[name]('bjFx',...a);}catch(e){try{console.warn('casino fx',e);}catch(_){}}}
 const BJ_MIN=1000,BJ_MAX=15000,BJ_STEP=1000;
 let bjBet=1000,bjP=[],bjD=[],bjLive=false,bjWager=0;
 let bjSeenP=0,bjSeenD=0,bjHoleHidden=false,bjSettled=false; /* cards already on the table, counted per hand */
@@ -15554,6 +15584,7 @@ function bjRender(hideHole){
   el.classList.add('deal');
   el.style.animationDelay=(n*0.16)+'s';
   setTimeout(()=>blip(1100,700,0.05,.05,'square'),n*160+60);
+  bjLook('dealt',el,n*160+340); /* a flash where the card lands */
   box.appendChild(el);n++;
  };
  for(;bjSeenP<bjP.length;bjSeenP++)deal(pc,bjCardEl(bjP[bjSeenP]));
@@ -15561,7 +15592,7 @@ function bjRender(hideHole){
  if(bjHoleHidden&&!hideHole&&dc.children[1]){ /* the reveal turns the hole card over where it lies */
   const hole=dc.children[1],up=bjCardEl(bjD[1]);
   hole.className=up.className+' flip';hole.innerHTML=up.innerHTML;hole.style.animationDelay='';
-  noiseSweep(0.25,.07,600,2200);
+  noiseSweep(0.25,.07,600,2200);bjLook('spark',{at:hole,ring:true});
  }
  bjHoleHidden=hideHole;
  $('bjPTot').textContent=bjP.length?bjVal(bjP):'';
@@ -15619,22 +15650,23 @@ function bjSettle(kind){
  if(kind==='bj'){
   res.style.color='#ffd100';res.classList.add('bigres');
   res.textContent='🃏 BLACKJACK! +'+net.toLocaleString()+'◉ · pays 3:2';
-  dingDingDing(false);spawnPartsIn($('bjFx'),'#ffd100',18);
+  dingDingDing(false);if(!bjLook('cheer',{amount:net,tier:'big',title:'BLACKJACK',at:'#bjHandC',ms:3200}))spawnPartsIn($('bjFx'),'#ffd100',18);
   log(`Blackjack: <span class="llegendary">BLACKJACK - +${net.toLocaleString()} ◉</span>!`,'loot');
  }else if(kind==='win'){
   res.style.color='#9adf9a';
   res.textContent='Winner! +'+net.toLocaleString()+'◉';
-  sfx.loot();spawnPartsIn($('bjFx'),'#9adf9a',10);
+  sfx.loot();if(!bjLook('cheer',{amount:net,at:'#bjHandC'}))spawnPartsIn($('bjFx'),'#9adf9a',10);
   log(`Blackjack: <span class="loot">+${net.toLocaleString()} ◉</span>.`,'loot');
  }else if(kind==='push'){
   res.style.color='#8fa898';
   res.textContent='Push - bet returned.';
-  blip(600,600,0.12,.05);
+  blip(600,600,0.12,.05);bjLook('spark',{at:'#bjHandC',color:'#cfd8cf'});
  }else{
   res.style.color='#ff8a7a';
   res.textContent=kind==='bust'?'Bust! The house takes your coin.':kind==='dbj'?'Dealer blackjack.':'Dealer wins.';
-  blip(300,180,0.25,.05,'sawtooth');
+  blip(300,180,0.25,.05,'sawtooth');bjLook('groan',{at:'#bjHandC',hard:kind==='bust'});
  }
+ bjLook('busy',false);
  bjFitBet();renderHUD();save();bjUI();bjFocus('bjDeal');
 }
 function bjDealerPlay(){
@@ -15667,7 +15699,7 @@ function bjDeal(){
  if(!spendGold(bjBet)){stageMsg('Not enough gold - a hand costs '+bjBet.toLocaleString()+'◉',1400);sfx.warn();return;}
  bjOwner=S; /* the hand is this hero's: its payout never lands on another */
  save(); /* the hand is paid for: closing the game on a bad one no longer hands the stake back */
- renderHUD();sfx.buy();
+ renderHUD();sfx.buy();bjLook('busy',true);
  bjGen++; /* invalidate any stale dealer timers from the previous hand */
  bjWager=bjBet;bjLive=true;bjSettled=false;
  bjSeenP=bjSeenD=0;bjHoleHidden=false;
@@ -15705,7 +15737,7 @@ function bjDouble(){
 }
 function openBJ(){
  if(!S)return;
- $('bjFx').classList.add('open');
+ $('bjFx').classList.add('open');bjLook('open');
  bjSession={hands:0,gold:0};
  bjGen++;bjResolving=false; /* kill any dealer timers left over from a previous table */
  bjP=[];bjD=[];bjLive=false;bjSeenP=bjSeenD=0;bjHoleHidden=false;bjSettled=false;bjOwner=null;
@@ -15721,7 +15753,7 @@ function bjTeardown(){
  bjGen++;bjLive=false;bjResolving=false;bjSettled=true;bjOwner=null;bjWager=0;
  bjP=[];bjD=[];bjSeenP=bjSeenD=0;bjHoleHidden=false;bjSession={hands:0,gold:0};
  $('bjHandC').innerHTML='';$('bjDealerC').innerHTML='';
- $('bjFx').classList.remove('open');
+ $('bjFx').classList.remove('open');bjLook('reset');
 }
 $('bjDeal').onclick=e=>{if(e&&e.detail>1)return;bjDeal();}; /* a double-click deals one hand: an instant blackjack settles inside the first click, and the second used to pay for a new hand over its result */
 $('bjHit').onclick=bjHit;
@@ -15733,10 +15765,12 @@ $('bjFx').addEventListener('keydown',e=>{if(e.repeat&&e.key==='Enter')e.preventD
 $('bjClose').onclick=()=>{
  if(S&&S===bjOwner&&(bjLive||bjResolving)){stageMsg('Finish the hand first - your stake is on the table.',1600);sfx.warn();return;} /* no rage-quitting mid-hand - the wager is already spent */
  if(bjLive||bjResolving)bjTeardown(); /* the hero who paid is gone (a kick, a switch): the void hand leaves with the table */
- $('bjFx').classList.remove('open');
+ $('bjFx').classList.remove('open');bjLook('reset');
  casinoAmbApply();
 };
 /* ==================== ROULETTE ==================== */
+/* the painted wheel with its ball, the lights, the winning pocket's glow, coins and banners live in assets/casino/casino-fx.js: told what happened, they decide nothing */
+function rouLook(name,...a){try{if(typeof CasinoFX!=='undefined'&&CasinoFX[name])return CasinoFX[name]('rouFx',...a);}catch(e){try{console.warn('casino fx',e);}catch(_){}}}
 const ROU_ORDER=[0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26]; /* European wheel */
 const ROU_RED=new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
 const ROU_CHIPS=[1000,5000,10000,25000,50000,100000,300000];
@@ -15746,6 +15780,7 @@ let rouGen=0; /* bumped by rouTeardown: a wheel still turning for a hero who was
 const rouTotal=()=>Object.values(rouBets).reduce((a,b)=>a+b,0);
 function rouDrawWheel(){
  const cvw=$('rouWheel');if(!cvw)return;
+ if(rouLook('rouWheel',cvw,rouAngle,ROU_ORDER,ROU_RED))return; /* the turned bowl, the pockets and the ball: the flat wheel below is the fallback */
  const g=cvw.getContext('2d'),Wc=cvw.width,R=Wc/2;
  g.clearRect(0,0,Wc,Wc);
  g.save();g.translate(R,R);
@@ -15820,6 +15855,7 @@ function rouSettle(res,total,bets,paidBy){
  const col=res===0?'GREEN':ROU_RED.has(res)?'RED':'BLACK';
  const cc=res===0?'#4dff6a':ROU_RED.has(res)?'#ff6a5a':'#e8e8e8';
  const net=win-total; /* announced by what the spin gained or lost, never by the gross it paid back */
+ const shown=rouLook('rouLand',{res,win,total,num:!!bets['n'+res]}); /* the pocket glows; coins, a banner, or a shudder */
  if(win>0&&net<=0){ /* a bet paid, but no more than the stake: said plainly and quietly - no fanfare and no loss sound, as Slots' 'Returned' */
   const {over}=addGoldOverflow(win);
   $('rouRes').innerHTML=`<b style="color:${cc}">${res} ${col}</b> - returned ${win.toLocaleString()}◉ · ${net<0?'lost '+(-net).toLocaleString()+'◉':'broke even'}${over?' ('+over.toLocaleString()+' to overflow)':''}`;
@@ -15830,7 +15866,7 @@ function rouSettle(res,total,bets,paidBy){
   sfx.buy();
   if(win>=total*10){
    const mach=$('rouFx').querySelector('.slotmach');mach.classList.add('bigwin');
-   dingDingDing(win>=total*30);spawnPartsIn($('rouFx'),'#ffd76a',18);
+   dingDingDing(win>=total*30);if(!shown)spawnPartsIn($('rouFx'),'#ffd76a',18);
    setTimeout(()=>mach.classList.remove('bigwin'),1800);
   }
   log(`Roulette: <span class="loot">${res} ${col}</span> - +${net.toLocaleString()} ◉${over?' <span class="loot">('+over.toLocaleString()+' overflow)</span>':''}!`,'loot');
@@ -15860,6 +15896,7 @@ function rouSpinNow(){
  let delta=tgt-cur;if(delta>=0)delta-=TAU; /* always sweep clockwise */
  const to=from+delta-spins*TAU;
  const t0=performance.now(),dur=4200;
+ rouLook('rouSpin',{from,to,dur,idx,t0}); /* the ball runs against the wheel and drops into this pocket */
  $('rouRes').textContent='No more bets…';
  noiseSweep(1.2,.05,300,900); /* launch whoosh */
  let lastPocket=-1;
@@ -15879,7 +15916,7 @@ function rouSpinNow(){
 }
 function openRoulette(){
  if(!S)return;
- $('rouFx').classList.add('open');
+ $('rouFx').classList.add('open');rouLook('open');
  rouBuildGrid();
  if(rouSpinning){rouRender();return;} /* a wheel still turning keeps its chips, its line and its landing, as a Lucky 7 spin does */
  rouBets={};
@@ -15892,6 +15929,7 @@ function rouTeardown(){
  rouGen++;rouSpinning=false;rouBets={};
  rouAngle=((rouAngle%(2*Math.PI))+2*Math.PI)%(2*Math.PI);
  try{$('rouFx').classList.remove('open');}catch(e){}
+ rouLook('reset');
 }
 document.querySelectorAll('.roucolors [data-rb]').forEach(b=>b.onclick=()=>rouAdd(b.dataset.rb));
 $('rouChipDn').onclick=()=>{if(S&&rouChipI>0){rouChipI--;rouRender();}};
@@ -15900,7 +15938,7 @@ $('rouClear').onclick=()=>{if(S&&!rouSpinning){rouBets={};rouRender();}};
 $('rouSpin').onclick=rouSpinNow;
 $('rouClose').onclick=()=>{
  if(S&&rouSpinning){stageMsg('The wheel is spinning - no leaving the table now',1500);sfx.warn();return;}
- $('rouFx').classList.remove('open');
+ $('rouFx').classList.remove('open');rouLook('reset');
  casinoAmbApply();
 };
 /* ==================== 🚌 RIDE THE BUS ====================
@@ -15915,6 +15953,8 @@ $('rouClose').onclick=()=>{
    did move a tracked ball would either be followable (and free money) or unfollowable (and a lie
    about being followable). This way the animation is theatre and the odds are stated - and the
    table never invites you to track it: the title says FIND, and the last pass is a blur. */
+/* Sebbe's lantern, the ball's glint, coins for a find and a shudder for a wrong cup live in assets/casino/casino-fx.js: told what happened, they decide nothing */
+function cupLook(name,...a){try{if(typeof CasinoFX!=='undefined'&&CasinoFX[name])return CasinoFX[name]('sebbeFx',...a);}catch(e){try{console.warn('casino fx',e);}catch(_){}}}
 const CUP_BETS=[500,1000,2500,5000,10000,25000,50000];
 const CUP_N=3;                 /* three cups */
 const CUP_PAY=2.8;             /* a hit returns 2.8x the stake - one in three, so the house keeps ~6.7% */
@@ -16028,7 +16068,7 @@ function cupStart(){
  const ball=$('cupBall1'),midCup=cupEl(1);
  if(ball){ball.style.left=(CUP_SLOT[cupPos[1]]+31)+'px';ball.classList.add('show');}
  if(midCup)midCup.classList.add('lift');
- sfx.buy();
+ sfx.buy();cupLook('busy',true);cupLook('spark',{at:ball,ring:true,color:'#fff4d6'});
  const gen=cupGen;
  cupTimer=setTimeout(()=>{
   if(gen!==cupGen)return;
@@ -16059,13 +16099,13 @@ function cupPick(i){
   $('sebbeRes').innerHTML=`<span style="color:#9adf9a">Found it! +${pay.toLocaleString()} ◉</span>`+
    (r.over?`<br><span class="ss" style="color:var(--dim)">${r.over.toLocaleString()} ◉ parked in overflow</span>`:'');
   log(`<span class="loot">🥤 Sebbe pays out +${pay.toLocaleString()} ◉</span> on the cups.`,'loot');
-  sfx.quest();
+  sfx.quest();cupLook('cheer',{amount:pay,at:shown});
  }else{
   $('sebbeRes').innerHTML=`<span style="color:#e0806a">Wrong cup. −${bet.toLocaleString()} ◉</span>`;
   log(`🥤 Wrong cup - Sebbe keeps ${bet.toLocaleString()} ◉.`);
-  sfx.warn();
+  sfx.warn();cupLook('groan',{at:el});cupLook('spark',{at:shown,color:'#fff4d6'});
  }
- renderHUD();save();cupUI();
+ renderHUD();save();cupUI();cupLook('busy',false);
  const gen=cupGen;
  cupTimer=setTimeout(()=>{
   if(gen!==cupGen)return;
@@ -16084,7 +16124,7 @@ function cupReset(){
 }
 function openCupGame(){
  if(!S)return;
- $('sebbeFx').classList.add('open');
+ $('sebbeFx').classList.add('open');cupLook('open');
  initAudio();
  if(cupState==='shuffling'||cupState==='picking'){cupUI();return;} /* a round on the table stays on the table: only the window comes back */
  cupReset(); /* ...otherwise a timer of the old round could fire into the next one */
@@ -16098,18 +16138,21 @@ function cupTeardown(){
  cupGen++;clearTimeout(cupTimer);cupTimer=null;
  cupState='idle';cupWin=-1;cupStake=0;cupPaidBy=null;
  try{$('sebbeFx').classList.remove('open');cupReset();}catch(e){}
+ cupLook('reset');
 }
 function closeCupGame(){
  if(!S){cupTeardown();return;} /* no hero (kicked, logged out): the table just closes */
  if(cupState==='shuffling'||cupState==='picking'){stageMsg('Finish the round first - your stake is on the table.',1700);sfx.warn();return;} /* like blackjack: the stake is already paid */
  $('sebbeFx').classList.remove('open');
- cupReset();
+ cupReset();cupLook('reset');
 }
 $('sebbeBetDn').onclick=()=>{if(S&&cupBetI>0&&cupState==='idle'){cupBetI--;cupUI();}};
 $('sebbeBetUp').onclick=()=>{if(S&&cupBetI<CUP_BETS.length-1&&cupState==='idle'){cupBetI++;cupUI();}};
 $('sebbeStart').onclick=cupStart;
 $('sebbeClose').onclick=closeCupGame;
 const RTB_BETS=[1000,2500,5000,10000,25000,50000];
+/* the bus's lights, a card turning green with its price or red, coins and the FULL RIDE / MAX WIN banners live in assets/casino/casino-fx.js: told what happened, they decide nothing */
+function rtbLook(name,...a){try{if(typeof CasinoFX!=='undefined'&&CasinoFX[name])return CasinoFX[name]('rtbFx',...a);}catch(e){try{console.warn('casino fx',e);}catch(_){}}}
 /* Every guess pays its odds (2026-09-30). The old 2x/3x/4x/20x ladder priced each rung for an average card, but the player
    sees the cards and chooses both the guess and when to stop: played well it paid back 131% of every fare. Now Red and Black
    pay 1.92x - the house's whole cut, taken once (1.92 x 1/2 = 96%) - and every later button pays floor(100n/k)/100, where
@@ -16194,12 +16237,12 @@ function rtbStart(){
  save(); /* fare paid on boarding - reloading mid-ride forfeits it */
  rtbShuffle();rtbCards=[];rtbStage=0;rtbWon=[];rtbOut=null;rtbLive=true;rtbFresh=true;
  $('rtbRes').textContent='Round 1 - red or black?';
- renderHUD();rtbRender();
+ renderHUD();rtbRender();rtbLook('busy',true);
 }
 function rtbEnd(msg){
  rtbLive=false;
  $('rtbRes').innerHTML=msg;
- rtbRender();save();renderHUD();
+ rtbRender();save();renderHUD();rtbLook('busy',false);
 }
 /* pays the ride out - Cash Out, a full ride or the max win - to the hero who paid the fare; with that hero gone the ride is void */
 function rtbPay(how){
@@ -16210,13 +16253,14 @@ function rtbPay(how){
  const what=how==='max'?'MAX WIN':'FULL RIDE';
  rtbEnd(how==='cash'?`🚌 Cashed out - <b style="color:#ffd76a">+${win.toLocaleString()}◉</b>`:`🚌🎉 <b style="color:#ffd76a">${what} - +${win.toLocaleString()}◉</b>`); /* ...and drawn and saved as over before the effects: one that threw left Cash Out drawn live, paying nothing */
  if(how==='cash'){
-  sfx.buy();
+  sfx.buy();rtbLook('cheer',{amount:win,at:'#rtbCards'});
   log(`Ride the Bus: cashed out at ${x} - <span class="loot">+${win.toLocaleString()} ◉</span>${ov}.`,'loot');
   return;
  }
  const mach=$('rtbFx').querySelector('.slotmach');mach.classList.add('bigwin');
  clearTimeout(rtbGlowT);rtbGlowT=setTimeout(()=>mach.classList.remove('bigwin'),1800); /* timed before the fanfare: the glow always ends */
- dingDingDing(true);spawnPartsIn($('rtbFx'),'#ffd76a',22);
+ dingDingDing(true);rtbLook('flip',{ok:true,x:x});
+ if(!rtbLook('cheer',{amount:win,tier:how==='max'?'jackpot':'big',title:what,at:'#rtbCards',ms:3400}))spawnPartsIn($('rtbFx'),'#ffd76a',22);
  log(`Ride the Bus: <span class="llegendary">${what} - ${x}, +${win.toLocaleString()} ◉</span>${ov}!`,'loot');
 }
 function rtbCashOut(){
@@ -16238,6 +16282,7 @@ function rtbGuess(g){
   log(`Ride the Bus: bust on round ${rtbStage+1} - lost ${rtbBet.toLocaleString()} ◉.`);
   rtbOut={at:rtbStage,bust:true};
   rtbEnd(`💥 <b style="color:#ff8a7a">${c.r}${c.s}</b> - bust${why}! The bus drives off with ${rtbBet.toLocaleString()}◉`);
+  rtbLook('flip',{ok:false});
   return;
  }
  rtbWon.push(price);rtbStage++;
@@ -16249,11 +16294,11 @@ function rtbGuess(g){
  const cd=x=>x.r+x.s;
  const nextRound=rtbStage===1?'Round 2 - higher or lower than '+cd(rtbCards[0])+'? Aces low, a tie loses.':rtbStage===2?'Round 3 - inside or outside '+cd(rtbCards[0])+' and '+cd(rtbCards[1])+'? A card on the line loses.':'Round 4 - which suit?';
  $('rtbRes').innerHTML=`✅ <b>${c.r}${c.s}</b> - ${rtbMulX()} locked. ${nextRound}`;
- rtbRender();
+ rtbRender();rtbLook('flip',{ok:true,x:rtbMulX()});
 }
 function openRTB(){
  if(!S)return;
- $('rtbFx').classList.add('open');
+ $('rtbFx').classList.add('open');rtbLook('open');
  rtbLive=false;rtbCards=[];rtbStage=0;rtbWon=[];rtbOut=null;rtbFresh=true;rtbFlip=-1;
  $('rtbRes').innerHTML='Every guess pays its odds - cash out after any win.';
  rtbRender();
@@ -16264,6 +16309,7 @@ function rtbTeardown(){
  rtbLive=false;rtbHero=null;rtbDeck=[];rtbCards=[];rtbStage=0;rtbWon=[];rtbOut=null;rtbFlip=-1;
  clearTimeout(rtbGlowT);rtbGlowT=0;
  try{const fx=$('rtbFx');fx.classList.remove('open');fx.querySelector('.slotmach').classList.remove('bigwin');}catch(e){}
+ rtbLook('reset');
 }
 $('rtbBetDn').onclick=()=>{if(S&&!rtbLive&&rtbBetI>0){rtbBetI--;rtbRender();}};
 $('rtbBetUp').onclick=()=>{if(S&&!rtbLive&&rtbBetI<RTB_BETS.length-1){rtbBetI++;rtbRender();}};
@@ -16271,7 +16317,7 @@ $('rtbCash').onclick=rtbCashOut;
 $('rtbClose').onclick=()=>{
  if(rtbLive&&S){stageMsg('Cash out or ride it to the end first',1400);sfx.warn();return;}
  if(!S)rtbTeardown(); /* no hero to ride for (a kick mid-ride): the table goes, and the ride with it */
- $('rtbFx').classList.remove('open');
+ $('rtbFx').classList.remove('open');rtbLook('reset');
  casinoAmbApply();
 };
 /* ==================== 🎲 GAMBLE AGAINST FRIEND ====================
@@ -16282,6 +16328,8 @@ $('rtbClose').onclick=()=>{
    The room is the referee: a seat, the roll, a paid stake, a round, a forfeit and the verdict are each
    written in a transaction checked against the room's own copy, and a screen pays only the verdict
    the room holds - screens that judged the duel on their own paid two winners, or none. */
+/* the duel table's lights, each reel's card catching the light, and the VICTORY banner live in assets/casino/casino-fx.js: told what happened, they decide nothing */
+function gvbLook(name,...a){try{if(typeof CasinoFX!=='undefined'&&CasinoFX[name])return CasinoFX[name]('gvbFx',...a);}catch(e){try{console.warn('casino fx',e);}catch(_){}}}
 const GVB_SCORE={fk:20,pet:12,bull:10,scroll:7,epic:5,rare:3};
 const GVB_MAXP=10;
 const GVB_V=3; /* this build's seat. A table starts only when every seat has it: older exes paid themselves stakes nobody had paid */
@@ -16546,7 +16594,7 @@ function gvbPadHome(){
 }
 function openGVB(){
  if(!S)return;
- $('gvbFx').style.display='flex';
+ $('gvbFx').style.display='flex';gvbLook('open');
  if(gvb.doc){gvbRender();return;}
  gvbShow('gvbEntry');gvbBusyUI(!!gvb.op);
 }
@@ -16873,6 +16921,7 @@ function gvbAnimateWave(w){
   strips.push({strip,endX:-(TARGET*CARD+CARD/2-winW/2)+(rand()*0.6-0.3)*CARD,spin,p});
   win.classList.add('rolling');
  });
+ gvbLook('busy',true);
  const t0=performance.now();let lastTick=-1;
  (function anim(){
   if(gen!==gvb.gen)return; /* the room was left mid-reel: this reel belongs to nobody now */
@@ -16888,7 +16937,7 @@ function gvbAnimateWave(w){
   strips.forEach(s2=>{const w2=$('gvbWin-'+s2.p);if(w2)w2.classList.remove('rolling');best=Math.max(best,s2.spin.sc);});
   if(best>=10)dingDingDing(best>=20);
   gvb.shown++;gvb.animating=false;
-  gvbRender();
+  gvbRender();gvbLook('reels'); /* each reel's card under its marker catches the light */
  })();
 }
 /* shows the room's verdict - and pays this screen when the room names it */
@@ -16903,12 +16952,13 @@ function gvbSettle(res){
  if(gvb.ref)gvb.ref.update({['settled.'+me]:true}).catch(()=>{}); /* the room may close once every seat has its verdict */
  const board=ord.map(p=>esc((d.players[p]&&d.players[p].name)||'Hero')+' '+gvbScoreOf(waves,p)+'⚙').join(' · ');
  const iWon=res.w===me&&paidMine,back=iWon&&pot<=stake,none=!res.w&&paidMine; /* back: nobody else paid, so it is only your own stake returning. none: nobody was left to win - each stake goes back */
+ let won=0; /* the pot this screen was paid: the show waits for the verdict's panel below */
  if(iWon||none){ /* winner takes ALL stakes - through the stake's token, so it is paid once */
   const r=gvbDue(tk,iWon?pot:stake);
   if(r&&none)log(`Gamble against friend: nobody was left to win - your ${stake.toLocaleString()} ◉ stake comes back.`);
   else if(r&&back)log(`Gamble against friend: nobody else could pay - your ${pot.toLocaleString()} ◉ stake comes back.`);
   else if(r){
-   dingDingDing(true);spawnPartsIn($('gvbFx'),'#ffd76a',24);
+   dingDingDing(true);won=pot;
    log(`Gamble against friend: <span class="llegendary">VICTORY - the whole ${pot.toLocaleString()} ◉ pot is yours</span> (${board})${r.over?' ('+r.over.toLocaleString()+' overflow)':''}!`,'loot');
   }
  }else if(stake>0)log(`Gamble against friend: lost the duel (${board}) - ${stake.toLocaleString()} ◉ gone.`);
@@ -16918,6 +16968,8 @@ function gvbSettle(res){
  const wName=esc((d.players[res.w]&&d.players[res.w].name)||'Winner');
  $('gvbDoneTxt').innerHTML=(back?'↩ <b style="color:#ffd76a">YOUR STAKE COMES BACK':iWon?'🏆 <b style="color:#ffd76a">YOU WIN THE POT':res.w?'💀 <b style="color:#ff8a7a">'+wName+' TAKES THE POT':'⚖ <b style="color:#ff8a7a">NOBODY WINS')
   +`</b><br><span style="font-size:14px">${board}${back?' · nobody else could pay':res.f&&res.w?' · by forfeit':''}${res.w?' · pot '+pot.toLocaleString()+'◉':' · every stake goes back'}</span>`;
+ if(won){if(!gvbLook('cheer',{amount:won,tier:'jackpot',title:'VICTORY',at:'#gvbDoneTxt',ms:4200}))spawnPartsIn($('gvbFx'),'#ffd76a',24);}
+ else if(stake>0&&!iWon&&!none)gvbLook('groan',{at:'#gvbDoneTxt'});
 }
 function gvbQuit(){ /* Leave mid-duel, confirmed: the window goes at once, and the room settles with this seat in the background. It
    used to wait on the cloud with Open still up - 12 s, 24 s with a stake on its way - and a second Leave did nothing */
@@ -20016,7 +20068,9 @@ function casinoAmbApply(){
   }
  }
 }
-function openCasinoMenu(){$('casinoMenu').classList.add('open');initAudio();casinoAmbApply();}
+/* the lights round the casino's menu and the glint on its painted games live in assets/casino/casino-fx.js: told what happened, they decide nothing */
+function menuLook(name,...a){try{if(typeof CasinoFX!=='undefined'&&CasinoFX[name])return CasinoFX[name]('casinoMenu',...a);}catch(e){try{console.warn('casino fx',e);}catch(_){}}}
+function openCasinoMenu(){$('casinoMenu').classList.add('open');menuLook('open');initAudio();casinoAmbApply();}
 $('casinoMenuClose').onclick=()=>{$('casinoMenu').classList.remove('open');casinoAmbApply();};
 document.querySelectorAll('.casinopick').forEach(b=>b.onclick=()=>{
  const g=b.dataset.game;

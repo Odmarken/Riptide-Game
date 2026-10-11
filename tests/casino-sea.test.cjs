@@ -297,7 +297,7 @@ test('Auto pressed while a bonus is on its way runs the free spins and stops wit
  assert.deepEqual([r.on,r.free,r.paid-1,r.c.S.gold,r.auto],[true,10,0,0,false]);assert.ok(!r.c.msgs.includes('Not enough gold to start auto-spin'));
  /* a natural bonus: once the third box has landed, Auto is Auto for the free spins... */
  const natural=c=>{c.rolls.unshift(0);c.run('spinSea()');};
- r=autoAfter(1e6,natural,2200);
+ r=autoAfter(1e6,natural,4000);   /* the chests on reels 1-2 tease reel 3: the third one lands at 3.74 s (1200 + 2x420 + 1700 ms), not 2.04 */
  assert.deepEqual([r.free,r.paid-1,r.auto,r.msg],[10,0,false,'Free spins over - Auto stopped']);
  /* ...before it, the player pressed Auto on a paid spin, and it stays Auto for paid spins */
  r=autoAfter(1e6,natural,300);
@@ -456,4 +456,34 @@ test('a doubled press is the same press again: Enter or A pressed twice on NO, o
  m.advance(300);m.$('seaSpinBtn').onclick({detail:0});assert.equal(m.v('seaSession.spins'),1);
  assert.match(SLOTS,/\$\('seaSpinBtn'\)\.onclick=e=>\{if\(e&&e\.detail===0&&performance\.now\(\)-seaTurnAt<SEA_BOUNCE_MS\)return;/);
  assert.equal(c.v('SEA_BOUNCE_MS'),350,'as long as Blackjack\'s');
+});
+
+test('Slots painted cells (2026-10-11): the picture follows the key and the tier, two chests on reels 1-2 slow reel 3, and the show cannot break a round',()=>{
+ const plain=x=>JSON.parse(JSON.stringify(x));   /* out of the vm's realm, for deepEqual */
+ const c=machine(hero('F'));
+ const pics=new Set();
+ for(const [k,d] of Object.entries(c.v('SEA_SYMDEF')))for(const icon of d.icons){
+  const cell=JSON.stringify({k,icon});
+  const sharp=/src="(assets\/casino\/sea_\w+\.png)" alt="(.*?)"/.exec(c.run(`seaImg(${cell})`)),blur=/src="(.*?)"/.exec(c.run(`seaImg(${cell},true)`));
+  assert.ok(sharp&&fs.existsSync(path.join(root,sharp[1])),k+' '+icon);assert.equal(sharp[2],icon,'the emoji stays the alt text');
+  assert.equal(blur[1],sharp[1].replace('.png','_b.png'));assert.ok(fs.existsSync(path.join(root,blur[1])),blur[1]);
+  pics.add(sharp[1]);
+ }
+ assert.equal(pics.size,11,'anchor, hook, wave, a cutlass and a buckler in each of three tiers, the doubloon and the chest');
+ /* the racing cells of a spin are smeared, the cells that stop sharp; a respin's mini-roll the same */
+ assert.match(SLOTS,/el\.innerHTML=cells\.map\(\(x,i\)=>seaCellHtml\(x,i<filler-2\)\)\.join\(''\);/);
+ assert.match(SLOTS,/roll\.map\(\(t,i\)=>'<div class="seaminicell"><span class="ic">'\+seaImg\(t,i<roll\.length-2\)/);
+ assert.doesNotMatch(SLOTS,/map\(seaCellHtml\)/,'map passes the index as the smear flag');
+ /* a natural bonus: chests on reels 1 and 2, so reel 3 takes 1.7 s more - the third chest shows at 3.74 s */
+ const b=machine(hero('B'));b.at(0);const calls=[];
+ b.CasinoFX=new Proxy({},{get:(t,k)=>(...a)=>{calls.push(plain([k,...a]));return k==='win'||k==='bonus';}});
+ b.spin(0,true);b.wait(2600);assert.equal(b.v('seaDrawBonus'),false,'reel 3 still turning at 2.6 s');
+ b.wait(1300);assert.equal(b.v('seaDrawBonus'),true);
+ b.play();assert.deepEqual(calls.filter(x=>x[0]==='stop').map(x=>x.slice(1)),[['seaFx',0,false],['seaFx',1,true],['seaFx',2,false],['seaFx',3,false]],'reel 4 waits for reel 3');
+ assert.deepEqual(calls.find(x=>x[0]==='bonus'),['bonus','seaFx',10]);
+ assert.ok(calls.some(x=>x[0]==='mode'&&x[2]===true),'the golden tide once free spins are on the hero');
+ /* a show that throws on every call changes nothing: a 5x pays, the box asks, the round ends */
+ const t=machine(hero('T'));t.at(0);t.CasinoFX=new Proxy({},{get:()=>()=>{throw new Error('the show broke');}});
+ const g0=total(t);t.spin(5);t.play();assert.equal(t.box(),true);t.$('seaBuyNo').onclick();t.play();
+ assert.equal(total(t),g0-100+500);assert.equal(t.idle(),true);
 });

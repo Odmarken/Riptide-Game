@@ -66,7 +66,8 @@ function casino(hero={}){
  c.open=id=>c.$(id).classList.contains('open');
  return c;
 }
-const reelSyms=(c,i)=>(c.el('sr'+i).innerHTML.match(/<div class="slotcell">(.*?)<\/div>/g)||[]).map(s=>s.replace(/<[^>]+>/g,''));
+/* a cell is a painted symbol since 2026-10-11 (assets/casino); the symbol itself rides on data-sym and the picture's alt */
+const reelSyms=(c,i)=>[...c.el('sr'+i).innerHTML.matchAll(/<div class="slotcell" data-sym="(.*?)"><img src="assets\/casino\/l7_\w+?\.png" alt="\1"/g)].map(m=>m[1]);
 
 test('Lucky 7 pays back 96% in gold: the thresholds are read out of slotOutcome and the return is worked out exactly',()=>{
  const bands=[...between('function slotOutcome(){','\n}').matchAll(/if\(r<([\d.]+)\)(.*)/g)]
@@ -188,6 +189,46 @@ test('Lucky 7 teardown: the spin in the air never lands, Auto stops, the next he
  d.S={gold:1000,overflow:0,prestige:0,bag:[],scraps:0,gamblerPots:0};
  d.land();d.advance(10000);d.land();
  assert.equal(d.S.gold,1000);assert.equal(A.gold+A.overflow,a);assert.equal(d.run('slotAuto'),false);
+});
+
+test('Lucky 7 painted reels (2026-10-11): pictures for every symbol, smeared racing cells, losing rows that pair up but never line up, and a teased reel 3 the show is told about',()=>{
+ const plain=x=>JSON.parse(JSON.stringify(x));   /* out of the vm's realm, for deepEqual */
+ const c=casino({gold:100000});
+ const art=c.run('SLOT_ART'),syms=c.run('SLOT_SYMS');
+ assert.deepEqual(Object.keys(art).sort(),[...syms].sort(),'one picture per symbol');
+ for(const s of syms)for(const b of ['','_b'])assert.ok(fs.existsSync(path.join(root,'assets/casino/l7_'+art[s]+b+'.png')),'l7_'+art[s]+b+'.png');
+ /* a spin: the last three cells of a reel (where it slows into the window) sharp, the racing cells before them smeared */
+ c.run('openSlots()');c.rolls=[0.05];c.el('slotSpinBtn').onclick();c.land();
+ for(const i of [0,1,2]){
+  const files=[...c.el('sr'+i).innerHTML.matchAll(/src="assets\/casino\/l7_(\w+?)\.png"/g)].map(m=>m[1]);
+  assert.equal(files.length,18+i*6);
+  assert.ok(files.slice(-3).every(f=>!f.endsWith('_b'))&&files.slice(0,-3).every(f=>f.endsWith('_b')),'reel '+(i+1)+': '+files.slice(-4));
+ }
+ /* losing rows: never three alike; reels 1-2 pair up 1 row in 7, and then reel 3 shows another symbol */
+ let pairs=0;const N=21000;
+ for(let k=0;k<N;k++){const [a,b,d]=c.slotFinalRow({sym:null});assert.ok(!(a===b&&b===d),'a losing row lined up');if(a===b){pairs++;assert.notEqual(d,a);}}
+ assert.ok(Math.abs(pairs/N-1/7)<0.012,'pairs on reels 1-2: '+(pairs/N).toFixed(4));
+ /* two 7s and a cherry: reel 3 runs 16 cells and 1.8 s longer, and the show hears tease at reel 2's stop */
+ const calls=[];c.CasinoFX=new Proxy({},{get:(t,k)=>(...a)=>{calls.push(plain([k,...a]));return k==='win';}});
+ c.rolls=[0.5,0.9,0.9,0];c.el('slotSpinBtn').onclick();
+ c.frame(2600);assert.equal(c.run('slotSpinning'),true,'reel 3 still turning at 2.6 s');
+ c.land();
+ assert.equal(reelSyms(c,2).length,46);assert.equal(reelSyms(c,2).at(-1),'🍒');
+ assert.deepEqual(calls.find(x=>x[0]==='spin'),['spin','slotFx',{row:['7️⃣','7️⃣','🍒'],tease:true}]);
+ assert.deepEqual(calls.filter(x=>x[0]==='stop').map(x=>x.slice(1)),[['slotFx',0,'7️⃣',false],['slotFx',1,'7️⃣',true],['slotFx',2,'🍒',false]]);
+ assert.ok(calls.some(x=>x[0]==='miss'));
+ /* two bells tease nothing: the third reel keeps its pace */
+ calls.length=0;c.rolls=[0.5,3.5/7,3.5/7,0];c.el('slotSpinBtn').onclick();c.land();
+ assert.equal(reelSyms(c,2).length,30);assert.equal(calls.find(x=>x[0]==='spin')[2].tease,false);
+ /* a win is handed over with its size; the show answering true means it took the confetti over */
+ calls.length=0;c.rolls=[0.01];c.el('slotSpinBtn').onclick();c.land();
+ assert.deepEqual(calls.find(x=>x[0]==='win'),['win','slotFx',{mul:10,amount:10000,ms:4000}]);
+ /* a show that throws on every call changes nothing: the 10x still pays, the celebration ends, Auto rolls on */
+ const d=casino({gold:100000,prestige:5});let warned=0;
+ d.CasinoFX=new Proxy({},{get:()=>()=>{throw new Error('the show broke');}});d.console={warn:()=>{warned++;}};
+ d.run('openSlots()');d.rolls=[0.01];d.el('slotAutoBtn').onclick();d.land();
+ assert.equal(d.S.gold+d.S.overflow,100000-1000+10000);assert.ok(warned>0,'a broken show is reported');
+ d.rolls=[0.5];d.advance(4000+700);assert.equal(d.run('slotSpinning'),true,'Auto spins on after the celebration');
 });
 
 test('Roulette announces what a spin gained or lost, with the win sound only for a gain and the loss sound only for a total loss',()=>{
