@@ -287,3 +287,23 @@ test('the casino menu says what the games do',()=>{
  for(const g of ['slots','bj','rou'])assert.ok(line(g),g+' has its line');
  assert.ok(!/[åäöÅÄÖ]/.test(menu),'English-friendly names');
 });
+
+test('the casino music has its own switch in the corner: shown while the casino track plays, it mutes that track only, kept on the hero',()=>{
+ const d=dom(),played=[];
+ class Audio{constructor(src){this.src=src;this.paused=true;this.muted=false;played.push(this);}play(){this.paused=false;return Promise.resolve();}pause(){this.paused=true;}}
+ const zone={paused:true,play(){this.paused=false;return Promise.resolve();},pause(){this.paused=true;}};
+ const c=vm.createContext({$:d.$,Audio,AC:{},ambVol:()=>0.5,applyVolumes(){},gameOn:true,audioPaused:false,zoneOf:()=>({}),
+  ambAudio:zone,cowAudio:null,odinAudio:null,cryptAudio:null,finalAudio:null,S:{id:'A'}});
+ vm.runInContext(section('let casinoAudio=null;','function openCasinoMenu(){')+';globalThis.track=()=>casinoAudio;',c);
+ const btn=d.$('casinoMute');
+ d.$('bjFx').classList.add('open');c.casinoAmbApply();
+ assert.equal(btn.hidden,false,'in the corner while the casino track plays');assert.equal(c.track().muted,false);
+ c.S.casinoMute=true;c.casinoAmbApply();
+ assert.equal(c.track().muted,true,'muted');assert.equal(c.track().paused,false,'still running, so unmuting picks it up where it is');
+ delete c.S.casinoMute;c.casinoAmbApply();assert.equal(c.track().muted,false);
+ d.$('bjFx').classList.remove('open');c.casinoAmbApply();assert.equal(btn.hidden,true,'gone with the casino');
+ /* the markup and the click: the bronze hand, a real button, the hero's setting saved */
+ assert.match(html,/<button id="casinoMute" type="button" hidden aria-pressed="false" aria-label="Mute the casino music"/);
+ assert.match(game,/\$\('casinoMute'\)\.onclick=\(\)=>\{if\(!S\)return;if\(S\.casinoMute\)delete S\.casinoMute;else S\.casinoMute=true;casinoAmbApply\(\);save\(\);\};/);
+ assert.match(fs.readFileSync(path.join(root,'assets/casino/casino-fx.css'),'utf8'),/#casinoMute\{position:absolute;top:12px;right:12px;z-index:77;[^}]*cursor:var\(--hand\)\}/);
+});

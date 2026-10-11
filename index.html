@@ -24,7 +24,7 @@
 <link rel="stylesheet" href="assets/city/ledger.css?v=14">
 <link rel="stylesheet" href="assets/ui/hero-guide.css?v=2">
 <link rel="stylesheet" href="assets/tree/tree.css?v=1">
-<link rel="stylesheet" href="assets/casino/casino-fx.css?v=2">
+<link rel="stylesheet" href="assets/casino/casino-fx.css?v=3">
 <script src="assets/ui/cursors.js?v=1"></script>
 </head>
 <body>
@@ -544,6 +544,11 @@
    </div>
   </div>
 
+  <!-- 🔇 the casino's music switch: shown in the corner while the casino track plays (casinoAmbApply) -->
+  <button id="casinoMute" type="button" hidden aria-pressed="false" aria-label="Mute the casino music" title="Casino music: on - click to mute it">
+   <svg class="cm-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="w" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg>
+   <svg class="cm-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="w" d="M16.5 9.5l5 5M21.5 9.5l-5 5"/></svg>
+  </button>
   <div id="casinoMenu">
    <div class="casinobox">
     <div class="slottop" style="color:var(--brass);margin-bottom:6px"><img class="venico" src="assets/icons/venue_casino.png" alt=""> RIPTIDE CASINO</div>
@@ -1062,7 +1067,7 @@
 <script src="assets/tree/skill-tree.js?v=1"></script>
 <script src="assets/tree/tree-ui.js?v=1"></script>
 <script src="assets/casino/casino-fx.js?v=2"></script>
-<script src="game.js?v=242"></script>
+<script src="game.js?v=243"></script>
 <script src="assets/ui/crafting.js?v=4"></script>
 </body>
 </html>

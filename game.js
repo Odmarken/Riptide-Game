@@ -20405,11 +20405,20 @@ setInterval(()=>{
    Zone ambience ducks under it, and comes back when you leave. Sebbe's table is a street game and
    keeps the City's sound; the Final Gate's box is no casino at all. */
 let casinoAudio=null;
+/* 🔇 the casino's own music has its own switch, in the corner while it plays (2026-10-11, "lägg in också en mute knapp i casinot för
+   casino musiken i hörnet"): it silences the casino track only - the game's sounds and the zone's music keep their sliders. It is
+   kept on the hero (S.casinoMute), as the other sound settings are */
+const casinoMuted=()=>typeof S!=='undefined'&&!!(S&&S.casinoMute);
+function casinoMuteUI(show){
+ const b=$('casinoMute');if(!b)return;
+ if(show!==undefined)b.hidden=!show;
+ const m=casinoMuted();b.setAttribute('aria-pressed',String(m));b.title=m?'Casino music: off - click to turn it on':'Casino music: on - click to mute it';
+}
 function casinoAmbApply(){
  const anyOpen=['casinoMenu','slotFx','seaFx','fiveFx','bjFx','rouFx','rtbFx'].some(id=>{const e=$(id);return e&&e.classList.contains('open');})||($('gvbFx')&&$('gvbFx').style.display==='flex');
  if(anyOpen){
   if(!casinoAudio){casinoAudio=new Audio('ambientsong/casino_ambient.mp3');casinoAudio.loop=true;casinoAudio.onerror=()=>{casinoAudio=null;};} /* a dead element is dropped, so the next open makes a new one */
-  const v=ambVol();casinoAudio.volume=v;casinoAudio.muted=v<=0;
+  const v=ambVol();casinoAudio.volume=v;casinoAudio.muted=v<=0||casinoMuted();
   if(casinoAudio.paused)casinoAudio.play().catch(()=>{});
   if(AC.ambG&&AC.ctx){const t0=AC.ctx.currentTime;AC.ambG.gain.cancelScheduledValues(t0);AC.ambG.gain.setValueAtTime(0,t0);} /* duck the zone */
   [ambAudio,cowAudio,odinAudio,cryptAudio,finalAudio].forEach(a=>{if(a)a.pause();});
@@ -20426,6 +20435,7 @@ function casinoAmbApply(){
    }
   }
  }
+ casinoMuteUI(anyOpen); /* the switch shows while the casino's music is the one playing */
 }
 /* the lights round the casino's menu and the glint on its painted games live in assets/casino/casino-fx.js: told what happened, they decide nothing */
 function menuLook(name,...a){try{if(typeof CasinoFX!=='undefined'&&CasinoFX[name])return CasinoFX[name]('casinoMenu',...a);}catch(e){try{console.warn('casino fx',e);}catch(_){}}}
@@ -20437,6 +20447,7 @@ function casinoMenuPage(slots){
  if(first&&$('casinoMenu').classList.contains('open')){if(padFocus)padMark(first);else if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#casinoMenu'))first.focus({preventScroll:true});}
 }
 function openCasinoMenu(){$('casinoMenu').classList.add('open');casinoMenuPage(false);menuLook('open');initAudio();casinoAmbApply();}
+$('casinoMute').onclick=()=>{if(!S)return;if(S.casinoMute)delete S.casinoMute;else S.casinoMute=true;casinoAmbApply();save();};
 $('casinoMenuClose').onclick=()=>{if($('casinoSlots').style.display!=='none'){casinoMenuPage(false);return;}$('casinoMenu').classList.remove('open');casinoAmbApply();};
 $('casinoSlotsBack').onclick=()=>casinoMenuPage(false);
 document.querySelectorAll('.casinopick').forEach(b=>b.onclick=()=>{
