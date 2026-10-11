@@ -1,4 +1,5 @@
-/* 📖 Books of Knowledge read into weapon inscriptions: odds, the hall, combat, bag safety and the leaderboard.
+/* ✨ Enchants - a Book of Knowledge and two emeralds made into one of five, each a number and a rune's look (called
+   inscriptions in the code and in saves): odds, the hall, combat, bag safety and the leaderboard.
    Every block below runs the real game.js code, cut out by its markers, against small stubs. */
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'../game.js'),'utf8');
@@ -60,7 +61,7 @@ test('values, cleaning and the worn weapon: only a well-formed inscription on th
  assert.deepEqual(plain(c.inscClean({id:'twin',rar:'epic',atk:9999,__proto__x:1})),{id:'twin',rar:'epic'});
  assert.deepEqual(plain(c.inscClean({id:'thunder',rar:'epic'})),{id:'thunder',rar:'epic'},'a newer build\'s kind is kept for that build');
  assert.equal(c.inscOk({id:'thunder',rar:'epic'}),false);assert.equal(c.inscVal({id:'thunder',rar:'epic'}),0);
- assert.equal(c.inscLine({id:'orb',rar:'epic'}),'Epic Arcane Orb: 5% chance to hurl an arcane orb');
+ assert.equal(c.inscLine({id:'orb',rar:'epic'}),'Epic Stormetch: 5% chance to hurl an arcane orb');
 });
 test('the star forge carries the rarest inscription, and a known kind beats one this build cannot read',()=>{
  const c=helpers();
@@ -70,7 +71,7 @@ test('the star forge carries the rarest inscription, and a known kind beats one 
  assert.deepEqual(plain(c.bestInsc([{insc:{id:'thunder',rar:'legendary'}},{}])),{id:'thunder',rar:'legendary'});
 });
 
-test('a finished star forge writes the inscription it carried onto the new blade, and none when it carried none',()=>{
+test('a finished star forge writes the enchant it carried onto the new blade, look and all, and none when it carried none',()=>{
  for(const kind of ['fk','fg'])for(const carried of [{id:'twin',rar:'epic'},undefined,{id:'thunder',rar:'epic'},'junk']){
   const bag=[],c={S:{smithJob:{kind,to:2,endT:0,...(carried?{insc:carried}:{})},bag,gear:{}},Math,Date,LEGEND_MAX_UP:6,
    syncFelGlaives:it=>it,syncFrostseeker:it=>it,log(){},stageMsg(){},sfx:{level(){}},smithCompleted(){},save(){},$:()=>null,publishLB(){}};
@@ -78,12 +79,13 @@ test('a finished star forge writes the inscription it carried onto the new blade
   c.smithTick();
   assert.equal(c.S.smithJob,null);assert.equal(bag.length,1);assert.equal(bag[0].star,2);
   if(carried&&typeof carried==='object')assert.deepEqual(plain(bag[0].insc),carried,kind);else assert.equal('insc' in bag[0],false,kind+' '+carried);
+  assert.equal(bag[0].wench,carried&&carried.id==='twin'?'goldrune':undefined,kind+' wears the look of what it carried, and only of a kind this build knows');
  }
 });
 
 /* ---------------- the hall ---------------- */
 function hall(){
- const c={now:1000000,saves:0,roll:.01,warns:0,S:{gold:0,ench:{trained:true,skill:0,bag:[]},ore:{ore:0,coal:0,gem:0},gear:{weapon:{name:'Iron Sword',atk:17}},bag:[]}};
+ const c={now:1000000,saves:0,roll:.01,warns:0,S:{gold:0,ench:{trained:true,skill:0},ore:{ore:0,coal:0,gem:0},gear:{weapon:{name:'Iron Sword',atk:17}},bag:[]}};
  const nodes=new Map();
  function element(id=''){
   const classes=new Set(),e={id,style:{setProperty(k,v){this[k]=v;}},dataset:{},attributes:{},textContent:'',hidden:false,disabled:false,
@@ -113,59 +115,61 @@ function hall(){
  c.cells=kind=>pick('[data-'+kind+']');
  return c;
 }
-const booksTab=c=>{c.enchRefresh();c.$('enchTabBooks').onclick();};
-test('the hall opens on the runes and the books tab counts the books, with the odds for this skill',()=>{
- const c=hall();c.S.bag=[{slot:'weapon',name:'Spare',rar:'fine'},{...BOOK},{...BOOK}];c.enchRefresh();
- assert.match(c.$('enchBody').innerHTML,/Cut a rune/);assert.match(c.$('enchBody').innerHTML,/Books of Knowledge <b class="insc-tabcount">×2<\/b>/);
- c.$('enchTabBooks').onclick();const html=c.$('enchBody').innerHTML;
- assert.match(html,/Read a Book of Knowledge/);assert.doesNotMatch(html,/Cut a rune/);assert.equal(c.$('enchReadBtn').disabled,false);
+test('the hall is one page: what an enchant takes, the odds for this skill, and the enchants to bind',()=>{
+ const c=hall();c.S.bag=[{slot:'weapon',name:'Spare',rar:'fine'},{...BOOK},{...BOOK}];c.S.ore.gem=5;c.enchRefresh();
+ const html=c.$('enchBody').innerHTML;
+ assert.match(html,/Make an enchant/);assert.match(html,/Bind an enchant/);assert.doesNotMatch(html,/craft-tab|Cut a rune|Read a Book/,'no tabs and no second craft');
+ assert.equal(c.$('enchMakeBtn').disabled,false);assert.match(html,/Enchant · 1 book \+ 2 emeralds/);assert.match(html,/Book of Knowledge \+ 2 Emeralds/);
  assert.match(html,/Your odds at skill 0/);assert.match(html,/Common <b>70%<\/b>/);assert.match(html,/Rare <b>5%<\/b>/);assert.match(html,/insc-odd none[^>]*>Legendary <b>0%<\/b>/);
- assert.match(c.$('enchGems').innerHTML,/<b>2<\/b> Books of Knowledge in your bag/);
- assert.equal(c.$('enchInscBtn').disabled,true);assert.match(html,/no inscriptions yet/);
- c.$('enchTabRunes').onclick();assert.match(c.$('enchBody').innerHTML,/Cut a rune/);assert.match(c.$('enchGems').innerHTML,/emeralds? in your bag/);
+ assert.match(c.$('enchGems').innerHTML,/<b>2<\/b> books · .*<b>5<\/b> emeralds/);
+ assert.equal(c.$('enchBindBtn').disabled,true);assert.match(html,/no enchants yet/);
 });
-test('reading spends exactly one book, keeps the rest of the bag, teaches five points and shows the result',()=>{
- const c=hall(),spare={slot:'weapon',name:'Spare',rar:'fine'};c.S.bag=[spare,{...BOOK},{...BOOK,sourceDungeon:'frostveil'}];
- booksTab(c);c.$('enchReadBtn').onclick();
- assert.equal(c.S.bag.length,2);assert.equal(c.S.bag[0],spare);assert.equal(c.S.bag[1].sourceDungeon,'frostveil','the first book is the one read');
- assert.deepEqual(plain(c.S.ench.insc),[{id:'twin',rar:'common'}]);assert.equal(c.S.ench.skill,5);assert.equal(c.saves,1);
- assert.equal(c.$('enchCraftFx').classList.contains('open'),true);assert.match(c.$('ecStage').innerHTML,/Twin Strike/);assert.match(c.$('ecStage').innerHTML,/Common inscription/);
- assert.equal(c.$('ecStage').style['--ei'],'#59625a','the name is inked dark enough for the page');
- const html=c.$('enchBody').innerHTML;assert.match(html,/Last book read/);assert.match(html,/Common Twin Strike: 1% chance to strike twice/);assert.match(html,/Common Twin Strike added to your inscriptions/);
- assert.match(html,/Selected inscription<\/span>[\s\S]*Twin Strike/,'the new inscription comes pre-selected');assert.equal(c.$('enchInscBtn').disabled,false);
- c.S.ench.skill=500;c.roll=.95;c.$('enchReadBtn').onclick();
- assert.deepEqual(plain(c.S.ench.insc[1]),{id:'swift',rar:'legendary'},'the roll reads the skill');assert.equal(c.S.bag.length,1);assert.equal(c.S.ench.skill,500);
- c.$('enchReadBtn').onclick();assert.equal(c.S.ench.insc.length,2,'no book, no reading');assert.equal(c.warns,1);assert.equal(c.$('enchReadBtn').disabled,true);
+test('making spends exactly one book and two emeralds, keeps the rest of the bag, teaches seven points and shows the result',()=>{
+ const c=hall(),spare={slot:'weapon',name:'Spare',rar:'fine'};c.S.bag=[spare,{...BOOK},{...BOOK,sourceDungeon:'frostveil'}];c.S.ore.gem=5;
+ c.enchRefresh();c.$('enchMakeBtn').onclick();
+ assert.equal(c.S.bag.length,2);assert.equal(c.S.bag[0],spare);assert.equal(c.S.bag[1].sourceDungeon,'frostveil','the first book is the one used');assert.equal(c.S.ore.gem,3);
+ assert.deepEqual(plain(c.S.ench.insc),[{id:'twin',rar:'common'}]);assert.equal(c.S.ench.skill,7);assert.equal(c.saves,1);
+ const stage=c.$('ecStage');
+ assert.equal(c.$('enchCraftFx').classList.contains('open'),true);assert.match(stage.innerHTML,/Goldrune/);assert.match(stage.innerHTML,/Common enchant/);assert.match(stage.innerHTML,/en_gold\.png/,'the rune\'s own art');
+ assert.equal(stage.style['--ei'],'#59625a','the name is inked dark enough for the page');
+ const html=c.$('enchBody').innerHTML;assert.match(html,/Last enchant/);assert.match(html,/Common Goldrune/);assert.match(html,/1% chance to strike twice/);assert.match(html,/Common Goldrune added to your enchants/);
+ assert.match(html,/Selected enchant<\/span>[\s\S]*Goldrune/,'the new enchant comes pre-selected');assert.equal(c.$('enchBindBtn').disabled,false);
+ c.S.ench.skill=500;c.roll=.95;c.$('enchMakeBtn').onclick();
+ assert.deepEqual(plain(c.S.ench.insc[1]),{id:'swift',rar:'legendary'},'the roll reads the skill');assert.equal(c.S.bag.length,1);assert.equal(c.S.ench.skill,500);assert.equal(c.S.ore.gem,1);
+ c.S.bag.push({...BOOK});c.$('enchMakeBtn').onclick();
+ assert.equal(c.S.ench.insc.length,2,'one emerald is not enough');assert.equal(c.warns,1);assert.equal(c.S.bag.length,2,'and the book stays');
 });
-test('an untrained hero reads nothing and is told the hall teaches the books too',()=>{
- const c=hall();c.S.ench={trained:false,skill:0,bag:[]};c.S.bag=[{...BOOK}];c.enchRefresh();
- assert.match(c.$('enchBody').innerHTML,/read the Books of Knowledge/);c.enchReadBook();assert.equal(c.S.bag.length,1);assert.equal(c.S.ench.insc,undefined);
+test('an untrained hero makes nothing and is told what the hall turns into an enchant',()=>{
+ const c=hall();c.S.ench={trained:false,skill:0};c.S.bag=[{...BOOK}];c.S.ore.gem=9;c.enchRefresh();
+ assert.match(c.$('enchBody').innerHTML,/a Book of Knowledge from the Wasteland guardians and 2 emeralds/);
+ c.enchMake();assert.equal(c.S.bag.length,1);assert.equal(c.S.ore.gem,9);assert.equal(c.S.ench.insc,undefined);
 });
-test('inscribing writes one chosen inscription onto the worn weapon, replacing the old one and nothing else',()=>{
- const c=hall();c.S.ench.insc=[{id:'keen',rar:'rare'},{id:'twin',rar:'epic'},{id:'twin',rar:'epic'}];c.S.gear.weapon.insc={id:'orb',rar:'common'};
- booksTab(c);
+test('binding writes one chosen enchant and its look onto the worn weapon, replacing the old one and nothing else',()=>{
+ const c=hall();c.S.ench.insc=[{id:'keen',rar:'rare'},{id:'twin',rar:'epic'},{id:'twin',rar:'epic'}];Object.assign(c.S.gear.weapon,{insc:{id:'orb',rar:'common'},wench:'stormetch'});
+ c.enchRefresh();
  const cells=c.cells('ii');assert.deepEqual(cells.map(b=>b.dataset.ii),['twin:epic','keen:rare'],'rarest first');
  assert.match(c.$('enchBody').innerHTML,/×2<\/span><\/button>/);
  cells[0].onclick();assert.equal(c.focused.dataset.ii,'twin:epic');
- const html=c.$('enchBody').innerHTML;assert.match(html,/Replaces Common Arcane Orb: 1% chance to hurl an arcane orb\. The current inscription will be lost/);
- c.$('enchInscBtn').onclick();
- assert.deepEqual(plain(c.S.gear.weapon),{name:'Iron Sword',atk:17,insc:{id:'twin',rar:'epic'}});
+ const html=c.$('enchBody').innerHTML;assert.match(html,/Replaces Common Stormetch: 1% chance to hurl an arcane orb\. The current enchant will be lost/);
+ c.$('enchBindBtn').onclick();
+ assert.deepEqual(plain(c.S.gear.weapon),{name:'Iron Sword',atk:17,insc:{id:'twin',rar:'epic'},wench:'goldrune'});
  assert.deepEqual(plain(c.S.ench.insc),[{id:'keen',rar:'rare'},{id:'twin',rar:'epic'}]);
- assert.match(c.$('enchBody').innerHTML,/Twin Strike inscribed on Iron Sword; Arcane Orb erased/);
- c.S.gear.weapon=null;c.enchRefresh();assert.equal(c.$('enchInscBtn').disabled,true);assert.match(c.$('enchBody').innerHTML,/Equip a weapon to inscribe it/);
- c.enchInscribe('keen:rare');assert.equal(c.S.ench.insc.length,2);assert.equal(c.warns,1);
- c.S.gear.weapon={name:'Axe'};c.enchInscribe('nothing:here');c.enchInscribe('keen:rare');assert.deepEqual(plain(c.S.gear.weapon.insc),{id:'keen',rar:'rare'});assert.equal(c.S.ench.insc.length,1);
+ assert.match(c.$('enchBody').innerHTML,/Epic Goldrune bound to Iron Sword; Common Stormetch replaced/);
+ c.S.gear.weapon=null;c.enchRefresh();assert.equal(c.$('enchBindBtn').disabled,true);assert.match(c.$('enchBody').innerHTML,/Equip a weapon to enchant it/);
+ c.enchBind('keen:rare');assert.equal(c.S.ench.insc.length,2);assert.equal(c.warns,1);
+ c.S.gear.weapon={name:'Axe'};c.enchBind('nothing:here');c.enchBind('keen:rare');
+ assert.deepEqual(plain(c.S.gear.weapon),{name:'Axe',insc:{id:'keen',rar:'rare'},wench:'frostgrip'});assert.equal(c.S.ench.insc.length,1);
 });
-test('a newer build\'s inscription waits unseen in the hall and cannot be written by this one',()=>{
- const c=hall();c.S.ench.insc=[{id:'thunder',rar:'epic'},{id:'twin',rar:'fine'}];booksTab(c);
- assert.deepEqual(c.cells('ii').map(b=>b.dataset.ii),['twin:fine']);assert.match(c.$('enchBody').innerHTML,/Your inscriptions <span class="craft-badge">1<\/span>/);
- c.enchInscribe('thunder:epic');assert.equal(c.S.gear.weapon.insc,undefined);assert.equal(c.S.ench.insc.length,2);
+test('a newer build\'s enchant waits unseen in the hall and cannot be bound by this one',()=>{
+ const c=hall();c.S.ench.insc=[{id:'thunder',rar:'epic'},{id:'twin',rar:'fine'}];c.enchRefresh();
+ assert.deepEqual(c.cells('ii').map(b=>b.dataset.ii),['twin:fine']);assert.match(c.$('enchBody').innerHTML,/Your enchants <span class="craft-badge">1<\/span>/);
+ c.enchBind('thunder:epic');assert.equal(c.S.gear.weapon.insc,undefined);assert.equal(c.S.ench.insc.length,2);
 });
-test('what was read is not shown to the next hero loaded',()=>{
- const c=hall();c.S.bag=[{...BOOK}];booksTab(c);c.$('enchReadBtn').onclick();
+test('what was made is not shown to the next hero loaded',()=>{
+ const c=hall();c.S.bag=[{...BOOK}];c.S.ore.gem=2;c.enchRefresh();c.$('enchMakeBtn').onclick();
  c.S=JSON.parse(JSON.stringify(c.S));c.enchRefresh();
- assert.doesNotMatch(c.$('enchBody').innerHTML,/Last book read|added to your inscriptions/);
- assert.deepEqual(Object.keys(c.S.ench).sort(),['bag','insc','skill','trained']);
+ assert.doesNotMatch(c.$('enchBody').innerHTML,/Last enchant|added to your enchants/);
+ assert.deepEqual(Object.keys(c.S.ench).sort(),['insc','skill','trained']);
 });
 
 /* ---------------- combat ---------------- */
@@ -190,9 +194,9 @@ function fight(weaponInsc,cls={id:'warrior',cd:1,ranged:false}){
 test('a plain weapon swings once, and every inscription roll is spent only when the weapon has one',()=>{
  const c=fight(undefined),en=c.foe();c.rolls.push(.5,.99);
  c.heroBasicAttack(en,5);assert.equal(en.hp,900);assert.deepEqual(c.floats,['100']);assert.equal(c.timers.length,0);assert.equal(c.bolts.length,0);assert.equal(c.rolls.length,0);
- const k=fight({id:'keen',rar:'epic'}),e2=k.foe();k.rolls.push(.5,.99);k.heroBasicAttack(e2,5);assert.equal(e2.hp,900,'Keen Edge adds no roll of its own - it lives in heroCrit');
+ const k=fight({id:'keen',rar:'epic'}),e2=k.foe();k.rolls.push(.5,.99);k.heroBasicAttack(e2,5);assert.equal(e2.hp,900,'Frostgrip adds no roll of its own - it lives in heroCrit');
 });
-test('Twin Strike: a second full swing a beat later, with its own rolls, only while the fight is still on',()=>{
+test('Goldrune\'s twin strike: a second full swing a beat later, with its own rolls, only while the fight is still on',()=>{
  const c=fight({id:'twin',rar:'legendary'}),en=c.foe();
  c.rolls.push(.5,.99,.079);c.heroBasicAttack(en,5);
  assert.equal(en.hp,900);assert.equal(c.timers.length,1);assert.equal(c.timers[0].ms,140);
@@ -205,12 +209,12 @@ test('Twin Strike: a second full swing a beat later, with its own rolls, only wh
  again.enemies.length=0;again.timers[0].f();assert.equal(foe.hp,900,'a foe left behind by a zone change takes no second swing');
  again.enemies.push(foe);again.S={gear:{}};again.timers[0].f();assert.equal(foe.hp,900,'nor one struck by a hero no longer played');
 });
-test('Twin Strike on a ranged class looses a second, labelled projectile',()=>{
+test('Goldrune\'s twin strike on a ranged class looses a second, labelled projectile',()=>{
  const c=fight({id:'twin',rar:'common'},{id:'hunter',cd:1,ranged:true,boltC:'#cfe8a0'}),en=c.foe();
  c.rolls.push(.5,.99,0);c.heroBasicAttack(en,5);c.rolls.push(.5,.99);c.timers[0].f();
  assert.equal(c.bolts.length,2);assert.equal(c.bolts[0].label,null);assert.equal(c.bolts[1].label,'Twin');assert.equal(c.bolts[1].basic,true);assert.equal(c.bolts[1].arrow,true);
 });
-test('Arcane Orb: a slow orb for 150% of a swing, seen by the other raiders too',()=>{
+test('Stormetch\'s arcane orb: a slow orb for 150% of a swing, seen by the other raiders too',()=>{
  const c=fight({id:'orb',rar:'legendary'}),en=c.foe(120,0);
  c.rolls.push(.5,.99,.05,.5,.99);c.heroBasicAttack(en,5);
  assert.equal(c.bolts.length,1);const orb=c.bolts[0];
@@ -225,12 +229,12 @@ test('the orb bursts on its target and splashes half on foes close beside it, an
  assert.deepEqual(c.floats,['Orb ✦151','Orb 76']);assert.deepEqual(c.heals,[],'an orb is magic, not a strike: no lifesteal');
  t.dead=true;c.orbBurst({tgt:t,dmg:151});assert.equal(near.hp,924,'an orb whose target is already gone does nothing');
 });
-test('Bloodthirst adds to the lifesteal of every landed hit',()=>{
+test('Veinseeker adds to the lifesteal of every landed hit',()=>{
  const c=fight({id:'leech',rar:'legendary'}),en=c.foe();c.rolls.push(.5,.99);c.heroBasicAttack(en,5);
  assert.deepEqual(c.heals,[3]);
  c.S.gear.weapon.lifesteal=0.02;c.landHit(en,100,false,null,true);assert.equal(Math.round(c.heals[1]*1e6)/1e6,5);
 });
-test('Keen Edge reaches the crit chance and Quickening the attack speed',()=>{
+test('Frostgrip reaches the crit chance and Emberbite the attack speed',()=>{
  const c={S:{gamblerT:0,gear:{weapon:{insc:{id:'keen',rar:'epic'}}}},hero:{buff:{}},Math,classOf:()=>({crit:5}),raceOf:()=>({crit:6}),gearSum:()=>0,fkBonus:()=>0,fgCrit:()=>0,
   swiftMul:()=>1,hasteBoostMul:()=>1,activePet:()=>null,tstat:()=>0};   /* 🌳 no talents */
  vm.createContext(c);vm.runInContext(HELPERS,c);
@@ -254,21 +258,21 @@ function bag(){
  vm.runInContext('globalThis.bagSellable=bagSellable;',c);
  return c;
 }
-test('inscribed weapons stay out of Sell All and Scrap All, like legendaries and gear sets',()=>{
+test('enchanted weapons stay out of Sell All and Scrap All, like legendaries and gear sets',()=>{
  const c=bag(),plainW={slot:'weapon',name:'Plain',rar:'fine'},inscribed={slot:'weapon',name:'Mine',rar:'fine',insc:{id:'twin',rar:'rare'}},set={slot:'armor',name:'Set',rar:'rare',gs:1};
  assert.equal(c.bagSellable(plainW),true);assert.equal(c.bagSellable(inscribed),false);assert.equal(c.bagSellable({...BOOK}),false);
  c.S.bag=[plainW,inscribed,set,{...BOOK}];c.scrapBagItems(()=>true,'items');
  assert.deepEqual(plain(c.S.bag.map(it=>it.name)),['Mine','Set','Book of Knowledge']);assert.equal(c.S.scraps,2);
 });
-test('auto-equip leaves an inscribed weapon in the hand, says so once, and still equips other slots',()=>{
+test('auto-equip leaves an enchanted weapon in the hand, says so once, and still equips other slots',()=>{
  const c=bag(),worn={slot:'weapon',name:'Mine',rar:'fine',power:10,insc:{id:'orb',rar:'epic'}};c.S.gear.weapon=worn;
  assert.equal(c.tryAutoEquip({slot:'weapon',name:'Better',rar:'epic',power:99}),false);assert.equal(c.S.gear.weapon,worn);
- assert.equal(c.tryAutoEquip({slot:'weapon',name:'Better still',rar:'epic',power:120}),false);assert.equal(c.logs.length,1);assert.match(c.logs[0],/keeps your inscribed/);
+ assert.equal(c.tryAutoEquip({slot:'weapon',name:'Better still',rar:'epic',power:120}),false);assert.equal(c.logs.length,1);assert.match(c.logs[0],/keeps your enchanted/);
  assert.equal(c.tryAutoEquip({slot:'weapon',name:'Worse',rar:'common',power:1}),false);
  assert.equal(c.tryAutoEquip({slot:'armor',name:'Coat',rar:'fine',power:5}),true);
  delete worn.insc;assert.equal(c.tryAutoEquip({slot:'weapon',name:'Better',rar:'epic',power:99}),true);
 });
-test('cleanBagItem keeps a well-formed inscription on a weapon only',()=>{
+test('cleanBagItem keeps a well-formed enchant on a weapon only',()=>{
  const c=bag();
  assert.deepEqual(plain(c.cleanBagItem({slot:'weapon',name:'W',insc:{id:'twin',rar:'epic',extra:1}}).insc),{id:'twin',rar:'epic'});
  assert.deepEqual(plain(c.cleanBagItem({slot:'weapon',name:'W',insc:{id:'thunder',rar:'epic'}}).insc),{id:'thunder',rar:'epic'});
@@ -279,7 +283,7 @@ test('cleanBagItem keeps a well-formed inscription on a weapon only',()=>{
 });
 
 /* ---------------- the leaderboard ---------------- */
-test('the leaderboard carries an inscription only when there is one',async()=>{
+test('the leaderboard carries an enchant only when there is one',async()=>{
  const writes=[],ctx=vm.createContext({S:null,FB:{ready:true,user:{uid:'u1'}},SEASON:1,SDK_WAIT_MS:10,window:{},console:{warn(){}},ZONES:[],CITY_ZONE:26,
   charGearScore:()=>20,lbScore:()=>123,charStats:()=>({hp:500}),heroDeleted:()=>false,characterTitle:()=>'',heroOutfit:()=>'default',
   cloudCall:async(_,sdk,rest)=>rest({patch:async(id,entry)=>writes.push(JSON.parse(JSON.stringify(entry)))})});

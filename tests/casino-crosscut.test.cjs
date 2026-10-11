@@ -288,22 +288,24 @@ test('the casino menu says what the games do',()=>{
  assert.ok(!/[åäöÅÄÖ]/.test(menu),'English-friendly names');
 });
 
-test('the casino music has its own switch in the corner: shown while the casino track plays, it mutes that track only, kept on the hero',()=>{
+test('the casino music has its own switch in the corner of every casino window: it mutes that track only, kept on the hero',()=>{
  const d=dom(),played=[];
  class Audio{constructor(src){this.src=src;this.paused=true;this.muted=false;played.push(this);}play(){this.paused=false;return Promise.resolve();}pause(){this.paused=true;}}
  const zone={paused:true,play(){this.paused=false;return Promise.resolve();},pause(){this.paused=true;}};
  const c=vm.createContext({$:d.$,Audio,AC:{},ambVol:()=>0.5,applyVolumes(){},gameOn:true,audioPaused:false,zoneOf:()=>({}),
   ambAudio:zone,cowAudio:null,odinAudio:null,cryptAudio:null,finalAudio:null,S:{id:'A'}});
- vm.runInContext(section('let casinoAudio=null;','function openCasinoMenu(){')+';globalThis.track=()=>casinoAudio;',c);
- const btn=d.$('casinoMute');
+ vm.runInContext(section('let casinoAudio=null;','function openCasinoMenu(){')+';globalThis.track=()=>casinoAudio;globalThis.btns=()=>casinoMuteBtns;',c);
+ const attrs={};const btn={title:'',setAttribute:(k,v)=>{attrs[k]=v;}};c.btns().push(btn);
  d.$('bjFx').classList.add('open');c.casinoAmbApply();
- assert.equal(btn.hidden,false,'in the corner while the casino track plays');assert.equal(c.track().muted,false);
+ assert.equal(c.track().muted,false);assert.equal(attrs['aria-pressed'],'false');
  c.S.casinoMute=true;c.casinoAmbApply();
  assert.equal(c.track().muted,true,'muted');assert.equal(c.track().paused,false,'still running, so unmuting picks it up where it is');
+ assert.equal(attrs['aria-pressed'],'true','every switch shows it');assert.match(btn.title,/off/);
  delete c.S.casinoMute;c.casinoAmbApply();assert.equal(c.track().muted,false);
- d.$('bjFx').classList.remove('open');c.casinoAmbApply();assert.equal(btn.hidden,true,'gone with the casino');
- /* the markup and the click: the bronze hand, a real button, the hero's setting saved */
- assert.match(html,/<button id="casinoMute" type="button" hidden aria-pressed="false" aria-label="Mute the casino music"/);
- assert.match(game,/\$\('casinoMute'\)\.onclick=\(\)=>\{if\(!S\)return;if\(S\.casinoMute\)delete S\.casinoMute;else S\.casinoMute=true;casinoAmbApply\(\);save\(\);\};/);
- assert.match(fs.readFileSync(path.join(root,'assets/casino/casino-fx.css'),'utf8'),/#casinoMute\{position:absolute;top:12px;right:12px;z-index:77;[^}]*cursor:var\(--hand\)\}/);
+ /* one switch in each casino window's own box - the menu, the three machines, the tables, the duel - never at the screen's corner */
+ const made=section("{const html='<button class=\"casinomute\"",'casinoMuteUI();}');
+ for(const id of ['casinoMenu','slotFx','seaFx','fiveFx','bjFx','rouFx','rtbFx','gvbFx'])assert.ok(made.includes("['"+id+"',"),id);
+ assert.match(made,/b\.onclick=\(\)=>\{if\(!S\)return;if\(S\.casinoMute\)delete S\.casinoMute;else S\.casinoMute=true;casinoAmbApply\(\);save\(\);\};/);
+ assert.doesNotMatch(html,/id="casinoMute"/);
+ assert.match(fs.readFileSync(path.join(root,'assets/casino/casino-fx.css'),'utf8'),/\.casinomute\{position:absolute;top:10px;right:10px;z-index:6;[^}]*cursor:var\(--hand\)\}/);
 });

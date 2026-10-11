@@ -1318,7 +1318,7 @@ const fmtMS=ms=>{
    refuses them - and syncFrostseeker/syncFelGlaives keep stamping a fat baseAtk*4 price
    on spare blades) and gear-set (⭐) items are excluded, or they freeze high-prestige
    players hundreds of thousands below the cap with a "nothing to sell" bag. */
-const bagSellable=it=>!!it&&!isLegendary(it)&&!inGearSet(it)&&!it.insc; /* 📖 an inscribed weapon only goes one at a time, by hand */
+const bagSellable=it=>!!it&&!isLegendary(it)&&!inGearSet(it)&&!it.insc; /* ✨ an enchanted weapon only goes one at a time, by hand */
 const bagGoldVal=()=>((S&&S.bag)||[]).reduce((t,it)=>t+(bagSellable(it)?(it.sell||0):0),0);
 const bagScrapVal=()=>((S&&S.bag)||[]).reduce((t,it)=>t+scrapVal(it),0);
 const goldRoom=()=>Math.max(0,goldCap()-S.gold-bagGoldVal());
@@ -2579,6 +2579,35 @@ function lightTest(){
  setTimeout(go,1200);
  return 'light test: '+r;
 }
+/* 🧪 THE CROWN TEST (asked for 2026-10-11: "ge mig en exe test som är precis innan man ska krönas ... jag ska klicka själv i council
+   bordet ge mig en undead hunter"). A throwaway Undead Hunter the moment before the crown: the City chartered, a season on the bank's
+   books, the realm's trust at the full 100 and a devoted council - all that Take the crown asks for - and the crown not yet taken.
+   He wakes in the Throne Hall a few steps in front of the council table, and the rest is the player's: click the table, the Crown
+   tab, Take it. The next close is a whole five minutes off. S.test keeps him out of every save, the cloud and the leaderboard
+   (--riptide-test=crown, the raid test's profile of its own; Desktop shortcut 'Riptide RPG - Crown Test'); crownTest() in a console
+   does the same from the sign-in or the hero list. */
+function crownTest(){
+ if(gameOn&&S&&!S.test)return 'Change Character first - the test must not take over a hero in play.';
+ const race=RACES.find(r=>r.id==='undead'),cls=CLASSES.find(k=>k.id==='hunter');
+ S=migrate(freshState(TEST_NAMES[Math.floor(Math.random()*TEST_NAMES.length)],race.id,cls.id));
+ Object.assign(S,{id:'test-'+Date.now().toString(36),test:true,gender:'m',introPending:false,zone:CITY_ZONE});
+ const c=S.city;CityEconomy.charter(c);
+ c.season.n=Math.max(2,c.season.n|0);      /* a season the bank has graded */
+ c.trust=CityEconomy.crownView(c).coupAt;   /* the realm's whole trust */
+ for(const k of Object.keys(c.council))if(typeof c.council[k]==='number')c.council[k]=90;   /* a devoted council */
+ c.treasury=Math.max(c.treasury,5e6);c.clock=0;
+ $('login').classList.remove('open');
+ beginGame(false);
+ log('🧪 <span class="imp">Crown test</span> - '+esc(S.name)+', Undead Hunter: the realm wants a new ruler. Click the council table - Take the crown is on the Crown tab. Nothing in this test is saved.','imp');
+ const toHall=()=>{   /* once the loading screen is gone: into the Throne Hall, a few steps in front of the council table */
+  if(!(gameOn&&S&&S.test))return;
+  const b=$('boot');if(b&&!b.classList.contains('gone')){setTimeout(toHall,250);return;}
+  if(!zoneOf().throne)goToZone(THRONE_ZONE);
+  hero.x=ThroneWorld.TABLE.x;hero.y=ThroneWorld.TABLE.y+210;hero.fx=1;hero.moveTo=null;
+ };
+ setTimeout(toHall,900);
+ return 'crown test: '+S.name+' the Undead Hunter, in the Throne Hall before the council table';
+}
 const fmtNum=v=>(Math.round(v*10)/10).toString();
 function drawTownFoe(n){   /* a soldier of the garrison: his town's colours on the stones under him */
  ctx.save();ctx.globalAlpha*=(n.fade==null?1:n.fade)*.7;ctx.fillStyle='rgba('+n.ring+',.55)';ctx.beginPath();ctx.ellipse(n.x,n.y+3,26,9,0,0,7);ctx.fill();ctx.restore();
@@ -3480,7 +3509,7 @@ const fkBonus=()=>{const w=S&&S.gear?S.gear.weapon:null;return (isFK(w)&&legendS
 /* Not a fallback: syncFelGlaives sets it.crit to 0, so this +3% is the ONLY crit the glaives
    ever grant - and it lives outside the item, which is why the tooltip never showed it. */
 const fgCrit=()=>{const w=S&&S.gear?S.gear.weapon:null;return isFG(w)&&!(w.crit)?3:0;};
-const heroCrit=()=>classOf().crit+(raceOf().crit||0)+gearSum('crit')+fkBonus()+fgCrit()+((S&&S.gamblerT>0)?2:0)+wornInsc('keen')+tstat('crit'); /* 📖 Keen Edge · 🌳 the tree's crit */
+const heroCrit=()=>classOf().crit+(raceOf().crit||0)+gearSum('crit')+fkBonus()+fgCrit()+((S&&S.gamblerT>0)?2:0)+wornInsc('keen')+tstat('crit'); /* ✨ Frostgrip · 🌳 the tree's crit */
 /* Every legendary bonus that is applied outside the item's own fields, in one place, so the
    tooltips and the real stats can never drift apart. Returns what to ADD to the printed
    number - see itemStr and renderInspect, which both fold these in rather than trailing a
@@ -3720,11 +3749,8 @@ function migrate(s){ /* fills fields missing from older saves */
  if(!s.mining)s.mining={trained:false,skill:0,on:false};
  s.mining.skill=Math.max(0,Math.min(500,s.mining.skill||0));
  s.mining.on=false; /* never resume mid-swing on load - the world is not built yet */
- if(!s.ench)s.ench={trained:false,skill:0,bag:[]};
+ if(!s.ench)s.ench={trained:false,skill:0};
  s.ench.skill=Math.max(0,Math.min(500,s.ench.skill||0));
- if(!Array.isArray(s.ench.bag))s.ench.bag=[];
- s.ench.bag=s.ench.bag.filter(id=>WENCH.some(w=>w.id===id));  /* a rune from a build that no longer
-                                                                 defines it would render as a blank */
  if(s.ench.insc!==undefined)s.ench.insc=(Array.isArray(s.ench.insc)?s.ench.insc:[]).map(inscClean).filter(Boolean); /* 📖 see inscClean - a newer build's kinds are kept, only garbage goes */
  if(!s.ore)s.ore={coal:0,ore:0,gem:0};
  for(const k of ['coal','ore','gem'])s.ore[k]=Math.max(0,s.ore[k]||0);
@@ -3763,6 +3789,7 @@ function migrate(s){ /* fills fields missing from older saves */
  }
  s.bag=(Array.isArray(s.bag)?s.bag:[]).filter(it=>it&&typeof it==='object'); /* a hole in the bag must not stop the hero loading */
  s.bag.forEach(it=>{delete it._lid;if(it.up===undefined)it.up=0;ensureItemBase(it);fixInsc(it);if(it.ench){s.scrolls.push(it.ench);it.ench=null;}});
+ enchMeltRunes(s);   /* ✨ the runes became enchants (2026-10-12) - after fixInsc, so it reads clean enchants */
  /* legacy scrolls were plain id strings - convert to tier objects (grandfathered at Tier II) */
  s.scrolls=(Array.isArray(s.scrolls)?s.scrolls:[]).map(x=>typeof x==='string'?{id:x,tier:2}:x);
  s.activeScrolls=(Array.isArray(s.activeScrolls)?s.activeScrolls:[null,null]).map(x=>typeof x==='string'?{id:x,tier:2}:x);
@@ -3983,13 +4010,13 @@ function smithTick(){
   if(typeof publishLB==='function')publishLB(S,true);
  }else if(j.kind==='fg'){
   const it=syncFelGlaives({id:'felglaives',slot:'weapon',rar:'legendary',legend:'felglaives',name:'Fel Glaives',star:j.to,atk:0,hp:0,crit:0,haste:0.10,ench:null,up:0,sell:0,maxUp:LEGEND_MAX_UP});
-  if(inscClean(j.insc))it.insc=inscClean(j.insc);   /* 📖 carried over from the blades that went in */
+  if(inscClean(j.insc))enchSetOn(it,j.insc);   /* ✨ carried over from the blades that went in, look and all */
   S.bag.push(it);
   log(`⚒️ The forge cools - <span class="llegendary">Fel Glaives ★${j.to}</span> scream anew!`,'loot');
   stageMsg('⚒️ Fel Glaives ★'+j.to+' complete!',2600);sfx.level();
  }else{
   const it=syncFrostseeker({slot:'weapon',rar:'legendary',legend:'frostseeker',name:'Frostseeker',star:j.to,atk:0,hp:0,crit:4,lifesteal:0.02,ench:null,up:0,sell:0});
-  if(inscClean(j.insc))it.insc=inscClean(j.insc);
+  if(inscClean(j.insc))enchSetOn(it,j.insc);
   S.bag.push(it);
   log(`⚒️ The forge cools - <span class="llegendary">Frostseeker ★${j.to}</span> is reborn!`,'loot');
   stageMsg('⚒️ Frostseeker ★'+j.to+' complete!',2600);sfx.level();
@@ -4028,14 +4055,14 @@ function upgradeItem(it){
  save();
  return true;
 }
-/* 📖 an inscribed weapon was chosen by hand, so auto-equip never takes it off - a better drop waits in
+/* ✨ an enchanted weapon was chosen by hand, so auto-equip never takes it off - a better drop waits in
    the bag. Said once per weapon and session rather than on every drop. */
 let autoKeptInsc=null;
 function tryAutoEquip(it){
  if(!it||!SLOTS.includes(it.slot))return false;
  const cur=S.gear[it.slot];
  if(cur&&cur.insc&&it.power>cur.power){
-  if(autoKeptInsc!==cur){autoKeptInsc=cur;log(`Auto-equip keeps your inscribed <span class="l${cur.rar}">${itemName(cur)}</span>. Stronger weapons wait in your bag.`);}
+  if(autoKeptInsc!==cur){autoKeptInsc=cur;log(`Auto-equip keeps your enchanted <span class="l${cur.rar}">${itemName(cur)}</span>. Stronger weapons wait in your bag.`);}
   return false;
  }
  if(!cur||it.power>cur.power){
@@ -4052,10 +4079,10 @@ function statBaseStr(it,k,label,suffix=''){
  const baseTxt=(it.up||0)>0||b!==v?` (${b}${suffix})`:'';
  return `+${v}${suffix} ${label}${baseTxt}`;
 }
-/* 📖 a weapon's inscription as its own line under the stats, in its rarity's colour */
+/* ✨ a weapon's enchant as its own line under the stats, in its rarity's colour */
 const inscHtml=it=>it&&inscOk(it.insc)?`<div class="ss insc-line" style="color:${INSC_COL[it.insc.rar]}">${uiIcon(inscById(it.insc.id).icon,inscById(it.insc.id).fb,'shopico')}${esc(inscLine(it.insc))}</div>`:'';
 function itemStr(it){
- if(isKnowledgeBook(it))return 'Read it at the Enchanting Hall to reveal an inscription for your weapon.';
+ if(isKnowledgeBook(it))return 'With '+ENCH_COST+' emeralds at the Enchanting Hall it becomes a random enchant for your weapon.';
  if(isFK(it))syncFrostseeker(it);
  else if(isFG(it))syncFelGlaives(it);
  else if(isRing(it))syncTheRing(it);
@@ -4091,7 +4118,7 @@ function shortStats(it){
  if(baseCrit)parts.push('+'+baseCrit+'% CRIT');
  if(it.haste)parts.push('+'+Math.round(it.haste*100)+'% ATK SPEED');
  if(it.lifesteal)parts.push('+'+Math.round(it.lifesteal*1000)/10+'% LIFESTEAL');
- if(inscOk(it.insc))parts.push('📖 '+inscById(it.insc.id).n); /* what equipping the other one would put down */
+ if(inscOk(it.insc))parts.push('✨ '+inscById(it.insc.id).n); /* what equipping the other one would put down */
  return parts.join(' · ')||'-';
 }
 function compareVal(it){
@@ -6114,14 +6141,16 @@ function mineGain(){
  }
 }
 /* ==================== ✨ ENCHANTING ====================
-   Emeralds in, runes out. The trade climbs on the same 0-500 ladder as mining and through the same
-   four ranks, but a point per enchant rather than one rock in five - the material paces it on its own,
-   since a rune costs two emeralds and each emerald is three ore and a coal - six ore a rune.
-   WHAT A RUNE IS is decided when it is cut, not when it is chosen: you spend the emerald and the hall
-   gives you what it gives you. That is the whole hook, so there is no picking from a menu.
-   NOTE: these five carry colour, glow and flavour only. None of them changes a number yet - the
-   stats are a deliberate second pass, so nothing here quietly buffs a weapon behind your back.
-   The numbers come from the Books of Knowledge instead - see INSC below. */
+   One craft since 2026-10-12 ("inscription och enchanten ska vara samma, alltså random, och en bok behövs för
+   varje enchant"): a Book of Knowledge from a Wasteland dungeon and ENCH_COST emeralds from the furnace make one
+   ENCHANT, and what it is gets decided in the making rather than chosen from a menu - one of five, its rarity
+   leaning on the enchanting skill (INSC_ODDS). That is the whole hook.
+   Each enchant is a number and a look at once. The number lives in INSC below; the look - colour, glow, flavour,
+   and the swing, landing and night light of assets/fx/rune-fx.js, which key on these ids - lives in WENCH. A weapon
+   carries both, insc for the number and wench for the look, always written together (enchSetOn). Before the two
+   crafts became one, emeralds were cut into look-only runes and books were read into inscriptions on their own;
+   enchMeltRunes turns what is left of those runes back into emeralds.
+   The trade climbs on the same 0-500 ladder as mining and through the same four ranks. */
 const ENCH_RANKS=MINE_RANKS;   /* same ladder, same four names - one trade system, not two */
 const WENCH=[
  {id:'emberbite', n:'Emberbite',  lvl:1, glow:'#ff7a3a', icon:'en_ember',
@@ -6139,28 +6168,28 @@ const wenchById=id=>WENCH.find(w=>w.id===id)||null;
 const enchSkill=()=>Math.max(0,Math.min(500,(S&&S.ench&&S.ench.skill)||0));
 const enchRank=()=>{const s=enchSkill();let r=ENCH_RANKS[0];for(const t of ENCH_RANKS)if(s>=t.at)r=t;return r;};
 const enchTrained=()=>!!(S&&S.ench&&S.ench.trained);
-const ENCH_TRAIN_COST=200000;  /* twice the pick - runes are the deeper craft */
-const ENCH_COST=2;             /* emeralds per rune - and an emerald is 3 ore plus a coal, so a
-                                  rune is 6 ore and 2 coal of mining before the hall sees it */
-const ENCH_PER_CUT=2;   /* points a single cut rune is worth */
-let enchLastCut=null,enchFeedback=null; /* presentation only; never written into character saves */
-/* ==================== 📖 BOOKS OF KNOWLEDGE ====================
-   A Wasteland guardian's book is read in this hall, and what it gives up is an INSCRIPTION: the first
-   thing the hall makes that changes a number. Reading rolls the effect and its rarity, and the rarity
-   leans on the reader's enchanting skill: each rank opens one more rarity - an Apprentice tops out at
-   rare, a Journeyman can read an epic line, an Expert the first legendary one - and inside a rank the
-   odds keep sliding towards the rarer end with every point (INSC_ODDS).
-   An inscription waits in the hall like a rune until it is written onto the EQUIPPED weapon, one to a
-   weapon. It stays with that weapon wherever it goes, and only works while the weapon is worn. */
+const ENCH_TRAIN_COST=200000;  /* twice the pick - the deeper craft */
+const ENCH_COST=2;             /* emeralds per enchant, beside its book - and an emerald is 3 ore plus a coal,
+                                  so an enchant is 6 ore and 2 coal of mining before the hall sees it */
+let enchFeedback=null; /* presentation only; never written into character saves */
+/* ==================== ✨ THE FIVE ENCHANTS ====================
+   Called inscriptions in the code and in saves (insc, INSC) - that is what they were while the Books of Knowledge
+   were read on their own - and saves, the leaderboard and older builds still read them under that name.
+   Each rank opens one more rarity - an Apprentice tops out at rare, a Journeyman can make an epic, an Expert the
+   first legendary - and inside a rank the odds keep sliding towards the rarer end with every point (INSC_ODDS).
+   An enchant waits in the hall until it is bound to the EQUIPPED weapon, one to a weapon. It stays with that
+   weapon wherever it goes, and only works while the weapon is worn. */
 const INSC_RARS=['common','fine','rare','epic','legendary'];
 const INSC_COL={common:'#d8e4d6',fine:'#6dbb6d',rare:'#5b9bd5',epic:'#c9a0ff',legendary:'#ffd100'};  /* the bag's rarity colours */
 const INSC_INK={common:'#59625a',fine:'#2f7a2f',rare:'#2c5f99',epic:'#6b3fae',legendary:'#946000'}; /* the same, dark enough for the ceremony's page */
-const INSC=[   /* v: the effect at each rarity in INSC_RARS order, in percent */
- {id:'twin', n:'Twin Strike',icon:'heroicstrike', fb:'⚔', v:[1,2,3,5,8],     d:v=>v+'% chance to strike twice'},
- {id:'keen', n:'Keen Edge',  icon:'aimedshot',    fb:'✦', v:[0.5,1,2,3,5],   d:v=>'+'+v+'% crit chance'},
- {id:'orb',  n:'Arcane Orb', icon:'arcanebarrage',fb:'🔮',v:[1,2,3,5,8],     d:v=>v+'% chance to hurl an arcane orb'},
- {id:'leech',n:'Bloodthirst',icon:'renew',        fb:'🩸',v:[0.5,1,1.5,2,3], d:v=>'+'+v+'% lifesteal'},
- {id:'swift',n:'Quickening', icon:'ui_haste',     fb:'⚡', v:[1,2,3,5,8],     d:v=>'+'+v+'% attack speed'},
+/* each effect wears the rune whose look fits it: Stormetch the orb's own violet, Veinseeker the blood its lifesteal
+   drinks, Frostgrip a cold keen edge, Emberbite a fire that will not wait, Goldrune a hand that wants paying twice */
+const INSC=[   /* v: the effect at each rarity in INSC_RARS order, in percent; rune: the WENCH look, name and icon it wears */
+ {id:'twin', n:'Goldrune',  rune:'goldrune',  icon:'en_gold',  fb:'⚔', v:[1,2,3,5,8],     d:v=>v+'% chance to strike twice'},
+ {id:'keen', n:'Frostgrip', rune:'frostgrip', icon:'en_frost', fb:'✦', v:[0.5,1,2,3,5],   d:v=>'+'+v+'% crit chance'},
+ {id:'orb',  n:'Stormetch', rune:'stormetch', icon:'en_storm', fb:'🔮',v:[1,2,3,5,8],     d:v=>v+'% chance to hurl an arcane orb'},
+ {id:'leech',n:'Veinseeker',rune:'veinseeker',icon:'en_vein',  fb:'🩸',v:[0.5,1,1.5,2,3], d:v=>'+'+v+'% lifesteal'},
+ {id:'swift',n:'Emberbite', rune:'emberbite', icon:'en_ember', fb:'⚡', v:[1,2,3,5,8],     d:v=>'+'+v+'% attack speed'},
 ];
 const INSC_ORB_MUL=1.5,INSC_ORB_SPLASH=0.5,INSC_ORB_RAD=60; /* an orb hits for 150% of a swing, and half that again splashes on foes beside the target */
 const INSC_ODDS=[   /* per enchanting rank, the rarity weights at its first point and at its last: common, fine, rare, epic, legendary */
@@ -6169,7 +6198,7 @@ const INSC_ODDS=[   /* per enchanting rank, the rarity weights at its first poin
  {from:[42,33,17,7,1], to:[30,33,23,11,3]},  /* Expert: legendary opens */
  {from:[27,32,25,12,4],to:[10,25,33,22,10]}, /* Master */
 ];
-const ENCH_PER_BOOK=5;   /* a guardian's book teaches more than a cut stone does */
+const ENCH_PER_ENCHANT=7;   /* what a book (5) and two cut emeralds (2) each taught while they were two crafts */
 const inscById=id=>INSC.find(x=>x.id===id)||null;
 const inscOk=v=>!!v&&typeof v==='object'&&!!inscById(v.id)&&INSC_RARS.includes(v.rar);
 /* {id,rar} as short strings and nothing else - saves are not trusted with more. A kind or rarity this
@@ -6182,12 +6211,22 @@ const inscLine=v=>inscRar(v.rar)+' '+inscById(v.id).n+': '+inscById(v.id).d(insc
 /* what the WORN weapon's inscription adds to one effect, in percent - 0 when it carries another one or none */
 const wornInsc=id=>{const w=S&&S.gear&&S.gear.weapon;return w&&w.insc&&w.insc.id===id?inscVal(w.insc):0;};
 const bookCount=()=>((S&&S.bag)||[]).filter(isKnowledgeBook).length;
-/* the rarest inscription among some weapons - the one the star forge carries onto the blade it makes */
+/* the rarest enchant among some weapons - the one the star forge carries onto the blade it makes */
 const bestInsc=items=>{
  let best=null,bk=-2;
  for(const it of items||[]){const v=it&&inscClean(it.insc);if(!v)continue;const k=inscOk(v)?INSC_RARS.indexOf(v.rar):-1;if(k>bk){best=v;bk=k;}}
  return best;
 };
+/* ✨ an enchant on a weapon is its number and its look together. Everything that puts one on a weapon comes through
+   here, so the glow in the hand (wench) never shows one enchant while the stats (insc) count another. A kind this
+   build does not know keeps whatever look the newer build gave it. */
+const enchLookOf=v=>inscOk(v)?inscById(v.id).rune:null;
+function enchSetOn(it,v){
+ v=inscClean(v);
+ if(!it||!v)return;
+ it.insc=v;
+ const look=enchLookOf(v);if(look)it.wench=look;
+}
 /* the rarity odds (fractions, common..legendary) at a skill: a step at every rank-up, a slope inside each rank */
 function inscOdds(skill){
  const s=Math.max(0,Math.min(500,+skill||0));
@@ -6205,47 +6244,75 @@ function inscRoll(skill,rRar=Math.random(),rKind=Math.random()){
 function enchGain(n){
  if(!S.ench)return;
  if(S.ench.skill>=500)return;
- /* Compare the rank BEFORE and AFTER rather than testing for landing exactly on a threshold. Two
-    points at a time can step straight over one - 49 to 51 never equals 50 - and the rank-up would
+ /* Compare the rank BEFORE and AFTER rather than testing for landing exactly on a threshold. Seven
+    points at a time can step straight over one - 49 to 56 never equals 50 - and the rank-up would
     pass in silence. */
  const was=enchRank().r;
- S.ench.skill=Math.min(500,S.ench.skill+(n||ENCH_PER_CUT));
+ S.ench.skill=Math.min(500,S.ench.skill+(n||ENCH_PER_ENCHANT));
  const rk=enchRank();
  if(rk.r>was){
   sfx.loot();
   stageMsg('✨ Enchanting rank '+rk.r+': '+rk.n+'!',3000);
-  log(`<span class="imp">✨ Enchanting rank ${rk.r}: ${rk.n}.</span> Deeper runes answer you now.`,'loot');
+  log(`<span class="imp">✨ Enchanting rank ${rk.r}: ${rk.n}.</span> Rarer enchants answer you now.`,'loot');
  }
  renderHero();
 }
-/* cut a rune: one emerald, one point, and a rune you did not choose */
-function enchCut(){
+/* ✨ make an enchant: one Book of Knowledge and ENCH_COST emeralds go in, and an enchant you did not choose comes
+   out - one of the five, its rarity rolled on the skill you walked in with. It waits in the hall until it is bound. */
+let inscLast=null;   /* presentation only, like enchFeedback */
+function enchMake(){
  if(!enchTrained())return;
- if((S.ore.gem||0)<ENCH_COST){stageMsg('✨ You need '+ENCH_COST+' emeralds',1600);sfx.warn();return;}
- const pool=WENCH.filter(w=>w.lvl<=enchRank().r);
- const got=pool[Math.floor(Math.random()*pool.length)];
+ const i=(S.bag||[]).findIndex(isKnowledgeBook);
+ if(i<0){stageMsg('📖 An enchant needs a Book of Knowledge',1800);sfx.warn();return;}
+ if(((S.ore&&S.ore.gem)||0)<ENCH_COST){stageMsg('✨ An enchant needs '+ENCH_COST+' emeralds',1800);sfx.warn();return;}
+ const got=inscRoll(enchSkill()),e=inscById(got.id);
+ S.bag.splice(i,1);
  S.ore.gem-=ENCH_COST;
- S.ench.bag=S.ench.bag||[];
- S.ench.bag.push(got.id);
- enchPick=got.id;
- enchLastCut={owner:S.ench,id:got.id};
- enchFeedback={owner:S.ench,kind:'cut',text:got.n+' added to your runes.'};
- enchGain();
+ if(!Array.isArray(S.ench.insc))S.ench.insc=[];
+ S.ench.insc.push(got);
+ inscPick=inscKey(got);
+ inscLast={owner:S.ench,v:got};
+ enchFeedback={owner:S.ench,kind:'make',text:inscRar(got.rar)+' '+e.n+' added to your enchants.'};
+ enchGain(ENCH_PER_ENCHANT);
  sfx.quest();
- log(`<span class="lfine">✨ ${got.n}</span> cut from an emerald. ${got.flavour}`,'loot');
+ log(`✨ The book and the emeralds become <span class="l${got.rar}">${e.n}</span> - ${inscLine(got)}.`,'loot');
  save();renderBag();enchRefresh();
- enchCeremony(got);   /* the rune is already in the hall - this is the telling of it */
+ /* already in the hall - this is the telling of it */
+ enchCeremony({icon:e.icon,n:e.n,glow:INSC_COL[got.rar],flavour:e.d(inscVal(got))},{ink:INSC_INK[got.rar],fb:e.fb,tag:inscRar(got.rar)+' enchant'});
 }
-/* ✨ The cutting, as a moment rather than a line in the log. A rune is the end of a long chain -
-   six ore and two coal smelted into an emerald, twice over - so the book opens, eight rune stones
-   fall out of the ring into the page, and what came out is held up for three seconds. Drawn rather
-   than painted, so it costs nothing to load and takes the rune's own colour.
-   Click anywhere to cut it short. Nothing can be missed by doing so: the rune is already in the
+/* ✨ 2026-10-12, when the runes and the Books of Knowledge became one craft. migrate() calls this on every load, so
+   it is idempotent: a rune still waiting in the hall goes back into the ENCH_COST emeralds it was cut from, and so
+   does a rune bound to a weapon with no enchant - a glow on its own is not a thing the hall makes any more. A weapon
+   with an enchant wears that enchant's look. The count waits in ench.melted until beginGame says it once. */
+function enchMeltRunes(s){
+ let n=0;
+ if(Array.isArray(s.ench.bag))n+=s.ench.bag.filter(id=>wenchById(id)).length;
+ delete s.ench.bag;
+ for(const it of [...Object.values(s.gear||{}),...(s.bag||[])]){
+  if(!it||typeof it!=='object'||it.slot!=='weapon')continue;
+  if(inscOk(it.insc)){it.wench=enchLookOf(it.insc);continue;}
+  if(it.insc===undefined&&it.wench!==undefined){if(wenchById(it.wench))n++;delete it.wench;}   /* a newer build's enchant keeps the look it gave */
+ }
+ if(n){s.ore.gem=(s.ore.gem||0)+n*ENCH_COST;s.ench.melted=(s.ench.melted||0)+n;}
+ return n;
+}
+function enchMeltNotice(){
+ const n=(S&&S.ench&&S.ench.melted)|0;
+ if(!n)return;
+ delete S.ench.melted;
+ log(`<span class="imp">✨ Runes and Books of Knowledge are one craft now.</span> Your ${n} rune${n===1?'':'s'} went back into ${(n*ENCH_COST).toLocaleString()} emeralds. An enchant takes a Book of Knowledge and ${ENCH_COST} emeralds at the Enchanting Hall.`,'loot');
+ save();
+}
+/* ✨ The making, as a moment rather than a line in the log. An enchant is the end of two long chains -
+   a Wasteland dungeon cleared for the book, six ore and two coal smelted into the emeralds - so the
+   book opens, eight rune stones fall out of the ring into the page, and what came out is held up for
+   three seconds. Drawn rather than painted, so it costs nothing to load and takes the rarity's colour.
+   Click anywhere to cut it short. Nothing can be missed by doing so: the enchant is already in the
    hall before the first frame of this plays. */
 const ENCH_CEREMONY_MS=5600;
 let enchCeremonyT=null;
-/* 📖 a Book of Knowledge is read through the same moment: opt.ink is the name's colour on the page
-   (a rarity colour such as common's near-white would vanish on parchment), opt.tag the line under it */
+/* opt.ink is the name's colour on the page (a rarity colour such as common's near-white would vanish
+   on parchment), opt.tag the line under it */
 function enchCeremony(w,opt={}){
  const fx=$('enchCraftFx'),st=$('ecStage');
  if(!fx||!st||!w)return;
@@ -6275,158 +6342,56 @@ function enchCeremonyEnd(){
  if(fx){fx.classList.remove('open');$('ecStage').innerHTML='';}
 }
 $('enchCraftFx').onclick=enchCeremonyEnd;
-function enchApply(id){
- const bag=(S.ench&&S.ench.bag)||[];
- const idx=bag.indexOf(id);          /* spend one off the stack, whichever copy */
- if(idx<0)return;
- if(!S.gear||!S.gear.weapon){stageMsg('✨ No weapon to enchant',1700);sfx.warn();return;}
- const w=wenchById(id);if(!w)return;
- /* The field is wench, NOT ench. migrate() carries a legacy rule that reads item.ench as an old
-    scroll enchant, moves it into activeScrolls and nulls it - a rune parked there vanished on the
-    first reload, silently. Different system, different field. */
- const had=S.gear.weapon.wench?wenchById(S.gear.weapon.wench):null;
- S.gear.weapon.wench=id;
- bag.splice(idx,1);
- enchFeedback={owner:S.ench,kind:'bind',text:w.n+' bound to '+itemName(S.gear.weapon)+(had?'; '+had.n+' replaced.':'.')};
- sfx.loot();
- stageMsg('✨ '+w.n+' bound to your weapon',2600);
- log(had
-  ? `<span class="lfine">✨ ${w.n}</span> takes the place of ${had.n} on ${itemName(S.gear.weapon)}.`
-  : `<span class="lfine">✨ ${w.n}</span> is bound to ${itemName(S.gear.weapon)}.`,'loot');
- save();renderHero();renderBag();enchRefresh();
-}
-/* 📖 read one Book of Knowledge: the book goes, an inscription you did not choose comes, and the
-   reading teaches ENCH_PER_BOOK skill. The rarity is rolled on the skill you walked in with. */
-let inscLast=null;   /* presentation only, like enchLastCut */
-function enchReadBook(){
- if(!enchTrained())return;
- const i=(S.bag||[]).findIndex(isKnowledgeBook);
- if(i<0){stageMsg('📖 You have no Book of Knowledge',1600);sfx.warn();return;}
- const got=inscRoll(enchSkill()),e=inscById(got.id);
- S.bag.splice(i,1);
- if(!Array.isArray(S.ench.insc))S.ench.insc=[];
- S.ench.insc.push(got);
- inscPick=inscKey(got);
- inscLast={owner:S.ench,v:got};
- enchFeedback={owner:S.ench,kind:'read',text:inscRar(got.rar)+' '+e.n+' added to your inscriptions.'};
- enchGain(ENCH_PER_BOOK);
- sfx.quest();
- log(`📖 The Book of Knowledge gives up <span class="l${got.rar}">${e.n}</span> - ${inscLine(got)}.`,'loot');
- save();renderBag();enchRefresh();
- enchCeremony({icon:e.icon,n:e.n,glow:INSC_COL[got.rar],flavour:e.d(inscVal(got))},{ink:INSC_INK[got.rar],fb:e.fb,tag:inscRar(got.rar)+' inscription'});
-}
-/* write one inscription of the chosen kind onto the equipped weapon. One to a weapon: whatever it
-   carried before is gone, and the new one stays on this weapon even after it leaves your hand. */
-function enchInscribe(key){
+/* bind one enchant of the chosen kind to the equipped weapon. One to a weapon: whatever it carried before is gone,
+   and the new one - its number and its look - stays on this weapon even after it leaves your hand. */
+function enchBind(key){
  const list=(S.ench&&Array.isArray(S.ench.insc))?S.ench.insc:[];
  const idx=list.findIndex(v=>inscOk(v)&&inscKey(v)===key);
  if(idx<0)return;
  const weapon=S.gear&&S.gear.weapon;
- if(!weapon){stageMsg('📖 Equip a weapon to inscribe it',1700);sfx.warn();return;}
+ if(!weapon){stageMsg('✨ Equip a weapon to enchant it',1700);sfx.warn();return;}
  const v=inscClean(list[idx]),e=inscById(v.id),had=inscOk(weapon.insc)?weapon.insc:null;
- weapon.insc=v;
+ const name=inscRar(v.rar)+' '+e.n,hadName=had?inscRar(had.rar)+' '+inscById(had.id).n:'';
+ enchSetOn(weapon,v);
  list.splice(idx,1);
- enchFeedback={owner:S.ench,kind:'insc',text:e.n+' inscribed on '+itemName(weapon)+(had?'; '+inscById(had.id).n+' erased.':'.')};
+ enchFeedback={owner:S.ench,kind:'bind',text:name+' bound to '+itemName(weapon)+(had?'; '+hadName+' replaced.':'.')};
  sfx.loot();
- stageMsg('📖 '+e.n+' inscribed on your weapon',2600);
+ stageMsg('✨ '+e.n+' bound to your weapon',2600);
  log(had
-  ? `<span class="l${v.rar}">📖 ${e.n}</span> is written over ${inscById(had.id).n} on ${itemName(weapon)}.`
-  : `<span class="l${v.rar}">📖 ${e.n}</span> is inscribed on ${itemName(weapon)}.`,'loot');
+  ? `<span class="l${v.rar}">✨ ${name}</span> takes the place of ${hadName} on ${itemName(weapon)}.`
+  : `<span class="l${v.rar}">✨ ${name}</span> is bound to ${itemName(weapon)}.`,'loot');
  save();renderHero();renderBag();enchRefresh();
 }
-let inscPick='';   /* the selected inscription KIND (id:rarity) - the list shifts when one is spent */
-let enchTab='runes';   /* 'runes' or 'books' - kept for the session, so a miner who only cuts is not sent elsewhere */
-let enchPick='';   /* which KIND is selected, not an index - the list shifts when one is spent */
+let inscPick='';   /* the selected enchant KIND (id:rarity) - the list shifts when one is spent */
+/* the hall is one craft on one page: make an enchant above, bind it below */
 function enchRefresh(){
  if(!$('enchFx'))return;
  const trained=enchTrained(),s=enchSkill(),rk=enchRank(),cap=rk.to;
- const gems=(S.ore&&S.ore.gem)||0;
+ const gems=(S.ore&&S.ore.gem)||0,books=bookCount();
  $('enchRankTxt').innerHTML=trained
   ? `<b>${rk.n}</b> · Rank ${rk.r} of 4 <span class="craft-badge">${s} / ${cap}</span>`
-  : 'Cut emeralds into runes, then bind their glow to your weapon.';
+  : 'A Book of Knowledge and two emeralds make a random enchant.';
  const span=cap-rk.at,into=Math.max(0,Math.min(span,s-rk.at));
  $('enchBar').style.width=(trained?(100*into/span):0)+'%';
- const books=bookCount();
  $('enchGems').style.display=trained?'':'none';
- $('enchGems').innerHTML=enchTab==='books'
-  ? `${uiIcon('it_book','📖','shopico')} <b>${books}</b> Book${books===1?'':'s'} of Knowledge in your bag`
-  : `${uiIcon('it_emerald','💚','shopico')} <b>${gems.toLocaleString()}</b> emerald${gems===1?'':'s'} in your bag`;
+ $('enchGems').innerHTML=`${uiIcon('it_book','📖','shopico')} <b>${books}</b> book${books===1?'':'s'} · ${uiIcon('it_emerald','💚','shopico')} <b>${gems.toLocaleString()}</b> emerald${gems===1?'':'s'}`;
  if(!trained){
   $('enchBody').innerHTML=`<div class="craft-empty">
     <span class="craft-slot-art" aria-hidden="true">${uiIcon('venue_ench','✨','')}</span>
     <h3 class="craft-section-title">Become an apprentice</h3>
-    <p class="craft-note">Learn the craft to turn ${ENCH_COST} emeralds into a random rune, and to read the Books of Knowledge the Wasteland guardians keep. Keep your runes here until you are ready to bind one.</p>
+    <p class="craft-note">Learn the craft to turn a Book of Knowledge from the Wasteland guardians and ${ENCH_COST} emeralds into a random enchant for your weapon. Keep your enchants here until you are ready to bind one.</p>
    </div><div class="craft-materials"><span class="craft-badge">${ENCH_TRAIN_COST.toLocaleString()} gold to learn</span><span>${totalGold().toLocaleString()} gold available</span></div>
    <div class="craft-actions"><button type="button" class="sbtn gold" id="enchLearn" ${totalGold()>=ENCH_TRAIN_COST?'':'disabled'}>Learn enchanting</button></div>
    <p class="craft-note">${totalGold()>=ENCH_TRAIN_COST?'A permanent craft for this character.':'Gather '+(ENCH_TRAIN_COST-totalGold()).toLocaleString()+' more gold to learn.'}</p>`;
   $('enchLearn').onclick=()=>{
    if(!spendGold(ENCH_TRAIN_COST)){stageMsg('✨ The hall wants '+ENCH_TRAIN_COST.toLocaleString()+' ◉ to teach you',2000);sfx.warn();return;}
-   S.ench={trained:true,skill:0,bag:[]};
+   S.ench={trained:true,skill:0,insc:[]};
    save();renderHero();sfx.loot();
-   log('<span class="imp">✨ Enchanting learned.</span> Emeralds become runes here.','loot');
+   log('<span class="imp">✨ Enchanting learned.</span> Books of Knowledge and emeralds become enchants here.','loot');
    enchRefresh();
   };
   return;
  }
- /* the two crafts of the hall, one tab each. Wired by id rather than by a selector, so the tabs can
-    never be mistaken for the rune or inscription cells below them. */
- const tabs=`<div class="craft-tabs" aria-label="Enchanting Hall crafts">
-   <button type="button" class="craft-tab${enchTab==='runes'?' active':''}" id="enchTabRunes" aria-pressed="${enchTab==='runes'}">${uiIcon('en_storm','✨','')}<span>Runes</span></button>
-   <button type="button" class="craft-tab${enchTab==='books'?' active':''}" id="enchTabBooks" aria-pressed="${enchTab==='books'}">${uiIcon('it_book','📖','')}<span>Books of Knowledge${books?' <b class="insc-tabcount">×'+books+'</b>':''}</span></button>
-  </div>`;
- const wireTabs=()=>{
-  $('enchTabRunes').onclick=()=>{enchTab='runes';enchRefresh();};
-  $('enchTabBooks').onclick=()=>{enchTab='books';enchRefresh();};
- };
- if(enchTab==='books'){inscRefresh(tabs,books);wireTabs();return;}
- const bag=(S.ench.bag||[]);
- /* Stacked by kind. The bag itself stays a flat list of ids - that is what enchApply spends from
-    and what existing saves already hold - and only the DRAWING groups them, so nothing needs
-    migrating and a part-spent stack cannot drift out of step with the list behind it. */
- const counts={};
- bag.forEach(id=>{counts[id]=(counts[id]||0)+1;});
- if(!counts[enchPick])enchPick='';
- const kinds=WENCH.filter(w=>counts[w.id]);          /* fixed order, so cells stop jumping about */
- const cells=kinds.map(w=>
-  `<button type="button" class="craft-choice${enchPick===w.id?' on':''}" data-ei="${w.id}" aria-pressed="${enchPick===w.id}" aria-label="${esc(w.n)}, ${counts[w.id]} available"
-    style="--eg:${w.glow}"><span class="craft-slot-art">${uiIcon(w.icon,'✨','')}</span><span class="craft-slot-name">${esc(w.n)}</span><span class="craft-badge">×${counts[w.id]}</span></button>`).join('');
- const sel=counts[enchPick]?wenchById(enchPick):null;
- const weapon=S.gear&&S.gear.weapon,heldRune=weapon&&wenchById(weapon.wench);
- const last=enchLastCut&&enchLastCut.owner===S.ench?wenchById(enchLastCut.id):null;
- const feedback=enchFeedback&&enchFeedback.owner===S.ench?enchFeedback:null;
- $('enchBody').innerHTML=tabs+`
-  <h3 class="craft-section-title">Cut a rune</h3>
-  <div class="craft-pair">
-   <article class="craft-slot${gems>=ENCH_COST?' filled':''}"><span class="craft-slot-label">Material</span><span class="craft-slot-art">${uiIcon('it_emerald','💚','')}</span><strong class="craft-slot-name">${ENCH_COST} Emeralds</strong><span class="craft-slot-note">${gems.toLocaleString()} available</span></article>
-   <span class="craft-plus" aria-hidden="true">→</span>
-   <article class="craft-slot${last?' filled':''}"${last?` style="--eg:${last.glow}"`:''}><span class="craft-slot-label">${last?'Last rune cut':'Mystery result'}</span><span class="craft-slot-art" aria-hidden="true">${last?uiIcon(last.icon,'✨',''):'?'}</span><strong class="craft-slot-name">${last?esc(last.n):'One random rune'}</strong><span class="craft-slot-note">${last?esc(last.flavour):'Revealed when you cut'}</span></article>
-  </div>
-  <div class="craft-actions"><button type="button" class="sbtn gold" id="enchCutBtn" ${gems<ENCH_COST?'disabled':''}>Cut a rune · ${ENCH_COST} emeralds</button></div>
-  <p class="craft-note">${gems<ENCH_COST?'You need '+(ENCH_COST-gems)+' more emerald'+(ENCH_COST-gems===1?'':'s')+'.':'Each cut adds a random rune to your collection.'} +${ENCH_PER_CUT} enchanting skill per cut, up to 500.</p>
-  ${feedback&&feedback.kind==='cut'?`<p class="craft-status" role="status">${esc(feedback.text)}</p>`:''}
-  <h3 class="craft-section-title">Bind a rune</h3>
-  <div class="craft-pair">
-   <article class="craft-slot${weapon?' filled':''}"><span class="craft-slot-label">Equipped weapon</span><span class="craft-slot-art" aria-hidden="true">${weapon?uiIcon('it_weapon','⚔',''):'?'}</span><strong class="craft-slot-name">${weapon?esc(itemName(weapon)):'No weapon equipped'}</strong><span class="craft-slot-note">${heldRune?'Current rune: '+esc(heldRune.n):weapon?'No rune bound':'Equip a weapon to bind a rune'}</span></article>
-   <span class="craft-plus" aria-hidden="true">+</span>
-   <article class="craft-slot${sel?' filled':''}"${sel?` style="--eg:${sel.glow}"`:''}><span class="craft-slot-label">Selected rune</span><span class="craft-slot-art" aria-hidden="true">${sel?uiIcon(sel.icon,'✨',''):'?'}</span><strong class="craft-slot-name">${sel?esc(sel.n):'Choose a rune below'}</strong><span class="craft-slot-note">${sel?esc(sel.flavour):'One rune is used when bound'}</span></article>
-  </div>
-  <h3 class="craft-section-title">Your runes <span class="craft-badge">${bag.length}</span></h3>
-  <div class="craft-picker">${cells||'<p class="craft-empty">Your rune collection is empty. Cut a rune above to begin.</p>'}</div>
-  <div class="craft-result"><span class="craft-result-icon" aria-hidden="true">${sel?uiIcon(sel.icon,'✨',''):uiIcon('it_weapon','⚔','')}</span><div><h3 class="craft-result-title">${sel&&weapon?esc(sel.n)+' · '+esc(itemName(weapon)):'A new glow for your weapon'}</h3><p class="craft-result-meta">${sel&&weapon?'Bind '+esc(sel.n)+' to your equipped weapon.':'Select a rune and equip a weapon to preview the binding.'}</p>${heldRune&&sel?`<p class="craft-note">Replaces ${esc(heldRune.n)}. The current rune will be lost.</p>`:''}</div></div>
-  <div class="craft-actions"><button type="button" class="sbtn gold" id="enchApplyBtn" ${sel&&weapon?'':'disabled'}>Bind rune to weapon</button></div>
-  <p class="craft-note">Binding uses one selected rune and changes your weapon's glow.</p>
-  ${feedback&&feedback.kind==='bind'?`<p class="craft-status" role="status">${esc(feedback.text)}</p>`:''}`;
- const cb=$('enchCutBtn');if(cb)cb.onclick=enchCut;
- document.querySelectorAll('#enchBody [data-ei]').forEach(b=>b.onclick=()=>{
-  enchPick=b.dataset.ei;enchRefresh();
-  document.querySelectorAll('#enchBody [data-ei]').forEach(next=>{if(next.dataset.ei===enchPick)next.focus({preventScroll:true});});
- });
- const ab=$('enchApplyBtn');if(ab)ab.onclick=()=>enchApply(enchPick);
- wireTabs();
-}
-/* 📖 the Books of Knowledge tab: read a book above, write an inscription onto the weapon below -
-   the same two-step shape as the runes, so the hall reads as one craft with two materials */
-function inscRefresh(tabs,books){
  const list=(Array.isArray(S.ench.insc)?S.ench.insc:[]).filter(inscOk);
  const counts={};
  list.forEach(v=>{const k=inscKey(v);counts[k]=(counts[k]||0)+1;});
@@ -6434,47 +6399,51 @@ function inscRefresh(tabs,books){
  const kinds=[];   /* rarest first, then the table's order - a fixed order, so cells stop jumping about */
  for(const r of INSC_RARS.slice().reverse())for(const e of INSC)if(counts[e.id+':'+r])kinds.push({id:e.id,rar:r});
  const icon=v=>{const e=inscById(v.id);return uiIcon(e.icon,e.fb,'');};
- const cells=kinds.map(v=>{const e=inscById(v.id),k=inscKey(v);return `<button type="button" class="craft-choice insc-choice${inscPick===k?' on':''}" data-ii="${k}" aria-pressed="${inscPick===k}" aria-label="${esc(inscRar(v.rar)+' '+e.n)}, ${counts[k]} available"
-   style="--ir:${INSC_COL[v.rar]}"><span class="craft-slot-art">${icon(v)}</span><span class="craft-slot-name">${esc(e.n)}</span><small class="insc-rar">${inscRar(v.rar)}</small><small>${esc(e.d(inscVal(v)))}</small><span class="craft-badge">×${counts[k]}</span></button>`;}).join('');
+ const named=v=>inscRar(v.rar)+' '+inscById(v.id).n,effect=v=>inscById(v.id).d(inscVal(v));
+ const cells=kinds.map(v=>{const e=inscById(v.id),k=inscKey(v);return `<button type="button" class="craft-choice insc-choice${inscPick===k?' on':''}" data-ii="${k}" aria-pressed="${inscPick===k}" aria-label="${esc(named(v))}, ${counts[k]} available"
+   style="--ir:${INSC_COL[v.rar]}"><span class="craft-slot-art">${icon(v)}</span><span class="craft-slot-name">${esc(e.n)}</span><small class="insc-rar">${inscRar(v.rar)}</small><small>${esc(effect(v))}</small><span class="craft-badge">×${counts[k]}</span></button>`;}).join('');
  const sel=inscPick?kinds.find(v=>inscKey(v)===inscPick)||null:null;
  const weapon=S.gear&&S.gear.weapon,held=weapon&&inscOk(weapon.insc)?weapon.insc:null;
  const last=inscLast&&inscLast.owner===S.ench?inscLast.v:null;
  const feedback=enchFeedback&&enchFeedback.owner===S.ench?enchFeedback:null;
- const odds=inscOdds(enchSkill());
+ const status=kind=>feedback&&feedback.kind===kind?`<p class="craft-status" role="status">${esc(feedback.text)}</p>`:'';
+ const odds=inscOdds(s);
  const pct=x=>{const p=x*100;return (p===0||p>=10?Math.round(p):Math.round(p*10)/10)+'%';};
  const oddsBar=`<div class="insc-odds" aria-hidden="true">${INSC_RARS.map((r,k)=>odds[k]>0?`<i style="width:${(odds[k]*100).toFixed(2)}%;background:${INSC_COL[r]}"></i>`:'').join('')}</div>`;
  const oddsTxt=INSC_RARS.map((r,k)=>`<span class="insc-odd${odds[k]>0?'':' none'}" style="--ir:${INSC_COL[r]}">${inscRar(r)} <b>${pct(odds[k])}</b></span>`).join('');
- $('enchBody').innerHTML=tabs+`
-  <h3 class="craft-section-title">Read a Book of Knowledge</h3>
+ const ready=books>0&&gems>=ENCH_COST;
+ const need=[books?'':'a Book of Knowledge',gems>=ENCH_COST?'':(ENCH_COST-gems)+' more emerald'+(ENCH_COST-gems===1?'':'s')].filter(Boolean);
+ $('enchBody').innerHTML=`
+  <h3 class="craft-section-title">Make an enchant</h3>
   <div class="craft-pair">
-   <article class="craft-slot${books?' filled':''}"><span class="craft-slot-label">Material</span><span class="craft-slot-art">${uiIcon('it_book','📖','')}</span><strong class="craft-slot-name">Book of Knowledge</strong><span class="craft-slot-note">${books} in your bag</span></article>
+   <article class="craft-slot${ready?' filled':''}"><span class="craft-slot-label">Materials</span><span class="craft-slot-art" style="gap:6px">${uiIcon('it_book','📖','')}${uiIcon('it_emerald','💚','')}</span><strong class="craft-slot-name">Book of Knowledge + ${ENCH_COST} Emeralds</strong><span class="craft-slot-note">${books} book${books===1?'':'s'} · ${gems.toLocaleString()} emerald${gems===1?'':'s'}</span></article>
    <span class="craft-plus" aria-hidden="true">→</span>
-   <article class="craft-slot${last?' filled insc-slot':''}"${last?` style="--ir:${INSC_COL[last.rar]}"`:''}><span class="craft-slot-label">${last?'Last book read':'Mystery result'}</span><span class="craft-slot-art" aria-hidden="true">${last?icon(last):'?'}</span><strong class="craft-slot-name">${last?esc(inscById(last.id).n):'One random inscription'}</strong><span class="craft-slot-note">${last?esc(inscLine(last)):'Its rarity leans on your enchanting skill'}</span></article>
+   <article class="craft-slot${last?' filled insc-slot':''}"${last?` style="--ir:${INSC_COL[last.rar]}"`:''}><span class="craft-slot-label">${last?'Last enchant':'Mystery result'}</span><span class="craft-slot-art" aria-hidden="true">${last?icon(last):'?'}</span><strong class="craft-slot-name">${last?esc(named(last)):'One random enchant'}</strong><span class="craft-slot-note">${last?esc(effect(last)):'One of five. Its rarity leans on your enchanting skill'}</span></article>
   </div>
-  <div class="craft-actions"><button type="button" class="sbtn gold" id="enchReadBtn" ${books?'':'disabled'}>Read the book · 1 Book of Knowledge</button></div>
-  <div class="insc-oddsbox"><span class="craft-slot-label">Your odds at skill ${enchSkill()}</span>${oddsBar}<div class="insc-oddrow">${oddsTxt}</div></div>
-  <p class="craft-note">${books?'Each book gives one random inscription.':'Clear a Wasteland dungeon - both of its guardians - to carry a book home.'} Higher enchanting skill turns up rarer ones: a Journeyman can read an epic line, an Expert a legendary one. +${ENCH_PER_BOOK} enchanting skill per book.</p>
-  ${feedback&&feedback.kind==='read'?`<p class="craft-status" role="status">${esc(feedback.text)}</p>`:''}
-  <h3 class="craft-section-title">Inscribe your weapon</h3>
+  <div class="craft-actions"><button type="button" class="sbtn gold" id="enchMakeBtn" ${ready?'':'disabled'}>Enchant · 1 book + ${ENCH_COST} emeralds</button></div>
+  <div class="insc-oddsbox"><span class="craft-slot-label">Your odds at skill ${s}</span>${oddsBar}<div class="insc-oddrow">${oddsTxt}</div></div>
+  <p class="craft-note">${need.length?'You need '+need.join(' and ')+'.':'Each enchant is one of five, at random.'}${books?'':' Clear a Wasteland dungeon - both of its guardians - to carry a book home.'} +${ENCH_PER_ENCHANT} enchanting skill per enchant, up to 500.</p>
+  ${status('make')}
+  <h3 class="craft-section-title">Bind an enchant</h3>
   <div class="craft-pair">
-   <article class="craft-slot${weapon?' filled':''}"><span class="craft-slot-label">Equipped weapon</span><span class="craft-slot-art" aria-hidden="true">${weapon?uiIcon('it_weapon','⚔',''):'?'}</span><strong class="craft-slot-name">${weapon?esc(itemName(weapon)):'No weapon equipped'}</strong><span class="craft-slot-note">${held?'Inscribed: '+esc(inscLine(held)):weapon?'No inscription yet':'Equip a weapon to inscribe it'}</span></article>
+   <article class="craft-slot${weapon?' filled':''}"><span class="craft-slot-label">Equipped weapon</span><span class="craft-slot-art" aria-hidden="true">${weapon?uiIcon('it_weapon','⚔',''):'?'}</span><strong class="craft-slot-name">${weapon?esc(itemName(weapon)):'No weapon equipped'}</strong><span class="craft-slot-note">${held?'Enchant: '+esc(inscLine(held)):weapon?'No enchant yet':'Equip a weapon to enchant it'}</span></article>
    <span class="craft-plus" aria-hidden="true">+</span>
-   <article class="craft-slot${sel?' filled insc-slot':''}"${sel?` style="--ir:${INSC_COL[sel.rar]}"`:''}><span class="craft-slot-label">Selected inscription</span><span class="craft-slot-art" aria-hidden="true">${sel?icon(sel):'?'}</span><strong class="craft-slot-name">${sel?esc(inscById(sel.id).n):'Choose an inscription below'}</strong><span class="craft-slot-note">${sel?esc(inscLine(sel)):'One inscription is used when written'}</span></article>
+   <article class="craft-slot${sel?' filled insc-slot':''}"${sel?` style="--ir:${INSC_COL[sel.rar]}"`:''}><span class="craft-slot-label">Selected enchant</span><span class="craft-slot-art" aria-hidden="true">${sel?icon(sel):'?'}</span><strong class="craft-slot-name">${sel?esc(named(sel)):'Choose an enchant below'}</strong><span class="craft-slot-note">${sel?esc(effect(sel)):'One enchant is used when bound'}</span></article>
   </div>
-  <h3 class="craft-section-title">Your inscriptions <span class="craft-badge">${list.length}</span></h3>
-  <div class="craft-picker">${cells||'<p class="craft-empty">You have no inscriptions yet. Read a Book of Knowledge above to find your first.</p>'}</div>
-  <div class="craft-result"><span class="craft-result-icon" aria-hidden="true">${sel?icon(sel):uiIcon('it_weapon','⚔','')}</span><div><h3 class="craft-result-title">${sel&&weapon?esc(inscById(sel.id).n)+' · '+esc(itemName(weapon)):'A lasting edge for your weapon'}</h3><p class="craft-result-meta">${sel&&weapon?'Write '+esc(inscLine(sel))+' onto your equipped weapon.':'Select an inscription and equip a weapon to preview it.'}</p>${held&&sel?`<p class="craft-note">Replaces ${esc(inscLine(held))}. The current inscription will be lost.</p>`:''}</div></div>
-  <div class="craft-actions"><button type="button" class="sbtn gold" id="enchInscBtn" ${sel&&weapon?'':'disabled'}>Inscribe weapon</button></div>
-  <p class="craft-note">The inscription stays with this weapon, in your hand or in your bag, and works while the weapon is equipped. Sell All and Scrap All leave inscribed weapons alone.</p>
-  ${feedback&&feedback.kind==='insc'?`<p class="craft-status" role="status">${esc(feedback.text)}</p>`:''}`;
- const rb=$('enchReadBtn');if(rb)rb.onclick=enchReadBook;
+  <h3 class="craft-section-title">Your enchants <span class="craft-badge">${list.length}</span></h3>
+  <div class="craft-picker">${cells||'<p class="craft-empty">You have no enchants yet. Make one above to find your first.</p>'}</div>
+  <div class="craft-result"><span class="craft-result-icon" aria-hidden="true">${sel?icon(sel):uiIcon('it_weapon','⚔','')}</span><div><h3 class="craft-result-title">${sel&&weapon?esc(inscById(sel.id).n)+' · '+esc(itemName(weapon)):'A lasting edge for your weapon'}</h3><p class="craft-result-meta">${sel&&weapon?'Bind '+esc(inscLine(sel))+' to your equipped weapon.':'Select an enchant and equip a weapon to preview it.'}</p>${held&&sel?`<p class="craft-note">Replaces ${esc(inscLine(held))}. The current enchant will be lost.</p>`:''}</div></div>
+  <div class="craft-actions"><button type="button" class="sbtn gold" id="enchBindBtn" ${sel&&weapon?'':'disabled'}>Bind to weapon</button></div>
+  <p class="craft-note">The enchant gives your weapon its glow and stays with it, in your hand or in your bag. It works while the weapon is equipped. Sell All and Scrap All leave enchanted weapons alone.</p>
+  ${status('bind')}`;
+ const mb=$('enchMakeBtn');if(mb)mb.onclick=enchMake;
  document.querySelectorAll('#enchBody [data-ii]').forEach(b=>b.onclick=()=>{
   inscPick=b.dataset.ii;enchRefresh();
   document.querySelectorAll('#enchBody [data-ii]').forEach(next=>{if(next.dataset.ii===inscPick)next.focus({preventScroll:true});});
  });
- const ib=$('enchInscBtn');if(ib)ib.onclick=()=>enchInscribe(inscPick);
+ const bb=$('enchBindBtn');if(bb)bb.onclick=()=>enchBind(inscPick);
 }
-function openEnchantHall(){enchPick='';inscPick='';$('enchFx').style.display='flex';enchRefresh();sfx.buy();}
+function openEnchantHall(){inscPick='';$('enchFx').style.display='flex';enchRefresh();sfx.buy();}
 /* ==================== 🔥 THE SMELTER ====================
    Two slots in and one out, laid out like the blacksmith: ore and coal on the left, the finished
    stone on the right. Three ore and one coal buy a single emerald - the ratio is what makes a rank
@@ -6515,7 +6484,7 @@ function smeltRefresh(){
  const out=$('smSlotOut');
  out.innerHTML=uiIcon('it_emerald','💚','');
  $('smeltResultTitle').textContent=finished?'Emerald smelted':firing?'One emerald is forming':'1 Emerald';
- $('smeltResultNote').textContent=(finished?'Added automatically to your bag. ':firing?'Added to your bag when the firing ends. ':'The finished stone, ready for rune cutting. ')+o.gem.toLocaleString()+' emerald'+(o.gem===1?'':'s')+' in your bag.';
+ $('smeltResultNote').textContent=(finished?'Added automatically to your bag. ':firing?'Added to your bag when the firing ends. ':'The finished stone, for the Enchanting Hall. ')+o.gem.toLocaleString()+' emerald'+(o.gem===1?'':'s')+' in your bag.';
  $('smeltHint').textContent=SMELT_ORE+' emerald ore + '+SMELT_COAL+' coal → 1 emerald';
  $('smeltCount').textContent=firing?(left>0?'Firing · '+smeltClock(left)+' remaining':'Finishing your emerald…')
    :finished?'Firing complete. Your emerald is already in your bag.':ready?'Materials ready · Firing takes 5 minutes.':'Gather the missing materials to light the furnace.';
@@ -7823,7 +7792,7 @@ function bloodAt(x,y,n){
   
 /* ==================== COMBAT ==================== */
 function atkMul(){return hero.buff.atk&&hero.buff.atk.t>0?hero.buff.atk.mul:1;}
-function hasteMul(){return (hero.buff.haste&&hero.buff.haste.t>0?hero.buff.haste.mul:1)*swiftMul()*hasteBoostMul()*(1+gearSum('haste'))*(1+((activePet()||{}).haste||0))*(1+wornInsc('swift')/100);} /* 📖 Quickening */
+function hasteMul(){return (hero.buff.haste&&hero.buff.haste.t>0?hero.buff.haste.mul:1)*swiftMul()*hasteBoostMul()*(1+gearSum('haste'))*(1+((activePet()||{}).haste||0))*(1+wornInsc('swift')/100);} /* ✨ Emberbite */
 function healHero(amt,silent){
  if(hero.dead)return;
  amt=Math.round(amt);if(amt<=0)return;
@@ -7882,9 +7851,9 @@ function heroBasicAttack(en,dt){
  heroSwing(en,c,dmg,crit,null);
  inscProcs(en,c);
 }
-/* 📖 the worn weapon's inscription, riding on the swing that just left. Twin Strike is a whole second
+/* ✨ the worn weapon's enchant, riding on the swing that just left. Goldrune's twin strike is a whole second
    swing - its own damage and crit roll, and the scrolls' on-hit effects fire again - a beat behind the
-   first, so the two hits read as two. Arcane Orb is a slower projectile that bursts on the target. */
+   first, so the two hits read as two. Stormetch's arcane orb is a slower projectile that bursts on the target. */
 const TWIN_DELAY_MS=140,ORB_C='#b98cff';
 function inscProcs(en,c){
  const twin=wornInsc('twin'),orb=wornInsc('orb');
@@ -7945,7 +7914,7 @@ function landHit(en,dmg,crit,label,basic){
  treeOnHit(en,dmg,crit,basic);   /* 🌳 */
  const w=S.gear.weapon;
  const tkR=S.gear&&S.gear.trinket;
- const lsAll=((w&&w.lifesteal)||0)+((tkR&&tkR.lifesteal)||0)+fkBonus()/100+wornInsc('leech')/100; /* 📖 Bloodthirst */
+ const lsAll=((w&&w.lifesteal)||0)+((tkR&&tkR.lifesteal)||0)+fkBonus()/100+wornInsc('leech')/100; /* ✨ Veinseeker */
  if(lsAll>0)healHero(Math.max(1,dmg*lsAll),true);
  if(tkR&&tkR.manadrain)hero.mana=Math.max(0,hero.mana-manaMax()*tkR.manadrain); /* the Ring exacts its price on every strike */
  sfx.hit();
@@ -11140,7 +11109,7 @@ function draw(){
    ctx.stroke();
    ctx.restore();
   }else if(b.orb){
-   /* 📖 Arcane Orb: a breathing halo around a bright core, bigger than any bolt so it reads as the inscription firing */
+   /* ✨ Stormetch's arcane orb: a breathing halo around a bright core, bigger than any bolt so it reads as the enchant firing */
    const pulse=1+0.18*Math.sin(now*14+b.x*0.05);
    ctx.fillStyle='rgba(185,140,255,0.22)';ctx.beginPath();ctx.arc(b.x,b.y,13*pulse,0,7);ctx.fill();
    ctx.fillStyle='rgba(201,160,255,0.45)';ctx.beginPath();ctx.arc(b.x,b.y,8.5*pulse,0,7);ctx.fill();
@@ -13473,13 +13442,13 @@ function renderHero(){
   <div class="stat"><b>${S.prestige||0}</b><span>Prestige</span></div>`;
  let slotsHtml=SLOTS.map(sl=>{
   const g=S.gear[sl],ringEye=sl==='trinket'&&isRing(g);
-  /* ✨ a bound rune rides the top-right corner of its slot, glowing in its own colour. title= gives
+  /* ✨ the enchant's rune rides the top-right corner of its slot, glowing in its own colour. title= gives
      the hover text for nothing, and tapping it says the same thing out loud for touch. */
   let mark='';
   if(sl==='weapon'&&g&&g.wench){
    const w=wenchById(g.wench);
    if(w)mark=`<span class="enchmark" style="--eg:${w.glow}" data-ench="${w.id}"
-     title="${esc(w.n)}. ${esc(w.flavour)}">${uiIcon(w.icon,'✨')}</span>`;
+     title="${esc(inscOk(g.insc)?inscLine(g.insc):w.n)}. ${esc(w.flavour)}">${uiIcon(w.icon,'✨')}</span>`;
   }
   return `<div class="slot">${mark}<div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div>`+
    (g?`<div class="sn r-${g.rar}">${itemName(g)}</div><div class="ss">${itemStr(g)}</div>${inscHtml(g)}
@@ -13855,7 +13824,7 @@ function scrapLabel(items,all,ico='⚙ '){
 function renderBag(){
  S.bag=(S.bag||[]).map(cleanBagItem).filter(Boolean);
  const books=S.bag.filter(isKnowledgeBook);
- const knowledgeHtml=books.length?`<div class="card item knowledge-book"><div><div class="sn" style="font-size:13px;font-weight:600">${uiIcon('it_book','📖','shopico')} Book of Knowledge <span style="color:var(--dim)">×${books.length}</span></div><div class="ss" style="color:var(--dim);font-size:11px">A relic recovered from the guardians of Wasteland. Read it at the Enchanting Hall in the City to reveal one random inscription for your weapon${enchTrained()?'':' - the hall teaches enchanting first'}. The more enchanting skill you have, the rarer it tends to be.</div></div></div>`:'';
+ const knowledgeHtml=books.length?`<div class="card item knowledge-book"><div><div class="sn" style="font-size:13px;font-weight:600">${uiIcon('it_book','📖','shopico')} Book of Knowledge <span style="color:var(--dim)">×${books.length}</span></div><div class="ss" style="color:var(--dim);font-size:11px">A relic recovered from the guardians of Wasteland. At the Enchanting Hall in the City, with ${ENCH_COST} emeralds, it becomes one random enchant for your weapon${enchTrained()?'':' - the hall teaches enchanting first'}. The more enchanting skill you have, the rarer it tends to be.</div></div></div>`:'';
  $('bagWallet').innerHTML=walletStr();
  // 🍀 luck potions - always at the top
  let luckHtml='';
@@ -14250,7 +14219,7 @@ function renderBag(){
   if(cowLocked()){stageMsg('No selling mid-herd - fill the bag or die first!',1600);sfx.warn();return;} /* the same lock as Sell All and Scrap */
   const i=+b.dataset.sell;if(isLegendary(S.bag[i])||inGearSet(S.bag[i]))return;
   const it=S.bag[i];if(!it)return;
-  confirmBox(`Are you sure you want to sell <b class="l${it.rar}">${itemName(it)}</b> for <b style="color:var(--brass)">${(it.sell||0).toLocaleString()}◉</b>?${it.insc?' Its inscription goes with it.':''}`,()=>{
+  confirmBox(`Are you sure you want to sell <b class="l${it.rar}">${itemName(it)}</b> for <b style="color:var(--brass)">${(it.sell||0).toLocaleString()}◉</b>?${it.insc?' Its enchant goes with it.':''}`,()=>{
    const idx=S.bag.indexOf(it);if(idx<0)return; /* bag may have shifted while the box was open */
    S.bag.splice(idx,1);
    addGoldOverflow(it.sell||0);sfx.loot();renderBag();renderHUD();save();
@@ -14269,7 +14238,7 @@ function renderBag(){
    log(`Scrapped <span class="l${it.rar}">${it.name}</span> - +${got} ⚙.`);
    renderBag();renderHUD();save();
   };
-  if(it.insc)confirmBox(`Scrap <b class="l${it.rar}">${itemName(it)}</b> for <b>${scrapVal(it)}⚙</b>? Its inscription goes with it.`,scrap); /* 📖 a book's worth - worth one question */
+  if(it.insc)confirmBox(`Scrap <b class="l${it.rar}">${itemName(it)}</b> for <b>${scrapVal(it)}⚙</b>? Its enchant goes with it.`,scrap); /* ✨ a book's worth - worth one question */
   else scrap();
  });
  document.querySelectorAll('[data-unstar]').forEach(b=>b.onclick=()=>{
@@ -14308,7 +14277,7 @@ function renderBag(){
   S.bag=keep;
   addGoldOverflow(total);
   sfx.loot();
-  log(`Sold ${n} items - +${total.toLocaleString()} ◉. Legendaries${keep.some(it=>it.insc)?' and inscribed weapons':''} stay in the bag.`,'loot');
+  log(`Sold ${n} items - +${total.toLocaleString()} ◉. Legendaries${keep.some(it=>it.insc)?' and enchanted weapons':''} stay in the bag.`,'loot');
   stageMsg('◉ Sold '+n+' items for '+total.toLocaleString()+' gold',1800);
   renderBag();renderHUD();save();
  };
@@ -14531,7 +14500,7 @@ function btPrizeValue(){
   S.ore.gem+=n;
   log(`VIOLET HALLS: <span class="lfine">${n} emerald${n===1?'':'s'}</span>!`,'loot');
   return {icon:lootIco('it_emerald','💚'),tier:'Emerald'+(n===1?'':'s'),name:n+' emerald'+(n===1?'':'s'),color:'#9adf9a',
-          sub:n>=ENCH_COST?'Enough for a rune at the enchanters.':'The enchanters cut runes from these.',big:n>=3};
+          sub:n>=ENCH_COST?'Enough for an enchant, with a Book of Knowledge.':'An enchant takes '+ENCH_COST+', and a Book of Knowledge.',big:n>=3};
  }
  const total=BT_LOOT.reduce((a,b)=>a+b.w,0);let r=Math.random()*total,p=BT_LOOT[BT_LOOT.length-1];
  for(const x of BT_LOOT){r-=x.w;if(r<=0){p=x;break;}}
@@ -20272,7 +20241,7 @@ function smithWeapons(fg,star){
  const matches=it=>(fg?isFG(it):isFK(it))&&legendStar(it)===star,bag=(S.bag||[]).filter(matches),eq=S.gear.weapon,seen=new Set();
  return bag.filter(it=>!inGearSet(it)).concat(bag.filter(it=>inGearSet(it)),matches(eq)?[eq]:[]).filter(it=>{if(seen.has(it))return false;seen.add(it);return true;});
 }
-function smithWeaponNote(it){return (S.gear.weapon===it?'Equipped':inGearSet(it)?'In a gear set':'In bag')+' · Upgrade +'+(it.up||0)+' · '+Math.round(it.atk||0)+' attack'+(inscOk(it.insc)?' · 📖 '+inscRar(it.insc.rar)+' '+inscById(it.insc.id).n:'');}
+function smithWeaponNote(it){return (S.gear.weapon===it?'Equipped':inGearSet(it)?'In a gear set':'In bag')+' · Upgrade +'+(it.up||0)+' · '+Math.round(it.atk||0)+' attack'+(inscOk(it.insc)?' · ✨ '+inscRar(it.insc.rar)+' '+inscById(it.insc.id).n:'');}
 function smithScrolls(){
  const seen=new Set();return (S.scrolls||[]).map((sc,i)=>({sc,k:'b'+i})).concat((S.activeScrolls||[]).map((sc,i)=>({sc,k:'e'+i}))).filter(o=>{if(!o.sc||o.sc.id2||o.sc.tier!==MAXTIER||!enchOf(o.sc.id)||seen.has(o.sc))return false;seen.add(o.sc);return true;});
 }
@@ -20355,7 +20324,7 @@ function smithRefresh(){
  }}
  const stats=fg?`+${out===3?20:15}% boss damage · +${out*2}% lifesteal`:`+${out*2}% crit · +${out*2}% lifesteal`;
  smithHTML($('fmSlotOut'),smithArt(smithSel));$('fmSlotOut').classList.toggle('filled',!!ready);
- smithHTML($('fmPreview'),`<div class="craft-result-title">${name} ★${out}</div><div class="craft-result-meta">${stats}</div><p class="craft-note">${!unlocked?'Requires blacksmith level '+(out===3?10:5)+' and Prestige '+(out===3?20:10)+'.':busy?'The forge is busy. Your current job continues above.':!inputs[0]||!inputs[1]?'Choose two different '+name+' ★'+src+' weapons ('+list.length+' available).':'Both selected weapons are consumed. Upgrades and attack reset; the +6 upgrade cap stays unchanged.'+(inscOk(bestInsc(inputs))?' The new blade keeps the rarest inscription of the two: '+inscLine(bestInsc(inputs))+'.':'')}<br>Click an input to choose its exact copy. Equipped weapons and gear-set references are removed when consumed.</p>`);
+ smithHTML($('fmPreview'),`<div class="craft-result-title">${name} ★${out}</div><div class="craft-result-meta">${stats}</div><p class="craft-note">${!unlocked?'Requires blacksmith level '+(out===3?10:5)+' and Prestige '+(out===3?20:10)+'.':busy?'The forge is busy. Your current job continues above.':!inputs[0]||!inputs[1]?'Choose two different '+name+' ★'+src+' weapons ('+list.length+' available).':'Both selected weapons are consumed. Upgrades and attack reset; the +6 upgrade cap stays unchanged.'+(inscOk(bestInsc(inputs))?' The new blade keeps the rarest enchant of the two: '+inscLine(bestInsc(inputs))+'.':'')}<br>Click an input to choose its exact copy. Equipped weapons and gear-set references are removed when consumed.</p>`);
  const btn=$('fmForgeBtn');btn.disabled=!ready;btn.textContent='Forge '+name+' ★'+out+' · 2 hours';
  btn.onclick=()=>{
   if(S!==owner||!S)return;
@@ -20378,8 +20347,8 @@ $('enchClose').onclick=()=>$('enchFx').style.display='none';
 document.addEventListener('click',e=>{
  const m=e.target.closest&&e.target.closest('.enchmark');
  if(!m)return;
- const w=wenchById(m.dataset.ench);
- if(w)stageMsg('✨ '+w.n+'. '+w.flavour,2800);
+ const w=wenchById(m.dataset.ench),g=S&&S.gear&&S.gear.weapon;
+ if(w)stageMsg('✨ '+(g&&g.wench===w.id&&inscOk(g.insc)?inscLine(g.insc):w.n)+'. '+w.flavour,2800);
 });
 $('smeltGo').onclick=()=>{
  const o=S.ore;
@@ -20405,14 +20374,15 @@ setInterval(()=>{
    Zone ambience ducks under it, and comes back when you leave. Sebbe's table is a street game and
    keeps the City's sound; the Final Gate's box is no casino at all. */
 let casinoAudio=null;
-/* 🔇 the casino's own music has its own switch, in the corner while it plays (2026-10-11, "lägg in också en mute knapp i casinot för
-   casino musiken i hörnet"): it silences the casino track only - the game's sounds and the zone's music keep their sliders. It is
-   kept on the hero (S.casinoMute), as the other sound settings are */
+/* 🔇 the casino's own music has its own switch (2026-10-11, "lägg in också en mute knapp i casinot för casino musiken i hörnet"),
+   in the top right corner of every casino window - the menu, the three machines, the tables and the duel. At the screen's corner
+   it sat far off over the side panel on a big screen, and was not seen ("ser inte mute knappen på casinot"). It silences the
+   casino track only - the game's sounds and the zone's music keep their sliders - and is kept on the hero (S.casinoMute) */
 const casinoMuted=()=>typeof S!=='undefined'&&!!(S&&S.casinoMute);
-function casinoMuteUI(show){
- const b=$('casinoMute');if(!b)return;
- if(show!==undefined)b.hidden=!show;
- const m=casinoMuted();b.setAttribute('aria-pressed',String(m));b.title=m?'Casino music: off - click to turn it on':'Casino music: on - click to mute it';
+let casinoMuteBtns=[];   /* every window's switch (made after openCasinoMenu below); all of them show the one setting */
+function casinoMuteUI(){
+ const m=casinoMuted();
+ for(const b of casinoMuteBtns){b.setAttribute('aria-pressed',String(m));b.title=m?'Casino music: off - click to turn it on':'Casino music: on - click to mute it';}
 }
 function casinoAmbApply(){
  const anyOpen=['casinoMenu','slotFx','seaFx','fiveFx','bjFx','rouFx','rtbFx'].some(id=>{const e=$(id);return e&&e.classList.contains('open');})||($('gvbFx')&&$('gvbFx').style.display==='flex');
@@ -20435,7 +20405,7 @@ function casinoAmbApply(){
    }
   }
  }
- casinoMuteUI(anyOpen); /* the switch shows while the casino's music is the one playing */
+ casinoMuteUI();
 }
 /* the lights round the casino's menu and the glint on its painted games live in assets/casino/casino-fx.js: told what happened, they decide nothing */
 function menuLook(name,...a){try{if(typeof CasinoFX!=='undefined'&&CasinoFX[name])return CasinoFX[name]('casinoMenu',...a);}catch(e){try{console.warn('casino fx',e);}catch(_){}}}
@@ -20447,7 +20417,16 @@ function casinoMenuPage(slots){
  if(first&&$('casinoMenu').classList.contains('open')){if(padFocus)padMark(first);else if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#casinoMenu'))first.focus({preventScroll:true});}
 }
 function openCasinoMenu(){$('casinoMenu').classList.add('open');casinoMenuPage(false);menuLook('open');initAudio();casinoAmbApply();}
-$('casinoMute').onclick=()=>{if(!S)return;if(S.casinoMute)delete S.casinoMute;else S.casinoMute=true;casinoAmbApply();save();};
+{const html='<button class="casinomute" type="button" aria-pressed="false" aria-label="Mute the casino music">'
+  +'<svg class="cm-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="w" d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"/></svg>'
+  +'<svg class="cm-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="w" d="M16.5 9.5l5 5M21.5 9.5l-5 5"/></svg></button>';
+ for(const [id,box] of [['casinoMenu','.casinobox'],['slotFx','.slotmach'],['seaFx','.slotmach'],['fiveFx','.slotmach'],['bjFx','.slotmach'],['rouFx','.slotmach'],['rtbFx','.slotmach'],['gvbFx','.casinobox']]){
+  const el=$(id)&&$(id).querySelector(box);if(!el)continue;
+  el.insertAdjacentHTML('beforeend',html);
+  const b=el.lastElementChild;b.onclick=()=>{if(!S)return;if(S.casinoMute)delete S.casinoMute;else S.casinoMute=true;casinoAmbApply();save();};
+  casinoMuteBtns.push(b);
+ }
+ casinoMuteUI();}
 $('casinoMenuClose').onclick=()=>{if($('casinoSlots').style.display!=='none'){casinoMenuPage(false);return;}$('casinoMenu').classList.remove('open');casinoAmbApply();};
 $('casinoSlotsBack').onclick=()=>casinoMenuPage(false);
 document.querySelectorAll('.casinopick').forEach(b=>b.onclick=()=>{
@@ -21468,7 +21447,7 @@ function charStats(ch){
   hp:Math.round((c.hp+(ch.lvl||1)*14+sum('hp'))*(r.hp||1)),
   mana:Math.round(c.mana+(ch.lvl||1)*5),
   atk:Math.round((c.atk+(ch.lvl||1)*2.6+sum('atk'))*(1+(titan?tierVal('titan',titan.tier||1)/100:0))),
-  crit:c.crit+(r.crit||0)+sum('crit')+(ch.gear&&ch.gear.weapon&&ch.gear.weapon.insc&&ch.gear.weapon.insc.id==='keen'?inscVal(ch.gear.weapon.insc):0) /* 📖 Keen Edge */
+  crit:c.crit+(r.crit||0)+sum('crit')+(ch.gear&&ch.gear.weapon&&ch.gear.weapon.insc&&ch.gear.weapon.insc.id==='keen'?inscVal(ch.gear.weapon.insc):0) /* ✨ Frostgrip */
  };
 }
 const lbScore=ch=>(ch.prestige||0)*1e6+(ch.lvl||1)*1e3+charGearScore(ch);
@@ -21537,7 +21516,7 @@ function renderInspect(e){
  const gearRow=sl=>{
   const g=e.gear&&e.gear[sl];
   if(!g)return `<div class="slot"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div><div class="ss">- empty -</div></div>`;
-  const wr=sl==='weapon'?runeOf(g):null;   /* a rune reads next to the weapon carrying it */
+  const wr=sl==='weapon'?(inscOk(g.insc)?wenchById(enchLookOf(g.insc)):runeOf(g)):null;   /* ✨ the enchant's look, or an older build's bare rune */
   /* same fold-in as itemStr, but on the slimmed leaderboard payload, which carries only
      `legend` and `star` - so the checks are by name rather than the isFK/isFG helpers */
   const fmS=isFKLegend(g.legend)&&(g.star||0)>1?g.star*2:0;
@@ -21547,9 +21526,9 @@ function renderInspect(e){
    <div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div>
    <div class="sn" style="color:${RARCOL[g.rar]||'#fff'}">${esc(displayItemName(g.name))}${g.legend&&g.star?` <span style="color:#ffd76a">★${esc(g.star)}</span>`:''}</div>
    <div class="ss">${esc(s)}</div>
-   ${wr?`<div class="en" style="color:${wr.glow}"><span class="glowdot" style="background:${wr.glow};box-shadow:0 0 6px ${wr.glow}"></span>${uiIcon(wr.icon,'✨','shopico')} ${esc(wr.n)}</div>
-    <div class="ss" style="font-style:italic">${esc(wr.flavour)}</div>`:''}
-   ${sl==='weapon'?inscHtml(g):''}</div>`;   /* 📖 another player's row: inscHtml shows only a kind this build knows */
+   ${wr&&!inscOk(g.insc)?`<div class="en" style="color:${wr.glow}"><span class="glowdot" style="background:${wr.glow};box-shadow:0 0 6px ${wr.glow}"></span>${uiIcon(wr.icon,'✨','shopico')} ${esc(wr.n)}</div>`:''}
+   ${sl==='weapon'?inscHtml(g):''}
+   ${wr?`<div class="ss" style="font-style:italic">${esc(wr.flavour)}</div>`:''}</div>`;   /* ✨ another player's row: the enchant's line (inscHtml shows only a kind this build knows), else an older build's bare rune */
  };
  const scrolls=(e.scrolls&&e.scrolls.length?e.scrolls:e.scroll?[e.scroll]:[]);
  const scHtml=scrolls.length?scrolls.map(sc=>{
@@ -22412,6 +22391,7 @@ function beginGame(isNew){
   stageMsg('Welcome to Riptide - spells are 1/2/3, potions 4/5.',3000);
   save();
  }else{log(`<span class="imp">Welcome back, ${esc(S.name)}.</span> The march resumes.`);offerEmperorOutfit(4000);}   /* 🎭 an Emperor from before the regalia existed gets them once */
+ if(typeof enchMeltNotice==='function')enchMeltNotice();   /* ✨ said once, after the runes went back into emeralds */
  if(needsGuide){showHeroGuide();saveNow();}
 }
 /* Effects were written as "X% chance this frame", which quietly ties their density to the frame
@@ -22500,6 +22480,7 @@ requestAnimationFrame(frame);
  if(test&&test.split(':')[0]==='raid'){seasonReady=true;document.title+=' - Raid test';raidTest(test.split(':')[1]||undefined);return;}   /* raid:<port> for another town */
  if(test==='outfits'){seasonReady=true;document.title+=' - Outfit test';outfitTest();return;}
  if(test==='lights'){seasonReady=true;document.title+=' - Light test';lightTest();return;}
+ if(test==='crown'){seasonReady=true;document.title+=' - Crown test';crownTest();return;}
  await initFirebase();
  await seasonWipeIfNeeded();
  seasonReady=true;
