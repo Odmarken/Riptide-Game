@@ -152,6 +152,18 @@
     "game": "gvb",
     "job": "aadb7c58-f36a-435b-b3c7-ce662d98d93c",
     "subject": "two treasure chests facing each other, crossed swords and a burst of gold sparks"
+   },
+   {
+    "file": "menu_slothall",
+    "game": "slotpick (the Slots page)",
+    "job": "3ef8170c-35cf-4b6f-98be-8bafabe4dce4",
+    "subject": "three small ornate slot machines in gold, red and blue, bulbs on top, coins at their feet"
+   },
+   {
+    "file": "menu_five",
+    "game": "five (Five Five Five)",
+    "job": "66273034-db22-4f99-8f32-ec4ea2fecb6a",
+    "subject": "an infernal prize wheel of black iron and crimson with a flaming red 5 on its hub"
    }
   ]
  },
@@ -159,5 +171,98 @@
   "file": "card_back.jpg",
   "job": "77732ec2-1241-4b80-87cf-41b898086837",
   "about": "gpt_image_2_5 flare medium 1k 2:3 opaque: crimson lacquer, diamond lattice, gold filigree border, a gold wave under a crown; centre crop to 2:3, 240x360 jpg q88. The back of every face-down card in Blackjack and Ride the Bus (.bjcard.back)."
+ },
+ "five": {
+  "about": "Five Five Five (2026-10-11): gpt_image_2_5 flare medium 1k transparent, an infernal version of the l7 style block ('obsidian black, crimson, ember orange', 'hot ember-orange rim light'; low symbols 'muted'). Symbols 256 px + _b (128 px, vertical blur) like sea_*; imps fitted into 260x320; the logo into 360x240; all 256-colour palette. The backdrop is opaque 5:4, 1024x819 jpg q86.",
+  "symbols": [
+   {
+    "file": "f5_five_blue",
+    "key": "five (blue)",
+    "job": "3548fdd3-1944-4ef3-9174-4e7621d0b9ed",
+    "subject": "a bold 5 of glowing sapphire crystal in blue flames, tiny horns"
+   },
+   {
+    "file": "f5_five_red",
+    "key": "five (red)",
+    "job": "43c4e500-eebc-4675-92ee-317c1b861479",
+    "subject": "a bold 5 of molten crimson lava with an obsidian rim in hellfire, tiny horns"
+   },
+   {
+    "file": "f5_crown",
+    "key": "crown",
+    "job": "0274d999-f4cb-4295-8e59-a8a4a2deaafe",
+    "subject": "a jagged black-iron demon crown with horn spikes and blood-red rubies"
+   },
+   {
+    "file": "f5_hound",
+    "key": "hound",
+    "job": "9e5cce83-e5d3-4d5f-b355-12297dd247c5",
+    "subject": "a snarling cartoon hellhound's head, ember eyes, a mane of flames, spiked collar"
+   },
+   {
+    "file": "f5_skull",
+    "key": "skull",
+    "job": "1e469580-4196-4eea-afc9-2e6d85124c8e",
+    "subject": "a horned skull with glowing ember eye sockets and a wisp of smoke"
+   },
+   {
+    "file": "f5_poison",
+    "key": "poison",
+    "job": "a62ef7a8-7290-4269-9117-c7db90f26c88",
+    "subject": "a corked round flask of bubbling glowing green poison with a wax seal and a tag"
+   },
+   {
+    "file": "f5_bones",
+    "key": "bones",
+    "job": "800886fa-f893-4b9a-b638-abb7b144105c",
+    "subject": "low: two crossed cracked bones"
+   },
+   {
+    "file": "f5_axe",
+    "key": "axe",
+    "job": "1640b44e-94ff-4a5c-bbdd-ab932a9f5dbc",
+    "subject": "low: an executioner's axe, dark iron and worn wood"
+   },
+   {
+    "file": "f5_pipe",
+    "key": "pipe",
+    "job": "1f1a3080-64b1-44b8-bef2-663e5565d172",
+    "subject": "low: a carved wooden pipe with an ember bowl and grey smoke"
+   },
+   {
+    "file": "f5_ale",
+    "key": "ale",
+    "job": "80caa74b-2262-4c1d-9cf5-44afdc15b249",
+    "subject": "low: a dented pewter tankard of frothing dark ale"
+   },
+   {
+    "file": "f5_tome",
+    "key": "tome",
+    "job": "b7dc48cd-e03f-4609-82f9-c00f399afbeb",
+    "subject": "low: a black leather grimoire with iron clasps and a glowing ember rune"
+   }
+  ],
+  "art": [
+   {
+    "file": "f5_imp_a.png",
+    "job": "730419a5-4030-4a91-a55c-9cbc1bcf51ad",
+    "subject": "a chubby crimson chibi imp with a golden pitchfork, floating (left of the reels)"
+   },
+   {
+    "file": "f5_imp_b.png",
+    "job": "057a119b-ca4f-4684-ad95-3e37a3e083de",
+    "subject": "a lanky violet chibi imp with a black-iron pitchfork, floating (right of the reels)"
+   },
+   {
+    "file": "f5_logo.png",
+    "job": "b3641795-c344-4bc1-a9bb-a4e97d7bf65e",
+    "subject": "555 in molten crimson and gold numerals with horns and hellfire"
+   },
+   {
+    "file": "f5_backdrop.jpg",
+    "job": "e06f0942-7eb9-4c1f-8613-39ffa5ea5735",
+    "subject": "a devil's gambling den: obsidian pillars, chains and cages, lava cracks, a demon-skull arch, crimson drapes"
+   }
+  ]
  }
 }

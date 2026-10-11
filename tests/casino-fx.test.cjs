@@ -13,7 +13,7 @@ const root=path.join(__dirname,'..');
 const read=f=>fs.readFileSync(path.join(root,f),'utf8');
 const html=read('index.html'),game=read('game.js'),src=read('assets/casino/casino-fx.js');
 /* the wrapper of each window, and the window it speaks for */
-const LOOKS={l7Look:'slotFx',seaLook:'seaFx',bjLook:'bjFx',rouLook:'rouFx',rtbLook:'rtbFx',cupLook:'sebbeFx',gvbLook:'gvbFx',menuLook:'casinoMenu'};
+const LOOKS={l7Look:'slotFx',seaLook:'seaFx',fiveLook:'fiveFx',bjLook:'bjFx',rouLook:'rouFx',rtbLook:'rtbFx',cupLook:'sebbeFx',gvbLook:'gvbFx',menuLook:'casinoMenu'};
 
 /* the module in a vm: no window open, no DOM to speak of */
 function load(){
@@ -40,7 +40,8 @@ test('every casino window has its wrapper: try/catch round a CasinoFX call for t
  for(const [fn,from,to] of [['l7Look','/* ==================== SLOT MACHINE','/* ==================== SLOTS - hold'],['seaLook','const SEA_BETS=','/* ==================== BLACKJACK'],
   ['bjLook','/* ==================== BLACKJACK','/* ==================== ROULETTE'],['rouLook','/* ==================== ROULETTE','/* ==================== 🚌 RIDE THE BUS'],
   ['cupLook',"/* ==================== 🥤 SEBBE'S CUP GAME",'const RTB_BETS='],['rtbLook','const RTB_BETS=','/* ==================== 🎲 GAMBLE AGAINST FRIEND'],
-  ['gvbLook','/* ==================== 🎲 GAMBLE AGAINST FRIEND','/* ==================== ❄ ICE ARMOR']]){
+  ['gvbLook','/* ==================== 🎲 GAMBLE AGAINST FRIEND','/* ==================== ❄ ICE ARMOR'],
+  ['fiveLook','/* ==================== 5️⃣ FIVE FIVE FIVE','/* ==================== CASINO BUILDING MENU']]){
   const i=at('function '+fn+'(');assert.ok(i>at(from)&&i<at(to),fn+' inside its section');
  }
 });
@@ -75,21 +76,22 @@ test('look only: the show never touches the hero, gold, saves or the odds; the l
 
 test('every painted picture has its line in the manifest - and nothing else is in the folder',()=>{
  const man=JSON.parse(read('assets/casino/casino-art-manifest.json'));
- const files=man.symbols.map(s=>s.file);
- assert.equal(files.length,18);
- const jobs=[...man.symbols.map(s=>s.job),...man.menu.icons.map(s=>s.job),man.card_back.job];
+ const files=[...man.symbols,...man.five.symbols].map(s=>s.file);
+ assert.equal(files.length,29);
+ const jobs=[...man.symbols.map(s=>s.job),...man.five.symbols.map(s=>s.job),...man.five.art.map(s=>s.job),...man.menu.icons.map(s=>s.job),man.card_back.job];
  for(const j of jobs)assert.match(j,/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
- const want=new Set([...files.flatMap(f=>[f+'.png',f+'_b.png']),...man.menu.icons.map(s=>s.file+'.png'),man.card_back.file]);
+ const want=new Set([...files.flatMap(f=>[f+'.png',f+'_b.png']),...man.menu.icons.map(s=>s.file+'.png'),man.card_back.file,...man.five.art.map(s=>s.file)]);
  const have=fs.readdirSync(path.join(root,'assets/casino')).filter(f=>/\.(png|jpg)$/.test(f));
  assert.deepEqual(have.sort(),[...want].sort());
  for(const f of have.filter(f=>f.endsWith('.png'))){
   const b=fs.readFileSync(path.join(root,'assets/casino',f));
   assert.equal(b.toString('latin1',1,4),'PNG',f);
-  const w=b.readUInt32BE(16),h=b.readUInt32BE(20),size=/^l7_/.test(f)?320:/^sea_/.test(f)?256:160;
+  const w=b.readUInt32BE(16),h=b.readUInt32BE(20),size=/^l7_/.test(f)?320:/^(sea|f5)_/.test(f)?256:160;
+  if(/^f5_(imp_|logo)/.test(f)){assert.ok(w<=360&&h<=320&&w>100&&h>100,f+' '+w+'x'+h);continue;} /* the imps and the logo keep their own shape */
   assert.deepEqual([w,h],f.endsWith('_b.png')?[size/2,size/2]:[size,size],f);
  }
  /* the menu shows them, the emoji staying as alt text; the face-down cards wear the back */
- for(const [game,emo,art] of [['slots','🎰','lucky7'],['sea','🦈','slots'],['bj','🃏','blackjack'],['rou','🎡','roulette'],['rtb','🚌','ridebus'],['gvb','🎲','duel']])
+ for(const [game,emo,art] of [['slotpick','🎰','slothall'],['slots','🎰','lucky7'],['sea','🦈','slots'],['five','5','five'],['bj','🃏','blackjack'],['rou','🎡','roulette'],['rtb','🚌','ridebus'],['gvb','🎲','duel']])
   assert.ok(html.includes(`data-game="${game}"><span class="cg"><img src="assets/casino/menu_${art}.png" alt="${emo}" draggable="false"></span>`),game);
  assert.match(read('assets/casino/casino-fx.css'),/\.bjcard\.back\{background:url\('card_back\.jpg'\)/);
 });

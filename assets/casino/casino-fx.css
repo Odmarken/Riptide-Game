@@ -173,3 +173,67 @@
 .casinopick:hover .cg img,.casinopick:focus-visible .cg img{transform:scale(1.14) rotate(-4deg);filter:drop-shadow(0 4px 6px rgba(0,0,0,.6)) drop-shadow(0 0 10px rgba(255,210,110,.7))}
 .casinopick:hover{box-shadow:0 0 14px rgba(255,200,90,.28),inset 0 0 12px rgba(255,200,90,.08)}
 @media (prefers-reduced-motion:reduce){.sfxspot,.sfxlantern{animation:none}}
+
+/* ===================== 5️⃣ FIVE FIVE FIVE (2026-10-11) - the third slot machine ===================== */
+#fiveFx{position:absolute;inset:0;z-index:72;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(12,4,4,.88)}
+#fiveFx.open{display:flex}
+#fiveFx{--fvh:100vh}
+@supports (height:100dvh){#fiveFx{--fvh:100dvh}}
+/* a cell fits five reels and two imps across, four rows and the controls down - never under 44 px, never over 100 */
+#fiveFx{--fcell:clamp(44px,min(calc((100vw - 160px)/6.2),calc((var(--fvh) - 340px)/4)),100px)}
+.slotmach.five{position:relative;z-index:1;border-color:#c0392b;max-height:98%;overflow-y:auto;
+ background:linear-gradient(180deg,rgba(40,10,8,.74),rgba(14,4,4,.9)),url('f5_backdrop.jpg') center/cover no-repeat,#1a0606;
+ box-shadow:0 14px 50px rgba(0,0,0,.65),0 0 30px rgba(255,80,40,.25)}
+.slotmach.five .slottop{color:#ffb07a;text-shadow:0 0 16px rgba(255,90,40,.7);display:flex;align-items:center;gap:8px;justify-content:center;margin-bottom:10px}
+.fivelogo{height:1.9em;width:auto;filter:drop-shadow(0 0 8px rgba(255,90,40,.6))}
+.fivestage{position:relative;display:flex;align-items:center;justify-content:center;gap:2px}
+.fivegrid{display:flex;gap:5px;padding:6px;border-radius:12px;background:rgba(10,3,3,.6);box-shadow:inset 0 0 18px rgba(0,0,0,.8),0 0 0 1px rgba(255,120,60,.35)}
+.fivecol{width:var(--fcell);height:calc(var(--fcell)*4);overflow:hidden;position:relative;border-radius:9px;
+ background:radial-gradient(ellipse at 50% 40%,#2c0e0a,#120505);border:1px solid #5a1a12}
+.fivecol::before,.fivecol::after{content:'';position:absolute;left:0;right:0;height:12px;z-index:2;pointer-events:none}
+.fivecol::before{top:0;background:linear-gradient(180deg,rgba(0,0,0,.7),transparent)}
+.fivecol::after{bottom:0;background:linear-gradient(0deg,rgba(0,0,0,.7),transparent)}
+.fivestrip{display:flex;flex-direction:column;will-change:transform}
+.fivecell{flex:0 0 var(--fcell);height:var(--fcell);display:flex;align-items:center;justify-content:center;position:relative}
+.fivecell img{width:84%;height:84%;object-fit:contain;pointer-events:none;user-select:none;-webkit-user-drag:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.6))}
+.fivecell.fivefive img{width:96%;height:96%;filter:drop-shadow(0 0 8px rgba(110,170,255,.85))}
+.fivecell.fivefive.red img{filter:drop-shadow(0 0 9px rgba(255,90,40,.95))}
+.fivecell.hit::after{content:'';position:absolute;inset:3px;border:2px solid #ffb07a;border-radius:8px;box-shadow:0 0 10px rgba(255,120,60,.7),inset 0 0 8px rgba(255,140,80,.3);animation:winPulse 1s infinite}
+.fivecell.hit img{animation:sfxSymWin .85s ease-in-out infinite}
+.fivecell.sfx-hold img{animation:sfxHold .4s ease-in-out infinite alternate}
+.fivecol.sfx-spin{box-shadow:inset 0 0 22px rgba(0,0,0,.75)}
+.fivecol.sfx-thunk{animation:sfxThunkFive .45s ease-out}
+@keyframes sfxThunkFive{0%{transform:none}18%{transform:translateY(2px);box-shadow:0 0 22px rgba(255,120,60,.55),inset 0 0 24px rgba(255,170,110,.35)}100%{transform:none;box-shadow:0 0 0 rgba(255,120,60,0)}}
+.fivecol.sfx-tease{border-color:#ffb07a;animation:sfxTease .4s ease-in-out infinite alternate}
+/* the imps float beside the reels, and jump when something pays */
+.fiveimp{width:calc(var(--fcell)*1.15);height:auto;pointer-events:none;filter:drop-shadow(0 6px 8px rgba(0,0,0,.6));animation:fiveBob 3.2s ease-in-out infinite;z-index:3}
+.fiveimp.r{animation-delay:-1.6s}
+@keyframes fiveBob{0%,100%{transform:translateY(-7px) rotate(-3deg)}50%{transform:translateY(7px) rotate(3deg)}}
+.fiveimp.cheer{animation:fiveCheer .62s cubic-bezier(.3,1.6,.5,1) 3}
+@keyframes fiveCheer{0%{transform:translateY(0) scale(1)}40%{transform:translateY(-30px) scale(1.14) rotate(-9deg)}100%{transform:translateY(0) scale(1)}}
+@media (max-width:600px){.fiveimp{display:none}}
+.fivebuys{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+.fivebuys .sbtn{padding:9px 16px;border-radius:12px;color:#ffb07a;border-color:#8a3a20;box-shadow:0 0 12px rgba(255,100,40,.15)}
+#fiveSpinBtn{font-family:var(--display);font-size:16px;letter-spacing:.5px;padding:14px 28px;border-radius:12px;border:1px solid #e0643a;background:linear-gradient(180deg,#e0643a,#8a2a14);color:#fff1e0;cursor:var(--hand);box-shadow:0 0 16px rgba(255,100,40,.35)}
+#fiveSpinBtn:disabled{opacity:.45;cursor:var(--arrow);box-shadow:none}
+#fiveAutoBtn{font-family:var(--display);font-size:14px;padding:14px 20px;border-radius:12px;border:1px solid #6dbb6d;background:var(--panel2);color:#9adf9a;cursor:var(--hand)}
+#fiveAutoBtn.on{background:linear-gradient(180deg,#c75146,#8a3a32);border-color:#e88a7a;color:#fff;box-shadow:0 0 14px rgba(199,81,70,.4)}
+#fiveAutoBtn:disabled{opacity:.45;cursor:var(--arrow)}
+#fiveFastBtn.on{border-color:#ffd76a;color:#ffd76a;box-shadow:0 0 12px rgba(255,215,106,.25)}
+#fiveBetDn,#fiveBetUp{width:34px}
+@media (max-width:600px),(pointer:coarse) and (max-height:500px){#fiveFx .slotbet .sbtn{width:44px;height:44px;padding:0;font-size:20px;border-radius:10px}}
+/* the Bargain: asked over the machine, as Slots' Extra Spin is */
+#fiveDealFx{position:absolute;inset:0;z-index:5;display:none;align-items:center;justify-content:center;background:rgba(14,3,3,.72)} /* over the canvas (2), the banner (3) and the flash (4) */
+.fivedeal{text-align:center;border:2px solid #e0643a;border-radius:14px;padding:20px 24px;background:rgba(30,8,6,.96);box-shadow:0 0 30px rgba(255,90,40,.4);max-width:420px;margin:0 12px}
+.fivedealtitle{font-family:var(--display);font-size:24px;color:#ffb07a;margin-bottom:8px;text-shadow:0 0 14px rgba(255,90,40,.6)}
+#fiveDealTxt{font-size:13px;color:#f3d9c9;line-height:1.5;margin-bottom:14px}
+.fivedealbtns{display:flex;gap:10px;justify-content:center}
+.fivedealbtns .sbtn{padding:12px 22px;font-size:15px}
+/* the fire while free spins run: Ember glows, Hellfire burns, Inferno roars */
+.sfxmach.sfx-fire{border-color:#ff6a3a;box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 34px rgba(255,90,40,.5)}
+.sfxmach.sfx-fire[data-tier="2"]{box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 46px rgba(255,70,30,.7)}
+.sfxmach.sfx-fire[data-tier="3"]{border-color:#ffd76a;animation:fiveRoar 1.4s ease-in-out infinite}
+@keyframes fiveRoar{0%,100%{box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 40px rgba(255,80,30,.6)}50%{box-shadow:0 14px 50px rgba(0,0,0,.6),0 0 70px rgba(255,140,40,.95)}}
+.sfxmach.sfx-fire .fivegrid{box-shadow:inset 0 0 22px rgba(80,10,0,.9),0 0 0 1px rgba(255,140,60,.7),0 0 18px rgba(255,90,40,.35)}
+.fivepay{font-size:10px}
+@media (min-width:900px){.fivepay{font-size:12px}}

@@ -36,6 +36,6 @@ test('the stake − and + of every casino window are 44 px on a phone, upright o
 
 test('every session line counts one as one: "1 spin", "1 hand"',()=>{
  const lines=game.match(/`Session: \$\{[^`]*`/g);
- assert.equal(lines.length,3,'Lucky 7, Slots and Blackjack');
+ assert.equal(lines.length,4,'Lucky 7, Slots, Five Five Five and Blackjack');
  for(const l of lines)assert.match(l,/\$\{(s|ss)\.(spins|hands)\} (spin|hand)\$\{(s|ss)\.(spins|hands)===1\?'':'s'\}/,l);
 });

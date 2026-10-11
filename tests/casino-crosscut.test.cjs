@@ -13,8 +13,8 @@ const game=fs.readFileSync(path.join(root,'game.js'),'utf8');
 const css=fs.readFileSync(path.join(root,'style.css'),'utf8');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const section=(from,to)=>{const a=game.indexOf(from),b=game.indexOf(to,a);assert.ok(a>=0&&b>a,'section '+from);return game.slice(a,b);};
-const TABLES=['casinoMenu','slotFx','seaFx','bjFx','rouFx','rtbFx','sebbeFx'];
-const TEARDOWNS=['slotTeardown','seaTeardown','bjTeardown','rouTeardown','rtbTeardown','cupTeardown','caseTeardown'];
+const TABLES=['casinoMenu','slotFx','seaFx','fiveFx','bjFx','rouFx','rtbFx','sebbeFx'];
+const TEARDOWNS=['slotTeardown','seaTeardown','fiveTeardown','bjTeardown','rouTeardown','rtbTeardown','cupTeardown','caseTeardown'];
 
 /* a small DOM: elements by id that can be opened (.open or display:flex), clicked, and asked whether they are rendered */
 function dom(){
@@ -97,7 +97,7 @@ test('the hero is put away with his casino windows: the hero list, sign-out and 
 
 test('the hero list refuses while any casino window is open, not only mid-round, and says why',()=>{
  const d=dom(),msgs=[];
- const c=vm.createContext({$:d.$,stageMsg:m=>msgs.push(m),sfx:{warn(){}},seaSpinning:false,slotSpinning:false,bjLive:false,bjResolving:false,rouSpinning:false,rtbLive:false,cupState:'idle'});
+ const c=vm.createContext({$:d.$,stageMsg:m=>msgs.push(m),sfx:{warn(){}},seaSpinning:false,slotSpinning:false,fiveSpinning:false,bjLive:false,bjResolving:false,rouSpinning:false,rtbLive:false,cupState:'idle'});
  vm.runInContext(section('function casinoWinOpen(chest){','/* Esc and the pad')+section('function casinoRoundOpen(){','/* 🎰 the hero is put away'),c);
  assert.equal(c.casinoRoundOpen(),false);assert.deepEqual(msgs,[]);
  for(const id of TABLES){
@@ -262,7 +262,7 @@ test('the casino track plays for the menu games only: Sebbe keeps the City\'s so
  const c=vm.createContext({$:d.$,Audio,AC:{},ambVol:()=>0.5,applyVolumes(){},gameOn:true,audioPaused:false,zoneOf:()=>({}),
   ambAudio:zone,cowAudio:null,odinAudio:null,cryptAudio:null,finalAudio:null});
  vm.runInContext(section('let casinoAudio=null;','function openCasinoMenu(){')+';globalThis.track=()=>casinoAudio;',c);
- assert.match(section('function casinoAmbApply(){','\n}'),/\['casinoMenu','slotFx','seaFx','bjFx','rouFx','rtbFx'\]\.some/);
+ assert.match(section('function casinoAmbApply(){','\n}'),/\['casinoMenu','slotFx','seaFx','fiveFx','bjFx','rouFx','rtbFx'\]\.some/);
  for(const id of ['sebbeFx','finalGateFx']){
   d.$(id).classList.add('open');c.casinoAmbApply();
   assert.ok(!c.track()||c.track().paused,id+' starts no casino track');assert.equal(zone.paused,false,id+' leaves the zone its own');

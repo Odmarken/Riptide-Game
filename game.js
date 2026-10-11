@@ -8883,7 +8883,7 @@ function padPollButtons(){
 const PAD_PANELS=['confirmFx','cityWonFx','enchCraftFx','outfitFx', /* the small boxes that sit on top of everything come first - the pad answers the box on screen, not the panel under it */
  'hcDeathOv','renameOv','prestigeConfirm','hcConfirm', /* the boxes built in script (80-85): unlisted, the d-pad walked the page hidden behind them and A pressed it */
  'cfgBox','iceReqMsg','iceMsg','gateMsg','cryptIntro','ritualBox','altarMsg','raidModal','mpLobby', /* Settings is drawn above the tables and the boxes after it (z 78) */
- 'tideHub','tideBattleFx','finalGateFx','sebbeFx','gvbFx','rtbFx','rouFx','bjFx','seaBuyFx','seaFx','slotFx','casinoMenu', /* the Extra Spin box before its machine: while it asks, the d-pad reaches its YES and NO, not Auto under it */
+ 'tideHub','tideBattleFx','finalGateFx','sebbeFx','gvbFx','rtbFx','rouFx','bjFx','fiveDealFx','fiveFx','seaBuyFx','seaFx','slotFx','casinoMenu', /* the Extra Spin box before its machine: while it asks, the d-pad reaches its YES and NO, not Auto under it */
  'chestFx','sharkFx','ritualDoneFx','ritualFx','talentFx','treeFx','smithFx','smithMenu','bankFx',
  'restFx','fishhutMenu','mineFx','smeltFx','enchFx','ledgerFx','boardFx','voyageFx','mercFx','dragonFx','stableFx','farmCheckoutFx','farmBuyFx','farmDelFx',
  'lbFx','create','select','login'];   /* the screens around the game last: nothing else is up while they are */
@@ -9198,7 +9198,7 @@ const PAD_BACK={treeFx:'treeClose',sebbeFx:'sebbeClose',finalGateFx:'finalGateNo
  confirmFx:'cfNo',outfitFx:'outfitOfferLater',iceReqMsg:'iceReqOk',iceMsg:'iceMsgOk',gateMsg:'gateMsgOk',cryptIntro:'cryptIntroOk',
  cfgBox:'cfgClose',slotFx:'slotClose',bjFx:'bjClose',rouFx:'rouClose',rtbFx:'rtbClose',
  seaFx:'seaClose',gvbFx:'gvbLeave',   /* the duel calls its exit Leave, not Close */
- seaBuyFx:'seaBuyNo',altarMsg:'altarMsgOk',create:'createBack',
+ seaBuyFx:'seaBuyNo',fiveFx:'fiveClose',fiveDealFx:'fiveDealNo',altarMsg:'altarMsgOk',create:'createBack',
  renameOv:'renameNo',prestigeConfirm:'prNo',hcConfirm:'hcNo',hcDeathOv:'hcBackBtn',raidModal:'raidCancel',mpLobby:'mpLeaveBtn'};
 /* ...and a few where B must do nothing at all: the last button there is not a way back - it exits the game from the hero
    list, signs in, or begins the ritual */
@@ -9218,7 +9218,7 @@ function padBack(host){
 /* 🎰 the casino's windows: the menu, its tables and Sebbe's cups (.open), and the duel (by its display). With chest
    set, a gamble chest's reel counts too: it covers the world the same way, though it opens anywhere. */
 function casinoWinOpen(chest){
- for(const id of ['casinoMenu','slotFx','seaFx','bjFx','rouFx','rtbFx','sebbeFx']){const e=$(id);if(e&&e.classList.contains('open'))return e;}
+ for(const id of ['casinoMenu','slotFx','seaFx','fiveFx','bjFx','rouFx','rtbFx','sebbeFx']){const e=$(id);if(e&&e.classList.contains('open'))return e;}
  const d=$('gvbFx');if(d&&d.style.display==='flex')return d;
  const c=chest&&$('chestFx');return c&&c.classList.contains('open')?c:null;
 }
@@ -15562,7 +15562,7 @@ $('seaClose').onclick=()=>{
 /* ==================== BLACKJACK ==================== */
 /* the table's lights, the cards' flash as they land, coins and the BLACKJACK banner live in assets/casino/casino-fx.js: told what happened, they decide nothing */
 function bjLook(name,...a){try{if(typeof CasinoFX!=='undefined'&&CasinoFX[name])return CasinoFX[name]('bjFx',...a);}catch(e){try{console.warn('casino fx',e);}catch(_){}}}
-const BJ_MIN=1000,BJ_MAX=15000,BJ_STEP=1000;
+const BJ_MIN=1000,BJ_MAX=30000,BJ_STEP=1000; /* max 30,000 a hand since 2026-10-11 (was 15,000) */
 let bjBet=1000,bjP=[],bjD=[],bjLive=false,bjWager=0;
 let bjSeenP=0,bjSeenD=0,bjHoleHidden=false,bjSettled=false; /* cards already on the table, counted per hand */
 let bjGen=0,bjResolving=false; /* generation guard: kills stale dealer timers so a new hand can never inherit them */
@@ -17799,6 +17799,365 @@ function treeSpellNote(sp,i){
  if(s.rad)bits.push('+'+Math.round(s.rad)+'% reach');
  return bits.join(' · ');
 }
+/* ==================== 5️⃣ FIVE FIVE FIVE - fives become wheels ====================
+   2026-10-11, the owner: "googla upp slotten six six six men det ska va 5 istället" - Hacksaw Gaming's SixSixSix, its rules
+   followed with fives instead of sixes, its look our own. 5 reels x 4 rows; 14 lines pay left to right from reel 1, in multiples
+   of the stake. A 5 lands only on reels 1, 3 and 5 (one a reel) and becomes a wheel: +N coins, xN for the whole spin (its line
+   wins too), MAX (15,555x) - or, on the base game's blue wheel, a 5: ten free spins, hotter for every 5 the wheels show at once
+   (Ember, Hellfire, Inferno - their red wheels pay more). Ember and Hellfire offer the Bargain, a fair gamble: 5 to 20 spins, or
+   the 5 that raises the fire. Every outcome is drawn when the spin is paid for; the reels and the wheels only show it. What it
+   pays and the free spins it brings go on the hero's save before anything moves (S.fivePay, S.fiveGift), so a game closed
+   mid-spin loses nothing - openFive and fiveTeardown hand them over. 96.0% back, worked out exactly in tests/casino-five.test.cjs. */
+const FIVE_BETS=[100,500,1000,2000],FIVE_MAX=15555,FIVE_SPINS=10,FIVE_BUY=[100,250]; /* bonus buys: Ember and Hellfire spins, x the stake */
+const FIVE_LINES=[[0,0,0,0,0],[1,1,1,1,1],[2,2,2,2,2],[3,3,3,3,3],[0,1,2,1,0],[3,2,1,2,3],[1,2,3,2,1],[2,1,0,1,2],[1,0,0,0,1],[2,3,3,3,2],[0,1,1,1,0],[3,2,2,2,3],[1,2,2,2,1],[2,1,1,1,2]];
+const FIVE_PAY={bones:[.2,1,3],axe:[.2,1,3],pipe:[.2,1,3],ale:[.2,1,3],tome:[.2,1,3],poison:[1,3,10],skull:[1,3,10],hound:[2,5,15],crown:[5,15,50]}; /* 3, 4 and 5 in a line */
+const FIVE_W={bones:30,axe:29,pipe:28,ale:27,tome:26,poison:9,skull:8,hound:5,crown:3}; /* every reel alike */
+const FIVE_STACK=0.4;    /* a cell copies the one above it this often: stacks, the same odds per cell */
+/* f: how often each of reels 1, 3 and 5 shows a 5; red: how many of them are red; guarantee: Inferno always has a red one */
+const FIVE_MODES={base:{f:0.025,red:0},t1:{f:0.2107,red:0.4},t2:{f:0.2653,red:1},t3:{f:0.4671,red:1,guarantee:true}};
+/* the wheels' slices [kind, value, weight] - equal on the wheel, not equally likely: the big ones are rare */
+const FIVE_BLUE=[['add',5,22],['add',10,9],['add',20,3],['add',50,1],['add',100,0.3],['mul',2,20],['mul',3,10],['mul',5,4],['mul',10,1],['five',0,4.71],['max',0,0.0003]];
+const FIVE_BLUE_FREE=FIVE_BLUE.filter(s=>s[0]!=='five'); /* free spins never bring more free spins */
+const FIVE_RED=[['add',10,30],['add',25,14],['add',50,6],['add',100,2.2],['add',250,0.5],['add',500,0.15],['mul',3,14],['mul',5,6],['mul',10,2],['mul',20,0.5],['max',0,0.0004]];
+/* the Bargain: 5-20 spins of the same fire, or 10 of the next - an Ember spin is worth 9.6x, Hellfire 24x, Inferno 60x (2.5x a step),
+   so these weights make it worth exactly the 10 spins it is staked against */
+const FIVE_DEAL=[[5,7],[8,5],[12,4],[16,2],[20,1],['up',1]];
+const FIVE_TIERS=['','EMBER SPINS','HELLFIRE SPINS','INFERNO SPINS'];
+const FIVE_WT=Object.values(FIVE_W).reduce((a,b)=>a+b,0);
+function fivePick(){let r=Math.random()*FIVE_WT;for(const k in FIVE_W){if((r-=FIVE_W[k])<0)return k;}return 'bones';}
+function fiveSegOf(tab){let t=0;for(const s of tab)t+=s[2];let r=Math.random()*t;for(let i=0;i<tab.length;i++){if((r-=tab[i][2])<0)return i;}return 0;}
+const fiveWheelOf=(mode,red)=>mode==='base'?FIVE_BLUE:red?FIVE_RED:FIVE_BLUE_FREE;
+/* the lines a grid pays: from reel 1, the same symbol on as many reels in a row as it runs; a 5 pays no line */
+function fiveLinesOf(grid){
+ const wins=[];let L=0;
+ FIVE_LINES.forEach((ln,i)=>{const s=grid[0][ln[0]].k;if(s==='five')return;let n=1;while(n<5&&grid[n][ln[n]].k===s)n++;if(n>=3){const p=FIVE_PAY[s][n-3];L+=p;wins.push({line:i,k:s,n,p});}});
+ return {L,wins};
+}
+/* one spin, drawn in full: the grid, a wheel for every 5 (left to right) and what it all pays, x the stake */
+function fiveRoll(mode){
+ const m=FIVE_MODES[mode],grid=[];
+ for(let r=0;r<5;r++){const col=[];let prev=null;for(let y=0;y<4;y++){const k=(prev&&Math.random()<FIVE_STACK)?prev:fivePick();col.push({k});prev=k;}grid.push(col);}
+ for(const r of [0,2,4])if(Math.random()<m.f){const y=Math.floor(Math.random()*4);grid[r][y]={k:'five',red:Math.random()<m.red};}
+ if(m.guarantee&&![0,2,4].some(r=>grid[r].some(c=>c.k==='five'&&c.red))){const r=[0,2,4][Math.floor(Math.random()*3)];grid[r][Math.floor(Math.random()*4)]={k:'five',red:true};}
+ const wheels=[];let A=0,M=1,n5=0,max=false;
+ for(const r of [0,2,4])grid[r].forEach((c,y)=>{
+  if(c.k!=='five')return;
+  const tab=fiveWheelOf(mode,c.red),i=fiveSegOf(tab),s=tab[i];
+  wheels.push({r,y,red:!!c.red,i,kind:s[0],v:s[1]});
+  if(s[0]==='add')A+=s[1];else if(s[0]==='mul')M*=s[1];else if(s[0]==='five')n5++;else max=true;
+ });
+ const {L,wins}=fiveLinesOf(grid);
+ const x=max?FIVE_MAX:Math.min(FIVE_MAX,Math.round((L+A)*M*100)/100);
+ return {grid,wheels,wins,L,A,M,n5,max,x};
+}
+/* a bought bonus: a spin that pays nothing and lands its 5s - one for Ember, two for Hellfire. Reel 2 shares no symbol with reel 1,
+   so no line can pay; the price buys the free spins and nothing else, as Slots' bought spin does */
+function fiveBoughtRoll(tier){
+ const o=fiveRoll('base'),g=o.grid;
+ for(const r of [0,2,4])g[r].forEach((c,y)=>{if(c.k==='five')g[r][y]={k:fivePick()};});
+ const first=new Set(g[0].map(c=>c.k));
+ g[1].forEach((c,y)=>{let k=c.k;for(let t=0;t<40&&first.has(k);t++)k=fivePick();if(first.has(k))k=Object.keys(FIVE_W).find(s=>!first.has(s));g[1][y]={k};});
+ const reels=[0,2,4].sort(()=>Math.random()-0.5).slice(0,tier),five=FIVE_BLUE.findIndex(s=>s[0]==='five');
+ const wheels=reels.sort((a,b)=>a-b).map(r=>{const y=Math.floor(Math.random()*4);g[r][y]={k:'five',red:false};return {r,y,red:false,i:five,kind:'five',v:0};});
+ return {grid:g,wheels,wins:[],L:0,A:0,M:1,n5:tier,max:false,x:0};
+}
+let fiveBetIx=0,fiveBet=FIVE_BETS[fiveBetIx],fiveFast=false;
+let fiveSpinning=false,fiveAuto=false,fiveAutoFree=false,fiveAutoTimer=0,fiveCelebrating=false,fiveCelebrateTimer=0;
+let fiveGen=0,fiveHero=null,fiveFree=0,fiveTier=0,fiveBought=0,fiveRunGold=0;
+let fiveSession={spins:0,gold:0};
+let fiveDeal=null,fiveDealTimer=0;   /* the Bargain on the table: {tier,gen,who} */
+let fiveTurnAt=-1e9;const FIVE_BOUNCE_MS=350;
+/* the machine's lights, wheels, imps and banners live in assets/casino/casino-fx.js: told what happened, they decide nothing */
+function fiveLook(name,...a){try{if(typeof CasinoFX!=='undefined'&&CasinoFX[name])return CasinoFX[name]('fiveFx',...a);}catch(e){try{console.warn('casino fx',e);}catch(_){}}}
+/* 🎨 painted symbols (assets/casino/f5_*, 2026-10-11); _b is the same picture smeared for a racing cell */
+const fiveArt=c=>c.k==='five'?(c.red?'five_red':'five_blue'):c.k;
+const fiveCellHtml=(c,blur)=>`<div class="fivecell${c.k==='five'?' fivefive'+(c.red?' red':''):''}"><img src="assets/casino/f5_${fiveArt(c)}${blur?'_b':''}.png" alt="${c.k==='five'?'5':c.k}" draggable="false"></div>`;
+/* free spins are the hero's, with their fire and the stake they were won at - closing the machine, or the game, keeps them */
+const fiveHeroFree=()=>Math.max(0,(S&&S.fiveFree)|0);
+function fiveKeep(){if(!S||S!==fiveHero)return;if(fiveFree>0){S.fiveFree=fiveFree;S.fiveTier=fiveTier;S.fiveFreeBetIx=fiveBetIx;}else{delete S.fiveFree;delete S.fiveTier;delete S.fiveFreeBetIx;}}
+function fiveSync(){
+ fiveHero=S;fiveFree=fiveHeroFree();fiveTier=fiveFree>0?Math.min(3,Math.max(1,(S.fiveTier|0)||1)):0;
+ if(fiveFree>0&&Number.isInteger(S.fiveFreeBetIx)&&FIVE_BETS[S.fiveFreeBetIx]!==undefined){fiveBetIx=S.fiveFreeBetIx;fiveBet=FIVE_BETS[fiveBetIx];}
+}
+const fiveReady=()=>{if(!S)return false;if(S!==fiveHero){fiveSync();stopFiveAuto();return false;}return true;};
+/* what is owed on the record goes to the hero it is written on: a spin's win (S.fivePay), and free spins (S.fiveGift) */
+function fivePayDue(){const n=Math.max(0,(S&&S.fivePay)|0);if(!n)return 0;delete S.fivePay;const r=addGoldOverflow(n);return r.got+r.over;}
+function fiveGrant(){
+ const g=S&&S.fiveGift;if(!g)return 0;delete S.fiveGift;
+ S.fiveFree=fiveHeroFree()+Math.max(1,g.spins|0);S.fiveTier=Math.min(3,Math.max(1,g.tier|0));S.fiveFreeBetIx=Number.isInteger(g.betIx)&&FIVE_BETS[g.betIx]!==undefined?g.betIx:fiveBetIx;
+ S.fiveRun=0;fiveRunGold=0;fiveSync();
+ return S.fiveFree;
+}
+function fiveHandOver(){ /* a spin left in the air (the game closed, the hero put away): its win and its free spins, now */
+ if(!S)return;
+ const paid=fivePayDue(),spins=S.fiveGift?fiveGrant():0;
+ if(paid)log(`Five Five Five: <span class="loot">+${paid.toLocaleString()} ◉</span> from the spin left in the air.`,'loot');
+ if(spins)log(`Five Five Five: <span class="llegendary">${FIVE_TIERS[S.fiveTier]} - ${spins} free spins</span> waiting.`,'loot');
+ if(paid||spins){save();renderHUD();}
+}
+/* where the reels are: 5 strips of cells, the last 4 the ones on show */
+function fiveCells(c){const s=$('fc'+c);return s?[...s.children].slice(-4):[];}
+function fiveAnimateReels(R,done){
+ const first=$('fc0').firstElementChild;
+ const CH=(first&&first.getBoundingClientRect().height)||60;
+ const g=R.o.grid,tease=g[0].some(c=>c.k==='five')&&g[2].some(c=>c.k==='five'); /* fives on reels 1 and 3: reel 5 takes its time */
+ const reels=[0,1,2,3,4].map(c=>{
+  const slow=tease&&c===4,filler=10+c*3+(slow?12:0),cells=[];
+  for(let i=0;i<filler;i++){const k=fivePick();cells.push({k});}
+  cells.push(...g[c]);
+  const el=$('fc'+c);
+  el.innerHTML=cells.map((x,i)=>fiveCellHtml(x,i<filler-2)).join('');
+  el.style.transform='translateY(0)';
+  return {el,c,dist:filler*CH,dur:(1100+c*300+(slow?1500:0))/(fiveFast?2:1),fin:false};
+ });
+ const t0=performance.now(),last=reels.map(()=>-1);
+ const tick=now=>{
+  if(R.gen!==fiveGen)return;
+  let all=true;
+  reels.forEach((r,i)=>{
+   const p=Math.min(1,(now-t0)/r.dur),e=1-Math.pow(1-p,3),y=-r.dist*e;
+   r.el.style.transform=`translateY(${y}px)`;
+   const cell=Math.floor(-y/CH);
+   if(cell!==last[i]){last[i]=cell;blip(650+Math.random()*250,420,0.025,.03,'square');}
+   if(p<1)all=false;
+   else if(!r.fin){r.fin=true;noiseHit(0.06,.08,700);fiveLook('stop',r.c,tease&&r.c===2);}
+  });
+  if(!all)requestAnimationFrame(tick);
+  else{reels.forEach(r=>{r.el.innerHTML=g[r.c].map(x=>fiveCellHtml(x)).join('');r.el.style.transform='translateY(0)';});done();}
+ };
+ requestAnimationFrame(tick);
+}
+const fiveSegLabel=s=>s[0]==='add'?'+'+s[1]+'x':s[0]==='mul'?'×'+s[1]:s[0]==='five'?'5':'MAX';
+/* the wheels, left to right: each spins to the slice already drawn, and the line under the reels keeps the running sum */
+function fiveWheels(R,i){
+ if(R.gen!==fiveGen)return;
+ const ws=R.o.wheels;
+ if(i>=ws.length){fiveShowLines(R);return;}
+ const w=ws[i],tab=fiveWheelOf(R.mode,w.red),ms=(fiveFast?1400:2600);
+ fiveLook('wheel',{r:w.r,y:w.y,red:w.red,slices:tab.map(fiveSegLabel),land:w.i,ms,n:i});
+ setTimeout(()=>{
+  if(R.gen!==fiveGen)return;
+  R.shown=(R.shown||[]).concat(fiveSegLabel(tab[w.i]));
+  const res=$('fiveRes');res.style.color=w.red?'#ff8a5a':'#8fc8ff';
+  res.textContent=(w.kind==='five'?'🔥 A 5 - FREE SPINS!':w.kind==='max'?'💀 MAX WIN!':'Wheels: '+R.shown.filter(t=>t!=='5').join(' · '));
+  if(w.kind==='add')blip(1300,1700,.12,.06);else if(w.kind==='mul')noiseSweep(.3,.07,400,2400);else if(w.kind==='five')dingDingDing(false);
+  fiveWheels(R,i+1);
+ },ms);
+}
+function fiveShowLines(R){
+ if(R.gen!==fiveGen)return;
+ const wins=R.o.wins;
+ if(wins.length){
+  for(const w of wins){const ln=FIVE_LINES[w.line];for(let c=0;c<w.n;c++){const el=fiveCells(c)[ln[c]];if(el)el.classList.add('hit');}}
+  fiveLook('lines',wins.map(w=>({cells:FIVE_LINES[w.line].slice(0,w.n)})));
+ }
+ setTimeout(()=>fivePayout(R),wins.length?(fiveFast?450:900):(fiveFast?150:300));
+}
+function fivePayout(R){
+ if(R.gen!==fiveGen)return;
+ fiveSpinning=false;
+ const res=$('fiveRes');res.classList.remove('bigres');
+ if(!S||S!==R.who){stopFiveAuto();return;} /* the hero who paid was put away: what is owed waits on their own save */
+ const paid=fivePayDue();
+ fiveSession.gold+=paid;if(R.free)fiveRunGold+=paid;
+ const x=R.bet?paid/R.bet:0,xs='x'+parseFloat(x.toFixed(2)),big=paid>=R.bet*10;
+ if(paid>0){
+  res.style.color=big?'#ffd76a':'#ffb07a';
+  res.textContent=(R.o.max?'💀 MAX WIN - ':big?'🔥 BIG WIN - ':'Win - ')+paid.toLocaleString()+'◉ · '+xs;
+  if(big){res.classList.add('bigres');dingDingDing(x>=100);}else sfx.loot();
+  log(`Five Five Five: <span class="${big?'llegendary':'loot'}">+${paid.toLocaleString()} ◉</span> ${xs}.`,'loot');
+  fiveLook('cheer',{amount:paid,at:'.fivegrid',tier:x>=100?'jackpot':big?'big':'small',title:R.o.max?'MAX WIN':x>=50?'MEGA WIN':'BIG WIN',ms:big?4200:2200});
+ }else if(!R.tier){res.style.color='#8f7a74';res.textContent=R.free?'The fire flickers…':'Nothing burns this time…';fiveLook('miss');}
+ renderHUD();save();
+ const after=()=>{
+  if(R.gen!==fiveGen||S!==R.who)return;
+  if(R.tier){fiveBonusWon(R);return;}
+  if(R.free&&fiveHeroFree()<=0)fiveBonusOver(R);
+  updateFiveUI();resumeFiveAuto();
+ };
+ if(big){fiveCelebrating=true;const gen=fiveGen;fiveCelebrateTimer=setTimeout(()=>{if(gen!==fiveGen)return;clearFiveCelebration();after();},4200);}
+ else after();
+ updateFiveUI();
+}
+/* 🔥 free spins won: the fanfare, then the Bargain for Ember and Hellfire - unless Auto is spinning, which never gambles */
+function fiveBonusWon(R){
+ const tier=(S.fiveGift&&S.fiveGift.tier)||R.tier,res=$('fiveRes');
+ res.style.color='#ff8a3a';res.classList.add('bigres');res.textContent='🔥 '+FIVE_TIERS[tier]+' - '+FIVE_SPINS+' FREE SPINS!';
+ dingDingDing(true);log(`Five Five Five: <span class="llegendary">🔥 ${FIVE_TIERS[tier]} - ${FIVE_SPINS} free spins!</span>`,'loot');
+ fiveLook('cheer',{amount:FIVE_SPINS,unit:'spins',at:'.fivegrid',tier:'big',title:FIVE_TIERS[tier],ms:2600});
+ const gen=fiveGen,who=S;
+ setTimeout(()=>{if(gen!==fiveGen||S!==who)return;res.classList.remove('bigres');if(tier<3&&!fiveAuto&&S.fiveGift)fiveOfferDeal(tier);else fiveTakeGift();},fiveFast?1200:2400);
+}
+function fiveTakeGift(){
+ if(!S)return;
+ fiveLook('calm');
+ const n=fiveGrant();save();
+ if(n){$('fiveRes').style.color='#ff8a3a';$('fiveRes').textContent='🔥 '+FIVE_TIERS[fiveTier]+' - '+n+' free spins';fiveLook('mode',fiveTier);}
+ updateFiveUI();resumeFiveAuto();
+}
+const fiveDealOpen=()=>!!fiveDeal;
+function fiveOfferDeal(tier){
+ fiveDeal={tier,gen:fiveGen,who:S};fiveLook('calm'); /* the trigger's wheels and banner make way for the question */
+ $('fiveDealTxt').innerHTML=`Your <b>${FIVE_SPINS} ${FIVE_TIERS[tier]}</b> for one turn of the wheel: <b>5, 8, 12, 16 or 20</b> spins - or a <b style="color:#ff8a3a">5</b>: ${FIVE_SPINS} <b>${FIVE_TIERS[tier+1]}</b>. A fair bargain: on average worth exactly what you hold.`;
+ let left=10;
+ const no=$('fiveDealNo'),tick=()=>{if(!fiveDeal)return;if(--left<=0)fiveDealAnswer(false);else{no.textContent='KEEP · '+left;fiveDealTimer=setTimeout(tick,1000);}};
+ no.textContent='KEEP · '+left;clearTimeout(fiveDealTimer);fiveDealTimer=setTimeout(tick,1000);
+ $('fiveDealFx').style.display='flex';
+ if(padFocus)padMark(no);fiveFocus('fiveDealNo');
+ updateFiveUI();
+}
+function fiveDealHide(){fiveDeal=null;clearTimeout(fiveDealTimer);$('fiveDealFx').style.display='none';}
+function fiveDealAnswer(yes){ /* one answer per question - a second press finds none */
+ const D=fiveDeal;if(!D)return;
+ fiveDealHide();fiveTurnAt=performance.now();
+ if(padFocus===$('fiveDealYes')||padFocus===$('fiveDealNo'))padMark($('fiveSpinBtn'));
+ if(D.gen!==fiveGen)return;
+ if(!yes||!S||S!==D.who||!S.fiveGift){fiveTakeGift();return;}
+ /* the wheel's slice is drawn now and goes on the record before the wheel turns */
+ let t=0;for(const s of FIVE_DEAL)t+=s[1];let r=Math.random()*t,i=0;for(;i<FIVE_DEAL.length-1;i++){if((r-=FIVE_DEAL[i][1])<0)break;}
+ const s=FIVE_DEAL[i],g=S.fiveGift;
+ if(s[0]==='up'){g.tier=Math.min(3,g.tier+1);g.spins=FIVE_SPINS;}else g.spins=s[0];
+ save();sfx.buy();
+ const ms=fiveFast?1800:3400;
+ fiveLook('deal',{land:i,slices:FIVE_DEAL.map(d=>d[0]==='up'?'':String(d[0])),ms}); /* the raise is the 5 itself, painted on its slice */
+ $('fiveRes').style.color='#ffb07a';$('fiveRes').textContent='The wheel of the Bargain turns…';
+ const gen=fiveGen,who=S;
+ setTimeout(()=>{
+  if(gen!==fiveGen||S!==who)return;
+  $('fiveRes').textContent=s[0]==='up'?'🔥 A 5 - the fire rises: '+FIVE_TIERS[g.tier]+'!':'The Bargain: '+g.spins+' '+FIVE_TIERS[g.tier];
+  if(s[0]==='up')dingDingDing(true);else blip(900,1300,.15,.05);
+  fiveTakeGift();
+ },ms);
+}
+$('fiveDealYes').onclick=()=>fiveDealAnswer(true);
+$('fiveDealNo').onclick=()=>fiveDealAnswer(false);
+function fiveBonusOver(R){
+ const total=fiveRunGold,res=$('fiveRes');fiveRunGold=0;delete S.fiveRun;
+ res.style.color='#ffd76a';res.textContent='🔥 Free spins over - '+total.toLocaleString()+'◉ in all · x'+parseFloat((total/R.bet).toFixed(2));
+ log(`Five Five Five: the free spins paid <span class="loot">${total.toLocaleString()} ◉</span> in all.`,'loot');
+ fiveLook('mode',0);if(total>=R.bet*20)fiveLook('cheer',{amount:total,tier:total>=R.bet*200?'jackpot':'big',title:'TOTAL WIN',ms:3600});
+}
+function clearFiveCelebration(){fiveCelebrating=false;clearTimeout(fiveCelebrateTimer);const r=$('fiveRes');if(r)r.classList.remove('bigres');fiveLook('calm');}
+function spinFive(){
+ if(!S||fiveSpinning||fiveCelebrating||fiveDeal)return;
+ fiveSync();
+ const isFree=fiveFree>0,bought=!isFree&&fiveBought>0?fiveBought:0;fiveBought=0;
+ const bet=fiveBet;
+ if(isFree){fiveFree--;fiveKeep();}
+ else if(!bought&&!spendGold(bet)){stopFiveAuto();stageMsg('Not enough gold - a spin costs '+bet.toLocaleString()+'◉',1400);sfx.warn();return;}
+ const mode=isFree?'t'+fiveTier:'base';
+ const o=bought?fiveBoughtRoll(bought):fiveRoll(mode);
+ /* what the spin pays, in gold, and the free spins it brings - on the record before the reels move. A bonus stops at the max win */
+ let gold=Math.round(o.x*bet);
+ if(isFree){const room=Math.max(0,FIVE_MAX*bet-((S.fiveRun|0)));gold=Math.min(gold,room);S.fiveRun=(S.fiveRun|0)+gold;if(S.fiveRun>=FIVE_MAX*bet){fiveFree=0;fiveKeep();}}
+ if(gold>0)S.fivePay=((S.fivePay|0))+gold;
+ const tier=bought||(isFree?0:Math.min(3,o.n5));
+ if(tier)S.fiveGift={tier,spins:FIVE_SPINS,betIx:fiveBetIx};
+ save();renderHUD();
+ fiveSpinning=true;fiveSession.spins++;if(!isFree&&!bought)fiveSession.gold-=bet;
+ const R={o,gold,tier,bet,free:isFree,mode,gen:fiveGen,who:S};
+ const res=$('fiveRes');res.classList.remove('bigres');res.style.color=isFree?'#ff8a3a':'#8f7a74';
+ res.textContent=isFree?'🔥 '+FIVE_TIERS[fiveTier]+' - '+fiveFree+' left after this':' ';
+ fiveLook('spin',{free:isFree});
+ updateFiveUI();sfx.buy();
+ fiveAnimateReels(R,()=>fiveWheels(R,0));
+}
+function updateFiveUI(){
+ if(!S)return;
+ if(S!==fiveHero)fiveSync();
+ const b=$('fiveSpinBtn'),cost=fiveBet;
+ if(b){
+  b.disabled=fiveSpinning||fiveCelebrating||fiveDealOpen()||(fiveFree<=0&&totalGold()<cost);
+  b.textContent=fiveFree>0?'🔥 FREE SPIN · '+fiveFree+' left':totalGold()<cost?'Spin · '+cost.toLocaleString()+'◉ - broke!':'Spin · '+cost.toLocaleString()+'◉';
+ }
+ const a=$('fiveAutoBtn');if(a){a.classList.toggle('on',fiveAuto);a.textContent=fiveAuto?'■ Stop':'▶ Auto';a.disabled=fiveDealOpen();}
+ $('fiveBetN').textContent=cost.toLocaleString()+'◉';
+ const lock=fiveSpinning||fiveAuto||fiveFree>0||fiveDealOpen();
+ $('fiveBetDn').disabled=lock||fiveBetIx<=0;$('fiveBetUp').disabled=lock||fiveBetIx>=FIVE_BETS.length-1;
+ [1,2].forEach(t=>{const bb=$('fiveBuy'+t);if(!bb)return;const price=fiveBet*FIVE_BUY[t-1];
+  bb.textContent='🔥 '+(t===1?'Ember':'Hellfire')+' · '+price.toLocaleString()+'◉';
+  bb.disabled=fiveSpinning||fiveCelebrating||fiveAuto||fiveFree>0||fiveDealOpen()||totalGold()<price;});
+ const st=$('fiveStats'),s=fiveSession;
+ if(st)st.textContent=s.spins?`Session: ${s.spins} spin${s.spins===1?'':'s'} · ${s.gold>=0?'+':''}${s.gold.toLocaleString()}◉`:'';
+ fiveLook('mode',fiveFree>0?fiveTier:0);
+ if(!fiveDealOpen())fiveFocus('fiveSpinBtn');
+}
+/* keyboard focus follows the play, as at the other machines: on Spin once it is live again, on KEEP when the Bargain asks */
+function fiveFocus(id){
+ const fx=$('fiveFx'),el=$(id);
+ if(!fx.classList.contains('open')||el.disabled)return;
+ const a=document.activeElement;
+ if(!a||a===document.body||!a.getClientRects().length||(fx.contains(a)&&a.disabled))el.focus({preventScroll:true});
+}
+function resumeFiveAuto(){
+ if(!fiveAuto)return;
+ if(!S){stopFiveAuto();return;}
+ const free=fiveHeroFree();
+ if(fiveAutoFree&&free<=0){stopFiveAuto();stageMsg('Free spins over - Auto stopped',1600);return;}
+ if(free<=0&&totalGold()<fiveBet){stopFiveAuto('Out of gold - Auto stopped');return;}
+ const gen=fiveGen,who=S;
+ fiveAutoTimer=setTimeout(()=>{if(gen===fiveGen&&fiveAuto&&!fiveCelebrating&&!fiveSpinning&&!fiveDeal&&$('fiveFx').classList.contains('open')){if(S!==who){stopFiveAuto();return;}spinFive();}},fiveFast?400:800);
+}
+function stopFiveAuto(msg){
+ fiveAuto=false;fiveAutoFree=false;clearTimeout(fiveAutoTimer);
+ if(msg){$('fiveRes').style.color='#ff8a7a';$('fiveRes').textContent=msg;$('fiveRes').classList.remove('bigres');sfx.warn();}
+ updateFiveUI();
+}
+function openFive(){
+ if(!S)return;
+ fiveSync();
+ $('fiveFx').classList.add('open');fiveTurnAt=performance.now();
+ fiveLook('open');
+ if(fiveSpinning){updateFiveUI();return;} /* a spin closed on Auto is still landing: its reels and its session stay */
+ clearFiveCelebration();
+ fiveSession={spins:0,gold:0};
+ fiveHandOver();
+ for(let c=0;c<5;c++){const cells=[];for(let y=0;y<4;y++)cells.push({k:fivePick()});$('fc'+c).innerHTML=cells.map(x=>fiveCellHtml(x)).join('');$('fc'+c).style.transform='translateY(0)';}
+ $('fiveRes').innerHTML='&nbsp;';
+ updateFiveUI();
+}
+/* 🧹 the hero is put away (hero list, logout, kick, entering the world): what a spin in the air owed - its win, its free spins -
+   goes on the hero now, the free spins stay theirs, and everything in flight stops. Safe with no hero at all */
+function fiveTeardown(){
+ fiveGen++;
+ if(S){if(S===fiveHero)fiveKeep();fivePayDue();if(S.fiveGift)fiveGrant();}
+ fiveFree=0;fiveTier=0;fiveBought=0;fiveHero=null;fiveRunGold=0;
+ fiveAuto=false;fiveAutoFree=false;clearTimeout(fiveAutoTimer);
+ fiveSpinning=false;
+ $('fiveFx').classList.remove('open');
+ fiveDealHide();clearFiveCelebration();
+ fiveLook('reset');
+}
+$('fiveSpinBtn').onclick=e=>{if(e&&e.detail===0&&performance.now()-fiveTurnAt<FIVE_BOUNCE_MS)return;if(fiveReady()&&!fiveAuto)spinFive();};
+$('fiveFx').addEventListener('keydown',e=>{if(e.repeat&&e.key==='Enter')e.preventDefault();}); /* a held Enter presses once */
+$('fiveFastBtn').onclick=()=>{fiveFast=!fiveFast;$('fiveFastBtn').classList.toggle('on',fiveFast);};
+$('fiveInfoBtn').onclick=()=>{const p=$('fivePay');if(p)p.style.display=p.style.display==='none'?'grid':'none';};
+$('fiveAutoBtn').onclick=()=>{
+ if(!fiveReady())return;
+ if(fiveAuto){stopFiveAuto();return;}
+ if(fiveDealOpen())return;
+ const free=fiveFree>0;
+ if(!free&&totalGold()<fiveBet){stageMsg('Not enough gold to start auto-spin',1400);sfx.warn();return;}
+ fiveAuto=true;fiveAutoFree=free;updateFiveUI();
+ if(!fiveSpinning&&!fiveCelebrating)spinFive();
+};
+$('fiveBetDn').onclick=()=>{if(fiveReady()&&fiveBetIx>0&&!fiveSpinning&&!fiveAuto&&fiveFree<=0){fiveBetIx--;fiveBet=FIVE_BETS[fiveBetIx];updateFiveUI();}};
+$('fiveBetUp').onclick=()=>{if(fiveReady()&&fiveBetIx<FIVE_BETS.length-1&&!fiveSpinning&&!fiveAuto&&fiveFree<=0){fiveBetIx++;fiveBet=FIVE_BETS[fiveBetIx];updateFiveUI();}};
+[1,2].forEach(t=>{$('fiveBuy'+t).onclick=()=>{
+ if(!fiveReady()||fiveSpinning||fiveCelebrating||fiveAuto||fiveFree>0||fiveDeal)return;
+ const price=fiveBet*FIVE_BUY[t-1];
+ if(!spendGold(price)){stageMsg('Not enough gold - '+FIVE_TIERS[t].toLowerCase()+' cost '+price.toLocaleString()+'◉',1600);sfx.warn();return;}
+ fiveSession.gold-=price;renderHUD();
+ fiveBought=t;spinFive(); /* the spin lands the fives; its free spins go on the record before it moves */
+};});
+$('fiveClose').onclick=()=>{
+ if(!S){fiveTeardown();casinoAmbApply();return;}
+ if(fiveDealOpen()){fiveDealAnswer(false);return;} /* on the Bargain, Close (a pad's B) keeps the spins */
+ if(fiveSpinning){const auto=fiveAuto;if(auto)stopFiveAuto();stageMsg(auto?'Auto stopped - wait for the reels':'Wait for the reels to stop',1200);sfx.warn();return;}
+ $('fiveFx').classList.remove('open');
+ stopFiveAuto();clearFiveCelebration();clearTimeout(fiveAutoTimer);fiveLook('reset');
+ casinoAmbApply();
+};
 /* ==================== CASINO BUILDING MENU ==================== */
 function bankRefresh(){
  $('bankGoldN').textContent=(S.bankGold||0).toLocaleString();
@@ -20047,7 +20406,7 @@ setInterval(()=>{
    keeps the City's sound; the Final Gate's box is no casino at all. */
 let casinoAudio=null;
 function casinoAmbApply(){
- const anyOpen=['casinoMenu','slotFx','seaFx','bjFx','rouFx','rtbFx'].some(id=>{const e=$(id);return e&&e.classList.contains('open');})||($('gvbFx')&&$('gvbFx').style.display==='flex');
+ const anyOpen=['casinoMenu','slotFx','seaFx','fiveFx','bjFx','rouFx','rtbFx'].some(id=>{const e=$(id);return e&&e.classList.contains('open');})||($('gvbFx')&&$('gvbFx').style.display==='flex');
  if(anyOpen){
   if(!casinoAudio){casinoAudio=new Audio('ambientsong/casino_ambient.mp3');casinoAudio.loop=true;casinoAudio.onerror=()=>{casinoAudio=null;};} /* a dead element is dropped, so the next open makes a new one */
   const v=ambVol();casinoAudio.volume=v;casinoAudio.muted=v<=0;
@@ -20070,13 +20429,23 @@ function casinoAmbApply(){
 }
 /* the lights round the casino's menu and the glint on its painted games live in assets/casino/casino-fx.js: told what happened, they decide nothing */
 function menuLook(name,...a){try{if(typeof CasinoFX!=='undefined'&&CasinoFX[name])return CasinoFX[name]('casinoMenu',...a);}catch(e){try{console.warn('casino fx',e);}catch(_){}}}
-function openCasinoMenu(){$('casinoMenu').classList.add('open');menuLook('open');initAudio();casinoAmbApply();}
-$('casinoMenuClose').onclick=()=>{$('casinoMenu').classList.remove('open');casinoAmbApply();};
+/* 🎰 the menu's two pages: the games, and the slot machines behind its Slots (2026-10-11, "när man klickar slots så ska den komma
+   upp en flik där man kan välja vilken slot"). Back - its button, B, Esc - returns from the machines to the games */
+function casinoMenuPage(slots){
+ $('casinoMain').style.display=slots?'none':'';$('casinoSlots').style.display=slots?'':'none';$('casinoMenuClose').style.display=slots?'none':'';
+ const first=$(slots?'casinoSlots':'casinoMain').querySelector('.casinopick');
+ if(first&&$('casinoMenu').classList.contains('open')){if(padFocus)padMark(first);else if(document.activeElement&&document.activeElement.closest&&document.activeElement.closest('#casinoMenu'))first.focus({preventScroll:true});}
+}
+function openCasinoMenu(){$('casinoMenu').classList.add('open');casinoMenuPage(false);menuLook('open');initAudio();casinoAmbApply();}
+$('casinoMenuClose').onclick=()=>{if($('casinoSlots').style.display!=='none'){casinoMenuPage(false);return;}$('casinoMenu').classList.remove('open');casinoAmbApply();};
+$('casinoSlotsBack').onclick=()=>casinoMenuPage(false);
 document.querySelectorAll('.casinopick').forEach(b=>b.onclick=()=>{
  const g=b.dataset.game;
+ if(g==='slotpick'){casinoMenuPage(true);return;}
  $('casinoMenu').classList.remove('open');
  if(g==='slots')openSlots();
  else if(g==='sea')openSea();
+ else if(g==='five')openFive();
  else if(g==='bj')openBJ();
  else if(g==='rou')openRoulette();
  else if(g==='rtb')openRTB();
@@ -21490,7 +21859,7 @@ $('newCharBtn').onclick=()=>showCreate(false);
 /* a round on a casino table belongs to the hero who paid for it: its payout (and a bought bonus) must not land on the next one.
    Nor may an idle window stay open: it outlived the hero list with its free spins and its next round, and paid the next hero */
 function casinoRoundOpen(){
- const busy=seaSpinning||slotSpinning||bjLive||bjResolving||rouSpinning||rtbLive||cupState==='shuffling'||cupState==='picking';
+ const busy=seaSpinning||slotSpinning||fiveSpinning||bjLive||bjResolving||rouSpinning||rtbLive||cupState==='shuffling'||cupState==='picking';
  const open=casinoWinOpen(true);
  if(busy||open){stageMsg(busy?'Finish the game on the table first.':open.id==='chestFx'?'Close the chest first.':'Close the game first.',1600);sfx.warn();}
  return busy||!!open;
@@ -21503,6 +21872,7 @@ function closeCasinoWindows(){
  const down=f=>{try{f();}catch(e){console.warn('casino teardown failed',e);}};
  if(typeof slotTeardown==='function')down(slotTeardown);
  if(typeof seaTeardown==='function')down(seaTeardown);
+ if(typeof fiveTeardown==='function')down(fiveTeardown);
  if(typeof bjTeardown==='function')down(bjTeardown);
  if(typeof rouTeardown==='function')down(rouTeardown);
  if(typeof rtbTeardown==='function')down(rtbTeardown);
@@ -21527,7 +21897,7 @@ function casinoInertSync(){
  for(const el of behind)if(!el.inert){el.inert=true;casinoInert.push(el);}
 }
 {const watch=new MutationObserver(casinoInertSync);
- for(const id of ['casinoMenu','slotFx','seaFx','bjFx','rouFx','rtbFx','sebbeFx','gvbFx','chestFx'])if($(id))watch.observe($(id),{attributes:true,attributeFilter:['class','style']});}
+ for(const id of ['casinoMenu','slotFx','seaFx','fiveFx','bjFx','rouFx','rtbFx','sebbeFx','gvbFx','chestFx'])if($(id))watch.observe($(id),{attributes:true,attributeFilter:['class','style']});}
 $('charSelBtn').onclick=async()=>{if(hcNoFlee()||sceneHoldsTravel()||casinoRoundOpen())return;dropFarmBuild();await save();showSelect();}; /* dropFarmBuild first: a half-dragged resize was saved into the hero being left */
 $('fbLogin').onclick=()=>fbSignIn(false);
 $('fbSignup').onclick=()=>fbSignIn(true);
