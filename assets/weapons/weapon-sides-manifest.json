@@ -1,0 +1,154 @@
+{
+ "generator": "Higgsfield nano_banana_pro (2k; jobs report nano_banana_2)",
+ "date": "2026-10-12",
+ "description": "Every hero weapon turned a quarter round and seen from its edge - what a weapon on the hero's back shows when he is seen from the side. Asked for 2026-10-12: \"göra asset för frostseeker, felglaive och alla default vapen från sidan\".",
+ "how": "One two-view sheet per weapon on #FF00FF (LEFT the front as in the reference, RIGHT the same weapon turned 90 degrees about its long axis), the weapon's own front picture on magenta as the only reference (aspect 3:4, the single glaive 1:1). Cut with scratchpad wside/cut_weapons.py: magenta keyed, the sheet's front scaled to the real picture's visible height, the side on that one factor, tone-matched per channel from the sheet's front to the real picture, standing in a canvas as tall as the real picture with its top on the real top - so the game draws it at the same length H.",
+ "felglaive_side": "one glaive of the warrior's pair: the pair art's left half up to the end of its crystal plate (x 0-1155), turned tip-up - the spare glaive seen from the side",
+ "prompt_template": "PROMPT=(\"Two views of the EXACT {noun} in the reference image, side by side on a flat solid magenta (#FF00FF) background. Both views stand \"\n \"upright with the {top} at the top, both exactly the same height, their top ends level with each other and their bottom ends level \"\n \"with each other, separated by a wide strip of empty magenta. LEFT: the {noun} exactly as in the reference image, seen from the front. \"\n \"RIGHT: the same {noun} turned 90 degrees around its long vertical axis, seen exactly from the side: {side}. Same painted game-art \"\n \"style, same colours, same materials and glow, same thick dark outline as the reference. Nothing else: no hands, no character, no \"\n \"shadow, no floor, no text, no labels, no frame.\")",
+ "weapons": {
+  "sword": {
+   "file": "assets/weapons/sword_side.png",
+   "front": "assets/weapons/sword.png",
+   "kind": "sword",
+   "jobId": "9e640115-c4d9-42d4-993b-9f554c87c28e",
+   "side_vs_front_height": 1.001,
+   "width_vs_front": 0.292,
+   "out": [
+    86,
+    1209
+   ]
+  },
+  "mace": {
+   "file": "assets/weapons/mace_side.png",
+   "front": "assets/weapons/mace.png",
+   "kind": "mace",
+   "jobId": "094461ec-07be-4bf2-8812-6c7f6f7b5939",
+   "side_vs_front_height": 1.001,
+   "width_vs_front": 0.584,
+   "out": [
+    223,
+    1142
+   ]
+  },
+  "staff": {
+   "file": "assets/weapons/staff_side.png",
+   "front": "assets/weapons/staff.png",
+   "kind": "staff",
+   "jobId": "b0b07465-5059-4a0e-86da-6132c99100b0",
+   "side_vs_front_height": 1.0,
+   "width_vs_front": 0.531,
+   "out": [
+    111,
+    1201
+   ]
+  },
+  "bow": {
+   "file": "assets/weapons/bow_side.png",
+   "front": "assets/weapons/bow.png",
+   "kind": "bow",
+   "jobId": "91eafe37-60c8-400b-a0c0-e4545d7f5a68",
+   "side_vs_front_height": 1.001,
+   "width_vs_front": 0.445,
+   "out": [
+    77,
+    1187
+   ]
+  },
+  "frostseeker": {
+   "file": "assets/models/frostseeker_side.png",
+   "front": "assets/models/frostseeker.png",
+   "kind": "sword",
+   "jobId": "0a999296-00f7-4c39-937a-ff497e63cf1e",
+   "side_vs_front_height": 1.003,
+   "width_vs_front": 0.291,
+   "out": [
+    144,
+    1536
+   ]
+  },
+  "frostseeker_mace": {
+   "file": "assets/models/frostseeker_mace_side.png",
+   "front": "assets/models/frostseeker_mace.png",
+   "kind": "mace",
+   "jobId": "d5d7783f-afc9-4b87-9c52-d3da64be6138",
+   "side_vs_front_height": 0.998,
+   "width_vs_front": 0.739,
+   "out": [
+    495,
+    1536
+   ]
+  },
+  "frostseeker_staff": {
+   "file": "assets/models/frostseeker_staff_side.png",
+   "front": "assets/models/frostseeker_staff.png",
+   "kind": "staff",
+   "jobId": "1414a869-56f1-4c08-9d3d-6dfb5b9cadc5",
+   "side_vs_front_height": 1.0,
+   "width_vs_front": 0.523,
+   "out": [
+    194,
+    1536
+   ]
+  },
+  "frostseeker_bow": {
+   "file": "assets/models/frostseeker_bow_side.png",
+   "front": "assets/models/frostseeker_bow.png",
+   "kind": "bow",
+   "jobId": "a8a8457b-f3e3-4252-acf6-04d24d604916",
+   "side_vs_front_height": 1.003,
+   "width_vs_front": 0.172,
+   "out": [
+    92,
+    1536
+   ]
+  },
+  "felglaive_mace": {
+   "file": "assets/models/felglaive_mace_side.png",
+   "front": "assets/models/felglaive_mace.png",
+   "kind": "mace",
+   "jobId": "42fcf7f1-a286-4c17-9d8d-8bae36fd01cc",
+   "side_vs_front_height": 1.003,
+   "width_vs_front": 0.399,
+   "out": [
+    304,
+    1536
+   ]
+  },
+  "felglaive_staff": {
+   "file": "assets/models/felglaive_staff_side.png",
+   "front": "assets/models/felglaive_staff.png",
+   "kind": "staff",
+   "jobId": "acc6b5c9-6c70-4991-b5f9-5cce2ca3002f",
+   "side_vs_front_height": 1.005,
+   "width_vs_front": 0.345,
+   "out": [
+    187,
+    1536
+   ]
+  },
+  "felglaive_bow": {
+   "file": "assets/models/felglaive_bow_side.png",
+   "front": "assets/models/felglaive_bow.png",
+   "kind": "bow",
+   "jobId": "28835aaf-8bbc-403d-a506-d273e28d4b49",
+   "side_vs_front_height": 1.003,
+   "width_vs_front": 0.445,
+   "out": [
+    252,
+    1536
+   ]
+  },
+  "felglaive_single": {
+   "file": "assets/models/felglaive_side.png",
+   "front": "assets/models/felglaive.png (left half to x 1155, turned tip-up)",
+   "kind": "glaive",
+   "jobId": "a136581e-400f-4694-841d-d52c716fc22c",
+   "side_vs_front_height": 1.003,
+   "width_vs_front": 0.197,
+   "out": [
+    180,
+    1155
+   ]
+  }
+ }
+}

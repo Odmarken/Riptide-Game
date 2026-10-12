@@ -79,6 +79,11 @@ function runeUnder(g,w,img,x,y,W,H,gripFrac,sx,sw,time){
 function runeOnSpare(g,w,img,x,y,W,H,gripFrac,sx,sw,draw,time){
  const sp=runeUnder(g,w,img,x,y,W,H,gripFrac,sx,sw,time);if(sp)runeTint(g,w,sp,x,y,W,H);else draw();
 }
+/* The rune's colour without its halo: the second copy of a weapon on the back that the side view lays over long hair - the copy
+   behind the body already lights the air around it, and a second additive halo would double it there. */
+function runeTintOnly(g,w,img,x,y,W,H,gripFrac,sx,sw,draw){
+ const sp=w?runeGlowSprite(img,w.glow,gripFrac,sx,sw,w.id==='veinseeker'?.32:.12):null;if(sp)runeTint(g,w,sp,x,y,W,H);else draw();
+}
 function runePathPoint(path,u,x,y,W,H){
  const k=Math.max(0,Math.min(1,u))*(path.length-1),i=Math.floor(k),a=path[i],b=path[Math.min(i+1,path.length-1)],f=k-i;
  return {x:x+(a[0]+(b[0]-a[0])*f)*W,y:y+(a[1]+(b[1]-a[1])*f)*H};

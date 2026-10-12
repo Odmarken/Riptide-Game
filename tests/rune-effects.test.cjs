@@ -253,6 +253,25 @@ test('enchanted spares draw one recoloured base, while unenchanted or unloaded s
  }
 });
 
+test('the copy laid over long hair from the side wears the rune colour without a second halo', () => {
+ /* 2026-10-12: above the hair band the copy behind the body already lights the air - a second additive halo doubled it */
+ const h = harness(), img = image(), rec = recordingContext({globalAlpha: .61, globalCompositeOperation: 'multiply'});
+ let rawDraws = 0;
+ const raw = () => {rawDraws++;rec.g.drawImage(img, -12, -6, 24, 12);};
+ h.context.runeTintOnly(rec.g, rune('veinseeker'), img, -12, -6, 24, 12, 0, 0, 85, raw);
+ const sp = h.context.runeGlowSprite(img, '#aabbcc', 0, 0, 85, .32);
+ assert.equal(rawDraws, 0);
+ assert.equal(rec.ops.filter(op => op.type === 'image' && op.img === sp.art).length, 1, 'the recoloured weapon, as on the spare');
+ assert.equal(rec.ops.filter(op => op.type === 'image' && op.img === sp.cv).length, 0, 'no halo');
+ assert.equal(rec.g.globalAlpha, .61);assert.equal(rec.g.globalCompositeOperation, 'multiply');assert.equal(rec.stack.length, 0);
+ for (const [w, sourceImg] of [[null, img], [rune('emberbite'), image({complete: false})]]) {
+  rec.ops.length = 0;
+  const before = rawDraws;
+  h.context.runeTintOnly(rec.g, w, sourceImg, -12, -6, 24, 12, 0, 0, 85, raw);
+  assert.equal(rawDraws, before + 1);assert.equal(rec.ops.length, 1);assert.equal(rec.ops[0].img, img);
+ }
+});
+
 test('the shared particle limit prevents runaway rune allocation', () => {
  const h = harness();h.context.parts = Array.from({length: 479}, () => ({}));
  emitSeconds(h, 'emberbite', 10);

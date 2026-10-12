@@ -46,19 +46,24 @@ test('a tap on Space pauses and goes on through the pause button, held it still 
   assert.ok(rows.includes("['H','Put your weapon on your back, or take it out.") && rows.includes("['Space','Tap: pause the game, tap again to go on. Hold: dance']"));
 });
 
-test('on the back like the spare Fel Glaive, nothing in the hand; the warrior\'s pair takes both shoulders, the second mirrored', () => {
+test('on the back like the spare Fel Glaive, nothing in the hand; the warrior\'s second whole glaive crosses the spare', () => {
   const champ = section('function drawChampionSprite(', '\n/* 🛡 The warrior');
-  assert.ok(champ.startsWith('function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painted,iceArm,rune,riding,effectTime,holster){'));
-  assert.ok(champ.indexOf('if(holstered)drawHolstered(') < champ.indexOf('const frame=painted?paintedCharacterFrame('), 'behind the body');
-  assert.ok(champ.includes("if(weaponId==='hidden'||holstered)return null;"), 'no weapon in the hand, no shield on the arm');
+  assert.ok(champ.startsWith('function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painted,iceArm,rune,riding,effectTime,holster,view){'));
+  /* behind the body - and over it when he is seen from behind (🧭 2026-10-12, tests/hero-views.test.cjs draws it) */
+  assert.ok(champ.includes('if(spare&&band==null)spare();if(holstered)drawHolstered('), 'the spare glaive and the holstered weapon go together (the hair pass is the weapon alone)');
+  assert.ok(champ.indexOf('if(!late)onBack();') < champ.indexOf('if(!late)paintBody();'), 'behind the body');
+  assert.ok(champ.includes('const finish=()=>{if(late){if(!bodyDone)paintBody();onBack();headAgain();}};'), 'over his back when the camera is behind him, his head laid again over it, his boots under it');
+  assert.ok(champ.includes('const spare=isFGLegend(weaponId)&&!fgArtFor(clsId)?'), 'the spare stays on his back when the pair joins it');
+  assert.ok(champ.includes("if(weaponId==='hidden'||holstered){finish();return null;}"), 'no weapon in the hand, no shield on the arm');
   const back = section('function drawHolstered(', '\nfunction drawChampionSprite(');
-  assert.match(back, /g\.translate\(7,-34\+by\);g\.scale\(-1,1\);g\.rotate\(1\.22\);/, 'the spare glaive (-7, rotate 1.22) mirrored on the right shoulder');
+  assert.ok(back.includes('drawBackGlaive(g,view,by,rune,effectTime,true,bx,headX);'), 'the second glaive: the spare\'s mirror, whole');
+  assert.ok(champ.includes("drawBackGlaive(g,fv,by,rune,effectTime,fv==='back'&&!holstered,"), 'the spare: one whole glaive, mirrored from behind while alone');
   assert.match(back, /warriorShieldOn\(clsId,fm,weaponId\)/, 'the shield goes on the back with the sword');
   const art = section('function backWeaponArt(', '\nfunction drawHolstered(');
   for (const img of ['staffImg', 'maceImg', 'bowImg', 'swordImg', 'fkArtFor', 'fgArtFor']) assert.ok(art.includes(img), img);
   /* 2026-10-10 "stringen inåt": every hunter's bow - plain, Frostseeker, Fel Glaive - lies with its string against the back */
   for (const flag of ['bow:fa===FG_ART.hunter', 'bow:a===FK_ART.hunter', 'bow:own[0]===bowImg']) assert.ok(art.includes(flag), flag);
-  assert.ok(back.includes("if(art.up==='hilt')g.rotate(Math.PI);   /* the spare glaive's shoulder, leaning further out: the head hides the rest */\n  if(art.bow)g.scale(-1,1);"), 'mirrored across its length, after the lean');
+  assert.ok(back.indexOf("if(art.up==='hilt')g.rotate(Math.PI);}") < back.indexOf('if(art.bow){g.scale(-1,1);'), 'mirrored across its length, after the lean');
 });
 
 test('raid-mates see it: the position message carries hl and the ghost draws it', () => {
@@ -66,5 +71,5 @@ test('raid-mates see it: the position message carries hl and the ghost draws it'
   assert.ok(game.includes('p.hl=m.hl?1:0;'));
   assert.ok(game.includes('attacking:!!p.atk,fxAura,holster:!!p.hl}'));
   assert.ok(game.includes('look.hw?null:wenchById(look.wench),null,undefined,!!anim.holster);'));
-  assert.ok(game.includes("wRune,ride,undefined,!!h.holster);") && game.includes("outfitArg(),wRune,null,undefined,!!h.holster);"), 'the hero, on foot and in the saddle');
+  assert.ok(game.includes("wRune,ride,undefined,!!h.holster,shown);") && game.includes("outfitArg(),wRune,null,undefined,!!h.holster,shown);"), 'the hero, on foot and in the saddle');
 });

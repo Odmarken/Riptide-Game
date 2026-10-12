@@ -1,0 +1,435 @@
+{
+  "generator": "Higgsfield",
+  "model": "nano_banana_pro (Nano Banana Pro; the job reports nano_banana_2)",
+  "resolution": "2k",
+  "aspect_ratio": "16:9",
+  "date": "2026-10-12",
+  "description": "Side and back views of the hero sprites, a test with the human male warrior only (the user: 'vi testar med human male warrior sidoprofil och bakifrån'). One turnaround sheet - front, side, back in one row on flat #FF00FF - so the model keeps the proportions; the front on the sheet is only a yardstick, the original humanmale_warrior.png stays the front. Not wired into the game yet.",
+  "reference": "humanmale_warrior.png flattened on #FF00FF, 1100x1000 (media 5dff801a-947d-4226-99dc-22c6a53cd177)",
+  "jobId": "888a4906-63fe-437d-aed5-ef7ebd430f71",
+  "picked_over": "bd8c8755-d3c0-405d-92fb-7662ec07a252 (gpt_image_2_5 flare high 2k, same prompt: just as clean, the side view faced right as asked, but its shoulder and belt lines sat about 1% higher and the back came out 0.75% short)",
+  "prompt": "Character turnaround sheet of the EXACT character in the reference image: a cute chibi human warrior with a very big head, shoulder-length wavy dark brown hair, brown eyes, light stubble, warm tan skin, steel plate armor with copper trim and rivets, layered pauldrons, a brown leather belt with a square bronze buckle, and a short plate skirt. Three views side by side in ONE row on a flat solid magenta (#FF00FF) background, all at the SAME scale and standing on the SAME baseline, with wide empty magenta gaps between them:\nLEFT - the front view, exactly as in the reference image.\nMIDDLE - an exact side profile, the whole body turned 90 degrees so he faces the RIGHT edge of the picture; one eye, the nose and the chin in profile, the hair falling behind the ear, the near arm hanging at his side with the fist at the same height as in the front view.\nRIGHT - the back view seen straight from behind: the back of the hair, the back plate, the backs of the pauldrons, the belt going round, both fists at his sides.\nKeep the proportions identical in all three: the head is exactly the same size, and the top of the head, the chin, the shoulders, the belt and the lower hem of the armor skirt are at exactly the same heights in every view. Same painted chibi game-art style, same colours, same thick dark outline as the reference. The hands are empty fists - no weapon, no shield. Like the reference, each figure ends at the hem of the armor skirt: no legs and no feet below it. No shadow, no floor, no text, no labels, no frame.",
+  "cut": "One scale for all three views: the sheet's front is made as tall as the original sprite (800 px). Magenta keyed by its excess min(R,B)-G (this palette has no colour near it, so enclosed gaps go too), edge colours unmixed from the magenta, any purple cast left (the plate reflects the background) taken off so min(R,B) never stands more than 10 above G - as in the original - and the edge tightened to the original's crispness. Each view stands on the bottom edge of an 800 px canvas, cropped tight left and right, so drawn at the front's height it keeps its true size.",
+  "sprites": {
+    "humanmale_warrior_side.png": {
+      "size": [
+        406,
+        800
+      ],
+      "figure_height_px": 797,
+      "faces": "left, like the front art does natively (drawChampionSprite mirrors it when running right) - the model turned him left although the prompt asked for right"
+    },
+    "humanmale_warrior_back.png": {
+      "size": [
+        525,
+        800
+      ],
+      "figure_height_px": 799
+    }
+  },
+  "measures": {
+    "note": "fractions of the height from the top of the head, found by colour: steel = the first row of plate (the shoulder line), belt = the centre of the leather belt, chin = the lowest face skin above the plate",
+    "original front": {
+      "steel": 0.475,
+      "belt": 0.776,
+      "chin": 0.474
+    },
+    "sheet front": {
+      "steel": 0.472,
+      "belt": 0.776,
+      "chin": 0.471
+    },
+    "side": {
+      "steel": 0.474,
+      "belt": 0.774,
+      "chin": 0.469
+    },
+    "back": {
+      "steel": 0.474,
+      "belt": 0.772
+    }
+  },
+  "boots": {
+    "description": "The boot in profile and from behind for the side and back views (the user: 'en sko som är bakifrån när man går upp' and 'en sko från sidan'). One sheet with fot.png as the reference, so the three keep one size; fot.png itself is unchanged.",
+    "model": "gpt_image_2_5 flare high 2k 16:9",
+    "reference": "fot.png flattened on #FF00FF, 1000x1000 (media 23df8182-7deb-4740-875a-8cc7d21122fb)",
+    "jobId": "52dfcbf3-22b4-4615-b49f-adc528eb987e",
+    "picked_over": "f9bd9e78-f25a-42db-a95d-5a96ce88a309 (nano_banana_pro 2k: an eye-level camera with no opening in sight and a square cuff - unlike fot.png)",
+    "prompt": "Turnaround sheet of the EXACT boot in the reference image: a cute chunky chibi-game brown leather boot with a wide folded-over cuff at the top, a rounded toe and a dark sole, painted with soft shading, leather creases and a thin dark brown outline. Three views of this one boot side by side in ONE row on a flat solid magenta (#FF00FF) background, all at the SAME scale and standing on the SAME baseline (every sole on one line), with wide empty magenta gaps between them:\nLEFT - exactly the reference view, unchanged.\nMIDDLE - an exact side profile of the same boot, the toe pointing LEFT, the sole flat on the baseline, the heel at the right, seen from the same slightly-above camera as the reference.\nRIGHT - the same boot seen from directly behind: the heel, the back of the shaft and the back of the folded cuff, symmetric, the toe hidden behind it, seen from the same slightly-above camera as the reference.\nSame height, same colours, same leather texture and outline weight in all three. The boot is empty - no leg or foot inside, no laces, no buckles, no straps. No shadow, no floor, no text, no labels, no frame.",
+    "cut": "Keyed like the hero views; ONE scale: the sheet's copy of the reference made as tall as fot.png's visible boot (672 px), each view cropped tight. Toned to fot.png by a per-channel quantile curve fitted from the sheet's copy of the reference to fot.png itself (the model had warmed the leather by about 10%).",
+    "fot_side.png": {
+      "size": [
+        730,
+        632
+      ],
+      "toe": "left",
+      "leg_x_px": 484
+    },
+    "fot_back.png": {
+      "size": [
+        459,
+        666
+      ]
+    }
+  },
+  "all_heroes": {
+    "description": "2026-10-12, the user: 'fixa resten av alla profiler nu för male och female inklusive alla outfits'. The same turnaround sheet for every other painted hero: each race and sex in each class, the Ice Armor, the crown's robes and the regalia (emperor_male for every male race, empress for every female one - their fronts are one picture under the mask). 49 sheets, Nano Banana Pro 2k 16:9, the front of each flattened on #FF00FF as the only reference; the Ice Armor of the orc and undead men made with gpt_image_2_5 flare high, which kept them cut at the thighs where Nano Banana drew legs.",
+    "cut": "scratchpad tooling (process.py): magenta keyed, enclosed gaps too; one scale per sheet - the sheet's front made as tall as the real front's visible figure - so each view keeps its front's pixel scale; each canvas ends at the front's box bottom; touching figures cut at their thinnest columns; loose specks dropped. CHARACTER_VIEWS in layout.js: [w, h, feet column, grip x, grip y, body px, side back edge].",
+    "side_mirrored": [
+      "dwarfmale_hunter",
+      "undeadfemale_warrior",
+      "undeadfemale_hunter"
+    ],
+    "toned_to_front": [
+      "orcmale_armor",
+      "undeadmale_armor"
+    ],
+    "prompt_notes": "Female Ice Armor, royal gowns and the Empress said 'for a family-friendly fantasy game' (the plain prompt was refused twice); every prompt asked for wide gaps and no legs, boots or feet below the hem; the Ice Armor ones said where the figure is cut off.",
+    "sheets": {
+      "dwarffemale_armor": {
+        "jobId": "d9ababf9-45b5-46f4-a2e9-49e5e73dc615",
+        "model": "nano_banana_pro",
+        "iou_front": 0.993,
+        "side": "dwarffemale_armor_side.png",
+        "back": "dwarffemale_armor_back.png"
+      },
+      "dwarffemale_hunter": {
+        "jobId": "9ecc1c3a-cd9b-484d-90a6-c6592ef2eeb7",
+        "model": "nano_banana_pro",
+        "iou_front": 0.996,
+        "side": "dwarffemale_hunter_side.png",
+        "back": "dwarffemale_hunter_back.png"
+      },
+      "dwarffemale_mage": {
+        "jobId": "fa8b295c-8bc6-4899-b232-b53c27f5535f",
+        "model": "nano_banana_pro",
+        "iou_front": 0.995,
+        "side": "dwarffemale_mage_side.png",
+        "back": "dwarffemale_mage_back.png"
+      },
+      "dwarffemale_priest": {
+        "jobId": "c38ba5de-37fa-420c-a612-24032e4006b9",
+        "model": "nano_banana_pro",
+        "iou_front": 0.988,
+        "side": "dwarffemale_priest_side.png",
+        "back": "dwarffemale_priest_back.png"
+      },
+      "dwarffemale_royal": {
+        "jobId": "8f965458-f127-4c0c-bddf-85297db0848b",
+        "model": "nano_banana_pro",
+        "iou_front": 0.994,
+        "side": "dwarffemale_royal_side.png",
+        "back": "dwarffemale_royal_back.png"
+      },
+      "dwarffemale_warrior": {
+        "jobId": "78760ad7-9461-4454-a937-16806f9a3ed7",
+        "model": "nano_banana_pro",
+        "iou_front": 0.995,
+        "side": "dwarffemale_warrior_side.png",
+        "back": "dwarffemale_warrior_back.png"
+      },
+      "dwarfmale_armor": {
+        "jobId": "e569d7f7-c6a6-41f6-a968-b2729ef447fd",
+        "model": "nano_banana_pro",
+        "iou_front": 0.992,
+        "side": "dwarfmale_armor_side.png",
+        "back": "dwarfmale_armor_back.png"
+      },
+      "dwarfmale_hunter": {
+        "jobId": "f962c3f5-2d99-480b-a6c9-851b2454f5c1",
+        "model": "nano_banana_pro",
+        "iou_front": 0.996,
+        "side": "dwarfmale_hunter_side.png",
+        "back": "dwarfmale_hunter_back.png"
+      },
+      "dwarfmale_mage": {
+        "jobId": "bab8003b-b89f-442b-b963-05a0446a750c",
+        "model": "nano_banana_pro",
+        "iou_front": 0.996,
+        "side": "dwarfmale_mage_side.png",
+        "back": "dwarfmale_mage_back.png"
+      },
+      "dwarfmale_priest": {
+        "jobId": "d6ec31c0-09c3-42f8-b680-dd09bf13cdc3",
+        "model": "nano_banana_pro",
+        "iou_front": 0.995,
+        "side": "dwarfmale_priest_side.png",
+        "back": "dwarfmale_priest_back.png"
+      },
+      "dwarfmale_royal": {
+        "jobId": "a4456be1-0e6f-4582-b5f4-991b8dfb9b0e",
+        "model": "nano_banana_pro",
+        "iou_front": 0.994,
+        "side": "dwarfmale_royal_side.png",
+        "back": "dwarfmale_royal_back.png",
+        "redone": "2026-10-12: the first sheet (1b9de2fb-2a82-4045-978e-2021cc93e900) drew a second face looking right on the side view; the prompt now says ONE face - one eye, nose and beard pointing left, the right half of the head only hair and the back of the crown"
+      },
+      "dwarfmale_warrior": {
+        "jobId": "083db275-cb11-4958-ae3e-cda83a335d98",
+        "model": "nano_banana_pro",
+        "iou_front": 0.994,
+        "side": "dwarfmale_warrior_side.png",
+        "back": "dwarfmale_warrior_back.png"
+      },
+      "emperor_male": {
+        "jobId": "a4b9294c-a5b7-4c57-b671-6c7acee81d2d",
+        "model": "nano_banana_pro",
+        "iou_front": 0.997,
+        "side": "emperor_male_side.png",
+        "back": "emperor_male_back.png"
+      },
+      "humanfemale_armor": {
+        "jobId": "28503864-db2c-411c-8a30-9fedf2ca40c7",
+        "model": "nano_banana_pro",
+        "iou_front": 0.995,
+        "side": "humanfemale_armor_side.png",
+        "back": "humanfemale_armor_back.png"
+      },
+      "humanfemale_emperor": {
+        "jobId": "d4b3e8b7-0071-4148-bcb8-0de08577f43e",
+        "model": "nano_banana_pro",
+        "iou_front": 0.996,
+        "side": "empress_side.png",
+        "back": "empress_back.png"
+      },
+      "humanfemale_hunter": {
+        "jobId": "90613eab-070d-4d1d-a331-b4dd9fc559ba",
+        "model": "nano_banana_pro",
+        "iou_front": 0.992,
+        "side": "humanfemale_hunter_side.png",
+        "back": "humanfemale_hunter_back.png"
+      },
+      "humanfemale_mage": {
+        "jobId": "a00b4cb2-1839-4432-9b4c-b2f908a0ebc4",
+        "model": "nano_banana_pro",
+        "iou_front": 0.975,
+        "side": "humanfemale_mage_side.png",
+        "back": "humanfemale_mage_back.png"
+      },
+      "humanfemale_priest": {
+        "jobId": "066877a9-4af2-4030-9c54-ba4a240c3565",
+        "model": "nano_banana_pro",
+        "iou_front": 0.924,
+        "side": "humanfemale_priest_side.png",
+        "back": "humanfemale_priest_back.png"
+      },
+      "humanfemale_royal": {
+        "jobId": "9eecd4bd-b8aa-41a1-8483-f290c833f88c",
+        "model": "nano_banana_pro",
+        "iou_front": 0.997,
+        "side": "humanfemale_royal_side.png",
+        "back": "humanfemale_royal_back.png"
+      },
+      "humanfemale_warrior": {
+        "jobId": "83905541-b1f0-42a5-815c-3ffdaf0bf92d",
+        "model": "nano_banana_pro",
+        "iou_front": 0.996,
+        "side": "humanfemale_warrior_side.png",
+        "back": "humanfemale_warrior_back.png"
+      },
+      "humanmale_armor": {
+        "jobId": "210c8f4d-4eb9-49fa-80d7-96d64213cd84",
+        "model": "nano_banana_pro",
+        "iou_front": 0.99,
+        "side": "humanmale_armor_side.png",
+        "back": "humanmale_armor_back.png"
+      },
+      "humanmale_hunter": {
+        "jobId": "0eaf85b9-71b3-472f-86e3-5697a8d1c5cf",
+        "model": "nano_banana_pro",
+        "iou_front": 0.996,
+        "side": "humanmale_hunter_side.png",
+        "back": "humanmale_hunter_back.png"
+      },
+      "humanmale_mage": {
+        "jobId": "cf530af5-89b6-4dab-afcf-91199bf82cfc",
+        "model": "nano_banana_pro",
+        "iou_front": 0.988,
+        "side": "humanmale_mage_side.png",
+        "back": "humanmale_mage_back.png"
+      },
+      "humanmale_priest": {
+        "jobId": "4ab5f5f9-c1f2-44e9-8fce-175f5879e33d",
+        "model": "nano_banana_pro",
+        "iou_front": 0.994,
+        "side": "humanmale_priest_side.png",
+        "back": "humanmale_priest_back.png"
+      },
+      "humanmale_royal": {
+        "jobId": "bb54ef66-2519-40eb-8f88-2c412c9bee02",
+        "model": "nano_banana_pro",
+        "iou_front": 0.987,
+        "side": "humanmale_royal_side.png",
+        "back": "humanmale_royal_back.png"
+      },
+      "orcfemale_armor": {
+        "jobId": "37ff704c-cecb-4ead-a108-8be918658166",
+        "model": "nano_banana_pro",
+        "iou_front": 0.988,
+        "side": "orcfemale_armor_side.png",
+        "back": "orcfemale_armor_back.png"
+      },
+      "orcfemale_hunter": {
+        "jobId": "0b867f67-67ab-42a4-9e42-06df26534d0c",
+        "model": "nano_banana_pro",
+        "iou_front": 0.997,
+        "side": "orcfemale_hunter_side.png",
+        "back": "orcfemale_hunter_back.png"
+      },
+      "orcfemale_mage": {
+        "jobId": "b1a6a1e6-a837-4a5f-97a5-16e1a1dc9e91",
+        "model": "nano_banana_pro",
+        "iou_front": 0.996,
+        "side": "orcfemale_mage_side.png",
+        "back": "orcfemale_mage_back.png"
+      },
+      "orcfemale_priest": {
+        "jobId": "ec9acfe1-0587-4409-9118-e9ccda03a340",
+        "model": "nano_banana_pro",
+        "iou_front": 0.996,
+        "side": "orcfemale_priest_side.png",
+        "back": "orcfemale_priest_back.png"
+      },
+      "orcfemale_royal": {
+        "jobId": "349d08cf-973d-4aa0-af87-4fba5375c559",
+        "model": "nano_banana_pro",
+        "iou_front": 0.928,
+        "side": "orcfemale_royal_side.png",
+        "back": "orcfemale_royal_back.png"
+      },
+      "orcfemale_warrior": {
+        "jobId": "4d53d092-a4fd-4a54-93af-290326f90a8e",
+        "model": "nano_banana_pro",
+        "iou_front": 0.996,
+        "side": "orcfemale_warrior_side.png",
+        "back": "orcfemale_warrior_back.png"
+      },
+      "orcmale_armor": {
+        "jobId": "6b4c8731-49a4-4615-93d3-504cc8fa1524",
+        "model": "gpt_image_2_5",
+        "iou_front": 0.953,
+        "side": "orcmale_armor_side.png",
+        "back": "orcmale_armor_back.png"
+      },
+      "orcmale_hunter": {
+        "jobId": "561369f4-c796-4f15-9d08-11c619377bd6",
+        "model": "nano_banana_pro",
+        "iou_front": 0.995,
+        "side": "orcmale_hunter_side.png",
+        "back": "orcmale_hunter_back.png"
+      },
+      "orcmale_mage": {
+        "jobId": "397c13f0-e0b7-4a94-9827-27399ed556c9",
+        "model": "nano_banana_pro",
+        "iou_front": 0.996,
+        "side": "orcmale_mage_side.png",
+        "back": "orcmale_mage_back.png"
+      },
+      "orcmale_priest": {
+        "jobId": "3a54eccf-06a3-4f20-adc7-4a8f7b517d3b",
+        "model": "nano_banana_pro",
+        "iou_front": 0.996,
+        "side": "orcmale_priest_side.png",
+        "back": "orcmale_priest_back.png"
+      },
+      "orcmale_royal": {
+        "jobId": "95de6ee6-746e-45c6-a374-d3f7ebc4ae48",
+        "model": "nano_banana_pro",
+        "iou_front": 0.996,
+        "side": "orcmale_royal_side.png",
+        "back": "orcmale_royal_back.png"
+      },
+      "orcmale_warrior": {
+        "jobId": "b60ea09f-e8ba-4008-a120-3ac2b4efb014",
+        "model": "nano_banana_pro",
+        "iou_front": 0.988,
+        "side": "orcmale_warrior_side.png",
+        "back": "orcmale_warrior_back.png"
+      },
+      "undeadfemale_armor": {
+        "jobId": "b35c260e-3a02-4bf5-9a87-0529f8c7d6c6",
+        "model": "nano_banana_pro",
+        "iou_front": 0.993,
+        "side": "undeadfemale_armor_side.png",
+        "back": "undeadfemale_armor_back.png"
+      },
+      "undeadfemale_hunter": {
+        "jobId": "77261e9d-88f1-4096-96c1-712cb98d8b78",
+        "model": "nano_banana_pro",
+        "iou_front": 0.997,
+        "side": "undeadfemale_hunter_side.png",
+        "back": "undeadfemale_hunter_back.png"
+      },
+      "undeadfemale_mage": {
+        "jobId": "1474b26d-634f-48d6-8dcd-7c2cb5ba8ec9",
+        "model": "nano_banana_pro",
+        "iou_front": 0.996,
+        "side": "undeadfemale_mage_side.png",
+        "back": "undeadfemale_mage_back.png"
+      },
+      "undeadfemale_priest": {
+        "jobId": "cb8987c2-8f9d-4f00-91a6-0bde353bdbe8",
+        "model": "nano_banana_pro",
+        "iou_front": 0.995,
+        "side": "undeadfemale_priest_side.png",
+        "back": "undeadfemale_priest_back.png"
+      },
+      "undeadfemale_royal": {
+        "jobId": "99aa7298-71ea-4bc9-8039-b1224e96effb",
+        "model": "nano_banana_pro",
+        "iou_front": 0.895,
+        "side": "undeadfemale_royal_side.png",
+        "back": "undeadfemale_royal_back.png"
+      },
+      "undeadfemale_warrior": {
+        "jobId": "acb35d97-e1ad-4248-b36f-d618d5ff9483",
+        "model": "nano_banana_pro",
+        "iou_front": 0.995,
+        "side": "undeadfemale_warrior_side.png",
+        "back": "undeadfemale_warrior_back.png"
+      },
+      "undeadmale_armor": {
+        "jobId": "f11d24be-9fb9-4ed9-8d57-61db2c0bff9b",
+        "model": "gpt_image_2_5",
+        "iou_front": 0.984,
+        "side": "undeadmale_armor_side.png",
+        "back": "undeadmale_armor_back.png"
+      },
+      "undeadmale_hunter": {
+        "jobId": "f91a0668-8f6c-4cf5-b54b-243fb6a11bb8",
+        "model": "nano_banana_pro",
+        "iou_front": 0.995,
+        "side": "undeadmale_hunter_side.png",
+        "back": "undeadmale_hunter_back.png"
+      },
+      "undeadmale_mage": {
+        "jobId": "8c7cf9c0-dd65-4075-9f2e-45eb50805115",
+        "model": "nano_banana_pro",
+        "iou_front": 0.993,
+        "side": "undeadmale_mage_side.png",
+        "back": "undeadmale_mage_back.png"
+      },
+      "undeadmale_priest": {
+        "jobId": "e0607336-923f-4b6e-b7b7-0fb7bae1ff1f",
+        "model": "nano_banana_pro",
+        "iou_front": 0.995,
+        "side": "undeadmale_priest_side.png",
+        "back": "undeadmale_priest_back.png"
+      },
+      "undeadmale_royal": {
+        "jobId": "10e4ace9-92da-4d7e-b7ac-b5af5018e1c0",
+        "model": "nano_banana_pro",
+        "iou_front": 0.992,
+        "side": "undeadmale_royal_side.png",
+        "back": "undeadmale_royal_back.png"
+      },
+      "undeadmale_warrior": {
+        "jobId": "9068f65c-3f5e-42b2-8dc2-dc9800f43b03",
+        "model": "nano_banana_pro",
+        "iou_front": 0.992,
+        "side": "undeadmale_warrior_side.png",
+        "back": "undeadmale_warrior_back.png"
+      }
+    }
+  }
+}

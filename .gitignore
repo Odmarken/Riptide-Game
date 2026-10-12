@@ -1,5 +1,7 @@
 node_modules/
 dist/
+# a test build packed beside the real one (the Hero Test shortcut) - never in git
+dist-test/
 package-lock.json
 _junk/
 # the Steam release checklist lists the game's secrets - never in the public repo
