@@ -588,7 +588,7 @@ function counter(m,t){
 
 /* ---------- moments ---------- */
 function banner(m,title,tier,amount,countMs,holdMs,fmt){
- const b=m.ban;b.className='sfxban t-'+tier;b.firstChild.textContent=title;b.firstChild.dataset.t=title;
+ const b=m.ban;b.className='sfxban t-'+tier;b.firstChild.textContent=title;b.firstChild.dataset.t=b.firstChild.textContent;   /* 🌍 the shadow layer shows the same words as the face - translated, if a language is on */
  b.style.top=Math.round(reelsCenter(m).cy)+'px';
  m.count={to:amount,t0:now()+260,dur:countMs,fmt:fmt||(v=>'+'+Math.round(v).toLocaleString()+'◉'),tick:0,rang:0};
  b.lastChild.textContent=m.count.fmt(0);

@@ -8,3 +8,6 @@ _junk/
 STEAM_RELEASE.md
 # the Steam store screenshots and capsule art (~150 MB) - uploaded to Steam, not kept in git
 Screenshoots steam/
+# the translators' batches (tools/i18n/split.cjs makes them again) and the QA pseudo-language (tools/i18n/pseudo.cjs)
+tools/i18n/work/
+assets/i18n/xx.js

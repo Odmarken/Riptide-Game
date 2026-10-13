@@ -12882,6 +12882,7 @@ function drawHero(){
  const namePoint=rideLayout?MountRenderer.riderPoint(rideLayout,0,nmY):{x:0,y:nmY+by};
  if(!S.hideName){ /* 👁 toggle in the hero panel. The ring above still hovers - it is gear, not a label */
   const shown=(S.city&&S.city.crowned?'👑 ':'')+(S.name||'Hero'); /* 👑 a crowned head says so */
+  if(typeof I18N!=='undefined')I18N.keep(shown);   /* 🌍 a hero's own name is never translated, even one that is a word */
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(shown,namePoint.x+1,namePoint.y+1);
   ctx.fillStyle=S.city&&S.city.crowned?'#ffe08a':'#fff';ctx.fillText(shown,namePoint.x,namePoint.y);
  }
@@ -12971,11 +12972,14 @@ function drawNpc(n){
 }
 /* 📣 what the town crier is shouting: a parchment bubble over his head, wrapped to three lines */
 function drawNpcBubble(b,y){
- const font=getComputedStyle(document.body).fontFamily,words=b.txt.split(' '),lines=[];let line='';
+ const txt=typeof I18N!=='undefined'?I18N.text(b.txt):b.txt,keep=typeof I18N!=='undefined'?I18N.keep:s=>s;   /* 🌍 the whole line translated, then wrapped - by characters in Chinese */
+ const cjk=/[\u3040-\u30FF\u3400-\u9FFF]/.test(txt),sp=cjk?'':' ';
+ const font=getComputedStyle(document.body).fontFamily,words=cjk?Array.from(txt):txt.split(' '),lines=[];let line='';
  ctx.font='600 11px '+font;
- for(const w of words){const t=line?line+' '+w:w;if(ctx.measureText(t).width>230&&line){lines.push(line);line=w;}else line=t;}
+ for(const w of words){const t=line?line+sp+w:w;if(ctx.measureText(keep(t)).width>230&&line){lines.push(line);line=w;}else line=t;}
  if(line)lines.push(line);
  if(lines.length>4){lines.length=4;lines[3]=lines[3].replace(/.{0,3}$/,'…');}
+ lines.forEach(keep);
  const w=Math.max(...lines.map(l=>ctx.measureText(l).width))+20,h=lines.length*14+12,a=Math.min(1,b.t/.4,(b.life-b.t)/.4);
  ctx.save();ctx.globalAlpha=Math.max(0,Math.min(1,a));
  ctx.fillStyle='#efe3c4';ctx.strokeStyle='#4a2d17';ctx.lineWidth=1.5;
@@ -19321,6 +19325,7 @@ const FINAL_LINES=[
  'That cold was paid for with a life at my Altar. Did you think the price ended there?',
  'Kings, coin, crowns... every road you ever walked has led you here, to the Final Hour.',
  'The frost has always been mine. Come then, little hero. Let us see how long you burn.'];
+const finalLine=i=>typeof I18N!=='undefined'?I18N.text(FINAL_LINES[i]):FINAL_LINES[i];   /* 🌍 the line in the chosen language - typed, timed and wrapped as it reads */
 let cinematicOn=false;
 function setCinematic(on){if(cinematicOn===on)return;cinematicOn=on;document.body.classList.toggle('cinematic',on);}   /* the skill bar steps out of the picture */
 function finalIntroHolds(){return !!(world&&world.intro&&world.intro.phase!=='end');}
@@ -19349,7 +19354,7 @@ function finalIntroNext(){   /* Space, Enter, A or a click: on to what he says n
  const I=world&&world.intro;if(!I||I.phase==='end')return;
  if(I.phase==='hold'||I.phase==='pan'){I.phase='speak';I.t=0;I.line=0;finalIntroLine(I);return;}
  if(I.phase==='speak'){
-  if(I.shown<FINAL_LINES[I.line].length){I.shown=FINAL_LINES[I.line].length;return;}   /* the whole line at once, first */
+  if(I.shown<finalLine(I.line).length){I.shown=finalLine(I.line).length;return;}   /* the whole line at once, first */
   if(++I.line<FINAL_LINES.length){finalIntroLine(I);return;}
   I.phase='back';I.t=0;return;
  }
@@ -19368,7 +19373,7 @@ function finalIntroTick(dt){
  else if(I.phase==='pan'){const u=introEase(Math.min(1,I.t/2.6));I.focus={x:hx+(bx-hx)*u,y:hy+(by-hy)*u};if(I.t>=2.6){I.phase='speak';I.t=0;I.line=0;finalIntroLine(I);}}
  else if(I.phase==='speak'){
   I.focus={x:bx,y:by};
-  const L=FINAL_LINES[I.line];
+  const L=finalLine(I.line);
   if(I.shown<L.length)I.shown=Math.min(L.length,I.shown+dt*46);
   else if((I.hold+=dt)>=1.4+L.length*.026)finalIntroNext();
  }
@@ -19383,16 +19388,17 @@ function drawFinalIntro(){   /* the black bars, his name and his words - over th
  ctx.fillStyle='#000';ctx.fillRect(0,0,VW,bh);ctx.fillRect(0,VH-bh,VW,bh);
  const serif="'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif",top=VH-bh;
  if(I.phase==='speak'&&bh>40){
-  const L=FINAL_LINES[I.line],fs=Math.max(14,Math.min(20,Math.round(VW*.0155))),maxW=Math.min(VW*.74,880),y0=top+Math.round(bh*.27);
+  const L=finalLine(I.line),fs=Math.max(14,Math.min(20,Math.round(VW*.0155))),maxW=Math.min(VW*.74,880),y0=top+Math.round(bh*.27);
   ctx.textAlign='center';
   ctx.font='600 '+Math.round(fs*.78)+'px '+serif;ctx.fillStyle='#c9a0ff';ctx.fillText('The Forsaken One',VW/2,y0);
   ctx.font='italic '+fs+'px '+serif;ctx.fillStyle='#efe2c6';
   const lines=[];let line='';   /* wrapped on the whole line, so a word never jumps down as it is typed */
-  for(const w of L.split(' ')){const t=line?line+' '+w:w;if(ctx.measureText(t).width>maxW&&line){lines.push(line);line=w;}else line=t;}
+  const cjk=/[\u3040-\u30FF\u3400-\u9FFF]/.test(L),sp=cjk?'':' ',keep=typeof I18N!=='undefined'?I18N.keep:s=>s;   /* 🌍 Chinese wraps between characters; the pieces are words already translated */
+  for(const w of (cjk?Array.from(L):L.split(' '))){const t=line?line+sp+w:w;if(ctx.measureText(keep(t)).width>maxW&&line){lines.push(line);line=w;}else line=t;}
   if(line)lines.push(line);
   let left=Math.floor(I.shown);
-  lines.slice(0,2).forEach((l,i)=>{const part=l.slice(0,Math.max(0,left));left-=l.length+1;
-   const w=ctx.measureText(l).width;ctx.textAlign='left';ctx.fillText(part,VW/2-w/2,y0+Math.round(fs*1.4)*(i+1));});
+  lines.slice(0,2).forEach((l,i)=>{const part=l.slice(0,Math.max(0,left));left-=l.length+sp.length;
+   const w=ctx.measureText(keep(l)).width;ctx.textAlign='left';ctx.fillText(keep(part),VW/2-w/2,y0+Math.round(fs*1.4)*(i+1));});
  }
  if(I.phase!=='end'){
   ctx.textAlign='right';ctx.font='11px '+getComputedStyle(document.body).fontFamily;ctx.fillStyle='rgba(222,204,176,.55)';
@@ -20096,7 +20102,7 @@ function ledgerSeasonChart(q,length,title,proj){
   +'<line class="sc-cross" y1="'+T+'" y2="'+(H-B)+'" x1="0" x2="0" visibility="hidden"/></svg><div class="season-tip" hidden></div></div>'
   +(pp?'<p class="craft-note season-guess">🔭 The dashed lines are the Hand’s guess, if nothing changes: about <b class="'+(proj.net>=0?'pos':'neg')+'">'+fmtRoughSigned(proj.net)+' ◉</b> a close, so roughly <b>'+fmtK(rough(proj.end.t))+'</b> in the strongroom at the last close'
     +(proj.short>0?(proj.canPay?' - enough to bring the debt down to the bank’s target, if you repay it.':' - and <b class="neg">not enough</b> to bring the debt down to the bank’s target.'):' - and the debt already at the bank’s target.')+' Works that finish, families that come or go, the winds and the King will all move it; the shaded band is how far off he expects to be.</p>':'')
-  +'<details class="season-table"><summary>Show the season as a table</summary><table class="ledger-table"><tr><td>Close</td><td>Treasury</td><td>Debt</td><td>Net of the close</td></tr>'
+  +'<details class="season-table"><summary>Show the season as a table</summary><table class="ledger-table" data-i18n="ledger"><tr><td>Close</td><td>Treasury</td><td>Debt</td><td>Net of the close</td></tr>'
   +pts.map((p,i)=>'<tr><td>'+(i?i:'start')+'</td><td>'+fmtGold(p.t)+'</td><td>'+fmtGold(p.d)+'</td><td class="'+(p.n>=0?'pos':'neg')+'">'+(i?fmtSigned(p.n):'-')+'</td></tr>').join('')+'</table></details></div>';
 }
 /* the crosshair finds the close; one tooltip names both series. Built with textContent, never markup. */
@@ -20167,7 +20173,7 @@ function ledgerBank(c,ctx){
     +v.seasons.map(x=>'<button class="sbtn'+(picked&&picked.n===x.n?' on':'')+'" data-lact="season" data-v="'+x.n+'">Season '+x.n+'<small>grade '+x.grade+'</small></button>').join('')+'</div>':'')
   +(picked?review(picked):lastReview?review(lastReview):'<p class="craft-note">The first review falls at the last close of this season. The bank reads three things: is the debt at the target, was the strongroom ever dry, and is the crown worth more than it was.</p>')
   +'<div class="ledger-transfer"><div><span>Borrow · '+fmtGold(v.room)+' ◉ left on the line</span>'+['100000','500000','1000000','max'].map(x=>'<button class="sbtn gold" data-lact="borrow" data-v="'+x+'"'+(v.room<=0?' disabled':'')+'>'+(x==='max'?'Max':fmtK(+x))+' ◉</button>').join('')+'</div>'
-  +'<div><span>Repay · from the treasury</span>'+['100000','500000','1000000','target','all'].map(x=>'<button class="sbtn" data-lact="repay" data-v="'+x+'"'+(c.loan<=0||c.treasury<=0||(x==='target'&&q.toRepay<=0)?' disabled':'')+'>'+(x==='all'?'All':x==='target'?'To the target':fmtK(+x))+(x==='target'?'':' ◉')+'</button>').join('')+'</div></div>'
+  +'<div><span>Repay · from the treasury</span>'+['100000','500000','1000000','target','all'].map(x=>'<button class="sbtn" data-i18n="repay" data-lact="repay" data-v="'+x+'"'+(c.loan<=0||c.treasury<=0||(x==='target'&&q.toRepay<=0)?' disabled':'')+'>'+(x==='all'?'All':x==='target'?'To the target':fmtK(+x))+(x==='target'?'':' ◉')+'</button>').join('')+'</div></div>'
   +(v.guards<v.fullGuard||v.seized.length?'<h3 class="ledger-gap">What the bailiffs took</h3><table class="ledger-table">'
     +(v.guards<v.fullGuard?'<tr><td>⚔️ '+(v.fullGuard-v.guards)+' of the Royal Guard paid off<small>'+v.guards+' men are left at the pillars of the hall</small></td><td><button class="sbtn" data-lact="rehire"'+(v.frozen||c.treasury<v.rehireCost?' disabled':'')+'>Hire two back · '+fmtGold(v.rehireCost)+' ◉</button></td></tr>':'')
     +(v.seized.length?'<tr><td>🏗 Sold by the bank<small>their houses in the City wear the bank’s seal. Order them again on the Works tab - at the full price</small></td><td>'+v.seized.join(', ')+'</td></tr>':'')+'</table>':'')
@@ -20508,7 +20514,7 @@ function renderOutfits(){
  const cur=heroOutfit(),list=OUTFITS.filter(o=>outfitUnlocked(o.id));
  $('outfitIntro').textContent=(list.length===1?'One outfit':list.length+' outfits')+'. Cosmetic only: the numbers come from what you wear, the look from what you choose here.';
  $('outfitBody').innerHTML='<div class="outfit-grid">'+list.map(o=>'<div class="card outfit-card'+(o.id===cur?' worn':'')+'"><canvas width="150" height="190" data-outfit-portrait="'+o.id+'" aria-label="'+esc(o.name())+'"></canvas><h3>'+esc(o.name())+'</h3><p class="cl">'+esc(o.desc)+'</p>'
-  +'<button class="sbtn'+(o.id===cur?'':' gold')+'" data-outfit-wear="'+o.id+'"'+(o.id===cur?' disabled':'')+'>'+(o.id===cur?'Worn':'Wear it')+'</button></div>').join('')+'</div>'
+  +'<button class="sbtn'+(o.id===cur?'':' gold')+'" data-i18n="outfit" data-outfit-wear="'+o.id+'"'+(o.id===cur?' disabled':'')+'>'+(o.id===cur?'Worn':'Wear it')+'</button></div>').join('')+'</div>'
   ;   /* a locked outfit is not listed, not even as a hint (asked for 2026-09-22): you learn of it when it is yours */
  const owner=S;
  let pending=Array.from($('outfitBody').querySelectorAll('[data-outfit-portrait]'));
@@ -21927,7 +21933,7 @@ async function showLeaderboard(refresh=false){
  clearTimeout(leaderboardRefreshTimer);
  $('lbFx').classList.add('open');
  if(!refresh)$('lbList').innerHTML='<div class="cl">Consulting the heralds…</div>';
- const expanded=Array.from(document.querySelectorAll('[data-insp]')).find(b=>b.textContent==='▴ Close'),expandedCid=refresh&&expanded&&leaderboardRows[+expanded.dataset.insp]?.cid;
+ const expanded=Array.from(document.querySelectorAll('[data-insp]')).find(b=>window.I18N?I18N.same(b.textContent,'▴ Close'):b.textContent==='▴ Close'),expandedCid=refresh&&expanded&&leaderboardRows[+expanded.dataset.insp]?.cid;
  if(S&&S.id)await publishLB(S,!refresh);
  const rows=await fetchLB();
  if(request!==leaderboardRequest||!$('lbFx').classList.contains('open'))return;
@@ -22344,6 +22350,14 @@ function wireTabs(tabs){
 }
 const settingsTabs=[...document.querySelectorAll('.cfgtab')],controlsTabs=[...document.querySelectorAll('.ctrltab')];
 wireTabs(settingsTabs);wireTabs(controlsTabs);
+/* 🌍 Language (2026-10-13): English on its own row, the six others under it, each in its own tongue. A choice saves the hero
+   and starts the game again in it (assets/i18n/i18n.js), so every screen, ledger and canvas label is drawn new. */
+window.i18nBeforeReload=()=>save();
+document.querySelectorAll('.langbtn').forEach(b=>{
+ const on=!!window.I18N&&b.dataset.lang===I18N.lang;
+ b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on));
+ b.onclick=()=>{if(window.I18N)I18N.choose(b.dataset.lang);};
+});
 /* ⌨ Controls. Written out from the bindings that actually exist in the keydown handler and padTick rather
    than from memory, and rendered as text rather than baked into the pictures - a controls screen that is
    out of step with the game is worse than no controls screen. The spell rows read their names from

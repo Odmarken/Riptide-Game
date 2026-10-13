@@ -1,0 +1,22 @@
+{
+ "smuggling": "el contrabando",
+ "bones": "huesos",
+ "axe": "hacha",
+ "pipe": "pipa",
+ "ale": "cerveza",
+ "tome": "tomo",
+ "poison": "veneno",
+ "skull": "calavera",
+ "hound": "sabueso",
+ "crown": "corona",
+ "{0} or {1}": "{0} o {1}",
+ "pays": "paga",
+ "A gilded chest for high rollers. No common or fine junk - only rare and epic gear, a slim chance at a Tier II scroll or a 🐂 bull for the farm, a tiny chance at Frostseeker, and whispers of a 🐾 loyal companion within.{0}": "Un cofre dorado para grandes apostadores. Nada de baratijas comunes ni superiores: solo equipo raro y épico, una pequeña posibilidad de un pergamino de grado II o de un 🐂 toro para la granja, una posibilidad minúscula de Buscaescarcha, y rumores de un 🐾 compañero leal en su interior.{0}",
+ "Forging Frostseeker ★{0}": "Forjando Buscaescarcha ★{0}",
+ "Frostseeker": "Buscaescarcha",
+ "Frostseeker ★{0}": "Buscaescarcha ★{0}",
+ "Frostseeker ★{0} is complete": "Buscaescarcha ★{0}: forja completada",
+ "LEGENDARY: <0>Frostseeker</0> hungers…": "LEGENDARIO: <0>Buscaescarcha</0> tiene hambre…",
+ "⚒️ Frostseeker ★{0} complete!": "⚒️ ¡Buscaescarcha ★{0} completado!",
+ "⚒️ The forge cools - <0>Frostseeker ★{0}</0> is reborn!": "⚒️ La forja se enfría - ¡<0>Buscaescarcha ★{0}</0> renace!"
+}

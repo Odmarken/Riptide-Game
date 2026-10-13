@@ -1,0 +1,22 @@
+{
+ "smuggling": "il contrabbando",
+ "bones": "ossa",
+ "axe": "ascia",
+ "pipe": "pipa",
+ "ale": "birra",
+ "tome": "tomo",
+ "poison": "veleno",
+ "skull": "teschio",
+ "hound": "segugio",
+ "crown": "corona",
+ "{0} or {1}": "{0} o {1}",
+ "pays": "rende",
+ "A gilded chest for high rollers. No common or fine junk - only rare and epic gear, a slim chance at a Tier II scroll or a 🐂 bull for the farm, a tiny chance at Frostseeker, and whispers of a 🐾 loyal companion within.{0}": "Un forziere dorato per chi punta forte. Niente cianfrusaglie comuni o pregiate - solo equipaggiamento raro ed epico, una piccola possibilità di una pergamena di grado II o di un 🐂 toro per la fattoria, una minima possibilità di Cercagelo, e voci di un 🐾 compagno fedele al suo interno.{0}",
+ "Forging Frostseeker ★{0}": "Forgiatura di Cercagelo ★{0}",
+ "Frostseeker": "Cercagelo",
+ "Frostseeker ★{0}": "Cercagelo ★{0}",
+ "Frostseeker ★{0} is complete": "Cercagelo ★{0}: forgiatura completata",
+ "LEGENDARY: <0>Frostseeker</0> hungers…": "LEGGENDARIA: <0>Cercagelo</0> ha fame…",
+ "⚒️ Frostseeker ★{0} complete!": "⚒️ Cercagelo ★{0} completata!",
+ "⚒️ The forge cools - <0>Frostseeker ★{0}</0> is reborn!": "⚒️ La forgia si raffredda - <0>Cercagelo ★{0}</0> rinasce!"
+}

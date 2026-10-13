@@ -1284,7 +1284,8 @@ function create(canvas,opts={}){
   const s={x:w+1,y:A.y,h};A.shelves.push(s);A.y+=h+1;return [0,s.y];
  }
  let tcan=null,tctx=null;
- function textCtx(){if(!tctx){tcan=document.createElement('canvas');tcan.width=tcan.height=64;tctx=tcan.getContext('2d');}return tctx;}
+ const tr=t=>window.I18N&&typeof t==='string'?I18N.text(t):t;   /* 🌍 the game's words in the chosen language (assets/i18n/i18n.js) */
+ function textCtx(){if(!tctx){tcan=document.createElement('canvas');tcan.width=tcan.height=64;tctx=tcan.getContext('2d');if(window.I18N)I18N.skip(tctx);}return tctx;}   /* 🌍 what reaches it is translated already */
  function drawText(text,x,y,maxW,stroke){
   if(R.lost)return;
   text=String(text).replace(/[\t\n\f\r]/g,' ');
@@ -1674,9 +1675,9 @@ function create(canvas,opts={}){
   strokeRect(x,y,w,h){if(!fin(x,y,w,h))return;strokeLines([{p:rectPoly(x,y,w,h),closed:true}]);},
   clearRect(x,y,w,h){clearRectImpl(x,y,w,h);},
   drawImage(src,a1,a2,a3,a4,a5,a6,a7,a8){drawImage(src,a1,a2,a3,a4,a5,a6,a7,a8,arguments.length);},
-  fillText(t,x,y,m){drawText(t,x,y,m,false);},
-  strokeText(t,x,y,m){drawText(t,x,y,m,true);},
-  measureText(t){const g=textCtx();g.setTransform(1,0,0,1,0,0);g.font=S.font;g.textAlign=S.align;g.textBaseline=S.baseline;try{if('letterSpacing' in g)g.letterSpacing=S.letterSpacing;}catch(e){}return g.measureText(String(t));},
+  fillText(t,x,y,m){drawText(tr(t),x,y,m,false);},
+  strokeText(t,x,y,m){drawText(tr(t),x,y,m,true);},
+  measureText(t){t=tr(t);const g=textCtx();g.setTransform(1,0,0,1,0,0);g.font=S.font;g.textAlign=S.align;g.textBaseline=S.baseline;try{if('letterSpacing' in g)g.letterSpacing=S.letterSpacing;}catch(e){}return g.measureText(String(t));},
   createLinearGradient(...a){return scratch().createLinearGradient(...a);},
   createRadialGradient(...a){return scratch().createRadialGradient(...a);},
   createConicGradient(...a){warn('conic gradients are not supported');return scratch().createConicGradient?scratch().createConicGradient(...a):null;},
@@ -1757,7 +1758,7 @@ function probe(){
   g.fillStyle='rgba(0,0,255,0.5)';g.beginPath();g.arc(48,16,12,0,Math.PI*2);g.fill();
   const lg=g.createLinearGradient(0,0,32,0);lg.addColorStop(0,'#000000');lg.addColorStop(1,'#ffffff');
   g.save();g.beginPath();g.rect(0,24,32,8);g.clip();g.fillStyle=lg;g.fillRect(0,0,32,32);g.restore();
-  g.fillStyle='#ffffff';g.font='10px sans-serif';g.fillText('Ab',36,30);
+  if(window.I18N)I18N.keep('Ab');g.fillStyle='#ffffff';g.font='10px sans-serif';g.fillText('Ab',36,30);   /* 🌍 a probe, not a word */
   const red=g.getImageData(8,8,1,1).data,blue=g.getImageData(48,16,1,1).data,grad=g.getImageData(30,28,1,1).data,top=g.getImageData(30,4,1,1).data;
   const ok=red[0]>240&&red[1]<10&&red[3]>240 && blue[2]>240&&blue[0]<10&&blue[3]>110&&blue[3]<145 && grad[0]>200&&Math.abs(grad[0]-grad[1])<3 && top[0]>240&&top[1]<10;
   return ok;

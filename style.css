@@ -163,13 +163,45 @@
     border-radius:8px;background:#2b1e15b3;color:#cbb18a;cursor:var(--hand);
     --control-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round'%3E%3Cpath d='m6 6 12 12M18 6 6 18'/%3E%3C/svg%3E")}
   #cfgBox .cfgdismiss:hover{background:#60412a;color:#ffe5ae;border-color:#bd965d}
-  .cfgtabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:5px;margin-bottom:20px;
+  .cfgtabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:5px;margin-bottom:20px;
     border:1px solid #74563480;border-radius:11px;background:#120d0980;box-shadow:inset 0 2px 6px #0004}
   .cfgtab{min-width:0;display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 7px;border-radius:7px;
     border:1px solid transparent;background:transparent;color:#bda787;font:600 13px var(--body);cursor:var(--hand);
     transition:background .15s,border-color .15s,color .15s}
   .cfgtab::before{width:17px;height:17px}
   .cfgtab[data-pane="audio"]{--control-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 18V5l11-2v13M9 8l11-2'/%3E%3Cellipse cx='6' cy='18' rx='3' ry='2.5'/%3E%3Cellipse cx='17' cy='16' rx='3' ry='2.5'/%3E%3C/svg%3E")}
+  .cfgtab[data-pane="language"]{--control-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9s1.3-6.3 3.8-9z'/%3E%3C/svg%3E")}
+  /* 🌍 Language: English on its own row, the six others in a row beneath, each named in its own tongue */
+  .langpick{display:flex;flex-direction:column;gap:7px}
+  .langrow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:1fr;gap:6px}   /* six alike, three to a row: "Português" no longer spills out of a sixth */
+  .langbtn{min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 4px;border-radius:8px;
+    border:1px solid #74563480;background:#120d0980;color:#e2cba1;font:600 14px var(--display);cursor:var(--hand);
+    transition:background .15s,border-color .15s,color .15s}
+  .langbtn b{font-weight:600;white-space:nowrap}
+  .langbtn small{font:600 8.5px var(--body);letter-spacing:.7px;text-transform:uppercase;color:#a98d66;text-align:center;line-height:1.25;max-width:100%}   /* "Simplified Chinese" takes two lines rather than an ellipsis */
+  .langbtn.langen{padding:12px 6px;font-size:15px}
+  .langbtn:hover{color:#f5dfb3;background:#533a2366}
+  .langbtn.on{border-color:#ac8349;background:linear-gradient(135deg,#74502e,#44301f);color:#ffe1a3;box-shadow:inset 0 1px 0 #f5d18d33,0 1px 4px #0005}
+  .langbtn.on small{color:#e0c08a}
+  .langnote{margin:2px 0 0;font:12px/1.45 var(--body);color:#a98d66}
+  /* 🌍 a small phone in a language with long words ("Управление", "Steuerung"): the four tabs drop their icons, English keeps them */
+  @media (max-width:430px){html:not([lang="en"]) .cfgtab::before{display:none}html:not([lang="en"]) .cfgtab{padding-left:2px;padding-right:2px}}
+  /* 🌍 other languages run longer than the English the screens were laid out for: room where it ran out (English untouched).
+     A stage message keeps clear of the sound button; a log line wraps before the skill bar on a desktop and sits above it
+     on a phone; on a phone the four gear slots go two by two ("SCHMUCKSTÜCK" broke mid-word), the nav buttons give up
+     padding so six fit the bar, and a bloodline/class card's frame keeps its thickness (9-slice) so a fourth line of
+     description no longer runs into the stretched frame's bottom band */
+  html:not([lang="en"]) #stagemsg{padding:0 52px}
+  @media (min-width:900px){html:not([lang="en"]) #ticker{right:auto;max-width:max(240px,calc(50% - 200px))}}
+  @media (max-width:899px){
+    html:not([lang="en"]) #ticker{bottom:76px}
+    html:not([lang="en"]) .slotrow{display:grid;grid-template-columns:1fr 1fr}
+    html:not([lang="en"]) nav button{padding:0 6px;letter-spacing:0}
+  }
+  @media(max-width:600px){
+    html:not([lang="en"]) .pick{background:none;border:solid transparent;border-width:15px 12px 18px;border-image:url('assets/ui/ui_buttons.png') 52 108 62 fill stretch;padding:3px 26px 3px}
+    html:not([lang="en"]) #classPick .pick{background-image:none;border-image-source:url('assets/ui/ui_buttonsstone.png?v=2')}
+  }
   .cfgtab[data-pane="video"]{--control-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='3' width='20' height='14' rx='2'/%3E%3Cpath d='M12 17v4M7 21h10'/%3E%3C/svg%3E")}
   .cfgtab[data-pane="controls"]{--control-icon:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='2' y='5' width='20' height='14' rx='2'/%3E%3Cpath d='M6 9h.1M10 9h.1M14 9h.1M18 9h.1M6 12h.1M10 12h.1M14 12h.1M18 12h.1M7 15h10'/%3E%3C/svg%3E")}
   .cfgtab:hover{color:#f5dfb3;background:#533a2366}
