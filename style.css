@@ -545,9 +545,11 @@
   .outfit-locked{margin-top:12px;opacity:.75}
   #renameBtn,#nameEyeBtn{background:none;border:none;cursor:var(--hand);opacity:.4;font-size:13px;padding:0 2px;vertical-align:middle;transition:opacity .15s}
   #renameBtn:hover,#nameEyeBtn:hover{opacity:1}
-  #nameEyeBtn{opacity:.72}     /* sits brighter than the pencil - it is a state you can leave switched on */
-  #nameEyeBtn.off{opacity:.32} /* the eye dims rather than swapping glyph - one icon, so the button never jumps width */
-  #nameEyeBtn.off:hover{opacity:1} /* .off and :hover tie on specificity, so without this the later one wins and a hidden eye never lights up */
+  #nameEyeBtn{opacity:1;color:#d9c49b;display:inline-grid;place-items:center;width:20px;height:20px}   /* the pet's eye icon in parchment: always plain to see */
+  #nameEyeBtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  #nameEyeBtn:hover{color:#ffe1a3}
+  #nameEyeBtn.off{opacity:1;color:#98866d} /* name hidden: the same eye struck through, a little dimmer - one size, so the button never jumps width */
+  #nameEyeBtn.off:hover{color:#e9d7b4}
   .pickgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .pick{background:url('assets/ui/ui_buttons.png') center/100% 100% no-repeat;border:none;border-radius:10px;padding:17px 38px;cursor:var(--hand);transition:filter .15s}
   .pick:hover{filter:brightness(1.12)}

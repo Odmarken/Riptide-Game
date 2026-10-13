@@ -170,3 +170,20 @@ test('every port paints a minimap picture of itself headless, and the Harbour do
  assert.equal(TW.paintMap(ctx,{town:'nowhere'}),false);
  const before=fills;assert.equal(HW.paintMap(ctx,HW.create()),true);assert.ok(fills-before>10,'the Harbour');
 });
+
+test('the garrison musters on land: no raid stand and no way in lies on a pier',()=>{
+ /* 2026-10-13: Silverfjord's Blackbeard's pier is one of the walks leaving the pier head, and a squad was given a stand halfway down
+    it - it marched onto the planks into the landing and both columns stuck fast ("mina gubbar fastnar här ... i bryggan") */
+ const cut=(a,b)=>{const i=game.indexOf(a),j=game.indexOf(b,i);assert.ok(i>=0&&j>i,a);return game.slice(i,j);};
+ const src=cut('function raidMuster(stage){','/* n stands as far apart as they go')+cut('function raidStage(from){','function raidRelease(){');
+ for(const id of TOWNS){
+  const def=TW.town(id),world={town:id};
+  const f=new Function('TownWorld','world','RAID_STAND','RAID_FAR',src+';const st=raidStage(world.arrival||'+JSON.stringify(def.arrival)+');return {st,M:raidMuster(st)};');
+  const {st,M}=f(TW,world,560,1500);
+  assert.ok(M&&M.stands.length,id+': the garrison has somewhere to form up');
+  const onPier=(x,y)=>(def.piers||[]).some(p=>p.r?Math.hypot(x-p.x,y-p.y)<p.r:x>=p.x&&x<=p.x+p.w&&y>=p.y&&y<=p.y+p.h);
+  for(const s of M.stands)assert.ok(!onPier(s.x,s.y),`${id}: a stand at ${Math.round(s.x)},${Math.round(s.y)} is on a pier`);
+  for(let k=0;k<40;k++){const p=M.spawn(k);assert.ok(!onPier(p.x,p.y),`${id}: a soldier comes in from ${Math.round(p.x)},${Math.round(p.y)} on a pier`);}
+  assert.ok(!onPier(st.x,st.y),id+': the pier head itself is on land');
+ }
+});

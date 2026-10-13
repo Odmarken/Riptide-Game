@@ -82,7 +82,19 @@ test('spacing remains deterministic and preserves City size, services, gate and 
  // Re-recorded 2026-09-24 when the names went English-friendly (å->a, ä->ae, ö->o, Swedish titles in English, e.g. Vakt ->
  // Watchman, Tvätterskan Agda -> Washerwoman Agda): with the old names put back (game.js CITY_RENAMED and the watch) every
  // route hashes as 94732d8c...6e5d did - only the names differ.
- assert.equal(hash(w.npcs),'b662b118433003606053f6f8a15acda8973fe584f74d38521cc4fda29762a7d5');
+ // Re-recorded 2026-10-13 when Sebbe's pitch moved out from behind the merchant's house that had grown over it (he was
+ // drawn there, hidden by its painting - "hittar inte han längre"): with his old spot (9040,1508) put back, every route
+ // hashes as b662b118...a7d5 did - only Sebbe moved.
+ assert.equal(hash(w.npcs),'a70ea19883a5efbff2a0a6b774340978cc2a7e7ca770a48b84e700e765d2de8b');
  /* the south wall is two lengths now: the passage under the harbour gatehouse is 180 wide on the central avenue */
  assert.deepEqual(w.mwalls.map(s=>[s.x,s.y,s.w,s.h]),[[0,60,16800,140],[0,5000,8310,140],[8490,5000,8310,140],[60,0,140,2525],[60,2675,140,2525],[16600,0,140,5200]]);
+});
+
+test('Sebbe stands in the open, never behind a house painting',()=>{
+ for(const seed of [1,13,42,8675309]){
+  const {world:w,faces}=city(seed),sb=w.npcs.find(n=>n.game==='cups');
+  assert.ok(sb,'Sebbe has his pitch');
+  for(const h of houses(w)){const f=frame(h,faces);
+   assert.ok(!(sb.x>f.x-20&&sb.x<f.x+f.w+20&&sb.y>f.y&&sb.y<f.y+f.h+20),`seed${seed}: Sebbe at ${sb.x},${sb.y} is behind the house at ${h.x},${h.y}`);}
+ }
 });

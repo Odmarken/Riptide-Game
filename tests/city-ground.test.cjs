@@ -137,3 +137,15 @@ test('drawing never hands the canvas a non-finite number - loaded or not, zoomed
  assert.equal(calls.drawImage,0,'nothing loaded yet: flat colours, no pictures, nothing thrown');
  CG.render(g,null,{x:0,y:0,w:10,h:10},images,0);
 });
+
+test('Sebbe has his pitch by the linden north-east of the cathedral, in the open (the user’s pick, 2026-10-13)',()=>{
+ const apply=section('function cityGroundApply(){','\nfunction drawCityGround(){');
+ assert.match(apply,/aim=cath&&\{x:cath\.x\+814,y:cath\.y-538\}/,'the tree he is put by: the linden in the yard north-east of the cathedral');
+ assert.match(apply,/if\(seb&&lind\)\{seb\.x=lind\.x\+58;seb\.y=lind\.y\+64;seb\.pts=\[\{x:seb\.x,y:seb\.y\}\];\}/,'a step in front of its trunk, and he stays there');
+ const {w,p,d}=built(SEEDS[0]),cath=w.solids.find(s=>s.type==='cathedral'),aim={x:cath.x+814,y:cath.y-538};
+ const lind=d.filter(s=>s.kind==='linden'&&Math.hypot(s.x-aim.x,s.y-aim.y)<400).sort((a,b)=>Math.hypot(a.x-aim.x,a.y-aim.y)-Math.hypot(b.x-aim.x,b.y-aim.y))[0];
+ assert.ok(lind,'the game’s own City has that linden');
+ const spot={x:lind.x+58,y:lind.y+64};
+ assert.ok(!p.inRoad(spot.x,spot.y,0),'not on a road');
+ for(const h of w.solids.filter(s=>s.type==='cityhouse'))assert.ok(Math.hypot(spot.x-h.x,spot.y-h.y)>120,`not in the house at ${h.x},${h.y}`);
+});

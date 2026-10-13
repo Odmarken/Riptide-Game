@@ -2156,13 +2156,18 @@ function raidMuster(stage){
  const G=TownWorld.graph(def);let root=null,bd=Infinity;
  for(const n of G.nodes.values()){const d=Math.hypot(n.x-stage.x,n.y-stage.y);if(d<bd){bd=d;root=n;}}
  if(!root)return null;
+ /* ⚓ land only: the pier the men come up is one of the walks leaving its head too, and a squad was given a stand halfway down
+    Silverfjord's (2026-10-13, "mina gubbar fastnar här ... i bryggan") - it marched onto the planks into the landing, and both
+    columns stuck fast between the water. No stand, and no way in, is ever on a pier. */
+ const onPier=(x,y)=>(def.piers||[]).some(p=>p.r?Math.hypot(x-p.x,y-p.y)<p.r:x>=p.x&&x<=p.x+p.w&&y>=p.y&&y<=p.y+p.h);
  const dist=new Map([[root.id,0]]),up=new Map(),open=[root.id];
  while(open.length){open.sort((a,b)=>dist.get(a)-dist.get(b));const k=open.shift(),n=G.nodes.get(k);
-  for(const m of G.edges.get(k)||[]){const o=G.nodes.get(m),d=dist.get(k)+Math.hypot(o.x-n.x,o.y-n.y);if(d<(dist.has(m)?dist.get(m):Infinity)){dist.set(m,d);up.set(m,k);open.push(m);}}}
+  for(const m of G.edges.get(k)||[]){const o=G.nodes.get(m);if(onPier(o.x,o.y))continue;
+   const d=dist.get(k)+Math.hypot(o.x-n.x,o.y-n.y);if(d<(dist.has(m)?dist.get(m):Infinity)){dist.set(m,d);up.set(m,k);open.push(m);}}}
  const far=Math.min(RAID_FAR,Math.max(...dist.values())*.8),stand=Math.min(RAID_STAND,far*.45);
  const at=s=>{const out=[];for(const [k,p] of up){const a=dist.get(p),b=dist.get(k);   /* every street a walk of s crosses */
   if(a<s&&b>=s){const A=G.nodes.get(p),B=G.nodes.get(k),f=(s-a)/(b-a);out.push({x:A.x+(B.x-A.x)*f,y:A.y+(B.y-A.y)*f,p,s});}}return out;};
- const ways=at(far),stands=at(stand);
+ const ways=at(far).filter(s=>!onPier(s.x,s.y)),stands=at(stand).filter(s=>!onPier(s.x,s.y));
  if(!ways.length||!stands.length)return null;
  return {stands,spawn:k=>{const w=ways[k%ways.length],o=at(far+((k*97)%300)-150).find(q=>q.p===w.p)||w;return {x:o.x,y:o.y};}};
 }
@@ -6943,7 +6948,16 @@ function buildCity(R){
     standing there and looking at it. It was picked visually rather than searched for: an earlier
     version spiralled outward from here hunting for a spot clear of every drawn building, and the
     search walked him off the patch that actually reads well. */
- const SEB_X=cx+640, SEB_Y=1508;
+ let SEB_X=cx+640, SEB_Y=1508;
+ /* ...but the terraces grew since (bigger City houses, 2026-09-25) and a merchant's house now stands on that very spot,
+    painted over him - he was there all along, out of sight ("hittar inte han längre"). When a house's painting covers
+    the pitch, it moves out in front of that house, to its south-east corner: open ground, drawn after the house. */
+ for(const s of world.solids){
+  if(s.type!=='cityhouse')continue;
+  const f=CITY_HOUSE[s.key];if(!f)continue;
+  const half=f.h*f.ar/2,base=s.y+s.r*0.30;
+  if(Math.abs(SEB_X-s.x)<half+24&&SEB_Y<base+24&&SEB_Y>base-f.h){SEB_X=Math.round(s.x+half*.7);SEB_Y=Math.round(base+110);break;}
+ }
  world.npcs.push({name:'Sebbe',race:'human',cls:'warrior',female:false,big:1.62,game:'cups',art:npcSebbeImg,
   pts:[{x:SEB_X,y:SEB_Y}],i:0,dir:1,x:SEB_X,y:SEB_Y,
   speed:0,walk:0,fx:-1,pauseT:1e9,moving:false});
@@ -7017,6 +7031,12 @@ function cityGroundApply(){
  const smelt=find('smelter'),sooty=smelt?world.plazas.findIndex(q=>q.x===smelt.x&&q.y===smelt.y):-1;
  world.groundPlan=CityGround.plan(world,{mosaics,keepOut,plazaStyles:sooty>=0?{[sooty]:{soot:true}}:{}});
  world.solids.push(...CityGround.decor(world,world.groundPlan));
+ /* 🥤 Sebbe's pitch is the user's pick (2026-10-13, "ställ sebbe vid trädet här uppe vid kyrkan"): the linden in the yard
+    north-east of the cathedral, a step in front of its trunk. The yard's trees are only laid here, so this is where he goes to it;
+    without that tree he keeps the pitch buildCity gave him. */
+ const seb=(world.npcs||[]).find(n=>n.game==='cups'),aim=cath&&{x:cath.x+814,y:cath.y-538};
+ const lind=aim&&world.solids.filter(s=>s.type==='citydecor'&&s.kind==='linden'&&Math.hypot(s.x-aim.x,s.y-aim.y)<400).sort((a,b)=>Math.hypot(a.x-aim.x,a.y-aim.y)-Math.hypot(b.x-aim.x,b.y-aim.y))[0];
+ if(seb&&lind){seb.x=lind.x+58;seb.y=lind.y+64;seb.pts=[{x:seb.x,y:seb.y}];}
  const ench=find('enchanthall');   /* 🕊 pigeons on the cathedral's approach and before the enchanters' door - never on the great square */
  world.flocks=[...(nave?[CityGround.flock(cath.x,approach,8,1)]:[]),...(ench?[CityGround.flock(ench.x+70,ench.y+176,5,2)]:[])];
 }
@@ -13739,7 +13759,7 @@ function renderHero(){
  const style=S.city&&S.city.crowned?cityTitle():S.city&&S.city.noble&&S.city.noble.rank>0?nobleTitle():'';
  $('heroTitle').innerHTML=(style?`<span class="herostyle">${style}</span> `:'')+`${esc(dispName(S))} - ${r.name} ${c.name}`+(S.prestige?` · Prestige ${S.prestige}`:'')+
   ` <button id="renameBtn" title="Rename hero">✏️</button>`+
-  ` <button id="nameEyeBtn" class="${S.hideName?'off':''}" title="${S.hideName?'Show':'Hide'} the name above your hero">👁</button>`;
+  ` <button id="nameEyeBtn" class="${S.hideName?'off':''}" aria-pressed="${!S.hideName}" aria-label="${S.hideName?'Show':'Hide'} the name above your hero" title="${S.hideName?'Show':'Hide'} the name above your hero">${S.hideName?TideUI.eyeIcon.replace('</svg>','<path d="M4 4l16 16"/></svg>'):TideUI.eyeIcon}</button>`;   /* the pet's and the weapon's eye, light on the dark panel - the dark 👁 emoji all but vanished once dimmed, and the button read as gone; hidden = struck through */
  $('renameBtn').onclick=openRename;
  $('nameEyeBtn').onclick=()=>{ /* 👁 cosmetic only - hides this hero's own label, never anyone else's */
   S.hideName=!S.hideName;save();renderHero();
