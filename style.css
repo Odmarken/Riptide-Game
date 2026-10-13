@@ -946,12 +946,14 @@
 .gvbbigcard .gl{font-size:10px;font-weight:800}
 .gvbbigmark{position:absolute;left:50%;top:0;bottom:0;width:2px;background:#ffd76a;box-shadow:0 0 10px #ffd76a}
 /* ⏳ boot screen - holds the door shut until the art is in memory */
-/* the framed painting is the whole composition, so it is never cropped: a 16:9 screen (within 2%) gets the painting
-   itself edge to edge, every other landscape shape the rules after .boottip, portrait phones the tall one */
+/* 🌊 the storm-and-wave painting (2026-10-13, the Steam page background's own 4K master: "byta ut loading screenen till
+   denna bild ... gör den till 4k"). It has no frame and no crest to keep whole, so every landscape shape simply covers
+   itself with it - a little off the sides on 16:10 and 4:3, off the sky and the rocks on ultrawides. Portrait screens
+   get their own 9:16 cut round the wave's curl. bootPreload() in game.js loads the one this screen shows (same query). */
 #boot{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
-  background:url('assets/ui/loading_desktop.jpg?v=4') center/100% 100% no-repeat #0b0906;transition:opacity .5s ease}
+  background:url('assets/ui/loading_tide.jpg?v=1') center/cover no-repeat #545e67;transition:opacity .5s ease}
 #boot.gone{opacity:0;pointer-events:none}
-.bootinner{position:relative;text-align:center;width:min(60%,430px);margin-top:42vh} /* well below the crest, low on the parchment */
+.bootinner{position:relative;text-align:center;width:min(60%,430px);margin-top:42vh} /* low, on the misty sea */
 .bootbar{height:13px;border-radius:8px;border:1px solid #1f4a78;background:rgba(10,28,52,.6);overflow:hidden;
   box-shadow:inset 0 1px 4px rgba(0,0,0,.5),0 1px 0 rgba(190,225,255,.22)}
 .bootbar i{display:block;height:100%;width:0%;border-radius:7px;   /* blue, to match the riptide art (2026-10-02) */
@@ -959,53 +961,16 @@
   box-shadow:0 0 10px rgba(70,150,255,.65);transition:width .25s ease}
 .boottip{margin-top:11px;font-family:var(--display);font-size:14px;color:#fff;
   text-shadow:0 0 8px #000,0 0 3px #000,0 2px 4px rgba(0,0,0,.9);min-height:1.3em;letter-spacing:.4px}
-/* 💻 desktops that are not 16:9 (16:10, 3:2, 4:3, ultrawide, a window, a browser tab): the same painting without its
-   frame, painted out wider (21:9, 4:1) or taller (4:3) and laid so the 16:9 picture always shows whole and centred; the
-   frame is drawn on top at the screen's own edges - corners fixed, rune bands tiled - with the two medallions centred.
-   U = the 16:9 picture's height on screen = min(100vh,56.25vw); the frame art is 4K-sized, so U = 2160 of its px.
-   bootPreload() in game.js uses the same queries. */
-@media (min-aspect-ratio:1001/1000) and (max-aspect-ratio:87/50),(min-aspect-ratio:91/50){
-  #boot{border:0 solid transparent;
-    border-image:url('assets/ui/loading_frame.png?v=1') 360/calc(min(100vh,56.25vw)*.16667) round}
-  #boot::before,#boot::after{content:'';position:absolute;left:50%;transform:translateX(-50%);pointer-events:none;
-    width:calc(min(100vh,56.25vw)*.2037);height:calc(min(100vh,56.25vw)*.06204);background:center/100% 100% no-repeat}
-  #boot::before{top:0;background-image:url('assets/ui/loading_medallion_top.png?v=1')}
-  #boot::after{bottom:0;background-image:url('assets/ui/loading_medallion_bottom.png?v=1')}
-}
-@media (min-aspect-ratio:1001/1000) and (max-aspect-ratio:87/50){
-  #boot{background:url('assets/ui/loading_desktop_tall.jpg?v=2') center/max(100vw,133.334vh) auto no-repeat #0b0906}
-  .bootinner{margin-top:min(42vh,23.625vw)}
-}
-@media (min-aspect-ratio:91/50){
-  #boot{background:url('assets/ui/loading_desktop_wide.jpg?v=2') center/auto max(100vh,42.857vw) no-repeat #0b0906}
-}
-@media (min-aspect-ratio:49/20){   /* past 21:9 (browser tabs on ultrawides, 32:9): the 4:1 painting */
-  #boot{background:url('assets/ui/loading_desktop_ultra.jpg?v=2') center/auto max(100vh,25vw) no-repeat #0b0906}
-}
-/* 📱 portrait: the riptide art painted tall (9:16, 2026-10-02; black-and-parchment since 2026-10-07). On phones it reaches the glass at every edge (the two
-   rules after this block); tablets still see it whole on the frame's dark bronze. The bar rides the calm sea at 63%.
+/* 📱 portrait: the 9:16 cut round the wave, edge to edge, the bar down on the rocks (~83%) so the curl stays clear.
    100dvh keeps the boot screen covering the glass while iOS Safari's chrome slides in and out */
 @media (max-aspect-ratio:1/1){
-  #boot{background-image:url('assets/ui/loading_phone.jpg?v=4');background-color:#1a1007;align-items:center;padding-bottom:0;
-    height:100dvh;background-size:contain;background-position:center}
-  .bootinner{margin-top:calc(26vh + 29px);margin-top:calc(26dvh + 29px);width:min(82%,420px)}
+  #boot{background-image:url('assets/ui/loading_tide_phone.jpg?v=1');background-color:#636a72;padding-bottom:0;height:100dvh}
+  .bootinner{margin-top:calc(68vh + 29px);margin-top:calc(68dvh + 29px);width:min(82%,420px)}
   /* same trick for the tavern art behind login / select / create */
   html:has(#login.open),html:has(#select.open),html:has(#create.open),
   body:has(#login.open),body:has(#select.open),body:has(#create.open),
   body:has(#login.open) #app,body:has(#select.open) #app,body:has(#create.open) #app,
   #select,#login,#create{background-size:auto 112%;background-position:center bottom}
-}
-/* phones in a browser tab: the 9:16 art stretched to the glass - a few % in most browsers, ~18% on the smallest iPhones */
-@media (max-aspect-ratio:65/100),(max-width:540px) and (max-aspect-ratio:1/1){
-  #boot{background-size:100% 100%}
-}
-/* installed and tall phones: the same painting with 692 more rows of its own open sea, laid as three slices - the top
-   1592 rows and the bottom 990 keep their shape at 100vw (rows/1520), only the open sea between them flexes to the
-   height, so nothing is cropped or squashed. The bar sits mid-sea. bootPreload() in game.js uses the same query. */
-@media (max-aspect-ratio:51/100){
-  #boot{background:#9a7758;border:0 solid transparent;
-    border-image:url('assets/ui/loading_phone_tall.jpg?v=3') 1592 0 990 0 fill/104.7368vw 0 65.1316vw 0 stretch}
-  .bootinner{margin-top:39.6vw}
 }
 /* ❄ Ice Armor talent tree */
 .talentbox{background:linear-gradient(180deg,#101a2a,#080d16);border:2px solid #5b9bd5;border-radius:18px;padding:20px 24px 18px;max-width:560px;width:94%;max-height:94%;overflow-y:auto;text-align:center;box-shadow:0 14px 50px rgba(0,0,0,.7),0 0 30px rgba(91,155,213,.22)}

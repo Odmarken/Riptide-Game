@@ -511,8 +511,7 @@
    "size": [
     640,
     469
-   ]
-  },
+   ], "edit": {"date": "2026-10-13", "note": "the band (fiddler, drummer, piper and stool) cut out by hand - the hat with its coins stays where it was; townsfolk NPCs dance round it now (game.js cityApplyDancers). The painting with the band is in git history before this change."}},
   "feast.png": {
    "jobId": "81a8a745-1b82-442b-8e79-b654c7299d88",
    "editOf": "fd153979-57b2-4f23-963d-2f63d16aad82",
@@ -621,8 +620,7 @@
    "size": [
     640,
     284
-   ]
-  },
+   ], "edit": {"date": "2026-10-13", "note": "the queue cut out by hand (alpha components; the last in line stood against the post, its edge redrawn from the post above and below) - the bakers' hatch with NO BREAD stays where it was; townsfolk NPCs queue at it now (game.js cityApplyBreadline). The painting with the queue is in git history before this change."}},
   "beggar.png": {
    "jobId": "b236604f-20a1-4bc6-8420-65f0b81122aa",
    "source": [

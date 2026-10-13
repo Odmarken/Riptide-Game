@@ -1,5 +1,5 @@
 {
-  "note": "Loading screen concepts. INSTALLED since 2026-10-07: the black-and-parchment concept 5 (loading_concept5_riptide_wave_4k_parchment_clean.jpg) on every screen - see 'installed_2026_10_07'. Earlier: concept 5 in colour (2026-10-02). Masters re-download from the job ids. Never name the boot bar in a prompt: the model then paints its own.",
+  "note": "Loading screen concepts. REPLACED 2026-10-13 by the Steam page background - see 'replaced_2026_10_13'; the concept-5 files stay in assets/ui unreferenced. Before that, INSTALLED since 2026-10-07: the black-and-parchment concept 5 (loading_concept5_riptide_wave_4k_parchment_clean.jpg) on every screen - see 'installed_2026_10_07'. Earlier: concept 5 in colour (2026-10-02). Masters re-download from the job ids. Never name the boot bar in a prompt: the model then paints its own.",
   "references": {
     "current_loading": "4a7fd86f-9350-4d58-87cd-5963325763b5",
     "kings_and_blackbeard": "f7058a61-adb0-4e4a-93a5-f1a08dae2304",
@@ -190,5 +190,12 @@
         "dragon": "3322ce34-0b33-4e63-9c57-85f76e735b56 (crop 690,470,512; three tries flagged nsfw until the prompt called it a storybook illustration for a family game)"
       }
     }
+  },
+  "replaced_2026_10_13": {
+    "asked": "vill byta ut loading screenen till denna bild men gör den till 4k / lägg in den först innan du upscalar vill se den först",
+    "source": "Screenshoots steam/Capsules/masters/Page background master 16x9.png (5504x3072, nano_banana_2_1 job 57afbd9e-48b7-4127-9665-0ac2126227ae)",
+    "desktop": "assets/ui/loading_tide.jpg = the master's 16:9 middle (x 21..5482) LANCZOS to 3840x2160, q90 4:4:4 progressive; style.css #boot center/cover on every landscape shape, no frame or medallions",
+    "portrait": "assets/ui/loading_tide_phone.jpg = a 9:16 slice centred at x 0.70 (x 2989..4717, the wave's curl) LANCZOS to 1440x2560; every max-aspect-ratio:1/1 screen, cover, bar on the rocks at ~83%",
+    "theme_color": "#636a72 (THEME_BOOT and index.html meta) = the clouds along the top"
   }
 }

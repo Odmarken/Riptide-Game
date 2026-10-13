@@ -50,7 +50,7 @@ const FG_ART={
 const fgArtFor=clsId=>{const a=FG_ART[clsId];return (a&&a.img.complete&&a.img.naturalWidth)?a:null;};
 /* 🏙 city art. CITY_HOUSES is indexed by a house's seed, so a terrace picks its faces
    deterministically and the same street looks the same every visit. */
-const CITY_ART_V=11; /* bump when a city asset is redrawn - the filenames stay put while the pictures
+const CITY_ART_V=12; /* bump when a city asset is redrawn - the filenames stay put while the pictures
                        behind them change, so without this a cached wall_gate_v.png survives a hard refresh */
 const cityImg=n=>{if(!cityImgs[n]){cityImgs[n]=new Image();cityImgs[n].src='assets/city/'+n+'.png?v='+CITY_ART_V;}return cityImgs[n];};
 const cityImgs={};
@@ -10144,6 +10144,10 @@ function update(dt){
    const crowd=world.npcs.filter(n=>n.protest),n=crowd[Math.floor(Math.random()*crowd.length)];
    if(n)floatAt(n.x,n.y-72,PROTEST_CHANTS[Math.floor(Math.random()*PROTEST_CHANTS.length)],'#ffb3a3',true);
   }
+  if(world.npcs&&chance(S.city&&S.city.food&&S.city.food.hunger>0?0.005:0.0025)){ /* 🍞 and the bread queue grumbles */
+   const line=world.npcs.filter(n=>n.queuer),n=line[Math.floor(Math.random()*line.length)];
+   if(n)floatAt(n.x,n.y-66,BREAD_MURMURS[Math.floor(Math.random()*BREAD_MURMURS.length)],'#f0d9a8',false);
+  }
   if(S.city&&S.city.incidents.length&&world.npcs&&chance(0.03)){ /* 🥊 and so does a brawl */
    const ring=world.npcs.filter(n=>n.brawl),n=ring[Math.floor(Math.random()*ring.length)];
    if(n)floatAt(n.x,n.y-58,BRAWL_SHOUTS[Math.floor(Math.random()*BRAWL_SHOUTS.length)],'#ffd0a0',Math.random()<.4);
@@ -12917,21 +12921,24 @@ function drawMercArms(n,body,by,now){   /* in the sellsword's own frame: the art
 }
 function drawNpc(n){
  const now=performance.now();
- const by=n.hop?-Math.abs(Math.sin(now/1000*n.hop.rate+n.hop.phase))*n.hop.h:n.moving?Math.sin(n.walk*7)*1.8:Math.sin(now/600+n.x)*0.8; /* 👑 hop: a townsman bouncing at the coronation */
+ const dz=n.dance,dt=dz&&now/1000*dz.rate+dz.phase;   /* 💃 dancing as the hero dances: a hop, a turn each way, a rock */
+ const fx=dz?(Math.sin(dt*3)>=0?1:-1):n.fx;
+ const by=dz?-Math.abs(Math.sin(dt*9))*6:n.hop?-Math.abs(Math.sin(now/1000*n.hop.rate+n.hop.phase))*n.hop.h:n.moving?Math.sin(n.walk*7)*1.8:Math.sin(now/600+n.x)*0.8; /* 👑 hop: a townsman bouncing at the coronation */
  ctx.save();ctx.translate(n.x,n.y);
  if(n.fade!=null)ctx.globalAlpha*=n.fade;   /* 🩹 a hurt guard fading out as he is helped away */
  const pImg=n.art||npcSkinImage(n.skin)||(n.female?npcFemaleImg:npcMaleImg); /* Sebbe's own art, a named skin, or the two originals */
  const body=characterBodyFrame(pImg,n.sit?36:44,n.sit?9:7),size=n.big||1;   /* 🪙 a sitter (the pardoned King) is drawn whole - feet in the art - and lower */
  const boots=characterBootFrame(npcSkinRace(n.skin),!!n.female,bootImg,7);
  ctx.save();ctx.scale(size,size);
+ if(dz)ctx.rotate(Math.sin(dt*6)*.25);
  if(n.hang){const top=body?body.headY-4:-40;ctx.translate(0,top);ctx.rotate(Math.sin(now/1000*1.6+n.hang)*.06);ctx.translate(0,-top);}   /* ⚖️ swinging from the rope, about the head */
  ctx.fillStyle='rgba(0,0,0,0.25)';ctx.beginPath();ctx.ellipse(0,body?(n.sit?9:boots.groundY):8,n.sit?16:13,5.5,0,0,7);ctx.fill();
- if(!n.hang){const gy=body?(n.sit?9:boots.groundY):8,tall=n.sit?30:52;if(!(body&&!n.sit&&!n.down&&sunFigureShadow(pImg,body,gy,n.fx>0)))sunPersonShadow(gy,tall);lightPersonShadow(n.x,n.y,gy,tall*size,size);}   /* ☀🏮 their own shape */
- if(n.down){const gy=body?boots.groundY:8;ctx.translate(0,gy);ctx.rotate((n.fx>0?-1:1)*1.45*n.down);ctx.translate(0,-gy);}   /* 🩹 knocked down by the Forsaken: laid out on the stones, about his feet */
+ if(!n.hang){const gy=body?(n.sit?9:boots.groundY):8,tall=n.sit?30:52;if(!(body&&!n.sit&&!n.down&&sunFigureShadow(pImg,body,gy,fx>0)))sunPersonShadow(gy,tall);lightPersonShadow(n.x,n.y,gy,tall*size,size);}   /* ☀🏮 their own shape */
+ if(n.down){const gy=body?boots.groundY:8;ctx.translate(0,gy);ctx.rotate((fx>0?-1:1)*1.45*n.down);ctx.translate(0,-gy);}   /* 🩹 knocked down by the Forsaken: laid out on the stones, about his feet */
  if(body){
   if(!n.sit)bootFeet({...boots,moving:n.moving,walk:n.walk*1.8,bob:by});
   ctx.save();
-  if(n.fx>0)ctx.scale(-1,1); /* art faces left natively - mirror when walking right */
+  if(fx>0)ctx.scale(-1,1); /* art faces left natively - mirror when walking right */
   ctx.rotate(by*0.02);
   const part=!n.art&&npcPart(n.skin);
   if(part){
@@ -12951,7 +12958,7 @@ function drawNpc(n){
  ctx.restore();
  if(n.hurtMark){const hy=((body?body.headY:-37)-12+by)*size;ctx.fillStyle='rgba(255,255,255,.92)';ctx.fillRect(-7,hy-7,14,14);ctx.fillStyle='#d83a32';ctx.fillRect(-2,hy-5.5,4,11);ctx.fillRect(-5.5,hy-2,11,4);}   /* 🩹 hurt, off to be patched up */
  if(n.protest&&n.protest.sign)drawProtestSign(n,body,by,size);
- if(n.guildRole!=='member'&&!n.protest&&!n.brawl&&!n.prisoner&&!n.held&&!n.feaster&&!(n.nameNear&&(!hero||Math.hypot(hero.x-n.x,hero.y-n.y)>n.nameNear))){   /* ⚔ a sellsword's name only when you are close */ /* ✊ a marching block wears its placards, not two dozen overlapping names; ⛓ a prisoner's name hangs on his grille */
+ if(n.guildRole!=='member'&&!n.protest&&!n.brawl&&!n.prisoner&&!n.held&&!n.feaster&&!n.queuer&&!n.dancer&&!(n.nameNear&&(!hero||Math.hypot(hero.x-n.x,hero.y-n.y)>n.nameNear))){   /* ⚔ a sellsword's name only when you are close */ /* ✊ a marching block wears its placards, not two dozen overlapping names; ⛓ a prisoner's name hangs on his grille */
   const ny=((body?body.headY:-37)-3+by-(body&&MERC_ARMED.has(n.skin)?17:0)-(n.nameLift||0))*size;   /* ⚔ over a sellsword's pike blade, not through it; 🍺 a line up when a neighbour's name is in the way */
   ctx.font='700 '+(n.game?11:10)+'px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(n.name,1,ny+1);
@@ -18539,7 +18546,7 @@ function cityHudLine(){
   +(c.food.hunger>0?' · 🌾 THE CITY IS HUNGRY':CityEconomy.foodView(c,cityContext()).low?' · 🌾 bread for '+(n=>n+' more close'+(n===1?'':'s'))(CityEconomy.foodView(c,cityContext()).closes):'')+(c.unattended>=CityEconomy.REMIND_AFTER?' · 🔔 you have ledgers to attend':'')+(trouble.length?' · '+trouble.join(' · '):'')+(c.petition?' · 📜 a petition waits at the council table':'')+(c.king.demand?' · 👑 the King wants something':'')+' · the ledger closes in '+cityClockLeft();
 }
 /* a commoner who can be pulled off his stroll for a march or a fight, and put back afterwards */
-const cityCommoner=n=>!n.patrol&&!n.game&&!n.hidden&&!n.feaster&&!/^noble_/.test(n.skin||'');
+const cityCommoner=n=>!n.patrol&&!n.game&&!n.hidden&&!n.feaster&&!n.queuer&&!n.dancer&&!/^noble_/.test(n.skin||'');
 function citySendHome(n){
  n.pts=n.homePts||n.pts;n.i=Math.min(n.homeI||0,n.pts.length-1);n.protest=null;n.brawl=null;
  n.x=n.pts[n.i].x;n.y=n.pts[n.i].y;n.pauseT=Math.random()*2;n.moving=false;
@@ -18622,7 +18629,7 @@ const VELVET_GIRLS=[['Scarlett','courtesan_blonde'],['Vivienne','courtesan_dark'
 function cityApplyPeople(){
  if(!world||!zoneOf().city||!world.npcs||!S.city)return;
  const c=S.city,jailed=new Set(c.jail.map(p=>p.name));
- const folk=world.npcs.filter(n=>!n.patrol&&!n.game&&!n.newcomer&&!n.recruit&&!n.velvet&&!n.feaster);
+ const folk=world.npcs.filter(n=>!n.patrol&&!n.game&&!n.newcomer&&!n.recruit&&!n.velvet&&!n.feaster&&!n.queuer&&!n.dancer);
  const crowd=Math.max(4,Math.round(c.pop*folk.length/CityEconomy.POPULATION));   /* one walker for every five souls or so: nobody draws five thousand */
  const gone=Math.max(0,folk.length-crowd);
  folk.forEach((n,i)=>{n.hidden=i>=folk.length-gone||jailed.has(n.name);});
@@ -18696,7 +18703,7 @@ function cityApplyWorks(){
   const def=CityEconomy.WORKS.find(w=>w.id===a.id);
   a.house.work={id:a.id,status:a.status,left:a.left,sign:def.sign,icon:def.icon,cat:def.cat};
  }
- cityApplyFeast();
+ cityApplyFeast();cityApplyBreadline();cityApplyDancers();
 }
 /* 🍖 A feast on the great square (2026-09-29): the long table is laid with food and nobody painted at it; the townsfolk
    stand round it, five a side facing the table, hopping for joy each in their own time. They come and go with the tables
@@ -18714,6 +18721,44 @@ function cityApplyFeast(){
     race:costume?costume[1]:'human',cls:costume?costume[3]:'warrior',female:npcSkinFemale(skin),pts:[{x,y}],i:0,dir:1,x,y,speed:0,walk:n*.7,
     fx:-side,pauseT:1e9,moving:false,feaster:true,hop:{h:7+(n%3)*3,rate:4.1+(n%4)*.55,phase:n*1.7}});
   }
+ });
+}
+/* 🍞 The bread queue (2026-10-13: "ta bort människorna i den bilden ha kvar no bread, och lägg till så det är NPC olika istället i
+   kön"): the painting is the bakers' hatch alone, NO BREAD on its board; the queue at it is townsfolk, no two dressed alike, in
+   line toward the hatch where the painted one stood - five while bread is short, eight once the granary is empty - each
+   shifting on their feet in their own time, and now and then one of them grumbles (BREAD_MURMURS). 🎻 The street music
+   (2026-10-13: "gör så det är NPC som står och dansar i stället"): the painted band is gone - the hat for coins stays and the
+   notes still rise over it - and four townsfolk dance round it, as the hero dances. Like the feasters they are not the walking
+   townsfolk: nobody counts them, marches them off or jails them, and they come and go with their props. */
+const QUEUE_SKINS=['market_woman','male','dockhand','fishwife','monk','female','foundry_worker','sailor','blacksmith','merchant'];
+const DANCE_SKINS=['female','sailor','baker','male','market_woman','merchant','fishwife','dockhand'];
+const BREAD_MURMURS=['Any bread today?','Since before dawn...','My children are hungry.','Open the hatch!','Not a crust left?','They say the granary is empty.','Bread!'];
+const QUEUE_STEP=27,QUEUE_HEAD=50,QUEUE_DY=-12;   /* the first at the hatch's counter, the rest behind at this spacing; feet a little behind the booth's front */
+const DANCE_SPOTS=[[-58,-2],[-22,-15],[22,-15],[58,-2]];   /* round the hat and a little behind it, where the band stood */
+function streetFolk(skin,n,x,y,extra){   /* one of the standing townsfolk the square's props bring */
+ const costume=npcSkinCostume(skin);
+ return {name:NEWCOMER_FIRST[(n*5+3)%NEWCOMER_FIRST.length]+' '+NEWCOMER_LAST[(n*11+1)%NEWCOMER_LAST.length],skin,
+  race:costume?costume[1]:'human',cls:costume?costume[3]:'warrior',female:npcSkinFemale(skin),pts:[{x,y}],i:0,dir:1,x,y,speed:0,walk:n*.7,
+  pauseT:1e9,moving:false,...extra};
+}
+function cityApplyBreadline(){
+ if(!world||!world.npcs)return;
+ world.npcs=world.npcs.filter(n=>!n.queuer);
+ (world.solids||[]).filter(s2=>s2.type==='citywork'&&s2.kind==='breadline').forEach((b,bi)=>{
+  const many=b.long?8:5,first=((b.seed|0)+bi*3)%QUEUE_SKINS.length;
+  for(let k=0;k<many;k++){
+   const x=b.x+QUEUE_HEAD-k*QUEUE_STEP+((k*7)%5-2),y=b.y+QUEUE_DY+((k*3)%4-1.5);   /* a queue, not a parade: never quite in line */
+   world.npcs.push(streetFolk(QUEUE_SKINS[(first+k)%QUEUE_SKINS.length],bi*10+k+40,x,y,{fx:1,queuer:true}));   /* facing the hatch */
+  }
+ });
+}
+function cityApplyDancers(){
+ if(!world||!world.npcs)return;
+ world.npcs=world.npcs.filter(n=>!n.dancer);
+ (world.solids||[]).filter(s2=>s2.type==='citywork'&&s2.kind==='music').forEach((m,mi)=>{
+  const first=((m.seed|0)+mi*2)%DANCE_SKINS.length;
+  DANCE_SPOTS.forEach(([dx,dy],k)=>world.npcs.push(streetFolk(DANCE_SKINS[(first+k)%DANCE_SKINS.length],mi*10+k+70,m.x+dx,m.y+dy,
+   {fx:dx<0?1:-1,dancer:true,dance:{rate:.86+((k*37+mi*11)%29)/100,phase:k*1.9+mi}})));   /* each in their own time */
  });
 }
 /* 📣 The crier shouts what the last close wrote, and what a steward should know, a line at a time */
@@ -22598,7 +22643,7 @@ const BOOT_MIN=5000,BOOT_MAX=13000;
    outside the page so no background image can reach them. Keep the tint matched to the
    top edge of whatever artwork is on screen (values sampled from the images) so the
    clock and battery read as sitting on the same backdrop. */
-const THEME_BOOT='#1a1007',THEME_MENU='#401a11',THEME_GAME='#342011';   /* boot: the dark bronze around the tall riptide art */
+const THEME_BOOT='#636a72',THEME_MENU='#401a11',THEME_GAME='#342011';   /* boot: the storm clouds along the top of the wave picture */
 /* Installed on the home screen the page owns the whole screen, status bar included, and the
    artwork is what should show there. A theme-color - from this meta OR from the manifest -
    makes iOS paint a solid band over it instead, so drop the meta entirely in that mode. */
@@ -22623,13 +22668,7 @@ function bootPreload(){
  /* UI frames and the login art */
  /* only the variant this screen shows - the same URLs and media queries as the #boot rules in style.css */
  const mq=q=>matchMedia(q).matches;
- if(mq('(max-aspect-ratio:51/100)'))push('assets/ui/loading_phone_tall.jpg?v=3');
- else if(mq('(max-aspect-ratio:1/1)'))push('assets/ui/loading_phone.jpg?v=4');
- else if(mq('(max-aspect-ratio:87/50)')||mq('(min-aspect-ratio:91/50)')){   /* not 16:9: wider/taller art + the frame on top */
-  push(mq('(max-aspect-ratio:87/50)')?'assets/ui/loading_desktop_tall.jpg?v=2':
-   mq('(min-aspect-ratio:49/20)')?'assets/ui/loading_desktop_ultra.jpg?v=2':'assets/ui/loading_desktop_wide.jpg?v=2');
-  ['loading_frame','loading_medallion_top','loading_medallion_bottom'].forEach(n=>push('assets/ui/'+n+'.png?v=1'));
- }else push('assets/ui/loading_desktop.jpg?v=4');
+ push(mq('(max-aspect-ratio:1/1)')?'assets/ui/loading_tide_phone.jpg?v=1':'assets/ui/loading_tide.jpg?v=1');   /* 🌊 the cut for portrait screens, else the 4K picture */
  ['bakground_signin','ui_background','ui_allt','ui_ram','ui_buttons','ui_buttonrak','ui_buttonsstone','ui_buttonshardcore']
   .forEach(n=>push('assets/ui/'+n+'.png'));
  /* painted icons - spells, potions, loot */

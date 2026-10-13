@@ -195,11 +195,7 @@
   for(let i=0;i<n;i++)if(Math.sin(ring(i).a)>=0){ribbon(i);dancer(i);}
  }
  function music(g,s,time){
-  const bow=Math.sin(time*6)*5,beat=Math.abs(Math.sin(time*4));
-  fig(g,-16,0,{coat:'#6a3f86',hat:'#2b2622'});rect(g,-13,-31,14,5,'#8a5a2b','#2a1a0c',1);        /* the fiddle, and the bow across it */
-  g.save();g.strokeStyle='#f0e2c4';g.lineWidth=1.4;g.beginPath();g.moveTo(-14+bow,-36);g.lineTo(2+bow,-24);g.stroke();g.restore();
-  fig(g,18,2,{coat:'#3f7d48',arm:.4+beat*.9});ellipse(g,27,-16,9,5,'#e9dcb8','#4a2d17',1.5);rect(g,18,-16,18,12,'#a8322f','#2a1a0c',1);
-  fig(g,50,-4,{coat:'#b9822a',sit:true});rect(g,55,-40,3,22,'#5a3a1e');                            /* and a piper on a stool */
+  /* the hat for coins and the tune in the air - the dancers round it are townsfolk (game.js cityApplyDancers, 2026-10-13) */
   for(let i=0;i<3;i++){const p=(time*.45+i/3)%1;label(g,i%2?'♪':'♫',-6+i*26+Math.sin(time*2+i)*6,-54-p*44,'rgba(255,236,170,'+(1-p).toFixed(3)+')',14);}
   rect(g,-4,6,14,5,'#2b2622');ellipse(g,3,6,5,2,'#e5c05a');                                          /* the hat, and what is in it */
  }
@@ -224,11 +220,8 @@
   board(g,s.stripe?'THE GREAT FAIR':'WONDERS · ONE PENNY',0,-62,84,'#ffd27a');
  }
  function breadline(g,s,time){
-  /* a shuttered bakers' hatch, and the queue that has been at it since before dawn */
+  /* a shuttered bakers' hatch - the queue at it is townsfolk (game.js cityApplyBreadline, 2026-10-13) */
   rect(g,56,-52,46,52,'#6d4a28','#2a1a0c',2);rect(g,62,-44,34,20,'#3a2410','#15100b',1.5);g.save();g.font='700 7px Georgia, serif';g.textAlign='center';g.fillStyle='#e6dbc9';g.fillText('NO BREAD',79,-12);g.restore();
-  const n=s.long?9:5;
-  for(let i=0;i<n;i++){const sh=Math.max(0,Math.sin(time*.8-i*.7))*3;fig(g,40-i*19+sh,(i%2)*5,{coat:COATS[(i*2+1)%COATS.length],step:sh*.6,hat:i%3===0?'#3a2a1a':undefined});}
-  if(s.long)label(g,'“Bread!”',-60+Math.sin(time*1.4)*4,-56,'#ff8a7a',11);
  }
  function beggar(g,s,time){
   g.save();g.scale(s.face||1,1);

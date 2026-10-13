@@ -38,5 +38,5 @@ test('the crowd comes and goes with the tables',()=>{
  const c=square([[1000,500]]);c.apply();assert.equal(feasters(c).length,10);
  c.apply();assert.equal(feasters(c).length,10,'applying again adds nobody');
  c.world.solids=[];c.apply();assert.equal(feasters(c).length,0);
- assert.match(source,/ cityApplyFeast\(\);\n\}/,'laid out whenever the square\'s props are');
+ assert.match(source,/ cityApplyFeast\(\);cityApplyBreadline\(\);cityApplyDancers\(\);\n\}/,'laid out whenever the square\'s props are');
 });
