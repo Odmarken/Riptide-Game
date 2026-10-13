@@ -312,3 +312,26 @@ test('a supplied battle clock freezes both the weapon glow and material marks du
   assert.notEqual(paint(1000,0),paint(1000,.73),id+' animates when the battle advances');
  }
 });
+
+test('a weapon on the back hands back its sprite for its marks, and what it sheds keeps the layer it was shed in', () => {
+ /* 2026-10-13: "gör så effekterna på enchants också är aktiva när alla vapen är hölstrade" */
+ const h = harness(), img = image(), rec = recordingContext();
+ const raw = () => rec.g.drawImage(img, -12, -6, 24, 12);
+ const sp = h.context.runeOnSpare(rec.g, rune('emberbite'), img, -12, -6, 24, 12, 0, 0, 85, raw);
+ assert.ok(sp && sp.profile, 'the spare\'s sprite, with its picture\'s profile');
+ assert.equal(h.context.runeTintOnly(rec.g, rune('emberbite'), img, -12, -6, 24, 12, 0, 0, 85, raw), sp, 'the copy over the hair: the same sprite');
+ assert.ok(!h.context.runeOnSpare(rec.g, null, img, -12, -6, 24, 12, 0, 0, 85, raw), 'no rune: nothing to mark');
+ /* the back's own pool: a layer rides along on every particle shed from it */
+ const back = vm.runInContext('runeBackEmission', h.context);   /* a const of the script, not a property of its global */
+ for (let i = 0; i < 60; i++) h.context.runeSpark(rune('emberbite'), emission({points: [{x: 1, y: 2, layer: 'over'}, {x: 3, y: 4, layer: 'behind'}]}), 1 / 60, 45, back);
+ assert.ok(back.parts.length >= 8, 'shed into its own pool');
+ assert.equal(h.context.parts.length, 0, 'not into the world\'s');
+ assert.ok(back.parts.every(p => (p.layer === 'over' && p.x === 1) || (p.layer === 'behind' && p.x === 3)), 'each with its point\'s layer');
+ h.context.runeSpark(rune('emberbite'), emission(), 1, 45);
+ assert.ok(h.context.parts.every(p => p.layer === undefined), 'a weapon in the hand sheds no layer');
+ /* a new zone empties it; the world's per-frame reset does not touch it */
+ h.context.resetRuneEmission();
+ assert.ok(back.parts.length >= 8, 'the hand\'s reset leaves the back\'s pool');
+ h.context.resetRuneBack();
+ assert.equal(back.parts.length, 0);assert.equal(back.carry, 0);assert.equal(back.key, '');
+});

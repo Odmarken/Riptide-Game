@@ -114,3 +114,25 @@ test('hearth smoke rises from every painted chimney pot, and from none where the
  for(const key of ['house_stair','work_exchange','work_theatre','work_school','nothing'])assert.equal(Works.drawSmoke(g,key,220,300,-290,1,1),0,key);
  assert.equal(count.calls,before);assert.ok(before>300);
 });
+
+test('a hard winter\'s snow lies on the world, not on the screen: the same flakes wherever the camera stands', () => {
+ /* 2026-10-13: "snön i city följer skärmen det ska den inte göra" - every flake had a fixed spot on the screen */
+ const flakes = view => {
+  const arcs = [], g = {fillStyle: '', beginPath() {}, moveTo() {}, fill() {}, fillRect() {}, arc(x, y, r) { arcs.push([x, y, r]); }};
+  Works.drawSnow(g, view, 12.25);
+  return arcs;
+ };
+ const a = {x: 7600, y: 1800, w: 1600, h: 1200}, b = {x: 7900, y: 2000, w: 1600, h: 1200};   /* the camera moved 300 right, 200 down */
+ const A = flakes(a), B = flakes(b);
+ const inBoth = f => f[0] > b.x + 30 && f[0] < a.x + a.w - 30 && f[1] > b.y + 30 && f[1] < a.y + a.h - 30;
+ const key = f => f.map(v => v.toFixed(3)).join(',');
+ const sa = new Set(A.filter(inBoth).map(key)), sb = new Set(B.filter(inBoth).map(key));
+ assert.ok(sa.size > 100, 'flakes where the two views meet: ' + sa.size);
+ assert.deepEqual([...sa].sort(), [...sb].sort(), 'the very same flakes, at the very same places on the world');
+ /* as thick as before: about one flake per 4200 square units, counting the faded ones at the tiles' edges by half */
+ const area = a.w * a.h, n = A.length;
+ assert.ok(n > area / 4200 * .85 && n < area / 4200 * 1.3, `${n} flakes over ${area} square units`);
+ /* and they fall: a moment later the same flake is lower down */
+ const later = []; Works.drawSnow({fillStyle: '', beginPath() {}, moveTo() {}, fill() {}, fillRect() {}, arc(x, y, r) { later.push([x, y, r]); }}, a, 12.35);
+ assert.ok(later.length > 0 && later.some(f => !sa.has(key(f))), 'they move');
+});

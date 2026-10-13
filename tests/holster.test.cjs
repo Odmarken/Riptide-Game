@@ -51,12 +51,12 @@ test('on the back like the spare Fel Glaive, nothing in the hand; the warrior\'s
   assert.ok(champ.startsWith('function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painted,iceArm,rune,riding,effectTime,holster,view){'));
   /* behind the body - and over it when he is seen from behind (🧭 2026-10-12, tests/hero-views.test.cjs draws it) */
   assert.ok(champ.includes('if(spare&&band==null)spare();if(holstered)drawHolstered('), 'the spare glaive and the holstered weapon go together (the hair pass is the weapon alone)');
-  assert.ok(champ.indexOf('if(!late)onBack();') < champ.indexOf('if(!late)paintBody();'), 'behind the body');
-  assert.ok(champ.includes('const finish=()=>{if(late){if(!bodyDone)paintBody();onBack();headAgain();}};'), 'over his back when the camera is behind him, his head laid again over it, his boots under it');
+  assert.ok(champ.indexOf('if(!late){onBack();') >= 0 && champ.indexOf('if(!late){onBack();') < champ.indexOf('if(!late)paintBody();'), 'behind the body');
+  assert.ok(champ.includes("const finish=()=>{if(late){backParts('behind');if(!bodyDone)paintBody();onBack();backParts('over');headAgain();}};"), 'over his back when the camera is behind him, his head laid again over it, his boots under it - and what his back weapon sheds in its layers');
   assert.ok(champ.includes('const spare=isFGLegend(weaponId)&&!fgArtFor(clsId)?'), 'the spare stays on his back when the pair joins it');
-  assert.ok(champ.includes("if(weaponId==='hidden'||holstered){finish();return null;}"), 'no weapon in the hand, no shield on the arm');
+  assert.ok(champ.includes("if(weaponId==='hidden'||holstered){finish();return shed(null);}"), 'no weapon in the hand, no shield on the arm (what is on his back may still shed)');
   const back = section('function drawHolstered(', '\nfunction drawChampionSprite(');
-  assert.ok(back.includes('drawBackGlaive(g,view,by,rune,effectTime,true,bx,headX);'), 'the second glaive: the spare\'s mirror, whole');
+  assert.ok(back.includes('drawBackGlaive(g,view,by,rune,effectTime,true,bx,headX,fx);'), 'the second glaive: the spare\'s mirror, whole');
   assert.ok(champ.includes("drawBackGlaive(g,fv,by,rune,effectTime,fv==='back'&&!holstered,"), 'the spare: one whole glaive, mirrored from behind while alone');
   assert.match(back, /warriorShieldOn\(clsId,fm,weaponId\)/, 'the shield goes on the back with the sword');
   const art = section('function backWeaponArt(', '\nfunction drawHolstered(');

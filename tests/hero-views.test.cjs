@@ -43,7 +43,7 @@ function harness() {
     scale(x, y) { transform = multiply(transform, { a: x, b: 0, c: 0, d: y, e: 0, f: 0 }); },
     rotate(a) { transform = multiply(transform, { a: Math.cos(a), b: Math.sin(a), c: -Math.sin(a), d: Math.cos(a), e: 0, f: 0 }); },
     translate(x, y) { transform = multiply(transform, { a: 1, b: 0, c: 0, d: 1, e: x, f: y }); },
-    getTransform() { return { ...transform }; },
+    getTransform() { return { ...transform }; }, setTransform(a, b, c, d, e, f) { transform = { a, b, c, d, e, f }; },
     drawImage(img, ...rect) { draws.push({ img, rect, matrix: { ...transform } }); },
     beginPath() { path.length = 0; }, rect(x, y, w, h) { path.push([x, y, w, h]); }, ellipse(...e) { path.push(['ellipse', ...e]); },
     clip() { clips.push({ rects: path.map(r => [...r]), at: draws.length }); },
@@ -518,7 +518,7 @@ test('from the side long hair no longer hides a weapon on the back: it lies over
   /* the copy over the hair has no glow and no rune halo of its own - the one behind lights the air; twice was twice as bright */
   const hp = section('function drawHolstered(', 'function drawChampionSprite(');
   assert.ok(hp.includes("if(glow){if(fm){g.shadowColor='#6fd0ff';") && hp.includes('(glow?runeOnSpare:runeTintOnly)('), 'the glow and the halo only with glow');
-  assert.ok(hp.includes('if(band==null){g.save();paint(true);g.restore();}') && hp.includes('paint(false);g.restore();'), 'behind him with it, over the hair without');
+  assert.ok(hp.includes('if(band==null){g.save();paint(true,over?fx.hair-HAIR_FADE+by:null);g.restore();}') && hp.includes('paint(false,null);g.restore();'), 'behind him with it, over the hair without');
   /* a short-haired man: once, behind him */
   assert.equal(side('human', 'mage', false).filter(x => /staff/.test(x.name)).length, 1, 'no hair band, no second pass');
   assert.equal(side('human', 'warrior', false, true).filter(x => /frostseeker/.test(x.name)).length, 1, 'his Frostseeker: once');
@@ -555,4 +555,111 @@ test('on a mount he sits in profile, like the mount: one turned boot under his h
   /* drawHero: the rider drawn in the view he is shown in, his near boot through bootFeet; no far boot from the side */
   assert.ok(game.includes('if(sideways)bootFeet({...character.boots,ride},g);else MountRenderer.drawRiderBoots(g,bootImg,ride,\'near\');'), 'the near boot');
   assert.ok(game.includes('bootImg:sideways?null:bootImg'), 'no far boot from the side');
+});
+
+test('a runed weapon on his back keeps its marks and sheds its embers from every side - behind him or over him as the weapon is', () => {
+  /* 2026-10-13: "gör så effekterna på enchants också är aktiva när alla vapen är hölstrade" */
+  const h = harness();
+  vm.runInContext(fs.readFileSync(path.join(root, 'assets/weapons/rune-profiles.js'), 'utf8') + ';this.PROFILES=WEAPON_RUNE_PROFILES;', h.c);
+  const fx = fs.readFileSync(path.join(root, 'assets/weapons/rune-effects.js'), 'utf8');
+  const cut = (a, b) => { const i = fx.indexOf(a); return fx.slice(i, fx.indexOf(b, i + a.length)); };
+  vm.runInContext(cut('function runePointTransform(', 'function runeProfileFor(') + cut('function runeEmitter(', 'function runeSpark('), h.c);   /* the real emitter maths */
+  vm.runInContext(game.match(/const WG_BACK=\{[^}]+\};/)[0], h.c);
+  vm.runInContext("FK_ART.warrior={img:fkImg,h:1.38,std:{pw:38,pl:27,grip:H=>4-H}};FK_ART.mage={img:fkImgStaff,h:1.59,std:{pw:42,pl:30,grip:H=>5-H}};fkArtFor=c=>FK_ART[c]||FK_ART.warrior;", h.c);
+  const nameOf = im => (im && im.src || '').split('/').pop().replace(/\?.*$/, '').replace('.png', '');
+  const marks = [], parts = [];
+  /* the rune's sprite as the game hands it back: its picture's profile (null for a picture without one) */
+  const sprite = (g, rune, im, x, y, W, H, grip, sx, sw, draw) => { draw(); if (!rune) return null; const name = nameOf(im); return { key: name, profile: h.c.PROFILES[name] || null }; };
+  Object.assign(h.c, { runeOnSpare: sprite, runeTintOnly: sprite,
+    runeMarks: (g, rune, sp) => { if (rune && sp && sp.profile) marks.push({ name: sp.key, at: h.draws.length }); },
+    drawRuneParticle: (g, p) => { parts.push({ layer: p.layer, at: h.draws.length, m: g.getTransform() }); return true; } });
+  const ember = { id: 'emberbite', glow: '#ff7a3a' };
+  const draw = ({ race = 'human', cls, female = false, fm = false, weapon = null, view, holster = true, rune = ember, pool = [], channel = true }) => {
+    h.draws.length = 0; h.clips.length = 0; marks.length = 0; parts.length = 0;
+    h.c.isFGLegend = () => weapon === 'felglaives';
+    const back = { parts: pool, world: { a: 2, b: 0, c: 0, d: 2, e: 100, f: 50 }, emission: null };
+    if (channel) h.c.drawChampionSprite.backFx = back;
+    h.c.drawChampionSprite(h.ctx, race, cls, -1, 0, 0, fm, weapon, female, 1, false, rune, null, 0, holster, view);
+    assert.equal(h.stack.length, 0, 'balanced');
+    assert.equal(h.c.drawChampionSprite.backFx, null, 'the pool is taken and cleared - never another figure\'s');
+    h.c.isFGLegend = () => false;
+    return { back, names: h.draws.map(d => nameOf(d.img)), pts: back.emission ? back.emission.points : [] };
+  };
+  const layers = pts => [...new Set(pts.map(p => p.layer))].sort().join(',');
+
+  /* from the front: its marks on it, its embers shed behind him - none from where the front cuts it away below his shoulder line */
+  for (const [cls, fm, pic] of [['mage', false, 'staff'], ['mage', true, 'frostseeker_staff'], ['priest', false, 'mace'], ['hunter', false, 'bow'], ['warrior', true, 'frostseeker']]) {
+    const d = draw({ cls, fm });
+    assert.deepEqual(marks.map(m => m.name), [pic], `${cls}${fm ? ' Frostseeker' : ''} from the front: its marks`);
+    assert.ok(d.pts.length >= 1 && layers(d.pts) === 'behind', `${cls}${fm ? ' Frostseeker' : ''} from the front: shed behind him (${layers(d.pts)})`);
+    for (const p of d.pts) assert.ok(!(p.y >= -22 && p.x >= 7), `${cls}: nothing from the cut-away part (${p.x.toFixed(1)},${p.y.toFixed(1)})`);
+    assert.ok(d.back.emission.size > 0 && /^back:/.test(d.back.emission.key), 'a key and a size of its own');
+  }
+  /* from behind: over him */
+  for (const [cls, fm] of [['mage', false], ['hunter', true], ['priest', false]]) {
+    const d = draw({ cls, fm, view: 'back' });
+    assert.ok(marks.length === 1 && d.pts.length >= 1 && layers(d.pts) === 'over', `${cls} from behind: marked and shed over him`);
+  }
+  /* the warrior's sword from behind hangs under the lion shield: nothing sheds from under the shield */
+  {
+    const d = draw({ cls: 'warrior', view: 'back' }), shieldW = 24 * h.c.warriorShieldImg.naturalWidth / h.c.warriorShieldImg.naturalHeight;
+    for (const p of d.pts) assert.ok(!(Math.abs(p.y + 12) <= 12 && Math.abs(p.x) <= shieldW / 2), `not from under the shield (${p.x.toFixed(1)},${p.y.toFixed(1)})`);
+  }
+  /* from the side its side picture carries the marks; a short-haired man's weapon sheds behind him */
+  {
+    const d = draw({ cls: 'mage', view: 'side' });
+    assert.deepEqual(marks.map(m => m.name), ['staff_side'], 'the side picture\'s own marks');
+    assert.ok(d.pts.length >= 1 && layers(d.pts) === 'behind', 'shed behind him');
+  }
+  /* over long hair it is laid again: its marks with that copy (and the copy behind marks only below where it fades in), and what
+     sheds from over her hair is over her */
+  {
+    const d = draw({ cls: 'mage', female: true, view: 'side' });
+    const { HAIR_FADE_STEPS } = vm.runInContext('({HAIR_FADE_STEPS})', h.c);
+    assert.equal(marks.filter(m => m.name === 'staff_side').length, 2 + HAIR_FADE_STEPS, 'behind her once, then with every piece over her hair');
+    assert.ok(h.clips.some(c => c.rects.length === 1 && c.rects[0][3] === 800 && c.at === marks[0].at), 'the copy behind marks only below the fade');
+    assert.ok(d.pts.some(p => p.layer === 'over'), `some of it sheds over her hair (${layers(d.pts)})`);
+    const end = h.c.characterBodyFrame(Object.assign(new FakeImage(), { src: 'assets/characters/humanfemale_mage_side.png?v=1' }), 48).hair;
+    for (const p of d.pts) assert.equal(p.layer, p.y < end - 2.5 ? 'over' : 'behind', `over her hair above the fade's middle (${p.y.toFixed(1)})`);
+  }
+  /* the Frostseeker mace is not laid over long hair: marked once, shed behind her */
+  {
+    vm.runInContext("FK_ART.priest={img:fkImgMace,h:1.38,std:{pw:38,pl:27,grip:H=>4-H}};", h.c);
+    const d = draw({ cls: 'priest', fm: true, female: true, view: 'side' });
+    assert.deepEqual(marks.map(m => m.name), ['frostseeker_mace_side']);
+    assert.equal(layers(d.pts), 'behind');
+  }
+  /* the warrior's Fel Glaives: both on his back from the front and behind, the spare's two halves from the side */
+  for (const [view, n, pic, layer] of [[undefined, 2, 'felglaive', 'behind'], ['back', 2, 'felglaive', 'over'], ['side', 2, 'felglaive_side', 'behind']]) {
+    const d = draw({ cls: 'warrior', weapon: 'felglaives', view });
+    assert.deepEqual(marks.map(m => m.name), Array(n).fill(pic), `glaives ${view || 'front'}: marked`);
+    assert.ok(d.pts.length >= 2 && layers(d.pts) === layer, `glaives ${view || 'front'}: shed ${layer} him`);
+  }
+  /* in his hands the spare on his back still sheds */
+  {
+    const d = draw({ cls: 'warrior', weapon: 'felglaives', holster: false });
+    assert.ok(marks.some(m => m.name === 'felglaive') && d.pts.length >= 1, 'the spare: marked and shed');
+  }
+  /* no rune, nothing; no pool (a peer, a portrait), the marks but nothing to shed into */
+  assert.ok(draw({ cls: 'mage', rune: null }).back.emission === null && marks.length === 0, 'no rune: no marks, no embers');
+  draw({ cls: 'mage', channel: false });
+  assert.equal(marks.length, 1, 'a figure without a pool keeps the marks');
+
+  /* what has been shed is painted in his layers, in the world's frame: behind him before his body, over him after it */
+  const pool = [{ layer: 'behind' }, { layer: 'over' }, {}];
+  for (const view of [undefined, 'side', 'back']) {
+    const d = draw({ cls: 'mage', female: true, view, pool });
+    const body = d.names.findIndex(n => /^humanfemale_mage/.test(n));
+    const behind = parts.filter(p => p.layer !== 'over'), over = parts.filter(p => p.layer === 'over');
+    assert.equal(parts.length, 3, `${view || 'front'}: each once`);
+    assert.ok(behind.every(p => p.at <= body), `${view || 'front'}: behind him before his body`);
+    assert.ok(over.every(p => p.at > body), `${view || 'front'}: over him after it`);
+    assert.ok(parts.every(p => p.m.a === 2 && p.m.e === 100 && p.m.f === 50), 'in the world\'s frame');
+  }
+  /* drawHero: the hero's own pool, stepped and fed from what the draw hands back - in the saddle too */
+  const hero = section('function drawHero(){', '\nfunction ');
+  assert.ok(hero.includes('const backFx={parts:runeBackEmission.parts,world:runeWorld,emission:null};'), 'the pool');
+  assert.equal((hero.match(/drawChampionSprite\.backFx=backFx;/g) || []).length, 2, 'on foot and in the saddle');
+  assert.ok(hero.includes('runeSpark(wRune,{...backFx.emission,'), 'fed from what it hands back');
+  assert.match(section('function buildZone(){', 'const tmpls=zoneTemplates(z);'), /resetRuneBack\(\);/, 'a new zone empties it');
 });

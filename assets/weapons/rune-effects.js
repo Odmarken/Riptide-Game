@@ -7,6 +7,11 @@ let runeFxDt=0;
 const runeWorldEmission={carry:0,key:''};
 function createRuneEmissionState(){return {carry:0,key:'',parts:[]};}
 function resetRuneEmission(){runeFxDt=0;runeWorldEmission.carry=0;runeWorldEmission.key='';}
+/* What a runed weapon on the hero's BACK sheds (2026-10-13: "gör så effekterna på enchants också är aktiva när alla vapen är
+   hölstrade"): its own pool, not the world's - drawChampionSprite paints it in his own layers, behind his body where the weapon is
+   behind him, over him where it is over him - so it is stepped and painted by the hero's draw, and emptied with a new zone. */
+const runeBackEmission=createRuneEmissionState();
+function resetRuneBack(){runeBackEmission.carry=0;runeBackEmission.key='';runeBackEmission.parts.length=0;}
 function runePointTransform(m,p){return {x:m.a*p.x+m.c*p.y+m.e,y:m.b*p.x+m.d*p.y+m.f};}
 function runeProfileFor(img){
  const name=decodeURIComponent((img.src||'').split(/[?#]/)[0]).split('/').pop().replace(/\.png$/i,'');
@@ -78,11 +83,13 @@ function runeUnder(g,w,img,x,y,W,H,gripFrac,sx,sw,time){
 }
 function runeOnSpare(g,w,img,x,y,W,H,gripFrac,sx,sw,draw,time){
  const sp=runeUnder(g,w,img,x,y,W,H,gripFrac,sx,sw,time);if(sp)runeTint(g,w,sp,x,y,W,H);else draw();
+ return sp;   /* the weapon's glow sprite - its marks and its embers go on it as in the hand - or null, drawn plain */
 }
 /* The rune's colour without its halo: the second copy of a weapon on the back that the side view lays over long hair - the copy
    behind the body already lights the air around it, and a second additive halo would double it there. */
 function runeTintOnly(g,w,img,x,y,W,H,gripFrac,sx,sw,draw){
  const sp=w?runeGlowSprite(img,w.glow,gripFrac,sx,sw,w.id==='veinseeker'?.32:.12):null;if(sp)runeTint(g,w,sp,x,y,W,H);else draw();
+ return sp;
 }
 function runePathPoint(path,u,x,y,W,H){
  const k=Math.max(0,Math.min(1,u))*(path.length-1),i=Math.floor(k),a=path[i],b=path[Math.min(i+1,path.length-1)],f=k-i;
@@ -162,6 +169,7 @@ function runeSpark(w,emission,dt,floorY,state=runeWorldEmission){
  while(count-->0&&pool.length<480){
   const point=points[Math.floor(Math.random()*points.length)],size=emission.size;
   const p={x:point.x,y:point.y,t:0,life:.65,c:w.glow,r:(.40+Math.random()*.22)*size,vx:0,vy:0,g:0};
+  if(point.layer)p.layer=point.layer;   /* a weapon on the back: painted behind its bearer or over him (drawChampionSprite) */
   if(w.id==='emberbite'){p.runeFx='ember';p.vx=(Math.random()-.5)*6;p.vy=-8-Math.random()*10;p.g=-7;p.life=.45+Math.random()*.25;}
   else if(liquid){p.runeFx=w.id==='frostgrip'?'water':'blood';p.vx=(Math.random()-.5)*1.5;p.vy=2+Math.random()*2;p.g=p.runeFx==='water'?94:112;p.life=1.05;p.floorY=Math.max(point.y+4,floorY);}
   else if(w.id==='stormetch'){p.runeFx='spark';p.vx=(Math.random()-.5)*60;p.vy=(Math.random()-.5)*50;p.life=.10+Math.random()*.07;p.r=.25*size;}

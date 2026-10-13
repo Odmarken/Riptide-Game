@@ -97,3 +97,54 @@ test('the browser flame atlas has a bounded cache and transparent, warm density 
  box.CityScenery.smoke(g,0,0,1,2,0,false,true);
  assert.equal(canvases.length,35,'only three reusable soot sprites');
 });
+
+test('a wagon wheel turns alone, clear between its spokes, over what stands behind it - the painting itself untouched', () => {
+ /* 2026-10-13: "dom här caravansen måste du fixa hjulen då dom inte är helt see through" - turning a disc of the painting
+    turned the wagon's underside painted between the spokes with it, and lifted the clear lower gaps into the wagon */
+ const {readRgbaPng} = require('./helpers/png.cjs'), path = require('node:path'), dir = path.join(__dirname, '../assets/city');
+ for (const [key, p] of Object.entries(Traffic.PROFILES)) {
+  const orig = readRgbaPng(path.join(dir, key + '.png')), still = readRgbaPng(path.join(dir, key + '_still.png')), wheels = readRgbaPng(path.join(dir, key + '_wheels.png'));
+  for (const im of [still, wheels]) assert.deepEqual([im.width, im.height], [640, p.height], key + ': the painting\'s own size');
+  assert.equal(orig.width, 640);
+  const inWheel = (x, y, pad = 0) => p.wheels.some(([cx, cy, r]) => Math.hypot(x + .5 - cx, y + .5 - cy) < r + pad);
+  let same = 0, outside = 0;
+  for (let y = 0; y < p.height; y++) for (let x = 0; x < 640; x++) {
+   const i = (y * 640 + x) * 4;
+   if (inWheel(x, y, 3)) continue;
+   outside++;
+   if ([0, 1, 2, 3].every(c => orig.pixels[i + c] === still.pixels[i + c]) || orig.pixels[i + 3] === 0 && still.pixels[i + 3] === 0) same++;
+   assert.equal(wheels.pixels[i + 3], 0, `${key}: nothing but the wheels turns (${x},${y})`);
+  }
+  assert.equal(same, outside, `${key}: away from the wheels the still picture is the painting`);
+  for (const [cx, cy, r] of p.wheels) {
+   /* the hub and the rim are wheel all round; between them it is clear about a third to two thirds of the way round */
+   assert.ok(wheels.alpha(cx, cy) > 250, `${key}: the hub turns`);
+   let clear = 0, n = 0, rimSolid = 0, rimN = 0;
+   for (let a = 0; a < 360; a += 1) {
+    const t = a * Math.PI / 180;
+    const mid = wheels.alpha(cx + Math.cos(t) * r * .58, cy + Math.sin(t) * r * .58);
+    clear += mid < 20; n++;
+    rimSolid += wheels.alpha(cx + Math.cos(t) * (r - 6), cy + Math.sin(t) * (r - 6)) > 230; rimN++;
+   }
+   assert.ok(clear / n > .3 && clear / n < .8, `${key}: clear between the spokes (${(clear / n).toFixed(2)} of the way round)`);
+   assert.ok(rimSolid / rimN > .97, `${key}: the rim is whole (${(rimSolid / rimN).toFixed(2)})`);
+   /* a circle about its own hub, so it does not wobble as it turns */
+   assert.equal(p.wheels.find(w => w[0] === cx)[2], p.wheels.find(w => w[0] === cx)[3], key + ': round');
+  }
+ }
+ /* drawn: the still picture is the body (no wheel cut out of it), the wheels picture turns */
+ for (const [key, p] of Object.entries(Traffic.PROFILES)) {
+  const im = {naturalWidth: 640, naturalHeight: p.height, name: 'painting'}, st = {naturalWidth: 640, naturalHeight: p.height, name: 'still'}, wh = {naturalWidth: 640, naturalHeight: p.height, name: 'wheels'};
+  const a = context();
+  Traffic.draw(a.g, key, im, 112, 1.2, 62, 0, {still: st, wheels: wh});
+  const draws = a.calls.filter(c => c[0] === 'drawImage');
+  assert.ok(draws.some(c => c[1] === st), key + ': the body is the still picture');
+  assert.equal(draws.filter(c => c[1] === wh).length, p.wheels.length, key + ': each wheel from the wheels picture');
+  assert.ok(!draws.some(c => c[1] === im && c.length === 10), key + ': no disc of the painting turns');
+  assert.ok(!a.calls.some(c => c[0] === 'ellipse'), key + ': no wheel cut out of the body');
+  assert.equal(a.stack.length, 0);
+  /* without them - still loading - the old way */
+  const b = context();Traffic.draw(b.g, key, im, 112, 1.2, 62, 0, null);
+  assert.equal(b.calls.filter(c => c[0] === 'drawImage' && c[1] === im && c.length === 10).length, p.wheels.length, key + ': a disc of the painting while they load');
+ }
+});

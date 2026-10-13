@@ -13,8 +13,12 @@ const root = path.resolve(__dirname, '..');
 const context = vm.createContext({});
 vm.runInContext(fs.readFileSync(path.join(root, 'assets/weapons/rune-profiles.js'), 'utf8') + '\nglobalThis.profiles = WEAPON_RUNE_PROFILES;', context);
 const profiles = context.profiles;
-const names = ['sword', 'mace', 'staff', 'bow', 'frostseeker', 'frostseeker_mace', 'frostseeker_staff', 'frostseeker_bow', 'felglaive', 'felglaive_mace', 'felglaive_staff', 'felglaive_bow'];
-const images = Object.fromEntries(names.map(name => [name, readRgbaPng(path.join(root, 'assets', names.indexOf(name) < 4 ? 'weapons' : 'models', `${name}.png`))]));
+const fronts = ['sword', 'mace', 'staff', 'bow', 'frostseeker', 'frostseeker_mace', 'frostseeker_staff', 'frostseeker_bow', 'felglaive', 'felglaive_mace', 'felglaive_staff', 'felglaive_bow'];
+/* 2026-10-13: the edge-on side pictures a weapon on the back shows from the side carry their own profiles, so its rune's marks and
+   embers go with it there too ("effekterna på enchants också aktiva när alla vapen är hölstrade") */
+const names = [...fronts, ...fronts.map(name => name + '_side')];
+const folder = name => /^(sword|mace|staff|bow)(_side)?$/.test(name) ? 'weapons' : 'models';
+const images = Object.fromEntries(names.map(name => [name, readRgbaPng(path.join(root, 'assets', folder(name), `${name}.png`))]));
 
 function validUv(point, label) {
   assert.equal(point.length, 2, label);
@@ -82,7 +86,7 @@ test('grip bands are excluded by entire paths, including centrally held staves a
 });
 
 test('bows retain separate upper and lower limbs and both glaive lobes survive half-image cropping', () => {
-  for (const name of ['bow', 'frostseeker_bow', 'felglaive_bow']) {
+  for (const name of ['bow', 'frostseeker_bow', 'felglaive_bow', 'bow_side', 'frostseeker_bow_side', 'felglaive_bow_side']) {
     const profile = profiles[name], [middle, half] = profile.grip;
     assert.ok(profile.paths.some(curve => curve.every(point => point[1] < middle - half)), `${name}: missing upper limb`);
     assert.ok(profile.paths.some(curve => curve.every(point => point[1] > middle + half)), `${name}: missing lower limb`);
@@ -97,4 +101,22 @@ test('bows retain separate upper and lower limbs and both glaive lobes survive h
       assert.ok(image.alpha((side * .5 + croppedU * .5) * image.width, v * image.height) > 100);
     }
   }
+});
+
+test('a side picture keeps its front\'s grip and runs its marks over the same stretches of the weapon', () => {
+  /* each side picture was cut to its front's height, so v along the weapon is the same on both */
+  for (const front of fronts.filter(name => name !== 'felglaive')) {
+    const f = profiles[front], s = profiles[front + '_side'];
+    assert.deepEqual(s.grip, f.grip, `${front}_side: the front's grip band`);
+    const stretches = f.paths.map(c => [Math.min(...c.map(p => p[1])), Math.max(...c.map(p => p[1]))]);
+    for (const c of s.paths) for (const [, v] of c)
+      assert.ok(stretches.some(([lo, hi]) => v >= lo - .002 && v <= hi + .002), `${front}_side: a mark at v ${v} where the front has none`);
+    assert.ok(s.emit.length >= 1 && s.emit.length <= f.emit.length, `${front}_side: its emitters`);
+    /* edge-on it is narrow: its marks run down the middle of the material, not off to a side */
+    for (const c of s.paths) for (const [u] of c) assert.ok(u > .05 && u < .95, `${front}_side: a mark at u ${u}`);
+  }
+  /* the glaive's side picture is one blade and its plate: the blade carries the marks, the plate none */
+  const g = profiles.felglaive_side;
+  assert.equal(g.grip, null);
+  assert.ok(g.paths.every(c => c.every(([, v]) => v < .8)), 'no marks on the plate');
 });

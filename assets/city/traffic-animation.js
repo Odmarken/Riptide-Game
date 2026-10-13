@@ -1,18 +1,26 @@
-/* Local cutouts keep the painted wagon intact while wheels and individual legs move - the horses' and the handcart family's. */
+/* Local cutouts keep the painted wagon intact while wheels and individual legs move - the horses' and the handcart family's.
+   🛞 A wheel turns about its own hub (2026-10-13: "dom här caravansen måste du fixa hjulen då dom inte är helt see through"):
+   each is the circle fitted to its painted rim, [x, y, r, r] with r a pixel past the rim. Turning a disc of the painting
+   turned everything painted between its spokes with it - the wagon's underside swung round under the wheel, the clear gaps of
+   its lower half rose into the wagon - so each painting has two of its own beside it: <key>_wheels.png, the wheels alone
+   (hub, spokes, rim; clear between the spokes) - what turns - and <key>_still.png, the painting with the wheels taken out and
+   what stands behind them filled in from the gaps - what stays. Both are cut from the painting by a script (scratchpad
+   9c64cf9a wheels/build.py: rim fitted to the clear ground under it, each spoke found by the clean lower ones' look), so the
+   painting itself is untouched; until they load the old way stands in. */
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;root.CityTrafficAnimation=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const PROFILES={
-  wagon_barrels:{height:282,cut:[365,195],wheels:[[68,218,63,64],[295,222,61,60]],legs:[
+  wagon_barrels:{height:282,cut:[365,195],wheels:[[68.34,215.72,66.38,66.38],[294.4,219.8,62.74,62.74]],legs:[
    [[421,194],[439,194],[446,232],[480,266],[476,276],[455,276],[429,244],[413,218]],
    [[397,189],[418,194],[409,226],[398,251],[407,267],[400,277],[378,278],[367,265],[382,224]],
    [[534,187],[552,191],[548,226],[535,254],[541,266],[538,276],[516,277],[504,265],[518,221]],
    [[554,179],[571,187],[576,220],[591,248],[602,266],[595,277],[573,276],[560,256],[547,221]]]},
-  wagon_caravan:{height:317,cut:[397,233],wheels:[[97,251,66,66],[306,255,64,62]],legs:[
+  wagon_caravan:{height:317,cut:[397,233],wheels:[[95.95,251.87,65.85,65.85],[303.87,258.19,58.7,58.7]],legs:[
    [[460,229],[478,229],[479,265],[497,289],[503,302],[490,308],[473,302],[452,268]],
    [[430,227],[452,228],[441,268],[431,295],[443,305],[430,315],[406,313],[403,300],[417,267]],
    [[527,213],[550,216],[545,245],[529,276],[532,294],[544,302],[535,312],[515,312],[506,302],[511,276],[519,242]],
    [[570,219],[589,224],[592,265],[609,286],[618,305],[604,315],[586,310],[575,287],[561,264]]]},
-  wagon_grain:{height:277,cut:[370,193],wheels:[[95,213,64,63],[272,220,61,56]],legs:[
+  wagon_grain:{height:277,cut:[370,193],wheels:[[97.11,213.56,63.41,63.41],[273.03,218.94,58.68,58.68]],legs:[
    [[428,181],[449,184],[448,214],[468,246],[481,261],[470,271],[450,271],[434,246],[418,216]],
    [[405,178],[425,181],[418,219],[401,249],[413,260],[400,272],[378,272],[374,260],[390,218]],
    [[526,181],[546,180],[544,219],[528,249],[538,261],[526,273],[504,272],[497,261],[510,222]],
@@ -21,7 +29,7 @@
      thigh band, so the body keeps covering each joint); the cuts never overlap one another. fill (a depth, or a strip
      along the hem) keeps a thin band of the cut's unmoved pixels underneath, so a thigh or an ankle swinging aside
      never opens a hole. Back to front. */
-  handcart:{height:313,wheels:[[300,245,61,67]],legs:[
+  handcart:{height:313,wheels:[[304.09,248.32,64.45,64.45]],legs:[
    {pivot:[519,240],phase:0,swing:.14,fill:250,pts:[[488,228],[540,228],[539,240],[533,252],[531,275],[517,296],[513,311],[477,311],[463,292],[465,270],[480,256],[485,246],[488,240]],
     cut:[[490,240],[539,240],[533,252],[531,275],[517,296],[513,311],[477,311],[463,292],[465,270],[480,256],[485,246]]},
    {pivot:[566,240],phase:Math.PI,swing:.14,fill:250,pts:[[543,228],[591,228],[592,240],[594,246],[600,258],[610,266],[628,281],[628,300],[621,311],[571,311],[562,298],[553,280],[546,262],[544,246],[544,240]],
@@ -40,8 +48,11 @@
   const distance=Math.max(0,speed)*time,phase=distance/Math.max(32,110*scale)*Math.PI*2+seed*.71;
   return {distance,phase,wheelAngle:distance/(wheelRadius*scale)};
  }
- function draw(g,key,im,H,time,speed,seed=0){
+ const ready=im=>!!(im&&im.complete!==false&&im.naturalWidth);
+ /* parts: {still, wheels} - the painting's two companions (see the top); without them the wheels turn as a disc of it */
+ function draw(g,key,im,H,time,speed,seed=0,parts=null){
   const p=PROFILES[key];if(!p)return false;
+  const still=parts&&ready(parts.still)&&ready(parts.wheels)?parts.still:null,turn=still&&parts.wheels;
   const scale=H/p.height,W=640*scale,motion=pose(time,speed,seed,scale,p.wheels[0][2]);
   g.save();g.translate(-W/2,12-H);g.scale(scale,scale);
   for(const leg of p.legs)if(!Array.isArray(leg)&&leg.fill){
@@ -57,16 +68,18 @@
    g.beginPath();polygon(g,pts);g.clip();g.drawImage(im,0,0,640,p.height);
    g.restore();
   }
-  /* The body covers each moving hip. Remove the whole old hoof area, including antialiased edges. */
+  /* The body covers each moving hip. Remove the whole old hoof area, including antialiased edges - and the painted wheels,
+     unless the still picture (no wheels in it, what is behind them there instead) is the body. */
   g.save();g.beginPath();g.rect(-2,-2,644,p.height+4);
-  for(const [x,y,rx,ry] of p.wheels){g.moveTo(x+rx,y);g.ellipse(x,y,rx,ry,0,0,Math.PI*2);}
+  if(!still)for(const [x,y,rx,ry] of p.wheels){g.moveTo(x+rx,y);g.ellipse(x,y,rx,ry,0,0,Math.PI*2);}
   if(p.cut)g.rect(p.cut[0],p.cut[1],640-p.cut[0],p.height-p.cut[1]+2);
   for(const leg of p.legs)if(!Array.isArray(leg)&&leg.cut)polygon(g,leg.cut);
-  g.clip('evenodd');g.drawImage(im,0,0,640,p.height);g.restore();
+  g.clip('evenodd');g.drawImage(still||im,0,0,640,p.height);g.restore();
+  const w=turn||im;   /* the wheels alone, clear between the spokes - or, while they load, a disc of the painting */
   for(const [x,y,rx,ry] of p.wheels){
    g.save();g.translate(x,y);g.scale(rx,ry);g.beginPath();g.arc(0,0,1,0,Math.PI*2);g.clip();
    g.rotate(motion.distance/(rx*scale));
-   g.drawImage(im,(x-rx)/640*im.naturalWidth,(y-ry)/p.height*im.naturalHeight,rx*2/640*im.naturalWidth,ry*2/p.height*im.naturalHeight,-1,-1,2,2);g.restore();
+   g.drawImage(w,(x-rx)/640*w.naturalWidth,(y-ry)/p.height*w.naturalHeight,rx*2/640*w.naturalWidth,ry*2/p.height*w.naturalHeight,-1,-1,2,2);g.restore();
   }
   g.restore();return true;
  }

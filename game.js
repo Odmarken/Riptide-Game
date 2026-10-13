@@ -7460,7 +7460,7 @@ function buildZone(){
   hero.potCd={hp:(prev.potCd&&prev.potCd.hp)||0,mp:(prev.potCd&&prev.potCd.mp)||0};
  }
  pet={x:hero.x-30,y:hero.y+14,fx:1,fy:0,walk:0,moving:false,r:8,avoid:null,speed:0};
- enemies=[];bolts=[];ebolts=[];hazards=[];floats=[];parts=[];rings=[];zaps=[];bloods=[];resetRuneEmission();
+ enemies=[];bolts=[];ebolts=[];hazards=[];floats=[];parts=[];rings=[];zaps=[];bloods=[];resetRuneEmission();resetRuneBack();
  const tmpls=zoneTemplates(z);
  cowRunning=false;cowT=0;cowSpawnT=0;cowItems=0;cowBagFull=false;
  cowChest=null;cowChestT=10;cowChestMsgT=0;cowBigT=12; /* first chest lands 10s after entering */
@@ -12288,37 +12288,65 @@ function backView(g,view,sgn){
  if(view==='side'&&sgn>0)g.scale(-1,1);
 }
 const sideSquash=(g,bx=SIDE_BACK_X)=>{g.translate(bx,0);g.scale(-SIDE_BACK_SQUASH,1);};   /* the left shoulder's end goes out behind the head */
+/* ✨ a runed weapon on his back does what it does in his hand (2026-10-13: "gör så effekterna på enchants också är aktiva när alla
+   vapen är hölstrade"): its marks run on it - from the side on its side picture's own profile - and its embers, drops and sparks
+   leave from its emitters. Those are handed back (fx, drawChampionSprite's) with the layer they are painted in: 'behind' him, under
+   his body and boots like the weapon itself, or 'over' him where the weapon is over him - from behind, and over long hair from the
+   side - and only where the weapon shows (layerAt says null where it is cut away or under the lion shield). drawHero sheds them into
+   their own pool and drawChampionSprite paints that pool in his layers. */
+const invMatrix=m=>{const det=m.a*m.d-m.b*m.c;return {a:m.d/det,b:-m.b/det,c:-m.c/det,d:m.a/det,e:(m.c*m.f-m.d*m.e)/det,f:(m.b*m.e-m.a*m.f)/det};};
+function backRuneMarks(g,rune,sp,x,y,W,H,time,backM,from){   /* from: only below this y of his back (backM's space); null: all of it */
+ if(!sp)return;
+ if(from==null){runeMarks(g,rune,sp,x,y,W,H,time);return;}
+ const m=g.getTransform();
+ g.save();g.setTransform(backM.a,backM.b,backM.c,backM.d,backM.e,backM.f);g.beginPath();g.rect(-400,from,800,800);g.clip();
+ g.setTransform(m.a,m.b,m.c,m.d,m.e,m.f);runeMarks(g,rune,sp,x,y,W,H,time);g.restore();
+}
+function backRuneFx(g,fx,sp,x,y,W,H,layerAt){
+ if(!fx||!fx.emit||!sp)return;
+ const e=runeEmitter(g,sp,x,y,W,H);if(!e)return;
+ for(const p of e.points){const layer=layerAt(p);if(layer)fx.pts.push({x:p.x,y:p.y,layer});}
+ fx.size=Math.max(fx.size,e.size);if(!fx.keys.includes(e.key))fx.keys.push(e.key);
+}
 /* one whole glaive on the warrior's back (WG_BACK): the left shoulder's, or mirrored the right's. From the side the two lie one behind
    the other, so the spare stands for both: its edge (felglaive_side.png is one blade and its plate) once upward and once, turned
    over, downward from the skull's height. Returns false while the picture loads. */
-function drawBackGlaive(g,view,by,rune,effectTime,mirror,bx,headX){
+function drawBackGlaive(g,view,by,rune,effectTime,mirror,bx,headX,fx){
  if(!(wgImg.complete&&wgImg.naturalWidth))return false;
  g.save();
+ const layer=view==='back'?'over':'behind',at=()=>layer;   /* from behind the glaives are over him; from the front and side behind him, where his body hides what it hides */
  g.globalAlpha*=0.9;g.shadowColor='#4dff9a';g.shadowBlur=rune?0:7;   /* the rune's colour wins if there is one */
  if(view==='side'){
   if(!mirror&&wgSideImg.complete&&wgSideImg.naturalWidth){
    const L=WG_BACK.h*1155/1436.5,LW=L*wgSideImg.naturalWidth/wgSideImg.naturalHeight;   /* blade and plate, as the side picture was cut */
    g.translate((headX??bx+1.5-SIDE_GAP)+SIDE_GAP-Math.tan(.22)*(WG_BACK.cy+33),WG_BACK.cy+by);g.rotate(.22);   /* SIDE_GAP behind the back of his head at y -33 */
-   for(const s of [1,-1]){g.save();g.scale(1,s);runeOnSpare(g,rune,wgSideImg,-LW/2,-L,LW,L,0,undefined,undefined,()=>g.drawImage(mip(wgSideImg,LW),-LW/2,-L,LW,L),effectTime);g.restore();}
+   for(const s of [1,-1]){
+    g.save();g.scale(1,s);
+    const sp=runeOnSpare(g,rune,wgSideImg,-LW/2,-L,LW,L,0,undefined,undefined,()=>g.drawImage(mip(wgSideImg,LW),-LW/2,-L,LW,L),effectTime);
+    runeMarks(g,rune,sp,-LW/2,-L,LW,L,effectTime);backRuneFx(g,fx,sp,-LW/2,-L,LW,L,at);
+    g.restore();
+   }
   }
   g.restore();return true;
  }
  const wgm=mip(wgImg,96),W2=wgm.naturalWidth||wgm.width,hh=wgm.naturalHeight||wgm.height,L=2*WG_BACK.h,GW=L*hh/W2;
  if(mirror)g.scale(-1,1);
  g.translate(WG_BACK.cx,WG_BACK.cy+by);g.rotate(WG_BACK.lean);   /* the upper blade over the shoulder, the lower on past the middle */
- /* one weapon, one rune - its glow cut from the whole picture */
- runeOnSpare(g,rune,wgm,-L/2,-GW/2,L,GW,0,0,W2,()=>g.drawImage(wgm,0,0,W2,hh,-L/2,-GW/2,L,GW),effectTime);
+ /* one weapon, one rune - its glow cut from the whole picture, the picture itself so its marks know where its blades are */
+ const sp=runeOnSpare(g,rune,wgImg,-L/2,-GW/2,L,GW,0,0,wgImg.naturalWidth,()=>g.drawImage(wgm,0,0,W2,hh,-L/2,-GW/2,L,GW),effectTime);
+ runeMarks(g,rune,sp,-L/2,-GW/2,L,GW,effectTime);backRuneFx(g,fx,sp,-L/2,-GW/2,L,GW,at);
  g.restore();
  return true;
 }
-function drawHolstered(g,clsId,fm,weaponId,by,rune,riding,effectTime,view,sgn,backX,headX,band,shift){   /* backX, headX: a side view's back edge and the back of its head (its frame); band: where its hair band ends - the weapon alone laid again over the hair; shift: how much further back it hangs on that picture */
+function drawHolstered(g,clsId,fm,weaponId,by,rune,riding,effectTime,view,sgn,backX,headX,band,shift,fx){   /* backX, headX: a side view's back edge and the back of its head (its frame); band: where its hair band ends - the weapon alone laid again over the hair; shift: how much further back it hangs on that picture; fx: its rune's embers (backRuneFx) */
  g.save();
  if(riding?.clipBody)riding.clipBody(g);   /* the mount's neck stays in front of it, as of the rider */
  backView(g,view,sgn);
  const side=view==='side',bx=backX??SIDE_BACK_X;
+ const backM=g.getTransform(),toBack=fx&&fx.emit&&rune&&band==null?invMatrix(backM):null;   /* his back's space: what the marks and embers may show through is measured in it */
  if(isFGLegend(weaponId)&&!fgArtFor(clsId)){   /* 🧭 the warrior's second glaive, whole, crossing the spare (WG_BACK) - the spare is drawn by drawChampionSprite */
   if(band!=null){g.restore();return;}   /* the glaives' blades show past any hair */
-  drawBackGlaive(g,view,by,rune,effectTime,true,bx,headX);   /* the spare's mirror, the two crossing as approved */
+  drawBackGlaive(g,view,by,rune,effectTime,true,bx,headX,fx);   /* the spare's mirror, the two crossing as approved */
   g.restore();return;
  }
  const art=backWeaponArt(clsId,fm,weaponId);
@@ -12333,7 +12361,14 @@ function drawHolstered(g,clsId,fm,weaponId,by,rune,riding,effectTime,view,sgn,ba
   let drop=(H-art.std)/2,L=H,sx=0,sy=-24;
   if(side){const c=Math.cos(.22),top=-24-art.std/2*c+SIDE_DROP,low=Math.min(top+(legend?H*SIDE_FORESHORTEN:H)*c,SIDE_LOW);L=(low-top)/c;sy=(top+low)/2;drop=0;
    sx=(headX??bx+1.5-SIDE_GAP)+(kit?2.5:SIDE_GAP+(shift||0))-Math.tan(.22)*(sy+33);}   /* the warrior's narrow hilt a little further out, clear of his hair */
-  const paint=glow=>{   /* glow: its light and its rune's halo - the copy over the hair has neither (the one behind lights the air) */
+  const shield=kit&&band==null&&warriorShieldImg.complete&&warriorShieldImg.naturalWidth?24*warriorShieldImg.naturalWidth/warriorShieldImg.naturalHeight:0;   /* the lion shield over it, as drawn below */
+  const over=side&&!!fx&&fx.hair!=null&&!kit&&W<=HAIR_MAX_W;   /* laid again over his long hair afterwards (the pass with band) - its marks there are that copy's */
+  const layerAt=p=>{const b=runePointTransform(toBack,p);
+   if(shield&&Math.abs(b.y-(-12+by))<=12&&Math.abs(b.x-(side?bx+2.5:0))<=(side?.3:1)*shield/2)return null;   /* under the lion shield */
+   if(view==='back')return 'over';
+   if(!side)return b.y>=-22+by&&b.x>=7?null:'behind';   /* the front's cut below his shoulder line at his left hand */
+   return over&&b.y<fx.hair+by-HAIR_FADE/2?'over':'behind';};
+  const paint=(glow,marksFrom)=>{   /* glow: its light and its rune's halo - the copy over the hair has neither (the one behind lights the air); marksFrom: its rune's marks only below this y of his back (null: all) */
   /* 🧭 from the front nothing of it shows on his left side below the shoulder line - a legendary's lower end came out under the
      fist like a held baton, and cut at the hem it left a glowing dot under the fist, a flat-topped butt by the boot and, in the
      saddle, a patch on the horse's leg (the verifiers' catches): from the front only its top shows, over his right shoulder */
@@ -12345,9 +12380,11 @@ function drawHolstered(g,clsId,fm,weaponId,by,rune,riding,effectTime,view,sgn,ba
   g.translate(0,art.up==='hilt'?-drop:drop);   /* along its own length, toward its lower end */
   if(art.bow){g.scale(-1,1);if(side&&!edge)g.scale(BOW_EDGE,1);}   /* a bow's string lies against the back and its wood faces out (2026-10-10: "stringen inåt"); from the side it is seen edge-on ("fixa hunters sido profil på vapnet") - its own side picture, or the front squeezed while that loads */
   if(glow){if(fm){g.shadowColor='#6fd0ff';g.shadowBlur=rune?0:7;}else if(isFGLegend(weaponId)){g.shadowColor='#4dff9a';g.shadowBlur=rune?0:7;}}
-  (glow?runeOnSpare:runeTintOnly)(g,rune,im,-W/2,-L/2,W,L,.5,undefined,undefined,()=>g.drawImage(mip(im,W),-W/2,-L/2,W,L),effectTime);
+  const sp=(glow?runeOnSpare:runeTintOnly)(g,rune,im,-W/2,-L/2,W,L,.5,undefined,undefined,()=>g.drawImage(mip(im,W),-W/2,-L/2,W,L),effectTime);
+  backRuneMarks(g,rune,sp,-W/2,-L/2,W,L,effectTime,backM,marksFrom);
+  if(toBack)backRuneFx(g,fx,sp,-W/2,-L/2,W,L,layerAt);
   };
-  if(band==null){g.save();paint(true);g.restore();}
+  if(band==null){g.save();paint(true,over?fx.hair-HAIR_FADE+by:null);g.restore();}
   else if(W>HAIR_MAX_W){}   /* too wide to lie over the hair */
   /* 🧭 from the side long hair hung over it from the neck to the waist and left only a hilt above the head ("gör så det syns från
      alla vinklar"): it is laid again over the hair, down to where the frame's hair band ends, and there it fades in under the hair
@@ -12355,7 +12392,7 @@ function drawHolstered(g,clsId,fm,weaponId,by,rune,riding,effectTime,view,sgn,ba
      rune's halo: above the band the copy behind lights the air already, and twice was twice as bright (a GL2D blur pass each, too) */
   else for(let k=0;k<=HAIR_FADE_STEPS;k++){
    const y0=k?band-HAIR_FADE*(1-(k-1)/HAIR_FADE_STEPS):-400,y1=k?y0+HAIR_FADE/HAIR_FADE_STEPS:band-HAIR_FADE;
-   g.save();g.beginPath();g.rect(-400,y0+by,800,y1-y0);g.clip();if(k)g.globalAlpha*=1-(k-.5)/HAIR_FADE_STEPS;paint(false);g.restore();
+   g.save();g.beginPath();g.rect(-400,y0+by,800,y1-y0);g.clip();if(k)g.globalAlpha*=1-(k-.5)/HAIR_FADE_STEPS;paint(false,null);g.restore();
   }
  }
  if(band==null&&warriorShieldOn(clsId,fm,weaponId)&&warriorShieldImg.complete&&warriorShieldImg.naturalWidth){   /* the shield over the sword, between the shoulders */
@@ -12368,6 +12405,9 @@ function drawHolstered(g,clsId,fm,weaponId,by,rune,riding,effectTime,view,sgn,ba
 }
 function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painted,iceArm,rune,riding,effectTime,holster,view){
  let runePaint=null,runeEmission=null;
+ /* ✨ the pool of what his back weapon sheds (drawHero's: {parts, world matrix}) - taken here and cleared, like bootFeet.last, so it
+    can never be another figure's; the points it is shed from are handed back on it (emission) */
+ const bfx=drawChampionSprite.backFx;drawChampionSprite.backFx=null;
  raceId=RACE_ALIAS[raceId]||raceId; /* peers/leaderboard entries may still send legacy ids */
  clsId=CLASS_ALIAS[clsId]||clsId;
  const r=RACES.find(x=>x.id===raceId);
@@ -12379,18 +12419,30 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
  /* 🧭 seen from behind, what he holds is in front of him - hidden by his body - and what he carries on his back is in sight:
     the body is painted last, over the weapon and the shield, and his back is dressed after it */
  const fv=frame?frame.view:'front',late=fv==='back';
+ const rfx=rune?{emit:!!bfx,hair:frame&&frame.hair!=null?frame.hair:null,pts:[],keys:[],size:0}:null;   /* ✨ its rune on his back (backRuneFx) */
  /* back glaive: behind the body, tilted opposite the front one - WoW dual-wield look. Only for the
     classes that actually wield the pair; a priest holding the fel mace has nothing to strap on. */
  const spare=isFGLegend(weaponId)&&!fgArtFor(clsId)?()=>{   /* the glaive not in his hands, whole, on his back (WG_BACK) */
   g.save();
   backView(g,fv,sgn);
-  if(!drawBackGlaive(g,fv,by,rune,effectTime,fv==='back'&&!holstered,(frame&&frame.backX)??SIDE_BACK_X,frame&&frame.headX)){   /* fallback while the image loads; alone and seen from behind it is mirrored, so it stays over his right shoulder */
+  if(!drawBackGlaive(g,fv,by,rune,effectTime,fv==='back'&&!holstered,(frame&&frame.backX)??SIDE_BACK_X,frame&&frame.headX,rfx)){   /* fallback while the image loads; alone and seen from behind it is mirrored, so it stays over his right shoulder */
    g.translate(0,-14+by);g.globalAlpha*=0.9;g.scale(0.85*sgn,0.85);drawGlaive(g,false);
   }
   g.restore();
  }:null;
  /* what hangs on his back rocks with his body (paintBody's by*0.025, mirrored as he is) instead of sliding against it */
- const onBack=band=>{g.save();g.rotate(sgn>0?-by*.025:by*.025);if(spare&&band==null)spare();if(holstered)drawHolstered(g,clsId,fm,weaponId,by,rune,riding,effectTime,fv,sgn,frame&&frame.backX,frame&&frame.headX,band,frame&&frame.sideShift);g.restore();};
+ const onBack=band=>{g.save();g.rotate(sgn>0?-by*.025:by*.025);if(spare&&band==null)spare();if(holstered)drawHolstered(g,clsId,fm,weaponId,by,rune,riding,effectTime,fv,sgn,frame&&frame.backX,frame&&frame.headX,band,frame&&frame.sideShift,rfx);g.restore();};
+ /* ✨ the embers and drops his back weapon shed, in their layer: 'behind' him before his body (and his boots) is painted, 'over' him
+    once what lies over him is - each once, in the world's own frame (they stay where they were shed while he walks on) */
+ let behindDone=false,overDone=false;
+ const backParts=layer=>{
+  if(layer==='over'?overDone:behindDone)return;if(layer==='over')overDone=true;else behindDone=true;
+  if(!bfx||!bfx.parts||!bfx.parts.length)return;
+  g.save();if(riding?.clipBody)riding.clipBody(g);const m=bfx.world;g.setTransform(m.a,m.b,m.c,m.d,m.e,m.f);
+  for(const p of bfx.parts)if((p.layer==='over')===(layer==='over'))drawRuneParticle(g,p);
+  g.restore();
+ };
+ const shed=v=>{if(bfx&&rfx&&rfx.pts.length)bfx.emission={key:'back:'+rfx.keys.join('+'),size:rfx.size,points:rfx.pts};return v;};
  const rImg=frame&&frame.image;
  const paintBody=()=>{
   /* painted character - mirrored when facing left, bobbing + rocking while running */
@@ -12416,7 +12468,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
     canvas) are laid once more over his back things: a glaive's lower blade shows between and below his feet, never over a boot
     ("går det att göra något åt där vid skorna?"). Taken here and cleared, so they can never be another figure's. */
  const feetAgain=bootFeet.last&&bootFeet.last.g===g?bootFeet.last:null;bootFeet.last=null;
- if(!late){onBack();if(feetAgain&&(spare||holstered)){bootFeet(feetAgain.e,feetAgain.g);bootFeet.last=null;}}
+ if(!late){onBack();backParts('behind');if(feetAgain&&(spare||holstered)){bootFeet(feetAgain.e,feetAgain.g);bootFeet.last=null;}}
  if(frame){
   if(fv==='side'&&!holstered&&warriorShieldOn(clsId,fm,weaponId))drawWarriorShield(g,frame,sgn,by,riding);   /* 🧭 the far arm's shield, behind him */
   if(!late)paintBody();
@@ -12488,6 +12540,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
   g.beginPath();g.arc(bcx+2.9,bcy-1.1,1,0,7);g.fill();
  }
  } /* end procedural body (skipped when a painted race sprite exists) */
+ if(!late)backParts('over');   /* ✨ over his long hair from the side, with the copy laid there */
  let bodyDone=false;
  /* 🧭 from behind a single weapon on his back is painted over him - and his head stays over it: the back picture is laid once more
     inside his head (a reviewer's catch: mace heads and staff crescents covered the back of the head, the orc's ear). The glaives
@@ -12501,15 +12554,15 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
  };
  /* from behind what hangs on his back is nearest and covers his boots - they are not laid again there (2026-10-13: "när den går
     upp ... gör så den är framför så vapnet täcker", "det är så med skorna på alla vapen när man går upp") */
- const finish=()=>{if(late){if(!bodyDone)paintBody();onBack();headAgain();}};
+ const finish=()=>{if(late){backParts('behind');if(!bodyDone)paintBody();onBack();backParts('over');headAgain();}};
  /* null selects the class's standard weapon; hidden means no weapon or weapon effects at all; holstered, it is on the back. */
- if(weaponId==='hidden'||holstered){finish();return null;}
+ if(weaponId==='hidden'||holstered){finish();return shed(null);}
  /* 🧭 from behind the weapon in his hand is as much in sight as from the front (2026-10-12: "alla vapen ska inte va mer synlig om
     man tittar mot skärmen än går upp"): the body first and the weapon over it. The shield stays on the arm in front of him, and
     the warrior's level pair - wider than he is, in sight on both sides of him anyway - stays in front too. */
  if(late&&frame&&!(isFGLegend(weaponId)&&!fgArtFor(clsId))){
   if(warriorShieldOn(clsId,fm,weaponId))drawWarriorShield(g,frame,sgn,by,riding);
-  paintBody();bodyDone=true;
+  backParts('behind');paintBody();bodyDone=true;
  }
  /* Reviewed grips follow the painted hand, including the body's running rock. */
  const pw=!!frame;
@@ -12644,7 +12697,7 @@ function drawChampionSprite(g,raceId,clsId,fx,by,swing,fm,weaponId,female,painte
  g.restore();
  if(frame&&fv!=='side'&&!bodyDone&&warriorShieldOn(clsId,fm,weaponId))drawWarriorShield(g,frame,sgn,by,riding);   /* after the weapon, which stays the second thing painted */
  finish();
- return runeEmission; /* local to this draw; portraits and unloaded art cannot leave stale emitters */
+ return shed(runeEmission); /* local to this draw; portraits and unloaded art cannot leave stale emitters */
 }
 /* 🛡 The warrior's lion shield (asked for 2026-10-02): the class's own kit is sword and board. The shield rides on the
    other arm with the standard sword, in every outfit, and goes the moment a legendary is in the hand - Frostseeker or the
@@ -12731,7 +12784,7 @@ function heroViewNow(h,riding,dancing){
 function drawHero(){
  if(TideUI.isBattling())return;
  const fxDt=runeFxDt;runeFxDt=0;
- const runeScene=ctx.getTransform().inverse();
+ const runeWorld=ctx.getTransform(),runeScene=runeWorld.inverse();
  const h=hero;if(h.dead&&h.deadT>0.7)return;
  const r=raceOf(),c=classOf(),now=performance.now()/1000;
  ctx.save();ctx.translate(h.x,h.y);
@@ -12770,22 +12823,31 @@ function drawHero(){
  /* ✨ the weapon's rune - not while fishing, since the rod is not the enchanted thing in his hand */
  const wRune=(fish.on||h.dead||S.hideWeapon)?null:runeOf(S.gear.weapon);   /* 👁 a hidden weapon burns no rune either */
  let rideLayout=null,emission;
+ /* ✨ what a runed weapon on his back sheds (drawHolstered, drawBackGlaive): its own pool, stepped here, painted by drawChampionSprite
+    in his layers and fed below from the points that draw hands back */
+ for(let i=runeBackEmission.parts.length-1;i>=0;i--)if(stepRuneParticle(runeBackEmission.parts[i],fxDt))runeBackEmission.parts.splice(i,1);
+ const backFx={parts:runeBackEmission.parts,world:runeWorld,emission:null};
  if(riding){
   by=0;
   const sideways=shown==='side'&&!!character;   /* 🧭 in profile, like the mount: no far boot (the mount hides it), the near one turned */
   rideLayout=MountRenderer.draw(ctx,{id:mountRide.id,img:mountImages[mountRide.id],runImg:mountRunImages[mountRide.id],fx,phase:mountRide.phase,time:mountRide.time,moving:mountRide.moving,deviceScale:zoom*DPR,bootImg:sideways?null:bootImg,bootWidth:character?.boots.bw},(g,ride)=>{
    if(sideways)bootFeet({...character.boots,ride},g);else MountRenderer.drawRiderBoots(g,bootImg,ride,'near');
+   drawChampionSprite.backFx=backFx;
    return drawChampionSprite(g,S.race,c.id,fx,0,0,heroWeaponArgs().fm,heroWeaponArgs().id,S.gender==='f',1,outfitArg(),wRune,ride,undefined,!!h.holster,shown);
   });
   emission=rideLayout?.riderResult;
  }else{
   if(character)bootFeet({...character.boots,moving:h.moving,walk:h.walk,bob:by,side:shown==='side'?(fx<0?-1:1):0,back:shown==='back'});else feet(h,1);   /* on foot: his boots, then him */
+  drawChampionSprite.backFx=backFx;
   emission=drawChampionSprite(ctx,S.race,c.id,fx,by,danceSwing,fish.on?false:heroWeaponArgs().fm,fish.on?'fishingrod':heroWeaponArgs().id,S.gender==='f',h.moving&&!h.dead?2:1,outfitArg(),wRune,null,undefined,!!h.holster,shown);   /* 🗡 on the back when holstered · 🧭 */
  }
  if(aura){const a0=ctx.globalAlpha;SpellFx.auras(ctx,aura,'front',now);ctx.globalAlpha=a0;}   /* ✨ the aura's near side, over him */
  if(mountRide.casting)MountRenderer.drawCast(ctx,{progress:1-mountRide.remaining,id:mountRide.casting,phase:now*2});
  if(wRune&&emission&&!gamePaused)runeSpark(wRune,{...emission,points:emission.points.map(p=>runePointTransform(runeScene,p))},fxDt,h.y+gY+8);
  else resetRuneEmission();
+ /* the drops from a weapon on his back land just behind him (from the front) or before him (from behind); in the saddle on the mount */
+ if(wRune&&backFx.emission&&!gamePaused)runeSpark(wRune,{...backFx.emission,points:backFx.emission.points.map(p=>({...runePointTransform(runeScene,p),layer:p.layer}))},fxDt,riding?-Infinity:h.y+gY+8+(shown==='back'?2:shown==='side'?0:-2),runeBackEmission);
+ else{runeBackEmission.carry=0;runeBackEmission.key='';}
  /* the pick, drawn over the hero while he works. It replaces nothing - his weapon stays where it is -
     it is simply the tool in his hands for as long as the swing lasts. The arc is fast down and slow
     back up, because that is how anything heavy is swung: gravity does the strike, the arm does the lift. */

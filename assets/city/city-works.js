@@ -488,12 +488,29 @@
   g.beginPath();g.moveTo(w*.26-9,gy+10);g.lineTo(w*.26+11,gy+10);g.lineTo(w*.26+11+sw,gy+40);g.lineTo(w*.26+1+sw,gy+33);g.lineTo(w*.26-9+sw,gy+40);g.closePath();g.fillStyle='#e5c05a';g.fill();g.strokeStyle='#6d4d12';g.lineWidth=1;g.stroke();
  }
  /* ---------- the sky over the city: snow in a hard winter, fireworks over a jubilant square ---------- */
+ /* ❄ a hard winter's snow on the world (2026-10-13: "snön i city följer skärmen det ska den inte göra"): every flake has its place
+    in a tile of the ground and falls through it swaying, so as you walk it stays put and slides by with the ground, as the rain
+    does (game.js drawWeather) - before, each sat at a fixed spot of the screen and came along with the camera. A flake falls a
+    little past its tile and fades in and out across that edge, so where two tiles meet none blinks out; as thick as it was, and
+    zoomed far out no more of them than before. One path for each of four strengths. */
+ const SNOW_TILE=512,SNOW_EDGE=36,SNOW_SWAY=18;
  function drawSnow(g,view,time=0){
-  const n=clamp(Math.round(view.w*view.h/4200),60,520);
-  for(let i=0;i<n;i++){
-   const h=hash(i,77),sp=38+(h%40),drift=Math.sin(time*.8+i)*18;
-   const x=view.x+(((h>>>4)%1000)/1000*view.w+drift+view.w)%view.w,y=view.y+((((h>>>14)%1000)/1000*view.h+time*sp)%view.h);
-   ellipse(g,x,y,2+(h%3)*.9,2+(h%3)*.9,'rgba(245,250,255,.9)');
+  const T=SNOW_TILE,E=SNOW_EDGE,P=T+2*E,SW=SNOW_SWAY;
+  const x0=Math.floor((view.x-SW-4)/T),x1=Math.floor((view.x+view.w+SW+4)/T),y0=Math.floor((view.y-E-4)/T),y1=Math.floor((view.y+view.h+E+4)/T);
+  const per=Math.round(T*T/4200*Math.min(1,520*4200/Math.max(1,view.w*view.h)));
+  const fades=[[],[],[],[]];
+  for(let ty=y0;ty<=y1;ty++)for(let tx=x0;tx<=x1;tx++)for(let i=0;i<per;i++){
+   const h=hash(tx*4099+i,ty*8191+77),sp=38+(h%40),u=((h>>>4)%1000)/1000,d=(((h>>>14)%1000)/1000*P+time*sp)%P;
+   const x=tx*T+u*T+Math.sin(time*.8+i+u*TAU)*SW,y=ty*T-E+d;
+   if(x<view.x-4||x>view.x+view.w+4||y<view.y-4||y>view.y+view.h+4)continue;
+   const a=Math.min(1,d/(2*E),(P-d)/(2*E));   /* fading in over its first stretch, out over its last */
+   if(a>0)fades[Math.min(3,Math.floor(a*4))].push(x,y,2+(h%3)*.9);
+  }
+  for(let k=0;k<4;k++){
+   const f=fades[k];if(!f.length)continue;
+   g.fillStyle='rgba(245,250,255,'+(.9*(k+1)/4).toFixed(3)+')';g.beginPath();
+   for(let j=0;j<f.length;j+=3){g.moveTo(f[j]+f[j+2],f[j+1]);g.arc(f[j],f[j+1],f[j+2],0,TAU);}
+   g.fill();
   }
   g.fillStyle='rgba(215,230,245,.10)';g.fillRect(view.x,view.y,view.w,view.h);
  }
@@ -601,7 +618,8 @@
   if(ready(im)){
    const H=t.kind==='wagon'?112:88,W=H*im.naturalWidth/im.naturalHeight;
    Scenery.shadow(g,0,9,W*.46,8,.22);
-   TrafficAnimation.draw(g,key,im,H,time,t.speed??(t.kind==='wagon'?62+((t.seed*37)%23):34),t.seed);
+   const still=img(key+'_still'),turn=img(key+'_wheels');   /* 🛞 what stands and what turns (traffic-animation.js) */
+   TrafficAnimation.draw(g,key,im,H,time,t.speed??(t.kind==='wagon'?62+((t.seed*37)%23):34),t.seed,ready(still)&&ready(turn)?{still,wheels:turn}:null);
    g.restore();return;
   }
   const roll=time*5+t.seed,bob=Math.sin(roll*1.3)*1.2;
