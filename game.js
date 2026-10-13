@@ -1356,18 +1356,20 @@ function thorWindow(){
  return day*8+Math.floor(localDayMs()/THOR_PERIOD);
 }
 function thorStatus(){
+ if(shotsFree())return {open:true,left:THOR_OPEN};   /* 📸 the screenshot test: the storm never passes */
  const t=localDayMs()%THOR_PERIOD;
  return t<THOR_OPEN?{open:true,left:THOR_OPEN-t}:{open:false,next:THOR_PERIOD-t};
 }
-const thorLocked=()=>S&&S.thorLock===thorWindow();
+const thorLocked=()=>S&&!shotsFree()&&S.thorLock===thorWindow();
 /* Violet Halls opens every 4 hours (00/04/08/12/16/20 Swedish time), 30 minutes per window */
 const RAID_PERIOD=4*3600*1000,RAID_OPEN=30*60*1000;
 function raidStatus(){
+ if(shotsFree())return {open:true,left:RAID_OPEN};   /* 📸 the screenshot test: the gates stand open */
  const t=localDayMs()%RAID_PERIOD;
  return t<RAID_OPEN?{open:true,left:RAID_OPEN-t}:{open:false,next:RAID_PERIOD-t};
 }
 const raidWindow=()=>Math.floor(Date.now()/86400000)*6+Math.floor(localDayMs()/RAID_PERIOD);
-const raidCleared=()=>!!S&&S.raidLock===raidWindow(); /* one clear per lockout - dying and retrying is fine */
+const raidCleared=()=>!!S&&!shotsFree()&&S.raidLock===raidWindow(); /* one clear per lockout - dying and retrying is fine */
 const fmtMS=ms=>{
  const s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60),ss=s%60;
  return h>0?h+'h '+m+'m':m+'m '+String(ss).padStart(2,'0')+'s';
@@ -2722,8 +2724,148 @@ function heroesTest(){
  showSelect();
  return 'hero test: '+TEST_ROSTER.size+' heroes on the list';
 }
+/* 📸 THE SCREENSHOT TEST (asked for 2026-10-13: "ge mig en test build nu med 4 gubbar alla 30 prestige + olika klasser warrior,
+   priest, mage och hunter 3 males, ingen dwarf men female ska va undead ... på female att hon har en farm level 3 skit snygg och stor
+   fint byggd ... ge dom lite vapen och outfits också ... och random mycket pengar"). Four throwaway heroes at level 60 and Prestige 30
+   for the player's own screenshots: a Human Warrior on the City's great square, an Orc Hunter at Torsten's stable in the Wasteland, a
+   Human Mage in Moonshine, and an Undead Priestess on her Farm at its last level, built out round the Mansion - fields, paddocks, a
+   fountain garden, a pond and an orchard. Each is crowned (the King's or Queen's robes are on the Outfits page beside the class's
+   colours), wields a legendary with a rune, carries more weapons, owns a horse and a leopard, and has a fortune of its own. Nothing
+   the store page keeps secret is on them: no Ice Armor, no Ring, no Emperor's regalia, no spectral tiger. --riptide-test=shots, the
+   raid test's profile of its own; S.test keeps them out of every save, the cloud and the leaderboard; shotsTest() does the same. */
+/* 📸 a screenshot hero goes in whenever it likes (asked 2026-10-13: "ta bort dungeon, raid och valhalla timer cooldown i screenshot
+   test builden"): Thor is always out, the Violet Halls always open, no lockout holds, and a dungeon's guardians are back at once */
+function shotsFree(){return !!(S&&S.test&&S.shotsAt!==undefined);}
+function shotsFarm(){
+ const b=[],c=[],r=[],now=Date.now();
+ const put=(t,x,y,more)=>b.push({t,x:Math.round(x*10)/10,y:Math.round(y*10)/10,...(more||{})});
+ const beast=(t,x,y,fl)=>put(t,x,y,{fed:now,...(fl?{fl:-1}:{})});
+ const road=(t,x0,y0,x1,y1)=>r.push({t,x0,y0,x1,y1});
+ const VH=13*1045/145;   /* a vertical fence piece's height (its art frame), as the snap lays them end to end */
+ const pen=(black,X,Y,n,m)=>{   /* a closed paddock the way the snap builds one: rails 130 apart, posts VH apart, corners flush */
+  const hz=black?'staket_black':'staket',vt=black?'staketv_black':'staketv';
+  for(let i=0;i<n;i++){put(hz,X+130*i,Y);put(hz,X+130*i,Y+VH*m);}
+  for(let j=1;j<=m;j++){put(vt,X-58.5,Y+VH*j);put(vt,X+130*(n-1)+58.5,Y+VH*j);}
+ };
+ const row=(t,X,Y,n)=>{for(let i=0;i<n;i++)put(t,X+130*i,Y);};   /* hedges, flower beds and low walls tile 130 apart */
+ const crops=(c0,c1,r0,r1,pick)=>{for(let i=c0;i<=c1;i++)for(let j=r0;j<=r1;j++)c.push({t:pick(i,j),stage:1,x:i*72,y:1300+j*48,at:now});};
+ /* the lane in from the portal and the avenue the houses stand on */
+ road('gravel_road',140,2770,4120,2770);
+ road('gravel_road',2300,2770,2300,3330);          /* to the fountain */
+ road('dirt_road',1720,2770,1720,1240);            /* up to the fields */
+ road('dirt_road',420,1240,3600,1240);
+ road('dirt_road',2300,3330,2300,4520);            /* down to the orchard and the south field */
+ road('dirt_road',2300,4520,3720,4520);
+ /* the houses, side by side along the avenue, fronts to the south */
+ put('medium',1350,2640);
+ put('mansion',2300,2650);
+ put('lada',3300,2640);
+ /* between them: lamps, roses, a well, the woodpile and crates by the barn */
+ for(const x of [420,1040,1640,2780,3560,4060])put('light_farm',x,2822);
+ for(const x of [1830,2770])put('light_farm',x,2722);
+ put('rosebush',1040,2700);put('rosebush',1610,2700);
+ put('gargoyle_guardian',1830,2690);put('gargoyle_guardian',2770,2690,{fl:-1});
+ put('well',2960,2560);put('tree_farm',2960,2350);
+ put('woodpile',3600,2660);put('crates',3730,2700);put('barrels',3820,2640);put('war_weapon_rack',3960,2690);
+ put('farmsign',300,2700);row('bush',140,2860,3);
+ row('flowerbed',630,2706,3);row('flowerbed',1220,2706,3);   /* beds along the house fronts */
+ put('flowerpot',560,2660);put('flowerpot',1110,2690);put('flowerpot',1590,2690);
+ put('tree_farm',560,2330);put('tree_farm',1150,2320,{fl:-1});put('appletree',1580,2350);   /* trees behind the houses */
+ /* the mansion's garden over the avenue: an arch, the fountain, benches, beds and two blue braziers for the night */
+ put('garden_arch',2300,2900);
+ put('soulfire_brazier',2190,2905);put('soulfire_brazier',2410,2905);
+ put('fountain',2300,3120);
+ put('bench',2120,3140);put('bench',2480,3140,{fl:-1});
+ row('flowerbed',2105,3250,4);
+ put('rosebush',2090,3020);put('rosebush',2510,3020);
+ put('flowerpot',2180,3030);put('flowerpot',2420,3030);
+ row('bush',1700,2875,4);row('bush',2440,2875,3);
+ /* the pond garden to the west */
+ put('pond',1050,3250);
+ put('tree_farm',760,3120);put('tree_farm',1330,3110,{fl:-1});
+ put('bench',1050,3420);put('birdhouse',1450,3300);put('mushrooms',760,3340);put('rosebush',880,3380);put('rosebush',1230,3390);
+ put('pergola',1650,3230);put('picnic_table',1650,3420);
+ /* the orchard and its bees, south of the garden */
+ for(let i=0;i<6;i++)for(let j=0;j<3;j++)put('appletree',560+i*250+(j%2)*120,3760+j*300,j%2?{fl:-1}:undefined);
+ put('beehives',2040,3800);put('beehives',2120,3870);put('beehives',2040,3950);
+ put('pumpkins',2080,4150);put('pumpkins',2120,4310);
+ /* the cattle: a white-fenced pasture by the barn, with water and hay */
+ pen(false,2770,3060,7,7);
+ beast('cowfarm_big',2900,3300);beast('cowfarm_big',3180,3420,true);beast('cowfarm_big',3420,3260);beast('cowfarm_big',3000,3600,true);
+ beast('tjur',3320,3640);
+ beast('cowfarm',2860,3480);beast('cowfarm',3480,3520,true);beast('cowfarm',3150,3240);
+ put('trough',3080,3170);put('trough',3460,3630);put('hobal',2860,3620);put('hobal',2950,3650);
+ /* the hens: the coop over the avenue from the barn, its yard in black fence */
+ put('chickenhouse',3880,3020);
+ pen(true,3700,3120,4,4);
+ for(const [x,y] of [[3760,3200],[3860,3260],[3980,3210],[4060,3300],[3800,3380],[3940,3420]])beast('chickenfarm_big',x,y,x>3900);
+ for(const [x,y] of [[3720,3300],[4020,3400],[3880,3330],[4080,3200]])beast('chickenfarm',x,y,x<3900);
+ crops(53,55,40,42,()=>'chickenseeds');
+ /* the fields north of the houses: two of ripe hay with a greener strip, scarecrows, the windmill and the hay wagon */
+ crops(7,21,2,11,(i,j)=>j>=9?'hay_medium':'hay_klar');
+ crops(26,40,2,11,(i,j)=>j<=1||i===33?'hay_medium':'hay_klar');
+ put('scarecrow',1000,1640);put('scarecrow',2380,1600);
+ put('windmill',3260,1720);put('haywagon',3000,1980);put('hobal',3460,1960);put('hobal',3540,1990);put('hobal',3500,2040);
+ put('stone_wall',2950,1380);put('stone_wall',3050,1380);put('stone_wall',3150,1380);
+ /* the south field past the orchard */
+ crops(34,50,68,74,(i,j)=>(i+j)%7===0?'hay_medium':'hay_klar');
+ put('windmill',3980,4700);put('scarecrow',3000,4760);
+ return {owned:true,b,c,r,lvl:FARM_MAXLVL,xp:0,baleN:30,cseedN:30,inv:{},hx:760,hy:2640,layoutVersion:FarmLayout.LAYOUT_VERSION};
+}
+function shotsHero(race,cls,g,name,i,o){
+ const st=migrate(freshState(name,race,cls));
+ const big=(a,b,step)=>Math.round((a+Math.random()*(b-a))/step)*step;   /* a fortune of its own: random, and it looks earned */
+ Object.assign(st,{id:'shots-'+race+'-'+g+'-'+cls,test:true,gender:g,introPending:false,createdAt:i+1,lvl:MAXLVL,prestige:30,
+  zone:o.zone,maxZone:Math.max(st.maxZone||0,WASTELAND_ZONE),outfit:o.outfit,testArrived:true,shotsAt:o.at,
+  gold:big(1.2e6,goldCap({prestige:30}),1000),overflow:big(40e6,900e6,10000),bankGold:big(150e6,2.4e9,100000),scraps:SCRAP_CAP});
+ const c=st.city;CityEconomy.charter(c);Object.assign(c,{crowned:true,deposed:'gaol',treasury:5e8});   /* the crown: King's or Queen's robes */
+ st.mounts=Mounts.normalize({owned:['horse','leopard'],equipped:o.mount});
+ if(o.farm)st.farm=o.farm;
+ const keep=S;S=st;   /* the legendaries and the rolls size themselves to S */
+ try{
+  const roll=slot=>{let it=null;for(let k=0;k<80&&!(it&&it.slot===slot);k++)it=rollItem('epic');return it;};
+  const fk=star=>syncFrostseeker({slot:'weapon',rar:'legendary',legend:'frostseeker',name:'Frostseeker',star,atk:0,hp:0,crit:4,lifesteal:0.02,ench:null,up:0,sell:0});
+  const fg=star=>syncFelGlaives({id:'felglaives',slot:'weapon',rar:'legendary',legend:'felglaives',name:'Fel Glaives',star,atk:0,hp:0,crit:0,haste:0.10,ench:null,up:0,sell:0,maxUp:LEGEND_MAX_UP});
+  const worn=o.weapon==='fk'?fk(3):fg(3);enchSetOn(worn,o.rune);st.gear.weapon=worn;
+  const spare=o.weapon==='fk'?fg(2):fk(2);enchSetOn(spare,o.spareRune);
+  const a=roll('weapon'),b=roll('weapon');enchSetOn(a,o.bagRune);
+  st.bag.push(spare,a,b);
+  st.gear.armor=roll('armor');st.gear.trinket=roll('trinket');
+ }finally{S=keep;}
+ return st;
+}
+function shotsTest(){
+ if(gameOn&&S&&!S.test)return 'Change Character first - the test must not take over a hero in play.';
+ TEST_ROSTER=new Map();
+ const list=[
+  shotsHero('human','warrior','m','Bjorn',0,{zone:CITY_ZONE,at:'square',outfit:'royal',mount:'horse',weapon:'fg',rune:{id:'orb',rar:'legendary'},spareRune:{id:'keen',rar:'epic'},bagRune:{id:'swift',rar:'rare'}}),
+  shotsHero('orc','hunter','m','Ragnar',1,{zone:WASTELAND_ZONE,at:'stable',outfit:'default',mount:'leopard',weapon:'fk',rune:{id:'keen',rar:'legendary'},spareRune:{id:'leech',rar:'epic'},bagRune:{id:'twin',rar:'rare'}}),
+  shotsHero('human','mage','m','Sigurd',2,{zone:TAVERN_ZONE,at:null,outfit:'royal',mount:'leopard',weapon:'fk',rune:{id:'swift',rar:'legendary'},spareRune:{id:'orb',rar:'epic'},bagRune:{id:'keen',rar:'rare'}}),
+  shotsHero('undead','priest','f','Ylva',3,{zone:FARM_ZONE,at:'farm',outfit:'default',mount:'horse',weapon:'fg',rune:{id:'leech',rar:'legendary'},spareRune:{id:'twin',rar:'epic'},bagRune:{id:'orb',rar:'rare'},farm:shotsFarm()}),
+ ];
+ for(const st of list)TEST_ROSTER.set(st.id,JSON.stringify(st));
+ showSelect();
+ return 'screenshot test: '+TEST_ROSTER.size+' heroes on the list';
+}
+/* 📸 where a screenshot hero wakes: before the great square's palace side, at Torsten's stable, before the Mansion */
+function shotsArrive(){
+ if(!(S&&S.test&&S.shotsAt)||S.shotsArrived)return;
+ S.shotsArrived=true;
+ const go=()=>{
+  if(!(gameOn&&S&&S.test))return;
+  const bt=$('boot');if(bt&&!bt.classList.contains('gone')){setTimeout(go,250);return;}
+  const z=zoneOf();let p=null;
+  if(S.shotsAt==='square'&&z.city&&world.plazas&&world.plazas[0]){const q=world.plazas[0];p={x:q.x,y:q.y+q.r*.55};}
+  else if(S.shotsAt==='stable'&&z.wasteland&&world.stable&&world.stable.vendor){const v=world.stable.vendor;p={x:v.x+30,y:v.y+75};}
+  else if(S.shotsAt==='farm'&&z.farm)p={x:2300,y:2800};
+  if(p){hero.x=p.x;hero.y=p.y;hero.fx=1;hero.moveTo=null;}
+  log('📸 <span class="imp">Screenshot test</span> - '+esc(S.name)+': Prestige 30, a legendary with a rune in the hand and more in the bag, a horse and a leopard (X rides), the class colours and the crown’s robes on the Outfits page'+(S.farm&&S.farm.owned?', and the Farm at its last level':'')+'. Change Character for the other three. Nothing is saved.','imp');
+ };
+ setTimeout(go,900);
+}
 /* 🧪 the hero test's first steps: at Torsten's stable, on the Wasteland's clear ground */
 function testArrive(){
+ if(S&&S.test&&S.shotsAt!==undefined){shotsArrive();return;}
  if(!(S&&S.test)||S.testArrived)return;
  S.testArrived=true;
  const go=()=>{
@@ -7487,6 +7629,7 @@ function buildZone(){
  if(z.dungeon){
   const definition=WastelandDungeons.definitions[z.dungeon];
   S.wastelandBossReadyAt=WastelandDungeons.normalizeBossTimers(S.wastelandBossReadyAt);
+  if(shotsFree())S.wastelandBossReadyAt[z.dungeon]={};   /* 📸 the screenshot test: both guardians stand at every visit */
   world.encounter=WastelandDungeons.createEncounter(z.dungeon,world.enemySpawns,{
    mobs:zoneTemplates({lvl:z.lvl,en:definition.mobs.map(m=>[m.name,m.kind,definition.color])}),
    boss:zoneTemplates({lvl:z.lvl,boss:['Dungeon guardian',definition.color,'wasteland']})[0]
@@ -8208,6 +8351,10 @@ function killEnemy(en){
    floatAt(en.x,en.y-55,'Book of Knowledge','#efd58a');
    log(`<span class="imp">${reward.dungeonName}</span> cleared. Both guardians defeated; one <span class="llegendary">Book of Knowledge</span> added to your bag.`,'loot');
    stageMsg('Dungeon cleared! Book of Knowledge added to your bag.',2600,'#efd58a');
+   if(shotsFree()&&world.encounter){   /* 📸 the screenshot test: the pair stand again a few seconds after the clear, not two hours */
+    const soon=Date.now()+6000,rec=world.encounter.bossReadyAt;
+    for(const e of enemies)if(e.boss&&e.dungeon===en.dungeon){e.bossReadyAt=soon;rec[e.dungeonIndex]=soon;}
+   }
   }
   if(reward&&en.boss){renderHUD();saveNow();} // Save partial clears and inventory together with their boss deadlines.
   return; /* These encounters never feed the normal XP, gold, gear or quest routes. */
@@ -22872,6 +23019,7 @@ requestAnimationFrame(frame);
  if(test==='crown'){seasonReady=true;document.title+=' - Crown test';crownTest();return;}
  if(test==='views'){seasonReady=true;document.title+=' - View test';viewsTest();return;}
  if(test==='heroes'){seasonReady=true;document.title+=' - Hero test';heroesTest();return;}
+ if(test==='shots'){seasonReady=true;document.title+=' - Screenshot test';shotsTest();return;}
  await initFirebase();
  await seasonWipeIfNeeded();
  seasonReady=true;

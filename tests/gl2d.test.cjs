@@ -162,3 +162,15 @@ test('a canvas re-made at a new size can still be read with no sampler: its own 
  assert.ok(tf.includes('const wantMip=!isCanvas||e.ups<=2;'),'a canvas that keeps changing stops getting mip levels - which is what left the old ones behind');
  assert.ok(gl.includes('function texUnit(i,tex){gl.activeTexture(gl.TEXTURE0+i);gl.bindTexture(gl.TEXTURE_2D,tex);gl.bindSampler(i,null);}'),'the post passes read with the texture\'s own filter');
 });
+
+test('a font set again after a restore is taken, not mistaken for one the canvas cannot read (NPC names took the pause screen\'s 30 px, 2026-10-13 "varför får alla så stora texter")',()=>{
+ /* a text canvas the way the browser reads fonts: '700' reads back 'bold', anything without a px size is refused */
+ const g={f:'10px sans-serif',get font(){return this.f;},set font(v){const m=/^(?:(italic)\s+)?(?:(normal|bold|[1-9]00)\s+)?(\d+(?:\.\d+)?px)\s+(\S.*)$/.exec(String(v).trim());
+  if(m)this.f=[m[1],m[2]==='700'||m[2]==='bold'?'bold':m[2]&&m[2]!=='normal'&&m[2]!=='400'?m[2]:'',m[3],m[4]].filter(Boolean).join(' ');}};
+ let cur='10px sans-serif';const set=v=>{cur=T.fontAfter(g,cur,v);};
+ set('700 30px Segoe UI');const outside=cur;assert.equal(outside,'bold 30px Segoe UI','⏸ PAUSED, set outside any save');
+ for(let i=0;i<3;i++){const saved=cur;set('700 10px Segoe UI');assert.equal(cur,'bold 10px Segoe UI','name '+(i+1)+' in its own font');cur=saved;}   /* save, a name, restore */
+ set('nonsense');assert.equal(cur,outside,'a font the canvas cannot read leaves the current one, as the 2D canvas does');
+ set('700 30px Segoe UI');assert.equal(cur,outside,'the same font spelt another way is still that font');
+ assert.ok(read('assets/gl/gl2d.js').includes("prop('font',()=>S.font,v=>{S.font=fontAfter(textCtx(),S.font,v);});"),'the screen\'s font setter reads it this way');
+});

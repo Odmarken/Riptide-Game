@@ -110,6 +110,11 @@ function viaCanvas(t){   /* named colours and anything else CSS knows: let a 2D 
  if(n==='#010203')return null;
  return typeof n==='string'?parseColorRaw(n,1):null;
 }
+/* ctx.font = v: the text canvas reads it, starting from the CURRENT font - one it cannot read leaves that, the same font spelt
+   another way ('700' for 'bold') reads back as it is. Compared with whatever the shared text canvas held last, a font set again
+   after a restore looked unread and was dropped: every NPC name after the first took the font outside it, 30 px after the pause
+   screen (2026-10-13 "varför får alla så stora texter ibland") */
+function fontAfter(g,cur,v){g.font=cur;g.font=String(v);return g.font;}
 /* premultiplied RGBA8 packed for a little-endian Uint32Array: bytes R,G,B,A */
 function pack(c,alpha){
  const a=c[3]*alpha;
@@ -1729,7 +1734,7 @@ function create(canvas,opts={}){
  prop('lineJoin',()=>S.join,v=>{if(v==='miter'||v==='round'||v==='bevel')S.join=v;});
  prop('miterLimit',()=>S.miter,v=>{v=+v;if(Number.isFinite(v)&&v>0)S.miter=v;});
  prop('lineDashOffset',()=>S.dashOff,v=>{v=+v;if(Number.isFinite(v))S.dashOff=v;});
- prop('font',()=>S.font,v=>{const g=textCtx();const before=g.font;g.font=String(v);if(g.font!==before||String(v)===before)S.font=g.font;});
+ prop('font',()=>S.font,v=>{S.font=fontAfter(textCtx(),S.font,v);});
  prop('textAlign',()=>S.align,v=>{if(['start','end','left','right','center'].includes(v))S.align=v;});
  prop('textBaseline',()=>S.baseline,v=>{if(['top','hanging','middle','alphabetic','ideographic','bottom'].includes(v))S.baseline=v;});
  prop('direction',()=>S.direction,v=>{if(['ltr','rtl','inherit'].includes(v))S.direction=v;});
@@ -1767,7 +1772,7 @@ function probe(){
 }
 
 return {create,supported,probe,parseColor,debug:GL2D_DEBUG,_track:installTracking,_pathOps:p=>pathOps.get(p),
- _test:{arcSweep,arcSegments,convexity,signedArea,winding,dashPolyline,strokePolyline,fanCircle,TriBuf,rampTexels,pack,parseColorRaw:s=>parseColorRaw(s,1)}};
+ _test:{arcSweep,arcSegments,convexity,signedArea,winding,dashPolyline,strokePolyline,fanCircle,TriBuf,rampTexels,pack,fontAfter,parseColorRaw:s=>parseColorRaw(s,1)}};
 })();
 /* record gradients and patterns from the start: the screen is handed to WebGL later in the load */
 if(typeof window!=='undefined'&&typeof document!=='undefined')GL2D._track();
