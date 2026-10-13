@@ -47,7 +47,7 @@ const readCfg = () => {
   let raw = {};
   try { raw = JSON.parse(fs.readFileSync(CFG, 'utf8')); } catch (e) {}
   return {vsync: raw.vsync !== false, windowed: !!raw.windowed,
-          resW: raw.resW | 0, resH: raw.resH | 0};
+          resW: raw.resW | 0, resH: raw.resH | 0, gpuInProcess: raw.gpuInProcess !== false};
 };
 const writeCfg = patch => {
   try { fs.writeFileSync(CFG, JSON.stringify(Object.assign(readCfg(), patch), null, 2)); return true; }
@@ -55,9 +55,22 @@ const writeCfg = patch => {
 };
 const cfg = readCfg();
 
+/* FPS overlays - RivaTuner/Afterburner, Steam's overlay and counter, NVIDIA's and the Game Bar's - find a game by the D3D frames
+   its window's own process presents. Chromium draws in a separate GPU process (through DirectComposition), so they saw nothing at
+   all: measured 2026-10-13 against RTSS's shared memory, the shipped exe was not there; with the GPU in this process it was, as a
+   D3D game at the monitor's 240 fps. So on Windows the GPU work runs here, and DirectComposition is off as well, the way Steam's
+   overlay asks of an Electron game (it draws over the swap chain it hooks). A machine that is unhappy with it keeps the old way
+   with "gpuInProcess": false in settings.json, or --riptide-gpu-process on the command line. */
+const GPU_HERE = process.platform === 'win32' && cfg.gpuInProcess !== false && !process.argv.includes('--riptide-gpu-process');
+if (GPU_HERE) {
+  app.commandLine.appendSwitch('in-process-gpu');
+  app.commandLine.appendSwitch('disable-direct-composition');
+}
+
 /* Vsync can only be turned off from the command line, before Electron starts - there is no runtime
    switch. So the checkbox records the choice and the next launch acts on it. Left on, frames are
-   paced to the monitor's refresh rate, whatever that is. */
+   paced to the monitor's refresh rate, whatever that is. (Since Electron 36 these switches reach no
+   child process - with the GPU in this process, as above, they are read where they are set.) */
 if (!cfg.vsync) {
   app.commandLine.appendSwitch('disable-frame-rate-limit');
   app.commandLine.appendSwitch('disable-gpu-vsync');
@@ -185,8 +198,8 @@ function createWindow() {
   });
 
   /* Whatever the page prints as an error lands in the log, so a player can send the file rather
-     than describe a stack trace they cannot see. Electron 33 reports this as loose arguments;
-     later versions pass one object. Read both, so an upgrade does not quietly stop logging. */
+     than describe a stack trace they cannot see. Electron 33 reported this as loose arguments;
+     35 and later pass one object with level 'error'. Both are read. */
   win.webContents.on('console-message', (...a) => {
     const d = (a[1] && typeof a[1] === 'object')
       ? a[1] : {level: a[1], message: a[2], lineNumber: a[3], sourceId: a[4]};

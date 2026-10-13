@@ -21,16 +21,16 @@ const displayLeft = () => ({
 
 // Execute the real shell and its registered IPC/event handlers, with no Electron process or
 // writes to the player's profile. Timers are explicit so fullscreen's old flag can be tested.
-function shellHarness({settings = {}, displays = [display4k()], rawSettings} = {}) {
+function shellHarness({settings = {}, displays = [display4k()], rawSettings, argv = [], platform = 'win32'} = {}) {
   let stored = rawSettings === undefined ? JSON.stringify(settings) : rawSettings;
-  const writes = [], sent = [], windows = [], immediate = [], delayed = [];
+  const writes = [], sent = [], windows = [], immediate = [], delayed = [], switches = [];
   const handlers = new Map();
   let ready;
   const app = new EventEmitter();
   Object.assign(app, {
     isPackaged: true,
     getPath: () => path.join(root, 'dist', '.resolution-test-profile'),
-    commandLine: {appendSwitch() {}},
+    commandLine: {appendSwitch(name, value) { switches.push(value === undefined ? name : name + '=' + value); }},
     whenReady: () => ({then(callback) { ready = callback; }}),
     requestSingleInstanceLock: () => true,   /* the only copy running */
     quit() {},
@@ -92,13 +92,13 @@ function shellHarness({settings = {}, displays = [display4k()], rawSettings} = {
       if (name === 'fs') return memoryFs;
       throw new Error('Unexpected main.js dependency: ' + name);
     },
-    process: {argv: [], platform: 'win32', on() {}},
+    process: {argv, platform, on() {}},
     setImmediate(callback) { immediate.push(callback); },
     setTimeout(callback, ms) { delayed.push({callback, ms}); },
   }, {filename: 'main.js'});
   ready();
   return {
-    window: windows[0], screen, sent, writes, displays,
+    window: windows[0], screen, sent, writes, displays, switches,
     invoke(name, ...args) {
       assert.ok(handlers.has(name), 'Actual IPC handler exists: ' + name);
       return plain(handlers.get(name)({}, ...args));
@@ -139,7 +139,7 @@ test('selecting a physical preset persists DIP, centers it, and returns rounded 
   const h = shellHarness({settings: {windowed: true}});
   const option = h.invoke('res:list').list.find(o => o.label === '1600 x 900');
   assert.deepEqual(h.invoke('res:set', option.w, option.h), {w: 1601, h: 900, fullscreen: false});
-  assert.deepEqual(h.settings(), {vsync: true, windowed: true, resW: 1067, resH: 600});
+  assert.deepEqual(h.settings(), {vsync: true, windowed: true, resW: 1067, resH: 600, gpuInProcess: true});   /* the overlay switch (2026-10-13) is written beside them */
   assert.deepEqual(h.window.bounds, {x: 747, y: 396, width: 1067, height: 600});
   assert.deepEqual(h.window.minimum, [960, 600]);
   assert.deepEqual(h.invoke('res:list').chosen, {w: 1067, h: 600});
@@ -271,4 +271,16 @@ test('small displays and malformed numeric resolution requests stay inside the a
   const malformed = shellHarness({rawSettings: '{invalid json'});
   assert.equal(malformed.invoke('res:list').chosen, null);
   assert.equal(malformed.invoke('res:list').fullscreen, true);
+});
+
+test('FPS overlays can see the game: on Windows the GPU works in the main process, without DirectComposition', () => {
+  /* 2026-10-13: RTSS, Steam's overlay and the like hook the D3D frames of the window's own process; with Chromium's separate GPU
+     process RTSS did not list the game at all, with in-process-gpu it read it as D3D11 at the monitor's 240 fps */
+  const on = shellHarness({settings: {windowed: true}}).switches;
+  assert.ok(on.includes('in-process-gpu') && on.includes('disable-direct-composition'), on.join(' '));
+  assert.ok(on.includes('autoplay-policy=no-user-gesture-required'));
+  for (const off of [shellHarness({settings: {gpuInProcess: false}}), shellHarness({argv: ['--riptide-gpu-process']}), shellHarness({platform: 'linux'})])
+    assert.ok(!off.switches.includes('in-process-gpu') && !off.switches.includes('disable-direct-composition'), 'the old way stays one setting or one flag away: ' + off.switches.join(' '));
+  const novsync = shellHarness({settings: {vsync: false}}).switches;
+  assert.ok(novsync.includes('disable-gpu-vsync') && novsync.includes('disable-frame-rate-limit'), 'vsync off still asks for it');
 });
