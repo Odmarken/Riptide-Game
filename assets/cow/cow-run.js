@@ -137,7 +137,8 @@
     a new one when the slots are full replaces one, and its card says which */
  /* and no top level (asked 2026-10-15: "jag vill att de ska kunna gå oändligt"): a weapon, a power-up or a legendary levels for as
     long as the run lasts - the weapons' counts, reach and speed level off at a ceiling, their damage never does */
- const MAX_LVL=Infinity,MAX_WEAPONS=1,MAX_PASSIVES=6;   /* six since 2026-10-15 ("gör så man kan ha 6 powerups aktiva") */
+ const MAX_LVL=Infinity,MAX_WEAPONS=2,MAX_PASSIVES=6;   /* two weapon slots, the legendary one of them (2026-10-15: "2 vapen och legendary ska vara 1 av dom att kunna byta ut") */
+ const armed=run=>Object.keys(run.w).length+(run.leg?1:0);   /* weapon slots in use */   /* six since 2026-10-15 ("gör så man kan ha 6 powerups aktiva") */
  const RARITY={common:1,rare:1.5,epic:2};
  const byId=id=>PASSIVES.find(p=>p.id===id)||WEAPONS.find(w=>w.id===id)||LEGENDS.find(l=>l.id===id)||null;
 
@@ -205,13 +206,14 @@
   }
   if(kind==='weapon'){
    const w=byId(id),lvl=(run.w[id]||0)+1,add=WEAPON_RARITY[rar]||WEAPON_RARITY.common;
-   const old=lvl===1&&Object.keys(run.w).length>=MAX_WEAPONS?Object.keys(run.w)[0]:null;
-   return {kind,id,rar:WEAPON_RARITY[rar]?rar:'common',lvl,n:w.n,g:w.g,icon:w.icon,d:w.d,isNew:lvl===1,bonus:add,replaces:old,replacesN:old?byId(old).n+' '+run.w[old]:null,
-    lines:old?compareLines(run,old,id,add):weaponLines(id,lvl,(run.wb||{})[id]||0,add)};
+   const full=lvl===1&&armed(run)>=MAX_WEAPONS;
+   return {kind,id,rar:WEAPON_RARITY[rar]?rar:'common',lvl,n:w.n,g:w.g,icon:w.icon,d:w.d,isNew:lvl===1,bonus:add,replaces:full?'chooseW':null,
+    lines:weaponLines(id,lvl,(run.wb||{})[id]||0,add)};
   }
   if(kind==='legend'){
    const l=byId(id),lvl=run.leg&&run.leg.id===id?run.leg.lvl+1:1;
-   return {kind,id,rar:'legendary',lvl,n:l.n,g:l.g,icon:l.icon,d:l.d,isNew:lvl===1,lines:lvl===1?l.bonus.map(b=>({lab:'',to:b})):weaponLines(id,lvl)};
+   const full=lvl===1&&armed(run)>=MAX_WEAPONS;
+   return {kind,id,rar:'legendary',lvl,n:l.n,g:l.g,icon:l.icon,d:l.d,isNew:lvl===1,replaces:full?'chooseW':null,lines:lvl===1?l.bonus.map(b=>({lab:'',to:b})):weaponLines(id,lvl)};
   }
   if(kind==='heal')return {kind,id:'heal',rar:'common',lvl:0,n:'Second Wind',g:'🍖',icon:'assets/icons/pot_hp.png',d:'Catch your breath',lines:[{lab:'Heal',to:'40% health'}]};
   return {kind:'coins',id:'coins',rar:'common',lvl:0,n:'Purse',g:'💰',icon:'assets/icons/it_pouch.png',d:'A cow was carrying it',lines:[{lab:'Gold',to:'+30'}]};
@@ -224,7 +226,7 @@
  function rollCards(run,rnd,opts){
   rnd=rnd||Math.random;opts=opts||{};
   const luck=(run.m.luck||0)+(opts.chest?25:0);
-  const nP=Object.keys(run.p).length,nW=Object.keys(run.w).length;
+  const nP=Object.keys(run.p).length,nW=armed(run);
   const pool=[];
   for(const p of PASSIVES){const l=run.p[p.id]||0;if(l>=MAX_LVL)continue;pool.push({kind:'passive',id:p.id,w:l?1.6:nP>=MAX_PASSIVES?0.35:1});}   /* full: a newcomer is rarer, and replaces one */
   for(const w of WEAPONS){const l=run.w[w.id]||0;if(l>=MAX_LVL)continue;pool.push({kind:'weapon',id:w.id,w:l?2.2:nW>=MAX_WEAPONS?0.35:2.4});}
@@ -266,7 +268,7 @@
    return null;
   }
   if(card.kind==='weapon'){
-   if(!run.w[card.id])while(Object.keys(run.w).length>=MAX_WEAPONS)remove(run,'weapon',Object.keys(run.w)[0]);
+   if(!run.w[card.id]&&armed(run)>=MAX_WEAPONS)dropWeapon(run,card.out);
    run.w[card.id]=(run.w[card.id]||0)+1;
    run.wb=run.wb||{};run.wb[card.id]=(run.wb[card.id]||0)+(card.bonus||WEAPON_RARITY.common);
    return null;
@@ -274,6 +276,7 @@
   if(card.kind==='legend'){
    if(run.leg&&run.leg.id===card.id){run.leg.lvl++;return null;}
    if(run.leg)return null;
+   if(armed(run)>=MAX_WEAPONS)dropWeapon(run,run.w[card.out]?card.out:null);
    run.leg={id:card.id,lvl:1};
    for(const [k,v] of Object.entries(LEGEND_PASSIVE[card.id]||{}))run.m[k]=(run.m[k]||0)+v;
    return card.id;
@@ -281,9 +284,19 @@
   if(card.kind==='coins'){run.gold+=30;run.goldTotal+=30;return 'coins';}
   return 'heal';
  }
+ /* a weapon slot is freed for a newcomer: the one the player chose (a weapon or the legendary), or the first weapon */
+ function dropWeapon(run,out){
+  if(run.leg&&out===run.leg.id){remove(run,'legend',out);return;}
+  remove(run,'weapon',run.w[out]?out:Object.keys(run.w)[0]);
+ }
  /* a weapon or a power-up leaves the run: its levels, its rarity bonus and every bit of stat its cards gave go with it */
  function remove(run,kind,id){
   if(kind==='weapon'){delete run.w[id];if(run.wb)delete run.wb[id];return;}
+  if(kind==='legend'){   /* the legendary goes, and the damage, crit, speed or lifesteal it carried with it */
+   if(!run.leg||run.leg.id!==id)return;
+   for(const [k,v] of Object.entries(LEGEND_PASSIVE[id]||{})){run.m[k]=(run.m[k]||0)-v;if(Math.abs(run.m[k])<1e-9)delete run.m[k];}
+   run.leg=null;return;
+  }
   const p=byId(id);if(!p||!run.p[id])return;
   run.m[p.stat]=(run.m[p.stat]||0)-((run.pv&&run.pv[id])||0);
   if(Math.abs(run.m[p.stat])<1e-9)delete run.m[p.stat];
@@ -314,7 +327,7 @@
   return parts.join(' · ');
  }
  const api={PASSIVES,WEAPONS,LEGENDS,LEGEND_PASSIVE,MAX_LVL,MAX_WEAPONS,MAX_PASSIVES,RARITY,ALPHA_FIRST,ALPHA_GAP,
-  byId,remove,newRun,HELP,BOSS_GAP,bossStats,totemStats,orbStats,xpNeed,chestPrice,rerollPrice,weaponLines,WEAPON_RARITY,stampede,cowHp,cowAtk,cowSpeedMul,spawnGap,cowCap,rewardEpics,weaponStats,rollCards,apply,gainXp,goldFor,summary};
+  byId,remove,armed,newRun,HELP,BOSS_GAP,bossStats,totemStats,orbStats,xpNeed,chestPrice,rerollPrice,weaponLines,WEAPON_RARITY,stampede,cowHp,cowAtk,cowSpeedMul,spawnGap,cowCap,rewardEpics,weaponStats,rollCards,apply,gainXp,goldFor,summary};
  if(typeof module!=='undefined'&&module.exports)module.exports=api;
  else root.CowRun=api;
 })(typeof window!=='undefined'?window:globalThis);

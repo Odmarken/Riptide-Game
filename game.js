@@ -8367,7 +8367,7 @@ function cowPickShow(chest,keep){
    <span class="cc-art"><span class="cc-rays"></span><img src="${c.kind==='legend'?cowIcon(c.id,c.icon):c.icon}" alt="" draggable="false" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="cc-emoji">${c.g}</span></span>
    <b class="cc-name">${esc(c.n)}</b>${pips(c)}
    <span class="cc-tag">${c.kind==='heal'||c.kind==='coins'?'':c.isNew?'New':'Level '+(c.lvl-1)+' ➜ '+c.lvl}</span>
-   ${c.replaces?`<span class="cc-swap">⇄ ${c.replaces==='choose'?'Replaces a power-up of your choice':'Replaces '+esc(c.replacesN)}</span>`:''}
+   ${c.replaces?`<span class="cc-swap">⇄ ${c.replaces==='choose'?'Replaces a power-up of your choice':c.replaces==='chooseW'?'Replaces a weapon of your choice':'Replaces '+esc(c.replacesN)}</span>`:''}
    ${c.replaces&&c.replaces!=='choose'&&c.kind==='weapon'?`<span class="cc-vs">Yours ➜ new</span>`:''}
    <span class="cc-lines">${(c.lines||[]).map(line).join('')}</span>
    <span class="cc-desc">${esc(c.d)}</span></button>`).join('')}</div>
@@ -8384,11 +8384,12 @@ function cowPickShow(chest,keep){
 }
 function cowPickKey(i){
  if(!CR||!CR.cards)return;
- if(CR.swap){const sw=CR.swap,id=Object.keys(CR.p)[i];if(!id)return;CR.swap=null;sw.card.out=id;i=CR.cards.indexOf(sw.card);}   /* on the swap screen 1-4 name the power-up that goes */
+ if(CR.swap){const sw=CR.swap,id=sw.list[i];if(!id)return;CR.swap=null;sw.card.out=id;i=CR.cards.indexOf(sw.card);}   /* on the swap screen 1-6 name the one that goes */
  const card=CR.cards[i];if(!card)return;
- if(card.replaces==='choose'&&!card.out){cowSwapShow(card);return;}   /* four power-ups already: which one goes */
+ if((card.replaces==='choose'||card.replaces==='chooseW')&&!card.out){cowSwapShow(card);return;}   /* the slots are full: which one goes */
  CR.cards=null;cowPickClose();
  const got=CowRun.apply(CR,card);
+ if(!CR.leg&&S.gear.weapon&&S.gear.weapon.cowRun)S.gear.weapon=null;   /* the legendary was swapped out: out of the hand too */
  cowRunStats();cowKitRender();
  if(got==='heal')healHero(heroMax()*0.4);
  else if(got==='frostseeker'||got==='felglaives'){
@@ -8405,15 +8406,18 @@ function cowPickKey(i){
 /* four power-ups and a new one taken: the player picks which of the four leaves - Back returns to the same three cards */
 function cowSwapShow(card){
  const cards=CR.cards,ov=$('cowPickOv');if(!ov)return;
- CR.swap={card};
- const tile=(id,n)=>{const d=CowRun.byId(id),l=CR.p[id];
-  return `<button class="cowcard cc-small rar-common" data-swap="${id}" style="--rc:#ff8a6a;--i:${n}"><span class="cc-key">${n+1}</span><span class="cc-help" data-cowhelp="passive:${id}" title="What does it do?">?</span><span class="cc-art"><img src="${d.icon}" alt="" draggable="false"></span>
-   <b class="cc-name">${esc(d.n)}</b><span class="cc-tag">Level ${l}</span><span class="cc-swap">Remove</span></button>`;};
- ov.innerHTML=`<div class="cowpick-box"><div class="cowpick-title"><small>Four power-ups at most</small><b>Replace which?</b></div>
-  <div class="cc-swapfor">${esc(card.n)} comes in - one of these goes, with all its levels</div>
-  <div class="cowpick-cards">${Object.keys(CR.p).map((id,n)=>tile(id,n)).join('')}</div>
+ const weap=card.replaces==='chooseW',list=weap?[...Object.keys(CR.w),...(CR.leg?[CR.leg.id]:[])]:Object.keys(CR.p);
+ CR.swap={card,list};
+ const tile=(id,n)=>{const d=CowRun.byId(id),leg=CR.leg&&CR.leg.id===id,l=weap?(leg?CR.leg.lvl:CR.w[id]):CR.p[id];
+  const dmg=weap?(crWs(id,l)||{}).dmg:null;   /* a weapon tile says how hard it hits, to weigh against the newcomer */
+  return `<button class="cowcard cc-small ${leg?'rar-legendary':'rar-common'}" data-swap="${id}" style="--rc:${leg?COW_RAR_C.legendary:'#ff8a6a'};--i:${n}"><span class="cc-key">${n+1}</span><span class="cc-help" data-cowhelp="${weap?(leg?'legend':'weapon'):'passive'}:${id}" title="What does it do?">?</span><span class="cc-art"><img src="${leg?cowIcon(id,d.icon):d.icon}" alt="" draggable="false"></span>
+   <b class="cc-name">${esc(d.n)}</b><span class="cc-tag">Level ${l}</span>${dmg?`<span class="cc-line"><em>Damage</em><b>${Math.round(dmg*100)}%</b></span>`:''}<span class="cc-swap">Remove</span></button>`;};
+ const nd=weap&&card.kind==='weapon'?(CowRun.weaponStats(card.id,1).dmg*(1+(card.bonus||0))):0;
+ ov.innerHTML=`<div class="cowpick-box"><div class="cowpick-title"><small>${weap?'Two weapons at most - the legendary is one':'Six power-ups at most'}</small><b>Replace which?</b></div>
+  <div class="cc-swapfor">${esc(card.n)}${nd?' ('+Math.round(nd*100)+'% damage)':''} comes in - one of these goes, with all its levels</div>
+  <div class="cowpick-cards">${list.map((id,n)=>tile(id,n)).join('')}</div>
   <div class="cowpick-foot"><button class="sbtn" id="cowSwapBack" data-pad-first>← Back</button></div></div>`;
- ov.querySelectorAll('[data-swap]').forEach(b=>b.onclick=()=>cowPickKey(Object.keys(CR.p).indexOf(b.dataset.swap)));
+ ov.querySelectorAll('[data-swap]').forEach(b=>b.onclick=()=>cowPickKey(list.indexOf(b.dataset.swap)));
  cowHelpWire(ov);
  $('cowSwapBack').onclick=()=>{CR.swap=null;cowPickShow(CR.pickChest,cards);};
 }

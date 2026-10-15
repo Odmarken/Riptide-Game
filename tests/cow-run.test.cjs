@@ -40,30 +40,38 @@ test('a legendary goes in the hand once, adds its passive, and levels after; the
  for(let k=0;k<500;k++)for(const c of CowRun.rollCards(r))if(c.kind==='legend')assert.equal(c.id,card.id);
 });
 
-test('one weapon and six power-ups at a time: a newcomer replaces one, says so on its card, and takes everything it gave with it',()=>{
- assert.equal(CowRun.MAX_WEAPONS,1);assert.equal(CowRun.MAX_PASSIVES,6);
+test('two weapons (the legendary one of them) and six power-ups at a time: a newcomer replaces the one you choose and takes everything it gave',()=>{
+ assert.equal(CowRun.MAX_WEAPONS,2);assert.equal(CowRun.MAX_PASSIVES,6);
  const r=CowRun.newRun();
  for(let k=0;k<400;k++){
   const cs=CowRun.rollCards(r);
-  const c=cs.find(x=>x.kind!=='legend')||cs[0];
+  const c=cs[k%cs.length];
   if(c.replaces==='choose')c.out=Object.keys(r.p)[k%6];
+  if(c.replaces==='chooseW'){const l=[...Object.keys(r.w),...(r.leg?[r.leg.id]:[])];c.out=l[k%l.length];}
   CowRun.apply(r,c);
-  assert.ok(Object.keys(r.w).length<=1);assert.ok(Object.keys(r.p).length<=6);
-  for(const v of [...Object.values(r.w),...Object.values(r.p)])assert.ok(v<=CowRun.MAX_LVL);
+  assert.ok(CowRun.armed(r)<=2,'two weapon slots');assert.ok(Object.keys(r.p).length<=6);
  }
  const s=CowRun.newRun();
  CowRun.apply(s,{kind:'weapon',id:'axes',bonus:.25});
- const nw=CowRun.cardOf?null:null;
- let card=null;for(let k=0;k<500&&!card;k++)card=CowRun.rollCards(s).find(c=>c.kind==='weapon'&&c.id!=='axes')||null;
- assert.equal(card.replaces,'axes');assert.match(card.replacesN,/Whirling Axes 1/);
- CowRun.apply(s,card);assert.deepEqual(Object.keys(s.w),[card.id]);assert.ok(!('axes' in s.wb));
+ let second=null;for(let k=0;k<500&&!second;k++)second=CowRun.rollCards(s).find(c=>c.kind==='weapon'&&c.id!=='axes')||null;
+ assert.equal(second.replaces,null,'the second weapon has a free slot');
+ CowRun.apply(s,second);assert.equal(CowRun.armed(s),2);
+ let third=null;for(let k=0;k<2000&&!third;k++)third=CowRun.rollCards(s).find(c=>c.kind==='weapon'&&c.isNew)||null;
+ assert.equal(third.replaces,'chooseW');
+ third.out='axes';CowRun.apply(s,third);assert.ok(!s.w.axes&&!('axes' in s.wb),'the axes and their bonus are gone');
+ const leg=CowRun.rollCards(s,()=>0)[0];assert.equal(leg.kind,'legend');assert.equal(leg.replaces,'chooseW','a legendary takes a weapon slot');
+ leg.out=Object.keys(s.w)[0];CowRun.apply(s,leg);assert.ok(s.leg);assert.equal(CowRun.armed(s),2);assert.ok(s.m.dmg>0||s.m.haste>0);
+ let fourth=null;for(let k=0;k<2000&&!fourth;k++)fourth=CowRun.rollCards(s).find(c=>c.kind==='weapon'&&c.isNew)||null;
+ fourth.out=s.leg.id;CowRun.apply(s,fourth);
+ assert.equal(s.leg,null,'the legendary can be swapped out');assert.ok(!s.m.dmg&&!s.m.haste&&!s.m.crit&&!s.m.ls,'and its bonus goes with it');
  for(const id of ['might','luck','vamp','haste','thorns','expanse'])CowRun.apply(s,{kind:'passive',id,v:CowRun.byId(id).v,rar:'common'});
  let pc=null;for(let k=0;k<2000&&!pc;k++)pc=CowRun.rollCards(s).find(c=>c.kind==='passive'&&!s.p[c.id])||null;
  assert.equal(pc.replaces,'choose');
  pc.out='luck';CowRun.apply(s,pc);
  assert.ok(!s.p.luck&&!s.m.luck,'Luck and every point it gave are gone');assert.equal(Object.keys(s.p).length,6);
- assert.match(game,/if\(card\.replaces==='choose'&&!card\.out\)\{cowSwapShow\(card\);return;\}/);
- assert.match(game,/Replaces a power-up of your choice/);
+ assert.ok(game.includes("if((card.replaces==='choose'||card.replaces==='chooseW')&&!card.out){cowSwapShow(card);return;}"));
+ assert.ok(game.includes("if(!CR.leg&&S.gear.weapon&&S.gear.weapon.cowRun)S.gear.weapon=null;"),'a legendary swapped out leaves the hand');
+ assert.match(game,/Replaces a weapon of your choice/);
 });
 
 test('a rare stat card gives half again, an epic twice a common',()=>{
@@ -196,13 +204,9 @@ test('eight more power-ups and four more weapons, each with a picture and a work
  for(const id of ['cow:meteor','cow:cleave','cow:plaguehit','cow:judge'])assert.ok(fx.includes("FX.recipe('"+id+"'"),id);
 });
 
-test('a weapon card that replaces the one in hand compares the two line by line, yours first',()=>{
- const r=CowRun.newRun();CowRun.apply(r,{kind:'weapon',id:'axes',bonus:.25});
- let c=null;for(let k=0;k<2000&&!c;k++)c=CowRun.rollCards(r).find(x=>x.kind==='weapon'&&x.id==='cleave')||null;
- assert.equal(c.replaces,'axes');
- assert.deepEqual(c.lines[0].lab,'Damage');assert.equal(c.lines[0].from,'100%','Whirling Axes 1 with +25%: 80% x 1.25');
- assert.ok(c.lines.some(l=>l.from==='–'||l.to==='–'),'a number only one of them has shows a dash');
- assert.match(game,/Yours ➜ new/);
+test('the swap screen weighs each weapon in hand against the newcomer by its damage',()=>{
+ assert.ok(game.includes("const dmg=weap?(crWs(id,l)||{}).dmg:null;"));
+ assert.ok(game.includes("Two weapons at most - the legendary is one"));
 });
 
 test('War Totem and Storm Orb: power-ups that act by themselves, growing with their levels and with Might, Expanse, Overdrive and Barrage',()=>{
