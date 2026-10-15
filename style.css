@@ -888,6 +888,11 @@
 
   .lbinsp .slotrow{display:flex;gap:8px}
   .lbinsp .slot{flex:1}
+  /* 🐄 the hero's own gear on the hero page while a Cow Run is on: shown, in red, not used */
+  .slot.cowlocked{border-color:rgba(255,90,70,.45)!important;background:#2e1714}
+  .slot.cowlocked,.slot.cowlocked *{color:#ff6a5a!important}
+  .slot.cowlocked .glowdot{background:#ff6a5a!important;box-shadow:none!important}
+  .cowlock-note{grid-column:1/-1;flex-basis:100%;font-size:11px;font-weight:700;color:#ff8a7a;text-align:center;padding:4px 0 2px}
 
 
   /* ---- Riptide sign-in gate ---- */

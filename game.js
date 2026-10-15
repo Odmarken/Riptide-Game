@@ -7874,7 +7874,7 @@ function collectCowChest(){
 let CR=null,cowRunLast=null;   /* the run under way; the one just ended, for the clock over the fallen hero */
 const cowRogueOn=()=>!!S;
 const crM=k=>CR?(CR.m[k]||0):0;   /* what the run's cards add to a stat */
-const COW_STRIP=['gear','lvl','xp','tree','talents','activeScrolls','pet','pots','boosts','cowRunStat'];
+const COW_STRIP=['gear','lvl','xp','tree','talents','activeScrolls','pet','pots','cowRunStat'];   /* boosts stay: the haste and speed upgrades are the hero's own ("man iallfall har sina upgrades alltså haste och speed") */
 const cowZoneIdx=()=>ZONES.findIndex(z=>z.cow);
 /* the cards reach the fight through the tree's sums (tv): S.cowRunStat lays them over the stripped tree - hp, crit, haste, move and
    cdr as the tree counts them, the rest under keys of their own. On S, not in a global, so every stat line reads it as it reads the tree */
@@ -7893,7 +7893,7 @@ function cowRunStart(){
  CR=run;
  document.body.classList.add('cowrun');   /* the header's own level and XP stand down: the run's live on the card below */
  Object.defineProperty(S,'cowRunStash',{value:stash,configurable:true,enumerable:false,writable:true});   /* saveSnapshot writes this, never the stripped hero */
- Object.assign(S,{gear:{weapon:null,armor:null,trinket:null},lvl:1,xp:0,tree:null,talents:{},activeScrolls:[null,null],pet:null,pots:{hp:0,mp:0},boosts:{speed:0,haste:0}});
+ Object.assign(S,{gear:{weapon:null,armor:null,trinket:null},lvl:1,xp:0,tree:null,talents:{},activeScrolls:[null,null],pet:null,pots:{hp:0,mp:0}});
  cowRunStats();
  hero.hp=heroMax();hero.mana=manaMax();hero.spellCd=classOf().spells.map(()=>0);hero.buff={};hero.hotT=0;
  for(let i=0;i<3;i++)cowRunChest();
@@ -8204,13 +8204,20 @@ function cowRunBoss(){
  const en=enemies[enemies.length-1];
  Object.assign(en,{name:'Alpha Bull '+(COW_ROMAN[n]||n),skin:cowBossSkin(n),cowBoss:n,r:st.r,max:st.hp,hp:st.hp,atk:st.atk,
   runXp:st.xp,runGold:st.gold,slamT:st.slam,bossRed:st.red});
+ cowRunInside(en);   /* a big one spawned by the fence would count as outside and refuse every step ("bossen fastnar här") */
  stageMsg('👑 ALPHA BULL '+(COW_ROMAN[n]||n)+' - the herd\u2019s champion comes for you!',3200,'#ff6a4a');
  sfx.shout();shakeT=Math.max(shakeT,0.35);
+}
+/* keep a big cow far enough inside the field's fence for its own size - collide() calls anything closer than r+16 out of bounds */
+function cowRunInside(en){
+ const m=(en.r||16)+24;
+ en.x=Math.min(Math.max(en.x,m),world.w-m);en.y=Math.min(Math.max(en.y,m),world.h-m);
 }
 /* its slams: a red ring under the hero, then the ground breaks */
 function cowRunBossTick(dt){
  for(const en of enemies){
   if(!en.cowBoss||en.dead)continue;
+  cowRunInside(en);
   en.slamT-=dt;
   if(en.slamT>0||Math.hypot(en.x-hero.x,en.y-hero.y)>520)continue;
   const st=CowRun.bossStats(en.cowBoss,cowT);
@@ -14594,8 +14601,11 @@ function renderHero(){
   <div class="stat"><b>${heroCrit()}%</b><span>Crit chance</span></div>
   <div class="stat"><b>${fmtGS(gearScore())}</b><span>Gear score</span></div>
   <div class="stat"><b>${S.prestige||0}</b><span>Prestige</span></div>`;
- let slotsHtml=SLOTS.map(sl=>{
-  const g=S.gear[sl],ringEye=sl==='trinket'&&isRing(g);
+ /* 🐄 in the Cow Run the page shows what the hero walked in with - in red, with no buttons: none of it is used in there
+    ("visa vanliga gearet här men gör all text röd när man går in i cow level") */
+ const runLock=!!S.cowRunStash,own=runLock?S.cowRunStash:S,lockCls=runLock?' cowlocked':'';
+ let slotsHtml=(runLock?'<div class="cowlock-note">🐄 Not used in the Cow Level - you fight with what the run gives you</div>':'')+SLOTS.map(sl=>{
+  const g=own.gear[sl],ringEye=!runLock&&sl==='trinket'&&isRing(g);
   /* ✨ the enchant's rune rides the top-right corner of its slot, glowing in its own colour. title= gives
      the hover text for nothing, and tapping it says the same thing out loud for touch. */
   let mark='';
@@ -14604,9 +14614,9 @@ function renderHero(){
    if(w)mark=`<span class="enchmark" style="--eg:${w.glow}" data-ench="${w.id}"
      title="${esc(inscOk(g.insc)?inscLine(g.insc):w.n)}. ${esc(w.flavour)}">${uiIcon(w.icon,'✨')}</span>`;
   }
-  return `<div class="slot">${mark}<div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div>`+
+  return `<div class="slot${lockCls}">${mark}<div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div>`+
    (g?`<div class="sn r-${g.rar}">${itemName(g)}</div><div class="ss">${itemStr(g)}</div>${inscHtml(g)}
-    ${(sl==='weapon'||ringEye?'<div class="petbtns">':'')+(g.cowRun
+    ${runLock?'':(sl==='weapon'||ringEye?'<div class="petbtns">':'')+(g.cowRun
      ?`<button class="upbtn" disabled>🐄 Cow Run</button>`   /* the run's legendary: levelled by its cards, not the smith */
      :(g.up||0)>=capUp(g)
      ?`<button class="upbtn" disabled>MAX +${capUp(g)} ✦</button>`
@@ -14614,12 +14624,12 @@ function renderHero(){
      +(sl==='weapon'?`<button class="upbtn peteye" data-weaponeye="1" aria-pressed="${!S.hideWeapon}" aria-label="${S.hideWeapon?'Show':'Hide'} your weapon" title="${S.hideWeapon?'Show':'Hide'} the weapon in your hand. It hits just as hard either way.">${TideUI.eyeIcon}</button></div>`:ringEye?`<button class="upbtn peteye" data-ringeye="1" aria-pressed="${!S.hideRing}" aria-label="${S.hideRing?'Show':'Hide'} The Ring" title="${S.hideRing?'Show':'Hide'} The Ring above your hero. Its bonuses stay either way.">${TideUI.eyeIcon}</button></div>`:'')}`
      :`<div class="ss">- empty -</div>`)+`</div>`;
  }).join('');
- const petP=activePet();
+ const petP=runLock?(own.pet?petOf(own.pet):null):activePet();
  /* 👁 the same eye as on the Tide storage cards: lit while the pet walks beside you, dim when it is tucked away.
     Cosmetic only - the pet still follows and its bonus still counts, so nothing in the stat grid changes. */
- slotsHtml+=`<div class="slot" style="border-color:${petP?petP.cc+'88':'var(--line)'}"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">Pet</div>`+
+ slotsHtml+=`<div class="slot${lockCls}" style="border-color:${petP?petP.cc+'88':'var(--line)'}"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">Pet</div>`+
   (petP?`<div class="sn" style="color:${petP.cc}">${petP.g} ${petP.n}</div><div class="ss">${petP.d}</div>
-   <div class="petbtns"><button class="upbtn" data-unpet="1">Unequip</button><button class="upbtn peteye" data-peteye="1" aria-pressed="${!S.hidePet}" aria-label="${S.hidePet?'Show':'Hide'} your pet" title="${S.hidePet?'Show':'Hide'} the pet beside your hero. Its bonus stays either way.">${TideUI.eyeIcon}</button></div>`
+   ${runLock?'':`<div class="petbtns"><button class="upbtn" data-unpet="1">Unequip</button><button class="upbtn peteye" data-peteye="1" aria-pressed="${!S.hidePet}" aria-label="${S.hidePet?'Show':'Hide'} your pet" title="${S.hidePet?'Show':'Hide'} the pet beside your hero. Its bonus stays either way.">${TideUI.eyeIcon}</button></div>`}`
    :`<div class="ss">- no pet equipped -</div>`)+`</div>`;
  $('slotRow').innerHTML=slotsHtml;
  document.querySelectorAll('[data-unpet]').forEach(b=>b.onclick=()=>{
@@ -14644,12 +14654,12 @@ function renderHero(){
  let scHtml='';
  S.activeScrolls=S.activeScrolls||[null,null];
  for(let i=0;i<2;i++){
-  const sc=S.activeScrolls[i],e=sc?enchOf(sc.id):null,e2=sc&&sc.id2?enchOf(sc.id2):null;
-  scHtml+=`<div class="slot" style="border-color:${e2?'#8fe3c966':e?e.glow+'66':'var(--line)'}"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">Scroll ${i+1}${e2?' · 🔗 FUSED':''}</div>`+
+  const sc=(own.activeScrolls||[])[i],e=sc?enchOf(sc.id):null,e2=sc&&sc.id2?enchOf(sc.id2):null;
+  scHtml+=`<div class="slot${lockCls}" style="border-color:${e2?'#8fe3c966':e?e.glow+'66':'var(--line)'}"><div class="ss" style="text-transform:uppercase;letter-spacing:1px">Scroll ${i+1}${e2?' · 🔗 FUSED':''}</div>`+
    (e?`<div class="en"><span class="glowdot" style="background:${e.glow};box-shadow:0 0 6px ${e.glow}"></span>${e.n.replace('Scroll of ','')} ${TIERN[(sc.tier||1)-1]}</div>`+
     (e2?`<div class="en"><span class="glowdot" style="background:${e2.glow};box-shadow:0 0 6px ${e2.glow}"></span>${e2.n.replace('Scroll of ','')} ${TIERN[(sc.tier2||1)-1]}</div>`:'')+
     `<div class="ss">${tierDesc(sc.id,sc.tier)}${e2?'<br>'+tierDesc(sc.id2,sc.tier2):''}</div>
-    <button class="upbtn" data-unsc="${i}">Unequip</button>`
+    ${runLock?'':`<button class="upbtn" data-unsc="${i}">Unequip</button>`}`
     :`<div class="ss">- no scroll -</div>`)+`</div>`;
  }
  $('scrollRow').innerHTML=scHtml;

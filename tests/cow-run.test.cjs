@@ -83,7 +83,7 @@ test('the herd grows with the clock and the time survived pays epics',()=>{
 
 test('game.js: the run strips the hero, stands the cards in the tree, and gives everything back',()=>{
  assert.match(html,/assets\/cow\/cow-run\.js\?v=\d+"><\/script>\s*<script src="assets\/cow\/cow-fx\.js\?v=\d+"><\/script>\s*<script src="game\.js/,'loaded before game.js');
- assert.match(game,/const COW_STRIP=\['gear','lvl','xp','tree','talents','activeScrolls','pet','pots','boosts','cowRunStat'\];/);
+ assert.match(game,/const COW_STRIP=\['gear','lvl','xp','tree','talents','activeScrolls','pet','pots','cowRunStat'\];/,'the haste and speed upgrades (boosts) stay with the hero');
  assert.match(game,/if\(S&&S\.cowRunStat\)Object\.assign\(treeC\.stat,S\.cowRunStat\);/,'tv lays the cards over the tree');
  assert.match(game,/if\(S\.cowRunStash\)snap=\{\.\.\.snap,\.\.\.S\.cowRunStash\};/,'saveSnapshot writes the hero as he walked in');
  assert.match(game,/function buildZone\(\)\{\n if\(S&&S\.cowRunStash\)cowRunEnd\('left'\);/);
@@ -101,7 +101,7 @@ test('game.js, run for real: strip, cards, end - the hero comes back as he went 
  const cut=(a,b)=>{const i=game.indexOf(a),j=game.indexOf(b,i);assert.ok(i>=0&&j>i,a);return game.slice(i,j);};
  const src=cut('let CR=null,cowRunLast=null;','function cowRunChest(){');
  const gear={weapon:{name:'Kingsforged Blade'},armor:{name:'Aegis'},trinket:{name:'Idol'}};
- const S={id:'t',test:true,cowRogue:true,lvl:60,xp:123,gear,tree:{a:1},talents:{x:1},activeScrolls:[{id:'titan'},null],pet:'cat',pots:{hp:9,mp:9},boosts:{speed:1,haste:1},bag:[]};
+ const S={id:'t',test:true,cowRogue:true,lvl:60,xp:123,gear,tree:{a:1},talents:{x:1},activeScrolls:[{id:'titan'},null],pet:'cat',pots:{hp:9,mp:9},boosts:{speed:2,haste:3},bag:[]};
  const logs=[];
  const body=new Set();
  const c={S,CowRun,document:{body:{classList:{add:k=>body.add(k),remove:k=>body.delete(k)}}},ZONES:[{cow:true}],hero:{},treeVer:0,cowT:0,heroMax:()=>100,manaMax:()=>50,classOf:()=>({spells:[{},{},{}]}),
@@ -110,6 +110,7 @@ test('game.js, run for real: strip, cards, end - the hero comes back as he went 
  vm.runInContext(src+';this.go=()=>{cowRunStart();};this.end=r=>cowRunEnd(r);this.stats=cowRunStats;this.getCR=()=>CR;',c);
  c.go();
  assert.equal(S.lvl,1);assert.deepEqual(S.gear,{weapon:null,armor:null,trinket:null});assert.equal(S.tree,null);assert.equal(S.pet,null);
+ assert.deepEqual(S.boosts,{speed:2,haste:3},'the bought haste and speed upgrades come along');
  assert.ok(S.cowRunStash&&!Object.keys(S).includes('cowRunStash'),'the stash rides along unseen by JSON');
  c.getCR().m.dmg=0.3;c.stats();assert.equal(Math.round(S.cowRunStat.cowDmg),30);
  c.cowT=200;c.end('died');
@@ -238,4 +239,22 @@ test('every card has a ? that says what the thing does, without taking the card'
  for(const d of [...CowRun.PASSIVES,...CowRun.WEAPONS,...CowRun.LEGENDS])assert.ok(CowRun.HELP[d.id],d.id);
  assert.ok(game.includes('<span class="cc-help" data-cowhelp="'));
  assert.match(game,/q\.onclick=e=>\{e\.stopPropagation\(\);e\.preventDefault\(\);cowHelpShow\(q\.dataset\.cowhelp\);\}/);
+});
+
+test('the hero page shows the gear the hero walked in with, red and without buttons, while a run is on',()=>{
+ assert.ok(game.includes("const runLock=!!S.cowRunStash,own=runLock?S.cowRunStash:S,lockCls=runLock?' cowlocked':'';"));
+ assert.ok(game.includes("const g=own.gear[sl],ringEye=!runLock&&sl==='trinket'&&isRing(g);"));
+ assert.ok(game.includes("const petP=runLock?(own.pet?petOf(own.pet):null):activePet();"));
+ const css=fs.readFileSync(path.join(__dirname,'..','style.css'),'utf8');
+ assert.match(css,/\.slot\.cowlocked,\.slot\.cowlocked \*\{color:#ff6a5a!important\}/);
+});
+
+test('an Alpha Bull never sticks at the fence: it is kept inside by its own size, at birth and every tick',()=>{
+ const vm=require('vm');
+ const i=game.indexOf('function cowRunInside(en){'),j=game.indexOf('\n}',i)+2;
+ const c={world:{w:4200,h:2600},Math};vm.createContext(c);vm.runInContext(game.slice(i,j),c);
+ const en={x:30,y:20,r:64};c.cowRunInside(en);
+ assert.ok(en.x>=en.r+16&&en.y>=en.r+16,'clear of what collide() calls out of bounds');
+ const far={x:5000,y:9000,r:64};c.cowRunInside(far);assert.ok(far.x<=4200-80&&far.y<=2600-80);
+ assert.ok(game.includes('cowRunInside(en);   /* a big one spawned by the fence'));
 });
