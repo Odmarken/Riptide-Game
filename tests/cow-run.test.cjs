@@ -146,7 +146,7 @@ test('every card says what it does in numbers: a stat before and after, a weapon
 
 test('the view does not shake under the cards: a shake wears off only while the world runs, so the cards and the last screen stop it',()=>{
  assert.match(game,/CR\.cards=cards;CR\.pickChest=!!chest;\n shakeT=0;/);
- assert.match(game,/function cowResultsShow\(run\)\{\n shakeT=0;/);
+ assert.match(game,/function cowResultsShow\(run,reason\)\{\n const left=reason==='left';\n shakeT=0;/);
  const fx=fs.readFileSync(path.join(__dirname,'..','assets','cow','cow-fx.js'),'utf8');
  const lv=fx.slice(fx.indexOf("FX.recipe('cow:levelup'"),fx.indexOf("FX.recipe('cow:chest'"));
  assert.doesNotMatch(lv,/shake/,'the level-up opens the cards at once - no shake');
