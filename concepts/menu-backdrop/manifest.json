@@ -1,0 +1,30 @@
+{
+  "what": "Menu backdrop (login / hero list / new hero): Moonshine at dusk from ground level by the Tavern. Asked 2026-10-15: 'ta en ny bakgrund här via nano banan pro ... i moonshine vid huset ... från markhöjd och ser in mot husen och lamporna'",
+  "model": "nano_banana_pro (job reports nano_banana_2), 4k 16:9 = 5504x3072, 4 credits each",
+  "references": {
+    "3409918b-8ec0-48e3-bb2d-0ba84c21c9a7": "sheet of Moonshine's painted models flattened on light grey: tavern, casino, bank, blacksmith, fishinghut, brunn (well), city lamp, pine (scratchpad make_refs.py)",
+    "12178e37-558d-42d5-9a2a-1a00f5a96c7d": "the old menu backdrop assets/ui/bakground_signin.png, style only"
+  },
+  "installed": {
+    "master": "menu_moonshine_master.jpg",
+    "job_id": "82579b6b-bdc9-47ff-b924-266ef6e9340c",
+    "prompt": "low knee-height camera on the cobbled square; Tavern large on the LEFT, Blacksmith with forge on the RIGHT, well + road to Casino and Bank in the middle, lit street lamps, lake right, dusk sky with a full moon high right; style of image 2 but outdoors; calm middle",
+    "files": {
+      "assets/ui/menu_moonshine.jpg": "exact 16:9 middle (5461x3072) at 3840x2160, q88 4:4:4",
+      "assets/ui/menu_moonshine_phone.jpg": "9:16 slice centred (x 1888..3616) at 1440x2560, q88 4:4:4, phones (max-aspect-ratio:5/8)"
+    }
+  },
+  "alternatives": {
+    "menu_moonshine_by_the_steps": {
+      "job_id": "3f8e847b-9b80-4212-8512-4719ee03c2e9",
+      "file": "concepts/menu-backdrop/menu_moonshine_by_the_steps_master.jpg",
+      "about": "camera beside the Tavern's front steps (left edge), road to the square, Casino/Bank/Blacksmith behind, Fishing Hut by the lake, moon right"
+    },
+    "menu_moonshine_bank_and_tavern": {
+      "job_id": "3cd21ba1-c23b-456e-83fc-e978a0452fc3",
+      "file": "concepts/menu-backdrop/menu_moonshine_bank_and_tavern_master.jpg",
+      "about": "Bank left, Tavern right, well in the middle, Casino and Blacksmith down the road, moon and lake left; camera a little higher"
+    },
+    "how_to_install": "cut the master the same way as the installed one: exact 16:9 middle at 3840x2160 + a centred 9:16 slice at 1440x2560, both q88 4:4:4"
+  }
+}

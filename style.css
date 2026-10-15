@@ -25,15 +25,16 @@
   html{background:url('assets/ui/ui_allt.png') center center/cover no-repeat var(--night)}
   body{background:transparent;color:var(--ink);font-family:var(--body);display:flex;justify-content:center;overflow:hidden}
   /* menu screens live inside the capped app column - paint the artwork across the whole
-     window behind them so narrow windows don't show the green body on the sides */
+     window behind them so narrow windows don't show the green body on the sides.
+     🌙 The artwork is Moonshine at dusk from the cobbles by the Tavern (2026-10-15, Nano Banana Pro 4K) */
   html:has(#login.open),html:has(#select.open),html:has(#create.open),
   body:has(#login.open),body:has(#select.open),body:has(#create.open){
-    background:url('assets/ui/bakground_signin.png') center/cover no-repeat #0d0a07}
+    background:url('assets/ui/menu_moonshine.jpg?v=1') center/cover no-repeat #0d0a07}
   /* ...and stretch the app column to the full page while a menu screen is up, so a phone
      never shows the flat backdrop in the strip 100dvh leaves when Safari's bar hides */
   body:has(#login.open) #app,body:has(#select.open) #app,body:has(#create.open) #app{
     height:100%;min-height:100dvh;
-    background:url('assets/ui/bakground_signin.png') center/cover no-repeat #0d0a07}
+    background:url('assets/ui/menu_moonshine.jpg?v=1') center/cover no-repeat #0d0a07}
   /* Wood underneath EVERYTHING. Any strip the layout leaves - the notch band, the
      home-indicator band, the gap 100dvh leaves against the taller html box, the overscroll
      rubber-band - lands on this and shows plank, never a flat colour. It costs one already
@@ -511,7 +512,7 @@
     padding:calc(26px + env(safe-area-inset-top,0px)) 22px calc(26px + env(safe-area-inset-bottom,0px));overflow-y:auto;
     background:
       linear-gradient(rgba(8,14,11,.35),rgba(8,14,11,.5)),
-      url('assets/ui/bakground_signin.png') center/cover no-repeat;
+      url('assets/ui/menu_moonshine.jpg?v=1') center/cover no-repeat;
   }
   #create h1{font-family:var(--display);font-size:27px;color:var(--parch);text-shadow:0 2px 12px rgba(217,164,65,.25)}
   #create .tag{color:var(--dim);font-size:12px;margin:4px 0 16px;letter-spacing:1.5px;text-transform:uppercase}
@@ -569,7 +570,7 @@
     padding:calc(26px + env(safe-area-inset-top,0px)) 22px calc(18px + env(safe-area-inset-bottom,0px));overflow-y:auto;
     background:
       linear-gradient(rgba(8,14,11,.35),rgba(8,14,11,.5)),
-      url('assets/ui/bakground_signin.png') center/cover no-repeat;
+      url('assets/ui/menu_moonshine.jpg?v=1') center/cover no-repeat;
   }
   #login{z-index:62;justify-content:center}
   #select.open,#login.open{display:flex}
@@ -995,16 +996,33 @@
   box-shadow:0 0 10px rgba(70,150,255,.65);transition:width .25s ease}
 .boottip{margin-top:11px;font-family:var(--display);font-size:14px;color:#fff;
   text-shadow:0 0 8px #000,0 0 3px #000,0 2px 4px rgba(0,0,0,.9);min-height:1.3em;letter-spacing:.4px}
+/* 🌙 under 900px the menus sit in the capped app column with the page showing round it: sized by the height and set on the
+   bottom edge, the page and the column paint the very same Moonshine picture, so no seam shows at the column's sides
+   (125% still covers a phone on its side, 20:9) */
+@media (max-width:899px){
+  html:has(#login.open),html:has(#select.open),html:has(#create.open),
+  body:has(#login.open),body:has(#select.open),body:has(#create.open),
+  body:has(#login.open) #app,body:has(#select.open) #app,body:has(#create.open) #app,
+  #select,#login,#create{background-size:auto 125%;background-position:center bottom}
+}
 /* 📱 portrait: the 9:16 cut round the wave, edge to edge, the bar down on the rocks (~83%) so the curl stays clear.
    100dvh keeps the boot screen covering the glass while iOS Safari's chrome slides in and out */
 @media (max-aspect-ratio:1/1){
   #boot{background-image:url('assets/ui/loading_tide_phone.jpg?v=1');background-color:#636a72;padding-bottom:0;height:100dvh}
   .bootinner{margin-top:calc(68vh + 29px);margin-top:calc(68dvh + 29px);width:min(82%,420px)}
-  /* same trick for the tavern art behind login / select / create */
+  /* same trick for the Moonshine art behind login / select / create */
   html:has(#login.open),html:has(#select.open),html:has(#create.open),
   body:has(#login.open),body:has(#select.open),body:has(#create.open),
   body:has(#login.open) #app,body:has(#select.open) #app,body:has(#create.open) #app,
   #select,#login,#create{background-size:auto 112%;background-position:center bottom}
+}
+/* 📱 phones (5:8 and narrower) take the 9:16 cut from the painting's middle (the well, the road away) - at 112% of the
+   height it still covers them; wider portrait screens keep the 4K picture, which always does */
+@media (max-aspect-ratio:5/8){
+  html:has(#login.open),html:has(#select.open),html:has(#create.open),
+  body:has(#login.open),body:has(#select.open),body:has(#create.open),
+  body:has(#login.open) #app,body:has(#select.open) #app,body:has(#create.open) #app{background-image:url('assets/ui/menu_moonshine_phone.jpg?v=1')}
+  #select,#login,#create{background-image:linear-gradient(rgba(8,14,11,.35),rgba(8,14,11,.5)),url('assets/ui/menu_moonshine_phone.jpg?v=1')}
 }
 /* ❄ Ice Armor talent tree */
 .talentbox{background:linear-gradient(180deg,#101a2a,#080d16);border:2px solid #5b9bd5;border-radius:18px;padding:20px 24px 18px;max-width:560px;width:94%;max-height:94%;overflow-y:auto;text-align:center;box-shadow:0 14px 50px rgba(0,0,0,.7),0 0 30px rgba(91,155,213,.22)}

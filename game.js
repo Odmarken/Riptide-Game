@@ -22824,7 +22824,7 @@ const BOOT_MIN=5000,BOOT_MAX=13000;
    outside the page so no background image can reach them. Keep the tint matched to the
    top edge of whatever artwork is on screen (values sampled from the images) so the
    clock and battery read as sitting on the same backdrop. */
-const THEME_BOOT='#636a72',THEME_MENU='#401a11',THEME_GAME='#342011';   /* boot: the storm clouds along the top of the wave picture */
+const THEME_BOOT='#636a72',THEME_MENU='#192842',THEME_GAME='#342011';   /* boot: the storm clouds along the top of the wave picture; menus: Moonshine's evening sky under the menus' wash */
 /* Installed on the home screen the page owns the whole screen, status bar included, and the
    artwork is what should show there. A theme-color - from this meta OR from the manifest -
    makes iOS paint a solid band over it instead, so drop the meta entirely in that mode. */
@@ -22850,7 +22850,8 @@ function bootPreload(){
  /* only the variant this screen shows - the same URLs and media queries as the #boot rules in style.css */
  const mq=q=>matchMedia(q).matches;
  push(mq('(max-aspect-ratio:1/1)')?'assets/ui/loading_tide_phone.jpg?v=1':'assets/ui/loading_tide.jpg?v=1');   /* 🌊 the cut for portrait screens, else the 4K picture */
- ['bakground_signin','ui_background','ui_allt','ui_ram','ui_buttons','ui_buttonrak','ui_buttonsstone','ui_buttonshardcore']
+ push(mq('(max-aspect-ratio:5/8)')?'assets/ui/menu_moonshine_phone.jpg?v=1':'assets/ui/menu_moonshine.jpg?v=1');   /* 🌙 the menus' Moonshine evening: the 9:16 cut on phones, as style.css */
+ ['ui_background','ui_allt','ui_ram','ui_buttons','ui_buttonrak','ui_buttonsstone','ui_buttonshardcore']
   .forEach(n=>push('assets/ui/'+n+'.png'));
  /* painted icons - spells, potions, loot */
  ['heroicstrike','whirlwind','battleshout','fireball','frostnova','arcanebarrage','aimedshot','multishot','rapidfire','smite','holynova','renew',
