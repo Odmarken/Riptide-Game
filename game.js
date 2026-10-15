@@ -2864,7 +2864,40 @@ function shotsArrive(){
  setTimeout(go,900);
 }
 /* 🧪 the hero test's first steps: at Torsten's stable, on the Wasteland's clear ground */
+/* 🐄 THE COW TEST (asked for 2026-10-15: "gör en test version av spelet sen gör du cow level till en sån där rogue like version").
+   Four throwaway heroes, one of each class, at level 60 and Prestige 10 in epic gear - the gear they leave at the door - who play
+   the Cow Run (S.cowRogue): Enter World walks each straight into the Cow Level, and the run's last screen offers Run again.
+   --riptide-test=cow, the raid test's profile of its own; S.test keeps them out of every save, the cloud and the leaderboard. */
+function cowTestHero(race,cls,g,name,i){
+ const st=migrate(freshState(name,race,cls));
+ Object.assign(st,{id:'cow-'+race+'-'+g+'-'+cls,test:true,cowRogue:true,gender:g,introPending:false,createdAt:i+1,lvl:MAXLVL,prestige:10,
+  zone:TAVERN_ZONE,maxZone:Math.max(st.maxZone||0,WASTELAND_ZONE),outfit:'default',gold:250000});
+ const keep=S;S=st;
+ try{
+  const roll=slot=>{let it=null;for(let k=0;k<80&&!(it&&it.slot===slot);k++)it=rollItem('epic');return it;};
+  for(const slot of SLOTS)st.gear[slot]=roll(slot);
+ }finally{S=keep;}
+ return st;
+}
+function cowTest(){
+ if(gameOn&&S&&!S.test)return 'Change Character first - the test must not take over a hero in play.';
+ TEST_ROSTER=new Map();
+ const list=[cowTestHero('human','warrior','m','Bjorn',0),cowTestHero('orc','hunter','m','Ragnar',1),
+  cowTestHero('undead','mage','f','Ylva',2),cowTestHero('dwarf','priest','m','Torvald',3)];
+ for(const st of list)TEST_ROSTER.set(st.id,JSON.stringify(st));
+ showSelect();
+ return 'cow test: '+TEST_ROSTER.size+' heroes on the list';
+}
+function cowArrive(){
+ const go=()=>{
+  if(!(gameOn&&S&&S.test&&S.cowRogue))return;
+  const b=$('boot');if(b&&!b.classList.contains('gone')){setTimeout(go,250);return;}
+  const i=cowZoneIdx();if(i>=0&&!zoneOf().cow)goToZone(i);
+ };
+ setTimeout(go,900);
+}
 function testArrive(){
+ if(S&&S.test&&S.cowRogue){cowArrive();return;}
  if(S&&S.test&&S.shotsAt!==undefined){shotsArrive();return;}
  if(!(S&&S.test)||S.testArrived)return;
  S.testArrived=true;
@@ -3767,13 +3800,14 @@ const talRank=id=>((S&&S.talents)||{})[id]||0;
 /* 🌳 THE SKILL TREE's sums for the hero playing (assets/tree/skill-tree.js): worked out again whenever the hero, the saved tree or
    a learned talent changes (treeVer) - the stats below and the fight read them through these */
 let treeVer=0,treeC=null,treeS=null,treeR=null,treeW=-1;
-function tv(){if(treeS!==S||treeR!==(S&&S.tree)||treeW!==treeVer){treeS=S;treeR=S&&S.tree;treeW=treeVer;treeC=SkillTree.effects(S&&S.tree,S&&S.cls);}return treeC;}
+function tv(){if(treeS!==S||treeR!==(S&&S.tree)||treeW!==treeVer){treeS=S;treeR=S&&S.tree;treeW=treeVer;treeC=SkillTree.effects(S&&S.tree,S&&S.cls);
+ if(S&&S.cowRunStat)Object.assign(treeC.stat,S.cowRunStat);}return treeC;}   /* 🐄 in the Cow Run the tree is stripped and the run's cards stand in its sums */
 const tstat=k=>tv().stat[k]||0;           /* a total the tree adds up: 'hp' in %, 'crit' in points... */
 const ton=k=>tv().on[k]||null;            /* a choice or capstone taken: its numbers, or null */
 const tsp=(i,k)=>(tv().sp[i]||{})[k]||0;  /* what the tree adds to the class's spell i */
 const heroMax=()=>Math.round((classOf().hp+S.lvl*14+gearSum('hp'))*(raceOf().hp||1)*(1+tstat('hp')/100));
 const manaMax=()=>Math.round((classOf().mana+S.lvl*5)*(1+tstat('mana')/100));
-const heroAtk=()=>Math.round((classOf().atk+S.lvl*2.6+gearSum('atk'))*(1+scrollPct('titan'))*(1+((activePet()||{}).atkMul||0))*(1+gearSum('dmgMul')));
+const heroAtk=()=>Math.round((classOf().atk+S.lvl*2.6+gearSum('atk'))*(1+scrollPct('titan'))*(1+((activePet()||{}).atkMul||0))*(1+gearSum('dmgMul'))*(1+tstat('cowDmg')/100));   /* 🐄 Might, in the Cow Run */
 const fkBonus=()=>{const w=S&&S.gear?S.gear.weapon:null;return (isFK(w)&&legendStar(w)>1)?legendStar(w)*2:0;};
 /* Not a fallback: syncFelGlaives sets it.crit to 0, so this +3% is the ONLY crit the glaives
    ever grant - and it lives outside the item, which is why the tooltip never showed it. */
@@ -4216,7 +4250,7 @@ function bestNormalWeaponAtk(){
 }
 function fkBaseAtk(){return Math.max(1,Math.round(bestNormalWeaponAtk()*FK_BONUS));}
 function syncFrostseeker(it){
- if(!isFK(it)||!S)return it;
+ if(!isFK(it)||!S||it.cowRun)return it;   /* 🐄 the Cow Run's blade carries no numbers of its own */
  it.legend='frostseeker';it.name='Frostseeker'; /* a blade that slipped past migrate() (an old gear set) takes the new key and name here */
  it.up=Math.min(it.up||0,LEGEND_MAX_UP);
  it.baseAtk=fkBaseAtk();
@@ -4232,7 +4266,7 @@ function rollFrostseeker(){
  return syncFrostseeker(it);
 }
 function syncFelGlaives(it){
- if(!isFG(it)||!S)return it;
+ if(!isFG(it)||!S||it.cowRun)return it;   /* 🐄 nor its glaives */
  it.id='felglaives';it.legend='felglaives';it.felglaives=true;it.slot='weapon';it.rar='legendary';it.name='Fel Glaives';
  it.up=Math.min(it.up||0,LEGEND_MAX_UP);
  const st=legendStar(it); /* ★1/★2/★3 → 10/15/20% boss dmg and 2/4/6% lifesteal */
@@ -7423,6 +7457,7 @@ function drawCryptTorches(vx0,vy0,vx1,vy1){ /* 🔥 breadcrumb markers - flicker
  }
 }
 function buildZone(){
+ if(S&&S.cowRunStash)cowRunEnd('left');   /* 🐄 a run walked out of (or begun again): what was stripped goes back first, the time is paid */
  TideUI.leaveZone();
  SpellFx.clear();   /* ✨ no spell follows the hero into another world */
  mineTarget=null; /* ⛏ a rock belongs to the world it stood in */
@@ -7641,11 +7676,17 @@ function buildZone(){
   world.spawn={x:world.w/2,y:world.h/2};
   hero.x=world.spawn.x;hero.y=world.spawn.y;
   pet.x=hero.x-30;pet.y=hero.y+14;
+  if(cowRogueOn()){   /* 🐄 the Cow Run: stripped to level 1, a thin opening herd */
+   cowRunLast=null;cowRunStart();
+   for(let i=0;i<6;i++)spawnCow(false,true);
+   spawnCow(false,'near');
+  }else{
   for(let i=0;i<23;i++)spawnCow(false,true); /* opening wave - scattered across the whole field */
   for(let i=0;i<2;i++)spawnCow(false,'near'); /* …plus two right by the spawn so it starts hot */
   stageMsg('MOO. Survive as long as you can - you will not.',3000);
   const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
   log(`<span class="imp">The Cow Level.</span> Best: ${S.cowBest?fmt(S.cowBest):'-'} (${S.cowBestItems||0} chests) · Last: ${S.cowLast?fmt(S.cowLast):'-'} (${S.cowLastItems||0} chests)`);
+  }
  }else if(z.raid){
   const cy=world.h/2;
   world.raidRooms=[];
@@ -7790,7 +7831,8 @@ function spawnCow(big,scatter){
   /* individual flanking: each cow aims at its own point around the hero so the herd surrounds instead of stacking */
   flankA:Math.random()*6.283,flankD:26+Math.random()*85,flankT:2+Math.random()*3,
   cds:{},lockT:0,hidden:false,trailT:0,avoid:null});
- if(big){stageMsg('🐄 THE MUTATED ALPHA THUNDERS IN!',2000);sfx.shout();}
+ if(CR)cowRunCowStats(enemies[enemies.length-1],big);   /* 🐄 the run's herd: as hard as its clock */
+ if(big&&!spawnCow.quiet){stageMsg('🐄 THE MUTATED ALPHA THUNDERS IN!',2000);sfx.shout();}
 }
 /* --- Cow Level blue chest: spawns anywhere on the map, walk over it to loot --- */
 function spawnCowChest(){
@@ -7820,6 +7862,597 @@ function collectCowChest(){
  sparkles(c.x,c.y-10,'#9fd0ff',10);
  stageMsg('💠 +'+got+' EPIC'+(got>1?'S':'')+'!',2200,'#5bc8ff');sfx.loot();
  renderHUD();save();
+}
+/* 🐄 THE COW RUN (asked for 2026-10-15: "gör cow level till en sån där rogue like version ... gubben där inne ska inte ha på sig
+   något den ska börja nollad, och sen scalas upp"). In the Cow Level the hero walks in stripped - level 1, no gear, no scrolls, no
+   tree, no pet, no potions - and grows inside the run: cows leave XP gems and gold, every level stops the herd for three cards
+   (assets/cow/cow-run.js holds the numbers and the cards), weapons fire by themselves, the blue chests are bought with the run's
+   gold, and the time survived pays out in epic gear in the real bag. What was stripped lies in CR.stash and goes back the moment the
+   run ends - death, a zone left, Change Character - and saveSnapshot writes the stash, never the stripped hero. For now only the
+   Cow Test's heroes played it first (S.cowRogue, --riptide-test=cow); since 2026-10-15 ("gör denna cow level nu till nya i live builden")
+   it IS the Cow Level, for every hero. */
+let CR=null,cowRunLast=null;   /* the run under way; the one just ended, for the clock over the fallen hero */
+const cowRogueOn=()=>!!S;
+const crM=k=>CR?(CR.m[k]||0):0;   /* what the run's cards add to a stat */
+const COW_STRIP=['gear','lvl','xp','tree','talents','activeScrolls','pet','pots','boosts','cowRunStat'];
+const cowZoneIdx=()=>ZONES.findIndex(z=>z.cow);
+/* the cards reach the fight through the tree's sums (tv): S.cowRunStat lays them over the stripped tree - hp, crit, haste, move and
+   cdr as the tree counts them, the rest under keys of their own. On S, not in a global, so every stat line reads it as it reads the tree */
+function cowRunStats(){
+ const m=CR.m;
+ S.cowRunStat={hp:(m.hp||0)*100,crit:m.crit||0,haste:(m.haste||0)*100,move:(m.speed||0)*100,cdr:(m.cdr||0)*100,
+  avoid:(m.avoid||0)*100,killHeal:(m.killheal||0)*100,mana:(m.mana||0)*100,regen:(m.mana||0)*100,cowThorns:(m.thorns||0)*100,
+  cowDmg:(m.dmg||0)*100,cowSpell:(m.spell||0)*100,cowLs:(m.ls||0)*100,cowArmor:(m.armor||0)*100};
+ treeVer++;
+}
+function cowRunStart(){
+ const run=CowRun.newRun(),stash={};
+ for(const k of COW_STRIP)stash[k]=S[k];
+ Object.assign(run,{bossT:CowRun.BOSS_GAP,bosses:0,stash,owner:S,gems:[],chests:[],shots:[],meteors:[],zones:[],totems:[],totemT:1,orbA:0,orbCd:[],hitT:new Map(),cds:{},axA:0,glA:0,auraT:0,
+  spawnT:0,alphaT:CowRun.ALPHA_FIRST,chestT:4,pending:0});
+ CR=run;
+ document.body.classList.add('cowrun');   /* the header's own level and XP stand down: the run's live on the card below */
+ Object.defineProperty(S,'cowRunStash',{value:stash,configurable:true,enumerable:false,writable:true});   /* saveSnapshot writes this, never the stripped hero */
+ Object.assign(S,{gear:{weapon:null,armor:null,trinket:null},lvl:1,xp:0,tree:null,talents:{},activeScrolls:[null,null],pet:null,pots:{hp:0,mp:0},boosts:{speed:0,haste:0}});
+ cowRunStats();
+ hero.hp=heroMax();hero.mana=manaMax();hero.spellCd=classOf().spells.map(()=>0);hero.buff={};hero.hotT=0;
+ for(let i=0;i<3;i++)cowRunChest();
+ stageMsg('🐄 Level 1, bare hands. Grow or be trampled.',3200);
+ log('🐄 <span class="imp">Cow Run</span> - you start at level 1 with nothing on. Cows drop XP and gold; blue chests cost gold.','imp');
+}
+/* the run is over: what was stripped goes back, and the time survived is paid in epics (not when the hero was swapped away under it) */
+function cowRunEnd(reason){
+ const run=CR;if(!run)return;
+ CR=null;cowRunLast=run;run.t=cowT;
+ document.body.classList.remove('cowrun');
+ cowKitClear();
+ cowPickClose();
+ for(const k of COW_STRIP){if(run.stash[k]===undefined)delete run.owner[k];else run.owner[k]=run.stash[k];}
+ delete run.owner.cowRunStash;
+ treeVer++;
+ if(run.owner!==S||reason==='quit')return;
+ const n=CowRun.rewardEpics(cowT);run.reward=[];
+ for(let i=0;i<n;i++){const it=rollItem('epic');S.bag.push(it);run.reward.push(it);}
+ const best=S.cowRunBest||{};
+ run.record=cowT>(best.t||0);
+ if(run.record)S.cowRunBest={t:cowT,lvl:run.lvl,kills:run.kills};
+ const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
+ log(`🐄 <span class="imp">Cow Run over after ${fmt(cowT)}</span> - level ${run.lvl}, ${run.kills} cows. ${n?`<span class="lepic">${n} epic${n>1?'s':''}</span> in your bag.`:'Survive 45 seconds for an epic.'}`,'loot');
+ if(n)sfx.loot();
+ renderHUD();
+ if(reason==='died')cowResultsShow(run);
+}
+/* a cow of the run: as hard as the clock says, worth XP and gold */
+function cowRunCowStats(en,big){
+ const hp=CowRun.cowHp(cowT)*(big?12:1);
+ Object.assign(en,{max:hp,hp,atk:Math.round(CowRun.cowAtk(cowT)*(big?2.5:1)),xp:0,gold:0,runCow:true,runXp:big?15:1,runGold:big?10:1});
+ en.speed*=0.95;
+}
+function cowRunChest(){
+ let x=world.w/2,y=world.h/2;
+ for(let k=0;k<60;k++){
+  const tx=120+Math.random()*(world.w-240),ty=120+Math.random()*(world.h-240);
+  if(Math.hypot(tx-hero.x,ty-hero.y)<320)continue;
+  if(CR.chests.some(c=>Math.hypot(c.x-tx,c.y-ty)<500))continue;
+  if(!world.solids.some(s=>dist({x:tx,y:ty},s)<s.r+30)){x=tx;y=ty;break;}
+ }
+ CR.chests.push({x,y,warnT:0});
+}
+/* XP gems and the run's own levels */
+function cowRunXp(v){
+ const ups=CowRun.gainXp(CR,v);
+ if(ups){
+  S.lvl=CR.lvl;CR.pending+=ups;
+  hero.hp=Math.min(heroMax(),hero.hp+heroMax()*0.15);
+  sfx.level();if(!SpellFx.cast('cow:levelup',{x:hero.x,y:hero.y,follow:heroFollow})){ring(hero.x,hero.y-6,70,'#ffe9a0',0.8);sparkles(hero.x,hero.y-16,'#ffe9a0',16);}
+  if(!cowPickOpen())cowPickOpenNext();
+  renderHUD();
+ }else cowRunBar();
+}
+/* the bottom card's XP bar, without redrawing the whole HUD for every gem */
+function cowRunBar(){
+ if(!CR)return;
+ const need=CowRun.xpNeed(CR.lvl),f=Math.min(1,CR.xp/need);
+ const b=$('qBar'),c=$('qCount');
+ if(b)b.style.width=(f*100).toFixed(1)+'%';
+ if(c)c.textContent=Math.floor(CR.xp)+' / '+need+' XP';
+}
+/* one blow of a run weapon: the hero's attack times the weapon's share, its own crit roll, the run's lifesteal */
+function cowRunHit(en,mul,slow,fx){
+ if(en.dead||en.hidden)return;
+ let dmg=heroAtk()*mul*atkMul()*(0.9+Math.random()*0.2),crit=false;
+ if(Math.random()*100<heroCrit()){dmg*=1.7;crit=true;}
+ dmg=Math.max(1,Math.round(dmg));
+ if(slow)en.slowT=Math.max(en.slowT||0,slow);
+ if(fx)SpellFx.hit(fx,{x:en.x,y:en.y,r:en.r||16,crit,sx:hero.x,sy:hero.y});   /* ✨ assets/cow/cow-fx.js */
+ applyDmg(en,dmg,null,crit);
+ if(crM('ls')>0)healHero(dmg*crM('ls'),true);
+}
+/* a run weapon at its level, its damage raised by the rarities its cards came in */
+const crWs=(id,lvl)=>{
+ const st=CowRun.weaponStats(id,lvl);if(!st||!CR)return st;
+ const m=CR.m,o={...st};
+ if(CR.wb&&CR.wb[id])o.dmg*=1+CR.wb[id];
+ if(m.area&&o.rad)o.rad*=1+m.area;                                                       /* Expanse */
+ if(m.proj&&o.n!==undefined&&id!=='felglaives'&&id!=='plague')o.n+=Math.round(m.proj);   /* Barrage */
+ if(m.wcd&&o.cd)o.cd*=1-Math.min(0.5,m.wcd);                                              /* Overdrive */
+ return o;
+};
+const cowRunFoes=()=>enemies.filter(e=>e.cow&&!e.dead&&!e.hidden);
+const heroFollow=()=>hero.dead?null:{x:hero.x,y:hero.y};   /* an effect that walks with the hero */
+function cowRunNearest(list,x,y,max,skip){
+ let best=null,bd=max||1e9;
+ for(const e of list){if(skip&&skip.has(e))continue;const d=Math.hypot(e.x-x,e.y-y);if(d<bd){bd=d;best=e;}}
+ return best;
+}
+/* a weapon that touches as it circles: each cow once per hitGap */
+function cowRunTouch(key,x,y,rad,mul,gap,foes,now,fx){
+ for(const e of foes){
+  if(Math.hypot(e.x-x,e.y-y)>rad+e.r)continue;
+  let m=CR.hitT.get(e);if(!m){m={};CR.hitT.set(e,m);}
+  if((m[key]||0)>now)continue;
+  m[key]=now+gap;cowRunHit(e,mul,0,fx);
+ }
+}
+function cowRunWeapons(dt){
+ const foes=cowRunFoes(),now=cowT,hx=hero.x,hy=hero.y-14;
+ const cd=(id,gap)=>{CR.cds[id]=(CR.cds[id]||0)-dt*(1+crM('haste')*0.5);if(CR.cds[id]>0)return false;CR.cds[id]=gap;return true;};
+ for(const [id,lvl] of Object.entries(CR.w)){
+  const st=crWs(id,lvl);
+  if(id==='axes'){
+   CR.axA+=st.spin*dt;
+   for(let i=0;i<st.n;i++){const a=CR.axA+i*6.283/st.n;cowRunTouch('axes'+i,hx+Math.cos(a)*st.rad,hy+Math.sin(a)*st.rad*0.8,22,st.dmg,st.hitGap,foes,now,'cow:axehit');}
+  }else if(id==='aura'){
+   CR.auraT-=dt;
+   if(CR.auraT<=0){CR.auraT=st.tick;SpellFx.cast('cow:aura',{x:hero.x,y:hero.y,rad:st.rad,follow:heroFollow});for(const e of foes)if(Math.hypot(e.x-hero.x,e.y-hero.y)<st.rad+e.r*0.5)cowRunHit(e,st.dmg,0,'cow:aurahit');}
+  }else if(id==='bolt'){
+   if(!cd(id,st.cd))continue;
+   const used=new Set();
+   for(let i=0;i<st.n;i++){
+    const t=cowRunNearest(foes,hero.x,hero.y,st.range,used);if(!t)break;used.add(t);
+    CR.shots.push({kind:'bolt',x:hx,y:hy,tgt:t,sp:st.speed,dmg:st.dmg,life:1.6,pierce:1,hit:new Set()});
+   }
+   if(used.size){sfx.arcane();SpellFx.cast('cow:boltcast',{x:hero.x,y:hero.y,follow:heroFollow});}
+  }else if(id==='chain'){
+   if(!cd(id,st.cd))continue;
+   let from={x:hero.x,y:hero.y},t=cowRunNearest(foes,hero.x,hero.y,320);const hit=new Set(),pts=[[hero.x,hero.y-24]];
+   for(let j=0;t&&j<st.jumps;j++){
+    pts.push([t.x,t.y-(t.r||16)*0.6]);
+    hit.add(t);cowRunHit(t,st.dmg);from=t;
+    t=cowRunNearest(foes,t.x,t.y,st.reach,hit);
+   }
+   if(hit.size){sfx.arcane();if(!SpellFx.cast('cow:chain',{pts}))for(let k=1;k<pts.length;k++)zapLine(pts[k-1][0],pts[k-1][1],pts[k][0],pts[k][1]);}
+  }else if(id==='nova'){
+   if(!cd(id,st.cd))continue;
+   const near=foes.filter(e=>Math.hypot(e.x-hero.x,e.y-hero.y)<st.rad+e.r*0.5);
+   if(!near.length){CR.cds[id]=0.3;continue;}
+   if(!SpellFx.cast('frostnova',{x:hero.x,y:hero.y,gy:heroGroundY(),fx:hero.fx||1,rad:st.rad,dur:0,cls:'mage',targets:[],k:st.rad/115,follow:()=>hero.dead?null:{x:hero.x,y:hero.y}}))ring(hero.x,hero.y-6,st.rad,'#a0e0ff',0.5);
+   near.forEach(e=>cowRunHit(e,st.dmg,st.slow,'cow:frosthit'));sfx.frost?sfx.frost():sfx.arcane();
+  }else if(id==='meteor'){   /* rocks picked out among the cows near, each landing after its fall */
+   if(!cd(id,st.cd))continue;
+   const near=foes.filter(e=>Math.hypot(e.x-hero.x,e.y-hero.y)<520);if(!near.length){CR.cds[id]=0.3;continue;}
+   for(let i=0;i<st.n;i++){const t=near[Math.floor(Math.random()*near.length)];CR.meteors.push({x:t.x+(Math.random()-0.5)*30,y:t.y+(Math.random()-0.5)*20,t:-i*0.12,fall:st.fall,rad:st.rad,dmg:st.dmg});}
+  }else if(id==='cleave'){   /* a sweep the way the hero faces */
+   if(!cd(id,st.cd))continue;
+   const a0=Math.atan2(hero.fy||0,hero.fx||1);
+   const hit=foes.filter(e=>{const d=Math.hypot(e.x-hero.x,e.y-hero.y);if(d>st.rad+e.r)return false;let da=Math.atan2(e.y-hero.y,e.x-hero.x)-a0;da=Math.atan2(Math.sin(da),Math.cos(da));return Math.abs(da)<=st.arc/2;});
+   if(!hit.length){CR.cds[id]=0.15;continue;}
+   SpellFx.cast('cow:cleave',{x:hero.x,y:hero.y-14,a:a0,rad:st.rad,arc:st.arc});
+   hit.forEach(e=>cowRunHit(e,st.dmg,0,'cow:axehit'));sfx.swing();
+  }else if(id==='plague'){   /* clouds settle where the cows stand thickest near the hero */
+   if(!cd(id,st.cd))continue;
+   const near=foes.filter(e=>Math.hypot(e.x-hero.x,e.y-hero.y)<420);
+   for(let i=0;i<st.n;i++){const t=near.length?near[Math.floor(Math.random()*near.length)]:{x:hero.x+(Math.random()-0.5)*160,y:hero.y+(Math.random()-0.5)*120};
+    CR.zones.push({x:t.x,y:t.y,rad:st.rad,t:0,dur:st.dur,tk:0,gap:st.tick,dmg:st.dmg});}
+   if(CR.zones.length>14)CR.zones.splice(0,CR.zones.length-14);
+  }else if(id==='judgement'){   /* the toughest cows near are struck from the sky */
+   if(!cd(id,st.cd))continue;
+   const list=foes.filter(e=>Math.hypot(e.x-hero.x,e.y-hero.y)<460).sort((a,b)=>b.hp-a.hp).slice(0,st.n);
+   if(!list.length){CR.cds[id]=0.3;continue;}
+   list.forEach(e=>{SpellFx.cast('cow:judge',{x:e.x,y:e.y,r:e.r||16});cowRunHit(e,st.dmg);});sfx.shout?sfx.hit():0;
+  }else if(id==='knives'){
+   if(!cd(id,st.cd))continue;
+   const base=Math.atan2(hero.fy||0,hero.fx||1);
+   for(let i=0;i<st.n;i++){const a=base+(i-(st.n-1)/2)*0.17;CR.shots.push({kind:'knife',x:hx,y:hy,vx:Math.cos(a)*st.speed,vy:Math.sin(a)*st.speed,dmg:st.dmg,life:st.range/st.speed,pierce:st.pierce,hit:new Set()});}
+   sfx.swing();
+  }
+ }
+ if(CR.leg){
+  const st=crWs(CR.leg.id,CR.leg.lvl);
+  if(CR.leg.id==='felglaives'){
+   CR.glA+=st.spin*dt;
+   for(let i=0;i<st.n;i++){const a=CR.glA+i*Math.PI;cowRunTouch('fg'+i,hx+Math.cos(a)*st.rad,hy+Math.sin(a)*st.rad*0.8,30,st.dmg,st.hitGap,foes,now,'cow:felhit');}
+  }else if(cd('frostseeker',st.cd)){
+   const a0=Math.random()*6.283;
+   for(let i=0;i<st.n;i++){const a=a0+i*6.283/st.n;CR.shots.push({kind:'shard',x:hx,y:hy,vx:Math.cos(a)*st.speed,vy:Math.sin(a)*st.speed,dmg:st.dmg,life:st.range/st.speed,pierce:3,slow:st.slow,hit:new Set()});}
+   SpellFx.cast('cow:frostcast',{x:hero.x,y:hero.y,follow:heroFollow});sfx.frost?sfx.frost():sfx.arcane();
+  }
+ }
+ /* 🗿 the War Totem: planted where the hero stands, burning the herd round it in pulses */
+ if(CR.m.totem){
+  const ts=CowRun.totemStats(CR.m.totem),rad=ts.rad*(1+(CR.m.area||0));
+  CR.totemT-=dt*(1+Math.min(0.5,CR.m.wcd||0));
+  if(CR.totemT<=0){CR.totemT=ts.gap;CR.totems.push({x:hero.x+(hero.fx<0?-38:38),y:hero.y+6,t:0,dur:ts.dur,tk:0.2});while(CR.totems.length>ts.max+Math.round(CR.m.proj||0))CR.totems.shift();   /* Barrage: one more standing */{const to=CR.totems[CR.totems.length-1];SpellFx.cast('cow:totemdrop',{x:to.x,y:to.y});}}
+  for(let i=CR.totems.length-1;i>=0;i--){
+   const to=CR.totems[i];to.t+=dt;if(to.t>=to.dur){CR.totems.splice(i,1);continue;}
+   to.tk-=dt;if(to.tk>0)continue;to.tk=ts.tick;
+   SpellFx.cast('cow:totempulse',{x:to.x,y:to.y,rad});
+   for(const e of foes)if(Math.hypot(e.x-to.x,(e.y-to.y)*1.4)<rad+e.r*0.5)cowRunHit(e,ts.dmg,0,'cow:totemhit');
+  }
+ }
+ /* 🔵 the Storm Orbs: circling the hero, each shooting a blue ball at the nearest cow */
+ if(CR.m.orb){
+  const os=CowRun.orbStats(CR.m.orb),n=os.n+Math.round(CR.m.proj||0);CR.orbA+=dt*2.2;   /* Barrage: one more orb */
+  for(let i=0;i<n;i++){
+   CR.orbCd[i]=(CR.orbCd[i]||i*0.2)-dt*(1+Math.min(0.5,CR.m.wcd||0));
+   if(CR.orbCd[i]>0)continue;
+   const a=CR.orbA+i*6.283/n,ox=hero.x+Math.cos(a)*34,oy=hero.y-46+Math.sin(a)*12;
+   const t=cowRunNearest(foes,ox,oy,os.range);if(!t){CR.orbCd[i]=0.2;continue;}
+   CR.orbCd[i]=os.cd;
+   CR.shots.push({kind:'orb',x:ox,y:oy,tgt:t,sp:os.speed,dmg:os.dmg,life:1.4,pierce:1,hit:new Set()});
+  }
+ }
+ /* the meteors landing and the plague clouds eating */
+ for(let i=CR.meteors.length-1;i>=0;i--){
+  const m=CR.meteors[i];m.t+=dt;if(m.t<m.fall)continue;
+  CR.meteors.splice(i,1);
+  SpellFx.cast('cow:meteor',{x:m.x,y:m.y,rad:m.rad});
+  for(const e of foes)if(Math.hypot(e.x-m.x,e.y-m.y)<m.rad+e.r*0.5)cowRunHit(e,m.dmg);
+  sfx.hit();
+ }
+ for(let i=CR.zones.length-1;i>=0;i--){
+  const z=CR.zones[i];z.t+=dt;if(z.t>=z.dur){CR.zones.splice(i,1);continue;}
+  z.tk-=dt;if(z.tk>0)continue;z.tk=z.gap;
+  for(const e of foes)if(Math.hypot(e.x-z.x,(e.y-z.y)*1.4)<z.rad+e.r*0.5)cowRunHit(e,z.dmg,0,'cow:plaguehit');
+ }
+ /* the shots in the air */
+ for(let i=CR.shots.length-1;i>=0;i--){
+  const s=CR.shots[i];
+  s.life-=dt;if(s.life<=0||s.pierce<=0){CR.shots.splice(i,1);continue;}
+  if(s.kind==='bolt'||s.kind==='orb'){
+   if(s.tgt&&(s.tgt.dead||s.tgt.hidden))s.tgt=cowRunNearest(foes,s.x,s.y,300,s.hit);
+   if(s.tgt){const dx=s.tgt.x-s.x,dy=s.tgt.y-10-s.y,d=Math.hypot(dx,dy)||1;s.vx=dx/d*s.sp;s.vy=dy/d*s.sp;}
+   else if(!s.vx){CR.shots.splice(i,1);continue;}
+  }
+  s.x+=s.vx*dt;s.y+=s.vy*dt;
+  if(typeof CowFx!=='undefined')CowFx.trail(s,dt);
+  for(const e of foes){
+   if(s.hit.has(e)||Math.hypot(e.x-s.x,e.y-10-s.y)>e.r+10)continue;
+   s.hit.add(e);s.pierce--;cowRunHit(e,s.dmg,s.slow,s.kind==='bolt'?'cow:bolthit':s.kind==='orb'?'cow:orbhit':s.kind==='shard'?'cow:frosthit':'cow:knifehit');
+   if(s.pierce<=0)break;
+  }
+ }
+}
+/* the run's clock: the herd, the Alpha, the chests, the gems, regeneration and the weapons */
+function cowRunTick(dt){
+ cowT+=dt;
+ cowKitTick(dt);
+ CR.spawnT-=dt;
+ if(CR.spawnT<=0){
+  CR.spawnT=CowRun.spawnGap(cowT);
+  if(enemies.filter(e=>e.cow&&!e.dead).length<CowRun.cowCap(cowT))spawnCow(false);
+ }
+ CR.alphaT-=dt;
+ if(CR.alphaT<=0){CR.alphaT=CowRun.ALPHA_GAP;spawnCow(true);}
+ CR.bossT-=dt;
+ if(CR.bossT<=0){CR.bossT=CowRun.BOSS_GAP;cowRunBoss();}
+ cowRunBossTick(dt);
+ /* blue chests: three on the field, a new one 10 s after one is bought */
+ if(CR.chests.length<3){CR.chestT-=dt;if(CR.chestT<=0){CR.chestT=10;cowRunChest();}}
+ for(let i=CR.chests.length-1;i>=0;i--){
+  const c=CR.chests[i];if(c.warnT>0)c.warnT-=dt;
+  if(Math.hypot(hero.x-c.x,hero.y-c.y)>62)continue;
+  const price=CowRun.chestPrice(CR.chestsBought,CR.m.discount);
+  if(CR.gold>=price){
+   CR.gold-=price;CR.chestsBought++;CR.chests.splice(i,1);
+   if(!SpellFx.cast('cow:chest',{x:c.x,y:c.y})){burst(c.x,c.y-6,'#5bc8ff',14,90,true);sparkles(c.x,c.y-10,'#9fd0ff',10);}sfx.loot();
+   cowPickOpen()?CR.chestQ=(CR.chestQ||0)+1:cowPickShow(true);
+   return;
+  }else if(c.warnT<=0){c.warnT=2;floatAt(c.x,c.y-70,'Need '+price+' gold','#ffd76a',true);}
+ }
+ /* the gems: drawn in from the pickup range, banked at the hero's feet; one left lying 5 s drifts in from further off,
+    so a bow or a staff fighting at range still levels */
+ const reach=90*(1+crM('pickup'));
+ for(let i=CR.gems.length-1;i>=0;i--){
+  const g=CR.gems[i],d=Math.hypot(hero.x-g.x,hero.y-g.y);
+  g.t=(g.t||0)+dt;
+  if(d<reach||g.pull||(g.t>5&&d<450)){g.pull=true;const k=Math.min(1,(460*dt)/(d||1));g.x+=(hero.x-g.x)*k;g.y+=(hero.y-g.y)*k;}
+  if(d<20){CR.gems.splice(i,1);cowRunXp(g.v);if(!CR)return;}
+ }
+ const regen=0.003+crM('regen');   /* a slow mend of its own, more with Regeneration */
+ if(regen>0)hero.hp=Math.min(heroMax(),hero.hp+heroMax()*regen*dt);
+ cowRunWeapons(dt);
+}
+/* a cow of the run falls: its gem on the grass, its gold in the purse */
+function cowRunKill(en){
+ CR.kills++;
+ CowRun.goldFor(CR,en.runGold||1);
+ if(en.cowBoss){   /* 👑 an Alpha Bull falls: a free chest's three cards */
+  stageMsg('👑 '+en.name+' falls! A free chest is yours.',2600,'#ff8a6a');sfx.level();
+  SpellFx.cast('cow:chest',{x:en.x,y:en.y});
+  cowPickOpen()?CR.chestQ=(CR.chestQ||0)+1:cowPickShow(true);
+ }
+ const v=en.runXp||1;
+ if(CR.gems.length>=260){const g=CR.gems[0];g.v+=v;}   /* a field strewn too thick: the oldest gem grows instead */
+ else CR.gems.push({x:en.x+(Math.random()-0.5)*10,y:en.y+(Math.random()-0.5)*6,v});
+}
+/* 👑 THE ALPHA BULL: an Alpha grown into a boss every three minutes, each one harder and redder than the last */
+const COW_ROMAN=['','I','II','III','IV','V','VI','VII','VIII','IX','X'];
+const cowBossSkins={};
+/* the Alpha's master painting multiplied toward red - black stays black, so the cutout keys it out as it always did */
+function cowBossSkin(n){
+ const tier=Math.min(8,n),key='cowboss'+tier;
+ if(RAID_SKINS[key])return key;
+ const base=RAID_SKINS.cowmob_big,src=base&&base.original;
+ if(!(src&&src.complete&&src.naturalWidth))return 'cowmob_big';
+ const c=document.createElement('canvas');c.width=src.naturalWidth;c.height=src.naturalHeight;
+ const g=c.getContext('2d');g.drawImage(src,0,0);
+ /* pixel by pixel, and never the black the cutout keys away (a wash over the whole sheet turned the background red and boxed the boss) */
+ const d=g.getImageData(0,0,c.width,c.height),px=d.data,k=Math.max(0.15,1-0.12*tier),add=Math.min(110,18*tier);
+ for(let i=0;i<px.length;i+=4){
+  const r=px[i],gg=px[i+1],b=px[i+2];if(Math.max(r,gg,b)<=20)continue;
+  px[i]=Math.min(255,r+add);px[i+1]=Math.round(gg*k);px[i+2]=Math.round(b*k);
+ }
+ g.putImageData(d,0,0);
+ Object.assign(c,{complete:true,naturalWidth:c.width,naturalHeight:c.height,src:'cowboss-tint-'+tier});
+ RAID_SKINS[key]={...base,original:c,glow:'#ff2a1a'};
+ return key;
+}
+function cowRunBoss(){
+ const n=++CR.bosses,st=CowRun.bossStats(n,cowT);
+ spawnCow.quiet=true;spawnCow(true);spawnCow.quiet=false;
+ const en=enemies[enemies.length-1];
+ Object.assign(en,{name:'Alpha Bull '+(COW_ROMAN[n]||n),skin:cowBossSkin(n),cowBoss:n,r:st.r,max:st.hp,hp:st.hp,atk:st.atk,
+  runXp:st.xp,runGold:st.gold,slamT:st.slam,bossRed:st.red});
+ stageMsg('👑 ALPHA BULL '+(COW_ROMAN[n]||n)+' - the herd\u2019s champion comes for you!',3200,'#ff6a4a');
+ sfx.shout();shakeT=Math.max(shakeT,0.35);
+}
+/* its slams: a red ring under the hero, then the ground breaks */
+function cowRunBossTick(dt){
+ for(const en of enemies){
+  if(!en.cowBoss||en.dead)continue;
+  en.slamT-=dt;
+  if(en.slamT>0||Math.hypot(en.x-hero.x,en.y-hero.y)>520)continue;
+  const st=CowRun.bossStats(en.cowBoss,cowT);
+  en.slamT=st.slam;
+  hazardAt(hero.x,hero.y,st.slamRad,1.1,Math.round(en.atk*1.6),'#ff3a2a');
+  floatAt(en.x,en.y-en.r-40,'SLAM!','#ff6a4a',true);sfx.warn();
+ }
+}
+/* the boss's health over the field, under the clock */
+function cowRunBossBar(){
+ const b=enemies.find(e=>e.cowBoss&&!e.dead);if(!b)return;
+ const ff=getComputedStyle(document.body).fontFamily,w=Math.min(420,VW*0.5),x=VW/2-w/2,y=108,f=Math.max(0,b.hp/b.max);
+ ctx.fillStyle='rgba(15,5,3,.75)';ctx.fillRect(x-3,y-3,w+6,18);
+ ctx.fillStyle='rgb('+Math.round(150+105*b.bossRed)+',30,20)';ctx.fillRect(x,y,w*f,12);
+ ctx.strokeStyle='rgba(255,200,150,.5)';ctx.lineWidth=1;ctx.strokeRect(x-3,y-3,w+6,18);
+ ctx.font='800 12px '+ff;ctx.textAlign='center';cowHudText(b.name.toUpperCase(),VW/2,y+30,'#ffb09a',3);
+}
+/* the ground under everyone: Consecration, the gems and the chests with their price */
+/* what cow-fx.js draws for the run, from where it stands this frame */
+const cowRunFxState=now=>({x:hero.x,y:hero.y,now,w:CR.w,leg:CR.leg,axA:CR.axA,glA:CR.glA,shots:CR.shots,meteors:CR.meteors,zones:CR.zones,gems:CR.gems,bosses:enemies.filter(e=>e.cowBoss&&!e.dead),totems:CR.totems,totemRad:CR.m.totem?CowRun.totemStats(CR.m.totem).rad*(1+(CR.m.area||0)):0,orbs:CR.m.orb?CowRun.orbStats(CR.m.orb).n+Math.round(CR.m.proj||0):0,orbA:CR.orbA,ws:crWs});
+function cowRunDrawGround(now){
+ if(!hero.dead&&typeof CowFx!=='undefined')CowFx.ground(ctx,cowRunFxState(now));   /* ✨ Consecration's rune circle, Frostseeker's sigil */
+ /* the XP gems, made to stand out on the grass ("gör så xpn på marken syns tydligare"): bigger, a dark rim, a shadow under each,
+    a bob and a glint - and their light is laid again over the night in CowFx.glow */
+ for(const g of CR.gems){
+  const big=g.v>=10,s=big?11:7,bob=Math.sin(now*4+g.x*.05)*2.5,y=g.y-6+bob;
+  ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(g.x,g.y+4,s*.9,s*.32,0,0,7);ctx.fill();
+  SpellFx.H.glow(ctx,g.x,y,s*3.4,big?'125,255,176':'90,190,255',0.7+0.25*Math.sin(now*5+g.x));
+  const pts=[[0,-s*1.45],[s,0],[0,s*1.45],[-s,0]];
+  ctx.beginPath();pts.forEach(([px,py],i)=>i?ctx.lineTo(g.x+px,y+py):ctx.moveTo(g.x+px,y+py));ctx.closePath();
+  ctx.lineWidth=3;ctx.strokeStyle='rgba(10,20,40,.85)';ctx.stroke();
+  ctx.fillStyle=big?'#57ff9a':'#3fb6ff';ctx.fill();
+  ctx.fillStyle=big?'#c8ffe0':'#c9ecff';   /* the lit facet */
+  ctx.beginPath();ctx.moveTo(g.x,y-s*1.45);ctx.lineTo(g.x+s*.55,y-s*.1);ctx.lineTo(g.x,y+s*.15);ctx.lineTo(g.x-s*.35,y-s*.2);ctx.closePath();ctx.fill();
+ }
+ const price=CowRun.chestPrice(CR.chestsBought,CR.m.discount),can=CR.gold>=price;
+ for(const c of CR.chests){
+  drawLootChest(c.x,c.y,1.2);
+  ctx.font='800 15px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
+  const pw=ctx.measureText(String(price)).width;
+  cowCoin(c.x-pw/2-4,c.y-53,6.5);ctx.textAlign='left';cowHudText(String(price),c.x-pw/2+6,c.y-48,can?'#ffd76a':'#c9b8a0',3.5);ctx.textAlign='center';
+ }
+}
+/* over everyone: the axes and the glaives circling (their fire and the shots are lit in CowFx.glow) */
+function cowRunDrawAir(now){
+ const hx=hero.x,hy=hero.y-14;
+ if(hero.dead)return;
+ const spinImg=(img,x,y,a,size)=>{
+  if(img&&img.complete&&img.naturalWidth){const k=size/Math.max(img.naturalWidth,img.naturalHeight);ctx.save();ctx.translate(x,y);ctx.rotate(a);ctx.drawImage(img,-img.naturalWidth*k/2,-img.naturalHeight*k/2,img.naturalWidth*k,img.naturalHeight*k);ctx.restore();}
+  else{ctx.fillStyle='#d8d0c0';ctx.beginPath();ctx.arc(x,y,size/4,0,7);ctx.fill();}
+ };
+ if(CR.w.axes){const st=crWs('axes',CR.w.axes);for(let i=0;i<st.n;i++){const a=CR.axA+i*6.283/st.n;spinImg(cowWeaponImg,hx+Math.cos(a)*st.rad,hy+Math.sin(a)*st.rad*0.8,now*14+i,40);}}
+ if(CR.leg&&CR.leg.id==='felglaives'){const st=crWs('felglaives',CR.leg.lvl);for(let i=0;i<st.n;i++){const a=CR.glA+i*Math.PI,x=hx+Math.cos(a)*st.rad,y=hy+Math.sin(a)*st.rad*0.8;
+  spinImg(cowLegendImg('felglaives'),x,y,now*16+i,64);}}
+ /* the shots themselves are light: CowFx.glow draws them after the night */
+}
+/* 🐄 THE RUN'S KIT over the spells (asked 2026-10-15: "ovanför spellsen här gör nya spells, som visar vad man har aktivt i cow
+   level typ vapen, spells effekter osv"): the legendary and the weapons as big tiles with their level and a sweep for the
+   time to their next shot, the stats as small tiles with theirs. Built again when a card is taken; the sweeps run in cowKitTick */
+const COW_KIT_CD={bolt:1,chain:1,nova:1,knives:1,frostseeker:1};   /* the weapons that fire on a clock; the rest are always on */
+let cowKitT=0;
+function cowKitClear(){const el=$('cowKit');if(el)el.remove();}
+function cowKitRender(){
+ if(!CR)return;
+ let el=$('cowKit');
+ if(!el){el=document.createElement('div');el.id='cowKit';$('stageWrap').appendChild(el);}
+ const tile=(id,lvl,big,col)=>{const d=CowRun.byId(id);if(!d)return '';
+  return `<div class="ck ${big?'ck-w':'ck-p'}" data-ck="${id}" style="--kc:${col}" title="${esc(d.n)} · Level ${lvl}"><img src="${cowIcon(id,d.icon)}" alt="" draggable="false" onerror="this.replaceWith(document.createTextNode('${d.g}'))">${COW_KIT_CD[id]?'<i class="ck-cd"></i>':''}<b>${lvl}</b></div>`;};
+ const W=[],P=[];
+ for(const [id,l] of Object.entries(CR.w))W.push(tile(id,l,true,COW_RAR_C.weapon));
+ for(const [id,l] of Object.entries(CR.p))P.push(tile(id,l,false,'#e8c98a'));
+ /* each kind under its own name ("visa där nere att de står typ spell eller weapon eller powerup") */
+ const group=(lab,col,tiles)=>tiles.length?`<div class="ck-group" style="--kc:${col}"><span class="ck-lab">${lab}</span><div class="ck-row">${tiles.join('')}</div></div>`:'';
+ const top=group('Legendary',COW_RAR_C.legendary,CR.leg?[tile(CR.leg.id,CR.leg.lvl,true,COW_RAR_C.legendary)]:[])+group('Weapons',COW_RAR_C.weapon,W);
+ el.innerHTML=(top?`<div class="ck-line">${top}</div>`:'')+(P.length?`<div class="ck-line">${group('Power-ups','#e8c98a',P)}</div>`:'');
+ cowKitTick(1);
+}
+/* the sweeps: how much of each clock weapon's wait is left, as a dark slice over its tile */
+function cowKitTick(dt){
+ cowKitT-=dt;if(cowKitT>0||!CR)return;cowKitT=0.08;
+ const el=$('cowKit');if(!el)return;
+ for(const c of el.querySelectorAll('.ck-cd')){
+  const id=c.parentNode.dataset.ck,lvl=id===(CR.leg&&CR.leg.id)?CR.leg.lvl:CR.w[id],st=crWs(id,lvl);
+  const left=Math.max(0,CR.cds[id]||0),f=st&&st.cd?Math.min(1,left/st.cd):0;
+  c.style.setProperty('--f',(f*360).toFixed(0)+'deg');
+ }
+}
+/* the clock, the cows slain and the gold, top middle */
+/* the run's own little marks, drawn and not typed: an emoji in a canvas line left a pale box behind it under GL2D ("man ser någon
+   ruta bakom guldet och texten här") */
+function cowCoin(x,y,r){
+ ctx.fillStyle='#7a4a0e';ctx.beginPath();ctx.arc(x,y+1,r,0,7);ctx.fill();
+ ctx.fillStyle='#f4b532';ctx.beginPath();ctx.arc(x,y,r,0,7);ctx.fill();
+ ctx.strokeStyle='#ffe58a';ctx.lineWidth=Math.max(1,r*.18);ctx.beginPath();ctx.arc(x,y,r*.62,0,7);ctx.stroke();
+}
+function cowSkull(x,y,r){
+ ctx.fillStyle='#f2ead8';ctx.beginPath();ctx.arc(x,y-r*.15,r*.8,0,7);ctx.fill();ctx.fillRect(x-r*.45,y+r*.3,r*.9,r*.5);
+ ctx.fillStyle='#3a2a1a';ctx.beginPath();ctx.arc(x-r*.32,y-r*.12,r*.2,0,7);ctx.arc(x+r*.32,y-r*.12,r*.2,0,7);ctx.fill();
+}
+/* text with a dark rim instead of a dark copy under it */
+function cowHudText(txt,x,y,fill,w){ctx.lineJoin='round';ctx.lineWidth=w||4;ctx.strokeStyle='rgba(20,10,4,.85)';ctx.strokeText(txt,x,y);ctx.fillStyle=fill;ctx.fillText(txt,x,y);}
+function cowRunDrawHud(){
+ const R=CR||cowRunLast;if(!R)return;
+ const t=CR?cowT:R.t,fmt=x=>Math.floor(x/60)+':'+String(Math.floor(x%60)).padStart(2,'0'),ff=getComputedStyle(document.body).fontFamily;
+ ctx.textAlign='center';
+ ctx.font='700 30px '+ff;
+ cowHudText(fmt(t),VW/2,52,CR?'#ffe9a0':'#ff8a7a',5);
+ ctx.font='800 17px '+ff;ctx.textAlign='left';
+ const k=String(R.kills),g=String(R.gold),kw=ctx.measureText(k).width,gw=ctx.measureText(g).width,gap=26,w=18+kw+gap+18+gw,x0=VW/2-w/2;
+ cowSkull(x0+7,70,8);cowHudText(k,x0+18,76,'#ffd76a');
+ cowCoin(x0+18+kw+gap+7,70,7.5);cowHudText(g,x0+18+kw+gap+18,76,'#ffd76a');
+ ctx.textAlign='center';
+ cowRunBossBar();
+ const b=S.cowRunBest;
+ if(b){ctx.font='600 11px '+ff;cowHudText('BEST '+fmt(b.t)+' · LEVEL '+b.lvl+' · '+b.kills+' COWS',VW/2,94,'rgba(255,255,255,0.85)',3);}
+}
+/* ---- the three cards ---- */
+/* a legendary as the class playing wields it (asked 2026-10-15: "fel glaive visar den klassen som spelas, så mage visar staven,
+   priest klubban"): the staff, the mace, the bow, or the warrior's own blade and glaive - on the card, in the kit and circling */
+const cowLegendImg=id=>id==='felglaives'?((fgArtFor(classOf().id)||{}).img||wgImg):id==='frostseeker'?fkArtFor(classOf().id).img:null;
+const cowIcon=(id,fallback)=>{const im=cowLegendImg(id);return im?im.src:fallback;};
+const COW_RAR_C={common:'#d8cfb8',rare:'#5fa8ff',epic:'#c98cff',legendary:'#ffb347',weapon:'#6fe0ff'};
+const cowPickOpen=()=>!!$('cowPickOv');
+function cowPickClose(){const ov=$('cowPickOv');if(ov)ov.remove();}
+function cowPickOpenNext(){
+ if(!CR)return;
+ if(CR.chestQ>0){CR.chestQ--;cowPickShow(true);return;}
+ if(CR.pending>0){CR.pending--;cowPickShow(false);}
+}
+function cowPickShow(chest,keep){
+ if(!CR)return;
+ const cards=keep||CowRun.rollCards(CR,Math.random,{chest,maxHp:heroMax()});
+ CR.cards=cards;CR.pickChest=!!chest;
+ shakeT=0;   /* the herd stands still under the cards, and so does the view: a shake only wears off while the world runs */
+ cowPickClose();
+ const ov=document.createElement('div');
+ ov.id='cowPickOv';ov.className='cowpick';
+ const price=CowRun.rerollPrice(CR.rerolls||0,CR.m.discount);
+ const ribbon=c=>c.kind==='weapon'?c.rar+' weapon':c.kind==='legend'?'Legendary':c.kind==='passive'?c.rar:'Gift';
+ const pips=c=>'';   /* the level is said in words on the tag ("vad menas med den där rutan som blinkar typ 1/5") */
+  const pipsOld=c=>{if(!(c.kind==='passive'||c.kind==='weapon'||c.kind==='legend'))return '';if(c.lvl>5)return '';let h='';for(let k=1;k<=5;k++)h+=`<i class="${k<c.lvl?'on':k===c.lvl?'nx':''}"></i>`;return `<span class="cc-pips">${h}</span>`;};
+ const line=l=>`<span class="cc-line">${l.lab?`<em>${esc(l.lab)}</em>`:''}${l.from!==undefined?`<s>${esc(String(l.from))}</s><u>➜</u>`:''}<b>${esc(String(l.to))}</b></span>`;
+ ov.innerHTML=`<div class="cowpick-box${chest?' is-chest':''}">
+  <div class="cowpick-title"><small>${chest?'Blue chest':'Level up'}</small><b>${chest?'💠 Pick your prize':'Level '+CR.lvl}</b></div>
+  <div class="cowpick-cards">${cards.map((c,i)=>`<button class="cowcard rar-${c.rar}" data-cowcard="${i}"${i===0?' data-pad-first':''} style="--rc:${COW_RAR_C[c.rar]||'#d8cfb8'};--i:${i}">
+   <span class="cc-ribbon">${esc(ribbon(c))}</span><span class="cc-key">${i+1}</span>${c.kind==='heal'||c.kind==='coins'?'':`<span class="cc-help" data-cowhelp="${c.kind}:${c.id}" title="What does it do?">?</span>`}
+   <span class="cc-art"><span class="cc-rays"></span><img src="${c.kind==='legend'?cowIcon(c.id,c.icon):c.icon}" alt="" draggable="false" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="cc-emoji">${c.g}</span></span>
+   <b class="cc-name">${esc(c.n)}</b>${pips(c)}
+   <span class="cc-tag">${c.kind==='heal'||c.kind==='coins'?'':c.isNew?'New':'Level '+(c.lvl-1)+' ➜ '+c.lvl}</span>
+   ${c.replaces?`<span class="cc-swap">⇄ ${c.replaces==='choose'?'Replaces a power-up of your choice':'Replaces '+esc(c.replacesN)}</span>`:''}
+   ${c.replaces&&c.replaces!=='choose'&&c.kind==='weapon'?`<span class="cc-vs">Yours ➜ new</span>`:''}
+   <span class="cc-lines">${(c.lines||[]).map(line).join('')}</span>
+   <span class="cc-desc">${esc(c.d)}</span></button>`).join('')}</div>
+  <div class="cowpick-foot"><button class="sbtn cc-reroll" id="cowReroll"${CR.gold<price?' disabled':''}>🎲 Reroll · 🪙 ${price}</button><span class="cc-gold">🪙 ${CR.gold}</span></div></div>`;
+ $('stageWrap').appendChild(ov);
+ ov.querySelectorAll('[data-cowcard]').forEach(b=>b.onclick=()=>cowPickKey(+b.dataset.cowcard));
+ cowHelpWire(ov);
+ $('cowReroll').onclick=()=>{   /* three new cards for the run's gold */
+  if(!CR||!CR.cards)return;
+  const pr=CowRun.rerollPrice(CR.rerolls||0,CR.m.discount);if(CR.gold<pr){sfx.warn();return;}
+  CR.gold-=pr;CR.rerolls=(CR.rerolls||0)+1;sfx.loot();cowPickShow(CR.pickChest);
+ };
+ sfx.quest();
+}
+function cowPickKey(i){
+ if(!CR||!CR.cards)return;
+ if(CR.swap){const sw=CR.swap,id=Object.keys(CR.p)[i];if(!id)return;CR.swap=null;sw.card.out=id;i=CR.cards.indexOf(sw.card);}   /* on the swap screen 1-4 name the power-up that goes */
+ const card=CR.cards[i];if(!card)return;
+ if(card.replaces==='choose'&&!card.out){cowSwapShow(card);return;}   /* four power-ups already: which one goes */
+ CR.cards=null;cowPickClose();
+ const got=CowRun.apply(CR,card);
+ cowRunStats();cowKitRender();
+ if(got==='heal')healHero(heroMax()*0.4);
+ else if(got==='frostseeker'||got==='felglaives'){
+  S.gear.weapon=got==='frostseeker'
+   ?{slot:'weapon',rar:'legendary',legend:'frostseeker',name:'Frostseeker',cowRun:true,atk:0,hp:0,crit:0,lifesteal:0,ench:null,up:0,sell:0}
+   :{id:'felglaives',slot:'weapon',rar:'legendary',legend:'felglaives',felglaives:true,name:'Fel Glaives',cowRun:true,atk:0,hp:0,crit:0,lifesteal:0,ench:null,up:0,sell:0};
+  stageMsg('⭐ '+card.n+' is yours!',2600,'#ffb84a');sfx.shout();
+  if(!SpellFx.cast('cow:legend',{x:hero.x,y:hero.y,legend:got,follow:heroFollow})){ring(hero.x,hero.y-6,90,'#ffb84a',0.9);sparkles(hero.x,hero.y-20,'#ffd88a',22);}
+ }
+ hero.hp=Math.min(hero.hp,heroMax());
+ renderHUD();
+ cowPickOpenNext();
+}
+/* four power-ups and a new one taken: the player picks which of the four leaves - Back returns to the same three cards */
+function cowSwapShow(card){
+ const cards=CR.cards,ov=$('cowPickOv');if(!ov)return;
+ CR.swap={card};
+ const tile=(id,n)=>{const d=CowRun.byId(id),l=CR.p[id];
+  return `<button class="cowcard cc-small rar-common" data-swap="${id}" style="--rc:#ff8a6a;--i:${n}"><span class="cc-key">${n+1}</span><span class="cc-help" data-cowhelp="passive:${id}" title="What does it do?">?</span><span class="cc-art"><img src="${d.icon}" alt="" draggable="false"></span>
+   <b class="cc-name">${esc(d.n)}</b><span class="cc-tag">Level ${l}</span><span class="cc-swap">Remove</span></button>`;};
+ ov.innerHTML=`<div class="cowpick-box"><div class="cowpick-title"><small>Four power-ups at most</small><b>Replace which?</b></div>
+  <div class="cc-swapfor">${esc(card.n)} comes in - one of these goes, with all its levels</div>
+  <div class="cowpick-cards">${Object.keys(CR.p).map((id,n)=>tile(id,n)).join('')}</div>
+  <div class="cowpick-foot"><button class="sbtn" id="cowSwapBack" data-pad-first>← Back</button></div></div>`;
+ ov.querySelectorAll('[data-swap]').forEach(b=>b.onclick=()=>cowPickKey(Object.keys(CR.p).indexOf(b.dataset.swap)));
+ cowHelpWire(ov);
+ $('cowSwapBack').onclick=()=>{CR.swap=null;cowPickShow(CR.pickChest,cards);};
+}
+/* the "?" on a card: a box over the cards saying what the thing does - its own sentence, what one card gives, what you have */
+function cowHelpWire(ov){
+ ov.querySelectorAll('[data-cowhelp]').forEach(q=>q.onclick=e=>{e.stopPropagation();e.preventDefault();cowHelpShow(q.dataset.cowhelp);});
+}
+function cowHelpShow(key){
+ const [kind,id]=key.split(':'),d=CowRun.byId(id);if(!d||!CR)return;
+ const rows=[];
+ if(kind==='passive'){
+  const cur=CR.m[d.stat]||0,one=d.f(d.v,{maxHp:heroMax()});
+  rows.push(['One common card',one+' '+d.lab.toLowerCase()],['Rare / epic card','×1.5 / ×2']);
+  if(CR.p[id])rows.push(['You have',d.f(cur,{maxHp:heroMax()})+' · level '+CR.p[id]]);
+ }else{
+  const lvl=kind==='legend'?(CR.leg&&CR.leg.id===id?CR.leg.lvl:1):(CR.w[id]||1),st=crWs(id,lvl)||{};
+  for(const [k,lab,f] of [['n','Count',v=>v],['dmg','Damage',v=>Math.round(v*100)+'% of attack'],['cd','Every',v=>(Math.round(v*100)/100)+' s'],['rad','Reach',v=>Math.round(v)],['jumps','Jumps',v=>v],['pierce','Pierces',v=>v],['slow','Slows',v=>v+' s']])
+   if(st[k]!==undefined)rows.push([lab,f(st[k])]);
+  if(kind==='weapon')rows.push(['Card rarity','+10% / +25% / +50% damage'],['Slots','one weapon at a time']);
+  else rows.push(['Slots','one legendary per run, levels for ever']);
+ }
+ const old=$('cowHelpBox');if(old)old.remove();
+ const box=document.createElement('div');box.id='cowHelpBox';box.className='cowhelp';
+ box.innerHTML=`<div class="cowhelp-in"><button class="cowhelp-x" id="cowHelpX">✕</button>
+  <div class="cowhelp-head"><img src="${kind==='legend'?cowIcon(id,d.icon):d.icon}" alt=""><b>${esc(d.n)}</b></div>
+  <p>${esc(CowRun.HELP[id]||d.d)}</p>
+  <div class="cowhelp-rows">${rows.map(([a,b])=>`<span>${esc(a)}</span><b>${esc(String(b))}</b>`).join('')}</div></div>`;
+ $('cowPickOv').appendChild(box);
+ box.onclick=e=>{e.stopPropagation();box.remove();};
+}
+/* the run's last screen: what the herd paid; Run again goes straight back in */
+function cowResultsShow(run){
+ shakeT=0;
+ cowPickClose();
+ const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
+ const ov=document.createElement('div');
+ ov.id='cowPickOv';ov.className='cowpick';ov.dataset.results='1';
+ const n=run.reward.length;
+ ov.innerHTML=`<div class="cowpick-box cowres"><div class="cowpick-title">🐄 Trampled${run.record?' · New record!':''}</div>
+  <div class="cowres-grid"><span>Time</span><b>${fmt(run.t)}</b><span>Level</span><b>${run.lvl}</b><span>Cows</span><b>${run.kills}</b><span>Gold</span><b>${run.goldTotal}</b></div>
+  <div class="cowres-loot">${n?`<b class="lepic">${n} epic${n>1?'s':''}</b> in your bag`:'No epics - survive 45 seconds for one'}</div>
+  <div class="cowres-items">${run.reward.slice(0,30).map(it=>`<span class="lepic">${esc(it.name)}</span>`).join(' · ')}</div>
+  <div class="cowres-btns"><button class="sbtn gold" id="cowResAgain" data-pad-first>Run again</button><button class="sbtn" id="cowResHome">To Moonshine</button></div></div>`;
+ $('stageWrap').appendChild(ov);
+ $('cowResAgain').onclick=()=>{cowPickClose();const i=cowZoneIdx();if(i>=0)goToZone(i);};
+ $('cowResHome').onclick=()=>cowPickClose();
 }
 function prerenderGround(z,R){
  groundCv=document.createElement('canvas');
@@ -7974,7 +8607,7 @@ function speedOf(e){
   s=base*(e.hp<=e.max*0.3?BOSS_ENRAGE_SPEED_MUL:BOSS_SPEED_MUL);
  }
  /* Cow Level hardmode: herd movement ramps up fast the longer you survive. */
- if(e.cow&&cowRunning)s*=Math.min(3.5,1+cowT*(e.bigCow?0.027:0.035)); /* gentler ramp-up; the Alpha ramps a bit slower */
+ if(e.cow&&cowRunning)s*=e.runCow?CowRun.cowSpeedMul(cowT):Math.min(3.5,1+cowT*(e.bigCow?0.027:0.035)); /* gentler ramp-up; the Alpha ramps a bit slower · 🐄 the run's own */
  /* Thor and ODIN keep their custom tuning. */
  if(e.slowT>0)s*=0.45;
  return s;
@@ -8088,7 +8721,7 @@ function hurtHero(dmg,label,foe){   /* foe: who struck, when it is a foe's own b
  if(hero.dead)return;
  drawWeapons();   /* 🗡 a blow taken: the weapon comes out */
  /* hidden passive: melee classes (Warrior/Priest) shrug off 60% in the Cow Level - never shown in any UI */
- const cowMelee=zoneOf().cow&&(S.cls==='warrior'||S.cls==='priest')?0.40:1;
+ const cowMelee=(zoneOf().cow&&(S.cls==='warrior'||S.cls==='priest')?(S.cowRunStat?0.5:0.40):1)*(1-Math.min(0.6,tstat('cowArmor')/100));   /* 🐄 the run: a lighter hide, and its Iron Hide cards */
  dmg=Math.round(dmg*(1-scrollPct('warding'))*(1-(classOf().armor||0))*(1-(raceOf().armor||0))*(1-((activePet()||{}).armor||0))*(1-Math.min(0.5,gearSum('armor')))*(((S.armorT||0)>0&&zoneOf().amb==='odin')?0.5:1)*cowMelee); /* 🛡 potion: -50% only in the ODIN fight · gear armor capped at 50% */
  dmg=treeHurt(dmg,foe);if(!(dmg>0))return 0;   /* 🌳 a block or a dodge, a shield, the walls of the tree */
  hero.hp-=dmg;hero.hurt=0.2;
@@ -8199,7 +8832,7 @@ function landHit(en,dmg,crit,label,basic){
  treeOnHit(en,dmg,crit,basic);   /* 🌳 */
  const w=S.gear.weapon;
  const tkR=S.gear&&S.gear.trinket;
- const lsAll=((w&&w.lifesteal)||0)+((tkR&&tkR.lifesteal)||0)+fkBonus()/100+wornInsc('leech')/100; /* ✨ Veinseeker */
+ const lsAll=((w&&w.lifesteal)||0)+((tkR&&tkR.lifesteal)||0)+fkBonus()/100+wornInsc('leech')/100+tstat('cowLs')/100; /* ✨ Veinseeker · 🐄 Vampirism */
  if(lsAll>0)healHero(Math.max(1,dmg*lsAll),true);
  if(tkR&&tkR.manadrain)hero.mana=Math.max(0,hero.mana-manaMax()*tkR.manadrain); /* the Ring exacts its price on every strike */
  sfx.hit();
@@ -8228,7 +8861,7 @@ function applyDmg(en,dmg,label,crit){
 }
 function dealSpell(en,sp){
  mpAct('spell',{tx:Math.round(en.x),ty:Math.round(en.y),c:sp.c||'#7fd0ff',v:sp.vfx||null,f:sp.fx});
- let dmg=heroAtk()*sp.mul*(0.95+Math.random()*0.1)*atkMul()*treeSpellMul(en,sp),crit=false;   /* 🌳 Execute, Firestarter, Revenge... */
+ let dmg=heroAtk()*sp.mul*(0.95+Math.random()*0.1)*atkMul()*treeSpellMul(en,sp)*(1+tstat('cowSpell')/100),crit=false;   /* 🌳 Execute, Firestarter, Revenge... · 🐄 Arcana */
  if(Math.random()*100<heroCrit()){dmg*=treeCritMul(sp);crit=true;}
  const ex=en.x,ey=en.y,er=en.r||16;   /* where it stands as the spell lands - a kill can take it out of the world */
  landHit(en,Math.round(dmg),crit,sp.n);
@@ -8269,7 +8902,7 @@ function cast(i,manual){
  if(hero.dead)return false;
  if(treeIced()){if(manual)stageMsg('❄ Frozen in the ice',700);return false;}   /* 🌳 Ice Block */
  if(hero.deadWait){if(manual)stageMsg('💀 You are fallen - the seal blocks your magic until the lord dies',1400);return false;}
- if(hero.moving){if(manual)stageMsg('Stand still to cast',700);return false;}
+ if(hero.moving&&!S.cowRunStash){if(manual)stageMsg('Stand still to cast',700);return false;}   /* 🐄 the Cow Run casts on the move */
  if(hero.spellCd[i]>0){if(manual)stageMsg('Not ready',700);return false;}
  if(hero.mana<spellManaCost(sp)){if(manual)stageMsg('Not enough mana',700);return false;}
  const rng=heroRange()+55,ownFx=SpellFx.has(sp.fx);   /* ✨ the spell's own look (assets/fx); the old rings only stand in without one · 🌳 Reach */
@@ -8361,8 +8994,9 @@ function killEnemy(en){
  }
  let gold=en.cow?0:addGold(Math.round(en.gold*(1+scrollPct('fortune'))));
  if(!en.cow&&!en.raid)floatAt(en.x,en.y-en.r-14,gold>0?'+'+gold+' ◉':'◉ CAP','#ffd76a');
- log(`Slew <span class="imp">${en.name}</span> - ${(en.xp>0&&!en.cow)?'+'+en.xp+' xp':'no xp'}${(en.cow||en.raid)?'':', +'+gold+' gold'}.`); /* cows give no xp - the line no longer says they do */
- if(en.cow){
+ if(!en.runCow)log(`Slew <span class="imp">${en.name}</span> - ${(en.xp>0&&!en.cow)?'+'+en.xp+' xp':'no xp'}${(en.cow||en.raid)?'':', +'+gold+' gold'}.`); /* cows give no xp - the line no longer says they do */
+ if(en.runCow&&CR)cowRunKill(en);   /* 🐄 the run's cows: a gem and gold, no epics until the end */
+ else if(en.cow){
   /* chests are the main loot - but each cow has a 3% chance to shake loose one epic (3.6% with 🍀) */
   const cowLucky=S.luckT>0;
   if(Math.random()<0.03*(cowLucky?1.20:1)){
@@ -8488,6 +9122,14 @@ function gainXP(amt){
  if(S.lvl<MAXLVL&&zoneLvlGained()>=ZONE_LVL_CAP)S.xp=Math.min(S.xp,xpNeed(S.lvl)-1);
 }
 function heroDies(){
+ if(cowRunning&&S.cowRunStash){   /* 🐄 the run ends where it fell: the stripped hero is put back and the time paid in epics */
+  cowRunning=false;
+  hero.dead=true;hero.deadT=0;hero.target=null;hero.moveTo=null;hero.goPortal=false;
+  hero.sentHome=true;
+  sfx.die();
+  cowRunEnd('died');
+  return;
+ }
  if(cowRunning){
   cowRunning=false;
   S.cowLast=cowT;
@@ -9138,7 +9780,7 @@ function padPollButtons(){
    Rather than teach every panel about the pad, walk whatever is on screen: the topmost open panel's
    own buttons, in document order, are the menu. That way a panel built later is navigable the day
    it is written, with nothing added to it. */
-const PAD_PANELS=['confirmFx','cityWonFx','enchCraftFx','outfitFx', /* the small boxes that sit on top of everything come first - the pad answers the box on screen, not the panel under it */
+const PAD_PANELS=['confirmFx','cowPickOv','cityWonFx','enchCraftFx','outfitFx',   /* 🐄 cowPickOv: the cards of the Cow Run */ /* the small boxes that sit on top of everything come first - the pad answers the box on screen, not the panel under it */
  'hcDeathOv','renameOv','prestigeConfirm','hcConfirm', /* the boxes built in script (80-85): unlisted, the d-pad walked the page hidden behind them and A pressed it */
  'cfgBox','iceReqMsg','iceMsg','gateMsg','cryptIntro','ritualBox','altarMsg','raidModal','mpLobby', /* Settings is drawn above the tables and the boxes after it (z 78) */
  'tideHub','tideBattleFx','finalGateFx','sebbeFx','gvbFx','rtbFx','rouFx','bjFx','fiveDealFx','fiveFx','seaBuyFx','seaFx','slotFx','casinoMenu', /* the Extra Spin box before its machine: while it asks, the d-pad reaches its YES and NO, not Auto under it */
@@ -9460,7 +10102,7 @@ const PAD_BACK={treeFx:'treeClose',sebbeFx:'sebbeClose',finalGateFx:'finalGateNo
  renameOv:'renameNo',prestigeConfirm:'prNo',hcConfirm:'hcNo',hcDeathOv:'hcBackBtn',raidModal:'raidCancel',mpLobby:'mpLeaveBtn'};
 /* ...and a few where B must do nothing at all: the last button there is not a way back - it exits the game from the hero
    list, signs in, or begins the ritual */
-const PAD_NOBACK=['select','login','ritualBox'];
+const PAD_NOBACK=['select','login','ritualBox','cowPickOv'];   /* 🐄 a card must be chosen */
 function padBack(host){
  if(host.classList&&host.classList.contains('panel')){padSideClose();return true;}   /* the side panel: step back out to the world */
  if(PAD_NOBACK.includes(host.id))return false;
@@ -9691,8 +10333,8 @@ window.addEventListener('keydown',e=>{
   }else stageMsg('No foe nearby',700);
  }
 
- if(gameOn&&!gamePaused&&['1','2','3'].includes(k))cast(+k-1,true);
- if(gameOn&&!gamePaused&&k==='4')usePot('hp',true);
+ if(gameOn&&!gamePaused&&['1','2','3'].includes(k)){if(typeof cowPickOpen==='function'&&cowPickOpen())cowPickKey(+k-1);else cast(+k-1,true);}   /* 🐄 1-3 take a card while the cards are up */
+ if(gameOn&&!gamePaused&&k==='4'){if(typeof cowPickOpen==='function'&&cowPickOpen())cowPickKey(3);else usePot('hp',true);}   /* 🐄 the fourth power-up on the swap screen */
  if(gameOn&&!gamePaused&&k==='5')usePot('mp',true);
  if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(kl))e.preventDefault();
 });
@@ -10291,6 +10933,7 @@ function update(dt){
  padNow=padStick(); /* one poll per frame, shared by the movement block below */
  if(padNow&&padPanelOpen())padNow=null; /* a panel is up: the d-pad walks the panel, and the stick no longer walks the hero behind it */
  padTick(dt);       /* buttons, the right stick, the A prompt and menu walking */
+ if(typeof cowPickOpen==='function'&&cowPickOpen())return;   /* 🐄 the herd stands still while a card is chosen (and over the run's last screen) */
  /* any of the three counts as the pad driving: the stick walking, a button, the camera stick */
  if(padNow||Object.keys(padHit).length||Math.abs(padRZoom)>0)padCursor(true);
  if(padNow&&!keyMoveHeld())stopMining(true); /* reaching for the stick puts the pick away */
@@ -10368,7 +11011,8 @@ function update(dt){
    return;
   }
  }
- if(cowRunning&&!hero.dead){
+ if(cowRunning&&!hero.dead&&S.cowRunStash)cowRunTick(dt);   /* 🐄 the Cow Run keeps its own clock */
+ else if(cowRunning&&!hero.dead){
   cowT+=dt;
   cowSpawnT-=dt;
   if(cowSpawnT<=0){
@@ -10525,6 +11169,10 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
    /* AUTO only farms - it never walks you into the portal */
    if(!hero.target||hero.target.dead||hero.target.hidden)hero.target=nearestQuestEnemy();
   }
+  if(S.cowRunStash&&S.auto){   /* 🐄 the Cow Run's AUTO: always the nearest cow in reach, never one he would have to walk to */
+   const r=heroRange()+20;
+   if(!hero.target||hero.target.dead||hero.target.hidden||dist(hero,hero.target)>r)hero.target=nearestEnemyWithin(r);
+  }
   if(hero.pendingDoor){ /* running toward a clicked building - open its menu on arrival */
    const p=hero.pendingDoor;
    if(Math.hypot(hero.x-p.s.x,hero.y-p.s.y)<p.rng){hero.pendingDoor=null;hero.moveTo=null;p.open();}
@@ -10652,10 +11300,10 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
   }
   if(hero.target&&!hero.target.dead&&!hero.target.hidden){
    const d=dist(hero,hero.target);
-   if(d>heroRange()){if(!(kx||ky)&&!hero.moveTo&&!hero.goPortal)moveToward(hero,hero.target.x,hero.target.y,dt);}   /* 🌳 Reach */
+   if(d>heroRange()){if(!S.cowRunStash&&!(kx||ky)&&!hero.moveTo&&!hero.goPortal)moveToward(hero,hero.target.x,hero.target.y,dt);}   /* 🌳 Reach · 🐄 in the Cow Run the player walks, AUTO never does */
    else{
     hero.fx=(hero.target.x-hero.x)/d||1;hero.fy=(hero.target.y-hero.y)/d||0;
-    if(hero.moving)hero.cd=Math.max(0,hero.cd-dt*hasteMul()); /* strafing: cooldown ticks, no shots */
+    if(hero.moving&&!S.cowRunStash)hero.cd=Math.max(0,hero.cd-dt*hasteMul()); /* strafing: cooldown ticks, no shots - but in the Cow Run he fights on the move */
     else heroBasicAttack(hero.target,dt);
    }
   }else hero.cd=Math.max(0,hero.cd-dt);
@@ -11199,6 +11847,7 @@ function draw(){
   ctx.beginPath();ctx.arc(marker.x,marker.y,6+marker.t*18,0,7);ctx.stroke();
  }
  if(cowRunning&&cowChest)drawLootChest(cowChest.x,cowChest.y,1.4); /* the big blue loot chest */
+ if(CR)cowRunDrawGround(now);   /* 🐄 Consecration, the gems, the chests with their price */
  if(z.crypts&&world.cryptChests)for(const cc of world.cryptChests){ /* the three maze chests - same chest, same glow */
   if(cc.taken)continue;
   if(cc.x<camX-80||cc.x>camX+VW/zoom+80||cc.y<camY-80||cc.y>camY+VH/zoom+80)continue;
@@ -11600,6 +12249,7 @@ function draw(){
  if(sunFrame&&WEATHER.fog>0)drawMist(now);   /* 🌫 the Wasteland's mist, over all that stands */
  if(z.altar&&WEATHER.on){altarWindUpdate(now);drawAltarClouds();}   /* 🌬 the Altar's clouds racing by on the wind */
  if(world.raid&&!TideUI.isBattling())raidDrawOverlay();   /* ⚔ arrows in the air, fires on the roofs, the marks of orders */
+ if(CR)cowRunDrawAir(now);   /* 🐄 the axes, the glaives, the shots */
  drawEdgeFog(); /* last thing in world space - it must cover the fence on the border too */
  ctx.restore();
  if(sunFrame)drawSunLight(now);   /* ☀ over the world, under what the canvas writes on top of it */
@@ -11607,6 +12257,7 @@ function draw(){
  /* ✨ what a spell lights - fire, frost, holy light - is laid over the night, so it burns as bright in the dark as by day */
  ctx.save();ctx.scale(zoom,zoom);ctx.translate(-camX+shX,-camY+shY);
  SpellFx.draw(ctx,'glow',fxView);
+ if(CR&&!hero.dead&&typeof CowFx!=='undefined')CowFx.glow(ctx,cowRunFxState(now));   /* 🐄 the run's weapons, lit over the night */
  if(!hero.dead&&!TideUI.isBattling()){ctx.translate(hero.x,hero.y);SpellFx.auras(ctx,heroAuraState(hero,heroGroundY()),'glow',now);}
  ctx.restore();
  if(heatOn)heatPass(z,now);   /* 🔥 the air shimmering over the fires */
@@ -11614,6 +12265,8 @@ function draw(){
  if(z.altar&&WEATHER.on)drawAltarWind(now);   /* 🌬 and the Altar's streaks of air and ice dust */
  if(world.intro)drawFinalIntro();   /* 🎬 the black bars and his words, over everything in the world */
  if(cowRunning||(zoneOf().cow&&hero.dead)){
+  if(CR||cowRunLast)cowRunDrawHud();   /* 🐄 the run: its clock, the cows slain and the gold */
+  else{
   const t=cowT,fmt=x=>Math.floor(x/60)+':'+String(Math.floor(x%60)).padStart(2,'0');
   ctx.font='700 30px '+getComputedStyle(document.body).fontFamily;
   ctx.textAlign='center';
@@ -11639,6 +12292,7 @@ function draw(){
    ctx.fillStyle='#ff5a4a';
    ctx.fillText(msg,VW/2,113);
    ctx.shadowBlur=0;ctx.globalAlpha=1;
+  }
   }
  }
  if(z.crypts){ /* chest tally, always on screen down there */
@@ -13593,6 +14247,17 @@ function renderHUD(){
   $('autoBtn').classList.toggle('on',S.auto);$('autoBtn').textContent=S.auto?'AUTO ✓':'AUTO';
   refreshOpenPanel();return;
  }
+ if(zoneOf().cow&&(CR||cowRunLast)){   /* 🐄 the run's level and XP, down here on the card - not in the header */
+  const R=CR||cowRunLast;
+  $('qName').textContent='🐄 Cow Run · Level '+R.lvl+(CR?'':' · over');
+  $('qDesc').textContent=CowRun.summary(R)||'Cows drop XP and gold · blue chests cost gold';
+  $('nextBtn').style.display='none';
+  $('autoBtn').classList.toggle('on',S.auto);
+  $('autoBtn').textContent=S.auto?'AUTO ✓':'AUTO';
+  cowRunBar();
+  refreshOpenPanel();
+  return;
+ }
  if(zoneOf().cow){
   const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
   $('qName').textContent='🐄 MOO';
@@ -13941,7 +14606,9 @@ function renderHero(){
   }
   return `<div class="slot">${mark}<div class="ss" style="text-transform:uppercase;letter-spacing:1px">${sl}</div>`+
    (g?`<div class="sn r-${g.rar}">${itemName(g)}</div><div class="ss">${itemStr(g)}</div>${inscHtml(g)}
-    ${(sl==='weapon'||ringEye?'<div class="petbtns">':'')+((g.up||0)>=capUp(g)
+    ${(sl==='weapon'||ringEye?'<div class="petbtns">':'')+(g.cowRun
+     ?`<button class="upbtn" disabled>🐄 Cow Run</button>`   /* the run's legendary: levelled by its cards, not the smith */
+     :(g.up||0)>=capUp(g)
      ?`<button class="upbtn" disabled>MAX +${capUp(g)} ✦</button>`
      :`<button class="upbtn ${S.scraps>=upCost(g)?'can':''}" data-up="${sl}">Upgrade · ${upCost(g)} ⚙</button>`)
      +(sl==='weapon'?`<button class="upbtn peteye" data-weaponeye="1" aria-pressed="${!S.hideWeapon}" aria-label="${S.hideWeapon?'Show':'Hide'} your weapon" title="${S.hideWeapon?'Show':'Hide'} the weapon in your hand. It hits just as hard either way.">${TideUI.eyeIcon}</button></div>`:ringEye?`<button class="upbtn peteye" data-ringeye="1" aria-pressed="${!S.hideRing}" aria-label="${S.hideRing?'Show':'Hide'} The Ring" title="${S.hideRing?'Show':'Hide'} The Ring above your hero. Its bonuses stay either way.">${TideUI.eyeIcon}</button></div>`:'')}`
@@ -14138,7 +14805,7 @@ function renderMap(){
     return `<div class="card zonecard ${canCow?'':'locked'} ${i===S.zone?'active':''}" data-z="${i}" style="border-color:${bagBlocked?'#c75146':canCow?'#ffd76a':''}">
      <div class="zdot" style="background:linear-gradient(160deg,${z.ground},${z.tree})">🐄</div>
      <div class="zinfo"><div class="zn">${z.name}</div>
-     <div class="zl">${cowOk?'':'Level 60 herd · Prestige 5+ · '}💠 A glowing chest spawns every 10s - walk over it for 2 top-tier epics · cows can drop epics too · Best ${S.cowBest?fmt(S.cowBest):'-'} (${S.cowBestItems||0} chests) · Last ${S.cowLast?fmt(S.cowLast):'-'} (${S.cowLastItems||0} chests)</div>
+     <div class="zl">${cowOk?'':'Level 60 herd · Prestige 5+ · '}Start at level 1 with nothing on · a card every level · an Alpha Bull every 3 minutes · 1 epic per 45 s survived${S.cowRunBest?' · Best '+fmt(S.cowRunBest.t)+' (level '+S.cowRunBest.lvl+')':''}</div>
      ${bagBlocked?`<div style="color:#ff8a7a;font-family:var(--display);font-size:13.5px;margin-top:4px;text-shadow:0 0 8px rgba(255,90,70,.35)">⚠ EMPTY YOUR BAG FIRST - the herd only respects those who arrive with nothing (${S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it)).length} sellable item${S.bag.filter(it=>!isLegendary(it)&&!inGearSet(it)).length>1?'s':''} carried)</div>`:''}</div>
      ${i===S.zone?'<span class="ztag">Here</span>':bagBlocked?'<span class="ztag boss">🎒 Bag full</span>':`<span class="ztag boss">${lockTxt}</span>`}
     </div>`;
@@ -17837,6 +18504,8 @@ function treeAfterHurt(dmg,foe){   /* what a blow taken sets off: thorns, a fros
  const on=tv().on,T=TT(),now=treeClock();
  if(foe&&!foe.dead&&foe!==hero){
   const th=tstat('thorns')/100;
+  const ct=tstat('cowThorns');   /* 🐄 the Cow Run's Thorns: a share of the hero's own attack back at the cow */
+  if(ct>0&&dmg>0&&!foe.dead)applyDmg(foe,Math.max(1,Math.round(heroAtk()*ct/100)),'Thorns');
   if(th>0&&dmg>0){const n=Math.max(1,Math.round(dmg*th));if(!mpGuestRaidHit(foe,n))foe.hp-=n;floatAt(foe.x,foe.y-(foe.r||16)-14,n+'','#d7c08f');if(foe.hp<=0&&!(mp.on&&mp.started&&!mp.host&&foe.raid))killEnemy(foe);}
   if(on.frostarmor&&!foe.dead)foe.slowT=Math.max(foe.slowT||0,on.frostarmor.slow);
  }
@@ -21343,6 +22012,7 @@ function saveSnapshot(){
  const z=ZONES[S.zone];
  let snap=z&&z.throne?{...S,zone:CITY_ZONE,atPalace:true}:z&&z.harbor?{...S,zone:CITY_ZONE,atHarbor:true}:z&&z.town?{...S,zone:CITY_ZONE,atHarbor:true,atTown:z.town}:S;   /* ⛵ a port of call too: an older build wakes the hero on the harbour flight */   /* ⚓ the Harbour is newer still: the same rule */
  if(S.cityNewer){snap={...snap,city:S.cityNewer};delete snap.cityNewer;} /* a newer build's city goes back as it came - see migrate */
+ if(S.cowRunStash)snap={...snap,...S.cowRunStash};   /* 🐄 mid-run the hero is written as he walked in, never stripped */
  return snap;
 }
 /* the hero as he would be written, less the two fields every save touches: equal means nothing happened since the last save */
@@ -21987,6 +22657,7 @@ async function publishLB(ch,force){
  if(!ch||!ch.id||ch.test||heroDeleted(ch.id))return;
  const now=Date.now();
  ch.tainted=false;ch.taintV=0;
+ if(ch.cowRunStash)ch={...ch,...ch.cowRunStash};   /* 🐄 mid-run the board sees the hero as he walked in, never the stripped one */
  const slim=g=>g?{id:g.id||null,wench:g.wench||null,name:g.name,rar:g.rar,slot:g.slot,up:g.up||0,star:g.star||0,atk:g.atk||0,hp:g.hp||0,crit:g.crit||0,haste:g.haste||0,lifesteal:g.lifesteal||0,bossDmg:g.bossDmg||0,manadrain:g.manadrain||0,dmgMul:g.dmgMul||0,legend:g.legend||null,power:Math.round(g.power||0),
   ...(g.insc&&g.insc.id?{insc:{id:String(g.insc.id),rar:String(g.insc.rar)}}:{})}:null;   /* 📖 only when there is one, so an uninscribed profile writes exactly what it always did */
  const entry={season:SEASON,name:(ch.name||'?').slice(0,14),lvl:ch.lvl,prestige:ch.prestige||0,gs:charGearScore(ch),score:lbScore(ch),cid:ch.id,t:now,tainted:false,taintV:0,
@@ -22299,6 +22970,7 @@ async function renderSelect(){
 }
 function showSelect(){
  closeCasinoWindows(); /* 🎰 first, while S is still the hero: a table hands back what is his (free spins), and a save it makes is parked with him below */
+ if(S&&S.cowRunStash)cowRunEnd('quit');   /* 🐄 a run left by Change Character: the hero is put back as he walked in, nothing paid */
  if(TEST_ROSTER&&gameOn&&S&&S.test&&TEST_ROSTER.has(S.id))TEST_ROSTER.set(S.id,JSON.stringify(saveSnapshot()));   /* 🧪 the hero test keeps what was changed, for the session */
  spotStamp(true); /* 🧭 where this hero is being left */
  dropFarmBuild(); /* the cart and any held piece belong to the hero being left */
@@ -23021,6 +23693,7 @@ requestAnimationFrame(frame);
  if(test==='views'){seasonReady=true;document.title+=' - View test';viewsTest();return;}
  if(test==='heroes'){seasonReady=true;document.title+=' - Hero test';heroesTest();return;}
  if(test==='shots'){seasonReady=true;document.title+=' - Screenshot test';shotsTest();return;}
+ if(test==='cow'){seasonReady=true;document.title+=' - Cow test';cowTest();return;}
  await initFirebase();
  await seasonWipeIfNeeded();
  seasonReady=true;
