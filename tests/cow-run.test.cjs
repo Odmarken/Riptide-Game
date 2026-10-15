@@ -262,3 +262,9 @@ test('an Alpha Bull never sticks at the fence: it is kept inside by its own size
  const far={x:5000,y:9000,r:64};c.cowRunInside(far);assert.ok(far.x<=4200-80&&far.y<=2600-80);
  assert.ok(game.includes('cowRunInside(en);   /* a big one spawned by the fence'));
 });
+
+test('walking out by Home or the map shows the same summary as a death: time, level, cows, gold and the epics',()=>{
+ assert.ok(game.includes("if(reason==='died'||reason==='left')cowResultsShow(run,reason);"));
+ assert.ok(game.includes("${left?'You left the herd':'Trampled'}"));
+ assert.ok(game.includes("${left?'Continue':'To Moonshine'}"));
+});

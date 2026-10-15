@@ -7920,7 +7920,7 @@ function cowRunEnd(reason){
  log(`🐄 <span class="imp">Cow Run over after ${fmt(cowT)}</span> - level ${run.lvl}, ${run.kills} cows. ${n?`<span class="lepic">${n} epic${n>1?'s':''}</span> in your bag.`:'Survive 45 seconds for an epic.'}`,'loot');
  if(n)sfx.loot();
  renderHUD();
- if(reason==='died')cowResultsShow(run);
+ if(reason==='died'||reason==='left')cowResultsShow(run,reason);   /* walked out by Home or the map: the same summary (asked 2026-10-15) */
 }
 /* a cow of the run: as hard as the clock says, worth XP and gold */
 function cowRunCowStats(en,big){
@@ -8449,18 +8449,19 @@ function cowHelpShow(key){
  box.onclick=e=>{e.stopPropagation();box.remove();};
 }
 /* the run's last screen: what the herd paid; Run again goes straight back in */
-function cowResultsShow(run){
+function cowResultsShow(run,reason){
+ const left=reason==='left';
  shakeT=0;
  cowPickClose();
  const fmt=t=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
  const ov=document.createElement('div');
  ov.id='cowPickOv';ov.className='cowpick';ov.dataset.results='1';
  const n=run.reward.length;
- ov.innerHTML=`<div class="cowpick-box cowres"><div class="cowpick-title">🐄 Trampled${run.record?' · New record!':''}</div>
+ ov.innerHTML=`<div class="cowpick-box cowres"><div class="cowpick-title">🐄 ${left?'You left the herd':'Trampled'}${run.record?' · New record!':''}</div>
   <div class="cowres-grid"><span>Time</span><b>${fmt(run.t)}</b><span>Level</span><b>${run.lvl}</b><span>Cows</span><b>${run.kills}</b><span>Gold</span><b>${run.goldTotal}</b></div>
   <div class="cowres-loot">${n?`<b class="lepic">${n} epic${n>1?'s':''}</b> in your bag`:'No epics - survive 45 seconds for one'}</div>
   <div class="cowres-items">${run.reward.slice(0,30).map(it=>`<span class="lepic">${esc(it.name)}</span>`).join(' · ')}</div>
-  <div class="cowres-btns"><button class="sbtn gold" id="cowResAgain" data-pad-first>Run again</button><button class="sbtn" id="cowResHome">To Moonshine</button></div></div>`;
+  <div class="cowres-btns"><button class="sbtn gold" id="cowResAgain" data-pad-first>Run again</button><button class="sbtn" id="cowResHome">${left?'Continue':'To Moonshine'}</button></div></div>`;
  $('stageWrap').appendChild(ov);
  $('cowResAgain').onclick=()=>{cowPickClose();const i=cowZoneIdx();if(i>=0)goToZone(i);};
  $('cowResHome').onclick=()=>cowPickClose();
