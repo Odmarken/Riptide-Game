@@ -73,7 +73,10 @@ test('binding writes the enchant and its look onto the worn weapon together, rep
  c.$('enchBindBtn').onclick();
  assert.deepEqual(plain(c.S.gear.weapon),{name:'Iron Sword',wench:'frostgrip',insc:{id:'keen',rar:'rare'},atk:17});
  assert.deepEqual(plain(c.S.ench.insc),[{id:'keen',rar:'rare'},{id:'leech',rar:'epic'}]);
- assert.match(c.$('enchBody').innerHTML,/Rare Frostgrip bound to Iron Sword; Common Emberbite replaced\./);assert.equal(c.$('enchBindBtn').disabled,false);
+ /* nothing stays chosen after a bind (2026-11-24): the second click of a double click bound the twin over the first and it was gone */
+ assert.match(c.$('enchBody').innerHTML,/Rare Frostgrip bound to Iron Sword; Common Emberbite replaced\./);assert.equal(c.$('enchBindBtn').disabled,true);
+ c.$('enchBindBtn').onclick();assert.deepEqual(plain(c.S.ench.insc),[{id:'keen',rar:'rare'},{id:'leech',rar:'epic'}],'the twin is still in the hall');
+ c.$('enchBody').querySelectorAll().filter(b=>b.dataset.ii)[1].onclick();assert.equal(c.$('enchBindBtn').disabled,false,'chosen again on purpose, it can be bound');
  c.$('enchBindBtn').onclick();assert.deepEqual(plain(c.S.ench.insc),[{id:'leech',rar:'epic'}]);assert.equal(c.$('enchBindBtn').disabled,true);
 });
 

@@ -51,6 +51,7 @@ function boot({channel='silent',server=fakeFirestore(),local={},roster=null,memo
   LS:{get:k=>ls.has(k)?ls.get(k):null,set:(k,v)=>ls.set(k,String(v)),del:k=>ls.delete(k)},
   SEASON:1,S:null,gameOn:false,AC:{},stopAmbience(){},memChars:{},ZONES:[{},{}],CITY_ZONE:0,
   migrate:x=>x,lbScore:()=>0,publishLB(){},stageMsg(){},log(){},renderSelect(){},showSelect(){shown.push('select');},showLogin:m=>shown.push('login: '+m),
+  closeCasinoWindows(){},heroPutAway(){},cowRunPutAway(){}, /* ✋ a hero deleted under the player is put away before he is dropped (tests/bug-review-2026-11-24-handover) */
   $:()=>({classList:{contains:()=>false,add(){},remove(){}}}),window:{},
   loadRoster:async()=>[...ids],saveRoster:async v=>{ids=[...v];},
   loadChar:async id=>store.has('riptide-char-'+id)?JSON.parse(store.get('riptide-char-'+id)):null,

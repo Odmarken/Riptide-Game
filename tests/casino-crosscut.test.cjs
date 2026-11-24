@@ -87,7 +87,8 @@ test('the hero is put away with his casino windows: the hero list, sign-out and 
  assert.match(game,/\$\('hcBackBtn'\)\.onclick=\(\)=>\{ov\.remove\(\);showSelect\(\);\};/,'the hardcore memorial\'s Back goes through showSelect, whose teardown closes what was open');
  /* showLogin for real: the teardown sees the hero, then S is dropped */
  const d=dom(),seen=[];
- const c=vm.createContext({S:{name:'Alpha'},gameOn:true,$:d.$,closeCasinoWindows:()=>seen.push(c.S&&c.S.name),spotStamp(){},dismissHeroGuide(){},TideUI:{leaveZone(){}}});
+ const c=vm.createContext({S:{name:'Alpha'},gameOn:true,$:d.$,closeCasinoWindows:()=>seen.push(c.S&&c.S.name),spotStamp(){},dismissHeroGuide(){},TideUI:{leaveZone(){}},
+  heroPutAway(){} /* ✋ the rest of the teardown, shared with the hero list since 2026-11-24 (tests/bug-review-2026-11-24-handover) */});
  vm.runInContext(section('function showLogin(','\n}')+'\n}',c);
  c.showLogin('kicked');
  assert.deepEqual(seen,['Alpha']);

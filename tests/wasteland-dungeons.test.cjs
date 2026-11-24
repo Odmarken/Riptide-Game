@@ -17,7 +17,8 @@ const normalSource=['eHP','eATK','effectiveHeroLvl','effZoneLvl','xpZoneLvl','go
  game.slice(game.indexOf('function spawnEnemyAt('),game.indexOf('\nfunction spawnAdd('));
 function normalStats(level=60,prestige=0,zoneLevel=1){
  const zone={lvl:zoneLevel,en:[['One','beast','#abc'],['Two','beast','#abc'],['Three','beast','#abc']]};
- const context={S:{lvl:level,prestige},MAXLVL:60,enemies:[],expeditionZone:z=>!!(z.dungeon||z.wasteland),mobGold:()=>0,zoneOf:()=>zone};
+ const context={S:{lvl:level,prestige},MAXLVL:60,enemies:[],expeditionZone:z=>!!(z.dungeon||z.wasteland),mobGold:()=>0,zoneOf:()=>zone,
+  tstat:()=>0};   /* 🌳 an empty Skill Tree: spawnEnemyAt keeps the Fortune a foe's purse was counted with (goldF, 2026-11-24) */
  const api=vm.runInNewContext(normalSource+';({zoneTemplates,spawnEnemyAt})',context);
  const mobs=api.zoneTemplates(zone),boss=api.zoneTemplates({lvl:zoneLevel,boss:['Normal boss','#abc','boss']})[0];
  return {mobs,boss,spawn:t=>api.spawnEnemyAt(t,null,{x:100,y:100})};

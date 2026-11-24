@@ -451,7 +451,7 @@ const TideUI=(()=>{
   TideExploration.take(exploration(),id,now);save();closeHub();Mounts.reset(mountRide);updateMountButton();stopHero(); /* save(): the saveNow() at the end of begin() sends the whole start of the battle once - two forced pushes back to back only bounced off each other */
   session={owner:S.tides,battle:result.battle,oldZoom:zoom,oldCamX:camX,oldCamY:camY,time:0,animation:null,result:null,shownResult:false,logIndex:0};
   setZoom(Math.min(3,Math.max(2.1,zoom)));camX=(hero.x+w.x)/2-VW/zoom/2;camY=(hero.y+w.y)/2-VH/zoom/2;
-  draw();const backdrop=document.createElement('canvas');backdrop.width=cv.width;backdrop.height=cv.height;backdrop.getContext('2d').drawImage(cv,0,0);session.backdrop=backdrop;
+  draw();screenToCanvas();const backdrop=document.createElement('canvas');backdrop.width=cv.width;backdrop.height=cv.height;backdrop.getContext('2d').drawImage(cv,0,0);session.backdrop=backdrop;
   showBattleControls();
   appendLog('Choose one attack or power each round. Both Tides complete their chosen action, even if knocked out. A double knockout is a draw.');battleHud();paintBattle();saveNow();
  }
@@ -629,7 +629,10 @@ const TideUI=(()=>{
  function nearestWild(){return wildList().filter(w=>Math.hypot(hero.x-w.x,hero.y-w.y)<180).sort((a,b)=>Math.hypot(hero.x-a.x,hero.y-a.y)-Math.hypot(hero.x-b.x,hero.y-b.y))[0]||null;}
  function afterDraw(){
   if(!session?.backdrop||session.time>2||session.time<(session.nextBackdrop||0))return;
-  session.nextBackdrop=session.time+.25;session.backdrop.getContext('2d').drawImage(cv,0,0);paintBattle();
+  session.nextBackdrop=session.time+.25;screenToCanvas();session.backdrop.getContext('2d').drawImage(cv,0,0);paintBattle();
  }
+ /* 🎮 on WebGL (assets/gl/gl2d.js) a frame reaches the canvas itself only when the task ends: a copy taken straight after draw()
+    got an empty picture, and the battle stood on a flat field instead of the world (bug review 2026-11-24). flush() puts it there now */
+ function screenToCanvas(){if(typeof ctx!=='undefined'&&ctx&&ctx.isGL&&ctx.flush)ctx.flush();}
  return {entry,bagItem,bindBag,openTrainer,trainerInReach,openBreeding,openGuild,openTraining,visibleCompanion,drawCompanion,eyeIcon,openStorage,renderStoragePage,storageOpen,storageBack,openWild,wildClick,nearestWild,updateExploration,addWildDrawables,modalOpen,isBattling:()=>!!session,begin,act,retreat,closeHub,closeBattle,leaveZone,awardKill,tick,paintBattle,afterDraw,frameFor,drawAnimal,paintIcons,animalVisual,wildBounds,battleLayout};
 })();

@@ -24,6 +24,7 @@ function harness() {
   save:()=>saves.push({...context.S}),saveNow:()=>saves.push({...context.S}),
   dropFarmBuild:noop,cancelHallScenes:noop,esc:t=>String(t),
   casinoWinOpen:()=>null,closeCasinoWindows:noop, /* 🎰 no casino window is up when a hero enters */
+  cowRunPutAway:noop, /* 🐄 nor a Cow Run left behind (tests/bug-review-2026-11-24-handover) */
   offerEmperorOutfit:noop /* 🎭 the regalia's one-time offer for a returning Emperor has its own test (outfits) */
  });
  vm.runInContext(section('let heroGuideOwner=null;', '// The guide pauses all gameplay'), context);

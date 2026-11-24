@@ -704,11 +704,12 @@ function create(canvas,opts={}){
   return row;
  }
  function gradRow(info,inv){   /* the gradient's geometry in the space its uv are given in (user space at paint time) */
+  const lut=lutRow(info);   /* before the row is taken: a full ramp table draws the waiting batch, and that sent this row up half written - its ramp the one left from 4096 gradients back, another gradient's colours for one draw (bug review 2026-11-24) */
   if(gradN>=GROWS)flush('grad-full');
   if(gradN>=GROWS){gradN=gradUp=0;}
   const r=gradN++,i=r*8;
   gradData[i]=info.type;gradData[i+1]=info.x0;gradData[i+2]=info.y0;gradData[i+3]=info.r0;
-  gradData[i+4]=info.x1;gradData[i+5]=info.y1;gradData[i+6]=info.r1;gradData[i+7]=lutRow(info);
+  gradData[i+4]=info.x1;gradData[i+5]=info.y1;gradData[i+6]=info.r1;gradData[i+7]=lut;
   return r;
  }
  function uploadGradients(){
@@ -1096,6 +1097,7 @@ function create(canvas,opts={}){
  canvas.addEventListener('webglcontextrestored',()=>{R.lost=false;gen++;init();sizeDirty=true;warn('context restored');},false);
  function init(){
   buildPrograms();buildBuffers();buildSamplers();buildGradTex();
+  FLOATRT=!!gl.getExtension('EXT_color_buffer_float');
   for(const k in T)T[k]=null;W=H=0;sizeDirty=true;cur.target=cur.blend=cur.stencilKey=cur.program=null;cur.scissor=undefined;depthOn=false;
   vcount=icount=0;nslot=0;live.clear();textAtlas=null;lightVao=null;emitVao=null;
  }
@@ -1309,22 +1311,30 @@ function create(canvas,opts={}){
    g.font=S.font;g.textAlign=S.align;g.textBaseline=S.baseline;try{g.direction=S.direction;}catch(e){}try{if('letterSpacing' in g)g.letterSpacing=S.letterSpacing;}catch(e){}
    const m=g.measureText(text);
    const L=Math.max(0,m.actualBoundingBoxLeft||0),Rr=Math.max(0,m.actualBoundingBoxRight||m.width||0),As=Math.max(0,m.actualBoundingBoxAscent||0),Ds=Math.max(0,m.actualBoundingBoxDescent||0);
-   const extra=(stroke?S.lw*k/2:0)+(sh?S.shBlur+Math.max(Math.abs(S.shX),Math.abs(S.shY)):0);
-   const pad=Math.ceil(2+extra);
-   const w=Math.max(1,Math.ceil((L+Rr)*k)+pad*2),h=Math.max(1,Math.ceil((As+Ds)*k)+pad*2);
+   /* rk: the scale it is rasterised at - the screen's own, or as much less as it takes to fit the atlas. A line wider than the
+      atlas was not drawn at all (the Forsaken One's words on a 4K screen at 250%, bug review 2026-11-24); now it is drawn
+      smaller and laid out at its full size, a little softer. q: what its shadow shrinks by with it */
+   let rk=k,q=1,pad=0,w=0,h=0;
+   for(let n=0;;n++){
+    const extra=(stroke?S.lw*rk/2:0)+(sh?(S.shBlur+Math.max(Math.abs(S.shX),Math.abs(S.shY)))*q:0);
+    pad=Math.ceil(2+extra);
+    w=Math.max(1,Math.ceil((L+Rr)*rk)+pad*2);h=Math.max(1,Math.ceil((As+Ds)*rk)+pad*2);
+    if((w<=TA&&h<=TA)||n>=4)break;
+    rk*=Math.min(1,(TA-pad*2-1)/Math.max(1,w-pad*2),(TA-pad*2-1)/Math.max(1,h-pad*2));q=rk/k;
+   }
    if(tcan.width<w||tcan.height<h){tcan.width=Math.max(tcan.width,w);tcan.height=Math.max(tcan.height,h);}
    g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,tcan.width,tcan.height);
    g.font=S.font;g.textAlign=S.align;g.textBaseline=S.baseline;try{g.direction=S.direction;}catch(e){}try{if('letterSpacing' in g)g.letterSpacing=S.letterSpacing;}catch(e){}
-   const ox=pad+L*k,oy=pad+As*k;
-   g.setTransform(k,0,0,k,ox,oy);
-   if(sh){g.shadowBlur=S.shBlur;g.shadowColor=S.shColorV;g.shadowOffsetX=S.shX;g.shadowOffsetY=S.shY;}else{g.shadowBlur=0;g.shadowColor='rgba(0,0,0,0)';}
+   const ox=pad+L*rk,oy=pad+As*rk;
+   g.setTransform(rk,0,0,rk,ox,oy);
+   if(sh){g.shadowBlur=S.shBlur*q;g.shadowColor=S.shColorV;g.shadowOffsetX=S.shX*q;g.shadowOffsetY=S.shY*q;}else{g.shadowBlur=0;g.shadowColor='rgba(0,0,0,0)';}
    if(stroke){g.strokeStyle=colStr;g.lineWidth=S.lw;g.lineJoin=S.join;g.miterLimit=S.miter;g.strokeText(text,0,0);}
    else{g.fillStyle=colStr;g.fillText(text,0,0);}
    const at=atlasAlloc(w,h);if(!at)return;
    A=atlas();
    gl.bindTexture(gl.TEXTURE_2D,A.tex);gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL,true);
    gl.texSubImage2D(gl.TEXTURE_2D,0,at[0],at[1],w,h,gl.RGBA,gl.UNSIGNED_BYTE,tcan);
-   ent={x:at[0],y:at[1],w,h,ox,oy,k,adv:m.width};A.map.set(key,ent);
+   ent={x:at[0],y:at[1],w,h,ox,oy,k:rk,adv:m.width};A.map.set(key,ent);
   }
   /* the cached raster, in user space: its anchor at (x,y), squeezed to maxWidth if asked */
   let sx=1;if(maxW!==undefined&&Number.isFinite(+maxW)){if(+maxW<=0)return;if(ent.adv>+maxW)sx=+maxW/ent.adv;}
@@ -1437,7 +1447,7 @@ function create(canvas,opts={}){
     Each pass flushes, copies the scene so far into a texture, works in targets of its own and writes back into the scene, so the
     game keeps drawing on top of the result (the HUD, the weather and the vignette stay out of the light). Light and bloom work in
     half floats where the GPU can render them, so a lamp may light a wall past white before the soft shoulder brings it back. */
- const FLOATRT=!!gl.getExtension('EXT_color_buffer_float');
+ let FLOATRT=false;   /* asked in init(): a restored context has no extensions until they are asked for again - asked once, the half-float targets were incomplete after a restore and the lamps, the bloom and the shafts gone until a restart (bug review 2026-11-24) */
  const PP={};
  function ppTarget(name,w,h,hdr){
   w=Math.max(1,Math.round(w));h=Math.max(1,Math.round(h));
@@ -1474,8 +1484,11 @@ function create(canvas,opts={}){
     A light (device px): x,y the ground under it, fx,fy its flame, reach/head the radii of the pool on the ground and of the light
     round the flame, color rgb 0-1, level 0-1. Falloff as the 2D lamps have it: (1+(r/h)^2)^-1.5 brought to nothing at the edge. */
  let lightVao=null,lightBuf=null,lightData=new Float32Array(16*64),emitVao=null,emitBuf=null,emitData=new Float32Array(8*64);
+ /* gone: lost by the event, or lost already and the event still on its way - a pass used for the first time in that moment would
+    compile its shader on a dead context and throw into the game's frame */
+ const gone=()=>R.lost||gl.isContextLost();
  function lightMap(o){
-  if(R.lost)return;
+  if(gone())return;
   postBegin();
   const s=o.scale||.5,lt=ppTarget('light',W*s,H*s,true);
   ppProgram('light',LIGHT_FS,LIGHT_VS);ppProgram('lmix',LMIX_FS);
@@ -1512,7 +1525,7 @@ function create(canvas,opts={}){
 
  /* ---- bloom: what is brighter than the threshold, blurred down a chain of halving targets and back up, added onto the scene */
  function bloom(o){
-  if(R.lost)return;
+  if(gone())return;
   postBegin();
   const levels=Math.max(1,Math.min(7,o.levels||5)),s0=o.scale||.5;
   ppProgram('bright',BRIGHT_FS);ppProgram('down',DOWN_FS);ppProgram('up',UP_FS);ppProgram('addmix',ADD_FS);
@@ -1546,7 +1559,7 @@ function create(canvas,opts={}){
 
  /* ---- light shafts: beams out of the sun at (x,y) device px - on or off the screen - in a colour, cut by a shadow layer if given */
  function rays(o){
-  if(R.lost)return;
+  if(gone())return;
   postBegin(false);
   const s=o.scale||.5,A=ppTarget('raysA',W*s,H*s,true);
   ppProgram('rays',RAYS_FS);ppProgram('addmix',ADD_FS);
@@ -1569,7 +1582,7 @@ function create(canvas,opts={}){
     world {x,y,s}: the world's 0,0 on the screen and its scale, so the ripples stay on the ground */
  const hazeData=new Float32Array(96);
  function heatHaze(o){
-  if(R.lost)return;
+  if(gone())return;
   const src=o.sources||[],n=Math.min(24,src.length),g0=Math.max(0,Math.min(1,o.global||0));
   if(!n&&!(g0>0))return;
   postBegin();
@@ -1587,7 +1600,7 @@ function create(canvas,opts={}){
 
  /* ---- a screen-sized layer (a 2D canvas, any resolution) laid over the whole view, gaussian-blurred first: the sun's shadows */
  function drawBlurred(src,alpha,sigma){
-  if(R.lost||!src)return;
+  if(gone()||!src)return;
   const sz=sourceSize(src);if(!sz)return;
   postBegin(false);
   const e=texFor(src,sz[0],sz[1]);if(!e||!e.tex){postEnd();return;}

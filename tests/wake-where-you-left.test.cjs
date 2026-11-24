@@ -55,8 +55,10 @@ test('the exact spot: used when it is the same zone and free, never in another z
 test('the spot is stamped as you play and as you leave, and read before the world is built',()=>{
  assert.match(source,/buildZone\(\);wakeAt\(\);/,'beginGame stands the hero on it after building');
  assert.match(source,/wakeSpot=await loadSpot\(ch\.id\);/,'Enter World reads it');
- assert.match(section('function showSelect(){','\n}'),/spotStamp\(true\)/);
- assert.match(section('function showLogin(','\n}'),/spotStamp\(true\)/);
+ /* since 2026-11-24 the hero list and the sign-in share one teardown, heroPutAway: it stamps the spot for both */
+ assert.match(section('function heroPutAway(){','\n}'),/spotStamp\(true\)/);
+ assert.match(section('function showSelect(){','\n}'),/heroPutAway\(\);/);
+ assert.match(section('function showLogin(','\n}'),/heroPutAway\(\);/);
  assert.match(source,/const cloudBail=async\(\)=>\{spotStamp\(true\);/,'closing the window');
  assert.match(source,/setInterval\(\(\)=>spotStamp\(false\),4000\);/);
  assert.match(source,/else if\(S\.zone===WASTELAND_ZONE&&S\.atDungeon\)/,'the dungeon door');

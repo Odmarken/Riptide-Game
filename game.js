@@ -2109,6 +2109,11 @@ function townRaidApply(){
  const e=S.city.expedition;
  if(!e||e.ally!==id||e.auto||!(a&&a.war)){if(world.raid)raidRelease();world.raid=null;raidHud();return;}
  if(world.raid)return;
+ /* 🏳 the men have landed here once already: a battle walked out of midway (Change Character, the game closed) is a retreat, not a
+    second landing with every man back on his feet and the garrison to fight again - raidWatch brings them home, the fallen booked
+    (bug review 2026-11-24). An expedition saved before `landed` was written lands as it always did. */
+ if(e.landed){raidHud();return;}
+ e.landed=true;if(!Number.isFinite(e.down))e.down=0;
  const B=CityEconomy.WAR_BOOK[id],spot=world.arrival||{x:world.w/2,y:world.h/2},stage=raidStage(spot),L=Math.hypot(stage.x-spot.x,stage.y-spot.y)||1,dx=(stage.x-spot.x)/L,dy=(stage.y-spot.y)/L;
  /* the crown's men: as many figures as the screen carries, each standing for his share of the men and as strong as they are drilled */
  const men=e.watch+e.cadets+e.mercs,drawn=Math.max(1,Math.min(RAID_DRAWN,men)),per=men/drawn,dp=CityEconomy.DRILL_POWER[CityEconomy.drillOf(S.city)]||1,troops=[];
@@ -2408,7 +2413,8 @@ function raidEvent(R,ev){
  if(ev.type==='hit'){if(ev.by&&ev.by.merc)mercStrike(ev.by);if(seen(ev.x,ev.y)){if(Math.random()<.35)sparkles(ev.x,ev.y,Math.random()<.5?'#ffd08a':'#ffe9c0',2);if(now-R.sfxHit>.16){R.sfxHit=now;sfx.swing();}}}
  else if(ev.type==='shoot'){if(seen(ev.x,ev.y)&&now-R.sfxBow>.35){R.sfxBow=now;sfx.bolt();}}
  else if(ev.type==='arrowHit'){if(seen(ev.x,ev.y))burst(ev.x,ev.y,'#e0413a',6,70,true);}
- else if(ev.type==='down'){R.downs++;burst(ev.x,ev.y-24,'#e0413a',10,90,true);raidHud();}
+ else if(ev.type==='down'){R.downs++;const x=S.city.expedition;if(x&&x.ally===R.ally)x.down=Math.min(x.watch+x.cadets+x.mercs,Math.round(R.downs*R.per));   /* 🩹 the fallen go on the books as they fall: a battle left midway still counts them */
+  burst(ev.x,ev.y-24,'#e0413a',10,90,true);raidHud();}
  else if(ev.type==='dead'){burst(ev.x,ev.y-26,'#c8402e',10,90,true);raidHud();}
  else if(ev.type==='burnStart'){if(ev.b.prop&&!ev.b.breach)ev.b.prop.raidFire=true;}   /* doors are broken, not burned */
  else if(ev.type==='assault'){R.mark={x:ev.x,y:ev.y,t:0,c:'255,90,70'};stageMsg('⚔ The garrison comes at your men - '+ev.n+' of them!',2400,'#ff8a7a');sfx.shout();}
@@ -2436,7 +2442,7 @@ function raidSeatFallen(R,b){
   log('👑 <b>The doors of the palace give way.</b> '+men.length+' of the crown’s men go in after them.','imp');
   const z=townZone(R.court.hall),hall=TownWorld.town(R.court.hall);
   if(z<0||!hall){raidSiege=null;return;}
-  setTimeout(()=>{if(!(gameOn&&raidSiege&&world&&world.raid===R))return;if(mp.on)mpLeave(false);raidRelease();expeditionSpawn={zone:z,x:hall.arrival.x,y:hall.arrival.y};goToZone(z);},1400);
+  setTimeout(()=>{if(!(gameOn&&raidSiege&&world&&world.raid===R&&!R.over))return;if(mp.on)mpLeave(false);   /* !R.over: a retreat sounded as the doors fell is a retreat */raidRelease();expeditionSpawn={zone:z,x:hall.arrival.x,y:hall.arrival.y};goToZone(z);},1400);
   return;
  }
  const r=CityEconomy.storm(S.city,R.ally);
@@ -2447,7 +2453,7 @@ function raidSeatFallen(R,b){
    behind them; the throne the only thing to burn. The guard waits - it does not come out to meet them */
 function raidHallApply(){
  const G=raidSiege,id=G.ally,B=CityEconomy.WAR_BOOK[id],e=S.city.expedition,a=S.city.allies[id];
- if(!e||e.ally!==id||!a||!a.war){raidSiege=null;return;}
+ if(G.begun||!e||e.ally!==id||!a||!a.war){raidSiege=null;return;}   /* begun: the hall walked out of midway and come back to (Change Character) is a retreat too - raidWatch books it */
  for(const n of world.npcs)if((n.royal||/soldier|guard/.test(n.skin))&&!n.hidden){n.hidden=true;n.raidHidden=true;}   /* no king on the throne, and his guard is the one drawn up below */
  const spot=world.arrival,throne=world.solids.find(s=>s.type==='townprop'&&s.kind===RAID_COURT[id].throne);
  if(!throne){raidSiege=null;return;}
@@ -2462,6 +2468,7 @@ function raidHallApply(){
  world.raid={ally:id,battle,troops:battle.ours,foes:battle.theirs,stage:{x:spot.x,y:spot.y-260},men:G.men.length,drawn:G.drawn,per:G.per,downs:G.downs,spent:false,over:false,won:false,goHome:false,
   camSet:false,ptr:null,boxMode:false,hudT:0,sfxHit:0,sfxBow:0,mark:null,groups:[battle.ours.slice(0,half),battle.ours.slice(half)],seat:null,reserve:0,backupOn:false,waveT:null,waveNo:0,waveOf:0,bows:0,
   seatProp:throne,court:null,canStorm:true,garrison:n,hall:true};
+ G.begun=true;
  raidHud();
  log('👑 <b>The throne hall.</b> '+n+' of the palace guard stand before the throne. Burn it, and '+raidAlly(id).name+' is yours.','imp');
 }
@@ -2485,7 +2492,7 @@ function raidCityWon(R,text){
 /* the men come home: the books count the hurt - the men who went down - and they walk back to the ship */
 function raidEnd(home){
  const R=world&&world.raid;if(!R||R.over)return;
- R.over=true;R.ptr=null;RaidBattle.sound(R.battle);
+ R.over=true;R.ptr=null;raidSiege=null;RaidBattle.sound(R.battle);   /* raidSiege: the hall is not waiting for men who are going aboard */
  for(const b of R.battle.buildings)if(b.prop&&!b.razed)b.prop.raidFire=false;   /* a fire not burned through goes out */
  const r=CityEconomy.endRaid(S.city,{hurt:Math.round(R.downs*R.per)});if(r.ok){log(r.text,R.won?'loot':'imp');if(!R.won)stageMsg((home?'⚓ The men go aboard: ':'🏳 The retreat is sounded: ')+fmtNum(r.burned)+' razed'+(r.hurt?', '+r.hurt+' hurt':'')+'.',3200,'#ffd76a');}
  raidHud();buildSkillbar();save();   /* the hero's own spells again */
@@ -2500,15 +2507,25 @@ function raidWatch(){
  if(!e||e.auto||voyage)return;
  const here=zoneOf().town;
  if((here===e.ally||raidSiege&&raidSiege.ally===e.ally&&here===raidSiege.zone)&&world&&world.raid)return;   /* 👑 the throne hall is the town too */
- const r=CityEconomy.endRaid(S.city);if(r.ok){log(r.text,'imp');save();}
+ /* the hurt are the men who really fell (expedition.down, written as they fall) - none when the men never fought: the game closed
+    on the crossing, a battle left by another door. Only an expedition from before the count was kept is reckoned by the odds */
+ const r=Number.isFinite(e.down)?CityEconomy.endRaid(S.city,{hurt:e.down}):CityEconomy.endRaid(S.city);
+ if(r.ok){log(r.text,'imp');if(e.landed)stageMsg('🏳 The retreat is sounded: '+fmtNum(r.burned)+' razed'+(r.hurt?', '+r.hurt+' hurt':'')+'.',3200,'#ffd76a');save();}
 }
 function raidHud(){
  let el=$('raidHud');const R=world&&world.raid;
  if(!R){if(el)el.remove();raidMsgBelow(null);return;}
  if(!el){el=document.createElement('div');el.id='raidHud';el.className='raid-hud';el.setAttribute('role','status');document.body.appendChild(el);
-  el.addEventListener('click',ev=>{const b=ev.target.closest('[data-raid]');if(!b)return;const k=b.dataset.raid;
+  /* the buttons are made ONCE and only shown, hidden and renamed after that: the lines above them are rewritten every 0.4 s and at
+     every man down, and a button rewritten between the press and the release never gets its click (bug review 2026-11-24) */
+  el.innerHTML='<div style="display:contents"></div><button type="button" class="sbtn" data-raid="all">⚔ All</button><button type="button" class="sbtn" data-raid="box">▭ Select</button><button type="button" class="sbtn" data-raid="retreat">🏳 Sound the retreat</button>';
+  const press=ev=>{const b=ev.target.closest('[data-raid]');if(!b)return;const k=b.dataset.raid;
    if(k==='home')raidSailHome();else if(k==='retreat')raidRetreat();else if(k==='all')raidSelect(null);
-   else if(k==='box'){const R2=world&&world.raid;if(R2){R2.boxMode=!R2.boxMode;raidHud();}}});}
+   else if(k==='box'){const R2=world&&world.raid;if(R2){R2.boxMode=!R2.boxMode;raidHud();}}};
+  /* a button answers the PRESS of a mouse or a finger - a line above it that wraps anew moves the whole row, and a release that lands
+     beside the button is no click at all; a click with no press before it (detail 0: a key, the pad) still counts */
+  el.addEventListener('pointerdown',ev=>{if(!ev.button)press(ev);});
+  el.addEventListener('click',ev=>{if(!ev.detail)press(ev);});}
  /* what stands between the men and the town (asked for 2026-10-03): the garrison still on its feet, its archers, what the men can
     still burn - and the men themselves */
  const e=S.city.expedition,d=raidAlly(R.ally),a=S.city.allies[R.ally],str=a&&a.war?Math.round(a.war.str):0,Bt=R.battle;
@@ -2519,12 +2536,14 @@ function raidHud(){
  const siege=R.won||R.over||!R.seatProp?'':R.hall?'<span class="raid-siege">👑 Burn the throne - the palace guard stands before it</span>'
   :R.canStorm?'<span class="raid-siege">👑 Proceed to the main courts: '+(R.court?'break down the palace doors':'burn the '+raidName(R.seatProp))+'</span>'
   :'<span class="raid-siege dim">🔥 '+d.name+' '+str+'% → '+CityEconomy.STORM_AT+'%: burn it down that far to storm its main courts</span>';
- el.innerHTML='<b>⚔ '+(R.hall?'The throne hall of ':'Raid on ')+d.name+'</b><span>🛡 '+them.length+' defender'+(them.length===1?'':'s')+' left'+wave+(bows?' · 🏹 '+bows+' archer'+(bows===1?'':'s'):'')+(e&&!done&&!R.hall?' · 🔥 '+fmtNum(Math.max(0,e.cap-e.used))+' to burn':'')+' · '+(a&&a.owned?d.name+' is ours':d.name+' '+str+'%')+'</span>'
+ const info='<b>⚔ '+(R.hall?'The throne hall of ':'Raid on ')+d.name+'</b><span>🛡 '+them.length+' defender'+(them.length===1?'':'s')+' left'+wave+(bows?' · 🏹 '+bows+' archer'+(bows===1?'':'s'):'')+(e&&!done&&!R.hall?' · 🔥 '+fmtNum(Math.max(0,e.cap-e.used))+' to burn':'')+' · '+(a&&a.owned?d.name+' is ours':d.name+' '+str+'%')+'</span>'
   +'<span class="raid-ours">⚔ '+ours+' of your '+R.drawn+' standing'+(ready&&!R.over?' · '+ready+' ready':'')+'</span>'+siege
   +'<small>'+(R.won?'The town is the crown’s. ':'')+(R.goHome?'The men are going aboard - the Black Tide sails when they are.':R.over?'The men are going aboard.':R.spent?'Your men have burned all they can.'
-   :IS_TOUCH?'Tap a group or ▭ Select and drag round your men, then tap where they go - a house to fire it, a soldier to attack him.':'Drag round your men, then click where they go - a house to fire it, a soldier to attack him. 1 · 2 groups · 3 all · 4 attack · 5 burn · Ctrl+1/2 makes a group · right-drag, WASD or the edges pan.')+'</small>'
-  +(R.over?'':'<button type="button" class="sbtn" data-raid="all">⚔ All</button>'+(IS_TOUCH?'<button type="button" class="sbtn'+(R.boxMode?' on':'')+'" data-raid="box">▭ Select</button>':''))
-  +(R.goHome?'':done?'<button type="button" class="sbtn" data-raid="home">⚓ Sail home</button>':'<button type="button" class="sbtn" data-raid="retreat">🏳 Sound the retreat</button>');
+   :IS_TOUCH?'Tap a group or ▭ Select and drag round your men, then tap where they go - a house to fire it, a soldier to attack him.':'Drag round your men, then click where they go - a house to fire it, a soldier to attack him. 1 · 2 groups · 3 all · 4 attack · 5 burn · Ctrl+1/2 makes a group · right-drag, WASD or the edges pan.')+'</small>';
+ if(el.raidInfo!==info){el.raidInfo=info;el.firstChild.innerHTML=info;}
+ const [bAll,bBox,bGo]=el.querySelectorAll('button[data-raid]'),go=done?'home':'retreat';
+ bAll.style.display=R.over?'none':'';bBox.style.display=R.over||!IS_TOUCH?'none':'';bBox.classList.toggle('on',!!R.boxMode);bGo.style.display=R.goHome?'none':'';
+ if(bGo.dataset.raid!==go){bGo.dataset.raid=go;bGo.textContent=done?'⚓ Sail home':'🏳 Sound the retreat';}
  raidMsgBelow(el);
 }
 /* the stage's messages under the raid's board, not behind it: the garrison coming, the gates opening, the courts to storm */
@@ -3181,7 +3200,7 @@ async function mpEnter(){
   const seen={};
   qs.forEach(d=>{
    if(d.id===mp.pid)return;
-   const data=d.data(),prev=mp.peers[d.id],now=Date.now();
+   const data=mpPeerClean(d.data()),prev=mp.peers[d.id],now=Date.now();
    /* 't' is kept on THIS device's clock: a doc that changed means its writer is alive now. The writer's own Date.now()
       used to be compared with ours, so a peer whose clock ran a few seconds behind was never targeted, and one ahead never timed out. */
    const moved=!prev||data.t!==prev._remoteT;
@@ -3202,7 +3221,7 @@ async function mpEnter(){
   mpLobbyRender();if(mp.host)mpHostApplyDamage();
  });
  rtcListen();
- mpTravelTo(pendingRaidZone);raidAutoOff();gamePaused=true;
+ mpTravelTo(pendingRaidZone);raidAutoOff();gamePaused=scenePause=true;   /* ⏸ the lobby holds the game: not the pause button's to undo */
  const rm=$('raidModal');if(rm)rm.style.display='none';
  $('mpCodeTxt').textContent='Room code: '+mp.code;
  $('mpLobby').style.display='flex';
@@ -3212,14 +3231,14 @@ function mpLobbyRender(){
  const rows=[['You'+(mp.host?' (host)':''),mp.ready]];
  for(const k in mp.peers){
   if(Date.now()-(mp.peers[k].t||0)>70000)continue; /* gone quiet - closed the game in the lobby: not waited for */
-  rows.push([esc(mp.peers[k].name||'Hero'),!!mp.peers[k].ready]); /* another player's name is their own text - never markup */
+  rows.push([mp.peers[k].name?(typeof I18N!=='undefined'?I18N.name(esc(mp.peers[k].name)):esc(mp.peers[k].name)):'Hero',!!mp.peers[k].ready]); /* another player's name is their own text - never markup, and never a word to translate */
  }
  $('mpPlayers').innerHTML=rows.map(r=>`<div class="cl">${r[1]?'✅':'⏳'} ${r[0]}</div>`).join('');
  const all=rows.every(r=>r[1]),n=rows.length;
  $('mpStartBtn').style.display=(mp.host&&all&&n>=2)?'inline-block':'none';
 }
 function mpBegin(){
- mp.started=true;gamePaused=false;$('mpLobby').style.display='none';
+ mp.started=true;scenePause=false;gamePaused=audioPaused;$('mpLobby').style.display='none';
  /* +50% for the lords of an online raid, as their build rule says - the zone is built in the lobby, before 'started' is
     true, so the rule never applied. The host's copy is what counts; the guests' copies follow its boss snapshots. */
  for(const e of enemies)if(e.raid&&!e.dead&&!e._online){e._online=true;e.hp=Math.round(e.hp*1.5);e.max=Math.round((e.max||e.hp)*1.5);}
@@ -3227,9 +3246,10 @@ function mpBegin(){
   if(mp.unsubBoss)mp.unsubBoss();
   mp.unsubBoss=mpRoom().collection('sync').doc('boss').onSnapshot(s=>{
    if(!s.exists)return;
-   (s.data().bs||[]).forEach(nb=>{
+   (Array.isArray(s.data().bs)?s.data().bs:[]).forEach(nb=>{
+    nb=mpBossClean(nb);if(!nb)return;
     const e=enemies.find(x=>x.raid&&x.bossId===nb.id);if(!e)return;
-    e.netX=nb.x;e.netY=nb.y;e.hp=nb.hp;e.max=nb.max;
+    if(nb.x!=null&&nb.y!=null){e.netX=nb.x;e.netY=nb.y;}if(nb.hp!=null)e.hp=nb.hp;if(nb.max!=null)e.max=nb.max;
     if(nb.cds)e.cds=Object.assign({},nb.cds);
     e.target=nb.tgt; /* who the lord is after, as over WebRTC - without it a guest with no direct link saw every lord chase the host, and never took its swings */
     if(nb.awake&&!e.awake){e.awake=true;e.state='chase';}
@@ -3242,7 +3262,7 @@ function mpBegin(){
 async function mpLeave(goHome){
  if(!mp.on)return;
  const code=mp.code,pid=mp.pid,wasHost=mp.host;
- mp.on=false;mp.started=false;gamePaused=false;
+ mp.on=false;mp.started=false;scenePause=false;gamePaused=audioPaused;
  if(mp.unsubRoom)mp.unsubRoom();if(mp.unsubPlayers)mp.unsubPlayers();if(mp.unsubBoss)mp.unsubBoss();rtcCloseAll();
  try{const db=mpDB();if(db&&code){await db.collection('rooms').doc(code).collection('players').doc(pid).delete();if(wasHost)await db.collection('rooms').doc(code).update({state:'closed'});}}catch(e){}
  mp.peers={};mp.code=null;mp.unsubBoss=null;const l=$('mpLobby');if(l)l.style.display='none';
@@ -3250,7 +3270,7 @@ async function mpLeave(goHome){
 }
 function mpKicked(){
  if(!mp.on)return;
- mp.on=false;mp.started=false;gamePaused=false;
+ mp.on=false;mp.started=false;scenePause=false;gamePaused=audioPaused;
  if(mp.unsubRoom)mp.unsubRoom();if(mp.unsubPlayers)mp.unsubPlayers();if(mp.unsubBoss)mp.unsubBoss();rtcCloseAll();
  mp.peers={};mp.code=null;const l=$('mpLobby');if(l)l.style.display='none';
  stageMsg('The host has left - returning home.',2400);sfx.warn();
@@ -3280,10 +3300,18 @@ function mpSyncTick(){
   if(now-mp.lastBossW>(slowPeer?400:2000)){mp.lastBossW=now;mpRoom().collection('sync').doc('boss').set({bs,t:Date.now()}).catch(()=>{});}
  }
 }
+/* a number from another player's packet: a real one, within any world's size - or null (their text is never trusted with more) */
+const rtcNum=v=>v==null||typeof v==='object'||!Number.isFinite(v=+v)||Math.abs(v)>1e6?null:v;
 function mpAct(type,data){
- if(mp.on&&mp.started)rtcBroadcast(Object.assign({k:'act',a:type,px:Math.round(hero.x),py:Math.round(hero.y)},data||{}),false);
+ /* the aura a cast leaves travels as `au`: the senders hand it over as k, and k is the packet's own kind - laid over it, no
+    cast ever reached the party (k came out undefined, 'atk' or 'hot', and the far side knew no such packet) */
+ const {k:au,...rest}=data||{};
+ if(mp.on&&mp.started)rtcBroadcast({...rest,k:'act',a:type,px:Math.round(hero.x),py:Math.round(hero.y),...(au?{au}:{})},false);
 }
 function mpPlayFx(m,p){
+ for(const key of ['px','py','tx','ty','gy','fx','rad','d','sz']){const v=rtcNum(m[key]);if(v==null)delete m[key];else m[key]=v;}   /* numbers, or not there */
+ for(const key of ['f','c','v'])if(m[key]!=null&&(typeof m[key]!=='string'||m[key].length>48))delete m[key];   /* words, or not there */
+ if(m.tx==null||m.ty==null){delete m.tx;delete m.ty;}
  const x=m.px||p.x||0,y=m.py||p.y||0;
  if(m.a==='swing'){
   p.atk=true;p._atkT=performance.now()+240;
@@ -3312,8 +3340,11 @@ function mpPlayFx(m,p){
  }else if(m.a==='cast'){ /* ✨ a peer's spell going off round them - and the aura it leaves on them for a while */
   p.atk=true;p._atkT=performance.now()+240;
   SpellFx.cast(m.f,{x,y,gy:m.gy||8,fx:m.fx||1,rad:m.rad||0,dur:m.d||0,peer:true,tx:m.tx,ty:m.ty,k:m.sz||1,
-   targets:(Array.isArray(m.tg)?m.tg:[]).map(t=>({x:t[0],y:t[1],r:16})),follow:()=>({x:p._x??p.x,y:p._y??p.y})});
-  if(m.k&&m.d>0)(p.fxAura||(p.fxAura={}))[m.k]={until:performance.now()/1000+m.d,dur:m.d};
+   targets:(Array.isArray(m.tg)?m.tg:[]).slice(0,6).filter(t=>Array.isArray(t)&&rtcNum(t[0])!=null&&rtcNum(t[1])!=null).map(t=>({x:+t[0],y:+t[1],r:16})),follow:()=>({x:p._x??p.x,y:p._y??p.y})});
+  /* the aura it leaves: `au`, one of the names peerAuraState reads (an older build's packet carried it as k, over the packet's
+     own kind, and never arrived at all) */
+  const au=typeof m.au==='string'&&(m.au==='atk'||m.au==='haste'||m.au==='hot'||TREE_AURAS.includes(m.au))?m.au:null,ad=Math.min(m.d||0,600);
+  if(au&&ad>0)(p.fxAura||(p.fxAura={}))[au]={until:performance.now()/1000+ad,dur:ad};
   if(m.gy)p._gy=m.gy;
  }else if(m.a==='nova'){
   ring(x,y,70,'#a0e0ff');burst(x,y,'#a0e0ff',10,80);
@@ -3412,6 +3443,8 @@ function rtcOnMsg(pid,m){
  if(m.k==='pos'){
   const p=mp.peers[pid];if(!p)return;
   const now=performance.now(),dtp=(now-(p._rt||now))/1000;p._rt=now;
+  const px=rtcNum(m.x),py=rtcNum(m.y),php=rtcNum(m.hp);if(px==null||py==null)return;   /* a place that is no number moves nobody: it went into the ghost's maths, and into the lord that chased it */
+  m.x=px;m.y=py;m.hp=php==null?(Number.isFinite(p.hp)?p.hp:1):Math.max(0,Math.min(1,php));m.f=rtcNum(m.f);
   if(dtp>0.01&&dtp<0.5){p._vx=(m.x-(p.x||m.x))/dtp;p._vy=(m.y-(p.y||m.y))/dtp;}
   p.x=m.x;p.y=m.y;p.hp=m.hp;p.f=m.f||p.f||1;p.mv=m.mv?1:0;p.dn=m.dn?1:0;p.atk=!!m.atk;p.hl=m.hl?1:0;p.t=Date.now();p._rtc=true;   /* 🗡 hl: an older peer sends none - weapon in hand */
  }else if(m.k==='act'){
@@ -3420,15 +3453,16 @@ function rtcOnMsg(pid,m){
  }else if(m.k==='dmg'&&mp.host){
   if(typeof m.id==='string'&&Number.isFinite(+m.tot))mpHostTotal(pid,m.id,+m.tot); /* this guest's running total for THAT lord */
   else{ /* an older build sends each hit on its own */
-   const d=Math.max(0,Math.round(m.d||0));
+   const d=Number.isFinite(+m.d)&&typeof m.d!=='object'?Math.max(0,Math.round(+m.d)):0;   /* a hit that is no number is no hit: NaN went into the lord's health, and nothing could kill him after */
    mp.applied[pid]=(mp.applied[pid]||0)+d;
    mpPeerDamage(d,pid);
   }
  }else if(m.k==='boss'&&!mp.host){
-  m.bs.forEach(nb=>{
+  (Array.isArray(m.bs)?m.bs:[]).forEach(nb=>{
+   nb=mpBossClean(nb);if(!nb)return;
    const e=enemies.find(x=>x.raid&&x.bossId===nb.id);
    if(!e)return;
-   e.netX=nb.x;e.netY=nb.y;e.hp=nb.hp;e.max=nb.max;
+   if(nb.x!=null&&nb.y!=null){e.netX=nb.x;e.netY=nb.y;}if(nb.hp!=null)e.hp=nb.hp;if(nb.max!=null)e.max=nb.max;
    if(nb.cds)e.cds=Object.assign({},nb.cds);
    e.target=nb.tgt;
    if(nb.awake&&!e.awake){e.awake=true;e.state='chase';}
@@ -3447,7 +3481,36 @@ function mpGuestRaidHit(en,d){
  rtcBroadcast({k:'dmg',id,tot:mp.dmgBy[id],d:rd},true); /* d: for a host on an older build */
  return true;
 }
+/* a lord as the host sent him, made sound before a guest takes him: every number a number or left as it was, his clocks
+   numbers, his quarry a name (a guest's copy took whatever came - a NaN in his health and no blow could end him) */
+function mpBossClean(nb){
+ if(!nb||typeof nb!=='object')return null;
+ const num=v=>v!=null&&typeof v!=='object'&&Number.isFinite(+v)?+v:null;
+ let cds=null;
+ if(nb.cds&&typeof nb.cds==='object'){cds={};for(const k of Object.keys(nb.cds).slice(0,16)){const v=num(nb.cds[k]);if(v!=null)cds[k]=v;}}
+ return {id:nb.id,x:rtcNum(nb.x),y:rtcNum(nb.y),hp:num(nb.hp),max:num(nb.max),cds,tgt:typeof nb.tgt==='string'?nb.tgt:'host',awake:!!nb.awake,dead:!!nb.dead};
+}
+/* another player's doc in the room, made sound before it is merged into what the frame draws and the host counts: a place and
+   a health that are numbers, damage that is a number, a look this build can paint - a race it has never heard of (a newer
+   build's, or anybody's text) threw in the draw of every frame, for everyone in the room */
+function mpLookClean(look){
+ const L=look&&typeof look==='object'?{...look}:{},race=RACE_ALIAS[L.race]||L.race,cls=CLASS_ALIAS[L.cls]||L.cls;
+ L.race=RACES.some(r=>r.id===race)?race:'human';L.cls=CLASSES.some(c=>c.id===cls)?cls:'warrior';
+ for(const k of ['w','wench','a','pet','outfit'])if(L[k]!=null&&typeof L[k]!=='string')L[k]=null;
+ return L;
+}
+function mpPeerClean(data){
+ const d=data&&typeof data==='object'?{...data}:{},num=v=>v!=null&&typeof v!=='object'&&Number.isFinite(+v)?+v:null;
+ for(const k of ['x','y']){const v=rtcNum(d[k]);if(v==null)delete d[k];else d[k]=v;}
+ {const v=rtcNum(d.hp);if(v==null)delete d.hp;else d.hp=Math.max(0,Math.min(1,v));}
+ d.name=typeof d.name==='string'?d.name.slice(0,24):'Hero';
+ d.dmg=Math.max(0,num(d.dmg)||0);
+ if(d.dmgBy&&typeof d.dmgBy==='object'){const by={};for(const k of Object.keys(d.dmgBy).slice(0,16)){const v=num(d.dmgBy[k]);if(v!=null&&v>0)by[k]=v;}d.dmgBy=by;}else delete d.dmgBy;
+ d.look=mpLookClean(d.look);
+ return d;
+}
 function mpHostTotal(pid,id,tot){
+ if(!Number.isFinite(tot))return;   /* a total that is no number counts for nothing */
  mp.appliedBy=mp.appliedBy||{};
  const seen=mp.appliedBy[pid]||(mp.appliedBy[pid]={}),prev=seen[id]||0;
  if(!(tot>prev))return;
@@ -3477,7 +3540,7 @@ function mpHostRaidThreatTick(dt){
    en.aggroT=8;let best=null,bv=-1;
    for(const k in (en.threat||{}))if(en.threat[k]>bv){bv=en.threat[k];best=k;}
    en.target=best||'host';en.threat={};
-   if(best&&best!=='host'){const nm=(mp.peers[best]&&mp.peers[best].name)||'?';floatAt(en.x,en.y-en.r-30,'→ '+nm+'!','#ff8a6a',true);}
+   if(best&&best!=='host'){const nm=(mp.peers[best]&&mp.peers[best].name)||'?';floatAt(en.x,en.y-en.r-30,'→ '+(typeof I18N!=='undefined'?I18N.name(nm):nm)+'!','#ff8a6a',true);}
   }
  });
 }
@@ -3541,7 +3604,8 @@ function drawHeroLike(x,y,look,alpha,anim,name,hp){
  if(look.pet){ctx.font='13px sans-serif';ctx.textAlign='center';const pp=petOf(look.pet);if(pp)petGlyphCanvas(ctx,pp,-18,10);else ctx.fillText('🐾',-18,10);}
  ctx.font='700 10px '+getComputedStyle(document.body).fontFamily;ctx.textAlign='center';
  const headY=character?character.headY:-30,nameY=headY-(hp!==undefined?10:3);
- ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(name||'Hero',1,nameY+by+1);ctx.fillStyle='#dff4ff';ctx.fillText(name||'Hero',0,nameY+by);
+ const nameShown=name?(typeof I18N!=='undefined'?I18N.name(name):name):'Hero';   /* 🪪 a player called Hunter is not "Jäger" over his own head */
+ ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(nameShown,1,nameY+by+1);ctx.fillStyle='#dff4ff';ctx.fillText(nameShown,0,nameY+by);
  if(hp!==undefined)drawMiniBar(-14,headY-7+by,28,hp,'#4caf6d');
  ctx.restore();
 }
@@ -3848,7 +3912,7 @@ function freshState(name,race,cls){
   auto:true,autoEquip:true,sound:true,sfx:true,volAmb:0.5,volSfx:0.55,finished:false};
 }
 function estimateBaseStat(v,up,kind){
- v=Number(v)||0;up=Number(up)||0;
+ v=Number(v)||0;up=Math.min(60,Number(up)||0);   /* no item was ever forged sixty times: a damaged count walked this loop for ever */
  for(let i=0;i<up;i++)v=kind==='hp'?Math.max(0,Math.round((v-2)/1.12)):Math.max(0,Math.round((v-1)/1.12));
  return Math.round(v);
 }
@@ -3883,6 +3947,7 @@ function migrate(s){ /* fills fields missing from older saves */
  /* A save written by a NEWER build can stand in a zone this build has never heard of - the zone table
     is append-only, so an older exe or an old browser tab simply has a shorter one. Such a hero wakes
     up in Moonshine instead of taking the character list down with him. */
+ {const zi=Math.floor(+s.zone||0);s.zone=ZONES[zi]?zi:TAVERN_ZONE;}   /* and a zone that is no whole number in the table (a damaged save: text, a fraction, 1e308) is no zone - the repairs below counted down from it for ever */
  if(s.atTown){const t=ZONES.findIndex(z=>z.town===s.atTown);if(t>=0&&(s.zone|0)===CITY_ZONE){s.zone=t;delete s.atHarbor;}delete s.atTown;}   /* ⛵ written down as the City: wake in the port you sailed to */
  /* 🧭 where you logged out is where you wake (asked for 2026-09-29): the Throne Hall and the Harbour are written down as
     the City for older builds - read the note back - and an instance (a dungeon, a raid, a boss's arena) is no place to wake
@@ -3936,6 +4001,7 @@ function migrate(s){ /* fills fields missing from older saves */
     left the number sitting in the save, so those heroes kept walking past bosses they never killed.
     Reads bossDead defensively - migrate() does not default it until further down. */
  const bossesDeadBefore=(sv,i)=>ZONES.every((z,k)=>k>=i||z.special||!z.boss||!!(sv.bossDead||{})[k]);
+ s.maxZone=Math.max(0,Math.min(ZONES.length-1,Math.floor(+s.maxZone||0)));   /* inside the table before anything counts down from it */
  while((s.maxZone||0)>0&&!bossesDeadBefore(s,s.maxZone))s.maxZone--;
  /* and pull the hero back out of any zone the repaired maxZone no longer covers - standing there
     would have the travel path write maxZone straight back up on the next frame. */
@@ -3960,8 +4026,11 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.theKnife===undefined)s.theKnife=false;
  if(s.ritualDone===undefined)s.ritualDone=false; /* ⛧ the altar accepts one life per hero */
  if(!s.knifeAwarded&&(s.rating||0)>=3000){s.knifeAwarded=true;s.theKnife=true;} /* already past 3000 - the knife finds them */
- if(s.gearSets===undefined){s.gearSets=[null,null];s.gearSetSel=-1;} /* two swappable loadouts */
- if(s.farm===undefined)s.farm={owned:false,b:[],c:[]}; /* 🚜 the farm: buildings + crops */
+ if(!Array.isArray(s.gearSets)){s.gearSets=[null,null];s.gearSetSel=-1;} /* two swappable loadouts */
+ if(!s.gear||typeof s.gear!=='object'||Array.isArray(s.gear))s.gear={weapon:null,armor:null,trinket:null};   /* and three slots to wear them in, whatever the save says */
+ for(const k of ['weapon','armor','trinket'])if(!s.gear[k]||typeof s.gear[k]!=='object')s.gear[k]=null;   /* each one an item or empty */
+ if(!s.farm||typeof s.farm!=='object'||Array.isArray(s.farm))s.farm={owned:false,b:[],c:[]}; /* 🚜 the farm: buildings + crops */
+ for(const k of ['b','c'])s.farm[k]=(Array.isArray(s.farm[k])?s.farm[k]:[]).filter(it=>it&&typeof it==='object');   /* lists of pieces, every one a piece: a hole or a word in them stopped the hero loading */
  FarmLayout.migrate(s.farm); /* keep the complete saved layout together on the field's west side, wherever an older build put it */
  if(s.farm.lvl===undefined)s.farm.lvl=1; /* 🚜 farm level - levels via farm XP (slaughter) */
  if(s.farm.xp===undefined)s.farm.xp=0;
@@ -4004,7 +4073,8 @@ function migrate(s){ /* fills fields missing from older saves */
    if(it.warglaives===true){delete it.warglaives;it.felglaives=true;} /* the old marker flag */
   };
   for(const sl in (s.gear||{}))reforge(s.gear[sl]);
-  (s.bag||[]).forEach(reforge);
+  if(!Array.isArray(s.bag))s.bag=[];if(!Array.isArray(s.scrolls))s.scrolls=[];   /* a bag and a scroll case that are lists, before anything below walks or fills them */
+  s.bag.forEach(reforge);
   const JOB={fm:'fk',wg:'fg'}; /* a forge order placed before the rename */
   if(s.smithJob&&JOB[s.smithJob.kind])s.smithJob.kind=JOB[s.smithJob.kind];
  }
@@ -4057,7 +4127,7 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.ench.insc!==undefined)s.ench.insc=(Array.isArray(s.ench.insc)?s.ench.insc:[]).map(inscClean).filter(Boolean); /* 📖 see inscClean - a newer build's kinds are kept, only garbage goes */
  if(!s.ore)s.ore={coal:0,ore:0,gem:0};
  for(const k of ['coal','ore','gem'])s.ore[k]=Math.max(0,s.ore[k]||0);
- if(s.chests===undefined)s.chests={};
+ if(!s.chests||typeof s.chests!=='object')s.chests={};
  if(s.chests.blacktemple){ /* the Violet Halls were the Black Temple - saves written before the rename
                               still hold the old key, and dropping it would quietly eat their chests */
   s.chests.violethalls=(s.chests.violethalls||0)+s.chests.blacktemple;
@@ -4068,6 +4138,18 @@ function migrate(s){ /* fills fields missing from older saves */
  if(s.cowLast===undefined)s.cowLast=0;
  if(s.cowBestItems===undefined)s.cowBestItems=0;
  if(s.cowLastItems===undefined)s.cowLastItems=0;
+ /* 🐄 what a Cow Run could leave on a hero until 2026-11-24: its card sums (they belong to the run and are never saved from one),
+    its numberless legendary where the hero's own weapon was (that weapon is gone; the hand is left empty rather than a
+    legendary minted), and a Ring forged mid-run that went out with the run's gear. The Ring cannot be sold, scrapped or fed
+    to the forge, so forged + none anywhere + none in the fire = lost: it comes back in the bag, at +0 */
+ delete s.cowRunStat;
+ if(s.gear&&typeof s.gear==='object')for(const k of ['weapon','armor','trinket'])if(s.gear[k]&&s.gear[k].cowRun)s.gear[k]=null;
+ if(Array.isArray(s.bag)){
+  s.bag=s.bag.filter(it=>!(it&&it.cowRun));
+  const ringAt=it=>!!it&&it.legend==='thering';
+  if(s.ringForged&&!(s.smithJob&&s.smithJob.kind==='ring')&&s.gear&&typeof s.gear==='object'&&!Object.values(s.gear).some(ringAt)&&!s.bag.some(ringAt))
+   s.bag.push({id:'thering',slot:'trinket',rar:'legendary',legend:'thering',name:'The Ring',atk:0,hp:0,crit:10,lifesteal:0,manadrain:0.01,bossDmg:0,ench:null,up:0,sell:0});
+ }
  if(s.lastZone===undefined)s.lastZone=0;
  if(!s.cleared)s.cleared={};
  if(!s.bossDead)s.bossDead={};
@@ -4306,8 +4388,9 @@ function smithTick(){
   stageMsg('⚒️ Blacksmith level '+S.smithLvl+'!',2200);sfx.level();
  }else if(j.kind==='ring'){
   const ring=rollTheRing();
-  if(S.gear.trinket)S.bag.push(S.gear.trinket); /* the old trinket steps aside */
-  S.gear.trinket=ring;S.ringForged=true;
+  const worn=(S.cowRunStash||S).gear;   /* 🐄 mid-run the hero's own gear lies in the stash: bound to the run's bare hands, the Ring was thrown away with them when the run ended */
+  if(worn.trinket)S.bag.push(worn.trinket); /* the old trinket steps aside */
+  worn.trinket=ring;S.ringForged=true;
   log(`⚒️ The forge cools - <span class="llegendary">${uiIcon('it_trinket','💍','shopico')} The Ring</span> binds to your trinket slot! +10% crit, and it drinks 1% of your mana with every strike.`,'loot');
   stageMsg('💍 THE RING IS FORGED!',3800);sfx.level();
   if(typeof publishLB==='function')publishLB(S,true);
@@ -5087,6 +5170,25 @@ function screenGpu(on){
 }
 function screenRows(){$('lightQRow').hidden=!ctx.isGL;}
 let VW=0,VH=0,DPR=1,vigCv=null;
+/* 🎮 A GPU that goes and does not come back (bug review 2026-11-24). When the graphics context is lost - a driver reset, the GPU
+   process restarting - the browser normally hands it back within a second and GL2D rebuilds itself. When it does not (the browser
+   may refuse a page whose context keeps dying), the screen drew nothing for the rest of the session: the game ran on, unseen.
+   So: lost for SCREEN_LOST_MS of time in view with no restore, and the screen moves to the 2D canvas through the same swap the
+   phone's GPU acceleration switch uses. Nothing is saved - the next start asks for WebGL as the device's setting says - and the
+   next time the settings are applied WebGL is asked for once more (screenGpu's own message says so if it is still not there).
+   The events are heard on their way down from the document, so they need no place in the screen's own list of listeners; a
+   screen already let go is no longer in the page and is not heard at all. */
+const SCREEN_LOST_MS=5000;
+let screenLostT=0;
+function screenLostArm(){clearTimeout(screenLostT);screenLostT=setTimeout(screenLostCheck,SCREEN_LOST_MS);}
+function screenLostCheck(){
+ if(!ctx.isGL||!ctx.isContextLost()||document.hidden)return;   /* back by itself; the 2D screen already; out of view - the count starts again when it is seen */
+ try{console.error('GL2D: the WebGL context was lost and not restored in '+SCREEN_LOST_MS+' ms - the screen moved to the 2D canvas');}catch(_){}
+ gpuWish=true;screenGpu(false);
+}
+document.addEventListener('webglcontextlost',e=>{if(e.target===cv)screenLostArm();},true);
+document.addEventListener('webglcontextrestored',e=>{if(e.target===cv)clearTimeout(screenLostT);},true);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&ctx.isGL&&ctx.isContextLost())screenLostArm();});
 /* 🖵 Resolution (2026-10-10, "gör att resolution faktiskt gör något ... för att spara fps", "fler resolution alternativ"): the
    most pixels the game draws, {w,h} in screen pixels, or null for every pixel the window has. Below the window's own the canvas
    is drawn smaller and the browser stretches it over the window - fewer pixels, more frames, a softer picture. Desktop only. */
@@ -5241,7 +5343,7 @@ $('ritualBegin').onclick=()=>{
  ritualActive=true;
  const owner=S; /* the deed is this hero's, whoever is loaded when the eyes open */
  $('ritualBox').style.display='none';
- gamePaused=true;
+ gamePaused=scenePause=true;   /* ⏸ the dark holds the game */
  hero.moveTo=null;hero.target=null;
  const fx=$('ritualFx');
  fx.style.display='block';
@@ -5260,7 +5362,7 @@ $('ritualBegin').onclick=()=>{
  t.forEach(([ms,fn])=>setTimeout(fn,ms));
  setTimeout(()=>{
   fx.style.display='none';
-  if(S!==owner){ritualActive=false;gamePaused=false;return;} /* another hero was loaded in the dark: nothing happened to anyone */
+  if(S!==owner){ritualActive=false;scenePause=false;gamePaused=audioPaused;return;} /* another hero was loaded in the dark: nothing happened to anyone */
   /* the deed is done - and the armor is on in the same breath, so no close, crash or reload between
      here and "Take it" can leave a finished ritual without its reward */
   S.theKnife=false;
@@ -5281,7 +5383,7 @@ $('ritualBegin').onclick=()=>{
 let ritualArmor=null;
 $('ritualDoneOk').onclick=()=>{
  $('ritualDoneFx').style.display='none';
- gamePaused=false;
+ scenePause=false;gamePaused=audioPaused;
  ritualActive=false;
  if(ritualArmor){ /* already on your shoulders since the ritual ended - this only says so */
   ritualArmor=null;
@@ -5290,7 +5392,7 @@ $('ritualDoneOk').onclick=()=>{
  }
  altarGateSync(); /* and again once the armor is on, in case the cutscene was cut short */
 };
-$('sharkOk').onclick=()=>{$('sharkFx').style.display='none';gamePaused=false;};
+$('sharkOk').onclick=()=>{$('sharkFx').style.display='none';scenePause=false;gamePaused=audioPaused;};
 function startFishing(){
  if(fish.on||!nearLake())return;
  if((S.worms||0)<1){stageMsg('🪱 No worms - the fishing hut sells them!',1800);sfx.warn();return;}
@@ -6663,6 +6765,7 @@ function enchBind(key){
  log(had
   ? `<span class="l${v.rar}">✨ ${name}</span> takes the place of ${hadName} on ${itemName(weapon)}.`
   : `<span class="l${v.rar}">✨ ${name}</span> is bound to ${itemName(weapon)}.`,'loot');
+ inscPick='';   /* nothing stays chosen: the second click of a double click used to bind the twin of this one over it, and it was gone */
  save();renderHero();renderBag();enchRefresh();
 }
 let inscPick='';   /* the selected enchant KIND (id:rarity) - the list shifts when one is spent */
@@ -7460,6 +7563,7 @@ function buildZone(){
  if(S&&S.cowRunStash)cowRunEnd('left');   /* 🐄 a run walked out of (or begun again): what was stripped goes back first, the time is paid */
  TideUI.leaveZone();
  SpellFx.clear();   /* ✨ no spell follows the hero into another world */
+ if(typeof treeLeaveZone==='function')treeLeaveZone();   /* 🌳 nor a blizzard, a trap, holy ground or a meteor on its way */
  mineTarget=null; /* ⛏ a rock belongs to the world it stood in */
  Mounts.carry(mountRide,zoneOf(),hero); /* 🐎 still in the saddle if the new zone is ridden too (Wasteland, City, Farm, Home) */
  if($('stableFx'))$('stableFx').style.display='none';
@@ -7755,7 +7859,7 @@ function spawnEnemyAt(t,R,fixed){
  const en={name:t.name,kind:t.kind,boss:!!t.boss,raid:!!t.raid,bossId:t.bossId||null,c:t.c,
   x:p.x,y:p.y,home:{x:p.x,y:p.y},r:t.boss?26:12,
   max:Math.round(t.hp*scale),hp:Math.round(t.hp*scale),
-  atk:t.atk,xp:t.xp,gold:t.gold,add:!!t.add,atkCd:t.atkCd||0,meleeMul:t.meleeMul||1,reach:t.reach||0,roomIdx:t.roomIdx??fixed?.roomIdx??null,awake:!t.raid,
+  atk:t.atk,xp:t.xp,gold:t.gold,goldF:tstat('gold'),add:!!t.add,atkCd:t.atkCd||0,meleeMul:t.meleeMul||1,reach:t.reach||0,roomIdx:t.roomIdx??fixed?.roomIdx??null,awake:!t.raid,
   speed:t.speed||(t.boss?80:105),baseSpeed:t.speed||(t.boss?80:105),state:'wander',dir:Math.random()*6.28,wT:0,cd:0,dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,
   cds:{a:2,b:5,c:8},lockT:0,hidden:false,trailT:0,avoid:null};
  enemies.push(en);
@@ -7778,7 +7882,7 @@ function spawnAdd(name,kind,c,src){
  enemies.push({name,kind,boss:false,bossId:null,c,add:true,
   x:bx+Math.cos(a)*60,y:by+Math.sin(a)*60,home:{x:bx,y:by},r:11,
   max:Math.round(eHP(L)*0.55*pMul()),hp:Math.round(eHP(L)*0.55*pMul()),
-  atk:Math.round(eATK(L)*0.8*pMul()),xp:0,gold:mobGold(z,0.45), /* boss adds give NO xp - no leveling off add farming */
+  atk:Math.round(eATK(L)*0.8*pMul()),xp:0,gold:mobGold(z,0.45),goldF:tstat('gold'), /* boss adds give NO xp - no leveling off add farming */
   speed:120,state:'chase',dir:0,wT:0,cd:0,dead:false,deadT:0,walk:0,slowT:0,hurt:0,swing:0,
   cds:{},lockT:0,hidden:false,trailT:0,avoid:null});
  if(!SpellFx.cast('boss:summon',{x:bx+Math.cos(a)*60,y:by+Math.sin(a)*60,c:BOSS_FX_C[boss&&boss.bossId]}))burst(bx+Math.cos(a)*60,by+Math.sin(a)*60,c,10,80);   /* 🐉 called up out of a circle */
@@ -7879,6 +7983,7 @@ const cowZoneIdx=()=>ZONES.findIndex(z=>z.cow);
 /* the cards reach the fight through the tree's sums (tv): S.cowRunStat lays them over the stripped tree - hp, crit, haste, move and
    cdr as the tree counts them, the rest under keys of their own. On S, not in a global, so every stat line reads it as it reads the tree */
 function cowRunStats(){
+ if(!CR||CR.owner!==S)return;   /* a run whose hero is no longer the one playing writes nothing: its sums landed on the next hero, and were saved with him */
  const m=CR.m;
  S.cowRunStat={hp:(m.hp||0)*100,crit:m.crit||0,haste:(m.haste||0)*100,move:(m.speed||0)*100,cdr:(m.cdr||0)*100,
   avoid:(m.avoid||0)*100,killHeal:(m.killheal||0)*100,mana:(m.mana||0)*100,regen:(m.mana||0)*100,cowThorns:(m.thorns||0)*100,
@@ -7888,7 +7993,7 @@ function cowRunStats(){
 function cowRunStart(){
  const run=CowRun.newRun(),stash={};
  for(const k of COW_STRIP)stash[k]=S[k];
- Object.assign(run,{bossT:CowRun.BOSS_GAP,bosses:0,stash,owner:S,gems:[],chests:[],shots:[],meteors:[],zones:[],totems:[],totemT:1,orbA:0,orbCd:[],hitT:new Map(),cds:{},axA:0,glA:0,auraT:0,
+ Object.assign(run,{bossT:CowRun.BOSS_GAP,bosses:0,stash,owner:S,gems:[],chests:[],shots:[],meteors:[],zones:[],totems:[],totemT:1,orbA:0,orbCd:[],hitT:new WeakMap(),cds:{},axA:0,glA:0,auraT:0,
   spawnT:0,alphaT:CowRun.ALPHA_FIRST,chestT:4,pending:0});
  CR=run;
  document.body.classList.add('cowrun');   /* the header's own level and XP stand down: the run's live on the card below */
@@ -7903,6 +8008,7 @@ function cowRunStart(){
 /* the run is over: what was stripped goes back, and the time survived is paid in epics (not when the hero was swapped away under it) */
 function cowRunEnd(reason){
  const run=CR;if(!run)return;
+ const whole=run.owner===S&&hero&&!hero.dead?[hero.hp/heroMax(),hero.mana/manaMax()]:null;   /* how whole he walks out, as shares: his health in there is a bare level-1 hero's */
  CR=null;cowRunLast=run;run.t=cowT;
  document.body.classList.remove('cowrun');
  cowKitClear();
@@ -7911,8 +8017,14 @@ function cowRunEnd(reason){
  delete run.owner.cowRunStash;
  treeVer++;
  if(run.owner!==S||reason==='quit')return;
+ /* left alive by Home or the map: the same share of health and mana on the hero given back - buildZone carries health between
+    zones as a number, and the run's few hundred set him down almost dead beside his own tens of thousands */
+ if(whole&&whole[0]>0){hero.hp=Math.max(1,Math.round(heroMax()*Math.min(1,whole[0])));hero.mana=Math.round(manaMax()*Math.max(0,Math.min(1,whole[1]||0)));}
  const n=CowRun.rewardEpics(cowT);run.reward=[];
- for(let i=0;i<n;i++){const it=rollItem('epic');S.bag.push(it);run.reward.push(it);}
+ /* the herd pays by its own rung wherever the hero is headed: Home and the map name the next zone before buildZone ends the run,
+    and rollItem sized the same run's epics a tenth smaller for walking out than for dying */
+ const at=S.zone,ci=cowZoneIdx();if(ci>=0)S.zone=ci;
+ try{for(let i=0;i<n;i++){const it=rollItem('epic');S.bag.push(it);run.reward.push(it);}}finally{S.zone=at;}
  const best=S.cowRunBest||{};
  run.record=cowT>(best.t||0);
  if(run.record)S.cowRunBest={t:cowT,lvl:run.lvl,kills:run.kills};
@@ -8061,7 +8173,7 @@ function cowRunWeapons(dt){
   const st=crWs(CR.leg.id,CR.leg.lvl);
   if(CR.leg.id==='felglaives'){
    CR.glA+=st.spin*dt;
-   for(let i=0;i<st.n;i++){const a=CR.glA+i*Math.PI;cowRunTouch('fg'+i,hx+Math.cos(a)*st.rad,hy+Math.sin(a)*st.rad*0.8,30,st.dmg,st.hitGap,foes,now,'cow:felhit');}
+   for(let i=0;i<st.n;i++){const a=CR.glA+i*6.283/st.n;cowRunTouch('fg'+i,hx+Math.cos(a)*st.rad,hy+Math.sin(a)*st.rad*0.8,30,st.dmg,st.hitGap,foes,now,'cow:felhit');}
   }else if(cd('frostseeker',st.cd)){
    const a0=Math.random()*6.283;
    for(let i=0;i<st.n;i++){const a=a0+i*6.283/st.n;CR.shots.push({kind:'shard',x:hx,y:hy,vx:Math.cos(a)*st.speed,vy:Math.sin(a)*st.speed,dmg:st.dmg,life:st.range/st.speed,pierce:3,slow:st.slow,hit:new Set()});}
@@ -8079,7 +8191,7 @@ function cowRunWeapons(dt){
    SpellFx.cast('cow:totempulse',{x:to.x,y:to.y,rad});
    for(const e of foes)if(Math.hypot(e.x-to.x,(e.y-to.y)*1.4)<rad+e.r*0.5)cowRunHit(e,ts.dmg,0,'cow:totemhit');
   }
- }
+ }else if(CR.totems.length)CR.totems.length=0;   /* the totem was swapped out: its posts go with it (they stood on, unlit, for the rest of the run) */
  /* 🔵 the Storm Orbs: circling the hero, each shooting a blue ball at the nearest cow */
  if(CR.m.orb){
   const os=CowRun.orbStats(CR.m.orb),n=os.n+Math.round(CR.m.proj||0);CR.orbA+=dt*2.2;   /* Barrage: one more orb */
@@ -8270,7 +8382,7 @@ function cowRunDrawAir(now){
   else{ctx.fillStyle='#d8d0c0';ctx.beginPath();ctx.arc(x,y,size/4,0,7);ctx.fill();}
  };
  if(CR.w.axes){const st=crWs('axes',CR.w.axes);for(let i=0;i<st.n;i++){const a=CR.axA+i*6.283/st.n;spinImg(cowWeaponImg,hx+Math.cos(a)*st.rad,hy+Math.sin(a)*st.rad*0.8,now*14+i,40);}}
- if(CR.leg&&CR.leg.id==='felglaives'){const st=crWs('felglaives',CR.leg.lvl);for(let i=0;i<st.n;i++){const a=CR.glA+i*Math.PI,x=hx+Math.cos(a)*st.rad,y=hy+Math.sin(a)*st.rad*0.8;
+ if(CR.leg&&CR.leg.id==='felglaives'){const st=crWs('felglaives',CR.leg.lvl);for(let i=0;i<st.n;i++){const a=CR.glA+i*6.283/st.n,x=hx+Math.cos(a)*st.rad,y=hy+Math.sin(a)*st.rad*0.8;
   spinImg(cowLegendImg('felglaives'),x,y,now*16+i,64);}}
  /* the shots themselves are light: CowFx.glow draws them after the night */
 }
@@ -8376,13 +8488,14 @@ function cowPickShow(chest,keep){
  ov.querySelectorAll('[data-cowcard]').forEach(b=>b.onclick=()=>cowPickKey(+b.dataset.cowcard));
  cowHelpWire(ov);
  $('cowReroll').onclick=()=>{   /* three new cards for the run's gold */
-  if(!CR||!CR.cards)return;
+  if(!CR||CR.owner!==S||!CR.cards)return;
   const pr=CowRun.rerollPrice(CR.rerolls||0,CR.m.discount);if(CR.gold<pr){sfx.warn();return;}
   CR.gold-=pr;CR.rerolls=(CR.rerolls||0)+1;sfx.loot();cowPickShow(CR.pickChest);
  };
  sfx.quest();
 }
 function cowPickKey(i){
+ if(CR&&CR.owner!==S){cowPickClose();return;}   /* cards of a run whose hero is gone (signed out, kicked, deleted under it): nothing is taken, and the world behind them goes on */
  if(!CR||!CR.cards)return;
  if(CR.swap){const sw=CR.swap,id=sw.list[i];if(!id)return;CR.swap=null;sw.card.out=id;i=CR.cards.indexOf(sw.card);}   /* on the swap screen 1-6 name the one that goes */
  const card=CR.cards[i];if(!card)return;
@@ -8448,6 +8561,15 @@ function cowHelpShow(key){
  $('cowPickOv').appendChild(box);
  box.onclick=e=>{e.stopPropagation();box.remove();};
 }
+/* Run again is the map's Cow Level card pressed from the summary: the same door (a hero in play, free to travel, Prestige 5,
+   level 60) less the empty bag - the run's own epics were laid in it a moment ago. The summary once outlived a change of hero,
+   and its button walked a level-3 newcomer into the herd */
+function cowRunGate(){
+ if(!gameOn||!S||hcNoFlee()||sceneHoldsTravel()||abroadNoTravel())return false;
+ if((S.prestige||0)<5){stageMsg('🐄 The cows demand Prestige 5',1800);sfx.warn();return false;}
+ if(S.lvl<60){stageMsg('🐄 The cows demand level 60',1800);sfx.warn();return false;}
+ return true;
+}
 /* the run's last screen: what the herd paid; Run again goes straight back in */
 function cowResultsShow(run,reason){
  const left=reason==='left';
@@ -8463,7 +8585,7 @@ function cowResultsShow(run,reason){
   <div class="cowres-items">${run.reward.slice(0,30).map(it=>`<span class="lepic">${esc(it.name)}</span>`).join(' · ')}</div>
   <div class="cowres-btns"><button class="sbtn gold" id="cowResAgain" data-pad-first>Run again</button><button class="sbtn" id="cowResHome">${left?'Continue':'To Moonshine'}</button></div></div>`;
  $('stageWrap').appendChild(ov);
- $('cowResAgain').onclick=()=>{cowPickClose();const i=cowZoneIdx();if(i>=0)goToZone(i);};
+ $('cowResAgain').onclick=()=>{cowPickClose();if(S!==run.owner||!cowRunGate())return;const i=cowZoneIdx();if(i>=0)goToZone(i);};   /* only for the hero whose run it was, and only through the door */
  $('cowResHome').onclick=()=>cowPickClose();
 }
 function prerenderGround(z,R){
@@ -9004,7 +9126,7 @@ function killEnemy(en){
   if(reward&&en.boss){renderHUD();saveNow();} // Save partial clears and inventory together with their boss deadlines.
   return; /* These encounters never feed the normal XP, gold, gear or quest routes. */
  }
- let gold=en.cow?0:addGold(Math.round(en.gold*(1+scrollPct('fortune'))));
+ let gold=en.cow?0:addGold(Math.round(treeGold(en)*(1+scrollPct('fortune'))));   /* 🌳 Fortune as the tree stands now */
  if(!en.cow&&!en.raid)floatAt(en.x,en.y-en.r-14,gold>0?'+'+gold+' ◉':'◉ CAP','#ffd76a');
  if(!en.runCow)log(`Slew <span class="imp">${en.name}</span> - ${(en.xp>0&&!en.cow)?'+'+en.xp+' xp':'no xp'}${(en.cow||en.raid)?'':', +'+gold+' gold'}.`); /* cows give no xp - the line no longer says they do */
  if(en.runCow&&CR)cowRunKill(en);   /* 🐄 the run's cows: a gem and gold, no epics until the end */
@@ -9140,6 +9262,7 @@ function heroDies(){
   hero.sentHome=true;
   sfx.die();
   cowRunEnd('died');
+  save();   /* the epics and the record are his now, not at the next autosave */
   return;
  }
  if(cowRunning){
@@ -9251,7 +9374,8 @@ function travelNext(){
  log(`<span class="imp">Arrived: ${z.name}.</span>`);
 }
 function doPrestige(){
- if(hcNoFlee()||sceneHoldsTravel())return; /* no prestiging out of a hardcore boss fight - the map and Home are shut too */
+ if(hcNoFlee()||sceneHoldsTravel()||abroadNoTravel())return; /* no prestiging out of a hardcore boss fight - the map and Home are shut too, and abroad as they are */
+ if(S.cowRunStash)return;   /* 🐄 nor out of a Cow Run: S.lvl is the run's in there, and the run ending under the prestige gave the hero his level 60 straight back */
  if((S.prestige||0)>=PRESTIGE_CAP){stageMsg('✦ Prestige '+PRESTIGE_CAP+' is the summit - for now.',2200);return;}
  if(S.lvl<MAXLVL||!allBossesDead())return;
  const oldCap=goldCap();
@@ -9810,7 +9934,27 @@ function padSideLayer(){
  if(!p||!p.getClientRects().length){padSide=false;return null;}
  return p;
 }
+/* ⏱ Asked once a frame (2026-11-24). padTick, the pad's hints, update and the Tides each ask which window is up, and every
+   asking walked the ~55 ids with a layout question apiece: 5-9% of the City's frame. The first answer of a frame is kept
+   for the rest of it - until the frame's work is done (a microtask), or sooner, the moment a window, anything it stands in,
+   or what is hung on the page changes (the watch's own records, read on the spot): a box opened by this frame's A press
+   is the answer to the very next asking, as it always was. No watch to be had (a test's bare page): asked every time. */
+let padPanelMemo=null,padPanelHeld=false,padPanelWatch=null;
+const padPanelSeen=new WeakSet(),PAD_WATCH={attributes:true,attributeFilter:['style','class','hidden','open'],childList:true};
+function padPanelEye(e){for(let n=e;n&&n.nodeType===1&&!padPanelSeen.has(n);n=n.parentNode){padPanelSeen.add(n);padPanelWatch.observe(n,PAD_WATCH);}}
 const padPanelOpen=()=>{
+ if(typeof MutationObserver!=='function'||typeof queueMicrotask!=='function')return padPanelLook()||padSideLayer();
+ if(!padPanelWatch)padPanelWatch=new MutationObserver(()=>{padPanelHeld=false;});
+ if(padPanelHeld&&padPanelWatch.takeRecords().length)padPanelHeld=false;
+ if(!padPanelHeld){
+  for(const id of PAD_PANELS){const e=$(id);if(e)padPanelEye(e);}   /* a box built since the last look is watched from now on */
+  padPanelWatch.takeRecords();   /* what changed before this look is in it */
+  padPanelMemo=padPanelLook();padPanelHeld=true;
+  queueMicrotask(()=>{padPanelHeld=false;});
+ }
+ return padPanelMemo||padSideLayer();   /* the side panel answers to the pad's own state, not the page's: asked each time */
+};
+function padPanelLook(){
  for(const id of PAD_PANELS){
   const e=$(id);
   /* Ask whether it is RENDERED, not what its own display says. Several of these are inner boxes
@@ -9822,8 +9966,8 @@ const padPanelOpen=()=>{
   if(getComputedStyle(e).visibility==='hidden')continue;
   return e;
  }
- return padSideLayer();
-};
+ return null;
+}
 let padFocus=null;
 /* What the pad can land on: every control, and whatever a mouse player is told can be clicked - the bronze hand
    (var(--hand)) set on it, not merely inherited from the card around it. A card that holds buttons of its own gives way to
@@ -10347,7 +10491,8 @@ window.addEventListener('keydown',e=>{
 
  if(gameOn&&!gamePaused&&['1','2','3'].includes(k)){if(typeof cowPickOpen==='function'&&cowPickOpen())cowPickKey(+k-1);else cast(+k-1,true);}   /* 🐄 1-3 take a card while the cards are up */
  if(gameOn&&!gamePaused&&k==='4'){if(typeof cowPickOpen==='function'&&cowPickOpen())cowPickKey(3);else usePot('hp',true);}   /* 🐄 the fourth power-up on the swap screen */
- if(gameOn&&!gamePaused&&k==='5')usePot('mp',true);
+ if(gameOn&&!gamePaused&&k==='5'){if(typeof cowPickOpen==='function'&&cowPickOpen())cowPickKey(4);else usePot('mp',true);}   /* 🐄 six power-ups now: 5 and 6 name theirs on the swap screen too */
+ if(gameOn&&!gamePaused&&k==='6'&&typeof cowPickOpen==='function'&&cowPickOpen())cowPickKey(5);
  if(['arrowup','arrowdown','arrowleft','arrowright',' '].includes(kl))e.preventDefault();
 });
 window.addEventListener('keyup',e=>{
@@ -11115,7 +11260,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
  {const was=mountRide.id;Mounts.tick(mountRide,S,{zone:zoneOf(),hero,paused:gamePaused},dt);if(!was&&mountRide.id)setHolster(true,true);}   /* 🗡 in the saddle the weapon goes on the back */
  updateMountButton();
  // ----- hero -----
- if(!hero.dead)treeTick(dt);   /* 🌳 shields, heals over time, the zones, the hawk, the rain of arrows - and Ice Block's three seconds */
+ treeTick(dt);   /* 🌳 shields, heals over time, the zones, the hawk, the rain of arrows - and Ice Block's three seconds (fallen, only its clock runs) */
  if(hero.dead){
   hero.deadT+=dt;
   if(hero.deadT>3){
@@ -11279,7 +11424,7 @@ for(const k in hero.buff)if(hero.buff[k])hero.buff[k].t-=dt;
        sfx.level();
        stopFishing();
        $('sharkFx').style.display='flex';
-       gamePaused=true;
+       gamePaused=scenePause=true;   /* ⏸ the box holds the game */
       }else if(r2<0.0025&&!S.brokenRing&&!S.ringForged&&!ringInForge()){ /* 💍 0.10% - the Broken Ring surfaces */
        S.brokenRing=true;save();
        fishToast('💍 <b>The Broken Ring</b> - dredged up!','#ffd76a');
@@ -13714,8 +13859,7 @@ function drawHero(){
  ctx.restore();
  const namePoint=rideLayout?MountRenderer.riderPoint(rideLayout,0,nmY):{x:0,y:nmY+by};
  if(!S.hideName){ /* 👁 toggle in the hero panel. The ring above still hovers - it is gear, not a label */
-  const shown=(S.city&&S.city.crowned?'👑 ':'')+(S.name||'Hero'); /* 👑 a crowned head says so */
-  if(typeof I18N!=='undefined')I18N.keep(shown);   /* 🌍 a hero's own name is never translated, even one that is a word */
+  const shown=(S.city&&S.city.crowned?'👑 ':'')+(S.name?(typeof I18N!=='undefined'?I18N.name(S.name):S.name):'Hero'); /* 👑 a crowned head says so */   /* 🪪 a hero's own name is never translated, even one that is a word: marked for the doors (I18N.name) */
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillText(shown,namePoint.x+1,namePoint.y+1);
   ctx.fillStyle=S.city&&S.city.crowned?'#ffe08a':'#fff';ctx.fillText(shown,namePoint.x,namePoint.y);
  }
@@ -14581,7 +14725,7 @@ function renderHero(){
  const c=classOf(),r=raceOf();
  /* 🎩 the style before the name: a crowned head is King or Queen (Emperor or Empress with all five abroad), a peer wears the rank (one name to a rank, as everywhere else), a commoner nothing */
  const style=S.city&&S.city.crowned?cityTitle():S.city&&S.city.noble&&S.city.noble.rank>0?nobleTitle():'';
- $('heroTitle').innerHTML=(style?`<span class="herostyle">${style}</span> `:'')+`${esc(dispName(S))} - ${r.name} ${c.name}`+(S.prestige?` · Prestige ${S.prestige}`:'')+
+ $('heroTitle').innerHTML=(style?`<span class="herostyle">${style}</span> `:'')+`${esc(typeof I18N!=='undefined'?I18N.name(dispName(S)):dispName(S))} - ${r.name} ${c.name}`+(S.prestige?` · Prestige ${S.prestige}`:'')+
   ` <button id="renameBtn" title="Rename hero">✏️</button>`+
   ` <button id="nameEyeBtn" class="${S.hideName?'off':''}" aria-pressed="${!S.hideName}" aria-label="${S.hideName?'Show':'Hide'} the name above your hero" title="${S.hideName?'Show':'Hide'} the name above your hero">${S.hideName?TideUI.eyeIcon.replace('</svg>','<path d="M4 4l16 16"/></svg>'):TideUI.eyeIcon}</button>`;   /* the pet's and the weapon's eye, light on the dark panel - the dark 👁 emoji all but vanished once dimmed, and the button read as gone; hidden = struck through */
  $('renameBtn').onclick=openRename;
@@ -14687,7 +14831,7 @@ function renderHero(){
    <div class="sn" style="font-family:var(--display);color:var(--brass);font-size:14px">✦ Prestige ${S.prestige} - the summit</div>
    <div class="ss" style="color:var(--dim);font-size:11px;margin-top:5px">You stand at the top of the realm: Prestige ${PRESTIGE_CAP}, level ${MAXLVL}. Higher peaks may rise one day…</div>
   </div>`;
- }else if(S.lvl>=MAXLVL){
+ }else if(S.lvl>=MAXLVL&&!S.cowRunStash){   /* 🐄 a run's own level 60 is not the hero's: no prestige card in the herd */
   if(allBossesDead()){
    $('prestigeSec').innerHTML=`<div class="card">
     <div class="sn" style="font-family:var(--display);color:var(--brass);font-size:14px">✦ Prestige ${S.prestige+1} awaits</div>
@@ -17864,7 +18008,7 @@ function gvbRender(){
  const d=gvb.doc;if(!d||!S)return;
  const me=gvb.pid,isHost=d.host===me,P=d.players||{},ord=d.order||[];
  const nameOf=p=>(P[p]&&P[p].name)||'Hero';
- const nameH=p=>esc(nameOf(p)); /* for markup: another player's name is their own text */
+ const nameH=p=>esc(nameOf(p)),nameM=p=>typeof I18N!=='undefined'?I18N.name(nameH(p)):nameH(p); /* for markup: another player's name is their own text - and never a word to translate */
  if(d.state==='lobby'||d.state==='bet'){
   if(!ord.includes(me)){ /* the host cleared this seat */
    if(gvb.seated){gvb.closedByMe=true;stageMsg('You were removed from the table',1800);gvbCleanup();}
@@ -17875,7 +18019,7 @@ function gvbRender(){
  if(d.state==='lobby'){
   gvbShow('gvbLobby');
   $('gvbCodeTxt').textContent='Room code: '+gvb.code;
-  $('gvbPlayers').innerHTML=ord.map(p=>`<div class="cl">${P[p]&&P[p].ready?'✅':'⏳'} ${nameH(p)}${p===d.host?' (host)':''}${p===me?' - you':''}${gvbOld(P[p])?' <span style="color:#ff8a7a">- update the game</span>':''}${isHost&&p!==me?gvbKickBtn(p):''}</div>`).join('')
+  $('gvbPlayers').innerHTML=ord.map(p=>`<div class="cl">${P[p]&&P[p].ready?'✅':'⏳'} ${nameM(p)}${p===d.host?' (host)':''}${p===me?' - you':''}${gvbOld(P[p])?' <span style="color:#ff8a7a">- update the game</span>':''}${isHost&&p!==me?gvbKickBtn(p):''}</div>`).join('')
    +(ord.length<GVB_MAXP?'<div class="cl" style="color:var(--dim)">… room open ('+ord.length+'/'+GVB_MAXP+')</div>':'');
   const mine=P[me];
   $('gvbReady').textContent=mine&&mine.ready?'✔ Ready!':'✔ Ready';
@@ -17892,7 +18036,7 @@ function gvbRender(){
   $('gvbR5').disabled=!isHost||big;$('gvbR10').disabled=!isHost; /* 6+ seats play 10 rounds, so every seat opens at least once */
   $('gvbBetStat').innerHTML=`<div class="cl" style="color:#ffd76a">${rds} rounds each${isHost?(big?'':' (you choose)'):''}</div>`+ord.map(p=>{
    const pl=P[p]||{};
-   return `<div class="cl">${lk(p)?'🔒':'⏳'} ${nameH(p)}${p===me?' (you)':''}: ${lk(p)?'<b style="color:#ffd76a">'+(pl.bet||0).toLocaleString()+'◉</b>':'choosing…'}${isHost&&p!==me?gvbKickBtn(p):''}</div>`;
+   return `<div class="cl">${lk(p)?'🔒':'⏳'} ${nameM(p)}${p===me?' (you)':''}: ${lk(p)?'<b style="color:#ffd76a">'+(pl.bet||0).toLocaleString()+'◉</b>':'choosing…'}${isHost&&p!==me?gvbKickBtn(p):''}</div>`;
   }).join('');
   /* two different stakes locked at the same moment would stall the table for good: let a locked
      player lock again to match the other side */
@@ -17917,7 +18061,7 @@ function gvbRender(){
   if(gvb.sidesKey!==key){
    gvb.sidesKey=key;
    $('gvbSides').innerHTML=ord.map(p=>`<div class="gvbrow" id="gvbSide-${p}">
-    <div class="gvbrowinfo"><div class="gvbname">${nameH(p)}${p===me?' (you)':''}</div><div class="gvbscore" id="gvbScore-${p}">0 ⚙</div></div>
+    <div class="gvbrowinfo"><div class="gvbname">${nameM(p)}${p===me?' (you)':''}</div><div class="gvbscore" id="gvbScore-${p}">0 ⚙</div></div>
     <div class="gvbbigwin sm" id="gvbWin-${p}"><div class="gvbbigstrip" id="gvbStrip-${p}"></div><div class="gvbbigmark"></div></div></div>`).join('');
   }
   const waves=gvbWaves();
@@ -18090,7 +18234,8 @@ function gvbSettle(res){
  const paidMine=stake>0&&gvbMine(tk); /* only the hero that paid is paid - by his id */
  const pot=paidMine?Math.min(res.pot,stake*Math.min(gvbPaidCount(d),gvb.seats)):res.pot; /* never more than this screen's own stake for each seat that paid and sat here when it paid - a rewritten stake once minted gold */
  if(gvb.ref)gvb.ref.update({['settled.'+me]:true}).catch(()=>{}); /* the room may close once every seat has its verdict */
- const board=ord.map(p=>esc((d.players[p]&&d.players[p].name)||'Hero')+' '+gvbScoreOf(waves,p)+'⚙').join(' · ');
+ const nmk=s=>typeof I18N!=='undefined'?I18N.name(s):s; /* 🪪 a seat's name is not a word to translate */
+ const board=ord.map(p=>nmk(esc((d.players[p]&&d.players[p].name)||'Hero'))+' '+gvbScoreOf(waves,p)+'⚙').join(' · ');
  const iWon=res.w===me&&paidMine,back=iWon&&pot<=stake,none=!res.w&&paidMine; /* back: nobody else paid, so it is only your own stake returning. none: nobody was left to win - each stake goes back */
  let won=0; /* the pot this screen was paid: the show waits for the verdict's panel below */
  if(iWon||none){ /* winner takes ALL stakes - through the stake's token, so it is paid once */
@@ -18330,11 +18475,15 @@ $('talentClose').onclick=()=>$('talentFx').style.display='none';
 const TREE_ICON=id=>'assets/tree/icons/'+id+'.jpg';   /* painted squares, edge to edge: no alpha, so JPEG */
 const TREE_EMBLEM={warrior:{def:'guardian',off:'berserker'},mage:{def:'frostwarden',off:'pyromancer'},hunter:{def:'warden',off:'marksman'},priest:{def:'sanctuary',off:'zealot'}};
 const treeLocked=()=>inBossFight()?SkillTree.RESET_LOCK:'';
+/* 🐄 in a Cow Run the tree is stripped with the gear: the window shows the hero's own (it lies in the stash) and nothing is learned
+   or reset - a point spent in there went into the run's empty tree, which the fight then counted for the rest of the run */
+const treeOwn=()=>S.cowRunStash||S;
+const treeBarred=()=>S&&S.cowRunStash?'🐄 Not used in the Cow Level - you fight with what the run gives you':treeLocked();
 const treeUI=SkillTreeUI.create({tree:SkillTree,iconUrl:TREE_ICON,
  get:()=>{
   if(!S||!SkillTree.TREES[S.cls])return null;
   const t=SkillTree.TREES[S.cls],em=TREE_EMBLEM[S.cls];
-  return {state:S.tree||(S.tree={}),cls:S.cls,className:classOf().name.toUpperCase(),prestige:S.prestige||0,locked:treeLocked(),touch:IS_TOUCH,
+  return {state:treeOwn().tree||(treeOwn().tree={}),cls:S.cls,className:classOf().name.toUpperCase(),prestige:S.prestige||0,locked:treeBarred(),touch:IS_TOUCH,
    sides:{def:{...t.sides.def,emblem:em.def},off:{...t.sides.off,emblem:em.off}}};
  },
  onLearn:(id,opt)=>treeLearn(id,opt),
@@ -18342,6 +18491,7 @@ const treeUI=SkillTreeUI.create({tree:SkillTree,iconUrl:TREE_ICON,
  say:t=>{stageMsg(t,1500);sfx.warn();}});
 function treeLearn(id,opt){
  if(!S)return;
+ if(S.cowRunStash){stageMsg(treeBarred(),1500);sfx.warn();return;}   /* 🐄 */
  const r=SkillTree.learn(S.tree||(S.tree={}),S.cls,id,opt,SkillTree.points(S.prestige));
  if(!r.ok){stageMsg(r.why,1500);sfx.warn();return;}
  treeVer++;treeAfter();
@@ -18351,7 +18501,7 @@ function treeLearn(id,opt){
 }
 function treeReset(){
  if(!S)return;
- if(treeLocked()){stageMsg(treeLocked(),1500);sfx.warn();return;}
+ if(treeBarred()){stageMsg(treeBarred(),1500);sfx.warn();return;}
  SkillTree.reset(S.tree||(S.tree={}));treeVer++;treeAfter();treeTimersReset();
  stageMsg('🌳 The tree is reset - every point is back',1800,'#ffd76a');save();
 }
@@ -18362,7 +18512,7 @@ function treeAfter(){   /* what a learned or returned talent changes at once: he
 }
 function treeEntry(){
  const host=$('treeEntry');if(!host||!S)return;
- const pts=SkillTree.points(S.prestige),spent=SkillTree.spent(S.tree),left=pts-spent;
+ const pts=SkillTree.points(S.prestige),spent=SkillTree.spent(treeOwn().tree),left=pts-spent;   /* 🐄 the hero's own, not the run's empty one ("40 to spend") */
  host.innerHTML='<button class="card tide-entry" id="treeButton" title="One point for every prestige, up to 40"><img class="tide-entry-icon" src="'+TREE_ICON('tree')+'" alt="" aria-hidden="true" draggable="false"><span>Skill Tree <small>· '
   +(!pts?'from Prestige 1':left>0?'<b class="tree-entry-pts">'+left+' to spend</b>':spent+' / '+pts+' points')+'</small></span></button>';
  $('treeButton').onclick=()=>openTree();
@@ -18381,13 +18531,25 @@ function treeHaste(){   /* 🌳 Fury and Zeal, and Bloodrage while Battle Shout 
 let treeTS=null,treeTT=null;
 function TT(){
  if(treeTS!==S){treeTS=S;treeTT={shield:0,shieldT:0,wallT:0,spinT:0,embraceT:0,undyingT:0,undyingDur:0,iceT:0,deterT:0,survT:0,survRate:0,wingsT:0,
-  enrageT:0,revenge:false,vengeance:false,critRow:0,fireballs:0,smites:0,cd:{},hawk:{t:1.5,a:0,dive:null},rainT:0,zones:[],heal:0,mendAt:0};}
+  enrageT:0,revenge:false,vengeance:false,critRow:0,fireballs:0,smites:0,cd:{},hawk:{t:1.5,a:0,dive:null},rainT:0,zones:[],heal:0,mendAt:0,clock:0,later:[]};}
  return treeTT;
 }
-function treeTimersReset(){treeTS=null;}
-const treeClock=()=>performance.now()/1000;
+/* a Reset empties what is running - shields, walls, the ice - but not the cooldowns: a save used stays used through Reset and relearn */
+function treeTimersReset(){const was=treeTS===S?treeTT:null;treeTS=null;if(was&&S){const T=TT();T.cd=was.cd;T.clock=was.clock;T.mendAt=was.mendAt;}}
+/* the tree's clock is the fight's own: seconds that treeTick counted, so a pause, a Tide battle or a hidden window passes none of it
+   (it read the wall clock until 2026-11-24, and three minutes on the pause screen brought every save back). Kept with TT, never saved */
+const treeClock=()=>TT().clock;
 const treeReady=k=>(TT().cd[k]||0)<=treeClock();
 const treeUse=(k,s)=>{TT().cd[k]=treeClock()+s;};
+/* a talent's blow a beat later (a second strike, a meteor on its way): counted in the fight's time by treeTick, never by setTimeout -
+   in a paused world it waits, and it comes once. fn asks for itself whether its foe and the hero still stand */
+const treeLater=(fn,ms)=>{TT().later.push({t:(ms||0)/1000,fn});};   /* setTimeout's order, so a call reads the same */
+/* the zone is left (buildZone): what lay on its ground or was on its way stays behind */
+function treeLeaveZone(){if(treeTT&&treeTS===S){treeTT.zones.length=0;treeTT.later.length=0;treeTT.hawk.dive=null;}}
+/* a foe's gold with Fortune as the tree stands at the kill. Its purse was counted when the zone was built (mobGold, with the Fortune
+   of that moment, kept on it as goldF): learned since, Fortune did nothing until the next zone, and Reset away it went on paying.
+   The same tree as then pays the very same coin */
+function treeGold(en){const was=en.goldF,now=tstat('gold');return was===undefined||was===now||!(en.gold>0)?en.gold:Math.max(1,Math.round(en.gold/(1+was/100)*(1+now/100)));}
 const treeShoutOn=()=>!!(hero&&hero.buff&&hero.buff.atk&&hero.buff.atk.t>0);
 const treeRapidOn=()=>!!(hero&&hero.buff&&hero.buff.haste&&hero.buff.haste.t>0);
 const treeRenewOn=()=>!!(hero&&hero.hotT>0);
@@ -18566,7 +18728,7 @@ function treeOnHit(en,dmg,crit,basic){
   if(sl>0&&Math.random()*100<sl)en.slowT=Math.max(en.slowT,2);
   if(on.crusader&&Math.random()<on.crusader.chance){
    const ex=en.x,ey=en.y;
-   setTimeout(()=>{if(!gameOn||hero.dead||en.dead||!enemies.includes(en))return;treeHitFoe(en,heroAtk()*on.crusader.mul,'Crusader');SpellFx.hit('tree:crusader',{x:en.x,y:en.y,r:en.r||16});mpAct('spell',{tx:Math.round(ex),ty:Math.round(ey),f:'tree:crusader'});},120);
+   treeLater(()=>{if(!gameOn||hero.dead||en.dead||!enemies.includes(en))return;treeHitFoe(en,heroAtk()*on.crusader.mul,'Crusader');SpellFx.hit('tree:crusader',{x:en.x,y:en.y,r:en.r||16});mpAct('spell',{tx:Math.round(ex),ty:Math.round(ey),f:'tree:crusader'});},120);
   }
  }
  if(on.avatar&&treeShoutOn()&&dmg>0&&!treeOnHit.cleaving){
@@ -18625,7 +18787,10 @@ function treeDot(en,total,secs,kind){
 }
 /* the foe's side of the tree, every frame: frozen or stunned (true: it does nothing this frame), burning, marked, about to blow */
 function treeFoe(en,dt){
- if(en.dead)return false;
+ if(en.dead){   /* what burned, bled, ticked or froze on it dies with it: a foe that gets back up is a new one (it all went off at the respawn) */
+  if(en.tdots||en.bombT>0||en.burnT>0||en.markT>0||en.weakT>0||en.frozenT>0||en.stunT>0){en.tdots=null;en.bombT=en.burnT=en.markT=en.markMul=en.weakT=en.frozenT=en.stunT=0;}
+  return false;
+ }
  if(en.burnT>0)en.burnT-=dt;
  if(en.markT>0){en.markT-=dt;if(en.markT<=0)en.markMul=0;}
  if(en.weakT>0)en.weakT-=dt;
@@ -18650,8 +18815,12 @@ function treeFoe(en,dt){
 }
 /* --- the hero's side, every frame: the timers, heals over time, low-health saves, zones, the hawk and the rain of arrows --- */
 function treeTick(dt){
- if(!S||!hero||hero.dead)return;
- const on=tv().on,T=TT(),hm=heroMax();
+ if(!S||!hero)return;
+ const T=TT();
+ T.clock+=dt;   /* the cooldowns' clock, and the blows a beat behind (treeLater): both run on while he lies fallen, and those blows ask for themselves */
+ if(T.later.length){const due=[];for(let i=T.later.length-1;i>=0;i--)if((T.later[i].t-=dt)<=0)due.unshift(T.later.splice(i,1)[0]);for(const d of due)try{d.fn();}catch(err){console.error(err);}}
+ if(hero.dead)return;
+ const on=tv().on,hm=heroMax();
  for(const k of ['shieldT','wallT','spinT','embraceT','undyingT','deterT','wingsT','enrageT'])if(T[k]>0)T[k]=Math.max(0,T[k]-dt);
  if(T.shieldT<=0)T.shield=0;
  if(T.iceT>0){T.iceT-=dt;if(T.iceT<=0){T.iceT=0;if(on.iceblock)treeIceBurst(on.iceblock);}}
@@ -18683,7 +18852,7 @@ function treeZoneTick(z){
 }
 function treeMeteor(x,y,p){
  SpellFx.cast('tree:meteor',{x,y,r:p.r});mpAct('cast',{f:'tree:meteor',tx:Math.round(x),ty:Math.round(y),rad:p.r});
- setTimeout(()=>{
+ treeLater(()=>{
   if(!gameOn||!hero||hero.dead)return;
   for(const e of treeNear(x,y,p.r))treeHitFoe(e,heroAtk()*p.mul,'Meteor');
   shakeT=Math.max(shakeT,.35);sfx.fire?.();
@@ -18693,7 +18862,7 @@ function treeMeteor(x,y,p){
 }
 function treePillar(x,y,p){
  SpellFx.cast('tree:pillar',{x,y,r:p.r});mpAct('cast',{f:'tree:pillar',tx:Math.round(x),ty:Math.round(y),rad:p.r});
- setTimeout(()=>{if(!gameOn||!hero||hero.dead)return;for(const e of treeNear(x,y,p.r))treeHitFoe(e,heroAtk()*p.mul,'Wrath');shakeT=Math.max(shakeT,.2);},300);
+ treeLater(()=>{if(!gameOn||!hero||hero.dead)return;for(const e of treeNear(x,y,p.r))treeHitFoe(e,heroAtk()*p.mul,'Wrath');shakeT=Math.max(shakeT,.2);},300);
 }
 /* 🦅 Spirit Hawk: it circles the hero and every few seconds dives at the foe he fights (or the nearest), striking and marking it */
 function treeHawk(dt,p){
@@ -18727,9 +18896,10 @@ function treeRain(p){
 /* a beam (Piercing Shot, Holy Beam) or a lance (Ice Lances): every foe on the line, the first in full and the rest at rest */
 function treeBeam(sp,tgt,p,style,mulEach){
  const x=hero.x,y=hero.y-10,a=Math.atan2((tgt.y-10)-y,tgt.x-x),ux=Math.cos(a),uy=Math.sin(a);
- const hit=treeLine(x,y,ux,uy,p.len,p.w);
- hit.forEach((e,k)=>dealSpell(e,{...sp,mul:sp.mul*(mulEach!=null?mulEach:(k?p.rest:1)),_beam:1}));
- const tx=x+ux*p.len,ty=y+uy*p.len;
+ const len=Math.max(p.len,Math.hypot(tgt.x-x,(tgt.y-10)-y)+20);   /* never shorter than the cast that sent it: with every range talent the cast reaches past the lance's 320 */
+ const hit=treeLine(x,y,ux,uy,len,p.w),at=hit.includes(tgt)?tgt:hit[0];   /* a capstone's pillar falls once, on the target - not once for every foe on the line */
+ hit.forEach((e,k)=>dealSpell(e,{...sp,mul:sp.mul*(mulEach!=null?mulEach:(k?p.rest:1)),_beam:1,_pillar:!!sp._pillar&&e===at}));
+ const tx=x+ux*len,ty=y+uy*len;
  SpellFx.cast('tree:beam:'+style,{x,y,tx,ty,w:p.w,k:sp.size||1});mpAct('cast',{f:'tree:beam:'+style,tx:Math.round(tx),ty:Math.round(ty)});
  return hit.length;
 }
@@ -18742,12 +18912,12 @@ function treeCastSt(sp,tgt,c){
  if(c.id==='priest'&&i===0&&on.holybeam){treeBeam(sp,tgt,on.holybeam,'holy');return true;}
  if(c.id==='priest'&&i===0&&on.penance){
   const p=on.penance;
-  for(let k=0;k<p.n;k++)setTimeout(()=>{if(!gameOn||hero.dead||tgt.dead||tgt.hidden||!enemies.includes(tgt))return;dealSpell(tgt,{...sp,mul:sp.mul*p.mul,_pen:k,_pillar:k===p.n-1&&sp._pillar});},k*170);
+  for(let k=0;k<p.n;k++)treeLater(()=>{if(!gameOn||hero.dead||tgt.dead||tgt.hidden||!enemies.includes(tgt))return;dealSpell(tgt,{...sp,mul:sp.mul*p.mul,_pen:k,_pillar:k===p.n-1&&sp._pillar});},k*170);
   return true;
  }
  if(c.id==='warrior'&&i===0&&on.doublestrike){
   dealSpell(tgt,sp);
-  setTimeout(()=>{if(!gameOn||hero.dead||tgt.dead||tgt.hidden||!enemies.includes(tgt))return;dealSpell(tgt,{...sp,mul:sp.mul*on.doublestrike.second,_twin:1});SpellFx.cast(sp.fx,{x:hero.x,y:hero.y,gy:heroGroundY(),fx:-(hero.fx||1),tx:tgt.x,ty:tgt.y,targets:[{x:tgt.x,y:tgt.y,r:tgt.r||16}],k:sp.size});},180);
+  treeLater(()=>{if(!gameOn||hero.dead||tgt.dead||tgt.hidden||!enemies.includes(tgt))return;dealSpell(tgt,{...sp,mul:sp.mul*on.doublestrike.second,_twin:1});SpellFx.cast(sp.fx,{x:hero.x,y:hero.y,gy:heroGroundY(),fx:-(hero.fx||1),tx:tgt.x,ty:tgt.y,targets:[{x:tgt.x,y:tgt.y,r:tgt.r||16}],k:sp.size});},180);
   return true;
  }
  return false;
@@ -18756,7 +18926,7 @@ function treeCastSt(sp,tgt,c){
 function treeTwinBolt(sp,tgt,c,bc){
  const on=tv().on,p=c.id==='mage'?on.twinflames:c.id==='hunter'?on.doubleshot:null;
  if(!p||sp._i!==0)return;
- setTimeout(()=>{
+ treeLater(()=>{
   if(!gameOn||hero.dead||tgt.dead||tgt.hidden||!enemies.includes(tgt))return;
   bolts.push({x:hero.x,y:hero.y-16,tgt,sp:470,dmg:0,spell:{...sp,mul:sp.mul*p.second,_twin:1,_meteor:false},arrow:c.id==='hunter',c:bc,fx:sp.fx,k:1,big:sp.size});
   mpAct('boltfx',{tx:Math.round(tgt.x),ty:Math.round(tgt.y),ar:c.id==='hunter'?1:0,c:bc,f:sp.fx});
@@ -18783,7 +18953,7 @@ function treeCastMulti(sp,tgt,list,c){
  }
  if(c.id==='mage'&&i===2&&on.arcanebeam){
   const p=on.arcanebeam,a0=Math.atan2(tgt.y-hero.y,tgt.x-hero.x)-p.arc/2;
-  for(let k=0;k<p.ticks;k++)setTimeout(()=>{
+  for(let k=0;k<p.ticks;k++)treeLater(()=>{
    if(!gameOn||hero.dead)return;
    const a=a0+p.arc*k/(p.ticks-1),ux=Math.cos(a),uy=Math.sin(a);
    for(const e of treeLine(hero.x,hero.y-10,ux,uy,p.len,p.w))dealSpell(e,{...sp,mul:sp.mul/1.3*p.mul,_beam:1});
@@ -18822,7 +18992,7 @@ function treeCastAoe(sp,list){
   if(on.consecration){const p=on.consecration;treeZone('consecration',hero.x,hero.y,p.r,p.dur,p.dur*2,{mul:p.mul/2,burn:true,label:'✨'});SpellFx.cast('tree:consecration',{x:hero.x,y:hero.y,r:p.r,dur:p.dur});mpAct('cast',{f:'tree:consecration',rad:p.r,d:p.dur});}
   if(on.divinestorm&&!sp._storm){
    const p=on.divinestorm;
-   setTimeout(()=>{
+   treeLater(()=>{
     if(!gameOn||hero.dead)return;
     const two={...sp,mul:sp.mul*p.second,_storm:1,heal:0};
     const l2=enemies.filter(e=>!e.dead&&!e.hidden&&dist(hero,e)<=sp.rad);
@@ -19138,6 +19308,9 @@ function fiveTakeGift(){
  updateFiveUI();resumeFiveAuto();
 }
 const fiveDealOpen=()=>!!fiveDeal;
+/* 🔥 free spins won and not yet handed over - the fanfare, the Bargain, its wheel: the machine is busy. Spin, the buys, Auto and the
+   stake stayed live for those seconds, and a bonus bought or spun then took the place of the one just won (S.fiveGift holds one) */
+const fiveGiftWaits=()=>!!(S&&S.fiveGift);
 function fiveOfferDeal(tier){
  fiveDeal={tier,gen:fiveGen,who:S};fiveLook('calm'); /* the trigger's wheels and banner make way for the question */
  $('fiveDealTxt').innerHTML=`Your <b>${FIVE_SPINS} ${FIVE_TIERS[tier]}</b> for one turn of the wheel: <b>5, 8, 12, 16 or 20</b> spins - or a <b style="color:#ff8a3a">5</b>: ${FIVE_SPINS} <b>${FIVE_TIERS[tier+1]}</b>. A fair bargain: on average worth exactly what you hold.`;
@@ -19160,6 +19333,7 @@ function fiveDealAnswer(yes){ /* one answer per question - a second press finds 
  const s=FIVE_DEAL[i],g=S.fiveGift;
  if(s[0]==='up'){g.tier=Math.min(3,g.tier+1);g.spins=FIVE_SPINS;}else g.spins=s[0];
  save();sfx.buy();
+ updateFiveUI(); /* the box is gone and the bonus still waits: the buttons stay shut by fiveGiftWaits, not by what the box left on them */
  const ms=fiveFast?1800:3400;
  fiveLook('deal',{land:i,slices:FIVE_DEAL.map(d=>d[0]==='up'?'':String(d[0])),ms}); /* the raise is the 5 itself, painted on its slice */
  $('fiveRes').style.color='#ffb07a';$('fiveRes').textContent='The wheel of the Bargain turns…';
@@ -19174,14 +19348,14 @@ function fiveDealAnswer(yes){ /* one answer per question - a second press finds 
 $('fiveDealYes').onclick=()=>fiveDealAnswer(true);
 $('fiveDealNo').onclick=()=>fiveDealAnswer(false);
 function fiveBonusOver(R){
- const total=fiveRunGold,res=$('fiveRes');fiveRunGold=0;delete S.fiveRun;
+ const total=(S.fiveRun|0)||fiveRunGold,res=$('fiveRes');fiveRunGold=0;delete S.fiveRun; /* the saved total: the machine's own count began again at the hero list or a relaunch, and the line said less than was paid */
  res.style.color='#ffd76a';res.textContent='🔥 Free spins over - '+total.toLocaleString()+'◉ in all · x'+parseFloat((total/R.bet).toFixed(2));
  log(`Five Five Five: the free spins paid <span class="loot">${total.toLocaleString()} ◉</span> in all.`,'loot');
  fiveLook('mode',0);if(total>=R.bet*20)fiveLook('cheer',{amount:total,tier:total>=R.bet*200?'jackpot':'big',title:'TOTAL WIN',ms:3600});
 }
 function clearFiveCelebration(){fiveCelebrating=false;clearTimeout(fiveCelebrateTimer);const r=$('fiveRes');if(r)r.classList.remove('bigres');fiveLook('calm');}
 function spinFive(){
- if(!S||fiveSpinning||fiveCelebrating||fiveDeal)return;
+ if(!S||fiveSpinning||fiveCelebrating||fiveDeal||S.fiveGift)return; /* a bonus waiting to be handed over is never spun over */
  fiveSync();
  const isFree=fiveFree>0,bought=!isFree&&fiveBought>0?fiveBought:0;fiveBought=0;
  const bet=fiveBet;
@@ -19209,16 +19383,16 @@ function updateFiveUI(){
  if(S!==fiveHero)fiveSync();
  const b=$('fiveSpinBtn'),cost=fiveBet;
  if(b){
-  b.disabled=fiveSpinning||fiveCelebrating||fiveDealOpen()||(fiveFree<=0&&totalGold()<cost);
+  b.disabled=fiveSpinning||fiveCelebrating||fiveDealOpen()||fiveGiftWaits()||(fiveFree<=0&&totalGold()<cost);
   b.textContent=fiveFree>0?'🔥 FREE SPIN · '+fiveFree+' left':totalGold()<cost?'Spin · '+cost.toLocaleString()+'◉ - broke!':'Spin · '+cost.toLocaleString()+'◉';
  }
- const a=$('fiveAutoBtn');if(a){a.classList.toggle('on',fiveAuto);a.textContent=fiveAuto?'■ Stop':'▶ Auto';a.disabled=fiveDealOpen();}
+ const a=$('fiveAutoBtn');if(a){a.classList.toggle('on',fiveAuto);a.textContent=fiveAuto?'■ Stop':'▶ Auto';a.disabled=fiveDealOpen()||(!fiveAuto&&fiveGiftWaits());} /* a running Auto can always be stopped */
  $('fiveBetN').textContent=cost.toLocaleString()+'◉';
- const lock=fiveSpinning||fiveAuto||fiveFree>0||fiveDealOpen();
+ const lock=fiveSpinning||fiveAuto||fiveFree>0||fiveDealOpen()||fiveGiftWaits();
  $('fiveBetDn').disabled=lock||fiveBetIx<=0;$('fiveBetUp').disabled=lock||fiveBetIx>=FIVE_BETS.length-1;
  [1,2].forEach(t=>{const bb=$('fiveBuy'+t);if(!bb)return;const price=fiveBet*FIVE_BUY[t-1];
   bb.textContent='🔥 '+(t===1?'Ember':'Hellfire')+' · '+price.toLocaleString()+'◉';
-  bb.disabled=fiveSpinning||fiveCelebrating||fiveAuto||fiveFree>0||fiveDealOpen()||totalGold()<price;});
+  bb.disabled=fiveSpinning||fiveCelebrating||fiveAuto||fiveFree>0||fiveDealOpen()||fiveGiftWaits()||totalGold()<price;});
  const st=$('fiveStats'),s=fiveSession;
  if(st)st.textContent=s.spins?`Session: ${s.spins} spin${s.spins===1?'':'s'} · ${s.gold>=0?'+':''}${s.gold.toLocaleString()}◉`:'';
  fiveLook('mode',fiveFree>0?fiveTier:0);
@@ -19277,16 +19451,16 @@ $('fiveInfoBtn').onclick=()=>{const p=$('fivePay');if(p)p.style.display=p.style.
 $('fiveAutoBtn').onclick=()=>{
  if(!fiveReady())return;
  if(fiveAuto){stopFiveAuto();return;}
- if(fiveDealOpen())return;
+ if(fiveDealOpen()||fiveGiftWaits())return; /* the bonus is handed over first */
  const free=fiveFree>0;
  if(!free&&totalGold()<fiveBet){stageMsg('Not enough gold to start auto-spin',1400);sfx.warn();return;}
  fiveAuto=true;fiveAutoFree=free;updateFiveUI();
  if(!fiveSpinning&&!fiveCelebrating)spinFive();
 };
-$('fiveBetDn').onclick=()=>{if(fiveReady()&&fiveBetIx>0&&!fiveSpinning&&!fiveAuto&&fiveFree<=0){fiveBetIx--;fiveBet=FIVE_BETS[fiveBetIx];updateFiveUI();}};
-$('fiveBetUp').onclick=()=>{if(fiveReady()&&fiveBetIx<FIVE_BETS.length-1&&!fiveSpinning&&!fiveAuto&&fiveFree<=0){fiveBetIx++;fiveBet=FIVE_BETS[fiveBetIx];updateFiveUI();}};
+$('fiveBetDn').onclick=()=>{if(fiveReady()&&fiveBetIx>0&&!fiveSpinning&&!fiveAuto&&fiveFree<=0&&!fiveDeal&&!fiveGiftWaits()){fiveBetIx--;fiveBet=FIVE_BETS[fiveBetIx];updateFiveUI();}};
+$('fiveBetUp').onclick=()=>{if(fiveReady()&&fiveBetIx<FIVE_BETS.length-1&&!fiveSpinning&&!fiveAuto&&fiveFree<=0&&!fiveDeal&&!fiveGiftWaits()){fiveBetIx++;fiveBet=FIVE_BETS[fiveBetIx];updateFiveUI();}};
 [1,2].forEach(t=>{$('fiveBuy'+t).onclick=()=>{
- if(!fiveReady()||fiveSpinning||fiveCelebrating||fiveAuto||fiveFree>0||fiveDeal)return;
+ if(!fiveReady()||fiveSpinning||fiveCelebrating||fiveAuto||fiveFree>0||fiveDeal||fiveGiftWaits())return; /* never a second bonus over one still waiting: it took its place, and the price of the first was gone */
  const price=fiveBet*FIVE_BUY[t-1];
  if(!spendGold(price)){stageMsg('Not enough gold - '+FIVE_TIERS[t].toLowerCase()+' cost '+price.toLocaleString()+'◉',1600);sfx.warn();return;}
  fiveSession.gold-=price;renderHUD();
@@ -19311,7 +19485,7 @@ function bankRefresh(){
 }
 function openBank(){bankTick();$('bankMsg').textContent='';bankRefresh();$('bankFx').style.display='flex';}
 $('bankClose').onclick=()=>$('bankFx').style.display='none';
-setInterval(()=>{if($('bankFx').style.display==='flex')bankRefresh();},1000);
+setInterval(()=>{if(S&&$('bankFx').style.display==='flex')bankRefresh();},1000);   /* S: a kick drops the hero, and with the Bank open this threw once a second on the sign-in screen */
 document.querySelectorAll('[data-bank]').forEach(b=>b.onclick=()=>{
  bankTick();
  const op=b.dataset.bank,msg=$('bankMsg');
@@ -21735,6 +21909,7 @@ function renderShop(){
  });
  document.querySelectorAll('[data-pot]').forEach(b=>b.onclick=()=>{
   if(inBossFight()){stageMsg('The Trader cowers - no potion sales during a boss fight!',1600);sfx.warn();return;}
+  if(cowLocked()){stageMsg('🐄 Not used in the Cow Level - you fight with what the run gives you',1800);sfx.warn();return;}   /* the run's potion bag is thrown away with the run: the gold bought nothing */
   const k=b.dataset.pot,have=S.pots[k]||0;
   if(have>=POT_CAP){stageMsg('Potion bag full - max '+POT_CAP+' of each kind',1400);sfx.warn();return;}
   const n=Math.min(parseInt(b.dataset.n||'1',10),POT_CAP-have); /* 10x near the cap tops you up instead */
@@ -22128,7 +22303,7 @@ async function loadChar(id){
  if(!raw)raw=await deviceGet('eastvale-char-'+id); /* legacy fallback */
  if(raw){try{return migrate(JSON.parse(raw));}catch(e){}}
  if(!memChars[id])return null;
- return migrate(JSON.parse(memChars[id]));
+ try{return migrate(JSON.parse(memChars[id]));}catch(e){console.error('hero '+id+' could not be read - left out of the list',e);return null;}   /* one damaged hero must not reject the whole list: this second read stood outside the try */
 }
 async function legacyLoad(){
  let raw=await deviceGet('riptide-save3');
@@ -22445,7 +22620,10 @@ function rememberDeletion(uid,id,at,pending){
 }
 async function removeDeletedLocal(uid,id){
  if(!FB.user||FB.user.uid!==uid)return;
- if(S&&S.id===id){const playing=gameOn;S=null;FB.pushDirty=false;gameOn=false;if(playing)showSelect();}
+ if(S&&S.id===id){ /* ✋ put away while S is still the hero, as every other road does: with S dropped first his Cow Run stayed for whoever entered next, and a farm piece held in build mode (a move, a resize) threw in farmPiece before the hero list could open */
+  const playing=gameOn;gameOn=false; /* out of play first: no spot is stamped for a hero that is gone */
+  if(playing){closeCasinoWindows();heroPutAway();}else cowRunPutAway();
+  S=null;FB.pushDirty=false;if(playing)showSelect();}
  await saveRoster((await loadRoster()).filter(x=>x!==id));
  delete memChars[id];
  await deviceDelete('riptide-char-'+id);await deviceDelete('eastvale-char-'+id);
@@ -22798,7 +22976,7 @@ async function showLeaderboard(refresh=false){
    <div class="lbrank big">${i+1}</div>
    <canvas class="portrait" width="64" height="76" data-lbp="${i}"></canvas>
    <div class="cinfo">
-    <div class="cn">${esc((e.title?e.title+' ':'')+(e.name||'?'))}${e.hardcore?` <span style="color:#ff5a5a;font-weight:700">💀 (HARDCORE${e.hcDead?' · FALLEN':''})</span>`:''}${e.rating?` <span style="color:var(--brass)">(${esc(e.rating)})</span>`:''}${e.prestige?` <span class="pstar">✦ Prestige ${esc(e.prestige)}</span>`:''}</div>
+    <div class="cn">${e.title?esc(e.title)+' ':''}${esc(typeof I18N!=='undefined'?I18N.name(e.name||'?'):(e.name||'?'))}${e.hardcore?` <span style="color:#ff5a5a;font-weight:700">💀 (HARDCORE${e.hcDead?' · FALLEN':''})</span>`:''}${e.rating?` <span style="color:var(--brass)">(${esc(e.rating)})</span>`:''}${e.prestige?` <span class="pstar">✦ Prestige ${esc(e.prestige)}</span>`:''}</div>
     <div class="cl">${r&&c?esc(r.name+' '+c.name)+' · ':''}Level ${esc(e.lvl||1)}</div>
     <div class="cl">⚔ ${fmtGS(e.gs)} gear score · ${esc(zn)}</div>
    </div>
@@ -22846,11 +23024,51 @@ function updateAcctUI(){
   $('fbOut').style.display='none';
  }
 }
-function showLogin(msg=''){
- closeCasinoWindows(); /* 🎰 signed out or kicked by another device: the tables go with the hero, while S is still his */
+/* ✋ THE HERO IS PUT AWAY (2026-11-24). One teardown for every road out of the world - the hero list (showSelect), the sign-in
+   (showLogin: a kick from another device, signing out) and a hero deleted under the player. They were two lists, and the
+   sign-in's was the short one: after a kick the Cow Run and its cards, the crossing, the scene and every window stayed up
+   for whoever entered next - a card taken there cost that hero his weapon, the Black Tide put him ashore in a port he never
+   sailed for, the Bank threw once a second. Called while S is still the hero, after closeCasinoWindows(): what a window owes
+   him is settled before it closes. It asks for nothing and is safe with no hero at all (the sign-in at start-up).
+   A NEW WINDOW joins one of the two lists here, or gets a line of its own below (tests/bug-review-2026-11-24-handover). */
+const HERO_BOXES=['confirmFx','renameOv','prestigeConfirm','hcConfirm','hcDeathOv','cityWonFx'];   /* built in script: taken off the page, the question with them */
+const HERO_WINDOWS=['bankFx','smithFx','mineFx','smeltFx','enchFx','talentFx','boardFx','voyageFx','mercFx','dragonFx','ledgerFx','stableFx','fishhutMenu','outfitFx',
+ 'farmBuyFx','farmCheckoutFx','farmMoveFx','farmDelFx','sharkFx','ritualDoneFx','ritualBox','iceReqMsg','iceMsg','gateMsg','cryptIntro','altarMsg','raidModal','mpLobby'];   /* shown by their style: closed */
+/* 🐄 no Cow Run outlives its hero: ended as 'quit' - he is put back as he walked in, nothing paid - its cards or its summary
+   closed whether or not a run is still on (the summary stood over the hero list with Run again live), nothing of it left */
+function cowRunPutAway(){
+ if(CR||(S&&S.cowRunStash))cowRunEnd('quit');
+ cowPickClose();
+ const kit=$('cowKit');if(kit)kit.remove();
+ document.body.classList.remove('cowrun');
+}
+function heroPutAway(){
+ const shown=id=>{const e=$(id);return !!e&&!!e.style.display&&e.style.display!=='none';};
+ cowRunPutAway();
  spotStamp(true); /* 🧭 where this hero is being left */
+ dropFarmBuild(); /* the cart and any held piece belong to the hero being left */
+ pendingDelRect=null; /* and so do the pieces he was asked about: the question goes with its box, as its No does */
+ cancelHallScenes(); /* and so does any scene */
+ setCinematic(false);
+ if(mp.on)mpLeave(false); /* and its raid room - left open, it went on writing and moving the next hero */
  dismissHeroGuide();
  TideUI.leaveZone();
+ stopFishing();
+ voyage=null; /* ⛵ and the crossing: he is still in the port he sailed from, and an expedition aboard comes home when he next wakes (raidWatch) */
+ if(shown('sharkFx')||shown('ritualDoneFx')){scenePause=false;gamePaused=audioPaused;ritualActive=false;ritualArmor=null;} /* 🦈🧊 a prize that is his already, shown over a paused game: the pause goes with the box */
+ if(shown('stableFx'))updateMountButton();
+ if($('lbFx').classList.contains('open'))$('lbClose').onclick();
+ if($('cfgBox').classList.contains('open'))closeSettings();
+ enchCeremonyEnd();treeUI.close();closeFinalGate();
+ $('restFx').classList.remove('open'); /* a wheel still turning has written its roll already, to the hero who spun */
+ for(const id of HERO_WINDOWS){const e=$(id);if(e)e.style.display='none';}
+ for(const id of HERO_BOXES){const e=$(id);if(e)e.remove();}
+ document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));
+ if(AC.ctx){stopAmbience();AC.prof=null;} /* the next hero's zone starts its own sound: a kick stopped it but kept the profile, and startAmbience takes a zone of the same kind for already playing */
+}
+function showLogin(msg=''){
+ closeCasinoWindows(); /* 🎰 signed out or kicked by another device: the tables go with the hero, while S is still his */
+ heroPutAway(); /* ✋ and all else that was his, the teardown the hero list makes - before he is dropped */
  gameOn=false;
  S=null; /* drop any lingering character so it can never be pushed into the next profile */
  $('create').style.display='none';$('create').classList.remove('open');
@@ -22863,6 +23081,7 @@ function showLogin(msg=''){
 function drawPortrait(cnv,ch){
  const g=cnv.getContext('2d'),W=cnv.width,H=cnv.height;
  const r=RACES.find(x=>x.id===(RACE_ALIAS[ch.race]||ch.race))||RACES[0],c=CLASSES.find(x=>x.id===(CLASS_ALIAS[ch.cls]||ch.cls))||CLASSES[0];
+ ch={...ch,race:r.id};   /* a race this build has never heard of (a newer build's hero, anybody's leaderboard row) is painted as the first it knows: unknown, it threw in the sprite and the list's buttons were never wired */
  const bg=g.createLinearGradient(0,0,0,H);
  bg.addColorStop(0,'#41301f');bg.addColorStop(1,'#1a120c');
  g.fillStyle=bg;g.fillRect(0,0,W,H);
@@ -22920,7 +23139,7 @@ async function renderSelect(){
   return `<div class="card charcard"${hcDead?' style="opacity:.5;filter:grayscale(.8)"':''}>
    <canvas class="portrait" width="64" height="76" data-pc="${ch.id}"></canvas>
    <div class="cinfo">
-    <div class="cn">${esc(dispName(ch))}${ch.hardcore?` <span style="color:#ff5a5a;font-size:11px;font-weight:700">💀 ${hcDead?'FALLEN':'HARDCORE'}</span>`:''}${ch.prestige?`<span class="pstar">✦ Prestige ${ch.prestige}</span>`:''}</div>
+    <div class="cn">${esc(typeof I18N!=='undefined'?I18N.name(dispName(ch)):dispName(ch))}${ch.hardcore?` <span style="color:#ff5a5a;font-size:11px;font-weight:700">💀 ${hcDead?'FALLEN':'HARDCORE'}</span>`:''}${ch.prestige?`<span class="pstar">✦ Prestige ${ch.prestige}</span>`:''}</div>
     <div class="cl">${r.name} ${c.name} · Level ${ch.lvl}</div>
     <div class="cl">⚔ ${fmtGS(charGearScore(ch))} gear score · ${(ZONES[ch.zone]||ZONES[TAVERN_ZONE]).name}</div>
    </div>
@@ -22985,20 +23204,12 @@ async function renderSelect(){
 }
 function showSelect(){
  closeCasinoWindows(); /* 🎰 first, while S is still the hero: a table hands back what is his (free spins), and a save it makes is parked with him below */
- if(S&&S.cowRunStash)cowRunEnd('quit');   /* 🐄 a run left by Change Character: the hero is put back as he walked in, nothing paid */
+ heroPutAway(); /* ✋ then all else that is his: the Cow Run (he is put back as he walked in, nothing paid), the cart, the scene, the raid room, the crossing, every window - the one teardown, shared with the sign-in */
  if(TEST_ROSTER&&gameOn&&S&&S.test&&TEST_ROSTER.has(S.id))TEST_ROSTER.set(S.id,JSON.stringify(saveSnapshot()));   /* 🧪 the hero test keeps what was changed, for the session */
- spotStamp(true); /* 🧭 where this hero is being left */
- dropFarmBuild(); /* the cart and any held piece belong to the hero being left */
- cancelHallScenes(); /* and so does any scene */
- parkDirtyHero(); /* and its unsent save, which goes up on its own */
- if(mp.on)mpLeave(false); /* and its raid room - left open, it went on writing and moving the next hero */
+ parkDirtyHero(); /* and its unsent save, which goes up on its own (the hero list only: a kicked session may not write) */
  if(gvb.ref)gvbLeaveForSwitch(); /* and its duel: a stake on the table is forfeited, as Leave does */
- dismissHeroGuide();
- TideUI.leaveZone();
  gameOn=false;
  $('login').classList.remove('open');
- if(AC.ctx){stopAmbience();AC.prof=null;}
- document.querySelectorAll('.panel').forEach(p=>p.classList.remove('open'));
  $('create').style.display='none';$('create').classList.remove('open');
  $('select').classList.add('open');
  updateAcctUI();
@@ -23170,6 +23381,7 @@ function closeSettings(){
 const openSettings=()=>{
  if($('cfgBox').classList.contains('open')){closeSettings();return;}
  if(casinoWinOpen())return; /* 🎰 from the world only: over a casino window Esc and Start are its Back (casinoBack) */
+ if(typeof cowPickOpen==='function'&&cowPickOpen())return; /* 🐄 the Cow Run's cards and its last screen stand over Settings (z 79 over 78): it opened dimmed under them, out of the mouse's reach, and took the keys - 1-4 chose no card until Esc again */
  settingsReturnFocus=document.activeElement;
  initAudio();syncAudioUI();displaySettings.sync();renderControls();
  holdMove=null;for(const key of Object.keys(keys))delete keys[key];
@@ -23207,6 +23419,7 @@ wireTabs(settingsTabs);wireTabs(controlsTabs);
 /* 🌍 Language (2026-10-13): English on its own row, the six others under it, each in its own tongue. A choice saves the hero
    and starts the game again in it (assets/i18n/i18n.js), so every screen, ledger and canvas label is drawn new. */
 window.i18nBeforeReload=()=>save();
+if(window.I18N&&I18N.protect)I18N.protect(()=>S&&S.name||'');   /* 🪪 the hero playing: his name stays as written in the lines that say it ("Welcome back, Max.", "King Max") */
 document.querySelectorAll('.langbtn').forEach(b=>{
  const on=!!window.I18N&&b.dataset.lang===I18N.lang;
  b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on));
@@ -23439,6 +23652,11 @@ if(window.desktop&&window.desktop.getSettings){
  };
 }
 let audioPaused=false,gamePaused=false;
+/* ⏸ a pause a scene holds - the raid lobby, the Altar's blackout, the shark's box - is not the player's to flip: two taps on
+   Space in the lobby (the first "paused" it, the second "resumed") ran the raid behind the window, lords and all, before
+   anyone was ready; one tap left the raid running with the sound off and the button saying paused. The scene says so when
+   it takes the game (scenePause) and hands back whatever the player had chosen before it (gamePaused=audioPaused). */
+let scenePause=false;
 let heroGuideOwner=null;
 function clearGuideInput(){
  for(const key of Object.keys(keys))delete keys[key];
@@ -23480,8 +23698,10 @@ window.addEventListener('resize',()=>{
 $('musBtn').onclick=()=>{
  if(HeroGuide.isOpen())return;
  initAudio();
+ if(scenePause&&!gamePaused)scenePause=false;   /* the scene let go by another way */
+ if(scenePause&&!audioPaused)return;            /* ⏸ a scene holds the game: there is nothing of the player's to flip */
  audioPaused=!audioPaused;
- gamePaused=audioPaused;
+ gamePaused=audioPaused||scenePause;            /* paused before the scene began: the sound comes back, the scene keeps its hold */
  if(AC.ctx){if(audioPaused)AC.ctx.suspend();else AC.ctx.resume();}
  if(cowAudio){if(audioPaused)cowAudio.pause();else if(gameOn&&zoneOf().cow&&!hero.dead)cowAudio.play().catch(()=>{});}
  if(odinAudio){if(audioPaused)odinAudio.pause();else if(gameOn&&zoneOf().amb==='odin')odinAudio.play().catch(()=>{});}
@@ -23594,6 +23814,7 @@ bootPreload();
 function beginGame(isNew){
  if(casinoWinOpen(true))closeCasinoWindows(); /* 🎰 the hero list and the login put every table away already; one still up is not the new hero's */
  dropFarmBuild();cancelHallScenes();
+ cowRunPutAway(); /* 🐄 nor is a Cow Run, its cards or its summary: whatever road left one behind, it is not on this hero's screen */
  ledgerSeasonPick=null;seasonChartData=null; /* the last hero's chosen season is not this hero's */
  dismissHeroGuide();
  if(isNew)S.introPending=true;

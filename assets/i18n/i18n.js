@@ -45,6 +45,11 @@
   same:(shown,english)=>shown===english||shown===trText(english),
   /* words that are translated already (a wrapped line's pieces): the canvas doors let them pass */
   keep:s=>{if(lang!=='en'&&typeof s==='string'&&s){if(produced.size>20000)produced.clear();produced.add(s);}return s;},
+  /* 🪪 a hero's or a player's name, marked for the doors: shown as written whatever word it is (English: nothing to guard) */
+  name:s=>lang==='en'||typeof s!=='string'||!s?s:NM0+s.replace(/[-]/g,'')+NM1,
+  /* ...and whose names are about, asked of the game when a new line comes: f() -> the hero's name, the players' */
+  protect(f){nameSrc=typeof f==='function'?f:null;nameKey='\u0000';},
+  sizes:()=>({html:cacheH.size,htmlChars:cacheHChars,text:cacheT.size,names:prot.size}),
   choose(id){
    if(!ok(id)||id===lang)return;
    try{localStorage.setItem(STORE,id);}catch(e){}
@@ -92,7 +97,7 @@
  function build(){
   const src=DATA[lang];
   dict=new Map();byHead=new Map();loose=[];memo.clear();memoW.clear();memoP.clear();
-  cacheT.clear();cacheH.clear();
+  cacheT.clear();cacheH.clear();cacheHChars=0;
   if(!src)return;
   const add=(k,v,alias)=>{
    if(alias&&!/[A-Za-z]{2}/.test(k.replace(TOK,'')))return;   /* "Hear ye! {0}" without its cry is "{0}" - a key with no words would match everything */
@@ -211,6 +216,7 @@
   const numMap=[],tagMap=[];
   const local=v.replace(/\{#(\d+)\}/g,(a,i)=>{numMap.push(i);return '{#'+(numMap.length-1)+'}';})
                .replace(/<(\/?)(\d+)(\/?)>/g,(a,sl,i,vd)=>{let k=tagMap.indexOf(i);if(k<0){tagMap.push(i);k=tagMap.length-1;}return '<'+sl+k+vd+'>';});
+  if(isName(local))return v;   /* 🪪 the hero's or a player's name as a value: left as written */
   let t=trKey(local,depth);
   /* values the source glues on one after another, each with its own ", " (", 1 200 sacks of grain in a hired barn, 5
      councillors in your debt" in one slot; "The New Quarter, Watchtowers"): item by item, with its comma or without */
@@ -232,9 +238,10 @@
   if(t==null){
    /* a value with tags in it: its pieces one at a time */
    if(/<\d+>/.test(local)){
+    const nk=(x,d)=>isName(x)?null:trKey(x,d);   /* 🪪 a name inside a tag stays too */
     t=local.replace(/(<(\d+)>)([^<]*)(<\/\2>)|([^<]+)/g,(a,o,k,inner,c,plain)=>
-      plain!==undefined?(C.wordy(plain)?(trKey(plain.trim(),depth+1)!=null?a.replace(plain.trim(),trKey(plain.trim(),depth+1)):a):a)
-      :o+(C.wordy(inner)&&trKey(inner.trim(),depth+1)!=null?inner.replace(inner.trim(),trKey(inner.trim(),depth+1)):inner)+c);
+      plain!==undefined?(C.wordy(plain)?(nk(plain.trim(),depth+1)!=null?a.replace(plain.trim(),nk(plain.trim(),depth+1)):a):a)
+      :o+(C.wordy(inner)&&nk(inner.trim(),depth+1)!=null?inner.replace(inner.trim(),nk(inner.trim(),depth+1)):inner)+c);
    }else{
     /* "your books A": two values the source glued side by side ("grades {1}{2}") land in one slot - the longest unit at
        its start, then the rest on its own */
@@ -268,11 +275,40 @@
 
  /* ---- plain text ---- */
  const cacheT=new Map(),cacheH=new Map();
+ /* the HTML answers are kept by size as well as by count (2026-11-24): a Bag drawn again every second with new numbers is
+    35,000 characters, kept twice, never asked for again - 4,000 of those stood at 100-200 MB before the count let go */
+ let cacheHChars=0;const HTML_ENTRY=32000,HTML_ROOM=3e6;
  const QUICK=/^[\s\d.,:;%+\-−×x/()\[\]#◉·•|←→↑↓▴▾✕✓✔⚔★☆♥❤⏳⌛…]*$/;
  const produced=new Set();   /* what this layer wrote: code that reads its own text back and sets it again is not translated twice */
- function trText(s){
+ /* 🪪 names (2026-11-24): a hero called Max read "Max." in German and "最大" in Chinese, a peer called Hunter "Jäger" over
+    his own head. Two guards. I18N.name(s) marks a name where the game shows one: the marked stretch rides through every
+    door as a stand-in with no letters in it (so no lookup, cache or template can touch it) and is put back as written -
+    the same word beside it ("Hunter" the class) is translated as ever. And the game says whose names are about
+    (I18N.protect: the hero playing, the players met): in a line that was not marked, such a name is left alone where it
+    stands as a value of a sentence or as one word of a glued line. A bare unmarked word is a label, and is translated. */
+ const NM0='',NM1='',NMP=0xE010,NMAX=0xE0;
+ const NM_RE=/([^]*)/g,NM_PH=/[-]/g,NM_STRAY=/[]/g;
+ function named(s,f){
+  const held=[];
+  const t=f(s.replace(NM_RE,(a,n)=>held.length<NMAX?(held.push(n),String.fromCharCode(NMP+held.length-1)):n));
+  return typeof t==='string'?t.replace(NM_PH,ch=>{const n=held[ch.charCodeAt(0)-NMP];return n===undefined?'':n;}).replace(NM_STRAY,''):t;
+ }
+ let nameSrc=null,nameKey='',prot=new Set();
+ function syncNames(){   /* asked at every door, so it is cheap: one name as it is, or a short list; when they change, every answer worked out with the old ones is forgotten */
+  if(!nameSrc)return;
+  let l;try{l=nameSrc();}catch(e){return;}
+  const k=typeof l==='string'?l:Array.isArray(l)?l.join('\n'):'';if(k===nameKey)return;
+  nameKey=k;prot=new Set();
+  l=(typeof l==='string'?[l]:Array.isArray(l)?l:[]).filter(n=>typeof n==='string'&&n).slice(0,64);
+  for(const n of l){prot.add(C.canon(n).key);const b=/^(.*\S)\s+\(\d+\)$/.exec(n);if(b)prot.add(C.canon(b[1]).key);}   /* "Max (1840)": the rating is not the name */
+  memo.clear();memoW.clear();memoP.clear();cacheT.clear();cacheH.clear();cacheHChars=0;
+ }
+ const isName=k=>prot.size>0&&prot.has(k);
+ const bare=s=>typeof s==='string'&&s.indexOf(NM0)>=0?named(s,x=>x):s;   /* a door that translates nothing still takes the marks off */
+ function trText(s){return typeof s==='string'&&s.indexOf(NM0)>=0?named(s,trText0):trText0(s);}
+ function trText0(s){
   if(lang==='en'||typeof s!=='string'||!s)return s;
-  PROF.text++;
+  PROF.text++;syncNames();
   let r=cacheT.get(s);if(r!==undefined)return r;
   if(QUICK.test(s)||produced.has(s))return s;
   const t0=now();PROF.textMiss++;
@@ -318,6 +354,7 @@
  }
  function wholeRaw(p,depth,lower){   /* lower: a whole value may be a name the game lower-cased; a piece of a sentence may not */
   const c=C.canon(p);if(!C.wordy(c.key))return null;
+  if(isName(c.key))return p;   /* 🪪 one piece of a glued line that is the hero's or a player's name ("Max - Human Warrior") */
   const t=trKey(c.key,0);
   if(plainT(t))return c.lead+fill(t,c.nums).trim()+c.trail;
   if(depth>1)return null;
@@ -404,8 +441,9 @@
  }
  function byWords(p){
   const core=p.trim(),m=/^([\s\S]*?)([.!?…:;,]*)$/.exec(core),words=m[1].split(/\s+/);   /* "Rare Emberbite:" keeps its colon */
-  if(words.length<2||words.length>4||!words.every(w=>/^[A-Z]/.test(w)))return null;   /* names and titles ("Human Warrior"), never a run of small words */
-  const tr=words.map(w=>dict.get(w));
+  const held=w=>/^[-]$/.test(w);   /* 🪪 a marked name's stand-in: "Duke ·" is a title and a name */
+  if(words.length<2||words.length>4||!words.every(w=>/^[A-Z]/.test(w)||held(w))||words.every(held))return null;   /* names and titles ("Human Warrior"), never a run of small words */
+  const tr=words.map(w=>held(w)||isName(w)?w:dict.get(w));   /* 🪪 "King Max": the title is a word, the name is not */
   if(tr.some(x=>x===undefined))return null;
   return p.replace(core,tr.join(lang==='zh'?'':' ')+m[2]);
  }
@@ -491,9 +529,10 @@
   }
  }
  let tplEl=null;
- function trHTML(html,ctx){
+ function trHTML(html,ctx){return typeof html==='string'&&html.indexOf(NM0)>=0?named(html,h=>trHTML0(h,ctx)):trHTML0(html,ctx);}   /* 🪪 marked names ride through */
+ function trHTML0(html,ctx){
   if(lang==='en'||typeof html!=='string'||!html)return html;
-  PROF.html++;
+  PROF.html++;syncNames();
   const ck=ctx?ctx+'\u0001'+html:html;
   let r=cacheH.get(ck);if(r!==undefined)return r;
   const t0=now();PROF.htmlMiss++;PROF.htmlChars+=html.length;
@@ -504,8 +543,10 @@
    walk(tplEl.content,ctx);
    r=orig.innerHTML.get.call(tplEl);
   }
-  if(cacheH.size>4000)cacheH.clear();
-  cacheH.set(ck,r);
+  if(ck.length+r.length<=HTML_ENTRY){   /* a page too big to keep is one drawn anew each time: translated, not remembered */
+   if(cacheH.size>4000||cacheHChars+ck.length+r.length>HTML_ROOM){cacheH.clear();cacheHChars=0;}
+   cacheH.set(ck,r);cacheHChars+=ck.length+r.length;
+  }
   {const ms=now()-t0;PROF.htmlMs+=ms;if(ms>8&&PROF.slow.length<12)PROF.slow.push({ms:Math.round(ms),len:html.length,head:html.replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').slice(0,70)});}
   return r;
  }
@@ -523,15 +564,15 @@
   orig.placeholder=P(HTMLInputElement.prototype,'placeholder');
   if(lang==='en')return;   /* nothing to translate: leave the doors as the browser made them */
   Object.defineProperty(Element.prototype,'innerHTML',{configurable:true,enumerable:orig.innerHTML.enumerable,get:orig.innerHTML.get,
-   set(v){orig.innerHTML.set.call(this,typeof v==='string'&&!quietEl(this)?trHTML(v,ctxOf(this)):v);}});
+   set(v){orig.innerHTML.set.call(this,typeof v==='string'&&!quietEl(this)?trHTML(v,ctxOf(this)):bare(v));}});
   Object.defineProperty(Node.prototype,'textContent',{configurable:true,enumerable:orig.textContent.enumerable,get:orig.textContent.get,
-   set(v){orig.textContent.set.call(this,typeof v==='string'&&!(this.nodeType===1&&quietEl(this))&&!(this.parentNode&&quietEl(this.parentNode))?trCtx(v,ctxOf(this)):v);}});
+   set(v){orig.textContent.set.call(this,typeof v==='string'&&!(this.nodeType===1&&quietEl(this))&&!(this.parentNode&&quietEl(this.parentNode))?trCtx(v,ctxOf(this)):bare(v));}});
   Document.prototype.createTextNode=function(s){return orig.createTextNode.call(this,trText(String(s)));};
   Element.prototype.setAttribute=function(a,v){
    if(typeof v==='string'&&(a==='title'||a==='placeholder'||a==='aria-label'||a==='alt')&&!quietEl(this))v=trText(v);
    return orig.setAttribute.call(this,a,v);
   };
-  Element.prototype.insertAdjacentHTML=function(pos,html){return orig.insertAdjacentHTML.call(this,pos,quietEl(this)?html:trHTML(html,ctxOf(pos==='beforebegin'||pos==='afterend'?this.parentNode:this)));};
+  Element.prototype.insertAdjacentHTML=function(pos,html){return orig.insertAdjacentHTML.call(this,pos,quietEl(this)?bare(html):trHTML(html,ctxOf(pos==='beforebegin'||pos==='afterend'?this.parentNode:this)));};
   if(orig.title)Object.defineProperty(HTMLElement.prototype,'title',{configurable:true,enumerable:orig.title.enumerable,get:orig.title.get,set(v){orig.title.set.call(this,trText(v));}});
   if(orig.placeholder)Object.defineProperty(HTMLInputElement.prototype,'placeholder',{configurable:true,enumerable:orig.placeholder.enumerable,get:orig.placeholder.get,set(v){orig.placeholder.set.call(this,trText(v));}});
   for(const k of ['alert','confirm','prompt']){const f=window[k];if(typeof f==='function')window[k]=function(msg,...a){return f.call(window,trText(String(msg==null?'':msg)),...a);};}

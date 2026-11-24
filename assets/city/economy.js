@@ -470,7 +470,7 @@
    forsakenAt:0,      /* the close the last attack was fought out */
    hurt:null,         /* 🩹 {watch,cadets,mercs,left} guards hurt fighting them - off duty until left runs out */
    raid:null,         /* ⚔ {ally,n,seed} while an enemy's soldiers are in the streets - one close, like the Forsaken */
-   expedition:null,   /* ⚔ {ally,watch,cadets,mercs,cap,used,rate,at,auto} the guards the crown has sent abroad to raze an enemy's port */
+   expedition:null,   /* ⚔ {ally,watch,cadets,mercs,cap,used,rate,at,auto,down,landed} the guards the crown has sent abroad to raze an enemy's port */
    coupTold:false,
    bankRule:null,     /* 🏦 {left} while the Tides Bank keeps the books and the steward is dismissed; null otherwise */
    regency:false,     /* 👑 the throne stands empty and the King's Hand rules in the realm's name: the King was hanged, and a city handed back by the bank does not raise the dead */
@@ -591,7 +591,10 @@
   out.raid=out.chartered&&R&&atWar(String(R.ally))&&out.allies[String(R.ally)].war?{ally:String(R.ally),n:clamp(Math.floor(num(R.n,8)),1,60),seed:Math.floor(num(R.seed))>>>0}:null;
   if(out.chartered&&X&&atWar(String(X.ally))){const cap=clamp(Math.floor(num(X.cap)),0,RAID_CAP);
    out.expedition={ally:String(X.ally),watch:clamp(Math.floor(num(X.watch)),0,WATCH_MEN_MAX),cadets:clamp(Math.floor(num(X.cadets)),0,CADETS[CADETS.length-1]),mercs:clamp(Math.floor(num(X.mercs)),0,MERC_MAX),
-    cap,used:clamp(round1(num(X.used)),0,cap),rate:clamp(Math.round(num(X.rate,.25)*1000)/1000,.06,.6),at:clamp(Math.floor(num(X.at)),0,out.ticks),auto:!!X.auto};}
+    cap,used:clamp(round1(num(X.used)),0,cap),rate:clamp(Math.round(num(X.rate,.25)*1000)/1000,.06,.6),at:clamp(Math.floor(num(X.at)),0,out.ticks),auto:!!X.auto};
+   /* 🩹 down: the men who have fallen in the battle so far; landed: the men have gone ashore once (the game writes both - a battle left
+      midway is a retreat with those fallen booked). Each kept only when the save has it: an older expedition reloads exactly as it was */
+   const xe=out.expedition;if(X.down!==undefined)xe.down=clamp(Math.floor(num(X.down)),0,xe.watch+xe.cadets+xe.mercs);if(X.landed===true)xe.landed=true;}
   out.coupTold=!!s.coupTold;
   out.dismissed=Math.max(0,Math.floor(num(s.dismissed)));
   out.regency=!out.crowned&&!!s.regency;
@@ -2115,7 +2118,7 @@
   if(!r.men)return {ok:false,text:'Choose the men who sail.'};
   if(frozen(state)||state.treasury<r.cost)return {ok:false,text:'Provisions and ships for '+r.men+' men cost '+r.cost.toLocaleString()+' ◉, and the treasury cannot cover it.'};
   state.treasury-=r.cost;state.spent+=r.cost;
-  state.expedition={ally:id,watch:r.watch,cadets:r.cadets,mercs:r.mercs,cap:r.cap,used:0,rate:r.rate,at:state.ticks,auto:!!opts.auto};
+  state.expedition={ally:id,watch:r.watch,cadets:r.cadets,mercs:r.mercs,cap:r.cap,used:0,rate:r.rate,at:state.ticks,auto:!!opts.auto,down:0};   /* down: nobody has fallen yet - the game counts them as they do */
   return {ok:true,...r,text:'⚔ '+r.men+' of the crown’s guards sail for '+r.name+' - '+r.cost.toLocaleString()+' ◉ for provisions and ships'+(r.cap?'. They can raze '+r.cap+' building'+(r.cap===1?'':'s')+' before they are spent.':' - but against that garrison they will not burn a single roof.')};
  }
  /* one building razed in their port (the scene tells the books as it happens): a house counts 1, a barracks or a market up to 2 -

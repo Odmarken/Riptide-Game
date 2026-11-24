@@ -104,7 +104,9 @@ test('farm pieces are held by reference, the cart never outlives its hero, and a
  r.farmRefund([{t:'hobal',bites:1},{t:'hobal'},{t:'chickenseeds',bites:3}]);
  assert.equal(r.S.farm.baleN,6);assert.equal(r.S.farm.cseedN,3);
  /* the hero list, entering the world and leaving the farm all put the build tools down */
- assert.match(between('function showSelect(){','\n}'),/dropFarmBuild\(\);/);
+ /* since 2026-11-24 the hero list and the sign-in share one teardown, heroPutAway: the line lives there */
+ assert.match(between('function heroPutAway(){','\n}'),/dropFarmBuild\(\);/);
+ assert.match(between('function showSelect(){','\n}'),/heroPutAway\(\);/);
  assert.match(between('function beginGame(isNew){','\n}'),/dropFarmBuild\(\);/);
  assert.match(between('function applyZoneUI(){','\n}'),/if\(!zoneOf\(\)\.farm\)\{dropFarmBuild\(\);/);
  assert.match(between('function rebuildFarmItems(){','\n}'),/if\(!world\|\|!S\|\|!zoneOf\(\)\.farm\)return;/);

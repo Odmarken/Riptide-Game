@@ -212,7 +212,7 @@
   }
   if(s.leg&&s.leg.id==='felglaives'){   /* the glaives burn fel-green and leave a wide green wake */
    const st=s.ws('felglaives',s.leg.lvl);
-   for(let i=0;i<st.n;i++){const a=s.glA+i*Math.PI;H.crescent(g,s.x,hy,st.rad,a-1.5,a,14,C.fel,.6,{flat:.8,taper:1.4});
+   for(let i=0;i<st.n;i++){const a=s.glA+i*TAU/st.n;H.crescent(g,s.x,hy,st.rad,a-1.5,a,14,C.fel,.6,{flat:.8,taper:1.4});
     H.glow(g,s.x+Math.cos(a)*st.rad,hy+Math.sin(a)*st.rad*.8,30,C.fel,.55);}
   }
   for(const gm of s.gems||[]){   /* the XP gems shine through the night, and now and then one glints */

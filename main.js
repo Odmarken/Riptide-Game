@@ -199,10 +199,12 @@ function createWindow() {
 
   /* Whatever the page prints as an error lands in the log, so a player can send the file rather
      than describe a stack trace they cannot see. Electron 33 reported this as loose arguments;
-     35 and later pass one object with level 'error'. Both are read. */
+     35 and later pass one object with level 'error'. Both are read. (That object is the FIRST
+     argument - the event itself. It was looked for in the second, so errors were logged only through
+     the loose arguments Electron still sends and has marked for removal; bug review 2026-11-24.) */
   win.webContents.on('console-message', (...a) => {
-    const d = (a[1] && typeof a[1] === 'object')
-      ? a[1] : {level: a[1], message: a[2], lineNumber: a[3], sourceId: a[4]};
+    const d = (a[0] && typeof a[0] === 'object' && typeof a[0].message === 'string')
+      ? a[0] : {level: a[1], message: a[2], lineNumber: a[3], sourceId: a[4]};
     if (d.level === 3 || d.level === 'error') logErr('page', `${d.message} (${d.sourceId}:${d.lineNumber})`);
   });
   /* A crashed page used to leave the window blank until the player quit and started again. It is reloaded instead - the

@@ -95,7 +95,7 @@ test('game.js: the run strips the hero, stands the cards in the tree, and gives 
  assert.match(game,/if\(S&&S\.cowRunStat\)Object\.assign\(treeC\.stat,S\.cowRunStat\);/,'tv lays the cards over the tree');
  assert.match(game,/if\(S\.cowRunStash\)snap=\{\.\.\.snap,\.\.\.S\.cowRunStash\};/,'saveSnapshot writes the hero as he walked in');
  assert.match(game,/function buildZone\(\)\{\n if\(S&&S\.cowRunStash\)cowRunEnd\('left'\);/);
- assert.match(game,/if\(S&&S\.cowRunStash\)cowRunEnd\('quit'\);/);
+ assert.match(game,/function cowRunPutAway\(\)\{\n if\(CR\|\|\(S&&S\.cowRunStash\)\)cowRunEnd\('quit'\);/,'the hero put away - the hero list, the sign-in, a hero entering: one line for all since 2026-11-24 (tests/bug-review-2026-11-24-handover)');
  assert.match(game,/if\(cowRunning&&S\.cowRunStash\)\{[\s\S]{0,500}cowRunEnd\('died'\);/);
  assert.match(game,/if\(!isFK\(it\)\|\|!S\|\|it\.cowRun\)return it;/);
  assert.match(game,/if\(!isFG\(it\)\|\|!S\|\|it\.cowRun\)return it;/);
